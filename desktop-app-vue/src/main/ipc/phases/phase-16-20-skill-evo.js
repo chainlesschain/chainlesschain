@@ -11,6 +11,137 @@
  * Extracted from ipc-registry.js as part of H2 file split.
  */
 
+function createPhase16SkillServices({ deps = {}, registeredModules = {} } = {}) {
+  const {
+    getSkillRegistry,
+  } = require("../../ai-engine/cowork/skills/skill-registry");
+  const {
+    SkillPipelineEngine,
+  } = require("../../ai-engine/cowork/skills/skill-pipeline-engine");
+  const {
+    SkillMetricsCollector,
+  } = require("../../ai-engine/cowork/skills/skill-metrics-collector");
+  const {
+    SkillWorkflowEngine,
+  } = require("../../ai-engine/cowork/skills/skill-workflow-engine");
+
+  const skillRegistry =
+    deps.skillRegistry ||
+    registeredModules.skillRegistry ||
+    getSkillRegistry();
+  if (
+    !skillRegistry ||
+    typeof skillRegistry.executeSkill !== "function" ||
+    typeof skillRegistry.on !== "function"
+  ) {
+    throw new TypeError("Phase 16 requires a usable SkillRegistry instance");
+  }
+
+  const pipelineEngine =
+    deps.skillPipelineEngine ||
+    deps.pipelineEngine ||
+    registeredModules.skillPipelineEngine ||
+    new SkillPipelineEngine({ skillRegistry });
+  if (
+    typeof pipelineEngine.executePipeline !== "function" ||
+    typeof pipelineEngine.on !== "function"
+  ) {
+    throw new TypeError(
+      "Phase 16 requires a usable SkillPipelineEngine instance",
+    );
+  }
+
+  const metricsCollector =
+    deps.skillMetricsCollector ||
+    deps.metricsCollector ||
+    registeredModules.skillMetricsCollector ||
+    pipelineEngine.metricsCollector ||
+    new SkillMetricsCollector({
+      database: deps.database || null,
+      skillRegistry,
+      pipelineEngine,
+    });
+  if (
+    typeof metricsCollector.recordExecution !== "function" ||
+    typeof metricsCollector.initialize !== "function"
+  ) {
+    throw new TypeError(
+      "Phase 16 requires a usable SkillMetricsCollector instance",
+    );
+  }
+
+  if (
+    pipelineEngine.skillRegistry &&
+    pipelineEngine.skillRegistry !== skillRegistry
+  ) {
+    throw new Error("Phase 16 pipelineEngine uses a different SkillRegistry");
+  }
+  if (
+    pipelineEngine.metricsCollector &&
+    pipelineEngine.metricsCollector !== metricsCollector
+  ) {
+    throw new Error(
+      "Phase 16 pipelineEngine uses a different SkillMetricsCollector",
+    );
+  }
+  if (
+    metricsCollector.skillRegistry &&
+    metricsCollector.skillRegistry !== skillRegistry
+  ) {
+    throw new Error("Phase 16 metricsCollector uses a different SkillRegistry");
+  }
+  if (
+    metricsCollector.pipelineEngine &&
+    metricsCollector.pipelineEngine !== pipelineEngine
+  ) {
+    throw new Error(
+      "Phase 16 metricsCollector uses a different SkillPipelineEngine",
+    );
+  }
+
+  pipelineEngine.skillRegistry = skillRegistry;
+  pipelineEngine.metricsCollector = metricsCollector;
+  metricsCollector.skillRegistry = skillRegistry;
+  metricsCollector.pipelineEngine = pipelineEngine;
+
+  const workflowEngine =
+    deps.skillWorkflowEngine ||
+    deps.workflowEngine ||
+    registeredModules.skillWorkflowEngine ||
+    new SkillWorkflowEngine({ pipelineEngine, skillRegistry });
+  if (typeof workflowEngine.executeWorkflow !== "function") {
+    throw new TypeError(
+      "Phase 16 requires a usable SkillWorkflowEngine instance",
+    );
+  }
+  if (
+    workflowEngine.pipelineEngine &&
+    workflowEngine.pipelineEngine !== pipelineEngine
+  ) {
+    throw new Error(
+      "Phase 16 workflowEngine uses a different SkillPipelineEngine",
+    );
+  }
+  workflowEngine.pipelineEngine = pipelineEngine;
+  workflowEngine.skillRegistry = skillRegistry;
+
+  metricsCollector.initialize();
+
+  Object.assign(registeredModules, {
+    skillRegistry,
+    skillPipelineEngine: pipelineEngine,
+    skillMetricsCollector: metricsCollector,
+    skillWorkflowEngine: workflowEngine,
+  });
+
+  return {
+    skillRegistry,
+    pipelineEngine,
+    metricsCollector,
+    workflowEngine,
+  };
+}
+
 function registerPhases16to20({
   safeRegister,
   logger,
@@ -18,6 +149,13 @@ function registerPhases16to20({
   registeredModules,
 }) {
   const { database, hookSystem } = deps;
+  let phase16Services = null;
+  const getPhase16Services = () => {
+    if (!phase16Services) {
+      phase16Services = createPhase16SkillServices({ deps, registeredModules });
+    }
+    return phase16Services;
+  };
 
   // ============================================================
   // Phase 16: v1.1.0 — Skill Pipeline, Metrics, Workflow, Git Hooks
@@ -33,7 +171,8 @@ function registerPhases16to20({
       const {
         registerSkillPipelineIPC,
       } = require("../../ai-engine/cowork/skills/skill-pipeline-ipc");
-      registerSkillPipelineIPC({ hookSystem });
+      const { pipelineEngine } = getPhase16Services();
+      registerSkillPipelineIPC({ pipelineEngine, ipcMain: deps.ipcMain });
     },
     handlers: 12,
   });
@@ -45,18 +184,24 @@ function registerPhases16to20({
       const {
         registerSkillMetricsIPC,
       } = require("../../ai-engine/cowork/skills/skill-metrics-ipc");
-      registerSkillMetricsIPC({});
+      const { metricsCollector } = getPhase16Services();
+      registerSkillMetricsIPC({ metricsCollector, ipcMain: deps.ipcMain });
     },
   });
 
-  // 🔥 Skill Workflow IPC (工作流引擎, 10 handlers)
+  // 🔥 Skill Workflow IPC (工作流引擎, 12 handlers)
   safeRegister("Skill Workflow IPC", {
-    handlers: 10,
+    handlers: 12,
     register: () => {
       const {
         registerSkillWorkflowIPC,
       } = require("../../ai-engine/cowork/skills/skill-workflow-ipc");
-      registerSkillWorkflowIPC({});
+      const { workflowEngine } = getPhase16Services();
+      registerSkillWorkflowIPC({
+        workflowEngine,
+        ipcMain: deps.ipcMain,
+        BrowserWindow: deps.BrowserWindow,
+      });
     },
   });
 
@@ -487,4 +632,4 @@ function registerPhases16to20({
   logger.info("[IPC Registry] ========================================");
 }
 
-module.exports = { registerPhases16to20 };
+module.exports = { createPhase16SkillServices, registerPhases16to20 };

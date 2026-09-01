@@ -9,6 +9,47 @@
 const { logger } = require('../../../utils/logger.js');
 const EventEmitter = require('events');
 
+function toNonNegativeNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : 0;
+}
+
+function getExecutionUsage(result) {
+  const usage = result?.usage || result?.tokenUsage || result?.metrics || {};
+  const tokensInput = toNonNegativeNumber(
+    result?.tokensInput ??
+      usage.tokensInput ??
+      usage.inputTokens ??
+      usage.input_tokens ??
+      usage.promptTokens ??
+      usage.prompt_tokens,
+  );
+  const tokensOutput = toNonNegativeNumber(
+    result?.tokensOutput ??
+      usage.tokensOutput ??
+      usage.outputTokens ??
+      usage.output_tokens ??
+      usage.completionTokens ??
+      usage.completion_tokens,
+  );
+  const tokensUsed = toNonNegativeNumber(
+    result?.tokensUsed ??
+      usage.tokensUsed ??
+      usage.totalTokens ??
+      usage.total_tokens ??
+      tokensInput + tokensOutput,
+  );
+
+  return {
+    tokensInput,
+    tokensOutput,
+    tokensUsed,
+    cost: toNonNegativeNumber(
+      result?.costUsd ?? result?.cost ?? usage.costUsd ?? usage.cost,
+    ),
+  };
+}
+
 /**
  * BaseSkill 抽象类
  */
@@ -96,13 +137,23 @@ class BaseSkill extends EventEmitter {
     const startTime = Date.now();
     this.metrics.invocations++;
 
+    const eventBase = {
+      skillId: this.skillId,
+      // Legacy alias retained for listeners written against the old event.
+      skill: this.skillId,
+      task,
+      pipelineId: context?.pipelineId || null,
+      pipelineExecutionId: context?.pipelineExecutionId || null,
+    };
+
     try {
       this._log(`开始执行技能: ${this.name}`);
-      this.emit('skill-started', { skill: this.skillId, task });
+      this.emit('skill-started', eventBase);
 
       const result = await this.execute(task, context);
 
       const executionTime = Date.now() - startTime;
+      const usage = getExecutionUsage(result);
       this.metrics.successes++;
       this.metrics.totalExecutionTime += executionTime;
       this.metrics.avgExecutionTime =
@@ -110,23 +161,40 @@ class BaseSkill extends EventEmitter {
 
       this._log(`技能执行成功: ${this.name}, 耗时: ${executionTime}ms`);
       this.emit('skill-completed', {
-        skill: this.skillId,
-        task,
+        ...eventBase,
         result,
+        // Legacy top-level field retained while consumers move to metrics.
         executionTime,
+        metrics: {
+          executionTime,
+          durationMs: executionTime,
+          ...usage,
+        },
       });
 
       return result;
     } catch (error) {
       const executionTime = Date.now() - startTime;
       this.metrics.failures++;
+      this.metrics.totalExecutionTime += executionTime;
+      this.metrics.avgExecutionTime =
+        this.metrics.totalExecutionTime / this.metrics.invocations;
 
       this._log(`技能执行失败: ${this.name}, 错误: ${error.message}`, 'error');
       this.emit('skill-failed', {
-        skill: this.skillId,
-        task,
+        ...eventBase,
         error,
+        errorMessage: error.message,
+        // Legacy top-level field retained while consumers move to metrics.
         executionTime,
+        metrics: {
+          executionTime,
+          durationMs: executionTime,
+          tokensInput: 0,
+          tokensOutput: 0,
+          tokensUsed: 0,
+          cost: 0,
+        },
       });
 
       throw error;

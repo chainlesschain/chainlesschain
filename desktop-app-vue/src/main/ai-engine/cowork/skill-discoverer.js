@@ -225,6 +225,9 @@ class SkillDiscoverer {
           version: plugin.version,
           author: plugin.author,
           category: plugin.category,
+          source: "marketplace",
+          suggestionType: "installable-skill",
+          installable: true,
           matchedKeywords: keywords.filter((kw) =>
             `${plugin.name} ${plugin.description}`.toLowerCase().includes(kw),
           ),
@@ -234,12 +237,17 @@ class SkillDiscoverer {
       }
     }
 
-    // Fallback: return keyword-based suggestions without marketplace
+    // Fallback results are search-query suggestions, not verified/installable
+    // Skill records. Keep `name` for API compatibility while making the type
+    // and installability explicit to every consumer.
     return keywords.slice(0, 3).map((kw) => ({
       name: kw,
-      description: `Suggested skill for "${kw}"`,
+      searchQuery: kw,
+      description: `Suggested marketplace search query for "${kw}"`,
       matchedKeywords: [kw],
       source: "keyword-inference",
+      suggestionType: "marketplace-search-query",
+      installable: false,
     }));
   }
 
@@ -258,15 +266,30 @@ class SkillDiscoverer {
       }
 
       const entry = this._rowToLogEntry(row);
+      const installableSkills = entry.suggestedSkills.filter(
+        (suggestion) =>
+          suggestion?.installable !== false &&
+          suggestion?.source !== "keyword-inference",
+      );
+      const searchQueries = entry.suggestedSkills
+        .filter(
+          (suggestion) =>
+            suggestion?.installable === false ||
+            suggestion?.source === "keyword-inference",
+        )
+        .map((suggestion) => suggestion.searchQuery || suggestion.name)
+        .filter(Boolean);
       return {
         logId: entry.id,
         failureReason: entry.failureReason,
         suggestedSkills: entry.suggestedSkills,
         installed: entry.installed,
         recommendation:
-          entry.suggestedSkills.length > 0
-            ? `Consider installing "${entry.suggestedSkills[0]?.name}" to handle this type of task.`
-            : "No matching skills found in the marketplace.",
+          installableSkills.length > 0
+            ? `Consider installing "${installableSkills[0]?.name}" to handle this type of task.`
+            : searchQueries.length > 0
+              ? `Search the marketplace for: ${searchQueries.join(", ")}. These are keyword suggestions, not verified Skills.`
+              : "No matching skills found in the marketplace.",
       };
     } catch (e) {
       logger.error("[SkillDiscoverer] suggestInstallation error:", e.message);

@@ -2,6 +2,8 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+> **版本边界**：本页公开命令属于 `0.166.15` 的既有评估/诊断表面；公共 `0.166.15@22db04f559` **不包含**本轮核对冻结的 `233e1bdc` Agent/Skill evolution feature 快照。该冻结快照也未进入 GitHub `main@458b342f5f`，P1-11 仍为部分完成。
+
 ## 核心特性
 
 - 📊 **能力评估**: 量化评分（0-1）+ 趋势检测（improving / declining / stable）
@@ -16,6 +18,8 @@
 ChainlessChain CLI 自进化系统赋予 AI 自我评估、自我诊断和自我修复能力。通过 `assess` 命令持续追踪各项能力的得分变化，系统自动分析趋势——连续三次以上提升判定为 improving，连续三次以上下降判定为 declining。
 
 系统提供全面的自我诊断功能，覆盖记忆系统健康度、能力评分分布、模型运行状态、成长趋势四个维度。当诊断发现异常（如能力持续下降、模型响应变慢）时，`repair` 命令可自动尝试修复。`predict` 命令基于历史评估数据，使用线性回归预测未来能力变化。
+
+本轮冻结的 `233e1bdc` 快照包含 candidate-only/diff-only、Skill writer inventory、mutation authority、promotion/release registry 与 tamper-evident ledger；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们没有统一生产 wiring/import；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
 
 ## 命令参考
 
@@ -120,6 +124,8 @@ chainlesschain evolution export "embedder" --json
 
 ## 系统架构
 
+Skill evolution 的本地源码治理链为 `encrypted Raw → model-visible/trusted projection → tamper-evident ledger → immutable candidate → mutation authority → CAS promotion → release/LKG/rollback`。当前下方 `evolution-system.js` 命令路径没有把该链实例化为生产 active writer，ledger 也没有生产 import/实例化。
+
 ```
 用户命令 → evolution.js (Commander) → evolution-system.js
                                             │
@@ -134,6 +140,8 @@ chainlesschain evolution export "embedder" --json
 
 ## 配置参考
 
+candidate store、mutation authority、promotion controller 与 release registry 不是公共 `0.166.15` 配置项，不能用 active Skill 目录替代 candidate root 或绕过治理门。
+
 ```bash
 chainlesschain evolution assess <name> <score> [--category <cat>] [--json]
 chainlesschain evolution learn <model-name> --data <json> [--json]
@@ -147,6 +155,8 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 ## 性能指标
 
+下表只描述既有 `cc evolution` 命令，不是本轮冻结 `233e1bdc` 治理链的 SLA；source-only 原语尚无统一生产实例或发布性能证据。
+
 | 操作                          | 目标    | 实际        | 状态 |
 | ----------------------------- | ------- | ----------- | ---- |
 | assess 能力评估（含趋势计算） | < 100ms | ~ 30ms      | ✅   |
@@ -157,6 +167,8 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 | stats 综合统计                | < 150ms | ~ 40ms      | ✅   |
 
 ## 测试覆盖率
+
+新治理原语已有 `skill-candidate-registry.test.js`、`skill-writer-inventory.test.js`、`skill-mutation-authority.test.js`、`skill-promotion-controller.test.js`、`skill-release-registry.test.js`、`evolution-evidence-projector.test.js` 与 `evolution-ledger.test.js` 测试合同。`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿仍不能表述为统一生产 wiring、qualification 或发布验收；ledger 独立结果也不是全绿。
 
 ```
 ✅ evolution.test.js  - 覆盖 CLI 主要路径
@@ -170,8 +182,16 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 - `packages/cli/src/commands/evolution.js` — 命令实现
 - `packages/cli/src/lib/evolution-system.js` — 自进化系统库
+- `packages/cli/src/lib/evolution/skill-candidate-registry.js` — source-only 候选注册表
+- `packages/cli/src/lib/evolution/skill-mutation-authority.js` — source-only mutation authority
+- `packages/cli/src/lib/evolution/skill-promotion-controller.js` — source-only promotion/rollback
+- `packages/cli/src/lib/evolution/skill-release-registry.js` — source-only release/LKG registry
+- `packages/cli/src/lib/evolution/evolution-evidence-projector.js` — source-only Raw/model/trusted 投影
+- `packages/cli/src/lib/evolution/evolution-ledger.js` — source-only hash-linked tamper-evident ledger
 
 ## 使用示例
+
+以下示例只操作既有能力评估、模型状态与诊断数据，不会调用当前本地快照的 Skill ledger/promotion/release 原语，也不表示 active Skill 已发生变化。
 
 ### 场景 1：能力评估与趋势分析
 
@@ -219,6 +239,8 @@ chainlesschain evolution growth --limit 20
 
 ## 故障排查
 
+若期望 `cc evolution` 自动安装或回滚 Skill，这是当前未接线能力。不要手工复制 candidate 到 active；`cc learning synthesize` 缺 evaluator、`candidateOutputDir` 或 active roots 时 unavailable，Skill Sync import 缺 `candidateStore` 时同样失败闭合。
+
 ### 评估与学习问题
 
 | 症状                      | 可能原因                   | 解决方案                                         |
@@ -255,6 +277,9 @@ chainlesschain evolution learn --domain code-analysis --samples 100
 - **自修复约束**: 自修复操作限于安全范围内（垃圾回收、缓存清理），不会删除用户数据或修改配置
 - **诊断信息敏感性**: 诊断结果可能包含系统资源使用信息，`--json` 导出时注意不要泄露给不信任方
 - **成长日志审计**: 所有能力变化都记录在 `evolution_growth_log` 中，支持回溯分析异常变化
+- **Skill 写入边界**: 自动生成与改进只能产生 candidate/diff；active 只能由受信 promotion controller 在 CAS 与 receipt 校验后修改
+- **证据分层**: 加密 Raw、脱敏 model-visible 与 schema-verifier 选择的 trusted projection 相互隔离；公开摘要只标识内容，不代表真实性或授权
+- **账本边界**: `d073bdf3` ledger 只有 hash-linked tamper-evident 源码/测试合同；没有生产实例时不能证明运行时 active 状态
 
 ## 相关文档
 

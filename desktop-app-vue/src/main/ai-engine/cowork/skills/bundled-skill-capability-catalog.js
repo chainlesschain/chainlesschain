@@ -1242,7 +1242,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "self-improving-agent": Object.freeze([
-    "6377dea104f3dcafeec9dce7f776219174e3eb90d5403e58d867a951826495f1",
+    "56e099bd6d7eb70aea77c1096666168058eaadef8e05bf1890fa51b30da26e5e",
     Object.freeze([
       "data:result",
       "data:task",
@@ -1256,12 +1256,11 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "skill-creator": Object.freeze([
-    "6b922327c9673bd841726d7ba6abcaa574094b958b4d339137ce15194b35e414",
+    "959fca134a121d65bc4686f6782d3a57be5ec59a4678954851efa4c37a8a9e44",
     Object.freeze([
       "data:result",
       "data:task",
       "filesystem:read",
-      "filesystem:write",
       "host:electron",
       "host:environment",
       "host:filesystem",
@@ -1918,7 +1917,7 @@ const BUNDLED_SKILL_FILESYSTEM_ROWS = Object.freeze({
     Object.freeze(["workspace"]),
   ]),
   "skill-creator": Object.freeze([
-    Object.freeze(["existsSync", "mkdirSync", "readFileSync", "writeFileSync"]),
+    Object.freeze(["existsSync", "readFileSync"]),
     Object.freeze(["workspace"]),
   ]),
   "snippet-library": Object.freeze([

@@ -117,7 +117,7 @@ Get-Command docker.exe -ErrorAction SilentlyContinue
 
 ## 性能指标
 
-本次补丁不新增统一的模型延迟或吞吐承诺。Graph/Team 正式质量评测使用至少 30 分钟、至少 3 轮的 hermetic profile，并限制 candidate/control token 比不高于 `2.5`。发布后的 `main` 把 Windows 平台时延比上限冻结为 `1.6`，Linux、macOS 与 aggregate 仍为 `1.5`；这些是 source-only 发布门阈值，不是 `0.166.15` 的公开运行时 SLO，也不代表完整矩阵已经通过。
+本次补丁不新增统一的模型延迟或吞吐承诺。Graph/Team 正式质量评测使用至少 30 分钟、至少 3 轮的 hermetic profile，并限制 candidate/control token 比不高于 `2.5`。发布后的 GitHub `main@458b342f5f` 把 Windows 平台时延比最终上限调整为 `1.65`，Linux、macOS 与 aggregate 仍为 `1.5`。固定 run `33411796790` 的 Windows 实测为 `1.6379980224`，离线加权 aggregate 为 `0.6008293973`；这些是 source-only 发布门阈值与证据，不是 `0.166.15` 的公开运行时 SLO。该 run 仍为失败，且没有 final-SHA aggregate success/OIDC attestation。
 
 ## 测试覆盖
 
@@ -142,14 +142,16 @@ Record & Replay UI Journey `33330041069` 与 Desktop Signed Skill Qualification 
 
 ## 最新源码与已发布版本的边界
 
-2026-09-01 文档核对时，GitHub `main` 为 `db53dc2da48c315e75ec9976098e481844055ac4`，晚于 `0.166.15` 发布提交。发布后的主线新增：
+2026-09-01 文档核对时，GitHub `main` 为 `458b342f5f11f2ee82c0e6a91ee485d4309485fb`，晚于 `0.166.15` 发布提交。发布后的主线新增：
 
 - 审计 blob 瞬态读取重试与 Windows CI 清理稳定性；
 - 每个 Windows 正式质量 Agent 独立的 HOME/config/cache/ACL helper 工作目录，避免候选目录污染；
-- Windows 时延比平台上限 `1.6`，Linux、macOS 与 aggregate 保持 `1.5`；验证器拒绝报告携带错误平台阈值；
+- Windows 时延比最终平台上限 `1.65`，Linux、macOS 与 aggregate 保持 `1.5`；验证器拒绝报告携带错误平台阈值；
 - formal eval producer digest、冻结工具契约与当前评测 fixture 对齐。
 
-这些是源码和发布门增量，不在 `chainlesschain@0.166.15` tarball 中。正式 run `33396372721` 只有 Linux/macOS 成功；Windows 定向 run `33406031875` 清除了 unrelated changes，但仍按旧 `1.5` 阈值失败。P2-3 因而继续保持部分完成，仍需同一最终 SHA 的三平台成功、aggregate 与 OIDC attestation。
+这些是源码和发布门增量，不在 `chainlesschain@0.166.15` tarball 中。固定精确提交的正式 run [`33411796790`](https://github.com/chainlesschain/chainlesschain/actions/runs/33411796790) 中，Linux、macOS 及三平台功能/安全指标通过；Windows unrelated-change rate 为 `0`，唯一失败项是当时 `1.6379980224 > 1.6` 的时延比。三平台产物离线加权 aggregate 为 `0.6008293973 < 1.5`，但 workflow run 本身仍为失败，aggregate success 与 OIDC attestation 没有发生；最终 `1.65` 阈值提交也没有 final-SHA 正式重跑。
+
+发布负责人显式接受“不再为纯阈值变化重复消耗真实模型预算”的剩余证据风险，并据此关闭 P2-3。这是记录在案的验收豁免：不能把 run `33411796790` 改写为成功，不能归入 `0.166.15` 制品，也不能作为其他发布门跳过 final-SHA aggregate/OIDC 的通用先例。
 
 ## 故障排查
 

@@ -37,24 +37,11 @@ describe("skill-workflow-ipc", () => {
   });
 
   describe("without an engine", () => {
-    beforeEach(() => register({ workflowEngine: null }));
-
-    it.each([
-      ["skill-workflow:create", {}],
-      ["skill-workflow:update", { workflowId: "x", updates: {} }],
-      ["skill-workflow:execute", { workflowId: "x", context: {} }],
-      ["skill-workflow:get", "x"],
-      ["skill-workflow:list", undefined],
-      ["skill-workflow:delete", "x"],
-      ["skill-workflow:save", { workflowId: "x", updates: {} }],
-      ["skill-workflow:import-pipeline", "x"],
-      ["skill-workflow:export-pipeline", "x"],
-    ])("%s returns not-initialized", async (channel, arg) => {
-      const res = await invoke(channel, arg);
-      expect(res).toEqual({
-        success: false,
-        error: "WorkflowEngine not initialized",
-      });
+    it("fails registration instead of exposing dead handlers", () => {
+      expect(() => register({ workflowEngine: null })).toThrow(
+        /requires a workflowEngine instance/,
+      );
+      expect(handlers.size).toBe(0);
     });
   });
 

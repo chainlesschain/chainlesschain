@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-09-01：完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.15@22db04f559`；CLI CI、Strict Sandbox、Trusted Publishing、provenance 与 npm 公网回读均已闭环。Agent Protocol `0.1.7`、TypeScript/Python Agent SDK `0.2.7`、Session Core `0.3.8`、Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开。`main@db53dc2da4` 的 Windows formal Graph quality 隔离、审计重试与平台时延阈值晚于发布制品，完整三平台 aggregate/OIDC 仍未关闭；Desktop 签名 Skill 资格门也不等于公共 native 安装包发行。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-09-01：完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.15@22db04f559`；CLI CI、Strict Sandbox、Trusted Publishing、provenance 与 npm 公网回读均已闭环。Agent Protocol `0.1.7`、TypeScript/Python Agent SDK `0.2.7`、Session Core `0.3.8`、Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开。`main@458b342f5f` 的 Windows formal Graph quality 隔离、审计重试与最终 `1.65` 平台时延阈值晚于发布制品；P2-3 已由发布负责人显式接受剩余证据风险后关闭，但没有产生最终 SHA 的三平台 aggregate success/OIDC attestation，也不能据此改写历史失败 run 或 `0.166.15` 制品身份。Desktop 签名 Skill 资格门同样不等于公共 native 安装包发行。
 
 ## 当前重点
 
@@ -13,8 +13,11 @@
 - 前序精确发布 SHA `2f5b0f263a` 的 Protocol、Python SDK、CLI CI、Strict Sandbox、IDE、Android、iOS、Desktop、E2E、Full/Code Quality 与 1,800 秒 App Server overload/RSS soak 均通过；Protocol `0.1.5`、TS/Python SDK `0.2.4`、CLI `0.166.5` 和 Open VSX `0.37.70` 已完成公网回读。该长期 soak 继续作为前序证据，不归因到 `0.166.7@19834a1845`。
 - Desktop 与 VS Code 已接入默认关闭、仅暴露固定 Thread/Turn 方法的 `AppServerPilotClient`；审批 UI 未接入前保持 canonical decline，Desktop 子进程继续经过 Process Broker。
 - App Server 新增实验 WebSocket：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求显式远程授权与 TLS；连接、payload、请求、输出、buffer 和清理时间全部有界。
-- CLI `0.166.15` 完整承接 Graph authoritative cutover、耐久 history/retirement、quorum HumanTask、temporal message reliability 与 dependency/scope fairness；精确 SHA `22db04f559` 已完成三平台 CLI CI、Strict Sandbox、npm 发布和公网回读并成为生产推荐。该版本还冻结 formal quality read/list/search/write/edit 工具契约；发布后的 Windows Agent 隔离与 `1.6` 平台时延阈值仍按主线源码边界处理。
+- CLI `0.166.15` 完整承接 Graph authoritative cutover、耐久 history/retirement、quorum HumanTask、temporal message reliability 与 dependency/scope fairness；精确 SHA `22db04f559` 已完成三平台 CLI CI、Strict Sandbox、npm 发布和公网回读并成为生产推荐。该版本还冻结 formal quality read/list/search/write/edit 工具契约；发布后的 Windows Agent 隔离、最终 `1.65` 平台时延阈值与 P2-3 风险接受记录仍按主线源码边界处理。
 - Desktop 源码继续提供只读 Graph Run Debugger、外部 Skill Ed25519/摘要/隔离 Worker、内置 Handler 能力目录与网络/文件/环境/进程/凭据 Broker；同一 exact SHA 新增 macOS entitlement/notarization 钩子、签名安装/启动探针与 Desktop Skill qualification producer。这些是 Desktop/native 源码和资格证据，不是 npm CLI 包字节，也不自动证明公共 native 分发完成。
+- 本轮核对冻结的未合并本地功能分支快照为 `233e1bdc`：它保留 `b8490faa` 的 attested evidence projector、`d073bdf3` 的 tamper-evident EvolutionLedger，并在 mutation authority、promotion controller 与 release registry 间绑定 mutation transition subject。该快照尚未进入 GitHub `main@458b342f5f` 或任何公共制品，ledger 仍没有 production import/实例化；整组能力未形成统一生产接线/正式验收，不能写成自动改写 active Skill。
+- 同一分支补充 Graph production、P1-10 物理主机与 P1-11 签名 Desktop 的 protected-current-main/外部证据合同；仓库 registry 仍为空，真实 runner、凭据、生产运行与 close receipt 尚未生成，因此 P1-10、P1-11、P1-12 继续保持部分完成。
+- `233e1bdc` 工作树的六治理文件定向回归为 6/6 files、126/126 tests 通过，耗时 `28.84s`；独立 ledger suite 仍为 35 项中 34 pass、1 个默认 5 秒 timeout。两组范围不同，前者全绿也不等于 production wiring、qualification 或 P1 关闭。
 - Record & Replay 真实 Playwright driver 只执行审阅过的 `observe/click/type/select/assert`，拒绝 filesystem、HTTP(S)、WebSocket 与环境漂移，receipt 不保留 selector、输入值、页面正文、URL 或截图本体；Codex App Server adapter 只允许显式验证过的上游 patch，未知版本在 turn admission 前回退稳定 JSONL 路径。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
@@ -60,18 +63,21 @@
 - 单独记录 GraphDefinition 编译、GraphRun、Task/Attempt、lease/fence、Message、Effect、Handoff、HumanTask、trace/diff/eval 与 adapter cutover。
 - 明确 GraphRun 只是 identity/authority/budget/revision envelope；Task Graph 是控制面，Agent Tree 是动态执行拓扑，Artifact/Trace Graph 是只读证据投影，三者不能互相代替。
 - 记录 `0.166.7` 已完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 迁移，同时保持 Desktop/Browser/IDE 独立验收。
+- 记录本轮未合并冻结快照 `233e1bdc` 的 Graph production source registry、fresh-main 拒绝与外部 close 条件；合同存在不等于 P1-10/P1-11/P1-12 已获得真实生产证据。
 
 ### `modules/109_Desktop_Cowork_Skill_Execution_Security.md`
 
 - 定义 bundled / external / prompt-only 三类 Skill 信任分层，以及执行前稳定重读、Ed25519、摘要、可信 key 和显式能力清单。
 - 记录一次性隔离 Worker、有界 JSONL 协议、宿主 Capability Broker、生成能力目录和 Handler byte-drift 门禁。
 - 记录固定域名、动态公网、媒体/模型、loopback 本地服务与网络诊断 Broker 的 SSRF、shell、秘密环境和资源上限不变量。
+- 记录 `b8490faa` 的 evidence projector、`d073bdf3` 的签名 append-only EvolutionLedger 与 `233e1bdc` 的 mutation transition subject binding，同时明确它们没有统一 production wiring，签名 Desktop 外部验收仍缺失。
 
 ### `modules/110-agent-platform-release-boundaries.md`
 
 - 记录 CLI/Protocol/SDK/IDE/Desktop 的 Git、registry 与 Marketplace 身份矩阵，禁止用 tag 或构建成功替代公网回读。
 - 设计真实 Playwright UI replay 的能力词汇、网络/文件隔离、content-free receipt 与三平台 aggregate。
 - 设计 Codex App Server exact-version admission、独立 JSONL fallback、Graph retirement/HumanTask、Team fairness、审批 CAS 与签名 Desktop 资格边界。
+- 分离 `0.166.15@22db04f559`、GitHub `main@458b342f5f` 与本轮本地冻结快照 `233e1bdc` 三种身份，并列出 P1-10/P1-11/P1-12 仍需的 fresh-main 外部证据。
 
 ### `modules/106_Agent_Kernel设计.md`
 

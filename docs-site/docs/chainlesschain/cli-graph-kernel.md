@@ -206,6 +206,8 @@ Graph Kernel 聚焦测试覆盖以下契约：
 
 测试说明内核契约受到保护，不代表 Team/Cowork/Scheduler/Desktop/Browser 已全部完成 authoritative 切换。正式发布仍以 exact SHA 的 Linux、Windows、macOS `CLI CI` 与 `CLI Strict Sandbox` 全矩阵为准。
 
+P2-3 的 formal Graph 协作质量评测与上述普通发布矩阵、下节 P1-12 生产切换证据是不同边界。GitHub `main@458b342f5f` 将 Windows 时延比最终上限调整为 `1.65`；固定 run `33411796790` 的 Windows 实测为 `1.6379980224`，三平台产物离线加权 aggregate 为 `0.6008293973`。该 run 仍为失败，且没有 final-SHA aggregate success/OIDC attestation。发布负责人显式接受不重跑的剩余证据风险并关闭 P2-3；这不把失败 run 改写为成功，不属于 `0.166.15` 制品，也不能作为 P1-12 或其他发布门的通用先例。
+
 ## 生产切换完成门
 
 P1-12 的生产完成结论不能由单个 entry 的 ledger 状态或一份手写摘要给出。受保护部署必须先生成完整的 `chainlesschain.graph-production-cutover-evidence/v1`，再运行：

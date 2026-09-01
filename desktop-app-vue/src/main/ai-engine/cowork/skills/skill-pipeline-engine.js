@@ -501,7 +501,11 @@ class SkillPipelineEngine extends EventEmitter {
       const runStepByType = async () => {
         switch (step.type) {
           case StepType.SKILL:
-            return await this._executeSkillStep(step, execution.context);
+            return await this._executeSkillStep(
+              step,
+              execution.context,
+              execution,
+            );
           case StepType.CONDITION:
             return await this._executeConditionStep(step, execution);
           case StepType.PARALLEL:
@@ -569,16 +573,6 @@ class SkillPipelineEngine extends EventEmitter {
         outputVariable: step.outputVariable,
       });
 
-      // Record metrics if available
-      if (this.metricsCollector && step.type === StepType.SKILL) {
-        this.metricsCollector.recordExecution(step.skillId, {
-          duration,
-          success,
-          pipelineId: execution.pipelineId,
-          tokensUsed: result?.tokensUsed || 0,
-        });
-      }
-
       this.emit("pipeline:step-completed", {
         executionId: execution.id,
         stepIndex: i,
@@ -590,7 +584,7 @@ class SkillPipelineEngine extends EventEmitter {
   }
 
   /** @private */
-  async _executeSkillStep(step, context) {
+  async _executeSkillStep(step, context, execution = null) {
     assertDesktopLegacyMutationAllowed("SkillPipelineEngine._executeSkillStep");
     if (!this.skillRegistry) {
       throw new Error("SkillRegistry not available");
@@ -616,6 +610,9 @@ class SkillPipelineEngine extends EventEmitter {
     const run = this.skillRegistry.executeSkill(skillId, task, {
       ...context,
       pipelineContext: true,
+      pipelineId: execution?.pipelineId || context?.pipelineId || null,
+      pipelineExecutionId:
+        execution?.id || context?.pipelineExecutionId || null,
     });
     if (!(timeoutMs > 0)) {
       return await run;
@@ -700,7 +697,7 @@ class SkillPipelineEngine extends EventEmitter {
             throw new Error("Pipeline cancelled");
           }
         }
-        const result = await this._executeSkillStep(branch, context);
+        const result = await this._executeSkillStep(branch, context, execution);
         return { index: idx, success: true, result };
       } catch (error) {
         return { index: idx, success: false, error: error.message };

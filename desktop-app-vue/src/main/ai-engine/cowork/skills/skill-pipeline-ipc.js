@@ -7,18 +7,29 @@
  * @version 1.1.0
  */
 
-const { ipcMain } = require("electron");
 const { logger } = require("../../../utils/logger.js");
-
-let pipelineEngine = null;
 
 /**
  * Register skill pipeline IPC handlers
  * @param {Object} options
  * @param {Object} options.pipelineEngine - SkillPipelineEngine instance
+ * @param {Object} [options.ipcMain] - electron ipcMain (injectable for tests)
  */
 function registerSkillPipelineIPC(options = {}) {
-  pipelineEngine = options.pipelineEngine || null;
+  const pipelineEngine = options.pipelineEngine;
+  if (
+    !pipelineEngine ||
+    typeof pipelineEngine.executePipeline !== "function" ||
+    typeof pipelineEngine.createPipeline !== "function"
+  ) {
+    throw new TypeError(
+      "registerSkillPipelineIPC requires a pipelineEngine instance",
+    );
+  }
+  const ipcMain = options.ipcMain || require("electron").ipcMain;
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    throw new TypeError("registerSkillPipelineIPC requires ipcMain.handle");
+  }
 
   logger.info("[SkillPipelineIPC] Registering 12 handlers...");
 

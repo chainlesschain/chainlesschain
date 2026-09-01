@@ -1,12 +1,12 @@
 # 自进化 AI 系统
 
-> **Phase 100 | v5.0.1 | 状态: ✅ 生产就绪 | 8 IPC Handlers | 3 数据库表**
+> **Phase 100 | v5.0.1 历史功能说明 | Agent/Skill evolution P1-11：部分完成**
 
-ChainlessChain 自进化 AI 系统实现了 AI 模型的自主进化能力，包括自动架构搜索（NAS for Edge）、持续学习（无灾难性遗忘）、自诊断与自修复、行为预测与主动服务、能力自评估与自动升级，并通过进化成长日志可视化追踪 AI 的演进轨迹。
+本文记录既有 Desktop 模型评估、训练、诊断与成长日志接口；它不证明生产 Agent 可以自主修改 active Skill。公共 `0.166.15@22db04f559` **不包含**本轮核对冻结的 `233e1bdc` evolution feature 快照，GitHub `main` 仍为 `458b342f5f`。`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS；均尚无统一生产实例。
 
 ## 概述
 
-自进化 AI 系统是 ChainlessChain 的智能演进引擎，使 AI 模型具备自主进化能力。该系统通过定期能力评估发现薄弱维度，自动触发 EWC/蒸馏增量训练提升能力，同时内置自诊断与自修复机制保障模型质量，并基于用户行为预测实现主动服务，完整的进化成长日志支持可视化追踪 AI 的每一步演进。
+既有页面描述模型评估、训练、诊断、预测和日志表面；这些接口与 Agent/Skill 自动演化治理不是同一发布面。当前本地快照只允许自动路径产生隔离候选或 diff，active 变更必须经过受信 mutation authority、CAS-bound promotion 与 release registry；缺少统一实例化时失败闭合。
 
 ## 核心特性
 
@@ -18,6 +18,8 @@ ChainlessChain 自进化 AI 系统实现了 AI 模型的自主进化能力，包
 - 📈 **进化成长日志**: 完整记录 AI 每次进化的触发原因、变更内容、效果对比，支持时间线可视化
 
 ## 系统架构
+
+Agent/Skill evolution 的 source-only 路径为：受信 Raw → 加密存储 → 脱敏 model-visible/schema-verified trusted projection → tamper-evident ledger → candidate draft → mutation authorization → promotion/release。该路径目前没有接入下方历史 `SelfEvolvingAIManager` 为生产 active writer，ledger 也没有生产 import/实例化。
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -53,6 +55,12 @@ ChainlessChain 自进化 AI 系统实现了 AI 模型的自主进化能力，包
 | `src/main/ai-engine/evolution/evolution-ipc.js`         | IPC 处理器（8 个）     |
 | `src/renderer/pages/ai/EvolutionDashboardPage.vue`      | 进化成长日志可视化页面 |
 | `src/renderer/stores/evolution.ts`                      | Pinia 状态管理         |
+| `packages/cli/src/lib/evolution/skill-candidate-registry.js` | source-only 候选注册表 |
+| `packages/cli/src/lib/evolution/skill-mutation-authority.js` | source-only mutation authority |
+| `packages/cli/src/lib/evolution/skill-promotion-controller.js` | source-only 晋升/回滚控制器 |
+| `packages/cli/src/lib/evolution/skill-release-registry.js` | source-only release/LKG registry |
+| `packages/cli/src/lib/evolution/evolution-evidence-projector.js` | source-only 证据投影器 |
+| `packages/cli/src/lib/evolution/evolution-ledger.js` | source-only tamper-evident ledger |
 
 ---
 
@@ -511,6 +519,8 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 ## 性能指标
 
+以下历史数据不构成本轮冻结 `233e1bdc` evolution 治理原语的性能或生产 SLA；该 source-only 路径尚无统一实例和发布性能证据。
+
 以下为自进化 AI 系统在标准硬件（Intel Core i7-12700 / NVIDIA RTX 3060）上的典型性能数据：
 
 | 操作                         | 典型耗时   | 内存占用 | 说明                         |
@@ -537,7 +547,7 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 ## 测试覆盖率
 
-自进化 AI 系统的测试分布在以下文件中，当前总覆盖率 **≥ 92%**：
+下表是既有模型演化表面的历史测试清单，不代表本轮冻结快照或生产验收。新治理合同另见 `skill-candidate-registry.test.js`、`skill-writer-inventory.test.js`、`skill-mutation-authority.test.js`、`skill-promotion-controller.test.js`、`skill-release-registry.test.js`、`evolution-evidence-projector.test.js` 与 `evolution-ledger.test.js`。`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿仍不得标记为统一生产 wiring、qualification 或发布验收；ledger 独立结果也不是全绿。
 
 | 测试文件                                                       | 测试数 | 覆盖模块                               |
 | -------------------------------------------------------------- | ------ | -------------------------------------- |
@@ -581,6 +591,10 @@ cd desktop-app-vue && npx vitest run tests/unit/ai-engine/evolution/continual-le
 
 ### 自修复安全
 
+- **Skill 写入边界**: 模型/Agent 输出不能直接写 active Skill；Skill Creator 与 learning 只可产生候选/diff，Skill Sync 缺 `candidateStore` 时拒绝 import
+- **证据边界**: Raw、model-visible 与 trusted learning projection 分离；公开摘要不是真实性或授权证明
+- **账本边界**: `d073bdf3` ledger 使用 hash-linked tamper evidence，但尚无生产 import/实例化，不能为 active 状态提供运行时证明
+
 - **审批控制**: 通过 `requireApproval` 配置是否需要用户确认才能执行自修复操作，防止自动修复引入新问题
 - **修复范围限制**: 自修复仅允许执行预定义的策略（quantize/rollback/retrain/degrade-gracefully），不执行任意代码
 - **修复审计**: 每次自修复操作完整记录到 `evolution_growth_log`，包含触发原因、执行动作和效果对比
@@ -592,6 +606,8 @@ cd desktop-app-vue && npx vitest run tests/unit/ai-engine/evolution/continual-le
 - **用户控制**: 用户可随时通过 `evolution:configure` 关闭行为预测功能（`behaviorPrediction.enabled: false`）
 
 ## 使用示例
+
+> 下列 IPC 示例属于既有模型演化表面，不会调用当前本地快照的 Skill ledger/promotion/release 原语，也不表示 active Skill 已自动变更。
 
 ### NAS 架构搜索（边缘设备优化）
 

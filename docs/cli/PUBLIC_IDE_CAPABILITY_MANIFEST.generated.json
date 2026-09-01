@@ -25,7 +25,7 @@
     ],
     "outputFormats": ["text", "json", "stream-json"],
     "inputFormats": ["text", "stream-json"],
-    "digest": "107ebe5fc7a1d75b"
+    "digest": "141197b4b2958899"
   },
   "bridge": {
     "schemaVersion": 1,

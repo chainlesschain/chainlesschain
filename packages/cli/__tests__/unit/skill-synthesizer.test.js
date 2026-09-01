@@ -14,10 +14,21 @@ import {
   toolChainFingerprint,
   fingerprintsOverlap,
   generateSkillName,
+  isSafeSkillName,
   buildExtractionPrompt,
   generateSkillMd,
   _deps as synthDeps,
 } from "../../src/lib/learning/skill-synthesizer.js";
+
+function configureTrustedCandidateFs(promises) {
+  promises.realpath = vi.fn(async (value) => value);
+  promises.lstat = vi.fn(async () => ({
+    size: 0,
+    isSymbolicLink: () => false,
+    isFile: () => false,
+    isDirectory: () => true,
+  }));
+}
 
 describe("skill-synthesizer", () => {
   let db;
@@ -125,6 +136,15 @@ describe("skill-synthesizer", () => {
     });
   });
 
+  describe("isSafeSkillName", () => {
+    it("accepts ordinary and Unicode names but rejects path traversal", () => {
+      expect(isSafeSkillName("deploy-app")).toBe(true);
+      expect(isSafeSkillName("修复登录问题")).toBe(true);
+      expect(isSafeSkillName("../active-skill")).toBe(false);
+      expect(isSafeSkillName("nested/skill")).toBe(false);
+    });
+  });
+
   // ── buildExtractionPrompt ─────────────────────────
 
   describe("buildExtractionPrompt", () => {
@@ -211,6 +231,7 @@ describe("skill-synthesizer", () => {
 
   describe("SkillSynthesizer.synthesize", () => {
     let mockLLM;
+    let mockEvaluator;
     let synthesizer;
     const mockFs = {
       promises: {
@@ -224,9 +245,13 @@ describe("skill-synthesizer", () => {
 
     beforeEach(() => {
       mockLLM = vi.fn();
+      mockEvaluator = vi.fn(async () => ({ accepted: true }));
       synthDeps.fs = mockFs;
       synthDeps.path = mockPath;
       vi.clearAllMocks();
+      mockFs.promises.mkdir.mockResolvedValue(undefined);
+      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      configureTrustedCandidateFs(mockFs.promises);
     });
 
     function createScoredTrajectory(tools, score) {
@@ -274,12 +299,137 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
+      expect(result.status).toBe("completed");
       expect(result.created.length).toBeGreaterThanOrEqual(1);
       expect(mockFs.promises.writeFile).toHaveBeenCalled();
+      expect(mockEvaluator).toHaveBeenCalled();
+    });
+
+    it("fails closed before querying trajectories when required dependencies are absent", async () => {
+      const findCandidates = vi.spyOn(store, "findComplexUnprocessed");
+      synthesizer = new SkillSynthesizer(db, null, store);
+
+      const result = await synthesizer.synthesize();
+
+      expect(result).toMatchObject({
+        status: "unavailable",
+        code: "LEARNING_SYNTHESIS_UNAVAILABLE",
+        created: [],
+        skipped: [],
+        missingDependencies: [
+          "llm",
+          "candidate-output-registry",
+          "candidate-evaluator",
+          "active-skill-registry-roots",
+        ],
+      });
+      expect(findCandidates).not.toHaveBeenCalled();
+    });
+
+    it("rejects a candidate registry that overlaps an active skill tree", async () => {
+      const findCandidates = vi.spyOn(store, "findComplexUnprocessed");
+      synthesizer = new SkillSynthesizer(db, mockLLM, store, {
+        candidateOutputDir: "/skills/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
+      });
+
+      const result = await synthesizer.synthesize();
+
+      expect(result).toMatchObject({
+        status: "unavailable",
+        created: [],
+        blockers: ["candidate-output-overlaps-active-skill-tree"],
+      });
+      expect(findCandidates).not.toHaveBeenCalled();
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("rejects an incomplete active skill root contract", async () => {
+      synthesizer = new SkillSynthesizer(db, mockLLM, store, {
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills", null],
+        evaluateCandidate: mockEvaluator,
+      });
+
+      expect(await synthesizer.synthesize()).toMatchObject({
+        status: "unavailable",
+        blockers: ["active-skill-registry-roots-invalid"],
+        created: [],
+      });
+    });
+
+    it("does not create or persist a candidate rejected by the evaluator", async () => {
+      const tools = ["a", "b", "c", "d", "e", "f"];
+      createScoredTrajectory(tools, 0.9);
+      createScoredTrajectory(tools, 0.85);
+      createScoredTrajectory(tools, 0.8);
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          name: "rejected-skill",
+          procedure: ["Step 1"],
+          tools: ["a"],
+        }),
+      );
+      mockEvaluator.mockResolvedValue({
+        accepted: false,
+        reason: "regression",
+      });
+      synthesizer = new SkillSynthesizer(db, mockLLM, store, {
+        minToolCount: 5,
+        minScore: 0.7,
+        minSimilar: 2,
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
+      });
+
+      const result = await synthesizer.synthesize();
+
+      expect(result.created).toEqual([]);
+      expect(result.skipped.some((item) => item.includes("regression"))).toBe(
+        true,
+      );
+      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+      expect(
+        store.getRecent({ limit: 10 }).every((t) => !t.synthesizedSkill),
+      ).toBe(true);
+    });
+
+    it("does not report creation when candidate persistence fails", async () => {
+      const tools = ["a", "b", "c", "d", "e", "f"];
+      createScoredTrajectory(tools, 0.9);
+      createScoredTrajectory(tools, 0.85);
+      createScoredTrajectory(tools, 0.8);
+      mockLLM.mockResolvedValue(
+        JSON.stringify({
+          name: "write-failure",
+          procedure: ["Step 1"],
+          tools: ["a"],
+        }),
+      );
+      mockFs.promises.writeFile.mockRejectedValue(new Error("disk full"));
+      synthesizer = new SkillSynthesizer(db, mockLLM, store, {
+        minToolCount: 5,
+        minScore: 0.7,
+        minSimilar: 2,
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
+      });
+
+      const result = await synthesizer.synthesize();
+
+      expect(result.created).not.toContain("write-failure");
+      expect(result.skipped.some((item) => item.includes("disk full"))).toBe(
+        true,
+      );
     });
 
     it("skips trajectories with insufficient similar matches", async () => {
@@ -290,7 +440,9 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
@@ -310,7 +462,9 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
@@ -344,7 +498,9 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
@@ -352,7 +508,7 @@ describe("skill-synthesizer", () => {
       expect(result.skipped.some((s) => s.includes("duplicate"))).toBe(true);
     });
 
-    it("works without outputDir (in-memory only)", async () => {
+    it("reports unavailable without a candidate registry and evaluator", async () => {
       const tools = ["a", "b", "c", "d", "e", "f"];
       createScoredTrajectory(tools, 0.9);
       createScoredTrajectory(tools, 0.85);
@@ -373,13 +529,22 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        // no outputDir
       });
 
       const result = await synthesizer.synthesize();
-      expect(result.created).toContain("mem-skill");
-      // No file writes
+      expect(result).toMatchObject({
+        status: "unavailable",
+        code: "LEARNING_SYNTHESIS_UNAVAILABLE",
+        created: [],
+        skipped: [],
+        missingDependencies: [
+          "candidate-output-registry",
+          "candidate-evaluator",
+          "active-skill-registry-roots",
+        ],
+      });
       expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+      expect(mockLLM).not.toHaveBeenCalled();
     });
 
     it("handles LLM errors gracefully", async () => {
@@ -394,7 +559,9 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
@@ -414,7 +581,9 @@ describe("skill-synthesizer", () => {
         minToolCount: 5,
         minScore: 0.7,
         minSimilar: 2,
-        outputDir: "/skills",
+        candidateOutputDir: "/candidates",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: mockEvaluator,
       });
 
       const result = await synthesizer.synthesize();
@@ -515,31 +684,89 @@ describe("skill-synthesizer", () => {
   // ── _persistSkill ─────────────────────────────────
 
   describe("SkillSynthesizer._persistSkill", () => {
-    it("writes SKILL.md to output directory", async () => {
+    it("writes an immutable versioned SKILL.md to the candidate registry", async () => {
+      const created = new Set();
       const mockFs = {
         promises: {
-          mkdir: vi.fn(async () => {}),
+          mkdir: vi.fn(async (value) => {
+            created.add(value);
+          }),
           writeFile: vi.fn(async () => {}),
+          lstat: vi.fn(async (value) => {
+            if (!created.has(value)) {
+              throw Object.assign(new Error("missing"), { code: "ENOENT" });
+            }
+            return {
+              isSymbolicLink: () => false,
+              isDirectory: () => true,
+            };
+          }),
+          realpath: vi.fn(async (value) => value),
         },
       };
       synthDeps.fs = mockFs;
       synthDeps.path = { join: (...args) => args.join("/") };
 
-      const synth = new SkillSynthesizer(db, null, store, {
-        outputDir: "/out",
+      const synth = new SkillSynthesizer(db, vi.fn(), store, {
+        candidateOutputDir: "/out",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: vi.fn(),
       });
       const result = await synth._persistSkill("my-skill", "# content");
 
-      expect(mockFs.promises.mkdir).toHaveBeenCalledWith("/out/my-skill", {
-        recursive: true,
-      });
-      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
-        "/out/my-skill/SKILL.md",
-        "# content",
-        "utf-8",
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(
+        "/out/my-skill/1.0.0",
+        { recursive: false, mode: 0o700 },
       );
-      expect(result.skillDir).toBe("/out/my-skill");
-      expect(result.skillFile).toBe("/out/my-skill/SKILL.md");
+      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
+        "/out/my-skill/1.0.0/SKILL.md",
+        "# content",
+        { encoding: "utf-8", flag: "wx" },
+      );
+      expect(result.skillDir).toBe("/out/my-skill/1.0.0");
+      expect(result.skillFile).toBe("/out/my-skill/1.0.0/SKILL.md");
+    });
+
+    it("fails closed when filesystem identity support is unavailable", async () => {
+      const writeFile = vi.fn();
+      synthDeps.fs = {
+        promises: { mkdir: vi.fn(), writeFile },
+      };
+      const synth = new SkillSynthesizer(db, vi.fn(), store, {
+        candidateOutputDir: "/out",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: vi.fn(),
+      });
+
+      await expect(
+        synth._persistSkill("my-skill", "# content"),
+      ).rejects.toThrow("filesystem identity support unavailable");
+      expect(writeFile).not.toHaveBeenCalled();
+    });
+
+    it("rejects a candidate root that resolves into an active skill tree", async () => {
+      const writeFile = vi.fn();
+      synthDeps.fs = {
+        promises: {
+          mkdir: vi.fn(),
+          writeFile,
+          lstat: vi.fn(async () => ({
+            isSymbolicLink: () => false,
+            isDirectory: () => true,
+          })),
+          realpath: vi.fn(async () => "/skills"),
+        },
+      };
+      const synth = new SkillSynthesizer(db, vi.fn(), store, {
+        candidateOutputDir: "/out",
+        activeSkillsDirs: ["/skills"],
+        evaluateCandidate: vi.fn(),
+      });
+
+      await expect(
+        synth._persistSkill("my-skill", "# content"),
+      ).rejects.toThrow("resolves into an active skill tree");
+      expect(writeFile).not.toHaveBeenCalled();
     });
   });
 });

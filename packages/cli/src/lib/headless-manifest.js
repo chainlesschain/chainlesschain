@@ -19,6 +19,7 @@ import { createRequire } from "node:module";
 import { PROTOCOL_MIN_VERSION } from "./capability-negotiation.js";
 import {
   CAPABILITY_MANIFEST,
+  buildEvolutionStatus,
   toAgentFeatureFlags,
 } from "./capability-manifest.js";
 
@@ -129,7 +130,7 @@ export function buildLoadedSources({
  * (protocol version, tool names, permission modes, IO formats, exit codes,
  * feature flags) without parsing --help text.
  */
-export function buildAgentCapabilities() {
+export function buildAgentCapabilities({ evolutionEvidence = {} } = {}) {
   let version = null;
   try {
     version = _require("../../package.json").version || null;
@@ -158,5 +159,6 @@ export function buildAgentCapabilities() {
     input_formats: [...CAPABILITY_MANIFEST.inputFormats],
     exit_codes: HEADLESS_EXIT_CODES,
     features: toAgentFeatureFlags(),
+    evolution_status: buildEvolutionStatus({ evidence: evolutionEvidence }),
   };
 }

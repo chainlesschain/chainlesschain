@@ -1,23 +1,59 @@
 ---
 name: skill-creator
 display-name: Skill Creator
-description: Create, modify, test, and improve skills - scaffold new SKILL.md files with proper frontmatter, generate handler.js implementations, run test evaluations, and optimize skill descriptions for better triggering
+description: Propose, test, validate, and improve Skill candidates without changing active files - generate reviewable SKILL.md and handler.js drafts, run test evaluations, and optimize descriptions for better triggering
 version: 1.2.0
 category: system
 user-invocable: true
-tags: [skill, creator, scaffold, meta, generator, template, test, improve, optimize, eval]
-capabilities: [skill-scaffolding, handler-generation, skill-testing, description-optimization, description-optimization-loop, template-management]
-execution-capabilities: [data:result, data:task, filesystem:read, filesystem:write, host:electron, host:environment, host:filesystem, host:logger, host:process, host:skill-registry, process:cwd, process:execute, runtime:random, runtime:time, system:inspect]
+tags:
+  [
+    skill,
+    creator,
+    scaffold,
+    meta,
+    generator,
+    template,
+    test,
+    improve,
+    optimize,
+    eval,
+  ]
+capabilities:
+  [
+    skill-scaffolding,
+    handler-generation,
+    skill-testing,
+    description-optimization,
+    description-optimization-loop,
+    template-management,
+  ]
+execution-capabilities:
+  [
+    data:result,
+    data:task,
+    filesystem:read,
+    host:electron,
+    host:environment,
+    host:filesystem,
+    host:logger,
+    host:process,
+    host:skill-registry,
+    process:cwd,
+    process:execute,
+    runtime:random,
+    runtime:time,
+    system:inspect,
+  ]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [skill-scaffold, skill-test, skill-optimize, skill-validate]
 instructions: |
-  Use this skill when the user wants to create a new skill, modify an existing
-  skill, test a skill with sample inputs, or optimize skill triggering. Follows
-  the Agent Skills open standard with YAML frontmatter + Markdown body. Generates
-  both SKILL.md and handler.js with proper structure. Makes descriptions slightly
-  "pushy" for better triggering accuracy. Use optimize-description for LLM-driven
-  eval loop that auto-improves and writes back the best description.
+  Use this skill when the user wants to propose a new skill, review an improvement
+  for an existing skill, test a skill with sample inputs, or optimize triggering.
+  Follows the Agent Skills open standard with YAML frontmatter + Markdown body.
+  The create and optimize-description actions return candidate bytes and diffs for
+  review; they never persist or activate them. Use a governed candidate store and
+  promotion controller before changing an active Skill.
 examples:
   - input: "create a skill for data validation"
     action: create
@@ -33,7 +69,8 @@ license: MIT
 
 # Skill Creator
 
-Create, test, and improve skills for the Agent Skills system.
+Propose, test, validate, and improve Skill candidates without mutating active
+Skill files.
 
 ## Usage
 
@@ -108,10 +145,10 @@ module.exports = {
 
 ## Actions
 
-| Action                 | Description                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `create`               | Scaffold SKILL.md + handler.js from name/description                                                                 |
-| `test`                 | Run skill with sample input and verify output                                                                        |
-| `optimize`             | Quick heuristic check on description (length, keywords)                                                              |
-| `optimize-description` | LLM-driven eval loop: generate 20 queries → 60/40 split → iterate up to 5× → write best description back to SKILL.md |
-| `validate`             | Check SKILL.md format and required fields                                                                            |
+| Action                 | Description                                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `create`               | Return an in-memory SKILL.md + handler.js candidate and diff; do not persist or activate it                            |
+| `test`                 | Run skill with sample input and verify output                                                                          |
+| `optimize`             | Quick heuristic check on description (length, keywords)                                                                |
+| `optimize-description` | LLM-driven eval loop that returns proposed SKILL.md content, a diff, and in-band evidence; active bytes stay unchanged |
+| `validate`             | Check SKILL.md format and required fields                                                                              |

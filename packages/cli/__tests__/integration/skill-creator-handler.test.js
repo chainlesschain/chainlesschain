@@ -2,7 +2,8 @@
  * 集成测试 — skill-creator handler (v1.2.0)
  *
  * 直接加载 handler.js，通过 branded host authority 注入 filesystem / process，
- * 测试跨模块边界的真实逻辑（create→validate 生命周期、optimize-description 完整循环）。
+ * 测试跨模块边界的真实逻辑（candidate-only create、只读 validate、
+ * optimize-description proposal loop）。
  */
 
 import {
@@ -189,22 +190,74 @@ describe("list-templates integration", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// create → validate lifecycle (real temp filesystem)
+// Stage-A create freeze + read-only validate lifecycle
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe("create → validate lifecycle (branded filesystem authority)", () => {
-  it("creates files in real builtin dir when skill doesn't exist (uses alreadyExists path)", async () => {
-    // We test with a definitely existing skill to hit the alreadyExists path
-    // (avoids actually creating new files in the codebase)
+describe("candidate-only create + validate (branded filesystem authority)", () => {
+  it("declares candidate-only behavior without filesystem write authority", () => {
+    const skillMd = nativeFs.readFileSync(
+      resolve(builtinSkillsRoot, "skill-creator", "SKILL.md"),
+      "utf8",
+    );
+
+    expect(skillMd).toContain(
+      "The create and optimize-description actions return candidate bytes and diffs",
+    );
+    expect(skillMd).toContain("they never persist or activate them");
+    expect(skillMd).not.toMatch(
+      /^execution-capabilities:.*filesystem:write.*$/mu,
+    );
+    expect(skillMd).not.toContain("writes back the best description");
+  });
+
+  it("does not create a directory or mutate active bytes", async () => {
+    const candidateName = "stage-a-freeze-candidate-only";
+    const candidateDir = resolve(builtinSkillsRoot, candidateName);
+    const beforeEntries = nativeFs.readdirSync(builtinSkillsRoot).sort();
+    expect(nativeFs.existsSync(candidateDir)).toBe(false);
+
     const r = await handler.execute(
-      { input: 'create ultrathink "Ultra thinking skill"' },
+      { input: `create ${candidateName} "Candidate-only skill"` },
       createExecutionContext(),
       {},
     );
-    expect(r.success).toBe(true);
-    expect(r.skillName).toBe("ultrathink");
-    // ultrathink exists → returns alreadyExists template without writing
-    expect(r.alreadyExists).toBe(true);
+
+    expect(r).toMatchObject({
+      success: true,
+      action: "create",
+      status: "candidate-proposed",
+      skillName: candidateName,
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      activeExists: false,
+    });
+    expect(r.proposedFiles["SKILL.md"]).toContain(`name: ${candidateName}`);
+    expect(nativeFs.existsSync(candidateDir)).toBe(false);
+    expect(nativeFs.readdirSync(builtinSkillsRoot).sort()).toEqual(
+      beforeEntries,
+    );
+  });
+
+  it("does not overwrite an existing active Skill", async () => {
+    const skillMdPath = resolve(builtinSkillsRoot, "ultrathink", "SKILL.md");
+    const beforeBytes = nativeFs.readFileSync(skillMdPath);
+
+    const r = await handler.execute(
+      { input: 'create ultrathink "Replacement proposal"' },
+      createExecutionContext(),
+      {},
+    );
+
+    expect(r).toMatchObject({
+      success: true,
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      activeExists: true,
+      alreadyExists: true,
+    });
+    expect(nativeFs.readFileSync(skillMdPath)).toEqual(beforeBytes);
   });
 
   it("validate reports valid for existing builtin skill (code-review)", async () => {
@@ -291,15 +344,19 @@ describe("optimize quick (real builtin skills)", () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("optimize-description with mocked LLM (real builtin SKILL.md)", () => {
-  it("runs full optimization loop and returns result with all fields", async () => {
+  it("returns a proposal while leaving active bytes and directory unchanged", async () => {
     const executeFileSync = smartSpawnFn({
       improvedDesc:
         "Better: use for code review, PR analysis, and audit tasks specifically",
     });
+    const activeDir = resolve(builtinSkillsRoot, "code-review");
+    const activeSkillMd = resolve(activeDir, "SKILL.md");
+    const beforeBytes = nativeFs.readFileSync(activeSkillMd);
+    const beforeEntries = nativeFs.readdirSync(activeDir).sort();
 
     const r = await handler.execute(
       { input: "optimize-description code-review --iterations 2" },
-      createExecutionContext({ executeFileSync, swallowWrites: true }),
+      createExecutionContext({ executeFileSync }),
       {},
     );
     expect(r.success).toBe(true);
@@ -312,6 +369,22 @@ describe("optimize-description with mocked LLM (real builtin SKILL.md)", () => {
     expect(r.bestTestScore).toBeLessThanOrEqual(1);
     expect(r.evalQueriesGenerated).toBe(20);
     expect(Array.isArray(r.iterationDetails)).toBe(true);
+    expect(r).toMatchObject({
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+      workspaceEvidence: {
+        persisted: false,
+        reason: "stage-a-mutation-freeze",
+      },
+    });
+    expect(typeof r.proposedContent).toBe("string");
+    expect(r.diff).toMatchObject({
+      path: "SKILL.md",
+      field: "description",
+    });
+    expect(nativeFs.readFileSync(activeSkillMd)).toEqual(beforeBytes);
+    expect(nativeFs.readdirSync(activeDir).sort()).toEqual(beforeEntries);
   });
 
   it("gracefully fails when LLM is unavailable (status=1)", async () => {

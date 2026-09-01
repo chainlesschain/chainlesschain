@@ -32,6 +32,41 @@ const MAX_LOCK_BYTES = 64 * 1024;
 const MAX_METADATA_BYTES = 64 * 1024;
 const MAX_PACKAGE_BYTES =
   MAX_SKILL_MD_BYTES + MAX_HANDLER_BYTES + MAX_LOCK_BYTES;
+const MAX_EXPORTED_FROM_BYTES = 256;
+const MAX_EXPORT_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const CANDIDATE_RECORD_SCHEMA = "chainlesschain.skill-sync-candidate/v1";
+const CANDIDATE_RECORD_VERSION = 1;
+const CANDIDATE_RECEIPT_KEYS = new Set([
+  "schema",
+  "version",
+  "candidateId",
+  "status",
+  "persisted",
+  "skillId",
+  "sourceDigest",
+  "derivationMode",
+  "trust",
+  "quarantined",
+]);
+const CANDIDATE_RECORD_KEYS = new Set([
+  ...CANDIDATE_RECEIPT_KEYS,
+  "sourceEvidence",
+  "package",
+]);
+const SOURCE_EVIDENCE_KEYS = new Set(["ref", "digest"]);
+const CANDIDATE_PACKAGE_KEYS = new Set([
+  "format",
+  "metadata",
+  "body",
+  "handler",
+  "signatureLock",
+  "checksum",
+  "exportedAt",
+  "exportedFrom",
+]);
+const CANDIDATE_DERIVATION_MODE = "manual-import";
+const CANDIDATE_TRUST = "untrusted";
 
 function validateSkillId(value) {
   const skillId = String(value || "");
@@ -44,7 +79,9 @@ function validateSkillId(value) {
 }
 
 function assertBoundedText(name, value, maxBytes, { optional = false } = {}) {
-  if (optional && value == null) return null;
+  if (optional && value == null) {
+    return null;
+  }
   if (typeof value !== "string") {
     throw new TypeError(`${name} must be a string`);
   }
@@ -64,6 +101,102 @@ function assertBoundedJson(name, value, maxBytes) {
   const serialized = JSON.stringify(value);
   assertBoundedText(name, serialized, maxBytes);
   return serialized;
+}
+
+function syncError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function assertOwnDataFields(value, fields, name, { exact = false } = {}) {
+  if (!isPlainObject(value)) {
+    throw syncError(
+      "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+      `${name} must be a plain object`,
+    );
+  }
+  const ownKeys = Reflect.ownKeys(value);
+  if (
+    ownKeys.some((key) => typeof key !== "string") ||
+    (exact &&
+      (ownKeys.length !== fields.size ||
+        ownKeys.some((key) => !fields.has(key))))
+  ) {
+    throw syncError(
+      "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+      `${name} has an invalid schema`,
+    );
+  }
+  for (const field of fields) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, field);
+    if (
+      !descriptor ||
+      !("value" in descriptor) ||
+      descriptor.enumerable !== true
+    ) {
+      throw syncError(
+        "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+        `${name}.${field} must be an enumerable own data property`,
+      );
+    }
+  }
+}
+
+function cloneJsonObject(value, serialized) {
+  return JSON.parse(serialized || JSON.stringify(value));
+}
+
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object" || seen.has(value)) {
+    return value;
+  }
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    deepFreeze(value[key], seen);
+  }
+  return Object.freeze(value);
+}
+
+function normalizeExportedAt(value) {
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > Date.now() + MAX_EXPORT_CLOCK_SKEW_MS
+  ) {
+    throw syncError(
+      "CC_SKILL_SYNC_SOURCE_INVALID",
+      "Invalid skill package: exportedAt must be a bounded timestamp",
+    );
+  }
+  return value;
+}
+
+function normalizeExportedFrom(value) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.trim() !== value ||
+    Buffer.byteLength(value, "utf8") > MAX_EXPORTED_FROM_BYTES ||
+    [...value].some((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint < 0x20 || codePoint === 0x7f;
+    })
+  ) {
+    throw syncError(
+      "CC_SKILL_SYNC_SOURCE_INVALID",
+      "Invalid skill package: exportedFrom is not a bounded device identifier",
+    );
+  }
+  return value;
 }
 
 function readStablePackageComponent(filePath, name, maxBytes) {
@@ -89,28 +222,6 @@ function readStablePackageComponent(filePath, name, maxBytes) {
   return bytes;
 }
 
-function writeSafePackageComponent(filePath, content) {
-  const noFollow = fs.constants.O_NOFOLLOW || 0;
-  let descriptor;
-  try {
-    descriptor = fs.openSync(
-      filePath,
-      fs.constants.O_WRONLY | fs.constants.O_CREAT | noFollow,
-      0o600,
-    );
-    const stat = fs.fstatSync(descriptor);
-    if (!stat.isFile() || stat.nlink !== 1) {
-      throw new Error(`${path.basename(filePath)} import target is unsafe`);
-    }
-    fs.ftruncateSync(descriptor, 0);
-    fs.writeFileSync(descriptor, content, { encoding: "utf8" });
-    fs.fchmodSync(descriptor, 0o600);
-    fs.fsyncSync(descriptor);
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-  }
-}
-
 function packageChecksum(pkg) {
   const content = canonicalJson({
     format: pkg.format,
@@ -122,13 +233,87 @@ function packageChecksum(pkg) {
   return crypto.createHash("sha256").update(content).digest("hex");
 }
 
-function isContained(root, target) {
-  const relative = path.relative(root, target);
-  return (
-    Boolean(relative) &&
-    !relative.startsWith("..") &&
-    !path.isAbsolute(relative)
+function packageEnvelopeDigest(pkg) {
+  return `sha256:${crypto
+    .createHash("sha256")
+    .update(
+      canonicalJson({
+        format: pkg.format,
+        metadata: pkg.metadata,
+        body: pkg.body,
+        handler: pkg.handler,
+        signatureLock: pkg.signatureLock || null,
+        checksum: pkg.checksum,
+        exportedAt: pkg.exportedAt ?? null,
+        exportedFrom: pkg.exportedFrom ?? null,
+      }),
+    )
+    .digest("hex")}`;
+}
+
+function validateCandidateReceipt(receipt, expected) {
+  assertOwnDataFields(
+    receipt,
+    CANDIDATE_RECEIPT_KEYS,
+    "candidate create receipt",
+    { exact: true },
   );
+  if (
+    typeof receipt.candidateId !== "string" ||
+    !DIGEST_PATTERN.test(receipt.candidateId)
+  ) {
+    throw syncError(
+      "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+      "candidate create receipt has an invalid candidateId",
+    );
+  }
+  for (const [field, value] of Object.entries(expected)) {
+    if (receipt[field] !== value) {
+      throw syncError(
+        "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+        `candidate create receipt is not bound to ${field}`,
+      );
+    }
+  }
+  return receipt.candidateId;
+}
+
+function validateCandidateReadback(record, receipt, createRequest) {
+  assertOwnDataFields(record, CANDIDATE_RECORD_KEYS, "candidate readback", {
+    exact: true,
+  });
+  for (const field of CANDIDATE_RECEIPT_KEYS) {
+    if (record[field] !== receipt[field]) {
+      throw syncError(
+        "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+        `candidate readback is not bound to ${field}`,
+      );
+    }
+  }
+  assertOwnDataFields(
+    record.package,
+    CANDIDATE_PACKAGE_KEYS,
+    "candidate readback package",
+    { exact: true },
+  );
+  assertOwnDataFields(
+    record.sourceEvidence,
+    SOURCE_EVIDENCE_KEYS,
+    "candidate readback source evidence",
+    { exact: true },
+  );
+  const readbackDigest = packageEnvelopeDigest(record.package);
+  if (
+    readbackDigest !== receipt.sourceDigest ||
+    canonicalJson(record.package) !== canonicalJson(createRequest.package) ||
+    canonicalJson(record.sourceEvidence) !==
+      canonicalJson(createRequest.sourceEvidence)
+  ) {
+    throw syncError(
+      "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+      "candidate readback package does not match its canonical source digest",
+    );
+  }
 }
 
 class SkillSyncManager extends EventEmitter {
@@ -137,6 +322,8 @@ class SkillSyncManager extends EventEmitter {
    * @param {import('./skill-registry').SkillRegistry} options.skillRegistry
    * @param {Object} [options.mobileBridge] - MobileBridge instance for P2P sync
    * @param {string} [options.managedDir] - Path to managed skills directory
+   * @param {{create: Function, read: Function}} [options.candidateStore]
+   * Host-owned durable candidate-only store. It has no active-layer authority.
    */
   constructor(options = {}) {
     super();
@@ -144,6 +331,12 @@ class SkillSyncManager extends EventEmitter {
     this.skillRegistry = options.skillRegistry;
     this.mobileBridge = options.mobileBridge || null;
     this.managedDir = options.managedDir || this._resolveManagedDir();
+    this.candidateStore =
+      options.candidateStore &&
+      typeof options.candidateStore.create === "function" &&
+      typeof options.candidateStore.read === "function"
+        ? options.candidateStore
+        : null;
 
     // Sync state
     this.syncStatus = new Map(); // peerId -> { lastSync, skillCount }
@@ -251,7 +444,9 @@ class SkillSyncManager extends EventEmitter {
   }
 
   /**
-   * Import a skill package into the managed layer
+   * Validate an imported package and persist it through the host-owned
+   * candidate boundary. Sync peers and IPC callers never receive active-layer
+   * write authority from this class.
    * @param {Object} pkg - Skill package
    * @returns {Object} Import result
    */
@@ -265,8 +460,15 @@ class SkillSyncManager extends EventEmitter {
       throw new Error("Invalid skill package: missing metadata.skillId");
     }
 
-    assertBoundedJson("skill metadata", pkg.metadata, MAX_METADATA_BYTES);
-    const skillId = validateSkillId(pkg.metadata.skillId);
+    const metadataText = assertBoundedJson(
+      "skill metadata",
+      pkg.metadata,
+      MAX_METADATA_BYTES,
+    );
+    const normalizedMetadata = cloneJsonObject(pkg.metadata, metadataText);
+    const skillId = validateSkillId(normalizedMetadata.skillId);
+    const exportedAt = normalizeExportedAt(pkg.exportedAt);
+    const exportedFrom = normalizeExportedFrom(pkg.exportedFrom);
     const body = assertBoundedText("SKILL.md", pkg.body, MAX_SKILL_MD_BYTES);
     const handler = assertBoundedText(
       "handler.js",
@@ -275,13 +477,18 @@ class SkillSyncManager extends EventEmitter {
       { optional: true },
     );
     let signatureLockText = null;
+    let normalizedSignatureLock = null;
     if (pkg.signatureLock != null) {
-      assertBoundedJson(
+      const serializedSignatureLock = assertBoundedJson(
         "skill signature lock",
         pkg.signatureLock,
         MAX_LOCK_BYTES,
       );
-      signatureLockText = JSON.stringify(pkg.signatureLock, null, 2);
+      normalizedSignatureLock = cloneJsonObject(
+        pkg.signatureLock,
+        serializedSignatureLock,
+      );
+      signatureLockText = JSON.stringify(normalizedSignatureLock, null, 2);
       assertBoundedText(LOCK_FILENAME, signatureLockText, MAX_LOCK_BYTES);
     }
     const packageBytes =
@@ -300,7 +507,7 @@ class SkillSyncManager extends EventEmitter {
     if (parsedDefinition.name !== skillId) {
       throw new Error("Skill package identity does not match SKILL.md");
     }
-    if (String(pkg.metadata.version || "") !== parsedDefinition.version) {
+    if (String(normalizedMetadata.version || "") !== parsedDefinition.version) {
       throw new Error("Skill package version does not match SKILL.md");
     }
     if (parsedDefinition.handler) {
@@ -326,7 +533,13 @@ class SkillSyncManager extends EventEmitter {
       );
     }
 
-    const expectedChecksum = packageChecksum(pkg);
+    const expectedChecksum = packageChecksum({
+      format: SKILL_PACKAGE_FORMAT,
+      metadata: normalizedMetadata,
+      body: body.value,
+      handler: handler?.value || null,
+      signatureLock: normalizedSignatureLock,
+    });
 
     if (
       typeof pkg.checksum !== "string" ||
@@ -344,113 +557,92 @@ class SkillSyncManager extends EventEmitter {
     // Check for conflicts
     const existing = this.skillRegistry.getSkill(skillId);
     if (existing) {
-      const resolution = this._resolveConflict(existing, pkg.metadata);
+      const resolution = this._resolveConflict(existing, {
+        metadata: normalizedMetadata,
+        exportedAt,
+      });
       if (resolution === "keep-local") {
         logger.info(
           `[SkillSync] Keeping local version of ${skillId} (conflict resolved)`,
         );
-        return { skillId, action: "skipped", reason: "local-version-newer" };
+        return {
+          skillId,
+          action: "skipped",
+          reason: "local-version-newer",
+          candidateOnly: true,
+          persisted: false,
+          activeMutation: false,
+          hotLoaded: false,
+          reloadRequired: false,
+        };
       }
     }
 
-    const managedRoot = path.resolve(this.managedDir);
-    fs.mkdirSync(managedRoot, { recursive: true, mode: 0o700 });
-    const managedRootRealPath = fs.realpathSync(managedRoot);
-    const skillDir = path.resolve(managedRootRealPath, skillId);
-    if (!isContained(managedRootRealPath, skillDir)) {
-      const error = new Error("Skill import path escapes the managed root");
-      error.code = "CC_SKILL_ROOT_ESCAPE";
+    if (!this.candidateStore) {
+      const error = new Error(
+        "Skill sync candidate store is unavailable; active import is denied",
+      );
+      error.code = "CC_SKILL_SYNC_CANDIDATE_STORE_UNAVAILABLE";
       throw error;
     }
-    if (!fs.existsSync(skillDir)) {
-      fs.mkdirSync(skillDir, { recursive: true, mode: 0o700 });
-    }
-    const existingTarget = fs.lstatSync(skillDir);
-    if (existingTarget.isSymbolicLink() || !existingTarget.isDirectory()) {
-      throw new Error("Managed skill target must be a non-symlink directory");
-    }
-    const targetRealPath = fs.realpathSync(skillDir);
-    if (!isContained(managedRootRealPath, targetRealPath)) {
-      throw new Error("Managed skill target escapes the managed root");
-    }
 
-    for (const component of ["SKILL.md", "handler.js", LOCK_FILENAME]) {
-      const componentPath = path.join(skillDir, component);
-      if (!fs.existsSync(componentPath)) continue;
-      const componentStat = fs.lstatSync(componentPath);
-      if (
-        componentStat.isSymbolicLink() ||
-        !componentStat.isFile() ||
-        componentStat.nlink !== 1
-      ) {
-        throw new Error(`${component} import target is unsafe`);
-      }
-    }
+    const candidatePackage = deepFreeze({
+      format: SKILL_PACKAGE_FORMAT,
+      metadata: normalizedMetadata,
+      body: body.value,
+      handler: handler?.value || null,
+      signatureLock: normalizedSignatureLock,
+      checksum: expectedChecksum,
+      exportedAt,
+      exportedFrom,
+    });
+    const sourceDigest = packageEnvelopeDigest(candidatePackage);
+    const expectedReceipt = Object.freeze({
+      schema: CANDIDATE_RECORD_SCHEMA,
+      version: CANDIDATE_RECORD_VERSION,
+      status: "draft",
+      persisted: true,
+      skillId,
+      sourceDigest,
+      derivationMode: CANDIDATE_DERIVATION_MODE,
+      trust: CANDIDATE_TRUST,
+      quarantined: true,
+    });
+    const createRequest = deepFreeze({
+      ...expectedReceipt,
+      sourceEvidence: {
+        ref: `skill-sync://${encodeURIComponent(exportedFrom)}/${skillId}`,
+        digest: sourceDigest,
+      },
+      package: candidatePackage,
+    });
+    const receipt = await this.candidateStore.create(createRequest);
+    const candidateId = validateCandidateReceipt(receipt, expectedReceipt);
+    const readback = await this.candidateStore.read(candidateId);
+    validateCandidateReadback(readback, receipt, createRequest);
 
-    // Write SKILL.md
-    writeSafePackageComponent(path.join(skillDir, "SKILL.md"), body.value);
-
-    // Write handler.js
-    if (handler) {
-      writeSafePackageComponent(
-        path.join(skillDir, "handler.js"),
-        handler.value,
-      );
-    }
-    if (signatureLockText) {
-      writeSafePackageComponent(
-        path.join(skillDir, LOCK_FILENAME),
-        signatureLockText,
-      );
-    }
-
-    // An import replaces the authoritative package components. Remove stale
-    // executable material that is absent from the incoming package.
-    for (const [component, present] of [
-      ["handler.js", Boolean(handler)],
-      [LOCK_FILENAME, Boolean(signatureLockText)],
-    ]) {
-      const componentPath = path.join(skillDir, component);
-      if (!present && fs.existsSync(componentPath)) {
-        fs.unlinkSync(componentPath);
-      }
-    }
-
-    const importedSourcePath = path.join(skillDir, "SKILL.md");
-    preflightSkillPath(skillDir, skillDir);
-    if (parsedDefinition.handler) {
-      inspectSkillExecution(
-        {
-          ...parsedDefinition,
-          source: "managed",
-          sourcePath: importedSourcePath,
-        },
-        { allowedRoot: skillDir },
-      );
-    }
-
-    let hotLoaded = false;
-    if (this.skillRegistry?._loader?.loadSingleSkill) {
-      const definition = await this.skillRegistry._loader.loadSingleSkill(
-        skillDir,
-        "managed",
-        managedRootRealPath,
-      );
-      if (!definition) {
-        throw new Error("Imported skill failed loader security validation");
-      }
-      hotLoaded = this.skillRegistry.hotLoadSkill(skillId, definition) === true;
-    }
-
-    this.emit("skill-imported", { skillId, from: pkg.exportedFrom });
-    logger.info(`[SkillSync] Imported skill: ${skillId}`);
+    this.emit("skill-candidate-staged", {
+      skillId,
+      candidateId,
+      from: exportedFrom,
+      trust: CANDIDATE_TRUST,
+      quarantined: true,
+    });
+    logger.info(`[SkillSync] Staged skill candidate: ${skillId}`);
 
     return {
       skillId,
-      action: "imported",
-      version: pkg.metadata.version,
-      hotLoaded,
-      reloadRequired: !hotLoaded,
+      action: "candidate-staged",
+      version: normalizedMetadata.version,
+      candidateId,
+      sourceDigest,
+      candidateOnly: true,
+      persisted: true,
+      trust: CANDIDATE_TRUST,
+      quarantined: true,
+      activeMutation: false,
+      hotLoaded: false,
+      reloadRequired: false,
     };
   }
 
@@ -566,10 +758,36 @@ class SkillSyncManager extends EventEmitter {
    * @param {Object} [remotePkg] - Remote package if resolution is use-remote
    */
   async resolveConflict(skillId, resolution, remotePkg = null) {
-    if (resolution === "use-remote" && remotePkg) {
+    const normalizedSkillId = validateSkillId(skillId);
+    if (resolution !== "keep-local" && resolution !== "use-remote") {
+      throw syncError(
+        "CC_SKILL_SYNC_CONFLICT_RESOLUTION_INVALID",
+        "resolution must be keep-local or use-remote",
+      );
+    }
+    if (resolution === "use-remote") {
+      if (!remotePkg || !remotePkg.metadata) {
+        throw syncError(
+          "CC_SKILL_SYNC_CONFLICT_PACKAGE_REQUIRED",
+          "use-remote requires a remote skill package",
+        );
+      }
+      const remoteSkillId = validateSkillId(remotePkg.metadata.skillId);
+      if (remoteSkillId !== normalizedSkillId) {
+        throw syncError(
+          "CC_SKILL_SYNC_CONFLICT_IDENTITY_MISMATCH",
+          "remote package identity does not match the conflict skillId",
+        );
+      }
       return await this.importSkill(remotePkg);
     }
-    return { skillId, action: "kept-local" };
+    return {
+      skillId: normalizedSkillId,
+      action: "kept-local",
+      candidateOnly: true,
+      persisted: false,
+      activeMutation: false,
+    };
   }
 
   /**
@@ -696,7 +914,16 @@ class SkillSyncManager extends EventEmitter {
     if (payload?.package) {
       try {
         const result = await this.importSkill(payload.package);
-        this.emit("skill-downloaded", { peerId, result });
+        if (result.action === "candidate-staged") {
+          this.emit("skill-download-candidate-staged", { peerId, result });
+        } else if (result.action === "skipped") {
+          this.emit("skill-download-skipped", { peerId, result });
+        } else {
+          throw syncError(
+            "CC_SKILL_SYNC_IMPORT_RESULT_INVALID",
+            "Skill download produced an unsupported import outcome",
+          );
+        }
       } catch (err) {
         logger.error(
           `[SkillSync] Import failed from ${peerId}: ${err.message}`,
@@ -721,9 +948,9 @@ class SkillSyncManager extends EventEmitter {
    * @private
    * @returns {'keep-local'|'use-remote'}
    */
-  _resolveConflict(localSkill, remoteMeta) {
+  _resolveConflict(localSkill, remotePkg) {
     const localVersion = localSkill.version || "0.0.0";
-    const remoteVersion = remoteMeta.version || "0.0.0";
+    const remoteVersion = remotePkg.metadata.version || "0.0.0";
 
     const cmp = this._compareVersions(localVersion, remoteVersion);
     if (cmp > 0) {
@@ -735,7 +962,7 @@ class SkillSyncManager extends EventEmitter {
 
     // Same version → compare timestamps
     const localTime = localSkill.updatedAt || localSkill.createdAt || 0;
-    const remoteTime = remoteMeta.updatedAt || remoteMeta.exportedAt || 0;
+    const remoteTime = remotePkg.exportedAt;
     return remoteTime > localTime ? "use-remote" : "keep-local";
   }
 

@@ -36,6 +36,23 @@ const _deps = {
   getManagedSkillsRoot: defaultManagedSkillsRoot,
 };
 
+const STAGE_A_CANDIDATE_STATUS = Object.freeze({
+  candidateOnly: true,
+  persisted: false,
+  activeMutation: false,
+});
+
+function candidateOnlyResult(result) {
+  return {
+    ...result,
+    ...STAGE_A_CANDIDATE_STATUS,
+  };
+}
+
+function isMutationProposalAction(action) {
+  return action === "create" || action === "optimize-description";
+}
+
 function resolveSkillDir(name) {
   if (typeof name !== "string" || !/^[a-z][a-z0-9-]{0,127}$/.test(name)) {
     const error = new Error(
@@ -120,11 +137,14 @@ module.exports = {
       }
     } catch (error) {
       logger.error("[SkillCreator] Error:", error);
-      return {
+      const result = {
         success: false,
         error: error.message,
         ...(error.code ? { code: error.code } : {}),
       };
+      return isMutationProposalAction(parsed.action)
+        ? candidateOnlyResult({ action: parsed.action, ...result })
+        : result;
     }
   },
 };
@@ -350,23 +370,23 @@ Guidelines:
 
 async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
   if (!name) {
-    return {
+    return candidateOnlyResult({
       success: false,
       action: "optimize-description",
       error: "No skill name provided.",
-    };
+    });
   }
 
   const skillDir = resolveSkillDir(name);
   const skillMdPath = _deps.path.join(skillDir, "SKILL.md");
 
   if (!fs.existsSync(skillMdPath)) {
-    return {
+    return candidateOnlyResult({
       success: false,
       action: "optimize-description",
       skillName: name,
       error: `SKILL.md not found for "${name}".`,
-    };
+    });
   }
 
   const content = fs.readFileSync(skillMdPath, "utf-8");
@@ -374,12 +394,12 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
   const originalDesc = descMatch ? descMatch[1].trim() : "";
 
   if (!originalDesc) {
-    return {
+    return candidateOnlyResult({
       success: false,
       action: "optimize-description",
       skillName: name,
       error: "No description field found in SKILL.md.",
-    };
+    });
   }
 
   logger.info(
@@ -389,14 +409,14 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
   // Step 1: Generate eval queries
   const evalQueries = generateEvalQueries(name, originalDesc, runtimeEnv);
   if (!evalQueries || evalQueries.length < 4) {
-    return {
+    return candidateOnlyResult({
       success: false,
       action: "optimize-description",
       skillName: name,
       error:
         "Failed to generate eval queries. Ensure `chainlesschain ask` is available (CLI context required).",
       hint: `Run via: chainlesschain skill run skill-creator "optimize-description ${name}"`,
-    };
+    });
   }
 
   // Step 2: Shuffle + 60/40 split
@@ -491,71 +511,78 @@ async function handleOptimizeDescription(name, maxIterations = 5, runtimeEnv) {
     currentDesc = improved;
   }
 
-  // Step 5: Write best description back to SKILL.md
+  // Step 5: Build a proposal without mutating the active managed Skill.
+  // Stage A deliberately has no persistence adapter: only a trusted future
+  // candidate controller may store, evaluate, and promote these bytes.
   const descImproved = bestDesc !== originalDesc;
-  if (descImproved) {
-    const updatedContent = content.replace(
-      /^(description:\s*).+/m,
-      `$1${bestDesc}`,
-    );
-    fs.writeFileSync(skillMdPath, updatedContent, "utf-8");
-    logger.info(`[SkillCreator] SKILL.md updated with best description.`);
-  }
+  const proposedContent = descImproved
+    ? content.replace(/^(description:\s*).+/m, `$1${bestDesc}`)
+    : content;
 
-  // Step 6: Save results to workspace
-  try {
-    const workspaceDir = _deps.path.join(skillDir, ".opt-workspace");
-    if (!fs.existsSync(workspaceDir)) {
-      fs.mkdirSync(workspaceDir, { recursive: true });
-    }
-    const results = {
-      skillName: name,
-      timestamp: new Date().toISOString(),
-      originalDescription: originalDesc,
-      bestDescription: bestDesc,
-      baselineTestScore: baselineTestResult.score,
-      bestTestScore,
-      iterations,
-      evalQueries: shuffled.map((q, idx) => ({
-        ...q,
-        split: idx < splitIdx ? "train" : "test",
-      })),
-    };
-    fs.writeFileSync(
-      _deps.path.join(workspaceDir, "results.json"),
-      JSON.stringify(results, null, 2),
-      "utf-8",
-    );
-  } catch {
-    // Non-critical — don't fail if workspace write fails
-  }
+  // Step 6: Return evaluation evidence in-band. Writing `.opt-workspace`
+  // beneath the managed Skill would itself mutate the active tree, and the old
+  // best-effort write could fail while the response still implied persistence.
+  const workspaceEvidence = {
+    skillName: name,
+    timestamp: new Date().toISOString(),
+    originalDescription: originalDesc,
+    bestDescription: bestDesc,
+    baselineTestScore: baselineTestResult.score,
+    bestTestScore,
+    iterations,
+    evalQueries: shuffled.map((q, idx) => ({
+      ...q,
+      split: idx < splitIdx ? "train" : "test",
+    })),
+  };
 
   const baselinePct = Math.round(baselineTestResult.score * 100);
   const bestPct = Math.round(bestTestScore * 100);
 
-  return {
+  return candidateOnlyResult({
     success: true,
     action: "optimize-description",
+    status: descImproved ? "candidate-proposed" : "no-change",
     skillName: name,
     originalDescription: originalDesc,
     bestDescription: bestDesc,
     improved: descImproved,
+    proposedContent,
+    proposedFiles: {
+      "SKILL.md": proposedContent,
+    },
+    diff: {
+      path: "SKILL.md",
+      field: "description",
+      changed: descImproved,
+      before: originalDesc,
+      after: bestDesc,
+    },
+    workspaceEvidence: {
+      persisted: false,
+      reason: "stage-a-mutation-freeze",
+      payload: workspaceEvidence,
+    },
     baselineTestScore: baselineTestResult.score,
     bestTestScore,
     iterations: iterations.length,
     iterationDetails: iterations,
     evalQueriesGenerated: evalQueries.length,
     message: descImproved
-      ? `Description improved! Test score: ${baselinePct}% → ${bestPct}%. SKILL.md updated.`
-      : `No improvement found. Description is already optimal (test score: ${bestPct}%).`,
-  };
+      ? `Description candidate proposed (test score: ${baselinePct}% → ${bestPct}%); active SKILL.md is unchanged and the proposal is not persisted.`
+      : `No description change proposed (test score: ${bestPct}%); active SKILL.md is unchanged.`,
+  });
 }
 
 // ─── Existing Actions (unchanged) ────────────────────────────────────────────
 
 function handleCreate(name, description) {
   if (!name) {
-    return { success: false, error: "No skill name provided." };
+    return candidateOnlyResult({
+      success: false,
+      action: "create",
+      error: "No skill name provided.",
+    });
   }
 
   const skillName = name
@@ -640,42 +667,46 @@ module.exports = {
 `;
 
   if (!skillName) {
-    return { success: false, error: "Skill name is invalid." };
+    return candidateOnlyResult({
+      success: false,
+      action: "create",
+      error: "Skill name is invalid.",
+    });
   }
   const skillDir = resolveSkillDir(skillName);
   const files = {
     "SKILL.md": skillMd,
     "handler.js": handlerJs,
   };
+  const activeExists = fs.existsSync(skillDir);
 
-  if (!fs.existsSync(skillDir)) {
-    fs.mkdirSync(skillDir, { recursive: true });
-    fs.writeFileSync(_deps.path.join(skillDir, "SKILL.md"), skillMd, "utf8");
-    fs.writeFileSync(
-      _deps.path.join(skillDir, "handler.js"),
-      handlerJs,
-      "utf8",
-    );
-
-    return {
-      success: true,
-      action: "create",
-      skillName,
-      skillDir,
-      files: ["SKILL.md", "handler.js"],
-      message: `Skill "${skillName}" created at ${skillDir}/. Edit SKILL.md and handler.js to customize.`,
-    };
-  }
-
-  return {
+  return candidateOnlyResult({
     success: true,
     action: "create",
+    status: "candidate-proposed",
     skillName,
-    skillDir,
+    activeExists,
     files,
-    alreadyExists: true,
-    message: `Skill "${skillName}" already exists. Returning generated templates without overwriting.`,
-  };
+    proposedFiles: files,
+    candidate: {
+      kind: "skill-scaffold",
+      skillName,
+      files,
+    },
+    diff: {
+      kind: "file-set",
+      changes: Object.keys(files).map((file) => ({
+        path: file,
+        operation: activeExists ? "propose-replace" : "propose-create",
+      })),
+    },
+    // Retained as a compatibility hint about the active directory only. It
+    // never means that this invocation persisted any candidate bytes.
+    alreadyExists: activeExists,
+    message: activeExists
+      ? `Skill "${skillName}" already exists. Returning an in-memory candidate for review; active files are unchanged.`
+      : `Generated an in-memory candidate for "${skillName}"; it is not persisted or active.`,
+  });
 }
 
 async function handleTest(name, testInput, context) {

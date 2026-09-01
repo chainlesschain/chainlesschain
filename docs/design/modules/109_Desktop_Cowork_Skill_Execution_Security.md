@@ -1,6 +1,6 @@
 # 109. Desktop Cowork Skill 执行安全与能力代理设计
 
-> 状态：2026-08-29 已进入 Desktop 源码主线，并在 `222396f6a8` 的 exact-SHA 签名 Desktop Skill qualification 中通过｜核心源码证据：`a404dad52c`—`2286267dea`、`31d5cfc4d8`—`1d8155e4b4`、`0ac5f13b8e`｜Desktop/native 文件不属于 `chainlesschain@0.166.9` npm 包字节
+> 状态：2026-08-29 已进入 Desktop 源码主线，并在 `ee88125256` 的 exact-SHA 签名 Desktop Skill qualification 中通过；2026-09-01 后继 producer 已收紧为仅接受受保护 `main` 当前 head｜核心源码证据：`a404dad52c`—`2286267dea`、`31d5cfc4d8`—`1d8155e4b4`、`0ac5f13b8e`｜Desktop/native 文件不属于 `chainlesschain@0.166.15` npm 包字节
 
 ## 1. 目标与边界
 
@@ -122,18 +122,34 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 5. 固定域名、动态域名、本地服务、网络诊断与环境 Broker 分别覆盖 SSRF、重定向、私网地址、shell 注入、未声明秘密读取和资源上限；
 6. 打包产物中 Worker 路径可解析，且强制隔离不可用时拒绝启动。
 
-2026-08-29 的 qualification producer 进一步把候选安装包身份与运行旅程绑定到 exact SHA：
+2026-08-29 的 qualification producer 进一步把候选安装包身份与运行旅程绑定到 exact SHA。2026-09-01 的后继策略又把生产重跑入口收紧为仅允许受保护 `main` 当前 head；普通分支与 `v*` 标签即使指向相同提交也会被拒绝，避免标签或旁路 ref 绕过 Environment 审批与 main 保护：
 
 - macOS 使用明确的 app/inherit entitlements 与 after-sign notarization 钩子；
 - 安装记录、签名记录和启动探针分别产出有界证据，再由 aggregate 复核平台、SHA 与制品身份；
 - 打包后的真实 Skill journey 验证能力目录、Broker、一次性 Worker 与启动后的宿主边界，而不是只跑源码单测；
 - 缺平台、跨 SHA、伪造签名元数据或只提供 build 日志均不满足资格门。
+- consumer 只接受固定的 producer workflow 身份与同一 `main` SHA，不能由 dispatch 输入替换 workflow 路径或借用旧 run 的 artifact。
 
 该门只证明候选在受控 CI 的签名/安装/启动旅程中合格。它不能替代公共下载渠道的 fresh install、upgrade、rollback、notarization/updater 回读，也不能把 Desktop 字节归入 npm CLI 制品。
+
+### 8.1 本地 source-only Skill evolution 合同
+
+本轮核对冻结的未合并本地功能分支快照 `233e1bdc` 在现有执行安全边界之外增加了一组 evolution 治理原语；该锚点不表示它永远是分支当前 head，也没有把 Skill 变成可自我授权的 writer：
+
+- `3fdff6c1` 让 CLI synthesis/improvement 只生成隔离 candidate/diff，`c16e1a39` 盘点并冻结 Skill writer，同时让 Skill Creator/Sync 只提交 host-owned candidate；缺 evaluator、candidate store 或宿主注入时失败闭合，不修改 active Skill；
+- `fe16c72d` 的 `SkillMutationAuthority` 要求精确 actor/tenant/candidate/approval/active identity 和 mutation request；`ed7882d0` 的 promotion controller/release registry 以 CAS、journal 和 recovery receipt 提供崩溃安全发布合同；
+- `b8490faa` 的 evolution evidence projector 生成 tenant-scoped commitment、加密 Raw、model-visible/trusted projection 与 attestation，并受 ACL/retention 约束；投影不能反向授予 mutation 或 promotion authority。
+- `d073bdf3` 的 tamper-evident EvolutionLedger 使用签名 append-only event segment/HEAD、独立 witness 与可信 artifact resolver，提供 receipt/query/verify，并对篡改、回滚、截断、重排、并发 append 和崩溃恢复失败闭合。
+- `233e1bdc` 在 mutation authority、promotion controller 与 release registry 间绑定 mutation transition subject，拒绝 subject 缺失、漂移和跨 subject transition replay。
+
+这些类尚未由 CLI/Desktop 统一生产实例化，也没有完整端到端 wiring 或正式验收；仓库中没有 EvolutionLedger 的 production import/实例化。Ledger 定向 Vitest 共 35 项，本机为 34 pass、1 个默认 5 秒 timeout，首项实际约 `18.848s`、整套约 `128.9s`。另一个不同范围是 `233e1bdc` 工作树的六治理文件定向回归：6/6 files、126/126 tests 通过，耗时 `28.84s`。两组结果不能合并计数；后者全绿也不是 production wiring、qualification、发布授权或 P1 关闭，不能写成自动改写/升级 active Skill。
+
+P1-11 的外部关闭条件也没有变化：`3c4342d8` 只把后继签名 producer 收紧到受保护 `main` 当前 head，历史成功仍绑定 `ee88125256`。`233e1bdc` 未合入 GitHub `main@458b342f5f`，也没有自己的三平台签名安装、packaged launch、真实 Skill journey、aggregate/OIDC 或公共 fresh-install/upgrade/rollback 回读，因此 P1-11 继续部分完成。
 
 ## 9. 已知边界
 
 - 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.15` 的制品内容；
+- 本轮本地冻结快照 `233e1bdc` 的 evolution 合同不属于现有 Desktop qualification，也不赋予 active Skill 自动写入或发布 authority；
 - Ed25519 签名证明“由可信 key 签署且字节未变”，不证明代码无漏洞；
 - 能力 Broker 只约束迁移后的宿主表面，未迁移或 native 扩展必须单独审计；
 - 网络 declassification 是显式授权证据，不是数据内容自动安全分类；
@@ -156,3 +172,10 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 - `desktop-app-vue/scripts/record-signed-desktop-signature.mjs`
 - `desktop-app-vue/scripts/signed-desktop-skill-journey.mjs`
 - `desktop-app-vue/src/main/signed-desktop-launch-probe.js`
+- `packages/cli/src/lib/evolution/skill-candidate-registry.js`
+- `packages/cli/src/lib/evolution/skill-writer-inventory-manifest.js`
+- `packages/cli/src/lib/evolution/skill-mutation-authority.js`
+- `packages/cli/src/lib/evolution/skill-promotion-controller.js`
+- `packages/cli/src/lib/evolution/skill-release-registry.js`
+- `packages/cli/src/lib/evolution/evolution-evidence-projector.js`
+- `packages/cli/src/lib/evolution/evolution-ledger.js`
