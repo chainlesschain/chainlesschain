@@ -2485,6 +2485,30 @@ PR #311 合入后，release 分支与后继稳定化提交最终收敛到受保�
 
 当前仓库内可执行的 Codex 差距实现已经合入并发布；余下工作不再是继续扩写本地 mock、contract 或 gate，而是由具备生产 observer trust root、独立物理宿主、签名/公证凭据和 Environment 审批权限的负责人运行现有 fail-closed producer/aggregate。证据实际产生并通过 authenticated close 前，本报告不得仅因 `main`、tag 或公开 CLI/IDE 版本更新而关闭 P1-3、P1-10、P1-11、P1-12。
 
+### 12.78 GitHub Actions 可执行性与外部输入复核（2026-09-02）
+
+针对 P1-3、P1-10、P1-11、P1-12 能否继续通过 GitHub Actions 收口，本轮对仓库工作流、GitHub Environments、变量/密钥、runner 注册和既有运行记录进行了只读复核。结论是：**后续生产验收的编排、挑战、三平台执行、聚合、OIDC attestation 和关闭收据均已有 GitHub Actions 实现；当前缺口不是仓库代码或工作流，而是这些工作流刻意要求的外部信任根和生产输入。**
+
+现有权威工作流如下：
+
+- P1-3/P1-12：`Graph Kernel Production Evidence` 负责从 Linux、Windows、macOS 三个生产 observer 收集签名原始收据并生成 hosted aggregate；`Graph Kernel Production Cutover` 负责校验精确 run/attempt、OIDC certificate 和 production close receipt。
+- P1-10：`P1-10 External Evidence Producer` 负责六台独立物理宿主的生产矩阵；`P1-10 External Evidence Close` 负责验证 attempt-scoped artifacts、attestation 和 fresh 30 分钟证据并签发关闭收据。
+- P1-11：`Desktop Signed Skill Platform` 使用 GitHub-hosted Linux/Windows/macOS runner 生成签名安装包、执行 fresh install 与七项真实 Skill journey；`Desktop Signed Skill Qualification` 聚合三平台证据并签发 OIDC attestation。
+
+GitHub 侧的保护骨架已经存在：`graph-kernel-production`、`graph-kernel-production-close`、`p1-10-external-conformance`、`p1-10-external-conformance-close` 与 `desktop-signed-qualification-v2` 均只允许 `main`，启用了 required reviewer、禁止 self-review，并关闭 administrator bypass。当前实际配置仍有以下缺口：
+
+- 仓库注册的 self-hosted runner 数量为 `0`；P1-10 所需六台独立物理 runner，以及 Graph 所需三台带 `physical`/`graph-kernel-production` 标签的生产宿主均未部署。
+- [Graph production source registry](../.github/graph-kernel-production-source-registry.json) 的 `sources` 为空，两个 Graph Environment 均未配置 registry digest pin；producer Environment 也没有 Linux/Windows/macOS 三个独立 collector token。
+- [P1-10 physical host registry](../.github/p1-10-physical-host-registry.json) 的 `hosts` 为空；两个 P1-10 Environment 均没有 host registry、harness、local attester、protected input manifest 的十项 digest pin，也没有宿主管理员配置的九项路径输入。
+- `desktop-signed-qualification-v2` 的 Environment secrets 数量为 `0`；尚缺 Windows Authenticode、macOS Developer ID/公证、Google OAuth、Notion 与 Tavily 共十二项凭据。
+- 当前 GitHub CLI 操作账号和所有上述 Environment 的唯一 reviewer 都是 `chainlesschain`。由于 self-review 被禁止，由该账号发起的生产运行必须由另一个获准账号审批；仓库现有 `longfa` collaborator 只有 push 权限，是否将其或其他独立责任人设为 Environment reviewer 仍需仓库管理员明确决定。
+
+本轮未用 GitHub-hosted VM、本机模拟、占位 registry、伪造 digest 或空 secret 降低验收标准，也没有触发必然等待审批、永久排队或缺密钥失败的生产 workflow。上次 `Desktop Signed Skill Platform` 权威尝试 `33275381962` 已明确在 credential preflight 因 Google/Notion/Tavily 等 Environment secrets 缺失而失败，重复触发不会增加新证据。
+
+仓库侧合同验证已先行复核：P1-10 的 31 项矩阵、篡改、GitHub trust、进程监管和收据测试全部通过；Desktop 签名与 GitHub live-main 的 26 项证据、重放、签名策略、run identity 和 bounded API 测试全部通过。Graph 的对应合同此前已在精确 SHA 权威矩阵通过；本轮本机没有安装 Vitest 依赖，因此不以错误的 `node --test` 入口生成新的本地 Graph 结论，也不影响既有发布证据。
+
+因此，后续正确顺序是：先由外部负责人部署并登记物理宿主/observer、配置受保护 digest pins 与 Environment secrets、指定独立 reviewer；再依次运行 Desktop platform/qualification、Graph evidence/cutover、P1-10 producer/close。GitHub Actions 可以完成配置后的执行与证据闭环，但不能自行创造物理独立性、不可导出私钥、生产观察事实或独立审批。
+
 ## 13. 全量任务完成情况（截至 2026-09-02）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有发布边界已经关闭，或剩余证据缺口已由发布负责人显式风险接受并记录；`🟢 仓库闭环` 表示仓库实现、确定性验证和该编号自身的发布边界已经关闭，但全产品 authoritative adapter 切换、旧 writer 下线或生产 rollout 统一由 P1-12 验收；`🟡 部分完成` 表示核心或公开基线已落地，但该编号定义的产品切换、跨端矩阵或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有门禁或设计准备，关键目标尚未执行。总计 26 项：16 项已完成、6 项仓库闭环、4 项部分完成、0 项待完成。
