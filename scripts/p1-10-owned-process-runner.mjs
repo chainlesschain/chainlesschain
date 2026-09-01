@@ -3,7 +3,20 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DEFAULT_TERMINATION_GRACE_MS = 5_000;
+const WINDOWS_SUPERVISOR_STARTUP_MS = 30_000;
+const WINDOWS_JOB_CLEANUP_MS = 10_000;
 const POLL_MS = 25;
+
+function outerTimeoutMs(timeoutMs, platform, terminationGraceMs) {
+  return (
+    timeoutMs +
+    (platform === "win32"
+      ? WINDOWS_SUPERVISOR_STARTUP_MS +
+        WINDOWS_JOB_CLEANUP_MS +
+        terminationGraceMs
+      : 0)
+  );
+}
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -241,9 +254,11 @@ export function runOwnedProcess(
     };
     const timer = setTimeout(
       () => force(new Error("physical harness exceeded its fixed timeout")),
-      // The Windows supervisor enforces the same limit; this outer margin lets
-      // it confirm Job Object cleanup before the parent intervenes.
-      timeoutMs + (platform === "win32" ? terminationGraceMs * 2 : 0),
+      // The supervisor starts the target only after PowerShell has loaded and
+      // Add-Type has compiled the Job Object bridge. Its target timeout remains
+      // exact; this independent outer deadline also budgets startup, confirmed
+      // Job cleanup, and parent-side termination without weakening that limit.
+      outerTimeoutMs(timeoutMs, platform, terminationGraceMs),
     );
     const consume = (chunk) => {
       outputBytes += chunk.length;
@@ -293,3 +308,7 @@ export function runOwnedProcess(
     });
   });
 }
+
+export const p110OwnedProcessRunnerTestOnly = Object.freeze({
+  outerTimeoutMs,
+});

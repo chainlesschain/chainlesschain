@@ -57,7 +57,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: 22.12.0
+          node-version: 22.22.2
 
       - name: Verify protected live main before creating a producer challenge
         env:
@@ -121,7 +121,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: 22.12.0
+          node-version: 22.22.2
 
       - name: Verify protected live main after physical-runner admission
         env:
@@ -245,7 +245,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: 22.12.0
+          node-version: 22.22.2
 
       - name: Verify protected live main after aggregate admission
         env:

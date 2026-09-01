@@ -4,13 +4,27 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { runOwnedProcess } from "../p1-10-owned-process-runner.mjs";
+import {
+  p110OwnedProcessRunnerTestOnly,
+  runOwnedProcess,
+} from "../p1-10-owned-process-runner.mjs";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
 );
+
+test("Windows outer deadline separately budgets supervisor startup and Job cleanup", () => {
+  assert.equal(
+    p110OwnedProcessRunnerTestOnly.outerTimeoutMs(5_000, "win32", 5_000),
+    50_000,
+  );
+  assert.equal(
+    p110OwnedProcessRunnerTestOnly.outerTimeoutMs(5_000, "linux", 5_000),
+    5_000,
+  );
+});
 
 function alive(pid) {
   try {
@@ -238,10 +252,12 @@ test(
           ),
         },
       );
-      const rejection = assert.rejects(promise, /failed with code 124/);
-      await waitForFile(marker, 1500);
+      const observedError = promise.catch((error) => error);
+      await waitForFile(marker, 3_000);
       const pid = JSON.parse(fs.readFileSync(marker, "utf8")).pid;
-      await rejection;
+      const error = await observedError;
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /failed with code 124/);
       assert.equal(alive(pid), false);
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });

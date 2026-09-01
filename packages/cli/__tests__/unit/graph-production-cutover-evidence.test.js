@@ -738,6 +738,28 @@ describe("Graph production cutover signed source contract", () => {
   });
 });
 
+function canonicalTempDirectory(prefix) {
+  const canonicalTempRoot = fs.realpathSync(os.tmpdir());
+  return fs.realpathSync(fs.mkdtempSync(path.join(canonicalTempRoot, prefix)));
+}
+
+function restoreWritableDirectories(directory) {
+  if (process.platform === "win32" || !fs.existsSync(directory)) return;
+  const stat = fs.lstatSync(directory);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) return;
+  fs.chmodSync(directory, 0o700);
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.isDirectory() && !entry.isSymbolicLink()) {
+      restoreWritableDirectories(path.join(directory, entry.name));
+    }
+  }
+}
+
+function removeTempDirectory(directory) {
+  restoreWritableDirectories(directory);
+  fs.rmSync(directory, { recursive: true, force: true });
+}
+
 function makeReceiptDirectory(
   base,
   { oversized = false, hardlinked = false } = {},
@@ -764,7 +786,7 @@ function makeReceiptDirectory(
 
 describe("Graph source artifact filesystem boundary", () => {
   it("rejects traversal, symlinks, hardlinks, oversized inputs, and replacement", () => {
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "graph-source-test-"));
+    const base = canonicalTempDirectory("graph-source-test-");
     try {
       const source = makeReceiptDirectory(base);
       const traversal = `${base}${path.sep}missing${path.sep}..${path.sep}source`;
@@ -836,7 +858,7 @@ describe("Graph source artifact filesystem boundary", () => {
         ),
       ).toThrowError();
     } finally {
-      fs.rmSync(base, { recursive: true, force: true });
+      removeTempDirectory(base);
     }
   });
 
@@ -847,13 +869,13 @@ describe("Graph source artifact filesystem boundary", () => {
     expect(() =>
       assertBoundedAggregateBytes(64 * 1024 * 1024 + 1),
     ).toThrowError();
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "graph-output-test-"));
+    const base = canonicalTempDirectory("graph-output-test-");
     try {
       const output = path.join(base, "evidence.json");
       fs.writeFileSync(output, "existing", { mode: 0o600 });
       expect(() => writeNewAggregateFile("{}\n", output)).toThrowError();
     } finally {
-      fs.rmSync(base, { recursive: true, force: true });
+      removeTempDirectory(base);
     }
   });
 });
@@ -1176,7 +1198,7 @@ describe("Graph Actions and attestation trust boundary", () => {
   });
 
   it("freezes only canonical non-hardlinked trust input files", () => {
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "graph-freeze-test-"));
+    const base = canonicalTempDirectory("graph-freeze-test-");
     try {
       const file = path.join(base, "input.json");
       fs.writeFileSync(file, "{}\n", { mode: 0o600 });
@@ -1185,7 +1207,7 @@ describe("Graph Actions and attestation trust boundary", () => {
         expect(fs.lstatSync(file).mode & 0o222).toBe(0);
       }
     } finally {
-      fs.rmSync(base, { recursive: true, force: true });
+      removeTempDirectory(base);
     }
   });
 
@@ -1241,9 +1263,7 @@ describe("Graph Actions and attestation trust boundary", () => {
         },
       },
     ];
-    const base = fs.mkdtempSync(
-      path.join(os.tmpdir(), "graph-cli-close-test-"),
-    );
+    const base = canonicalTempDirectory("graph-cli-close-test-");
     const files = {
       evidence: path.join(base, "evidence.json"),
       jobs: path.join(base, "jobs.json"),
@@ -1324,7 +1344,7 @@ describe("Graph Actions and attestation trust boundary", () => {
       if (process.platform !== "win32") {
         fs.chmodSync(manifestPath, originalManifestMode & 0o777);
       }
-      fs.rmSync(base, { recursive: true, force: true });
+      removeTempDirectory(base);
     }
   }, 30_000);
 });

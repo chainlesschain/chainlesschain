@@ -129,8 +129,13 @@ test("required lint context runs checksum-pinned actionlint", () => {
     actionlintStep,
     /actionlint" -no-color -config-file \.github\/actionlint\.yaml/,
   );
+  assert.match(
+    actionlintStep,
+    /^\s*"\$\{install_dir\}\/actionlint" -no-color -config-file \.github\/actionlint\.yaml\s*$/m,
+  );
   assert.doesNotMatch(actionlintStep, /continue-on-error|\|\|\s*true/);
   assert.doesNotMatch(actionlintStep, /(?:^|\s)-ignore(?:\s|=)/m);
+  assert.doesNotMatch(actionlintStep, /(?:^|\s)-shellcheck(?:\s|=)/m);
 
   const checksumIndex = actionlintStep.indexOf("sha256sum --check --strict");
   const extractIndex = actionlintStep.indexOf("tar -xzf");
@@ -139,6 +144,160 @@ test("required lint context runs checksum-pinned actionlint", () => {
   );
   assert.ok(checksumIndex < extractIndex, "checksum must precede extraction");
   assert.ok(extractIndex < executeIndex, "extraction must precede execution");
+});
+
+test("actionlint ShellCheck baseline is limited to exact legacy paths and rules", () => {
+  const config = fs.readFileSync(
+    path.join(repoRoot, ".github", "actionlint.yaml"),
+    "utf8",
+  );
+  const expected = new Map(
+    [
+      ["android-ci.yml", ["SC2086", "SC2129"]],
+      ["android-e2e-tests.yml", ["SC2086", "SC2129"]],
+      ["android-pr-check.yml", ["SC2086"]],
+      ["bs3mc-android-prebuild.yml", ["SC2012"]],
+      ["bs3mc-dual-load-audit.yml", ["SC2002"]],
+      ["cli-clipboard-image.yml", ["SC2034"]],
+      ["cli-native-release.yml", ["SC2016"]],
+      ["cli-npm-release-readback.yml", ["SC2129"]],
+      ["cli-reliability-soak.yml", ["SC2129"]],
+      ["context-memory-kernel.yml", ["SC1001"]],
+      ["cosmetic-green-audit.yml", ["SC2002"]],
+      ["doc-sync-audit.yml", ["SC2086"]],
+      ["documentation.yml", ["SC2086", "SC2129"]],
+      ["e2e-project-detail-tests.yml", ["SC2086", "SC2129"]],
+      ["e2e-tests.yml", ["SC2086", "SC2129"]],
+      ["hand-written-tar-parser-audit.yml", ["SC2002"]],
+      ["ide-roadmap-accessibility-performance.yml", ["SC2129"]],
+      ["internal-binaries-rollover.yml", ["SC2012"]],
+      ["ios-build.yml", ["SC2086"]],
+      ["ios-wire-spm.yml", ["SC2086"]],
+      ["local-terminal-bundle.yml", ["SC2012", "SC2035"]],
+      [
+        "node-runtime-bundle.yml",
+        ["SC2012", "SC2016", "SC2034", "SC2044", "SC2046"],
+      ],
+      ["npm-publish.yml", ["SC2016", "SC2086"]],
+      ["pm-e2e-tests.yml", ["SC2086", "SC2129"]],
+      ["pr-tests.yml", ["SC2086"]],
+      ["publish-staleness-check.yml", ["SC2086"]],
+      ["release.yml", ["SC2086"]],
+      ["sqlite-number-text-bind-audit.yml", ["SC2002"]],
+      ["test-automation-full.yml", ["SC2015"]],
+      ["test.yml", ["SC2086"]],
+      ["trap-fix-invariants-audit.yml", ["SC2086"]],
+      ["undeclared-deps-audit.yml", ["SC2086"]],
+      ["webview-cookie-race-audit.yml", ["SC2002"]],
+      ["workspace-npm-publish.yml", ["SC2086"]],
+    ].map(([file, rules]) => [`.github/workflows/${file}`, rules]),
+  );
+  const actual = new Map();
+  let currentPath = null;
+  const pathsMarker = /\r?\npaths:\r?\n/u.exec(config);
+  assert.ok(pathsMarker, "actionlint paths baseline is missing");
+  const pathsConfig = config.slice(pathsMarker.index + pathsMarker[0].length);
+  for (const line of pathsConfig.split(/\r?\n/u)) {
+    if (line.trim() === "" || line.startsWith("  #")) continue;
+    const pathEntry = line.match(/^  (\S.*):$/u);
+    if (pathEntry) {
+      const rawPath = pathEntry[1].trim();
+      const workflowPath =
+        (rawPath.startsWith('"') && rawPath.endsWith('"')) ||
+        (rawPath.startsWith("'") && rawPath.endsWith("'"))
+          ? rawPath.slice(1, -1)
+          : rawPath;
+      assert.match(
+        workflowPath,
+        /^\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml$/u,
+        `actionlint baseline path must be exact: ${workflowPath}`,
+      );
+      currentPath = workflowPath;
+      assert.equal(
+        actual.has(currentPath),
+        false,
+        `duplicate actionlint baseline path: ${currentPath}`,
+      );
+      actual.set(currentPath, []);
+      continue;
+    }
+    if (line === "    ignore:") {
+      assert.ok(currentPath, "actionlint ignore must follow an exact path");
+      continue;
+    }
+    const ignoreEntry = line.match(
+      /^      - ["']\^shellcheck reported issue in this script: (SC\d{4}):["']$/u,
+    );
+    assert.ok(
+      ignoreEntry,
+      `actionlint ignore must name one exact rule: ${line}`,
+    );
+    assert.ok(
+      currentPath,
+      "actionlint ignore must follow an exact workflow path",
+    );
+    actual.get(currentPath).push(ignoreEntry[1]);
+  }
+
+  assert.deepEqual(actual, expected);
+  assert.equal(actual.size, 34);
+  assert.equal(
+    [...actual.values()].reduce((count, rules) => count + rules.length, 0),
+    46,
+  );
+  assert.match(config, /196 historical ShellCheck/);
+  for (const rules of actual.values()) {
+    for (const rule of rules) {
+      const ignored = new RegExp(
+        `^shellcheck reported issue in this script: ${rule}:`,
+        "u",
+      );
+      assert.equal(
+        ignored.test('property "runs-on" is missing in job "build"'),
+        false,
+      );
+      assert.equal(
+        ignored.test("unexpected key while parsing ${{ matrix.os }}"),
+        false,
+      );
+    }
+  }
+});
+
+test("external evidence filesystem stages pin the Windows identity-safe Node runtime", () => {
+  const workflows = new Map([
+    ["graph-agent-real-journey.yml", 2],
+    ["graph-kernel-production-cutover.yml", 2],
+    ["graph-kernel-production-evidence.yml", 3],
+    ["p1-10-external-evidence-contract.yml", 1],
+    ["p1-10-external-evidence-close.yml", 1],
+    ["p1-10-external-evidence-producer.yml", 2],
+  ]);
+  for (const [workflowName, expectedPins] of workflows) {
+    const workflow = fs.readFileSync(
+      path.join(repoRoot, ".github", "workflows", workflowName),
+      "utf8",
+    );
+    const actualPins = [
+      ...workflow.matchAll(/node-version:\s*"?([0-9.]+)"?/gu),
+    ].map((match) => match[1]);
+    assert.deepEqual(
+      actualPins,
+      Array(expectedPins).fill("22.22.2"),
+      `${workflowName} must pin each configured evidence runtime to Node 22.22.2`,
+    );
+  }
+
+  const p110Contract = fs.readFileSync(
+    path.join(
+      repoRoot,
+      ".github",
+      "workflows",
+      "p1-10-external-evidence-contract.yml",
+    ),
+    "utf8",
+  );
+  assert.match(p110Contract, /node --test --test-concurrency=1/u);
 });
 
 test("root compatibility entry points fail loudly instead of passing", () => {

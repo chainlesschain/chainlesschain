@@ -5,3 +5,123 @@ self-hosted-runner:
     - p1-10-host-a
     - p1-10-host-b
     - graph-kernel-production
+
+paths:
+  # Baseline captured from PR #311 run 33467645421 / job 99730720142 at
+  # aec444286d5d683f3903c4f30b9530f176813f7d: 196 historical ShellCheck
+  # findings in 34 unchanged workflows after fixing Maven's SC2086 directly.
+  # Remove each exact path/rule entry as the corresponding debt is fixed.
+  ".github/workflows/android-ci.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/android-e2e-tests.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/android-pr-check.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/bs3mc-android-prebuild.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2012:"
+  ".github/workflows/bs3mc-dual-load-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2002:"
+  ".github/workflows/cli-clipboard-image.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2034:"
+  ".github/workflows/cli-native-release.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2016:"
+  ".github/workflows/cli-npm-release-readback.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/cli-reliability-soak.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/context-memory-kernel.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC1001:"
+  ".github/workflows/cosmetic-green-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2002:"
+  ".github/workflows/doc-sync-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/documentation.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/e2e-project-detail-tests.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/e2e-tests.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/hand-written-tar-parser-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2002:"
+  ".github/workflows/ide-roadmap-accessibility-performance.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/internal-binaries-rollover.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2012:"
+  ".github/workflows/ios-build.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/ios-wire-spm.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/local-terminal-bundle.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2012:"
+      - "^shellcheck reported issue in this script: SC2035:"
+  ".github/workflows/node-runtime-bundle.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2012:"
+      - "^shellcheck reported issue in this script: SC2016:"
+      - "^shellcheck reported issue in this script: SC2034:"
+      - "^shellcheck reported issue in this script: SC2044:"
+      - "^shellcheck reported issue in this script: SC2046:"
+  ".github/workflows/npm-publish.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2016:"
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/pm-e2e-tests.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+      - "^shellcheck reported issue in this script: SC2129:"
+  ".github/workflows/pr-tests.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/publish-staleness-check.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/release.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/sqlite-number-text-bind-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2002:"
+  ".github/workflows/test-automation-full.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2015:"
+  ".github/workflows/test.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/trap-fix-invariants-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/undeclared-deps-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
+  ".github/workflows/webview-cookie-race-audit.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2002:"
+  ".github/workflows/workspace-npm-publish.yml":
+    ignore:
+      - "^shellcheck reported issue in this script: SC2086:"
