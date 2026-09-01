@@ -24,7 +24,7 @@ export const SKILL_RELEASE_STATE_SCHEMA =
 export const SKILL_RELEASE_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-transition-receipt/v3";
 export const SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA =
-  "chainlesschain.skill-release-ledger-projection/v1";
+  "chainlesschain.skill-release-ledger-projection/v2";
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
@@ -37,6 +37,7 @@ const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const SKILL_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
 const TOKEN_PATTERN = /^[a-f0-9]{32}$/u;
+const LEDGER_EPOCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const TEMP_PATTERN = /^\.(?:release|state|write)-[A-Za-z0-9._-]+\.tmp$/u;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MIN_LEASE_TTL_MS = 25;
@@ -578,8 +579,8 @@ function verifyLedgerProjection(value, expected) {
       value.authorityReceiptDigest !== expected.authorityReceiptDigest) ||
     typeof value.ledgerId !== "string" ||
     value.ledgerId.length < 1 ||
-    !Number.isSafeInteger(value.epoch) ||
-    value.epoch < 1 ||
+    typeof value.epoch !== "string" ||
+    !LEDGER_EPOCH_PATTERN.test(value.epoch) ||
     !Number.isSafeInteger(value.sequence) ||
     value.sequence < 1
   ) {

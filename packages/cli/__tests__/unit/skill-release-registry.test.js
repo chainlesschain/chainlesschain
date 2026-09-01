@@ -117,7 +117,7 @@ class StrictTransactionLedger {
       intentDigest: intent.intentDigest,
       authorityReceiptDigest: intent.authorityReceiptDigest,
       ledgerId: "ledger:test",
-      epoch: 1,
+      epoch: "epoch:test",
       sequence: this.#sequence,
       headDigest: digest(`prepare-head:${intent.intentDigest}`),
       receiptDigest: digest(`prepare-receipt:${intent.intentDigest}`),
@@ -153,7 +153,7 @@ class StrictTransactionLedger {
       intentDigest: input.intentDigest,
       authorityReceiptDigest: input.authorityReceiptDigest,
       ledgerId: "ledger:test",
-      epoch: 1,
+      epoch: "epoch:test",
       sequence: this.#sequence,
       headDigest: digest(`commit-head:${input.intentDigest}`),
       receiptDigest: digest(`commit-receipt:${input.intentDigest}`),
@@ -250,7 +250,7 @@ class FileTransactionLedger {
       intentDigest: intent.intentDigest,
       authorityReceiptDigest: intent.authorityReceiptDigest,
       ledgerId: "ledger:file-test",
-      epoch: 1,
+      epoch: "epoch:file-test",
       sequence: state.sequence,
       headDigest: digest(`file-prepare-head:${intent.intentDigest}`),
       receiptDigest: digest(`file-prepare-receipt:${intent.intentDigest}`),
@@ -284,7 +284,7 @@ class FileTransactionLedger {
       intentDigest: input.intentDigest,
       authorityReceiptDigest: input.authorityReceiptDigest,
       ledgerId: "ledger:file-test",
-      epoch: 1,
+      epoch: "epoch:file-test",
       sequence: state.sequence,
       headDigest: digest(`file-commit-head:${input.intentDigest}`),
       receiptDigest: digest(`file-commit-receipt:${input.intentDigest}`),
@@ -440,7 +440,8 @@ function requestFor({
   rollbackTargetReleaseDigest = null,
   dependencyLock,
 }) {
-  const dependencyLockDigest = digestSkillMutationDependencyLock(dependencyLock);
+  const dependencyLockDigest =
+    digestSkillMutationDependencyLock(dependencyLock);
   const transitionSubjectDigest = digestSkillMutationTransitionSubject({
     tenantId: "tenant:test",
     skillName: "repair-unit-tests",
@@ -821,7 +822,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       intentDigest: digest("fake-intent"),
       authorityReceiptDigest: result.state.authorityReceiptDigest,
       ledgerId: "ledger:fake",
-      epoch: 1,
+      epoch: "epoch:fake",
       sequence: 1,
       headDigest: digest("fake-head"),
       receiptDigest: digest("fake-receipt"),
@@ -834,6 +835,14 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     }));
     expect(() => releases.readState(candidate.skillName)).toThrow(
       /authenticated/u,
+    );
+    const committedProjection = ledger.records().at(-1).committed;
+    ledger.setQueryOverride(() => ({
+      ...committedProjection,
+      epoch: 1,
+    }));
+    expect(() => releases.readState(candidate.skillName)).toThrow(
+      /transition intent/u,
     );
     ledger.setQueryOverride(null);
 
