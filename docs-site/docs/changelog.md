@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Source only — Agent/Skill evolution 治理原语（本轮冻结快照 `233e1bdc`）
+
+> 该提交尚未进入 GitHub `main@458b342f5f`，也不属于 npm `0.166.15@22db04f559`。P1-11 仍为部分完成，以下内容只能描述为源码实现与测试合同，不能描述为已部署的生产自进化闭环。
+
+- **candidate-only / diff-only**：Synthesizer 与 Improver 不再直接写 active Skill；候选注册表以内容摘要寻址、不可变草稿和隔离目录保存候选。`cc learning synthesize` 当前没有 evaluator、`candidateOutputDir` 与 active roots 的生产注入，返回 unavailable/非零结果并失败闭合。
+- **Skill Creator / Skill Sync**：Skill Creator 的 `create` 与描述优化只返回候选或差异建议，不直接创建、覆盖 workspace/active 文件；Skill Sync import 缺少受信 `candidateStore` 时拒绝导入。
+- **治理与证据原语**：writer inventory、单次消费 mutation capability、CAS-bound promotion、不可变 release/LKG/rollback registry 均有源码合同；`b8490faa` 提供 Raw 加密存储、脱敏 model-visible projection、schema-verifier 选择的 trusted projection 与签名 attestation，`d073bdf3` 增加 hash-linked tamper-evident evolution ledger，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS，避免把有效授权或 receipt 换用于另一状态转换。尚无跨 CLI/Desktop/Sync 的统一生产 import/实例化。
+- **测试解释**：`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）。ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿不等于统一生产 wiring、exact-SHA qualification 或发布验收；ledger 独立结果也不是全绿。
+
 #### Released — Agent Platform CLI 0.166.15 与 IDE 热修复
 
 > `chainlesschain@0.166.15` 是当前 npm `latest` 与生产推荐版。CLI、VS Code `0.37.77` 和 JetBrains `0.4.107` 的不可变标签共同指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)、[公网字节/provenance 独立复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965)和[JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812)均成功。
@@ -12,7 +21,7 @@
 - **formal quality 文件工具热修复**：single-Agent control 与 Graph candidate 共用冻结的 `read_file/search_files/list_dir/write_file/edit_file/edit_file_hashed` 契约，避免 preflight 因工具清单漂移而提前失败。
 - **安全边界不扩张**：shell、网络、Git、MCP、插件、IDE 与子 Agent 工具保持禁用；写入继续限制到任务声明的精确文件。
 - **证据与时长**：失败质量运行保留有界证据，formal soak 可以达到规定持续时间。
-- **发布后源码边界**：`main@db53dc2da4` 再增加 Windows 每 Agent HOME/config/cache 隔离、瞬态审计读取重试、CI 清理和 Windows `1.6` 平台时延阈值。现有正式/定向 run 尚未形成同一最终 SHA 的三平台 aggregate 与 OIDC attestation，P2-3 仍为部分完成。
+- **发布后源码与风险接受边界**：GitHub `main@458b342f5f` 包含 Windows 每 Agent HOME/config/cache 隔离、瞬态审计读取重试、CI 清理，并将 Windows formal quality 时延比最终上限调整为 `1.65`。固定 run [`33411796790`](https://github.com/chainlesschain/chainlesschain/actions/runs/33411796790) 的 Windows 实测为 `1.6379980224`，离线加权 aggregate 为 `0.6008293973`；但该 run 仍为失败，且没有 final-SHA aggregate success 或 OIDC attestation。发布负责人显式接受不再重跑的剩余证据风险并关闭 P2-3；这不把失败 run 改写为成功，不属于 `0.166.15` 制品，也不构成发布门的通用先例。
 
 #### Released — Agent Platform CLI 0.166.14、SDK/Protocol 与 IDE 协调发布
 

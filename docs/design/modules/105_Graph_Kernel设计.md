@@ -32,7 +32,21 @@ Graph Kernel 与 CC App Server 分工明确：
 - formal quality profile 使用真实 control/candidate、独立 worktree、至少 3 轮/1,800 秒、固定 6 个任务和三平台 exact-SHA evidence，比较通过率、行为等价、无关改动、死锁/对账、message/handoff、token、时延与成本。
 - control/candidate 共用冻结的 `read_file/search_files/list_dir/write_file/edit_file/edit_file_hashed` 工具契约；shell、网络、Git、MCP、插件、IDE 与子 Agent 工具保持禁用。
 
-正式评测还要求临时目录内的 hermetic `CHAINLESSCHAIN_HOME`、provider/凭据隔离、Windows ACL preflight 和 shell timeout 下限。发布后的 `main@db53dc2da4` 再增加 Windows 每 Agent HOME/config/cache 隔离、瞬态审计重试和平台时延阈值；这些不属于 `0.166.15` tarball，也不构成新的公共 SLA。现有 run 仍未形成同一最终 SHA 的三平台 aggregate/OIDC 成功。
+正式评测还要求临时目录内的 hermetic `CHAINLESSCHAIN_HOME`、provider/凭据隔离、Windows ACL preflight 和 shell timeout 下限。发布后的 `main@458b342f5f` 再增加 Windows 每 Agent HOME/config/cache 隔离、瞬态审计重试和最终 `1.65` 平台时延阈值；这些不属于 `0.166.15` tarball，也不构成新的公共 SLA。固定 SHA `db53dc2da4` 的 run `33411796790` 没有形成成功 aggregate/OIDC，P2-3 是在 Windows `1.6379980224 <= 1.65`、功能/安全指标通过及离线加权 aggregate `0.6008293973 < 1.5` 的基础上，由发布负责人显式接受剩余证据风险后关闭。
+
+### 1.3 未合并分支的 fresh-main 与外部证据合同
+
+本轮核对冻结的本地功能分支快照为 `233e1bdc`，晚于且未合入 GitHub `main@458b342f5f`；该锚点不表示它永远是分支当前 head。其中 `d478270c`/`e2b18598` 为 Graph production cutover 增加 authenticated source registry、Linux/Windows/macOS collector、protected input freeze、source/host receipt、hosted aggregate、exact artifact/certificate close 和多阶段 stale-main 拒绝。它们保证陈旧 head、旁路 ref、跨 run artifact 或未登记 source 失败闭合，但不代表生产切流已经发生。
+
+同一分支的相邻外部证据合同也必须按编号分开判断：
+
+- P1-10（`9951afa5`/`5bddb9ce`）要求六个实名物理 host、OS containment、不可导出 attester、签名原始事件链、1,800 秒 soak 与 exact-attempt close；当前 enrollment registry 为空，没有 fresh producer/close receipt；
+- P1-11（`3c4342d8`）只允许受保护 `main` 当前 head 触发签名 Desktop producer；普通分支、tag、旧 head 与跨 run artifact 均拒绝。既有成功证据仍绑定 `ee88125256`，不能授权本轮本地冻结快照 `233e1bdc`；
+- P1-12/Graph production 要求真实三源 observer、五 surface staged rollout/rollback、旧 writer 观察和 authenticated close；当前 source registry 为空，也没有生产 aggregate/OIDC receipt。
+
+所以 P1-10、P1-11、P1-12 仍为部分完成。`b8490faa` 的 evolution evidence projection 是独立的 Skill 治理投影，不是 Graph Artifact/Trace writer、Graph cutover receipt 或 promotion authority；`d073bdf3` 又新增签名 append-only segment/HEAD、独立 witness、artifact resolver 与 receipt/query/verify 的 tamper-evident EvolutionLedger，并对篡改、回滚、并发和崩溃恢复失败闭合；`233e1bdc` 继续绑定 mutation transition subject。Ledger 在仓库中没有 production import/实例化，整组能力都没有统一生产 wiring/正式验收，也未进入 `0.166.15`。
+
+Ledger 单测共 35 项，本机为 34 pass、1 个默认 5 秒 timeout（首项实际约 `18.848s`，整套约 `128.9s`）；另一个范围的 `233e1bdc` 六治理文件定向回归为 6/6 files、126/126 tests 通过，耗时 `28.84s`。两者范围不同；后者全绿也不是 Graph、P1-10/P1-11/P1-12 或 Skill evolution 的 production qualification/关闭证据。
 
 ## 2. GraphRun 与三类图
 
@@ -333,7 +347,7 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 | Compiler / Runtime / Event Store                      | 源码核心已发布并有聚焦测试                             | 内核能力存在；不等于稳定公共 writer API                                                 |
 | `cc team graph`                                       | `inspect/diff/eval` 已公开                             | 只读已有 GraphRun，不创建、恢复或取消                                                   |
 | CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.15` 公共基线继续通过 cutover ledger 解析唯一 writer | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合                      |
-| Formal collaboration quality gate                    | `0.166.15` 含 hermetic 文件工具热修复；`main@db53dc2da4` 再补 Windows 隔离与平台阈值 | 发布前门禁；不是用户 SLA；完整三平台 aggregate/OIDC 尚未关闭                       |
+| Formal collaboration quality gate                    | `0.166.15` 含 hermetic 文件工具热修复；`main@458b342f5f` 再补 Windows 隔离、`1.65` 平台阈值并记录 P2-3 风险接受关闭 | 发布前门禁；不是用户 SLA；没有最终 SHA 的成功 aggregate/OIDC，豁免不能作为未来发布先例 |
 | Desktop                                               | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
 | Browser/IDE                                           | claims、pilot、shadow/cutover 机制已有                 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated      |
 

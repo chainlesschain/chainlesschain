@@ -5,7 +5,7 @@
 > - CLI 精确源码：`22db04f55974d2e5823772c4bae5e87171fa51db`
 > - CLI 不可变标签：`v-npm-0-166-15`
 > - IDE 精确源码：`22db04f55974d2e5823772c4bae5e87171fa51db`
-> 当前主线：`db53dc2da48c315e75ec9976098e481844055ac4`（晚于公开制品，不继承发布授权）
+> 当前 GitHub 主线：`458b342f5f11f2ee82c0e6a91ee485d4309485fb`（晚于公开制品；P2-3 经显式风险接受关闭，不继承发布授权）
 
 ## 1. 目标
 
@@ -15,7 +15,7 @@
 2. Context/Memory、Hooks、App Server 与 CLI rollout store 共享持久 authority，但 UI 投影不能成为 writer；
 3. renderer IPC、审批、sandbox 与进程审计必须在不可用或漂移时失败闭合；
 4. Windows 普通启动不依赖 Docker，显式选择的隔离模式仍不得静默降级；
-5. `0.166.15` 之后的 Windows formal Graph quality 隔离、平台阈值与局部运行结果只能作为主线源码和门禁证据，不能倒灌进已发布 tarball 或写成完整矩阵已经关闭。
+5. `0.166.15` 之后的 Windows formal Graph quality 隔离、平台阈值与局部运行结果只能作为主线源码和门禁证据；P2-3 的风险接受关闭不能倒灌进已发布 tarball，也不能把失败 run、未发生的最终 SHA aggregate/OIDC 改写为成功。
 
 ## 2. 发布身份矩阵
 
@@ -31,7 +31,8 @@
 | JetBrains | `ide-jetbrains-v0.4.107` → `22db04f559` | Marketplace `0.4.107` 已回读 | 公开 |
 | Microsoft VS Code Marketplace | 同一扩展候选 | 未发现 `0.37.77` 公共记录 | 不作为安装渠道 |
 | Desktop/native | 仓库源码与 exact-SHA qualification | 资格门成功 | 不等于公共安装包发行 |
-| GitHub `main` | `db53dc2da4` | 未完成独立发布闭环 | 源码候选，不是新公共版本 |
+| GitHub `main` | `458b342f5f` | P2-3 风险接受记录已合入；未完成独立发布闭环 | 源码候选，不是新公共版本 |
+| 本地功能分支 | 本轮冻结 `233e1bdc`（晚于 GitHub `main`） | 未合并、未发布；不是永久 current-head 声明 | source-only 合同快照，不继承任何制品或门禁授权 |
 
 所有安装口径以公共 registry/Marketplace 实际回读为准。Git tag、构建成功、上传成功或同仓库版本号都不能单独推导“用户已经可以安装”。
 
@@ -109,7 +110,7 @@ Release evidence
 - control/candidate 共用冻结的 hermetic 文件工具上限，允许 read/list/search/write/edit 与 hashed edit，但不开放 shell、网络、Git、MCP、插件、IDE 或子 Agent 工具；
 - 失败的质量评测仍保留有界证据，soak 可以达到正式持续时长。
 
-发布后的 `db53dc2da4` 主线再补 Windows Agent 独立 HOME/config/cache/ACL helper 工作目录、瞬态审计读取重试、CI 清理稳定性和 Windows `1.6` 平台时延比上限。这些后续变化不在 `v-npm-0-166-15` tarball 中。
+发布后的 `458b342f5f` 主线包含 Windows Agent 独立 HOME/config/cache/ACL helper 工作目录、瞬态审计读取重试、CI 清理稳定性、最终 Windows `1.65` 平台时延比上限和 P2-3 风险接受记录。这些后续变化不在 `v-npm-0-166-15` tarball 中。
 
 ## 8. 正式 Graph 协作质量评测边界
 
@@ -124,9 +125,9 @@ Release evidence
 5. shell timeout 有最低值，不能因用户设置过短而制造假阴性；
 6. provider 凭据只注入 P2 quality cell，不进入 P1 control 或通用 workflow 环境；
 7. 三平台 evidence 必须绑定 exact SHA、challenge、task population 和 domain-separated digest，缺平台或阈值失败不生成通过结论；
-8. 当前主线按报告平台冻结阈值：Windows candidate/control latency ratio 上限为 `1.6`，Linux、macOS 与 aggregate 为 `1.5`；报告携带错误平台阈值时验证失败。
+8. 当前主线按报告平台冻结阈值：Windows candidate/control latency ratio 上限为 `1.65`，Linux、macOS 与 aggregate 为 `1.5`；报告携带错误平台阈值时验证失败。
 
-这是一条生产发布前质量门，不是用户命令成功率 SLA，也不是 `0.166.15` 已完成的质量认证。正式 run `33396372721` 只有 Linux/macOS 成功；Windows 定向 run `33406031875` 消除了 unrelated changes，但仍按旧 `1.5` 阈值失败。当前仍缺同一最终 SHA 的 Linux/Windows/macOS 全成功、aggregate 与 OIDC attestation。
+这是一条生产发布前质量门，不是用户命令成功率 SLA，也不是 `0.166.15` 已完成的质量认证。固定 SHA `db53dc2da4` 的正式 run [`33411796790`](https://github.com/chainlesschain/chainlesschain/actions/runs/33411796790) 中，Linux、macOS 与三平台全部功能/安全指标通过；Windows unrelated-change rate 为 `0`，但当时以 `1.6379980224 > 1.6` 失败，workflow 因而没有成功 aggregate 或 OIDC attestation。最终提交 `917d18b055` 把 Windows 上限调整为 `1.65`，离线加权三平台 ratio 为 `0.6008293973 < 1.5`。发布负责人显式接受“不再为纯阈值变更消耗真实模型预算、最终 SHA 无成功 aggregate/OIDC”的剩余风险并关闭 P2-3；该决定不改变 run 状态、不属于 `0.166.15`，也不构成未来发布的通用豁免。
 
 ## 9. IDE 与公共渠道
 
@@ -137,11 +138,27 @@ IDE 继续只提交宿主已审阅决定并消费 CLI-owned projection。Marketp
 ## 10. 公共与源码边界
 
 - `0.166.15/0.37.77/0.4.107@22db04f559` 分别只授权与各自 tag、包字节和通过门禁匹配的制品；共用源码 SHA 不表示 npm、VSIX 与 JetBrains ZIP 是同一种制品；
-- `db53dc2da4` 的 Windows formal quality 隔离、审计重试和平台阈值不倒灌进 `0.166.15`；
+- `458b342f5f` 的 Windows formal quality 隔离、审计重试、`1.65` 平台阈值和 P2-3 风险接受记录不倒灌进 `0.166.15`；
 - `0.166.14@ee88125256` 的 Record & Replay 与 Desktop Signed Skill 门继续保留自己的 exact-SHA 证据身份，后继版本不能改写；
+- 当前源码的后继 Desktop Signed Skill producer 仅接受受保护 `main` 当前 head，拒绝普通分支与 tag；这项触发面收紧没有重写 `ee88125256` 的历史成功证据，也不等于公共 native 分发；
 - npm CLI 包不包含 Electron Desktop 字节；
 - Desktop qualification 不是公共 native fresh-install/upgrade/rollback 完成证明；
 - 前序 soak、Graph rollout 或真实 provider 结果只为对应 exact SHA 和环境提供证据。
+
+### 10.1 本地 Skill evolution 与 fresh-main 外部证据边界
+
+`233e1bdc3afd031505d7c96964a08b0a7aa8e1fc` 是本轮核对冻结的本地功能分支快照，不是永久 current-head 声明，也不是 GitHub `main@458b342f5f`、release candidate 或 `0.166.15` 后继版本。它保留 `b8490faa` 的 evidence projector、`d073bdf3` 的 EvolutionLedger，并新增 mutation transition subject binding；相关能力必须分成“仓库合同”和“外部验收”两层：
+
+| 范围 | 本地仓库合同 | 尚缺的权威证据 | 状态 |
+| --- | --- | --- | --- |
+| Skill evolution | candidate-only synthesis/improvement/create/import、writer inventory、host-owned mutation authority、崩溃安全 promotion/release registry、`b8490faa` attested evidence projection、`d073bdf3` tamper-evident EvolutionLedger、`233e1bdc` transition-subject binding | 统一 CLI/Desktop 生产实例化、真实 approval/candidate store、端到端恢复旅程与 final exact-SHA 正式验收 | source-only，未发布 |
+| P1-10 外部 conformance | 六物理 host registry、强 containment、签名原始事件与 bounded GitHub API、fresh-main exact-attempt close | 实名部署六台 host、attester/harness/input pins、真实 1,800 秒 producer、aggregate/OIDC 与 close receipt | 部分完成 |
+| P1-11 签名 Desktop Skill | producer/aggregate 限制到 live protected `main`、exact run/attempt 和固定 workflow | v2 凭据、当前 head 三平台签名安装/packaged journey、aggregate/OIDC 及公共 fresh install/upgrade/rollback | 部分完成 |
+| P1-12 Graph production | authenticated 三源 registry/collector、protected input freeze、host receipt、stale-main 拒绝与 exact artifact/certificate close | 登记真实 source/observer trust root、五 surface staged rollout/rollback、旧 writer 观察、生产 aggregate/OIDC close | 部分完成 |
+
+Candidate、projection、ledger 或测试 fixture 都不能成为 active Skill writer。Mutation 和 promotion 只能由 host-owned authority 在精确 candidate、approval、expected active identity、transition subject、journal/CAS 与 recovery receipt 全部匹配时推进；缺少任一端口或绑定必须失败闭合。`d073bdf3` 的 EvolutionLedger 以签名 append-only segment/HEAD、独立 witness、artifact resolver 和 receipt/query/verify 对篡改、回滚、并发与恢复失败闭合，但没有任何 production import/实例化；`233e1bdc` 只加固 transition subject 绑定。目前这些 evolution 类没有统一生产 wiring/正式验收，不得描述为会自动改写或自动升级 active Skill。
+
+验证记录也必须区分范围并绑定明确快照：EvolutionLedger 定向 Vitest 共 35 项，本机为 34 pass、1 个默认 5 秒 timeout，首项实际约 `18.848s`、整套约 `128.9s`；`233e1bdc` 工作树的另一次六治理文件定向回归为 6/6 files、126/126 tests 通过，耗时 `28.84s`。两组结果不能合并计数；后者全绿也只证明本地治理合同回归，不是 production wiring、qualification、发布授权或 P1 关闭。
 
 ## 11. 关键实现
 
@@ -151,6 +168,12 @@ IDE 继续只提交宿主已审阅决定并消费 CLI-owned projection。Marketp
 - `packages/cli/src/lib/agent-team/team-graph-runtime-adapter.js`
 - `packages/cli/src/lib/agent-team/team-worktree.js`
 - `packages/cli/src/lib/process-execution-broker/**`
+- `packages/cli/src/lib/evolution/skill-candidate-registry.js`
+- `packages/cli/src/lib/evolution/skill-mutation-authority.js`
+- `packages/cli/src/lib/evolution/skill-promotion-controller.js`
+- `packages/cli/src/lib/evolution/skill-release-registry.js`
+- `packages/cli/src/lib/evolution/evolution-evidence-projector.js`
+- `packages/cli/src/lib/evolution/evolution-ledger.js`
 - `packages/cli/src/runtime/headless-runner.js`
 - `packages/cli/scripts/graph-collaboration-quality-eval.mjs`
 - `packages/cli/scripts/graph-collaboration-quality-runtime-preflight.mjs`
@@ -169,5 +192,8 @@ IDE 继续只提交宿主已审阅决定并消费 CLI-owned projection。Marketp
 | JetBrains 发布与 Marketplace 回读 | `22db04f559` | `33393394812` | 成功 |
 | Record Replay UI Journey（前序证据） | `ee88125256` | `33330041069` | 成功 |
 | Desktop Signed Skill Qualification（前序证据） | `ee88125256` | `33322714737` | 成功 |
+| Formal Graph quality（P2-3 风险接受依据） | `db53dc2da4` / final policy `917d18b055` | `33411796790` | run 失败；P2-3 经显式风险接受关闭 |
 
 后续版本必须在自己的 final exact SHA 上重新完成适用矩阵。当前主线和未来提交不能引用本表为新制品提供发布授权。
+
+本表没有 `233e1bdc` 的发布或 qualification 成功记录；`b8490faa` 与 `d073bdf3` 仍分别只标识 evidence projector 和 EvolutionLedger 的具体实现提交。上述 source-only 合同以及 P1-10/P1-11/P1-12 的 fresh-main 校验均不构成新的发布或生产关闭证据。

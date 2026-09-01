@@ -36,7 +36,7 @@ npm i -g chainlesschain@0.166.15
 - 有界 transport：legacy WS、Desktop MCP、浏览器控制、P2P、权限弹窗、媒体桥与 U-Key 签名已补数量/字节 admission；`0.166.15` 继续承接全局/per-agent cap 与 timeout，并以真实 Playwright UI replay 验证审阅后的 observe/click/type/select/assert 词汇和 network escape 拒绝。
 - `0.166.12–0.166.14`：Context/Memory Kernel、耐久 rollout store 与 Hooks v2 收敛进入公开版；renderer IPC 固定 capability manifest、默认 sandbox/审批和持久进程审计完成 P0 失败闭合；Windows 普通 Agent 启动不探测 Docker，显式隔离仍拒绝静默降级。
 - `0.166.15`：formal quality control/candidate 共用冻结的 read/list/search/write/edit 工具契约，失败评测保留有界证据并允许 soak 达到正式时长；不开放 shell、网络、Git、MCP、插件、IDE 或子 Agent 工具。
-- `main@db53dc2da4`：瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和 Windows `1.6` 平台时延比上限晚于发布 SHA，不属于 `0.166.15` tarball；P2-3 仍缺同一最终 SHA 的三平台 aggregate/OIDC。
+- GitHub `main@458b342f5f`：瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和 Windows `1.65` 最终平台时延比上限晚于发布 SHA，不属于 `0.166.15` tarball。固定 run `33411796790` 的 Windows 实测为 `1.6379980224`，离线加权 aggregate 为 `0.6008293973`；run 仍失败且没有 final-SHA aggregate success/OIDC attestation。P2-3 由负责人显式接受这项剩余证据风险后关闭；该豁免不把 run 改写为成功，也不是通用先例。
 - TeamMailbox v3：真实 `cc team --agent` 子进程获得私有 `team_send|receive|ack|followup` 宿主工具；普通 shell worker、prompt 文本和 IDE 不获得消息 authority。
 - `cc agent --bg`：后台启动长任务，返回可持久化的会话 ID。
 - `cc attach <id>`：通过本机控制通道继续提问、停止或查看后台 Agent；通道不可用时自动改为日志跟随。

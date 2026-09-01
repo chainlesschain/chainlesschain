@@ -24,11 +24,25 @@
 - `0.166.8` 是未单独发布的源码候选，增加耐久 Graph history、quorum HumanTask、definition migration/retirement evidence、Team fairness、temporal message reliability 与跨端审批 single-winner CAS；全部由公开 `0.166.9` 承接。
 - `0.166.9` 新增真实 Playwright UI replay 与三平台 network-escape probe；可选 Codex App Server adapter 改为 exact-version allow-list，未知/预发布版本在 turn admission 前回退 `codex exec --json`。同一 exact SHA 的 Record Replay、Codex compatibility 与 Desktop signed-Skill qualification 专项门均成功。
 - `0.166.12` 公开 Context/Memory Kernel、耐久 rollout store 与 Hooks v2 收敛；`0.166.13` 关闭 renderer IPC、默认 sandbox/审批与高风险进程审计的 P0 绕过；`0.166.14` 恢复 Windows Docker-optional 普通启动并保持显式隔离失败闭合；`0.166.15` 再统一 formal quality control/candidate 的冻结文件工具上限，同时保留失败证据与完整 soak 时长。
-- `main@db53dc2da4` 的瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和 Windows `1.6` 平台时延比上限晚于 `v-npm-0-166-15`，必须等待自己的完整三平台 aggregate/OIDC 与发布闭环。
+- `main@458b342f5f` 的瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和最终 `1.65` 平台时延比上限晚于 `v-npm-0-166-15`。固定 SHA `db53dc2da4` 的 run `33411796790` 未变为成功，也没有最终 SHA 的三平台 aggregate success/OIDC attestation；发布负责人依据 Windows `1.6379980224 <= 1.65`、全部功能/安全指标通过及离线加权 aggregate `0.6008293973 < 1.5` 显式接受剩余证据风险并关闭 P2-3。该关闭不继承 `0.166.15` 发布授权，也不构成通用豁免先例。
 - `cc serve --app-server` 默认以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。`--app-server-websocket` 是强制 token、远程 TLS 与固定子协议的实验入口。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
 - IDE 当前公开版本为 Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107`。两者的不可变 tag 与 CLI 同指 `22db04f559`，IDE 工作流 `33393387965` / `33393394812` 成功；微软 VS Code Marketplace仍未发布。
 - CLI/SDK/Protocol 当前公开组合为 `0.166.15/0.2.7 TS + 0.2.7 Python/0.1.7`。Desktop 签名/Skill 资格、真实 UI replay 与 Codex compatibility 都有自己的 exact-SHA 专项证据，但公共 native 分发、生产 relay 与真实 provider 验收仍需独立判断。
+
+## 2026-09-01 本地 source-only Skill evolution 快照
+
+本轮核对冻结的本地功能分支快照为 `233e1bdc3afd031505d7c96964a08b0a7aa8e1fc`，晚于且未合入 GitHub `main@458b342f5f`；这里的“冻结”只描述本轮文档证据锚点，不表示它永远是分支当前 head。以下内容只是源码合同，不在 `v-npm-0-166-15`、VSIX、JetBrains ZIP 或既有 Desktop 资格制品中：
+
+- `3fdff6c1` 将 CLI Skill synthesis/improvement 收敛为候选目录和 diff 输出，`c16e1a39` 将 Desktop Skill Creator 与 Skill Sync 写路径收敛到候选隔离；缺 evaluator、candidate output/store 或宿主注入时失败闭合。当前 `cc learning synthesize` 构造路径没有注入完整候选端口，Desktop 生产 Skill Sync 也没有统一 candidate store，因此不能写成用户已可自动升级 active Skill。
+- `fe16c72d` 增加 host-owned `SkillMutationAuthority`，`ed7882d0` 增加崩溃安全的 promotion controller/release registry；authority、candidate、approval、expected active identity、release CAS 与恢复证据必须精确绑定，调用方不能凭 Skill 自述获得 mutation 权限。
+- `b8490faa` 增加 tenant-scoped commitment、加密 Raw 证据、model-visible/trusted 投影、attestation、ACL/retention 与 reader 合同。该投影只消费已授权的 evolution evidence，不是 active Skill writer，也不能反向授予 promotion authority。
+- `d073bdf3` 新增 tamper-evident `EvolutionLedger`：签名 append-only event segment/HEAD、独立 witness、可信 artifact resolver，以及 receipt/query/verify、篡改/回滚/截断/重排、并发 append 和崩溃恢复的失败闭合合同。仓库除实现和单测外没有 production import 或实例化，尚未接到 candidate、mutation、promotion、release 或 evidence projector 的统一运行链。
+- `233e1bdc` 在 mutation authority、promotion controller 与 release registry 间绑定 mutation transition subject，拒绝 subject 缺失、漂移或跨 subject 重放；这只是治理合同加固，不新增 active Skill writer 或生产接线。
+- Ledger 定向 Vitest 共 35 项，本机结果为 34 pass、1 fail：首个初始化用例受默认 5 秒 timeout 限制，实际约 `18.848s`，整套测试约 `128.9s`。这是未通过的本地定向结果，不是 qualification 或正式验收。
+- 另一个不同范围是 `233e1bdc` 工作树的六治理文件定向回归：6/6 files、126/126 tests 通过，耗时 `28.84s`。它不应与上述 ledger 35 项合并计数；即使本组全绿，也只验证本地治理合同，不构成 production wiring、qualification、发布授权或 P1 关闭证据。
+- 这些 evolution 类目前没有统一的 CLI/Desktop 生产实例化、端到端 wiring 或正式验收，不得描述为自动改写或升级 active Skill。
+- `d478270c`/`e2b18598` 为 Graph production evidence 增加 authenticated source registry、受保护输入冻结和 stale-main 拒绝；`3c4342d8` 对签名 Desktop Skill producer 实施 protected-current-main 限制；`9951afa5`/`5bddb9ce` 建立有界 P1-10 物理主机证据与 GitHub API 合同。当前 registry、runner、生产凭据、fresh run/aggregate/OIDC 与 close receipt 仍缺失，P1-10、P1-11、P1-12 继续部分完成。
 
 ## 当前边界
 
@@ -399,7 +413,7 @@ npm run test:e2e
 
 `0.166.15` 的精确正式发布提交为 [`22db04f55974d2e5823772c4bae5e87171fa51db`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。同一提交的 Linux/Windows/macOS CLI CI 与 Strict Sandbox 均成功，[npm OIDC release run 33393380607](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)和[公网字节/provenance 复核 run 33395435618](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)完成 registry tarball、不可变 workflow artifact 与 provenance 身份交叉核对。Agent Protocol `0.1.7`、TS/Python SDK `0.2.7`、Open VSX `0.37.77` 与 JetBrains `0.4.107` 均已公开回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；GitHub `main@db53dc2da4` 的正式协作质量门不能继承 `v-npm-0-166-15` 的发布授权。CLI 与双 IDE 共用源码提交 `22db04f559`，但 npm tarball、VSIX 与 JetBrains ZIP 仍是三个独立制品身份，必须分别按公共回读证据处理。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门；GitHub `main@458b342f5f` 对 P2-3 的显式风险接受只关闭该审计编号，不能继承 `v-npm-0-166-15` 的发布授权，也不能替代未来版本的正式协作质量门。CLI 与双 IDE 共用源码提交 `22db04f559`，但 npm tarball、VSIX 与 JetBrains ZIP 仍是三个独立制品身份，必须分别按公共回读证据处理。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
 

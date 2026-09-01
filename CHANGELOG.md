@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - local source-only Skill evolution and external-evidence contracts
+
+> This entry freezes this cycle's unmerged local feature-branch snapshot at
+> `233e1bdc3afd031505d7c96964a08b0a7aa8e1fc`. It is ahead of public GitHub
+> `main@458b342f5f`, is not part of `chainlesschain@0.166.15`, and carries no
+> release authorization.
+
+- **Candidate-only evolution**: `3fdff6c1` and `c16e1a39` isolate synthesized,
+  improved, created, and imported Skills as candidates or diffs. Missing
+  evaluator/candidate-store ports fail closed; these paths do not write or
+  activate an installed Skill.
+- **Governed mutation and recovery contracts**: `fe16c72d`, `ed7882d0`, and
+  `b8490faa` add a host-owned mutation authority, a crash-safe promotion
+  controller/release registry, and tenant-scoped attested evidence projections.
+  These primitives have no unified production wiring or formal qualification
+  and must not be presented as automatically rewriting or upgrading an active
+  Skill.
+- **Tamper-evident evolution ledger**: after the `b8490faa` evidence projector,
+  `d073bdf3` adds signed append-only ledger entries, an independent witness, and
+  receipt/verify operations. Missing or inconsistent evidence fails closed.
+  The ledger has no production import or instantiation and is not part of
+  public `0.166.15`, GitHub `main@458b342f5f`, or formal qualification.
+- **Bound mutation-transition subjects**: `233e1bdc` binds Skill mutation
+  transition subjects after the projector and ledger commits. This remains a
+  source-only contract and does not instantiate or import a production ledger.
+- **Fresh-main external evidence**: `d478270c`/`e2b18598` add authenticated
+  Graph production-source and stale-main checks; `3c4342d8` applies the same
+  protected-current-main boundary to Desktop Signed Skill qualification; and
+  `9951afa5`/`5bddb9ce` add bounded P1-10 physical-host evidence contracts.
+  Empty registries, absent production runs/credentials, and missing close
+  receipts keep P1-10, P1-11, and P1-12 partially complete.
+- **Verification boundary**: at the frozen `233e1bdc` worktree, the original six
+  governance test files reran with 6/6 files and 126/126 tests passing in
+  28.84 seconds. Separately, the dedicated ledger suite still reports 35 tests:
+  34 passed and one timed out under the default 5-second limit; its first test
+  actually completes in about 18.848 seconds and the whole suite in about
+  128.9 seconds. The 126-test green run does not supply production import,
+  instantiation, unified wiring, a merge to `main`, public `0.166.15` delivery,
+  or formal qualification, and the ledger suite itself is not all green.
+
 ### Fixed - cc CLI 0.166.15: align the formal quality file-tool ceiling
 
 > `chainlesschain` **0.166.14 -> 0.166.15**, published 2026-08-31 from exact
@@ -25,10 +65,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   task's exact allowed files.
 - **Release and quality boundary**: the exact release commit passed CLI CI and
   CLI Strict Sandbox on Linux, Windows, and macOS, then completed npm OIDC
-  publication and independent registry/provenance readback. The subsequent
-  protected formal-quality run passed Linux/macOS but not Windows, so P2-3
-  still requires one final-SHA three-platform aggregate and OIDC attestation;
-  that open quality evidence is not rewritten as part of the published tarball.
+  publication and independent registry/provenance readback. The post-release
+  quality decision below does not change those artifact bytes or their evidence
+  identity.
+- **Post-release Windows evidence**: `main@458b342f5f` freezes the Windows
+  candidate latency-ratio ceiling at `1.65`; Linux, macOS, and the aggregate
+  remain at `1.5`. Exact run `33411796790`, pinned to `db53dc2da4`, passed
+  Linux, macOS, and all three platforms' functional/security metrics, but its
+  Windows ratio was `1.6379980224` against the then-current `1.6` ceiling, so
+  the run, workflow aggregate, and OIDC attestation did not succeed. The
+  offline weighted three-platform aggregate was `0.6008293973 < 1.5`.
+- **P2-3 accepted-risk closure**: after final threshold commit `917d18b055`,
+  the release owner explicitly accepted the residual risk of no rerun and no
+  final-SHA aggregate/OIDC evidence and closed P2-3. This does not rewrite the
+  failed run as successful, is not part of the `0.166.15` artifact, and is not
+  a general precedent for release gates.
 
 ### Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows
 

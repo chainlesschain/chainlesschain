@@ -4,6 +4,8 @@
 
 Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.15` 已包含受治理 Record & Replay 的录制、审阅、启用、撤销、导入导出、删除与审计生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
 
+> Agent/Skill evolution 边界：本轮核对冻结的 feature 快照为 `233e1bdc`；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS。该冻结快照晚于 GitHub `main@458b342f5f`，公共 `0.166.15` **不包含**它，且尚无统一生产实例；P1-11 仍为部分完成。自动路径不得直接写 active，Skill Sync import 缺少受信 `candidateStore` 时会失败闭合。
+
 ## 概述
 
 Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通过 SKILL.md Markdown 格式定义技能的提示词、工具集、参数和门控检查。系统内置 146 个技能覆盖开发、测试、安全、DevOps 等 18 个类别，采用四层加载机制（workspace > managed > marketplace > bundled）支持优先级覆盖，并通过统一工具注册表聚合 FunctionCaller、MCP 和 Skills 三大工具系统。
@@ -16,6 +18,7 @@ Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通
 - 🔌 **统一工具注册表**: 聚合 FunctionCaller (60+)、MCP (8 servers)、Skills (50) 三大工具系统
 - 🔒 **执行安全**: 内置 Handler 绑定生成能力目录；外部 Handler 必须签名并在一次性隔离 Worker 中通过宿主能力端口执行
 - 🧩 **Agent Skills 标准**: 13 个扩展字段，支持技能发现、组合和远程调用
+- 🧬 **候选治理（源码预览）**: 自动生成与改进只产生隔离候选或 diff；active 变更必须经过独立 mutation authority 与 promotion/release 合同
 
 ## 系统架构
 
@@ -61,9 +64,17 @@ Skill 被发现不代表它已经获得执行权。真正运行前，Desktop 会
 
 用户操作、报错处理和 Graph 调试入口见 [Desktop Graph 调试与 Skill 安全执行](/chainlesschain/desktop-graph-skill-security)。详细安全不变量见 [模块 109：Desktop Cowork Skill 执行安全设计](/design/modules/109_Desktop_Cowork_Skill_Execution_Security)。
 
+## 2026-09-01 evolution 源码边界
+
+本轮冻结的 `233e1bdc` 快照中，候选注册表保存内容寻址、不可变的 `draft`，本身没有 active pointer 或 promotion API。Skill writer inventory 会分类现有生产写入点并拒绝未登记 writer；mutation authority 使用受信 principal/receipt/audit/nonce 端口签发只能消费一次的进程内 capability；promotion controller 绑定 candidate、六类 receipt、active CAS 与 dependency lock；release registry 保存不可变 release、active/LKG 指针并支持认证事务恢复与 rollback。`b8490faa` 的 Raw evidence projector 通过加密存储、脱敏 model-visible projection、schema-verifier 选出的 trusted projection 和签名 attestation 分层；`d073bdf3` 增加 hash-linked、tamper-evident evolution ledger；`233e1bdc` 的 transition-subject binding 防止把有效授权、receipt 或 capability 换用于另一 candidate、dependency lock、rollback target、active content digest 或 revision。
+
+这些都是 source-only 治理原语。当前没有一个跨 CLI、Desktop 与 Skill Sync 的统一生产装配，ledger 也没有生产 import/实例化；不能把它们表述为自动晋升、已部署回滚或生产自进化。Skill Creator 的 `create`/优化只返回候选或 diff；Skill Sync import 在 `candidateStore` 缺失时拒绝继续。
+
 ## 配置参考
 
 技能系统支持通过统一配置管理器进行详细配置，以下是完整的配置选项说明。
+
+candidate store、mutation authority 和 promotion controller 目前不是公共 `0.166.15` 配置项。不得把 workspace/managed 目录配置当作自动演化候选目录，也不得用它绕过 candidate/active 隔离。
 
 ### 四层目录配置
 
@@ -663,7 +674,7 @@ chainlesschain skill run notion "在 Notion 中创建新页面"
 chainlesschain skill run google-workspace "查询 Google Calendar 日程"
 chainlesschain skill run weather "查询北京今天的天气"
 chainlesschain skill run find-skills "搜索与数据处理相关的技能"
-chainlesschain skill run skill-creator "创建一个新的自定义技能"
+chainlesschain skill run skill-creator "创建一个新的自定义技能" # 返回候选，不直接写 active
 chainlesschain skill run free-model-manager "列出本地 Ollama 可用模型"
 chainlesschain skill run humanizer "将 AI 生成的文本改写为自然风格"
 chainlesschain skill run content-publisher "生成社交媒体帖子内容"
@@ -1102,6 +1113,12 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 | `src/main/ai-engine/cowork/skill-md-parser.js`       | SKILL.md YAML 解析器      | ~250 |
 | `src/main/ai-engine/cowork/unified-tool-registry.js` | 统一工具注册表            | ~420 |
 | `src/main/ai-engine/cowork/skill-discoverer.js`      | 技能发现与搜索            | ~280 |
+| `packages/cli/src/lib/evolution/skill-candidate-registry.js` | 内容寻址候选注册表 | — |
+| `packages/cli/src/lib/evolution/skill-mutation-authority.js` | 受信 mutation 授权边界 | — |
+| `packages/cli/src/lib/evolution/skill-promotion-controller.js` | CAS-bound 晋升/回滚控制器 | — |
+| `packages/cli/src/lib/evolution/skill-release-registry.js` | 不可变 release 与恢复注册表 | — |
+| `packages/cli/src/lib/evolution/evolution-evidence-projector.js` | Raw/model/trusted 证据投影 | — |
+| `packages/cli/src/lib/evolution/evolution-ledger.js` | hash-linked tamper-evident evolution ledger | — |
 
 ## 性能指标
 
@@ -1113,6 +1130,7 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 | 技能执行 Handler 分发        | < 20ms  | ~8ms                 | ✅   |
 | 统一工具注册表构建           | < 500ms | ~260ms (141 技能)    | ✅   |
 | MCP 嵌入 mount/unmount       | < 200ms | ~110ms               | ✅   |
+| evolution 治理原语           | 未设公共 SLA | 尚无统一生产实例或发布性能证据 | source-only |
 
 ## 故障排查
 
@@ -1146,6 +1164,13 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 - **工具权限**: 技能仅能使用 `tools` 字段中声明的工具，未声明的工具调用会被拒绝
 - **日志排查**: 查看应用日志中 `[SkillExecutor]` 标签的错误信息
 
+### 自动候选或同步导入不可用
+
+- **`learning synthesize` unavailable**：当前未注入 evaluator、`candidateOutputDir` 与 active roots，按设计在写入前失败闭合。
+- **Skill Creator 没有创建目录**：`create`/描述优化只返回候选或 diff，不直接修改 workspace/active。
+- **Skill Sync import 被拒绝**：受信 `candidateStore` 未注入；这是安全边界，不应退回直接写 active。
+- **ledger 没有运行时记录**：`d073bdf3` 只提供源码/测试合同，尚无生产 import/实例化；不能据此判断候选已晋升。
+
 ---
 
 ## 测试覆盖率
@@ -1174,6 +1199,18 @@ Skills 系统的测试分布在 Desktop 和 CLI 两个包中，覆盖核心解�
 | ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`        | CLI Skill-Embedded MCP 解析与容错           | ~26    |
 | ✅ `packages/cli/__tests__/integration/skill-run.test.js` | `chainlesschain skill run` 端到端执行       | ~30    |
 | ✅ `packages/cli/__tests__/unit/skill-sync-cli.test.js`   | 9 个 CLI 命令技能包生成/同步/删除           | ~24    |
+
+### Evolution 治理合同测试
+
+- `packages/cli/__tests__/unit/skill-candidate-registry.test.js`
+- `packages/cli/__tests__/unit/skill-writer-inventory.test.js`
+- `packages/cli/__tests__/unit/skill-mutation-authority.test.js`
+- `packages/cli/__tests__/unit/skill-promotion-controller.test.js`
+- `packages/cli/__tests__/unit/skill-release-registry.test.js`
+- `packages/cli/__tests__/unit/evolution-evidence-projector.test.js`
+- `packages/cli/__tests__/unit/evolution-ledger.test.js`
+
+这些文件证明测试合同存在，不等于生产验收。`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿仍不构成统一生产 wiring、qualification 或发布验收；ledger 独立结果也不是全绿。
 
 ### Agent Skills 扩展字段测试
 
@@ -1243,16 +1280,29 @@ cd desktop-app-vue && npx vitest run tests/unit/ai-engine/skill-handlers.test.js
 - 内置技能（bundled）由 ChainlessChain 官方维护，经过安全审查
 - 插件市场技能安装前显示来源、版本和权限要求，用户确认后安装
 - 自定义技能（workspace/managed）由用户自行管理，建议审查后使用
+- 自动生成或同步导入的 Skill 必须先进入 candidate 边界；缺少 candidate store、receipt、CAS 或 promotion authority 时不得落入 active
 
 ### 数据安全
 
 - 技能执行过程中处理的数据不会自动上传到外部服务
 - 需要网络访问的技能（如 `tavily-search`）明确标注外部 API 依赖
 - 技能执行历史记录在本地数据库中，支持审计追溯
+- source-only evidence projector 将加密 Raw、脱敏 model-visible 与 schema-verifier 选择的 trusted learning projection 分离；公开 SHA-256 只用于内容标识，不代表真实性或授权
+- source-only evolution ledger 使用 hash-linked tamper evidence；它尚未被生产实例化，不能单凭公共 digest 或测试 fixture 证明运行时事件真实存在
 
 ---
 
 ## 使用示例
+
+### 候选生成边界（本地源码预览）
+
+```bash
+# 返回候选内容；不会自动安装、覆盖或出现在 active 列表
+chainlesschain skill run skill-creator "create my-skill \"生成项目摘要\""
+
+# 当前生产装配缺少受信依赖，会明确 unavailable，不会写 active
+chainlesschain learning synthesize
+```
 
 ### 技能发现与执行
 

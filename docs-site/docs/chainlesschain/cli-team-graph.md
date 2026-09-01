@@ -49,7 +49,7 @@ Task/Agent runtime ──durable events──> Event Store ──read-only reduc
 
 ### 公共命令与主线 formal quality gate 的区别
 
-`0.166.15` 用户可以使用本页的 `inspect/diff/eval`，发布包还修复 formal quality control/candidate 的冻结文件工具上限。当前 `main@db53dc2da4` 继续包含 Windows 每 Agent 隔离、审计读取重试与平台时延阈值；它们不是新的公共子命令或用户 SLA，且完整三平台 aggregate/OIDC 尚未通过：
+`0.166.15` 用户可以使用本页的 `inspect/diff/eval`，发布包还修复 formal quality control/candidate 的冻结文件工具上限。GitHub `main@458b342f5f` 继续包含 Windows 每 Agent 隔离、审计读取重试，并将 Windows 时延比最终上限调整为 `1.65`；这些不是新的公共子命令或用户 SLA。固定 run `33411796790` 的 Windows 实测为 `1.6379980224`，离线加权 aggregate 为 `0.6008293973`，但该 run 仍失败且没有 final-SHA aggregate success/OIDC attestation。P2-3 由负责人显式接受剩余证据风险后关闭；该豁免不属于 `0.166.15` 制品，也不是通用先例：
 
 - formal profile 至少运行 1,800 秒、3 轮和固定 6 个任务；
 - single-agent control 与 Graph candidate 使用隔离 workspace，candidate 使用独立 worktree；
