@@ -57,6 +57,51 @@ shadow / canary / active / rollback
 
 在 P0 门禁关闭前，不应把当前 `learning synthesize`、`SkillImprover`、CLI/Desktop `self-evolving` 指标壳描述为生产级自主进化。
 
+### 1.1 当前实施完成情况（2026-09-01）
+
+本节记录本报告转入实施后的当前状态，实施基线截至提交 `dfa21b4ba4`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
+
+| 优先级 | 当前判断 | 已完成并写入仓库 | 当前仍需完成 |
+| --- | --- | --- | --- |
+| P0 | 已完成 12 个基础提交；整体未关闭 | 能力真值与 mutation freeze、可信 mutation authority、不可变 candidate/release/promotion 基础、证据投影与制品端口、tamper-evident ledger、类型化领域事件、规范执行清单、持久账本端口契约 | Eval Gate 仍在审查 HOLD；Candidate/Release 仍需 tenant v2 迁移；缺真实跨进程 durability authority、矩阵评测聚合、完整 promotion evidence/人工 quorum、端到端事务控制面和崩溃/攻击测试 |
+| P1 | 部分底座提前落地；主能力未开始验收 | target matrix 数据模型、content-addressed registry、ledger/event/port 等依赖已具备基础实现 | Canonical Raw/Wiki/Skill、Maintainer、Proposer、目标矩阵 Eval、统一 Registry 接线、结构化 Memory、InvocationReceipt 和有界评分循环均未形成生产纵切 |
+| P2 | 未开始 | 尚未把任何 P2 产品能力声明为已交付 | Pilot、Workbench、Retrieval Router、跨设备/团队知识、跨模型市场治理、Wiki pruning 与长时在线适应应在 P0/P1 验收后实施 |
+
+P0 的逐项状态如下；“基础完成”特指底层安全原语已提交，不代表生产接线已经完成：
+
+| 路线项 | 状态 | 已完成部分 | 提交证据 | 未关闭项 |
+| --- | --- | --- | --- | --- |
+| EVO-P0-1 能力真实性与 mutation freeze | 基础完成，路线项待生产切换验证 | canonical capability/runtime status、candidate-only writer 边界、mutation 路径盘点与冻结、Desktop Skill 生命周期证据接线 | `3fdff6c1ee`、`0da1f36a8b`、`c16e1a3912` | 对全部生产入口做最终 cutover/E2E，确认旧壳不会绕过门禁或继续报告幻影成功 |
+| EVO-P0-2 Candidate、Promotion 与 Rollback 事务 | 部分完成，tenant v2 实施中 | 不可变 candidate 基础、可信 mutation authority、crash-safe release/promotion registry、transition subject 绑定、执行清单与持久账本端口契约 | `3fdff6c1ee`、`fe16c72d5e`、`ed7882d004`、`233e1bdc3a`、`4cffc53054`、`dfa21b4ba4` | tenant-scoped Candidate/Release/ledger schema migration、统一两阶段事务、真实 durable authority、commit-unknown/concurrency E2E、active/last-known-good/canary 控制面、运行中会话 digest pinning，以及 permission/policy/model/tool/grader 变化后的 approval/Eval cache 失效 |
+| EVO-P0-3 独立真实 Eval Gate | 审查 HOLD，未提交 | 隔离 target、deadline supervisor、调用/撤销证据和终止状态机的当前候选测试 91/91 通过 | 无提交；两个文件仍为未跟踪候选 | 独立审查仍发现 trust principal/key alias、不同 wrapper 共享 verifier callable、supervisor 未来时间戳三类 fail-open 风险；修复并复审通过后方可提交；之后仍需 train/validation/test 隔离、同条件 baseline/candidate、多目标统计 gate、anti-gaming、target-matrix receipt 聚合与真实 grader |
+| EVO-P0-4 Raw、入模投影与 Skill 编译安全边界 | 基础部分完成 | attested evidence projection、authenticated artifact ports、tenant-bound dependency lock/runtime manifest/target matrix 规范格式与校验 | `b8490faa94`、`b4dca1ee05`、`4cffc53054` | 生产 raw/model-visible 双层存储、secret/PII 脱敏、trust/quarantine、完整 derivation receipt、人工 quorum 与生产 adapter 接线 |
+| EVO-P0-5 Fail-closed 证据与审计 | 账本基础完成，生产可用性 HOLD | append-only tamper-evident ledger、typed domain events、subject-bound transition、认证制品解析与持久账本组合端口 | `d073bdf3c7`、`233e1bdc3a`、`d098a64253`、`b4dca1ee05`、`dfa21b4ba4` | 真实跨进程持久 authority、增量索引/快照与规模基准、冲突/并发回归、旧 projection/journal 迁移、故障注入、离线审计导出验证以及生产 wiring |
+
+P1/P2 当前状态按路线项展开如下，防止提前把“已有依赖”计为“能力完成”：
+
+| 路线项 | 当前状态 | 已复用或提前完成的底座 | 下一关闭条件 |
+| --- | --- | --- | --- |
+| EVO-P1-1 Canonical Raw/Wiki/Skill | 未开始验收 | ledger、typed events、artifact ports | 建成单一 `EvolutionRun` 与 Raw/Wiki/Skill authority，并让 CLI/Desktop/Graph 共用 |
+| EVO-P1-2 Evidence-backed Wiki Maintainer | 未开始 | 可引用认证 evidence/artifact | 实现 pattern/index/evolution-log/skill-impact 及 merge/conflict/expiry/revoke |
+| EVO-P1-3 Single-Skill Proposer | 部分边界已完成 | writer 已被限制为 candidate-only，candidate registry 已有基础 | 接入 Wiki/Raw lineage，只允许单 Skill proposal，并生成 PURPOSE、diff、边界和反例 |
+| EVO-P1-4 目标运行时 Eval | 数据模型部分完成 | dependency lock、runtime manifest、target matrix canonical schema | 实现逐 matrix cell 的 before/after receipt、负迁移 gate、shadow/canary 与聚合判定 |
+| EVO-P1-5 Registry 与单写者治理 | 基础部分完成 | content-addressed candidate/release、promotion controller、lease/CAS/journal 原语 | 完成 tenant migration、唯一 production writer、kill switch、active/last-known-good 生产接线 |
+| EVO-P1-6 统一生产接线 | 未开始 | capability status 与 Desktop evidence 已校正部分入口 | 真实 Agent 事件统一进入控制面，并退役或降级重复的 self-evolving 壳 |
+| EVO-P1-7 Memory 与多 Agent 权力分离 | 未开始 | Eval Gate 正在建立最小监督/证据分权 | 完成 memory 分层、compaction 约束及 proposer/critic/evaluator/governor 隔离 |
+| EVO-P1-8 SkillInvocationReceipt | 部分观测底座完成 | Desktop lifecycle metrics/evidence、ledger/artifact port | 固定 skill digest、router reason、模型段、环境/权限、真实 outcome/cost，并可反向 join Eval/Wiki |
+| EVO-P1-9 有界评分改进循环 | 未开始 | 现有 GoalConditionEngine、预算、Eval、worktree/checkpoint 可复用 | 串成 candidate-only 离线纵切，证明单候选、独立评分、best 保留、失败分类与根预算停止 |
+| EVO-P2-1～P2-6 | 未开始 | 无生产能力提前宣称 | P0/P1 验收通过后，再依次开展受控 Pilot、Workbench、Router、团队知识、跨模型治理和 Wiki pruning |
+
+当前验证快照如下；前四行对应已提交批次，最后一行是尚未提交的 Eval Gate 候选。测试均采用串行执行以避免 Windows 并发测试进程造成误判：
+
+| 批次 | 验证快照 | 结论 |
+| --- | --- | --- |
+| 证据投影与认证制品端口 | evidence projector 46/46 通过；artifact ports 25 项通过，Windows 无权限创建 symlink 时另有 1 项按条件跳过 | 基础批次已提交；真实外部 artifact authority 仍需生产实现 |
+| Tamper-evident ledger 与 typed events | 相关账本测试 45/45 通过 | 数据模型与 fail-closed 校验基础已提交 |
+| Canonical execution manifests | manifest + mutation authority 测试 57/57 通过 | canonicalization、tenant-bound lock、runtime manifest、target matrix 基础已提交 |
+| Durable ledger ports + release/promotion compatibility | ledger ports 10/10、release registry 14/14、promotion controller 11/11 通过 | 端口契约可发布为 foundation；当前 O(N) 扫描和缺真实 durability authority 使生产接线继续 HOLD |
+| Eval Gate 候选 | 91/91 通过，但第三轮独立静态审查仍为 HOLD | 测试通过不替代 trust/port 独立性证明；修复审查问题前不提交、不计入完成 |
+
 ## 2. 外部方案实际提供了什么
 
 ### 2.1 WikiSkill：它是研究框架，不是已发布的 Google 产品功能
