@@ -64,6 +64,13 @@ describe("process spawn inventory audit", () => {
         "",
       ),
     ).toMatchObject({ disposition: "audited-exemption" });
+    expect(
+      auditRuntimeHit(
+        "packages/cli/src/lib/evolution/skill-writer-inventory-manifest.js",
+        '"function execFileSync(file, args, options = {})",',
+        "",
+      ),
+    ).toMatchObject({ disposition: "audited-exemption" });
   });
 
   it("does not hide a multiline dynamic child_process load behind a string literal", () => {

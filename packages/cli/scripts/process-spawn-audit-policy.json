@@ -44,6 +44,15 @@
       "reviewedAt": "2026-08-16"
     },
     {
+      "id": "skill-writer-inventory-static-broker-evidence",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/evolution/skill-writer-inventory-manifest.js",
+      "match": "^\\\"function execFileSync\\(file, args, options = \\{\\}\\)\\\",$",
+      "reason": "This exact data-only evidence literal identifies the reviewed desktop bundled-skill process broker function; it is not executable CLI runtime code or a native process boundary.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-09-01"
+    },
+    {
       "id": "secure-fs-windows-acl-boundary",
       "disposition": "audited-exemption",
       "path": "packages/cli/src/lib/secure-fs.js",
