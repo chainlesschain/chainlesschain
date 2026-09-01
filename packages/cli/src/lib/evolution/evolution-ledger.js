@@ -1,12 +1,15 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
 
 export const EVOLUTION_LEDGER_EVENT_SCHEMA =
   "chainlesschain.evolution-event/v2";
+export const EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA =
+  "chainlesschain.evolution-domain-event/v1";
 export const EVOLUTION_LEDGER_IDENTITY_SCHEMA =
   "chainlesschain.evolution-ledger-identity/v1";
 export const EVOLUTION_LEDGER_ANCHOR_SCHEMA =
@@ -33,6 +36,7 @@ export const EVOLUTION_LEDGER_MAX_EVENTS = 250_000;
 
 const IDENTITY_DOMAIN = "chainlesschain.evolution-ledger-identity/v1\0";
 const EVENT_DOMAIN = "chainlesschain.evolution-event/v2\0";
+const DOMAIN_EVENT_DOMAIN = "chainlesschain.evolution-domain-event/v1\0";
 const SEGMENT_DOMAIN = "chainlesschain.evolution-segment/v1\0";
 const ANCHOR_DOMAIN = "chainlesschain.evolution-ledger-head-anchor/v1\0";
 const RECEIPT_DOMAIN = "chainlesschain.evolution-ledger-receipt/v2\0";
@@ -68,6 +72,19 @@ const STAGE_FILE_PATTERN = /^\.stage-(.+)\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const HEAD_STAGE_FILE_PATTERN =
   /^\.replace-head-v1\.json\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const MAX_SOURCE_REFS = 256;
+const TYPED_ARRAY_PROTOTYPE = Object.getPrototypeOf(Uint8Array.prototype);
+const TYPED_ARRAY_BUFFER_GETTER = Object.getOwnPropertyDescriptor(
+  TYPED_ARRAY_PROTOTYPE,
+  "buffer",
+).get;
+const TYPED_ARRAY_BYTE_LENGTH_GETTER = Object.getOwnPropertyDescriptor(
+  TYPED_ARRAY_PROTOTYPE,
+  "byteLength",
+).get;
+const TYPED_ARRAY_BYTE_OFFSET_GETTER = Object.getOwnPropertyDescriptor(
+  TYPED_ARRAY_PROTOTYPE,
+  "byteOffset",
+).get;
 
 const DERIVATION_MODES = new Set([
   "wiki",
@@ -144,6 +161,19 @@ const APPEND_INPUT_KEYS = new Set([
   "timestamp",
   "type",
 ]);
+const DOMAIN_APPEND_INPUT_KEYS = new Set([
+  "artifactTenantId",
+  "correlationId",
+  "decision",
+  "eventId",
+  "reason",
+  "skillName",
+  "sourceRefs",
+  "subjectRef",
+  "tenantId",
+  "timestamp",
+  "type",
+]);
 const APPEND_OPTION_KEYS = new Set(["expectedHeadDigest", "expectedSequence"]);
 const EVENT_CORE_KEYS = new Set([
   ...APPEND_INPUT_KEYS,
@@ -164,6 +194,28 @@ const EVENT_CORE_KEYS = new Set([
 ]);
 const EVENT_RECORD_KEYS = new Set([
   ...EVENT_CORE_KEYS,
+  "eventDigest",
+  "signature",
+]);
+const DOMAIN_EVENT_CORE_KEYS = new Set([
+  ...DOMAIN_APPEND_INPUT_KEYS,
+  "algorithm",
+  "artifactValidationDigest",
+  "epoch",
+  "identityDigest",
+  "keyId",
+  "ledgerId",
+  "prevDigest",
+  "schema",
+  "sequence",
+  "trustPolicyDigest",
+  "witnessAlgorithm",
+  "witnessId",
+  "witnessKeyId",
+  "witnessTrustPolicyDigest",
+]);
+const DOMAIN_EVENT_RECORD_KEYS = new Set([
+  ...DOMAIN_EVENT_CORE_KEYS,
   "eventDigest",
   "signature",
 ]);
@@ -354,7 +406,14 @@ function ledgerError(code, message, details = {}) {
 }
 
 function isPlainObject(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (
+    !value ||
+    typeof value !== "object" ||
+    utilTypes.isProxy(value) ||
+    Array.isArray(value)
+  ) {
+    return false;
+  }
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
@@ -377,6 +436,30 @@ function assertPlainDataObject(value, label) {
   }
 }
 
+function safeOwnDataValue(value, key) {
+  if (!value || typeof value !== "object" || utilTypes.isProxy(value)) {
+    return null;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor &&
+    "value" in descriptor &&
+    typeof descriptor.value === "string"
+    ? descriptor.value
+    : null;
+}
+
+function isUnsafeAsyncResult(value) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return false;
+  }
+  if (utilTypes.isProxy(value) || utilTypes.isPromise(value)) return true;
+  const descriptor = Object.getOwnPropertyDescriptor(value, "then");
+  return Boolean(
+    descriptor &&
+    (!("value" in descriptor) || typeof descriptor.value === "function"),
+  );
+}
+
 function assertExactKeys(value, keys, label, { optional = [] } = {}) {
   assertPlainDataObject(value, label);
   const optionalKeys = new Set(optional);
@@ -394,24 +477,48 @@ function assertExactKeys(value, keys, label, { optional = [] } = {}) {
   }
 }
 
-function assertDenseDataArray(value, label, maximum) {
-  if (!Array.isArray(value)) {
+function readDenseDataArray(value, label, maximum) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    utilTypes.isProxy(value) ||
+    !Array.isArray(value)
+  ) {
     throw ledgerError(
       "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
       `${label} must be an array`,
     );
   }
-  if (!Number.isSafeInteger(maximum) || maximum < 0 || value.length > maximum) {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Array.prototype && prototype !== null) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      `${label} must use a safe array prototype`,
+    );
+  }
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+  const length =
+    lengthDescriptor && "value" in lengthDescriptor
+      ? lengthDescriptor.value
+      : null;
+  if (
+    !Number.isSafeInteger(maximum) ||
+    maximum < 0 ||
+    !Number.isSafeInteger(length) ||
+    length < 0 ||
+    length > maximum
+  ) {
     throw ledgerError(
       "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
       `${label} exceeds its maximum length of ${maximum}`,
     );
   }
-  const allowed = new Set([
-    "length",
-    ...Array.from({ length: value.length }, (_, index) => String(index)),
-  ]);
-  for (const key of Reflect.ownKeys(value)) {
+  const allowed = new Set(["length"]);
+  for (let index = 0; index < length; index += 1) {
+    allowed.add(String(index));
+  }
+  const actualKeys = Reflect.ownKeys(value);
+  for (const key of actualKeys) {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (
       typeof key !== "string" ||
@@ -425,29 +532,52 @@ function assertDenseDataArray(value, label, maximum) {
       );
     }
   }
-  if (
-    Array.from({ length: value.length }, (_, index) => index).some(
-      (index) => !Object.hasOwn(value, index),
-    )
-  ) {
-    throw ledgerError(
-      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
-      `${label} must not contain sparse entries`,
-    );
+  const entries = new Array(length);
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!descriptor || !("value" in descriptor)) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+        `${label} must not contain sparse or accessor entries`,
+      );
+    }
+    entries[index] = descriptor.value;
   }
+  return entries;
 }
 
 function canonicalJson(value) {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) {
-    return `[${value.map((entry) => canonicalJson(entry)).join(",")}]`;
+  if (utilTypes.isProxy(value)) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      "canonical JSON must not contain proxies",
+    );
   }
-  return `{${Object.keys(value)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
-    .join(",")}}`;
+  if (Array.isArray(value)) {
+    const entries = readDenseDataArray(
+      value,
+      "canonical JSON array",
+      EVOLUTION_LEDGER_MAX_EVENTS,
+    );
+    const encoded = new Array(entries.length);
+    for (let index = 0; index < entries.length; index += 1) {
+      encoded[index] = canonicalJson(entries[index]);
+    }
+    return `[${encoded.join(",")}]`;
+  }
+  assertPlainDataObject(value, "canonical JSON object");
+  const keys = Reflect.ownKeys(value).sort(compareStrings);
+  const encoded = new Array(keys.length);
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    encoded[index] =
+      `${JSON.stringify(key)}:${canonicalJson(descriptor.value)}`;
+  }
+  return `{${encoded.join(",")}}`;
 }
 
 function clone(value) {
@@ -468,6 +598,46 @@ function frozenClone(value) {
 
 function sha256(bytes) {
   return `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function copyResolvedBytes(value) {
+  if (!value || typeof value !== "object" || utilTypes.isProxy(value)) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
+      "artifact bytes must be a non-proxy Buffer or Uint8Array",
+    );
+  }
+  const prototype = Object.getPrototypeOf(value);
+  const safeBuffer = prototype === Buffer.prototype && Buffer.isBuffer(value);
+  const safeUint8Array =
+    prototype === Uint8Array.prototype && utilTypes.isUint8Array(value);
+  if (!safeBuffer && !safeUint8Array) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
+      "artifact bytes must use a safe Buffer or Uint8Array prototype",
+    );
+  }
+  try {
+    const arrayBuffer = Reflect.apply(TYPED_ARRAY_BUFFER_GETTER, value, []);
+    const byteLength = Reflect.apply(TYPED_ARRAY_BYTE_LENGTH_GETTER, value, []);
+    const byteOffset = Reflect.apply(TYPED_ARRAY_BYTE_OFFSET_GETTER, value, []);
+    if (
+      !Number.isSafeInteger(byteLength) ||
+      byteLength < 0 ||
+      byteLength > EVOLUTION_LEDGER_MAX_ARTIFACT_BYTES ||
+      !Number.isSafeInteger(byteOffset) ||
+      byteOffset < 0
+    ) {
+      throw new TypeError("artifact byte view bounds are invalid");
+    }
+    return Buffer.from(Buffer.from(arrayBuffer, byteOffset, byteLength));
+  } catch (cause) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
+      "artifact bytes could not be safely copied",
+      { cause },
+    );
+  }
 }
 
 function domainDigest(domain, value) {
@@ -673,24 +843,39 @@ function normalizeArtifactRef(value, label, { nullable = false } = {}) {
   };
 }
 
-function normalizeSourceRefs(value) {
-  assertDenseDataArray(value, "sourceRefs", MAX_SOURCE_REFS);
-  if (value.length < 1) {
+function normalizeSourceRefs(
+  value,
+  { minimum = 1, uniqueByDigest = false, uniqueByRef = false } = {},
+) {
+  const entries = readDenseDataArray(value, "sourceRefs", MAX_SOURCE_REFS);
+  if (entries.length < minimum) {
     throw ledgerError(
       "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
-      "sourceRefs must contain at least one artifact reference",
+      `sourceRefs must contain at least ${minimum} artifact reference${minimum === 1 ? "" : "s"}`,
     );
   }
-  const refs = value.map((entry, index) =>
-    normalizeArtifactRef(entry, `sourceRefs[${index}]`),
-  );
+  const refs = new Array(entries.length);
+  for (let index = 0; index < entries.length; index += 1) {
+    refs[index] = normalizeArtifactRef(entries[index], `sourceRefs[${index}]`);
+  }
   refs.sort(
     (left, right) =>
       compareStrings(left.ref, right.ref) ||
       compareStrings(left.digest, right.digest),
   );
-  const identities = refs.map((entry) => `${entry.ref}\0${entry.digest}`);
-  if (new Set(identities).size !== identities.length) {
+  const identities = new Array(refs.length);
+  const locators = new Array(refs.length);
+  const digests = new Array(refs.length);
+  for (let index = 0; index < refs.length; index += 1) {
+    identities[index] = `${refs[index].ref}\0${refs[index].digest}`;
+    locators[index] = refs[index].ref;
+    digests[index] = refs[index].digest;
+  }
+  if (
+    new Set(identities).size !== identities.length ||
+    (uniqueByRef && new Set(locators).size !== locators.length) ||
+    (uniqueByDigest && new Set(digests).size !== digests.length)
+  ) {
     throw ledgerError(
       "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
       "sourceRefs must not contain duplicates",
@@ -708,6 +893,14 @@ function normalizeSkillName(value) {
     );
   }
   return normalized;
+}
+
+function normalizeNullableIdentifier(value, label) {
+  return value === null ? null : identifier(value, label);
+}
+
+function normalizeNullableSkillName(value) {
+  return value === null ? null : normalizeSkillName(value);
 }
 
 function normalizeEnum(value, label, allowed) {
@@ -752,6 +945,49 @@ function normalizeAppendInput(value, generatedTimestamp) {
     sourceRefs: normalizeSourceRefs(value.sourceRefs),
     targetRef: normalizeArtifactRef(value.targetRef, "targetRef"),
     tenantId: identifier(value.tenantId, "tenantId"),
+    timestamp: canonicalTimestamp(
+      Object.hasOwn(value, "timestamp") ? value.timestamp : generatedTimestamp,
+      "timestamp",
+    ),
+    type: lowerIdentifier(value.type, "type"),
+  };
+}
+
+function normalizeDomainAppendInput(value, generatedTimestamp) {
+  assertExactKeys(value, DOMAIN_APPEND_INPUT_KEYS, "domain event input", {
+    optional: ["timestamp"],
+  });
+  const subjectRef = normalizeArtifactRef(value.subjectRef, "subjectRef");
+  const sourceRefs = normalizeSourceRefs(value.sourceRefs, {
+    minimum: 0,
+    uniqueByDigest: true,
+    uniqueByRef: true,
+  });
+  if (
+    sourceRefs.some(
+      (sourceRef) =>
+        sourceRef.ref === subjectRef.ref ||
+        sourceRef.digest === subjectRef.digest,
+    )
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      "subjectRef must not be aliased by ref or digest in sourceRefs",
+    );
+  }
+  return {
+    artifactTenantId: identifier(value.artifactTenantId, "artifactTenantId"),
+    correlationId: normalizeNullableIdentifier(
+      value.correlationId,
+      "correlationId",
+    ),
+    decision: normalizeEnum(value.decision, "decision", DECISIONS),
+    eventId: identifier(value.eventId, "eventId"),
+    reason: boundedString(value.reason, "reason", 4096),
+    skillName: normalizeNullableSkillName(value.skillName),
+    sourceRefs,
+    subjectRef,
+    tenantId: normalizeNullableIdentifier(value.tenantId, "tenantId"),
     timestamp: canonicalTimestamp(
       Object.hasOwn(value, "timestamp") ? value.timestamp : generatedTimestamp,
       "timestamp",
@@ -831,6 +1067,49 @@ function normalizeEventCore(value) {
     ledgerId: identifier(value.ledgerId, "ledgerId"),
     prevDigest: digest(value.prevDigest, "prevDigest", { nullable: true }),
     schema: EVOLUTION_LEDGER_EVENT_SCHEMA,
+    sequence: safeSequence(value.sequence, "sequence"),
+    trustPolicyDigest: digest(value.trustPolicyDigest, "trustPolicyDigest"),
+    witnessAlgorithm: boundedString(
+      value.witnessAlgorithm,
+      "witnessAlgorithm",
+      64,
+    ),
+    witnessId: identifier(value.witnessId, "witnessId"),
+    witnessKeyId: boundedString(value.witnessKeyId, "witnessKeyId", 256),
+    witnessTrustPolicyDigest: digest(
+      value.witnessTrustPolicyDigest,
+      "witnessTrustPolicyDigest",
+    ),
+  };
+}
+
+function normalizeDomainEventCore(value) {
+  assertExactKeys(value, DOMAIN_EVENT_CORE_KEYS, "domain event core");
+  if (value.schema !== EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      "domain event schema is unsupported",
+    );
+  }
+  const normalizedInput = normalizeDomainAppendInput(
+    Object.fromEntries(
+      [...DOMAIN_APPEND_INPUT_KEYS].map((key) => [key, value[key]]),
+    ),
+    value.timestamp,
+  );
+  return {
+    ...normalizedInput,
+    algorithm: boundedString(value.algorithm, "algorithm", 64),
+    artifactValidationDigest: digest(
+      value.artifactValidationDigest,
+      "artifactValidationDigest",
+    ),
+    epoch: identifier(value.epoch, "epoch"),
+    identityDigest: digest(value.identityDigest, "identityDigest"),
+    keyId: boundedString(value.keyId, "keyId", 256),
+    ledgerId: identifier(value.ledgerId, "ledgerId"),
+    prevDigest: digest(value.prevDigest, "prevDigest", { nullable: true }),
+    schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
     sequence: safeSequence(value.sequence, "sequence"),
     trustPolicyDigest: digest(value.trustPolicyDigest, "trustPolicyDigest"),
     witnessAlgorithm: boundedString(
@@ -1692,7 +1971,7 @@ export class EvolutionLedger {
   #invokeCrashHook(phase, context) {
     if (!this.#crashHook) return;
     const result = this.#crashHook(phase, frozenClone(context));
-    if (result && typeof result.then === "function") {
+    if (isUnsafeAsyncResult(result)) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_CRASH_HOOK_INVALID",
         "crashHook must be synchronous",
@@ -1711,7 +1990,7 @@ export class EvolutionLedger {
         purpose,
         trust: this.#trust,
       });
-      if (output && typeof output.then === "function") {
+      if (isUnsafeAsyncResult(output)) {
         throw new TypeError("signing port returned a Promise");
       }
       signature = normalizeSignature(output, this.#trust);
@@ -1748,7 +2027,7 @@ export class EvolutionLedger {
         { cause },
       );
     }
-    if (valid && typeof valid.then === "function") {
+    if (isUnsafeAsyncResult(valid)) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_SIGNATURE_INVALID",
         "verification port must be synchronous",
@@ -1779,7 +2058,7 @@ export class EvolutionLedger {
         { cause },
       );
     }
-    if (valid && typeof valid.then === "function") {
+    if (isUnsafeAsyncResult(valid)) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_WITNESS_INVALID",
         "witness verification port must be synchronous",
@@ -1901,14 +2180,25 @@ export class EvolutionLedger {
   }
 
   #verifyEvent(record, previous, identity) {
-    assertExactKeys(record, EVENT_RECORD_KEYS, "event record");
-    const core = normalizeEventCore(
-      Object.fromEntries([...EVENT_CORE_KEYS].map((key) => [key, record[key]])),
+    assertPlainDataObject(record, "event record");
+    const schema = Object.getOwnPropertyDescriptor(record, "schema")?.value;
+    const domainEvent = schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA;
+    const recordKeys = domainEvent
+      ? DOMAIN_EVENT_RECORD_KEYS
+      : EVENT_RECORD_KEYS;
+    const coreKeys = domainEvent ? DOMAIN_EVENT_CORE_KEYS : EVENT_CORE_KEYS;
+    const signatureDomain = domainEvent ? DOMAIN_EVENT_DOMAIN : EVENT_DOMAIN;
+    assertExactKeys(record, recordKeys, "event record");
+    const coreValue = Object.fromEntries(
+      [...coreKeys].map((key) => [key, record[key]]),
     );
+    const core = domainEvent
+      ? normalizeDomainEventCore(coreValue)
+      : normalizeEventCore(coreValue);
     this.#assertTrustBinding(core, identity);
     const eventDigest = digest(record.eventDigest, "eventDigest");
     const signature = normalizeSignature(record.signature, this.#trust);
-    const message = signedMessage(EVENT_DOMAIN, core);
+    const message = signedMessage(signatureDomain, core);
     if (
       core.sequence !== (previous?.sequence || 0) + 1 ||
       core.prevDigest !== (previous?.eventDigest || null) ||
@@ -1923,7 +2213,7 @@ export class EvolutionLedger {
     this.#verifyMessage({
       digest: eventDigest,
       message,
-      purpose: "event",
+      purpose: domainEvent ? "domain-event" : "event",
       signature,
     });
     return deepFreeze({ ...core, eventDigest, signature });
@@ -2103,7 +2393,7 @@ export class EvolutionLedger {
         { cause },
       );
     }
-    if (output && typeof output.then === "function") {
+    if (isUnsafeAsyncResult(output)) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_WITNESS_UNAVAILABLE",
         "witness ports must be synchronous",
@@ -2123,7 +2413,7 @@ export class EvolutionLedger {
         { cause },
       );
     }
-    if (output && typeof output.then === "function") {
+    if (isUnsafeAsyncResult(output)) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_WITNESS_UNAVAILABLE",
         "witness ancestry port must be synchronous",
@@ -3395,16 +3685,18 @@ export class EvolutionLedger {
   }
 
   #artifactRefs(input) {
-    const refs = [
-      ...input.sourceRefs,
-      input.parentRef,
-      input.candidateRef,
-      input.diffRef,
-      input.evalRef,
-      input.policyRef,
-      input.actorRef,
-      input.targetRef,
-    ].filter(Boolean);
+    const refs = Object.hasOwn(input, "subjectRef")
+      ? [input.subjectRef, ...input.sourceRefs]
+      : [
+          ...input.sourceRefs,
+          input.parentRef,
+          input.candidateRef,
+          input.diffRef,
+          input.evalRef,
+          input.policyRef,
+          input.actorRef,
+          input.targetRef,
+        ].filter(Boolean);
     const byRef = new Map();
     for (const ref of refs) {
       const existing = byRef.get(ref.ref);
@@ -3423,6 +3715,9 @@ export class EvolutionLedger {
 
   #resolveArtifacts(input, identity) {
     const validations = [];
+    const artifactTenantId = Object.hasOwn(input, "artifactTenantId")
+      ? input.artifactTenantId
+      : input.tenantId;
     for (const ref of this.#artifactRefs(input)) {
       let resolution;
       try {
@@ -3430,19 +3725,13 @@ export class EvolutionLedger {
           epoch: identity.epoch,
           ledgerId: identity.ledgerId,
           ref: frozenClone(ref),
-          tenantId: input.tenantId,
+          tenantId: artifactTenantId,
         });
       } catch (cause) {
         throw ledgerError(
           "CC_EVOLUTION_LEDGER_ARTIFACT_UNAVAILABLE",
           `artifact resolver failed for ${ref.ref}`,
           { cause, ref: ref.ref },
-        );
-      }
-      if (resolution && typeof resolution.then === "function") {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_ARTIFACT_UNAVAILABLE",
-          "artifact resolver must be synchronous",
         );
       }
       try {
@@ -3459,17 +3748,7 @@ export class EvolutionLedger {
             `artifact resolution is not authenticated and exactly bound: ${ref.ref}`,
           );
         }
-        const bytes = Buffer.isBuffer(resolution.bytes)
-          ? Buffer.from(resolution.bytes)
-          : resolution.bytes instanceof Uint8Array
-            ? Buffer.from(resolution.bytes)
-            : null;
-        if (!bytes || bytes.length > EVOLUTION_LEDGER_MAX_ARTIFACT_BYTES) {
-          throw ledgerError(
-            "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
-            `artifact bytes are missing or oversized: ${ref.ref}`,
-          );
-        }
+        const bytes = copyResolvedBytes(resolution.bytes);
         if (sha256(bytes) !== ref.digest) {
           throw ledgerError(
             "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
@@ -3520,6 +3799,32 @@ export class EvolutionLedger {
     return this.#signRecord(EVENT_DOMAIN, core, "eventDigest", "event");
   }
 
+  #buildDomainEvent(input, previous, identity, artifactValidationDigest) {
+    const core = normalizeDomainEventCore({
+      ...input,
+      algorithm: this.#trust.algorithm,
+      artifactValidationDigest,
+      epoch: identity.epoch,
+      identityDigest: identity.identityDigest,
+      keyId: this.#trust.keyId,
+      ledgerId: identity.ledgerId,
+      prevDigest: previous?.eventDigest || null,
+      schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+      sequence: (previous?.sequence || 0) + 1,
+      trustPolicyDigest: this.#trust.trustPolicyDigest,
+      witnessAlgorithm: this.#witnessTrust.algorithm,
+      witnessId: this.#witness.id,
+      witnessKeyId: this.#witnessTrust.keyId,
+      witnessTrustPolicyDigest: this.#witnessTrust.trustPolicyDigest,
+    });
+    return this.#signRecord(
+      DOMAIN_EVENT_DOMAIN,
+      core,
+      "eventDigest",
+      "domain-event",
+    );
+  }
+
   #issueReceipt(state, event, anchor, durabilityMechanism) {
     const core = normalizeReceiptCore(
       {
@@ -3558,6 +3863,14 @@ export class EvolutionLedger {
   }
 
   append(input, options = {}) {
+    return this.#appendEvent(input, options, false);
+  }
+
+  appendDomainEvent(input, options = {}) {
+    return this.#appendEvent(input, options, true);
+  }
+
+  #appendEvent(input, options, domainEvent) {
     const safeOptions = normalizeAppendOptions(options);
     const state = {
       event: null,
@@ -3598,10 +3911,10 @@ export class EvolutionLedger {
             },
           );
         }
-        const normalized = normalizeAppendInput(
-          input,
-          clockTimestamp(this.#clock),
-        );
+        const generatedTimestamp = clockTimestamp(this.#clock);
+        const normalized = domainEvent
+          ? normalizeDomainAppendInput(input, generatedTimestamp)
+          : normalizeAppendInput(input, generatedTimestamp);
         if (
           current.events.some((event) => event.eventId === normalized.eventId)
         ) {
@@ -3620,12 +3933,19 @@ export class EvolutionLedger {
           normalized,
           current.identity,
         );
-        const event = this.#buildEvent(
-          normalized,
-          previous,
-          current.identity,
-          artifactValidationDigest,
-        );
+        const event = domainEvent
+          ? this.#buildDomainEvent(
+              normalized,
+              previous,
+              current.identity,
+              artifactValidationDigest,
+            )
+          : this.#buildEvent(
+              normalized,
+              previous,
+              current.identity,
+              artifactValidationDigest,
+            );
         state.event = event;
         const segmentDigest = domainDigest(SEGMENT_DOMAIN, event);
         const segmentPath = path.join(
@@ -3736,7 +4056,7 @@ export class EvolutionLedger {
             cause,
             commitState: "unknown",
             eventDigest: state.event?.eventDigest || null,
-            eventId: state.event?.eventId || input?.eventId || null,
+            eventId: state.event?.eventId || safeOwnDataValue(input, "eventId"),
             witnessPublished: state.witnessPublished,
           },
         );
@@ -3751,7 +4071,7 @@ export class EvolutionLedger {
         {
           cause,
           commitState: "not-committed",
-          eventId: input?.eventId || null,
+          eventId: safeOwnDataValue(input, "eventId"),
         },
       );
     }

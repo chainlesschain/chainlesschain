@@ -8,6 +8,7 @@ import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_ANCHOR_SCHEMA,
+  EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
   EVOLUTION_LEDGER_EVENT_SCHEMA,
   EVOLUTION_LEDGER_IDENTITY_SCHEMA,
   EVOLUTION_LEDGER_QUERY_SCHEMA,
@@ -775,6 +776,18 @@ async function evolutionLedgerWorkerMain() {
     tenantId: "tenant-a",
     type: "candidate.proposed",
   });
+  const domainEvent = (index) => ({
+    artifactTenantId: "artifact-tenant-a",
+    correlationId: null,
+    decision: "committed",
+    eventId: `shared-domain-event-${index}`,
+    reason: "nonce claim was durably committed",
+    skillName: null,
+    sourceRefs: [],
+    subjectRef: artifactRef(`domain-subject-${index}`, "evidence"),
+    tenantId: "tenant-a",
+    type: "skill.mutation.nonce-claimed",
+  });
   const ledger = new ledgerModule.EvolutionLedger({
     artifactResolver: ({ ref }) => {
       const label = ref.ref.slice(ref.ref.lastIndexOf("/") + 1);
@@ -810,17 +823,24 @@ async function evolutionLedgerWorkerMain() {
     witness,
     witnessTrust,
   });
-  const receipts = workerData.indices.map((index) =>
-    ledger.append(event(index)),
-  );
-  parentPort.postMessage(
-    receipts.map(({ anchorDigest, eventDigest, eventId, sequence }) => ({
-      anchorDigest,
-      eventDigest,
-      eventId,
-      sequence,
-    })),
-  );
+  const outcomes = workerData.indices.map((index) => {
+    try {
+      const receipt = workerData.domainEvent
+        ? ledger.appendDomainEvent(domainEvent(index))
+        : ledger.append(event(index));
+      const { anchorDigest, eventDigest, eventId, sequence } = receipt;
+      return { anchorDigest, eventDigest, eventId, ok: true, sequence };
+    } catch (error) {
+      if (!workerData.captureErrors) throw error;
+      return {
+        code: error?.code || null,
+        commitState: error?.commitState || null,
+        message: error?.message || String(error),
+        ok: false,
+      };
+    }
+  });
+  parentPort.postMessage(outcomes);
 }
 
 function runEvolutionLedgerWorker(workerData) {
@@ -888,6 +908,22 @@ function eventInput(index, artifacts, overrides = {}) {
   };
 }
 
+function domainEventInput(index, artifacts, overrides = {}) {
+  return {
+    artifactTenantId: "artifact-tenant-a",
+    correlationId: null,
+    decision: "rejected",
+    eventId: `domain-event-${index}`,
+    reason: "CC_SKILL_MUTATION_REQUEST_INVALID",
+    skillName: null,
+    sourceRefs: [],
+    subjectRef: artifactRef(`domain-subject-${index}`, artifacts, "evidence"),
+    tenantId: null,
+    type: "skill.mutation.audit",
+    ...overrides,
+  };
+}
+
 function artifactResolver(artifacts) {
   return vi.fn(({ ref }) => {
     const bytes = artifacts.get(ref.ref);
@@ -910,6 +946,20 @@ function capturedError(callback) {
     return error;
   }
   throw new Error("expected callback to throw");
+}
+
+function trapProxy(target, onTrap) {
+  const trap = (name) => {
+    onTrap(name);
+    throw new Error(`unexpected proxy trap: ${name}`);
+  };
+  return new Proxy(target, {
+    get: () => trap("get"),
+    getOwnPropertyDescriptor: () => trap("getOwnPropertyDescriptor"),
+    getPrototypeOf: () => trap("getPrototypeOf"),
+    has: () => trap("has"),
+    ownKeys: () => trap("ownKeys"),
+  });
 }
 
 function filesystemWith(overrides = {}) {
@@ -1244,6 +1294,335 @@ describe("EvolutionLedger v2", () => {
     ).toBe(1);
   });
 
+  it("chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant", () => {
+    const resolver = artifactResolver(artifacts);
+    const ledger = createLedger({ artifactResolver: resolver });
+    const first = ledger.append(eventInput(1, artifacts));
+    const domainReceipt = ledger.appendDomainEvent(
+      domainEventInput(1, artifacts),
+    );
+    const third = ledger.append(eventInput(2, artifacts));
+    const events = ledger.read();
+
+    expect(
+      events.map(({ schema, sequence }) => ({ schema, sequence })),
+    ).toEqual([
+      { schema: EVOLUTION_LEDGER_EVENT_SCHEMA, sequence: 1 },
+      { schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA, sequence: 2 },
+      { schema: EVOLUTION_LEDGER_EVENT_SCHEMA, sequence: 3 },
+    ]);
+    expect(events[1]).toMatchObject({
+      artifactTenantId: "artifact-tenant-a",
+      correlationId: null,
+      eventId: "domain-event-1",
+      prevDigest: first.eventDigest,
+      skillName: null,
+      sourceRefs: [],
+      tenantId: null,
+    });
+    expect(third.sequence).toBe(3);
+    expect(third.eventDigest).toBe(events[2].eventDigest);
+    expect(domainReceipt).toMatchObject({
+      eventDigest: events[1].eventDigest,
+      eventId: events[1].eventId,
+      sequence: 2,
+    });
+    expect(
+      resolver.mock.calls.find(
+        ([request]) => request.ref.ref === events[1].subjectRef.ref,
+      )?.[0],
+    ).toMatchObject({ tenantId: "artifact-tenant-a" });
+    const domainSigningRequest = ports.sign.mock.calls.find(
+      ([request]) => request.purpose === "domain-event",
+    )?.[0];
+    expect(
+      domainSigningRequest.message
+        .toString("utf8")
+        .startsWith("chainlesschain.evolution-domain-event/v1\0"),
+    ).toBe(true);
+    expect(ledger.query({ eventId: events[1].eventId })).toMatchObject({
+      authenticated: true,
+      durable: true,
+      event: { schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA, sequence: 2 },
+    });
+    expect(createLedger().verify()).toMatchObject({
+      eventCount: 3,
+      headDigest: third.eventDigest,
+      sequence: 3,
+    });
+  });
+
+  it("requires a distinct subject ref while allowing nullable context and empty domain sources", () => {
+    const resolver = artifactResolver(artifacts);
+    const ledger = createLedger({ artifactResolver: resolver });
+    const valid = domainEventInput(1, artifacts);
+
+    expect(() => ledger.appendDomainEvent(valid)).not.toThrow();
+    expect(resolver).toHaveBeenCalledTimes(1);
+
+    const duplicateSource = artifactRef(
+      "duplicate-domain-source",
+      artifacts,
+      "evidence",
+    );
+    const duplicateError = capturedError(() =>
+      ledger.appendDomainEvent(
+        domainEventInput(2, artifacts, {
+          sourceRefs: [duplicateSource, duplicateSource],
+        }),
+      ),
+    );
+    expect(duplicateError).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const digestAliasedSource = {
+      ...duplicateSource,
+      ref: "evidence://evolution/duplicate-domain-source-alias",
+    };
+    expect(
+      capturedError(() =>
+        ledger.appendDomainEvent(
+          domainEventInput(3, artifacts, {
+            sourceRefs: [duplicateSource, digestAliasedSource],
+          }),
+        ),
+      ),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const aliased = domainEventInput(4, artifacts);
+    expect(
+      capturedError(() =>
+        ledger.appendDomainEvent({
+          ...aliased,
+          sourceRefs: [
+            {
+              ...aliased.subjectRef,
+              ref: "evidence://evolution/domain-subject-alias",
+            },
+          ],
+        }),
+      ),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const missingSubject = domainEventInput(5, artifacts);
+    Reflect.deleteProperty(missingSubject, "subjectRef");
+    expect(
+      capturedError(() => ledger.appendDomainEvent(missingSubject)),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+    expect(ledger.verify()).toMatchObject({ eventCount: 1, sequence: 1 });
+  });
+
+  it("rejects proxy and accessor schema inputs without invoking external traps", () => {
+    let trapCount = 0;
+    const recordTrap = () => {
+      trapCount += 1;
+    };
+    const ledger = createLedger();
+
+    expect(
+      capturedError(() =>
+        ledger.appendDomainEvent(
+          trapProxy(domainEventInput(10, artifacts), recordTrap),
+        ),
+      ),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const getterInput = domainEventInput(11, artifacts);
+    Object.defineProperty(getterInput, "tenantId", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        trapCount += 1;
+        return "tenant-a";
+      },
+    });
+    expect(
+      capturedError(() => ledger.appendDomainEvent(getterInput)),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const proxiedSources = domainEventInput(12, artifacts, {
+      sourceRefs: trapProxy([], recordTrap),
+    });
+    expect(
+      capturedError(() => ledger.appendDomainEvent(proxiedSources)),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const unsafePrototypeSources = [];
+    let prototypeTrapArmed = false;
+    const unsafeArrayPrototype = new Proxy(Object.create(null), {
+      get: () => {
+        if (prototypeTrapArmed) recordTrap();
+        throw new Error("unexpected array prototype get trap");
+      },
+      getPrototypeOf: () => {
+        if (prototypeTrapArmed) {
+          recordTrap();
+          throw new Error("unexpected array prototype getPrototypeOf trap");
+        }
+        return null;
+      },
+      ownKeys: () => {
+        if (prototypeTrapArmed) recordTrap();
+        throw new Error("unexpected array prototype ownKeys trap");
+      },
+    });
+    Object.setPrototypeOf(unsafePrototypeSources, unsafeArrayPrototype);
+    prototypeTrapArmed = true;
+    expect(
+      capturedError(() =>
+        ledger.appendDomainEvent(
+          domainEventInput(13, artifacts, {
+            sourceRefs: unsafePrototypeSources,
+          }),
+        ),
+      ),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      commitState: "not-committed",
+    });
+
+    const resolverCases = [
+      (resolution) => trapProxy(resolution, recordTrap),
+      (resolution) => {
+        Object.defineProperty(resolution, "bytes", {
+          configurable: true,
+          enumerable: true,
+          get() {
+            trapCount += 1;
+            return Buffer.alloc(0);
+          },
+        });
+        return resolution;
+      },
+      (resolution) => ({
+        ...resolution,
+        bytes: trapProxy(resolution.bytes, recordTrap),
+      }),
+    ];
+    for (const [index, mutate] of resolverCases.entries()) {
+      const validResolver = artifactResolver(artifacts);
+      const invalidLedger = createLedger({
+        artifactResolver: (request) => mutate(validResolver(request)),
+        authorityRootDir: path.join(
+          tempRoot,
+          `descriptor-artifact-authority-${index}`,
+        ),
+        rootDir: path.join(tempRoot, `descriptor-artifact-events-${index}`),
+      });
+      expect(
+        capturedError(() =>
+          invalidLedger.appendDomainEvent(
+            domainEventInput(20 + index, artifacts),
+          ),
+        ),
+      ).toMatchObject({
+        code: "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
+        commitState: "not-committed",
+      });
+      expect(invalidLedger.read()).toEqual([]);
+    }
+
+    expect(trapCount).toBe(0);
+    expect(ledger.read()).toEqual([]);
+  });
+
+  it("detects canonical tamper in the independently signed domain-event variant", () => {
+    const ledger = createLedger();
+    ledger.append(eventInput(1, artifacts));
+    ledger.appendDomainEvent(domainEventInput(1, artifacts));
+    const segmentPath = path.join(
+      ledger.segmentDir,
+      regularFiles(ledger.segmentDir)[1],
+    );
+    const tampered = jsonFile(segmentPath);
+    tampered.reason = "CC_SKILL_MUTATION_SCOPE_DENIED";
+    writeCanonical(segmentPath, tampered);
+
+    expect(capturedError(() => createLedger()).code).toBe(
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+    );
+  });
+
+  it("fails closed when an authenticated segment is rewritten to an unknown future event schema", () => {
+    const ledger = createLedger();
+    ledger.appendDomainEvent(domainEventInput(30, artifacts));
+    const segmentPath = path.join(
+      ledger.segmentDir,
+      regularFiles(ledger.segmentDir)[0],
+    );
+    const future = jsonFile(segmentPath);
+    future.schema = "chainlesschain.evolution-domain-event/v999";
+    writeCanonical(segmentPath, future);
+
+    const error = capturedError(() => createLedger());
+    expect([
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+    ]).toContain(error.code);
+  });
+
+  it("rejects replaying legacy and domain signatures across their independent signing domains", () => {
+    const scenarios = [
+      {
+        appendFirst(ledger) {
+          ledger.append(eventInput(40, artifacts));
+        },
+        appendSecond(ledger) {
+          ledger.appendDomainEvent(domainEventInput(40, artifacts));
+        },
+      },
+      {
+        appendFirst(ledger) {
+          ledger.appendDomainEvent(domainEventInput(41, artifacts));
+        },
+        appendSecond(ledger) {
+          ledger.append(eventInput(41, artifacts));
+        },
+      },
+    ];
+    for (const [index, scenario] of scenarios.entries()) {
+      const rootDir = path.join(tempRoot, `cross-domain-events-${index}`);
+      const authorityRootDir = path.join(
+        tempRoot,
+        `cross-domain-authority-${index}`,
+      );
+      const ledger = createLedger({ rootDir, authorityRootDir });
+      scenario.appendFirst(ledger);
+      scenario.appendSecond(ledger);
+      const [firstName, secondName] = regularFiles(ledger.segmentDir);
+      const first = jsonFile(path.join(ledger.segmentDir, firstName));
+      const secondPath = path.join(ledger.segmentDir, secondName);
+      const replayed = jsonFile(secondPath);
+      replayed.eventDigest = first.eventDigest;
+      replayed.signature = first.signature;
+      writeCanonical(secondPath, replayed);
+
+      expect(
+        capturedError(() => createLedger({ rootDir, authorityRootDir })).code,
+      ).toBe("CC_EVOLUTION_LEDGER_CORRUPT");
+    }
+  });
+
   it("derives committedAt from the trusted clock instead of caller event time", () => {
     const ledger = createLedger();
     const receipt = ledger.append(
@@ -1289,6 +1668,31 @@ describe("EvolutionLedger v2", () => {
     expect(capturedError(() => ledger.verifyReceipt(tampered)).code).toBe(
       "CC_EVOLUTION_LEDGER_RECEIPT_INVALID",
     );
+  });
+
+  it("recovers and verifies receipts for domain events after reopen", () => {
+    const ledger = createLedger();
+    const committed = ledger.appendDomainEvent(domainEventInput(50, artifacts));
+    const reopened = createLedger();
+    const recovered = reopened.recoverReceipt({
+      eventId: committed.eventId,
+    });
+
+    expect(recovered).toMatchObject({
+      durabilityMechanism: "verified-existing",
+      eventDigest: committed.eventDigest,
+      eventId: committed.eventId,
+      sequence: 1,
+    });
+    expect(reopened.verifyReceipt(recovered)).toMatchObject({
+      authenticated: true,
+      durable: true,
+      event: {
+        eventId: committed.eventId,
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+      },
+      valid: true,
+    });
   });
 
   it("rejects stale-current, cross-ledger, and signature-header receipt replay", () => {
@@ -2020,6 +2424,51 @@ describe("EvolutionLedger v2", () => {
     });
   });
 
+  it("recovers a domain event after witness CAS commits but its response is lost", () => {
+    const rootDir = path.join(tempRoot, "domain-cas-loss-events");
+    const authorityRootDir = path.join(tempRoot, "domain-cas-loss-authority");
+    const witnessId = witnessIdFor(authorityRootDir);
+    const durableWitness = authorityWitness(witnessId, witnessStates);
+    const responseLossWitness = {
+      ...durableWitness,
+      compareAndSwap: (request) => {
+        durableWitness.compareAndSwap(request);
+        throw new Error("simulated domain witness CAS response loss");
+      },
+    };
+    const uncertain = createLedger({
+      rootDir,
+      authorityRootDir,
+      witness: responseLossWitness,
+    });
+    const error = capturedError(() =>
+      uncertain.appendDomainEvent(domainEventInput(60, artifacts)),
+    );
+    expect(error).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_COMMIT_UNKNOWN",
+      commitState: "unknown",
+      eventId: "domain-event-60",
+      witnessPublished: false,
+    });
+    expect(jsonFile(uncertain.headPath).sequence).toBe(0);
+
+    const reopened = createLedger({ rootDir, authorityRootDir });
+    expect(reopened.query({ eventId: "domain-event-60" })).toMatchObject({
+      authenticated: true,
+      durable: true,
+      event: {
+        eventId: "domain-event-60",
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        sequence: 1,
+      },
+    });
+    const recovered = reopened.recoverReceipt({ eventId: "domain-event-60" });
+    expect(reopened.verifyReceipt(recovered)).toMatchObject({
+      event: { eventId: "domain-event-60" },
+      valid: true,
+    });
+  });
+
   it("reports commit unknown when local HEAD publication fails after witness commit", () => {
     let failHeadRename = false;
     const failingFs = filesystemWith({
@@ -2045,6 +2494,47 @@ describe("EvolutionLedger v2", () => {
       authenticated: true,
       durable: true,
       event: { sequence: 1 },
+    });
+  });
+
+  it("recovers a domain event after local HEAD publication fails post-witness", () => {
+    let failHeadRename = false;
+    const failingFs = filesystemWith({
+      renameSync(source, target) {
+        if (failHeadRename && path.basename(target) === "head-v1.json") {
+          const error = new Error("simulated domain HEAD rename failure");
+          error.code = "EIO";
+          throw error;
+        }
+        return fs.renameSync(source, target);
+      },
+    });
+    const ledger = createLedger({ fsImpl: failingFs });
+    failHeadRename = true;
+    const error = capturedError(() =>
+      ledger.appendDomainEvent(domainEventInput(61, artifacts)),
+    );
+    expect(error).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_COMMIT_UNKNOWN",
+      commitState: "unknown",
+      eventId: "domain-event-61",
+      witnessPublished: true,
+    });
+
+    const reopened = createLedger();
+    expect(reopened.query({ eventId: "domain-event-61" })).toMatchObject({
+      authenticated: true,
+      durable: true,
+      event: {
+        eventId: "domain-event-61",
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        sequence: 1,
+      },
+    });
+    const recovered = reopened.recoverReceipt({ eventId: "domain-event-61" });
+    expect(reopened.verifyReceipt(recovered)).toMatchObject({
+      event: { eventId: "domain-event-61" },
+      valid: true,
     });
   });
 
@@ -2170,6 +2660,50 @@ describe("EvolutionLedger v2", () => {
       capturedError(() => ledger.append(eventInput(2, artifacts))).code,
     ).toBe("CC_EVOLUTION_LEDGER_CORRUPT");
   });
+
+  it("admits exactly one of two concurrent domain appends with the same eventId", async () => {
+    const witnessPath = path.join(tempRoot, "domain-conflict-witness.json");
+    const witnessId = witnessIdFor(authorityRoot);
+    const moduleUrl = new URL(
+      "../../src/lib/evolution/evolution-ledger.js",
+      import.meta.url,
+    ).href;
+    const outcomes = (
+      await Promise.all(
+        Array.from({ length: 2 }, () =>
+          runEvolutionLedgerWorker({
+            authorityRootDir: authorityRoot,
+            captureErrors: true,
+            domainEvent: true,
+            indices: [1],
+            moduleUrl,
+            rootDir: eventRoot,
+            witnessId,
+            witnessPath,
+          }),
+        ),
+      )
+    ).flat();
+
+    expect(outcomes.filter(({ ok }) => ok)).toHaveLength(1);
+    expect(outcomes.find(({ ok }) => !ok)).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_EVENT_CONFLICT",
+      commitState: "not-committed",
+      ok: false,
+    });
+    const ledger = createLedger({
+      lockTimeoutMs: 120_000,
+      witness: fileAuthorityWitness(witnessId, witnessPath),
+    });
+    expect(ledger.read()).toMatchObject([
+      {
+        eventId: "shared-domain-event-1",
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        sequence: 1,
+      },
+    ]);
+    expect(ledger.verify()).toMatchObject({ eventCount: 1, sequence: 1 });
+  }, 120_000);
 
   it("serializes one hundred concurrent fenced appends without loss, duplication, or head drift", async () => {
     const workerCount = 4;
