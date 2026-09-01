@@ -266,6 +266,8 @@ test("actionlint ShellCheck baseline is limited to exact legacy paths and rules"
 
 test("external evidence filesystem stages pin the Windows identity-safe Node runtime", () => {
   const workflows = new Map([
+    ["_cli-test.yml", 3],
+    ["cli-ci.yml", 3],
     ["graph-agent-real-journey.yml", 2],
     ["graph-kernel-production-cutover.yml", 2],
     ["graph-kernel-production-evidence.yml", 3],

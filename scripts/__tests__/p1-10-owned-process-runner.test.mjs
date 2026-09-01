@@ -18,7 +18,7 @@ const repoRoot = path.resolve(
 test("Windows outer deadline separately budgets supervisor startup and Job cleanup", () => {
   assert.equal(
     p110OwnedProcessRunnerTestOnly.outerTimeoutMs(5_000, "win32", 5_000),
-    50_000,
+    140_000,
   );
   assert.equal(
     p110OwnedProcessRunnerTestOnly.outerTimeoutMs(5_000, "linux", 5_000),

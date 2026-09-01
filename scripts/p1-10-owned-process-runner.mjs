@@ -3,7 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DEFAULT_TERMINATION_GRACE_MS = 5_000;
-const WINDOWS_SUPERVISOR_STARTUP_MS = 30_000;
+// Each supervisor starts a fresh Windows PowerShell process whose Add-Type
+// compilation can be cold and heavily contended on hosted runners. This only
+// delays the outer watchdog; the supervisor's target timeout remains exact.
+const WINDOWS_SUPERVISOR_STARTUP_MS = 120_000;
 const WINDOWS_JOB_CLEANUP_MS = 10_000;
 const POLL_MS = 25;
 
