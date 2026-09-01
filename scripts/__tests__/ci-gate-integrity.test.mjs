@@ -81,6 +81,66 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("required lint context runs checksum-pinned actionlint", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "code-quality.yml"),
+    "utf8",
+  );
+  const lintJobStart = workflow.indexOf("  lint-and-format:");
+  const lintJobEnd = workflow.indexOf("\n  test-database:", lintJobStart);
+
+  assert.notEqual(lintJobStart, -1, "missing lint-and-format job");
+  assert.notEqual(lintJobEnd, -1, "unable to isolate lint-and-format job");
+
+  const lintJob = workflow.slice(lintJobStart, lintJobEnd);
+  const actionlintStepStart = lintJob.indexOf(
+    "- name: Validate GitHub Actions workflows",
+  );
+  const actionlintStepEnd = lintJob.indexOf(
+    "- name: Setup Node.js",
+    actionlintStepStart,
+  );
+
+  assert.match(lintJob, /name: Lint & Format Check/);
+  assert.doesNotMatch(lintJob, /^\s+continue-on-error:\s*true\s*(?:#.*)?$/m);
+  assert.notEqual(actionlintStepStart, -1, "missing actionlint gate");
+  assert.notEqual(actionlintStepEnd, -1, "unable to isolate actionlint gate");
+
+  const actionlintStep = lintJob.slice(actionlintStepStart, actionlintStepEnd);
+  assert.match(actionlintStep, /ACTIONLINT_VERSION: "1\.7\.12"/);
+  assert.match(
+    actionlintStep,
+    /ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"/,
+  );
+  assert.match(
+    actionlintStep,
+    /releases\/download\/v\$\{ACTIONLINT_VERSION\}\/actionlint_\$\{ACTIONLINT_VERSION\}_linux_amd64\.tar\.gz/,
+  );
+  assert.match(
+    actionlintStep,
+    /curl --fail --location --proto '=https' --tlsv1\.2/,
+  );
+  assert.match(
+    actionlintStep,
+    /--retry 3 --retry-all-errors --connect-timeout 20 --max-time 120/,
+  );
+  assert.match(actionlintStep, /sha256sum --check --strict/);
+  assert.match(
+    actionlintStep,
+    /actionlint" -no-color -config-file \.github\/actionlint\.yaml/,
+  );
+  assert.doesNotMatch(actionlintStep, /continue-on-error|\|\|\s*true/);
+  assert.doesNotMatch(actionlintStep, /(?:^|\s)-ignore(?:\s|=)/m);
+
+  const checksumIndex = actionlintStep.indexOf("sha256sum --check --strict");
+  const extractIndex = actionlintStep.indexOf("tar -xzf");
+  const executeIndex = actionlintStep.indexOf(
+    'actionlint" -no-color -config-file',
+  );
+  assert.ok(checksumIndex < extractIndex, "checksum must precede extraction");
+  assert.ok(extractIndex < executeIndex, "extraction must precede execution");
+});
+
 test("root compatibility entry points fail loudly instead of passing", () => {
   for (const scriptName of [
     "cowork-ci-test-selector.js",
