@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { types as utilTypes } from "node:util";
 import {
   SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_RECEIPT_KINDS,
@@ -6,7 +7,6 @@ import {
   SKILL_MUTATION_TARGET_SCOPES,
   SkillMutationAuthority,
   buildSkillMutationConsumeContext,
-  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
   digestSkillMutationTransitionSubject,
   verifySkillMutationConsumptionReceipt,
@@ -55,115 +55,13 @@ function deepFreeze(value, seen = new WeakSet()) {
   return Object.freeze(value);
 }
 
-function normalizeJsonData(value, label, depth = 0, budget = { nodes: 0 }) {
-  budget.nodes += 1;
-  if (depth > 20 || budget.nodes > 4096) {
-    throw failure(
-      "SKILL_PROMOTION_INVALID",
-      `${label} exceeds the JSON structure budget`,
-    );
-  }
-  if (value === null || typeof value === "boolean") return value;
-  if (typeof value === "number") {
-    if (!Number.isSafeInteger(value)) {
-      throw failure(
-        "SKILL_PROMOTION_INVALID",
-        `${label} numbers must be safe integers`,
-      );
-    }
-    return value;
-  }
-  if (typeof value === "string") {
-    if (value.length > 16_384) {
-      throw failure(
-        "SKILL_PROMOTION_INVALID",
-        `${label} string exceeds the size limit`,
-      );
-    }
-    return value;
-  }
-  if (!value || typeof value !== "object") {
-    throw failure(
-      "SKILL_PROMOTION_INVALID",
-      `${label} must be JSON-compatible data`,
-    );
-  }
-  if (Array.isArray(value)) {
-    const ownKeys = Reflect.ownKeys(value);
-    if (
-      value.length > 4096 ||
-      ownKeys.some(
-        (key) =>
-          typeof key !== "string" ||
-          (key !== "length" && !/^(?:0|[1-9]\d*)$/u.test(key)),
-      ) ||
-      value.length !== ownKeys.length - 1
-    ) {
-      throw failure(
-        "SKILL_PROMOTION_INVALID",
-        `${label} must be a dense bounded array`,
-      );
-    }
-    const output = [];
-    for (let index = 0; index < value.length; index += 1) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
-        throw failure(
-          "SKILL_PROMOTION_INVALID",
-          `${label}[${index}] must be an own data field`,
-        );
-      }
-      output.push(
-        normalizeJsonData(
-          descriptor.value,
-          `${label}[${index}]`,
-          depth + 1,
-          budget,
-        ),
-      );
-    }
-    return Object.freeze(output);
-  }
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) {
-    throw failure("SKILL_PROMOTION_INVALID", `${label} must use plain objects`);
-  }
-  const keys = Reflect.ownKeys(value);
-  if (
-    keys.length > 2048 ||
-    keys.some((key) => typeof key !== "string" || key.length > 256)
-  ) {
-    throw failure(
-      "SKILL_PROMOTION_INVALID",
-      `${label} object keys are invalid`,
-    );
-  }
-  const output = Object.create(null);
-  for (const key of keys.sort()) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
-      throw failure(
-        "SKILL_PROMOTION_INVALID",
-        `${label}.${key} must be an enumerable own data field`,
-      );
-    }
-    Object.defineProperty(output, key, {
-      value: normalizeJsonData(
-        descriptor.value,
-        `${label}.${key}`,
-        depth + 1,
-        budget,
-      ),
-      enumerable: true,
-      configurable: false,
-      writable: false,
-    });
-  }
-  return Object.freeze(output);
-}
-
 function assertDataRecord(value, allowed, label, { required = allowed } = {}) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    utilTypes.isProxy(value)
+  ) {
     throw failure("SKILL_PROMOTION_INVALID", `${label} must be an object`);
   }
   const keys = Reflect.ownKeys(value);
@@ -339,6 +237,8 @@ export function consumeRegistryTransitionCapability(capability, registry) {
 }
 
 export class SkillPromotionController {
+  #tenantId;
+
   #registryIdentity;
 
   #readCandidate;
@@ -370,6 +270,16 @@ export class SkillPromotionController {
       );
     }
     if (
+      typeof candidateRegistry.tenantId !== "string" ||
+      typeof releaseRegistry.tenantId !== "string" ||
+      candidateRegistry.tenantId !== releaseRegistry.tenantId
+    ) {
+      throw failure(
+        "SKILL_PROMOTION_TENANT_MISMATCH",
+        "candidate and release registries must capture the same tenant",
+      );
+    }
+    if (
       !(authority instanceof SkillMutationAuthority) ||
       typeof authority.consume !== "function"
     ) {
@@ -379,6 +289,7 @@ export class SkillPromotionController {
       );
     }
 
+    this.#tenantId = candidateRegistry.tenantId;
     this.#registryIdentity = releaseRegistry;
     this.#readCandidate = candidateRegistry.read.bind(candidateRegistry);
     this.#readState = releaseRegistry.readState.bind(releaseRegistry);
@@ -396,12 +307,20 @@ export class SkillPromotionController {
   #currentContentDigest(state) {
     if (state.activeReleaseDigest === null) return EMPTY_SKILL_ACTIVE_DIGEST;
     const active = this.#readRelease(state.activeReleaseDigest);
+    if (active.tenantId !== this.#tenantId) {
+      throw failure(
+        "SKILL_PROMOTION_TENANT_MISMATCH",
+        "active release belongs to another tenant",
+      );
+    }
     return active.contentDigest;
   }
 
   #assertRequestCas(request, state, currentContentDigest) {
     if (
       request.skillName !== state.skillName ||
+      request.tenantId !== this.#tenantId ||
+      state.tenantId !== this.#tenantId ||
       request.expectedTargetRevision !== state.revision ||
       request.expectedTargetDigest !== currentContentDigest
     ) {
@@ -436,15 +355,11 @@ export class SkillPromotionController {
   async promote(input = {}) {
     assertDataRecord(
       input,
-      new Set(["authorization", "candidateId", "dependencyLock"]),
+      new Set(["authorization", "candidateId"]),
       "promotion input",
     );
-    const { candidateId, dependencyLock, authorization } = input;
+    const { candidateId, authorization } = input;
     assertDigest(candidateId, "candidateId");
-    const normalizedDependencyLock = normalizeJsonData(
-      dependencyLock,
-      "dependencyLock",
-    );
     const { capability, request } = validateAuthorizationInput(
       authorization,
       SKILL_MUTATION_OPERATIONS.PROMOTE,
@@ -452,7 +367,9 @@ export class SkillPromotionController {
     const candidate = this.#readCandidate(candidateId);
     if (
       candidate.candidateId !== candidateId ||
-      candidate.skillName !== request.skillName
+      candidate.skillName !== request.skillName ||
+      candidate.tenantId !== this.#tenantId ||
+      request.tenantId !== this.#tenantId
     ) {
       throw failure(
         "SKILL_PROMOTION_CANDIDATE_MISMATCH",
@@ -470,9 +387,7 @@ export class SkillPromotionController {
         "candidate parent is not the active content digest",
       );
     }
-    const dependencyLockDigest = digestSkillMutationDependencyLock(
-      normalizedDependencyLock,
-    );
+    const dependencyLockDigest = candidate.dependencyLockDigest;
     assertTransitionSubject(
       request,
       digestSkillMutationTransitionSubject({
@@ -493,7 +408,6 @@ export class SkillPromotionController {
       {
         authorityReceipt: consumptionReceipt,
         candidate,
-        dependencyLock: normalizedDependencyLock,
         dependencyLockDigest,
         expectedParentDigest: currentContentDigest,
         expectedRevision: state.revision,
@@ -505,6 +419,7 @@ export class SkillPromotionController {
         transitionSubjectDigest: request.transitionSubjectDigest,
         skillName: request.skillName,
         targetReleaseDigest: null,
+        tenantId: this.#tenantId,
       },
     );
     return this.#applyTransition(transitionCapability);
@@ -540,7 +455,11 @@ export class SkillPromotionController {
       );
     }
     const target = this.#readRelease(selected);
-    if (target.skillName !== request.skillName) {
+    if (
+      request.tenantId !== this.#tenantId ||
+      target.tenantId !== this.#tenantId ||
+      target.skillName !== request.skillName
+    ) {
       throw failure(
         "SKILL_PROMOTION_ROLLBACK_REJECTED",
         "rollback target belongs to another Skill",
@@ -566,7 +485,6 @@ export class SkillPromotionController {
       {
         authorityReceipt: consumptionReceipt,
         candidate: null,
-        dependencyLock: null,
         dependencyLockDigest: target.dependencyLockDigest,
         expectedParentDigest: currentContentDigest,
         expectedRevision: state.revision,
@@ -578,6 +496,7 @@ export class SkillPromotionController {
         transitionSubjectDigest: request.transitionSubjectDigest,
         skillName: request.skillName,
         targetReleaseDigest: selected,
+        tenantId: this.#tenantId,
       },
     );
     return this.#applyTransition(transitionCapability);

@@ -2,8 +2,9 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
-import { ensurePrivateDirectory } from "../secure-fs.js";
+import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { verifySkillCandidateDraft } from "./skill-candidate-registry.js";
 import {
   SKILL_MUTATION_OPERATIONS,
@@ -18,15 +19,19 @@ import {
 } from "./skill-mutation-authority.js";
 import { consumeRegistryTransitionCapability } from "./skill-promotion-controller.js";
 
-export const SKILL_RELEASE_SCHEMA = "chainlesschain.skill-release/v3";
+export const SKILL_RELEASE_SCHEMA = "chainlesschain.skill-release/v4";
 export const SKILL_RELEASE_STATE_SCHEMA =
-  "chainlesschain.skill-release-state/v2";
+  "chainlesschain.skill-release-state/v3";
 export const SKILL_RELEASE_RECEIPT_SCHEMA =
-  "chainlesschain.skill-release-transition-receipt/v3";
+  "chainlesschain.skill-release-transition-receipt/v4";
 export const SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA =
-  "chainlesschain.skill-release-ledger-projection/v2";
+  "chainlesschain.skill-release-ledger-projection/v3";
+export const SKILL_RELEASE_TENANT_MARKER_SCHEMA =
+  "chainlesschain.skill-release-tenant-marker/v1";
+export const SKILL_RELEASE_MIGRATION_REQUIRED_CODE =
+  "SKILL_RELEASE_MIGRATION_REQUIRED";
 
-const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
+const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
 const RELEASE_DOMAIN = `${SKILL_RELEASE_SCHEMA}\0`;
 const STATE_DOMAIN = `${SKILL_RELEASE_STATE_SCHEMA}\0`;
@@ -38,10 +43,27 @@ const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const SKILL_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
 const TOKEN_PATTERN = /^[a-f0-9]{32}$/u;
 const LEDGER_EPOCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
+const TENANT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
+const TENANT_KEY_PATTERN = /^[a-f0-9]{64}$/u;
 const TEMP_PATTERN = /^\.(?:release|state|write)-[A-Za-z0-9._-]+\.tmp$/u;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_TENANT_MARKER_BYTES = 4096;
+const MAX_CANONICAL_DEPTH = 32;
+const MAX_CANONICAL_NODES = 100_000;
+const MAX_CANONICAL_ARRAY_ENTRIES = 65_536;
+const MAX_CANONICAL_OBJECT_FIELDS = 4096;
 const MIN_LEASE_TTL_MS = 25;
 const DEFAULT_LEASE_TTL_MS = 30_000;
+const TENANT_KEY_DOMAIN = "chainlesschain.skill-release-tenant-key/v1";
+const TENANT_MARKER_DIGEST_DOMAIN =
+  "chainlesschain.skill-release-tenant-marker/v1\0";
+const TENANT_MARKER_COMPONENT = "skill-release-registry";
+const TENANT_MARKER_FILE = "_tenant.json";
+const LEGACY_RELEASE_SCHEMA = "chainlesschain.skill-release/v3";
+const LEGACY_STATE_SCHEMA = "chainlesschain.skill-release-state/v2";
+const LEGACY_JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
+const LEGACY_LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v1";
+const LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v2";
 
 export const EMPTY_SKILL_ACTIVE_DIGEST = sha256(
   Buffer.from(EMPTY_ACTIVE_DOMAIN, "utf8"),
@@ -71,6 +93,10 @@ function failure(code, message, details = {}) {
   return new SkillReleaseRegistryError(code, message, details);
 }
 
+function migrationRequired(message, details = {}) {
+  return failure(SKILL_RELEASE_MIGRATION_REQUIRED_CODE, message, details);
+}
+
 function isPlainObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
@@ -83,6 +109,9 @@ function assertExactKeys(
   label,
   code = "SKILL_RELEASE_INVALID",
 ) {
+  if (value && typeof value === "object" && utilTypes.isProxy(value)) {
+    throw failure(code, `${label} must not be a Proxy`);
+  }
   if (!isPlainObject(value)) throw failure(code, `${label} must be an object`);
   const keys = Reflect.ownKeys(value);
   if (
@@ -157,7 +186,7 @@ function skillName(value) {
 }
 
 function safeInteger(value, label, { minimum = 0 } = {}) {
-  if (!Number.isSafeInteger(value) || value < minimum) {
+  if (!Number.isSafeInteger(value) || Object.is(value, -0) || value < minimum) {
     throw failure("SKILL_RELEASE_INVALID", `${label} must be a safe integer`);
   }
   return value;
@@ -182,27 +211,129 @@ function normalizeJson(value, label, depth = 0) {
   if (value === null || typeof value === "boolean") return value;
   if (typeof value === "string") return boundedString(value, label, 16_384);
   if (typeof value === "number") return safeInteger(value, label);
+  if (value && typeof value === "object" && utilTypes.isProxy(value)) {
+    throw failure("SKILL_RELEASE_INVALID", `${label} must not be a Proxy`);
+  }
   if (Array.isArray(value)) {
-    if (value.length > 2_048) {
+    const keys = Reflect.ownKeys(value);
+    if (
+      value.length > 2_048 ||
+      keys.length !== value.length + 1 ||
+      keys.some(
+        (key) =>
+          typeof key !== "string" ||
+          (key !== "length" && !/^(?:0|[1-9]\d*)$/u.test(key)),
+      )
+    ) {
       throw failure("SKILL_RELEASE_INVALID", `${label} has too many entries`);
     }
-    return value.map((entry, index) =>
-      normalizeJson(entry, `${label}[${index}]`, depth + 1),
-    );
+    const output = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        throw failure(
+          "SKILL_RELEASE_INVALID",
+          `${label}[${index}] must be an own data field`,
+        );
+      }
+      output.push(
+        normalizeJson(descriptor.value, `${label}[${index}]`, depth + 1),
+      );
+    }
+    return output;
   }
   if (!isPlainObject(value)) {
     throw failure("SKILL_RELEASE_INVALID", `${label} must be canonical JSON`);
   }
-  const keys = Object.keys(value).sort();
-  if (keys.length > 2_048 || keys.some((key) => !key || key.length > 256)) {
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length > 2_048 ||
+    keys.some((key) => typeof key !== "string" || !key || key.length > 256)
+  ) {
     throw failure("SKILL_RELEASE_INVALID", `${label} has unsafe keys`);
   }
   return Object.fromEntries(
-    keys.map((key) => [
-      key,
-      normalizeJson(value[key], `${label}.${key}`, depth + 1),
-    ]),
+    keys.sort().map((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        throw failure(
+          "SKILL_RELEASE_INVALID",
+          `${label}.${key} must be an own data field`,
+        );
+      }
+      return [
+        key,
+        normalizeJson(descriptor.value, `${label}.${key}`, depth + 1),
+      ];
+    }),
   );
+}
+
+function assertBoundedCanonicalPreflight(value, code) {
+  const stack = [{ depth: 0, value }];
+  let nodes = 0;
+  let utf8Bytes = 0;
+  while (stack.length > 0) {
+    const current = stack.pop();
+    nodes += 1;
+    if (nodes > MAX_CANONICAL_NODES || current.depth > MAX_CANONICAL_DEPTH) {
+      throw failure(code, "artifact exceeds the canonical structure budget");
+    }
+    const currentValue = current.value;
+    if (typeof currentValue === "string") {
+      utf8Bytes += Buffer.byteLength(currentValue, "utf8");
+    } else if (typeof currentValue === "number") {
+      if (!Number.isFinite(currentValue) || Object.is(currentValue, -0)) {
+        throw failure(code, "artifact contains a non-canonical number");
+      }
+    } else if (currentValue !== null && typeof currentValue === "object") {
+      if (Array.isArray(currentValue)) {
+        if (currentValue.length > MAX_CANONICAL_ARRAY_ENTRIES) {
+          throw failure(code, "artifact array exceeds its entry budget");
+        }
+        for (let index = currentValue.length - 1; index >= 0; index -= 1) {
+          stack.push({
+            depth: current.depth + 1,
+            value: currentValue[index],
+          });
+        }
+      } else {
+        const keys = Object.keys(currentValue);
+        if (keys.length > MAX_CANONICAL_OBJECT_FIELDS) {
+          throw failure(code, "artifact object exceeds its field budget");
+        }
+        for (let index = keys.length - 1; index >= 0; index -= 1) {
+          const key = keys[index];
+          utf8Bytes += Buffer.byteLength(key, "utf8");
+          stack.push({
+            depth: current.depth + 1,
+            value: currentValue[key],
+          });
+        }
+      }
+    }
+    if (utf8Bytes > MAX_FILE_BYTES) {
+      throw failure(code, "artifact exceeds its canonical UTF-8 budget");
+    }
+  }
+}
+
+function tenantId(value, label = "tenantId") {
+  const normalized = boundedString(value, label, 256);
+  if (!TENANT_ID_PATTERN.test(normalized)) {
+    throw failure("SKILL_RELEASE_INVALID", `${label} is invalid`);
+  }
+  return normalized;
+}
+
+export function deriveSkillReleaseTenantKey(value) {
+  const normalized = tenantId(value);
+  return crypto
+    .createHash("sha256")
+    .update(TENANT_KEY_DOMAIN, "utf8")
+    .update("\0", "utf8")
+    .update(normalized, "utf8")
+    .digest("hex");
 }
 
 function normalizeReceiptDigests(value) {
@@ -276,8 +407,8 @@ function verifyRequestReceiptBinding(request, receipt) {
 
 const RELEASE_KEYS = new Set([
   "authorityReceiptDigest",
+  "candidate",
   "candidateId",
-  "content",
   "contentDigest",
   "dependencyLock",
   "dependencyLockDigest",
@@ -285,32 +416,40 @@ const RELEASE_KEYS = new Set([
   "parentDigest",
   "receiptDigests",
   "releaseDigest",
-  "requestedCapabilities",
+  "runtimeManifest",
+  "runtimeManifestDigest",
   "schema",
   "skillName",
+  "targetMatrix",
+  "targetMatrixRoot",
   "targetRuntimes",
+  "tenantId",
   "transitionSubjectDigest",
 ]);
+const BUILD_RELEASE_INPUT_KEYS = new Set([
+  "candidate",
+  "consumptionReceipt",
+  "mutationRequest",
+]);
 
-export function buildSkillRelease({
-  candidate,
-  dependencyLock,
-  mutationRequest,
-  consumptionReceipt,
-}) {
-  const verifiedCandidate = verifySkillCandidateDraft(candidate);
-  const request = verifySkillMutationRequest(mutationRequest);
-  const authorityReceipt =
-    verifySkillMutationConsumptionReceipt(consumptionReceipt);
+export function buildSkillRelease(input) {
+  assertExactKeys(input, BUILD_RELEASE_INPUT_KEYS, "release build input");
+  const verifiedCandidate = verifySkillCandidateDraft(input.candidate);
+  const request = verifySkillMutationRequest(input.mutationRequest);
+  const authorityReceipt = verifySkillMutationConsumptionReceipt(
+    input.consumptionReceipt,
+  );
   verifyRequestReceiptBinding(request, authorityReceipt);
   if (
     request.operation !== SKILL_MUTATION_OPERATIONS.PROMOTE ||
     authorityReceipt.operation !== SKILL_MUTATION_OPERATIONS.PROMOTE ||
-    request.skillName !== verifiedCandidate.skillName
+    request.skillName !== verifiedCandidate.skillName ||
+    request.tenantId !== verifiedCandidate.tenantId ||
+    authorityReceipt.tenantId !== verifiedCandidate.tenantId
   ) {
     throw failure(
       "SKILL_RELEASE_INVALID",
-      "release creation requires a promotion request for the candidate Skill",
+      "release creation requires a promotion request for the tenant-bound candidate Skill",
     );
   }
   const expectedParent =
@@ -323,11 +462,7 @@ export function buildSkillRelease({
       "candidate parent is not the authorized CAS target",
     );
   }
-  const normalizedLock = normalizeJson(dependencyLock, "dependencyLock");
-  if (!isPlainObject(normalizedLock)) {
-    throw failure("SKILL_RELEASE_INVALID", "dependencyLock must be an object");
-  }
-  const dependencyLockDigest = digestDependencyLock(normalizedLock);
+  const dependencyLockDigest = verifiedCandidate.dependencyLockDigest;
   const transitionSubjectDigest = digestSkillMutationTransitionSubject({
     tenantId: request.tenantId,
     skillName: verifiedCandidate.skillName,
@@ -349,18 +484,22 @@ export function buildSkillRelease({
   }
   const core = {
     authorityReceiptDigest: authorityReceipt.receiptDigest,
+    candidate: verifiedCandidate,
     candidateId: verifiedCandidate.candidateId,
-    content: verifiedCandidate.content,
     contentDigest: verifiedCandidate.contentDigest,
-    dependencyLock: normalizedLock,
+    dependencyLock: verifiedCandidate.dependencyLock,
     dependencyLockDigest,
     mutationRequestDigest: request.requestDigest,
     parentDigest: verifiedCandidate.parentDigest,
     receiptDigests: receiptDigestsFromRequest(request),
-    requestedCapabilities: [...verifiedCandidate.requestedCapabilities],
+    runtimeManifest: verifiedCandidate.runtimeManifest,
+    runtimeManifestDigest: verifiedCandidate.runtimeManifestDigest,
     schema: SKILL_RELEASE_SCHEMA,
     skillName: verifiedCandidate.skillName,
+    targetMatrix: verifiedCandidate.targetMatrix,
+    targetMatrixRoot: verifiedCandidate.targetMatrixRoot,
     targetRuntimes: [...verifiedCandidate.targetRuntimes],
+    tenantId: verifiedCandidate.tenantId,
     transitionSubjectDigest,
   };
   return deepFreeze({
@@ -370,23 +509,29 @@ export function buildSkillRelease({
 }
 
 export function verifySkillRelease(value) {
-  assertExactKeys(value, RELEASE_KEYS, "release");
   if (
-    value.schema !== SKILL_RELEASE_SCHEMA ||
-    typeof value.content !== "string"
+    value &&
+    typeof value === "object" &&
+    !utilTypes.isProxy(value) &&
+    Object.getOwnPropertyDescriptor(value, "schema")?.value ===
+      LEGACY_RELEASE_SCHEMA
   ) {
-    throw failure(
-      "SKILL_RELEASE_INVALID",
-      "release schema or content is invalid",
+    throw migrationRequired(
+      "legacy SkillRelease v3 requires explicit tenant-scoped migration",
     );
   }
+  assertExactKeys(value, RELEASE_KEYS, "release");
+  if (value.schema !== SKILL_RELEASE_SCHEMA) {
+    throw failure("SKILL_RELEASE_INVALID", "release schema is invalid");
+  }
+  const candidate = verifySkillCandidateDraft(value.candidate);
   const core = {
     authorityReceiptDigest: digest(
       value.authorityReceiptDigest,
       "authorityReceiptDigest",
     ),
+    candidate,
     candidateId: digest(value.candidateId, "candidateId"),
-    content: value.content,
     contentDigest: digest(value.contentDigest, "contentDigest"),
     dependencyLock: normalizeJson(value.dependencyLock, "dependencyLock"),
     dependencyLockDigest: digest(
@@ -401,23 +546,40 @@ export function verifySkillRelease(value) {
       nullable: true,
     }),
     receiptDigests: normalizeReceiptDigests(value.receiptDigests),
-    requestedCapabilities: normalizeJson(
-      value.requestedCapabilities,
-      "requestedCapabilities",
+    runtimeManifest: normalizeJson(value.runtimeManifest, "runtimeManifest"),
+    runtimeManifestDigest: digest(
+      value.runtimeManifestDigest,
+      "runtimeManifestDigest",
     ),
     schema: SKILL_RELEASE_SCHEMA,
     skillName: skillName(value.skillName),
+    targetMatrix: normalizeJson(value.targetMatrix, "targetMatrix"),
+    targetMatrixRoot: digest(value.targetMatrixRoot, "targetMatrixRoot"),
     targetRuntimes: normalizeJson(value.targetRuntimes, "targetRuntimes"),
+    tenantId: tenantId(value.tenantId),
     transitionSubjectDigest: digest(
       value.transitionSubjectDigest,
       "transitionSubjectDigest",
     ),
   };
   if (
-    !Array.isArray(core.requestedCapabilities) ||
     !Array.isArray(core.targetRuntimes) ||
-    sha256(Buffer.from(core.content, "utf8")) !== core.contentDigest ||
-    digestDependencyLock(core.dependencyLock) !== core.dependencyLockDigest ||
+    core.tenantId !== candidate.tenantId ||
+    core.skillName !== candidate.skillName ||
+    core.candidateId !== candidate.candidateId ||
+    core.parentDigest !== candidate.parentDigest ||
+    core.contentDigest !== candidate.contentDigest ||
+    core.dependencyLockDigest !== candidate.dependencyLockDigest ||
+    core.runtimeManifestDigest !== candidate.runtimeManifestDigest ||
+    core.targetMatrixRoot !== candidate.targetMatrixRoot ||
+    canonicalJson(core.dependencyLock) !==
+      canonicalJson(candidate.dependencyLock) ||
+    canonicalJson(core.runtimeManifest) !==
+      canonicalJson(candidate.runtimeManifest) ||
+    canonicalJson(core.targetMatrix) !==
+      canonicalJson(candidate.targetMatrix) ||
+    canonicalJson(core.targetRuntimes) !==
+      canonicalJson(candidate.targetRuntimes) ||
     digest(value.releaseDigest, "releaseDigest") !==
       domainDigest(RELEASE_DOMAIN, core)
   ) {
@@ -439,6 +601,7 @@ const STATE_KEYS = new Set([
   "schema",
   "skillName",
   "stateDigest",
+  "tenantId",
   "transactionId",
 ]);
 
@@ -452,12 +615,13 @@ function buildState(input) {
     revision: input.revision,
     schema: SKILL_RELEASE_STATE_SCHEMA,
     skillName: input.skillName,
+    tenantId: input.tenantId,
     transactionId: input.transactionId,
   };
   return deepFreeze({ ...core, stateDigest: domainDigest(STATE_DOMAIN, core) });
 }
 
-function initialState(name) {
+function initialState(name, ownerTenantId) {
   return buildState({
     activeReleaseDigest: null,
     authorityReceiptDigest: null,
@@ -466,11 +630,23 @@ function initialState(name) {
     lastKnownGoodReleaseDigest: null,
     revision: 0,
     skillName: name,
+    tenantId: ownerTenantId,
     transactionId: null,
   });
 }
 
 function verifyState(value) {
+  if (
+    value &&
+    typeof value === "object" &&
+    !utilTypes.isProxy(value) &&
+    Object.getOwnPropertyDescriptor(value, "schema")?.value ===
+      LEGACY_STATE_SCHEMA
+  ) {
+    throw migrationRequired(
+      "legacy Skill release state requires explicit tenant-scoped migration",
+    );
+  }
   assertExactKeys(
     value,
     STATE_KEYS,
@@ -500,6 +676,7 @@ function verifyState(value) {
     ),
     revision: safeInteger(value.revision, "revision", { minimum: 1 }),
     skillName: skillName(value.skillName),
+    tenantId: tenantId(value.tenantId, "state tenantId"),
     transactionId: digest(value.transactionId, "transactionId"),
   });
   if (normalized.stateDigest !== value.stateDigest) {
@@ -664,12 +841,207 @@ function fsyncDirectory(fsImpl, directory) {
   }
 }
 
+const TENANT_MARKER_KEYS = new Set([
+  "component",
+  "markerDigest",
+  "schema",
+  "tenantId",
+  "tenantKey",
+]);
+const REGISTRY_OPTION_KEYS = new Set([
+  "crashHook",
+  "fsImpl",
+  "leaseTtlMs",
+  "now",
+  "randomToken",
+  "rootDir",
+  "secure",
+  "tenantId",
+  "transactionLedger",
+]);
+
+function buildTenantMarker(ownerTenantId, tenantKey) {
+  const core = {
+    schema: SKILL_RELEASE_TENANT_MARKER_SCHEMA,
+    component: TENANT_MARKER_COMPONENT,
+    tenantId: ownerTenantId,
+    tenantKey,
+  };
+  return deepFreeze({
+    ...core,
+    markerDigest: domainDigest(TENANT_MARKER_DIGEST_DOMAIN, core),
+  });
+}
+
+function serializeTenantMarker(marker) {
+  const bytes = Buffer.from(`${canonicalJson(marker)}\n`, "utf8");
+  if (bytes.length < 1 || bytes.length > MAX_TENANT_MARKER_BYTES) {
+    throw failure(
+      "SKILL_RELEASE_STORE_UNSAFE",
+      "release tenant marker exceeds its size limit",
+    );
+  }
+  return bytes;
+}
+
+function verifyTenantMarker(value, expectedTenantId, expectedTenantKey) {
+  assertExactKeys(
+    value,
+    TENANT_MARKER_KEYS,
+    "release tenant marker",
+    "SKILL_RELEASE_STORE_UNSAFE",
+  );
+  const normalizedTenantId = tenantId(value.tenantId, "marker tenantId");
+  if (
+    value.schema !== SKILL_RELEASE_TENANT_MARKER_SCHEMA ||
+    value.component !== TENANT_MARKER_COMPONENT ||
+    typeof value.tenantKey !== "string" ||
+    !TENANT_KEY_PATTERN.test(value.tenantKey)
+  ) {
+    throw failure(
+      "SKILL_RELEASE_STORE_UNSAFE",
+      "release tenant marker contract is invalid",
+    );
+  }
+  const normalized = buildTenantMarker(normalizedTenantId, value.tenantKey);
+  if (
+    value.markerDigest !== normalized.markerDigest ||
+    normalizedTenantId !== expectedTenantId ||
+    value.tenantKey !== expectedTenantKey ||
+    value.tenantKey !== deriveSkillReleaseTenantKey(normalizedTenantId)
+  ) {
+    throw failure(
+      "SKILL_RELEASE_STORE_UNSAFE",
+      "release tenant marker belongs to another tenant or root",
+    );
+  }
+  return normalized;
+}
+
+function lstatOrNull(fsImpl, target) {
+  try {
+    return fsImpl.lstatSync(target);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function readBoundedSingleLinkFile(fsImpl, filePath, maximum, code, label) {
+  let descriptor = null;
+  try {
+    const before = fsImpl.lstatSync(filePath);
+    if (
+      !before.isFile() ||
+      before.isSymbolicLink() ||
+      Number(before.nlink) !== 1 ||
+      before.size < 1 ||
+      before.size > maximum ||
+      !samePath(realpath(fsImpl, filePath), filePath)
+    ) {
+      throw failure(code, `${label} must be a bounded single-link file`);
+    }
+    descriptor = fsImpl.openSync(
+      filePath,
+      fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
+    );
+    const opened = fsImpl.fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      Number(opened.nlink) !== 1 ||
+      identity(opened) !== identity(before) ||
+      opened.size !== before.size
+    ) {
+      throw failure(code, `${label} changed while opening`);
+    }
+    const bytes = fsImpl.readFileSync(descriptor);
+    const after = fsImpl.fstatSync(descriptor);
+    const afterPath = fsImpl.lstatSync(filePath);
+    if (
+      Number(after.nlink) !== 1 ||
+      identity(after) !== identity(opened) ||
+      after.size !== opened.size ||
+      bytes.length !== opened.size ||
+      !afterPath.isFile() ||
+      afterPath.isSymbolicLink() ||
+      Number(afterPath.nlink) !== 1 ||
+      identity(afterPath) !== identity(opened) ||
+      !samePath(realpath(fsImpl, filePath), filePath)
+    ) {
+      throw failure(code, `${label} changed while reading`);
+    }
+    return { bytes, identity: identity(opened) };
+  } finally {
+    if (descriptor !== null) fsImpl.closeSync(descriptor);
+  }
+}
+
+function normalizeRegistryOptions(options) {
+  if (
+    !options ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    utilTypes.isProxy(options) ||
+    !isPlainObject(options)
+  ) {
+    throw failure(
+      "SKILL_RELEASE_INVALID",
+      "release registry options must be an explicit object",
+    );
+  }
+  const keys = Reflect.ownKeys(options);
+  if (
+    !Object.hasOwn(options, "tenantId") ||
+    keys.some(
+      (key) => typeof key !== "string" || !REGISTRY_OPTION_KEYS.has(key),
+    )
+  ) {
+    throw failure(
+      "SKILL_RELEASE_INVALID",
+      "release registry options must include tenantId and only supported fields",
+    );
+  }
+  const data = {};
+  for (const key of keys) {
+    const descriptor = Object.getOwnPropertyDescriptor(options, key);
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw failure(
+        "SKILL_RELEASE_INVALID",
+        `release registry options.${String(key)} must be an own data field`,
+      );
+    }
+    data[key] = descriptor.value;
+  }
+  return {
+    crashHook: data.crashHook ?? null,
+    fsImpl: data.fsImpl ?? fs,
+    leaseTtlMs: data.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS,
+    now: data.now ?? (() => new Date()),
+    randomToken:
+      data.randomToken ?? (() => crypto.randomBytes(16).toString("hex")),
+    rootDir:
+      data.rootDir ??
+      path.join(getHomeDir(), "evolution", "registry", "releases"),
+    secure: data.secure ?? true,
+    tenantId: tenantId(data.tenantId),
+    transactionLedger: data.transactionLedger,
+  };
+}
+
 export class SkillReleaseRegistry {
   #fs;
 
   #directories;
 
+  #boundaries;
+
   #rootIdentity;
+
+  #markerPath;
+
+  #markerIdentity;
+
+  #secure;
 
   #randomToken;
 
@@ -687,16 +1059,18 @@ export class SkillReleaseRegistry {
 
   #pins = new WeakMap();
 
-  constructor({
-    rootDir = path.join(getHomeDir(), "evolution", "registry", "releases"),
-    secure = true,
-    fsImpl = fs,
-    randomToken = () => crypto.randomBytes(16).toString("hex"),
-    now = () => new Date(),
-    leaseTtlMs = DEFAULT_LEASE_TTL_MS,
-    crashHook = null,
-    transactionLedger,
-  } = {}) {
+  constructor(options) {
+    const {
+      crashHook,
+      fsImpl,
+      leaseTtlMs,
+      now,
+      randomToken,
+      rootDir,
+      secure,
+      tenantId: ownerTenantId,
+      transactionLedger,
+    } = normalizeRegistryOptions(options);
     if (
       !transactionLedger ||
       typeof transactionLedger.prepare !== "function" ||
@@ -709,8 +1083,14 @@ export class SkillReleaseRegistry {
       );
     }
     if (
+      (secure !== true && secure !== false) ||
+      !fsImpl ||
+      typeof fsImpl !== "object" ||
+      utilTypes.isProxy(fsImpl) ||
       typeof randomToken !== "function" ||
+      utilTypes.isProxy(randomToken) ||
       typeof now !== "function" ||
+      utilTypes.isProxy(now) ||
       !Number.isSafeInteger(leaseTtlMs) ||
       leaseTtlMs < MIN_LEASE_TTL_MS ||
       (crashHook !== null && typeof crashHook !== "function")
@@ -719,6 +1099,7 @@ export class SkillReleaseRegistry {
     }
 
     this.#fs = fsImpl;
+    this.#secure = secure;
     this.#randomToken = randomToken;
     this.#now = now;
     this.#leaseTtlMs = leaseTtlMs;
@@ -728,24 +1109,28 @@ export class SkillReleaseRegistry {
     this.#ledgerQuery = transactionLedger.query.bind(transactionLedger);
     Object.freeze(transactionLedger);
 
-    const requestedRoot = path.resolve(rootDir);
+    this.tenantId = ownerTenantId;
+    this.tenantKey = deriveSkillReleaseTenantKey(ownerTenantId);
+    const requestedBase = path.resolve(rootDir);
     try {
-      if (secure !== false) {
-        ensurePrivateDirectory(requestedRoot, {
-          applyWindowsAcl: true,
-          failIfUnavailable: true,
-        });
-      } else {
-        this.#fs.mkdirSync(requestedRoot, { recursive: true, mode: 0o700 });
-      }
-      const rootStat = this.#fs.lstatSync(requestedRoot);
-      if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
-        throw failure(
-          "SKILL_RELEASE_STORE_UNSAFE",
-          "registry root must be a non-symlink directory",
-        );
-      }
-      this.rootDir = realpath(this.#fs, requestedRoot);
+      const base = this.#initializeDirectory(requestedBase, {
+        recursive: true,
+      });
+      this.baseDir = base.path;
+      this.#assertNoLegacyBaseLayout();
+      const tenants = this.#initializeDirectory(
+        path.join(this.baseDir, "tenants"),
+        { parent: base },
+      );
+      const tenantRoot = this.#initializeDirectory(
+        path.join(tenants.path, this.tenantKey),
+        { parent: tenants },
+      );
+      this.rootDir = tenantRoot.path;
+      this.#boundaries = deepFreeze({ base, tenantRoot, tenants });
+      this.#rootIdentity = tenantRoot.identity;
+      this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+      this.#initializeTenantMarker();
       this.#directories = {};
       for (const name of [
         "artifacts",
@@ -755,22 +1140,13 @@ export class SkillReleaseRegistry {
         "staging",
       ]) {
         const directory = path.join(this.rootDir, name);
-        this.#fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
-        const stat = this.#fs.lstatSync(directory);
-        if (!stat.isDirectory() || stat.isSymbolicLink()) {
-          throw failure(
-            "SKILL_RELEASE_STORE_UNSAFE",
-            `${name} directory is unsafe`,
-          );
-        }
-        this.#directories[name] = deepFreeze({
-          path: realpath(this.#fs, directory),
-          identity: identity(stat),
+        this.#directories[name] = this.#initializeDirectory(directory, {
+          parent: tenantRoot,
         });
       }
       this.#directories = deepFreeze(this.#directories);
-      this.#rootIdentity = identity(this.#fs.lstatSync(this.rootDir));
       this.#assertBoundary();
+      this.#assertNoLegacyTenantSchemas();
       this.#recoverAll();
       this.#cleanupDebris();
     } catch (cause) {
@@ -784,6 +1160,209 @@ export class SkillReleaseRegistry {
     Object.freeze(this);
   }
 
+  #initializeDirectory(
+    requestedPath,
+    { parent = null, recursive = false } = {},
+  ) {
+    const before = lstatOrNull(this.#fs, requestedPath);
+    if (before && (!before.isDirectory() || before.isSymbolicLink())) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release registry directory path is unsafe",
+      );
+    }
+    if (!before) {
+      this.#fs.mkdirSync(requestedPath, { recursive, mode: 0o700 });
+    }
+    let stat = this.#fs.lstatSync(requestedPath);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release registry directory must be non-symlink",
+      );
+    }
+    const canonical = realpath(this.#fs, requestedPath);
+    if (
+      !samePath(canonical, requestedPath) ||
+      (parent &&
+        (!isContained(parent.path, canonical) ||
+          !samePath(path.dirname(canonical), parent.path)))
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release registry directory escaped its canonical parent",
+      );
+    }
+    const capturedIdentity = identity(stat);
+    if (this.#secure) {
+      ensurePrivateDirectory(canonical, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
+      stat = this.#fs.lstatSync(canonical);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        identity(stat) !== capturedIdentity ||
+        !samePath(realpath(this.#fs, canonical), canonical)
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release registry directory changed during permission hardening",
+        );
+      }
+    }
+    return deepFreeze({ path: canonical, identity: capturedIdentity });
+  }
+
+  #assertNoLegacyBaseLayout() {
+    for (const entry of this.#fs.readdirSync(this.baseDir)) {
+      if (entry !== "tenants") {
+        throw migrationRequired(
+          "legacy unscoped SkillRelease storage requires explicit migration",
+          { path: path.join(this.baseDir, entry) },
+        );
+      }
+    }
+  }
+
+  #initializeTenantMarker() {
+    const existing = lstatOrNull(this.#fs, this.#markerPath);
+    if (existing) {
+      const verified = this.#readAndVerifyTenantMarker();
+      this.#markerIdentity = verified.identity;
+      return;
+    }
+    if (this.#fs.readdirSync(this.rootDir).length !== 0) {
+      throw migrationRequired(
+        "unmarked or mixed-schema release tenant storage requires explicit migration",
+      );
+    }
+    const marker = buildTenantMarker(this.tenantId, this.tenantKey);
+    const bytes = serializeTenantMarker(marker);
+    const temporaryPath = path.join(
+      this.rootDir,
+      `.tenant-${process.pid}-${this.#token("SKILL_RELEASE_STORE_UNSAFE")}.tmp`,
+    );
+    let descriptor = null;
+    let temporaryExists = false;
+    try {
+      descriptor = this.#fs.openSync(temporaryPath, "wx", 0o600);
+      temporaryExists = true;
+      this.#fs.writeFileSync(descriptor, bytes);
+      this.#fs.fsyncSync(descriptor);
+      const written = this.#fs.fstatSync(descriptor);
+      if (
+        !written.isFile() ||
+        Number(written.nlink) !== 1 ||
+        written.size !== bytes.length
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release tenant marker temporary file is unsafe",
+        );
+      }
+      const writtenIdentity = identity(written);
+      this.#fs.closeSync(descriptor);
+      descriptor = null;
+      if (this.#secure) {
+        ensurePrivateFile(temporaryPath, {
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+        });
+      }
+      const staged = this.#fs.lstatSync(temporaryPath);
+      if (
+        !staged.isFile() ||
+        staged.isSymbolicLink() ||
+        Number(staged.nlink) !== 1 ||
+        staged.size !== bytes.length ||
+        identity(staged) !== writtenIdentity ||
+        !samePath(realpath(this.#fs, temporaryPath), temporaryPath)
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release tenant marker changed before publication",
+        );
+      }
+      try {
+        this.#fs.linkSync(temporaryPath, this.#markerPath);
+      } catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+        this.#fs.unlinkSync(temporaryPath);
+        temporaryExists = false;
+        const verified = this.#readAndVerifyTenantMarker();
+        this.#markerIdentity = verified.identity;
+        return;
+      }
+      const linked = this.#fs.lstatSync(this.#markerPath);
+      if (
+        !linked.isFile() ||
+        linked.isSymbolicLink() ||
+        Number(linked.nlink) !== 2 ||
+        identity(linked) !== writtenIdentity
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release tenant marker publication was unsafe",
+        );
+      }
+      this.#fs.unlinkSync(temporaryPath);
+      temporaryExists = false;
+      fsyncDirectory(this.#fs, this.rootDir);
+      const verified = this.#readAndVerifyTenantMarker();
+      this.#markerIdentity = verified.identity;
+    } finally {
+      if (descriptor !== null) {
+        try {
+          this.#fs.closeSync(descriptor);
+        } catch {
+          // The marker was never published through the authoritative path.
+        }
+      }
+      if (temporaryExists) {
+        try {
+          this.#fs.unlinkSync(temporaryPath);
+        } catch {
+          // The next boundary verification will fail closed on linked debris.
+        }
+      }
+    }
+  }
+
+  #readAndVerifyTenantMarker() {
+    try {
+      const stored = readBoundedSingleLinkFile(
+        this.#fs,
+        this.#markerPath,
+        MAX_TENANT_MARKER_BYTES,
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release tenant marker",
+      );
+      const marker = verifyTenantMarker(
+        JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(stored.bytes),
+        ),
+        this.tenantId,
+        this.tenantKey,
+      );
+      if (!serializeTenantMarker(marker).equals(stored.bytes)) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release tenant marker is not canonical JSON",
+        );
+      }
+      return { identity: stored.identity, marker };
+    } catch (cause) {
+      if (cause instanceof SkillReleaseRegistryError) throw cause;
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release tenant marker could not be verified",
+        { cause },
+      );
+    }
+  }
+
   #clock() {
     const value = this.#now();
     const date =
@@ -794,37 +1373,123 @@ export class SkillReleaseRegistry {
     return date;
   }
 
-  #token() {
+  #token(code = "SKILL_RELEASE_WRITE_FAILED") {
     const value = String(this.#randomToken());
     if (!TOKEN_PATTERN.test(value)) {
-      throw failure("SKILL_RELEASE_WRITE_FAILED", "random token is invalid");
+      throw failure(code, "random token is invalid");
     }
     return value;
   }
 
   #assertBoundary() {
-    const rootStat = this.#fs.lstatSync(this.rootDir);
-    if (
-      !rootStat.isDirectory() ||
-      rootStat.isSymbolicLink() ||
-      identity(rootStat) !== this.#rootIdentity ||
-      !samePath(realpath(this.#fs, this.rootDir), this.rootDir)
-    ) {
-      throw failure("SKILL_RELEASE_STORE_UNSAFE", "registry root changed");
-    }
-    for (const entry of Object.values(this.#directories)) {
+    for (const entry of [
+      ...Object.values(this.#boundaries),
+      ...Object.values(this.#directories),
+    ]) {
       const stat = this.#fs.lstatSync(entry.path);
       if (
         !stat.isDirectory() ||
         stat.isSymbolicLink() ||
         identity(stat) !== entry.identity ||
         !samePath(realpath(this.#fs, entry.path), entry.path) ||
-        !isContained(this.rootDir, entry.path)
+        (this.#directories &&
+          Object.values(this.#directories).includes(entry) &&
+          (!isContained(this.rootDir, entry.path) ||
+            !samePath(path.dirname(entry.path), this.rootDir)))
       ) {
         throw failure(
           "SKILL_RELEASE_STORE_UNSAFE",
           "registry directory changed",
         );
+      }
+    }
+    if (
+      !samePath(this.#boundaries.base.path, this.baseDir) ||
+      !samePath(this.#boundaries.tenantRoot.path, this.rootDir) ||
+      identity(this.#fs.lstatSync(this.rootDir)) !== this.#rootIdentity ||
+      !samePath(path.dirname(this.#boundaries.tenants.path), this.baseDir) ||
+      !samePath(path.dirname(this.rootDir), this.#boundaries.tenants.path) ||
+      !isContained(this.baseDir, this.rootDir)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release registry directory topology changed",
+      );
+    }
+    const expectedRootEntries = new Set([
+      TENANT_MARKER_FILE,
+      ...Object.keys(this.#directories),
+    ]);
+    if (
+      this.#fs
+        .readdirSync(this.rootDir)
+        .some((name) => !expectedRootEntries.has(name))
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release tenant root contains an unexpected entry",
+      );
+    }
+    const verifiedMarker = this.#readAndVerifyTenantMarker();
+    if (
+      this.#markerIdentity !== undefined &&
+      verifiedMarker.identity !== this.#markerIdentity
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release tenant marker identity changed",
+      );
+    }
+    for (const entry of [
+      ...Object.values(this.#boundaries),
+      ...Object.values(this.#directories),
+    ]) {
+      const stat = this.#fs.lstatSync(entry.path);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        identity(stat) !== entry.identity ||
+        !samePath(realpath(this.#fs, entry.path), entry.path)
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          "release registry boundary changed during marker verification",
+        );
+      }
+    }
+  }
+
+  #assertNoLegacyTenantSchemas() {
+    const expectedRootEntries = new Set([
+      TENANT_MARKER_FILE,
+      ...Object.keys(this.#directories),
+    ]);
+    for (const name of this.#fs.readdirSync(this.rootDir)) {
+      if (!expectedRootEntries.has(name)) {
+        throw migrationRequired(
+          "mixed release tenant layout requires explicit migration",
+          { path: path.join(this.rootDir, name) },
+        );
+      }
+    }
+    const areas = [
+      ["artifacts", LEGACY_RELEASE_SCHEMA],
+      ["active", LEGACY_STATE_SCHEMA],
+      ["journals", LEGACY_JOURNAL_SCHEMA],
+    ];
+    for (const [area, legacySchema] of areas) {
+      for (const name of this.#fs.readdirSync(this.#directories[area].path)) {
+        if (!name.endsWith(".json")) continue;
+        const value = this.#readJson(
+          this.#path(area, name),
+          "SKILL_RELEASE_STORE_UNSAFE",
+        );
+        if (value?.schema === legacySchema) {
+          throw migrationRequired(
+            "mixed legacy SkillRelease tenant storage requires explicit migration",
+            { path: this.#path(area, name), schema: legacySchema },
+          );
+        }
       }
     }
   }
@@ -876,37 +1541,16 @@ export class SkillReleaseRegistry {
 
   #readBytes(filePath, code) {
     this.#assertBoundary();
-    let descriptor = null;
     try {
-      const before = this.#fs.lstatSync(filePath);
-      if (
-        !before.isFile() ||
-        before.isSymbolicLink() ||
-        before.size < 1 ||
-        before.size > MAX_FILE_BYTES
-      ) {
-        throw failure(code, "artifact must be a bounded non-symlink file");
-      }
-      descriptor = this.#fs.openSync(
+      return readBoundedSingleLinkFile(
+        this.#fs,
         filePath,
-        this.#fs.constants.O_RDONLY | (this.#fs.constants.O_NOFOLLOW || 0),
-      );
-      const opened = this.#fs.fstatSync(descriptor);
-      if (!opened.isFile() || identity(opened) !== identity(before)) {
-        throw failure(code, "artifact changed while opening");
-      }
-      const bytes = this.#fs.readFileSync(descriptor);
-      const after = this.#fs.fstatSync(descriptor);
-      if (
-        identity(after) !== identity(opened) ||
-        after.size !== opened.size ||
-        bytes.length !== opened.size
-      ) {
-        throw failure(code, "artifact changed while reading");
-      }
-      return bytes;
+        MAX_FILE_BYTES,
+        code,
+        "release registry artifact",
+      ).bytes;
     } finally {
-      if (descriptor !== null) this.#fs.closeSync(descriptor);
+      this.#assertBoundary();
     }
   }
 
@@ -919,6 +1563,7 @@ export class SkillReleaseRegistry {
     } catch (cause) {
       throw failure(code, "artifact is not UTF-8 JSON", { cause });
     }
+    assertBoundedCanonicalPreflight(parsed, code);
     if (!serialize(parsed).equals(bytes)) {
       throw failure(code, "artifact is not canonical JSON");
     }
@@ -936,26 +1581,57 @@ export class SkillReleaseRegistry {
     const filePath = this.#path("staging", fileName);
     const bytes = serialize(value);
     let descriptor = null;
+    let writtenIdentity = null;
     try {
+      this.#assertBoundary();
       descriptor = this.#fs.openSync(filePath, "wx", 0o600);
       this.#fs.writeFileSync(descriptor, bytes);
       this.#fs.fsyncSync(descriptor);
-      if (this.#fs.fstatSync(descriptor).size !== bytes.length) {
+      const written = this.#fs.fstatSync(descriptor);
+      if (
+        !written.isFile() ||
+        Number(written.nlink) !== 1 ||
+        written.size !== bytes.length
+      ) {
         throw failure(
           "SKILL_RELEASE_WRITE_FAILED",
           "temporary write was incomplete",
         );
       }
+      writtenIdentity = identity(written);
     } finally {
       if (descriptor !== null) this.#fs.closeSync(descriptor);
     }
+    if (this.#secure) {
+      ensurePrivateFile(filePath, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
+    }
+    const staged = this.#fs.lstatSync(filePath);
+    if (
+      !staged.isFile() ||
+      staged.isSymbolicLink() ||
+      Number(staged.nlink) !== 1 ||
+      identity(staged) !== writtenIdentity ||
+      staged.size !== bytes.length ||
+      !samePath(realpath(this.#fs, filePath), filePath)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_WRITE_FAILED",
+        "temporary artifact changed before publication",
+      );
+    }
     fsyncDirectory(this.#fs, this.#directories.staging.path);
+    this.#assertBoundary();
     return filePath;
   }
 
   #atomicWrite(area, destination, value) {
+    const expectedBytes = serialize(value);
     const name = `.write-${process.pid}-${this.#token()}.tmp`;
     const temporary = this.#writeTemporary(name, value);
+    const temporaryStat = this.#fs.lstatSync(temporary);
     this.#fs.renameSync(temporary, destination);
     const destinationDirectory = path.dirname(destination);
     const destinationStat = this.#fs.lstatSync(destinationDirectory);
@@ -965,10 +1641,35 @@ export class SkillReleaseRegistry {
         "atomic write destination directory is unsafe",
       );
     }
+    const published = this.#fs.lstatSync(destination);
+    if (
+      !published.isFile() ||
+      published.isSymbolicLink() ||
+      Number(published.nlink) !== 1 ||
+      identity(published) !== identity(temporaryStat) ||
+      !samePath(realpath(this.#fs, destination), destination) ||
+      !isContained(this.#directories[area].path, destination)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "atomic write destination changed during publication",
+      );
+    }
+    if (
+      !this.#readBytes(destination, "SKILL_RELEASE_WRITE_FAILED").equals(
+        expectedBytes,
+      )
+    ) {
+      throw failure(
+        "SKILL_RELEASE_WRITE_FAILED",
+        "atomic write publication did not preserve exact bytes",
+      );
+    }
     fsyncDirectory(this.#fs, destinationDirectory);
     if (!samePath(destinationDirectory, this.#directories[area].path)) {
       fsyncDirectory(this.#fs, this.#directories[area].path);
     }
+    this.#assertBoundary();
   }
 
   #unlink(filePath, directory) {
@@ -985,6 +1686,8 @@ export class SkillReleaseRegistry {
     const name = `.release-${process.pid}-${this.#token()}.tmp`;
     const temporary = this.#writeTemporary(name, release);
     const bytes = serialize(release);
+    const temporaryStat = this.#fs.lstatSync(temporary);
+    const temporaryIdentity = identity(temporaryStat);
     try {
       try {
         this.#fs.linkSync(temporary, destination);
@@ -996,7 +1699,44 @@ export class SkillReleaseRegistry {
         }
         return false;
       }
+      const linked = this.#fs.lstatSync(destination);
+      if (
+        !linked.isFile() ||
+        linked.isSymbolicLink() ||
+        Number(linked.nlink) !== 2 ||
+        identity(linked) !== temporaryIdentity
+      ) {
+        throw failure(
+          "SKILL_RELEASE_WRITE_FAILED",
+          "release hardlink publication was unsafe",
+        );
+      }
       fsyncDirectory(this.#fs, this.#directories.artifacts.path);
+      this.#unlink(temporary, this.#directories.staging.path);
+      const published = this.#fs.lstatSync(destination);
+      if (
+        !published.isFile() ||
+        published.isSymbolicLink() ||
+        Number(published.nlink) !== 1 ||
+        identity(published) !== temporaryIdentity ||
+        !samePath(realpath(this.#fs, destination), destination)
+      ) {
+        throw failure(
+          "SKILL_RELEASE_WRITE_FAILED",
+          "published release did not become a single-link artifact",
+        );
+      }
+      if (
+        !this.#readBytes(destination, "SKILL_RELEASE_WRITE_FAILED").equals(
+          bytes,
+        )
+      ) {
+        throw failure(
+          "SKILL_RELEASE_WRITE_FAILED",
+          "published release did not preserve exact bytes",
+        );
+      }
+      this.#assertBoundary();
       return true;
     } finally {
       this.#unlink(temporary, this.#directories.staging.path);
@@ -1030,11 +1770,15 @@ export class SkillReleaseRegistry {
     try {
       release = verifySkillRelease(value);
     } catch (cause) {
+      if (cause?.code === SKILL_RELEASE_MIGRATION_REQUIRED_CODE) throw cause;
       throw failure("SKILL_RELEASE_CORRUPT", "release verification failed", {
         cause,
       });
     }
-    if (release.releaseDigest !== expected) {
+    if (
+      release.releaseDigest !== expected ||
+      release.tenantId !== this.tenantId
+    ) {
       throw failure("SKILL_RELEASE_CORRUPT", "release path digest differs");
     }
     return release;
@@ -1055,9 +1799,17 @@ export class SkillReleaseRegistry {
           "state Skill name differs",
         );
       }
+      if (state.tenantId !== this.tenantId) {
+        throw failure(
+          "SKILL_RELEASE_STATE_CORRUPT",
+          "state belongs to another tenant",
+        );
+      }
       return state;
     } catch (error) {
-      if (error?.code === "ENOENT") return initialState(normalizedName);
+      if (error?.code === "ENOENT") {
+        return initialState(normalizedName, this.tenantId);
+      }
       throw error;
     }
   }
@@ -1108,6 +1860,9 @@ export class SkillReleaseRegistry {
     if (
       active.skillName !== state.skillName ||
       lkg.skillName !== state.skillName ||
+      active.tenantId !== this.tenantId ||
+      lkg.tenantId !== this.tenantId ||
+      state.tenantId !== this.tenantId ||
       active.dependencyLockDigest !== state.dependencyLockDigest
     ) {
       throw failure(
@@ -1142,6 +1897,7 @@ export class SkillReleaseRegistry {
       authorityReceiptDigest: active.state.authorityReceiptDigest,
       releaseDigest: active.release.releaseDigest,
       stateDigest: active.state.stateDigest,
+      tenantId: this.tenantId,
       transactionId: active.state.transactionId,
     });
     return pin;
@@ -1150,7 +1906,7 @@ export class SkillReleaseRegistry {
   readPinned(pin) {
     const binding =
       pin && typeof pin === "object" ? this.#pins.get(pin) : undefined;
-    if (!binding) {
+    if (!binding || binding.tenantId !== this.tenantId) {
       throw failure(
         "SKILL_RELEASE_PIN_INVALID",
         "session pin is forged, serialized, or belongs to another registry instance",
@@ -1184,14 +1940,26 @@ export class SkillReleaseRegistry {
       host: os.hostname(),
       kind,
       pid: process.pid,
-      schema: "chainlesschain.skill-release-lock-owner/v1",
+      schema: LOCK_OWNER_SCHEMA,
       skillName: skill,
+      tenantId: this.tenantId,
       token,
       transactionId,
     });
   }
 
   #verifyOwner(value) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !utilTypes.isProxy(value) &&
+      Object.getOwnPropertyDescriptor(value, "schema")?.value ===
+        LEGACY_LOCK_OWNER_SCHEMA
+    ) {
+      throw migrationRequired(
+        "legacy release lock owner requires explicit tenant-scoped migration",
+      );
+    }
     const keys = new Set([
       "createdAt",
       "expiresAt",
@@ -1202,13 +1970,15 @@ export class SkillReleaseRegistry {
       "pid",
       "schema",
       "skillName",
+      "tenantId",
       "token",
       "transactionId",
     ]);
     assertExactKeys(value, keys, "lock owner", "SKILL_RELEASE_LEASE_INVALID");
     if (
-      value.schema !== "chainlesschain.skill-release-lock-owner/v1" ||
+      value.schema !== LOCK_OWNER_SCHEMA ||
       !["recovery", "skill"].includes(value.kind) ||
+      tenantId(value.tenantId, "owner tenantId") !== this.tenantId ||
       !TOKEN_PATTERN.test(value.token) ||
       !Number.isSafeInteger(value.pid) ||
       value.pid < 1 ||
@@ -1560,6 +2330,7 @@ export class SkillReleaseRegistry {
     const mutationRequest = verifySkillMutationRequest(value.mutationRequest);
     if (
       authorityReceipt.receiptDigest !== value.authorityReceiptDigest ||
+      authorityReceipt.tenantId !== this.tenantId ||
       authorityReceipt.requestDigest !== value.requestDigest ||
       authorityReceipt.operationId !== value.operationId ||
       authorityReceipt.operation !== value.operation ||
@@ -1577,6 +2348,7 @@ export class SkillReleaseRegistry {
     verifyRequestReceiptBinding(mutationRequest, authorityReceipt);
     if (
       mutationRequest.requestDigest !== value.requestDigest ||
+      mutationRequest.tenantId !== this.tenantId ||
       mutationRequest.operation !== value.operation ||
       mutationRequest.transitionSubjectDigest !==
         value.transitionSubjectDigest ||
@@ -1631,6 +2403,17 @@ export class SkillReleaseRegistry {
   }
 
   #verifyJournal(value) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !utilTypes.isProxy(value) &&
+      Object.getOwnPropertyDescriptor(value, "schema")?.value ===
+        LEGACY_JOURNAL_SCHEMA
+    ) {
+      throw migrationRequired(
+        "legacy release journal requires explicit tenant-scoped migration",
+      );
+    }
     const keys = new Set([
       "intent",
       "journalDigest",
@@ -1642,6 +2425,7 @@ export class SkillReleaseRegistry {
       "schema",
       "skillName",
       "stagedFile",
+      "tenantId",
       "transactionId",
     ]);
     assertExactKeys(
@@ -1654,6 +2438,7 @@ export class SkillReleaseRegistry {
     delete core.journalDigest;
     if (
       core.schema !== JOURNAL_SCHEMA ||
+      tenantId(core.tenantId, "journal tenantId") !== this.tenantId ||
       !["journaled", "prepared", "pointer-written"].includes(core.phase) ||
       !TOKEN_PATTERN.test(core.leaseToken) ||
       !TEMP_PATTERN.test(core.stagedFile) ||
@@ -1672,6 +2457,7 @@ export class SkillReleaseRegistry {
       intent.transactionId !== core.transactionId ||
       nextState.transactionId !== core.transactionId ||
       nextState.skillName !== core.skillName ||
+      nextState.tenantId !== this.tenantId ||
       intent.skillName !== core.skillName ||
       nextState.stateDigest !== intent.nextStateDigest ||
       nextState.stateDigest !== intent.pointerDigest ||
@@ -1682,6 +2468,7 @@ export class SkillReleaseRegistry {
       (previousState === null
         ? intent.previousStateDigest !== null || intent.expectedRevision !== 0
         : previousState.skillName !== core.skillName ||
+          previousState.tenantId !== this.tenantId ||
           previousState.stateDigest !== intent.previousStateDigest ||
           previousState.revision !== intent.expectedRevision)
     ) {
@@ -1797,8 +2584,157 @@ export class SkillReleaseRegistry {
   #writePointer(state, stagedFile) {
     const stagedPath = this.#path("staging", stagedFile);
     if (!this.#exists(stagedPath)) this.#writeTemporary(stagedFile, state);
+    const expectedBytes = serialize(state);
+    const stagedBytes = this.#readBytes(
+      stagedPath,
+      "SKILL_RELEASE_STATE_CORRUPT",
+    );
+    let verifiedStaged;
+    try {
+      verifiedStaged = verifyState(
+        this.#parseCanonical(stagedBytes, "SKILL_RELEASE_STATE_CORRUPT"),
+      );
+    } catch (cause) {
+      if (cause instanceof SkillReleaseRegistryError) throw cause;
+      throw failure(
+        "SKILL_RELEASE_STATE_CORRUPT",
+        "staged state pointer failed verification",
+        { cause },
+      );
+    }
+    if (
+      verifiedStaged.tenantId !== this.tenantId ||
+      verifiedStaged.stateDigest !== state.stateDigest ||
+      !stagedBytes.equals(expectedBytes)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STATE_CORRUPT",
+        "staged state pointer does not exactly match the journal next state",
+      );
+    }
+    const staged = this.#fs.lstatSync(stagedPath);
+    if (
+      !staged.isFile() ||
+      staged.isSymbolicLink() ||
+      Number(staged.nlink) !== 1 ||
+      !samePath(realpath(this.#fs, stagedPath), stagedPath)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "staged state pointer is unsafe",
+      );
+    }
     this.#fs.renameSync(stagedPath, this.#statePath(state.skillName));
+    const publishedPath = this.#statePath(state.skillName);
+    const published = this.#fs.lstatSync(publishedPath);
+    if (
+      !published.isFile() ||
+      published.isSymbolicLink() ||
+      Number(published.nlink) !== 1 ||
+      identity(published) !== identity(staged) ||
+      !samePath(realpath(this.#fs, publishedPath), publishedPath)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "active state pointer changed during publication",
+      );
+    }
+    const publishedBytes = this.#readBytes(
+      publishedPath,
+      "SKILL_RELEASE_STATE_CORRUPT",
+    );
+    let verifiedPublished;
+    try {
+      verifiedPublished = verifyState(
+        this.#parseCanonical(publishedBytes, "SKILL_RELEASE_STATE_CORRUPT"),
+      );
+    } catch (cause) {
+      if (cause instanceof SkillReleaseRegistryError) throw cause;
+      throw failure(
+        "SKILL_RELEASE_STATE_CORRUPT",
+        "published state pointer failed verification",
+        { cause },
+      );
+    }
+    if (
+      verifiedPublished.tenantId !== this.tenantId ||
+      verifiedPublished.stateDigest !== state.stateDigest ||
+      !publishedBytes.equals(expectedBytes)
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STATE_CORRUPT",
+        "published state pointer does not exactly match the journal next state",
+      );
+    }
     fsyncDirectory(this.#fs, this.#directories.active.path);
+    this.#assertBoundary();
+  }
+
+  #assertFinalizationArtifacts(state, release) {
+    try {
+      const expectedStateBytes = serialize(state);
+      const stateBytes = this.#readBytes(
+        this.#statePath(state.skillName),
+        "SKILL_RELEASE_STATE_CORRUPT",
+      );
+      const verifiedState = verifyState(
+        this.#parseCanonical(stateBytes, "SKILL_RELEASE_STATE_CORRUPT"),
+      );
+      if (
+        verifiedState.tenantId !== this.tenantId ||
+        verifiedState.skillName !== state.skillName ||
+        verifiedState.transactionId !== state.transactionId ||
+        verifiedState.fence !== state.fence ||
+        verifiedState.stateDigest !== state.stateDigest ||
+        !stateBytes.equals(expectedStateBytes)
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STATE_CORRUPT",
+          "active state pointer is not the exact finalization input",
+        );
+      }
+
+      const verifiedRelease = this.readRelease(release.releaseDigest);
+      if (
+        verifiedRelease.tenantId !== this.tenantId ||
+        verifiedRelease.skillName !== state.skillName ||
+        verifiedRelease.releaseDigest !== release.releaseDigest ||
+        !serialize(verifiedRelease).equals(serialize(release))
+      ) {
+        throw failure(
+          "SKILL_RELEASE_CORRUPT",
+          "target release is not the exact finalization input",
+        );
+      }
+    } catch (cause) {
+      throw failure(
+        "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+        "finalization inputs changed after pointer publication",
+        {
+          cause,
+          preserveForRecovery: true,
+          transactionId: state.transactionId,
+        },
+      );
+    }
+  }
+
+  #assertJournalFinalizationArtifacts(journal) {
+    let release;
+    try {
+      release = this.readRelease(journal.nextState.activeReleaseDigest);
+    } catch (cause) {
+      throw failure(
+        "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+        "journal target release is not a valid recovery finalization input",
+        {
+          cause,
+          preserveForRecovery: true,
+          transactionId: journal.transactionId,
+        },
+      );
+    }
+    this.#assertFinalizationArtifacts(journal.nextState, release);
   }
 
   #restorePrevious(journal) {
@@ -1877,7 +2813,9 @@ export class SkillReleaseRegistry {
         transactionId: journal.transactionId,
       });
       this.#ensureNextPointer(journal);
+      this.#assertJournalFinalizationArtifacts(journal);
       this.#finalize(journal, prepareReceipt);
+      this.#assertJournalFinalizationArtifacts(journal);
       this.#cleanupTransaction(journal);
       return "committed";
     }
@@ -1888,6 +2826,7 @@ export class SkillReleaseRegistry {
       );
     }
     this.#ensureNextPointer(journal);
+    this.#assertJournalFinalizationArtifacts(journal);
     this.#cleanupTransaction(journal);
     return "committed";
   }
@@ -1962,7 +2901,12 @@ export class SkillReleaseRegistry {
       }
       const filePath = this.#path("staging", name);
       const stat = this.#fs.lstatSync(filePath);
-      if (!stat.isFile() || stat.isSymbolicLink()) {
+      if (
+        !stat.isFile() ||
+        stat.isSymbolicLink() ||
+        Number(stat.nlink) !== 1 ||
+        !samePath(realpath(this.#fs, filePath), filePath)
+      ) {
         throw failure("SKILL_RELEASE_STORE_UNSAFE", "staging debris is unsafe");
       }
       if (!referenced.has(name) && stat.mtimeMs <= cutoff) {
@@ -1973,7 +2917,12 @@ export class SkillReleaseRegistry {
       if (!name.startsWith(".released-")) continue;
       const tombstone = this.#path("locks", name);
       const stat = this.#fs.lstatSync(tombstone);
-      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        !samePath(realpath(this.#fs, tombstone), tombstone) ||
+        !samePath(path.dirname(tombstone), this.#directories.locks.path)
+      ) {
         throw failure("SKILL_RELEASE_STORE_UNSAFE", "lock tombstone is unsafe");
       }
       if (stat.mtimeMs <= cutoff)
@@ -1985,7 +2934,6 @@ export class SkillReleaseRegistry {
     const keys = new Set([
       "authorityReceipt",
       "candidate",
-      "dependencyLock",
       "dependencyLockDigest",
       "expectedParentDigest",
       "expectedRevision",
@@ -1996,6 +2944,7 @@ export class SkillReleaseRegistry {
       "requestDigest",
       "skillName",
       "targetReleaseDigest",
+      "tenantId",
       "transitionSubjectDigest",
     ]);
     assertExactKeys(value, keys, "transition capability payload");
@@ -2005,6 +2954,7 @@ export class SkillReleaseRegistry {
     const mutationRequest = verifySkillMutationRequest(value.mutationRequest);
     if (
       authorityReceipt.role !== SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER ||
+      authorityReceipt.tenantId !== this.tenantId ||
       authorityReceipt.targetScope !== SKILL_MUTATION_TARGET_SCOPES.ACTIVE ||
       authorityReceipt.skillName !== value.skillName ||
       authorityReceipt.operationId !== value.operationId ||
@@ -2031,6 +2981,8 @@ export class SkillReleaseRegistry {
     verifyRequestReceiptBinding(mutationRequest, authorityReceipt);
     if (
       mutationRequest.requestDigest !== value.requestDigest ||
+      mutationRequest.tenantId !== this.tenantId ||
+      tenantId(value.tenantId, "transition tenantId") !== this.tenantId ||
       mutationRequest.operation !== value.operation ||
       mutationRequest.transitionSubjectDigest !==
         value.transitionSubjectDigest ||
@@ -2043,7 +2995,6 @@ export class SkillReleaseRegistry {
       );
     }
     let candidate = null;
-    let dependencyLock = null;
     let targetReleaseDigest = null;
     const dependencyLockDigest = digest(
       value.dependencyLockDigest,
@@ -2051,24 +3002,24 @@ export class SkillReleaseRegistry {
     );
     if (value.operation === "promote") {
       candidate = verifySkillCandidateDraft(value.candidate);
-      dependencyLock = normalizeJson(value.dependencyLock, "dependencyLock");
       if (
-        !isPlainObject(dependencyLock) ||
+        candidate.tenantId !== this.tenantId ||
+        candidate.skillName !== value.skillName ||
         value.targetReleaseDigest !== null
       ) {
         throw failure(
           "SKILL_RELEASE_INVALID",
-          "promotion requires candidate/dependency lock and no caller target digest",
+          "promotion requires a tenant-bound candidate and no caller target digest",
         );
       }
-      if (digestDependencyLock(dependencyLock) !== dependencyLockDigest) {
+      if (candidate.dependencyLockDigest !== dependencyLockDigest) {
         throw failure(
           "SKILL_RELEASE_AUTHORITY_INVALID",
-          "promotion dependency lock differs from its authorized digest",
+          "candidate dependency lock differs from its authorized digest",
         );
       }
     } else {
-      if (value.candidate !== null || value.dependencyLock !== null) {
+      if (value.candidate !== null) {
         throw failure(
           "SKILL_RELEASE_INVALID",
           "rollback must not carry candidate release material",
@@ -2099,7 +3050,6 @@ export class SkillReleaseRegistry {
     return deepFreeze({
       authorityReceipt,
       candidate,
-      dependencyLock,
       dependencyLockDigest,
       expectedParentDigest: digest(
         value.expectedParentDigest,
@@ -2113,6 +3063,7 @@ export class SkillReleaseRegistry {
       requestDigest: digest(value.requestDigest, "requestDigest"),
       skillName: skillName(value.skillName),
       targetReleaseDigest,
+      tenantId: this.tenantId,
       transitionSubjectDigest: digest(
         value.transitionSubjectDigest,
         "transitionSubjectDigest",
@@ -2134,7 +3085,6 @@ export class SkillReleaseRegistry {
       const created = this.#createRelease({
         candidate: payload.candidate,
         consumptionReceipt: payload.authorityReceipt,
-        dependencyLock: payload.dependencyLock,
         mutationRequest: payload.mutationRequest,
       });
       target = created.release;
@@ -2142,7 +3092,10 @@ export class SkillReleaseRegistry {
     } else {
       target = this.readRelease(payload.targetReleaseDigest);
     }
-    if (target.skillName !== payload.skillName) {
+    if (
+      target.skillName !== payload.skillName ||
+      target.tenantId !== this.tenantId
+    ) {
       throw failure("SKILL_RELEASE_INVALID", "target belongs to another Skill");
     }
     if (target.dependencyLockDigest !== payload.dependencyLockDigest) {
@@ -2166,12 +3119,13 @@ export class SkillReleaseRegistry {
       );
     }
 
-    const transactionId = domainDigest("chainlesschain.skill-release-tx/v1\0", {
+    const transactionId = domainDigest("chainlesschain.skill-release-tx/v2\0", {
       authorityReceiptDigest: payload.authorityReceipt.receiptDigest,
       operation: payload.operation,
       operationId: payload.operationId,
       requestDigest: payload.requestDigest,
       targetReleaseDigest: target.releaseDigest,
+      tenantId: this.tenantId,
       transitionSubjectDigest: payload.transitionSubjectDigest,
     });
     const acquired = this.#acquireLease(
@@ -2188,6 +3142,7 @@ export class SkillReleaseRegistry {
       await this.#crash("after-lease", {
         fence: lease.fence,
         skillName: payload.skillName,
+        tenantId: this.tenantId,
         transactionId,
       });
       if (
@@ -2210,6 +3165,7 @@ export class SkillReleaseRegistry {
             : target.releaseDigest,
         revision: previousState.revision + 1,
         skillName: payload.skillName,
+        tenantId: this.tenantId,
         transactionId,
       });
       const intent = this.#buildIntent(payload, previousState, nextState);
@@ -2223,6 +3179,7 @@ export class SkillReleaseRegistry {
         schema: JOURNAL_SCHEMA,
         skillName: payload.skillName,
         stagedFile: `.state-${transactionId.slice(7)}.tmp`,
+        tenantId: this.tenantId,
         transactionId,
       });
       await this.#crash("after-journal", journal);
@@ -2244,8 +3201,11 @@ export class SkillReleaseRegistry {
       await this.#crash("after-pointer", journal);
 
       this.#renewLease(lease);
+      this.#assertFinalizationArtifacts(nextState, target);
       finalized = this.#finalize(journal, prepareReceipt);
+      this.#assertFinalizationArtifacts(nextState, target);
       await this.#crash("after-finalize", { journal, finalized });
+      this.#assertFinalizationArtifacts(nextState, target);
 
       clearInterval(heartbeat);
       this.#cleanupTransaction(journal);
@@ -2265,6 +3225,7 @@ export class SkillReleaseRegistry {
         schema: SKILL_RELEASE_RECEIPT_SCHEMA,
         skillName: payload.skillName,
         stateDigest: nextState.stateDigest,
+        tenantId: this.tenantId,
         transactionId,
         transitionSubjectDigest: payload.transitionSubjectDigest,
       };

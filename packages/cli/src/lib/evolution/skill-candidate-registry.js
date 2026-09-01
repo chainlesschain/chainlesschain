@@ -1,68 +1,154 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
+import {
+  verifySkillDependencyLock,
+  verifySkillRuntimeManifest,
+  verifySkillTargetMatrix,
+} from "./skill-execution-manifest.js";
 
-export const SKILL_CANDIDATE_SCHEMA = "chainlesschain.skill-candidate/v1";
+export const SKILL_CANDIDATE_SCHEMA = "chainlesschain.skill-candidate/v2";
+export const SKILL_CANDIDATE_TENANT_MARKER_SCHEMA =
+  "chainlesschain.skill-candidate-tenant-marker/v1";
+export const SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE =
+  "SKILL_CANDIDATE_MIGRATION_REQUIRED";
+export const SKILL_CANDIDATE_STORE_LIMIT_CODE = "SKILL_CANDIDATE_STORE_LIMIT";
 export const SKILL_CANDIDATE_STATUS = "draft";
 export const SKILL_CANDIDATE_CONTENT_TYPE =
   "text/markdown; charset=utf-8; profile=skill";
 export const SKILL_CANDIDATE_MAX_CONTENT_BYTES = 1024 * 1024;
 export const SKILL_CANDIDATE_MAX_ARTIFACT_BYTES = 2 * 1024 * 1024;
+export const SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-candidate-target-matrix-admission-authority/v1";
+export const SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_REQUEST_SCHEMA =
+  "chainlesschain.skill-candidate-target-matrix-admission-request/v1";
+export const SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA =
+  "chainlesschain.skill-candidate-target-matrix-admission-resolution/v1";
 
 const MAX_SOURCE_EVIDENCE_REFS = 256;
 const MAX_REQUESTED_CAPABILITIES = 128;
 const MAX_TARGET_RUNTIMES = 64;
-const MAX_STORED_CANDIDATES = 100_000;
+export const SKILL_CANDIDATE_TENANT_SCAN_MAX_ENTRIES = 4_096;
+export const SKILL_CANDIDATE_TENANT_SCAN_MAX_BYTES = 16 * 1024 * 1024;
+export const SKILL_CANDIDATE_TENANT_SCAN_MAX_NODES = 100_000;
+const MAX_TENANT_SCAN_DEPTH = 64;
 const MAX_LIST_LIMIT = 10_000;
 const DEFAULT_LIST_LIMIT = 1_000;
+const MAX_TENANT_MARKER_BYTES = 4096;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const TENANT_KEY_PATTERN = /^[a-f0-9]{64}$/u;
 const CANDIDATE_FILE_PATTERN = /^([a-f0-9]{64})\.json$/u;
 const SKILL_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
-const NAMESPACED_ID_PATTERN =
-  /^[a-z][a-z0-9]*(?:[._:-][a-z0-9]+)*$/u;
+const NAMESPACED_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._:-][a-z0-9]+)*$/u;
+const TENANT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 const EVIDENCE_REF_PATTERN = /^[a-z][a-z0-9+.-]{1,31}:[^\s\\]+$/u;
-const CANDIDATE_DIGEST_DOMAIN = "chainlesschain.skill-candidate/v1\0";
+const LEGACY_SKILL_CANDIDATE_SCHEMA = "chainlesschain.skill-candidate/v1";
+const CANDIDATE_DIGEST_DOMAIN = "chainlesschain.skill-candidate/v2";
+const TENANT_KEY_DOMAIN = "chainlesschain.skill-candidate-tenant-key/v1";
+const TENANT_MARKER_DIGEST_DOMAIN =
+  "chainlesschain.skill-candidate-tenant-marker/v1";
+const TENANT_MARKER_COMPONENT = "skill-candidate-registry";
+const TENANT_MARKER_FILE = "_tenant.json";
 
 const CANDIDATE_KEYS = new Set([
   "candidateId",
   "content",
   "contentDigest",
   "contentType",
+  "dependencyLock",
+  "dependencyLockDigest",
   "derivationMode",
   "evalRunId",
   "parentDigest",
   "proposerModel",
   "requestedCapabilities",
+  "runtimeManifest",
+  "runtimeManifestDigest",
   "schema",
   "skillName",
   "sourceEvidenceRefs",
   "status",
+  "targetMatrix",
+  "targetMatrixRoot",
   "targetRuntimes",
+  "tenantId",
   "wikiRevision",
 ]);
 
 const CREATE_INPUT_KEYS = new Set([
   "content",
+  "dependencyLock",
   "derivationMode",
   "evalRunId",
   "parentDigest",
   "proposerModel",
   "requestedCapabilities",
+  "runtimeManifest",
   "skillName",
   "sourceEvidenceRefs",
-  "targetRuntimes",
+  "targetMatrix",
+  "tenantId",
   "wikiRevision",
 ]);
 
+const CREATE_REQUIRED_KEYS = new Set([
+  "content",
+  "dependencyLock",
+  "derivationMode",
+  "runtimeManifest",
+  "skillName",
+  "sourceEvidenceRefs",
+  "targetMatrix",
+  "tenantId",
+]);
+const TARGET_MATRIX_ADMISSION_KEYS = new Set([
+  "expectedEnvironmentBindings",
+  "expectedTargetMatrixRoot",
+]);
+const TARGET_MATRIX_ADMISSION_AUTHORITY_KEYS = new Set([
+  "authorityId",
+  "handlerArtifactDigest",
+  "resolve",
+  "revision",
+  "schema",
+  "trust",
+]);
+const TARGET_MATRIX_ADMISSION_RESOLUTION_KEYS = new Set([
+  "admitted",
+  "authorityId",
+  "dependencyLockDigest",
+  "expectedEnvironmentBindings",
+  "expectedTargetMatrixRoot",
+  "handlerArtifactDigest",
+  "revision",
+  "runtimeManifestDigest",
+  "schema",
+  "skillName",
+  "tenantId",
+  "trust",
+]);
+const TENANT_MARKER_KEYS = new Set([
+  "component",
+  "markerDigest",
+  "schema",
+  "tenantId",
+  "tenantKey",
+]);
+const REGISTRY_OPTION_KEYS = new Set([
+  "fsImpl",
+  "randomToken",
+  "rootDir",
+  "secure",
+  "tenantId",
+  "targetMatrixAdmissionAuthority",
+]);
+const LIST_OPTION_KEYS = new Set(["limit"]);
 const PROPOSER_MODEL_KEYS = new Set(["model", "provider", "version"]);
 const SOURCE_EVIDENCE_KEYS = new Set(["digest", "ref"]);
-const DERIVATION_MODES = new Set([
-  "wiki",
-  "record-replay",
-  "manual-import",
-]);
+const DERIVATION_MODES = new Set(["wiki", "record-replay", "manual-import"]);
 
 export class SkillCandidateRegistryError extends Error {
   constructor(code, message, details = {}) {
@@ -79,7 +165,33 @@ function registryError(code, message, details = {}) {
   return new SkillCandidateRegistryError(code, message, details);
 }
 
+function migrationRequired(message, details = {}) {
+  return registryError(
+    SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE,
+    message,
+    details,
+  );
+}
+
+function tenantScanLimit(message, details = {}) {
+  return registryError(SKILL_CANDIDATE_STORE_LIMIT_CODE, message, details);
+}
+
+function rejectProxy(value, label) {
+  if (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    utilTypes.isProxy(value)
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `${label} must not be a Proxy`,
+    );
+  }
+}
+
 function isPlainObject(value) {
+  rejectProxy(value, "record");
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
@@ -94,17 +206,48 @@ function assertPlainObject(value, label) {
   }
 }
 
-function assertExactKeys(value, allowed, label) {
+function assertDataRecord(
+  value,
+  allowed,
+  label,
+  { exact = false, required = new Set() } = {},
+) {
+  assertPlainObject(value, label);
   const keys = Reflect.ownKeys(value);
   if (
     keys.some((key) => typeof key !== "string" || !allowed.has(key)) ||
-    keys.length > allowed.size
+    keys.length > allowed.size ||
+    (exact && keys.length !== allowed.size) ||
+    [...required].some((key) => !keys.includes(key))
   ) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
-      `${label} contains unsupported fields`,
+      exact || required.size > 0
+        ? `${label} must contain exactly the required supported fields`
+        : `${label} contains unsupported fields`,
     );
   }
+  for (const key of keys) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw registryError(
+        "SKILL_CANDIDATE_INVALID",
+        `${label}.${String(key)} must be an enumerable own data property`,
+      );
+    }
+  }
+}
+
+function ownData(value, key, label, fallback) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (!descriptor) return fallback;
+  if (!("value" in descriptor) || !descriptor.enumerable) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `${label}.${key} must be an enumerable own data property`,
+    );
+  }
+  return descriptor.value;
 }
 
 function canonicalJson(value) {
@@ -130,17 +273,70 @@ function sha256(value) {
   return `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
 }
 
+function domainDigest(domain, value) {
+  const hash = crypto.createHash("sha256");
+  hash.update(domain, "utf8");
+  hash.update("\0", "utf8");
+  updateCanonicalHash(hash, value, { bytes: 0 });
+  return `sha256:${hash.digest("hex")}`;
+}
+
+function updateCanonicalHash(hash, value, state) {
+  const update = (fragment) => {
+    const bytes = Buffer.byteLength(fragment, "utf8");
+    if (state.bytes > SKILL_CANDIDATE_MAX_ARTIFACT_BYTES - bytes) {
+      throw registryError(
+        "SKILL_CANDIDATE_INVALID",
+        `candidate artifact exceeds ${SKILL_CANDIDATE_MAX_ARTIFACT_BYTES} bytes`,
+      );
+    }
+    state.bytes += bytes;
+    hash?.update(fragment, "utf8");
+  };
+  if (value === null || typeof value !== "object") {
+    const serialized = JSON.stringify(value);
+    if (typeof serialized !== "string") {
+      throw registryError(
+        "SKILL_CANDIDATE_INVALID",
+        "candidate artifact must be canonical JSON",
+      );
+    }
+    update(serialized);
+    return;
+  }
+  if (Array.isArray(value)) {
+    update("[");
+    for (let index = 0; index < value.length; index += 1) {
+      if (index > 0) update(",");
+      updateCanonicalHash(hash, value[index], state);
+    }
+    update("]");
+    return;
+  }
+  const keys = Object.keys(value).sort();
+  update("{");
+  for (let index = 0; index < keys.length; index += 1) {
+    if (index > 0) update(",");
+    const key = keys[index];
+    update(JSON.stringify(key));
+    update(":");
+    updateCanonicalHash(hash, value[key], state);
+  }
+  update("}");
+}
+
+function canonicalByteLength(value) {
+  const state = { bytes: 0 };
+  updateCanonicalHash(null, value, state);
+  return state.bytes;
+}
+
 function contentDigest(content) {
   return sha256(Buffer.from(content, "utf8"));
 }
 
 function candidateDigest(core) {
-  return sha256(
-    Buffer.concat([
-      Buffer.from(CANDIDATE_DIGEST_DOMAIN, "utf8"),
-      Buffer.from(canonicalJson(core), "utf8"),
-    ]),
-  );
+  return domainDigest(CANDIDATE_DIGEST_DOMAIN, core);
 }
 
 function normalizeDigest(value, label, { nullable = false } = {}) {
@@ -184,6 +380,17 @@ function normalizeSkillName(value) {
   return name;
 }
 
+function normalizeTenantId(value, label = "tenantId") {
+  const tenantId = normalizeBoundedString(value, label, 256);
+  if (!TENANT_ID_PATTERN.test(tenantId)) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `${label} must be a canonical tenant identifier`,
+    );
+  }
+  return tenantId;
+}
+
 function normalizeContent(value) {
   if (typeof value !== "string" || value.length === 0 || value.includes("\0")) {
     throw registryError(
@@ -212,14 +419,50 @@ function normalizeNamespacedId(value, label) {
   return normalized;
 }
 
-function normalizeUniqueStringList(value, label, maximum) {
-  if (!Array.isArray(value) || value.length > maximum) {
+function normalizeStandardArray(value, label, maximum) {
+  rejectProxy(value, label);
+  if (
+    !Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Array.prototype ||
+    value.length > maximum
+  ) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
-      `${label} must be an array with at most ${maximum} entries`,
+      `${label} must be a standard array with at most ${maximum} entries`,
     );
   }
-  const normalized = value.map((entry) => normalizeNamespacedId(entry, label));
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== value.length + 1 ||
+    keys.some(
+      (key) =>
+        typeof key !== "string" ||
+        (key !== "length" && !/^(?:0|[1-9]\d*)$/u.test(key)),
+    )
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `${label} must be a dense bounded standard array`,
+    );
+  }
+  const entries = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw registryError(
+        "SKILL_CANDIDATE_INVALID",
+        `${label}[${index}] must be an enumerable own data property`,
+      );
+    }
+    entries.push(descriptor.value);
+  }
+  return entries;
+}
+
+function normalizeUniqueStringList(value, label, maximum) {
+  const normalized = normalizeStandardArray(value, label, maximum).map(
+    (entry) => normalizeNamespacedId(entry, label),
+  );
   if (new Set(normalized).size !== normalized.length) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
@@ -230,21 +473,20 @@ function normalizeUniqueStringList(value, label, maximum) {
 }
 
 function normalizeSourceEvidenceRefs(value) {
-  if (!Array.isArray(value) || value.length > MAX_SOURCE_EVIDENCE_REFS) {
-    throw registryError(
-      "SKILL_CANDIDATE_INVALID",
-      `sourceEvidenceRefs must contain at most ${MAX_SOURCE_EVIDENCE_REFS} entries`,
-    );
-  }
-  const normalized = value.map((entry, index) => {
-    assertPlainObject(entry, `sourceEvidenceRefs[${index}]`);
-    assertExactKeys(
+  const entries = normalizeStandardArray(
+    value,
+    "sourceEvidenceRefs",
+    MAX_SOURCE_EVIDENCE_REFS,
+  );
+  const normalized = entries.map((entry, index) => {
+    assertDataRecord(
       entry,
       SOURCE_EVIDENCE_KEYS,
       `sourceEvidenceRefs[${index}]`,
+      { exact: true },
     );
     const ref = normalizeBoundedString(
-      entry.ref,
+      ownData(entry, "ref", `sourceEvidenceRefs[${index}]`),
       `sourceEvidenceRefs[${index}].ref`,
       2048,
     );
@@ -256,7 +498,7 @@ function normalizeSourceEvidenceRefs(value) {
     }
     return {
       digest: normalizeDigest(
-        entry.digest,
+        ownData(entry, "digest", `sourceEvidenceRefs[${index}]`),
         `sourceEvidenceRefs[${index}].digest`,
       ),
       ref,
@@ -290,23 +532,22 @@ function normalizeNullableReference(value, label) {
 
 function normalizeProposerModel(value) {
   if (value == null) return null;
-  assertPlainObject(value, "proposerModel");
-  assertExactKeys(value, PROPOSER_MODEL_KEYS, "proposerModel");
-  if (Reflect.ownKeys(value).length !== PROPOSER_MODEL_KEYS.size) {
-    throw registryError(
-      "SKILL_CANDIDATE_INVALID",
-      "proposerModel must include provider, model, and version",
-    );
-  }
+  assertDataRecord(value, PROPOSER_MODEL_KEYS, "proposerModel", {
+    exact: true,
+  });
   return {
     provider: normalizeBoundedString(
-      value.provider,
+      ownData(value, "provider", "proposerModel"),
       "proposerModel.provider",
       128,
     ),
-    model: normalizeBoundedString(value.model, "proposerModel.model", 256),
+    model: normalizeBoundedString(
+      ownData(value, "model", "proposerModel"),
+      "proposerModel.model",
+      256,
+    ),
     version: normalizeBoundedString(
-      value.version,
+      ownData(value, "version", "proposerModel"),
       "proposerModel.version",
       128,
     ),
@@ -323,34 +564,384 @@ function normalizeDerivationMode(value) {
   return value;
 }
 
-function deepFreeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+function deepFreeze(value, seen = new WeakSet()) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Object.isFrozen(value) ||
+    seen.has(value)
+  ) {
     return value;
   }
-  for (const child of Object.values(value)) deepFreeze(child);
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor && "value" in descriptor) deepFreeze(descriptor.value, seen);
+  }
   return Object.freeze(value);
 }
 
-function candidateCore(input) {
-  assertPlainObject(input, "candidate input");
-  assertExactKeys(input, CREATE_INPUT_KEYS, "candidate input");
-  const evalRunId = input.evalRunId ?? null;
+function chargeTenantScanNodes(root, budget, filePath) {
+  let current = root;
+  let depth = 0;
+  const frames = [];
+  while (true) {
+    budget.nodes += 1;
+    if (budget.nodes > SKILL_CANDIDATE_TENANT_SCAN_MAX_NODES) {
+      throw tenantScanLimit(
+        "candidate tenant scan exceeded its aggregate node budget",
+        { path: filePath },
+      );
+    }
+    if (depth > MAX_TENANT_SCAN_DEPTH) {
+      throw tenantScanLimit(
+        "candidate tenant scan exceeded its aggregate structure depth budget",
+        { path: filePath },
+      );
+    }
+
+    if (current !== null && typeof current === "object") {
+      const keys = Array.isArray(current) ? null : Object.keys(current);
+      const length = keys === null ? current.length : keys.length;
+      if (length > SKILL_CANDIDATE_TENANT_SCAN_MAX_NODES - budget.nodes) {
+        throw tenantScanLimit(
+          "candidate tenant scan exceeded its aggregate node budget",
+          { path: filePath },
+        );
+      }
+      if (length > 0) {
+        frames.push({ collection: current, depth, index: 1, keys });
+        current = keys === null ? current[0] : current[keys[0]];
+        depth += 1;
+        continue;
+      }
+    }
+
+    let advanced = false;
+    while (frames.length > 0) {
+      const frame = frames.at(-1);
+      const length =
+        frame.keys === null ? frame.collection.length : frame.keys.length;
+      if (frame.index < length) {
+        const key = frame.keys === null ? frame.index : frame.keys[frame.index];
+        frame.index += 1;
+        current = frame.collection[key];
+        depth = frame.depth + 1;
+        advanced = true;
+        break;
+      }
+      frames.pop();
+    }
+    if (!advanced) return;
+  }
+}
+
+function normalizeAdmissionContext(value) {
+  assertDataRecord(
+    value,
+    TARGET_MATRIX_ADMISSION_KEYS,
+    "target matrix admission context",
+    { exact: true },
+  );
+  return {
+    expectedEnvironmentBindings: ownData(
+      value,
+      "expectedEnvironmentBindings",
+      "target matrix admission context",
+    ),
+    expectedTargetMatrixRoot: ownData(
+      value,
+      "expectedTargetMatrixRoot",
+      "target matrix admission context",
+    ),
+  };
+}
+
+function normalizeAdmissionRevision(value, label) {
+  if (!Number.isSafeInteger(value) || Object.is(value, -0) || value < 1) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `${label} must be a positive safe integer`,
+    );
+  }
+  return value;
+}
+
+function normalizeTargetMatrixAdmissionAuthority(value) {
+  assertDataRecord(
+    value,
+    TARGET_MATRIX_ADMISSION_AUTHORITY_KEYS,
+    "target matrix admission authority",
+    { exact: true },
+  );
+  const schema = ownData(value, "schema", "target matrix admission authority");
+  const trust = ownData(value, "trust", "target matrix admission authority");
+  const resolver = ownData(
+    value,
+    "resolve",
+    "target matrix admission authority",
+  );
+  rejectProxy(resolver, "target matrix admission authority.resolve");
+  if (
+    schema !== SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA ||
+    trust !== "trusted" ||
+    typeof resolver !== "function"
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "target matrix admission authority descriptor is invalid",
+    );
+  }
+  const descriptor = deepFreeze({
+    schema,
+    authorityId: normalizeNamespacedId(
+      ownData(value, "authorityId", "target matrix admission authority"),
+      "target matrix admission authority.authorityId",
+    ),
+    trust,
+    revision: normalizeAdmissionRevision(
+      ownData(value, "revision", "target matrix admission authority"),
+      "target matrix admission authority.revision",
+    ),
+    handlerArtifactDigest: normalizeDigest(
+      ownData(
+        value,
+        "handlerArtifactDigest",
+        "target matrix admission authority",
+      ),
+      "target matrix admission authority.handlerArtifactDigest",
+    ),
+  });
+  const resolve = (request) => Reflect.apply(resolver, value, [request]);
+  Object.freeze(value);
+  return { descriptor, resolve };
+}
+
+function buildTargetMatrixAdmissionRequest(input) {
+  assertDataRecord(input, CREATE_INPUT_KEYS, "candidate input", {
+    required: CREATE_REQUIRED_KEYS,
+  });
+  const ownerTenantId = normalizeTenantId(
+    ownData(input, "tenantId", "candidate input"),
+  );
+  const name = normalizeSkillName(
+    ownData(input, "skillName", "candidate input"),
+  );
+  let dependencyLock;
+  let runtimeManifest;
+  try {
+    dependencyLock = verifySkillDependencyLock(
+      ownData(input, "dependencyLock", "candidate input"),
+    );
+    runtimeManifest = verifySkillRuntimeManifest(
+      ownData(input, "runtimeManifest", "candidate input"),
+    );
+  } catch (cause) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "candidate execution artifacts failed pre-admission verification",
+      { cause },
+    );
+  }
+  const targetMatrix = ownData(input, "targetMatrix", "candidate input");
+  assertPlainObject(targetMatrix, "candidate input.targetMatrix");
+  return {
+    request: deepFreeze({
+      schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_REQUEST_SCHEMA,
+      tenantId: ownerTenantId,
+      skillName: name,
+      dependencyLockDigest: dependencyLock.dependencyLockDigest,
+      runtimeManifestDigest: runtimeManifest.runtimeManifestDigest,
+      proposedTargetMatrixRoot: normalizeDigest(
+        ownData(targetMatrix, "targetMatrixRoot", "candidate target matrix"),
+        "candidate targetMatrixRoot",
+      ),
+    }),
+    dependencyLock,
+    runtimeManifest,
+    targetMatrix,
+  };
+}
+
+function verifyTargetMatrixAdmissionResolution(
+  value,
+  authorityDescriptor,
+  request,
+  artifacts,
+) {
+  if (value === false || value === null || value === undefined) {
+    throw registryError(
+      "SKILL_CANDIDATE_ADMISSION_REJECTED",
+      "target matrix admission authority did not synchronously admit the candidate",
+    );
+  }
+  assertDataRecord(
+    value,
+    TARGET_MATRIX_ADMISSION_RESOLUTION_KEYS,
+    "target matrix admission resolution",
+    { exact: true },
+  );
+  const expectedEnvironmentBindings = ownData(
+    value,
+    "expectedEnvironmentBindings",
+    "target matrix admission resolution",
+  );
+  const proposedCells = ownData(
+    artifacts.targetMatrix,
+    "cells",
+    "candidate target matrix",
+  );
+  const resolvedCells = normalizeStandardArray(
+    expectedEnvironmentBindings,
+    "target matrix admission resolution.expectedEnvironmentBindings",
+    MAX_TARGET_RUNTIMES,
+  );
+  const candidateCells = normalizeStandardArray(
+    proposedCells,
+    "candidate target matrix.cells",
+    MAX_TARGET_RUNTIMES,
+  );
+  if (
+    value === artifacts.targetMatrix ||
+    expectedEnvironmentBindings === proposedCells ||
+    resolvedCells.some((cell) => candidateCells.includes(cell)) ||
+    ownData(value, "admitted", "target matrix admission resolution") !== true ||
+    ownData(value, "schema", "target matrix admission resolution") !==
+      SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA ||
+    ownData(value, "authorityId", "target matrix admission resolution") !==
+      authorityDescriptor.authorityId ||
+    ownData(value, "trust", "target matrix admission resolution") !==
+      authorityDescriptor.trust ||
+    ownData(value, "revision", "target matrix admission resolution") !==
+      authorityDescriptor.revision ||
+    ownData(
+      value,
+      "handlerArtifactDigest",
+      "target matrix admission resolution",
+    ) !== authorityDescriptor.handlerArtifactDigest ||
+    ownData(value, "tenantId", "target matrix admission resolution") !==
+      request.tenantId ||
+    ownData(value, "skillName", "target matrix admission resolution") !==
+      request.skillName ||
+    ownData(
+      value,
+      "dependencyLockDigest",
+      "target matrix admission resolution",
+    ) !== request.dependencyLockDigest ||
+    ownData(
+      value,
+      "runtimeManifestDigest",
+      "target matrix admission resolution",
+    ) !== request.runtimeManifestDigest ||
+    ownData(
+      value,
+      "expectedTargetMatrixRoot",
+      "target matrix admission resolution",
+    ) !== request.proposedTargetMatrixRoot
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_ADMISSION_REJECTED",
+      "target matrix admission resolution is not exactly bound to its authority and request",
+    );
+  }
+  let verifiedTargetMatrix;
+  try {
+    verifiedTargetMatrix = verifySkillTargetMatrix(artifacts.targetMatrix, {
+      dependencyLock: artifacts.dependencyLock,
+      expectedEnvironmentBindings,
+      expectedTargetMatrixRoot: request.proposedTargetMatrixRoot,
+      runtimeManifest: artifacts.runtimeManifest,
+    });
+  } catch (cause) {
+    throw registryError(
+      "SKILL_CANDIDATE_ADMISSION_REJECTED",
+      "target matrix admission resolution failed exact matrix verification",
+      { cause },
+    );
+  }
+  return deepFreeze({
+    expectedEnvironmentBindings: verifiedTargetMatrix.cells.map((cell) => ({
+      ...cell,
+    })),
+    expectedTargetMatrixRoot: verifiedTargetMatrix.targetMatrixRoot,
+  });
+}
+
+function verifyExecutionArtifacts(input, tenantId, admissionContext) {
+  let dependencyLock;
+  let runtimeManifest;
+  let targetMatrix;
+  try {
+    dependencyLock = verifySkillDependencyLock(
+      ownData(input, "dependencyLock", "candidate input"),
+    );
+    runtimeManifest = verifySkillRuntimeManifest(
+      ownData(input, "runtimeManifest", "candidate input"),
+    );
+    targetMatrix = verifySkillTargetMatrix(
+      ownData(input, "targetMatrix", "candidate input"),
+      {
+        dependencyLock,
+        expectedEnvironmentBindings:
+          admissionContext.expectedEnvironmentBindings,
+        expectedTargetMatrixRoot: admissionContext.expectedTargetMatrixRoot,
+        runtimeManifest,
+      },
+    );
+  } catch (cause) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "candidate execution artifacts failed verification",
+      { cause },
+    );
+  }
+  if (
+    dependencyLock.tenantId !== tenantId ||
+    runtimeManifest.tenantId !== tenantId ||
+    targetMatrix.tenantId !== tenantId
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "candidate and execution artifacts must belong to the same tenant",
+    );
+  }
+  return { dependencyLock, runtimeManifest, targetMatrix };
+}
+
+function candidateCore(input, verificationContext) {
+  assertDataRecord(input, CREATE_INPUT_KEYS, "candidate input", {
+    required: CREATE_REQUIRED_KEYS,
+  });
+  const admissionContext = normalizeAdmissionContext(verificationContext);
+  const tenantId = normalizeTenantId(
+    ownData(input, "tenantId", "candidate input"),
+  );
+  const { dependencyLock, runtimeManifest, targetMatrix } =
+    verifyExecutionArtifacts(input, tenantId, admissionContext);
+  const evalRunId =
+    ownData(input, "evalRunId", "candidate input", null) ?? null;
   if (evalRunId !== null) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
       "a draft candidate cannot carry an evalRunId",
     );
   }
-  const content = normalizeContent(input.content);
-  const sourceEvidenceRefs = normalizeSourceEvidenceRefs(
-    input.sourceEvidenceRefs ?? [],
+  const content = normalizeContent(
+    ownData(input, "content", "candidate input"),
   );
-  const derivationMode = normalizeDerivationMode(input.derivationMode);
+  const sourceEvidenceRefs = normalizeSourceEvidenceRefs(
+    ownData(input, "sourceEvidenceRefs", "candidate input", []),
+  );
+  const derivationMode = normalizeDerivationMode(
+    ownData(input, "derivationMode", "candidate input"),
+  );
   const wikiRevision = normalizeNullableReference(
-    input.wikiRevision ?? null,
+    ownData(input, "wikiRevision", "candidate input", null) ?? null,
     "wikiRevision",
   );
-  const proposerModel = normalizeProposerModel(input.proposerModel ?? null);
+  const proposerModel = normalizeProposerModel(
+    ownData(input, "proposerModel", "candidate input", null) ?? null,
+  );
   if (sourceEvidenceRefs.length === 0) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
@@ -375,22 +966,33 @@ function candidateCore(input) {
   return {
     schema: SKILL_CANDIDATE_SCHEMA,
     status: SKILL_CANDIDATE_STATUS,
-    skillName: normalizeSkillName(input.skillName),
-    parentDigest: normalizeDigest(input.parentDigest ?? null, "parentDigest", {
-      nullable: true,
-    }),
+    tenantId,
+    skillName: normalizeSkillName(
+      ownData(input, "skillName", "candidate input"),
+    ),
+    parentDigest: normalizeDigest(
+      ownData(input, "parentDigest", "candidate input", null) ?? null,
+      "parentDigest",
+      { nullable: true },
+    ),
     contentDigest: contentDigest(content),
     sourceEvidenceRefs,
     derivationMode,
     wikiRevision,
     proposerModel,
+    dependencyLock,
+    dependencyLockDigest: dependencyLock.dependencyLockDigest,
+    runtimeManifest,
+    runtimeManifestDigest: runtimeManifest.runtimeManifestDigest,
+    targetMatrix,
+    targetMatrixRoot: targetMatrix.targetMatrixRoot,
     targetRuntimes: normalizeUniqueStringList(
-      input.targetRuntimes ?? [],
+      [...targetMatrix.targetRuntimes],
       "targetRuntimes",
       MAX_TARGET_RUNTIMES,
     ),
     requestedCapabilities: normalizeUniqueStringList(
-      input.requestedCapabilities ?? [],
+      ownData(input, "requestedCapabilities", "candidate input", []),
       "requestedCapabilities",
       MAX_REQUESTED_CAPABILITIES,
     ),
@@ -401,49 +1003,121 @@ function candidateCore(input) {
 }
 
 /** Build the only artifact shape accepted by the candidate registry. */
-export function buildSkillCandidateDraft(input) {
-  const core = candidateCore(input);
-  return deepFreeze({
+export function buildSkillCandidateDraft(input, verificationContext) {
+  const core = candidateCore(input, verificationContext);
+  const candidate = deepFreeze({
     candidateId: candidateDigest(core),
     ...core,
   });
+  serializeCandidate(candidate);
+  return candidate;
 }
 
 /** Recompute every derived field and reject non-canonical candidate objects. */
-export function verifySkillCandidateDraft(candidate) {
+export function verifySkillCandidateDraft(candidate, verificationContext) {
   assertPlainObject(candidate, "candidate artifact");
-  assertExactKeys(candidate, CANDIDATE_KEYS, "candidate artifact");
-  if (Reflect.ownKeys(candidate).length !== CANDIDATE_KEYS.size) {
-    throw registryError(
-      "SKILL_CANDIDATE_INVALID",
-      "candidate artifact is missing required fields",
+  const schema = ownData(candidate, "schema", "candidate artifact");
+  if (schema === LEGACY_SKILL_CANDIDATE_SCHEMA) {
+    throw migrationRequired(
+      "legacy SkillCandidate v1 requires explicit tenant-scoped migration",
     );
   }
+  assertDataRecord(candidate, CANDIDATE_KEYS, "candidate artifact", {
+    exact: true,
+  });
   if (
-    candidate.schema !== SKILL_CANDIDATE_SCHEMA ||
-    candidate.status !== SKILL_CANDIDATE_STATUS ||
-    candidate.contentType !== SKILL_CANDIDATE_CONTENT_TYPE
+    schema !== SKILL_CANDIDATE_SCHEMA ||
+    ownData(candidate, "status", "candidate artifact") !==
+      SKILL_CANDIDATE_STATUS ||
+    ownData(candidate, "contentType", "candidate artifact") !==
+      SKILL_CANDIDATE_CONTENT_TYPE
   ) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
       "candidate artifact schema, status, or content type is invalid",
     );
   }
-  const normalized = buildSkillCandidateDraft({
-    skillName: candidate.skillName,
-    parentDigest: candidate.parentDigest,
-    sourceEvidenceRefs: candidate.sourceEvidenceRefs,
-    derivationMode: candidate.derivationMode,
-    wikiRevision: candidate.wikiRevision,
-    proposerModel: candidate.proposerModel,
-    targetRuntimes: candidate.targetRuntimes,
-    requestedCapabilities: candidate.requestedCapabilities,
-    evalRunId: candidate.evalRunId,
-    content: candidate.content,
-  });
+  const targetMatrix = ownData(candidate, "targetMatrix", "candidate artifact");
+  assertPlainObject(targetMatrix, "candidate artifact.targetMatrix");
+  const admissionContext =
+    verificationContext === undefined
+      ? {
+          expectedEnvironmentBindings: ownData(
+            targetMatrix,
+            "cells",
+            "candidate artifact.targetMatrix",
+          ),
+          expectedTargetMatrixRoot: ownData(
+            targetMatrix,
+            "targetMatrixRoot",
+            "candidate artifact.targetMatrix",
+          ),
+        }
+      : verificationContext;
+  const normalized = buildSkillCandidateDraft(
+    {
+      tenantId: ownData(candidate, "tenantId", "candidate artifact"),
+      skillName: ownData(candidate, "skillName", "candidate artifact"),
+      parentDigest: ownData(candidate, "parentDigest", "candidate artifact"),
+      sourceEvidenceRefs: ownData(
+        candidate,
+        "sourceEvidenceRefs",
+        "candidate artifact",
+      ),
+      derivationMode: ownData(
+        candidate,
+        "derivationMode",
+        "candidate artifact",
+      ),
+      wikiRevision: ownData(candidate, "wikiRevision", "candidate artifact"),
+      proposerModel: ownData(candidate, "proposerModel", "candidate artifact"),
+      requestedCapabilities: ownData(
+        candidate,
+        "requestedCapabilities",
+        "candidate artifact",
+      ),
+      evalRunId: ownData(candidate, "evalRunId", "candidate artifact"),
+      content: ownData(candidate, "content", "candidate artifact"),
+      dependencyLock: ownData(
+        candidate,
+        "dependencyLock",
+        "candidate artifact",
+      ),
+      runtimeManifest: ownData(
+        candidate,
+        "runtimeManifest",
+        "candidate artifact",
+      ),
+      targetMatrix,
+    },
+    admissionContext,
+  );
+  normalizeCandidateId(ownData(candidate, "candidateId", "candidate artifact"));
+  normalizeDigest(
+    ownData(candidate, "contentDigest", "candidate artifact"),
+    "contentDigest",
+  );
+  normalizeDigest(
+    ownData(candidate, "dependencyLockDigest", "candidate artifact"),
+    "dependencyLockDigest",
+  );
+  normalizeDigest(
+    ownData(candidate, "runtimeManifestDigest", "candidate artifact"),
+    "runtimeManifestDigest",
+  );
+  normalizeDigest(
+    ownData(candidate, "targetMatrixRoot", "candidate artifact"),
+    "targetMatrixRoot",
+  );
+  normalizeUniqueStringList(
+    ownData(candidate, "targetRuntimes", "candidate artifact"),
+    "targetRuntimes",
+    MAX_TARGET_RUNTIMES,
+  );
   if (
-    candidate.contentDigest !== normalized.contentDigest ||
-    candidate.candidateId !== normalized.candidateId
+    ownData(candidate, "candidateId", "candidate artifact") !==
+      normalized.candidateId ||
+    !serializeCandidate(candidate).equals(serializeCandidate(normalized))
   ) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
@@ -454,6 +1128,13 @@ export function verifySkillCandidateDraft(candidate) {
 }
 
 function serializeCandidate(candidate) {
+  const canonicalBytes = canonicalByteLength(candidate);
+  if (canonicalBytes >= SKILL_CANDIDATE_MAX_ARTIFACT_BYTES) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      `candidate artifact exceeds ${SKILL_CANDIDATE_MAX_ARTIFACT_BYTES} bytes`,
+    );
+  }
   const bytes = Buffer.from(`${canonicalJson(candidate)}\n`, "utf8");
   if (bytes.length > SKILL_CANDIDATE_MAX_ARTIFACT_BYTES) {
     throw registryError(
@@ -520,6 +1201,158 @@ function fsyncDirectory(fsImpl, directory) {
   }
 }
 
+export function deriveSkillCandidateTenantKey(tenantId) {
+  const normalized = normalizeTenantId(tenantId);
+  return crypto
+    .createHash("sha256")
+    .update(TENANT_KEY_DOMAIN, "utf8")
+    .update("\0", "utf8")
+    .update(normalized, "utf8")
+    .digest("hex");
+}
+
+function buildTenantMarker(tenantId, tenantKey) {
+  const core = {
+    schema: SKILL_CANDIDATE_TENANT_MARKER_SCHEMA,
+    component: TENANT_MARKER_COMPONENT,
+    tenantId,
+    tenantKey,
+  };
+  return deepFreeze({
+    ...core,
+    markerDigest: domainDigest(TENANT_MARKER_DIGEST_DOMAIN, core),
+  });
+}
+
+function serializeTenantMarker(marker) {
+  const bytes = Buffer.from(`${canonicalJson(marker)}\n`, "utf8");
+  if (bytes.length <= 1 || bytes.length > MAX_TENANT_MARKER_BYTES) {
+    throw registryError(
+      "SKILL_CANDIDATE_STORE_UNSAFE",
+      "candidate tenant marker exceeds its byte budget",
+    );
+  }
+  return bytes;
+}
+
+function verifyTenantMarker(value, expectedTenantId, expectedTenantKey) {
+  try {
+    assertDataRecord(value, TENANT_MARKER_KEYS, "candidate tenant marker", {
+      exact: true,
+    });
+    const schema = ownData(value, "schema", "candidate tenant marker");
+    const component = ownData(value, "component", "candidate tenant marker");
+    const tenantId = normalizeTenantId(
+      ownData(value, "tenantId", "candidate tenant marker"),
+      "candidate tenant marker tenantId",
+    );
+    const tenantKey = ownData(value, "tenantKey", "candidate tenant marker");
+    if (
+      schema !== SKILL_CANDIDATE_TENANT_MARKER_SCHEMA ||
+      component !== TENANT_MARKER_COMPONENT ||
+      typeof tenantKey !== "string" ||
+      !TENANT_KEY_PATTERN.test(tenantKey)
+    ) {
+      throw new Error("marker contract mismatch");
+    }
+    const normalized = buildTenantMarker(tenantId, tenantKey);
+    if (
+      ownData(value, "markerDigest", "candidate tenant marker") !==
+        normalized.markerDigest ||
+      tenantId !== expectedTenantId ||
+      tenantKey !== expectedTenantKey ||
+      tenantKey !== deriveSkillCandidateTenantKey(tenantId)
+    ) {
+      throw new Error("marker binding mismatch");
+    }
+    return normalized;
+  } catch (cause) {
+    if (
+      cause instanceof SkillCandidateRegistryError &&
+      cause.code === "SKILL_CANDIDATE_STORE_UNSAFE"
+    ) {
+      throw cause;
+    }
+    throw registryError(
+      "SKILL_CANDIDATE_STORE_UNSAFE",
+      "candidate tenant marker is invalid or belongs to another tenant",
+      { cause },
+    );
+  }
+}
+
+function lstatOrNull(fsImpl, target) {
+  try {
+    return fsImpl.lstatSync(target);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function normalizeRegistryOptions(options) {
+  assertDataRecord(
+    options,
+    REGISTRY_OPTION_KEYS,
+    "candidate registry options",
+    {
+      required: new Set(["targetMatrixAdmissionAuthority", "tenantId"]),
+    },
+  );
+  const tenantId = normalizeTenantId(
+    ownData(options, "tenantId", "candidate registry options"),
+  );
+  const rootDir = ownData(
+    options,
+    "rootDir",
+    "candidate registry options",
+    path.join(getHomeDir(), "evolution", "registry", "candidates"),
+  );
+  if (typeof rootDir !== "string" || rootDir.length < 1) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "candidate registry rootDir must be a non-empty path string",
+    );
+  }
+  const secure = ownData(options, "secure", "candidate registry options", true);
+  const fsImpl = ownData(options, "fsImpl", "candidate registry options", fs);
+  const randomToken = ownData(
+    options,
+    "randomToken",
+    "candidate registry options",
+    () => crypto.randomBytes(16).toString("hex"),
+  );
+  const targetMatrixAdmissionAuthority =
+    normalizeTargetMatrixAdmissionAuthority(
+      ownData(
+        options,
+        "targetMatrixAdmissionAuthority",
+        "candidate registry options",
+      ),
+    );
+  rejectProxy(fsImpl, "candidate registry fsImpl");
+  rejectProxy(randomToken, "candidate registry randomToken");
+  if (
+    (secure !== true && secure !== false) ||
+    !fsImpl ||
+    typeof fsImpl !== "object" ||
+    typeof randomToken !== "function"
+  ) {
+    throw registryError(
+      "SKILL_CANDIDATE_INVALID",
+      "candidate registry options are invalid",
+    );
+  }
+  return {
+    fsImpl,
+    randomToken,
+    rootDir,
+    secure,
+    targetMatrixAdmissionAuthority,
+    tenantId,
+  };
+}
+
 /**
  * Immutable, candidate-only Skill artifact storage.
  *
@@ -527,47 +1360,45 @@ function fsyncDirectory(fsImpl, directory) {
  * promotion controller can consume verified drafts through read().
  */
 export class SkillCandidateRegistry {
-  constructor({
-    rootDir = path.join(
-      getHomeDir(),
-      "evolution",
-      "registry",
-      "candidates",
-    ),
-    secure = true,
-    fsImpl = fs,
-    randomToken = () => crypto.randomBytes(16).toString("hex"),
-  } = {}) {
+  constructor(options) {
+    const {
+      fsImpl,
+      randomToken,
+      rootDir,
+      secure,
+      targetMatrixAdmissionAuthority,
+      tenantId,
+    } = normalizeRegistryOptions(options);
     this._fs = fsImpl;
-    this._secure = secure !== false;
+    this._secure = secure;
     this._randomToken = randomToken;
-    const requestedRoot = path.resolve(rootDir);
+    this._resolveTargetMatrixAdmission = targetMatrixAdmissionAuthority.resolve;
+    this.targetMatrixAdmissionAuthority =
+      targetMatrixAdmissionAuthority.descriptor;
+    this.tenantId = tenantId;
+    this.tenantKey = deriveSkillCandidateTenantKey(tenantId);
+    const requestedBase = path.resolve(rootDir);
     try {
-      if (this._secure) {
-        ensurePrivateDirectory(requestedRoot, {
-          applyWindowsAcl: true,
-          failIfUnavailable: true,
-        });
-      } else {
-        this._fs.mkdirSync(requestedRoot, { recursive: true, mode: 0o700 });
-      }
-      const requestedStat = this._fs.lstatSync(requestedRoot);
-      if (!requestedStat.isDirectory() || requestedStat.isSymbolicLink()) {
-        throw registryError(
-          "SKILL_CANDIDATE_STORE_UNSAFE",
-          "candidate registry root must be a regular, non-symlink directory",
-        );
-      }
-      this.rootDir = realpath(this._fs, requestedRoot);
-      const canonicalStat = this._fs.lstatSync(this.rootDir);
-      if (!canonicalStat.isDirectory() || canonicalStat.isSymbolicLink()) {
-        throw registryError(
-          "SKILL_CANDIDATE_STORE_UNSAFE",
-          "candidate registry root resolved to an unsafe entry",
-        );
-      }
-      this._rootIdentity = entryIdentity(canonicalStat);
+      const base = this._initializeDirectory(requestedBase, {
+        recursive: true,
+      });
+      this.baseDir = base.path;
+      this._assertNoLegacyBaseLayout();
+      const tenants = this._initializeDirectory(
+        path.join(this.baseDir, "tenants"),
+        { parent: base },
+      );
+      const tenantRoot = this._initializeDirectory(
+        path.join(tenants.path, this.tenantKey),
+        { parent: tenants },
+      );
+      this.rootDir = tenantRoot.path;
+      this._directories = deepFreeze({ base, tenantRoot, tenants });
+      this._assertDirectories();
+      this._markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+      this._initializeTenantMarker();
       this._assertBoundary();
+      this._assertNoMixedTenantArtifacts();
     } catch (error) {
       if (error instanceof SkillCandidateRegistryError) throw error;
       throw registryError(
@@ -576,33 +1407,491 @@ export class SkillCandidateRegistry {
         { cause: error },
       );
     }
+    Object.freeze(this);
   }
 
-  _assertBoundary() {
-    let stat;
-    let canonical;
+  _initializeDirectory(
+    requestedPath,
+    { parent = null, recursive = false } = {},
+  ) {
+    const before = lstatOrNull(this._fs, requestedPath);
+    if (before && (!before.isDirectory() || before.isSymbolicLink())) {
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate registry directory path is unsafe",
+      );
+    }
+    if (!before) {
+      this._fs.mkdirSync(requestedPath, { recursive, mode: 0o700 });
+    }
+    let stat = this._fs.lstatSync(requestedPath);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate registry directory must be non-symlink",
+      );
+    }
+    const canonical = realpath(this._fs, requestedPath);
+    if (
+      !samePath(canonical, requestedPath) ||
+      (parent &&
+        (!isContained(parent.path, canonical) ||
+          !samePath(path.dirname(canonical), parent.path)))
+    ) {
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate registry directory escaped its canonical parent",
+      );
+    }
+    const identity = entryIdentity(stat);
+    if (this._secure) {
+      ensurePrivateDirectory(canonical, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
+      stat = this._fs.lstatSync(canonical);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        entryIdentity(stat) !== identity ||
+        !samePath(realpath(this._fs, canonical), canonical)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate registry directory changed during permission hardening",
+        );
+      }
+    }
+    return deepFreeze({ path: canonical, identity });
+  }
+
+  _assertNoLegacyBaseLayout() {
+    const legacyName = this._readDirectoryEntryNamesBounded(
+      this.baseDir,
+      "candidate registry base",
+    ).find(
+      (name) =>
+        CANDIDATE_FILE_PATTERN.test(name) ||
+        name === TENANT_MARKER_FILE ||
+        name.startsWith(".candidate-"),
+    );
+    if (legacyName) {
+      throw migrationRequired(
+        "legacy unscoped SkillCandidate storage requires explicit migration",
+        { path: path.join(this.baseDir, legacyName) },
+      );
+    }
+  }
+
+  _readDirectoryEntryNamesBounded(directory, label) {
+    if (typeof this._fs.opendirSync !== "function") {
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        `${label} requires bounded synchronous directory enumeration`,
+      );
+    }
+    let handle = null;
+    let enumerationError = null;
+    const names = [];
     try {
-      stat = this._fs.lstatSync(this.rootDir);
-      canonical = realpath(this._fs, this.rootDir);
+      handle = this._fs.opendirSync(directory);
+      if (
+        !handle ||
+        typeof handle.readSync !== "function" ||
+        typeof handle.closeSync !== "function"
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          `${label} returned an unsafe directory handle`,
+        );
+      }
+      while (true) {
+        const entry = handle.readSync();
+        if (entry === null) break;
+        if (!entry || typeof entry.name !== "string" || entry.name.length < 1) {
+          throw registryError(
+            "SKILL_CANDIDATE_STORE_UNSAFE",
+            `${label} returned an invalid directory entry`,
+          );
+        }
+        if (names.length >= SKILL_CANDIDATE_TENANT_SCAN_MAX_ENTRIES) {
+          throw tenantScanLimit(
+            `${label} contains more than ${SKILL_CANDIDATE_TENANT_SCAN_MAX_ENTRIES} entries`,
+          );
+        }
+        names.push(entry.name);
+      }
+    } catch (cause) {
+      enumerationError =
+        cause instanceof SkillCandidateRegistryError
+          ? cause
+          : registryError(
+              "SKILL_CANDIDATE_STORE_UNSAFE",
+              `${label} could not be enumerated safely`,
+              { cause },
+            );
+    }
+    if (handle !== null && typeof handle.closeSync === "function") {
+      try {
+        handle.closeSync();
+      } catch (cause) {
+        enumerationError = registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          `${label} directory handle could not be closed safely`,
+          { cause, enumerationError },
+        );
+      }
+    }
+    if (enumerationError !== null) throw enumerationError;
+    return names;
+  }
+
+  _assertDirectories() {
+    try {
+      for (const entry of Object.values(this._directories)) {
+        const stat = this._fs.lstatSync(entry.path);
+        if (
+          !stat.isDirectory() ||
+          stat.isSymbolicLink() ||
+          entryIdentity(stat) !== entry.identity ||
+          !samePath(realpath(this._fs, entry.path), entry.path)
+        ) {
+          throw registryError(
+            "SKILL_CANDIDATE_STORE_UNSAFE",
+            "candidate registry directory changed or became unsafe",
+          );
+        }
+      }
+      if (
+        !samePath(path.dirname(this._directories.tenants.path), this.baseDir) ||
+        !samePath(path.dirname(this.rootDir), this._directories.tenants.path) ||
+        !isContained(this.baseDir, this.rootDir)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate registry directory topology changed",
+        );
+      }
     } catch (error) {
       if (error instanceof SkillCandidateRegistryError) throw error;
       throw registryError(
         "SKILL_CANDIDATE_STORE_UNSAFE",
-        "candidate registry root is unavailable",
+        "candidate registry directory boundary is unavailable",
         { cause: error },
       );
     }
+  }
+
+  _token(code) {
+    const token = String(this._randomToken());
+    if (!/^[a-f0-9]{32}$/u.test(token)) {
+      throw registryError(code, "candidate registry random token is invalid");
+    }
+    return token;
+  }
+
+  _initializeTenantMarker() {
+    const existing = lstatOrNull(this._fs, this._markerPath);
+    if (existing) {
+      const verified = this._readAndVerifyTenantMarker();
+      this._markerIdentity = verified.identity;
+      return;
+    }
+    const entries = this._readDirectoryEntryNamesBounded(
+      this.rootDir,
+      "candidate tenant root",
+    );
+    if (entries.length !== 0) {
+      throw migrationRequired(
+        "unmarked or mixed-schema tenant candidate storage requires explicit migration",
+      );
+    }
+    const marker = buildTenantMarker(this.tenantId, this.tenantKey);
+    const bytes = serializeTenantMarker(marker);
+    const temporaryPath = path.join(
+      this.rootDir,
+      `.tenant-${process.pid}-${this._token("SKILL_CANDIDATE_STORE_UNSAFE")}.tmp`,
+    );
+    let descriptor = null;
+    let temporaryExists = false;
+    try {
+      descriptor = this._fs.openSync(temporaryPath, "wx", 0o600);
+      temporaryExists = true;
+      this._fs.writeFileSync(descriptor, bytes);
+      this._fs.fsyncSync(descriptor);
+      const written = this._fs.fstatSync(descriptor);
+      if (
+        !written.isFile() ||
+        Number(written.nlink) !== 1 ||
+        written.size !== bytes.length
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate tenant marker temporary file is unsafe",
+        );
+      }
+      const writtenIdentity = entryIdentity(written);
+      this._fs.closeSync(descriptor);
+      descriptor = null;
+      if (this._secure) {
+        ensurePrivateFile(temporaryPath, {
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+        });
+      }
+      const staged = this._fs.lstatSync(temporaryPath);
+      if (
+        !staged.isFile() ||
+        staged.isSymbolicLink() ||
+        Number(staged.nlink) !== 1 ||
+        staged.size !== bytes.length ||
+        entryIdentity(staged) !== writtenIdentity ||
+        !samePath(realpath(this._fs, temporaryPath), temporaryPath)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate tenant marker changed before publication",
+        );
+      }
+      try {
+        this._fs.linkSync(temporaryPath, this._markerPath);
+      } catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+        this._fs.unlinkSync(temporaryPath);
+        temporaryExists = false;
+        const verified = this._readAndVerifyTenantMarker();
+        this._markerIdentity = verified.identity;
+        return;
+      }
+      const linked = this._fs.lstatSync(this._markerPath);
+      if (
+        !linked.isFile() ||
+        linked.isSymbolicLink() ||
+        Number(linked.nlink) !== 2 ||
+        entryIdentity(linked) !== writtenIdentity
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate tenant marker publication was unsafe",
+        );
+      }
+      this._fs.unlinkSync(temporaryPath);
+      temporaryExists = false;
+      fsyncDirectory(this._fs, this.rootDir);
+      const verified = this._readAndVerifyTenantMarker();
+      this._markerIdentity = verified.identity;
+    } finally {
+      if (descriptor !== null) {
+        try {
+          this._fs.closeSync(descriptor);
+        } catch {
+          // The marker was not published through the authoritative path yet.
+        }
+      }
+      if (temporaryExists) {
+        try {
+          this._fs.unlinkSync(temporaryPath);
+        } catch {
+          // Fail closed on the next open if a hard-linked marker remains.
+        }
+      }
+    }
+  }
+
+  _readBoundedRegularFile(filePath, maximum, code, label) {
+    let descriptor = null;
+    try {
+      const before = this._fs.lstatSync(filePath);
+      if (
+        !before.isFile() ||
+        before.isSymbolicLink() ||
+        Number(before.nlink) !== 1 ||
+        before.size <= 0 ||
+        before.size > maximum ||
+        !samePath(realpath(this._fs, filePath), filePath)
+      ) {
+        throw registryError(
+          code,
+          `${label} must be a bounded single-link regular file`,
+        );
+      }
+      descriptor = this._fs.openSync(
+        filePath,
+        this._fs.constants.O_RDONLY | (this._fs.constants.O_NOFOLLOW || 0),
+      );
+      const opened = this._fs.fstatSync(descriptor);
+      if (
+        !opened.isFile() ||
+        Number(opened.nlink) !== 1 ||
+        entryIdentity(opened) !== entryIdentity(before) ||
+        opened.size !== before.size
+      ) {
+        throw registryError(code, `${label} changed while it was opened`);
+      }
+      const bytes = this._fs.readFileSync(descriptor);
+      const after = this._fs.fstatSync(descriptor);
+      const afterPath = this._fs.lstatSync(filePath);
+      if (
+        Number(after.nlink) !== 1 ||
+        entryIdentity(after) !== entryIdentity(opened) ||
+        after.size !== opened.size ||
+        bytes.length !== opened.size ||
+        !afterPath.isFile() ||
+        afterPath.isSymbolicLink() ||
+        Number(afterPath.nlink) !== 1 ||
+        entryIdentity(afterPath) !== entryIdentity(opened) ||
+        !samePath(realpath(this._fs, filePath), filePath)
+      ) {
+        throw registryError(code, `${label} changed while it was read`);
+      }
+      return { bytes, identity: entryIdentity(opened) };
+    } finally {
+      if (descriptor !== null) this._fs.closeSync(descriptor);
+    }
+  }
+
+  _readAndVerifyTenantMarker() {
+    let stored;
+    try {
+      stored = this._readBoundedRegularFile(
+        this._markerPath,
+        MAX_TENANT_MARKER_BYTES,
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate tenant marker",
+      );
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(
+        stored.bytes,
+      );
+      const marker = verifyTenantMarker(
+        JSON.parse(text),
+        this.tenantId,
+        this.tenantKey,
+      );
+      if (!serializeTenantMarker(marker).equals(stored.bytes)) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate tenant marker serialization is not canonical",
+        );
+      }
+      return { identity: stored.identity, marker };
+    } catch (error) {
+      if (error instanceof SkillCandidateRegistryError) throw error;
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate tenant marker could not be verified",
+        { cause: error },
+      );
+    }
+  }
+
+  _assertBoundary() {
+    this._assertDirectories();
+    const verified = this._readAndVerifyTenantMarker();
     if (
-      !stat.isDirectory() ||
-      stat.isSymbolicLink() ||
-      entryIdentity(stat) !== this._rootIdentity ||
-      !samePath(canonical, this.rootDir)
+      this._markerIdentity !== undefined &&
+      verified.identity !== this._markerIdentity
     ) {
       throw registryError(
         "SKILL_CANDIDATE_STORE_UNSAFE",
-        "candidate registry root changed or became unsafe",
+        "candidate tenant marker identity changed",
       );
     }
+    this._assertDirectories();
+  }
+
+  _assertNoMixedTenantArtifacts() {
+    this._assertBoundary();
+    const names = this._readDirectoryEntryNamesBounded(
+      this.rootDir,
+      "candidate tenant scan",
+    );
+    const budget = { bytes: 0, nodes: 0 };
+    for (const name of names) {
+      if (name === TENANT_MARKER_FILE) continue;
+      if (name.startsWith(".candidate-")) {
+        throw migrationRequired(
+          "legacy or interrupted candidate temporary storage requires explicit migration",
+          { path: path.join(this.rootDir, name) },
+        );
+      }
+      const match = CANDIDATE_FILE_PATTERN.exec(name);
+      if (!match) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "candidate tenant root contains an unexpected entry",
+          { path: path.join(this.rootDir, name) },
+        );
+      }
+      const filePath = path.join(this.rootDir, name);
+      let bytes;
+      let parsed;
+      try {
+        bytes = this._readBoundedRegularFile(
+          filePath,
+          SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "stored candidate artifact",
+        ).bytes;
+        budget.bytes += bytes.length;
+        if (budget.bytes > SKILL_CANDIDATE_TENANT_SCAN_MAX_BYTES) {
+          throw tenantScanLimit(
+            "candidate tenant scan exceeded its aggregate byte budget",
+            { path: filePath },
+          );
+        }
+        parsed = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+        );
+      } catch (cause) {
+        if (cause instanceof SkillCandidateRegistryError) throw cause;
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "stored candidate artifact is not bounded UTF-8 JSON",
+          { path: filePath, cause },
+        );
+      }
+      chargeTenantScanNodes(parsed, budget, filePath);
+      const schema =
+        parsed && typeof parsed === "object"
+          ? Object.getOwnPropertyDescriptor(parsed, "schema")?.value
+          : undefined;
+      if (schema === LEGACY_SKILL_CANDIDATE_SCHEMA) {
+        throw migrationRequired(
+          "legacy Candidate v1 requires explicit tenant-scoped migration",
+          { path: filePath, schema },
+        );
+      }
+      if (schema !== SKILL_CANDIDATE_SCHEMA) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "stored candidate artifact has a missing or unknown schema",
+          { path: filePath, schema },
+        );
+      }
+      let candidate;
+      try {
+        candidate = verifySkillCandidateDraft(parsed);
+      } catch (cause) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "stored Candidate v2 artifact is corrupt",
+          { path: filePath, cause },
+        );
+      }
+      if (
+        candidate.tenantId !== this.tenantId ||
+        candidate.candidateId.slice("sha256:".length) !== match[1] ||
+        !serializeCandidate(candidate).equals(bytes)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_STORE_UNSAFE",
+          "stored Candidate v2 artifact does not match its tenant, filename, or bytes",
+          { path: filePath },
+        );
+      }
+    }
+    this._assertBoundary();
+    return names;
   }
 
   _candidatePath(candidateId) {
@@ -622,67 +1911,65 @@ export class SkillCandidateRegistry {
 
   _readBytes(filePath) {
     this._assertBoundary();
-    let descriptor = null;
     try {
-      const before = this._fs.lstatSync(filePath);
-      if (
-        !before.isFile() ||
-        before.isSymbolicLink() ||
-        before.size <= 0 ||
-        before.size > SKILL_CANDIDATE_MAX_ARTIFACT_BYTES
-      ) {
-        throw registryError(
-          "SKILL_CANDIDATE_CORRUPT",
-          "candidate artifact must be a bounded regular, non-symlink file",
-        );
-      }
-      descriptor = this._fs.openSync(
+      return this._readBoundedRegularFile(
         filePath,
-        this._fs.constants.O_RDONLY |
-          (this._fs.constants.O_NOFOLLOW || 0),
-      );
-      const opened = this._fs.fstatSync(descriptor);
-      if (
-        !opened.isFile() ||
-        entryIdentity(opened) !== entryIdentity(before) ||
-        opened.size !== before.size
-      ) {
-        throw registryError(
-          "SKILL_CANDIDATE_CORRUPT",
-          "candidate artifact changed while it was opened",
-        );
-      }
-      const bytes = this._fs.readFileSync(descriptor);
-      const after = this._fs.fstatSync(descriptor);
-      if (
-        entryIdentity(after) !== entryIdentity(opened) ||
-        after.size !== opened.size ||
-        bytes.length !== opened.size
-      ) {
-        throw registryError(
-          "SKILL_CANDIDATE_CORRUPT",
-          "candidate artifact changed while it was read",
-        );
-      }
-      return bytes;
+        SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
+        "SKILL_CANDIDATE_CORRUPT",
+        "candidate artifact",
+      ).bytes;
     } finally {
-      if (descriptor !== null) this._fs.closeSync(descriptor);
       this._assertBoundary();
     }
   }
 
-  create(input) {
-    const candidate = buildSkillCandidateDraft(input);
-    const bytes = serializeCandidate(candidate);
-    const filePath = this._candidatePath(candidate.candidateId);
-    const token = String(this._randomToken());
-    if (!/^[a-f0-9]{32}$/u.test(token)) {
+  _resolveAdmissionContext(input) {
+    const artifacts = buildTargetMatrixAdmissionRequest(input);
+    if (artifacts.request.tenantId !== this.tenantId) {
       throw registryError(
-        "SKILL_CANDIDATE_WRITE_FAILED",
-        "candidate registry random token is invalid",
-        { candidateId: candidate.candidateId, commitState: "not-committed" },
+        "SKILL_CANDIDATE_TENANT_MISMATCH",
+        "candidate admission request does not match the registry tenant",
       );
     }
+    let resolution;
+    try {
+      resolution = this._resolveTargetMatrixAdmission(artifacts.request);
+    } catch (cause) {
+      throw registryError(
+        "SKILL_CANDIDATE_ADMISSION_REJECTED",
+        "target matrix admission authority rejected the candidate",
+        { cause },
+      );
+    }
+    return verifyTargetMatrixAdmissionResolution(
+      resolution,
+      this.targetMatrixAdmissionAuthority,
+      artifacts.request,
+      artifacts,
+    );
+  }
+
+  create(input) {
+    if (arguments.length !== 1) {
+      throw registryError(
+        "SKILL_CANDIDATE_INVALID",
+        "candidate create accepts only input; admission context is registry-owned",
+      );
+    }
+    this._assertNoMixedTenantArtifacts();
+    const verificationContext = this._resolveAdmissionContext(input);
+    const candidate = buildSkillCandidateDraft(input, verificationContext);
+    if (candidate.tenantId !== this.tenantId) {
+      throw registryError(
+        "SKILL_CANDIDATE_TENANT_MISMATCH",
+        "candidate tenant does not match the registry tenant",
+        { candidateTenantId: candidate.tenantId, tenantId: this.tenantId },
+      );
+    }
+    const bytes = serializeCandidate(candidate);
+    const filePath = this._candidatePath(candidate.candidateId);
+    const token = this._token("SKILL_CANDIDATE_WRITE_FAILED");
+    this._assertNoMixedTenantArtifacts();
     const temporaryPath = path.resolve(
       this.rootDir,
       `.candidate-${process.pid}-${token}.tmp`,
@@ -705,13 +1992,18 @@ export class SkillCandidateRegistry {
       this._fs.writeFileSync(descriptor, bytes);
       this._fs.fsyncSync(descriptor);
       const written = this._fs.fstatSync(descriptor);
-      if (!written.isFile() || written.size !== bytes.length) {
+      if (
+        !written.isFile() ||
+        Number(written.nlink) !== 1 ||
+        written.size !== bytes.length
+      ) {
         throw registryError(
           "SKILL_CANDIDATE_WRITE_FAILED",
           "candidate temporary artifact was not written completely",
           { candidateId: candidate.candidateId, commitState: "not-committed" },
         );
       }
+      const writtenIdentity = entryIdentity(written);
       this._fs.closeSync(descriptor);
       descriptor = null;
       if (this._secure) {
@@ -719,6 +2011,21 @@ export class SkillCandidateRegistry {
           applyWindowsAcl: true,
           failIfUnavailable: true,
         });
+      }
+      const staged = this._fs.lstatSync(temporaryPath);
+      if (
+        !staged.isFile() ||
+        staged.isSymbolicLink() ||
+        Number(staged.nlink) !== 1 ||
+        staged.size !== bytes.length ||
+        entryIdentity(staged) !== writtenIdentity ||
+        !samePath(realpath(this._fs, temporaryPath), temporaryPath)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_WRITE_FAILED",
+          "candidate temporary artifact changed before publication",
+          { candidateId: candidate.candidateId, commitState: "not-committed" },
+        );
       }
       this._assertBoundary();
       try {
@@ -748,9 +2055,76 @@ export class SkillCandidateRegistry {
         this._assertBoundary();
         return Object.freeze({ candidate: existing, created: false });
       }
+      const linked = this._fs.lstatSync(filePath);
+      if (
+        !linked.isFile() ||
+        linked.isSymbolicLink() ||
+        Number(linked.nlink) !== 2 ||
+        linked.size !== bytes.length ||
+        entryIdentity(linked) !== writtenIdentity ||
+        !samePath(realpath(this._fs, filePath), filePath)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_COMMIT_UNKNOWN",
+          "published candidate artifact has an unsafe identity",
+          { candidateId: candidate.candidateId, commitState: "unknown" },
+        );
+      }
       this._fs.unlinkSync(temporaryPath);
       temporaryExists = false;
+      const finalized = this._fs.lstatSync(filePath);
+      if (
+        !finalized.isFile() ||
+        finalized.isSymbolicLink() ||
+        Number(finalized.nlink) !== 1 ||
+        finalized.size !== bytes.length ||
+        entryIdentity(finalized) !== writtenIdentity
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_COMMIT_UNKNOWN",
+          "candidate artifact did not finalize as a single-link file",
+          { candidateId: candidate.candidateId, commitState: "unknown" },
+        );
+      }
       fsyncDirectory(this._fs, this.rootDir);
+      let stored;
+      let verified;
+      try {
+        stored = this._readBoundedRegularFile(
+          filePath,
+          SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
+          "SKILL_CANDIDATE_COMMIT_UNKNOWN",
+          "published candidate artifact",
+        );
+        verified = verifySkillCandidateDraft(
+          JSON.parse(
+            new TextDecoder("utf-8", { fatal: true }).decode(stored.bytes),
+          ),
+        );
+      } catch (cause) {
+        throw registryError(
+          "SKILL_CANDIDATE_COMMIT_UNKNOWN",
+          "published candidate artifact failed descriptor-safe verification",
+          {
+            candidateId: candidate.candidateId,
+            commitState: "unknown",
+            cause,
+          },
+        );
+      }
+      if (
+        stored.identity !== writtenIdentity ||
+        verified.tenantId !== this.tenantId ||
+        verified.candidateId !== candidate.candidateId ||
+        !stored.bytes.equals(bytes) ||
+        !serializeCandidate(verified).equals(bytes)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_COMMIT_UNKNOWN",
+          "published candidate artifact does not exactly match the admitted candidate",
+          { candidateId: candidate.candidateId, commitState: "unknown" },
+        );
+      }
       this._assertBoundary();
       return Object.freeze({ candidate, created: true });
     } catch (error) {
@@ -827,6 +2201,7 @@ export class SkillCandidateRegistry {
     try {
       candidate = verifySkillCandidateDraft(parsed);
     } catch (error) {
+      if (error?.code === SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE) throw error;
       throw registryError(
         "SKILL_CANDIDATE_CORRUPT",
         "candidate artifact failed schema or digest verification",
@@ -834,6 +2209,7 @@ export class SkillCandidateRegistry {
       );
     }
     if (
+      candidate.tenantId !== this.tenantId ||
       candidate.candidateId !== normalizedId ||
       !serializeCandidate(candidate).equals(bytes)
     ) {
@@ -846,34 +2222,23 @@ export class SkillCandidateRegistry {
     return candidate;
   }
 
-  list({ limit = DEFAULT_LIST_LIMIT } = {}) {
+  list(options = {}) {
+    assertDataRecord(options, LIST_OPTION_KEYS, "candidate list options");
+    const limit = ownData(
+      options,
+      "limit",
+      "candidate list options",
+      DEFAULT_LIST_LIMIT,
+    );
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIST_LIMIT) {
       throw registryError(
         "SKILL_CANDIDATE_INVALID",
         `limit must be an integer from 1 to ${MAX_LIST_LIMIT}`,
       );
     }
-    this._assertBoundary();
-    let entries;
-    try {
-      entries = this._fs.readdirSync(this.rootDir, { withFileTypes: true });
-    } catch (error) {
-      throw registryError(
-        "SKILL_CANDIDATE_STORE_UNSAFE",
-        "candidate registry could not be listed safely",
-        { cause: error },
-      );
-    }
-    const names = entries
-      .map((entry) => entry.name)
+    const names = this._assertNoMixedTenantArtifacts()
       .filter((name) => CANDIDATE_FILE_PATTERN.test(name))
       .sort();
-    if (names.length > MAX_STORED_CANDIDATES) {
-      throw registryError(
-        "SKILL_CANDIDATE_STORE_UNSAFE",
-        `candidate registry contains more than ${MAX_STORED_CANDIDATES} artifacts`,
-      );
-    }
     const candidates = names.slice(0, limit).map((name) => {
       const match = CANDIDATE_FILE_PATTERN.exec(name);
       return this.read(`sha256:${match[1]}`);

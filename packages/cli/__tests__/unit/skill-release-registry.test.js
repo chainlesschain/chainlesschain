@@ -6,7 +6,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { SkillCandidateRegistry } from "../../src/lib/evolution/skill-candidate-registry.js";
+import {
+  SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
+  SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
+  SkillCandidateRegistry,
+} from "../../src/lib/evolution/skill-candidate-registry.js";
+import {
+  buildSkillDependencyLock,
+  buildSkillRuntimeManifest,
+  buildSkillTargetMatrix,
+} from "../../src/lib/evolution/skill-execution-manifest.js";
 import {
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
   SKILL_MUTATION_OPERATIONS,
@@ -18,7 +27,6 @@ import {
   SKILL_MUTATION_TARGET_SCOPES,
   SkillMutationAuthority,
   buildSkillMutationRequest,
-  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
   digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
@@ -28,9 +36,19 @@ import {
 } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  SKILL_RELEASE_SCHEMA,
+  SKILL_RELEASE_STATE_SCHEMA,
+  SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
   SkillReleaseSimulatedCrashError,
+  deriveSkillReleaseTenantKey,
+  verifySkillRelease,
 } from "../../src/lib/evolution/skill-release-registry.js";
+
+const TENANT_ID = "tenant:test";
+const OTHER_TENANT_ID = "tenant:other";
+const candidateAdmissionRecords = new Map();
 
 const digest = (value) =>
   `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
@@ -54,6 +72,15 @@ function durableWriteJson(filePath, value) {
   fs.writeFileSync(filePath, `${canonicalJson(value)}\n`, "utf8");
 }
 
+function capturedError(callback) {
+  try {
+    callback();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected callback to throw");
+}
+
 function redigestTransitionJournal(value, mutateIntent) {
   const journal = JSON.parse(JSON.stringify(value));
   mutateIntent(journal.intent);
@@ -66,7 +93,7 @@ function redigestTransitionJournal(value, mutateIntent) {
   const journalCore = { ...journal };
   delete journalCore.journalDigest;
   journal.journalDigest = domainDigest(
-    "chainlesschain.skill-release-journal/v3",
+    "chainlesschain.skill-release-journal/v4",
     journalCore,
   );
   return journal;
@@ -184,7 +211,10 @@ class StrictTransactionLedger {
     const latestRevision = Math.max(
       ...[...this.#records.values()]
         .filter(
-          (entry) => entry.committed?.skillName === record.committed.skillName,
+          (entry) =>
+            entry.committed?.skillName === record.committed.skillName &&
+            entry.intent.mutationRequest.tenantId ===
+              record.intent.mutationRequest.tenantId,
         )
         .map((entry) => entry.committed.revision),
     );
@@ -315,7 +345,10 @@ class FileTransactionLedger {
     const latestRevision = Math.max(
       ...records
         .filter(
-          (entry) => entry.committed?.skillName === record.committed.skillName,
+          (entry) =>
+            entry.committed?.skillName === record.committed.skillName &&
+            entry.intent.mutationRequest.tenantId ===
+              record.intent.mutationRequest.tenantId,
         )
         .map((entry) => entry.committed.revision),
     );
@@ -411,8 +444,118 @@ function createAuthority() {
   });
 }
 
-function candidateInput(parentDigest = null, suffix = "one") {
+function executionFixture(tenantId = TENANT_ID, suffix = "one") {
+  const dependencyLock = buildSkillDependencyLock({
+    tenantId,
+    lock: { generation: suffix, packages: { vitest: "4.1.10" } },
+  });
+  const runtimeManifest = buildSkillRuntimeManifest({
+    tenantId,
+    runtimes: [
+      {
+        runtimeId: "cli",
+        descriptor: {
+          platform: "linux-x64",
+          runtime: "node-22.12.0",
+          sandboxPolicyDigest: digest("sandbox:cli"),
+        },
+      },
+      {
+        runtimeId: "desktop",
+        descriptor: {
+          platform: "win32-x64",
+          runtime: "electron-39",
+          sandboxPolicyDigest: digest("sandbox:desktop"),
+        },
+      },
+    ],
+  });
+  const cells = [
+    {
+      cellId: "cli-linux-x64",
+      runtimeId: "cli",
+      targetEnvironmentRef: "environment:cli-linux-x64",
+      environmentDigest: digest("environment:cli-linux-x64"),
+    },
+    {
+      cellId: "desktop-win32-x64",
+      runtimeId: "desktop",
+      targetEnvironmentRef: "environment:desktop-win32-x64",
+      environmentDigest: digest("environment:desktop-win32-x64"),
+    },
+  ];
+  const targetMatrix = buildSkillTargetMatrix({
+    tenantId,
+    dependencyLock,
+    runtimeManifest,
+    cells,
+  });
+  const fixture = {
+    context: {
+      expectedEnvironmentBindings: cells,
+      expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
+    },
+    dependencyLock,
+    runtimeManifest,
+    targetMatrix,
+  };
+  candidateAdmissionRecords.set(
+    [
+      tenantId,
+      "repair-unit-tests",
+      dependencyLock.dependencyLockDigest,
+      runtimeManifest.runtimeManifestDigest,
+      targetMatrix.targetMatrixRoot,
+    ].join("\0"),
+    fixture.context,
+  );
+  return fixture;
+}
+
+function candidateAdmissionAuthority() {
+  const descriptor = {
+    schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
+    authorityId: "authority:release-test-matrix-admission",
+    trust: "trusted",
+    revision: 1,
+    handlerArtifactDigest: digest("release-test-matrix-admission:v1"),
+  };
   return {
+    ...descriptor,
+    resolve(request) {
+      const context = candidateAdmissionRecords.get(
+        [
+          request.tenantId,
+          request.skillName,
+          request.dependencyLockDigest,
+          request.runtimeManifestDigest,
+          request.proposedTargetMatrixRoot,
+        ].join("\0"),
+      );
+      if (!context) return false;
+      return {
+        schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
+        admitted: true,
+        authorityId: descriptor.authorityId,
+        trust: descriptor.trust,
+        revision: descriptor.revision,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        tenantId: request.tenantId,
+        skillName: request.skillName,
+        dependencyLockDigest: request.dependencyLockDigest,
+        runtimeManifestDigest: request.runtimeManifestDigest,
+        expectedEnvironmentBindings: context.expectedEnvironmentBindings.map(
+          (cell) => ({ ...cell }),
+        ),
+        expectedTargetMatrixRoot: context.expectedTargetMatrixRoot,
+      };
+    },
+  };
+}
+
+function candidateInput(execution, parentDigest = null, suffix = "one") {
+  return {
+    tenantId: execution.dependencyLock.tenantId,
     skillName: "repair-unit-tests",
     parentDigest,
     sourceEvidenceRefs: [
@@ -424,10 +567,12 @@ function candidateInput(parentDigest = null, suffix = "one") {
     derivationMode: "record-replay",
     wikiRevision: null,
     proposerModel: null,
-    targetRuntimes: ["cli", "desktop"],
     requestedCapabilities: ["workspace.read"],
     evalRunId: null,
     content: `---\nname: repair-unit-tests\n---\n\nCandidate ${suffix}.\n`,
+    dependencyLock: execution.dependencyLock,
+    runtimeManifest: execution.runtimeManifest,
+    targetMatrix: execution.targetMatrix,
   };
 }
 
@@ -438,12 +583,11 @@ function requestFor({
   operation = SKILL_MUTATION_OPERATIONS.PROMOTE,
   candidateId = null,
   rollbackTargetReleaseDigest = null,
-  dependencyLock,
+  dependencyLockDigest,
+  tenantId = TENANT_ID,
 }) {
-  const dependencyLockDigest =
-    digestSkillMutationDependencyLock(dependencyLock);
   const transitionSubjectDigest = digestSkillMutationTransitionSubject({
-    tenantId: "tenant:test",
+    tenantId,
     skillName: "repair-unit-tests",
     operation,
     candidateId,
@@ -453,7 +597,7 @@ function requestFor({
     expectedActiveRevision: revision,
   });
   return buildSkillMutationRequest({
-    tenantId: "tenant:test",
+    tenantId,
     audience: "worker:promotion",
     operationId,
     operation,
@@ -470,7 +614,9 @@ function requestFor({
 
 describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   let tempRoot;
+  let registryBase;
   let registryRoot;
+  let execution;
   let candidates;
   let ledger;
   let releases;
@@ -479,18 +625,23 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-release-tx-"));
-    registryRoot = path.join(tempRoot, "releases");
+    registryBase = path.join(tempRoot, "releases");
+    execution = executionFixture();
     candidates = new SkillCandidateRegistry({
+      tenantId: TENANT_ID,
+      targetMatrixAdmissionAuthority: candidateAdmissionAuthority(),
       rootDir: path.join(tempRoot, "candidates"),
       secure: false,
     });
     ledger = new StrictTransactionLedger();
     releases = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
     });
+    registryRoot = releases.rootDir;
     authority = createAuthority();
     controller = new SkillPromotionController({
       candidateRegistry: candidates,
@@ -504,24 +655,258 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   });
 
   async function promote(candidate, revision, targetDigest, operationId) {
-    const dependencyLock = { generation: revision + 1 };
     const request = requestFor({
       targetDigest,
       revision,
       operationId,
       candidateId: candidate.candidateId,
-      dependencyLock,
+      dependencyLockDigest: candidate.dependencyLockDigest,
     });
     const capability = await authority.authorize(request);
     return controller.promote({
       candidateId: candidate.candidateId,
-      dependencyLock,
       authorization: { capability, request },
     });
   }
 
+  it("creates an exact tenant marker and isolates identical releases and ledger projections", async () => {
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            rootDir: path.join(tempRoot, "missing-tenant"),
+            secure: false,
+            transactionLedger: new StrictTransactionLedger(),
+          }),
+      ).code,
+    ).toBe("SKILL_RELEASE_INVALID");
+
+    const marker = JSON.parse(
+      fs.readFileSync(path.join(registryRoot, "_tenant.json"), "utf8"),
+    );
+    const markerCore = {
+      schema: SKILL_RELEASE_TENANT_MARKER_SCHEMA,
+      component: "skill-release-registry",
+      tenantId: TENANT_ID,
+      tenantKey: deriveSkillReleaseTenantKey(TENANT_ID),
+    };
+    expect(marker).toEqual({
+      ...markerCore,
+      markerDigest: domainDigest(
+        SKILL_RELEASE_TENANT_MARKER_SCHEMA,
+        markerCore,
+      ),
+    });
+    expect(registryRoot).toBe(
+      path.join(
+        path.resolve(registryBase),
+        "tenants",
+        deriveSkillReleaseTenantKey(TENANT_ID),
+      ),
+    );
+
+    const first = candidates.create(candidateInput(execution)).candidate;
+    const firstResult = await promote(
+      first,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+      "promotion:tenant-alpha",
+    );
+
+    const otherExecution = executionFixture(OTHER_TENANT_ID);
+    const otherCandidates = new SkillCandidateRegistry({
+      tenantId: OTHER_TENANT_ID,
+      targetMatrixAdmissionAuthority: candidateAdmissionAuthority(),
+      rootDir: path.join(tempRoot, "candidates"),
+      secure: false,
+    });
+    const otherCandidate = otherCandidates.create(
+      candidateInput(otherExecution),
+    ).candidate;
+    const otherReleases = new SkillReleaseRegistry({
+      tenantId: OTHER_TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+    });
+    const otherAuthority = createAuthority();
+    const otherController = new SkillPromotionController({
+      authority: otherAuthority,
+      candidateRegistry: otherCandidates,
+      releaseRegistry: otherReleases,
+    });
+    const otherRequest = requestFor({
+      candidateId: otherCandidate.candidateId,
+      dependencyLockDigest: otherCandidate.dependencyLockDigest,
+      operationId: "promotion:tenant-beta",
+      revision: 0,
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      tenantId: OTHER_TENANT_ID,
+    });
+    const otherResult = await otherController.promote({
+      authorization: {
+        capability: await otherAuthority.authorize(otherRequest),
+        request: otherRequest,
+      },
+      candidateId: otherCandidate.candidateId,
+    });
+
+    expect(first.content).toBe(otherCandidate.content);
+    expect(firstResult.release.releaseDigest).not.toBe(
+      otherResult.release.releaseDigest,
+    );
+    expect(releases.readState(first.skillName).revision).toBe(1);
+    expect(otherReleases.readState(first.skillName).revision).toBe(1);
+    const otherProjection = ledger
+      .records()
+      .find(
+        (record) => record.intent.mutationRequest.tenantId === OTHER_TENANT_ID,
+      ).committed;
+    ledger.setQueryOverride(() => otherProjection);
+    expect(() => releases.readState(first.skillName)).toThrow(/projection/u);
+    ledger.setQueryOverride(null);
+  });
+
+  it("fails closed on marker links/swaps, root swaps, and legacy or mixed layouts", () => {
+    const markerPath = path.join(registryRoot, "_tenant.json");
+    const markerAlias = path.join(tempRoot, "release-marker-alias.json");
+    fs.linkSync(markerPath, markerAlias);
+    expect(() => releases.readState("repair-unit-tests")).toThrow(
+      /single-link/u,
+    );
+    fs.unlinkSync(markerAlias);
+
+    const otherBase = path.join(tempRoot, "marker-swap");
+    const alpha = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: otherBase,
+      secure: false,
+      transactionLedger: new StrictTransactionLedger(),
+    });
+    const beta = new SkillReleaseRegistry({
+      tenantId: OTHER_TENANT_ID,
+      rootDir: otherBase,
+      secure: false,
+      transactionLedger: new StrictTransactionLedger(),
+    });
+    fs.copyFileSync(
+      path.join(beta.rootDir, "_tenant.json"),
+      path.join(alpha.rootDir, "_tenant.json"),
+    );
+    expect(() => alpha.readState("repair-unit-tests")).toThrow(
+      /another tenant/u,
+    );
+
+    const swapBase = path.join(tempRoot, "root-swap");
+    const swapRegistry = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: swapBase,
+      secure: false,
+      transactionLedger: new StrictTransactionLedger(),
+    });
+    fs.renameSync(swapRegistry.rootDir, `${swapRegistry.rootDir}.moved`);
+    fs.mkdirSync(swapRegistry.rootDir, { recursive: true });
+    expect(() => swapRegistry.readState("repair-unit-tests")).toThrow(
+      /directory changed|root changed/u,
+    );
+
+    const legacyBase = path.join(tempRoot, "legacy-flat");
+    fs.mkdirSync(path.join(legacyBase, "artifacts"), { recursive: true });
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            tenantId: TENANT_ID,
+            rootDir: legacyBase,
+            secure: false,
+            transactionLedger: new StrictTransactionLedger(),
+          }),
+      ).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+
+    const unmarkedBase = path.join(tempRoot, "legacy-unmarked");
+    fs.mkdirSync(
+      path.join(
+        unmarkedBase,
+        "tenants",
+        deriveSkillReleaseTenantKey(TENANT_ID),
+        "active",
+      ),
+      { recursive: true },
+    );
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            tenantId: TENANT_ID,
+            rootDir: unmarkedBase,
+            secure: false,
+            transactionLedger: new StrictTransactionLedger(),
+          }),
+      ).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+
+    durableWriteJson(path.join(registryRoot, "artifacts", "legacy.json"), {
+      schema: "chainlesschain.skill-release/v3",
+    });
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            tenantId: TENANT_ID,
+            rootDir: registryBase,
+            secure: false,
+            transactionLedger: ledger,
+          }),
+      ).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+  });
+
+  it("persists the complete candidate execution contract and rejects artifact substitution", async () => {
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+    const result = await promote(
+      candidate,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+      "promotion:artifact-binding",
+    );
+    expect(result.release).toMatchObject({
+      candidate,
+      dependencyLock: candidate.dependencyLock,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+      runtimeManifest: candidate.runtimeManifest,
+      runtimeManifestDigest: candidate.runtimeManifestDigest,
+      targetMatrix: candidate.targetMatrix,
+      targetMatrixRoot: candidate.targetMatrixRoot,
+      targetRuntimes: candidate.targetRuntimes,
+      tenantId: TENANT_ID,
+    });
+
+    const substitutedExecution = executionFixture(TENANT_ID, "substituted");
+    const substitutedCandidate = candidates.create(
+      candidateInput(substitutedExecution, null, "substituted"),
+    ).candidate;
+    const tampered = structuredClone(result.release);
+    tampered.dependencyLock = structuredClone(
+      substitutedCandidate.dependencyLock,
+    );
+    tampered.dependencyLockDigest = substitutedCandidate.dependencyLockDigest;
+    tampered.runtimeManifest = structuredClone(
+      substitutedCandidate.runtimeManifest,
+    );
+    tampered.runtimeManifestDigest = substitutedCandidate.runtimeManifestDigest;
+    tampered.targetMatrix = structuredClone(substitutedCandidate.targetMatrix);
+    tampered.targetMatrixRoot = substitutedCandidate.targetMatrixRoot;
+    tampered.targetRuntimes = [...substitutedCandidate.targetRuntimes];
+    const core = { ...tampered };
+    delete core.releaseDigest;
+    tampered.releaseDigest = domainDigest(SKILL_RELEASE_SCHEMA, core);
+    expect(() => verifySkillRelease(tampered)).toThrow(/digest verification/u);
+  });
+
   it("keeps immutable releases, LKG/dependency lock, and unforgeable historical pins", async () => {
-    const first = candidates.create(candidateInput()).candidate;
+    const first = candidates.create(candidateInput(execution)).candidate;
     const firstResult = await promote(
       first,
       0,
@@ -529,8 +914,9 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       "promotion:pin-v1",
     );
     const pin = releases.pinActive(first.skillName);
+    const secondExecution = executionFixture(TENANT_ID, "two");
     const second = candidates.create(
-      candidateInput(first.contentDigest, "two"),
+      candidateInput(secondExecution, first.contentDigest, "two"),
     ).candidate;
     const secondResult = await promote(
       second,
@@ -558,7 +944,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     durableWriteJson(pointerPath, secondResult.state);
     expect(() => releases.readPinned(Object.freeze({}))).toThrow(/forged/u);
     const reopened = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
@@ -567,7 +954,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   });
 
   it("retains prepared evidence on finalize failure and converges idempotently on reopen", async () => {
-    const candidate = candidates.create(candidateInput()).candidate;
+    const candidate = candidates.create(candidateInput(execution)).candidate;
     ledger.setFailure("finalize");
 
     await expect(
@@ -584,7 +971,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     ledger.setFailure(null);
     await new Promise((resolve) => setTimeout(resolve, 55));
     const reopened = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
@@ -605,7 +993,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     "converges the authenticated transaction after a crash at %s",
     async (crashPhase) => {
       releases = new SkillReleaseRegistry({
-        rootDir: registryRoot,
+        tenantId: TENANT_ID,
+        rootDir: registryBase,
         secure: false,
         leaseTtlMs: 40,
         transactionLedger: ledger,
@@ -619,7 +1008,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         releaseRegistry: releases,
         authority,
       });
-      const candidate = candidates.create(candidateInput()).candidate;
+      const candidate = candidates.create(candidateInput(execution)).candidate;
 
       await expect(
         promote(
@@ -631,7 +1020,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
       await new Promise((resolve) => setTimeout(resolve, 55));
       const reopened = new SkillReleaseRegistry({
-        rootDir: registryRoot,
+        tenantId: TENANT_ID,
+        rootDir: registryBase,
         secure: false,
         leaseTtlMs: 40,
         transactionLedger: ledger,
@@ -643,9 +1033,272 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     },
   );
 
+  it.each(["replacement", "in-place"])(
+    "rejects an exact-digest staged pointer %s before publication",
+    async (tamperMode) => {
+      releases = new SkillReleaseRegistry({
+        tenantId: TENANT_ID,
+        rootDir: registryBase,
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+        crashHook(phase, journal) {
+          if (phase !== "after-staging-fsync") return;
+          const stagedPath = path.join(
+            registryRoot,
+            "staging",
+            journal.stagedFile,
+          );
+          const substitutedState = JSON.parse(
+            fs.readFileSync(stagedPath, "utf8"),
+          );
+          substitutedState.fence += 1;
+          const stateCore = { ...substitutedState };
+          delete stateCore.stateDigest;
+          substitutedState.stateDigest = domainDigest(
+            SKILL_RELEASE_STATE_SCHEMA,
+            stateCore,
+          );
+          if (tamperMode === "replacement") fs.unlinkSync(stagedPath);
+          durableWriteJson(stagedPath, substitutedState);
+          expect(fs.statSync(stagedPath).nlink).toBe(1);
+        },
+      });
+      controller = new SkillPromotionController({
+        candidateRegistry: candidates,
+        releaseRegistry: releases,
+        authority,
+      });
+      const candidate = candidates.create(candidateInput(execution)).candidate;
+
+      await expect(
+        promote(
+          candidate,
+          0,
+          EMPTY_SKILL_ACTIVE_DIGEST,
+          `promotion:staged-${tamperMode}`,
+        ),
+      ).rejects.toMatchObject({ code: "SKILL_RELEASE_STATE_CORRUPT" });
+      expect(releases.readState(candidate.skillName).revision).toBe(1);
+      expect(fs.readdirSync(path.join(registryRoot, "journals"))).toEqual([]);
+      expect(fs.readdirSync(path.join(registryRoot, "staging"))).toEqual([]);
+    },
+  );
+
+  it.each(["in-place", "replacement", "unlink"])(
+    "blocks ledger finalization when the after-pointer hook performs %s tampering",
+    async (tamperMode) => {
+      releases = new SkillReleaseRegistry({
+        tenantId: TENANT_ID,
+        rootDir: registryBase,
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+        crashHook(phase, journal) {
+          if (phase !== "after-pointer") return;
+          const pointerPath = path.join(
+            registryRoot,
+            "active",
+            `${journal.skillName}.json`,
+          );
+          if (tamperMode === "unlink") {
+            fs.unlinkSync(pointerPath);
+            return;
+          }
+          const substitutedState = JSON.parse(
+            fs.readFileSync(pointerPath, "utf8"),
+          );
+          substitutedState.fence += 1;
+          const stateCore = { ...substitutedState };
+          delete stateCore.stateDigest;
+          substitutedState.stateDigest = domainDigest(
+            SKILL_RELEASE_STATE_SCHEMA,
+            stateCore,
+          );
+          if (tamperMode === "replacement") fs.unlinkSync(pointerPath);
+          durableWriteJson(pointerPath, substitutedState);
+          expect(fs.statSync(pointerPath).nlink).toBe(1);
+        },
+      });
+      controller = new SkillPromotionController({
+        candidateRegistry: candidates,
+        releaseRegistry: releases,
+        authority,
+      });
+      const candidate = candidates.create(candidateInput(execution)).candidate;
+
+      await expect(
+        promote(
+          candidate,
+          0,
+          EMPTY_SKILL_ACTIVE_DIGEST,
+          `promotion:after-pointer-${tamperMode}`,
+        ),
+      ).rejects.toMatchObject({
+        code: "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+        preserveForRecovery: true,
+      });
+      expect(ledger.records()).toHaveLength(1);
+      expect(ledger.records()[0].committed).toBeNull();
+      expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(
+        1,
+      );
+    },
+  );
+
+  it("blocks finalization when the authenticated target release changes after pointer publication", async () => {
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+      crashHook(phase, journal) {
+        if (phase !== "after-pointer") return;
+        const releasePath = path.join(
+          registryRoot,
+          "artifacts",
+          `${journal.nextState.activeReleaseDigest.slice("sha256:".length)}.json`,
+        );
+        const bytes = fs.readFileSync(releasePath);
+        const marker = Buffer.from("Candidate one", "utf8");
+        const offset = bytes.indexOf(marker);
+        expect(offset).toBeGreaterThanOrEqual(0);
+        bytes[offset] = "X".charCodeAt(0);
+        fs.writeFileSync(releasePath, bytes);
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:after-pointer-release-tamper",
+      ),
+    ).rejects.toMatchObject({
+      code: "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+      preserveForRecovery: true,
+    });
+    expect(ledger.records()[0].committed).toBeNull();
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    const recoveryError = capturedError(
+      () =>
+        new SkillReleaseRegistry({
+          tenantId: TENANT_ID,
+          rootDir: registryBase,
+          secure: false,
+          leaseTtlMs: 40,
+          transactionLedger: ledger,
+        }),
+    );
+    expect(recoveryError).toMatchObject({
+      code: "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+      preserveForRecovery: true,
+    });
+    expect(ledger.records()[0].committed).toBeNull();
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(1);
+  });
+
+  it("fails closed across restart when committed release bytes change in an awaited hook", async () => {
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+      crashHook(phase, transaction) {
+        if (phase !== "after-finalize") return;
+        const releasePath = path.join(
+          registryRoot,
+          "artifacts",
+          `${transaction.journal.nextState.activeReleaseDigest.slice("sha256:".length)}.json`,
+        );
+        const bytes = fs.readFileSync(releasePath);
+        const marker = Buffer.from("Candidate one", "utf8");
+        const offset = bytes.indexOf(marker);
+        expect(offset).toBeGreaterThanOrEqual(0);
+        bytes[offset] = "X".charCodeAt(0);
+        fs.writeFileSync(releasePath, bytes);
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:after-finalize-release-tamper",
+      ),
+    ).rejects.toMatchObject({
+      code: "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+      preserveForRecovery: true,
+    });
+    expect(ledger.records()[0].committed).not.toBeNull();
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    const recoveryError = capturedError(
+      () =>
+        new SkillReleaseRegistry({
+          tenantId: TENANT_ID,
+          rootDir: registryBase,
+          secure: false,
+          leaseTtlMs: 40,
+          transactionLedger: ledger,
+        }),
+    );
+    expect(recoveryError).toMatchObject({
+      code: "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
+      preserveForRecovery: true,
+    });
+    expect(ledger.records()[0].committed).not.toBeNull();
+    expect(fs.readdirSync(path.join(registryRoot, "journals"))).toHaveLength(1);
+  });
+
+  it.each([
+    ["deep nesting", () => `${'{"value":'.repeat(64)}null${"}".repeat(64)}\n`],
+    [
+      "large node count",
+      () =>
+        `${canonicalJson({
+          nodes: Array.from({ length: 400 }, () => Array(400).fill(0)),
+        })}\n`,
+    ],
+  ])("rejects bounded canonical %s without a RangeError", (_label, bytes) => {
+    const releaseDigest = digest(`invalid-release:${_label}`);
+    fs.writeFileSync(
+      path.join(
+        registryRoot,
+        "artifacts",
+        `${releaseDigest.slice("sha256:".length)}.json`,
+      ),
+      bytes(),
+      "utf8",
+    );
+
+    const error = capturedError(() => releases.readRelease(releaseDigest));
+    expect(error).not.toBeInstanceOf(RangeError);
+    expect(error.code).toBe("SKILL_RELEASE_CORRUPT");
+    expect(error.message).toMatch(/canonical structure budget/u);
+  });
+
   it("aborts a crash before authenticated prepare and releases stale ownership", async () => {
     releases = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
@@ -660,7 +1313,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       releaseRegistry: releases,
       authority,
     });
-    const candidate = candidates.create(candidateInput()).candidate;
+    const candidate = candidates.create(candidateInput(execution)).candidate;
     await expect(
       promote(
         candidate,
@@ -672,7 +1325,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     await new Promise((resolve) => setTimeout(resolve, 55));
 
     const reopened = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
@@ -683,9 +1337,108 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     expect(fs.readdirSync(path.join(registryRoot, "locks"))).toEqual([]);
   });
 
+  it("rejects replaying an authenticated cross-tenant intent and journal", async () => {
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: ledger,
+      crashHook(phase) {
+        if (phase === "after-journal") {
+          throw new SkillReleaseSimulatedCrashError(phase);
+        }
+      },
+    });
+    controller = new SkillPromotionController({
+      authority,
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+    });
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:tenant-journal-alpha",
+      ),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+
+    const otherExecution = executionFixture(OTHER_TENANT_ID);
+    const otherCandidates = new SkillCandidateRegistry({
+      tenantId: OTHER_TENANT_ID,
+      targetMatrixAdmissionAuthority: candidateAdmissionAuthority(),
+      rootDir: path.join(tempRoot, "candidates"),
+      secure: false,
+    });
+    const otherCandidate = otherCandidates.create(
+      candidateInput(otherExecution),
+    ).candidate;
+    const otherLedger = new StrictTransactionLedger();
+    const otherReleases = new SkillReleaseRegistry({
+      tenantId: OTHER_TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: otherLedger,
+      crashHook(phase) {
+        if (phase === "after-journal") {
+          throw new SkillReleaseSimulatedCrashError(phase);
+        }
+      },
+    });
+    const otherAuthority = createAuthority();
+    const otherController = new SkillPromotionController({
+      authority: otherAuthority,
+      candidateRegistry: otherCandidates,
+      releaseRegistry: otherReleases,
+    });
+    const otherRequest = requestFor({
+      candidateId: otherCandidate.candidateId,
+      dependencyLockDigest: otherCandidate.dependencyLockDigest,
+      operationId: "promotion:tenant-journal-beta",
+      revision: 0,
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      tenantId: OTHER_TENANT_ID,
+    });
+    await expect(
+      otherController.promote({
+        authorization: {
+          capability: await otherAuthority.authorize(otherRequest),
+          request: otherRequest,
+        },
+        candidateId: otherCandidate.candidateId,
+      }),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+
+    fs.copyFileSync(
+      path.join(
+        otherReleases.rootDir,
+        "journals",
+        `${otherCandidate.skillName}.json`,
+      ),
+      path.join(registryRoot, "journals", `${candidate.skillName}.json`),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            tenantId: TENANT_ID,
+            rootDir: registryBase,
+            secure: false,
+            leaseTtlMs: 40,
+            transactionLedger: ledger,
+          }),
+      ).code,
+    ).toBe("SKILL_RELEASE_JOURNAL_CORRUPT");
+  });
+
   it("does not activate a self-consistent public-hash journal absent from the trusted ledger", async () => {
     releases = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       transactionLedger: ledger,
@@ -699,7 +1452,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       releaseRegistry: releases,
       authority,
     });
-    const candidate = candidates.create(candidateInput()).candidate;
+    const candidate = candidates.create(candidateInput(execution)).candidate;
     await expect(
       promote(
         candidate,
@@ -723,7 +1476,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     expect(
       () =>
         new SkillReleaseRegistry({
-          rootDir: registryRoot,
+          tenantId: TENANT_ID,
+          rootDir: registryBase,
           secure: false,
           leaseTtlMs: 40,
           transactionLedger: ledger,
@@ -756,7 +1510,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     "rejects a self-consistent public-hash intent substitution: %s",
     async (_label, mutateIntent) => {
       releases = new SkillReleaseRegistry({
-        rootDir: registryRoot,
+        tenantId: TENANT_ID,
+        rootDir: registryBase,
         secure: false,
         leaseTtlMs: 40,
         transactionLedger: ledger,
@@ -771,7 +1526,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         releaseRegistry: releases,
         authority,
       });
-      const candidate = candidates.create(candidateInput()).candidate;
+      const candidate = candidates.create(candidateInput(execution)).candidate;
       await expect(
         promote(
           candidate,
@@ -795,7 +1550,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       expect(
         () =>
           new SkillReleaseRegistry({
-            rootDir: registryRoot,
+            tenantId: TENANT_ID,
+            rootDir: registryBase,
             secure: false,
             leaseTtlMs: 40,
             transactionLedger: ledger,
@@ -806,7 +1562,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   );
 
   it("rejects unauthenticated ledger projections, pointer tampering, and symlink releases", async () => {
-    const candidate = candidates.create(candidateInput()).candidate;
+    const candidate = candidates.create(candidateInput(execution)).candidate;
     const result = await promote(
       candidate,
       0,
@@ -865,7 +1621,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     }
     if (pointerSymlinkCreated) {
       expect(() => releases.readState(candidate.skillName)).toThrow(
-        /non-symlink/u,
+        /single-link/u,
       );
       fs.unlinkSync(pointerPath);
       fs.writeFileSync(pointerPath, pointerBytes);
@@ -896,14 +1652,15 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       throw error;
     }
     expect(() => releases.readRelease(result.release.releaseDigest)).toThrow(
-      /non-symlink/u,
+      /single-link/u,
     );
   });
 
   it("reclaims an expired journal-less lease and stale temporary debris", async () => {
     let clock = Date.now();
     releases = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       now: () => new Date(clock),
@@ -918,7 +1675,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       releaseRegistry: releases,
       authority,
     });
-    const candidate = candidates.create(candidateInput()).candidate;
+    const candidate = candidates.create(candidateInput(execution)).candidate;
     await expect(
       promote(
         candidate,
@@ -937,7 +1694,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     clock += 100;
 
     const reopened = new SkillReleaseRegistry({
-      rootDir: registryRoot,
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
       secure: false,
       leaseTtlMs: 40,
       now: () => new Date(clock),
@@ -967,6 +1725,9 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
           "src/lib/evolution/skill-promotion-controller.js",
         ),
       ).href,
+      manifest: pathToFileURL(
+        path.resolve(CLI_ROOT, "src/lib/evolution/skill-execution-manifest.js"),
+      ).href,
       registry: pathToFileURL(
         path.resolve(CLI_ROOT, "src/lib/evolution/skill-release-registry.js"),
       ).href,
@@ -975,7 +1736,11 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       import crypto from "node:crypto";
       import fs from "node:fs";
       import path from "node:path";
-      import { SkillCandidateRegistry } from ${JSON.stringify(moduleUrls.candidate)};
+      import {
+        SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
+        SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
+        SkillCandidateRegistry
+      } from ${JSON.stringify(moduleUrls.candidate)};
       import {
         SKILL_MUTATION_NONCE_ACK_SCHEMA,
         SKILL_MUTATION_OPERATIONS,
@@ -987,24 +1752,30 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         SKILL_MUTATION_TARGET_SCOPES,
         SkillMutationAuthority,
         buildSkillMutationRequest,
-        digestSkillMutationDependencyLock,
         digestSkillMutationTransitionSubject,
         digestSkillMutationReceiptEnvelope
       } from ${JSON.stringify(moduleUrls.authority)};
       import { EMPTY_SKILL_ACTIVE_DIGEST, SkillPromotionController } from ${JSON.stringify(moduleUrls.controller)};
+      import { buildSkillDependencyLock, buildSkillRuntimeManifest, buildSkillTargetMatrix } from ${JSON.stringify(moduleUrls.manifest)};
       import { SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA, SkillReleaseRegistry } from ${JSON.stringify(moduleUrls.registry)};
+      const TENANT_ID = "tenant:test";
+      const candidateAdmissionRecords = new Map();
       const digest = ${childSource(digest)};
       ${childSource(canonicalJson)}
       ${childSource(durableWriteJson)}
       ${childSource(FileTransactionLedger)}
       ${childSource(receiptEnvelopes)}
       ${childSource(createAuthority)}
+      ${childSource(executionFixture)}
+      ${childSource(candidateAdmissionAuthority)}
       ${childSource(candidateInput)}
       ${childSource(requestFor)}
       const root = ${JSON.stringify(hardRoot)};
       const ledger = new FileTransactionLedger(${JSON.stringify(ledgerPath)}, ${JSON.stringify(ledgerAuthenticationKey)});
-      const candidates = new SkillCandidateRegistry({ rootDir: path.join(root, "candidates"), secure: false });
+      const execution = executionFixture();
+      const candidates = new SkillCandidateRegistry({ tenantId: TENANT_ID, targetMatrixAdmissionAuthority: candidateAdmissionAuthority(), rootDir: path.join(root, "candidates"), secure: false });
       const releases = new SkillReleaseRegistry({
+        tenantId: TENANT_ID,
         rootDir: path.join(root, "releases"),
         secure: false,
         leaseTtlMs: 40,
@@ -1013,19 +1784,17 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       });
       const authority = createAuthority();
       const controller = new SkillPromotionController({ candidateRegistry: candidates, releaseRegistry: releases, authority });
-      const candidate = candidates.create(candidateInput()).candidate;
-      const dependencyLock = { generation: 1 };
+      const candidate = candidates.create(candidateInput(execution)).candidate;
       const request = requestFor({
         targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
         revision: 0,
         operationId: "promotion:hard-crash",
         candidateId: candidate.candidateId,
-        dependencyLock
+        dependencyLockDigest: candidate.dependencyLockDigest
       });
       const capability = await authority.authorize(request);
       await controller.promote({
         candidateId: candidate.candidateId,
-        dependencyLock,
         authorization: { capability, request }
       });
       process.exit(0);
@@ -1048,6 +1817,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       ledgerAuthenticationKey,
     );
     const reopened = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
       rootDir: path.join(hardRoot, "releases"),
       secure: false,
       leaseTtlMs: 40,
@@ -1058,11 +1828,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       revision: 1,
       activeReleaseDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
     });
-    expect(fs.readdirSync(path.join(hardRoot, "releases", "journals"))).toEqual(
-      [],
-    );
-    expect(fs.readdirSync(path.join(hardRoot, "releases", "locks"))).toEqual(
-      [],
-    );
+    expect(fs.readdirSync(path.join(reopened.rootDir, "journals"))).toEqual([]);
+    expect(fs.readdirSync(path.join(reopened.rootDir, "locks"))).toEqual([]);
   });
 });
