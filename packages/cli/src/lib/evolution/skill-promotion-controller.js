@@ -12,6 +12,7 @@ import {
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
+import { verifySkillEvaluatedPromotionBinding } from "./skill-evaluated-promotion.js";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
@@ -423,6 +424,37 @@ export class SkillPromotionController {
       },
     );
     return this.#applyTransition(transitionCapability);
+  }
+
+  async promoteEvaluated(input = {}) {
+    assertDataRecord(
+      input,
+      new Set([
+        "authorization",
+        "candidateId",
+        "matrixContext",
+        "matrixReceipt",
+        "matrixReceiptVerifier",
+      ]),
+      "evaluated promotion input",
+    );
+    const candidate = this.#readCandidate(input.candidateId);
+    const state = this.#readState(candidate.skillName);
+    const activeContentDigest = this.#currentContentDigest(state);
+    const matrixBinding = await verifySkillEvaluatedPromotionBinding({
+      verifier: input.matrixReceiptVerifier,
+      matrixReceipt: input.matrixReceipt,
+      matrixContext: input.matrixContext,
+      authorization: input.authorization,
+      candidate,
+      state,
+      activeContentDigest,
+    });
+    const result = await this.promote({
+      authorization: input.authorization,
+      candidateId: input.candidateId,
+    });
+    return deepFreeze({ ...result, matrixBinding });
   }
 
   async rollback(input = {}) {

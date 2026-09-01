@@ -509,6 +509,37 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     ]);
   });
 
+  it("fails closed before mutation when evaluated promotion lacks a typed matrix receipt", async () => {
+    const candidate = createCandidate();
+    const request = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:matrix-required",
+      candidateId: candidate.candidateId,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+    });
+
+    await expect(
+      controller.promoteEvaluated({
+        candidateId: candidate.candidateId,
+        authorization: await authorize(request),
+        matrixContext: Object.freeze({}),
+        matrixReceipt: Object.freeze({}),
+        matrixReceiptVerifier: Object.freeze({}),
+      }),
+    ).rejects.toMatchObject({
+      code: "SKILL_EVALUATED_PROMOTION_INVALID",
+    });
+    expect(releases.readState(candidate.skillName)).toMatchObject({
+      revision: 0,
+      activeReleaseDigest: null,
+    });
+    expect(ledger.snapshot()).toHaveLength(0);
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+    ]);
+  });
+
   it("rejects fake authority objects and forged registry transition capabilities", async () => {
     expect(
       () =>

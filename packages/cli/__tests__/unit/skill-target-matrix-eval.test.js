@@ -40,6 +40,16 @@ import {
   buildSkillTargetMatrix,
 } from "../../src/lib/evolution/skill-execution-manifest.js";
 import {
+  buildSkillEvaluatedPromotionReceiptEnvelope,
+  parseSkillEvaluatedPromotionReceiptEnvelope,
+  verifySkillEvaluatedPromotionBinding,
+} from "../../src/lib/evolution/skill-evaluated-promotion.js";
+import {
+  SKILL_MUTATION_OPERATIONS,
+  SKILL_MUTATION_TARGET_SCOPES,
+  buildSkillMutationRequest,
+} from "../../src/lib/evolution/skill-mutation-authority.js";
+import {
   SKILL_TARGET_MATRIX_EVAL_FINALIZATION_SCHEMA,
   SKILL_TARGET_MATRIX_EVAL_PLAN_RESOLUTION_SCHEMA,
   SKILL_TARGET_MATRIX_EVAL_PLAN_SCHEMA,
@@ -2485,6 +2495,125 @@ describe("Skill target matrix evaluation foundation", () => {
     await expect(
       verifySkillTargetMatrixEvalReceipt(verifier, receipt, fixture.expected),
     ).resolves.toEqual(receipt);
+
+    const evalReceipt = buildSkillEvaluatedPromotionReceiptEnvelope(receipt);
+    expect(parseSkillEvaluatedPromotionReceiptEnvelope(evalReceipt)).toEqual({
+      schema: "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1",
+      receiptDigest: receipt.receiptDigest,
+    });
+    const promotionRequest = buildSkillMutationRequest({
+      tenantId: receipt.tenantId,
+      audience: "worker:promotion",
+      operationId: "promotion:matrix-accepted",
+      operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+      transitionSubjectDigest: `sha256:${"9".repeat(64)}`,
+      skillName: receipt.skillName,
+      targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
+      expectedTargetDigest: receipt.expectedActiveContentDigest,
+      expectedTargetRevision: receipt.expectedActiveRevision,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      nonce: "matrix_promotion_nonce_0001",
+      receipts: {
+        candidateReceipt: "candidate:signed:matrix",
+        evalReceipt,
+        policyReceipt: "policy:signed:matrix",
+        actorReceipt: "actor:signed:matrix",
+        parentReceipt: "parent:signed:matrix",
+        targetReceipt: "target:signed:matrix",
+      },
+    });
+    await expect(
+      verifySkillEvaluatedPromotionBinding({
+        verifier,
+        matrixReceipt: receipt,
+        matrixContext: {
+          matrixEvalId: receipt.matrixEvalId,
+          baselineId: receipt.baselineId,
+          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+          planDigest: receipt.planDigest,
+        },
+        authorization: {
+          capability: Object.freeze({}),
+          request: promotionRequest,
+        },
+        candidate: {
+          candidateId: receipt.candidateId,
+          contentDigest: receipt.candidateContentDigest,
+          dependencyLockDigest: receipt.dependencyLockDigest,
+          runtimeManifestDigest: receipt.runtimeManifestDigest,
+          targetMatrixRoot: receipt.targetMatrixRoot,
+        },
+        state: {
+          activeReleaseDigest: receipt.baselineReleaseDigest,
+          revision: receipt.expectedActiveRevision,
+        },
+        activeContentDigest: receipt.expectedActiveContentDigest,
+      }),
+    ).resolves.toMatchObject({
+      candidateId: receipt.candidateId,
+      matrixReceiptDigest: receipt.receiptDigest,
+      decisionCommitmentDigest: receipt.decisionCommitmentDigest,
+    });
+    const nonCanonicalEnvelope = JSON.stringify({
+      receiptDigest: receipt.receiptDigest,
+      schema: "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1",
+    });
+    expect(() =>
+      parseSkillEvaluatedPromotionReceiptEnvelope(nonCanonicalEnvelope),
+    ).toThrow(/canonical encoding/i);
+    let envelopeGetterReads = 0;
+    const getterEnvelopeReceipt = structuredClone(receipt);
+    Object.defineProperty(getterEnvelopeReceipt, "receiptDigest", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        envelopeGetterReads += 1;
+        return receipt.receiptDigest;
+      },
+    });
+    expect(() =>
+      buildSkillEvaluatedPromotionReceiptEnvelope(getterEnvelopeReceipt),
+    ).toThrow(/own data field/i);
+    expect(envelopeGetterReads).toBe(0);
+    let envelopeProxyTraps = 0;
+    const proxyEnvelopeReceipt = new Proxy(structuredClone(receipt), {
+      ownKeys() {
+        envelopeProxyTraps += 1;
+        throw new Error("proxy trap must not execute");
+      },
+    });
+    expect(() =>
+      buildSkillEvaluatedPromotionReceiptEnvelope(proxyEnvelopeReceipt),
+    ).toThrow(/plain object/i);
+    expect(envelopeProxyTraps).toBe(0);
+    await expect(
+      verifySkillEvaluatedPromotionBinding({
+        verifier,
+        matrixReceipt: receipt,
+        matrixContext: {
+          matrixEvalId: receipt.matrixEvalId,
+          baselineId: receipt.baselineId,
+          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+          planDigest: receipt.planDigest,
+        },
+        authorization: {
+          capability: Object.freeze({}),
+          request: promotionRequest,
+        },
+        candidate: {
+          candidateId: receipt.candidateId,
+          contentDigest: receipt.candidateContentDigest,
+          dependencyLockDigest: receipt.dependencyLockDigest,
+          runtimeManifestDigest: receipt.runtimeManifestDigest,
+          targetMatrixRoot: receipt.targetMatrixRoot,
+        },
+        state: {
+          activeReleaseDigest: receipt.baselineReleaseDigest,
+          revision: receipt.expectedActiveRevision + 1,
+        },
+        activeContentDigest: receipt.expectedActiveContentDigest,
+      }),
+    ).rejects.toMatchObject({ code: "SKILL_EVALUATED_PROMOTION_REJECTED" });
     await expect(
       evaluateSkillTargetMatrix(aggregator, fixture.planRef),
     ).rejects.toMatchObject({
