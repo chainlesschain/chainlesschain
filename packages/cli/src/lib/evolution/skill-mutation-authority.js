@@ -13,6 +13,8 @@
 
 import { createHash } from "node:crypto";
 
+import { digestSkillMutationDependencyLock as digestExecutionManifestDependencyLock } from "./skill-execution-manifest.js";
+
 export const SKILL_MUTATION_REQUEST_SCHEMA =
   "chainlesschain.skill-mutation-request/v3";
 export const SKILL_MUTATION_CONSUME_SCHEMA =
@@ -486,117 +488,20 @@ function assertOperationScope(operation, targetScope) {
   }
 }
 
-function normalizeTransitionJson(value, label, depth = 0, budget = { nodes: 0 }) {
-  budget.nodes += 1;
-  if (depth > 20 || budget.nodes > 4096) {
-    throw authorityError(
-      SKILL_MUTATION_REQUEST_INVALID_CODE,
-      `${label} exceeds the canonical JSON structure budget`,
-    );
-  }
-  if (value === null || typeof value === "boolean") return value;
-  if (typeof value === "number") {
-    if (!Number.isSafeInteger(value) || value < 0) {
-      throw authorityError(
-        SKILL_MUTATION_REQUEST_INVALID_CODE,
-        `${label} numbers must be non-negative safe integers`,
-      );
-    }
-    return value;
-  }
-  if (typeof value === "string") {
-    return normalizeBoundedString(value, label, 16_384);
-  }
-  if (!value || typeof value !== "object") {
-    throw authorityError(
-      SKILL_MUTATION_REQUEST_INVALID_CODE,
-      `${label} must be canonical JSON`,
-    );
-  }
-  if (Array.isArray(value)) {
-    const ownKeys = Reflect.ownKeys(value);
-    if (
-      value.length > 2048 ||
-      ownKeys.length !== value.length + 1 ||
-      ownKeys.some(
-        (key) =>
-          typeof key !== "string" ||
-          (key !== "length" && !/^(?:0|[1-9]\d*)$/u.test(key)),
-      )
-    ) {
-      throw authorityError(
-        SKILL_MUTATION_REQUEST_INVALID_CODE,
-        `${label} must be a dense bounded array`,
-      );
-    }
-    return value.map((entry, index) => {
-      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
-        throw authorityError(
-          SKILL_MUTATION_REQUEST_INVALID_CODE,
-          `${label}[${index}] must be an enumerable own data property`,
-        );
-      }
-      return normalizeTransitionJson(
-        descriptor.value,
-        `${label}[${index}]`,
-        depth + 1,
-        budget,
-      );
-    });
-  }
-  if (!isPlainObject(value)) {
-    throw authorityError(
-      SKILL_MUTATION_REQUEST_INVALID_CODE,
-      `${label} must use plain objects`,
-    );
-  }
-  const keys = Reflect.ownKeys(value);
-  if (
-    keys.length > 2048 ||
-    keys.some((key) => typeof key !== "string" || !key || key.length > 256)
-  ) {
-    throw authorityError(
-      SKILL_MUTATION_REQUEST_INVALID_CODE,
-      `${label} has unsafe keys`,
-    );
-  }
-  const output = Object.create(null);
-  for (const key of keys.sort()) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
-      throw authorityError(
-        SKILL_MUTATION_REQUEST_INVALID_CODE,
-        `${label}.${key} must be an enumerable own data property`,
-      );
-    }
-    Object.defineProperty(output, key, {
-      value: normalizeTransitionJson(
-        descriptor.value,
-        `${label}.${key}`,
-        depth + 1,
-        budget,
-      ),
-      enumerable: true,
-      configurable: false,
-      writable: false,
-    });
-  }
-  return output;
-}
-
+/**
+ * Compatibility surface for mutation v3 callers. Canonicalization and hashing
+ * live in the execution-manifest module, while legacy callers retain this
+ * module's public error type and code.
+ */
 export function digestSkillMutationDependencyLock(value) {
-  const normalized = normalizeTransitionJson(value, "dependencyLock");
-  if (!isPlainObject(normalized)) {
-    throw authorityError(
-      SKILL_MUTATION_REQUEST_INVALID_CODE,
-      "dependencyLock must be an object",
-    );
+  try {
+    return digestExecutionManifestDependencyLock(value);
+  } catch (cause) {
+    if (cause?.code === SKILL_MUTATION_REQUEST_INVALID_CODE) {
+      throw authorityError(SKILL_MUTATION_REQUEST_INVALID_CODE, cause.message);
+    }
+    throw cause;
   }
-  return canonicalDigest(
-    normalized,
-    "chainlesschain.skill-dependency-lock/v1",
-  );
 }
 
 const TRANSITION_SUBJECT_INPUT_KEYS = new Set([
