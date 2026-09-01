@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SkillCandidateRegistry } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
+  SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_PRINCIPAL_SCHEMA,
   SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
   SKILL_MUTATION_RECEIPT_KINDS,
@@ -15,7 +16,9 @@ import {
   SKILL_MUTATION_TARGET_SCOPES,
   SkillMutationAuthority,
   buildSkillMutationRequest,
+  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
 import {
   EMPTY_SKILL_ACTIVE_DIGEST,
@@ -175,6 +178,8 @@ function createAuthority() {
           tenantId: request.tenantId,
           audience: request.audience,
           operationId: request.operationId,
+          operation: request.operation,
+          transitionSubjectDigest: request.transitionSubjectDigest,
           requestDigest: request.requestDigest,
           expiresAt: request.expiresAt,
         };
@@ -260,12 +265,32 @@ function mutationRequest({
   targetDigest,
   revision,
   operationId,
+  operation = SKILL_MUTATION_OPERATIONS.PROMOTE,
+  candidateId = null,
+  rollbackTargetReleaseDigest = null,
+  dependencyLock = null,
   suffix = operationId,
 }) {
+  const dependencyLockDigest =
+    dependencyLock === null
+      ? null
+      : digestSkillMutationDependencyLock(dependencyLock);
+  const transitionSubjectDigest = digestSkillMutationTransitionSubject({
+    tenantId: "tenant:test",
+    skillName: "repair-unit-tests",
+    operation,
+    candidateId,
+    rollbackTargetReleaseDigest,
+    dependencyLockDigest,
+    expectedActiveContentDigest: targetDigest,
+    expectedActiveRevision: revision,
+  });
   return buildSkillMutationRequest({
     tenantId: "tenant:test",
     audience: "worker:promotion",
     operationId,
+    operation,
+    transitionSubjectDigest,
     skillName: "repair-unit-tests",
     targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
     expectedTargetDigest: targetDigest,
@@ -319,15 +344,18 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
 
   it("composes external authorize -> exact consume -> registry prepare/finalize", async () => {
     const candidate = candidates.create(candidateInput()).candidate;
+    const dependencyLock = { packages: { vitest: "4.1.10" } };
     const request = mutationRequest({
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:initial",
+      candidateId: candidate.candidateId,
+      dependencyLock,
     });
 
     const result = await controller.promote({
       candidateId: candidate.candidateId,
-      dependencyLock: { packages: { vitest: "4.1.10" } },
+      dependencyLock,
       authorization: await authorize(request),
     });
 
@@ -380,6 +408,8 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: digest("not-active"),
       revision: 0,
       operationId: "promotion:stale",
+      candidateId: candidate.candidateId,
+      dependencyLock: {},
     });
     const authorization = await authorize(stale);
 
@@ -403,6 +433,8 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:accessor",
+      candidateId: candidate.candidateId,
+      dependencyLock: {},
     });
     let accessed = false;
     const packages = {};
@@ -435,11 +467,15 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:authorized-context",
+      candidateId: candidate.candidateId,
+      dependencyLock: {},
     });
     const swappedRequest = mutationRequest({
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:swapped-context",
+      candidateId: candidate.candidateId,
+      dependencyLock: {},
     });
     const capability =
       await authorityHarness.authority.authorize(authorizedRequest);
@@ -456,6 +492,100 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     expect(ledger.snapshot()).toEqual([]);
   });
 
+  it("rejects substituting candidate B for candidate A before authority consumption", async () => {
+    const candidateA = candidates.create(candidateInput(null, "subject-a")).candidate;
+    const candidateB = candidates.create(candidateInput(null, "subject-b")).candidate;
+    const dependencyLock = { generation: 1 };
+    const request = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:subject-candidate-a",
+      candidateId: candidateA.candidateId,
+      dependencyLock,
+    });
+
+    await expect(
+      controller.promote({
+        candidateId: candidateB.candidateId,
+        dependencyLock,
+        authorization: await authorize(request),
+      }),
+    ).rejects.toMatchObject({ code: "SKILL_PROMOTION_SUBJECT_MISMATCH" });
+
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+    ]);
+    expect(releases.readState(candidateA.skillName).revision).toBe(0);
+    expect(ledger.snapshot()).toEqual([]);
+  });
+
+  it("rejects substituting a dependency lock before authority consumption", async () => {
+    const candidate = candidates.create(candidateInput()).candidate;
+    const request = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:subject-lock-a",
+      candidateId: candidate.candidateId,
+      dependencyLock: { generation: 1, packages: { vitest: "4.1.10" } },
+    });
+
+    await expect(
+      controller.promote({
+        candidateId: candidate.candidateId,
+        dependencyLock: {
+          generation: 2,
+          packages: { vitest: "4.1.10" },
+        },
+        authorization: await authorize(request),
+      }),
+    ).rejects.toMatchObject({ code: "SKILL_PROMOTION_SUBJECT_MISMATCH" });
+
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+    ]);
+    expect(releases.readState(candidate.skillName).revision).toBe(0);
+    expect(ledger.snapshot()).toEqual([]);
+  });
+
+  it("rejects promote and rollback authorization confusion before authority consumption", async () => {
+    const candidate = candidates.create(candidateInput()).candidate;
+    const promotionRequest = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:operation-confusion",
+      candidateId: candidate.candidateId,
+      dependencyLock: {},
+    });
+    const rollbackRequest = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "rollback:operation-confusion",
+      operation: SKILL_MUTATION_OPERATIONS.ROLLBACK,
+      rollbackTargetReleaseDigest: digest("rollback-operation-target"),
+      dependencyLock: { generation: 1 },
+    });
+    const promotionAuthorization = await authorize(promotionRequest);
+    const rollbackAuthorization = await authorize(rollbackRequest);
+
+    await expect(
+      controller.rollback({ authorization: promotionAuthorization }),
+    ).rejects.toMatchObject({ code: "SKILL_PROMOTION_OPERATION_REJECTED" });
+    await expect(
+      controller.promote({
+        candidateId: candidate.candidateId,
+        dependencyLock: { generation: 1 },
+        authorization: rollbackAuthorization,
+      }),
+    ).rejects.toMatchObject({ code: "SKILL_PROMOTION_OPERATION_REJECTED" });
+
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+      "authorize",
+    ]);
+    expect(releases.readState(candidate.skillName).revision).toBe(0);
+    expect(ledger.snapshot()).toEqual([]);
+  });
+
   it("serializes concurrent authorized promotions without double-active state", async () => {
     const first = candidates.create(candidateInput(null, "one")).candidate;
     const second = candidates.create(candidateInput(null, "two")).candidate;
@@ -463,11 +593,15 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:race-one",
+      candidateId: first.candidateId,
+      dependencyLock: { generation: 1 },
     });
     const secondRequest = mutationRequest({
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:race-two",
+      candidateId: second.candidateId,
+      dependencyLock: { generation: 2 },
     });
     const [firstAuthorization, secondAuthorization] = await Promise.all([
       authorize(firstRequest),
@@ -503,6 +637,8 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       revision: 0,
       operationId: "promotion:v1",
+      candidateId: first.candidateId,
+      dependencyLock: { generation: 1 },
     });
     const firstResult = await controller.promote({
       candidateId: first.candidateId,
@@ -516,6 +652,8 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: first.contentDigest,
       revision: 1,
       operationId: "promotion:v2",
+      candidateId: second.candidateId,
+      dependencyLock: { generation: 2 },
     });
     const secondResult = await controller.promote({
       candidateId: second.candidateId,
@@ -526,6 +664,9 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       targetDigest: second.contentDigest,
       revision: 2,
       operationId: "rollback:v1",
+      operation: SKILL_MUTATION_OPERATIONS.ROLLBACK,
+      rollbackTargetReleaseDigest: firstResult.release.releaseDigest,
+      dependencyLock: firstResult.release.dependencyLock,
     });
 
     const rollback = await controller.rollback({

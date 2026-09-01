@@ -11,6 +11,7 @@ import {
   SKILL_MUTATION_NONCE_REUSED_CODE,
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
   SKILL_MUTATION_NONCE_STORE_FAILED_CODE,
+  SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_PRINCIPAL_INVALID_CODE,
   SKILL_MUTATION_PRINCIPAL_SCHEMA,
   SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
@@ -25,7 +26,9 @@ import {
   SkillMutationAuthority,
   buildSkillMutationConsumeContext,
   buildSkillMutationRequest,
+  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
   verifySkillMutationAuditEvent,
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationNonceClaim,
@@ -35,6 +38,11 @@ import {
 const NOW = "2026-09-01T12:00:00.000Z";
 const EXPIRES_AT = "2026-09-01T12:04:00.000Z";
 const TARGET_DIGEST = `sha256:${"6".repeat(64)}`;
+const CANDIDATE_ID = `sha256:${"7".repeat(64)}`;
+const ROLLBACK_RELEASE_DIGEST = `sha256:${"8".repeat(64)}`;
+const DEPENDENCY_LOCK_DIGEST = digestSkillMutationDependencyLock({
+  packages: { vitest: "4.1.10" },
+});
 const HEAD_DIGEST = `sha256:${"a".repeat(64)}`;
 
 function canonicalJson(value) {
@@ -53,7 +61,7 @@ function redigestAudit(event, overrides) {
     ...core,
     auditDigest: `sha256:${createHash("sha256")
       .update(
-        `chainlesschain.skill-mutation-audit/v2\0${canonicalJson(core)}`,
+        `chainlesschain.skill-mutation-audit/v3\0${canonicalJson(core)}`,
         "utf8",
       )
       .digest("hex")}`,
@@ -77,10 +85,14 @@ function request(
   targetScope = SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
   overrides = {},
 ) {
-  return buildSkillMutationRequest({
+  const input = {
     tenantId: "tenant:alpha",
     audience: "desktop:main",
     operationId: "operation:promote-1",
+    operation:
+      targetScope === SKILL_MUTATION_TARGET_SCOPES.ACTIVE
+        ? SKILL_MUTATION_OPERATIONS.PROMOTE
+        : SKILL_MUTATION_OPERATIONS.CREATE_CANDIDATE,
     skillName: "repair-unit-tests",
     targetScope,
     expectedTargetDigest: TARGET_DIGEST,
@@ -89,7 +101,27 @@ function request(
     nonce: "nonce_authority_0001",
     receipts: receiptEnvelopes(targetScope),
     ...overrides,
+  };
+  input.transitionSubjectDigest ??= digestSkillMutationTransitionSubject({
+    tenantId: input.tenantId,
+    skillName: input.skillName,
+    operation: input.operation,
+    candidateId:
+      input.operation === SKILL_MUTATION_OPERATIONS.ROLLBACK
+        ? null
+        : CANDIDATE_ID,
+    rollbackTargetReleaseDigest:
+      input.operation === SKILL_MUTATION_OPERATIONS.ROLLBACK
+        ? ROLLBACK_RELEASE_DIGEST
+        : null,
+    dependencyLockDigest:
+      input.operation === SKILL_MUTATION_OPERATIONS.CREATE_CANDIDATE
+        ? null
+        : DEPENDENCY_LOCK_DIGEST,
+    expectedActiveContentDigest: input.expectedTargetDigest,
+    expectedActiveRevision: input.expectedTargetRevision,
   });
+  return buildSkillMutationRequest(input);
 }
 
 function consumeContext(mutationRequest, overrides = {}) {
@@ -97,6 +129,8 @@ function consumeContext(mutationRequest, overrides = {}) {
     tenantId: mutationRequest.tenantId,
     audience: mutationRequest.audience,
     operationId: mutationRequest.operationId,
+    operation: mutationRequest.operation,
+    transitionSubjectDigest: mutationRequest.transitionSubjectDigest,
     skillName: mutationRequest.skillName,
     targetScope: mutationRequest.targetScope,
     expectedTargetDigest: mutationRequest.expectedTargetDigest,
@@ -117,6 +151,8 @@ function principalResolver(role, overrides = {}) {
       tenantId: context.tenantId,
       audience: context.audience,
       operationId: context.operationId,
+      operation: context.operation,
+      transitionSubjectDigest: context.transitionSubjectDigest,
       requestDigest: context.requestDigest,
       expiresAt: context.expiresAt,
       ...overrides,
@@ -279,6 +315,8 @@ describe("SkillMutationAuthority", () => {
       expectedTargetDigest: first.expectedTargetDigest,
       targetScope: first.targetScope,
       skillName: first.skillName,
+      transitionSubjectDigest: first.transitionSubjectDigest,
+      operation: first.operation,
       operationId: first.operationId,
       audience: first.audience,
       tenantId: first.tenantId,
@@ -300,6 +338,61 @@ describe("SkillMutationAuthority", () => {
     ).toThrow(/exactly the supported fields/u);
   });
 
+  it("canonically binds the exact transition subject and rejects ambiguous target unions", () => {
+    const firstLock = digestSkillMutationDependencyLock({
+      packages: { vitest: "4.1.10", zod: "4.0.0" },
+      generation: 2,
+    });
+    const reorderedLock = digestSkillMutationDependencyLock({
+      generation: 2,
+      packages: { zod: "4.0.0", vitest: "4.1.10" },
+    });
+    const subject = {
+      tenantId: "tenant:alpha",
+      skillName: "repair-unit-tests",
+      operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+      candidateId: CANDIDATE_ID,
+      rollbackTargetReleaseDigest: null,
+      dependencyLockDigest: firstLock,
+      expectedActiveContentDigest: TARGET_DIGEST,
+      expectedActiveRevision: 7,
+    };
+
+    expect(reorderedLock).toBe(firstLock);
+    expect(
+      digestSkillMutationTransitionSubject({
+        expectedActiveRevision: 7,
+        dependencyLockDigest: reorderedLock,
+        rollbackTargetReleaseDigest: null,
+        candidateId: CANDIDATE_ID,
+        operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+        expectedActiveContentDigest: TARGET_DIGEST,
+        skillName: "repair-unit-tests",
+        tenantId: "tenant:alpha",
+      }),
+    ).toBe(digestSkillMutationTransitionSubject(subject));
+    expect(
+      digestSkillMutationTransitionSubject({
+        ...subject,
+        candidateId: `sha256:${"9".repeat(64)}`,
+      }),
+    ).not.toBe(digestSkillMutationTransitionSubject(subject));
+    const prototypeNamedLock = {};
+    Object.defineProperty(prototypeNamedLock, "__proto__", {
+      value: { pinned: "1.0.0" },
+      enumerable: true,
+    });
+    expect(digestSkillMutationDependencyLock(prototypeNamedLock)).not.toBe(
+      digestSkillMutationDependencyLock({}),
+    );
+    expect(() =>
+      digestSkillMutationTransitionSubject({
+        ...subject,
+        rollbackTargetReleaseDigest: ROLLBACK_RELEASE_DIGEST,
+      }),
+    ).toThrow(/incompatible/u);
+  });
+
   it("returns an opaque, instance-owned capability and consumes it once", async () => {
     const mutationRequest = request();
     const { authority, events, verifier } = harness();
@@ -319,6 +412,8 @@ describe("SkillMutationAuthority", () => {
     );
     expect(consumptionReceipt).toMatchObject({
       consumed: true,
+      operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+      transitionSubjectDigest: mutationRequest.transitionSubjectDigest,
       requestDigest: mutationRequest.requestDigest,
       auditDigest: events.at(-1).auditDigest,
     });
@@ -453,12 +548,20 @@ describe("SkillMutationAuthority", () => {
         tenantId: "tenant:other",
       }),
     });
+    const wrongSubject = harness({
+      principal: principalResolver(SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER, {
+        transitionSubjectDigest: `sha256:${"c".repeat(64)}`,
+      }),
+    });
 
     await expect(
       unauthenticated.authority.authorize(request()),
     ).rejects.toMatchObject({ code: SKILL_MUTATION_PRINCIPAL_INVALID_CODE });
     await expect(
       crossTenant.authority.authorize(request()),
+    ).rejects.toMatchObject({ code: SKILL_MUTATION_PRINCIPAL_INVALID_CODE });
+    await expect(
+      wrongSubject.authority.authorize(request()),
     ).rejects.toMatchObject({ code: SKILL_MUTATION_PRINCIPAL_INVALID_CODE });
   });
 
@@ -541,7 +644,12 @@ describe("SkillMutationAuthority", () => {
   it.each([
     ["tenant", { tenantId: "tenant:other" }],
     ["audience", { audience: "worker:other" }],
-    ["operation", { operationId: "operation:other" }],
+    ["operation id", { operationId: "operation:other" }],
+    ["operation", { operation: SKILL_MUTATION_OPERATIONS.ROLLBACK }],
+    [
+      "transition subject",
+      { transitionSubjectDigest: `sha256:${"b".repeat(64)}` },
+    ],
     ["skill", { skillName: "other-skill" }],
     ["target digest", { expectedTargetDigest: `sha256:${"f".repeat(64)}` }],
     ["target revision", { expectedTargetRevision: 8 }],

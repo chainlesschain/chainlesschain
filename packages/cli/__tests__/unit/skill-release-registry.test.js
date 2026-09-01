@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SkillCandidateRegistry } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
+  SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_PRINCIPAL_SCHEMA,
   SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
   SKILL_MUTATION_RECEIPT_KINDS,
@@ -17,7 +18,9 @@ import {
   SKILL_MUTATION_TARGET_SCOPES,
   SkillMutationAuthority,
   buildSkillMutationRequest,
+  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
 import {
   EMPTY_SKILL_ACTIVE_DIGEST,
@@ -31,6 +34,8 @@ import {
 
 const digest = (value) =>
   `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
+const domainDigest = (schema, value) =>
+  digest(`${schema}\0${canonicalJson(value)}`);
 const CLI_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
@@ -47,6 +52,24 @@ function canonicalJson(value) {
 
 function durableWriteJson(filePath, value) {
   fs.writeFileSync(filePath, `${canonicalJson(value)}\n`, "utf8");
+}
+
+function redigestTransitionJournal(value, mutateIntent) {
+  const journal = JSON.parse(JSON.stringify(value));
+  mutateIntent(journal.intent);
+  const intentCore = { ...journal.intent };
+  delete intentCore.intentDigest;
+  journal.intent.intentDigest = domainDigest(
+    "chainlesschain.skill-release-transition-intent/v2",
+    intentCore,
+  );
+  const journalCore = { ...journal };
+  delete journalCore.journalDigest;
+  journal.journalDigest = domainDigest(
+    "chainlesschain.skill-release-journal/v3",
+    journalCore,
+  );
+  return journal;
 }
 
 function childSource(value) {
@@ -327,6 +350,8 @@ function createAuthority() {
           tenantId: request.tenantId,
           audience: request.audience,
           operationId: request.operationId,
+          operation: request.operation,
+          transitionSubjectDigest: request.transitionSubjectDigest,
           requestDigest: request.requestDigest,
           expiresAt: request.expiresAt,
         };
@@ -406,11 +431,32 @@ function candidateInput(parentDigest = null, suffix = "one") {
   };
 }
 
-function requestFor({ targetDigest, revision, operationId }) {
+function requestFor({
+  targetDigest,
+  revision,
+  operationId,
+  operation = SKILL_MUTATION_OPERATIONS.PROMOTE,
+  candidateId = null,
+  rollbackTargetReleaseDigest = null,
+  dependencyLock,
+}) {
+  const dependencyLockDigest = digestSkillMutationDependencyLock(dependencyLock);
+  const transitionSubjectDigest = digestSkillMutationTransitionSubject({
+    tenantId: "tenant:test",
+    skillName: "repair-unit-tests",
+    operation,
+    candidateId,
+    rollbackTargetReleaseDigest,
+    dependencyLockDigest,
+    expectedActiveContentDigest: targetDigest,
+    expectedActiveRevision: revision,
+  });
   return buildSkillMutationRequest({
     tenantId: "tenant:test",
     audience: "worker:promotion",
     operationId,
+    operation,
+    transitionSubjectDigest,
     skillName: "repair-unit-tests",
     targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
     expectedTargetDigest: targetDigest,
@@ -457,11 +503,18 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   });
 
   async function promote(candidate, revision, targetDigest, operationId) {
-    const request = requestFor({ targetDigest, revision, operationId });
+    const dependencyLock = { generation: revision + 1 };
+    const request = requestFor({
+      targetDigest,
+      revision,
+      operationId,
+      candidateId: candidate.candidateId,
+      dependencyLock,
+    });
     const capability = await authority.authorize(request);
     return controller.promote({
       candidateId: candidate.candidateId,
-      dependencyLock: { generation: revision + 1 },
+      dependencyLock,
       authorization: { capability, request },
     });
   }
@@ -678,6 +731,79 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     expect(ledger.records()).toEqual([]);
   });
 
+  it.each([
+    [
+      "candidate A to B",
+      (intent) => {
+        intent.candidateId = digest("substituted-candidate");
+      },
+    ],
+    [
+      "dependency lock A to B",
+      (intent) => {
+        intent.dependencyLockDigest = digest("substituted-dependency-lock");
+      },
+    ],
+    [
+      "promote to rollback",
+      (intent) => {
+        intent.operation = SKILL_MUTATION_OPERATIONS.ROLLBACK;
+        intent.candidateId = null;
+      },
+    ],
+  ])(
+    "rejects a self-consistent public-hash intent substitution: %s",
+    async (_label, mutateIntent) => {
+      releases = new SkillReleaseRegistry({
+        rootDir: registryRoot,
+        secure: false,
+        leaseTtlMs: 40,
+        transactionLedger: ledger,
+        crashHook(phase) {
+          if (phase === "after-journal") {
+            throw new SkillReleaseSimulatedCrashError(phase);
+          }
+        },
+      });
+      controller = new SkillPromotionController({
+        candidateRegistry: candidates,
+        releaseRegistry: releases,
+        authority,
+      });
+      const candidate = candidates.create(candidateInput()).candidate;
+      await expect(
+        promote(
+          candidate,
+          0,
+          EMPTY_SKILL_ACTIVE_DIGEST,
+          `promotion:intent-substitution-${_label.replaceAll(" ", "-")}`,
+        ),
+      ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+      const journalPath = path.join(
+        registryRoot,
+        "journals",
+        `${candidate.skillName}.json`,
+      );
+      const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+      durableWriteJson(
+        journalPath,
+        redigestTransitionJournal(journal, mutateIntent),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 55));
+
+      expect(
+        () =>
+          new SkillReleaseRegistry({
+            rootDir: registryRoot,
+            secure: false,
+            leaseTtlMs: 40,
+            transactionLedger: ledger,
+          }),
+      ).toThrow(/intent/u);
+      expect(ledger.records()).toEqual([]);
+    },
+  );
+
   it("rejects unauthenticated ledger projections, pointer tampering, and symlink releases", async () => {
     const candidate = candidates.create(candidateInput()).candidate;
     const result = await promote(
@@ -843,6 +969,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       import { SkillCandidateRegistry } from ${JSON.stringify(moduleUrls.candidate)};
       import {
         SKILL_MUTATION_NONCE_ACK_SCHEMA,
+        SKILL_MUTATION_OPERATIONS,
         SKILL_MUTATION_PRINCIPAL_SCHEMA,
         SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
         SKILL_MUTATION_RECEIPT_KINDS,
@@ -851,6 +978,8 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         SKILL_MUTATION_TARGET_SCOPES,
         SkillMutationAuthority,
         buildSkillMutationRequest,
+        digestSkillMutationDependencyLock,
+        digestSkillMutationTransitionSubject,
         digestSkillMutationReceiptEnvelope
       } from ${JSON.stringify(moduleUrls.authority)};
       import { EMPTY_SKILL_ACTIVE_DIGEST, SkillPromotionController } from ${JSON.stringify(moduleUrls.controller)};
@@ -876,11 +1005,18 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       const authority = createAuthority();
       const controller = new SkillPromotionController({ candidateRegistry: candidates, releaseRegistry: releases, authority });
       const candidate = candidates.create(candidateInput()).candidate;
-      const request = requestFor({ targetDigest: EMPTY_SKILL_ACTIVE_DIGEST, revision: 0, operationId: "promotion:hard-crash" });
+      const dependencyLock = { generation: 1 };
+      const request = requestFor({
+        targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+        revision: 0,
+        operationId: "promotion:hard-crash",
+        candidateId: candidate.candidateId,
+        dependencyLock
+      });
       const capability = await authority.authorize(request);
       await controller.promote({
         candidateId: candidate.candidateId,
-        dependencyLock: { generation: 1 },
+        dependencyLock,
         authorization: { capability, request }
       });
       process.exit(0);

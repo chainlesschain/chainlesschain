@@ -6,31 +6,33 @@ import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory } from "../secure-fs.js";
 import { verifySkillCandidateDraft } from "./skill-candidate-registry.js";
 import {
+  SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_RECEIPT_KINDS,
   SKILL_MUTATION_ROLES,
   SKILL_MUTATION_TARGET_SCOPES,
+  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
 import { consumeRegistryTransitionCapability } from "./skill-promotion-controller.js";
 
-export const SKILL_RELEASE_SCHEMA = "chainlesschain.skill-release/v2";
+export const SKILL_RELEASE_SCHEMA = "chainlesschain.skill-release/v3";
 export const SKILL_RELEASE_STATE_SCHEMA =
   "chainlesschain.skill-release-state/v2";
 export const SKILL_RELEASE_RECEIPT_SCHEMA =
-  "chainlesschain.skill-release-transition-receipt/v2";
+  "chainlesschain.skill-release-transition-receipt/v3";
 export const SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA =
   "chainlesschain.skill-release-ledger-projection/v1";
 
-const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v2";
-const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v1";
+const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
+const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
 const RELEASE_DOMAIN = `${SKILL_RELEASE_SCHEMA}\0`;
 const STATE_DOMAIN = `${SKILL_RELEASE_STATE_SCHEMA}\0`;
 const RECEIPT_DOMAIN = `${SKILL_RELEASE_RECEIPT_SCHEMA}\0`;
 const JOURNAL_DOMAIN = `${JOURNAL_SCHEMA}\0`;
 const INTENT_DOMAIN = `${INTENT_SCHEMA}\0`;
-const DEPENDENCY_LOCK_DOMAIN = "chainlesschain.skill-dependency-lock/v1\0";
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const SKILL_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
@@ -231,7 +233,7 @@ export function digestDependencyLock(value) {
   if (!isPlainObject(normalized)) {
     throw failure("SKILL_RELEASE_INVALID", "dependencyLock must be an object");
   }
-  return domainDigest(DEPENDENCY_LOCK_DOMAIN, normalized);
+  return digestSkillMutationDependencyLock(normalized);
 }
 
 function verifyRequestReceiptBinding(request, receipt) {
@@ -239,6 +241,8 @@ function verifyRequestReceiptBinding(request, receipt) {
     "tenantId",
     "audience",
     "operationId",
+    "operation",
+    "transitionSubjectDigest",
     "skillName",
     "targetScope",
     "expectedTargetDigest",
@@ -256,7 +260,11 @@ function verifyRequestReceiptBinding(request, receipt) {
   }
   if (
     request.targetScope !== SKILL_MUTATION_TARGET_SCOPES.ACTIVE ||
-    receipt.role !== SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER
+    receipt.role !== SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER ||
+    ![
+      SKILL_MUTATION_OPERATIONS.PROMOTE,
+      SKILL_MUTATION_OPERATIONS.ROLLBACK,
+    ].includes(request.operation)
   ) {
     throw failure(
       "SKILL_RELEASE_AUTHORITY_INVALID",
@@ -280,6 +288,7 @@ const RELEASE_KEYS = new Set([
   "schema",
   "skillName",
   "targetRuntimes",
+  "transitionSubjectDigest",
 ]);
 
 export function buildSkillRelease({
@@ -293,10 +302,14 @@ export function buildSkillRelease({
   const authorityReceipt =
     verifySkillMutationConsumptionReceipt(consumptionReceipt);
   verifyRequestReceiptBinding(request, authorityReceipt);
-  if (request.skillName !== verifiedCandidate.skillName) {
+  if (
+    request.operation !== SKILL_MUTATION_OPERATIONS.PROMOTE ||
+    authorityReceipt.operation !== SKILL_MUTATION_OPERATIONS.PROMOTE ||
+    request.skillName !== verifiedCandidate.skillName
+  ) {
     throw failure(
       "SKILL_RELEASE_INVALID",
-      "mutation request and candidate Skill names differ",
+      "release creation requires a promotion request for the candidate Skill",
     );
   }
   const expectedParent =
@@ -313,13 +326,33 @@ export function buildSkillRelease({
   if (!isPlainObject(normalizedLock)) {
     throw failure("SKILL_RELEASE_INVALID", "dependencyLock must be an object");
   }
+  const dependencyLockDigest = digestDependencyLock(normalizedLock);
+  const transitionSubjectDigest = digestSkillMutationTransitionSubject({
+    tenantId: request.tenantId,
+    skillName: verifiedCandidate.skillName,
+    operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+    candidateId: verifiedCandidate.candidateId,
+    rollbackTargetReleaseDigest: null,
+    dependencyLockDigest,
+    expectedActiveContentDigest: request.expectedTargetDigest,
+    expectedActiveRevision: request.expectedTargetRevision,
+  });
+  if (
+    request.transitionSubjectDigest !== transitionSubjectDigest ||
+    authorityReceipt.transitionSubjectDigest !== transitionSubjectDigest
+  ) {
+    throw failure(
+      "SKILL_RELEASE_AUTHORITY_INVALID",
+      "promotion request is not bound to the candidate and dependency lock",
+    );
+  }
   const core = {
     authorityReceiptDigest: authorityReceipt.receiptDigest,
     candidateId: verifiedCandidate.candidateId,
     content: verifiedCandidate.content,
     contentDigest: verifiedCandidate.contentDigest,
     dependencyLock: normalizedLock,
-    dependencyLockDigest: digestDependencyLock(normalizedLock),
+    dependencyLockDigest,
     mutationRequestDigest: request.requestDigest,
     parentDigest: verifiedCandidate.parentDigest,
     receiptDigests: receiptDigestsFromRequest(request),
@@ -327,6 +360,7 @@ export function buildSkillRelease({
     schema: SKILL_RELEASE_SCHEMA,
     skillName: verifiedCandidate.skillName,
     targetRuntimes: [...verifiedCandidate.targetRuntimes],
+    transitionSubjectDigest,
   };
   return deepFreeze({
     ...core,
@@ -373,6 +407,10 @@ export function verifySkillRelease(value) {
     schema: SKILL_RELEASE_SCHEMA,
     skillName: skillName(value.skillName),
     targetRuntimes: normalizeJson(value.targetRuntimes, "targetRuntimes"),
+    transitionSubjectDigest: digest(
+      value.transitionSubjectDigest,
+      "transitionSubjectDigest",
+    ),
   };
   if (
     !Array.isArray(core.requestedCapabilities) ||
@@ -1427,6 +1465,8 @@ export class SkillReleaseRegistry {
     const core = {
       authorityReceipt: payload.authorityReceipt,
       authorityReceiptDigest: payload.authorityReceipt.receiptDigest,
+      candidateId: payload.candidate?.candidateId ?? null,
+      dependencyLockDigest: payload.dependencyLockDigest,
       expectedParentDigest: payload.expectedParentDigest,
       expectedRevision: payload.expectedRevision,
       nextStateDigest: nextState.stateDigest,
@@ -1442,6 +1482,7 @@ export class SkillReleaseRegistry {
       skillName: payload.skillName,
       targetReleaseDigest: nextState.activeReleaseDigest,
       transactionId: nextState.transactionId,
+      transitionSubjectDigest: payload.transitionSubjectDigest,
     };
     return deepFreeze({
       ...core,
@@ -1453,6 +1494,8 @@ export class SkillReleaseRegistry {
     const keys = new Set([
       "authorityReceiptDigest",
       "authorityReceipt",
+      "candidateId",
+      "dependencyLockDigest",
       "expectedParentDigest",
       "expectedRevision",
       "mutationRequest",
@@ -1468,6 +1511,7 @@ export class SkillReleaseRegistry {
       "skillName",
       "targetReleaseDigest",
       "transactionId",
+      "transitionSubjectDigest",
     ]);
     assertExactKeys(
       value,
@@ -1489,12 +1533,14 @@ export class SkillReleaseRegistry {
     }
     for (const field of [
       "authorityReceiptDigest",
+      "dependencyLockDigest",
       "expectedParentDigest",
       "nextStateDigest",
       "pointerDigest",
       "requestDigest",
       "targetReleaseDigest",
       "transactionId",
+      "transitionSubjectDigest",
       "intentDigest",
     ]) {
       digest(value[field], `intent.${field}`);
@@ -1502,6 +1548,7 @@ export class SkillReleaseRegistry {
     digest(value.previousStateDigest, "intent.previousStateDigest", {
       nullable: true,
     });
+    digest(value.candidateId, "intent.candidateId", { nullable: true });
     safeInteger(value.expectedRevision, "intent.expectedRevision");
     skillName(value.skillName);
     boundedString(value.operationId, "intent.operationId");
@@ -1514,6 +1561,9 @@ export class SkillReleaseRegistry {
       authorityReceipt.receiptDigest !== value.authorityReceiptDigest ||
       authorityReceipt.requestDigest !== value.requestDigest ||
       authorityReceipt.operationId !== value.operationId ||
+      authorityReceipt.operation !== value.operation ||
+      authorityReceipt.transitionSubjectDigest !==
+        value.transitionSubjectDigest ||
       authorityReceipt.skillName !== value.skillName ||
       authorityReceipt.expectedTargetDigest !== value.expectedParentDigest ||
       authorityReceipt.expectedTargetRevision !== value.expectedRevision
@@ -1526,12 +1576,35 @@ export class SkillReleaseRegistry {
     verifyRequestReceiptBinding(mutationRequest, authorityReceipt);
     if (
       mutationRequest.requestDigest !== value.requestDigest ||
+      mutationRequest.operation !== value.operation ||
+      mutationRequest.transitionSubjectDigest !==
+        value.transitionSubjectDigest ||
       canonicalJson(receiptDigestsFromRequest(mutationRequest)) !==
         canonicalJson(value.receiptDigests)
     ) {
       throw failure(
         "SKILL_RELEASE_JOURNAL_CORRUPT",
         "intent six-receipt bindings are invalid",
+      );
+    }
+    const expectedTransitionSubjectDigest =
+      digestSkillMutationTransitionSubject({
+        tenantId: mutationRequest.tenantId,
+        skillName: value.skillName,
+        operation: value.operation,
+        candidateId: value.candidateId,
+        rollbackTargetReleaseDigest:
+          value.operation === SKILL_MUTATION_OPERATIONS.ROLLBACK
+            ? value.targetReleaseDigest
+            : null,
+        dependencyLockDigest: value.dependencyLockDigest,
+        expectedActiveContentDigest: value.expectedParentDigest,
+        expectedActiveRevision: value.expectedRevision,
+      });
+    if (value.transitionSubjectDigest !== expectedTransitionSubjectDigest) {
+      throw failure(
+        "SKILL_RELEASE_JOURNAL_CORRUPT",
+        "intent transition subject is not bound to its operation target",
       );
     }
     return deepFreeze({ ...value });
@@ -1602,6 +1675,8 @@ export class SkillReleaseRegistry {
       nextState.stateDigest !== intent.nextStateDigest ||
       nextState.stateDigest !== intent.pointerDigest ||
       nextState.activeReleaseDigest !== intent.targetReleaseDigest ||
+      nextState.authorityReceiptDigest !== intent.authorityReceiptDigest ||
+      nextState.dependencyLockDigest !== intent.dependencyLockDigest ||
       nextState.revision !== intent.expectedRevision + 1 ||
       (previousState === null
         ? intent.previousStateDigest !== null || intent.expectedRevision !== 0
@@ -1910,6 +1985,7 @@ export class SkillReleaseRegistry {
       "authorityReceipt",
       "candidate",
       "dependencyLock",
+      "dependencyLockDigest",
       "expectedParentDigest",
       "expectedRevision",
       "mutationRequest",
@@ -1919,6 +1995,7 @@ export class SkillReleaseRegistry {
       "requestDigest",
       "skillName",
       "targetReleaseDigest",
+      "transitionSubjectDigest",
     ]);
     assertExactKeys(value, keys, "transition capability payload");
     const authorityReceipt = verifySkillMutationConsumptionReceipt(
@@ -1930,6 +2007,9 @@ export class SkillReleaseRegistry {
       authorityReceipt.targetScope !== SKILL_MUTATION_TARGET_SCOPES.ACTIVE ||
       authorityReceipt.skillName !== value.skillName ||
       authorityReceipt.operationId !== value.operationId ||
+      authorityReceipt.operation !== value.operation ||
+      authorityReceipt.transitionSubjectDigest !==
+        value.transitionSubjectDigest ||
       authorityReceipt.requestDigest !== value.requestDigest ||
       authorityReceipt.expectedTargetDigest !== value.expectedParentDigest ||
       authorityReceipt.expectedTargetRevision !== value.expectedRevision
@@ -1939,12 +2019,20 @@ export class SkillReleaseRegistry {
         "transition capability authority receipt bindings differ",
       );
     }
-    if (!["promote", "rollback"].includes(value.operation)) {
+    if (
+      ![
+        SKILL_MUTATION_OPERATIONS.PROMOTE,
+        SKILL_MUTATION_OPERATIONS.ROLLBACK,
+      ].includes(value.operation)
+    ) {
       throw failure("SKILL_RELEASE_INVALID", "transition operation is invalid");
     }
     verifyRequestReceiptBinding(mutationRequest, authorityReceipt);
     if (
       mutationRequest.requestDigest !== value.requestDigest ||
+      mutationRequest.operation !== value.operation ||
+      mutationRequest.transitionSubjectDigest !==
+        value.transitionSubjectDigest ||
       canonicalJson(receiptDigestsFromRequest(mutationRequest)) !==
         canonicalJson(value.receiptDigests)
     ) {
@@ -1956,6 +2044,10 @@ export class SkillReleaseRegistry {
     let candidate = null;
     let dependencyLock = null;
     let targetReleaseDigest = null;
+    const dependencyLockDigest = digest(
+      value.dependencyLockDigest,
+      "dependencyLockDigest",
+    );
     if (value.operation === "promote") {
       candidate = verifySkillCandidateDraft(value.candidate);
       dependencyLock = normalizeJson(value.dependencyLock, "dependencyLock");
@@ -1966,6 +2058,12 @@ export class SkillReleaseRegistry {
         throw failure(
           "SKILL_RELEASE_INVALID",
           "promotion requires candidate/dependency lock and no caller target digest",
+        );
+      }
+      if (digestDependencyLock(dependencyLock) !== dependencyLockDigest) {
+        throw failure(
+          "SKILL_RELEASE_AUTHORITY_INVALID",
+          "promotion dependency lock differs from its authorized digest",
         );
       }
     } else {
@@ -1980,10 +2078,28 @@ export class SkillReleaseRegistry {
         "targetReleaseDigest",
       );
     }
+    const expectedTransitionSubjectDigest =
+      digestSkillMutationTransitionSubject({
+        tenantId: mutationRequest.tenantId,
+        skillName: value.skillName,
+        operation: value.operation,
+        candidateId: candidate?.candidateId ?? null,
+        rollbackTargetReleaseDigest: targetReleaseDigest,
+        dependencyLockDigest,
+        expectedActiveContentDigest: value.expectedParentDigest,
+        expectedActiveRevision: value.expectedRevision,
+      });
+    if (value.transitionSubjectDigest !== expectedTransitionSubjectDigest) {
+      throw failure(
+        "SKILL_RELEASE_AUTHORITY_INVALID",
+        "transition capability subject differs from the exact registry mutation",
+      );
+    }
     return deepFreeze({
       authorityReceipt,
       candidate,
       dependencyLock,
+      dependencyLockDigest,
       expectedParentDigest: digest(
         value.expectedParentDigest,
         "expectedParentDigest",
@@ -1996,6 +2112,10 @@ export class SkillReleaseRegistry {
       requestDigest: digest(value.requestDigest, "requestDigest"),
       skillName: skillName(value.skillName),
       targetReleaseDigest,
+      transitionSubjectDigest: digest(
+        value.transitionSubjectDigest,
+        "transitionSubjectDigest",
+      ),
     });
   }
 
@@ -2024,11 +2144,18 @@ export class SkillReleaseRegistry {
     if (target.skillName !== payload.skillName) {
       throw failure("SKILL_RELEASE_INVALID", "target belongs to another Skill");
     }
+    if (target.dependencyLockDigest !== payload.dependencyLockDigest) {
+      throw failure(
+        "SKILL_RELEASE_AUTHORITY_INVALID",
+        "target release dependency lock differs from the authorized transition subject",
+      );
+    }
     if (
       payload.operation === "promote" &&
       (target.authorityReceiptDigest !==
         payload.authorityReceipt.receiptDigest ||
         target.mutationRequestDigest !== payload.requestDigest ||
+        target.transitionSubjectDigest !== payload.transitionSubjectDigest ||
         canonicalJson(target.receiptDigests) !==
           canonicalJson(payload.receiptDigests))
     ) {
@@ -2044,6 +2171,7 @@ export class SkillReleaseRegistry {
       operationId: payload.operationId,
       requestDigest: payload.requestDigest,
       targetReleaseDigest: target.releaseDigest,
+      transitionSubjectDigest: payload.transitionSubjectDigest,
     });
     const acquired = this.#acquireLease(
       payload.skillName,
@@ -2137,6 +2265,7 @@ export class SkillReleaseRegistry {
         skillName: payload.skillName,
         stateDigest: nextState.stateDigest,
         transactionId,
+        transitionSubjectDigest: payload.transitionSubjectDigest,
       };
       return deepFreeze({
         release: target,

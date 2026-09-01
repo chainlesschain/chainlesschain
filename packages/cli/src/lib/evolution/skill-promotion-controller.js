@@ -1,11 +1,14 @@
 import crypto from "node:crypto";
 import {
+  SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_RECEIPT_KINDS,
   SKILL_MUTATION_ROLES,
   SKILL_MUTATION_TARGET_SCOPES,
   SkillMutationAuthority,
   buildSkillMutationConsumeContext,
+  digestSkillMutationDependencyLock,
   digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
@@ -216,6 +219,8 @@ function consumeContextFor(request) {
     tenantId: request.tenantId,
     audience: request.audience,
     operationId: request.operationId,
+    operation: request.operation,
+    transitionSubjectDigest: request.transitionSubjectDigest,
     skillName: request.skillName,
     targetScope: request.targetScope,
     expectedTargetDigest: request.expectedTargetDigest,
@@ -240,6 +245,8 @@ function verifyDirectConsumptionReceipt(value, request) {
     "tenantId",
     "audience",
     "operationId",
+    "operation",
+    "transitionSubjectDigest",
     "skillName",
     "targetScope",
     "expectedTargetDigest",
@@ -264,7 +271,7 @@ function verifyDirectConsumptionReceipt(value, request) {
   return receipt;
 }
 
-function validateAuthorizationInput(value) {
+function validateAuthorizationInput(value, expectedOperation) {
   assertDataRecord(value, new Set(["capability", "request"]), "authorization");
   const request = verifySkillMutationRequest(value.request);
   if (request.targetScope !== SKILL_MUTATION_TARGET_SCOPES.ACTIVE) {
@@ -273,8 +280,27 @@ function validateAuthorizationInput(value) {
       "promotion and rollback require an active-scope authorization",
     );
   }
+  if (request.operation !== expectedOperation) {
+    throw failure(
+      "SKILL_PROMOTION_OPERATION_REJECTED",
+      `authorization operation ${request.operation} cannot perform ${expectedOperation}`,
+    );
+  }
   receiptDigests(request);
   return { capability: value.capability, request };
+}
+
+function assertTransitionSubject(request, expectedDigest) {
+  if (request.transitionSubjectDigest !== expectedDigest) {
+    throw failure(
+      "SKILL_PROMOTION_SUBJECT_MISMATCH",
+      "authorization transition subject does not match the exact operation target, dependency lock, and active CAS",
+      {
+        actualTransitionSubjectDigest: request.transitionSubjectDigest,
+        expectedTransitionSubjectDigest: expectedDigest,
+      },
+    );
+  }
 }
 
 function issueRegistryTransitionCapability(registry, payload) {
@@ -419,7 +445,10 @@ export class SkillPromotionController {
       dependencyLock,
       "dependencyLock",
     );
-    const { capability, request } = validateAuthorizationInput(authorization);
+    const { capability, request } = validateAuthorizationInput(
+      authorization,
+      SKILL_MUTATION_OPERATIONS.PROMOTE,
+    );
     const candidate = this.#readCandidate(candidateId);
     if (
       candidate.candidateId !== candidateId ||
@@ -441,6 +470,22 @@ export class SkillPromotionController {
         "candidate parent is not the active content digest",
       );
     }
+    const dependencyLockDigest = digestSkillMutationDependencyLock(
+      normalizedDependencyLock,
+    );
+    assertTransitionSubject(
+      request,
+      digestSkillMutationTransitionSubject({
+        tenantId: request.tenantId,
+        skillName: request.skillName,
+        operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+        candidateId: candidate.candidateId,
+        rollbackTargetReleaseDigest: null,
+        dependencyLockDigest,
+        expectedActiveContentDigest: currentContentDigest,
+        expectedActiveRevision: state.revision,
+      }),
+    );
 
     const consumptionReceipt = await this.#consume(capability, request);
     const transitionCapability = issueRegistryTransitionCapability(
@@ -449,6 +494,7 @@ export class SkillPromotionController {
         authorityReceipt: consumptionReceipt,
         candidate,
         dependencyLock: normalizedDependencyLock,
+        dependencyLockDigest,
         expectedParentDigest: currentContentDigest,
         expectedRevision: state.revision,
         mutationRequest: request,
@@ -456,6 +502,7 @@ export class SkillPromotionController {
         operationId: request.operationId,
         receiptDigests: receiptDigests(request),
         requestDigest: request.requestDigest,
+        transitionSubjectDigest: request.transitionSubjectDigest,
         skillName: request.skillName,
         targetReleaseDigest: null,
       },
@@ -471,7 +518,10 @@ export class SkillPromotionController {
       { required: new Set(["authorization"]) },
     );
     const { authorization, targetReleaseDigest = null } = input;
-    const { capability, request } = validateAuthorizationInput(authorization);
+    const { capability, request } = validateAuthorizationInput(
+      authorization,
+      SKILL_MUTATION_OPERATIONS.ROLLBACK,
+    );
     const state = this.#readState(request.skillName);
     const currentContentDigest = this.#currentContentDigest(state);
     this.#assertRequestCas(request, state, currentContentDigest);
@@ -496,6 +546,19 @@ export class SkillPromotionController {
         "rollback target belongs to another Skill",
       );
     }
+    assertTransitionSubject(
+      request,
+      digestSkillMutationTransitionSubject({
+        tenantId: request.tenantId,
+        skillName: request.skillName,
+        operation: SKILL_MUTATION_OPERATIONS.ROLLBACK,
+        candidateId: null,
+        rollbackTargetReleaseDigest: target.releaseDigest,
+        dependencyLockDigest: target.dependencyLockDigest,
+        expectedActiveContentDigest: currentContentDigest,
+        expectedActiveRevision: state.revision,
+      }),
+    );
 
     const consumptionReceipt = await this.#consume(capability, request);
     const transitionCapability = issueRegistryTransitionCapability(
@@ -504,6 +567,7 @@ export class SkillPromotionController {
         authorityReceipt: consumptionReceipt,
         candidate: null,
         dependencyLock: null,
+        dependencyLockDigest: target.dependencyLockDigest,
         expectedParentDigest: currentContentDigest,
         expectedRevision: state.revision,
         mutationRequest: request,
@@ -511,6 +575,7 @@ export class SkillPromotionController {
         operationId: request.operationId,
         receiptDigests: receiptDigests(request),
         requestDigest: request.requestDigest,
+        transitionSubjectDigest: request.transitionSubjectDigest,
         skillName: request.skillName,
         targetReleaseDigest: selected,
       },

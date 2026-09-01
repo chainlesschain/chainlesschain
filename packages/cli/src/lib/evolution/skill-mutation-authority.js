@@ -14,23 +14,25 @@
 import { createHash } from "node:crypto";
 
 export const SKILL_MUTATION_REQUEST_SCHEMA =
-  "chainlesschain.skill-mutation-request/v2";
+  "chainlesschain.skill-mutation-request/v3";
 export const SKILL_MUTATION_CONSUME_SCHEMA =
-  "chainlesschain.skill-mutation-consume/v1";
+  "chainlesschain.skill-mutation-consume/v2";
 export const SKILL_MUTATION_PRINCIPAL_SCHEMA =
-  "chainlesschain.skill-mutation-principal/v1";
+  "chainlesschain.skill-mutation-principal/v2";
 export const SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA =
-  "chainlesschain.skill-mutation-receipt-verification/v1";
+  "chainlesschain.skill-mutation-receipt-verification/v2";
 export const SKILL_MUTATION_RECEIPT_BINDING_SCHEMA =
-  "chainlesschain.skill-mutation-receipt-binding/v1";
+  "chainlesschain.skill-mutation-receipt-binding/v2";
 export const SKILL_MUTATION_AUDIT_SCHEMA =
-  "chainlesschain.skill-mutation-audit/v2";
+  "chainlesschain.skill-mutation-audit/v3";
 export const SKILL_MUTATION_NONCE_CLAIM_SCHEMA =
   "chainlesschain.skill-mutation-nonce-claim/v1";
 export const SKILL_MUTATION_NONCE_ACK_SCHEMA =
   "chainlesschain.skill-mutation-nonce-ack/v1";
 export const SKILL_MUTATION_CONSUMPTION_RECEIPT_SCHEMA =
-  "chainlesschain.skill-mutation-consumption-receipt/v1";
+  "chainlesschain.skill-mutation-consumption-receipt/v2";
+export const SKILL_MUTATION_TRANSITION_SUBJECT_SCHEMA =
+  "chainlesschain.skill-mutation-transition-subject/v1";
 
 export const SKILL_MUTATION_REQUEST_INVALID_CODE =
   "CC_SKILL_MUTATION_REQUEST_INVALID";
@@ -71,6 +73,12 @@ export const SKILL_MUTATION_TARGET_SCOPES = Object.freeze({
   ACTIVE: "active",
 });
 
+export const SKILL_MUTATION_OPERATIONS = Object.freeze({
+  CREATE_CANDIDATE: "create-candidate",
+  PROMOTE: "promote",
+  ROLLBACK: "rollback",
+});
+
 export const SKILL_MUTATION_RECEIPT_KINDS = Object.freeze([
   "candidate",
   "eval",
@@ -87,6 +95,7 @@ const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 const NONCE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/u;
 const ROLE_VALUES = new Set(Object.values(SKILL_MUTATION_ROLES));
 const TARGET_VALUES = new Set(Object.values(SKILL_MUTATION_TARGET_SCOPES));
+const OPERATION_VALUES = new Set(Object.values(SKILL_MUTATION_OPERATIONS));
 const CANDIDATE_ROLES = new Set([
   SKILL_MUTATION_ROLES.CANDIDATE_WRITER,
   SKILL_MUTATION_ROLES.PROPOSER,
@@ -102,6 +111,8 @@ const REQUEST_INPUT_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "skillName",
   "targetScope",
   "expectedTargetDigest",
@@ -119,6 +130,8 @@ const REQUEST_CONTEXT_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "skillName",
   "targetScope",
   "expectedTargetDigest",
@@ -131,6 +144,8 @@ const CONSUME_INPUT_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "skillName",
   "targetScope",
   "expectedTargetDigest",
@@ -147,6 +162,8 @@ const PRINCIPAL_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "requestDigest",
   "expiresAt",
 ]);
@@ -167,6 +184,8 @@ const AUDIT_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "skillName",
   "targetScope",
   "expectedTargetDigest",
@@ -211,6 +230,8 @@ const CONSUMPTION_RECEIPT_KEYS = new Set([
   "tenantId",
   "audience",
   "operationId",
+  "operation",
+  "transitionSubjectDigest",
   "skillName",
   "targetScope",
   "expectedTargetDigest",
@@ -438,6 +459,228 @@ function normalizeTargetScope(value) {
   return value;
 }
 
+function normalizeOperation(value) {
+  if (!OPERATION_VALUES.has(value)) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      "operation must be create-candidate, promote, or rollback",
+    );
+  }
+  return value;
+}
+
+function assertOperationScope(operation, targetScope) {
+  const compatible =
+    (operation === SKILL_MUTATION_OPERATIONS.CREATE_CANDIDATE &&
+      targetScope === SKILL_MUTATION_TARGET_SCOPES.CANDIDATE) ||
+    ([
+      SKILL_MUTATION_OPERATIONS.PROMOTE,
+      SKILL_MUTATION_OPERATIONS.ROLLBACK,
+    ].includes(operation) &&
+      targetScope === SKILL_MUTATION_TARGET_SCOPES.ACTIVE);
+  if (!compatible) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      `operation ${operation} is incompatible with ${targetScope} scope`,
+    );
+  }
+}
+
+function normalizeTransitionJson(value, label, depth = 0, budget = { nodes: 0 }) {
+  budget.nodes += 1;
+  if (depth > 20 || budget.nodes > 4096) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      `${label} exceeds the canonical JSON structure budget`,
+    );
+  }
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw authorityError(
+        SKILL_MUTATION_REQUEST_INVALID_CODE,
+        `${label} numbers must be non-negative safe integers`,
+      );
+    }
+    return value;
+  }
+  if (typeof value === "string") {
+    return normalizeBoundedString(value, label, 16_384);
+  }
+  if (!value || typeof value !== "object") {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      `${label} must be canonical JSON`,
+    );
+  }
+  if (Array.isArray(value)) {
+    const ownKeys = Reflect.ownKeys(value);
+    if (
+      value.length > 2048 ||
+      ownKeys.length !== value.length + 1 ||
+      ownKeys.some(
+        (key) =>
+          typeof key !== "string" ||
+          (key !== "length" && !/^(?:0|[1-9]\d*)$/u.test(key)),
+      )
+    ) {
+      throw authorityError(
+        SKILL_MUTATION_REQUEST_INVALID_CODE,
+        `${label} must be a dense bounded array`,
+      );
+    }
+    return value.map((entry, index) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        throw authorityError(
+          SKILL_MUTATION_REQUEST_INVALID_CODE,
+          `${label}[${index}] must be an enumerable own data property`,
+        );
+      }
+      return normalizeTransitionJson(
+        descriptor.value,
+        `${label}[${index}]`,
+        depth + 1,
+        budget,
+      );
+    });
+  }
+  if (!isPlainObject(value)) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      `${label} must use plain objects`,
+    );
+  }
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length > 2048 ||
+    keys.some((key) => typeof key !== "string" || !key || key.length > 256)
+  ) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      `${label} has unsafe keys`,
+    );
+  }
+  const output = Object.create(null);
+  for (const key of keys.sort()) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw authorityError(
+        SKILL_MUTATION_REQUEST_INVALID_CODE,
+        `${label}.${key} must be an enumerable own data property`,
+      );
+    }
+    Object.defineProperty(output, key, {
+      value: normalizeTransitionJson(
+        descriptor.value,
+        `${label}.${key}`,
+        depth + 1,
+        budget,
+      ),
+      enumerable: true,
+      configurable: false,
+      writable: false,
+    });
+  }
+  return output;
+}
+
+export function digestSkillMutationDependencyLock(value) {
+  const normalized = normalizeTransitionJson(value, "dependencyLock");
+  if (!isPlainObject(normalized)) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      "dependencyLock must be an object",
+    );
+  }
+  return canonicalDigest(
+    normalized,
+    "chainlesschain.skill-dependency-lock/v1",
+  );
+}
+
+const TRANSITION_SUBJECT_INPUT_KEYS = new Set([
+  "tenantId",
+  "skillName",
+  "operation",
+  "candidateId",
+  "rollbackTargetReleaseDigest",
+  "dependencyLockDigest",
+  "expectedActiveContentDigest",
+  "expectedActiveRevision",
+]);
+
+export function buildSkillMutationTransitionSubject(input) {
+  assertExactDataRecord(
+    input,
+    TRANSITION_SUBJECT_INPUT_KEYS,
+    "transition subject input",
+  );
+  const operation = normalizeOperation(input.operation);
+  const candidateId =
+    input.candidateId === null
+      ? null
+      : normalizeDigest(input.candidateId, "candidateId");
+  const rollbackTargetReleaseDigest =
+    input.rollbackTargetReleaseDigest === null
+      ? null
+      : normalizeDigest(
+          input.rollbackTargetReleaseDigest,
+          "rollbackTargetReleaseDigest",
+        );
+  const dependencyLockDigest =
+    input.dependencyLockDigest === null
+      ? null
+      : normalizeDigest(input.dependencyLockDigest, "dependencyLockDigest");
+  if (
+    (operation === SKILL_MUTATION_OPERATIONS.CREATE_CANDIDATE &&
+      (candidateId === null ||
+        rollbackTargetReleaseDigest !== null ||
+        dependencyLockDigest !== null)) ||
+    (operation === SKILL_MUTATION_OPERATIONS.PROMOTE &&
+      (candidateId === null ||
+        rollbackTargetReleaseDigest !== null ||
+        dependencyLockDigest === null)) ||
+    (operation === SKILL_MUTATION_OPERATIONS.ROLLBACK &&
+      (candidateId !== null ||
+        rollbackTargetReleaseDigest === null ||
+        dependencyLockDigest === null))
+  ) {
+    throw authorityError(
+      SKILL_MUTATION_REQUEST_INVALID_CODE,
+      "transition subject target or dependency lock is incompatible with its operation",
+    );
+  }
+  const core = {
+    schema: SKILL_MUTATION_TRANSITION_SUBJECT_SCHEMA,
+    tenantId: normalizeIdentifier(input.tenantId, "subject tenantId"),
+    skillName: normalizeSkillName(input.skillName),
+    operation,
+    candidateId,
+    rollbackTargetReleaseDigest,
+    dependencyLockDigest,
+    expectedActiveContentDigest: normalizeDigest(
+      input.expectedActiveContentDigest,
+      "expectedActiveContentDigest",
+    ),
+    expectedActiveRevision: normalizeRevision(
+      input.expectedActiveRevision,
+      "expectedActiveRevision",
+    ),
+  };
+  return deepFreeze({
+    ...core,
+    transitionSubjectDigest: canonicalDigest(
+      core,
+      SKILL_MUTATION_TRANSITION_SUBJECT_SCHEMA,
+    ),
+  });
+}
+
+export function digestSkillMutationTransitionSubject(input) {
+  return buildSkillMutationTransitionSubject(input).transitionSubjectDigest;
+}
+
 function requiredReceiptKinds(targetScope) {
   return targetScope === SKILL_MUTATION_TARGET_SCOPES.ACTIVE
     ? new Set(SKILL_MUTATION_RECEIPT_KINDS)
@@ -472,11 +715,18 @@ function normalizeReceiptEnvelopes(value, targetScope) {
 function requestCore(input) {
   assertExactDataRecord(input, REQUEST_INPUT_KEYS, "mutation request input");
   const targetScope = normalizeTargetScope(input.targetScope);
+  const operation = normalizeOperation(input.operation);
+  assertOperationScope(operation, targetScope);
   return {
     schema: SKILL_MUTATION_REQUEST_SCHEMA,
     tenantId: normalizeIdentifier(input.tenantId, "tenantId"),
     audience: normalizeIdentifier(input.audience, "audience"),
     operationId: normalizeIdentifier(input.operationId, "operationId"),
+    operation,
+    transitionSubjectDigest: normalizeDigest(
+      input.transitionSubjectDigest,
+      "transitionSubjectDigest",
+    ),
     skillName: normalizeSkillName(input.skillName),
     targetScope,
     expectedTargetDigest: normalizeDigest(
@@ -499,7 +749,7 @@ export function buildSkillMutationRequest(input) {
     ...core,
     requestDigest: canonicalDigest(
       core,
-      "chainlesschain.skill-mutation-request/v2",
+      "chainlesschain.skill-mutation-request/v3",
     ),
   });
 }
@@ -516,6 +766,8 @@ export function verifySkillMutationRequest(value) {
     tenantId: value.tenantId,
     audience: value.audience,
     operationId: value.operationId,
+    operation: value.operation,
+    transitionSubjectDigest: value.transitionSubjectDigest,
     skillName: value.skillName,
     targetScope: value.targetScope,
     expectedTargetDigest: value.expectedTargetDigest,
@@ -535,13 +787,21 @@ export function verifySkillMutationRequest(value) {
 
 function consumeCore(input) {
   assertExactDataRecord(input, CONSUME_INPUT_KEYS, "mutation consume input");
+  const targetScope = normalizeTargetScope(input.targetScope);
+  const operation = normalizeOperation(input.operation);
+  assertOperationScope(operation, targetScope);
   return {
     schema: SKILL_MUTATION_CONSUME_SCHEMA,
     tenantId: normalizeIdentifier(input.tenantId, "tenantId"),
     audience: normalizeIdentifier(input.audience, "audience"),
     operationId: normalizeIdentifier(input.operationId, "operationId"),
+    operation,
+    transitionSubjectDigest: normalizeDigest(
+      input.transitionSubjectDigest,
+      "transitionSubjectDigest",
+    ),
     skillName: normalizeSkillName(input.skillName),
-    targetScope: normalizeTargetScope(input.targetScope),
+    targetScope,
     expectedTargetDigest: normalizeDigest(
       input.expectedTargetDigest,
       "expectedTargetDigest",
@@ -571,6 +831,8 @@ function verifyConsumeContext(value) {
     tenantId: value.tenantId,
     audience: value.audience,
     operationId: value.operationId,
+    operation: value.operation,
+    transitionSubjectDigest: value.transitionSubjectDigest,
     skillName: value.skillName,
     targetScope: value.targetScope,
     expectedTargetDigest: value.expectedTargetDigest,
@@ -585,6 +847,8 @@ function requestContext(request) {
     tenantId: request.tenantId,
     audience: request.audience,
     operationId: request.operationId,
+    operation: request.operation,
+    transitionSubjectDigest: request.transitionSubjectDigest,
     skillName: request.skillName,
     targetScope: request.targetScope,
     expectedTargetDigest: request.expectedTargetDigest,
@@ -692,6 +956,12 @@ function normalizePrincipal(value, context) {
         value.operationId,
         "principal operationId",
       ),
+      operation: normalizeOperation(value.operation),
+      transitionSubjectDigest: normalizeDigest(
+        value.transitionSubjectDigest,
+        "principal transitionSubjectDigest",
+        SKILL_MUTATION_PRINCIPAL_INVALID_CODE,
+      ),
       requestDigest: normalizeDigest(
         value.requestDigest,
         "principal requestDigest",
@@ -714,6 +984,8 @@ function normalizePrincipal(value, context) {
     "tenantId",
     "audience",
     "operationId",
+    "operation",
+    "transitionSubjectDigest",
     "requestDigest",
     "expiresAt",
   ]) {
@@ -835,11 +1107,19 @@ function safeAuditContext(value) {
     return typeof candidate === "string" ? candidate.slice(0, maximum) : null;
   };
   const digest = ownString("expectedTargetDigest", 71);
+  const transitionSubjectDigest = ownString("transitionSubjectDigest", 71);
   const requestDigest = ownString("requestDigest", 71);
   return {
     tenantId: ownString("tenantId", 256),
     audience: ownString("audience", 256),
     operationId: ownString("operationId", 256),
+    operation: OPERATION_VALUES.has(safeOwnValue(value, "operation"))
+      ? safeOwnValue(value, "operation")
+      : null,
+    transitionSubjectDigest:
+      transitionSubjectDigest && DIGEST_PATTERN.test(transitionSubjectDigest)
+        ? transitionSubjectDigest
+        : null,
     skillName: ownString("skillName", 128),
     targetScope: TARGET_VALUES.has(safeOwnValue(value, "targetScope"))
       ? safeOwnValue(value, "targetScope")
@@ -872,6 +1152,8 @@ function buildAuditEvent({
     tenantId: context.tenantId,
     audience: context.audience,
     operationId: context.operationId,
+    operation: context.operation,
+    transitionSubjectDigest: context.transitionSubjectDigest,
     skillName: context.skillName,
     targetScope: context.targetScope,
     expectedTargetDigest: context.expectedTargetDigest,
@@ -887,7 +1169,7 @@ function buildAuditEvent({
     ...core,
     auditDigest: canonicalDigest(
       core,
-      "chainlesschain.skill-mutation-audit/v2",
+      "chainlesschain.skill-mutation-audit/v3",
     ),
   });
 }
@@ -917,7 +1199,7 @@ export function verifySkillMutationAuditEvent(value) {
       "audit occurredAt",
       SKILL_MUTATION_REQUEST_INVALID_CODE,
     ) !== core.occurredAt ||
-    canonicalDigest(core, "chainlesschain.skill-mutation-audit/v2") !==
+    canonicalDigest(core, "chainlesschain.skill-mutation-audit/v3") !==
       value.auditDigest
   ) {
     throw authorityError(
@@ -930,8 +1212,14 @@ export function verifySkillMutationAuditEvent(value) {
       normalizeIdentifier(core.tenantId, "audit tenantId");
       normalizeIdentifier(core.audience, "audit audience");
       normalizeIdentifier(core.operationId, "audit operationId");
+      const operation = normalizeOperation(core.operation);
+      normalizeDigest(
+        core.transitionSubjectDigest,
+        "audit transitionSubjectDigest",
+      );
       normalizeSkillName(core.skillName);
-      normalizeTargetScope(core.targetScope);
+      const targetScope = normalizeTargetScope(core.targetScope);
+      assertOperationScope(operation, targetScope);
       normalizeDigest(core.expectedTargetDigest, "audit target digest");
       normalizeRevision(core.expectedTargetRevision, "audit target revision");
       normalizeIsoTimestamp(core.expiresAt, "audit expiresAt");
@@ -958,7 +1246,7 @@ export function verifySkillMutationAuditEvent(value) {
 function buildConsumptionReceipt(context, principal, clock, audit) {
   const contextDigest = canonicalDigest(
     context,
-    "chainlesschain.skill-mutation-consume-context/v1",
+    "chainlesschain.skill-mutation-consume-context/v2",
   );
   const core = {
     schema: SKILL_MUTATION_CONSUMPTION_RECEIPT_SCHEMA,
@@ -966,6 +1254,8 @@ function buildConsumptionReceipt(context, principal, clock, audit) {
     tenantId: context.tenantId,
     audience: context.audience,
     operationId: context.operationId,
+    operation: context.operation,
+    transitionSubjectDigest: context.transitionSubjectDigest,
     skillName: context.skillName,
     targetScope: context.targetScope,
     expectedTargetDigest: context.expectedTargetDigest,
@@ -985,7 +1275,7 @@ function buildConsumptionReceipt(context, principal, clock, audit) {
     ...core,
     receiptDigest: canonicalDigest(
       core,
-      "chainlesschain.skill-mutation-consumption-receipt/v1",
+      "chainlesschain.skill-mutation-consumption-receipt/v2",
     ),
   });
 }
@@ -1009,6 +1299,11 @@ export function verifySkillMutationConsumptionReceipt(value) {
         core.audience ||
       normalizeIdentifier(core.operationId, "receipt operationId") !==
         core.operationId ||
+      normalizeOperation(core.operation) !== core.operation ||
+      normalizeDigest(
+        core.transitionSubjectDigest,
+        "receipt transitionSubjectDigest",
+      ) !== core.transitionSubjectDigest ||
       normalizeSkillName(core.skillName) !== core.skillName ||
       normalizeTargetScope(core.targetScope) !== core.targetScope ||
       normalizeDigest(core.expectedTargetDigest, "receipt target digest") !==
@@ -1037,7 +1332,7 @@ export function verifySkillMutationConsumptionReceipt(value) {
       normalizeDigest(value.receiptDigest, "receiptDigest") !==
         canonicalDigest(
           core,
-          "chainlesschain.skill-mutation-consumption-receipt/v1",
+          "chainlesschain.skill-mutation-consumption-receipt/v2",
         )
     ) {
       throw authorityError(
@@ -1045,10 +1340,13 @@ export function verifySkillMutationConsumptionReceipt(value) {
         "mutation consumption receipt is invalid",
       );
     }
+    assertOperationScope(core.operation, core.targetScope);
     const context = {
       tenantId: core.tenantId,
       audience: core.audience,
       operationId: core.operationId,
+      operation: core.operation,
+      transitionSubjectDigest: core.transitionSubjectDigest,
       skillName: core.skillName,
       targetScope: core.targetScope,
       expectedTargetDigest: core.expectedTargetDigest,
@@ -1060,7 +1358,7 @@ export function verifySkillMutationConsumptionReceipt(value) {
     if (
       canonicalDigest(
         context,
-        "chainlesschain.skill-mutation-consume-context/v1",
+        "chainlesschain.skill-mutation-consume-context/v2",
       ) !== core.contextDigest
     ) {
       throw authorityError(
