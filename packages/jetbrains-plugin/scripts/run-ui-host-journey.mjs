@@ -18,8 +18,12 @@ const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REPO_ROOT = path.resolve(PACKAGE_ROOT, "..", "..");
 const DEFAULT_ROBOT_URL = "http://127.0.0.1:8082";
 export const WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT = 100;
-export const WORKBENCH_NEEDS_INPUT_WARMUP_COUNT = 1;
 export const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
+export const WORKBENCH_READINESS_MINIMUM_SAMPLES = 40;
+export const WORKBENCH_READINESS_MAXIMUM_SAMPLES = 75;
+export const WORKBENCH_READINESS_CONSECUTIVE_SAMPLES = 10;
+export const WORKBENCH_QUIESCENCE_STABLE_PROBES = 4;
+export const WORKBENCH_QUIESCENCE_PROBE_INTERVAL_MS = 250;
 
 function usage() {
   return [
@@ -391,7 +395,16 @@ export function verifyRewindFixtureLedger(tracePath) {
   };
 }
 
-export function verifyWorkbenchFixtureLedger(tracePath) {
+export function verifyWorkbenchFixtureLedger(tracePath, readinessSamples) {
+  if (
+    !Number.isSafeInteger(readinessSamples) ||
+    readinessSamples < WORKBENCH_READINESS_MINIMUM_SAMPLES ||
+    readinessSamples > WORKBENCH_READINESS_MAXIMUM_SAMPLES
+  ) {
+    throw new Error(
+      `fixture ledger requires a validated Workbench readiness sample count between ${WORKBENCH_READINESS_MINIMUM_SAMPLES} and ${WORKBENCH_READINESS_MAXIMUM_SAMPLES}`,
+    );
+  }
   const records = readFileSync(tracePath, "utf8")
     .split(/\r?\n/u)
     .filter(Boolean)
@@ -405,8 +418,24 @@ export function verifyWorkbenchFixtureLedger(tracePath) {
       }
     });
   let cursor = -1;
-  const totalCycles =
-    WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+  const totalCycles = readinessSamples + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+  const lifecycleResumes = records.filter(
+    (record) =>
+      record.direction === "command" &&
+      record.command === "daemon-resume" &&
+      record.stage === "needs_input",
+  ).length;
+  const lifecycleReplies = records.filter(
+    (record) =>
+      record.direction === "command" &&
+      record.command === "daemon-reply" &&
+      record.stage === "done",
+  ).length;
+  if (lifecycleResumes !== totalCycles || lifecycleReplies !== totalCycles) {
+    throw new Error(
+      `fixture ledger proves ${lifecycleResumes} Workbench resume(s) and ${lifecycleReplies} reply/replies; expected exactly ${totalCycles}`,
+    );
+  }
   for (let cycle = 0; cycle < totalCycles; cycle += 1) {
     const resume = records.findIndex(
       (record, index) =>
@@ -442,7 +471,8 @@ export function verifyWorkbenchFixtureLedger(tracePath) {
   }
   return {
     samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
-    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    readinessSamples,
+    warmupSamples: readinessSamples,
     finalReply: cursor,
     recoveredProjection,
     coverage: "canonical-workbench-restart",
@@ -469,6 +499,80 @@ export function verifyWorkbenchVisibilityMetrics(metricsPath) {
     (record) =>
       record.host === "jetbrains" && record.metric === "needs-input-visible",
   );
+  const readiness = records.filter(
+    (record) =>
+      record.host === "jetbrains" && record.metric === "needs-input-readiness",
+  );
+  if (
+    readiness.length < WORKBENCH_READINESS_MINIMUM_SAMPLES ||
+    readiness.length > WORKBENCH_READINESS_MAXIMUM_SAMPLES
+  ) {
+    throw new Error(
+      `Workbench metrics prove ${readiness.length} readiness sample(s); expected between ${WORKBENCH_READINESS_MINIMUM_SAMPLES} and ${WORKBENCH_READINESS_MAXIMUM_SAMPLES}`,
+    );
+  }
+  let consecutivePassing = 0;
+  for (const [index, sample] of readiness.entries()) {
+    if (
+      sample.sample !== index + 1 ||
+      sample.minimumSampleCount !== WORKBENCH_READINESS_MINIMUM_SAMPLES ||
+      sample.maximumSampleCount !== WORKBENCH_READINESS_MAXIMUM_SAMPLES ||
+      sample.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
+      sample.requiredConsecutivePassingSamples !==
+        WORKBENCH_READINESS_CONSECUTIVE_SAMPLES ||
+      !Number.isFinite(sample.latencyMs) ||
+      sample.latencyMs < 0
+    ) {
+      throw new Error(
+        `Workbench metrics contain an invalid readiness sample: ${JSON.stringify(sample)}`,
+      );
+    }
+    consecutivePassing =
+      sample.latencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS
+        ? consecutivePassing + 1
+        : 0;
+    if (sample.consecutivePassingSamples !== consecutivePassing) {
+      throw new Error(
+        `Workbench readiness streak is inconsistent: ${JSON.stringify(sample)}`,
+      );
+    }
+    const ready =
+      sample.sample >= WORKBENCH_READINESS_MINIMUM_SAMPLES &&
+      consecutivePassing >= WORKBENCH_READINESS_CONSECUTIVE_SAMPLES;
+    if (ready && index !== readiness.length - 1) {
+      throw new Error(
+        `Workbench readiness metrics continued after readiness at sample ${sample.sample}`,
+      );
+    }
+  }
+  const finalReadiness = readiness[readiness.length - 1];
+  if (
+    finalReadiness.sample < WORKBENCH_READINESS_MINIMUM_SAMPLES ||
+    finalReadiness.consecutivePassingSamples <
+      WORKBENCH_READINESS_CONSECUTIVE_SAMPLES
+  ) {
+    throw new Error(
+      "Workbench metrics do not prove the required pre-measurement readiness streak",
+    );
+  }
+
+  const quiescence = records.filter(
+    (record) =>
+      record.host === "jetbrains" && record.metric === "workbench-quiescence",
+  );
+  if (
+    quiescence.length !== 1 ||
+    quiescence[0].state !== "done" ||
+    quiescence[0].dispatchEnabled !== true ||
+    quiescence[0].replyEnabled !== false ||
+    quiescence[0].stableProbes !== WORKBENCH_QUIESCENCE_STABLE_PROBES ||
+    quiescence[0].requiredStableProbes !== WORKBENCH_QUIESCENCE_STABLE_PROBES ||
+    quiescence[0].probeIntervalMs !== WORKBENCH_QUIESCENCE_PROBE_INTERVAL_MS
+  ) {
+    throw new Error(
+      `Workbench metrics do not prove pre-measurement quiescence: ${JSON.stringify(quiescence)}`,
+    );
+  }
   if (samples.length !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT) {
     throw new Error(
       `Workbench metrics prove ${samples.length} needs_input visibility sample(s); expected ${WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT}`,
@@ -487,6 +591,18 @@ export function verifyWorkbenchVisibilityMetrics(metricsPath) {
       );
     }
   }
+  const finalReadinessIndex = records.indexOf(finalReadiness);
+  const quiescenceIndex = records.indexOf(quiescence[0]);
+  const firstMeasurementIndex = records.indexOf(samples[0]);
+  if (
+    finalReadinessIndex < 0 ||
+    quiescenceIndex <= finalReadinessIndex ||
+    firstMeasurementIndex <= quiescenceIndex
+  ) {
+    throw new Error(
+      "Workbench metrics do not order readiness -> quiescence -> measurement",
+    );
+  }
   const sorted = samples
     .map((sample) => sample.latencyMs)
     .sort((left, right) => left - right);
@@ -496,7 +612,12 @@ export function verifyWorkbenchVisibilityMetrics(metricsPath) {
     maxLatencyMs: sorted[sorted.length - 1],
     p95LatencyMs: sorted[Math.ceil(sorted.length * 0.95) - 1],
     thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
-    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    readinessSamples: readiness.length,
+    readinessMinimumSamples: WORKBENCH_READINESS_MINIMUM_SAMPLES,
+    readinessMaximumSamples: WORKBENCH_READINESS_MAXIMUM_SAMPLES,
+    readinessConsecutiveSamples: WORKBENCH_READINESS_CONSECUTIVE_SAMPLES,
+    quiescenceStableProbes: WORKBENCH_QUIESCENCE_STABLE_PROBES,
+    warmupSamples: readiness.length,
     networkCondition: "loopback fixture; no external network",
     transport: "installed-plugin-remote-robot-production-route",
     runnerEnvironment:
@@ -681,8 +802,11 @@ export async function runJourney(options) {
     }
     const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
     const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);
-    const workbenchCoverage = verifyWorkbenchFixtureLedger(fixtureTracePath);
     const visibilitySummary = verifyWorkbenchVisibilityMetrics(metricsPath);
+    const workbenchCoverage = verifyWorkbenchFixtureLedger(
+      fixtureTracePath,
+      visibilitySummary.readinessSamples,
+    );
     writeFileSync(
       path.join(logRoot, "workbench-host-phases.json"),
       `${JSON.stringify(

@@ -1988,7 +1988,18 @@ export class TaskLeaseRegistry {
         patch,
         actor: patch.assignee,
       });
-      if (patch.status !== undefined) this._priorityInheritanceCache = null;
+      // Lease lifecycle changes do not alter the dependency-priority graph.
+      // In particular, a successfully completed task can only have completed
+      // ancestors because acquire() gates on every dependency. Cancelling is
+      // different: recovery may fail a blocked descendant closed, which must
+      // withdraw its donated priority from unfinished ancestors.
+      if (
+        (patch.priority !== undefined && patch.priority !== task.priority) ||
+        (patch.status === TASK_STATUS.CANCELLED &&
+          task.status !== TASK_STATUS.CANCELLED)
+      ) {
+        this._priorityInheritanceCache = null;
+      }
       return true;
     } catch {
       // ConcurrencyError (rev changed under us) — caller re-reads and retries.

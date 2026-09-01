@@ -103,6 +103,107 @@ describe("TaskLeaseRegistry fairness scheduling", () => {
     expect(reg.nextClaimable()).toBe("dependency-low");
   });
 
+  it("keeps inheritance cached as a successful DAG frontier advances", () => {
+    const reg = new TaskLeaseRegistry();
+    reg.addTasks([
+      { key: "root-low", title: "root", priority: "low" },
+      {
+        key: "middle-normal",
+        title: "middle",
+        dependsOn: ["root-low"],
+      },
+      {
+        key: "leaf-high",
+        title: "leaf",
+        priority: "high",
+        dependsOn: ["middle-normal"],
+      },
+    ]);
+
+    expect(reg.schedulingPriority("root-low")).toMatchObject({
+      donation: 2,
+      criticalPathBoost: 2,
+    });
+    const inheritance = reg._priorityInheritanceCache;
+    let root = reg.acquire("root-low", { holder: "worker" });
+    expect(root.ok).toBe(true);
+    expect(reg._priorityInheritanceCache).toBe(inheritance);
+    expect(
+      reg.release("root-low", {
+        holder: "worker",
+        leaseId: root.lease.leaseId,
+      }).ok,
+    ).toBe(true);
+    expect(reg._priorityInheritanceCache).toBe(inheritance);
+    root = reg.acquire("root-low", { holder: "worker" });
+    expect(root.ok).toBe(true);
+    expect(
+      reg.fail("root-low", {
+        holder: "worker",
+        leaseId: root.lease.leaseId,
+        error: "retry once",
+      }),
+    ).toMatchObject({ ok: true, retry: true });
+    expect(reg._priorityInheritanceCache).toBe(inheritance);
+    root = reg.acquire("root-low", { holder: "worker" });
+    expect(root.ok).toBe(true);
+    expect(
+      reg.complete("root-low", {
+        holder: "worker",
+        leaseId: root.lease.leaseId,
+      }).ok,
+    ).toBe(true);
+    expect(reg._priorityInheritanceCache).toBe(inheritance);
+    expect(reg.schedulingPriority("middle-normal")).toMatchObject({
+      donation: 1,
+      criticalPathBoost: 1,
+    });
+  });
+
+  it("withdraws donation when recovery cancels a blocked descendant", () => {
+    const clock = makeClock();
+    const source = new TaskLeaseRegistry({ now: clock.now });
+    source.addTask({
+      key: "dependency-low",
+      title: "dependency",
+      priority: "low",
+    });
+    source.addTask({
+      key: "dependent-high",
+      title: "dependent",
+      priority: "high",
+      dependsOn: ["dependency-low"],
+    });
+    const snapshot = source.snapshot();
+    const abandoned = snapshot.tasks.tasks.find(
+      (task) => task.metadata?.key === "dependent-high",
+    );
+    abandoned.status = "in_progress";
+    abandoned.assignee = "lost-worker";
+    abandoned.metadata.lease = {
+      holder: "lost-worker",
+      leaseId: "lost-lease",
+      fencingToken: "lost-lease",
+      acquiredAt: clock.now(),
+      expiresAt: clock.now() + 60_000,
+      renewals: 0,
+      stolen: false,
+    };
+    const restored = TaskLeaseRegistry.restore(snapshot, { now: clock.now });
+
+    expect(restored.schedulingPriority("dependency-low")).toMatchObject({
+      donation: 2,
+      criticalPathBoost: 1,
+    });
+    expect(
+      restored.reconcileAbandoned({ shouldRetry: () => false }),
+    ).toMatchObject({ adjudicationRequired: ["dependent-high"] });
+    expect(restored.schedulingPriority("dependency-low")).toMatchObject({
+      donation: 0,
+      criticalPathBoost: 0,
+    });
+  });
+
   it("promotes an old low-priority task before the queue-wait SLO", () => {
     const clock = makeClock();
     const reg = new TaskLeaseRegistry({
