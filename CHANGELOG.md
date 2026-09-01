@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.16: harden evidence and release gates
+
+> `chainlesschain` **0.166.15 -> 0.166.16** (release candidate,
+> 2026-09-01).
+
+- **Authenticated evidence consumption**: protected qualification and Graph
+  production consumers bind artifacts to the selected repository, workflow
+  run, and exact commit, reject stale or unsigned producer runs, and keep
+  GitHub API response bodies bounded.
+- **Cross-platform CI stability**: CLI and evidence matrices use the same
+  pinned Node.js `22.22.2` runtime, the workflow lint gate uses a pinned
+  `actionlint`, and the Windows P1 helper allows a wider outer cold-start
+  budget without weakening the verifier's exact inner timeout contract.
+- **Exact RC runtime contract**: the release-candidate audit now requires the
+  same Node.js `v22.22.2` runtime used by the workflows, and a unit assertion
+  pins that value so future workflow/verifier drift fails closed.
+- **Release and evidence boundary**: this candidate is not yet published;
+  publication still requires the exact release commit to pass the configured
+  Linux, Windows, and macOS release workflows. External P1 production rollout,
+  protected-run, and trust-root evidence remains open and is not claimed by
+  this source release.
+
 ### Fixed - cc CLI 0.166.15: align the formal quality file-tool ceiling
 
 > `chainlesschain` **0.166.14 -> 0.166.15**, published 2026-08-31 from exact

@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.78] - CLI 0.166.16 release-evidence hardening (2026-09-01)
+
+- Recommend the exact-gated `chainlesschain@0.166.16` release and align the
+  packaged Open VSX overview, install command, immutable tag, and VSIX links.
+- Pair the extension with the CLI's authenticated, commit-bound qualification
+  evidence and pinned Node.js 22.22.2 qualification runtime without changing IDE
+  bridge behavior or authority.
+- Expand only the final Linux host-and-publish job budget to 210 minutes while
+  retaining exact 25-minute host-journey deadlines and 70-minute Windows/macOS
+  job budgets.
+- Publish only after the exact shared release SHA completes CLI, Strict
+  Sandbox, IDE, and protected qualification gates.
+
 ## [0.37.77] - CLI 0.166.15 formal quality hotfix (2026-08-31)
 
 - Recommend the exact-gated `chainlesschain@0.166.15` hotfix and align the

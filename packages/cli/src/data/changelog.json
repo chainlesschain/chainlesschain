@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.16",
+      "cliVersions": ["0.166.15", "0.166.16"],
+      "date": "2026-09-01",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.16: harden evidence and release gates",
+          "body": "> `chainlesschain` **0.166.15 -> 0.166.16** (release candidate,\n> 2026-09-01).\n\n- **Authenticated evidence consumption**: protected qualification and Graph\n  production consumers bind artifacts to the selected repository, workflow\n  run, and exact commit, reject stale or unsigned producer runs, and keep\n  GitHub API response bodies bounded.\n- **Cross-platform CI stability**: CLI and evidence matrices use the same\n  pinned Node.js `22.22.2` runtime, the workflow lint gate uses a pinned\n  `actionlint`, and the Windows P1 helper allows a wider outer cold-start\n  budget without weakening the verifier's exact inner timeout contract.\n- **Exact RC runtime contract**: the release-candidate audit now requires the\n  same Node.js `v22.22.2` runtime used by the workflows, and a unit assertion\n  pins that value so future workflow/verifier drift fails closed.\n- **Release and evidence boundary**: this candidate is not yet published;\n  publication still requires the exact release commit to pass the configured\n  Linux, Windows, and macOS release workflows. External P1 production rollout,\n  protected-run, and trust-root evidence remains open and is not claimed by\n  this source release."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.15",
       "cliVersions": ["0.166.14", "0.166.15"],
       "date": "2026-08-31",
