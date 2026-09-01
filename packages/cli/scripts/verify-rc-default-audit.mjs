@@ -34,7 +34,7 @@ export const RC_DEFAULT_REQUIRED_OSES = Object.freeze([
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPOSITORY_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../../..");
 const CLI_ROOT = path.join(REPOSITORY_ROOT, "packages", "cli");
-const REQUIRED_NODE_VERSION = "v22.12.0";
+export const RC_DEFAULT_REQUIRED_NODE_VERSION = "v22.22.2";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
@@ -724,7 +724,7 @@ function main() {
     return;
   }
   if (options.required) {
-    assert.equal(process.version, REQUIRED_NODE_VERSION);
+    assert.equal(process.version, RC_DEFAULT_REQUIRED_NODE_VERSION);
   }
   const measurements = runRcDefaultCampaign({ runTests: true });
   const digests = producerDigests();

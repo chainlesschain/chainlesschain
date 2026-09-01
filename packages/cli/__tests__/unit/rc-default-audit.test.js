@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   RC_DEFAULT_FRAGMENT_SCHEMA,
   RC_DEFAULT_PRODUCER_FILES,
+  RC_DEFAULT_REQUIRED_NODE_VERSION,
   RC_DEFAULT_TEST_IDS,
   RC_DEFAULT_THRESHOLDS,
   aggregateRcDefaultFragments,
@@ -70,6 +71,10 @@ afterEach(() => {
 });
 
 describe("RC-DEFAULT canonical audit evidence", () => {
+  it("pins required evidence to the CLI qualification runtime", () => {
+    expect(RC_DEFAULT_REQUIRED_NODE_VERSION).toBe("v22.22.2");
+  });
+
   it("measures passive startup and the default authority boundaries", () => {
     const measurements = runRcDefaultCampaign({ runTests: false });
 
