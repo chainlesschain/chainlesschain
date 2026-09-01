@@ -271,6 +271,7 @@ test("external evidence filesystem stages pin the Windows identity-safe Node run
     ["graph-agent-real-journey.yml", 2],
     ["graph-kernel-production-cutover.yml", 2],
     ["graph-kernel-production-evidence.yml", 3],
+    ["ide-roadmap-safety.yml", 2],
     ["p1-10-external-evidence-contract.yml", 1],
     ["p1-10-external-evidence-close.yml", 1],
     ["p1-10-external-evidence-producer.yml", 2],
