@@ -15,10 +15,52 @@ import {
   verifyWorkbenchVisibilityMetrics,
   WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
   WORKBENCH_NEEDS_INPUT_SLA_MS,
-  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+  WORKBENCH_QUIESCENCE_PROBE_INTERVAL_MS,
+  WORKBENCH_QUIESCENCE_STABLE_PROBES,
+  WORKBENCH_READINESS_CONSECUTIVE_SAMPLES,
+  WORKBENCH_READINESS_MAXIMUM_SAMPLES,
+  WORKBENCH_READINESS_MINIMUM_SAMPLES,
 } from "../../../../packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs";
 
 const temporaryRoots = [];
+
+function readinessMetrics(
+  count = WORKBENCH_READINESS_MINIMUM_SAMPLES,
+  latencyMs = 500,
+) {
+  let consecutivePassingSamples = 0;
+  return Array.from({ length: count }, (_, index) => {
+    consecutivePassingSamples =
+      latencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS
+        ? consecutivePassingSamples + 1
+        : 0;
+    return {
+      host: "jetbrains",
+      metric: "needs-input-readiness",
+      sample: index + 1,
+      minimumSampleCount: WORKBENCH_READINESS_MINIMUM_SAMPLES,
+      maximumSampleCount: WORKBENCH_READINESS_MAXIMUM_SAMPLES,
+      latencyMs,
+      thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      consecutivePassingSamples,
+      requiredConsecutivePassingSamples:
+        WORKBENCH_READINESS_CONSECUTIVE_SAMPLES,
+    };
+  });
+}
+
+function quiescenceMetric() {
+  return {
+    host: "jetbrains",
+    metric: "workbench-quiescence",
+    state: "done",
+    dispatchEnabled: true,
+    replyEnabled: false,
+    stableProbes: WORKBENCH_QUIESCENCE_STABLE_PROBES,
+    requiredStableProbes: WORKBENCH_QUIESCENCE_STABLE_PROBES,
+    probeIntervalMs: WORKBENCH_QUIESCENCE_PROBE_INTERVAL_MS,
+  };
+}
 
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) {
@@ -110,9 +152,13 @@ describe("JetBrains real-host journey driver", () => {
         thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
       }),
     );
+    const readiness = readinessMetrics();
+    const quiescence = quiescenceMetric();
     fs.writeFileSync(
       metricsPath,
-      `${samples.map((sample) => JSON.stringify(sample)).join("\n")}\n`,
+      `${[...readiness, quiescence, ...samples]
+        .map((sample) => JSON.stringify(sample))
+        .join("\n")}\n`,
       "utf8",
     );
     expect(verifyWorkbenchVisibilityMetrics(metricsPath)).toMatchObject({
@@ -121,15 +167,16 @@ describe("JetBrains real-host journey driver", () => {
       maxLatencyMs: 200,
       p95LatencyMs: 195,
       thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
-      warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+      readinessSamples: WORKBENCH_READINESS_MINIMUM_SAMPLES,
+      quiescenceStableProbes: WORKBENCH_QUIESCENCE_STABLE_PROBES,
+      warmupSamples: WORKBENCH_READINESS_MINIMUM_SAMPLES,
       networkCondition: "loopback fixture; no external network",
       transport: "installed-plugin-remote-robot-production-route",
     });
 
     fs.writeFileSync(
       metricsPath,
-      `${samples
-        .slice(0, -1)
+      `${[...readiness, quiescence, ...samples.slice(0, -1)]
         .map((sample) => JSON.stringify(sample))
         .join("\n")}\n`,
       "utf8",
@@ -144,23 +191,36 @@ describe("JetBrains real-host journey driver", () => {
     }));
     fs.writeFileSync(
       metricsPath,
-      `${p95Failure.map((sample) => JSON.stringify(sample)).join("\n")}\n`,
+      `${[...readiness, quiescence, ...p95Failure]
+        .map((sample) => JSON.stringify(sample))
+        .join("\n")}\n`,
       "utf8",
     );
     expect(() => verifyWorkbenchVisibilityMetrics(metricsPath)).toThrow(
       /P95 SLA/,
     );
+
+    fs.writeFileSync(
+      metricsPath,
+      `${[...readiness, ...samples]
+        .map((sample) => JSON.stringify(sample))
+        .join("\n")}\n`,
+      "utf8",
+    );
+    expect(() => verifyWorkbenchVisibilityMetrics(metricsPath)).toThrow(
+      /quiescence/,
+    );
   });
 
-  it("requires 1 warmup plus 100 ordered Workbench lifecycle cycles", () => {
+  it("requires readiness plus 100 ordered Workbench lifecycle cycles", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-ledger-"));
     temporaryRoots.push(root);
     const tracePath = path.join(root, "fake-cli-protocol.jsonl");
     const records = [];
+    const readinessSamples = WORKBENCH_READINESS_MINIMUM_SAMPLES;
     for (
       let cycle = 0;
-      cycle <
-      WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+      cycle < readinessSamples + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
       cycle += 1
     ) {
       records.push({
@@ -184,9 +244,12 @@ describe("JetBrains real-host journey driver", () => {
       `${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
       "utf8",
     );
-    expect(verifyWorkbenchFixtureLedger(tracePath)).toMatchObject({
+    expect(
+      verifyWorkbenchFixtureLedger(tracePath, readinessSamples),
+    ).toMatchObject({
       samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
-      warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+      readinessSamples,
+      warmupSamples: readinessSamples,
       coverage: "canonical-workbench-restart",
     });
 
@@ -198,7 +261,9 @@ describe("JetBrains real-host journey driver", () => {
         .join("\n")}\n`,
       "utf8",
     );
-    expect(() => verifyWorkbenchFixtureLedger(tracePath)).toThrow(/cycle 101/);
+    expect(() =>
+      verifyWorkbenchFixtureLedger(tracePath, readinessSamples),
+    ).toThrow(/expected exactly 140/);
   });
 
   it("queues modal Workbench actions after the Remote Robot request", () => {
@@ -218,6 +283,11 @@ describe("JetBrains real-host journey driver", () => {
     expect(source).toContain("setInputDialogText(dialog, title, text");
     expect(source).toContain("current instanceof JTextComponent");
     expect(source).toContain("current.isShowing() && current.isEditable()");
+    expect(source).toContain("NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT = 100");
+    expect(source).toContain("NEEDS_INPUT_VISIBILITY_SLA_MILLIS = 2_000L");
+    expect(source).toContain("NEEDS_INPUT_READINESS_MINIMUM_COUNT = 40");
+    expect(source).toContain("awaitWorkbenchMeasurementReadiness(");
+    expect(source).toContain("waitForWorkbenchMeasurementQuiescence(");
     expect(source).not.toContain("component.getFocusOwner().setText");
     expect(source).not.toContain("clickButton(dispatch);");
     expect(source).not.toContain("clickButton(reply);");

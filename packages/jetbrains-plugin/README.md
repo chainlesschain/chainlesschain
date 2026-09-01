@@ -12,7 +12,7 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Plugin **0.4.107** is the current release candidate that re-certifies the read-only
+Plugin **0.4.108** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -21,7 +21,7 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-Candidate CLI `0.166.15` routes Graph, Team, distributed-team, Cowork, Scheduler,
+Candidate CLI `0.166.16` routes Graph, Team, distributed-team, Cowork, Scheduler,
 and App Server entry points through persisted Graph Kernel cutover authority.
 It fences stale writers and takeover/recovery receipts, preserves explicitly
 read-only legacy history, and fails closed on retired mutation paths. It also
@@ -31,10 +31,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended public CLI is `chainlesschain@0.166.15`. Candidate CLI
-`0.166.15` contains the governed Automation/Routine commands, Automation Center
+The recommended public CLI is `chainlesschain@0.166.16`. Candidate CLI
+`0.166.16` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.107` accepts only the exact
+permission/budget enforcement. Version `0.4.108` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -43,19 +43,19 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.107` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.108` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Candidate CLI `0.166.15` provides the
+history-rewriting rollback commands. Candidate CLI `0.166.16` provides the
 governed `team merge-review` command and exact evidence contract.
 
-Candidate CLI `0.166.15` contains the audited Artifact access, managed-copy
+Candidate CLI `0.166.16` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.107`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.108`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
-Public CLI `0.166.15` supersedes `0.166.13`, whose normal Windows startup could
+Public CLI `0.166.16` supersedes `0.166.13`, whose normal Windows startup could
 incorrectly require an available Docker sandbox and could select Docker
 Desktop's extensionless POSIX shim before `docker.exe`. The fixed release
 restores Docker-optional normal startup, resolves native `PATHEXT` executables
@@ -64,7 +64,7 @@ managed-policy requests. It also pairs the CLI with
 `@chainlesschain/session-core@0.3.7`, including the published
 `./runtime-claims` entry point.
 
-Candidate CLI `0.166.15` also adds lease-bound real-time teammate send/receive/ack and
+Candidate CLI `0.166.16` also adds lease-bound real-time teammate send/receive/ack and
 follow-up tools with durable, retry-safe TeamMailbox v3 receipts. The native
 Team Monitor reports only bounded delivery health (retained, pending,
 processed, dead-letter, follow-up, recipient, byte, and pressure metadata);

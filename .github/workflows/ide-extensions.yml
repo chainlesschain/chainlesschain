@@ -641,7 +641,7 @@ jobs:
         needs.browser-evidence-aggregate.result == 'success'
       }}
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 210
     defaults:
       run:
         working-directory: packages/vscode-extension

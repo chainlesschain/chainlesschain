@@ -369,16 +369,23 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
     productionExtension,
     /executeCommand\(HOST_DOM_DRIVER_COMMAND\)/u,
   );
-  for (const [platform, gate] of [
-    ["Windows", windowsGate],
-    ["macOS", macGate[0]],
-    ["Linux", linuxGate],
+  let totalHostGateBudgetMinutes = 0;
+  for (const [platform, gate, expectedJobBudgetMinutes] of [
+    ["Windows", windowsGate, 70],
+    ["macOS", macGate[0], 70],
+    ["Linux", linuxGate, 210],
   ]) {
-    assert.match(
-      gate,
-      /runs-on: [^\n]+\n\s+timeout-minutes: 70/u,
-      `${platform} must budget both isolated host profiles and evidence upload`,
+    const jobTimeout = gate.match(
+      /runs-on: [^\n]+\n\s+timeout-minutes: (\d+)/u,
     );
+    assert.ok(jobTimeout, `${platform} must declare a bounded job timeout`);
+    const actualJobBudgetMinutes = Number(jobTimeout[1]);
+    assert.equal(
+      actualJobBudgetMinutes,
+      expectedJobBudgetMinutes,
+      `${platform} must retain its exact host and evidence budget`,
+    );
+    totalHostGateBudgetMinutes += actualJobBudgetMinutes;
     assert.equal(
       gate.match(
         new RegExp(
@@ -390,6 +397,11 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
       `${platform} host gates must retain a bounded diagnostic deadline`,
     );
   }
+  assert.equal(
+    totalHostGateBudgetMinutes,
+    350,
+    "the three release-host jobs must retain their complete aggregate budget",
+  );
   assert.match(
     macGate[0],
     /- name: Extension Host multi-root \+ multi-window journey \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,

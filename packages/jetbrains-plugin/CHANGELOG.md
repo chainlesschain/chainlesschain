@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.108] - CLI 0.166.16 release-evidence hardening (2026-09-01)
+
+- Recommend the exact-gated `chainlesschain@0.166.16` release and align the
+  packaged JetBrains Marketplace description and compatibility metadata.
+- Pair the plugin with the CLI's authenticated, commit-bound qualification
+  evidence and pinned Node.js 22.22.2 qualification runtime without changing native
+  IDE behavior or authority.
+- Publish only after the exact shared release SHA completes CLI, Strict
+  Sandbox, IDE, and protected qualification gates.
+
 ## [0.4.107] - CLI 0.166.15 formal quality hotfix (2026-08-31)
 
 - Recommend the exact-gated `chainlesschain@0.166.15` hotfix and align the

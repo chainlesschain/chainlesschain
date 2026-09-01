@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 function overview({
-  extensionVersion = "0.37.77",
+  extensionVersion = "0.37.78",
   cliVersion = "0.166.10",
 } = {}) {
   const vsixUrl =
@@ -34,11 +34,11 @@ async function verifier() {
   return import("../scripts/verify-marketplace-overview.mjs");
 }
 
-function manifests({ recommended = "0.166.10", source = "0.166.15" } = {}) {
+function manifests({ recommended = "0.166.10", source = "0.166.16" } = {}) {
   return {
     extensionManifest: {
       name: "chainlesschain-ide",
-      version: "0.37.77",
+      version: "0.37.78",
       description: "Canonical extension description.",
       chainlesschain: { recommendedCliVersion: recommended },
     },
@@ -54,7 +54,7 @@ test("keeps the public recommendation independent from a newer source candidate"
   });
 
   assert.equal(result.cliVersion, "0.166.10");
-  assert.equal(result.sourceCliVersion, "0.166.15");
+  assert.equal(result.sourceCliVersion, "0.166.16");
 });
 
 test("rejects a recommendation newer than the checked-out source candidate", async () => {
@@ -63,8 +63,8 @@ test("rejects a recommendation newer than the checked-out source candidate", asy
   assert.throws(
     () =>
       verifyMarketplaceOverview({
-        ...manifests({ recommended: "0.166.16", source: "0.166.15" }),
-        readme: overview({ cliVersion: "0.166.16" }),
+        ...manifests({ recommended: "0.166.17", source: "0.166.16" }),
+        readme: overview({ cliVersion: "0.166.17" }),
       }),
     /cannot be newer/u,
   );

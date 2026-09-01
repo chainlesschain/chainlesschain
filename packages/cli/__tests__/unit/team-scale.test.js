@@ -24,6 +24,13 @@ describe("TeamRunner large-team scale", () => {
         dependsOn: index < workerCount ? [] : [`task-${index - workerCount}`],
       }));
       const registry = makeRegistry(definitions);
+      let inheritanceBuilds = 0;
+      const priorityInheritanceFor =
+        registry._priorityInheritanceFor.bind(registry);
+      registry._priorityInheritanceFor = (key) => {
+        if (!registry._priorityInheritanceCache) inheritanceBuilds += 1;
+        return priorityInheritanceFor(key);
+      };
       const executions = new Uint8Array(taskCount);
       let active = 0;
       let observedPeak = 0;
@@ -63,6 +70,7 @@ describe("TeamRunner large-team scale", () => {
         },
       });
       expect(observedPeak).toBe(workerCount);
+      expect(inheritanceBuilds).toBe(1);
       expect(Array.from(executions).every((count) => count === 1)).toBe(true);
       expect(registry.list().every((task) => task.status === "completed")).toBe(
         true,
