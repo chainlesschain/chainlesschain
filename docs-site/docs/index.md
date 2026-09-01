@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.15 | Agent SDK TS/Python 0.2.7 | IDE Bridge 3.3 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.16 | Agent SDK TS/Python 0.2.7 | IDE Bridge 3.3 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -55,7 +55,7 @@ features:
     details: CLI 0.166.15 与 IDE 0.37.77/0.4.107 共用精确发布提交 22db04f559，三平台门、provenance 与公共渠道回读已闭环；后续 main 不继承制品身份。
 ---
 
-> **2026-09-01 部署快照**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 均为 `0.166.15`，TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`。CLI、Open VSX `0.37.77` 与 JetBrains `0.4.107` 的不可变标签共同指向 exact SHA [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)，三平台 CLI CI/Strict、Trusted Publishing、provenance、IDE 宿主门与公网回读已闭环。更晚的 GitHub `main@458b342f5f` 将 Windows formal Graph quality 时延比最终上限调整为 `1.65`；固定 run `33411796790` 的 Windows 实测 `1.6379980224` 与离线加权 aggregate `0.6008293973` 均在新阈值内，但该 run 本身仍失败，且没有 final-SHA aggregate success/OIDC attestation。P2-3 由发布负责人显式接受这项剩余证据风险后关闭；它不属于 `0.166.15` 制品，也不构成通用先例。详细入口：[0.166.15 发布指南](/chainlesschain/agent-platform-release)、[GraphRun 观测](/chainlesschain/cli-team-graph)、[IDE 插件](/chainlesschain/ide-plugin)与[CLI Runtime](/chainlesschain/cli-runtime-current)。
+> **2026-09-02 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.16@15bd3636b8`，三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读完成；Open VSX 为 `0.37.78`，JetBrains Marketplace 当前为 `0.4.107`。本版新增受治理的 Skill candidate、target-matrix Eval、evidence ledger、mutation authority 与可恢复 promotion/release 基础；生成候选不等于安装，默认不启用无人值守 active promotion。详细入口：[新功能用户指南](/chainlesschain/governed-skill-evolution)、[模块 112 设计](/design/modules/112-governed-skill-evolution-design)与[发布指南](/chainlesschain/agent-platform-release)。
 
 > **Agent/Skill evolution 本地源码预览**：本轮核对冻结的 feature 快照 `233e1bdc` 实现 candidate-only/diff-only、Skill writer inventory、mutation/promotion/release 与 tamper-evident ledger；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS。这些治理原语尚未形成统一生产 import/实例。当前 `cc learning synthesize` 因未注入 evaluator、候选输出目录与 active roots 而明确 unavailable，不会写入 active Skill；Skill Creator 与 Skill Sync 同样在缺少受信 candidate store 时失败闭合。该冻结预览未进入 GitHub `main@458b342f5f`，不属于公共 `0.166.15`；P1-11 仍为部分完成。`233e1bdc` exact working tree 的六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立结果仍为 34/35 通过、1 项触发默认 5 秒超时，均不等于 production wiring 或 qualification。
 

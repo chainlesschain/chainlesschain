@@ -1,12 +1,69 @@
 # 自进化 AI 系统
 
-> **Phase 100 | v5.0.1 历史功能说明 | Agent/Skill evolution P1-11：部分完成**
+> **Phase 100 历史能力 + Agent Platform 0.166.16 受治理 Skill 自进化基础 | 更新：2026-09-02**
 
-本文记录既有 Desktop 模型评估、训练、诊断与成长日志接口；它不证明生产 Agent 可以自主修改 active Skill。公共 `0.166.15@22db04f559` **不包含**本轮核对冻结的 `233e1bdc` evolution feature 快照，GitHub `main` 仍为 `458b342f5f`。`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS；均尚无统一生产实例。
+本文同时说明两类能力：既有 Desktop 模型评估、训练、诊断与成长日志接口，以及 `0.166.16` 新增的受治理 Skill 候选/评测/发布基础。新基础已经进入 GitHub `main@15bd3636b8` 与 npm `chainlesschain@0.166.16`，但仍不表示生产 Agent 可以无人值守地修改 active Skill。
 
 ## 概述
 
-既有页面描述模型评估、训练、诊断、预测和日志表面；这些接口与 Agent/Skill 自动演化治理不是同一发布面。当前本地快照只允许自动路径产生隔离候选或 diff，active 变更必须经过受信 mutation authority、CAS-bound promotion 与 release registry；缺少统一实例化时失败闭合。
+既有页面描述模型评估、训练、诊断、预测和日志表面；这些接口与 Agent/Skill 自动演化治理不是同一发布面。`0.166.16` 将自动生成和改进路径限制为隔离候选或 diff，active 变更必须经过受信 mutation authority、独立 Eval、CAS-bound promotion 与 release registry；缺少生产 adapter 或完整证据时失败闭合。
+
+## 新功能：受治理的 Skill 候选生命周期
+
+### 你会看到什么变化
+
+- **生成不再等于安装**：CLI 学习合成、Skill 改进与 Desktop Skill Creator 先返回候选；active Skill 文件不会被原地覆盖。
+- **失败状态更真实**：缺少 LLM、候选存储、评测器或 active registry 信息时，命令明确报告 unavailable/failed，不再把“什么都没生成”显示为成功。
+- **候选必须先评测**：候选绑定内容摘要、依赖锁、运行时、权限与目标矩阵；缺少目标 cell、grader receipt 或安全证据时不能晋升。
+- **发布和回滚可追溯**：release、active、last-known-good 和 rollback 由 lease、CAS、journal 与不可篡改账本约束，陈旧审批不能复用。
+- **跨设备导入更安全**：Desktop Skill Sync 只把包送入 host-owned candidate store；同步设备和 peer 不获得 active Skill 写权限。
+
+### CLI 使用方式
+
+先查看可用轨迹和学习统计：
+
+```bash
+cc learning stats
+cc learning trajectories --limit 20
+cc learning reflect
+```
+
+尝试从合格轨迹生成候选：
+
+```bash
+cc learning synthesize
+cc learning synthesize --json
+```
+
+`0.166.16` 中，这个入口只有在 LLM、隔离候选 registry、candidate evaluator 和 active Skill roots 全部由宿主正确注入时才会持久化候选。默认 CLI bootstrap 当前不会伪造这些依赖，因此常见结果是非零退出并报告 `LEARNING_SYNTHESIS_UNAVAILABLE`。这是安全门生效，不是 active Skill 已损坏。
+
+JSON 结果需要按状态解释：
+
+| 状态 | 含义 | active Skill |
+| --- | --- | --- |
+| `completed` | 所有返回的 `created` 项均已通过 evaluator 并持久化到隔离候选区 | 未改变 |
+| `unavailable` | 缺 LLM、候选 registry、evaluator 或 active roots | 未改变 |
+| `error` | 某个候选生成、评测、持久化或审计失败 | 未改变 |
+| `diff-only` / `candidate-proposed` | 只返回待审阅内容或差异 | 未改变 |
+
+### Desktop Skill Creator
+
+`create` 和 `optimize-description` 会返回：
+
+- `candidateOnly: true`
+- `persisted: false`
+- `activeMutation: false`
+- `proposedFiles` / `proposedContent`
+- `diff` 与内嵌评测证据
+
+因此界面提示“候选已生成”只代表已有可审阅内容，不代表 Skill 已安装或启用。当前仍需要受信宿主补齐持久 candidate store、评测与 promotion 流程后才能进入 active。
+
+### 当前限制
+
+- 尚无面向普通用户的统一 candidate list/review/promote/rollback CLI 控制面。
+- target-matrix 与 Eval Gate 已有受监督基础，但全平台真实 grader、跨进程 durable authority、人工 quorum 和 canary 生产接线仍在关闭条件中。
+- 不能手工把候选复制进 active 目录来“完成晋升”；这会绕过摘要、权限、证据与 CAS 绑定。
+- `learning synthesize`、Desktop Skill Creator、Skill Sync 与旧的模型评估/自诊断接口不是同一个状态机，文档中的“训练完成”不能当作 Skill 发布证据。
 
 ## 核心特性
 

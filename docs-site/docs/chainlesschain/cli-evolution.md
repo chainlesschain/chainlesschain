@@ -2,7 +2,7 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **版本边界**：本页公开命令属于 `0.166.15` 的既有评估/诊断表面；公共 `0.166.15@22db04f559` **不包含**本轮核对冻结的 `233e1bdc` Agent/Skill evolution feature 快照。该冻结快照也未进入 GitHub `main@458b342f5f`，P1-11 仍为部分完成。
+> **版本边界（2026-09-02）**：既有 `cc evolution` 命令继续提供评估/诊断表面；受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语已进入 `0.166.16@15bd3636b8`。这些原语尚未组成面向普通用户的生产自动晋级控制面，P1-11 仍为部分完成。
 
 ## 核心特性
 
@@ -19,7 +19,20 @@ ChainlessChain CLI 自进化系统赋予 AI 自我评估、自我诊断和自我
 
 系统提供全面的自我诊断功能，覆盖记忆系统健康度、能力评分分布、模型运行状态、成长趋势四个维度。当诊断发现异常（如能力持续下降、模型响应变慢）时，`repair` 命令可自动尝试修复。`predict` 命令基于历史评估数据，使用线性回归预测未来能力变化。
 
-本轮冻结的 `233e1bdc` 快照包含 candidate-only/diff-only、Skill writer inventory、mutation authority、promotion/release registry 与 tamper-evident ledger；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们没有统一生产 wiring/import；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
+`0.166.16` 包含 candidate-only/diff-only writer、Skill writer inventory、mutation authority、target-matrix Eval、promotion/release registry、认证制品端口与 tamper-evident ledger。mutation transition subject 绑定确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们尚无统一的普通用户 production wiring；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
+
+## 0.166.16 新增能力与 `cc evolution` 的关系
+
+新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/learn/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
+
+| 表面 | 负责什么 | 不负责什么 |
+| --- | --- | --- |
+| `cc evolution ...` | 能力评分、趋势、诊断、修复记录、模型参数导出 | 不创建或晋升 active Skill |
+| `cc learning synthesize` | 从合格 trajectory 提议并评测隔离候选 | 不直接安装、启用或回滚 Skill |
+| Desktop Skill Creator | 返回 Skill scaffold/description 候选、diff 和评测证据 | 不写 active Skill 树 |
+| Candidate/Eval/Ledger/Promotion foundation | 为可信宿主提供不可变候选、证据与事务原语 | 当前不是完整的最终用户控制台 |
+
+完整的新功能使用说明见[自进化 AI 系统：受治理的 Skill 候选生命周期](/chainlesschain/self-evolving-ai#新功能受治理的-skill-候选生命周期)。
 
 ## 命令参考
 

@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI / npm latest 0.166.14 · Agent SDK TS/Python 0.2.7 · Protocol 0.1.7 · Open VSX 0.37.76 · JetBrains 0.4.106｜P0 Security · Context/Memory · Formal Graph Eval";
+        "v5.0.3.135 · CLI / npm latest 0.166.16 · Agent SDK TS/Python 0.2.7 · Protocol 0.1.7 · Open VSX 0.37.78 · JetBrains 0.4.107｜Governed Skill Evolution · Context/Memory · Graph";
     }
   },
 
@@ -906,7 +906,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.14) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.166.16) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {
@@ -1048,6 +1048,10 @@ export default defineConfig({
             {
               text: "111 Record & Replay → Skill 设计 ✅",
               link: "/modules/111-record-replay-skill-design",
+            },
+            {
+              text: "112 受治理的 Skill 自进化设计 ⭐NEW",
+              link: "/modules/112-governed-skill-evolution-design",
             },
           ],
         },

@@ -2,9 +2,9 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-01）：产品版本 `v5.0.3.135`，完整门禁的生产推荐 CLI 与 npm `latest` 均为 `0.166.15@22db04f559`；其三平台 CLI CI、Strict Sandbox、不可变制品、Trusted Publishing、provenance 与独立公网回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`；Open VSX 为 `0.37.77`，JetBrains Marketplace 为 `0.4.107`。本版承接 Context/Memory、Hooks v2、P0 执行安全和 Windows Docker-optional 启动，并修复 formal Graph quality 的文件工具上限。更晚的 GitHub `main@458b342f5f` 将 Windows 时延比最终上限调整为 `1.65`；固定 run `33411796790` 的 Windows 实测为 `1.6379980224`，离线加权 aggregate 为 `0.6008293973`，但该 run 仍为失败且没有 final-SHA aggregate success/OIDC attestation。P2-3 由发布负责人显式接受这项剩余证据风险后关闭；该豁免不属于 `0.166.15` 制品，也不是通用先例。
+> 当前文档快照（2026-09-02）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.16@15bd3636b8`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`；Open VSX 为 `0.37.78`，JetBrains Marketplace 当前为 `0.4.107`（源码候选 `0.4.108` 尚待公共可见性确认）。
 
-> Agent/Skill evolution 源码边界：本轮核对冻结的 feature 快照为 `233e1bdc`，在上述 GitHub `main` 之后增加 candidate-only/diff-only、Skill writer inventory、mutation/promotion/release 与 tamper-evident ledger；`b8490faa` 是 attested Raw/model-visible/trusted evidence projector 的具体提交，`d073bdf3` 是 ledger 的具体提交，`233e1bdc` 再把 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS。它们尚无统一生产 import/实例化；`cc learning synthesize` 也未注入 evaluator、`candidateOutputDir` 和 active roots，因此会以 unavailable 失败闭合。该冻结快照不属于远端 `main@458b342f5f` 或公共 `0.166.15`，P1-11 仍为部分完成。`233e1bdc` exact working tree 的六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立结果仍为 34/35 通过、1 项触发默认 5 秒超时，均不构成生产 wiring 或 qualification。
+> 新功能边界：`0.166.16` 已交付 candidate-only/diff-only writer、Skill writer inventory、target-matrix Eval、认证 evidence/artifact、tamper-evident ledger、mutation/promotion/release 与 tenant registry 基础。它们不会直接改写 active Skill；`cc learning synthesize` 缺 evaluator、candidate registry 或 active roots 时仍以 unavailable 失败闭合。统一生产控制面、人工 quorum、canary 与无人值守 active promotion 尚未开放。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
 
 ## 📚 文档内容
 

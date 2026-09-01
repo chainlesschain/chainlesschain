@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-09-01：完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.15@22db04f559`；CLI CI、Strict Sandbox、Trusted Publishing、provenance 与 npm 公网回读均已闭环。Agent Protocol `0.1.7`、TypeScript/Python Agent SDK `0.2.7`、Session Core `0.3.8`、Open VSX `0.37.77` 与 JetBrains Marketplace `0.4.107` 已公开。`main@458b342f5f` 的 Windows formal Graph quality 隔离、审计重试与最终 `1.65` 平台时延阈值晚于发布制品；P2-3 已由发布负责人显式接受剩余证据风险后关闭，但没有产生最终 SHA 的三平台 aggregate success/OIDC attestation，也不能据此改写历史失败 run 或 `0.166.15` 制品身份。Desktop 签名 Skill 资格门同样不等于公共 native 安装包发行。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-02 当前生产推荐版与 npm `latest` 为 Agent Platform `0.166.16@15bd3636b8`；三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。模块 112 新增受治理 Skill candidate、目标矩阵 Eval、证据账本、mutation authority、tenant release registry 与可恢复 promotion 设计；它们是安全基础，不代表默认启用无人值守 active Skill 变更。
 
 ## 当前重点
 

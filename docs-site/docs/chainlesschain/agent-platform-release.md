@@ -1,27 +1,28 @@
-# Agent Platform 0.166.15 发布与升级指南
+# Agent Platform 0.166.16 发布与升级指南
 
 ## 概述
 
-Agent Platform `0.166.15` 是 2026-09-01 核对的完整门禁生产推荐版与 npm `latest`。CLI、VS Code 和 JetBrains 的不可变标签均指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。
+Agent Platform `0.166.16` 是 2026-09-02 核对的生产推荐版与 npm `latest`，不可变 tag `v-npm-0-166-16` 指向精确提交 [`15bd3636b8`](https://github.com/chainlesschain/chainlesschain/commit/15bd3636b8aa8f223a11b2eefeb206ff7dc20bb7)。该 SHA 的 Linux、Windows、macOS CLI CI、CLI Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。
 
 当前公开组合：
 
 | 组件 | 公开版本 | 获取渠道 |
 | --- | --- | --- |
-| CLI | `0.166.15` | npm |
+| CLI | `0.166.16` | npm |
 | Context/Memory Kernel | `0.1.0` | npm |
 | Session Core | `0.3.8` | npm |
 | Agent Protocol | `0.1.7` | npm |
 | TypeScript Agent SDK | `0.2.7` | npm |
 | Python Agent SDK | `0.2.7` | PyPI |
-| VS Code IDE Bridge | `0.37.77` | Open VSX |
+| VS Code IDE Bridge | `0.37.78` | Open VSX |
 | JetBrains IDE Bridge | `0.4.107` | JetBrains Marketplace |
 | Personal Data Hub | `0.4.59` | npm |
 
-Open VSX `0.37.77` 与 JetBrains `0.4.107` 均已完成正式发布与公共回读。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
+Open VSX `0.37.78` 与 JetBrains `0.4.107` 已公开；JetBrains 源码候选 `0.4.108` 尚待 Marketplace 公共可见性确认。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
 
 ## 核心特性
 
+- **受治理的 Skill 自进化基础**：自动生成、改进、Desktop Skill Creator 与跨设备导入只形成隔离 candidate 或 diff；target-matrix Eval、认证 artifact/evidence、tamper-evident ledger、mutation authority、tenant release registry 与 lease/CAS promotion 约束发布。当前不默认启用无人值守 active promotion。
 - **Context/Memory Kernel**：统一预算分配、compaction、memory reducer、inventory 校验和跨端 conformance；CLI、App Server、WebSocket、REPL 与 session flow 使用耐久 authority stage。
 - **rollout store 与 Hooks v2**：有界 memory/JSON/SQLite store 显式处理迁移、恢复和损坏；Hooks 在 CLI、headless、settings、plugin 与 App Server 之间统一信任、排序、超时、审计重放和失败闭合决定。
 - **P0 执行安全**：固定 renderer/main IPC capability manifest；默认禁网 `workspace-write`；审批或策略持久化不可用时拒绝 shell；高风险进程启动前必须形成持久、脱敏的 admission record。
@@ -54,11 +55,11 @@ CLI 拥有执行、Graph、Session 与 Context/Memory 的权威状态；Desktop 
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.15 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.16 --registry https://registry.npmjs.org
 cc --version
 ```
 
-预期输出版本为 `0.166.15`。
+预期输出版本为 `0.166.16`。
 
 ### SDK 与协议
 
@@ -70,8 +71,8 @@ python -m pip install chainlesschain-agent-sdk==0.2.7
 
 ### IDE
 
-- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.77`。
-- 官方 VS Code：下载 [0.37.77 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.77/file/chainlesschain.chainlesschain-ide-0.37.77.vsix)，运行 **Extensions: Install from VSIX...**。
+- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.78`。
+- 官方 VS Code：下载 [0.37.78 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.78/file/chainlesschain.chainlesschain-ide-0.37.78.vsix)，运行 **Extensions: Install from VSIX...**。
 - JetBrains 2024.2+：在 Marketplace 搜索 **ChainlessChain IDE**，安装 `0.4.107`。
 
 IDE 只提交宿主已审阅决定并消费 CLI-owned projection，不直接写 Graph、Session、Context/Memory 或 approval authority。
@@ -82,9 +83,9 @@ IDE 只提交宿主已审阅决定并消费 CLI-owned projection，不直接写 
 | --- | --- | --- |
 | 普通本地 Agent | `cc agent` | 默认禁网 `workspace-write`，不探测 Docker |
 | 显式容器隔离 | CLI flag、settings 或 managed policy | 引擎不可用时失败闭合 |
-| 版本确认 | `cc --version` | 生产推荐应为 `0.166.15` |
+| 版本确认 | `cc --version` | 生产推荐应为 `0.166.16` |
 | CLI 帮助 | `cc <command> --help` | 以当前安装包输出为准 |
-| IDE 安装 | Open VSX VSIX / JetBrains Marketplace | VS Code `0.37.77`；JetBrains `0.4.107` |
+| IDE 安装 | Open VSX VSIX / JetBrains Marketplace | VS Code `0.37.78`；JetBrains `0.4.107` |
 | 更新检查 | `npm view chainlesschain version` | 应从官方 npm registry 回读 |
 
 ## 安全考虑
@@ -158,14 +159,14 @@ Record & Replay UI Journey `33330041069` 与 Desktop Signed Skill Qualification 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.15 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.16 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.77` VSIX 并使用 “Install from VSIX”。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.78` VSIX 并使用 “Install from VSIX”。
 
 **JetBrains 仍显示旧版**：刷新 Marketplace 索引并确认 IDE 至少为 2024.2；公共目标版本是 `0.4.107`。
 
-**普通启动仍检查 Docker**：先确认 `cc --version` 为 `0.166.15`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：先确认 `cc --version` 为 `0.166.16`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **UI 回放报告缺少页面内容**：这是隐私设计。报告只提供 digest 和结构状态；需要人工诊断时应在受控环境重新执行并直接观察页面。
 
@@ -194,7 +195,7 @@ npm view @chainlesschain/agent-protocol version
 python -c "import chainlesschain_agent_sdk as sdk; print(sdk.__version__)"
 ```
 
-预期依次为 `0.166.15`、`0.166.15`、`0.2.7`、`0.1.7` 与 `0.2.7`。
+预期依次为 `0.166.16`、`0.166.16`、`0.2.7`、`0.1.7` 与 `0.2.7`。
 
 ## 相关文档
 

@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
 const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
+const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
@@ -464,7 +465,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends Agent Platform <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest is <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>. Exact release commit <code class="font-mono">{CLI_RELEASE_COMMIT}</code> publishes Context/Memory, converged Hooks v2, P0 execution security, and Docker-optional Windows startup, carries Graph authoritative cutover, durable history/retirement, and real UI replay, and hotfixes the frozen formal-quality file-tool ceiling. Later remote mainline <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> per-Agent Windows isolation, audit retries, and the final <code class="font-mono">1.65</code> Windows latency threshold do not inherit <code class="font-mono">0.166.15</code> release identity. Formal run <code class="font-mono">33411796790</code> did not succeed, and the final-threshold SHA has no three-OS aggregate/OIDC attestation. P2-3 is closed only through the release owner's explicit acceptance of the remaining evidence risk; that waiver is not a general precedent. Desktop qualification is not public native distribution. The frozen local snapshot for this cycle is <code class="font-mono">233e1bdc</code> and remains governed Skill candidate-state and evidence primitives only: <code class="font-mono">b8490faa</code> is the evidence projector, <code class="font-mono">d073bdf3</code> is the tamper-evident <code class="font-mono">EvolutionLedger</code> (signed append-only entries, independent witness, receipt/verify, and fail-closed handling of missing or inconsistent evidence), and <code class="font-mono">233e1bdc</code> then adds mutation-transition subject binding. The original six governance test files reran in that worktree with 6/6 files and 126/126 tests passing in 28.84 seconds, while the standalone ledger suite remains at 34 passed and one timeout out of 35 (default 5-second limit; first test actually about 18.848 seconds; suite about 128.9 seconds). Even with the 126-test green run, the snapshot has no production import, instantiation, or unified wiring, has not been merged into <code class="font-mono">github/main@{SOURCE_CANDIDATE_COMMIT}</code>, and is not part of public <code class="font-mono">0.166.15</code> or formal qualification; a protected-main, same-SHA Linux / Windows / macOS aggregate/OIDC remains missing. Both SDKs are {AGENT_SDK_VERSION}.
+          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, from tag <code class="font-mono">{CLI_RELEASE_TAG}</code> and source <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. This release adds governed Skill-evolution foundations: generation and improvement create isolated candidates, while independent target-matrix evaluation, evidence projection, a tamper-evident ledger, mutation authority, promotion/release primitives, and tenant registries constrain every state change. Missing trusted adapters, complete receipts, or CAS can never mutate an active Skill. Both SDKs are {AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -491,6 +492,24 @@ const packs = [
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Governed Skill evolution -->
+  <section class="py-16 md:py-24 border-y border-line bg-paper">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <span class="chip">New in 0.166.16</span>
+        <h2 class="mt-5 text-4xl md:text-5xl">Governed Skill evolution</h2>
+        <p class="mt-5 text-muted text-lg leading-relaxed">Learning output becomes a candidate first, then passes independent evaluation, evidence verification, and a release transaction. “Generated” no longer means “installed,” and candidate, active, and last-known-good states stay distinct.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <article class="card"><h3 class="text-xl">Candidate first</h3><p class="mt-3 text-sm text-muted">Learning, Skill Creator, Improver, and Sync cannot overwrite active Skills.</p></article>
+        <article class="card"><h3 class="text-xl">Target-matrix eval</h3><p class="mt-3 text-sm text-muted">Target, grader, safety, and verifier roles are separated; every required cell must pass.</p></article>
+        <article class="card"><h3 class="text-xl">Evidence ledger</h3><p class="mt-3 text-sm text-muted">Signed receipts, artifact readback, an append-only ledger, and transition-subject binding.</p></article>
+        <article class="card"><h3 class="text-xl">Recoverable release</h3><p class="mt-3 text-sm text-muted">Lease, CAS, journal, release, LKG, and rollback primitives reject stale or concurrent writes.</p></article>
+      </div>
+      <p class="mt-8 text-sm text-muted">This release provides the safety foundation, not default unattended active promotion. <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html">Read the guide and current limits →</a></p>
     </div>
   </section>
 

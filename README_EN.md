@@ -2,16 +2,24 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.15` (current fully gated build and npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.16` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.15 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.16 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-01 Current mainline — **v5.0.3.135 / CLI 0.166.15 production recommendation and npm latest / Agent SDK 0.2.7 (TS/Python) / Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
+## 2026-09-02 new capability — **CLI 0.166.16: governed Skill-evolution foundations**
+
+> Automated generation, improvement, Desktop Skill Creator, and cross-device imports are now candidate-first: they produce isolated candidates or diffs and cannot overwrite active Skills. The release adds target-matrix evaluation, authenticated evidence projection, a tamper-evident `EvolutionLedger`, mutation authority, tenant candidate/release registries, lease/CAS promotion, last-known-good, and rollback foundations. Missing trusted adapters, complete receipts, or the current active revision fails closed.
+>
+> `cc learning synthesize` now returns `LEARNING_SYNTHESIS_UNAVAILABLE` when the LLM, candidate registry, candidate evaluator, or active roots are missing. A successful generation still means a candidate exists, not that it is installed. A unified end-user review/promote/rollback surface and unattended active promotion are not enabled yet.
+>
+> See the [governed Skill-evolution user guide](docs-site/docs/chainlesschain/governed-skill-evolution.md) and [module 112 design](docs/design/modules/112-governed-skill-evolution-design.md).
+
+## 2026-09-01 historical release snapshot — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7 (TS/Python) / Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
 > **Release status:** `chainlesschain@0.166.15` is the fully gated production recommendation and npm `latest`. The immutable CLI, VS Code, and JetBrains tags all resolve to exact commit [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db). That SHA completed Linux, Windows, and macOS CLI CI, CLI Strict Sandbox, OIDC npm publication, and public registry/provenance readback; both the [npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607) and [independent public verification](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618) succeeded.
 >

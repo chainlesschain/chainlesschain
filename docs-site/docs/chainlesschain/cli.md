@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-09-01）：产品 v5.0.3.135 / Agent Platform CLI 0.166.15（完整门禁的生产推荐与 npm latest，精确发布 SHA `22db04f559`）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | 175 命令 | Node.js ≥ 22.12.0。当前版包含 Context/Memory、Hooks v2、P0 执行安全、Windows Docker-optional、formal quality 文件工具热修复，以及 durable Graph、真实 UI replay、App Server 与有界 Agent IPC。**
+> **当前版本边界（2026-09-02）：产品 v5.0.3.135 / Agent Platform CLI 0.166.16（生产推荐与 npm latest，精确发布 SHA `15bd3636b8`）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | 175 命令 | Node.js ≥ 22.12.0。当前版新增 candidate-first Skill writer、target-matrix Eval、evidence ledger 与 promotion/release 安全基础；不会默认自动改写 active Skill。**
 
 ## 概述
 

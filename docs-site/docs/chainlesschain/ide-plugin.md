@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-09-01）：CLI `0.166.15` + VS Code 扩展 `0.37.77`（Open VSX）+ JetBrains 插件 `0.4.107`（Marketplace）。两端保持只读投影与 CLI authority，并推荐已完成三平台门禁的 CLI。三个标签共用精确源码 `22db04f559`，但 npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
+> **当前推荐组合（2026-09-02）：CLI `0.166.16` + VS Code 扩展 `0.37.78`（Open VSX）+ JetBrains 插件 `0.4.107`（Marketplace；源码候选为 `0.4.108`）。两端保持只读投影与 CLI authority；npm tarball、VSIX 与 JetBrains ZIP 是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.77` 已公开回读且累计下载突破 **3.3 万**；JetBrains `0.4.107` 已完成正式发布与公共回读。npm `latest` CLI `0.166.15` 已完成精确 SHA 的三平台完整门禁、发布与独立 registry/provenance 回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+> **发布提示**：Open VSX `0.37.78` 已公开；JetBrains Marketplace 当前公开版仍为 `0.4.107`。npm `latest` CLI `0.166.16@15bd3636b8` 已完成三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共 registry 回读。微软 VS Code Marketplace 尚未公开该扩展。
 
 ## 概述
 

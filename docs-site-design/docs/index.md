@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.15 | Agent SDK TS/Python 0.2.7 | IDE Bridge 3.3 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.16 | Agent SDK TS/Python 0.2.7 | IDE Bridge 3.3 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,9 +25,9 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.15
-    details: Context/Memory、Hooks v2、P0 执行安全、Windows Docker-optional 与 formal Graph 文件工具热修复均按 exact-SHA 发布证据分层
-    link: /modules/110-agent-platform-release-boundaries
+    title: Agent Platform 0.166.16
+    details: 受治理 Skill candidate、目标矩阵 Eval、证据账本、mutation authority 与可恢复 promotion/release 按 exact-SHA 发布证据分层
+    link: /modules/112-governed-skill-evolution-design
 
   - icon: 🧬
     title: 单一协议 Schema 与自动代码生成
@@ -56,7 +56,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-01 设计核对**：产品版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 均为 `0.166.15@22db04f559`，TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`。同一精确发布提交上的 CLI 三平台 CI/Strict、Trusted Publishing、provenance、公网回读、Open VSX `0.37.77` 与 JetBrains `0.4.107` 均已闭环。更晚的 `main@458b342f5f` 继续收口 Windows formal Graph quality 隔离、审计读取重试与最终 `1.65` 平台时延阈值，但不继承 `0.166.15` 制品身份；正式 run `33411796790` 本身未成功，最终阈值 SHA 也没有三平台 aggregate/OIDC attestation。P2-3 仅因发布负责人显式接受剩余证据风险而关闭，该豁免不是通用先例。详见 [发布与证据边界](/modules/110-agent-platform-release-boundaries)、[Graph Kernel](/modules/m105-graph-kernel)和[运行时实现核对](/cli-runtime-current)。
+> **2026-09-02 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.16@15bd3636b8`。本次把受治理 Skill 自进化提升为模块 112：candidate-only writer、tenant candidate/release registry、目标矩阵 Eval、证据投影、tamper-evident ledger、mutation authority 与 lease/CAS promotion 形成共同安全基础；统一生产控制面和自动 active promotion 仍保持 HOLD。详见[模块 112](/modules/112-governed-skill-evolution-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
 
 > **本地 source-only 设计快照**：本轮核对冻结功能分支 `233e1bdc`，不表示它永远是分支当前 head；它未进入 GitHub `main@458b342f5f`、CLI `0.166.15` 或既有 Desktop qualification。`b8490faa` 仍标识 attested evidence projector，`d073bdf3` 标识防篡改 EvolutionLedger 的签名 append-only segment/HEAD、独立 witness、artifact resolver、receipt/query/verify 与失败闭合恢复合同；`233e1bdc` 再绑定 mutation authority、promotion controller 与 release registry 的 transition subject。生产源码仍未导入或实例化 Ledger，也没有跨 CLI/Desktop/Skill Sync 的统一 wiring；不得据此宣称 active Skill 会自动改写或晋升。`233e1bdc` 工作树的六治理文件回归为 6/6 files、126/126 tests 通过（`28.84s`），独立 ledger suite 仍为 35 项中 34 pass、1 个默认 5 秒 timeout；两组均不构成 production qualification、发布授权或 P1 关闭。
 
