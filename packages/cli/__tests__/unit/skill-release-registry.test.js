@@ -654,6 +654,43 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
+  it("pins non-link registry roots beneath a canonicalized ancestor alias", () => {
+    const canonicalParent = path.join(tempRoot, "canonical-parent");
+    const aliasParent = path.join(tempRoot, "alias-parent");
+    fs.mkdirSync(canonicalParent);
+    try {
+      fs.symlinkSync(
+        canonicalParent,
+        aliasParent,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    } catch (error) {
+      if (["EACCES", "EPERM"].includes(error?.code)) return;
+      throw error;
+    }
+
+    const aliasedCandidates = new SkillCandidateRegistry({
+      tenantId: TENANT_ID,
+      targetMatrixAdmissionAuthority: candidateAdmissionAuthority(),
+      rootDir: path.join(aliasParent, "candidates"),
+      secure: false,
+    });
+    const aliasedReleases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: path.join(aliasParent, "releases"),
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: new StrictTransactionLedger(),
+    });
+
+    expect(aliasedCandidates.baseDir).toBe(
+      fs.realpathSync.native(path.join(canonicalParent, "candidates")),
+    );
+    expect(aliasedReleases.baseDir).toBe(
+      fs.realpathSync.native(path.join(canonicalParent, "releases")),
+    );
+  });
+
   async function promote(candidate, revision, targetDigest, operationId) {
     const request = requestFor({
       targetDigest,

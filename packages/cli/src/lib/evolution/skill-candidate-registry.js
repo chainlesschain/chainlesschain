@@ -1431,9 +1431,19 @@ export class SkillCandidateRegistry {
         "candidate registry directory must be non-symlink",
       );
     }
+    const capturedIdentity = entryIdentity(stat);
     const canonical = realpath(this._fs, requestedPath);
+    const canonicalStat = this._fs.lstatSync(canonical);
+    const canonicalParent = realpath(this._fs, path.dirname(requestedPath));
+    const expectedCanonical = path.join(
+      canonicalParent,
+      path.basename(requestedPath),
+    );
     if (
-      !samePath(canonical, requestedPath) ||
+      !canonicalStat.isDirectory() ||
+      canonicalStat.isSymbolicLink() ||
+      entryIdentity(canonicalStat) !== capturedIdentity ||
+      !samePath(canonical, expectedCanonical) ||
       (parent &&
         (!isContained(parent.path, canonical) ||
           !samePath(path.dirname(canonical), parent.path)))
@@ -1443,7 +1453,6 @@ export class SkillCandidateRegistry {
         "candidate registry directory escaped its canonical parent",
       );
     }
-    const identity = entryIdentity(stat);
     if (this._secure) {
       ensurePrivateDirectory(canonical, {
         applyWindowsAcl: true,
@@ -1453,7 +1462,7 @@ export class SkillCandidateRegistry {
       if (
         !stat.isDirectory() ||
         stat.isSymbolicLink() ||
-        entryIdentity(stat) !== identity ||
+        entryIdentity(stat) !== capturedIdentity ||
         !samePath(realpath(this._fs, canonical), canonical)
       ) {
         throw registryError(
@@ -1462,7 +1471,7 @@ export class SkillCandidateRegistry {
         );
       }
     }
-    return deepFreeze({ path: canonical, identity });
+    return deepFreeze({ path: canonical, identity: capturedIdentity });
   }
 
   _assertNoLegacyBaseLayout() {

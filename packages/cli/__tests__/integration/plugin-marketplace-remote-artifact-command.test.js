@@ -1474,7 +1474,10 @@ describe("cc plugin remote marketplace artifact journey", () => {
 
       expect(rejected.exitCode).toBe(1);
       expect(rejected.stderr).toMatch(error);
-      expect(requestedPathnames()).toContain("/registry.json");
+      // Installed authority is verified fail-closed. Depending on whether the
+      // catalog cache is reusable, the command may reject locally or resolve
+      // the registry first; neither path may fetch candidate artifacts.
+      expect([[], ["/registry.json"]]).toContainEqual(requestedPathnames());
       expect(requestedPathnames()).not.toContain(
         "/artifacts/plugin-manifest.sig",
       );

@@ -1181,9 +1181,19 @@ export class SkillReleaseRegistry {
         "release registry directory must be non-symlink",
       );
     }
+    const capturedIdentity = identity(stat);
     const canonical = realpath(this.#fs, requestedPath);
+    const canonicalStat = this.#fs.lstatSync(canonical);
+    const canonicalParent = realpath(this.#fs, path.dirname(requestedPath));
+    const expectedCanonical = path.join(
+      canonicalParent,
+      path.basename(requestedPath),
+    );
     if (
-      !samePath(canonical, requestedPath) ||
+      !canonicalStat.isDirectory() ||
+      canonicalStat.isSymbolicLink() ||
+      identity(canonicalStat) !== capturedIdentity ||
+      !samePath(canonical, expectedCanonical) ||
       (parent &&
         (!isContained(parent.path, canonical) ||
           !samePath(path.dirname(canonical), parent.path)))
@@ -1193,7 +1203,6 @@ export class SkillReleaseRegistry {
         "release registry directory escaped its canonical parent",
       );
     }
-    const capturedIdentity = identity(stat);
     if (this.#secure) {
       ensurePrivateDirectory(canonical, {
         applyWindowsAcl: true,

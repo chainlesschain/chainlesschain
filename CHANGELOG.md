@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   128.9 seconds. The 126-test green run does not supply production import,
   instantiation, unified wiring, a merge to `main`, public `0.166.15` delivery,
   or formal qualification, and the ledger suite itself is not all green.
+
 ### Fixed - cc CLI 0.166.16: harden evidence and release gates
 
 > `chainlesschain` **0.166.15 -> 0.166.16** (release candidate,
@@ -72,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   governed 100-sample distribution. The `needs_input` P95 threshold remains
   strictly below 2 seconds, and both readiness and measured cycles remain bound
   to the exact fixture ledger.
+- **Canonical registry roots across host path aliases**: candidate and release
+  registries canonicalize an existing ancestor alias while binding the created
+  non-link leaf by filesystem identity. Leaf links and parent escapes remain
+  rejected, and marketplace upgrade tests still prohibit candidate artifact
+  fetches on every fail-closed validation path.
 - **Release and evidence boundary**: this candidate is not yet published;
   publication still requires the exact release commit to pass the configured
   Linux, Windows, and macOS release workflows. External P1 production rollout,
