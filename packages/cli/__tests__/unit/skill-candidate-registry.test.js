@@ -498,7 +498,7 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     expect(alpha.candidateId).not.toBe(beta.candidateId);
     expect(alphaRegistry.rootDir).toBe(
       path.join(
-        path.resolve(registryBase),
+        fs.realpathSync.native(registryBase),
         "tenants",
         deriveSkillCandidateTenantKey(TENANT_ALPHA),
       ),
@@ -1034,7 +1034,7 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     const result = registry.create(draftInput(execution));
 
     expect(secureFsMocks.ensurePrivateDirectory).toHaveBeenCalledWith(
-      path.resolve(registryBase),
+      fs.realpathSync.native(registryBase),
       {
         applyWindowsAcl: true,
         failIfUnavailable: true,

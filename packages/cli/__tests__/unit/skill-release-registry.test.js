@@ -736,7 +736,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     });
     expect(registryRoot).toBe(
       path.join(
-        path.resolve(registryBase),
+        fs.realpathSync.native(registryBase),
         "tenants",
         deriveSkillReleaseTenantKey(TENANT_ID),
       ),
