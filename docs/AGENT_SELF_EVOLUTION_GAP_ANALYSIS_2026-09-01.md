@@ -59,12 +59,12 @@ shadow / canary / active / rollback
 
 ### 1.1 当前实施完成情况（2026-09-01）
 
-本节记录本报告转入实施后的当前状态，实施基线截至提交 `4f22d70bb5`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
+本节记录本报告转入实施后的当前状态，实施基线截至提交 `5c2de980d3`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
 
 | 优先级 | 当前判断 | 已完成并写入仓库 | 当前仍需完成 |
 | --- | --- | --- | --- |
-| P0 | 已完成 14 个基础提交；整体未关闭 | 能力真值与 mutation freeze、可信 mutation authority、tenant-scoped candidate/release/promotion、独立监督 Eval Gate、证据投影与制品端口、tamper-evident ledger、类型化领域事件、规范执行清单、持久账本端口契约 | 缺真实跨进程 durability/attestation authority、真实进程级 Eval supervisor、矩阵评测与统计聚合、完整 promotion evidence/人工 quorum、端到端事务控制面和生产崩溃/攻击测试 |
-| P1 | 部分底座提前落地；主能力未开始验收 | target matrix 数据模型、content-addressed registry、ledger/event/port 等依赖已具备基础实现 | Canonical Raw/Wiki/Skill、Maintainer、Proposer、目标矩阵 Eval、统一 Registry 接线、结构化 Memory、InvocationReceipt 和有界评分循环均未形成生产纵切 |
+| P0 | 已完成 15 个基础提交；整体未关闭 | 能力真值与 mutation freeze、可信 mutation authority、tenant-scoped candidate/release/promotion、独立监督 Eval Gate、signed target-matrix 全 cell 合取门、证据投影与制品端口、tamper-evident ledger、类型化领域事件、规范执行清单、持久账本端口契约 | 缺真实跨进程 durability/attestation authority、真实进程级 Eval supervisor、matrix decision→promotion/release/ledger 类型化事务接线、跨 cell 统计校准/多重比较、人工 quorum、端到端控制面和生产崩溃/攻击测试 |
+| P1 | 部分底座提前落地；主能力未开始验收 | target matrix 数据模型与全 cell 合取证据基础、content-addressed registry、ledger/event/port 等依赖已具备基础实现 | Canonical Raw/Wiki/Skill、Maintainer、Proposer、生产目标矩阵 Eval、统一 Registry 接线、结构化 Memory、InvocationReceipt 和有界评分循环均未形成生产纵切 |
 | P2 | 未开始 | 尚未把任何 P2 产品能力声明为已交付 | Pilot、Workbench、Retrieval Router、跨设备/团队知识、跨模型市场治理、Wiki pruning 与长时在线适应应在 P0/P1 验收后实施 |
 
 P0 的逐项状态如下；“基础完成”特指底层安全原语已提交，不代表生产接线已经完成：
@@ -73,7 +73,7 @@ P0 的逐项状态如下；“基础完成”特指底层安全原语已提交�
 | --- | --- | --- | --- | --- |
 | EVO-P0-1 能力真实性与 mutation freeze | 基础完成，路线项待生产切换验证 | canonical capability/runtime status、candidate-only writer 边界、mutation 路径盘点与冻结、Desktop Skill 生命周期证据接线 | `3fdff6c1ee`、`0da1f36a8b`、`c16e1a3912` | 对全部生产入口做最终 cutover/E2E，确认旧壳不会绕过门禁或继续报告幻影成功 |
 | EVO-P0-2 Candidate、Promotion 与 Rollback 事务 | tenant 隔离基础完成，生产控制面未关闭 | 不可变 candidate、可信 mutation authority、tenant root/marker 与显式 legacy migration、完整 execution manifest 绑定、有界目录/制品解析、crash-safe release/promotion/recovery、transition subject 绑定、持久账本端口契约 | `3fdff6c1ee`、`fe16c72d5e`、`ed7882d004`、`233e1bdc3a`、`4cffc53054`、`dfa21b4ba4`、`4f22d70bb5` | 统一两阶段事务与真实 durable authority；commit-unknown/concurrency 生产 E2E；active/last-known-good/canary 控制面；运行中会话 digest pinning；permission/policy/model/tool/grader 变化后的 approval/Eval cache 失效；生产 adapter 构造权、ACL/只读 CAS、Windows directory fsync 与持续审计 |
-| EVO-P0-3 独立真实 Eval Gate | 监督与证据基础完成，生产接线 HOLD | 隔离 target、角色/信任分权、签名 receipt v3、调用/撤销独立证据、hard-termination 收敛、全 run 单调 deadline、descriptor-bound authority root、后验防 TOCTOU 与 fail-closed watchdog | `52427b742c` | train/validation/test 隔离、同条件 baseline/candidate、多目标统计 gate、anti-gaming、target-matrix receipt 聚合与真实 grader；生产 attested loader 绑定 descriptor↔callable；进程级 kill/资源回收；PKI keyId 唯一性；目标平台 2500ms settlement grace 基准 |
+| EVO-P0-3 独立真实 Eval Gate | 单 cell 监督与 matrix 合取证据基础完成，生产接线 HOLD | 隔离 target、角色/信任分权、签名 receipt v3、调用/撤销独立证据、hard-termination 收敛、全 run 单调 deadline、descriptor-bound authority root、后验防 TOCTOU；signed matrix plan、tenant durable reserve/finalize 端口契约、verified full child receipt（含 attestation）的有序摘要根、因果时间线与全 cell 一致通过判定 | `52427b742c`、`5c2de980d3` | train/validation/test 隔离、真实 grader、anti-gaming、跨 cell 统计校准/多重比较；matrix decision 与 promotion/release/ledger 类型化绑定；生产 attested loader 绑定 descriptor↔callable/真实 settlement 上限；进程级 kill/资源回收；跨进程 plan resolver/reservation/finalization 持久性；PKI keyId 唯一性与目标平台 grace 基准 |
 | EVO-P0-4 Raw、入模投影与 Skill 编译安全边界 | 基础部分完成 | attested evidence projection、authenticated artifact ports、tenant-bound dependency lock/runtime manifest/target matrix 规范格式与校验 | `b8490faa94`、`b4dca1ee05`、`4cffc53054` | 生产 raw/model-visible 双层存储、secret/PII 脱敏、trust/quarantine、完整 derivation receipt、人工 quorum 与生产 adapter 接线 |
 | EVO-P0-5 Fail-closed 证据与审计 | 账本基础完成，生产可用性 HOLD | append-only tamper-evident ledger、typed domain events、subject-bound transition、认证制品解析与持久账本组合端口 | `d073bdf3c7`、`233e1bdc3a`、`d098a64253`、`b4dca1ee05`、`dfa21b4ba4` | 真实跨进程持久 authority、增量索引/快照与规模基准、冲突/并发回归、旧 projection/journal 迁移、故障注入、离线审计导出验证以及生产 wiring |
 
@@ -84,7 +84,7 @@ P1/P2 当前状态按路线项展开如下，防止提前把“已有依赖”�
 | EVO-P1-1 Canonical Raw/Wiki/Skill | 未开始验收 | ledger、typed events、artifact ports | 建成单一 `EvolutionRun` 与 Raw/Wiki/Skill authority，并让 CLI/Desktop/Graph 共用 |
 | EVO-P1-2 Evidence-backed Wiki Maintainer | 未开始 | 可引用认证 evidence/artifact | 实现 pattern/index/evolution-log/skill-impact 及 merge/conflict/expiry/revoke |
 | EVO-P1-3 Single-Skill Proposer | 部分边界已完成 | writer 已被限制为 candidate-only，candidate registry 已有基础 | 接入 Wiki/Raw lineage，只允许单 Skill proposal，并生成 PURPOSE、diff、边界和反例 |
-| EVO-P1-4 目标运行时 Eval | 数据模型与单次受监督 gate 部分完成 | dependency lock、runtime manifest、target matrix canonical schema、独立 target/grader/safety receipt 验证 | 实现逐 matrix cell 的 before/after receipt、负迁移 gate、shadow/canary 与统计聚合判定 |
+| EVO-P1-4 目标运行时 Eval | 数据模型、单 cell 成对评测与 matrix 合取基础完成 | dependency lock、runtime manifest、target matrix canonical schema、独立 target/grader/safety receipt 验证、signed plan/tenant-scoped reserve/finalize 持久化端口契约、无缺格的 all-cell conjunction | 接入真实跨平台 runtime/grader；完成 matrix decision 的 promotion 事务绑定、跨 cell 统计校准/多重比较、shadow/canary 与持久 child receipt resolver |
 | EVO-P1-5 Registry 与单写者治理 | tenant 存储基础完成 | content-addressed tenant candidate/release、promotion controller、lease/CAS/journal/recovery 原语 | 唯一 production writer、kill switch、active/last-known-good/canary 生产接线与跨进程持久权威 |
 | EVO-P1-6 统一生产接线 | 未开始 | capability status 与 Desktop evidence 已校正部分入口 | 真实 Agent 事件统一进入控制面，并退役或降级重复的 self-evolving 壳 |
 | EVO-P1-7 Memory 与多 Agent 权力分离 | 部分安全底座完成 | Eval Gate 已建立 target/grader/safety/supervisor/verifier 的最小监督与证据分权 | 完成 memory 分层、compaction 约束及 proposer/critic/evaluator/governor 隔离，并由可证明的生产组合根强制执行 |
@@ -100,8 +100,9 @@ P1/P2 当前状态按路线项展开如下，防止提前把“已有依赖”�
 | Tamper-evident ledger 与 typed events | 相关账本测试 45/45 通过 | 数据模型与 fail-closed 校验基础已提交 |
 | Canonical execution manifests | manifest + mutation authority 测试 57/57 通过 | canonicalization、tenant-bound lock、runtime manifest、target matrix 基础已提交 |
 | Durable ledger ports + release/promotion compatibility | ledger ports 10/10、release registry 14/14、promotion controller 11/11 通过 | 端口契约可发布为 foundation；当前 O(N) 扫描和缺真实 durability authority 使生产接线继续 HOLD |
-| 独立监督 Eval Gate | 128/128 通过，终轮独立复审 RELEASE | 提交 `52427b742c`；可发布为监督/证据 foundation，但真实进程终止、attested loader 与矩阵聚合仍为生产阻断 |
+| 独立监督 Eval Gate | 128/128 通过，终轮独立复审 RELEASE | 提交 `52427b742c`；可发布为监督/证据 foundation，但真实进程终止、attested loader 与 matrix decision→promotion 生产事务接线仍为阻断 |
 | Tenant Candidate/Release/Promotion | candidate + release + promotion 65/65 通过，终轮独立复审 RELEASE | 提交 `4f22d70bb5`；tenant 隔离、恢复和制品绑定基础可发布，生产持久 authority、adapter 组合权与同权限外部篡改防护仍 HOLD |
+| Signed target-matrix Eval 合取门 | 3/3 大场景测试通过（含真实 branded Gate 两 cell accepted/needs-more 及攻击断言），两轮独立复审最终 RELEASE | 提交 `5c2de980d3`；可发布为 trusted-composition/all-cell conjunction foundation，不是跨 cell 统计生产门；attested settlement 绑定、真实 hard kill、生产 durable plan resolver/reservation/finalization adapters 与 Promotion 事务接线仍 HOLD |
 
 ## 2. 外部方案实际提供了什么
 
