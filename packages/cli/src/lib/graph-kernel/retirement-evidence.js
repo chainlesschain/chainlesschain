@@ -1,4 +1,4 @@
-import { graphDigest } from "./compiler.js";
+import { graphEvidenceDigest as graphDigest } from "./evidence-digest.js";
 
 export const GRAPH_RETIREMENT_EVIDENCE_SCHEMA =
   "chainlesschain.graph-retirement-qualification/v1";
@@ -215,7 +215,7 @@ function evidenceIdentity(
   return normalized;
 }
 
-function observationWindow(input, { notBefore } = {}) {
+function observationWindow(input, { notBefore, minimumDurationMs = 1 } = {}) {
   const started = timestamp(input.startedAt, "startedAt");
   const ended = timestamp(input.endedAt, "endedAt");
   if (ended.milliseconds <= started.milliseconds) {
@@ -231,10 +231,18 @@ function observationWindow(input, { notBefore } = {}) {
       { notBefore, startedAt: started.value },
     );
   }
+  const durationMs = ended.milliseconds - started.milliseconds;
+  if (durationMs < minimumDurationMs || input?.durationMs !== durationMs) {
+    throw evidenceError(
+      "CC_GRAPH_RETIREMENT_OBSERVATION_TOO_SHORT",
+      `durationMs must equal the timestamp window and be at least ${minimumDurationMs}`,
+      { durationMs, minimumDurationMs },
+    );
+  }
   return {
     startedAt: started.value,
     endedAt: ended.value,
-    durationMs: ended.milliseconds - started.milliseconds,
+    durationMs,
     observationSampleCount: positive(
       input.observationSampleCount,
       "observationSampleCount",
@@ -454,6 +462,7 @@ export function normalizeGraphRetirementEvidence(
     commitSha,
     contract: contractInput,
     requiredPlatforms,
+    minimumDurationMs = 1,
   },
 ) {
   const contract = normalizeGraphRetirementContract(contractInput);
@@ -470,7 +479,7 @@ export function normalizeGraphRetirementEvidence(
       commitSha,
       contract,
     }),
-    ...observationWindow(input),
+    ...observationWindow(input, { minimumDurationMs }),
     activeLegacyRunCount: zero(
       input?.activeLegacyRunCount,
       "activeLegacyRunCount",
@@ -508,6 +517,7 @@ export function normalizeGraphLegacyWriterObservation(
     commitSha,
     contract: contractInput,
     notBefore,
+    minimumDurationMs = 1,
   },
 ) {
   const contract = normalizeGraphRetirementContract(contractInput);
@@ -554,7 +564,7 @@ export function normalizeGraphLegacyWriterObservation(
       commitSha,
       contract,
     }),
-    ...observationWindow(input, { notBefore }),
+    ...observationWindow(input, { notBefore, minimumDurationMs }),
     activeLegacyRunCount: zero(
       input?.activeLegacyRunCount,
       "activeLegacyRunCount",

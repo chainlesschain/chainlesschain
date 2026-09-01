@@ -83,7 +83,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          node-version: "22.22.2"
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
@@ -134,7 +134,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          node-version: "22.22.2"
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
@@ -172,7 +172,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
-          node-version: "22.12.0"
+          node-version: "22.22.2"
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps

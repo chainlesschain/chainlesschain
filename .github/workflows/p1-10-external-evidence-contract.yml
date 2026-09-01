@@ -5,17 +5,43 @@ on:
     branches: [main, "feature/**", "codex/**"]
     paths:
       - "scripts/p1-10-external-evidence-gate.mjs"
+      - "scripts/p1-10-external-evidence-builder.mjs"
+      - "scripts/p1-10-github-trust.mjs"
+      - "scripts/p1-10-scenario-receipts.mjs"
+      - "scripts/p1-10-owned-process-runner.mjs"
+      - "scripts/p1-10-windows-job-supervisor.ps1"
       - "scripts/__tests__/p1-10-conformance-matrix.test.mjs"
+      - "scripts/__tests__/p1-10-external-evidence-builder.test.mjs"
+      - "scripts/__tests__/p1-10-github-trust.test.mjs"
+      - "scripts/__tests__/p1-10-owned-process-runner.test.mjs"
+      - "scripts/__tests__/p1-10-scenario-receipts.test.mjs"
       - "tests/fixtures/p1-10-conformance-matrix.json"
+      - ".github/p1-10-physical-host-registry.json"
+      - ".github/p1-10-physical-host-registry.md"
       - ".github/workflows/p1-10-external-evidence-contract.yml"
       - ".github/workflows/p1-10-external-evidence-close.yml"
+      - ".github/workflows/p1-10-external-evidence-producer.yml"
+      - ".github/actionlint.yaml"
   pull_request:
     paths:
       - "scripts/p1-10-external-evidence-gate.mjs"
+      - "scripts/p1-10-external-evidence-builder.mjs"
+      - "scripts/p1-10-github-trust.mjs"
+      - "scripts/p1-10-scenario-receipts.mjs"
+      - "scripts/p1-10-owned-process-runner.mjs"
+      - "scripts/p1-10-windows-job-supervisor.ps1"
       - "scripts/__tests__/p1-10-conformance-matrix.test.mjs"
+      - "scripts/__tests__/p1-10-external-evidence-builder.test.mjs"
+      - "scripts/__tests__/p1-10-github-trust.test.mjs"
+      - "scripts/__tests__/p1-10-owned-process-runner.test.mjs"
+      - "scripts/__tests__/p1-10-scenario-receipts.test.mjs"
       - "tests/fixtures/p1-10-conformance-matrix.json"
+      - ".github/p1-10-physical-host-registry.json"
+      - ".github/p1-10-physical-host-registry.md"
       - ".github/workflows/p1-10-external-evidence-contract.yml"
       - ".github/workflows/p1-10-external-evidence-close.yml"
+      - ".github/workflows/p1-10-external-evidence-producer.yml"
+      - ".github/actionlint.yaml"
 
 permissions:
   contents: read
@@ -48,7 +74,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: "22.12.0"
+          node-version: "22.22.2"
 
       - name: Verify exact checkout
         shell: bash
@@ -57,7 +83,13 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
 
       - name: Run P1-10 matrix and tamper contracts
-        run: node --test scripts/__tests__/p1-10-conformance-matrix.test.mjs
+        run: >-
+          node --test --test-concurrency=1
+          scripts/__tests__/p1-10-conformance-matrix.test.mjs
+          scripts/__tests__/p1-10-external-evidence-builder.test.mjs
+          scripts/__tests__/p1-10-github-trust.test.mjs
+          scripts/__tests__/p1-10-owned-process-runner.test.mjs
+          scripts/__tests__/p1-10-scenario-receipts.test.mjs
 
       - name: Verify CLI refuses evidence without protected expectations
         shell: bash

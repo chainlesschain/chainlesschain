@@ -1,7 +1,18 @@
-import { GRAPH_CUTOVER_REQUIRED_PLATFORMS } from "./cutover-ledger.js";
-import { graphDigest } from "./compiler.js";
+import { GRAPH_CUTOVER_REQUIRED_PLATFORMS } from "./cutover-contract.js";
 import {
+  canonicalGraphEvidenceJson as canonicalGraphJson,
+  graphEvidenceDigest as graphDigest,
+} from "./evidence-digest.js";
+import {
+  GRAPH_PRODUCTION_SOURCE_ENVIRONMENT,
+  GRAPH_PRODUCTION_SOURCE_REF,
+  GRAPH_PRODUCTION_SOURCE_WORKFLOW,
+  normalizeGraphProductionSourceBundle,
+} from "./production-source-evidence.js";
+import {
+  assertGraphProductionRuntimeSurfaceManifest,
   graphRuntimeEntryManifestDigest,
+  graphRuntimeSurfaceManifestDigest,
   loadGraphRuntimeSurfaceManifest,
 } from "./runtime-surface-manifest.js";
 import {
@@ -16,6 +27,19 @@ export const GRAPH_ENTRY_WRITER_OBSERVATION_SCHEMA =
   "chainlesschain.graph-entry-writer-observation/v1";
 export const GRAPH_PRODUCTION_CUTOVER_RECEIPT_SCHEMA =
   "chainlesschain.graph-production-cutover-receipt/v1";
+export const GRAPH_PRODUCTION_EVIDENCE_WORKFLOW =
+  GRAPH_PRODUCTION_SOURCE_WORKFLOW;
+export const GRAPH_PRODUCTION_EVIDENCE_ENVIRONMENT =
+  GRAPH_PRODUCTION_SOURCE_ENVIRONMENT;
+export const GRAPH_PRODUCTION_EVIDENCE_REF = GRAPH_PRODUCTION_SOURCE_REF;
+export const GRAPH_MINIMUM_SHADOW_OBSERVATION_MS = 30 * 60 * 1_000;
+export const GRAPH_MINIMUM_CANARY_OBSERVATION_MS = 60 * 60 * 1_000;
+export const GRAPH_MINIMUM_RETIREMENT_OBSERVATION_MS = 60 * 60 * 1_000;
+export const GRAPH_MINIMUM_LEGACY_WRITER_OBSERVATION_MS = 60 * 60 * 1_000;
+export const GRAPH_PRODUCTION_SOURCE_KINDS = Object.freeze([
+  "physical_self_hosted_runner",
+  "authenticated_production_endpoint",
+]);
 
 export const GRAPH_REQUIRED_CUTOVER_STAGES = Object.freeze([
   "shadow",
@@ -153,7 +177,11 @@ function timestamp(value, field) {
   return { value: normalized, milliseconds };
 }
 
-function windowEvidence(input, field, { notBefore } = {}) {
+function windowEvidence(
+  input,
+  field,
+  { notBefore, minimumDurationMs = 1 } = {},
+) {
   const started = timestamp(input?.startedAt, `${field}.startedAt`);
   const ended = timestamp(input?.endedAt, `${field}.endedAt`);
   if (ended.milliseconds <= started.milliseconds) {
@@ -169,10 +197,18 @@ function windowEvidence(input, field, { notBefore } = {}) {
       { notBefore, startedAt: started.value },
     );
   }
+  const durationMs = ended.milliseconds - started.milliseconds;
+  if (durationMs < minimumDurationMs || input?.durationMs !== durationMs) {
+    throw evidenceError(
+      "CC_GRAPH_PRODUCTION_OBSERVATION_TOO_SHORT",
+      `${field}.durationMs must equal its timestamp window and be at least ${minimumDurationMs}`,
+      { field, durationMs, minimumDurationMs },
+    );
+  }
   return {
     startedAt: started.value,
     endedAt: ended.value,
-    durationMs: ended.milliseconds - started.milliseconds,
+    durationMs,
   };
 }
 
@@ -204,6 +240,109 @@ function exactMembers(actual, expected, code, message, details = {}) {
       actual: normalizedActual,
     });
   }
+}
+
+function normalizeObservationSources(input, expectedDigestsByPlatform, field) {
+  const sources = Array.isArray(input)
+    ? input.map((entry, index) => {
+        const sourceKind = text(
+          entry?.sourceKind,
+          `${field}[${index}].sourceKind`,
+        );
+        const platform = String(entry?.platform || "").toLowerCase();
+        if (
+          !GRAPH_PRODUCTION_SOURCE_KINDS.includes(sourceKind) ||
+          !GRAPH_CUTOVER_REQUIRED_PLATFORMS.includes(platform)
+        ) {
+          throw evidenceError(
+            "CC_GRAPH_PRODUCTION_SOURCE_INVALID",
+            `${field}[${index}] must identify a physical self-hosted runner or authenticated production endpoint on a required platform`,
+            { field, sourceKind, platform },
+          );
+        }
+        const observationDigests = Array.isArray(entry?.observationDigests)
+          ? entry.observationDigests.map((value, digestIndex) =>
+              digest(
+                value,
+                `${field}[${index}].observationDigests[${digestIndex}]`,
+              ),
+            )
+          : [];
+        exactMembers(
+          observationDigests,
+          expectedDigestsByPlatform.get(platform) || [],
+          "CC_GRAPH_PRODUCTION_SOURCE_BINDING_INCOMPLETE",
+          "each production source must bind every required observation digest for its platform",
+          { field, platform },
+        );
+        return {
+          platform,
+          sourceKind,
+          sourceId: text(entry?.sourceId, `${field}[${index}].sourceId`),
+          identityDigest: digest(
+            entry?.identityDigest,
+            `${field}[${index}].identityDigest`,
+          ),
+          keyId: digest(entry?.keyId, `${field}[${index}].keyId`),
+          registryDigest: digest(
+            entry?.registryDigest,
+            `${field}[${index}].registryDigest`,
+          ),
+          runnerRegistrationId: positive(
+            entry?.runnerRegistrationId,
+            `${field}[${index}].runnerRegistrationId`,
+          ),
+          runnerName: text(entry?.runnerName, `${field}[${index}].runnerName`),
+          runnerLabels: Array.isArray(entry?.runnerLabels)
+            ? [...entry.runnerLabels]
+                .map((label, labelIndex) =>
+                  text(label, `${field}[${index}].runnerLabels[${labelIndex}]`),
+                )
+                .sort()
+            : [],
+          challenge: text(entry?.challenge, `${field}[${index}].challenge`),
+          nonce: text(entry?.nonce, `${field}[${index}].nonce`),
+          rawLogRoot: digest(
+            entry?.rawLogRoot,
+            `${field}[${index}].rawLogRoot`,
+          ),
+          receiptDigest: digest(
+            entry?.receiptDigest,
+            `${field}[${index}].receiptDigest`,
+          ),
+          authenticationDigest: digest(
+            entry?.authenticationDigest,
+            `${field}[${index}].authenticationDigest`,
+          ),
+          observationDigests: [...observationDigests].sort(),
+        };
+      })
+    : [];
+  sources.sort((left, right) =>
+    compareCanonicalText(left.platform, right.platform),
+  );
+  exactMembers(
+    sources.map((entry) => entry.platform),
+    GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+    "CC_GRAPH_PRODUCTION_SOURCE_COVERAGE_INCOMPLETE",
+    "production observations must cover Linux, macOS, and Windows sources",
+    { field },
+  );
+  if (
+    new Set(sources.map((entry) => entry.identityDigest)).size !==
+      sources.length ||
+    new Set(sources.map((entry) => entry.sourceId)).size !== sources.length ||
+    new Set(sources.map((entry) => entry.runnerRegistrationId)).size !==
+      sources.length ||
+    new Set(sources.map((entry) => entry.keyId)).size !== sources.length
+  ) {
+    throw evidenceError(
+      "CC_GRAPH_PRODUCTION_HOST_IDENTITY_REUSED",
+      "Linux, macOS, and Windows production observations must come from distinct source identities",
+      { field },
+    );
+  }
+  return sources;
 }
 
 function verifyDigest(input, normalized, domain, field = "evidenceDigest") {
@@ -292,7 +431,9 @@ function normalizeShadow(input) {
     "shadow evidence must cover every semantic projection dimension",
   );
   return {
-    ...windowEvidence(input, "shadow"),
+    ...windowEvidence(input, "shadow", {
+      minimumDurationMs: GRAPH_MINIMUM_SHADOW_OBSERVATION_MS,
+    }),
     runCount: positive(input?.runCount, "shadow.runCount"),
     divergenceCount: zero(input?.divergenceCount, "shadow.divergenceCount"),
     unknownEffectCount: zero(
@@ -347,7 +488,9 @@ function normalizeCanary(input, commitSha) {
     "canary evidence must cover every required platform",
   );
   return {
-    ...windowEvidence(input, "canary"),
+    ...windowEvidence(input, "canary", {
+      minimumDurationMs: GRAPH_MINIMUM_CANARY_OBSERVATION_MS,
+    }),
     internalRunCount: positive(
       input?.internalRunCount,
       "canary.internalRunCount",
@@ -542,7 +685,10 @@ function normalizeMigratedWriterObservation(input, identity, entry, notBefore) {
   );
   const normalized = {
     ...observedIdentity,
-    ...windowEvidence(input, "legacyReadOnly", { notBefore }),
+    ...windowEvidence(input, "legacyReadOnly", {
+      notBefore,
+      minimumDurationMs: GRAPH_MINIMUM_LEGACY_WRITER_OBSERVATION_MS,
+    }),
     observationSampleCount: positive(
       input?.observationSampleCount,
       "legacyReadOnly.observationSampleCount",
@@ -666,6 +812,7 @@ function normalizeEntry(input, expected, commitSha) {
         commitSha,
         contract,
         requiredPlatforms: GRAPH_CUTOVER_REQUIRED_PLATFORMS,
+        minimumDurationMs: GRAPH_MINIMUM_RETIREMENT_OBSERVATION_MS,
       },
     );
     normalized.legacyReadOnly = normalizeGraphLegacyWriterObservation(
@@ -677,6 +824,7 @@ function normalizeEntry(input, expected, commitSha) {
         commitSha,
         contract,
         notBefore: finalLedger.canonicalActivatedAt,
+        minimumDurationMs: GRAPH_MINIMUM_LEGACY_WRITER_OBSERVATION_MS,
       },
     );
   } else {
@@ -687,6 +835,42 @@ function normalizeEntry(input, expected, commitSha) {
       finalLedger.canonicalActivatedAt,
     );
   }
+  const expectedLegacyErrorCode =
+    expected.manifest?.cutoverPolicy?.legacyMutationErrorCodes?.[
+      identity.surface
+    ];
+  for (const probe of [
+    ...normalized.legacyReadOnly.mutationProbes,
+    ...(normalized.retirementEvidence?.mutationProbes || []),
+  ]) {
+    if (probe.errorCode !== expectedLegacyErrorCode) {
+      throw evidenceError(
+        "CC_GRAPH_PRODUCTION_LEGACY_ERROR_CODE_MISMATCH",
+        `${probe.mutationFunction} did not return the manifest-pinned legacy writer error code`,
+      );
+    }
+  }
+  const commonObservationDigests = [
+    normalized.shadow.evidenceDigest,
+    normalized.canary.evidenceDigest,
+    normalized.rollback.evidenceDigest,
+    normalized.finalLedger.evidenceDigest,
+    normalized.legacyReadOnly.evidenceDigest,
+    ...(normalized.retirementEvidence
+      ? [normalized.retirementEvidence.evidenceDigest]
+      : []),
+  ];
+  const expectedDigestsByPlatform = new Map(
+    normalized.canary.platformJourneys.map(({ platform }) => [
+      platform,
+      [...commonObservationDigests],
+    ]),
+  );
+  normalized.observationSources = normalizeObservationSources(
+    input?.observationSources,
+    expectedDigestsByPlatform,
+    "observationSources",
+  );
   normalized.evidenceDigest = verifyDigest(
     input,
     normalized,
@@ -730,6 +914,10 @@ function normalizeDisabledEntry(input, expected, commitSha) {
       input?.durableAuthorityClaimCount,
       "disabledEntry.durableAuthorityClaimCount",
     ),
+    disablementProbeDigest: digest(
+      input?.disablementProbeDigest,
+      "disabledEntry.disablementProbeDigest",
+    ),
   };
   if (
     normalized.surface !== expected.surface.originSurface ||
@@ -748,6 +936,16 @@ function normalizeDisabledEntry(input, expected, commitSha) {
       { surface: expected.surface.originSurface, entryId: expected.entry.id },
     );
   }
+  normalized.observationSources = normalizeObservationSources(
+    input?.observationSources,
+    new Map(
+      GRAPH_CUTOVER_REQUIRED_PLATFORMS.map((platform) => [
+        platform,
+        [normalized.disablementProbeDigest],
+      ]),
+    ),
+    "disabledEntry.observationSources",
+  );
   normalized.evidenceDigest = verifyDigest(
     input,
     normalized,
@@ -789,6 +987,41 @@ export function graphProductionCutoverEvidenceDigest(value) {
   return graphDigest(unsigned, "cc.graph.production-cutover-evidence/v1");
 }
 
+export function graphProductionExpectedIdentityBinding({
+  commitSha,
+  repository,
+  workflow = GRAPH_PRODUCTION_EVIDENCE_WORKFLOW,
+  ref = GRAPH_PRODUCTION_EVIDENCE_REF,
+  environment = GRAPH_PRODUCTION_EVIDENCE_ENVIRONMENT,
+  workflowRunId,
+  workflowRunAttempt,
+  manifestDigest,
+  sourceRegistryDigest,
+  challenge,
+}) {
+  return graphDigest(
+    {
+      commitSha: commit(commitSha),
+      repository: text(repository, "provenance.repository"),
+      workflow: text(workflow, "provenance.workflow"),
+      ref: text(ref, "provenance.ref"),
+      environment: text(environment, "provenance.environment"),
+      workflowRunId: positive(workflowRunId, "provenance.workflowRunId"),
+      workflowRunAttempt: positive(
+        workflowRunAttempt,
+        "provenance.workflowRunAttempt",
+      ),
+      manifestDigest: digest(manifestDigest, "provenance.manifestDigest"),
+      sourceRegistryDigest: digest(
+        sourceRegistryDigest,
+        "provenance.sourceRegistryDigest",
+      ),
+      challenge: text(challenge, "provenance.challenge"),
+    },
+    "cc.graph.production-expected-identity/v1",
+  );
+}
+
 export function normalizeGraphProductionCutoverEvidence(
   input,
   {
@@ -796,8 +1029,13 @@ export function normalizeGraphProductionCutoverEvidence(
     expectedCommitSha = undefined,
     expectedRepository = undefined,
     expectedEnvironment = undefined,
+    expectedWorkflow = GRAPH_PRODUCTION_EVIDENCE_WORKFLOW,
     expectedWorkflowRunId = undefined,
     expectedWorkflowRunAttempt = undefined,
+    expectedRegistryDigest = undefined,
+    expectedChallenge = undefined,
+    jobsInventory = undefined,
+    clock = Date.now,
   } = {},
 ) {
   if (input?.schema !== GRAPH_PRODUCTION_CUTOVER_EVIDENCE_SCHEMA) {
@@ -813,8 +1051,19 @@ export function normalizeGraphProductionCutoverEvidence(
       "production cutover evidence does not match the expected commit",
     );
   }
+  const manifestContract =
+    assertGraphProductionRuntimeSurfaceManifest(manifest);
+  const manifestDigest = digest(input?.manifestDigest, "manifestDigest");
+  if (manifestDigest !== manifestContract.manifestDigest) {
+    throw evidenceError(
+      "CC_GRAPH_PRODUCTION_MANIFEST_CONTRACT_MISMATCH",
+      "production evidence does not bind the frozen five-surface manifest",
+    );
+  }
   const provenance = {
     repository: text(input?.provenance?.repository, "provenance.repository"),
+    workflow: text(input?.provenance?.workflow, "provenance.workflow"),
+    ref: text(input?.provenance?.ref, "provenance.ref"),
     environment: text(input?.provenance?.environment, "provenance.environment"),
     workflowRunId: positive(
       input?.provenance?.workflowRunId,
@@ -824,24 +1073,47 @@ export function normalizeGraphProductionCutoverEvidence(
       input?.provenance?.workflowRunAttempt,
       "provenance.workflowRunAttempt",
     ),
-    oidcAttestationDigest: digest(
-      input?.provenance?.oidcAttestationDigest,
-      "provenance.oidcAttestationDigest",
+    manifestDigest: digest(
+      input?.provenance?.manifestDigest,
+      "provenance.manifestDigest",
+    ),
+    sourceRegistryDigest: digest(
+      input?.provenance?.sourceRegistryDigest,
+      "provenance.sourceRegistryDigest",
+    ),
+    challenge: text(input?.provenance?.challenge, "provenance.challenge"),
+    expectedIdentityBinding: digest(
+      input?.provenance?.expectedIdentityBinding,
+      "provenance.expectedIdentityBinding",
     ),
   };
+  const expectedIdentityBinding = graphProductionExpectedIdentityBinding({
+    commitSha,
+    ...provenance,
+  });
   if (
     (expectedRepository && provenance.repository !== expectedRepository) ||
+    provenance.workflow !== GRAPH_PRODUCTION_EVIDENCE_WORKFLOW ||
+    provenance.ref !== GRAPH_PRODUCTION_EVIDENCE_REF ||
+    provenance.environment !== GRAPH_PRODUCTION_EVIDENCE_ENVIRONMENT ||
+    (expectedWorkflow && provenance.workflow !== expectedWorkflow) ||
     (expectedEnvironment && provenance.environment !== expectedEnvironment) ||
     (expectedWorkflowRunId !== undefined &&
       provenance.workflowRunId !== Number(expectedWorkflowRunId)) ||
     (expectedWorkflowRunAttempt !== undefined &&
-      provenance.workflowRunAttempt !== Number(expectedWorkflowRunAttempt))
+      provenance.workflowRunAttempt !== Number(expectedWorkflowRunAttempt)) ||
+    provenance.manifestDigest !== manifestDigest ||
+    (expectedRegistryDigest &&
+      provenance.sourceRegistryDigest !== expectedRegistryDigest) ||
+    (expectedChallenge && provenance.challenge !== expectedChallenge) ||
+    provenance.expectedIdentityBinding !== expectedIdentityBinding
   ) {
     throw evidenceError(
       "CC_GRAPH_PRODUCTION_PROVENANCE_MISMATCH",
       "production evidence provenance does not match the protected producer",
       {
         expectedRepository,
+        expectedWorkflow,
         expectedEnvironment,
         expectedWorkflowRunId:
           expectedWorkflowRunId === undefined
@@ -855,6 +1127,30 @@ export function normalizeGraphProductionCutoverEvidence(
       },
     );
   }
+  if (!jobsInventory) {
+    throw evidenceError(
+      "CC_GRAPH_PRODUCTION_SOURCE_INVENTORY_REQUIRED",
+      "production evidence verification requires the complete current-attempt Actions job inventory",
+    );
+  }
+  const sourceBundle = normalizeGraphProductionSourceBundle(
+    {
+      registry: input?.sourceRegistry,
+      fragments: input?.sourceFragments,
+    },
+    {
+      manifest,
+      expectedCommitSha: commitSha,
+      expectedRepository: provenance.repository,
+      expectedRegistryDigest:
+        expectedRegistryDigest || provenance.sourceRegistryDigest,
+      expectedWorkflowRunId: provenance.workflowRunId,
+      expectedWorkflowRunAttempt: provenance.workflowRunAttempt,
+      expectedChallenge: provenance.challenge,
+      jobsInventory,
+      clock,
+    },
+  );
   const allEntries = manifestEntries(manifest);
   const durable = allEntries.filter(
     ({ entry }) => entry.cutoverStrategy !== "disabled",
@@ -913,21 +1209,38 @@ export function normalizeGraphProductionCutoverEvidence(
         `${right.surface}/${right.entryId}`,
       ),
     );
+  if (
+    canonicalGraphJson(entries) !== canonicalGraphJson(sourceBundle.entries) ||
+    canonicalGraphJson(disabledEntries) !==
+      canonicalGraphJson(sourceBundle.disabledEntries)
+  ) {
+    throw evidenceError(
+      "CC_GRAPH_PRODUCTION_SOURCE_DERIVATION_MISMATCH",
+      "aggregate entries do not exactly match values derived from signed raw source receipts",
+    );
+  }
   const observedAt = timestamp(input?.observedAt, "observedAt");
-  const latestEntryObservation = Math.max(
-    ...entries.map((entry) => Date.parse(entry.legacyReadOnly.endedAt)),
+  const latestSignedCollection = Math.max(
+    ...sourceBundle.fragments.flatMap((fragment) =>
+      fragment.receipts.map((receipt) =>
+        Date.parse(receipt.payload.collectorEndedAt),
+      ),
+    ),
   );
-  if (observedAt.milliseconds < latestEntryObservation) {
+  if (observedAt.milliseconds !== latestSignedCollection) {
     throw evidenceError(
       "CC_GRAPH_PRODUCTION_OBSERVATION_INVALID",
-      "aggregate observedAt cannot predate an entry observation window",
+      "aggregate observedAt must equal the latest signed collector completion",
     );
   }
   const normalized = {
     schema: GRAPH_PRODUCTION_CUTOVER_EVIDENCE_SCHEMA,
     commitSha,
+    manifestDigest,
     observedAt: observedAt.value,
     provenance,
+    sourceRegistry: sourceBundle.registry,
+    sourceFragments: sourceBundle.fragments,
     entries,
     disabledEntries,
   };
@@ -941,6 +1254,10 @@ export function normalizeGraphProductionCutoverEvidence(
 
 export function createGraphProductionCutoverReceipt(input, options = {}) {
   const evidence = normalizeGraphProductionCutoverEvidence(input, options);
+  const observationSources = [
+    ...evidence.entries.flatMap((entry) => entry.observationSources),
+    ...evidence.disabledEntries.flatMap((entry) => entry.observationSources),
+  ];
   const surfaceNames = new Set([
     ...evidence.entries.map((entry) => entry.surface),
     ...evidence.disabledEntries.map((entry) => entry.surface),
@@ -966,6 +1283,16 @@ export function createGraphProductionCutoverReceipt(input, options = {}) {
       (total, entry) => total + entry.legacyReadOnly.mutationProbes.length,
       0,
     ),
+    observationSourceCount: observationSources.length,
+    distinctObservationSourceCount: new Set(
+      observationSources.map((source) => source.identityDigest),
+    ).size,
+    minimumObservationWindowMs: {
+      shadow: GRAPH_MINIMUM_SHADOW_OBSERVATION_MS,
+      canary: GRAPH_MINIMUM_CANARY_OBSERVATION_MS,
+      retirement: GRAPH_MINIMUM_RETIREMENT_OBSERVATION_MS,
+      legacyWriter: GRAPH_MINIMUM_LEGACY_WRITER_OBSERVATION_MS,
+    },
     provenance: clone(evidence.provenance),
   };
   receipt.receiptDigest = graphDigest(

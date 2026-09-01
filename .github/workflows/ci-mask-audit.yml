@@ -13,9 +13,9 @@ name: CI Mask Audit (PR advisory)
 on:
   pull_request:
     paths:
-      - '.github/workflows/**.yml'
-      - '.github/workflows/**.yaml'
-      - 'scripts/audit-ci-masks.sh'
+      - ".github/workflows/**.yml"
+      - ".github/workflows/**.yaml"
+      - "scripts/audit-ci-masks.sh"
 
 permissions:
   contents: read
@@ -32,11 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # need full history to diff vs base
+          fetch-depth: 0 # need full history to diff vs base
 
       - name: Run CI mask audit
         id: audit
-        continue-on-error: true  # advisory: comment on hit, don't block merge
+        continue-on-error: true # advisory: comment on hit, don't block merge
         run: |
           bash scripts/audit-ci-masks.sh origin/${{ github.base_ref }}
 
@@ -66,7 +66,8 @@ jobs:
               '| Pattern + context | Risk | Action |',
               '|---|---|---|',
               '| Lint / jacoco / probe / cleanup | LOW | Likely OK, document in whitelist |',
-              '| `continue-on-error` on test step + PR comment hardcoded ✅ | **CRITICAL** | Drop mask + use `${{ steps.X.outcome }}` |',
+              // Escape "$" so workflow-expression preprocessing leaves this example literal.
+              '| `continue-on-error` on test step + PR comment hardcoded ✅ | **CRITICAL** | Drop mask + use `\u0024{{ steps.X.outcome }}` |',
               '| `\\|\\| true` before publish/deploy | **CRITICAL** | Drop, add `set -e` |',
               '| `xcpretty` after xcodebuild | MEDIUM | Rewrite to `2>&1 \\| tee log` + upload-artifact |',
               '',

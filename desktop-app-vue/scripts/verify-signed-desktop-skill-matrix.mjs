@@ -296,8 +296,7 @@ export function validatePlatformEvidence(
     );
     assertion(
       record.provenance.workflowRef.startsWith(trustedPrefix) &&
-        (trustedRef === "refs/heads/main" ||
-          /^refs\/tags\/v[^\s]+$/u.test(trustedRef)),
+        trustedRef === "refs/heads/main",
       `${record.platform}: evidence was not produced by the protected Desktop platform workflow`,
     );
   }

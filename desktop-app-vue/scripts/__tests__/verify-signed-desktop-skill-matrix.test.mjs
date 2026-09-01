@@ -169,6 +169,20 @@ test("accepts an exact-SHA trusted three-platform matrix", () => {
   assert.match(matrix.evidenceDigest, /^sha256:[a-f0-9]{64}$/u);
 });
 
+test("generic verifier rejects tag-produced Desktop evidence", () => {
+  const tagged = record("linux");
+  tagged.provenance.workflowRef = `${REPOSITORY}/.github/workflows/desktop-signed-skill-platform.yml@refs/tags/v1.0.0`;
+  tagged.evidenceDigest = evidenceDigest(tagged);
+  assert.throws(
+    () =>
+      validateEvidenceMatrix([tagged, record("macos"), record("windows")], {
+        ...options,
+        workflowRef: undefined,
+      }),
+    /protected Desktop platform workflow/u,
+  );
+});
+
 test("rejects missing platforms and mixed commits", () => {
   assert.throws(
     () => validateEvidenceMatrix([record("linux"), record("macos")], options),
@@ -337,16 +351,25 @@ test("qualification workflow keeps producer identity and aggregate attestation f
   );
   assert.match(
     workflow,
-    /test "\$source_path" = "\.github\/workflows\/desktop-signed-skill-platform\.yml"/u,
+    /actions\/runs\/\$\{SOURCE_RUN_ID\}\/attempts\/\$\{SOURCE_RUN_ATTEMPT\}/u,
   );
-  assert.match(workflow, /test "\$source_attempt" = "\$SOURCE_RUN_ATTEMPT"/u);
-  assert.match(workflow, /test "\$source_event" = "workflow_dispatch"/u);
-  assert.match(workflow, /test "\$source_repository" = "\$GITHUB_REPOSITORY"/u);
+  assert.match(workflow, /verify-signed-desktop-workflow-trust\.mjs/u);
+  assert.match(workflow, /verify-run --run "\$run_file"/u);
   assert.match(workflow, /gh attestation verify/u);
   assert.match(workflow, /--signer-workflow/u);
+  assert.match(workflow, /--signer-digest "\$EXPECTED_SHA"/u);
+  assert.match(workflow, /--source-ref refs\/heads\/main/u);
   assert.match(workflow, /--source-digest/u);
+  assert.match(workflow, /--cert-oidc-issuer/u);
+  assert.match(workflow, /--format json/u);
+  assert.match(workflow, /verify-attestation --attestation/u);
   assert.match(workflow, /--run-id "\$SOURCE_RUN_ID"/u);
   assert.match(workflow, /--run-attempt "\$SOURCE_RUN_ATTEMPT"/u);
+  assert.match(
+    workflow,
+    /desktop-signed-skill-platform\.yml@refs\/heads\/main/u,
+  );
+  assert.doesNotMatch(workflow, /refs\/tags\/v/u);
   assert.match(
     workflow,
     /actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c/u,
@@ -357,7 +380,14 @@ test("qualification workflow keeps producer identity and aggregate attestation f
   );
   assert.match(
     workflow,
-    /desktop-signed-skill-evidence-\*-\$\{\{ inputs\.commit_sha \}\}/u,
+    /desktop-signed-skill-evidence-\*-\$\{\{ inputs\.evidence_run_attempt \|\| github\.run_attempt \}\}-\$\{\{ inputs\.commit_sha \}\}/u,
+  );
+  assert.match(workflow, /REF_PROTECTED: \$\{\{ github\.ref_protected \}\}/u);
+  assert.match(workflow, /git\/ref\/heads\/main/u);
+  assert.match(workflow, /cancel-in-progress: true/u);
+  assert.match(
+    workflow,
+    /Revalidate protected live main before aggregate attestation/u,
   );
   assert.doesNotMatch(workflow, /continue-on-error:\s*true/u);
 
@@ -371,7 +401,15 @@ test("qualification workflow keeps producer identity and aggregate attestation f
     "utf8",
   );
   assert.match(producer, /test "\$EXPECTED_SHA" = "\$SOURCE_SHA"/u);
-  assert.match(producer, /environment: desktop-signed-qualification/u);
+  assert.match(producer, /test "\$SOURCE_REF" = "refs\/heads\/main"/u);
+  assert.match(producer, /test "\$REF_PROTECTED" = "true"/u);
+  assert.match(producer, /git\/ref\/heads\/main/u);
+  assert.doesNotMatch(producer, /refs\/tags\/v/u);
+  assert.match(producer, /cancel-in-progress: true/u);
+  assert.match(
+    producer,
+    /^    environment: desktop-signed-qualification-v2$/mu,
+  );
   assert.match(producer, /cosign verify-blob/u);
   assert.match(producer, /Get-AuthenticodeSignature/u);
   assert.match(producer, /xcrun stapler validate/u);
@@ -379,6 +417,14 @@ test("qualification workflow keeps producer identity and aggregate attestation f
   assert.match(producer, /signed-desktop-skill-journey\.mjs/u);
   assert.match(producer, /Attest exact platform evidence/u);
   assert.match(producer, /Attest exact signed installer bytes/u);
+  assert.match(
+    producer,
+    /Revalidate protected live main before platform evidence attestation/u,
+  );
+  assert.match(
+    producer,
+    /Revalidate protected live main before installer attestation/u,
+  );
   assert.match(
     producer,
     /actions\/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a/u,
@@ -392,4 +438,66 @@ test("qualification workflow keeps producer identity and aggregate attestation f
     /actions\/(?:checkout|setup-node|download-artifact|upload-artifact|attest-build-provenance)@v\d/u,
   );
   assert.doesNotMatch(producer, /continue-on-error:\s*true/u);
+
+  const platformJobEnv = producer.match(
+    /\n    env:\r?\n([\s\S]*?)\n    steps:/u,
+  );
+  assert.ok(platformJobEnv, "platform job env block must exist");
+  assert.doesNotMatch(
+    platformJobEnv[1],
+    /CC_SKILL_|DESKTOP_(?:SKILL|WINDOWS|MAC)/u,
+  );
+  const producerStep = (name) => {
+    const marker = `      - name: ${name}`;
+    const start = producer.indexOf(marker);
+    assert.notEqual(start, -1, `${name} step must exist`);
+    const next = producer.indexOf("\n      - ", start + marker.length);
+    return producer.slice(start, next === -1 ? producer.length : next);
+  };
+  const commonPreflight = producerStep("Require common live Skill credentials");
+  const windowsPreflight = producerStep("Require Windows signing credentials");
+  const macosPreflight = producerStep(
+    "Require macOS signing and notarization credentials",
+  );
+  assert.match(commonPreflight, /CC_SKILL_GOOGLE_CLIENT_ID/u);
+  assert.doesNotMatch(
+    commonPreflight,
+    /WINDOWS_CSC|MAC_(?:CSC|APPLE|TEAM)|DESKTOP_(?:WINDOWS|MAC|APPLE)/u,
+  );
+  assert.match(windowsPreflight, /if: matrix\.platform == 'windows'/u);
+  assert.match(windowsPreflight, /DESKTOP_WINDOWS_CSC_LINK/u);
+  assert.match(windowsPreflight, /DESKTOP_WINDOWS_CSC_KEY_PASSWORD/u);
+  assert.doesNotMatch(
+    windowsPreflight,
+    /MAC_(?:CSC|APPLE|TEAM)|DESKTOP_(?:MAC|APPLE)/u,
+  );
+  assert.match(macosPreflight, /if: matrix\.platform == 'macos'/u);
+  assert.match(macosPreflight, /DESKTOP_MAC_CSC_LINK/u);
+  assert.match(macosPreflight, /DESKTOP_APPLE_TEAM_ID/u);
+  assert.doesNotMatch(macosPreflight, /WINDOWS_CSC|DESKTOP_WINDOWS/u);
+  for (const secret of [
+    "DESKTOP_WINDOWS_CSC_LINK",
+    "DESKTOP_WINDOWS_CSC_KEY_PASSWORD",
+    "DESKTOP_MAC_CSC_LINK",
+    "DESKTOP_MAC_CSC_KEY_PASSWORD",
+    "DESKTOP_APPLE_ID",
+    "DESKTOP_APPLE_APP_SPECIFIC_PASSWORD",
+    "DESKTOP_APPLE_TEAM_ID",
+    "DESKTOP_SKILL_GOOGLE_CLIENT_ID",
+    "DESKTOP_SKILL_GOOGLE_CLIENT_SECRET",
+    "DESKTOP_SKILL_GOOGLE_REFRESH_TOKEN",
+    "DESKTOP_SKILL_NOTION_API_KEY",
+    "DESKTOP_SKILL_TAVILY_API_KEY",
+  ]) {
+    assert.equal(
+      producer.split(secret).length - 1,
+      2,
+      `${secret} must be scoped only to its preflight and consuming step`,
+    );
+  }
+  assert.doesNotMatch(producer, /secrets\.GITHUB_TOKEN/u);
+  assert.match(
+    producer,
+    /steps:\r?\n      - name: Require protected live main before environment access/u,
+  );
 });

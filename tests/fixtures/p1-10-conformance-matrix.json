@@ -105,7 +105,7 @@
           "evidenceScenario": "packaged-electron-collaboration-crash-recovery",
           "requiredPlatforms": ["linux", "windows", "macos"],
           "minimumDurationMs": 1000,
-          "minimumDistinctHosts": 1,
+          "minimumDistinctHosts": 2,
           "requiredMetrics": {
             "positive": ["crashCount", "recoveredUpdates"],
             "zero": ["lostCommittedUpdates", "duplicateRecoveredUpdates"]

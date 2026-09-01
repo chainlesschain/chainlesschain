@@ -1,0 +1,342 @@
+name: Graph Kernel Production Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected main commit; must equal the workflow event SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graph-kernel-production-evidence-authoritative
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate protected source registry and create challenge
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: graph-kernel-production
+    permissions:
+      contents: read
+    outputs:
+      challenge: ${{ steps.challenge.outputs.challenge }}
+    env:
+      CUTOVER_SHA: ${{ inputs.commit_sha }}
+      SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
+      REF_PROTECTED: ${{ github.ref_protected }}
+    steps:
+      - name: Refuse detached, non-main, malformed, or unpinned requests
+        shell: bash
+        run: |
+          if [[ ! "${CUTOVER_SHA}" =~ ^[a-f0-9]{40}$ ]] || [[ "${CUTOVER_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::commit_sha must be the event's exact 40-character SHA"
+            exit 1
+          fi
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::production evidence may only be produced from protected main"
+            exit 1
+          fi
+          if [[ "${REF_PROTECTED}" != "true" ]]; then
+            echo "::error::refs/heads/main must be protected"
+            exit 1
+          fi
+          if [[ ! "${SOURCE_REGISTRY_DIGEST}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "::error::the protected source registry digest pin is not configured"
+            exit 1
+          fi
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CUTOVER_SHA }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.22.2
+
+      - name: Verify protected live main before creating a producer challenge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - name: Freeze checked-in trust inputs
+        run: >-
+          node packages/cli/scripts/freeze-graph-production-inputs.mjs
+          .github/graph-kernel-production-source-registry.json
+          packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json
+
+      - name: Verify the checked-in registry against its independent protected pin
+        shell: bash
+        run: >-
+          node packages/cli/scripts/verify-graph-production-source-registry.mjs
+          --repository "${GITHUB_REPOSITORY}"
+          --expected-registry-digest "${SOURCE_REGISTRY_DIGEST}"
+
+      - name: Generate a hosted current-run challenge
+        id: challenge
+        shell: bash
+        run: >-
+          node -e "const {randomBytes}=require('node:crypto');const fs=require('node:fs');fs.appendFileSync(process.env.GITHUB_OUTPUT,'challenge='+randomBytes(32).toString('base64url')+'\n',{encoding:'utf8',mode:384})"
+
+  source:
+    name: Collect signed ${{ matrix.platform }} source receipts
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runs_on: '["self-hosted","linux","physical","graph-kernel-production"]'
+          - platform: windows
+            runs_on: '["self-hosted","windows","physical","graph-kernel-production"]'
+          - platform: macos
+            runs_on: '["self-hosted","macos","physical","graph-kernel-production"]'
+    runs-on: ${{ fromJSON(matrix.runs_on) }}
+    timeout-minutes: 120
+    environment: graph-kernel-production
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CUTOVER_SHA: ${{ inputs.commit_sha }}
+      SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CUTOVER_SHA }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.22.2
+
+      - name: Verify protected live main after physical-runner admission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - name: Query this exact attempt's current source job identity
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/query-graph-production-jobs.mjs
+          --repository "${{ github.repository }}"
+          --run-id "${{ github.run_id }}"
+          --run-attempt "${{ github.run_attempt }}"
+          --commit "${{ inputs.commit_sha }}"
+          --current-job-name "Collect signed ${{ matrix.platform }} source receipts"
+          --output "${{ runner.temp }}/current-source-job.json"
+
+      - name: Freeze this source's checked-in and API trust inputs
+        run: >-
+          node packages/cli/scripts/freeze-graph-production-inputs.mjs
+          "${{ runner.temp }}/current-source-job.json"
+          .github/graph-kernel-production-source-registry.json
+          packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json
+
+      - name: Revalidate protected live main before collector credential access
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - name: Fetch only Linux endpoint-signed raw production receipts
+        if: matrix.platform == 'linux'
+        env:
+          GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN: ${{ secrets.GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN_LINUX }}
+        run: >-
+          node packages/cli/scripts/collect-graph-production-source-receipts.mjs
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ inputs.commit_sha }}"
+          --repository "${{ github.repository }}"
+          --workflow-run-id "${{ github.run_id }}"
+          --workflow-run-attempt "${{ github.run_attempt }}"
+          --challenge "${{ needs.validate.outputs.challenge }}"
+          --current-job "${{ runner.temp }}/current-source-job.json"
+          --expected-registry-digest "${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}"
+          --output-directory "${{ runner.temp }}/graph-source-${{ matrix.platform }}"
+
+      - name: Fetch only Windows endpoint-signed raw production receipts
+        if: matrix.platform == 'windows'
+        env:
+          GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN: ${{ secrets.GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN_WINDOWS }}
+        run: >-
+          node packages/cli/scripts/collect-graph-production-source-receipts.mjs
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ inputs.commit_sha }}"
+          --repository "${{ github.repository }}"
+          --workflow-run-id "${{ github.run_id }}"
+          --workflow-run-attempt "${{ github.run_attempt }}"
+          --challenge "${{ needs.validate.outputs.challenge }}"
+          --current-job "${{ runner.temp }}/current-source-job.json"
+          --expected-registry-digest "${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}"
+          --output-directory "${{ runner.temp }}/graph-source-${{ matrix.platform }}"
+
+      - name: Fetch only macOS endpoint-signed raw production receipts
+        if: matrix.platform == 'macos'
+        env:
+          GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN: ${{ secrets.GRAPH_KERNEL_PRODUCTION_COLLECTOR_TOKEN_MACOS }}
+        run: >-
+          node packages/cli/scripts/collect-graph-production-source-receipts.mjs
+          --platform "${{ matrix.platform }}"
+          --expected-commit "${{ inputs.commit_sha }}"
+          --repository "${{ github.repository }}"
+          --workflow-run-id "${{ github.run_id }}"
+          --workflow-run-attempt "${{ github.run_attempt }}"
+          --challenge "${{ needs.validate.outputs.challenge }}"
+          --current-job "${{ runner.temp }}/current-source-job.json"
+          --expected-registry-digest "${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}"
+          --output-directory "${{ runner.temp }}/graph-source-${{ matrix.platform }}"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: graph-production-source-${{ matrix.platform }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-source-${{ matrix.platform }}/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+  aggregate:
+    name: Verify and attest the hosted production aggregate
+    needs: [validate, source]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: graph-kernel-production
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    env:
+      CUTOVER_SHA: ${{ inputs.commit_sha }}
+      SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CUTOVER_SHA }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.22.2
+
+      - name: Verify protected live main after aggregate admission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: graph-production-source-*-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-source-artifacts
+          merge-multiple: true
+
+      - name: Query the complete exact-attempt Actions job inventory
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node packages/cli/scripts/query-graph-production-jobs.mjs
+          --repository "${{ github.repository }}"
+          --run-id "${{ github.run_id }}"
+          --run-attempt "${{ github.run_attempt }}"
+          --commit "${{ inputs.commit_sha }}"
+          --output "${{ runner.temp }}/jobs.json"
+
+      - name: Freeze downloaded and checked-in aggregate trust inputs
+        shell: bash
+        run: |
+          chmod -R a-w "${RUNNER_TEMP}/graph-source-artifacts" "${RUNNER_TEMP}/jobs.json" .github/graph-kernel-production-source-registry.json packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json
+
+      - name: Stage, verify, derive, and assemble signed observations
+        shell: bash
+        run: >-
+          node packages/cli/scripts/assemble-graph-production-cutover-evidence.mjs
+          --source-artifacts "${RUNNER_TEMP}/graph-source-artifacts"
+          --staging-root "${RUNNER_TEMP}/graph-private-staging"
+          --expected-registry-digest "${SOURCE_REGISTRY_DIGEST}"
+          --challenge "${{ needs.validate.outputs.challenge }}"
+          --expected-commit "${CUTOVER_SHA}"
+          --repository "${GITHUB_REPOSITORY}"
+          --workflow-run-id "${GITHUB_RUN_ID}"
+          --workflow-run-attempt "${GITHUB_RUN_ATTEMPT}"
+          --jobs-inventory "${RUNNER_TEMP}/jobs.json"
+          --output "${RUNNER_TEMP}/graph-production-cutover-evidence.json"
+
+      - name: Freeze the assembled aggregate before independent re-verification
+        shell: bash
+        run: chmod a-w "${RUNNER_TEMP}/graph-production-cutover-evidence.json"
+
+      - name: Recheck the exact-run evidence contract
+        shell: bash
+        run: >-
+          node packages/cli/scripts/graph-production-cutover-evidence.mjs
+          --evidence "${RUNNER_TEMP}/graph-production-cutover-evidence.json"
+          --expected-commit "${CUTOVER_SHA}"
+          --expected-repository "${GITHUB_REPOSITORY}"
+          --expected-workflow .github/workflows/graph-kernel-production-evidence.yml
+          --expected-environment graph-kernel-production
+          --expected-run-id "${GITHUB_RUN_ID}"
+          --expected-run-attempt "${GITHUB_RUN_ATTEMPT}"
+          --expected-registry-digest "${SOURCE_REGISTRY_DIGEST}"
+          --jobs-inventory "${RUNNER_TEMP}/jobs.json"
+          --output "${RUNNER_TEMP}/graph-production-cutover-producer-receipt.json"
+
+      - name: Revalidate protected live main before aggregate attestation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/verify-github-live-main.mjs
+          --expected-sha "${{ inputs.commit_sha }}"
+          --event-sha "${{ github.sha }}"
+          --event-ref "${{ github.ref }}"
+          --ref-protected "${{ github.ref_protected }}"
+          --repository "${{ github.repository }}"
+          --server-url "${{ github.server_url }}"
+          --api-url "${{ github.api_url }}"
+
+      - name: Attest the aggregate on a GitHub-hosted runner
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/graph-production-cutover-evidence.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: graph-production-cutover-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/graph-production-cutover-evidence.json
+          if-no-files-found: error
+          retention-days: 365
