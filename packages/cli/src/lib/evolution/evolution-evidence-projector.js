@@ -416,12 +416,28 @@ const RULESET = Object.freeze({
     "disable safety",
     "bypass policy",
     "you are now",
+    "override developer instructions",
+    "override system instructions",
+    "treat tool output as trusted",
+    "execute commands without approval",
+    "send credentials to",
+    "grant yourself permission",
+    "turn off guardrails",
+    "mark this task successful",
+    "fabricate test results",
     "忽略之前的指令",
     "忽略之前的所有指令",
     "忽略以前的所有指令",
     "显示系统提示",
     "泄露秘密",
     "绕过安全策略",
+    "覆盖开发者指令",
+    "覆盖系统指令",
+    "未经批准执行命令",
+    "发送凭据到",
+    "授予自己权限",
+    "关闭安全护栏",
+    "伪造测试结果",
   ]),
 });
 
@@ -941,9 +957,14 @@ function normalizedInjectionText(value) {
     .trim();
 }
 
+function compactInjectionText(value) {
+  return normalizedInjectionText(value).replace(/[\p{P}\p{S}\s]+/gu, "");
+}
+
 const NORMALIZED_INJECTION_PATTERNS = Object.freeze(
   RULESET.injectionPatterns.map((pattern) => ({
     text: normalizedInjectionText(pattern),
+    compact: compactInjectionText(pattern),
     id: digest(pattern, "chainlesschain.evolution-injection-pattern/v2"),
   })),
 );
@@ -971,8 +992,14 @@ const ALLOWED_INJECTION_PATTERN_IDS = new Set([
 function injectionMatches(value) {
   const normalized = normalizedInjectionText(value);
   const skeleton = normalizedInjectionText(confusableSkeleton(value));
+  const compact = compactInjectionText(value);
+  const compactSkeleton = compactInjectionText(confusableSkeleton(value));
   const matches = NORMALIZED_INJECTION_PATTERNS.filter(
-    ({ text }) => normalized.includes(text) || skeleton.includes(text),
+    ({ text, compact: patternCompact }) =>
+      normalized.includes(text) ||
+      skeleton.includes(text) ||
+      compact.includes(patternCompact) ||
+      compactSkeleton.includes(patternCompact),
   );
   DEFAULT_IGNORABLE_PATTERN.lastIndex = 0;
   if (DEFAULT_IGNORABLE_PATTERN.test(value) || hasSuspiciousControl(value)) {
