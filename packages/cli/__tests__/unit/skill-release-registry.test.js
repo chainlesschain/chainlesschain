@@ -370,6 +370,9 @@ class StrictTransactionLedger {
       prepare: null,
       committed,
     });
+    if (this.#failure === "migrate-after-commit") {
+      throw new Error("migration response lost after commit");
+    }
     return committed;
   }
 
@@ -1063,24 +1066,107 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         `state-migration-receipt:${plan.stateMigrationDigest}`,
       ),
     }));
-    const stateMigration = releases.migrateLegacyState(statePlan, {
-      ...stateAuthorityDescriptor,
-      audit: stateAudit,
+    ledger.setFailure("migrate");
+    expect(() =>
+      releases.migrateLegacyState(statePlan, {
+        ...stateAuthorityDescriptor,
+        audit: stateAudit,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "SKILL_RELEASE_STATE_MIGRATION_LEDGER_FAILED",
+      }),
+    );
+    expect(
+      fs.readdirSync(path.join(registryRoot, "state-migrations")),
+    ).toHaveLength(1);
+    const migrationJournalName = fs.readdirSync(
+      path.join(registryRoot, "state-migrations"),
+    )[0];
+    const migrationJournalPath = path.join(
+      registryRoot,
+      "state-migrations",
+      migrationJournalName,
+    );
+    const persistedMigrationJournal = JSON.parse(
+      fs.readFileSync(migrationJournalPath, "utf8"),
+    );
+    const tamperedMigrationJournal = structuredClone(persistedMigrationJournal);
+    tamperedMigrationJournal.receipt.durable = false;
+    const tamperedMigrationJournalCore = { ...tamperedMigrationJournal };
+    delete tamperedMigrationJournalCore.journalDigest;
+    tamperedMigrationJournal.journalDigest = domainDigest(
+      "chainlesschain.skill-release-state-migration-journal/v1",
+      tamperedMigrationJournalCore,
+    );
+    durableWriteJson(migrationJournalPath, tamperedMigrationJournal);
+    expect(
+      capturedError(
+        () =>
+          new SkillReleaseRegistry({
+            tenantId: TENANT_ID,
+            rootDir: registryBase,
+            secure: false,
+            transactionLedger: ledger,
+          }),
+      ).code,
+    ).toBe("SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT");
+    durableWriteJson(migrationJournalPath, persistedMigrationJournal);
+    ledger.setFailure(null);
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      transactionLedger: ledger,
     });
-    expect(stateMigration).toMatchObject({
-      created: true,
-      state: {
-        activeReleaseDigest: migrated.release.releaseDigest,
-        lastKnownGoodReleaseDigest: migrated.release.releaseDigest,
-        revision: oldState.revision,
-        fence: oldState.fence,
-        tenantId: TENANT_ID,
-        transactionId: statePlan.stateMigrationDigest,
-      },
+    expect(releases.readState(legacy.skillName).revision).toBe(0);
+    expect(fs.readdirSync(path.join(registryRoot, "state-migrations"))).toEqual(
+      [],
+    );
+
+    ledger.setFailure("migrate-after-commit");
+    expect(() =>
+      releases.migrateLegacyState(statePlan, {
+        ...stateAuthorityDescriptor,
+        audit: stateAudit,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "SKILL_RELEASE_STATE_MIGRATION_LEDGER_FAILED",
+      }),
+    );
+    expect(releases.readState(legacy.skillName).revision).toBe(0);
+    expect(
+      fs.readdirSync(path.join(registryRoot, "state-migrations")),
+    ).toHaveLength(1);
+
+    ledger.setFailure(null);
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      transactionLedger: ledger,
     });
+    controller = new SkillPromotionController({
+      authority,
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+    });
+    const recoveredState = releases.readState(legacy.skillName);
+    expect(recoveredState).toMatchObject({
+      activeReleaseDigest: migrated.release.releaseDigest,
+      lastKnownGoodReleaseDigest: migrated.release.releaseDigest,
+      revision: oldState.revision,
+      fence: oldState.fence,
+      tenantId: TENANT_ID,
+      transactionId: statePlan.stateMigrationDigest,
+    });
+    expect(fs.readdirSync(path.join(registryRoot, "state-migrations"))).toEqual(
+      [],
+    );
     expect(releases.readActive(legacy.skillName)).toEqual({
       release: migrated.release,
-      state: stateMigration.state,
+      state: recoveredState,
     });
     expect(
       releases.migrateLegacyState(statePlan, {
@@ -1088,7 +1174,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         audit: stateAudit,
       }).created,
     ).toBe(false);
-    expect(stateAudit).toHaveBeenCalledTimes(2);
+    expect(stateAudit).toHaveBeenCalledTimes(3);
 
     const successor = candidates.create(
       candidateInput(execution, migrated.release.contentDigest, "successor"),

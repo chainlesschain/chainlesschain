@@ -48,6 +48,8 @@ export const SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-state-migration-receipt/v1";
 export const SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA =
   "chainlesschain.skill-release-state-ledger-migration/v1";
+export const SKILL_RELEASE_STATE_MIGRATION_JOURNAL_SCHEMA =
+  "chainlesschain.skill-release-state-migration-journal/v1";
 export const SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-journal-resolution-receipt/v1";
 export const SKILL_RELEASE_JOURNAL_RESOLUTION_AUTHORITY_SCHEMA =
@@ -95,6 +97,7 @@ const RELEASE_MIGRATION_DOMAIN = `${SKILL_RELEASE_MIGRATION_RECORD_SCHEMA}\0`;
 const STATE_MIGRATION_PLAN_DOMAIN = `${SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA}\0`;
 const JOURNAL_RESOLUTION_RECEIPT_DOMAIN = `${SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA}\0`;
 const JOURNAL_DISPOSITION_PLAN_DOMAIN = `${SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA}\0`;
+const STATE_MIGRATION_JOURNAL_DOMAIN = `${SKILL_RELEASE_STATE_MIGRATION_JOURNAL_SCHEMA}\0`;
 
 export const EMPTY_SKILL_ACTIVE_DIGEST = sha256(
   Buffer.from(EMPTY_ACTIVE_DOMAIN, "utf8"),
@@ -673,6 +676,17 @@ const STATE_MIGRATION_RECEIPT_KEYS = new Set([
   "schema",
   "stateMigrationDigest",
   "trust",
+]);
+const STATE_MIGRATION_JOURNAL_KEYS = new Set([
+  "journalDigest",
+  "leaseToken",
+  "plan",
+  "receipt",
+  "schema",
+  "skillName",
+  "state",
+  "tenantId",
+  "transactionId",
 ]);
 const BUILD_RELEASE_INPUT_KEYS = new Set([
   "candidate",
@@ -2317,6 +2331,7 @@ export class SkillReleaseRegistry {
         "active",
         "journals",
         "locks",
+        "state-migrations",
         "staging",
       ]) {
         const directory = path.join(this.rootDir, name);
@@ -2708,6 +2723,13 @@ export class SkillReleaseRegistry {
 
   #journalPath(name) {
     return this.#path("journals", `${skillName(name)}.json`);
+  }
+
+  #stateMigrationJournalPath(transactionIdValue) {
+    return this.#path(
+      "state-migrations",
+      `${digest(transactionIdValue, "stateMigration.transactionId").slice("sha256:".length)}.json`,
+    );
   }
 
   #leasePath(name) {
@@ -3229,6 +3251,12 @@ export class SkillReleaseRegistry {
         schema: SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
         state,
       });
+      const journal = this.#persistStateMigrationJournal({
+        leaseToken: lease.token,
+        plan,
+        receipt,
+        state,
+      });
       let projection;
       try {
         projection = this.#ledgerMigrate(request);
@@ -3261,11 +3289,14 @@ export class SkillReleaseRegistry {
           "state migration did not produce a current committed projection",
         );
       }
-      this.#writePointer(
-        state,
-        `.state-${plan.stateMigrationDigest.slice("sha256:".length)}.tmp`,
-      );
-      this.#assertFinalizationArtifacts(state, active);
+      if (
+        this.#recoverStateMigration(journal, { force: true }) !== "committed"
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STATE_MIGRATION_RECOVERY_FAILED",
+          "state migration did not converge after ledger commit",
+        );
+      }
       return deepFreeze({ created: true, plan, receipt, state });
     } finally {
       clearInterval(heartbeat);
@@ -3907,6 +3938,133 @@ export class SkillReleaseRegistry {
     return deepFreeze({ ...value });
   }
 
+  #stateMigrationJournal(value) {
+    const core = { ...value };
+    delete core.journalDigest;
+    return deepFreeze({
+      ...core,
+      journalDigest: domainDigest(STATE_MIGRATION_JOURNAL_DOMAIN, core),
+    });
+  }
+
+  #verifyStateMigrationJournal(value) {
+    assertExactKeys(
+      value,
+      STATE_MIGRATION_JOURNAL_KEYS,
+      "state migration journal",
+      "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+    );
+    const core = { ...value };
+    delete core.journalDigest;
+    if (
+      core.schema !== SKILL_RELEASE_STATE_MIGRATION_JOURNAL_SCHEMA ||
+      tenantId(core.tenantId, "stateMigrationJournal.tenantId") !==
+        this.tenantId ||
+      !TOKEN_PATTERN.test(core.leaseToken) ||
+      domainDigest(STATE_MIGRATION_JOURNAL_DOMAIN, core) !== value.journalDigest
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+        "state migration journal digest is invalid",
+      );
+    }
+    const plan = verifySkillReleaseStateMigrationPlan(core.plan);
+    const state = verifySkillReleaseState(core.state);
+    assertExactKeys(
+      core.receipt,
+      STATE_MIGRATION_RECEIPT_KEYS,
+      "state migration journal receipt",
+      "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+    );
+    const receipt = deepFreeze({
+      authenticated: core.receipt.authenticated,
+      authorityId: boundedString(
+        core.receipt.authorityId,
+        "stateMigrationJournal.receipt.authorityId",
+        256,
+      ),
+      durable: core.receipt.durable,
+      handlerArtifactDigest: digest(
+        core.receipt.handlerArtifactDigest,
+        "stateMigrationJournal.receipt.handlerArtifactDigest",
+      ),
+      receiptDigest: digest(
+        core.receipt.receiptDigest,
+        "stateMigrationJournal.receipt.receiptDigest",
+      ),
+      schema: core.receipt.schema,
+      stateMigrationDigest: digest(
+        core.receipt.stateMigrationDigest,
+        "stateMigrationJournal.receipt.stateMigrationDigest",
+      ),
+      trust: core.receipt.trust,
+    });
+    if (
+      receipt.schema !== SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA ||
+      receipt.authenticated !== true ||
+      receipt.durable !== true ||
+      receipt.trust !== "trusted" ||
+      receipt.stateMigrationDigest !== plan.stateMigrationDigest ||
+      core.transactionId !== plan.stateMigrationDigest ||
+      core.skillName !== plan.skillName ||
+      state.transactionId !== plan.stateMigrationDigest ||
+      state.tenantId !== this.tenantId ||
+      state.skillName !== plan.skillName ||
+      state.activeReleaseDigest !== plan.activeReleaseDigest ||
+      state.lastKnownGoodReleaseDigest !== plan.lastKnownGoodReleaseDigest ||
+      state.dependencyLockDigest !== plan.dependencyLockDigest ||
+      state.revision !== plan.legacyRevision ||
+      state.fence !== plan.legacyFence
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+        "state migration journal bindings are invalid",
+      );
+    }
+    const journal = deepFreeze({
+      ...core,
+      journalDigest: value.journalDigest,
+      plan,
+      receipt,
+      state,
+    });
+    if (canonicalJson(journal) !== canonicalJson(value)) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+        "state migration journal is not canonical",
+      );
+    }
+    return journal;
+  }
+
+  #persistStateMigrationJournal({ leaseToken, plan, receipt, state }) {
+    const journal = this.#stateMigrationJournal({
+      leaseToken,
+      plan,
+      receipt,
+      schema: SKILL_RELEASE_STATE_MIGRATION_JOURNAL_SCHEMA,
+      skillName: plan.skillName,
+      state,
+      tenantId: this.tenantId,
+      transactionId: plan.stateMigrationDigest,
+    });
+    this.#atomicWrite(
+      "state-migrations",
+      this.#stateMigrationJournalPath(plan.stateMigrationDigest),
+      journal,
+    );
+    return journal;
+  }
+
+  #readStateMigrationJournal(transactionIdValue) {
+    return this.#verifyStateMigrationJournal(
+      this.#readJson(
+        this.#stateMigrationJournalPath(transactionIdValue),
+        "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+      ),
+    );
+  }
+
   #journal(value) {
     const core = { ...value };
     delete core.journalDigest;
@@ -4386,8 +4544,95 @@ export class SkillReleaseRegistry {
     this.#recoverJournal(journal);
   }
 
+  #cleanupStateMigration(journal) {
+    const lockPath = this.#leasePath(journal.skillName);
+    try {
+      this.#removeLock(lockPath, journal.leaseToken);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    this.#unlink(
+      this.#stateMigrationJournalPath(journal.transactionId),
+      this.#directories["state-migrations"].path,
+    );
+  }
+
+  #recoverStateMigration(journal, { force = false } = {}) {
+    const lockPath = this.#leasePath(journal.skillName);
+    if (this.#exists(lockPath)) {
+      const owner = this.#readOwner(lockPath);
+      if (
+        owner.token !== journal.leaseToken ||
+        owner.transactionId !== journal.transactionId
+      ) {
+        throw failure(
+          "SKILL_RELEASE_RECOVERY_CONFLICT",
+          "state migration journal and lease owner differ",
+        );
+      }
+      if (!force && !this.#ownerStale(owner)) return "pending";
+    }
+    const expected = {
+      authorityReceiptDigest: journal.state.authorityReceiptDigest,
+      intentDigest: journal.plan.stateMigrationDigest,
+      pointerDigest: journal.state.stateDigest,
+      prepareReceiptDigest: journal.receipt.receiptDigest,
+      revision: journal.state.revision,
+      skillName: journal.state.skillName,
+      stateDigest: journal.state.stateDigest,
+    };
+    const projection = this.#query(journal.transactionId, expected);
+    if (projection.status === "absent") {
+      this.#cleanupStateMigration(journal);
+      return "aborted";
+    }
+    if (projection.status !== "committed" || projection.current !== true) {
+      throw failure(
+        "SKILL_RELEASE_RECOVERY_CONFLICT",
+        "state migration ledger projection is not current and committed",
+      );
+    }
+    const current = this.#readStateRaw(journal.skillName);
+    if (current.stateDigest !== journal.state.stateDigest) {
+      if (current.revision !== 0) {
+        throw failure(
+          "SKILL_RELEASE_RECOVERY_CONFLICT",
+          "state migration recovery found an unrelated active pointer",
+        );
+      }
+      this.#atomicWrite(
+        "active",
+        this.#statePath(journal.skillName),
+        journal.state,
+      );
+    }
+    const release = this.readRelease(journal.state.activeReleaseDigest);
+    this.#assertFinalizationArtifacts(journal.state, release);
+    this.#cleanupStateMigration(journal);
+    return "committed";
+  }
+
   #recoverAll() {
     this.#withRecoveryLock(() => {
+      for (const name of this.#fs.readdirSync(
+        this.#directories["state-migrations"].path,
+      )) {
+        if (!/^[a-f0-9]{64}\.json$/u.test(name)) {
+          throw failure(
+            "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+            "unexpected state migration journal entry",
+          );
+        }
+        const transactionId = `sha256:${name.slice(0, -5)}`;
+        const journal = this.#readStateMigrationJournal(transactionId);
+        if (journal.transactionId !== transactionId) {
+          throw failure(
+            "SKILL_RELEASE_STATE_MIGRATION_JOURNAL_CORRUPT",
+            "state migration journal path differs from its transaction",
+          );
+        }
+        this.#recoverStateMigration(journal);
+      }
       const names = this.#fs.readdirSync(this.#directories.journals.path);
       for (const name of names) {
         if (!name.endsWith(".json")) {
