@@ -10,6 +10,7 @@
  */
 
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { getStatePath } from "./paths.js";
 import {
@@ -454,8 +455,26 @@ export class McpLifecycleAuthority {
 
   _read() {
     if (!this.statePath) return validateStore(structuredClone(this._memory));
-    const value = readSecurityStore(this.statePath, "MCP lifecycle authority");
-    return validateStore(value, { missing: Object.keys(value).length === 0 });
+    // A Windows replace can briefly make the destination path unobservable to
+    // an unlocked reader. Treating that ENOENT as an empty authority loses the
+    // server snapshot even though the replacement is about to become visible.
+    // Durable reads therefore share the exact strict lock used by mutations.
+    if (!fs.existsSync(path.dirname(this.statePath))) {
+      return validateStore({}, { missing: true });
+    }
+    return this._lock(
+      this.statePath,
+      () => {
+        const value = readSecurityStore(
+          this.statePath,
+          "MCP lifecycle authority",
+        );
+        return validateStore(value, {
+          missing: Object.keys(value).length === 0,
+        });
+      },
+      { timeoutMs: 2000, staleMs: 30000, failIfUnavailable: true },
+    );
   }
 
   _mutate(mutator) {

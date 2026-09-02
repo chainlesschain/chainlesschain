@@ -36,6 +36,41 @@ afterEach(() => {
 });
 
 describe("McpLifecycleAuthority", () => {
+  it("serializes durable snapshots through the mutation lock", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-lifecycle-"));
+    roots.add(root);
+    const statePath = path.join(root, "authority.json");
+    const lockCalls = [];
+    const lock = (target, operation, options) => {
+      lockCalls.push({ target, options });
+      return operation({
+        locked: true,
+        publishReleaseAfterPathRemoved: () => false,
+      });
+    };
+    const authority = new McpLifecycleAuthority({ statePath, lock });
+    authority.beginConnection({
+      name: "remote",
+      sessionId: "session-1",
+      config: { url: "https://mcp.example.test/rpc" },
+    });
+    lockCalls.length = 0;
+
+    expect(
+      authority.snapshot({ name: "remote", sessionId: "session-1" }),
+    ).toMatchObject({ generation: 1, phase: "connecting" });
+    expect(lockCalls).toEqual([
+      {
+        target: statePath,
+        options: {
+          timeoutMs: 2000,
+          staleMs: 30000,
+          failIfUnavailable: true,
+        },
+      },
+    ]);
+  });
+
   it("persists legal phases, subscriptions, and callback settlement", () => {
     const { authority, statePath } = fixture();
     const token = authority.beginConnection({
