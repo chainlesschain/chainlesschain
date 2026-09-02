@@ -56,6 +56,8 @@ export const SKILL_RELEASE_JOURNAL_RESOLUTION_AUTHORITY_SCHEMA =
   "chainlesschain.skill-release-journal-resolution-authority/v1";
 export const SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA =
   "chainlesschain.skill-release-journal-disposition-plan/v1";
+export const SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA =
+  "chainlesschain.skill-release-journal-archive/v1";
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
@@ -98,6 +100,7 @@ const STATE_MIGRATION_PLAN_DOMAIN = `${SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA
 const JOURNAL_RESOLUTION_RECEIPT_DOMAIN = `${SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA}\0`;
 const JOURNAL_DISPOSITION_PLAN_DOMAIN = `${SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA}\0`;
 const STATE_MIGRATION_JOURNAL_DOMAIN = `${SKILL_RELEASE_STATE_MIGRATION_JOURNAL_SCHEMA}\0`;
+const JOURNAL_ARCHIVE_DOMAIN = `${SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA}\0`;
 
 export const EMPTY_SKILL_ACTIVE_DIGEST = sha256(
   Buffer.from(EMPTY_ACTIVE_DOMAIN, "utf8"),
@@ -628,12 +631,29 @@ const JOURNAL_DISPOSITION_PLAN_KEYS = new Set([
   "ledgerStatus",
   "legacyNextStateDigest",
   "planDigest",
+  "resolutionReceipt",
   "resolutionReceiptDigest",
   "schema",
   "skillName",
   "stateMigrationDigest",
   "tenantId",
   "transactionId",
+]);
+const JOURNAL_ARCHIVE_INPUT_KEYS = new Set([
+  "archiveDir",
+  "dispositionPlan",
+  "legacyJournal",
+  "secure",
+  "sourcePath",
+  "stateMigrationResult",
+]);
+const JOURNAL_ARCHIVE_KEYS = new Set([
+  "action",
+  "archiveDigest",
+  "dispositionPlan",
+  "legacyJournal",
+  "schema",
+  "stateMigrationStateDigest",
 ]);
 const STATE_MIGRATION_PLAN_INPUT_KEYS = new Set([
   "activeReleaseMigration",
@@ -1273,6 +1293,13 @@ export function verifyLegacySkillReleaseJournal(value) {
 }
 
 const journalResolutionAuthorities = new WeakMap();
+const completedStateMigrations = new WeakSet();
+
+function completedStateMigration(value) {
+  const result = deepFreeze(value);
+  completedStateMigrations.add(result);
+  return result;
+}
 
 export function createSkillReleaseJournalResolutionAuthority(options) {
   assertExactKeys(
@@ -1394,6 +1421,11 @@ export function buildLegacySkillReleaseJournalDisposition(input) {
   );
   const journal = verifyLegacySkillReleaseJournal(input.legacyJournal);
   const ownerTenantId = tenantId(input.tenantId, "journalDisposition.tenantId");
+  if (journal.intent.mutationRequest.tenantId !== ownerTenantId) {
+    throw migrationRequired(
+      "legacy journal mutation authority belongs to another tenant",
+    );
+  }
   const resolver = journalResolutionAuthorities.get(input.resolutionAuthority);
   if (!resolver) {
     throw migrationRequired(
@@ -1469,6 +1501,7 @@ export function buildLegacySkillReleaseJournalDisposition(input) {
       projection.status === "committed" ? projection.current : null,
     ledgerStatus: projection.status,
     legacyNextStateDigest: journal.nextState.stateDigest,
+    resolutionReceipt: receipt,
     resolutionReceiptDigest: receipt.receiptDigest,
     schema: SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA,
     skillName: journal.skillName,
@@ -1489,6 +1522,56 @@ export function verifyLegacySkillReleaseJournalDisposition(value) {
     "legacy journal disposition plan",
     SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
   );
+  assertExactKeys(
+    value.resolutionReceipt,
+    JOURNAL_RESOLUTION_RECEIPT_KEYS,
+    "journal disposition resolution receipt",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const resolutionCore = { ...value.resolutionReceipt };
+  delete resolutionCore.receiptDigest;
+  const resolutionReceipt = deepFreeze({
+    ...resolutionCore,
+    receiptDigest: digest(
+      value.resolutionReceipt.receiptDigest,
+      "journalDisposition.resolutionReceipt.receiptDigest",
+    ),
+  });
+  boundedString(
+    resolutionReceipt.authorityId,
+    "journalDisposition.resolutionReceipt.authorityId",
+    256,
+  );
+  digest(
+    resolutionReceipt.handlerArtifactDigest,
+    "journalDisposition.resolutionReceipt.handlerArtifactDigest",
+  );
+  digest(
+    resolutionReceipt.journalDigest,
+    "journalDisposition.resolutionReceipt.journalDigest",
+  );
+  tenantId(
+    resolutionReceipt.tenantId,
+    "journalDisposition.resolutionReceipt.tenantId",
+  );
+  digest(
+    resolutionReceipt.transactionId,
+    "journalDisposition.resolutionReceipt.transactionId",
+  );
+  if (
+    resolutionReceipt.schema !==
+      SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA ||
+    resolutionReceipt.authenticated !== true ||
+    resolutionReceipt.durable !== true ||
+    resolutionReceipt.trust !== "trusted" ||
+    !isPlainObject(resolutionReceipt.ledgerProjection) ||
+    resolutionReceipt.receiptDigest !==
+      domainDigest(JOURNAL_RESOLUTION_RECEIPT_DOMAIN, resolutionCore)
+  ) {
+    throw migrationRequired(
+      "journal disposition resolution receipt is invalid",
+    );
+  }
   const core = {
     action: value.action,
     journalDigest: digest(
@@ -1501,6 +1584,7 @@ export function verifyLegacySkillReleaseJournalDisposition(value) {
       value.legacyNextStateDigest,
       "journalDisposition.legacyNextStateDigest",
     ),
+    resolutionReceipt,
     resolutionReceiptDigest: digest(
       value.resolutionReceiptDigest,
       "journalDisposition.resolutionReceiptDigest",
@@ -1538,12 +1622,279 @@ export function verifyLegacySkillReleaseJournalDisposition(value) {
   if (
     plan.schema !== SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA ||
     !shapeValid ||
+    resolutionReceipt.receiptDigest !== plan.resolutionReceiptDigest ||
+    resolutionReceipt.journalDigest !== plan.journalDigest ||
+    resolutionReceipt.transactionId !== plan.transactionId ||
+    resolutionReceipt.tenantId !== plan.tenantId ||
+    resolutionReceipt.ledgerProjection.status !== plan.ledgerStatus ||
+    (plan.ledgerStatus === "committed"
+      ? resolutionReceipt.ledgerProjection.current !== plan.ledgerCurrent
+      : plan.ledgerCurrent !== null) ||
     plan.planDigest !== domainDigest(JOURNAL_DISPOSITION_PLAN_DOMAIN, core) ||
     canonicalJson(plan) !== canonicalJson(value)
   ) {
     throw migrationRequired("legacy journal disposition plan is invalid");
   }
   return plan;
+}
+
+function verifyCompletedStateMigration(result, disposition) {
+  if (!completedStateMigrations.has(result)) {
+    throw migrationRequired(
+      "committed journal retirement requires a branded completed state migration",
+    );
+  }
+  const plan = verifySkillReleaseStateMigrationPlan(result.plan);
+  const state = verifySkillReleaseState(result.state);
+  if (
+    typeof result.created !== "boolean" ||
+    result.receipt?.schema !== SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA ||
+    result.receipt.authenticated !== true ||
+    result.receipt.durable !== true ||
+    result.receipt.trust !== "trusted" ||
+    result.receipt.stateMigrationDigest !== plan.stateMigrationDigest ||
+    disposition.stateMigrationDigest !== plan.stateMigrationDigest ||
+    state.transactionId !== plan.stateMigrationDigest ||
+    state.tenantId !== disposition.tenantId ||
+    state.skillName !== disposition.skillName ||
+    state.revision !== plan.legacyRevision ||
+    state.fence !== plan.legacyFence ||
+    state.activeReleaseDigest !== plan.activeReleaseDigest ||
+    state.lastKnownGoodReleaseDigest !== plan.lastKnownGoodReleaseDigest ||
+    state.dependencyLockDigest !== plan.dependencyLockDigest
+  ) {
+    throw migrationRequired(
+      "completed state migration differs from the journal disposition",
+    );
+  }
+  return result;
+}
+
+export function verifySkillReleaseJournalArchive(value) {
+  assertExactKeys(
+    value,
+    JOURNAL_ARCHIVE_KEYS,
+    "legacy journal archive",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const journal = verifyLegacySkillReleaseJournal(value.legacyJournal);
+  const disposition = verifyLegacySkillReleaseJournalDisposition(
+    value.dispositionPlan,
+  );
+  verifyLegacyJournalResolutionReceipt(
+    disposition.resolutionReceipt,
+    journal,
+    disposition.tenantId,
+    {
+      authorityId: disposition.resolutionReceipt.authorityId,
+      handlerArtifactDigest:
+        disposition.resolutionReceipt.handlerArtifactDigest,
+    },
+  );
+  const core = {
+    action: value.action,
+    dispositionPlan: disposition,
+    legacyJournal: journal,
+    schema: value.schema,
+    stateMigrationStateDigest: digest(
+      value.stateMigrationStateDigest,
+      "journalArchive.stateMigrationStateDigest",
+      { nullable: true },
+    ),
+  };
+  const archive = deepFreeze({
+    ...core,
+    archiveDigest: digest(value.archiveDigest, "journalArchive.archiveDigest"),
+  });
+  if (
+    archive.schema !== SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA ||
+    archive.action !== disposition.action ||
+    disposition.journalDigest !== journal.journalDigest ||
+    disposition.transactionId !== journal.transactionId ||
+    disposition.skillName !== journal.skillName ||
+    (archive.action === "migrate-committed-state") !==
+      (archive.stateMigrationStateDigest !== null) ||
+    archive.archiveDigest !== domainDigest(JOURNAL_ARCHIVE_DOMAIN, core) ||
+    canonicalJson(archive) !== canonicalJson(value)
+  ) {
+    throw migrationRequired("legacy journal archive is invalid");
+  }
+  return archive;
+}
+
+export function archiveLegacySkillReleaseJournal(input) {
+  assertExactKeys(
+    input,
+    JOURNAL_ARCHIVE_INPUT_KEYS,
+    "legacy journal archive input",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const journal = verifyLegacySkillReleaseJournal(input.legacyJournal);
+  if (input.secure !== true && input.secure !== false) {
+    throw migrationRequired("legacy journal archive secure mode is invalid");
+  }
+  const disposition = verifyLegacySkillReleaseJournalDisposition(
+    input.dispositionPlan,
+  );
+  if (
+    disposition.journalDigest !== journal.journalDigest ||
+    disposition.transactionId !== journal.transactionId ||
+    disposition.skillName !== journal.skillName
+  ) {
+    throw migrationRequired(
+      "legacy journal differs from its authenticated disposition",
+    );
+  }
+  let stateMigrationStateDigest = null;
+  if (disposition.action === "migrate-committed-state") {
+    const migration = verifyCompletedStateMigration(
+      input.stateMigrationResult,
+      disposition,
+    );
+    stateMigrationStateDigest = migration.state.stateDigest;
+  } else if (input.stateMigrationResult !== null) {
+    throw migrationRequired(
+      "abort and quarantine retirement must not carry state migration proof",
+    );
+  }
+  const archiveCore = {
+    action: disposition.action,
+    dispositionPlan: disposition,
+    legacyJournal: journal,
+    schema: SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA,
+    stateMigrationStateDigest,
+  };
+  const archive = deepFreeze({
+    ...archiveCore,
+    archiveDigest: domainDigest(JOURNAL_ARCHIVE_DOMAIN, archiveCore),
+  });
+  const sourcePath = path.resolve(
+    boundedString(input.sourcePath, "journalArchive.sourcePath", 4096),
+  );
+  const sourceDirectory = path.dirname(sourcePath);
+  const archiveDirectory = path.resolve(
+    boundedString(input.archiveDir, "journalArchive.archiveDir", 4096),
+  );
+  if (
+    path.basename(sourcePath) !== `${journal.skillName}.json` ||
+    path.basename(sourceDirectory) !== "journals" ||
+    samePath(sourceDirectory, archiveDirectory) ||
+    isContained(sourceDirectory, archiveDirectory) ||
+    isContained(archiveDirectory, sourceDirectory)
+  ) {
+    throw migrationRequired("legacy journal archive paths are invalid");
+  }
+  for (const directory of [sourceDirectory, archiveDirectory]) {
+    const stat = fs.lstatSync(directory);
+    if (
+      !stat.isDirectory() ||
+      stat.isSymbolicLink() ||
+      !samePath(realpath(fs, directory), directory)
+    ) {
+      throw migrationRequired("legacy journal archive directory is unsafe");
+    }
+  }
+  if (input.secure) {
+    ensurePrivateDirectory(archiveDirectory, {
+      applyWindowsAcl: true,
+      failIfUnavailable: true,
+    });
+  }
+  const archivePath = path.join(
+    archiveDirectory,
+    `${disposition.planDigest.slice("sha256:".length)}.json`,
+  );
+  const expectedBytes = serialize(archive);
+  let created = false;
+  if (lstatOrNull(fs, archivePath) === null) {
+    const source = readBoundedSingleLinkFile(
+      fs,
+      sourcePath,
+      MAX_FILE_BYTES,
+      SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+      "legacy release journal source",
+    );
+    if (!source.bytes.equals(serialize(journal))) {
+      throw migrationRequired(
+        "legacy release journal source bytes differ from the verified input",
+      );
+    }
+    const temporaryPath = path.join(
+      archiveDirectory,
+      `.journal-${process.pid}-${crypto.randomBytes(16).toString("hex")}.tmp`,
+    );
+    let descriptor = null;
+    try {
+      descriptor = fs.openSync(temporaryPath, "wx", 0o600);
+      fs.writeFileSync(descriptor, expectedBytes);
+      fs.fsyncSync(descriptor);
+      fs.closeSync(descriptor);
+      descriptor = null;
+      if (input.secure) {
+        ensurePrivateFile(temporaryPath, {
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+        });
+      }
+      const staged = readBoundedSingleLinkFile(
+        fs,
+        temporaryPath,
+        MAX_FILE_BYTES,
+        SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+        "legacy journal archive temporary",
+      );
+      if (!staged.bytes.equals(expectedBytes)) {
+        throw migrationRequired("legacy journal archive write was incomplete");
+      }
+      try {
+        fs.linkSync(temporaryPath, archivePath);
+        created = true;
+      } catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+      }
+      fs.unlinkSync(temporaryPath);
+      fsyncDirectory(fs, archiveDirectory);
+    } finally {
+      if (descriptor !== null) fs.closeSync(descriptor);
+      if (lstatOrNull(fs, temporaryPath) !== null) fs.unlinkSync(temporaryPath);
+    }
+  }
+  const persisted = readBoundedSingleLinkFile(
+    fs,
+    archivePath,
+    MAX_FILE_BYTES,
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+    "legacy journal archive",
+  );
+  if (
+    !persisted.bytes.equals(expectedBytes) ||
+    canonicalJson(
+      verifySkillReleaseJournalArchive(
+        JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(persisted.bytes),
+        ),
+      ),
+    ) !== canonicalJson(archive)
+  ) {
+    throw migrationRequired("legacy journal archive readback differs");
+  }
+  if (lstatOrNull(fs, sourcePath) !== null) {
+    const source = readBoundedSingleLinkFile(
+      fs,
+      sourcePath,
+      MAX_FILE_BYTES,
+      SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+      "legacy release journal source",
+    );
+    if (!source.bytes.equals(serialize(journal))) {
+      throw migrationRequired(
+        "legacy release journal changed before retirement",
+      );
+    }
+    fs.unlinkSync(sourcePath);
+    fsyncDirectory(fs, sourceDirectory);
+  }
+  return deepFreeze({ archive, archivePath, created, sourceRetired: true });
 }
 
 /**
@@ -3224,7 +3575,12 @@ export class SkillReleaseRegistry {
           "active state is not the exact result of this migration plan",
         );
       }
-      return deepFreeze({ created: false, plan, receipt, state: existing });
+      return completedStateMigration({
+        created: false,
+        plan,
+        receipt,
+        state: existing,
+      });
     }
     const acquired = this.#acquireLease(
       plan.skillName,
@@ -3297,7 +3653,7 @@ export class SkillReleaseRegistry {
           "state migration did not converge after ledger commit",
         );
       }
-      return deepFreeze({ created: true, plan, receipt, state });
+      return completedStateMigration({ created: true, plan, receipt, state });
     } finally {
       clearInterval(heartbeat);
       this.#releaseLease(lease);

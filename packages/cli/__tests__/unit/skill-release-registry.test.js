@@ -39,6 +39,7 @@ import {
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA,
+  SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA,
   SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA,
   SKILL_RELEASE_MIGRATION_AUTHORITY_SCHEMA,
   SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA,
@@ -52,6 +53,7 @@ import {
   SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
   SkillReleaseSimulatedCrashError,
+  archiveLegacySkillReleaseJournal,
   buildLegacySkillReleaseJournalDisposition,
   buildMigratedSkillRelease,
   buildSkillReleaseStateMigrationPlan,
@@ -63,6 +65,7 @@ import {
   verifyLegacySkillReleaseState,
   verifySkillRelease,
   verifySkillReleaseMigrationResult,
+  verifySkillReleaseJournalArchive,
 } from "../../src/lib/evolution/skill-release-registry.js";
 
 const TENANT_ID = "tenant:test";
@@ -202,13 +205,13 @@ function legacyJournalResolutionAuthority(journal, ledgerProjection, mutate) {
 
 function legacyJournalStateMigrationPlan(journal) {
   const core = {
-    activeReleaseDigest: digest("migrated-journal-active"),
+    activeReleaseDigest: journal.nextState.activeReleaseDigest,
     activeReleaseMigrationDigest: digest("journal-active-migration"),
     activeReleaseMigrationReceiptDigest: digest(
       "journal-active-migration-receipt",
     ),
-    dependencyLockDigest: digest("migrated-journal-lock"),
-    lastKnownGoodReleaseDigest: digest("migrated-journal-lkg"),
+    dependencyLockDigest: journal.nextState.dependencyLockDigest,
+    lastKnownGoodReleaseDigest: journal.nextState.lastKnownGoodReleaseDigest,
     lastKnownGoodReleaseMigrationDigest: digest("journal-lkg-migration"),
     lastKnownGoodReleaseMigrationReceiptDigest: digest(
       "journal-lkg-migration-receipt",
@@ -1896,6 +1899,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       tenantId: TENANT_ID,
       rootDir: registryBase,
       secure: false,
+      leaseTtlMs: 40,
       transactionLedger: ledger,
       crashHook(phase) {
         if (phase === "after-journal") {
@@ -2021,6 +2025,58 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       ledgerStatus: "committed",
       stateMigrationDigest: stateMigrationPlan.stateMigrationDigest,
     });
+    const migrationAuthorityDescriptor = {
+      schema: SKILL_RELEASE_STATE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:journal-state-migration",
+      trust: "trusted",
+      handlerArtifactDigest: digest("journal-state-migration-handler:v1"),
+    };
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    const stateMigrationResult = releases.migrateLegacyState(
+      stateMigrationPlan,
+      {
+        ...migrationAuthorityDescriptor,
+        audit: (plan) => ({
+          schema: SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+          authenticated: true,
+          durable: true,
+          authorityId: migrationAuthorityDescriptor.authorityId,
+          trust: migrationAuthorityDescriptor.trust,
+          handlerArtifactDigest:
+            migrationAuthorityDescriptor.handlerArtifactDigest,
+          stateMigrationDigest: plan.stateMigrationDigest,
+          receiptDigest: digest(
+            `journal-state-migration:${plan.stateMigrationDigest}`,
+          ),
+        }),
+      },
+    );
+    const committedSourceDir = path.join(
+      tempRoot,
+      "legacy-committed-store",
+      "journals",
+    );
+    const committedArchiveDir = path.join(tempRoot, "legacy-committed-archive");
+    fs.mkdirSync(committedSourceDir, { recursive: true, mode: 0o700 });
+    fs.mkdirSync(committedArchiveDir, { mode: 0o700 });
+    const committedSourcePath = path.join(
+      committedSourceDir,
+      `${legacy.skillName}.json`,
+    );
+    durableWriteJson(committedSourcePath, legacy);
+    const committedArchive = archiveLegacySkillReleaseJournal({
+      archiveDir: committedArchiveDir,
+      dispositionPlan: migrated,
+      legacyJournal: legacy,
+      secure: false,
+      sourcePath: committedSourcePath,
+      stateMigrationResult,
+    });
+    expect(committedArchive.archive).toMatchObject({
+      action: "migrate-committed-state",
+      stateMigrationStateDigest: stateMigrationResult.state.stateDigest,
+    });
+    expect(fs.existsSync(committedSourcePath)).toBe(false);
     expect(() =>
       buildLegacySkillReleaseJournalDisposition({
         legacyJournal: legacy,
@@ -2035,6 +2091,61 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     ).toThrowError(
       expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
     );
+    const legacyJournalPath = path.join(
+      registryRoot,
+      "journals",
+      `${candidate.skillName}.json`,
+    );
+    const archiveDir = path.join(tempRoot, "legacy-journal-archive");
+    fs.mkdirSync(archiveDir, { mode: 0o700 });
+    durableWriteJson(legacyJournalPath, legacy);
+    const archived = archiveLegacySkillReleaseJournal({
+      archiveDir,
+      dispositionPlan: aborted,
+      legacyJournal: legacy,
+      secure: false,
+      sourcePath: legacyJournalPath,
+      stateMigrationResult: null,
+    });
+    expect(archived).toMatchObject({
+      archive: {
+        action: "abort",
+        schema: SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA,
+        stateMigrationStateDigest: null,
+      },
+      created: true,
+      sourceRetired: true,
+    });
+    expect(verifySkillReleaseJournalArchive(archived.archive)).toEqual(
+      archived.archive,
+    );
+    expect(fs.existsSync(legacyJournalPath)).toBe(false);
+    expect(
+      archiveLegacySkillReleaseJournal({
+        archiveDir,
+        dispositionPlan: aborted,
+        legacyJournal: legacy,
+        secure: false,
+        sourcePath: legacyJournalPath,
+        stateMigrationResult: null,
+      }).created,
+    ).toBe(false);
+    durableWriteJson(legacyJournalPath, legacy);
+    durableWriteJson(archived.archivePath, { forged: true });
+    expect(() =>
+      archiveLegacySkillReleaseJournal({
+        archiveDir,
+        dispositionPlan: aborted,
+        legacyJournal: legacy,
+        secure: false,
+        sourcePath: legacyJournalPath,
+        stateMigrationResult: null,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
+    );
+    expect(fs.existsSync(legacyJournalPath)).toBe(true);
+    fs.unlinkSync(legacyJournalPath);
     expect(() =>
       verifyLegacySkillReleaseJournal({
         ...legacy,
@@ -2046,7 +2157,9 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     ).toThrowError(
       expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
     );
-    expect(releases.readState(candidate.skillName).revision).toBe(0);
+    expect(releases.readState(candidate.skillName).stateDigest).toBe(
+      stateMigrationResult.state.stateDigest,
+    );
   });
 
   it("aborts a crash before authenticated prepare and releases stale ownership", async () => {
