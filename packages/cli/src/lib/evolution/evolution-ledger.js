@@ -80,6 +80,8 @@ const HEAD_STAGE_FILE_PATTERN =
   /^\.replace-head-v1\.json\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const MAX_SOURCE_REFS = 256;
 const MAX_AUDIT_ARTIFACT_RECORDS = 1_000_000;
+const MAX_LEDGER_BATCH_QUERIES = 10_000;
+const STATE_QUERY_INDEXES = new WeakMap();
 const TYPED_ARRAY_PROTOTYPE = Object.getPrototypeOf(Uint8Array.prototype);
 const TYPED_ARRAY_BUFFER_GETTER = Object.getOwnPropertyDescriptor(
   TYPED_ARRAY_PROTOTYPE,
@@ -3328,6 +3330,13 @@ export class EvolutionLedger {
     anchorFingerprints,
     segmentFingerprints,
   ) {
+    const byEventDigest = new Map();
+    const byEventId = new Map();
+    for (const event of state.events) {
+      byEventDigest.set(event.eventDigest, event);
+      byEventId.set(event.eventId, event);
+    }
+    STATE_QUERY_INDEXES.set(state, Object.freeze({ byEventDigest, byEventId }));
     this.#stateCache = Object.freeze({
       anchorFingerprints: Object.freeze({ ...anchorFingerprints }),
       anchorNames: Object.freeze([...anchorNames]),
@@ -4134,17 +4143,37 @@ export class EvolutionLedger {
   }
 
   #queryState(state, selector) {
-    return (
-      state.events.find(
-        (event) =>
-          (selector.eventId === undefined ||
-            event.eventId === selector.eventId) &&
-          (selector.eventDigest === undefined ||
-            event.eventDigest === selector.eventDigest) &&
-          (selector.sequence === undefined ||
-            event.sequence === selector.sequence),
-      ) || null
-    );
+    const indexes = STATE_QUERY_INDEXES.get(state);
+    const event =
+      selector.sequence !== undefined
+        ? state.events[selector.sequence - 1] || null
+        : selector.eventId !== undefined
+          ? indexes?.byEventId.get(selector.eventId) || null
+          : indexes?.byEventDigest.get(selector.eventDigest) || null;
+    return event &&
+      (selector.eventId === undefined || event.eventId === selector.eventId) &&
+      (selector.eventDigest === undefined ||
+        event.eventDigest === selector.eventDigest) &&
+      (selector.sequence === undefined || event.sequence === selector.sequence)
+      ? event
+      : null;
+  }
+
+  #queryResult(state, event, issueReceipt) {
+    if (!event) return null;
+    const anchor = state.anchors[event.sequence];
+    const receipt = issueReceipt
+      ? this.#issueReceipt(state, event, anchor, "verified-existing")
+      : null;
+    return deepFreeze({
+      anchor,
+      authenticated: true,
+      authority: this.#authorityProjection(state),
+      durable: true,
+      event,
+      receipt,
+      schema: EVOLUTION_LEDGER_QUERY_SCHEMA,
+    });
   }
 
   query(selector, options = {}) {
@@ -4154,22 +4183,49 @@ export class EvolutionLedger {
     });
     const issueReceipt = options.issueReceipt !== false;
     return this.#withLock(() => {
-      const state = this.#loadState({ allowInitialize: false });
-      const event = this.#queryState(state, safeSelector);
-      if (!event) return null;
-      const anchor = state.anchors[event.sequence];
-      const receipt = issueReceipt
-        ? this.#issueReceipt(state, event, anchor, "verified-existing")
-        : null;
-      return deepFreeze({
-        anchor,
-        authenticated: true,
-        authority: this.#authorityProjection(state),
-        durable: true,
-        event,
-        receipt,
-        schema: EVOLUTION_LEDGER_QUERY_SCHEMA,
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
       });
+      return this.#queryResult(
+        state,
+        this.#queryState(state, safeSelector),
+        issueReceipt,
+      );
+    });
+  }
+
+  queryMany(selectors, options = {}) {
+    const entries = readDenseDataArray(
+      selectors,
+      "query selectors",
+      MAX_LEDGER_BATCH_QUERIES,
+    );
+    if (entries.length === 0) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+        "query selectors must not be empty",
+      );
+    }
+    const safeSelectors = entries.map(normalizeQuerySelector);
+    assertExactKeys(options, QUERY_OPTION_KEYS, "query options", {
+      optional: [...QUERY_OPTION_KEYS],
+    });
+    const issueReceipt = options.issueReceipt === true;
+    return this.#withLock(() => {
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
+      });
+      return deepFreeze(
+        safeSelectors.map((selector) =>
+          this.#queryResult(
+            state,
+            this.#queryState(state, selector),
+            issueReceipt,
+          ),
+        ),
+      );
     });
   }
 
@@ -4198,7 +4254,10 @@ export class EvolutionLedger {
       );
     }
     return this.#withLock(() => {
-      const state = this.#loadState({ allowInitialize: false });
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
+      });
       const event = this.#queryState(state, {
         eventDigest: verifiedReceipt.eventDigest,
         eventId: verifiedReceipt.eventId,
@@ -4271,7 +4330,10 @@ export class EvolutionLedger {
 
   exportAuditBundle() {
     return this.#withLock(() => {
-      const state = this.#loadState({ allowInitialize: false });
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
+      });
       const artifacts = [];
       for (const event of state.events) {
         const evidence = this.#resolveArtifactEvidence(event, state.identity, {
@@ -4324,11 +4386,12 @@ export class EvolutionLedger {
       );
     }
     return this.#withLock(() => {
-      const state = this.#loadState({ allowInitialize: false });
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
+      });
       return deepFreeze(
-        state.events
-          .filter((event) => event.sequence > afterSequence)
-          .slice(0, limit),
+        state.events.slice(afterSequence, afterSequence + limit),
       );
     });
   }
@@ -4364,7 +4427,9 @@ export class EvolutionLedger {
 
   verify() {
     return this.#withLock(() =>
-      this.#authorityProjection(this.#loadState({ allowInitialize: false })),
+      this.#authorityProjection(
+        this.#loadState({ allowInitialize: false, incremental: true }),
+      ),
     );
   }
 

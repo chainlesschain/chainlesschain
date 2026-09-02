@@ -1820,6 +1820,55 @@ describe("EvolutionLedger v2", () => {
     );
   });
 
+  it("serves bounded batch queries from a revalidated incremental prefix index", () => {
+    const ledger = createLedger();
+    ledger.append(eventInput(1, artifacts));
+    ledger.append(eventInput(2, artifacts));
+    ports.verifySignature.mockClear();
+
+    const selectors = Array.from({ length: 5_000 }, (_, index) =>
+      index % 3 === 0
+        ? { eventId: "event-1" }
+        : index % 3 === 1
+          ? { sequence: 2 }
+          : { eventId: "missing-event" },
+    );
+    const startedAt = performance.now();
+    const results = ledger.queryMany(selectors);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(results).toHaveLength(5_000);
+    expect(results[0]).toMatchObject({
+      authenticated: true,
+      durable: true,
+      event: { eventId: "event-1" },
+      receipt: null,
+    });
+    expect(results[1]).toMatchObject({ event: { eventId: "event-2" } });
+    expect(results[2]).toBeNull();
+    expect(elapsedMs).toBeLessThan(5_000);
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(0);
+
+    const external = createLedger();
+    external.append(eventInput(3, artifacts));
+    ports.verifySignature.mockClear();
+    expect(
+      ledger.queryMany([{ eventId: "event-3" }, { eventId: "event-1" }]),
+    ).toMatchObject([
+      { event: { eventId: "event-3", sequence: 3 } },
+      { event: { eventId: "event-1", sequence: 1 } },
+    ]);
+    expect(
+      ports.verifySignature.mock.calls.filter(
+        ([request]) => request.purpose === "event",
+      ),
+    ).toHaveLength(1);
+  });
+
   it("recovers and verifies receipts for domain events after reopen", () => {
     const ledger = createLedger();
     const committed = ledger.appendDomainEvent(domainEventInput(50, artifacts));
