@@ -358,7 +358,7 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 - 逆依赖补偿执行器和全部 durable cut-point fault matrix；
 - 真实 child Agent message/handoff 更长周期恢复与多次故障注入；
 - 当前主线 formal quality matrix 的完整通过、聚合与后续发布绑定；
-- Desktop HumanTask 决策 UI 与 IDE 原生 topology/timeline UI；Desktop 只读 Graph Debugger 已完成。
+- IDE 原生 topology/timeline UI；Desktop 只读 Graph Debugger、HumanTask 决策、有界 App Server 工具审批卡以及 VS Code modal 审批已进入源码，但仍需真实宿主/final-SHA 资格验证。
 
 ## 17. 关键文件
 

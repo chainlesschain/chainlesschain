@@ -499,6 +499,32 @@ export interface CodingAgentAPI {
   appServerMemoryDecide(payload: Record<string, unknown>): Promise<any>;
   appServerMemoryDelete(payload: Record<string, unknown>): Promise<any>;
   appServerMemoryReconcile(payload: Record<string, unknown>): Promise<any>;
+  appServerApprovalList(): Promise<{
+    success: boolean;
+    result?: Array<Record<string, unknown>>;
+    error?: string;
+  }>;
+  appServerApprovalDecide(payload: {
+    requestId: string;
+    binding: Record<string, unknown>;
+    decision:
+      | { kind: "acceptOnce" }
+      | {
+          kind: "acceptForTurn" | "acceptForSession";
+          permissions?: Array<Record<string, unknown>>;
+        }
+      | { kind: "decline" | "cancel"; reason?: string };
+  }): Promise<{
+    success: boolean;
+    result?: { accepted: boolean; requestId: string; actorId: string };
+    error?: string;
+  }>;
+  onAppServerApproval(
+    callback: (request: Record<string, unknown>) => void,
+  ): () => void;
+  onAppServerApprovalSettled(
+    callback: (settlement: Record<string, unknown>) => void,
+  ): () => void;
   appServerHumanTaskList(): Promise<{
     success: boolean;
     result?: Array<Record<string, unknown>>;

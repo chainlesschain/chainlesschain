@@ -20,6 +20,8 @@ const APP_SERVER_PILOT_IPC_CHANNELS = [
   "coding-agent:app-server-thread-archive",
   "coding-agent:app-server-turn-start",
   "coding-agent:app-server-turn-interrupt",
+  "coding-agent:app-server-approval-list",
+  "coding-agent:app-server-approval-decide",
   "coding-agent:app-server-human-task-list",
   "coding-agent:app-server-human-task-decide",
   "coding-agent:app-server-context-plan",
@@ -140,7 +142,9 @@ function registerCodingAgentIPCV3(options = {}) {
       "CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1 before startup",
   });
   const runPilot = async (operation, payload) => {
-    if (!appServerPilot) return pilotDisabled();
+    if (!appServerPilot) {
+      return pilotDisabled();
+    }
     try {
       const result = await appServerPilot[operation](payload);
       return { success: true, result };
@@ -168,6 +172,13 @@ function registerCodingAgentIPCV3(options = {}) {
   }));
   ipc.handle("coding-agent:app-server-pilot-start", () => runPilot("start"));
   ipc.handle("coding-agent:app-server-pilot-close", () => runPilot("close"));
+  ipc.handle("coding-agent:app-server-approval-list", () =>
+    runPilot("listPendingApprovals"),
+  );
+  ipc.handle(
+    "coding-agent:app-server-approval-decide",
+    (_event, payload = {}) => runPilot("respondApproval", payload),
+  );
   ipc.handle("coding-agent:app-server-human-task-list", () =>
     runPilot("listPendingHumanTasks"),
   );
@@ -207,6 +218,23 @@ function registerCodingAgentIPCV3(options = {}) {
       );
     }
   };
+  const sendPilotReviewEvent = (channel, payload) => {
+    const mainWindow = service.mainWindow;
+    if (
+      mainWindow?.webContents &&
+      typeof mainWindow.isDestroyed === "function" &&
+      !mainWindow.isDestroyed()
+    ) {
+      mainWindow.webContents.send(channel, payload);
+    }
+  };
+  const onApprovalRequested = (request) =>
+    sendPilotReviewEvent("coding-agent:app-server-approval-requested", request);
+  const onApprovalSettled = (settlement) =>
+    sendPilotReviewEvent(
+      "coding-agent:app-server-approval-settled",
+      settlement,
+    );
   const onHumanTaskSettled = (settlement) => {
     const mainWindow = service.mainWindow;
     if (
@@ -222,6 +250,8 @@ function registerCodingAgentIPCV3(options = {}) {
   };
   appServerPilot?.on?.("human-task-requested", onHumanTaskRequested);
   appServerPilot?.on?.("human-task-settled", onHumanTaskSettled);
+  appServerPilot?.on?.("approval-requested", onApprovalRequested);
+  appServerPilot?.on?.("approval-settled", onApprovalSettled);
 
   const handleCreateSession = async (_event, payload = {}) => {
     try {
@@ -1114,6 +1144,8 @@ function registerCodingAgentIPCV3(options = {}) {
     disposed = true;
     appServerPilot?.off?.("human-task-requested", onHumanTaskRequested);
     appServerPilot?.off?.("human-task-settled", onHumanTaskSettled);
+    appServerPilot?.off?.("approval-requested", onApprovalRequested);
+    appServerPilot?.off?.("approval-settled", onApprovalSettled);
     if (typeof ipc.removeHandler === "function") {
       CODING_AGENT_IPC_CHANNELS.forEach((channel) =>
         ipc.removeHandler(channel),

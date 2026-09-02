@@ -27,23 +27,7 @@ capabilities:
     description-optimization-loop,
     template-management,
   ]
-execution-capabilities:
-  [
-    data:result,
-    data:task,
-    filesystem:read,
-    host:electron,
-    host:environment,
-    host:filesystem,
-    host:logger,
-    host:process,
-    host:skill-registry,
-    process:cwd,
-    process:execute,
-    runtime:random,
-    runtime:time,
-    system:inspect,
-  ]
+execution-capabilities: [data:result, data:task, filesystem:read, host:electron, host:environment, host:filesystem, host:logger, host:process, host:skill-registry, process:cwd, process:execute, runtime:random, runtime:time, system:inspect]
 handler: ./handler.js
 os: [win32, darwin, linux]
 tools: [skill-scaffold, skill-test, skill-optimize, skill-validate]

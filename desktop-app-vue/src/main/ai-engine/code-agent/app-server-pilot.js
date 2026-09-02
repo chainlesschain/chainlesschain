@@ -6,6 +6,7 @@ const {
 const { resolveActorDid } = require("../../permission/current-user-context.js");
 
 const MAX_PARAMS_BYTES = 256 * 1024;
+const MAX_PENDING_APPROVALS = 128;
 const MAX_PENDING_HUMAN_TASKS = 128;
 const MAX_PROJECTED_MEMORIES = 256;
 
@@ -51,6 +52,7 @@ class DesktopAppServerPilot extends EventEmitter {
       Number(options.requestTimeoutMs) || 120_000,
     );
     this.pendingHumanTasks = new Map();
+    this.pendingApprovals = new Map();
     this.contextMemoryProjection = {
       lastPlan: null,
       lastCompactionReceipt: null,
@@ -124,6 +126,8 @@ class DesktopAppServerPilot extends EventEmitter {
         memoryRevision: this.contextMemoryProjection.memoryRevision,
         memories: [...this.contextMemoryProjection.memories.values()],
       },
+      pendingApprovalCount: this.pendingApprovals.size,
+      pendingHumanTaskCount: this.pendingHumanTasks.size,
       ...this.client.status,
     };
   }
@@ -133,6 +137,20 @@ class DesktopAppServerPilot extends EventEmitter {
   }
 
   close() {
+    for (const pending of this.pendingApprovals.values()) {
+      clearTimeout(pending.timer);
+      const decision = {
+        kind: "decline",
+        reason: "Desktop App Server approval host closed",
+      };
+      pending.resolve(decision);
+      this.emit("approval-settled", {
+        requestId: pending.request.id,
+        binding: pending.request.binding,
+        decision,
+      });
+    }
+    this.pendingApprovals.clear();
     for (const pending of this.pendingHumanTasks.values()) {
       clearTimeout(pending.timer);
       pending.reject(new Error("App Server HumanTask host closed"));
@@ -142,6 +160,9 @@ class DesktopAppServerPilot extends EventEmitter {
   }
 
   _handleServerRequest(request) {
+    if (request?.method === "approval/decide") {
+      return this._requestApproval(request.params?.request);
+    }
     if (request?.method !== "humanTask/decide") {
       return {
         kind: "decline",
@@ -179,6 +200,187 @@ class DesktopAppServerPilot extends EventEmitter {
       this.pendingHumanTasks.set(task.id, { task, resolve, reject, timer });
       this.emit("human-task-requested", task);
     });
+  }
+
+  _requestApproval(value) {
+    const request = normalizeParams(value);
+    const binding = request.binding;
+    if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+      throw new TypeError("App Server approval binding is required");
+    }
+    for (const field of ["id", "reason", "risk"]) {
+      if (typeof request[field] !== "string" || !request[field]) {
+        throw new TypeError(`App Server approval ${field} is required`);
+      }
+    }
+    for (const field of [
+      "threadId",
+      "turnId",
+      "itemId",
+      "operationDigest",
+      "policyDigest",
+      "nonce",
+      "expiresAt",
+    ]) {
+      if (typeof binding[field] !== "string" || !binding[field]) {
+        throw new TypeError(`App Server approval binding ${field} is required`);
+      }
+    }
+    if (!["low", "medium", "high", "critical"].includes(request.risk)) {
+      throw new TypeError("App Server approval risk is invalid");
+    }
+    if (
+      request.requestedPermissions !== undefined &&
+      !Array.isArray(request.requestedPermissions)
+    ) {
+      throw new TypeError("App Server requested permissions must be an array");
+    }
+    const expiresAt = Date.parse(binding.expiresAt);
+    if (!Number.isFinite(expiresAt)) {
+      throw new TypeError("App Server approval expiry is invalid");
+    }
+    if (expiresAt <= Date.now()) {
+      return {
+        kind: "decline",
+        reason: "Desktop App Server approval request expired",
+      };
+    }
+    if (this.pendingApprovals.size >= MAX_PENDING_APPROVALS) {
+      return {
+        kind: "decline",
+        reason: "Desktop App Server approval queue is full",
+      };
+    }
+    if (this.pendingApprovals.has(request.id)) {
+      return {
+        kind: "decline",
+        reason: "Desktop App Server approval request is already pending",
+      };
+    }
+    return new Promise((resolve) => {
+      const timeoutMs = Math.max(
+        1,
+        Math.min(this.humanTaskTimeoutMs, expiresAt - Date.now()),
+      );
+      const timer = setTimeout(() => {
+        this.pendingApprovals.delete(request.id);
+        const decision = {
+          kind: "decline",
+          reason: "Desktop App Server approval review timed out",
+        };
+        resolve(decision);
+        this.emit("approval-settled", {
+          requestId: request.id,
+          binding: request.binding,
+          decision,
+        });
+      }, timeoutMs);
+      timer.unref?.();
+      this.pendingApprovals.set(request.id, {
+        request,
+        resolve,
+        timer,
+      });
+      this.emit("approval-requested", request);
+    });
+  }
+
+  respondApproval(payload) {
+    const response = normalizeParams(payload);
+    const requestId = String(response.requestId || "").trim();
+    const pending = this.pendingApprovals.get(requestId);
+    if (!pending) {
+      throw new Error("Approval is no longer pending in this Desktop host");
+    }
+    const { request } = pending;
+    const binding = response.binding;
+    if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+      throw new TypeError("Desktop approval response binding is required");
+    }
+    for (const field of [
+      "threadId",
+      "turnId",
+      "itemId",
+      "operationDigest",
+      "policyDigest",
+      "nonce",
+      "expiresAt",
+    ]) {
+      if (binding[field] !== request.binding[field]) {
+        throw new Error(`Desktop approval response has a stale ${field}`);
+      }
+    }
+    if (Date.parse(request.binding.expiresAt) <= Date.now()) {
+      throw new Error("Desktop approval request has expired");
+    }
+    const decision = response.decision;
+    if (!decision || typeof decision !== "object" || Array.isArray(decision)) {
+      throw new TypeError("Desktop approval decision is invalid");
+    }
+    const requestedPermissions = request.requestedPermissions || [];
+    const requestedPermissionKeys = new Set(
+      requestedPermissions.map((permission) => JSON.stringify(permission)),
+    );
+    let allowedFields;
+    if (decision.kind === "acceptOnce") {
+      allowedFields = new Set(["kind"]);
+    } else if (
+      decision.kind === "acceptForTurn" ||
+      decision.kind === "acceptForSession"
+    ) {
+      allowedFields = new Set(["kind", "permissions"]);
+      if (
+        decision.permissions !== undefined &&
+        (!Array.isArray(decision.permissions) ||
+          decision.permissions.some(
+            (permission) =>
+              !requestedPermissionKeys.has(JSON.stringify(permission)),
+          ))
+      ) {
+        throw new TypeError(
+          "Desktop approval decision widens requested permissions",
+        );
+      }
+    } else if (decision.kind === "decline" || decision.kind === "cancel") {
+      allowedFields = new Set(["kind", "reason"]);
+      if (
+        decision.reason !== undefined &&
+        (typeof decision.reason !== "string" || decision.reason.length > 2_048)
+      ) {
+        throw new TypeError("Desktop approval decision reason is invalid");
+      }
+    } else {
+      throw new TypeError("Desktop approval decision is invalid");
+    }
+    if (Object.keys(decision).some((field) => !allowedFields.has(field))) {
+      throw new TypeError("Desktop approval decision fields are invalid");
+    }
+    const actorId = this.resolveActorDid(null, {
+      channel: "coding-agent:app-server-approval-decide",
+      field: "actorId",
+    });
+    if (typeof actorId !== "string" || !actorId) {
+      throw new Error(
+        "App Server approval requires an authenticated Desktop DID",
+      );
+    }
+    clearTimeout(pending.timer);
+    this.pendingApprovals.delete(requestId);
+    const resolvedDecision = JSON.parse(JSON.stringify(decision));
+    pending.resolve(resolvedDecision);
+    this.emit("approval-settled", {
+      requestId,
+      binding: request.binding,
+      actorId,
+      decision: resolvedDecision,
+    });
+    return { accepted: true, requestId, actorId };
+  }
+
+  listPendingApprovals() {
+    return [...this.pendingApprovals.values()].map(({ request }) =>
+      JSON.parse(JSON.stringify(request)),
+    );
   }
 
   respondHumanTask(payload) {
@@ -267,7 +469,9 @@ class DesktopAppServerPilot extends EventEmitter {
   _projectNotification(notification) {
     const method = notification?.method;
     const value = notification?.params;
-    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return;
+    }
     if (method === "context/event") {
       if (value.type === "context.plan.created" && value.plan) {
         this.contextMemoryProjection.lastPlan = value.plan;
@@ -290,7 +494,9 @@ class DesktopAppServerPilot extends EventEmitter {
       }
       return;
     }
-    if (method !== "memory/event") return;
+    if (method !== "memory/event") {
+      return;
+    }
     if (value.type === "memory.recalled" && value.result) {
       this.contextMemoryProjection.lastRecall = value.result;
       if (Number.isSafeInteger(value.result.memoryRevision)) {

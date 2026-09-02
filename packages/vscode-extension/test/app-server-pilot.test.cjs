@@ -75,6 +75,7 @@ class FakeClient extends EventEmitter {
 }
 
 test("VS Code pilot uses the shared fixed-capability client lazily", async () => {
+  const reviewApproval = async () => ({ kind: "acceptOnce" });
   const pilot = new IdeAppServerPilot({
     ClientClass: FakeClient,
     getCliPath: () => "C:/bin/cc.cmd",
@@ -82,6 +83,7 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
     env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
     storageBackend: "sqlite",
     statePath: "C:/state/rollouts.sqlite",
+    reviewApproval,
   });
 
   assert.equal(pilot.status.running, false);
@@ -95,6 +97,14 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
     CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
   });
   assert.equal("request" in pilot, false);
+  assert.equal(typeof FakeClient.options.onServerRequest, "function");
+  assert.deepEqual(
+    await FakeClient.options.onServerRequest({
+      method: "approval/decide",
+      params: { request: { id: "approval-1" } },
+    }),
+    { kind: "acceptOnce" },
+  );
 
   assert.deepEqual(await pilot.threadStart({ title: "Pilot" }), {
     thread: { id: "thread-1" },
@@ -129,6 +139,31 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
   assert.equal(
     (await pilot.memoryReconcile({ operationId: "delete-1" })).status,
     "purged",
+  );
+});
+
+test("VS Code pilot fails closed when no reviewed request handler exists", async () => {
+  const pilot = new IdeAppServerPilot({ ClientClass: FakeClient });
+  await pilot.start();
+  assert.deepEqual(
+    await FakeClient.options.onServerRequest({
+      method: "approval/decide",
+      params: { request: { id: "approval-1" } },
+    }),
+    {
+      kind: "decline",
+      reason: "VS Code App Server approval UI is unavailable",
+    },
+  );
+  assert.deepEqual(
+    await FakeClient.options.onServerRequest({
+      method: "humanTask/decide",
+      params: {},
+    }),
+    {
+      kind: "decline",
+      reason: "VS Code App Server pilot has no handler for this request",
+    },
   );
 });
 

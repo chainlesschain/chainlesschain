@@ -57,7 +57,9 @@ class FakePilotClient extends EventEmitter {
 async function waitFor(predicate, timeoutMs = 1_000) {
   const deadline = Date.now() + timeoutMs;
   while (!predicate()) {
-    if (Date.now() >= deadline) throw new Error("condition timed out");
+    if (Date.now() >= deadline) {
+      throw new Error("condition timed out");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1));
   }
 }
@@ -280,6 +282,122 @@ describe("DesktopAppServerPilot", () => {
       actorId: "did:chainless:reviewer-2",
       decision: { kind: "acceptOnce" },
     });
+  });
+
+  it("routes bounded App Server approvals through an exact Desktop binding", async () => {
+    const pilot = new DesktopAppServerPilot({
+      ClientClass: FakePilotClient,
+      resolveActorDid: vi.fn(() => "did:chainless:desktop-reviewer"),
+    });
+    const request = {
+      id: "approval-1",
+      binding: {
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-1",
+        operationDigest: `sha256:${"d".repeat(64)}`,
+        policyDigest: `sha256:${"e".repeat(64)}`,
+        workspaceDigest: `sha256:${"f".repeat(64)}`,
+        cwd: "C:/repo",
+        nonce: "nonce-approval-1",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
+      operation: { tool: "write_file", path: "README.md" },
+      risk: "medium",
+      reason: "Write the reviewed file",
+      requestedPermissions: [
+        { capability: "workspace.write", scope: "README.md" },
+      ],
+    };
+    const requested = vi.fn();
+    const settled = vi.fn();
+    pilot.on("approval-requested", requested);
+    pilot.on("approval-settled", settled);
+    const decisionPromise = FakePilotClient.options.onServerRequest({
+      jsonrpc: "2.0",
+      id: "server:approval:1",
+      method: "approval/decide",
+      params: { request },
+    });
+
+    expect(requested).toHaveBeenCalledWith(request);
+    expect(pilot.listPendingApprovals()).toEqual([request]);
+    expect(() =>
+      pilot.respondApproval({
+        requestId: request.id,
+        binding: { ...request.binding, nonce: "stale-nonce" },
+        decision: { kind: "acceptOnce" },
+      }),
+    ).toThrow(/stale nonce/u);
+    expect(() =>
+      pilot.respondApproval({
+        requestId: request.id,
+        binding: request.binding,
+        decision: {
+          kind: "acceptForTurn",
+          permissions: [{ capability: "workspace.write", scope: "**" }],
+        },
+      }),
+    ).toThrow(/widens requested permissions/u);
+
+    expect(
+      pilot.respondApproval({
+        requestId: request.id,
+        binding: request.binding,
+        actorId: "did:chainless:spoofed-renderer",
+        decision: {
+          kind: "acceptForTurn",
+          permissions: request.requestedPermissions,
+        },
+      }),
+    ).toEqual({
+      accepted: true,
+      requestId: request.id,
+      actorId: "did:chainless:desktop-reviewer",
+    });
+    await expect(decisionPromise).resolves.toEqual({
+      kind: "acceptForTurn",
+      permissions: request.requestedPermissions,
+    });
+    expect(settled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: request.id,
+        actorId: "did:chainless:desktop-reviewer",
+      }),
+    );
+    expect(pilot.listPendingApprovals()).toEqual([]);
+  });
+
+  it("declines expired App Server approvals without exposing them to the UI", async () => {
+    const pilot = new DesktopAppServerPilot({ ClientClass: FakePilotClient });
+    const requested = vi.fn();
+    pilot.on("approval-requested", requested);
+    expect(
+      FakePilotClient.options.onServerRequest({
+        method: "approval/decide",
+        params: {
+          request: {
+            id: "approval-expired",
+            binding: {
+              threadId: "thread-1",
+              turnId: "turn-1",
+              itemId: "item-1",
+              operationDigest: `sha256:${"a".repeat(64)}`,
+              policyDigest: `sha256:${"b".repeat(64)}`,
+              nonce: "expired-nonce",
+              expiresAt: "2020-01-01T00:00:00.000Z",
+            },
+            operation: {},
+            risk: "low",
+            reason: "Expired request",
+          },
+        },
+      }),
+    ).toEqual({
+      kind: "decline",
+      reason: "Desktop App Server approval request expired",
+    });
+    expect(requested).not.toHaveBeenCalled();
   });
 
   it("rejects a repeated actor before satisfying separation of duties", async () => {

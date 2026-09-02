@@ -103,7 +103,7 @@ WebSocket 额外默认约束：单帧 1 MiB、每连接输出 256 条 / 4 MiB、
 - `thread/start|resume|fork|read|list|archive`
 - `turn/start|interrupt`
 
-VS Code pilot 默认关闭，通过 `chainlesschain.appServer.pilot.enabled` 开启；Desktop 通过 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 开启。Desktop preload 只暴露固定 lifecycle/Thread/Turn IPC，单次参数必须是普通 JSON object 且不超过 256 KiB，子进程强制经过 Desktop Process Broker。两端在接入已评审审批 UI 前都对服务端审批请求返回 canonical decline。
+VS Code pilot 默认关闭，通过 `chainlesschain.appServer.pilot.enabled` 开启；Desktop 通过 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 开启。Desktop preload 只暴露固定 lifecycle/Thread/Turn/Approval IPC，单次参数必须是普通 JSON object 且不超过 256 KiB，子进程强制经过 Desktop Process Broker。当前源码的 Desktop Graph Debugger 已接入有界审批卡：请求按 thread/turn/item、operation/policy digest、nonce 与 expiry 精确绑定，Renderer 不能提供 actor，复用授权不能超出服务端请求的 permissions；队列、超时、关闭、过期和陈旧 binding 均失败闭合。当前源码的 VS Code pilot 也通过 modal 展示完整有界 review document，只提供一次授权、请求 permissions 内的 turn 授权或拒绝，并在过期、超大、dismiss 和异常时失败闭合。尚未发布这些源码增量的公共 Desktop/VS Code 制品仍保持 canonical decline；源码接线不等于 pilot 已默认开启或 Desktop/IDE 已全量迁移。
 
 ## 5. 协议协商
 
@@ -241,7 +241,7 @@ SQLite store 使用 `node:sqlite`，只有运行时能力存在时才能选择�
 
 已完成：协议 codegen/兼容性、App Server lifecycle、rollout hash chain/恢复/分支、客户端 bounded pending、队列过载、Codex adapter、实验 WebSocket、Desktop/VS Code 固定能力 pilot、三平台 CLI/Strict 发布矩阵，以及 `0.166.5@2f5b0f263a` 的 1,800.21 秒 overload/RSS soak（2,427,887 requests、0 unexpected、0 drain leftovers、RSS +0.762%）。
 
-未完成：Desktop/IDE 全量迁移、WebSocket 稳定化、真实 provider 三平台 Graph Agent journey、全产品 crash/recovery conformance 与签名 native 发行。实验网络入口和局部 pilot 不能冒充全量 cutover。
+未完成：Desktop/IDE 全量迁移、Desktop/VS Code 审批旅程的真实宿主与 final-SHA 资格验证、WebSocket 稳定化、真实 provider 三平台 Graph Agent journey、全产品 crash/recovery conformance 与签名 native 发行。实验网络入口和局部 pilot 不能冒充全量 cutover。
 
 ## 14. 关键文件
 
