@@ -2788,6 +2788,9 @@ describe("Skill target matrix evaluation foundation", () => {
         "Reviewed evidence, candidate diff, permissions, Eval, and runtimes.",
       decidedAt: new Date(reviewNow).toISOString(),
       expiresAt: new Date(reviewNow + 10 * 60_000).toISOString(),
+      acknowledgedContentRiskDigest: reviewPacket.contentRisk.detected
+        ? reviewPacket.contentRisk.contentRiskDigest
+        : null,
     };
     const reviewReceiptDigest = matrixDigest(
       "chainlesschain.skill-promotion-review-decision/v1",
@@ -3053,6 +3056,7 @@ describe("Skill target matrix evaluation foundation", () => {
         reviewBinding: {
           packetDigest: reviewPacket.packetDigest,
           reviewReceiptDigest,
+          contentRiskDigest: reviewPacket.contentRisk.contentRiskDigest,
           reviewerIds: ["human:matrix-reviewer", "human:security-reviewer"],
           quorum: 2,
         },

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
 import { verifySkillCandidateDraft } from "./skill-candidate-registry.js";
+import { inspectEvolutionContentInjectionRisks } from "./evolution-evidence-projector.js";
 import { verifySkillRelease } from "./skill-release-registry.js";
 import { SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA } from "./skill-evaluated-promotion.js";
 
@@ -21,6 +22,8 @@ export const SKILL_PROMOTION_REVIEW_PROVIDER_SCHEMA =
   "chainlesschain.skill-promotion-review-provider/v1";
 export const SKILL_PROMOTION_REVIEW_BINDING_SCHEMA =
   "chainlesschain.skill-promotion-review-binding/v1";
+export const SKILL_PROMOTION_CONTENT_RISK_SCHEMA =
+  "chainlesschain.skill-promotion-content-risk/v1";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
@@ -78,6 +81,7 @@ const DECISION_KEYS = new Set([
   "expiresAt",
   "receiptDigest",
   "signature",
+  "acknowledgedContentRiskDigest",
 ]);
 
 export class SkillPromotionReviewError extends Error {
@@ -434,6 +438,25 @@ export function buildSkillPromotionReviewPacket({
   const evidenceSummary = verifiedCandidate.sourceEvidenceRefs.map(
     ({ digest: evidenceDigest, ref }) => ({ digest: evidenceDigest, ref }),
   );
+  const findingIds = [
+    ...inspectEvolutionContentInjectionRisks(verifiedCandidate.content),
+  ];
+  const contentRiskCore = {
+    schema: SKILL_PROMOTION_CONTENT_RISK_SCHEMA,
+    findingIds,
+    detected: findingIds.length > 0,
+  };
+  const contentRisk = deepFreeze({
+    ...contentRiskCore,
+    contentRiskDigest: digest(
+      "chainlesschain.skill-promotion-content-risk/v1",
+      contentRiskCore,
+    ),
+  });
+  const requiredHumanQuorum = Math.max(
+    capabilityDiff.requiredHumanQuorum,
+    contentRisk.detected ? 2 : 1,
+  );
   const core = {
     schema: SKILL_PROMOTION_REVIEW_PACKET_SCHEMA,
     tenantId: verifiedCandidate.tenantId,
@@ -446,9 +469,11 @@ export function buildSkillPromotionReviewPacket({
     candidateDiff,
     candidateDiffDigest,
     capabilityDiff,
+    contentRisk,
     evaluation,
     targetRuntimes: [...verifiedCandidate.targetRuntimes],
     expectedActiveRevision: stateRevision,
+    requiredHumanQuorum,
   };
   return deepFreeze({
     ...core,
@@ -517,9 +542,13 @@ function verifyDecision(decision, packet, nowMs) {
     decision.packetDigest !== packet.packetDigest ||
     decision.decision !== "approved" ||
     decision.automated !== false ||
-    reviewers.length < packet.capabilityDiff.requiredHumanQuorum ||
+    reviewers.length < packet.requiredHumanQuorum ||
     new Set(reviewers).size !== reviewers.length ||
     decision.quorum !== reviewers.length ||
+    decision.acknowledgedContentRiskDigest !==
+      (packet.contentRisk.detected
+        ? packet.contentRisk.contentRiskDigest
+        : null) ||
     typeof decision.reason !== "string" ||
     decision.reason.length < 1 ||
     decision.reason.length > 2048 ||
@@ -652,6 +681,7 @@ export function createSkillPromotionReviewProvider(options = {}) {
         packetDigest: packet.packetDigest,
         capabilityDiffDigest: packet.capabilityDiff.capabilityDiffDigest,
         candidateDiffDigest: packet.candidateDiffDigest,
+        contentRiskDigest: packet.contentRisk.contentRiskDigest,
         matrixReceiptDigest: packet.evaluation.matrixReceiptDigest,
         reviewReceiptDigest: decision.receiptDigest,
         reviewerIds: [...decision.reviewerIds],

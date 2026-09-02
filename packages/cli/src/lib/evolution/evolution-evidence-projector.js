@@ -705,6 +705,21 @@ export function assertEvolutionContentContainsNoKnownSecrets(content) {
   return true;
 }
 
+/** Return stable rule ids for prompt-injection text without exposing rules. */
+export function inspectEvolutionContentInjectionRisks(content) {
+  if (typeof content !== "string") {
+    throw projectionError(
+      EVOLUTION_PROJECTION_INVALID_CODE,
+      "prompt-injection inspection content must be a string",
+    );
+  }
+  return Object.freeze(
+    injectionMatches(content)
+      .map(({ id }) => id)
+      .sort(),
+  );
+}
+
 function normalizeId(value, label, maximum = 256) {
   if (
     typeof value !== "string" ||

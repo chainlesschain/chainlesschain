@@ -129,6 +129,7 @@ function verifyPromotion(result, matrixBinding, reviewBinding, tenantId) {
       !DIGEST.test(reviewBinding.packetDigest || "") ||
       !DIGEST.test(reviewBinding.capabilityDiffDigest || "") ||
       !DIGEST.test(reviewBinding.candidateDiffDigest || "") ||
+      !DIGEST.test(reviewBinding.contentRiskDigest || "") ||
       reviewBinding.matrixReceiptDigest !==
         matrixBinding?.matrixReceiptDigest ||
       receipt.receiptDigests?.policy !== expectedPolicyReceiptDigest
