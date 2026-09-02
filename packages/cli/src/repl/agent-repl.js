@@ -172,6 +172,7 @@ import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import {
@@ -611,6 +612,10 @@ async function executeTool(name, args, context = {}) {
  * unit-testable via the `options._coreLoop` injection seam.
  */
 export async function agentLoop(messages, options) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const writeOut =
     options.writeOut || ((text) => process.stdout.write(String(text)));
   const waitForOutput = options.waitForOutput;
@@ -638,6 +643,13 @@ export async function agentLoop(messages, options) {
     collapseValidatedPlainReplTailInPlace(messages);
   }
   const usageEvents = [];
+  const currentUserMessage = messages.at(-1);
+  if (evolutionIngress !== null && currentUserMessage?.role === "user") {
+    await evolutionIngress.ingestUserPrompt({
+      content: currentUserMessage.content,
+      sessionId: options.sessionId || null,
+    });
+  }
   // Visible cross-vendor fallback notice: a silent switch from the configured
   // provider onto another vendor (or a baseUrl relabel) is surfaced as a yellow
   // line, so "configured X but it ran Y" never happens quietly. Callers may
@@ -758,6 +770,9 @@ export async function agentLoop(messages, options) {
     onToolCallSettlement,
     onProviderFallback,
   })) {
+    if (evolutionIngress !== null) {
+      await evolutionIngress.ingestAgentEvent(event);
+    }
     // P1 explicit turn→checkpoint binding — the REPL as PRODUCER: fold every
     // loop event into the live table (checkpoint / tool / policy / child
     // agent), mirroring the headless runner's feed. Advisory: a feeder failure
@@ -2910,6 +2925,10 @@ export function resolveReplPermanentMemoryStorage(
 
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const structuredMemoryControlPlane =
     options.structuredMemoryControlPlane == null
       ? null
@@ -2930,6 +2949,7 @@ export async function startAgentRepl(options = {}) {
   const sessionBudgetRootScope = { root: null };
   const runtimeOptions = {
     ...options,
+    ...(evolutionIngress === null ? {} : { evolutionIngress }),
     ...(structuredMemoryControlPlane === null
       ? {}
       : {

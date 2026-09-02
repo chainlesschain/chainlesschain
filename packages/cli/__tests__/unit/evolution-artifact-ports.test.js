@@ -592,7 +592,7 @@ describe("EvolutionArtifactPorts", () => {
     );
   });
 
-  it("supports only the eleven approved ledger-retention types without an envelope TTL", () => {
+  it("supports only the approved ledger-retention types without an envelope TTL", () => {
     expect(EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES).toEqual([
       "skill-release-transition-intent",
       "skill-release-finalization",
@@ -601,6 +601,7 @@ describe("EvolutionArtifactPorts", () => {
       "skill-mutation-nonce-claim",
       "skill-promotion-review-decision",
       "skill-promotion-review-packet",
+      "evolution-run-event",
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",

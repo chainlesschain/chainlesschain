@@ -33,6 +33,7 @@ import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-auth
 import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/structured-memory-policy-receipt-writer.js";
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -64,6 +65,10 @@ export class AgentRuntime {
     this.config = config;
     this.context = createRuntimeContext({ kind, policy, config });
     this.events = deps.events || new RuntimeEventEmitter();
+    this.evolutionIngress =
+      deps.evolutionIngress == null
+        ? null
+        : captureAgentEvolutionIngress(deps.evolutionIngress);
     this.structuredMemoryControlPlane =
       deps.structuredMemoryControlPlane == null
         ? null
@@ -85,6 +90,16 @@ export class AgentRuntime {
         : captureStructuredMemoryPolicyReceiptWriter(
             deps.memoryPolicyReceiptWriter,
           ));
+    if (
+      this.evolutionIngress !== null &&
+      this.structuredMemoryControlPlane !== null &&
+      this.evolutionIngress.tenantId !==
+        this.structuredMemoryControlPlane.tenantId
+    ) {
+      throw new Error(
+        "Agent evolution ingress and structured memory must share one tenant",
+      );
+    }
     this.deps = {
       startAgentRepl: deps.startAgentRepl || startAgentRepl,
       startChatRepl: deps.startChatRepl || startChatRepl,
@@ -169,6 +184,14 @@ export class AgentRuntime {
     }
 
     const startedAt = Date.now();
+    if (this.evolutionIngress !== null) {
+      await this.evolutionIngress.ingestUserPrompt({
+        input,
+        meta,
+        sessionId: this.policy.sessionId || null,
+        startedAt,
+      });
+    }
     this.emit(
       RUNTIME_EVENTS.TURN_START,
       createAgentTurnRecord({
@@ -187,6 +210,16 @@ export class AgentRuntime {
       policy: this.policy,
       context: this.context,
     });
+
+    if (this.evolutionIngress !== null) {
+      await this.evolutionIngress.ingestAgentEvent({
+        type: "response-complete",
+        content: result,
+        sessionId: this.policy.sessionId || null,
+        startedAt,
+        endedAt: Date.now(),
+      });
+    }
 
     this.emit(
       RUNTIME_EVENTS.TURN_END,
@@ -230,6 +263,9 @@ export class AgentRuntime {
   }
 
   async startAgentSession() {
+    if (this.evolutionIngress !== null) {
+      await this.evolutionIngress.start();
+    }
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,
       policy: this.policy,
@@ -238,7 +274,7 @@ export class AgentRuntime {
       kind: this.kind,
       sessionId: this.policy.sessionId || null,
     });
-    return this.deps.startAgentRepl({
+    const result = await this.deps.startAgentRepl({
       ...this.policy,
       ...(this.memoryPolicyReceiptWriter === null
         ? {}
@@ -248,7 +284,14 @@ export class AgentRuntime {
         : {
             structuredMemoryControlPlane: this.structuredMemoryControlPlane,
           }),
+      ...(this.evolutionIngress === null
+        ? {}
+        : { evolutionIngress: this.evolutionIngress }),
     });
+    if (this.evolutionIngress !== null) {
+      await this.evolutionIngress.complete();
+    }
+    return result;
   }
 
   async startChatSession() {

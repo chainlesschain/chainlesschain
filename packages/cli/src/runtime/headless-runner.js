@@ -120,6 +120,7 @@ import { captureAmbientExecutionLocation } from "../lib/execution-location-runti
 import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.js";
 import { createBackgroundInteractionClient } from "../lib/background-interaction-resolver.js";
 import { withQuietStdout } from "./quiet-stdout.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
 import {
@@ -654,6 +655,10 @@ async function runAgentHeadlessInWorkspace(
   deps = {},
   pipeState = { closed: false },
 ) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
     throw new Error(
@@ -697,6 +702,14 @@ async function runAgentHeadlessInWorkspace(
       },
       `headless-${Date.now()}-${process.pid}`,
     );
+  if (evolutionIngress !== null) {
+    await evolutionIngress.start();
+    await evolutionIngress.ingestUserPrompt({
+      content: prompt,
+      sessionId,
+      source: "headless",
+    });
+  }
   const sessionHostLease = deps[HEADLESS_SESSION_HOST_LEASE] || null;
   const includeHookEvents = isStream && options.includeHookEvents === true;
   // One headless invocation owns one bounded queue/cache authority. Keep an
@@ -3007,6 +3020,9 @@ async function runAgentHeadlessInWorkspace(
         });
       }
       for await (const event of runLoop(messages, loopOptions)) {
+        if (evolutionIngress !== null) {
+          await evolutionIngress.ingestAgentEvent(event);
+        }
         if (turnBindingFeed) turnBindingFeed.handleEvent(event);
         switch (event.type) {
           case "managed-checkpoint":
@@ -3762,6 +3778,9 @@ async function runAgentHeadlessInWorkspace(
   // remains observable through onCleanupReport but must not replace it.
   if (loopFailureOutcome) return loopFailureOutcome;
   if (cleanupFailure) throw cleanupFailure;
+  if (evolutionIngress !== null) {
+    await evolutionIngress.complete();
+  }
 
   // A downstream consumer closed stdout/stderr. The abort above unwound the
   // model loop through the same `finally` as every other termination, so MCP,

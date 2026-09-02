@@ -77,6 +77,10 @@ import {
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import {
+  AGENT_EVOLUTION_INGRESS_FAILED_CODE,
+  captureAgentEvolutionIngress,
+} from "../lib/evolution/agent-evolution-ingress.js";
+import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
@@ -882,6 +886,7 @@ async function runTurn(
     persistUsageEvent,
     persistToolEvent,
     sessionBudget,
+    evolutionIngress = null,
     emitPolicyDecisionEvents = false,
     now = Date.now,
   },
@@ -933,6 +938,9 @@ async function runTurn(
     collapseConsecutiveMessagesInPlace(messages);
   }
   for await (const event of runLoop(messages, loopOptions)) {
+    if (evolutionIngress !== null) {
+      await evolutionIngress.ingestAgentEvent(event);
+    }
     turnBindingFeed?.handleEvent(event);
     switch (event.type) {
       case "tool-executing": {
@@ -1527,6 +1535,10 @@ async function runAgentHeadlessStreamInWorkspace(
   pipeState = { closed: false },
   streamCleanup,
 ) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
@@ -1538,6 +1550,9 @@ async function runAgentHeadlessStreamInWorkspace(
     deps[STREAM_SESSION_ID] ||
     options.sessionId ||
     `headless-stream-${Date.now()}-${process.pid}`;
+  if (evolutionIngress !== null) {
+    await evolutionIngress.start();
+  }
   // The input stream may drive many turns. Allocate once at the stream-run
   // boundary so every turn (and its nested agents) shares cache/backlog limits.
   // SessionResourceBudget remains separately leased by executeTool.
@@ -3317,6 +3332,7 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
 
   let sawError = false;
+  let evolutionIngressFailed = false;
   let terminalPersistenceFailure = null;
   const persistUsageEvent = persist
     ? (event) => {
@@ -4413,6 +4429,15 @@ async function runAgentHeadlessStreamInWorkspace(
       );
     }
 
+    if (evolutionIngress !== null) {
+      await evolutionIngress.ingestUserPrompt({
+        content: parsed.text,
+        imageCount: parsed.images?.length || 0,
+        sessionId,
+        source: "headless-stream",
+        turn: turns + 1,
+      });
+    }
     messages.push({ role: "user", content: turnContent });
     let persistenceFailure = null;
     if (persist) {
@@ -4536,6 +4561,7 @@ async function runAgentHeadlessStreamInWorkspace(
           persistUsageEvent,
           persistToolEvent,
           sessionBudget: options.sessionBudget || null,
+          evolutionIngress,
           emitPolicyDecisionEvents: () =>
             options.includeHookEvents === true &&
             fieldGate.permission_decision !== false,
@@ -4543,6 +4569,19 @@ async function runAgentHeadlessStreamInWorkspace(
       );
     } catch (err) {
       currentAbort = null;
+      if (err?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
+        emit({
+          type: "result",
+          subtype: "error_evolution_ingress",
+          is_error: true,
+          code: err.code,
+          error: err.message,
+          turn: turns,
+        });
+        sawError = true;
+        evolutionIngressFailed = true;
+        break;
+      }
       if (persist) {
         const normalized = createSessionPersistenceFailure(err, {
           sessionId,
@@ -4813,6 +4852,10 @@ async function runAgentHeadlessStreamInWorkspace(
   );
   await streamCleanup.cleanup();
   removeHookObserver?.();
+
+  if (evolutionIngress !== null && !evolutionIngressFailed) {
+    await evolutionIngress.complete();
+  }
 
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });
