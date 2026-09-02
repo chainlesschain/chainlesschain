@@ -54,6 +54,7 @@ import {
   buildSkillReleaseStateMigrationPlan,
   deriveSkillReleaseTenantKey,
   verifyLegacySkillRelease,
+  verifyLegacySkillReleaseJournal,
   verifyLegacySkillReleaseState,
   verifySkillRelease,
   verifySkillReleaseMigrationResult,
@@ -110,6 +111,54 @@ function redigestTransitionJournal(value, mutateIntent) {
     journalCore,
   );
   return journal;
+}
+
+function legacyStateFromCurrent(value) {
+  const core = { ...value, schema: "chainlesschain.skill-release-state/v2" };
+  delete core.stateDigest;
+  delete core.tenantId;
+  return {
+    ...core,
+    stateDigest: domainDigest("chainlesschain.skill-release-state/v2", core),
+  };
+}
+
+function legacyJournalFromCurrent(value) {
+  const nextState = legacyStateFromCurrent(value.nextState);
+  const previousState =
+    value.previousState === null
+      ? null
+      : legacyStateFromCurrent(value.previousState);
+  const intentCore = {
+    ...value.intent,
+    nextStateDigest: nextState.stateDigest,
+    pointerDigest: nextState.stateDigest,
+    previousStateDigest: previousState?.stateDigest ?? null,
+  };
+  delete intentCore.intentDigest;
+  const intent = {
+    ...intentCore,
+    intentDigest: domainDigest(
+      "chainlesschain.skill-release-transition-intent/v2",
+      intentCore,
+    ),
+  };
+  const core = {
+    ...value,
+    intent,
+    nextState,
+    previousState,
+    schema: "chainlesschain.skill-release-journal/v3",
+  };
+  delete core.journalDigest;
+  delete core.tenantId;
+  return {
+    ...core,
+    journalDigest: domainDigest(
+      "chainlesschain.skill-release-journal/v3",
+      core,
+    ),
+  };
 }
 
 function childSource(value) {
@@ -1681,6 +1730,55 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     expect(error).not.toBeInstanceOf(RangeError);
     expect(error.code).toBe("SKILL_RELEASE_CORRUPT");
     expect(error.message).toMatch(/canonical structure budget/u);
+  });
+
+  it("verifies the exact legacy v3 journal without treating it as recoverable evidence", async () => {
+    releases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: registryBase,
+      secure: false,
+      transactionLedger: ledger,
+      crashHook(phase) {
+        if (phase === "after-journal") {
+          throw new SkillReleaseSimulatedCrashError(phase);
+        }
+      },
+    });
+    controller = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+    await expect(
+      promote(
+        candidate,
+        0,
+        EMPTY_SKILL_ACTIVE_DIGEST,
+        "promotion:legacy-journal-fixture",
+      ),
+    ).rejects.toBeInstanceOf(SkillReleaseSimulatedCrashError);
+    const current = JSON.parse(
+      fs.readFileSync(
+        path.join(registryRoot, "journals", `${candidate.skillName}.json`),
+        "utf8",
+      ),
+    );
+    const legacy = legacyJournalFromCurrent(current);
+
+    expect(verifyLegacySkillReleaseJournal(legacy)).toEqual(legacy);
+    expect(() =>
+      verifyLegacySkillReleaseJournal({
+        ...legacy,
+        nextState: {
+          ...legacy.nextState,
+          revision: legacy.nextState.revision + 1,
+        },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
+    );
+    expect(releases.readState(candidate.skillName).revision).toBe(0);
   });
 
   it("aborts a crash before authenticated prepare and releases stale ownership", async () => {

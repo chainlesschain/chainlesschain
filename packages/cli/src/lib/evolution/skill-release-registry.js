@@ -82,6 +82,7 @@ const LEGACY_RELEASE_DOMAIN = `${LEGACY_RELEASE_SCHEMA}\0`;
 const LEGACY_STATE_SCHEMA = "chainlesschain.skill-release-state/v2";
 const LEGACY_STATE_DOMAIN = `${LEGACY_STATE_SCHEMA}\0`;
 const LEGACY_JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
+const LEGACY_JOURNAL_DOMAIN = `${LEGACY_JOURNAL_SCHEMA}\0`;
 const LEGACY_LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v1";
 const LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v2";
 const RELEASE_MIGRATION_DOMAIN = `${SKILL_RELEASE_MIGRATION_RECORD_SCHEMA}\0`;
@@ -549,6 +550,41 @@ const LEGACY_STATE_KEYS = new Set([
   "stateDigest",
   "transactionId",
 ]);
+const LEGACY_JOURNAL_KEYS = new Set([
+  "intent",
+  "journalDigest",
+  "leaseToken",
+  "nextState",
+  "phase",
+  "prepareReceipt",
+  "previousState",
+  "schema",
+  "skillName",
+  "stagedFile",
+  "transactionId",
+]);
+const LEGACY_INTENT_KEYS = new Set([
+  "authorityReceiptDigest",
+  "authorityReceipt",
+  "candidateId",
+  "dependencyLockDigest",
+  "expectedParentDigest",
+  "expectedRevision",
+  "mutationRequest",
+  "intentDigest",
+  "nextStateDigest",
+  "operation",
+  "operationId",
+  "pointerDigest",
+  "previousStateDigest",
+  "receiptDigests",
+  "requestDigest",
+  "schema",
+  "skillName",
+  "targetReleaseDigest",
+  "transactionId",
+  "transitionSubjectDigest",
+]);
 const STATE_MIGRATION_PLAN_INPUT_KEYS = new Set([
   "activeReleaseMigration",
   "lastKnownGoodReleaseMigration",
@@ -1010,6 +1046,169 @@ export function verifyLegacySkillReleaseState(value) {
     );
   }
   return state;
+}
+
+function verifyLegacySkillReleaseIntent(value) {
+  assertExactKeys(
+    value,
+    LEGACY_INTENT_KEYS,
+    "legacy release transition intent",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const core = { ...value };
+  delete core.intentDigest;
+  if (
+    core.schema !== INTENT_SCHEMA ||
+    !["promote", "rollback"].includes(core.operation) ||
+    domainDigest(INTENT_DOMAIN, core) !== value.intentDigest
+  ) {
+    throw migrationRequired("legacy journal intent digest is invalid");
+  }
+  for (const field of [
+    "authorityReceiptDigest",
+    "dependencyLockDigest",
+    "expectedParentDigest",
+    "nextStateDigest",
+    "pointerDigest",
+    "requestDigest",
+    "targetReleaseDigest",
+    "transactionId",
+    "transitionSubjectDigest",
+    "intentDigest",
+  ]) {
+    digest(value[field], `legacyIntent.${field}`);
+  }
+  digest(value.previousStateDigest, "legacyIntent.previousStateDigest", {
+    nullable: true,
+  });
+  digest(value.candidateId, "legacyIntent.candidateId", { nullable: true });
+  safeInteger(value.expectedRevision, "legacyIntent.expectedRevision");
+  skillName(value.skillName);
+  boundedString(value.operationId, "legacyIntent.operationId");
+  normalizeReceiptDigests(value.receiptDigests);
+  const authorityReceipt = verifySkillMutationConsumptionReceipt(
+    value.authorityReceipt,
+  );
+  const mutationRequest = verifySkillMutationRequest(value.mutationRequest);
+  if (
+    authorityReceipt.receiptDigest !== value.authorityReceiptDigest ||
+    authorityReceipt.requestDigest !== value.requestDigest ||
+    authorityReceipt.operationId !== value.operationId ||
+    authorityReceipt.operation !== value.operation ||
+    authorityReceipt.transitionSubjectDigest !==
+      value.transitionSubjectDigest ||
+    authorityReceipt.skillName !== value.skillName ||
+    authorityReceipt.expectedTargetDigest !== value.expectedParentDigest ||
+    authorityReceipt.expectedTargetRevision !== value.expectedRevision
+  ) {
+    throw migrationRequired(
+      "legacy journal intent authority bindings are invalid",
+    );
+  }
+  verifyRequestReceiptBinding(mutationRequest, authorityReceipt);
+  const expectedTransitionSubjectDigest = digestSkillMutationTransitionSubject({
+    tenantId: mutationRequest.tenantId,
+    skillName: value.skillName,
+    operation: value.operation,
+    candidateId: value.candidateId,
+    rollbackTargetReleaseDigest:
+      value.operation === SKILL_MUTATION_OPERATIONS.ROLLBACK
+        ? value.targetReleaseDigest
+        : null,
+    dependencyLockDigest: value.dependencyLockDigest,
+    expectedActiveContentDigest: value.expectedParentDigest,
+    expectedActiveRevision: value.expectedRevision,
+  });
+  if (
+    mutationRequest.requestDigest !== value.requestDigest ||
+    mutationRequest.operation !== value.operation ||
+    mutationRequest.transitionSubjectDigest !== value.transitionSubjectDigest ||
+    canonicalJson(receiptDigestsFromRequest(mutationRequest)) !==
+      canonicalJson(value.receiptDigests) ||
+    value.transitionSubjectDigest !== expectedTransitionSubjectDigest ||
+    canonicalJson(value) !==
+      canonicalJson({ ...core, intentDigest: value.intentDigest })
+  ) {
+    throw migrationRequired("legacy journal intent is not exactly bound");
+  }
+  return deepFreeze({ ...value });
+}
+
+/** Verify the exact pre-tenant v3 crash-recovery journal without recovering it. */
+export function verifyLegacySkillReleaseJournal(value) {
+  assertExactKeys(
+    value,
+    LEGACY_JOURNAL_KEYS,
+    "legacy release journal",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const core = { ...value };
+  delete core.journalDigest;
+  if (
+    core.schema !== LEGACY_JOURNAL_SCHEMA ||
+    !["journaled", "prepared", "pointer-written"].includes(core.phase) ||
+    typeof core.leaseToken !== "string" ||
+    !TOKEN_PATTERN.test(core.leaseToken) ||
+    typeof core.stagedFile !== "string" ||
+    !TEMP_PATTERN.test(core.stagedFile) ||
+    domainDigest(LEGACY_JOURNAL_DOMAIN, core) !== value.journalDigest
+  ) {
+    throw migrationRequired("legacy release journal digest is invalid");
+  }
+  const intent = verifyLegacySkillReleaseIntent(core.intent);
+  const nextState = verifyLegacySkillReleaseState(core.nextState);
+  const previousState =
+    core.previousState === null
+      ? null
+      : verifyLegacySkillReleaseState(core.previousState);
+  if (
+    intent.transactionId !== core.transactionId ||
+    nextState.transactionId !== core.transactionId ||
+    nextState.skillName !== core.skillName ||
+    intent.skillName !== core.skillName ||
+    nextState.stateDigest !== intent.nextStateDigest ||
+    nextState.stateDigest !== intent.pointerDigest ||
+    nextState.activeReleaseDigest !== intent.targetReleaseDigest ||
+    nextState.authorityReceiptDigest !== intent.authorityReceiptDigest ||
+    nextState.dependencyLockDigest !== intent.dependencyLockDigest ||
+    nextState.revision !== intent.expectedRevision + 1 ||
+    (previousState === null
+      ? intent.previousStateDigest !== null || intent.expectedRevision !== 0
+      : previousState.skillName !== core.skillName ||
+        previousState.stateDigest !== intent.previousStateDigest ||
+        previousState.revision !== intent.expectedRevision)
+  ) {
+    throw migrationRequired(
+      "legacy release journal transition bindings are invalid",
+    );
+  }
+  if (core.prepareReceipt !== null) {
+    const prepared = verifyLedgerProjection(core.prepareReceipt, {
+      authorityReceiptDigest: intent.authorityReceiptDigest,
+      intentDigest: intent.intentDigest,
+      transactionId: intent.transactionId,
+    });
+    if (prepared.status !== "prepared") {
+      throw migrationRequired(
+        "legacy journal prepare receipt has the wrong status",
+      );
+    }
+  } else if (core.phase !== "journaled") {
+    throw migrationRequired(
+      "legacy prepared journal is missing its projection",
+    );
+  }
+  const journal = deepFreeze({
+    ...core,
+    intent,
+    journalDigest: value.journalDigest,
+    nextState,
+    previousState,
+  });
+  if (canonicalJson(journal) !== canonicalJson(value)) {
+    throw migrationRequired("legacy release journal is not canonical");
+  }
+  return journal;
 }
 
 /**
