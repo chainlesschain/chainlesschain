@@ -32,6 +32,7 @@ import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bi
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/structured-memory-policy-receipt-writer.js";
+import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -63,12 +64,27 @@ export class AgentRuntime {
     this.config = config;
     this.context = createRuntimeContext({ kind, policy, config });
     this.events = deps.events || new RuntimeEventEmitter();
+    this.structuredMemoryControlPlane =
+      deps.structuredMemoryControlPlane == null
+        ? null
+        : captureStructuredMemoryAgentControlPlane(
+            deps.structuredMemoryControlPlane,
+          );
+    if (
+      this.structuredMemoryControlPlane !== null &&
+      deps.memoryPolicyReceiptWriter != null
+    ) {
+      throw new Error(
+        "structured memory control plane and standalone policy writer cannot both be configured",
+      );
+    }
     this.memoryPolicyReceiptWriter =
-      deps.memoryPolicyReceiptWriter == null
+      this.structuredMemoryControlPlane?.policyReceiptWriter ??
+      (deps.memoryPolicyReceiptWriter == null
         ? null
         : captureStructuredMemoryPolicyReceiptWriter(
             deps.memoryPolicyReceiptWriter,
-          );
+          ));
     this.deps = {
       startAgentRepl: deps.startAgentRepl || startAgentRepl,
       startChatRepl: deps.startChatRepl || startChatRepl,
@@ -202,6 +218,11 @@ export class AgentRuntime {
       ...(this.memoryPolicyReceiptWriter === null
         ? {}
         : { memoryPolicyReceiptWriter: this.memoryPolicyReceiptWriter }),
+      ...(this.structuredMemoryControlPlane === null
+        ? {}
+        : {
+            structuredMemoryControlPlane: this.structuredMemoryControlPlane,
+          }),
     });
   }
 

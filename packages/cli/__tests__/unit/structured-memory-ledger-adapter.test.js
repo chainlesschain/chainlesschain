@@ -2,7 +2,7 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import structuredMemory from "@chainlesschain/session-core/structured-evolution-memory";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA, EvolutionArtifactPorts } from "../../src/lib/evolution/evolution-artifact-ports.js";
@@ -21,6 +21,7 @@ import { createStructuredMemorySemanticReviewer } from "../../src/lib/evolution/
 import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
 import { createStructuredMemoryPolicyReceiptWriter } from "../../src/lib/evolution/structured-memory-policy-receipt-writer.js";
 import { createStructuredMemoryAgentControlPlane } from "../../src/lib/evolution/structured-memory-agent-control-plane.js";
+import { AgentRuntime } from "../../src/runtime/agent-runtime.js";
 
 const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority,
   createStructuredMemoryAuthorityReceipt, createStructuredMemoryReceiptProvider,
@@ -300,6 +301,18 @@ describe("StructuredMemoryLedgerAdapter", () => {
       receipts: { critic: expect.stringMatching(/^sha256:/u), evaluator: expect.stringMatching(/^sha256:/u) } });
     expect(reopened.policyReceiptWriter).not.toBe(first.policyReceiptWriter);
     expect(reopened.promotionReceiptWriter).not.toBe(first.promotionReceiptWriter);
+
+    const startAgentRepl = vi.fn(async () => "started");
+    const runtime = new AgentRuntime({ kind: "agent",
+      policy: { model: "test-model", provider: "test-provider", sessionId: "memory-session" },
+      deps: { startAgentRepl, structuredMemoryControlPlane: reopened } });
+    await expect(runtime.startAgentSession()).resolves.toBe("started");
+    expect(startAgentRepl).toHaveBeenCalledWith(expect.objectContaining({
+      structuredMemoryControlPlane: reopened,
+      memoryPolicyReceiptWriter: reopened.policyReceiptWriter }));
+    expect(() => new AgentRuntime({ kind: "agent", policy: {}, deps: {
+      structuredMemoryControlPlane: reopened, memoryPolicyReceiptWriter: reopened.policyReceiptWriter,
+    } })).toThrow(/cannot both be configured/u);
   });
 
   it("persists and resolves all four authority receipt kinds through ArtifactStore and Ledger", async () => {

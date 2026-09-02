@@ -171,6 +171,7 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
+import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import {
@@ -2909,10 +2910,33 @@ export function resolveReplPermanentMemoryStorage(
 
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
+  const structuredMemoryControlPlane =
+    options.structuredMemoryControlPlane == null
+      ? null
+      : captureStructuredMemoryAgentControlPlane(
+          options.structuredMemoryControlPlane,
+        );
+  if (
+    structuredMemoryControlPlane !== null &&
+    options.memoryPolicyReceiptWriter != null &&
+    options.memoryPolicyReceiptWriter !==
+      structuredMemoryControlPlane.policyReceiptWriter
+  ) {
+    throw new Error(
+      "Agent REPL received conflicting structured memory policy capabilities",
+    );
+  }
   const sessionHostLeaseScope = { lease: null };
   const sessionBudgetRootScope = { root: null };
   const runtimeOptions = {
     ...options,
+    ...(structuredMemoryControlPlane === null
+      ? {}
+      : {
+          structuredMemoryControlPlane,
+          memoryPolicyReceiptWriter:
+            structuredMemoryControlPlane.policyReceiptWriter,
+        }),
     _sessionHostLeaseScope: sessionHostLeaseScope,
     _sessionBudgetRootScope: sessionBudgetRootScope,
   };

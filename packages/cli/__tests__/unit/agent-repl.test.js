@@ -856,6 +856,13 @@ describe("agent-repl module exports", () => {
     expect(typeof mod.startAgentRepl).toBe("function");
   }, 15000);
 
+  it("rejects an unbranded structured memory control plane before startup", async () => {
+    const mod = await import("../../src/repl/agent-repl.js");
+    await expect(
+      mod.startAgentRepl({ structuredMemoryControlPlane: Object.freeze({}) }),
+    ).rejects.toThrow(/branded structured memory Agent control plane/u);
+  }, 15000);
+
   it("pauses core event consumption until the REPL output drain settles", async () => {
     const { agentLoop } = await import("../../src/repl/agent-repl.js");
     let produced = 0;
