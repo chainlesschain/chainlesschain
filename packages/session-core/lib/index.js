@@ -165,6 +165,16 @@ const {
   hasTerminalSuccessEvidence,
 } = require("./runtime-claims.js");
 
+const {
+  STRUCTURED_MEMORY_EVENT_SCHEMA,
+  STRUCTURED_MEMORY_PROJECTION_SCHEMA,
+  STRUCTURED_MEMORY_SNAPSHOT_SCHEMA,
+  MEMORY_LAYER: STRUCTURED_MEMORY_LAYER,
+  MEMORY_ACTION: STRUCTURED_MEMORY_ACTION,
+  StructuredEvolutionMemory,
+  projectStructuredMemory,
+} = require("./structured-evolution-memory.js");
+
 module.exports = {
   // SessionHandle
   SessionHandle,
@@ -288,4 +298,12 @@ module.exports = {
   TERMINAL_EVIDENCE_KIND,
   createRuntimeClaims,
   hasTerminalSuccessEvidence,
+  // Structured evolution memory
+  STRUCTURED_MEMORY_EVENT_SCHEMA,
+  STRUCTURED_MEMORY_PROJECTION_SCHEMA,
+  STRUCTURED_MEMORY_SNAPSHOT_SCHEMA,
+  STRUCTURED_MEMORY_LAYER,
+  STRUCTURED_MEMORY_ACTION,
+  StructuredEvolutionMemory,
+  projectStructuredMemory,
 };

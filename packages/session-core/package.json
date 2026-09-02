@@ -30,6 +30,7 @@
     "./runtime-claims": "./lib/runtime-claims.js",
     "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
     "./evolution-run": "./lib/evolution-run.js",
+    "./structured-evolution-memory": "./lib/structured-evolution-memory.js",
     "./nostr-crypto": "./lib/nostr-crypto.js"
   },
   "scripts": {
