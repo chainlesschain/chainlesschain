@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const OUTPUT_TAIL_LIMIT = 1024 * 1024;
@@ -119,11 +120,13 @@ export function isRetryableVitestWorkerFailure({
   junitXml,
   jsonReport,
 }) {
+  const normalizedOutput =
+    typeof output === "string" ? stripVTControlCharacters(output) : output;
   const exactWorkerFailure =
-    typeof output === "string" &&
-    output.includes(WORKER_POOL_ERROR) &&
-    (output.includes(UNEXPECTED_EXIT_ERROR) ||
-      output.includes(WORKER_EPIPE_ERROR));
+    typeof normalizedOutput === "string" &&
+    normalizedOutput.includes(WORKER_POOL_ERROR) &&
+    (normalizedOutput.includes(UNEXPECTED_EXIT_ERROR) ||
+      normalizedOutput.includes(WORKER_EPIPE_ERROR));
   return (
     exitCode !== 0 &&
     ((exactWorkerFailure && junitHasTestsAndNoFailures(junitXml)) ||

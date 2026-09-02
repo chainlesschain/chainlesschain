@@ -40,11 +40,19 @@ const workerEpipeFailure = [
   "[vitest-pool]: Worker forks emitted error.",
   "Caused by: Error: write EPIPE",
 ].join("\n");
+const ansiWorkerEpipeFailure = [
+  "\u001b[31mError: [vitest-pool]: Worker forks emitted error.\u001b[39m",
+  "\u001b[31mCaused by: Error\u001b[22m: write EPIPE\u001b[39m",
+].join("\n");
 
 describe("Vitest worker infrastructure retry", () => {
   it("recognizes only a completed zero-failure JUnit run with the exact worker error", () => {
     expect(junitHasTestsAndNoFailures(cleanJunit)).toBe(true);
-    for (const output of [workerFailure, workerEpipeFailure]) {
+    for (const output of [
+      workerFailure,
+      workerEpipeFailure,
+      ansiWorkerEpipeFailure,
+    ]) {
       expect(
         isRetryableVitestWorkerFailure({
           exitCode: 1,
