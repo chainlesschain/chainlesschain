@@ -294,6 +294,13 @@ describe("Vitest worker infrastructure retry", () => {
     expect(integrationStep).toContain("--silent=passed-only");
     expect(integrationStep).toContain("__tests__/integration/");
     expect(integrationStep).not.toContain("continue-on-error");
+    const integrationJob = workflow.slice(
+      workflow.indexOf("  integration:"),
+      workflow.indexOf("  e2e:"),
+    );
+    expect(integrationJob).toContain(
+      "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}",
+    );
   });
 
   it("keeps the strict sandbox contract behind a bounded clean-report retry", () => {

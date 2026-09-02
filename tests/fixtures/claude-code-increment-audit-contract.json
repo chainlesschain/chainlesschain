@@ -359,6 +359,7 @@
         "authenticationRefreshesPerRejection": 1,
         "reconnectFlightsPerServer": 1,
         "maxRecoveryLatencyMs": 5000,
+        "maxCrossProcessRestartWallClockMs": 10000,
         "duplicateCallbacksAccepted": 0,
         "staleCallbacksAccepted": 0,
         "lostCallbacks": 0,
@@ -506,25 +507,11 @@
     "LOCATION-DRAIN": {
       "profileVersion": "location-drain-v1",
       "thresholds": {
-        "requiredOperatingSystems": [
-          "linux",
-          "macos",
-          "windows"
-        ],
-        "requiredTargets": [
-          "local",
-          "wsl",
-          "container",
-          "ssh"
-        ],
+        "requiredOperatingSystems": ["linux", "macos", "windows"],
+        "requiredTargets": ["local", "wsl", "container", "ssh"],
         "minimumTrajectoriesPerCell": 100,
-        "requiredRemoteResourceKinds": [
-          "cpu",
-          "memory"
-        ],
-        "requiredUnsupportedSigtermCells": [
-          "local-windows"
-        ],
+        "requiredRemoteResourceKinds": ["cpu", "memory"],
+        "requiredUnsupportedSigtermCells": ["local-windows"],
         "minimumGracefulSigtermCells": 5,
         "minimumSourceFencedDrainCells": 6,
         "maximumUnexpectedUnsupportedSigtermCells": 0,

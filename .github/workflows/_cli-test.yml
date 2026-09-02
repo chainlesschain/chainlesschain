@@ -121,6 +121,12 @@ jobs:
     # birpc respect user-configured timeouts, so the workaround is gone.
     name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
+    env:
+      # Hosted Windows runners can take more than the production default to
+      # cold-start the fail-closed PowerShell ACL preflight under shard load.
+      # secure-fs accepts this as an upper allowance and never lets it lower
+      # the production timeout.
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
     strategy:
       fail-fast: false
       matrix:
