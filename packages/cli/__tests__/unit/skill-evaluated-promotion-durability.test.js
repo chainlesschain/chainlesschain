@@ -37,7 +37,9 @@ function matrixReceipt(suffix = "accepted") {
 function durabilityAuthority({
   durable = true,
   duplicateGraceKey = false,
+  duplicateRevokedKey = false,
   graceNotAfter = null,
+  revokedKeyIds = [],
 } = {}) {
   const records = new Map();
   const state = {
@@ -77,6 +79,12 @@ function durabilityAuthority({
               notAfter: graceNotAfter ?? "2026-09-02T01:01:00.000Z",
             },
           ],
+    attestationRevocations: {
+      revision: 3,
+      keyIds: duplicateRevokedKey
+        ? ["key:durability-test-v0", "key:durability-test-v0"]
+        : revokedKeyIds,
+    },
   };
   const graceTrust = descriptor.attestationGraceTrusts[0]?.trust ?? null;
   const attest = (core, purpose) => {
@@ -167,7 +175,13 @@ function durabilityAuthority({
         ),
       };
     },
-    verifyAttestation({ purpose, payloadDigest, attestation, selectedTrust }) {
+    verifyAttestation({
+      purpose,
+      payloadDigest,
+      attestation,
+      selectedTrust,
+      revocationRevision,
+    }) {
       const secret =
         selectedTrust.keyId === attestationTrust.keyId
           ? ATTESTATION_SECRET
@@ -179,6 +193,7 @@ function durabilityAuthority({
         .digest("hex");
       return (
         !state.invalidateAttestation &&
+        revocationRevision === descriptor.attestationRevocations.revision &&
         attestation.algorithm === selectedTrust.algorithm &&
         attestation.issuer === selectedTrust.issuer &&
         attestation.keyId === selectedTrust.keyId &&
@@ -345,6 +360,43 @@ describe("evaluated promotion durability adapter", () => {
     await expect(adapter.retain(matrixReceipt())).rejects.toMatchObject({
       code: "SKILL_EVALUATED_PROMOTION_DURABILITY_STALE",
     });
+  });
+
+  it("rejects a revoked previous key inside its grace window", async () => {
+    const fixture = durabilityAuthority({
+      graceNotAfter: "2026-09-02T01:01:00.000Z",
+      revokedKeyIds: ["key:durability-test-v0"],
+    });
+    fixture.state.useGraceKey = true;
+    const adapter = createSkillEvaluatedPromotionDurabilityAdapter(
+      adapterOptions(fixture.authority),
+    );
+
+    await expect(adapter.retain(matrixReceipt())).rejects.toMatchObject({
+      code: "SKILL_EVALUATED_PROMOTION_DURABILITY_REVOKED",
+    });
+  });
+
+  it("rejects a revoked active key at construction", () => {
+    const fixture = durabilityAuthority({
+      revokedKeyIds: ["key:durability-test-v1"],
+    });
+
+    expect(() =>
+      createSkillEvaluatedPromotionDurabilityAdapter(
+        adapterOptions(fixture.authority),
+      ),
+    ).toThrow(/active attestation keyId is revoked/u);
+  });
+
+  it("rejects duplicate revocation keyId values at construction", () => {
+    const fixture = durabilityAuthority({ duplicateRevokedKey: true });
+
+    expect(() =>
+      createSkillEvaluatedPromotionDurabilityAdapter(
+        adapterOptions(fixture.authority),
+      ),
+    ).toThrow(/attestationRevocations.keyIds must be unique/u);
   });
 
   it("rejects duplicate active and grace keyId values at construction", () => {

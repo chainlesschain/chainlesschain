@@ -50,6 +50,7 @@ const AUTHORITY_KEYS = new Set([
   "handlerArtifactDigest",
   "attestationTrust",
   "attestationGraceTrusts",
+  "attestationRevocations",
   "retain",
   "resolve",
   "verifyAttestation",
@@ -90,7 +91,9 @@ const TRUST_KEYS = new Set([
 ]);
 const ATTESTATION_KEYS = new Set([...TRUST_KEYS, "value"]);
 const GRACE_TRUST_KEYS = new Set(["trust", "notAfter"]);
+const REVOCATION_KEYS = new Set(["revision", "keyIds"]);
 const MAX_GRACE_TRUSTS = 8;
+const MAX_REVOKED_KEYS = 64;
 const RETAIN_ATTESTATION_CORE_KEYS = new Set([
   "schema",
   "authenticated",
@@ -298,6 +301,82 @@ function normalizeGraceTrusts(value, activeTrust) {
   return deepFreeze(normalized);
 }
 
+function normalizeRevocations(value, activeTrust) {
+  assertRecord(value, REVOCATION_KEYS, "attestationRevocations");
+  if (!Number.isSafeInteger(value.revision) || value.revision < 1) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_DURABILITY_INVALID",
+      "attestationRevocations.revision must be a positive safe integer",
+    );
+  }
+  const keyIds = value.keyIds;
+  if (
+    !Array.isArray(keyIds) ||
+    utilTypes.isProxy(keyIds) ||
+    Object.getPrototypeOf(keyIds) !== Array.prototype ||
+    keyIds.length > MAX_REVOKED_KEYS
+  ) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_DURABILITY_INVALID",
+      `attestationRevocations.keyIds must be a standard array with at most ${MAX_REVOKED_KEYS} entries`,
+    );
+  }
+  const ownKeys = Reflect.ownKeys(keyIds);
+  const expectedKeys = new Set([
+    "length",
+    ...Array.from({ length: keyIds.length }, (_, index) => String(index)),
+  ]);
+  if (
+    ownKeys.length !== expectedKeys.size ||
+    ownKeys.some((key) => typeof key !== "string" || !expectedKeys.has(key))
+  ) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_DURABILITY_INVALID",
+      "attestationRevocations.keyIds must be dense and contain only indexes",
+    );
+  }
+  const normalizedKeyIds = [];
+  const seenKeyIds = new Set();
+  for (let index = 0; index < keyIds.length; index += 1) {
+    const entryDescriptor = Object.getOwnPropertyDescriptor(
+      keyIds,
+      String(index),
+    );
+    if (
+      !entryDescriptor ||
+      !("value" in entryDescriptor) ||
+      !entryDescriptor.enumerable
+    ) {
+      throw failure(
+        "SKILL_EVALUATED_PROMOTION_DURABILITY_INVALID",
+        `attestationRevocations.keyIds[${index}] must be an enumerable own data property`,
+      );
+    }
+    const keyId = normalizeId(
+      entryDescriptor.value,
+      `attestationRevocations.keyIds[${index}]`,
+    );
+    if (seenKeyIds.has(keyId)) {
+      throw failure(
+        "SKILL_EVALUATED_PROMOTION_DURABILITY_INVALID",
+        "attestationRevocations.keyIds must be unique",
+      );
+    }
+    seenKeyIds.add(keyId);
+    normalizedKeyIds.push(keyId);
+  }
+  if (seenKeyIds.has(activeTrust.keyId)) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_DURABILITY_REVOKED",
+      "active attestation keyId is revoked",
+    );
+  }
+  return deepFreeze({
+    revision: value.revision,
+    keyIds: normalizedKeyIds,
+  });
+}
+
 function normalizeTime(value, label) {
   if (
     typeof value !== "string" ||
@@ -463,6 +542,10 @@ function captureAuthority(value) {
       value.attestationGraceTrusts,
       attestationTrust,
     ),
+    attestationRevocations: normalizeRevocations(
+      value.attestationRevocations,
+      attestationTrust,
+    ),
   });
   const retain = value.retain.bind(value);
   const resolve = value.resolve.bind(value);
@@ -521,6 +604,12 @@ export function computeSkillEvaluatedPromotionDurabilityAttestationDigest(
 }
 
 function selectAttestationTrust(descriptor, attestation, trustedNow, label) {
+  if (descriptor.attestationRevocations.keyIds.includes(attestation.keyId)) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_DURABILITY_REVOKED",
+      `${label} uses a revoked attestation key`,
+    );
+  }
   if (sameTrust(attestation, descriptor.attestationTrust)) {
     return descriptor.attestationTrust;
   }
@@ -569,6 +658,7 @@ async function verifyAuthorityAttestation(
         payloadDigest,
         attestation,
         selectedTrust,
+        revocationRevision: captured.descriptor.attestationRevocations.revision,
       }),
     );
   } catch (cause) {
