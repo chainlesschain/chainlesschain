@@ -44,6 +44,7 @@ import {
   SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA,
   SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
   buildSkillEvaluatedPromotionReceiptEnvelope,
+  createSkillEvaluatedPromotionProvider,
   parseSkillEvaluatedPromotionReceiptEnvelope,
   verifySkillEvaluatedPromotionBinding,
 } from "../../src/lib/evolution/skill-evaluated-promotion.js";
@@ -2593,6 +2594,46 @@ describe("Skill target matrix evaluation foundation", () => {
         receiptDigest: receipt.receiptDigest,
       },
     ]);
+    const provider = createSkillEvaluatedPromotionProvider({
+      authorityId: "authority:evaluated-promotion-provider",
+      handlerArtifactDigest: matrixDigest(
+        "test-evaluated-promotion-provider",
+        "v1",
+      ),
+      receiptResolver,
+      revision: 1,
+      verifier,
+    });
+    await expect(
+      provider.verify({
+        matrixContext: {
+          matrixEvalId: receipt.matrixEvalId,
+          baselineId: receipt.baselineId,
+          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+          planDigest: receipt.planDigest,
+        },
+        authorization: {
+          capability: Object.freeze({}),
+          request: promotionRequest,
+        },
+        candidate: {
+          candidateId: receipt.candidateId,
+          contentDigest: receipt.candidateContentDigest,
+          dependencyLockDigest: receipt.dependencyLockDigest,
+          runtimeManifestDigest: receipt.runtimeManifestDigest,
+          targetMatrixRoot: receipt.targetMatrixRoot,
+        },
+        state: {
+          activeReleaseDigest: receipt.baselineReleaseDigest,
+          revision: receipt.expectedActiveRevision,
+        },
+        activeContentDigest: receipt.expectedActiveContentDigest,
+      }),
+    ).resolves.toMatchObject({
+      matrixReceiptDigest: receipt.receiptDigest,
+      candidateId: receipt.candidateId,
+    });
+    expect(resolverRequests).toHaveLength(2);
     let verifierCalls = 0;
     await expect(
       verifySkillEvaluatedPromotionBinding({

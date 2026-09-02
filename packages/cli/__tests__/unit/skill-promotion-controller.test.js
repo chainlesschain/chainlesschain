@@ -15,6 +15,10 @@ import {
   buildSkillTargetMatrix,
 } from "../../src/lib/evolution/skill-execution-manifest.js";
 import {
+  SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
+  createSkillEvaluatedPromotionProvider,
+} from "../../src/lib/evolution/skill-evaluated-promotion.js";
+import {
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
   SKILL_MUTATION_OPERATIONS,
   SKILL_MUTATION_PRINCIPAL_SCHEMA,
@@ -509,7 +513,7 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     ]);
   });
 
-  it("fails closed before mutation when evaluated promotion lacks a typed matrix receipt", async () => {
+  it("fails closed before mutation when evaluated promotion has no captured provider", async () => {
     const candidate = createCandidate();
     const request = mutationRequest({
       targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
@@ -524,11 +528,9 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
         candidateId: candidate.candidateId,
         authorization: await authorize(request),
         matrixContext: Object.freeze({}),
-        matrixReceiptResolver: Object.freeze({}),
-        matrixReceiptVerifier: Object.freeze({}),
       }),
     ).rejects.toMatchObject({
-      code: "SKILL_EVALUATED_PROMOTION_INVALID",
+      code: "SKILL_PROMOTION_EVALUATION_REQUIRED",
     });
     expect(releases.readState(candidate.skillName)).toMatchObject({
       revision: 0,
@@ -538,6 +540,66 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
       "authorize",
     ]);
+  });
+
+  it("enforces evaluated-only policy before mutation authority consumption", async () => {
+    const candidate = createCandidate();
+    const request = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:evaluated-only",
+      candidateId: candidate.candidateId,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+    });
+    const resolverDescriptor = {
+      schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
+      authorityId: "authority:promotion-test-receipts",
+      trust: "trusted",
+      revision: 1,
+      handlerArtifactDigest: digest("promotion-test-receipt-resolver:v1"),
+    };
+    const provider = createSkillEvaluatedPromotionProvider({
+      authorityId: "authority:promotion-test-provider",
+      handlerArtifactDigest: digest("promotion-test-provider:v1"),
+      receiptResolver: {
+        ...resolverDescriptor,
+        resolve() {
+          throw new Error("direct promotion must not resolve evidence");
+        },
+      },
+      revision: 1,
+      verifier: {},
+    });
+    const evaluatedOnly = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority: authorityHarness.authority,
+      evaluatedPromotionProvider: provider,
+      requireEvaluatedPromotion: true,
+    });
+
+    await expect(
+      evaluatedOnly.promote({
+        candidateId: candidate.candidateId,
+        authorization: await authorize(request),
+      }),
+    ).rejects.toMatchObject({
+      code: "SKILL_PROMOTION_EVALUATION_REQUIRED",
+    });
+    expect(releases.readState(candidate.skillName).revision).toBe(0);
+    expect(ledger.snapshot()).toEqual([]);
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+    ]);
+    expect(
+      () =>
+        new SkillPromotionController({
+          candidateRegistry: candidates,
+          releaseRegistry: releases,
+          authority: authorityHarness.authority,
+          requireEvaluatedPromotion: true,
+        }),
+    ).toThrow(/captured evidence provider/u);
   });
 
   it("rejects fake authority objects and forged registry transition capabilities", async () => {

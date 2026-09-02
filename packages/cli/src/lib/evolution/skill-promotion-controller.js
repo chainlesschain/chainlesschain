@@ -12,7 +12,7 @@ import {
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
-import { verifySkillEvaluatedPromotionBinding } from "./skill-evaluated-promotion.js";
+import { captureSkillEvaluatedPromotionProvider } from "./skill-evaluated-promotion.js";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
@@ -252,7 +252,17 @@ export class SkillPromotionController {
 
   #consumeAuthority;
 
-  constructor({ candidateRegistry, releaseRegistry, authority } = {}) {
+  #evaluatedPromotionProvider;
+
+  #requireEvaluatedPromotion;
+
+  constructor({
+    candidateRegistry,
+    releaseRegistry,
+    authority,
+    evaluatedPromotionProvider = null,
+    requireEvaluatedPromotion = false,
+  } = {}) {
     if (!candidateRegistry || typeof candidateRegistry.read !== "function") {
       throw failure(
         "SKILL_PROMOTION_CANDIDATE_REGISTRY_REQUIRED",
@@ -289,6 +299,18 @@ export class SkillPromotionController {
         "SkillMutationAuthority.consume is required",
       );
     }
+    if (typeof requireEvaluatedPromotion !== "boolean") {
+      throw failure(
+        "SKILL_PROMOTION_INVALID",
+        "requireEvaluatedPromotion must be boolean",
+      );
+    }
+    if (requireEvaluatedPromotion && evaluatedPromotionProvider === null) {
+      throw failure(
+        "SKILL_PROMOTION_EVALUATION_REQUIRED",
+        "evaluated-only promotion requires a captured evidence provider",
+      );
+    }
 
     this.#tenantId = candidateRegistry.tenantId;
     this.#registryIdentity = releaseRegistry;
@@ -298,6 +320,11 @@ export class SkillPromotionController {
     this.#applyTransition =
       releaseRegistry.applyTransition.bind(releaseRegistry);
     this.#consumeAuthority = authority.consume.bind(authority);
+    this.#evaluatedPromotionProvider =
+      evaluatedPromotionProvider === null
+        ? null
+        : captureSkillEvaluatedPromotionProvider(evaluatedPromotionProvider);
+    this.#requireEvaluatedPromotion = requireEvaluatedPromotion;
 
     Object.freeze(candidateRegistry);
     Object.freeze(releaseRegistry);
@@ -353,7 +380,7 @@ export class SkillPromotionController {
     return verifyDirectConsumptionReceipt(directReceipt, request);
   }
 
-  async promote(input = {}) {
+  async #promote(input = {}) {
     assertDataRecord(
       input,
       new Set(["authorization", "candidateId"]),
@@ -426,31 +453,39 @@ export class SkillPromotionController {
     return this.#applyTransition(transitionCapability);
   }
 
+  async promote(input = {}) {
+    if (this.#requireEvaluatedPromotion) {
+      throw failure(
+        "SKILL_PROMOTION_EVALUATION_REQUIRED",
+        "direct promotion is disabled by the evaluated-only controller policy",
+      );
+    }
+    return this.#promote(input);
+  }
+
   async promoteEvaluated(input = {}) {
     assertDataRecord(
       input,
-      new Set([
-        "authorization",
-        "candidateId",
-        "matrixContext",
-        "matrixReceiptResolver",
-        "matrixReceiptVerifier",
-      ]),
+      new Set(["authorization", "candidateId", "matrixContext"]),
       "evaluated promotion input",
     );
+    if (this.#evaluatedPromotionProvider === null) {
+      throw failure(
+        "SKILL_PROMOTION_EVALUATION_REQUIRED",
+        "evaluated promotion requires a captured evidence provider",
+      );
+    }
     const candidate = this.#readCandidate(input.candidateId);
     const state = this.#readState(candidate.skillName);
     const activeContentDigest = this.#currentContentDigest(state);
-    const matrixBinding = await verifySkillEvaluatedPromotionBinding({
-      verifier: input.matrixReceiptVerifier,
-      receiptResolver: input.matrixReceiptResolver,
+    const matrixBinding = await this.#evaluatedPromotionProvider.verify({
       matrixContext: input.matrixContext,
       authorization: input.authorization,
       candidate,
       state,
       activeContentDigest,
     });
-    const result = await this.promote({
+    const result = await this.#promote({
       authorization: input.authorization,
       candidateId: input.candidateId,
     });

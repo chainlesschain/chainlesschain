@@ -11,6 +11,8 @@ export const SKILL_EVALUATED_PROMOTION_RECEIPT_ENVELOPE_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1";
 export const SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-binding/v1";
+export const SKILL_EVALUATED_PROMOTION_PROVIDER_SCHEMA =
+  "chainlesschain.skill-evaluated-promotion-provider/v1";
 export const SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-receipt-resolver/v1";
 export const SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA =
@@ -46,6 +48,28 @@ const RECEIPT_RESOLUTION_KEYS = new Set([
   "resolvedAt",
 ]);
 const SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
+const PROVIDER_OPTION_KEYS = new Set([
+  "authorityId",
+  "handlerArtifactDigest",
+  "receiptResolver",
+  "revision",
+  "verifier",
+]);
+const PROVIDER_KEYS = new Set([
+  "schema",
+  "authorityId",
+  "handlerArtifactDigest",
+  "revision",
+  "verify",
+]);
+const PROVIDER_INPUT_KEYS = new Set([
+  "activeContentDigest",
+  "authorization",
+  "candidate",
+  "matrixContext",
+  "state",
+]);
+const PROVIDER_INSTANCES = new WeakSet();
 
 export class SkillEvaluatedPromotionError extends Error {
   constructor(code, message, details = {}) {
@@ -384,5 +408,74 @@ export async function verifySkillEvaluatedPromotionBinding({
     decisionCommitmentDigest: verified.decisionCommitmentDigest,
     expiresAt: verified.expiresAt,
     receiptResolution: resolved.resolution,
+  });
+}
+
+export function createSkillEvaluatedPromotionProvider(options = {}) {
+  assertDataRecord(
+    options,
+    PROVIDER_OPTION_KEYS,
+    "evaluated promotion provider options",
+  );
+  const capturedResolver = captureReceiptResolver(options.receiptResolver);
+  const authorityId = normalizeId(options.authorityId, "provider authorityId");
+  const handlerArtifactDigest = normalizeDigest(
+    options.handlerArtifactDigest,
+    "provider handlerArtifactDigest",
+  );
+  if (
+    !Number.isSafeInteger(options.revision) ||
+    options.revision < 1 ||
+    !options.verifier ||
+    typeof options.verifier !== "object" ||
+    utilTypes.isProxy(options.verifier)
+  ) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_INVALID",
+      "evaluated promotion provider revision or verifier is invalid",
+    );
+  }
+  const receiptResolver = Object.freeze({
+    ...capturedResolver.descriptor,
+    resolve: capturedResolver.resolve,
+  });
+  const verifier = options.verifier;
+  Object.freeze(verifier);
+  const provider = {
+    schema: SKILL_EVALUATED_PROMOTION_PROVIDER_SCHEMA,
+    authorityId,
+    handlerArtifactDigest,
+    revision: options.revision,
+    async verify(input = {}) {
+      assertDataRecord(
+        input,
+        PROVIDER_INPUT_KEYS,
+        "evaluated promotion provider input",
+      );
+      return verifySkillEvaluatedPromotionBinding({
+        ...input,
+        receiptResolver,
+        verifier,
+      });
+    },
+  };
+  PROVIDER_INSTANCES.add(provider);
+  return Object.freeze(provider);
+}
+
+export function captureSkillEvaluatedPromotionProvider(value) {
+  if (!value || !PROVIDER_INSTANCES.has(value)) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_PROVIDER_REQUIRED",
+      "a branded evaluated promotion provider is required",
+    );
+  }
+  assertDataRecord(value, PROVIDER_KEYS, "evaluated promotion provider");
+  return Object.freeze({
+    schema: value.schema,
+    authorityId: value.authorityId,
+    handlerArtifactDigest: value.handlerArtifactDigest,
+    revision: value.revision,
+    verify: value.verify.bind(value),
   });
 }
