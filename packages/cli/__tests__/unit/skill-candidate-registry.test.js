@@ -18,6 +18,7 @@ import {
   SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
   SKILL_CANDIDATE_SCHEMA,
+  SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA,
   SKILL_CANDIDATE_STORE_LIMIT_CODE,
   SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
   SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
@@ -985,6 +986,91 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
       ).code,
     ).toBe("SKILL_CANDIDATE_MIGRATION_AUDIT_FAILED");
     expect(registry.list()).toHaveLength(1);
+  });
+
+  it("batch-migrates a bounded unscoped v1 store without modifying its source", () => {
+    const execution = executionFixture();
+    const harness = createAdmissionHarness()
+      .admit(execution, "repair-unit-tests")
+      .admit(execution, "repair-doc-tests");
+    const registry = new SkillCandidateRegistry({
+      rootDir: registryBase,
+      secure: false,
+      tenantId: TENANT_ALPHA,
+      targetMatrixAdmissionAuthority: harness.authority,
+    });
+    const sourceRoot = path.join(tempRoot, "legacy-candidates-v1");
+    fs.mkdirSync(sourceRoot);
+    const legacyCandidates = [
+      legacyCandidate(execution),
+      legacyCandidate(execution, { skillName: "repair-doc-tests" }),
+    ];
+    const sourceBytes = new Map();
+    for (const candidate of legacyCandidates) {
+      const name = `${candidate.candidateId.slice("sha256:".length)}.json`;
+      const bytes = `${canonicalJson(candidate)}\n`;
+      sourceBytes.set(name, bytes);
+      fs.writeFileSync(path.join(sourceRoot, name), bytes, "utf8");
+    }
+    const executionResolver = vi.fn(() => ({
+      dependencyLock: execution.dependencyLock,
+      runtimeManifest: execution.runtimeManifest,
+      targetMatrix: execution.targetMatrix,
+    }));
+    const descriptor = {
+      schema: SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:candidate-store-migration",
+      trust: "trusted",
+      handlerArtifactDigest: sha256("candidate-store-migration-handler:v1"),
+    };
+    const audit = vi.fn((migration) => ({
+      schema: SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: descriptor.authorityId,
+      trust: descriptor.trust,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      migrationDigest: migration.migrationDigest,
+      receiptDigest: sha256(`store-migration:${migration.migrationDigest}`),
+    }));
+    const authority = { ...descriptor, audit };
+
+    const migrated = registry.migrateLegacyStore(
+      sourceRoot,
+      executionResolver,
+      authority,
+    );
+    expect(migrated).toMatchObject({
+      schema: SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA,
+      createdCount: 2,
+      migratedCount: 2,
+      sourceArtifactCount: 2,
+      tenantId: TENANT_ALPHA,
+    });
+    expect(migrated.entries).toHaveLength(2);
+    expect(registry.list()).toHaveLength(2);
+    expect(executionResolver).toHaveBeenCalledTimes(2);
+    expect(audit).toHaveBeenCalledTimes(2);
+    for (const [name, bytes] of sourceBytes) {
+      expect(fs.readFileSync(path.join(sourceRoot, name), "utf8")).toBe(bytes);
+    }
+
+    const repeated = registry.migrateLegacyStore(
+      sourceRoot,
+      executionResolver,
+      authority,
+    );
+    expect(repeated.createdCount).toBe(0);
+    expect(repeated.migrationDigest).toBe(migrated.migrationDigest);
+    expect(registry.list()).toHaveLength(2);
+
+    fs.writeFileSync(path.join(sourceRoot, "README.md"), "unexpected\n");
+    expect(
+      capturedError(() =>
+        registry.migrateLegacyStore(sourceRoot, executionResolver, authority),
+      ).code,
+    ).toBe(SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE);
+    expect(registry.list()).toHaveLength(2);
   });
 
   it("requires explicit migration for legacy roots and mixed candidate schemas", () => {

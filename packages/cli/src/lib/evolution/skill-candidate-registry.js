@@ -22,6 +22,8 @@ export const SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA =
   "chainlesschain.skill-candidate-migration-authority/v1";
 export const SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-candidate-migration-receipt/v1";
+export const SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA =
+  "chainlesschain.skill-candidate-store-migration/v1";
 export const SKILL_CANDIDATE_STORE_LIMIT_CODE = "SKILL_CANDIDATE_STORE_LIMIT";
 export const SKILL_CANDIDATE_STATUS = "draft";
 export const SKILL_CANDIDATE_CONTENT_TYPE =
@@ -2347,6 +2349,252 @@ export class SkillCandidateRegistry {
       created: publication.created,
       migration,
       receipt: normalizedReceipt,
+    });
+  }
+
+  migrateLegacyStore(
+    sourceRootDir,
+    resolveExecutionArtifacts,
+    migrationAuthority,
+  ) {
+    if (
+      arguments.length !== 3 ||
+      typeof resolveExecutionArtifacts !== "function"
+    ) {
+      throw migrationRequired(
+        "legacy store migration requires one source root, one execution resolver, and one audit authority",
+      );
+    }
+    assertDataRecord(
+      migrationAuthority,
+      MIGRATION_AUTHORITY_KEYS,
+      "candidate migration authority",
+      { exact: true },
+    );
+    const capturedMigrationAuthority = Object.freeze(
+      Object.fromEntries(
+        [...MIGRATION_AUTHORITY_KEYS].map((key) => [
+          key,
+          ownData(migrationAuthority, key, "candidate migration authority"),
+        ]),
+      ),
+    );
+    const requestedSource = path.resolve(
+      normalizeBoundedString(
+        sourceRootDir,
+        "legacy candidate source root",
+        32_768,
+      ),
+    );
+    let sourceRoot;
+    let sourceIdentity;
+    try {
+      const stat = this._fs.lstatSync(requestedSource);
+      sourceRoot = realpath(this._fs, requestedSource);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        !samePath(sourceRoot, requestedSource) ||
+        !samePath(realpath(this._fs, sourceRoot), sourceRoot) ||
+        isContained(sourceRoot, this.baseDir) ||
+        isContained(this.baseDir, sourceRoot)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy source must be a canonical directory independent from the tenant registry",
+        );
+      }
+      sourceIdentity = entryIdentity(stat);
+    } catch (cause) {
+      if (cause instanceof SkillCandidateRegistryError) throw cause;
+      throw registryError(
+        "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+        "legacy candidate source root is unavailable or unsafe",
+        { cause },
+      );
+    }
+    const assertSourceBoundary = () => {
+      const stat = this._fs.lstatSync(sourceRoot);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        entryIdentity(stat) !== sourceIdentity ||
+        !samePath(realpath(this._fs, sourceRoot), sourceRoot)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy candidate source root changed during migration",
+        );
+      }
+    };
+
+    this._assertBoundary();
+    assertSourceBoundary();
+    const names = this._readDirectoryEntryNamesBounded(
+      sourceRoot,
+      "legacy candidate source",
+    ).sort(compareStrings);
+    const sources = [];
+    let totalBytes = 0;
+    for (const name of names) {
+      assertSourceBoundary();
+      const match = CANDIDATE_FILE_PATTERN.exec(name);
+      if (!match) {
+        throw migrationRequired(
+          "legacy candidate source contains a non-candidate entry",
+          { path: path.join(sourceRoot, name) },
+        );
+      }
+      const sourcePath = path.resolve(sourceRoot, name);
+      if (
+        !isContained(sourceRoot, sourcePath) ||
+        !samePath(path.dirname(sourcePath), sourceRoot)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy candidate source path escaped its root",
+        );
+      }
+      const stored = this._readBoundedRegularFile(
+        sourcePath,
+        SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
+        "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+        "legacy candidate artifact",
+      );
+      totalBytes += stored.bytes.length;
+      if (totalBytes > SKILL_CANDIDATE_TENANT_SCAN_MAX_BYTES) {
+        throw tenantScanLimit(
+          "legacy candidate migration exceeded its aggregate byte budget",
+          { path: sourcePath },
+        );
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(stored.bytes),
+        );
+      } catch (cause) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy candidate is not bounded UTF-8 JSON",
+          { cause, path: sourcePath },
+        );
+      }
+      const legacy = verifyLegacySkillCandidateDraft(parsed);
+      const canonicalBytes = Buffer.from(`${canonicalJson(legacy)}\n`, "utf8");
+      if (
+        legacy.candidateId.slice("sha256:".length) !== match[1] ||
+        !stored.bytes.equals(canonicalBytes)
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy candidate filename or bytes are not content-addressed and canonical",
+          { path: sourcePath },
+        );
+      }
+      sources.push(
+        Object.freeze({
+          bytesDigest: sha256(stored.bytes),
+          identity: stored.identity,
+          legacy,
+          name,
+          sourcePath,
+        }),
+      );
+      assertSourceBoundary();
+    }
+
+    const entries = [];
+    let createdCount = 0;
+    for (const source of sources) {
+      assertSourceBoundary();
+      let executionArtifacts;
+      try {
+        executionArtifacts = resolveExecutionArtifacts(
+          deepFreeze({
+            legacyCandidateId: source.legacy.candidateId,
+            schema: SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA,
+            skillName: source.legacy.skillName,
+            targetRuntimes: source.legacy.targetRuntimes,
+            tenantId: this.tenantId,
+          }),
+        );
+      } catch (cause) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_EXECUTION_UNAVAILABLE",
+          "legacy candidate execution artifacts could not be resolved",
+          {
+            cause,
+            legacyCandidateId: source.legacy.candidateId,
+            migratedCount: entries.length,
+          },
+        );
+      }
+      if (utilTypes.isPromise(executionArtifacts)) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_EXECUTION_UNAVAILABLE",
+          "legacy candidate execution resolver must be synchronous",
+          {
+            legacyCandidateId: source.legacy.candidateId,
+            migratedCount: entries.length,
+          },
+        );
+      }
+      const migrated = this.migrateLegacy(
+        source.legacy,
+        executionArtifacts,
+        capturedMigrationAuthority,
+      );
+      if (migrated.created) createdCount += 1;
+      entries.push(
+        deepFreeze({
+          candidateId: migrated.candidate.candidateId,
+          legacyArtifactDigest: migrated.migration.legacyArtifactDigest,
+          legacyCandidateId: source.legacy.candidateId,
+          migrationDigest: migrated.migration.migrationDigest,
+          receiptDigest: migrated.receipt.receiptDigest,
+        }),
+      );
+    }
+
+    for (const source of sources) {
+      assertSourceBoundary();
+      const current = this._readBoundedRegularFile(
+        source.sourcePath,
+        SKILL_CANDIDATE_MAX_ARTIFACT_BYTES,
+        "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+        "legacy candidate artifact",
+      );
+      if (
+        current.identity !== source.identity ||
+        sha256(current.bytes) !== source.bytesDigest
+      ) {
+        throw registryError(
+          "SKILL_CANDIDATE_MIGRATION_SOURCE_UNSAFE",
+          "legacy candidate source changed before migration completion",
+          {
+            legacyCandidateId: source.legacy.candidateId,
+            migratedCount: entries.length,
+          },
+        );
+      }
+    }
+    this._assertBoundary();
+    assertSourceBoundary();
+    const core = deepFreeze({
+      entries,
+      migratedCount: entries.length,
+      schema: SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA,
+      sourceArtifactCount: sources.length,
+      tenantId: this.tenantId,
+    });
+    return deepFreeze({
+      ...core,
+      createdCount,
+      migrationDigest: domainDigest(
+        SKILL_CANDIDATE_STORE_MIGRATION_SCHEMA,
+        core,
+      ),
     });
   }
 
