@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
 import { verifySkillMutationRequest } from "./skill-mutation-authority.js";
@@ -10,6 +11,12 @@ export const SKILL_EVALUATED_PROMOTION_RECEIPT_ENVELOPE_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1";
 export const SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-binding/v1";
+export const SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA =
+  "chainlesschain.skill-evaluated-promotion-receipt-resolver/v1";
+export const SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA =
+  "chainlesschain.skill-evaluated-promotion-receipt-resolution-request/v1";
+export const SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA =
+  "chainlesschain.skill-evaluated-promotion-receipt-resolution/v1";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const ENVELOPE_KEYS = new Set(["receiptDigest", "schema"]);
@@ -19,6 +26,26 @@ const MATRIX_CONTEXT_KEYS = new Set([
   "matrixEvalId",
   "planDigest",
 ]);
+const RECEIPT_RESOLVER_KEYS = new Set([
+  "schema",
+  "authorityId",
+  "trust",
+  "revision",
+  "handlerArtifactDigest",
+  "resolve",
+]);
+const RECEIPT_RESOLUTION_KEYS = new Set([
+  "schema",
+  "authorityId",
+  "trust",
+  "revision",
+  "handlerArtifactDigest",
+  "tenantId",
+  "receiptDigest",
+  "matrixReceipt",
+  "resolvedAt",
+]);
+const SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 
 export class SkillEvaluatedPromotionError extends Error {
   constructor(code, message, details = {}) {
@@ -84,6 +111,123 @@ function deepFreeze(value, seen = new WeakSet()) {
     deepFreeze(descriptor.value, seen);
   }
   return Object.freeze(value);
+}
+
+function normalizeId(value, label) {
+  if (typeof value !== "string" || !SAFE_ID_PATTERN.test(value)) {
+    throw failure("SKILL_EVALUATED_PROMOTION_INVALID", `${label} is invalid`);
+  }
+  return value;
+}
+
+function normalizeDigest(value, label) {
+  if (typeof value !== "string" || !DIGEST_PATTERN.test(value)) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_INVALID",
+      `${label} must be a lowercase SHA-256 digest`,
+    );
+  }
+  return value;
+}
+
+function resolverDescriptorDigest(descriptor) {
+  return `sha256:${createHash("sha256")
+    .update(
+      `chainlesschain.skill-evaluated-promotion-receipt-resolver-descriptor/v1\0${JSON.stringify(descriptor)}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+}
+
+function captureReceiptResolver(value) {
+  assertDataRecord(value, RECEIPT_RESOLVER_KEYS, "matrix receipt resolver");
+  if (
+    value.schema !== SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA ||
+    value.trust !== "trusted" ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 1 ||
+    typeof value.resolve !== "function" ||
+    utilTypes.isProxy(value.resolve)
+  ) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_INVALID",
+      "matrix receipt resolver authority is invalid",
+    );
+  }
+  const descriptor = deepFreeze({
+    schema: value.schema,
+    authorityId: normalizeId(value.authorityId, "resolver authorityId"),
+    trust: value.trust,
+    revision: value.revision,
+    handlerArtifactDigest: normalizeDigest(
+      value.handlerArtifactDigest,
+      "resolver handlerArtifactDigest",
+    ),
+  });
+  const resolve = value.resolve.bind(value);
+  Object.freeze(value);
+  return { descriptor, resolve };
+}
+
+async function resolveMatrixReceipt(resolver, tenantId, receiptDigest) {
+  const captured = captureReceiptResolver(resolver);
+  const request = deepFreeze({
+    schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA,
+    tenantId,
+    receiptDigest,
+  });
+  let resolution;
+  try {
+    resolution = await captured.resolve(request);
+  } catch (cause) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_RESOLUTION_FAILED",
+      "matrix receipt resolver failed closed",
+      { cause },
+    );
+  }
+  assertDataRecord(
+    resolution,
+    RECEIPT_RESOLUTION_KEYS,
+    "matrix receipt resolution",
+  );
+  const receipt = Object.getOwnPropertyDescriptor(
+    resolution,
+    "matrixReceipt",
+  )?.value;
+  const resolvedAt = resolution.resolvedAt;
+  if (
+    resolution.schema !== SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA ||
+    resolution.authorityId !== captured.descriptor.authorityId ||
+    resolution.trust !== captured.descriptor.trust ||
+    resolution.revision !== captured.descriptor.revision ||
+    resolution.handlerArtifactDigest !==
+      captured.descriptor.handlerArtifactDigest ||
+    resolution.tenantId !== tenantId ||
+    resolution.receiptDigest !== receiptDigest ||
+    !receipt ||
+    typeof receipt !== "object" ||
+    utilTypes.isProxy(receipt) ||
+    Object.getOwnPropertyDescriptor(receipt, "receiptDigest")?.value !==
+      receiptDigest ||
+    typeof resolvedAt !== "string" ||
+    !Number.isFinite(Date.parse(resolvedAt)) ||
+    new Date(resolvedAt).toISOString() !== resolvedAt
+  ) {
+    throw failure(
+      "SKILL_EVALUATED_PROMOTION_RESOLUTION_REJECTED",
+      "matrix receipt resolution is not exactly bound to its trusted authority and digest",
+    );
+  }
+  return {
+    receipt,
+    resolution: deepFreeze({
+      authorityId: captured.descriptor.authorityId,
+      resolverDescriptorDigest: resolverDescriptorDigest(captured.descriptor),
+      resolverRevision: captured.descriptor.revision,
+      resolvedAt,
+    }),
+  };
 }
 
 export function buildSkillEvaluatedPromotionReceiptEnvelope(receipt) {
@@ -162,7 +306,7 @@ export function parseSkillEvaluatedPromotionReceiptEnvelope(value) {
 
 export async function verifySkillEvaluatedPromotionBinding({
   verifier,
-  matrixReceipt,
+  receiptResolver,
   matrixContext,
   authorization,
   candidate,
@@ -185,6 +329,11 @@ export async function verifySkillEvaluatedPromotionBinding({
       "candidate, active state, and active content digest are required",
     );
   }
+  const resolved = await resolveMatrixReceipt(
+    receiptResolver,
+    request.tenantId,
+    envelope.receiptDigest,
+  );
   const expected = {
     matrixEvalId: matrixContext.matrixEvalId,
     tenantId: request.tenantId,
@@ -206,7 +355,7 @@ export async function verifySkillEvaluatedPromotionBinding({
   try {
     verified = await verifySkillTargetMatrixEvalReceipt(
       verifier,
-      matrixReceipt,
+      resolved.receipt,
       expected,
     );
   } catch (cause) {
@@ -234,5 +383,6 @@ export async function verifySkillEvaluatedPromotionBinding({
     matrixReceiptDigest: verified.receiptDigest,
     decisionCommitmentDigest: verified.decisionCommitmentDigest,
     expiresAt: verified.expiresAt,
+    receiptResolution: resolved.resolution,
   });
 }

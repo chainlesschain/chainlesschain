@@ -524,7 +524,7 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
         candidateId: candidate.candidateId,
         authorization: await authorize(request),
         matrixContext: Object.freeze({}),
-        matrixReceipt: Object.freeze({}),
+        matrixReceiptResolver: Object.freeze({}),
         matrixReceiptVerifier: Object.freeze({}),
       }),
     ).rejects.toMatchObject({

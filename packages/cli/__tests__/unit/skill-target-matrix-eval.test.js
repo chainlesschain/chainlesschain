@@ -40,6 +40,9 @@ import {
   buildSkillTargetMatrix,
 } from "../../src/lib/evolution/skill-execution-manifest.js";
 import {
+  SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA,
+  SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA,
+  SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
   buildSkillEvaluatedPromotionReceiptEnvelope,
   parseSkillEvaluatedPromotionReceiptEnvelope,
   verifySkillEvaluatedPromotionBinding,
@@ -2522,10 +2525,35 @@ describe("Skill target matrix evaluation foundation", () => {
         targetReceipt: "target:signed:matrix",
       },
     });
+    const resolverDescriptor = {
+      schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
+      authorityId: "authority:durable-matrix-receipts",
+      trust: "trusted",
+      revision: 1,
+      handlerArtifactDigest: matrixDigest(
+        "test-durable-receipt-resolver",
+        "v1",
+      ),
+    };
+    const resolverRequests = [];
+    const receiptResolver = {
+      ...resolverDescriptor,
+      resolve(request) {
+        resolverRequests.push({ ...request });
+        return {
+          ...resolverDescriptor,
+          schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA,
+          tenantId: request.tenantId,
+          receiptDigest: request.receiptDigest,
+          matrixReceipt: receipt,
+          resolvedAt: new Date().toISOString(),
+        };
+      },
+    };
     await expect(
       verifySkillEvaluatedPromotionBinding({
         verifier,
-        matrixReceipt: receipt,
+        receiptResolver,
         matrixContext: {
           matrixEvalId: receipt.matrixEvalId,
           baselineId: receipt.baselineId,
@@ -2553,7 +2581,67 @@ describe("Skill target matrix evaluation foundation", () => {
       candidateId: receipt.candidateId,
       matrixReceiptDigest: receipt.receiptDigest,
       decisionCommitmentDigest: receipt.decisionCommitmentDigest,
+      receiptResolution: {
+        authorityId: resolverDescriptor.authorityId,
+        resolverRevision: resolverDescriptor.revision,
+      },
     });
+    expect(resolverRequests).toEqual([
+      {
+        schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_REQUEST_SCHEMA,
+        tenantId: receipt.tenantId,
+        receiptDigest: receipt.receiptDigest,
+      },
+    ]);
+    let verifierCalls = 0;
+    await expect(
+      verifySkillEvaluatedPromotionBinding({
+        verifier: {
+          verify() {
+            verifierCalls += 1;
+            throw new Error("misbound resolution reached verifier");
+          },
+        },
+        receiptResolver: {
+          ...resolverDescriptor,
+          resolve(request) {
+            return {
+              ...resolverDescriptor,
+              schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA,
+              tenantId: `${request.tenantId}-substituted`,
+              receiptDigest: request.receiptDigest,
+              matrixReceipt: receipt,
+              resolvedAt: new Date().toISOString(),
+            };
+          },
+        },
+        matrixContext: {
+          matrixEvalId: receipt.matrixEvalId,
+          baselineId: receipt.baselineId,
+          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+          planDigest: receipt.planDigest,
+        },
+        authorization: {
+          capability: Object.freeze({}),
+          request: promotionRequest,
+        },
+        candidate: {
+          candidateId: receipt.candidateId,
+          contentDigest: receipt.candidateContentDigest,
+          dependencyLockDigest: receipt.dependencyLockDigest,
+          runtimeManifestDigest: receipt.runtimeManifestDigest,
+          targetMatrixRoot: receipt.targetMatrixRoot,
+        },
+        state: {
+          activeReleaseDigest: receipt.baselineReleaseDigest,
+          revision: receipt.expectedActiveRevision,
+        },
+        activeContentDigest: receipt.expectedActiveContentDigest,
+      }),
+    ).rejects.toMatchObject({
+      code: "SKILL_EVALUATED_PROMOTION_RESOLUTION_REJECTED",
+    });
+    expect(verifierCalls).toBe(0);
     const nonCanonicalEnvelope = JSON.stringify({
       receiptDigest: receipt.receiptDigest,
       schema: "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1",
@@ -2589,7 +2677,19 @@ describe("Skill target matrix evaluation foundation", () => {
     await expect(
       verifySkillEvaluatedPromotionBinding({
         verifier,
-        matrixReceipt: receipt,
+        receiptResolver: {
+          ...resolverDescriptor,
+          resolve() {
+            return {
+              ...resolverDescriptor,
+              schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA,
+              tenantId: receipt.tenantId,
+              receiptDigest: receipt.receiptDigest,
+              matrixReceipt: receipt,
+              resolvedAt: new Date().toISOString(),
+            };
+          },
+        },
         matrixContext: {
           matrixEvalId: receipt.matrixEvalId,
           baselineId: receipt.baselineId,

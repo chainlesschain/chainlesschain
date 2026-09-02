@@ -433,7 +433,7 @@ export class SkillPromotionController {
         "authorization",
         "candidateId",
         "matrixContext",
-        "matrixReceipt",
+        "matrixReceiptResolver",
         "matrixReceiptVerifier",
       ]),
       "evaluated promotion input",
@@ -443,7 +443,7 @@ export class SkillPromotionController {
     const activeContentDigest = this.#currentContentDigest(state);
     const matrixBinding = await verifySkillEvaluatedPromotionBinding({
       verifier: input.matrixReceiptVerifier,
-      matrixReceipt: input.matrixReceipt,
+      receiptResolver: input.matrixReceiptResolver,
       matrixContext: input.matrixContext,
       authorization: input.authorization,
       candidate,
