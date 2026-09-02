@@ -33,7 +33,6 @@ import {
 } from "../src/runtime/mcp-config.js";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const CLI_ROOT = path.resolve(SCRIPT_DIR, "..");
 const RESTART_CHILD_PATH = path.join(
   SCRIPT_DIR,
   "mcp-lifecycle-profile-child.mjs",
@@ -41,6 +40,7 @@ const RESTART_CHILD_PATH = path.join(
 export const MCP_LIFECYCLE_PROFILE_VERSION =
   "claude-2.1.229-238-mcp-lifecycle/v2";
 const RECOVERY_LATENCY_LIMIT_MS = 5_000;
+const CROSS_PROCESS_RESTART_WALL_CLOCK_LIMIT_MS = 10_000;
 const WAIT_LIMIT_MS = 5_000;
 const SECRET_CANARIES = Object.freeze([
   "mcp-old-access-token-canary",
@@ -77,6 +77,8 @@ export const MCP_LIFECYCLE_PROFILE_THRESHOLDS = Object.freeze({
   authenticationRefreshesPerRejection: 1,
   reconnectFlightsPerServer: 1,
   maxRecoveryLatencyMs: RECOVERY_LATENCY_LIMIT_MS,
+  maxCrossProcessRestartWallClockMs:
+    CROSS_PROCESS_RESTART_WALL_CLOCK_LIMIT_MS,
   duplicateCallbacksAccepted: 0,
   staleCallbacksAccepted: 0,
   lostCallbacks: 0,
@@ -545,6 +547,7 @@ async function runTransportScenario({ root, server }) {
   let restartRecoveryLatencyMs = 0;
   let inFlightRestartLatencyMs = 0;
   let crossProcessRestartLatencyMs = 0;
+  let crossProcessRestartWallClockMs = 0;
   try {
     const first = new MCPClient({
       sessionId,
@@ -620,8 +623,14 @@ async function runTransportScenario({ root, server }) {
     assert.equal(childTakeover.phase, "ready");
     assert.deepEqual(childTakeover.subscriptions, ["res://profile/watched"]);
     assert.ok(childTakeover.rpcRecoveredAfterRestart >= 1);
-    crossProcessRestartLatencyMs =
+    crossProcessRestartWallClockMs =
       performance.now() - crossProcessRestartStarted;
+    assert.ok(
+      Number.isFinite(childTakeover.recoveryLatencyMs) &&
+        childTakeover.recoveryLatencyMs >= 0,
+      "restart child must report its MCP recovery latency",
+    );
+    crossProcessRestartLatencyMs = childTakeover.recoveryLatencyMs;
     const thirdAuthority = new McpLifecycleAuthority({ statePath });
     const third = new MCPClient({
       sessionId,
@@ -672,6 +681,12 @@ async function runTransportScenario({ root, server }) {
         inFlightRestartLatencyMs,
         crossProcessRestartLatencyMs,
       ) <= RECOVERY_LATENCY_LIMIT_MS,
+      `MCP recovery exceeded ${RECOVERY_LATENCY_LIMIT_MS}ms: ${JSON.stringify({ hotReconnectLatencyMs, restartRecoveryLatencyMs, inFlightRestartLatencyMs, crossProcessRestartLatencyMs })}`,
+    );
+    assert.ok(
+      crossProcessRestartWallClockMs <=
+        CROSS_PROCESS_RESTART_WALL_CLOCK_LIMIT_MS,
+      `cross-process restart wall clock exceeded ${CROSS_PROCESS_RESTART_WALL_CLOCK_LIMIT_MS}ms: ${crossProcessRestartWallClockMs}`,
     );
 
     await third.disconnectAll();
@@ -688,6 +703,7 @@ async function runTransportScenario({ root, server }) {
       restartRecoveryLatencyMs,
       inFlightRestartLatencyMs,
       crossProcessRestartLatencyMs,
+      crossProcessRestartWallClockMs,
       crossProcessRestartTakeovers: 1,
       maxRecoveryLatencyMs: Math.max(
         hotReconnectLatencyMs,
@@ -1028,6 +1044,9 @@ export async function runMcpLifecycleProfile() {
       crossProcessRestartLatencyMs: Number(
         transport.crossProcessRestartLatencyMs.toFixed(3),
       ),
+      crossProcessRestartWallClockMs: Number(
+        transport.crossProcessRestartWallClockMs.toFixed(3),
+      ),
       crossProcessRestartTakeovers: transport.crossProcessRestartTakeovers,
       lifecycleReceiptCount: transport.lifecycleReceiptCount,
       lifecycleReceiptDigest: transport.lifecycleReceiptDigest,
@@ -1064,6 +1083,10 @@ export async function runMcpLifecycleProfile() {
     assert.equal(measurements.reconnectFlightsPerServer, 1);
     assert.ok(
       measurements.maxRecoveryLatencyMs <= thresholds.maxRecoveryLatencyMs,
+    );
+    assert.ok(
+      measurements.crossProcessRestartWallClockMs <=
+        thresholds.maxCrossProcessRestartWallClockMs,
     );
     assert.equal(measurements.duplicateCallbacksAccepted, 0);
     assert.equal(measurements.staleCallbacksAccepted, 0);

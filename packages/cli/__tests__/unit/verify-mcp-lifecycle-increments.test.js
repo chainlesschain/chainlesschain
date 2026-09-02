@@ -51,6 +51,7 @@ function measurements() {
     restartRecoveryLatencyMs: 90,
     inFlightRestartLatencyMs: 80,
     crossProcessRestartLatencyMs: 120,
+    crossProcessRestartWallClockMs: 450,
     lifecycleReceiptCount: 20,
     lifecycleReceiptDigest: `sha256:${"c".repeat(64)}`,
     rpcRegistered: 12,

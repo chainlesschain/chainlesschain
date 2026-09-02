@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { MCPClient } from "../src/harness/mcp-client.js";
 import { McpLifecycleAuthority } from "../src/lib/mcp-lifecycle-authority.js";
 
@@ -29,10 +30,12 @@ async function main() {
     sessionId: args["session-id"],
     lifecycleAuthority: authority,
   });
+  const recoveryStarted = performance.now();
   await client.connect(args.name, {
     url: args["server-url"],
     transport: "http",
   });
+  const recoveryLatencyMs = performance.now() - recoveryStarted;
   const snapshot = authority.snapshot({
     name: args.name,
     sessionId: args["session-id"],
@@ -42,6 +45,7 @@ async function main() {
     generation: snapshot?.generation || 0,
     subscriptions: snapshot?.subscriptions || [],
     rpcRecoveredAfterRestart: snapshot?.metrics?.rpcRecoveredAfterRestart || 0,
+    recoveryLatencyMs,
   };
   process.stdout.write(`${JSON.stringify(output)}\n`, () => process.exit(0));
 }

@@ -234,6 +234,7 @@ function sourceText(value, label, maximumLength) {
     value.length > 0 && value.length <= maximumLength,
     `${label} length is invalid`,
   );
+  // eslint-disable-next-line no-control-regex -- reject control bytes in signed source identities
   assert.doesNotMatch(value, /[\u0000-\u001f\u007f]/u, `${label} is invalid`);
   return value;
 }
@@ -375,6 +376,10 @@ function assertMeasurements(thresholds, measurements) {
   assert.ok(
     measurements.maxRecoveryLatencyMs <= thresholds.maxRecoveryLatencyMs,
   );
+  assert.ok(
+    measurements.crossProcessRestartWallClockMs <=
+      thresholds.maxCrossProcessRestartWallClockMs,
+  );
   assert.equal(
     measurements.duplicateCallbacksAccepted,
     thresholds.duplicateCallbacksAccepted,
@@ -428,6 +433,7 @@ function assertMeasurements(thresholds, measurements) {
     "restartRecoveryLatencyMs",
     "inFlightRestartLatencyMs",
     "crossProcessRestartLatencyMs",
+    "crossProcessRestartWallClockMs",
   ]) {
     assert.ok(Number.isFinite(measurements[field]) && measurements[field] >= 0);
   }
