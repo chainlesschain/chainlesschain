@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
 import {
   AppServerGraphRuntime,
   graphExecutorReceipt,
 } from "../../src/lib/app-server/graph-runtime.js";
 import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
+import { sealAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
 const EVENT = `sha256:${"e".repeat(64)}`;
@@ -331,6 +332,81 @@ describe("App Server canonical Graph runtime", () => {
     });
   });
 
+  it("starts one trusted evolution ingress before dispatch and completes it at Graph terminal", async () => {
+    const order = [];
+    const ingress = {
+      start: vi.fn(async () => order.push("evolution:start")),
+      complete: vi.fn(async () => order.push("evolution:complete")),
+    };
+    const factory = vi.fn(async (context) => {
+      expect(Object.isFrozen(context)).toBe(true);
+      expect(context).toEqual({
+        mode: "graph",
+        runId: "desktop-evolution-success",
+        originSurface: "desktop",
+        revisionDigest: expect.stringMatching(/^sha256:/u),
+        authorityMode: "canonical",
+      });
+      expect(context).not.toHaveProperty("prompt");
+      return sealAgentEvolutionRuntimeComposition({
+        runId: context.runId,
+        evolutionIngress: ingress,
+      });
+    });
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      evolutionCompositionFactory: factory,
+      executeNode: async ({ evolutionIngress }) => {
+        order.push("executor");
+        expect(evolutionIngress).toBe(ingress);
+        return {
+          status: "succeeded",
+          terminalEvidence: { eventDigest: EVENT, outputDigest: OUTPUT },
+        };
+      },
+    });
+
+    await expect(
+      runtime.run({
+        definition: definition("none"),
+        runId: "desktop-evolution-success",
+        inputs: { implement: "Persist this turn" },
+        waitForCompletion: true,
+      }),
+    ).resolves.toMatchObject({ status: "succeeded" });
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(ingress.start).toHaveBeenCalledTimes(1);
+    expect(ingress.complete).toHaveBeenCalledTimes(1);
+    expect(order).toEqual([
+      "evolution:start",
+      "executor",
+      "evolution:complete",
+    ]);
+  });
+
+  it("fails closed before assigning a Graph attempt when composition capture fails", async () => {
+    const executeNode = vi.fn();
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      evolutionCompositionFactory: async () => ({
+        runId: "desktop-evolution-rejected",
+        evolutionIngress: { start: async () => {}, complete: async () => {} },
+      }),
+      executeNode,
+    });
+
+    await expect(
+      runtime.run({
+        definition: definition("none"),
+        runId: "desktop-evolution-rejected",
+        inputs: { implement: "must not execute" },
+        waitForCompletion: false,
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(executeNode).not.toHaveBeenCalled();
+    expect(runtime.status("desktop-evolution-rejected").attempts).toEqual([]);
+  });
+
   it("routes an unproven effect outcome to reconciliation and never replays it", async () => {
     let calls = 0;
     const runtime = new AppServerGraphRuntime({
@@ -355,6 +431,35 @@ describe("App Server canonical Graph runtime", () => {
       "reconciliation_required",
     );
     expect(calls).toBe(1);
+  });
+
+  it("does not complete evolution while an effect requires reconciliation", async () => {
+    const ingress = {
+      start: vi.fn(async () => {}),
+      complete: vi.fn(async () => {}),
+    };
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      evolutionCompositionFactory: async ({ runId }) =>
+        sealAgentEvolutionRuntimeComposition({
+          runId,
+          evolutionIngress: ingress,
+        }),
+      executeNode: async () => {
+        throw new Error("effect outcome is unknown");
+      },
+    });
+
+    await expect(
+      runtime.run({
+        definition: definition(),
+        runId: "desktop-evolution-reconcile",
+        inputs: { implement: "Do work" },
+        waitForCompletion: true,
+      }),
+    ).resolves.toMatchObject({ status: "reconciliation_required" });
+    expect(ingress.start).toHaveBeenCalledTimes(1);
+    expect(ingress.complete).not.toHaveBeenCalled();
   });
 
   it("settles an audited committed reconciliation from evidence without executor replay", async () => {

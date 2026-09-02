@@ -196,6 +196,10 @@ export class CliAgentKernelAdapter {
         interactiveApprovals: true,
         includePartialMessages: true,
         ephemeral: false,
+        evolutionIngress:
+          turnOptions.evolutionIngress ??
+          this.sessionOptions.evolutionIngress ??
+          null,
       },
       {
         ...this.dependencies,

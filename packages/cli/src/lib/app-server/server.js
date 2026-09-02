@@ -144,6 +144,7 @@ export class CcAppServer {
     interruptSettlementMs = 30_000,
     transport = "stdio",
     graphRuntime = null,
+    evolutionCompositionFactory = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
     if (typeof send !== "function") {
@@ -165,12 +166,18 @@ export class CcAppServer {
       throw new TypeError("contextMemoryRuntimeFactory must be a function");
     }
     this.contextMemoryRuntimeFactory = contextMemoryRuntimeFactory;
+    if (graphRuntime && evolutionCompositionFactory) {
+      throw new TypeError(
+        "graphRuntime and evolutionCompositionFactory cannot both be provided",
+      );
+    }
     this.graphRuntime =
       graphRuntime ||
       new AppServerGraphRuntime({
         rolloutStore: resolvedStore,
         now,
         createId,
+        evolutionCompositionFactory,
         executeNode: (context) => this._executeGraphNode(context),
         requestHumanTask: (context) => this._requestHumanTask(context),
         onEvent: (event) => {
@@ -598,7 +605,14 @@ export class CcAppServer {
     );
   }
 
-  async _executeGraphNode({ runId, nodeId, attempt, input, signal }) {
+  async _executeGraphNode({
+    runId,
+    nodeId,
+    attempt,
+    input,
+    signal,
+    evolutionIngress,
+  }) {
     const threadId = `graph-agent:${runId}:${nodeId}`;
     const turn = { id: attempt.id, threadId };
     const onAbort = () => {
@@ -606,11 +620,16 @@ export class CcAppServer {
     };
     signal?.addEventListener?.("abort", onAbort, { once: true });
     try {
+      const turnOptions = { ...(input?.options || {}) };
+      delete turnOptions.evolutionIngress;
+      if (evolutionIngress !== null && evolutionIngress !== undefined) {
+        turnOptions.evolutionIngress = evolutionIngress;
+      }
       const result = await this.kernel.startTurn({
         threadId,
         turnId: attempt.id,
         input: requiredString(input?.prompt, `inputs.${nodeId}.prompt`),
-        options: input?.options || {},
+        options: turnOptions,
         emit: (event) =>
           this._notify("graph/event", {
             type: "graph/agent-event",

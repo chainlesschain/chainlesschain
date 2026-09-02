@@ -6,6 +6,7 @@ import {
 import { createGraphAuthorityBinding } from "../graph-kernel/authority.js";
 import { GraphEventStore } from "../graph-kernel/event-store.js";
 import { GraphKernel } from "../graph-kernel/runtime.js";
+import { captureAgentEvolutionRuntimeComposition } from "../evolution/agent-evolution-runtime-composition-brand.js";
 import {
   diffGraphTrace,
   locateBlockedRoot,
@@ -143,10 +144,17 @@ export class AppServerGraphRuntime {
     now = Date.now,
     createId = randomUUID,
     onEvent = null,
+    evolutionCompositionFactory = null,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     if (typeof executeNode !== "function") {
       throw new TypeError("AppServerGraphRuntime requires executeNode()");
+    }
+    if (
+      evolutionCompositionFactory !== null &&
+      typeof evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
     }
     this.eventStore = eventStore;
     this.rolloutStore = eventStore.rolloutStore;
@@ -156,10 +164,86 @@ export class AppServerGraphRuntime {
     this.now = now;
     this.createId = createId;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
+    this.evolutionCompositionFactory = evolutionCompositionFactory;
     this.writerLeaseTtlMs = writerLeaseTtlMs;
     this.runs = new Map();
     this.drives = new Map();
     this.active = new Map();
+  }
+
+  async _prepareEvolution(entry) {
+    if (!this.evolutionCompositionFactory) return null;
+    if (!entry.evolutionCompositionPromise) {
+      const context = Object.freeze({
+        mode: "graph",
+        runId: entry.runId,
+        originSurface: entry.originSurface,
+        revisionDigest: entry.compiled.revisionDigest,
+        authorityMode: entry.authorityMode,
+      });
+      entry.evolutionCompositionPromise = Promise.resolve()
+        .then(() => this.evolutionCompositionFactory(context))
+        .then((value) => {
+          const composition = captureAgentEvolutionRuntimeComposition(value);
+          if (composition.runId !== entry.runId) {
+            throw new TypeError(
+              "Agent evolution composition belongs to another Graph run",
+            );
+          }
+          if (
+            typeof composition.evolutionIngress?.start !== "function" ||
+            typeof composition.evolutionIngress?.complete !== "function"
+          ) {
+            throw new TypeError(
+              "Agent evolution composition has no usable ingress",
+            );
+          }
+          return composition;
+        });
+    }
+    if (!entry.evolutionStartPromise) {
+      entry.evolutionStartPromise = entry.evolutionCompositionPromise.then(
+        async (composition) => {
+          await composition.evolutionIngress.start();
+          return composition;
+        },
+      );
+    }
+    try {
+      return await entry.evolutionStartPromise;
+    } catch (cause) {
+      entry.evolutionIngressFailed = true;
+      if (cause?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+      const error = runtimeError(
+        "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        `Graph evolution ingress failed: ${cause?.message || String(cause)}`,
+        { cause },
+      );
+      throw error;
+    }
+  }
+
+  async _completeEvolution(entry) {
+    if (!this.evolutionCompositionFactory || entry.evolutionIngressFailed) {
+      return;
+    }
+    if (entry.evolutionCompletionPromise) {
+      return entry.evolutionCompletionPromise;
+    }
+    try {
+      entry.evolutionCompletionPromise = this._prepareEvolution(entry).then(
+        (composition) => composition.evolutionIngress.complete(),
+      );
+      await entry.evolutionCompletionPromise;
+    } catch (cause) {
+      entry.evolutionIngressFailed = true;
+      if (cause?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+      throw runtimeError(
+        "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        `Graph evolution completion failed: ${cause?.message || String(cause)}`,
+        { cause },
+      );
+    }
   }
 
   _requestThread(runId) {
@@ -329,6 +413,8 @@ export class AppServerGraphRuntime {
       runId: id,
       compiled,
       inputs: { ...inputs },
+      originSurface,
+      authorityMode,
     });
     this._emit(id, "graph/run-started", { projection });
     return this.status(id);
@@ -339,9 +425,16 @@ export class AppServerGraphRuntime {
     if (projection.authorityMode === "shadow") {
       return Promise.resolve(this.status(projection.id));
     }
-    const settled = this._drive(projection.id);
-    if (options.waitForCompletion === true) return settled;
-    return Promise.resolve(projection);
+    const entry = this.runs.get(projection.id);
+    const launch = () => {
+      const settled = this._drive(projection.id);
+      if (options.waitForCompletion === true) return settled;
+      return projection;
+    };
+    if (this.evolutionCompositionFactory) {
+      return this._prepareEvolution(entry).then(launch);
+    }
+    return Promise.resolve(launch());
   }
 
   resume(runId, { waitForCompletion = false } = {}) {
@@ -375,12 +468,15 @@ export class AppServerGraphRuntime {
     if (!entry)
       throw runtimeError("CC_GRAPH_RUN_NOT_FOUND", "Graph run missing");
     const { kernel } = entry;
+    await this._prepareEvolution(entry);
     for (let steps = 0; steps < 10_000; steps += 1) {
       const status = kernel.getRun(runId);
-      if (
-        TERMINAL.has(status.status) ||
-        status.status === "reconciliation_required"
-      ) {
+      if (TERMINAL.has(status.status)) {
+        await this._completeEvolution(entry);
+        this._emit(runId, "graph/run-settled", { projection: status });
+        return status;
+      }
+      if (status.status === "reconciliation_required") {
         this._emit(runId, "graph/run-settled", { projection: status });
         return status;
       }
@@ -562,6 +658,7 @@ export class AppServerGraphRuntime {
   async _executeAttempt(entry, nodeId) {
     const { kernel } = entry;
     const runId = entry.runId;
+    const evolutionComposition = await this._prepareEvolution(entry);
     const attempt = kernel.assignNode(runId, nodeId, "app-server-agent", {
       ttlMs: this.writerLeaseTtlMs,
       leaseId: `app-server-attempt:${this.createId()}`,
@@ -595,6 +692,7 @@ export class AppServerGraphRuntime {
         attempt,
         input: nodeInput(entry.inputs, nodeId),
         signal: controller.signal,
+        evolutionIngress: evolutionComposition?.evolutionIngress || null,
       });
       if (!result || !["succeeded", "completed"].includes(result.status)) {
         const error = runtimeError(
@@ -631,6 +729,9 @@ export class AppServerGraphRuntime {
       });
       return settled;
     } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        entry.evolutionIngressFailed = true;
+      }
       if (controller.signal.aborted) return kernel.getRun(runId);
       if (effect) {
         const known = error?.outcomeKnown === true;
@@ -826,6 +927,8 @@ export class AppServerGraphRuntime {
       runId,
       compiled: compileGraphDefinition(request.definition),
       inputs: { ...request.inputs },
+      originSurface: request.originSurface,
+      authorityMode: request.authorityMode,
     };
     this.runs.set(runId, entry);
     this._recoverReceiptedAttempts(entry);
@@ -1003,7 +1106,7 @@ export class AppServerGraphRuntime {
   async cancel(runId, reason = "cancelled by App Server client") {
     const id = String(runId);
     const entry = this.runs.get(id) || this._recover(id);
-    return entry.kernel.cancelRun(id, {
+    const projection = await entry.kernel.cancelRun(id, {
       reason,
       interrupt: async (attempt) => {
         const active = this.active.get(attempt.id);
@@ -1012,6 +1115,10 @@ export class AppServerGraphRuntime {
         await active.done;
       },
     });
+    if (TERMINAL.has(projection.status)) {
+      await this._completeEvolution(entry);
+    }
+    return projection;
   }
 
   async reconcile(runId, input = {}) {

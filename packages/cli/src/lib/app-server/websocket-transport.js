@@ -396,6 +396,8 @@ export class WebSocketAppServerHost extends EventEmitter {
           send,
           store: this.store,
           kernel: this.kernelFactory?.(),
+          evolutionCompositionFactory:
+            this.options.evolutionCompositionFactory ?? null,
           transport: "websocket",
           maxQueuedRequests: this.options.maxQueuedRequests,
           maxQueuedRequestBytes: this.options.maxQueuedRequestBytes,

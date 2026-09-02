@@ -51,6 +51,45 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
+  it("replaces client Graph evolution options with the trusted host ingress", async () => {
+    const clientIngress = { source: "client" };
+    const trustedIngress = { source: "host" };
+    let turnOptions;
+    const server = new CcAppServer({
+      send: async () => {},
+      store: new MemoryRolloutStore(),
+      kernel: {
+        startTurn: vi.fn(async ({ options }) => {
+          turnOptions = options;
+          return { result: "done", usage: { turns: 1 } };
+        }),
+        close: vi.fn(async () => {}),
+      },
+    });
+
+    try {
+      await expect(
+        server._executeGraphNode({
+          runId: "graph-trusted-ingress",
+          nodeId: "implement",
+          attempt: { id: "attempt-1" },
+          input: {
+            prompt: "execute",
+            options: { model: "test-model", evolutionIngress: clientIngress },
+          },
+          signal: new AbortController().signal,
+          evolutionIngress: trustedIngress,
+        }),
+      ).resolves.toMatchObject({ status: "succeeded" });
+      expect(turnOptions).toEqual({
+        model: "test-model",
+        evolutionIngress: trustedIngress,
+      });
+    } finally {
+      await server.close();
+    }
+  });
+
   it("dispatches all fixed Context/Memory methods and emits lifecycle notifications", async () => {
     const messages = [];
     const sha = `sha256:${"a".repeat(64)}`;
