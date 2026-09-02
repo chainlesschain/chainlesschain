@@ -31,6 +31,7 @@ import { loadConfig } from "../lib/config-manager.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
+import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/structured-memory-policy-receipt-writer.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -62,6 +63,12 @@ export class AgentRuntime {
     this.config = config;
     this.context = createRuntimeContext({ kind, policy, config });
     this.events = deps.events || new RuntimeEventEmitter();
+    this.memoryPolicyReceiptWriter =
+      deps.memoryPolicyReceiptWriter == null
+        ? null
+        : captureStructuredMemoryPolicyReceiptWriter(
+            deps.memoryPolicyReceiptWriter,
+          );
     this.deps = {
       startAgentRepl: deps.startAgentRepl || startAgentRepl,
       startChatRepl: deps.startChatRepl || startChatRepl,
@@ -190,7 +197,12 @@ export class AgentRuntime {
       kind: this.kind,
       sessionId: this.policy.sessionId || null,
     });
-    return this.deps.startAgentRepl(this.policy);
+    return this.deps.startAgentRepl({
+      ...this.policy,
+      ...(this.memoryPolicyReceiptWriter === null
+        ? {}
+        : { memoryPolicyReceiptWriter: this.memoryPolicyReceiptWriter }),
+    });
   }
 
   async startChatSession() {

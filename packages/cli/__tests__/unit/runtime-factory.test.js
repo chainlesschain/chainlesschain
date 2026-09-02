@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "node:events";
+import { createHash } from "node:crypto";
+
+const digest = (value) =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 describe("runtime-factory", () => {
   beforeEach(() => {
@@ -146,6 +150,58 @@ describe("runtime-factory", () => {
       provider: "p2",
       sessionId: "sess-2",
     });
+  });
+
+  it("passes only a branded policy memory writer into the agent REPL", async () => {
+    const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
+    const { createStructuredMemoryPolicyReceiptWriter } = await import(
+      "../../src/lib/evolution/structured-memory-policy-receipt-writer.js"
+    );
+    const startAgentRepl = vi.fn().mockResolvedValue(undefined);
+    const writer = createStructuredMemoryPolicyReceiptWriter({
+      descriptor: {
+        tenantId: "tenant-agent",
+        issuerId: "agent-policy-writer",
+        issuerRevision: 1,
+        issuerHandlerDigest: digest("agent-policy-writer:v1"),
+      },
+      authorityStore: {
+        retainReceipt: async (receipt) => ({
+          persisted: true,
+          receiptDigest: receipt.receiptDigest,
+        }),
+      },
+      attestor: { attest: async () => "signed" },
+    });
+    const runtime = new AgentRuntime({
+      kind: "agent",
+      policy: { model: "m", provider: "p", sessionId: "session-memory" },
+      deps: { startAgentRepl, memoryPolicyReceiptWriter: writer },
+    });
+
+    await runtime.startAgentSession();
+
+    expect(startAgentRepl).toHaveBeenCalledWith({
+      model: "m",
+      provider: "p",
+      sessionId: "session-memory",
+      memoryPolicyReceiptWriter: expect.objectContaining({
+        descriptor: expect.objectContaining({ tenantId: "tenant-agent" }),
+        retainConsumedApproval: expect.any(Function),
+      }),
+    });
+    expect(
+      () =>
+        new AgentRuntime({
+          kind: "agent",
+          policy: {},
+          deps: {
+            memoryPolicyReceiptWriter: {
+              retainConsumedApproval: async () => ({}),
+            },
+          },
+        }),
+    ).toThrow(/branded structured memory policy writer/u);
   });
 
   it("resumeSession updates session id and reuses the matching runtime entrypoint", async () => {

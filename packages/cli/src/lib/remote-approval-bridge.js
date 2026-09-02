@@ -1332,6 +1332,7 @@ export async function startHeadlessRemoteApproval({
   writeErr = () => {},
   isText = false,
   decisionTimeoutMs = undefined,
+  memoryPolicyReceiptWriter = null,
   deps = {},
 } = {}) {
   let effectiveConfig = config;
@@ -1396,6 +1397,7 @@ export async function startHeadlessRemoteApproval({
       agentSessionId,
       scopes: ["observe", "approve"],
       decisionTimeoutMs,
+      memoryPolicyReceiptWriter,
     });
     try {
       await bridge.start();

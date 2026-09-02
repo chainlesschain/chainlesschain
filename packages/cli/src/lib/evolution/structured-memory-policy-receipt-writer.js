@@ -155,8 +155,10 @@ export function captureStructuredMemoryPolicyReceiptWriter(value) {
       "a branded structured memory policy writer is required",
     );
   }
-  return Object.freeze({
+  const captured = Object.freeze({
     descriptor: value.descriptor,
     retainConsumedApproval: capture(value, "retainConsumedApproval"),
   });
+  WRITERS.add(captured);
+  return captured;
 }

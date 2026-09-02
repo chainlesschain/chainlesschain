@@ -92,6 +92,27 @@ describe("startHeadlessRemoteApproval exposure boundary", () => {
     expect(runtime.server.stop).toHaveBeenCalled();
   });
 
+  it("passes the captured policy memory writer to the bridge constructor", async () => {
+    const runtime = fakeRuntime({ pairingMode: "direct" });
+    const memoryPolicyReceiptWriter = Object.freeze({ marker: "captured" });
+    const started = await startHeadlessRemoteApproval({
+      agentSessionId: "agent-memory",
+      allowLan: true,
+      env: {},
+      config: {},
+      memoryPolicyReceiptWriter,
+      deps: {
+        ...runtime.deps,
+        lanAddress: "192.168.50.20",
+      },
+    });
+
+    expect(runtime.inspect().bridgeOptions.memoryPolicyReceiptWriter).toBe(
+      memoryPolicyReceiptWriter,
+    );
+    await started.close();
+  });
+
   it("fails before startup when wildcard binding has no private address", async () => {
     const runtime = fakeRuntime({ pairingMode: "direct" });
     await expect(

@@ -3949,6 +3949,7 @@ async function startAgentReplInWorkspaceOwned(
       isText: false, // the REPL prints its own pairing lines below
       allowLan: options.remoteControlAllowLan === true,
       env: process.env,
+      memoryPolicyReceiptWriter: options.memoryPolicyReceiptWriter ?? null,
     });
     _remoteApproval = {
       bridge: started.bridge,
