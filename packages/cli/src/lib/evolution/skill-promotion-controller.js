@@ -14,6 +14,11 @@ import {
 } from "./skill-mutation-authority.js";
 import { captureSkillEvaluatedPromotionProvider } from "./skill-evaluated-promotion.js";
 import { captureStructuredMemoryPromotionReceiptWriter } from "./structured-memory-promotion-receipt-writer.js";
+import {
+  consumeRegistryTransitionCapability,
+  issueRegistryTransitionCapability,
+} from "./skill-registry-transition-capability.js";
+import { captureSkillPromotionReviewProvider } from "./skill-promotion-review.js";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
@@ -24,13 +29,13 @@ export const EMPTY_SKILL_ACTIVE_DIGEST = `sha256:${crypto
   .update(EMPTY_ACTIVE_DOMAIN, "utf8")
   .digest("hex")}`;
 
-const TRANSITION_CAPABILITIES = new WeakMap();
 const EVALUATED_CONTROL_PLANE_OPTION_KEYS = new Set([
   "candidateRegistry",
   "releaseRegistry",
   "authority",
   "evaluatedPromotionProvider",
   "memoryPromotionReceiptWriter",
+  "promotionReviewProvider",
 ]);
 const EVALUATED_CONTROL_PLANE_REQUIRED_KEYS = new Set([
   "candidateRegistry",
@@ -219,40 +224,7 @@ function assertTransitionSubject(request, expectedDigest) {
   }
 }
 
-function issueRegistryTransitionCapability(registry, payload) {
-  const capability = Object.freeze(Object.create(null));
-  TRANSITION_CAPABILITIES.set(capability, {
-    registry,
-    payload: deepFreeze(payload),
-    status: "issued",
-  });
-  return capability;
-}
-
-/**
- * Registry-only broker. It is exported solely to break the module boundary;
- * callers cannot manufacture a WeakMap-backed capability or replay one.
- */
-export function consumeRegistryTransitionCapability(capability, registry) {
-  const state =
-    capability && typeof capability === "object"
-      ? TRANSITION_CAPABILITIES.get(capability)
-      : null;
-  if (!state || state.registry !== registry) {
-    throw failure(
-      "SKILL_PROMOTION_TRANSITION_CAPABILITY_INVALID",
-      "registry transition capability is forged or bound to another registry",
-    );
-  }
-  if (state.status !== "issued") {
-    throw failure(
-      "SKILL_PROMOTION_TRANSITION_CAPABILITY_REPLAYED",
-      "registry transition capability has already been consumed",
-    );
-  }
-  state.status = "consumed";
-  return state.payload;
-}
+export { consumeRegistryTransitionCapability };
 
 export class SkillPromotionController {
   #tenantId;
@@ -275,6 +247,10 @@ export class SkillPromotionController {
 
   #memoryPromotionReceiptWriter;
 
+  #promotionReviewProvider;
+
+  #requireHumanReview;
+
   constructor({
     candidateRegistry,
     releaseRegistry,
@@ -282,6 +258,8 @@ export class SkillPromotionController {
     evaluatedPromotionProvider = null,
     requireEvaluatedPromotion = false,
     memoryPromotionReceiptWriter = null,
+    promotionReviewProvider = null,
+    requireHumanReview = false,
   } = {}) {
     if (!candidateRegistry || typeof candidateRegistry.read !== "function") {
       throw failure(
@@ -331,6 +309,18 @@ export class SkillPromotionController {
         "evaluated-only promotion requires a captured evidence provider",
       );
     }
+    if (typeof requireHumanReview !== "boolean") {
+      throw failure(
+        "SKILL_PROMOTION_INVALID",
+        "requireHumanReview must be boolean",
+      );
+    }
+    if (requireHumanReview && promotionReviewProvider === null) {
+      throw failure(
+        "SKILL_PROMOTION_REVIEW_REQUIRED",
+        "human-reviewed promotion requires a captured review provider",
+      );
+    }
 
     this.#tenantId = candidateRegistry.tenantId;
     this.#registryIdentity = releaseRegistry;
@@ -351,6 +341,11 @@ export class SkillPromotionController {
         : captureStructuredMemoryPromotionReceiptWriter(
             memoryPromotionReceiptWriter,
           );
+    this.#promotionReviewProvider =
+      promotionReviewProvider === null
+        ? null
+        : captureSkillPromotionReviewProvider(promotionReviewProvider);
+    this.#requireHumanReview = requireHumanReview;
 
     Object.freeze(candidateRegistry);
     Object.freeze(releaseRegistry);
@@ -515,19 +510,39 @@ export class SkillPromotionController {
       state,
       activeContentDigest,
     });
+    let reviewBinding = null;
+    if (this.#requireHumanReview) {
+      const activeRelease =
+        state.activeReleaseDigest === null
+          ? null
+          : this.#readRelease(state.activeReleaseDigest);
+      reviewBinding = await this.#promotionReviewProvider.verify({
+        activeRelease,
+        authorization: input.authorization,
+        candidate,
+        matrixBinding,
+        state,
+      });
+    }
     const result = await this.#promote({
       authorization: input.authorization,
       candidateId: input.candidateId,
     });
     if (this.#memoryPromotionReceiptWriter === null) {
-      return deepFreeze({ ...result, matrixBinding });
+      return deepFreeze({ ...result, matrixBinding, reviewBinding });
     }
     const memoryAuthorityReceipt =
       await this.#memoryPromotionReceiptWriter.retainPromotion(
         result,
         matrixBinding,
+        reviewBinding,
       );
-    return deepFreeze({ ...result, matrixBinding, memoryAuthorityReceipt });
+    return deepFreeze({
+      ...result,
+      matrixBinding,
+      reviewBinding,
+      memoryAuthorityReceipt,
+    });
   }
 
   async rollback(input = {}) {
@@ -625,13 +640,18 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
   const provider = captureSkillEvaluatedPromotionProvider(
     options.evaluatedPromotionProvider,
   );
+  const reviewProvider = captureSkillPromotionReviewProvider(
+    options.promotionReviewProvider,
+  );
   const controller = new SkillPromotionController({
     candidateRegistry: options.candidateRegistry,
     releaseRegistry: options.releaseRegistry,
     authority: options.authority,
     evaluatedPromotionProvider: options.evaluatedPromotionProvider,
     memoryPromotionReceiptWriter: options.memoryPromotionReceiptWriter ?? null,
+    promotionReviewProvider: options.promotionReviewProvider,
     requireEvaluatedPromotion: true,
+    requireHumanReview: true,
   });
   return Object.freeze({
     schema: SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA,
@@ -639,6 +659,9 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
     providerAuthorityId: provider.authorityId,
     providerRevision: provider.revision,
     providerHandlerArtifactDigest: provider.handlerArtifactDigest,
+    reviewAuthorityId: reviewProvider.authorityId,
+    reviewRevision: reviewProvider.revision,
+    reviewHandlerArtifactDigest: reviewProvider.handlerArtifactDigest,
     promoteEvaluated: Object.freeze((input) =>
       controller.promoteEvaluated(input),
     ),

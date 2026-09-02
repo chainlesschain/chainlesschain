@@ -383,6 +383,21 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
       expect(error).toMatchObject({ code: "SKILL_CANDIDATE_SECRET_LEAK" });
     }
     expect(registry.list()).toEqual([]);
+
+    const refError = capturedError(() =>
+      registry.create(
+        draftInput(execution, {
+          sourceEvidenceRefs: [
+            {
+              ref: "recording://runs/owner@example.com",
+              digest: EVIDENCE_DIGEST,
+            },
+          ],
+        }),
+      ),
+    );
+    expect(refError).toMatchObject({ code: "SKILL_CANDIDATE_SECRET_LEAK" });
+    expect(registry.list()).toEqual([]);
   });
 
   it("requires explicit tenant construction and rejects tenant or context ambiguity", () => {

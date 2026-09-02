@@ -38,6 +38,7 @@ import {
   SkillPromotionController,
   createSkillEvaluatedPromotionControlPlane,
 } from "../../src/lib/evolution/skill-promotion-controller.js";
+import { createSkillPromotionReviewProvider } from "../../src/lib/evolution/skill-promotion-review.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SkillReleaseRegistry,
@@ -391,6 +392,22 @@ function candidateInput(execution, parentDigest = null, suffix = "one") {
   };
 }
 
+function unusedReviewProvider() {
+  return createSkillPromotionReviewProvider({
+    tenantId: TENANT_ID,
+    authorityId: "authority:promotion-test-human-review",
+    handlerArtifactDigest: digest("promotion-test-human-review:v1"),
+    revision: 1,
+    decisionResolver: {
+      resolve() {
+        throw new Error("review resolution is unused in construction test");
+      },
+    },
+    decisionVerifier: { verify: async () => false },
+    now: Date.now,
+  });
+}
+
 function mutationRequest({
   targetDigest,
   revision,
@@ -707,11 +724,20 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       revision: 3,
       verifier: {},
     });
+    expect(() =>
+      createSkillEvaluatedPromotionControlPlane({
+        candidateRegistry: candidates,
+        releaseRegistry: releases,
+        authority: authorityHarness.authority,
+        evaluatedPromotionProvider: provider,
+      }),
+    ).toThrow(/human review provider/u);
     const controlPlane = createSkillEvaluatedPromotionControlPlane({
       candidateRegistry: candidates,
       releaseRegistry: releases,
       authority: authorityHarness.authority,
       evaluatedPromotionProvider: provider,
+      promotionReviewProvider: unusedReviewProvider(),
     });
 
     expect(controlPlane).toMatchObject({
@@ -720,6 +746,8 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       providerAuthorityId: provider.authorityId,
       providerRevision: provider.revision,
       providerHandlerArtifactDigest: provider.handlerArtifactDigest,
+      reviewAuthorityId: "authority:promotion-test-human-review",
+      reviewRevision: 1,
     });
     expect(Reflect.ownKeys(controlPlane)).toEqual([
       "schema",
@@ -727,6 +755,9 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       "providerAuthorityId",
       "providerRevision",
       "providerHandlerArtifactDigest",
+      "reviewAuthorityId",
+      "reviewRevision",
+      "reviewHandlerArtifactDigest",
       "promoteEvaluated",
       "rollback",
     ]);

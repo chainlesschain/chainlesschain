@@ -12,10 +12,9 @@ const fixture = fileURLToPath(
     import.meta.url,
   ),
 );
-const vitest = path.resolve(
-  process.cwd(),
-  "../../node_modules/vitest/vitest.mjs",
-);
+const packageRoot = fileURLToPath(new URL("../../", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const vitest = path.join(repositoryRoot, "node_modules/vitest/vitest.mjs");
 const producerTest =
   "runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt";
 
@@ -85,7 +84,7 @@ function runCrashProducer(root) {
         "--reporter=dot",
       ],
       {
-        cwd: process.cwd(),
+        cwd: packageRoot,
         env: {
           ...process.env,
           CC_TEST_PROMOTION_CRASH_ROOT: root,

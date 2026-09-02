@@ -406,16 +406,20 @@ function normalizeContent(value) {
       `content exceeds ${SKILL_CANDIDATE_MAX_CONTENT_BYTES} bytes`,
     );
   }
+  assertCandidatePlaintextSafe(value, "content");
+  return value;
+}
+
+function assertCandidatePlaintextSafe(value, label) {
   try {
     assertEvolutionContentContainsNoKnownSecrets(value);
   } catch (cause) {
     throw registryError(
       "SKILL_CANDIDATE_SECRET_LEAK",
-      "candidate content contains secret or PII plaintext",
+      `candidate ${label} contains secret or PII plaintext`,
       { cause },
     );
   }
-  return value;
 }
 
 function normalizeNamespacedId(value, label) {
@@ -506,6 +510,7 @@ function normalizeSourceEvidenceRefs(value) {
         `sourceEvidenceRefs[${index}].ref must be an absolute opaque URI`,
       );
     }
+    assertCandidatePlaintextSafe(ref, `sourceEvidenceRefs[${index}].ref`);
     return {
       digest: normalizeDigest(
         ownData(entry, "digest", `sourceEvidenceRefs[${index}]`),

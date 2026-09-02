@@ -17,7 +17,7 @@ import {
   verifySkillMutationConsumptionReceipt,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
-import { consumeRegistryTransitionCapability } from "./skill-promotion-controller.js";
+import { consumeRegistryTransitionCapability } from "./skill-registry-transition-capability.js";
 
 export const SKILL_RELEASE_SCHEMA = "chainlesschain.skill-release/v4";
 export const SKILL_RELEASE_STATE_SCHEMA =

@@ -7,6 +7,8 @@ import { SKILL_TARGET_MATRIX_EVAL_RECEIPT_SCHEMA } from "./skill-target-matrix-e
 const { createStructuredMemoryAuthorityReceipt } = structuredMemory;
 const SKILL_RELEASE_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-transition-receipt/v4";
+const SKILL_PROMOTION_REVIEW_ENVELOPE_SCHEMA =
+  "chainlesschain.skill-promotion-review-envelope/v1";
 const RELEASE_RECEIPT_DOMAIN = `${SKILL_RELEASE_RECEIPT_SCHEMA}\0`;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const WRITERS = new WeakSet();
@@ -63,7 +65,7 @@ function normalizeDescriptor(input) {
   });
 }
 
-function verifyPromotion(result, matrixBinding, tenantId) {
+function verifyPromotion(result, matrixBinding, reviewBinding, tenantId) {
   const release = result?.release;
   const state = result?.state;
   const receipt = result?.receipt;
@@ -112,6 +114,31 @@ function verifyPromotion(result, matrixBinding, tenantId) {
     }
     evidenceRefs.push(matrixBinding.matrixReceiptDigest);
   }
+  if (reviewBinding !== null) {
+    const reviewEnvelope = canonical({
+      schema: SKILL_PROMOTION_REVIEW_ENVELOPE_SCHEMA,
+      receiptDigest: reviewBinding.reviewReceiptDigest,
+    });
+    const expectedPolicyReceiptDigest =
+      digestSkillMutationReceiptEnvelope(reviewEnvelope);
+    if (
+      reviewBinding?.tenantId !== tenantId ||
+      reviewBinding.skillName !== release.skillName ||
+      reviewBinding.candidateId !== release.candidateId ||
+      !DIGEST.test(reviewBinding.reviewReceiptDigest || "") ||
+      !DIGEST.test(reviewBinding.packetDigest || "") ||
+      !DIGEST.test(reviewBinding.capabilityDiffDigest || "") ||
+      !DIGEST.test(reviewBinding.candidateDiffDigest || "") ||
+      reviewBinding.matrixReceiptDigest !==
+        matrixBinding?.matrixReceiptDigest ||
+      receipt.receiptDigests?.policy !== expectedPolicyReceiptDigest
+    ) {
+      throw new Error(
+        "human review binding does not authorize the committed release",
+      );
+    }
+    evidenceRefs.push(reviewBinding.reviewReceiptDigest);
+  }
   return { release, receipt, evidenceRefs: [...new Set(evidenceRefs)].sort() };
 }
 
@@ -129,10 +156,11 @@ export function createStructuredMemoryPromotionReceiptWriter({
 
   const writer = Object.freeze({
     descriptor,
-    async retainPromotion(result, matrixBinding = null) {
+    async retainPromotion(result, matrixBinding = null, reviewBinding = null) {
       const verified = verifyPromotion(
         result,
         matrixBinding,
+        reviewBinding,
         descriptor.tenantId,
       );
       const issuedAt = requiredString(clock(), "issuedAt");

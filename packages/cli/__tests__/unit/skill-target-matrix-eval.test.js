@@ -68,6 +68,13 @@ import {
 } from "../../src/lib/evolution/skill-mutation-authority.js";
 import { EMPTY_SKILL_ACTIVE_DIGEST } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
+  SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
+  SKILL_PROMOTION_REVIEW_RESOLUTION_SCHEMA,
+  buildSkillPromotionReviewEnvelope,
+  buildSkillPromotionReviewPacket,
+  createSkillPromotionReviewProvider,
+} from "../../src/lib/evolution/skill-promotion-review.js";
+import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SkillReleaseRegistry,
 } from "../../src/lib/evolution/skill-release-registry.js";
@@ -2734,6 +2741,68 @@ describe("Skill target matrix evaluation foundation", () => {
       schema: "chainlesschain.skill-evaluated-promotion-receipt-envelope/v1",
       receiptDigest: receipt.receiptDigest,
     });
+    const candidate = fixture.candidate;
+    const reviewMatrixBinding = {
+      schema: "chainlesschain.skill-evaluated-promotion-binding/v1",
+      tenantId: receipt.tenantId,
+      skillName: receipt.skillName,
+      candidateId: receipt.candidateId,
+      candidateContentDigest: receipt.candidateContentDigest,
+      expectedActiveContentDigest: receipt.expectedActiveContentDigest,
+      expectedActiveRevision: receipt.expectedActiveRevision,
+      matrixEvalId: receipt.matrixEvalId,
+      matrixReceiptDigest: receipt.receiptDigest,
+      decisionCommitmentDigest: receipt.decisionCommitmentDigest,
+      expiresAt: receipt.expiresAt,
+      receiptResolution: {
+        authorityId: "authority:durable-matrix-receipts",
+        resolverDescriptorDigest: matrixDigest("review-matrix-resolver", "v1"),
+        resolverRevision: 1,
+        resolvedAt: new Date().toISOString(),
+      },
+    };
+    const reviewState = {
+      tenantId: receipt.tenantId,
+      skillName: receipt.skillName,
+      revision: 0,
+      activeReleaseDigest: null,
+    };
+    const reviewPacket = buildSkillPromotionReviewPacket({
+      candidate,
+      activeRelease: null,
+      matrixBinding: reviewMatrixBinding,
+      state: reviewState,
+    });
+    const reviewNow = Date.now();
+    const reviewDecisionCore = {
+      schema: SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
+      tenantId: receipt.tenantId,
+      skillName: receipt.skillName,
+      candidateId: receipt.candidateId,
+      packetDigest: reviewPacket.packetDigest,
+      decision: "approved",
+      automated: false,
+      reviewerIds: ["human:matrix-reviewer", "human:security-reviewer"],
+      quorum: 2,
+      reason:
+        "Reviewed evidence, candidate diff, permissions, Eval, and runtimes.",
+      decidedAt: new Date(reviewNow).toISOString(),
+      expiresAt: new Date(reviewNow + 10 * 60_000).toISOString(),
+    };
+    const reviewReceiptDigest = matrixDigest(
+      "chainlesschain.skill-promotion-review-decision/v1",
+      reviewDecisionCore,
+    );
+    const reviewSignature = createHmac("sha256", "matrix-review-test-key")
+      .update(reviewReceiptDigest)
+      .digest("base64url");
+    const reviewDecision = {
+      ...reviewDecisionCore,
+      receiptDigest: reviewReceiptDigest,
+      signature: reviewSignature,
+    };
+    const policyReceipt =
+      buildSkillPromotionReviewEnvelope(reviewReceiptDigest);
     const promotionRequest = buildSkillMutationRequest({
       tenantId: receipt.tenantId,
       audience: "worker:promotion",
@@ -2758,7 +2827,7 @@ describe("Skill target matrix evaluation foundation", () => {
       receipts: {
         candidateReceipt: "candidate:signed:matrix",
         evalReceipt,
-        policyReceipt: "policy:signed:matrix",
+        policyReceipt,
         actorReceipt: "actor:signed:matrix",
         parentReceipt: "parent:signed:matrix",
         targetReceipt: "target:signed:matrix",
@@ -2842,6 +2911,37 @@ describe("Skill target matrix evaluation foundation", () => {
       revision: 1,
       verifier,
     });
+    const promotionReviewProvider = createSkillPromotionReviewProvider({
+      tenantId: receipt.tenantId,
+      authorityId: "authority:human-matrix-review",
+      handlerArtifactDigest: matrixDigest("human-matrix-review", "v1"),
+      revision: 1,
+      decisionResolver: {
+        resolve(request) {
+          return {
+            schema: SKILL_PROMOTION_REVIEW_RESOLUTION_SCHEMA,
+            authorityId: "authority:human-matrix-review",
+            handlerArtifactDigest: matrixDigest("human-matrix-review", "v1"),
+            revision: 1,
+            tenantId: request.tenantId,
+            receiptDigest: request.receiptDigest,
+            decision: reviewDecision,
+            resolvedAt: new Date().toISOString(),
+          };
+        },
+      },
+      decisionVerifier: {
+        verify({ decision }) {
+          return (
+            decision.signature ===
+            createHmac("sha256", "matrix-review-test-key")
+              .update(decision.receiptDigest)
+              .digest("base64url")
+          );
+        },
+      },
+      now: Date.now,
+    });
     await expect(
       provider.verify({
         matrixContext: {
@@ -2874,7 +2974,6 @@ describe("Skill target matrix evaluation foundation", () => {
     expect(resolverRequests).toHaveLength(2);
 
     const authorityHarness = promotionAuthority();
-    const candidate = fixture.candidate;
     const candidateRegistry = {
       tenantId: receipt.tenantId,
       read: (candidateId) => {
@@ -2922,6 +3021,7 @@ describe("Skill target matrix evaluation foundation", () => {
       authority: authorityHarness.authority,
       candidateRegistry,
       evaluatedPromotionProvider: provider,
+      promotionReviewProvider,
       releaseRegistry,
     });
     memoryRoot.ledgerState.failBeforeType = "memory.event.persisted";
@@ -2950,6 +3050,12 @@ describe("Skill target matrix evaluation foundation", () => {
       promotionResult: {
         release: { candidateId: candidate.candidateId },
         state: { revision: 1 },
+        reviewBinding: {
+          packetDigest: reviewPacket.packetDigest,
+          reviewReceiptDigest,
+          reviewerIds: ["human:matrix-reviewer", "human:security-reviewer"],
+          quorum: 2,
+        },
       },
     });
     const committedPromotion = pendingError.promotionResult;
@@ -3021,7 +3127,11 @@ describe("Skill target matrix evaluation foundation", () => {
       promoted.release.releaseDigest,
     );
     expect(promoted.memoryAuthorityReceipt.evidenceRefs).toEqual(
-      [promoted.receipt.receiptDigest, receipt.receiptDigest].sort(),
+      [
+        promoted.receipt.receiptDigest,
+        receipt.receiptDigest,
+        reviewReceiptDigest,
+      ].sort(),
     );
     expect(
       memoryRoot.controlPlane.memory.projection().memories[
