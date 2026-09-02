@@ -33,6 +33,7 @@ const EMPTY_SKILL_ACTIVE_DIGEST = `sha256:${createHash("sha256")
   .update("chainlesschain.skill-active/empty/v1\0", "utf8")
   .digest("hex")}`;
 const PROVIDERS = new WeakSet();
+const REVIEW_PACKETS = new WeakSet();
 const PROVIDER_KEYS = new Set([
   "schema",
   "authorityId",
@@ -82,6 +83,25 @@ const DECISION_KEYS = new Set([
   "receiptDigest",
   "signature",
   "acknowledgedContentRiskDigest",
+]);
+const PACKET_KEYS = new Set([
+  "schema",
+  "tenantId",
+  "skillName",
+  "candidateId",
+  "candidateContentDigest",
+  "parentContentDigest",
+  "baselineReleaseDigest",
+  "evidenceSummary",
+  "candidateDiff",
+  "candidateDiffDigest",
+  "capabilityDiff",
+  "contentRisk",
+  "evaluation",
+  "targetRuntimes",
+  "expectedActiveRevision",
+  "requiredHumanQuorum",
+  "packetDigest",
 ]);
 
 export class SkillPromotionReviewError extends Error {
@@ -475,13 +495,55 @@ export function buildSkillPromotionReviewPacket({
     expectedActiveRevision: stateRevision,
     requiredHumanQuorum,
   };
-  return deepFreeze({
+  const packet = deepFreeze({
     ...core,
     packetDigest: digest(
       "chainlesschain.skill-promotion-review-packet/v1",
       core,
     ),
   });
+  REVIEW_PACKETS.add(packet);
+  return packet;
+}
+
+export function captureSkillPromotionReviewPacket(value) {
+  if (!value || !REVIEW_PACKETS.has(value)) {
+    throw failure(
+      "SKILL_PROMOTION_REVIEW_INVALID",
+      "a packet produced by the trusted review builder is required",
+    );
+  }
+  return deepFreeze(clone(value));
+}
+
+export function verifySkillPromotionReviewPacketArtifact(value) {
+  assertRecord(value, PACKET_KEYS, "review packet artifact");
+  const core = { ...value };
+  delete core.packetDigest;
+  if (
+    value.schema !== SKILL_PROMOTION_REVIEW_PACKET_SCHEMA ||
+    !SAFE_ID_PATTERN.test(value.tenantId || "") ||
+    !SAFE_ID_PATTERN.test(value.skillName || "") ||
+    !DIGEST_PATTERN.test(value.candidateId || "") ||
+    !DIGEST_PATTERN.test(value.candidateContentDigest || "") ||
+    !DIGEST_PATTERN.test(value.candidateDiffDigest || "") ||
+    !DIGEST_PATTERN.test(value.capabilityDiff?.capabilityDiffDigest || "") ||
+    !DIGEST_PATTERN.test(value.contentRisk?.contentRiskDigest || "") ||
+    !DIGEST_PATTERN.test(value.evaluation?.matrixReceiptDigest || "") ||
+    !Number.isSafeInteger(value.expectedActiveRevision) ||
+    value.expectedActiveRevision < 0 ||
+    !Number.isSafeInteger(value.requiredHumanQuorum) ||
+    value.requiredHumanQuorum < 1 ||
+    value.requiredHumanQuorum > REVIEWERS_MAX ||
+    value.packetDigest !==
+      digest("chainlesschain.skill-promotion-review-packet/v1", core)
+  ) {
+    throw failure(
+      "SKILL_PROMOTION_REVIEW_INVALID",
+      "review packet artifact binding is invalid",
+    );
+  }
+  return deepFreeze(clone(value));
 }
 
 export function buildSkillPromotionReviewEnvelope(receiptDigest) {
@@ -526,7 +588,7 @@ function parseReviewEnvelope(value) {
   return envelope;
 }
 
-function verifyDecision(decision, packet, nowMs) {
+function verifyDecision(decision, packet, nowMs, requireApproval = true) {
   assertRecord(decision, DECISION_KEYS, "review decision");
   const core = { ...decision };
   delete core.receiptDigest;
@@ -540,13 +602,15 @@ function verifyDecision(decision, packet, nowMs) {
     decision.skillName !== packet.skillName ||
     decision.candidateId !== packet.candidateId ||
     decision.packetDigest !== packet.packetDigest ||
-    decision.decision !== "approved" ||
+    !["approved", "rejected"].includes(decision.decision) ||
+    (requireApproval && decision.decision !== "approved") ||
     decision.automated !== false ||
-    reviewers.length < packet.requiredHumanQuorum ||
+    reviewers.length <
+      (decision.decision === "approved" ? packet.requiredHumanQuorum : 1) ||
     new Set(reviewers).size !== reviewers.length ||
     decision.quorum !== reviewers.length ||
     decision.acknowledgedContentRiskDigest !==
-      (packet.contentRisk.detected
+      (decision.decision === "approved" && packet.contentRisk.detected
         ? packet.contentRisk.contentRiskDigest
         : null) ||
     typeof decision.reason !== "string" ||
@@ -566,6 +630,21 @@ function verifyDecision(decision, packet, nowMs) {
     );
   }
   return deepFreeze(clone(decision));
+}
+
+export function verifySkillPromotionReviewDecision(
+  decision,
+  packet,
+  nowMs = Date.now(),
+) {
+  const verifiedPacket = verifySkillPromotionReviewPacketArtifact(packet);
+  if (!Number.isFinite(nowMs)) {
+    throw failure(
+      "SKILL_PROMOTION_REVIEW_INVALID",
+      "review decision verification clock is invalid",
+    );
+  }
+  return verifyDecision(decision, verifiedPacket, nowMs, false);
 }
 
 function capturePort(owner, method, label) {

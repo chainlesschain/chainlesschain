@@ -64,6 +64,8 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "skill-release-finalization",
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
+  "skill-promotion-review-decision",
+  "skill-promotion-review-packet",
   "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
@@ -102,6 +104,8 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "skill-candidate",
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
+  "skill-promotion-review-decision",
+  "skill-promotion-review-packet",
   "skill-release-finalization",
   "structured-memory-authority-receipt",
   "structured-memory-event",
@@ -282,6 +286,8 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
     "skill-mutation-nonce-claim",
     new Set(["evolution-ledger", "skill-mutation"]),
   ],
+  ["skill-promotion-review-decision", new Set(["evolution-ledger"])],
+  ["skill-promotion-review-packet", new Set(["evolution-ledger"])],
   ["wiki-revision", new Set(["evolution-ledger"])],
   ["structured-memory-authority-receipt", new Set(["evolution-ledger"])],
   ["structured-memory-event", new Set(["evolution-ledger"])],
@@ -3289,7 +3295,10 @@ export function createEvolutionLedgerArtifactResolver(ports, options) {
 }
 
 export function isEvolutionLedgerArtifactResolver(value) {
-  return typeof value === "function" && EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.has(value);
+  return (
+    typeof value === "function" &&
+    EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.has(value)
+  );
 }
 
 Object.freeze(EvolutionArtifactPorts.prototype);
