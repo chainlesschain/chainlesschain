@@ -5,6 +5,9 @@ const crypto = require("node:crypto");
 const STRUCTURED_MEMORY_EVENT_SCHEMA = "chainlesschain.structured-memory-event/v1";
 const STRUCTURED_MEMORY_PROJECTION_SCHEMA = "chainlesschain.structured-memory-projection/v1";
 const STRUCTURED_MEMORY_SNAPSHOT_SCHEMA = "chainlesschain.structured-memory-snapshot/v1";
+const STRUCTURED_MEMORY_RECEIPT_SCHEMA = "chainlesschain.structured-memory-authority-receipt/v1";
+const STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA = "chainlesschain.structured-memory-receipt-resolution/v1";
+const STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA = "chainlesschain.structured-memory-post-compact-verification/v1";
 
 const MEMORY_LAYER = Object.freeze({
   EPISODIC: "episodic",
@@ -33,6 +36,9 @@ const COMPACTION_FIELDS = [
   "memoryLineage",
 ];
 const MEMORY_AUTHORITIES = new WeakSet();
+const MEMORY_RECEIPT_PROVIDERS = new WeakSet();
+const MEMORY_POST_COMPACT_VERIFIERS = new WeakSet();
+const RECEIPT_KINDS = Object.freeze(["critic", "evaluator", "promotion", "policy"]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -108,6 +114,153 @@ function consumeAuthority(value, tenantId) {
     throw new Error("a branded tenant-scoped memory authority is required");
   }
   return value.actor;
+}
+
+function capture(owner, name) {
+  if (typeof owner?.[name] !== "function") throw new TypeError(`${name} port is required`);
+  return (...args) => Reflect.apply(owner[name], owner, args);
+}
+
+function normalizeReceiptProviderDescriptor(input) {
+  if (!Number.isSafeInteger(input?.authorityRevision) || input.authorityRevision <= 0) {
+    throw new TypeError("receipt authorityRevision must be a positive integer");
+  }
+  return freeze({
+    tenantId: requiredString(input.tenantId, "receiptProvider.tenantId"),
+    authorityId: requiredString(input.authorityId, "receiptProvider.authorityId"),
+    authorityRevision: input.authorityRevision,
+    handlerDigest: digest(input.handlerDigest, "receiptProvider.handlerDigest"),
+  });
+}
+
+function requiredReceiptKinds(event) {
+  if (event.layer === MEMORY_LAYER.SEMANTIC && event.action === MEMORY_ACTION.ACCEPT) return ["critic", "evaluator"];
+  if (event.layer === MEMORY_LAYER.PROCEDURAL && event.action === MEMORY_ACTION.ACCEPT) return ["promotion"];
+  if (event.layer === MEMORY_LAYER.POLICY && event.action === MEMORY_ACTION.ACCEPT) return ["policy"];
+  return [];
+}
+
+function normalizeReceiptRefs(input = {}, requiredKinds = []) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("receiptRefs must be an object");
+  const keys = Object.keys(input);
+  const supplied = keys.filter((key) => input[key] != null);
+  if (keys.some((key) => !RECEIPT_KINDS.includes(key)) || canonical(supplied.sort()) !== canonical([...requiredKinds].sort())) {
+    throw new Error("runtime receipt refs must exactly match the authorized transition");
+  }
+  return Object.fromEntries(requiredKinds.map((kind) => [kind, digest(input[kind], `receiptRefs.${kind}`)]));
+}
+
+async function validateResolvedReceipt(resolution, descriptor, request, verify) {
+  if (resolution?.schema !== STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA || resolution.authenticated !== true ||
+      resolution.tenantId !== descriptor.tenantId || resolution.authorityId !== descriptor.authorityId ||
+      resolution.authorityRevision !== descriptor.authorityRevision || resolution.handlerDigest !== descriptor.handlerDigest ||
+      resolution.kind !== request.kind || resolution.receiptDigest !== request.receiptDigest ||
+      !DIGEST.test(resolution.resolutionReceiptDigest || "")) {
+    throw new Error("structured memory receipt resolution authority is invalid");
+  }
+  const receipt = resolution.receipt;
+  if (receipt?.schema !== STRUCTURED_MEMORY_RECEIPT_SCHEMA || receipt.tenantId !== descriptor.tenantId ||
+      receipt.kind !== request.kind || receipt.receiptDigest !== request.receiptDigest || receipt.decision !== "accepted" ||
+      receipt.memoryId !== request.memoryId || receipt.layer !== request.layer || receipt.action !== request.action ||
+      receipt.contentDigest !== request.contentDigest || receipt.artifactRef !== request.artifactRef ||
+      canonical(strings(receipt.evidenceRefs || [], "receipt.evidenceRefs")) !== canonical(request.evidenceRefs) ||
+      !Number.isFinite(Date.parse(receipt.issuedAt || ""))) {
+    throw new Error("structured memory receipt is not bound to the requested transition");
+  }
+  if (await verify(freeze({ descriptor, request: freeze(clone(request)), resolution: freeze(clone(resolution)) })) !== true) {
+    throw new Error("structured memory receipt authentication failed");
+  }
+  return receipt.receiptDigest;
+}
+
+function createStructuredMemoryReceiptProvider({ descriptor: input, resolver, verifier } = {}) {
+  const descriptor = normalizeReceiptProviderDescriptor(input);
+  const resolve = capture(resolver, "resolve");
+  const verify = capture(verifier, "verify");
+  const provider = freeze({
+    identity: descriptor,
+    async resolveForEvent(event, refs = {}) {
+      if (event?.tenantId !== descriptor.tenantId) throw new Error("cross-tenant structured memory receipt request rejected");
+      const requiredKinds = requiredReceiptKinds(event);
+      const normalizedRefs = normalizeReceiptRefs(refs, requiredKinds);
+      const receipts = { critic: null, evaluator: null, promotion: null, policy: null };
+      for (const kind of requiredKinds) {
+        const request = freeze({ tenantId: descriptor.tenantId, kind, receiptDigest: normalizedRefs[kind],
+          memoryId: event.memoryId, layer: event.layer, action: event.action, contentDigest: event.contentDigest,
+          artifactRef: event.artifactRef, evidenceRefs: strings(event.evidenceRefs || [], "evidenceRefs") });
+        const resolution = await resolve(request);
+        receipts[kind] = await validateResolvedReceipt(resolution, descriptor, request, verify);
+      }
+      return freeze(receipts);
+    },
+  });
+  MEMORY_RECEIPT_PROVIDERS.add(provider);
+  return provider;
+}
+
+function consumeReceiptProvider(value, tenantId) {
+  if (!isStructuredMemoryReceiptProvider(value) || value.identity.tenantId !== tenantId) {
+    throw new Error("a branded tenant-scoped memory receipt provider is required");
+  }
+  return value;
+}
+
+function isStructuredMemoryReceiptProvider(value) {
+  return MEMORY_RECEIPT_PROVIDERS.has(value);
+}
+
+function normalizePostCompactDescriptor(input) {
+  if (!Number.isSafeInteger(input?.authorityRevision) || input.authorityRevision <= 0) {
+    throw new TypeError("PostCompact authorityRevision must be a positive integer");
+  }
+  return freeze({ tenantId: requiredString(input.tenantId, "postCompact.tenantId"),
+    authorityId: requiredString(input.authorityId, "postCompact.authorityId"),
+    authorityRevision: input.authorityRevision,
+    handlerDigest: digest(input.handlerDigest, "postCompact.handlerDigest") });
+}
+
+function createStructuredMemoryPostCompactVerifier({ descriptor: input, hook, verifier } = {}) {
+  const descriptor = normalizePostCompactDescriptor(input);
+  const run = capture(hook, "run");
+  const verify = capture(verifier, "verify");
+  const postCompact = async (context) => {
+    if (context?.candidate?.tenantId !== descriptor.tenantId || context.projection?.tenantId !== descriptor.tenantId ||
+        context.snapshotDigest !== hash(context.candidate)) {
+      throw new Error("PostCompact request is not bound to the tenant snapshot");
+    }
+    const request = freeze({ tenantId: descriptor.tenantId, snapshotDigest: context.snapshotDigest,
+      projectionDigest: context.projection.projectionDigest,
+      previousSnapshotDigest: context.previous?.snapshotDigest ?? null,
+      candidate: freeze(clone(context.candidate)), projection: context.projection });
+    const result = await run(request);
+    if (result?.schema !== STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA || result.authenticated !== true ||
+        result.tenantId !== descriptor.tenantId || result.authorityId !== descriptor.authorityId ||
+        result.authorityRevision !== descriptor.authorityRevision || result.handlerDigest !== descriptor.handlerDigest ||
+        result.snapshotDigest !== request.snapshotDigest || result.projectionDigest !== request.projectionDigest ||
+        result.previousSnapshotDigest !== request.previousSnapshotDigest || !["accepted", "rejected"].includes(result.decision) ||
+        !Number.isFinite(Date.parse(result.checkedAt || "")) || !DIGEST.test(result.receiptDigest || "")) {
+      throw new Error("PostCompact verification result is unauthenticated or substituted");
+    }
+    if (await verify(freeze({ descriptor, request, result: freeze(clone(result)) })) !== true) {
+      throw new Error("PostCompact verification attestation failed");
+    }
+    return result.decision === "accepted";
+  };
+  Object.defineProperty(postCompact, "identity", { value: descriptor, enumerable: true });
+  freeze(postCompact);
+  MEMORY_POST_COMPACT_VERIFIERS.add(postCompact);
+  return postCompact;
+}
+
+function consumePostCompactVerifier(value, tenantId) {
+  if (!isStructuredMemoryPostCompactVerifier(value) || value.identity.tenantId !== tenantId) {
+    throw new Error("a branded tenant-scoped PostCompact verifier is required");
+  }
+  return value;
+}
+
+function isStructuredMemoryPostCompactVerifier(value) {
+  return MEMORY_POST_COMPACT_VERIFIERS.has(value);
 }
 
 function normalizeReceipts(input = {}) {
@@ -300,15 +453,16 @@ function verifyPersistedSnapshot(snapshot, events, tenantId) {
 }
 
 class StructuredEvolutionMemory {
-  constructor({ tenantId, persistEvent, persistSnapshot, postCompactVerifier,
+  constructor({ tenantId, persistEvent, persistSnapshot, postCompactVerifier, receiptProvider,
     initialEvents = [], initialSnapshot = null } = {}) {
     this.tenantId = requiredString(tenantId, "tenantId");
-    if (typeof persistEvent !== "function" || typeof persistSnapshot !== "function" || typeof postCompactVerifier !== "function") {
+    if (typeof persistEvent !== "function" || typeof persistSnapshot !== "function") {
       throw new TypeError("persistent event/snapshot ports and PostCompact verifier are required");
     }
     this._persistEvent = persistEvent;
     this._persistSnapshot = persistSnapshot;
-    this._postCompactVerifier = postCompactVerifier;
+    this._postCompactVerifier = consumePostCompactVerifier(postCompactVerifier, this.tenantId);
+    this._receiptProvider = consumeReceiptProvider(receiptProvider, this.tenantId);
     if (!Array.isArray(initialEvents)) throw new TypeError("initialEvents must be an array");
     this._events = initialEvents.map(normalizeEvent);
     this._projection = projectStructuredMemory(this._events, { tenantId: this.tenantId });
@@ -319,8 +473,19 @@ class StructuredEvolutionMemory {
     const actor = consumeAuthority(input?.authority, this.tenantId);
     const eventInput = { ...input };
     delete eventInput.authority;
-    const event = normalizeEvent({ ...eventInput, actor, schema: STRUCTURED_MEMORY_EVENT_SCHEMA, tenantId: this.tenantId,
-      sequence: this._projection.sequence + 1 });
+    const receiptRefs = eventInput.receiptRefs || {};
+    delete eventInput.receiptRefs;
+    if (eventInput.receipts != null) {
+      if (typeof eventInput.receipts !== "object" || Array.isArray(eventInput.receipts) ||
+          canonical(normalizeReceipts(eventInput.receipts)) !== canonical(normalizeReceipts())) {
+        throw new Error("runtime receipt digests must be resolved by the configured provider");
+      }
+    }
+    delete eventInput.receipts;
+    const candidate = { ...eventInput, actor, schema: STRUCTURED_MEMORY_EVENT_SCHEMA, tenantId: this.tenantId,
+      sequence: this._projection.sequence + 1 };
+    const receipts = await this._receiptProvider.resolveForEvent(candidate, receiptRefs);
+    const event = normalizeEvent({ ...candidate, receipts });
     const next = projectStructuredMemory([event], { tenantId: this.tenantId,
       state: Object.fromEntries(Object.entries(this._projection).filter(([key]) => key !== "projectionDigest")),
       stateDigest: this._projection.projectionDigest });
@@ -376,4 +541,11 @@ module.exports = {
   StructuredEvolutionMemory,
   projectStructuredMemory,
   createStructuredMemoryAuthority,
+  STRUCTURED_MEMORY_RECEIPT_SCHEMA,
+  STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA,
+  createStructuredMemoryReceiptProvider,
+  isStructuredMemoryReceiptProvider,
+  STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA,
+  createStructuredMemoryPostCompactVerifier,
+  isStructuredMemoryPostCompactVerifier,
 };

@@ -16,7 +16,8 @@ import {
   StructuredMemoryLedgerAdapter,
 } from "../../src/lib/evolution/structured-memory-ledger-adapter.js";
 
-const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority } = structuredMemory;
+const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority,
+  createStructuredMemoryReceiptProvider, createStructuredMemoryPostCompactVerifier } = structuredMemory;
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -147,7 +148,8 @@ function backends() {
 
 function adapter(value) {
   return new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: value.artifactPorts,
-    ledger: value.ledger, ledgerArtifactResolver: value.resolver, clock: () => Date.parse("2026-09-02T00:00:00.000Z") });
+    ledger: value.ledger, ledgerArtifactResolver: value.resolver, ...memoryOptions(),
+    clock: () => Date.parse("2026-09-02T00:00:00.000Z") });
 }
 
 function openRealLedger(backend, witness) {
@@ -165,6 +167,33 @@ function openRealLedger(backend, witness) {
 function authority() {
   return createStructuredMemoryAuthority({ tenantId: "tenant-a", actorId: "producer-1", actorType: "agent",
     role: "producer", authorityDigest: hash("producer-authority") });
+}
+
+function receiptProvider() {
+  const providerDescriptor = { tenantId: "tenant-a", authorityId: "memory-receipts", authorityRevision: 1,
+    handlerDigest: hash("memory-receipt-handler") };
+  return createStructuredMemoryReceiptProvider({ descriptor: providerDescriptor,
+    resolver: { resolve: async (request) => ({ schema: structuredMemory.STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA,
+      authenticated: true, ...providerDescriptor, kind: request.kind, receiptDigest: request.receiptDigest,
+      resolutionReceiptDigest: hash(`resolution:${request.kind}`),
+      receipt: { schema: structuredMemory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: request.tenantId,
+        kind: request.kind, receiptDigest: request.receiptDigest, decision: "accepted", memoryId: request.memoryId,
+        layer: request.layer, action: request.action, contentDigest: request.contentDigest,
+        artifactRef: request.artifactRef, evidenceRefs: request.evidenceRefs,
+        issuedAt: "2026-09-02T00:00:00.000Z" } }) }, verifier: { verify: async () => true } });
+}
+
+function memoryOptions() {
+  const postCompactDescriptor = { tenantId: "tenant-a", authorityId: "post-compact-runtime", authorityRevision: 1,
+    handlerDigest: hash("post-compact-handler") };
+  const postCompactVerifier = createStructuredMemoryPostCompactVerifier({ descriptor: postCompactDescriptor,
+    hook: { run: async (request) => ({ schema: structuredMemory.STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA,
+      authenticated: true, ...postCompactDescriptor, snapshotDigest: request.snapshotDigest,
+      projectionDigest: request.projectionDigest, previousSnapshotDigest: request.previousSnapshotDigest,
+      decision: "accepted", checkedAt: "2026-09-02T00:00:00.000Z",
+      receiptDigest: hash(`post-compact:${request.snapshotDigest}`) }) },
+    verifier: { verify: async () => true } });
+  return { postCompactVerifier, receiptProvider: receiptProvider() };
 }
 
 function runtimeEvent(id = "memory-1") {
@@ -191,16 +220,18 @@ describe("StructuredMemoryLedgerAdapter", () => {
     const firstLedger = openRealLedger(backend, witness);
     const first = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
       ledger: firstLedger, ledgerArtifactResolver: backend.resolver,
+      ...memoryOptions(),
       clock: () => Date.parse("2026-09-02T00:00:00.000Z") })
-      .createMemory({ postCompactVerifier: async () => true });
+      .createMemory();
     await first.append(runtimeEvent());
     expect((await first.compact(compactInput)).status).toBe("compacted");
 
     const reopenedLedger = openRealLedger(backend, witness);
     const reopened = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
       ledger: reopenedLedger, ledgerArtifactResolver: backend.resolver,
+      ...memoryOptions(),
       clock: () => Date.parse("2026-09-02T00:00:00.000Z") })
-      .createMemory({ postCompactVerifier: async () => true });
+      .createMemory();
     expect(reopened.projection()).toEqual(first.projection());
     expect(reopened.snapshot()).toEqual(first.snapshot());
     expect(reopenedLedger.verify()).toMatchObject({ eventCount: 2, sequence: 2 });
@@ -211,10 +242,10 @@ describe("StructuredMemoryLedgerAdapter", () => {
 
   it("persists events and snapshots and hydrates a new memory control-plane instance", async () => {
     const backend = backends();
-    const first = adapter(backend).createMemory({ postCompactVerifier: async () => true });
+    const first = adapter(backend).createMemory();
     await first.append(runtimeEvent());
     expect((await first.compact(compactInput)).status).toBe("compacted");
-    const reopened = adapter(backend).createMemory({ postCompactVerifier: async () => true });
+    const reopened = adapter(backend).createMemory();
     expect(reopened.projection()).toEqual(first.projection());
     expect(reopened.snapshot()).toEqual(first.snapshot());
     expect(backend.state.events.map((entry) => entry.type)).toEqual(["memory.event.persisted", "memory.snapshot.persisted"]);
@@ -222,8 +253,8 @@ describe("StructuredMemoryLedgerAdapter", () => {
 
   it("rejects a different concurrent event from the same structured-memory sequence", async () => {
     const backend = backends();
-    const first = adapter(backend).createMemory({ postCompactVerifier: async () => true });
-    const second = adapter(backend).createMemory({ postCompactVerifier: async () => true });
+    const first = adapter(backend).createMemory();
+    const second = adapter(backend).createMemory();
     await first.append(runtimeEvent("memory-1"));
     await expect(second.append(runtimeEvent("memory-2"))).rejects.toMatchObject({ code: STRUCTURED_MEMORY_LEDGER_CONFLICT_CODE });
     expect(backend.state.events).toHaveLength(1);
@@ -244,5 +275,18 @@ describe("StructuredMemoryLedgerAdapter", () => {
     const backend = backends();
     expect(() => new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
       ledger: backend.ledger, ledgerArtifactResolver: (request) => backend.resolver(request) })).toThrow(/branded/);
+  });
+
+  it("fixes branded receipt and PostCompact authorities at adapter construction", () => {
+    const backend = backends();
+    const options = memoryOptions();
+    expect(() => new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
+      ledger: backend.ledger, ledgerArtifactResolver: backend.resolver,
+      receiptProvider: { ...options.receiptProvider }, postCompactVerifier: options.postCompactVerifier }))
+      .toThrow(/branded tenant-scoped structured memory receipt/);
+    expect(() => new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
+      ledger: backend.ledger, ledgerArtifactResolver: backend.resolver,
+      receiptProvider: options.receiptProvider, postCompactVerifier: async () => true }))
+      .toThrow(/branded tenant-scoped structured memory PostCompact/);
   });
 });

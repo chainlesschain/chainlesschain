@@ -14,6 +14,8 @@ const {
   STRUCTURED_MEMORY_SNAPSHOT_SCHEMA,
   StructuredEvolutionMemory,
   projectStructuredMemory,
+  isStructuredMemoryReceiptProvider,
+  isStructuredMemoryPostCompactVerifier,
 } = structuredMemory;
 
 export const STRUCTURED_MEMORY_LEDGER_EVENT_TYPE = "memory.event.persisted";
@@ -82,7 +84,8 @@ function parseResolution(resolution, expectedType, options) {
 }
 
 export class StructuredMemoryLedgerAdapter {
-  constructor({ descriptor: input, artifactPorts, ledger, ledgerArtifactResolver, clock = Date.now } = {}) {
+  constructor({ descriptor: input, artifactPorts, ledger, ledgerArtifactResolver,
+    receiptProvider, postCompactVerifier, clock = Date.now } = {}) {
     this.descriptor = descriptor(input);
     this._put = capture(artifactPorts, "putCanonical");
     this._read = capture(ledger, "read");
@@ -93,7 +96,17 @@ export class StructuredMemoryLedgerAdapter {
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
       throw new TypeError("a branded EvolutionArtifactPorts ledger resolver is required");
     }
+    if (!isStructuredMemoryReceiptProvider(receiptProvider) ||
+        receiptProvider.identity.tenantId !== this.descriptor.tenantId) {
+      throw new TypeError("a branded tenant-scoped structured memory receipt provider is required");
+    }
+    if (!isStructuredMemoryPostCompactVerifier(postCompactVerifier) ||
+        postCompactVerifier.identity.tenantId !== this.descriptor.tenantId) {
+      throw new TypeError("a branded tenant-scoped structured memory PostCompact verifier is required");
+    }
     this._resolve = ledgerArtifactResolver;
+    this._receiptProvider = receiptProvider;
+    this._postCompactVerifier = postCompactVerifier;
     Object.freeze(this);
   }
 
@@ -193,11 +206,11 @@ export class StructuredMemoryLedgerAdapter {
       snapshot.snapshotDigest, "snapshotDigest", new Date(this._clock()).toISOString(), sources);
   };
 
-  createMemory({ postCompactVerifier }) {
-    if (typeof postCompactVerifier !== "function") throw new TypeError("postCompactVerifier is required");
+  createMemory() {
     const restored = this.load();
     return new StructuredEvolutionMemory({ tenantId: this.descriptor.tenantId,
-      persistEvent: this.persistEvent, persistSnapshot: this.persistSnapshot, postCompactVerifier,
+      persistEvent: this.persistEvent, persistSnapshot: this.persistSnapshot,
+      postCompactVerifier: this._postCompactVerifier, receiptProvider: this._receiptProvider,
       initialEvents: restored.events, initialSnapshot: restored.snapshot });
   }
 }

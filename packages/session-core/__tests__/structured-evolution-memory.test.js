@@ -9,6 +9,8 @@ const {
   StructuredEvolutionMemory,
   projectStructuredMemory,
   createStructuredMemoryAuthority,
+  createStructuredMemoryReceiptProvider,
+  createStructuredMemoryPostCompactVerifier,
 } = memory;
 
 function digest(value) {
@@ -40,13 +42,51 @@ function event(overrides = {}) {
 }
 
 function ports(overrides = {}) {
+  const postCompact = postCompactAuthority();
   return {
     persistEvent: vi.fn(async (value) => ({ persisted: true, eventId: value.eventId,
       eventDigest: hashEvent(value) })),
     persistSnapshot: vi.fn(async (value) => ({ persisted: true, snapshotDigest: value.snapshotDigest })),
-    postCompactVerifier: vi.fn(async () => true),
+    postCompactVerifier: postCompact.provider,
+    postCompactHook: postCompact.hook,
+    postCompactAttestationVerifier: postCompact.verifier,
+    receiptProvider: receiptProvider(),
     ...overrides,
   };
+}
+
+function postCompactResult(request, decision = "accepted") {
+  return { schema: memory.STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA, authenticated: true,
+    tenantId: "tenant-a", authorityId: "post-compact-runtime", authorityRevision: 1,
+    handlerDigest: digest("post-compact-handler"), snapshotDigest: request.snapshotDigest,
+    projectionDigest: request.projectionDigest, previousSnapshotDigest: request.previousSnapshotDigest,
+    decision, checkedAt: "2026-09-02T00:00:00.000Z", receiptDigest: digest(`post-compact:${decision}`) };
+}
+
+function postCompactAuthority(overrides = {}) {
+  const descriptor = { tenantId: "tenant-a", authorityId: "post-compact-runtime", authorityRevision: 1,
+    handlerDigest: digest("post-compact-handler") };
+  const hook = overrides.hook || { run: vi.fn(async (request) => postCompactResult(request)) };
+  const verifier = overrides.verifier || { verify: vi.fn(async () => true) };
+  return { hook, verifier, provider: createStructuredMemoryPostCompactVerifier({ descriptor, hook, verifier }) };
+}
+
+function receiptProvider(overrides = {}) {
+  const descriptor = { tenantId: "tenant-a", authorityId: "memory-receipts",
+    authorityRevision: 1, handlerDigest: digest("memory-receipt-handler") };
+  const resolver = { resolve: vi.fn(async (request) => {
+    const receipt = { schema: memory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: request.tenantId,
+      kind: request.kind, receiptDigest: request.receiptDigest, decision: "accepted",
+      memoryId: request.memoryId, layer: request.layer, action: request.action,
+      contentDigest: request.contentDigest, artifactRef: request.artifactRef,
+      evidenceRefs: request.evidenceRefs, issuedAt: "2026-09-02T00:00:00.000Z" };
+    return { schema: memory.STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA, authenticated: true,
+      ...descriptor, kind: request.kind, receiptDigest: request.receiptDigest, receipt,
+      resolutionReceiptDigest: digest(`resolution:${request.kind}:${request.receiptDigest}`) };
+  }) };
+  const verifier = { verify: vi.fn(async () => true) };
+  return createStructuredMemoryReceiptProvider({ descriptor,
+    resolver: overrides.resolver || resolver, verifier: overrides.verifier || verifier });
 }
 
 function authority(role = "producer", actorType = "agent", tenantId = "tenant-a") {
@@ -185,7 +225,7 @@ describe("StructuredEvolutionMemory", () => {
     expect(result.status).toBe("compacted");
     expect(result.snapshot).toMatchObject({ throughSequence: 1, requirements: compactInput().requirements,
       decisions: compactInput().decisions, memoryLineage: ["memory-1"] });
-    expect(p.postCompactVerifier).toHaveBeenCalledWith(expect.objectContaining({ projection: store.projection() }));
+    expect(p.postCompactHook.run).toHaveBeenCalledWith(expect.objectContaining({ projection: store.projection() }));
     expect(p.persistSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -194,12 +234,34 @@ describe("StructuredEvolutionMemory", () => {
     const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
     await store.append(runtimeEvent());
     const first = await store.compact(compactInput());
-    p.postCompactVerifier.mockResolvedValueOnce(false);
+    p.postCompactHook.run.mockImplementationOnce(async (request) => postCompactResult(request, "rejected"));
     const failed = await store.compact(compactInput({ decisions: ["unsafe replacement"] }));
     expect(failed).toEqual({ status: "restored", snapshot: first.snapshot,
       reason: "post-compact verification failed" });
     expect(store.snapshot()).toEqual(first.snapshot);
     expect(p.persistSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires branded PostCompact composition and rejects substituted or unauthenticated results", async () => {
+    const base = ports();
+    expect(() => new StructuredEvolutionMemory({ tenantId: "tenant-a", ...base,
+      postCompactVerifier: async () => true })).toThrow(/branded tenant-scoped PostCompact/);
+
+    const substitutedAuthority = postCompactAuthority({ hook: { run: vi.fn(async (request) => ({
+      ...postCompactResult(request), snapshotDigest: digest("substituted") })) } });
+    const substitutedPorts = ports({ postCompactVerifier: substitutedAuthority.provider,
+      postCompactHook: substitutedAuthority.hook });
+    const substituted = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...substitutedPorts });
+    await substituted.append(runtimeEvent());
+    expect(await substituted.compact(compactInput())).toMatchObject({ status: "restored", snapshot: null });
+    expect(substitutedPorts.persistSnapshot).not.toHaveBeenCalled();
+
+    const rejectedAuthority = postCompactAuthority({ verifier: { verify: vi.fn(async () => false) } });
+    const rejectedPorts = ports({ postCompactVerifier: rejectedAuthority.provider });
+    const rejected = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...rejectedPorts });
+    await rejected.append(runtimeEvent());
+    expect(await rejected.compact(compactInput())).toMatchObject({ status: "restored", snapshot: null });
+    expect(rejectedPorts.persistSnapshot).not.toHaveBeenCalled();
   });
 
   it("restores the previous snapshot when snapshot persistence is unconfirmed", async () => {
@@ -225,6 +287,70 @@ describe("StructuredEvolutionMemory", () => {
     await expect(store.append(runtimeEvent({ authority: authority("producer", "agent", "tenant-b") })))
       .rejects.toThrow(/branded tenant-scoped/);
     expect(p.persistEvent).not.toHaveBeenCalled();
+  });
+
+  it("resolves semantic approval receipts through the configured branded provider", async () => {
+    const p = ports();
+    const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+    const semantic = { layer: "semantic", evidenceRefs: ["evidence://grader/1"] };
+    await store.append(runtimeEvent({ ...semantic, action: "propose", authority: authority("child-agent") }));
+    const result = await store.append(runtimeEvent({ ...semantic, eventId: "event-2", action: "accept",
+      authority: authority("governor", "service"),
+      receiptRefs: { critic: digest("critic"), evaluator: digest("evaluator") } }));
+    expect(result.event.receipts).toEqual({ critic: digest("critic"), evaluator: digest("evaluator"),
+      promotion: null, policy: null });
+    expect(result.projection.memories["memory-1"].status).toBe("active");
+  });
+
+  it("resolves promotion and human-policy receipts without exposing digest injection", async () => {
+    const transitions = [
+      { layer: "procedural", authority: authority("promotion-controller", "service"),
+        receiptRefs: { promotion: digest("promotion") }, expectedKind: "promotion" },
+      { layer: "policy", authority: authority("governor", "human"), automatic: false,
+        receiptRefs: { policy: digest("policy") }, expectedKind: "policy" },
+    ];
+    for (const transition of transitions) {
+      const p = ports();
+      const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+      const result = await store.append(runtimeEvent({ ...transition, action: "accept" }));
+      expect(result.event.receipts[transition.expectedKind]).toBe(transition.receiptRefs[transition.expectedKind]);
+      expect(result.projection.memories["memory-1"].status).toBe("active");
+    }
+  });
+
+  it("rejects caller-supplied receipt digests and unbranded receipt providers", async () => {
+    const p = ports();
+    const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+    await expect(store.append(runtimeEvent({ layer: "procedural", action: "accept",
+      authority: authority("promotion-controller", "service"), receipts: { promotion: digest("forged") } })))
+      .rejects.toThrow(/configured provider/);
+    expect(() => new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p,
+      receiptProvider: { resolveForEvent: async () => ({}) } })).toThrow(/branded tenant-scoped/);
+    expect(p.persistEvent).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when receipt resolution substitutes the transition or is unauthenticated", async () => {
+    const substituted = receiptProvider({ resolver: { resolve: async (request) => ({
+      schema: memory.STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA, authenticated: true,
+      tenantId: "tenant-a", authorityId: "memory-receipts", authorityRevision: 1,
+      handlerDigest: digest("memory-receipt-handler"), kind: request.kind,
+      receiptDigest: request.receiptDigest, resolutionReceiptDigest: digest("resolution"),
+      receipt: { schema: memory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: "tenant-a", kind: request.kind,
+        receiptDigest: request.receiptDigest, decision: "accepted", memoryId: request.memoryId,
+        layer: request.layer, action: request.action, contentDigest: digest("substituted"),
+        artifactRef: request.artifactRef, evidenceRefs: request.evidenceRefs,
+        issuedAt: "2026-09-02T00:00:00.000Z" },
+    }) } });
+    const p = ports({ receiptProvider: substituted });
+    const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+    await expect(store.append(runtimeEvent({ layer: "procedural", action: "accept",
+      authority: authority("promotion-controller", "service"), receiptRefs: { promotion: digest("promotion") } })))
+      .rejects.toThrow(/not bound/);
+    const unauthenticated = receiptProvider({ verifier: { verify: async () => false } });
+    const rejected = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...ports({ receiptProvider: unauthenticated }) });
+    await expect(rejected.append(runtimeEvent({ layer: "procedural", action: "accept",
+      authority: authority("promotion-controller", "service"), receiptRefs: { promotion: digest("promotion") } })))
+      .rejects.toThrow(/authentication failed/);
   });
 
   it("hydrates deterministically from persisted events and a verified compaction snapshot", async () => {
