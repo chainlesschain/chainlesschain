@@ -32,6 +32,8 @@ export const EVOLUTION_LEDGER_AUDIT_ARTIFACT_SCHEMA =
   "chainlesschain.evolution-ledger-audit-artifact/v1";
 export const EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA =
   "chainlesschain.evolution-ledger-audit-verification/v1";
+export const EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA =
+  "chainlesschain.evolution-ledger-state-snapshot/v1";
 export const EVOLUTION_ARTIFACT_REF_SCHEMA =
   "chainlesschain.content-addressed-artifact-ref/v1";
 export const EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA =
@@ -59,9 +61,14 @@ const DISCARD_ACCUMULATOR_DOMAIN =
 const ARTIFACT_VALIDATION_DOMAIN =
   "chainlesschain.evolution-artifact-validation/v1\0";
 const AUDIT_EXPORT_DOMAIN = "chainlesschain.evolution-ledger-audit-export/v1\0";
+const STATE_SNAPSHOT_DOMAIN =
+  "chainlesschain.evolution-ledger-state-snapshot/v1\0";
+const STATE_SNAPSHOT_CONTENT_DOMAIN =
+  "chainlesschain.evolution-ledger-state-snapshot-content/v1\0";
 const IDENTITY_FILE_NAME = "identity-v1.json";
 const STORE_MARKER_FILE_NAME = "store-marker-v1.json";
 const HEAD_FILE_NAME = "head-v1.json";
+const STATE_SNAPSHOT_FILE_PREFIX = "state-snapshot-v1-";
 const SEGMENT_DIRECTORY_NAME = "segments-v1";
 const ANCHOR_DIRECTORY_NAME = "head-anchors-v1";
 const LOCK_TARGET_NAME = "ledger-v2";
@@ -75,12 +82,14 @@ const SIGNATURE_VALUE_PATTERN = /^[A-Za-z0-9_-]{22,8192}$/u;
 const RANDOM_TOKEN_PATTERN = /^[A-Za-z0-9-]{16,128}$/u;
 const SEGMENT_FILE_PATTERN = /^(\d{12})-([a-f0-9]{64})\.json$/u;
 const ANCHOR_FILE_PATTERN = /^(\d{12})-([a-f0-9]{64})\.json$/u;
+const STATE_SNAPSHOT_FILE_PATTERN = /^state-snapshot-v1-([a-f0-9]{64})\.json$/u;
 const STAGE_FILE_PATTERN = /^\.stage-(.+)\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const HEAD_STAGE_FILE_PATTERN =
   /^\.replace-head-v1\.json\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const MAX_SOURCE_REFS = 256;
 const MAX_AUDIT_ARTIFACT_RECORDS = 1_000_000;
 const MAX_LEDGER_BATCH_QUERIES = 10_000;
+const MAX_STATE_SNAPSHOT_BYTES = 256 * 1024 * 1024;
 const STATE_QUERY_INDEXES = new WeakMap();
 const TYPED_ARRAY_PROTOTYPE = Object.getPrototypeOf(Uint8Array.prototype);
 const TYPED_ARRAY_BUFFER_GETTER = Object.getOwnPropertyDescriptor(
@@ -410,6 +419,38 @@ const AUDIT_VERIFY_PORT_KEYS = new Set([
   "verifyWitnessSignature",
   "witnessTrust",
 ]);
+const STATE_SNAPSHOT_CORE_KEYS = new Set([
+  "algorithm",
+  "anchorDigest",
+  "createdAt",
+  "epoch",
+  "headDigest",
+  "identityDigest",
+  "keyId",
+  "ledgerId",
+  "schema",
+  "sequence",
+  "stateDigest",
+  "storeMarkerDigest",
+  "storeMarkerEntryDigest",
+  "trustPolicyDigest",
+  "witnessDigest",
+  "witnessGeneration",
+  "witnessId",
+]);
+const STATE_SNAPSHOT_RECORD_KEYS = new Set([
+  ...STATE_SNAPSHOT_CORE_KEYS,
+  "signature",
+  "snapshotDigest",
+  "state",
+]);
+const STATE_SNAPSHOT_CONTENT_KEYS = new Set([
+  "anchorFiles",
+  "anchors",
+  "events",
+  "segmentFiles",
+]);
+const STATE_SNAPSHOT_FILE_KEYS = new Set(["contentDigest", "name"]);
 
 const REQUIRED_FS_METHODS = Object.freeze([
   "closeSync",
@@ -1275,6 +1316,42 @@ function normalizeAnchorCore(value) {
   };
 }
 
+function normalizeStateSnapshotCore(value) {
+  assertExactKeys(value, STATE_SNAPSHOT_CORE_KEYS, "state snapshot core");
+  if (value.schema !== EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+      "state snapshot schema is unsupported",
+    );
+  }
+  return {
+    algorithm: boundedString(value.algorithm, "algorithm", 64),
+    anchorDigest: digest(value.anchorDigest, "anchorDigest"),
+    createdAt: canonicalTimestamp(value.createdAt, "createdAt"),
+    epoch: identifier(value.epoch, "epoch"),
+    headDigest: digest(value.headDigest, "headDigest", { nullable: true }),
+    identityDigest: digest(value.identityDigest, "identityDigest"),
+    keyId: boundedString(value.keyId, "keyId", 256),
+    ledgerId: identifier(value.ledgerId, "ledgerId"),
+    schema: EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA,
+    sequence: safeSequence(value.sequence, "sequence", { allowZero: true }),
+    stateDigest: digest(value.stateDigest, "stateDigest"),
+    storeMarkerDigest: digest(value.storeMarkerDigest, "storeMarkerDigest"),
+    storeMarkerEntryDigest: digest(
+      value.storeMarkerEntryDigest,
+      "storeMarkerEntryDigest",
+    ),
+    trustPolicyDigest: digest(value.trustPolicyDigest, "trustPolicyDigest"),
+    witnessDigest: digest(value.witnessDigest, "witnessDigest"),
+    witnessGeneration: safeSequence(
+      value.witnessGeneration,
+      "witnessGeneration",
+      { allowZero: true },
+    ),
+    witnessId: identifier(value.witnessId, "witnessId"),
+  };
+}
+
 function normalizeReceiptCore(value, trust, witnessTrust) {
   assertExactKeys(value, RECEIPT_CORE_KEYS, "receipt core");
   if (value.schema !== EVOLUTION_LEDGER_RECEIPT_SCHEMA) {
@@ -1713,6 +1790,10 @@ function segmentFileName(sequence, segmentDigest) {
 
 function anchorFileName(sequence, anchorDigest) {
   return `${sequenceName(sequence)}-${anchorDigest.slice("sha256:".length)}.json`;
+}
+
+function stateSnapshotFileName(witnessDigest) {
+  return `${STATE_SNAPSHOT_FILE_PREFIX}${witnessDigest.slice("sha256:".length)}.json`;
 }
 
 function defaultRootDir() {
@@ -2218,7 +2299,7 @@ export class EvolutionLedger {
     return deepFreeze({ ...core, signature, storeMarkerDigest });
   }
 
-  #verifyEvent(record, previous, identity) {
+  #verifyEvent(record, previous, identity, { verifySignature = true } = {}) {
     assertPlainDataObject(record, "event record");
     const schema = Object.getOwnPropertyDescriptor(record, "schema")?.value;
     const domainEvent = schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA;
@@ -2249,16 +2330,23 @@ export class EvolutionLedger {
         { sequence: core.sequence },
       );
     }
-    this.#verifyMessage({
-      digest: eventDigest,
-      message,
-      purpose: domainEvent ? "domain-event" : "event",
-      signature,
-    });
+    if (verifySignature) {
+      this.#verifyMessage({
+        digest: eventDigest,
+        message,
+        purpose: domainEvent ? "domain-event" : "event",
+        signature,
+      });
+    }
     return deepFreeze({ ...core, eventDigest, signature });
   }
 
-  #verifyAnchor(record, previous, identity, { standalone = false } = {}) {
+  #verifyAnchor(
+    record,
+    previous,
+    identity,
+    { standalone = false, verifySignature = true } = {},
+  ) {
     assertExactKeys(record, ANCHOR_RECORD_KEYS, "anchor record");
     const core = normalizeAnchorCore(
       Object.fromEntries(
@@ -2286,12 +2374,14 @@ export class EvolutionLedger {
         { sequence: core.sequence },
       );
     }
-    this.#verifyMessage({
-      digest: anchorDigest,
-      message,
-      purpose: "anchor",
-      signature,
-    });
+    if (verifySignature) {
+      this.#verifyMessage({
+        digest: anchorDigest,
+        message,
+        purpose: "anchor",
+        signature,
+      });
+    }
     return deepFreeze({ ...core, anchorDigest, signature });
   }
 
@@ -3043,7 +3133,10 @@ export class EvolutionLedger {
     this.#cleanupDirectoryDebris(this.#paths.anchorDir, ANCHOR_FILE_PATTERN);
     this.#cleanupDirectoryDebris(
       this.#paths.authorityRootDir,
-      new RegExp(`^${IDENTITY_FILE_NAME.replace(".", "\\.")}$`, "u"),
+      new RegExp(
+        `^(?:${IDENTITY_FILE_NAME.replace(".", "\\.")}|${STATE_SNAPSHOT_FILE_PATTERN.source.slice(1, -1)})$`,
+        "u",
+      ),
     );
     this.#cleanupDirectoryDebris(
       this.#paths.rootDir,
@@ -3288,6 +3381,304 @@ export class EvolutionLedger {
     }
   }
 
+  #snapshotFileRecords(values, label, expectedNames) {
+    const entries = readDenseDataArray(
+      values,
+      label,
+      EVOLUTION_LEDGER_MAX_EVENTS + 1,
+    );
+    if (entries.length !== expectedNames.length) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} does not cover the current immutable prefix`,
+      );
+    }
+    return entries.map((entry, index) => {
+      assertExactKeys(entry, STATE_SNAPSHOT_FILE_KEYS, `${label} entry`);
+      const normalized = {
+        contentDigest: digest(entry.contentDigest, "contentDigest"),
+        name: boundedString(entry.name, "name", 256),
+      };
+      if (normalized.name !== expectedNames[index]) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `${label} is missing or reordered at index ${index}`,
+        );
+      }
+      return Object.freeze(normalized);
+    });
+  }
+
+  #verifyStateSnapshot(
+    record,
+    identity,
+    storeMarker,
+    witnessed,
+    head,
+    anchorNames,
+    segmentNames,
+  ) {
+    assertExactKeys(record, STATE_SNAPSHOT_RECORD_KEYS, "state snapshot");
+    const core = normalizeStateSnapshotCore(
+      Object.fromEntries(
+        [...STATE_SNAPSHOT_CORE_KEYS].map((key) => [key, record[key]]),
+      ),
+    );
+    const snapshotDigest = digest(record.snapshotDigest, "snapshotDigest");
+    const signature = normalizeSignature(record.signature, this.#trust);
+    const message = signedMessage(STATE_SNAPSHOT_DOMAIN, core);
+    if (snapshotDigest !== sha256(message)) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot digest does not match its signed core",
+      );
+    }
+    this.#verifyMessage({
+      digest: snapshotDigest,
+      message,
+      purpose: "state-snapshot",
+      signature,
+    });
+    if (
+      core.algorithm !== this.#trust.algorithm ||
+      core.keyId !== this.#trust.keyId ||
+      core.trustPolicyDigest !== this.#trust.trustPolicyDigest ||
+      core.ledgerId !== identity.ledgerId ||
+      core.epoch !== identity.epoch ||
+      core.identityDigest !== identity.identityDigest ||
+      core.storeMarkerDigest !== storeMarker.storeMarkerDigest ||
+      core.storeMarkerEntryDigest !== identity.storeMarkerEntryDigest ||
+      core.witnessId !== witnessed.witnessId ||
+      core.witnessDigest !== witnessed.witnessDigest ||
+      core.witnessGeneration !== witnessed.generation ||
+      core.sequence !== witnessed.sequence ||
+      core.sequence !== head.sequence ||
+      core.anchorDigest !== head.anchorDigest ||
+      core.headDigest !== head.headDigest
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot is stale or not bound to the current authority",
+      );
+    }
+
+    assertExactKeys(
+      record.state,
+      STATE_SNAPSHOT_CONTENT_KEYS,
+      "state snapshot content",
+    );
+    if (
+      core.stateDigest !==
+      domainDigest(STATE_SNAPSHOT_CONTENT_DOMAIN, record.state)
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot content digest does not match its signed core",
+      );
+    }
+    const anchorRecords = readDenseDataArray(
+      record.state.anchors,
+      "state snapshot anchors",
+      EVOLUTION_LEDGER_MAX_EVENTS + 1,
+    );
+    const eventRecords = readDenseDataArray(
+      record.state.events,
+      "state snapshot events",
+      EVOLUTION_LEDGER_MAX_EVENTS,
+    );
+    if (
+      anchorRecords.length !== eventRecords.length + 1 ||
+      eventRecords.length !== core.sequence
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot chain length does not match its authority checkpoint",
+      );
+    }
+
+    const anchors = [];
+    const events = [];
+    const eventIds = new Set();
+    for (let index = 0; index < anchorRecords.length; index += 1) {
+      const anchor = this.#verifyAnchor(
+        anchorRecords[index],
+        anchors.at(-1),
+        identity,
+        { verifySignature: false },
+      );
+      anchors.push(anchor);
+      if (index === 0) continue;
+      const event = this.#verifyEvent(
+        eventRecords[index - 1],
+        events.at(-1),
+        identity,
+        { verifySignature: false },
+      );
+      if (
+        event.sequence !== anchor.sequence ||
+        event.eventDigest !== anchor.headDigest ||
+        domainDigest(SEGMENT_DOMAIN, event) !== anchor.segmentDigest ||
+        eventIds.has(event.eventId)
+      ) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `state snapshot event/anchor binding failed at sequence ${index}`,
+        );
+      }
+      eventIds.add(event.eventId);
+      events.push(event);
+    }
+    if (anchors.at(-1).anchorDigest !== core.anchorDigest) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot chain does not terminate at its signed anchor",
+      );
+    }
+    const derivedAnchorNames = anchors.map((anchor) =>
+      anchorFileName(anchor.sequence, anchor.anchorDigest),
+    );
+    const derivedSegmentNames = anchors
+      .slice(1)
+      .map((anchor) => segmentFileName(anchor.sequence, anchor.segmentDigest));
+    if (
+      derivedAnchorNames.some((name, index) => name !== anchorNames[index]) ||
+      derivedSegmentNames.some((name, index) => name !== segmentNames[index])
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        "state snapshot records do not address the current immutable files",
+      );
+    }
+
+    const anchorFiles = this.#snapshotFileRecords(
+      record.state.anchorFiles,
+      "state snapshot anchor files",
+      anchorNames,
+    );
+    const segmentFiles = this.#snapshotFileRecords(
+      record.state.segmentFiles,
+      "state snapshot segment files",
+      segmentNames,
+    );
+    const anchorFingerprints = {};
+    const segmentFingerprints = {};
+    for (let index = 0; index < anchorFiles.length; index += 1) {
+      const entry = anchorFiles[index];
+      const snapshotRecordDigest = sha256(
+        Buffer.from(`${canonicalJson(anchorRecords[index])}\n`, "utf8"),
+      );
+      if (entry.contentDigest !== snapshotRecordDigest) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `state snapshot anchor bytes are not bound at index ${index}`,
+        );
+      }
+      const file = this.#readCanonicalFile(
+        path.join(this.#paths.anchorDir, entry.name),
+        64 * 1024,
+        `state snapshot anchor file ${entry.name}`,
+      );
+      if (file.contentDigest !== entry.contentDigest) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `state snapshot anchor file changed: ${entry.name}`,
+        );
+      }
+      anchorFingerprints[entry.name] = Object.freeze({
+        contentDigest: file.contentDigest,
+        fingerprint: file.fingerprint,
+      });
+    }
+    for (let index = 0; index < segmentFiles.length; index += 1) {
+      const entry = segmentFiles[index];
+      const snapshotRecordDigest = sha256(
+        Buffer.from(`${canonicalJson(eventRecords[index])}\n`, "utf8"),
+      );
+      if (entry.contentDigest !== snapshotRecordDigest) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `state snapshot event bytes are not bound at index ${index}`,
+        );
+      }
+      const file = this.#readCanonicalFile(
+        path.join(this.#paths.segmentDir, entry.name),
+        EVOLUTION_LEDGER_MAX_EVENT_BYTES,
+        `state snapshot segment file ${entry.name}`,
+      );
+      if (file.contentDigest !== entry.contentDigest) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `state snapshot segment file changed: ${entry.name}`,
+        );
+      }
+      segmentFingerprints[entry.name] = Object.freeze({
+        contentDigest: file.contentDigest,
+        fingerprint: file.fingerprint,
+      });
+    }
+
+    const maximumAnchor = anchors.at(-1);
+    const maximumEvent = events.at(-1) || null;
+    this.#assertWitnessSnapshot(
+      witnessed,
+      identity,
+      storeMarker,
+      maximumAnchor,
+      maximumEvent,
+    );
+    const state = deepFreeze({
+      anchors,
+      events,
+      head,
+      identity,
+      storeMarker,
+      witness: witnessed,
+    });
+    return this.#rememberState(
+      state,
+      anchorNames,
+      segmentNames,
+      anchorFingerprints,
+      segmentFingerprints,
+    );
+  }
+
+  #tryStateSnapshot(
+    identity,
+    storeMarker,
+    witnessed,
+    head,
+    anchorNames,
+    segmentNames,
+  ) {
+    if (witnessed.status !== "committed") return null;
+    const snapshotPath = path.join(
+      this.#paths.authorityRootDir,
+      stateSnapshotFileName(witnessed.witnessDigest),
+    );
+    try {
+      const snapshotFile = this.#readCanonicalFile(
+        snapshotPath,
+        MAX_STATE_SNAPSHOT_BYTES,
+        "state snapshot",
+        { allowMissing: true },
+      );
+      if (!snapshotFile) return null;
+      return this.#verifyStateSnapshot(
+        snapshotFile.record,
+        identity,
+        storeMarker,
+        witnessed,
+        head,
+        anchorNames,
+        segmentNames,
+      );
+    } catch (cause) {
+      if (cause?.code === "CC_EVOLUTION_LEDGER_STORE_UNSAFE") throw cause;
+      return null;
+    }
+  }
+
   #cachedPrefix(identity, anchorNames, segmentNames, incremental) {
     const cached = incremental ? this.#stateCache : null;
     if (
@@ -3462,12 +3853,29 @@ export class EvolutionLedger {
       );
     }
 
+    const authenticatedHead = this.#verifyAnchor(
+      headFile.record,
+      null,
+      identity,
+      { standalone: true },
+    );
     const cached = this.#cachedPrefix(
       identity,
       anchorNames,
       segmentNames,
       incremental,
     );
+    if (!cached) {
+      const snapshotted = this.#tryStateSnapshot(
+        identity,
+        storeMarker,
+        witnessed,
+        authenticatedHead,
+        anchorNames,
+        segmentNames,
+      );
+      if (snapshotted) return snapshotted;
+    }
     const anchors = cached ? [...cached.state.anchors] : [];
     const events = cached ? [...cached.state.events] : [];
     const anchorFingerprints = cached ? { ...cached.anchorFingerprints } : {};
@@ -3582,9 +3990,7 @@ export class EvolutionLedger {
     }
     if (removedOrphan) syncDirectory(this.#fs, this.#paths.segmentDir);
 
-    const head = this.#verifyAnchor(headFile.record, null, identity, {
-      standalone: true,
-    });
+    const head = authenticatedHead;
     const matchingHead = anchors.find(
       (anchor) => anchor.anchorDigest === head.anchorDigest,
     );
@@ -4173,6 +4579,102 @@ export class EvolutionLedger {
       event,
       receipt,
       schema: EVOLUTION_LEDGER_QUERY_SCHEMA,
+    });
+  }
+
+  checkpointState() {
+    return this.#withLock(() => {
+      const state = this.#loadState({
+        allowInitialize: false,
+        incremental: true,
+      });
+      const snapshotPath = path.join(
+        this.#paths.authorityRootDir,
+        stateSnapshotFileName(state.witness.witnessDigest),
+      );
+      const existing = this.#readCanonicalFile(
+        snapshotPath,
+        MAX_STATE_SNAPSHOT_BYTES,
+        "state snapshot",
+        { allowMissing: true },
+      );
+      if (existing) {
+        this.#verifyStateSnapshot(
+          existing.record,
+          state.identity,
+          state.storeMarker,
+          state.witness,
+          state.head,
+          this.#stateCache.anchorNames,
+          this.#stateCache.segmentNames,
+        );
+        return deepFreeze(existing.record);
+      }
+
+      const content = deepFreeze({
+        anchorFiles: this.#stateCache.anchorNames.map((name) => ({
+          contentDigest:
+            this.#stateCache.anchorFingerprints[name].contentDigest,
+          name,
+        })),
+        anchors: state.anchors,
+        events: state.events,
+        segmentFiles: this.#stateCache.segmentNames.map((name) => ({
+          contentDigest:
+            this.#stateCache.segmentFingerprints[name].contentDigest,
+          name,
+        })),
+      });
+      const core = normalizeStateSnapshotCore({
+        algorithm: this.#trust.algorithm,
+        anchorDigest: state.head.anchorDigest,
+        createdAt: clockTimestamp(this.#clock),
+        epoch: state.identity.epoch,
+        headDigest: state.head.headDigest,
+        identityDigest: state.identity.identityDigest,
+        keyId: this.#trust.keyId,
+        ledgerId: state.identity.ledgerId,
+        schema: EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA,
+        sequence: state.head.sequence,
+        stateDigest: domainDigest(STATE_SNAPSHOT_CONTENT_DOMAIN, content),
+        storeMarkerDigest: state.storeMarker.storeMarkerDigest,
+        storeMarkerEntryDigest: state.identity.storeMarkerEntryDigest,
+        trustPolicyDigest: this.#trust.trustPolicyDigest,
+        witnessDigest: state.witness.witnessDigest,
+        witnessGeneration: state.witness.generation,
+        witnessId: state.witness.witnessId,
+      });
+      const signed = this.#signRecord(
+        STATE_SNAPSHOT_DOMAIN,
+        core,
+        "snapshotDigest",
+        "state-snapshot",
+      );
+      const snapshot = deepFreeze({
+        ...signed,
+        state: content,
+      });
+      const bytes = serializeRecord(
+        snapshot,
+        MAX_STATE_SNAPSHOT_BYTES,
+        "state snapshot",
+      );
+      this.#writeImmutable(snapshotPath, bytes, "state snapshot");
+      const persisted = this.#readCanonicalFile(
+        snapshotPath,
+        MAX_STATE_SNAPSHOT_BYTES,
+        "state snapshot",
+      );
+      this.#verifyStateSnapshot(
+        persisted.record,
+        state.identity,
+        state.storeMarker,
+        state.witness,
+        state.head,
+        this.#stateCache.anchorNames,
+        this.#stateCache.segmentNames,
+      );
+      return deepFreeze(persisted.record);
     });
   }
 

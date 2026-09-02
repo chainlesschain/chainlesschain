@@ -15,6 +15,7 @@ import {
   EVOLUTION_LEDGER_IDENTITY_SCHEMA,
   EVOLUTION_LEDGER_QUERY_SCHEMA,
   EVOLUTION_LEDGER_RECEIPT_SCHEMA,
+  EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
   verifyEvolutionLedgerAuditBundle,
@@ -1869,6 +1870,93 @@ describe("EvolutionLedger v2", () => {
     ).toHaveLength(1);
   });
 
+  it("reopens from a witness-bound persistent snapshot without trusting tampered cache state", () => {
+    const ledger = createLedger();
+    ledger.append(eventInput(1, artifacts));
+    ledger.appendDomainEvent(domainEventInput(2, artifacts));
+
+    ports.verifySignature.mockClear();
+    const snapshot = ledger.checkpointState();
+    expect(snapshot).toMatchObject({
+      schema: EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA,
+      sequence: 2,
+      state: {
+        anchors: expect.arrayContaining([
+          expect.objectContaining({ sequence: 0 }),
+          expect.objectContaining({ sequence: 2 }),
+        ]),
+        events: [
+          expect.objectContaining({ eventId: "event-1" }),
+          expect.objectContaining({ eventId: "domain-event-2" }),
+        ],
+      },
+    });
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(0);
+
+    ports.verifySignature.mockClear();
+    const reopened = createLedger();
+    expect(
+      reopened.queryMany([{ eventId: "event-1" }, { sequence: 2 }]),
+    ).toMatchObject([
+      { event: { eventId: "event-1" } },
+      { event: { eventId: "domain-event-2" } },
+    ]);
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(0);
+    expect(
+      ports.verifySignature.mock.calls.filter(
+        ([request]) => request.purpose === "state-snapshot",
+      ).length,
+    ).toBeGreaterThan(0);
+
+    const snapshotPath = path.join(
+      authorityRoot,
+      regularFiles(authorityRoot).find((name) =>
+        name.startsWith("state-snapshot-v1-"),
+      ),
+    );
+    const tampered = jsonFile(snapshotPath);
+    tampered.state.events[0].eventId = "event-tampered";
+    writeCanonical(snapshotPath, tampered);
+    ports.verifySignature.mockClear();
+
+    const recovered = createLedger();
+    expect(recovered.query({ eventId: "event-1" })).toMatchObject({
+      event: { eventId: "event-1" },
+    });
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(2);
+
+    recovered.append(eventInput(3, artifacts));
+    const currentAuthority = recovered.verify();
+    const replayPath = path.join(
+      authorityRoot,
+      `state-snapshot-v1-${currentAuthority.witnessDigest.slice("sha256:".length)}.json`,
+    );
+    writeCanonical(replayPath, snapshot);
+    ports.verifySignature.mockClear();
+
+    const replayRecovered = createLedger();
+    expect(replayRecovered.query({ eventId: "event-3" })).toMatchObject({
+      event: { eventId: "event-3" },
+    });
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(3);
+  });
+
   it("recovers and verifies receipts for domain events after reopen", () => {
     const ledger = createLedger();
     const committed = ledger.appendDomainEvent(domainEventInput(50, artifacts));
@@ -2954,5 +3042,24 @@ describe("EvolutionLedger v2", () => {
     });
     expect(regularFiles(ledger.segmentDir)).toHaveLength(100);
     expect(regularFiles(ledger.anchorDir)).toHaveLength(101);
+    ledger.checkpointState();
+    ports.verifySignature.mockClear();
+
+    const reopenStartedAt = performance.now();
+    const snapshotted = createLedger({
+      lockTimeoutMs: 120_000,
+      witness: fileAuthorityWitness(witnessId, witnessPath),
+    });
+    const reopenElapsedMs = performance.now() - reopenStartedAt;
+    expect(snapshotted.verify()).toMatchObject({
+      eventCount: 100,
+      sequence: 100,
+    });
+    expect(reopenElapsedMs).toBeLessThan(5_000);
+    expect(
+      ports.verifySignature.mock.calls.filter(([request]) =>
+        ["event", "domain-event"].includes(request.purpose),
+      ),
+    ).toHaveLength(0);
   }, 240_000);
 });
