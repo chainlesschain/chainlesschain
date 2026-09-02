@@ -306,6 +306,7 @@ describe("PostToolUse async:true hooks (fire-and-forget)", () => {
         },
       },
     );
+    await new Promise((resolve) => setTimeout(resolve, 250));
     expect(fs.existsSync(sentinel)).toBe(false);
   });
 

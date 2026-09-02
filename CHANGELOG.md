@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cross-runtime evidence**: CLI, Desktop, and Graph adapters share the new
   Session Core `EvolutionRun` and Skill-invocation receipt contracts, keeping
   evidence identity consistent across runtimes.
+- **Deterministic async hooks**: tool execution now skips `async:true`
+  `PostToolUse` hooks when no supervisor/dispatcher is available, preventing a
+  hidden background command and a Windows timing race.
 - **Release boundary**: publication requires this exact candidate commit to
   pass every configured Linux, Windows, and macOS job in `CLI CI` and
   `CLI Strict Sandbox`; a local test result or an older green run is not

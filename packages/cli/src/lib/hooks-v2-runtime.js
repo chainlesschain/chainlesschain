@@ -872,6 +872,26 @@ class HooksV2Runtime extends EventEmitter {
       }
     }
     for (const hook of asyncHooks) {
+      if (
+        options.skipAsyncWithoutDispatcher === true &&
+        typeof options.asyncDispatcher !== "function"
+      ) {
+        results.push({
+          execId: crypto.randomUUID(),
+          hookId: hook.id,
+          sourceHookId: hook.databaseHookId || hook.id,
+          hookName: hook.databaseHookName || hook.description || hook.id,
+          event: eventName,
+          type: hook.type,
+          priority: normalizeHookPriority(hook.priority),
+          executionMode: HOOK_EXECUTION_MODE.ASYNC,
+          status: "skipped",
+          decision: "continue",
+          deferred: false,
+          skipReason: "async_dispatcher_unavailable",
+        });
+        continue;
+      }
       const queued = {
         execId: crypto.randomUUID(),
         hookId: hook.id,

@@ -3712,6 +3712,7 @@ export async function executeTool(name, args, context = {}) {
                     { cwd, broker },
                   )
               : null,
+          skipAsyncWithoutDispatcher: true,
         },
       );
       for (const hookResult of outcome.results || []) {
