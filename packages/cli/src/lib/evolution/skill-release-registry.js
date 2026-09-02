@@ -1789,32 +1789,56 @@ export function archiveLegacySkillReleaseJournal(input) {
     ...archiveCore,
     archiveDigest: domainDigest(JOURNAL_ARCHIVE_DOMAIN, archiveCore),
   });
-  const sourcePath = path.resolve(
+  const requestedSourcePath = path.resolve(
     boundedString(input.sourcePath, "journalArchive.sourcePath", 4096),
   );
-  const sourceDirectory = path.dirname(sourcePath);
-  const archiveDirectory = path.resolve(
+  const requestedSourceDirectory = path.dirname(requestedSourcePath);
+  const requestedArchiveDirectory = path.resolve(
     boundedString(input.archiveDir, "journalArchive.archiveDir", 4096),
   );
   if (
-    path.basename(sourcePath) !== `${journal.skillName}.json` ||
-    path.basename(sourceDirectory) !== "journals" ||
+    path.basename(requestedSourcePath) !== `${journal.skillName}.json` ||
+    path.basename(requestedSourceDirectory) !== "journals"
+  ) {
+    throw migrationRequired("legacy journal archive paths are invalid");
+  }
+  const canonicalDirectories = [
+    requestedSourceDirectory,
+    requestedArchiveDirectory,
+  ].map((directory) => {
+    const requestedStat = fsImpl.lstatSync(directory);
+    const canonical = realpath(fsImpl, directory);
+    const canonicalStat = fsImpl.lstatSync(canonical);
+    const canonicalParent = realpath(fsImpl, path.dirname(directory));
+    const expectedCanonical = path.join(
+      canonicalParent,
+      path.basename(directory),
+    );
+    if (
+      !requestedStat.isDirectory() ||
+      requestedStat.isSymbolicLink() ||
+      !canonicalStat.isDirectory() ||
+      canonicalStat.isSymbolicLink() ||
+      identity(canonicalStat) !== identity(requestedStat) ||
+      !samePath(canonical, expectedCanonical) ||
+      !samePath(realpath(fsImpl, canonical), canonical)
+    ) {
+      throw migrationRequired("legacy journal archive directory is unsafe");
+    }
+    return canonical;
+  });
+  const [sourceDirectory, archiveDirectory] = canonicalDirectories;
+  if (
     samePath(sourceDirectory, archiveDirectory) ||
     isContained(sourceDirectory, archiveDirectory) ||
     isContained(archiveDirectory, sourceDirectory)
   ) {
     throw migrationRequired("legacy journal archive paths are invalid");
   }
-  for (const directory of [sourceDirectory, archiveDirectory]) {
-    const stat = fsImpl.lstatSync(directory);
-    if (
-      !stat.isDirectory() ||
-      stat.isSymbolicLink() ||
-      !samePath(realpath(fsImpl, directory), directory)
-    ) {
-      throw migrationRequired("legacy journal archive directory is unsafe");
-    }
-  }
+  const sourcePath = path.join(
+    sourceDirectory,
+    path.basename(requestedSourcePath),
+  );
   if (input.secure) {
     ensurePrivateDirectory(archiveDirectory, {
       applyWindowsAcl: true,
