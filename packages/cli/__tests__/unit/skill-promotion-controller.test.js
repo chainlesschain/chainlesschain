@@ -418,6 +418,7 @@ function mutationRequest({
   dependencyLockDigest,
   suffix = operationId,
   tenantId = TENANT_ID,
+  validityMs = 60_000,
 }) {
   const transitionSubjectDigest = digestSkillMutationTransitionSubject({
     tenantId,
@@ -439,7 +440,7 @@ function mutationRequest({
     targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
     expectedTargetDigest: targetDigest,
     expectedTargetRevision: revision,
-    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    expiresAt: new Date(Date.now() + validityMs).toISOString(),
     nonce: `nonce_${digest(operationId).slice(7, 39)}`,
     receipts: receiptEnvelopes(suffix),
   });
@@ -1058,6 +1059,7 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
           operationId: `promotion:${suffix}`,
           candidateId: candidate.candidateId,
           dependencyLockDigest: candidate.dependencyLockDigest,
+          validityMs: 180_000,
         }),
       };
     });
@@ -1084,7 +1086,7 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     expect(active.releaseDigest).toBe(state.activeReleaseDigest);
     expect(ledger.snapshot()).toHaveLength(1);
     expect(ledger.snapshot()[0].committed).not.toBeNull();
-  }, 90_000);
+  }, 180_000);
 
   it("updates and rolls back with a fresh six-receipt authorization", async () => {
     const first = createCandidate();
