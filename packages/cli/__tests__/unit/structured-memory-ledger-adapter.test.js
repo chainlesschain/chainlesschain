@@ -17,7 +17,8 @@ import {
 } from "../../src/lib/evolution/structured-memory-ledger-adapter.js";
 
 const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority,
-  createStructuredMemoryReceiptProvider, createStructuredMemoryPostCompactVerifier } = structuredMemory;
+  createStructuredMemoryAuthorityReceipt, createStructuredMemoryReceiptProvider,
+  createStructuredMemoryPostCompactVerifier } = structuredMemory;
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -176,11 +177,13 @@ function receiptProvider() {
     resolver: { resolve: async (request) => ({ schema: structuredMemory.STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA,
       authenticated: true, ...providerDescriptor, kind: request.kind, receiptDigest: request.receiptDigest,
       resolutionReceiptDigest: hash(`resolution:${request.kind}`),
-      receipt: { schema: structuredMemory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: request.tenantId,
-        kind: request.kind, receiptDigest: request.receiptDigest, decision: "accepted", memoryId: request.memoryId,
+      receipt: createStructuredMemoryAuthorityReceipt({ tenantId: request.tenantId,
+        kind: request.kind, decision: "accepted", memoryId: request.memoryId,
         layer: request.layer, action: request.action, contentDigest: request.contentDigest,
         artifactRef: request.artifactRef, evidenceRefs: request.evidenceRefs,
-        issuedAt: "2026-09-02T00:00:00.000Z" } }) }, verifier: { verify: async () => true } });
+        issuerId: `${request.kind}-authority`, issuerRevision: 1,
+        issuerHandlerDigest: hash(`${request.kind}-handler`), issuedAt: "2026-09-02T00:00:00.000Z" }) }) },
+    verifier: { verify: async () => true } });
 }
 
 function memoryOptions() {

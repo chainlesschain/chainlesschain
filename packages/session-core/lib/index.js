@@ -179,6 +179,7 @@ const {
   createStructuredMemoryAuthority,
   createStructuredMemoryReceiptProvider,
   isStructuredMemoryReceiptProvider,
+  createStructuredMemoryAuthorityReceipt,
   createStructuredMemoryPostCompactVerifier,
   isStructuredMemoryPostCompactVerifier,
 } = require("./structured-evolution-memory.js");
@@ -320,6 +321,7 @@ module.exports = {
   createStructuredMemoryAuthority,
   createStructuredMemoryReceiptProvider,
   isStructuredMemoryReceiptProvider,
+  createStructuredMemoryAuthorityReceipt,
   createStructuredMemoryPostCompactVerifier,
   isStructuredMemoryPostCompactVerifier,
 };

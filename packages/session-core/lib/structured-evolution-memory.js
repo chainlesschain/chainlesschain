@@ -39,6 +39,7 @@ const MEMORY_AUTHORITIES = new WeakSet();
 const MEMORY_RECEIPT_PROVIDERS = new WeakSet();
 const MEMORY_POST_COMPACT_VERIFIERS = new WeakSet();
 const RECEIPT_KINDS = Object.freeze(["critic", "evaluator", "promotion", "policy"]);
+const STRUCTURED_MEMORY_RECEIPT_DIGEST_DOMAIN = "chainlesschain.structured-memory-authority-receipt/v1";
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -133,6 +134,33 @@ function normalizeReceiptProviderDescriptor(input) {
   });
 }
 
+function normalizeStructuredMemoryAuthorityReceipt(input, { requireDigest = true } = {}) {
+  if (!RECEIPT_KINDS.includes(input?.kind)) throw new TypeError("structured memory receipt kind is invalid");
+  if (!Number.isSafeInteger(input?.issuerRevision) || input.issuerRevision <= 0) {
+    throw new TypeError("structured memory receipt issuerRevision must be a positive integer");
+  }
+  const receipt = { schema: STRUCTURED_MEMORY_RECEIPT_SCHEMA,
+    tenantId: requiredString(input.tenantId, "receipt.tenantId"), kind: input.kind,
+    decision: input.decision, memoryId: requiredString(input.memoryId, "receipt.memoryId"),
+    layer: input.layer, action: input.action, contentDigest: digest(input.contentDigest, "receipt.contentDigest"),
+    artifactRef: requiredString(input.artifactRef, "receipt.artifactRef"),
+    evidenceRefs: strings(input.evidenceRefs || [], "receipt.evidenceRefs"),
+    issuerId: requiredString(input.issuerId, "receipt.issuerId"), issuerRevision: input.issuerRevision,
+    issuerHandlerDigest: digest(input.issuerHandlerDigest, "receipt.issuerHandlerDigest"),
+    issuedAt: requiredString(input.issuedAt, "receipt.issuedAt") };
+  if (receipt.decision !== "accepted" || !LAYERS.has(receipt.layer) || !ACTIONS.has(receipt.action) ||
+      !Number.isFinite(Date.parse(receipt.issuedAt))) throw new TypeError("structured memory receipt decision or transition is invalid");
+  const receiptDigest = hash({ domain: STRUCTURED_MEMORY_RECEIPT_DIGEST_DOMAIN, receipt });
+  if (requireDigest && input.receiptDigest !== receiptDigest) {
+    throw new Error("structured memory receipt digest does not bind its canonical content");
+  }
+  return freeze({ ...receipt, receiptDigest });
+}
+
+function createStructuredMemoryAuthorityReceipt(input) {
+  return normalizeStructuredMemoryAuthorityReceipt(input, { requireDigest: false });
+}
+
 function requiredReceiptKinds(event) {
   if (event.layer === MEMORY_LAYER.SEMANTIC && event.action === MEMORY_ACTION.ACCEPT) return ["critic", "evaluator"];
   if (event.layer === MEMORY_LAYER.PROCEDURAL && event.action === MEMORY_ACTION.ACCEPT) return ["promotion"];
@@ -158,8 +186,8 @@ async function validateResolvedReceipt(resolution, descriptor, request, verify) 
       !DIGEST.test(resolution.resolutionReceiptDigest || "")) {
     throw new Error("structured memory receipt resolution authority is invalid");
   }
-  const receipt = resolution.receipt;
-  if (receipt?.schema !== STRUCTURED_MEMORY_RECEIPT_SCHEMA || receipt.tenantId !== descriptor.tenantId ||
+  const receipt = normalizeStructuredMemoryAuthorityReceipt(resolution.receipt);
+  if (receipt.tenantId !== descriptor.tenantId ||
       receipt.kind !== request.kind || receipt.receiptDigest !== request.receiptDigest || receipt.decision !== "accepted" ||
       receipt.memoryId !== request.memoryId || receipt.layer !== request.layer || receipt.action !== request.action ||
       receipt.contentDigest !== request.contentDigest || receipt.artifactRef !== request.artifactRef ||
@@ -545,6 +573,7 @@ module.exports = {
   STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA,
   createStructuredMemoryReceiptProvider,
   isStructuredMemoryReceiptProvider,
+  createStructuredMemoryAuthorityReceipt,
   STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA,
   createStructuredMemoryPostCompactVerifier,
   isStructuredMemoryPostCompactVerifier,

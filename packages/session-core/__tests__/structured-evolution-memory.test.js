@@ -10,6 +10,7 @@ const {
   projectStructuredMemory,
   createStructuredMemoryAuthority,
   createStructuredMemoryReceiptProvider,
+  createStructuredMemoryAuthorityReceipt,
   createStructuredMemoryPostCompactVerifier,
 } = memory;
 
@@ -75,11 +76,12 @@ function receiptProvider(overrides = {}) {
   const descriptor = { tenantId: "tenant-a", authorityId: "memory-receipts",
     authorityRevision: 1, handlerDigest: digest("memory-receipt-handler") };
   const resolver = { resolve: vi.fn(async (request) => {
-    const receipt = { schema: memory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: request.tenantId,
-      kind: request.kind, receiptDigest: request.receiptDigest, decision: "accepted",
+    const receipt = createStructuredMemoryAuthorityReceipt({ tenantId: request.tenantId,
+      kind: request.kind, decision: "accepted",
       memoryId: request.memoryId, layer: request.layer, action: request.action,
       contentDigest: request.contentDigest, artifactRef: request.artifactRef,
-      evidenceRefs: request.evidenceRefs, issuedAt: "2026-09-02T00:00:00.000Z" };
+      evidenceRefs: request.evidenceRefs, issuerId: `${request.kind}-authority`, issuerRevision: 1,
+      issuerHandlerDigest: digest(`${request.kind}-handler`), issuedAt: "2026-09-02T00:00:00.000Z" });
     return { schema: memory.STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA, authenticated: true,
       ...descriptor, kind: request.kind, receiptDigest: request.receiptDigest, receipt,
       resolutionReceiptDigest: digest(`resolution:${request.kind}:${request.receiptDigest}`) };
@@ -87,6 +89,15 @@ function receiptProvider(overrides = {}) {
   const verifier = { verify: vi.fn(async () => true) };
   return createStructuredMemoryReceiptProvider({ descriptor,
     resolver: overrides.resolver || resolver, verifier: overrides.verifier || verifier });
+}
+
+function authorityReceipt(kind, overrides = {}) {
+  return createStructuredMemoryAuthorityReceipt({ tenantId: "tenant-a", kind, decision: "accepted",
+    memoryId: "memory-1", layer: kind === "promotion" ? "procedural" : kind === "policy" ? "policy" : "semantic",
+    action: "accept", contentDigest: digest("content-1"), artifactRef: "artifact://memory-1",
+    evidenceRefs: kind === "critic" || kind === "evaluator" ? ["evidence://grader/1"] : [],
+    issuerId: `${kind}-authority`, issuerRevision: 1, issuerHandlerDigest: digest(`${kind}-handler`),
+    issuedAt: "2026-09-02T00:00:00.000Z", ...overrides });
 }
 
 function authority(role = "producer", actorType = "agent", tenantId = "tenant-a") {
@@ -296,8 +307,10 @@ describe("StructuredEvolutionMemory", () => {
     await store.append(runtimeEvent({ ...semantic, action: "propose", authority: authority("child-agent") }));
     const result = await store.append(runtimeEvent({ ...semantic, eventId: "event-2", action: "accept",
       authority: authority("governor", "service"),
-      receiptRefs: { critic: digest("critic"), evaluator: digest("evaluator") } }));
-    expect(result.event.receipts).toEqual({ critic: digest("critic"), evaluator: digest("evaluator"),
+      receiptRefs: { critic: authorityReceipt("critic").receiptDigest,
+        evaluator: authorityReceipt("evaluator").receiptDigest } }));
+    expect(result.event.receipts).toEqual({ critic: authorityReceipt("critic").receiptDigest,
+      evaluator: authorityReceipt("evaluator").receiptDigest,
       promotion: null, policy: null });
     expect(result.projection.memories["memory-1"].status).toBe("active");
   });
@@ -305,9 +318,9 @@ describe("StructuredEvolutionMemory", () => {
   it("resolves promotion and human-policy receipts without exposing digest injection", async () => {
     const transitions = [
       { layer: "procedural", authority: authority("promotion-controller", "service"),
-        receiptRefs: { promotion: digest("promotion") }, expectedKind: "promotion" },
+        receiptRefs: { promotion: authorityReceipt("promotion").receiptDigest }, expectedKind: "promotion" },
       { layer: "policy", authority: authority("governor", "human"), automatic: false,
-        receiptRefs: { policy: digest("policy") }, expectedKind: "policy" },
+        receiptRefs: { policy: authorityReceipt("policy").receiptDigest }, expectedKind: "policy" },
     ];
     for (const transition of transitions) {
       const p = ports();
@@ -335,21 +348,24 @@ describe("StructuredEvolutionMemory", () => {
       tenantId: "tenant-a", authorityId: "memory-receipts", authorityRevision: 1,
       handlerDigest: digest("memory-receipt-handler"), kind: request.kind,
       receiptDigest: request.receiptDigest, resolutionReceiptDigest: digest("resolution"),
-      receipt: { schema: memory.STRUCTURED_MEMORY_RECEIPT_SCHEMA, tenantId: "tenant-a", kind: request.kind,
-        receiptDigest: request.receiptDigest, decision: "accepted", memoryId: request.memoryId,
-        layer: request.layer, action: request.action, contentDigest: digest("substituted"),
-        artifactRef: request.artifactRef, evidenceRefs: request.evidenceRefs,
-        issuedAt: "2026-09-02T00:00:00.000Z" },
+      receipt: { ...createStructuredMemoryAuthorityReceipt({ tenantId: "tenant-a", kind: request.kind,
+        decision: "accepted", memoryId: request.memoryId, layer: request.layer, action: request.action,
+        contentDigest: request.contentDigest, artifactRef: request.artifactRef, evidenceRefs: request.evidenceRefs,
+        issuerId: `${request.kind}-authority`, issuerRevision: 1,
+        issuerHandlerDigest: digest(`${request.kind}-handler`), issuedAt: "2026-09-02T00:00:00.000Z" }),
+        contentDigest: digest("substituted") },
     }) } });
     const p = ports({ receiptProvider: substituted });
     const store = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
     await expect(store.append(runtimeEvent({ layer: "procedural", action: "accept",
-      authority: authority("promotion-controller", "service"), receiptRefs: { promotion: digest("promotion") } })))
-      .rejects.toThrow(/not bound/);
+      authority: authority("promotion-controller", "service"),
+      receiptRefs: { promotion: authorityReceipt("promotion").receiptDigest } })))
+      .rejects.toThrow(/digest does not bind/);
     const unauthenticated = receiptProvider({ verifier: { verify: async () => false } });
     const rejected = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...ports({ receiptProvider: unauthenticated }) });
     await expect(rejected.append(runtimeEvent({ layer: "procedural", action: "accept",
-      authority: authority("promotion-controller", "service"), receiptRefs: { promotion: digest("promotion") } })))
+      authority: authority("promotion-controller", "service"),
+      receiptRefs: { promotion: authorityReceipt("promotion").receiptDigest } })))
       .rejects.toThrow(/authentication failed/);
   });
 
