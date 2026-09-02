@@ -17,7 +17,7 @@ export const EVOLUTION_EVAL_SUITE_SCHEMA =
 export const EVOLUTION_EVAL_POLICY_SCHEMA =
   "chainlesschain.evolution-eval-policy/v2";
 export const EVOLUTION_EVAL_RECEIPT_SCHEMA =
-  "chainlesschain.evolution-eval-receipt/v3";
+  "chainlesschain.evolution-eval-receipt/v4";
 export const EVOLUTION_EVAL_SUITE_AUTHORITY_SCHEMA =
   "chainlesschain.evolution-eval-suite-authority-receipt/v1";
 export const EVOLUTION_EVAL_ENVIRONMENT_SCHEMA =
@@ -695,6 +695,7 @@ const RECEIPT_KEYS = new Set([
   "provenanceAudience",
   "trainerAuthority",
   "trainerRevision",
+  "confidenceZ",
   "decision",
   "reasonCodes",
   "splitCounts",
@@ -3483,6 +3484,7 @@ function receiptEvidenceCore(core) {
     provenanceAudience: core.provenanceAudience,
     trainerAuthority: core.trainerAuthority,
     trainerRevision: core.trainerRevision,
+    confidenceZ: core.confidenceZ,
     validationResultDigest: core.validation
       ? digest(core.validation, "chainlesschain.evolution-eval-comparison/v2")
       : null,
@@ -3497,7 +3499,7 @@ export function computeEvolutionEvalReceiptDigest(receiptCore) {
   const core = cloneCanonical(receiptCore);
   delete core.receiptDigest;
   delete core.attestation;
-  return digest(core, "chainlesschain.evolution-eval-receipt/v3");
+  return digest(core, "chainlesschain.evolution-eval-receipt/v4");
 }
 
 async function signFinalReceipt({
@@ -5178,6 +5180,7 @@ export class EvolutionEvalGate {
       provenanceAudience: run.provenanceAudience,
       trainerAuthority: run.trainerAuthority,
       trainerRevision: run.trainerRevision,
+      confidenceZ: this.#policy.confidenceZ,
       decision: outcome.decision,
       reasonCodes: outcome.reasonCodes,
       splitCounts: run.splitCounts,
@@ -5192,7 +5195,7 @@ export class EvolutionEvalGate {
     };
     core.evidenceRoot = digest(
       receiptEvidenceCore(core),
-      "chainlesschain.evolution-eval-evidence-root/v3",
+      "chainlesschain.evolution-eval-evidence-root/v4",
     );
     for (const split of ["validation", "test"]) {
       if (core[split] === null) continue;
@@ -5958,6 +5961,10 @@ function verifyReceiptStructure(value) {
   normalizeId(value.provenanceAudience, "receipt.provenanceAudience", 256);
   normalizeId(value.trainerAuthority, "receipt.trainerAuthority", 256);
   normalizeId(value.trainerRevision, "receipt.trainerRevision", 256);
+  normalizeFinite(value.confidenceZ, "receipt.confidenceZ", {
+    minimum: 1.64,
+    maximum: 4,
+  });
   if (
     !["accepted", "rejected", "needs-more-evidence"].includes(value.decision)
   ) {
@@ -6022,7 +6029,7 @@ function verifyReceiptStructure(value) {
   }
   const expectedEvidenceRoot = digest(
     receiptEvidenceCore(value),
-    "chainlesschain.evolution-eval-evidence-root/v3",
+    "chainlesschain.evolution-eval-evidence-root/v4",
   );
   if (value.evidenceRoot !== expectedEvidenceRoot) {
     throw evalError(

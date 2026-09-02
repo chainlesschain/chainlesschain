@@ -17,9 +17,9 @@ import {
 } from "./skill-execution-manifest.js";
 
 export const SKILL_TARGET_MATRIX_EVAL_PLAN_SCHEMA =
-  "chainlesschain.skill-target-matrix-eval-plan/v1";
+  "chainlesschain.skill-target-matrix-eval-plan/v2";
 export const SKILL_TARGET_MATRIX_EVAL_RECEIPT_SCHEMA =
-  "chainlesschain.skill-target-matrix-eval-receipt/v1";
+  "chainlesschain.skill-target-matrix-eval-receipt/v2";
 export const SKILL_TARGET_MATRIX_EVAL_PLAN_RESOLUTION_SCHEMA =
   "chainlesschain.skill-target-matrix-eval-plan-resolution/v1";
 export const SKILL_TARGET_MATRIX_EVAL_RESERVATION_SCHEMA =
@@ -38,15 +38,15 @@ export const SKILL_TARGET_MATRIX_EVAL_DEADLINE_CODE =
 
 /**
  * This module commits trusted composition metadata and performs an all-cell
- * conjunction. It is not a proof of JavaScript callable bytes and it is not a
- * cross-cell statistical production gate.
+ * conjunction with a preregistered family-wise confidence correction. It is
+ * not a proof of JavaScript callable bytes or a production grader deployment.
  */
 export const SKILL_TARGET_MATRIX_EVAL_FOUNDATION_SEMANTICS = Object.freeze({
   kind: "trusted-composition-configuration-commitment",
   decision: "all-cells-conjunction",
   cellSettlement:
     "trusted-composition-bound-total-settlement-window-before-root-deadline",
-  crossCellStatistics: false,
+  crossCellStatistics: "bonferroni-two-sided-family-wise-confidence",
   requiresAttestedLoader: true,
   residuals: Object.freeze([
     "attested descriptor-to-callable loader",
@@ -100,6 +100,8 @@ const PLAN_INPUT_KEYS = new Set([
   "matrixAuthorityRoot",
   "maxTotalWallClockMs",
   "aggregateReceiptTtlMs",
+  "familywiseErrorRate",
+  "comparisonCorrection",
   "issuedAt",
   "expiresAt",
   "cells",
@@ -232,6 +234,7 @@ const CELL_RESULT_KEYS = new Set([
   "evaluationContextDigest",
   "childReceiptDigest",
   "childFullDigest",
+  "confidenceZ",
   "decision",
   "reasonCodes",
   "issuedAt",
@@ -257,6 +260,8 @@ const RECEIPT_KEYS = new Set([
   "planIssuedAt",
   "planExpiresAt",
   "aggregateReceiptTtlMs",
+  "familywiseErrorRate",
+  "comparisonCorrection",
   "planAuthentication",
   "reservation",
   "finalization",
@@ -492,6 +497,71 @@ function normalizeInteger(value, label, { minimum = 0, maximum } = {}) {
     );
   }
   return value;
+}
+
+function normalizeFinite(value, label, { minimum, maximum } = {}) {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    (minimum !== undefined && value < minimum) ||
+    (maximum !== undefined && value > maximum)
+  ) {
+    throw matrixError(
+      SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+      `${label} must be a finite number in range`,
+    );
+  }
+  return value;
+}
+
+// Peter J. Acklam's rational approximation. The returned quantile is used
+// only to verify a preregistered confidence bound, never to manufacture one
+// after observing evaluation outcomes.
+function standardNormalQuantile(probability) {
+  const p = normalizeFinite(probability, "normal quantile probability", {
+    minimum: Number.EPSILON,
+    maximum: 1 - Number.EPSILON,
+  });
+  const a = [
+    -39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269,
+    -30.66479806614716, 2.506628277459239,
+  ];
+  const b = [
+    -54.47609879822406, 161.5858368580409, -155.6989798598866,
+    66.80131188771972, -13.28068155288572,
+  ];
+  const c = [
+    -0.007784894002430293, -0.3223964580411365, -2.400758277161838,
+    -2.549732539343734, 4.374664141464968, 2.938163982698783,
+  ];
+  const d = [
+    0.007784695709041462, 0.3224671290700398, 2.445134137142996,
+    3.754408661907416,
+  ];
+  const low = 0.02425;
+  const high = 1 - low;
+  if (p < low) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
+  }
+  if (p > high) return -standardNormalQuantile(1 - p);
+  const q = p - 0.5;
+  const r = q * q;
+  return (
+    ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) *
+      q) /
+    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+  );
+}
+
+function requiredFamilywiseConfidenceZ(familywiseErrorRate, cellCount) {
+  const comparisonCount = cellCount * 2;
+  return standardNormalQuantile(
+    1 - familywiseErrorRate / (2 * comparisonCount),
+  );
 }
 
 function normalizeTimestamp(value, label) {
@@ -982,6 +1052,20 @@ function planCore(input) {
       "plan.aggregateReceiptTtlMs",
       { minimum: 1_000, maximum: MAX_RECEIPT_TTL_MS },
     ),
+    familywiseErrorRate: normalizeFinite(
+      input.familywiseErrorRate,
+      "plan.familywiseErrorRate",
+      { minimum: 0.001, maximum: 0.1 },
+    ),
+    comparisonCorrection:
+      input.comparisonCorrection === "bonferroni-two-sided"
+        ? input.comparisonCorrection
+        : (() => {
+            throw matrixError(
+              SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+              "plan.comparisonCorrection is invalid",
+            );
+          })(),
     issuedAt: issued.timestamp,
     expiresAt: expires.timestamp,
     cells: normalizePlanCells(input.cells),
@@ -2017,7 +2101,7 @@ async function reservePlan(state, plan, deadlineMs, wallDeadlineAt) {
   return validated.snapshot;
 }
 
-function deriveMatrixDecision(cellResults) {
+function deriveMatrixDecision(cellResults, statisticalPlan) {
   let decision = "accepted";
   let reasonCodes = ["MATRIX_ALL_CELLS_ACCEPTED"];
   if (cellResults.some((cell) => cell.decision === "rejected")) {
@@ -2028,6 +2112,18 @@ function deriveMatrixDecision(cellResults) {
   ) {
     decision = "needs-more-evidence";
     reasonCodes = ["MATRIX_CELL_NEEDS_MORE_EVIDENCE"];
+  } else if (
+    cellResults.some(
+      (cell) =>
+        cell.confidenceZ + Number.EPSILON <
+        requiredFamilywiseConfidenceZ(
+          statisticalPlan.familywiseErrorRate,
+          cellResults.length,
+        ),
+    )
+  ) {
+    decision = "needs-more-evidence";
+    reasonCodes = ["MATRIX_FAMILYWISE_CONFIDENCE_INSUFFICIENT"];
   }
   return deepFreeze({ decision, reasonCodes: deepFreeze(reasonCodes) });
 }
@@ -2049,6 +2145,8 @@ function matrixDecisionCommitment(input) {
     targetMatrixRoot: input.plan.targetMatrixRoot,
     matrixAuthorityRoot: input.plan.matrixAuthorityRoot,
     planDigest: input.plan.planDigest,
+    familywiseErrorRate: input.plan.familywiseErrorRate,
+    comparisonCorrection: input.plan.comparisonCorrection,
     planAuthenticationDigest: input.planAuthentication.evidenceDigest,
     reservationReceiptDigest: input.reservation.receiptDigest,
     cellCount: input.cellResults.length,
@@ -2219,6 +2317,10 @@ function normalizeCellResult(value, label) {
       value.childFullDigest,
       `${label}.childFullDigest`,
     ),
+    confidenceZ: normalizeFinite(value.confidenceZ, `${label}.confidenceZ`, {
+      minimum: 1.64,
+      maximum: 4,
+    }),
     decision: normalizeDecision(value.decision, `${label}.decision`),
     reasonCodes: normalizeReasonCodes(
       value.reasonCodes,
@@ -2358,7 +2460,7 @@ function verifyMatrixReceiptStructure(
   const reservation = normalizeStandaloneReservation(snapshot.reservation);
   const finalization = normalizeStandaloneFinalization(snapshot.finalization);
   const cellResults = normalizeCellResults(snapshot.cellResults);
-  const decision = deriveMatrixDecision(cellResults);
+  const decision = deriveMatrixDecision(cellResults, snapshot);
   const normalized = deepFreeze({
     schema: SKILL_TARGET_MATRIX_EVAL_RECEIPT_SCHEMA,
     matrixEvalId: normalizeId(snapshot.matrixEvalId, "receipt.matrixEvalId"),
@@ -2413,6 +2515,20 @@ function verifyMatrixReceiptStructure(
       "receipt.aggregateReceiptTtlMs",
       { minimum: 1_000, maximum: MAX_RECEIPT_TTL_MS },
     ),
+    familywiseErrorRate: normalizeFinite(
+      snapshot.familywiseErrorRate,
+      "receipt.familywiseErrorRate",
+      { minimum: 0.001, maximum: 0.1 },
+    ),
+    comparisonCorrection:
+      snapshot.comparisonCorrection === "bonferroni-two-sided"
+        ? snapshot.comparisonCorrection
+        : (() => {
+            throw matrixError(
+              SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+              "receipt.comparisonCorrection is invalid",
+            );
+          })(),
     planAuthentication,
     reservation,
     finalization,
@@ -2459,7 +2575,7 @@ function verifyMatrixReceiptStructure(
     reasonCodes: decision.reasonCodes,
   });
   const expectedCommitmentDigest = domainDigest(
-    "chainlesschain.skill-target-matrix-eval-decision-commitment/v1",
+    "chainlesschain.skill-target-matrix-eval-decision-commitment/v2",
     expectedCommitment,
     "matrix decision commitment",
   );
@@ -2880,6 +2996,11 @@ export class SkillTargetMatrixEvalAggregator {
             verifiedSnapshot,
             `matrix cell ${planCell.cellId} verified full receipt`,
           ),
+          confidenceZ: normalizeFinite(
+            verifiedSnapshot.confidenceZ,
+            `matrix cell ${planCell.cellId} confidenceZ`,
+            { minimum: 1.64, maximum: 4 },
+          ),
           decision: normalizeDecision(
             verifiedSnapshot.decision,
             `matrix cell ${planCell.cellId} decision`,
@@ -2895,7 +3016,7 @@ export class SkillTargetMatrixEvalAggregator {
     }
     const normalizedCells = normalizeCellResults(cellResults);
     const root = childReceiptRoot(normalizedCells);
-    const derived = deriveMatrixDecision(normalizedCells);
+    const derived = deriveMatrixDecision(normalizedCells, plan);
     const commitment = matrixDecisionCommitment({
       plan,
       planAuthentication: resolved.authentication,
@@ -2906,7 +3027,7 @@ export class SkillTargetMatrixEvalAggregator {
       reasonCodes: derived.reasonCodes,
     });
     const decisionCommitmentDigest = domainDigest(
-      "chainlesschain.skill-target-matrix-eval-decision-commitment/v1",
+      "chainlesschain.skill-target-matrix-eval-decision-commitment/v2",
       commitment,
       "matrix decision commitment",
     );
@@ -2953,6 +3074,8 @@ export class SkillTargetMatrixEvalAggregator {
       planIssuedAt: plan.issuedAt,
       planExpiresAt: plan.expiresAt,
       aggregateReceiptTtlMs: plan.aggregateReceiptTtlMs,
+      familywiseErrorRate: plan.familywiseErrorRate,
+      comparisonCorrection: plan.comparisonCorrection,
       planAuthentication: resolved.authentication,
       reservation,
       finalization,

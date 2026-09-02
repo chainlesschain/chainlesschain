@@ -180,7 +180,7 @@ function policy(overrides = {}) {
     seeds: [101, 202, 303],
     minimumAbsoluteImprovement: 0.05,
     minimumEfficiencyImprovement: 0.1,
-    confidenceZ: 1.96,
+    confidenceZ: 3,
     maxAverageTokens: 10_000,
     maxAverageLatencyMs: 60_000,
     maxAverageToolCalls: 100,
@@ -2277,6 +2277,8 @@ function makeMatrixComposition({
     matrixAuthorityRoot,
     maxTotalWallClockMs: 90_000,
     aggregateReceiptTtlMs: 60_000,
+    familywiseErrorRate: 0.05,
+    comparisonCorrection: "bonferroni-two-sided",
     issuedAt: FIXED_TIME,
     expiresAt: new Date(
       new Date(FIXED_TIME).getTime() + planTtlMs,
@@ -2539,6 +2541,8 @@ async function resignMatrixReceipt(fixture, originalReceipt, mutate) {
     targetMatrixRoot: receipt.targetMatrixRoot,
     matrixAuthorityRoot: receipt.matrixAuthorityRoot,
     planDigest: receipt.planDigest,
+    familywiseErrorRate: receipt.familywiseErrorRate,
+    comparisonCorrection: receipt.comparisonCorrection,
     planAuthenticationDigest: receipt.planAuthentication.evidenceDigest,
     reservationReceiptDigest: receipt.reservation.receiptDigest,
     cellCount: receipt.cellResults.length,
@@ -2548,7 +2552,7 @@ async function resignMatrixReceipt(fixture, originalReceipt, mutate) {
     reasonCodes: receipt.reasonCodes,
   };
   receipt.decisionCommitmentDigest = matrixDigest(
-    "chainlesschain.skill-target-matrix-eval-decision-commitment/v1",
+    "chainlesschain.skill-target-matrix-eval-decision-commitment/v2",
     decisionCommitment,
   );
   receipt.finalization.decisionCommitmentDigest =
@@ -2580,7 +2584,7 @@ async function resignMatrixReceipt(fixture, originalReceipt, mutate) {
 }
 
 describe("Skill target matrix evaluation foundation", () => {
-  it("builds and rejects non-canonical v1 plans", () => {
+  it("builds and rejects non-canonical v2 plans", () => {
     const plan = buildSkillTargetMatrixEvalPlan({
       matrixEvalId: "matrix-plan-smoke",
       nonce: "matrix-plan-smoke-nonce",
@@ -2598,6 +2602,8 @@ describe("Skill target matrix evaluation foundation", () => {
       matrixAuthorityRoot: `sha256:${"9".repeat(64)}`,
       maxTotalWallClockMs: 1_000,
       aggregateReceiptTtlMs: 1_000,
+      familywiseErrorRate: 0.05,
+      comparisonCorrection: "bonferroni-two-sided",
       issuedAt: FIXED_TIME,
       expiresAt: new Date(
         new Date(FIXED_TIME).getTime() + 10_000,
@@ -2735,6 +2741,21 @@ describe("Skill target matrix evaluation foundation", () => {
     await expect(
       verifySkillTargetMatrixEvalReceipt(verifier, receipt, fixture.expected),
     ).resolves.toEqual(receipt);
+
+    const underpoweredReceipt = await resignMatrixReceipt(
+      fixture,
+      receipt,
+      (mutable) => {
+        mutable.cellResults[0].confidenceZ = 1.96;
+      },
+    );
+    await expect(
+      verifySkillTargetMatrixEvalReceipt(
+        verifier,
+        underpoweredReceipt,
+        fixture.expected,
+      ),
+    ).rejects.toThrow(/decision|reasonCodes/i);
 
     const evalReceipt = buildSkillEvaluatedPromotionReceiptEnvelope(receipt);
     expect(parseSkillEvaluatedPromotionReceiptEnvelope(evalReceipt)).toEqual({
