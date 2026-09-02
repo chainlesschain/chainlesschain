@@ -17,6 +17,10 @@ import {
 } from "../../src/lib/evolution/structured-memory-ledger-adapter.js";
 import { StructuredMemoryAuthorityLedgerAdapter } from "../../src/lib/evolution/structured-memory-authority-ledger-adapter.js";
 import { createCliStructuredMemoryPostCompactVerifier } from "../../src/lib/evolution/structured-memory-post-compact-hook.js";
+import { createStructuredMemorySemanticReviewer } from "../../src/lib/evolution/structured-memory-semantic-review-pipeline.js";
+import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
+import { createStructuredMemoryPolicyReceiptWriter } from "../../src/lib/evolution/structured-memory-policy-receipt-writer.js";
+import { createStructuredMemoryAgentControlPlane } from "../../src/lib/evolution/structured-memory-agent-control-plane.js";
 
 const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority,
   createStructuredMemoryAuthorityReceipt, createStructuredMemoryReceiptProvider,
@@ -224,6 +228,40 @@ function memoryOptions(overrides = {}) {
   return { postCompactVerifier, receiptProvider: overrides.receiptProvider || receiptProvider() };
 }
 
+function semanticReviewer(kind) {
+  return createStructuredMemorySemanticReviewer({
+    descriptor: { tenantId: "tenant-a", kind, issuerId: `${kind}-producer`, issuerRevision: 1,
+      issuerHandlerDigest: hash(`${kind}-producer-handler`), verifierId: `${kind}-verifier`, verifierRevision: 1,
+      verifierHandlerDigest: hash(`${kind}-verifier-handler`) },
+    producer: { review: async () => ({ decision: "accepted", reasonCodes: [`${kind}-accepted`] }) },
+    attestor: { attest: async ({ payloadDigest }) => hash(`attestation:${payloadDigest}`) },
+    verifier: { verify: async ({ receipt }) =>
+      receipt.attestation === hash(`attestation:${receipt.receiptDigest}`) },
+    clock: () => "2026-09-02T00:00:00.000Z",
+  });
+}
+
+function memoryReceiptWriters(authorityStore) {
+  const common = (kind) => ({ descriptor: { tenantId: "tenant-a", issuerId: `${kind}-writer`,
+    issuerRevision: 1, issuerHandlerDigest: hash(`${kind}-writer-handler`) }, authorityStore,
+  attestor: { attest: async ({ payloadDigest }) => hash(`attestation:${payloadDigest}`) },
+  clock: () => "2026-09-02T00:00:00.000Z" });
+  return { promotionReceiptWriter: createStructuredMemoryPromotionReceiptWriter(common("promotion")),
+    policyReceiptWriter: createStructuredMemoryPolicyReceiptWriter(common("policy")) };
+}
+
+function agentControlPlane(backend) {
+  const authorityStore = authorityLedgerAdapter(backend);
+  const memoryAdapter = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
+    ledger: backend.ledger, ledgerArtifactResolver: backend.resolver,
+    ...memoryOptions({ receiptProvider: authorityStore.createReceiptProvider() }),
+    clock: () => Date.parse("2026-09-02T00:00:00.000Z") });
+  return createStructuredMemoryAgentControlPlane({ memoryAdapter, authorityAdapter: authorityStore,
+    critic: semanticReviewer("critic"), evaluator: semanticReviewer("evaluator"),
+    proposerAuthority: authority("child-agent"), governorAuthority: authority("governor", "service"),
+    ...memoryReceiptWriters(authorityStore) });
+}
+
 function runtimeEvent(idOrOverrides = "memory-1") {
   const overrides = typeof idOrOverrides === "object" ? idOrOverrides : {};
   const id = typeof idOrOverrides === "string" ? idOrOverrides : overrides.memoryId || "memory-1";
@@ -245,6 +283,25 @@ const compactInput = { requirements: ["retain requirements"], decisions: ["use l
   memoryLineage: ["memory-1"] };
 
 describe("StructuredMemoryLedgerAdapter", () => {
+  it("composes one recovered Agent control plane and closes semantic review through its durable stream", async () => {
+    const backend = backends();
+    const first = agentControlPlane(backend);
+    expect(first.recovery).toMatchObject({ sequence: 0, snapshotDigest: null });
+    await first.semantic.propose({ eventId: "semantic-proposal", memoryId: "semantic-memory",
+      contentDigest: hash("semantic-content"), artifactRef: "artifact://semantic-memory",
+      evidenceRefs: ["evidence://semantic/1"], timestamp: "2026-09-02T00:00:00.000Z" });
+    await first.semantic.reviewAndAccept({ memoryId: "semantic-memory", eventId: "semantic-accept",
+      timestamp: "2026-09-02T00:00:01.000Z" });
+    expect(first.memory.projection().memories["semantic-memory"].status).toBe("active");
+
+    const reopened = agentControlPlane(backend);
+    expect(reopened.recovery.sequence).toBe(2);
+    expect(reopened.memory.projection().memories["semantic-memory"]).toMatchObject({ status: "active",
+      receipts: { critic: expect.stringMatching(/^sha256:/u), evaluator: expect.stringMatching(/^sha256:/u) } });
+    expect(reopened.policyReceiptWriter).not.toBe(first.policyReceiptWriter);
+    expect(reopened.promotionReceiptWriter).not.toBe(first.promotionReceiptWriter);
+  });
+
   it("persists and resolves all four authority receipt kinds through ArtifactStore and Ledger", async () => {
     const backend = backends();
     const authorityStore = authorityLedgerAdapter(backend);

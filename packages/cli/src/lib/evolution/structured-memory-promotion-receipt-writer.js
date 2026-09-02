@@ -174,8 +174,10 @@ export function captureStructuredMemoryPromotionReceiptWriter(value) {
       "a branded structured memory promotion writer is required",
     );
   }
-  return Object.freeze({
+  const captured = Object.freeze({
     descriptor: value.descriptor,
     retainPromotion: capture(value, "retainPromotion"),
   });
+  WRITERS.add(captured);
+  return captured;
 }
