@@ -117,6 +117,20 @@ function consumeAuthority(value, tenantId) {
   return value.actor;
 }
 
+function captureStructuredMemoryAuthority(
+  value,
+  { tenantId, role, actorType } = {},
+) {
+  const actor = consumeAuthority(value, requiredString(tenantId, "tenantId"));
+  if (
+    (role !== undefined && actor.role !== role) ||
+    (actorType !== undefined && actor.actorType !== actorType)
+  ) {
+    throw new Error("structured memory authority has the wrong actor scope");
+  }
+  return value;
+}
+
 function capture(owner, name) {
   if (typeof owner?.[name] !== "function") throw new TypeError(`${name} port is required`);
   return (...args) => Reflect.apply(owner[name], owner, args);
@@ -569,6 +583,7 @@ module.exports = {
   StructuredEvolutionMemory,
   projectStructuredMemory,
   createStructuredMemoryAuthority,
+  captureStructuredMemoryAuthority,
   STRUCTURED_MEMORY_RECEIPT_SCHEMA,
   STRUCTURED_MEMORY_RECEIPT_RESOLUTION_SCHEMA,
   createStructuredMemoryReceiptProvider,

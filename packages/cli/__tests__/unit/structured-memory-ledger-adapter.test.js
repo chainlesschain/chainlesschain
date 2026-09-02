@@ -251,7 +251,7 @@ function memoryReceiptWriters(authorityStore) {
     policyReceiptWriter: createStructuredMemoryPolicyReceiptWriter(common("policy")) };
 }
 
-function agentControlPlane(backend) {
+function agentControlPlane(backend, overrides = {}) {
   const authorityStore = authorityLedgerAdapter(backend);
   const memoryAdapter = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
     ledger: backend.ledger, ledgerArtifactResolver: backend.resolver,
@@ -260,7 +260,8 @@ function agentControlPlane(backend) {
   return createStructuredMemoryAgentControlPlane({ memoryAdapter, authorityAdapter: authorityStore,
     critic: semanticReviewer("critic"), evaluator: semanticReviewer("evaluator"),
     proposerAuthority: authority("child-agent"), governorAuthority: authority("governor", "service"),
-    ...memoryReceiptWriters(authorityStore) });
+    promotionAuthority: authority("promotion-controller", "service"),
+    ...memoryReceiptWriters(authorityStore), ...overrides });
 }
 
 function runtimeEvent(idOrOverrides = "memory-1") {
@@ -286,6 +287,9 @@ const compactInput = { requirements: ["retain requirements"], decisions: ["use l
 describe("StructuredMemoryLedgerAdapter", () => {
   it("composes one recovered Agent control plane and closes semantic review through its durable stream", async () => {
     const backend = backends();
+    expect(() => agentControlPlane(backend, {
+      promotionAuthority: authority("governor", "service"),
+    })).toThrow(/wrong actor scope/u);
     const first = agentControlPlane(backend);
     expect(first.recovery).toMatchObject({ sequence: 0, snapshotDigest: null });
     await first.semantic.propose({ eventId: "semantic-proposal", memoryId: "semantic-memory",

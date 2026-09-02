@@ -1,9 +1,12 @@
+import structuredMemory from "@chainlesschain/session-core/structured-evolution-memory";
 import { StructuredMemoryLedgerAdapter } from "./structured-memory-ledger-adapter.js";
 import { StructuredMemoryAuthorityLedgerAdapter } from "./structured-memory-authority-ledger-adapter.js";
 import { captureStructuredMemoryPromotionReceiptWriter } from "./structured-memory-promotion-receipt-writer.js";
 import { captureStructuredMemoryPolicyReceiptWriter } from "./structured-memory-policy-receipt-writer.js";
 import { createStructuredMemorySemanticReviewPipeline } from "./structured-memory-semantic-review-pipeline.js";
 import { createSkillEvaluatedPromotionControlPlane } from "./skill-promotion-controller.js";
+
+const { captureStructuredMemoryAuthority } = structuredMemory;
 
 export const STRUCTURED_MEMORY_AGENT_CONTROL_PLANE_SCHEMA =
   "chainlesschain.structured-memory-agent-control-plane/v1";
@@ -27,6 +30,7 @@ export function createStructuredMemoryAgentControlPlane({
   evaluator,
   proposerAuthority,
   governorAuthority,
+  promotionAuthority,
   promotionReceiptWriter,
   policyReceiptWriter,
 } = {}) {
@@ -47,6 +51,11 @@ export function createStructuredMemoryAgentControlPlane({
   const policy =
     captureStructuredMemoryPolicyReceiptWriter(policyReceiptWriter);
   const tenantId = memoryAdapter.descriptor.tenantId;
+  const promotionActor = captureStructuredMemoryAuthority(promotionAuthority, {
+    tenantId,
+    role: "promotion-controller",
+    actorType: "service",
+  });
   if (
     promotion.descriptor.tenantId !== tenantId ||
     policy.descriptor.tenantId !== tenantId
@@ -87,9 +96,85 @@ export function createStructuredMemoryAgentControlPlane({
           "evaluated promotion options cannot override the Agent memory writer",
         );
       }
-      return createSkillEvaluatedPromotionControlPlane({
+      const evaluated = createSkillEvaluatedPromotionControlPlane({
         ...options,
         memoryPromotionReceiptWriter: promotion,
+      });
+      const recordPromotionMemory = async (result) => {
+        const authorityReceipt = result?.memoryAuthorityReceipt;
+        const release = result?.release;
+        if (
+          authorityReceipt?.kind !== "promotion" ||
+          authorityReceipt.tenantId !== tenantId ||
+          authorityReceipt.layer !== "procedural" ||
+          authorityReceipt.action !== "accept" ||
+          authorityReceipt.decision !== "accepted" ||
+          authorityReceipt.contentDigest !== release?.contentDigest ||
+          authorityReceipt.artifactRef !== release?.releaseDigest
+        ) {
+          throw new Error(
+            "evaluated promotion result lacks its durable Memory authority receipt",
+          );
+        }
+        const existing =
+          memory.projection().memories[authorityReceipt.memoryId];
+        if (existing) {
+          if (
+            existing.layer !== "procedural" ||
+            existing.status !== "active" ||
+            existing.contentDigest !== authorityReceipt.contentDigest ||
+            existing.artifactRef !== authorityReceipt.artifactRef ||
+            existing.receipts?.promotion !== authorityReceipt.receiptDigest
+          ) {
+            throw new Error(
+              "persisted procedural memory conflicts with the promotion receipt",
+            );
+          }
+          return Object.freeze({
+            status: "recovered",
+            memory: existing,
+            projection: memory.projection(),
+          });
+        }
+        return memory.append({
+          eventId: `promotion-${authorityReceipt.receiptDigest.slice("sha256:".length)}`,
+          memoryId: authorityReceipt.memoryId,
+          layer: "procedural",
+          action: "accept",
+          authority: promotionActor,
+          automatic: true,
+          contentDigest: authorityReceipt.contentDigest,
+          artifactRef: authorityReceipt.artifactRef,
+          evidenceRefs: authorityReceipt.evidenceRefs,
+          supersedes: [],
+          receiptRefs: { promotion: authorityReceipt.receiptDigest },
+          timestamp: authorityReceipt.issuedAt,
+          metadata: {
+            releaseReceiptDigest: result.receipt?.receiptDigest,
+            matrixReceiptDigest:
+              result.matrixBinding?.matrixReceiptDigest ?? null,
+          },
+        });
+      };
+      return Object.freeze({
+        ...evaluated,
+        promoteEvaluated: Object.freeze(async (input) => {
+          const result = await evaluated.promoteEvaluated(input);
+          try {
+            const memoryTransition = await recordPromotionMemory(result);
+            return Object.freeze({ ...result, memoryTransition });
+          } catch (cause) {
+            const error = new Error(
+              "release committed but procedural Memory persistence is pending",
+              { cause },
+            );
+            error.code = "CC_PROMOTION_MEMORY_COMMIT_PENDING";
+            error.commitState = "release-committed-memory-pending";
+            error.promotionResult = result;
+            throw error;
+          }
+        }),
+        recordPromotionMemory: Object.freeze(recordPromotionMemory),
       });
     },
     recovery: Object.freeze({

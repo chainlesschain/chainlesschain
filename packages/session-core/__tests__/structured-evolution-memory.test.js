@@ -9,6 +9,7 @@ const {
   StructuredEvolutionMemory,
   projectStructuredMemory,
   createStructuredMemoryAuthority,
+  captureStructuredMemoryAuthority,
   createStructuredMemoryReceiptProvider,
   createStructuredMemoryAuthorityReceipt,
   createStructuredMemoryPostCompactVerifier,
@@ -139,6 +140,31 @@ function compactInput(overrides = {}) {
 }
 
 describe("structured evolution memory projection", () => {
+  it("captures only branded authorities with the required tenant and actor scope", () => {
+    const promotion = authority("promotion-controller", "service");
+    expect(
+      captureStructuredMemoryAuthority(promotion, {
+        tenantId: "tenant-a",
+        role: "promotion-controller",
+        actorType: "service",
+      }),
+    ).toBe(promotion);
+    expect(() =>
+      captureStructuredMemoryAuthority(promotion, {
+        tenantId: "tenant-b",
+        role: "promotion-controller",
+        actorType: "service",
+      }),
+    ).toThrow(/branded tenant-scoped/u);
+    expect(() =>
+      captureStructuredMemoryAuthority(authority("governor", "service"), {
+        tenantId: "tenant-a",
+        role: "promotion-controller",
+        actorType: "service",
+      }),
+    ).toThrow(/wrong actor scope/u);
+  });
+
   it("keeps episodic memory append-only and uses tombstones instead of overwrite", () => {
     const first = event();
     const duplicateMemory = event({ eventId: "event-2", sequence: 2, contentDigest: digest("changed") });

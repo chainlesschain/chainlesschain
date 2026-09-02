@@ -66,15 +66,13 @@ import {
   digestSkillMutationReceiptEnvelope,
   digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
-import {
-  EMPTY_SKILL_ACTIVE_DIGEST,
-  createSkillEvaluatedPromotionControlPlane,
-} from "../../src/lib/evolution/skill-promotion-controller.js";
+import { EMPTY_SKILL_ACTIVE_DIGEST } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SkillReleaseRegistry,
 } from "../../src/lib/evolution/skill-release-registry.js";
-import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
+import { AgentRuntime } from "../../src/runtime/agent-runtime.js";
+import { createStructuredMemoryAgentControlPlaneFixture } from "../fixtures/structured-memory-agent-control-plane.js";
 import {
   SKILL_TARGET_MATRIX_EVAL_FINALIZATION_SCHEMA,
   SKILL_TARGET_MATRIX_EVAL_PLAN_RESOLUTION_SCHEMA,
@@ -108,10 +106,12 @@ const PROVENANCE_AUDIENCE = "skill-promotion";
 const TRAINER_AUTHORITY = "trainer-authority-v1";
 const TRAINER_REVISION = "trainer-revision-v7";
 const promotionRoots = [];
+const memoryRootFixtures = [];
 afterEach(() => {
   for (const root of promotionRoots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
+  for (const fixture of memoryRootFixtures.splice(0)) fixture.cleanup();
 });
 const RUN_REQUEST = Object.freeze({
   suiteRef: "skill-pilot-suite-v1",
@@ -2894,55 +2894,57 @@ describe("Skill target matrix evaluation foundation", () => {
       transactionLedger,
     };
     const releaseRegistry = new SkillReleaseRegistry(registryOptions);
-    const retainedPromotionReceipts = [];
-    const memoryPromotionReceiptWriter =
-      createStructuredMemoryPromotionReceiptWriter({
-        descriptor: {
-          tenantId: receipt.tenantId,
-          issuerId: "promotion-controller:matrix-integration",
-          issuerRevision: 1,
-          issuerHandlerDigest: matrixDigest(
-            "matrix-promotion-memory-writer",
-            "v1",
-          ),
-        },
-        authorityStore: {
-          async retainReceipt(authorityReceipt) {
-            retainedPromotionReceipts.push(authorityReceipt);
-            return {
-              persisted: true,
-              receiptDigest: authorityReceipt.receiptDigest,
-            };
-          },
-        },
-        attestor: {
-          async attest({ payloadDigest }) {
-            return matrixDigest("matrix-promotion-attestation", payloadDigest);
-          },
-        },
-        clock: () => "2026-09-02T00:00:00.000Z",
-      });
-    const evaluatedOnly = createSkillEvaluatedPromotionControlPlane({
+    const memoryRoot = createStructuredMemoryAgentControlPlaneFixture({
+      tenantId: receipt.tenantId,
+    });
+    memoryRootFixtures.push(memoryRoot);
+    const runtime = new AgentRuntime({
+      kind: "agent",
+      policy: {
+        model: "matrix-promotion-model",
+        provider: "matrix-promotion-provider",
+        sessionId: "matrix-promotion-session",
+      },
+      deps: { structuredMemoryControlPlane: memoryRoot.controlPlane },
+    });
+    const evaluatedOnly = runtime.createEvolutionPromotionControlPlane({
       authority: authorityHarness.authority,
       candidateRegistry,
       evaluatedPromotionProvider: provider,
-      memoryPromotionReceiptWriter,
       releaseRegistry,
     });
-    const promoted = await evaluatedOnly.promoteEvaluated({
-      authorization: {
-        capability:
-          await authorityHarness.authority.authorize(promotionRequest),
-        request: promotionRequest,
-      },
-      candidateId: candidate.candidateId,
-      matrixContext: {
-        matrixEvalId: receipt.matrixEvalId,
-        baselineId: receipt.baselineId,
-        matrixAuthorityRoot: receipt.matrixAuthorityRoot,
-        planDigest: receipt.planDigest,
+    memoryRoot.ledgerState.failAfterType = "memory.event.persisted";
+    let pendingError;
+    try {
+      await evaluatedOnly.promoteEvaluated({
+        authorization: {
+          capability:
+            await authorityHarness.authority.authorize(promotionRequest),
+          request: promotionRequest,
+        },
+        candidateId: candidate.candidateId,
+        matrixContext: {
+          matrixEvalId: receipt.matrixEvalId,
+          baselineId: receipt.baselineId,
+          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+          planDigest: receipt.planDigest,
+        },
+      });
+    } catch (error) {
+      pendingError = error;
+    }
+    expect(pendingError).toMatchObject({
+      code: "CC_PROMOTION_MEMORY_COMMIT_PENDING",
+      commitState: "release-committed-memory-pending",
+      promotionResult: {
+        release: { candidateId: candidate.candidateId },
+        state: { revision: 1 },
       },
     });
+    const committedPromotion = pendingError.promotionResult;
+    const memoryTransition =
+      await evaluatedOnly.recordPromotionMemory(committedPromotion);
+    const promoted = { ...committedPromotion, memoryTransition };
     expect(promoted).toMatchObject({
       matrixBinding: {
         candidateId: candidate.candidateId,
@@ -2963,6 +2965,13 @@ describe("Skill target matrix evaluation foundation", () => {
         kind: "promotion",
         layer: "procedural",
       },
+      memoryTransition: {
+        event: {
+          action: "accept",
+          layer: "procedural",
+        },
+        projection: { sequence: 1 },
+      },
     });
     expect(promoted.state.activeReleaseDigest).toBe(
       promoted.release.releaseDigest,
@@ -2970,9 +2979,36 @@ describe("Skill target matrix evaluation foundation", () => {
     expect(promoted.memoryAuthorityReceipt.evidenceRefs).toEqual(
       [promoted.receipt.receiptDigest, receipt.receiptDigest].sort(),
     );
-    expect(retainedPromotionReceipts).toEqual([
-      promoted.memoryAuthorityReceipt,
-    ]);
+    expect(
+      memoryRoot.controlPlane.memory.projection().memories[
+        promoted.memoryAuthorityReceipt.memoryId
+      ],
+    ).toMatchObject({
+      artifactRef: promoted.release.releaseDigest,
+      contentDigest: promoted.release.contentDigest,
+      receipts: { promotion: promoted.memoryAuthorityReceipt.receiptDigest },
+      status: "active",
+    });
+    const reopenedMemoryRoot = memoryRoot.open();
+    expect(
+      reopenedMemoryRoot.memory.projection().memories[
+        promoted.memoryAuthorityReceipt.memoryId
+      ],
+    ).toEqual(
+      memoryRoot.controlPlane.memory.projection().memories[
+        promoted.memoryAuthorityReceipt.memoryId
+      ],
+    );
+    await expect(
+      evaluatedOnly.recordPromotionMemory(promoted),
+    ).resolves.toMatchObject({
+      status: "recovered",
+      memory: {
+        receipts: {
+          promotion: promoted.memoryAuthorityReceipt.receiptDigest,
+        },
+      },
+    });
     const reopenedReleaseRegistry = new SkillReleaseRegistry(registryOptions);
     expect(reopenedReleaseRegistry.readState(candidate.skillName)).toEqual(
       promoted.state,
