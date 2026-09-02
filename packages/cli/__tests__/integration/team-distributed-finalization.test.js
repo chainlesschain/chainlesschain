@@ -416,11 +416,16 @@ describe("distributed finalization real Git recovery", () => {
         readyPath,
       );
       await waitForFile(readyPath);
-      const competitor = await runFinalizeChild(
-        fixture,
-        "normal",
-        "competing-finalizer",
-      );
+      let competitor;
+      try {
+        competitor = await runFinalizeChild(
+          fixture,
+          "normal",
+          "competing-finalizer",
+        );
+      } finally {
+        fs.writeFileSync(`${readyPath}.release`, "release\n");
+      }
       const winner = await slow;
       expect(winner).toMatchObject({
         code: 0,

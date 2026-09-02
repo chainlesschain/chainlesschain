@@ -19,8 +19,14 @@ class FinalizeFixtureCoordinator extends TeamWorktreeCoordinator {
     if (mode === "slow" && options.merge !== true) {
       if (readyPath) {
         fs.writeFileSync(readyPath, "ready\n");
+        const releasePath = `${readyPath}.release`;
+        const deadline = Date.now() + 30_000;
+        while (!fs.existsSync(releasePath) && Date.now() < deadline) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+        }
+      } else {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750);
       }
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750);
     }
     const result = super.integrate(options);
     if (mode === "kill-merge" && options.merge === true) {
