@@ -4,9 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
+  SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
   SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
   SkillCandidateRegistry,
@@ -36,13 +38,18 @@ import {
 } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SKILL_RELEASE_MIGRATION_AUTHORITY_SCHEMA,
+  SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA,
+  SKILL_RELEASE_MIGRATION_RECORD_SCHEMA,
   SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
   SKILL_RELEASE_SCHEMA,
   SKILL_RELEASE_STATE_SCHEMA,
   SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
   SkillReleaseSimulatedCrashError,
+  buildMigratedSkillRelease,
   deriveSkillReleaseTenantKey,
+  verifyLegacySkillRelease,
   verifySkillRelease,
 } from "../../src/lib/evolution/skill-release-registry.js";
 
@@ -576,6 +583,58 @@ function candidateInput(execution, parentDigest = null, suffix = "one") {
   };
 }
 
+function legacyCandidate(execution) {
+  const input = candidateInput(execution);
+  const core = {
+    schema: "chainlesschain.skill-candidate/v1",
+    status: "draft",
+    skillName: input.skillName,
+    parentDigest: input.parentDigest,
+    contentDigest: digest(Buffer.from(input.content, "utf8")),
+    sourceEvidenceRefs: input.sourceEvidenceRefs,
+    derivationMode: input.derivationMode,
+    wikiRevision: input.wikiRevision,
+    proposerModel: input.proposerModel,
+    targetRuntimes: [...execution.targetMatrix.targetRuntimes].sort(),
+    requestedCapabilities: [...input.requestedCapabilities].sort(),
+    evalRunId: null,
+    contentType: "text/markdown; charset=utf-8; profile=skill",
+    content: input.content,
+  };
+  return {
+    candidateId: domainDigest("chainlesschain.skill-candidate/v1", core),
+    ...core,
+  };
+}
+
+function legacyRelease(candidate, execution) {
+  const core = {
+    authorityReceiptDigest: digest("legacy-authority-receipt"),
+    candidateId: candidate.candidateId,
+    content: candidate.content,
+    contentDigest: candidate.contentDigest,
+    dependencyLock: execution.dependencyLock.lock,
+    dependencyLockDigest: execution.dependencyLock.lockDigest,
+    mutationRequestDigest: digest("legacy-mutation-request"),
+    parentDigest: candidate.parentDigest,
+    receiptDigests: Object.fromEntries(
+      SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
+        kind,
+        digest(`legacy-receipt:${kind}`),
+      ]),
+    ),
+    requestedCapabilities: candidate.requestedCapabilities,
+    schema: "chainlesschain.skill-release/v3",
+    skillName: candidate.skillName,
+    targetRuntimes: candidate.targetRuntimes,
+    transitionSubjectDigest: digest("legacy-transition-subject"),
+  };
+  return {
+    ...core,
+    releaseDigest: domainDigest("chainlesschain.skill-release/v3", core),
+  };
+}
+
 function requestFor({
   targetDigest,
   revision,
@@ -688,6 +747,138 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     );
     expect(aliasedReleases.baseDir).toBe(
       fs.realpathSync.native(path.join(canonicalParent, "releases")),
+    );
+  });
+
+  it("migrates an exact v3 release only through durable candidate and release audit bindings", () => {
+    const legacyDraft = legacyCandidate(execution);
+    const candidateAuthorityDescriptor = {
+      schema: SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:candidate-migration",
+      trust: "trusted",
+      handlerArtifactDigest: digest("candidate-migration-handler:v1"),
+    };
+    const candidateMigration = candidates.migrateLegacy(
+      legacyDraft,
+      {
+        dependencyLock: execution.dependencyLock,
+        runtimeManifest: execution.runtimeManifest,
+        targetMatrix: execution.targetMatrix,
+      },
+      {
+        ...candidateAuthorityDescriptor,
+        audit: (migration) => ({
+          schema: SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
+          authenticated: true,
+          durable: true,
+          authorityId: candidateAuthorityDescriptor.authorityId,
+          trust: candidateAuthorityDescriptor.trust,
+          handlerArtifactDigest:
+            candidateAuthorityDescriptor.handlerArtifactDigest,
+          migrationDigest: migration.migrationDigest,
+          receiptDigest: digest(
+            `candidate-migration-receipt:${migration.migrationDigest}`,
+          ),
+        }),
+      },
+    );
+    const legacy = legacyRelease(legacyDraft, execution);
+    const input = { legacyRelease: legacy, candidateMigration };
+
+    expect(verifyLegacySkillRelease(legacy)).toEqual(legacy);
+    expect(buildMigratedSkillRelease(input)).toMatchObject({
+      schema: SKILL_RELEASE_SCHEMA,
+      tenantId: TENANT_ID,
+      candidateId: candidateMigration.candidate.candidateId,
+      contentDigest: legacy.contentDigest,
+    });
+
+    const releaseAuthorityDescriptor = {
+      schema: SKILL_RELEASE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:release-migration",
+      trust: "trusted",
+      handlerArtifactDigest: digest("release-migration-handler:v1"),
+    };
+    const audit = vi.fn((migration) => ({
+      schema: SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: releaseAuthorityDescriptor.authorityId,
+      trust: releaseAuthorityDescriptor.trust,
+      handlerArtifactDigest: releaseAuthorityDescriptor.handlerArtifactDigest,
+      migrationDigest: migration.migrationDigest,
+      receiptDigest: digest(
+        `release-migration-receipt:${migration.migrationDigest}`,
+      ),
+    }));
+    const migrationAuthority = { ...releaseAuthorityDescriptor, audit };
+    const migrated = releases.migrateLegacyRelease(input, migrationAuthority);
+
+    expect(migrated).toMatchObject({
+      created: true,
+      migration: {
+        schema: SKILL_RELEASE_MIGRATION_RECORD_SCHEMA,
+        legacyCandidateId: legacyDraft.candidateId,
+        legacyReleaseDigest: legacy.releaseDigest,
+        releaseDigest: migrated.release.releaseDigest,
+        tenantId: TENANT_ID,
+      },
+      receipt: {
+        schema: SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA,
+        authenticated: true,
+        durable: true,
+      },
+    });
+    expect(releases.readRelease(migrated.release.releaseDigest)).toEqual(
+      migrated.release,
+    );
+    expect(releases.readState(legacy.skillName).revision).toBe(0);
+    expect(audit).toHaveBeenCalledWith(migrated.migration);
+
+    const repeated = releases.migrateLegacyRelease(input, migrationAuthority);
+    expect(repeated.created).toBe(false);
+    expect(repeated.migration.migrationDigest).toBe(
+      migrated.migration.migrationDigest,
+    );
+
+    const tamperedLegacy = structuredClone(legacy);
+    tamperedLegacy.content += "tampered";
+    expect(
+      capturedError(() => verifyLegacySkillRelease(tamperedLegacy)).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+
+    const unauditedCandidate = structuredClone(candidateMigration);
+    unauditedCandidate.receipt.durable = false;
+    expect(
+      capturedError(() =>
+        buildMigratedSkillRelease({
+          legacyRelease: legacy,
+          candidateMigration: unauditedCandidate,
+        }),
+      ).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+
+    const failedRegistry = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: path.join(tempRoot, "failed-release-migration"),
+      secure: false,
+      transactionLedger: new StrictTransactionLedger(),
+    });
+    const failedAudit = (migration) => ({
+      ...audit(migration),
+      durable: false,
+    });
+    const error = capturedError(() =>
+      failedRegistry.migrateLegacyRelease(input, {
+        ...releaseAuthorityDescriptor,
+        audit: failedAudit,
+      }),
+    );
+    expect(error.code).toBe("SKILL_RELEASE_MIGRATION_AUDIT_FAILED");
+    expect(error.commitState).toBe("inactive-release-only");
+    expect(failedRegistry.readState(legacy.skillName).revision).toBe(0);
+    expect(failedRegistry.readRelease(migrated.release.releaseDigest)).toEqual(
+      migrated.release,
     );
   });
 
