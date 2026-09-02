@@ -19,7 +19,10 @@ import path from "path";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
+import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
+
+const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
@@ -3570,6 +3573,8 @@ export async function executeTool(name, args, context = {}) {
       onProviderReceipt: context.onProviderReceipt || null,
       onToolCallBoundary: context.onToolCallBoundary || null,
       onToolCallSettlement: context.onToolCallSettlement || null,
+      hookTraceId: context.hookTraceId || null,
+      skillLifecycleMode: context.skillLifecycleMode || "active",
       backgroundUsageFailureState: context.backgroundUsageFailureState || null,
       planManager,
       permissionRules: context.permissionRules || null,
@@ -5151,6 +5156,7 @@ async function executeToolInner(
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
+    skillLifecycleMode = "active",
   },
 ) {
   const localToolDescriptor =
@@ -7866,6 +7872,63 @@ async function executeToolInner(
         });
       }
 
+      const selectedSkillDigest =
+        match.executionIdentity?.contentDigest ||
+        `sha256:${createHash("sha256").update(admittedSkillBody).digest("hex")}`;
+      const toolSetDigest = `sha256:${createHash("sha256")
+        .update(
+          JSON.stringify(
+            [...(effectiveAllowedToolNames || [])].map(String).sort(),
+          ),
+        )
+        .digest("hex")}`;
+      const policyDigest = `sha256:${createHash("sha256")
+        .update(
+          JSON.stringify({
+            hasApprovalGate: Boolean(approvalGate),
+            hasPermissionRules: Boolean(permissionRules),
+            hasSandbox: Boolean(sandbox),
+            hermeticExecution: hermeticExecution === true,
+          }),
+        )
+        .digest("hex")}`;
+      const invocationStartedAt = Date.now();
+      const invocationStart = startSkillInvocation({
+        attributionRequired: ["automatic-candidate", "canary"].includes(
+          skillLifecycleMode,
+        ),
+        evolutionRunId: workflowEffectId || sessionId,
+        traceId: hookTraceId || sessionId,
+        trajectorySegmentId: turnId || toolCallId,
+        selectedSkillDigest,
+        routerCandidates: [
+          {
+            digest: selectedSkillDigest,
+            score: 1,
+            reason: "explicit-run_skill",
+          },
+        ],
+        providerModelVersion:
+          llmOptions?.provider && llmOptions?.model
+            ? `${llmOptions.provider}:${llmOptions.model}`
+            : null,
+        toolSetDigest,
+        osSandboxPermissionPolicyDigest: policyDigest,
+        taskCohort: "cli:run_skill",
+      });
+      const settleInvocation = (executionStatus, result = {}) =>
+        settleSkillInvocation(invocationStart, {
+          executionStatus,
+          graderReceipts: result.graderReceipts || [],
+          userCorrectionRef: result.userCorrectionRef || null,
+          tokensInput:
+            result.usage?.inputTokens || result.usage?.tokensInput || 0,
+          tokensOutput:
+            result.usage?.outputTokens || result.usage?.tokensOutput || 0,
+          costUsd: result.usage?.costUsd || result.costUsd || 0,
+          latencyMs: Date.now() - invocationStartedAt,
+        });
+
       // Check if skill requests isolation (via SKILL.md frontmatter)
       const skillIsolation = match.isolation === true;
       if (skillIsolation) {
@@ -8066,6 +8129,7 @@ async function executeToolInner(
               success: false,
               isolated: true,
               skill: args.skill_name,
+              invocationReceipt: settleInvocation("failed", result),
               code: result?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
               error: `Isolated skill execution failed: ${failureDetail}`,
               ...(result?.summary ? { summary: result.summary } : {}),
@@ -8075,6 +8139,7 @@ async function executeToolInner(
             success: true,
             isolated: true,
             skill: args.skill_name,
+            invocationReceipt: settleInvocation("completed", result),
             summary: result.summary,
             toolsUsed: result.toolsUsed,
           });
@@ -8096,6 +8161,7 @@ async function executeToolInner(
             success: false,
             isolated: true,
             skill: args.skill_name,
+            invocationReceipt: settleInvocation("failed"),
             code: err?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
             error: `Isolated skill execution failed: ${err.message}`,
           });
@@ -8112,6 +8178,7 @@ async function executeToolInner(
       return attachDescriptor({
         error: `Skill "${args.skill_name}" cannot execute handler.js directly. Add isolation: true and use the controlled agent-tool path.`,
         code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+        invocationReceipt: settleInvocation("blocked"),
         policy: { decision: "blocked", via: "skill-execution-boundary" },
       });
     }

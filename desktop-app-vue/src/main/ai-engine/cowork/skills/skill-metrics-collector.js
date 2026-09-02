@@ -11,6 +11,7 @@
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../../../utils/logger.js");
+const { settleSkillInvocation } = require("./skill-invocation-receipt.js");
 
 function toNonNegativeNumber(value) {
   const number = Number(value);
@@ -140,7 +141,11 @@ class SkillMetricsCollector extends EventEmitter {
       tokensOutput: normalized.tokensOutput,
       costUsd: normalized.cost,
       errorMessage: data.error || null,
-      contextJson: data.context ? JSON.stringify(data.context) : null,
+      contextJson: data.invocationReceipt
+        ? JSON.stringify({ invocationReceipt: data.invocationReceipt })
+        : data.context
+          ? JSON.stringify(data.context)
+          : null,
     };
 
     // Update in-memory aggregation
@@ -159,6 +164,9 @@ class SkillMetricsCollector extends EventEmitter {
     }
 
     this.emit("metric-recorded", { skillId, record });
+    if (data.invocationReceipt) {
+      this.emit("invocation-receipt-recorded", data.invocationReceipt);
+    }
   }
 
   /**
@@ -443,6 +451,11 @@ class SkillMetricsCollector extends EventEmitter {
     }
 
     const metrics = data.metrics || data;
+    const invocationReceipt = this._settleInvocation(
+      data,
+      "completed",
+      metrics,
+    );
     this.recordExecution(skillId, {
       duration:
         metrics.durationMs ?? metrics.executionTime ?? data.executionTime ?? 0,
@@ -452,6 +465,7 @@ class SkillMetricsCollector extends EventEmitter {
       tokensUsed: metrics.tokensUsed,
       cost: metrics.cost ?? metrics.costUsd,
       pipelineId: data.pipelineId,
+      invocationReceipt,
     });
   }
 
@@ -463,6 +477,7 @@ class SkillMetricsCollector extends EventEmitter {
     }
 
     const metrics = data.metrics || data;
+    const invocationReceipt = this._settleInvocation(data, "failed", metrics);
     this.recordExecution(skillId, {
       duration:
         metrics.durationMs ?? metrics.executionTime ?? data.executionTime ?? 0,
@@ -472,11 +487,27 @@ class SkillMetricsCollector extends EventEmitter {
       tokensUsed: metrics.tokensUsed,
       cost: metrics.cost ?? metrics.costUsd,
       pipelineId: data.pipelineId,
+      invocationReceipt,
       error:
         data.errorMessage ||
         data.error?.message ||
         data.error ||
         "Unknown error",
+    });
+  }
+
+  /** @private */
+  _settleInvocation(data, executionStatus, metrics) {
+    if (!data?.invocationStart) return null;
+    return settleSkillInvocation(data.invocationStart, {
+      executionStatus,
+      graderReceipts: data.graderReceipts || [],
+      userCorrectionRef: data.userCorrectionRef || null,
+      tokensInput: metrics.tokensInput,
+      tokensOutput: metrics.tokensOutput,
+      costUsd: metrics.cost ?? metrics.costUsd,
+      latencyMs:
+        metrics.durationMs ?? metrics.executionTime ?? data.executionTime ?? 0,
     });
   }
 

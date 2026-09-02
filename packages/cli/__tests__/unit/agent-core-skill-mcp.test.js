@@ -54,9 +54,8 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { agentLoop, executeTool } = await import(
-  "../../src/runtime/agent-core.js"
-);
+const { agentLoop, executeTool } =
+  await import("../../src/runtime/agent-core.js");
 
 describe("run_skill controlled execution boundary", () => {
   let tempDir;
@@ -158,6 +157,11 @@ describe("run_skill controlled execution boundary", () => {
       { skill_name: "reviewer", input: "inspect src" },
       {
         cwd: tempDir,
+        sessionId: "session:skill-receipt",
+        turnId: "turn:skill-receipt:1",
+        hookTraceId: "trace:skill-receipt",
+        skillLifecycleMode: "canary",
+        llmOptions: { provider: "test-provider", model: "test-model-v1" },
         effectiveAllowedToolNames: [
           "run_skill",
           "read_file",
@@ -174,7 +178,24 @@ describe("run_skill controlled execution boundary", () => {
       skill: "reviewer",
       summary: "isolated:inspect src",
       toolsUsed: ["read_file"],
+      invocationReceipt: {
+        schema: "chainlesschain.skill-invocation-receipt/v1",
+        evolutionRunId: "session:skill-receipt",
+        traceId: "trace:skill-receipt",
+        trajectorySegmentId: "turn:skill-receipt:1",
+        providerModelVersion: "test-provider:test-model-v1",
+        taskCohort: "cli:run_skill",
+        attributionStatus: "complete",
+        attributionEligible: true,
+        executionStatus: "completed",
+      },
     });
+    expect(result.invocationReceipt.receiptDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
+    expect(result.invocationReceipt.routerCandidates[0].reason).toBe(
+      "explicit-run_skill",
+    );
     expect(mocks.childRuns).toEqual(["inspect src"]);
     expect(mocks.childConfigs).toHaveLength(1);
     expect(mocks.childConfigs[0]).toMatchObject({
@@ -186,6 +207,20 @@ describe("run_skill controlled execution boundary", () => {
     expect(mocks.childConfigs[0].task).toContain("inspect src");
     expect(mocks.childConfigs[0]).not.toHaveProperty("mcpClient");
     expect(mocks.childConfigs[0]).not.toHaveProperty("processBroker");
+  });
+
+  it("fails closed before a canary child starts when invocation attribution is incomplete", async () => {
+    registerSkill({ id: "unattributed-canary", isolation: true });
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "unattributed-canary", input: "inspect src" },
+        { cwd: tempDir, skillLifecycleMode: "canary" },
+      ),
+    ).rejects.toMatchObject({ code: "CC_SKILL_ATTRIBUTION_REQUIRED" });
+    expect(mocks.childRuns).toEqual([]);
+    expect(mocks.childConfigs).toEqual([]);
   });
 
   it("forwards the isolated skill child's real call boundary and settlement without an aggregate sentinel", async () => {

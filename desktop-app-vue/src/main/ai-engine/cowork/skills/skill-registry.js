@@ -12,6 +12,18 @@ const nodeCrypto = require("node:crypto");
 const {
   BUNDLED_SKILL_CAPABILITY_CATALOG,
 } = require("./bundled-skill-capability-catalog");
+const { startSkillInvocation } = require("./skill-invocation-receipt.js");
+
+function fallbackSkillDigest(skill) {
+  return `sha256:${nodeCrypto
+    .createHash("sha256")
+    .update(
+      `${skill.skillId}\0${skill.version || "unknown"}\0${String(
+        skill.constructor,
+      )}`,
+    )
+    .digest("hex")}`;
+}
 
 /**
  * SkillRegistry 类
@@ -598,7 +610,40 @@ class SkillRegistry extends EventEmitter {
       };
     }
 
-    return executionContext;
+    const selectedSkillDigest =
+      executionSecurity?.contentDigest || fallbackSkillDigest(skill);
+    const lifecycleMode = executionContext.skillLifecycleMode || "active";
+    const attributionRequired = ["automatic-candidate", "canary"].includes(
+      lifecycleMode,
+    );
+    const routerCandidates = Array.isArray(executionContext.routerCandidates)
+      ? executionContext.routerCandidates
+      : [
+          {
+            digest: selectedSkillDigest,
+            score: 1,
+            reason:
+              executionContext.routerReason || "direct-registry-execution",
+          },
+        ];
+    const invocationStart = startSkillInvocation({
+      attributionRequired,
+      evolutionRunId: executionContext.evolutionRunId,
+      traceId: executionContext.traceId,
+      trajectorySegmentId: executionContext.trajectorySegmentId,
+      selectedSkillDigest,
+      routerCandidates,
+      providerModelVersion: executionContext.providerModelVersion,
+      toolSetDigest: executionContext.toolSetDigest,
+      osSandboxPermissionPolicyDigest:
+        executionContext.osSandboxPermissionPolicyDigest,
+      taskCohort: executionContext.taskCohort,
+    });
+
+    return {
+      ...executionContext,
+      __skillInvocationStart: invocationStart,
+    };
   }
 
   async _executeWithHostAuthority(skill, task, context) {

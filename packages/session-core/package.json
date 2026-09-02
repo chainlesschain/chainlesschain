@@ -28,6 +28,7 @@
     "./envelope-sse": "./lib/envelope-sse.js",
     "./quality-gate": "./lib/quality-gate.js",
     "./runtime-claims": "./lib/runtime-claims.js",
+    "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
     "./nostr-crypto": "./lib/nostr-crypto.js"
   },
   "scripts": {

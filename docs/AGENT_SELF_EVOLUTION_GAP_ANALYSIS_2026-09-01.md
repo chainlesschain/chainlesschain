@@ -59,7 +59,7 @@ shadow / canary / active / rollback
 
 ### 1.1 当前实施完成情况（截至 2026-09-02）
 
-本节记录本报告转入实施后的当前状态，实施基线截至提交 `3b76883a81`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
+本节记录本报告转入实施后的当前状态，实施基线截至提交 `23125c71e4`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
 
 2026-09-02 已提交窄纵切 `881abf6090`：类型化 matrix receipt envelope 只携带有界 `receiptDigest`，`SkillPromotionController.promoteEvaluated()` 在消费 mutation authority、创建 release prepare 或改写 active state 之前，使用独立 verifier 校验完整 signed matrix receipt，并把 candidate content、dependency lock、runtime manifest、target matrix、active digest/revision 和 `accepted` decision 绑定到同一次晋级。既有 release intent 继续通过 `evalReceipt` digest 固定这份证据。
 
@@ -73,18 +73,20 @@ shadow / canary / active / rollback
 
 当前工作区新增 narrow evaluated-promotion control-plane facade：构造时必须提供 branded evidence provider，并强制创建 `requireEvaluatedPromotion=true` 的 controller；返回面只暴露 `promoteEvaluated()`、授权 `rollback()` 及不可变 provider identity，不暴露 direct `promote()` 或底层 controller。该原语减少了生产 adapter 误用宽控制器表面的机会，但仓库仍没有真实生产构造点，因此不能把“安全装配入口已可用”改写为“生产入口已切换”。
 
+提交 `23125c71e4` 合并关闭 EVO-P0-1 truth cutover、EVO-P0-2 transaction acceptance 与上述受限 evaluated-promotion facade：正式 learning/evolution/Desktop 表面不再报告 phantom success；Candidate/Promotion/Rollback 通过 100 并发单赢家、五阶段 crash/recovery、真实子进程重启和 `<60s` 字节级回滚验收。当前工作区随后完成 EVO-P1-8 SkillInvocationReceipt 跨端纵切：canonical schema 移入共享 `session-core`；Desktop Registry→BaseSkill→MetricsCollector 将 receipt 持久到数据库 `context_json`；CLI `run_skill` 将同一 receipt 随 tool result 持久到 transcript；automatic-candidate/canary 缺完整归因字段会在执行前失败关闭；共享 verifier 与 trace projection 可确定性回答选择、路由、环境、判定和成本。
+
 | 优先级 | 当前判断 | 已完成并写入仓库 | 当前仍需完成 |
 | --- | --- | --- | --- |
-| P0 | 已完成 20 个基础提交并有 3 个工作区续作批次；EVO-P0-1、EVO-P0-2 已完成，P0 整体未关闭 | 能力真值与 mutation freeze 已完成产品表面切换；Candidate/Promotion/Rollback 已完成不可变制品、CAS、journal/recovery、100 并发单赢家和字节级 LKG 回滚验收；可信 mutation authority、独立监督 Eval Gate、signed target-matrix 全 cell 合取门、accepted matrix receipt→promotion/release intent 窄绑定、typed/digest-bound receipt-resolution 端口、evaluated-only controller 与受限 control-plane facade 组合、attested durable receipt lifecycle adapter 及撤销快照基线、证据投影与制品端口、tamper-evident ledger、类型化领域事件、规范执行清单、持久账本端口契约 | P0-3～P0-5 仍缺真实跨进程 durability authority/PKI 后端、真实进程级 Eval supervisor 与持久 child resolver、跨 cell 统计校准/多重比较、人工 quorum 和生产攻击测试；统一最终用户控制面构造接线归 EVO-P1-5 |
-| P1 | 部分底座提前落地；主能力未开始验收 | target matrix 数据模型与全 cell 合取证据基础、content-addressed registry、ledger/event/port 等依赖已具备基础实现 | Canonical Raw/Wiki/Skill、Maintainer、Proposer、生产目标矩阵 Eval、统一 Registry 接线、结构化 Memory、InvocationReceipt 和有界评分循环均未形成生产纵切 |
+| P0 | 已完成 21 个基础提交；EVO-P0-1、EVO-P0-2 已完成，P0 整体未关闭 | 能力真值与 mutation freeze 已完成产品表面切换；Candidate/Promotion/Rollback 已完成不可变制品、CAS、journal/recovery、100 并发单赢家和字节级 LKG 回滚验收；可信 mutation authority、独立监督 Eval Gate、signed target-matrix 全 cell 合取门、accepted matrix receipt→promotion/release intent 窄绑定、typed/digest-bound receipt-resolution 端口、evaluated-only controller 与受限 control-plane facade 组合、attested durable receipt lifecycle adapter 及撤销快照基线、证据投影与制品端口、tamper-evident ledger、类型化领域事件、规范执行清单、持久账本端口契约 | P0-3～P0-5 仍缺真实跨进程 durability authority/PKI 后端、真实进程级 Eval supervisor 与持久 child resolver、跨 cell 统计校准/多重比较、人工 quorum 和生产攻击测试；统一最终用户控制面构造接线归 EVO-P1-5 |
+| P1 | EVO-P1-8 已完成；其余主能力仍待验收 | target matrix 数据模型、content-addressed registry、ledger/event/port；共享 bounded/digest-bound SkillInvocationReceipt 已接通 Desktop DB 与 CLI transcript，具备 fail-closed canary attribution 和确定性 trace join | Canonical Raw/Wiki/Skill、Maintainer、Proposer、生产目标矩阵 Eval、统一 Registry 接线、结构化 Memory 和有界评分循环仍未形成生产纵切 |
 | P2 | 未开始 | 尚未把任何 P2 产品能力声明为已交付 | Pilot、Workbench、Retrieval Router、跨设备/团队知识、跨模型市场治理、Wiki pruning 与长时在线适应应在 P0/P1 验收后实施 |
 
 P0 的逐项状态如下；“基础完成”特指底层安全原语已提交，不代表生产接线已经完成：
 
 | 路线项 | 状态 | 已完成部分 | 提交证据 | 未关闭项 |
 | --- | --- | --- | --- | --- |
-| EVO-P0-1 能力真实性与 mutation freeze | ✅ 已完成（工作区待提交） | canonical capability/runtime status；CLI learning/evolution fail-closed 与 metrics-only help；Desktop TechLearning 无制品不再成功；Phase 20 改为 metrics 接线且旧 simulator 未注册；learning/proposer/import writer 全部 candidate-only；产品文档与生成参考完成真值切换；13 文件 295/295 定向回归通过 | `3fdff6c1ee`、`0da1f36a8b`、`c16e1a3912`；2026-09-02 truth-cutover 工作区 | 无；通用 Agent/插件等 legacy writer 的统一单写者迁移归 EVO-P1-5，不再作为 learning/proposer 能力声明 |
-| EVO-P0-2 Candidate、Promotion 与 Rollback 事务 | ✅ 已完成（工作区待提交） | tenant-scoped immutable candidate/release、完整 execution manifest、可信 mutation authority、active CAS、lease/fence、prepare/finalize ledger、journal/staging/pointer recovery、session pin、LKG+dependency lock rollback；五个写入阶段崩溃矩阵与真实子进程退出恢复已覆盖；新增 100 并发候选严格 1 成功/99 拒绝及字节级回滚 `<60s` 断言，三文件 70/70 通过 | `3fdff6c1ee`、`fe16c72d5e`、`ed7882d004`、`233e1bdc3a`、`4cffc53054`、`dfa21b4ba4`、`4f22d70bb5`；2026-09-02 transaction-acceptance 工作区 | 无；shadow/canary 产品编排及唯一最终用户 production writer 的实际构造接线归 EVO-P1-5，跨进程 PKI/Eval authority 归 EVO-P0-3 |
+| EVO-P0-1 能力真实性与 mutation freeze | ✅ 已完成 | canonical capability/runtime status；CLI learning/evolution fail-closed 与 metrics-only help；Desktop TechLearning 无制品不再成功；Phase 20 改为 metrics 接线且旧 simulator 未注册；learning/proposer/import writer 全部 candidate-only；产品文档与生成参考完成真值切换；13 文件 295/295 定向回归通过 | `3fdff6c1ee`、`0da1f36a8b`、`c16e1a3912`、`23125c71e4` | 无；通用 Agent/插件等 legacy writer 的统一单写者迁移归 EVO-P1-5，不再作为 learning/proposer 能力声明 |
+| EVO-P0-2 Candidate、Promotion 与 Rollback 事务 | ✅ 已完成 | tenant-scoped immutable candidate/release、完整 execution manifest、可信 mutation authority、active CAS、lease/fence、prepare/finalize ledger、journal/staging/pointer recovery、session pin、LKG+dependency lock rollback；五个写入阶段崩溃矩阵与真实子进程退出恢复已覆盖；新增 100 并发候选严格 1 成功/99 拒绝及字节级回滚 `<60s` 断言，三文件 70/70 通过 | `3fdff6c1ee`、`fe16c72d5e`、`ed7882d004`、`233e1bdc3a`、`4cffc53054`、`dfa21b4ba4`、`4f22d70bb5`、`23125c71e4` | 无；shadow/canary 产品编排及唯一最终用户 production writer 的实际构造接线归 EVO-P1-5，跨进程 PKI/Eval authority 归 EVO-P0-3 |
 | EVO-P0-3 独立真实 Eval Gate | 单 cell 监督、matrix 合取证据、evaluated-promotion 窄绑定、receipt resolver、evaluated-only 组合、受限 control-plane facade 及 attested/bounded/fresh/rotatable/revocation-aware durable lifecycle adapter 基础完成，生产接线 HOLD | 隔离 target、角色/信任分权、签名 receipt v3、调用/撤销独立证据、hard-termination 收敛、全 run 单调 deadline、descriptor-bound authority root、后验防 TOCTOU；signed matrix plan、tenant durable reserve/finalize 端口契约、verified full child receipt（含 attestation）的有序摘要根、因果时间线与全 cell 一致通过判定；accepted receipt 在 authority consume/release prepare 前绑定 candidate/runtime/target/active CAS，并由 release intent 固定 eval envelope digest；按 tenant/digest 解析完整 receipt 的 fail-closed 端口；构造期 branded provider、拒绝直接 `promote()` 的策略及不暴露宽 controller 的窄 facade；要求 authenticated/durable acknowledgement、验证规范 payload attestation、证据新鲜度、全局唯一 keyId/有界 grace trust、版本化撤销快照，并对 authority 调用施加根时限/AbortSignal 的 retain/resolve 生命周期适配器 | `52427b742c`、`5c2de980d3`、`881abf6090`、`1a70a880fa`、`0feb536d82`、`face4e9250`、`3b76883a81`；2026-09-02 control-plane facade 工作区续作 | train/validation/test 隔离、真实 grader、anti-gaming、跨 cell 统计校准/多重比较；现有生产 adapter 实际构造受限 control plane、真实跨进程 durability authority/PKI 后端、持久 child resolver 与恢复 E2E；生产 attested loader 绑定 descriptor↔callable/真实 settlement 上限；进程级 kill/资源回收；跨进程 plan resolver/reservation/finalization 持久性；认证撤销分发/刷新及生产密钥轮换/撤销演练与目标平台 grace 校准 |
 | EVO-P0-4 Raw、入模投影与 Skill 编译安全边界 | 基础部分完成 | attested evidence projection、authenticated artifact ports、tenant-bound dependency lock/runtime manifest/target matrix 规范格式与校验 | `b8490faa94`、`b4dca1ee05`、`4cffc53054` | 生产 raw/model-visible 双层存储、secret/PII 脱敏、trust/quarantine、完整 derivation receipt、人工 quorum 与生产 adapter 接线 |
 | EVO-P0-5 Fail-closed 证据与审计 | 账本基础完成，生产可用性 HOLD | append-only tamper-evident ledger、typed domain events、subject-bound transition、认证制品解析与持久账本组合端口 | `d073bdf3c7`、`233e1bdc3a`、`d098a64253`、`b4dca1ee05`、`dfa21b4ba4` | 真实跨进程持久 authority、增量索引/快照与规模基准、冲突/并发回归、旧 projection/journal 迁移、故障注入、离线审计导出验证以及生产 wiring |
@@ -100,7 +102,7 @@ P1/P2 当前状态按路线项展开如下，防止提前把“已有依赖”�
 | EVO-P1-5 Registry 与单写者治理 | tenant 存储、evaluated-only controller 与受限 facade 原语基础完成 | content-addressed tenant candidate/release、promotion controller、lease/CAS/journal/recovery 原语、可拒绝直接 promotion 且不暴露宽 controller 的构造策略 | 唯一 production writer 使用受限 facade 的实际构造接线、kill switch、active/last-known-good/canary 生产接线与跨进程持久权威 |
 | EVO-P1-6 统一生产接线 | 未开始 | capability status 与 Desktop evidence 已校正部分入口 | 真实 Agent 事件统一进入控制面，并退役或降级重复的 self-evolving 壳 |
 | EVO-P1-7 Memory 与多 Agent 权力分离 | 部分安全底座完成 | Eval Gate 已建立 target/grader/safety/supervisor/verifier 的最小监督与证据分权 | 完成 memory 分层、compaction 约束及 proposer/critic/evaluator/governor 隔离，并由可证明的生产组合根强制执行 |
-| EVO-P1-8 SkillInvocationReceipt | 部分观测底座完成 | Desktop lifecycle metrics/evidence、ledger/artifact port | 固定 skill digest、router reason、模型段、环境/权限、真实 outcome/cost，并可反向 join Eval/Wiki |
+| EVO-P1-8 SkillInvocationReceipt | ✅ 已完成（工作区待提交） | shared canonical receipt、Desktop DB adapter、CLI transcript adapter、candidate/canary attribution gate、digest verifier 与 deterministic trace projection；5 文件 208/208 通过 | 无；上层 Eval/Wiki 只需使用已固定的 evolutionRunId/trace/segment/grader receipt refs 做领域 join |
 | EVO-P1-9 有界评分改进循环 | 未开始 | 现有 GoalConditionEngine、预算、Eval、worktree/checkpoint 可复用 | 串成 candidate-only 离线纵切，证明单候选、独立评分、best 保留、失败分类与根预算停止 |
 | EVO-P2-1～P2-6 | 未开始 | 无生产能力提前宣称 | P0/P1 验收通过后，再依次开展受控 Pilot、Workbench、Router、团队知识、跨模型治理和 Wiki pruning |
 
@@ -108,8 +110,9 @@ P1/P2 当前状态按路线项展开如下，防止提前把“已有依赖”�
 
 | 批次 | 验证快照 | 结论 |
 | --- | --- | --- |
-| EVO-P0-1 truth cutover | capability/learning/writer/authority/Desktop/Phase/keyword/跨表面契约共 13 文件 295/295 通过；真实 CLI help 已核对；manifest/help/reference 生成物无漂移；ESLint 0 error；`git diff --check` 通过 | 路线项在当前工作区完成：正式入口不再把 unavailable、metrics 或内存对象报告为已训练/已进化/已创建 active Skill；待提交 |
-| EVO-P0-2 transaction acceptance | candidate/release/promotion 3 文件 70/70 通过；100 并发完整候选严格单赢家；rollback 原字节与 dependency lock 一致且 `<60s`；五阶段 crash matrix、commit-unknown、真实子进程退出/重启恢复保持通过 | 路线项在当前工作区完成：active CAS、LKG、journal 和 ledger 事务原语已达到自身确定性验收；待提交 |
+| EVO-P0-1 truth cutover | capability/learning/writer/authority/Desktop/Phase/keyword/跨表面契约共 13 文件 295/295 通过；真实 CLI help 已核对；manifest/help/reference 生成物无漂移；ESLint 0 error；`git diff --check` 通过 | 路线项已由 `23125c71e4` 提交：正式入口不再把 unavailable、metrics 或内存对象报告为已训练/已进化/已创建 active Skill |
+| EVO-P0-2 transaction acceptance | candidate/release/promotion 3 文件 70/70 通过；100 并发完整候选严格单赢家；rollback 原字节与 dependency lock 一致且 `<60s`；五阶段 crash matrix、commit-unknown、真实子进程退出/重启恢复保持通过 | 路线项已由 `23125c71e4` 提交：active CAS、LKG、journal 和 ledger 事务原语达到自身确定性验收 |
+| EVO-P1-8 SkillInvocationReceipt | shared receipt、Desktop DB、CLI transcript、collector/Phase/pipeline 共 5 文件 208/208 通过；canary 完整归因与缺字段前置拒绝、trace ID 贯穿、digest tamper、deterministic trace join 均有断言 | 路线项在当前工作区完成；普通 incomplete receipt 明确禁止 outcome attribution；待提交 |
 | 证据投影与认证制品端口 | evidence projector 46/46 通过；artifact ports 25 项通过，Windows 无权限创建 symlink 时另有 1 项按条件跳过 | 基础批次已提交；真实外部 artifact authority 仍需生产实现 |
 | Tamper-evident ledger 与 typed events | 相关账本测试 45/45 通过 | 数据模型与 fail-closed 校验基础已提交 |
 | Canonical execution manifests | manifest + mutation authority 测试 57/57 通过 | canonicalization、tenant-bound lock、runtime manifest、target matrix 基础已提交 |
@@ -615,6 +618,10 @@ tokenCostLatency: {}
 
 验收标准：自动候选与 canary 运行 100% 产生可 join 的 exposure/outcome receipt；同一 trace 可确定性回答“选了什么、为何选择、在哪个环境、结果由谁判定、花费多少”；在该覆盖率达标前，不启用 outcome-aware reranking 或自动效果声明。
 
+实施结果（2026-09-02，工作区）：**该路线项已关闭。** `chainlesschain.skill-invocation-receipt/v1` 位于共享 `@chainlesschain/session-core`，只保留有界 metadata/digest，不写 task/prompt/output 内容。Desktop `SkillRegistry` 在执行前固定 selected Skill digest、router candidate/reason、evolution run/trace/segment、provider model、tool set、OS/sandbox/permission policy 与 cohort；`BaseSkill` 透传同一个 invocation start；`SkillMetricsCollector` 在 outcome 时补齐 execution status、grader receipt digest、user correction ref、token、cost、latency 和最终 receipt digest，并通过 `skill_execution_metrics.context_json` 持久化。CLI `run_skill` 消费同一 shared builder/verifier，把 receipt 放入 tool result 并随 transcript 持久化；真实 hook trace ID 已贯穿外层和隔离 child，不再退化为 session ID。
+
+`automatic-candidate`/`canary` 缺归因字段会抛出 `CC_SKILL_ATTRIBUTION_REQUIRED`，且发生在 Desktop Skill invocation 计数或 CLI child 启动之前；普通调用可生成 `incomplete` receipt，但 `attributionEligible=false`，不能用于 outcome-aware reranking。共享 `verifySkillInvocationReceipt()` 拒绝 digest tamper，`buildSkillInvocationTraceProjection()` 按 startedAt/receiptId 确定性排序并投影 Skill 选择、router reason、provider/model、工具与策略环境、execution/grader/user-correction 判定以及 token/cost/latency 汇总。Desktop/CLI/collector/Phase/pipeline 5 文件 **208/208** 通过，ESLint 0 error，`git diff --check` 通过。上层 Eval/Wiki 后续只需按已固定的 evolutionRunId/trace/segment/grader receipt refs 领域关联，不再需要重建调用归因协议。
+
 ### 6.9 EVO-P1-9：复用现有底座的有界评分改进循环
 
 建议先实现 `cc lab evolution pilot` 或等价内部入口，不先建设新调度服务：
@@ -828,12 +835,12 @@ ChainlessChain 不缺“会记、会反思、会写 Skill”的功能点，真�
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、确定性验证和该编号自身可在仓库内完成的边界已经关闭，只剩由其他统一路线验收的生产切换；`🟡 部分完成` 表示核心底座或可复用原语已经落地，但该编号定义的生产接线、跨进程实现或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。
 
-总计 20 项：**2 项已完成、0 项仓库闭环、8 项部分完成、10 项待完成**。另有 **20 个已提交基础批次和 3 个尚未提交的工作区批次**（EVO-P0-1 truth cutover、EVO-P0-2 transaction acceptance 与 evaluated-promotion facade）。这两个计数维度不能混用：基础提交数量不代表路线项完成数量。
+总计 20 项：**3 项已完成、0 项仓库闭环、7 项部分完成、10 项待完成**。另有 **21 个已提交基础批次和 1 个尚未提交的工作区批次**（EVO-P1-8 SkillInvocationReceipt 跨端纵切）。这两个计数维度不能混用：基础提交数量不代表路线项完成数量。
 
 | 优先级 | 编号 | 任务 | 状态 | 已完成与验证证据 | 剩余工作 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | EVO-P0-1 | 能力真实性与 mutation freeze | ✅ 已完成（工作区待提交） | canonical manifest fail-closed、CLI learning/evolution truth help、Desktop TechLearning phantom-success 移除、Phase 20 metrics 接线、旧 simulator 未注册、六个 learning/proposer/import writer candidate-only、mutation authority 拒绝审计及产品文档一致性均已关闭；13 文件 295/295 通过；详见 §1.1、§5.1 | 无；通用 Agent/插件 legacy writer 的单写者迁移属于 EVO-P1-5 |
-| P0 | EVO-P0-2 | Candidate、Promotion 与 Rollback 事务 | ✅ 已完成（工作区待提交） | immutable tenant candidate/release、mutation authority、execution manifest、lease/fence、prepare/finalize ledger、active CAS、journal recovery、session pin、LKG+dependency lock rollback 已闭环；五阶段 crash/真实进程重启、100 并发单赢家和 `<60s` 字节级回滚均通过，核心 3 文件 70/70；详见 §1.1、§5.2 | 无；最终用户 shadow/canary 与唯一 production writer wiring 归 EVO-P1-5，真实 Eval/PKI authority 归 EVO-P0-3 |
+| P0 | EVO-P0-1 | 能力真实性与 mutation freeze | ✅ 已完成 | canonical manifest fail-closed、CLI learning/evolution truth help、Desktop TechLearning phantom-success 移除、Phase 20 metrics 接线、旧 simulator 未注册、六个 learning/proposer/import writer candidate-only、mutation authority 拒绝审计及产品文档一致性均已关闭；13 文件 295/295 通过；提交 `23125c71e4`；详见 §1.1、§5.1 | 无；通用 Agent/插件 legacy writer 的单写者迁移属于 EVO-P1-5 |
+| P0 | EVO-P0-2 | Candidate、Promotion 与 Rollback 事务 | ✅ 已完成 | immutable tenant candidate/release、mutation authority、execution manifest、lease/fence、prepare/finalize ledger、active CAS、journal recovery、session pin、LKG+dependency lock rollback 已闭环；五阶段 crash/真实进程重启、100 并发单赢家和 `<60s` 字节级回滚均通过，核心 3 文件 70/70；提交 `23125c71e4`；详见 §1.1、§5.2 | 无；最终用户 shadow/canary 与唯一 production writer wiring 归 EVO-P1-5，真实 Eval/PKI authority 归 EVO-P0-3 |
 | P0 | EVO-P0-3 | 独立真实 Eval Gate | 🟡 部分完成 | 独立监督 Gate、signed target matrix 全 cell 合取、accepted receipt→promotion 窄绑定、typed resolver、evaluated-only controller、attested/bounded/fresh/rotatable/revocation-aware durability adapter 已提交；当前工作区新增不暴露 direct promotion/底层 controller 的窄 control-plane facade。promotion controller 定向回归 15/15 通过；详见 §1.1、§5.3 | 提交当前 facade 批次；接入真实 grader 与 train/validation/test 隔离；完成统计校准/多重比较、生产受限 control plane 构造接线、跨进程 authority/PKI/child resolver、进程级 kill、崩溃恢复及密钥撤销演练 |
 | P0 | EVO-P0-4 | Raw、入模投影与 Skill 编译安全边界 | 🟡 部分完成 | attested evidence projection、authenticated artifact ports、tenant-bound dependency lock/runtime manifest/target matrix 规范格式已落地；详见 §1.1、§5.4 | 生产 raw/model-visible 双层存储、secret/PII 脱敏、trust/quarantine、derivation receipt、人工 quorum 与生产 adapter 接线 |
 | P0 | EVO-P0-5 | Fail-closed 证据与审计 | 🟡 部分完成 | append-only tamper-evident ledger、typed domain events、subject-bound transition、认证制品解析与持久账本组合端口已落地；详见 §1.1、§5.5 | 真实跨进程持久 authority、增量索引/快照和规模基准、并发/冲突/故障注入、旧数据迁移、离线审计导出及生产 wiring |
@@ -844,7 +851,7 @@ ChainlessChain 不缺“会记、会反思、会写 Skill”的功能点，真�
 | P1 | EVO-P1-5 | Registry、生命周期与单写者治理 | 🟡 部分完成 | content-addressed tenant candidate/release、promotion controller、lease/CAS/journal/recovery、拒绝 direct promotion 的策略及不暴露宽 controller 的 facade 已落地；详见 §1.1、§6.5 | 让唯一 production writer 实际构造并使用受限 facade，补齐 kill switch、active/last-known-good/canary 与跨进程持久权威 |
 | P1 | EVO-P1-6 | 统一生产接线并退役重复壳 | ⏳ 待完成 | capability status 与 Desktop evidence 已校正部分入口；尚无统一控制面纵切；详见 §1.1、§6.6 | 让真实 Agent 事件统一进入演化控制面，迁移生产 adapters，并退役或降级重复 self-evolving 壳 |
 | P1 | EVO-P1-7 | 结构化 Memory、Compaction 与多 Agent 权力分离 | 🟡 部分完成 | Eval Gate 已提供 target/grader/safety/supervisor/verifier 的最小监督和证据分权；详见 §1.1、§6.7 | 完成 episodic/semantic/procedural/policy memory 分层、compaction 保真，以及 proposer/critic/evaluator/governor 的生产级隔离 |
-| P1 | EVO-P1-8 | SkillInvocationReceipt 与因果归因 | 🟡 部分完成 | Desktop lifecycle metrics/evidence 与 ledger/artifact ports 可复用；详见 §1.1、§6.8 | 每次调用固定 skill digest、router reason、模型段、环境/权限、outcome/cost，并可反向 join Eval/Wiki |
+| P1 | EVO-P1-8 | SkillInvocationReceipt 与因果归因 | ✅ 已完成（工作区待提交） | canonical schema 位于 shared session-core；Desktop DB 与 CLI transcript 共用 builder/verifier；Skill/router/model/tool/policy/segment/outcome/grader/correction/token/cost/latency 均被 receipt digest 固定；candidate/canary 缺字段在执行前失败；deterministic trace projection 可直接回答归因问题；5 文件 208/208 通过；详见 §1.1、§6.8 | 无；Eval/Wiki 使用既有 refs 做上层领域 join |
 | P1 | EVO-P1-9 | 有界评分改进循环 | ⏳ 待完成 | GoalConditionEngine、预算、Eval、worktree/checkpoint 可复用；尚未组成 candidate-only 改进闭环；详见 §1.1、§6.9 | 串成一次一候选、独立评分、best 保留、失败分类和根预算停止的离线纵切，再做生产准入 |
 | P2 | EVO-P2-1 | 窄域受控生产 Pilot | ⏳ 待完成 | 尚无 P2 生产能力提前声明；已有 rollout 与 approval 原语可在 P0/P1 关闭后复用；详见 §7.1 | 选择低风险 opt-in cohort，执行人工 review→shadow→canary，并按样本量与退出门槛扩量 |
 | P2 | EVO-P2-2 | Evolution Workbench | ⏳ 待完成 | 尚未形成 evidence→pattern→diff→eval→promotion 产品时间线；详见 §7.2 | 实现可解释时间线、权限 diff、兼容范围、审批、版本对比与一键回滚 |

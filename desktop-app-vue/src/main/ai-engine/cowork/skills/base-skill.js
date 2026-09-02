@@ -6,8 +6,8 @@
  * @module ai-engine/cowork/skills/base-skill
  */
 
-const { logger } = require('../../../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../../../utils/logger.js");
+const EventEmitter = require("events");
 
 function toNonNegativeNumber(value) {
   const number = Number(value);
@@ -58,10 +58,10 @@ class BaseSkill extends EventEmitter {
     super();
 
     this.skillId = options.skillId || this.constructor.name;
-    this.name = options.name || 'Unnamed Skill';
-    this.description = options.description || '';
-    this.version = options.version || '1.0.0';
-    this.category = options.category || 'general';
+    this.name = options.name || "Unnamed Skill";
+    this.description = options.description || "";
+    this.version = options.version || "1.0.0";
+    this.category = options.category || "general";
 
     // 技能能力标签
     this.capabilities = options.capabilities || [];
@@ -110,7 +110,9 @@ class BaseSkill extends EventEmitter {
     // 基于关键词匹配
     if (task.description) {
       const keywords = this._extractKeywords(task.description);
-      const matchedKeywords = keywords.filter(k => this.capabilities.includes(k));
+      const matchedKeywords = keywords.filter((k) =>
+        this.capabilities.includes(k),
+      );
       score += matchedKeywords.length * 5;
     }
 
@@ -124,7 +126,7 @@ class BaseSkill extends EventEmitter {
    * @returns {Promise<any>} 执行结果
    */
   async execute(task, context = {}) {
-    throw new Error('execute() method must be implemented by subclass');
+    throw new Error("execute() method must be implemented by subclass");
   }
 
   /**
@@ -144,11 +146,12 @@ class BaseSkill extends EventEmitter {
       task,
       pipelineId: context?.pipelineId || null,
       pipelineExecutionId: context?.pipelineExecutionId || null,
+      invocationStart: context?.__skillInvocationStart || null,
     };
 
     try {
       this._log(`开始执行技能: ${this.name}`);
-      this.emit('skill-started', eventBase);
+      this.emit("skill-started", eventBase);
 
       const result = await this.execute(task, context);
 
@@ -160,7 +163,7 @@ class BaseSkill extends EventEmitter {
         this.metrics.totalExecutionTime / this.metrics.invocations;
 
       this._log(`技能执行成功: ${this.name}, 耗时: ${executionTime}ms`);
-      this.emit('skill-completed', {
+      this.emit("skill-completed", {
         ...eventBase,
         result,
         // Legacy top-level field retained while consumers move to metrics.
@@ -180,8 +183,8 @@ class BaseSkill extends EventEmitter {
       this.metrics.avgExecutionTime =
         this.metrics.totalExecutionTime / this.metrics.invocations;
 
-      this._log(`技能执行失败: ${this.name}, 错误: ${error.message}`, 'error');
-      this.emit('skill-failed', {
+      this._log(`技能执行失败: ${this.name}, 错误: ${error.message}`, "error");
+      this.emit("skill-failed", {
         ...eventBase,
         error,
         errorMessage: error.message,
@@ -224,7 +227,9 @@ class BaseSkill extends EventEmitter {
         }
 
         if (rules.minLength && value.length < rules.minLength) {
-          errors.push(`${key} must have at least ${rules.minLength} characters`);
+          errors.push(
+            `${key} must have at least ${rules.minLength} characters`,
+          );
         }
 
         if (rules.maxLength && value.length > rules.maxLength) {
@@ -236,7 +241,7 @@ class BaseSkill extends EventEmitter {
         }
 
         if (rules.enum && !rules.enum.includes(value)) {
-          errors.push(`${key} must be one of: ${rules.enum.join(', ')}`);
+          errors.push(`${key} must be one of: ${rules.enum.join(", ")}`);
         }
       }
     }
@@ -255,19 +260,19 @@ class BaseSkill extends EventEmitter {
     return text
       .toLowerCase()
       .split(/\s+/)
-      .filter(word => word.length > 3);
+      .filter((word) => word.length > 3);
   }
 
   /**
    * 日志输出
    * @protected
    */
-  _log(message, level = 'info') {
+  _log(message, level = "info") {
     const prefix = `[Skill:${this.skillId}]`;
 
-    if (level === 'error') {
+    if (level === "error") {
       logger.error(`${prefix} ${message}`);
-    } else if (level === 'warn') {
+    } else if (level === "warn") {
       logger.warn(`${prefix} ${message}`);
     } else {
       logger.info(`${prefix} ${message}`);
@@ -298,7 +303,7 @@ class BaseSkill extends EventEmitter {
    */
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    this._log(`技能已${enabled ? '启用' : '禁用'}`);
+    this._log(`技能已${enabled ? "启用" : "禁用"}`);
   }
 
   /**
