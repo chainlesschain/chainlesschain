@@ -8,7 +8,9 @@
 
 import path from "node:path";
 import fs from "node:fs";
+import { randomUUID } from "node:crypto";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -235,7 +237,33 @@ export function resolveAgentObservabilityScope(options = {}) {
   return scope;
 }
 
-export function registerAgentCommand(program) {
+export async function resolveAgentCommandEvolutionComposition(
+  factory,
+  { mode, sessionId = null, cwd = process.cwd() } = {},
+) {
+  if (factory == null) return null;
+  if (typeof factory !== "function") {
+    throw new TypeError(
+      "Agent evolution composition factory must be a function",
+    );
+  }
+  if (!["interactive", "headless", "headless-stream"].includes(mode)) {
+    throw new TypeError("Agent evolution command mode is invalid");
+  }
+  const composition = await factory(
+    Object.freeze({
+      mode,
+      sessionId,
+      runId: sessionId || `agent-run-${randomUUID()}`,
+      cwd: path.resolve(cwd),
+    }),
+  );
+  return captureAgentEvolutionRuntimeComposition(composition);
+}
+
+export function registerAgentCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    dependencies.evolutionCompositionFactory ?? null;
   program
     .command("agent")
     .aliases(["a", "exec"])
@@ -1455,6 +1483,15 @@ export function registerAgentCommand(program) {
         const cwd = process.cwd();
         let outcome;
         try {
+          const evolutionComposition =
+            await resolveAgentCommandEvolutionComposition(
+              evolutionCompositionFactory,
+              {
+                mode: "headless-stream",
+                sessionId: options.session || null,
+                cwd,
+              },
+            );
           outcome = await runAgentHeadlessStream({
             model: options.model,
             thinking,
@@ -1521,6 +1558,9 @@ export function registerAgentCommand(program) {
             // appended after each turn (parity with single-prompt --json-schema).
             jsonSchema: options.jsonSchema || null,
             claudeStorageLaunchEnv,
+            ...(evolutionComposition === null
+              ? {}
+              : { evolutionIngress: evolutionComposition.evolutionIngress }),
           });
         } catch (err) {
           process.stderr.write(
@@ -1530,6 +1570,7 @@ export function registerAgentCommand(program) {
           );
           await _finishWorktree();
           process.exit(1);
+          return;
         }
         await _finishWorktree();
         process.exit(outcome.exitCode);
@@ -1718,6 +1759,22 @@ export function registerAgentCommand(program) {
               (fs.realpathSync.native || fs.realpathSync)(process.cwd()),
             )
           : null;
+        let evolutionComposition;
+        try {
+          evolutionComposition = await resolveAgentCommandEvolutionComposition(
+            evolutionCompositionFactory,
+            {
+              mode: "headless",
+              sessionId: options.session || null,
+              cwd: process.cwd(),
+            },
+          );
+        } catch (error) {
+          process.stderr.write(`Evolution ingress: ${error.message}\n`);
+          await _finishWorktree();
+          process.exit(1);
+          return;
+        }
         const headlessOptions = {
           prompt,
           images,
@@ -1841,6 +1898,9 @@ export function registerAgentCommand(program) {
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
           claudeStorageLaunchEnv,
+          ...(evolutionComposition === null
+            ? {}
+            : { evolutionIngress: evolutionComposition.evolutionIngress }),
         };
 
         // --json-schema: structured output. Accepts a file path OR inline JSON.
@@ -1932,7 +1992,25 @@ export function registerAgentCommand(program) {
 
       // Strict sandbox mode also guards the interactive session: refuse to
       // start when failIfUnavailable is set and the engine can't run.
-      const runtime = createAgentRuntimeFactory().createAgentRuntime({
+      let evolutionComposition;
+      try {
+        evolutionComposition = await resolveAgentCommandEvolutionComposition(
+          evolutionCompositionFactory,
+          {
+            mode: "interactive",
+            sessionId: options.session || null,
+            cwd: process.cwd(),
+          },
+        );
+      } catch (error) {
+        process.stderr.write(`Evolution ingress: ${error.message}\n`);
+        await _finishWorktree();
+        process.exitCode = 1;
+        return;
+      }
+      const runtime = createAgentRuntimeFactory({
+        evolutionComposition,
+      }).createAgentRuntime({
         model: options.model,
         thinking,
         thinkingBudget,
