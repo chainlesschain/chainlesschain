@@ -21,6 +21,7 @@ import {
   EVOLUTION_ARTIFACT_TYPE_DENIED_CODE,
   EvolutionArtifactPorts,
   createEvolutionLedgerArtifactResolver,
+  isEvolutionLedgerArtifactResolver,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
@@ -591,12 +592,13 @@ describe("EvolutionArtifactPorts", () => {
     );
   });
 
-  it("supports only the four approved ledger-retention types without an envelope TTL", () => {
+  it("supports only the five approved ledger-retention types without an envelope TTL", () => {
     expect(EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES).toEqual([
       "skill-release-transition-intent",
       "skill-release-finalization",
       "skill-mutation-audit",
       "skill-mutation-nonce-claim",
+      "wiki-revision",
     ]);
     const results = EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES.map((type) =>
       publish({
@@ -634,6 +636,8 @@ describe("EvolutionArtifactPorts", () => {
     const ledgerResolver = ports.createEvolutionLedgerArtifactResolver({
       purpose: PURPOSE,
     });
+    expect(isEvolutionLedgerArtifactResolver(ledgerResolver)).toBe(true);
+    expect(isEvolutionLedgerArtifactResolver(() => ledgerResolver)).toBe(false);
     expect(ledgerResolver(ledgerRequest(results[0]))).toMatchObject({
       authenticated: true,
       digest: results[0].digest,

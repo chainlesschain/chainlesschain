@@ -64,6 +64,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "skill-release-finalization",
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
+  "wiki-revision",
 ]);
 export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_PURPOSES = Object.freeze([
   "evolution-ledger",
@@ -99,6 +100,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
   "skill-release-finalization",
+  "wiki-revision",
   "skill-release-transition-intent",
   "source",
   "source-evidence",
@@ -253,6 +255,7 @@ const CONSTRUCTOR_REQUIRED_KEYS = new Set([
   "tenantId",
 ]);
 const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
+const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
 const dateGetTime = Object.freeze(
@@ -273,6 +276,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
     "skill-mutation-nonce-claim",
     new Set(["evolution-ledger", "skill-mutation"]),
   ],
+  ["wiki-revision", new Set(["evolution-ledger"])],
 ]);
 
 export class EvolutionArtifactPortError extends Error {
@@ -3254,6 +3258,7 @@ export class EvolutionArtifactPorts {
     );
     const resolveReadOnly = (request) =>
       this.#resolveLedgerRequest(request, normalizedPurpose);
+    EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.add(resolveReadOnly);
     return Object.freeze(resolveReadOnly);
   }
 }
@@ -3272,6 +3277,10 @@ export function createEvolutionLedgerArtifactResolver(ports, options) {
     );
   }
   return ports.createEvolutionLedgerArtifactResolver(options);
+}
+
+export function isEvolutionLedgerArtifactResolver(value) {
+  return typeof value === "function" && EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.has(value);
 }
 
 Object.freeze(EvolutionArtifactPorts.prototype);
