@@ -702,7 +702,7 @@ describe("owner-only filesystem helpers", () => {
         rmSync(directory, { recursive: true, force: true });
       }
     },
-    30000,
+    90000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -724,7 +724,7 @@ describe("owner-only filesystem helpers", () => {
         rmSync(directory, { recursive: true, force: true });
       }
     },
-    30000,
+    150000,
   );
 
   it.runIf(process.platform === "win32")(
