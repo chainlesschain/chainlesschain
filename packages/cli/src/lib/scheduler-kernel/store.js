@@ -37,6 +37,7 @@ const STORAGE_FAILURE_CODE_SET = new Set(STORAGE_FAILURE_CODES);
 export const SCHEDULER_APPLICATION_ID = 0x4343534b; // "CCSK"
 export const SCHEDULER_STORE_SCHEMA_VERSION = 6;
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
+const SQLITE_BUSY_TRANSACTION_ATTEMPTS = 3;
 export const MAX_LEASE_MS = 24 * 60 * 60 * 1_000;
 export const MIN_AUTHORITY_WINDOW_MS = 60_000;
 export const MAX_AUTHORITY_WINDOW_MS = 31 * 24 * 60 * 60 * 1_000;
@@ -746,6 +747,26 @@ function findStorageFailureCode(error) {
     current = current.cause;
   }
   return null;
+}
+
+function isSqliteBusy(error) {
+  const visited = new Set();
+  let current = error;
+  while (
+    current !== null &&
+    (typeof current === "object" || typeof current === "function") &&
+    !visited.has(current)
+  ) {
+    visited.add(current);
+    if (
+      typeof current.code === "string" &&
+      current.code.trim().toUpperCase().startsWith("SQLITE_BUSY")
+    ) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
 }
 
 function storageUnavailableError({ phase, storageCode, commitState }) {
@@ -2316,20 +2337,7 @@ export class SchedulerStore {
     this._assertOpen();
     let bodyState = "not_started";
     let bodyObservedTransaction = false;
-    try {
-      const transaction = this.db.transaction((...args) => {
-        bodyState = "running";
-        try {
-          bodyObservedTransaction = this.db.inTransaction === true;
-        } catch {
-          bodyObservedTransaction = false;
-        }
-        const result = callback(...args);
-        bodyState = "returned";
-        return result;
-      });
-      return transaction.immediate();
-    } catch (cause) {
+    const failWrite = (cause) => {
       if (cause instanceof SchedulerKernelError) throw cause;
       const storageCode = findStorageFailureCode(cause);
       if (!storageCode) throw cause;
@@ -2353,7 +2361,47 @@ export class SchedulerStore {
             ? "not_committed"
             : "unknown",
       });
+    };
+    let transaction;
+    try {
+      transaction = this.db.transaction((...args) => {
+        bodyState = "running";
+        try {
+          bodyObservedTransaction = this.db.inTransaction === true;
+        } catch {
+          bodyObservedTransaction = false;
+        }
+        const result = callback(...args);
+        bodyState = "returned";
+        return result;
+      });
+    } catch (cause) {
+      return failWrite(cause);
     }
+    for (
+      let attempt = 1;
+      attempt <= SQLITE_BUSY_TRANSACTION_ATTEMPTS;
+      attempt += 1
+    ) {
+      bodyState = "not_started";
+      bodyObservedTransaction = false;
+      try {
+        return transaction.immediate();
+      } catch (cause) {
+        // BEGIN IMMEDIATE can lose a cross-process writer race even after the
+        // native busy timeout. Retrying is safe only while the callback has
+        // never started, so application writes and side effects cannot repeat.
+        if (
+          bodyState === "not_started" &&
+          isSqliteBusy(cause) &&
+          attempt < SQLITE_BUSY_TRANSACTION_ATTEMPTS
+        ) {
+          continue;
+        }
+        return failWrite(cause);
+      }
+    }
+    throw new Error("unreachable Scheduler transaction retry state");
   }
 
   _appendEvent({

@@ -527,6 +527,49 @@ describe("scheduler-kernel SQLite store", () => {
     }
   });
 
+  it("retries SQLITE_BUSY only before the transaction body starts", () => {
+    let attempts = 0;
+    let callbackCalls = 0;
+    const busy = Object.assign(new Error("database is locked"), {
+      code: "SQLITE_BUSY",
+    });
+    const fakeDb = {
+      prepare: () => ({ run: () => undefined }),
+      transaction: (callback) => ({
+        immediate: () => {
+          attempts += 1;
+          if (attempts < 3) throw busy;
+          return callback();
+        },
+      }),
+      close: () => undefined,
+    };
+    const store = new SchedulerStore(fakeDb, {
+      file: ":memory:",
+      clock: () => 1_700_000_000_000,
+    });
+
+    expect(
+      store._write(() => {
+        callbackCalls += 1;
+        return "committed";
+      }),
+    ).toBe("committed");
+    expect(attempts).toBe(3);
+    expect(callbackCalls).toBe(1);
+
+    attempts = 0;
+    fakeDb.transaction = (callback) => ({
+      immediate: () => {
+        attempts += 1;
+        callback();
+        throw busy;
+      },
+    });
+    expect(() => store._write(() => undefined)).toThrow(busy);
+    expect(attempts).toBe(1);
+  });
+
   it("reports an unknown commit state when rollback failure obscures the outcome", () => {
     const bodyPath = "/private/body-secret.db";
     const rollbackPath = "/private/rollback-secret.db";

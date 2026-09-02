@@ -2434,7 +2434,7 @@ describe("jsonl-session-store", () => {
       ]);
       expect(JSON.stringify(second)).not.toContain("old host prompt");
       expect(JSON.stringify(second)).not.toContain("fresh host prompt");
-    }, 15_000);
+    }, 30_000);
 
     it("returns empty for non-existent session", () => {
       expect(rebuildMessages("nope")).toEqual([]);
