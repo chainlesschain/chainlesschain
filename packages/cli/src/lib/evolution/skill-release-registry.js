@@ -40,6 +40,8 @@ export const SKILL_RELEASE_MIGRATION_AUTHORITY_SCHEMA =
   "chainlesschain.skill-release-migration-authority/v1";
 export const SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-migration-receipt/v1";
+export const SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA =
+  "chainlesschain.skill-release-state-migration-plan/v1";
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
@@ -72,10 +74,12 @@ const TENANT_MARKER_FILE = "_tenant.json";
 const LEGACY_RELEASE_SCHEMA = "chainlesschain.skill-release/v3";
 const LEGACY_RELEASE_DOMAIN = `${LEGACY_RELEASE_SCHEMA}\0`;
 const LEGACY_STATE_SCHEMA = "chainlesschain.skill-release-state/v2";
+const LEGACY_STATE_DOMAIN = `${LEGACY_STATE_SCHEMA}\0`;
 const LEGACY_JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v3";
 const LEGACY_LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v1";
 const LOCK_OWNER_SCHEMA = "chainlesschain.skill-release-lock-owner/v2";
 const RELEASE_MIGRATION_DOMAIN = `${SKILL_RELEASE_MIGRATION_RECORD_SCHEMA}\0`;
+const STATE_MIGRATION_PLAN_DOMAIN = `${SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA}\0`;
 
 export const EMPTY_SKILL_ACTIVE_DIGEST = sha256(
   Buffer.from(EMPTY_ACTIVE_DOMAIN, "utf8"),
@@ -507,6 +511,43 @@ const RELEASE_MIGRATION_RECEIPT_KEYS = new Set([
   "schema",
   "trust",
 ]);
+const RELEASE_MIGRATION_RECORD_KEYS = new Set([
+  "authorityId",
+  "candidateMigrationDigest",
+  "candidateMigrationReceiptDigest",
+  "handlerArtifactDigest",
+  "legacyCandidateId",
+  "legacyReleaseDigest",
+  "migrationDigest",
+  "releaseDigest",
+  "schema",
+  "skillName",
+  "tenantId",
+  "trust",
+]);
+const RELEASE_MIGRATION_RESULT_KEYS = new Set([
+  "created",
+  "migration",
+  "receipt",
+  "release",
+]);
+const LEGACY_STATE_KEYS = new Set([
+  "activeReleaseDigest",
+  "authorityReceiptDigest",
+  "dependencyLockDigest",
+  "fence",
+  "lastKnownGoodReleaseDigest",
+  "revision",
+  "schema",
+  "skillName",
+  "stateDigest",
+  "transactionId",
+]);
+const STATE_MIGRATION_PLAN_INPUT_KEYS = new Set([
+  "activeReleaseMigration",
+  "lastKnownGoodReleaseMigration",
+  "legacyState",
+]);
 const BUILD_RELEASE_INPUT_KEYS = new Set([
   "candidate",
   "consumptionReceipt",
@@ -754,6 +795,240 @@ export function buildMigratedSkillRelease(input) {
   return verifySkillRelease({
     ...core,
     releaseDigest: domainDigest(RELEASE_DOMAIN, core),
+  });
+}
+
+export function verifySkillReleaseMigrationResult(value) {
+  assertExactKeys(
+    value,
+    RELEASE_MIGRATION_RESULT_KEYS,
+    "release migration result",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  if (typeof value.created !== "boolean") {
+    throw migrationRequired("release migration created flag is invalid");
+  }
+  const release = verifySkillRelease(value.release);
+  assertExactKeys(
+    value.migration,
+    RELEASE_MIGRATION_RECORD_KEYS,
+    "release migration record",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const migrationCore = {
+    authorityId: boundedString(
+      value.migration.authorityId,
+      "releaseMigration.authorityId",
+      256,
+    ),
+    candidateMigrationDigest: digest(
+      value.migration.candidateMigrationDigest,
+      "releaseMigration.candidateMigrationDigest",
+    ),
+    candidateMigrationReceiptDigest: digest(
+      value.migration.candidateMigrationReceiptDigest,
+      "releaseMigration.candidateMigrationReceiptDigest",
+    ),
+    handlerArtifactDigest: digest(
+      value.migration.handlerArtifactDigest,
+      "releaseMigration.handlerArtifactDigest",
+    ),
+    legacyCandidateId: digest(
+      value.migration.legacyCandidateId,
+      "releaseMigration.legacyCandidateId",
+    ),
+    legacyReleaseDigest: digest(
+      value.migration.legacyReleaseDigest,
+      "releaseMigration.legacyReleaseDigest",
+    ),
+    releaseDigest: digest(
+      value.migration.releaseDigest,
+      "releaseMigration.releaseDigest",
+    ),
+    schema: value.migration.schema,
+    skillName: skillName(value.migration.skillName),
+    tenantId: tenantId(value.migration.tenantId),
+    trust: value.migration.trust,
+  };
+  const migration = deepFreeze({
+    ...migrationCore,
+    migrationDigest: digest(
+      value.migration.migrationDigest,
+      "releaseMigration.migrationDigest",
+    ),
+  });
+  assertExactKeys(
+    value.receipt,
+    RELEASE_MIGRATION_RECEIPT_KEYS,
+    "release migration receipt",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const receipt = deepFreeze({
+    authenticated: value.receipt.authenticated,
+    authorityId: boundedString(
+      value.receipt.authorityId,
+      "releaseMigrationReceipt.authorityId",
+      256,
+    ),
+    durable: value.receipt.durable,
+    handlerArtifactDigest: digest(
+      value.receipt.handlerArtifactDigest,
+      "releaseMigrationReceipt.handlerArtifactDigest",
+    ),
+    migrationDigest: digest(
+      value.receipt.migrationDigest,
+      "releaseMigrationReceipt.migrationDigest",
+    ),
+    receiptDigest: digest(
+      value.receipt.receiptDigest,
+      "releaseMigrationReceipt.receiptDigest",
+    ),
+    schema: value.receipt.schema,
+    trust: value.receipt.trust,
+  });
+  if (
+    migration.schema !== SKILL_RELEASE_MIGRATION_RECORD_SCHEMA ||
+    migration.trust !== "trusted" ||
+    migration.migrationDigest !==
+      domainDigest(RELEASE_MIGRATION_DOMAIN, migrationCore) ||
+    migration.releaseDigest !== release.releaseDigest ||
+    migration.skillName !== release.skillName ||
+    migration.tenantId !== release.tenantId ||
+    receipt.schema !== SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA ||
+    receipt.authenticated !== true ||
+    receipt.durable !== true ||
+    receipt.trust !== "trusted" ||
+    receipt.authorityId !== migration.authorityId ||
+    receipt.handlerArtifactDigest !== migration.handlerArtifactDigest ||
+    receipt.migrationDigest !== migration.migrationDigest
+  ) {
+    throw migrationRequired(
+      "release migration result is not exactly bound and durable",
+      { legacyReleaseDigest: migration.legacyReleaseDigest },
+    );
+  }
+  return deepFreeze({
+    created: value.created,
+    migration,
+    receipt,
+    release,
+  });
+}
+
+/** Verify the exact pre-tenant v2 active-state pointer. */
+export function verifyLegacySkillReleaseState(value) {
+  assertExactKeys(
+    value,
+    LEGACY_STATE_KEYS,
+    "legacy release state",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  if (value.schema !== LEGACY_STATE_SCHEMA) {
+    throw migrationRequired("legacy release state schema is invalid");
+  }
+  const core = {
+    activeReleaseDigest: digest(
+      value.activeReleaseDigest,
+      "legacyState.activeReleaseDigest",
+    ),
+    authorityReceiptDigest: digest(
+      value.authorityReceiptDigest,
+      "legacyState.authorityReceiptDigest",
+    ),
+    dependencyLockDigest: digest(
+      value.dependencyLockDigest,
+      "legacyState.dependencyLockDigest",
+    ),
+    fence: safeInteger(value.fence, "legacyState.fence", { minimum: 1 }),
+    lastKnownGoodReleaseDigest: digest(
+      value.lastKnownGoodReleaseDigest,
+      "legacyState.lastKnownGoodReleaseDigest",
+    ),
+    revision: safeInteger(value.revision, "legacyState.revision", {
+      minimum: 1,
+    }),
+    schema: LEGACY_STATE_SCHEMA,
+    skillName: skillName(value.skillName),
+    transactionId: digest(value.transactionId, "legacyState.transactionId"),
+  };
+  const state = deepFreeze({
+    ...core,
+    stateDigest: digest(value.stateDigest, "legacyState.stateDigest"),
+  });
+  if (
+    state.stateDigest !== domainDigest(LEGACY_STATE_DOMAIN, core) ||
+    canonicalJson(value) !== canonicalJson(state)
+  ) {
+    throw migrationRequired(
+      "legacy release state bytes or digest are invalid",
+      {
+        legacyStateDigest: value.stateDigest,
+      },
+    );
+  }
+  return state;
+}
+
+/**
+ * Build the immutable input for a future authenticated ledger migration.
+ * This never writes an active pointer: only a ledger adapter that can retain
+ * this exact plan and return an authenticated current projection may do so.
+ */
+export function buildSkillReleaseStateMigrationPlan(input) {
+  assertExactKeys(
+    input,
+    STATE_MIGRATION_PLAN_INPUT_KEYS,
+    "release state migration plan input",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const legacyState = verifyLegacySkillReleaseState(input.legacyState);
+  const active = verifySkillReleaseMigrationResult(
+    input.activeReleaseMigration,
+  );
+  const lastKnownGood = verifySkillReleaseMigrationResult(
+    input.lastKnownGoodReleaseMigration,
+  );
+  if (
+    active.migration.legacyReleaseDigest !== legacyState.activeReleaseDigest ||
+    lastKnownGood.migration.legacyReleaseDigest !==
+      legacyState.lastKnownGoodReleaseDigest ||
+    active.release.skillName !== legacyState.skillName ||
+    lastKnownGood.release.skillName !== legacyState.skillName ||
+    active.release.tenantId !== lastKnownGood.release.tenantId ||
+    active.release.authorityReceiptDigest !==
+      legacyState.authorityReceiptDigest ||
+    active.release.dependencyLock.lockDigest !==
+      legacyState.dependencyLockDigest
+  ) {
+    throw migrationRequired(
+      "legacy state is not exactly bound to its migrated releases",
+      { legacyStateDigest: legacyState.stateDigest },
+    );
+  }
+  const core = {
+    activeReleaseDigest: active.release.releaseDigest,
+    activeReleaseMigrationDigest: active.migration.migrationDigest,
+    activeReleaseMigrationReceiptDigest: active.receipt.receiptDigest,
+    dependencyLockDigest: active.release.dependencyLockDigest,
+    lastKnownGoodReleaseDigest: lastKnownGood.release.releaseDigest,
+    lastKnownGoodReleaseMigrationDigest:
+      lastKnownGood.migration.migrationDigest,
+    lastKnownGoodReleaseMigrationReceiptDigest:
+      lastKnownGood.receipt.receiptDigest,
+    legacyActiveReleaseDigest: legacyState.activeReleaseDigest,
+    legacyFence: legacyState.fence,
+    legacyLastKnownGoodReleaseDigest: legacyState.lastKnownGoodReleaseDigest,
+    legacyRevision: legacyState.revision,
+    legacyStateDigest: legacyState.stateDigest,
+    legacyTransactionId: legacyState.transactionId,
+    requiresAuthenticatedLedgerMigration: true,
+    schema: SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+    skillName: legacyState.skillName,
+    tenantId: active.release.tenantId,
+  };
+  return deepFreeze({
+    ...core,
+    stateMigrationDigest: domainDigest(STATE_MIGRATION_PLAN_DOMAIN, core),
   });
 }
 

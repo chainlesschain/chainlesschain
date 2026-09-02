@@ -43,14 +43,18 @@ import {
   SKILL_RELEASE_MIGRATION_RECORD_SCHEMA,
   SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
   SKILL_RELEASE_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
   SKILL_RELEASE_STATE_SCHEMA,
   SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
   SkillReleaseSimulatedCrashError,
   buildMigratedSkillRelease,
+  buildSkillReleaseStateMigrationPlan,
   deriveSkillReleaseTenantKey,
   verifyLegacySkillRelease,
+  verifyLegacySkillReleaseState,
   verifySkillRelease,
+  verifySkillReleaseMigrationResult,
 } from "../../src/lib/evolution/skill-release-registry.js";
 
 const TENANT_ID = "tenant:test";
@@ -635,6 +639,24 @@ function legacyRelease(candidate, execution) {
   };
 }
 
+function legacyState(release) {
+  const core = {
+    activeReleaseDigest: release.releaseDigest,
+    authorityReceiptDigest: release.authorityReceiptDigest,
+    dependencyLockDigest: release.dependencyLockDigest,
+    fence: 7,
+    lastKnownGoodReleaseDigest: release.releaseDigest,
+    revision: 3,
+    schema: "chainlesschain.skill-release-state/v2",
+    skillName: release.skillName,
+    transactionId: digest("legacy-state-transaction"),
+  };
+  return {
+    ...core,
+    stateDigest: domainDigest("chainlesschain.skill-release-state/v2", core),
+  };
+}
+
 function requestFor({
   targetDigest,
   revision,
@@ -834,6 +856,26 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     );
     expect(releases.readState(legacy.skillName).revision).toBe(0);
     expect(audit).toHaveBeenCalledWith(migrated.migration);
+    expect(verifySkillReleaseMigrationResult(migrated)).toEqual(migrated);
+
+    const oldState = legacyState(legacy);
+    expect(verifyLegacySkillReleaseState(oldState)).toEqual(oldState);
+    const statePlan = buildSkillReleaseStateMigrationPlan({
+      activeReleaseMigration: migrated,
+      lastKnownGoodReleaseMigration: migrated,
+      legacyState: oldState,
+    });
+    expect(statePlan).toMatchObject({
+      schema: SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+      tenantId: TENANT_ID,
+      skillName: legacy.skillName,
+      legacyStateDigest: oldState.stateDigest,
+      legacyRevision: oldState.revision,
+      activeReleaseDigest: migrated.release.releaseDigest,
+      lastKnownGoodReleaseDigest: migrated.release.releaseDigest,
+      requiresAuthenticatedLedgerMigration: true,
+    });
+    expect(releases.readState(legacy.skillName).revision).toBe(0);
 
     const repeated = releases.migrateLegacyRelease(input, migrationAuthority);
     expect(repeated.created).toBe(false);
@@ -854,6 +896,18 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
         buildMigratedSkillRelease({
           legacyRelease: legacy,
           candidateMigration: unauditedCandidate,
+        }),
+      ).code,
+    ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
+
+    const unauditedRelease = structuredClone(migrated);
+    unauditedRelease.receipt.authenticated = false;
+    expect(
+      capturedError(() =>
+        buildSkillReleaseStateMigrationPlan({
+          activeReleaseMigration: unauditedRelease,
+          lastKnownGoodReleaseMigration: migrated,
+          legacyState: oldState,
         }),
       ).code,
     ).toBe(SKILL_RELEASE_MIGRATION_REQUIRED_CODE);
