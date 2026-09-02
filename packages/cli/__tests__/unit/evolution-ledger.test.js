@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
+  EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA,
+  EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA,
   EVOLUTION_LEDGER_ANCHOR_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
   EVOLUTION_LEDGER_EVENT_SCHEMA,
@@ -15,6 +17,7 @@ import {
   EVOLUTION_LEDGER_RECEIPT_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
+  verifyEvolutionLedgerAuditBundle,
 } from "../../src/lib/evolution/evolution-ledger.js";
 import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
 
@@ -1065,6 +1068,18 @@ function writeCanonical(filePath, value) {
   fs.writeFileSync(filePath, `${canonicalJson(value)}\n`, "utf8");
 }
 
+function redigestAuditBundle(bundle) {
+  const core = Object.fromEntries(
+    Object.entries(bundle).filter(([key]) => key !== "exportDigest"),
+  );
+  bundle.exportDigest = digestBytes(
+    Buffer.from(
+      `chainlesschain.evolution-ledger-audit-export/v1\0${canonicalJson(core)}`,
+    ),
+  );
+  return bundle;
+}
+
 function regularFiles(directory) {
   return fs
     .readdirSync(directory, { withFileTypes: true })
@@ -1369,6 +1384,122 @@ describe("EvolutionLedger v2", () => {
       headDigest: third.eventDigest,
       sequence: 3,
     });
+  });
+
+  it("exports a self-contained ledger audit that verifies after both stores are offline", () => {
+    const ledger = createLedger();
+    ledger.append(eventInput(1, artifacts));
+    ledger.appendDomainEvent(domainEventInput(1, artifacts));
+    const bundle = ledger.exportAuditBundle();
+
+    expect(bundle).toMatchObject({
+      schema: EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA,
+      events: [{ sequence: 1 }, { sequence: 2 }],
+      anchors: [{ sequence: 0 }, { sequence: 1 }, { sequence: 2 }],
+      witness: { status: "committed", sequence: 2 },
+    });
+    expect(bundle.artifacts).toHaveLength(9);
+
+    fs.rmSync(ledger.rootDir, { recursive: true, force: true });
+    fs.rmSync(ledger.authorityRootDir, { recursive: true, force: true });
+    expect(
+      verifyEvolutionLedgerAuditBundle(bundle, {
+        trust: TRUST,
+        verifySignature: ports.verifySignature,
+        verifyWitnessSignature: ports.verifyWitnessSignature,
+        witnessTrust: WITNESS_TRUST,
+      }),
+    ).toMatchObject({
+      artifactCount: 9,
+      eventCount: 2,
+      schema: EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA,
+      sequence: 2,
+      valid: true,
+      witnessDigest: bundle.witness.witnessDigest,
+    });
+  });
+
+  it("verifies the signed genesis witness for an empty offline audit", () => {
+    const ledger = createLedger();
+    const bundle = ledger.exportAuditBundle();
+
+    expect(
+      verifyEvolutionLedgerAuditBundle(bundle, {
+        trust: TRUST,
+        verifySignature: ports.verifySignature,
+        verifyWitnessSignature: ports.verifyWitnessSignature,
+        witnessTrust: WITNESS_TRUST,
+      }),
+    ).toMatchObject({
+      artifactCount: 0,
+      eventCount: 0,
+      headDigest: null,
+      sequence: 0,
+      valid: true,
+    });
+    expect(bundle.anchors).toHaveLength(1);
+    expect(bundle.witness).toMatchObject({ status: "committed", sequence: 0 });
+  });
+
+  it("fails offline audit closed after truncation or re-digested signed-record and artifact tampering", () => {
+    const ledger = createLedger();
+    ledger.append(eventInput(1, artifacts));
+    ledger.appendDomainEvent(domainEventInput(1, artifacts));
+    const original = ledger.exportAuditBundle();
+    const verify = (bundle) =>
+      verifyEvolutionLedgerAuditBundle(bundle, {
+        trust: TRUST,
+        verifySignature: ports.verifySignature,
+        verifyWitnessSignature: ports.verifyWitnessSignature,
+        witnessTrust: WITNESS_TRUST,
+      });
+
+    const truncated = structuredClone(original);
+    truncated.events.pop();
+    truncated.anchors.pop();
+    truncated.artifacts = truncated.artifacts.filter(
+      (artifact) => artifact.eventSequence === 1,
+    );
+    expect(() => verify(redigestAuditBundle(truncated))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
+
+    const signedRecordTamper = structuredClone(original);
+    signedRecordTamper.events[0].reason = "replaced after export";
+    expect(() => verify(redigestAuditBundle(signedRecordTamper))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
+
+    const artifactTamper = structuredClone(original);
+    artifactTamper.artifacts[0].bytesBase64 =
+      Buffer.from("substituted").toString("base64");
+    artifactTamper.artifacts[0].byteLength = Buffer.byteLength("substituted");
+    expect(() => verify(redigestAuditBundle(artifactTamper))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
+
+    const receiptTamper = structuredClone(original);
+    receiptTamper.artifacts[0].receiptDigest = digestBytes(
+      "substituted-resolution-receipt",
+    );
+    expect(() => verify(redigestAuditBundle(receiptTamper))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
+
+    const reordered = structuredClone(original);
+    [reordered.artifacts[0], reordered.artifacts[1]] = [
+      reordered.artifacts[1],
+      reordered.artifacts[0],
+    ];
+    expect(() => verify(redigestAuditBundle(reordered))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
+
+    const extraEvidence = structuredClone(original);
+    extraEvidence.artifacts.push({ ...extraEvidence.artifacts.at(-1) });
+    expect(() => verify(redigestAuditBundle(extraEvidence))).toThrow(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_AUDIT_INVALID" }),
+    );
   });
 
   it("requires a distinct subject ref while allowing nullable context and empty domain sources", () => {

@@ -26,6 +26,12 @@ export const EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA =
   "chainlesschain.evolution-ledger-witness-ancestry/v1";
 export const EVOLUTION_LEDGER_STORE_MARKER_SCHEMA =
   "chainlesschain.evolution-ledger-store-marker/v1";
+export const EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA =
+  "chainlesschain.evolution-ledger-audit-export/v1";
+export const EVOLUTION_LEDGER_AUDIT_ARTIFACT_SCHEMA =
+  "chainlesschain.evolution-ledger-audit-artifact/v1";
+export const EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA =
+  "chainlesschain.evolution-ledger-audit-verification/v1";
 export const EVOLUTION_ARTIFACT_REF_SCHEMA =
   "chainlesschain.content-addressed-artifact-ref/v1";
 export const EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA =
@@ -52,6 +58,7 @@ const DISCARD_ACCUMULATOR_DOMAIN =
   "chainlesschain.evolution-witness-discard-accumulator/v1\0";
 const ARTIFACT_VALIDATION_DOMAIN =
   "chainlesschain.evolution-artifact-validation/v1\0";
+const AUDIT_EXPORT_DOMAIN = "chainlesschain.evolution-ledger-audit-export/v1\0";
 const IDENTITY_FILE_NAME = "identity-v1.json";
 const STORE_MARKER_FILE_NAME = "store-marker-v1.json";
 const HEAD_FILE_NAME = "head-v1.json";
@@ -72,6 +79,7 @@ const STAGE_FILE_PATTERN = /^\.stage-(.+)\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const HEAD_STAGE_FILE_PATTERN =
   /^\.replace-head-v1\.json\.([A-Za-z0-9-]{16,128})\.tmp$/u;
 const MAX_SOURCE_REFS = 256;
+const MAX_AUDIT_ARTIFACT_RECORDS = 1_000_000;
 const TYPED_ARRAY_PROTOTYPE = Object.getPrototypeOf(Uint8Array.prototype);
 const TYPED_ARRAY_BUFFER_GETTER = Object.getOwnPropertyDescriptor(
   TYPED_ARRAY_PROTOTYPE,
@@ -371,6 +379,35 @@ const STORE_MARKER_RECORD_KEYS = new Set([
 const QUERY_SELECTOR_KEYS = new Set(["eventDigest", "eventId", "sequence"]);
 const QUERY_OPTION_KEYS = new Set(["issueReceipt"]);
 const VERIFY_RECEIPT_OPTION_KEYS = new Set(["requireCurrentHead"]);
+const AUDIT_EXPORT_CORE_KEYS = new Set([
+  "anchors",
+  "artifacts",
+  "events",
+  "exportedAt",
+  "identity",
+  "schema",
+  "storeMarker",
+  "witness",
+]);
+const AUDIT_EXPORT_RECORD_KEYS = new Set([
+  ...AUDIT_EXPORT_CORE_KEYS,
+  "exportDigest",
+]);
+const AUDIT_ARTIFACT_KEYS = new Set([
+  "artifactRef",
+  "byteLength",
+  "bytesBase64",
+  "eventSequence",
+  "receiptDigest",
+  "schema",
+  "tenantId",
+]);
+const AUDIT_VERIFY_PORT_KEYS = new Set([
+  "trust",
+  "verifySignature",
+  "verifyWitnessSignature",
+  "witnessTrust",
+]);
 
 const REQUIRED_FS_METHODS = Object.freeze([
   "closeSync",
@@ -3713,8 +3750,9 @@ export class EvolutionLedger {
     );
   }
 
-  #resolveArtifacts(input, identity) {
+  #resolveArtifactEvidence(input, identity, { includeBytes = false } = {}) {
     const validations = [];
+    const artifacts = [];
     const artifactTenantId = Object.hasOwn(input, "artifactTenantId")
       ? input.artifactTenantId
       : input.tenantId;
@@ -3755,7 +3793,7 @@ export class EvolutionLedger {
             `artifact bytes do not match their digest: ${ref.ref}`,
           );
         }
-        validations.push({
+        const validation = {
           byteLength: bytes.length,
           digest: ref.digest,
           receiptDigest: digest(
@@ -3763,7 +3801,18 @@ export class EvolutionLedger {
             "artifact resolution receiptDigest",
           ),
           ref: ref.ref,
-        });
+        };
+        validations.push(validation);
+        if (includeBytes) {
+          artifacts.push({
+            artifactRef: ref,
+            byteLength: validation.byteLength,
+            bytesBase64: bytes.toString("base64"),
+            receiptDigest: validation.receiptDigest,
+            schema: EVOLUTION_LEDGER_AUDIT_ARTIFACT_SCHEMA,
+            tenantId: artifactTenantId,
+          });
+        }
       } catch (cause) {
         if (cause?.code === "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID") {
           throw cause;
@@ -3775,7 +3824,14 @@ export class EvolutionLedger {
         );
       }
     }
-    return domainDigest(ARTIFACT_VALIDATION_DOMAIN, validations);
+    return {
+      artifacts,
+      digest: domainDigest(ARTIFACT_VALIDATION_DOMAIN, validations),
+    };
+  }
+
+  #resolveArtifacts(input, identity) {
+    return this.#resolveArtifactEvidence(input, identity).digest;
   }
 
   #buildEvent(input, previous, identity, artifactValidationDigest) {
@@ -4213,6 +4269,47 @@ export class EvolutionLedger {
     });
   }
 
+  exportAuditBundle() {
+    return this.#withLock(() => {
+      const state = this.#loadState({ allowInitialize: false });
+      const artifacts = [];
+      for (const event of state.events) {
+        const evidence = this.#resolveArtifactEvidence(event, state.identity, {
+          includeBytes: true,
+        });
+        if (evidence.digest !== event.artifactValidationDigest) {
+          throw ledgerError(
+            "CC_EVOLUTION_LEDGER_ARTIFACT_INVALID",
+            `artifact evidence changed since event ${event.sequence} was committed`,
+          );
+        }
+        for (const artifact of evidence.artifacts) {
+          artifacts.push({ ...artifact, eventSequence: event.sequence });
+          if (artifacts.length > MAX_AUDIT_ARTIFACT_RECORDS) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_CAPACITY_EXCEEDED",
+              "audit export artifact evidence exceeds its bounded capacity",
+            );
+          }
+        }
+      }
+      const core = {
+        anchors: state.anchors,
+        artifacts,
+        events: state.events,
+        exportedAt: clockTimestamp(this.#clock),
+        identity: state.identity,
+        schema: EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA,
+        storeMarker: state.storeMarker,
+        witness: state.witness,
+      };
+      return deepFreeze({
+        ...core,
+        exportDigest: domainDigest(AUDIT_EXPORT_DOMAIN, core),
+      });
+    });
+  }
+
   read({ afterSequence = 0, limit = 10_000 } = {}) {
     if (
       !Number.isSafeInteger(afterSequence) ||
@@ -4273,6 +4370,614 @@ export class EvolutionLedger {
 
   getAuthority() {
     return this.verify();
+  }
+}
+
+function artifactRefsForAudit(input) {
+  const refs = Object.hasOwn(input, "subjectRef")
+    ? [input.subjectRef, ...input.sourceRefs]
+    : [
+        ...input.sourceRefs,
+        input.parentRef,
+        input.candidateRef,
+        input.diffRef,
+        input.evalRef,
+        input.policyRef,
+        input.actorRef,
+        input.targetRef,
+      ].filter(Boolean);
+  const byRef = new Map();
+  for (const ref of refs) {
+    const existing = byRef.get(ref.ref);
+    if (existing && existing.digest !== ref.digest) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        `audit event binds one artifact ref to conflicting digests: ${ref.ref}`,
+      );
+    }
+    byRef.set(ref.ref, ref);
+  }
+  return [...byRef.values()].sort((left, right) =>
+    compareStrings(left.ref, right.ref),
+  );
+}
+
+function verifyAuditSignature({
+  digest: recordDigest,
+  message,
+  port,
+  purpose,
+  signature,
+  trust,
+  witness = false,
+}) {
+  let valid;
+  try {
+    valid = port({
+      digest: recordDigest,
+      message: Buffer.from(message),
+      purpose,
+      signature: frozenClone(signature),
+      trust,
+    });
+  } catch (cause) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      `offline ${purpose} signature verification failed`,
+      { cause },
+    );
+  }
+  if (isUnsafeAsyncResult(valid) || valid !== true) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      `offline ${purpose} signature was not accepted synchronously${witness ? " by the witness authority" : ""}`,
+    );
+  }
+}
+
+function assertAuditTrustBinding(
+  record,
+  identity,
+  trust,
+  witnessTrust,
+  witnessId,
+) {
+  if (
+    record.algorithm !== trust.algorithm ||
+    record.keyId !== trust.keyId ||
+    record.trustPolicyDigest !== trust.trustPolicyDigest ||
+    record.witnessAlgorithm !== witnessTrust.algorithm ||
+    record.witnessId !== witnessId ||
+    record.witnessKeyId !== witnessTrust.keyId ||
+    record.witnessTrustPolicyDigest !== witnessTrust.trustPolicyDigest ||
+    (identity &&
+      (record.ledgerId !== identity.ledgerId ||
+        record.epoch !== identity.epoch ||
+        record.identityDigest !== identity.identityDigest))
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit record is not bound to the exported identity and trust roots",
+    );
+  }
+}
+
+function verifyAuditIdentity(record, trust, witnessTrust, verifySignature) {
+  assertExactKeys(record, IDENTITY_RECORD_KEYS, "audit identity");
+  const core = normalizeIdentityCore(
+    Object.fromEntries(
+      [...IDENTITY_CORE_KEYS].map((key) => [key, record[key]]),
+    ),
+  );
+  assertAuditTrustBinding(core, null, trust, witnessTrust, core.witnessId);
+  const identityDigest = digest(record.identityDigest, "identityDigest");
+  const signature = normalizeSignature(record.signature, trust);
+  const message = signedMessage(IDENTITY_DOMAIN, core);
+  if (identityDigest !== sha256(message)) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit identity digest is invalid",
+    );
+  }
+  verifyAuditSignature({
+    digest: identityDigest,
+    message,
+    port: verifySignature,
+    purpose: "identity",
+    signature,
+    trust,
+  });
+  return deepFreeze({ ...core, identityDigest, signature });
+}
+
+function verifyAuditStoreMarker(record, identity, trust, witnessTrust, port) {
+  assertExactKeys(record, STORE_MARKER_RECORD_KEYS, "audit store marker");
+  const core = normalizeStoreMarkerCore(
+    Object.fromEntries(
+      [...STORE_MARKER_CORE_KEYS].map((key) => [key, record[key]]),
+    ),
+  );
+  assertAuditTrustBinding(core, null, trust, witnessTrust, identity.witnessId);
+  const storeMarkerDigest = digest(
+    record.storeMarkerDigest,
+    "storeMarkerDigest",
+  );
+  const signature = normalizeSignature(record.signature, trust);
+  const message = signedMessage(STORE_MARKER_DOMAIN, core);
+  if (
+    storeMarkerDigest !== sha256(message) ||
+    core.ledgerId !== identity.ledgerId ||
+    core.epoch !== identity.epoch ||
+    core.createdAt !== identity.createdAt ||
+    core.storeBindingDigest !== identity.storeBindingDigest ||
+    core.storeMarkerId !== identity.storeMarkerId ||
+    storeMarkerDigest !== identity.storeMarkerDigest
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit store marker is not bound to the signed identity",
+    );
+  }
+  verifyAuditSignature({
+    digest: storeMarkerDigest,
+    message,
+    port,
+    purpose: "store-marker",
+    signature,
+    trust,
+  });
+  return deepFreeze({ ...core, signature, storeMarkerDigest });
+}
+
+function verifyAuditEvent(
+  record,
+  previous,
+  identity,
+  trust,
+  witnessTrust,
+  port,
+) {
+  assertPlainDataObject(record, "audit event");
+  const domainEvent = record.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA;
+  const recordKeys = domainEvent ? DOMAIN_EVENT_RECORD_KEYS : EVENT_RECORD_KEYS;
+  const coreKeys = domainEvent ? DOMAIN_EVENT_CORE_KEYS : EVENT_CORE_KEYS;
+  assertExactKeys(record, recordKeys, "audit event");
+  const core = domainEvent
+    ? normalizeDomainEventCore(
+        Object.fromEntries([...coreKeys].map((key) => [key, record[key]])),
+      )
+    : normalizeEventCore(
+        Object.fromEntries([...coreKeys].map((key) => [key, record[key]])),
+      );
+  assertAuditTrustBinding(
+    core,
+    identity,
+    trust,
+    witnessTrust,
+    identity.witnessId,
+  );
+  const eventDigest = digest(record.eventDigest, "eventDigest");
+  const signature = normalizeSignature(record.signature, trust);
+  const signatureDomain = domainEvent ? DOMAIN_EVENT_DOMAIN : EVENT_DOMAIN;
+  const message = signedMessage(signatureDomain, core);
+  if (
+    core.sequence !== (previous?.sequence || 0) + 1 ||
+    core.prevDigest !== (previous?.eventDigest || null) ||
+    eventDigest !== sha256(message)
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      `offline audit event chain failed at sequence ${core.sequence}`,
+    );
+  }
+  verifyAuditSignature({
+    digest: eventDigest,
+    message,
+    port,
+    purpose: domainEvent ? "domain-event" : "event",
+    signature,
+    trust,
+  });
+  return deepFreeze({ ...core, eventDigest, signature });
+}
+
+function verifyAuditAnchor(
+  record,
+  previous,
+  identity,
+  trust,
+  witnessTrust,
+  port,
+) {
+  assertExactKeys(record, ANCHOR_RECORD_KEYS, "audit anchor");
+  const core = normalizeAnchorCore(
+    Object.fromEntries([...ANCHOR_CORE_KEYS].map((key) => [key, record[key]])),
+  );
+  assertAuditTrustBinding(
+    core,
+    identity,
+    trust,
+    witnessTrust,
+    identity.witnessId,
+  );
+  const anchorDigest = digest(record.anchorDigest, "anchorDigest");
+  const signature = normalizeSignature(record.signature, trust);
+  const message = signedMessage(ANCHOR_DOMAIN, core);
+  if (
+    core.sequence !== (previous ? previous.sequence + 1 : 0) ||
+    core.previousAnchorDigest !== (previous?.anchorDigest || null) ||
+    anchorDigest !== sha256(message) ||
+    (core.sequence === 0 &&
+      (core.headDigest !== null || core.segmentDigest !== null)) ||
+    (core.sequence > 0 &&
+      (core.headDigest === null || core.segmentDigest === null))
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      `offline audit anchor chain failed at sequence ${core.sequence}`,
+    );
+  }
+  verifyAuditSignature({
+    digest: anchorDigest,
+    message,
+    port,
+    purpose: "anchor",
+    signature,
+    trust,
+  });
+  return deepFreeze({ ...core, anchorDigest, signature });
+}
+
+function decodeAuditArtifactBytes(value, expectedLength) {
+  if (typeof value !== "string" || value.length > 24 * 1024 * 1024) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit artifact encoding is invalid or oversized",
+    );
+  }
+  const bytes = Buffer.from(value, "base64");
+  if (
+    bytes.length !== expectedLength ||
+    bytes.length > EVOLUTION_LEDGER_MAX_ARTIFACT_BYTES ||
+    bytes.toString("base64") !== value
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit artifact bytes are not canonical or complete",
+    );
+  }
+  return bytes;
+}
+
+function verifyAuditArtifacts(records, events) {
+  const byEventAndRef = new Map();
+  let previousOrder = null;
+  for (const record of records) {
+    assertExactKeys(record, AUDIT_ARTIFACT_KEYS, "audit artifact");
+    if (record.schema !== EVOLUTION_LEDGER_AUDIT_ARTIFACT_SCHEMA) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit artifact schema is unsupported",
+      );
+    }
+    if (
+      !Number.isSafeInteger(record.eventSequence) ||
+      record.eventSequence < 1 ||
+      record.eventSequence > events.length ||
+      !Number.isSafeInteger(record.byteLength) ||
+      record.byteLength < 0
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit artifact bounds are invalid",
+      );
+    }
+    const tenantId = identifier(record.tenantId, "audit artifact tenantId");
+    const artifactRef = normalizeArtifactRef(
+      record.artifactRef,
+      "audit artifactRef",
+    );
+    const receiptDigest = digest(
+      record.receiptDigest,
+      "audit artifact receiptDigest",
+    );
+    const bytes = decodeAuditArtifactBytes(
+      record.bytesBase64,
+      record.byteLength,
+    );
+    if (sha256(bytes) !== artifactRef.digest) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        `offline audit artifact digest is invalid: ${artifactRef.ref}`,
+      );
+    }
+    const order = [record.eventSequence, tenantId, artifactRef.ref];
+    if (
+      previousOrder &&
+      (order[0] < previousOrder[0] ||
+        (order[0] === previousOrder[0] &&
+          (compareStrings(order[1], previousOrder[1]) < 0 ||
+            (order[1] === previousOrder[1] &&
+              compareStrings(order[2], previousOrder[2]) <= 0))))
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit artifact evidence must be unique and canonically ordered",
+      );
+    }
+    previousOrder = order;
+    const key = `${record.eventSequence}\0${tenantId}\0${artifactRef.ref}`;
+    byEventAndRef.set(key, {
+      artifactRef,
+      byteLength: bytes.length,
+      receiptDigest,
+    });
+  }
+
+  const consumed = new Set();
+  for (const event of events) {
+    const tenantId = Object.hasOwn(event, "artifactTenantId")
+      ? event.artifactTenantId
+      : event.tenantId;
+    const validations = [];
+    for (const ref of artifactRefsForAudit(event)) {
+      const key = `${event.sequence}\0${tenantId}\0${ref.ref}`;
+      const evidence = byEventAndRef.get(key);
+      if (!evidence || evidence.artifactRef.digest !== ref.digest) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+          `offline audit artifact evidence is missing or substituted: ${ref.ref}`,
+        );
+      }
+      consumed.add(key);
+      validations.push({
+        byteLength: evidence.byteLength,
+        digest: ref.digest,
+        receiptDigest: evidence.receiptDigest,
+        ref: ref.ref,
+      });
+    }
+    if (
+      domainDigest(ARTIFACT_VALIDATION_DOMAIN, validations) !==
+      event.artifactValidationDigest
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        `offline artifact validation receipt changed at event ${event.sequence}`,
+      );
+    }
+  }
+  if (consumed.size !== records.length) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline audit contains unreferenced artifact evidence",
+    );
+  }
+}
+
+function verifyAuditWitness(
+  record,
+  identity,
+  storeMarker,
+  anchor,
+  event,
+  witnessTrust,
+  port,
+) {
+  const witness = normalizeWitnessRecordShape(record, witnessTrust);
+  if (
+    witness.witnessId !== identity.witnessId ||
+    witness.algorithm !== witnessTrust.algorithm ||
+    witness.keyId !== witnessTrust.keyId ||
+    witness.trustPolicyDigest !== witnessTrust.trustPolicyDigest
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline witness is not bound to the independent trust root",
+    );
+  }
+  const core = Object.fromEntries(
+    [...WITNESS_CORE_KEYS].map((key) => [key, witness[key]]),
+  );
+  const message = signedMessage(WITNESS_DOMAIN, core);
+  if (witness.witnessDigest !== sha256(message)) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline witness digest is invalid",
+    );
+  }
+  verifyAuditSignature({
+    digest: witness.witnessDigest,
+    message,
+    port,
+    purpose: "witness",
+    signature: witness.signature,
+    trust: witnessTrust,
+    witness: true,
+  });
+  const expected = {
+    algorithm: witnessTrust.algorithm,
+    anchorDigest: anchor.anchorDigest,
+    epoch: identity.epoch,
+    headDigest: anchor.headDigest,
+    identityDigest: identity.identityDigest,
+    keyId: witnessTrust.keyId,
+    ledgerId: identity.ledgerId,
+    payloadDigest: domainDigest(WITNESS_PAYLOAD_DOMAIN, {
+      anchor,
+      event,
+      identity,
+      storeMarker,
+    }),
+    segmentDigest: anchor.segmentDigest,
+    sequence: anchor.sequence,
+    storeMarkerDigest: identity.storeMarkerDigest,
+    storeMarkerEntryDigest: identity.storeMarkerEntryDigest,
+    storeMarkerId: identity.storeMarkerId,
+    trustPolicyDigest: witnessTrust.trustPolicyDigest,
+    witnessId: identity.witnessId,
+  };
+  if (
+    witness.status !== "committed" ||
+    witness.authenticated !== true ||
+    witness.durable !== true ||
+    Object.entries(expected).some(([key, value]) => witness[key] !== value)
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline witness does not authenticate the exported ledger head",
+    );
+  }
+  return witness;
+}
+
+export function verifyEvolutionLedgerAuditBundle(bundle, ports) {
+  try {
+    assertExactKeys(ports, AUDIT_VERIFY_PORT_KEYS, "audit verifier ports");
+    if (
+      typeof ports.verifySignature !== "function" ||
+      typeof ports.verifyWitnessSignature !== "function"
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit requires synchronous ledger and witness verifiers",
+      );
+    }
+    const verifySignatureImplementation = ports.verifySignature;
+    const verifyWitnessSignatureImplementation = ports.verifyWitnessSignature;
+    const verifySignature = Object.freeze((...args) =>
+      Reflect.apply(verifySignatureImplementation, undefined, args),
+    );
+    const verifyWitnessSignature = Object.freeze((...args) =>
+      Reflect.apply(verifyWitnessSignatureImplementation, undefined, args),
+    );
+    const trust = normalizeTrust(ports.trust);
+    const witnessTrust = normalizeTrust(ports.witnessTrust);
+    assertExactKeys(bundle, AUDIT_EXPORT_RECORD_KEYS, "audit export");
+    if (bundle.schema !== EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit export schema is unsupported",
+      );
+    }
+    canonicalTimestamp(bundle.exportedAt, "audit exportedAt");
+    const core = Object.fromEntries(
+      [...AUDIT_EXPORT_CORE_KEYS].map((key) => [key, bundle[key]]),
+    );
+    const exportDigest = digest(bundle.exportDigest, "audit exportDigest");
+    if (exportDigest !== domainDigest(AUDIT_EXPORT_DOMAIN, core)) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit export digest is invalid",
+      );
+    }
+    // Capture the fully traversed plain-data graph before invoking either
+    // external trust port. A verifier closure must not be able to mutate the
+    // caller's bundle between signature checks.
+    const capturedBundle = JSON.parse(canonicalJson(bundle));
+    const rawEvents = readDenseDataArray(
+      capturedBundle.events,
+      "audit events",
+      EVOLUTION_LEDGER_MAX_EVENTS,
+    );
+    const rawAnchors = readDenseDataArray(
+      capturedBundle.anchors,
+      "audit anchors",
+      EVOLUTION_LEDGER_MAX_EVENTS + 1,
+    );
+    const rawArtifacts = readDenseDataArray(
+      capturedBundle.artifacts,
+      "audit artifacts",
+      MAX_AUDIT_ARTIFACT_RECORDS,
+    );
+
+    const identity = verifyAuditIdentity(
+      capturedBundle.identity,
+      trust,
+      witnessTrust,
+      verifySignature,
+    );
+    const storeMarker = verifyAuditStoreMarker(
+      capturedBundle.storeMarker,
+      identity,
+      trust,
+      witnessTrust,
+      verifySignature,
+    );
+    const events = [];
+    for (const rawEvent of rawEvents) {
+      events.push(
+        verifyAuditEvent(
+          rawEvent,
+          events.at(-1) || null,
+          identity,
+          trust,
+          witnessTrust,
+          verifySignature,
+        ),
+      );
+    }
+    if (rawAnchors.length !== events.length + 1) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+        "offline audit anchor coverage is incomplete",
+      );
+    }
+    const anchors = [];
+    for (const rawAnchor of rawAnchors) {
+      const anchor = verifyAuditAnchor(
+        rawAnchor,
+        anchors.at(-1) || null,
+        identity,
+        trust,
+        witnessTrust,
+        verifySignature,
+      );
+      if (anchor.sequence > 0) {
+        const event = events[anchor.sequence - 1];
+        if (
+          !event ||
+          anchor.headDigest !== event.eventDigest ||
+          anchor.segmentDigest !== domainDigest(SEGMENT_DOMAIN, event)
+        ) {
+          throw ledgerError(
+            "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+            `offline audit anchor is not bound to event ${anchor.sequence}`,
+          );
+        }
+      }
+      anchors.push(anchor);
+    }
+    verifyAuditArtifacts(rawArtifacts, events);
+    const head = anchors.at(-1);
+    const witness = verifyAuditWitness(
+      capturedBundle.witness,
+      identity,
+      storeMarker,
+      head,
+      events.at(-1) || null,
+      witnessTrust,
+      verifyWitnessSignature,
+    );
+    return deepFreeze({
+      artifactCount: rawArtifacts.length,
+      eventCount: events.length,
+      exportDigest,
+      headDigest: head.headDigest,
+      identityDigest: identity.identityDigest,
+      ledgerId: identity.ledgerId,
+      schema: EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA,
+      sequence: head.sequence,
+      valid: true,
+      witnessDigest: witness.witnessDigest,
+    });
+  } catch (cause) {
+    if (cause?.code === "CC_EVOLUTION_LEDGER_AUDIT_INVALID") throw cause;
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_AUDIT_INVALID",
+      "offline evolution ledger audit verification failed closed",
+      { cause },
+    );
   }
 }
 
