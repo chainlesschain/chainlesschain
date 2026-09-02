@@ -38,6 +38,8 @@ import {
 } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA,
+  SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA,
   SKILL_RELEASE_MIGRATION_AUTHORITY_SCHEMA,
   SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_RELEASE_MIGRATION_RECORD_SCHEMA,
@@ -50,11 +52,14 @@ import {
   SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
   SkillReleaseSimulatedCrashError,
+  buildLegacySkillReleaseJournalDisposition,
   buildMigratedSkillRelease,
   buildSkillReleaseStateMigrationPlan,
+  createSkillReleaseJournalResolutionAuthority,
   deriveSkillReleaseTenantKey,
   verifyLegacySkillRelease,
   verifyLegacySkillReleaseJournal,
+  verifyLegacySkillReleaseJournalDisposition,
   verifyLegacySkillReleaseState,
   verifySkillRelease,
   verifySkillReleaseMigrationResult,
@@ -156,6 +161,74 @@ function legacyJournalFromCurrent(value) {
     ...core,
     journalDigest: domainDigest(
       "chainlesschain.skill-release-journal/v3",
+      core,
+    ),
+  };
+}
+
+function legacyJournalResolutionReceipt(journal, ledgerProjection) {
+  const core = {
+    authenticated: true,
+    authorityId: "authority:legacy-journal-resolution",
+    durable: true,
+    handlerArtifactDigest: digest("legacy-journal-resolution-handler:v1"),
+    journalDigest: journal.journalDigest,
+    ledgerProjection,
+    schema: SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA,
+    tenantId: TENANT_ID,
+    transactionId: journal.transactionId,
+    trust: "trusted",
+  };
+  return {
+    ...core,
+    receiptDigest: domainDigest(
+      SKILL_RELEASE_JOURNAL_RESOLUTION_RECEIPT_SCHEMA,
+      core,
+    ),
+  };
+}
+
+function legacyJournalResolutionAuthority(journal, ledgerProjection, mutate) {
+  return createSkillReleaseJournalResolutionAuthority({
+    authorityId: "authority:legacy-journal-resolution",
+    handlerArtifactDigest: digest("legacy-journal-resolution-handler:v1"),
+    resolve(request) {
+      const receipt = legacyJournalResolutionReceipt(journal, ledgerProjection);
+      return mutate ? mutate(receipt, request) : receipt;
+    },
+    trust: "trusted",
+  });
+}
+
+function legacyJournalStateMigrationPlan(journal) {
+  const core = {
+    activeReleaseDigest: digest("migrated-journal-active"),
+    activeReleaseMigrationDigest: digest("journal-active-migration"),
+    activeReleaseMigrationReceiptDigest: digest(
+      "journal-active-migration-receipt",
+    ),
+    dependencyLockDigest: digest("migrated-journal-lock"),
+    lastKnownGoodReleaseDigest: digest("migrated-journal-lkg"),
+    lastKnownGoodReleaseMigrationDigest: digest("journal-lkg-migration"),
+    lastKnownGoodReleaseMigrationReceiptDigest: digest(
+      "journal-lkg-migration-receipt",
+    ),
+    legacyActiveReleaseDigest: journal.nextState.activeReleaseDigest,
+    legacyFence: journal.nextState.fence,
+    legacyLastKnownGoodReleaseDigest:
+      journal.nextState.lastKnownGoodReleaseDigest,
+    legacyRevision: journal.nextState.revision,
+    legacyStateDigest: journal.nextState.stateDigest,
+    legacyTransactionId: journal.transactionId,
+    requiresAuthenticatedLedgerMigration: true,
+    schema: SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+    skillName: journal.skillName,
+    tenantId: TENANT_ID,
+  };
+  return {
+    ...core,
+    stateMigrationDigest: domainDigest(
+      SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
       core,
     ),
   };
@@ -1767,6 +1840,115 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     const legacy = legacyJournalFromCurrent(current);
 
     expect(verifyLegacySkillReleaseJournal(legacy)).toEqual(legacy);
+    const absentProjection = {
+      authenticated: true,
+      durable: true,
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "absent",
+      transactionId: legacy.transactionId,
+    };
+    const aborted = buildLegacySkillReleaseJournalDisposition({
+      legacyJournal: legacy,
+      resolutionAuthority: legacyJournalResolutionAuthority(
+        legacy,
+        absentProjection,
+      ),
+      stateMigrationPlan: null,
+      tenantId: TENANT_ID,
+    });
+    expect(aborted).toMatchObject({
+      action: "abort",
+      ledgerCurrent: null,
+      ledgerStatus: "absent",
+      schema: SKILL_RELEASE_JOURNAL_DISPOSITION_PLAN_SCHEMA,
+      stateMigrationDigest: null,
+    });
+    expect(verifyLegacySkillReleaseJournalDisposition(aborted)).toEqual(
+      aborted,
+    );
+    expect(() =>
+      buildLegacySkillReleaseJournalDisposition({
+        legacyJournal: legacy,
+        resolutionAuthority: {
+          ...legacyJournalResolutionAuthority(legacy, absentProjection),
+        },
+        stateMigrationPlan: null,
+        tenantId: TENANT_ID,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
+    );
+
+    const projectionCore = {
+      authenticated: true,
+      authorityReceiptDigest: legacy.intent.authorityReceiptDigest,
+      durable: true,
+      epoch: "epoch:legacy-journal",
+      headDigest: digest("legacy-journal-head"),
+      intentDigest: legacy.intent.intentDigest,
+      ledgerId: "ledger:legacy-journal",
+      receiptDigest: digest("legacy-journal-projection"),
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      sequence: 7,
+      status: "prepared",
+      transactionId: legacy.transactionId,
+    };
+    const quarantined = buildLegacySkillReleaseJournalDisposition({
+      legacyJournal: legacy,
+      resolutionAuthority: legacyJournalResolutionAuthority(
+        legacy,
+        projectionCore,
+      ),
+      stateMigrationPlan: null,
+      tenantId: TENANT_ID,
+    });
+    expect(quarantined).toMatchObject({
+      action: "quarantine",
+      ledgerCurrent: null,
+      ledgerStatus: "prepared",
+    });
+
+    const stateMigrationPlan = legacyJournalStateMigrationPlan(legacy);
+    const committedProjection = {
+      ...projectionCore,
+      current: true,
+      pointerDigest: legacy.nextState.stateDigest,
+      prepareReceiptDigest: digest("legacy-journal-prepare"),
+      receiptDigest: digest("legacy-journal-commit-projection"),
+      revision: legacy.nextState.revision,
+      skillName: legacy.skillName,
+      stateDigest: legacy.nextState.stateDigest,
+      status: "committed",
+    };
+    const migrated = buildLegacySkillReleaseJournalDisposition({
+      legacyJournal: legacy,
+      resolutionAuthority: legacyJournalResolutionAuthority(
+        legacy,
+        committedProjection,
+      ),
+      stateMigrationPlan,
+      tenantId: TENANT_ID,
+    });
+    expect(migrated).toMatchObject({
+      action: "migrate-committed-state",
+      ledgerCurrent: true,
+      ledgerStatus: "committed",
+      stateMigrationDigest: stateMigrationPlan.stateMigrationDigest,
+    });
+    expect(() =>
+      buildLegacySkillReleaseJournalDisposition({
+        legacyJournal: legacy,
+        resolutionAuthority: legacyJournalResolutionAuthority(
+          legacy,
+          absentProjection,
+          (receipt) => ({ ...receipt, durable: false }),
+        ),
+        stateMigrationPlan: null,
+        tenantId: TENANT_ID,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: SKILL_RELEASE_MIGRATION_REQUIRED_CODE }),
+    );
     expect(() =>
       verifyLegacySkillReleaseJournal({
         ...legacy,
