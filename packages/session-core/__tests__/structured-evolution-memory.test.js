@@ -226,4 +226,30 @@ describe("StructuredEvolutionMemory", () => {
       .rejects.toThrow(/branded tenant-scoped/);
     expect(p.persistEvent).not.toHaveBeenCalled();
   });
+
+  it("hydrates deterministically from persisted events and a verified compaction snapshot", async () => {
+    const p = ports();
+    const first = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+    await first.append(runtimeEvent());
+    const compacted = await first.compact(compactInput());
+    const initialEvents = p.persistEvent.mock.calls.map(([persisted]) => persisted);
+    const reopened = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...ports(),
+      initialEvents, initialSnapshot: compacted.snapshot });
+    expect(reopened.projection()).toEqual(first.projection());
+    expect(reopened.snapshot()).toEqual(compacted.snapshot);
+  });
+
+  it("rejects a substituted snapshot or snapshot/event lineage during hydration", async () => {
+    const p = ports();
+    const first = new StructuredEvolutionMemory({ tenantId: "tenant-a", ...p });
+    await first.append(runtimeEvent());
+    const compacted = await first.compact(compactInput());
+    const initialEvents = p.persistEvent.mock.calls.map(([persisted]) => persisted);
+    expect(() => new StructuredEvolutionMemory({ tenantId: "tenant-a", ...ports(), initialEvents,
+      initialSnapshot: { ...compacted.snapshot, decisions: ["substituted"] } })).toThrow(/snapshot is invalid/);
+    const unrelated = event({ eventId: "other", memoryId: "other", contentDigest: digest("other"),
+      artifactRef: "artifact://other" });
+    expect(() => new StructuredEvolutionMemory({ tenantId: "tenant-a", ...ports(), initialEvents: [unrelated],
+      initialSnapshot: compacted.snapshot })).toThrow(/does not match event lineage/);
+  });
 });

@@ -273,8 +273,35 @@ function normalizeCompaction(input, projection) {
     projectionDigest: projection.projectionDigest, ...body };
 }
 
+function verifyPersistedSnapshot(snapshot, events, tenantId) {
+  if (snapshot == null) return null;
+  const core = Object.fromEntries(Object.entries(snapshot).filter(([key]) => key !== "snapshotDigest"));
+  if (snapshot.schema !== STRUCTURED_MEMORY_SNAPSHOT_SCHEMA || snapshot.tenantId !== tenantId ||
+      !DIGEST.test(snapshot.snapshotDigest || "") || snapshot.snapshotDigest !== hash(core) ||
+      !Number.isSafeInteger(snapshot.throughSequence) || snapshot.throughSequence < 0) {
+    throw new Error("persisted structured memory snapshot is invalid");
+  }
+  const boundaryEvents = events.filter((event) => event.sequence <= snapshot.throughSequence);
+  const boundary = projectStructuredMemory(boundaryEvents, { tenantId });
+  if (boundary.sequence !== snapshot.throughSequence || boundary.eventRoot !== snapshot.eventRoot ||
+      boundary.projectionDigest !== snapshot.projectionDigest) {
+    throw new Error("persisted structured memory snapshot does not match event lineage");
+  }
+  for (const field of COMPACTION_FIELDS) {
+    if (field === "goalState") {
+      if (!snapshot.goalState || typeof snapshot.goalState !== "object" || Array.isArray(snapshot.goalState)) {
+        throw new Error("persisted structured memory snapshot omitted goal state");
+      }
+      assertMetadataOnly(snapshot.goalState, "goalState");
+    } else strings(snapshot[field], `snapshot.${field}`);
+  }
+  if (snapshot.memoryLineage.length === 0) throw new Error("persisted snapshot omitted memory lineage");
+  return freeze(clone(snapshot));
+}
+
 class StructuredEvolutionMemory {
-  constructor({ tenantId, persistEvent, persistSnapshot, postCompactVerifier } = {}) {
+  constructor({ tenantId, persistEvent, persistSnapshot, postCompactVerifier,
+    initialEvents = [], initialSnapshot = null } = {}) {
     this.tenantId = requiredString(tenantId, "tenantId");
     if (typeof persistEvent !== "function" || typeof persistSnapshot !== "function" || typeof postCompactVerifier !== "function") {
       throw new TypeError("persistent event/snapshot ports and PostCompact verifier are required");
@@ -282,9 +309,10 @@ class StructuredEvolutionMemory {
     this._persistEvent = persistEvent;
     this._persistSnapshot = persistSnapshot;
     this._postCompactVerifier = postCompactVerifier;
-    this._events = [];
-    this._projection = projectStructuredMemory([], { tenantId: this.tenantId });
-    this._snapshot = null;
+    if (!Array.isArray(initialEvents)) throw new TypeError("initialEvents must be an array");
+    this._events = initialEvents.map(normalizeEvent);
+    this._projection = projectStructuredMemory(this._events, { tenantId: this.tenantId });
+    this._snapshot = verifyPersistedSnapshot(initialSnapshot, this._events, this.tenantId);
   }
 
   async append(input) {
