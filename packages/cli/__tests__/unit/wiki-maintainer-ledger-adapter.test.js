@@ -1,4 +1,4 @@
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +8,11 @@ import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
-import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
+import {
+  EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_WITNESS_SCHEMA,
+  EvolutionLedger,
+} from "../../src/lib/evolution/evolution-ledger.js";
 import {
   EvidenceBackedWikiMaintainer,
   WIKI_EVIDENCE_SCHEMA,
@@ -40,6 +44,75 @@ const temporaryRoots = [];
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
 });
+
+const LEDGER_TRUST = { algorithm: "hmac-sha256", keyId: "key://tests/wiki-ledger",
+  trustPolicyDigest: hash("wiki-ledger-trust") };
+const WITNESS_TRUST = { algorithm: "hmac-sha256", keyId: "key://tests/wiki-witness",
+  trustPolicyDigest: hash("wiki-witness-trust") };
+const EMPTY_DISCARD_DIGEST = hash(`chainlesschain.evolution-witness-discard-accumulator/v1\0${canonical([])}`);
+
+function witnessRecord(witnessId, snapshot = null, previous = null) {
+  const core = { ...WITNESS_TRUST, anchorDigest: snapshot?.anchorDigest ?? null, authenticated: true, durable: true,
+    discardAccumulatorDigest: previous?.discardAccumulatorDigest ?? EMPTY_DISCARD_DIGEST,
+    epoch: snapshot?.epoch ?? null, generation: previous ? previous.generation + 1 : 0,
+    headDigest: snapshot?.headDigest ?? null, identityDigest: snapshot?.identityDigest ?? null,
+    ledgerId: snapshot?.ledgerId ?? null, payloadDigest: snapshot?.payloadDigest ?? null,
+    previousWitnessDigest: previous?.witnessDigest ?? null, schema: EVOLUTION_LEDGER_WITNESS_SCHEMA,
+    segmentDigest: snapshot?.segmentDigest ?? null, sequence: snapshot?.sequence ?? null,
+    status: snapshot ? "committed" : "absent", storeMarkerDigest: snapshot?.storeMarkerDigest ?? null,
+    storeMarkerEntryDigest: snapshot?.storeMarkerEntryDigest ?? null, storeMarkerId: snapshot?.storeMarkerId ?? null,
+    witnessId };
+  const message = `chainlesschain.evolution-ledger-witness/v1\0${canonical(core)}`;
+  return { ...core, witnessDigest: hash(message), signature: { ...WITNESS_TRUST, value: "A".repeat(43) } };
+}
+
+function durableWitness(witnessId) {
+  let current = witnessRecord(witnessId);
+  return { id: witnessId, read: () => current,
+    initialize: ({ expected, snapshot }) => {
+      if (expected.witnessDigest !== current.witnessDigest) return current;
+      current = witnessRecord(witnessId, snapshot, current);
+      return current;
+    },
+    compareAndSwap: ({ expected, next }) => {
+      if (expected.witnessDigest !== current.witnessDigest) return current;
+      current = witnessRecord(witnessId, next, current);
+      return current;
+    },
+    proveAncestry: () => { throw new Error("unexpected ancestry request in linear Wiki test"); },
+  };
+}
+
+function durableFilesystem() {
+  const directoryDescriptors = new Set();
+  let nextDirectoryDescriptor = -10_000;
+  return { ...fs, constants: fs.constants, realpathSync: fs.realpathSync,
+    closeSync(descriptor) {
+      if (directoryDescriptors.delete(descriptor)) return;
+      return fs.closeSync(descriptor);
+    },
+    fsyncSync(descriptor) {
+      if (directoryDescriptors.has(descriptor)) return;
+      try { return fs.fsyncSync(descriptor); } catch (error) {
+        if (process.platform === "win32" && ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+            fs.fstatSync(descriptor).isDirectory()) return;
+        throw error;
+      }
+    },
+    openSync(target, flags, mode) {
+      try { return fs.openSync(target, flags, mode); } catch (error) {
+        if (process.platform === "win32" && flags === "r" && ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+            fs.statSync(target).isDirectory()) {
+          const descriptor = nextDirectoryDescriptor;
+          nextDirectoryDescriptor -= 1;
+          directoryDescriptors.add(descriptor);
+          return descriptor;
+        }
+        throw error;
+      }
+    },
+  };
+}
 
 function durableBackends() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-ledger-"));
@@ -96,7 +169,27 @@ function durableBackends() {
     }),
   };
   const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({ purpose: descriptor.purpose });
-  return { artifactPorts: artifactWriter, putSpy, ledger, ledgerState, resolver };
+  return { artifactPorts: artifactWriter, rawArtifactPorts: artifactPorts, putSpy, ledger, ledgerState, resolver, root };
+}
+
+function openRealLedger(backends, witness) {
+  const secret = "test-only-real-wiki-ledger-key";
+  return new EvolutionLedger({
+    rootDir: path.join(backends.root, "ledger-events"),
+    authorityRootDir: path.join(backends.root, "ledger-authority"),
+    secure: false,
+    fsImpl: durableFilesystem(),
+    clock: () => Date.parse("2026-09-02T00:00:00.000Z"),
+    random: () => randomBytes(16).toString("hex"),
+    trust: LEDGER_TRUST,
+    witnessTrust: WITNESS_TRUST,
+    witness,
+    artifactResolver: backends.resolver,
+    sign: ({ message }) => ({ ...LEDGER_TRUST,
+      value: createHmac("sha256", secret).update(message).digest("base64url") }),
+    verifySignature: () => true,
+    verifyWitnessSignature: () => true,
+  });
 }
 
 function evidence(ref, trustDomain) {
@@ -136,6 +229,23 @@ function adapter(backends) {
 }
 
 describe("WikiMaintainerLedgerAdapter", () => {
+  it("round-trips through real EvolutionLedger files and a reopened ledger instance", async () => {
+    const backends = durableBackends();
+    const witness = durableWitness("witness-wiki-integration");
+    const firstLedger = openRealLedger(backends, witness);
+    const firstAdapter = new WikiMaintainerLedgerAdapter({ descriptor, artifactPorts: backends.artifactPorts,
+      ledger: firstLedger, ledgerArtifactResolver: backends.resolver });
+    const result = await maintainer(firstAdapter).maintain({ evidenceRefs: ["ev-1", "ev-2"],
+      effectiveAt: "2026-09-02T00:00:00.000Z" });
+
+    const reopenedLedger = openRealLedger(backends, witness);
+    const reopenedAdapter = new WikiMaintainerLedgerAdapter({ descriptor, artifactPorts: backends.artifactPorts,
+      ledger: reopenedLedger, ledgerArtifactResolver: backends.resolver });
+    expect(reopenedAdapter.loadWiki()).toMatchObject({ stateDigest: result.stateDigest, state: result.state });
+    expect(reopenedLedger.verify()).toMatchObject({ eventCount: 1, sequence: 1 });
+    expect(reopenedLedger.read()[0]).toMatchObject({ type: "wiki.revision.committed", correlationId: "run-1" });
+  });
+
   it("persists a Wiki revision in immutable artifacts and recovers it through a new adapter instance", async () => {
     const backends = durableBackends();
     const first = await maintainer(adapter(backends)).maintain({ evidenceRefs: ["ev-1", "ev-2"], effectiveAt: "2026-09-02T00:00:00.000Z" });
