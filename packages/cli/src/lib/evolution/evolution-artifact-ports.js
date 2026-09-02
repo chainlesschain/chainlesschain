@@ -64,6 +64,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "skill-release-finalization",
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
+  "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
   "wiki-revision",
@@ -102,6 +103,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
   "skill-release-finalization",
+  "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
   "wiki-revision",
@@ -281,6 +283,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
     new Set(["evolution-ledger", "skill-mutation"]),
   ],
   ["wiki-revision", new Set(["evolution-ledger"])],
+  ["structured-memory-authority-receipt", new Set(["evolution-ledger"])],
   ["structured-memory-event", new Set(["evolution-ledger"])],
   ["structured-memory-snapshot", new Set(["evolution-ledger"])],
 ]);

@@ -15,10 +15,12 @@ import {
   STRUCTURED_MEMORY_LEDGER_CONFLICT_CODE,
   StructuredMemoryLedgerAdapter,
 } from "../../src/lib/evolution/structured-memory-ledger-adapter.js";
+import { StructuredMemoryAuthorityLedgerAdapter } from "../../src/lib/evolution/structured-memory-authority-ledger-adapter.js";
+import { createCliStructuredMemoryPostCompactVerifier } from "../../src/lib/evolution/structured-memory-post-compact-hook.js";
 
 const { STRUCTURED_MEMORY_EVENT_SCHEMA, createStructuredMemoryAuthority,
   createStructuredMemoryAuthorityReceipt, createStructuredMemoryReceiptProvider,
-  createStructuredMemoryPostCompactVerifier } = structuredMemory;
+} = structuredMemory;
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -165,9 +167,9 @@ function openRealLedger(backend, witness) {
     verifySignature: () => true, verifyWitnessSignature: () => true });
 }
 
-function authority() {
-  return createStructuredMemoryAuthority({ tenantId: "tenant-a", actorId: "producer-1", actorType: "agent",
-    role: "producer", authorityDigest: hash("producer-authority") });
+function authority(role = "producer", actorType = "agent") {
+  return createStructuredMemoryAuthority({ tenantId: "tenant-a", actorId: `${role}-1`, actorType,
+    role, authorityDigest: hash(`${role}-authority`) });
 }
 
 function receiptProvider() {
@@ -186,23 +188,49 @@ function receiptProvider() {
     verifier: { verify: async () => true } });
 }
 
-function memoryOptions() {
-  const postCompactDescriptor = { tenantId: "tenant-a", authorityId: "post-compact-runtime", authorityRevision: 1,
-    handlerDigest: hash("post-compact-handler") };
-  const postCompactVerifier = createStructuredMemoryPostCompactVerifier({ descriptor: postCompactDescriptor,
-    hook: { run: async (request) => ({ schema: structuredMemory.STRUCTURED_MEMORY_POST_COMPACT_VERIFICATION_SCHEMA,
-      authenticated: true, ...postCompactDescriptor, snapshotDigest: request.snapshotDigest,
-      projectionDigest: request.projectionDigest, previousSnapshotDigest: request.previousSnapshotDigest,
-      decision: "accepted", checkedAt: "2026-09-02T00:00:00.000Z",
-      receiptDigest: hash(`post-compact:${request.snapshotDigest}`) }) },
-    verifier: { verify: async () => true } });
-  return { postCompactVerifier, receiptProvider: receiptProvider() };
+const receiptAuthorityDescriptor = { ...descriptor, authorityId: "memory-authority-ledger",
+  authorityRevision: 1, handlerDigest: hash("memory-authority-ledger-handler") };
+
+function signedAuthorityReceipt(kind, overrides = {}) {
+  const receipt = createStructuredMemoryAuthorityReceipt({ tenantId: "tenant-a", kind, decision: "accepted",
+    memoryId: "memory-1", layer: kind === "promotion" ? "procedural" : kind === "policy" ? "policy" : "semantic",
+    action: "accept", contentDigest: hash("content-memory-1"), artifactRef: "artifact://memory-1",
+    evidenceRefs: ["critic", "evaluator"].includes(kind) ? ["evidence://grader/1"] : [],
+    issuerId: `${kind}-authority`, issuerRevision: 1, issuerHandlerDigest: hash(`${kind}-handler`),
+    issuedAt: "2026-09-02T00:00:00.000Z", ...overrides });
+  return Object.freeze({ ...receipt, attestation: hash(`attestation:${receipt.receiptDigest}`) });
 }
 
-function runtimeEvent(id = "memory-1") {
+function authorityLedgerAdapter(backend, ledger = backend.ledger) {
+  return new StructuredMemoryAuthorityLedgerAdapter({ descriptor: receiptAuthorityDescriptor,
+    artifactPorts: backend.artifactPorts, ledger, ledgerArtifactResolver: backend.resolver,
+    receiptVerifier: { verify: async ({ receipt }) =>
+      receipt.attestation === hash(`attestation:${receipt.receiptDigest}`) } });
+}
+
+function memoryOptions(overrides = {}) {
+  const postCompactDescriptor = { tenantId: "tenant-a", authorityId: "post-compact-runtime", authorityRevision: 1,
+    handlerDigest: hash("post-compact-handler") };
+  const secret = "test-only-cli-post-compact";
+  const postCompactVerifier = createCliStructuredMemoryPostCompactVerifier({ descriptor: postCompactDescriptor,
+    hookExecutor: async () => ({ success: true, blocked: false, decision: "continue",
+      results: [{ status: "success", hookId: "memory-integrity" }] }),
+    attestor: { sign: ({ message }) => ({ algorithm: "hmac-sha256", keyId: "test:memory-post-compact",
+      value: createHmac("sha256", secret).update(message).digest("base64url") }),
+    verify: ({ message, result }) => result.signature?.algorithm === "hmac-sha256" &&
+      result.signature?.keyId === "test:memory-post-compact" &&
+      result.signature?.value === createHmac("sha256", secret).update(message).digest("base64url") },
+    clock: () => Date.parse("2026-09-02T00:00:00.000Z") });
+  return { postCompactVerifier, receiptProvider: overrides.receiptProvider || receiptProvider() };
+}
+
+function runtimeEvent(idOrOverrides = "memory-1") {
+  const overrides = typeof idOrOverrides === "object" ? idOrOverrides : {};
+  const id = typeof idOrOverrides === "string" ? idOrOverrides : overrides.memoryId || "memory-1";
   return { eventId: `event-${id}`, memoryId: id, layer: "episodic", action: "append", automatic: true,
     authority: authority(), contentDigest: hash(`content-${id}`), artifactRef: `artifact://${id}`,
-    evidenceRefs: [], supersedes: [], receipts: {}, timestamp: "2026-09-02T00:00:00.000Z", metadata: { sessionId: "s1" } };
+    evidenceRefs: [], supersedes: [], receipts: {}, timestamp: "2026-09-02T00:00:00.000Z",
+    metadata: { sessionId: "s1" }, ...overrides };
 }
 
 function persistedEvent(id = "memory-1") {
@@ -217,29 +245,78 @@ const compactInput = { requirements: ["retain requirements"], decisions: ["use l
   memoryLineage: ["memory-1"] };
 
 describe("StructuredMemoryLedgerAdapter", () => {
+  it("persists and resolves all four authority receipt kinds through ArtifactStore and Ledger", async () => {
+    const backend = backends();
+    const authorityStore = authorityLedgerAdapter(backend);
+    const receipts = Object.fromEntries(["critic", "evaluator", "promotion", "policy"]
+      .map((kind) => [kind, signedAuthorityReceipt(kind)]));
+    for (const receipt of Object.values(receipts)) {
+      await expect(authorityStore.retainReceipt(receipt)).resolves.toMatchObject({ persisted: true,
+        receiptDigest: receipt.receiptDigest });
+    }
+    const provider = authorityStore.createReceiptProvider();
+    await expect(provider.resolveForEvent({ tenantId: "tenant-a", memoryId: "memory-1", layer: "semantic",
+      action: "accept", contentDigest: hash("content-memory-1"), artifactRef: "artifact://memory-1",
+      evidenceRefs: ["evidence://grader/1"] }, { critic: receipts.critic.receiptDigest,
+      evaluator: receipts.evaluator.receiptDigest })).resolves.toMatchObject({
+      critic: receipts.critic.receiptDigest, evaluator: receipts.evaluator.receiptDigest });
+    await expect(provider.resolveForEvent({ tenantId: "tenant-a", memoryId: "memory-1", layer: "procedural",
+      action: "accept", contentDigest: hash("content-memory-1"), artifactRef: "artifact://memory-1", evidenceRefs: [] },
+    { promotion: receipts.promotion.receiptDigest })).resolves.toMatchObject({ promotion: receipts.promotion.receiptDigest });
+    await expect(provider.resolveForEvent({ tenantId: "tenant-a", memoryId: "memory-1", layer: "policy",
+      action: "accept", contentDigest: hash("content-memory-1"), artifactRef: "artifact://memory-1", evidenceRefs: [] },
+    { policy: receipts.policy.receiptDigest })).resolves.toMatchObject({ policy: receipts.policy.receiptDigest });
+    expect(backend.state.events).toHaveLength(4);
+  });
+
+  it("recovers authority receipt persistence after a lost ledger response and rejects tampering", async () => {
+    const backend = backends();
+    const authorityStore = authorityLedgerAdapter(backend);
+    const receipt = signedAuthorityReceipt("promotion");
+    backend.state.failAfterAppend = true;
+    await expect(authorityStore.retainReceipt(receipt)).rejects.toThrow(/response lost/);
+    await expect(authorityStore.retainReceipt(receipt)).resolves.toMatchObject({ persisted: true, recovered: true });
+    await expect(authorityStore.retainReceipt({ ...receipt, contentDigest: hash("substituted") }))
+      .rejects.toThrow(/digest/);
+    await expect(authorityStore.retainReceipt({ ...receipt, attestation: hash("forged") }))
+      .rejects.toThrow(/authentication failed/);
+    expect(backend.state.events).toHaveLength(1);
+  });
+
   it("round-trips events and snapshots through real ledger files and a reopened ledger", async () => {
     const backend = backends();
     const witness = durableWitness("witness-structured-memory-integration");
     const firstLedger = openRealLedger(backend, witness);
+    const firstAuthorityStore = authorityLedgerAdapter(backend, firstLedger);
+    const critic = signedAuthorityReceipt("critic");
+    const evaluator = signedAuthorityReceipt("evaluator");
+    await firstAuthorityStore.retainReceipt(critic);
+    await firstAuthorityStore.retainReceipt(evaluator);
     const first = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
       ledger: firstLedger, ledgerArtifactResolver: backend.resolver,
-      ...memoryOptions(),
+      ...memoryOptions({ receiptProvider: firstAuthorityStore.createReceiptProvider() }),
       clock: () => Date.parse("2026-09-02T00:00:00.000Z") })
       .createMemory();
-    await first.append(runtimeEvent());
+    const semantic = { layer: "semantic", evidenceRefs: ["evidence://grader/1"] };
+    await first.append(runtimeEvent({ ...semantic, action: "propose", authority: authority("child-agent") }));
+    await first.append(runtimeEvent({ ...semantic, eventId: "event-memory-2", action: "accept",
+      authority: authority("governor", "service"),
+      receiptRefs: { critic: critic.receiptDigest, evaluator: evaluator.receiptDigest } }));
     expect((await first.compact(compactInput)).status).toBe("compacted");
 
     const reopenedLedger = openRealLedger(backend, witness);
+    const reopenedAuthorityStore = authorityLedgerAdapter(backend, reopenedLedger);
     const reopened = new StructuredMemoryLedgerAdapter({ descriptor, artifactPorts: backend.artifactPorts,
       ledger: reopenedLedger, ledgerArtifactResolver: backend.resolver,
-      ...memoryOptions(),
+      ...memoryOptions({ receiptProvider: reopenedAuthorityStore.createReceiptProvider() }),
       clock: () => Date.parse("2026-09-02T00:00:00.000Z") })
       .createMemory();
     expect(reopened.projection()).toEqual(first.projection());
     expect(reopened.snapshot()).toEqual(first.snapshot());
-    expect(reopenedLedger.verify()).toMatchObject({ eventCount: 2, sequence: 2 });
+    expect(reopenedLedger.verify()).toMatchObject({ eventCount: 5, sequence: 5 });
     expect(reopenedLedger.read().map((entry) => entry.type)).toEqual([
-      "memory.event.persisted", "memory.snapshot.persisted",
+      "memory.authority-receipt.persisted", "memory.authority-receipt.persisted",
+      "memory.event.persisted", "memory.event.persisted", "memory.snapshot.persisted",
     ]);
   });
 
@@ -291,5 +368,9 @@ describe("StructuredMemoryLedgerAdapter", () => {
       ledger: backend.ledger, ledgerArtifactResolver: backend.resolver,
       receiptProvider: options.receiptProvider, postCompactVerifier: async () => true }))
       .toThrow(/branded tenant-scoped structured memory PostCompact/);
+    expect(() => new StructuredMemoryAuthorityLedgerAdapter({ descriptor: receiptAuthorityDescriptor,
+      artifactPorts: backend.artifactPorts, ledger: backend.ledger,
+      ledgerArtifactResolver: (request) => backend.resolver(request),
+      receiptVerifier: { verify: async () => true } })).toThrow(/branded EvolutionArtifactPorts/);
   });
 });
