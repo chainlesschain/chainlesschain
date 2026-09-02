@@ -2391,10 +2391,19 @@ export class SkillCandidateRegistry {
     try {
       const stat = this._fs.lstatSync(requestedSource);
       sourceRoot = realpath(this._fs, requestedSource);
+      const canonicalStat = this._fs.lstatSync(sourceRoot);
+      const canonicalParent = realpath(this._fs, path.dirname(requestedSource));
+      const expectedCanonical = path.join(
+        canonicalParent,
+        path.basename(requestedSource),
+      );
       if (
         !stat.isDirectory() ||
         stat.isSymbolicLink() ||
-        !samePath(sourceRoot, requestedSource) ||
+        !canonicalStat.isDirectory() ||
+        canonicalStat.isSymbolicLink() ||
+        entryIdentity(canonicalStat) !== entryIdentity(stat) ||
+        !samePath(sourceRoot, expectedCanonical) ||
         !samePath(realpath(this._fs, sourceRoot), sourceRoot) ||
         isContained(sourceRoot, this.baseDir) ||
         isContained(this.baseDir, sourceRoot)
