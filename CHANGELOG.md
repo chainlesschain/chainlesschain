@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.17 and Session Core 0.3.9: governed Skill evolution
+
+> `chainlesschain` **0.166.16 -> 0.166.17** and
+> `@chainlesschain/session-core` **0.3.8 -> 0.3.9** (release candidate,
+> 2026-09-02).
+
+- **Evaluated promotion**: Skill candidates must carry target-matrix evidence,
+  current-revision bindings, durable promotion receipts, and revocation-aware
+  attestations before an active revision can change.
+- **Crash-safe lifecycle**: tenant-scoped candidate and release registries,
+  lease/CAS promotion, last-known-good tracking, and rollback keep concurrent
+  or interrupted mutations fail closed.
+- **Bounded improvement pilot**: the CLI can propose constrained Skill
+  improvements and wiki-informed candidates without directly rewriting or
+  activating installed Skills.
+- **Cross-runtime evidence**: CLI, Desktop, and Graph adapters share the new
+  Session Core `EvolutionRun` and Skill-invocation receipt contracts, keeping
+  evidence identity consistent across runtimes.
+- **Release boundary**: publication requires this exact candidate commit to
+  pass every configured Linux, Windows, and macOS job in `CLI CI` and
+  `CLI Strict Sandbox`; a local test result or an older green run is not
+  release authorization.
+
 ### Added - local source-only Skill evolution and external-evidence contracts
 
 > This entry freezes this cycle's unmerged local feature-branch snapshot at

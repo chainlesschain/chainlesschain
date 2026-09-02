@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: 9d15002ea7b1c3f7980e5c2aa59aace97be30040df5e5fdc2aea70a659a3e293
+# manifest-sha256: 0202281a4b91722900ff73c81eecb0edb099462c4f8c345061f7a32c4eb3e620
 #compdef cc chainlesschain clc clchain
 
 _chainlesschain() {
