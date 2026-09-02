@@ -70,27 +70,27 @@ describe("EVO-P0-1 production truth surface", () => {
     expect(productDoc).not.toContain("更新模型参数但保留已有知识");
   });
 
-  it("registers Desktop Phase 20 as metrics and leaves the simulator unwired", () => {
+  it("registers Desktop Phase 20 as metrics and keeps the simulator retired", () => {
     const phaseSource = read(
       new URL(
         "desktop-app-vue/src/main/ipc/phases/phase-16-20-skill-evo.js",
         repositoryRoot,
       ),
     );
-    const simulatorSource = read(
-      new URL(
-        "desktop-app-vue/src/main/ai-engine/evolution/self-evolving-system.js",
-        repositoryRoot,
-      ),
+    const retiredSimulator = new URL(
+      "desktop-app-vue/src/main/ai-engine/evolution/self-evolving-system.js",
+      repositoryRoot,
+    );
+    const retiredIpc = new URL(
+      "desktop-app-vue/src/main/ai-engine/evolution/evolution-ipc.js",
+      repositoryRoot,
     );
 
     expect(phaseSource).toContain("Evolution Metrics & Knowledge Graph IPC");
     expect(phaseSource).not.toContain("Self-Evolution & Knowledge Graph IPC");
     expect(phaseSource).not.toContain("ai-engine/evolution/evolution-ipc");
     expect(phaseSource).not.toContain("self-evolving-system");
-    expect(simulatorSource).toContain("EVOLUTION_METRICS_ONLY = true");
-    expect(simulatorSource).toContain(
-      "does not train model weights or evolve Skills",
-    );
+    expect(fs.existsSync(retiredSimulator)).toBe(false);
+    expect(fs.existsSync(retiredIpc)).toBe(false);
   });
 });

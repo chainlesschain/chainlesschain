@@ -603,7 +603,7 @@ onPostToolUse(ctx, {
 
 ## 相关文档
 
-- [65. 自进化AI系统](/design/modules/65-self-evolving-ai) — 能力评估与成长追踪
+- [65. 历史自进化模拟壳（已退役）](/design/modules/65-self-evolving-ai) — 说明已删除的未接线 Phase 100 设计
 - [16. AI技能系统](/design/modules/16-ai-skills) — 4 层技能加载架构
 - [76. 技能创建系统](/design/modules/76-skill-creator) — 手动技能创建
 - [Instinct 学习系统](/chainlesschain/cli-instinct) — 用户偏好自动学习

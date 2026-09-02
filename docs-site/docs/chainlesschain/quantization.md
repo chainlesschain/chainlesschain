@@ -344,4 +344,4 @@ npx vitest run tests/unit/quantization/
 
 - [AI 模型配置](/chainlesschain/ai-models) - 本地模型管理与配置
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 与推理优化
-- [自进化 AI](/chainlesschain/self-evolving-ai) - AI 模型自动架构搜索与升级
+- [受治理 Skill 演进](/chainlesschain/self-evolving-ai) - 证据、候选、独立评测与人工晋升边界

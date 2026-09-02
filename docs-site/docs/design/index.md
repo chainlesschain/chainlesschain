@@ -111,16 +111,16 @@
 
 ### 企业平台 (Phase 58-65)
 
-| 编号 | 模块                                             | 说明            |
-| ---- | ------------------------------------------------ | --------------- |
-| 58   | [低代码平台](./modules/58-low-code)              | 低代码/15+ 组件 |
-| 59   | [企业知识图谱](./modules/59-knowledge-graph)     | 知识图谱        |
-| 60   | [BI 智能分析](./modules/60-bi-engine)            | NL→SQL          |
-| 61   | [工作流自动化](./modules/61-workflow-automation) | 自动化引擎      |
-| 62   | [多租户 SaaS](./modules/62-saas)                 | SaaS 引擎       |
-| 63   | [统一运行时](./modules/63-unified-runtime)       | 应用运行时      |
-| 64   | [插件生态 2.0](./modules/64-plugin-ecosystem)    | 插件生态        |
-| 65   | [自进化 AI](./modules/65-self-evolving-ai)       | 自进化/NAS      |
+| 编号 | 模块                                                     | 说明                    |
+| ---- | -------------------------------------------------------- | ----------------------- |
+| 58   | [低代码平台](./modules/58-low-code)                      | 低代码/15+ 组件         |
+| 59   | [企业知识图谱](./modules/59-knowledge-graph)             | 知识图谱                |
+| 60   | [BI 智能分析](./modules/60-bi-engine)                    | NL→SQL                  |
+| 61   | [工作流自动化](./modules/61-workflow-automation)         | 自动化引擎              |
+| 62   | [多租户 SaaS](./modules/62-saas)                         | SaaS 引擎               |
+| 63   | [统一运行时](./modules/63-unified-runtime)               | 应用运行时              |
+| 64   | [插件生态 2.0](./modules/64-plugin-ecosystem)            | 插件生态                |
+| 65   | [历史自进化 AI（已退役）](./modules/65-self-evolving-ai) | 迁移至受治理 Skill 演进 |
 
 ### CLI 系统 (Phase 66-70)
 

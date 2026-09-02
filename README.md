@@ -3400,7 +3400,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 
 - ✅ **统一应用运行时** (`runtime/universal-runtime.js`) — 插件SDK 2.0，热更新机制，内置Profiler(Flame Graph)，CRDT状态同步，全平台支持，8个IPC处理器
 - ✅ **智能插件生态2.0** (`marketplace/plugin-ecosystem-v2.js`) — AI推荐，依赖解析+冲突检测，沙箱隔离，AI代码审计，收益分成，8个IPC处理器
-- ✅ **自进化AI系统** (`ai-engine/evolution/self-evolving-system.js`) — 自动架构搜索(NAS)，持续学习，自我诊断+自我修复，行为预测，能力评估+成长轨迹，8个IPC处理器
+- 🗃️ **历史自进化模拟壳（已退役）** — 未接入生产 IPC registry 的 NAS、训练、自修复与 8 个模拟 IPC 已删除；当前采用受治理的 evidence → candidate → Eval → review → promotion 链
 
 **v5.0.0 统计**:
 
