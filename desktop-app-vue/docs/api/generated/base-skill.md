@@ -90,10 +90,10 @@ _extractKeywords(text)
 
 ---
 
-## _log(message, level = 'info')
+## _log(message, level = "info")
 
 ```javascript
-_log(message, level = 'info')
+_log(message, level = "info")
 ```
 
 * 日志输出
