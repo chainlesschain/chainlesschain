@@ -23,7 +23,10 @@ import {
   signRemoteMembershipAuthenticationChallenge,
 } from "../../src/lib/remote-membership-coordinator.js";
 
-vi.setConfig({ testTimeout: 15_000 });
+// These cases exercise real WebSocket startup, authentication, durable
+// membership, and teardown. Windows hosted runners can spend well over 15s in
+// that lifecycle under load, so keep the timeout above the observed cold path.
+vi.setConfig({ testTimeout: 45_000 });
 
 const TEST_PORT = 18930 + Math.floor(Math.random() * 50);
 const TOKEN = "rc-integration-token";
