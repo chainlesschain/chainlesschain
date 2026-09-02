@@ -647,6 +647,7 @@ async function ensureSessionHandler(
         db: server.sessionManager.db,
         sessionHostLease,
         sessionBudgetRoot,
+        evolutionCompositionFactory: server.evolutionCompositionFactory,
       });
       sessionHostLease = null;
       sessionBudgetRoot = null;

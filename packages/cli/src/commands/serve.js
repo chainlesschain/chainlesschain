@@ -166,7 +166,12 @@ export function registerServeCommand(program, dependencies = {}) {
           }
           return;
         }
-        const runtime = createAgentRuntimeFactory().createServerRuntime({
+        const runtime = createAgentRuntimeFactory({
+          deps:
+            evolutionCompositionFactory === null
+              ? {}
+              : { evolutionCompositionFactory },
+        }).createServerRuntime({
           port: parseInt(opts.port, 10),
           host: opts.host,
           token: opts.token,

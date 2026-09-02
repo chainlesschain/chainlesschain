@@ -11,7 +11,7 @@
  * adapter.
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { agentLoop, formatToolArgs } from "../../runtime/agent-core.js";
 import { classifyToolSideEffect } from "../../lib/side-effect-ledger.js";
 import { DiffReviewFollowUpTracker } from "../../lib/diff-review-follow-up.js";
@@ -81,6 +81,7 @@ import {
   rejectSessionBudgetUsageUnknown,
 } from "../../lib/session-budget-usage.js";
 import { HostResourceBudget } from "../../lib/host-resource-budget.js";
+import { captureAgentEvolutionRuntimeComposition } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
@@ -176,6 +177,7 @@ export class WSAgentHandler {
     sessionHostLease = null,
     sessionBudgetRoot = null,
     hostResourceBudget = null,
+    evolutionCompositionFactory = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -243,6 +245,13 @@ export class WSAgentHandler {
     this._mcpRecoveryRevision = null;
     this._mcpRecoveryClient = null;
     this._agentLoop = runAgentLoop || agentLoop;
+    if (
+      evolutionCompositionFactory !== null &&
+      typeof evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
+    }
+    this._evolutionCompositionFactory = evolutionCompositionFactory;
     this._compactionLlmQuery = compactionLlmQuery || null;
     this._compactionSettlementBlock = null;
     this._compactionChatFn =
@@ -295,6 +304,46 @@ export class WSAgentHandler {
     this._canonicalHostSystemPrefix = explicitHostPrefix
       ? explicitHostPrefix
       : Object.freeze(hostSystemPrefix);
+  }
+
+  async _prepareEvolutionTurn(requestId) {
+    if (!this._evolutionCompositionFactory) return null;
+    const sessionId = String(this.session.id);
+    const stableRequestId =
+      typeof requestId === "string" && requestId.trim()
+        ? requestId.trim()
+        : randomUUID();
+    const runId = `ws-run-${createHash("sha256")
+      .update(`${sessionId}\0${stableRequestId}`, "utf8")
+      .digest("hex")}`;
+    try {
+      const composition = captureAgentEvolutionRuntimeComposition(
+        await this._evolutionCompositionFactory(
+          Object.freeze({
+            mode: "legacy-websocket",
+            runId,
+            sessionId,
+            requestId: stableRequestId,
+            cwd: this.session.projectRoot,
+          }),
+        ),
+      );
+      if (composition.runId !== runId) {
+        throw new TypeError(
+          "Agent evolution composition belongs to another WebSocket turn",
+        );
+      }
+      await composition.evolutionIngress.start();
+      return composition;
+    } catch (cause) {
+      if (cause?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+      const error = new Error(
+        `WebSocket evolution ingress failed: ${cause?.message || String(cause)}`,
+        { cause },
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
   }
 
   attachInteraction(interaction) {
@@ -1277,6 +1326,7 @@ export class WSAgentHandler {
     let runRecorded = false;
     let canonicalTurn = null;
     let strictUsageTelemetry = false;
+    let evolutionComposition = null;
 
     try {
       const { session } = this;
@@ -1335,7 +1385,19 @@ export class WSAgentHandler {
           });
           return;
         }
-      } else {
+      }
+      if (this._evolutionCompositionFactory !== null) {
+        evolutionComposition = await this._prepareEvolutionTurn(requestId);
+      }
+      if (evolutionComposition !== null) {
+        await evolutionComposition.evolutionIngress.ingestUserPrompt({
+          content: userMessage,
+          sessionId: session.id,
+          requestId: requestId || null,
+          source: "legacy-websocket",
+        });
+      }
+      if (session.canonicalJsonlSession !== true) {
         session.messages.push({ role: "user", content: userMessage });
       }
       this._recordSessionState("run.started", {
@@ -1520,6 +1582,9 @@ export class WSAgentHandler {
           session.messages,
           loopOptions,
         )) {
+          if (evolutionComposition !== null) {
+            await evolutionComposition.evolutionIngress.ingestAgentEvent(event);
+          }
           switch (event.type) {
             case "slot-filling":
               this.interaction.emit("slot-filling", {
@@ -1710,6 +1775,9 @@ export class WSAgentHandler {
               break;
 
             case "response-complete":
+              if (evolutionComposition !== null) {
+                await evolutionComposition.evolutionIngress.complete();
+              }
               if (session.canonicalJsonlSession === true) {
                 const settled = this._settleCanonicalSuccess(
                   canonicalTurn,

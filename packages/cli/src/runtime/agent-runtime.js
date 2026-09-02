@@ -126,8 +126,18 @@ export class AgentRuntime {
       resolveAgentBundle: deps.resolveAgentBundle || null,
       openBrowser: deps.openBrowser || openBrowser,
       runTurn: deps.runTurn || null,
+      evolutionCompositionFactory:
+        deps.evolutionCompositionFactory == null
+          ? null
+          : deps.evolutionCompositionFactory,
       logger: deps.logger || logger,
     };
+    if (
+      this.deps.evolutionCompositionFactory !== null &&
+      typeof this.deps.evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
+    }
   }
 
   on(eventName, listener) {
@@ -457,6 +467,7 @@ export class AgentRuntime {
       remoteSessionRelayUrl,
       remoteSessionPeerId,
       envelopeBus,
+      evolutionCompositionFactory: this.deps.evolutionCompositionFactory,
     });
 
     server.on("connection", ({ clientId, ip }) => {
@@ -630,6 +641,7 @@ export class AgentRuntime {
           timeout: 60000,
           sessionManager,
           projectRoot: workspacePolicyCwd,
+          evolutionCompositionFactory: this.deps.evolutionCompositionFactory,
         });
         // ChainlessChainWSServer extends EventEmitter and emits "error"
         // synchronously on bind failure (in addition to rejecting start()).

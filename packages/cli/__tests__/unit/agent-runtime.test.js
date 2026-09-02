@@ -299,6 +299,7 @@ describe("AgentRuntime MCP bootstrap", () => {
       disconnectAll: vi.fn().mockResolvedValue(undefined),
     };
     const createSessionManager = vi.fn(() => ({ kind: "session-manager" }));
+    const evolutionCompositionFactory = vi.fn();
     const server = {
       on: vi.fn(),
       start: vi.fn().mockResolvedValue(undefined),
@@ -328,6 +329,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         })),
         createSessionManager,
         createServer: vi.fn(() => server),
+        evolutionCompositionFactory,
         logger,
       },
     });
@@ -348,6 +350,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         host: "127.0.0.1",
         token: "secret",
         sessionManager: { kind: "session-manager" },
+        evolutionCompositionFactory,
       }),
     );
     expect(server.start).toHaveBeenCalledTimes(1);

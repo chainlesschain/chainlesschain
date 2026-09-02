@@ -322,6 +322,14 @@ export class ChainlessChainWSServer extends EventEmitter {
       LEGACY_WS_FLOW_DEFAULTS.maxCommandOutputBytes,
     );
     this._spawnProcess = options.spawn || _deps.spawn;
+    if (
+      options.evolutionCompositionFactory != null &&
+      typeof options.evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
+    }
+    this.evolutionCompositionFactory =
+      options.evolutionCompositionFactory || null;
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;

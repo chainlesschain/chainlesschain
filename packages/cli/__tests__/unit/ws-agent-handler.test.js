@@ -42,6 +42,7 @@ import {
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import { _deps as sideEffectLedgerStoreDeps } from "../../src/lib/side-effect-ledger-store.js";
 import { executeHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
+import { sealAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
   path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
@@ -129,6 +130,101 @@ describe("WSAgentHandler", () => {
       expect(handler.session).toBe(session);
       expect(handler.interaction).toBe(interaction);
       expect(handler._processing).toBe(false);
+    });
+
+    it("persists a host-owned evolution turn before model and tool dispatch", async () => {
+      const order = [];
+      const ingress = {
+        start: vi.fn(async () => order.push("start")),
+        ingestUserPrompt: vi.fn(async () => order.push("prompt")),
+        ingestAgentEvent: vi.fn(async (event) =>
+          order.push(`event:${event.type}`),
+        ),
+        complete: vi.fn(async () => order.push("complete")),
+      };
+      let factoryContext;
+      const evolutionCompositionFactory = vi.fn(async (context) => {
+        order.push("factory");
+        factoryContext = context;
+        return sealAgentEvolutionRuntimeComposition({
+          tenantId: "tenant-test",
+          runId: context.runId,
+          evolutionIngress: ingress,
+        });
+      });
+      const loop = vi.fn(async function* () {
+        order.push("model");
+        yield {
+          type: "tool-executing",
+          tool: "read_file",
+          args: { path: "README.md" },
+        };
+        order.push("tool-dispatch");
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          result: { content: "ok" },
+        };
+        yield { type: "response-complete", content: "done" };
+      });
+      const evolved = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        agentLoop: loop,
+        evolutionCompositionFactory,
+      });
+
+      await evolved.handleMessage("inspect", "req-evolution-1");
+
+      expect(Object.isFrozen(factoryContext)).toBe(true);
+      expect(factoryContext).toEqual({
+        mode: "legacy-websocket",
+        runId: expect.stringMatching(/^ws-run-[a-f0-9]{64}$/),
+        sessionId: session.id,
+        requestId: "req-evolution-1",
+        cwd: session.projectRoot,
+      });
+      expect(factoryContext).not.toHaveProperty("content");
+      expect(factoryContext).not.toHaveProperty("apiKey");
+      expect(order).toEqual([
+        "factory",
+        "start",
+        "prompt",
+        "model",
+        "event:tool-executing",
+        "tool-dispatch",
+        "event:tool-result",
+        "event:response-complete",
+        "complete",
+      ]);
+    });
+
+    it("fails before the model when the evolution composition is invalid", async () => {
+      const loop = vi.fn(() =>
+        fakeAgentLoop([{ type: "response-complete", content: "done" }]),
+      );
+      const evolved = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        agentLoop: loop,
+        evolutionCompositionFactory: async () => ({}),
+      });
+
+      await evolved.handleMessage("blocked", "req-evolution-invalid");
+
+      expect(loop).not.toHaveBeenCalled();
+      expect(session.messages).toEqual([
+        { role: "system", content: "You are helpful." },
+      ]);
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-evolution-invalid",
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        }),
+      );
     });
 
     it("keeps one supplied host resource budget across requests", async () => {
