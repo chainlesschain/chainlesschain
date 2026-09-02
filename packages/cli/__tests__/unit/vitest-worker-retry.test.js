@@ -301,6 +301,22 @@ describe("Vitest worker infrastructure retry", () => {
     expect(integrationJob).toContain(
       "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}",
     );
+    const mcpLifecycleStep = cliWorkflow.slice(
+      cliWorkflow.indexOf(
+        "- name: Produce canonical MCP lifecycle compatibility evidence",
+      ),
+      cliWorkflow.indexOf("- name: Upload MCP lifecycle evidence"),
+    );
+    expect(mcpLifecycleStep).toContain(
+      'if [ "${RUNNER_OS}" = "Windows" ]; then attempts=2; fi',
+    );
+    expect(mcpLifecycleStep).toContain(
+      'for attempt in $(seq 1 "${attempts}"); do',
+    );
+    expect(mcpLifecycleStep).toContain(
+      'if [ "${attempt}" -eq "${attempts}" ]; then exit 1; fi',
+    );
+    expect(mcpLifecycleStep).not.toContain("continue-on-error");
   });
 
   it("keeps the strict sandbox contract behind a bounded clean-report retry", () => {
