@@ -16,6 +16,7 @@ import {
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
+import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
 
 const SECRET = "test-only-evolution-ledger-v2-key";
 const WITNESS_SECRET = "test-only-independent-witness-v1-key";
@@ -467,6 +468,24 @@ function fileAuthorityWitness(witnessId, witnessPath) {
     },
     proveAncestry,
   };
+}
+
+function productionFileAuthorityWitness(witnessId, witnessPath) {
+  return createEvolutionFileWitness({
+    filePath: witnessPath,
+    id: witnessId,
+    signer: {
+      sign: ({ message }) => ({
+        ...WITNESS_TRUST,
+        value: witnessHmac(message),
+      }),
+    },
+    trust: WITNESS_TRUST,
+    verifier: {
+      verify: ({ message, signature }) =>
+        signature.value === witnessHmac(message),
+    },
+  });
 }
 
 function witnessIdFor(authorityRoot) {
@@ -2205,7 +2224,10 @@ describe("EvolutionLedger v2", () => {
     const authorityRootDir = path.join(tempRoot, "file-fence-authority");
     const witnessId = witnessIdFor(authorityRootDir);
     const witnessPath = path.join(tempRoot, "external-witness.json");
-    const persistentWitness = fileAuthorityWitness(witnessId, witnessPath);
+    const persistentWitness = productionFileAuthorityWitness(
+      witnessId,
+      witnessPath,
+    );
     const ledger = createLedger({
       rootDir,
       authorityRootDir,
@@ -2285,7 +2307,7 @@ describe("EvolutionLedger v2", () => {
       createLedger({
         rootDir,
         authorityRootDir,
-        witness: fileAuthorityWitness(witnessId, witnessPath),
+        witness: productionFileAuthorityWitness(witnessId, witnessPath),
       }).verify(),
     ).toMatchObject({ sequence: 0, witnessDigest: fenced.witnessDigest });
     expect(reopened.read()).toEqual([]);
