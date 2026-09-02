@@ -42,6 +42,7 @@ import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SkillReleaseRegistry,
 } from "../../src/lib/evolution/skill-release-registry.js";
+import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
 
 const digest = (value) =>
   `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
@@ -513,6 +514,86 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       "authorize",
       "consume",
     ]);
+  });
+
+  it("persists a canonical procedural memory receipt after committed promotion", async () => {
+    const retained = [];
+    const writer = createStructuredMemoryPromotionReceiptWriter({
+      descriptor: {
+        tenantId: TENANT_ID,
+        issuerId: "promotion-controller:test",
+        issuerRevision: 1,
+        issuerHandlerDigest: digest("promotion-memory-writer:v1"),
+      },
+      authorityStore: {
+        async retainReceipt(receipt) {
+          retained.push(receipt);
+          return { persisted: true, receiptDigest: receipt.receiptDigest };
+        },
+      },
+      attestor: {
+        async attest({ payloadDigest }) {
+          return { keyId: "promotion-test", signature: digest(payloadDigest) };
+        },
+      },
+      clock: () => "2026-09-02T00:00:00.000Z",
+    });
+    const memoryController = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority: authorityHarness.authority,
+      memoryPromotionReceiptWriter: writer,
+    });
+    const candidate = createCandidate();
+    const request = mutationRequest({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:memory-receipt",
+      candidateId: candidate.candidateId,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+    });
+
+    const result = await memoryController.promote({
+      candidateId: candidate.candidateId,
+      authorization: await authorize(request),
+    });
+
+    expect(retained).toHaveLength(1);
+    expect(result.memoryAuthorityReceipt).toBe(retained[0]);
+    expect(result.memoryAuthorityReceipt).toMatchObject({
+      tenantId: TENANT_ID,
+      kind: "promotion",
+      decision: "accepted",
+      layer: "procedural",
+      action: "accept",
+      contentDigest: result.release.contentDigest,
+      artifactRef: result.release.releaseDigest,
+      evidenceRefs: [result.receipt.receiptDigest],
+      issuerId: "promotion-controller:test",
+    });
+    await expect(
+      writer.retainPromotion({
+        ...result,
+        receipt: { ...result.receipt, stateDigest: digest("substituted") },
+      }),
+    ).rejects.toThrow(/receipt digest is invalid/u);
+    expect(retained).toHaveLength(1);
+  });
+
+  it("rejects unbranded memory promotion writers before active mutation", () => {
+    expect(
+      () =>
+        new SkillPromotionController({
+          candidateRegistry: candidates,
+          releaseRegistry: releases,
+          authority: authorityHarness.authority,
+          memoryPromotionReceiptWriter: { retainPromotion: async () => ({}) },
+        }),
+    ).toThrow(/branded structured memory promotion writer/u);
+    expect(releases.readState("repair-unit-tests")).toMatchObject({
+      revision: 0,
+      activeReleaseDigest: null,
+    });
   });
 
   it("fails closed before mutation when evaluated promotion has no captured provider", async () => {

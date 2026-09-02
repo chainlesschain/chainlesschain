@@ -13,6 +13,7 @@ import {
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
 import { captureSkillEvaluatedPromotionProvider } from "./skill-evaluated-promotion.js";
+import { captureStructuredMemoryPromotionReceiptWriter } from "./structured-memory-promotion-receipt-writer.js";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
@@ -25,6 +26,13 @@ export const EMPTY_SKILL_ACTIVE_DIGEST = `sha256:${crypto
 
 const TRANSITION_CAPABILITIES = new WeakMap();
 const EVALUATED_CONTROL_PLANE_OPTION_KEYS = new Set([
+  "candidateRegistry",
+  "releaseRegistry",
+  "authority",
+  "evaluatedPromotionProvider",
+  "memoryPromotionReceiptWriter",
+]);
+const EVALUATED_CONTROL_PLANE_REQUIRED_KEYS = new Set([
   "candidateRegistry",
   "releaseRegistry",
   "authority",
@@ -265,12 +273,15 @@ export class SkillPromotionController {
 
   #requireEvaluatedPromotion;
 
+  #memoryPromotionReceiptWriter;
+
   constructor({
     candidateRegistry,
     releaseRegistry,
     authority,
     evaluatedPromotionProvider = null,
     requireEvaluatedPromotion = false,
+    memoryPromotionReceiptWriter = null,
   } = {}) {
     if (!candidateRegistry || typeof candidateRegistry.read !== "function") {
       throw failure(
@@ -334,6 +345,12 @@ export class SkillPromotionController {
         ? null
         : captureSkillEvaluatedPromotionProvider(evaluatedPromotionProvider);
     this.#requireEvaluatedPromotion = requireEvaluatedPromotion;
+    this.#memoryPromotionReceiptWriter =
+      memoryPromotionReceiptWriter === null
+        ? null
+        : captureStructuredMemoryPromotionReceiptWriter(
+            memoryPromotionReceiptWriter,
+          );
 
     Object.freeze(candidateRegistry);
     Object.freeze(releaseRegistry);
@@ -469,7 +486,11 @@ export class SkillPromotionController {
         "direct promotion is disabled by the evaluated-only controller policy",
       );
     }
-    return this.#promote(input);
+    const result = await this.#promote(input);
+    if (this.#memoryPromotionReceiptWriter === null) return result;
+    const memoryAuthorityReceipt =
+      await this.#memoryPromotionReceiptWriter.retainPromotion(result);
+    return deepFreeze({ ...result, memoryAuthorityReceipt });
   }
 
   async promoteEvaluated(input = {}) {
@@ -498,7 +519,15 @@ export class SkillPromotionController {
       authorization: input.authorization,
       candidateId: input.candidateId,
     });
-    return deepFreeze({ ...result, matrixBinding });
+    if (this.#memoryPromotionReceiptWriter === null) {
+      return deepFreeze({ ...result, matrixBinding });
+    }
+    const memoryAuthorityReceipt =
+      await this.#memoryPromotionReceiptWriter.retainPromotion(
+        result,
+        matrixBinding,
+      );
+    return deepFreeze({ ...result, matrixBinding, memoryAuthorityReceipt });
   }
 
   async rollback(input = {}) {
@@ -591,6 +620,7 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
     options,
     EVALUATED_CONTROL_PLANE_OPTION_KEYS,
     "evaluated promotion control plane options",
+    { required: EVALUATED_CONTROL_PLANE_REQUIRED_KEYS },
   );
   const provider = captureSkillEvaluatedPromotionProvider(
     options.evaluatedPromotionProvider,
@@ -600,6 +630,7 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
     releaseRegistry: options.releaseRegistry,
     authority: options.authority,
     evaluatedPromotionProvider: options.evaluatedPromotionProvider,
+    memoryPromotionReceiptWriter: options.memoryPromotionReceiptWriter ?? null,
     requireEvaluatedPromotion: true,
   });
   return Object.freeze({
