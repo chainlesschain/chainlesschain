@@ -3679,6 +3679,33 @@ export class EvolutionLedger {
     }
   }
 
+  #pruneStateSnapshots(currentName) {
+    let changed = false;
+    for (const entry of this.#fs.readdirSync(this.#paths.authorityRootDir, {
+      withFileTypes: true,
+    })) {
+      if (!STATE_SNAPSHOT_FILE_PATTERN.test(entry.name)) continue;
+      const snapshotPath = path.join(this.#paths.authorityRootDir, entry.name);
+      const stat = this.#fs.lstatSync(snapshotPath);
+      if (
+        !entry.isFile() ||
+        entry.isSymbolicLink() ||
+        !stat.isFile() ||
+        stat.isSymbolicLink() ||
+        stat.nlink !== 1
+      ) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+          `state snapshot retention encountered an unsafe entry: ${entry.name}`,
+        );
+      }
+      if (entry.name === currentName) continue;
+      this.#fs.unlinkSync(snapshotPath);
+      changed = true;
+    }
+    if (changed) syncDirectory(this.#fs, this.#paths.authorityRootDir);
+  }
+
   #cachedPrefix(identity, anchorNames, segmentNames, incremental) {
     const cached = incremental ? this.#stateCache : null;
     if (
@@ -4608,6 +4635,7 @@ export class EvolutionLedger {
           this.#stateCache.anchorNames,
           this.#stateCache.segmentNames,
         );
+        this.#pruneStateSnapshots(path.basename(snapshotPath));
         return deepFreeze(existing.record);
       }
 
@@ -4674,6 +4702,7 @@ export class EvolutionLedger {
         this.#stateCache.anchorNames,
         this.#stateCache.segmentNames,
       );
+      this.#pruneStateSnapshots(path.basename(snapshotPath));
       return deepFreeze(persisted.record);
     });
   }

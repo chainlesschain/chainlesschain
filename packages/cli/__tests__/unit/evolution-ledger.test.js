@@ -1955,6 +1955,20 @@ describe("EvolutionLedger v2", () => {
         ["event", "domain-event"].includes(request.purpose),
       ),
     ).toHaveLength(3);
+
+    expect(capturedError(() => replayRecovered.checkpointState()).code).toBe(
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+    );
+    fs.unlinkSync(replayPath);
+    const currentSnapshot = replayRecovered.checkpointState();
+    expect(currentSnapshot.sequence).toBe(3);
+    expect(
+      regularFiles(authorityRoot).filter((name) =>
+        name.startsWith("state-snapshot-v1-"),
+      ),
+    ).toEqual([
+      `state-snapshot-v1-${currentSnapshot.witnessDigest.slice("sha256:".length)}.json`,
+    ]);
   });
 
   it("recovers and verifies receipts for domain events after reopen", () => {
