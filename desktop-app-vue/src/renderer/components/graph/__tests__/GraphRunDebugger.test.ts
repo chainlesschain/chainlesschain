@@ -6,6 +6,7 @@ import GraphRunDebugger from "../GraphRunDebugger.vue";
 
 const REVISION = `sha256:${"a".repeat(64)}`;
 const OPERATION = `sha256:${"b".repeat(64)}`;
+const POLICY = `sha256:${"c".repeat(64)}`;
 
 function graph() {
   return {
@@ -47,6 +48,27 @@ function humanTask() {
       },
     ],
     expiresAt: "2026-08-30T00:00:00.000Z",
+  };
+}
+
+function approval() {
+  return {
+    id: "approval-1",
+    binding: {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "item-1",
+      operationDigest: OPERATION,
+      policyDigest: POLICY,
+      nonce: "approval-nonce-1",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    },
+    operation: { tool: "write_file", path: "README.md" },
+    risk: "medium",
+    reason: "Write the reviewed file",
+    requestedPermissions: [
+      { capability: "workspace.write", scope: "README.md" },
+    ],
   };
 }
 
@@ -157,5 +179,62 @@ describe("GraphRunDebugger HumanTask review", () => {
     expect(
       wrapper.find('[data-testid="graph-human-task-review"]').exists(),
     ).toBe(true);
+  });
+
+  it("reviews an App Server tool approval with the exact canonical binding", async () => {
+    let notifySettled = (_settlement: unknown) => {};
+    const decide = vi.fn().mockResolvedValue({
+      success: true,
+      result: {
+        accepted: true,
+        requestId: "approval-1",
+        actorId: "did:chainless:reviewer-2",
+      },
+    });
+    (window as any).electronAPI = {
+      codingAgent: {
+        appServerApprovalList: vi
+          .fn()
+          .mockResolvedValue({ success: true, result: [approval()] }),
+        appServerApprovalDecide: decide,
+        onAppServerApproval: vi.fn(() => vi.fn()),
+        onAppServerApprovalSettled: vi.fn((callback) => {
+          notifySettled = callback;
+          return vi.fn();
+        }),
+      },
+    };
+    const wrapper = mount(GraphRunDebugger, {
+      props: { graph: graph(), events: [] },
+    });
+    await flushPromises();
+
+    const panel = wrapper.get('[data-testid="app-server-approval-review"]');
+    expect(panel.text()).toContain("Write the reviewed file");
+    expect(panel.text()).toContain("README.md");
+    const approveForTurn = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Approve for turn");
+    await approveForTurn!.trigger("click");
+    await flushPromises();
+
+    expect(decide).toHaveBeenCalledWith({
+      requestId: "approval-1",
+      binding: approval().binding,
+      decision: {
+        kind: "acceptForTurn",
+        permissions: approval().requestedPermissions,
+      },
+    });
+    expect(decide.mock.calls[0][0]).not.toHaveProperty("actorId");
+    expect(
+      wrapper.find('[data-testid="app-server-approval-review"]').exists(),
+    ).toBe(false);
+
+    notifySettled({ requestId: "approval-1" });
+    await wrapper.vm.$nextTick();
+    expect(
+      wrapper.find('[data-testid="app-server-approval-review"]').exists(),
+    ).toBe(false);
   });
 });

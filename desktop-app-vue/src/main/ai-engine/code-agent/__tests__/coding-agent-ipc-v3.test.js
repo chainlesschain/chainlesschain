@@ -1230,6 +1230,12 @@ describe("registerCodingAgentIPCV3", () => {
       memoryDecide: vi.fn(),
       memoryDelete: vi.fn(),
       memoryReconcile: vi.fn(),
+      listPendingApprovals: vi.fn().mockReturnValue([{ id: "approval-1" }]),
+      respondApproval: vi.fn().mockReturnValue({
+        accepted: true,
+        requestId: "approval-1",
+        actorId: "did:chainless:reviewer-2",
+      }),
       listPendingHumanTasks: vi.fn().mockReturnValue([{ id: "human-task-1" }]),
       respondHumanTask: vi.fn().mockReturnValue({
         accepted: true,
@@ -1238,7 +1244,9 @@ describe("registerCodingAgentIPCV3", () => {
       }),
       on: vi.fn((event, listener) => listeners.set(event, listener)),
       off: vi.fn((event, listener) => {
-        if (listeners.get(event) === listener) listeners.delete(event);
+        if (listeners.get(event) === listener) {
+          listeners.delete(event);
+        }
       }),
     };
     service.mainWindow = {
@@ -1285,6 +1293,26 @@ describe("registerCodingAgentIPCV3", () => {
       ),
     ).toEqual({ success: true, result: { results: [] } });
     expect(
+      await ipcMainMock.handlers["coding-agent:app-server-approval-list"](),
+    ).toEqual({ success: true, result: [{ id: "approval-1" }] });
+    const approvalDecision = {
+      requestId: "approval-1",
+      binding: { nonce: "nonce-1" },
+      decision: { kind: "acceptOnce" },
+    };
+    expect(
+      await ipcMainMock.handlers["coding-agent:app-server-approval-decide"](
+        {},
+        approvalDecision,
+      ),
+    ).toMatchObject({
+      success: true,
+      result: { actorId: "did:chainless:reviewer-2" },
+    });
+    expect(appServerPilot.respondApproval).toHaveBeenCalledWith(
+      approvalDecision,
+    );
+    expect(
       await ipcMainMock.handlers["coding-agent:app-server-human-task-list"](),
     ).toEqual({ success: true, result: [{ id: "human-task-1" }] });
     const decision = {
@@ -1302,6 +1330,16 @@ describe("registerCodingAgentIPCV3", () => {
     });
     expect(appServerPilot.respondHumanTask).toHaveBeenCalledWith(decision);
 
+    listeners.get("approval-requested")({ id: "approval-2" });
+    expect(service.mainWindow.webContents.send).toHaveBeenCalledWith(
+      "coding-agent:app-server-approval-requested",
+      { id: "approval-2" },
+    );
+    listeners.get("approval-settled")({ requestId: "approval-2" });
+    expect(service.mainWindow.webContents.send).toHaveBeenCalledWith(
+      "coding-agent:app-server-approval-settled",
+      { requestId: "approval-2" },
+    );
     listeners.get("human-task-requested")({ id: "human-task-2" });
     expect(service.mainWindow.webContents.send).toHaveBeenCalledWith(
       "coding-agent:app-server-human-task-requested",
@@ -1313,6 +1351,14 @@ describe("registerCodingAgentIPCV3", () => {
       { humanTaskId: "human-task-2" },
     );
     unregister();
+    expect(appServerPilot.off).toHaveBeenCalledWith(
+      "approval-requested",
+      expect.any(Function),
+    );
+    expect(appServerPilot.off).toHaveBeenCalledWith(
+      "approval-settled",
+      expect.any(Function),
+    );
     expect(appServerPilot.off).toHaveBeenCalledWith(
       "human-task-requested",
       expect.any(Function),

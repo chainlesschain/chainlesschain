@@ -25,6 +25,78 @@
     </header>
 
     <section
+      v-if="pendingApprovals.length"
+      class="human-task-review"
+      data-testid="app-server-approval-review"
+    >
+      <div class="human-task-heading">
+        <div>
+          <strong>Tool approval required</strong>
+          <p>
+            The decision is bound to the exact turn, operation, policy and
+            expiry shown below.
+          </p>
+        </div>
+        <span>{{ pendingApprovals.length }} pending</span>
+      </div>
+      <article
+        v-for="approval in pendingApprovals"
+        :key="approval.id"
+        class="human-task-card"
+      >
+        <div class="human-task-metadata">
+          <strong>{{ approval.reason }}</strong>
+          <span>{{ approval.risk }} risk</span>
+          <span>{{ approval.binding?.threadId }}</span>
+        </div>
+        <pre>{{ formatHumanOperation(approval.operation) }}</pre>
+        <dl>
+          <div>
+            <dt>Operation</dt>
+            <dd>{{ approval.binding?.operationDigest }}</dd>
+          </div>
+          <div>
+            <dt>Policy</dt>
+            <dd>{{ approval.binding?.policyDigest }}</dd>
+          </div>
+          <div>
+            <dt>Expires</dt>
+            <dd>{{ approval.binding?.expiresAt || "--" }}</dd>
+          </div>
+        </dl>
+        <div class="human-task-actions">
+          <button
+            type="button"
+            :disabled="settlingApprovalId === approval.id"
+            @click="settleApproval(approval, 'acceptOnce')"
+          >
+            Approve once
+          </button>
+          <button
+            v-if="approval.requestedPermissions?.length"
+            type="button"
+            class="secondary"
+            :disabled="settlingApprovalId === approval.id"
+            @click="settleApproval(approval, 'acceptForTurn')"
+          >
+            Approve for turn
+          </button>
+          <button
+            type="button"
+            class="danger"
+            :disabled="settlingApprovalId === approval.id"
+            @click="settleApproval(approval, 'decline')"
+          >
+            Decline
+          </button>
+        </div>
+      </article>
+      <p v-if="approvalError" class="human-task-error" role="alert">
+        {{ approvalError }}
+      </p>
+    </section>
+
+    <section
       v-if="pendingHumanTasks.length"
       class="human-task-review"
       data-testid="graph-human-task-review"
@@ -495,11 +567,16 @@ const views = [
 const activeView = ref("topology");
 const replayIndex = ref(0);
 const selectedNodeId = ref("");
+const pendingApprovals = ref([]);
+const settlingApprovalId = ref("");
+const approvalError = ref("");
 const humanTasks = ref([]);
 const settlingHumanTaskId = ref("");
 const humanTaskError = ref("");
 let unsubscribeHumanTasks = null;
 let unsubscribeHumanTaskSettlements = null;
+let unsubscribeApprovals = null;
+let unsubscribeApprovalSettlements = null;
 
 const frames = computed(() => buildReplayFrames(props.graph, props.events));
 watch(
@@ -690,6 +767,20 @@ function upsertHumanTask(task) {
   }
 }
 
+function upsertApproval(approval) {
+  if (!approval || typeof approval !== "object" || !approval.id) {
+    return;
+  }
+  const index = pendingApprovals.value.findIndex(
+    (candidate) => candidate.id === approval.id,
+  );
+  if (index >= 0) {
+    pendingApprovals.value.splice(index, 1, approval);
+  } else {
+    pendingApprovals.value.push(approval);
+  }
+}
+
 function acceptedDecisionCount(task) {
   return (task?.decisions || []).filter((entry) =>
     ["acceptOnce", "acceptForTurn", "acceptForSession"].includes(
@@ -742,8 +833,63 @@ async function settleHumanTask(task, kind) {
   }
 }
 
+async function settleApproval(approval, kind) {
+  const api = window.electronAPI?.codingAgent;
+  if (typeof api?.appServerApprovalDecide !== "function") {
+    approvalError.value =
+      "Desktop App Server approval authority is unavailable.";
+    return;
+  }
+  settlingApprovalId.value = approval.id;
+  approvalError.value = "";
+  try {
+    const decision = ["acceptForTurn", "acceptForSession"].includes(kind)
+      ? { kind, permissions: approval.requestedPermissions || [] }
+      : kind === "acceptOnce"
+        ? { kind }
+        : { kind, reason: `Desktop reviewer selected ${kind}` };
+    const result = await api.appServerApprovalDecide({
+      requestId: approval.id,
+      binding: approval.binding,
+      decision,
+    });
+    if (!result?.success) {
+      throw new Error(result?.error || "App Server approval was rejected");
+    }
+    pendingApprovals.value = pendingApprovals.value.filter(
+      (candidate) => candidate.id !== approval.id,
+    );
+  } catch (error) {
+    approvalError.value = error?.message || String(error);
+  } finally {
+    settlingApprovalId.value = "";
+  }
+}
+
 onMounted(async () => {
   const api = window.electronAPI?.codingAgent;
+  if (typeof api?.onAppServerApproval === "function") {
+    unsubscribeApprovals = api.onAppServerApproval(upsertApproval);
+  }
+  if (typeof api?.onAppServerApprovalSettled === "function") {
+    unsubscribeApprovalSettlements = api.onAppServerApprovalSettled(
+      (settlement) => {
+        pendingApprovals.value = pendingApprovals.value.filter(
+          (approval) => approval.id !== settlement?.requestId,
+        );
+      },
+    );
+  }
+  if (typeof api?.appServerApprovalList === "function") {
+    try {
+      const result = await api.appServerApprovalList();
+      if (result?.success && Array.isArray(result.result)) {
+        result.result.forEach(upsertApproval);
+      }
+    } catch {
+      // A disabled pilot simply leaves the approval panel hidden.
+    }
+  }
   if (typeof api?.onAppServerHumanTask === "function") {
     unsubscribeHumanTasks = api.onAppServerHumanTask(upsertHumanTask);
   }
@@ -769,6 +915,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  unsubscribeApprovals?.();
+  unsubscribeApprovals = null;
+  unsubscribeApprovalSettlements?.();
+  unsubscribeApprovalSettlements = null;
   unsubscribeHumanTasks?.();
   unsubscribeHumanTasks = null;
   unsubscribeHumanTaskSettlements?.();

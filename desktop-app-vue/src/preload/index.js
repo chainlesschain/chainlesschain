@@ -1808,6 +1808,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:app-server-memory-delete", payload),
     appServerMemoryReconcile: (payload) =>
       ipcRenderer.invoke("coding-agent:app-server-memory-reconcile", payload),
+    appServerApprovalList: () =>
+      ipcRenderer.invoke("coding-agent:app-server-approval-list"),
+    appServerApprovalDecide: (payload) =>
+      ipcRenderer.invoke("coding-agent:app-server-approval-decide", payload),
+    onAppServerApproval: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:app-server-approval-requested", handler);
+      return () =>
+        ipcRenderer.removeListener(
+          "coding-agent:app-server-approval-requested",
+          handler,
+        );
+    },
+    onAppServerApprovalSettled: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:app-server-approval-settled", handler);
+      return () =>
+        ipcRenderer.removeListener(
+          "coding-agent:app-server-approval-settled",
+          handler,
+        );
+    },
     appServerHumanTaskList: () =>
       ipcRenderer.invoke("coding-agent:app-server-human-task-list"),
     appServerHumanTaskDecide: (payload) =>

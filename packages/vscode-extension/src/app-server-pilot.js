@@ -67,9 +67,35 @@ class IdeAppServerPilot extends EventEmitter {
       requestTimeoutMs: this.options.requestTimeoutMs ?? 120_000,
       clientName: "chainlesschain-vscode-app-server-pilot",
       clientVersion: this.options.clientVersion || "1",
+      onServerRequest: (request) => this._handleServerRequest(request),
     });
     this._attach(this.client);
     return this.client;
+  }
+
+  async _handleServerRequest(request) {
+    if (request?.method !== "approval/decide") {
+      return {
+        kind: "decline",
+        reason: "VS Code App Server pilot has no handler for this request",
+      };
+    }
+    if (typeof this.options.reviewApproval !== "function") {
+      return {
+        kind: "decline",
+        reason: "VS Code App Server approval UI is unavailable",
+      };
+    }
+    try {
+      return await this.options.reviewApproval(request.params?.request);
+    } catch (error) {
+      return {
+        kind: "decline",
+        reason: `VS Code App Server approval failed: ${
+          error?.message || String(error)
+        }`.slice(0, 2_048),
+      };
+    }
   }
 
   _attach(client) {
