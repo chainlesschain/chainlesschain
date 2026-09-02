@@ -8,6 +8,7 @@ import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 import { createStructuredMemoryAgentControlPlane } from "../../src/lib/evolution/structured-memory-agent-control-plane.js";
 import { StructuredMemoryAuthorityLedgerAdapter } from "../../src/lib/evolution/structured-memory-authority-ledger-adapter.js";
@@ -34,10 +35,64 @@ function digest(value) {
     .digest("hex")}`;
 }
 
-export function createStructuredMemoryAgentControlPlaneFixture({ tenantId }) {
-  const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-memory-agent-root-"),
-  );
+function durableFilesystem() {
+  const directories = new Set();
+  let nextDescriptor = -50_000;
+  return {
+    ...fs,
+    constants: fs.constants,
+    realpathSync: fs.realpathSync,
+    closeSync(descriptor) {
+      if (directories.delete(descriptor)) return;
+      return fs.closeSync(descriptor);
+    },
+    fsyncSync(descriptor) {
+      if (directories.has(descriptor)) return;
+      try {
+        return fs.fsyncSync(descriptor);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.fstatSync(descriptor).isDirectory()
+        ) {
+          return;
+        }
+        throw error;
+      }
+    },
+    openSync(target, flags, mode) {
+      try {
+        return fs.openSync(target, flags, mode);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          flags === "r" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.statSync(target).isDirectory()
+        ) {
+          const descriptor = nextDescriptor;
+          nextDescriptor -= 1;
+          directories.add(descriptor);
+          return descriptor;
+        }
+        throw error;
+      }
+    },
+  };
+}
+
+export function createStructuredMemoryAgentControlPlaneFixture({
+  tenantId,
+  rootDir = null,
+  durableLedger = false,
+}) {
+  const root = rootDir
+    ? path.resolve(rootDir)
+    : fs.mkdtempSync(
+        path.join(fs.realpathSync(os.tmpdir()), "cc-memory-agent-root-"),
+      );
+  fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   const now = Date.parse("2026-09-02T00:00:00.000Z");
   const descriptor = Object.freeze({
     tenantId,
@@ -108,8 +163,15 @@ export function createStructuredMemoryAgentControlPlaneFixture({ tenantId }) {
       },
     },
   });
-  const ledgerState = { events: [], failAfterType: null };
-  const ledger = {
+  const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
+    purpose: descriptor.purpose,
+  });
+  const ledgerState = {
+    events: [],
+    failBeforeType: null,
+    failAfterType: null,
+  };
+  const inMemoryLedger = {
     read: () => structuredClone(ledgerState.events),
     verify: () => ({
       epoch: "epoch-memory-agent-root",
@@ -118,6 +180,10 @@ export function createStructuredMemoryAgentControlPlaneFixture({ tenantId }) {
       headDigest: ledgerState.events.at(-1)?.eventDigest ?? null,
     }),
     appendDomainEvent(input, expected) {
+      if (ledgerState.failBeforeType === input.type) {
+        ledgerState.failBeforeType = null;
+        throw new Error("simulated durable append pre-commit failure");
+      }
       const head = ledgerState.events.at(-1)?.eventDigest ?? null;
       if (
         expected.expectedSequence !== ledgerState.events.length ||
@@ -147,9 +213,67 @@ export function createStructuredMemoryAgentControlPlaneFixture({ tenantId }) {
       };
     },
   };
-  const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
-    purpose: descriptor.purpose,
-  });
+  let ledger = inMemoryLedger;
+  if (durableLedger) {
+    const witnessDirectory = path.join(root, "witness");
+    fs.mkdirSync(witnessDirectory, { recursive: true, mode: 0o700 });
+    const signingAuthority = (label, signingSecret) => {
+      const trust = Object.freeze({
+        algorithm: "hmac-sha256",
+        keyId: `key://tests/memory-agent-root/${label}`,
+        trustPolicyDigest: digest(`${label}-policy`),
+      });
+      const value = (message) =>
+        createHmac("sha256", signingSecret).update(message).digest("base64url");
+      return {
+        trust,
+        signer: {
+          sign: ({ message }) => ({ ...trust, value: value(message) }),
+        },
+        verifier: {
+          verify: ({ message, signature }) =>
+            signature.algorithm === trust.algorithm &&
+            signature.keyId === trust.keyId &&
+            signature.trustPolicyDigest === trust.trustPolicyDigest &&
+            signature.value === value(message),
+        },
+      };
+    };
+    const backend = createEvolutionLedgerFileBackend({
+      rootDir: path.join(root, "ledger-events"),
+      authorityRootDir: path.join(root, "ledger-authority"),
+      witnessFilePath: path.join(witnessDirectory, "checkpoint.json"),
+      witnessId: `memory-agent-root-${tenantId}`,
+      ledgerAuthority: signingAuthority(
+        "ledger",
+        "test-only-memory-agent-root-ledger",
+      ),
+      witnessAuthority: signingAuthority(
+        "witness",
+        "test-only-memory-agent-root-witness",
+      ),
+      artifactResolver: resolver,
+      fsImpl: durableFilesystem(),
+      secure: false,
+      clock: () => now,
+    });
+    ledger = {
+      read: backend.ledger.read.bind(backend.ledger),
+      verify: backend.ledger.verify.bind(backend.ledger),
+      appendDomainEvent(input, expected) {
+        if (ledgerState.failBeforeType === input.type) {
+          ledgerState.failBeforeType = null;
+          throw new Error("simulated durable append pre-commit failure");
+        }
+        const receipt = backend.ledger.appendDomainEvent(input, expected);
+        if (ledgerState.failAfterType === input.type) {
+          ledgerState.failAfterType = null;
+          throw new Error("simulated durable append response loss");
+        }
+        return receipt;
+      },
+    };
+  }
   const actor = (role, actorType = "agent") =>
     createStructuredMemoryAuthority({
       tenantId,

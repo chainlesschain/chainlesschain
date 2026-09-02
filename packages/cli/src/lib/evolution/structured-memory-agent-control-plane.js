@@ -77,6 +77,72 @@ export function createStructuredMemoryAgentControlPlane({
     proposerAuthority,
     governorAuthority,
   });
+  const appendPromotionMemory = async (authorityReceipt) => {
+    if (
+      authorityReceipt?.kind !== "promotion" ||
+      authorityReceipt.tenantId !== tenantId ||
+      authorityReceipt.layer !== "procedural" ||
+      authorityReceipt.action !== "accept" ||
+      authorityReceipt.decision !== "accepted"
+    ) {
+      throw new Error("invalid durable Memory promotion authority receipt");
+    }
+    const existing = memory.projection().memories[authorityReceipt.memoryId];
+    if (existing) {
+      if (
+        existing.layer !== "procedural" ||
+        existing.status !== "active" ||
+        existing.contentDigest !== authorityReceipt.contentDigest ||
+        existing.artifactRef !== authorityReceipt.artifactRef ||
+        existing.receipts?.promotion !== authorityReceipt.receiptDigest
+      ) {
+        throw new Error(
+          "persisted procedural memory conflicts with the promotion receipt",
+        );
+      }
+      return Object.freeze({
+        status: "recovered",
+        memory: existing,
+        projection: memory.projection(),
+      });
+    }
+    return memory.append({
+      eventId: `promotion-${authorityReceipt.receiptDigest.slice("sha256:".length)}`,
+      memoryId: authorityReceipt.memoryId,
+      layer: "procedural",
+      action: "accept",
+      authority: promotionActor,
+      automatic: true,
+      contentDigest: authorityReceipt.contentDigest,
+      artifactRef: authorityReceipt.artifactRef,
+      evidenceRefs: authorityReceipt.evidenceRefs,
+      supersedes: [],
+      receiptRefs: { promotion: authorityReceipt.receiptDigest },
+      timestamp: authorityReceipt.issuedAt,
+      metadata: {
+        promotionAuthorityReceiptDigest: authorityReceipt.receiptDigest,
+      },
+    });
+  };
+  const reconcilePromotionMemories = async () => {
+    const receipts = await authorityAdapter.listReceipts("promotion");
+    const reconciled = [];
+    for (const receipt of receipts) {
+      const transition = await appendPromotionMemory(receipt);
+      reconciled.push(
+        Object.freeze({
+          receiptDigest: receipt.receiptDigest,
+          status: transition.status ?? "persisted",
+        }),
+      );
+    }
+    return Object.freeze({
+      status: "converged",
+      receiptCount: receipts.length,
+      reconciled: Object.freeze(reconciled),
+      projection: memory.projection(),
+    });
+  };
   const controlPlane = Object.freeze({
     schema: STRUCTURED_MEMORY_AGENT_CONTROL_PLANE_SCHEMA,
     tenantId,
@@ -85,6 +151,7 @@ export function createStructuredMemoryAgentControlPlane({
     semantic,
     promotionReceiptWriter: promotion,
     policyReceiptWriter: policy,
+    reconcilePromotionMemories: Object.freeze(reconcilePromotionMemories),
     createEvaluatedPromotionControlPlane(options = {}) {
       if (
         !options ||
@@ -104,11 +171,7 @@ export function createStructuredMemoryAgentControlPlane({
         const authorityReceipt = result?.memoryAuthorityReceipt;
         const release = result?.release;
         if (
-          authorityReceipt?.kind !== "promotion" ||
-          authorityReceipt.tenantId !== tenantId ||
-          authorityReceipt.layer !== "procedural" ||
-          authorityReceipt.action !== "accept" ||
-          authorityReceipt.decision !== "accepted" ||
+          !authorityReceipt ||
           authorityReceipt.contentDigest !== release?.contentDigest ||
           authorityReceipt.artifactRef !== release?.releaseDigest
         ) {
@@ -116,45 +179,7 @@ export function createStructuredMemoryAgentControlPlane({
             "evaluated promotion result lacks its durable Memory authority receipt",
           );
         }
-        const existing =
-          memory.projection().memories[authorityReceipt.memoryId];
-        if (existing) {
-          if (
-            existing.layer !== "procedural" ||
-            existing.status !== "active" ||
-            existing.contentDigest !== authorityReceipt.contentDigest ||
-            existing.artifactRef !== authorityReceipt.artifactRef ||
-            existing.receipts?.promotion !== authorityReceipt.receiptDigest
-          ) {
-            throw new Error(
-              "persisted procedural memory conflicts with the promotion receipt",
-            );
-          }
-          return Object.freeze({
-            status: "recovered",
-            memory: existing,
-            projection: memory.projection(),
-          });
-        }
-        return memory.append({
-          eventId: `promotion-${authorityReceipt.receiptDigest.slice("sha256:".length)}`,
-          memoryId: authorityReceipt.memoryId,
-          layer: "procedural",
-          action: "accept",
-          authority: promotionActor,
-          automatic: true,
-          contentDigest: authorityReceipt.contentDigest,
-          artifactRef: authorityReceipt.artifactRef,
-          evidenceRefs: authorityReceipt.evidenceRefs,
-          supersedes: [],
-          receiptRefs: { promotion: authorityReceipt.receiptDigest },
-          timestamp: authorityReceipt.issuedAt,
-          metadata: {
-            releaseReceiptDigest: result.receipt?.receiptDigest,
-            matrixReceiptDigest:
-              result.matrixBinding?.matrixReceiptDigest ?? null,
-          },
-        });
+        return appendPromotionMemory(authorityReceipt);
       };
       return Object.freeze({
         ...evaluated,

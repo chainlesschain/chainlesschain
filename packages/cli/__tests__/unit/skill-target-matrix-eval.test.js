@@ -2913,7 +2913,7 @@ describe("Skill target matrix evaluation foundation", () => {
       evaluatedPromotionProvider: provider,
       releaseRegistry,
     });
-    memoryRoot.ledgerState.failAfterType = "memory.event.persisted";
+    memoryRoot.ledgerState.failBeforeType = "memory.event.persisted";
     let pendingError;
     try {
       await evaluatedOnly.promoteEvaluated({
@@ -2942,6 +2942,22 @@ describe("Skill target matrix evaluation foundation", () => {
       },
     });
     const committedPromotion = pendingError.promotionResult;
+    expect(memoryRoot.controlPlane.memory.projection().sequence).toBe(0);
+    const reopenedMemoryRoot = memoryRoot.open();
+    const reconciliation =
+      await reopenedMemoryRoot.reconcilePromotionMemories();
+    expect(reconciliation).toMatchObject({
+      status: "converged",
+      receiptCount: 1,
+      reconciled: [
+        {
+          receiptDigest:
+            committedPromotion.memoryAuthorityReceipt.receiptDigest,
+          status: "persisted",
+        },
+      ],
+      projection: { sequence: 1 },
+    });
     const memoryTransition =
       await evaluatedOnly.recordPromotionMemory(committedPromotion);
     const promoted = { ...committedPromotion, memoryTransition };
@@ -2989,7 +3005,6 @@ describe("Skill target matrix evaluation foundation", () => {
       receipts: { promotion: promoted.memoryAuthorityReceipt.receiptDigest },
       status: "active",
     });
-    const reopenedMemoryRoot = memoryRoot.open();
     expect(
       reopenedMemoryRoot.memory.projection().memories[
         promoted.memoryAuthorityReceipt.memoryId
