@@ -31,7 +31,13 @@ import {
   verifySkillMutationNonceClaim,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
-import { SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA } from "./skill-release-registry.js";
+import {
+  SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+  verifySkillReleaseState,
+  verifySkillReleaseStateMigrationPlan,
+} from "./skill-release-registry.js";
 
 export const EVOLUTION_LEDGER_PORTS_INVALID_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_INVALID";
@@ -61,27 +67,33 @@ const PROJECTION_PREPARE_RECEIPT_DOMAIN =
   "chainlesschain.evolution-ledger-release-prepare-projection/v1\0";
 const PROJECTION_FINALIZE_RECEIPT_DOMAIN =
   "chainlesschain.evolution-ledger-release-finalize-projection/v1\0";
+const PROJECTION_MIGRATION_RECEIPT_DOMAIN =
+  "chainlesschain.evolution-ledger-release-migration-projection/v1\0";
 const EVENT_ID_DOMAINS = Object.freeze({
   audit: "chainlesschain.evolution-ledger-event-id/mutation.audit/v1\0",
   finalize: "chainlesschain.evolution-ledger-event-id/release.finalize/v1\0",
+  migration: "chainlesschain.evolution-ledger-event-id/release.migration/v1\0",
   nonce: "chainlesschain.evolution-ledger-event-id/mutation.nonce/v1\0",
   prepare: "chainlesschain.evolution-ledger-event-id/release.prepare/v1\0",
 });
 const EVENT_PREFIXES = Object.freeze({
   audit: "mutation.audit",
   finalize: "release.finalize",
+  migration: "release.migration",
   nonce: "mutation.nonce",
   prepare: "release.prepare",
 });
 const EVENT_TYPES = Object.freeze({
   audit: "skill.mutation.audit",
   finalize: "skill.release.finalize",
+  migration: "skill.release.state-migration",
   nonce: "skill.mutation.nonce",
   prepare: "skill.release.prepare",
 });
 const ARTIFACT_TYPES = Object.freeze({
   audit: "skill-mutation-audit",
   finalize: "skill-release-finalization",
+  migration: "skill-release-state-migration",
   nonce: "skill-mutation-nonce-claim",
   prepare: "skill-release-transition-intent",
 });
@@ -215,6 +227,17 @@ const FINALIZE_KEYS = new Set([
   "skillName",
   "stateDigest",
   "transactionId",
+]);
+const STATE_MIGRATION_KEYS = new Set(["plan", "receipt", "schema", "state"]);
+const STATE_MIGRATION_RECEIPT_KEYS = new Set([
+  "authenticated",
+  "authorityId",
+  "durable",
+  "handlerArtifactDigest",
+  "receiptDigest",
+  "schema",
+  "stateMigrationDigest",
+  "trust",
 ]);
 const RECEIPT_DIGEST_KEYS = new Set([
   "actor",
@@ -995,6 +1018,86 @@ function normalizeFinalize(input) {
   return normalized;
 }
 
+function normalizeStateMigration(input) {
+  const value = frozenCanonicalClone(input);
+  assertAllExactRecord(
+    value,
+    STATE_MIGRATION_KEYS,
+    "release state ledger migration",
+  );
+  if (value.schema !== SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA) {
+    throw portsError(
+      EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+      "release state ledger migration schema is unsupported",
+    );
+  }
+  let plan;
+  let state;
+  try {
+    plan = verifySkillReleaseStateMigrationPlan(value.plan);
+    state = verifySkillReleaseState(value.state);
+  } catch (cause) {
+    throw portsError(
+      EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+      "release state ledger migration contains an invalid plan or state",
+      { cause },
+    );
+  }
+  assertAllExactRecord(
+    value.receipt,
+    STATE_MIGRATION_RECEIPT_KEYS,
+    "release state migration receipt",
+  );
+  const receipt = deepFreeze({
+    authenticated: value.receipt.authenticated,
+    authorityId: identifier(
+      value.receipt.authorityId,
+      "state migration receipt authorityId",
+    ),
+    durable: value.receipt.durable,
+    handlerArtifactDigest: digest(
+      value.receipt.handlerArtifactDigest,
+      "state migration receipt handlerArtifactDigest",
+    ),
+    receiptDigest: digest(
+      value.receipt.receiptDigest,
+      "state migration receipt receiptDigest",
+    ),
+    schema: value.receipt.schema,
+    stateMigrationDigest: digest(
+      value.receipt.stateMigrationDigest,
+      "state migration receipt stateMigrationDigest",
+    ),
+    trust: value.receipt.trust,
+  });
+  if (
+    receipt.schema !== SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA ||
+    receipt.authenticated !== true ||
+    receipt.durable !== true ||
+    receipt.trust !== "trusted" ||
+    receipt.stateMigrationDigest !== plan.stateMigrationDigest ||
+    state.transactionId !== plan.stateMigrationDigest ||
+    state.tenantId !== plan.tenantId ||
+    state.skillName !== plan.skillName ||
+    state.activeReleaseDigest !== plan.activeReleaseDigest ||
+    state.lastKnownGoodReleaseDigest !== plan.lastKnownGoodReleaseDigest ||
+    state.dependencyLockDigest !== plan.dependencyLockDigest ||
+    state.revision !== plan.legacyRevision ||
+    state.fence !== plan.legacyFence
+  ) {
+    throw portsError(
+      EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+      "release state ledger migration bindings are invalid",
+    );
+  }
+  return deepFreeze({
+    plan,
+    receipt,
+    schema: SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
+    state,
+  });
+}
+
 function logicalFinalizeDigest(value) {
   return domainDigest(RELEASE_FINALIZATION_DOMAIN, value);
 }
@@ -1011,12 +1114,13 @@ function projectionReceiptDigest(kind, projection) {
   const core = { ...projection };
   delete core.current;
   delete core.receiptDigest;
-  return domainDigest(
+  const domain =
     kind === "prepare"
       ? PROJECTION_PREPARE_RECEIPT_DOMAIN
-      : PROJECTION_FINALIZE_RECEIPT_DOMAIN,
-    core,
-  );
+      : kind === "migration"
+        ? PROJECTION_MIGRATION_RECEIPT_DOMAIN
+        : PROJECTION_FINALIZE_RECEIPT_DOMAIN;
+  return domainDigest(domain, core);
 }
 
 class EvolutionLedgerDomainPorts {
@@ -1845,6 +1949,80 @@ class EvolutionLedgerDomainPorts {
     });
   }
 
+  #migrationFromEvent(event, record, expected = null) {
+    const migration = normalizeStateMigration(record.value);
+    const eventId = deterministicEventId("migration", {
+      transactionId: migration.plan.stateMigrationDigest,
+    });
+    const sourceRefs = this.#assertDomainEvent(
+      event,
+      "migration",
+      eventId,
+      migration.plan.stateMigrationDigest,
+    );
+    if (
+      sourceRefs.length !== 0 ||
+      event.decision !== "committed" ||
+      event.correlationId !== migration.plan.stateMigrationDigest ||
+      event.tenantId !== migration.plan.tenantId ||
+      event.skillName !== migration.plan.skillName ||
+      record.audience !== this.#audience
+    ) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release state migration event differs from its authenticated plan",
+      );
+    }
+    if (
+      expected !== null &&
+      (expected.transactionId !== migration.plan.stateMigrationDigest ||
+        (expected.stateDigest !== undefined &&
+          expected.stateDigest !== migration.state.stateDigest))
+    ) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
+        "release state migration collides with another state baseline",
+      );
+    }
+    return { event, migration, record };
+  }
+
+  #migrationFromSnapshot(snapshot, event, expected = null) {
+    const record = this.#snapshotSubject(
+      snapshot,
+      event,
+      ARTIFACT_TYPES.migration,
+    );
+    return this.#migrationFromEvent(event, record, expected);
+  }
+
+  #migrationProjection(migrated, current) {
+    const { plan, receipt, state } = migrated.migration;
+    const core = {
+      authenticated: true,
+      authorityReceiptDigest: state.authorityReceiptDigest,
+      current,
+      durable: true,
+      epoch: migrated.event.epoch,
+      headDigest: migrated.event.eventDigest,
+      intentDigest: plan.stateMigrationDigest,
+      ledgerId: migrated.event.ledgerId,
+      pointerDigest: state.stateDigest,
+      prepareReceiptDigest: receipt.receiptDigest,
+      revision: state.revision,
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      sequence: migrated.event.sequence,
+      skillName: state.skillName,
+      stateDigest: state.stateDigest,
+      status: "committed",
+      transactionId: state.transactionId,
+    };
+    return deepFreeze({
+      ...core,
+      receiptDigest: projectionReceiptDigest("migration", core),
+    });
+  }
+
   #finalizeFromEvent(snapshot, event, prepareCache = new Map()) {
     const record = this.#snapshotSubject(
       snapshot,
@@ -1917,6 +2095,30 @@ class EvolutionLedgerDomainPorts {
   #lineages(snapshot, prepareCache = new Map()) {
     const groups = new Map();
     const byTransaction = new Map();
+    const migrations = new Map();
+    const migrationsByTransaction = new Map();
+    for (const event of snapshot.events) {
+      if (
+        event.schema !== EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA ||
+        event.type !== EVENT_TYPES.migration
+      ) {
+        continue;
+      }
+      const migrated = this.#migrationFromSnapshot(snapshot, event);
+      const transactionId = migrated.migration.plan.stateMigrationDigest;
+      const groupKey = `${migrated.migration.plan.tenantId}\0${migrated.migration.plan.skillName}`;
+      if (
+        migrations.has(groupKey) ||
+        migrationsByTransaction.has(transactionId)
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "release state migration baseline appears more than once",
+        );
+      }
+      migrations.set(groupKey, migrated);
+      migrationsByTransaction.set(transactionId, migrated);
+    }
     for (const event of snapshot.events) {
       if (
         event.schema !== EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA ||
@@ -1943,14 +2145,24 @@ class EvolutionLedgerDomainPorts {
           left.finalization.revision - right.finalization.revision ||
           left.event.sequence - right.event.sequence,
       );
-      let previous = null;
+      const first = group[0];
+      const groupKey = `${first.tenantId}\0${first.finalization.skillName}`;
+      const baseline = migrations.get(groupKey) || null;
+      let previous = baseline;
       for (let index = 0; index < group.length; index += 1) {
         const entry = group[index];
+        const previousRevision =
+          previous?.finalization?.revision ??
+          previous?.migration?.state.revision ??
+          0;
+        const previousStateDigest =
+          previous?.finalization?.stateDigest ??
+          previous?.migration?.state.stateDigest ??
+          null;
         if (
-          entry.finalization.revision !== index + 1 ||
-          entry.prepared.intent.expectedRevision !== index ||
-          entry.prepared.intent.previousStateDigest !==
-            (previous?.finalization.stateDigest ?? null) ||
+          entry.finalization.revision !== previousRevision + 1 ||
+          entry.prepared.intent.expectedRevision !== previousRevision ||
+          entry.prepared.intent.previousStateDigest !== previousStateDigest ||
           (previous !== null && entry.event.sequence <= previous.event.sequence)
         ) {
           throw portsError(
@@ -1961,7 +2173,7 @@ class EvolutionLedgerDomainPorts {
         previous = entry;
       }
     }
-    return { byTransaction, groups };
+    return { byTransaction, groups, migrations, migrationsByTransaction };
   }
 
   #committedProjection(finalized, lineages) {
@@ -2038,11 +2250,21 @@ class EvolutionLedgerDomainPorts {
       return { existing, lineages, prepared };
     }
     const groupKey = `${prepared.intent.mutationRequest.tenantId}\0${finalization.skillName}`;
-    const current = lineages.groups.get(groupKey)?.at(-1) || null;
+    const current =
+      lineages.groups.get(groupKey)?.at(-1) ||
+      lineages.migrations.get(groupKey) ||
+      null;
+    const currentRevision =
+      current?.finalization?.revision ??
+      current?.migration?.state.revision ??
+      0;
+    const currentStateDigest =
+      current?.finalization?.stateDigest ??
+      current?.migration?.state.stateDigest ??
+      null;
     if (
-      finalization.revision !== (current?.finalization.revision ?? 0) + 1 ||
-      prepared.intent.previousStateDigest !==
-        (current?.finalization.stateDigest ?? null)
+      finalization.revision !== currentRevision + 1 ||
+      prepared.intent.previousStateDigest !== currentStateDigest
     ) {
       throw portsError(
         EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
@@ -2050,6 +2272,99 @@ class EvolutionLedgerDomainPorts {
       );
     }
     return { existing: null, lineages, prepared };
+  }
+
+  migrate(input) {
+    const migration = normalizeStateMigration(input);
+    const transactionId = migration.plan.stateMigrationDigest;
+    const eventId = deterministicEventId("migration", { transactionId });
+    let snapshot = this.#snapshot();
+    for (let attempt = 0; attempt < MAX_FINALIZE_RETRIES; attempt += 1) {
+      const existingEvent = snapshot.byEventId.get(eventId);
+      const lineages = this.#lineages(snapshot);
+      const groupKey = `${migration.plan.tenantId}\0${migration.plan.skillName}`;
+      const existingGroupMigration = lineages.migrations.get(groupKey) || null;
+      const existingFinalizations = lineages.groups.get(groupKey) || [];
+      if (existingEvent) {
+        const existing = this.#migrationFromSnapshot(snapshot, existingEvent, {
+          stateDigest: migration.state.stateDigest,
+          transactionId,
+        });
+        if (
+          existing.migration.plan.stateMigrationDigest !== transactionId ||
+          canonicalJson(existing.migration) !== canonicalJson(migration)
+        ) {
+          throw portsError(
+            EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
+            "release state migration event id is bound to other evidence",
+          );
+        }
+        return this.#migrationProjection(
+          existing,
+          existingFinalizations.length === 0,
+        );
+      }
+      if (existingGroupMigration || existingFinalizations.length > 0) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
+          "release state migration requires an empty Skill ledger lineage",
+        );
+      }
+      const subjectRef = this.#putSubject(
+        ARTIFACT_TYPES.migration,
+        migration,
+        transactionId,
+        this.#audience,
+      );
+      const previous = snapshot.events.at(-1) || null;
+      try {
+        this.#verifiedAppend(
+          {
+            artifactTenantId: this.#artifactTenantId,
+            correlationId: transactionId,
+            decision: "committed",
+            eventId,
+            reason: transactionId,
+            skillName: migration.plan.skillName,
+            sourceRefs: [],
+            subjectRef,
+            tenantId: migration.plan.tenantId,
+            type: EVENT_TYPES.migration,
+          },
+          {
+            expectedHeadDigest: previous?.eventDigest ?? null,
+            expectedSequence: previous?.sequence ?? 0,
+          },
+        );
+      } catch (cause) {
+        if (isHeadConflict(cause)) {
+          snapshot = this.#snapshot();
+          continue;
+        }
+        if (!isCommitUnknown(cause) && !isEventConflict(cause)) throw cause;
+      }
+      const recovered = this.#snapshot();
+      const persisted = recovered.byEventId.get(eventId);
+      if (!persisted) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
+          "release state migration did not converge to a queryable event",
+        );
+      }
+      const migrated = this.#migrationFromSnapshot(recovered, persisted, {
+        stateDigest: migration.state.stateDigest,
+        transactionId,
+      });
+      const recoveredLineages = this.#lineages(recovered);
+      return this.#migrationProjection(
+        migrated,
+        (recoveredLineages.groups.get(groupKey) || []).length === 0,
+      );
+    }
+    throw portsError(
+      EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
+      "release state migration could not acquire a stable ledger head",
+    );
   }
 
   prepare(input) {
@@ -2186,11 +2501,32 @@ class EvolutionLedgerDomainPorts {
 
   query(transactionIdValue) {
     const transactionId = digest(transactionIdValue, "transactionId");
+    const migrationEventId = deterministicEventId("migration", {
+      transactionId,
+    });
     const prepareEventId = deterministicEventId("prepare", { transactionId });
     const finalizeEventId = deterministicEventId("finalize", { transactionId });
     const snapshot = this.#snapshot();
+    const migrationEvent = snapshot.byEventId.get(migrationEventId);
     const prepareEvent = snapshot.byEventId.get(prepareEventId);
     const finalizeEvent = snapshot.byEventId.get(finalizeEventId);
+    if (migrationEvent) {
+      if (prepareEvent || finalizeEvent) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "release transaction id has both migration and transition evidence",
+        );
+      }
+      const migrated = this.#migrationFromSnapshot(snapshot, migrationEvent, {
+        transactionId,
+      });
+      const lineages = this.#lineages(snapshot);
+      const groupKey = `${migrated.migration.plan.tenantId}\0${migrated.migration.plan.skillName}`;
+      return this.#migrationProjection(
+        migrated,
+        (lineages.groups.get(groupKey) || []).length === 0,
+      );
+    }
     if (!prepareEvent) {
       if (finalizeEvent) {
         throw portsError(
@@ -2675,13 +3011,14 @@ export function createEvolutionLedgerPorts(options = {}) {
   });
   const prepare = Object.freeze((input) => adapter.prepare(input));
   const finalize = Object.freeze((input) => adapter.finalize(input));
+  const migrate = Object.freeze((input) => adapter.migrate(input));
   const query = Object.freeze((transactionId) => adapter.query(transactionId));
   const append = Object.freeze((event) => adapter.appendAudit(event));
   const claim = Object.freeze((nonce) => adapter.claimNonce(nonce));
   return Object.freeze({
     auditSink: Object.freeze({ append }),
     nonceStore: Object.freeze({ claim }),
-    transactionLedger: Object.freeze({ finalize, prepare, query }),
+    transactionLedger: Object.freeze({ finalize, migrate, prepare, query }),
   });
 }
 

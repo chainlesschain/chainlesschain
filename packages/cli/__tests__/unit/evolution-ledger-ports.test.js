@@ -20,6 +20,7 @@ import {
   EVOLUTION_ARTIFACT_DURABILITY_RESOLVE_REQUEST_SCHEMA,
   EVOLUTION_ARTIFACT_DURABILITY_RETAIN_REQUEST_SCHEMA,
   EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
+  EVOLUTION_LEDGER_PORTS_INVALID_CODE,
   createEvolutionLedgerDurableArtifactResolver,
   createEvolutionLedgerPorts,
 } from "../../src/lib/evolution/evolution-ledger-ports.js";
@@ -39,7 +40,13 @@ import {
   buildSkillMutationRequest,
   digestSkillMutationReceiptEnvelope,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
-import { SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA } from "../../src/lib/evolution/skill-release-registry.js";
+import {
+  SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+  SKILL_RELEASE_STATE_SCHEMA,
+} from "../../src/lib/evolution/skill-release-registry.js";
 
 const ARTIFACT_SECRET = "test-only-ledger-ports-artifact-secret";
 const LEDGER_SECRET = "test-only-ledger-ports-ledger-secret";
@@ -801,6 +808,75 @@ describe("EvolutionLedger domain ports", () => {
     };
   }
 
+  function stateMigration(suffix = "legacy") {
+    const planCore = {
+      activeReleaseDigest: digestBytes(`active:${suffix}`),
+      activeReleaseMigrationDigest: digestBytes(`active-migration:${suffix}`),
+      activeReleaseMigrationReceiptDigest: digestBytes(
+        `active-migration-receipt:${suffix}`,
+      ),
+      dependencyLockDigest: digestBytes(`dependency-lock:${suffix}`),
+      lastKnownGoodReleaseDigest: digestBytes(`lkg:${suffix}`),
+      lastKnownGoodReleaseMigrationDigest: digestBytes(
+        `lkg-migration:${suffix}`,
+      ),
+      lastKnownGoodReleaseMigrationReceiptDigest: digestBytes(
+        `lkg-migration-receipt:${suffix}`,
+      ),
+      legacyActiveReleaseDigest: digestBytes(`legacy-active:${suffix}`),
+      legacyFence: 11,
+      legacyLastKnownGoodReleaseDigest: digestBytes(`legacy-lkg:${suffix}`),
+      legacyRevision: 3,
+      legacyStateDigest: digestBytes(`legacy-state:${suffix}`),
+      legacyTransactionId: digestBytes(`legacy-transaction:${suffix}`),
+      requiresAuthenticatedLedgerMigration: true,
+      schema: SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+      skillName: "repair-unit-tests",
+      tenantId: "tenant-a",
+    };
+    const plan = {
+      ...planCore,
+      stateMigrationDigest: domainDigest(
+        `${SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA}\0`,
+        planCore,
+      ),
+    };
+    const stateCore = {
+      activeReleaseDigest: plan.activeReleaseDigest,
+      authorityReceiptDigest: digestBytes(`active-authority:${suffix}`),
+      dependencyLockDigest: plan.dependencyLockDigest,
+      fence: plan.legacyFence,
+      lastKnownGoodReleaseDigest: plan.lastKnownGoodReleaseDigest,
+      revision: plan.legacyRevision,
+      schema: SKILL_RELEASE_STATE_SCHEMA,
+      skillName: plan.skillName,
+      tenantId: plan.tenantId,
+      transactionId: plan.stateMigrationDigest,
+    };
+    const state = {
+      ...stateCore,
+      stateDigest: domainDigest(`${SKILL_RELEASE_STATE_SCHEMA}\0`, stateCore),
+    };
+    const receipt = {
+      schema: SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: "authority:state-migration",
+      trust: "trusted",
+      handlerArtifactDigest: digestBytes("state-migration-handler:v1"),
+      stateMigrationDigest: plan.stateMigrationDigest,
+      receiptDigest: digestBytes(
+        `state-migration-receipt:${plan.stateMigrationDigest}`,
+      ),
+    };
+    return {
+      plan,
+      receipt,
+      schema: SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
+      state,
+    };
+  }
+
   async function preparedTransition(instance, options = {}) {
     const consumed = await consumeMutation(instance.ports, options);
     const intent = releaseIntent(consumed, options);
@@ -861,6 +937,109 @@ describe("EvolutionLedger domain ports", () => {
     expect(
       reopened.ports.transactionLedger.query(transition.intent.transactionId),
     ).toEqual(committed);
+  });
+
+  it("commits one authenticated legacy state baseline and extends it with normal finalize lineage", async () => {
+    const instance = open();
+    const migration = stateMigration();
+    const migrated = instance.ports.transactionLedger.migrate(migration);
+
+    expect(instance.ports.transactionLedger.migrate(migration)).toEqual(
+      migrated,
+    );
+    expect(() =>
+      instance.ports.transactionLedger.migrate({
+        ...migration,
+        receipt: {
+          ...migration.receipt,
+          receiptDigest: digestBytes("other-state-migration-receipt"),
+        },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: EVOLUTION_LEDGER_PORTS_COLLISION_CODE }),
+    );
+    expect(
+      instance.ports.transactionLedger.query(
+        migration.plan.stateMigrationDigest,
+      ),
+    ).toEqual(migrated);
+    expect(migrated).toMatchObject({
+      authenticated: true,
+      current: true,
+      durable: true,
+      intentDigest: migration.plan.stateMigrationDigest,
+      pointerDigest: migration.state.stateDigest,
+      prepareReceiptDigest: migration.receipt.receiptDigest,
+      revision: migration.plan.legacyRevision,
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      stateDigest: migration.state.stateDigest,
+      status: "committed",
+      transactionId: migration.plan.stateMigrationDigest,
+    });
+
+    const next = await preparedTransition(instance, {
+      expectedTargetRevision: migration.plan.legacyRevision,
+      previousStateDigest: migration.state.stateDigest,
+      stateDigest: digestBytes("state:after-migration"),
+      suffix: "after-migration",
+    });
+    const finalized = instance.ports.transactionLedger.finalize(next.finalize);
+    expect(finalized).toMatchObject({
+      current: true,
+      revision: migration.plan.legacyRevision + 1,
+    });
+    expect(
+      instance.ports.transactionLedger.query(
+        migration.plan.stateMigrationDigest,
+      ).current,
+    ).toBe(false);
+
+    const migrationEvent = instance.ledger
+      .read({ afterSequence: 0, limit: 100 })
+      .find((event) => event.type === "skill.release.state-migration");
+    expect(migrationEvent).toMatchObject({
+      correlationId: migration.plan.stateMigrationDigest,
+      decision: "committed",
+      skillName: migration.plan.skillName,
+      sourceRefs: [],
+      tenantId: migration.plan.tenantId,
+    });
+    expect(subjectValue(instance.store, migrationEvent)).toEqual(migration);
+
+    const reopened = open();
+    expect(
+      reopened.ports.transactionLedger.query(next.intent.transactionId),
+    ).toEqual(finalized);
+    expect(() =>
+      reopened.ports.transactionLedger.migrate(stateMigration("collision")),
+    ).toThrowError(
+      expect.objectContaining({ code: EVOLUTION_LEDGER_PORTS_COLLISION_CODE }),
+    );
+  }, 180_000);
+
+  it("rejects tampered state migration evidence before appending a ledger event", () => {
+    const instance = open();
+    const migration = stateMigration("tampered");
+    const invalidReceipt = {
+      ...migration,
+      receipt: { ...migration.receipt, durable: false },
+    };
+    const invalidState = {
+      ...migration,
+      state: {
+        ...migration.state,
+        activeReleaseDigest: digestBytes("forged-active-release"),
+      },
+    };
+
+    for (const invalid of [invalidReceipt, invalidState]) {
+      expect(() =>
+        instance.ports.transactionLedger.migrate(invalid),
+      ).toThrowError(
+        expect.objectContaining({ code: EVOLUTION_LEDGER_PORTS_INVALID_CODE }),
+      );
+    }
+    expect(instance.ledger.read({ afterSequence: 0, limit: 100 })).toEqual([]);
   });
 
   it("fails closed on transaction collisions and forged consumption audit heads", async () => {

@@ -44,6 +44,8 @@ import {
   SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
   SKILL_RELEASE_SCHEMA,
   SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_AUTHORITY_SCHEMA,
+  SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_RELEASE_STATE_SCHEMA,
   SKILL_RELEASE_TENANT_MARKER_SCHEMA,
   SkillReleaseRegistry,
@@ -203,6 +205,50 @@ class StrictTransactionLedger {
       stateDigest: input.stateDigest,
     });
     return record.committed;
+  }
+
+  migrate(input) {
+    if (this.#failure === "migrate") throw new Error("migrate failed");
+    if (!Object.isFrozen(input))
+      throw new Error("migration input is not frozen");
+    const transactionId = input.plan.stateMigrationDigest;
+    const existing = this.#records.get(transactionId);
+    if (existing) {
+      if (existing.committed?.stateDigest !== input.state.stateDigest) {
+        throw new Error("migration collision");
+      }
+      return existing.committed;
+    }
+    this.#sequence += 1;
+    const committed = Object.freeze({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "committed",
+      authenticated: true,
+      durable: true,
+      transactionId,
+      intentDigest: transactionId,
+      authorityReceiptDigest: input.state.authorityReceiptDigest,
+      ledgerId: "ledger:test",
+      epoch: "epoch:test",
+      sequence: this.#sequence,
+      headDigest: digest(`migration-head:${transactionId}`),
+      receiptDigest: digest(`migration-projection:${transactionId}`),
+      current: true,
+      pointerDigest: input.state.stateDigest,
+      prepareReceiptDigest: input.receipt.receiptDigest,
+      revision: input.state.revision,
+      skillName: input.state.skillName,
+      stateDigest: input.state.stateDigest,
+    });
+    this.#records.set(transactionId, {
+      intent: {
+        intentDigest: transactionId,
+        mutationRequest: { tenantId: input.plan.tenantId },
+      },
+      prepare: null,
+      committed,
+    });
+    return committed;
   }
 
   query(transactionId) {
@@ -772,7 +818,7 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     );
   });
 
-  it("migrates an exact v3 release only through durable candidate and release audit bindings", () => {
+  it("migrates an exact v3 release only through durable candidate and release audit bindings", async () => {
     const legacyDraft = legacyCandidate(execution);
     const candidateAuthorityDescriptor = {
       schema: SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
@@ -876,6 +922,66 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       requiresAuthenticatedLedgerMigration: true,
     });
     expect(releases.readState(legacy.skillName).revision).toBe(0);
+
+    const stateAuthorityDescriptor = {
+      schema: SKILL_RELEASE_STATE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:state-migration",
+      trust: "trusted",
+      handlerArtifactDigest: digest("state-migration-handler:v1"),
+    };
+    const stateAudit = vi.fn((plan) => ({
+      schema: SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: stateAuthorityDescriptor.authorityId,
+      trust: stateAuthorityDescriptor.trust,
+      handlerArtifactDigest: stateAuthorityDescriptor.handlerArtifactDigest,
+      stateMigrationDigest: plan.stateMigrationDigest,
+      receiptDigest: digest(
+        `state-migration-receipt:${plan.stateMigrationDigest}`,
+      ),
+    }));
+    const stateMigration = releases.migrateLegacyState(statePlan, {
+      ...stateAuthorityDescriptor,
+      audit: stateAudit,
+    });
+    expect(stateMigration).toMatchObject({
+      created: true,
+      state: {
+        activeReleaseDigest: migrated.release.releaseDigest,
+        lastKnownGoodReleaseDigest: migrated.release.releaseDigest,
+        revision: oldState.revision,
+        fence: oldState.fence,
+        tenantId: TENANT_ID,
+        transactionId: statePlan.stateMigrationDigest,
+      },
+    });
+    expect(releases.readActive(legacy.skillName)).toEqual({
+      release: migrated.release,
+      state: stateMigration.state,
+    });
+    expect(
+      releases.migrateLegacyState(statePlan, {
+        ...stateAuthorityDescriptor,
+        audit: stateAudit,
+      }).created,
+    ).toBe(false);
+    expect(stateAudit).toHaveBeenCalledTimes(2);
+
+    const successor = candidates.create(
+      candidateInput(execution, migrated.release.contentDigest, "successor"),
+    ).candidate;
+    const successorPromotion = await promote(
+      successor,
+      oldState.revision,
+      migrated.release.contentDigest,
+      "promotion:after-state-migration",
+    );
+    expect(successorPromotion.state).toMatchObject({
+      activeReleaseDigest: successorPromotion.release.releaseDigest,
+      lastKnownGoodReleaseDigest: migrated.release.releaseDigest,
+      revision: oldState.revision + 1,
+    });
 
     const repeated = releases.migrateLegacyRelease(input, migrationAuthority);
     expect(repeated.created).toBe(false);

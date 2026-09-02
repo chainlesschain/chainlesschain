@@ -42,6 +42,12 @@ export const SKILL_RELEASE_MIGRATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-release-migration-receipt/v1";
 export const SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA =
   "chainlesschain.skill-release-state-migration-plan/v1";
+export const SKILL_RELEASE_STATE_MIGRATION_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-release-state-migration-authority/v1";
+export const SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA =
+  "chainlesschain.skill-release-state-migration-receipt/v1";
+export const SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA =
+  "chainlesschain.skill-release-state-ledger-migration/v1";
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
@@ -548,6 +554,43 @@ const STATE_MIGRATION_PLAN_INPUT_KEYS = new Set([
   "lastKnownGoodReleaseMigration",
   "legacyState",
 ]);
+const STATE_MIGRATION_PLAN_KEYS = new Set([
+  "activeReleaseDigest",
+  "activeReleaseMigrationDigest",
+  "activeReleaseMigrationReceiptDigest",
+  "dependencyLockDigest",
+  "lastKnownGoodReleaseDigest",
+  "lastKnownGoodReleaseMigrationDigest",
+  "lastKnownGoodReleaseMigrationReceiptDigest",
+  "legacyActiveReleaseDigest",
+  "legacyFence",
+  "legacyLastKnownGoodReleaseDigest",
+  "legacyRevision",
+  "legacyStateDigest",
+  "legacyTransactionId",
+  "requiresAuthenticatedLedgerMigration",
+  "schema",
+  "skillName",
+  "stateMigrationDigest",
+  "tenantId",
+]);
+const STATE_MIGRATION_AUTHORITY_KEYS = new Set([
+  "audit",
+  "authorityId",
+  "handlerArtifactDigest",
+  "schema",
+  "trust",
+]);
+const STATE_MIGRATION_RECEIPT_KEYS = new Set([
+  "authenticated",
+  "authorityId",
+  "durable",
+  "handlerArtifactDigest",
+  "receiptDigest",
+  "schema",
+  "stateMigrationDigest",
+  "trust",
+]);
 const BUILD_RELEASE_INPUT_KEYS = new Set([
   "candidate",
   "consumptionReceipt",
@@ -1032,6 +1075,93 @@ export function buildSkillReleaseStateMigrationPlan(input) {
   });
 }
 
+export function verifySkillReleaseStateMigrationPlan(value) {
+  assertExactKeys(
+    value,
+    STATE_MIGRATION_PLAN_KEYS,
+    "release state migration plan",
+    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+  );
+  const core = {
+    activeReleaseDigest: digest(
+      value.activeReleaseDigest,
+      "stateMigration.activeReleaseDigest",
+    ),
+    activeReleaseMigrationDigest: digest(
+      value.activeReleaseMigrationDigest,
+      "stateMigration.activeReleaseMigrationDigest",
+    ),
+    activeReleaseMigrationReceiptDigest: digest(
+      value.activeReleaseMigrationReceiptDigest,
+      "stateMigration.activeReleaseMigrationReceiptDigest",
+    ),
+    dependencyLockDigest: digest(
+      value.dependencyLockDigest,
+      "stateMigration.dependencyLockDigest",
+    ),
+    lastKnownGoodReleaseDigest: digest(
+      value.lastKnownGoodReleaseDigest,
+      "stateMigration.lastKnownGoodReleaseDigest",
+    ),
+    lastKnownGoodReleaseMigrationDigest: digest(
+      value.lastKnownGoodReleaseMigrationDigest,
+      "stateMigration.lastKnownGoodReleaseMigrationDigest",
+    ),
+    lastKnownGoodReleaseMigrationReceiptDigest: digest(
+      value.lastKnownGoodReleaseMigrationReceiptDigest,
+      "stateMigration.lastKnownGoodReleaseMigrationReceiptDigest",
+    ),
+    legacyActiveReleaseDigest: digest(
+      value.legacyActiveReleaseDigest,
+      "stateMigration.legacyActiveReleaseDigest",
+    ),
+    legacyFence: safeInteger(value.legacyFence, "stateMigration.legacyFence", {
+      minimum: 1,
+    }),
+    legacyLastKnownGoodReleaseDigest: digest(
+      value.legacyLastKnownGoodReleaseDigest,
+      "stateMigration.legacyLastKnownGoodReleaseDigest",
+    ),
+    legacyRevision: safeInteger(
+      value.legacyRevision,
+      "stateMigration.legacyRevision",
+      { minimum: 1 },
+    ),
+    legacyStateDigest: digest(
+      value.legacyStateDigest,
+      "stateMigration.legacyStateDigest",
+    ),
+    legacyTransactionId: digest(
+      value.legacyTransactionId,
+      "stateMigration.legacyTransactionId",
+    ),
+    requiresAuthenticatedLedgerMigration:
+      value.requiresAuthenticatedLedgerMigration,
+    schema: value.schema,
+    skillName: skillName(value.skillName),
+    tenantId: tenantId(value.tenantId),
+  };
+  const plan = deepFreeze({
+    ...core,
+    stateMigrationDigest: digest(
+      value.stateMigrationDigest,
+      "stateMigration.stateMigrationDigest",
+    ),
+  });
+  if (
+    plan.schema !== SKILL_RELEASE_STATE_MIGRATION_PLAN_SCHEMA ||
+    plan.requiresAuthenticatedLedgerMigration !== true ||
+    plan.stateMigrationDigest !==
+      domainDigest(STATE_MIGRATION_PLAN_DOMAIN, core) ||
+    canonicalJson(plan) !== canonicalJson(value)
+  ) {
+    throw migrationRequired("release state migration plan is invalid", {
+      stateMigrationDigest: value.stateMigrationDigest,
+    });
+  }
+  return plan;
+}
+
 export function verifySkillRelease(value) {
   if (
     value &&
@@ -1159,7 +1289,7 @@ function initialState(name, ownerTenantId) {
   });
 }
 
-function verifyState(value) {
+export function verifySkillReleaseState(value) {
   if (
     value &&
     typeof value === "object" &&
@@ -1579,6 +1709,8 @@ export class SkillReleaseRegistry {
 
   #ledgerFinalize;
 
+  #ledgerMigrate;
+
   #ledgerQuery;
 
   #pins = new WeakMap();
@@ -1630,6 +1762,10 @@ export class SkillReleaseRegistry {
     this.#crashHook = crashHook;
     this.#ledgerPrepare = transactionLedger.prepare.bind(transactionLedger);
     this.#ledgerFinalize = transactionLedger.finalize.bind(transactionLedger);
+    this.#ledgerMigrate =
+      typeof transactionLedger.migrate === "function"
+        ? transactionLedger.migrate.bind(transactionLedger)
+        : null;
     this.#ledgerQuery = transactionLedger.query.bind(transactionLedger);
     Object.freeze(transactionLedger);
 
@@ -2423,6 +2559,200 @@ export class SkillReleaseRegistry {
     });
   }
 
+  migrateLegacyState(planInput, migrationAuthority) {
+    if (arguments.length !== 2 || this.#ledgerMigrate === null) {
+      throw migrationRequired(
+        "legacy state migration requires a plan, durable authority, and authenticated ledger migration port",
+      );
+    }
+    const plan = verifySkillReleaseStateMigrationPlan(planInput);
+    if (plan.tenantId !== this.tenantId) {
+      throw migrationRequired("state migration plan belongs to another tenant");
+    }
+    assertExactKeys(
+      migrationAuthority,
+      STATE_MIGRATION_AUTHORITY_KEYS,
+      "state migration authority",
+      SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+    );
+    if (
+      migrationAuthority.schema !==
+        SKILL_RELEASE_STATE_MIGRATION_AUTHORITY_SCHEMA ||
+      migrationAuthority.trust !== "trusted" ||
+      typeof migrationAuthority.audit !== "function"
+    ) {
+      throw migrationRequired("state migration authority is not trusted");
+    }
+    const authorityId = boundedString(
+      migrationAuthority.authorityId,
+      "stateMigrationAuthority.authorityId",
+      256,
+    );
+    const handlerArtifactDigest = digest(
+      migrationAuthority.handlerArtifactDigest,
+      "stateMigrationAuthority.handlerArtifactDigest",
+    );
+    const active = this.readRelease(plan.activeReleaseDigest);
+    const lastKnownGood = this.readRelease(plan.lastKnownGoodReleaseDigest);
+    if (
+      active.skillName !== plan.skillName ||
+      lastKnownGood.skillName !== plan.skillName ||
+      active.tenantId !== this.tenantId ||
+      lastKnownGood.tenantId !== this.tenantId ||
+      active.dependencyLockDigest !== plan.dependencyLockDigest
+    ) {
+      throw migrationRequired(
+        "state migration plan release bindings are unavailable or changed",
+      );
+    }
+    let rawReceipt;
+    try {
+      rawReceipt = migrationAuthority.audit(plan);
+    } catch (cause) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_AUDIT_FAILED",
+        "state migration audit authority failed before ledger commit",
+        { cause, stateMigrationDigest: plan.stateMigrationDigest },
+      );
+    }
+    if (utilTypes.isPromise(rawReceipt)) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_AUDIT_FAILED",
+        "state migration audit authority must be synchronous",
+        { stateMigrationDigest: plan.stateMigrationDigest },
+      );
+    }
+    assertExactKeys(
+      rawReceipt,
+      STATE_MIGRATION_RECEIPT_KEYS,
+      "state migration receipt",
+      "SKILL_RELEASE_STATE_MIGRATION_AUDIT_FAILED",
+    );
+    const receipt = deepFreeze({
+      authenticated: rawReceipt.authenticated,
+      authorityId: boundedString(
+        rawReceipt.authorityId,
+        "stateMigrationReceipt.authorityId",
+        256,
+      ),
+      durable: rawReceipt.durable,
+      handlerArtifactDigest: digest(
+        rawReceipt.handlerArtifactDigest,
+        "stateMigrationReceipt.handlerArtifactDigest",
+      ),
+      receiptDigest: digest(
+        rawReceipt.receiptDigest,
+        "stateMigrationReceipt.receiptDigest",
+      ),
+      schema: rawReceipt.schema,
+      stateMigrationDigest: digest(
+        rawReceipt.stateMigrationDigest,
+        "stateMigrationReceipt.stateMigrationDigest",
+      ),
+      trust: rawReceipt.trust,
+    });
+    if (
+      receipt.schema !== SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA ||
+      receipt.authenticated !== true ||
+      receipt.durable !== true ||
+      receipt.trust !== "trusted" ||
+      receipt.authorityId !== authorityId ||
+      receipt.handlerArtifactDigest !== handlerArtifactDigest ||
+      receipt.stateMigrationDigest !== plan.stateMigrationDigest
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STATE_MIGRATION_AUDIT_FAILED",
+        "state migration receipt is not exactly bound and durable",
+        { stateMigrationDigest: plan.stateMigrationDigest },
+      );
+    }
+    const existing = this.readState(plan.skillName);
+    if (existing.revision > 0) {
+      if (
+        existing.transactionId !== plan.stateMigrationDigest ||
+        existing.activeReleaseDigest !== plan.activeReleaseDigest ||
+        existing.lastKnownGoodReleaseDigest !==
+          plan.lastKnownGoodReleaseDigest ||
+        existing.dependencyLockDigest !== plan.dependencyLockDigest ||
+        existing.revision !== plan.legacyRevision ||
+        existing.fence !== plan.legacyFence
+      ) {
+        throw failure(
+          "SKILL_RELEASE_STATE_MIGRATION_CONFLICT",
+          "active state is not the exact result of this migration plan",
+        );
+      }
+      return deepFreeze({ created: false, plan, receipt, state: existing });
+    }
+    const acquired = this.#acquireLease(
+      plan.skillName,
+      plan.stateMigrationDigest,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+    );
+    const { heartbeat, lease } = acquired;
+    try {
+      const state = buildState({
+        activeReleaseDigest: plan.activeReleaseDigest,
+        authorityReceiptDigest: active.authorityReceiptDigest,
+        dependencyLockDigest: plan.dependencyLockDigest,
+        fence: plan.legacyFence,
+        lastKnownGoodReleaseDigest: plan.lastKnownGoodReleaseDigest,
+        revision: plan.legacyRevision,
+        skillName: plan.skillName,
+        tenantId: this.tenantId,
+        transactionId: plan.stateMigrationDigest,
+      });
+      const request = deepFreeze({
+        plan,
+        receipt,
+        schema: SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
+        state,
+      });
+      let projection;
+      try {
+        projection = this.#ledgerMigrate(request);
+      } catch (cause) {
+        throw failure(
+          "SKILL_RELEASE_STATE_MIGRATION_LEDGER_FAILED",
+          "state migration ledger commit failed closed",
+          { cause, stateMigrationDigest: plan.stateMigrationDigest },
+        );
+      }
+      if (utilTypes.isPromise(projection)) {
+        throw failure(
+          "SKILL_RELEASE_LEDGER_INVALID",
+          "state migration ledger port must be synchronous",
+        );
+      }
+      const committed = verifyLedgerProjection(projection, {
+        authorityReceiptDigest: state.authorityReceiptDigest,
+        intentDigest: plan.stateMigrationDigest,
+        pointerDigest: state.stateDigest,
+        prepareReceiptDigest: receipt.receiptDigest,
+        revision: state.revision,
+        skillName: state.skillName,
+        stateDigest: state.stateDigest,
+        transactionId: state.transactionId,
+      });
+      if (committed.status !== "committed" || committed.current !== true) {
+        throw failure(
+          "SKILL_RELEASE_LEDGER_INVALID",
+          "state migration did not produce a current committed projection",
+        );
+      }
+      this.#writePointer(
+        state,
+        `.state-${plan.stateMigrationDigest.slice("sha256:".length)}.tmp`,
+      );
+      this.#assertFinalizationArtifacts(state, active);
+      return deepFreeze({ created: true, plan, receipt, state });
+    } finally {
+      clearInterval(heartbeat);
+      this.#releaseLease(lease);
+    }
+  }
+
   readRelease(releaseDigest) {
     const expected = digest(releaseDigest, "releaseDigest");
     let value;
@@ -2461,7 +2791,7 @@ export class SkillReleaseRegistry {
   #readStateRaw(name) {
     const normalizedName = skillName(name);
     try {
-      const state = verifyState(
+      const state = verifySkillReleaseState(
         this.#readJson(
           this.#statePath(normalizedName),
           "SKILL_RELEASE_STATE_CORRUPT",
@@ -3124,9 +3454,11 @@ export class SkillReleaseRegistry {
       );
     }
     const intent = this.#verifyIntent(core.intent);
-    const nextState = verifyState(core.nextState);
+    const nextState = verifySkillReleaseState(core.nextState);
     const previousState =
-      core.previousState === null ? null : verifyState(core.previousState);
+      core.previousState === null
+        ? null
+        : verifySkillReleaseState(core.previousState);
     if (
       intent.transactionId !== core.transactionId ||
       nextState.transactionId !== core.transactionId ||
@@ -3265,7 +3597,7 @@ export class SkillReleaseRegistry {
     );
     let verifiedStaged;
     try {
-      verifiedStaged = verifyState(
+      verifiedStaged = verifySkillReleaseState(
         this.#parseCanonical(stagedBytes, "SKILL_RELEASE_STATE_CORRUPT"),
       );
     } catch (cause) {
@@ -3319,7 +3651,7 @@ export class SkillReleaseRegistry {
     );
     let verifiedPublished;
     try {
-      verifiedPublished = verifyState(
+      verifiedPublished = verifySkillReleaseState(
         this.#parseCanonical(publishedBytes, "SKILL_RELEASE_STATE_CORRUPT"),
       );
     } catch (cause) {
@@ -3351,7 +3683,7 @@ export class SkillReleaseRegistry {
         this.#statePath(state.skillName),
         "SKILL_RELEASE_STATE_CORRUPT",
       );
-      const verifiedState = verifyState(
+      const verifiedState = verifySkillReleaseState(
         this.#parseCanonical(stateBytes, "SKILL_RELEASE_STATE_CORRUPT"),
       );
       if (

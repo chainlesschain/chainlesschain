@@ -62,6 +62,7 @@ export const EVOLUTION_ARTIFACT_RETENTIONS = Object.freeze(["ttl", "ledger"]);
 export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "skill-release-transition-intent",
   "skill-release-finalization",
+  "skill-release-state-migration",
   "skill-mutation-audit",
   "skill-mutation-nonce-claim",
   "skill-promotion-review-decision",
@@ -107,6 +108,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "skill-promotion-review-decision",
   "skill-promotion-review-packet",
   "skill-release-finalization",
+  "skill-release-state-migration",
   "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
@@ -281,6 +283,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
     "skill-release-finalization",
     new Set(["evolution-ledger", "skill-release-transition"]),
   ],
+  ["skill-release-state-migration", new Set(["evolution-ledger"])],
   ["skill-mutation-audit", new Set(["evolution-ledger", "skill-mutation"])],
   [
     "skill-mutation-nonce-claim",
