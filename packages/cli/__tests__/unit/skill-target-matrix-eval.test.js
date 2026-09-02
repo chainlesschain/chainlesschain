@@ -1,7 +1,10 @@
 import { createHash, createHmac } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { Worker } from "node:worker_threads";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -34,6 +37,7 @@ import {
   computeEvolutionEvalTargetAuthorityDigest,
   runEvolutionEvalGate,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
+import { buildSkillCandidateDraft } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   buildSkillDependencyLock,
   buildSkillRuntimeManifest,
@@ -64,9 +68,13 @@ import {
 } from "../../src/lib/evolution/skill-mutation-authority.js";
 import {
   EMPTY_SKILL_ACTIVE_DIGEST,
-  consumeRegistryTransitionCapability,
   createSkillEvaluatedPromotionControlPlane,
 } from "../../src/lib/evolution/skill-promotion-controller.js";
+import {
+  SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+  SkillReleaseRegistry,
+} from "../../src/lib/evolution/skill-release-registry.js";
+import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
 import {
   SKILL_TARGET_MATRIX_EVAL_FINALIZATION_SCHEMA,
   SKILL_TARGET_MATRIX_EVAL_PLAN_RESOLUTION_SCHEMA,
@@ -99,6 +107,12 @@ const TENANT_ID = "tenant-primary";
 const PROVENANCE_AUDIENCE = "skill-promotion";
 const TRAINER_AUTHORITY = "trainer-authority-v1";
 const TRAINER_REVISION = "trainer-revision-v7";
+const promotionRoots = [];
+afterEach(() => {
+  for (const root of promotionRoots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 const RUN_REQUEST = Object.freeze({
   suiteRef: "skill-pilot-suite-v1",
   candidateId: CANDIDATE_ID,
@@ -1883,6 +1897,86 @@ function promotionAuthority() {
   return { auditEvents, authority };
 }
 
+class PromotionTransactionLedger {
+  #records = new Map();
+
+  #sequence = 0;
+
+  prepare(intent) {
+    const existing = this.#records.get(intent.transactionId);
+    if (existing) return existing.prepare;
+    this.#sequence += 1;
+    const prepare = Object.freeze({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "prepared",
+      authenticated: true,
+      durable: true,
+      transactionId: intent.transactionId,
+      intentDigest: intent.intentDigest,
+      authorityReceiptDigest: intent.authorityReceiptDigest,
+      ledgerId: "ledger:matrix-promotion",
+      epoch: "epoch-matrix-promotion",
+      sequence: this.#sequence,
+      headDigest: matrixDigest("matrix-promotion-prepare-head", intent),
+      receiptDigest: matrixDigest("matrix-promotion-prepare-receipt", intent),
+    });
+    this.#records.set(intent.transactionId, {
+      committed: null,
+      intentDigest: intent.intentDigest,
+      prepare,
+    });
+    return prepare;
+  }
+
+  finalize(input) {
+    const record = this.#records.get(input.transactionId);
+    if (
+      !record ||
+      record.intentDigest !== input.intentDigest ||
+      record.prepare.receiptDigest !== input.expectedPrepareReceiptDigest
+    ) {
+      throw new Error("matrix promotion transaction was not prepared");
+    }
+    if (record.committed) return record.committed;
+    this.#sequence += 1;
+    record.committed = Object.freeze({
+      schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+      status: "committed",
+      authenticated: true,
+      durable: true,
+      transactionId: input.transactionId,
+      intentDigest: input.intentDigest,
+      authorityReceiptDigest: input.authorityReceiptDigest,
+      ledgerId: "ledger:matrix-promotion",
+      epoch: "epoch-matrix-promotion",
+      sequence: this.#sequence,
+      headDigest: matrixDigest("matrix-promotion-commit-head", input),
+      receiptDigest: matrixDigest("matrix-promotion-commit-receipt", input),
+      current: true,
+      pointerDigest: input.pointerDigest,
+      prepareReceiptDigest: input.expectedPrepareReceiptDigest,
+      revision: input.revision,
+      skillName: input.skillName,
+      stateDigest: input.stateDigest,
+    });
+    return record.committed;
+  }
+
+  query(transactionId) {
+    const record = this.#records.get(transactionId);
+    if (!record) {
+      return Object.freeze({
+        schema: SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
+        status: "absent",
+        authenticated: true,
+        durable: true,
+        transactionId,
+      });
+    }
+    return record.committed ?? record.prepare;
+  }
+}
+
 function makeMatrixComposition({
   calibration,
   firstHarness,
@@ -1892,6 +1986,7 @@ function makeMatrixComposition({
   expectedActiveRevision = 7,
   fixtureId = "accepted",
   planTtlMs = 300_000,
+  useCanonicalCandidate = false,
 }) {
   const secrets = new Map();
   const makeTrust = (role) => {
@@ -2058,6 +2153,34 @@ function makeMatrixComposition({
       },
     ],
   });
+  const candidate = useCanonicalCandidate
+    ? buildSkillCandidateDraft(
+        {
+          tenantId: TENANT_ID,
+          skillName: "skill-pilot",
+          parentDigest: null,
+          sourceEvidenceRefs: [
+            {
+              ref: "recording://matrix-promotion/source",
+              digest: matrixDigest("matrix-promotion-source", fixtureId),
+            },
+          ],
+          derivationMode: "record-replay",
+          wikiRevision: null,
+          proposerModel: null,
+          requestedCapabilities: ["workspace.read"],
+          evalRunId: null,
+          content: `---\nname: skill-pilot\n---\n\nMatrix candidate ${fixtureId}.\n`,
+          dependencyLock,
+          runtimeManifest,
+          targetMatrix,
+        },
+        {
+          expectedEnvironmentBindings: targetMatrix.cells,
+          expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
+        },
+      )
+    : null;
   const cellAuthorities = Object.freeze([
     Object.freeze({
       cellId: "cell-linux",
@@ -2134,8 +2257,9 @@ function makeMatrixComposition({
     nonce: `matrix-eval-plan-${fixtureId}-nonce-v1`,
     tenantId: TENANT_ID,
     skillName: "skill-pilot",
-    candidateId: CANDIDATE_ID,
-    candidateContentDigest: `sha256:${"5".repeat(64)}`,
+    candidateId: candidate?.candidateId ?? CANDIDATE_ID,
+    candidateContentDigest:
+      candidate?.contentDigest ?? `sha256:${"5".repeat(64)}`,
     baselineId: BASELINE_ID,
     baselineReleaseDigest: null,
     expectedActiveContentDigest,
@@ -2341,6 +2465,7 @@ function makeMatrixComposition({
     decision: expectedDecision,
   });
   return {
+    candidate,
     plan,
     planRef,
     expected,
@@ -2570,6 +2695,7 @@ describe("Skill target matrix evaluation foundation", () => {
       secondHarness,
       expectedActiveContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
       expectedActiveRevision: 0,
+      useCanonicalCandidate: true,
     });
     const aggregator = new SkillTargetMatrixEvalAggregator(
       fixture.aggregatorOptions,
@@ -2748,22 +2874,7 @@ describe("Skill target matrix evaluation foundation", () => {
     expect(resolverRequests).toHaveLength(2);
 
     const authorityHarness = promotionAuthority();
-    const candidate = Object.freeze({
-      candidateId: receipt.candidateId,
-      contentDigest: receipt.candidateContentDigest,
-      dependencyLockDigest: receipt.dependencyLockDigest,
-      parentDigest: null,
-      runtimeManifestDigest: receipt.runtimeManifestDigest,
-      skillName: receipt.skillName,
-      targetMatrixRoot: receipt.targetMatrixRoot,
-      tenantId: receipt.tenantId,
-    });
-    const state = Object.freeze({
-      activeReleaseDigest: null,
-      revision: 0,
-      skillName: receipt.skillName,
-      tenantId: receipt.tenantId,
-    });
+    const candidate = fixture.candidate;
     const candidateRegistry = {
       tenantId: receipt.tenantId,
       read: (candidateId) => {
@@ -2771,26 +2882,51 @@ describe("Skill target matrix evaluation foundation", () => {
         return candidate;
       },
     };
-    const releaseRegistry = {
+    const promotionRoot = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-matrix-promotion-"),
+    );
+    promotionRoots.push(promotionRoot);
+    const transactionLedger = new PromotionTransactionLedger();
+    const registryOptions = {
       tenantId: receipt.tenantId,
-      readState: (skillName) => {
-        expect(skillName).toBe(candidate.skillName);
-        return state;
-      },
-      readRelease: () => {
-        throw new Error("an empty active state has no release");
-      },
-      applyTransition: (capability) => ({
-        transition: consumeRegistryTransitionCapability(
-          capability,
-          releaseRegistry,
-        ),
-      }),
+      rootDir: path.join(promotionRoot, "releases"),
+      secure: false,
+      transactionLedger,
     };
+    const releaseRegistry = new SkillReleaseRegistry(registryOptions);
+    const retainedPromotionReceipts = [];
+    const memoryPromotionReceiptWriter =
+      createStructuredMemoryPromotionReceiptWriter({
+        descriptor: {
+          tenantId: receipt.tenantId,
+          issuerId: "promotion-controller:matrix-integration",
+          issuerRevision: 1,
+          issuerHandlerDigest: matrixDigest(
+            "matrix-promotion-memory-writer",
+            "v1",
+          ),
+        },
+        authorityStore: {
+          async retainReceipt(authorityReceipt) {
+            retainedPromotionReceipts.push(authorityReceipt);
+            return {
+              persisted: true,
+              receiptDigest: authorityReceipt.receiptDigest,
+            };
+          },
+        },
+        attestor: {
+          async attest({ payloadDigest }) {
+            return matrixDigest("matrix-promotion-attestation", payloadDigest);
+          },
+        },
+        clock: () => "2026-09-02T00:00:00.000Z",
+      });
     const evaluatedOnly = createSkillEvaluatedPromotionControlPlane({
       authority: authorityHarness.authority,
       candidateRegistry,
       evaluatedPromotionProvider: provider,
+      memoryPromotionReceiptWriter,
       releaseRegistry,
     });
     const promoted = await evaluatedOnly.promoteEvaluated({
@@ -2812,13 +2948,38 @@ describe("Skill target matrix evaluation foundation", () => {
         candidateId: candidate.candidateId,
         matrixReceiptDigest: receipt.receiptDigest,
       },
-      transition: {
-        candidate,
-        expectedParentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
-        expectedRevision: 0,
-        operation: "promote",
+      release: {
+        candidateId: candidate.candidateId,
+        contentDigest: candidate.contentDigest,
+      },
+      state: {
+        activeReleaseDigest: expect.stringMatching(/^sha256:/u),
+        revision: 1,
+      },
+      memoryAuthorityReceipt: {
+        action: "accept",
+        artifactRef: expect.stringMatching(/^sha256:/u),
+        decision: "accepted",
+        kind: "promotion",
+        layer: "procedural",
       },
     });
+    expect(promoted.state.activeReleaseDigest).toBe(
+      promoted.release.releaseDigest,
+    );
+    expect(promoted.memoryAuthorityReceipt.evidenceRefs).toEqual(
+      [promoted.receipt.receiptDigest, receipt.receiptDigest].sort(),
+    );
+    expect(retainedPromotionReceipts).toEqual([
+      promoted.memoryAuthorityReceipt,
+    ]);
+    const reopenedReleaseRegistry = new SkillReleaseRegistry(registryOptions);
+    expect(reopenedReleaseRegistry.readState(candidate.skillName)).toEqual(
+      promoted.state,
+    );
+    expect(
+      reopenedReleaseRegistry.readRelease(promoted.release.releaseDigest),
+    ).toEqual(promoted.release);
     expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
       "authorize",
       "consume",
@@ -3167,7 +3328,7 @@ describe("Skill target matrix evaluation foundation", () => {
     releaseDeferredVerification(true);
     const verifiedSnapshot = await pendingSnapshotVerification;
     expect(verifiedSnapshot.decision).toBe("accepted");
-    expect(verifiedSnapshot.candidateId).toBe(CANDIDATE_ID);
+    expect(verifiedSnapshot.candidateId).toBe(receipt.candidateId);
 
     const thenableMatrixVerifier = Object.freeze({
       verify: () => ({ then: () => undefined }),

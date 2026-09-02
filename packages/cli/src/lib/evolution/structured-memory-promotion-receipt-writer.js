@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 import structuredMemory from "@chainlesschain/session-core/structured-evolution-memory";
+import { buildSkillEvaluatedPromotionReceiptEnvelope } from "./skill-evaluated-promotion.js";
+import { digestSkillMutationReceiptEnvelope } from "./skill-mutation-authority.js";
+import { SKILL_TARGET_MATRIX_EVAL_RECEIPT_SCHEMA } from "./skill-target-matrix-eval.js";
 
 const { createStructuredMemoryAuthorityReceipt } = structuredMemory;
 const SKILL_RELEASE_RECEIPT_SCHEMA =
@@ -90,12 +93,18 @@ function verifyPromotion(result, matrixBinding, tenantId) {
   }
   const evidenceRefs = [receipt.receiptDigest];
   if (matrixBinding !== null) {
+    const expectedEvalReceiptDigest = digestSkillMutationReceiptEnvelope(
+      buildSkillEvaluatedPromotionReceiptEnvelope({
+        schema: SKILL_TARGET_MATRIX_EVAL_RECEIPT_SCHEMA,
+        receiptDigest: matrixBinding.matrixReceiptDigest,
+      }),
+    );
     if (
       matrixBinding?.tenantId !== tenantId ||
       matrixBinding.skillName !== release.skillName ||
       matrixBinding.candidateContentDigest !== release.contentDigest ||
       !DIGEST.test(matrixBinding.matrixReceiptDigest || "") ||
-      receipt.receiptDigests?.eval !== matrixBinding.matrixReceiptDigest
+      receipt.receiptDigests?.eval !== expectedEvalReceiptDigest
     ) {
       throw new Error(
         "matrix binding does not authorize the committed release",
