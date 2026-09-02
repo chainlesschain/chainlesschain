@@ -3,6 +3,7 @@ import { StructuredMemoryAuthorityLedgerAdapter } from "./structured-memory-auth
 import { captureStructuredMemoryPromotionReceiptWriter } from "./structured-memory-promotion-receipt-writer.js";
 import { captureStructuredMemoryPolicyReceiptWriter } from "./structured-memory-policy-receipt-writer.js";
 import { createStructuredMemorySemanticReviewPipeline } from "./structured-memory-semantic-review-pipeline.js";
+import { createSkillEvaluatedPromotionControlPlane } from "./skill-promotion-controller.js";
 
 export const STRUCTURED_MEMORY_AGENT_CONTROL_PLANE_SCHEMA =
   "chainlesschain.structured-memory-agent-control-plane/v1";
@@ -75,6 +76,22 @@ export function createStructuredMemoryAgentControlPlane({
     semantic,
     promotionReceiptWriter: promotion,
     policyReceiptWriter: policy,
+    createEvaluatedPromotionControlPlane(options = {}) {
+      if (
+        !options ||
+        typeof options !== "object" ||
+        Array.isArray(options) ||
+        Object.hasOwn(options, "memoryPromotionReceiptWriter")
+      ) {
+        throw new TypeError(
+          "evaluated promotion options cannot override the Agent memory writer",
+        );
+      }
+      return createSkillEvaluatedPromotionControlPlane({
+        ...options,
+        memoryPromotionReceiptWriter: promotion,
+      });
+    },
     recovery: Object.freeze({
       sequence: memory.projection().sequence,
       projectionDigest: memory.projection().projectionDigest,

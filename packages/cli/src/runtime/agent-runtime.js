@@ -204,6 +204,31 @@ export class AgentRuntime {
     return result;
   }
 
+  _requireStructuredMemoryControlPlane() {
+    if (this.kind !== "agent" || this.structuredMemoryControlPlane === null) {
+      throw new Error(
+        "structured memory Agent control plane is not configured",
+      );
+    }
+    return this.structuredMemoryControlPlane;
+  }
+
+  async proposeSemanticMemory(input) {
+    return this._requireStructuredMemoryControlPlane().semantic.propose(input);
+  }
+
+  async reviewAndAcceptSemanticMemory(input) {
+    return this._requireStructuredMemoryControlPlane().semantic.reviewAndAccept(
+      input,
+    );
+  }
+
+  createEvolutionPromotionControlPlane(options) {
+    return this._requireStructuredMemoryControlPlane().createEvaluatedPromotionControlPlane(
+      options,
+    );
+  }
+
   async startAgentSession() {
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,

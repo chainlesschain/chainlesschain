@@ -310,6 +310,16 @@ describe("StructuredMemoryLedgerAdapter", () => {
     expect(startAgentRepl).toHaveBeenCalledWith(expect.objectContaining({
       structuredMemoryControlPlane: reopened,
       memoryPolicyReceiptWriter: reopened.policyReceiptWriter }));
+    await runtime.proposeSemanticMemory({ eventId: "agent-semantic-proposal", memoryId: "agent-semantic-memory",
+      contentDigest: hash("agent-semantic-content"), artifactRef: "artifact://agent-semantic-memory",
+      evidenceRefs: ["evidence://agent/1"], timestamp: "2026-09-02T00:00:02.000Z" });
+    await runtime.reviewAndAcceptSemanticMemory({ memoryId: "agent-semantic-memory", eventId: "agent-semantic-accept",
+      timestamp: "2026-09-02T00:00:03.000Z" });
+    expect(reopened.memory.projection()).toMatchObject({ sequence: 4,
+      memories: { "agent-semantic-memory": { status: "active" } } });
+    expect(() => runtime.createEvolutionPromotionControlPlane({
+      memoryPromotionReceiptWriter: reopened.promotionReceiptWriter,
+    })).toThrow(/cannot override the Agent memory writer/u);
     expect(() => new AgentRuntime({ kind: "agent", policy: {}, deps: {
       structuredMemoryControlPlane: reopened, memoryPolicyReceiptWriter: reopened.policyReceiptWriter,
     } })).toThrow(/cannot both be configured/u);
