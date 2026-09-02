@@ -362,6 +362,29 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     ).toThrow(/required supported fields|unsupported/u);
   });
 
+  it("rejects secret and PII plaintext before any candidate artifact is written", () => {
+    const execution = executionFixture();
+    const registry = new SkillCandidateRegistry(
+      registryOptions(TENANT_ALPHA, [execution], {
+        rootDir: registryBase,
+        secure: false,
+      }),
+    );
+    const unsafeContents = [
+      "---\nname: repair-unit-tests\n---\npassword=superSecretValue123\n",
+      "---\nname: repair-unit-tests\n---\nContact owner@example.com\n",
+      "---\nname: repair-unit-tests\n---\nｐａｓｓｗｏｒｄ=confusableSecretValue123\n",
+    ];
+
+    for (const content of unsafeContents) {
+      const error = capturedError(() =>
+        registry.create(draftInput(execution, { content })),
+      );
+      expect(error).toMatchObject({ code: "SKILL_CANDIDATE_SECRET_LEAK" });
+    }
+    expect(registry.list()).toEqual([]);
+  });
+
   it("requires explicit tenant construction and rejects tenant or context ambiguity", () => {
     const execution = executionFixture();
     expect(

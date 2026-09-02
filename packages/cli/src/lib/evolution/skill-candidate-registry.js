@@ -9,6 +9,7 @@ import {
   verifySkillRuntimeManifest,
   verifySkillTargetMatrix,
 } from "./skill-execution-manifest.js";
+import { assertEvolutionContentContainsNoKnownSecrets } from "./evolution-evidence-projector.js";
 
 export const SKILL_CANDIDATE_SCHEMA = "chainlesschain.skill-candidate/v2";
 export const SKILL_CANDIDATE_TENANT_MARKER_SCHEMA =
@@ -403,6 +404,15 @@ function normalizeContent(value) {
     throw registryError(
       "SKILL_CANDIDATE_INVALID",
       `content exceeds ${SKILL_CANDIDATE_MAX_CONTENT_BYTES} bytes`,
+    );
+  }
+  try {
+    assertEvolutionContentContainsNoKnownSecrets(value);
+  } catch (cause) {
+    throw registryError(
+      "SKILL_CANDIDATE_SECRET_LEAK",
+      "candidate content contains secret or PII plaintext",
+      { cause },
     );
   }
   return value;

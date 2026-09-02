@@ -687,6 +687,24 @@ function assertNoKnownSecrets(content) {
   }
 }
 
+/**
+ * Shared plaintext persistence guard for downstream Wiki/Skill artifacts.
+ * Callers receive the same Unicode-aware secret/PII policy used by the
+ * model-visible projection boundary instead of maintaining a weaker regex set.
+ */
+export function assertEvolutionContentContainsNoKnownSecrets(content) {
+  if (typeof content !== "string") {
+    throw projectionError(
+      EVOLUTION_PROJECTION_INVALID_CODE,
+      "plaintext persistence content must be a string",
+    );
+  }
+  assertNoKnownSecrets(content);
+  const skeleton = confusableSkeleton(content);
+  if (skeleton !== content) assertNoKnownSecrets(skeleton);
+  return true;
+}
+
 function normalizeId(value, label, maximum = 256) {
   if (
     typeof value !== "string" ||
