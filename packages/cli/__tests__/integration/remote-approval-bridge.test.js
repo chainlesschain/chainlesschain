@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChainlessChainWSServer } from "../../src/gateways/ws/ws-server.js";
 import { WsRpcClient } from "../../src/lib/ws-rpc-client.js";
@@ -20,6 +21,7 @@ import {
   signRemoteMembershipAuthenticationChallenge,
 } from "../../src/lib/remote-membership-coordinator.js";
 import { raceLocalAndRemote } from "../../src/repl/remote-approval.js";
+import { createStructuredMemoryPolicyReceiptWriter } from "../../src/lib/evolution/structured-memory-policy-receipt-writer.js";
 
 // These cases use real loopback WebSockets plus fsync-backed coordinator and
 // host stores. Bound them explicitly for loaded CI workers instead of relying
@@ -27,6 +29,8 @@ import { raceLocalAndRemote } from "../../src/repl/remote-approval.js";
 vi.setConfig({ testTimeout: 15_000 });
 
 const TOKEN = "bridge-integration-token";
+const digest = (value) =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 function waitForEvent(client, predicate, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
@@ -64,6 +68,8 @@ describe("remote approval bridge (integration)", () => {
   let bridge2;
   let devicePrincipalId;
   let approvalDirectory;
+  let policyReceipts;
+  let memoryPolicyReceiptWriter;
 
   const coordinatorOptions = () => ({
     stateFile: path.join(approvalDirectory, "coordinator", "state.json"),
@@ -83,6 +89,7 @@ describe("remote approval bridge (integration)", () => {
       "host",
       "witness.json",
     ),
+    memoryPolicyReceiptWriter,
   });
 
   async function approveShell({
@@ -141,7 +148,43 @@ describe("remote approval bridge (integration)", () => {
     }
   }
 
+  it("rejects an unbranded policy memory writer before connecting", () => {
+    expect(
+      () =>
+        new RemoteApprovalBridge({
+          ...bridgeOptions(server.port),
+          memoryPolicyReceiptWriter: {
+            retainConsumedApproval: async () => ({}),
+          },
+        }),
+    ).toThrow(/branded structured memory policy writer/u);
+  });
+
   beforeEach(async () => {
+    policyReceipts = [];
+    memoryPolicyReceiptWriter = createStructuredMemoryPolicyReceiptWriter({
+      descriptor: {
+        tenantId: "tenant:remote-approval-test",
+        issuerId: "remote-approval-bridge:test",
+        issuerRevision: 1,
+        issuerHandlerDigest: digest("remote-approval-policy-writer:v1"),
+      },
+      authorityStore: {
+        async retainReceipt(receipt) {
+          policyReceipts.push(receipt);
+          return { persisted: true, receiptDigest: receipt.receiptDigest };
+        },
+      },
+      attestor: {
+        async attest({ payloadDigest }) {
+          return {
+            keyId: "remote-approval-test",
+            signature: digest(payloadDigest),
+          };
+        },
+      },
+      clock: () => "2026-09-02T00:00:00.000Z",
+    });
     approvalDirectory = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-remote-approval-integration-"),
     );
@@ -262,6 +305,19 @@ describe("remote approval bridge (integration)", () => {
         policyVersion: approvedPolicyVersion,
       }),
     ).resolves.toBe(true);
+    expect(policyReceipts).toHaveLength(1);
+    expect(policyReceipts[0]).toMatchObject({
+      tenantId: "tenant:remote-approval-test",
+      kind: "policy",
+      decision: "accepted",
+      layer: "policy",
+      action: "accept",
+      issuerId: "remote-approval-bridge:test",
+    });
+    expect(policyReceipts[0].artifactRef).toMatch(/^[a-f0-9]{64}$/u);
+    expect(policyReceipts[0].evidenceRefs).toContain(
+      policyReceipts[0].artifactRef,
+    );
     // Devices see the resolution so UIs can clear the pending card.
     const resolved = await resolvedSeen;
     expect(resolved.event.approved).toBe(true);

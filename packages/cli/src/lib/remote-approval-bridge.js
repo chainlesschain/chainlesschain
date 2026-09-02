@@ -53,6 +53,7 @@ import {
 } from "./remote-control.js";
 import { logger } from "./logger.js";
 import { normalizeRemoteApprovalDecision } from "./remote-approval-decision.js";
+import { captureStructuredMemoryPolicyReceiptWriter } from "./evolution/structured-memory-policy-receipt-writer.js";
 
 const DEFAULT_DECISION_TIMEOUT_MS = 5 * 60 * 1000;
 const REMOTE_LEASE_AUTHORIZATION_KIND =
@@ -102,6 +103,7 @@ export class RemoteApprovalBridge {
     membershipHostAuthorityLockFile = null,
     expectedCoordinatorPublicKeySha256 = null,
     onSecurityError = null,
+    memoryPolicyReceiptWriter = null,
   } = {}) {
     if (!wsUrl) throw new Error("wsUrl is required");
     if (!agentSessionId) throw new Error("agentSessionId is required");
@@ -122,6 +124,10 @@ export class RemoteApprovalBridge {
     this._securityErrors = [];
     this._onSecurityError =
       typeof onSecurityError === "function" ? onSecurityError : null;
+    this._memoryPolicyReceiptWriter =
+      memoryPolicyReceiptWriter === null
+        ? null
+        : captureStructuredMemoryPolicyReceiptWriter(memoryPolicyReceiptWriter);
     this._membershipHostStore =
       membershipHostStore === undefined
         ? () =>
@@ -1089,6 +1095,22 @@ export class RemoteApprovalBridge {
       consumedLease.binding !== durableLease.binding
     ) {
       throw new Error("Consumed Remote approval statement binding changed");
+    }
+    if (this._memoryPolicyReceiptWriter !== null) {
+      await this._memoryPolicyReceiptWriter.retainConsumedApproval({
+        adopted,
+        operation: {
+          requestId: durableLease.requestId,
+          fingerprint: durableLease.fingerprint,
+          binding: durableLease.binding,
+          toolName: descriptor.toolName,
+          action: context.action ?? null,
+          workspace: descriptor.workspace,
+          session: descriptor.session,
+          targetEnv: descriptor.targetEnv,
+          policyVersion: descriptor.policyVersion,
+        },
+      });
     }
     return true;
   }
