@@ -49,10 +49,24 @@ import {
   verifySkillEvaluatedPromotionBinding,
 } from "../../src/lib/evolution/skill-evaluated-promotion.js";
 import {
+  SKILL_MUTATION_NONCE_ACK_SCHEMA,
   SKILL_MUTATION_OPERATIONS,
+  SKILL_MUTATION_PRINCIPAL_SCHEMA,
+  SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+  SKILL_MUTATION_RECEIPT_KINDS,
+  SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+  SKILL_MUTATION_ROLES,
   SKILL_MUTATION_TARGET_SCOPES,
+  SkillMutationAuthority,
   buildSkillMutationRequest,
+  digestSkillMutationReceiptEnvelope,
+  digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
+import {
+  EMPTY_SKILL_ACTIVE_DIGEST,
+  consumeRegistryTransitionCapability,
+  createSkillEvaluatedPromotionControlPlane,
+} from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_TARGET_MATRIX_EVAL_FINALIZATION_SCHEMA,
   SKILL_TARGET_MATRIX_EVAL_PLAN_RESOLUTION_SCHEMA,
@@ -1784,11 +1798,98 @@ function matrixDigest(domain, value) {
     .digest("hex")}`;
 }
 
+function promotionAuthority() {
+  let auditSequence = 0;
+  let nonceSequence = 0;
+  const nonces = new Set();
+  const auditEvents = [];
+  const authority = new SkillMutationAuthority({
+    principalResolver: {
+      async resolve({ request }) {
+        return {
+          schema: SKILL_MUTATION_PRINCIPAL_SCHEMA,
+          authenticated: true,
+          principalId: "principal:matrix-promotion-controller",
+          role: SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER,
+          tenantId: request.tenantId,
+          audience: request.audience,
+          operationId: request.operationId,
+          operation: request.operation,
+          transitionSubjectDigest: request.transitionSubjectDigest,
+          requestDigest: request.requestDigest,
+          expiresAt: request.expiresAt,
+        };
+      },
+    },
+    receiptVerifier: {
+      async verify({ receipts, request, principal }) {
+        return {
+          schema: SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+          verified: true,
+          bindings: Object.fromEntries(
+            SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
+              kind,
+              {
+                schema: SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+                kind,
+                receiptDigest: digestSkillMutationReceiptEnvelope(
+                  receipts[`${kind}Receipt`],
+                ),
+                principalId: principal.principalId,
+                role: principal.role,
+                ...request,
+              },
+            ]),
+          ),
+        };
+      },
+    },
+    auditSink: {
+      async append(event) {
+        auditEvents.push(event);
+        auditSequence += 1;
+        return {
+          persisted: true,
+          auditDigest: event.auditDigest,
+          headDigest: matrixDigest(
+            "matrix-promotion-audit-head",
+            auditSequence,
+          ),
+          sequence: auditSequence,
+        };
+      },
+    },
+    nonceStore: {
+      async claim(claim) {
+        nonceSequence += 1;
+        const key = `${claim.tenantId}:${claim.audience}:${claim.nonce}`;
+        const claimed = !nonces.has(key);
+        if (claimed) nonces.add(key);
+        return {
+          schema: SKILL_MUTATION_NONCE_ACK_SCHEMA,
+          persisted: true,
+          claimed,
+          claimDigest: claim.claimDigest,
+          expiresAt: claim.expiresAt,
+          headDigest: matrixDigest(
+            "matrix-promotion-nonce-head",
+            nonceSequence,
+          ),
+          sequence: nonceSequence,
+        };
+      },
+    },
+  });
+  return { auditEvents, authority };
+}
+
 function makeMatrixComposition({
   calibration,
   firstHarness,
   secondHarness,
   expectedDecision = "accepted",
+  expectedActiveContentDigest = `sha256:${"6".repeat(64)}`,
+  expectedActiveRevision = 7,
   fixtureId = "accepted",
   planTtlMs = 300_000,
 }) {
@@ -2037,8 +2138,8 @@ function makeMatrixComposition({
     candidateContentDigest: `sha256:${"5".repeat(64)}`,
     baselineId: BASELINE_ID,
     baselineReleaseDigest: null,
-    expectedActiveContentDigest: `sha256:${"6".repeat(64)}`,
-    expectedActiveRevision: 7,
+    expectedActiveContentDigest,
+    expectedActiveRevision,
     dependencyLockDigest: dependencyLock.dependencyLockDigest,
     runtimeManifestDigest: runtimeManifest.runtimeManifestDigest,
     targetMatrixRoot: targetMatrix.targetMatrixRoot,
@@ -2467,6 +2568,8 @@ describe("Skill target matrix evaluation foundation", () => {
       calibration,
       firstHarness,
       secondHarness,
+      expectedActiveContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      expectedActiveRevision: 0,
     });
     const aggregator = new SkillTargetMatrixEvalAggregator(
       fixture.aggregatorOptions,
@@ -2510,7 +2613,16 @@ describe("Skill target matrix evaluation foundation", () => {
       audience: "worker:promotion",
       operationId: "promotion:matrix-accepted",
       operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
-      transitionSubjectDigest: `sha256:${"9".repeat(64)}`,
+      transitionSubjectDigest: digestSkillMutationTransitionSubject({
+        tenantId: receipt.tenantId,
+        skillName: receipt.skillName,
+        operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+        candidateId: receipt.candidateId,
+        rollbackTargetReleaseDigest: null,
+        dependencyLockDigest: receipt.dependencyLockDigest,
+        expectedActiveContentDigest: receipt.expectedActiveContentDigest,
+        expectedActiveRevision: receipt.expectedActiveRevision,
+      }),
       skillName: receipt.skillName,
       targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
       expectedTargetDigest: receipt.expectedActiveContentDigest,
@@ -2634,6 +2746,84 @@ describe("Skill target matrix evaluation foundation", () => {
       candidateId: receipt.candidateId,
     });
     expect(resolverRequests).toHaveLength(2);
+
+    const authorityHarness = promotionAuthority();
+    const candidate = Object.freeze({
+      candidateId: receipt.candidateId,
+      contentDigest: receipt.candidateContentDigest,
+      dependencyLockDigest: receipt.dependencyLockDigest,
+      parentDigest: null,
+      runtimeManifestDigest: receipt.runtimeManifestDigest,
+      skillName: receipt.skillName,
+      targetMatrixRoot: receipt.targetMatrixRoot,
+      tenantId: receipt.tenantId,
+    });
+    const state = Object.freeze({
+      activeReleaseDigest: null,
+      revision: 0,
+      skillName: receipt.skillName,
+      tenantId: receipt.tenantId,
+    });
+    const candidateRegistry = {
+      tenantId: receipt.tenantId,
+      read: (candidateId) => {
+        expect(candidateId).toBe(candidate.candidateId);
+        return candidate;
+      },
+    };
+    const releaseRegistry = {
+      tenantId: receipt.tenantId,
+      readState: (skillName) => {
+        expect(skillName).toBe(candidate.skillName);
+        return state;
+      },
+      readRelease: () => {
+        throw new Error("an empty active state has no release");
+      },
+      applyTransition: (capability) => ({
+        transition: consumeRegistryTransitionCapability(
+          capability,
+          releaseRegistry,
+        ),
+      }),
+    };
+    const evaluatedOnly = createSkillEvaluatedPromotionControlPlane({
+      authority: authorityHarness.authority,
+      candidateRegistry,
+      evaluatedPromotionProvider: provider,
+      releaseRegistry,
+    });
+    const promoted = await evaluatedOnly.promoteEvaluated({
+      authorization: {
+        capability:
+          await authorityHarness.authority.authorize(promotionRequest),
+        request: promotionRequest,
+      },
+      candidateId: candidate.candidateId,
+      matrixContext: {
+        matrixEvalId: receipt.matrixEvalId,
+        baselineId: receipt.baselineId,
+        matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+        planDigest: receipt.planDigest,
+      },
+    });
+    expect(promoted).toMatchObject({
+      matrixBinding: {
+        candidateId: candidate.candidateId,
+        matrixReceiptDigest: receipt.receiptDigest,
+      },
+      transition: {
+        candidate,
+        expectedParentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+        expectedRevision: 0,
+        operation: "promote",
+      },
+    });
+    expect(authorityHarness.auditEvents.map((event) => event.phase)).toEqual([
+      "authorize",
+      "consume",
+    ]);
+    expect(evaluatedOnly.promote).toBeUndefined();
     let verifierCalls = 0;
     await expect(
       verifySkillEvaluatedPromotionBinding({
