@@ -32,6 +32,7 @@ const COMPACTION_FIELDS = [
   "delegatedTasks",
   "memoryLineage",
 ];
+const MEMORY_AUTHORITIES = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -90,6 +91,23 @@ function normalizeActor(input) {
   };
   if (!["agent", "human", "service"].includes(actor.actorType)) throw new TypeError("actor.actorType is invalid");
   return actor;
+}
+
+function createStructuredMemoryAuthority(input) {
+  const authority = freeze({
+    tenantId: requiredString(input?.tenantId, "authority.tenantId"),
+    actor: normalizeActor(input),
+    authorityDigest: digest(input?.authorityDigest, "authority.authorityDigest"),
+  });
+  MEMORY_AUTHORITIES.add(authority);
+  return authority;
+}
+
+function consumeAuthority(value, tenantId) {
+  if (!MEMORY_AUTHORITIES.has(value) || value.tenantId !== tenantId) {
+    throw new Error("a branded tenant-scoped memory authority is required");
+  }
+  return value.actor;
 }
 
 function normalizeReceipts(input = {}) {
@@ -270,7 +288,10 @@ class StructuredEvolutionMemory {
   }
 
   async append(input) {
-    const event = normalizeEvent({ ...input, schema: STRUCTURED_MEMORY_EVENT_SCHEMA, tenantId: this.tenantId,
+    const actor = consumeAuthority(input?.authority, this.tenantId);
+    const eventInput = { ...input };
+    delete eventInput.authority;
+    const event = normalizeEvent({ ...eventInput, actor, schema: STRUCTURED_MEMORY_EVENT_SCHEMA, tenantId: this.tenantId,
       sequence: this._projection.sequence + 1 });
     const next = projectStructuredMemory([event], { tenantId: this.tenantId,
       state: Object.fromEntries(Object.entries(this._projection).filter(([key]) => key !== "projectionDigest")),
@@ -326,4 +347,5 @@ module.exports = {
   MEMORY_ACTION,
   StructuredEvolutionMemory,
   projectStructuredMemory,
+  createStructuredMemoryAuthority,
 };

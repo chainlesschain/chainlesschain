@@ -173,6 +173,7 @@ const {
   MEMORY_ACTION: STRUCTURED_MEMORY_ACTION,
   StructuredEvolutionMemory,
   projectStructuredMemory,
+  createStructuredMemoryAuthority,
 } = require("./structured-evolution-memory.js");
 
 module.exports = {
@@ -306,4 +307,5 @@ module.exports = {
   STRUCTURED_MEMORY_ACTION,
   StructuredEvolutionMemory,
   projectStructuredMemory,
+  createStructuredMemoryAuthority,
 };
