@@ -2882,10 +2882,18 @@ describe("Skill target matrix evaluation foundation", () => {
         return candidate;
       },
     };
-    const promotionRoot = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-matrix-promotion-"),
-    );
-    promotionRoots.push(promotionRoot);
+    const processCrashRoot =
+      process.env.CC_TEST_PROMOTION_CRASH_ROOT?.trim() || null;
+    const promotionRoot = processCrashRoot
+      ? path.join(processCrashRoot, "promotion")
+      : fs.mkdtempSync(
+          path.join(fs.realpathSync(os.tmpdir()), "cc-matrix-promotion-"),
+        );
+    if (processCrashRoot) {
+      fs.mkdirSync(promotionRoot, { recursive: true, mode: 0o700 });
+    } else {
+      promotionRoots.push(promotionRoot);
+    }
     const transactionLedger = new PromotionTransactionLedger();
     const registryOptions = {
       tenantId: receipt.tenantId,
@@ -2896,8 +2904,11 @@ describe("Skill target matrix evaluation foundation", () => {
     const releaseRegistry = new SkillReleaseRegistry(registryOptions);
     const memoryRoot = createStructuredMemoryAgentControlPlaneFixture({
       tenantId: receipt.tenantId,
+      ...(processCrashRoot
+        ? { rootDir: processCrashRoot, durableLedger: true }
+        : {}),
     });
-    memoryRootFixtures.push(memoryRoot);
+    if (!processCrashRoot) memoryRootFixtures.push(memoryRoot);
     const runtime = new AgentRuntime({
       kind: "agent",
       policy: {
@@ -2942,6 +2953,23 @@ describe("Skill target matrix evaluation foundation", () => {
       },
     });
     const committedPromotion = pendingError.promotionResult;
+    if (processCrashRoot) {
+      fs.writeFileSync(
+        path.join(processCrashRoot, "producer-ready.json"),
+        `${JSON.stringify({
+          pid: process.pid,
+          receiptDigest:
+            committedPromotion.memoryAuthorityReceipt.receiptDigest,
+          memoryId: committedPromotion.memoryAuthorityReceipt.memoryId,
+          releaseDigest: committedPromotion.release.releaseDigest,
+          stateRevision: committedPromotion.state.revision,
+        })}\n`,
+        "utf8",
+      );
+      await new Promise(() => {
+        setInterval(() => {}, 1_000);
+      });
+    }
     expect(memoryRoot.controlPlane.memory.projection().sequence).toBe(0);
     const reopenedMemoryRoot = memoryRoot.open();
     const reconciliation =

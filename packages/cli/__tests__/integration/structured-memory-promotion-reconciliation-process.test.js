@@ -12,6 +12,12 @@ const fixture = fileURLToPath(
     import.meta.url,
   ),
 );
+const vitest = path.resolve(
+  process.cwd(),
+  "../../node_modules/vitest/vitest.mjs",
+);
+const producerTest =
+  "runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt";
 
 afterEach(() => {
   for (const root of roots.splice(0)) {
@@ -23,6 +29,10 @@ function runPhase(phase, root) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [fixture, phase, root], {
       cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CC_TEST_PROMOTION_TENANT_ID: "tenant-primary",
+      },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -59,8 +69,89 @@ function runPhase(phase, root) {
   });
 }
 
+function runCrashProducer(root) {
+  return new Promise((resolve, reject) => {
+    const markerPath = path.join(root, "producer-ready.json");
+    const child = spawn(
+      process.execPath,
+      [
+        vitest,
+        "run",
+        "__tests__/unit/skill-target-matrix-eval.test.js",
+        "-t",
+        producerTest,
+        "--pool=threads",
+        "--maxWorkers=1",
+        "--reporter=dot",
+      ],
+      {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          CC_TEST_PROMOTION_CRASH_ROOT: root,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      },
+    );
+    let stdout = "";
+    let stderr = "";
+    let marker = null;
+    let settled = false;
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearInterval(poll);
+      clearTimeout(timeout);
+      callback();
+    };
+    const poll = setInterval(() => {
+      try {
+        marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
+        child.kill();
+      } catch (error) {
+        if (error?.code !== "ENOENT" && !(error instanceof SyntaxError)) {
+          finish(() => reject(error));
+        }
+      }
+    }, 20);
+    const timeout = setTimeout(() => {
+      child.kill();
+      finish(() =>
+        reject(
+          new Error(
+            `timed out waiting for committed promotion marker: ${stdout || stderr}`,
+          ),
+        ),
+      );
+    }, 60_000);
+    child.once("error", (error) => finish(() => reject(error)));
+    child.once("close", (code, signal) => {
+      finish(() => {
+        if (!marker) {
+          reject(
+            new Error(
+              `promotion producer exited before its durable marker (${code}/${signal}): ${stdout || stderr}`,
+            ),
+          );
+          return;
+        }
+        resolve({ code, signal, pid: child.pid, marker, stdout, stderr });
+      });
+    });
+  });
+}
+
 describe("structured Memory promotion process reconciliation", () => {
-  it("discovers a durable promotion receipt after restart and appends Memory once", async () => {
+  it("kills the real release producer and reconciles Memory in fresh processes", async () => {
     const root = fs.mkdtempSync(
       path.join(
         fs.realpathSync(os.tmpdir()),
@@ -69,21 +160,18 @@ describe("structured Memory promotion process reconciliation", () => {
     );
     roots.push(root);
 
-    const seeded = await runPhase("seed", root);
+    const producer = await runCrashProducer(root);
     const reconciled = await runPhase("reconcile", root);
     const verified = await runPhase("verify", root);
 
-    expect(seeded).toMatchObject({
-      code: 0,
-      signal: null,
-      result: {
-        ok: true,
-        phase: "seed",
-        receiptDigest: expect.stringMatching(/^sha256:/u),
-        memoryId: expect.stringMatching(/^skill-release:/u),
-        projection: { sequence: 0 },
-      },
+    expect(producer.marker).toMatchObject({
+      pid: producer.pid,
+      receiptDigest: expect.stringMatching(/^sha256:/u),
+      memoryId: expect.stringMatching(/^skill-release:/u),
+      releaseDigest: expect.stringMatching(/^sha256:/u),
+      stateRevision: 1,
     });
+    expect(producer.code === null || producer.code !== 0).toBe(true);
     expect(reconciled).toMatchObject({
       code: 0,
       signal: null,
@@ -95,7 +183,7 @@ describe("structured Memory promotion process reconciliation", () => {
           receiptCount: 1,
           reconciled: [
             {
-              receiptDigest: seeded.result.receiptDigest,
+              receiptDigest: producer.marker.receiptDigest,
               status: "persisted",
             },
           ],
@@ -115,7 +203,7 @@ describe("structured Memory promotion process reconciliation", () => {
           receiptCount: 1,
           reconciled: [
             {
-              receiptDigest: seeded.result.receiptDigest,
+              receiptDigest: producer.marker.receiptDigest,
               status: "recovered",
             },
           ],
@@ -125,14 +213,14 @@ describe("structured Memory promotion process reconciliation", () => {
       },
     });
     expect(
-      new Set([seeded.result.pid, reconciled.result.pid, verified.result.pid])
-        .size,
+      new Set([producer.pid, reconciled.result.pid, verified.result.pid]).size,
     ).toBe(3);
     expect(
-      verified.result.projection.memories[seeded.result.memoryId],
+      verified.result.projection.memories[producer.marker.memoryId],
     ).toMatchObject({
       status: "active",
-      receipts: { promotion: seeded.result.receiptDigest },
+      artifactRef: producer.marker.releaseDigest,
+      receipts: { promotion: producer.marker.receiptDigest },
     });
-  }, 30_000);
+  }, 90_000);
 });
