@@ -2066,7 +2066,9 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     durableWriteJson(committedSourcePath, legacy);
     const committedArchive = archiveLegacySkillReleaseJournal({
       archiveDir: committedArchiveDir,
+      crashHook: null,
       dispositionPlan: migrated,
+      fsImpl: fs,
       legacyJournal: legacy,
       secure: false,
       sourcePath: committedSourcePath,
@@ -2101,7 +2103,9 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     durableWriteJson(legacyJournalPath, legacy);
     const archived = archiveLegacySkillReleaseJournal({
       archiveDir,
+      crashHook: null,
       dispositionPlan: aborted,
+      fsImpl: fs,
       legacyJournal: legacy,
       secure: false,
       sourcePath: legacyJournalPath,
@@ -2123,19 +2127,74 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
     expect(
       archiveLegacySkillReleaseJournal({
         archiveDir,
+        crashHook: null,
         dispositionPlan: aborted,
+        fsImpl: fs,
         legacyJournal: legacy,
         secure: false,
         sourcePath: legacyJournalPath,
         stateMigrationResult: null,
       }).created,
     ).toBe(false);
+    for (const phase of [
+      "after-archive-fsync",
+      "after-archive-publish",
+      "after-archive-readback",
+      "after-source-retire",
+    ]) {
+      const faultRoot = path.join(tempRoot, `archive-fault-${phase}`);
+      const faultSourceDir = path.join(faultRoot, "source", "journals");
+      const faultArchiveDir = path.join(faultRoot, "archive");
+      fs.mkdirSync(faultSourceDir, { recursive: true, mode: 0o700 });
+      fs.mkdirSync(faultArchiveDir, { mode: 0o700 });
+      const faultSourcePath = path.join(
+        faultSourceDir,
+        `${legacy.skillName}.json`,
+      );
+      durableWriteJson(faultSourcePath, legacy);
+      expect(() =>
+        archiveLegacySkillReleaseJournal({
+          archiveDir: faultArchiveDir,
+          crashHook(checkpoint) {
+            if (checkpoint === phase) throw new Error(`crash:${phase}`);
+          },
+          dispositionPlan: aborted,
+          fsImpl: fs,
+          legacyJournal: legacy,
+          secure: false,
+          sourcePath: faultSourcePath,
+          stateMigrationResult: null,
+        }),
+      ).toThrow(`crash:${phase}`);
+      const archiveWasPublished = phase !== "after-archive-fsync";
+      const sourceWasRetired = phase === "after-source-retire";
+      expect(fs.readdirSync(faultArchiveDir)).toHaveLength(
+        archiveWasPublished ? 1 : 0,
+      );
+      expect(fs.existsSync(faultSourcePath)).toBe(!sourceWasRetired);
+      expect(
+        archiveLegacySkillReleaseJournal({
+          archiveDir: faultArchiveDir,
+          crashHook: null,
+          dispositionPlan: aborted,
+          fsImpl: fs,
+          legacyJournal: legacy,
+          secure: false,
+          sourcePath: faultSourcePath,
+          stateMigrationResult: null,
+        }).sourceRetired,
+      ).toBe(true);
+      expect(fs.existsSync(faultSourcePath)).toBe(false);
+      expect(fs.readdirSync(faultArchiveDir)).toHaveLength(1);
+    }
     durableWriteJson(legacyJournalPath, legacy);
     durableWriteJson(archived.archivePath, { forged: true });
     expect(() =>
       archiveLegacySkillReleaseJournal({
         archiveDir,
+        crashHook: null,
         dispositionPlan: aborted,
+        fsImpl: fs,
         legacyJournal: legacy,
         secure: false,
         sourcePath: legacyJournalPath,

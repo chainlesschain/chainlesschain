@@ -641,7 +641,9 @@ const JOURNAL_DISPOSITION_PLAN_KEYS = new Set([
 ]);
 const JOURNAL_ARCHIVE_INPUT_KEYS = new Set([
   "archiveDir",
+  "crashHook",
   "dispositionPlan",
+  "fsImpl",
   "legacyJournal",
   "secure",
   "sourcePath",
@@ -1730,6 +1732,25 @@ export function archiveLegacySkillReleaseJournal(input) {
     SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
   );
   const journal = verifyLegacySkillReleaseJournal(input.legacyJournal);
+  const fsImpl = input.fsImpl;
+  const crashHook = input.crashHook;
+  if (
+    !fsImpl ||
+    typeof fsImpl !== "object" ||
+    utilTypes.isProxy(fsImpl) ||
+    (crashHook !== null && typeof crashHook !== "function")
+  ) {
+    throw migrationRequired("legacy journal archive runtime is invalid");
+  }
+  const checkpoint = (phase, details) => {
+    if (crashHook === null) return;
+    const result = crashHook(phase, deepFreeze({ ...details }));
+    if (utilTypes.isPromise(result)) {
+      throw migrationRequired(
+        "legacy journal archive crash hook must be synchronous",
+      );
+    }
+  };
   if (input.secure !== true && input.secure !== false) {
     throw migrationRequired("legacy journal archive secure mode is invalid");
   }
@@ -1785,11 +1806,11 @@ export function archiveLegacySkillReleaseJournal(input) {
     throw migrationRequired("legacy journal archive paths are invalid");
   }
   for (const directory of [sourceDirectory, archiveDirectory]) {
-    const stat = fs.lstatSync(directory);
+    const stat = fsImpl.lstatSync(directory);
     if (
       !stat.isDirectory() ||
       stat.isSymbolicLink() ||
-      !samePath(realpath(fs, directory), directory)
+      !samePath(realpath(fsImpl, directory), directory)
     ) {
       throw migrationRequired("legacy journal archive directory is unsafe");
     }
@@ -1806,9 +1827,9 @@ export function archiveLegacySkillReleaseJournal(input) {
   );
   const expectedBytes = serialize(archive);
   let created = false;
-  if (lstatOrNull(fs, archivePath) === null) {
+  if (lstatOrNull(fsImpl, archivePath) === null) {
     const source = readBoundedSingleLinkFile(
-      fs,
+      fsImpl,
       sourcePath,
       MAX_FILE_BYTES,
       SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
@@ -1825,10 +1846,10 @@ export function archiveLegacySkillReleaseJournal(input) {
     );
     let descriptor = null;
     try {
-      descriptor = fs.openSync(temporaryPath, "wx", 0o600);
-      fs.writeFileSync(descriptor, expectedBytes);
-      fs.fsyncSync(descriptor);
-      fs.closeSync(descriptor);
+      descriptor = fsImpl.openSync(temporaryPath, "wx", 0o600);
+      fsImpl.writeFileSync(descriptor, expectedBytes);
+      fsImpl.fsyncSync(descriptor);
+      fsImpl.closeSync(descriptor);
       descriptor = null;
       if (input.secure) {
         ensurePrivateFile(temporaryPath, {
@@ -1837,7 +1858,7 @@ export function archiveLegacySkillReleaseJournal(input) {
         });
       }
       const staged = readBoundedSingleLinkFile(
-        fs,
+        fsImpl,
         temporaryPath,
         MAX_FILE_BYTES,
         SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
@@ -1846,21 +1867,30 @@ export function archiveLegacySkillReleaseJournal(input) {
       if (!staged.bytes.equals(expectedBytes)) {
         throw migrationRequired("legacy journal archive write was incomplete");
       }
+      checkpoint("after-archive-fsync", {
+        archiveDigest: archive.archiveDigest,
+        dispositionPlanDigest: disposition.planDigest,
+      });
       try {
-        fs.linkSync(temporaryPath, archivePath);
+        fsImpl.linkSync(temporaryPath, archivePath);
         created = true;
       } catch (error) {
         if (error?.code !== "EEXIST") throw error;
       }
-      fs.unlinkSync(temporaryPath);
-      fsyncDirectory(fs, archiveDirectory);
+      fsImpl.unlinkSync(temporaryPath);
+      fsyncDirectory(fsImpl, archiveDirectory);
+      checkpoint("after-archive-publish", {
+        archiveDigest: archive.archiveDigest,
+        dispositionPlanDigest: disposition.planDigest,
+      });
     } finally {
-      if (descriptor !== null) fs.closeSync(descriptor);
-      if (lstatOrNull(fs, temporaryPath) !== null) fs.unlinkSync(temporaryPath);
+      if (descriptor !== null) fsImpl.closeSync(descriptor);
+      if (lstatOrNull(fsImpl, temporaryPath) !== null)
+        fsImpl.unlinkSync(temporaryPath);
     }
   }
   const persisted = readBoundedSingleLinkFile(
-    fs,
+    fsImpl,
     archivePath,
     MAX_FILE_BYTES,
     SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
@@ -1878,9 +1908,13 @@ export function archiveLegacySkillReleaseJournal(input) {
   ) {
     throw migrationRequired("legacy journal archive readback differs");
   }
-  if (lstatOrNull(fs, sourcePath) !== null) {
+  checkpoint("after-archive-readback", {
+    archiveDigest: archive.archiveDigest,
+    dispositionPlanDigest: disposition.planDigest,
+  });
+  if (lstatOrNull(fsImpl, sourcePath) !== null) {
     const source = readBoundedSingleLinkFile(
-      fs,
+      fsImpl,
       sourcePath,
       MAX_FILE_BYTES,
       SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
@@ -1891,8 +1925,12 @@ export function archiveLegacySkillReleaseJournal(input) {
         "legacy release journal changed before retirement",
       );
     }
-    fs.unlinkSync(sourcePath);
-    fsyncDirectory(fs, sourceDirectory);
+    fsImpl.unlinkSync(sourcePath);
+    fsyncDirectory(fsImpl, sourceDirectory);
+    checkpoint("after-source-retire", {
+      archiveDigest: archive.archiveDigest,
+      dispositionPlanDigest: disposition.planDigest,
+    });
   }
   return deepFreeze({ archive, archivePath, created, sourceRetired: true });
 }
