@@ -13,7 +13,10 @@ vi.mock("../../src/lib/secure-fs.js", () => secureFsMocks);
 
 import {
   SKILL_CANDIDATE_MAX_CONTENT_BYTES,
+  SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
   SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE,
+  SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
+  SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
   SKILL_CANDIDATE_SCHEMA,
   SKILL_CANDIDATE_STORE_LIMIT_CODE,
   SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
@@ -25,6 +28,7 @@ import {
   SkillCandidateRegistry,
   buildSkillCandidateDraft,
   deriveSkillCandidateTenantKey,
+  verifyLegacySkillCandidateDraft,
   verifySkillCandidateDraft,
 } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
@@ -220,6 +224,36 @@ function draftInput(execution, overrides = {}) {
     runtimeManifest: execution.runtimeManifest,
     targetMatrix: execution.targetMatrix,
     ...overrides,
+  };
+}
+
+function legacyCandidate(execution, overrides = {}) {
+  const input = draftInput(execution);
+  const core = {
+    schema: "chainlesschain.skill-candidate/v1",
+    status: "draft",
+    skillName: input.skillName,
+    parentDigest: input.parentDigest,
+    contentDigest: sha256(Buffer.from(input.content, "utf8")),
+    sourceEvidenceRefs: input.sourceEvidenceRefs,
+    derivationMode: input.derivationMode,
+    wikiRevision: input.wikiRevision,
+    proposerModel: input.proposerModel,
+    targetRuntimes: [...execution.targetMatrix.targetRuntimes].sort(),
+    requestedCapabilities: [...input.requestedCapabilities].sort(),
+    evalRunId: null,
+    contentType: "text/markdown; charset=utf-8; profile=skill",
+    content: input.content,
+    ...overrides,
+  };
+  return {
+    candidateId: sha256(
+      Buffer.concat([
+        Buffer.from("chainlesschain.skill-candidate/v1\0", "utf8"),
+        Buffer.from(canonicalJson(core), "utf8"),
+      ]),
+    ),
+    ...core,
   };
 }
 
@@ -844,6 +878,113 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     );
     expect(error.code).toBe("SKILL_CANDIDATE_STORE_UNSAFE");
     expect(error.message).toMatch(/bounded synchronous directory/u);
+  });
+
+  it("migrates an exact v1 draft into tenant v2 only with durable audit binding", () => {
+    const execution = executionFixture();
+    const registry = new SkillCandidateRegistry(
+      registryOptions(TENANT_ALPHA, [execution], {
+        rootDir: registryBase,
+        secure: false,
+      }),
+    );
+    const legacy = legacyCandidate(execution);
+    expect(verifyLegacySkillCandidateDraft(legacy)).toEqual(legacy);
+
+    const authorityDescriptor = {
+      schema: SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
+      authorityId: "authority:candidate-migration",
+      trust: "trusted",
+      handlerArtifactDigest: sha256("candidate-migration-handler:v1"),
+    };
+    const audit = vi.fn((migration) => ({
+      schema: SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: authorityDescriptor.authorityId,
+      trust: authorityDescriptor.trust,
+      handlerArtifactDigest: authorityDescriptor.handlerArtifactDigest,
+      migrationDigest: migration.migrationDigest,
+      receiptDigest: sha256(`migration-receipt:${migration.migrationDigest}`),
+    }));
+    const authority = { ...authorityDescriptor, audit };
+    const executionArtifacts = {
+      dependencyLock: execution.dependencyLock,
+      runtimeManifest: execution.runtimeManifest,
+      targetMatrix: execution.targetMatrix,
+    };
+
+    const migrated = registry.migrateLegacy(
+      legacy,
+      executionArtifacts,
+      authority,
+    );
+    expect(migrated).toMatchObject({
+      candidate: {
+        schema: SKILL_CANDIDATE_SCHEMA,
+        tenantId: TENANT_ALPHA,
+        contentDigest: legacy.contentDigest,
+        targetMatrixRoot: execution.targetMatrix.targetMatrixRoot,
+      },
+      migration: {
+        schema: SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
+        legacyCandidateId: legacy.candidateId,
+        tenantId: TENANT_ALPHA,
+      },
+      receipt: {
+        schema: SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
+        authenticated: true,
+        durable: true,
+      },
+    });
+    expect(migrated.candidate.candidateId).not.toBe(legacy.candidateId);
+    expect(registry.read(migrated.candidate.candidateId)).toEqual(
+      migrated.candidate,
+    );
+    expect(audit).toHaveBeenCalledWith(migrated.migration);
+
+    const repeated = registry.migrateLegacy(
+      legacy,
+      executionArtifacts,
+      authority,
+    );
+    expect(repeated.candidate.candidateId).toBe(migrated.candidate.candidateId);
+    expect(repeated.migration.migrationDigest).toBe(
+      migrated.migration.migrationDigest,
+    );
+
+    const tampered = structuredClone(legacy);
+    tampered.content += "tampered";
+    expect(
+      capturedError(() =>
+        registry.migrateLegacy(tampered, executionArtifacts, authority),
+      ).code,
+    ).toBe(SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE);
+    const narrowedMatrix = structuredClone(execution.targetMatrix);
+    narrowedMatrix.targetRuntimes = [narrowedMatrix.targetRuntimes[0]];
+    expect(
+      capturedError(() =>
+        registry.migrateLegacy(
+          legacy,
+          { ...executionArtifacts, targetMatrix: narrowedMatrix },
+          authority,
+        ),
+      ).code,
+    ).toBe(SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE);
+
+    const failedAudit = {
+      ...authorityDescriptor,
+      audit: (migration) => ({
+        ...audit(migration),
+        durable: false,
+      }),
+    };
+    expect(
+      capturedError(() =>
+        registry.migrateLegacy(legacy, executionArtifacts, failedAudit),
+      ).code,
+    ).toBe("SKILL_CANDIDATE_MIGRATION_AUDIT_FAILED");
+    expect(registry.list()).toHaveLength(1);
   });
 
   it("requires explicit migration for legacy roots and mixed candidate schemas", () => {

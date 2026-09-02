@@ -16,6 +16,12 @@ export const SKILL_CANDIDATE_TENANT_MARKER_SCHEMA =
   "chainlesschain.skill-candidate-tenant-marker/v1";
 export const SKILL_CANDIDATE_MIGRATION_REQUIRED_CODE =
   "SKILL_CANDIDATE_MIGRATION_REQUIRED";
+export const SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA =
+  "chainlesschain.skill-candidate-migration/v1";
+export const SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-candidate-migration-authority/v1";
+export const SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA =
+  "chainlesschain.skill-candidate-migration-receipt/v1";
 export const SKILL_CANDIDATE_STORE_LIMIT_CODE = "SKILL_CANDIDATE_STORE_LIMIT";
 export const SKILL_CANDIDATE_STATUS = "draft";
 export const SKILL_CANDIDATE_CONTENT_TYPE =
@@ -47,7 +53,9 @@ const NAMESPACED_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._:-][a-z0-9]+)*$/u;
 const TENANT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 const EVIDENCE_REF_PATTERN = /^[a-z][a-z0-9+.-]{1,31}:[^\s\\]+$/u;
 const LEGACY_SKILL_CANDIDATE_SCHEMA = "chainlesschain.skill-candidate/v1";
+const LEGACY_CANDIDATE_DIGEST_DOMAIN = LEGACY_SKILL_CANDIDATE_SCHEMA;
 const CANDIDATE_DIGEST_DOMAIN = "chainlesschain.skill-candidate/v2";
+const CANDIDATE_MIGRATION_DOMAIN = SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA;
 const TENANT_KEY_DOMAIN = "chainlesschain.skill-candidate-tenant-key/v1";
 const TENANT_MARKER_DIGEST_DOMAIN =
   "chainlesschain.skill-candidate-tenant-marker/v1";
@@ -76,6 +84,23 @@ const CANDIDATE_KEYS = new Set([
   "targetMatrixRoot",
   "targetRuntimes",
   "tenantId",
+  "wikiRevision",
+]);
+const LEGACY_CANDIDATE_KEYS = new Set([
+  "candidateId",
+  "content",
+  "contentDigest",
+  "contentType",
+  "derivationMode",
+  "evalRunId",
+  "parentDigest",
+  "proposerModel",
+  "requestedCapabilities",
+  "schema",
+  "skillName",
+  "sourceEvidenceRefs",
+  "status",
+  "targetRuntimes",
   "wikiRevision",
 ]);
 
@@ -147,6 +172,28 @@ const REGISTRY_OPTION_KEYS = new Set([
   "targetMatrixAdmissionAuthority",
 ]);
 const LIST_OPTION_KEYS = new Set(["limit"]);
+const MIGRATION_EXECUTION_KEYS = new Set([
+  "dependencyLock",
+  "runtimeManifest",
+  "targetMatrix",
+]);
+const MIGRATION_AUTHORITY_KEYS = new Set([
+  "audit",
+  "authorityId",
+  "handlerArtifactDigest",
+  "schema",
+  "trust",
+]);
+const MIGRATION_RECEIPT_KEYS = new Set([
+  "authenticated",
+  "authorityId",
+  "durable",
+  "handlerArtifactDigest",
+  "migrationDigest",
+  "receiptDigest",
+  "schema",
+  "trust",
+]);
 const PROPOSER_MODEL_KEYS = new Set(["model", "provider", "version"]);
 const SOURCE_EVIDENCE_KEYS = new Set(["digest", "ref"]);
 const DERIVATION_MODES = new Set(["wiki", "record-replay", "manual-import"]);
@@ -1015,6 +1062,112 @@ function candidateCore(input, verificationContext) {
     contentType: SKILL_CANDIDATE_CONTENT_TYPE,
     content,
   };
+}
+
+/** Verify the exact historical v1 draft before any tenant-scoped migration. */
+export function verifyLegacySkillCandidateDraft(candidate) {
+  assertDataRecord(candidate, LEGACY_CANDIDATE_KEYS, "legacy candidate", {
+    exact: true,
+  });
+  if (
+    ownData(candidate, "schema", "legacy candidate") !==
+      LEGACY_SKILL_CANDIDATE_SCHEMA ||
+    ownData(candidate, "status", "legacy candidate") !==
+      SKILL_CANDIDATE_STATUS ||
+    ownData(candidate, "contentType", "legacy candidate") !==
+      SKILL_CANDIDATE_CONTENT_TYPE
+  ) {
+    throw migrationRequired(
+      "legacy candidate schema, status, or content type is invalid",
+    );
+  }
+  const evalRunId = ownData(candidate, "evalRunId", "legacy candidate");
+  if (evalRunId !== null) {
+    throw migrationRequired("legacy draft candidate cannot carry evalRunId");
+  }
+  const content = normalizeContent(
+    ownData(candidate, "content", "legacy candidate"),
+  );
+  const sourceEvidenceRefs = normalizeSourceEvidenceRefs(
+    ownData(candidate, "sourceEvidenceRefs", "legacy candidate"),
+  );
+  const derivationMode = normalizeDerivationMode(
+    ownData(candidate, "derivationMode", "legacy candidate"),
+  );
+  const wikiRevision = normalizeNullableReference(
+    ownData(candidate, "wikiRevision", "legacy candidate"),
+    "wikiRevision",
+  );
+  const proposerModel = normalizeProposerModel(
+    ownData(candidate, "proposerModel", "legacy candidate"),
+  );
+  if (sourceEvidenceRefs.length === 0) {
+    throw migrationRequired("legacy candidate has no source evidence");
+  }
+  if (
+    derivationMode === "wiki" &&
+    (wikiRevision === null || proposerModel === null)
+  ) {
+    throw migrationRequired(
+      "legacy wiki candidate is missing its revision or proposer",
+    );
+  }
+  if (derivationMode !== "wiki" && wikiRevision !== null) {
+    throw migrationRequired("legacy non-wiki candidate claims a wiki revision");
+  }
+  const core = {
+    schema: LEGACY_SKILL_CANDIDATE_SCHEMA,
+    status: SKILL_CANDIDATE_STATUS,
+    skillName: normalizeSkillName(
+      ownData(candidate, "skillName", "legacy candidate"),
+    ),
+    parentDigest: normalizeDigest(
+      ownData(candidate, "parentDigest", "legacy candidate"),
+      "parentDigest",
+      { nullable: true },
+    ),
+    contentDigest: contentDigest(content),
+    sourceEvidenceRefs,
+    derivationMode,
+    wikiRevision,
+    proposerModel,
+    targetRuntimes: normalizeUniqueStringList(
+      ownData(candidate, "targetRuntimes", "legacy candidate"),
+      "targetRuntimes",
+      MAX_TARGET_RUNTIMES,
+    ),
+    requestedCapabilities: normalizeUniqueStringList(
+      ownData(candidate, "requestedCapabilities", "legacy candidate"),
+      "requestedCapabilities",
+      MAX_REQUESTED_CAPABILITIES,
+    ),
+    evalRunId: null,
+    contentType: SKILL_CANDIDATE_CONTENT_TYPE,
+    content,
+  };
+  const normalized = deepFreeze({
+    candidateId: domainDigest(LEGACY_CANDIDATE_DIGEST_DOMAIN, core),
+    ...core,
+  });
+  if (
+    ownData(candidate, "candidateId", "legacy candidate") !==
+      normalized.candidateId ||
+    ownData(candidate, "contentDigest", "legacy candidate") !==
+      normalized.contentDigest ||
+    canonicalJson(candidate) !== canonicalJson(normalized)
+  ) {
+    throw migrationRequired(
+      "legacy candidate bytes or digests are not canonical",
+      {
+        legacyCandidateId: ownData(
+          candidate,
+          "candidateId",
+          "legacy candidate",
+        ),
+      },
+    );
+  }
+  return normalized;
 }
 
 /** Build the only artifact shape accepted by the candidate registry. */
@@ -1971,6 +2124,230 @@ export class SkillCandidateRegistry {
       artifacts.request,
       artifacts,
     );
+  }
+
+  migrateLegacy(legacyCandidate, executionArtifacts, migrationAuthority) {
+    if (arguments.length !== 3) {
+      throw migrationRequired(
+        "legacy migration requires candidate, execution artifacts, and a durable audit authority",
+      );
+    }
+    const legacy = verifyLegacySkillCandidateDraft(legacyCandidate);
+    assertDataRecord(
+      executionArtifacts,
+      MIGRATION_EXECUTION_KEYS,
+      "candidate migration execution artifacts",
+      { exact: true },
+    );
+    assertDataRecord(
+      migrationAuthority,
+      MIGRATION_AUTHORITY_KEYS,
+      "candidate migration authority",
+      { exact: true },
+    );
+    if (
+      ownData(migrationAuthority, "schema", "candidate migration authority") !==
+        SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA ||
+      ownData(migrationAuthority, "trust", "candidate migration authority") !==
+        "trusted"
+    ) {
+      throw migrationRequired(
+        "candidate migration authority is not trusted or has an unsupported schema",
+      );
+    }
+    const authorityId = normalizeNamespacedId(
+      ownData(
+        migrationAuthority,
+        "authorityId",
+        "candidate migration authority",
+      ),
+      "migrationAuthority.authorityId",
+    );
+    const handlerArtifactDigest = normalizeDigest(
+      ownData(
+        migrationAuthority,
+        "handlerArtifactDigest",
+        "candidate migration authority",
+      ),
+      "migrationAuthority.handlerArtifactDigest",
+    );
+    const audit = ownData(
+      migrationAuthority,
+      "audit",
+      "candidate migration authority",
+    );
+    if (typeof audit !== "function") {
+      throw migrationRequired(
+        "candidate migration audit port must be a function",
+      );
+    }
+
+    const dependencyLock = ownData(
+      executionArtifacts,
+      "dependencyLock",
+      "candidate migration execution artifacts",
+    );
+    const runtimeManifest = ownData(
+      executionArtifacts,
+      "runtimeManifest",
+      "candidate migration execution artifacts",
+    );
+    const targetMatrix = ownData(
+      executionArtifacts,
+      "targetMatrix",
+      "candidate migration execution artifacts",
+    );
+    assertPlainObject(targetMatrix, "candidate migration targetMatrix");
+    const targetRuntimes = normalizeUniqueStringList(
+      ownData(
+        targetMatrix,
+        "targetRuntimes",
+        "candidate migration targetMatrix",
+      ),
+      "targetMatrix.targetRuntimes",
+      MAX_TARGET_RUNTIMES,
+    );
+    if (
+      canonicalJson(targetRuntimes) !== canonicalJson(legacy.targetRuntimes)
+    ) {
+      throw migrationRequired(
+        "candidate migration target matrix changes the legacy runtime scope",
+        { legacyCandidateId: legacy.candidateId },
+      );
+    }
+
+    const publication = this.create({
+      tenantId: this.tenantId,
+      skillName: legacy.skillName,
+      parentDigest: legacy.parentDigest,
+      sourceEvidenceRefs: legacy.sourceEvidenceRefs,
+      derivationMode: legacy.derivationMode,
+      wikiRevision: legacy.wikiRevision,
+      proposerModel: legacy.proposerModel,
+      requestedCapabilities: legacy.requestedCapabilities,
+      evalRunId: null,
+      content: legacy.content,
+      dependencyLock,
+      runtimeManifest,
+      targetMatrix,
+    });
+    const candidate = publication.candidate;
+    const migrationCore = deepFreeze({
+      authorityId,
+      candidateId: candidate.candidateId,
+      contentDigest: candidate.contentDigest,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+      handlerArtifactDigest,
+      legacyArtifactDigest: sha256(
+        Buffer.from(`${canonicalJson(legacy)}\n`, "utf8"),
+      ),
+      legacyCandidateId: legacy.candidateId,
+      runtimeManifestDigest: candidate.runtimeManifestDigest,
+      schema: SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
+      targetMatrixRoot: candidate.targetMatrixRoot,
+      tenantId: this.tenantId,
+      trust: "trusted",
+    });
+    const missingBindings = Object.entries(migrationCore)
+      .filter(([, value]) => value === undefined)
+      .map(([key]) => key);
+    if (missingBindings.length > 0) {
+      throw migrationRequired(
+        "candidate migration could not derive a complete audit binding",
+        { legacyCandidateId: legacy.candidateId, missingBindings },
+      );
+    }
+    const migration = deepFreeze({
+      ...migrationCore,
+      migrationDigest: domainDigest(CANDIDATE_MIGRATION_DOMAIN, migrationCore),
+    });
+    let receipt;
+    try {
+      receipt = audit(migration);
+    } catch (cause) {
+      throw registryError(
+        "SKILL_CANDIDATE_MIGRATION_AUDIT_FAILED",
+        "candidate migration audit authority failed after draft publication",
+        {
+          candidateId: candidate.candidateId,
+          cause,
+          commitState: "candidate-only",
+          migrationDigest: migration.migrationDigest,
+        },
+      );
+    }
+    if (utilTypes.isPromise(receipt)) {
+      throw registryError(
+        "SKILL_CANDIDATE_MIGRATION_AUDIT_FAILED",
+        "candidate migration audit authority must be synchronous",
+        {
+          candidateId: candidate.candidateId,
+          commitState: "candidate-only",
+          migrationDigest: migration.migrationDigest,
+        },
+      );
+    }
+    assertDataRecord(
+      receipt,
+      MIGRATION_RECEIPT_KEYS,
+      "candidate migration receipt",
+      { exact: true },
+    );
+    const normalizedReceipt = deepFreeze({
+      authenticated: ownData(
+        receipt,
+        "authenticated",
+        "candidate migration receipt",
+      ),
+      authorityId: normalizeNamespacedId(
+        ownData(receipt, "authorityId", "candidate migration receipt"),
+        "migrationReceipt.authorityId",
+      ),
+      durable: ownData(receipt, "durable", "candidate migration receipt"),
+      handlerArtifactDigest: normalizeDigest(
+        ownData(
+          receipt,
+          "handlerArtifactDigest",
+          "candidate migration receipt",
+        ),
+        "migrationReceipt.handlerArtifactDigest",
+      ),
+      migrationDigest: normalizeDigest(
+        ownData(receipt, "migrationDigest", "candidate migration receipt"),
+        "migrationReceipt.migrationDigest",
+      ),
+      receiptDigest: normalizeDigest(
+        ownData(receipt, "receiptDigest", "candidate migration receipt"),
+        "migrationReceipt.receiptDigest",
+      ),
+      schema: ownData(receipt, "schema", "candidate migration receipt"),
+      trust: ownData(receipt, "trust", "candidate migration receipt"),
+    });
+    if (
+      normalizedReceipt.schema !== SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA ||
+      normalizedReceipt.authenticated !== true ||
+      normalizedReceipt.durable !== true ||
+      normalizedReceipt.trust !== "trusted" ||
+      normalizedReceipt.authorityId !== authorityId ||
+      normalizedReceipt.handlerArtifactDigest !== handlerArtifactDigest ||
+      normalizedReceipt.migrationDigest !== migration.migrationDigest
+    ) {
+      throw registryError(
+        "SKILL_CANDIDATE_MIGRATION_AUDIT_FAILED",
+        "candidate migration receipt is not exactly bound and durable",
+        {
+          candidateId: candidate.candidateId,
+          commitState: "candidate-only",
+          migrationDigest: migration.migrationDigest,
+        },
+      );
+    }
+    return deepFreeze({
+      candidate,
+      created: publication.created,
+      migration,
+      receipt: normalizedReceipt,
+    });
   }
 
   create(input) {
