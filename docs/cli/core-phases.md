@@ -271,7 +271,7 @@ chainlesschain evomap gov propose / vote / dashboard
 chainlesschain dao propose / vote / delegate / execute / treasury / stats
 ```
 
-### Phase 100 — Self-Evolving AI (`evolution` extension)
+### Phase 100 — Evolution Metrics/Governance (`evolution` extension)
 
 Strictly-additive V2 layer on top of the pre-existing `evolution` command.
 Adds four frozen canonical enums (6 capability dimensions / 4 diagnosis
@@ -290,7 +290,7 @@ chainlesschain evolution milestones                  # capability_gain/knowledge
 
 chainlesschain evolution assess-v2 <dim> <score> [-m '{}']       # validates dim ∈ enum, score ∈ [0,1]
 chainlesschain evolution capabilities-v2 [--json]
-chainlesschain evolution train-v2 -s <strategy> --data-size N --loss-before N --loss-after N
+chainlesschain evolution train-v2 -s <strategy> --data-size N --loss-before N --loss-after N # metrics-only; does not train weights
 chainlesschain evolution training-log-v2 [-s strategy] [-l N]
 chainlesschain evolution diagnose-v2 [--scope s] [--depth d]     # returns severity + rootCause + repairSuggestion
 chainlesschain evolution diagnoses-v2 [-s severity]

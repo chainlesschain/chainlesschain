@@ -94,8 +94,23 @@ function registerTechLearningIPC({
       if (!techLearningEngine) {
         throw new Error("TechLearningEngine not initialized");
       }
-      const skill = await techLearningEngine.synthesizeSkill(params);
-      return { success: true, skill };
+      const result = await techLearningEngine.synthesizeSkill(params);
+      if (
+        result?.status !== "candidate-created" ||
+        result?.candidateCreated !== true ||
+        !result?.artifact
+      ) {
+        return {
+          success: false,
+          status: result?.status || "unavailable",
+          code: result?.code || "TECH_LEARNING_SKILL_SYNTHESIS_UNAVAILABLE",
+          error:
+            result?.reason ||
+            "Governed Skill synthesis did not create a persisted candidate",
+          data: result || null,
+        };
+      }
+      return { success: true, status: result.status, candidate: result };
     } catch (error) {
       logger.error("[Tech Learning IPC] Synthesize skill failed:", error);
       return { success: false, error: error.message };

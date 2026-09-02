@@ -1212,7 +1212,7 @@ chainlesschain sandbox audit <id>                      # View audit log
 chainlesschain sandbox destroy <id>                    # Destroy sandbox
 ```
 
-### `chainlesschain evolution <action>`
+### `chainlesschain evolution <action>` (metrics/governance records; not model training)
 
 Self-evolving AI capability assessment and learning.
 
@@ -1225,7 +1225,7 @@ chainlesschain evolution status                        # Evolution status
 
 ### `chainlesschain learning <action>`
 
-Autonomous learning loop — tracks execution trajectories, auto-synthesizes skills from successful patterns, and performs periodic self-reflection.
+Learning-record loop — tracks execution trajectories, records reflection, and can attempt governed Skill candidates from successful patterns. Candidate synthesis fails unavailable unless the required LLM, candidate registry, and evaluator are configured; it never writes an active Skill directly.
 
 ```bash
 chainlesschain learning stats                          # Learning loop statistics overview
@@ -1236,7 +1236,7 @@ chainlesschain learning trajectories --session <id>    # Filter by session
 chainlesschain learning trajectories --json            # JSON output
 chainlesschain learning reflect                        # Manual self-reflection trigger
 chainlesschain learning reflect --json                 # JSON reflection report
-chainlesschain learning synthesize                     # Scan and synthesize new skills
+chainlesschain learning synthesize                     # Attempt a governed Skill candidate (unavailable without required dependencies)
 chainlesschain learning synthesize --json              # JSON output
 chainlesschain learning cleanup                        # Clean up trajectories older than 90 days
 chainlesschain learning cleanup --days 30              # Custom retention period

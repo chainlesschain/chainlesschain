@@ -7,7 +7,7 @@
 - `a2a` — A2A Protocol — agent-to-agent communication
 - `activitypub` (aliases: ap) — ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce
 - `agenda` — Fire agent-scheduled wakeups / crons / monitors (persisted by the `schedule` tool)
-- `agent` (aliases: a) — Start an agentic AI session (reads/writes files, runs commands)
+- `agent` (aliases: a, exec) — Start an agentic AI session (reads/writes files, runs commands)
 - `agent-network` (aliases: anet) — Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing
 - `agents` — User-defined subagents (.claude/agents/*.md)
 - `android` — Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)
@@ -58,7 +58,7 @@
 - `ecosystem` (aliases: eco) — Plugin Ecosystem 2.0 (Phase 64) — registry + deps + install + AI review + publish + revenue + recommend
 - `encrypt` — File encryption and database encryption management
 - `eval` — Run the reliability eval suite (self-checking coding tasks) and report the task-success rate
-- `evolution` — Self-evolving AI system — capabilities, learning, diagnosis
+- `evolution` — Evolution metrics and governance records — not model training or active Skill promotion
 - `evomap` — EvoMap — gene exchange protocol for agent capabilities
 - `execbe` — Execution backend V2 governance
 - `export` — Export knowledge base to external formats
@@ -83,7 +83,7 @@
 - `ipfs` — IPFS decentralized storage (Phase 17)
 - `itbudget` — Iteration Budget V2 governance
 - `kg` — Knowledge graph — entities, relations, multi-hop reasoning, stats
-- `learning` — Autonomous learning loop — trajectories, reflection, skill synthesis
+- `learning` — Learning records — trajectories, reflection, and governed candidate attempts
 - `llm` — LLM provider management
 - `logs` — Print recent output from a background agent
 - `loop` — Repeatedly run an agent prompt or `-- <command>` on a fixed interval

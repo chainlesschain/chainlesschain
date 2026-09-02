@@ -13,7 +13,8 @@ let TechLearningEngine,
   getTechLearningEngine,
   PROFILE_STATUS,
   PRACTICE_STATUS,
-  SUPPORTED_MANIFESTS;
+  SUPPORTED_MANIFESTS,
+  TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE;
 
 beforeEach(async () => {
   mockRunStmt = { run: vi.fn() };
@@ -38,6 +39,8 @@ beforeEach(async () => {
   PROFILE_STATUS = mod.PROFILE_STATUS;
   PRACTICE_STATUS = mod.PRACTICE_STATUS;
   SUPPORTED_MANIFESTS = mod.SUPPORTED_MANIFESTS;
+  TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE =
+    mod.TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE;
 });
 
 describe("Constants", () => {
@@ -155,15 +158,26 @@ describe("TechLearningEngine", () => {
       ).rejects.toThrow("Practice not found");
     });
 
-    it("should synthesize skill from practice", async () => {
+    it("fails closed instead of reporting an in-memory object as a synthesized Skill", async () => {
       engine._practices.set("pr1", {
         id: "pr1",
         title: "Test Practice",
         description: "desc",
         confidence: 0.9,
       });
-      const skill = await engine.synthesizeSkill({ practiceId: "pr1" });
-      expect(skill.name).toContain("skill-");
+      const listener = vi.fn();
+      engine.on("skill-synthesized", listener);
+      const result = await engine.synthesizeSkill({ practiceId: "pr1" });
+      expect(result).toEqual({
+        status: "unavailable",
+        code: TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE,
+        practiceId: "pr1",
+        candidateCreated: false,
+        artifact: null,
+        reason:
+          "Governed Skill synthesis requires a candidate registry and independent evaluator",
+      });
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 

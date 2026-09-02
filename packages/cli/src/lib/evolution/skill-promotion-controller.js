@@ -24,6 +24,15 @@ export const EMPTY_SKILL_ACTIVE_DIGEST = `sha256:${crypto
   .digest("hex")}`;
 
 const TRANSITION_CAPABILITIES = new WeakMap();
+const EVALUATED_CONTROL_PLANE_OPTION_KEYS = new Set([
+  "candidateRegistry",
+  "releaseRegistry",
+  "authority",
+  "evaluatedPromotionProvider",
+]);
+
+export const SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA =
+  "chainlesschain.skill-evaluated-promotion-control-plane/v1";
 
 export class SkillPromotionControllerError extends Error {
   constructor(code, message, details = {}) {
@@ -568,6 +577,42 @@ export class SkillPromotionController {
     );
     return this.#applyTransition(transitionCapability);
   }
+}
+
+/**
+ * Builds the narrow promotion surface intended for production adapters.
+ *
+ * This is a composition primitive, not proof that any production entry point
+ * uses it. The returned facade deliberately withholds both the controller and
+ * direct promote(), while retaining authorized rollback as the recovery path.
+ */
+export function createSkillEvaluatedPromotionControlPlane(options = {}) {
+  assertDataRecord(
+    options,
+    EVALUATED_CONTROL_PLANE_OPTION_KEYS,
+    "evaluated promotion control plane options",
+  );
+  const provider = captureSkillEvaluatedPromotionProvider(
+    options.evaluatedPromotionProvider,
+  );
+  const controller = new SkillPromotionController({
+    candidateRegistry: options.candidateRegistry,
+    releaseRegistry: options.releaseRegistry,
+    authority: options.authority,
+    evaluatedPromotionProvider: options.evaluatedPromotionProvider,
+    requireEvaluatedPromotion: true,
+  });
+  return Object.freeze({
+    schema: SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA,
+    tenantId: options.candidateRegistry.tenantId,
+    providerAuthorityId: provider.authorityId,
+    providerRevision: provider.revision,
+    providerHandlerArtifactDigest: provider.handlerArtifactDigest,
+    promoteEvaluated: Object.freeze((input) =>
+      controller.promoteEvaluated(input),
+    ),
+    rollback: Object.freeze((input) => controller.rollback(input)),
+  });
 }
 
 Object.freeze(SkillPromotionController.prototype);

@@ -64,9 +64,13 @@ describe("tech-learning-ipc", () => {
         { id: "p2", title: "Pin dependencies" },
       ]),
       getPractices: vi.fn().mockResolvedValue([{ id: "p1" }]),
-      synthesizeSkill: vi
-        .fn()
-        .mockResolvedValue({ id: "skill-1", name: "vue-best-practices" }),
+      synthesizeSkill: vi.fn().mockResolvedValue({
+        status: "unavailable",
+        code: "TECH_LEARNING_SKILL_SYNTHESIS_UNAVAILABLE",
+        reason: "candidate registry unavailable",
+        candidateCreated: false,
+        artifact: null,
+      }),
     };
 
     registerTechLearningIPC({
@@ -247,14 +251,42 @@ describe("tech-learning-ipc", () => {
   });
 
   describe("tech-learning:synthesize-skill", () => {
-    it("synthesizes a skill", async () => {
+    it("does not report success without a persisted candidate artifact", async () => {
       const res = await handlers["tech-learning:synthesize-skill"](
         {},
         { profileId: "profile-1", practiceIds: ["p1"] },
       );
       expect(res).toEqual({
+        success: false,
+        status: "unavailable",
+        code: "TECH_LEARNING_SKILL_SYNTHESIS_UNAVAILABLE",
+        error: "candidate registry unavailable",
+        data: {
+          status: "unavailable",
+          code: "TECH_LEARNING_SKILL_SYNTHESIS_UNAVAILABLE",
+          reason: "candidate registry unavailable",
+          candidateCreated: false,
+          artifact: null,
+        },
+      });
+    });
+
+    it("reports success only for an explicit persisted candidate result", async () => {
+      const candidate = {
+        status: "candidate-created",
+        candidateCreated: true,
+        artifact: { digest: "sha256:test", ref: "candidate:test" },
+      };
+      mockTechLearningEngine.synthesizeSkill.mockResolvedValueOnce(candidate);
+
+      const res = await handlers["tech-learning:synthesize-skill"](
+        {},
+        { practiceId: "p1" },
+      );
+      expect(res).toEqual({
         success: true,
-        skill: { id: "skill-1", name: "vue-best-practices" },
+        status: "candidate-created",
+        candidate,
       });
     });
 

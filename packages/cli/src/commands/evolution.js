@@ -1,5 +1,5 @@
 /**
- * Self-Evolving System commands
+ * Evolution metrics and governance-record commands
  * chainlesschain evolution assess|learn|diagnose|repair|predict|growth|stats|export
  */
 
@@ -45,7 +45,9 @@ import {
 export function registerEvolutionCommand(program) {
   const evolution = program
     .command("evolution")
-    .description("Self-evolving AI system — capabilities, learning, diagnosis");
+    .description(
+      "Evolution metrics and governance records — not model training or active Skill promotion",
+    );
 
   // evolution assess <name> <score>
   evolution
@@ -98,8 +100,8 @@ export function registerEvolutionCommand(program) {
   // evolution learn <model-id>
   evolution
     .command("learn")
-    .description("Train a model with incremental data")
-    .argument("<model-id>", "Model ID to train")
+    .description("Record incremental model metrics (metrics-only)")
+    .argument("<model-id>", "Model record ID")
     .option("--data <json>", "Training data as JSON array")
     .option(
       "--type <type>",
@@ -115,7 +117,7 @@ export function registerEvolutionCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const spinner = ora(`Training model: ${modelId}...`).start();
+        const spinner = ora(`Recording model metrics: ${modelId}...`).start();
 
         let data = [{ sample: true }];
         if (options.data) {
@@ -130,7 +132,7 @@ export function registerEvolutionCommand(program) {
         const result = trainIncremental(db, modelId, data, {
           type: options.type,
         });
-        spinner.succeed("Model trained");
+        spinner.succeed("Model metrics recorded");
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -151,7 +153,7 @@ export function registerEvolutionCommand(program) {
   // evolution diagnose
   evolution
     .command("diagnose")
-    .description("Run self-diagnosis on the system")
+    .description("Diagnose recorded evolution metrics")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -207,7 +209,7 @@ export function registerEvolutionCommand(program) {
   // evolution repair <issue>
   evolution
     .command("repair")
-    .description("Self-repair a diagnosed issue")
+    .description("Apply a maintenance strategy to a recorded diagnosis")
     .argument("<issue>", "Issue type (high-memory|stale-cache|degraded-model)")
     .option("--json", "Output as JSON")
     .action(async (issue, options) => {
@@ -511,7 +513,7 @@ export function registerEvolutionCommand(program) {
 
   evolution
     .command("train-v2")
-    .description("Record V2 incremental training run")
+    .description("Record V2 incremental training metrics (metrics-only)")
     .requiredOption(
       "-s, --strategy <s>",
       "replay|elastic-weight|knowledge-distill",
@@ -525,10 +527,19 @@ export function registerEvolutionCommand(program) {
       try {
         const r = trainIncrementalV2({
           strategy: options.strategy,
-          dataSize: numericOption(options.dataSize, { name: "--data-size", min: 0 }),
-          lossBefore: numericOption(options.lossBefore, { name: "--loss-before" }),
+          dataSize: numericOption(options.dataSize, {
+            name: "--data-size",
+            min: 0,
+          }),
+          lossBefore: numericOption(options.lossBefore, {
+            name: "--loss-before",
+          }),
           lossAfter: numericOption(options.lossAfter, { name: "--loss-after" }),
-          durationMs: numericOption(options.durationMs, { name: "--duration-ms", min: 0, fallback: 0 }),
+          durationMs: numericOption(options.durationMs, {
+            name: "--duration-ms",
+            min: 0,
+            fallback: 0,
+          }),
         });
         if (options.json) console.log(JSON.stringify(r, null, 2));
         else {
@@ -565,7 +576,7 @@ export function registerEvolutionCommand(program) {
 
   evolution
     .command("diagnose-v2")
-    .description("Run V2 self-diagnosis")
+    .description("Diagnose recorded V2 evolution metrics")
     .option("--scope <s>", "Scope", "system")
     .option("--depth <d>", "Depth", "shallow")
     .option("--json", "Output as JSON")
@@ -623,7 +634,7 @@ export function registerEvolutionCommand(program) {
 
   evolution
     .command("repair-v2")
-    .description("Apply V2 self-repair to a diagnosis")
+    .description("Record a V2 maintenance strategy for a diagnosis")
     .argument("<diagnosis-id>", "Diagnosis ID")
     .requiredOption(
       "-s, --strategy <s>",
@@ -647,7 +658,7 @@ export function registerEvolutionCommand(program) {
 
   evolution
     .command("predict-v2")
-    .description("V2 behavior prediction")
+    .description("Project behavior from recorded V2 metrics")
     .option("--horizon-ms <n>", "Time horizon in ms")
     .option("--json", "Output as JSON")
     .action((options) => {
@@ -705,8 +716,10 @@ export function registerEvolutionCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       const period = {};
-      if (options.from) period.fromMs = numericOption(options.from, { name: "--from", min: 0 });
-      if (options.to) period.toMs = numericOption(options.to, { name: "--to", min: 0 });
+      if (options.from)
+        period.fromMs = numericOption(options.from, { name: "--from", min: 0 });
+      if (options.to)
+        period.toMs = numericOption(options.to, { name: "--to", min: 0 });
       const list = getGrowthLogV2({
         milestoneType: options.type,
         period: Object.keys(period).length ? period : undefined,

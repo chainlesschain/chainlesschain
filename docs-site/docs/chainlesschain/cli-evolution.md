@@ -2,22 +2,22 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **版本边界（2026-09-02）**：既有 `cc evolution` 命令继续提供评估/诊断表面；受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语已进入 `0.166.16@15bd3636b8`。这些原语尚未组成面向普通用户的生产自动晋级控制面，P1-11 仍为部分完成。
+> **版本边界（2026-09-02）**：既有 `cc evolution` 命令是指标与治理记录表面，不训练模型权重，也不修改 active Skill；其中 `learn`/`train-v2` 只记录调用者提供的数据量、loss 与公式化指标。受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语已进入 `0.166.16@15bd3636b8`，但尚未组成面向普通用户的生产自动晋级控制面。
 
 ## 核心特性
 
 - 📊 **能力评估**: 量化评分（0-1）+ 趋势检测（improving / declining / stable）
-- 🧪 **增量训练**: 基于新数据的模型增量学习，无需完整重训
+- 🧪 **训练指标记录**: 保存调用者提供的数据量、loss 和公式化 accuracy 指标；不执行模型权重训练
 - 🩺 **自我诊断**: 自动检测记忆、能力、模型、成长四维度健康状态
-- 🔧 **自我修复**: 检测到异常时自动触发修复流程
+- 🔧 **维护动作记录**: 根据显式 issue 执行既有维护策略并记录结果，不代表模型或 Skill 已自动修复
 - 🔮 **行为预测**: 基于历史数据预测未来能力变化趋势
 - 📈 **成长日志**: 完整记录 AI 能力成长轨迹
 
 ## 概述
 
-ChainlessChain CLI 自进化系统赋予 AI 自我评估、自我诊断和自我修复能力。通过 `assess` 命令持续追踪各项能力的得分变化，系统自动分析趋势——连续三次以上提升判定为 improving，连续三次以上下降判定为 declining。
+ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和维护动作。通过 `assess` 命令持续追踪各项能力的外部评分变化，系统按记录计算趋势——连续三次以上提升判定为 improving，连续三次以上下降判定为 declining。这些结果是指标投影，不是独立 Eval，也不是系统已经自我进化的证据。
 
-系统提供全面的自我诊断功能，覆盖记忆系统健康度、能力评分分布、模型运行状态、成长趋势四个维度。当诊断发现异常（如能力持续下降、模型响应变慢）时，`repair` 命令可自动尝试修复。`predict` 命令基于历史评估数据，使用线性回归预测未来能力变化。
+系统根据数据库中的既有记录生成诊断投影。`repair <issue>` 只在用户显式指定 issue 后执行内置维护策略并记录结果，不训练模型，也不修改 active Skill。`predict` 命令根据历史记录生成公式化行为预测。
 
 `0.166.16` 包含 candidate-only/diff-only writer、Skill writer inventory、mutation authority、target-matrix Eval、promotion/release registry、认证制品端口与 tamper-evident ledger。mutation transition subject 绑定确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们尚无统一的普通用户 production wiring；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
 
@@ -46,7 +46,7 @@ chainlesschain evolution assess "translation" 0.72 --json
 
 对指定能力进行评估并记录得分（0-1 范围）。系统自动计算趋势方向，返回包含历史评估记录的完整结果。
 
-### evolution learn — 增量训练
+### evolution learn — 训练指标记录（metrics-only）
 
 ```bash
 chainlesschain evolution learn <model-name> --data <json>
@@ -54,7 +54,7 @@ chainlesschain evolution learn "classifier" --data '{"samples":[...]}'
 chainlesschain evolution learn "embedder" --data '{"texts":[...]}' --json
 ```
 
-基于新数据对指定模型进行增量训练，更新模型参数但保留已有知识。
+记录调用者为指定 model ID 提供的数据量、loss/accuracy 等公式化指标；该命令不加载训练框架、不更新模型权重，也不产出新的模型制品。
 
 ### evolution diagnose — 自我诊断
 
@@ -69,14 +69,14 @@ chainlesschain evolution diagnose --json
 
 执行自我诊断，分析系统各维度的健康状态。支持按区域指定诊断范围。
 
-### evolution repair — 自我修复
+### evolution repair — 维护策略记录
 
 ```bash
-chainlesschain evolution repair
-chainlesschain evolution repair --area memory --json
+chainlesschain evolution repair high-memory
+chainlesschain evolution repair stale-cache --json
 ```
 
-根据最新诊断结果自动执行修复操作，如清理损坏的记忆条目、重置异常模型参数等。
+根据用户显式给出的 issue 类型执行既有维护策略并记录动作；它不会重训模型、修改 active Skill 或证明问题已经由独立 Eval 修复。
 
 ### evolution predict — 行为预测
 
@@ -144,8 +144,8 @@ Skill evolution 的本地源码治理链为 `encrypted Raw → model-visible/tru
                                             │
                     ┌──────────────────────┼──────────────────────┐
                     ▼                      ▼                      ▼
-             能力评估引擎           诊断/修复引擎           增量训练引擎
-          (评分+趋势分析)        (四维度健康检查)        (在线学习更新)
+             能力评估投影           诊断/维护记录           训练指标记录
+          (评分+趋势分析)        (记录检查与动作)        (不更新模型权重)
                     │                      │                      │
                     ▼                      ▼                      ▼
         evolution_capabilities    evolution_diagnoses     evolution_models
@@ -174,7 +174,7 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 | ----------------------------- | ------- | ----------- | ---- |
 | assess 能力评估（含趋势计算） | < 100ms | ~ 30ms      | ✅   |
 | diagnose 全四维度诊断         | < 500ms | ~ 150-250ms | ✅   |
-| learn 增量训练（50 样本）     | < 3s    | ~ 1-2s      | ✅   |
+| learn 指标记录（50 条输入）   | < 3s    | ~ 1-2s      | ✅   |
 | predict 线性回归预测          | < 100ms | ~ 20ms      | ✅   |
 | growth 日志查询               | < 100ms | ~ 30ms      | ✅   |
 | stats 综合统计                | < 150ms | ~ 40ms      | ✅   |
@@ -219,29 +219,24 @@ chainlesschain evolution stats --json
 chainlesschain evolution assess nlp-understanding --json
 ```
 
-### 场景 2：增量学习与模型训练
+### 场景 2：记录训练指标
 
 ```bash
-# 在自然语言处理领域进行增量学习
-chainlesschain evolution learn --domain nlp \
-  --samples 100
+# 为既有 model record 提交样本指标
+chainlesschain evolution learn nlp-model --data '[{"sample":1}]'
 
-# 在代码分析领域学习
-chainlesschain evolution learn --domain code-analysis \
-  --samples 50
-
-# 查看已训练模型的精度
+# 查看记录的模型指标
 chainlesschain evolution stats --json | jq '.models'
 ```
 
-### 场景 3：自诊断与自修复
+### 场景 3：诊断与显式维护记录
 
 ```bash
 # 执行全面自诊断（memory/capabilities/models/growth 四维度）
 chainlesschain evolution diagnose
 
-# 执行自修复（垃圾回收、缓存清理、模型重训练）
-chainlesschain evolution repair
+# 显式执行一种既有维护策略
+chainlesschain evolution repair stale-cache
 
 # 预测用户行为
 chainlesschain evolution predict --user-pattern "morning-coding"
@@ -278,16 +273,16 @@ chainlesschain evolution assess code-generation
 chainlesschain db init
 
 # 错误: "No models available for prediction"
-# 原因: 未进行过增量学习
-# 修复: 先训练模型
-chainlesschain evolution learn --domain code-analysis --samples 100
+# 原因: 尚无可供公式投影的指标记录
+# 处理: 先为既有 model ID 记录输入指标（不会训练权重）
+chainlesschain evolution learn code-analysis --data '[{"sample":1}]'
 ```
 
 ## 安全考虑
 
 - **能力数据隐私**: 能力评估和学习数据存储在本地加密数据库中，不会上传至外部服务器
-- **模型训练安全**: 增量学习使用本地数据，训练结果仅保存在本地，防止模型数据泄露
-- **自修复约束**: 自修复操作限于安全范围内（垃圾回收、缓存清理），不会删除用户数据或修改配置
+- **指标记录边界**: `learn`/`train-v2` 只写指标记录，不执行模型权重训练；输入仍应按敏感数据处理
+- **维护动作约束**: `repair` 仅执行显式 issue 对应的既有维护策略，不应被解释为自主修复或独立 Eval 通过
 - **诊断信息敏感性**: 诊断结果可能包含系统资源使用信息，`--json` 导出时注意不要泄露给不信任方
 - **成长日志审计**: 所有能力变化都记录在 `evolution_growth_log` 中，支持回溯分析异常变化
 - **Skill 写入边界**: 自动生成与改进只能产生 candidate/diff；active 只能由受信 promotion controller 在 CAS 与 receipt 校验后修改

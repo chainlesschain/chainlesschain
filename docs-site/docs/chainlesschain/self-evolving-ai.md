@@ -2,6 +2,8 @@
 
 > **Phase 100 历史能力 + Agent Platform 0.166.16 受治理 Skill 自进化基础 | 更新：2026-09-02**
 
+> **真实性口径**：本文后半部分保留的 NAS、EWC/蒸馏、自动修复和 8 个 `evolution:*` IPC 属于历史设计说明，不是当前生产接线。当前 Desktop 正式注册的是 knowledge graph、prompt metrics、Skill 搜索建议、debate 与 A/B 记录表面；未接线的 `self-evolving-system.js` 已明确标记为 metrics simulator。Tech Learning 在没有持久 candidate artifact 和独立 evaluator 时返回 `unavailable`，不会报告 Skill 创建成功。
+
 本文同时说明两类能力：既有 Desktop 模型评估、训练、诊断与成长日志接口，以及 `0.166.16` 新增的受治理 Skill 候选/评测/发布基础。新基础已经进入 GitHub `main@15bd3636b8` 与 npm `chainlesschain@0.166.16`，但仍不表示生产 Agent 可以无人值守地修改 active Skill。
 
 ## 概述

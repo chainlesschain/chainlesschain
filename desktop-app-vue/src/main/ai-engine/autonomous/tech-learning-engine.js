@@ -5,7 +5,8 @@
  * - Tech stack detection (package.json/pom.xml/etc.)
  * - Doc crawling and best practice extraction via LLM
  * - Practice to Instinct promotion
- * - Skill auto-synthesis
+ * - Practice extraction (Skill synthesis remains unavailable until a governed
+ *   candidate registry and independent evaluator are injected)
  *
  * @module ai-engine/autonomous/tech-learning-engine
  * @version 1.1.0
@@ -41,6 +42,9 @@ const PRACTICE_STATUS = {
   VERIFIED: "verified",
   PROMOTED: "promoted",
 };
+
+const TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE =
+  "TECH_LEARNING_SKILL_SYNTHESIS_UNAVAILABLE";
 
 const SUPPORTED_MANIFESTS = [
   "package.json",
@@ -295,18 +299,19 @@ class TechLearningEngine extends EventEmitter {
       throw new Error(`Practice not found: ${practiceId}`);
     }
 
-    const skill = {
-      id: uuidv4(),
+    const result = {
+      status: "unavailable",
+      code: TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE,
       practiceId,
-      name: `skill-${practice.title.toLowerCase().replace(/\s+/g, "-")}`,
-      description: practice.description,
-      synthesizedAt: Date.now(),
-      confidence: practice.confidence,
+      candidateCreated: false,
+      artifact: null,
+      reason:
+        "Governed Skill synthesis requires a candidate registry and independent evaluator",
     };
-
-    this.emit("skill-synthesized", skill);
-    logger.info(`[TechLearningEngine] Skill synthesized: ${skill.name}`);
-    return skill;
+    logger.warn(
+      `[TechLearningEngine] Skill synthesis unavailable for practice: ${practice.id}`,
+    );
+    return result;
   }
 
   async close() {
@@ -333,5 +338,6 @@ export {
   PROFILE_STATUS,
   PRACTICE_STATUS,
   SUPPORTED_MANIFESTS,
+  TECH_LEARNING_SYNTHESIS_UNAVAILABLE_CODE,
 };
 export default TechLearningEngine;

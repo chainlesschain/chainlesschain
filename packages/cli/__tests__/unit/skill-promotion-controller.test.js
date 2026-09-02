@@ -34,7 +34,9 @@ import {
 } from "../../src/lib/evolution/skill-mutation-authority.js";
 import {
   EMPTY_SKILL_ACTIVE_DIGEST,
+  SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA,
   SkillPromotionController,
+  createSkillEvaluatedPromotionControlPlane,
 } from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
@@ -602,6 +604,58 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     ).toThrow(/captured evidence provider/u);
   });
 
+  it("exposes a narrow evaluated-only control plane without direct promotion", () => {
+    const resolverDescriptor = {
+      schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
+      authorityId: "authority:promotion-control-plane-receipts",
+      trust: "trusted",
+      revision: 2,
+      handlerArtifactDigest: digest(
+        "promotion-control-plane-receipt-resolver:v2",
+      ),
+    };
+    const provider = createSkillEvaluatedPromotionProvider({
+      authorityId: "authority:promotion-control-plane-provider",
+      handlerArtifactDigest: digest("promotion-control-plane-provider:v3"),
+      receiptResolver: {
+        ...resolverDescriptor,
+        resolve() {
+          throw new Error("unused in construction test");
+        },
+      },
+      revision: 3,
+      verifier: {},
+    });
+    const controlPlane = createSkillEvaluatedPromotionControlPlane({
+      candidateRegistry: candidates,
+      releaseRegistry: releases,
+      authority: authorityHarness.authority,
+      evaluatedPromotionProvider: provider,
+    });
+
+    expect(controlPlane).toMatchObject({
+      schema: SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA,
+      tenantId: TENANT_ID,
+      providerAuthorityId: provider.authorityId,
+      providerRevision: provider.revision,
+      providerHandlerArtifactDigest: provider.handlerArtifactDigest,
+    });
+    expect(Reflect.ownKeys(controlPlane)).toEqual([
+      "schema",
+      "tenantId",
+      "providerAuthorityId",
+      "providerRevision",
+      "providerHandlerArtifactDigest",
+      "promoteEvaluated",
+      "rollback",
+    ]);
+    expect(controlPlane.promote).toBeUndefined();
+    expect(controlPlane.controller).toBeUndefined();
+    expect(Object.isFrozen(controlPlane)).toBe(true);
+    expect(Object.isFrozen(controlPlane.promoteEvaluated)).toBe(true);
+    expect(Object.isFrozen(controlPlane.rollback)).toBe(true);
+  });
+
   it("rejects fake authority objects and forged registry transition capabilities", async () => {
     expect(
       () =>
@@ -880,6 +934,46 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     expect(ledger.snapshot()).toHaveLength(1);
   });
 
+  it("admits exactly one winner across 100 concurrent proposals without partial state", async () => {
+    const proposals = Array.from({ length: 100 }, (_, index) => {
+      const suffix = `stress-${String(index).padStart(3, "0")}`;
+      const candidate = createCandidate(null, suffix);
+      return {
+        candidate,
+        request: mutationRequest({
+          targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+          revision: 0,
+          operationId: `promotion:${suffix}`,
+          candidateId: candidate.candidateId,
+          dependencyLockDigest: candidate.dependencyLockDigest,
+        }),
+      };
+    });
+    const authorizations = await Promise.all(
+      proposals.map(({ request }) => authorize(request)),
+    );
+
+    const results = await Promise.allSettled(
+      proposals.map(({ candidate }, index) =>
+        controller.promote({
+          candidateId: candidate.candidateId,
+          authorization: authorizations[index],
+        }),
+      ),
+    );
+    const fulfilled = results.filter(({ status }) => status === "fulfilled");
+    const rejected = results.filter(({ status }) => status === "rejected");
+    const state = releases.readState("repair-unit-tests");
+    const active = releases.readRelease(state.activeReleaseDigest);
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(99);
+    expect(state).toMatchObject({ revision: 1, fence: 1 });
+    expect(active.releaseDigest).toBe(state.activeReleaseDigest);
+    expect(ledger.snapshot()).toHaveLength(1);
+    expect(ledger.snapshot()[0].committed).not.toBeNull();
+  }, 90_000);
+
   it("updates and rolls back with a fresh six-receipt authorization", async () => {
     const first = createCandidate();
     const firstRequest = mutationRequest({
@@ -914,9 +1008,12 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
       dependencyLockDigest: firstResult.release.dependencyLockDigest,
     });
 
+    const rollbackStartedAt = Date.now();
     const rollback = await controller.rollback({
       authorization: await authorize(rollbackRequest),
     });
+    const rollbackElapsedMs = Date.now() - rollbackStartedAt;
+    const restored = releases.readRelease(rollback.state.activeReleaseDigest);
 
     expect(rollback.receipt.operation).toBe("rollback");
     expect(rollback.state).toMatchObject({
@@ -928,6 +1025,13 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     expect(rollback.state.activeReleaseDigest).not.toBe(
       secondResult.release.releaseDigest,
     );
+    expect(Buffer.from(restored.candidate.content)).toEqual(
+      Buffer.from(first.content),
+    );
+    expect(restored.dependencyLockDigest).toBe(
+      firstResult.release.dependencyLockDigest,
+    );
+    expect(rollbackElapsedMs).toBeLessThan(60_000);
   });
 
   it("captures and freezes trusted ports against post-construction replacement", () => {

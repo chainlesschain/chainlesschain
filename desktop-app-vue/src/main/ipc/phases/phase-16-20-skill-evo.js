@@ -1,17 +1,20 @@
 /**
  * Phases 16-20 (v1.1.0 - v2.1.0): Skill Pipeline/Workflow, Instinct,
- * Cowork v2.0 Cross-device, ML Scheduler/LB/CICD/APIDocs, Self-Evolution.
+ * Cowork v2.0 Cross-device, ML Scheduler/LB/CICD/APIDocs, Evolution Metrics.
  *
  *  - Phase 16: Skill Pipeline / Metrics / Workflow / Git Hooks (v1.1.0)
  *  - Phase 17: Instinct Learning System (v0.39.0)
  *  - Phase 18: Cowork v2.0.0 Cross-device Collaboration
  *  - Phase 19: ML Scheduler, Load Balancer, CI/CD, API Docs (v1.3.0)
- *  - Phase 20: Self-Evolution & Knowledge Graph (v2.1.0)
+ *  - Phase 20: Evolution Metrics & Knowledge Graph (v2.1.0)
  *
  * Extracted from ipc-registry.js as part of H2 file split.
  */
 
-function createPhase16SkillServices({ deps = {}, registeredModules = {} } = {}) {
+function createPhase16SkillServices({
+  deps = {},
+  registeredModules = {},
+} = {}) {
   const {
     getSkillRegistry,
   } = require("../../ai-engine/cowork/skills/skill-registry");
@@ -26,9 +29,7 @@ function createPhase16SkillServices({ deps = {}, registeredModules = {} } = {}) 
   } = require("../../ai-engine/cowork/skills/skill-workflow-engine");
 
   const skillRegistry =
-    deps.skillRegistry ||
-    registeredModules.skillRegistry ||
-    getSkillRegistry();
+    deps.skillRegistry || registeredModules.skillRegistry || getSkillRegistry();
   if (
     !skillRegistry ||
     typeof skillRegistry.executeSkill !== "function" ||
@@ -507,10 +508,10 @@ function registerPhases16to20({
   logger.info("[IPC Registry] ========================================");
 
   // ============================================================
-  // Phase 20: Self-Evolution & Knowledge Graph (v2.1.0)
+  // Phase 20: Evolution Metrics & Knowledge Graph (v2.1.0)
   // ============================================================
 
-  safeRegister("Self-Evolution & Knowledge Graph IPC", {
+  safeRegister("Evolution Metrics & Knowledge Graph IPC", {
     register: () => {
       const {
         getCodeKnowledgeGraph,
@@ -627,7 +628,7 @@ function registerPhases16to20({
 
   logger.info("[IPC Registry] ========================================");
   logger.info(
-    "[IPC Registry] Phase 20 Complete: Self-Evolution & Knowledge Graph ready!",
+    "[IPC Registry] Phase 20 Complete: Evolution Metrics & Knowledge Graph ready!",
   );
   logger.info("[IPC Registry] ========================================");
 }

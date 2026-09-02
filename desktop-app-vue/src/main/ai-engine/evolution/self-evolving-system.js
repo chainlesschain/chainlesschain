@@ -1,9 +1,12 @@
 /**
  * @module ai-engine/evolution/self-evolving-system
- * Phase 100: Self-evolving AI - NAS, continual learning, self-diagnosis, behavior prediction, capability assessment
+ * Phase 100 historical metrics simulator. This module is not registered by the
+ * production IPC registry and does not train model weights or evolve Skills.
  */
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+
+const EVOLUTION_METRICS_ONLY = true;
 
 /**
  * Parse a stored JSON column defensively. One corrupt capability `history` row
@@ -443,4 +446,8 @@ function getSelfEvolvingSystem() {
   }
   return instance;
 }
-module.exports = { SelfEvolvingSystem, getSelfEvolvingSystem };
+module.exports = {
+  EVOLUTION_METRICS_ONLY,
+  SelfEvolvingSystem,
+  getSelfEvolvingSystem,
+};
