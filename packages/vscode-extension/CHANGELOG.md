@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.79] - Reviewed App Server approvals (2026-09-02)
+
+- Add a bounded native review flow for App Server permission requests with
+  approve-once, exact requested-permissions-for-turn, and decline decisions.
+- Bind every decision to the exact thread, turn, item, operation, policy
+  digests, nonce, and expiry supplied by the CLI-owned request.
+- Fail closed on expired, oversized, malformed, or dismissed requests without
+  granting the extension independent permission authority.
+
 ## [0.37.78] - CLI 0.166.16 release-evidence hardening (2026-09-01)
 
 - Recommend the exact-gated `chainlesschain@0.166.16` release and align the
