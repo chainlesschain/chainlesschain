@@ -46,6 +46,10 @@ class FakePilotClient extends EventEmitter {
       "memoryDecide",
       "memoryDelete",
       "memoryReconcile",
+      "evolutionWorkbenchList",
+      "evolutionWorkbenchCompare",
+      "evolutionWorkbenchReview",
+      "evolutionWorkbenchRollback",
     ]) {
       this[method] = vi.fn(async (params) => ({ method, params }));
     }
@@ -482,6 +486,20 @@ describe("DesktopAppServerPilot", () => {
     ).resolves.toEqual({
       method: "memoryRecall",
       params: { query: "release", scopes: ["project"] },
+    });
+    await expect(
+      pilot.evolutionWorkbenchRollback({
+        fromPacketDigest: "sha256:active",
+        toPacketDigest: "sha256:target",
+        reason: "regression",
+      }),
+    ).resolves.toEqual({
+      method: "evolutionWorkbenchRollback",
+      params: {
+        fromPacketDigest: "sha256:active",
+        toPacketDigest: "sha256:target",
+        reason: "regression",
+      },
     });
 
     expect(

@@ -1230,6 +1230,10 @@ describe("registerCodingAgentIPCV3", () => {
       memoryDecide: vi.fn(),
       memoryDelete: vi.fn(),
       memoryReconcile: vi.fn(),
+      evolutionWorkbenchList: vi.fn().mockResolvedValue({ candidates: [] }),
+      evolutionWorkbenchCompare: vi.fn().mockResolvedValue({ changes: [] }),
+      evolutionWorkbenchReview: vi.fn().mockResolvedValue({ accepted: true }),
+      evolutionWorkbenchRollback: vi.fn().mockResolvedValue({ accepted: true }),
       listPendingApprovals: vi.fn().mockReturnValue([{ id: "approval-1" }]),
       respondApproval: vi.fn().mockReturnValue({
         accepted: true,
@@ -1292,6 +1296,53 @@ describe("registerCodingAgentIPCV3", () => {
         { query: "release", scopes: ["project"] },
       ),
     ).toEqual({ success: true, result: { results: [] } });
+    const workbenchListRequest = { limit: 100 };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-evolution-workbench-list"
+      ]({}, workbenchListRequest),
+    ).toEqual({ success: true, result: { candidates: [] } });
+    expect(appServerPilot.evolutionWorkbenchList).toHaveBeenCalledWith(
+      workbenchListRequest,
+    );
+    const compareRequest = {
+      leftPacketDigest: "sha256:left",
+      rightPacketDigest: "sha256:right",
+    };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-evolution-workbench-compare"
+      ]({}, compareRequest),
+    ).toEqual({ success: true, result: { changes: [] } });
+    expect(appServerPilot.evolutionWorkbenchCompare).toHaveBeenCalledWith(
+      compareRequest,
+    );
+    const reviewRequest = {
+      packetDigests: ["sha256:pending"],
+      decision: "approve",
+      reason: "validated",
+    };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-evolution-workbench-review"
+      ]({}, reviewRequest),
+    ).toEqual({ success: true, result: { accepted: true } });
+    expect(appServerPilot.evolutionWorkbenchReview).toHaveBeenCalledWith(
+      reviewRequest,
+    );
+    const rollbackRequest = {
+      fromPacketDigest: "sha256:active",
+      toPacketDigest: "sha256:target",
+      reason: "regression",
+    };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-evolution-workbench-rollback"
+      ]({}, rollbackRequest),
+    ).toEqual({ success: true, result: { accepted: true } });
+    expect(appServerPilot.evolutionWorkbenchRollback).toHaveBeenCalledWith(
+      rollbackRequest,
+    );
     expect(
       await ipcMainMock.handlers["coding-agent:app-server-approval-list"](),
     ).toEqual({ success: true, result: [{ id: "approval-1" }] });

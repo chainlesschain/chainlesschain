@@ -604,6 +604,22 @@ class DesktopAppServerPilot extends EventEmitter {
   memoryReconcile(params) {
     return this.client.memoryReconcile(normalizeParams(params));
   }
+
+  evolutionWorkbenchList(params) {
+    return this.client.evolutionWorkbenchList(normalizeParams(params));
+  }
+
+  evolutionWorkbenchCompare(params) {
+    return this.client.evolutionWorkbenchCompare(normalizeParams(params));
+  }
+
+  evolutionWorkbenchReview(params) {
+    return this.client.evolutionWorkbenchReview(normalizeParams(params));
+  }
+
+  evolutionWorkbenchRollback(params) {
+    return this.client.evolutionWorkbenchRollback(normalizeParams(params));
+  }
 }
 
 module.exports = {

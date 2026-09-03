@@ -499,6 +499,18 @@ export interface CodingAgentAPI {
   appServerMemoryDecide(payload: Record<string, unknown>): Promise<any>;
   appServerMemoryDelete(payload: Record<string, unknown>): Promise<any>;
   appServerMemoryReconcile(payload: Record<string, unknown>): Promise<any>;
+  appServerEvolutionWorkbenchList(
+    payload?: Record<string, unknown>,
+  ): Promise<any>;
+  appServerEvolutionWorkbenchCompare(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
+  appServerEvolutionWorkbenchReview(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
+  appServerEvolutionWorkbenchRollback(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
   appServerApprovalList(): Promise<{
     success: boolean;
     result?: Array<Record<string, unknown>>;

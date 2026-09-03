@@ -1808,6 +1808,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:app-server-memory-delete", payload),
     appServerMemoryReconcile: (payload) =>
       ipcRenderer.invoke("coding-agent:app-server-memory-reconcile", payload),
+    appServerEvolutionWorkbenchList: (payload = {}) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-evolution-workbench-list",
+        payload,
+      ),
+    appServerEvolutionWorkbenchCompare: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-evolution-workbench-compare",
+        payload,
+      ),
+    appServerEvolutionWorkbenchReview: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-evolution-workbench-review",
+        payload,
+      ),
+    appServerEvolutionWorkbenchRollback: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-evolution-workbench-rollback",
+        payload,
+      ),
     appServerApprovalList: () =>
       ipcRenderer.invoke("coding-agent:app-server-approval-list"),
     appServerApprovalDecide: (payload) =>

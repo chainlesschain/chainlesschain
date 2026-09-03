@@ -31,6 +31,10 @@ const APP_SERVER_PILOT_IPC_CHANNELS = [
   "coding-agent:app-server-memory-decide",
   "coding-agent:app-server-memory-delete",
   "coding-agent:app-server-memory-reconcile",
+  "coding-agent:app-server-evolution-workbench-list",
+  "coding-agent:app-server-evolution-workbench-compare",
+  "coding-agent:app-server-evolution-workbench-review",
+  "coding-agent:app-server-evolution-workbench-rollback",
 ];
 
 const CODING_AGENT_IPC_CHANNELS = [
@@ -202,6 +206,22 @@ function registerCodingAgentIPCV3(options = {}) {
     ["coding-agent:app-server-memory-decide", "memoryDecide"],
     ["coding-agent:app-server-memory-delete", "memoryDelete"],
     ["coding-agent:app-server-memory-reconcile", "memoryReconcile"],
+    [
+      "coding-agent:app-server-evolution-workbench-list",
+      "evolutionWorkbenchList",
+    ],
+    [
+      "coding-agent:app-server-evolution-workbench-compare",
+      "evolutionWorkbenchCompare",
+    ],
+    [
+      "coding-agent:app-server-evolution-workbench-review",
+      "evolutionWorkbenchReview",
+    ],
+    [
+      "coding-agent:app-server-evolution-workbench-rollback",
+      "evolutionWorkbenchRollback",
+    ],
   ]) {
     ipc.handle(channel, (_event, payload = {}) => runPilot(operation, payload));
   }
