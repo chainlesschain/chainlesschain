@@ -9,7 +9,7 @@ describe("Skill outcome authority selection", () => {
     const buildTranscript = vi.fn();
     expect(
       resolveSkillOutcomeAuthority(
-        { indexAdapters: ["adapter"] },
+        { index: { tenantId: "tenant:test", readers: ["reader"] } },
         {
           buildSkillOutcomeIndexAuthority: buildIndex,
           buildSkillOutcomeTranscriptAuthority: buildTranscript,
@@ -17,7 +17,7 @@ describe("Skill outcome authority selection", () => {
       ),
     ).toBe(indexed);
     expect(buildIndex).toHaveBeenCalledWith(
-      { adapters: ["adapter"] },
+      { tenantId: "tenant:test", readers: ["reader"] },
       undefined,
     );
     expect(buildTranscript).not.toHaveBeenCalled();
@@ -29,7 +29,7 @@ describe("Skill outcome authority selection", () => {
     const unavailableIndex = vi.fn(() => unavailable);
     expect(
       resolveSkillOutcomeAuthority(
-        { indexAdapters: [] },
+        { index: { tenantId: "tenant:test", readers: [] } },
         {
           buildSkillOutcomeIndexAuthority: () => {
             throw Object.assign(new Error("backfill"), {

@@ -20,6 +20,7 @@ import {
   EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT,
   EvolutionWorkbenchMetricsLedgerAdapter,
   isEvolutionWorkbenchMetricsLedgerAdapter,
+  isEvolutionWorkbenchMetricsOutcomeReader,
 } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import {
   EvolutionWorkbenchMetricsAggregator,
@@ -425,6 +426,15 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     expect(isEvolutionWorkbenchMetricsLedgerAdapter(reopenedAdapter)).toBe(
       true,
     );
+    const outcomeReader = reopenedAdapter.createOutcomeReader();
+    expect(isEvolutionWorkbenchMetricsOutcomeReader(outcomeReader)).toBe(true);
+    expect(Object.keys(outcomeReader)).toEqual(["loadOutcomeSnapshot"]);
+    expect(() =>
+      buildSkillOutcomeIndexAuthority({
+        tenantId: descriptor.tenantId,
+        readers: [reopenedAdapter],
+      }),
+    ).toThrow("outcome index readers are invalid");
     expect(reopenedAdapter.loadOutcomeSnapshot()).toMatchObject({
       found: true,
       descriptor,
@@ -438,7 +448,10 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       },
     });
     expect(
-      buildSkillOutcomeIndexAuthority({ adapters: [reopenedAdapter] }),
+      buildSkillOutcomeIndexAuthority({
+        tenantId: descriptor.tenantId,
+        readers: [outcomeReader],
+      }),
     ).toMatchObject({
       status: "verified-indexed",
       metrics: {

@@ -9643,6 +9643,7 @@ async function startAgentReplInWorkspaceOwned(
         sessionId,
         persistUsageTelemetry: useJsonl,
         skillLoader: _replSkillLoader,
+        skillOutcomeIndex: options.skillOutcomeIndex,
         cwd: process.cwd(),
         additionalDirectories,
         sandbox: _sandbox,

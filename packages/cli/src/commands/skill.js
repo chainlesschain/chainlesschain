@@ -531,11 +531,8 @@ export function registerSkillCommand(program, dependencies = {}) {
         return;
       }
       const outcomeAuthority = resolveSkillOutcomeAuthority(
-        Object.prototype.hasOwnProperty.call(
-          dependencies,
-          "skillOutcomeIndexAdapters",
-        )
-          ? { indexAdapters: dependencies.skillOutcomeIndexAdapters }
+        Object.prototype.hasOwnProperty.call(dependencies, "skillOutcomeIndex")
+          ? { index: dependencies.skillOutcomeIndex }
           : {},
       );
       let result;

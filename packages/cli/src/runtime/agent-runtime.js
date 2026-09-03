@@ -34,6 +34,7 @@ import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.
 import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/structured-memory-policy-receipt-writer.js";
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -69,6 +70,19 @@ export class AgentRuntime {
       deps.evolutionIngress == null
         ? null
         : captureAgentEvolutionIngress(deps.evolutionIngress);
+    this.skillOutcomeIndex =
+      deps.skillOutcomeIndex == null
+        ? null
+        : captureAgentSkillOutcomeIndex(deps.skillOutcomeIndex);
+    if (
+      this.evolutionIngress !== null &&
+      this.skillOutcomeIndex !== null &&
+      this.evolutionIngress.tenantId !== this.skillOutcomeIndex.tenantId
+    ) {
+      throw new Error(
+        "Agent evolution ingress and Skill outcome index must share one tenant",
+      );
+    }
     this.structuredMemoryControlPlane =
       deps.structuredMemoryControlPlane == null
         ? null
@@ -297,6 +311,9 @@ export class AgentRuntime {
       ...(this.evolutionIngress === null
         ? {}
         : { evolutionIngress: this.evolutionIngress }),
+      ...(this.skillOutcomeIndex === null
+        ? {}
+        : { skillOutcomeIndex: this.skillOutcomeIndex }),
     });
     if (this.evolutionIngress !== null) {
       await this.evolutionIngress.complete();

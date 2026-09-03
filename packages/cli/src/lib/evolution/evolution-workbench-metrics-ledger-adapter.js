@@ -22,6 +22,7 @@ export const EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA =
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const METRICS_LEDGER_ADAPTERS = new WeakSet();
+const METRICS_OUTCOME_READERS = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -313,6 +314,14 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
         witnessDigest: authority.witnessDigest,
       }),
     });
+  };
+
+  createOutcomeReader = () => {
+    const reader = Object.freeze({
+      loadOutcomeSnapshot: this.loadOutcomeSnapshot,
+    });
+    METRICS_OUTCOME_READERS.add(reader);
+    return reader;
   };
 
   retainReceiptDigests = (request = {}) => {
@@ -619,5 +628,9 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
 
 export function isEvolutionWorkbenchMetricsLedgerAdapter(value) {
   return METRICS_LEDGER_ADAPTERS.has(value);
+}
+
+export function isEvolutionWorkbenchMetricsOutcomeReader(value) {
+  return METRICS_OUTCOME_READERS.has(value);
 }
 import { createHash } from "node:crypto";

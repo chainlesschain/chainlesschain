@@ -1048,7 +1048,10 @@ describe("run_skill controlled execution boundary", () => {
     const result = await executeTool(
       "list_skills",
       { query: "repair failing tests" },
-      { cwd: tempDir, skillOutcomeIndexAdapters: [] },
+      {
+        cwd: tempDir,
+        skillOutcomeIndex: { tenantId: "tenant:test", readers: [] },
+      },
     );
 
     expect(result.routing.outcomeAuthority).toEqual({

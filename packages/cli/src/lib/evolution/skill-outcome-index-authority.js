@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { verifyEvolutionWorkbenchMetricsSnapshot } from "./evolution-workbench-metrics.js";
-import { isEvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
+import { isEvolutionWorkbenchMetricsOutcomeReader } from "./evolution-workbench-metrics-ledger-adapter.js";
 
 export const SKILL_OUTCOME_INDEX_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-index-authority/v1";
@@ -108,32 +108,33 @@ function inspectSource(adapter) {
 }
 
 export function buildSkillOutcomeIndexAuthority(
-  { adapters, maxSources = MAX_SKILL_OUTCOME_INDEX_SOURCES } = {},
+  { tenantId, readers, maxSources = MAX_SKILL_OUTCOME_INDEX_SOURCES } = {},
   dependencies = {},
 ) {
-  const isAdapter =
-    dependencies.isMetricsLedgerAdapter ||
-    isEvolutionWorkbenchMetricsLedgerAdapter;
+  const isReader =
+    dependencies.isMetricsOutcomeReader ||
+    isEvolutionWorkbenchMetricsOutcomeReader;
   if (
-    !Array.isArray(adapters) ||
-    adapters.length < 1 ||
+    !bounded(tenantId) ||
+    !Array.isArray(readers) ||
+    readers.length < 1 ||
     !Number.isSafeInteger(maxSources) ||
     maxSources < 1 ||
     maxSources > MAX_SKILL_OUTCOME_INDEX_SOURCES ||
-    adapters.length > maxSources ||
-    typeof isAdapter !== "function" ||
-    adapters.some(
-      (adapter) =>
-        !isAdapter(adapter) ||
-        typeof adapter?.loadOutcomeSnapshot !== "function",
+    readers.length > maxSources ||
+    typeof isReader !== "function" ||
+    readers.some(
+      (reader) =>
+        !isReader(reader) || typeof reader?.loadOutcomeSnapshot !== "function",
     )
   ) {
-    throw new TypeError(
-      "Skill outcome index adapters are invalid or unbounded",
-    );
+    throw new TypeError("Skill outcome index readers are invalid or unbounded");
   }
 
-  const sources = adapters.map(inspectSource);
+  const sources = readers.map(inspectSource);
+  if (sources.some((source) => source.descriptor.tenantId !== tenantId)) {
+    throw unavailable("Skill outcome index crossed its tenant boundary");
+  }
   const sourceIds = new Set();
   let versionCount = 0;
   let outcomeSampleCount = 0;

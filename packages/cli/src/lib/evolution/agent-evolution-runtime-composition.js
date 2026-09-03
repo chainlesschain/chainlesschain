@@ -18,11 +18,16 @@ import {
   createEvolutionLedgerFileBackend,
 } from "./evolution-ledger-file-backend.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
+import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
 import {
   captureAgentEvolutionIngress,
   createAgentEvolutionIngress,
 } from "./agent-evolution-ingress.js";
-import { sealAgentEvolutionRuntimeComposition } from "./agent-evolution-runtime-composition-brand.js";
+import {
+  captureAgentEvolutionRuntimeComposition,
+  sealAgentSkillOutcomeIndex,
+  sealAgentEvolutionRuntimeComposition,
+} from "./agent-evolution-runtime-composition-brand.js";
 
 export {
   AGENT_EVOLUTION_RUNTIME_COMPOSITION_SCHEMA,
@@ -46,6 +51,8 @@ const ARTIFACT_AUTHORITY_KEYS = new Set([
   "envelopeSigner",
   "envelopeVerifier",
 ]);
+const SKILL_OUTCOME_SOURCE_KEYS = new Set(["composition", "skillName"]);
+const MAX_SKILL_OUTCOME_SOURCES = 128;
 
 function exactRecord(value, keys, label) {
   if (
@@ -346,6 +353,27 @@ export function createAgentEvolutionRuntimeComposition({
     ledgerArtifactResolver,
     now: clock,
   });
+  const skillOutcomeReaders = new Map();
+  const createSkillOutcomeReader = Object.freeze((skillNameInput) => {
+    const skillName = identifier(skillNameInput, "skillName");
+    const cached = skillOutcomeReaders.get(skillName);
+    if (cached) return cached;
+    const reader = new EvolutionWorkbenchMetricsLedgerAdapter({
+      descriptor: {
+        tenantId,
+        artifactTenantId: tenantId,
+        evolutionRunId: runId,
+        skillName,
+        audience,
+        purpose: "evolution-ledger",
+      },
+      artifactPorts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver,
+    }).createOutcomeReader();
+    skillOutcomeReaders.set(skillName, reader);
+    return reader;
+  });
   const evolutionIngress = createAgentEvolutionIngress({
     evidenceAdapter,
     runAdapter,
@@ -361,9 +389,55 @@ export function createAgentEvolutionRuntimeComposition({
     tenantId,
     runId,
     evolutionIngress,
+    createSkillOutcomeReader,
     loadRun: Object.freeze(() => runAdapter.load()),
     ledgerDescriptor: backend.descriptor,
     storage,
   });
   return composition;
+}
+
+export function assembleAgentSkillOutcomeIndex({ sources } = {}) {
+  if (
+    !Array.isArray(sources) ||
+    sources.length < 1 ||
+    sources.length > MAX_SKILL_OUTCOME_SOURCES
+  ) {
+    throw new TypeError("Skill outcome index sources are invalid or unbounded");
+  }
+  let tenantId = null;
+  const sourceIds = new Set();
+  const readers = sources.map((input, index) => {
+    const source = exactRecord(
+      input,
+      SKILL_OUTCOME_SOURCE_KEYS,
+      `sources[${index}]`,
+    );
+    const composition = captureAgentEvolutionRuntimeComposition(
+      source.composition,
+    );
+    const skillName = identifier(
+      source.skillName,
+      `sources[${index}].skillName`,
+    );
+    if (tenantId === null) tenantId = composition.tenantId;
+    if (composition.tenantId !== tenantId) {
+      throw new Error("Skill outcome index sources crossed a tenant boundary");
+    }
+    const sourceId = `${composition.runId}\0${skillName}`;
+    if (sourceIds.has(sourceId)) {
+      throw new Error("Skill outcome index sources contain a duplicate");
+    }
+    sourceIds.add(sourceId);
+    if (typeof composition.createSkillOutcomeReader !== "function") {
+      throw new TypeError(
+        "Agent evolution composition lacks an outcome reader",
+      );
+    }
+    return composition.createSkillOutcomeReader(skillName);
+  });
+  return sealAgentSkillOutcomeIndex({
+    tenantId,
+    readers: Object.freeze(readers),
+  });
 }

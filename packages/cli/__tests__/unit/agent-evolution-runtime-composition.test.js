@@ -15,9 +15,12 @@ import {
 } from "../../src/lib/evolution/evolution-evidence-projector.js";
 import {
   AGENT_EVOLUTION_RUNTIME_COMPOSITION_SCHEMA,
+  assembleAgentSkillOutcomeIndex,
   captureAgentEvolutionRuntimeComposition,
   createAgentEvolutionRuntimeComposition,
 } from "../../src/lib/evolution/agent-evolution-runtime-composition.js";
+import { isEvolutionWorkbenchMetricsOutcomeReader } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
+import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
 import { resolveAgentCommandEvolutionComposition } from "../../src/commands/agent.js";
 
@@ -469,6 +472,90 @@ describe("Agent evolution runtime production composition", () => {
     expect(first.loadRun()).toMatchObject({
       projection: { status: "completed", eventCount: 3 },
     });
+    const outcomeReader = first.createSkillOutcomeReader("repair-tests");
+    expect(first.createSkillOutcomeReader("repair-tests")).toBe(outcomeReader);
+    expect(isEvolutionWorkbenchMetricsOutcomeReader(outcomeReader)).toBe(true);
+    expect(Object.keys(outcomeReader)).toEqual(["loadOutcomeSnapshot"]);
+    expect(outcomeReader.loadOutcomeSnapshot()).toMatchObject({
+      found: false,
+      authenticated: true,
+      durable: true,
+      descriptor: {
+        tenantId: firstOptions.tenantId,
+        evolutionRunId: firstOptions.runId,
+        skillName: "repair-tests",
+      },
+      ledgerAuthority: {
+        status: "verified",
+        authenticated: true,
+        durable: true,
+        eventCount: 3,
+        sequence: 3,
+      },
+    });
+    expect(() => first.createSkillOutcomeReader("../escape")).toThrow(
+      /skillName is invalid/u,
+    );
+    const index = assembleAgentSkillOutcomeIndex({
+      sources: [
+        { composition: first, skillName: "repair-tests" },
+        { composition: first, skillName: "write-docs" },
+      ],
+    });
+    expect(index).toMatchObject({
+      schema: "chainlesschain.agent-skill-outcome-index/v1",
+      tenantId: firstOptions.tenantId,
+      readers: [outcomeReader, expect.any(Object)],
+    });
+    expect(buildSkillOutcomeIndexAuthority(index)).toMatchObject({
+      status: "verified-indexed",
+      metrics: {},
+      evidence: {
+        sourceCount: 2,
+        snapshotCount: 0,
+        antiRollbackWitness: true,
+      },
+    });
+    expect(() =>
+      assembleAgentSkillOutcomeIndex({
+        sources: [
+          { composition: first, skillName: "repair-tests" },
+          { composition: first, skillName: "repair-tests" },
+        ],
+      }),
+    ).toThrow(/duplicate/u);
+    const foreignOptions = options(root);
+    foreignOptions.tenantId = "tenant:other";
+    foreignOptions.runId = "run:other";
+    const foreign = createAgentEvolutionRuntimeComposition(foreignOptions);
+    expect(() =>
+      assembleAgentSkillOutcomeIndex({
+        sources: [
+          { composition: first, skillName: "repair-tests" },
+          { composition: foreign, skillName: "repair-tests" },
+        ],
+      }),
+    ).toThrow(/crossed a tenant boundary/u);
+    const foreignIndex = assembleAgentSkillOutcomeIndex({
+      sources: [{ composition: foreign, skillName: "repair-tests" }],
+    });
+    expect(() =>
+      createAgentRuntimeFactory({
+        config: {},
+        evolutionComposition: first,
+        skillOutcomeIndex: foreignIndex,
+      }),
+    ).toThrow(/must share one tenant/u);
+    const indexedStartAgentRepl = vi.fn(async () => "closed");
+    const indexedRuntime = createAgentRuntimeFactory({
+      config: {},
+      deps: { startAgentRepl: indexedStartAgentRepl },
+      skillOutcomeIndex: index,
+    }).createAgentRuntime({ sessionId: "indexed-session" });
+    await expect(indexedRuntime.startAgentSession()).resolves.toBe("closed");
+    expect(indexedStartAgentRepl).toHaveBeenCalledWith(
+      expect.objectContaining({ skillOutcomeIndex: index }),
+    );
     const rawBytes = fs
       .readdirSync(first.storage.rawDir, { recursive: true })
       .filter((entry) => String(entry).endsWith(".enc"))
@@ -502,6 +589,9 @@ describe("Agent evolution runtime production composition", () => {
     expect(() => captureAgentEvolutionRuntimeComposition({})).toThrow(
       /branded/u,
     );
+    expect(() =>
+      createAgentRuntimeFactory({ config: {}, skillOutcomeIndex: {} }),
+    ).toThrow(/branded Agent Skill outcome index/u);
     expect(() =>
       createAgentRuntimeFactory({
         config: {},

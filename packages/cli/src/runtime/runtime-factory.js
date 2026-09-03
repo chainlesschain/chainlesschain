@@ -1,6 +1,9 @@
 import { loadConfig } from "../lib/config-manager.js";
 import { AgentRuntime } from "./agent-runtime.js";
-import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import {
+  captureAgentEvolutionRuntimeComposition,
+  captureAgentSkillOutcomeIndex,
+} from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import {
   resolveAgentPolicy,
   resolveServerPolicy,
@@ -11,6 +14,7 @@ export function createAgentRuntimeFactory({
   config = loadConfig(),
   deps = {},
   evolutionComposition = null,
+  skillOutcomeIndex = null,
 } = {}) {
   const composition =
     evolutionComposition === null
@@ -21,12 +25,33 @@ export function createAgentRuntimeFactory({
       "evolution ingress must come from the production composition root only",
     );
   }
+  const outcomeIndex =
+    skillOutcomeIndex === null
+      ? null
+      : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
+  if (
+    composition !== null &&
+    outcomeIndex !== null &&
+    composition.tenantId !== outcomeIndex.tenantId
+  ) {
+    throw new TypeError(
+      "evolution composition and Skill outcome index must share one tenant",
+    );
+  }
+  if (outcomeIndex !== null && Object.hasOwn(deps, "skillOutcomeIndex")) {
+    throw new TypeError(
+      "Skill outcome index must come from the production composition root only",
+    );
+  }
   const runtimeDeps =
-    composition === null
+    composition === null && outcomeIndex === null
       ? deps
       : Object.freeze({
           ...deps,
-          evolutionIngress: composition.evolutionIngress,
+          ...(composition === null
+            ? {}
+            : { evolutionIngress: composition.evolutionIngress }),
+          ...(outcomeIndex === null ? {} : { skillOutcomeIndex: outcomeIndex }),
         });
   return {
     createAgentRuntime(overrides = {}) {

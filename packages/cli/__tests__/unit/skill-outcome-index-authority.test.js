@@ -111,11 +111,12 @@ async function snapshot(runId, receipts) {
   return stored;
 }
 
-function adapter(value, index, overrides = {}) {
+function adapter(value, index, overrides = {}, descriptorOverrides = {}) {
   const descriptor = {
     tenantId: "tenant:test",
     evolutionRunId: value.evolutionRunId,
     skillName: value.skillName,
+    ...descriptorOverrides,
   };
   return {
     loadOutcomeSnapshot: () => ({
@@ -143,7 +144,7 @@ function adapter(value, index, overrides = {}) {
   };
 }
 
-const dependencies = { isMetricsLedgerAdapter: () => true };
+const dependencies = { isMetricsOutcomeReader: () => true };
 
 describe("indexed Skill outcome authority", () => {
   it("aggregates only graded or corrected completed/failed outcomes", async () => {
@@ -162,7 +163,10 @@ describe("indexed Skill outcome authority", () => {
       }),
     ]);
     const authority = buildSkillOutcomeIndexAuthority(
-      { adapters: [adapter(completed, 1), adapter(failed, 2)] },
+      {
+        tenantId: "tenant:test",
+        readers: [adapter(completed, 1), adapter(failed, 2)],
+      },
       dependencies,
     );
     expect(authority).toMatchObject({
@@ -199,7 +203,10 @@ describe("indexed Skill outcome authority", () => {
     }
     expect(() =>
       buildSkillOutcomeIndexAuthority(
-        { adapters: [adapter(redigestSnapshot(legacy), 1)] },
+        {
+          tenantId: "tenant:test",
+          readers: [adapter(redigestSnapshot(legacy), 1)],
+        },
         dependencies,
       ),
     ).toThrow(/complete outcome backfill/u);
@@ -210,7 +217,10 @@ describe("indexed Skill outcome authority", () => {
     const legacy = structuredClone(value);
     delete legacy.outcomeHistoryComplete;
     const authority = buildSkillOutcomeIndexAuthority(
-      { adapters: [adapter(redigestSnapshot(legacy), 1)] },
+      {
+        tenantId: "tenant:test",
+        readers: [adapter(redigestSnapshot(legacy), 1)],
+      },
       dependencies,
     );
     expect(authority).toMatchObject({
@@ -230,25 +240,45 @@ describe("indexed Skill outcome authority", () => {
     expect(() =>
       buildSkillOutcomeIndexAuthority(
         {
-          adapters: [adapter(value, 1, { witnessDigest: "forged" })],
+          tenantId: "tenant:test",
+          readers: [adapter(value, 1, { witnessDigest: "forged" })],
         },
         dependencies,
       ),
     ).toThrow(/ledger authority is invalid/u);
     expect(() =>
       buildSkillOutcomeIndexAuthority(
-        { adapters: [adapter(value, 1), adapter(value, 2)] },
+        {
+          tenantId: "tenant:test",
+          readers: [adapter(value, 1), adapter(value, 2)],
+        },
         dependencies,
       ),
     ).toThrow(/duplicate source/u);
+    const foreign = redigestSnapshot({
+      ...value,
+      tenantId: "tenant:other",
+    });
+    expect(() =>
+      buildSkillOutcomeIndexAuthority(
+        {
+          tenantId: "tenant:test",
+          readers: [adapter(foreign, 3, {}, { tenantId: "tenant:other" })],
+        },
+        dependencies,
+      ),
+    ).toThrow(/crossed its tenant boundary/u);
   });
 
-  it("requires branded bounded adapters before reading them", () => {
+  it("requires branded bounded outcome readers before reading them", () => {
     const read = vi.fn();
     expect(() =>
       buildSkillOutcomeIndexAuthority(
-        { adapters: [{ loadOutcomeSnapshot: read }] },
-        { isMetricsLedgerAdapter: () => false },
+        {
+          tenantId: "tenant:test",
+          readers: [{ loadOutcomeSnapshot: read }],
+        },
+        { isMetricsOutcomeReader: () => false },
       ),
     ).toThrow(/invalid or unbounded/u);
     expect(read).not.toHaveBeenCalled();

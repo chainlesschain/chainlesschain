@@ -11,7 +11,7 @@ export function resolveSkillOutcomeAuthority(options = {}, dependencies = {}) {
   if (
     options &&
     typeof options === "object" &&
-    Object.prototype.hasOwnProperty.call(options, "indexAdapters")
+    Object.prototype.hasOwnProperty.call(options, "index")
   ) {
     const buildIndex =
       dependencies.buildSkillOutcomeIndexAuthority ||
@@ -20,10 +20,7 @@ export function resolveSkillOutcomeAuthority(options = {}, dependencies = {}) {
       dependencies.unavailableSkillOutcomeIndexAuthority ||
       unavailableSkillOutcomeIndexAuthority;
     try {
-      return buildIndex(
-        { adapters: options.indexAdapters },
-        dependencies.indexDependencies,
-      );
+      return buildIndex(options.index, dependencies.indexDependencies);
     } catch (error) {
       return unavailableIndex(error);
     }
