@@ -52,6 +52,7 @@ const ARTIFACT_AUTHORITY_KEYS = new Set([
   "envelopeVerifier",
 ]);
 const SKILL_OUTCOME_SOURCE_KEYS = new Set(["composition", "skillName"]);
+const SKILL_OUTCOME_CATALOG_ENTRY_KEYS = new Set(["runId", "skillNames"]);
 const MAX_SKILL_OUTCOME_SOURCES = 128;
 
 function exactRecord(value, keys, label) {
@@ -400,6 +401,7 @@ export function createAgentEvolutionRuntimeComposition({
 export function assembleAgentSkillOutcomeIndex({ sources } = {}) {
   if (
     !Array.isArray(sources) ||
+    utilTypes.isProxy(sources) ||
     sources.length < 1 ||
     sources.length > MAX_SKILL_OUTCOME_SOURCES
   ) {
@@ -440,4 +442,86 @@ export function assembleAgentSkillOutcomeIndex({ sources } = {}) {
     tenantId,
     readers: Object.freeze(readers),
   });
+}
+
+export async function assembleAgentSkillOutcomeIndexFromCatalog({
+  tenantId: tenantIdInput,
+  catalog,
+  openComposition,
+} = {}) {
+  const tenantId = identifier(tenantIdInput, "tenantId");
+  if (
+    !Array.isArray(catalog) ||
+    utilTypes.isProxy(catalog) ||
+    catalog.length < 1 ||
+    catalog.length > MAX_SKILL_OUTCOME_SOURCES
+  ) {
+    throw new TypeError("Skill outcome source catalog is invalid or unbounded");
+  }
+  if (
+    typeof openComposition !== "function" ||
+    utilTypes.isProxy(openComposition)
+  ) {
+    throw new TypeError("Skill outcome composition opener is invalid");
+  }
+  const runIds = new Set();
+  let sourceCount = 0;
+  const normalizedCatalog = catalog.map((input, index) => {
+    const entry = exactRecord(
+      input,
+      SKILL_OUTCOME_CATALOG_ENTRY_KEYS,
+      `catalog[${index}]`,
+    );
+    const runId = identifier(entry.runId, `catalog[${index}].runId`);
+    if (runIds.has(runId)) {
+      throw new TypeError(
+        "Skill outcome source catalog contains a duplicate run",
+      );
+    }
+    runIds.add(runId);
+    if (
+      !Array.isArray(entry.skillNames) ||
+      utilTypes.isProxy(entry.skillNames) ||
+      entry.skillNames.length < 1 ||
+      entry.skillNames.length > MAX_SKILL_OUTCOME_SOURCES
+    ) {
+      throw new TypeError(
+        `catalog[${index}].skillNames is invalid or unbounded`,
+      );
+    }
+    const skillNames = entry.skillNames.map((skillName, skillIndex) =>
+      identifier(skillName, `catalog[${index}].skillNames[${skillIndex}]`),
+    );
+    if (new Set(skillNames).size !== skillNames.length) {
+      throw new TypeError(
+        "Skill outcome source catalog contains a duplicate Skill",
+      );
+    }
+    sourceCount += skillNames.length;
+    if (sourceCount > MAX_SKILL_OUTCOME_SOURCES) {
+      throw new TypeError(
+        "Skill outcome source catalog is invalid or unbounded",
+      );
+    }
+    return Object.freeze({ runId, skillNames: Object.freeze(skillNames) });
+  });
+  const sources = [];
+  for (const entry of normalizedCatalog) {
+    const context = Object.freeze({ tenantId, runId: entry.runId });
+    const composition = captureAgentEvolutionRuntimeComposition(
+      await openComposition(context),
+    );
+    if (
+      composition.tenantId !== tenantId ||
+      composition.runId !== entry.runId
+    ) {
+      throw new TypeError(
+        "Skill outcome catalog opener returned an unbound composition",
+      );
+    }
+    for (const skillName of entry.skillNames) {
+      sources.push(Object.freeze({ composition, skillName }));
+    }
+  }
+  return assembleAgentSkillOutcomeIndex({ sources });
 }

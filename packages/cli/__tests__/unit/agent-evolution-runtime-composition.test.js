@@ -16,6 +16,7 @@ import {
 import {
   AGENT_EVOLUTION_RUNTIME_COMPOSITION_SCHEMA,
   assembleAgentSkillOutcomeIndex,
+  assembleAgentSkillOutcomeIndexFromCatalog,
   captureAgentEvolutionRuntimeComposition,
   createAgentEvolutionRuntimeComposition,
 } from "../../src/lib/evolution/agent-evolution-runtime-composition.js";
@@ -733,5 +734,103 @@ describe("Agent evolution runtime production composition", () => {
       ),
     ).rejects.toThrow(/branded Agent Skill outcome index/u);
     expect(blockedLoop).not.toHaveBeenCalled();
+  }, 30_000);
+
+  it("reopens a bounded historical source catalog with exact tenant and run binding", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-outcome-catalog-"),
+    );
+    roots.push(root);
+    const firstInput = options(root);
+    firstInput.runId = "run:catalog-one";
+    const secondInput = options(root);
+    secondInput.runId = "run:catalog-two";
+    createAgentEvolutionRuntimeComposition(firstInput);
+    createAgentEvolutionRuntimeComposition(secondInput);
+    const opened = [];
+    const inputs = new Map([
+      [firstInput.runId, firstInput],
+      [secondInput.runId, secondInput],
+    ]);
+    const index = await assembleAgentSkillOutcomeIndexFromCatalog({
+      tenantId: firstInput.tenantId,
+      catalog: [
+        {
+          runId: firstInput.runId,
+          skillNames: ["repair-tests", "review-diff"],
+        },
+        { runId: secondInput.runId, skillNames: ["repair-tests"] },
+      ],
+      openComposition: async (context) => {
+        expect(Object.isFrozen(context)).toBe(true);
+        opened.push(context);
+        return createAgentEvolutionRuntimeComposition(
+          inputs.get(context.runId),
+        );
+      },
+    });
+
+    expect(opened).toEqual([
+      { tenantId: firstInput.tenantId, runId: firstInput.runId },
+      { tenantId: firstInput.tenantId, runId: secondInput.runId },
+    ]);
+    expect(index).toMatchObject({
+      tenantId: firstInput.tenantId,
+      readers: [expect.any(Object), expect.any(Object), expect.any(Object)],
+    });
+    expect(buildSkillOutcomeIndexAuthority(index)).toMatchObject({
+      status: "verified-indexed",
+      evidence: { sourceCount: 3, snapshotCount: 0 },
+    });
+
+    const opener = vi.fn(async () =>
+      createAgentEvolutionRuntimeComposition(firstInput),
+    );
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalog: [
+          { runId: firstInput.runId, skillNames: ["repair-tests"] },
+          { runId: firstInput.runId, skillNames: ["review-diff"] },
+        ],
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/duplicate run/u);
+    expect(opener).not.toHaveBeenCalled();
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalog: [
+          {
+            runId: firstInput.runId,
+            skillNames: Array.from(
+              { length: 129 },
+              (_value, position) => `skill-${position}`,
+            ),
+          },
+        ],
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/unbounded/u);
+    expect(opener).not.toHaveBeenCalled();
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalog: new Proxy(
+          [{ runId: firstInput.runId, skillNames: ["repair-tests"] }],
+          {},
+        ),
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/catalog is invalid/u);
+    expect(opener).not.toHaveBeenCalled();
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalog: [{ runId: secondInput.runId, skillNames: ["repair-tests"] }],
+        openComposition: async () =>
+          createAgentEvolutionRuntimeComposition(firstInput),
+      }),
+    ).rejects.toThrow(/unbound composition/u);
   }, 30_000);
 });
