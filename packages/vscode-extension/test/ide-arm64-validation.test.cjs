@@ -289,6 +289,12 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     workflow,
     /aggregate:[\s\S]*?if: \$\{\{ always\(\) && !cancelled\(\) \}\}[\s\S]*?needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u,
   );
+  assert.equal(
+    workflow.match(
+      /Upload ARM64 (?:VS Code|JetBrains) journey evidence[\s\S]*?if: \$\{\{ always\(\) && !cancelled\(\) \}\}/gu,
+    )?.length,
+    2,
+  );
   assert.match(workflow, /downloads\.windowsARM64/u);
   assert.match(workflow, /Get-FileHash -Algorithm SHA256/u);
   assert.match(

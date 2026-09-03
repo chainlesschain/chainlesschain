@@ -165,7 +165,9 @@ jobs:
           --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
           --artifact-dir build/ide-arm64-evidence/vscode-${{ matrix.slug }}-minimum
       - name: Upload ARM64 VS Code journey evidence
-        if: always()
+        # Keep failed host journeys observable, but a cancelled workflow may
+        # stop before the evidence directory exists.
+        if: ${{ always() && !cancelled() }}
         uses: actions/upload-artifact@v6
         with:
           name: ide-arm64-evidence-vscode-${{ matrix.slug }}-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
@@ -425,7 +427,9 @@ jobs:
             Copy-Item -LiteralPath $guardLog -Destination $evidenceDir
           }
       - name: Upload ARM64 JetBrains journey evidence
-        if: always()
+        # Keep failed host journeys observable, but a cancelled workflow may
+        # stop before the evidence directory exists.
+        if: ${{ always() && !cancelled() }}
         uses: actions/upload-artifact@v6
         with:
           name: ide-arm64-evidence-jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
