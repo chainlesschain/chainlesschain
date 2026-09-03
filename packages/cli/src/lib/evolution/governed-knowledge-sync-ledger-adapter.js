@@ -23,6 +23,7 @@ export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_CORRUPT_CODE =
   "CC_GOVERNED_KNOWLEDGE_SYNC_LEDGER_CORRUPT";
 
 const ARTIFACT_TYPE = "governed-knowledge-sync-record";
+const CONFLICT_READERS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DISPOSITIONS = new Set(["conflict", "local", "remote"]);
@@ -101,6 +102,14 @@ function capture(owner, method, label = method) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function freeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) freeze(child);
+  }
+  return value;
 }
 
 function recordCore(value) {
@@ -215,7 +224,7 @@ function validateLedgerRecord(value, descriptor) {
     descriptor,
     value.disposition,
   );
-  return Object.freeze(clone(value));
+  return freeze(clone(value));
 }
 
 function parseArtifact(resolution, descriptor) {
@@ -521,6 +530,27 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     });
   };
 
+  getConflict = async ({ envelopeDigest } = {}) => {
+    if (!DIGEST.test(envelopeDigest ?? "")) {
+      throw new TypeError("knowledge sync conflict envelope digest is invalid");
+    }
+    const eventId = `${GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE}.conflict.${envelopeDigest.slice(7)}`;
+    const entry = await this._entryByEventId(eventId);
+    return entry?.record ?? null;
+  };
+
+  conflictReader() {
+    const reader = Object.freeze({
+      tenantId: this.descriptor.tenantId,
+      deviceId: this.descriptor.deviceId,
+      load: this.load,
+      getConflict: this.getConflict,
+      listConflicts: this.listConflicts,
+    });
+    CONFLICT_READERS.add(reader);
+    return reader;
+  }
+
   syncPorts({ authorize, encrypt, decrypt, sign, send } = {}) {
     return Object.freeze({
       authorize: capture(authorize, "authorize", "authorize"),
@@ -533,4 +563,8 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       commit: this.commit,
     });
   }
+}
+
+export function isGovernedKnowledgeConflictReader(value) {
+  return CONFLICT_READERS.has(value);
 }

@@ -15,6 +15,11 @@ import {
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
+import {
+  GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
+  GovernedKnowledgeConflictMergePlanner,
+  digestGovernedKnowledgeHumanMergeReceipt,
+} from "../../src/lib/evolution/governed-knowledge-conflict-merge.js";
 import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import {
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
@@ -435,6 +440,117 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       total: 1,
       items: [{ disposition: "conflict" }],
     });
+  });
+
+  it("builds only an independently authenticated exact human merge plan", async () => {
+    const crypto = cryptoPorts();
+    const senderStorage = backends("device:a");
+    const remoteEnvelope = await controller(
+      senderStorage,
+      crypto,
+    ).controller.publish(knowledge({ vectorClock: { "device:a": 2 } }));
+    const receiverStorage = backends("device:b");
+    const receiver = controller(receiverStorage, crypto);
+    await receiver.controller.publish(
+      knowledge({
+        contentDigest: D("content:b"),
+        vectorClock: { "device:b": 2 },
+      }),
+    );
+    await receiver.controller.receive(remoteEnvelope);
+    const merged = knowledge({
+      contentDigest: D("content:merged"),
+      vectorClock: { "device:a": 2, "device:b": 3 },
+    });
+    const receiptCore = {
+      schema: GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
+      tenantId: "tenant:a",
+      reviewerId: "human:alice",
+      automated: false,
+      knowledgeId: "knowledge:1",
+      conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+      localContentDigest: D("content:b"),
+      remoteContentDigest: D("content:a"),
+      mergedContentDigest: D("content:merged"),
+      mergedVectorClock: merged.vectorClock,
+      reason: "Reviewed both offline edits and preserved their intent.",
+      decidedAt: "2026-09-04T00:00:00.000Z",
+    };
+    const receipt = {
+      ...receiptCore,
+      receiptDigest: digestGovernedKnowledgeHumanMergeReceipt(receiptCore),
+      attestation: {
+        algorithm: "test-signature",
+        keyId: "human-key:alice",
+        value: "signed-human-merge-decision",
+      },
+    };
+    const verifier = {
+      verify: vi.fn(async ({ receipt: value }) => ({
+        authenticated: true,
+        durable: true,
+        automated: false,
+        tenantId: value.tenantId,
+        reviewerId: value.reviewerId,
+        knowledgeId: value.knowledgeId,
+        conflictEnvelopeDigest: value.conflictEnvelopeDigest,
+        receiptDigest: value.receiptDigest,
+      })),
+    };
+    const reader = adapter(receiverStorage, crypto).conflictReader();
+    const planner = new GovernedKnowledgeConflictMergePlanner({
+      conflictReader: reader,
+      receiptVerifier: verifier,
+      now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+    });
+    await expect(
+      planner.plan({
+        conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+        mergedKnowledge: merged,
+        humanReceipt: receipt,
+      }),
+    ).resolves.toMatchObject({
+      knowledgeId: "knowledge:1",
+      mergedKnowledge: { vectorClock: { "device:a": 2, "device:b": 3 } },
+      humanReceiptDigest: receipt.receiptDigest,
+    });
+    await expect(
+      planner.plan({
+        conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+        mergedKnowledge: {
+          ...merged,
+          vectorClock: { "device:a": 2, "device:b": 2 },
+        },
+        humanReceipt: receipt,
+      }),
+    ).rejects.toThrow("exactly join both histories");
+    await expect(
+      planner.plan({
+        conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+        mergedKnowledge: {
+          ...merged,
+          vectorClock: {
+            "device:a": 2,
+            "device:b": 3,
+            "device:smuggled": 0,
+          },
+        },
+        humanReceipt: receipt,
+      }),
+    ).rejects.toThrow("exactly join both histories");
+
+    const denied = new GovernedKnowledgeConflictMergePlanner({
+      conflictReader: reader,
+      receiptVerifier: { verify: async () => ({ authenticated: false }) },
+      now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+    });
+    await expect(
+      denied.plan({
+        conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+        mergedKnowledge: merged,
+        humanReceipt: receipt,
+      }),
+    ).rejects.toThrow("did not authenticate");
   });
 
   it("recovers an idempotent commit after an append response is lost", async () => {
