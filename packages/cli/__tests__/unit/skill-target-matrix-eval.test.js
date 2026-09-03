@@ -91,6 +91,12 @@ import {
   SKILL_REGISTRY_TRANSITION_SETTLED_EVENT_TYPE,
   createSkillRegistryTransitionLedgerAdapter,
 } from "../../src/lib/evolution/skill-registry-transition-ledger-adapter.js";
+import {
+  SKILL_REGISTRY_CANDIDATE_CREATED_RESOLUTION_SCHEMA,
+  SKILL_REGISTRY_EVAL_COMPLETED_RESOLUTION_SCHEMA,
+  SKILL_REGISTRY_HUMAN_TASK_SETTLED_RESOLUTION_SCHEMA,
+  createSkillRegistryTransitionSource,
+} from "../../src/lib/evolution/skill-registry-transition-source.js";
 import { AgentRuntime } from "../../src/runtime/agent-runtime.js";
 import { createStructuredMemoryAgentControlPlaneFixture } from "../fixtures/structured-memory-agent-control-plane.js";
 import {
@@ -3204,29 +3210,64 @@ describe("Skill target matrix evaluation foundation", () => {
       planDigest: receipt.planDigest,
     };
     let transitionSourceAvailable = true;
-    const transitionSourceVerifier = {
-      async verify(input) {
-        expect(input).toEqual(transitionSource);
-        if (!transitionSourceAvailable) {
-          throw new Error("transition source authority revoked");
-        }
-        return {
-          authenticated: true,
-          durable: true,
-          tenantId: receipt.tenantId,
-          candidateId: candidate.candidateId,
-          skillName: candidate.skillName,
-          ...transitionSource,
-          matrixContext: transitionMatrixContext,
-          receipts: promotionRequest.receipts,
-          effectiveAt: transitionEffectiveAt,
-          sourceReceiptDigest: matrixDigest(
-            "registry-transition-source",
-            transitionSource,
-          ),
-        };
+    const transitionSourceVerifier = createSkillRegistryTransitionSource({
+      tenantId: receipt.tenantId,
+      candidateCreatedResolver: {
+        resolve({ ref }) {
+          if (!transitionSourceAvailable) {
+            throw new Error("transition source authority revoked");
+          }
+          return {
+            schema: SKILL_REGISTRY_CANDIDATE_CREATED_RESOLUTION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: receipt.tenantId,
+            ref,
+            candidateId: candidate.candidateId,
+            skillName: candidate.skillName,
+            candidateReceipt: promotionRequest.receipts.candidateReceipt,
+            actorReceipt: promotionRequest.receipts.actorReceipt,
+            parentReceipt: promotionRequest.receipts.parentReceipt,
+            targetReceipt: promotionRequest.receipts.targetReceipt,
+            effectiveAt: transitionEffectiveAt,
+            receiptDigest: matrixDigest("candidate-created", ref),
+          };
+        },
       },
-    };
+      evalCompletedResolver: {
+        resolve({ ref }) {
+          return {
+            schema: SKILL_REGISTRY_EVAL_COMPLETED_RESOLUTION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: receipt.tenantId,
+            ref,
+            candidateId: candidate.candidateId,
+            skillName: candidate.skillName,
+            matrixContext: transitionMatrixContext,
+            evalReceipt: promotionRequest.receipts.evalReceipt,
+            effectiveAt: transitionEffectiveAt,
+            receiptDigest: matrixDigest("eval-completed", ref),
+          };
+        },
+      },
+      humanTaskSettledResolver: {
+        resolve({ ref }) {
+          return {
+            schema: SKILL_REGISTRY_HUMAN_TASK_SETTLED_RESOLUTION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: receipt.tenantId,
+            ref,
+            candidateId: candidate.candidateId,
+            skillName: candidate.skillName,
+            policyReceipt: promotionRequest.receipts.policyReceipt,
+            effectiveAt: transitionEffectiveAt,
+            receiptDigest: matrixDigest("human-task-settled", ref),
+          };
+        },
+      },
+    });
     const transitionDescriptor = {
       tenantId: receipt.tenantId,
       artifactTenantId: "artifact-tenant-primary",
@@ -3258,7 +3299,7 @@ describe("Skill target matrix evaluation foundation", () => {
     ).resolves.toMatchObject({ queued: true, recovered: false });
     transitionSourceAvailable = false;
     await expect(transitionAdapter.processNext()).rejects.toThrow(
-      /source authority revoked/u,
+      /CandidateCreated resolver failed closed/u,
     );
     expect(
       transitionReleaseRegistry.readState(candidate.skillName),
