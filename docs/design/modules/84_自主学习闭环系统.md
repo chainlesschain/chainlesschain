@@ -60,7 +60,9 @@ Agent runtime event
 
 Agent completion 已有真实 source/producer 接线缝：它按 tenant/run id 重新解析 branded production composition 并重放认证 `EvolutionRun`，只从已完成 run 生成 `session-end`，且 `goal-end` 必须存在持久 `goal-ended` evidence。`AgentEvolutionIngress.complete()` 在 run commit 后幂等 enqueue，对已完成 run 的重试仍会补投，不会留下 commit/enqueue crash window。
 
-这不等于所有产品事件都已启用：目标部署仍需配置 Agent composition resolver、trigger stream/worker 和独立 `ScheduledBatch` scheduler authority，Candidate/Eval/HumanTask 的 transition adapter 也尚未完成。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。
+`ScheduledBatch` 也已有真实 source/producer 接线缝：它从 `SchedulerStore` 重开已成功结算的 tenant occurrence，固定校验 job payload、occurrence result、evidence-set digest 与 job revision，并在 enqueue 和 Maintainer 处理前由独立 scheduler authority 重新认证完整 job/occurrence；只有该 authority 的 durable receipt 能进入 trigger request。真实 SQLite close/reopen、未完成/替换结果和 authority 撤销回归 4/4 通过。
+
+这不等于所有产品事件都已启用：目标部署仍需配置 Agent composition resolver、SchedulerStore resolver、trigger stream/worker 和真实 scheduler authority/PKI，Candidate/Eval/HumanTask 的 transition adapter 也尚未完成。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。
 
 ## 五、安全约束
 
@@ -78,10 +80,11 @@ Agent completion 已有真实 source/producer 接线缝：它按 tenant/run id �
 - 真实 Agent ingress、ArtifactPorts、EvolutionLedger 和三种 CLI runtime 的持久顺序由各自 evolution 测试覆盖。
 - Wiki trigger 联合回归覆盖三种 trigger、真实 Ledger 文件/witness 重开、源撤销、结果替换和 commit/settlement crash recovery；55 项通过，1 项按平台条件跳过。
 - Agent completion source/trigger 联合回归 15/15，production composition 与跨 runtime 9/9；覆盖已完成 run 重放、goal evidence 强制、源撤销、重复 complete 和幂等 enqueue。
+- ScheduledBatch source 回归 4/4；覆盖真实 SQLite close/reopen、tenant/job revision/evidence digest 绑定、未完成或替换结果拒绝、authority 撤销和 branded producer。
 
 ## 七、剩余工作
 
-1. 在目标部署配置 Agent composition resolver、trigger stream/worker 和独立 `ScheduledBatch` scheduler authority，并完成 transition adapter。
+1. 在目标部署配置 Agent composition/SchedulerStore resolver、trigger stream/worker 和真实 scheduler authority/PKI，并完成 transition adapter。
 2. 将旧学习表数据显式迁移到认证 evidence/Wiki 输入，或标记为 legacy/untrusted 并限定用途。
 3. 完成目标部署的 KMS/PKI/policy/witness authority 与 reviewer/promotion 生产接线。
 
