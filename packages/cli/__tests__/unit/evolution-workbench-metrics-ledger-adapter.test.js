@@ -1,4 +1,4 @@
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -11,7 +11,11 @@ import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
-import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
+import {
+  EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_WITNESS_SCHEMA,
+  EvolutionLedger,
+} from "../../src/lib/evolution/evolution-ledger.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import {
   EvolutionWorkbenchMetricsAggregator,
@@ -29,6 +33,7 @@ const canonical = (value) => {
     .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
     .join(",")}}`;
 };
+const H = (value) => D(typeof value === "string" ? value : canonical(value));
 
 const descriptor = {
   tenantId: "tenant:a",
@@ -44,6 +49,120 @@ afterEach(() => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+const LEDGER_TRUST = {
+  algorithm: "hmac-sha256",
+  keyId: "key://tests/workbench-metrics-ledger",
+  trustPolicyDigest: D("workbench-metrics-ledger-trust"),
+};
+const WITNESS_TRUST = {
+  algorithm: "hmac-sha256",
+  keyId: "key://tests/workbench-metrics-witness",
+  trustPolicyDigest: D("workbench-metrics-witness-trust"),
+};
+const EMPTY_DISCARD_DIGEST = H(
+  `chainlesschain.evolution-witness-discard-accumulator/v1\0${canonical([])}`,
+);
+
+function witnessRecord(witnessId, snapshot = null, previous = null) {
+  const core = {
+    ...WITNESS_TRUST,
+    anchorDigest: snapshot?.anchorDigest ?? null,
+    authenticated: true,
+    durable: true,
+    discardAccumulatorDigest:
+      previous?.discardAccumulatorDigest ?? EMPTY_DISCARD_DIGEST,
+    epoch: snapshot?.epoch ?? null,
+    generation: previous ? previous.generation + 1 : 0,
+    headDigest: snapshot?.headDigest ?? null,
+    identityDigest: snapshot?.identityDigest ?? null,
+    ledgerId: snapshot?.ledgerId ?? null,
+    payloadDigest: snapshot?.payloadDigest ?? null,
+    previousWitnessDigest: previous?.witnessDigest ?? null,
+    schema: EVOLUTION_LEDGER_WITNESS_SCHEMA,
+    segmentDigest: snapshot?.segmentDigest ?? null,
+    sequence: snapshot?.sequence ?? null,
+    status: snapshot ? "committed" : "absent",
+    storeMarkerDigest: snapshot?.storeMarkerDigest ?? null,
+    storeMarkerEntryDigest: snapshot?.storeMarkerEntryDigest ?? null,
+    storeMarkerId: snapshot?.storeMarkerId ?? null,
+    witnessId,
+  };
+  const message = `chainlesschain.evolution-ledger-witness/v1\0${canonical(core)}`;
+  return {
+    ...core,
+    witnessDigest: H(message),
+    signature: { ...WITNESS_TRUST, value: "A".repeat(43) },
+  };
+}
+
+function durableWitness(witnessId) {
+  let current = witnessRecord(witnessId);
+  return {
+    id: witnessId,
+    read: () => current,
+    initialize: ({ expected, snapshot }) => {
+      if (expected.witnessDigest !== current.witnessDigest) return current;
+      current = witnessRecord(witnessId, snapshot, current);
+      return current;
+    },
+    compareAndSwap: ({ expected, next }) => {
+      if (expected.witnessDigest !== current.witnessDigest) return current;
+      current = witnessRecord(witnessId, next, current);
+      return current;
+    },
+    proveAncestry: () => {
+      throw new Error("unexpected ancestry request in linear metrics test");
+    },
+  };
+}
+
+function durableFilesystem() {
+  const directories = new Set();
+  let nextDescriptor = -20_000;
+  return {
+    ...fs,
+    constants: fs.constants,
+    realpathSync: fs.realpathSync,
+    closeSync(fileDescriptor) {
+      if (directories.delete(fileDescriptor)) return;
+      return fs.closeSync(fileDescriptor);
+    },
+    fsyncSync(fileDescriptor) {
+      if (directories.has(fileDescriptor)) return;
+      try {
+        return fs.fsyncSync(fileDescriptor);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.fstatSync(fileDescriptor).isDirectory()
+        ) {
+          return;
+        }
+        throw error;
+      }
+    },
+    openSync(target, flags, mode) {
+      try {
+        return fs.openSync(target, flags, mode);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          flags === "r" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.statSync(target).isDirectory()
+        ) {
+          const fileDescriptor = nextDescriptor;
+          nextDescriptor -= 1;
+          directories.add(fileDescriptor);
+          return fileDescriptor;
+        }
+        throw error;
+      }
+    },
+  };
+}
 
 function invocation(id, contentDigest) {
   const started = startSkillInvocation(
@@ -181,7 +300,29 @@ function backends() {
   const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
     purpose: descriptor.purpose,
   });
-  return { artifactPorts, ledger, resolver, state };
+  return { artifactPorts, ledger, resolver, state, root };
+}
+
+function openRealLedger(value, witness) {
+  const secret = "test-only-real-workbench-metrics-ledger-key";
+  return new EvolutionLedger({
+    rootDir: path.join(value.root, "ledger-events"),
+    authorityRootDir: path.join(value.root, "ledger-authority"),
+    secure: false,
+    fsImpl: durableFilesystem(),
+    clock: () => Date.parse("2026-09-03T01:00:00.000Z"),
+    random: () => randomBytes(16).toString("hex"),
+    trust: LEDGER_TRUST,
+    witnessTrust: WITNESS_TRUST,
+    witness,
+    artifactResolver: value.resolver,
+    sign: ({ message }) => ({
+      ...LEDGER_TRUST,
+      value: createHmac("sha256", secret).update(message).digest("base64url"),
+    }),
+    verifySignature: () => true,
+    verifyWitnessSignature: () => true,
+  });
 }
 
 function adapter(value) {
@@ -210,6 +351,43 @@ function delta(receipts, priorSourceDigest = null, index = 1) {
 }
 
 describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
+  it("recovers the same metrics snapshot through real Ledger files and witness", async () => {
+    const value = backends();
+    const witness = durableWitness("witness-workbench-metrics-integration");
+    const firstLedger = openRealLedger(value, witness);
+    const firstAdapter = new EvolutionWorkbenchMetricsLedgerAdapter({
+      descriptor,
+      artifactPorts: value.artifactPorts,
+      ledger: firstLedger,
+      ledgerArtifactResolver: value.resolver,
+    });
+    const source = delta([invocation("real-1", D("content:real"))]);
+    const first = await new EvolutionWorkbenchMetricsAggregator({
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      ports: firstAdapter.aggregatorPorts({
+        readReceiptDelta: async () => source,
+      }),
+    }).aggregate();
+
+    const reopenedLedger = openRealLedger(value, witness);
+    const reopenedAdapter = new EvolutionWorkbenchMetricsLedgerAdapter({
+      descriptor,
+      artifactPorts: value.artifactPorts,
+      ledger: reopenedLedger,
+      ledgerArtifactResolver: value.resolver,
+    });
+    expect(reopenedAdapter.loadSnapshot()).toMatchObject({
+      found: true,
+      snapshot: { snapshotDigest: first.snapshotDigest, revision: 1 },
+    });
+    expect(reopenedLedger.verify()).toMatchObject({
+      eventCount: 1,
+      sequence: 1,
+    });
+  });
+
   it("persists an immutable metrics snapshot and recovers it in a new adapter", async () => {
     const value = backends();
     const contentDigest = D("content:a");
