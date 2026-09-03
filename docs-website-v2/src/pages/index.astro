@@ -24,6 +24,7 @@ const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 const AGENT_PROTOCOL_VERSION = releaseStatus.agentProtocolVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
+const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayZh;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const ANDROID_VERSION = DOWNLOAD_VERSION;
@@ -95,7 +96,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 项发明专利' },
   { icon: '🔒', label: '军事级加密' },
-  { icon: '⭐', label: 'Open VSX 插件下载 3.3 万+' },
+  { icon: '⭐', label: `Open VSX 插件下载 ${OPEN_VSX_DOWNLOADS}` },
   { icon: '✅', label: '等保三级认证' },
   { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -111,7 +112,7 @@ const badges = [
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">已验证 CLI v{CLI_VERSION}</span>
           <span class="chip">175 命令</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载突破 3.3 万</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载突破 {OPEN_VSX_DOWNLOADS}</a>
           <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 ChainlessChain 系列 npm 包月下载 5 万+</a>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>

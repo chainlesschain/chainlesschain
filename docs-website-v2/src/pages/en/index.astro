@@ -24,6 +24,7 @@ const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 const AGENT_PROTOCOL_VERSION = releaseStatus.agentProtocolVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
+const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayEn;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const ANDROID_VERSION = DOWNLOAD_VERSION;
@@ -93,7 +94,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 invention patents' },
   { icon: '🔒', label: 'Military-grade encryption' },
-  { icon: '⭐', label: '32k+ Open VSX downloads' },
+  { icon: '⭐', label: `${OPEN_VSX_DOWNLOADS} Open VSX downloads` },
   { icon: '✅', label: 'MLPS Level 3' },
   { icon: '📋', label: 'Co-author · Intrinsic Security of AI Agent (T/ZGCMCA 023—2025)', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -114,7 +115,7 @@ const badges = [
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">Verified CLI v{CLI_VERSION}</span>
           <span class="chip">175 commands</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code extension · 32k+ downloads on Open VSX</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code extension · {OPEN_VSX_DOWNLOADS} downloads on Open VSX</a>
           <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 50k+ monthly downloads across ChainlessChain npm packages</a>
           <span class="chip">Web Shell (default)</span>
           <span class="chip">Bilingual Web Panel</span>
