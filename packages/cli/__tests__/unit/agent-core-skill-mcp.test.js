@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 const mocks = vi.hoisted(() => ({
   skills: [],
@@ -93,6 +94,7 @@ describe("run_skill controlled execution boundary", () => {
     mcpServers = [],
     capabilities = [],
     body = "# Approved skill instructions",
+    description = id,
   }) {
     mocks.skills.push({
       id,
@@ -101,7 +103,14 @@ describe("run_skill controlled execution boundary", () => {
       activation: "manual",
       source: "workspace",
       hasHandler: true,
-      description: id,
+      description,
+      version: "1.0.0",
+      tags: [],
+      paths: [],
+      os: [],
+      executionIdentity: {
+        contentDigest: `sha256:${createHash("sha256").update(id).digest("hex")}`,
+      },
       skillDir: join(tempDir, id),
       mcpServers,
       capabilities,
@@ -942,6 +951,37 @@ describe("run_skill controlled execution boundary", () => {
       "alpha",
       "gamma",
     ]);
+  });
+
+  it("list_skills query returns ranked digest-bound routing evidence", async () => {
+    registerSkill({ id: "write-docs", description: "write release notes" });
+    registerSkill({
+      id: "repair-tests",
+      description: "repair failing vitest unit tests",
+    });
+
+    const result = await executeTool(
+      "list_skills",
+      { query: "repair vitest tests" },
+      { cwd: tempDir },
+    );
+
+    expect(result).toMatchObject({
+      count: 1,
+      routing: {
+        schema: "chainlesschain.skill-retrieval-result/v1",
+        selectedDigest: mocks.skills[1].executionIdentity.contentDigest,
+        vectorAvailable: false,
+      },
+      skills: [
+        {
+          id: "repair-tests",
+          digest: mocks.skills[1].executionIdentity.contentDigest,
+          version: "1.0.0",
+          routeReason: expect.stringContaining("bm25="),
+        },
+      ],
+    });
   });
 
   it("treats an empty skill allow-list as deny-all", async () => {

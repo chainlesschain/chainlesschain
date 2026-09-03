@@ -45,6 +45,7 @@ import {
 } from "../lib/lsp/workspace-roots.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
+import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 import {
   admitSkillPrompt,
   debitSkillPromptBudget,
@@ -8201,14 +8202,20 @@ async function executeToolInner(
           (s) => s.category.toLowerCase() === args.category.toLowerCase(),
         );
       }
+      let routing = null;
       if (args.query) {
-        const q = args.query.toLowerCase();
-        skills = skills.filter(
-          (s) =>
-            s.id.includes(q) ||
-            s.description.toLowerCase().includes(q) ||
-            s.category.toLowerCase().includes(q),
+        routing = routeSkillDescriptors({
+          skills,
+          query: args.query,
+          target: { os: process.platform },
+          topK: Math.min(64, Math.max(1, skills.length)),
+        });
+        const byDigest = new Map(
+          skills.map((skill) => [skill.executionIdentity?.contentDigest, skill]),
         );
+        skills = routing.candidates
+          .map(({ digest }) => byDigest.get(digest))
+          .filter(Boolean);
       }
       skillLoader.recordDescriptorUse?.(skills, {
         sessionId,
@@ -8217,12 +8224,40 @@ async function executeToolInner(
       });
       return attachDescriptor({
         count: skills.length,
+        ...(routing
+          ? {
+              routing: {
+                schema: routing.schema,
+                selectedDigest: routing.selected?.digest || null,
+                conflicts: routing.conflicts,
+                rejectedCount: routing.rejected.length,
+                vectorAvailable: routing.vectorAvailable,
+              },
+            }
+          : {}),
         skills: skills.map((s) => ({
           id: s.id,
           category: s.category,
           source: s.source,
           hasHandler: s.hasHandler,
           description: (s.description || "").substring(0, 80),
+          ...(routing
+            ? (() => {
+                const candidate = routing.candidates.find(
+                  ({ digest }) =>
+                    digest === s.executionIdentity?.contentDigest,
+                );
+                return candidate
+                  ? {
+                      digest: candidate.digest,
+                      version: candidate.version,
+                      contextCostTokens: candidate.contextCostTokens,
+                      routeScore: candidate.score,
+                      routeReason: candidate.reason,
+                    }
+                  : {};
+              })()
+            : {}),
         })),
       });
     }
