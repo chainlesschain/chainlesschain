@@ -339,7 +339,7 @@ async function startBridge(context) {
   refreshUi();
 }
 
-function activate(context) {
+async function activate(context) {
   _output = vscode.window.createOutputChannel("ChainlessChain IDE");
   context.subscriptions.push(_output);
   _activityLog = new ActivityLog({ max: 200 });
@@ -1668,7 +1668,10 @@ function activate(context) {
     log("auto-exec scan failed: " + (e?.message || e)),
   );
 
-  startBridge(context).catch((e) => log("start failed: " + e.message));
+  // VS Code waits for an async activate() promise before dispatching user
+  // commands. Await bridge startup so the chat panel cannot send its first
+  // turn while CLI resolution is still on the unsafe pre-resolution fallback.
+  await startBridge(context).catch((e) => log("start failed: " + e.message));
   if (hostDomToken) {
     // The packaged target activates before the test-only development driver on
     // signed macOS hosts. Trigger the driver's fixed contributed command only

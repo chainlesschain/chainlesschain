@@ -1,8 +1,9 @@
 /**
  * Resolve the chainlesschain CLI binary, tolerating a `cc` that is shadowed by
  * another tool — classically the C compiler, whose name is also `cc`. The npm
- * package installs `cc`, `chainlesschain`, `clc` and `clchain`; we try them in
- * order and pick the first whose `--version` prints a BARE chainlesschain
+ * package installs `cc`, `chainlesschain`, `clc` and `clchain`; we prefer the
+ * unambiguous long name, then try the aliases, and pick the first whose
+ * `--version` prints a BARE chainlesschain
  * version (a leading semver line, not a compiler banner). The result is cached
  * process-wide so the panel spawn and every probe agree. An explicit
  * `chainlesschain.cli.path` (anything other than the default `cc`) always wins.
@@ -16,9 +17,9 @@ function setResolvedCli(bin) {
   if (bin && typeof bin === "string") _resolved = bin;
 }
 
-/** The resolved binary, or "cc" until resolution completes. */
+/** The resolved binary, or the unambiguous npm bin until resolution completes. */
 function getResolvedCli() {
-  return _resolved || "cc";
+  return _resolved || "chainlesschain";
 }
 
 /**
@@ -39,8 +40,8 @@ function looksLikeCcVersion(out) {
 
 /**
  * Resolve the CLI binary. An explicit non-`cc` configured path wins; otherwise
- * probe cc → chainlesschain → clc → clchain and return the first that looks like
- * chainlesschain. An optional `getManaged` candidate source (the managed CLI
+ * probe chainlesschain → cc → clc → clchain and return the first that
+ * looks like chainlesschain. An optional `getManaged` candidate source (the managed CLI
  * runtime, see managed-cli.js) is consulted ONLY after every global probe
  * failed — an explicit setting is never silently replaced, and behavior with
  * no managed install is byte-identical to before. Falls back to the
@@ -56,7 +57,7 @@ async function resolveCliBinary({
 } = {}) {
   const explicit = typeof configuredPath === "string" && configuredPath.trim();
   if (explicit && configuredPath !== "cc") return configuredPath;
-  for (const cand of ["cc", "chainlesschain", "clc", "clchain"]) {
+  for (const cand of ["chainlesschain", "cc", "clc", "clchain"]) {
     let out = null;
     try {
       out = await getVersionOf(cand);
@@ -75,7 +76,7 @@ async function resolveCliBinary({
       /* managed resolution is best-effort — fall through */
     }
   }
-  return explicit ? configuredPath : "cc";
+  return explicit ? configuredPath : "chainlesschain";
 }
 
 module.exports = {

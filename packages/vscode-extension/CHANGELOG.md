@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.80] - Collision-safe CLI startup (2026-09-03)
+
+- Prevent the first chat turn from racing asynchronous CLI discovery during
+  extension activation.
+- Prefer the unambiguous `chainlesschain` executable before the shorter npm
+  aliases, so an unrelated system `cc` cannot receive `cc agent` arguments.
+- Recommend the exact-gated public `chainlesschain@0.166.18` release and retain
+  fallback support for installations where only the valid `cc` alias exists.
+
 ## [0.37.79] - Reviewed App Server approvals (2026-09-02)
 
 - Add a bounded native review flow for App Server permission requests with
