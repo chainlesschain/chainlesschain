@@ -173,6 +173,8 @@ export function createAgentEvolutionRuntimeComposition({
   clock: clockInput = Date.now,
   evidenceIdGenerator,
   ingressIdGenerator,
+  wikiMaintenanceProducer = null,
+  completionTriggerKind,
   secure = true,
   fsImpl,
   lock,
@@ -348,6 +350,8 @@ export function createAgentEvolutionRuntimeComposition({
     evidenceAdapter,
     runAdapter,
     sourceEnvelopeAuthority: ports.sourceEnvelope,
+    wikiMaintenanceProducer,
+    ...(completionTriggerKind === undefined ? {} : { completionTriggerKind }),
     now: () => new Date(clock()),
     idGenerator: ingressIdGenerator,
   });

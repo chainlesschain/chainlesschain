@@ -3,6 +3,8 @@ import evolutionRun from "@chainlesschain/session-core/evolution-run";
 
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
+import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
+import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
 
 const { EVOLUTION_RUN_EVENT_SCHEMA, EVENT_TYPES } = evolutionRun;
 
@@ -94,6 +96,8 @@ export function createAgentEvolutionIngress({
   evidenceAdapter,
   runAdapter,
   sourceEnvelopeAuthority,
+  wikiMaintenanceProducer = null,
+  completionTriggerKind = WIKI_MAINTENANCE_TRIGGER_KIND.SESSION_END,
   now = () => new Date(),
   idGenerator = () => crypto.randomUUID(),
 } = {}) {
@@ -108,6 +112,20 @@ export function createAgentEvolutionIngress({
   }
   if (typeof now !== "function" || typeof idGenerator !== "function") {
     throw new TypeError("ingress clock and idGenerator must be functions");
+  }
+  const maintenanceProducer =
+    wikiMaintenanceProducer === null
+      ? null
+      : captureEvolutionRunWikiMaintenanceProducer(wikiMaintenanceProducer);
+  if (
+    ![
+      WIKI_MAINTENANCE_TRIGGER_KIND.SESSION_END,
+      WIKI_MAINTENANCE_TRIGGER_KIND.GOAL_END,
+    ].includes(completionTriggerKind)
+  ) {
+    throw new TypeError(
+      "Agent completion trigger kind must be session-end or goal-end",
+    );
   }
   const issueSourceEnvelope = sourceEnvelopeAuthority.issue.bind(
     sourceEnvelopeAuthority,
@@ -231,30 +249,39 @@ export function createAgentEvolutionIngress({
     },
     complete: (options = {}) =>
       guardIngress(
-        serialize(() => {
+        serialize(async () => {
           const loaded = runAdapter.load();
+          let projection;
           if (loaded.projection?.status === "completed") {
-            return loaded.projection;
+            projection = loaded.projection;
+          } else {
+            if (loaded.events.length === 0) appendStarted();
+            const current = runAdapter.load();
+            const occurredAt = timestamp(
+              options.occurredAt ?? currentTimestamp(),
+              "Agent completion occurredAt",
+            );
+            projection = runAdapter.appendEvent({
+              schema: EVOLUTION_RUN_EVENT_SCHEMA,
+              tenantId: descriptor.tenantId,
+              runId: descriptor.runId,
+              eventId: `${descriptor.runId}:completed`,
+              sequence: current.events.length + 1,
+              type: EVENT_TYPES.RUN_COMPLETED,
+              subjectId: descriptor.runId,
+              payloadDigest: digest({ occurredAt, status: "completed" }),
+              artifactRef: null,
+              keyRef: null,
+              data: { occurredAt, status: "completed" },
+            }).projection;
           }
-          if (loaded.events.length === 0) appendStarted();
-          const current = runAdapter.load();
-          const occurredAt = timestamp(
-            options.occurredAt ?? currentTimestamp(),
-            "Agent completion occurredAt",
-          );
-          return runAdapter.appendEvent({
-            schema: EVOLUTION_RUN_EVENT_SCHEMA,
-            tenantId: descriptor.tenantId,
-            runId: descriptor.runId,
-            eventId: `${descriptor.runId}:completed`,
-            sequence: current.events.length + 1,
-            type: EVENT_TYPES.RUN_COMPLETED,
-            subjectId: descriptor.runId,
-            payloadDigest: digest({ occurredAt, status: "completed" }),
-            artifactRef: null,
-            keyRef: null,
-            data: { occurredAt, status: "completed" },
-          }).projection;
+          if (maintenanceProducer !== null) {
+            await maintenanceProducer.enqueueCompletedRun({
+              kind: completionTriggerKind,
+              runId: descriptor.runId,
+            });
+          }
+          return projection;
         }),
       ),
   });
