@@ -33,6 +33,7 @@ export const GOVERNED_KNOWLEDGE_MERGE_LEDGER_CORRUPT_CODE =
   "CC_GOVERNED_KNOWLEDGE_MERGE_LEDGER_CORRUPT";
 
 const ARTIFACT_TYPE = "governed-knowledge-merge-operation";
+const EXECUTORS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const PREPARED_KEYS = new Set([
@@ -287,6 +288,7 @@ export class GovernedKnowledgeMergeLedgerExecutor {
     );
     this._now = now;
     Object.freeze(this);
+    EXECUTORS.add(this);
   }
 
   _events(type) {
@@ -386,6 +388,28 @@ export class GovernedKnowledgeMergeLedgerExecutor {
     return { event, record };
   }
 
+  _preparedForConflict(envelopeDigest) {
+    const matches = [];
+    for (const event of this._events(
+      GOVERNED_KNOWLEDGE_MERGE_PREPARED_EVENT_TYPE,
+    )) {
+      const suffix = event.eventId?.slice(
+        `${GOVERNED_KNOWLEDGE_MERGE_PREPARED_EVENT_TYPE}.`.length,
+      );
+      const planDigest = `sha256:${suffix}`;
+      if (!DIGEST.test(planDigest))
+        corrupt("prepared merge event id is invalid");
+      const prepared = this._prepared(planDigest);
+      if (prepared.record.plan.conflictEnvelopeDigest === envelopeDigest) {
+        matches.push(prepared);
+      }
+    }
+    if (matches.length > 1) {
+      corrupt("a conflict has multiple prepared merge operations");
+    }
+    return matches[0] ?? null;
+  }
+
   _conflictEvent(plan) {
     const eventId = `${GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE}.conflict.${plan.conflictEnvelopeDigest.slice(7)}`;
     const matches = this._events(
@@ -424,6 +448,15 @@ export class GovernedKnowledgeMergeLedgerExecutor {
   }
 
   async _prepare(plan) {
+    const conflictPreparation = this._preparedForConflict(
+      plan.conflictEnvelopeDigest,
+    );
+    if (
+      conflictPreparation &&
+      conflictPreparation.record.plan.planDigest !== plan.planDigest
+    ) {
+      throw new Error("governed knowledge conflict already has a merge plan");
+    }
     const existing = this._prepared(plan.planDigest);
     if (existing) {
       if (canonical(existing.record.plan) !== canonical(plan)) {
@@ -555,6 +588,35 @@ export class GovernedKnowledgeMergeLedgerExecutor {
     return this._result(settled.record, preparedBefore !== null);
   }
 
+  async isConflictSettled({ envelopeDigest } = {}) {
+    if (!DIGEST.test(envelopeDigest ?? "")) {
+      throw new TypeError("conflict envelope digest is invalid");
+    }
+    return (await this.settledConflictDigests()).includes(envelopeDigest);
+  }
+
+  async settledConflictDigests() {
+    const digests = [];
+    for (const event of this._events(
+      GOVERNED_KNOWLEDGE_MERGE_SETTLED_EVENT_TYPE,
+    )) {
+      const suffix = event.eventId?.slice(
+        `${GOVERNED_KNOWLEDGE_MERGE_SETTLED_EVENT_TYPE}.`.length,
+      );
+      const planDigest = `sha256:${suffix}`;
+      if (!DIGEST.test(planDigest))
+        corrupt("settled merge event id is invalid");
+      const prepared = this._prepared(planDigest);
+      if (!prepared) corrupt("settled merge has no prepared operation");
+      this._settled(prepared.record.plan);
+      digests.push(prepared.record.plan.conflictEnvelopeDigest);
+    }
+    if (new Set(digests).size !== digests.length) {
+      corrupt("a conflict has multiple settled merge operations");
+    }
+    return freeze(digests);
+  }
+
   async resume({ planDigest } = {}) {
     if (!DIGEST.test(planDigest ?? "")) {
       throw new TypeError("planDigest is invalid");
@@ -575,4 +637,8 @@ export class GovernedKnowledgeMergeLedgerExecutor {
       verificationReceiptDigest: record.publishResult.verificationReceiptDigest,
     });
   }
+}
+
+export function isGovernedKnowledgeMergeExecutor(value) {
+  return EXECUTORS.has(value);
 }

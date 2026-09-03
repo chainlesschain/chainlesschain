@@ -3,8 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { registerGovernedKnowledgeCommands } from "../../src/commands/evolution-knowledge.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
@@ -35,6 +37,7 @@ import {
   createGovernedKnowledgeMergePublisherAuthority,
   digestGovernedKnowledgeMergePublishResult,
 } from "../../src/lib/evolution/governed-knowledge-merge-publisher-authority.js";
+import { createGovernedKnowledgeReviewHost } from "../../src/lib/evolution/governed-knowledge-review-host.js";
 import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import {
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
@@ -575,6 +578,46 @@ function mergeExecutor(storage, publisherAuthority) {
   });
 }
 
+function reviewHost(fixture, mergeExecution) {
+  const receiptIssuer = {
+    issue: vi.fn(async (request) => {
+      const core = {
+        schema: GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
+        tenantId: request.tenantId,
+        reviewerId: "human:alice",
+        automated: false,
+        knowledgeId: request.knowledgeId,
+        conflictEnvelopeDigest: request.conflictEnvelopeDigest,
+        localContentDigest: request.localContentDigest,
+        remoteContentDigest: request.remoteContentDigest,
+        mergedContentDigest: request.mergedContentDigest,
+        mergedVectorClock: request.mergedVectorClock,
+        reason: request.reason,
+        decidedAt: request.requestedAt,
+      };
+      return {
+        ...core,
+        receiptDigest: digestGovernedKnowledgeHumanMergeReceipt(core),
+        attestation: {
+          algorithm: "test-signature",
+          keyId: "human-key:alice",
+          value: "signed-human-merge-decision",
+        },
+      };
+    }),
+  };
+  return {
+    host: createGovernedKnowledgeReviewHost({
+      conflictReader: fixture.reader,
+      receiptIssuer,
+      receiptVerifier: fixture.verifier,
+      mergeExecutor: mergeExecution,
+      now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+    }),
+    receiptIssuer,
+  };
+}
+
 function revocationKnowledge(overrides = {}) {
   return knowledge({
     action: "revoke",
@@ -928,6 +971,68 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       eventCount: 4,
       sequence: 4,
     });
+  });
+
+  it("exposes a redacted CLI reviewer surface backed by the durable merge", async () => {
+    const fixture = await mergePlanFixture();
+    const publisher = mergePublisher();
+    const reviewed = reviewHost(
+      fixture,
+      mergeExecutor(fixture.receiverStorage, publisher.authority),
+    );
+    const before = await reviewed.host.list();
+    expect(before).toMatchObject({
+      total: 1,
+      items: [{ knowledgeId: "knowledge:1" }],
+    });
+    expect(JSON.stringify(before)).not.toContain("ciphertext");
+    expect(JSON.stringify(before)).not.toContain("signature");
+
+    const root = new Command().exitOverride();
+    const evolution = root.command("evolution");
+    registerGovernedKnowledgeCommands(evolution, {
+      governedKnowledgeReviewHost: reviewed.host,
+    });
+    const printed = vi.spyOn(console, "log").mockImplementation(() => {});
+    await root.parseAsync([
+      "node",
+      "cc",
+      "evolution",
+      "knowledge",
+      "merge",
+      fixture.remoteEnvelope.envelopeDigest,
+      "--record",
+      JSON.stringify(fixture.merged),
+      "--reason",
+      "Reviewed both offline edits and preserved their intent.",
+    ]);
+    const result = JSON.parse(printed.mock.calls[0][0]);
+    printed.mockRestore();
+    expect(result).toMatchObject({
+      durable: true,
+      knowledgeId: "knowledge:1",
+      mergedContentDigest: D("content:merged"),
+    });
+    expect(reviewed.receiptIssuer.issue).toHaveBeenCalledOnce();
+    expect(await reviewed.host.list()).toMatchObject({ total: 0, items: [] });
+    await expect(
+      reviewed.host.merge({
+        conflictEnvelopeDigest: fixture.remoteEnvelope.envelopeDigest,
+        mergedRecord: fixture.merged,
+        reason: "A second decision must not be accepted.",
+      }),
+    ).rejects.toThrow("already settled");
+  });
+
+  it("rejects an unbranded CLI reviewer host before reading user data", async () => {
+    const root = new Command().exitOverride();
+    const evolution = root.command("evolution");
+    registerGovernedKnowledgeCommands(evolution, {
+      governedKnowledgeReviewHost: {},
+    });
+    await expect(
+      root.parseAsync(["node", "cc", "evolution", "knowledge", "conflicts"]),
+    ).rejects.toThrow("trusted deployment host");
   });
 
   it("refuses a merge publish result rejected by its independent verifier", async () => {
