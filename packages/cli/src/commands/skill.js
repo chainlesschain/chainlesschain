@@ -61,6 +61,10 @@ import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
 import { registerRecordReplayCommands } from "./record-replay.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
+import {
+  captureSkillVectorAuthority,
+  unavailableSkillVectorEvidence,
+} from "../lib/skill-vector-authority.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -127,7 +131,31 @@ export function routeSkillSearch(skills, query, options = {}) {
     tags: options.tag ? [options.tag] : [],
     target: { os: options.os || process.platform },
     outcomeMetrics: options.outcomeMetrics ?? null,
+    vectorScores: options.vectorScores ?? null,
     topK: limit,
+  });
+}
+
+export async function routeSkillSearchWithVectorAuthority(
+  skills,
+  query,
+  options = {},
+  authority = null,
+) {
+  validateSkillSearchRequest(skills, query, options);
+  const vectorAuthority =
+    authority === null ? null : captureSkillVectorAuthority(authority);
+  const vector =
+    vectorAuthority === null
+      ? null
+      : await vectorAuthority.score({ query, skills });
+  const routed = routeSkillSearch(skills, query, {
+    ...options,
+    vectorScores: vector?.scores ?? null,
+  });
+  return Object.freeze({
+    ...routed,
+    vectorAuthority: vector?.evidence ?? unavailableSkillVectorEvidence(),
   });
 }
 
@@ -340,6 +368,10 @@ export async function runControlledSkill(options = {}) {
 }
 
 export function registerSkillCommand(program, dependencies = {}) {
+  const skillVectorAuthority =
+    dependencies.skillVectorAuthority == null
+      ? null
+      : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
   const skill = program
     .command("skill")
     .description(
@@ -537,10 +569,15 @@ export function registerSkillCommand(program, dependencies = {}) {
       );
       let result;
       try {
-        result = routeSkillSearch(skills, query, {
-          ...options,
-          outcomeMetrics: outcomeAuthority.metrics,
-        });
+        result = await routeSkillSearchWithVectorAuthority(
+          skills,
+          query,
+          {
+            ...options,
+            outcomeMetrics: outcomeAuthority.metrics,
+          },
+          skillVectorAuthority,
+        );
         result = Object.freeze({
           ...result,
           outcomeAuthority: outcomeAuthority.evidence,
