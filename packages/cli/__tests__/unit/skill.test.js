@@ -141,6 +141,19 @@ describe("skill command", () => {
       expect(result).toContain("Search results");
     });
 
+    it("outputs canonical digest-bound routing JSON", () => {
+      const result = execSync(
+        `node ${join(cliRoot, "bin", "chainlesschain.js")} skill search browser --limit 5 --json`,
+        { encoding: "utf-8", timeout: 60000 },
+      );
+      const routed = JSON.parse(result);
+      expect(routed.schema).toBe("chainlesschain.skill-retrieval-result/v1");
+      expect(routed.candidates.length).toBeGreaterThan(0);
+      expect(routed.candidates.length).toBeLessThanOrEqual(5);
+      expect(routed.candidates[0].digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+      expect(routed.candidates[0].reason).toContain("bm25=");
+    });
+
     it("shows message when no results", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill search zzzznonexistent`,

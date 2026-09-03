@@ -59,6 +59,7 @@ import {
 } from "../lib/skill-packs/generator.js";
 import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
 import { registerRecordReplayCommands } from "./record-replay.js";
+import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -73,6 +74,52 @@ const LAYER_LABELS = {
 function canRunOnPlatform(skill) {
   if (!skill.os || skill.os.length === 0) return true;
   return skill.os.includes(process.platform);
+}
+
+export function routeSkillSearch(skills, query, options = {}) {
+  if (
+    !Array.isArray(skills) ||
+    typeof query !== "string" ||
+    !options ||
+    typeof options !== "object" ||
+    Array.isArray(options)
+  ) {
+    throw new TypeError("Skill search request is invalid");
+  }
+  const limit = options.limit === undefined ? 20 : Number(options.limit);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 64) {
+    throw new TypeError("Skill search limit must be an integer from 1 to 64");
+  }
+  for (const [name, value] of [
+    ["category", options.category],
+    ["source", options.source],
+    ["tag", options.tag],
+    ["os", options.os],
+  ]) {
+    if (
+      value !== undefined &&
+      (typeof value !== "string" || value.length < 1 || value.length > 128)
+    ) {
+      throw new TypeError(`Skill search ${name} is invalid or unbounded`);
+    }
+  }
+  const category = options.category ?? null;
+  const routedSkills =
+    category === null
+      ? skills
+      : skills.filter(
+          (candidate) =>
+            String(candidate.category || "").toLowerCase() ===
+            category.toLowerCase(),
+        );
+  return routeSkillDescriptors({
+    skills: routedSkills,
+    query,
+    namespace: options.source ?? null,
+    tags: options.tag ? [options.tag] : [],
+    target: { os: options.os || process.platform },
+    topK: limit,
+  });
 }
 
 export const SKILL_TEMPLATE_MD = (name) => `---
@@ -455,32 +502,56 @@ export function registerSkillCommand(program) {
   // skill search
   skill
     .command("search")
-    .description("Search skills by keyword")
+    .description("Search digest-bound skills with the canonical router")
     .argument("<query>", "Search query")
-    .action(async (query) => {
+    .option("--category <category>", "Filter by exact category")
+    .option("--tag <tag>", "Require an exact tag")
+    .option(
+      "--source <layer>",
+      "Filter by source layer (bundled, marketplace, managed, workspace)",
+    )
+    .option("--limit <count>", "Maximum results (1-64)", "20")
+    .option("--json", "Output the canonical routing result as JSON")
+    .action(async (query, options) => {
       const skills = loader.loadAll();
-      const q = query.toLowerCase();
-      const matches = skills.filter(
-        (s) =>
-          s.id.includes(q) ||
-          s.displayName.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q) ||
-          s.tags.some((t) => t.toLowerCase().includes(q)),
-      );
+      let result;
+      try {
+        result = routeSkillSearch(skills, query, options);
+      } catch (error) {
+        logger.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
 
-      if (matches.length === 0) {
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (result.candidates.length === 0) {
         logger.info(`No skills matching "${query}"`);
         return;
       }
 
       logger.log(
-        chalk.bold(`\nSearch results for "${query}" (${matches.length}):\n`),
+        chalk.bold(
+          `\nSearch results for "${query}" (${result.candidates.length}):\n`,
+        ),
       );
-      for (const s of matches) {
-        const handler = s.hasHandler ? chalk.green("●") : chalk.gray("○");
-        const label = LAYER_LABELS[s.source] || "";
+      if (result.selected === null && result.conflicts.length > 0) {
+        logger.warn(
+          "No automatic selection: narrow the query or filters to resolve the reported conflict.",
+        );
+      }
+      for (const candidate of result.candidates) {
+        const label = LAYER_LABELS[candidate.namespace] || "";
         logger.log(
-          `  ${handler} ${chalk.cyan(s.id.padEnd(30))} ${chalk.gray(s.description.substring(0, 40))} ${label}`,
+          `  ${chalk.cyan(candidate.id.padEnd(30))} ${chalk.gray(`v${candidate.version}`)} ${label}`,
+        );
+        logger.log(
+          chalk.gray(
+            `    ${candidate.digest}  score=${candidate.score.toFixed(3)}  ${candidate.reason}`,
+          ),
         );
       }
       logger.log("");
