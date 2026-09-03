@@ -31,7 +31,14 @@ function manifest(overrides = {}) {
       evalBadgeDigest: D("badge"),
       lineage: [D("evidence"), D("candidate")],
       compatibilityMatrix: [
-        { ...TARGET, accepted: true, evalReceiptDigest: D("target-eval") },
+        {
+          ...TARGET,
+          accepted: true,
+          safetyPassed: true,
+          qualityScore: 0.9,
+          sampleCount: 100,
+          evalReceiptDigest: D("target-eval"),
+        },
       ],
       ...overrides,
     },
@@ -119,6 +126,9 @@ describe("Governed Skill Marketplace", () => {
               ...TARGET,
               model: "qwen-3.6-27b",
               accepted: true,
+              safetyPassed: true,
+              qualityScore: 0.9,
+              sampleCount: 100,
               evalReceiptDigest: D("source-eval"),
             },
           ],
@@ -146,7 +156,14 @@ describe("Governed Skill Marketplace", () => {
       harness().market.inspect(
         manifest({
           compatibilityMatrix: [
-            { ...TARGET, accepted: false, evalReceiptDigest: D("failed-eval") },
+            {
+              ...TARGET,
+              accepted: false,
+              safetyPassed: true,
+              qualityScore: 0.1,
+              sampleCount: 100,
+              evalReceiptDigest: D("failed-eval"),
+            },
           ],
         }),
         TARGET,
@@ -246,5 +263,88 @@ describe("Governed Skill Marketplace", () => {
         request: expect.objectContaining({ nextStage: "rolled-back" }),
       }),
     );
+  });
+
+  it("ranks by target Eval and verified outcomes, not installs or self-confidence", async () => {
+    const h = harness();
+    const stronger = manifest({
+      skillName: "stronger-target-eval",
+      packageDigest: D("stronger-package"),
+      compatibilityMatrix: [
+        {
+          ...TARGET,
+          accepted: true,
+          safetyPassed: true,
+          qualityScore: 0.95,
+          sampleCount: 100,
+          evalReceiptDigest: D("stronger-eval"),
+        },
+      ],
+    });
+    const popular = manifest({
+      skillName: "popular-but-weaker",
+      packageDigest: D("popular-package"),
+      compatibilityMatrix: [
+        {
+          ...TARGET,
+          accepted: true,
+          safetyPassed: true,
+          qualityScore: 0.6,
+          sampleCount: 100,
+          evalReceiptDigest: D("popular-eval"),
+        },
+      ],
+    });
+    const result = await h.market.rank({
+      listings: [
+        { manifest: popular, installCount: 1_000_000, confidence: 1 },
+        { manifest: stronger, installCount: 1, confidence: 0 },
+      ],
+      target: TARGET,
+      outcomeMetrics: {
+        [stronger.manifestDigest]: {
+          samples: 20,
+          successRate: 0.9,
+          correctionRate: 0.1,
+        },
+        [popular.manifestDigest]: {
+          samples: 20,
+          successRate: 0.7,
+          correctionRate: 0.2,
+        },
+      },
+    });
+    expect(result.ranked.map(({ skillName }) => skillName)).toEqual([
+      "stronger-target-eval",
+      "popular-but-weaker",
+    ]);
+    expect(result.ranked[0]).not.toHaveProperty("installCount");
+    expect(result.ranked[0].reason).toContain("target-eval=");
+  });
+
+  it("rejects unsafe cells and invalid outcome claims before ranking", async () => {
+    const h = harness();
+    const unsafe = manifest({
+      compatibilityMatrix: [
+        {
+          ...TARGET,
+          accepted: true,
+          safetyPassed: false,
+          qualityScore: 1,
+          sampleCount: 100,
+          evalReceiptDigest: D("unsafe-eval"),
+        },
+      ],
+    });
+    await expect(
+      h.market.rank({ listings: [{ manifest: unsafe }], target: TARGET }),
+    ).rejects.toThrow("safety gate");
+    await expect(
+      h.market.rank({
+        listings: [{ manifest: manifest() }],
+        target: TARGET,
+        outcomeMetrics: { [manifest().manifestDigest]: { samples: -1 } },
+      }),
+    ).rejects.toThrow("outcome metric");
   });
 });

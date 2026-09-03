@@ -5,6 +5,8 @@ export const GOVERNED_SKILL_MARKETPLACE_MANIFEST_SCHEMA =
   "chainlesschain.governed-skill-marketplace-manifest/v1";
 export const GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA =
   "chainlesschain.governed-skill-marketplace-state/v1";
+export const GOVERNED_SKILL_MARKETPLACE_RANKING_SCHEMA =
+  "chainlesschain.governed-skill-marketplace-ranking/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
@@ -112,6 +114,12 @@ function normalizeManifest(input, tenantId) {
     record(cell, "compatibility cell");
     if (
       typeof cell.accepted !== "boolean" ||
+      typeof cell.safetyPassed !== "boolean" ||
+      !Number.isFinite(cell.qualityScore) ||
+      cell.qualityScore < 0 ||
+      cell.qualityScore > 1 ||
+      !Number.isSafeInteger(cell.sampleCount) ||
+      cell.sampleCount < 1 ||
       !["model", "os", "tool", "runtime"].every((field) =>
         ID.test(cell[field] || ""),
       )
@@ -169,6 +177,8 @@ export class GovernedSkillMarketplace {
     if ((await this._verifySignature({ manifest })) !== true)
       throw new Error("marketplace manifest signature is invalid");
     const cell = targetCell(manifest, target);
+    if (cell.safetyPassed !== true)
+      throw new Error("marketplace target safety gate failed");
     const adapted = await this._adapt({
       manifest,
       target: clone(target),
@@ -213,6 +223,73 @@ export class GovernedSkillMarketplace {
       revoked: false,
     };
     return this._persist(state, expectedStateDigest, "marketplace.staged");
+  }
+
+  async rank({ listings, target, outcomeMetrics = {} } = {}) {
+    if (
+      !Array.isArray(listings) ||
+      listings.length < 1 ||
+      listings.length > 1000
+    )
+      throw new TypeError("marketplace ranking listings are invalid");
+    const ranked = [];
+    for (const listing of listings) {
+      record(listing, "marketplace listing");
+      const inspected = await this.inspect(listing.manifest, target);
+      if (inspected.cell.safetyPassed !== true)
+        throw new Error("marketplace ranking requires a passing safety gate");
+      const metric = outcomeMetrics[inspected.manifest.manifestDigest] ?? {
+        samples: 0,
+        successRate: 0,
+        correctionRate: 0,
+      };
+      if (
+        !Number.isSafeInteger(metric.samples) ||
+        metric.samples < 0 ||
+        !Number.isFinite(metric.successRate) ||
+        metric.successRate < 0 ||
+        metric.successRate > 1 ||
+        !Number.isFinite(metric.correctionRate) ||
+        metric.correctionRate < 0 ||
+        metric.correctionRate > 1
+      )
+        throw new TypeError("marketplace ranking outcome metric is invalid");
+      const outcomeScore =
+        metric.samples >= 20
+          ? metric.successRate * (1 - metric.correctionRate)
+          : 0.5;
+      const score = inspected.cell.qualityScore * 0.75 + outcomeScore * 0.25;
+      ranked.push({
+        skillName: inspected.manifest.skillName,
+        version: inspected.manifest.version,
+        manifestDigest: inspected.manifest.manifestDigest,
+        evalBadgeDigest: inspected.manifest.evalBadgeDigest,
+        evalReceiptDigest: inspected.cell.evalReceiptDigest,
+        target: clone(target),
+        score,
+        scores: {
+          targetEval: inspected.cell.qualityScore,
+          verifiedOutcome: outcomeScore,
+        },
+        outcomeSamples: metric.samples,
+        reason: `target-eval=${inspected.cell.qualityScore.toFixed(3)}, verified-outcome=${outcomeScore.toFixed(3)}`,
+      });
+    }
+    ranked.sort(
+      (left, right) =>
+        right.score - left.score ||
+        left.manifestDigest.localeCompare(right.manifestDigest),
+    );
+    const core = {
+      schema: GOVERNED_SKILL_MARKETPLACE_RANKING_SCHEMA,
+      tenantId: this.tenantId,
+      target: clone(target),
+      ranked,
+    };
+    return freeze({
+      ...core,
+      rankingDigest: hash(GOVERNED_SKILL_MARKETPLACE_RANKING_SCHEMA, core),
+    });
   }
 
   async advance({ skillName, expectedStateDigest, pilotReceipt } = {}) {
