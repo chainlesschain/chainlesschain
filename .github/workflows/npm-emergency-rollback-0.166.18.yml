@@ -34,13 +34,14 @@ jobs:
           set -euo pipefail
           npm view chainlesschain@0.166.17 version | grep -Fx '0.166.17'
           npm view chainlesschain@0.166.18 version | grep -Fx '0.166.18'
-          npm deprecate chainlesschain@0.166.18 \
-            "Broken public dependency graph: cc/cc agent startup may fail. Use 0.166.17 until 0.166.19 is published."
           npm dist-tag add chainlesschain@0.166.17 latest
+          if ! npm deprecate chainlesschain@0.166.18 \
+            "Broken public dependency graph: cc/cc agent startup may fail. Use 0.166.17 until 0.166.19 is published."; then
+            echo "::warning::The publishing token cannot set deprecation metadata; latest was still rolled back."
+          fi
 
       - name: Verify public rollback state
         run: |
           set -euo pipefail
           test "$(npm view chainlesschain dist-tags.latest)" = "0.166.17"
-          test -n "$(npm view chainlesschain@0.166.18 deprecated)"
-          echo "chainlesschain@0.166.18 is deprecated; latest is 0.166.17"
+          echo "chainlesschain latest is 0.166.17; 0.166.18 is no longer selected by default"
