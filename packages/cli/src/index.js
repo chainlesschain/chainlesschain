@@ -99,7 +99,7 @@ export function createProgram(options = {}) {
           `Register function '${entry.register}' not found in ${entry.module}`,
         );
       }
-      registerFn(program);
+      registerFn(program, options.commandDependencies?.[entry.name]);
     } catch (err) {
       if (process.env.DEBUG) {
         console.warn(

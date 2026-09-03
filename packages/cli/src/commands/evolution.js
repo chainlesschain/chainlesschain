@@ -10,6 +10,7 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { registerEvolutionWorkbenchCommands } from "./evolution-workbench.js";
 import {
   assessCapability,
   recordIncrementalModelMetrics,
@@ -41,12 +42,14 @@ import {
   getEvolutionStatsV2,
 } from "../lib/evolution-system.js";
 
-export function registerEvolutionCommand(program) {
+export function registerEvolutionCommand(program, dependencies = {}) {
   const evolution = program
     .command("evolution")
     .description(
       "Evolution metrics and governance records — not model training or active Skill promotion",
     );
+
+  registerEvolutionWorkbenchCommands(evolution, dependencies);
 
   // evolution assess <name> <score>
   evolution
