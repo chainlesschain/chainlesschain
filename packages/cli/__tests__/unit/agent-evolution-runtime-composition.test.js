@@ -561,6 +561,16 @@ describe("Agent evolution runtime production composition", () => {
     expect(indexedStartAgentRepl).toHaveBeenCalledWith(
       expect.objectContaining({ skillOutcomeIndex: index }),
     );
+    const indexedServerRuntime = createAgentRuntimeFactory({
+      config: {},
+      skillOutcomeIndex: index,
+    }).createServerRuntime({
+      port: 18800,
+      host: "127.0.0.1",
+      token: "test-token",
+    });
+    expect(indexedServerRuntime.skillOutcomeIndex).toBe(index);
+    expect(indexedServerRuntime.evolutionIngress).toBeNull();
     const rawBytes = fs
       .readdirSync(first.storage.rawDir, { recursive: true })
       .filter((entry) => String(entry).endsWith(".enc"))

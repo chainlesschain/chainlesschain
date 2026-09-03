@@ -7,6 +7,7 @@ import {
   createRolloutStore,
 } from "./rollout-store-factory.js";
 import { AppServerGraphRuntime } from "./graph-runtime.js";
+import { captureAgentSkillOutcomeIndex } from "../evolution/agent-evolution-runtime-composition-brand.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
@@ -146,6 +147,7 @@ export class CcAppServer {
     transport = "stdio",
     graphRuntime = null,
     evolutionCompositionFactory = null,
+    skillOutcomeIndex = null,
     evolutionWorkbenchHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
@@ -177,9 +179,13 @@ export class CcAppServer {
       );
     }
     this.evolutionWorkbenchHost = evolutionWorkbenchHost;
-    if (graphRuntime && evolutionCompositionFactory) {
+    this.skillOutcomeIndex =
+      skillOutcomeIndex === null
+        ? null
+        : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
+    if (graphRuntime && (evolutionCompositionFactory || skillOutcomeIndex)) {
       throw new TypeError(
-        "graphRuntime and evolutionCompositionFactory cannot both be provided",
+        "graphRuntime and host-owned Graph authorities cannot both be provided",
       );
     }
     this.graphRuntime =
@@ -189,6 +195,7 @@ export class CcAppServer {
         now,
         createId,
         evolutionCompositionFactory,
+        skillOutcomeIndex: this.skillOutcomeIndex,
         executeNode: (context) => this._executeGraphNode(context),
         requestHumanTask: (context) => this._requestHumanTask(context),
         onEvent: (event) => {
@@ -693,6 +700,7 @@ export class CcAppServer {
     input,
     signal,
     evolutionIngress,
+    skillOutcomeIndex,
   }) {
     const threadId = `graph-agent:${runId}:${nodeId}`;
     const turn = { id: attempt.id, threadId };
@@ -703,8 +711,12 @@ export class CcAppServer {
     try {
       const turnOptions = { ...(input?.options || {}) };
       delete turnOptions.evolutionIngress;
+      delete turnOptions.skillOutcomeIndex;
       if (evolutionIngress !== null && evolutionIngress !== undefined) {
         turnOptions.evolutionIngress = evolutionIngress;
+      }
+      if (skillOutcomeIndex !== null && skillOutcomeIndex !== undefined) {
+        turnOptions.skillOutcomeIndex = skillOutcomeIndex;
       }
       const result = await this.kernel.startTurn({
         threadId,
@@ -947,11 +959,16 @@ export class CcAppServer {
   async _runTurn(active, input, options) {
     const { turn } = active;
     try {
+      const turnOptions = { ...options };
+      delete turnOptions.skillOutcomeIndex;
+      if (this.skillOutcomeIndex !== null) {
+        turnOptions.skillOutcomeIndex = this.skillOutcomeIndex;
+      }
       const result = await this.kernel.startTurn({
         threadId: turn.threadId,
         turnId: turn.id,
         input,
-        options,
+        options: turnOptions,
         emit: (event) => this._emitKernelEvent(turn, event),
         requestApproval: (event) => this._requestApproval(turn, event),
       });

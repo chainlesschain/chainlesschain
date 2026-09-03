@@ -485,6 +485,9 @@ export class AgentRuntime {
       remoteSessionPeerId,
       envelopeBus,
       evolutionCompositionFactory: this.deps.evolutionCompositionFactory,
+      ...(this.skillOutcomeIndex === null
+        ? {}
+        : { skillOutcomeIndex: this.skillOutcomeIndex }),
     });
 
     server.on("connection", ({ clientId, ip }) => {

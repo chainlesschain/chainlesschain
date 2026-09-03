@@ -648,6 +648,7 @@ async function ensureSessionHandler(
         sessionHostLease,
         sessionBudgetRoot,
         evolutionCompositionFactory: server.evolutionCompositionFactory,
+        skillOutcomeIndex: server.skillOutcomeIndex,
       });
       sessionHostLease = null;
       sessionBudgetRoot = null;

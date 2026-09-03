@@ -74,6 +74,7 @@ import {
   settleWsTurnClaim,
 } from "../../harness/jsonl-session-store.js";
 import { sessionBudgetAdmissionError } from "../../lib/session-budget-production-root.js";
+import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import {
   beginSessionBudgetUsage,
   markSessionBudgetUsageUnknown,
@@ -178,6 +179,7 @@ export class WSAgentHandler {
     sessionBudgetRoot = null,
     hostResourceBudget = null,
     evolutionCompositionFactory = null,
+    skillOutcomeIndex = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -252,6 +254,10 @@ export class WSAgentHandler {
       throw new TypeError("evolutionCompositionFactory must be a function");
     }
     this._evolutionCompositionFactory = evolutionCompositionFactory;
+    this._skillOutcomeIndex =
+      skillOutcomeIndex === null
+        ? null
+        : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
     this._compactionLlmQuery = compactionLlmQuery || null;
     this._compactionSettlementBlock = null;
     this._compactionChatFn =
@@ -331,6 +337,14 @@ export class WSAgentHandler {
       if (composition.runId !== runId) {
         throw new TypeError(
           "Agent evolution composition belongs to another WebSocket turn",
+        );
+      }
+      if (
+        this._skillOutcomeIndex !== null &&
+        composition.tenantId !== this._skillOutcomeIndex.tenantId
+      ) {
+        throw new TypeError(
+          "WebSocket evolution composition and Skill outcome index must share one tenant",
         );
       }
       await composition.evolutionIngress.start();
@@ -821,44 +835,50 @@ export class WSAgentHandler {
     let result;
     try {
       this._sessionHostLease?.assert?.();
-      result = await this._compactContextMemory(session.messages, {
-        provider: session.provider,
-        model: session.model,
-        baseUrl: session.baseUrl,
-        apiKey: session.apiKey,
-        signal:
-          signal || this._sessionBudgetSignal || this._sessionHostLease?.signal,
-        onlyIfNeeded: true,
-        preserveCompletedExchange: true,
-        llmQuery: this._compactionLlmQuery,
-        chatFn: this._compactionChatFn,
-        chatOptions: {
-          cwd: session.projectRoot,
-          sessionId: session.id,
-        },
-        ...(meterCompaction
-          ? {
-              onProviderCallStart: () => {
-                const call = this._beginCanonicalCompactionUsage();
-                compactionUsageCall = call;
-                return call.callId;
-              },
+      result = await this._compactContextMemory(
+        session.messages,
+        {
+          provider: session.provider,
+          model: session.model,
+          baseUrl: session.baseUrl,
+          apiKey: session.apiKey,
+          signal:
+            signal ||
+            this._sessionBudgetSignal ||
+            this._sessionHostLease?.signal,
+          onlyIfNeeded: true,
+          preserveCompletedExchange: true,
+          llmQuery: this._compactionLlmQuery,
+          chatFn: this._compactionChatFn,
+          chatOptions: {
+            cwd: session.projectRoot,
+            sessionId: session.id,
+          },
+          ...(meterCompaction
+            ? {
+                onProviderCallStart: () => {
+                  const call = this._beginCanonicalCompactionUsage();
+                  compactionUsageCall = call;
+                  return call.callId;
+                },
+              }
+            : {}),
+          maxMessages: session.compactionMaxMessages,
+          maxTokens: session.compactionMaxTokens,
+          maxOutputTokens: session.compactionMaxOutputTokens,
+          summaryInputMaxChars: session.compactionInputMaxChars,
+          onContextMemorySummarySettled: (summaryResult) => {
+            if (compactionUsageCall && !compactionUsageSettled) {
+              this._settleCanonicalCompactionUsage(
+                compactionUsageCall,
+                summaryResult,
+              );
+              compactionUsageSettled = true;
             }
-          : {}),
-        maxMessages: session.compactionMaxMessages,
-        maxTokens: session.compactionMaxTokens,
-        maxOutputTokens: session.compactionMaxOutputTokens,
-        summaryInputMaxChars: session.compactionInputMaxChars,
-        onContextMemorySummarySettled: (summaryResult) => {
-          if (compactionUsageCall && !compactionUsageSettled) {
-            this._settleCanonicalCompactionUsage(
-              compactionUsageCall,
-              summaryResult,
-            );
-            compactionUsageSettled = true;
-          }
+          },
         },
-      }, "auto");
+        "auto",
+      );
       if (compactionUsageCall && !compactionUsageSettled) {
         this._settleCanonicalCompactionUsage(compactionUsageCall, result);
         compactionUsageSettled = true;
@@ -1471,6 +1491,9 @@ export class WSAgentHandler {
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,
+        ...(this._skillOutcomeIndex === null
+          ? {}
+          : { skillOutcomeIndex: this._skillOutcomeIndex }),
         signal: turnSignal,
         sessionBudget: this._sessionBudget,
         // P0 authority: null unless opted in (byte-identical default — agent
@@ -2184,41 +2207,46 @@ export class WSAgentHandler {
         try {
           this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
-          result = await this._compactContextMemory(session.messages, {
-            provider: session.provider,
-            model: session.model,
-            baseUrl: session.baseUrl,
-            apiKey: session.apiKey,
-            signal: this._sessionBudgetSignal || this._sessionHostLease?.signal,
-            force: true,
-            preserveCompletedExchange: true,
-            llmQuery: this._compactionLlmQuery,
-            chatFn: this._compactionChatFn,
-            chatOptions: {
-              cwd: session.projectRoot,
-              sessionId: session.id,
-            },
-            ...(meterCompaction
-              ? {
-                  onProviderCallStart: () => {
-                    const call = this._beginCanonicalCompactionUsage();
-                    compactionUsageCall = call;
-                    return call.callId;
-                  },
+          result = await this._compactContextMemory(
+            session.messages,
+            {
+              provider: session.provider,
+              model: session.model,
+              baseUrl: session.baseUrl,
+              apiKey: session.apiKey,
+              signal:
+                this._sessionBudgetSignal || this._sessionHostLease?.signal,
+              force: true,
+              preserveCompletedExchange: true,
+              llmQuery: this._compactionLlmQuery,
+              chatFn: this._compactionChatFn,
+              chatOptions: {
+                cwd: session.projectRoot,
+                sessionId: session.id,
+              },
+              ...(meterCompaction
+                ? {
+                    onProviderCallStart: () => {
+                      const call = this._beginCanonicalCompactionUsage();
+                      compactionUsageCall = call;
+                      return call.callId;
+                    },
+                  }
+                : {}),
+              maxOutputTokens: session.compactionMaxOutputTokens,
+              summaryInputMaxChars: session.compactionInputMaxChars,
+              onContextMemorySummarySettled: (summaryResult) => {
+                if (compactionUsageCall && !compactionUsageSettled) {
+                  this._settleCanonicalCompactionUsage(
+                    compactionUsageCall,
+                    summaryResult,
+                  );
+                  compactionUsageSettled = true;
                 }
-              : {}),
-            maxOutputTokens: session.compactionMaxOutputTokens,
-            summaryInputMaxChars: session.compactionInputMaxChars,
-            onContextMemorySummarySettled: (summaryResult) => {
-              if (compactionUsageCall && !compactionUsageSettled) {
-                this._settleCanonicalCompactionUsage(
-                  compactionUsageCall,
-                  summaryResult,
-                );
-                compactionUsageSettled = true;
-              }
+              },
             },
-          }, "manual");
+            "manual",
+          );
           if (compactionUsageCall && !compactionUsageSettled) {
             this._settleCanonicalCompactionUsage(compactionUsageCall, result);
             compactionUsageSettled = true;

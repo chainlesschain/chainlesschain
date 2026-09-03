@@ -53,6 +53,10 @@ export function createAgentRuntimeFactory({
             : { evolutionIngress: composition.evolutionIngress }),
           ...(outcomeIndex === null ? {} : { skillOutcomeIndex: outcomeIndex }),
         });
+  const serverDeps =
+    outcomeIndex === null
+      ? deps
+      : Object.freeze({ ...deps, skillOutcomeIndex: outcomeIndex });
   return {
     createAgentRuntime(overrides = {}) {
       return new AgentRuntime({
@@ -77,7 +81,7 @@ export function createAgentRuntimeFactory({
         kind: "server",
         policy: resolveServerPolicy(overrides),
         config,
-        deps,
+        deps: serverDeps,
       });
     },
 

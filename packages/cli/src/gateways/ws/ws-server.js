@@ -15,6 +15,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
+import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import {
   createEnvelope,
   envelopeFromStreamEvent,
@@ -330,6 +331,10 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
     this.evolutionCompositionFactory =
       options.evolutionCompositionFactory || null;
+    this.skillOutcomeIndex =
+      options.skillOutcomeIndex == null
+        ? null
+        : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;

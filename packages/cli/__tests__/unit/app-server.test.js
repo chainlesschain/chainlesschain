@@ -12,6 +12,7 @@ import {
   BoundedAsyncQueue,
   QueueOverloadedError,
 } from "../../src/lib/app-server/bounded-queue.js";
+import { sealAgentSkillOutcomeIndex } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 function request(id, method, params = {}) {
   return { jsonrpc: "2.0", id, method, params };
@@ -51,9 +52,23 @@ it("enforces item and byte caps while preserving async waiter delivery", async (
 });
 
 describe("CC App Server", () => {
-  it("replaces client Graph evolution options with the trusted host ingress", async () => {
+  it("replaces client Graph authority options with trusted host capabilities", async () => {
     const clientIngress = { source: "client" };
     const trustedIngress = { source: "host" };
+    const clientIndex = { source: "client" };
+    const trustedIndex = sealAgentSkillOutcomeIndex({
+      tenantId: "tenant-graph",
+      readers: [],
+    });
+    expect(
+      () =>
+        new CcAppServer({
+          send: async () => {},
+          store: new MemoryRolloutStore(),
+          graphRuntime: {},
+          skillOutcomeIndex: trustedIndex,
+        }),
+    ).toThrow(/host-owned Graph authorities/u);
     let turnOptions;
     const server = new CcAppServer({
       send: async () => {},
@@ -75,15 +90,21 @@ describe("CC App Server", () => {
           attempt: { id: "attempt-1" },
           input: {
             prompt: "execute",
-            options: { model: "test-model", evolutionIngress: clientIngress },
+            options: {
+              model: "test-model",
+              evolutionIngress: clientIngress,
+              skillOutcomeIndex: clientIndex,
+            },
           },
           signal: new AbortController().signal,
           evolutionIngress: trustedIngress,
+          skillOutcomeIndex: trustedIndex,
         }),
       ).resolves.toMatchObject({ status: "succeeded" });
       expect(turnOptions).toEqual({
         model: "test-model",
         evolutionIngress: trustedIngress,
+        skillOutcomeIndex: trustedIndex,
       });
     } finally {
       await server.close();
@@ -526,8 +547,14 @@ describe("CC App Server", () => {
 
   it("negotiates, runs a real-kernel-shaped turn and persists canonical events", async () => {
     const messages = [];
+    const skillOutcomeIndex = sealAgentSkillOutcomeIndex({
+      tenantId: "tenant-direct-turn",
+      readers: [],
+    });
+    let capturedTurnOptions;
     const kernel = {
-      async startTurn({ emit }) {
+      async startTurn({ emit, options }) {
+        capturedTurnOptions = options;
         await emit({
           type: "stream_event",
           trace_id: "trace-1",
@@ -567,6 +594,7 @@ describe("CC App Server", () => {
         let id = 0;
         return () => `id-${++id}`;
       })(),
+      skillOutcomeIndex,
     });
 
     const init = await server.receive(initialize());
@@ -587,9 +615,12 @@ describe("CC App Server", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         input: [{ type: "text", text: "Say hello" }],
+        options: { skillOutcomeIndex: { source: "client-forgery" } },
       }),
     );
     expect(accepted.result.turn.status).toBe("running");
+    await waitFor(() => capturedTurnOptions !== undefined);
+    expect(capturedTurnOptions.skillOutcomeIndex).toBe(skillOutcomeIndex);
 
     await waitFor(() =>
       messages.some(

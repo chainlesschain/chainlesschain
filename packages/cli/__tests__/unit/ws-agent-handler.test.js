@@ -42,7 +42,10 @@ import {
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import { _deps as sideEffectLedgerStoreDeps } from "../../src/lib/side-effect-ledger-store.js";
 import { executeHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
-import { sealAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
+import {
+  sealAgentEvolutionRuntimeComposition,
+  sealAgentSkillOutcomeIndex,
+} from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
@@ -135,6 +138,10 @@ describe("WSAgentHandler", () => {
 
     it("persists a host-owned evolution turn before model and tool dispatch", async () => {
       const order = [];
+      const skillOutcomeIndex = sealAgentSkillOutcomeIndex({
+        tenantId: "tenant-test",
+        readers: [],
+      });
       const ingress = {
         start: vi.fn(async () => order.push("start")),
         ingestUserPrompt: vi.fn(async () => order.push("prompt")),
@@ -153,8 +160,9 @@ describe("WSAgentHandler", () => {
           evolutionIngress: ingress,
         });
       });
-      const loop = vi.fn(async function* () {
+      const loop = vi.fn(async function* (_messages, loopOptions) {
         order.push("model");
+        expect(loopOptions.skillOutcomeIndex).toBe(skillOutcomeIndex);
         yield {
           type: "tool-executing",
           tool: "read_file",
@@ -174,6 +182,7 @@ describe("WSAgentHandler", () => {
         db: null,
         agentLoop: loop,
         evolutionCompositionFactory,
+        skillOutcomeIndex,
       });
 
       await evolved.handleMessage("inspect", "req-evolution-1");
@@ -199,6 +208,52 @@ describe("WSAgentHandler", () => {
         "event:response-complete",
         "complete",
       ]);
+    });
+
+    it("rejects forged and cross-tenant outcome indexes before model dispatch", async () => {
+      expect(
+        () =>
+          new WSAgentHandler({
+            session,
+            interaction,
+            skillOutcomeIndex: { tenantId: "tenant-test", readers: [] },
+          }),
+      ).toThrow(/branded Agent Skill outcome index/u);
+      const loop = vi.fn(() =>
+        fakeAgentLoop([{ type: "response-complete", content: "must not run" }]),
+      );
+      const crossTenant = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        agentLoop: loop,
+        skillOutcomeIndex: sealAgentSkillOutcomeIndex({
+          tenantId: "tenant-one",
+          readers: [],
+        }),
+        evolutionCompositionFactory: async ({ runId }) =>
+          sealAgentEvolutionRuntimeComposition({
+            tenantId: "tenant-two",
+            runId,
+            evolutionIngress: {
+              start: vi.fn(async () => {}),
+              ingestUserPrompt: vi.fn(async () => {}),
+              ingestAgentEvent: vi.fn(async () => {}),
+              complete: vi.fn(async () => {}),
+            },
+          }),
+      });
+
+      await crossTenant.handleMessage("blocked", "req-outcome-cross-tenant");
+
+      expect(loop).not.toHaveBeenCalled();
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-outcome-cross-tenant",
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        }),
+      );
     });
 
     it("fails before the model when the evolution composition is invalid", async () => {

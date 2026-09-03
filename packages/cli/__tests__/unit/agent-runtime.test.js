@@ -291,6 +291,8 @@ describe("AgentRuntime MCP bootstrap", () => {
 
   it("startServer injects the auto-connected MCP client into the session manager", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
+    const { sealAgentSkillOutcomeIndex } =
+      await import("../../src/lib/evolution/agent-evolution-runtime-composition-brand.js");
 
     const rawDb = { type: "sqlite" };
     const logger = { log: vi.fn() };
@@ -300,6 +302,10 @@ describe("AgentRuntime MCP bootstrap", () => {
     };
     const createSessionManager = vi.fn(() => ({ kind: "session-manager" }));
     const evolutionCompositionFactory = vi.fn();
+    const skillOutcomeIndex = sealAgentSkillOutcomeIndex({
+      tenantId: "tenant-server",
+      readers: [],
+    });
     const server = {
       on: vi.fn(),
       start: vi.fn().mockResolvedValue(undefined),
@@ -330,6 +336,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         createSessionManager,
         createServer: vi.fn(() => server),
         evolutionCompositionFactory,
+        skillOutcomeIndex,
         logger,
       },
     });
@@ -351,6 +358,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         token: "secret",
         sessionManager: { kind: "session-manager" },
         evolutionCompositionFactory,
+        skillOutcomeIndex,
       }),
     );
     expect(server.start).toHaveBeenCalledTimes(1);

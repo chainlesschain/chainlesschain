@@ -6,7 +6,10 @@ import {
 import { createGraphAuthorityBinding } from "../graph-kernel/authority.js";
 import { GraphEventStore } from "../graph-kernel/event-store.js";
 import { GraphKernel } from "../graph-kernel/runtime.js";
-import { captureAgentEvolutionRuntimeComposition } from "../evolution/agent-evolution-runtime-composition-brand.js";
+import {
+  captureAgentEvolutionRuntimeComposition,
+  captureAgentSkillOutcomeIndex,
+} from "../evolution/agent-evolution-runtime-composition-brand.js";
 import {
   diffGraphTrace,
   locateBlockedRoot,
@@ -145,6 +148,7 @@ export class AppServerGraphRuntime {
     createId = randomUUID,
     onEvent = null,
     evolutionCompositionFactory = null,
+    skillOutcomeIndex = null,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     if (typeof executeNode !== "function") {
@@ -165,6 +169,10 @@ export class AppServerGraphRuntime {
     this.createId = createId;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
     this.evolutionCompositionFactory = evolutionCompositionFactory;
+    this.skillOutcomeIndex =
+      skillOutcomeIndex === null
+        ? null
+        : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
     this.writerLeaseTtlMs = writerLeaseTtlMs;
     this.runs = new Map();
     this.drives = new Map();
@@ -188,6 +196,14 @@ export class AppServerGraphRuntime {
           if (composition.runId !== entry.runId) {
             throw new TypeError(
               "Agent evolution composition belongs to another Graph run",
+            );
+          }
+          if (
+            this.skillOutcomeIndex !== null &&
+            composition.tenantId !== this.skillOutcomeIndex.tenantId
+          ) {
+            throw new TypeError(
+              "Graph evolution composition and Skill outcome index must share one tenant",
             );
           }
           if (
@@ -693,6 +709,7 @@ export class AppServerGraphRuntime {
         input: nodeInput(entry.inputs, nodeId),
         signal: controller.signal,
         evolutionIngress: evolutionComposition?.evolutionIngress || null,
+        skillOutcomeIndex: this.skillOutcomeIndex,
       });
       if (!result || !["succeeded", "completed"].includes(result.status)) {
         const error = runtimeError(

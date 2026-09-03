@@ -200,6 +200,10 @@ export class CliAgentKernelAdapter {
           turnOptions.evolutionIngress ??
           this.sessionOptions.evolutionIngress ??
           null,
+        skillOutcomeIndex:
+          turnOptions.skillOutcomeIndex ??
+          this.sessionOptions.skillOutcomeIndex ??
+          null,
       },
       {
         ...this.dependencies,

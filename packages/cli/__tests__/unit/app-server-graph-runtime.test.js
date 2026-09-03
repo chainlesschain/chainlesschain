@@ -5,7 +5,10 @@ import {
   graphExecutorReceipt,
 } from "../../src/lib/app-server/graph-runtime.js";
 import { GraphEventStore } from "../../src/lib/graph-kernel/event-store.js";
-import { sealAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
+import {
+  sealAgentEvolutionRuntimeComposition,
+  sealAgentSkillOutcomeIndex,
+} from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
 const EVENT = `sha256:${"e".repeat(64)}`;
@@ -382,6 +385,86 @@ describe("App Server canonical Graph runtime", () => {
       "executor",
       "evolution:complete",
     ]);
+  });
+
+  it("routes only a branded same-tenant outcome index into every Graph executor", async () => {
+    const outcomeIndex = sealAgentSkillOutcomeIndex({
+      tenantId: "tenant-graph",
+      readers: [],
+    });
+    const ingress = {
+      start: vi.fn(async () => {}),
+      complete: vi.fn(async () => {}),
+    };
+    const executeNode = vi.fn(
+      async ({ evolutionIngress, skillOutcomeIndex }) => {
+        expect(evolutionIngress).toBe(ingress);
+        expect(skillOutcomeIndex).toBe(outcomeIndex);
+        return {
+          status: "succeeded",
+          terminalEvidence: { eventDigest: EVENT, outputDigest: OUTPUT },
+        };
+      },
+    );
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      skillOutcomeIndex: outcomeIndex,
+      evolutionCompositionFactory: async ({ runId }) =>
+        sealAgentEvolutionRuntimeComposition({
+          tenantId: "tenant-graph",
+          runId,
+          evolutionIngress: ingress,
+        }),
+      executeNode,
+    });
+
+    await expect(
+      runtime.run({
+        definition: definition("none"),
+        runId: "graph-outcome-index",
+        inputs: { implement: "select a Skill" },
+        waitForCompletion: true,
+      }),
+    ).resolves.toMatchObject({ status: "succeeded" });
+    expect(executeNode).toHaveBeenCalledOnce();
+    expect(
+      () =>
+        new AppServerGraphRuntime({
+          executeNode: vi.fn(),
+          skillOutcomeIndex: { tenantId: "tenant-graph", readers: [] },
+        }),
+    ).toThrow(/branded Agent Skill outcome index/u);
+  });
+
+  it("fails before assigning a Graph attempt for a cross-tenant outcome index", async () => {
+    const executeNode = vi.fn();
+    const runtime = new AppServerGraphRuntime({
+      rolloutStore: new MemoryRolloutStore(),
+      skillOutcomeIndex: sealAgentSkillOutcomeIndex({
+        tenantId: "tenant-index",
+        readers: [],
+      }),
+      evolutionCompositionFactory: async ({ runId }) =>
+        sealAgentEvolutionRuntimeComposition({
+          tenantId: "tenant-composition",
+          runId,
+          evolutionIngress: {
+            start: vi.fn(async () => {}),
+            complete: vi.fn(async () => {}),
+          },
+        }),
+      executeNode,
+    });
+
+    await expect(
+      runtime.run({
+        definition: definition("none"),
+        runId: "graph-outcome-cross-tenant",
+        inputs: { implement: "must not execute" },
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(executeNode).not.toHaveBeenCalled();
+    expect(runtime.status("graph-outcome-cross-tenant").attempts).toEqual([]);
   });
 
   it("fails closed before assigning a Graph attempt when composition capture fails", async () => {
