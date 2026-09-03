@@ -605,6 +605,8 @@ describe("EvolutionArtifactPorts", () => {
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",
+      "wiki-maintenance-request",
+      "wiki-maintenance-settlement",
       "wiki-revision",
     ]);
     const results = EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES.map((type) =>

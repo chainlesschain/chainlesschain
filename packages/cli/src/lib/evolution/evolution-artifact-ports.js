@@ -71,6 +71,8 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
+  "wiki-maintenance-request",
+  "wiki-maintenance-settlement",
   "wiki-revision",
 ]);
 export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_PURPOSES = Object.freeze([
@@ -114,6 +116,8 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "structured-memory-authority-receipt",
   "structured-memory-event",
   "structured-memory-snapshot",
+  "wiki-maintenance-request",
+  "wiki-maintenance-settlement",
   "wiki-revision",
   "skill-release-transition-intent",
   "source",
@@ -298,6 +302,8 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["structured-memory-authority-receipt", new Set(["evolution-ledger"])],
   ["structured-memory-event", new Set(["evolution-ledger"])],
   ["structured-memory-snapshot", new Set(["evolution-ledger"])],
+  ["wiki-maintenance-request", new Set(["evolution-ledger"])],
+  ["wiki-maintenance-settlement", new Set(["evolution-ledger"])],
 ]);
 
 export class EvolutionArtifactPortError extends Error {

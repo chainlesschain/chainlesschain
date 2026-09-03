@@ -56,7 +56,9 @@ Agent runtime event
 
 ## 四、生命周期触发
 
-`SessionEnd`、`GoalEnd` 和 `ScheduledBatch` 到 Maintainer/transition 的 durable 调度尚未完成。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。未来调度必须消费认证 manifest/reference、记录幂等 trigger identity，并在响应丢失、重复投递和进程重启后保持确定结果。
+`SessionEnd`、`GoalEnd` 和 `ScheduledBatch` 的仓库级 durable Maintainer 控制协议已完成：tenant/source/evidence-bound request 写入 ArtifactPorts + EvolutionLedger，enqueue 和处理前均重新认证触发源，Maintainer 用 request digest 保证 Wiki revision 幂等，settlement 只在反向验证已提交 revision 后持久。因此响应丢失、重复投递、Wiki commit 后崩溃和进程重启都恢复同一结果；并发 worker 仍可能重复 derive 计算，但不会重复提交 Wiki state。
+
+这不等于真实产品事件已接线：Agent/scheduler producer、持久 source authority 和 worker composition 仍由目标部署提供，Candidate/Eval/HumanTask 的 transition adapter 也尚未完成。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。
 
 ## 五、安全约束
 
@@ -72,10 +74,11 @@ Agent runtime event
 - `learning-integration.test.js` 直接验证 Store、Feedback、Synthesizer、Improver 和 Reflection 的组合，不再用不存在的 Hook 假装生产接线。
 - evolution truth-surface 回归断言历史 `learning-hooks.js` 保持不存在。
 - 真实 Agent ingress、ArtifactPorts、EvolutionLedger 和三种 CLI runtime 的持久顺序由各自 evolution 测试覆盖。
+- Wiki trigger 联合回归覆盖三种 trigger、真实 Ledger 文件/witness 重开、源撤销、结果替换和 commit/settlement crash recovery；55 项通过，1 项按平台条件跳过。
 
 ## 七、剩余工作
 
-1. 建立 `SessionEnd` / `GoalEnd` / `ScheduledBatch` 的 durable Maintainer trigger 与 transition adapter。
+1. 把真实 `SessionEnd` / `GoalEnd` / `ScheduledBatch` producer、source authority 和 worker composition 接入已有 durable Maintainer trigger，并完成 transition adapter。
 2. 将旧学习表数据显式迁移到认证 evidence/Wiki 输入，或标记为 legacy/untrusted 并限定用途。
 3. 完成目标部署的 KMS/PKI/policy/witness authority 与 reviewer/promotion 生产接线。
 
