@@ -285,6 +285,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   );
   assert.match(workflow, /needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u);
   assert.match(workflow, /Aggregate 11-cell IDE ARM64 evidence/u);
+  assert.match(
+    workflow,
+    /aggregate:[\s\S]*?if: \$\{\{ always\(\) && !cancelled\(\) \}\}[\s\S]*?needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u,
+  );
   assert.match(workflow, /downloads\.windowsARM64/u);
   assert.match(workflow, /Get-FileHash -Algorithm SHA256/u);
   assert.match(
