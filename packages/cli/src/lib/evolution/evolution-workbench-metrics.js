@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { types as utilTypes } from "node:util";
 
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 
@@ -9,6 +10,8 @@ export const EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
 export const EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS = 100_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_DELTA = 10_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS = 10_000;
+export const EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA =
+  "chainlesschain.evolution-workbench-metrics-history/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const RETENTION_SNAPSHOT_KEYS = Object.freeze(
@@ -56,6 +59,21 @@ const OUTCOME_VERSION_KEYS = Object.freeze(
     "outcomeCompleted",
     "outcomeReceiptCount",
     "userCorrectionCount",
+  ].sort(),
+);
+const HISTORY_KEYS = Object.freeze(
+  [
+    "authenticated",
+    "durable",
+    "evolutionRunId",
+    "historyDigest",
+    "receipts",
+    "schema",
+    "skillName",
+    "snapshotDigest",
+    "sourceDigest",
+    "tenantId",
+    "throughAt",
   ].sort(),
 );
 
@@ -163,6 +181,26 @@ export function digestEvolutionWorkbenchMetricsDelta({
     tenantId,
     evolutionRunId,
     priorSourceDigest,
+    throughAt,
+    receiptDigests: receipts.map(({ receiptDigest }) => receiptDigest),
+  });
+}
+
+export function digestEvolutionWorkbenchMetricsHistory({
+  tenantId,
+  evolutionRunId,
+  skillName,
+  snapshotDigest,
+  sourceDigest,
+  throughAt,
+  receipts,
+}) {
+  return hash(EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA, {
+    tenantId,
+    evolutionRunId,
+    skillName,
+    snapshotDigest,
+    sourceDigest,
     throughAt,
     receiptDigests: receipts.map(({ receiptDigest }) => receiptDigest),
   });
@@ -456,6 +494,260 @@ function nextSnapshot(previous, source, receipts, retention) {
     ...core,
     snapshotDigest: hash(EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA, core),
   });
+}
+
+function projectReceiptHistory(receipts) {
+  const versions = new Map();
+  for (const receipt of receipts) {
+    for (const contentDigest of receipt.selectedSkillDigests) {
+      const current = versions.get(contentDigest) ?? {
+        contentDigest,
+        receiptCount: 0,
+        completed: 0,
+        failed: 0,
+        blocked: 0,
+        outcomeReceiptCount: 0,
+        outcomeCompleted: 0,
+        userCorrectionCount: 0,
+        tokensInput: 0,
+        tokensOutput: 0,
+        costUsd: 0,
+        latencyMs: 0,
+        maxLatencyMs: 0,
+      };
+      current.receiptCount += 1;
+      current[receipt.executionStatus] += 1;
+      current.tokensInput += receipt.tokenCostLatency.tokensInput;
+      current.tokensOutput += receipt.tokenCostLatency.tokensOutput;
+      current.costUsd += receipt.tokenCostLatency.costUsd;
+      current.latencyMs += receipt.tokenCostLatency.latencyMs;
+      current.maxLatencyMs = Math.max(
+        current.maxLatencyMs,
+        receipt.tokenCostLatency.latencyMs,
+      );
+      const hasOutcomeEvidence =
+        receipt.graderReceipts.length > 0 || receipt.userCorrectionRef !== null;
+      if (
+        hasOutcomeEvidence &&
+        ["completed", "failed"].includes(receipt.executionStatus)
+      ) {
+        current.outcomeReceiptCount += 1;
+        if (receipt.executionStatus === "completed") {
+          current.outcomeCompleted += 1;
+        }
+        if (receipt.userCorrectionRef !== null) {
+          current.userCorrectionCount += 1;
+        }
+      }
+      versions.set(contentDigest, current);
+    }
+  }
+  return [...versions.values()].sort((left, right) =>
+    left.contentDigest.localeCompare(right.contentDigest),
+  );
+}
+
+function legacyProjection(versions) {
+  return versions.map((version) => {
+    const projected = {};
+    for (const key of LEGACY_VERSION_KEYS) projected[key] = version[key];
+    return projected;
+  });
+}
+
+export class EvolutionWorkbenchMetricsOutcomeBackfiller {
+  constructor({ tenantId, evolutionRunId, skillName, ports } = {}) {
+    this.descriptor = freeze({
+      tenantId: string(tenantId, "tenantId"),
+      evolutionRunId: string(evolutionRunId, "evolutionRunId"),
+      skillName: string(skillName, "skillName"),
+    });
+    if (!ports || typeof ports !== "object" || utilTypes.isProxy(ports)) {
+      throw new TypeError("Workbench metrics backfill ports are required");
+    }
+    for (const name of [
+      "loadSnapshot",
+      "readReceiptHistory",
+      "commitSnapshot",
+      "queryRetainedReceiptDigests",
+    ]) {
+      if (typeof ports[name] !== "function" || utilTypes.isProxy(ports[name])) {
+        throw new TypeError(
+          `Workbench metrics backfill port ${name} is required`,
+        );
+      }
+      this[`_${name}`] = ports[name].bind(ports);
+    }
+  }
+
+  async backfill() {
+    const loaded = await this._loadSnapshot(this.descriptor);
+    if (
+      loaded?.found !== true ||
+      loaded.authenticated !== true ||
+      loaded.durable !== true
+    ) {
+      throw new Error(
+        "Workbench metrics backfill snapshot is not authoritative",
+      );
+    }
+    const previous = verifyEvolutionWorkbenchMetricsSnapshot(
+      loaded.snapshot,
+      this.descriptor,
+    );
+    if (
+      previous.outcomeHistoryComplete === true ||
+      previous.versions.length === 0
+    ) {
+      return freeze({ status: "already-complete", snapshot: previous });
+    }
+
+    const expectedReceiptCount =
+      (previous.retainedReceiptCount ?? 0) + previous.receiptDigests.length;
+    const history = await this._readReceiptHistory({
+      ...this.descriptor,
+      snapshotDigest: previous.snapshotDigest,
+      sourceDigest: previous.sourceDigest,
+      throughAt: previous.throughAt,
+      expectedReceiptCount,
+    });
+    if (
+      !history ||
+      typeof history !== "object" ||
+      utilTypes.isProxy(history) ||
+      !exactRecord(history, HISTORY_KEYS) ||
+      history.schema !== EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA ||
+      history.authenticated !== true ||
+      history.durable !== true ||
+      history.tenantId !== this.descriptor.tenantId ||
+      history.evolutionRunId !== this.descriptor.evolutionRunId ||
+      history.skillName !== this.descriptor.skillName ||
+      history.snapshotDigest !== previous.snapshotDigest ||
+      history.sourceDigest !== previous.sourceDigest ||
+      history.throughAt !== previous.throughAt ||
+      !Array.isArray(history.receipts) ||
+      utilTypes.isProxy(history.receipts) ||
+      history.receipts.length !== expectedReceiptCount ||
+      history.receipts.length > EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS
+    ) {
+      throw new Error("Workbench metrics receipt history is not authoritative");
+    }
+    const receipts = history.receipts.map((receipt) => {
+      if (
+        receipt &&
+        typeof receipt === "object" &&
+        utilTypes.isProxy(receipt)
+      ) {
+        throw new Error("Workbench metrics receipt history content is invalid");
+      }
+      const verified = verifySkillInvocationReceipt(receipt);
+      if (
+        verified.evolutionRunId !== this.descriptor.evolutionRunId ||
+        verified.attributionEligible !== true ||
+        Date.parse(verified.completedAt) > Date.parse(previous.throughAt)
+      ) {
+        throw new Error("Workbench metrics history lacks exact attribution");
+      }
+      return verified;
+    });
+    const receiptDigests = receipts.map(({ receiptDigest }) => receiptDigest);
+    if (
+      new Set(receiptDigests).size !== receiptDigests.length ||
+      receiptDigests.join("\n") !== [...receiptDigests].sort().join("\n") ||
+      history.historyDigest !==
+        digestEvolutionWorkbenchMetricsHistory({ ...history, receipts })
+    ) {
+      throw new Error("Workbench metrics receipt history content is invalid");
+    }
+    const supplied = new Set(receiptDigests);
+    if (previous.receiptDigests.some((digest) => !supplied.has(digest))) {
+      throw new Error("Workbench metrics receipt history is incomplete");
+    }
+    const hot = new Set(previous.receiptDigests);
+    const retainedDigests = receiptDigests.filter((digest) => !hot.has(digest));
+    if (retainedDigests.length !== (previous.retainedReceiptCount ?? 0)) {
+      throw new Error(
+        "Workbench metrics retained receipt history is incomplete",
+      );
+    }
+    if (retainedDigests.length > 0) {
+      const query = {
+        ...this.descriptor,
+        retentionRootDigest: previous.retentionRootDigest,
+        receiptDigests: retainedDigests,
+      };
+      const checked = await this._queryRetainedReceiptDigests(query);
+      if (
+        checked?.authenticated !== true ||
+        checked.durable !== true ||
+        checked.retentionRootDigest !== previous.retentionRootDigest ||
+        checked.queryDigest !==
+          digestEvolutionWorkbenchMetricsRetentionQuery(query) ||
+        !Array.isArray(checked.matches) ||
+        checked.matches.length !== retainedDigests.length ||
+        checked.matches.some((match) => match !== true)
+      ) {
+        throw new Error(
+          "Workbench metrics retained receipt history is not authoritative",
+        );
+      }
+    }
+    const versions = projectReceiptHistory(receipts);
+    if (
+      canonical(legacyProjection(versions)) !==
+      canonical(legacyProjection(previous.versions))
+    ) {
+      throw new Error("Workbench metrics history does not reconcile");
+    }
+    const core = {
+      schema: EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+      tenantId: previous.tenantId,
+      evolutionRunId: previous.evolutionRunId,
+      skillName: previous.skillName,
+      revision: previous.revision + 1,
+      priorSnapshotDigest: previous.snapshotDigest,
+      sourceDigest: previous.sourceDigest,
+      throughAt: previous.throughAt,
+      retainedReceiptCount: previous.retainedReceiptCount ?? 0,
+      retentionRootDigest: previous.retentionRootDigest ?? null,
+      outcomeHistoryComplete: true,
+      receiptDigests: previous.receiptDigests,
+      versions,
+    };
+    const snapshot = freeze({
+      ...core,
+      snapshotDigest: hash(EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA, core),
+    });
+    const committed = await this._commitSnapshot({
+      ...this.descriptor,
+      expectedSnapshotDigest: previous.snapshotDigest,
+      snapshot,
+    });
+    if (
+      committed?.authenticated !== true ||
+      committed.durable !== true ||
+      committed.snapshotDigest !== snapshot.snapshotDigest
+    ) {
+      throw new Error("Workbench metrics backfill was not durably committed");
+    }
+    const readback = await this._loadSnapshot(this.descriptor);
+    if (
+      readback?.found !== true ||
+      readback.authenticated !== true ||
+      readback.durable !== true ||
+      verifyEvolutionWorkbenchMetricsSnapshot(
+        readback.snapshot,
+        this.descriptor,
+      ).snapshotDigest !== snapshot.snapshotDigest
+    ) {
+      throw new Error("Workbench metrics backfill readback differs");
+    }
+    return freeze({
+      status: "reconciled",
+      receiptCount: receipts.length,
+      snapshot,
+    });
+  }
 }
 
 export class EvolutionWorkbenchMetricsAggregator {

@@ -24,7 +24,12 @@ import {
 } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import {
   EvolutionWorkbenchMetricsAggregator,
+  EvolutionWorkbenchMetricsOutcomeBackfiller,
+  EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
+  EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+  createEmptyEvolutionWorkbenchMetricsSnapshot,
   digestEvolutionWorkbenchMetricsDelta,
+  digestEvolutionWorkbenchMetricsHistory,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 
@@ -359,6 +364,113 @@ function delta(receipts, priorSourceDigest = null, index = 1) {
 }
 
 describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
+  it("backfills a retained legacy snapshot through durable artifacts and ledger", async () => {
+    const value = backends();
+    const opened = adapter(value);
+    const contentDigest = D("content:legacy-backfill");
+    const oldReceipt = invocation("legacy-old", contentDigest);
+    const gradedReceipt = invocation("legacy-graded", contentDigest, {
+      graderReceipts: [D("grader:legacy-graded")],
+      userCorrectionRef: "correction:legacy-graded",
+    });
+    const retained = opened.retainReceiptDigests({
+      ...descriptor,
+      priorRetentionRootDigest: null,
+      priorRetainedReceiptCount: 0,
+      throughAt: "2026-09-03T01:30:00.000Z",
+      receiptDigests: [oldReceipt.receiptDigest],
+    });
+    const empty = createEmptyEvolutionWorkbenchMetricsSnapshot(
+      descriptor.tenantId,
+      descriptor.evolutionRunId,
+      descriptor.skillName,
+    );
+    const legacyCore = {
+      schema: EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      revision: 1,
+      priorSnapshotDigest: empty.snapshotDigest,
+      sourceDigest: D("legacy-source"),
+      throughAt: "2026-09-03T02:00:00.000Z",
+      retainedReceiptCount: 1,
+      retentionRootDigest: retained.retentionRootDigest,
+      receiptDigests: [gradedReceipt.receiptDigest],
+      versions: [
+        {
+          contentDigest,
+          receiptCount: 2,
+          completed: 2,
+          failed: 0,
+          blocked: 0,
+          tokensInput: 20,
+          tokensOutput: 10,
+          costUsd: 0.5,
+          latencyMs: 200,
+          maxLatencyMs: 100,
+        },
+      ],
+    };
+    const legacy = {
+      ...legacyCore,
+      snapshotDigest: D(
+        `${EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA}\0${canonical(legacyCore)}`,
+      ),
+    };
+    opened.commitSnapshot({
+      expectedSnapshotDigest: empty.snapshotDigest,
+      snapshot: legacy,
+    });
+    const receipts = [oldReceipt, gradedReceipt].sort((left, right) =>
+      left.receiptDigest.localeCompare(right.receiptDigest),
+    );
+    const readReceiptHistory = vi.fn(async (request) => {
+      const history = {
+        schema: EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
+        authenticated: true,
+        durable: true,
+        tenantId: request.tenantId,
+        evolutionRunId: request.evolutionRunId,
+        skillName: request.skillName,
+        snapshotDigest: request.snapshotDigest,
+        sourceDigest: request.sourceDigest,
+        throughAt: request.throughAt,
+        receipts,
+      };
+      return {
+        ...history,
+        historyDigest: digestEvolutionWorkbenchMetricsHistory(history),
+      };
+    });
+    const reconciled = await new EvolutionWorkbenchMetricsOutcomeBackfiller({
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      ports: adapter(value).backfillPorts({ readReceiptHistory }),
+    }).backfill();
+    expect(reconciled).toMatchObject({
+      status: "reconciled",
+      receiptCount: 2,
+      snapshot: {
+        outcomeHistoryComplete: true,
+        retainedReceiptCount: 1,
+        retentionRootDigest: retained.retentionRootDigest,
+        versions: [
+          {
+            outcomeReceiptCount: 1,
+            outcomeCompleted: 1,
+            userCorrectionCount: 1,
+          },
+        ],
+      },
+    });
+    expect(adapter(value).loadSnapshot()).toMatchObject({
+      snapshot: { snapshotDigest: reconciled.snapshot.snapshotDigest },
+    });
+    expect(value.state.events).toHaveLength(3);
+  });
+
   it("recovers compacted metrics through real Ledger files and witness", async () => {
     const value = backends();
     const witness = durableWitness("witness-workbench-metrics-integration");

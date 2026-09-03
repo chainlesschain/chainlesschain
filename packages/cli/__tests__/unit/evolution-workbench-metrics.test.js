@@ -5,8 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   EvolutionWorkbenchMetricsAggregator,
+  EvolutionWorkbenchMetricsOutcomeBackfiller,
+  EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
   createEmptyEvolutionWorkbenchMetricsSnapshot,
   digestEvolutionWorkbenchMetricsDelta,
+  digestEvolutionWorkbenchMetricsHistory,
   digestEvolutionWorkbenchMetricsRetentionBatch,
   digestEvolutionWorkbenchMetricsRetentionQuery,
   verifyEvolutionWorkbenchMetricsSnapshot,
@@ -166,6 +169,29 @@ function fixture(deltas, { hotReceiptLimit, retained = new Set() } = {}) {
   return { state, ports, open };
 }
 
+function history(snapshot, receipts, overrides = {}) {
+  const sorted = [...receipts].sort((left, right) =>
+    left.receiptDigest.localeCompare(right.receiptDigest),
+  );
+  const value = {
+    schema: EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
+    authenticated: true,
+    durable: true,
+    tenantId: snapshot.tenantId,
+    evolutionRunId: snapshot.evolutionRunId,
+    skillName: snapshot.skillName,
+    snapshotDigest: snapshot.snapshotDigest,
+    sourceDigest: snapshot.sourceDigest,
+    throughAt: snapshot.throughAt,
+    receipts: sorted,
+    ...overrides,
+  };
+  return {
+    ...value,
+    historyDigest: digestEvolutionWorkbenchMetricsHistory(value),
+  };
+}
+
 describe("Evolution Workbench long-term metrics", () => {
   it("requires an exact structurally consistent snapshot", () => {
     const descriptor = {
@@ -302,6 +328,91 @@ describe("Evolution Workbench long-term metrics", () => {
         },
       ],
     });
+  });
+
+  it("backfills complete historical outcomes and converges idempotently", async () => {
+    const content = D("content:backfill");
+    const oldReceipt = receipt("old", content);
+    const gradedReceipt = receipt("graded", content, "completed", "run:1", {
+      graderReceipts: [D("grader:graded")],
+      userCorrectionRef: "correction:graded",
+    });
+    const h = fixture([[oldReceipt], [gradedReceipt]]);
+    const first = await h.open().aggregate();
+    const legacy = structuredClone(first);
+    delete legacy.outcomeHistoryComplete;
+    for (const version of legacy.versions) {
+      delete version.outcomeReceiptCount;
+      delete version.outcomeCompleted;
+      delete version.userCorrectionCount;
+    }
+    h.state.snapshot = redigestSnapshot(legacy);
+    const incomplete = await h.open().aggregate();
+    expect(incomplete.outcomeHistoryComplete).toBe(false);
+
+    const readReceiptHistory = vi.fn(async () =>
+      history(incomplete, [oldReceipt, gradedReceipt]),
+    );
+    const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+      ports: { ...h.ports, readReceiptHistory },
+    });
+    const reconciled = await backfiller.backfill();
+    expect(reconciled).toMatchObject({
+      status: "reconciled",
+      receiptCount: 2,
+      snapshot: {
+        revision: 3,
+        priorSnapshotDigest: incomplete.snapshotDigest,
+        outcomeHistoryComplete: true,
+        versions: [
+          {
+            receiptCount: 2,
+            outcomeReceiptCount: 1,
+            outcomeCompleted: 1,
+            userCorrectionCount: 1,
+          },
+        ],
+      },
+    });
+    await expect(backfiller.backfill()).resolves.toMatchObject({
+      status: "already-complete",
+      snapshot: { snapshotDigest: reconciled.snapshot.snapshotDigest },
+    });
+    expect(readReceiptHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an authenticated history that cannot reconcile legacy totals", async () => {
+    const content = D("content:backfill-mismatch");
+    const original = receipt("original", content);
+    const h = fixture([[original], [receipt("next", content)]]);
+    const first = await h.open().aggregate();
+    const legacy = structuredClone(first);
+    delete legacy.outcomeHistoryComplete;
+    for (const version of legacy.versions) {
+      delete version.outcomeReceiptCount;
+      delete version.outcomeCompleted;
+      delete version.userCorrectionCount;
+    }
+    h.state.snapshot = redigestSnapshot(legacy);
+    const incomplete = await h.open().aggregate();
+    const substituted = receipt("substituted", content, "failed");
+    const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+      ports: {
+        ...h.ports,
+        readReceiptHistory: async () =>
+          history(incomplete, [substituted, receipt("next", content)]),
+      },
+    });
+    await expect(backfiller.backfill()).rejects.toThrow(
+      /history is incomplete|does not reconcile/u,
+    );
+    expect(h.ports.commitSnapshot).toHaveBeenCalledTimes(2);
   });
 
   it("continues from a durable snapshot through a new aggregator instance", async () => {

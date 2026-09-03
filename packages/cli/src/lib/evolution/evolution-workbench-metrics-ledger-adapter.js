@@ -624,6 +624,18 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
       queryRetainedReceiptDigests: this.queryRetainedReceiptDigests,
     });
   }
+
+  backfillPorts({ readReceiptHistory } = {}) {
+    if (typeof readReceiptHistory !== "function") {
+      throw new TypeError("readReceiptHistory is required");
+    }
+    return Object.freeze({
+      loadSnapshot: this.loadSnapshot,
+      readReceiptHistory,
+      commitSnapshot: this.commitSnapshot,
+      queryRetainedReceiptDigests: this.queryRetainedReceiptDigests,
+    });
+  }
 }
 
 export function isEvolutionWorkbenchMetricsLedgerAdapter(value) {
