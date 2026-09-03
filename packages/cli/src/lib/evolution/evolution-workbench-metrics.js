@@ -48,7 +48,11 @@ function digest(value, label) {
   return value;
 }
 
-function emptySnapshot(tenantId, evolutionRunId, skillName) {
+export function createEmptyEvolutionWorkbenchMetricsSnapshot(
+  tenantId,
+  evolutionRunId,
+  skillName,
+) {
   const core = {
     schema: EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
     tenantId,
@@ -227,7 +231,7 @@ export class EvolutionWorkbenchMetricsAggregator {
       loaded.authenticated === true &&
       loaded.durable === true
     ) {
-      previous = emptySnapshot(
+      previous = createEmptyEvolutionWorkbenchMetricsSnapshot(
         this.descriptor.tenantId,
         this.descriptor.evolutionRunId,
         this.descriptor.skillName,

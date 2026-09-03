@@ -605,6 +605,7 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
       "evolution-run-event",
+      "evolution-workbench-metrics-snapshot",
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",
