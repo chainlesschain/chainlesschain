@@ -18,6 +18,7 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 function verifiedResume(messages, sessionId) {
   return {
@@ -1277,6 +1278,54 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     expect(events.find((event) => event.type === "tool_result")?.id).toBe(
       "provider-call-9",
     );
+  });
+
+  it("persists the settled run_skill invocation receipt", async () => {
+    const compactCalls = [];
+    const receipt = settledSkillInvocationReceipt();
+    const agentLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool_use_id: "skill-call",
+        tool: "run_skill",
+        args: { skill_name: "csv-clean", input: "x" },
+      };
+      yield {
+        type: "tool-result",
+        tool_use_id: "skill-call",
+        tool: "run_skill",
+        result: { ok: true, invocationReceipt: receipt },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendToolCallCompact: (_sessionId, record) => compactCalls.push(record),
+      appendEvent: () => {},
+      readEvents: () => [],
+      rebuildMessages: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      { sessionId: "stream-skill-receipt", expandFileRefs: false },
+      deps,
+    );
+
+    expect(compactCalls).toEqual([
+      expect.objectContaining({
+        id: "skill-call",
+        tool: "run_skill",
+        skill: "csv-clean",
+        invocationReceipt: receipt,
+      }),
+    ]);
   });
 
   it("pairs interleaved tool latency by provider id", async () => {

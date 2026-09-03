@@ -2605,6 +2605,7 @@ async function runAgentHeadlessInWorkspace(
               tool: event?.tool || started?.tool || "?",
               isError: Boolean(event?.error || event?.result?.error),
               skill: event?.attribution?.skill,
+              invocationReceipt: event?.result?.invocationReceipt,
               durationMs: started
                 ? Math.max(
                     0,
@@ -3211,6 +3212,7 @@ async function runAgentHeadlessInWorkspace(
                   plugin: settledCall.plugin || undefined,
                   pluginVersion: settledCall.pluginVersion || undefined,
                   durationMs: settledCall.durationMs,
+                  invocationReceipt: event.result?.invocationReceipt,
                 }),
               );
             }

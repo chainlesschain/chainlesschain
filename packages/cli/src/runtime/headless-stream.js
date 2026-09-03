@@ -1054,7 +1054,10 @@ async function runTurn(
               ? undefined
               : Math.max(0, now() - toolStartedAt.get(lastCall.id)));
           Object.assign(lastCall, extractPluginUsageAttribution(event.result));
-          persistToolEvent?.("settled", lastCall);
+          persistToolEvent?.("settled", {
+            ...lastCall,
+            invocationReceipt: event.result?.invocationReceipt,
+          });
         }
         if (lastCall) toolStartedAt.delete(lastCall.id);
         const pm = getPlanModeManager();
@@ -3376,6 +3379,7 @@ async function runAgentHeadlessStreamInWorkspace(
             plugin: call.plugin || undefined,
             pluginVersion: call.pluginVersion || undefined,
             durationMs: call.durationMs,
+            invocationReceipt: call.invocationReceipt,
           });
         } catch (error) {
           throw markRuntimeLedgerPersistenceError(error);
@@ -3403,6 +3407,7 @@ async function runAgentHeadlessStreamInWorkspace(
           tool: event?.tool || started?.tool || "?",
           is_error: Boolean(event?.error || event?.result?.error),
           skill: event?.attribution?.skill,
+          invocationReceipt: event?.result?.invocationReceipt,
           durationMs: started
             ? Math.max(
                 0,

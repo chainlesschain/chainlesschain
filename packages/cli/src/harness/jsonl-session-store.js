@@ -90,6 +90,9 @@ import {
   verifyExecutionLocationResultBundle,
 } from "../lib/execution-location-result.js";
 import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-location-result-store.js";
+import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
+
+const { verifySkillInvocationReceipt } = skillInvocationReceipt;
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -3189,7 +3192,16 @@ export function appendToolCall(sessionId, toolName, args) {
  */
 export function appendToolCallCompact(
   sessionId,
-  { id, tool, isError, skill, plugin, pluginVersion, durationMs } = {},
+  {
+    id,
+    tool,
+    isError,
+    skill,
+    plugin,
+    pluginVersion,
+    durationMs,
+    invocationReceipt,
+  } = {},
 ) {
   const cleanId =
     id === undefined
@@ -3203,6 +3215,15 @@ export function appendToolCallCompact(
   if (id !== undefined && !cleanId) {
     throw new TypeError("compact tool call id must be a bounded string");
   }
+  const verifiedInvocationReceipt =
+    invocationReceipt === undefined || invocationReceipt === null
+      ? null
+      : verifySkillInvocationReceipt(invocationReceipt);
+  if (verifiedInvocationReceipt !== null && tool !== "run_skill") {
+    throw new TypeError(
+      "Skill invocation receipt can only be attached to run_skill",
+    );
+  }
   const duration = normalizeCompactDuration(durationMs);
   appendEvent(sessionId, "tool_call", {
     ...(cleanId ? { id: cleanId } : {}),
@@ -3212,6 +3233,9 @@ export function appendToolCallCompact(
     ...(plugin ? { plugin: String(plugin) } : {}),
     ...(pluginVersion ? { plugin_version: String(pluginVersion) } : {}),
     ...(duration !== null ? { duration_ms: duration } : {}),
+    ...(verifiedInvocationReceipt
+      ? { skill_invocation_receipt: verifiedInvocationReceipt }
+      : {}),
   });
 }
 

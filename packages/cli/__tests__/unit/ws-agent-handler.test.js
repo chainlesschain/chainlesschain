@@ -43,6 +43,7 @@ import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js"
 import { _deps as sideEffectLedgerStoreDeps } from "../../src/lib/side-effect-ledger-store.js";
 import { executeHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
 import { sealAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
   path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
@@ -1110,14 +1111,19 @@ describe("WSAgentHandler", () => {
           };
           yield {
             type: "tool-executing",
-            tool: "read_file",
-            args: { path: "README.md" },
+            tool: "run_skill",
+            args: { skill_name: "csv-clean", input: "x" },
             tool_use_id: "tool-call-1",
           };
           yield {
             type: "tool-result",
-            tool: "read_file",
-            result: { content: "ok", toolTelemetryRecord: { durationMs: 9 } },
+            tool: "run_skill",
+            result: {
+              content: "ok",
+              skill: "csv-clean",
+              toolTelemetryRecord: { durationMs: 9 },
+              invocationReceipt: settledSkillInvocationReceipt(),
+            },
             tool_use_id: "tool-call-1",
           };
           yield { type: "response-complete", content: "done" };
@@ -1162,7 +1168,7 @@ describe("WSAgentHandler", () => {
           [
             "test-session-1",
             "tool_call_started",
-            { id: "tool-call-1", tool: "read_file" },
+            { id: "tool-call-1", tool: "run_skill" },
           ],
         ]),
       );
@@ -1196,9 +1202,10 @@ describe("WSAgentHandler", () => {
           "test-session-1",
           expect.objectContaining({
             id: "tool-call-1",
-            tool: "read_file",
+            tool: "run_skill",
             isError: false,
             durationMs: 9,
+            invocationReceipt: settledSkillInvocationReceipt(),
           }),
         ],
       ]);

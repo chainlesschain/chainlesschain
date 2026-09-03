@@ -16,6 +16,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 const ATTR = {
   origin: "subagent",
@@ -38,7 +39,11 @@ function fakeLoop() {
       type: "tool-result",
       tool_use_id: "skill-call",
       tool: "run_skill",
-      result: { ok: 1, toolTelemetryRecord: { durationMs: 12 } },
+      result: {
+        ok: 1,
+        toolTelemetryRecord: { durationMs: 12 },
+        invocationReceipt: settledSkillInvocationReceipt(),
+      },
     };
     yield {
       type: "tool-executing",
@@ -189,6 +194,7 @@ describe("headless runner usage attribution", () => {
       isError: false,
       skill: "csv-clean",
       durationMs: 12,
+      invocationReceipt: settledSkillInvocationReceipt(),
     });
     expect(writes.toolCalls[0].rec.args).toBeUndefined();
     expect(writes.toolCalls[1].rec).toMatchObject({

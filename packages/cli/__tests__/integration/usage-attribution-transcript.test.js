@@ -17,6 +17,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
+import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 let tmpHome;
 let previousHome;
@@ -168,7 +169,14 @@ describe("REPL wrapper persists compact tool_call events", () => {
           tool: "run_skill",
           args: { skill_name: "csv-clean", input: "secret-blob" },
         };
-        yield { type: "tool-result", tool: "run_skill", result: { ok: 1 } };
+        yield {
+          type: "tool-result",
+          tool: "run_skill",
+          result: {
+            ok: 1,
+            invocationReceipt: settledSkillInvocationReceipt(),
+          },
+        };
         yield {
           type: "tool-executing",
           tool: "mcp__github__search_issues",
@@ -195,6 +203,7 @@ describe("REPL wrapper persists compact tool_call events", () => {
       is_error: false,
       skill: "csv-clean",
       duration_ms: expect.any(Number),
+      skill_invocation_receipt: settledSkillInvocationReceipt(),
     });
     expect(toolEvents[1].data).toEqual({
       id: expect.stringMatching(/^tool-/),
@@ -204,6 +213,67 @@ describe("REPL wrapper persists compact tool_call events", () => {
     });
     // args (which can carry file bodies) must never be persisted
     expect(JSON.stringify(toolEvents)).not.toContain("secret-blob");
+  });
+
+  it("verifies a receipt before appending it to the canonical hash chain", async () => {
+    const store = await import("../../src/harness/jsonl-session-store.js");
+    const receipt = settledSkillInvocationReceipt();
+    store.startSession("s-receipt", { title: "receipt" });
+
+    store.appendToolCallCompact("s-receipt", {
+      tool: "run_skill",
+      skill: "csv-clean",
+      invocationReceipt: receipt,
+    });
+    const countAfterValidAppend = store.readEvents("s-receipt").length;
+    expect(store.readEvents("s-receipt").at(-1).data).toMatchObject({
+      tool: "run_skill",
+      skill_invocation_receipt: receipt,
+    });
+
+    expect(() =>
+      store.appendToolCallCompact("s-receipt", {
+        tool: "run_skill",
+        invocationReceipt: { ...receipt, executionStatus: "failed" },
+      }),
+    ).toThrow(/receipt digest is invalid/i);
+    expect(() =>
+      store.appendToolCallCompact("s-receipt", {
+        tool: "read_file",
+        invocationReceipt: receipt,
+      }),
+    ).toThrow(/only be attached to run_skill/i);
+    expect(store.readEvents("s-receipt")).toHaveLength(countAfterValidAppend);
+  });
+
+  it("treats run_skill receipt persistence failure as terminal in the REPL", async () => {
+    const { agentLoop } = await import("../../src/repl/agent-repl.js");
+    const receipt = settledSkillInvocationReceipt();
+    const core = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "run_skill",
+        args: { skill_name: "csv-clean", input: "x" },
+      };
+      yield {
+        type: "tool-result",
+        tool: "run_skill",
+        result: {
+          ok: true,
+          invocationReceipt: { ...receipt, executionStatus: "failed" },
+        },
+      };
+    };
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      await expect(
+        agentLoop([], { _coreLoop: core, sessionId: "s-invalid-receipt" }),
+      ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 
   it("persists nothing without a sessionId (anonymous run unchanged)", async () => {

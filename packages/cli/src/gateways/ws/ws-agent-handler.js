@@ -1567,6 +1567,7 @@ export class WSAgentHandler {
               ? event.result?.skill || event.result?.skill_name || undefined
               : undefined),
           durationMs,
+          invocationReceipt: event.result?.invocationReceipt,
         });
         if (record.providerId) activeToolCalls.delete(record.providerId);
         const index = activeToolCallOrder.indexOf(record);

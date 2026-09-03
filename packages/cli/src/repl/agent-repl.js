@@ -739,6 +739,7 @@ export async function agentLoop(messages, options) {
               tool: event?.tool || started?.tool || "?",
               isError: Boolean(event?.error || event?.result?.error),
               skill: event?.attribution?.skill,
+              invocationReceipt: event?.result?.invocationReceipt,
               durationMs: started
                 ? Math.max(
                     0,
@@ -918,9 +919,13 @@ export async function agentLoop(messages, options) {
                 : undefined,
             ...extractPluginUsageAttribution(event.result),
             durationMs,
+            invocationReceipt: event.result?.invocationReceipt,
           });
         } catch (_e) {
-          if (options.persistUsageTelemetry === true) {
+          if (
+            event.result?.invocationReceipt ||
+            options.persistUsageTelemetry === true
+          ) {
             throw markRuntimeLedgerPersistenceError(_e);
           }
           // Legacy non-JSONL persistence remains best-effort.
