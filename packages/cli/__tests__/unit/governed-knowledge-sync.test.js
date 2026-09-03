@@ -6,6 +6,31 @@ import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledg
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
 
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function resign(envelope, overrides) {
+  const core = { ...envelope, ...overrides };
+  delete core.envelopeDigest;
+  delete core.signature;
+  const envelopeDigest = `sha256:${createHash("sha256")
+    .update(
+      `chainlesschain.governed-evolution-knowledge-envelope/v1\0${canonical(core)}`,
+    )
+    .digest("hex")}`;
+  return {
+    ...core,
+    envelopeDigest,
+    signature: `signature:${envelopeDigest}`,
+  };
+}
+
 function knowledge(overrides = {}) {
   return {
     tenantId: "tenant:a",
@@ -153,6 +178,42 @@ describe("Governed evolution knowledge synchronization", () => {
         ciphertext: Buffer.from("substituted").toString("base64"),
       }),
     ).rejects.toThrow("unauthenticated or cross-tenant");
+  });
+
+  it("rejects signed envelope metadata substitution and non-canonical base64", async () => {
+    const sender = harness();
+    const envelope = await sender.controller.publish(knowledge());
+    const receiver = harness({ deviceId: "device:b" });
+    await expect(
+      receiver.controller.receive(resign(envelope, { scopeId: "team:other" })),
+    ).rejects.toThrow("substituted its governed record");
+    await expect(
+      receiver.controller.receive({
+        ...envelope,
+        ciphertext: `${envelope.ciphertext}=`,
+      }),
+    ).rejects.toThrow("unauthenticated or cross-tenant");
+  });
+
+  it("rejects empty or oversized ciphertext before commit and transport", async () => {
+    const h = harness();
+    for (const ciphertext of [
+      Buffer.alloc(0),
+      Buffer.alloc(12 * 1024 * 1024 + 1),
+    ]) {
+      h.ports.encrypt.mockResolvedValueOnce({
+        ciphertext,
+        ciphertextDigest: `sha256:${createHash("sha256")
+          .update(ciphertext)
+          .digest("hex")}`,
+        keyRef: "key:team:1",
+      });
+      await expect(h.controller.publish(knowledge())).rejects.toThrow(
+        "unsafe ciphertext",
+      );
+    }
+    expect(h.ports.commit).not.toHaveBeenCalled();
+    expect(h.ports.send).not.toHaveBeenCalled();
   });
 
   it("preserves concurrent offline edits as an explicit human merge conflict", async () => {

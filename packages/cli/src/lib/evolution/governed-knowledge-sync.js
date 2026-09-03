@@ -16,6 +16,23 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const SCOPES = new Set(Object.values(GOVERNED_KNOWLEDGE_SCOPE));
 const ACTIONS = new Set(["upsert", "tombstone", "revoke"]);
+const MAX_CIPHERTEXT_BYTES = 12 * 1024 * 1024;
+const ENVELOPE_KEYS = new Set([
+  "action",
+  "ciphertext",
+  "ciphertextDigest",
+  "contentDigest",
+  "envelopeDigest",
+  "keyRef",
+  "knowledgeId",
+  "schema",
+  "scope",
+  "scopeId",
+  "senderDeviceId",
+  "signature",
+  "tenantId",
+  "vectorClock",
+]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -179,6 +196,49 @@ function normalizeRecord(input, descriptor) {
   });
 }
 
+export function verifyGovernedKnowledgeRecord(input, { tenantId } = {}) {
+  return normalizeRecord(input, { tenantId: id(tenantId, "tenantId") });
+}
+
+export function verifyGovernedKnowledgeEnvelopeIntegrity(
+  envelope,
+  { tenantId } = {},
+) {
+  record(envelope, "knowledge envelope");
+  const expectedTenantId = id(tenantId, "tenantId");
+  if (typeof envelope.ciphertext !== "string") {
+    throw new Error("knowledge envelope ciphertext is invalid");
+  }
+  const ciphertext = Buffer.from(envelope.ciphertext, "base64");
+  const keys = Reflect.ownKeys(envelope);
+  const core = { ...envelope };
+  delete core.envelopeDigest;
+  delete core.signature;
+  if (
+    envelope.schema !== GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA ||
+    keys.length !== ENVELOPE_KEYS.size ||
+    keys.some((key) => typeof key !== "string" || !ENVELOPE_KEYS.has(key)) ||
+    envelope.tenantId !== expectedTenantId ||
+    !ID.test(envelope.senderDeviceId || "") ||
+    !ID.test(envelope.knowledgeId || "") ||
+    !SCOPES.has(envelope.scope) ||
+    !ID.test(envelope.scopeId || "") ||
+    !ACTIONS.has(envelope.action) ||
+    !DIGEST.test(envelope.contentDigest || "") ||
+    canonical(vectorClock(envelope.vectorClock)) !==
+      canonical(envelope.vectorClock) ||
+    ciphertext.length < 1 ||
+    ciphertext.length > MAX_CIPHERTEXT_BYTES ||
+    ciphertext.toString("base64") !== envelope.ciphertext ||
+    envelope.ciphertextDigest !== hashBytes(ciphertext) ||
+    !ID.test(envelope.keyRef || "") ||
+    envelope.envelopeDigest !== hash(GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA, core)
+  ) {
+    throw new Error("knowledge envelope integrity is invalid");
+  }
+  return freeze({ core: freeze(clone(core)) });
+}
+
 export class GovernedKnowledgeSync {
   constructor({ tenantId, deviceId, ports } = {}) {
     this.tenantId = id(tenantId, "tenantId");
@@ -197,11 +257,13 @@ export class GovernedKnowledgeSync {
     const knowledge = normalizeRecord(input, this);
     if (knowledge.scope === "personal")
       throw new Error("personal knowledge cannot enter a shared sync channel");
-    await this._admit("publish", knowledge);
+    const admission = await this._admit("publish", knowledge);
     const plaintext = Buffer.from(canonical(knowledge), "utf8");
     const encrypted = await this._encrypt({ knowledge, plaintext });
     if (
       !Buffer.isBuffer(encrypted?.ciphertext) ||
+      encrypted.ciphertext.length < 1 ||
+      encrypted.ciphertext.length > MAX_CIPHERTEXT_BYTES ||
       encrypted.ciphertext.includes(plaintext) ||
       encrypted.ciphertextDigest !== hashBytes(encrypted.ciphertext)
     )
@@ -227,7 +289,7 @@ export class GovernedKnowledgeSync {
       envelopeDigest,
       signature: clone(signature),
     });
-    await this._persist(knowledge, envelope, "local");
+    await this._persist(knowledge, envelope, "local", admission);
     const sent = await this._send({ envelope });
     if (sent?.durable !== true || sent.envelopeDigest !== envelopeDigest)
       throw new Error("sync transport did not durably accept the envelope");
@@ -235,18 +297,14 @@ export class GovernedKnowledgeSync {
   }
 
   async receive(envelope) {
-    record(envelope, "knowledge envelope");
-    const core = { ...envelope };
-    delete core.envelopeDigest;
-    delete core.signature;
+    let core;
+    try {
+      ({ core } = verifyGovernedKnowledgeEnvelopeIntegrity(envelope, this));
+    } catch {
+      throw new Error("knowledge envelope is unauthenticated or cross-tenant");
+    }
     if (
-      envelope.schema !== GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA ||
-      envelope.tenantId !== this.tenantId ||
       envelope.senderDeviceId === this.deviceId ||
-      envelope.ciphertextDigest !==
-        hashBytes(Buffer.from(envelope.ciphertext || "", "base64")) ||
-      envelope.envelopeDigest !==
-        hash(GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA, core) ||
       (await this._verify({
         core,
         envelopeDigest: envelope.envelopeDigest,
@@ -269,10 +327,14 @@ export class GovernedKnowledgeSync {
     if (
       knowledge.knowledgeId !== envelope.knowledgeId ||
       knowledge.contentDigest !== envelope.contentDigest ||
+      knowledge.scope !== envelope.scope ||
+      knowledge.scopeId !== envelope.scopeId ||
+      knowledge.action !== envelope.action ||
+      canonical(knowledge.vectorClock) !== canonical(envelope.vectorClock) ||
       !["team", "org", "project"].includes(knowledge.scope)
     )
       throw new Error("knowledge envelope substituted its governed record");
-    await this._admit("receive", knowledge);
+    const admission = await this._admit("receive", knowledge);
     const current = await this._load({ knowledgeId: knowledge.knowledgeId });
     if (current) {
       const order = relation(current.vectorClock, knowledge.vectorClock);
@@ -287,6 +349,7 @@ export class GovernedKnowledgeSync {
           { ...knowledge, conflictWithDigest: current.contentDigest },
           envelope,
           "conflict",
+          admission,
         );
         return freeze({
           applied: false,
@@ -295,7 +358,7 @@ export class GovernedKnowledgeSync {
         });
       }
     }
-    await this._persist(knowledge, envelope, "remote");
+    await this._persist(knowledge, envelope, "remote", admission);
     return freeze({ applied: true, action: knowledge.action });
   }
 
@@ -311,13 +374,16 @@ export class GovernedKnowledgeSync {
       !DIGEST.test(result.receiptDigest || "")
     )
       throw new Error("knowledge synchronization is not authorized");
+    return freeze(clone(result));
   }
 
-  async _persist(knowledge, envelope, disposition) {
+  async _persist(knowledge, envelope, disposition, admission) {
     const result = await this._commit({
       knowledge,
+      envelope,
       envelopeDigest: envelope.envelopeDigest,
       disposition,
+      authorizationReceiptDigest: admission.receiptDigest,
     });
     if (
       result?.authenticated !== true ||

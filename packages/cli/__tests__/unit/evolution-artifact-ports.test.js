@@ -607,6 +607,7 @@ describe("EvolutionArtifactPorts", () => {
       "evolution-run-event",
       "evolution-workbench-metrics-receipt-retention",
       "evolution-workbench-metrics-snapshot",
+      "governed-knowledge-sync-record",
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",
