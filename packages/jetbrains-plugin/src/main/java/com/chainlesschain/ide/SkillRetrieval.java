@@ -14,12 +14,17 @@ import java.util.regex.Pattern;
  */
 public final class SkillRetrieval {
     public static final String SCHEMA = "chainlesschain.skill-retrieval-result/v1";
-    public static final String OUTCOME_AUTHORITY_SCHEMA =
+    public static final String TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
             "chainlesschain.skill-outcome-transcript-authority/v1";
+    public static final String INDEX_OUTCOME_AUTHORITY_SCHEMA =
+            "chainlesschain.skill-outcome-index-authority/v1";
+    public static final String OUTCOME_AUTHORITY_SCHEMA =
+            TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA;
     public static final int MAX_CANDIDATES = 64;
     public static final int MAX_REJECTIONS = 10_000;
     public static final int MAX_QUERY_LENGTH = 4_096;
     public static final int MAX_JSON_LENGTH = 8 * 1024 * 1024;
+    private static final long MAX_SAFE_INTEGER = 9_007_199_254_740_991L;
 
     private static final Pattern DIGEST = Pattern.compile("sha256:[a-f0-9]{64}");
     private static final Set<String> CONFLICT_TYPES = Set.of(
@@ -241,11 +246,35 @@ public final class SkillRetrieval {
     }
 
     private static OutcomeAuthority parseOutcomeAuthority(Map<String, Object> value) {
-        if (value == null
-                || !OUTCOME_AUTHORITY_SCHEMA.equals(text(value.get("schema"), 128))) {
-            return null;
-        }
+        if (value == null) return null;
+        String schema = text(value.get("schema"), 128);
         String status = text(value.get("status"), 32);
+        if (INDEX_OUTCOME_AUTHORITY_SCHEMA.equals(schema)) {
+            if ("unavailable".equals(status)) {
+                String code = text(value.get("code"), 132);
+                return code != null
+                        && code.matches("CC_SKILL_OUTCOME_INDEX_[A-Z0-9_]{1,96}")
+                        && Boolean.FALSE.equals(value.get("antiRollbackWitness"))
+                        ? new OutcomeAuthority(status, null) : null;
+            }
+            if (!"verified-indexed".equals(status)
+                    || !Boolean.TRUE.equals(value.get("antiRollbackWitness"))) return null;
+            String sourceDigest = digest(value.get("sourceDigest"));
+            Long sources = nonNegativeLong(value.get("sourceCount"));
+            Long snapshots = nonNegativeLong(value.get("snapshotCount"));
+            Long versions = nonNegativeLong(value.get("versionCount"));
+            Long samples = nonNegativeLong(value.get("outcomeSampleCount"));
+            Long maxSources = nonNegativeLong(value.get("maxSources"));
+            Long maxVersions = nonNegativeLong(value.get("maxVersions"));
+            if (sourceDigest == null || sources == null || snapshots == null
+                    || versions == null || samples == null || maxSources == null
+                    || maxVersions == null || sources < 1 || maxSources < 1
+                    || maxSources > 128 || maxVersions < 1 || maxVersions > 10_000
+                    || sources > maxSources || snapshots > sources
+                    || versions > maxVersions) return null;
+            return new OutcomeAuthority(status, sourceDigest);
+        }
+        if (!TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA.equals(schema)) return null;
         if ("unavailable".equals(status)) {
             String code = text(value.get("code"), 105);
             return code != null && code.matches("CC_SKILL_[A-Z0-9_]{1,96}")
@@ -322,7 +351,7 @@ public final class SkillRetrieval {
         if (!(value instanceof Number)) return null;
         double numeric = ((Number) value).doubleValue();
         if (!Double.isFinite(numeric) || numeric < 0 || numeric != Math.rint(numeric)
-                || numeric > Long.MAX_VALUE) return null;
+                || numeric > MAX_SAFE_INTEGER) return null;
         return (long) numeric;
     }
 

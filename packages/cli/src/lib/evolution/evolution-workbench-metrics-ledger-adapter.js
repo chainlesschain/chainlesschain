@@ -21,6 +21,7 @@ export const EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA =
   "chainlesschain.evolution-workbench-metrics-receipt-retention/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const METRICS_LEDGER_ADAPTERS = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -142,6 +143,7 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
       );
     }
     this._resolveArtifact = ledgerArtifactResolver;
+    METRICS_LEDGER_ADAPTERS.add(this);
     Object.freeze(this);
   }
 
@@ -288,6 +290,29 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
           snapshot: latest.snapshot,
         })
       : Object.freeze({ found: false, authenticated: true, durable: true });
+  };
+
+  loadOutcomeSnapshot = () => {
+    const loaded = this.loadSnapshot();
+    const authority = this._verifyLedger();
+    return Object.freeze({
+      ...loaded,
+      descriptor: this.descriptor,
+      ledgerAuthority: Object.freeze({
+        schema: authority.schema,
+        status: authority.status,
+        authenticated: authority.authenticated,
+        durable: authority.durable,
+        ledgerId: authority.ledgerId,
+        identityDigest: authority.identityDigest,
+        headDigest: authority.headDigest,
+        sequence: authority.sequence,
+        eventCount: authority.eventCount,
+        witnessId: authority.witnessId,
+        witnessGeneration: authority.witnessGeneration,
+        witnessDigest: authority.witnessDigest,
+      }),
+    });
   };
 
   retainReceiptDigests = (request = {}) => {
@@ -590,5 +615,9 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
       queryRetainedReceiptDigests: this.queryRetainedReceiptDigests,
     });
   }
+}
+
+export function isEvolutionWorkbenchMetricsLedgerAdapter(value) {
+  return METRICS_LEDGER_ADAPTERS.has(value);
 }
 import { createHash } from "node:crypto";

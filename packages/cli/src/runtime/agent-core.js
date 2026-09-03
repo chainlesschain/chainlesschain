@@ -46,10 +46,7 @@ import {
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
-import {
-  buildSkillOutcomeTranscriptAuthority,
-  unavailableSkillOutcomeTranscriptAuthority,
-} from "../lib/skill-outcome-transcript-authority.js";
+import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
 import {
   admitSkillPrompt,
   debitSkillPromptBudget,
@@ -3554,6 +3551,7 @@ export async function executeTool(name, args, context = {}) {
       skillLoader,
       // Subagent skill capability INTERSECT — forwarded to run_skill/list_skills.
       skillAllowlist: context.skillAllowlist ?? null,
+      skillOutcomeIndexAdapters: context.skillOutcomeIndexAdapters,
       cwd,
       parentMessages: context.parentMessages,
       interaction: context.interaction,
@@ -5096,6 +5094,7 @@ async function executeToolInner(
   {
     skillLoader,
     skillAllowlist = null,
+    skillOutcomeIndexAdapters,
     cwd,
     parentMessages,
     interaction,
@@ -8209,11 +8208,11 @@ async function executeToolInner(
       let routing = null;
       let outcomeAuthority = null;
       if (args.query) {
-        try {
-          outcomeAuthority = buildSkillOutcomeTranscriptAuthority();
-        } catch (error) {
-          outcomeAuthority = unavailableSkillOutcomeTranscriptAuthority(error);
-        }
+        outcomeAuthority = resolveSkillOutcomeAuthority(
+          skillOutcomeIndexAdapters === undefined
+            ? {}
+            : { indexAdapters: skillOutcomeIndexAdapters },
+        );
         routing = routeSkillDescriptors({
           skills,
           query: args.query,
@@ -8222,7 +8221,10 @@ async function executeToolInner(
           topK: Math.min(64, Math.max(1, skills.length)),
         });
         const byDigest = new Map(
-          skills.map((skill) => [skill.executionIdentity?.contentDigest, skill]),
+          skills.map((skill) => [
+            skill.executionIdentity?.contentDigest,
+            skill,
+          ]),
         );
         skills = routing.candidates
           .map(({ digest }) => byDigest.get(digest))
@@ -8256,8 +8258,7 @@ async function executeToolInner(
           ...(routing
             ? (() => {
                 const candidate = routing.candidates.find(
-                  ({ digest }) =>
-                    digest === s.executionIdentity?.contentDigest,
+                  ({ digest }) => digest === s.executionIdentity?.contentDigest,
                 );
                 return candidate
                   ? {
@@ -13207,6 +13208,7 @@ export async function* agentLoop(messages, options) {
   const toolContext = {
     hookDb: hermeticExecution ? null : options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
+    skillOutcomeIndexAdapters: options.skillOutcomeIndexAdapters,
     // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
     // fired during this run carries trace_id = this run's id; a spawned child
     // loop carries parent_id = the spawning run's id (threaded by

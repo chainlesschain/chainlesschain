@@ -60,10 +60,7 @@ import {
 import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
 import { registerRecordReplayCommands } from "./record-replay.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
-import {
-  buildSkillOutcomeTranscriptAuthority,
-  unavailableSkillOutcomeTranscriptAuthority,
-} from "../lib/skill-outcome-transcript-authority.js";
+import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -342,7 +339,7 @@ export async function runControlledSkill(options = {}) {
   }
 }
 
-export function registerSkillCommand(program) {
+export function registerSkillCommand(program, dependencies = {}) {
   const skill = program
     .command("skill")
     .description(
@@ -533,12 +530,14 @@ export function registerSkillCommand(program) {
         process.exitCode = 1;
         return;
       }
-      let outcomeAuthority;
-      try {
-        outcomeAuthority = buildSkillOutcomeTranscriptAuthority();
-      } catch (error) {
-        outcomeAuthority = unavailableSkillOutcomeTranscriptAuthority(error);
-      }
+      const outcomeAuthority = resolveSkillOutcomeAuthority(
+        Object.prototype.hasOwnProperty.call(
+          dependencies,
+          "skillOutcomeIndexAdapters",
+        )
+          ? { indexAdapters: dependencies.skillOutcomeIndexAdapters }
+          : {},
+      );
       let result;
       try {
         result = routeSkillSearch(skills, query, {
@@ -565,7 +564,7 @@ export function registerSkillCommand(program) {
         return;
       }
 
-      if (outcomeAuthority.status !== "verified") {
+      if (!["verified", "verified-indexed"].includes(outcomeAuthority.status)) {
         logger.warn(
           "Verified Skill outcome history is unavailable; retrieval is not using partial transcript metrics.",
         );

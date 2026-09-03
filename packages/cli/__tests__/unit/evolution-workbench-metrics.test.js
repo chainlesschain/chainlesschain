@@ -40,7 +40,13 @@ function redigestSnapshot(value) {
   };
 }
 
-function receipt(id, contentDigest, status = "completed", runId = "run:1") {
+function receipt(
+  id,
+  contentDigest,
+  status = "completed",
+  runId = "run:1",
+  outcome = {},
+) {
   const started = startSkillInvocation(
     {
       receiptId: `skill-invocation:${id}`,
@@ -66,6 +72,8 @@ function receipt(id, contentDigest, status = "completed", runId = "run:1") {
     started,
     {
       executionStatus: status,
+      graderReceipts: outcome.graderReceipts || [],
+      userCorrectionRef: outcome.userCorrectionRef || null,
       tokensInput: 10,
       tokensOutput: 5,
       costUsd: 0.25,
@@ -176,6 +184,7 @@ describe("Evolution Workbench long-term metrics", () => {
     const legacy = structuredClone(empty);
     delete legacy.retainedReceiptCount;
     delete legacy.retentionRootDigest;
+    delete legacy.outcomeHistoryComplete;
     expect(
       verifyEvolutionWorkbenchMetricsSnapshot(
         redigestSnapshot(legacy),
@@ -230,7 +239,14 @@ describe("Evolution Workbench long-term metrics", () => {
   it("persists deterministic per-version outcomes, tokens, cost and latency", async () => {
     const content = D("content:a");
     const h = fixture([
-      [receipt("1", content), receipt("2", content, "failed")],
+      [
+        receipt("1", content, "completed", "run:1", {
+          graderReceipts: [D("grader:1")],
+        }),
+        receipt("2", content, "failed", "run:1", {
+          userCorrectionRef: "correction:2",
+        }),
+      ],
     ]);
     const snapshot = await h.open().aggregate();
     expect(snapshot.versions).toEqual([
@@ -240,6 +256,9 @@ describe("Evolution Workbench long-term metrics", () => {
         completed: 1,
         failed: 1,
         blocked: 0,
+        outcomeReceiptCount: 2,
+        outcomeCompleted: 1,
+        userCorrectionCount: 1,
         tokensInput: 20,
         tokensOutput: 10,
         costUsd: 0.5,
@@ -248,6 +267,41 @@ describe("Evolution Workbench long-term metrics", () => {
       },
     ]);
     expect(snapshot.snapshotDigest).toMatch(/^sha256:/u);
+    expect(snapshot.outcomeHistoryComplete).toBe(true);
+  });
+
+  it("migrates legacy counts without claiming complete outcome history", async () => {
+    const content = D("content:legacy");
+    const h = fixture([
+      [receipt("legacy", content)],
+      [
+        receipt("graded", content, "completed", "run:1", {
+          graderReceipts: [D("grader:graded")],
+        }),
+      ],
+    ]);
+    const first = await h.open().aggregate();
+    const legacy = structuredClone(first);
+    delete legacy.outcomeHistoryComplete;
+    for (const version of legacy.versions) {
+      delete version.outcomeReceiptCount;
+      delete version.outcomeCompleted;
+      delete version.userCorrectionCount;
+    }
+    h.state.snapshot = redigestSnapshot(legacy);
+
+    const migrated = await h.open().aggregate();
+    expect(migrated).toMatchObject({
+      outcomeHistoryComplete: false,
+      versions: [
+        {
+          receiptCount: 2,
+          outcomeReceiptCount: 1,
+          outcomeCompleted: 1,
+          userCorrectionCount: 0,
+        },
+      ],
+    });
   });
 
   it("continues from a durable snapshot through a new aggregator instance", async () => {

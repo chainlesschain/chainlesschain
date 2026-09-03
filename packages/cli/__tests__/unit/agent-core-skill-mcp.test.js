@@ -1042,6 +1042,23 @@ describe("run_skill controlled execution boundary", () => {
     });
   });
 
+  it("does not hide a configured invalid index behind transcript fallback", async () => {
+    registerSkill({ id: "repair-tests", description: "repair failing tests" });
+
+    const result = await executeTool(
+      "list_skills",
+      { query: "repair failing tests" },
+      { cwd: tempDir, skillOutcomeIndexAdapters: [] },
+    );
+
+    expect(result.routing.outcomeAuthority).toEqual({
+      schema: "chainlesschain.skill-outcome-index-authority/v1",
+      status: "unavailable",
+      code: "CC_SKILL_OUTCOME_INDEX_AUTHORITY_UNAVAILABLE",
+      antiRollbackWitness: false,
+    });
+  });
+
   it("treats an empty skill allow-list as deny-all", async () => {
     registerSkill({ id: "alpha" });
 

@@ -201,6 +201,60 @@ test("Skill Retrieval IDE rejects drift and duplicate candidate evidence", () =>
   );
 });
 
+test("Skill Retrieval IDE accepts only witnessed bounded outcome indexes", () => {
+  const valid = result({
+    outcomeAuthority: {
+      schema: "chainlesschain.skill-outcome-index-authority/v1",
+      status: "verified-indexed",
+      sourceDigest: D("e"),
+      sourceCount: 2,
+      snapshotCount: 2,
+      versionCount: 3,
+      outcomeSampleCount: 21,
+      maxSources: 128,
+      maxVersions: 10_000,
+      antiRollbackWitness: true,
+    },
+  });
+  assert.equal(
+    parseSkillRetrievalResult(JSON.stringify(valid)).outcomeAuthority.status,
+    "verified-indexed",
+  );
+  for (const outcomeAuthority of [
+    { ...valid.outcomeAuthority, antiRollbackWitness: false },
+    { ...valid.outcomeAuthority, snapshotCount: 3 },
+    { ...valid.outcomeAuthority, versionCount: 10_001 },
+    {
+      schema: "chainlesschain.skill-outcome-index-authority/v1",
+      status: "unavailable",
+      code: "CC_SKILL_OUTCOME_INDEX_BACKFILL_REQUIRED",
+      antiRollbackWitness: true,
+    },
+  ]) {
+    assert.throws(
+      () =>
+        parseSkillRetrievalResult(
+          JSON.stringify({ ...valid, outcomeAuthority }),
+        ),
+      /invalid outcome authority/u,
+    );
+  }
+  assert.equal(
+    parseSkillRetrievalResult(
+      JSON.stringify({
+        ...valid,
+        outcomeAuthority: {
+          schema: "chainlesschain.skill-outcome-index-authority/v1",
+          status: "unavailable",
+          code: "CC_SKILL_OUTCOME_INDEX_BACKFILL_REQUIRED",
+          antiRollbackWitness: false,
+        },
+      }),
+    ).outcomeAuthority.status,
+    "unavailable",
+  );
+});
+
 test("Skill Retrieval IDE inspects canonical evidence without executing a Skill", async () => {
   const calls = [];
   const documents = [];

@@ -11,7 +11,7 @@ export const EVOLUTION_WORKBENCH_METRICS_MAX_DELTA = 10_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS = 10_000;
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-const SNAPSHOT_KEYS = Object.freeze(
+const RETENTION_SNAPSHOT_KEYS = Object.freeze(
   [
     "evolutionRunId",
     "priorSnapshotDigest",
@@ -29,11 +29,14 @@ const SNAPSHOT_KEYS = Object.freeze(
   ].sort(),
 );
 const LEGACY_SNAPSHOT_KEYS = Object.freeze(
-  SNAPSHOT_KEYS.filter(
+  RETENTION_SNAPSHOT_KEYS.filter(
     (key) => key !== "retainedReceiptCount" && key !== "retentionRootDigest",
   ),
 );
-const VERSION_KEYS = Object.freeze(
+const OUTCOME_SNAPSHOT_KEYS = Object.freeze(
+  [...RETENTION_SNAPSHOT_KEYS, "outcomeHistoryComplete"].sort(),
+);
+const LEGACY_VERSION_KEYS = Object.freeze(
   [
     "blocked",
     "completed",
@@ -45,6 +48,14 @@ const VERSION_KEYS = Object.freeze(
     "receiptCount",
     "tokensInput",
     "tokensOutput",
+  ].sort(),
+);
+const OUTCOME_VERSION_KEYS = Object.freeze(
+  [
+    ...LEGACY_VERSION_KEYS,
+    "outcomeCompleted",
+    "outcomeReceiptCount",
+    "userCorrectionCount",
   ].sort(),
 );
 
@@ -131,6 +142,7 @@ export function createEmptyEvolutionWorkbenchMetricsSnapshot(
     throughAt: null,
     retainedReceiptCount: 0,
     retentionRootDigest: null,
+    outcomeHistoryComplete: true,
     receiptDigests: [],
     versions: [],
   };
@@ -196,10 +208,11 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   value,
   { tenantId, evolutionRunId, skillName },
 ) {
-  const exactCurrent = exactRecord(value, SNAPSHOT_KEYS);
+  const exactOutcome = exactRecord(value, OUTCOME_SNAPSHOT_KEYS);
+  const exactRetention = exactRecord(value, RETENTION_SNAPSHOT_KEYS);
   const exactLegacy = exactRecord(value, LEGACY_SNAPSHOT_KEYS);
   if (
-    (!exactCurrent && !exactLegacy) ||
+    (!exactOutcome && !exactRetention && !exactLegacy) ||
     value.schema !== EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA ||
     !boundedString(value.tenantId) ||
     !boundedString(value.evolutionRunId) ||
@@ -244,18 +257,33 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   ) {
     throw new TypeError("Workbench metrics genesis snapshot is invalid");
   }
+  if (
+    exactOutcome &&
+    (typeof value.outcomeHistoryComplete !== "boolean" ||
+      (value.revision === 0 && value.outcomeHistoryComplete !== true))
+  ) {
+    throw new TypeError("Workbench metrics outcome coverage is invalid");
+  }
   for (const receiptDigest of value.receiptDigests)
     digest(receiptDigest, "receipt digest");
   const versionDigests = new Set();
   let projectedReceiptCount = 0;
   let priorVersionDigest = null;
+  let versionLayout = null;
   for (const version of value.versions) {
+    const outcomeVersion = exactRecord(version, OUTCOME_VERSION_KEYS);
+    const legacyVersion = exactRecord(version, LEGACY_VERSION_KEYS);
     if (
-      !exactRecord(version, VERSION_KEYS) ||
+      (!outcomeVersion && !legacyVersion) ||
       versionDigests.has(version.contentDigest)
     ) {
       throw new TypeError("Workbench metrics version is invalid");
     }
+    const layout = outcomeVersion ? "outcome" : "legacy";
+    if (versionLayout !== null && versionLayout !== layout) {
+      throw new TypeError("Workbench metrics version layouts are mixed");
+    }
+    versionLayout = layout;
     digest(version.contentDigest, "version content digest");
     if (
       priorVersionDigest !== null &&
@@ -268,6 +296,24 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
     for (const field of ["receiptCount", "completed", "failed", "blocked"]) {
       if (!safeCount(version[field])) {
         throw new TypeError(`Workbench metrics ${field} is invalid`);
+      }
+    }
+    if (outcomeVersion) {
+      for (const field of [
+        "outcomeReceiptCount",
+        "outcomeCompleted",
+        "userCorrectionCount",
+      ]) {
+        if (!safeCount(version[field])) {
+          throw new TypeError(`Workbench metrics ${field} is invalid`);
+        }
+      }
+      if (
+        version.outcomeReceiptCount > version.receiptCount ||
+        version.outcomeCompleted > version.outcomeReceiptCount ||
+        version.userCorrectionCount > version.outcomeReceiptCount
+      ) {
+        throw new Error("Workbench metrics outcome counts are inconsistent");
       }
     }
     for (const field of [
@@ -299,6 +345,12 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   ) {
     throw new Error("Workbench metrics receipt retention total is invalid");
   }
+  if (
+    (exactOutcome && versionLayout === "legacy") ||
+    (!exactOutcome && versionLayout === "outcome")
+  ) {
+    throw new TypeError("Workbench metrics outcome layout is invalid");
+  }
   const core = structuredClone(value);
   delete core.snapshotDigest;
   if (
@@ -318,9 +370,20 @@ function nextSnapshot(previous, source, receipts, retention) {
   const versions = new Map(
     previous.versions.map((entry) => [
       entry.contentDigest,
-      structuredClone(entry),
+      {
+        ...structuredClone(entry),
+        outcomeReceiptCount: entry.outcomeReceiptCount ?? 0,
+        outcomeCompleted: entry.outcomeCompleted ?? 0,
+        userCorrectionCount: entry.userCorrectionCount ?? 0,
+      },
     ]),
   );
+  const previousReceiptCount = previous.versions.reduce(
+    (total, version) => total + version.receiptCount,
+    0,
+  );
+  const outcomeHistoryComplete =
+    previous.outcomeHistoryComplete === true || previousReceiptCount === 0;
   for (const receipt of receipts) {
     if (seen.has(receipt.receiptDigest)) {
       throw new Error("Workbench metrics source replayed a receipt");
@@ -333,6 +396,9 @@ function nextSnapshot(previous, source, receipts, retention) {
         completed: 0,
         failed: 0,
         blocked: 0,
+        outcomeReceiptCount: 0,
+        outcomeCompleted: 0,
+        userCorrectionCount: 0,
         tokensInput: 0,
         tokensOutput: 0,
         costUsd: 0,
@@ -349,6 +415,20 @@ function nextSnapshot(previous, source, receipts, retention) {
         current.maxLatencyMs,
         receipt.tokenCostLatency.latencyMs,
       );
+      const hasOutcomeEvidence =
+        receipt.graderReceipts.length > 0 || receipt.userCorrectionRef !== null;
+      if (
+        hasOutcomeEvidence &&
+        ["completed", "failed"].includes(receipt.executionStatus)
+      ) {
+        current.outcomeReceiptCount += 1;
+        if (receipt.executionStatus === "completed") {
+          current.outcomeCompleted += 1;
+        }
+        if (receipt.userCorrectionRef !== null) {
+          current.userCorrectionCount += 1;
+        }
+      }
       versions.set(contentDigest, current);
     }
   }
@@ -366,6 +446,7 @@ function nextSnapshot(previous, source, receipts, retention) {
     throughAt: source.throughAt,
     retainedReceiptCount: retention.retainedReceiptCount,
     retentionRootDigest: retention.retentionRootDigest,
+    outcomeHistoryComplete,
     receiptDigests: [...seen].sort(),
     versions: [...versions.values()].sort((left, right) =>
       left.contentDigest.localeCompare(right.contentDigest),

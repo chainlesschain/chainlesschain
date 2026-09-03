@@ -1,8 +1,10 @@
 "use strict";
 
 const SCHEMA = "chainlesschain.skill-retrieval-result/v1";
-const OUTCOME_AUTHORITY_SCHEMA =
+const TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-transcript-authority/v1";
+const INDEX_OUTCOME_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-outcome-index-authority/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
 function boundedString(value, label, max = 4096) {
@@ -117,9 +119,51 @@ function validateOutcomeAuthority(value) {
   if (
     !value ||
     typeof value !== "object" ||
-    value.schema !== OUTCOME_AUTHORITY_SCHEMA ||
-    !["verified", "unavailable"].includes(value.status)
+    ![
+      TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA,
+      INDEX_OUTCOME_AUTHORITY_SCHEMA,
+    ].includes(value.schema)
   ) {
+    throw new Error("Skill retrieval returned invalid outcome authority");
+  }
+  if (value.schema === INDEX_OUTCOME_AUTHORITY_SCHEMA) {
+    if (value.status === "unavailable") {
+      if (
+        typeof value.code !== "string" ||
+        !/^CC_SKILL_OUTCOME_INDEX_[A-Z0-9_]{1,96}$/u.test(value.code) ||
+        value.antiRollbackWitness !== false
+      ) {
+        throw new Error("Skill retrieval returned invalid outcome authority");
+      }
+      return Object.freeze({ ...value });
+    }
+    const counts = [
+      value.sourceCount,
+      value.snapshotCount,
+      value.versionCount,
+      value.outcomeSampleCount,
+      value.maxSources,
+      value.maxVersions,
+    ];
+    if (
+      value.status !== "verified-indexed" ||
+      !DIGEST.test(value.sourceDigest || "") ||
+      counts.some((count) => !Number.isSafeInteger(count) || count < 0) ||
+      value.maxSources < 1 ||
+      value.maxSources > 128 ||
+      value.maxVersions < 1 ||
+      value.maxVersions > 10_000 ||
+      value.sourceCount < 1 ||
+      value.sourceCount > value.maxSources ||
+      value.snapshotCount > value.sourceCount ||
+      value.versionCount > value.maxVersions ||
+      value.antiRollbackWitness !== true
+    ) {
+      throw new Error("Skill retrieval returned invalid outcome authority");
+    }
+    return Object.freeze({ ...value });
+  }
+  if (!["verified", "unavailable"].includes(value.status)) {
     throw new Error("Skill retrieval returned invalid outcome authority");
   }
   if (value.status === "unavailable") {

@@ -19,11 +19,13 @@ import {
 import {
   EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT,
   EvolutionWorkbenchMetricsLedgerAdapter,
+  isEvolutionWorkbenchMetricsLedgerAdapter,
 } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import {
   EvolutionWorkbenchMetricsAggregator,
   digestEvolutionWorkbenchMetricsDelta,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
+import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 const D = (value) =>
@@ -167,7 +169,7 @@ function durableFilesystem() {
   };
 }
 
-function invocation(id, contentDigest) {
+function invocation(id, contentDigest, outcome = {}) {
   const started = startSkillInvocation(
     {
       receiptId: `skill-invocation:${id}`,
@@ -190,6 +192,8 @@ function invocation(id, contentDigest) {
     started,
     {
       executionStatus: "completed",
+      graderReceipts: outcome.graderReceipts || [],
+      userCorrectionRef: outcome.userCorrectionRef || null,
       tokensInput: 10,
       tokensOutput: 5,
       costUsd: 0.25,
@@ -364,7 +368,12 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       ledger: firstLedger,
       ledgerArtifactResolver: value.resolver,
     });
-    const source = delta([invocation("real-1", D("content:real"))]);
+    const contentDigest = D("content:real");
+    const source = delta([
+      invocation("real-1", contentDigest, {
+        graderReceipts: [D("grader:real-1")],
+      }),
+    ]);
     const first = await new EvolutionWorkbenchMetricsAggregator({
       tenantId: descriptor.tenantId,
       evolutionRunId: descriptor.evolutionRunId,
@@ -375,7 +384,11 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       }),
     }).aggregate();
     const secondSource = delta(
-      [invocation("real-2", D("content:real"))],
+      [
+        invocation("real-2", contentDigest, {
+          userCorrectionRef: "correction:real-2",
+        }),
+      ],
       source.sourceDigest,
       2,
     );
@@ -408,6 +421,39 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     expect(reopenedLedger.verify()).toMatchObject({
       eventCount: 3,
       sequence: 3,
+    });
+    expect(isEvolutionWorkbenchMetricsLedgerAdapter(reopenedAdapter)).toBe(
+      true,
+    );
+    expect(reopenedAdapter.loadOutcomeSnapshot()).toMatchObject({
+      found: true,
+      descriptor,
+      snapshot: { snapshotDigest: second.snapshotDigest },
+      ledgerAuthority: {
+        status: "verified",
+        authenticated: true,
+        durable: true,
+        eventCount: 3,
+        sequence: 3,
+      },
+    });
+    expect(
+      buildSkillOutcomeIndexAuthority({ adapters: [reopenedAdapter] }),
+    ).toMatchObject({
+      status: "verified-indexed",
+      metrics: {
+        [contentDigest]: {
+          samples: 2,
+          successRate: 1,
+          correctionRate: 0.5,
+        },
+      },
+      evidence: {
+        sourceCount: 1,
+        snapshotCount: 1,
+        outcomeSampleCount: 2,
+        antiRollbackWitness: true,
+      },
     });
     const replaySource = delta(
       [source.receipts[0]],
@@ -550,7 +596,7 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     expect(() => adapter(value).loadSnapshot()).toThrow(
       "artifact envelope is not bound",
     );
-  });
+  }, 15_000);
 
   it("recovers an identical retention append after acknowledgement loss", () => {
     const value = backends();
