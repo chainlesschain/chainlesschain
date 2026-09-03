@@ -229,7 +229,14 @@ export class GovernedWikiPruning {
         receipt.receiptDigest !== receiptDigest ||
         evidence == null ||
         receipt.sourceDigest !== evidence.sourceDigest ||
-        receipt.artifactRef !== evidence.artifactRef
+        receipt.artifactRef !== evidence.artifactRef ||
+        typeof receipt.rawArtifactRef !== "string" ||
+        !receipt.rawArtifactRef.startsWith(
+          `artifact://${this.descriptor.tenantId}/raw/`,
+        ) ||
+        !DIGEST.test(receipt.rawCipherDigest ?? "") ||
+        typeof receipt.keyRef !== "string" ||
+        !receipt.keyRef.startsWith(`kms://${this.descriptor.tenantId}/`)
       )
         throw new Error("privacy deletion receipt is not exactly bound");
       const dependentPatternIds = [
@@ -250,6 +257,9 @@ export class GovernedWikiPruning {
         evidenceRef: receipt.evidenceRef,
         sourceDigest: evidence.sourceDigest,
         artifactRef: evidence.artifactRef,
+        rawArtifactRef: receipt.rawArtifactRef,
+        rawCipherDigest: receipt.rawCipherDigest,
+        keyRef: receipt.keyRef,
         receiptDigest,
       });
     }

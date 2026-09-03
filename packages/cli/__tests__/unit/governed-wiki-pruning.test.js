@@ -5,6 +5,7 @@ import {
   WIKI_STATE_SCHEMA,
   digestWikiState,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
+import { EvolutionRawCryptoShred } from "../../src/lib/evolution/evolution-raw-crypto-shred.js";
 import { GovernedWikiPruning } from "../../src/lib/evolution/governed-wiki-pruning.js";
 
 const D = (value) =>
@@ -48,7 +49,7 @@ function wikiState() {
   };
 }
 
-function harness() {
+function harness(overrides = {}) {
   const state = wikiState();
   const stateDigest = digestWikiState(state);
   let control = null;
@@ -71,6 +72,9 @@ function harness() {
       evidenceRef: "evidence:private",
       sourceDigest: D("private-source"),
       artifactRef: "artifact://private",
+      rawArtifactRef: "artifact://tenant:a/raw/private",
+      rawCipherDigest: D("private-cipher"),
+      keyRef: "kms://tenant:a/private",
       receiptDigest,
     })),
     commitControl: vi.fn(async ({ state: next, expectedControlDigest }) => {
@@ -91,6 +95,7 @@ function harness() {
       tenantId: "tenant:a",
       receiptDigest,
     })),
+    ...overrides,
   };
   return {
     pruning: new GovernedWikiPruning({
@@ -150,6 +155,9 @@ describe("Governed Wiki Pruning", () => {
       evidenceRef: "evidence:private",
       sourceDigest: D("wrong"),
       artifactRef: "artifact://private",
+      rawArtifactRef: "artifact://tenant:a/raw/private",
+      rawCipherDigest: D("private-cipher"),
+      keyRef: "kms://tenant:a/private",
       receiptDigest: D("deletion"),
     });
     await expect(
@@ -174,6 +182,63 @@ describe("Governed Wiki Pruning", () => {
     expect(h.ports.applyDependencyDispositions).toHaveBeenCalledOnce();
     expect(h.ports.cryptoShred).toHaveBeenCalledOnce();
     expect(h.ports.publishRetrievalProjection).toHaveBeenCalledOnce();
+  });
+
+  it("composes with the Raw KMS shredder and retains a deletion tombstone", async () => {
+    const kms = {
+      verifyDeletionReceipt: vi.fn(async ({ receiptDigest }) => ({
+        authenticated: true,
+        tenantId: "tenant:a",
+        decision: "delete",
+        evidenceRef: "evidence:private",
+        sourceDigest: D("private-source"),
+        artifactRef: "artifact://private",
+        rawArtifactRef: "artifact://tenant:a/raw/private",
+        rawCipherDigest: D("private-cipher"),
+        keyRef: "kms://tenant:a/private",
+        receiptDigest,
+      })),
+      destroyKey: vi.fn(async (request) => ({
+        authenticated: true,
+        durable: true,
+        destroyed: true,
+        keyRef: request.keyRef,
+        requestDigest: request.requestDigest,
+        receiptDigest: D("destroyed"),
+      })),
+      confirmKeyDestroyed: vi.fn(
+        async ({ keyRef, destructionReceiptDigest }) => ({
+          authenticated: true,
+          destroyed: true,
+          keyRef,
+          destructionReceiptDigest,
+          receiptDigest: D("confirmed"),
+        }),
+      ),
+      retainTombstone: vi.fn(async ({ tombstone }) => ({
+        authenticated: true,
+        durable: true,
+        tombstoneDigest: tombstone.tombstoneDigest,
+        receiptDigest: D("retained"),
+      })),
+    };
+    const shredder = new EvolutionRawCryptoShred({
+      tenantId: "tenant:a",
+      ports: kms,
+    });
+    const h = harness({ cryptoShred: shredder.shred.bind(shredder) });
+    const plan = await h.pruning.plan({
+      expectedStateDigest: h.stateDigest,
+      effectiveAt: "2026-09-03T00:00:00.000Z",
+      deletionReceiptDigests: [D("deletion")],
+    });
+    await h.pruning.execute({ plan });
+
+    expect(kms.destroyKey).toHaveBeenCalledOnce();
+    expect(kms.retainTombstone).toHaveBeenCalledOnce();
+    expect(
+      h.ports.applyDependencyDispositions.mock.invocationCallOrder[0],
+    ).toBeLessThan(kms.destroyKey.mock.invocationCallOrder[0]);
   });
 
   it("fails closed when an operation acknowledgement is not durable", async () => {
