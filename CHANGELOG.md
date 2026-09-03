@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.17 and Session Core 0.3.9: governed Skill evolution
+### Added - cc CLI 0.166.18 and Session Core 0.3.9: governed Skill evolution
 
-> `chainlesschain` **0.166.16 -> 0.166.17** and
+> `chainlesschain` **0.166.17 -> 0.166.18** and
 > `@chainlesschain/session-core` **0.3.8 -> 0.3.9** (release candidate,
-> 2026-09-02).
+> 2026-09-03).
 
 - **Evaluated promotion**: Skill candidates must carry target-matrix evidence,
   current-revision bindings, durable promotion receipts, and revocation-aware
