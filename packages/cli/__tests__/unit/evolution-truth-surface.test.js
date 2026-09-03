@@ -93,4 +93,13 @@ describe("EVO-P0-1 production truth surface", () => {
     expect(fs.existsSync(retiredSimulator)).toBe(false);
     expect(fs.existsSync(retiredIpc)).toBe(false);
   });
+
+  it("keeps the unwired legacy learning hook shim retired", () => {
+    const retiredLearningHooks = new URL(
+      "packages/cli/src/lib/learning/learning-hooks.js",
+      repositoryRoot,
+    );
+
+    expect(fs.existsSync(retiredLearningHooks)).toBe(false);
+  });
 });

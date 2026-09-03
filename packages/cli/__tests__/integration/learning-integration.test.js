@@ -28,11 +28,6 @@ import {
   ReflectionEngine,
   _deps as reflDeps,
 } from "../../src/lib/learning/reflection-engine.js";
-import {
-  onUserPromptSubmit,
-  onPostToolUse,
-  onResponseComplete,
-} from "../../src/lib/learning/learning-hooks.js";
 
 // Mock instinct-manager and evolution-system to avoid side effects
 vi.mock("../../src/lib/instinct-manager.js", () => ({
@@ -71,35 +66,30 @@ describe("learning-loop integration", () => {
 
   // ── Hooks → TrajectoryStore → OutcomeFeedback ─────
 
-  describe("hooks → store → feedback pipeline", () => {
-    it("records a full user turn via hooks and auto-scores it", () => {
-      const ctx = {
-        trajectoryStore: store,
-        currentTrajectoryId: null,
-        enabled: true,
-        sessionId: "integration-1",
-      };
-
-      // User submits prompt
-      onUserPromptSubmit(ctx, "refactor the auth module");
-      expect(ctx.currentTrajectoryId).toBe("traj-1");
+  describe("store → feedback pipeline", () => {
+    it("records a full user turn and auto-scores it", () => {
+      const trajectoryId = store.startTrajectory(
+        "integration-1",
+        "refactor the auth module",
+      );
+      expect(trajectoryId).toBe("traj-1");
 
       // Agent uses tools
-      onPostToolUse(ctx, {
+      store.appendToolCall(trajectoryId, {
         tool: "read_file",
         args: { path: "auth.js" },
         result: "code...",
         durationMs: 15,
         status: "completed",
       });
-      onPostToolUse(ctx, {
+      store.appendToolCall(trajectoryId, {
         tool: "edit_file",
         args: { path: "auth.js" },
         result: "ok",
         durationMs: 25,
         status: "completed",
       });
-      onPostToolUse(ctx, {
+      store.appendToolCall(trajectoryId, {
         tool: "run_shell",
         args: { cmd: "npm test" },
         result: "pass",
@@ -108,7 +98,7 @@ describe("learning-loop integration", () => {
       });
 
       // Agent responds
-      const traj = onResponseComplete(ctx, {
+      const traj = store.completeTrajectory(trajectoryId, {
         finalResponse: "Auth module refactored",
         tags: ["refactor"],
       });
@@ -126,23 +116,19 @@ describe("learning-loop integration", () => {
     });
 
     it("detects user correction and downgrades score", () => {
-      const ctx = {
-        trajectoryStore: store,
-        currentTrajectoryId: null,
-        enabled: true,
-        sessionId: "integration-2",
-      };
-
       // First turn: agent does something
-      onUserPromptSubmit(ctx, "fix the login bug");
-      onPostToolUse(ctx, {
+      const trajectoryId = store.startTrajectory(
+        "integration-2",
+        "fix the login bug",
+      );
+      store.appendToolCall(trajectoryId, {
         tool: "edit_file",
         args: { path: "login.js" },
         result: "ok",
         durationMs: 10,
         status: "completed",
       });
-      onResponseComplete(ctx, { finalResponse: "Fixed" });
+      store.completeTrajectory(trajectoryId, { finalResponse: "Fixed" });
       feedback.scoreTrajectory("traj-1");
 
       const before = store.getTrajectory("traj-1");
@@ -163,29 +149,22 @@ describe("learning-loop integration", () => {
       const { recordInstinct } =
         await import("../../src/lib/instinct-manager.js");
 
-      const ctx = {
-        trajectoryStore: store,
-        currentTrajectoryId: null,
-        enabled: true,
-        sessionId: "integration-3",
-      };
-
-      onUserPromptSubmit(ctx, "deploy app");
-      onPostToolUse(ctx, {
+      const trajectoryId = store.startTrajectory("integration-3", "deploy app");
+      store.appendToolCall(trajectoryId, {
         tool: "read_file",
         args: {},
         result: "ok",
         durationMs: 5,
         status: "completed",
       });
-      onPostToolUse(ctx, {
+      store.appendToolCall(trajectoryId, {
         tool: "run_shell",
         args: {},
         result: "ok",
         durationMs: 100,
         status: "completed",
       });
-      onResponseComplete(ctx, { finalResponse: "Deployed" });
+      store.completeTrajectory(trajectoryId, { finalResponse: "Deployed" });
 
       // Score high enough for instinct propagation
       store.setOutcomeScore("traj-1", 0.9, "user");
@@ -231,15 +210,12 @@ describe("learning-loop integration", () => {
         "run_shell",
       ];
       for (let i = 0; i < 3; i++) {
-        const ctx = {
-          trajectoryStore: store,
-          currentTrajectoryId: null,
-          enabled: true,
-          sessionId: `synth-${i}`,
-        };
-        onUserPromptSubmit(ctx, "refactor code");
+        const trajectoryId = store.startTrajectory(
+          `synth-${i}`,
+          "refactor code",
+        );
         for (const t of tools) {
-          onPostToolUse(ctx, {
+          store.appendToolCall(trajectoryId, {
             tool: t,
             args: {},
             result: "ok",
@@ -247,8 +223,8 @@ describe("learning-loop integration", () => {
             status: "completed",
           });
         }
-        onResponseComplete(ctx, { finalResponse: "done" });
-        feedback.scoreTrajectory(ctx.currentTrajectoryId || `traj-${i + 1}`);
+        store.completeTrajectory(trajectoryId, { finalResponse: "done" });
+        feedback.scoreTrajectory(trajectoryId);
 
         // Bump score to eligible range
         store.setOutcomeScore(`traj-${i + 1}`, 0.85, "auto");
@@ -487,52 +463,45 @@ Tests pass
 
   describe("multi-turn conversation tracking", () => {
     it("tracks multiple turns independently within a session", () => {
-      const ctx = {
-        trajectoryStore: store,
-        currentTrajectoryId: null,
-        enabled: true,
-        sessionId: "multi-turn",
-      };
-
       // Turn 1
-      onUserPromptSubmit(ctx, "read the config");
-      onPostToolUse(ctx, {
+      const firstId = store.startTrajectory("multi-turn", "read the config");
+      store.appendToolCall(firstId, {
         tool: "read_file",
         args: { path: "config.json" },
         result: "{}",
         durationMs: 5,
         status: "completed",
       });
-      onResponseComplete(ctx, { finalResponse: "Config loaded" });
+      store.completeTrajectory(firstId, { finalResponse: "Config loaded" });
 
       // Turn 2
-      onUserPromptSubmit(ctx, "update the config");
-      onPostToolUse(ctx, {
+      const secondId = store.startTrajectory("multi-turn", "update the config");
+      store.appendToolCall(secondId, {
         tool: "read_file",
         args: { path: "config.json" },
         result: "{}",
         durationMs: 5,
         status: "completed",
       });
-      onPostToolUse(ctx, {
+      store.appendToolCall(secondId, {
         tool: "edit_file",
         args: { path: "config.json" },
         result: "ok",
         durationMs: 10,
         status: "completed",
       });
-      onResponseComplete(ctx, { finalResponse: "Config updated" });
+      store.completeTrajectory(secondId, { finalResponse: "Config updated" });
 
       // Turn 3 — with error
-      onUserPromptSubmit(ctx, "deploy");
-      onPostToolUse(ctx, {
+      const thirdId = store.startTrajectory("multi-turn", "deploy");
+      store.appendToolCall(thirdId, {
         tool: "run_shell",
         args: { cmd: "deploy" },
         result: "fail",
         durationMs: 5000,
         status: "error",
       });
-      onResponseComplete(ctx, { finalResponse: "Deploy failed" });
+      store.completeTrajectory(thirdId, { finalResponse: "Deploy failed" });
 
       // Verify 3 independent trajectories
       const trajs = store.listBySession("multi-turn");

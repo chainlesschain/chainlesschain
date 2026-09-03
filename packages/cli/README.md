@@ -1243,7 +1243,7 @@ chainlesschain learning cleanup --days 30              # Custom retention period
 chainlesschain learning cleanup --json                 # JSON output
 ```
 
-**Core modules** (7 files in `src/lib/learning/`):
+**Core modules** (6 active files in `src/lib/learning/`):
 
 | Module               | Description                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------ |
@@ -1252,8 +1252,13 @@ chainlesschain learning cleanup --json                 # JSON output
 | **SkillSynthesizer** | Extracts reusable patterns from complex successful trajectories into SKILL.md        |
 | **SkillImprover**    | Three improvement triggers: error repair, user correction, better trajectory compare |
 | **ReflectionEngine** | Periodic self-review with tool stats, score trends, error-prone tool identification  |
-| **LearningHooks**    | REPL lifecycle integration — captures prompts, tool calls, responses, session events |
 | **LearningTables**   | SQLite schema creation for trajectories, tags, and improvement logs                  |
+
+The former `LearningHooks` shim was never wired into the REPL or headless
+runtimes and bypassed the authenticated evidence path, so it has been retired.
+Automatic Agent evidence is accepted only through a host-owned evolution
+ingress; the learning tables remain an explicit query, maintenance, and
+candidate-input surface.
 
 ---
 

@@ -23,18 +23,6 @@ function run(args, options = {}) {
   });
 }
 
-function tryRun(args) {
-  try {
-    return { stdout: run(args), exitCode: 0 };
-  } catch (err) {
-    return {
-      stdout: err.stdout || "",
-      stderr: err.stderr || "",
-      exitCode: err.status,
-    };
-  }
-}
-
 describe("E2E: learning commands", () => {
   // ── help ────────────────────────────────────────
 
@@ -112,11 +100,10 @@ describe("E2E: learning commands", () => {
       expect(src).toContain("import { registerLearningCommand }");
     });
 
-    it("all 7 learning library modules exist", () => {
+    it("all 6 active learning library modules exist", () => {
       const modules = [
         "learning-tables.js",
         "trajectory-store.js",
-        "learning-hooks.js",
         "outcome-feedback.js",
         "skill-synthesizer.js",
         "skill-improver.js",
@@ -187,17 +174,6 @@ describe("E2E: learning commands", () => {
       expect(src).toContain("export function computeToolStats");
       expect(src).toContain("export function computeScoreTrend");
       expect(src).toContain("export function findErrorProneTools");
-    });
-
-    it("learning-hooks.js exports hook functions", () => {
-      const src = readFileSync(
-        join(cliRoot, "src", "lib", "learning", "learning-hooks.js"),
-        "utf-8",
-      );
-      expect(src).toContain("export function onUserPromptSubmit");
-      expect(src).toContain("export function onPostToolUse");
-      expect(src).toContain("export function onResponseComplete");
-      expect(src).toContain("export function createLearningContext");
     });
 
     it("learning-tables.js creates 3 database tables", () => {
