@@ -610,6 +610,7 @@ describe("EvolutionArtifactPorts", () => {
       "governed-knowledge-sync-record",
       "governed-knowledge-merge-operation",
       "governed-knowledge-dependency-operation",
+      "governed-knowledge-trust-record",
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",

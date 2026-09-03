@@ -16,6 +16,7 @@ export const GOVERNED_KNOWLEDGE_AUTHORIZATION_DECISION_SCHEMA =
 
 const RBAC_ADAPTERS = new WeakSet();
 const APPROVAL_ISSUERS = new WeakSet();
+const REVIEWER_REGISTRIES = new WeakSet();
 const AUTHORITIES = new WeakSet();
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -133,7 +134,7 @@ export function digestGovernedKnowledgeApprovalReceipt(value) {
   return hash(GOVERNED_KNOWLEDGE_APPROVAL_RECEIPT_SCHEMA, receiptCore(value));
 }
 
-function signatureMessage(receiptDigest) {
+export function governedKnowledgeApprovalSignatureMessage(receiptDigest) {
   if (!DIGEST.test(receiptDigest ?? "")) {
     throw new TypeError("approval receiptDigest is invalid");
   }
@@ -218,7 +219,7 @@ export function createGovernedKnowledgeEd25519ApprovalIssuer({
           keyId,
           value: sign(
             null,
-            signatureMessage(receiptDigest),
+            governedKnowledgeApprovalSignatureMessage(receiptDigest),
             privateKey,
           ).toString("base64url"),
         }),
@@ -349,14 +350,104 @@ function normalizeReviewers(reviewers, tenantId) {
   return result;
 }
 
-function validateApproval(receipt, knowledge, tenantId, reviewers, now) {
+export function createGovernedKnowledgeReviewerRegistry({
+  tenantId: tenantIdInput,
+  reviewerIdentities = null,
+  resolve = null,
+} = {}) {
+  const tenantId = identifier(tenantIdInput, "tenantId");
+  let lookup;
+  if (reviewerIdentities !== null && resolve !== null) {
+    throw new TypeError(
+      "reviewer registry accepts identities or resolve, not both",
+    );
+  }
+  if (reviewerIdentities !== null) {
+    const reviewers = normalizeReviewers(reviewerIdentities, tenantId);
+    lookup = async ({ reviewerId, keyId }) => {
+      const reviewer = reviewers.get(reviewerId);
+      return reviewer?.keyId === keyId
+        ? {
+            tenantId,
+            reviewerId,
+            keyId,
+            publicKey: reviewer.publicKey,
+            status: "active",
+          }
+        : null;
+    };
+  } else if (typeof resolve === "function" && !utilTypes.isProxy(resolve)) {
+    lookup = resolve;
+  } else {
+    throw new TypeError(
+      "reviewer registry identities or resolver are required",
+    );
+  }
+  const registry = Object.freeze({
+    tenantId,
+    async resolve({ tenantId: requestedTenantId, reviewerId, keyId } = {}) {
+      if (
+        requestedTenantId !== tenantId ||
+        !ID.test(reviewerId ?? "") ||
+        !ID.test(keyId ?? "")
+      ) {
+        return null;
+      }
+      const resolved = await lookup({ tenantId, reviewerId, keyId });
+      if (resolved === null) return null;
+      if (
+        !resolved ||
+        typeof resolved !== "object" ||
+        resolved.tenantId !== tenantId ||
+        resolved.reviewerId !== reviewerId ||
+        resolved.keyId !== keyId ||
+        resolved.status !== "active"
+      ) {
+        throw new Error("reviewer registry returned an invalid identity");
+      }
+      const publicKey = keyObject(
+        resolved.publicKey,
+        "public",
+        "reviewer registry publicKey",
+      );
+      if (publicKeyId(publicKey) !== keyId) {
+        throw new Error("reviewer registry keyId does not bind its public key");
+      }
+      return Object.freeze({
+        tenantId,
+        reviewerId,
+        keyId,
+        publicKey,
+        status: "active",
+      });
+    },
+  });
+  REVIEWER_REGISTRIES.add(registry);
+  return registry;
+}
+
+export function isGovernedKnowledgeReviewerRegistry(value) {
+  return REVIEWER_REGISTRIES.has(value);
+}
+
+async function validateApproval(
+  receipt,
+  knowledge,
+  tenantId,
+  reviewerRegistry,
+  now,
+) {
   exact(receipt, RECEIPT_KEYS, "knowledge approval receipt");
   const attestation = exact(
     receipt.attestation,
     ATTESTATION_KEYS,
     "knowledge approval attestation",
   );
-  const reviewer = reviewers.get(receipt.reviewerId);
+  const reviewer = await reviewerRegistry.resolve({
+    tenantId,
+    reviewerId: receipt.reviewerId,
+    keyId: attestation.keyId,
+  });
   const approvedAt = Date.parse(receipt.approvedAt);
   const expiresAt = Date.parse(receipt.expiresAt);
   if (
@@ -391,7 +482,7 @@ function validateApproval(receipt, knowledge, tenantId, reviewers, now) {
     signature.toString("base64url") !== attestation.value ||
     !verify(
       null,
-      signatureMessage(receipt.receiptDigest),
+      governedKnowledgeApprovalSignatureMessage(receipt.receiptDigest),
       reviewer.publicKey,
       signature,
     )
@@ -406,7 +497,8 @@ export function createGovernedKnowledgeRbacApprovalAuthority({
   principalId: principalIdInput,
   rbac,
   approvalReader,
-  reviewerIdentities,
+  reviewerIdentities = null,
+  reviewerRegistry = null,
   now = Date.now,
 } = {}) {
   const tenantId = identifier(tenantIdInput, "tenantId");
@@ -421,7 +513,20 @@ export function createGovernedKnowledgeRbacApprovalAuthority({
   }
   const check = capture(rbac, "check", "rbac");
   const readApproval = capture(approvalReader, "read", "approvalReader");
-  const reviewers = normalizeReviewers(reviewerIdentities, tenantId);
+  if (reviewerIdentities !== null && reviewerRegistry !== null) {
+    throw new TypeError(
+      "approval authority accepts identities or registry, not both",
+    );
+  }
+  const registry =
+    reviewerRegistry ??
+    createGovernedKnowledgeReviewerRegistry({
+      tenantId,
+      reviewerIdentities,
+    });
+  if (!REVIEWER_REGISTRIES.has(registry) || registry.tenantId !== tenantId) {
+    throw new TypeError("a same-tenant branded reviewer registry is required");
+  }
   const authority = Object.freeze({
     tenantId,
     principalId,
@@ -466,7 +571,13 @@ export function createGovernedKnowledgeRbacApprovalAuthority({
         if (!Number.isFinite(currentTime)) {
           throw new TypeError("authorization authority clock is invalid");
         }
-        validateApproval(receipt, knowledge, tenantId, reviewers, currentTime);
+        await validateApproval(
+          receipt,
+          knowledge,
+          tenantId,
+          registry,
+          currentTime,
+        );
         approvalReceiptDigest = receipt.receiptDigest;
       }
       const authorizedAtMs = Number(now());
