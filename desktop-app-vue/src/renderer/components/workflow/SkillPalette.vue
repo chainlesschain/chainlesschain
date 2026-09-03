@@ -2,13 +2,25 @@
   <div class="skill-palette">
     <div class="palette-header">
       <h3>节点面板</h3>
+      <a-input-search
+        v-model:value="skillQuery"
+        size="small"
+        allow-clear
+        placeholder="按名称、描述或标签检索技能"
+        :loading="routingSkills"
+        @search="routeSkills"
+      />
+      <a-alert
+        v-if="routingConflict"
+        type="warning"
+        show-icon
+        :message="routingConflict"
+      />
     </div>
 
     <!-- Default node types section -->
     <div class="palette-section">
-      <div class="section-title">
-        基础节点
-      </div>
+      <div class="section-title">基础节点</div>
       <div class="palette-list">
         <div
           v-for="item in defaultNodes"
@@ -21,10 +33,7 @@
           <div class="palette-item__label">
             {{ item.label }}
           </div>
-          <div
-            v-if="item.description"
-            class="palette-item__desc"
-          >
+          <div v-if="item.description" class="palette-item__desc">
             {{ item.description }}
           </div>
         </div>
@@ -32,59 +41,53 @@
     </div>
 
     <!-- Live skills section -->
-    <div
-      v-if="skillGroups.length > 0"
-      class="palette-section"
-    >
-      <div class="section-title">
-        技能节点
-      </div>
+    <div v-if="skillGroups.length > 0" class="palette-section">
+      <div class="section-title">技能节点</div>
       <div
         v-for="group in skillGroups"
         :key="group.category"
         class="skill-group"
       >
-        <div
-          class="group-header"
-          @click="toggleGroup(group.category)"
-        >
-          <span class="group-arrow">{{ expandedGroups[group.category] ? '&#9660;' : '&#9654;' }}</span>
+        <div class="group-header" @click="toggleGroup(group.category)">
+          <span class="group-arrow">{{
+            expandedGroups[group.category] ? "&#9660;" : "&#9654;"
+          }}</span>
           <span class="group-name">{{ group.category }}</span>
           <a-tag size="small">
             {{ group.skills.length }}
           </a-tag>
         </div>
-        <div
-          v-if="expandedGroups[group.category]"
-          class="group-skills"
-        >
+        <div v-if="expandedGroups[group.category]" class="group-skills">
           <div
             v-for="skill in group.skills"
             :key="skill.skillId"
             class="palette-item palette-item--skill"
             :style="{ borderLeftColor: '#1890ff' }"
             draggable="true"
-            @dragstart="onDragStart($event, {
-              type: 'skill',
-              label: skill.name || skill.skillId,
-              data: { skillId: skill.skillId, label: skill.name || skill.skillId },
-            })"
+            @dragstart="
+              onDragStart($event, {
+                type: 'skill',
+                label: skill.name || skill.skillId,
+                data: {
+                  skillId: skill.skillId,
+                  label: skill.name || skill.skillId,
+                },
+              })
+            "
           >
             <div class="palette-item__label">
               {{ skill.name || skill.skillId }}
             </div>
             <div class="palette-item__desc">
-              {{ skill.skillId }}
+              {{ skill.version ? `v${skill.version} · ` : ""
+              }}{{ skill.reason || skill.skillId }}
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div
-      v-if="loadingSkills"
-      class="palette-loading"
-    >
+    <div v-if="loadingSkills" class="palette-loading">
       <a-spin size="small" />
       <span>加载技能...</span>
     </div>
@@ -142,11 +145,17 @@ const colorMap = {
 // Live skills
 const liveSkills = ref([]);
 const loadingSkills = ref(false);
+const routingSkills = ref(false);
+const skillQuery = ref("");
+const routingConflict = ref("");
 const expandedGroups = reactive({});
 
 const skillGroups = computed(() => {
-  const allSkills = liveSkills.value.length > 0 ? liveSkills.value : props.skills;
-  if (!allSkills || allSkills.length === 0) {return [];}
+  const allSkills =
+    liveSkills.value.length > 0 ? liveSkills.value : props.skills;
+  if (!allSkills || allSkills.length === 0) {
+    return [];
+  }
 
   const groups = {};
   for (const skill of allSkills) {
@@ -165,7 +174,46 @@ function toggleGroup(category) {
   expandedGroups[category] = !expandedGroups[category];
 }
 
-onMounted(async () => {
+async function routeSkills() {
+  const query = skillQuery.value.trim();
+  routingConflict.value = "";
+  if (!query) {
+    await loadSkills();
+    return;
+  }
+  routingSkills.value = true;
+  try {
+    const response = await window.electronAPI?.invoke("skills:route", query, {
+      topK: 20,
+    });
+    if (response?.success !== true) {
+      throw new Error(response?.error || "技能检索失败");
+    }
+    const result = response.result;
+    const candidates = (result?.candidates || []).map((candidate) => ({
+      skillId: candidate.id,
+      name: candidate.displayName,
+      category: candidate.category || "general",
+      version: candidate.version,
+      digest: candidate.digest,
+      reason: candidate.reason,
+    }));
+    if (result?.selected === null && result?.conflicts?.length > 0) {
+      routingConflict.value =
+        "候选存在版本或得分冲突，请缩小检索范围后再选择。";
+      liveSkills.value = [];
+    } else {
+      liveSkills.value = candidates;
+    }
+  } catch (error) {
+    routingConflict.value = error?.message || String(error);
+    liveSkills.value = [];
+  } finally {
+    routingSkills.value = false;
+  }
+}
+
+async function loadSkills() {
   loadingSkills.value = true;
   try {
     const result = await window.electronAPI?.invoke("skills:list-invocable");
@@ -176,17 +224,20 @@ onMounted(async () => {
         category: s.category || "general",
         description: s.description,
       }));
-      // Auto-expand first group
       if (liveSkills.value.length > 0) {
         const firstCat = liveSkills.value[0]?.category || "general";
         expandedGroups[firstCat] = true;
       }
     }
-  } catch (e) {
-    console.error("Failed to load invocable skills:", e);
+  } catch (error) {
+    console.error("Failed to load invocable skills:", error);
   } finally {
     loadingSkills.value = false;
   }
+}
+
+onMounted(async () => {
+  await loadSkills();
 });
 
 const onDragStart = (event, item) => {
@@ -211,6 +262,11 @@ const onDragStart = (event, item) => {
   font-size: 15px;
   font-weight: 600;
   color: #262626;
+}
+
+.palette-header :deep(.ant-input-search),
+.palette-header :deep(.ant-alert) {
+  margin-top: 8px;
 }
 
 .palette-section {

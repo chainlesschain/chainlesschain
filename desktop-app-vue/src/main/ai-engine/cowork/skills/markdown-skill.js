@@ -326,6 +326,7 @@ class MarkdownSkill extends BaseSkill {
             capabilityManifestValid:
               this._executionSecurity.capabilityManifestValid === true,
             signatureReason: this._executionSecurity.signatureReason || null,
+            contentDigest: this._executionSecurity.contentDigest || null,
           }
         : null,
     };

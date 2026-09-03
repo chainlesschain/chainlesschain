@@ -1003,6 +1003,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "skills:get-top-skills",
   "skills:list",
   "skills:list-invocable",
+  "skills:route",
   "sla:check-compliance",
   "sla:create-contract",
   "sla:get-dashboard",

@@ -35,6 +35,7 @@ const {
   registerBundledSkillCredentialIPC,
   unregisterBundledSkillCredentialIPC,
 } = require("./bundled-skill-credential-ipc");
+const { routeDesktopSkills } = require("./skill-retrieval-adapter");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -284,6 +285,25 @@ function registerSkillsIPC(options = {}) {
         success: false,
         error: error.message,
       };
+    }
+  });
+
+  ipcMain.handle("skills:route", async (_event, query, filters = {}) => {
+    try {
+      const skills = registry
+        .getUserInvocableSkills()
+        .filter((skill) => skill.config?.enabled !== false);
+      const result = await routeDesktopSkills({
+        skills,
+        query,
+        filters,
+        hostTarget: options.skillRoutingTarget || { os: process.platform },
+        loadRouter: options.loadSkillRouter,
+      });
+      return { success: true, result };
+    } catch (error) {
+      logger.error("[SkillsIPC] Route error:", error);
+      return { success: false, error: error.message };
     }
   });
 
@@ -756,6 +776,7 @@ function unregisterSkillsIPC() {
     "skills:set-workspace",
     "skills:list",
     "skills:list-invocable",
+    "skills:route",
     "skills:get",
     "skills:get-body",
     "skills:execute",
