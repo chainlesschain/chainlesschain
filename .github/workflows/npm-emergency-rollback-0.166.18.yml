@@ -1,0 +1,46 @@
+name: Emergency rollback CLI 0.166.18
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type rollback-0.166.18 to deprecate 0.166.18 and restore latest to 0.166.17"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exact rollback confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = "rollback-0.166.18"
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Deprecate broken release and restore last known good latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm view chainlesschain@0.166.17 version | grep -Fx '0.166.17'
+          npm view chainlesschain@0.166.18 version | grep -Fx '0.166.18'
+          npm deprecate chainlesschain@0.166.18 \
+            "Broken public dependency graph: cc/cc agent startup may fail. Use 0.166.17 until 0.166.19 is published."
+          npm dist-tag add chainlesschain@0.166.17 latest
+
+      - name: Verify public rollback state
+        run: |
+          set -euo pipefail
+          test "$(npm view chainlesschain dist-tags.latest)" = "0.166.17"
+          test -n "$(npm view chainlesschain@0.166.18 deprecated)"
+          echo "chainlesschain@0.166.18 is deprecated; latest is 0.166.17"
