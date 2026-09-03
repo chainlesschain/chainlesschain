@@ -72,6 +72,22 @@ class FakeClient extends EventEmitter {
   async memoryReconcile(params) {
     return { status: "purged", ...params };
   }
+
+  async evolutionWorkbenchList(params) {
+    return { operation: "workbench-list", ...params };
+  }
+
+  async evolutionWorkbenchCompare(params) {
+    return { operation: "workbench-compare", ...params };
+  }
+
+  async evolutionWorkbenchReview(params) {
+    return { operation: "workbench-review", ...params };
+  }
+
+  async evolutionWorkbenchRollback(params) {
+    return { operation: "workbench-rollback", ...params };
+  }
 }
 
 test("VS Code pilot uses the shared fixed-capability client lazily", async () => {
@@ -118,6 +134,23 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
   assert.equal(
     (await pilot.contextPlan({ memoryRevision: 2 })).memoryRevision,
     2,
+  );
+  assert.deepEqual(await pilot.evolutionWorkbenchList({ status: "pending" }), {
+    operation: "workbench-list",
+    status: "pending",
+  });
+  assert.deepEqual(
+    await pilot.evolutionWorkbenchRollback({
+      fromPacketDigest: "from",
+      toPacketDigest: "to",
+      reason: "regression",
+    }),
+    {
+      operation: "workbench-rollback",
+      fromPacketDigest: "from",
+      toPacketDigest: "to",
+      reason: "regression",
+    },
   );
   assert.equal(
     (await pilot.contextCompact({ operationId: "compact-1" })).status,

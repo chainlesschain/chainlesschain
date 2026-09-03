@@ -3649,7 +3649,11 @@
                     "graph/status",
                     "graph/history",
                     "graph/cancel",
-                    "graph/reconcile"
+                    "graph/reconcile",
+                    "evolution/workbench/list",
+                    "evolution/workbench/compare",
+                    "evolution/workbench/review",
+                    "evolution/workbench/rollback"
                   ]
                 }
               }

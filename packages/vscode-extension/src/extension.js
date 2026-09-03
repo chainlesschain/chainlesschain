@@ -945,6 +945,17 @@ async function activate(context) {
     vscode.commands.registerCommand("chainlesschain.sessions.workbench", () => {
       openSessionsWorkbenchPanel();
     }),
+    vscode.commands.registerCommand(
+      "chainlesschain.evolution.workbench",
+      async () => {
+        const {
+          openEvolutionWorkbench,
+        } = require("./ui/evolution-workbench-view.js");
+        return openEvolutionWorkbench(vscode, {
+          getPilot: ensureAppServerPilot,
+        });
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.automation.center", () =>
       openAutomationCenter(vscode),
     ),

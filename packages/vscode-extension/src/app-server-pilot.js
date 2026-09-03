@@ -237,6 +237,22 @@ class IdeAppServerPilot extends EventEmitter {
   memoryReconcile(params) {
     return this._getClient().memoryReconcile(params);
   }
+
+  evolutionWorkbenchList(params = {}) {
+    return this._getClient().evolutionWorkbenchList(params);
+  }
+
+  evolutionWorkbenchCompare(params) {
+    return this._getClient().evolutionWorkbenchCompare(params);
+  }
+
+  evolutionWorkbenchReview(params) {
+    return this._getClient().evolutionWorkbenchReview(params);
+  }
+
+  evolutionWorkbenchRollback(params) {
+    return this._getClient().evolutionWorkbenchRollback(params);
+  }
 }
 
 module.exports = { IdeAppServerPilot };

@@ -49,6 +49,12 @@ describe("AppServerPilotClient", () => {
       method: "memory/reconcile",
       params: { operationId: "deletion-1" },
     });
+    await expect(
+      pilot.evolutionWorkbenchList({ status: "pending" }),
+    ).resolves.toEqual({
+      method: "evolution/workbench/list",
+      params: { status: "pending" },
+    });
 
     expect(transport.start).toHaveBeenCalledTimes(1);
     expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
@@ -56,6 +62,7 @@ describe("AppServerPilotClient", () => {
       "turn/start",
       "graph/history",
       "memory/reconcile",
+      "evolution/workbench/list",
     ]);
     expect("request" in pilot).toBe(false);
     expect(pilot.status).toMatchObject({
@@ -77,6 +84,20 @@ describe("AppServerPilotClient", () => {
       pilot.memoryDecide({} as never),
       pilot.memoryDelete({} as never),
       pilot.memoryReconcile({ operationId: "operation-1" }),
+      pilot.evolutionWorkbenchCompare({
+        leftPacketDigest: "left",
+        rightPacketDigest: "right",
+      }),
+      pilot.evolutionWorkbenchReview({
+        packetDigests: ["packet"],
+        decision: "approve",
+        reason: "reviewed",
+      }),
+      pilot.evolutionWorkbenchRollback({
+        fromPacketDigest: "from",
+        toPacketDigest: "to",
+        reason: "rollback",
+      }),
     ];
     await Promise.all(calls);
     expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
@@ -87,6 +108,9 @@ describe("AppServerPilotClient", () => {
       "memory/decide",
       "memory/delete",
       "memory/reconcile",
+      "evolution/workbench/compare",
+      "evolution/workbench/review",
+      "evolution/workbench/rollback",
     ]);
     expect("request" in pilot).toBe(false);
   });

@@ -116,6 +116,18 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     graphReconcile(params) {
         return this.call("graph/reconcile", params);
     }
+    evolutionWorkbenchList(params = {}) {
+        return this.call("evolution/workbench/list", params);
+    }
+    evolutionWorkbenchCompare(params) {
+        return this.call("evolution/workbench/compare", params);
+    }
+    evolutionWorkbenchReview(params) {
+        return this.call("evolution/workbench/review", params);
+    }
+    evolutionWorkbenchRollback(params) {
+        return this.call("evolution/workbench/rollback", params);
+    }
     contextPlan(params) {
         return this.call("context/plan", params);
     }

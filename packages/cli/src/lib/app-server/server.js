@@ -9,6 +9,7 @@ import {
 import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
+import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
 import {
   contextPlanCreatedNotification,
   memoryDeletionNotification,
@@ -145,6 +146,7 @@ export class CcAppServer {
     transport = "stdio",
     graphRuntime = null,
     evolutionCompositionFactory = null,
+    evolutionWorkbenchHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
     if (typeof send !== "function") {
@@ -166,6 +168,15 @@ export class CcAppServer {
       throw new TypeError("contextMemoryRuntimeFactory must be a function");
     }
     this.contextMemoryRuntimeFactory = contextMemoryRuntimeFactory;
+    if (
+      evolutionWorkbenchHost !== null &&
+      !isEvolutionWorkbenchCliHost(evolutionWorkbenchHost)
+    ) {
+      throw new TypeError(
+        "CcAppServer evolutionWorkbenchHost must be a branded Workbench host",
+      );
+    }
+    this.evolutionWorkbenchHost = evolutionWorkbenchHost;
     if (graphRuntime && evolutionCompositionFactory) {
       throw new TypeError(
         "graphRuntime and evolutionCompositionFactory cannot both be provided",
@@ -353,6 +364,14 @@ export class CcAppServer {
       "memory/decide": () => this._memoryDecide(message.params),
       "memory/delete": () => this._memoryDelete(message.params),
       "memory/reconcile": () => this._memoryReconcile(message.params),
+      "evolution/workbench/list": () =>
+        this._evolutionWorkbenchList(message.params),
+      "evolution/workbench/compare": () =>
+        this._evolutionWorkbenchCompare(message.params),
+      "evolution/workbench/review": () =>
+        this._evolutionWorkbenchReview(message.params),
+      "evolution/workbench/rollback": () =>
+        this._evolutionWorkbenchRollback(message.params),
     };
     const handler = handlers[method];
     if (!handler) {
@@ -400,6 +419,13 @@ export class CcAppServer {
       websocket: { stability: "experimental" },
       limits: this.requestQueue.snapshot(),
       graphRuntime: this.graphRuntime.runtimeClaims(),
+      evolutionWorkbench: {
+        available: this.evolutionWorkbenchHost !== null,
+        methods:
+          this.evolutionWorkbenchHost === null
+            ? []
+            : ["list", "compare", "review", "rollback"],
+      },
       schema: {
         id: APP_SERVER_SCHEMA.$id,
         version: APP_SERVER_PROTOCOL_VERSION,
@@ -413,6 +439,61 @@ export class CcAppServer {
       throw new Error("Context/Memory runtime factory returned no kernel");
     }
     return runtime;
+  }
+
+  _requireEvolutionWorkbenchHost() {
+    if (this.evolutionWorkbenchHost === null) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.NOT_FOUND,
+        "Evolution Workbench is not configured for this App Server",
+      );
+    }
+    return this.evolutionWorkbenchHost;
+  }
+
+  _evolutionWorkbenchList(rawParams = {}) {
+    const params = requireObject(rawParams);
+    return this._requireEvolutionWorkbenchHost().list({
+      query: typeof params.query === "string" ? params.query : "",
+      status: params.status ?? null,
+      offset: params.offset ?? 0,
+      limit: params.limit ?? 100,
+    });
+  }
+
+  _evolutionWorkbenchCompare(rawParams) {
+    const params = requireObject(rawParams);
+    return this._requireEvolutionWorkbenchHost().compare(
+      requiredString(params.leftPacketDigest, "leftPacketDigest"),
+      requiredString(params.rightPacketDigest, "rightPacketDigest"),
+    );
+  }
+
+  _evolutionWorkbenchReview(rawParams) {
+    const params = requireObject(rawParams);
+    if (!Array.isArray(params.packetDigests)) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.INVALID_PARAMS,
+        "packetDigests must be an array",
+      );
+    }
+    return this._requireEvolutionWorkbenchHost().review({
+      packetDigests: params.packetDigests,
+      decision: requiredString(params.decision, "decision"),
+      reason: requiredString(params.reason, "reason"),
+    });
+  }
+
+  _evolutionWorkbenchRollback(rawParams) {
+    const params = requireObject(rawParams);
+    return this._requireEvolutionWorkbenchHost().rollback({
+      fromPacketDigest: requiredString(
+        params.fromPacketDigest,
+        "fromPacketDigest",
+      ),
+      toPacketDigest: requiredString(params.toPacketDigest, "toPacketDigest"),
+      reason: requiredString(params.reason, "reason"),
+    });
   }
 
   async _contextPlan(rawParams) {

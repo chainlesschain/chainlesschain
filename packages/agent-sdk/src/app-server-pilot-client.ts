@@ -184,6 +184,22 @@ export class AppServerPilotClient extends EventEmitter {
     return this.call("graph/reconcile", params);
   }
 
+  evolutionWorkbenchList(params: JsonValue = {}): Promise<unknown> {
+    return this.call("evolution/workbench/list", params);
+  }
+
+  evolutionWorkbenchCompare(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/workbench/compare", params);
+  }
+
+  evolutionWorkbenchReview(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/workbench/review", params);
+  }
+
+  evolutionWorkbenchRollback(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/workbench/rollback", params);
+  }
+
   contextPlan(params: ContextPlanRequest): Promise<ContextPlan> {
     return this.call("context/plan", params) as Promise<ContextPlan>;
   }
@@ -191,7 +207,10 @@ export class AppServerPilotClient extends EventEmitter {
   contextCompact(
     params: ContextCompactRequest,
   ): Promise<ContextCompactionReceipt> {
-    return this.call("context/compact", params) as Promise<ContextCompactionReceipt>;
+    return this.call(
+      "context/compact",
+      params,
+    ) as Promise<ContextCompactionReceipt>;
   }
 
   memoryRecall(params: MemoryRecallRequest): Promise<MemoryRecallResult> {
@@ -199,7 +218,10 @@ export class AppServerPilotClient extends EventEmitter {
   }
 
   memoryPropose(params: MemoryProposalRequest): Promise<MemoryMutationReceipt> {
-    return this.call("memory/propose", params) as Promise<MemoryMutationReceipt>;
+    return this.call(
+      "memory/propose",
+      params,
+    ) as Promise<MemoryMutationReceipt>;
   }
 
   memoryDecide(params: MemoryDecisionRequest): Promise<MemoryMutationReceipt> {

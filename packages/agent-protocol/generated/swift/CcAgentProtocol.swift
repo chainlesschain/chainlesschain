@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:942ebae3e18f20d7307d04c32108ea4b1989351dbae1e1340e7c0b1fe0dc5063"
+public let ccAgentProtocolSchemaDigest = "sha256:f8c228b0aab45c63298938787e52d355268b986329356fe8a35f338b664657d1"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)

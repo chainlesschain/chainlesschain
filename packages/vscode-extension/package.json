@@ -109,6 +109,11 @@
         "icon": "$(list-tree)"
       },
       {
+        "command": "chainlesschain.evolution.workbench",
+        "title": "%cmd.evolution.workbench.title%",
+        "icon": "$(history)"
+      },
+      {
         "command": "chainlesschain.automation.center",
         "title": "%cmd.automation.center.title%",
         "icon": "$(run-all)"

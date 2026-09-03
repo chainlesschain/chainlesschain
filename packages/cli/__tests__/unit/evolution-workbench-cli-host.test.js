@@ -4,6 +4,9 @@ import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
 import { registerEvolutionWorkbenchCommands } from "../../src/commands/evolution-workbench.js";
+import { CcAppServer } from "../../src/lib/app-server/server.js";
+import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { APP_SERVER_PROTOCOL_VERSION } from "../../src/lib/app-server/protocol.js";
 import { createEvolutionWorkbenchCliHost } from "../../src/lib/evolution/evolution-workbench-cli-host.js";
 import { EVOLUTION_WORKBENCH_PROJECTION_SCHEMA } from "../../src/lib/evolution/evolution-workbench-projection.js";
 
@@ -246,5 +249,49 @@ describe("Evolution Workbench CLI host", () => {
     ]);
     expect(JSON.parse(printed.mock.calls[0][0]).candidates).toHaveLength(1);
     printed.mockRestore();
+  });
+
+  it("routes fixed App Server methods through the same branded host", async () => {
+    const h = fixture();
+    const sent = [];
+    const server = new CcAppServer({
+      send: async (message) => sent.push(message),
+      store: new MemoryRolloutStore(),
+      evolutionWorkbenchHost: h.host,
+    });
+    try {
+      await server.receive({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: APP_SERVER_PROTOCOL_VERSION,
+          minimumProtocolVersion: 1,
+          client: { name: "workbench-test", version: "1" },
+          features: [],
+        },
+      });
+      const listed = await server.receive({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "evolution/workbench/list",
+        params: { status: "pending" },
+      });
+      expect(listed.result.candidates).toHaveLength(1);
+      const reviewed = await server.receive({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "evolution/workbench/review",
+        params: {
+          packetDigests: [h.pending.packetDigest],
+          decision: "approve",
+          reason: "Reviewed in the fixed App Server surface.",
+        },
+      });
+      expect(reviewed.result.planDigest).toMatch(/^sha256:/u);
+      expect(sent.at(-1)).toEqual(reviewed);
+    } finally {
+      await server.close();
+    }
   });
 });

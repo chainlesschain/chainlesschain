@@ -12,6 +12,7 @@
   "cmd.session.prStatus.title": "ChainlessChain: Show PR / CI Status",
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
+  "cmd.evolution.workbench.title": "ChainlessChain: Evolution Workbench",
   "cmd.automation.center.title": "ChainlessChain: Automation Center",
   "cmd.remote.control.title": "ChainlessChain: Remote Control",
   "cmd.usage.show.title": "ChainlessChain: Show Token Usage",
