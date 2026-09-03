@@ -20,6 +20,12 @@ import {
   GovernedKnowledgeConflictMergePlanner,
   digestGovernedKnowledgeHumanMergeReceipt,
 } from "../../src/lib/evolution/governed-knowledge-conflict-merge.js";
+import { GovernedKnowledgeMergeLedgerExecutor } from "../../src/lib/evolution/governed-knowledge-merge-ledger-executor.js";
+import {
+  GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
+  createGovernedKnowledgeMergePublisherAuthority,
+  digestGovernedKnowledgeMergePublishResult,
+} from "../../src/lib/evolution/governed-knowledge-merge-publisher-authority.js";
 import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import {
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
@@ -386,6 +392,179 @@ function controller(storage, crypto) {
   };
 }
 
+async function mergePlanFixture({ realLedger = false } = {}) {
+  const crypto = cryptoPorts();
+  const senderStorage = backends("device:a");
+  const remoteEnvelope = await controller(
+    senderStorage,
+    crypto,
+  ).controller.publish(knowledge({ vectorClock: { "device:a": 2 } }));
+  const receiverStorage = backends("device:b");
+  const witness = realLedger ? durableWitness("witness-knowledge-merge") : null;
+  if (witness)
+    receiverStorage.ledger = openRealLedger(receiverStorage, witness);
+  const receiver = controller(receiverStorage, crypto);
+  await receiver.controller.publish(
+    knowledge({
+      contentDigest: D("content:b"),
+      vectorClock: { "device:b": 2 },
+    }),
+  );
+  await receiver.controller.receive(remoteEnvelope);
+  const merged = knowledge({
+    contentDigest: D("content:merged"),
+    vectorClock: { "device:a": 2, "device:b": 3 },
+  });
+  const receiptCore = {
+    schema: GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
+    tenantId: "tenant:a",
+    reviewerId: "human:alice",
+    automated: false,
+    knowledgeId: "knowledge:1",
+    conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+    localContentDigest: D("content:b"),
+    remoteContentDigest: D("content:a"),
+    mergedContentDigest: D("content:merged"),
+    mergedVectorClock: merged.vectorClock,
+    reason: "Reviewed both offline edits and preserved their intent.",
+    decidedAt: "2026-09-04T00:00:00.000Z",
+  };
+  const receipt = {
+    ...receiptCore,
+    receiptDigest: digestGovernedKnowledgeHumanMergeReceipt(receiptCore),
+    attestation: {
+      algorithm: "test-signature",
+      keyId: "human-key:alice",
+      value: "signed-human-merge-decision",
+    },
+  };
+  const reader = adapter(receiverStorage, crypto).conflictReader();
+  const verifier = {
+    verify: vi.fn(async ({ receipt: value }) => ({
+      authenticated: true,
+      durable: true,
+      automated: false,
+      tenantId: value.tenantId,
+      reviewerId: value.reviewerId,
+      knowledgeId: value.knowledgeId,
+      conflictEnvelopeDigest: value.conflictEnvelopeDigest,
+      receiptDigest: value.receiptDigest,
+    })),
+  };
+  const planner = new GovernedKnowledgeConflictMergePlanner({
+    conflictReader: reader,
+    receiptVerifier: verifier,
+    now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+  });
+  const plan = await planner.plan({
+    conflictEnvelopeDigest: remoteEnvelope.envelopeDigest,
+    mergedKnowledge: merged,
+    humanReceipt: receipt,
+  });
+  return {
+    crypto,
+    merged,
+    plan,
+    receipt,
+    reader,
+    receiverStorage,
+    remoteEnvelope,
+    verifier,
+    witness,
+  };
+}
+
+function mergePublisher({ loseFirstResponse = false } = {}) {
+  let durableResult = null;
+  let shouldLose = loseFirstResponse;
+  const requests = [];
+  const provider = {
+    publish: vi.fn(async (request) => {
+      requests.push(structuredClone(request));
+      if (!durableResult) {
+        const core = {
+          schema: GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
+          tenantId: request.tenantId,
+          deviceId: request.deviceId,
+          operationId: request.operationId,
+          requestDigest: request.requestDigest,
+          planDigest: request.planDigest,
+          knowledgeId: request.knowledgeId,
+          mergedContentDigest: request.mergedContentDigest,
+          envelopeDigest: D(`merged-envelope:${request.planDigest}`),
+          providerAuthorityId: "merge-publisher:test",
+          providerRevision: 1,
+          providerHandlerArtifactDigest: D("merge-publisher-handler"),
+          publishedAt: "2026-09-04T00:00:00.000Z",
+          durable: true,
+          idempotent: true,
+        };
+        durableResult = {
+          ...core,
+          resultDigest: digestGovernedKnowledgeMergePublishResult(core),
+          attestation: {
+            algorithm: "test-signature",
+            keyId: "merge-publisher-key",
+            value: "signed-merge-publish-result",
+          },
+        };
+      }
+      if (shouldLose) {
+        shouldLose = false;
+        throw new Error("simulated publisher response loss");
+      }
+      return durableResult;
+    }),
+  };
+  const verifier = {
+    verify: vi.fn(async ({ request, result }) => ({
+      authenticated: true,
+      durable: true,
+      tenantId: request.tenantId,
+      deviceId: request.deviceId,
+      operationId: request.operationId,
+      requestDigest: request.requestDigest,
+      planDigest: request.planDigest,
+      resultDigest: result.resultDigest,
+      envelopeDigest: result.envelopeDigest,
+      providerAuthorityId: "merge-publisher:test",
+      providerRevision: 1,
+      verifierAuthorityId: "merge-verifier:test",
+      verifierRevision: 1,
+      verificationReceiptDigest: D(`verified:${result.resultDigest}`),
+    })),
+  };
+  const authority = createGovernedKnowledgeMergePublisherAuthority({
+    tenantId: "tenant:a",
+    deviceId: "device:b",
+    providerDescriptor: {
+      authorityId: "merge-publisher:test",
+      revision: 1,
+      handlerArtifactDigest: D("merge-publisher-handler"),
+    },
+    verifierDescriptor: {
+      authorityId: "merge-verifier:test",
+      revision: 1,
+      handlerArtifactDigest: D("merge-verifier-handler"),
+    },
+    provider,
+    verifier,
+    now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+  });
+  return { authority, provider, requests, verifier };
+}
+
+function mergeExecutor(storage, publisherAuthority) {
+  return new GovernedKnowledgeMergeLedgerExecutor({
+    descriptor: storage.descriptor,
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    publisherAuthority,
+    now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+  });
+}
+
 describe("GovernedKnowledgeSyncLedgerAdapter", () => {
   it("reopens the same record from actual EvolutionLedger files and witness", async () => {
     const storage = backends();
@@ -551,6 +730,103 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
         humanReceipt: receipt,
       }),
     ).rejects.toThrow("did not authenticate");
+  });
+
+  it("resumes prepared merge publication with one stable idempotency key", async () => {
+    const fixture = await mergePlanFixture();
+    const publisher = mergePublisher({ loseFirstResponse: true });
+    const first = mergeExecutor(fixture.receiverStorage, publisher.authority);
+    await expect(first.execute(structuredClone(fixture.plan))).rejects.toThrow(
+      "branded plan",
+    );
+    await expect(first.execute(fixture.plan)).rejects.toThrow(
+      "publisher response loss",
+    );
+    expect(publisher.provider.publish).toHaveBeenCalledOnce();
+
+    fixture.receiverStorage.state.loseResponse = true;
+    const reopened = mergeExecutor(
+      fixture.receiverStorage,
+      publisher.authority,
+    );
+    await expect(
+      reopened.resume({ planDigest: fixture.plan.planDigest }),
+    ).resolves.toMatchObject({
+      authenticated: true,
+      durable: true,
+      recovered: true,
+      planDigest: fixture.plan.planDigest,
+      envelopeDigest: D(`merged-envelope:${fixture.plan.planDigest}`),
+    });
+    expect(publisher.provider.publish).toHaveBeenCalledTimes(2);
+    expect(publisher.requests[0]).toEqual(publisher.requests[1]);
+
+    await expect(reopened.execute(fixture.plan)).resolves.toMatchObject({
+      durable: true,
+      recovered: true,
+    });
+    expect(publisher.provider.publish).toHaveBeenCalledTimes(2);
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.merge.prepared",
+      ),
+    ).toHaveLength(1);
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.merge.settled",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("reopens a settled merge through actual Ledger files and witness", async () => {
+    const fixture = await mergePlanFixture({ realLedger: true });
+    const publisher = mergePublisher();
+    await expect(
+      mergeExecutor(fixture.receiverStorage, publisher.authority).execute(
+        fixture.plan,
+      ),
+    ).resolves.toMatchObject({ durable: true, recovered: false });
+    expect(publisher.provider.publish).toHaveBeenCalledOnce();
+
+    const reopenedLedger = openRealLedger(
+      fixture.receiverStorage,
+      fixture.witness,
+    );
+    const reopenedStorage = {
+      ...fixture.receiverStorage,
+      ledger: reopenedLedger,
+    };
+    await expect(
+      mergeExecutor(reopenedStorage, publisher.authority).execute(fixture.plan),
+    ).resolves.toMatchObject({ durable: true, recovered: true });
+    expect(publisher.provider.publish).toHaveBeenCalledOnce();
+    expect(reopenedLedger.verify()).toMatchObject({
+      eventCount: 4,
+      sequence: 4,
+    });
+  });
+
+  it("refuses a merge publish result rejected by its independent verifier", async () => {
+    const fixture = await mergePlanFixture();
+    const publisher = mergePublisher();
+    publisher.verifier.verify.mockResolvedValueOnce({ authenticated: false });
+    const executor = mergeExecutor(
+      fixture.receiverStorage,
+      publisher.authority,
+    );
+    await expect(executor.execute(fixture.plan)).rejects.toThrow(
+      "not independently verified",
+    );
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.merge.prepared",
+      ),
+    ).toHaveLength(1);
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.merge.settled",
+      ),
+    ).toHaveLength(0);
   });
 
   it("recovers an idempotent commit after an append response is lost", async () => {

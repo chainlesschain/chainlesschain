@@ -14,6 +14,7 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const MAX_REASON_LENGTH = 2048;
 const MAX_RECEIPT_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const MERGE_PLANS = new WeakSet();
 const RECEIPT_KEYS = new Set([
   "attestation",
   "automated",
@@ -31,6 +32,22 @@ const RECEIPT_KEYS = new Set([
   "tenantId",
 ]);
 const ATTESTATION_KEYS = new Set(["algorithm", "keyId", "value"]);
+const PLAN_KEYS = new Set([
+  "conflictEnvelopeDigest",
+  "decidedAt",
+  "deviceId",
+  "humanReceiptDigest",
+  "knowledgeId",
+  "localContentDigest",
+  "mergedKnowledge",
+  "planDigest",
+  "remoteContentDigest",
+  "requestedBy",
+  "schema",
+  "scope",
+  "scopeId",
+  "tenantId",
+]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -112,6 +129,40 @@ export function digestGovernedKnowledgeHumanMergeReceipt(receipt) {
     GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
     receiptCore(receipt),
   );
+}
+
+export function verifyGovernedKnowledgeMergePlan(input) {
+  const plan = exact(input, PLAN_KEYS, "governed knowledge merge plan");
+  const merged = verifyGovernedKnowledgeRecord(plan.mergedKnowledge, {
+    tenantId: plan.tenantId,
+  });
+  const core = clone(plan);
+  delete core.planDigest;
+  if (
+    plan.schema !== GOVERNED_KNOWLEDGE_MERGE_PLAN_SCHEMA ||
+    !identifier(plan.tenantId, "tenantId") ||
+    !identifier(plan.deviceId, "deviceId") ||
+    !identifier(plan.knowledgeId, "knowledgeId") ||
+    !identifier(plan.scopeId, "scopeId") ||
+    !identifier(plan.requestedBy, "requestedBy") ||
+    plan.knowledgeId !== merged.knowledgeId ||
+    plan.scope !== merged.scope ||
+    plan.scopeId !== merged.scopeId ||
+    !DIGEST.test(plan.conflictEnvelopeDigest ?? "") ||
+    !DIGEST.test(plan.localContentDigest ?? "") ||
+    !DIGEST.test(plan.remoteContentDigest ?? "") ||
+    !DIGEST.test(plan.humanReceiptDigest ?? "") ||
+    !DIGEST.test(plan.planDigest ?? "") ||
+    !Number.isFinite(Date.parse(plan.decidedAt)) ||
+    plan.planDigest !== hash(GOVERNED_KNOWLEDGE_MERGE_PLAN_SCHEMA, core)
+  ) {
+    throw new Error("governed knowledge merge plan is invalid");
+  }
+  return freeze(clone(plan));
+}
+
+export function isGovernedKnowledgeMergePlan(value) {
+  return MERGE_PLANS.has(value);
 }
 
 function normalizeReceipt(input, context, now) {
@@ -291,9 +342,11 @@ export class GovernedKnowledgeConflictMergePlanner {
       requestedBy: receipt.reviewerId,
       decidedAt: receipt.decidedAt,
     };
-    return freeze({
+    const plan = freeze({
       ...core,
       planDigest: hash(GOVERNED_KNOWLEDGE_MERGE_PLAN_SCHEMA, core),
     });
+    MERGE_PLANS.add(plan);
+    return plan;
   }
 }
