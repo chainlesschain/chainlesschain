@@ -50,6 +50,8 @@ class FakePilotClient extends EventEmitter {
       "evolutionWorkbenchCompare",
       "evolutionWorkbenchReview",
       "evolutionWorkbenchRollback",
+      "governedKnowledgeConflicts",
+      "governedKnowledgeMerge",
     ]) {
       this[method] = vi.fn(async (params) => ({ method, params }));
     }
@@ -499,6 +501,26 @@ describe("DesktopAppServerPilot", () => {
         fromPacketDigest: "sha256:active",
         toPacketDigest: "sha256:target",
         reason: "regression",
+      },
+    });
+    await expect(
+      pilot.governedKnowledgeConflicts({ cursor: 0, limit: 50 }),
+    ).resolves.toEqual({
+      method: "governedKnowledgeConflicts",
+      params: { cursor: 0, limit: 50 },
+    });
+    await expect(
+      pilot.governedKnowledgeMerge({
+        conflictEnvelopeDigest: "sha256:conflict",
+        mergedRecord: { knowledgeId: "knowledge:1" },
+        reason: "reviewed",
+      }),
+    ).resolves.toEqual({
+      method: "governedKnowledgeMerge",
+      params: {
+        conflictEnvelopeDigest: "sha256:conflict",
+        mergedRecord: { knowledgeId: "knowledge:1" },
+        reason: "reviewed",
       },
     });
 

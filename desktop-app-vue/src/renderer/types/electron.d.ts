@@ -511,6 +511,12 @@ export interface CodingAgentAPI {
   appServerEvolutionWorkbenchRollback(
     payload: Record<string, unknown>,
   ): Promise<any>;
+  appServerGovernedKnowledgeConflicts(
+    payload?: Record<string, unknown>,
+  ): Promise<any>;
+  appServerGovernedKnowledgeMerge(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
   appServerApprovalList(): Promise<{
     success: boolean;
     result?: Array<Record<string, unknown>>;

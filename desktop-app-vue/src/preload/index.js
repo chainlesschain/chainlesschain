@@ -1829,6 +1829,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
         "coding-agent:app-server-evolution-workbench-rollback",
         payload,
       ),
+    appServerGovernedKnowledgeConflicts: (payload = {}) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-governed-knowledge-conflicts",
+        payload,
+      ),
+    appServerGovernedKnowledgeMerge: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-governed-knowledge-merge",
+        payload,
+      ),
     appServerApprovalList: () =>
       ipcRenderer.invoke("coding-agent:app-server-approval-list"),
     appServerApprovalDecide: (payload) =>

@@ -98,6 +98,12 @@ describe("AppServerPilotClient", () => {
         toPacketDigest: "to",
         reason: "rollback",
       }),
+      pilot.governedKnowledgeConflicts({ cursor: 0, limit: 50 }),
+      pilot.governedKnowledgeMerge({
+        conflictEnvelopeDigest: "sha256:conflict",
+        mergedRecord: {},
+        reason: "merged",
+      }),
     ];
     await Promise.all(calls);
     expect(transport.request.mock.calls.map(([method]) => method)).toEqual([
@@ -111,6 +117,8 @@ describe("AppServerPilotClient", () => {
       "evolution/workbench/compare",
       "evolution/workbench/review",
       "evolution/workbench/rollback",
+      "evolution/knowledge/conflicts",
+      "evolution/knowledge/merge",
     ]);
     expect("request" in pilot).toBe(false);
   });

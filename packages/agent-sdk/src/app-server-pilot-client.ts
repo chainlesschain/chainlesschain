@@ -200,6 +200,14 @@ export class AppServerPilotClient extends EventEmitter {
     return this.call("evolution/workbench/rollback", params);
   }
 
+  governedKnowledgeConflicts(params: JsonValue = {}): Promise<unknown> {
+    return this.call("evolution/knowledge/conflicts", params);
+  }
+
+  governedKnowledgeMerge(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/knowledge/merge", params);
+  }
+
   contextPlan(params: ContextPlanRequest): Promise<ContextPlan> {
     return this.call("context/plan", params) as Promise<ContextPlan>;
   }

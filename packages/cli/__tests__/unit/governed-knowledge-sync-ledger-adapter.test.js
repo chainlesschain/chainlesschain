@@ -8,6 +8,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { registerGovernedKnowledgeCommands } from "../../src/commands/evolution-knowledge.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { CcAppServer } from "../../src/lib/app-server/server.js";
+import { APP_SERVER_PROTOCOL_VERSION } from "../../src/lib/app-server/protocol.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
@@ -1033,6 +1036,74 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     await expect(
       root.parseAsync(["node", "cc", "evolution", "knowledge", "conflicts"]),
     ).rejects.toThrow("trusted deployment host");
+  });
+
+  it("routes Cloud Session review through fixed App Server methods", async () => {
+    const fixture = await mergePlanFixture();
+    const publisher = mergePublisher();
+    const reviewed = reviewHost(
+      fixture,
+      mergeExecutor(fixture.receiverStorage, publisher.authority),
+    );
+    const server = new CcAppServer({
+      send: async () => {},
+      store: new MemoryRolloutStore(),
+      governedKnowledgeReviewHost: reviewed.host,
+    });
+    try {
+      const initialized = await server.receive({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: APP_SERVER_PROTOCOL_VERSION,
+          minimumProtocolVersion: 1,
+          client: { name: "knowledge-review-test", version: "1" },
+          features: [],
+        },
+      });
+      expect(initialized.result.governedKnowledgeReview).toEqual({
+        available: true,
+        methods: ["conflicts", "merge"],
+      });
+      const listed = await server.receive({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "evolution/knowledge/conflicts",
+        params: { cursor: 0, limit: 50 },
+      });
+      expect(listed.result).toMatchObject({
+        total: 1,
+        items: [{ knowledgeId: "knowledge:1" }],
+      });
+      const merged = await server.receive({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "evolution/knowledge/merge",
+        params: {
+          conflictEnvelopeDigest: fixture.remoteEnvelope.envelopeDigest,
+          mergedRecord: fixture.merged,
+          reason: "Reviewed through the fixed Cloud Session surface.",
+        },
+      });
+      expect(merged.result).toMatchObject({
+        durable: true,
+        knowledgeId: "knowledge:1",
+      });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("rejects an unbranded App Server knowledge review host", () => {
+    expect(
+      () =>
+        new CcAppServer({
+          send: async () => {},
+          store: new MemoryRolloutStore(),
+          governedKnowledgeReviewHost: {},
+        }),
+    ).toThrow("branded review host");
   });
 
   it("refuses a merge publish result rejected by its independent verifier", async () => {

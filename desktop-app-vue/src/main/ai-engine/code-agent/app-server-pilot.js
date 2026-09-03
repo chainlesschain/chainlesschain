@@ -620,6 +620,14 @@ class DesktopAppServerPilot extends EventEmitter {
   evolutionWorkbenchRollback(params) {
     return this.client.evolutionWorkbenchRollback(normalizeParams(params));
   }
+
+  governedKnowledgeConflicts(params) {
+    return this.client.governedKnowledgeConflicts(normalizeParams(params));
+  }
+
+  governedKnowledgeMerge(params) {
+    return this.client.governedKnowledgeMerge(normalizeParams(params));
+  }
 }
 
 module.exports = {

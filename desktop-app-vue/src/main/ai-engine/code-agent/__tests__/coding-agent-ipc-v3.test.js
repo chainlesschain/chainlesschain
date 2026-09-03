@@ -1234,6 +1234,8 @@ describe("registerCodingAgentIPCV3", () => {
       evolutionWorkbenchCompare: vi.fn().mockResolvedValue({ changes: [] }),
       evolutionWorkbenchReview: vi.fn().mockResolvedValue({ accepted: true }),
       evolutionWorkbenchRollback: vi.fn().mockResolvedValue({ accepted: true }),
+      governedKnowledgeConflicts: vi.fn().mockResolvedValue({ items: [] }),
+      governedKnowledgeMerge: vi.fn().mockResolvedValue({ durable: true }),
       listPendingApprovals: vi.fn().mockReturnValue([{ id: "approval-1" }]),
       respondApproval: vi.fn().mockReturnValue({
         accepted: true,
@@ -1342,6 +1344,28 @@ describe("registerCodingAgentIPCV3", () => {
     ).toEqual({ success: true, result: { accepted: true } });
     expect(appServerPilot.evolutionWorkbenchRollback).toHaveBeenCalledWith(
       rollbackRequest,
+    );
+    const conflictRequest = { cursor: 0, limit: 50 };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-governed-knowledge-conflicts"
+      ]({}, conflictRequest),
+    ).toEqual({ success: true, result: { items: [] } });
+    expect(appServerPilot.governedKnowledgeConflicts).toHaveBeenCalledWith(
+      conflictRequest,
+    );
+    const mergeRequest = {
+      conflictEnvelopeDigest: "sha256:conflict",
+      mergedRecord: { knowledgeId: "knowledge:1" },
+      reason: "reviewed",
+    };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-governed-knowledge-merge"
+      ]({}, mergeRequest),
+    ).toEqual({ success: true, result: { durable: true } });
+    expect(appServerPilot.governedKnowledgeMerge).toHaveBeenCalledWith(
+      mergeRequest,
     );
     expect(
       await ipcMainMock.handlers["coding-agent:app-server-approval-list"](),

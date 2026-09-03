@@ -12,6 +12,7 @@ import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
+import { isGovernedKnowledgeReviewHost } from "../evolution/governed-knowledge-review-host.js";
 import {
   contextPlanCreatedNotification,
   memoryDeletionNotification,
@@ -151,6 +152,7 @@ export class CcAppServer {
     skillOutcomeIndex = null,
     skillVectorAuthority = null,
     evolutionWorkbenchHost = null,
+    governedKnowledgeReviewHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
     if (typeof send !== "function") {
@@ -181,6 +183,15 @@ export class CcAppServer {
       );
     }
     this.evolutionWorkbenchHost = evolutionWorkbenchHost;
+    if (
+      governedKnowledgeReviewHost !== null &&
+      !isGovernedKnowledgeReviewHost(governedKnowledgeReviewHost)
+    ) {
+      throw new TypeError(
+        "CcAppServer governedKnowledgeReviewHost must be a branded review host",
+      );
+    }
+    this.governedKnowledgeReviewHost = governedKnowledgeReviewHost;
     this.skillOutcomeIndex =
       skillOutcomeIndex === null
         ? null
@@ -398,6 +409,10 @@ export class CcAppServer {
         this._evolutionWorkbenchReview(message.params),
       "evolution/workbench/rollback": () =>
         this._evolutionWorkbenchRollback(message.params),
+      "evolution/knowledge/conflicts": () =>
+        this._governedKnowledgeConflicts(message.params),
+      "evolution/knowledge/merge": () =>
+        this._governedKnowledgeMerge(message.params),
     };
     const handler = handlers[method];
     if (!handler) {
@@ -451,6 +466,13 @@ export class CcAppServer {
           this.evolutionWorkbenchHost === null
             ? []
             : ["list", "compare", "review", "rollback"],
+      },
+      governedKnowledgeReview: {
+        available: this.governedKnowledgeReviewHost !== null,
+        methods:
+          this.governedKnowledgeReviewHost === null
+            ? []
+            : ["conflicts", "merge"],
       },
       schema: {
         id: APP_SERVER_SCHEMA.$id,
@@ -518,6 +540,36 @@ export class CcAppServer {
         "fromPacketDigest",
       ),
       toPacketDigest: requiredString(params.toPacketDigest, "toPacketDigest"),
+      reason: requiredString(params.reason, "reason"),
+    });
+  }
+
+  _requireGovernedKnowledgeReviewHost() {
+    if (this.governedKnowledgeReviewHost === null) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.NOT_FOUND,
+        "Governed knowledge review is not configured for this App Server",
+      );
+    }
+    return this.governedKnowledgeReviewHost;
+  }
+
+  _governedKnowledgeConflicts(rawParams = {}) {
+    const params = requireObject(rawParams);
+    return this._requireGovernedKnowledgeReviewHost().list({
+      cursor: params.cursor ?? 0,
+      limit: params.limit ?? 50,
+    });
+  }
+
+  _governedKnowledgeMerge(rawParams) {
+    const params = requireObject(rawParams);
+    return this._requireGovernedKnowledgeReviewHost().merge({
+      conflictEnvelopeDigest: requiredString(
+        params.conflictEnvelopeDigest,
+        "conflictEnvelopeDigest",
+      ),
+      mergedRecord: requireObject(params.mergedRecord, "mergedRecord"),
       reason: requiredString(params.reason, "reason"),
     });
   }

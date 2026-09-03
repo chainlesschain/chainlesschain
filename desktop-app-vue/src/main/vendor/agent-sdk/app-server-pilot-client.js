@@ -128,6 +128,12 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     evolutionWorkbenchRollback(params) {
         return this.call("evolution/workbench/rollback", params);
     }
+    governedKnowledgeConflicts(params = {}) {
+        return this.call("evolution/knowledge/conflicts", params);
+    }
+    governedKnowledgeMerge(params) {
+        return this.call("evolution/knowledge/merge", params);
+    }
     contextPlan(params) {
         return this.call("context/plan", params);
     }
