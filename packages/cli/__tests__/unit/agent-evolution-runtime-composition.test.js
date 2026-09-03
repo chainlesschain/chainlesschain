@@ -22,6 +22,12 @@ import {
 } from "../../src/lib/evolution/agent-evolution-runtime-composition.js";
 import { isEvolutionWorkbenchMetricsOutcomeReader } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
+import {
+  SKILL_OUTCOME_SOURCE_CATALOG_ATTESTATION_SCHEMA,
+  SKILL_OUTCOME_SOURCE_CATALOG_SCHEMA,
+  createSkillOutcomeSourceCatalogAuthority,
+  digestSkillOutcomeSourceCatalog,
+} from "../../src/lib/evolution/skill-outcome-source-catalog-authority.js";
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
@@ -41,6 +47,40 @@ afterEach(() => {
 
 function digest(value) {
   return `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
+}
+
+function outcomeCatalogAuthority(entries, options = {}) {
+  const catalog = {
+    schema: SKILL_OUTCOME_SOURCE_CATALOG_SCHEMA,
+    tenantId: options.tenantId ?? "tenant:a",
+    catalogId: "catalog:production",
+    revision: 1,
+    issuedAt: NOW,
+    entries,
+    attestation: {
+      schema: SKILL_OUTCOME_SOURCE_CATALOG_ATTESTATION_SCHEMA,
+      algorithm: "test-signature",
+      keyId: "key:test-catalog",
+      value: "A".repeat(32),
+    },
+  };
+  catalog.catalogDigest =
+    options.catalogDigest ?? digestSkillOutcomeSourceCatalog(catalog);
+  return createSkillOutcomeSourceCatalogAuthority({
+    tenantId: options.tenantId ?? "tenant:a",
+    loader: { load: async () => options.loaded ?? catalog },
+    verifier: {
+      verify: async (request) => ({
+        authenticated: options.authenticated ?? true,
+        durable: true,
+        tenantId: request.tenantId,
+        catalogId: request.catalogId,
+        revision: request.revision,
+        catalogDigest: request.catalogDigest,
+        receiptDigest: digest(`catalog-receipt:${request.catalogDigest}`),
+      }),
+    },
+  });
 }
 
 function canonical(value) {
@@ -754,13 +794,16 @@ describe("Agent evolution runtime production composition", () => {
     ]);
     const index = await assembleAgentSkillOutcomeIndexFromCatalog({
       tenantId: firstInput.tenantId,
-      catalog: [
-        {
-          runId: firstInput.runId,
-          skillNames: ["repair-tests", "review-diff"],
-        },
-        { runId: secondInput.runId, skillNames: ["repair-tests"] },
-      ],
+      catalogAuthority: outcomeCatalogAuthority(
+        [
+          {
+            runId: firstInput.runId,
+            skillNames: ["repair-tests", "review-diff"],
+          },
+          { runId: secondInput.runId, skillNames: ["repair-tests"] },
+        ],
+        { tenantId: firstInput.tenantId },
+      ),
       openComposition: async (context) => {
         expect(Object.isFrozen(context)).toBe(true);
         opened.push(context);
@@ -789,10 +832,13 @@ describe("Agent evolution runtime production composition", () => {
     await expect(
       assembleAgentSkillOutcomeIndexFromCatalog({
         tenantId: firstInput.tenantId,
-        catalog: [
-          { runId: firstInput.runId, skillNames: ["repair-tests"] },
-          { runId: firstInput.runId, skillNames: ["review-diff"] },
-        ],
+        catalogAuthority: outcomeCatalogAuthority(
+          [
+            { runId: firstInput.runId, skillNames: ["repair-tests"] },
+            { runId: firstInput.runId, skillNames: ["review-diff"] },
+          ],
+          { tenantId: firstInput.tenantId },
+        ),
         openComposition: opener,
       }),
     ).rejects.toThrow(/duplicate run/u);
@@ -800,15 +846,18 @@ describe("Agent evolution runtime production composition", () => {
     await expect(
       assembleAgentSkillOutcomeIndexFromCatalog({
         tenantId: firstInput.tenantId,
-        catalog: [
-          {
-            runId: firstInput.runId,
-            skillNames: Array.from(
-              { length: 129 },
-              (_value, position) => `skill-${position}`,
-            ),
-          },
-        ],
+        catalogAuthority: outcomeCatalogAuthority(
+          [
+            {
+              runId: firstInput.runId,
+              skillNames: Array.from(
+                { length: 129 },
+                (_value, position) => `skill-${position}`,
+              ),
+            },
+          ],
+          { tenantId: firstInput.tenantId },
+        ),
         openComposition: opener,
       }),
     ).rejects.toThrow(/unbounded/u);
@@ -816,9 +865,12 @@ describe("Agent evolution runtime production composition", () => {
     await expect(
       assembleAgentSkillOutcomeIndexFromCatalog({
         tenantId: firstInput.tenantId,
-        catalog: new Proxy(
-          [{ runId: firstInput.runId, skillNames: ["repair-tests"] }],
-          {},
+        catalogAuthority: outcomeCatalogAuthority(
+          new Proxy(
+            [{ runId: firstInput.runId, skillNames: ["repair-tests"] }],
+            {},
+          ),
+          { tenantId: firstInput.tenantId },
         ),
         openComposition: opener,
       }),
@@ -827,10 +879,45 @@ describe("Agent evolution runtime production composition", () => {
     await expect(
       assembleAgentSkillOutcomeIndexFromCatalog({
         tenantId: firstInput.tenantId,
-        catalog: [{ runId: secondInput.runId, skillNames: ["repair-tests"] }],
+        catalogAuthority: outcomeCatalogAuthority(
+          [{ runId: secondInput.runId, skillNames: ["repair-tests"] }],
+          { tenantId: firstInput.tenantId },
+        ),
         openComposition: async () =>
           createAgentEvolutionRuntimeComposition(firstInput),
       }),
     ).rejects.toThrow(/unbound composition/u);
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalogAuthority: outcomeCatalogAuthority(
+          [{ runId: firstInput.runId, skillNames: ["repair-tests"] }],
+          { tenantId: firstInput.tenantId, authenticated: false },
+        ),
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/not authoritative/u);
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalogAuthority: {
+          loadCatalog: async () => ({ authenticated: true, durable: true }),
+        },
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/branded Skill outcome source catalog authority/u);
+    await expect(
+      assembleAgentSkillOutcomeIndexFromCatalog({
+        tenantId: firstInput.tenantId,
+        catalogAuthority: outcomeCatalogAuthority(
+          [{ runId: firstInput.runId, skillNames: ["repair-tests"] }],
+          {
+            tenantId: firstInput.tenantId,
+            catalogDigest: digest("substituted-catalog"),
+          },
+        ),
+        openComposition: opener,
+      }),
+    ).rejects.toThrow(/integrity is invalid/u);
   }, 30_000);
 });

@@ -19,6 +19,7 @@ import {
 } from "./evolution-ledger-file-backend.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
+import { captureSkillOutcomeSourceCatalogAuthority } from "./skill-outcome-source-catalog-authority.js";
 import {
   captureAgentEvolutionIngress,
   createAgentEvolutionIngress,
@@ -446,24 +447,29 @@ export function assembleAgentSkillOutcomeIndex({ sources } = {}) {
 
 export async function assembleAgentSkillOutcomeIndexFromCatalog({
   tenantId: tenantIdInput,
-  catalog,
+  catalogAuthority: catalogAuthorityInput,
   openComposition,
 } = {}) {
   const tenantId = identifier(tenantIdInput, "tenantId");
-  if (
-    !Array.isArray(catalog) ||
-    utilTypes.isProxy(catalog) ||
-    catalog.length < 1 ||
-    catalog.length > MAX_SKILL_OUTCOME_SOURCES
-  ) {
-    throw new TypeError("Skill outcome source catalog is invalid or unbounded");
-  }
+  const catalogAuthority = captureSkillOutcomeSourceCatalogAuthority(
+    catalogAuthorityInput,
+  );
   if (
     typeof openComposition !== "function" ||
     utilTypes.isProxy(openComposition)
   ) {
     throw new TypeError("Skill outcome composition opener is invalid");
   }
+  const loaded = await catalogAuthority.loadCatalog();
+  if (
+    loaded?.authenticated !== true ||
+    loaded.durable !== true ||
+    loaded.tenantId !== tenantId ||
+    !Array.isArray(loaded.entries)
+  ) {
+    throw new Error("Skill outcome source catalog authority is invalid");
+  }
+  const catalog = loaded.entries;
   const runIds = new Set();
   let sourceCount = 0;
   const normalizedCatalog = catalog.map((input, index) => {
