@@ -435,7 +435,9 @@ jobs:
 
   aggregate:
     name: Aggregate 11-cell IDE ARM64 evidence
-    if: always()
+    # Preserve fail-closed aggregation for upstream failures, but do not turn
+    # an explicit workflow cancellation into a second, misleading failure.
+    if: ${{ always() && !cancelled() }}
     needs: [vscode-arm64-host, jetbrains-arm64-host]
     runs-on: ubuntu-latest
     timeout-minutes: 15
