@@ -22,7 +22,12 @@ import {
 import { isEvolutionWorkbenchMetricsOutcomeReader } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
-import { resolveAgentCommandEvolutionComposition } from "../../src/commands/agent.js";
+import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import {
+  registerAgentCommand,
+  resolveAgentCommandEvolutionComposition,
+} from "../../src/commands/agent.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
@@ -593,6 +598,9 @@ describe("Agent evolution runtime production composition", () => {
       createAgentRuntimeFactory({ config: {}, skillOutcomeIndex: {} }),
     ).toThrow(/branded Agent Skill outcome index/u);
     expect(() =>
+      registerAgentCommand({}, { skillOutcomeIndex: { tenantId: "forged" } }),
+    ).toThrow(/branded Agent Skill outcome index/u);
+    expect(() =>
       createAgentRuntimeFactory({
         config: {},
         evolutionComposition: {},
@@ -623,4 +631,97 @@ describe("Agent evolution runtime production composition", () => {
       fs.existsSync(path.join(root, encodeURIComponent(input.tenantId))),
     ).toBe(false);
   });
+
+  it("routes one branded outcome index through single-turn and streaming headless runtimes", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-outcome-headless-"),
+    );
+    roots.push(root);
+    const composition = createAgentEvolutionRuntimeComposition(options(root));
+    const index = assembleAgentSkillOutcomeIndex({
+      sources: [{ composition, skillName: "repair-tests" }],
+    });
+    let singleTurnOptions = null;
+    const singleTurnLoop = vi.fn(async function* (_messages, loopOptions) {
+      singleTurnOptions = loopOptions;
+      yield { type: "response-complete", content: "single complete" };
+    });
+    const singleResult = await runAgentHeadless(
+      {
+        prompt: "find the repair Skill",
+        outputFormat: "text",
+        ephemeral: true,
+        skillOutcomeIndex: index,
+      },
+      {
+        agentLoop: singleTurnLoop,
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: vi.fn(),
+        writeErr: vi.fn(),
+      },
+    );
+    expect(singleResult).toMatchObject({
+      exitCode: 0,
+      result: "single complete",
+    });
+    expect(singleTurnOptions.skillOutcomeIndex).toBe(index);
+
+    async function* input() {
+      yield `${JSON.stringify({ type: "user", text: "find it again" })}\n`;
+    }
+    let streamOptions = null;
+    const streamLoop = vi.fn(async function* (_messages, loopOptions) {
+      streamOptions = loopOptions;
+      yield { type: "response-complete", content: "stream complete" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const streamResult = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        ephemeral: true,
+        skillOutcomeIndex: index,
+      },
+      {
+        input: input(),
+        agentLoop: streamLoop,
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: vi.fn(),
+        writeErr: vi.fn(),
+      },
+    );
+    expect(streamResult).toMatchObject({ exitCode: 0, turns: 1 });
+    expect(streamOptions.skillOutcomeIndex).toBe(index);
+
+    const foreignInput = options(root);
+    foreignInput.tenantId = "tenant:foreign-headless";
+    foreignInput.runId = "run:foreign-headless";
+    const foreignComposition =
+      createAgentEvolutionRuntimeComposition(foreignInput);
+    const foreignIndex = assembleAgentSkillOutcomeIndex({
+      sources: [{ composition: foreignComposition, skillName: "repair-tests" }],
+    });
+    const blockedLoop = vi.fn(async function* () {
+      yield { type: "response-complete", content: "must not run" };
+    });
+    await expect(
+      runAgentHeadless(
+        {
+          prompt: "cross tenant",
+          evolutionIngress: composition.evolutionIngress,
+          skillOutcomeIndex: foreignIndex,
+        },
+        { agentLoop: blockedLoop },
+      ),
+    ).rejects.toThrow(/must share one tenant/u);
+    expect(blockedLoop).not.toHaveBeenCalled();
+    await expect(
+      runAgentHeadlessStream(
+        { skillOutcomeIndex: { tenantId: composition.tenantId, readers: [] } },
+        { agentLoop: blockedLoop },
+      ),
+    ).rejects.toThrow(/branded Agent Skill outcome index/u);
+    expect(blockedLoop).not.toHaveBeenCalled();
+  }, 30_000);
 });

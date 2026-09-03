@@ -10,7 +10,10 @@ import path from "node:path";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
-import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import {
+  captureAgentEvolutionRuntimeComposition,
+  captureAgentSkillOutcomeIndex,
+} from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -264,6 +267,10 @@ export async function resolveAgentCommandEvolutionComposition(
 export function registerAgentCommand(program, dependencies = {}) {
   const evolutionCompositionFactory =
     dependencies.evolutionCompositionFactory ?? null;
+  const skillOutcomeIndex =
+    dependencies.skillOutcomeIndex == null
+      ? null
+      : captureAgentSkillOutcomeIndex(dependencies.skillOutcomeIndex);
   program
     .command("agent")
     .aliases(["a", "exec"])
@@ -1558,6 +1565,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             // appended after each turn (parity with single-prompt --json-schema).
             jsonSchema: options.jsonSchema || null,
             claudeStorageLaunchEnv,
+            ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
             ...(evolutionComposition === null
               ? {}
               : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -1898,6 +1906,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
           claudeStorageLaunchEnv,
+          ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
           ...(evolutionComposition === null
             ? {}
             : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -2010,6 +2019,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       }
       const runtime = createAgentRuntimeFactory({
         evolutionComposition,
+        skillOutcomeIndex,
       }).createAgentRuntime({
         model: options.model,
         thinking,

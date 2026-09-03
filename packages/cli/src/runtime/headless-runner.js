@@ -121,6 +121,7 @@ import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.
 import { createBackgroundInteractionClient } from "../lib/background-interaction-resolver.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
 import {
@@ -659,6 +660,19 @@ async function runAgentHeadlessInWorkspace(
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  const skillOutcomeIndex =
+    options.skillOutcomeIndex == null
+      ? null
+      : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
+  if (
+    evolutionIngress !== null &&
+    skillOutcomeIndex !== null &&
+    evolutionIngress.tenantId !== skillOutcomeIndex.tenantId
+  ) {
+    throw new TypeError(
+      "Agent evolution ingress and Skill outcome index must share one tenant",
+    );
+  }
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
     throw new Error(
@@ -2449,6 +2463,7 @@ async function runAgentHeadlessInWorkspace(
     apiKey,
     cwd,
     skillLoader: _runtimeSkillLoader,
+    ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,

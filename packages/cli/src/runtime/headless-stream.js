@@ -80,6 +80,7 @@ import {
   AGENT_EVOLUTION_INGRESS_FAILED_CODE,
   captureAgentEvolutionIngress,
 } from "../lib/evolution/agent-evolution-ingress.js";
+import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -1542,6 +1543,19 @@ async function runAgentHeadlessStreamInWorkspace(
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  const skillOutcomeIndex =
+    options.skillOutcomeIndex == null
+      ? null
+      : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
+  if (
+    evolutionIngress !== null &&
+    skillOutcomeIndex !== null &&
+    evolutionIngress.tenantId !== skillOutcomeIndex.tenantId
+  ) {
+    throw new TypeError(
+      "Agent evolution ingress and Skill outcome index must share one tenant",
+    );
+  }
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
@@ -3206,6 +3220,7 @@ async function runAgentHeadlessStreamInWorkspace(
     apiKey,
     cwd,
     additionalDirectories,
+    ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     sessionId,
     sessionBudget: options.sessionBudget || null,
     hostResourceBudget,
