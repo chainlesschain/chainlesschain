@@ -18,7 +18,7 @@ test("prefers the long npm bin over a shadowing cc executable", async () => {
   const resolved = await resolveCliBinary({
     getVersionOf: async (candidate) => {
       probes.push(candidate);
-      if (candidate === "chainlesschain") return "0.166.18\n";
+      if (candidate === "chainlesschain") return "0.166.20\n";
       if (candidate === "cc") return "1.2.3\n";
       return null;
     },
@@ -31,8 +31,7 @@ test("still falls back to a valid cc alias when the long name is unavailable", a
   const { resolveCliBinary } = freshCliBinary();
   const resolved = await resolveCliBinary({
     getVersionOf: async (candidate) =>
-      candidate === "cc" ? "0.166.18\n" : null,
+      candidate === "cc" ? "0.166.20\n" : null,
   });
   assert.equal(resolved, "cc");
 });
-

@@ -8,8 +8,10 @@ All notable changes to this extension are documented here.
   extension activation.
 - Prefer the unambiguous `chainlesschain` executable before the shorter npm
   aliases, so an unrelated system `cc` cannot receive `cc agent` arguments.
-- Recommend the exact-gated public `chainlesschain@0.166.18` release and retain
+- Recommend the exact-gated public `chainlesschain@0.166.20` release and retain
   fallback support for installations where only the valid `cc` alias exists.
+- Pair with `@chainlesschain/session-core@0.3.10`, whose published structured
+  evolution-memory export restores public-install Agent startup.
 
 ## [0.37.79] - Reviewed App Server approvals (2026-09-02)
 

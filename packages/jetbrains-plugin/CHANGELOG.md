@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.109] - CLI 0.166.20 public Agent startup recovery (2026-09-03)
+
+- Recommend the exact-gated `chainlesschain@0.166.20` release with
+  `@chainlesschain/session-core@0.3.10`.
+- Preserve the existing fail-closed IDE bridge while consuming the restored
+  public-install `cc agent` command graph.
+
 ## [0.4.108] - CLI 0.166.16 release-evidence hardening (2026-09-01)
 
 - Recommend the exact-gated `chainlesschain@0.166.16` release and align the
