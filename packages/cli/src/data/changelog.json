@@ -3,14 +3,14 @@
   "releases": [
     {
       "productVersion": null,
-      "cliVersion": "0.166.19",
-      "cliVersions": ["0.3.10", "0.166.18", "0.166.19"],
+      "cliVersion": "0.166.20",
+      "cliVersions": ["0.3.10", "0.166.18", "0.166.20"],
       "date": "2026-09-03",
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.19 and Session Core 0.3.10: public-install agent startup",
-          "body": "> `chainlesschain` **0.166.18 -> 0.166.19** and\n> `@chainlesschain/session-core` **0.3.9 -> 0.3.10** (release candidate,\n> 2026-09-03).\n\n- **Restore `cc` and `cc agent` startup from public npm installs**: publish the\n  Session Core `./structured-evolution-memory` export consumed by the CLI's\n  Agent command graph. Version `0.166.18` referenced this source export while\n  the immutable public `session-core@0.3.9` bytes predated it, so lazy command\n  registration fell back and reported the misleading `unknown command 'agent'`.\n- **Preserve fast help/version paths** while requiring executable Agent\n  capability checks against installed package bytes before release.\n- **Release boundary**: publish Session Core `0.3.10` before the pinned CLI\n  `0.166.19`, then verify the public registry installation can execute\n  `cc agent --capabilities`."
+          "heading": "Fixed - cc CLI 0.166.20 and Session Core 0.3.10: public-install agent startup",
+          "body": "> `chainlesschain` **0.166.18 -> 0.166.20** and\n> `@chainlesschain/session-core` **0.3.9 -> 0.3.10** (release candidate,\n> 2026-09-03).\n\n- **Restore `cc` and `cc agent` startup from public npm installs**: publish the\n  Session Core `./structured-evolution-memory` export consumed by the CLI's\n  Agent command graph. Version `0.166.18` referenced this source export while\n  the immutable public `session-core@0.3.9` bytes predated it, so lazy command\n  registration fell back and reported the misleading `unknown command 'agent'`.\n- **Preserve fast help/version paths** while requiring executable Agent\n  capability checks against installed package bytes before release.\n- **Release boundary**: publish Session Core `0.3.10` before the pinned CLI\n  `0.166.20`, then verify the public registry installation can execute\n  `cc agent --capabilities`."
         }
       ]
     },

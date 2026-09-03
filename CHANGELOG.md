@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.19 and Session Core 0.3.10: public-install agent startup
+### Fixed - cc CLI 0.166.20 and Session Core 0.3.10: public-install agent startup
 
-> `chainlesschain` **0.166.18 -> 0.166.19** and
+> `chainlesschain` **0.166.18 -> 0.166.20** and
 > `@chainlesschain/session-core` **0.3.9 -> 0.3.10** (release candidate,
 > 2026-09-03).
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Preserve fast help/version paths** while requiring executable Agent
   capability checks against installed package bytes before release.
 - **Release boundary**: publish Session Core `0.3.10` before the pinned CLI
-  `0.166.19`, then verify the public registry installation can execute
+  `0.166.20`, then verify the public registry installation can execute
   `cc agent --capabilities`.
 
 ### Added - cc CLI 0.166.18 and Session Core 0.3.9: governed Skill evolution

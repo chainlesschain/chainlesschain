@@ -105,14 +105,14 @@ describe("extension activate() wiring", () => {
   let ctx;
   let inheritedHostDomToken;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     inheritedHostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
     delete process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
     vscode.__reset();
     // Keep activation pure wiring: no MCP server, no lockfile, no cc probes.
     vscode.__setConfig({ "chainlesschain.ide.enabled": false });
     ctx = fakeContext();
-    activate(ctx);
+    await activate(ctx);
   });
 
   afterEach(async () => {
@@ -147,7 +147,7 @@ describe("extension activate() wiring", () => {
     process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN = HOST_DOM_TOKEN;
     ctx = fakeContext();
 
-    activate(ctx);
+    await activate(ctx);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(
