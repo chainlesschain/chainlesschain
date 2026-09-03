@@ -8,6 +8,7 @@ import {
 } from "./rollout-store-factory.js";
 import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { captureAgentSkillOutcomeIndex } from "../evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
@@ -148,6 +149,7 @@ export class CcAppServer {
     graphRuntime = null,
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
+    skillVectorAuthority = null,
     evolutionWorkbenchHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
@@ -183,7 +185,23 @@ export class CcAppServer {
       skillOutcomeIndex === null
         ? null
         : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
-    if (graphRuntime && (evolutionCompositionFactory || skillOutcomeIndex)) {
+    this.skillVectorAuthority =
+      skillVectorAuthority === null
+        ? null
+        : captureSkillVectorAuthority(skillVectorAuthority);
+    if (
+      this.skillOutcomeIndex !== null &&
+      this.skillVectorAuthority !== null &&
+      this.skillOutcomeIndex.tenantId !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new TypeError(
+        "App Server retrieval authorities must share one tenant",
+      );
+    }
+    if (
+      graphRuntime &&
+      (evolutionCompositionFactory || skillOutcomeIndex || skillVectorAuthority)
+    ) {
       throw new TypeError(
         "graphRuntime and host-owned Graph authorities cannot both be provided",
       );
@@ -196,6 +214,7 @@ export class CcAppServer {
         createId,
         evolutionCompositionFactory,
         skillOutcomeIndex: this.skillOutcomeIndex,
+        skillVectorAuthority: this.skillVectorAuthority,
         executeNode: (context) => this._executeGraphNode(context),
         requestHumanTask: (context) => this._requestHumanTask(context),
         onEvent: (event) => {
@@ -701,6 +720,7 @@ export class CcAppServer {
     signal,
     evolutionIngress,
     skillOutcomeIndex,
+    skillVectorAuthority,
   }) {
     const threadId = `graph-agent:${runId}:${nodeId}`;
     const turn = { id: attempt.id, threadId };
@@ -712,11 +732,15 @@ export class CcAppServer {
       const turnOptions = { ...(input?.options || {}) };
       delete turnOptions.evolutionIngress;
       delete turnOptions.skillOutcomeIndex;
+      delete turnOptions.skillVectorAuthority;
       if (evolutionIngress !== null && evolutionIngress !== undefined) {
         turnOptions.evolutionIngress = evolutionIngress;
       }
       if (skillOutcomeIndex !== null && skillOutcomeIndex !== undefined) {
         turnOptions.skillOutcomeIndex = skillOutcomeIndex;
+      }
+      if (skillVectorAuthority !== null && skillVectorAuthority !== undefined) {
+        turnOptions.skillVectorAuthority = skillVectorAuthority;
       }
       const result = await this.kernel.startTurn({
         threadId,
@@ -961,8 +985,12 @@ export class CcAppServer {
     try {
       const turnOptions = { ...options };
       delete turnOptions.skillOutcomeIndex;
+      delete turnOptions.skillVectorAuthority;
       if (this.skillOutcomeIndex !== null) {
         turnOptions.skillOutcomeIndex = this.skillOutcomeIndex;
+      }
+      if (this.skillVectorAuthority !== null) {
+        turnOptions.skillVectorAuthority = this.skillVectorAuthority;
       }
       const result = await this.kernel.startTurn({
         threadId: turn.threadId,

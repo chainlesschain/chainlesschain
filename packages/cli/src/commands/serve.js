@@ -6,6 +6,7 @@
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import path from "node:path";
 
 export function registerServeCommand(program, dependencies = {}) {
@@ -15,6 +16,10 @@ export function registerServeCommand(program, dependencies = {}) {
     dependencies.skillOutcomeIndex == null
       ? null
       : captureAgentSkillOutcomeIndex(dependencies.skillOutcomeIndex);
+  const skillVectorAuthority =
+    dependencies.skillVectorAuthority == null
+      ? null
+      : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
   const serve = program
     .command("serve")
     .description("Start WebSocket server for remote CLI access")
@@ -135,6 +140,7 @@ export function registerServeCommand(program, dependencies = {}) {
               kernelFactory: () => new CliAgentKernelAdapter({ cwd }),
               evolutionCompositionFactory,
               skillOutcomeIndex,
+              skillVectorAuthority,
               maxQueuedRequests,
             });
             const info = await host.start();
@@ -166,6 +172,7 @@ export function registerServeCommand(program, dependencies = {}) {
               kernel: new CliAgentKernelAdapter({ cwd }),
               evolutionCompositionFactory,
               skillOutcomeIndex,
+              skillVectorAuthority,
               maxQueuedRequests,
             });
           } finally {
@@ -179,6 +186,7 @@ export function registerServeCommand(program, dependencies = {}) {
               ? {}
               : { evolutionCompositionFactory },
           skillOutcomeIndex,
+          skillVectorAuthority,
         }).createServerRuntime({
           port: parseInt(opts.port, 10),
           host: opts.host,

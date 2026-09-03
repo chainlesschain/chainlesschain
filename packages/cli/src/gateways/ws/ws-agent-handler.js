@@ -75,6 +75,7 @@ import {
 } from "../../harness/jsonl-session-store.js";
 import { sessionBudgetAdmissionError } from "../../lib/session-budget-production-root.js";
 import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../../lib/skill-vector-authority.js";
 import {
   beginSessionBudgetUsage,
   markSessionBudgetUsageUnknown,
@@ -180,6 +181,7 @@ export class WSAgentHandler {
     hostResourceBudget = null,
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
+    skillVectorAuthority = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -258,6 +260,19 @@ export class WSAgentHandler {
       skillOutcomeIndex === null
         ? null
         : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
+    this._skillVectorAuthority =
+      skillVectorAuthority === null
+        ? null
+        : captureSkillVectorAuthority(skillVectorAuthority);
+    if (
+      this._skillOutcomeIndex !== null &&
+      this._skillVectorAuthority !== null &&
+      this._skillOutcomeIndex.tenantId !== this._skillVectorAuthority.tenantId
+    ) {
+      throw new TypeError(
+        "WebSocket retrieval authorities must share one tenant",
+      );
+    }
     this._compactionLlmQuery = compactionLlmQuery || null;
     this._compactionSettlementBlock = null;
     this._compactionChatFn =
@@ -345,6 +360,14 @@ export class WSAgentHandler {
       ) {
         throw new TypeError(
           "WebSocket evolution composition and Skill outcome index must share one tenant",
+        );
+      }
+      if (
+        this._skillVectorAuthority !== null &&
+        composition.tenantId !== this._skillVectorAuthority.tenantId
+      ) {
+        throw new TypeError(
+          "WebSocket evolution composition and Skill vector authority must share one tenant",
         );
       }
       await composition.evolutionIngress.start();
@@ -1494,6 +1517,9 @@ export class WSAgentHandler {
         ...(this._skillOutcomeIndex === null
           ? {}
           : { skillOutcomeIndex: this._skillOutcomeIndex }),
+        ...(this._skillVectorAuthority === null
+          ? {}
+          : { skillVectorAuthority: this._skillVectorAuthority }),
         signal: turnSignal,
         sessionBudget: this._sessionBudget,
         // P0 authority: null unless opted in (byte-identical default — agent

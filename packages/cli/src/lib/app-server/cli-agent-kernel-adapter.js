@@ -204,6 +204,10 @@ export class CliAgentKernelAdapter {
           turnOptions.skillOutcomeIndex ??
           this.sessionOptions.skillOutcomeIndex ??
           null,
+        skillVectorAuthority:
+          turnOptions.skillVectorAuthority ??
+          this.sessionOptions.skillVectorAuthority ??
+          null,
       },
       {
         ...this.dependencies,

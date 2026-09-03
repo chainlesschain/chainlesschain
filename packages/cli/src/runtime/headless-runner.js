@@ -122,6 +122,7 @@ import { createBackgroundInteractionClient } from "../lib/background-interaction
 import { withQuietStdout } from "./quiet-stdout.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
 import {
@@ -664,6 +665,10 @@ async function runAgentHeadlessInWorkspace(
     options.skillOutcomeIndex == null
       ? null
       : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
+  const skillVectorAuthority =
+    options.skillVectorAuthority == null
+      ? null
+      : captureSkillVectorAuthority(options.skillVectorAuthority);
   if (
     evolutionIngress !== null &&
     skillOutcomeIndex !== null &&
@@ -672,6 +677,15 @@ async function runAgentHeadlessInWorkspace(
     throw new TypeError(
       "Agent evolution ingress and Skill outcome index must share one tenant",
     );
+  }
+  const retrievalTenant =
+    evolutionIngress?.tenantId ?? skillOutcomeIndex?.tenantId ?? null;
+  if (
+    retrievalTenant !== null &&
+    skillVectorAuthority !== null &&
+    retrievalTenant !== skillVectorAuthority.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
   }
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
@@ -2464,6 +2478,7 @@ async function runAgentHeadlessInWorkspace(
     cwd,
     skillLoader: _runtimeSkillLoader,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+    ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,

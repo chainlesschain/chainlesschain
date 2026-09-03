@@ -10,6 +10,55 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import {
+  SKILL_VECTOR_ATTESTATION_SCHEMA,
+  SKILL_VECTOR_RESULT_SCHEMA,
+  createSkillVectorAuthority,
+  digestSkillVectorResult,
+} from "../../src/lib/skill-vector-authority.js";
+
+const D = (value) =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+function vectorAuthority(scoreForDigest) {
+  return createSkillVectorAuthority({
+    tenantId: "tenant:test",
+    provider: {
+      score: async (request) => {
+        const result = {
+          schema: SKILL_VECTOR_RESULT_SCHEMA,
+          tenantId: request.tenantId,
+          requestDigest: request.requestDigest,
+          corpusDigest: request.corpusDigest,
+          modelId: "embedding:model",
+          modelRevision: "revision:1",
+          indexDigest: D("agent-vector-index"),
+          scores: request.corpus.map(({ digest }) => ({
+            digest,
+            score: scoreForDigest(digest),
+          })),
+          attestation: {
+            schema: SKILL_VECTOR_ATTESTATION_SCHEMA,
+            algorithm: "test-signature",
+            keyId: "key:test-vector",
+            value: "A".repeat(32),
+          },
+        };
+        return { ...result, resultDigest: digestSkillVectorResult(result) };
+      },
+    },
+    verifier: {
+      verify: async (request) => ({
+        authenticated: true,
+        durable: true,
+        tenantId: request.tenantId,
+        requestDigest: request.requestDigest,
+        resultDigest: request.resultDigest,
+        receiptDigest: D(`agent-vector:${request.resultDigest}`),
+      }),
+    },
+  });
+}
 
 const mocks = vi.hoisted(() => ({
   skills: [],
@@ -1040,6 +1089,40 @@ describe("run_skill controlled execution boundary", () => {
       id: "omega-repair",
       digest: mocks.skills[1].executionIdentity.contentDigest,
     });
+  });
+
+  it("list_skills query consumes only a branded verified vector authority", async () => {
+    registerSkill({ id: "alpha-repair", description: "repair failing tests" });
+    registerSkill({ id: "omega-repair", description: "repair failing tests" });
+    const preferred = mocks.skills[1].executionIdentity.contentDigest;
+    const authority = vectorAuthority((digest) =>
+      digest === preferred ? 1 : 0.1,
+    );
+
+    const result = await executeTool(
+      "list_skills",
+      { query: "repair failing tests" },
+      { cwd: tempDir, skillVectorAuthority: authority },
+    );
+
+    expect(result.routing).toMatchObject({
+      selectedDigest: preferred,
+      vectorAvailable: true,
+      vectorAuthority: {
+        status: "verified",
+        tenantId: "tenant:test",
+        modelId: "embedding:model",
+        indexDigest: D("agent-vector-index"),
+      },
+    });
+    expect(result.skills[0].id).toBe("omega-repair");
+    await expect(
+      executeTool(
+        "list_skills",
+        { query: "repair failing tests" },
+        { cwd: tempDir, skillVectorAuthority: { tenantId: "tenant:test" } },
+      ),
+    ).rejects.toThrow(/branded Skill vector authority/u);
   });
 
   it("does not hide a configured invalid index behind transcript fallback", async () => {

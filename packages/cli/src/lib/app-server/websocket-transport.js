@@ -399,6 +399,7 @@ export class WebSocketAppServerHost extends EventEmitter {
           evolutionCompositionFactory:
             this.options.evolutionCompositionFactory ?? null,
           skillOutcomeIndex: this.options.skillOutcomeIndex ?? null,
+          skillVectorAuthority: this.options.skillVectorAuthority ?? null,
           transport: "websocket",
           maxQueuedRequests: this.options.maxQueuedRequests,
           maxQueuedRequestBytes: this.options.maxQueuedRequestBytes,

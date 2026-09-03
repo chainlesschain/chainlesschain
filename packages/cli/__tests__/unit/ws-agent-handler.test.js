@@ -2,6 +2,7 @@ import { afterAll, describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createTestSkillVectorAuthority } from "./helpers/skill-vector-authority.js";
 
 // Mock agent-core (canonical runtime path — Phase 6b)
 vi.mock("../../src/runtime/agent-core.js", () => ({
@@ -142,6 +143,8 @@ describe("WSAgentHandler", () => {
         tenantId: "tenant-test",
         readers: [],
       });
+      const skillVectorAuthority =
+        createTestSkillVectorAuthority("tenant-test");
       const ingress = {
         start: vi.fn(async () => order.push("start")),
         ingestUserPrompt: vi.fn(async () => order.push("prompt")),
@@ -163,6 +166,7 @@ describe("WSAgentHandler", () => {
       const loop = vi.fn(async function* (_messages, loopOptions) {
         order.push("model");
         expect(loopOptions.skillOutcomeIndex).toBe(skillOutcomeIndex);
+        expect(loopOptions.skillVectorAuthority).toBe(skillVectorAuthority);
         yield {
           type: "tool-executing",
           tool: "read_file",
@@ -183,6 +187,7 @@ describe("WSAgentHandler", () => {
         agentLoop: loop,
         evolutionCompositionFactory,
         skillOutcomeIndex,
+        skillVectorAuthority,
       });
 
       await evolved.handleMessage("inspect", "req-evolution-1");
@@ -219,6 +224,26 @@ describe("WSAgentHandler", () => {
             skillOutcomeIndex: { tenantId: "tenant-test", readers: [] },
           }),
       ).toThrow(/branded Agent Skill outcome index/u);
+      expect(
+        () =>
+          new WSAgentHandler({
+            session,
+            interaction,
+            skillVectorAuthority: { tenantId: "tenant-test" },
+          }),
+      ).toThrow(/branded Skill vector authority/u);
+      expect(
+        () =>
+          new WSAgentHandler({
+            session,
+            interaction,
+            skillOutcomeIndex: sealAgentSkillOutcomeIndex({
+              tenantId: "tenant-one",
+              readers: [],
+            }),
+            skillVectorAuthority: createTestSkillVectorAuthority("tenant-two"),
+          }),
+      ).toThrow(/retrieval authorities must share one tenant/u);
       const loop = vi.fn(() =>
         fakeAgentLoop([{ type: "response-complete", content: "must not run" }]),
       );

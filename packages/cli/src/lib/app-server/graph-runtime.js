@@ -10,6 +10,7 @@ import {
   captureAgentEvolutionRuntimeComposition,
   captureAgentSkillOutcomeIndex,
 } from "../evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
 import {
   diffGraphTrace,
   locateBlockedRoot,
@@ -149,6 +150,7 @@ export class AppServerGraphRuntime {
     onEvent = null,
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
+    skillVectorAuthority = null,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     if (typeof executeNode !== "function") {
@@ -173,6 +175,17 @@ export class AppServerGraphRuntime {
       skillOutcomeIndex === null
         ? null
         : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
+    this.skillVectorAuthority =
+      skillVectorAuthority === null
+        ? null
+        : captureSkillVectorAuthority(skillVectorAuthority);
+    if (
+      this.skillOutcomeIndex !== null &&
+      this.skillVectorAuthority !== null &&
+      this.skillOutcomeIndex.tenantId !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new TypeError("Graph retrieval authorities must share one tenant");
+    }
     this.writerLeaseTtlMs = writerLeaseTtlMs;
     this.runs = new Map();
     this.drives = new Map();
@@ -204,6 +217,14 @@ export class AppServerGraphRuntime {
           ) {
             throw new TypeError(
               "Graph evolution composition and Skill outcome index must share one tenant",
+            );
+          }
+          if (
+            this.skillVectorAuthority !== null &&
+            composition.tenantId !== this.skillVectorAuthority.tenantId
+          ) {
+            throw new TypeError(
+              "Graph evolution composition and Skill vector authority must share one tenant",
             );
           }
           if (
@@ -710,6 +731,7 @@ export class AppServerGraphRuntime {
         signal: controller.signal,
         evolutionIngress: evolutionComposition?.evolutionIngress || null,
         skillOutcomeIndex: this.skillOutcomeIndex,
+        skillVectorAuthority: this.skillVectorAuthority,
       });
       if (!result || !["succeeded", "completed"].includes(result.status)) {
         const error = runtimeError(

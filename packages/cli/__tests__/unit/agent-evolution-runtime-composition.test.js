@@ -28,6 +28,12 @@ import {
   createSkillOutcomeSourceCatalogAuthority,
   digestSkillOutcomeSourceCatalog,
 } from "../../src/lib/evolution/skill-outcome-source-catalog-authority.js";
+import {
+  SKILL_VECTOR_ATTESTATION_SCHEMA,
+  SKILL_VECTOR_RESULT_SCHEMA,
+  createSkillVectorAuthority,
+  digestSkillVectorResult,
+} from "../../src/lib/skill-vector-authority.js";
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
@@ -78,6 +84,46 @@ function outcomeCatalogAuthority(entries, options = {}) {
         revision: request.revision,
         catalogDigest: request.catalogDigest,
         receiptDigest: digest(`catalog-receipt:${request.catalogDigest}`),
+      }),
+    },
+  });
+}
+
+function vectorAuthority(tenantId) {
+  return createSkillVectorAuthority({
+    tenantId,
+    provider: {
+      score: async (request) => {
+        const result = {
+          schema: SKILL_VECTOR_RESULT_SCHEMA,
+          tenantId,
+          requestDigest: request.requestDigest,
+          corpusDigest: request.corpusDigest,
+          modelId: "embedding:model",
+          modelRevision: "revision:1",
+          indexDigest: digest("vector-index"),
+          scores: request.corpus.map(({ digest: contentDigest }) => ({
+            digest: contentDigest,
+            score: 0.5,
+          })),
+          attestation: {
+            schema: SKILL_VECTOR_ATTESTATION_SCHEMA,
+            algorithm: "test-signature",
+            keyId: "key:test-vector",
+            value: "A".repeat(32),
+          },
+        };
+        return { ...result, resultDigest: digestSkillVectorResult(result) };
+      },
+    },
+    verifier: {
+      verify: async (request) => ({
+        authenticated: true,
+        durable: true,
+        tenantId,
+        requestDigest: request.requestDigest,
+        resultDigest: request.resultDigest,
+        receiptDigest: digest(`vector:${request.resultDigest}`),
       }),
     },
   });
@@ -652,6 +698,12 @@ describe("Agent evolution runtime production composition", () => {
       registerAgentCommand({}, { skillOutcomeIndex: { tenantId: "forged" } }),
     ).toThrow(/branded Agent Skill outcome index/u);
     expect(() =>
+      registerAgentCommand(
+        {},
+        { skillVectorAuthority: { tenantId: "forged" } },
+      ),
+    ).toThrow(/branded Skill vector authority/u);
+    expect(() =>
       createAgentRuntimeFactory({
         config: {},
         evolutionComposition: {},
@@ -692,6 +744,14 @@ describe("Agent evolution runtime production composition", () => {
     const index = assembleAgentSkillOutcomeIndex({
       sources: [{ composition, skillName: "repair-tests" }],
     });
+    const vector = vectorAuthority(composition.tenantId);
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      evolutionComposition: composition,
+      skillOutcomeIndex: index,
+      skillVectorAuthority: vector,
+    }).createAgentRuntime();
+    expect(runtime.skillVectorAuthority).toBe(vector);
     let singleTurnOptions = null;
     const singleTurnLoop = vi.fn(async function* (_messages, loopOptions) {
       singleTurnOptions = loopOptions;
@@ -703,6 +763,7 @@ describe("Agent evolution runtime production composition", () => {
         outputFormat: "text",
         ephemeral: true,
         skillOutcomeIndex: index,
+        skillVectorAuthority: vector,
       },
       {
         agentLoop: singleTurnLoop,
@@ -717,6 +778,7 @@ describe("Agent evolution runtime production composition", () => {
       result: "single complete",
     });
     expect(singleTurnOptions.skillOutcomeIndex).toBe(index);
+    expect(singleTurnOptions.skillVectorAuthority).toBe(vector);
 
     async function* input() {
       yield `${JSON.stringify({ type: "user", text: "find it again" })}\n`;
@@ -732,6 +794,7 @@ describe("Agent evolution runtime production composition", () => {
         expandFileRefs: false,
         ephemeral: true,
         skillOutcomeIndex: index,
+        skillVectorAuthority: vector,
       },
       {
         input: input(),
@@ -744,6 +807,7 @@ describe("Agent evolution runtime production composition", () => {
     );
     expect(streamResult).toMatchObject({ exitCode: 0, turns: 1 });
     expect(streamOptions.skillOutcomeIndex).toBe(index);
+    expect(streamOptions.skillVectorAuthority).toBe(vector);
 
     const foreignInput = options(root);
     foreignInput.tenantId = "tenant:foreign-headless";
@@ -766,6 +830,17 @@ describe("Agent evolution runtime production composition", () => {
         { agentLoop: blockedLoop },
       ),
     ).rejects.toThrow(/must share one tenant/u);
+    expect(blockedLoop).not.toHaveBeenCalled();
+    await expect(
+      runAgentHeadless(
+        {
+          prompt: "cross tenant vector",
+          evolutionIngress: composition.evolutionIngress,
+          skillVectorAuthority: vectorAuthority("tenant:foreign"),
+        },
+        { agentLoop: blockedLoop },
+      ),
+    ).rejects.toThrow(/retrieval authorities must share one tenant/u);
     expect(blockedLoop).not.toHaveBeenCalled();
     await expect(
       runAgentHeadlessStream(

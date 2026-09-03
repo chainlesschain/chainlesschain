@@ -35,6 +35,7 @@ import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/str
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -74,6 +75,10 @@ export class AgentRuntime {
       deps.skillOutcomeIndex == null
         ? null
         : captureAgentSkillOutcomeIndex(deps.skillOutcomeIndex);
+    this.skillVectorAuthority =
+      deps.skillVectorAuthority == null
+        ? null
+        : captureSkillVectorAuthority(deps.skillVectorAuthority);
     if (
       this.evolutionIngress !== null &&
       this.skillOutcomeIndex !== null &&
@@ -82,6 +87,17 @@ export class AgentRuntime {
       throw new Error(
         "Agent evolution ingress and Skill outcome index must share one tenant",
       );
+    }
+    const retrievalTenant =
+      this.evolutionIngress?.tenantId ??
+      this.skillOutcomeIndex?.tenantId ??
+      null;
+    if (
+      retrievalTenant !== null &&
+      this.skillVectorAuthority !== null &&
+      retrievalTenant !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new Error("Agent retrieval authorities must share one tenant");
     }
     this.structuredMemoryControlPlane =
       deps.structuredMemoryControlPlane == null
@@ -314,6 +330,9 @@ export class AgentRuntime {
       ...(this.skillOutcomeIndex === null
         ? {}
         : { skillOutcomeIndex: this.skillOutcomeIndex }),
+      ...(this.skillVectorAuthority === null
+        ? {}
+        : { skillVectorAuthority: this.skillVectorAuthority }),
     });
     if (this.evolutionIngress !== null) {
       await this.evolutionIngress.complete();
@@ -488,6 +507,9 @@ export class AgentRuntime {
       ...(this.skillOutcomeIndex === null
         ? {}
         : { skillOutcomeIndex: this.skillOutcomeIndex }),
+      ...(this.skillVectorAuthority === null
+        ? {}
+        : { skillVectorAuthority: this.skillVectorAuthority }),
     });
 
     server.on("connection", ({ clientId, ip }) => {

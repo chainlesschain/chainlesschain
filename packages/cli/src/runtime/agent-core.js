@@ -48,6 +48,10 @@ import { CLISkillLoader } from "../lib/skill-loader.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
 import {
+  captureSkillVectorAuthority,
+  unavailableSkillVectorEvidence,
+} from "../lib/skill-vector-authority.js";
+import {
   admitSkillPrompt,
   debitSkillPromptBudget,
   resolveSkillLimits,
@@ -3552,6 +3556,7 @@ export async function executeTool(name, args, context = {}) {
       // Subagent skill capability INTERSECT — forwarded to run_skill/list_skills.
       skillAllowlist: context.skillAllowlist ?? null,
       skillOutcomeIndex: context.skillOutcomeIndex,
+      skillVectorAuthority: context.skillVectorAuthority,
       cwd,
       parentMessages: context.parentMessages,
       interaction: context.interaction,
@@ -5095,6 +5100,7 @@ async function executeToolInner(
     skillLoader,
     skillAllowlist = null,
     skillOutcomeIndex,
+    skillVectorAuthority,
     cwd,
     parentMessages,
     interaction,
@@ -8207,14 +8213,24 @@ async function executeToolInner(
       }
       let routing = null;
       let outcomeAuthority = null;
+      let vector = null;
       if (args.query) {
         outcomeAuthority = resolveSkillOutcomeAuthority(
           skillOutcomeIndex === undefined ? {} : { index: skillOutcomeIndex },
         );
+        const vectorAuthority =
+          skillVectorAuthority == null
+            ? null
+            : captureSkillVectorAuthority(skillVectorAuthority);
+        vector =
+          vectorAuthority === null
+            ? null
+            : await vectorAuthority.score({ query: args.query, skills });
         routing = routeSkillDescriptors({
           skills,
           query: args.query,
           target: { os: process.platform },
+          vectorScores: vector?.scores ?? null,
           outcomeMetrics: outcomeAuthority.metrics,
           topK: Math.min(64, Math.max(1, skills.length)),
         });
@@ -8243,6 +8259,8 @@ async function executeToolInner(
                 conflicts: routing.conflicts,
                 rejectedCount: routing.rejected.length,
                 vectorAvailable: routing.vectorAvailable,
+                vectorAuthority:
+                  vector?.evidence ?? unavailableSkillVectorEvidence(),
                 outcomeAuthority: outcomeAuthority.evidence,
               },
             }
@@ -13207,6 +13225,7 @@ export async function* agentLoop(messages, options) {
     hookDb: hermeticExecution ? null : options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     skillOutcomeIndex: options.skillOutcomeIndex,
+    skillVectorAuthority: options.skillVectorAuthority,
     // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
     // fired during this run carries trace_id = this run's id; a spawned child
     // loop carries parent_id = the spawning run's id (threaded by

@@ -9,6 +9,7 @@ import {
   sealAgentEvolutionRuntimeComposition,
   sealAgentSkillOutcomeIndex,
 } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { createTestSkillVectorAuthority } from "./helpers/skill-vector-authority.js";
 
 const OUTPUT = `sha256:${"d".repeat(64)}`;
 const EVENT = `sha256:${"e".repeat(64)}`;
@@ -396,10 +397,12 @@ describe("App Server canonical Graph runtime", () => {
       start: vi.fn(async () => {}),
       complete: vi.fn(async () => {}),
     };
+    const vectorAuthority = createTestSkillVectorAuthority("tenant-graph");
     const executeNode = vi.fn(
-      async ({ evolutionIngress, skillOutcomeIndex }) => {
+      async ({ evolutionIngress, skillOutcomeIndex, skillVectorAuthority }) => {
         expect(evolutionIngress).toBe(ingress);
         expect(skillOutcomeIndex).toBe(outcomeIndex);
+        expect(skillVectorAuthority).toBe(vectorAuthority);
         return {
           status: "succeeded",
           terminalEvidence: { eventDigest: EVENT, outputDigest: OUTPUT },
@@ -409,6 +412,7 @@ describe("App Server canonical Graph runtime", () => {
     const runtime = new AppServerGraphRuntime({
       rolloutStore: new MemoryRolloutStore(),
       skillOutcomeIndex: outcomeIndex,
+      skillVectorAuthority: vectorAuthority,
       evolutionCompositionFactory: async ({ runId }) =>
         sealAgentEvolutionRuntimeComposition({
           tenantId: "tenant-graph",
@@ -434,6 +438,22 @@ describe("App Server canonical Graph runtime", () => {
           skillOutcomeIndex: { tenantId: "tenant-graph", readers: [] },
         }),
     ).toThrow(/branded Agent Skill outcome index/u);
+    expect(
+      () =>
+        new AppServerGraphRuntime({
+          executeNode: vi.fn(),
+          skillVectorAuthority: { tenantId: "tenant-graph" },
+        }),
+    ).toThrow(/branded Skill vector authority/u);
+    expect(
+      () =>
+        new AppServerGraphRuntime({
+          executeNode: vi.fn(),
+          skillOutcomeIndex: outcomeIndex,
+          skillVectorAuthority:
+            createTestSkillVectorAuthority("tenant-foreign"),
+        }),
+    ).toThrow(/retrieval authorities must share one tenant/u);
   });
 
   it("fails before assigning a Graph attempt for a cross-tenant outcome index", async () => {

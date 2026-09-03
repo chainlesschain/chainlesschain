@@ -4,6 +4,7 @@ import {
   captureAgentEvolutionRuntimeComposition,
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import {
   resolveAgentPolicy,
   resolveServerPolicy,
@@ -15,6 +16,7 @@ export function createAgentRuntimeFactory({
   deps = {},
   evolutionComposition = null,
   skillOutcomeIndex = null,
+  skillVectorAuthority = null,
 } = {}) {
   const composition =
     evolutionComposition === null
@@ -29,6 +31,10 @@ export function createAgentRuntimeFactory({
     skillOutcomeIndex === null
       ? null
       : captureAgentSkillOutcomeIndex(skillOutcomeIndex);
+  const vectorAuthority =
+    skillVectorAuthority === null
+      ? null
+      : captureSkillVectorAuthority(skillVectorAuthority);
   if (
     composition !== null &&
     outcomeIndex !== null &&
@@ -43,8 +49,22 @@ export function createAgentRuntimeFactory({
       "Skill outcome index must come from the production composition root only",
     );
   }
+  const retrievalTenant =
+    composition?.tenantId ?? outcomeIndex?.tenantId ?? null;
+  if (
+    retrievalTenant !== null &&
+    vectorAuthority !== null &&
+    retrievalTenant !== vectorAuthority.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
+  }
+  if (vectorAuthority !== null && Object.hasOwn(deps, "skillVectorAuthority")) {
+    throw new TypeError(
+      "Skill vector authority must come from the production root only",
+    );
+  }
   const runtimeDeps =
-    composition === null && outcomeIndex === null
+    composition === null && outcomeIndex === null && vectorAuthority === null
       ? deps
       : Object.freeze({
           ...deps,
@@ -52,11 +72,20 @@ export function createAgentRuntimeFactory({
             ? {}
             : { evolutionIngress: composition.evolutionIngress }),
           ...(outcomeIndex === null ? {} : { skillOutcomeIndex: outcomeIndex }),
+          ...(vectorAuthority === null
+            ? {}
+            : { skillVectorAuthority: vectorAuthority }),
         });
   const serverDeps =
-    outcomeIndex === null
+    outcomeIndex === null && vectorAuthority === null
       ? deps
-      : Object.freeze({ ...deps, skillOutcomeIndex: outcomeIndex });
+      : Object.freeze({
+          ...deps,
+          ...(outcomeIndex === null ? {} : { skillOutcomeIndex: outcomeIndex }),
+          ...(vectorAuthority === null
+            ? {}
+            : { skillVectorAuthority: vectorAuthority }),
+        });
   return {
     createAgentRuntime(overrides = {}) {
       return new AgentRuntime({

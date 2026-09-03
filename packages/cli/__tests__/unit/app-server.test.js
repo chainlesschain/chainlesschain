@@ -13,6 +13,7 @@ import {
   QueueOverloadedError,
 } from "../../src/lib/app-server/bounded-queue.js";
 import { sealAgentSkillOutcomeIndex } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { createTestSkillVectorAuthority } from "./helpers/skill-vector-authority.js";
 
 function request(id, method, params = {}) {
   return { jsonrpc: "2.0", id, method, params };
@@ -60,6 +61,8 @@ describe("CC App Server", () => {
       tenantId: "tenant-graph",
       readers: [],
     });
+    const clientVector = { source: "client" };
+    const trustedVector = createTestSkillVectorAuthority("tenant-graph");
     expect(
       () =>
         new CcAppServer({
@@ -94,17 +97,20 @@ describe("CC App Server", () => {
               model: "test-model",
               evolutionIngress: clientIngress,
               skillOutcomeIndex: clientIndex,
+              skillVectorAuthority: clientVector,
             },
           },
           signal: new AbortController().signal,
           evolutionIngress: trustedIngress,
           skillOutcomeIndex: trustedIndex,
+          skillVectorAuthority: trustedVector,
         }),
       ).resolves.toMatchObject({ status: "succeeded" });
       expect(turnOptions).toEqual({
         model: "test-model",
         evolutionIngress: trustedIngress,
         skillOutcomeIndex: trustedIndex,
+        skillVectorAuthority: trustedVector,
       });
     } finally {
       await server.close();
@@ -551,6 +557,8 @@ describe("CC App Server", () => {
       tenantId: "tenant-direct-turn",
       readers: [],
     });
+    const skillVectorAuthority =
+      createTestSkillVectorAuthority("tenant-direct-turn");
     let capturedTurnOptions;
     const kernel = {
       async startTurn({ emit, options }) {
@@ -595,6 +603,7 @@ describe("CC App Server", () => {
         return () => `id-${++id}`;
       })(),
       skillOutcomeIndex,
+      skillVectorAuthority,
     });
 
     const init = await server.receive(initialize());
@@ -615,12 +624,16 @@ describe("CC App Server", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         input: [{ type: "text", text: "Say hello" }],
-        options: { skillOutcomeIndex: { source: "client-forgery" } },
+        options: {
+          skillOutcomeIndex: { source: "client-forgery" },
+          skillVectorAuthority: { source: "client-forgery" },
+        },
       }),
     );
     expect(accepted.result.turn.status).toBe("running");
     await waitFor(() => capturedTurnOptions !== undefined);
     expect(capturedTurnOptions.skillOutcomeIndex).toBe(skillOutcomeIndex);
+    expect(capturedTurnOptions.skillVectorAuthority).toBe(skillVectorAuthority);
 
     await waitFor(() =>
       messages.some(

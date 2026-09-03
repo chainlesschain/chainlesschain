@@ -14,6 +14,7 @@ import {
   captureAgentEvolutionRuntimeComposition,
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -271,6 +272,10 @@ export function registerAgentCommand(program, dependencies = {}) {
     dependencies.skillOutcomeIndex == null
       ? null
       : captureAgentSkillOutcomeIndex(dependencies.skillOutcomeIndex);
+  const skillVectorAuthority =
+    dependencies.skillVectorAuthority == null
+      ? null
+      : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
   program
     .command("agent")
     .aliases(["a", "exec"])
@@ -1566,6 +1571,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             jsonSchema: options.jsonSchema || null,
             claudeStorageLaunchEnv,
             ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+            ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
             ...(evolutionComposition === null
               ? {}
               : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -1907,6 +1913,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           chatFn: fallbackChatFn,
           claudeStorageLaunchEnv,
           ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+          ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
           ...(evolutionComposition === null
             ? {}
             : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -2020,6 +2027,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       const runtime = createAgentRuntimeFactory({
         evolutionComposition,
         skillOutcomeIndex,
+        skillVectorAuthority,
       }).createAgentRuntime({
         model: options.model,
         thinking,

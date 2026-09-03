@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
 import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../../lib/skill-vector-authority.js";
 import {
   createEnvelope,
   envelopeFromStreamEvent,
@@ -335,6 +336,19 @@ export class ChainlessChainWSServer extends EventEmitter {
       options.skillOutcomeIndex == null
         ? null
         : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
+    this.skillVectorAuthority =
+      options.skillVectorAuthority == null
+        ? null
+        : captureSkillVectorAuthority(options.skillVectorAuthority);
+    if (
+      this.skillOutcomeIndex !== null &&
+      this.skillVectorAuthority !== null &&
+      this.skillOutcomeIndex.tenantId !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new TypeError(
+        "WebSocket retrieval authorities must share one tenant",
+      );
+    }
 
     /** Optional Phase-5 envelope bus for fan-out to hosted HTTP SSE. */
     this.envelopeBus = options.envelopeBus || null;

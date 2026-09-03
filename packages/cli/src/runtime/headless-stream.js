@@ -81,6 +81,7 @@ import {
   captureAgentEvolutionIngress,
 } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -1547,6 +1548,10 @@ async function runAgentHeadlessStreamInWorkspace(
     options.skillOutcomeIndex == null
       ? null
       : captureAgentSkillOutcomeIndex(options.skillOutcomeIndex);
+  const skillVectorAuthority =
+    options.skillVectorAuthority == null
+      ? null
+      : captureSkillVectorAuthority(options.skillVectorAuthority);
   if (
     evolutionIngress !== null &&
     skillOutcomeIndex !== null &&
@@ -1555,6 +1560,15 @@ async function runAgentHeadlessStreamInWorkspace(
     throw new TypeError(
       "Agent evolution ingress and Skill outcome index must share one tenant",
     );
+  }
+  const retrievalTenant =
+    evolutionIngress?.tenantId ?? skillOutcomeIndex?.tenantId ?? null;
+  if (
+    retrievalTenant !== null &&
+    skillVectorAuthority !== null &&
+    retrievalTenant !== skillVectorAuthority.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
   }
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
@@ -3221,6 +3235,7 @@ async function runAgentHeadlessStreamInWorkspace(
     cwd,
     additionalDirectories,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+    ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
     sessionId,
     sessionBudget: options.sessionBudget || null,
     hostResourceBudget,
