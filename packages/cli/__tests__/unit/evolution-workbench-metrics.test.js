@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   EvolutionWorkbenchMetricsAggregator,
   digestEvolutionWorkbenchMetricsDelta,
+  digestEvolutionWorkbenchMetricsRetentionBatch,
+  digestEvolutionWorkbenchMetricsRetentionQuery,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
@@ -47,8 +49,13 @@ function receipt(id, contentDigest, status = "completed", runId = "run:1") {
   );
 }
 
-function fixture(deltas) {
-  const state = { snapshot: null, index: 0 };
+function fixture(deltas, { hotReceiptLimit, retained = new Set() } = {}) {
+  const state = {
+    snapshot: null,
+    index: 0,
+    retained,
+    retentionRootDigest: null,
+  };
   const ports = {
     loadSnapshot: vi.fn(async () =>
       state.snapshot
@@ -91,12 +98,35 @@ function fixture(deltas) {
         snapshotDigest: snapshot.snapshotDigest,
       };
     }),
+    retainReceiptDigests: vi.fn(async (request) => {
+      if (request.priorRetentionRootDigest !== state.retentionRootDigest) {
+        throw new Error("retention CAS conflict");
+      }
+      for (const value of request.receiptDigests) state.retained.add(value);
+      state.retentionRootDigest = D(`retention:${state.retained.size}`);
+      return {
+        authenticated: true,
+        durable: true,
+        priorRetentionRootDigest: request.priorRetentionRootDigest,
+        retainedReceiptCount: state.retained.size,
+        retentionRootDigest: state.retentionRootDigest,
+        batchDigest: digestEvolutionWorkbenchMetricsRetentionBatch(request),
+      };
+    }),
+    queryRetainedReceiptDigests: vi.fn(async (request) => ({
+      authenticated: true,
+      durable: true,
+      retentionRootDigest: request.retentionRootDigest,
+      queryDigest: digestEvolutionWorkbenchMetricsRetentionQuery(request),
+      matches: request.receiptDigests.map((value) => state.retained.has(value)),
+    })),
   };
   const open = () =>
     new EvolutionWorkbenchMetricsAggregator({
       tenantId: "tenant:a",
       evolutionRunId: "run:1",
       skillName: "repair-tests",
+      ...(hotReceiptLimit === undefined ? {} : { hotReceiptLimit }),
       ports,
     });
   return { state, ports, open };
@@ -148,6 +178,42 @@ describe("Evolution Workbench long-term metrics", () => {
     await h.open().aggregate();
     await expect(h.open().aggregate()).rejects.toThrow("replayed a receipt");
     expect(h.state.index).toBe(1);
+  });
+
+  it("compacts hot receipt digests into durable retention and still rejects replay", async () => {
+    const content = D("content:a");
+    const firstReceipt = receipt("1", content);
+    const h = fixture(
+      [
+        [firstReceipt, receipt("2", content)],
+        [receipt("3", content)],
+        [firstReceipt],
+      ],
+      { hotReceiptLimit: 2 },
+    );
+    const first = await h.open().aggregate();
+    expect(first).toMatchObject({ retainedReceiptCount: 0 });
+    expect(first.receiptDigests).toHaveLength(2);
+    const compacted = await h.open().aggregate();
+    expect(compacted).toMatchObject({
+      retainedReceiptCount: 2,
+      retentionRootDigest: h.state.retentionRootDigest,
+    });
+    expect(compacted.receiptDigests).toEqual([
+      h.state.snapshot.receiptDigests[0],
+    ]);
+    await expect(h.open().aggregate()).rejects.toThrow(
+      "replayed a retained receipt",
+    );
+    expect(h.state.index).toBe(2);
+  });
+
+  it("rejects a hot replay before attempting compaction", async () => {
+    const value = receipt("hot-replay", D("content:a"));
+    const h = fixture([[value], [value]], { hotReceiptLimit: 1 });
+    await h.open().aggregate();
+    await expect(h.open().aggregate()).rejects.toThrow("replayed a receipt");
+    expect(h.ports.retainReceiptDigests).not.toHaveBeenCalled();
   });
 
   it("rejects receipts from another EvolutionRun", async () => {

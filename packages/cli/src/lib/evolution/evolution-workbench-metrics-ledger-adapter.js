@@ -8,13 +8,36 @@ import {
 } from "./evolution-ledger.js";
 import {
   createEmptyEvolutionWorkbenchMetricsSnapshot,
+  digestEvolutionWorkbenchMetricsRetentionBatch,
+  digestEvolutionWorkbenchMetricsRetentionQuery,
   verifyEvolutionWorkbenchMetricsSnapshot,
 } from "./evolution-workbench-metrics.js";
 
 export const EVOLUTION_WORKBENCH_METRICS_LEDGER_EVENT =
   "evolution.workbench.metrics.snapshot.committed";
+export const EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT =
+  "evolution.workbench.metrics.receipts.retained";
+export const EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA =
+  "chainlesschain.evolution-workbench-metrics-receipt-retention/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function hash(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(domain)
+    .update("\0")
+    .update(canonical(value))
+    .digest("hex")}`;
+}
 
 function string(value, label) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -45,6 +68,58 @@ function fail(message) {
   throw new Error(message);
 }
 
+function verifyRetentionSegment(value, expected) {
+  if (
+    value?.schema !== EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA ||
+    value.tenantId !== expected.tenantId ||
+    value.evolutionRunId !== expected.evolutionRunId ||
+    value.skillName !== expected.skillName ||
+    !Number.isSafeInteger(value.priorRetainedReceiptCount) ||
+    value.priorRetainedReceiptCount < 0 ||
+    !Number.isSafeInteger(value.retainedReceiptCount) ||
+    !Array.isArray(value.receiptDigests) ||
+    value.receiptDigests.length < 1 ||
+    value.receiptDigests.length > 10_000 ||
+    new Set(value.receiptDigests).size !== value.receiptDigests.length ||
+    value.receiptDigests.some((item) => !DIGEST.test(item)) ||
+    value.receiptDigests.join("\n") !==
+      [...value.receiptDigests].sort().join("\n") ||
+    value.retainedReceiptCount !==
+      value.priorRetainedReceiptCount + value.receiptDigests.length ||
+    (value.priorRetentionRootDigest !== null &&
+      !DIGEST.test(value.priorRetentionRootDigest ?? "")) ||
+    typeof value.throughAt !== "string" ||
+    !Number.isFinite(Date.parse(value.throughAt)) ||
+    !DIGEST.test(value.batchDigest ?? "") ||
+    !DIGEST.test(value.retentionRootDigest ?? "")
+  ) {
+    fail("Workbench metrics retention segment is invalid");
+  }
+  if (
+    value.batchDigest !==
+    digestEvolutionWorkbenchMetricsRetentionBatch({
+      tenantId: value.tenantId,
+      evolutionRunId: value.evolutionRunId,
+      skillName: value.skillName,
+      priorRetentionRootDigest: value.priorRetentionRootDigest,
+      priorRetainedReceiptCount: value.priorRetainedReceiptCount,
+      throughAt: value.throughAt,
+      receiptDigests: value.receiptDigests,
+    })
+  ) {
+    fail("Workbench metrics retention batch digest is invalid");
+  }
+  const core = structuredClone(value);
+  delete core.retentionRootDigest;
+  if (
+    value.retentionRootDigest !==
+    hash(EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA, core)
+  ) {
+    fail("Workbench metrics retention root digest is invalid");
+  }
+  return Object.freeze(structuredClone(value));
+}
+
 export class EvolutionWorkbenchMetricsLedgerAdapter {
   constructor({
     descriptor: input,
@@ -70,21 +145,29 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
     Object.freeze(this);
   }
 
-  _events() {
+  _eventsOf(type) {
     const events = this._readLedger();
     if (!Array.isArray(events))
       fail("Workbench metrics ledger read is invalid");
     return events.filter(
       (event) =>
         event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
-        event.type === EVOLUTION_WORKBENCH_METRICS_LEDGER_EVENT &&
+        event.type === type &&
         event.tenantId === this.descriptor.tenantId &&
         event.correlationId === this.descriptor.evolutionRunId &&
         event.skillName === this.descriptor.skillName,
     );
   }
 
-  _resolve(event) {
+  _events() {
+    return this._eventsOf(EVOLUTION_WORKBENCH_METRICS_LEDGER_EVENT);
+  }
+
+  _retentionEvents() {
+    return this._eventsOf(EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT);
+  }
+
+  _resolveRecord(event, expectedType) {
     const authority = this._verifyLedger();
     const resolution = this._resolveArtifact({
       epoch: authority.epoch,
@@ -114,12 +197,16 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
       record.audience !== this.descriptor.audience ||
       record.purpose !== this.descriptor.purpose ||
       record.retention !== "ledger" ||
-      record.type !== "evolution-workbench-metrics-snapshot"
+      record.type !== expectedType
     ) {
       fail("Workbench metrics durable artifact binding is invalid");
     }
+    return record.value;
+  }
+
+  _resolve(event) {
     return verifyEvolutionWorkbenchMetricsSnapshot(
-      record.value,
+      this._resolveRecord(event, "evolution-workbench-metrics-snapshot"),
       this.descriptor,
     );
   }
@@ -137,7 +224,58 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
     if (snapshot.revision !== events.length) {
       fail("Workbench metrics revision has a gap or duplicate");
     }
+    const retention = snapshot.retentionRootDigest
+      ? this._retentionChain(snapshot.retentionRootDigest).at(-1)
+      : null;
+    if (
+      (retention?.segment.retainedReceiptCount ?? 0) !==
+      (snapshot.retainedReceiptCount ?? 0)
+    ) {
+      fail("Workbench metrics snapshot retention binding is invalid");
+    }
     return { event, snapshot };
+  }
+
+  _retentionChain(rootDigest = null) {
+    if (rootDigest === null) return [];
+    if (!DIGEST.test(rootDigest))
+      fail("Workbench metrics retention root is invalid");
+    const events = this._retentionEvents();
+    const chain = [];
+    let priorRoot = null;
+    let priorCount = 0;
+    let priorSequence = 0;
+    const retainedDigests = new Set();
+    for (const event of events) {
+      if (event.sequence <= priorSequence) {
+        fail("Workbench metrics retention ledger order is invalid");
+      }
+      priorSequence = event.sequence;
+      const segment = verifyRetentionSegment(
+        this._resolveRecord(
+          event,
+          "evolution-workbench-metrics-receipt-retention",
+        ),
+        this.descriptor,
+      );
+      if (
+        segment.priorRetentionRootDigest !== priorRoot ||
+        segment.priorRetainedReceiptCount !== priorCount
+      ) {
+        fail("Workbench metrics retention lineage is discontinuous");
+      }
+      for (const value of segment.receiptDigests) {
+        if (retainedDigests.has(value)) {
+          fail("Workbench metrics retention replayed a receipt digest");
+        }
+        retainedDigests.add(value);
+      }
+      chain.push({ event, segment });
+      priorRoot = segment.retentionRootDigest;
+      priorCount = segment.retainedReceiptCount;
+      if (priorRoot === rootDigest) return chain;
+    }
+    fail("Workbench metrics retention root was not found");
   }
 
   loadSnapshot = () => {
@@ -150,6 +288,191 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
           snapshot: latest.snapshot,
         })
       : Object.freeze({ found: false, authenticated: true, durable: true });
+  };
+
+  retainReceiptDigests = (request = {}) => {
+    const receiptDigests = Array.isArray(request.receiptDigests)
+      ? [...request.receiptDigests].sort()
+      : [];
+    if (
+      request.tenantId !== this.descriptor.tenantId ||
+      request.evolutionRunId !== this.descriptor.evolutionRunId ||
+      request.skillName !== this.descriptor.skillName ||
+      !Number.isSafeInteger(request.priorRetainedReceiptCount) ||
+      request.priorRetainedReceiptCount < 0 ||
+      (request.priorRetentionRootDigest !== null &&
+        !DIGEST.test(request.priorRetentionRootDigest ?? "")) ||
+      typeof request.throughAt !== "string" ||
+      !Number.isFinite(Date.parse(request.throughAt)) ||
+      receiptDigests.length < 1 ||
+      receiptDigests.length > 10_000 ||
+      new Set(receiptDigests).size !== receiptDigests.length ||
+      receiptDigests.some((item) => !DIGEST.test(item)) ||
+      !Number.isSafeInteger(
+        request.priorRetainedReceiptCount + receiptDigests.length,
+      )
+    ) {
+      throw new TypeError("Workbench metrics retention request is invalid");
+    }
+    const batch = {
+      tenantId: this.descriptor.tenantId,
+      evolutionRunId: this.descriptor.evolutionRunId,
+      skillName: this.descriptor.skillName,
+      priorRetentionRootDigest: request.priorRetentionRootDigest,
+      priorRetainedReceiptCount: request.priorRetainedReceiptCount,
+      throughAt: request.throughAt,
+      receiptDigests,
+    };
+    const batchDigest = digestEvolutionWorkbenchMetricsRetentionBatch(batch);
+    const retentionEvents = this._retentionEvents();
+    const latest = retentionEvents.length
+      ? this._retentionChain(
+          verifyRetentionSegment(
+            this._resolveRecord(
+              retentionEvents.at(-1),
+              "evolution-workbench-metrics-receipt-retention",
+            ),
+            this.descriptor,
+          ).retentionRootDigest,
+        ).at(-1)
+      : null;
+    if (
+      (latest?.segment.retentionRootDigest ?? null) !==
+        request.priorRetentionRootDigest ||
+      (latest?.segment.retainedReceiptCount ?? 0) !==
+        request.priorRetainedReceiptCount
+    ) {
+      if (
+        latest?.segment.priorRetentionRootDigest ===
+          request.priorRetentionRootDigest &&
+        latest.segment.priorRetainedReceiptCount ===
+          request.priorRetainedReceiptCount &&
+        latest.segment.batchDigest === batchDigest
+      ) {
+        return Object.freeze({
+          authenticated: true,
+          durable: true,
+          recovered: true,
+          priorRetentionRootDigest: request.priorRetentionRootDigest,
+          retainedReceiptCount: latest.segment.retainedReceiptCount,
+          retentionRootDigest: latest.segment.retentionRootDigest,
+          batchDigest,
+        });
+      }
+      fail("Workbench metrics retention CAS conflict");
+    }
+    if (latest) {
+      const retained = new Set(
+        this._retentionChain(latest.segment.retentionRootDigest).flatMap(
+          ({ segment }) => segment.receiptDigests,
+        ),
+      );
+      if (receiptDigests.some((value) => retained.has(value))) {
+        fail("Workbench metrics retention source replayed a receipt");
+      }
+    }
+    const segmentCore = {
+      schema: EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA,
+      ...batch,
+      batchDigest,
+      retainedReceiptCount:
+        request.priorRetainedReceiptCount + receiptDigests.length,
+    };
+    const segment = Object.freeze({
+      ...segmentCore,
+      retentionRootDigest: hash(
+        EVOLUTION_WORKBENCH_METRICS_RETENTION_SCHEMA,
+        segmentCore,
+      ),
+    });
+    const head = this._verifyLedger();
+    const published = this._putCanonical(
+      "evolution-workbench-metrics-receipt-retention",
+      segment,
+      {
+        audience: this.descriptor.audience,
+        purpose: this.descriptor.purpose,
+        retention: "ledger",
+      },
+    );
+    if (
+      !published?.ref ||
+      published.receipt?.persisted !== true ||
+      published.receipt?.readbackVerified !== true ||
+      published.receipt?.integrityVerified !== true ||
+      published.receipt?.retention !== "ledger"
+    ) {
+      fail("Workbench metrics retention artifact was not durably read back");
+    }
+    const eventId = `workbench.metrics.retention.${segment.retentionRootDigest.slice("sha256:".length)}`;
+    const receipt = this._appendDomainEvent(
+      {
+        artifactTenantId: this.descriptor.artifactTenantId,
+        correlationId: this.descriptor.evolutionRunId,
+        decision: "committed",
+        eventId,
+        reason: `${receiptDigests.length} Workbench receipt digests retained`,
+        skillName: this.descriptor.skillName,
+        sourceRefs: latest ? [latest.event.subjectRef] : [],
+        subjectRef: published.ref,
+        tenantId: this.descriptor.tenantId,
+        timestamp: request.throughAt,
+        type: EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT,
+      },
+      { expectedHeadDigest: head.headDigest, expectedSequence: head.sequence },
+    );
+    if (
+      receipt?.authenticated !== true ||
+      receipt.committed !== true ||
+      receipt.durable !== true ||
+      receipt.eventId !== eventId ||
+      !DIGEST.test(receipt.receiptDigest ?? "")
+    ) {
+      fail("Workbench metrics retention ledger append was not durable");
+    }
+    const stored = this._retentionChain(segment.retentionRootDigest).at(-1);
+    if (stored?.segment.retentionRootDigest !== segment.retentionRootDigest) {
+      fail("Workbench metrics retention readback differs after commit");
+    }
+    return Object.freeze({
+      authenticated: true,
+      durable: true,
+      recovered: false,
+      priorRetentionRootDigest: request.priorRetentionRootDigest,
+      retainedReceiptCount: segment.retainedReceiptCount,
+      retentionRootDigest: segment.retentionRootDigest,
+      batchDigest,
+      ledgerReceiptDigest: receipt.receiptDigest,
+    });
+  };
+
+  queryRetainedReceiptDigests = (request = {}) => {
+    if (
+      request.tenantId !== this.descriptor.tenantId ||
+      request.evolutionRunId !== this.descriptor.evolutionRunId ||
+      request.skillName !== this.descriptor.skillName ||
+      !DIGEST.test(request.retentionRootDigest ?? "") ||
+      !Array.isArray(request.receiptDigests) ||
+      request.receiptDigests.length > 10_000 ||
+      request.receiptDigests.some((item) => !DIGEST.test(item))
+    ) {
+      throw new TypeError("Workbench metrics retention query is invalid");
+    }
+    const retained = new Set();
+    for (const { segment } of this._retentionChain(
+      request.retentionRootDigest,
+    )) {
+      for (const value of segment.receiptDigests) retained.add(value);
+    }
+    return Object.freeze({
+      authenticated: true,
+      durable: true,
+      retentionRootDigest: request.retentionRootDigest,
+      queryDigest: digestEvolutionWorkbenchMetricsRetentionQuery(request),
+      matches: Object.freeze(
+        request.receiptDigests.map((value) => retained.has(value)),
+      ),
+    });
   };
 
   commitSnapshot = ({ expectedSnapshotDigest, snapshot } = {}) => {
@@ -185,6 +508,15 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
     ) {
       fail("Workbench metrics snapshot does not extend current state");
     }
+    const retention = verified.retentionRootDigest
+      ? this._retentionChain(verified.retentionRootDigest).at(-1)
+      : null;
+    if (
+      (retention?.segment.retainedReceiptCount ?? 0) !==
+      (verified.retainedReceiptCount ?? 0)
+    ) {
+      fail("Workbench metrics snapshot retention binding is invalid");
+    }
     const head = this._verifyLedger();
     const published = this._putCanonical(
       "evolution-workbench-metrics-snapshot",
@@ -213,7 +545,10 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
         eventId,
         reason: `Workbench metrics revision ${verified.revision} committed`,
         skillName: this.descriptor.skillName,
-        sourceRefs: latest ? [latest.event.subjectRef] : [],
+        sourceRefs: [
+          ...(latest ? [latest.event.subjectRef] : []),
+          ...(retention ? [retention.event.subjectRef] : []),
+        ],
         subjectRef: published.ref,
         tenantId: this.descriptor.tenantId,
         timestamp: verified.throughAt,
@@ -251,6 +586,9 @@ export class EvolutionWorkbenchMetricsLedgerAdapter {
       loadSnapshot: this.loadSnapshot,
       readReceiptDelta,
       commitSnapshot: this.commitSnapshot,
+      retainReceiptDigests: this.retainReceiptDigests,
+      queryRetainedReceiptDigests: this.queryRetainedReceiptDigests,
     });
   }
 }
+import { createHash } from "node:crypto";

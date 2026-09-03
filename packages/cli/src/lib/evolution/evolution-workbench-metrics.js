@@ -8,6 +8,7 @@ export const EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
   "chainlesschain.evolution-workbench-metrics-snapshot/v1";
 export const EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS = 100_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_DELTA = 10_000;
+export const EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS = 10_000;
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
@@ -62,6 +63,8 @@ export function createEmptyEvolutionWorkbenchMetricsSnapshot(
     priorSnapshotDigest: null,
     sourceDigest: null,
     throughAt: null,
+    retainedReceiptCount: 0,
+    retentionRootDigest: null,
     receiptDigests: [],
     versions: [],
   };
@@ -87,6 +90,42 @@ export function digestEvolutionWorkbenchMetricsDelta({
   });
 }
 
+export function digestEvolutionWorkbenchMetricsRetentionBatch({
+  tenantId,
+  evolutionRunId,
+  skillName,
+  priorRetentionRootDigest,
+  priorRetainedReceiptCount,
+  throughAt,
+  receiptDigests,
+}) {
+  return hash("chainlesschain.evolution-workbench-metrics-retention-batch/v1", {
+    tenantId,
+    evolutionRunId,
+    skillName,
+    priorRetentionRootDigest,
+    priorRetainedReceiptCount,
+    throughAt,
+    receiptDigests: [...receiptDigests].sort(),
+  });
+}
+
+export function digestEvolutionWorkbenchMetricsRetentionQuery({
+  tenantId,
+  evolutionRunId,
+  skillName,
+  retentionRootDigest,
+  receiptDigests,
+}) {
+  return hash("chainlesschain.evolution-workbench-metrics-retention-query/v1", {
+    tenantId,
+    evolutionRunId,
+    skillName,
+    retentionRootDigest,
+    receiptDigests,
+  });
+}
+
 export function verifyEvolutionWorkbenchMetricsSnapshot(
   value,
   { tenantId, evolutionRunId, skillName },
@@ -105,6 +144,16 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
     value.versions.length > EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS
   ) {
     throw new TypeError("Workbench metrics snapshot is invalid");
+  }
+  const retainedReceiptCount = value.retainedReceiptCount ?? 0;
+  const retentionRootDigest = value.retentionRootDigest ?? null;
+  if (
+    !Number.isSafeInteger(retainedReceiptCount) ||
+    retainedReceiptCount < 0 ||
+    (retainedReceiptCount === 0 && retentionRootDigest !== null) ||
+    (retainedReceiptCount > 0 && !DIGEST.test(retentionRootDigest ?? ""))
+  ) {
+    throw new TypeError("Workbench metrics retention state is invalid");
   }
   for (const receiptDigest of value.receiptDigests)
     digest(receiptDigest, "receipt digest");
@@ -143,11 +192,11 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   return freeze(structuredClone(value));
 }
 
-function nextSnapshot(previous, source, receipts) {
+function nextSnapshot(previous, source, receipts, retention) {
   if (source.priorSourceDigest !== previous.sourceDigest) {
     throw new Error("Workbench metrics source lineage is discontinuous");
   }
-  const seen = new Set(previous.receiptDigests);
+  const seen = new Set(retention.hotReceiptDigests);
   const versions = new Map(
     previous.versions.map((entry) => [
       entry.contentDigest,
@@ -197,6 +246,8 @@ function nextSnapshot(previous, source, receipts) {
     priorSnapshotDigest: previous.snapshotDigest,
     sourceDigest: source.sourceDigest,
     throughAt: source.throughAt,
+    retainedReceiptCount: retention.retainedReceiptCount,
+    retentionRootDigest: retention.retentionRootDigest,
     receiptDigests: [...seen].sort(),
     versions: [...versions.values()].sort((left, right) =>
       left.contentDigest.localeCompare(right.contentDigest),
@@ -209,7 +260,13 @@ function nextSnapshot(previous, source, receipts) {
 }
 
 export class EvolutionWorkbenchMetricsAggregator {
-  constructor({ tenantId, evolutionRunId, skillName, ports } = {}) {
+  constructor({
+    tenantId,
+    evolutionRunId,
+    skillName,
+    hotReceiptLimit = EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS,
+    ports,
+  } = {}) {
     this.descriptor = freeze({
       tenantId: string(tenantId, "tenantId"),
       evolutionRunId: string(evolutionRunId, "evolutionRunId"),
@@ -221,6 +278,22 @@ export class EvolutionWorkbenchMetricsAggregator {
       }
       this[`_${name}`] = ports[name].bind(ports);
     }
+    if (
+      !Number.isSafeInteger(hotReceiptLimit) ||
+      hotReceiptLimit < 1 ||
+      hotReceiptLimit > EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS
+    ) {
+      throw new TypeError("Workbench metrics hot receipt limit is invalid");
+    }
+    this.hotReceiptLimit = hotReceiptLimit;
+    this._retainReceiptDigests =
+      typeof ports?.retainReceiptDigests === "function"
+        ? ports.retainReceiptDigests.bind(ports)
+        : null;
+    this._queryRetainedReceiptDigests =
+      typeof ports?.queryRetainedReceiptDigests === "function"
+        ? ports.queryRetainedReceiptDigests.bind(ports)
+        : null;
   }
 
   async aggregate() {
@@ -288,7 +361,80 @@ export class EvolutionWorkbenchMetricsAggregator {
     ) {
       throw new Error("Workbench metrics delta content or window is invalid");
     }
-    const snapshot = nextSnapshot(previous, source, receipts);
+    const receiptDigests = receipts.map(({ receiptDigest }) => receiptDigest);
+    const hotReceiptDigests = new Set(previous.receiptDigests);
+    if (receiptDigests.some((value) => hotReceiptDigests.has(value))) {
+      throw new Error("Workbench metrics source replayed a receipt");
+    }
+    const retainedReceiptCount = previous.retainedReceiptCount ?? 0;
+    const retentionRootDigest = previous.retentionRootDigest ?? null;
+    if (retainedReceiptCount > 0) {
+      if (!this._queryRetainedReceiptDigests) {
+        throw new Error("Workbench metrics retention query port is required");
+      }
+      const query = {
+        ...this.descriptor,
+        retentionRootDigest,
+        receiptDigests,
+      };
+      const checked = await this._queryRetainedReceiptDigests(query);
+      if (
+        checked?.authenticated !== true ||
+        checked.durable !== true ||
+        checked.retentionRootDigest !== retentionRootDigest ||
+        checked.queryDigest !==
+          digestEvolutionWorkbenchMetricsRetentionQuery(query) ||
+        !Array.isArray(checked.matches) ||
+        checked.matches.length !== receiptDigests.length ||
+        checked.matches.some((match) => typeof match !== "boolean")
+      ) {
+        throw new Error(
+          "Workbench metrics retention query is not authoritative",
+        );
+      }
+      if (checked.matches.some(Boolean)) {
+        throw new Error("Workbench metrics source replayed a retained receipt");
+      }
+    }
+    let retention = {
+      retainedReceiptCount,
+      retentionRootDigest,
+      hotReceiptDigests: previous.receiptDigests,
+    };
+    if (
+      previous.receiptDigests.length + receipts.length >
+      this.hotReceiptLimit
+    ) {
+      if (!this._retainReceiptDigests) {
+        throw new Error("Workbench metrics retention commit port is required");
+      }
+      const batch = {
+        ...this.descriptor,
+        priorRetentionRootDigest: retentionRootDigest,
+        priorRetainedReceiptCount: retainedReceiptCount,
+        throughAt: previous.throughAt,
+        receiptDigests: previous.receiptDigests,
+      };
+      const retained = await this._retainReceiptDigests(batch);
+      if (
+        retained?.authenticated !== true ||
+        retained.durable !== true ||
+        retained.priorRetentionRootDigest !== retentionRootDigest ||
+        retained.batchDigest !==
+          digestEvolutionWorkbenchMetricsRetentionBatch(batch) ||
+        !DIGEST.test(retained.retentionRootDigest ?? "") ||
+        retained.retainedReceiptCount !==
+          retainedReceiptCount + previous.receiptDigests.length
+      ) {
+        throw new Error("Workbench metrics receipt retention was not durable");
+      }
+      retention = {
+        retainedReceiptCount: retained.retainedReceiptCount,
+        retentionRootDigest: retained.retentionRootDigest,
+        hotReceiptDigests: [],
+      };
+    }
+    const snapshot = nextSnapshot(previous, source, receipts, retention);
     const committed = await this._commitSnapshot({
       ...this.descriptor,
       expectedSnapshotDigest: previous.snapshotDigest,

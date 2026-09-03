@@ -16,7 +16,10 @@ import {
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
-import { EvolutionWorkbenchMetricsLedgerAdapter } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
+import {
+  EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT,
+  EvolutionWorkbenchMetricsLedgerAdapter,
+} from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import {
   EvolutionWorkbenchMetricsAggregator,
   digestEvolutionWorkbenchMetricsDelta,
@@ -351,7 +354,7 @@ function delta(receipts, priorSourceDigest = null, index = 1) {
 }
 
 describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
-  it("recovers the same metrics snapshot through real Ledger files and witness", async () => {
+  it("recovers compacted metrics through real Ledger files and witness", async () => {
     const value = backends();
     const witness = durableWitness("witness-workbench-metrics-integration");
     const firstLedger = openRealLedger(value, witness);
@@ -366,8 +369,23 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       tenantId: descriptor.tenantId,
       evolutionRunId: descriptor.evolutionRunId,
       skillName: descriptor.skillName,
+      hotReceiptLimit: 1,
       ports: firstAdapter.aggregatorPorts({
         readReceiptDelta: async () => source,
+      }),
+    }).aggregate();
+    const secondSource = delta(
+      [invocation("real-2", D("content:real"))],
+      source.sourceDigest,
+      2,
+    );
+    const second = await new EvolutionWorkbenchMetricsAggregator({
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      hotReceiptLimit: 1,
+      ports: firstAdapter.aggregatorPorts({
+        readReceiptDelta: async () => secondSource,
       }),
     }).aggregate();
 
@@ -380,12 +398,33 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     });
     expect(reopenedAdapter.loadSnapshot()).toMatchObject({
       found: true,
-      snapshot: { snapshotDigest: first.snapshotDigest, revision: 1 },
+      snapshot: {
+        snapshotDigest: second.snapshotDigest,
+        priorSnapshotDigest: first.snapshotDigest,
+        retainedReceiptCount: 1,
+        revision: 2,
+      },
     });
     expect(reopenedLedger.verify()).toMatchObject({
-      eventCount: 1,
-      sequence: 1,
+      eventCount: 3,
+      sequence: 3,
     });
+    const replaySource = delta(
+      [source.receipts[0]],
+      secondSource.sourceDigest,
+      3,
+    );
+    await expect(
+      new EvolutionWorkbenchMetricsAggregator({
+        tenantId: descriptor.tenantId,
+        evolutionRunId: descriptor.evolutionRunId,
+        skillName: descriptor.skillName,
+        hotReceiptLimit: 1,
+        ports: reopenedAdapter.aggregatorPorts({
+          readReceiptDelta: async () => replaySource,
+        }),
+      }).aggregate(),
+    ).rejects.toThrow("replayed a retained receipt");
   });
 
   it("persists an immutable metrics snapshot and recovers it in a new adapter", async () => {
@@ -445,6 +484,98 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     expect(value.state.events[1].sourceRefs).toEqual([
       value.state.events[0].subjectRef,
     ]);
+  });
+
+  it("archives hot receipt digests and rejects their replay after reopen", async () => {
+    const value = backends();
+    const contentDigest = D("content:retained");
+    const firstReceipt = invocation("retained-1", contentDigest);
+    const firstSource = delta([firstReceipt]);
+    const first = await new EvolutionWorkbenchMetricsAggregator({
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      hotReceiptLimit: 1,
+      ports: adapter(value).aggregatorPorts({
+        readReceiptDelta: async () => firstSource,
+      }),
+    }).aggregate();
+    const secondSource = delta(
+      [invocation("retained-2", contentDigest)],
+      firstSource.sourceDigest,
+      2,
+    );
+    const second = await new EvolutionWorkbenchMetricsAggregator({
+      tenantId: descriptor.tenantId,
+      evolutionRunId: descriptor.evolutionRunId,
+      skillName: descriptor.skillName,
+      hotReceiptLimit: 1,
+      ports: adapter(value).aggregatorPorts({
+        readReceiptDelta: async () => secondSource,
+      }),
+    }).aggregate();
+    expect(second).toMatchObject({
+      revision: 2,
+      priorSnapshotDigest: first.snapshotDigest,
+      retainedReceiptCount: 1,
+    });
+    expect(second.retentionRootDigest).toMatch(/^sha256:/u);
+    expect(second.receiptDigests).toHaveLength(1);
+    const reopened = adapter(value);
+    expect(reopened.loadSnapshot()).toMatchObject({
+      snapshot: {
+        retainedReceiptCount: 1,
+        retentionRootDigest: second.retentionRootDigest,
+      },
+    });
+    const replaySource = delta([firstReceipt], secondSource.sourceDigest, 3);
+    await expect(
+      new EvolutionWorkbenchMetricsAggregator({
+        tenantId: descriptor.tenantId,
+        evolutionRunId: descriptor.evolutionRunId,
+        skillName: descriptor.skillName,
+        hotReceiptLimit: 1,
+        ports: reopened.aggregatorPorts({
+          readReceiptDelta: async () => replaySource,
+        }),
+      }).aggregate(),
+    ).rejects.toThrow("replayed a retained receipt");
+    const retentionEvent = value.state.events.find(
+      ({ type }) => type === EVOLUTION_WORKBENCH_METRICS_RETENTION_LEDGER_EVENT,
+    );
+    retentionEvent.subjectRef = {
+      ...retentionEvent.subjectRef,
+      digest: D("substituted-retention"),
+    };
+    expect(() => adapter(value).loadSnapshot()).toThrow(
+      "artifact envelope is not bound",
+    );
+  });
+
+  it("recovers an identical retention append after acknowledgement loss", () => {
+    const value = backends();
+    const opened = adapter(value);
+    const receiptDigest = invocation(
+      "ack-loss",
+      D("content:ack-loss"),
+    ).receiptDigest;
+    const request = {
+      ...descriptor,
+      priorRetentionRootDigest: null,
+      priorRetainedReceiptCount: 0,
+      throughAt: "2026-09-03T01:00:00.000Z",
+      receiptDigests: [receiptDigest],
+    };
+    const first = opened.retainReceiptDigests(request);
+    const recovered = adapter(value).retainReceiptDigests(request);
+    expect(recovered).toMatchObject({
+      authenticated: true,
+      durable: true,
+      recovered: true,
+      retentionRootDigest: first.retentionRootDigest,
+      retainedReceiptCount: 1,
+    });
+    expect(value.state.events).toHaveLength(1);
   });
 
   it("rejects a substituted ledger subject before returning a snapshot", async () => {
