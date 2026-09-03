@@ -77,7 +77,13 @@ Agent runtime event
 
 1. 建立 `SessionEnd` / `GoalEnd` / `ScheduledBatch` 的 durable Maintainer trigger 与 transition adapter。
 2. 将旧学习表数据显式迁移到认证 evidence/Wiki 输入，或标记为 legacy/untrusted 并限定用途。
-3. 把公式型评分和 `evolution train-v2` 命名彻底限定为 metrics，不能显示为真实模型训练成功。
-4. 完成目标部署的 KMS/PKI/policy/witness authority 与 reviewer/promotion 生产接线。
+3. 完成目标部署的 KMS/PKI/policy/witness authority 与 reviewer/promotion 生产接线。
+
+公式型训练壳已于 2026-09-03 收口：公开 CLI 使用
+`record-model-metrics`、`record-training-metrics-v2` 和
+`training-metrics-v2`；记录明确返回 `performedTraining=false`，V2 只把
+调用者给出的 loss 投影为 `retentionAssessment`，不再返回 `completed`
+或自动产生 `KNOWLEDGE_EXPANSION`。旧 JavaScript 函数名只作为 deprecated
+兼容别名保留，并复用相同的 metrics-only 结果。
 
 历史“4 个学习 Hook 已接入、SessionEnd 自动反思、P0-P3 全部完成”的设计内容仍可从 Git 记录查阅，但不再属于当前产品事实。

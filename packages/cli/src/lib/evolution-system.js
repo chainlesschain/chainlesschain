@@ -108,7 +108,7 @@ export function loadFromDb(db) {
     } catch {
       parameters = {};
     }
-    // keyed by id (matches trainIncremental modelId)
+    // keyed by id (matches recordIncrementalModelMetrics modelId)
     models.set(row.id, {
       id: row.id,
       name: row.name,
@@ -220,10 +220,19 @@ export function assessCapability(db, name, score, category = "general") {
 }
 
 /**
- * Incremental learning — train a model with new data.
- * Accuracy formula: min(0.99, accuracy + 0.01 * log(1 + dataPoints))
+ * Record a synthetic model metric projection.
+ *
+ * This does not load a model, execute a trainer, update weights, or evaluate
+ * predictions. The legacy `accuracy` column is retained for database
+ * compatibility and stores only this formula estimate:
+ * min(0.99, previousEstimate + 0.01 * log(1 + dataPoints)).
  */
-export function trainIncremental(db, modelId, newData, options = {}) {
+export function recordIncrementalModelMetrics(
+  db,
+  modelId,
+  newData,
+  options = {},
+) {
   ensureEvolutionTables(db);
   loadFromDb(db);
 
@@ -261,11 +270,11 @@ export function trainIncremental(db, modelId, newData, options = {}) {
     JSON.stringify(model.parameters),
   );
 
-  // Log growth event
+  // Record an observation, not evidence that training or evaluation occurred.
   const logEntry = {
     id: crypto.randomUUID(),
-    eventType: "model-training",
-    description: `Trained ${modelId}: +${dataSize} data points, accuracy=${model.accuracy.toFixed(4)}`,
+    eventType: "model-metrics-recorded",
+    description: `Recorded formula metrics for ${modelId}: +${dataSize} data points, estimate=${model.accuracy.toFixed(4)}`,
     capabilityId: null,
     delta: dataSize,
     timestamp: new Date().toISOString(),
@@ -284,7 +293,20 @@ export function trainIncremental(db, modelId, newData, options = {}) {
     logEntry.timestamp,
   );
 
-  return { ...model };
+  return {
+    ...model,
+    metricKind: "synthetic-formula-estimate",
+    status: "metrics_recorded",
+    performedTraining: false,
+  };
+}
+
+/**
+ * @deprecated Use recordIncrementalModelMetrics. This compatibility alias does
+ * not train a model and returns the same metrics-only record.
+ */
+export function trainIncremental(db, modelId, newData, options = {}) {
+  return recordIncrementalModelMetrics(db, modelId, newData, options);
 }
 
 /**
@@ -435,7 +457,7 @@ export function selfRepair(db, issue) {
       break;
     }
     case "degraded-model": {
-      // Reset low-accuracy models to retrain
+      // Reset low formula estimates for fresh metric collection.
       for (const [, model] of models) {
         if (model.accuracy < 0.6) {
           model.accuracy = 0.5;
@@ -446,7 +468,7 @@ export function selfRepair(db, issue) {
           db.prepare(
             `UPDATE evolution_models SET accuracy = ?, data_points = ?, updated_at = datetime('now') WHERE id = ?`,
           ).run(model.accuracy, model.dataPoints, model.id);
-          actions.push(`Reset model ${model.id} for retraining`);
+          actions.push(`Reset metric record ${model.id} for reassessment`);
         }
       }
       break;
@@ -486,6 +508,7 @@ export function selfRepair(db, issue) {
  * Predict user behavior based on historical patterns.
  */
 export function predictBehavior(db, userId, options = {}) {
+  void options;
   ensureEvolutionTables(db);
   loadFromDb(db);
 
@@ -641,7 +664,7 @@ const TRAIN_STRATEGY = Object.freeze({
 });
 
 const _v2CapabilitiesByDim = new Map(); // dimension → { id, dimension, score, previousScore, trend, sampleCount, assessedAt, metadata }
-const _v2TrainingLog = []; // { id, strategy, dataSize, lossBefore, lossAfter, knowledgeRetention, durationMs, status, createdAt }
+const _v2TrainingMetricRecords = []; // caller-supplied losses plus derived retention assessment
 const _v2DiagnosisById = new Map(); // diagnosisId → { id, scope, severity, anomaliesDetected, rootCause, repairSuggestion, repairStatus, repairedAt, createdAt }
 const _v2Milestones = []; // { id, type, description, capabilityId?, details, timestamp }
 const _v2Config = {
@@ -721,7 +744,11 @@ export function listCapabilitiesV2() {
     .sort((a, b) => a.dimension.localeCompare(b.dimension));
 }
 
-export function trainIncrementalV2({
+/**
+ * Record caller-supplied before/after loss metrics and derive a retention
+ * ratio. No training, model mutation, or independent evaluation occurs.
+ */
+export function recordTrainingMetricsV2({
   strategy,
   dataSize,
   lossBefore,
@@ -750,29 +777,37 @@ export function trainIncrementalV2({
     lossAfter,
     knowledgeRetention,
     durationMs,
-    status:
+    retentionAssessment:
       knowledgeRetention >= _v2Config.knowledgeRetentionThreshold
-        ? "completed"
+        ? "threshold_met"
         : "retention_low",
+    status: "metrics_recorded",
+    performedTraining: false,
     createdAt: Date.now(),
   };
-  _v2TrainingLog.push(entry);
-  if (entry.status === "completed" && lossAfter < lossBefore) {
-    recordMilestone({
-      type: GROWTH_MILESTONE.KNOWLEDGE_EXPANSION,
-      description: `${strategy} training reduced loss ${lossBefore}→${lossAfter}`,
-      details: { strategy, dataSize, knowledgeRetention },
-    });
-  }
+  _v2TrainingMetricRecords.push(entry);
   return { ...entry };
 }
 
-export function listTrainingLogV2({ strategy, limit } = {}) {
-  let list = [..._v2TrainingLog];
+/**
+ * @deprecated Use recordTrainingMetricsV2. This compatibility alias records
+ * metrics only and never reports training completion.
+ */
+export function trainIncrementalV2(options) {
+  return recordTrainingMetricsV2(options);
+}
+
+export function listTrainingMetricRecordsV2({ strategy, limit } = {}) {
+  let list = [..._v2TrainingMetricRecords];
   if (strategy) list = list.filter((e) => e.strategy === strategy);
   list.sort((a, b) => b.createdAt - a.createdAt);
   if (Number.isFinite(limit) && limit > 0) list = list.slice(0, limit);
   return list;
+}
+
+/** @deprecated Use listTrainingMetricRecordsV2. */
+export function listTrainingLogV2({ strategy, limit } = {}) {
+  return listTrainingMetricRecordsV2({ strategy, limit });
 }
 
 export function selfDiagnoseV2({ scope = "system", depth = "shallow" } = {}) {
@@ -793,9 +828,9 @@ export function selfDiagnoseV2({ scope = "system", depth = "shallow" } = {}) {
     }
   }
 
-  // Training retention anomalies
-  const recentTrain = _v2TrainingLog.slice(-10);
-  const lowRetention = recentTrain.filter(
+  // Retention anomalies in caller-supplied metric records.
+  const recentMetricRecords = _v2TrainingMetricRecords.slice(-10);
+  const lowRetention = recentMetricRecords.filter(
     (t) => t.knowledgeRetention < _v2Config.knowledgeRetentionThreshold,
   );
   if (lowRetention.length >= 3) {
@@ -814,7 +849,7 @@ export function selfDiagnoseV2({ scope = "system", depth = "shallow" } = {}) {
       rootCause = `Capability ${top.dimension} dropped sharply`;
       repairSuggestion = REPAIR_STRATEGY.PARAMETER_TUNE;
     } else if (top.type === "catastrophic_forgetting") {
-      rootCause = "Knowledge retention below threshold in recent training";
+      rootCause = "Derived retention below threshold in recent metric records";
       repairSuggestion = REPAIR_STRATEGY.MODEL_ROLLBACK;
     }
   }
@@ -1028,7 +1063,7 @@ export function getEvolutionStatsV2() {
   }
   return {
     capabilityCount: _v2CapabilitiesByDim.size,
-    trainingRuns: _v2TrainingLog.length,
+    trainingMetricRecords: _v2TrainingMetricRecords.length,
     diagnoses: { total: _v2DiagnosisById.size, bySeverity },
     milestones: { total: _v2Milestones.length, byType: byMilestone },
   };
@@ -1036,7 +1071,7 @@ export function getEvolutionStatsV2() {
 
 export function _resetV2State() {
   _v2CapabilitiesByDim.clear();
-  _v2TrainingLog.length = 0;
+  _v2TrainingMetricRecords.length = 0;
   _v2DiagnosisById.clear();
   _v2Milestones.length = 0;
   _v2Config.enabled = true;

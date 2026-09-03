@@ -71,10 +71,10 @@ describe("E2E: numeric option validation (no NaN threading)", () => {
     expect(() => JSON.parse(r.stdout)).not.toThrow();
   });
 
-  it("fails loudly on a non-numeric float option (evolution train-v2 --data-size)", () => {
+  it("fails loudly on a non-numeric float option (evolution record-training-metrics-v2 --data-size)", () => {
     const r = run([
       "evolution",
-      "train-v2",
+      "record-training-metrics-v2",
       "--strategy",
       "replay",
       "--data-size",

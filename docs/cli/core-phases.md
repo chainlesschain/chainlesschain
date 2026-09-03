@@ -265,7 +265,7 @@ JSON workflow import/export.
 
 ```bash
 chainlesschain sandbox create / exec / audit
-chainlesschain evolution assess / diagnose / learn
+chainlesschain evolution assess / diagnose / record-model-metrics
 chainlesschain evomap federation list-hubs / sync / pressure
 chainlesschain evomap gov propose / vote / dashboard
 chainlesschain dao propose / vote / delegate / execute / treasury / stats
@@ -277,7 +277,7 @@ Strictly-additive V2 layer on top of the pre-existing `evolution` command.
 Adds four frozen canonical enums (6 capability dimensions / 4 diagnosis
 severities / 4 repair strategies / 4 growth milestone types), dimension-
 validated capability assessment with auto-milestone on ≥0.1 gain, strategy-
-aware incremental training with knowledge-retention ratio, severity-bucketed
+aware caller-supplied loss metrics with a derived retention ratio, severity-bucketed
 self-diagnosis with root cause + repair suggestion, strategy-validated
 self-repair that marks diagnoses completed, horizon-aware behavior
 prediction, and config CRUD over 10 keys.
@@ -290,8 +290,8 @@ chainlesschain evolution milestones                  # capability_gain/knowledge
 
 chainlesschain evolution assess-v2 <dim> <score> [-m '{}']       # validates dim ∈ enum, score ∈ [0,1]
 chainlesschain evolution capabilities-v2 [--json]
-chainlesschain evolution train-v2 -s <strategy> --data-size N --loss-before N --loss-after N # metrics-only; does not train weights
-chainlesschain evolution training-log-v2 [-s strategy] [-l N]
+chainlesschain evolution record-training-metrics-v2 -s <strategy> --data-size N --loss-before N --loss-after N
+chainlesschain evolution training-metrics-v2 [-s strategy] [-l N]
 chainlesschain evolution diagnose-v2 [--scope s] [--depth d]     # returns severity + rootCause + repairSuggestion
 chainlesschain evolution diagnoses-v2 [-s severity]
 chainlesschain evolution diagnosis-show <id>
@@ -304,12 +304,14 @@ chainlesschain evolution config [--json]
 chainlesschain evolution stats-v2                                # byDimension + bySeverity + byMilestone
 ```
 
-**Knowledge retention**: `retention = 1 − |lossAfter − lossBefore| / max(|lossBefore|, 0.01)`,
-clamped to [0, 1]. Status `completed` when ≥ `knowledgeRetentionThreshold`,
-else `retention_low`.
+**Knowledge-retention metric**: `retention = 1 − |lossAfter − lossBefore| / max(|lossBefore|, 0.01)`,
+clamped to [0, 1]. `record-training-metrics-v2` always returns
+`status=metrics_recorded` and `performedTraining=false`; its separate
+`retentionAssessment` is `threshold_met` or `retention_low`. Caller-supplied
+losses do not create a `KNOWLEDGE_EXPANSION` milestone.
 
 **Diagnosis heuristics**: sharp capability drop ≥ 0.2 → WARNING +
-`parameter_tune`; 3+ recent training runs below retention threshold →
+`parameter_tune`; 3+ recent metric records below retention threshold →
 CRITICAL + `model_rollback`.
 
 **Scope / 未移植**: Real online learning (replay buffer + elastic weight
@@ -482,52 +484,69 @@ chainlesschain social graph analytics-stats
 > 为对齐项目用户文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
 
 ### 1. 概述
+
 见正文头部。CLI Phases 2-7 核心命令：init / persona / cowork 等核心命令。
 
 ### 2. 核心特性
+
 cc init / persona / cowork / 核心命令。
 
 ### 3. 系统架构
+
 见正文 / [系统架构](../design/系统设计_主文档.md)（三端 + 双后端 + P2P）。
 
 ### 4. 系统定位
+
 ChainlessChain 的「CLI 核心命令」。
 
 ### 5. 核心功能
+
 见正文各节。
 
 ### 6. 技术架构
+
 Electron + Vue3 / Spring Boot + FastAPI / libp2p + Signal / SQLCipher（按需）。
 
 ### 7. 系统特点
+
 见正文（步骤 / 版本 / 注意事项）。
 
 ### 8. 应用场景
+
 见正文使用场景。
 
 ### 9. 竞品对比
+
 见正文对比（如有）。
 
 ### 10. 配置参考
+
 见正文配置 / 环境变量章节；`.chainlesschain/config.json`。
 
 ### 11. 性能指标
+
 见正文性能 / 资源要求（如有）。
 
 ### 12. 测试覆盖
+
 见正文验证步骤（如有）。
 
 ### 13. 安全考虑
+
 见正文安全 / 密钥章节；本地加密 + U盾/SIMKey（如适用）。
 
 ### 14. 故障排除
+
 见正文故障排查 / 常见问题章节。
 
 ### 15. 关键文件
+
 见正文涉及的文件 / 目录。
 
 ### 16. 使用示例
+
 见正文命令 / 操作示例。
 
 ### 17. 相关文档
+
 [快速开始](./QUICK_START.md)、[安装指南](./INSTALLATION.md)、其它用户文档。

@@ -50,8 +50,13 @@ describe("EVO-P0-1 production truth surface", () => {
       "not model training or active Skill promotion",
     );
     expect(normalizedHelp).toContain(
-      "Record incremental model metrics (metrics-only)",
+      "Record a synthetic model metric estimate (no training)",
     );
+    expect(normalizedHelp).toContain(
+      "Record caller-supplied loss metrics (no training)",
+    );
+    expect(normalizedHelp).not.toContain(" learn ");
+    expect(normalizedHelp).not.toContain(" train-v2 ");
     expect(help).not.toContain("Self-evolving AI system");
     expect(learningHelp).toContain(
       "Learning records — trajectories, reflection, and governed candidate attempts",
@@ -65,7 +70,8 @@ describe("EVO-P0-1 production truth surface", () => {
     );
     expect(productDoc).toContain("`cc evolution`");
     expect(productDoc).toContain("active Skill");
-    expect(productDoc).toContain("`learn`/`train-v2`");
+    expect(productDoc).toContain("`record-model-metrics`");
+    expect(productDoc).toContain("`record-training-metrics-v2`");
     expect(productDoc).toContain("不更新模型权重");
     expect(productDoc).not.toContain("更新模型参数但保留已有知识");
   });

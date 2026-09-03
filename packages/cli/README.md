@@ -1214,13 +1214,15 @@ chainlesschain sandbox destroy <id>                    # Destroy sandbox
 
 ### `chainlesschain evolution <action>` (metrics/governance records; not model training)
 
-Self-evolving AI capability assessment and learning.
+Capability assessment, formula-metric records, and governance projections. It
+does not train model weights or mutate active Skills.
 
 ```bash
-chainlesschain evolution assess code-generation        # Assess capability
-chainlesschain evolution diagnose                      # Self-diagnosis
-chainlesschain evolution learn --domain nlp            # Incremental learning
-chainlesschain evolution status                        # Evolution status
+chainlesschain evolution assess code-generation                  # Assess capability
+chainlesschain evolution record-model-metrics model-1 --data '[]' # Formula estimate only
+chainlesschain evolution record-training-metrics-v2 \
+  --strategy replay --data-size 10 --loss-before .5 --loss-after .4
+chainlesschain evolution stats                                    # Recorded metrics
 ```
 
 ### `chainlesschain learning <action>`

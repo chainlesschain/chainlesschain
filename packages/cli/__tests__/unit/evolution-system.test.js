@@ -3,6 +3,7 @@ import { MockDatabase } from "../helpers/mock-db.js";
 import {
   ensureEvolutionTables,
   assessCapability,
+  recordIncrementalModelMetrics,
   trainIncremental,
   selfDiagnose,
   selfRepair,
@@ -20,8 +21,9 @@ import {
   assessCapabilityV2,
   getCapabilityV2,
   listCapabilitiesV2,
+  recordTrainingMetricsV2,
   trainIncrementalV2,
-  listTrainingLogV2,
+  listTrainingMetricRecordsV2,
   selfDiagnoseV2,
   getDiagnosisV2,
   listDiagnosesV2,
@@ -116,20 +118,25 @@ describe("evolution-system", () => {
     });
   });
 
-  // ─── trainIncremental ─────────────────────────────────────
+  // ─── model metric recording ───────────────────────────────
 
-  describe("trainIncremental", () => {
-    it("creates a new model", () => {
-      const result = trainIncremental(db, "model-1", [1, 2, 3]);
+  describe("recordIncrementalModelMetrics", () => {
+    it("creates a metrics-only model record", () => {
+      const result = recordIncrementalModelMetrics(db, "model-1", [1, 2, 3]);
       expect(result.id).toBe("model-1");
       expect(result.type).toBe("classification");
       expect(result.dataPoints).toBe(3);
       expect(result.accuracy).toBeGreaterThan(0.5);
+      expect(result).toMatchObject({
+        metricKind: "synthetic-formula-estimate",
+        status: "metrics_recorded",
+        performedTraining: false,
+      });
     });
 
-    it("increases accuracy with more data", () => {
-      const r1 = trainIncremental(db, "model-2", [1, 2, 3]);
-      const r2 = trainIncremental(db, "model-2", [4, 5, 6, 7, 8]);
+    it("increases the formula estimate with more data", () => {
+      const r1 = recordIncrementalModelMetrics(db, "model-2", [1, 2, 3]);
+      const r2 = recordIncrementalModelMetrics(db, "model-2", [4, 5, 6, 7, 8]);
       expect(r2.accuracy).toBeGreaterThan(r1.accuracy);
       expect(r2.dataPoints).toBe(8);
     });
@@ -137,27 +144,43 @@ describe("evolution-system", () => {
     it("caps accuracy at 0.99", () => {
       let result;
       for (let i = 0; i < 100; i++) {
-        result = trainIncremental(db, "model-3", Array(100).fill(1));
+        result = recordIncrementalModelMetrics(
+          db,
+          "model-3",
+          Array(100).fill(1),
+        );
       }
       expect(result.accuracy).toBeLessThanOrEqual(0.99);
     });
 
     it("respects model type option", () => {
-      const result = trainIncremental(db, "reg-model", [1], {
+      const result = recordIncrementalModelMetrics(db, "reg-model", [1], {
         type: "regression",
       });
       expect(result.type).toBe("regression");
     });
 
     it("handles single data item (non-array)", () => {
-      const result = trainIncremental(db, "model-4", "single-item");
+      const result = recordIncrementalModelMetrics(
+        db,
+        "model-4",
+        "single-item",
+      );
       expect(result.dataPoints).toBe(1);
     });
 
-    it("logs growth event on training", () => {
-      trainIncremental(db, "model-5", [1, 2]);
-      const log = getGrowthLog(db, { type: "model-training" });
+    it("logs a metrics-recorded event without claiming training", () => {
+      recordIncrementalModelMetrics(db, "model-5", [1, 2]);
+      const log = getGrowthLog(db, { type: "model-metrics-recorded" });
       expect(log.length).toBe(1);
+      expect(log[0].description).not.toMatch(/trained/i);
+    });
+
+    it("keeps the deprecated alias metrics-only", () => {
+      expect(trainIncremental(db, "legacy-model", [1])).toMatchObject({
+        status: "metrics_recorded",
+        performedTraining: false,
+      });
     });
   });
 
@@ -191,7 +214,7 @@ describe("evolution-system", () => {
     });
 
     it("detects degraded models", () => {
-      trainIncremental(db, "bad-model", [1]); // low accuracy
+      recordIncrementalModelMetrics(db, "bad-model", [1]); // low estimate
       const result = selfDiagnose(db);
       const modelComp = result.components.find((c) => c.name === "models");
       expect(modelComp).toBeDefined();
@@ -227,7 +250,7 @@ describe("evolution-system", () => {
     });
 
     it("handles degraded-model repair", () => {
-      trainIncremental(db, "weak-model", [1]); // low accuracy
+      recordIncrementalModelMetrics(db, "weak-model", [1]); // low estimate
       const result = selfRepair(db, "degraded-model");
       expect(result.actions.length).toBeGreaterThan(0);
 
@@ -280,7 +303,7 @@ describe("evolution-system", () => {
     it("predictions sorted by probability descending", () => {
       assessCapability(db, "a", 0.5);
       assessCapability(db, "b", 0.6);
-      trainIncremental(db, "m1", [1]);
+      recordIncrementalModelMetrics(db, "m1", [1]);
       const result = predictBehavior(db, "user-4");
       if (result.predictions.length >= 2) {
         expect(result.predictions[0].probability).toBeGreaterThanOrEqual(
@@ -304,17 +327,17 @@ describe("evolution-system", () => {
   describe("getGrowthLog", () => {
     it("returns all entries", () => {
       assessCapability(db, "a", 0.5);
-      trainIncremental(db, "m", [1]);
+      recordIncrementalModelMetrics(db, "m", [1]);
       const log = getGrowthLog(db);
       expect(log.length).toBe(2);
     });
 
     it("filters by type", () => {
       assessCapability(db, "a", 0.5);
-      trainIncremental(db, "m", [1]);
-      const log = getGrowthLog(db, { type: "model-training" });
+      recordIncrementalModelMetrics(db, "m", [1]);
+      const log = getGrowthLog(db, { type: "model-metrics-recorded" });
       expect(log.length).toBe(1);
-      expect(log[0].eventType).toBe("model-training");
+      expect(log[0].eventType).toBe("model-metrics-recorded");
     });
 
     it("respects limit", () => {
@@ -351,8 +374,10 @@ describe("evolution-system", () => {
     });
 
     it("returns registered models", () => {
-      trainIncremental(db, "m1", [1, 2]);
-      trainIncremental(db, "m2", [3, 4], { type: "regression" });
+      recordIncrementalModelMetrics(db, "m1", [1, 2]);
+      recordIncrementalModelMetrics(db, "m2", [3, 4], {
+        type: "regression",
+      });
       const mdls = getModels(db);
       expect(mdls.length).toBe(2);
     });
@@ -362,7 +387,7 @@ describe("evolution-system", () => {
 
   describe("exportModel", () => {
     it("exports model data", () => {
-      trainIncremental(db, "export-test", [1, 2, 3]);
+      recordIncrementalModelMetrics(db, "export-test", [1, 2, 3]);
       const exported = exportModel(db, "export-test");
       expect(exported.id).toBe("export-test");
       expect(exported.accuracy).toBeGreaterThan(0);
@@ -501,10 +526,10 @@ describe("evolution-system", () => {
     });
   });
 
-  describe("trainIncrementalV2", () => {
+  describe("recordTrainingMetricsV2", () => {
     it("rejects invalid strategy", () => {
       expect(() =>
-        trainIncrementalV2({
+        recordTrainingMetricsV2({
           strategy: "bogus",
           dataSize: 10,
           lossBefore: 0.5,
@@ -515,7 +540,7 @@ describe("evolution-system", () => {
 
     it("rejects non-finite loss values", () => {
       expect(() =>
-        trainIncrementalV2({
+        recordTrainingMetricsV2({
           strategy: "replay",
           dataSize: 10,
           lossBefore: NaN,
@@ -525,7 +550,7 @@ describe("evolution-system", () => {
     });
 
     it("computes knowledge retention ∈ [0, 1]", () => {
-      const r = trainIncrementalV2({
+      const r = recordTrainingMetricsV2({
         strategy: "elastic-weight",
         dataSize: 100,
         lossBefore: 0.5,
@@ -535,28 +560,33 @@ describe("evolution-system", () => {
       expect(r.knowledgeRetention).toBeLessThanOrEqual(1);
     });
 
-    it("marks completed when retention ≥ threshold", () => {
-      const r = trainIncrementalV2({
+    it("records threshold_met without claiming training completion", () => {
+      const r = recordTrainingMetricsV2({
         strategy: "elastic-weight",
         dataSize: 100,
         lossBefore: 0.5,
         lossAfter: 0.48,
       });
-      expect(r.status).toBe("completed");
+      expect(r).toMatchObject({
+        status: "metrics_recorded",
+        retentionAssessment: "threshold_met",
+        performedTraining: false,
+      });
     });
 
     it("marks retention_low when below threshold", () => {
-      const r = trainIncrementalV2({
+      const r = recordTrainingMetricsV2({
         strategy: "replay",
         dataSize: 100,
         lossBefore: 0.5,
         lossAfter: 0.1,
       });
-      expect(r.status).toBe("retention_low");
+      expect(r.status).toBe("metrics_recorded");
+      expect(r.retentionAssessment).toBe("retention_low");
     });
 
-    it("records KNOWLEDGE_EXPANSION milestone on loss reduction + completed", () => {
-      trainIncrementalV2({
+    it("does not infer a KNOWLEDGE_EXPANSION milestone from supplied losses", () => {
+      recordTrainingMetricsV2({
         strategy: "elastic-weight",
         dataSize: 100,
         lossBefore: 0.5,
@@ -565,25 +595,36 @@ describe("evolution-system", () => {
       const log = getGrowthLogV2({
         milestoneType: GROWTH_MILESTONE.KNOWLEDGE_EXPANSION,
       });
-      expect(log.length).toBe(1);
+      expect(log.length).toBe(0);
     });
 
-    it("listTrainingLogV2 filters by strategy and respects limit", () => {
-      trainIncrementalV2({
+    it("listTrainingMetricRecordsV2 filters by strategy and respects limit", () => {
+      recordTrainingMetricsV2({
         strategy: "replay",
         dataSize: 10,
         lossBefore: 0.5,
         lossAfter: 0.45,
       });
-      trainIncrementalV2({
+      recordTrainingMetricsV2({
         strategy: "elastic-weight",
         dataSize: 10,
         lossBefore: 0.4,
         lossAfter: 0.35,
       });
-      const list = listTrainingLogV2({ strategy: "replay" });
+      const list = listTrainingMetricRecordsV2({ strategy: "replay" });
       expect(list.length).toBe(1);
       expect(list[0].strategy).toBe("replay");
+    });
+
+    it("keeps the deprecated V2 alias metrics-only", () => {
+      const result = trainIncrementalV2({
+        strategy: "replay",
+        dataSize: 1,
+        lossBefore: 0.5,
+        lossAfter: 0.49,
+      });
+      expect(result.status).toBe("metrics_recorded");
+      expect(result.performedTraining).toBe(false);
     });
   });
 
@@ -603,9 +644,9 @@ describe("evolution-system", () => {
       expect(r.repairSuggestion).toBe(REPAIR_STRATEGY.PARAMETER_TUNE);
     });
 
-    it("flags CRITICAL on 3+ low-retention training runs", () => {
+    it("flags CRITICAL on 3+ low-retention metric records", () => {
       for (let i = 0; i < 3; i++) {
-        trainIncrementalV2({
+        recordTrainingMetricsV2({
           strategy: "replay",
           dataSize: 10,
           lossBefore: 0.5,
@@ -761,7 +802,7 @@ describe("evolution-system", () => {
 
     it("getEvolutionStatsV2 aggregates V2 state", () => {
       assessCapabilityV2({ dimension: "reasoning", score: 0.5 });
-      trainIncrementalV2({
+      recordTrainingMetricsV2({
         strategy: "replay",
         dataSize: 10,
         lossBefore: 0.5,
@@ -770,7 +811,8 @@ describe("evolution-system", () => {
       selfDiagnoseV2();
       const stats = getEvolutionStatsV2();
       expect(stats.capabilityCount).toBe(1);
-      expect(stats.trainingRuns).toBe(1);
+      expect(stats.trainingMetricRecords).toBe(1);
+      expect(stats).not.toHaveProperty("trainingRuns");
       expect(stats.diagnoses.total).toBe(1);
     });
 
@@ -789,7 +831,9 @@ describe("evolution-system", () => {
   describe("loadFromDb (cross-process hydration)", () => {
     it("makes capabilities, models and growth log visible after a fresh process", () => {
       assessCapability(db, "coding", 0.7, "engineering");
-      trainIncremental(db, "intent-classifier", [1, 2, 3], { name: "IC" });
+      recordIncrementalModelMetrics(db, "intent-classifier", [1, 2, 3], {
+        name: "IC",
+      });
 
       // Fresh `cc` process: in-memory stores wiped, DB persists.
       _resetState();

@@ -2,7 +2,7 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **版本边界（2026-09-02）**：既有 `cc evolution` 命令是指标与治理记录表面，不训练模型权重，也不修改 active Skill；其中 `learn`/`train-v2` 只记录调用者提供的数据量、loss 与公式化指标。受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语已进入 `0.166.16@15bd3636b8`，但尚未组成面向普通用户的生产自动晋级控制面。
+> **源码边界（2026-09-03）**：既有 `cc evolution` 命令是指标与治理记录表面，不训练模型权重，也不修改 active Skill；`record-model-metrics` / `record-training-metrics-v2` 只记录调用者提供的数据量、loss 与公式化指标。受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语尚未组成面向普通用户的生产自动晋级控制面。
 
 ## 核心特性
 
@@ -23,14 +23,14 @@ ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和
 
 ## 0.166.16 新增能力与 `cc evolution` 的关系
 
-新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/learn/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
+新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/record-model-metrics/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
 
-| 表面 | 负责什么 | 不负责什么 |
-| --- | --- | --- |
-| `cc evolution ...` | 能力评分、趋势、诊断、修复记录、模型参数导出 | 不创建或晋升 active Skill |
-| `cc learning synthesize` | 从合格 trajectory 提议并评测隔离候选 | 不直接安装、启用或回滚 Skill |
-| Desktop Skill Creator | 返回 Skill scaffold/description 候选、diff 和评测证据 | 不写 active Skill 树 |
-| Candidate/Eval/Ledger/Promotion foundation | 为可信宿主提供不可变候选、证据与事务原语 | 当前不是完整的最终用户控制台 |
+| 表面                                       | 负责什么                                              | 不负责什么                   |
+| ------------------------------------------ | ----------------------------------------------------- | ---------------------------- |
+| `cc evolution ...`                         | 能力评分、趋势、诊断、修复记录、模型参数导出          | 不创建或晋升 active Skill    |
+| `cc learning synthesize`                   | 从合格 trajectory 提议并评测隔离候选                  | 不直接安装、启用或回滚 Skill |
+| Desktop Skill Creator                      | 返回 Skill scaffold/description 候选、diff 和评测证据 | 不写 active Skill 树         |
+| Candidate/Eval/Ledger/Promotion foundation | 为可信宿主提供不可变候选、证据与事务原语              | 当前不是完整的最终用户控制台 |
 
 完整的新功能使用说明见[自进化 AI 系统：受治理的 Skill 候选生命周期](/chainlesschain/self-evolving-ai#新功能受治理的-skill-候选生命周期)。
 
@@ -46,15 +46,27 @@ chainlesschain evolution assess "translation" 0.72 --json
 
 对指定能力进行评估并记录得分（0-1 范围）。系统自动计算趋势方向，返回包含历史评估记录的完整结果。
 
-### evolution learn — 训练指标记录（metrics-only）
+### evolution record-model-metrics — 公式指标记录
 
 ```bash
-chainlesschain evolution learn <model-name> --data <json>
-chainlesschain evolution learn "classifier" --data '{"samples":[...]}'
-chainlesschain evolution learn "embedder" --data '{"texts":[...]}' --json
+chainlesschain evolution record-model-metrics <model-name> --data <json>
+chainlesschain evolution record-model-metrics "classifier" --data '[{"sample":1}]'
+chainlesschain evolution record-model-metrics "embedder" --data '[{"text":"x"}]' --json
 ```
 
-记录调用者为指定 model ID 提供的数据量、loss/accuracy 等公式化指标；该命令不加载训练框架、不更新模型权重，也不产出新的模型制品。
+记录调用者为指定 model ID 提供的数据量，并更新旧数据库 `accuracy` 列中的合成公式估计；该值不是独立评测准确率。结果明确包含 `metricKind=synthetic-formula-estimate`、`status=metrics_recorded` 和 `performedTraining=false`，不加载训练框架、不更新模型权重，也不产出新的模型制品。
+
+### evolution record-training-metrics-v2 — loss 指标记录
+
+```bash
+chainlesschain evolution record-training-metrics-v2 \
+  --strategy replay --data-size 100 --loss-before 0.5 --loss-after 0.4
+chainlesschain evolution training-metrics-v2 --strategy replay
+```
+
+根据调用者提供的 before/after loss 计算留存率。`status` 只表示
+`metrics_recorded`，`retentionAssessment` 为 `threshold_met` 或
+`retention_low`；该记录不会自动产生知识扩展里程碑。
 
 ### evolution diagnose — 自我诊断
 
@@ -115,7 +127,7 @@ chainlesschain evolution export "classifier" --format json
 chainlesschain evolution export "embedder" --json
 ```
 
-导出训练好的模型参数和配置，便于备份或迁移。
+导出模型指标记录和既有配置，便于备份或迁移；这不是训练后模型制品。
 
 ## 诊断维度
 
@@ -123,7 +135,7 @@ chainlesschain evolution export "embedder" --json
 | ------------ | ------------------------------ | ---------------------- |
 | memory       | 记忆完整性、容量使用、衰减状态 | 清理损坏条目、触发巩固 |
 | capabilities | 评分分布、趋势异常、长期未评估 | 重新基准评估           |
-| models       | 模型加载状态、响应延迟、准确率 | 重置参数、重新训练     |
+| models       | 模型记录数量与公式估计         | 重置低值指标记录       |
 | growth       | 成长速率、停滞检测、里程碑缺失 | 调整学习策略           |
 
 ## 数据库表
@@ -133,7 +145,7 @@ chainlesschain evolution export "embedder" --json
 | `evolution_capabilities` | 能力记录（名称、分类、得分、趋势、历史数据）   |
 | `evolution_growth_log`   | 成长日志（事件类型、能力名、变化详情、时间戳） |
 | `evolution_diagnoses`    | 诊断记录（维度、检查结果、建议、修复状态）     |
-| `evolution_models`       | 模型注册表（名称、版本、参数、训练状态）       |
+| `evolution_models`       | 兼容模型记录（名称、类型、公式估计、数据量）   |
 
 ## 系统架构
 
@@ -157,7 +169,9 @@ candidate store、mutation authority、promotion controller 与 release registry
 
 ```bash
 chainlesschain evolution assess <name> <score> [--category <cat>] [--json]
-chainlesschain evolution learn <model-name> --data <json> [--json]
+chainlesschain evolution record-model-metrics <model-name> --data <json> [--json]
+chainlesschain evolution record-training-metrics-v2 -s <strategy> --data-size <n> --loss-before <n> --loss-after <n> [--json]
+chainlesschain evolution training-metrics-v2 [-s <strategy>] [-l <n>] [--json]
 chainlesschain evolution diagnose [--area memory|capabilities|models|growth] [--json]
 chainlesschain evolution repair [--area <area>] [--json]
 chainlesschain evolution predict <capability-name> [--horizon <days>] [--json]
@@ -174,7 +188,7 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 | ----------------------------- | ------- | ----------- | ---- |
 | assess 能力评估（含趋势计算） | < 100ms | ~ 30ms      | ✅   |
 | diagnose 全四维度诊断         | < 500ms | ~ 150-250ms | ✅   |
-| learn 指标记录（50 条输入）   | < 3s    | ~ 1-2s      | ✅   |
+| 公式指标记录（50 条输入）     | < 3s    | ~ 1-2s      | ✅   |
 | predict 线性回归预测          | < 100ms | ~ 20ms      | ✅   |
 | growth 日志查询               | < 100ms | ~ 30ms      | ✅   |
 | stats 综合统计                | < 150ms | ~ 40ms      | ✅   |
@@ -223,7 +237,7 @@ chainlesschain evolution assess nlp-understanding --json
 
 ```bash
 # 为既有 model record 提交样本指标
-chainlesschain evolution learn nlp-model --data '[{"sample":1}]'
+chainlesschain evolution record-model-metrics nlp-model --data '[{"sample":1}]'
 
 # 查看记录的模型指标
 chainlesschain evolution stats --json | jq '.models'
@@ -251,13 +265,13 @@ chainlesschain evolution growth --limit 20
 
 ### 评估与学习问题
 
-| 症状                      | 可能原因                   | 解决方案                                         |
-| ------------------------- | -------------------------- | ------------------------------------------------ |
-| 能力评估始终返回 "stable" | 历史数据不足（<3条）       | 多次执行 `assess` 积累历史数据后趋势检测才能生效 |
-| 学习后精度未提升          | 样本数过少                 | 增加 `--samples` 参数值，建议 ≥50                |
-| 诊断结果全部 "healthy"    | 系统状态良好（非故障）     | 这是正常状态，无需处理                           |
-| 自修复无效果              | 无需修复的问题             | 查看 `diagnose` 结果确认具体问题                 |
-| 成长日志为空              | 未执行过 assess/learn 操作 | 先进行能力评估和学习操作                         |
+| 症状                      | 可能原因                  | 解决方案                                         |
+| ------------------------- | ------------------------- | ------------------------------------------------ |
+| 能力评估始终返回 "stable" | 历史数据不足（<3条）      | 多次执行 `assess` 积累历史数据后趋势检测才能生效 |
+| 公式估计被误认为准确率    | 旧数据库列名仍为 accuracy | 只把它当合成指标；准确率必须来自独立 Eval        |
+| 诊断结果全部 "healthy"    | 系统状态良好（非故障）    | 这是正常状态，无需处理                           |
+| 自修复无效果              | 无需修复的问题            | 查看 `diagnose` 结果确认具体问题                 |
+| 成长日志为空              | 尚未记录评估或指标        | 先执行 assess 或 record-model-metrics            |
 
 ### 常见错误
 
@@ -275,13 +289,13 @@ chainlesschain db init
 # 错误: "No models available for prediction"
 # 原因: 尚无可供公式投影的指标记录
 # 处理: 先为既有 model ID 记录输入指标（不会训练权重）
-chainlesschain evolution learn code-analysis --data '[{"sample":1}]'
+chainlesschain evolution record-model-metrics code-analysis --data '[{"sample":1}]'
 ```
 
 ## 安全考虑
 
 - **能力数据隐私**: 能力评估和学习数据存储在本地加密数据库中，不会上传至外部服务器
-- **指标记录边界**: `learn`/`train-v2` 只写指标记录，不执行模型权重训练；输入仍应按敏感数据处理
+- **指标记录边界**: `record-model-metrics` / `record-training-metrics-v2` 只写指标记录，不执行模型权重训练；输入仍应按敏感数据处理
 - **维护动作约束**: `repair` 仅执行显式 issue 对应的既有维护策略，不应被解释为自主修复或独立 Eval 通过
 - **诊断信息敏感性**: 诊断结果可能包含系统资源使用信息，`--json` 导出时注意不要泄露给不信任方
 - **成长日志审计**: 所有能力变化都记录在 `evolution_growth_log` 中，支持回溯分析异常变化

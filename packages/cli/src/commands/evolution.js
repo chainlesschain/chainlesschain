@@ -1,10 +1,10 @@
 /**
  * Evolution metrics and governance-record commands
- * chainlesschain evolution assess|learn|diagnose|repair|predict|growth|stats|export
+ * chainlesschain evolution assess|record-model-metrics|diagnose|repair|predict|growth|stats|export
  */
 
 import chalk from "chalk";
-import { intArg, floatArg } from "../lib/cli-arg.js";
+import { intArg } from "../lib/cli-arg.js";
 import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
@@ -12,7 +12,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   assessCapability,
-  trainIncremental,
+  recordIncrementalModelMetrics,
   selfDiagnose,
   selfRepair,
   predictBehavior,
@@ -26,10 +26,9 @@ import {
   REPAIR_STRATEGY,
   GROWTH_MILESTONE,
   assessCapabilityV2,
-  getCapabilityV2,
   listCapabilitiesV2,
-  trainIncrementalV2,
-  listTrainingLogV2,
+  recordTrainingMetricsV2,
+  listTrainingMetricRecordsV2,
   selfDiagnoseV2,
   getDiagnosisV2,
   listDiagnosesV2,
@@ -97,12 +96,12 @@ export function registerEvolutionCommand(program) {
       }
     });
 
-  // evolution learn <model-id>
+  // evolution record-model-metrics <model-id>
   evolution
-    .command("learn")
-    .description("Record incremental model metrics (metrics-only)")
+    .command("record-model-metrics")
+    .description("Record a synthetic model metric estimate (no training)")
     .argument("<model-id>", "Model record ID")
-    .option("--data <json>", "Training data as JSON array")
+    .option("--data <json>", "Observed data as JSON array")
     .option(
       "--type <type>",
       "Model type (classification|regression)",
@@ -123,13 +122,13 @@ export function registerEvolutionCommand(program) {
         if (options.data) {
           try {
             data = JSON.parse(options.data);
-          } catch (_err) {
+          } catch {
             // Use data string as single data point
             data = [options.data];
           }
         }
 
-        const result = trainIncremental(db, modelId, data, {
+        const result = recordIncrementalModelMetrics(db, modelId, data, {
           type: options.type,
         });
         spinner.succeed("Model metrics recorded");
@@ -139,8 +138,11 @@ export function registerEvolutionCommand(program) {
         } else {
           logger.log(chalk.bold(`Model: ${result.name}`));
           logger.log(`  Type:       ${result.type}`);
-          logger.log(`  Accuracy:   ${chalk.cyan(result.accuracy.toFixed(4))}`);
+          logger.log(
+            `  Formula Estimate: ${chalk.cyan(result.accuracy.toFixed(4))}`,
+          );
           logger.log(`  Data Points: ${result.dataPoints}`);
+          logger.log(`  Training Performed: ${result.performedTraining}`);
         }
 
         await shutdown();
@@ -389,7 +391,7 @@ export function registerEvolutionCommand(program) {
   // evolution export <model-id>
   evolution
     .command("export")
-    .description("Export a model for portability")
+    .description("Export a model metric record for portability")
     .argument("<model-id>", "Model ID to export")
     .option("--json", "Output as JSON")
     .action(async (modelId, options) => {
@@ -512,20 +514,20 @@ export function registerEvolutionCommand(program) {
     });
 
   evolution
-    .command("train-v2")
-    .description("Record V2 incremental training metrics (metrics-only)")
+    .command("record-training-metrics-v2")
+    .description("Record caller-supplied loss metrics (no training)")
     .requiredOption(
       "-s, --strategy <s>",
       "replay|elastic-weight|knowledge-distill",
     )
     .requiredOption("--data-size <n>", "Data size")
-    .requiredOption("--loss-before <n>", "Loss before training")
-    .requiredOption("--loss-after <n>", "Loss after training")
+    .requiredOption("--loss-before <n>", "Caller-reported loss before")
+    .requiredOption("--loss-after <n>", "Caller-reported loss after")
     .option("--duration-ms <n>", "Duration in ms", "0")
     .option("--json", "Output as JSON")
     .action((options) => {
       try {
-        const r = trainIncrementalV2({
+        const r = recordTrainingMetricsV2({
           strategy: options.strategy,
           dataSize: numericOption(options.dataSize, {
             name: "--data-size",
@@ -543,10 +545,11 @@ export function registerEvolutionCommand(program) {
         });
         if (options.json) console.log(JSON.stringify(r, null, 2));
         else {
-          logger.log(chalk.bold(`Training ${r.id}`));
+          logger.log(chalk.bold(`Metric Record ${r.id}`));
           logger.log(`  Strategy:          ${r.strategy}`);
           logger.log(`  KnowledgeRetention ${r.knowledgeRetention.toFixed(4)}`);
-          logger.log(`  Status:            ${r.status}`);
+          logger.log(`  Assessment:        ${r.retentionAssessment}`);
+          logger.log(`  Training Performed: ${r.performedTraining}`);
         }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
@@ -555,20 +558,23 @@ export function registerEvolutionCommand(program) {
     });
 
   evolution
-    .command("training-log-v2")
-    .description("List V2 training runs")
+    .command("training-metrics-v2")
+    .description("List V2 training metric records")
     .option("-s, --strategy <s>", "Filter by strategy")
     .option("-l, --limit <n>", "Limit")
     .option("--json", "Output as JSON")
     .action((options) => {
       const limit = options.limit ? parseInt(options.limit, 10) : undefined;
-      const list = listTrainingLogV2({ strategy: options.strategy, limit });
+      const list = listTrainingMetricRecordsV2({
+        strategy: options.strategy,
+        limit,
+      });
       if (options.json) console.log(JSON.stringify(list, null, 2));
       else {
-        if (list.length === 0) logger.log("(no training log)");
+        if (list.length === 0) logger.log("(no metric records)");
         for (const t of list) {
           logger.log(
-            `${new Date(t.createdAt).toISOString()} ${t.strategy.padEnd(20)} retention=${t.knowledgeRetention.toFixed(3)} status=${t.status}`,
+            `${new Date(t.createdAt).toISOString()} ${t.strategy.padEnd(20)} retention=${t.knowledgeRetention.toFixed(3)} assessment=${t.retentionAssessment}`,
           );
         }
       }
@@ -785,7 +791,7 @@ export function registerEvolutionCommand(program) {
       else {
         logger.log(chalk.bold("Evolution Stats V2"));
         logger.log(`  Capabilities: ${s.capabilityCount}`);
-        logger.log(`  TrainingRuns: ${s.trainingRuns}`);
+        logger.log(`  TrainingMetricRecords: ${s.trainingMetricRecords}`);
         logger.log(
           `  Diagnoses:    ${s.diagnoses.total} (${Object.entries(
             s.diagnoses.bySeverity,
