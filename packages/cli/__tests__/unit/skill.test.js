@@ -152,6 +152,10 @@ describe("skill command", () => {
       expect(routed.candidates.length).toBeLessThanOrEqual(5);
       expect(routed.candidates[0].digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
       expect(routed.candidates[0].reason).toContain("bm25=");
+      expect(routed.outcomeAuthority).toMatchObject({
+        schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+        status: expect.stringMatching(/^(verified|unavailable)$/u),
+      });
     });
 
     it("shows message when no results", () => {

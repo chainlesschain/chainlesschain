@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
  */
 public final class SkillRetrieval {
     public static final String SCHEMA = "chainlesschain.skill-retrieval-result/v1";
+    public static final String OUTCOME_AUTHORITY_SCHEMA =
+            "chainlesschain.skill-outcome-transcript-authority/v1";
     public static final int MAX_CANDIDATES = 64;
     public static final int MAX_REJECTIONS = 10_000;
     public static final int MAX_QUERY_LENGTH = 4_096;
@@ -57,16 +59,21 @@ public final class SkillRetrieval {
         public final boolean vectorAvailable;
         public final int conflictCount;
         public final int rejectedCount;
+        public final String outcomeAuthorityStatus;
+        public final String outcomeSourceDigest;
         public final List<Candidate> candidates;
 
         private Result(String query, String selectedDigest,
                 boolean vectorAvailable, int conflictCount, int rejectedCount,
+                String outcomeAuthorityStatus, String outcomeSourceDigest,
                 List<Candidate> candidates) {
             this.query = query;
             this.selectedDigest = selectedDigest;
             this.vectorAvailable = vectorAvailable;
             this.conflictCount = conflictCount;
             this.rejectedCount = rejectedCount;
+            this.outcomeAuthorityStatus = outcomeAuthorityStatus;
+            this.outcomeSourceDigest = outcomeSourceDigest;
             this.candidates = List.copyOf(candidates);
         }
 
@@ -95,12 +102,15 @@ public final class SkillRetrieval {
             List<Object> rawConflicts = list(root.get("conflicts"));
             List<Object> rawRejected = list(root.get("rejected"));
             Object vectorAvailable = root.get("vectorAvailable");
+            OutcomeAuthority outcomeAuthority = parseOutcomeAuthority(
+                    object(root.get("outcomeAuthority")));
             if (!SCHEMA.equals(schema) || query == null || !query.equals(query.trim())
                     || !root.containsKey("selected")
                     || rawCandidates == null || rawCandidates.size() > MAX_CANDIDATES
                     || rawConflicts == null || rawConflicts.size() > MAX_CANDIDATES
                     || rawRejected == null || rawRejected.size() > MAX_REJECTIONS
-                    || !(vectorAvailable instanceof Boolean)) return null;
+                    || !(vectorAvailable instanceof Boolean)
+                    || outcomeAuthority == null) return null;
 
             ArrayList<Candidate> candidates = new ArrayList<>();
             HashSet<String> digests = new HashSet<>();
@@ -138,7 +148,9 @@ public final class SkillRetrieval {
                     || (selectedDigest != null
                             && !selectedDigest.equals(candidates.get(0).digest))) return null;
             return new Result(query, selectedDigest, (Boolean) vectorAvailable,
-                    rawConflicts.size(), rawRejected.size(), candidates);
+                    rawConflicts.size(), rawRejected.size(),
+                    outcomeAuthority.status, outcomeAuthority.sourceDigest,
+                    candidates);
         } catch (RuntimeException ignored) {
             return null;
         }
@@ -159,6 +171,9 @@ public final class SkillRetrieval {
                 + "\nContext cost: " + candidate.contextCostTokens + " tokens"
                 + "\nScore: " + String.format(java.util.Locale.ROOT, "%.3f", candidate.score)
                 + "\nReason: " + candidate.reason
+                + "\nOutcome authority: " + result.outcomeAuthorityStatus
+                + (result.outcomeSourceDigest == null ? ""
+                        : " (" + shortDigest(result.outcomeSourceDigest) + ")")
                 + "\nConflicts: " + result.conflictCount
                 + "\nRejected before recall: " + result.rejectedCount;
     }
@@ -213,6 +228,52 @@ public final class SkillRetrieval {
         if (rawDigest != null && digest(rawDigest) == null) return false;
         List<String> reasons = stringList(value.get("reasons"), 16, 512);
         return reasons != null && !reasons.isEmpty();
+    }
+
+    private static final class OutcomeAuthority {
+        private final String status;
+        private final String sourceDigest;
+
+        private OutcomeAuthority(String status, String sourceDigest) {
+            this.status = status;
+            this.sourceDigest = sourceDigest;
+        }
+    }
+
+    private static OutcomeAuthority parseOutcomeAuthority(Map<String, Object> value) {
+        if (value == null
+                || !OUTCOME_AUTHORITY_SCHEMA.equals(text(value.get("schema"), 128))) {
+            return null;
+        }
+        String status = text(value.get("status"), 32);
+        if ("unavailable".equals(status)) {
+            String code = text(value.get("code"), 105);
+            return code != null && code.matches("CC_SKILL_[A-Z0-9_]{1,96}")
+                    ? new OutcomeAuthority(status, null) : null;
+        }
+        if (!"verified".equals(status)) return null;
+        String sourceDigest = digest(value.get("sourceDigest"));
+        Long selectedSessions = nonNegativeLong(value.get("selectedSessionCount"));
+        Long receipts = nonNegativeLong(value.get("receiptCount"));
+        Long unique = nonNegativeLong(value.get("uniqueReceiptCount"));
+        Long attributionEligible = nonNegativeLong(
+                value.get("attributionEligibleReceiptCount"));
+        Long outcomeEligible = nonNegativeLong(
+                value.get("outcomeEligibleReceiptCount"));
+        Long duplicates = nonNegativeLong(value.get("duplicateReceiptCount"));
+        Long maxSessions = nonNegativeLong(value.get("maxSessions"));
+        Long maxReceipts = nonNegativeLong(value.get("maxReceipts"));
+        if (sourceDigest == null || selectedSessions == null || receipts == null
+                || unique == null || attributionEligible == null
+                || outcomeEligible == null || duplicates == null
+                || maxSessions == null || maxReceipts == null
+                || maxSessions < 1 || maxSessions > 128
+                || maxReceipts < 1 || maxReceipts > 10_000
+                || selectedSessions > maxSessions || receipts > maxReceipts
+                || unique > receipts || attributionEligible > unique
+                || outcomeEligible > attributionEligible
+                || duplicates != receipts - unique) return null;
+        return new OutcomeAuthority(status, sourceDigest);
     }
 
     private static boolean isDigest(String value) {

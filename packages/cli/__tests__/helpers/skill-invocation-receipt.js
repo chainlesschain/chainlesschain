@@ -30,7 +30,7 @@ export function settledSkillInvocationReceipt(overrides = {}) {
     started,
     {
       executionStatus: overrides.executionStatus || "completed",
-      graderReceipts: [],
+      graderReceipts: overrides.graderReceipts || [],
       userCorrectionRef: overrides.userCorrectionRef || null,
       tokensInput: 12,
       tokensOutput: 3,

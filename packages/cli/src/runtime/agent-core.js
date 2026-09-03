@@ -47,6 +47,10 @@ import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 import {
+  buildSkillOutcomeTranscriptAuthority,
+  unavailableSkillOutcomeTranscriptAuthority,
+} from "../lib/skill-outcome-transcript-authority.js";
+import {
   admitSkillPrompt,
   debitSkillPromptBudget,
   resolveSkillLimits,
@@ -8203,11 +8207,18 @@ async function executeToolInner(
         );
       }
       let routing = null;
+      let outcomeAuthority = null;
       if (args.query) {
+        try {
+          outcomeAuthority = buildSkillOutcomeTranscriptAuthority();
+        } catch (error) {
+          outcomeAuthority = unavailableSkillOutcomeTranscriptAuthority(error);
+        }
         routing = routeSkillDescriptors({
           skills,
           query: args.query,
           target: { os: process.platform },
+          outcomeMetrics: outcomeAuthority.metrics,
           topK: Math.min(64, Math.max(1, skills.length)),
         });
         const byDigest = new Map(
@@ -8232,6 +8243,7 @@ async function executeToolInner(
                 conflicts: routing.conflicts,
                 rejectedCount: routing.rejected.length,
                 vectorAvailable: routing.vectorAvailable,
+                outcomeAuthority: outcomeAuthority.evidence,
               },
             }
           : {}),

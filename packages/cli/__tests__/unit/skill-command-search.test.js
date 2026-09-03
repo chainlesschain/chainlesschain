@@ -71,4 +71,36 @@ describe("cc skill search canonical routing", () => {
       }),
     ).toThrow("1 to 64");
   });
+
+  it("passes verified outcome metrics into canonical reranking", () => {
+    const lowerOutcome = skill("alpha-repair", "repair failing tests");
+    const higherOutcome = skill("omega-repair", "repair failing tests");
+    const result = routeSkillSearch(
+      [lowerOutcome, higherOutcome],
+      "repair failing tests",
+      {
+        outcomeMetrics: {
+          [lowerOutcome.executionIdentity.contentDigest]: {
+            samples: 10,
+            successRate: 0.2,
+            correctionRate: 0.5,
+          },
+          [higherOutcome.executionIdentity.contentDigest]: {
+            samples: 10,
+            successRate: 0.9,
+            correctionRate: 0,
+          },
+        },
+      },
+    );
+
+    expect(result.selected.digest).toBe(
+      higherOutcome.executionIdentity.contentDigest,
+    );
+    expect(result.selected.outcome).toEqual({
+      samples: 10,
+      successRate: 0.9,
+      correctionRate: 0,
+    });
+  });
 });

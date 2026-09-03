@@ -1,6 +1,8 @@
 "use strict";
 
 const SCHEMA = "chainlesschain.skill-retrieval-result/v1";
+const OUTCOME_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-outcome-transcript-authority/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
 function boundedString(value, label, max = 4096) {
@@ -111,6 +113,54 @@ function validateRejection(value) {
   return value;
 }
 
+function validateOutcomeAuthority(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.schema !== OUTCOME_AUTHORITY_SCHEMA ||
+    !["verified", "unavailable"].includes(value.status)
+  ) {
+    throw new Error("Skill retrieval returned invalid outcome authority");
+  }
+  if (value.status === "unavailable") {
+    if (
+      typeof value.code !== "string" ||
+      !/^CC_SKILL_[A-Z0-9_]{1,96}$/u.test(value.code)
+    ) {
+      throw new Error("Skill retrieval returned invalid outcome authority");
+    }
+    return Object.freeze({ ...value });
+  }
+  const counts = [
+    value.selectedSessionCount,
+    value.receiptCount,
+    value.uniqueReceiptCount,
+    value.attributionEligibleReceiptCount,
+    value.outcomeEligibleReceiptCount,
+    value.duplicateReceiptCount,
+    value.maxSessions,
+    value.maxReceipts,
+  ];
+  if (
+    !DIGEST.test(value.sourceDigest || "") ||
+    counts.some((count) => !Number.isSafeInteger(count) || count < 0) ||
+    value.maxSessions < 1 ||
+    value.maxSessions > 128 ||
+    value.maxReceipts < 1 ||
+    value.maxReceipts > 10_000 ||
+    value.selectedSessionCount > value.maxSessions ||
+    value.receiptCount > value.maxReceipts ||
+    value.uniqueReceiptCount > value.receiptCount ||
+    value.attributionEligibleReceiptCount > value.uniqueReceiptCount ||
+    value.outcomeEligibleReceiptCount > value.attributionEligibleReceiptCount ||
+    value.duplicateReceiptCount !==
+      value.receiptCount - value.uniqueReceiptCount
+  ) {
+    throw new Error("Skill retrieval returned invalid outcome authority");
+  }
+  return Object.freeze({ ...value });
+}
+
 function parseSkillRetrievalResult(text) {
   let value;
   try {
@@ -131,13 +181,15 @@ function parseSkillRetrievalResult(text) {
     value.conflicts.length > 64 ||
     !Array.isArray(value.rejected) ||
     value.rejected.length > 10_000 ||
-    typeof value.vectorAvailable !== "boolean"
+    typeof value.vectorAvailable !== "boolean" ||
+    !Object.prototype.hasOwnProperty.call(value, "outcomeAuthority")
   ) {
     throw new Error("Skill retrieval returned an invalid result");
   }
   const candidates = value.candidates.map(validateCandidate);
   const conflicts = value.conflicts.map(validateConflict);
   const rejected = value.rejected.map(validateRejection);
+  const outcomeAuthority = validateOutcomeAuthority(value.outcomeAuthority);
   if (
     new Set(candidates.map(({ digest }) => digest)).size !== candidates.length
   ) {
@@ -167,6 +219,7 @@ function parseSkillRetrievalResult(text) {
     candidates: Object.freeze(candidates),
     conflicts: Object.freeze(conflicts),
     rejected: Object.freeze(rejected),
+    outcomeAuthority,
   });
 }
 
@@ -189,6 +242,7 @@ async function showCandidate(vscode, result, candidate) {
         executionAuthorized: false,
         candidate,
         conflicts: result.conflicts,
+        outcomeAuthority: result.outcomeAuthority,
       },
       null,
       2,

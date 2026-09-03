@@ -37,6 +37,19 @@ function result(overrides = {}) {
     conflicts: [],
     rejected: [],
     vectorAvailable: false,
+    outcomeAuthority: {
+      schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+      status: "verified",
+      sourceDigest: D("f"),
+      selectedSessionCount: 2,
+      receiptCount: 3,
+      uniqueReceiptCount: 2,
+      attributionEligibleReceiptCount: 2,
+      outcomeEligibleReceiptCount: 2,
+      duplicateReceiptCount: 1,
+      maxSessions: 128,
+      maxReceipts: 10_000,
+    },
     ...overrides,
   };
 }
@@ -172,6 +185,19 @@ test("Skill Retrieval IDE rejects drift and duplicate candidate evidence", () =>
         }),
       ),
     /invalid conflict/u,
+  );
+  assert.throws(
+    () =>
+      parseSkillRetrievalResult(
+        JSON.stringify({
+          ...valid,
+          outcomeAuthority: {
+            ...valid.outcomeAuthority,
+            outcomeEligibleReceiptCount: 3,
+          },
+        }),
+      ),
+    /invalid outcome authority/u,
   );
 });
 

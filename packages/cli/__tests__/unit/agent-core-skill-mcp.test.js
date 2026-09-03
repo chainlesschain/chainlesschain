@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   childRuns: [],
   childRunOptions: [],
   createSubAgent: vi.fn(),
+  outcomeMetrics: {},
 }));
 
 vi.mock("../../src/lib/plan-mode.js", () => {
@@ -38,6 +39,27 @@ vi.mock("../../src/lib/sub-agent-context.js", () => ({
   SubAgentContext: {
     create: mocks.createSubAgent,
   },
+}));
+
+vi.mock("../../src/lib/skill-outcome-transcript-authority.js", () => ({
+  buildSkillOutcomeTranscriptAuthority: vi.fn(() => ({
+    status: "verified",
+    metrics: mocks.outcomeMetrics,
+    evidence: {
+      schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+      status: "verified",
+      sourceDigest: `sha256:${"f".repeat(64)}`,
+    },
+  })),
+  unavailableSkillOutcomeTranscriptAuthority: vi.fn(() => ({
+    status: "unavailable",
+    metrics: null,
+    evidence: {
+      schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+      status: "unavailable",
+      code: "CC_SKILL_OUTCOME_AUTHORITY_UNAVAILABLE",
+    },
+  })),
 }));
 
 vi.mock("../../src/lib/project-detector.js", () => ({
@@ -67,6 +89,7 @@ describe("run_skill controlled execution boundary", () => {
     mocks.childConfigs.length = 0;
     mocks.childRuns.length = 0;
     mocks.childRunOptions.length = 0;
+    mocks.outcomeMetrics = {};
     mocks.createSubAgent.mockReset();
     mocks.createSubAgent.mockImplementation((config) => {
       mocks.childConfigs.push(config);
@@ -972,6 +995,10 @@ describe("run_skill controlled execution boundary", () => {
         schema: "chainlesschain.skill-retrieval-result/v1",
         selectedDigest: mocks.skills[1].executionIdentity.contentDigest,
         vectorAvailable: false,
+        outcomeAuthority: {
+          schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+          status: expect.stringMatching(/^(verified|unavailable)$/u),
+        },
       },
       skills: [
         {
@@ -981,6 +1008,37 @@ describe("run_skill controlled execution boundary", () => {
           routeReason: expect.stringContaining("bm25="),
         },
       ],
+    });
+  });
+
+  it("list_skills query consumes the host transcript outcome authority", async () => {
+    registerSkill({ id: "alpha-repair", description: "repair failing tests" });
+    registerSkill({ id: "omega-repair", description: "repair failing tests" });
+    mocks.outcomeMetrics = {
+      [mocks.skills[0].executionIdentity.contentDigest]: {
+        samples: 10,
+        successRate: 0.1,
+        correctionRate: 0.5,
+      },
+      [mocks.skills[1].executionIdentity.contentDigest]: {
+        samples: 10,
+        successRate: 0.9,
+        correctionRate: 0,
+      },
+    };
+
+    const result = await executeTool(
+      "list_skills",
+      { query: "repair failing tests" },
+      { cwd: tempDir },
+    );
+
+    expect(result.routing.selectedDigest).toBe(
+      mocks.skills[1].executionIdentity.contentDigest,
+    );
+    expect(result.skills[0]).toMatchObject({
+      id: "omega-repair",
+      digest: mocks.skills[1].executionIdentity.contentDigest,
     });
   });
 

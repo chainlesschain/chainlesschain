@@ -60,6 +60,10 @@ import {
 import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
 import { registerRecordReplayCommands } from "./record-replay.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
+import {
+  buildSkillOutcomeTranscriptAuthority,
+  unavailableSkillOutcomeTranscriptAuthority,
+} from "../lib/skill-outcome-transcript-authority.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -76,10 +80,12 @@ function canRunOnPlatform(skill) {
   return skill.os.includes(process.platform);
 }
 
-export function routeSkillSearch(skills, query, options = {}) {
+function validateSkillSearchRequest(skills, query, options = {}) {
   if (
     !Array.isArray(skills) ||
     typeof query !== "string" ||
+    query.trim().length < 1 ||
+    query.length > 4096 ||
     !options ||
     typeof options !== "object" ||
     Array.isArray(options)
@@ -103,6 +109,11 @@ export function routeSkillSearch(skills, query, options = {}) {
       throw new TypeError(`Skill search ${name} is invalid or unbounded`);
     }
   }
+  return limit;
+}
+
+export function routeSkillSearch(skills, query, options = {}) {
+  const limit = validateSkillSearchRequest(skills, query, options);
   const category = options.category ?? null;
   const routedSkills =
     category === null
@@ -118,6 +129,7 @@ export function routeSkillSearch(skills, query, options = {}) {
     namespace: options.source ?? null,
     tags: options.tag ? [options.tag] : [],
     target: { os: options.os || process.platform },
+    outcomeMetrics: options.outcomeMetrics ?? null,
     topK: limit,
   });
 }
@@ -514,9 +526,29 @@ export function registerSkillCommand(program) {
     .option("--json", "Output the canonical routing result as JSON")
     .action(async (query, options) => {
       const skills = loader.loadAll();
+      try {
+        validateSkillSearchRequest(skills, query, options);
+      } catch (error) {
+        logger.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
+      let outcomeAuthority;
+      try {
+        outcomeAuthority = buildSkillOutcomeTranscriptAuthority();
+      } catch (error) {
+        outcomeAuthority = unavailableSkillOutcomeTranscriptAuthority(error);
+      }
       let result;
       try {
-        result = routeSkillSearch(skills, query, options);
+        result = routeSkillSearch(skills, query, {
+          ...options,
+          outcomeMetrics: outcomeAuthority.metrics,
+        });
+        result = Object.freeze({
+          ...result,
+          outcomeAuthority: outcomeAuthority.evidence,
+        });
       } catch (error) {
         logger.error(error.message);
         process.exitCode = 1;
@@ -531,6 +563,12 @@ export function registerSkillCommand(program) {
       if (result.candidates.length === 0) {
         logger.info(`No skills matching "${query}"`);
         return;
+      }
+
+      if (outcomeAuthority.status !== "verified") {
+        logger.warn(
+          "Verified Skill outcome history is unavailable; retrieval is not using partial transcript metrics.",
+        );
       }
 
       logger.log(

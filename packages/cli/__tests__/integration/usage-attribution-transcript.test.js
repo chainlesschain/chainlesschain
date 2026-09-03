@@ -217,7 +217,9 @@ describe("REPL wrapper persists compact tool_call events", () => {
 
   it("verifies a receipt before appending it to the canonical hash chain", async () => {
     const store = await import("../../src/harness/jsonl-session-store.js");
-    const receipt = settledSkillInvocationReceipt();
+    const receipt = settledSkillInvocationReceipt({
+      graderReceipts: [`sha256:${"d".repeat(64)}`],
+    });
     store.startSession("s-receipt", { title: "receipt" });
 
     store.appendToolCallCompact("s-receipt", {
@@ -244,6 +246,26 @@ describe("REPL wrapper persists compact tool_call events", () => {
       }),
     ).toThrow(/only be attached to run_skill/i);
     expect(store.readEvents("s-receipt")).toHaveLength(countAfterValidAppend);
+
+    const { buildSkillOutcomeTranscriptAuthority } =
+      await import("../../src/lib/skill-outcome-transcript-authority.js");
+    const outcomeAuthority = buildSkillOutcomeTranscriptAuthority();
+    expect(outcomeAuthority).toMatchObject({
+      status: "verified",
+      metrics: {
+        [receipt.selectedSkillDigests[0]]: {
+          samples: 1,
+          successRate: 1,
+          correctionRate: 0,
+        },
+      },
+      evidence: {
+        selectedSessionCount: 1,
+        receiptCount: 1,
+        attributionEligibleReceiptCount: 1,
+        outcomeEligibleReceiptCount: 1,
+      },
+    });
   });
 
   it("treats run_skill receipt persistence failure as terminal in the REPL", async () => {

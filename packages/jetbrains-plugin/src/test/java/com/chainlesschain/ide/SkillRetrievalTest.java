@@ -28,7 +28,15 @@ final class SkillRetrievalTest {
                 + ",\"candidates\":[" + candidates + "]"
                 + ",\"conflicts\":[" + conflicts + "]"
                 + ",\"rejected\":[" + rejected + "]"
-                + ",\"vectorAvailable\":false}";
+                + ",\"vectorAvailable\":false"
+                + ",\"outcomeAuthority\":{\"schema\":\""
+                + SkillRetrieval.OUTCOME_AUTHORITY_SCHEMA
+                + "\",\"status\":\"verified\",\"sourceDigest\":\""
+                + digest('f') + "\",\"selectedSessionCount\":2"
+                + ",\"receiptCount\":3,\"uniqueReceiptCount\":2"
+                + ",\"attributionEligibleReceiptCount\":2"
+                + ",\"outcomeEligibleReceiptCount\":2,\"duplicateReceiptCount\":1"
+                + ",\"maxSessions\":128,\"maxReceipts\":10000}}";
     }
 
     @Test
@@ -47,6 +55,8 @@ final class SkillRetrievalTest {
         assertNotNull(parsed);
         assertEquals(digest('a'), parsed.selectedDigest);
         assertEquals(1, parsed.candidates.size());
+        assertEquals("verified", parsed.outcomeAuthorityStatus);
+        assertEquals(digest('f'), parsed.outcomeSourceDigest);
         assertTrue(SkillRetrieval.describe(parsed, parsed.candidates.get(0))
                 .contains("Execution authorized: false"));
     }
@@ -69,6 +79,10 @@ final class SkillRetrievalTest {
         assertNull(SkillRetrieval.parseResult(
                 result(candidate, candidate, "", "").replace(
                         "\"selected\":" + candidate + ",", "")));
+        assertNull(SkillRetrieval.parseResult(
+                result(candidate, candidate, "", "").replace(
+                        "\"outcomeEligibleReceiptCount\":2",
+                        "\"outcomeEligibleReceiptCount\":3")));
     }
 
     @Test
