@@ -1,10 +1,10 @@
 # Skills 技能系统
 
-> **文档快照：2026-08-31 | 146 个内置技能 | Agent Skills 开放标准 | 受治理 Record & Replay 生命周期、签名外部执行、能力代理与 exact-SHA Desktop qualification**
+> **文档快照：2026-09-03 | 146 个内置技能 | Agent Skills 开放标准 | 受治理 evolution 与 Record & Replay、签名外部执行、能力代理及 exact-SHA Desktop qualification**
 
-Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.15` 已包含受治理 Record & Replay 的录制、审阅、启用、撤销、导入导出、删除与审计生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.20` 已包含受治理 Record & Replay，以及 candidate/Eval/evidence/ledger/human-review/release 的耐久 Skill evolution 生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
 
-> Agent/Skill evolution 边界：本轮核对冻结的 feature 快照为 `233e1bdc`；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS。该冻结快照晚于 GitHub `main@458b342f5f`，公共 `0.166.15` **不包含**它，且尚无统一生产实例；P1-11 仍为部分完成。自动路径不得直接写 active，Skill Sync import 缺少受信 `candidateStore` 时会失败闭合。
+> Agent/Skill evolution 边界：公共 `0.166.20@75a3339714` 已接入 candidate/Eval/evidence/ledger/human-review/release、EvolutionRun、Wiki/Memory 与旧状态迁移。该闭环不等于目标环境已配置 KMS/PKI/identity/policy/witness/scheduler/grader，也不开放普通用户无人值守 active promotion；自动路径不得直接写 active，Skill Sync import 缺少受信 `candidateStore` 时会失败闭合。
 
 ## 概述
 

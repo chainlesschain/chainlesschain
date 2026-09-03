@@ -1,6 +1,6 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.16`；更新：2026-09-02
+> 适用版本：Agent Platform CLI `0.166.20`；更新：2026-09-03
 >
 > 适用对象：使用学习合成、Desktop Skill Creator、Skill Sync，或评估自动 Skill 改进能力的用户与管理员
 
@@ -8,7 +8,9 @@
 
 受治理的 Skill 自进化把学习结果先变成隔离候选，再通过评测、证据和发布事务决定是否可以进入 active。它解决旧路径中“生成成功”和“已经安装”容易混淆的问题：候选生成、内容改进、跨设备导入都不再直接覆盖正在运行的 Skill。
 
-`0.166.16` 已交付 candidate、目标矩阵 Eval、证据投影、不可篡改账本、mutation authority、promotion/release 和租户隔离等基础组件。面向普通用户的一体化 review/promote/rollback 控制台仍未开放，因此当前版本不宣称会无人值守地升级 active Skill。
+`0.166.20` 已把 candidate、目标矩阵 Eval、证据投影、不可篡改账本、mutation authority、promotion/release 和租户隔离扩展到持久 `EvolutionRun` ingress、证据驱动 Wiki、四层结构化 Memory、人工 review authority、旧状态迁移与 registry transition。公开 CLI 同时修复全新 npm 安装后 `cc agent` 命令图加载问题。
+
+这些能力默认仍处于受治理、宿主注入的边界内。面向普通用户的一体化 review/promote/rollback/kill-switch/canary 控制台尚未开放，目标部署也必须自行提供生产 KMS/PKI、identity、policy、witness、scheduler 和真实 grader，因此当前版本不宣称会无人值守地升级 active Skill。
 
 ## 核心特性
 
@@ -20,6 +22,10 @@
 - release、active、last-known-good 与 rollback 使用 lease、CAS、journal 和 recovery。
 - append-only `EvolutionLedger` 提供签名链、witness、receipt 与 subject-bound 状态转换。
 - candidate/release registry 绑定 tenant 与真实文件身份，拒绝链接逃逸和跨租户复用。
+- CLI Agent 的交互、单轮 headless、stream headless 和 `AgentRuntime` 可在宿主启用后，于模型/工具继续执行前持久确认 `EvolutionRun` 事件。
+- Wiki revision、Memory event/snapshot、human-review packet/decision 与 registry transition 复用 ArtifactPorts + Ledger，可在响应丢失或进程重启后按同一 digest 恢复。
+- Agent 完成和 `SchedulerStore` 成功 occurrence 可由独立 authority 生成 Wiki 维护触发；客户端不能替换触发来源或 composition。
+- 旧 Phase 100 simulator 与不可达 IPC 已退役；历史公式训练只保留 metrics，不再显示为真实训练或 active mutation。
 
 ## 系统架构
 
@@ -64,7 +70,16 @@ cc learning synthesize
 cc learning synthesize --json
 ```
 
-默认 CLI bootstrap 没有伪造 candidate evaluator 或生产 candidate store。依赖未由可信宿主注入时，命令会以非零状态返回 `LEARNING_SYNTHESIS_UNAVAILABLE`；这表示自动写入被安全阻断，不表示 active Skill 损坏。
+默认 CLI bootstrap 不伪造 candidate evaluator、生产 candidate store 或演化 authority。依赖未由可信宿主注入时，命令会以非零状态返回 `LEARNING_SYNTHESIS_UNAVAILABLE`；这表示自动写入被安全阻断，不表示 active Skill 损坏。
+
+检查 Agent 能力和安装是否完整：
+
+```bash
+cc --version
+cc agent --capabilities
+```
+
+`0.166.20` 的公共安装应能加载 `agent` 命令并输出能力投影；能力存在不代表当前宿主已启用 active promotion。
 
 ## 使用示例
 
@@ -91,6 +106,10 @@ if ($LASTEXITCODE -ne 0) {
 | active Skill roots | 证明候选目录不与 active 树重叠 | unavailable |
 | tenant authority/marker | 隔离候选与 release namespace | fail closed |
 | durable ledger/release adapters | 跨进程持久证据和 CAS 状态 | promotion HOLD |
+| KMS/PKI + witness | 加密、签名、撤销和独立账本见证 | composition unavailable |
+| review identity/policy | 认证人工决定、quorum 与风险确认 | active mutation denied |
+| scheduler/transition authority | 认证 trigger 与 registry 状态事件 | maintenance/transition disabled |
+| target runner/grader | 执行真实平台 cell 和独立判定 | matrix needs-more |
 
 ## 状态与结果
 
@@ -114,7 +133,10 @@ if ($LASTEXITCODE -ne 0) {
 - Eval Gate：角色分权、签名 receipt、deadline、撤销、后验校验、hard termination 边界。
 - Target matrix：signed plan、reserve/finalize、完整 child receipt、有序摘要根与 all-cell conjunction。
 - Ledger/artifact ports：append-only hash chain、witness、回读绑定、篡改和 schema 拒绝。
-- Desktop：Skill Creator candidate-only、Skill Sync candidate store、Phase 16 metrics wiring。
+- Ingress：CLI REPL/headless/stream/`AgentRuntime`、canonical Graph 和 legacy WebSocket 的 pre-model/pre-tool 持久确认。
+- Wiki/Memory/review：CAS、幂等恢复、四层 authority、PostCompact、人工 quorum 与 content-risk acknowledgement。
+- Migration/transition：旧 candidate/release/state ledger journal、启动 reconciliation、故障阶段恢复和 durable registry request/attempt/settlement。
+- Desktop：Skill Creator candidate-only、Skill Sync candidate store、Phase 16 metrics wiring 与 legacy simulator 退役。
 - 路径安全：canonical ancestor alias、leaf link、父目录逃逸与 marketplace fail-closed 路径。
 
 本地测试通过不能替代发布提交自己的 Linux、Windows、macOS CI 与 Strict Sandbox 门禁。
@@ -138,6 +160,8 @@ if ($LASTEXITCODE -ne 0) {
 | matrix `needs-more` / rejected | 缺 cell、receipt 或真实 grader 未通过 | 补齐同一计划的目标证据后重新评测 |
 | revision/CAS conflict | active 已被另一事务更新 | 重新读取当前 revision，重新评测并审批 |
 | ledger verify failed | 日志断链、签名/witness 或 subject 不一致 | 停止发布，使用可信备份和审计流程恢复 |
+| `unknown command 'agent'` | 安装了存在依赖导出缺口的 `0.166.18` | 从官方 npm registry 升级到 `0.166.20` 后重试 |
+| capability 显示未接线 | 宿主未注入 branded production composition | 保持关闭；由管理员配置生产 authority，勿使用测试密钥绕过 |
 
 ## 关键文件
 
@@ -146,6 +170,13 @@ if ($LASTEXITCODE -ne 0) {
 - `packages/cli/src/lib/evolution/skill-target-matrix-eval.js`
 - `packages/cli/src/lib/evolution/evolution-evidence-projector.js`
 - `packages/cli/src/lib/evolution/evolution-ledger.js`
+- `packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js`
+- `packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/evidence-backed-wiki-maintainer.js`
+- `packages/cli/src/lib/evolution/wiki-maintainer-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/structured-memory-agent-control-plane.js`
+- `packages/cli/src/lib/evolution/skill-promotion-review-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/skill-registry-transition-ledger-adapter.js`
 - `packages/cli/src/lib/evolution/skill-mutation-authority.js`
 - `packages/cli/src/lib/evolution/skill-promotion-controller.js`
 - `packages/cli/src/lib/evolution/skill-release-registry.js`
@@ -158,7 +189,7 @@ if ($LASTEXITCODE -ne 0) {
 - 把 candidate 视为待审代码：查看 diff、来源、反例、权限和目标矩阵后再决定下一步。
 - 使用确定性测试与独立 grader；模型自评不能替代退出码、产物哈希和真实 UI 状态。
 - 任何 permission、policy、model、tool、grader 或 dependency lock 变化都应使旧 approval/Eval cache 失效。
-- 当前没有统一最终用户 promotion/rollback CLI，也没有承诺自动 active mutation、canary 或跨进程生产 durability。
+- 当前没有统一最终用户 promotion/rollback CLI，也没有承诺自动 active mutation 或 canary；仓库文件持久化与重启恢复不替代目标环境的生产 PKI/KMS、跨主机 witness 和灾备验收。
 
 ## 相关文档
 

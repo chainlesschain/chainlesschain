@@ -2,26 +2,28 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.16` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.20` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.16 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.20 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-02 new capability — **CLI 0.166.16: governed Skill-evolution foundations**
+## 2026-09-03 current release — **CLI 0.166.20 / Session Core 0.3.10: durable governed Skill evolution**
 
-> Automated generation, improvement, Desktop Skill Creator, and cross-device imports are now candidate-first: they produce isolated candidates or diffs and cannot overwrite active Skills. The release adds target-matrix evaluation, authenticated evidence projection, a tamper-evident `EvolutionLedger`, mutation authority, tenant candidate/release registries, lease/CAS promotion, last-known-good, and rollback foundations. Missing trusted adapters, complete receipts, or the current active revision fails closed.
+> npm `latest` `0.166.20` comes from immutable tag `v-npm-0-166-20` at exact commit [`75a3339714`](https://github.com/chainlesschain/chainlesschain/commit/75a333971484e78793e693617071e596e27d871f). Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501794), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501564), and [Trusted Publishing](https://github.com/chainlesschain/chainlesschain/actions/runs/33717512152) runs passed, and the official npm registry was read back. `0.166.20` also fixes the `cc agent` command graph in fresh public installs.
 >
-> `cc learning synthesize` now returns `LEARNING_SYNTHESIS_UNAVAILABLE` when the LLM, candidate registry, candidate evaluator, or active roots are missing. A successful generation still means a candidate exists, not that it is installed. A unified end-user review/promote/rollback surface and unattended active promotion are not enabled yet.
+> Generation, improvement, Desktop Skill Creator, and cross-device import remain candidate-first. Durable `EvolutionRun` ingress, evidence-backed Wiki maintenance, four-layer structured Memory, human-review authority, legacy candidate/release/state migration, and registry transitions are now in the public CLI. `cc learning synthesize` still returns `LEARNING_SYNTHESIS_UNAVAILABLE` without trusted dependencies; generated never means installed.
+>
+> Open VSX `0.37.80` is public and recommends CLI `0.166.20`. JetBrains Marketplace currently lists `0.4.108`; source/tag `0.4.109` is paired with CLI `0.166.20` but remains a distinct public-listing state. A unified end-user review/promote/rollback/kill-switch/canary surface and unattended active promotion are not enabled. Production deployment still requires real KMS/PKI, identity, policy, witness, scheduler, and cross-platform grader services.
 >
 > See the [governed Skill-evolution user guide](docs-site/docs/chainlesschain/governed-skill-evolution.md) and [module 112 design](docs/design/modules/112-governed-skill-evolution-design.md).
 
 ## 2026-09-01 historical release snapshot — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7 (TS/Python) / Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
-> **Release status:** `chainlesschain@0.166.15` is the fully gated production recommendation and npm `latest`. The immutable CLI, VS Code, and JetBrains tags all resolve to exact commit [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db). That SHA completed Linux, Windows, and macOS CLI CI, CLI Strict Sandbox, OIDC npm publication, and public registry/provenance readback; both the [npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607) and [independent public verification](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618) succeeded.
+> **Release status at the time:** `chainlesschain@0.166.15` was the fully gated recommendation and npm `latest` for this historical snapshot. The evidence below describes that snapshot only; use `0.166.20` above for the current install.
 >
 > **Agent Platform 0.166.15:** carries forward `0.166.14`'s canonical Context/Memory Kernel, durable rollout stores, Hooks v2, P0 execution security, and Docker-optional ordinary Windows startup, then hotfixes the hermetic file-tool ceiling used by formal Graph quality evaluation. Control and candidate runs share a frozen read/list/search/write/edit contract; shell, network, Git, MCP, plugin, IDE, and sub-agent tools remain unavailable, and writes stay confined to the task's exact files.
 >

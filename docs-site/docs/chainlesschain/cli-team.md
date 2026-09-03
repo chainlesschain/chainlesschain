@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版与 npm `latest` 均为 `0.166.15@22db04f559`（2026-09-01）。`0.166.9` 首次公开 durable history/retirement、quorum HumanTask、Team fairness、temporal messaging 与审批 single-winner CAS；`0.166.14` 加入 Context/Memory、Hooks v2、P0 执行安全与 Windows Docker-optional 边界，`0.166.15` 继续承接并修复 formal quality 文件工具上限。更晚的 GitHub `main@458b342f5f` 将 Windows formal quality 时延比最终上限调整为 `1.65`；固定 run `33411796790` 的 Windows 实测 `1.6379980224` 与离线加权 aggregate `0.6008293973` 达到新阈值，但 run 仍失败且没有 final-SHA aggregate success/OIDC attestation。P2-3 由负责人显式接受剩余证据风险后关闭；该豁免不属于 `0.166.15` tarball，也不是通用先例。以下早期实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版与 npm `latest` 均为 `0.166.20@75a3339714`（2026-09-03）。`0.166.9` 首次公开 durable history/retirement、quorum HumanTask、Team fairness、temporal messaging 与审批 single-winner CAS；`0.166.14` 加入 Context/Memory、Hooks v2、P0 执行安全与 Windows Docker-optional 边界，`0.166.20` 继续承接这些能力，并加入统一 EvolutionRun ingress、Wiki/Memory producer、人工复核 registry transition 与旧状态迁移。当前版本的三平台 CLI CI、Strict Sandbox 与 npm 发布门已成功；这不扩张 Desktop/IDE authority，也不代表无人值守 active promotion 已启用。以下早期实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)

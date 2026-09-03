@@ -2,26 +2,28 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.16`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.20`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.16 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.20 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-02 新功能 — **CLI 0.166.16：受治理的 Skill 自进化基础**
+## 2026-09-03 当前发布 — **CLI 0.166.20 / Session Core 0.3.10：持久化受治理 Skill 自进化**
 
-> 自动生成、改进、Desktop Skill Creator 与跨设备导入现在统一遵循 candidate-first：它们只产生隔离候选或 diff，不直接覆盖 active Skill。新增 target-matrix Eval、认证证据投影、tamper-evident `EvolutionLedger`、mutation authority、tenant candidate/release registry、lease/CAS promotion、last-known-good 与 rollback 基础；缺少受信 adapter、完整 receipt 或当前 active revision 时失败关闭。
+> npm `latest` `0.166.20` 来自不可变 tag `v-npm-0-166-20` 与精确提交 [`75a3339714`](https://github.com/chainlesschain/chainlesschain/commit/75a333971484e78793e693617071e596e27d871f)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501794)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501564) 和 [Trusted Publishing](https://github.com/chainlesschain/chainlesschain/actions/runs/33717512152) 已成功，官方 npm registry 已回读；`0.166.20` 同时修复全新安装后 `cc agent` 命令图无法加载的问题。
 >
-> `cc learning synthesize` 在缺少 LLM、candidate registry、candidate evaluator 或 active roots 时明确返回 `LEARNING_SYNTHESIS_UNAVAILABLE`；生成成功仍只表示候选存在，不表示已经安装。当前版本尚未开放统一的最终用户 review/promote/rollback 控制面，也未默认启用无人值守 active promotion。
+> 自动生成、改进、Desktop Skill Creator 与跨设备导入统一遵循 candidate-first；`EvolutionRun` 持久 ingress、证据驱动 Wiki、四层结构化 Memory、人工 review authority、旧 candidate/release/state 迁移及 registry transition 已进入公开 CLI。`cc learning synthesize` 缺少可信依赖时仍返回 `LEARNING_SYNTHESIS_UNAVAILABLE`，生成成功不等于安装。
+>
+> Open VSX `0.37.80` 已公开并推荐 CLI `0.166.20`；JetBrains Marketplace 当前公开 `0.4.108`，源码/tag `0.4.109` 已配对 CLI `0.166.20` 但仍须与 Marketplace 公共可见性分开判断。当前版本尚未开放统一最终用户 review/promote/rollback/kill-switch/canary 控制面，也未默认启用无人值守 active promotion；生产部署还必须提供真实 KMS/PKI、identity、policy、witness、scheduler 与跨平台 grader。
 >
 > 详见[受治理的 Skill 自进化用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)与[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)。
 
 ## 2026-09-01 历史发布快照 — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
-> **发布口径**：`chainlesschain@0.166.15` 是当前完整门禁的生产推荐版与 npm `latest`；CLI、VS Code 与 JetBrains 的不可变标签均精确指向提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)。该 SHA 已完成 Linux、Windows、macOS CLI CI、CLI Strict Sandbox、OIDC npm 发布与公共 registry/provenance 回读；[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)和[独立公网复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)均成功。
+> **当时的发布口径**：`chainlesschain@0.166.15` 是该历史快照的完整门禁生产推荐版与 npm `latest`；其余证据只描述当时状态，现行安装版本见上方 `0.166.20`。
 >
 > **Agent Platform 0.166.15**：完整承接 `0.166.14` 的 canonical Context/Memory Kernel、耐久 rollout store、Hooks v2、P0 执行安全与 Windows Docker-optional 启动，并对正式 Graph 质量评测的 hermetic 文件工具上限做热修复。control 与 candidate 共用冻结的 read/list/search/write/edit 契约，shell、网络、Git、MCP、插件、IDE 与子 Agent 工具仍不可用，写入继续限制到任务精确文件。
 >

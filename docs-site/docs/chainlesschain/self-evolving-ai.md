@@ -37,7 +37,7 @@ Desktop Phase 20 仍提供 Code Knowledge Graph、Decision Knowledge Base、Prom
 
 - 默认安装不内置测试密钥或本地伪造的 KMS/PKI/witness authority。
 - 目标部署仍需注入并运营生产 identity、policy、signer/verifier、密钥轮换与独立 witness。
-- 最终用户 reviewer surface、canary/kill switch 状态和部分 Maintainer/transition 调度仍在实施。
+- Wiki Maintainer、Agent completion/SchedulerStore trigger 和 registry transition 的仓库接线已形成；最终用户 reviewer surface、canary/kill switch 状态及目标部署 authority/worker 仍未开放。
 - “candidate created”不等于“Skill 已安装或已启用”。
 
 ## 配置参考

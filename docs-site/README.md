@@ -2,9 +2,9 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-02）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.16@15bd3636b8`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.8`、PDH 为 `0.4.59`；Open VSX 为 `0.37.78`，JetBrains Marketplace 当前为 `0.4.107`（源码候选 `0.4.108` 尚待公共可见性确认）。
+> 当前文档快照（2026-09-03）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.20@75a3339714`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.7`、Agent Protocol 为 `0.1.7`、Session Core 为 `0.3.10`、PDH 为 `0.4.59`；Open VSX 为 `0.37.80`，JetBrains Marketplace 当前为 `0.4.108`（源码/tag `0.4.109` 尚待公共可见性确认）。
 
-> 新功能边界：`0.166.16` 已交付 candidate-only/diff-only writer、Skill writer inventory、target-matrix Eval、认证 evidence/artifact、tamper-evident ledger、mutation/promotion/release 与 tenant registry 基础。它们不会直接改写 active Skill；`cc learning synthesize` 缺 evaluator、candidate registry 或 active roots 时仍以 unavailable 失败闭合。统一生产控制面、人工 quorum、canary 与无人值守 active promotion 尚未开放。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
+> 新功能边界：`0.166.20` 已把 candidate/Eval/release 基础接到持久 `EvolutionRun`、Wiki、四层 Memory、human review、旧状态迁移与 registry transition；公共安装的 `cc agent` 启动缺口也已修复。它们不会默认改写 active Skill；最终用户控制面、生产 KMS/PKI/witness/scheduler、真实跨平台 grader、canary 与无人值守 active promotion尚未开放。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
 
 ## 📚 文档内容
 

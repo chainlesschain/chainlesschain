@@ -1,12 +1,12 @@
 # Skill Creator 系统 (v1.2.0)
 
-> 内置系统技能，用于生成候选、测试、优化和验证自定义技能。`create` 与描述优化只返回 candidate/diff，不直接写入 workspace 或 active Skill；公共 `0.166.15` 不包含本地 evolution feature 快照。
+> 内置系统技能，用于生成候选、测试、优化和验证自定义技能。`create` 与描述优化只返回 candidate/diff，不直接写入 workspace 或 active Skill；公共 `0.166.20` 已接入受治理 evolution composition，但未默认开放无人值守 active promotion。
 
 ## 概述
 
 Skill Creator 是 ChainlessChain 内置的系统级技能（category: system），用于生成候选、测试、优化和验证自定义 AI 技能。它可以渲染包含 YAML frontmatter 的 `SKILL.md` 与 `handler.js` 候选内容，但不会直接创建、覆盖或激活 workspace/active Skill。v1.2.0 的 `optimize-description` 会生成评估查询集并迭代比较描述，最终只返回建议差异。
 
-> 源码状态：本轮核对冻结的 feature 快照为 `233e1bdc`；其中 `b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS。该冻结快照未进入 GitHub `main@458b342f5f` 或公共 CLI `0.166.15`，且没有统一生产 import/实例；P1-11 仍为部分完成。
+> 当前状态：`0.166.20@75a3339714` 已公开 candidate/Eval/evidence/ledger/human-review/release 生命周期、统一 EvolutionRun ingress 与旧状态迁移。生成成功仍不等于安装；缺 evaluator、store、active roots 或可信 authority 时保持 unavailable/失败闭合。Desktop 最终用户 review/promote/rollback/kill-switch/canary UI 与真实部署 authority 仍未完成。
 
 ## 核心特性
 

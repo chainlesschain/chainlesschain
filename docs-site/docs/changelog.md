@@ -5,18 +5,19 @@
 
 ## [Unreleased]
 
-#### Source only — Agent/Skill evolution 治理原语（本轮冻结快照 `233e1bdc`）
+#### Released — Agent Platform CLI 0.166.20 / Session Core 0.3.10
 
-> 该提交尚未进入 GitHub `main@458b342f5f`，也不属于 npm `0.166.15@22db04f559`。P1-11 仍为部分完成，以下内容只能描述为源码实现与测试合同，不能描述为已部署的生产自进化闭环。
+> `chainlesschain@0.166.20` 是当前 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-20` 精确指向 [`75a3339714`](https://github.com/chainlesschain/chainlesschain/commit/75a333971484e78793e693617071e596e27d871f)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501794)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501564) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33717512152) 均成功。当前源码主线为 `main@c681e2b91d`。
 
-- **candidate-only / diff-only**：Synthesizer 与 Improver 不再直接写 active Skill；候选注册表以内容摘要寻址、不可变草稿和隔离目录保存候选。`cc learning synthesize` 当前没有 evaluator、`candidateOutputDir` 与 active roots 的生产注入，返回 unavailable/非零结果并失败闭合。
-- **Skill Creator / Skill Sync**：Skill Creator 的 `create` 与描述优化只返回候选或差异建议，不直接创建、覆盖 workspace/active 文件；Skill Sync import 缺少受信 `candidateStore` 时拒绝导入。
-- **治理与证据原语**：writer inventory、单次消费 mutation capability、CAS-bound promotion、不可变 release/LKG/rollback registry 均有源码合同；`b8490faa` 提供 Raw 加密存储、脱敏 model-visible projection、schema-verifier 选择的 trusted projection 与签名 attestation，`d073bdf3` 增加 hash-linked tamper-evident evolution ledger，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS，避免把有效授权或 receipt 换用于另一状态转换。尚无跨 CLI/Desktop/Sync 的统一生产 import/实例化。
-- **测试解释**：`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）。ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿不等于统一生产 wiring、exact-SHA qualification 或发布验收；ledger 独立结果也不是全绿。
+- **首次安装可启动**：公开 npm 包已修复安装后缺失运行时模块导致 `cc` 无法启动的问题。
+- **受治理的 Skill 进化**：候选、评估、证据、账本、人工复核、发布与回滚状态均已耐久化；交互 REPL、单次/流式 headless、`AgentRuntime`、Wiki Maintainer 和结构化记忆生产者使用统一组合入口。
+- **迁移与恢复**：旧 candidate/release/state/ledger 数据通过带 journal 的迁移与自动 reconciliation 接入当前 registry，重复执行保持幂等，证据不一致时失败闭合。
+- **生产边界**：公开包提供受治理的运行时与控制面合同，但真实部署 KMS/PKI、跨主机身份/策略/见证/调度 authority、最终用户 promote/rollback/kill-switch/canary UI，以及跨平台 grader 与进程级 hard kill 仍未完成，因此不宣称无人值守自动晋升闭环。
+- **IDE 公网状态**：Open VSX `0.37.80` 已公开；JetBrains Marketplace 当前公开 `0.4.108`，源码/tag `0.4.109` 尚待公共市场回读。
 
 #### Released — Agent Platform CLI 0.166.15 与 IDE 热修复
 
-> `chainlesschain@0.166.15` 是当前 npm `latest` 与生产推荐版。CLI、VS Code `0.37.77` 和 JetBrains `0.4.107` 的不可变标签共同指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)、[公网字节/provenance 独立复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965)和[JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812)均成功。
+> `chainlesschain@0.166.15` 是 2026-09-01 的历史发布，现已由 `0.166.20` 取代。CLI、VS Code `0.37.77` 和 JetBrains `0.4.107` 的不可变标签共同指向精确提交 [`22db04f559`](https://github.com/chainlesschain/chainlesschain/commit/22db04f55974d2e5823772c4bae5e87171fa51db)；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393380607)、[公网字节/provenance 独立复核](https://github.com/chainlesschain/chainlesschain/actions/runs/33395435618)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393387965)和[JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33393394812)均成功。
 
 - **formal quality 文件工具热修复**：single-Agent control 与 Graph candidate 共用冻结的 `read_file/search_files/list_dir/write_file/edit_file/edit_file_hashed` 契约，避免 preflight 因工具清单漂移而提前失败。
 - **安全边界不扩张**：shell、网络、Git、MCP、插件、IDE 与子 Agent 工具保持禁用；写入继续限制到任务声明的精确文件。

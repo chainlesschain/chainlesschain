@@ -1,6 +1,6 @@
 # 105. Graph Kernel 设计
 
-> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；authoritative entry cutover 随 `0.166.7` 发布；耐久历史、HumanTask quorum、definition migration/retirement evidence、Team 公平性与多端 single-winner settlement 已由完整门禁的 `0.166.15@22db04f559` 公开承接（2026-09-01）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 投影仍只读
+> 状态：核心与只读观测面首次随 `chainlesschain@0.166.0` 发布；authoritative entry cutover 随 `0.166.7` 发布；耐久历史、HumanTask quorum、definition migration/retirement evidence、Team 公平性与多端 single-winner settlement 由当前完整门禁版 `0.166.20@75a3339714` 公开承接（2026-09-03）｜GraphDefinition v1｜Graph event v1｜Desktop/Browser 投影仍只读
 
 ## 1. 定位
 
@@ -22,9 +22,9 @@ Graph Kernel 与 CC App Server 分工明确：
 - Android、iOS、Web Panel、Desktop 与 IDE 只提交绑定决定；quorum、职责分离和 grant scope 仍由 canonical runtime 结算。
 - Team 调度加入 dependency/scope aging、priority donation 与 fairness SLO；早到的 aging service 仍必须受 capacity、budget、lease/fence 与 write scope 约束。
 
-### 1.2 0.166.15 公共基线与发布后质量门
+### 1.2 0.166.20 当前公共基线与历史质量门
 
-公开 `0.166.15` 完整承接上述 Graph 能力以及 `0.166.14` 的 Context/Memory Kernel、耐久 rollout store、Hooks v2、默认 sandbox/审批失败闭合和 Windows Docker-optional 启动。这些平台能力改变 Graph adapter 的上下文、持久化和执行边界，但不改变三类图的职责分离。
+公开 `0.166.20` 完整承接上述 Graph 能力、Context/Memory Kernel、耐久 rollout store、Hooks v2、默认 sandbox/审批失败闭合和 Windows Docker-optional 启动，并增加统一 EvolutionRun ingress、Wiki/Memory producer、人工复核 registry transition 与旧状态迁移。这些平台能力改变 Graph adapter 的上下文、持久化和执行边界，但不改变三类图的职责分离。
 
 `v-npm-0-166-15@22db04f559` 还纳入两类证据并刷新 formal eval producer digest：
 
@@ -34,7 +34,9 @@ Graph Kernel 与 CC App Server 分工明确：
 
 正式评测还要求临时目录内的 hermetic `CHAINLESSCHAIN_HOME`、provider/凭据隔离、Windows ACL preflight 和 shell timeout 下限。发布后的 `main@458b342f5f` 再增加 Windows 每 Agent HOME/config/cache 隔离、瞬态审计重试和最终 `1.65` 平台时延阈值；这些不属于 `0.166.15` tarball，也不构成新的公共 SLA。固定 SHA `db53dc2da4` 的 run `33411796790` 没有形成成功 aggregate/OIDC，P2-3 是在 Windows `1.6379980224 <= 1.65`、功能/安全指标通过及离线加权 aggregate `0.6008293973 < 1.5` 的基础上，由发布负责人显式接受剩余证据风险后关闭。
 
-### 1.3 未合并分支的 fresh-main 与外部证据合同
+### 1.3 历史未合并快照与外部证据合同
+
+> 本节保留 2026-09-01 的 `233e1bdc` 分支评审记录用于审计。当时的“未合并/source-only”判断已被后续 `0.166.20` 发布取代；当前 Skill evolution 架构与剩余生产缺口以[模块 112](./112-governed-skill-evolution-design.md)为准，不能继续把本节快照描述为现状。
 
 本轮核对冻结的本地功能分支快照为 `233e1bdc`，晚于且未合入 GitHub `main@458b342f5f`；该锚点不表示它永远是分支当前 head。其中 `d478270c`/`e2b18598` 为 Graph production cutover 增加 authenticated source registry、Linux/Windows/macOS collector、protected input freeze、source/host receipt、hosted aggregate、exact artifact/certificate close 和多阶段 stale-main 拒绝。它们保证陈旧 head、旁路 ref、跨 run artifact 或未登记 source 失败闭合，但不代表生产切流已经发生。
 
@@ -340,14 +342,14 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 
 ## 16. 发布状态与未决项
 
-已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换；`0.166.15` 是当前完整门禁公共基线，并纳入 worktree/trace 证据与 formal quality 文件工具热修复。发布后的 Windows formal quality 隔离和阈值仍在主线，不能倒灌为 `0.166.15` 制品能力，也不能外推为所有 Desktop/Browser/IDE 产品面已完成切换。
+已发布：GraphDefinition v1 编译、Graph runtime 核心、structured Loop/Subgraph、event store、trace/time travel/diff、eval、runtime claims/shadow/cutover gate 与 CLI 只读观测面。`0.166.7` 完成 CLI graph、Team、distributed-team、Cowork、Scheduler 与 App Server entry 的 authoritative writer 切换；`0.166.20` 是当前完整门禁公共基线，并承接 worktree/trace 证据、formal quality 文件工具热修复和受治理 evolution composition。该状态不能外推为所有 Desktop/Browser/IDE 产品面已完成切换，也不代表生产 authority 或无人值守 active promotion 已配置。
 
 | 层级                                                  | 当前状态                                               | 对外口径                                                                                |
 | ----------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | Compiler / Runtime / Event Store                      | 源码核心已发布并有聚焦测试                             | 内核能力存在；不等于稳定公共 writer API                                                 |
 | `cc team graph`                                       | `inspect/diff/eval` 已公开                             | 只读已有 GraphRun，不创建、恢复或取消                                                   |
 | CLI Team/distributed-team/Cowork/Scheduler/App Server | `0.166.15` 公共基线继续通过 cutover ledger 解析唯一 writer | entry/store/source evidence 不匹配或 legacy mutation 时失败闭合                      |
-| Formal collaboration quality gate                    | `0.166.15` 含 hermetic 文件工具热修复；`main@458b342f5f` 再补 Windows 隔离、`1.65` 平台阈值并记录 P2-3 风险接受关闭 | 发布前门禁；不是用户 SLA；没有最终 SHA 的成功 aggregate/OIDC，豁免不能作为未来发布先例 |
+| Formal collaboration quality gate                    | `0.166.20` 承接 hermetic 文件工具热修复、Windows 隔离与 `1.65` 平台阈值；历史 P2-3 风险接受仍只属于原证据链                 | 发布前门禁；不是用户 SLA；历史失败 run/豁免不能作为未来发布先例                                      |
 | Desktop                                               | Graph 执行 adapter、耐久历史与只读 Debugger 已进入源码 | 独立完成 packaged Electron、hydration、rollback 与 writer-cleanup 前不继承 CLI 发布结论 |
 | Browser/IDE                                           | claims、pilot、shadow/cutover 机制已有                 | 不满足 hydration/rollback/writer-cleanup 时保持 non-authoritative 或 feature-gated      |
 

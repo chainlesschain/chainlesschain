@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 状态：`0.166.16` 已交付 candidate/Eval/evidence/ledger/promotion/release 基础；统一生产控制面与自动 active promotion 保持 HOLD
+> 状态：`0.166.20` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、旧状态迁移与 registry transition 组合；目标环境 authority、最终用户控制面和自动 active promotion 保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/metrics 接线
 >
@@ -27,7 +27,7 @@
 ### 2.2 非目标
 
 - 不把公式化 accuracy 增长或模型自评包装成真实训练/Skill 改善。
-- 不在 `0.166.16` 默认启用无人值守 active mutation。
+- 不在 `0.166.20` 默认启用无人值守 active mutation。
 - 不把单机内存 Map、普通目录写入或本地测试结果当作生产 durable authority。
 - 不用平均分替代缺失的目标平台 cell，也不用 LLM judge 替代确定性测试。
 - 不授予 Desktop、sync peer、candidate evaluator 或 marketplace active-layer 写权限。
@@ -46,12 +46,18 @@
 | Promotion | `SkillPromotionController` | lease、CAS、journal、commit-unknown recovery |
 | Release | `SkillReleaseRegistry` | release/active/LKG/rollback 基础 |
 | Ports | artifact/ledger ports | durable adapter 的严格写入/回读契约 |
+| Run ingress | `AgentEvolutionIngress` / `EvolutionRunLedgerAdapter` | CLI、Graph、legacy WebSocket 的 pre-model/pre-tool 持久证据 |
+| Wiki | `EvidenceBackedWikiMaintainer` / `WikiMaintainerLedgerAdapter` | 证据驱动 revision、CAS、幂等恢复和认证触发 |
+| Review | `SkillPromotionReview` / review ledger adapter | 持久 packet、非自动 quorum、content-risk acknowledgement |
+| Memory | `StructuredMemory*` adapters | episodic/semantic/procedural/policy 四层权力分离 |
+| Migration | candidate/release/state migration adapters | 计划、journal、故障恢复和 legacy 文件退休 |
+| Composition | `createAgentEvolutionRuntimeComposition()` | 显式注入 KMS/PKI/policy/witness 的 branded 生产根 |
 
 ## 4. 系统架构
 
 ```text
 Sources
- trajectory | manual creator | sync import | improvement
+ trajectory | manual creator | sync import | improvement | agent/scheduler
       │
       ▼
 Candidate-only adapters ── writer inventory / mutation freeze
@@ -63,6 +69,9 @@ Tenant Candidate Registry ── canonical manifest + artifact digest
       │                 target / grader / safety / verifier
       │
       └──────────────► Evidence Projection / Artifact Ports
+                              │
+                              ▼
+          EvolutionRun / Wiki / Memory / Review artifacts
                               │
                               ▼
                     Tamper-evident Ledger
@@ -123,7 +132,7 @@ matrix plan 必须签名并持久 reserve；每个 cell 返回完整 child recei
 
 Raw evidence 与 model-visible projection 分离。Artifact Port 校验 schema、签名、TTL、retention、authority 和 canonical bytes，并要求 adapter 写入后回读与 receipt 相同。Ledger 使用签名 append-only hash chain 和独立 witness；状态转换事件绑定精确 subject，缺失或不一致时失败关闭。
 
-当前 ports 是生产 adapter 契约，不等于仓库已经提供跨进程 PKI/WORM authority。真实部署必须实现原子持久化、冲突语义、ACL、备份/恢复与故障注入。
+仓库已提供真实文件 Ledger、durable witness、ArtifactPorts、索引/快照、旧 candidate/release/state migration 与重启恢复组合，并由 branded resolver 限制读取边界；它们仍不等于目标环境已经部署跨主机 PKI/KMS/WORM authority。真实部署必须提供独立 trust root、密钥轮换/撤销、ACL、备份恢复、容量门和跨故障域 witness。
 
 ## 10. Writer 接线
 
@@ -131,6 +140,11 @@ Raw evidence 与 model-visible projection 分离。Artifact Port 校验 schema�
 - `SkillImprover` 只写隔离候选或返回 diff-only，审计失败会使操作失败。
 - Desktop Skill Creator 的 create/optimize 返回内存 proposal、diff 和 evidence，不写 active。
 - Desktop Skill Sync 验证包后调用 host-owned candidate store，并对创建 receipt 与 readback 做 digest/schema 绑定。
+- CLI Agent 的 REPL、单轮 headless、stream headless 与 `AgentRuntime` 可通过 branded composition 注入持久 `EvolutionRun` ingress；UserPrompt、tool request/result 与真实终态在继续执行前确认。
+- canonical Graph App Server 和 Desktop direct Coding Agent 的 legacy WebSocket 路径提供宿主 factory 接线缝，拒绝客户端替换 ingress。
+- Agent completion 与真实 `SchedulerStore` occurrence 可经独立 authority 形成 Wiki maintenance trigger；trigger、revision 与 settlement 通过 Ledger 队列幂等恢复。
+- Candidate/Eval/HumanTask 三事件链通过 registry transition adapter 驱动 evaluated + human-reviewed control plane，commit/settlement 响应丢失可恢复。
+- 旧 Phase 100 simulator 与未注册 IPC 已退役；公式化训练路径只保留 metrics，不再宣称真实训练或 active mutation。
 - writer inventory 维护潜在 mutation 点；未知 active writer 应阻断 capability/publish gate。
 
 ## 11. 接口与错误语义
@@ -143,17 +157,17 @@ API 不允许“日志写失败但 mutation 成功”或“候选未落盘但报
 
 可信宿主至少要配置：tenant root/marker authority、candidate/release durable adapter、ledger/PKI authority、target/grader/safety callable descriptor、全 run deadline、资源上限、permission/policy digest、active/LKG store 和 kill switch。
 
-这些配置尚未冻结为公共最终用户 schema。`0.166.16` 默认不应由用户通过环境变量拼装 production promotion；缺失配置必须让 capability status 显示未接线/不可用。
+这些配置尚未冻结为公共最终用户 schema。`0.166.20` 不允许用户通过环境变量或客户端 payload 拼装 production composition；宿主必须从进程内可信构造点注入 branded root。缺失配置时 capability 保持关闭或 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。
 
 ## 13. 性能与容量
 
-Artifact Port 对 canonical artifact、envelope、index entries 和 index bytes 设硬上限；Eval Gate 对 deadline、并发、输出、终止和 settlement 设界。当前 ledger 部分路径仍为 O(N) 扫描，生产接线前需要增量索引/快照、规模基准与并发冲突测试。
+Artifact Port 对 canonical artifact、envelope、index entries 和 index bytes 设硬上限；Eval Gate 对 deadline、并发、输出、终止和 settlement 设界。Ledger 已增加私有 O(1) event 索引、有界 `queryMany()`、witness-bound snapshot 与 single-current retention；生产接线仍需按真实账本规模、authority 延迟和故障域执行容量与长时故障注入。
 
 性能资格必须绑定 exact fixture/plan/ledger 与目标机器。Team 10,000-task/64-worker 门证明调度优化，不等同于 evolution promotion SLA。
 
 ## 14. 测试策略
 
-测试分为 canonical/schema、candidate/release/promotion、authority、artifact/ledger、Eval Gate、target matrix、writer freeze、Desktop wiring 与路径攻击九类。负向用例覆盖：篡改、缺证、陈旧 revision、跨 tenant、链接/父逃逸、角色混用、receipt 重放、commit unknown、超时/撤销、缺 cell、无效 adapter 回读和 marketplace candidate fetch。
+测试分为 canonical/schema、candidate/release/promotion、authority、artifact/ledger、Eval Gate、target matrix、writer freeze、三端 ingress、Wiki/Memory、migration/recovery、registry transition 与路径攻击。负向用例覆盖：篡改、缺证、陈旧 revision、跨 tenant、链接/父逃逸、角色混用、receipt 重放、commit unknown、超时/撤销、缺 cell、无效 adapter 回读、进程退出重开、journal 四阶段故障和 marketplace candidate fetch。
 
 发布只能引用 exact release SHA 的 Linux/Windows/macOS 工作流；本地或旧 SHA 结果不得代替当前门禁。
 
@@ -169,9 +183,9 @@ Artifact Port 对 canonical artifact、envelope、index entries 和 index bytes 
 
 ## 17. 限制与后续计划
 
-当前未关闭项包括统一 `EvolutionRun` 控制面、Raw/Wiki/Skill 三层 authority、真实跨平台 grader、跨进程 durable authority、人工 quorum、统计校准/多重比较、shadow/canary、SkillInvocationReceipt、运行中 digest pinning、公开 review/promote/rollback UX 和故障注入。
+仓库内已经关闭 canonical `EvolutionRun`、Raw/Wiki/Skill 投影、Wiki Maintainer、单 Skill proposer、四层 Memory、`SkillInvocationReceipt`、有界评分改进循环、持久 human-review authority、旧状态迁移和 registry transition 的主要组合缺口。目标矩阵采用全 cell 合取与 Bonferroni family-wise confidence 校正。
 
-关闭这些条件前，candidate foundation 可以发布和集成，但 production auto-promotion 必须保持 HOLD。
+仍未关闭的是目标环境真实跨平台 grader/runner 与进程级 kill、生产 KMS/PKI/身份/policy/witness/scheduler/transition authority、Desktop 默认 launcher 和其他最终入口注入、最终用户 review/promote/rollback/kill-switch/canary 可视面、跨主机灾备与生产规模演练。关闭这些条件前，production auto-promotion 必须保持 HOLD。
 
 ## 18. 关键文件
 
@@ -181,6 +195,14 @@ Artifact Port 对 canonical artifact、envelope、index entries 和 index bytes 
 - `packages/cli/src/lib/evolution/skill-target-matrix-eval.js`
 - `packages/cli/src/lib/evolution/evolution-evidence-projector.js`
 - `packages/cli/src/lib/evolution/evolution-ledger.js`
+- `packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/agent-evolution-ingress.js`
+- `packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js`
+- `packages/cli/src/lib/evolution/evidence-backed-wiki-maintainer.js`
+- `packages/cli/src/lib/evolution/wiki-maintainer-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/structured-memory-agent-control-plane.js`
+- `packages/cli/src/lib/evolution/skill-promotion-review-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/skill-registry-transition-ledger-adapter.js`
 - `packages/cli/src/lib/evolution/evolution-artifact-ports.js`
 - `packages/cli/src/lib/evolution/evolution-ledger-ports.js`
 - `packages/cli/src/lib/evolution/skill-mutation-authority.js`

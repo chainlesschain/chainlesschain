@@ -1,8 +1,8 @@
 # Desktop Graph 调试与 Skill 安全执行
 
-> 适用范围：2026-09-01 Desktop 源码与 exact-SHA qualification 快照。公开 CLI 的生产推荐版仍按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.15`，精确发布 SHA 为 `22db04f559`。
+> 适用范围：Desktop 源码与历史 exact-SHA qualification 快照。公开 CLI 的生产推荐版按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.20`，精确发布 SHA 为 `75a3339714`。历史 Desktop 资格证据仍绑定 `ee88125256`，不由新 CLI 版本改写。
 
-> **本地 feature 快照边界**：本轮核对冻结的快照为 `233e1bdc`，尚未进入 GitHub `main@458b342f5f`，也不属于公共 `0.166.15` 或下述 Desktop qualification。P1-11 仍为部分完成。
+> **当前边界**：早期 `233e1bdc` source-only 快照中的 evolution 原语后来已进入公共 CLI `0.166.20`；Desktop/native 仍保持独立制品与资格身份。默认启动器、最终用户 promote/rollback/kill-switch/canary UI、真实 KMS/PKI 和跨主机 authority 尚未完成，P1-11 的历史 Desktop 证据仍只绑定 `ee88125256`。
 
 本页介绍两项最新 Desktop 能力：Graph Run Debugger，以及 Cowork Skill 的签名、隔离和能力代理。两者都会自动工作，普通用户不需要手工配置安全 Broker。
 
@@ -10,7 +10,7 @@
 
 Graph Run Debugger 把 canonical Graph 历史转换为只读的拓扑、时间、预算、Trace 与因果视图；Skill 执行安全则在 Handler 运行前核对代码身份，并把高风险宿主访问收进有界 Broker。公开 CLI 的生产推荐版与 Desktop 发布后源码始终按不同制品身份说明。
 
-本轮冻结快照另实现 candidate-only/diff-only、Skill writer inventory、mutation authority 与 promotion/release registry，并补强 Desktop Skill 生命周期 evidence wiring；`b8490faa` 是 attested evidence projector 的具体提交，`d073bdf3` 是 tamper-evident evolution ledger 的具体提交，`233e1bdc` 再将 mutation transition subject 绑定到确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止授权或 receipt 被换用于另一状态转换。当前没有跨 CLI、Desktop 与 Skill Sync 的统一生产实例/import。Skill Creator 不直接写 workspace/active，Skill Sync import 缺 `candidateStore` 时失败闭合。
+公共 CLI `0.166.20` 已把 candidate-only/diff-only、Skill writer inventory、mutation authority、promotion/release registry、EvolutionRun、Wiki/Memory、人工复核 transition 与旧状态迁移接入统一组合。Desktop 仍只通过受限 App Server pilot 与有界 Broker 消费相关能力，不继承 CLI 的发布授权；Skill Creator 不直接写 workspace/active，Skill Sync import 缺受信 `candidateStore` 时继续失败闭合。
 
 ## 核心特性
 

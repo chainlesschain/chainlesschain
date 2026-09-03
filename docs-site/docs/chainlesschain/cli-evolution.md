@@ -19,9 +19,9 @@ ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和
 
 系统根据数据库中的既有记录生成诊断投影。`repair <issue>` 只在用户显式指定 issue 后执行内置维护策略并记录结果，不训练模型，也不修改 active Skill。`predict` 命令根据历史记录生成公式化行为预测。
 
-`0.166.16` 包含 candidate-only/diff-only writer、Skill writer inventory、mutation authority、target-matrix Eval、promotion/release registry、认证制品端口与 tamper-evident ledger。mutation transition subject 绑定确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们尚无统一的普通用户 production wiring；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
+`0.166.20` 包含 candidate-only/diff-only writer、Skill writer inventory、mutation authority、target-matrix Eval、promotion/release registry、认证制品端口与 tamper-evident ledger，并新增持久 `EvolutionRun` ingress、Wiki/Memory、human review、旧状态迁移与 registry transition 组合。mutation transition subject 绑定确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们尚无统一的普通用户 production wiring；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
 
-## 0.166.16 新增能力与 `cc evolution` 的关系
+## 0.166.20 新增能力与 `cc evolution` 的关系
 
 新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/record-model-metrics/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
 
@@ -149,7 +149,7 @@ chainlesschain evolution export "embedder" --json
 
 ## 系统架构
 
-Skill evolution 的本地源码治理链为 `encrypted Raw → model-visible/trusted projection → tamper-evident ledger → immutable candidate → mutation authority → CAS promotion → release/LKG/rollback`。当前下方 `evolution-system.js` 命令路径没有把该链实例化为生产 active writer，ledger 也没有生产 import/实例化。
+Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted projection → EvolutionRun/Wiki → immutable candidate → target-matrix Eval + human review → mutation authority → CAS promotion → release/LKG/rollback`。`0.166.20` 已提供 CLI Agent branded composition、文件 Ledger/witness、迁移和 registry transition 接线；下方 `evolution-system.js` 命令仍只是 metrics/diagnosis 表面，不是 active writer。目标环境未注入生产 authority 时整条 mutation 路径保持关闭。
 
 ```
 用户命令 → evolution.js (Commander) → evolution-system.js
@@ -165,7 +165,7 @@ Skill evolution 的本地源码治理链为 `encrypted Raw → model-visible/tru
 
 ## 配置参考
 
-candidate store、mutation authority、promotion controller 与 release registry 不是公共 `0.166.15` 配置项，不能用 active Skill 目录替代 candidate root 或绕过治理门。
+candidate store、mutation authority、promotion controller 与 release registry 不是公共 `0.166.20` 最终用户配置项，不能用 active Skill 目录替代 candidate root，也不能通过环境变量或客户端 payload 伪造 production composition。
 
 ```bash
 chainlesschain evolution assess <name> <score> [--category <cat>] [--json]
@@ -182,7 +182,7 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 ## 性能指标
 
-下表只描述既有 `cc evolution` 命令，不是本轮冻结 `233e1bdc` 治理链的 SLA；source-only 原语尚无统一生产实例或发布性能证据。
+下表只描述既有 `cc evolution` 指标命令，不是 `0.166.20` 持久治理链的 SLA；真实 Eval、Ledger、KMS/PKI 和跨主机 witness 的 P50/P95 必须由目标部署单独验收。
 
 | 操作                          | 目标    | 实际        | 状态 |
 | ----------------------------- | ------- | ----------- | ---- |
@@ -195,7 +195,7 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 ## 测试覆盖率
 
-新治理原语已有 `skill-candidate-registry.test.js`、`skill-writer-inventory.test.js`、`skill-mutation-authority.test.js`、`skill-promotion-controller.test.js`、`skill-release-registry.test.js`、`evolution-evidence-projector.test.js` 与 `evolution-ledger.test.js` 测试合同。`233e1bdc` exact working tree 的原六个治理测试文件为 6/6 文件、126/126 测试通过（28.84 秒）；ledger 独立定向结果仍为 34/35 通过，另 1 项触发默认 5 秒超时。六文件全绿仍不能表述为统一生产 wiring、qualification 或发布验收；ledger 独立结果也不是全绿。
+治理回归覆盖 candidate/release/promotion、target matrix、evidence/artifact/ledger、三模式 Agent ingress、Wiki/Memory/review、legacy migration、registry transition、进程重启和 crash recovery。CLI `0.166.20` 的发布结论仅来自其 exact SHA 的三平台 CLI CI 与 Strict Sandbox；单个测试文件或旧快照不能替代发布门，也不能证明目标环境 authority 已部署。
 
 ```
 ✅ evolution.test.js  - 覆盖 CLI 主要路径
@@ -209,11 +209,15 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 - `packages/cli/src/commands/evolution.js` — 命令实现
 - `packages/cli/src/lib/evolution-system.js` — 自进化系统库
-- `packages/cli/src/lib/evolution/skill-candidate-registry.js` — source-only 候选注册表
-- `packages/cli/src/lib/evolution/skill-mutation-authority.js` — source-only mutation authority
-- `packages/cli/src/lib/evolution/skill-promotion-controller.js` — source-only promotion/rollback
-- `packages/cli/src/lib/evolution/skill-release-registry.js` — source-only release/LKG registry
-- `packages/cli/src/lib/evolution/evolution-evidence-projector.js` — source-only Raw/model/trusted 投影
+- `packages/cli/src/lib/evolution/skill-candidate-registry.js` — tenant 候选注册表
+- `packages/cli/src/lib/evolution/skill-mutation-authority.js` — mutation authority
+- `packages/cli/src/lib/evolution/skill-promotion-controller.js` — evaluated/human-reviewed promotion 与 rollback
+- `packages/cli/src/lib/evolution/skill-release-registry.js` — release/active/LKG registry
+- `packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js` — branded Agent 生产组合入口
+- `packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js` — 持久 EvolutionRun
+- `packages/cli/src/lib/evolution/evidence-backed-wiki-maintainer.js` — 证据驱动 Wiki reducer
+- `packages/cli/src/lib/evolution/structured-memory-agent-control-plane.js` — 四层 Memory 控制面
+- `packages/cli/src/lib/evolution/skill-registry-transition-ledger-adapter.js` — registry transition 状态机
 - `packages/cli/src/lib/evolution/evolution-ledger.js` — source-only hash-linked tamper-evident ledger
 
 ## 使用示例

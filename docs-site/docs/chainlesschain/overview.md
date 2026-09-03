@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-09-02）：v5.0.3.135 | Agent Platform CLI 0.166.16（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | Session Core 0.3.8 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.78 | JetBrains Marketplace 0.4.107 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-09-03）：v5.0.3.135 | Agent Platform CLI 0.166.20（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | Session Core 0.3.10 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.80 | JetBrains Marketplace 0.4.108 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：`0.166.16@15bd3636b8` 已公开受治理 Skill candidate、目标矩阵 Eval、认证 evidence/artifact、tamper-evident ledger、mutation authority 与可恢复 promotion/release 基础。自动生成、改进和同步导入不会直接覆盖 active Skill；缺少完整 receipt、受信 adapter 或 active CAS 时失败关闭。统一最终用户 promotion/rollback 控制面、人工 quorum、canary 与无人值守 active promotion 尚未开放。
+> **当前能力与发布边界**：`0.166.20@75a3339714` 已公开持久 `EvolutionRun` ingress、证据驱动 Wiki、四层 Memory、human-review authority、旧 candidate/release/state 迁移与 registry transition，并修复全新 npm 安装的 `cc agent` 启动。自动生成、改进和同步导入不会直接覆盖 active Skill；最终用户 promotion/rollback/kill-switch/canary 控制面和生产 KMS/PKI/witness/grader 仍未开放。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

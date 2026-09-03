@@ -1,6 +1,6 @@
 # 上下文与记忆
 
-> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.15`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
+> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.20`、Session Core `0.3.10`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
 
 ## 概述
 
