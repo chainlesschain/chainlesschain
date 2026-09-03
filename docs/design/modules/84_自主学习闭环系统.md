@@ -62,7 +62,9 @@ Agent completion 已有真实 source/producer 接线缝：它按 tenant/run id �
 
 `ScheduledBatch` 也已有真实 source/producer 接线缝：它从 `SchedulerStore` 重开已成功结算的 tenant occurrence，固定校验 job payload、occurrence result、evidence-set digest 与 job revision，并在 enqueue 和 Maintainer 处理前由独立 scheduler authority 重新认证完整 job/occurrence；只有该 authority 的 durable receipt 能进入 trigger request。真实 SQLite close/reopen、未完成/替换结果和 authority 撤销回归 4/4 通过。
 
-这不等于所有产品事件都已启用：目标部署仍需配置 Agent composition resolver、SchedulerStore resolver、trigger stream/worker 和真实 scheduler authority/PKI，Candidate/Eval/HumanTask 的 transition adapter 也尚未完成。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。
+Registry transition 也已有 durable adapter：认证的 `CandidateCreated / EvalCompleted / HumanTaskSettled` 三事件链先写 request，再按当前 active CAS 写 attempt，之后才由真实 mutation authority 签发不落盘的一次性 capability 并进入 evaluated+human-reviewed 窄控制面。Registry 已提交但 settlement 未写时，新 adapter 会从不可变 release/state 的 candidate、mutation request、transition subject、authority receipt 和 transaction 绑定恢复；不会重复晋级。真实双 cell Gate、签名 matrix、双人审批与 `SkillReleaseRegistry` 联合回归覆盖 source 撤销、commit crash 和 settlement 响应丢失。
+
+这不等于所有产品事件都已启用：目标部署仍需配置 Agent composition/SchedulerStore/transition-event resolver、trigger stream/worker、真实 scheduler/transition authority/PKI，并让默认 launcher 和其他产品入口注入这些 composition。通用 Hooks 仍服务于用户配置的生命周期扩展，但不会自动取得 evolution evidence 写权限。
 
 ## 五、安全约束
 
@@ -81,10 +83,11 @@ Agent completion 已有真实 source/producer 接线缝：它按 tenant/run id �
 - Wiki trigger 联合回归覆盖三种 trigger、真实 Ledger 文件/witness 重开、源撤销、结果替换和 commit/settlement crash recovery；55 项通过，1 项按平台条件跳过。
 - Agent completion source/trigger 联合回归 15/15，production composition 与跨 runtime 9/9；覆盖已完成 run 重放、goal evidence 强制、源撤销、重复 complete 和幂等 enqueue。
 - ScheduledBatch source 回归 4/4；覆盖真实 SQLite close/reopen、tenant/job revision/evidence digest 绑定、未完成或替换结果拒绝、authority 撤销和 branded producer。
+- Registry transition 与相关控制面 46 项通过、1 项按平台条件跳过；纵向用例覆盖真实双 cell Gate、签名 matrix、双人人工审批、mutation authority、真实 Release Registry、source 撤销、commit crash 和 settlement 响应丢失恢复。
 
 ## 七、剩余工作
 
-1. 在目标部署配置 Agent composition/SchedulerStore resolver、trigger stream/worker 和真实 scheduler authority/PKI，并完成 transition adapter。
+1. 在目标部署配置 Agent composition/SchedulerStore/transition-event resolver、trigger stream/worker 和真实 scheduler/transition authority/PKI。
 2. 将旧学习表数据显式迁移到认证 evidence/Wiki 输入，或标记为 legacy/untrusted 并限定用途。
 3. 完成目标部署的 KMS/PKI/policy/witness authority 与 reviewer/promotion 生产接线。
 

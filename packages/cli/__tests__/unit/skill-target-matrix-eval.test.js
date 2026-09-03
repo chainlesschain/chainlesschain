@@ -6,6 +6,12 @@ import { Worker } from "node:worker_threads";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import {
+  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+  EvolutionArtifactPorts,
+} from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
   EVOLUTION_EVAL_ATTESTATION_PURPOSES,
@@ -66,7 +72,10 @@ import {
   digestSkillMutationReceiptEnvelope,
   digestSkillMutationTransitionSubject,
 } from "../../src/lib/evolution/skill-mutation-authority.js";
-import { EMPTY_SKILL_ACTIVE_DIGEST } from "../../src/lib/evolution/skill-promotion-controller.js";
+import {
+  EMPTY_SKILL_ACTIVE_DIGEST,
+  createSkillEvaluatedPromotionControlPlane,
+} from "../../src/lib/evolution/skill-promotion-controller.js";
 import {
   SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
   SKILL_PROMOTION_REVIEW_RESOLUTION_SCHEMA,
@@ -78,6 +87,10 @@ import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SkillReleaseRegistry,
 } from "../../src/lib/evolution/skill-release-registry.js";
+import {
+  SKILL_REGISTRY_TRANSITION_SETTLED_EVENT_TYPE,
+  createSkillRegistryTransitionLedgerAdapter,
+} from "../../src/lib/evolution/skill-registry-transition-ledger-adapter.js";
 import { AgentRuntime } from "../../src/runtime/agent-runtime.js";
 import { createStructuredMemoryAgentControlPlaneFixture } from "../fixtures/structured-memory-agent-control-plane.js";
 import {
@@ -1819,6 +1832,116 @@ function matrixDigest(domain, value) {
     .digest("hex")}`;
 }
 
+function transitionArtifactStorage(root, now) {
+  const secret = "test-only-registry-transition-artifact-key";
+  const algorithm = "hmac-sha256";
+  const keyId = "test:key/registry-transition";
+  const policyDigest = matrixDigest(
+    "registry-transition-artifact-policy",
+    "v1",
+  );
+  const sign = (message) =>
+    createHmac("sha256", secret).update(message).digest("base64url");
+  const ports = new EvolutionArtifactPorts({
+    artifactStore: new ArtifactStore({
+      dir: path.join(root, "transition-artifacts"),
+      now,
+    }),
+    audience: "worker:promotion",
+    tenantId: "artifact-tenant-primary",
+    now,
+    envelopeSigner: {
+      sign: ({ message }) => ({ algorithm, keyId, value: sign(message) }),
+    },
+    envelopeVerifier: {
+      verify: ({ message, signature }) =>
+        signature.algorithm === algorithm &&
+        signature.keyId === keyId &&
+        signature.value === sign(message),
+    },
+    currentAuthorityResolver: {
+      resolve(request) {
+        const nowMs = now();
+        const core = {
+          action: request.action,
+          algorithm,
+          allowed: true,
+          audience: request.audience,
+          checkedAt: new Date(nowMs).toISOString(),
+          decisionExpiresAt: new Date(nowMs + 30_000).toISOString(),
+          digest: request.digest,
+          issuedAt: request.issuedAt,
+          issuedPolicyDigest: request.issuedPolicyDigest,
+          issuedPolicyRevision: request.issuedPolicyRevision,
+          issuedPolicyTrusted: true,
+          keyId: request.keyId || keyId,
+          policyDigest,
+          policyRevision: 1,
+          purpose: request.purpose,
+          requestedAt: request.requestedAt,
+          retention: request.retention,
+          revocationRevision: 1,
+          revoked: false,
+          schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+          tenantId: request.tenantId,
+          type: request.type,
+        };
+        return {
+          ...core,
+          receiptDigest: matrixDigest(
+            "chainlesschain.evolution-artifact-authority-decision/v1",
+            core,
+          ),
+        };
+      },
+    },
+  });
+  const state = { events: [], failAfterTypes: new Set() };
+  const ledger = {
+    read: () => structuredClone(state.events),
+    verify: () => ({
+      epoch: "epoch-registry-transition",
+      ledgerId: "ledger-registry-transition",
+      sequence: state.events.length,
+      headDigest: state.events.at(-1)?.eventDigest ?? null,
+    }),
+    appendDomainEvent(input, options) {
+      const previous = state.events.at(-1);
+      if (
+        options.expectedSequence !== state.events.length ||
+        options.expectedHeadDigest !== (previous?.eventDigest ?? null)
+      ) {
+        throw new Error("transition ledger head conflict");
+      }
+      const event = {
+        ...structuredClone(input),
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        sequence: state.events.length + 1,
+        eventDigest: matrixDigest("registry-transition-event", input),
+      };
+      state.events.push(event);
+      if (state.failAfterTypes.delete(input.type)) {
+        throw new Error(`simulated ${input.type} response loss`);
+      }
+      return {
+        authenticated: true,
+        committed: true,
+        durable: true,
+        eventId: input.eventId,
+        receiptDigest: matrixDigest("registry-transition-append", event),
+      };
+    },
+  };
+  return {
+    artifactPorts: ports,
+    ledger,
+    resolver: ports.createEvolutionLedgerArtifactResolver({
+      purpose: "evolution-ledger",
+    }),
+    state,
+  };
+}
+
 function promotionAuthority() {
   let auditSequence = 0;
   let nonceSequence = 0;
@@ -3048,6 +3171,145 @@ describe("Skill target matrix evaluation foundation", () => {
       promotionReviewProvider,
       releaseRegistry,
     });
+
+    const transitionAuthorityHarness = promotionAuthority();
+    const transitionReleaseRegistry = new SkillReleaseRegistry({
+      tenantId: receipt.tenantId,
+      rootDir: path.join(promotionRoot, "transition-releases"),
+      secure: false,
+      transactionLedger: new PromotionTransactionLedger(),
+    });
+    const transitionControlPlane = createSkillEvaluatedPromotionControlPlane({
+      authority: transitionAuthorityHarness.authority,
+      candidateRegistry,
+      evaluatedPromotionProvider: provider,
+      promotionReviewProvider,
+      releaseRegistry: transitionReleaseRegistry,
+    });
+    let transitionNow = Date.now();
+    const transitionStorage = transitionArtifactStorage(
+      promotionRoot,
+      () => transitionNow,
+    );
+    const transitionSource = {
+      candidateCreatedRef: "candidate-event://matrix-accepted",
+      evalCompletedRef: "eval-event://matrix-accepted",
+      humanTaskSettledRef: "human-task://matrix-accepted",
+    };
+    const transitionEffectiveAt = new Date(transitionNow).toISOString();
+    const transitionMatrixContext = {
+      matrixEvalId: receipt.matrixEvalId,
+      baselineId: receipt.baselineId,
+      matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+      planDigest: receipt.planDigest,
+    };
+    let transitionSourceAvailable = true;
+    const transitionSourceVerifier = {
+      async verify(input) {
+        expect(input).toEqual(transitionSource);
+        if (!transitionSourceAvailable) {
+          throw new Error("transition source authority revoked");
+        }
+        return {
+          authenticated: true,
+          durable: true,
+          tenantId: receipt.tenantId,
+          candidateId: candidate.candidateId,
+          skillName: candidate.skillName,
+          ...transitionSource,
+          matrixContext: transitionMatrixContext,
+          receipts: promotionRequest.receipts,
+          effectiveAt: transitionEffectiveAt,
+          sourceReceiptDigest: matrixDigest(
+            "registry-transition-source",
+            transitionSource,
+          ),
+        };
+      },
+    };
+    const transitionDescriptor = {
+      tenantId: receipt.tenantId,
+      artifactTenantId: "artifact-tenant-primary",
+      streamId: "registry-transition-stream",
+      audience: "worker:promotion",
+      purpose: "evolution-ledger",
+    };
+    let crashAfterRegistryCommit = true;
+    const transitionAdapter = createSkillRegistryTransitionLedgerAdapter({
+      descriptor: transitionDescriptor,
+      artifactPorts: transitionStorage.artifactPorts,
+      ledger: transitionStorage.ledger,
+      ledgerArtifactResolver: transitionStorage.resolver,
+      sourceVerifier: transitionSourceVerifier,
+      candidateRegistry,
+      releaseRegistry: transitionReleaseRegistry,
+      authority: transitionAuthorityHarness.authority,
+      controlPlane: transitionControlPlane,
+      now: () => transitionNow,
+      crashHook(phase) {
+        if (phase === "after-registry-commit" && crashAfterRegistryCommit) {
+          crashAfterRegistryCommit = false;
+          throw new Error("simulated registry commit response loss");
+        }
+      },
+    });
+    await expect(
+      transitionAdapter.enqueue(transitionSource),
+    ).resolves.toMatchObject({ queued: true, recovered: false });
+    transitionSourceAvailable = false;
+    await expect(transitionAdapter.processNext()).rejects.toThrow(
+      /source authority revoked/u,
+    );
+    expect(
+      transitionReleaseRegistry.readState(candidate.skillName),
+    ).toMatchObject({ revision: 0, activeReleaseDigest: null });
+    expect(transitionStorage.state.events).toHaveLength(1);
+    transitionSourceAvailable = true;
+    await expect(transitionAdapter.processNext()).rejects.toThrow(
+      /simulated registry commit response loss/u,
+    );
+    expect(
+      transitionReleaseRegistry.readState(candidate.skillName),
+    ).toMatchObject({ revision: 1 });
+    transitionStorage.state.failAfterTypes.add(
+      SKILL_REGISTRY_TRANSITION_SETTLED_EVENT_TYPE,
+    );
+    transitionNow += 1_000;
+    const reopenedTransitionAdapter =
+      createSkillRegistryTransitionLedgerAdapter({
+        descriptor: transitionDescriptor,
+        artifactPorts: transitionStorage.artifactPorts,
+        ledger: transitionStorage.ledger,
+        ledgerArtifactResolver: transitionStorage.resolver,
+        sourceVerifier: transitionSourceVerifier,
+        candidateRegistry,
+        releaseRegistry: transitionReleaseRegistry,
+        authority: transitionAuthorityHarness.authority,
+        controlPlane: transitionControlPlane,
+        now: () => transitionNow,
+      });
+    await expect(
+      reopenedTransitionAdapter.processNext(),
+    ).resolves.toMatchObject({
+      processed: true,
+      recovered: true,
+      revision: 1,
+    });
+    expect(reopenedTransitionAdapter.list()).toMatchObject([
+      { status: "committed", settlement: { revision: 1 } },
+    ]);
+    expect(transitionStorage.state.events.map((event) => event.type)).toEqual([
+      "skill.registry-transition.requested",
+      "skill.registry-transition.attempted",
+      "skill.registry-transition.settled",
+    ]);
+    await expect(reopenedTransitionAdapter.processNext()).resolves.toEqual({
+      processed: false,
+    });
+    expect(
+      transitionAuthorityHarness.auditEvents.map((event) => event.phase),
+    ).toEqual(["authorize", "consume"]);
+
     memoryRoot.ledgerState.failBeforeType = "memory.event.persisted";
     let pendingError;
     try {

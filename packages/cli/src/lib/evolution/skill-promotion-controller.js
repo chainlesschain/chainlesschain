@@ -46,6 +46,7 @@ const EVALUATED_CONTROL_PLANE_REQUIRED_KEYS = new Set([
 
 export const SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-control-plane/v1";
+const EVALUATED_PROMOTION_CONTROL_PLANES = new WeakSet();
 
 export class SkillPromotionControllerError extends Error {
   constructor(code, message, details = {}) {
@@ -653,7 +654,7 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
     requireEvaluatedPromotion: true,
     requireHumanReview: true,
   });
-  return Object.freeze({
+  const controlPlane = {
     schema: SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA,
     tenantId: options.candidateRegistry.tenantId,
     providerAuthorityId: provider.authorityId,
@@ -666,6 +667,22 @@ export function createSkillEvaluatedPromotionControlPlane(options = {}) {
       controller.promoteEvaluated(input),
     ),
     rollback: Object.freeze((input) => controller.rollback(input)),
+  };
+  EVALUATED_PROMOTION_CONTROL_PLANES.add(controlPlane);
+  return Object.freeze(controlPlane);
+}
+
+export function captureSkillEvaluatedPromotionControlPlane(value) {
+  if (!value || !EVALUATED_PROMOTION_CONTROL_PLANES.has(value)) {
+    throw failure(
+      "SKILL_PROMOTION_CONTROL_PLANE_REQUIRED",
+      "a branded evaluated promotion control plane is required",
+    );
+  }
+  return Object.freeze({
+    schema: value.schema,
+    tenantId: value.tenantId,
+    promoteEvaluated: value.promoteEvaluated.bind(value),
   });
 }
 
