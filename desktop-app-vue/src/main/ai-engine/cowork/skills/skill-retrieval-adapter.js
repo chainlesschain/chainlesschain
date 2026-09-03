@@ -3,6 +3,12 @@ const ROUTER_REL =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_FILTER_VALUES = 64;
 const MAX_FILTER_VALUE_LENGTH = 128;
+const MAX_ROUTABLE_SKILLS = 10_000;
+const MAX_QUERY_LENGTH = 4096;
+const {
+  buildDesktopSkillOutcomeAuthority,
+  unavailableDesktopSkillOutcomeAuthority,
+} = require("./skill-outcome-db-authority");
 
 async function defaultLoadRouter() {
   return import(ROUTER_REL);
@@ -11,7 +17,9 @@ async function defaultLoadRouter() {
 function descriptorFor(skill) {
   const info = skill?.getInfo?.();
   const contentDigest = info?.executionSecurity?.contentDigest;
-  if (!DIGEST.test(contentDigest || "")) return null;
+  if (!DIGEST.test(contentDigest || "")) {
+    return null;
+  }
   return {
     id: info.skillId,
     displayName: info.name,
@@ -29,7 +37,9 @@ function descriptorFor(skill) {
 }
 
 function boundedString(value, label, { nullable = false } = {}) {
-  if (nullable && (value === null || value === undefined)) return null;
+  if (nullable && (value === null || value === undefined)) {
+    return null;
+  }
   if (
     typeof value !== "string" ||
     value.length < 1 ||
@@ -47,14 +57,19 @@ function boundedStringList(value, label) {
   return value.map((entry) => boundedString(entry, label));
 }
 
-async function routeDesktopSkills({
+function validateDesktopRoutingRequest({
   skills,
   query,
   filters = {},
   hostTarget = {},
-  loadRouter = defaultLoadRouter,
 } = {}) {
-  if (!Array.isArray(skills) || typeof query !== "string") {
+  if (
+    !Array.isArray(skills) ||
+    skills.length > MAX_ROUTABLE_SKILLS ||
+    typeof query !== "string" ||
+    query.trim().length < 1 ||
+    query.length > MAX_QUERY_LENGTH
+  ) {
     throw new TypeError("Desktop Skill retrieval request is invalid");
   }
   if (
@@ -76,6 +91,26 @@ async function routeDesktopSkills({
   ) {
     throw new TypeError("Desktop Skill retrieval host target is invalid");
   }
+  boundedString(filters.namespace, "Skill namespace", { nullable: true });
+  boundedStringList(filters.tags ?? [], "Skill tags");
+  boundedString(hostTarget.os || process.platform, "Host target OS");
+  if (Array.isArray(hostTarget.allowedCapabilities)) {
+    boundedStringList(
+      hostTarget.allowedCapabilities,
+      "Host target capabilities",
+    );
+  }
+}
+
+async function routeDesktopSkills({
+  skills,
+  query,
+  filters = {},
+  hostTarget = {},
+  outcomeMetrics = null,
+  loadRouter = defaultLoadRouter,
+} = {}) {
+  validateDesktopRoutingRequest({ skills, query, filters, hostTarget });
   const namespace = boundedString(filters.namespace, "Skill namespace", {
     nullable: true,
   });
@@ -103,7 +138,34 @@ async function routeDesktopSkills({
     tags,
     topK: filters.topK ?? 20,
     target,
+    outcomeMetrics,
   });
 }
 
-module.exports = { descriptorFor, routeDesktopSkills };
+async function routeDesktopSkillsWithOutcomeAuthority({
+  database,
+  buildOutcomeAuthority = buildDesktopSkillOutcomeAuthority,
+  ...routingRequest
+} = {}) {
+  validateDesktopRoutingRequest(routingRequest);
+  let outcomeAuthority;
+  try {
+    outcomeAuthority = await buildOutcomeAuthority({ database });
+  } catch (error) {
+    outcomeAuthority = unavailableDesktopSkillOutcomeAuthority(error);
+  }
+  const routed = await routeDesktopSkills({
+    ...routingRequest,
+    outcomeMetrics: outcomeAuthority.metrics,
+  });
+  return Object.freeze({
+    ...routed,
+    outcomeAuthority: outcomeAuthority.evidence,
+  });
+}
+
+module.exports = {
+  descriptorFor,
+  routeDesktopSkills,
+  routeDesktopSkillsWithOutcomeAuthority,
+};

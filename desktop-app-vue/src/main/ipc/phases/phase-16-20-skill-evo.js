@@ -104,6 +104,9 @@ function createPhase16SkillServices({
   pipelineEngine.metricsCollector = metricsCollector;
   metricsCollector.skillRegistry = skillRegistry;
   metricsCollector.pipelineEngine = pipelineEngine;
+  // Skills IPC is registered earlier and closes over this singleton Registry.
+  // Publish only the collector reference; the renderer never receives it.
+  skillRegistry.skillMetricsCollector = metricsCollector;
 
   const workflowEngine =
     deps.skillWorkflowEngine ||

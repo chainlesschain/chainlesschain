@@ -16,6 +16,12 @@
         show-icon
         :message="routingConflict"
       />
+      <a-alert
+        v-if="outcomeAuthorityNotice"
+        :type="outcomeAuthorityNotice.type"
+        show-icon
+        :message="outcomeAuthorityNotice.message"
+      />
     </div>
 
     <!-- Default node types section -->
@@ -148,7 +154,70 @@ const loadingSkills = ref(false);
 const routingSkills = ref(false);
 const skillQuery = ref("");
 const routingConflict = ref("");
+const outcomeAuthorityNotice = ref(null);
 const expandedGroups = reactive({});
+
+const OUTCOME_AUTHORITY_SCHEMA =
+  "chainlesschain.desktop-skill-outcome-db-authority/v1";
+const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/u;
+
+function parseOutcomeAuthority(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== OUTCOME_AUTHORITY_SCHEMA ||
+    value.antiRollbackWitness !== false
+  ) {
+    throw new Error("技能结果证据格式无效");
+  }
+  if (value.status === "unavailable") {
+    if (
+      typeof value.code !== "string" ||
+      !value.code.startsWith("CC_DESKTOP_SKILL_") ||
+      value.code.length > 128
+    ) {
+      throw new Error("技能结果证据不可用状态无效");
+    }
+    return {
+      type: "warning",
+      message: "历史结果证据不可用，本次检索未使用部分结果数据。",
+    };
+  }
+  const countKeys = [
+    "rowCount",
+    "receiptCount",
+    "uniqueReceiptCount",
+    "attributionEligibleReceiptCount",
+    "outcomeEligibleReceiptCount",
+    "duplicateReceiptCount",
+  ];
+  if (
+    value.status !== "verified-local-db" ||
+    !SHA256_DIGEST.test(value.sourceDigest || "") ||
+    !Number.isSafeInteger(value.maxRows) ||
+    value.maxRows < 1 ||
+    value.maxRows > 10_000 ||
+    countKeys.some(
+      (key) =>
+        !Number.isSafeInteger(value[key]) ||
+        value[key] < 0 ||
+        value[key] > value.maxRows,
+    ) ||
+    value.receiptCount > value.rowCount ||
+    value.uniqueReceiptCount > value.receiptCount ||
+    value.attributionEligibleReceiptCount > value.uniqueReceiptCount ||
+    value.outcomeEligibleReceiptCount > value.attributionEligibleReceiptCount ||
+    value.duplicateReceiptCount !==
+      value.receiptCount - value.uniqueReceiptCount
+  ) {
+    throw new Error("技能结果证据校验失败");
+  }
+  return {
+    type: "info",
+    message: "排序已使用本地回执证据；本地数据库暂不具备独立防回滚见证。",
+  };
+}
 
 const skillGroups = computed(() => {
   const allSkills =
@@ -177,6 +246,7 @@ function toggleGroup(category) {
 async function routeSkills() {
   const query = skillQuery.value.trim();
   routingConflict.value = "";
+  outcomeAuthorityNotice.value = null;
   if (!query) {
     await loadSkills();
     return;
@@ -190,6 +260,9 @@ async function routeSkills() {
       throw new Error(response?.error || "技能检索失败");
     }
     const result = response.result;
+    outcomeAuthorityNotice.value = parseOutcomeAuthority(
+      result?.outcomeAuthority,
+    );
     const candidates = (result?.candidates || []).map((candidate) => ({
       skillId: candidate.id,
       name: candidate.displayName,

@@ -35,7 +35,9 @@ const {
   registerBundledSkillCredentialIPC,
   unregisterBundledSkillCredentialIPC,
 } = require("./bundled-skill-credential-ipc");
-const { routeDesktopSkills } = require("./skill-retrieval-adapter");
+const {
+  routeDesktopSkillsWithOutcomeAuthority,
+} = require("./skill-retrieval-adapter");
 
 /**
  * 注册 Markdown Skills IPC 处理器
@@ -293,11 +295,13 @@ function registerSkillsIPC(options = {}) {
       const skills = registry
         .getUserInvocableSkills()
         .filter((skill) => skill.config?.enabled !== false);
-      const result = await routeDesktopSkills({
+      const result = await routeDesktopSkillsWithOutcomeAuthority({
         skills,
         query,
         filters,
         hostTarget: options.skillRoutingTarget || { os: process.platform },
+        database: registry.skillMetricsCollector?.database || null,
+        buildOutcomeAuthority: options.buildDesktopSkillOutcomeAuthority,
         loadRouter: options.loadSkillRouter,
       });
       return { success: true, result };

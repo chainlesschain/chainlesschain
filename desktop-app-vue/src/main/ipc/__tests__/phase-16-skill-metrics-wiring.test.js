@@ -146,6 +146,9 @@ describe("Phase 16 Skill service wiring", () => {
     expect(registeredModules.skillMetricsCollector.pipelineEngine).toBe(
       registeredModules.skillPipelineEngine,
     );
+    expect(registeredModules.skillRegistry.skillMetricsCollector).toBe(
+      registeredModules.skillMetricsCollector,
+    );
     expect(registeredModules.skillWorkflowEngine.pipelineEngine).toBe(
       registeredModules.skillPipelineEngine,
     );
