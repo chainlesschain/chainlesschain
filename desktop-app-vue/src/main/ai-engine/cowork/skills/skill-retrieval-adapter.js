@@ -1,5 +1,7 @@
 const ROUTER_REL =
   "../../../../../../packages/cli/src/lib/skill-retrieval-router.js";
+const VECTOR_AUTHORITY_REL =
+  "../../../../../../packages/cli/src/lib/skill-vector-authority.js";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_FILTER_VALUES = 64;
 const MAX_FILTER_VALUE_LENGTH = 128;
@@ -12,6 +14,10 @@ const {
 
 async function defaultLoadRouter() {
   return import(ROUTER_REL);
+}
+
+async function defaultLoadVectorAuthority() {
+  return import(VECTOR_AUTHORITY_REL);
 }
 
 function descriptorFor(skill) {
@@ -108,7 +114,9 @@ async function routeDesktopSkills({
   filters = {},
   hostTarget = {},
   outcomeMetrics = null,
+  skillVectorAuthority = null,
   loadRouter = defaultLoadRouter,
+  loadVectorAuthority = defaultLoadVectorAuthority,
 } = {}) {
   validateDesktopRoutingRequest({ skills, query, filters, hostTarget });
   const namespace = boundedString(filters.namespace, "Skill namespace", {
@@ -127,11 +135,28 @@ async function routeDesktopSkills({
       : {}),
   };
   const descriptors = skills.map(descriptorFor).filter(Boolean);
-  const router = await loadRouter();
+  const [router, vectorAuthorityModule] = await Promise.all([
+    loadRouter(),
+    loadVectorAuthority(),
+  ]);
   if (typeof router?.routeSkillDescriptors !== "function") {
     throw new Error("Canonical Skill retrieval router is unavailable");
   }
-  return router.routeSkillDescriptors({
+  if (
+    typeof vectorAuthorityModule?.captureSkillVectorAuthority !== "function" ||
+    typeof vectorAuthorityModule?.unavailableSkillVectorEvidence !== "function"
+  ) {
+    throw new Error("Canonical Skill vector authority is unavailable");
+  }
+  const vectorAuthority =
+    skillVectorAuthority === null
+      ? null
+      : vectorAuthorityModule.captureSkillVectorAuthority(skillVectorAuthority);
+  const vector =
+    vectorAuthority === null || descriptors.length === 0
+      ? null
+      : await vectorAuthority.score({ query, skills: descriptors });
+  const routed = router.routeSkillDescriptors({
     skills: descriptors,
     query,
     namespace,
@@ -139,6 +164,17 @@ async function routeDesktopSkills({
     topK: filters.topK ?? 20,
     target,
     outcomeMetrics,
+    vectorScores: vector?.scores ?? null,
+  });
+  return Object.freeze({
+    ...routed,
+    vectorAuthority:
+      vector?.evidence ??
+      vectorAuthorityModule.unavailableSkillVectorEvidence(
+        descriptors.length === 0
+          ? "CC_SKILL_VECTOR_CORPUS_EMPTY"
+          : "CC_SKILL_VECTOR_AUTHORITY_UNCONFIGURED",
+      ),
   });
 }
 

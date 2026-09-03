@@ -162,6 +162,9 @@ function createCodingAgentBootstrap(options = {}) {
   return {
     service,
     appServerPilot,
+    // Opaque host capability. The retrieval adapter captures the CLI private
+    // brand before use; this bootstrap never invokes or serializes it.
+    skillVectorAuthority: options.skillVectorAuthority ?? null,
     attachWindow,
     dispose,
     isDisposed: () => disposed,

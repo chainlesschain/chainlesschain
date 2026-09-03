@@ -1602,6 +1602,7 @@ class ChainlessChainApp {
         toolManager: this.toolManager,
         mcpManager: this.mcpManager,
         mcpSecurityPolicy: this.mcpSecurity,
+        skillVectorAuthority: this.skillVectorAuthority ?? null,
       });
     }
 

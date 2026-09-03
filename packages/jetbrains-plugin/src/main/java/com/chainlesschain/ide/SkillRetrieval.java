@@ -18,6 +18,8 @@ public final class SkillRetrieval {
             "chainlesschain.skill-outcome-transcript-authority/v1";
     public static final String INDEX_OUTCOME_AUTHORITY_SCHEMA =
             "chainlesschain.skill-outcome-index-authority/v1";
+    public static final String VECTOR_AUTHORITY_SCHEMA =
+            "chainlesschain.skill-vector-authority/v1";
     public static final String OUTCOME_AUTHORITY_SCHEMA =
             TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA;
     public static final int MAX_CANDIDATES = 64;
@@ -66,11 +68,16 @@ public final class SkillRetrieval {
         public final int rejectedCount;
         public final String outcomeAuthorityStatus;
         public final String outcomeSourceDigest;
+        public final String vectorAuthorityStatus;
+        public final String vectorModel;
+        public final String vectorIndexDigest;
         public final List<Candidate> candidates;
 
         private Result(String query, String selectedDigest,
                 boolean vectorAvailable, int conflictCount, int rejectedCount,
                 String outcomeAuthorityStatus, String outcomeSourceDigest,
+                String vectorAuthorityStatus, String vectorModel,
+                String vectorIndexDigest,
                 List<Candidate> candidates) {
             this.query = query;
             this.selectedDigest = selectedDigest;
@@ -79,6 +86,9 @@ public final class SkillRetrieval {
             this.rejectedCount = rejectedCount;
             this.outcomeAuthorityStatus = outcomeAuthorityStatus;
             this.outcomeSourceDigest = outcomeSourceDigest;
+            this.vectorAuthorityStatus = vectorAuthorityStatus;
+            this.vectorModel = vectorModel;
+            this.vectorIndexDigest = vectorIndexDigest;
             this.candidates = List.copyOf(candidates);
         }
 
@@ -109,13 +119,15 @@ public final class SkillRetrieval {
             Object vectorAvailable = root.get("vectorAvailable");
             OutcomeAuthority outcomeAuthority = parseOutcomeAuthority(
                     object(root.get("outcomeAuthority")));
+            VectorAuthority vectorAuthority = parseVectorAuthority(
+                    object(root.get("vectorAuthority")), vectorAvailable);
             if (!SCHEMA.equals(schema) || query == null || !query.equals(query.trim())
                     || !root.containsKey("selected")
                     || rawCandidates == null || rawCandidates.size() > MAX_CANDIDATES
                     || rawConflicts == null || rawConflicts.size() > MAX_CANDIDATES
                     || rawRejected == null || rawRejected.size() > MAX_REJECTIONS
                     || !(vectorAvailable instanceof Boolean)
-                    || outcomeAuthority == null) return null;
+                    || outcomeAuthority == null || vectorAuthority == null) return null;
 
             ArrayList<Candidate> candidates = new ArrayList<>();
             HashSet<String> digests = new HashSet<>();
@@ -155,6 +167,8 @@ public final class SkillRetrieval {
             return new Result(query, selectedDigest, (Boolean) vectorAvailable,
                     rawConflicts.size(), rawRejected.size(),
                     outcomeAuthority.status, outcomeAuthority.sourceDigest,
+                    vectorAuthority.status, vectorAuthority.model,
+                    vectorAuthority.indexDigest,
                     candidates);
         } catch (RuntimeException ignored) {
             return null;
@@ -179,6 +193,10 @@ public final class SkillRetrieval {
                 + "\nOutcome authority: " + result.outcomeAuthorityStatus
                 + (result.outcomeSourceDigest == null ? ""
                         : " (" + shortDigest(result.outcomeSourceDigest) + ")")
+                + "\nVector authority: " + result.vectorAuthorityStatus
+                + (result.vectorModel == null ? "" : " (" + result.vectorModel + ")")
+                + (result.vectorIndexDigest == null ? ""
+                        : " index=" + shortDigest(result.vectorIndexDigest))
                 + "\nConflicts: " + result.conflictCount
                 + "\nRejected before recall: " + result.rejectedCount;
     }
@@ -243,6 +261,52 @@ public final class SkillRetrieval {
             this.status = status;
             this.sourceDigest = sourceDigest;
         }
+    }
+
+    private static final class VectorAuthority {
+        private final String status;
+        private final String model;
+        private final String indexDigest;
+
+        private VectorAuthority(String status, String model, String indexDigest) {
+            this.status = status;
+            this.model = model;
+            this.indexDigest = indexDigest;
+        }
+    }
+
+    private static VectorAuthority parseVectorAuthority(
+            Map<String, Object> value, Object vectorAvailable) {
+        if (value == null || !VECTOR_AUTHORITY_SCHEMA.equals(text(value.get("schema"), 128))) {
+            return null;
+        }
+        String status = text(value.get("status"), 32);
+        if ("unavailable".equals(status)) {
+            String code = text(value.get("code"), 128);
+            return value.size() == 3 && code != null
+                    && code.matches("CC_SKILL_VECTOR_[A-Z0-9_]{1,96}")
+                    && Boolean.FALSE.equals(vectorAvailable)
+                    ? new VectorAuthority(status, null, null) : null;
+        }
+        if (!"verified".equals(status) || value.size() != 11
+                || !validIdentifier(value.get("tenantId"))
+                || !validIdentifier(value.get("modelId"))
+                || !validIdentifier(value.get("modelRevision"))
+                || digest(value.get("requestDigest")) == null
+                || digest(value.get("corpusDigest")) == null
+                || digest(value.get("indexDigest")) == null
+                || digest(value.get("resultDigest")) == null
+                || digest(value.get("receiptDigest")) == null) return null;
+        Long skillCount = nonNegativeLong(value.get("skillCount"));
+        if (skillCount == null || skillCount < 1 || skillCount > 10_000) return null;
+        return new VectorAuthority(status,
+                value.get("modelId") + "@" + value.get("modelRevision"),
+                (String) value.get("indexDigest"));
+    }
+
+    private static boolean validIdentifier(Object value) {
+        String text = text(value, 256);
+        return text != null && text.matches("[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}");
     }
 
     private static OutcomeAuthority parseOutcomeAuthority(Map<String, Object> value) {

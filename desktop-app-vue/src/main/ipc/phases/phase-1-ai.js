@@ -142,7 +142,14 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const {
         registerSkillsIPC,
       } = require("../../ai-engine/cowork/skills/skills-ipc");
-      registerSkillsIPC({ hookSystem, workspacePath: process.cwd() });
+      registerSkillsIPC({
+        hookSystem,
+        workspacePath: process.cwd(),
+        getSkillVectorAuthority: () =>
+          deps.skillVectorAuthority ??
+          app?.codingAgentBootstrap?.skillVectorAuthority ??
+          null,
+      });
     },
     handlers: 18,
   });

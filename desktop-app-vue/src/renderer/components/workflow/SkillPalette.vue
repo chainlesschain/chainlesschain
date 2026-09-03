@@ -22,6 +22,12 @@
         show-icon
         :message="outcomeAuthorityNotice.message"
       />
+      <a-alert
+        v-if="vectorAuthorityNotice"
+        :type="vectorAuthorityNotice.type"
+        show-icon
+        :message="vectorAuthorityNotice.message"
+      />
     </div>
 
     <!-- Default node types section -->
@@ -155,11 +161,78 @@ const routingSkills = ref(false);
 const skillQuery = ref("");
 const routingConflict = ref("");
 const outcomeAuthorityNotice = ref(null);
+const vectorAuthorityNotice = ref(null);
 const expandedGroups = reactive({});
 
 const OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.desktop-skill-outcome-db-authority/v1";
 const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const VECTOR_AUTHORITY_SCHEMA = "chainlesschain.skill-vector-authority/v1";
+const SAFE_AUTHORITY_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
+
+function parseVectorAuthority(value, vectorAvailable) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== VECTOR_AUTHORITY_SCHEMA ||
+    typeof vectorAvailable !== "boolean"
+  ) {
+    throw new Error("Skill vector authority evidence is invalid");
+  }
+  if (value.status === "unavailable") {
+    if (
+      Reflect.ownKeys(value).length !== 3 ||
+      typeof value.code !== "string" ||
+      !/^CC_SKILL_VECTOR_[A-Z0-9_]{1,96}$/u.test(value.code) ||
+      vectorAvailable !== false
+    ) {
+      throw new Error("Skill vector authority unavailable evidence is invalid");
+    }
+    return {
+      type: "warning",
+      message:
+        "Vector ranking was unavailable; retrieval used lexical and outcome evidence only.",
+    };
+  }
+  const keys = [
+    "schema",
+    "status",
+    "tenantId",
+    "requestDigest",
+    "corpusDigest",
+    "skillCount",
+    "modelId",
+    "modelRevision",
+    "indexDigest",
+    "resultDigest",
+    "receiptDigest",
+  ];
+  if (
+    value.status !== "verified" ||
+    Reflect.ownKeys(value).length !== keys.length ||
+    keys.some((key) => !Object.prototype.hasOwnProperty.call(value, key)) ||
+    !SAFE_AUTHORITY_ID.test(value.tenantId || "") ||
+    !SAFE_AUTHORITY_ID.test(value.modelId || "") ||
+    !SAFE_AUTHORITY_ID.test(value.modelRevision || "") ||
+    !Number.isSafeInteger(value.skillCount) ||
+    value.skillCount < 1 ||
+    value.skillCount > 10_000 ||
+    [
+      value.requestDigest,
+      value.corpusDigest,
+      value.indexDigest,
+      value.resultDigest,
+      value.receiptDigest,
+    ].some((digest) => !SHA256_DIGEST.test(digest || ""))
+  ) {
+    throw new Error("Skill vector authority verification failed");
+  }
+  return {
+    type: "info",
+    message: `Vector ranking verified by ${value.modelId}@${value.modelRevision}.`,
+  };
+}
 
 function parseOutcomeAuthority(value) {
   if (
@@ -247,6 +320,7 @@ async function routeSkills() {
   const query = skillQuery.value.trim();
   routingConflict.value = "";
   outcomeAuthorityNotice.value = null;
+  vectorAuthorityNotice.value = null;
   if (!query) {
     await loadSkills();
     return;
@@ -262,6 +336,10 @@ async function routeSkills() {
     const result = response.result;
     outcomeAuthorityNotice.value = parseOutcomeAuthority(
       result?.outcomeAuthority,
+    );
+    vectorAuthorityNotice.value = parseVectorAuthority(
+      result?.vectorAuthority,
+      result?.vectorAvailable,
     );
     const candidates = (result?.candidates || []).map((candidate) => ({
       skillId: candidate.id,

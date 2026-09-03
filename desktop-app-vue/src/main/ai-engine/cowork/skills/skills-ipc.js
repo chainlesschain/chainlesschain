@@ -50,6 +50,10 @@ function registerSkillsIPC(options = {}) {
     trustedSkillKeySha256,
     externalHandlerExecutor,
   } = options;
+  const getSkillVectorAuthority =
+    typeof options.getSkillVectorAuthority === "function"
+      ? options.getSkillVectorAuthority.bind(options)
+      : () => options.skillVectorAuthority ?? null;
 
   // 获取或创建注册表
   const registry = getSkillRegistry();
@@ -301,8 +305,10 @@ function registerSkillsIPC(options = {}) {
         filters,
         hostTarget: options.skillRoutingTarget || { os: process.platform },
         database: registry.skillMetricsCollector?.database || null,
+        skillVectorAuthority: getSkillVectorAuthority(),
         buildOutcomeAuthority: options.buildDesktopSkillOutcomeAuthority,
         loadRouter: options.loadSkillRouter,
+        loadVectorAuthority: options.loadSkillVectorAuthority,
       });
       return { success: true, result };
     } catch (error) {

@@ -35,13 +35,23 @@ final class SkillRetrievalTest {
 
     private static String result(String selected, String candidates,
             String conflicts, String rejected, String outcomeAuthority) {
+        return result(selected, candidates, conflicts, rejected, outcomeAuthority,
+                "{\"schema\":\"" + SkillRetrieval.VECTOR_AUTHORITY_SCHEMA
+                + "\",\"status\":\"unavailable\""
+                + ",\"code\":\"CC_SKILL_VECTOR_AUTHORITY_UNCONFIGURED\"}");
+    }
+
+    private static String result(String selected, String candidates,
+            String conflicts, String rejected, String outcomeAuthority,
+            String vectorAuthority) {
         return "{\"schema\":\"" + SkillRetrieval.SCHEMA
                 + "\",\"query\":\"repair tests\",\"selected\":" + selected
                 + ",\"candidates\":[" + candidates + "]"
                 + ",\"conflicts\":[" + conflicts + "]"
                 + ",\"rejected\":[" + rejected + "]"
                 + ",\"vectorAvailable\":false"
-                + ",\"outcomeAuthority\":" + outcomeAuthority + "}";
+                + ",\"outcomeAuthority\":" + outcomeAuthority
+                + ",\"vectorAuthority\":" + vectorAuthority + "}";
     }
 
     @Test
@@ -62,6 +72,7 @@ final class SkillRetrievalTest {
         assertEquals(1, parsed.candidates.size());
         assertEquals("verified", parsed.outcomeAuthorityStatus);
         assertEquals(digest('f'), parsed.outcomeSourceDigest);
+        assertEquals("unavailable", parsed.vectorAuthorityStatus);
         assertTrue(SkillRetrieval.describe(parsed, parsed.candidates.get(0))
                 .contains("Execution authorized: false"));
     }
@@ -142,5 +153,43 @@ final class SkillRetrievalTest {
                 result(candidate, candidate, "", "", unavailable)));
         assertNull(SkillRetrieval.parseResult(result(candidate, candidate, "", "",
                 unavailable.replace("false", "true"))));
+    }
+
+    @Test
+    void explicitlyValidatesVectorAuthorityEvidence() {
+        String candidate = candidate("repair-tests", 'a', 0.9);
+        String outcome = "{\"schema\":\"" + SkillRetrieval.OUTCOME_AUTHORITY_SCHEMA
+                + "\",\"status\":\"verified\",\"sourceDigest\":\""
+                + digest('f') + "\",\"selectedSessionCount\":2"
+                + ",\"receiptCount\":3,\"uniqueReceiptCount\":2"
+                + ",\"attributionEligibleReceiptCount\":2"
+                + ",\"outcomeEligibleReceiptCount\":2,\"duplicateReceiptCount\":1"
+                + ",\"maxSessions\":128,\"maxReceipts\":10000}";
+        String vector = "{\"schema\":\"" + SkillRetrieval.VECTOR_AUTHORITY_SCHEMA
+                + "\",\"status\":\"verified\",\"tenantId\":\"tenant:ide\""
+                + ",\"requestDigest\":\"" + digest('1') + "\""
+                + ",\"corpusDigest\":\"" + digest('2') + "\""
+                + ",\"skillCount\":1,\"modelId\":\"embedding:text-v1\""
+                + ",\"modelRevision\":\"revision:7\",\"indexDigest\":\""
+                + digest('3') + "\",\"resultDigest\":\"" + digest('4') + "\""
+                + ",\"receiptDigest\":\"" + digest('5') + "\"}";
+        String verified = result(candidate, candidate, "", "", outcome, vector)
+                .replace("\"vectorAvailable\":false", "\"vectorAvailable\":true");
+        SkillRetrieval.Result parsed = SkillRetrieval.parseResult(verified);
+        assertNotNull(parsed);
+        assertEquals("verified", parsed.vectorAuthorityStatus);
+        assertEquals("embedding:text-v1@revision:7", parsed.vectorModel);
+        assertEquals(digest('3'), parsed.vectorIndexDigest);
+        assertNull(SkillRetrieval.parseResult(verified.replace(
+                "\"receiptDigest\":\"" + digest('5') + "\"",
+                "\"receiptDigest\":\"forged\"")));
+        assertNull(SkillRetrieval.parseResult(verified.replace(
+                "\"skillCount\":1", "\"skillCount\":10001")));
+        assertNull(SkillRetrieval.parseResult(verified.replace(
+                "\"tenantId\":\"tenant:ide\"", "\"tenantId\":\"../tenant\"")));
+        assertNull(SkillRetrieval.parseResult(verified.replace(
+                "\"receiptDigest\":", "\"injectedClaim\":true,\"receiptDigest\":")));
+        assertNull(SkillRetrieval.parseResult(result(candidate, candidate, "", "")
+                .replace("\"vectorAvailable\":false", "\"vectorAvailable\":true")));
     }
 }

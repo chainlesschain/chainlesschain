@@ -5,7 +5,9 @@ const TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-transcript-authority/v1";
 const INDEX_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-index-authority/v1";
+const VECTOR_AUTHORITY_SCHEMA = "chainlesschain.skill-vector-authority/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 
 function boundedString(value, label, max = 4096) {
   if (typeof value !== "string" || value.trim() === "" || value.length > max) {
@@ -205,6 +207,62 @@ function validateOutcomeAuthority(value) {
   return Object.freeze({ ...value });
 }
 
+function validateVectorAuthority(value, vectorAvailable) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== VECTOR_AUTHORITY_SCHEMA
+  ) {
+    throw new Error("Skill retrieval returned invalid vector authority");
+  }
+  if (value.status === "unavailable") {
+    if (
+      Reflect.ownKeys(value).length !== 3 ||
+      typeof value.code !== "string" ||
+      !/^CC_SKILL_VECTOR_[A-Z0-9_]{1,96}$/u.test(value.code) ||
+      vectorAvailable !== false
+    ) {
+      throw new Error("Skill retrieval returned invalid vector authority");
+    }
+    return Object.freeze({ ...value });
+  }
+  const keys = [
+    "schema",
+    "status",
+    "tenantId",
+    "requestDigest",
+    "corpusDigest",
+    "skillCount",
+    "modelId",
+    "modelRevision",
+    "indexDigest",
+    "resultDigest",
+    "receiptDigest",
+  ];
+  if (
+    value.status !== "verified" ||
+    Reflect.ownKeys(value).length !== keys.length ||
+    keys.some((key) => !Object.prototype.hasOwnProperty.call(value, key)) ||
+    !SAFE_ID.test(value.tenantId || "") ||
+    !SAFE_ID.test(value.modelId || "") ||
+    !SAFE_ID.test(value.modelRevision || "") ||
+    !Number.isSafeInteger(value.skillCount) ||
+    value.skillCount < 1 ||
+    value.skillCount > 10_000 ||
+    [
+      value.requestDigest,
+      value.corpusDigest,
+      value.indexDigest,
+      value.resultDigest,
+      value.receiptDigest,
+    ].some((digest) => !DIGEST.test(digest || ""))
+  ) {
+    throw new Error("Skill retrieval returned invalid vector authority");
+  }
+  return Object.freeze({ ...value });
+}
+
 function parseSkillRetrievalResult(text) {
   let value;
   try {
@@ -226,7 +284,8 @@ function parseSkillRetrievalResult(text) {
     !Array.isArray(value.rejected) ||
     value.rejected.length > 10_000 ||
     typeof value.vectorAvailable !== "boolean" ||
-    !Object.prototype.hasOwnProperty.call(value, "outcomeAuthority")
+    !Object.prototype.hasOwnProperty.call(value, "outcomeAuthority") ||
+    !Object.prototype.hasOwnProperty.call(value, "vectorAuthority")
   ) {
     throw new Error("Skill retrieval returned an invalid result");
   }
@@ -234,6 +293,10 @@ function parseSkillRetrievalResult(text) {
   const conflicts = value.conflicts.map(validateConflict);
   const rejected = value.rejected.map(validateRejection);
   const outcomeAuthority = validateOutcomeAuthority(value.outcomeAuthority);
+  const vectorAuthority = validateVectorAuthority(
+    value.vectorAuthority,
+    value.vectorAvailable,
+  );
   if (
     new Set(candidates.map(({ digest }) => digest)).size !== candidates.length
   ) {
@@ -264,6 +327,7 @@ function parseSkillRetrievalResult(text) {
     conflicts: Object.freeze(conflicts),
     rejected: Object.freeze(rejected),
     outcomeAuthority,
+    vectorAuthority,
   });
 }
 
@@ -287,6 +351,7 @@ async function showCandidate(vscode, result, candidate) {
         candidate,
         conflicts: result.conflicts,
         outcomeAuthority: result.outcomeAuthority,
+        vectorAuthority: result.vectorAuthority,
       },
       null,
       2,

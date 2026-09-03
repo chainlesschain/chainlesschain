@@ -37,6 +37,11 @@ function result(overrides = {}) {
     conflicts: [],
     rejected: [],
     vectorAvailable: false,
+    vectorAuthority: {
+      schema: "chainlesschain.skill-vector-authority/v1",
+      status: "unavailable",
+      code: "CC_SKILL_VECTOR_AUTHORITY_UNCONFIGURED",
+    },
     outcomeAuthority: {
       schema: "chainlesschain.skill-outcome-transcript-authority/v1",
       status: "verified",
@@ -255,6 +260,61 @@ test("Skill Retrieval IDE accepts only witnessed bounded outcome indexes", () =>
   );
 });
 
+test("Skill Retrieval IDE explicitly validates vector authority evidence", () => {
+  const verified = {
+    schema: "chainlesschain.skill-vector-authority/v1",
+    status: "verified",
+    tenantId: "tenant:ide",
+    requestDigest: D("1"),
+    corpusDigest: D("2"),
+    skillCount: 1,
+    modelId: "embedding:text-v1",
+    modelRevision: "revision:7",
+    indexDigest: D("3"),
+    resultDigest: D("4"),
+    receiptDigest: D("5"),
+  };
+  const parsed = parseSkillRetrievalResult(
+    JSON.stringify(
+      result({ vectorAvailable: true, vectorAuthority: verified }),
+    ),
+  );
+  assert.equal(parsed.vectorAuthority.status, "verified");
+  assert.equal(parsed.vectorAuthority.indexDigest, D("3"));
+
+  for (const vectorAuthority of [
+    null,
+    { ...verified, receiptDigest: "forged" },
+    { ...verified, skillCount: 10_001 },
+    { ...verified, tenantId: "../tenant" },
+    { ...verified, injectedClaim: true },
+  ]) {
+    assert.throws(
+      () =>
+        parseSkillRetrievalResult(
+          JSON.stringify(result({ vectorAvailable: true, vectorAuthority })),
+        ),
+      /invalid vector authority/u,
+    );
+  }
+  assert.throws(
+    () =>
+      parseSkillRetrievalResult(
+        JSON.stringify(
+          result({
+            vectorAvailable: true,
+            vectorAuthority: {
+              schema: "chainlesschain.skill-vector-authority/v1",
+              status: "unavailable",
+              code: "CC_SKILL_VECTOR_AUTHORITY_UNCONFIGURED",
+            },
+          }),
+        ),
+      ),
+    /invalid vector authority/u,
+  );
+});
+
 test("Skill Retrieval IDE inspects canonical evidence without executing a Skill", async () => {
   const calls = [];
   const documents = [];
@@ -296,6 +356,7 @@ test("Skill Retrieval IDE inspects canonical evidence without executing a Skill"
   ]);
   assert.equal(documents.length, 1);
   assert.match(documents[0].content, /"executionAuthorized": false/u);
+  assert.match(documents[0].content, /"vectorAuthority"/u);
   assert.doesNotMatch(documents[0].content, /run_skill/u);
 });
 

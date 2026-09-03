@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 const {
   descriptorFor,
@@ -7,6 +8,54 @@ const {
 } = require("../skill-retrieval-adapter.js");
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
+const hash = (value) =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+async function vectorAuthority(tenantId = "tenant:desktop") {
+  const vector =
+    await import("../../../../../../../packages/cli/src/lib/skill-vector-authority.js");
+  const authority = vector.createSkillVectorAuthority({
+    tenantId,
+    provider: {
+      score: async (request) => {
+        const result = {
+          schema: vector.SKILL_VECTOR_RESULT_SCHEMA,
+          tenantId,
+          requestDigest: request.requestDigest,
+          corpusDigest: request.corpusDigest,
+          modelId: "embedding:desktop-test",
+          modelRevision: "revision:1",
+          indexDigest: hash(`index:${tenantId}`),
+          scores: request.corpus.map(({ digest: contentDigest }) => ({
+            digest: contentDigest,
+            score: 0.75,
+          })),
+          attestation: {
+            schema: vector.SKILL_VECTOR_ATTESTATION_SCHEMA,
+            algorithm: "test-signature",
+            keyId: "key:desktop-test",
+            value: "A".repeat(32),
+          },
+        };
+        return {
+          ...result,
+          resultDigest: vector.digestSkillVectorResult(result),
+        };
+      },
+    },
+    verifier: {
+      verify: async (request) => ({
+        authenticated: true,
+        durable: true,
+        tenantId,
+        requestDigest: request.requestDigest,
+        resultDigest: request.resultDigest,
+        receiptDigest: hash(`receipt:${request.resultDigest}`),
+      }),
+    },
+  });
+  return { authority, vector };
+}
 
 function skill(overrides = {}) {
   return {
@@ -117,6 +166,56 @@ describe("Desktop canonical Skill retrieval adapter", () => {
     expect(result.schema).toBe("chainlesschain.skill-retrieval-result/v1");
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0].digest).toBe(digest("a"));
+    expect(result.vectorAuthority).toEqual({
+      schema: "chainlesschain.skill-vector-authority/v1",
+      status: "unavailable",
+      code: "CC_SKILL_VECTOR_AUTHORITY_UNCONFIGURED",
+    });
+  });
+
+  it("routes only independently verified host vector scores", async () => {
+    const { authority, vector } = await vectorAuthority();
+    const routeSkillDescriptors = vi.fn((request) => ({
+      schema: "chainlesschain.skill-retrieval-result/v1",
+      selected: request.skills[0],
+      candidates: request.skills,
+      conflicts: [],
+      rejected: [],
+      vectorAvailable: true,
+    }));
+    const result = await routeDesktopSkills({
+      skills: [skill()],
+      query: "repair tests",
+      skillVectorAuthority: authority,
+      loadRouter: async () => ({ routeSkillDescriptors }),
+      loadVectorAuthority: async () => vector,
+    });
+    expect(routeSkillDescriptors).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vectorScores: { [digest("a")]: 0.75 },
+      }),
+    );
+    expect(result.vectorAuthority).toMatchObject({
+      schema: "chainlesschain.skill-vector-authority/v1",
+      status: "verified",
+      tenantId: "tenant:desktop",
+      skillCount: 1,
+      modelId: "embedding:desktop-test",
+      modelRevision: "revision:1",
+    });
+  });
+
+  it("rejects an unbranded host vector source before routing", async () => {
+    const routeSkillDescriptors = vi.fn();
+    await expect(
+      routeDesktopSkills({
+        skills: [skill()],
+        query: "repair tests",
+        skillVectorAuthority: { score: vi.fn() },
+        loadRouter: async () => ({ routeSkillDescriptors }),
+      }),
+    ).rejects.toThrow(/branded Skill vector authority/u);
+    expect(routeSkillDescriptors).not.toHaveBeenCalled();
   });
 
   it("routes from a host-owned DB authority and exposes bounded evidence", async () => {

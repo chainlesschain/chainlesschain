@@ -13,6 +13,21 @@ function createService() {
 }
 
 describe("Coding Agent V3 production bootstrap", () => {
+  it("retains an opaque host vector authority without invoking it", async () => {
+    const authority = { score: vi.fn() };
+    const service = createService();
+    const controller = createCodingAgentBootstrap({
+      service,
+      skillVectorAuthority: authority,
+      appServerPilot: null,
+      registerIPC: () => vi.fn(),
+    });
+
+    expect(controller.skillVectorAuthority).toBe(authority);
+    expect(authority.score).not.toHaveBeenCalled();
+    await controller.dispose();
+  });
+
   it("binds one service to the real IPC surface and the current window", () => {
     const service = createService();
     const unregister = vi.fn();
