@@ -691,6 +691,28 @@ jobs:
                 continue
               fi
             fi
+            if ! (
+              cd "$AUDIT_ROOT"
+              node_modules/.bin/cc agent --capabilities \
+                > agent-capabilities.json 2> agent-capabilities.err
+            ); then
+              rm -rf "$AUDIT_ROOT/node_modules" "$AUDIT_ROOT/package-lock.json"
+              if [ "$ATTEMPT" -eq 30 ]; then
+                echo "Published chainlesschain@$VERSION cannot start the Agent command" >&2
+                cat "$AUDIT_ROOT/agent-capabilities.err" >&2 || true
+                exit 1
+              fi
+              echo "::notice::Published Agent command is not executable yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+              sleep 10
+              continue
+            fi
+            node -e '
+              const fs = require("node:fs");
+              const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              if (!value || typeof value !== "object" || !value.protocol_version) {
+                throw new Error("Agent capability output is not a valid capability manifest");
+              }
+            ' "$AUDIT_ROOT/agent-capabilities.json"
             if (
               cd "$AUDIT_ROOT"
               npm audit signatures --include-attestations --json \

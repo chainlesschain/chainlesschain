@@ -104,6 +104,12 @@ describe("CLI release workflow contracts", () => {
     expect(provenanceStep).toContain(
       "Published chainlesschain@$VERSION is not installable yet",
     );
+    expect(provenanceStep).toContain(
+      "node_modules/.bin/cc agent --capabilities",
+    );
+    expect(provenanceStep).toContain(
+      "Published chainlesschain@$VERSION cannot start the Agent command",
+    );
     expect(dryRunJob).toContain(
       "if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}",
     );

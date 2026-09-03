@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.19 and Session Core 0.3.10: public-install agent startup
+
+> `chainlesschain` **0.166.18 -> 0.166.19** and
+> `@chainlesschain/session-core` **0.3.9 -> 0.3.10** (release candidate,
+> 2026-09-03).
+
+- **Restore `cc` and `cc agent` startup from public npm installs**: publish the
+  Session Core `./structured-evolution-memory` export consumed by the CLI's
+  Agent command graph. Version `0.166.18` referenced this source export while
+  the immutable public `session-core@0.3.9` bytes predated it, so lazy command
+  registration fell back and reported the misleading `unknown command 'agent'`.
+- **Preserve fast help/version paths** while requiring executable Agent
+  capability checks against installed package bytes before release.
+- **Release boundary**: publish Session Core `0.3.10` before the pinned CLI
+  `0.166.19`, then verify the public registry installation can execute
+  `cc agent --capabilities`.
+
 ### Added - cc CLI 0.166.18 and Session Core 0.3.9: governed Skill evolution
 
 > `chainlesschain` **0.166.17 -> 0.166.18** and
