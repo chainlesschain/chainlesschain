@@ -11,6 +11,26 @@ const REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
   "osSandboxPermissionPolicyDigest",
   "taskCohort",
 ]);
+const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const RECEIPT_KEYS = Object.freeze(
+  [
+    "schema",
+    "receiptId",
+    ...REQUIRED_ATTRIBUTION_FIELDS,
+    "selectedSkillDigests",
+    "routerCandidates",
+    "attributionStatus",
+    "attributionEligible",
+    "missingAttribution",
+    "executionStatus",
+    "graderReceipts",
+    "userCorrectionRef",
+    "tokenCostLatency",
+    "startedAt",
+    "completedAt",
+    "receiptDigest",
+  ].sort(),
+);
 
 function canonicalJson(value) {
   if (Array.isArray(value)) {
@@ -55,6 +75,130 @@ function nonNegative(value, field) {
   return number;
 }
 
+function isPlainRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function hasExactKeys(value, keys) {
+  return (
+    isPlainRecord(value) &&
+    Object.keys(value)
+      .sort()
+      .every((key, index) => key === keys[index]) &&
+    Object.keys(value).length === keys.length
+  );
+}
+
+function isBoundedString(value, max = 256) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= max &&
+    value.trim() === value
+  );
+}
+
+function isNonNegativeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function assertCommonReceiptStructure(value) {
+  if (
+    !hasExactKeys(value, RECEIPT_KEYS) ||
+    value.schema !== SKILL_INVOCATION_RECEIPT_SCHEMA ||
+    !isBoundedString(value.receiptId) ||
+    !Array.isArray(value.selectedSkillDigests) ||
+    value.selectedSkillDigests.length !== 1 ||
+    !DIGEST.test(value.selectedSkillDigests[0] || "") ||
+    !Array.isArray(value.routerCandidates) ||
+    value.routerCandidates.length < 1 ||
+    value.routerCandidates.length > 64 ||
+    new Set(value.routerCandidates.map((candidate) => candidate?.digest))
+      .size !== value.routerCandidates.length ||
+    !value.routerCandidates.some(
+      (candidate) => candidate?.digest === value.selectedSkillDigests[0],
+    ) ||
+    value.routerCandidates.some(
+      (candidate) =>
+        !hasExactKeys(candidate, ["digest", "reason", "score"]) ||
+        !DIGEST.test(candidate.digest || "") ||
+        !isNonNegativeNumber(candidate.score) ||
+        !isBoundedString(candidate.reason, 512),
+    ) ||
+    !Array.isArray(value.missingAttribution)
+  ) {
+    throw new TypeError("Skill invocation receipt structure is invalid");
+  }
+
+  const missingAttribution = REQUIRED_ATTRIBUTION_FIELDS.filter(
+    (field) => value[field] === null,
+  );
+  for (const field of REQUIRED_ATTRIBUTION_FIELDS) {
+    if (value[field] !== null && !isBoundedString(value[field])) {
+      throw new TypeError("Skill invocation receipt attribution is invalid");
+    }
+  }
+  if (
+    (value.toolSetDigest !== null && !DIGEST.test(value.toolSetDigest)) ||
+    (value.osSandboxPermissionPolicyDigest !== null &&
+      !DIGEST.test(value.osSandboxPermissionPolicyDigest)) ||
+    value.missingAttribution.length !== missingAttribution.length ||
+    value.missingAttribution.some(
+      (field, index) => field !== missingAttribution[index],
+    ) ||
+    value.attributionStatus !==
+      (missingAttribution.length === 0 ? "complete" : "incomplete") ||
+    value.attributionEligible !== (missingAttribution.length === 0) ||
+    !isBoundedString(value.startedAt)
+  ) {
+    throw new TypeError("Skill invocation receipt attribution is invalid");
+  }
+}
+
+function assertStartedReceiptStructure(value) {
+  assertCommonReceiptStructure(value);
+  if (
+    value.executionStatus !== "started" ||
+    !Array.isArray(value.graderReceipts) ||
+    value.graderReceipts.length !== 0 ||
+    value.userCorrectionRef !== null ||
+    value.tokenCostLatency !== null ||
+    value.completedAt !== null ||
+    value.receiptDigest !== null
+  ) {
+    throw new TypeError("a started Skill invocation receipt is required");
+  }
+}
+
+function assertSettledReceiptStructure(value) {
+  assertCommonReceiptStructure(value);
+  if (
+    !["completed", "failed", "blocked"].includes(value.executionStatus) ||
+    !Array.isArray(value.graderReceipts) ||
+    value.graderReceipts.length > 64 ||
+    value.graderReceipts.some((entry) => !DIGEST.test(entry || "")) ||
+    (value.userCorrectionRef !== null &&
+      !isBoundedString(value.userCorrectionRef)) ||
+    !hasExactKeys(value.tokenCostLatency, [
+      "costUsd",
+      "latencyMs",
+      "tokensInput",
+      "tokensOutput",
+    ]) ||
+    Object.values(value.tokenCostLatency).some(
+      (entry) => !isNonNegativeNumber(entry),
+    ) ||
+    !isBoundedString(value.completedAt) ||
+    !DIGEST.test(value.receiptDigest || "")
+  ) {
+    throw new TypeError("settled Skill invocation receipt is invalid");
+  }
+}
+
 function startSkillInvocation(input, options = {}) {
   const clock = options.clock || (() => new Date().toISOString());
   const randomUUID = options.randomUUID || crypto.randomUUID;
@@ -75,6 +219,8 @@ function startSkillInvocation(input, options = {}) {
   if (
     routerCandidates.length === 0 ||
     routerCandidates.length > 64 ||
+    new Set(routerCandidates.map(({ digest: value }) => value)).size !==
+      routerCandidates.length ||
     !routerCandidates.some(({ digest: value }) => value === selectedSkillDigest)
   ) {
     throw new TypeError(
@@ -132,13 +278,7 @@ function startSkillInvocation(input, options = {}) {
 }
 
 function settleSkillInvocation(start, outcome, options = {}) {
-  if (
-    !start ||
-    start.schema !== SKILL_INVOCATION_RECEIPT_SCHEMA ||
-    start.executionStatus !== "started"
-  ) {
-    throw new TypeError("a started Skill invocation receipt is required");
-  }
+  assertStartedReceiptStructure(start);
   const status = bounded(outcome.executionStatus, "executionStatus");
   if (!new Set(["completed", "failed", "blocked"]).has(status)) {
     throw new TypeError("executionStatus is invalid");
@@ -176,13 +316,7 @@ function settleSkillInvocation(start, outcome, options = {}) {
 }
 
 function verifySkillInvocationReceipt(value) {
-  if (
-    !value ||
-    value.schema !== SKILL_INVOCATION_RECEIPT_SCHEMA ||
-    !["completed", "failed", "blocked"].includes(value.executionStatus)
-  ) {
-    throw new TypeError("settled Skill invocation receipt is invalid");
-  }
+  assertSettledReceiptStructure(value);
   const core = { ...value };
   delete core.receiptDigest;
   const expected = digest(

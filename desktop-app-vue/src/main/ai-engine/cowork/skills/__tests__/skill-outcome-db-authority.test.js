@@ -188,7 +188,7 @@ describe("Desktop Skill outcome DB authority", () => {
       buildDesktopSkillOutcomeAuthority({
         database: { all: async () => [row("inconsistent", inconsistent)] },
       }),
-    ).rejects.toThrow(/receipt is invalid/i);
+    ).rejects.toThrow(/attribution is invalid|receipt is invalid/i);
   });
 
   it("does not expose database failure details in unavailable evidence", () => {
