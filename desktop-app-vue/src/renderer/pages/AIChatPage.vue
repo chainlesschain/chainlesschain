@@ -259,6 +259,13 @@
             >
               演化工作台
             </a-button>
+            <a-button
+              v-if="agentMode"
+              size="small"
+              @click="knowledgeReviewVisible = true"
+            >
+              知识冲突
+            </a-button>
             <RemoteSessionPanel
               v-if="agentMode"
               :session-id="codingAgentStore.currentSessionId"
@@ -1303,6 +1310,7 @@
     />
     <ArtifactWorkbenchDrawer v-model:open="artifactWorkbenchVisible" />
     <EvolutionWorkbenchDrawer v-model:open="evolutionWorkbenchVisible" />
+    <GovernedKnowledgeReviewDrawer v-model:open="knowledgeReviewVisible" />
   </div>
 </template>
 
@@ -1330,6 +1338,7 @@ import HarnessTaskDrawer from "@/components/chat/HarnessTaskDrawer.vue";
 import RemoteSessionPanel from "@/components/chat/RemoteSessionPanel.vue";
 import ArtifactWorkbenchDrawer from "@/components/chat/ArtifactWorkbenchDrawer.vue";
 import EvolutionWorkbenchDrawer from "@/components/chat/EvolutionWorkbenchDrawer.vue";
+import GovernedKnowledgeReviewDrawer from "@/components/chat/GovernedKnowledgeReviewDrawer.vue";
 import GraphRunDebugger from "@/components/graph/GraphRunDebugger.vue";
 import CodingAgentElicitationPanel from "@/components/CodingAgentElicitationPanel.vue";
 import { useCodingAgentStore } from "@/stores/coding-agent";
@@ -1399,6 +1408,7 @@ const savingConversation = ref(false);
 const agentMode = ref(false);
 const artifactWorkbenchVisible = ref(false);
 const evolutionWorkbenchVisible = ref(false);
+const knowledgeReviewVisible = ref(false);
 const codingAgentSessionMap = ref({});
 const agentMessageByRequestId = ref({});
 const processedCodingAgentEventIds = new Set();
