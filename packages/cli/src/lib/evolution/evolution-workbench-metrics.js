@@ -11,6 +11,42 @@ export const EVOLUTION_WORKBENCH_METRICS_MAX_DELTA = 10_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS = 10_000;
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const SNAPSHOT_KEYS = Object.freeze(
+  [
+    "evolutionRunId",
+    "priorSnapshotDigest",
+    "receiptDigests",
+    "retainedReceiptCount",
+    "retentionRootDigest",
+    "revision",
+    "schema",
+    "skillName",
+    "snapshotDigest",
+    "sourceDigest",
+    "tenantId",
+    "throughAt",
+    "versions",
+  ].sort(),
+);
+const LEGACY_SNAPSHOT_KEYS = Object.freeze(
+  SNAPSHOT_KEYS.filter(
+    (key) => key !== "retainedReceiptCount" && key !== "retentionRootDigest",
+  ),
+);
+const VERSION_KEYS = Object.freeze(
+  [
+    "blocked",
+    "completed",
+    "contentDigest",
+    "costUsd",
+    "failed",
+    "latencyMs",
+    "maxLatencyMs",
+    "receiptCount",
+    "tokensInput",
+    "tokensOutput",
+  ].sort(),
+);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -47,6 +83,36 @@ function string(value, label) {
 function digest(value, label) {
   if (!DIGEST.test(value ?? "")) throw new TypeError(`${label} is invalid`);
   return value;
+}
+
+function exactRecord(value, keys) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const actual = Object.keys(value).sort();
+  return (
+    actual.length === keys.length &&
+    actual.every((key, index) => key === keys[index])
+  );
+}
+
+function boundedString(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 256 &&
+    value.trim() === value
+  );
+}
+
+function safeCount(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+function nonNegativeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
 export function createEmptyEvolutionWorkbenchMetricsSnapshot(
@@ -130,16 +196,32 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   value,
   { tenantId, evolutionRunId, skillName },
 ) {
+  const exactCurrent = exactRecord(value, SNAPSHOT_KEYS);
+  const exactLegacy = exactRecord(value, LEGACY_SNAPSHOT_KEYS);
   if (
-    value?.schema !== EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA ||
+    (!exactCurrent && !exactLegacy) ||
+    value.schema !== EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA ||
+    !boundedString(value.tenantId) ||
+    !boundedString(value.evolutionRunId) ||
+    !boundedString(value.skillName) ||
     value.tenantId !== tenantId ||
     value.evolutionRunId !== evolutionRunId ||
     value.skillName !== skillName ||
-    !Number.isSafeInteger(value.revision) ||
-    value.revision < 0 ||
+    !safeCount(value.revision) ||
+    (value.revision === 0
+      ? value.priorSnapshotDigest !== null ||
+        value.sourceDigest !== null ||
+        value.throughAt !== null
+      : !DIGEST.test(value.priorSnapshotDigest ?? "") ||
+        !DIGEST.test(value.sourceDigest ?? "") ||
+        typeof value.throughAt !== "string" ||
+        !Number.isFinite(Date.parse(value.throughAt))) ||
+    !DIGEST.test(value.snapshotDigest ?? "") ||
     !Array.isArray(value.receiptDigests) ||
     value.receiptDigests.length > EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS ||
     new Set(value.receiptDigests).size !== value.receiptDigests.length ||
+    value.receiptDigests.join("\n") !==
+      [...value.receiptDigests].sort().join("\n") ||
     !Array.isArray(value.versions) ||
     value.versions.length > EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS
   ) {
@@ -148,38 +230,74 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   const retainedReceiptCount = value.retainedReceiptCount ?? 0;
   const retentionRootDigest = value.retentionRootDigest ?? null;
   if (
-    !Number.isSafeInteger(retainedReceiptCount) ||
-    retainedReceiptCount < 0 ||
+    !safeCount(retainedReceiptCount) ||
     (retainedReceiptCount === 0 && retentionRootDigest !== null) ||
     (retainedReceiptCount > 0 && !DIGEST.test(retentionRootDigest ?? ""))
   ) {
     throw new TypeError("Workbench metrics retention state is invalid");
   }
+  if (
+    value.revision === 0 &&
+    (retainedReceiptCount !== 0 ||
+      value.receiptDigests.length !== 0 ||
+      value.versions.length !== 0)
+  ) {
+    throw new TypeError("Workbench metrics genesis snapshot is invalid");
+  }
   for (const receiptDigest of value.receiptDigests)
     digest(receiptDigest, "receipt digest");
+  const versionDigests = new Set();
+  let projectedReceiptCount = 0;
+  let priorVersionDigest = null;
   for (const version of value.versions) {
+    if (
+      !exactRecord(version, VERSION_KEYS) ||
+      versionDigests.has(version.contentDigest)
+    ) {
+      throw new TypeError("Workbench metrics version is invalid");
+    }
     digest(version.contentDigest, "version content digest");
+    if (
+      priorVersionDigest !== null &&
+      version.contentDigest.localeCompare(priorVersionDigest) <= 0
+    ) {
+      throw new TypeError("Workbench metrics versions are not canonical");
+    }
+    priorVersionDigest = version.contentDigest;
+    versionDigests.add(version.contentDigest);
+    for (const field of ["receiptCount", "completed", "failed", "blocked"]) {
+      if (!safeCount(version[field])) {
+        throw new TypeError(`Workbench metrics ${field} is invalid`);
+      }
+    }
     for (const field of [
-      "receiptCount",
-      "completed",
-      "failed",
-      "blocked",
       "tokensInput",
       "tokensOutput",
       "costUsd",
       "latencyMs",
       "maxLatencyMs",
     ]) {
-      if (!Number.isFinite(version[field]) || version[field] < 0) {
+      if (!nonNegativeNumber(version[field])) {
         throw new TypeError(`Workbench metrics ${field} is invalid`);
       }
     }
     if (
+      version.receiptCount < 1 ||
       version.completed + version.failed + version.blocked !==
-      version.receiptCount
+        version.receiptCount
     ) {
       throw new Error("Workbench metrics outcomes do not sum to receiptCount");
     }
+    projectedReceiptCount += version.receiptCount;
+    if (!Number.isSafeInteger(projectedReceiptCount)) {
+      throw new TypeError("Workbench metrics receipt total is invalid");
+    }
+  }
+  if (
+    projectedReceiptCount !==
+    retainedReceiptCount + value.receiptDigests.length
+  ) {
+    throw new Error("Workbench metrics receipt retention total is invalid");
   }
   const core = structuredClone(value);
   delete core.snapshotDigest;

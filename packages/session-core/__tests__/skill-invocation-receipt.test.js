@@ -125,4 +125,37 @@ describe("Skill invocation receipt structural verifier", () => {
       ),
     ).toThrow(/structure is invalid/u);
   });
+
+  it("enforces canonical monotonic time, integer tokens, and unique graders", () => {
+    const value = settled();
+    expect(() =>
+      verifySkillInvocationReceipt(
+        redigest({ ...value, completedAt: "not-an-instant" }),
+      ),
+    ).toThrow(/settled.*invalid/u);
+    expect(() =>
+      settleSkillInvocation(
+        started(),
+        { executionStatus: "completed", tokensInput: 0.5 },
+        { clock: () => "2026-09-03T00:00:01.000Z" },
+      ),
+    ).toThrow(/token counts/u);
+    expect(() =>
+      settleSkillInvocation(
+        started(),
+        {
+          executionStatus: "completed",
+          graderReceipts: [digest("d"), digest("d")],
+        },
+        { clock: () => "2026-09-03T00:00:01.000Z" },
+      ),
+    ).toThrow(/duplicate/u);
+    expect(() =>
+      settleSkillInvocation(
+        started(),
+        { executionStatus: "completed" },
+        { clock: () => "2026-09-02T23:59:59.000Z" },
+      ),
+    ).toThrow(/at or after/u);
+  });
 });

@@ -106,6 +106,12 @@ function isNonNegativeNumber(value) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+function isCanonicalInstant(value) {
+  if (!isBoundedString(value)) return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
+}
+
 function assertCommonReceiptStructure(value) {
   if (
     !hasExactKeys(value, RECEIPT_KEYS) ||
@@ -153,7 +159,7 @@ function assertCommonReceiptStructure(value) {
     value.attributionStatus !==
       (missingAttribution.length === 0 ? "complete" : "incomplete") ||
     value.attributionEligible !== (missingAttribution.length === 0) ||
-    !isBoundedString(value.startedAt)
+    !isCanonicalInstant(value.startedAt)
   ) {
     throw new TypeError("Skill invocation receipt attribution is invalid");
   }
@@ -180,6 +186,7 @@ function assertSettledReceiptStructure(value) {
     !["completed", "failed", "blocked"].includes(value.executionStatus) ||
     !Array.isArray(value.graderReceipts) ||
     value.graderReceipts.length > 64 ||
+    new Set(value.graderReceipts).size !== value.graderReceipts.length ||
     value.graderReceipts.some((entry) => !DIGEST.test(entry || "")) ||
     (value.userCorrectionRef !== null &&
       !isBoundedString(value.userCorrectionRef)) ||
@@ -192,7 +199,10 @@ function assertSettledReceiptStructure(value) {
     Object.values(value.tokenCostLatency).some(
       (entry) => !isNonNegativeNumber(entry),
     ) ||
-    !isBoundedString(value.completedAt) ||
+    !Number.isSafeInteger(value.tokenCostLatency.tokensInput) ||
+    !Number.isSafeInteger(value.tokenCostLatency.tokensOutput) ||
+    !isCanonicalInstant(value.completedAt) ||
+    Date.parse(value.completedAt) < Date.parse(value.startedAt) ||
     !DIGEST.test(value.receiptDigest || "")
   ) {
     throw new TypeError("settled Skill invocation receipt is invalid");
@@ -254,6 +264,10 @@ function startSkillInvocation(input, options = {}) {
     error.missingAttribution = Object.freeze([...missingAttribution]);
     throw error;
   }
+  const startedAt = bounded(clock(), "startedAt");
+  if (!isCanonicalInstant(startedAt)) {
+    throw new TypeError("startedAt must be a canonical ISO instant");
+  }
   return Object.freeze({
     schema: SKILL_INVOCATION_RECEIPT_SCHEMA,
     receiptId: bounded(
@@ -271,7 +285,7 @@ function startSkillInvocation(input, options = {}) {
     graderReceipts: Object.freeze([]),
     userCorrectionRef: null,
     tokenCostLatency: null,
-    startedAt: bounded(clock(), "startedAt"),
+    startedAt,
     completedAt: null,
     receiptDigest: null,
   });
@@ -289,7 +303,27 @@ function settleSkillInvocation(start, outcome, options = {}) {
   if (graderReceipts.length > 64) {
     throw new TypeError("graderReceipts exceeds 64 entries");
   }
+  if (new Set(graderReceipts).size !== graderReceipts.length) {
+    throw new TypeError("graderReceipts contains duplicate entries");
+  }
   const clock = options.clock || (() => new Date().toISOString());
+  const completedAt = bounded(clock(), "completedAt");
+  if (
+    !isCanonicalInstant(completedAt) ||
+    Date.parse(completedAt) < Date.parse(start.startedAt)
+  ) {
+    throw new TypeError(
+      "completedAt must be a canonical ISO instant at or after startedAt",
+    );
+  }
+  const tokensInput = nonNegative(outcome.tokensInput, "tokensInput");
+  const tokensOutput = nonNegative(outcome.tokensOutput, "tokensOutput");
+  if (
+    !Number.isSafeInteger(tokensInput) ||
+    !Number.isSafeInteger(tokensOutput)
+  ) {
+    throw new TypeError("token counts must be non-negative safe integers");
+  }
   const core = {
     ...start,
     executionStatus: status,
@@ -299,12 +333,12 @@ function settleSkillInvocation(start, outcome, options = {}) {
         ? null
         : bounded(outcome.userCorrectionRef, "userCorrectionRef"),
     tokenCostLatency: Object.freeze({
-      tokensInput: nonNegative(outcome.tokensInput, "tokensInput"),
-      tokensOutput: nonNegative(outcome.tokensOutput, "tokensOutput"),
+      tokensInput,
+      tokensOutput,
       costUsd: nonNegative(outcome.costUsd, "costUsd"),
       latencyMs: nonNegative(outcome.latencyMs, "latencyMs"),
     }),
-    completedAt: bounded(clock(), "completedAt"),
+    completedAt,
   };
   delete core.receiptDigest;
   return Object.freeze({

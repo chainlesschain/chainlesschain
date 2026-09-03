@@ -5,14 +5,40 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   EvolutionWorkbenchMetricsAggregator,
+  createEmptyEvolutionWorkbenchMetricsSnapshot,
   digestEvolutionWorkbenchMetricsDelta,
   digestEvolutionWorkbenchMetricsRetentionBatch,
   digestEvolutionWorkbenchMetricsRetentionQuery,
+  verifyEvolutionWorkbenchMetricsSnapshot,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 const D = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function redigestSnapshot(value) {
+  const core = structuredClone(value);
+  delete core.snapshotDigest;
+  return {
+    ...core,
+    snapshotDigest: `sha256:${createHash("sha256")
+      .update("chainlesschain.evolution-workbench-metrics-snapshot/v1")
+      .update("\0")
+      .update(canonical(core))
+      .digest("hex")}`,
+  };
+}
 
 function receipt(id, contentDigest, status = "completed", runId = "run:1") {
   const started = startSkillInvocation(
@@ -133,6 +159,74 @@ function fixture(deltas, { hotReceiptLimit, retained = new Set() } = {}) {
 }
 
 describe("Evolution Workbench long-term metrics", () => {
+  it("requires an exact structurally consistent snapshot", () => {
+    const descriptor = {
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+    };
+    const empty = createEmptyEvolutionWorkbenchMetricsSnapshot(
+      descriptor.tenantId,
+      descriptor.evolutionRunId,
+      descriptor.skillName,
+    );
+    expect(verifyEvolutionWorkbenchMetricsSnapshot(empty, descriptor)).toEqual(
+      empty,
+    );
+    const legacy = structuredClone(empty);
+    delete legacy.retainedReceiptCount;
+    delete legacy.retentionRootDigest;
+    expect(
+      verifyEvolutionWorkbenchMetricsSnapshot(
+        redigestSnapshot(legacy),
+        descriptor,
+      ),
+    ).toMatchObject({ revision: 0, receiptDigests: [] });
+    expect(() =>
+      verifyEvolutionWorkbenchMetricsSnapshot(
+        redigestSnapshot({ ...empty, injectedClaim: true }),
+        descriptor,
+      ),
+    ).toThrow(/snapshot is invalid/u);
+
+    const h = fixture([[receipt("strict", D("content:a"))]]);
+    return h
+      .open()
+      .aggregate()
+      .then((snapshot) => {
+        const fractional = structuredClone(snapshot);
+        fractional.versions[0].receiptCount = 0.5;
+        fractional.versions[0].completed = 0.5;
+        expect(() =>
+          verifyEvolutionWorkbenchMetricsSnapshot(
+            redigestSnapshot(fractional),
+            descriptor,
+          ),
+        ).toThrow(/receiptCount is invalid/u);
+
+        const inconsistent = structuredClone(snapshot);
+        inconsistent.receiptDigests = [];
+        expect(() =>
+          verifyEvolutionWorkbenchMetricsSnapshot(
+            redigestSnapshot(inconsistent),
+            descriptor,
+          ),
+        ).toThrow(/retention total is invalid/u);
+
+        const forgedGenesis = structuredClone(snapshot);
+        forgedGenesis.revision = 0;
+        forgedGenesis.priorSnapshotDigest = null;
+        forgedGenesis.sourceDigest = null;
+        forgedGenesis.throughAt = null;
+        expect(() =>
+          verifyEvolutionWorkbenchMetricsSnapshot(
+            redigestSnapshot(forgedGenesis),
+            descriptor,
+          ),
+        ).toThrow(/genesis snapshot is invalid/u);
+      });
+  });
+
   it("persists deterministic per-version outcomes, tokens, cost and latency", async () => {
     const content = D("content:a");
     const h = fixture([

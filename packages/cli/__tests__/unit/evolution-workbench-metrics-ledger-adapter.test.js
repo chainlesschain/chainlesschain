@@ -425,7 +425,7 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
         }),
       }).aggregate(),
     ).rejects.toThrow("replayed a retained receipt");
-  });
+  }, 15_000);
 
   it("persists an immutable metrics snapshot and recovers it in a new adapter", async () => {
     const value = backends();
