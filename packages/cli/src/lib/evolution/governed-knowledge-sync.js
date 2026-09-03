@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import { isGovernedKnowledgeDependencyExecutor } from "./governed-knowledge-dependency-ledger-executor.js";
+
 export const GOVERNED_KNOWLEDGE_SYNC_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-sync/v1";
 export const GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA =
@@ -17,6 +19,7 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const SCOPES = new Set(Object.values(GOVERNED_KNOWLEDGE_SCOPE));
 const ACTIONS = new Set(["upsert", "tombstone", "revoke"]);
 const MAX_CIPHERTEXT_BYTES = 12 * 1024 * 1024;
+const EXECUTION_RECORDS = new WeakSet();
 const ENVELOPE_KEYS = new Set([
   "action",
   "ciphertext",
@@ -161,7 +164,7 @@ function normalizeDependencies(value, action) {
   });
 }
 
-function normalizeRecord(input, descriptor) {
+function normalizeRecord(input, descriptor, { executionRecord = false } = {}) {
   record(input, "knowledge record");
   const action = ACTIONS.has(input.action) ? input.action : null;
   const scope = SCOPES.has(input.scope) ? input.scope : null;
@@ -181,7 +184,7 @@ function normalizeRecord(input, descriptor) {
     throw new TypeError(
       "revocation must bind its receipt and dependency graph",
     );
-  return freeze({
+  const normalized = freeze({
     schema: GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
     tenantId: descriptor.tenantId,
     knowledgeId: id(input.knowledgeId, "knowledgeId"),
@@ -194,10 +197,16 @@ function normalizeRecord(input, descriptor) {
     revocationReceiptDigest: input.revocationReceiptDigest || null,
     dependencies,
   });
+  if (executionRecord) EXECUTION_RECORDS.add(normalized);
+  return normalized;
 }
 
 export function verifyGovernedKnowledgeRecord(input, { tenantId } = {}) {
   return normalizeRecord(input, { tenantId: id(tenantId, "tenantId") });
+}
+
+export function isGovernedKnowledgeExecutionRecord(value) {
+  return EXECUTION_RECORDS.has(value);
 }
 
 export function verifyGovernedKnowledgeEnvelopeIntegrity(
@@ -240,7 +249,7 @@ export function verifyGovernedKnowledgeEnvelopeIntegrity(
 }
 
 export class GovernedKnowledgeSync {
-  constructor({ tenantId, deviceId, ports } = {}) {
+  constructor({ tenantId, deviceId, ports, dependencyExecutor = null } = {}) {
     this.tenantId = id(tenantId, "tenantId");
     this.deviceId = id(deviceId, "deviceId");
     this._authorize = capture(ports, "authorize");
@@ -251,13 +260,25 @@ export class GovernedKnowledgeSync {
     this._load = capture(ports, "load");
     this._commit = capture(ports, "commit");
     this._send = capture(ports, "send");
+    if (
+      dependencyExecutor !== null &&
+      !isGovernedKnowledgeDependencyExecutor(dependencyExecutor)
+    ) {
+      throw new TypeError(
+        "dependencyExecutor must be a branded governed dependency executor",
+      );
+    }
+    this._executeDependencies = dependencyExecutor
+      ? capture(dependencyExecutor, "execute")
+      : null;
   }
 
   async publish(input) {
-    const knowledge = normalizeRecord(input, this);
+    const knowledge = normalizeRecord(input, this, { executionRecord: true });
     if (knowledge.scope === "personal")
       throw new Error("personal knowledge cannot enter a shared sync channel");
     const admission = await this._admit("publish", knowledge);
+    await this._applyRevocationDependencies(knowledge);
     const plaintext = Buffer.from(canonical(knowledge), "utf8");
     const encrypted = await this._encrypt({ knowledge, plaintext });
     if (
@@ -323,7 +344,7 @@ export class GovernedKnowledgeSync {
     }
     if (canonical(parsed) !== decrypted.plaintext.toString("utf8"))
       throw new Error("knowledge envelope plaintext is not canonical JSON");
-    const knowledge = normalizeRecord(parsed, this);
+    const knowledge = normalizeRecord(parsed, this, { executionRecord: true });
     if (
       knowledge.knowledgeId !== envelope.knowledgeId ||
       knowledge.contentDigest !== envelope.contentDigest ||
@@ -358,6 +379,7 @@ export class GovernedKnowledgeSync {
         });
       }
     }
+    await this._applyRevocationDependencies(knowledge);
     await this._persist(knowledge, envelope, "remote", admission);
     return freeze({ applied: true, action: knowledge.action });
   }
@@ -392,5 +414,27 @@ export class GovernedKnowledgeSync {
       result.knowledgeId !== knowledge.knowledgeId
     )
       throw new Error("knowledge synchronization was not durably committed");
+  }
+
+  async _applyRevocationDependencies(knowledge) {
+    if (!["tombstone", "revoke"].includes(knowledge.action)) return;
+    if (!this._executeDependencies) {
+      throw new Error("revocation dependency executor is unavailable");
+    }
+    const result = await this._executeDependencies(knowledge);
+    if (
+      result?.authenticated !== true ||
+      result.durable !== true ||
+      result.tenantId !== this.tenantId ||
+      result.deviceId !== this.deviceId ||
+      result.knowledgeId !== knowledge.knowledgeId ||
+      result.revocationReceiptDigest !== knowledge.revocationReceiptDigest ||
+      !DIGEST.test(result.operationDigest ?? "") ||
+      !Array.isArray(result.resultDigests) ||
+      result.resultDigests.length !== knowledge.dependencies.length ||
+      result.resultDigests.some((value) => !DIGEST.test(value))
+    ) {
+      throw new Error("revocation dependencies were not durably applied");
+    }
   }
 }

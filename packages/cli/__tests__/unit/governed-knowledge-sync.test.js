@@ -156,6 +156,22 @@ describe("Governed evolution knowledge synchronization", () => {
         }),
       ),
     ).rejects.toThrow("unsafe");
+    await expect(
+      h.controller.publish(
+        knowledge({
+          action: "revoke",
+          revocationReceiptDigest: D("revoke"),
+          dependencies: [
+            {
+              kind: "active-skill",
+              digest: D("skill"),
+              disposition: "rollback-active",
+            },
+          ],
+        }),
+      ),
+    ).rejects.toThrow("dependency executor is unavailable");
+    expect(h.ports.encrypt).not.toHaveBeenCalled();
   });
 
   it("receives an authenticated newer record and rejects tenant/signature substitution", async () => {

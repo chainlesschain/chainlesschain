@@ -14,6 +14,7 @@ import {
   verifyGovernedKnowledgeMergePlan,
 } from "./governed-knowledge-conflict-merge.js";
 import {
+  GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA,
   GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
   digestGovernedKnowledgeMergePublishResult,
   isGovernedKnowledgeMergePublisherAuthority,
@@ -180,6 +181,16 @@ function settledCore(value) {
 
 function validatePublishEvidence(value, plan, descriptorValue) {
   exact(value, PUBLISH_EVIDENCE_KEYS, "merge publish evidence");
+  const requestCore = {
+    schema: GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA,
+    tenantId: plan.tenantId,
+    deviceId: plan.deviceId,
+    operationId: `knowledge-merge:${plan.planDigest.slice(7)}`,
+    planDigest: plan.planDigest,
+    knowledgeId: plan.knowledgeId,
+    mergedContentDigest: plan.mergedKnowledge.contentDigest,
+    mergedKnowledge: plan.mergedKnowledge,
+  };
   if (
     value.schema !== GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA ||
     value.tenantId !== descriptorValue.tenantId ||
@@ -190,7 +201,8 @@ function validatePublishEvidence(value, plan, descriptorValue) {
     value.mergedContentDigest !== plan.mergedKnowledge.contentDigest ||
     value.durable !== true ||
     value.idempotent !== true ||
-    !DIGEST.test(value.requestDigest ?? "") ||
+    value.requestDigest !==
+      hash(GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA, requestCore) ||
     !DIGEST.test(value.envelopeDigest ?? "") ||
     !DIGEST.test(value.resultDigest ?? "") ||
     !DIGEST.test(value.verificationReceiptDigest ?? "") ||

@@ -16,6 +16,15 @@ import {
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
 import {
+  GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA,
+  createGovernedKnowledgeDependencyAuthority,
+  digestGovernedKnowledgeDependencyResult,
+} from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
+import {
+  GovernedKnowledgeDependencyLedgerExecutor,
+  digestGovernedKnowledgeDependencyOperation,
+} from "../../src/lib/evolution/governed-knowledge-dependency-ledger-executor.js";
+import {
   GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
   GovernedKnowledgeConflictMergePlanner,
   digestGovernedKnowledgeHumanMergeReceipt,
@@ -380,7 +389,7 @@ function adapter(storage, crypto) {
   });
 }
 
-function controller(storage, crypto) {
+function controller(storage, crypto, dependencyExecutor = null) {
   const persisted = adapter(storage, crypto);
   return {
     persisted,
@@ -388,6 +397,7 @@ function controller(storage, crypto) {
       tenantId: storage.descriptor.tenantId,
       deviceId: storage.descriptor.deviceId,
       ports: persisted.syncPorts(crypto),
+      dependencyExecutor,
     }),
   };
 }
@@ -561,6 +571,120 @@ function mergeExecutor(storage, publisherAuthority) {
     ledger: storage.ledger,
     ledgerArtifactResolver: storage.resolver,
     publisherAuthority,
+    now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+  });
+}
+
+function revocationKnowledge(overrides = {}) {
+  return knowledge({
+    action: "revoke",
+    contentDigest: D("content:revoked"),
+    revocationReceiptDigest: D("revocation"),
+    dependencies: [
+      {
+        kind: "candidate",
+        digest: D("candidate:1"),
+        disposition: "reject-candidate",
+      },
+      {
+        kind: "active-skill",
+        digest: D("active-skill:1"),
+        disposition: "rollback-active",
+      },
+    ],
+    ...overrides,
+  });
+}
+
+function dependencyAuthority({
+  loseFirstResponse = false,
+  deviceId = "device:a",
+} = {}) {
+  const durableResults = new Map();
+  let shouldLose = loseFirstResponse;
+  const requests = [];
+  const provider = {
+    apply: vi.fn(async (request) => {
+      requests.push(structuredClone(request));
+      if (!durableResults.has(request.operationId)) {
+        const core = {
+          schema: GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA,
+          tenantId: request.tenantId,
+          deviceId: request.deviceId,
+          operationId: request.operationId,
+          requestDigest: request.requestDigest,
+          knowledgeId: request.knowledgeId,
+          revocationReceiptDigest: request.revocationReceiptDigest,
+          dependencyKind: request.dependency.kind,
+          dependencyDigest: request.dependency.digest,
+          dependencyDisposition: request.dependency.disposition,
+          authorityId: "dependency-provider:test",
+          authorityRevision: 1,
+          handlerArtifactDigest: D("dependency-provider-handler"),
+          applied: true,
+          durable: true,
+          idempotent: true,
+          appliedAt: "2026-09-04T00:00:00.000Z",
+        };
+        durableResults.set(request.operationId, {
+          ...core,
+          resultDigest: digestGovernedKnowledgeDependencyResult(core),
+          attestation: {
+            algorithm: "test-signature",
+            keyId: "dependency-key:test",
+            value: "signed-dependency-result",
+          },
+        });
+      }
+      if (shouldLose) {
+        shouldLose = false;
+        throw new Error("simulated dependency response loss");
+      }
+      return durableResults.get(request.operationId);
+    }),
+  };
+  const verifier = {
+    verify: vi.fn(async ({ request, result }) => ({
+      authenticated: true,
+      durable: true,
+      tenantId: request.tenantId,
+      deviceId: request.deviceId,
+      operationId: request.operationId,
+      requestDigest: request.requestDigest,
+      resultDigest: result.resultDigest,
+      providerAuthorityId: "dependency-provider:test",
+      providerRevision: 1,
+      verifierAuthorityId: "dependency-verifier:test",
+      verifierRevision: 1,
+      verificationReceiptDigest: D(`verified:${result.resultDigest}`),
+    })),
+  };
+  const authority = createGovernedKnowledgeDependencyAuthority({
+    tenantId: "tenant:a",
+    deviceId,
+    providerDescriptor: {
+      authorityId: "dependency-provider:test",
+      revision: 1,
+      handlerArtifactDigest: D("dependency-provider-handler"),
+    },
+    verifierDescriptor: {
+      authorityId: "dependency-verifier:test",
+      revision: 1,
+      handlerArtifactDigest: D("dependency-verifier-handler"),
+    },
+    provider,
+    verifier,
+  });
+  return { authority, provider, requests, verifier };
+}
+
+function dependencyExecutor(storage, authority) {
+  return new GovernedKnowledgeDependencyLedgerExecutor({
+    descriptor: storage.descriptor,
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    dependencyAuthority: authority,
     now: () => Date.parse("2026-09-04T00:00:00.000Z"),
   });
 }
@@ -827,6 +951,120 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
         ({ type }) => type === "knowledge.merge.settled",
       ),
     ).toHaveLength(0);
+  });
+
+  it("applies every revocation dependency durably before sync commit", async () => {
+    const storage = backends("device:a");
+    const crypto = cryptoPorts();
+    const dependency = dependencyAuthority();
+    const executor = dependencyExecutor(storage, dependency.authority);
+    await expect(
+      controller(storage, crypto, executor).controller.publish(
+        revocationKnowledge(),
+      ),
+    ).resolves.toMatchObject({ action: "revoke" });
+    expect(dependency.provider.apply).toHaveBeenCalledTimes(2);
+    expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "knowledge.revocation-dependencies.prepared",
+      "knowledge.revocation-dependencies.settled",
+      "knowledge.sync.committed",
+    ]);
+  });
+
+  it("does not execute destructive dependencies for a concurrent conflict", async () => {
+    const crypto = cryptoPorts();
+    const senderStorage = backends("device:a");
+    const senderDependency = dependencyAuthority({ deviceId: "device:a" });
+    const remoteEnvelope = await controller(
+      senderStorage,
+      crypto,
+      dependencyExecutor(senderStorage, senderDependency.authority),
+    ).controller.publish(
+      revocationKnowledge({ vectorClock: { "device:a": 2 } }),
+    );
+    const receiverStorage = backends("device:b");
+    const receiverDependency = dependencyAuthority({ deviceId: "device:b" });
+    const receiver = controller(
+      receiverStorage,
+      crypto,
+      dependencyExecutor(receiverStorage, receiverDependency.authority),
+    );
+    await receiver.controller.publish(
+      knowledge({
+        contentDigest: D("content:b"),
+        vectorClock: { "device:b": 2 },
+      }),
+    );
+    await expect(
+      receiver.controller.receive(remoteEnvelope),
+    ).resolves.toMatchObject({ reason: "conflict", requiresHumanMerge: true });
+    expect(receiverDependency.provider.apply).not.toHaveBeenCalled();
+  });
+
+  it("resumes dependency response loss without reapplying a durable operation", async () => {
+    const storage = backends("device:a");
+    const crypto = cryptoPorts();
+    const dependency = dependencyAuthority({ loseFirstResponse: true });
+    const first = dependencyExecutor(storage, dependency.authority);
+    await expect(
+      controller(storage, crypto, first).controller.publish(
+        revocationKnowledge(),
+      ),
+    ).rejects.toThrow("dependency response loss");
+    expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "knowledge.revocation-dependencies.prepared",
+    ]);
+
+    storage.state.loseResponse = true;
+    const reopened = dependencyExecutor(storage, dependency.authority);
+    await expect(
+      controller(storage, crypto, reopened).controller.publish(
+        revocationKnowledge(),
+      ),
+    ).resolves.toMatchObject({ action: "revoke" });
+    expect(dependency.provider.apply).toHaveBeenCalledTimes(3);
+    expect(dependency.requests[0]).toEqual(dependency.requests[1]);
+    expect(
+      storage.state.events.filter(
+        ({ type }) => type === "knowledge.revocation-dependencies.settled",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("reopens settled dependencies from actual Ledger files without reapplying", async () => {
+    const storage = backends("device:a");
+    const witness = durableWitness("witness-knowledge-dependencies");
+    storage.ledger = openRealLedger(storage, witness);
+    const crypto = cryptoPorts();
+    const dependency = dependencyAuthority();
+    const first = dependencyExecutor(storage, dependency.authority);
+    const input = revocationKnowledge();
+    await controller(storage, crypto, first).controller.publish(input);
+    expect(dependency.provider.apply).toHaveBeenCalledTimes(2);
+
+    const operationDigest = digestGovernedKnowledgeDependencyOperation({
+      tenantId: "tenant:a",
+      deviceId: "device:a",
+      knowledge: input,
+    });
+    const reopenedLedger = openRealLedger(storage, witness);
+    const reopened = dependencyExecutor(
+      { ...storage, ledger: reopenedLedger },
+      dependency.authority,
+    );
+    await expect(reopened.resume({ operationDigest })).resolves.toMatchObject({
+      durable: true,
+      recovered: true,
+      resultDigests: [
+        expect.stringMatching(/^sha256:/),
+        expect.stringMatching(/^sha256:/),
+      ],
+    });
+    expect(dependency.provider.apply).toHaveBeenCalledTimes(2);
+    expect(reopenedLedger.verify()).toMatchObject({
+      eventCount: 3,
+      sequence: 3,
+    });
   });
 
   it("recovers an idempotent commit after an append response is lost", async () => {
