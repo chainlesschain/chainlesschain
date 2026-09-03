@@ -29,7 +29,7 @@ describe("Coding Agent V3 production surface guard", () => {
     );
     const loopRegisteredChannels = extractChannels(
       ipcSource,
-      /\[\s*["'](coding-agent:app-server-(?:thread|turn|context|memory)-[^"']+)["']\s*,\s*["'][^"']+["']\s*\]/g,
+      /\[\s*["'](coding-agent:app-server-(?:thread|turn|context|memory|evolution-workbench)-[^"']+)["']\s*,\s*["'][^"']+["']\s*,?\s*\]/g,
     );
 
     // The legacy respondQuestion and canonical respondElicitation preload
