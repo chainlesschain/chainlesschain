@@ -956,6 +956,19 @@ async function activate(context) {
         });
       },
     ),
+    vscode.commands.registerCommand(
+      "chainlesschain.skills.retrieve",
+      async () => {
+        const { openSkillRetrieval } = require("./ui/skill-retrieval-view.js");
+        const { getResolvedCli } = require("./cli-binary.js");
+        const { runCliResult } = require("./chat/introspect-commands.js");
+        return openSkillRetrieval(vscode, {
+          command: getResolvedCli(),
+          runCliResult,
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+        });
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.automation.center", () =>
       openAutomationCenter(vscode),
     ),

@@ -114,6 +114,11 @@
         "icon": "$(history)"
       },
       {
+        "command": "chainlesschain.skills.retrieve",
+        "title": "%cmd.skills.retrieve.title%",
+        "icon": "$(search-fuzzy)"
+      },
+      {
         "command": "chainlesschain.automation.center",
         "title": "%cmd.automation.center.title%",
         "icon": "$(run-all)"
@@ -699,7 +704,7 @@
     "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
     "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
     "check:marketplace-overview": "node scripts/verify-marketplace-overview.mjs",
-    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/team-monitor-collaboration.test.cjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/skill-retrieval-view.test.cjs test/team-monitor-collaboration.test.cjs",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
     "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"

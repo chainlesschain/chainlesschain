@@ -95,8 +95,16 @@ function runCliResult({
   cwd,
   env,
   timeoutMs = 30000,
+  maxBufferBytes = 1024 * 1024,
   deps,
 } = {}) {
+  if (
+    !Number.isSafeInteger(maxBufferBytes) ||
+    maxBufferBytes < 1024 ||
+    maxBufferBytes > 8 * 1024 * 1024
+  ) {
+    throw new TypeError("CLI output buffer limit is invalid or unbounded");
+  }
   const run = (deps && deps.execFile) || execFile;
   const useShell = process.platform === "win32";
   return new Promise((resolve) => {
@@ -112,7 +120,7 @@ function runCliResult({
         env: hardenedEnv(env),
         timeout: timeoutMs,
         windowsHide: true,
-        maxBuffer: 1024 * 1024,
+        maxBuffer: maxBufferBytes,
         // npm global shims on Windows are .cmd files — they need a shell.
         shell: useShell,
       },

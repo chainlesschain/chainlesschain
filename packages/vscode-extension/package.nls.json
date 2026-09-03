@@ -13,6 +13,7 @@
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
   "cmd.evolution.workbench.title": "ChainlessChain: Evolution Workbench",
+  "cmd.skills.retrieve.title": "ChainlessChain: Search Skills",
   "cmd.automation.center.title": "ChainlessChain: Automation Center",
   "cmd.remote.control.title": "ChainlessChain: Remote Control",
   "cmd.usage.show.title": "ChainlessChain: Show Token Usage",
