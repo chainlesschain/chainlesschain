@@ -77,6 +77,11 @@ function validateConflict(value) {
     !Array.isArray(value.digests) ||
     value.digests.length !== 2 ||
     value.digests.some((digest) => !DIGEST.test(digest)) ||
+    value.digests[0] === value.digests[1] ||
+    (value.type === "same-name-different-version" &&
+      (typeof value.name !== "string" ||
+        value.name.length < 1 ||
+        value.name.length > 256)) ||
     (value.type === "ambiguous-top-score" &&
       (!Number.isFinite(value.margin) || value.margin < 0 || value.margin > 1))
   ) {
@@ -115,6 +120,7 @@ function parseSkillRetrievalResult(text) {
   }
   if (
     value?.schema !== SCHEMA ||
+    !Object.prototype.hasOwnProperty.call(value, "selected") ||
     typeof value.query !== "string" ||
     value.query.trim().length < 1 ||
     value.query !== value.query.trim() ||
@@ -147,7 +153,13 @@ function parseSkillRetrievalResult(text) {
     if (!canonical) {
       throw new Error("Skill retrieval selected an unreturned candidate");
     }
+    if (canonical !== candidates[0]) {
+      throw new Error("Skill retrieval selected a non-leading candidate");
+    }
     selected = canonical;
+  }
+  if (candidates.length > 0 && selected === null && conflicts.length === 0) {
+    throw new Error("Skill retrieval omitted a selection without a conflict");
   }
   return Object.freeze({
     ...value,

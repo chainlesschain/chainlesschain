@@ -131,6 +131,48 @@ test("Skill Retrieval IDE rejects drift and duplicate candidate evidence", () =>
       ),
     /duplicate candidate/u,
   );
+  assert.throws(
+    () =>
+      parseSkillRetrievalResult(
+        JSON.stringify({ ...valid, selected: null, conflicts: [] }),
+      ),
+    /without a conflict/u,
+  );
+  const second = {
+    ...valid.selected,
+    id: "second",
+    displayName: "Second",
+    digest: D("b"),
+    score: 0.8,
+  };
+  assert.throws(
+    () =>
+      parseSkillRetrievalResult(
+        JSON.stringify({
+          ...valid,
+          selected: second,
+          candidates: [valid.selected, second],
+        }),
+      ),
+    /non-leading candidate/u,
+  );
+  assert.throws(
+    () =>
+      parseSkillRetrievalResult(
+        JSON.stringify({
+          ...valid,
+          selected: null,
+          conflicts: [
+            {
+              type: "ambiguous-top-score",
+              digests: [D("a"), D("a")],
+              margin: 0,
+            },
+          ],
+        }),
+      ),
+    /invalid conflict/u,
+  );
 });
 
 test("Skill Retrieval IDE inspects canonical evidence without executing a Skill", async () => {

@@ -318,6 +318,10 @@
                 class="com.chainlesschain.ide.intellij.EvolutionWorkbenchAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.skills.Retrieve"
+                class="com.chainlesschain.ide.intellij.SkillRetrievalAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action id="chainlesschain.policy.Viewer"
                 class="com.chainlesschain.ide.intellij.PolicyViewerAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
