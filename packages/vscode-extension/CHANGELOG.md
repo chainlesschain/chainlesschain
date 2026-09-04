@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.82] - Workbench capability preflight (2026-09-04)
+
+- Check the App Server's declared Evolution Workbench capability before
+  issuing any Workbench RPC, preventing the command failure shown when the
+  installed CLI has no governed Workbench host configured.
+- Explain disabled and unavailable deployments in the editor while keeping
+  review and rollback safely unavailable; read-only deployments expose only
+  the methods explicitly advertised by the CLI.
+- This patch does not provision a Workbench host, identity, PKI, promotion
+  writer, or rollback authority; those remain deployment-owned prerequisites.
+- Add the Workbench regression suite to the immutable VSIX release gate.
+
 ## [0.37.81] - Governed evolution review and retrieval (2026-09-04)
 
 - Add native, read-only Evolution Workbench and Skill Retrieval surfaces backed
