@@ -16,6 +16,11 @@ import {
   createSkillVectorAuthority,
   digestSkillVectorResult,
 } from "../../src/lib/skill-vector-authority.js";
+import { openSkillRetrievalRevocationAuthority } from "../../src/lib/evolution/skill-retrieval-revocation-authority.js";
+import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+  digestSkillRevocationDependencyRequest,
+} from "../../src/lib/evolution/skill-revocation-propagation.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -1123,6 +1128,71 @@ describe("run_skill controlled execution boundary", () => {
         { cwd: tempDir, skillVectorAuthority: { tenantId: "tenant:test" } },
       ),
     ).rejects.toThrow(/branded Skill vector authority/u);
+  });
+
+  it("list_skills excludes content invalidated by the durable revocation authority", async () => {
+    registerSkill({ id: "repair-tests", description: "repair failing tests" });
+    registerSkill({ id: "repair-docs", description: "repair documentation" });
+    const revoked = mocks.skills[0];
+    let stored = null;
+    const authority = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant:test",
+      ports: {
+        async load() {
+          return {
+            authenticated: true,
+            durable: true,
+            found: stored !== null,
+            state: stored,
+            receiptDigest: D(stored?.stateDigest ?? "empty-revocations"),
+          };
+        },
+        async commit({ state }) {
+          stored = structuredClone(state);
+          return {
+            authenticated: true,
+            durable: true,
+            committed: true,
+            stateDigest: state.stateDigest,
+            receiptDigest: D("revocation-commit"),
+          };
+        },
+      },
+    });
+    const core = {
+      schema: SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+      tenantId: "tenant:test",
+      streamId: "pilot-stream",
+      operationId: "skill-revocation:repair-tests",
+      transitionDigest: D("transition"),
+      candidateId: D("candidate"),
+      skillName: revoked.id,
+      occurredAt: "2026-09-05T08:00:00.000Z",
+      sourceReceiptDigest: D("source"),
+      resolutionDigest: D("resolution"),
+      dependency: {
+        kind: "retrieval-index",
+        ref: `skill-content:tenant:test:${revoked.id}`,
+        digest: revoked.executionIdentity.contentDigest,
+        disposition: "invalidate",
+      },
+    };
+    await authority.invalidateRetrieval({
+      ...core,
+      requestDigest: digestSkillRevocationDependencyRequest(core),
+    });
+
+    const result = await executeTool(
+      "list_skills",
+      { query: "repair failing tests" },
+      {
+        cwd: tempDir,
+        skillRetrievalRevocationReader: authority,
+      },
+    );
+
+    expect(result.skills.map(({ id }) => id)).not.toContain(revoked.id);
+    expect(result.routing.rejectedCount).toBeGreaterThanOrEqual(1);
   });
 
   it("does not hide a configured invalid index behind transcript fallback", async () => {

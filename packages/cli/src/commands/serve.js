@@ -7,6 +7,7 @@ import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { isEvolutionWorkbenchCliHost } from "../lib/evolution/evolution-workbench-cli-host.js";
 import { isGovernedKnowledgeReviewHost } from "../lib/evolution/governed-knowledge-review-host.js";
 import path from "node:path";
@@ -48,6 +49,12 @@ export function registerServeCommand(program, dependencies = {}) {
     dependencies.skillVectorAuthority == null
       ? null
       : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
+  const skillRetrievalRevocationReader =
+    dependencies.skillRetrievalRevocationReader == null
+      ? null
+      : captureSkillRetrievalRevocationReader(
+          dependencies.skillRetrievalRevocationReader,
+        );
   const governanceHosts = captureServeGovernanceHosts(dependencies);
   const serve = program
     .command("serve")
@@ -170,6 +177,7 @@ export function registerServeCommand(program, dependencies = {}) {
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
+              skillRetrievalRevocationReader,
               ...governanceHosts,
               maxQueuedRequests,
             });
@@ -203,6 +211,7 @@ export function registerServeCommand(program, dependencies = {}) {
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
+              skillRetrievalRevocationReader,
               ...governanceHosts,
               maxQueuedRequests,
             });
@@ -218,6 +227,7 @@ export function registerServeCommand(program, dependencies = {}) {
               : { evolutionCompositionFactory },
           skillOutcomeIndex,
           skillVectorAuthority,
+          skillRetrievalRevocationReader,
         }).createServerRuntime({
           port: parseInt(opts.port, 10),
           host: opts.host,

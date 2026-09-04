@@ -11,6 +11,7 @@ import {
   captureAgentSkillOutcomeIndex,
 } from "../evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../evolution/skill-retrieval-revocation-authority.js";
 import {
   diffGraphTrace,
   locateBlockedRoot,
@@ -151,6 +152,7 @@ export class AppServerGraphRuntime {
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
     skillVectorAuthority = null,
+    skillRetrievalRevocationReader = null,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
   } = {}) {
     if (typeof executeNode !== "function") {
@@ -179,10 +181,30 @@ export class AppServerGraphRuntime {
       skillVectorAuthority === null
         ? null
         : captureSkillVectorAuthority(skillVectorAuthority);
+    this.skillRetrievalRevocationReader =
+      skillRetrievalRevocationReader === null
+        ? null
+        : captureSkillRetrievalRevocationReader(skillRetrievalRevocationReader);
     if (
       this.skillOutcomeIndex !== null &&
       this.skillVectorAuthority !== null &&
       this.skillOutcomeIndex.tenantId !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new TypeError("Graph retrieval authorities must share one tenant");
+    }
+    if (
+      this.skillVectorAuthority !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      this.skillVectorAuthority.tenantId !==
+        this.skillRetrievalRevocationReader.tenantId
+    ) {
+      throw new TypeError("Graph retrieval authorities must share one tenant");
+    }
+    if (
+      this.skillOutcomeIndex !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      this.skillOutcomeIndex.tenantId !==
+        this.skillRetrievalRevocationReader.tenantId
     ) {
       throw new TypeError("Graph retrieval authorities must share one tenant");
     }
@@ -225,6 +247,15 @@ export class AppServerGraphRuntime {
           ) {
             throw new TypeError(
               "Graph evolution composition and Skill vector authority must share one tenant",
+            );
+          }
+          if (
+            this.skillRetrievalRevocationReader !== null &&
+            composition.tenantId !==
+              this.skillRetrievalRevocationReader.tenantId
+          ) {
+            throw new TypeError(
+              "Graph evolution composition and Skill revocation authority must share one tenant",
             );
           }
           if (
@@ -732,6 +763,7 @@ export class AppServerGraphRuntime {
         evolutionIngress: evolutionComposition?.evolutionIngress || null,
         skillOutcomeIndex: this.skillOutcomeIndex,
         skillVectorAuthority: this.skillVectorAuthority,
+        skillRetrievalRevocationReader: this.skillRetrievalRevocationReader,
       });
       if (!result || !["succeeded", "completed"].includes(result.status)) {
         const error = runtimeError(

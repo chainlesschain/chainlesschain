@@ -1,4 +1,5 @@
 import { BM25Search } from "./bm25-search.js";
+import { captureSkillRetrievalRevocationReader } from "./evolution/skill-retrieval-revocation-authority.js";
 
 export const SKILL_RETRIEVAL_RESULT_SCHEMA =
   "chainlesschain.skill-retrieval-result/v1";
@@ -82,6 +83,7 @@ export function routeSkillDescriptors({
   target = null,
   vectorScores = null,
   outcomeMetrics = null,
+  revocationReader = null,
   topK = 5,
   ambiguityMargin = 0.02,
 } = {}) {
@@ -104,6 +106,10 @@ export function routeSkillDescriptors({
   const requiredTags = new Set(
     tags.map((value) => String(value).toLowerCase()),
   );
+  const revocations =
+    revocationReader === null
+      ? null
+      : captureSkillRetrievalRevocationReader(revocationReader);
   const rejected = [];
   const admitted = [];
   for (const skill of skills) {
@@ -116,6 +122,11 @@ export function routeSkillDescriptors({
     const mismatch = compatible(skill, target);
     const reasons = [];
     if (!digest) reasons.push("missing-content-digest");
+    const revocation =
+      digest === null
+        ? null
+        : revocations?.inspect({ skillName: skill.id, contentDigest: digest });
+    if (revocation?.invalidated) reasons.push("revoked-by-evolution");
     if (namespace !== null && skill.source !== namespace)
       reasons.push("namespace-mismatch");
     if ([...requiredTags].some((value) => !skillTags.has(value)))
@@ -123,7 +134,17 @@ export function routeSkillDescriptors({
     if (!containsPath(skill, targetPath)) reasons.push("path-mismatch");
     reasons.push(...mismatch.reasons);
     if (reasons.length > 0) {
-      rejected.push({ id: skill.id, digest, reasons });
+      rejected.push({
+        id: skill.id,
+        digest,
+        reasons,
+        ...(revocation?.invalidated
+          ? {
+              revocationStateDigest: revocation.stateDigest,
+              revocationReceiptDigest: revocation.receiptDigest,
+            }
+          : {}),
+      });
       continue;
     }
     admitted.push({ skill, digest });

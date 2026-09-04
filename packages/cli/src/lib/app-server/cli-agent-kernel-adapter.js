@@ -208,6 +208,10 @@ export class CliAgentKernelAdapter {
           turnOptions.skillVectorAuthority ??
           this.sessionOptions.skillVectorAuthority ??
           null,
+        skillRetrievalRevocationReader:
+          turnOptions.skillRetrievalRevocationReader ??
+          this.sessionOptions.skillRetrievalRevocationReader ??
+          null,
       },
       {
         ...this.dependencies,

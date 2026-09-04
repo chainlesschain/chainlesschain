@@ -9,6 +9,7 @@ import {
 import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { captureAgentSkillOutcomeIndex } from "../evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../evolution/skill-retrieval-revocation-authority.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
@@ -151,6 +152,7 @@ export class CcAppServer {
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
     skillVectorAuthority = null,
+    skillRetrievalRevocationReader = null,
     evolutionWorkbenchHost = null,
     governedKnowledgeReviewHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
@@ -200,6 +202,10 @@ export class CcAppServer {
       skillVectorAuthority === null
         ? null
         : captureSkillVectorAuthority(skillVectorAuthority);
+    this.skillRetrievalRevocationReader =
+      skillRetrievalRevocationReader === null
+        ? null
+        : captureSkillRetrievalRevocationReader(skillRetrievalRevocationReader);
     if (
       this.skillOutcomeIndex !== null &&
       this.skillVectorAuthority !== null &&
@@ -210,8 +216,31 @@ export class CcAppServer {
       );
     }
     if (
+      this.skillVectorAuthority !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      this.skillVectorAuthority.tenantId !==
+        this.skillRetrievalRevocationReader.tenantId
+    ) {
+      throw new TypeError(
+        "App Server retrieval authorities must share one tenant",
+      );
+    }
+    if (
+      this.skillOutcomeIndex !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      this.skillOutcomeIndex.tenantId !==
+        this.skillRetrievalRevocationReader.tenantId
+    ) {
+      throw new TypeError(
+        "App Server retrieval authorities must share one tenant",
+      );
+    }
+    if (
       graphRuntime &&
-      (evolutionCompositionFactory || skillOutcomeIndex || skillVectorAuthority)
+      (evolutionCompositionFactory ||
+        skillOutcomeIndex ||
+        skillVectorAuthority ||
+        skillRetrievalRevocationReader)
     ) {
       throw new TypeError(
         "graphRuntime and host-owned Graph authorities cannot both be provided",
@@ -226,6 +255,7 @@ export class CcAppServer {
         evolutionCompositionFactory,
         skillOutcomeIndex: this.skillOutcomeIndex,
         skillVectorAuthority: this.skillVectorAuthority,
+        skillRetrievalRevocationReader: this.skillRetrievalRevocationReader,
         executeNode: (context) => this._executeGraphNode(context),
         requestHumanTask: (context) => this._requestHumanTask(context),
         onEvent: (event) => {
@@ -773,6 +803,7 @@ export class CcAppServer {
     evolutionIngress,
     skillOutcomeIndex,
     skillVectorAuthority,
+    skillRetrievalRevocationReader,
   }) {
     const threadId = `graph-agent:${runId}:${nodeId}`;
     const turn = { id: attempt.id, threadId };
@@ -785,6 +816,7 @@ export class CcAppServer {
       delete turnOptions.evolutionIngress;
       delete turnOptions.skillOutcomeIndex;
       delete turnOptions.skillVectorAuthority;
+      delete turnOptions.skillRetrievalRevocationReader;
       if (evolutionIngress !== null && evolutionIngress !== undefined) {
         turnOptions.evolutionIngress = evolutionIngress;
       }
@@ -793,6 +825,13 @@ export class CcAppServer {
       }
       if (skillVectorAuthority !== null && skillVectorAuthority !== undefined) {
         turnOptions.skillVectorAuthority = skillVectorAuthority;
+      }
+      if (
+        skillRetrievalRevocationReader !== null &&
+        skillRetrievalRevocationReader !== undefined
+      ) {
+        turnOptions.skillRetrievalRevocationReader =
+          skillRetrievalRevocationReader;
       }
       const result = await this.kernel.startTurn({
         threadId,
@@ -1038,11 +1077,16 @@ export class CcAppServer {
       const turnOptions = { ...options };
       delete turnOptions.skillOutcomeIndex;
       delete turnOptions.skillVectorAuthority;
+      delete turnOptions.skillRetrievalRevocationReader;
       if (this.skillOutcomeIndex !== null) {
         turnOptions.skillOutcomeIndex = this.skillOutcomeIndex;
       }
       if (this.skillVectorAuthority !== null) {
         turnOptions.skillVectorAuthority = this.skillVectorAuthority;
+      }
+      if (this.skillRetrievalRevocationReader !== null) {
+        turnOptions.skillRetrievalRevocationReader =
+          this.skillRetrievalRevocationReader;
       }
       const result = await this.kernel.startTurn({
         threadId: turn.threadId,

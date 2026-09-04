@@ -3557,6 +3557,7 @@ export async function executeTool(name, args, context = {}) {
       skillAllowlist: context.skillAllowlist ?? null,
       skillOutcomeIndex: context.skillOutcomeIndex,
       skillVectorAuthority: context.skillVectorAuthority,
+      skillRetrievalRevocationReader: context.skillRetrievalRevocationReader,
       cwd,
       parentMessages: context.parentMessages,
       interaction: context.interaction,
@@ -5101,6 +5102,7 @@ async function executeToolInner(
     skillAllowlist = null,
     skillOutcomeIndex,
     skillVectorAuthority,
+    skillRetrievalRevocationReader,
     cwd,
     parentMessages,
     interaction,
@@ -8232,6 +8234,7 @@ async function executeToolInner(
           target: { os: process.platform },
           vectorScores: vector?.scores ?? null,
           outcomeMetrics: outcomeAuthority.metrics,
+          revocationReader: skillRetrievalRevocationReader ?? null,
           topK: Math.min(64, Math.max(1, skills.length)),
         });
         const byDigest = new Map(
@@ -13226,6 +13229,7 @@ export async function* agentLoop(messages, options) {
     skillLoader: options.skillLoader || _defaultSkillLoader,
     skillOutcomeIndex: options.skillOutcomeIndex,
     skillVectorAuthority: options.skillVectorAuthority,
+    skillRetrievalRevocationReader: options.skillRetrievalRevocationReader,
     // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
     // fired during this run carries trace_id = this run's id; a spawned child
     // loop carries parent_id = the spawning run's id (threaded by

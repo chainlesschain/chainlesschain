@@ -103,4 +103,16 @@ describe("cc skill search canonical routing", () => {
       correctionRate: 0,
     });
   });
+
+  it("passes the branded revocation reader into CLI canonical routing", () => {
+    const revoked = skill("repair-tests", "repair failing tests");
+    const reader = {
+      inspect: () => ({ invalidated: true }),
+    };
+    expect(() =>
+      routeSkillSearch([revoked], "repair tests", {
+        revocationReader: reader,
+      }),
+    ).toThrow("branded");
+  });
 });

@@ -36,6 +36,7 @@ import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/struc
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -79,6 +80,12 @@ export class AgentRuntime {
       deps.skillVectorAuthority == null
         ? null
         : captureSkillVectorAuthority(deps.skillVectorAuthority);
+    this.skillRetrievalRevocationReader =
+      deps.skillRetrievalRevocationReader == null
+        ? null
+        : captureSkillRetrievalRevocationReader(
+            deps.skillRetrievalRevocationReader,
+          );
     if (
       this.evolutionIngress !== null &&
       this.skillOutcomeIndex !== null &&
@@ -96,6 +103,21 @@ export class AgentRuntime {
       retrievalTenant !== null &&
       this.skillVectorAuthority !== null &&
       retrievalTenant !== this.skillVectorAuthority.tenantId
+    ) {
+      throw new Error("Agent retrieval authorities must share one tenant");
+    }
+    if (
+      this.skillVectorAuthority !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      this.skillVectorAuthority.tenantId !==
+        this.skillRetrievalRevocationReader.tenantId
+    ) {
+      throw new Error("Agent retrieval authorities must share one tenant");
+    }
+    if (
+      retrievalTenant !== null &&
+      this.skillRetrievalRevocationReader !== null &&
+      retrievalTenant !== this.skillRetrievalRevocationReader.tenantId
     ) {
       throw new Error("Agent retrieval authorities must share one tenant");
     }
@@ -333,6 +355,11 @@ export class AgentRuntime {
       ...(this.skillVectorAuthority === null
         ? {}
         : { skillVectorAuthority: this.skillVectorAuthority }),
+      ...(this.skillRetrievalRevocationReader === null
+        ? {}
+        : {
+            skillRetrievalRevocationReader: this.skillRetrievalRevocationReader,
+          }),
     });
     if (this.evolutionIngress !== null) {
       await this.evolutionIngress.complete();
@@ -510,6 +537,11 @@ export class AgentRuntime {
       ...(this.skillVectorAuthority === null
         ? {}
         : { skillVectorAuthority: this.skillVectorAuthority }),
+      ...(this.skillRetrievalRevocationReader === null
+        ? {}
+        : {
+            skillRetrievalRevocationReader: this.skillRetrievalRevocationReader,
+          }),
     });
 
     server.on("connection", ({ clientId, ip }) => {

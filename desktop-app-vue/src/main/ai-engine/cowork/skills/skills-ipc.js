@@ -54,6 +54,10 @@ function registerSkillsIPC(options = {}) {
     typeof options.getSkillVectorAuthority === "function"
       ? options.getSkillVectorAuthority.bind(options)
       : () => options.skillVectorAuthority ?? null;
+  const getSkillRetrievalRevocationReader =
+    typeof options.getSkillRetrievalRevocationReader === "function"
+      ? options.getSkillRetrievalRevocationReader.bind(options)
+      : () => options.skillRetrievalRevocationReader ?? null;
 
   // 获取或创建注册表
   const registry = getSkillRegistry({
@@ -309,6 +313,7 @@ function registerSkillsIPC(options = {}) {
         hostTarget: options.skillRoutingTarget || { os: process.platform },
         database: registry.skillMetricsCollector?.database || null,
         skillVectorAuthority: getSkillVectorAuthority(),
+        skillRetrievalRevocationReader: getSkillRetrievalRevocationReader(),
         buildOutcomeAuthority: options.buildDesktopSkillOutcomeAuthority,
         loadRouter: options.loadSkillRouter,
         loadVectorAuthority: options.loadSkillVectorAuthority,

@@ -15,6 +15,7 @@ import {
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -276,6 +277,12 @@ export function registerAgentCommand(program, dependencies = {}) {
     dependencies.skillVectorAuthority == null
       ? null
       : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
+  const skillRetrievalRevocationReader =
+    dependencies.skillRetrievalRevocationReader == null
+      ? null
+      : captureSkillRetrievalRevocationReader(
+          dependencies.skillRetrievalRevocationReader,
+        );
   program
     .command("agent")
     .aliases(["a", "exec"])
@@ -1572,6 +1579,9 @@ export function registerAgentCommand(program, dependencies = {}) {
             claudeStorageLaunchEnv,
             ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
             ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
+            ...(skillRetrievalRevocationReader === null
+              ? {}
+              : { skillRetrievalRevocationReader }),
             ...(evolutionComposition === null
               ? {}
               : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -1914,6 +1924,9 @@ export function registerAgentCommand(program, dependencies = {}) {
           claudeStorageLaunchEnv,
           ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
           ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
+          ...(skillRetrievalRevocationReader === null
+            ? {}
+            : { skillRetrievalRevocationReader }),
           ...(evolutionComposition === null
             ? {}
             : { evolutionIngress: evolutionComposition.evolutionIngress }),
@@ -2028,6 +2041,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         evolutionComposition,
         skillOutcomeIndex,
         skillVectorAuthority,
+        skillRetrievalRevocationReader,
       }).createAgentRuntime({
         model: options.model,
         thinking,

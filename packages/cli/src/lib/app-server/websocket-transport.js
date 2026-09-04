@@ -418,6 +418,8 @@ export class WebSocketAppServerHost extends EventEmitter {
             this.options.evolutionCompositionFactory ?? null,
           skillOutcomeIndex: this.options.skillOutcomeIndex ?? null,
           skillVectorAuthority: this.options.skillVectorAuthority ?? null,
+          skillRetrievalRevocationReader:
+            this.options.skillRetrievalRevocationReader ?? null,
           evolutionWorkbenchHost: this.options.evolutionWorkbenchHost ?? null,
           governedKnowledgeReviewHost:
             this.options.governedKnowledgeReviewHost ?? null,

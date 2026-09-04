@@ -131,6 +131,7 @@ export function routeSkillSearch(skills, query, options = {}) {
     tags: options.tag ? [options.tag] : [],
     target: { os: options.os || process.platform },
     outcomeMetrics: options.outcomeMetrics ?? null,
+    revocationReader: options.revocationReader ?? null,
     vectorScores: options.vectorScores ?? null,
     topK: limit,
   });
@@ -575,6 +576,8 @@ export function registerSkillCommand(program, dependencies = {}) {
           {
             ...options,
             outcomeMetrics: outcomeAuthority.metrics,
+            revocationReader:
+              dependencies.skillRetrievalRevocationReader ?? null,
           },
           skillVectorAuthority,
         );

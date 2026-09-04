@@ -5,6 +5,11 @@ import {
   SKILL_RETRIEVAL_RESULT_SCHEMA,
   routeSkillDescriptors,
 } from "../../src/lib/skill-retrieval-router.js";
+import { openSkillRetrievalRevocationAuthority } from "../../src/lib/evolution/skill-retrieval-revocation-authority.js";
+import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+  digestSkillRevocationDependencyRequest,
+} from "../../src/lib/evolution/skill-revocation-propagation.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -27,6 +32,80 @@ function skill(id, description, overrides = {}) {
 }
 
 describe("Skill retrieval router", () => {
+  it("excludes durably revoked content before lexical, vector, and outcome scoring", async () => {
+    let stored = null;
+    const authority = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant-a",
+      ports: {
+        async load() {
+          return {
+            authenticated: true,
+            durable: true,
+            found: stored !== null,
+            state: stored,
+            receiptDigest: D(stored?.stateDigest ?? "empty"),
+          };
+        },
+        async commit({ state }) {
+          stored = structuredClone(state);
+          return {
+            authenticated: true,
+            durable: true,
+            committed: true,
+            stateDigest: state.stateDigest,
+            receiptDigest: D("commit"),
+          };
+        },
+      },
+    });
+    const revoked = skill("repair-tests", "repair vitest failures");
+    const requestCore = {
+      schema: SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+      tenantId: "tenant-a",
+      streamId: "pilot-stream",
+      operationId: "skill-revocation:repair-tests",
+      transitionDigest: D("transition"),
+      candidateId: D("candidate"),
+      skillName: revoked.id,
+      occurredAt: "2026-09-05T08:00:00.000Z",
+      sourceReceiptDigest: D("source"),
+      resolutionDigest: D("resolution"),
+      dependency: {
+        kind: "retrieval-index",
+        ref: `skill-content:tenant-a:${revoked.id}`,
+        digest: revoked.executionIdentity.contentDigest,
+        disposition: "invalidate",
+      },
+    };
+    await authority.invalidateRetrieval({
+      ...requestCore,
+      requestDigest: digestSkillRevocationDependencyRequest(requestCore),
+    });
+
+    const result = routeSkillDescriptors({
+      skills: [revoked, skill("docs", "repair documentation")],
+      query: "repair vitest failures",
+      vectorScores: { [revoked.executionIdentity.contentDigest]: 1 },
+      outcomeMetrics: {
+        [revoked.executionIdentity.contentDigest]: {
+          samples: 100,
+          successRate: 1,
+          correctionRate: 0,
+        },
+      },
+      revocationReader: authority,
+    });
+
+    expect(result.candidates.map(({ id }) => id)).not.toContain(revoked.id);
+    expect(result.rejected).toContainEqual(
+      expect.objectContaining({
+        id: revoked.id,
+        reasons: expect.arrayContaining(["revoked-by-evolution"]),
+        revocationReceiptDigest: expect.stringMatching(/^sha256:/u),
+      }),
+    );
+  });
+
   it("ranks BM25, vector and verified outcome signals with explanations", () => {
     const repair = skill(
       "repair-tests",

@@ -87,6 +87,7 @@ describe("Desktop canonical Skill retrieval adapter", () => {
   });
 
   it("uses a host-owned target and the shared canonical router", async () => {
+    const skillRetrievalRevocationReader = { inspect: vi.fn() };
     const routeSkillDescriptors = vi.fn((request) => ({
       schema: "chainlesschain.skill-retrieval-result/v1",
       selected: request.skills[0],
@@ -114,6 +115,7 @@ describe("Desktop canonical Skill retrieval adapter", () => {
           correctionRate: 0,
         },
       },
+      skillRetrievalRevocationReader,
       loadRouter: async () => ({ routeSkillDescriptors }),
     });
     expect(result.selected.id).toBe("repair-tests");
@@ -130,6 +132,7 @@ describe("Desktop canonical Skill retrieval adapter", () => {
             correctionRate: 0,
           },
         },
+        revocationReader: skillRetrievalRevocationReader,
       }),
     );
   });

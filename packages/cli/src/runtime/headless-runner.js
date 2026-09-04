@@ -123,6 +123,7 @@ import { withQuietStdout } from "./quiet-stdout.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
 import {
@@ -669,6 +670,12 @@ async function runAgentHeadlessInWorkspace(
     options.skillVectorAuthority == null
       ? null
       : captureSkillVectorAuthority(options.skillVectorAuthority);
+  const skillRetrievalRevocationReader =
+    options.skillRetrievalRevocationReader == null
+      ? null
+      : captureSkillRetrievalRevocationReader(
+          options.skillRetrievalRevocationReader,
+        );
   if (
     evolutionIngress !== null &&
     skillOutcomeIndex !== null &&
@@ -684,6 +691,20 @@ async function runAgentHeadlessInWorkspace(
     retrievalTenant !== null &&
     skillVectorAuthority !== null &&
     retrievalTenant !== skillVectorAuthority.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
+  }
+  if (
+    skillVectorAuthority !== null &&
+    skillRetrievalRevocationReader !== null &&
+    skillVectorAuthority.tenantId !== skillRetrievalRevocationReader.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
+  }
+  if (
+    retrievalTenant !== null &&
+    skillRetrievalRevocationReader !== null &&
+    retrievalTenant !== skillRetrievalRevocationReader.tenantId
   ) {
     throw new TypeError("Agent retrieval authorities must share one tenant");
   }
@@ -2479,6 +2500,9 @@ async function runAgentHeadlessInWorkspace(
     skillLoader: _runtimeSkillLoader,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
+    ...(skillRetrievalRevocationReader === null
+      ? {}
+      : { skillRetrievalRevocationReader }),
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,

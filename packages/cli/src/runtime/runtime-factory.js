@@ -5,6 +5,7 @@ import {
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import {
   resolveAgentPolicy,
   resolveServerPolicy,
@@ -17,6 +18,7 @@ export function createAgentRuntimeFactory({
   evolutionComposition = null,
   skillOutcomeIndex = null,
   skillVectorAuthority = null,
+  skillRetrievalRevocationReader = null,
 } = {}) {
   const composition =
     evolutionComposition === null
@@ -35,6 +37,10 @@ export function createAgentRuntimeFactory({
     skillVectorAuthority === null
       ? null
       : captureSkillVectorAuthority(skillVectorAuthority);
+  const revocationReader =
+    skillRetrievalRevocationReader === null
+      ? null
+      : captureSkillRetrievalRevocationReader(skillRetrievalRevocationReader);
   if (
     composition !== null &&
     outcomeIndex !== null &&
@@ -58,13 +64,38 @@ export function createAgentRuntimeFactory({
   ) {
     throw new TypeError("Agent retrieval authorities must share one tenant");
   }
+  if (
+    vectorAuthority !== null &&
+    revocationReader !== null &&
+    vectorAuthority.tenantId !== revocationReader.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
+  }
   if (vectorAuthority !== null && Object.hasOwn(deps, "skillVectorAuthority")) {
     throw new TypeError(
       "Skill vector authority must come from the production root only",
     );
   }
+  if (
+    retrievalTenant !== null &&
+    revocationReader !== null &&
+    retrievalTenant !== revocationReader.tenantId
+  ) {
+    throw new TypeError("Agent retrieval authorities must share one tenant");
+  }
+  if (
+    revocationReader !== null &&
+    Object.hasOwn(deps, "skillRetrievalRevocationReader")
+  ) {
+    throw new TypeError(
+      "Skill retrieval revocation reader must come from the production root only",
+    );
+  }
   const runtimeDeps =
-    composition === null && outcomeIndex === null && vectorAuthority === null
+    composition === null &&
+    outcomeIndex === null &&
+    vectorAuthority === null &&
+    revocationReader === null
       ? deps
       : Object.freeze({
           ...deps,
@@ -75,9 +106,14 @@ export function createAgentRuntimeFactory({
           ...(vectorAuthority === null
             ? {}
             : { skillVectorAuthority: vectorAuthority }),
+          ...(revocationReader === null
+            ? {}
+            : { skillRetrievalRevocationReader: revocationReader }),
         });
   const serverDeps =
-    outcomeIndex === null && vectorAuthority === null
+    outcomeIndex === null &&
+    vectorAuthority === null &&
+    revocationReader === null
       ? deps
       : Object.freeze({
           ...deps,
@@ -85,6 +121,9 @@ export function createAgentRuntimeFactory({
           ...(vectorAuthority === null
             ? {}
             : { skillVectorAuthority: vectorAuthority }),
+          ...(revocationReader === null
+            ? {}
+            : { skillRetrievalRevocationReader: revocationReader }),
         });
   return {
     createAgentRuntime(overrides = {}) {

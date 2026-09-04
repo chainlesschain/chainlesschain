@@ -115,6 +115,7 @@ async function routeDesktopSkills({
   hostTarget = {},
   outcomeMetrics = null,
   skillVectorAuthority = null,
+  skillRetrievalRevocationReader = null,
   loadRouter = defaultLoadRouter,
   loadVectorAuthority = defaultLoadVectorAuthority,
 } = {}) {
@@ -165,6 +166,7 @@ async function routeDesktopSkills({
     target,
     outcomeMetrics,
     vectorScores: vector?.scores ?? null,
+    revocationReader: skillRetrievalRevocationReader,
   });
   return Object.freeze({
     ...routed,
