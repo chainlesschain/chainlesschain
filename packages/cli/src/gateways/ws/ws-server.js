@@ -392,6 +392,8 @@ export class ChainlessChainWSServer extends EventEmitter {
           options.remoteMembershipCoordinator === null
             ? null
             : () => this._requireRemoteMembershipCoordinator(),
+        refreshCoordinatorOnEnumeration:
+          options.remoteMembershipCoordinator != null,
         membershipAuthority:
           options.remoteMembershipAuthority === null
             ? null

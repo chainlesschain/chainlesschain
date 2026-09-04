@@ -40,6 +40,25 @@ function fakeCoordinator({ listSessionSnapshots, getSessionSnapshot }) {
 }
 
 describe("RemoteSessionRegistry", () => {
+  it("keeps a lazy durable coordinator unopened for in-memory enumeration", () => {
+    const coordinatorFactory = vi.fn(() =>
+      fakeCoordinator({
+        listSessionSnapshots: vi.fn(() => []),
+        getSessionSnapshot: vi.fn(() => null),
+      }),
+    );
+    const registry = new RemoteSessionRegistry({
+      membershipCoordinator: coordinatorFactory,
+    });
+    registry.create({
+      hostClientId: "desktop",
+      agentSessionId: "agent-1",
+    });
+
+    expect(registry.findHosted("agent-1", "desktop")).toHaveLength(1);
+    expect(coordinatorFactory).not.toHaveBeenCalled();
+  });
+
   it("discovers a durable session created after this server completed its initial hydration", () => {
     let current = null;
     const coordinator = fakeCoordinator({

@@ -268,6 +268,8 @@ export class RemoteSessionRegistry {
     // explicitly require this authority and trigger its lazy construction.
     this._membershipAuthority = options.membershipAuthority ?? null;
     this._membershipCoordinator = options.membershipCoordinator ?? null;
+    this._refreshCoordinatorOnEnumeration =
+      options.refreshCoordinatorOnEnumeration === true;
     this.sessions = new Map();
     this.tokens = new Map();
     this._transportBindings = new Map();
@@ -1175,11 +1177,21 @@ export class RemoteSessionRegistry {
   }
 
   findHosted(agentSessionId, hostClientId) {
-    if (this._membershipCoordinator) {
+    const hasDurableSession = [...this.sessions.values()].some((session) =>
+      Boolean(session.hostPrincipalId),
+    );
+    if (
+      this._membershipCoordinator &&
+      (this._refreshCoordinatorOnEnumeration ||
+        this._coordinatorHydrated ||
+        hasDurableSession)
+    ) {
       // Enumeration cannot rely on the one-time startup hydration: another
       // server may have created, closed, or re-enabled a durable session since
-      // this process started. Refresh the coordinator index before matching
-      // local transport attachments.
+      // this process started. Explicit coordinator deployments and processes
+      // already serving durable sessions refresh before matching local
+      // transport attachments. A lazy default coordinator must stay unopened
+      // for purely in-memory sessions.
       this._hydrateCoordinatorSessions(this._resolveMembershipCoordinator());
     }
     const matches = [];
