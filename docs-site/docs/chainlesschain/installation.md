@@ -855,25 +855,7 @@ chainlesschain import --source markdown --path ~/ObsidianVault/
 
 ### 备份和恢复
 
-#### 备份数据
-
-```bash
-# 完整备份
-chainlesschain backup --output ~/Backups/chainless_backup_$(date +%Y%m%d).tar.gz
-
-# 只备份笔记
-chainlesschain backup --notes-only --output ~/Backups/notes.zip
-```
-
-#### 恢复数据
-
-```bash
-# 从备份恢复
-chainlesschain restore --input ~/Backups/chainless_backup_20241202.tar.gz
-
-# 恢复到新设备
-chainlesschain restore --input ~/Backups/backup.tar.gz --new-device
-```
+当前公开 CLI `0.166.21` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
 
 ---
 
@@ -1003,8 +985,8 @@ sqlite3 ~/.chainlesschain/data.db
 > PRAGMA integrity_check;
 > .quit
 
-# 如果无法修复，从备份恢复
-chainlesschain restore --input ~/Backups/latest.tar.gz
+# 如果无法修复，请保持原文件不变，并使用创建该备份的产品入口恢复；
+# 当前 CLI 没有通用的 chainlesschain restore 命令。
 ```
 
 ---

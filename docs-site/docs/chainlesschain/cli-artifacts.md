@@ -1,6 +1,6 @@
 # Artifacts 交付物（cc artifacts / publish_artifact）
 
-> **当前稳定版：CLI `0.166.2`（2026-08-25）| Artifacts v1 + access/deletion/cleanup settlement + orphan recovery workbench | 状态：✅ 生产可用**
+> **当前生产推荐与 npm `latest`：CLI `0.166.21`；Artifacts v1、access/deletion/cleanup settlement 与 orphan recovery workbench 自 `0.166.2` 起公开并由当前版本承接。**
 >
 > agent 干完活产出的**交付物**（报告 / 补丁 / 截图 / 日志 / 数据文件）不再散落在工作目录里靠翻聊天记录找——`publish_artifact` 工具把成品拷进持久化的个人交付物库，**只有元数据进会话转录**（文件本体绝不膨胀上下文），随后用 `cc artifacts` 命令或 web-panel「交付物」视图浏览、预览、下载、清理。
 

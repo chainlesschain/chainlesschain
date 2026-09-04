@@ -57,7 +57,7 @@ Graph Kernel 用同一套耐久语义描述多 Agent 任务依赖、执行分派
 ### 1. 安装生产推荐版
 
 ```bash
-npm install --global "chainlesschain@0.166.15"
+npm install --global "chainlesschain@0.166.21"
 cc team --help
 ```
 

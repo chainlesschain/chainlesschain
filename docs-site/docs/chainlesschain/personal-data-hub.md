@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **状态（2026-09-01）：92 个采集契约 / 18 类已注册；PDH `0.4.59` 与 CLI `0.166.15` 分别为当前 npm `latest`。PDH 0.4.59 将 `better-sqlite3-multiple-ciphers` 改为 optional dependency；无 native prebuild、Python 或编译器时首次安装可跳过 native addon 并使用 CLI 内置 `sql.js` WASM fallback。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
+> **状态（2026-09-04）：92 个采集契约 / 18 类已注册；PDH `0.4.59` 与 CLI `0.166.21` 分别为当前 npm `latest`。PDH 0.4.59 将 `better-sqlite3-multiple-ciphers` 改为 optional dependency；无 native prebuild、Python 或编译器时首次安装可跳过 native addon 并使用 CLI 内置 `sql.js` WASM fallback。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 

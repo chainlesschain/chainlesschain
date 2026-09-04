@@ -1,8 +1,8 @@
 # Agent Protocol：单一 Schema 与多语言生成绑定
 
-> **更新：2026-08-31｜公开基线：`@chainlesschain/agent-protocol@0.1.7`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
+> **更新：2026-09-04｜公开基线：`@chainlesschain/agent-protocol@0.1.8`｜Wire Protocol：v1｜Node.js：≥ 22.12.0**
 >
-> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.7` 已公开 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator，以及 Context/Memory、App Server pilot、Graph history/retirement、可恢复 HumanTask 与 single-winner approval 所需的有界跨端契约；公开状态以 npm、不可变标签、CI 和安装回读为准。
+> Agent Protocol 是 CLI、SDK、IDE、桌面端和移动端之间的语言中立契约。`0.1.8` 已公开 canonical Agent stream event 的 payload-level discriminated union、typed envelope、严格 validator，以及 Context/Memory、App Server pilot、Graph history/retirement、可恢复 HumanTask、single-winner approval、Evolution Workbench 与 knowledge review 所需的有界跨端契约；公开状态以 npm、CI 和安装回读为准。
 
 ## 概述
 
@@ -29,6 +29,7 @@
 - **协议身份**：同时暴露 wire version、minimum compatible version 和 SHA-256 Schema digest。
 - **安全审批**：`ApprovalDecision` 使用严格判别联合；非法值、未知授权类型或 binding 不匹配必须失败闭合。
 - **多平台消费**：TypeScript/Python 使用 SDK 生成绑定，Kotlin/Swift 可消费协议包导出的生成源码。
+- **受治理演化方法**：App Server method 枚举包含 Workbench list/compare/review/rollback 与 knowledge conflicts/merge；Schema 只定义有界 wire contract，不赋予客户端 mutation 或 merge authority。
 - **独立发布**：CLI、Agent SDK、Agent Protocol 的包版本彼此独立，不能只凭其中一个版本推断另外两个。
 
 ## 系统架构
@@ -62,14 +63,14 @@ packages/agent-protocol/schema/cc-agent-protocol.schema.json
 ### 安装公开稳定版
 
 ```bash
-npm install @chainlesschain/agent-protocol@0.1.6
+npm install @chainlesschain/agent-protocol@0.1.8
 ```
 
 需要传输客户端时，安装对应 SDK：
 
 ```bash
-npm install @chainlesschain/agent-sdk@0.2.5
-pip install chainlesschain-agent-sdk==0.2.6
+npm install @chainlesschain/agent-sdk@0.2.8
+pip install chainlesschain-agent-sdk==0.2.8
 ```
 
 ### 版本与身份字段

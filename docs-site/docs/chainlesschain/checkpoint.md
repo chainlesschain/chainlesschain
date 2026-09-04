@@ -1,6 +1,6 @@
 # 检查点 / 回滚（cc checkpoint）
 
-> **当前稳定版: 0.166.2 | npm latest 与生产推荐一致 | 双引擎 (git-plumbing + copy fallback) | 持久 Restore Saga + durable workflow checkpoint/receipt + 保守 Recovery CLI**
+> **当前生产推荐与 npm `latest`：CLI `0.166.21`；Checkpoint 双引擎、持久 Restore Saga 与保守 Recovery CLI 自 `0.166.2` 起公开并由当前版本承接。**
 >
 > `cc checkpoint` 提供**文件状态快照与回滚**能力，对标 Claude Code 的 rewind。它采用**双引擎**设计：在 git 工作树中默认走 git-plumbing 影子提交（零触真实索引/工作区），非 git 目录则退回基于复制的快照。配合 `cc agent --checkpoint`，可在 agent 每次改文件前自动快照，随时回滚。
 
