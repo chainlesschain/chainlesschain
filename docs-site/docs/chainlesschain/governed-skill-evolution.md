@@ -217,6 +217,17 @@ if ($LASTEXITCODE -ne 0) {
 - Ledger 缺失、断链、witness 不一致或 transition subject 不匹配时必须拒绝发布。
 - 同步导入内容默认是不受信 candidate；peer 身份不能变成 active-layer authority。
 
+### 已安装 CLI 的部署宿主装载
+
+公开 npm CLI 的 lazy/eager 入口支持由管理员装载目标部署宿主。部署必须同时设置绝对路径
+`CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 与
+`CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`。描述符使用
+`chainlesschain.evolution-deployment-descriptor/v1`，以 Ed25519 签名固定 revision、单文件 ESM
+宿主路径及 SHA-256、trust-root SHA-256 和 `agent/evolution/serve` 命令白名单。宿主必须导出
+`createChainlessChainCommandDependencies()` 并返回各命令需要的 branded authority；CLI 直接执行已验签的模块字节，避免摘要校验后的路径替换窗口。
+
+这只是安全装载入口，不会生成生产身份或密钥。描述符/信任根只配置一项、签名或摘要漂移、导出缺失，或目标 KMS/PKI/Ledger/witness/identity authority 不完整时，Workbench 继续显示 unavailable，且不会回退测试密钥、内存 store 或客户端自报权限。
+
 ## 故障排查
 
 | 现象/错误                                     | 原因                                                  | 处理                                                            |

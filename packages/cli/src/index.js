@@ -13,6 +13,7 @@ import {
   startDefaultEventRuntimeHost,
   stopDefaultEventRuntimeHost,
 } from "./lib/event-runtime-host.js";
+import { loadEvolutionDeploymentCommandDependencies } from "./lib/evolution/evolution-deployment-loader.js";
 
 // The manifest entry is the canonical registration point for learning.  Keep
 // these names visible here for tooling that audits the CLI's command surface:
@@ -29,7 +30,9 @@ for (const entry of manifest.commands) {
     const modulePath = join(__dirname, entry.module.replace("./", ""));
     const moduleUrl = pathToFileURL(modulePath).href;
     const mod = await import(moduleUrl);
-    commandModules.push({ entry, mod });
+    const deploymentDependencies =
+      await loadEvolutionDeploymentCommandDependencies(entry.name);
+    commandModules.push({ entry, mod, deploymentDependencies });
   } catch (err) {
     // Store error for later reporting
     commandModules.push({ entry, error: err });
@@ -79,7 +82,7 @@ export function createProgram(options = {}) {
   });
 
   // Register all preloaded commands
-  for (const { entry, mod, error } of commandModules) {
+  for (const { entry, mod, error, deploymentDependencies } of commandModules) {
     if (shouldFilter && !allowedCommands.has(entry.name)) continue;
     if (error) {
       if (process.env.DEBUG) {
@@ -99,7 +102,12 @@ export function createProgram(options = {}) {
           `Register function '${entry.register}' not found in ${entry.module}`,
         );
       }
-      registerFn(program, options.commandDependencies?.[entry.name]);
+      registerFn(
+        program,
+        options.commandDependencies?.[entry.name] ??
+          deploymentDependencies ??
+          undefined,
+      );
     } catch (err) {
       if (process.env.DEBUG) {
         console.warn(

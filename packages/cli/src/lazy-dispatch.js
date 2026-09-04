@@ -682,6 +682,12 @@ async function defaultLoadFullProgram() {
   return createProgramAsync();
 }
 
+async function defaultLoadCommandDependencies(commandName) {
+  const { loadEvolutionDeploymentCommandDependencies } =
+    await import("./lib/evolution/evolution-deployment-loader.js");
+  return loadEvolutionDeploymentCommandDependencies(commandName);
+}
+
 /**
  * Load/register may fall back to the compatibility program. parseAsync is
  * intentionally outside that catch: once an action begins, any failure must
@@ -692,6 +698,7 @@ export async function dispatchManifestEntry(
   entry,
   {
     loadCommandModule = defaultLoadCommandModule,
+    loadCommandDependencies = defaultLoadCommandDependencies,
     createBaseProgram = defaultCreateBaseProgram,
     loadFullProgram = defaultLoadFullProgram,
     stderr = process.stderr,
@@ -708,7 +715,8 @@ export async function dispatchManifestEntry(
         `Register function '${entry.register}' not found in ${entry.module}`,
       );
     }
-    registerFn(program);
+    const dependencies = await loadCommandDependencies(entry.name);
+    registerFn(program, dependencies ?? undefined);
   } catch (error) {
     if (env.DEBUG || env.CC_DEBUG) {
       stderr.write(
