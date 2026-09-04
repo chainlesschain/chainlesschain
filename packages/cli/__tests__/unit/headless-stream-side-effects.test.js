@@ -110,6 +110,14 @@ function toolLoop(
 }
 
 describe("stream side-effect ledger — resume reconcile + recovery notice", () => {
+  it("keeps foreground shell execution non-blocking for the host lease", async () => {
+    const h = harness();
+    await h.run();
+
+    expect(h.seenLoopOptions).toHaveLength(1);
+    expect(h.seenLoopOptions[0].nonBlockingShell).toBe(true);
+  }, 30_000);
+
   it("keeps ephemeral streams on the guarded ledger after outcome unknown", async () => {
     const callTool = vi
       .fn()

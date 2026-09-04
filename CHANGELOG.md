@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.22: keep IDE Agent streams alive during slow commands
+
+> `chainlesschain` **0.166.21 -> 0.166.22** (release candidate,
+> 2026-09-05).
+
+- **Responsive persistent IDE streams**: execute foreground shell commands
+  asynchronously for `stream-json` hosts, so a slow networked command such as
+  `git push` no longer blocks the Agent protocol pump or session-lease
+  heartbeat.
+- **Safe late heartbeat recovery**: let the exact live local lease owner renew
+  after an event-loop stall. A revocation or successor still changes the
+  durable authority tuple and fences the old host before any guarded write.
+- **Regression coverage**: verify event-loop responsiveness, late renewal, and
+  the IDE stream's non-blocking shell option while retaining the existing
+  takeover, revocation, and delegated-writer fences.
+- **Release inventory coherence**: align the Skill-writer inventory with the
+  current candidate-only sync and inactive marketplace-plugin staging paths,
+  removing stale evidence for legacy active hot-loading.
+- **Release boundary**: publication requires this exact release commit to pass
+  every configured Linux, Windows, and macOS job in `CLI CI` and
+  `CLI Strict Sandbox`; no Session Core, Agent SDK/Protocol, Personal Data Hub,
+  or other npm workspace version changes are required for this CLI-only fix.
+
 ### Added - cc CLI 0.166.21: governed evolution knowledge and IDE review
 
 > `chainlesschain` **0.166.20 -> 0.166.21**,

@@ -505,6 +505,37 @@ describe("SessionHostLeaseAuthority", () => {
     lease.release();
   });
 
+  it("renews an exact local lease after an event-loop stall", () => {
+    const stateRoot = testRoot();
+    let now = 20_000;
+    const authority = new SessionHostLeaseAuthority({
+      stateRoot,
+      now: () => now,
+      ...timers(),
+    });
+    const lease = authority.acquire("session-stalled-local", {
+      hostKind: "headless-stream",
+      ttlMs: 1_000,
+      heartbeatMs: 500,
+    });
+
+    // A synchronous external command can delay the JS timer beyond the TTL.
+    // The durable tuple is still ours: no revocation or successor was written.
+    now = 25_000;
+    expect(lease.assert()).toMatchObject({
+      leaseId: lease.leaseId,
+      fencingToken: lease.fencingToken,
+    });
+    expect(lease.renew()).toMatchObject({
+      leaseId: lease.leaseId,
+      fencingToken: lease.fencingToken,
+      renewedAtMs: 25_000,
+      expiresAtMs: 26_000,
+    });
+    expect(lease.signal.aborted).toBe(false);
+    lease.release();
+  });
+
   it("migrates an inactive v1 lease store without resetting fencing authority", () => {
     const stateRoot = testRoot();
     const authority = new SessionHostLeaseAuthority({

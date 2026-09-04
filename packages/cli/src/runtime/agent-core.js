@@ -368,12 +368,12 @@ function resolveBackgroundShellWorkspacePaths(
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
-// run_shell is synchronous (execSync) and capped at a foreground timeout, which
-// is the right default for quick commands but blocks the whole agent loop on
-// long-running ones (builds, full test suites, `npm run dev`). When the model
-// passes run_in_background:true the command is spawned instead, returns a
-// task_id immediately, and streams its output into this registry. The agent
-// then polls completion + incremental output via the check_shell tool — the
+// run_shell remains synchronous by default for compatibility. Persistent
+// stream hosts opt into an async foreground path so commands cannot block the
+// session heartbeat or protocol pump. When the model passes
+// run_in_background:true the command is spawned instead, returns a task_id
+// immediately, and streams its output into this registry. The agent then polls
+// completion + incremental output via the check_shell tool — the
 // run_in_background + BashOutput pattern from Claude Code.
 //
 // In-memory, process-lifetime: a task_id is only valid within the agent process
@@ -383,6 +383,22 @@ function resolveBackgroundShellWorkspacePaths(
 const MAX_BG_BUFFER = 1024 * 1024; // 1 MB retained tail per stream
 const _backgroundShellTasks = new Map();
 let _backgroundTaskSeq = 0;
+
+function _runForegroundProcessAsync(file, args, options) {
+  return new Promise((resolve, reject) => {
+    try {
+      broker.execFile(file, args, options, (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve({ stdout: stdout ?? "", stderr: stderr ?? "" });
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 function _newBgStream() {
   return { buf: "", total: 0, dropped: 0, cursor: 0 };
@@ -3601,6 +3617,7 @@ export async function executeTool(name, args, context = {}) {
         context.subtreeInstructionScope || context.sessionId || "__legacy__",
       shellPolicyOverrides: context.shellPolicyOverrides || null,
       classifyAllShell: context.classifyAllShell === true,
+      nonBlockingShell: context.nonBlockingShell === true,
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
       additionalDirectories: context.additionalDirectories || null,
@@ -5170,6 +5187,7 @@ async function executeToolInner(
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
     skillLifecycleMode = "active",
+    nonBlockingShell = false,
   },
 ) {
   const localToolDescriptor =
@@ -6639,7 +6657,23 @@ async function executeToolInner(
           auditContext: createShellProcessAuditContext(),
           ...processProvenance,
         };
-        if (pluginBinInvocation) {
+        if (pluginBinInvocation && nonBlockingShell) {
+          const res = await _runForegroundProcessAsync(
+            executionPlugin.sandboxExecution?.kind === "strict-plugin-node-bin"
+              ? executionPlugin.sandboxExecution.runtimePath
+              : executionPlugin.command,
+            executionPlugin.argv,
+            {
+              ...brokerExecOpts,
+              cwd:
+                executionPlugin.sandboxExecution?.workingDirectory ||
+                brokerExecOpts.cwd,
+              shell: false,
+              windowsHide: true,
+            },
+          );
+          output = res.stdout;
+        } else if (pluginBinInvocation) {
           const res = broker.spawnSync(
             executionPlugin.sandboxExecution?.kind === "strict-plugin-node-bin"
               ? executionPlugin.sandboxExecution.runtimePath
@@ -6665,8 +6699,25 @@ async function executeToolInner(
             throw e;
           }
           output = res.stdout ?? "";
+        } else if (shellInv.useDefaultShell && nonBlockingShell) {
+          const res = await _runForegroundProcessAsync(args.command, [], {
+            ...brokerExecOpts,
+            shell: true,
+            windowsHide: true,
+          });
+          output = res.stdout;
         } else if (shellInv.useDefaultShell) {
           output = broker.execSync(args.command, brokerExecOpts);
+        } else if (nonBlockingShell) {
+          const res = await _runForegroundProcessAsync(
+            shellInv.file,
+            shellInv.argv,
+            {
+              ...brokerExecOpts,
+              windowsHide: true,
+            },
+          );
+          output = res.stdout;
         } else {
           // PowerShell route: explicit argv, no intermediate default shell.
           // Reproduce execSync's contract so the shared catch shapes errors
@@ -13338,6 +13389,9 @@ export async function* agentLoop(messages, options) {
     // verification allowlist (npm test / rg / …) is classified through the
     // ApprovalGate instead of fast-pathed, so no shell command auto-runs.
     classifyAllShell: options.classifyAllShell || false,
+    // Persistent stream hosts must not block their own session-lease heartbeat
+    // while a foreground shell command (notably a networked git push) runs.
+    nonBlockingShell: options.nonBlockingShell === true,
     approvalGate: hermeticExecution ? null : options.approvalGate || null,
     shellConfirm: hermeticExecution ? null : options.shellConfirm || null,
     // Interactive sessions (the REPL) set this so run_code is gated through the
