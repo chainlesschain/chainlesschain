@@ -82,6 +82,15 @@ describe("signed evolution deployment loader", () => {
         revision: descriptor.revision,
         factoryAvailable:
           typeof factories.createEvolutionWorkbenchCliHost === "function",
+        benchmarkFactoriesAvailable: [
+          "createWikiSkillBenchmarkCliHost",
+          "createWikiSkillBenchmarkDatasetProvider",
+          "createWikiSkillBenchmarkExecutionManifest",
+          "createWikiSkillBenchmarkGrader",
+          "createWikiSkillBenchmarkReportAttestor",
+          "createWikiSkillBenchmarkRunner",
+          "createWikiSkillBenchmarkLedgerAdapter",
+        ].every((name) => typeof factories[name] === "function"),
       },
     }));
     const importModule = vi.fn(async () => ({
@@ -98,6 +107,7 @@ describe("signed evolution deployment loader", () => {
         commandName: "evolution",
         revision: 7,
         factoryAvailable: true,
+        benchmarkFactoriesAvailable: true,
       },
     });
     expect(factory).toHaveBeenCalledOnce();

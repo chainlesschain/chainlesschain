@@ -310,6 +310,22 @@ export function createWikiSkillBenchmarkReportAttestor(options = {}) {
   });
 }
 
+export function isWikiSkillBenchmarkDatasetProvider(value) {
+  return Boolean(value && DATASET_PROVIDERS.has(value));
+}
+
+export function isWikiSkillBenchmarkRunner(value) {
+  return Boolean(value && RUNNER_PROVIDERS.has(value));
+}
+
+export function isWikiSkillBenchmarkGrader(value) {
+  return Boolean(value && GRADER_PROVIDERS.has(value));
+}
+
+export function isWikiSkillBenchmarkReportAttestor(value) {
+  return Boolean(value && REPORT_ATTESTORS.has(value));
+}
+
 function captureProvider(value, instances, method, label) {
   if (!value || !instances.has(value))
     throw new TypeError(`a branded ${label} is required`);

@@ -115,13 +115,36 @@ async function loadBuiltInFactories(commandName) {
     const [
       { createEvolutionWorkbenchCliHost },
       { createGovernedKnowledgeReviewHost },
+      { createWikiSkillBenchmarkCliHost },
+      {
+        createWikiSkillBenchmarkDatasetProvider,
+        createWikiSkillBenchmarkExecutionManifest,
+        createWikiSkillBenchmarkGrader,
+        createWikiSkillBenchmarkReportAttestor,
+        createWikiSkillBenchmarkRunner,
+      },
+      { createWikiSkillBenchmarkLedgerAdapter },
     ] = await Promise.all([
       import("./evolution-workbench-cli-host.js"),
       import("./governed-knowledge-review-host.js"),
+      import("./wikiskill-benchmark-cli-host.js"),
+      import("./wikiskill-benchmark-execution-host.js"),
+      import("./wikiskill-benchmark-ledger-adapter.js"),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createGovernedKnowledgeReviewHost =
       createGovernedKnowledgeReviewHost;
+    factories.createWikiSkillBenchmarkCliHost = createWikiSkillBenchmarkCliHost;
+    factories.createWikiSkillBenchmarkDatasetProvider =
+      createWikiSkillBenchmarkDatasetProvider;
+    factories.createWikiSkillBenchmarkExecutionManifest =
+      createWikiSkillBenchmarkExecutionManifest;
+    factories.createWikiSkillBenchmarkGrader = createWikiSkillBenchmarkGrader;
+    factories.createWikiSkillBenchmarkReportAttestor =
+      createWikiSkillBenchmarkReportAttestor;
+    factories.createWikiSkillBenchmarkRunner = createWikiSkillBenchmarkRunner;
+    factories.createWikiSkillBenchmarkLedgerAdapter =
+      createWikiSkillBenchmarkLedgerAdapter;
   }
   if (commandName === "agent" || commandName === "serve") {
     const { createAgentEvolutionRuntimeComposition } =

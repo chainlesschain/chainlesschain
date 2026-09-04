@@ -18,9 +18,18 @@ import {
   signWikiSkillBenchmarkReport,
 } from "../../src/lib/evolution/wikiskill-benchmark.js";
 import {
+  WIKISKILL_BENCHMARK_DATASET_RESOLUTION_SCHEMA,
+  WIKISKILL_BENCHMARK_GRADER_RECEIPT_SCHEMA,
+  WIKISKILL_BENCHMARK_REPORT_ATTESTATION_SCHEMA,
+  WIKISKILL_BENCHMARK_RUNNER_RECEIPT_SCHEMA,
   computeWikiSkillBenchmarkExecutionDigest,
+  createWikiSkillBenchmarkDatasetProvider,
   createWikiSkillBenchmarkExecutionManifest,
+  createWikiSkillBenchmarkGrader,
+  createWikiSkillBenchmarkReportAttestor,
+  createWikiSkillBenchmarkRunner,
 } from "../../src/lib/evolution/wikiskill-benchmark-execution-host.js";
+import { createWikiSkillBenchmarkCliHost } from "../../src/lib/evolution/wikiskill-benchmark-cli-host.js";
 import {
   WIKISKILL_BENCHMARK_LEDGER_EVENT,
   WikiSkillBenchmarkLedgerAdapter,
@@ -146,10 +155,120 @@ async function envelope(value) {
 
 function verifyAttestation({ digest, attestation }) {
   return (
-    attestation.authority === "benchmark-ci" &&
+    ["benchmark-ci", "authority:benchmark-report"].includes(
+      attestation.authority ?? attestation.authorityId,
+    ) &&
     attestation.signature ===
       createHmac("sha256", SECRET).update(digest).digest("hex")
   );
+}
+
+function executionReceipt(schema, authority, fields) {
+  const core = {
+    schema,
+    authenticated: true,
+    durable: true,
+    ...authority,
+    ...fields,
+  };
+  const receiptDigest = computeWikiSkillBenchmarkExecutionDigest(schema, core);
+  return {
+    ...core,
+    receiptDigest,
+    attestation: {
+      signature: createHmac("sha256", SECRET)
+        .update(receiptDigest)
+        .digest("hex"),
+    },
+  };
+}
+
+function executionProviders(benchmarkPlan, manifest) {
+  const receiptVerifier = ({ digest, attestation }) =>
+    attestation.signature ===
+    createHmac("sha256", SECRET).update(digest).digest("hex");
+  return {
+    datasetProvider: createWikiSkillBenchmarkDatasetProvider({
+      descriptor: manifest.datasetProvider,
+      verifyAttestation: receiptVerifier,
+      load: async (request) => {
+        const dataset = benchmarkPlan.datasets.find(
+          (item) => item.id === request.datasetId,
+        );
+        return executionReceipt(
+          WIKISKILL_BENCHMARK_DATASET_RESOLUTION_SCHEMA,
+          manifest.datasetProvider,
+          {
+            requestDigest: request.requestDigest,
+            datasetId: request.datasetId,
+            version: request.version,
+            datasetDigest: request.datasetDigest,
+            splitDigest: request.splitDigest,
+            cases: dataset.splitIds.map((splitId) => {
+              const input = { datasetId: dataset.id, splitId };
+              return {
+                splitId,
+                input,
+                inputDigest: computeWikiSkillBenchmarkExecutionDigest(
+                  "chainlesschain.wikiskill-benchmark-input/v1",
+                  input,
+                ),
+              };
+            }),
+          },
+        );
+      },
+    }),
+    runner: createWikiSkillBenchmarkRunner({
+      descriptor: manifest.runner,
+      verifyAttestation: receiptVerifier,
+      run: async (request) =>
+        executionReceipt(
+          WIKISKILL_BENCHMARK_RUNNER_RECEIPT_SCHEMA,
+          manifest.runner,
+          {
+            requestDigest: request.requestDigest,
+            outputRef: `artifact://benchmark/${request.seed}/${request.datasetId}/${request.arm}`,
+            outputDigest: hash(
+              `${request.seed}:${request.datasetId}:${request.arm}:output`,
+            ),
+            traceDigest: hash(
+              `${request.seed}:${request.datasetId}:${request.arm}:trace`,
+            ),
+            failureClass: "none",
+            tokens: 10,
+            cost: 0.01,
+            latencyMs: 100,
+          },
+        ),
+    }),
+    grader: createWikiSkillBenchmarkGrader({
+      descriptor: manifest.grader,
+      verifyAttestation: receiptVerifier,
+      grade: async (request) =>
+        executionReceipt(
+          WIKISKILL_BENCHMARK_GRADER_RECEIPT_SCHEMA,
+          manifest.grader,
+          {
+            requestDigest: request.requestDigest,
+            score: request.arm === "skill" ? 0.75 : 0.5,
+          },
+        ),
+    }),
+    reportAttestor: createWikiSkillBenchmarkReportAttestor({
+      descriptor: manifest.reportAttestor,
+      verifyAttestation,
+      attest: async (request) => ({
+        schema: WIKISKILL_BENCHMARK_REPORT_ATTESTATION_SCHEMA,
+        ...manifest.reportAttestor,
+        ...request,
+        issuedAt: "2026-09-05T00:00:00.000Z",
+        signature: createHmac("sha256", SECRET)
+          .update(request.reportDigest)
+          .digest("hex"),
+      }),
+    }),
+  };
 }
 
 function durableFilesystem() {
@@ -356,6 +475,46 @@ afterEach(() => {
 });
 
 describe("WikiSkillBenchmarkLedgerAdapter", () => {
+  it("runs the branded CLI host through execution, attestation, retention, and show", async () => {
+    const value = storage();
+    const benchmarkPlan = plan();
+    const manifest = executionManifest();
+    const providers = executionProviders(benchmarkPlan, manifest);
+    const host = createWikiSkillBenchmarkCliHost({
+      ...providers,
+      ledgerAdapter: adapter(value),
+      now: () => NOW,
+    });
+
+    const executed = await host.run({
+      plan: benchmarkPlan,
+      executionManifest: manifest,
+      effectiveAt: null,
+    });
+    expect(executed).toMatchObject({
+      status: "VERIFIED",
+      provenance: "chainlesschain-measured",
+      committed: true,
+      recovered: false,
+      metrics: { delta: 0.25 },
+    });
+    expect(value.state.events).toHaveLength(1);
+
+    const reopened = storage(value);
+    const reopenedHost = createWikiSkillBenchmarkCliHost({
+      ...providers,
+      ledgerAdapter: adapter(reopened),
+      now: () => NOW,
+    });
+    await expect(
+      reopenedHost.show(executed.reportDigest),
+    ).resolves.toMatchObject({
+      status: "VERIFIED",
+      reportDigest: executed.reportDigest,
+      effectiveAt: "2026-09-05T00:00:00.000Z",
+    });
+  });
+
   it("reopens through real Ledger files and an independently signed witness", async () => {
     const value = storage();
     const witnessDir = path.join(value.root, "witness");

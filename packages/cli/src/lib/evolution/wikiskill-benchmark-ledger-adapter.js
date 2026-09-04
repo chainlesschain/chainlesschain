@@ -30,6 +30,7 @@ export const WIKISKILL_BENCHMARK_LEDGER_CORRUPT_CODE =
   "CC_WIKISKILL_BENCHMARK_LEDGER_CORRUPT";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const BENCHMARK_LEDGER_ADAPTERS = new WeakSet();
 const REPORT_CHUNK_BYTES = 512 * 1024;
 const MAX_REPORT_BYTES = 64 * 1024 * 1024;
 const MAX_CHUNKS = MAX_REPORT_BYTES / REPORT_CHUNK_BYTES;
@@ -160,6 +161,7 @@ export class WikiSkillBenchmarkLedgerAdapter {
       throw new TypeError("verifyAttestation is required");
     this._resolve = ledgerArtifactResolver;
     this._verifyAttestation = verifyAttestation;
+    BENCHMARK_LEDGER_ADAPTERS.add(this);
     Object.freeze(this);
   }
 
@@ -604,4 +606,8 @@ export class WikiSkillBenchmarkLedgerAdapter {
 
 export function createWikiSkillBenchmarkLedgerAdapter(options) {
   return new WikiSkillBenchmarkLedgerAdapter(options);
+}
+
+export function isWikiSkillBenchmarkLedgerAdapter(value) {
+  return Boolean(value && BENCHMARK_LEDGER_ADAPTERS.has(value));
 }
