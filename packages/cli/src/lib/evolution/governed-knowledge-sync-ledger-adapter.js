@@ -16,6 +16,8 @@ import {
 } from "./governed-knowledge-sync.js";
 
 export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.governed-evolution-knowledge-ledger-record/v2";
+export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-ledger-record/v1";
 export const GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE =
   "knowledge.sync.committed";
@@ -24,6 +26,7 @@ export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_CORRUPT_CODE =
 
 const ARTIFACT_TYPE = "governed-knowledge-sync-record";
 const CONFLICT_READERS = new WeakSet();
+const PUBLICATION_READERS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DISPOSITIONS = new Set(["conflict", "local", "remote"]);
@@ -37,10 +40,14 @@ const RECORD_KEYS = new Set([
   "envelope",
   "envelopeDigest",
   "knowledge",
+  "operationId",
   "recordDigest",
   "schema",
   "tenantId",
 ]);
+const LEGACY_RECORD_KEYS = new Set(
+  [...RECORD_KEYS].filter((key) => key !== "operationId"),
+);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -113,7 +120,7 @@ function freeze(value) {
 }
 
 function recordCore(value) {
-  return {
+  const core = {
     schema: value.schema,
     tenantId: value.tenantId,
     deviceId: value.deviceId,
@@ -125,10 +132,14 @@ function recordCore(value) {
     authorizationReceiptDigest: value.authorizationReceiptDigest,
     committedAt: value.committedAt,
   };
+  if (value.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA) {
+    core.operationId = value.operationId;
+  }
+  return core;
 }
 
 export function digestGovernedKnowledgeSyncLedgerRecord(value) {
-  return hash(GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA, recordCore(value));
+  return hash(value.schema, recordCore(value));
 }
 
 function normalizeDescriptor(input) {
@@ -195,9 +206,18 @@ function validateEnvelope(value, knowledge, descriptor, disposition) {
 }
 
 function validateLedgerRecord(value, descriptor) {
-  exact(value, RECORD_KEYS, "knowledge sync ledger record");
+  const current =
+    value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA;
+  exact(
+    value,
+    current ? RECORD_KEYS : LEGACY_RECORD_KEYS,
+    "knowledge sync ledger record",
+  );
   if (
-    value.schema !== GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA ||
+    ![
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA,
+    ].includes(value.schema) ||
     value.tenantId !== descriptor.tenantId ||
     value.deviceId !== descriptor.deviceId ||
     !DISPOSITIONS.has(value.disposition) ||
@@ -209,6 +229,14 @@ function validateLedgerRecord(value, descriptor) {
     value.recordDigest !== digestGovernedKnowledgeSyncLedgerRecord(value)
   ) {
     corrupt("knowledge sync ledger record binding is invalid");
+  }
+  if (
+    (current &&
+      value.operationId !== null &&
+      !SAFE_ID.test(value.operationId ?? "")) ||
+    (!current && Object.hasOwn(value, "operationId"))
+  ) {
+    corrupt("knowledge sync operation binding is invalid");
   }
   const conflictWithDigest = validateKnowledge(
     value.knowledge,
@@ -369,6 +397,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     envelopeDigest,
     disposition,
     authorizationReceiptDigest,
+    operationId = null,
   } = {}) => {
     if (!DISPOSITIONS.has(disposition)) {
       throw new TypeError("knowledge sync disposition is invalid");
@@ -384,6 +413,15 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     }
     if (!DIGEST.test(authorizationReceiptDigest ?? "")) {
       corrupt("knowledge sync authorization receipt is invalid");
+    }
+    if (operationId !== null && !SAFE_ID.test(operationId ?? "")) {
+      throw new TypeError("knowledge sync operationId is invalid");
+    }
+    if (operationId !== null) {
+      const prior = await this.getPublication({ operationId });
+      if (prior && prior.envelopeDigest !== envelopeDigest) {
+        corrupt("knowledge sync operationId resolved another envelope");
+      }
     }
     const envelopeCore = { ...envelope };
     delete envelopeCore.envelopeDigest;
@@ -412,6 +450,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
         envelopeDigest,
         conflictWithDigest,
         authorizationReceiptDigest,
+        operationId,
       };
       if (canonical(stableExisting) !== canonical(stableRequest)) {
         corrupt("knowledge sync event identity resolved different content");
@@ -439,6 +478,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       envelopeDigest,
       conflictWithDigest,
       authorizationReceiptDigest,
+      operationId,
       committedAt,
     };
     const record = Object.freeze({
@@ -508,6 +548,24 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     });
   };
 
+  getPublication = async ({ operationId } = {}) => {
+    const normalizedId = identifier(operationId, "publication operationId");
+    const matches = (
+      await Promise.all(
+        this._events().map((event) => this._resolveEvent(event)),
+      )
+    ).filter(
+      (record) =>
+        record.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA &&
+        record.disposition === "local" &&
+        record.operationId === normalizedId,
+    );
+    if (matches.length > 1) {
+      corrupt("knowledge publication operation is ambiguous");
+    }
+    return matches[0] ?? null;
+  };
+
   listConflicts = async ({ cursor = 0, limit = 50 } = {}) => {
     if (
       !Number.isSafeInteger(cursor) ||
@@ -551,6 +609,16 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     return reader;
   }
 
+  publicationReader() {
+    const reader = Object.freeze({
+      tenantId: this.descriptor.tenantId,
+      deviceId: this.descriptor.deviceId,
+      getPublication: this.getPublication,
+    });
+    PUBLICATION_READERS.add(reader);
+    return reader;
+  }
+
   syncPorts({ authorize, encrypt, decrypt, sign, send } = {}) {
     return Object.freeze({
       authorize: capture(authorize, "authorize", "authorize"),
@@ -560,6 +628,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       verify: this._verifyEnvelope,
       send: capture(send, "send", "send"),
       load: this.load,
+      loadPublication: this.getPublication,
       commit: this.commit,
     });
   }
@@ -567,4 +636,8 @@ export class GovernedKnowledgeSyncLedgerAdapter {
 
 export function isGovernedKnowledgeConflictReader(value) {
   return CONFLICT_READERS.has(value);
+}
+
+export function isGovernedKnowledgePublicationReader(value) {
+  return PUBLICATION_READERS.has(value);
 }

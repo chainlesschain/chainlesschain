@@ -20,6 +20,7 @@ const SCOPES = new Set(Object.values(GOVERNED_KNOWLEDGE_SCOPE));
 const ACTIONS = new Set(["upsert", "tombstone", "revoke"]);
 const MAX_CIPHERTEXT_BYTES = 12 * 1024 * 1024;
 const EXECUTION_RECORDS = new WeakSet();
+const SYNCHRONIZERS = new WeakSet();
 const ENVELOPE_KEYS = new Set([
   "action",
   "ciphertext",
@@ -260,6 +261,10 @@ export class GovernedKnowledgeSync {
     this._load = capture(ports, "load");
     this._commit = capture(ports, "commit");
     this._send = capture(ports, "send");
+    this._loadPublication =
+      ports?.loadPublication === undefined
+        ? null
+        : capture(ports, "loadPublication");
     if (
       dependencyExecutor !== null &&
       !isGovernedKnowledgeDependencyExecutor(dependencyExecutor)
@@ -271,12 +276,41 @@ export class GovernedKnowledgeSync {
     this._executeDependencies = dependencyExecutor
       ? capture(dependencyExecutor, "execute")
       : null;
+    SYNCHRONIZERS.add(this);
   }
 
-  async publish(input) {
+  async publish(input, { operationId = null } = {}) {
     const knowledge = normalizeRecord(input, this, { executionRecord: true });
     if (knowledge.scope === "personal")
       throw new Error("personal knowledge cannot enter a shared sync channel");
+    if (operationId !== null) {
+      id(operationId, "publish operationId");
+      if (!this._loadPublication) {
+        throw new Error("durable publication recovery is unavailable");
+      }
+      const existing = await this._loadPublication({ operationId });
+      if (existing) {
+        const comparable = { ...existing.knowledge };
+        delete comparable.conflictWithDigest;
+        if (
+          existing.operationId !== operationId ||
+          existing.disposition !== "local" ||
+          canonical(comparable) !== canonical(knowledge) ||
+          existing.envelope?.envelopeDigest !== existing.envelopeDigest
+        ) {
+          throw new Error("publish operationId resolved different knowledge");
+        }
+        verifyGovernedKnowledgeEnvelopeIntegrity(existing.envelope, this);
+        const sent = await this._send({ envelope: existing.envelope });
+        if (
+          sent?.durable !== true ||
+          sent.envelopeDigest !== existing.envelopeDigest
+        ) {
+          throw new Error("sync transport did not durably accept the envelope");
+        }
+        return freeze(clone(existing.envelope));
+      }
+    }
     const admission = await this._admit("publish", knowledge);
     await this._applyRevocationDependencies(knowledge);
     const plaintext = Buffer.from(canonical(knowledge), "utf8");
@@ -310,7 +344,7 @@ export class GovernedKnowledgeSync {
       envelopeDigest,
       signature: clone(signature),
     });
-    await this._persist(knowledge, envelope, "local", admission);
+    await this._persist(knowledge, envelope, "local", admission, operationId);
     const sent = await this._send({ envelope });
     if (sent?.durable !== true || sent.envelopeDigest !== envelopeDigest)
       throw new Error("sync transport did not durably accept the envelope");
@@ -399,13 +433,20 @@ export class GovernedKnowledgeSync {
     return freeze(clone(result));
   }
 
-  async _persist(knowledge, envelope, disposition, admission) {
+  async _persist(
+    knowledge,
+    envelope,
+    disposition,
+    admission,
+    operationId = null,
+  ) {
     const result = await this._commit({
       knowledge,
       envelope,
       envelopeDigest: envelope.envelopeDigest,
       disposition,
       authorizationReceiptDigest: admission.receiptDigest,
+      operationId,
     });
     if (
       result?.authenticated !== true ||
@@ -437,4 +478,8 @@ export class GovernedKnowledgeSync {
       throw new Error("revocation dependencies were not durably applied");
     }
   }
+}
+
+export function isGovernedKnowledgeSync(value) {
+  return SYNCHRONIZERS.has(value);
 }

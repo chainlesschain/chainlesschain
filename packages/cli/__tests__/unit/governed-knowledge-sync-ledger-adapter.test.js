@@ -41,7 +41,13 @@ import {
   digestGovernedKnowledgeMergePublishResult,
 } from "../../src/lib/evolution/governed-knowledge-merge-publisher-authority.js";
 import { createGovernedKnowledgeReviewHost } from "../../src/lib/evolution/governed-knowledge-review-host.js";
-import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
+import { createGovernedKnowledgeSyncMergePublisherAuthority } from "../../src/lib/evolution/governed-knowledge-sync-merge-publisher.js";
+import {
+  GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE,
+  GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA,
+  GovernedKnowledgeSyncLedgerAdapter,
+  digestGovernedKnowledgeSyncLedgerRecord,
+} from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import {
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
   GovernedKnowledgeSync,
@@ -221,10 +227,13 @@ function knowledge(overrides = {}) {
   };
 }
 
-function cryptoPorts() {
+function cryptoPorts({ loseFirstSendResponse = false } = {}) {
+  let loseSendResponse = loseFirstSendResponse;
   const verify = vi.fn(
     async ({ envelopeDigest, signature }) =>
-      signature === `signature:${envelopeDigest}`,
+      signature?.algorithm === "test-signature" &&
+      signature.keyId === "device-key:test" &&
+      signature.value === `signature:${envelopeDigest}`,
   );
   return {
     verifier: { verify },
@@ -255,12 +264,22 @@ function cryptoPorts() {
       }),
     },
     sign: {
-      sign: async ({ envelopeDigest }) => `signature:${envelopeDigest}`,
+      sign: async ({ envelopeDigest }) => ({
+        algorithm: "test-signature",
+        keyId: "device-key:test",
+        value: `signature:${envelopeDigest}`,
+      }),
     },
     send: {
-      send: async ({ envelope }) => ({
-        durable: true,
-        envelopeDigest: envelope.envelopeDigest,
+      send: vi.fn(async ({ envelope }) => {
+        if (loseSendResponse) {
+          loseSendResponse = false;
+          throw new Error("simulated sync transport response loss");
+        }
+        return {
+          durable: true,
+          envelopeDigest: envelope.envelopeDigest,
+        };
       }),
     },
   };
@@ -570,6 +589,34 @@ function mergePublisher({ loseFirstResponse = false } = {}) {
   return { authority, provider, requests, verifier };
 }
 
+function syncMergePublisher(storage, crypto) {
+  const publishing = controller(storage, crypto);
+  const providerPublicationReader = publishing.persisted.publicationReader();
+  const verifierPublicationReader = adapter(
+    storage,
+    crypto,
+  ).publicationReader();
+  return {
+    publishing,
+    authority: createGovernedKnowledgeSyncMergePublisherAuthority({
+      sync: publishing.controller,
+      providerPublicationReader,
+      verifierPublicationReader,
+      providerDescriptor: {
+        authorityId: "merge-sync-publisher:test",
+        revision: 1,
+        handlerArtifactDigest: D("merge-sync-publisher-handler"),
+      },
+      verifierDescriptor: {
+        authorityId: "merge-sync-verifier:test",
+        revision: 1,
+        handlerArtifactDigest: D("merge-sync-verifier-handler"),
+      },
+      now: () => Date.parse("2026-09-04T00:00:00.000Z"),
+    }),
+  };
+}
+
 function mergeExecutor(storage, publisherAuthority) {
   return new GovernedKnowledgeMergeLedgerExecutor({
     descriptor: storage.descriptor,
@@ -736,18 +783,82 @@ function dependencyExecutor(storage, authority) {
 }
 
 describe("GovernedKnowledgeSyncLedgerAdapter", () => {
+  it("continues to authenticate and load legacy v1 sync records", async () => {
+    const storage = backends();
+    const crypto = cryptoPorts();
+    const envelope = await controller(
+      backends("device:a"),
+      crypto,
+    ).controller.publish(knowledge());
+    const core = {
+      schema: GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA,
+      tenantId: "tenant:a",
+      deviceId: "device:a",
+      disposition: "local",
+      knowledge: knowledge(),
+      envelope,
+      envelopeDigest: envelope.envelopeDigest,
+      conflictWithDigest: null,
+      authorizationReceiptDigest: D("authorization"),
+      committedAt: "2026-09-04T00:00:00.000Z",
+    };
+    const record = {
+      ...core,
+      recordDigest: digestGovernedKnowledgeSyncLedgerRecord(core),
+    };
+    const published = storage.artifactPorts.putCanonical(
+      "governed-knowledge-sync-record",
+      record,
+      {
+        audience: storage.descriptor.audience,
+        purpose: storage.descriptor.purpose,
+        retention: "ledger",
+      },
+    );
+    storage.ledger.appendDomainEvent(
+      {
+        artifactTenantId: storage.descriptor.artifactTenantId,
+        correlationId: storage.descriptor.streamId,
+        decision: "committed",
+        eventId: `${GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE}.local.${envelope.envelopeDigest.slice(7)}`,
+        reason: "legacy governed knowledge local commit",
+        skillName: null,
+        sourceRefs: [],
+        subjectRef: published.ref,
+        tenantId: storage.descriptor.tenantId,
+        timestamp: core.committedAt,
+        type: GOVERNED_KNOWLEDGE_SYNC_COMMIT_EVENT_TYPE,
+      },
+      { expectedHeadDigest: null, expectedSequence: 0 },
+    );
+
+    await expect(
+      adapter(storage, crypto).load({ knowledgeId: "knowledge:1" }),
+    ).resolves.toMatchObject({ contentDigest: D("content:a") });
+  });
+
   it("reopens the same record from actual EvolutionLedger files and witness", async () => {
     const storage = backends();
     const crypto = cryptoPorts();
     const witness = durableWitness("witness-knowledge-sync");
     storage.ledger = openRealLedger(storage, witness);
-    await controller(storage, crypto).controller.publish(knowledge());
+    await controller(storage, crypto).controller.publish(knowledge(), {
+      operationId: "knowledge-publish:real-ledger",
+    });
 
     const reopenedLedger = openRealLedger(storage, witness);
     const reopened = adapter({ ...storage, ledger: reopenedLedger }, crypto);
     await expect(
       reopened.load({ knowledgeId: "knowledge:1" }),
     ).resolves.toMatchObject({ contentDigest: D("content:a") });
+    await expect(
+      reopened.getPublication({
+        operationId: "knowledge-publish:real-ledger",
+      }),
+    ).resolves.toMatchObject({
+      disposition: "local",
+      operationId: "knowledge-publish:real-ledger",
+    });
     expect(reopenedLedger.verify()).toMatchObject({
       eventCount: 1,
       sequence: 1,
@@ -946,6 +1057,63 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
         ({ type }) => type === "knowledge.merge.settled",
       ),
     ).toHaveLength(1);
+  });
+
+  it("publishes a merge through the durable sync ledger and recovers transport response loss", async () => {
+    const fixture = await mergePlanFixture();
+    const publishingCrypto = cryptoPorts({ loseFirstSendResponse: true });
+    const publisher = syncMergePublisher(
+      fixture.receiverStorage,
+      publishingCrypto,
+    );
+    const first = mergeExecutor(fixture.receiverStorage, publisher.authority);
+
+    await expect(first.execute(fixture.plan)).rejects.toThrow(
+      "sync transport response loss",
+    );
+    const operationId = `knowledge-merge:${fixture.plan.planDigest.slice(7)}`;
+    const committed = await publisher.publishing.persisted.getPublication({
+      operationId,
+    });
+    expect(committed).toMatchObject({
+      operationId,
+      disposition: "local",
+      knowledge: { contentDigest: fixture.merged.contentDigest },
+    });
+
+    const reopenedCrypto = cryptoPorts();
+    const reopenedPublisher = syncMergePublisher(
+      fixture.receiverStorage,
+      reopenedCrypto,
+    );
+    const resumed = await mergeExecutor(
+      fixture.receiverStorage,
+      reopenedPublisher.authority,
+    ).resume({ planDigest: fixture.plan.planDigest });
+    expect(resumed).toMatchObject({
+      authenticated: true,
+      durable: true,
+      recovered: true,
+      planDigest: fixture.plan.planDigest,
+      envelopeDigest: committed.envelopeDigest,
+    });
+    expect(publishingCrypto.send.send).toHaveBeenCalledOnce();
+    expect(reopenedCrypto.send.send).toHaveBeenCalledOnce();
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.sync.committed",
+      ),
+    ).toHaveLength(3);
+
+    await expect(
+      reopenedPublisher.publishing.controller.publish(
+        {
+          ...fixture.merged,
+          contentDigest: D("substituted-merge"),
+        },
+        { operationId },
+      ),
+    ).rejects.toThrow("resolved different knowledge");
   });
 
   it("reopens a settled merge through actual Ledger files and witness", async () => {
