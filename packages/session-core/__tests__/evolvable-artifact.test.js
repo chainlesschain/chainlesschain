@@ -266,5 +266,52 @@ describe("EvolvableArtifact protocol", () => {
         receipt(stalePrompt, "eval"),
       ),
     ).toThrow(/must be revalidated/);
+
+    const newDependencyLock = dependencyLock([
+      {
+        artifactId: skill.artifactId,
+        type: skill.type,
+        releaseId: "skill-release-2",
+        contentDigest: digest("skill-content-v2"),
+      },
+    ]);
+    const revalidationShape = {
+      ...stalePrompt,
+      candidate: {
+        candidateId: "prompt-revalidation-2",
+        status: "candidate",
+      },
+      dependencyLock: newDependencyLock,
+    };
+    const revalidationReceipt = receipt(revalidationShape, "revalidation", {
+      resolvedReleaseIds: ["skill-release-2"],
+    });
+    const revalidation = promptAuthority.createRevalidationCandidate(
+      stalePrompt,
+      {
+        candidateId: "prompt-revalidation-2",
+        dependencyLock: newDependencyLock,
+        revalidationReceipt,
+      },
+    );
+    expect(revalidation).toMatchObject({
+      stale: false,
+      staleReasons: [],
+      release: null,
+      activeReleaseId: stalePrompt.activeReleaseId,
+      lastKnownGoodReleaseId: stalePrompt.lastKnownGoodReleaseId,
+      candidate: {
+        candidateId: "prompt-revalidation-2",
+        status: "candidate",
+      },
+    });
+    expect(revalidation.receipts.revalidation.kind).toBe("revalidation");
+    expect(() =>
+      promptAuthority.createRevalidationCandidate(revalidation, {
+        candidateId: "another",
+        dependencyLock: newDependencyLock,
+        revalidationReceipt,
+      }),
+    ).toThrow(/only a stale artifact/);
   });
 });

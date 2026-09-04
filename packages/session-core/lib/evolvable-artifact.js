@@ -205,7 +205,12 @@ function normalizeCandidate(input, scopedTenantId, scopedType) {
       status: "candidate",
     },
     release: null,
-    receipts: { eval: null, review: null, promotion: null },
+    receipts: {
+      revalidation: null,
+      eval: null,
+      review: null,
+      promotion: null,
+    },
     activeReleaseId:
       input.activeReleaseId == null
         ? null
@@ -375,6 +380,64 @@ function createEvolvableArtifactAuthority({ tenantId, policy }) {
         receipts: { ...artifact.receipts, eval: evaluation },
       });
     },
+    createRevalidationCandidate(
+      artifact,
+      { candidateId, dependencyLock, revalidationReceipt },
+    ) {
+      verifyEvolvableArtifact(artifact);
+      if (artifact.tenantId !== tenantId || artifact.type !== policy.type) {
+        throw new Error("artifact is outside this authority scope");
+      }
+      if (!artifact.stale) {
+        throw new Error(
+          "only a stale artifact can enter dependency revalidation",
+        );
+      }
+      const normalizedLock = normalizeDependencyLock(dependencyLock);
+      if (normalizedLock.digest === artifact.dependencyLock.digest) {
+        throw new Error(
+          "revalidation candidate must bind a changed dependency lock",
+        );
+      }
+      const draft = evolveArtifact(artifact, {
+        parent:
+          artifact.release == null
+            ? artifact.parent
+            : {
+                artifactId: artifact.artifactId,
+                releaseId: artifact.activeReleaseId,
+                contentDigest: artifact.contentDigest,
+              },
+        dependencyLock: normalizedLock,
+        candidate: {
+          candidateId: requiredString(candidateId, "candidateId"),
+          status: "candidate",
+        },
+        release: null,
+        receipts: {
+          revalidation: null,
+          eval: null,
+          review: null,
+          promotion: null,
+        },
+        stale: false,
+        staleReasons: [],
+      });
+      const receipt = normalizeReceipt(
+        revalidationReceipt,
+        draft,
+        "revalidation",
+      );
+      const candidate = evolveArtifact(draft, {
+        receipts: { ...draft.receipts, revalidation: receipt },
+      });
+      assertPolicyAllowed(
+        policy.admit(candidate),
+        "revalidation admission",
+        policy,
+      );
+      return candidate;
+    },
     activateCandidate(
       artifact,
       { reviewReceipt, promotionReceipt, releaseId },
@@ -412,6 +475,7 @@ function createEvolvableArtifactAuthority({ tenantId, policy }) {
           status: "active",
         },
         receipts: {
+          revalidation: artifact.receipts.revalidation ?? null,
           eval: artifact.receipts.eval,
           review,
           promotion,
