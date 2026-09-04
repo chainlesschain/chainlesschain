@@ -547,7 +547,10 @@ function registerPhases16to20({
       // Initialize managers
       const codeKnowledgeGraph = getCodeKnowledgeGraph();
       const decisionKnowledgeBase = getDecisionKnowledgeBase();
-      const promptOptimizer = getPromptOptimizer();
+      const promptOptimizer = getPromptOptimizer({
+        artifactCandidateGate:
+          deps.evolvableArtifactPromptCandidateGate || undefined,
+      });
       const skillDiscoverer = getSkillDiscoverer();
       const debateReview = getDebateReview();
       const abComparator = getABComparator();

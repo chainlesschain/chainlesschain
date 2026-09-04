@@ -13,6 +13,11 @@
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
+const {
+  ARTIFACT_TYPE,
+  digestEvolvableArtifactValue,
+  isEvolvableArtifactCandidateGate,
+} = require("@chainlesschain/session-core/evolvable-artifact");
 
 // ============================================================
 // Constants
@@ -26,9 +31,24 @@ const SUCCESS_RATE_IMPROVEMENT_THRESHOLD = 0.1;
 // ============================================================
 
 class PromptOptimizer {
-  constructor() {
+  constructor(options = {}) {
     this.db = null;
     this.initialized = false;
+    this.artifactCandidateGate = null;
+    if (options.artifactCandidateGate != null) {
+      this.setArtifactCandidateGate(options.artifactCandidateGate);
+    }
+  }
+
+  setArtifactCandidateGate(candidateGate) {
+    if (
+      !isEvolvableArtifactCandidateGate(candidateGate, ARTIFACT_TYPE.PROMPT)
+    ) {
+      throw new TypeError(
+        "PromptOptimizer requires a branded prompt EvolvableArtifact candidate gate",
+      );
+    }
+    this.artifactCandidateGate = candidateGate;
   }
 
   /**
@@ -156,13 +176,39 @@ class PromptOptimizer {
    * @param {Object} data - { skillName, variantName, promptText }
    * @returns {Object} Created variant
    */
-  createVariant(data) {
+  async createVariant(data) {
     if (!data.skillName || !data.promptText) {
       throw new Error("skillName and promptText are required");
+    }
+    if (!this.artifactCandidateGate) {
+      const error = new Error(
+        "Prompt evolution candidate gate is unavailable; direct activation is denied",
+      );
+      error.code = "CC_PROMPT_EVOLUTION_CANDIDATE_GATE_UNAVAILABLE";
+      throw error;
     }
 
     const id = uuidv4();
     const now = new Date().toISOString();
+    const contentDigest = digestEvolvableArtifactValue(data.promptText);
+    const artifactInput = data.artifactCandidate;
+    if (!artifactInput || typeof artifactInput !== "object") {
+      throw new Error(
+        "artifactCandidate metadata is required for governed prompt evolution",
+      );
+    }
+    const staged = await this.artifactCandidateGate.stageCandidate(
+      {
+        ...artifactInput,
+        tenantId: this.artifactCandidateGate.tenantId,
+        artifactId: `prompt:${data.skillName}`,
+        candidateId: id,
+        type: ARTIFACT_TYPE.PROMPT,
+        contentDigest,
+        lineage: [...(artifactInput.lineage || []), contentDigest],
+      },
+      data.promptText,
+    );
 
     const variant = {
       id,
@@ -171,7 +217,10 @@ class PromptOptimizer {
       promptText: data.promptText,
       successRate: 0,
       useCount: 0,
-      isActive: true,
+      isActive: false,
+      lifecycle: "candidate",
+      artifactDigest: staged.artifact.artifactDigest,
+      persistenceReceipt: staged.receipt,
       createdAt: now,
     };
 
@@ -186,7 +235,7 @@ class PromptOptimizer {
           variant.promptText,
           0,
           0,
-          1,
+          0,
           now,
         ],
       );
@@ -500,9 +549,11 @@ class PromptOptimizer {
 // Singleton
 let instance = null;
 
-function getPromptOptimizer() {
+function getPromptOptimizer(options = {}) {
   if (!instance) {
-    instance = new PromptOptimizer();
+    instance = new PromptOptimizer(options);
+  } else if (options.artifactCandidateGate != null) {
+    instance.setArtifactCandidateGate(options.artifactCandidateGate);
   }
   return instance;
 }

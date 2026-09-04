@@ -419,7 +419,7 @@ function registerEvolutionIPC(deps) {
       if (!promptOptimizer?.initialized) {
         return { success: false, error: "PromptOptimizer not initialized" };
       }
-      const variant = promptOptimizer.createVariant(data);
+      const variant = await promptOptimizer.createVariant(data);
       return { success: true, data: variant };
     } catch (error) {
       logger.error(

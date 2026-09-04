@@ -117,7 +117,11 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const { registerHooksIPC } = require("../../hooks/hooks-ipc");
       const { getHookSystem } = require("../../hooks");
       hookSystem = getHookSystem();
-      registerHooksIPC({ hookSystem });
+      registerHooksIPC({
+        hookSystem,
+        artifactCandidateGate:
+          deps.evolvableArtifactHookCandidateGate || undefined,
+      });
     },
     handlers: 11,
   });

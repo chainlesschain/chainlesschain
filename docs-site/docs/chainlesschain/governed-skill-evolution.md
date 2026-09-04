@@ -26,6 +26,7 @@
 - Wiki revision、Memory event/snapshot、human-review packet/decision 与 registry transition 复用 ArtifactPorts + Ledger，可在响应丢失或进程重启后按同一 digest 恢复。
 - Agent 完成和 `SchedulerStore` 成功 occurrence 可由独立 authority 生成 Wiki 维护触发；客户端不能替换触发来源或 composition。
 - 旧 Phase 100 simulator 与不可达 IPC 已退役；历史公式训练只保留 metrics，不再显示为真实训练或 active mutation。
+- 当前仓库候选新增共享 `EvolvableArtifact` 协议；Desktop Prompt 新变体只写 inactive candidate，Renderer Hook 注册只写候选且不能直接 enable/reload。Hook candidate 必须绑定代码签名、SBOM、沙箱、网络出口策略和双人高风险审批；该能力尚未包含在上方所列公开版本中。
 - Evolution Workbench 可列出候选、比较 revision、提交 approve/reject 决定和 rollback 请求；CLI、Desktop、VS Code 与 JetBrains 消费同一受治理投影。
 - `cc skill search` 对 bundled、marketplace、managed 与 workspace Skill 做摘要绑定的混合检索，验证后的结果和 outcome evidence 优先。
 - 加密知识同步只输出删节冲突投影；合并计划经过认证、签名，并绑定基线、vector clock 与依赖处置，在 crash/response-loss 恢复后才可发布 canonical record。
@@ -202,6 +203,7 @@ if ($LASTEXITCODE -ne 0) {
 - Wiki/Memory/review：CAS、幂等恢复、四层 authority、PostCompact、人工 quorum 与 content-risk acknowledgement。
 - Migration/transition：旧 candidate/release/state ledger journal、启动 reconciliation、故障阶段恢复和 durable registry request/attempt/settlement。
 - Desktop：Skill Creator candidate-only、Skill Sync candidate store、Phase 16 metrics wiring 与 legacy simulator 退役。
+- Typed artifacts：共享 Skill/Prompt/Hook/Knowledge schema、类型隔离 policy/authority、Prompt/Hook candidate gate、Hook 高风险硬门与依赖 stale 级联；Skill Sync/knowledge 统一 adapter 尚待接线。
 - Workbench/Retrieval：候选比较、陈旧 revision、批准/拒绝/回滚、canonical digest、索引 witness、来源过滤与 verified outcome 排序。
 - Governed knowledge：密文冲突删节、认证 merge plan、Ed25519/AES-256-GCM、撤销依赖结算、响应丢失和进程重启恢复。
 - 路径安全：canonical ancestor alias、leaf link、父目录逃逸与 marketplace fail-closed 路径。

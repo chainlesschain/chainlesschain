@@ -1,0 +1,270 @@
+import { describe, expect, it, vi } from "vitest";
+import protocol from "../lib/evolvable-artifact.js";
+
+const {
+  ARTIFACT_TYPE,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+  isEvolvableArtifactCandidateGate,
+  createEvolvableArtifactReceipt,
+  digestEvolvableArtifactValue: digest,
+  projectEvolvableArtifactDependencyChange,
+} = protocol;
+
+function manifest(body) {
+  return { ...body, digest: digest(body) };
+}
+
+function dependencyLock(dependencies = []) {
+  const ordered = [...dependencies].sort((a, b) =>
+    a.artifactId.localeCompare(b.artifactId),
+  );
+  return { dependencies: ordered, digest: digest({ dependencies: ordered }) };
+}
+
+function policy(type, revision = `${type}-policy-v1`) {
+  const allow = vi.fn(() => ({ decision: "allow", policyRevision: revision }));
+  return {
+    value: createEvolvableArtifactPolicy({
+      type,
+      revision,
+      admission: allow,
+      evaluator: allow,
+      activation: allow,
+      rollback: allow,
+    }),
+    allow,
+  };
+}
+
+function candidate(type, overrides = {}) {
+  const contentDigest = overrides.contentDigest ?? digest(`${type}-content`);
+  const runtimeBody =
+    type === ARTIFACT_TYPE.HOOK
+      ? {
+          executable: true,
+          codeSignatureDigest: digest("hook-signature"),
+          sbomDigest: digest("hook-sbom"),
+          sandboxDigest: digest("hook-sandbox"),
+          networkEgressPolicyDigest: digest("hook-network"),
+        }
+      : type === ARTIFACT_TYPE.PROMPT
+        ? { executable: false, dataPolicyDigest: digest("prompt-data-policy") }
+        : { executable: type === ARTIFACT_TYPE.SKILL };
+  return {
+    tenantId: "tenant-a",
+    artifactId: `${type}-a`,
+    candidateId: `${type}-candidate-a`,
+    type,
+    contentDigest,
+    parent: null,
+    lineage: [contentDigest],
+    dependencyLock: dependencyLock(),
+    runtimeManifest: manifest(runtimeBody),
+    permissionManifest: manifest({ capabilities: [] }),
+    ...overrides,
+  };
+}
+
+function receipt(artifact, kind, claims = {}) {
+  return createEvolvableArtifactReceipt({
+    kind,
+    tenantId: artifact.tenantId,
+    artifactId: artifact.artifactId,
+    candidateId: artifact.candidate.candidateId,
+    contentDigest: artifact.contentDigest,
+    dependencyLockDigest: artifact.dependencyLock.digest,
+    issuerId: `${kind}-authority`,
+    issuerRevision: `${kind}-v1`,
+    issuedAt: "2026-09-04T00:00:00.000Z",
+    decision: "allow",
+    claims,
+  });
+}
+
+describe("EvolvableArtifact protocol", () => {
+  it("requires independently branded type policies and isolates their authority", () => {
+    const promptPolicy = policy(ARTIFACT_TYPE.PROMPT);
+    const knowledgePolicy = policy(ARTIFACT_TYPE.KNOWLEDGE);
+    const promptAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: promptPolicy.value,
+    });
+    const knowledgeAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: knowledgePolicy.value,
+    });
+    const prompt = promptAuthority.stageCandidate(
+      candidate(ARTIFACT_TYPE.PROMPT),
+    );
+
+    expect(prompt.candidate.status).toBe("candidate");
+    expect(prompt.release).toBeNull();
+    expect(prompt.activeReleaseId).toBeNull();
+    expect(() =>
+      knowledgeAuthority.recordEvaluation(prompt, receipt(prompt, "eval")),
+    ).toThrow(/outside this authority scope/);
+    expect(() =>
+      createEvolvableArtifactAuthority({ tenantId: "tenant-a", policy: {} }),
+    ).toThrow(/branded/);
+  });
+
+  it("persists only a candidate through a branded, digest-bound writer gate", async () => {
+    const promptAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const writer = {
+      persistCandidate: vi.fn(async (artifact) => ({
+        schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+        tenantId: artifact.tenantId,
+        type: artifact.type,
+        artifactId: artifact.artifactId,
+        candidateId: artifact.candidate.candidateId,
+        contentDigest: artifact.contentDigest,
+        artifactDigest: artifact.artifactDigest,
+        status: "candidate",
+        persisted: true,
+      })),
+    };
+    const gate = createEvolvableArtifactCandidateGate({
+      authority: promptAuthority,
+      candidateWriter: writer,
+    });
+    const input = candidate(ARTIFACT_TYPE.PROMPT);
+    const result = await gate.stageCandidate(input, "prompt-content");
+
+    expect(isEvolvableArtifactCandidateGate(gate, ARTIFACT_TYPE.PROMPT)).toBe(
+      true,
+    );
+    expect(result.artifact.candidate.status).toBe("candidate");
+    expect(result.artifact.release).toBeNull();
+    expect(writer.persistCandidate).toHaveBeenCalledOnce();
+
+    const badGate = createEvolvableArtifactCandidateGate({
+      authority: promptAuthority,
+      candidateWriter: {
+        persistCandidate: async (artifact) => ({
+          schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+          tenantId: artifact.tenantId,
+          type: artifact.type,
+          artifactId: artifact.artifactId,
+          candidateId: artifact.candidate.candidateId,
+          contentDigest: artifact.contentDigest,
+          artifactDigest: digest("substituted"),
+          status: "candidate",
+          persisted: true,
+        }),
+      },
+    });
+    await expect(
+      badGate.stageCandidate(candidate(ARTIFACT_TYPE.PROMPT)),
+    ).rejects.toThrow(/persistence receipt is invalid/);
+  });
+
+  it("enforces signed executable metadata and a two-human high-risk Hook quorum", () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.HOOK).value,
+    });
+    const missingSbom = candidate(ARTIFACT_TYPE.HOOK);
+    const runtimeBody = { ...missingSbom.runtimeManifest };
+    delete runtimeBody.digest;
+    delete runtimeBody.sbomDigest;
+    missingSbom.runtimeManifest = manifest(runtimeBody);
+    expect(() => authority.stageCandidate(missingSbom)).toThrow(/sbomDigest/);
+
+    let hook = authority.stageCandidate(candidate(ARTIFACT_TYPE.HOOK));
+    hook = authority.recordEvaluation(hook, receipt(hook, "eval"));
+    const promotion = receipt(hook, "promotion");
+    const onePersonReview = receipt(hook, "review", {
+      riskTier: "high",
+      approvers: [
+        { identityId: "alice", signatureDigest: digest("alice-signature") },
+      ],
+    });
+    expect(() =>
+      authority.activateCandidate(hook, {
+        reviewReceipt: onePersonReview,
+        promotionReceipt: promotion,
+        releaseId: "hook-release-1",
+      }),
+    ).toThrow(/two distinct signed human approvers/);
+
+    const twoPersonReview = receipt(hook, "review", {
+      riskTier: "high",
+      approvers: [
+        { identityId: "alice", signatureDigest: digest("alice-signature") },
+        { identityId: "bob", signatureDigest: digest("bob-signature") },
+      ],
+    });
+    const active = authority.activateCandidate(hook, {
+      reviewReceipt: twoPersonReview,
+      promotionReceipt: promotion,
+      releaseId: "hook-release-1",
+    });
+    expect(active.activeReleaseId).toBe("hook-release-1");
+    expect(active.candidate.status).toBe("promoted");
+  });
+
+  it("cascades dependency drift and blocks stale activation", () => {
+    const skillAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.SKILL).value,
+    });
+    const promptAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const knowledgeAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.KNOWLEDGE).value,
+    });
+    const skill = skillAuthority.stageCandidate(candidate(ARTIFACT_TYPE.SKILL));
+    const promptInput = candidate(ARTIFACT_TYPE.PROMPT, {
+      dependencyLock: dependencyLock([
+        {
+          artifactId: skill.artifactId,
+          type: skill.type,
+          releaseId: "skill-release-1",
+          contentDigest: skill.contentDigest,
+        },
+      ]),
+    });
+    const prompt = promptAuthority.stageCandidate(promptInput);
+    const knowledge = knowledgeAuthority.stageCandidate(
+      candidate(ARTIFACT_TYPE.KNOWLEDGE, {
+        dependencyLock: dependencyLock([
+          {
+            artifactId: prompt.artifactId,
+            type: prompt.type,
+            releaseId: "prompt-release-1",
+            contentDigest: prompt.contentDigest,
+          },
+        ]),
+      }),
+    );
+    const projection = projectEvolvableArtifactDependencyChange(
+      [skill, prompt, knowledge],
+      {
+        artifactId: skill.artifactId,
+        releaseId: "skill-release-2",
+        contentDigest: digest("skill-content-v2"),
+      },
+    );
+
+    expect(projection.staleArtifactIds).toEqual(["knowledge-a", "prompt-a"]);
+    const stalePrompt = projection.artifacts.find(
+      (item) => item.artifactId === "prompt-a",
+    );
+    expect(stalePrompt.staleReasons).toEqual(["dependency:skill-a"]);
+    expect(() =>
+      promptAuthority.recordEvaluation(
+        stalePrompt,
+        receipt(stalePrompt, "eval"),
+      ),
+    ).toThrow(/must be revalidated/);
+  });
+});

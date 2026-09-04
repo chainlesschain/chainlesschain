@@ -184,6 +184,23 @@ const {
   isStructuredMemoryPostCompactVerifier,
 } = require("./structured-evolution-memory.js");
 
+const {
+  EVOLVABLE_ARTIFACT_SCHEMA,
+  EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
+  ARTIFACT_TYPE,
+  ARTIFACT_TYPES,
+  digestEvolvableArtifactValue,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+  isEvolvableArtifactCandidateGate,
+  verifyEvolvableArtifact,
+  projectEvolvableArtifactDependencyChange,
+  createEvolvableArtifactReceipt,
+} = require("./evolvable-artifact.js");
+
 module.exports = {
   // SessionHandle
   SessionHandle,
@@ -324,4 +341,19 @@ module.exports = {
   createStructuredMemoryAuthorityReceipt,
   createStructuredMemoryPostCompactVerifier,
   isStructuredMemoryPostCompactVerifier,
+  // Typed Skill/Prompt/Hook/Knowledge evolution boundary
+  EVOLVABLE_ARTIFACT_SCHEMA,
+  EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
+  ARTIFACT_TYPE,
+  ARTIFACT_TYPES,
+  digestEvolvableArtifactValue,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+  isEvolvableArtifactCandidateGate,
+  verifyEvolvableArtifact,
+  projectEvolvableArtifactDependencyChange,
+  createEvolvableArtifactReceipt,
 };

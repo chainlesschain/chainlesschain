@@ -1,0 +1,603 @@
+"use strict";
+
+const crypto = require("node:crypto");
+
+const EVOLVABLE_ARTIFACT_SCHEMA = "chainlesschain.evolvable-artifact/v1";
+const EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA =
+  "chainlesschain.evolvable-artifact-receipt/v1";
+const EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA =
+  "chainlesschain.evolvable-artifact-persistence-receipt/v1";
+const EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA =
+  "chainlesschain.evolvable-artifact-dependency-projection/v1";
+
+const ARTIFACT_TYPE = Object.freeze({
+  SKILL: "skill",
+  PROMPT: "prompt",
+  HOOK: "hook",
+  KNOWLEDGE: "knowledge",
+});
+const ARTIFACT_TYPES = Object.freeze(Object.values(ARTIFACT_TYPE));
+const ARTIFACT_TYPE_SET = new Set(ARTIFACT_TYPES);
+const RECEIPT_KINDS = new Set([
+  "eval",
+  "review",
+  "promotion",
+  "rollback",
+  "revalidation",
+]);
+const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const policyBrands = new WeakSet();
+const authorityBrands = new WeakSet();
+const candidateGateBrands = new WeakSet();
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function digestValue(value) {
+  return `sha256:${crypto.createHash("sha256").update(canonical(value)).digest("hex")}`;
+}
+
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function deepFreeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+  }
+  return value;
+}
+
+function requiredString(value, name) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new TypeError(`${name} is required`);
+  }
+  return value;
+}
+
+function requiredDigest(value, name) {
+  if (!DIGEST.test(value ?? "")) {
+    throw new TypeError(`${name} must be a sha256 digest`);
+  }
+  return value;
+}
+
+function normalizeType(type) {
+  if (!ARTIFACT_TYPE_SET.has(type)) {
+    throw new TypeError("artifact type is invalid");
+  }
+  return type;
+}
+
+function normalizeParent(parent) {
+  if (parent == null) return null;
+  return {
+    artifactId: requiredString(parent.artifactId, "parent.artifactId"),
+    releaseId: requiredString(parent.releaseId, "parent.releaseId"),
+    contentDigest: requiredDigest(parent.contentDigest, "parent.contentDigest"),
+  };
+}
+
+function normalizeDependencyLock(lock) {
+  if (!lock || typeof lock !== "object" || Array.isArray(lock)) {
+    throw new TypeError("dependencyLock is required");
+  }
+  if (!Array.isArray(lock.dependencies)) {
+    throw new TypeError("dependencyLock.dependencies must be an array");
+  }
+  const dependencies = lock.dependencies.map((entry, index) => ({
+    artifactId: requiredString(
+      entry.artifactId,
+      `dependencyLock.dependencies[${index}].artifactId`,
+    ),
+    type: normalizeType(entry.type),
+    releaseId: requiredString(
+      entry.releaseId,
+      `dependencyLock.dependencies[${index}].releaseId`,
+    ),
+    contentDigest: requiredDigest(
+      entry.contentDigest,
+      `dependencyLock.dependencies[${index}].contentDigest`,
+    ),
+  }));
+  dependencies.sort((a, b) => a.artifactId.localeCompare(b.artifactId));
+  if (
+    new Set(dependencies.map((entry) => entry.artifactId)).size !==
+    dependencies.length
+  ) {
+    throw new Error("dependencyLock contains duplicate artifactId entries");
+  }
+  const expectedDigest = digestValue({ dependencies });
+  if (lock.digest !== expectedDigest) {
+    throw new Error("dependencyLock digest does not match its dependencies");
+  }
+  return { digest: expectedDigest, dependencies };
+}
+
+function normalizeManifest(manifest, name) {
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    throw new TypeError(`${name} is required`);
+  }
+  const normalized = clone(manifest);
+  requiredDigest(normalized.digest, `${name}.digest`);
+  const body = Object.fromEntries(
+    Object.entries(normalized).filter(([key]) => key !== "digest"),
+  );
+  if (normalized.digest !== digestValue(body)) {
+    throw new Error(`${name}.digest does not match its manifest body`);
+  }
+  return normalized;
+}
+
+function assertTypeSpecificCandidate(candidate) {
+  if (candidate.type === ARTIFACT_TYPE.HOOK) {
+    for (const field of [
+      "codeSignatureDigest",
+      "sbomDigest",
+      "sandboxDigest",
+      "networkEgressPolicyDigest",
+    ]) {
+      requiredDigest(
+        candidate.runtimeManifest[field],
+        `runtimeManifest.${field}`,
+      );
+    }
+    if (candidate.runtimeManifest.executable !== true) {
+      throw new Error("Hook runtimeManifest must declare executable=true");
+    }
+  }
+  if (candidate.type === ARTIFACT_TYPE.PROMPT) {
+    requiredDigest(
+      candidate.runtimeManifest.dataPolicyDigest,
+      "runtimeManifest.dataPolicyDigest",
+    );
+  }
+}
+
+function normalizeCandidate(input, scopedTenantId, scopedType) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("candidate must be an object");
+  }
+  const tenantId = requiredString(input.tenantId, "tenantId");
+  const type = normalizeType(input.type);
+  if (tenantId !== scopedTenantId)
+    throw new Error("cross-tenant candidate rejected");
+  if (type !== scopedType)
+    throw new Error("cross-type candidate authority rejected");
+  const contentDigest = requiredDigest(input.contentDigest, "contentDigest");
+  if (!Array.isArray(input.lineage) || input.lineage.length === 0) {
+    throw new TypeError(
+      "lineage must contain at least the candidate content digest",
+    );
+  }
+  const lineage = input.lineage.map((entry, index) =>
+    requiredDigest(entry, `lineage[${index}]`),
+  );
+  if (lineage.at(-1) !== contentDigest) {
+    throw new Error("lineage must end at contentDigest");
+  }
+  const candidate = {
+    schema: EVOLVABLE_ARTIFACT_SCHEMA,
+    tenantId,
+    artifactId: requiredString(input.artifactId, "artifactId"),
+    type,
+    contentDigest,
+    parent: normalizeParent(input.parent),
+    lineage,
+    dependencyLock: normalizeDependencyLock(input.dependencyLock),
+    runtimeManifest: normalizeManifest(
+      input.runtimeManifest,
+      "runtimeManifest",
+    ),
+    permissionManifest: normalizeManifest(
+      input.permissionManifest,
+      "permissionManifest",
+    ),
+    candidate: {
+      candidateId: requiredString(input.candidateId, "candidateId"),
+      status: "candidate",
+    },
+    release: null,
+    receipts: { eval: null, review: null, promotion: null },
+    activeReleaseId:
+      input.activeReleaseId == null
+        ? null
+        : requiredString(input.activeReleaseId, "activeReleaseId"),
+    lastKnownGoodReleaseId:
+      input.lastKnownGoodReleaseId == null
+        ? null
+        : requiredString(
+            input.lastKnownGoodReleaseId,
+            "lastKnownGoodReleaseId",
+          ),
+    stale: false,
+    staleReasons: [],
+  };
+  assertTypeSpecificCandidate(candidate);
+  candidate.artifactDigest = digestValue(candidate);
+  return deepFreeze(candidate);
+}
+
+function artifactWithoutDigest(artifact) {
+  return Object.fromEntries(
+    Object.entries(artifact).filter(([key]) => key !== "artifactDigest"),
+  );
+}
+
+function verifyEvolvableArtifact(artifact) {
+  if (
+    artifact?.schema !== EVOLVABLE_ARTIFACT_SCHEMA ||
+    !ARTIFACT_TYPE_SET.has(artifact.type) ||
+    artifact.artifactDigest !== digestValue(artifactWithoutDigest(artifact))
+  ) {
+    throw new Error("EvolvableArtifact verification failed");
+  }
+  return artifact;
+}
+
+function normalizeReceipt(receipt, artifact, kind) {
+  if (receipt?.schema !== EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA) {
+    throw new TypeError(`${kind} receipt schema is invalid`);
+  }
+  if (!RECEIPT_KINDS.has(kind) || receipt.kind !== kind) {
+    throw new TypeError(`${kind} receipt kind is invalid`);
+  }
+  for (const [field, expected] of [
+    ["tenantId", artifact.tenantId],
+    ["artifactId", artifact.artifactId],
+    ["candidateId", artifact.candidate.candidateId],
+    ["contentDigest", artifact.contentDigest],
+    ["dependencyLockDigest", artifact.dependencyLock.digest],
+  ]) {
+    if (receipt[field] !== expected) {
+      throw new Error(`${kind} receipt ${field} binding is invalid`);
+    }
+  }
+  requiredString(receipt.issuerId, `${kind} receipt issuerId`);
+  requiredString(receipt.issuerRevision, `${kind} receipt issuerRevision`);
+  requiredString(receipt.issuedAt, `${kind} receipt issuedAt`);
+  if (receipt.decision !== "allow") {
+    throw new Error(`${kind} receipt did not allow the transition`);
+  }
+  const normalized = clone(receipt);
+  requiredDigest(normalized.receiptDigest, `${kind} receipt receiptDigest`);
+  const body = Object.fromEntries(
+    Object.entries(normalized).filter(([key]) => key !== "receiptDigest"),
+  );
+  if (normalized.receiptDigest !== digestValue(body)) {
+    throw new Error(`${kind} receipt digest is invalid`);
+  }
+  return deepFreeze(normalized);
+}
+
+function assertHookReview(review) {
+  if (
+    review.claims?.riskTier !== "high" ||
+    !Array.isArray(review.claims.approvers)
+  ) {
+    throw new Error("Hook review must be a high-risk human quorum receipt");
+  }
+  const identities = new Set();
+  for (const approver of review.claims.approvers) {
+    identities.add(
+      requiredString(approver.identityId, "Hook approver identityId"),
+    );
+    requiredDigest(approver.signatureDigest, "Hook approver signatureDigest");
+  }
+  if (identities.size < 2) {
+    throw new Error(
+      "Hook activation requires two distinct signed human approvers",
+    );
+  }
+}
+
+function createEvolvableArtifactPolicy({
+  type,
+  revision,
+  admission,
+  evaluator,
+  activation,
+  rollback,
+}) {
+  normalizeType(type);
+  requiredString(revision, "policy revision");
+  for (const [name, method] of Object.entries({
+    admission,
+    evaluator,
+    activation,
+    rollback,
+  })) {
+    if (typeof method !== "function") {
+      throw new TypeError(`policy ${name} must be a function`);
+    }
+  }
+  const policy = Object.freeze({
+    type,
+    revision,
+    admit: admission,
+    evaluate: evaluator,
+    activate: activation,
+    rollBack: rollback,
+  });
+  policyBrands.add(policy);
+  return policy;
+}
+
+function assertPolicyAllowed(result, stage, policy) {
+  if (
+    result?.decision !== "allow" ||
+    result.policyRevision !== policy.revision
+  ) {
+    throw new Error(`${policy.type} ${stage} policy rejected the transition`);
+  }
+}
+
+function evolveArtifact(artifact, patch) {
+  const next = { ...clone(artifact), ...clone(patch) };
+  delete next.artifactDigest;
+  next.artifactDigest = digestValue(next);
+  return deepFreeze(next);
+}
+
+function createEvolvableArtifactAuthority({ tenantId, policy }) {
+  requiredString(tenantId, "tenantId");
+  if (!policyBrands.has(policy)) {
+    throw new TypeError("a branded EvolvableArtifact policy is required");
+  }
+  const authority = Object.freeze({
+    tenantId,
+    type: policy.type,
+    stageCandidate(input) {
+      const candidate = normalizeCandidate(input, tenantId, policy.type);
+      assertPolicyAllowed(policy.admit(candidate), "admission", policy);
+      return candidate;
+    },
+    recordEvaluation(artifact, receipt) {
+      verifyEvolvableArtifact(artifact);
+      if (artifact.tenantId !== tenantId || artifact.type !== policy.type) {
+        throw new Error("artifact is outside this authority scope");
+      }
+      if (artifact.stale) throw new Error("stale artifact must be revalidated");
+      const evaluation = normalizeReceipt(receipt, artifact, "eval");
+      assertPolicyAllowed(
+        policy.evaluate({ artifact, receipt: evaluation }),
+        "evaluator",
+        policy,
+      );
+      return evolveArtifact(artifact, {
+        receipts: { ...artifact.receipts, eval: evaluation },
+      });
+    },
+    activateCandidate(
+      artifact,
+      { reviewReceipt, promotionReceipt, releaseId },
+    ) {
+      verifyEvolvableArtifact(artifact);
+      if (artifact.tenantId !== tenantId || artifact.type !== policy.type) {
+        throw new Error("artifact is outside this authority scope");
+      }
+      if (artifact.stale) throw new Error("stale artifact must be revalidated");
+      if (!artifact.receipts.eval)
+        throw new Error("evaluation receipt is required");
+      const review = normalizeReceipt(reviewReceipt, artifact, "review");
+      const promotion = normalizeReceipt(
+        promotionReceipt,
+        artifact,
+        "promotion",
+      );
+      if (artifact.type === ARTIFACT_TYPE.HOOK) assertHookReview(review);
+      assertPolicyAllowed(
+        policy.activate({
+          artifact,
+          reviewReceipt: review,
+          promotionReceipt: promotion,
+        }),
+        "activation",
+        policy,
+      );
+      const nextReleaseId = requiredString(releaseId, "releaseId");
+      return evolveArtifact(artifact, {
+        candidate: { ...artifact.candidate, status: "promoted" },
+        release: {
+          releaseId: nextReleaseId,
+          contentDigest: artifact.contentDigest,
+          dependencyLockDigest: artifact.dependencyLock.digest,
+          status: "active",
+        },
+        receipts: {
+          eval: artifact.receipts.eval,
+          review,
+          promotion,
+        },
+        activeReleaseId: nextReleaseId,
+        lastKnownGoodReleaseId:
+          artifact.activeReleaseId ?? artifact.lastKnownGoodReleaseId,
+      });
+    },
+    rollBack(artifact, { rollbackReceipt, targetReleaseId }) {
+      verifyEvolvableArtifact(artifact);
+      if (artifact.tenantId !== tenantId || artifact.type !== policy.type) {
+        throw new Error("artifact is outside this authority scope");
+      }
+      const receipt = normalizeReceipt(rollbackReceipt, artifact, "rollback");
+      const target = requiredString(targetReleaseId, "targetReleaseId");
+      if (target !== artifact.lastKnownGoodReleaseId) {
+        throw new Error("rollback target must be the last-known-good release");
+      }
+      assertPolicyAllowed(
+        policy.rollBack({ artifact, receipt, targetReleaseId: target }),
+        "rollback",
+        policy,
+      );
+      return evolveArtifact(artifact, {
+        release: { ...artifact.release, status: "rolled-back" },
+        activeReleaseId: target,
+        lastKnownGoodReleaseId: artifact.activeReleaseId,
+      });
+    },
+  });
+  authorityBrands.add(authority);
+  return authority;
+}
+
+function verifyPersistenceReceipt(receipt, artifact) {
+  if (
+    receipt?.schema !== EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA ||
+    receipt.tenantId !== artifact.tenantId ||
+    receipt.type !== artifact.type ||
+    receipt.artifactId !== artifact.artifactId ||
+    receipt.candidateId !== artifact.candidate.candidateId ||
+    receipt.contentDigest !== artifact.contentDigest ||
+    receipt.artifactDigest !== artifact.artifactDigest ||
+    receipt.status !== "candidate" ||
+    receipt.persisted !== true
+  ) {
+    throw new Error("candidate persistence receipt is invalid");
+  }
+  return deepFreeze(clone(receipt));
+}
+
+function createEvolvableArtifactCandidateGate({ authority, candidateWriter }) {
+  if (!authorityBrands.has(authority)) {
+    throw new TypeError("a branded EvolvableArtifact authority is required");
+  }
+  if (
+    !candidateWriter ||
+    typeof candidateWriter.persistCandidate !== "function"
+  ) {
+    throw new TypeError("candidateWriter.persistCandidate is required");
+  }
+  const gate = Object.freeze({
+    tenantId: authority.tenantId,
+    type: authority.type,
+    async stageCandidate(input, content = undefined) {
+      const artifact = authority.stageCandidate(input);
+      if (
+        content !== undefined &&
+        digestValue(content) !== artifact.contentDigest
+      ) {
+        throw new Error("candidate content does not match contentDigest");
+      }
+      const receipt = verifyPersistenceReceipt(
+        await candidateWriter.persistCandidate(artifact, content),
+        artifact,
+      );
+      return deepFreeze({ artifact, receipt });
+    },
+  });
+  candidateGateBrands.add(gate);
+  return gate;
+}
+
+function isEvolvableArtifactCandidateGate(value, type = null) {
+  return (
+    candidateGateBrands.has(value) &&
+    (type == null || value.type === normalizeType(type))
+  );
+}
+
+function projectEvolvableArtifactDependencyChange(
+  artifacts,
+  changedDependency,
+) {
+  if (!Array.isArray(artifacts))
+    throw new TypeError("artifacts must be an array");
+  const verified = artifacts.map(verifyEvolvableArtifact);
+  const changedId = requiredString(
+    changedDependency.artifactId,
+    "changed artifactId",
+  );
+  const releaseId = requiredString(
+    changedDependency.releaseId,
+    "changed releaseId",
+  );
+  const contentDigest = requiredDigest(
+    changedDependency.contentDigest,
+    "changed contentDigest",
+  );
+  const staleIds = new Set();
+  const reasons = new Map();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const artifact of verified) {
+      if (staleIds.has(artifact.artifactId)) continue;
+      const mismatches = artifact.dependencyLock.dependencies.filter(
+        (dependency) =>
+          dependency.artifactId === changedId
+            ? dependency.releaseId !== releaseId ||
+              dependency.contentDigest !== contentDigest
+            : staleIds.has(dependency.artifactId),
+      );
+      if (mismatches.length > 0) {
+        staleIds.add(artifact.artifactId);
+        reasons.set(
+          artifact.artifactId,
+          mismatches.map((dependency) => `dependency:${dependency.artifactId}`),
+        );
+        changed = true;
+      }
+    }
+  }
+  const projected = verified.map((artifact) =>
+    staleIds.has(artifact.artifactId)
+      ? evolveArtifact(artifact, {
+          stale: true,
+          staleReasons: reasons.get(artifact.artifactId),
+        })
+      : artifact,
+  );
+  return deepFreeze({
+    schema: EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
+    changedDependency: { artifactId: changedId, releaseId, contentDigest },
+    staleArtifactIds: [...staleIds].sort(),
+    artifacts: projected,
+    projectionDigest: digestValue(
+      projected.map((artifact) => artifact.artifactDigest),
+    ),
+  });
+}
+
+function createEvolvableArtifactReceipt(input) {
+  const body = {
+    schema: EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA,
+    kind: input.kind,
+    tenantId: input.tenantId,
+    artifactId: input.artifactId,
+    candidateId: input.candidateId,
+    contentDigest: input.contentDigest,
+    dependencyLockDigest: input.dependencyLockDigest,
+    issuerId: input.issuerId,
+    issuerRevision: input.issuerRevision,
+    issuedAt: input.issuedAt,
+    decision: input.decision,
+    claims: clone(input.claims ?? {}),
+  };
+  if (!RECEIPT_KINDS.has(body.kind))
+    throw new TypeError("receipt kind is invalid");
+  return deepFreeze({ ...body, receiptDigest: digestValue(body) });
+}
+
+module.exports = {
+  EVOLVABLE_ARTIFACT_SCHEMA,
+  EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
+  ARTIFACT_TYPE,
+  ARTIFACT_TYPES,
+  digestEvolvableArtifactValue: digestValue,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+  isEvolvableArtifactCandidateGate,
+  verifyEvolvableArtifact,
+  projectEvolvableArtifactDependencyChange,
+  createEvolvableArtifactReceipt,
+};

@@ -6,8 +6,34 @@
  * @module hooks/hooks-ipc
  */
 
-const { ipcMain } = require('electron');
-const { getHookSystem, HookType } = require('./index');
+const electron = require("electron");
+const ipcMain = electron.ipcMain || electron.default?.ipcMain;
+const { getHookSystem, HookType } = require("./index");
+const {
+  ARTIFACT_TYPE,
+  digestEvolvableArtifactValue,
+  isEvolvableArtifactCandidateGate,
+} = require("@chainlesschain/session-core/evolvable-artifact");
+
+function directHookActivationDenied(message) {
+  const error = new Error(message);
+  error.code = "CC_HOOK_DIRECT_ACTIVATION_DENIED";
+  return error;
+}
+
+function hookCandidateContent(hookConfig) {
+  return {
+    event: hookConfig.event,
+    type: hookConfig.type,
+    command: hookConfig.type === HookType.COMMAND ? hookConfig.command : null,
+    script: hookConfig.type === HookType.SCRIPT ? hookConfig.script : null,
+    matcher: hookConfig.matcher ?? null,
+    priority: hookConfig.priority ?? null,
+    timeout: hookConfig.timeout ?? null,
+    environmentAllowlist: hookConfig.environmentAllowlist ?? [],
+    envAllowlist: hookConfig.envAllowlist ?? [],
+  };
+}
 
 /**
  * 注册钩子系统 IPC 处理器
@@ -16,6 +42,19 @@ const { getHookSystem, HookType } = require('./index');
  */
 function registerHooksIPC(dependencies = {}) {
   const hookSystem = dependencies.hookSystem || getHookSystem();
+  const hostIpcMain = dependencies.ipcMain || ipcMain;
+  if (!hostIpcMain || typeof hostIpcMain.handle !== "function") {
+    throw new TypeError("Hooks IPC requires ipcMain.handle");
+  }
+  const artifactCandidateGate = dependencies.artifactCandidateGate || null;
+  if (
+    artifactCandidateGate != null &&
+    !isEvolvableArtifactCandidateGate(artifactCandidateGate, ARTIFACT_TYPE.HOOK)
+  ) {
+    throw new TypeError(
+      "Hooks IPC requires a branded Hook EvolvableArtifact candidate gate",
+    );
+  }
 
   /**
    * 获取钩子列表
@@ -25,7 +64,7 @@ function registerHooksIPC(dependencies = {}) {
    * @param {boolean} [options.enabledOnly] 仅返回启用的
    * @returns {Array} 钩子列表
    */
-  ipcMain.handle('hooks:list', async (event, options = {}) => {
+  hostIpcMain.handle("hooks:list", async (event, options = {}) => {
     return hookSystem.listHooks(options);
   });
 
@@ -35,7 +74,7 @@ function registerHooksIPC(dependencies = {}) {
    * @param {string} hookId 钩子ID
    * @returns {Object|null} 钩子信息
    */
-  ipcMain.handle('hooks:get', async (event, hookId) => {
+  hostIpcMain.handle("hooks:get", async (event, hookId) => {
     return hookSystem.getHook(hookId);
   });
 
@@ -44,7 +83,7 @@ function registerHooksIPC(dependencies = {}) {
    * @channel hooks:stats
    * @returns {Object} 统计信息
    */
-  ipcMain.handle('hooks:stats', async () => {
+  hostIpcMain.handle("hooks:stats", async () => {
     return hookSystem.getStats();
   });
 
@@ -53,7 +92,7 @@ function registerHooksIPC(dependencies = {}) {
    * @channel hooks:event-types
    * @returns {string[]} 事件类型列表
    */
-  ipcMain.handle('hooks:event-types', async () => {
+  hostIpcMain.handle("hooks:event-types", async () => {
     return hookSystem.getEventTypes();
   });
 
@@ -65,16 +104,29 @@ function registerHooksIPC(dependencies = {}) {
    * @param {boolean} params.enabled 是否启用
    * @returns {boolean} 是否成功
    */
-  ipcMain.handle('hooks:set-enabled', async (event, { hookId, enabled }) => {
-    return hookSystem.setHookEnabled(hookId, enabled);
-  });
+  hostIpcMain.handle(
+    "hooks:set-enabled",
+    async (event, { hookId, enabled }) => {
+      if (enabled === true) {
+        throw directHookActivationDenied(
+          "Direct Hook activation via IPC is denied; promote a governed Hook candidate",
+        );
+      }
+      return hookSystem.setHookEnabled(hookId, enabled);
+    },
+  );
 
   /**
    * 启用/禁用全局钩子
    * @channel hooks:set-global-enabled
    * @param {boolean} enabled 是否启用
    */
-  ipcMain.handle('hooks:set-global-enabled', async (event, enabled) => {
+  hostIpcMain.handle("hooks:set-global-enabled", async (event, enabled) => {
+    if (enabled === true) {
+      throw directHookActivationDenied(
+        "Direct global Hook activation via IPC is denied",
+      );
+    }
     hookSystem.setEnabled(enabled);
     return hookSystem.isEnabled();
   });
@@ -84,7 +136,7 @@ function registerHooksIPC(dependencies = {}) {
    * @channel hooks:is-enabled
    * @returns {boolean}
    */
-  ipcMain.handle('hooks:is-enabled', async () => {
+  hostIpcMain.handle("hooks:is-enabled", async () => {
     return hookSystem.isEnabled();
   });
 
@@ -94,26 +146,71 @@ function registerHooksIPC(dependencies = {}) {
    * @param {Object} hookConfig 钩子配置
    * @returns {string} 钩子ID
    */
-  ipcMain.handle('hooks:register', async (event, hookConfig) => {
+  hostIpcMain.handle("hooks:register", async (event, hookConfig) => {
     // 安全检查: 只允许注册命令和脚本类型钩子
-    if (hookConfig.type !== HookType.COMMAND && hookConfig.type !== HookType.SCRIPT) {
-      throw new Error('Only command and script hooks can be registered via IPC for security reasons');
+    if (
+      hookConfig.type !== HookType.COMMAND &&
+      hookConfig.type !== HookType.SCRIPT
+    ) {
+      throw new Error(
+        "Only command and script hooks can be registered via IPC for security reasons",
+      );
     }
 
     // 验证必需字段
     if (!hookConfig.event) {
-      throw new Error('Hook event is required');
+      throw new Error("Hook event is required");
     }
 
     if (hookConfig.type === HookType.COMMAND && !hookConfig.command) {
-      throw new Error('Command is required for command hooks');
+      throw new Error("Command is required for command hooks");
     }
 
     if (hookConfig.type === HookType.SCRIPT && !hookConfig.script) {
-      throw new Error('Script path is required for script hooks');
+      throw new Error("Script path is required for script hooks");
     }
 
-    return hookSystem.register(hookConfig);
+    if (!artifactCandidateGate) {
+      const error = new Error(
+        "Hook evolution candidate gate is unavailable; direct registration is denied",
+      );
+      error.code = "CC_HOOK_EVOLUTION_CANDIDATE_GATE_UNAVAILABLE";
+      throw error;
+    }
+    if (
+      !hookConfig.artifactCandidate ||
+      typeof hookConfig.artifactCandidate !== "object"
+    ) {
+      throw new Error(
+        "artifactCandidate metadata is required for governed Hook evolution",
+      );
+    }
+    const content = hookCandidateContent(hookConfig);
+    const contentDigest = digestEvolvableArtifactValue(content);
+    const candidateId = hookConfig.artifactCandidate.candidateId;
+    const artifactId = hookConfig.artifactCandidate.artifactId;
+    const staged = await artifactCandidateGate.stageCandidate(
+      {
+        ...hookConfig.artifactCandidate,
+        tenantId: artifactCandidateGate.tenantId,
+        type: ARTIFACT_TYPE.HOOK,
+        artifactId,
+        candidateId,
+        contentDigest,
+        lineage: [
+          ...(hookConfig.artifactCandidate.lineage || []),
+          contentDigest,
+        ],
+      },
+      content,
+    );
+    return {
+      candidateId: staged.artifact.candidate.candidateId,
+      lifecycle: "candidate",
+      activeMutation: false,
+      artifactDigest: staged.artifact.artifactDigest,
+      persistenceReceipt: staged.receipt,
+    };
   });
 
   /**
@@ -122,7 +219,7 @@ function registerHooksIPC(dependencies = {}) {
    * @param {string} hookId 钩子ID
    * @returns {boolean} 是否成功
    */
-  ipcMain.handle('hooks:unregister', async (event, hookId) => {
+  hostIpcMain.handle("hooks:unregister", async (event, hookId) => {
     return hookSystem.unregister(hookId);
   });
 
@@ -135,24 +232,28 @@ function registerHooksIPC(dependencies = {}) {
    * @param {Object} params.context 执行上下文
    * @returns {Object} 执行结果
    */
-  ipcMain.handle('hooks:trigger', async (event, { eventName, data = {}, context = {} }) => {
-    // 添加安全上下文标记
-    const safeContext = {
-      ...context,
-      triggeredViaIPC: true,
-      timestamp: Date.now(),
-    };
+  hostIpcMain.handle(
+    "hooks:trigger",
+    async (event, { eventName, data = {}, context = {} }) => {
+      // 添加安全上下文标记
+      const safeContext = {
+        ...context,
+        triggeredViaIPC: true,
+        timestamp: Date.now(),
+      };
 
-    return hookSystem.trigger(eventName, data, safeContext);
-  });
+      return hookSystem.trigger(eventName, data, safeContext);
+    },
+  );
 
   /**
    * 重新加载钩子配置
    * @channel hooks:reload
    */
-  ipcMain.handle('hooks:reload', async () => {
-    await hookSystem.reload();
-    return { success: true, hookCount: hookSystem.listHooks().length };
+  hostIpcMain.handle("hooks:reload", async () => {
+    throw directHookActivationDenied(
+      "Hook config reload via renderer IPC is denied; use the trusted host boundary",
+    );
   });
 
   /**
@@ -161,7 +262,7 @@ function registerHooksIPC(dependencies = {}) {
    * @param {string} hookId 钩子ID
    * @returns {boolean} 是否成功
    */
-  ipcMain.handle('hooks:cancel', async (event, hookId) => {
+  hostIpcMain.handle("hooks:cancel", async (event, hookId) => {
     return hookSystem.cancelHook(hookId);
   });
 
@@ -169,7 +270,7 @@ function registerHooksIPC(dependencies = {}) {
    * 取消所有正在运行的钩子
    * @channel hooks:cancel-all
    */
-  ipcMain.handle('hooks:cancel-all', async () => {
+  hostIpcMain.handle("hooks:cancel-all", async () => {
     hookSystem.cancelAll();
     return { success: true };
   });
@@ -177,7 +278,7 @@ function registerHooksIPC(dependencies = {}) {
   // 设置事件转发到渲染进程
   setupEventForwarding(hookSystem);
 
-  console.log('[HooksIPC] Registered all hooks IPC handlers');
+  console.log("[HooksIPC] Registered all hooks IPC handlers");
 }
 
 /**
@@ -185,7 +286,9 @@ function registerHooksIPC(dependencies = {}) {
  * @param {HookSystem} hookSystem
  */
 function setupEventForwarding(hookSystem) {
-  const { BrowserWindow } = require('electron');
+  const electronRuntime = require("electron");
+  const BrowserWindow =
+    electronRuntime.BrowserWindow || electronRuntime.default?.BrowserWindow;
 
   const forwardEvent = (eventName, data) => {
     const windows = BrowserWindow.getAllWindows();
@@ -197,12 +300,20 @@ function setupEventForwarding(hookSystem) {
   };
 
   // 转发关键事件
-  hookSystem.on('hook-registered', (data) => forwardEvent('registered', data));
-  hookSystem.on('hook-unregistered', (data) => forwardEvent('unregistered', data));
-  hookSystem.on('hook-status-changed', (data) => forwardEvent('status-changed', data));
-  hookSystem.on('execution-start', (data) => forwardEvent('execution-start', data));
-  hookSystem.on('execution-complete', (data) => forwardEvent('execution-complete', data));
-  hookSystem.on('hook-error', (data) => forwardEvent('error', data));
+  hookSystem.on("hook-registered", (data) => forwardEvent("registered", data));
+  hookSystem.on("hook-unregistered", (data) =>
+    forwardEvent("unregistered", data),
+  );
+  hookSystem.on("hook-status-changed", (data) =>
+    forwardEvent("status-changed", data),
+  );
+  hookSystem.on("execution-start", (data) =>
+    forwardEvent("execution-start", data),
+  );
+  hookSystem.on("execution-complete", (data) =>
+    forwardEvent("execution-complete", data),
+  );
+  hookSystem.on("hook-error", (data) => forwardEvent("error", data));
 }
 
 module.exports = {
