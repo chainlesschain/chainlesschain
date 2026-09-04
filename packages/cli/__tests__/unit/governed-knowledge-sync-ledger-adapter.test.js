@@ -365,7 +365,7 @@ function backends(deviceId = "device:a") {
       },
     },
   });
-  const state = { events: [], loseResponse: false };
+  const state = { events: [], failTypeOnce: null, loseResponse: false };
   const ledger = {
     read: () => structuredClone(state.events),
     verify: () => ({
@@ -375,6 +375,10 @@ function backends(deviceId = "device:a") {
       headDigest: state.events.at(-1)?.eventDigest ?? null,
     }),
     appendDomainEvent: (input, expected) => {
+      if (state.failTypeOnce === input.type) {
+        state.failTypeOnce = null;
+        throw new Error("simulated append failure");
+      }
       if (
         expected.expectedSequence !== state.events.length ||
         expected.expectedHeadDigest !==
@@ -1143,6 +1147,53 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     });
   });
 
+  it("resumes an accepted reception after sync commit but before artifact activation", async () => {
+    const crypto = cryptoPorts();
+    const sender = controller(backends("device:a"), crypto);
+    const envelope = await sender.controller.publish(knowledge());
+    const receiverStorage = backends("device:b");
+    const first = controller(receiverStorage, crypto);
+    receiverStorage.state.failTypeOnce = EVOLVABLE_ARTIFACT_TRANSITION_EVENT;
+
+    await expect(first.controller.receive(envelope)).rejects.toThrow(
+      "simulated append failure",
+    );
+    await expect(
+      first.persisted.getReception({
+        envelopeDigest: envelope.envelopeDigest,
+      }),
+    ).resolves.toMatchObject({
+      disposition: "remote",
+      artifactBinding: {
+        operation: "receive",
+        activate: true,
+        baseline: null,
+      },
+    });
+    expect(
+      receiverStorage.state.events.filter(
+        ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+      ),
+    ).toHaveLength(0);
+
+    delete receiverStorage.artifactLifecycle;
+    const reopened = controller(receiverStorage, crypto);
+    await expect(reopened.controller.receive(envelope)).resolves.toMatchObject({
+      applied: true,
+      recovered: true,
+      artifact: { candidateOnly: false },
+    });
+    await expect(reopened.controller.receive(envelope)).resolves.toMatchObject({
+      applied: true,
+      recovered: true,
+    });
+    expect(
+      receiverStorage.state.events.filter(
+        ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+      ),
+    ).toHaveLength(1);
+  });
+
   it("builds only an independently authenticated exact human merge plan", async () => {
     const crypto = cryptoPorts();
     const senderStorage = backends("device:a");
@@ -1558,8 +1609,8 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     ).resolves.toMatchObject({ durable: true, recovered: true });
     expect(publisher.provider.publish).toHaveBeenCalledOnce();
     expect(reopenedLedger.verify()).toMatchObject({
-      eventCount: 6,
-      sequence: 6,
+      eventCount: 7,
+      sequence: 7,
     });
   });
 
@@ -1848,6 +1899,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       authorizationReceiptDigest: D("authorization"),
       artifactBinding: {
         schema: GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA,
+        activate: true,
         operationId: "raw-adapter-recovery",
         operation: "publish",
         issuedAt: "2026-09-04T00:00:00.000Z",

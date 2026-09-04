@@ -9,6 +9,8 @@ export const GOVERNED_KNOWLEDGE_SYNC_SCHEMA =
 export const GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-envelope/v1";
 export const GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA =
+  "chainlesschain.governed-knowledge-artifact-binding/v2";
+export const GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_LEGACY_SCHEMA =
   "chainlesschain.governed-knowledge-artifact-binding/v1";
 export const GOVERNED_KNOWLEDGE_SCOPE = Object.freeze({
   PERSONAL: "personal",
@@ -41,6 +43,7 @@ const ENVELOPE_KEYS = new Set([
   "vectorClock",
 ]);
 const ARTIFACT_BINDING_KEYS = new Set([
+  "activate",
   "authorizationReceiptDigest",
   "baseline",
   "evidenceDigest",
@@ -50,6 +53,9 @@ const ARTIFACT_BINDING_KEYS = new Set([
   "operation",
   "schema",
 ]);
+const LEGACY_ARTIFACT_BINDING_KEYS = new Set(
+  [...ARTIFACT_BINDING_KEYS].filter((key) => key !== "activate"),
+);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -229,6 +235,12 @@ export function verifyGovernedKnowledgeArtifactBinding(
     tenantId: expectedTenantId,
   });
   const keys = Reflect.ownKeys(input);
+  const current = input.schema === GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA;
+  const legacy =
+    input.schema === GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_LEGACY_SCHEMA;
+  const expectedKeys = current
+    ? ARTIFACT_BINDING_KEYS
+    : LEGACY_ARTIFACT_BINDING_KEYS;
   const baseline =
     input.baseline === null
       ? null
@@ -236,13 +248,14 @@ export function verifyGovernedKnowledgeArtifactBinding(
           tenantId: expectedTenantId,
         });
   if (
-    input.schema !== GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA ||
-    keys.length !== ARTIFACT_BINDING_KEYS.size ||
-    keys.some(
-      (key) => typeof key !== "string" || !ARTIFACT_BINDING_KEYS.has(key),
-    ) ||
+    (!current && !legacy) ||
+    keys.length !== expectedKeys.size ||
+    keys.some((key) => typeof key !== "string" || !expectedKeys.has(key)) ||
     !ID.test(input.operationId ?? "") ||
-    !["publish", "merge"].includes(input.operation) ||
+    !(
+      current ? ["publish", "merge", "receive"] : ["publish", "merge"]
+    ).includes(input.operation) ||
+    (current && typeof input.activate !== "boolean") ||
     !Number.isFinite(Date.parse(input.issuedAt)) ||
     input.authorizationReceiptDigest !== authorizationReceiptDigest ||
     !DIGEST.test(input.authorizationReceiptDigest ?? "") ||
@@ -325,6 +338,7 @@ export class GovernedKnowledgeSync {
       ports?.loadPublication === undefined
         ? null
         : capture(ports, "loadPublication");
+    this._loadReception = capture(ports, "loadReception");
     if (!isGovernedKnowledgeArtifactLifecycle(artifactLifecycle)) {
       throw new TypeError(
         "a branded governed Knowledge artifact lifecycle is required",
@@ -437,6 +451,7 @@ export class GovernedKnowledgeSync {
       throw new TypeError("knowledge sync clock is invalid");
     const binding = freeze({
       schema: GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA,
+      activate: true,
       operationId: effectiveOperationId,
       operation: artifactOperation,
       issuedAt: new Date(milliseconds).toISOString(),
@@ -546,6 +561,60 @@ export class GovernedKnowledgeSync {
     )
       throw new Error("knowledge envelope substituted its governed record");
     const admission = await this._admit("receive", knowledge);
+    const existing = await this._loadReception({
+      envelopeDigest: envelope.envelopeDigest,
+    });
+    if (existing) {
+      const comparable = { ...existing.knowledge };
+      delete comparable.conflictWithDigest;
+      if (
+        !["remote", "conflict"].includes(existing.disposition) ||
+        existing.envelopeDigest !== envelope.envelopeDigest ||
+        canonical(comparable) !== canonical(knowledge)
+      ) {
+        throw new Error("receive envelope resolved different knowledge");
+      }
+      const binding = verifyGovernedKnowledgeArtifactBinding(
+        existing.artifactBinding,
+        {
+          tenantId: this.tenantId,
+          knowledge,
+          authorizationReceiptDigest: existing.authorizationReceiptDigest,
+        },
+      );
+      if (
+        binding.operation !== "receive" ||
+        binding.activate !== (existing.disposition === "remote")
+      ) {
+        throw new Error("receive artifact recovery binding differs");
+      }
+      const prepared = await this._prepareArtifact({
+        knowledge,
+        currentKnowledge: binding.baseline,
+        operation: binding.operation,
+        operationId: binding.operationId,
+        authorizationReceiptDigest: binding.authorizationReceiptDigest,
+        evidenceDigest: binding.evidenceDigest,
+        issuedAt: binding.issuedAt,
+        activate: binding.activate,
+        humanReviewed: binding.humanReviewed,
+      });
+      const artifact = await this._commitArtifact(prepared);
+      return existing.disposition === "conflict"
+        ? freeze({
+            applied: false,
+            reason: "conflict",
+            requiresHumanMerge: true,
+            recovered: true,
+            artifact: clone(artifact),
+          })
+        : freeze({
+            applied: true,
+            action: knowledge.action,
+            recovered: true,
+            artifact: clone(artifact),
+          });
+    }
     const current = await this._load({ knowledgeId: knowledge.knowledgeId });
     if (current) {
       const order = relation(current.vectorClock, knowledge.vectorClock);
@@ -556,22 +625,105 @@ export class GovernedKnowledgeSync {
         return freeze({ applied: false, reason: "replay" });
       }
       if (order === "concurrent") {
+        const binding = this._receiveArtifactBinding({
+          knowledge,
+          current,
+          admission,
+          envelope,
+          activate: false,
+        });
+        const prepared = await this._prepareArtifact({
+          knowledge,
+          currentKnowledge: binding.baseline,
+          operation: binding.operation,
+          operationId: binding.operationId,
+          authorizationReceiptDigest: binding.authorizationReceiptDigest,
+          evidenceDigest: binding.evidenceDigest,
+          issuedAt: binding.issuedAt,
+          activate: binding.activate,
+          humanReviewed: binding.humanReviewed,
+        });
         await this._persist(
           { ...knowledge, conflictWithDigest: current.contentDigest },
           envelope,
           "conflict",
           admission,
+          null,
+          binding,
         );
+        const artifact = await this._commitArtifact(prepared);
         return freeze({
           applied: false,
           reason: "conflict",
           requiresHumanMerge: true,
+          recovered: false,
+          artifact: clone(artifact),
         });
       }
     }
+    const binding = this._receiveArtifactBinding({
+      knowledge,
+      current,
+      admission,
+      envelope,
+      activate: true,
+    });
+    const prepared = await this._prepareArtifact({
+      knowledge,
+      currentKnowledge: binding.baseline,
+      operation: binding.operation,
+      operationId: binding.operationId,
+      authorizationReceiptDigest: binding.authorizationReceiptDigest,
+      evidenceDigest: binding.evidenceDigest,
+      issuedAt: binding.issuedAt,
+      activate: binding.activate,
+      humanReviewed: binding.humanReviewed,
+    });
     await this._applyRevocationDependencies(knowledge);
-    await this._persist(knowledge, envelope, "remote", admission);
-    return freeze({ applied: true, action: knowledge.action });
+    await this._persist(
+      knowledge,
+      envelope,
+      "remote",
+      admission,
+      null,
+      binding,
+    );
+    const artifact = await this._commitArtifact(prepared);
+    return freeze({
+      applied: true,
+      action: knowledge.action,
+      recovered: false,
+      artifact: clone(artifact),
+    });
+  }
+
+  _receiveArtifactBinding({
+    knowledge,
+    current,
+    admission,
+    envelope,
+    activate,
+  }) {
+    const milliseconds = Number(this._clock());
+    if (!Number.isFinite(milliseconds))
+      throw new TypeError("knowledge sync clock is invalid");
+    const binding = freeze({
+      schema: GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA,
+      activate,
+      operationId: `knowledge-receive:${envelope.envelopeDigest.slice(7)}`,
+      operation: "receive",
+      issuedAt: new Date(milliseconds).toISOString(),
+      authorizationReceiptDigest: admission.receiptDigest,
+      evidenceDigest: envelope.envelopeDigest,
+      humanReviewed: false,
+      baseline: current === null ? null : clone(current),
+    });
+    verifyGovernedKnowledgeArtifactBinding(binding, {
+      tenantId: this.tenantId,
+      knowledge,
+      authorizationReceiptDigest: admission.receiptDigest,
+    });
+    return binding;
   }
 
   async _admit(operation, knowledge) {

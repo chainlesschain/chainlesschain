@@ -50,6 +50,7 @@ function knowledge(overrides = {}) {
 
 function harness({ deviceId = "device:a", initial = null } = {}) {
   const records = new Map(initial ? [[initial.knowledgeId, initial]] : []);
+  const receptions = new Map();
   const sent = [];
   const ports = {
     authorize: vi.fn(async ({ knowledge: value }) => ({
@@ -80,8 +81,16 @@ function harness({ deviceId = "device:a", initial = null } = {}) {
         signature === `signature:${envelopeDigest}`,
     ),
     load: vi.fn(async ({ knowledgeId }) => records.get(knowledgeId) || null),
-    commit: vi.fn(async ({ knowledge: value, envelopeDigest, disposition }) => {
+    commit: vi.fn(async (request) => {
+      const { knowledge: value, envelopeDigest, disposition } = request;
       if (disposition !== "conflict") records.set(value.knowledgeId, value);
+      if (["remote", "conflict"].includes(disposition)) {
+        receptions.set(envelopeDigest, {
+          ...structuredClone(request),
+          tenantId: "tenant:a",
+          deviceId,
+        });
+      }
       return {
         authenticated: true,
         durable: true,
@@ -89,6 +98,9 @@ function harness({ deviceId = "device:a", initial = null } = {}) {
         knowledgeId: value.knowledgeId,
       };
     }),
+    loadReception: vi.fn(
+      async ({ envelopeDigest }) => receptions.get(envelopeDigest) ?? null,
+    ),
     send: vi.fn(async ({ envelope }) => {
       sent.push(envelope);
       return { durable: true, envelopeDigest: envelope.envelopeDigest };
@@ -104,6 +116,7 @@ function harness({ deviceId = "device:a", initial = null } = {}) {
     }),
     ports,
     records,
+    receptions,
     sent,
   };
 }
@@ -204,9 +217,11 @@ describe("Governed evolution knowledge synchronization", () => {
     const sender = harness();
     const envelope = await sender.controller.publish(knowledge());
     const receiver = harness({ deviceId: "device:b" });
-    await expect(receiver.controller.receive(envelope)).resolves.toEqual({
+    await expect(receiver.controller.receive(envelope)).resolves.toMatchObject({
       applied: true,
       action: "upsert",
+      recovered: false,
+      artifact: { candidateOnly: false },
     });
     await expect(
       receiver.controller.receive({ ...envelope, tenantId: "tenant:b" }),
@@ -220,6 +235,20 @@ describe("Governed evolution knowledge synchronization", () => {
         ciphertext: Buffer.from("substituted").toString("base64"),
       }),
     ).rejects.toThrow("unauthenticated or cross-tenant");
+  });
+
+  it("recovers an authenticated reception idempotently without another sync commit", async () => {
+    const sender = harness();
+    const envelope = await sender.controller.publish(knowledge());
+    const receiver = harness({ deviceId: "device:b" });
+    await receiver.controller.receive(envelope);
+    await expect(receiver.controller.receive(envelope)).resolves.toMatchObject({
+      applied: true,
+      recovered: true,
+      artifact: { candidateOnly: false },
+    });
+    expect(receiver.ports.commit).toHaveBeenCalledOnce();
+    expect(receiver.receptions.size).toBe(1);
   });
 
   it("rejects signed envelope metadata substitution and non-canonical base64", async () => {
@@ -263,17 +292,19 @@ describe("Governed evolution knowledge synchronization", () => {
     const envelope = await sender.controller.publish(
       knowledge({ vectorClock: { "device:a": 2 } }),
     );
-    const receiver = harness({
-      deviceId: "device:b",
-      initial: knowledge({
+    const receiver = harness({ deviceId: "device:b" });
+    await receiver.controller.publish(
+      knowledge({
         contentDigest: D("content:b"),
         vectorClock: { "device:b": 2 },
       }),
-    });
-    await expect(receiver.controller.receive(envelope)).resolves.toEqual({
+    );
+    await expect(receiver.controller.receive(envelope)).resolves.toMatchObject({
       applied: false,
       reason: "conflict",
       requiresHumanMerge: true,
+      recovered: false,
+      artifact: { candidateOnly: true },
     });
     expect(receiver.ports.commit).toHaveBeenCalledWith(
       expect.objectContaining({ disposition: "conflict" }),

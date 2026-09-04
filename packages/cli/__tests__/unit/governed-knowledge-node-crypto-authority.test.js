@@ -79,6 +79,7 @@ function fixture() {
 
 function controller(deviceId, cryptoAuthority, { initial = null } = {}) {
   const records = new Map(initial ? [[initial.knowledgeId, initial]] : []);
+  const receptions = new Map();
   const sent = [];
   const authorize = vi.fn(async ({ knowledge: value }) => ({
     authenticated: true,
@@ -105,8 +106,16 @@ function controller(deviceId, cryptoAuthority, { initial = null } = {}) {
         sign: cryptoAuthority.sign,
         verify: cryptoAuthority.verify,
         load: async ({ knowledgeId }) => records.get(knowledgeId) ?? null,
-        commit: async ({ knowledge: value, envelopeDigest, disposition }) => {
+        commit: async (request) => {
+          const { knowledge: value, envelopeDigest, disposition } = request;
           if (disposition !== "conflict") records.set(value.knowledgeId, value);
+          if (["remote", "conflict"].includes(disposition)) {
+            receptions.set(envelopeDigest, {
+              ...structuredClone(request),
+              tenantId: "tenant:a",
+              deviceId,
+            });
+          }
           return {
             authenticated: true,
             durable: true,
@@ -114,6 +123,8 @@ function controller(deviceId, cryptoAuthority, { initial = null } = {}) {
             knowledgeId: value.knowledgeId,
           };
         },
+        loadReception: async ({ envelopeDigest }) =>
+          receptions.get(envelopeDigest) ?? null,
         send: async ({ envelope }) => {
           sent.push(envelope);
           return { durable: true, envelopeDigest: envelope.envelopeDigest };
@@ -135,9 +146,10 @@ describe("GovernedKnowledgeNodeCryptoAuthority", () => {
     expect(envelope.keyRef).toBe("kms:team:1:v1");
     expect(Buffer.from(envelope.ciphertext, "base64")[0]).toBe(1);
     expect(envelope.ciphertext).not.toContain("knowledge:1");
-    await expect(receiver.sync.receive(envelope)).resolves.toEqual({
+    await expect(receiver.sync.receive(envelope)).resolves.toMatchObject({
       applied: true,
       action: "upsert",
+      artifact: { candidateOnly: false },
     });
     expect(receiver.records.get("knowledge:1")).toMatchObject(knowledge());
   });

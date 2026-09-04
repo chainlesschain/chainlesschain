@@ -144,6 +144,7 @@ describe("Governed knowledge RBAC and approval authority", () => {
         sign: async ({ envelopeDigest }) => ({ envelopeDigest }),
         verify: async () => false,
         load: async () => null,
+        loadReception: async () => null,
         commit: async ({ envelopeDigest, knowledge }) => ({
           authenticated: true,
           durable: true,

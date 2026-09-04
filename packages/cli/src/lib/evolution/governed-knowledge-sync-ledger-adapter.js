@@ -17,6 +17,8 @@ import {
 } from "./governed-knowledge-sync.js";
 
 export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.governed-evolution-knowledge-ledger-record/v4";
+export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-ledger-record/v3";
 export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-ledger-record/v2";
@@ -142,12 +144,18 @@ function recordCore(value) {
   if (
     [
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA,
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA,
     ].includes(value.schema)
   ) {
     core.operationId = value.operationId;
   }
-  if (value.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA) {
+  if (
+    [
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA,
+    ].includes(value.schema)
+  ) {
     core.artifactBinding = value.artifactBinding;
   }
   return core;
@@ -223,16 +231,23 @@ function validateEnvelope(value, knowledge, descriptor, disposition) {
 function validateLedgerRecord(value, descriptor) {
   const current =
     value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA;
+  const version3 =
+    value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA;
   const version2 =
     value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA;
   exact(
     value,
-    current ? RECORD_KEYS : version2 ? V2_RECORD_KEYS : LEGACY_RECORD_KEYS,
+    current || version3
+      ? RECORD_KEYS
+      : version2
+        ? V2_RECORD_KEYS
+        : LEGACY_RECORD_KEYS,
     "knowledge sync ledger record",
   );
   if (
     ![
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA,
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA,
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA,
     ].includes(value.schema) ||
@@ -249,10 +264,10 @@ function validateLedgerRecord(value, descriptor) {
     corrupt("knowledge sync ledger record binding is invalid");
   }
   if (
-    ((current || version2) &&
+    ((current || version3 || version2) &&
       value.operationId !== null &&
       !SAFE_ID.test(value.operationId ?? "")) ||
-    (!current && !version2 && Object.hasOwn(value, "operationId"))
+    (!current && !version3 && !version2 && Object.hasOwn(value, "operationId"))
   ) {
     corrupt("knowledge sync operation binding is invalid");
   }
@@ -264,14 +279,26 @@ function validateLedgerRecord(value, descriptor) {
   if (value.conflictWithDigest !== conflictWithDigest) {
     corrupt("knowledge sync conflict digest was substituted");
   }
-  if (current) {
-    if (value.disposition === "local") {
+  if (current || version3) {
+    if (current || value.disposition === "local") {
       try {
-        verifyGovernedKnowledgeArtifactBinding(value.artifactBinding, {
-          tenantId: descriptor.tenantId,
-          knowledge: value.knowledge,
-          authorizationReceiptDigest: value.authorizationReceiptDigest,
-        });
+        const binding = verifyGovernedKnowledgeArtifactBinding(
+          value.artifactBinding,
+          {
+            tenantId: descriptor.tenantId,
+            knowledge: value.knowledge,
+            authorizationReceiptDigest: value.authorizationReceiptDigest,
+          },
+        );
+        if (
+          current &&
+          (binding.activate !== (value.disposition !== "conflict") ||
+            (value.disposition === "local"
+              ? !["publish", "merge"].includes(binding.operation)
+              : binding.operation !== "receive"))
+        ) {
+          corrupt("knowledge sync artifact activation binding is invalid");
+        }
       } catch {
         corrupt("knowledge sync artifact binding is invalid");
       }
@@ -592,13 +619,35 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       )
     ).filter(
       (record) =>
-        record.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA &&
+        [
+          GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+          GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V3_SCHEMA,
+          GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA,
+        ].includes(record.schema) &&
         record.disposition === "local" &&
         record.operationId === normalizedId,
     );
     if (matches.length > 1) {
       corrupt("knowledge publication operation is ambiguous");
     }
+    return matches[0] ?? null;
+  };
+
+  getReception = async ({ envelopeDigest } = {}) => {
+    if (!DIGEST.test(envelopeDigest ?? "")) {
+      throw new TypeError("knowledge reception envelope digest is invalid");
+    }
+    const matches = (
+      await Promise.all(
+        this._events().map((event) => this._resolveEvent(event)),
+      )
+    ).filter(
+      (record) =>
+        record.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA &&
+        ["remote", "conflict"].includes(record.disposition) &&
+        record.envelopeDigest === envelopeDigest,
+    );
+    if (matches.length > 1) corrupt("knowledge reception is ambiguous");
     return matches[0] ?? null;
   };
 
@@ -665,6 +714,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       send: capture(send, "send", "send"),
       load: this.load,
       loadPublication: this.getPublication,
+      loadReception: this.getReception,
       commit: this.commit,
     });
   }
