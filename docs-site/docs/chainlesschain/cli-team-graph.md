@@ -1,6 +1,6 @@
 # GraphRun 观测与评估
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.20`（精确发布 SHA `75a3339714`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.21`（精确发布 SHA `1ff70b7856`；观测命令自 `0.166.0` 起公开）｜命令入口：`cc team graph`｜性质：只读观测、时间旅行与质量门
 
 ## 概述
 
@@ -49,7 +49,7 @@ Task/Agent runtime ──durable events──> Event Store ──read-only reduc
 
 ### 公共命令与主线 formal quality gate 的区别
 
-当前 `0.166.20` 用户可以使用本页的 `inspect/diff/eval`；该版本承接 formal quality control/candidate 的冻结文件工具上限、Windows 每 Agent 隔离、审计读取重试与最终 `1.65` 平台时延阈值。历史 run `33411796790` 仍是失败且没有 final-SHA aggregate success/OIDC attestation；它只记录当时 P2-3 的显式风险接受，不是本版成功门，也不是用户 SLA 或通用豁免：
+当前 `0.166.21` 用户可以使用本页的 `inspect/diff/eval`；该版本承接 formal quality control/candidate 的冻结文件工具上限、Windows 每 Agent 隔离、审计读取重试与最终 `1.65` 平台时延阈值。历史 run `33411796790` 仍是失败且没有 final-SHA aggregate success/OIDC attestation；它只记录当时 P2-3 的显式风险接受，不是本版成功门，也不是用户 SLA 或通用豁免：
 
 - formal profile 至少运行 1,800 秒、3 轮和固定 6 个任务；
 - single-agent control 与 Graph candidate 使用隔离 workspace，candidate 使用独立 worktree；
@@ -57,7 +57,7 @@ Task/Agent runtime ──durable events──> Event Store ──read-only reduc
 - launcher 使用临时目录内的 hermetic home，Windows 先做 ACL preflight，provider 凭据只进入 P2 quality cell；
 - 三平台 evidence 必须绑定 exact SHA、challenge、任务集合和 projection digest，缺平台或阈值失败时不生成通过结论。
 
-Team worktree commit/output terminal evidence 与 canonical Graph trace 持久化不在 `v-npm-0-166-14` tarball 中，已由后续 `0.166.20` 发布链承接；历史版本证据仍不被改写。
+Team worktree commit/output terminal evidence 与 canonical Graph trace 持久化不在 `v-npm-0-166-14` tarball 中，已由后续 `0.166.21` 发布链承接；历史版本证据仍不被改写。
 
 ## 系统架构
 

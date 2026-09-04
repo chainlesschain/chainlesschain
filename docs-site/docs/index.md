@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.20 | Agent SDK TS/Python 0.2.7 | IDE Bridge 3.5 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.21 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.6 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.20
-    details: 公开持久 EvolutionRun、Wiki/Memory、human review、迁移与 registry transition，并修复全新 npm 安装的 Agent 启动。
+    title: Agent Platform 0.166.21
+    details: 公开 Evolution Workbench、摘要绑定 Skill Retrieval 与受治理加密知识冲突审核/合并；状态变更仍由 trusted deployment host 裁决。
     link: /chainlesschain/agent-platform-release
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -41,8 +41,8 @@ features:
     details: 外部 Handler 必须经 Ed25519、摘要重读和一次性隔离 Worker；内置 Handler 绑定生成能力目录，网络/模型/诊断经有界宿主 Broker。
     link: /chainlesschain/desktop-graph-skill-security
   - icon: 🧑‍💻
-    title: IDE Bridge 突破 3.5 万下载
-    details: Open VSX 0.37.80 与 JetBrains Marketplace 0.4.108 已公开回读；JetBrains 0.4.109 仍是源码/tag 候选。IDE 继续保持 CLI-authoritative 投影。
+    title: IDE Bridge 突破 3.6 万下载
+    details: Open VSX 0.37.81 与 JetBrains Marketplace 0.4.110 已公开回读；双端加入受治理 Workbench 与证据排序 Skill Retrieval，并继续保持 CLI-authoritative 投影。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -52,12 +52,12 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.20@75a3339714 的三平台门、Trusted Publishing 与 npm 回读已闭环；Open VSX、JetBrains 与后续 main 仍保持独立制品身份。
+    details: CLI 0.166.21@1ff70b7856 的三平台门、Trusted Publishing 与 npm 回读已闭环；Open VSX、JetBrains 与源码仍保持独立制品身份。
 ---
 
-> **2026-09-03 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.20@75a3339714`，三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读完成；Session Core 为 `0.3.10`，Open VSX 为 `0.37.80`，JetBrains Marketplace 为 `0.4.108`。本版把受治理 Skill candidate/Eval/release 接到持久 `EvolutionRun`、Wiki、四层 Memory、human review、旧状态迁移与 registry transition，并修复公共安装的 `cc agent` 启动。生成候选不等于安装，默认不启用无人值守 active promotion。详细入口：[新功能用户指南](/chainlesschain/governed-skill-evolution)、[模块 112 设计](/design/modules/112-governed-skill-evolution-design)与[发布指南](/chainlesschain/agent-platform-release)。
+> **2026-09-04 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.21@1ff70b7856`，三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读完成；Session Core 为 `0.3.11`，Agent SDK TS/Python 为 `0.2.8`，Protocol 为 `0.1.8`，Open VSX 为 `0.37.81`，JetBrains Marketplace 为 `0.4.110`。本版公开 Evolution Workbench、摘要绑定 Skill Retrieval 和加密知识冲突审核/合并。生成候选、批准 review 或提交 merge plan 都不等于客户端拥有发布 authority。详细入口：[新功能用户指南](/chainlesschain/governed-skill-evolution)、[模块 112 设计](/design/modules/112-governed-skill-evolution-design)与[发布指南](/chainlesschain/agent-platform-release)。
 
-> **Agent/Skill evolution 当前边界**：早期 `233e1bdc` source-only 预览已由公开 `0.166.20` 的持久 composition、Wiki/Memory、review、migration 与 registry transition 接线取代。仓库闭环仍不等于目标环境已配置 KMS/PKI/witness/grader，也不开放普通用户 active promotion；`cc learning synthesize` 缺可信 evaluator/store/active roots 时继续 unavailable。
+> **Agent/Skill evolution 当前边界**：公开 `0.166.21` 已把 Workbench、Retrieval、knowledge review/merge 和 trust ledger 接到 canonical composition。仓库闭环仍不等于目标环境已配置 KMS/PKI/witness/grader；Workbench/knowledge 命令缺 trusted deployment host 时失败闭合，`cc learning synthesize` 缺可信 evaluator/store/active roots 时继续 unavailable。
 
 > **2026-08-28 文档更新（2026-09-01 状态复核）**：[上下文与记忆](/chainlesschain/context-memory) 用户指南与[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 设计文档已建立双向入口。统一 schema、planner、压缩与记忆状态机现已贯通 CLI、Desktop、App Server 和 IDE projection；旧 SQLite/session-core 记忆会幂等迁移到 canonical authority，旧 writer 默认失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已完成 exact-SHA 三平台矩阵、30 分钟 soak、证据聚合与 production-close 验签。
 

@@ -7,6 +7,7 @@
 > Claude Code 基线：`2.1.251`，2026-08-28<br>
 > OpenAI Codex 基线：Codex CLI `0.151.0`，2026-08-29<br>
 > 二次复审：2026-09-01，重点核对“可直接复用的本项目底座”、最新版本增量与论文结论边界<br>
+> 增量复审：2026-09-04，仓库 HEAD `8f704b5425929e5c65afb9868de26b5bc78e1294`、CLI `0.166.21`；重点核对演化四阶段、WikiSkill 数值摘要与生产闭环剩余任务<br>
 > 参考章节格式：[`CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md`](./CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md)
 
 ## 1. 结论先行
@@ -57,7 +58,7 @@ shadow / canary / active / rollback
 
 在 P0 门禁关闭前，不应把当前 `learning synthesize`、`SkillImprover`、CLI/Desktop `self-evolving` 指标壳描述为生产级自主进化。
 
-### 1.1 当前实施完成情况（截至 2026-09-03）
+### 1.1 当前实施完成情况（截至 2026-09-04）
 
 本节记录本报告转入实施后的当前状态，实施基线截至提交 `4381aece2c`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
 
@@ -272,6 +273,16 @@ WikiSkill 直接验证到的是单 Skill 提案、validation score gate 和优�
 - 同一组消融中，让 Inference Agent 在演化训练 rollout 也读取 Wiki，平均分由 `63.7%` 降至 `60.9%`。论文把可能原因表述为假设，因此本项目应把隔离设为 Pilot 默认和可配置实验，而不是宣布生产推理永远不得访问 Wiki/Memory。
 - 五基准测试平均中，Qwen-3.5-9B + WikiSkill 为 `47.4%`，高于无 Skill 的 Qwen-3.6-27B `39.4%`；这说明程序性知识在这组基准中弥补了部分模型规模差距，不能泛化为普遍替代模型规模。
 - 跨模型迁移既可能增益，也可能严重负迁移：Qwen-3.5-4B 的 Spreadsheet Skill 曾把 Gemini 从 `50.5%` 降到 `18.1%`；因此“源模型有效”不能替代目标模型、工具集和环境上的重新验证。
+
+2026-09-04 收到的对比摘要需要按论文 Table 1 校正。下表是五个 benchmark 的等权平均，不是单项得分，也不是 ChainlessChain 自测：
+
+| 模型                 | No skill | WikiSkill | 相对自身 No skill | 相对 Qwen-3.6-27B No skill `39.4%` |
+| -------------------- | -------: | --------: | ----------------: | ---------------------------------: |
+| Qwen-3.5-4B-Instruct |  `26.2%` |   `38.5%` |         `+12.3pp` |                           `-0.9pp` |
+| Qwen-3.5-9B-Instruct |  `29.9%` |   `47.4%` |         `+17.5pp` |                           `+8.0pp` |
+| Qwen-3.6-27B         |  `39.4%` |   `63.3%` |         `+23.9pp` |                          `+23.9pp` |
+
+摘要中的“Qwen-4B + WikiSkill `33.3%`、相对 27B 裸模型 `-6.1pp`”不是论文宏平均；正确值分别为 `38.5%` 和 `-0.9pp`。论文中的 `33.3%` 出现在 Qwen-3.5-4B + SkillOpt 的 SealQA 单项，不能移作 WikiSkill 五基准平均。论文表值来自完整演化流程的三次独立运行均值，并使用 1,000 次 paired bootstrap 做显著性检验；但作者未提供官方代码仓库、逐题原始结果、完整 seed/解码参数、vLLM 版本和硬件环境。因此这些数字只能标注为“WikiSkill 论文外部结果”，在 ChainlessChain 完成独立复现前不能用作产品性能承诺。
 
 WikiSkill 本身也有明确边界：论文采用全量 Skill 注入，没有验证大规模检索和触发；严格 `>` gate 会拒绝中性但可能有后续价值的基础 patch；没有自动 Wiki pruning；验证集较小；没有覆盖数百步、数小时的在线适应；也没有报告隐私、prompt injection、恶意 Skill、权限扩大或供应链安全评测。
 
@@ -1138,7 +1149,57 @@ ChainlessChain 不缺“会记、会反思、会写 Skill”的功能点，真�
 
 完成这些前提后，再以现有 Rollout、Memory、Record & Replay、Skill Runtime 和 Desktop Phase 20 为 adapter 扩展到受控生产 Pilot，而不是继续新增平行的“自进化”模块。这样才能把 WikiSkill 的研究启发、Claude Code 的评测/扩展载体和 Codex 的安全/编排基础，转化为 ChainlessChain 可验证、可维护、可规模化的产品能力。
 
-## 13. 全量任务完成情况（截至 2026-09-03）
+## 13. 2026-09-04 增量复审：两份材料的取舍与追加任务
+
+本节把两份材料中可借鉴的部分转换为现有路线的执行包，不另造一套“自进化”系统。`EVO-OPT-*` 是对前述 20 个主路线项剩余工作的拆解，不计入 §14 的主路线总数；完成状态必须回填到所映射的原任务，不能用执行包数量替代产品完成度。
+
+### 13.1 可借鉴部分与必要校正
+
+| 材料中的主张                               | 可借鉴部分                                                                       | 当前仓库基础                                                                                                    | 必要校正与优化方向                                                                                                                                                                                              |
+| ------------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 从“训练权重”转向“演化软件资产”             | 将经验编译成内容寻址、可审查、可签名、可回滚的外部制品                           | Candidate/Release Registry、ArtifactPorts、Ledger、Workbench 已形成较完整治理原语                               | 应表述为“变更面可版本化、可审计、可失败关闭”，不能宣称 Agent 行为、第三方工具和外部副作用“绝对可控”；Skill 的核心是 `SKILL.md`，还可包含 `scripts/assets/references`，不等同于“Python 代码”                     |
+| Mutation：从失败与反思生成新 Skill         | 失败聚类、成功策略和用户纠正可触发单 Skill、candidate-only 提案                  | `WikiInformedSkillProposer`、`BoundedSkillImprovementPilot` 与 Candidate Registry 已具备协议和测试              | 不能让一次失败直接改 Skill；先排除 provider/MCP/权限/基础设施噪声，再要求重复证据、冷却与去重。公共入口和默认生产构造点尚未接通，自动 active mutation 继续 HOLD                                                 |
+| Selection：隔离环境运行历史测试            | 独立 deterministic grader、隐藏 holdout、安全 hard gate 和目标运行时矩阵值得采用 | `EvolutionEvalGate` 与 `SkillTargetMatrixEval` 已实现签名计划、全 cell 合取、deadline 和 receipt                | “确定性”只覆盖可确定判分的部分；模型 evaluator、真实 UI 和外部服务仍是统计/环境相关证据。生产仍缺 attested loader、真实跨平台 runner、进程级 hard kill 和版本化 regression corpus，不能写成“已运行全部历史测试” |
+| Promotion：先小流量 Canary，再晋级或回滚   | Shadow、稳定分桶、预注册观测窗、渐进扩量、kill switch 和 LKG 回滚应成为强制路径  | `ControlledSkillProductionPilot` 已有 candidate→shadow→canary→active/rolled-back、人工批准、指标门和恢复协议    | 当前没有真实 traffic assignment worker，也未通过 Hooks 接入固定 `1%` 流量。百分比必须由风险、流量和统计功效决定；低流量用固定 N 个显式 cohort，高流量才使用 `1→5→25→100%` 等预注册阶梯                          |
+| Stabilization：晋升后写入 Wiki，成为新基线 | Wiki 应持久记录 proposal、评测、生产结果和回滚影响，供后续提案复用               | Maintainer 已有 `hypothesis/corroborated/contradicted/stale/revoked/tombstoned`、CAS、证据 lineage 和持久 merge | 晋升只能产生一条新 evidence，不能自动成为“真理”；必须经过独立结果、观测窗口和多来源佐证才转为 `corroborated/actionable`。active/LKG 仍由 Release Registry 管理，Wiki 不取得 active writer 权                    |
+| Skill、Prompt、知识和 Hook 都能演化        | 共用不可变制品、证据、评测、审阅、激活和回滚协议可以减少平行系统                 | Skill 与 governed knowledge 最成熟；Desktop `PromptOptimizer` 和 Hooks 仍是独立能力面                           | 抽取最小 `EvolvableArtifact` 协议，但保留类型专属策略；Prompt 需防数据泄漏，Hook/脚本属于高风险可执行制品，必须使用更严的 capability、签名、SBOM、沙箱和人工 quorum，不能因共用协议降低门槛                     |
+
+建议目标状态机在现有组件外增加一层薄编排，不重写 Registry、Eval、Pilot 或 Wiki：
+
+```text
+NEEDS_EVIDENCE → CANDIDATE → PRECHECK → EVALUATING → VALIDATED
+→ REVIEW_PENDING → SHADOW → CANARY[n] → ACTIVE_PROBATION → STABLE
+
+异常/终止分支包括（合法来源状态由 transition policy 约束）：
+REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
+```
+
+`RECONCILIATION_REQUIRED` 是等待幂等恢复的非成功状态；新版本进入 `ACTIVE_PROBATION` 后仍可快速回到上一 LKG，只有通过稳定观察窗的 `STABLE` 才能成为后续演化基线。一个签名 `EvolutionPlan` 必须一次性绑定 tenant、Skill、baseline release、candidate、Wiki revision、Eval suite、target matrix、risk tier、rollout/metric policy、permission/policy digest、预算和有效期，防止各控制器分别正确但使用了不同基线或策略。
+
+### 13.2 可执行增量任务
+
+| ID        | 优先级 / 映射                       | 任务                                                               | 关键交付与验收标准                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 当前状态                                                                                                                               |
+| --------- | ----------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| EVO-OPT-1 | P0；EVO-P0-3、EVO-P2-5              | 建立可复现 WikiSkill/ChainlessChain Benchmark 与文案 truth gate    | 固定 model checkpoint/digest、推理参数/seed、容器/vLLM/硬件、五数据集版本与逐题 split ID、工具/API、prompt、Skill/Wiki 和 runner digest；同环境运行 no-skill/skill 对照且至少 3 个独立 run；保存逐题结果、trace、grader receipt、失败分类、成本与时延；机器重算五集等权平均、delta、95% CI 和 1,000 次 paired bootstrap；报告绑定 Git SHA、runner SHA 与 dataset digest，可从零复跑。官网/README 只能从签名不可变报告生成，在此之前统一标记 `external-paper-only / HOLD` | ⏳ 待完成；当前只有外部论文结果，仓库没有论文 runner、逐题结果或实验制品                                                               |
+| EVO-OPT-2 | P1；EVO-P1-1、EVO-P1-6、EVO-P1-9    | 增加统一 `EvolutionReleaseTrain` 编排与候选触发器                  | 将 `EvolutionRun → Wiki Maintainer → Proposer → Candidate → Eval → Review → Pilot → Promotion → Wiki impact` 串为同一 `EvolutionPlan`；只在可归因的重复 procedure failure、成功模式或用户纠正达到最小证据门后触发，排除 provider/MCP/sandbox/权限噪声；一次只改一个 Skill、默认不增权、全子任务归集根预算。验收要求任意步骤重试/重启幂等，两个新进程恢复同一 digest lineage，缺任一 receipt 时 active 字节不变                                                           | 🟡 部分完成；组件齐全，默认生产编排与触发接线缺失                                                                                      |
+| EVO-OPT-3 | P0；EVO-P0-3、EVO-P0-4              | 建设真实目标环境 Eval 执行面                                       | 提供 attested descriptor-to-callable loader、固定依赖环境、版本化 regression corpus、hidden holdout、独立 grader/safety/verifier 和 OS 进程或容器级 hard kill；覆盖 Linux/Windows/macOS 目标 cell。验收包含网络/文件越权、hang、迟到进程、grader crash、split 泄漏、依赖漂移和 receipt 替换，任一异常都失败关闭且 candidate 永不 active                                                                                                                                  | 🟡 部分完成；控制协议和合成/隔离测试已有，生产 runner/PKI/真实矩阵未部署                                                               |
+| EVO-OPT-4 | P0/P2；EVO-P1-5、EVO-P2-1           | 让 Pilot 成为 promotion 必经门，并补统计化渐进 Canary              | 建立服务端稳定 hash 分桶与签名 assignment receipt，客户端不能自报 cohort；按 risk tier 使用 shadow→有界 Canary 阶梯→`ACTIVE_PROBATION`→`STABLE`，不硬编码 1%；同期 baseline/candidate 对照，质量使用 paired delta 置信下界或预注册序贯检验，成本、p95/p99 时延和 tool calls 做非劣门，任何 security/permission event 立即停止。外部 watchdog 在主宿主失联时仍能 kill/rollback；重复查看中间结果不能改变 alpha 或门槛                                                     | 🟡 部分完成；Pilot 状态、均值指标、人工批准、kill switch 和恢复协议已有，真实流量 authority、统计门、probation/stable 与 watchdog 缺失 |
+| EVO-OPT-5 | P1/P2；EVO-P1-2、EVO-P2-6           | 完成 Promotion/Observation→Wiki reconciliation 与回滚反向传播      | Active/Stable、reject、rollback、revoke 分别追加 proposal-decision 和 outcome evidence；Maintainer 再按 trust domain、样本和时间窗决定 hypothesis→corroborated，禁止单次成功直升 truth。Skill 回滚/撤销必须使依赖 pattern、Memory、retrieval index 和 marketplace badge 降级、stale、quarantine 或重评测。在 release commit、Wiki commit、settlement 三处强杀后，新进程应幂等收敛且不重复副作用                                                                          | 🟡 部分完成；两侧 ledger/merge/recovery 原语已有，端到端自动对账与反向失效尚未接通                                                     |
+| EVO-OPT-6 | P2；EVO-P1-5、EVO-P2-4、EVO-P2-5    | 抽取 Skill/Prompt/Hook/Knowledge 的类型化 `EvolvableArtifact` 协议 | 共用 tenant/type/content digest、parent、lineage、dependency lock、runtime/permission manifest、candidate/release、Eval/review/promotion receipt 与 active/LKG；每种类型注册独立 admission、evaluator、activation 和 rollback policy。Hook/脚本强制签名、SBOM、沙箱、网络出口策略和双人高风险审批；Knowledge 合并不获得 Skill active writer。合同测试证明任何旧 PromptOptimizer、Hook 或同步入口都不能绕过 candidate gate，依赖变化能级联 stale/revalidation             | ⏳ 待完成；Skill/Knowledge 有基础，Prompt/Hook 尚未收敛到同一治理内核                                                                  |
+| EVO-OPT-7 | P0/P2；EVO-P0-5、EVO-P1-6、EVO-P2-2 | 交付真实 deployment composition 与运营面                           | 为公开 npm lazy/eager 入口装载 branded Workbench/Evolution host，接入生产 KMS/HSM、PKI/身份/policy、独立 witness、scheduler、runner、traffic authority、metrics source、备份与灾备；缺任一 authority 时明确 unavailable，不回退测试密钥、内存 store 或客户端配置。验收包含两机重启/断网/响应丢失、密钥轮换撤销、witness 故障、kill-switch 演练和回滚 MTTR；Workbench 显示阶段、样本覆盖、置信区间、阻断原因、active/LKG、reconciliation backlog 与证据链                 | 🟡 部分完成；branded seam、多端 Workbench、Ledger 和恢复原语已有，目标部署 host 与外部 authority 未完成                                |
+
+### 13.3 新增执行包的统一硬门
+
+- **真实性**：`100%` active/stable release 可反查 candidate、Eval、human review、Pilot、promotion 和 Ledger receipt；外部论文结果与本项目实测永远分栏。
+- **安全性**：security/permission violation 必须为 `0`，任何一个即停止扩量；未授权 active writer 命中率必须为 `0`。
+- **质量**：使用同期 paired baseline、置信下界和预注册多重比较/序贯规则，不以一次平均分或 LLM 自评分晋级。
+- **效率**：同时约束 token、成本、tool-call 数、p50/p95/p99 latency 与每个 `STABLE` 晋升的总 Eval/人工审核成本。
+- **运营**：记录 MTTD、rollback MTTR、`RECONCILIATION_REQUIRED` backlog/age、Canary assignment 漂移和外部 watchdog 可用性。
+- **知识健康**：记录 contradiction backlog/age、stale ratio、独立 trust-domain 覆盖率、回滚后依赖失效传播时延和隐私删除传播时限。
+
+实施顺序建议为：先完成 `EVO-OPT-1` 的 truth gate，并并行推进 `EVO-OPT-2/3`；随后以一个低副作用、可确定判分的单 Skill 串通 `EVO-OPT-4/5/7`；该纵切稳定后再做 `EVO-OPT-6`，最后才讨论默认无人值守候选生成或扩大资产类型。直到目标部署通过上述硬门，production auto-promotion 保持 HOLD。
+
+## 14. 全量任务完成情况（截至 2026-09-04）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、确定性验证和该编号自身可在仓库内完成的边界已经关闭，只剩由其他统一路线验收的生产切换；`🟡 部分完成` 表示核心底座或可复用原语已经落地，但该编号定义的生产接线、跨进程实现或外部验收尚未全部完成；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。
 

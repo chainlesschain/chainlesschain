@@ -1,8 +1,8 @@
 # Desktop Graph 调试与 Skill 安全执行
 
-> 适用范围：Desktop 源码与历史 exact-SHA qualification 快照。公开 CLI 的生产推荐版按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.20`，精确发布 SHA 为 `75a3339714`。历史 Desktop 资格证据仍绑定 `ee88125256`，不由新 CLI 版本改写。
+> 适用范围：Desktop 源码与历史 exact-SHA qualification 快照。公开 CLI 的生产推荐版按独立发布链判断；当前 npm `latest` 为 `chainlesschain@0.166.21`，精确发布 SHA 为 `1ff70b7856`。历史 Desktop 资格证据仍绑定 `ee88125256`，不由新 CLI 版本改写。
 
-> **当前边界**：早期 `233e1bdc` source-only 快照中的 evolution 原语后来已进入公共 CLI `0.166.20`；Desktop/native 仍保持独立制品与资格身份。默认启动器、最终用户 promote/rollback/kill-switch/canary UI、真实 KMS/PKI 和跨主机 authority 尚未完成，P1-11 的历史 Desktop 证据仍只绑定 `ee88125256`。
+> **当前边界**：早期 `233e1bdc` source-only 快照中的 evolution 原语后来已进入公共 CLI `0.166.21`，并增加 Workbench、Retrieval 与 governed knowledge；Desktop/native 仍保持独立制品与资格身份。Workbench/Knowledge 抽屉是有界审阅面，不是生产 authority；真实 KMS/PKI、跨主机 authority 和 kill-switch/canary 运营仍由部署方提供，P1-11 的历史 Desktop 证据仍只绑定 `ee88125256`。
 
 本页介绍两项最新 Desktop 能力：Graph Run Debugger，以及 Cowork Skill 的签名、隔离和能力代理。两者都会自动工作，普通用户不需要手工配置安全 Broker。
 
@@ -10,7 +10,7 @@
 
 Graph Run Debugger 把 canonical Graph 历史转换为只读的拓扑、时间、预算、Trace 与因果视图；Skill 执行安全则在 Handler 运行前核对代码身份，并把高风险宿主访问收进有界 Broker。公开 CLI 的生产推荐版与 Desktop 发布后源码始终按不同制品身份说明。
 
-公共 CLI `0.166.20` 已把 candidate-only/diff-only、Skill writer inventory、mutation authority、promotion/release registry、EvolutionRun、Wiki/Memory、人工复核 transition 与旧状态迁移接入统一组合。Desktop 仍只通过受限 App Server pilot 与有界 Broker 消费相关能力，不继承 CLI 的发布授权；Skill Creator 不直接写 workspace/active，Skill Sync import 缺受信 `candidateStore` 时继续失败闭合。
+公共 CLI `0.166.21` 已把 candidate-only/diff-only、Skill writer inventory、mutation authority、promotion/release registry、EvolutionRun、Wiki/Memory、Workbench/Retrieval、知识 conflict/merge 与 trust ledger 接入统一组合。Desktop 仍只通过受限 App Server 与有界 Broker 消费相关能力，不继承 CLI 的发布授权；Skill Creator 不直接写 workspace/active，Skill Sync import 缺受信 `candidateStore` 时继续失败闭合。
 
 ## 核心特性
 
@@ -96,16 +96,16 @@ Desktop Skills 分成三类：
 
 ## 故障排查
 
-| 错误类别               | 含义                                 | 建议                                             |
-| ---------------------- | ------------------------------------ | ------------------------------------------------ |
-| 签名缺失或不可信       | 外部 Handler 没有可信 Ed25519 身份   | 从可信来源重新安装；不要关闭校验                 |
-| 内容摘要漂移           | Skill 在发现后被修改或替换           | 重新检查内容并由可信发布者重新签名               |
-| 能力清单缺失           | Handler 没有声明需要的宿主表面       | 更新 `execution-capabilities` 并重新签名         |
-| capability denied      | 当前会话或宿主策略未允许该操作/目标  | 缩小目标后重新发起明确授权                       |
-| isolation unavailable  | 当前平台无法提供强制 Worker 隔离     | 修复运行环境；系统会失败闭合，不降级到主进程执行 |
-| timeout / output limit | Skill 超过执行时间、请求数或输出上限 | 拆小任务，检查远端服务和循环逻辑                 |
-| candidate import denied | 缺少受信 `candidateStore` 或治理端口 | 保持失败闭合；不要改为直接写 workspace/active   |
-| evolution 未自动晋升    | source-only 原语未统一生产实例化    | 这是当前边界，不代表签名或 qualification 故障   |
+| 错误类别                | 含义                                 | 建议                                             |
+| ----------------------- | ------------------------------------ | ------------------------------------------------ |
+| 签名缺失或不可信        | 外部 Handler 没有可信 Ed25519 身份   | 从可信来源重新安装；不要关闭校验                 |
+| 内容摘要漂移            | Skill 在发现后被修改或替换           | 重新检查内容并由可信发布者重新签名               |
+| 能力清单缺失            | Handler 没有声明需要的宿主表面       | 更新 `execution-capabilities` 并重新签名         |
+| capability denied       | 当前会话或宿主策略未允许该操作/目标  | 缩小目标后重新发起明确授权                       |
+| isolation unavailable   | 当前平台无法提供强制 Worker 隔离     | 修复运行环境；系统会失败闭合，不降级到主进程执行 |
+| timeout / output limit  | Skill 超过执行时间、请求数或输出上限 | 拆小任务，检查远端服务和循环逻辑                 |
+| candidate import denied | 缺少受信 `candidateStore` 或治理端口 | 保持失败闭合；不要改为直接写 workspace/active    |
+| evolution 未自动晋升    | source-only 原语未统一生产实例化     | 这是当前边界，不代表签名或 qualification 故障    |
 
 ### 网络与环境 Skill 的新边界
 

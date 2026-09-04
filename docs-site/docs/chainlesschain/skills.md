@@ -2,9 +2,9 @@
 
 > **文档快照：2026-09-03 | 146 个内置技能 | Agent Skills 开放标准 | 受治理 evolution 与 Record & Replay、签名外部执行、能力代理及 exact-SHA Desktop qualification**
 
-Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.20` 已包含受治理 Record & Replay，以及 candidate/Eval/evidence/ledger/human-review/release 的耐久 Skill evolution 生命周期；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
+Skills 系统提供 146 个内置技能，使用 Markdown 定义技能（`SKILL.md`），支持四层加载、Agent Skills 开放标准、门控检查和自定义命令。当前公开 CLI `0.166.21` 已包含受治理 Record & Replay、candidate/Eval/evidence/ledger/human-review/release、Evolution Workbench 与摘要绑定 Skill Retrieval；Desktop 源码为内置 Handler 建立 SHA-256 + 能力目录审计，并将外部可执行 Skill 收进 Ed25519 签名、执行前重读、一次性隔离 Worker 与宿主 Capability Broker。固定 renderer/main IPC manifest、失败闭合审批与持久进程审计进一步约束高风险宿主表面；exact-SHA qualification 仍不等同于公共 native 分发完成。
 
-> Agent/Skill evolution 边界：公共 `0.166.20@75a3339714` 已接入 candidate/Eval/evidence/ledger/human-review/release、EvolutionRun、Wiki/Memory 与旧状态迁移。该闭环不等于目标环境已配置 KMS/PKI/identity/policy/witness/scheduler/grader，也不开放普通用户无人值守 active promotion；自动路径不得直接写 active，Skill Sync import 缺少受信 `candidateStore` 时会失败闭合。
+> Agent/Skill evolution 边界：公共 `0.166.21@1ff70b7856` 已接入 candidate/Eval/evidence/ledger/human-review/release、EvolutionRun、Wiki/Memory、Workbench/Retrieval 与 governed knowledge。该闭环不等于目标环境已配置 KMS/PKI/identity/policy/witness/scheduler/grader，也不开放无人值守 active promotion；自动路径不得直接写 active，Skill Sync import 缺少受信 `candidateStore` 时会失败闭合。
 
 ## 概述
 
@@ -1105,31 +1105,31 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 ## 关键文件
 
-| 文件                                                 | 职责                      | 行数 |
-| ---------------------------------------------------- | ------------------------- | ---- |
-| `src/main/ai-engine/cowork/skill-system.js`          | 技能系统核心引擎          | ~500 |
-| `src/main/ai-engine/cowork/skill-loader.js`          | 四层技能加载器            | ~320 |
-| `src/main/ai-engine/cowork/skill-executor.js`        | 技能执行器 (Handler 分发) | ~380 |
-| `src/main/ai-engine/cowork/skill-md-parser.js`       | SKILL.md YAML 解析器      | ~250 |
-| `src/main/ai-engine/cowork/unified-tool-registry.js` | 统一工具注册表            | ~420 |
-| `src/main/ai-engine/cowork/skill-discoverer.js`      | 技能发现与搜索            | ~280 |
-| `packages/cli/src/lib/evolution/skill-candidate-registry.js` | 内容寻址候选注册表 | — |
-| `packages/cli/src/lib/evolution/skill-mutation-authority.js` | 受信 mutation 授权边界 | — |
-| `packages/cli/src/lib/evolution/skill-promotion-controller.js` | CAS-bound 晋升/回滚控制器 | — |
-| `packages/cli/src/lib/evolution/skill-release-registry.js` | 不可变 release 与恢复注册表 | — |
-| `packages/cli/src/lib/evolution/evolution-evidence-projector.js` | Raw/model/trusted 证据投影 | — |
-| `packages/cli/src/lib/evolution/evolution-ledger.js` | hash-linked tamper-evident evolution ledger | — |
+| 文件                                                             | 职责                                        | 行数 |
+| ---------------------------------------------------------------- | ------------------------------------------- | ---- |
+| `src/main/ai-engine/cowork/skill-system.js`                      | 技能系统核心引擎                            | ~500 |
+| `src/main/ai-engine/cowork/skill-loader.js`                      | 四层技能加载器                              | ~320 |
+| `src/main/ai-engine/cowork/skill-executor.js`                    | 技能执行器 (Handler 分发)                   | ~380 |
+| `src/main/ai-engine/cowork/skill-md-parser.js`                   | SKILL.md YAML 解析器                        | ~250 |
+| `src/main/ai-engine/cowork/unified-tool-registry.js`             | 统一工具注册表                              | ~420 |
+| `src/main/ai-engine/cowork/skill-discoverer.js`                  | 技能发现与搜索                              | ~280 |
+| `packages/cli/src/lib/evolution/skill-candidate-registry.js`     | 内容寻址候选注册表                          | —    |
+| `packages/cli/src/lib/evolution/skill-mutation-authority.js`     | 受信 mutation 授权边界                      | —    |
+| `packages/cli/src/lib/evolution/skill-promotion-controller.js`   | CAS-bound 晋升/回滚控制器                   | —    |
+| `packages/cli/src/lib/evolution/skill-release-registry.js`       | 不可变 release 与恢复注册表                 | —    |
+| `packages/cli/src/lib/evolution/evolution-evidence-projector.js` | Raw/model/trusted 证据投影                  | —    |
+| `packages/cli/src/lib/evolution/evolution-ledger.js`             | hash-linked tamper-evident evolution ledger | —    |
 
 ## 性能指标
 
-| 操作                         | 目标    | 实际                 | 状态 |
-| ---------------------------- | ------- | -------------------- | ---- |
-| 启动阶段加载技能 (元数据)    | < 300ms | ~180ms (懒加载 stub) | ✅   |
-| 完整加载单个技能 (body+解析) | < 50ms  | ~25ms (SKILL.md)     | ✅   |
-| 技能发现 (名称/描述匹配)     | < 50ms  | ~15ms (内存索引)     | ✅   |
-| 技能执行 Handler 分发        | < 20ms  | ~8ms                 | ✅   |
-| 统一工具注册表构建           | < 500ms | ~260ms (141 技能)    | ✅   |
-| MCP 嵌入 mount/unmount       | < 200ms | ~110ms               | ✅   |
+| 操作                         | 目标         | 实际                           | 状态        |
+| ---------------------------- | ------------ | ------------------------------ | ----------- |
+| 启动阶段加载技能 (元数据)    | < 300ms      | ~180ms (懒加载 stub)           | ✅          |
+| 完整加载单个技能 (body+解析) | < 50ms       | ~25ms (SKILL.md)               | ✅          |
+| 技能发现 (名称/描述匹配)     | < 50ms       | ~15ms (内存索引)               | ✅          |
+| 技能执行 Handler 分发        | < 20ms       | ~8ms                           | ✅          |
+| 统一工具注册表构建           | < 500ms      | ~260ms (141 技能)              | ✅          |
+| MCP 嵌入 mount/unmount       | < 200ms      | ~110ms                         | ✅          |
 | evolution 治理原语           | 未设公共 SLA | 尚无统一生产实例或发布性能证据 | source-only |
 
 ## 故障排查

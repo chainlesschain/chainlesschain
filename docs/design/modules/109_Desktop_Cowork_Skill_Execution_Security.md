@@ -1,6 +1,6 @@
 # 109. Desktop Cowork Skill 执行安全与能力代理设计
 
-> 状态：2026-08-29 已进入 Desktop 源码主线，并在 `ee88125256` 的 exact-SHA 签名 Desktop Skill qualification 中通过；后继 producer 仅接受受保护 `main` 当前 head｜核心源码证据：`a404dad52c`—`2286267dea`、`31d5cfc4d8`—`1d8155e4b4`、`0ac5f13b8e`｜Desktop/native 文件不属于当前 `chainlesschain@0.166.20` npm 包字节
+> 状态：2026-08-29 已进入 Desktop 源码主线，并在 `ee88125256` 的 exact-SHA 签名 Desktop Skill qualification 中通过；后继 producer 仅接受受保护 `main` 当前 head｜核心源码证据：`a404dad52c`—`2286267dea`、`31d5cfc4d8`—`1d8155e4b4`、`0ac5f13b8e`｜Desktop/native 文件不属于当前 `chainlesschain@0.166.21` npm 包字节
 
 ## 1. 目标与边界
 
@@ -134,7 +134,7 @@ Electron Builder 与 Forge 必须把可信 Worker 作为应用资源打包，同
 
 ### 8.1 历史 source-only Skill evolution 合同
 
-> 本节保留 `233e1bdc` 在 2026-09-01 评审时的 source-only 证据。相关组合入口、EvolutionRun、Wiki/Memory、人工复核 registry transition 与迁移能力后来已进入公开 `0.166.20`；当前架构和仍未关闭的生产部署条件以[模块 112](./112-governed-skill-evolution-design.md)为准。
+> 本节保留 `233e1bdc` 在 2026-09-01 评审时的 source-only 证据。相关组合入口、EvolutionRun、Wiki/Memory、人工复核 registry transition 与迁移能力后来已进入公开 `0.166.21`，并增加 Workbench/Retrieval/governed knowledge；当前架构和仍未关闭的生产部署条件以[模块 112](./112-governed-skill-evolution-design.md)为准。
 
 本轮核对冻结的未合并本地功能分支快照 `233e1bdc` 在现有执行安全边界之外增加了一组 evolution 治理原语；该锚点不表示它永远是分支当前 head，也没有把 Skill 变成可自我授权的 writer：
 
@@ -150,7 +150,7 @@ P1-11 的外部关闭条件也没有变化：`3c4342d8` 只把后继签名 produ
 
 ## 9. 已知边界
 
-- 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.20` 的制品内容；
+- 本设计记录 Desktop Cowork 源码与签名资格能力，不改变已发布 npm CLI `0.166.21` 的制品内容；
 - 历史冻结快照 `233e1bdc` 不属于现有 Desktop qualification；其后续进入 CLI 也不赋予 Desktop 或 active Skill 自动写入与发布 authority；
 - Ed25519 签名证明“由可信 key 签署且字节未变”，不证明代码无漏洞；
 - 能力 Broker 只约束迁移后的宿主表面，未迁移或 native 扩展必须单独审计；

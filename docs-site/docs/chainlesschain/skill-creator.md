@@ -1,12 +1,12 @@
 # Skill Creator 系统 (v1.2.0)
 
-> 内置系统技能，用于生成候选、测试、优化和验证自定义技能。`create` 与描述优化只返回 candidate/diff，不直接写入 workspace 或 active Skill；公共 `0.166.20` 已接入受治理 evolution composition，但未默认开放无人值守 active promotion。
+> 内置系统技能，用于生成候选、测试、优化和验证自定义技能。`create` 与描述优化只返回 candidate/diff，不直接写入 workspace 或 active Skill；公共 `0.166.21` 已接入受治理 evolution composition、Workbench 与 Skill Retrieval，但未默认开放无人值守 active promotion。
 
 ## 概述
 
 Skill Creator 是 ChainlessChain 内置的系统级技能（category: system），用于生成候选、测试、优化和验证自定义 AI 技能。它可以渲染包含 YAML frontmatter 的 `SKILL.md` 与 `handler.js` 候选内容，但不会直接创建、覆盖或激活 workspace/active Skill。v1.2.0 的 `optimize-description` 会生成评估查询集并迭代比较描述，最终只返回建议差异。
 
-> 当前状态：`0.166.20@75a3339714` 已公开 candidate/Eval/evidence/ledger/human-review/release 生命周期、统一 EvolutionRun ingress 与旧状态迁移。生成成功仍不等于安装；缺 evaluator、store、active roots 或可信 authority 时保持 unavailable/失败闭合。Desktop 最终用户 review/promote/rollback/kill-switch/canary UI 与真实部署 authority 仍未完成。
+> 当前状态：`0.166.21@1ff70b7856` 已公开 candidate/Eval/evidence/ledger/human-review/release 生命周期、统一 EvolutionRun、Workbench、digest-bound Retrieval 和 governed knowledge。生成成功仍不等于安装；缺 evaluator、store、active roots 或 trusted deployment host 时保持 unavailable/失败闭合。Desktop/IDE 审阅面不替代真实部署 authority。
 
 ## 核心特性
 
@@ -51,14 +51,14 @@ LLM 调用通过 `callLLM()` 桥接，内部使用 `spawnSync` 调用 `chainless
 
 ## 故障排查
 
-| 问题                                            | 原因                                                         | 解决方案                                                                              |
-| ----------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| 问题                                            | 原因                                                         | 解决方案                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `create` 返回候选内容但没有新目录               | candidate-only 设计不授予文件写 authority                    | 这是预期行为；审阅候选，等待受信 candidate store 与 promotion 流程，不要手工覆盖 active |
-| `optimize-description` 返回提示信息而非优化结果 | LLM 不可用（Ollama 未启动、API Key 未配置等）                | 确保 `chainlesschain ask "test"` 能正常返回结果；检查 Ollama 服务或云端 provider 配置 |
-| `optimize-description` 生成 eval 查询不足       | LLM 返回的查询数 < 4 条                                      | 检查当前模型能力，尝试切换到更大的模型；或手动执行 `optimize`（静态检查）替代         |
-| `validate` 报缺少必填字段                       | SKILL.md frontmatter 缺少 `name`、`description` 或 `handler` | 补全 YAML frontmatter 中的必填字段                                                    |
-| `validate` 报 handler.js 加载失败               | handler.js 存在语法错误或 `require()` 依赖缺失               | 在 Node.js 中直接 `require("./handler.js")` 排查具体错误                              |
-| 中途 LLM 调用失败                               | 网络超时或服务中断                                           | 循环终止并返回失败/已有建议，不会部分写回 active Skill；可恢复 provider 后重试         |
+| `optimize-description` 返回提示信息而非优化结果 | LLM 不可用（Ollama 未启动、API Key 未配置等）                | 确保 `chainlesschain ask "test"` 能正常返回结果；检查 Ollama 服务或云端 provider 配置   |
+| `optimize-description` 生成 eval 查询不足       | LLM 返回的查询数 < 4 条                                      | 检查当前模型能力，尝试切换到更大的模型；或手动执行 `optimize`（静态检查）替代           |
+| `validate` 报缺少必填字段                       | SKILL.md frontmatter 缺少 `name`、`description` 或 `handler` | 补全 YAML frontmatter 中的必填字段                                                      |
+| `validate` 报 handler.js 加载失败               | handler.js 存在语法错误或 `require()` 依赖缺失               | 在 Node.js 中直接 `require("./handler.js")` 排查具体错误                                |
+| 中途 LLM 调用失败                               | 网络超时或服务中断                                           | 循环终止并返回失败/已有建议，不会部分写回 active Skill；可恢复 provider 后重试          |
 
 ## 安全考虑
 
@@ -80,10 +80,10 @@ Evolution ledger 使用 hash-linked、tamper-evident 事件合同，但当前没
 | `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js`       | 核心执行逻辑：parseInput、create/test/optimize/validate 等全部动作处理  |
 | `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js`                        | 技能加载器，四层加载机制（bundled → marketplace → managed → workspace） |
 | `desktop-app-vue/src/main/ai-engine/cowork/skills/index.js`                               | 技能注册表入口，管理技能生命周期                                        |
-| `desktop-app-vue/src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js` | 单元合同：候选生成与依赖注入                                             |
-| `packages/cli/__tests__/integration/skill-creator-handler.test.js`                        | 集成合同：create 不落盘、不覆盖 active；优化只返回 proposal               |
-| `packages/cli/src/lib/evolution/skill-candidate-registry.js`                              | source-only 内容寻址候选注册表                                           |
-| `packages/cli/src/lib/evolution/evolution-ledger.js`                                      | source-only tamper-evident evolution ledger                              |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js` | 单元合同：候选生成与依赖注入                                            |
+| `packages/cli/__tests__/integration/skill-creator-handler.test.js`                        | 集成合同：create 不落盘、不覆盖 active；优化只返回 proposal             |
+| `packages/cli/src/lib/evolution/skill-candidate-registry.js`                              | source-only 内容寻址候选注册表                                          |
+| `packages/cli/src/lib/evolution/evolution-ledger.js`                                      | source-only tamper-evident evolution ledger                             |
 
 ## 快速开始
 
@@ -105,15 +105,15 @@ chainlesschain skill run skill-creator "optimize-description code-review"
 
 ## 功能概览
 
-| 动作                   | 说明                                  |
-| ---------------------- | ------------------------------------- |
+| 动作                   | 说明                                              |
+| ---------------------- | ------------------------------------------------- |
 | `create`               | 返回技能骨架候选（SKILL.md + handler.js），不写盘 |
-| `test`                 | 执行技能的 handler.js 并展示结果      |
-| `optimize`             | 静态检查描述质量（快速启发式）        |
-| `optimize-description` | LLM 驱动迭代并返回描述差异，不写 active |
-| `validate`             | 检查技能文件完整性和格式              |
-| `list-templates`       | 列出所有内置模板                      |
-| `get-template`         | 获取指定模板内容                      |
+| `test`                 | 执行技能的 handler.js 并展示结果                  |
+| `optimize`             | 静态检查描述质量（快速启发式）                    |
+| `optimize-description` | LLM 驱动迭代并返回描述差异，不写 active           |
+| `validate`             | 检查技能文件完整性和格式                          |
+| `list-templates`       | 列出所有内置模板                                  |
+| `get-template`         | 获取指定模板内容                                  |
 
 ## create — 创建技能
 
@@ -191,7 +191,7 @@ chainlesschain skill run skill-creator "optimize code-review --advanced --iterat
 | ----------------------- | -------------------------------------- |
 | LLM 不可用              | 返回提示信息，建议通过 CLI 运行        |
 | eval 生成失败（< 4 条） | 同上                                   |
-| 中途 LLM 失败           | 停止迭代，不产生部分 active 写入         |
+| 中途 LLM 失败           | 停止迭代，不产生部分 active 写入       |
 | 描述已是最优            | 不修改 SKILL.md，报告"already optimal" |
 
 > **注意**：`optimize-description` 仅在 `chainlesschain skill run` 上下文中可用（需要 CLI 环境调用 `chainlesschain ask`）。
@@ -320,13 +320,13 @@ Skill Creator 作为 bundled 系统技能，通过 `.chainlesschain/config.json`
 }
 ```
 
-| 配置项                             | 类型   | 默认值                       | 说明                                     |
-| ---------------------------------- | ------ | ---------------------------- | ---------------------------------------- |
-| `llm.provider`                     | string | `"ollama"`                   | optimize-description 使用的 LLM provider |
-| `llm.model`                        | string | 当前活跃模型                 | 用于生成 eval 查询集和改写描述           |
-| `skillCreator.defaultIterations`   | number | `5`                          | optimize-description 默认最大迭代次数    |
-| `skillCreator.evalQueryCount`      | number | `20`                         | 每次生成的 eval 查询数量                 |
-| `skillCreator.trainTestSplitRatio` | number | `0.6`                        | 训练集占 eval 查询的比例                 |
+| 配置项                             | 类型   | 默认值       | 说明                                     |
+| ---------------------------------- | ------ | ------------ | ---------------------------------------- |
+| `llm.provider`                     | string | `"ollama"`   | optimize-description 使用的 LLM provider |
+| `llm.model`                        | string | 当前活跃模型 | 用于生成 eval 查询集和改写描述           |
+| `skillCreator.defaultIterations`   | number | `5`          | optimize-description 默认最大迭代次数    |
+| `skillCreator.evalQueryCount`      | number | `20`         | 每次生成的 eval 查询数量                 |
+| `skillCreator.trainTestSplitRatio` | number | `0.6`        | 训练集占 eval 查询的比例                 |
 
 Skill Creator 不提供把候选直接落到 workspace/active 的公开配置项。candidate store 与 promotion controller 是独立的 source-only 受信端口，不能用 `workspaceDir` 绕过。
 
@@ -338,7 +338,7 @@ Skill Creator 不提供把候选直接落到 workspace/active 的公开配置项
 
 | 动作               | 平均耗时     | 说明                                                |
 | ------------------ | ------------ | --------------------------------------------------- |
-| `create`           | < 1s         | 历史本地观测；当前路径只渲染候选，不写盘             |
+| `create`           | < 1s         | 历史本地观测；当前路径只渲染候选，不写盘            |
 | `validate`         | < 100ms      | 文件系统检查 + `require()` 验证                     |
 | `test`             | 依赖 handler | 调用目标 handler.js `execute()`，耗时取决于技能本身 |
 | `optimize`（静态） | < 100ms      | 纯字符串分析，无 LLM 调用                           |

@@ -5,6 +5,8 @@ import releaseSizes from '../../data/release-sizes.json';
 import releaseStatus from '../../data/release-status.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
+const SOURCE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
 ---
@@ -30,7 +32,7 @@ const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releas
           CLI {CLI_VERSION} includes a default-off Desktop App Server pilot with fixed Thread/Turn methods, Process-Broker-owned child processes, and a 256 KiB parameter cap. Approvals decline until a review UI exists. This is a migration pilot, not full Desktop cutover.
         </p>
         <p class="mt-3 text-sm text-muted leading-relaxed max-w-3xl">
-          Current source main <code class="font-mono">c681e2b91d</code> now includes the governed Skill-evolution composition root, durable EvolutionRun, Wiki/Memory producers, the human-review control plane, and journaled migration plus automatic reconciliation for legacy candidate/release/state/ledger data. Public CLI <code class="font-mono">0.166.20@75a3339714</code> passed Linux, Windows, and macOS CLI CI, Strict Sandbox, and npm publication gates. Desktop still reaches these capabilities only through the default-off App Server pilot and existing bounded brokers; its default launcher, final-user promote/rollback/kill-switch/canary UI, deployment KMS/PKI, and cross-host authority remain unfinished. Historical <code class="font-mono">ee88125256</code> exact-SHA Desktop qualification evidence remains preserved, but it does not mean public native download, upgrade, or rollback delivery exists.
+          Current source <code class="font-mono">{SOURCE_COMMIT}</code> includes the Evolution Workbench drawer, evidence-ranked Skill Palette, and a governed knowledge-conflict review projection. Public CLI <code class="font-mono">{CLI_VERSION}@{CLI_RELEASE_COMMIT}</code> passed Linux, Windows, and macOS CLI CI, Strict Sandbox, and npm publication gates. Desktop consumes bounded App Server/CLI projections only; approve, reject, rollback, and knowledge merge actions remain validated by a trusted deployment host. The renderer cannot invent deployment KMS/PKI, cross-host identity/policy/witness/grader, or release authority. Historical <code class="font-mono">ee88125256</code> exact-SHA Desktop qualification evidence remains preserved, but it does not mean public native download, upgrade, or rollback delivery exists.
         </p>
         <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
           <a href="#download" class="btn-ember">Download ↓</a>

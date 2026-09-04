@@ -2,7 +2,7 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **源码边界（2026-09-03）**：既有 `cc evolution` 命令是指标与治理记录表面，不训练模型权重，也不修改 active Skill；`record-model-metrics` / `record-training-metrics-v2` 只记录调用者提供的数据量、loss 与公式化指标。受治理 Skill candidate、独立 Eval、证据账本、promotion/release 原语尚未组成面向普通用户的生产自动晋级控制面。
+> **当前版本（2026-09-04）**：Agent Platform CLI `0.166.21`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；新增 `workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。
 
 ## 核心特性
 
@@ -12,6 +12,9 @@
 - 🔧 **维护动作记录**: 根据显式 issue 执行既有维护策略并记录结果，不代表模型或 Skill 已自动修复
 - 🔮 **行为预测**: 基于历史数据预测未来能力变化趋势
 - 📈 **成长日志**: 完整记录 AI 能力成长轨迹
+- 🧭 **Evolution Workbench**: 查询候选、比较版本、提交批准/拒绝与精确回滚请求
+- 🔐 **知识冲突审核**: 分页查看删节冲突并提交认证的 canonical merge plan
+- 🔎 **Skill Retrieval**: `cc skill search` 按 canonical digest、索引见证和 verified outcome evidence 排序
 
 ## 概述
 
@@ -19,20 +22,54 @@ ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和
 
 系统根据数据库中的既有记录生成诊断投影。`repair <issue>` 只在用户显式指定 issue 后执行内置维护策略并记录结果，不训练模型，也不修改 active Skill。`predict` 命令根据历史记录生成公式化行为预测。
 
-`0.166.20` 包含 candidate-only/diff-only writer、Skill writer inventory、mutation authority、target-matrix Eval、promotion/release registry、认证制品端口与 tamper-evident ledger，并新增持久 `EvolutionRun` ingress、Wiki/Memory、human review、旧状态迁移与 registry transition 组合。mutation transition subject 绑定确切 operation、candidate/rollback target、dependency lock 与 active CAS，防止有效授权或 receipt 被换用于另一状态转换。它们尚无统一的普通用户 production wiring；`cc evolution` 不会因此直接创建、晋升或回滚 active Skill。缺少受信 candidate store、receipt、CAS 或 promotion authority 时必须失败闭合。
+`0.166.21` 在 candidate-only/diff-only writer、target-matrix Eval、promotion/release registry、持久 `EvolutionRun`、Wiki/Memory 和 tamper-evident ledger 之上，增加 Evolution Workbench、摘要绑定 Skill Retrieval 与受治理加密知识同步。mutation 和 merge subject 绑定确切 operation、revision/digest、candidate/rollback target、dependency lock 与 CAS，防止有效授权或 receipt 被换用于另一状态转换。
 
-## 0.166.20 新增能力与 `cc evolution` 的关系
+## 0.166.21 命令面的职责边界
 
 新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/record-model-metrics/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
 
 | 表面                                       | 负责什么                                              | 不负责什么                   |
 | ------------------------------------------ | ----------------------------------------------------- | ---------------------------- |
-| `cc evolution ...`                         | 能力评分、趋势、诊断、修复记录、模型参数导出          | 不创建或晋升 active Skill    |
+| `cc evolution assess/diagnose/...`         | 能力评分、趋势、诊断、修复记录、模型参数导出          | 不创建或晋升 active Skill    |
+| `cc evolution workbench ...`               | 候选查询、版本比较、人工 review 与 rollback 请求      | 客户端不直接写 active Skill  |
+| `cc evolution knowledge ...`               | 删节冲突查询与认证 merge plan                         | 不向客户端暴露密钥或原始密文 |
+| `cc skill search ...`                      | 多来源、证据排序的 Skill 检索                         | 不安装、激活或晋升 Skill     |
 | `cc learning synthesize`                   | 从合格 trajectory 提议并评测隔离候选                  | 不直接安装、启用或回滚 Skill |
 | Desktop Skill Creator                      | 返回 Skill scaffold/description 候选、diff 和评测证据 | 不写 active Skill 树         |
-| Candidate/Eval/Ledger/Promotion foundation | 为可信宿主提供不可变候选、证据与事务原语              | 当前不是完整的最终用户控制台 |
+| Candidate/Eval/Ledger/Promotion foundation | 为可信宿主提供不可变候选、证据与事务原语              | 不绕过 Workbench/宿主策略    |
 
 完整的新功能使用说明见[自进化 AI 系统：受治理的 Skill 候选生命周期](/chainlesschain/self-evolving-ai#新功能受治理的-skill-候选生命周期)。
+
+## Evolution Workbench
+
+```bash
+cc evolution workbench list --status pending --limit 20
+cc evolution workbench compare <left-packet-digest> <right-packet-digest>
+cc evolution workbench review approve <packet-digest> --reason "评测与证据已复核"
+cc evolution workbench review reject <packet-digest> --reason "证据不足"
+cc evolution workbench rollback <from-packet-digest> <to-packet-digest> \
+  --reason "canary 指标退化"
+```
+
+`list` 与 `compare` 返回经过验证的投影；`review` 支持一次提交一个或多个 packet digest。所有动作都通过 `EvolutionWorkbenchCliHost` 执行，宿主必须重新检查 revision、可用动作和 authority，不能相信客户端按钮状态。
+
+## 加密知识冲突审核
+
+```bash
+cc evolution knowledge conflicts --cursor 0 --limit 20
+cc evolution knowledge merge <conflict-envelope-digest> \
+  --record '<canonical-record-json>' \
+  --reason "已复核双方来源与撤销依赖"
+```
+
+冲突查询只返回删节投影，`--limit` 范围为 `1..256`。merge plan 由受信宿主做身份、策略、签名、dependency settlement 和 ledger 校验；缺少 `GovernedKnowledgeReviewHost` 时命令不会落盘。
+
+Skill 搜索属于 `cc skill search`，不是 `cc evolution` 子命令：
+
+```bash
+cc skill search "知识冲突合并" --source managed --limit 8
+cc skill search "Electron 性能" --category development --tag desktop --json
+```
 
 ## 命令参考
 
@@ -149,7 +186,7 @@ chainlesschain evolution export "embedder" --json
 
 ## 系统架构
 
-Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted projection → EvolutionRun/Wiki → immutable candidate → target-matrix Eval + human review → mutation authority → CAS promotion → release/LKG/rollback`。`0.166.20` 已提供 CLI Agent branded composition、文件 Ledger/witness、迁移和 registry transition 接线；下方 `evolution-system.js` 命令仍只是 metrics/diagnosis 表面，不是 active writer。目标环境未注入生产 authority 时整条 mutation 路径保持关闭。
+Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted projection → EvolutionRun/Wiki → immutable candidate → target-matrix Eval + human review → Workbench → mutation authority → CAS promotion → release/LKG/rollback`。`0.166.21` 已提供文件 Ledger/witness、迁移、registry transition、Workbench、digest-bound Retrieval 与 knowledge merge host；下方 `evolution-system.js` 旧命令仍只是 metrics/diagnosis 表面。目标环境未注入生产 authority 时所有变更路径保持关闭。
 
 ```
 用户命令 → evolution.js (Commander) → evolution-system.js
@@ -165,7 +202,7 @@ Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted project
 
 ## 配置参考
 
-candidate store、mutation authority、promotion controller 与 release registry 不是公共 `0.166.20` 最终用户配置项，不能用 active Skill 目录替代 candidate root，也不能通过环境变量或客户端 payload 伪造 production composition。
+candidate store、mutation authority、promotion controller、release registry、Workbench host 与 knowledge merge host 不是公共 `0.166.21` 的本地绕过配置项。不能用 active Skill 目录替代 candidate root，也不能通过环境变量或客户端 payload 伪造 production composition。
 
 ```bash
 chainlesschain evolution assess <name> <score> [--category <cat>] [--json]
@@ -178,11 +215,17 @@ chainlesschain evolution predict <capability-name> [--horizon <days>] [--json]
 chainlesschain evolution growth [--limit <n>] [--json]
 chainlesschain evolution stats [--json]
 chainlesschain evolution export <model-name> [--format json] [--json]
+chainlesschain evolution workbench list [--query <text>] [--status <status>] [--offset <n>] [--limit <n>]
+chainlesschain evolution workbench compare <left-packet-digest> <right-packet-digest>
+chainlesschain evolution workbench review <approve|reject> <packet-digests...> --reason <text>
+chainlesschain evolution workbench rollback <from-packet-digest> <to-packet-digest> --reason <text>
+chainlesschain evolution knowledge conflicts [--cursor <n>] [--limit <n>]
+chainlesschain evolution knowledge merge <conflict-envelope-digest> --record <json> --reason <text>
 ```
 
 ## 性能指标
 
-下表只描述既有 `cc evolution` 指标命令，不是 `0.166.20` 持久治理链的 SLA；真实 Eval、Ledger、KMS/PKI 和跨主机 witness 的 P50/P95 必须由目标部署单独验收。
+下表只描述既有 `cc evolution` 指标命令，不是 `0.166.21` Workbench、Retrieval 或知识治理链的 SLA；真实 Eval、Ledger、KMS/PKI 和跨主机 witness 的 P50/P95 必须由目标部署单独验收。
 
 | 操作                          | 目标    | 实际        | 状态 |
 | ----------------------------- | ------- | ----------- | ---- |
@@ -195,7 +238,7 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 
 ## 测试覆盖率
 
-治理回归覆盖 candidate/release/promotion、target matrix、evidence/artifact/ledger、三模式 Agent ingress、Wiki/Memory/review、legacy migration、registry transition、进程重启和 crash recovery。CLI `0.166.20` 的发布结论仅来自其 exact SHA 的三平台 CLI CI 与 Strict Sandbox；单个测试文件或旧快照不能替代发布门，也不能证明目标环境 authority 已部署。
+治理回归覆盖 candidate/release/promotion、target matrix、evidence/artifact/ledger、Workbench、digest-bound Retrieval、governed knowledge、三模式 Agent ingress、Wiki/Memory/review、legacy migration、registry transition、进程重启和 crash recovery。CLI `0.166.21@1ff70b7856` 的发布结论来自该 exact SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共 registry 回读；单个测试文件或旧快照不能替代发布门，也不能证明目标环境 authority 已部署。
 
 ```
 ✅ evolution.test.js  - 覆盖 CLI 主要路径
@@ -219,22 +262,26 @@ chainlesschain evolution export <model-name> [--format json] [--json]
 - `packages/cli/src/lib/evolution/structured-memory-agent-control-plane.js` — 四层 Memory 控制面
 - `packages/cli/src/lib/evolution/skill-registry-transition-ledger-adapter.js` — registry transition 状态机
 - `packages/cli/src/lib/evolution/evolution-ledger.js` — source-only hash-linked tamper-evident ledger
+- `packages/cli/src/commands/evolution-workbench.js` — Workbench 命令与受信宿主边界
+- `packages/cli/src/commands/evolution-knowledge.js` — 加密知识冲突审核与 merge 命令
+- `packages/cli/src/lib/evolution/evolution-workbench-projection.js` — 可公开的受治理候选投影
+- `packages/cli/src/lib/evolution/governed-knowledge-review-host.js` — 知识审核宿主合同
 
 ## 使用示例
 
-以下示例只操作既有能力评估、模型状态与诊断数据，不会调用当前本地快照的 Skill ledger/promotion/release 原语，也不表示 active Skill 已发生变化。
+以下三个场景只操作既有能力评估、模型状态与诊断数据，不会调用 Workbench 或知识 merge host，也不表示 active Skill 已发生变化。
 
 ### 场景 1：能力评估与趋势分析
 
 ```bash
 # 评估代码生成能力
-chainlesschain evolution assess code-generation
+chainlesschain evolution assess code-generation 0.85
 
 # 评估所有已注册能力
 chainlesschain evolution stats --json
 
 # 查看特定能力的趋势（improving/declining/stable）
-chainlesschain evolution assess nlp-understanding --json
+chainlesschain evolution assess nlp-understanding 0.72 --json
 ```
 
 ### 场景 2：记录训练指标
@@ -257,7 +304,7 @@ chainlesschain evolution diagnose
 chainlesschain evolution repair stale-cache
 
 # 预测用户行为
-chainlesschain evolution predict --user-pattern "morning-coding"
+chainlesschain evolution predict current-user --json
 
 # 查看成长日志
 chainlesschain evolution growth --limit 20
@@ -265,7 +312,7 @@ chainlesschain evolution growth --limit 20
 
 ## 故障排查
 
-若期望 `cc evolution` 自动安装或回滚 Skill，这是当前未接线能力。不要手工复制 candidate 到 active；`cc learning synthesize` 缺 evaluator、`candidateOutputDir` 或 active roots 时 unavailable，Skill Sync import 缺 `candidateStore` 时同样失败闭合。
+若 Workbench 或知识审核返回 `a trusted deployment host is required`，说明当前 CLI 未接入部署方治理宿主；不要手工复制 candidate 到 active 或绕过知识 merge。`cc learning synthesize` 缺 evaluator、`candidateOutputDir` 或 active roots 时 unavailable，Skill Sync import 缺 `candidateStore` 时同样失败闭合。
 
 ### 评估与学习问题
 
@@ -283,7 +330,7 @@ chainlesschain evolution growth --limit 20
 # 错误: "Capability not found"
 # 原因: 指定的能力名称未注册
 # 修复: 先评估建立能力记录
-chainlesschain evolution assess code-generation
+chainlesschain evolution assess code-generation 0.5
 
 # 错误: "Database not available"
 # 原因: 数据库未初始化

@@ -1,12 +1,12 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> ## 当前发布状态（2026-09-03）
+> ## 当前发布状态（2026-09-04）
 >
-> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.80** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **3.5 万**；该状态不表示 Microsoft VS Code Marketplace 已发布，后者仍未完成公开回读。
-> - **JetBrains**：`com.chainlesschain.ide` **0.4.108** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开；源码/tag **0.4.109** 已就绪，但尚不能在公共市场回读，因此不把上传或工作流结果改写为已公开。
-> - **当前发布能力**：两端消费 Agent Protocol `0.1.7` 的 canonical Schema，并投影 CLI `0.166.20` 的 Context/Memory lifecycle、Graph authority、结构化授权与 P0 执行安全边界；UI 只提交有界意图，不能成为 authority writer。
+> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.81** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **3.6 万**；该状态不表示 Microsoft VS Code Marketplace 已发布，后者仍未完成公共回读。
+> - **JetBrains**：`com.chainlesschain.ide` **0.4.110** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开并回读。
+> - **当前发布能力**：两端消费 Agent Protocol `0.1.8` 的 canonical Schema，并投影 CLI `0.166.21` 的 Context/Memory lifecycle、Graph authority、Evolution Workbench、Skill Retrieval、结构化授权与 P0 执行安全边界；UI 只提交有界意图，不能成为 authority writer。
 > - **App Server 边界**：固定能力客户端只暴露允许的 Thread/Turn 与 lifecycle 方法，不提供任意 request；审批 UI 不可用时 canonical decline，IDE 不得绕过 CLI-owned policy、sandbox、audit 或 durable state。
-> - **源码与市场边界**：当前 IDE 源码主线为 `c681e2b91d87c1bb5765008860b2d4fa3d3b4aa3`。VS Code **0.37.80** 已完成公共市场回读；JetBrains **0.4.109** 仍是源码候选，公共市场当前为 **0.4.108**。源码 tag、工作流成功或上传成功本身不能冒充已上架版本。
+> - **源码与市场边界**：当前 IDE 源码主线与 `ide-vscode-v0.37.81`、`ide-jetbrains-v0.4.110` 均指向 `1ff70b785629e2967dc69677f73cf00190f30a71`；两端公共市场已分别回读，但 npm、VSIX、JetBrains ZIP 与 Desktop/native 仍是独立制品身份。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。

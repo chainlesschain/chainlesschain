@@ -5,9 +5,19 @@
 
 ## [Unreleased]
 
+#### Released — Agent Platform CLI 0.166.21 / Session Core 0.3.11 / IDE Workbench
+
+> `chainlesschain@0.166.21` 是当前 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-21` 精确指向 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 均成功，npm 公共 registry 已回读。
+
+- **Evolution Workbench**：CLI 可列出候选、比较 revision、提交 approve/reject 决定和 rollback 请求；Desktop、VS Code `0.37.81` 与 JetBrains `0.4.110` 消费同一受治理投影。
+- **Skill Retrieval**：`cc skill search` 支持 bundled、marketplace、managed、workspace 来源，使用 canonical digest、索引 witness、混合向量路由与 verified outcome evidence 排序。
+- **加密知识治理**：冲突记录持久化并只输出删节投影；认证 merge plan 绑定摘要、签名与撤销依赖，可从 crash 或响应丢失恢复，再由 authority 发布 canonical record。
+- **安全边界**：Workbench 和知识变更要求 branded trusted deployment host；客户端、Desktop 和 IDE 都不能直写 active Skill 或 canonical knowledge。生产 KMS/PKI、identity、policy、witness 与 grader 仍由部署方提供。
+- **协调公共包**：Session Core `0.3.11`、Agent SDK TS/Python `0.2.8`、Agent Protocol `0.1.8`、Open VSX `0.37.81` 与 JetBrains Marketplace `0.4.110` 已公开回读。
+
 #### Released — Agent Platform CLI 0.166.20 / Session Core 0.3.10
 
-> `chainlesschain@0.166.20` 是当前 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-20` 精确指向 [`75a3339714`](https://github.com/chainlesschain/chainlesschain/commit/75a333971484e78793e693617071e596e27d871f)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501794)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501564) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33717512152) 均成功。当前源码主线为 `main@c681e2b91d`。
+> `chainlesschain@0.166.20` 是 2026-09-03 的历史发布，现已由 `0.166.21` 取代。不可变 tag `v-npm-0-166-20` 精确指向 [`75a3339714`](https://github.com/chainlesschain/chainlesschain/commit/75a333971484e78793e693617071e596e27d871f)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501794)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33717501564) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33717512152) 均成功。
 
 - **首次安装可启动**：公开 npm 包已修复安装后缺失运行时模块导致 `cc` 无法启动的问题。
 - **受治理的 Skill 进化**：候选、评估、证据、账本、人工复核、发布与回滚状态均已耐久化；交互 REPL、单次/流式 headless、`AgentRuntime`、Wiki Maintainer 和结构化记忆生产者使用统一组合入口。

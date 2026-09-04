@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-09-03）：产品 v5.0.3.135 / Agent Platform CLI 0.166.20（生产推荐与 npm latest，精确发布 SHA `75a3339714`）| Agent SDK TS/Python 0.2.7 | Agent Protocol 0.1.7 | Session Core 0.3.10 | 175 命令 | Node.js ≥ 22.12.0。当前版新增持久 EvolutionRun/Wiki/Memory/review/migration/registry-transition 组合并修复公共安装的 Agent 启动；不会默认自动改写 active Skill。**
+> **当前版本边界（2026-09-04）：产品 v5.0.3.135 / Agent Platform CLI 0.166.21（生产推荐与 npm latest，精确发布 SHA `1ff70b7856`）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.11 | 175 命令 | Node.js ≥ 22.12.0。当前版新增 Evolution Workbench、摘要绑定 Skill Retrieval 与受治理加密知识冲突审核/合并；客户端不获得 active Skill 或 canonical knowledge 写权限。**
 
 ## 概述
 

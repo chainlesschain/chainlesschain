@@ -2,7 +2,7 @@
 
 > **CLI 0.165.6 | Headless 命令 | 受治理多 Registry 候选选择、升级影响、摘要归档与制品回读**
 >
-> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 自 `0.164.0` 起进入稳定契约；payload/activation lifecycle、事务恢复与 provenance 已由 `0.165.2+` 正式承接，当前生产推荐版为 `0.166.20`。本版在任何目标 I/O 或进程启动前核验 canonical Git/registry/file/alias/ref/path/host/principal identity，并仅允许 catalog-bound、SHA-256 固定的同源 `tgz`/`tar.gz` 经有界解包和离线缓存复验进入安装/更新。
+> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 自 `0.164.0` 起进入稳定契约；payload/activation lifecycle、事务恢复与 provenance 已由 `0.165.2+` 正式承接，当前生产推荐版为 `0.166.21`。本版在任何目标 I/O 或进程启动前核验 canonical Git/registry/file/alias/ref/path/host/principal identity，并仅允许 catalog-bound、SHA-256 固定的同源 `tgz`/`tar.gz` 经有界解包和离线缓存复验进入安装/更新。
 
 ## 核心特性
 

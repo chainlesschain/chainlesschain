@@ -1,6 +1,6 @@
 # Graph Kernel 使用与运维指南
 
-> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.20`（精确发布 SHA `75a3339714`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换，当前版继续承接 durable history、retirement、quorum HumanTask、受治理 Skill evolution 与平台安全边界｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
+> 适用版本：生产推荐与 npm `latest` 均为 `chainlesschain@0.166.21`（精确发布 SHA `1ff70b7856`）｜核心与只读观测面自 `0.166.0` 起公开，CLI authoritative entry 自 `0.166.7` 完成切换，当前版继续承接 durable history、retirement、quorum HumanTask、受治理 Skill/knowledge evolution 与平台安全边界｜性质：CLI 内置的 canonical 多 Agent 执行内核，不是独立 daemon
 
 ## 概述
 
@@ -206,7 +206,7 @@ Graph Kernel 聚焦测试覆盖以下契约：
 
 测试说明内核契约受到保护，不代表 Team/Cowork/Scheduler/Desktop/Browser 已全部完成 authoritative 切换。正式发布仍以 exact SHA 的 Linux、Windows、macOS `CLI CI` 与 `CLI Strict Sandbox` 全矩阵为准。
 
-P2-3 的 formal Graph 协作质量评测与上述普通发布矩阵、下节 P1-12 生产切换证据是不同边界。历史 run `33411796790` 在 Windows 时延阈值调整后仍为失败，且没有 final-SHA aggregate success/OIDC attestation；它只记录当时 P2-3 的显式风险接受，不能作为 P1-12 或其他发布门的通用先例。当前 `0.166.20@75a3339714` 的发布身份只来自其自身成功的三平台 CLI CI、Strict Sandbox 与 npm 发布门。
+P2-3 的 formal Graph 协作质量评测与上述普通发布矩阵、下节 P1-12 生产切换证据是不同边界。历史 run `33411796790` 在 Windows 时延阈值调整后仍为失败，且没有 final-SHA aggregate success/OIDC attestation；它只记录当时 P2-3 的显式风险接受，不能作为 P1-12 或其他发布门的通用先例。当前 `0.166.21@1ff70b7856` 的发布身份只来自其自身成功的三平台 CLI CI、Strict Sandbox 与 npm 发布门。
 
 ## 生产切换完成门
 

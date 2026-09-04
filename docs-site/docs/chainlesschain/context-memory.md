@@ -1,16 +1,16 @@
 # 上下文与记忆
 
-> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.20`、Session Core `0.3.10`、Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7`
+> 适用对象：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.21`、Session Core `0.3.11`、Kernel `0.1.0`、Agent Protocol `0.1.8` 与 SDK `0.2.8`
 
 ## 概述
 
 ChainlessChain 中的“上下文”和“记忆”不是同一件事：
 
-| 概念 | 作用 | 典型生命周期 |
-| --- | --- | --- |
+| 概念   | 作用                                                                           | 典型生命周期   |
+| ------ | ------------------------------------------------------------------------------ | -------------- |
 | 上下文 | 本轮模型实际能看到的信息，包括系统规则、当前任务、近期对话、工具结果和召回内容 | 一轮或一个会话 |
-| 压缩 | 在上下文窗口接近上限时，把较旧历史转换为更小的可继续状态 | 发生在会话内部 |
-| 记忆 | 从会话之外再次取回的持久信息，例如用户偏好、项目约定或长期笔记 | 跨轮次或跨会话 |
+| 压缩   | 在上下文窗口接近上限时，把较旧历史转换为更小的可继续状态                       | 发生在会话内部 |
+| 记忆   | 从会话之外再次取回的持久信息，例如用户偏好、项目约定或长期笔记                 | 跨轮次或跨会话 |
 
 公开版本已经通过 [模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 的统一 schema、planner、压缩与记忆状态机管理 CLI、Desktop、App Server 和 IDE projection。CLI 旧 SQLite/session-core 记忆会幂等迁移到 canonical authority；旧 writer 在默认阶段失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已通过 exact-SHA Linux/Windows/macOS 矩阵、30 分钟 soak、证据聚合与 production-close 验签；GitHub `main@458b342f5f` 的后续 Graph/Team 质量阈值与 P2-3 风险接受不改写该 Context/Memory 关闭身份。
 
@@ -79,32 +79,32 @@ Context/Memory Kernel 位于 Agent Kernel 与各类存储之间：Agent Kernel �
 
 ### 常用入口
 
-| 目的 | 命令或入口 | 当前行为 |
-| --- | --- | --- |
-| 查看上下文占用 | `cc context [session-id]` | 只读估算已存无头会话，不输出消息正文 |
-| 预览压缩 | `cc compact <session-id> --dry-run` | 离线计算，不写入会话 |
-| 持久化压缩 | `cc compact <session-id>` | 追加 `compact` 事件，恢复时生效 |
-| 查看项目记忆来源 | `cc memory files [--json]` | 列出实际加载文件、作用域、字节数和警告 |
-| 管理 canonical 记忆 | `cc memory show|add|search|delete` | 操作 canonical durable memory；旧数据库只导入/清除 |
-| 管理作用域记忆 | `cc memory store|recall`，删除使用 `cc memory delete` | 使用 session/agent/project/user/global scope fence |
-| 恢复部分删除 | `cc memory reconcile <operation-id>` | 重试物理清除并返回可审计 receipt |
-| 查看兼容长期文件 | `cc memory daily` / `cc memory file` | daily append 进入 canonical；`MEMORY.md` 保持只读兼容来源 |
-| 写入作用域记忆 | `cc memory store` | 写入 session-core `MemoryStore` |
-| 召回作用域记忆 | `cc memory recall` | 查询 canonical durable store；首次切换会幂等导入旧 `memory-store.json` |
-| 管理用户画像 | `/profile show|set|clear|path` | 在交互式 Agent 中管理 `USER.md` |
+| 目的                | 命令或入口                           | 当前行为                                                               |
+| ------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| 查看上下文占用      | `cc context [session-id]`            | 只读估算已存无头会话，不输出消息正文                                   |
+| 预览压缩            | `cc compact <session-id> --dry-run`  | 离线计算，不写入会话                                                   |
+| 持久化压缩          | `cc compact <session-id>`            | 追加 `compact` 事件，恢复时生效                                        |
+| 查看项目记忆来源    | `cc memory files [--json]`           | 列出实际加载文件、作用域、字节数和警告                                 |
+| 管理 canonical 记忆 | `cc memory show                      | add                                                                    | search                                             | delete` | 操作 canonical durable memory；旧数据库只导入/清除 |
+| 管理作用域记忆      | `cc memory store                     | recall`，删除使用 `cc memory delete`                                   | 使用 session/agent/project/user/global scope fence |
+| 恢复部分删除        | `cc memory reconcile <operation-id>` | 重试物理清除并返回可审计 receipt                                       |
+| 查看兼容长期文件    | `cc memory daily` / `cc memory file` | daily append 进入 canonical；`MEMORY.md` 保持只读兼容来源              |
+| 写入作用域记忆      | `cc memory store`                    | 写入 session-core `MemoryStore`                                        |
+| 召回作用域记忆      | `cc memory recall`                   | 查询 canonical durable store；首次切换会幂等导入旧 `memory-store.json` |
+| 管理用户画像        | `/profile show                       | set                                                                    | clear                                              | path`   | 在交互式 Agent 中管理 `USER.md`                    |
 
 `cc` 与完整命令名 `chainlesschain` 等价。具体选项以当前安装版本的 `cc <command> --help` 为准。
 
 ### 主要存储位置
 
-| 数据 | 默认位置或后端 | 注意事项 |
-| --- | --- | --- |
-| 无头会话 | `~/.chainlesschain/sessions/*.jsonl` | 压缩为追加事件，不删除旧事件 |
-| 用户画像 | `~/.chainlesschain/USER.md` | 用户显式维护，支持自定义路径 |
-| canonical memory | `~/.chainlesschain/context-memory/kernel-v1.json` | 当前为本地明文 JSON authority，不要写入密钥 |
-| legacy scoped memory | `~/.chainlesschain/memory-store.json` | 只作受审计导入与删除对账，不再是默认 writer |
-| 长期文件记忆 | `MEMORY.md` 和 daily notes | 与 scoped memory 独立 |
-| 项目记忆 | 项目内 `cc.md`、规则文件及导入文件 | 内容可随项目进入版本控制 |
+| 数据                 | 默认位置或后端                                    | 注意事项                                    |
+| -------------------- | ------------------------------------------------- | ------------------------------------------- |
+| 无头会话             | `~/.chainlesschain/sessions/*.jsonl`              | 压缩为追加事件，不删除旧事件                |
+| 用户画像             | `~/.chainlesschain/USER.md`                       | 用户显式维护，支持自定义路径                |
+| canonical memory     | `~/.chainlesschain/context-memory/kernel-v1.json` | 当前为本地明文 JSON authority，不要写入密钥 |
+| legacy scoped memory | `~/.chainlesschain/memory-store.json`             | 只作受审计导入与删除对账，不再是默认 writer |
+| 长期文件记忆         | `MEMORY.md` 和 daily notes                        | 与 scoped memory 独立                       |
+| 项目记忆             | 项目内 `cc.md`、规则文件及导入文件                | 内容可随项目进入版本控制                    |
 
 `CHAINLESSCHAIN_HOME` 会影响部分 CLI 运行目录。不要在不了解迁移范围时手动移动或合并这些文件。
 
@@ -175,18 +175,18 @@ cc memory files --json
 
 ## 关键文件
 
-| 文件 | 作用 |
-| --- | --- |
-| `packages/cli/src/harness/prompt-compressor.js` | CLI 压缩策略、token 估算和工具配对 |
-| `packages/cli/src/harness/provider-backed-compaction.js` | provider-backed 语义压缩路径 |
-| `packages/cli/src/lib/cli-context-engineering.js` | CLI 上下文构建与压缩摘要注入 |
-| `packages/context-memory-kernel/lib/runtime.js` | 唯一 Context/Memory mutation runtime |
-| `packages/context-memory-kernel/inventory/writers.v1.json` | writer authority 与切换状态清单 |
+| 文件                                                                      | 作用                                          |
+| ------------------------------------------------------------------------- | --------------------------------------------- |
+| `packages/cli/src/harness/prompt-compressor.js`                           | CLI 压缩策略、token 估算和工具配对            |
+| `packages/cli/src/harness/provider-backed-compaction.js`                  | provider-backed 语义压缩路径                  |
+| `packages/cli/src/lib/cli-context-engineering.js`                         | CLI 上下文构建与压缩摘要注入                  |
+| `packages/context-memory-kernel/lib/runtime.js`                           | 唯一 Context/Memory mutation runtime          |
+| `packages/context-memory-kernel/inventory/writers.v1.json`                | writer authority 与切换状态清单               |
 | `packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv` | 7 个 surface、14 个场景的 conformance fixture |
-| `packages/session-core/lib/memory-store.js` | session/agent/user/global 作用域记忆原语 |
-| `packages/session-core/lib/memory-consolidator.js` | 从会话 trace 提炼记忆 |
-| `desktop-app-vue/src/main/llm/context-engineering.js` | Desktop 上下文工程实现 |
-| `desktop-app-vue/src/main/llm/prompt-compressor.js` | Desktop 独立压缩实现 |
+| `packages/session-core/lib/memory-store.js`                               | session/agent/user/global 作用域记忆原语      |
+| `packages/session-core/lib/memory-consolidator.js`                        | 从会话 trace 提炼记忆                         |
+| `desktop-app-vue/src/main/llm/context-engineering.js`                     | Desktop 上下文工程实现                        |
+| `desktop-app-vue/src/main/llm/prompt-compressor.js`                       | Desktop 独立压缩实现                          |
 
 ## 使用示例
 
