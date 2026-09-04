@@ -15,6 +15,10 @@
  */
 const MIN_CLI_VERSION = "0.162.190";
 
+/** Exact public CLI recommended by this extension release. */
+const RECOMMENDED_CLI_VERSION =
+  require("../package.json").chainlesschain.recommendedCliVersion;
+
 /** The shell command that upgrades the global CLI to the latest published npm. */
 const UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
@@ -111,7 +115,7 @@ function upgradeNotice(check) {
  *   deps.upgrade(command)  -> void                  (run npm i -g … in a terminal)
  * @returns {Promise<'none'|'shown'|'upgrade'|'dismissed'>} action taken
  */
-async function runCliVersionSync(deps, minimum = MIN_CLI_VERSION) {
+async function runCliVersionSync(deps, minimum = RECOMMENDED_CLI_VERSION) {
   let stdout = null;
   try {
     stdout = await deps.getVersion();
@@ -196,6 +200,7 @@ async function runLatestVersionCheck(deps) {
 
 module.exports = {
   MIN_CLI_VERSION,
+  RECOMMENDED_CLI_VERSION,
   UPGRADE_COMMAND,
   INSTALL_COMMAND,
   MIN_NODE_VERSION,

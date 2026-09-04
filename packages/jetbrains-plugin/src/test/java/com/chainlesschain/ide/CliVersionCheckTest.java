@@ -46,4 +46,16 @@ class CliVersionCheckTest {
         assertNull(CliVersionCheck.updateNotice(null, "0.162.93"));
         assertNull(CliVersionCheck.updateNotice("0.162.80", null));
     }
+
+    @Test
+    void recommendedReleaseIsTheOfflineUpgradeFloor() {
+        assertEquals("0.166.22", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+        assertEquals("0.166.22", CliVersionCheck.preferredUpgradeTarget(null));
+        assertEquals("0.166.22", CliVersionCheck.preferredUpgradeTarget("0.166.21"));
+        assertEquals("0.166.23", CliVersionCheck.preferredUpgradeTarget("0.166.23"));
+
+        String notice = CliVersionCheck.updateNotice(
+                "0.166.21", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+        assertTrue(notice != null && notice.contains("npm i -g chainlesschain@latest"));
+    }
 }

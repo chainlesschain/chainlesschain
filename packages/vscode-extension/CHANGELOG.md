@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.83] - CLI 0.166.22 session lease recovery (2026-09-05)
+
+- Recommend the exact-gated `chainlesschain@0.166.22` release, which keeps
+  persistent IDE Agent hosts responsive while slow foreground commands run and
+  permits the unchanged live lease owner to recover after an event-loop stall.
+- Compare the installed CLI with the extension's exact recommended release at
+  startup, even before the best-effort npm lookup, and offer
+  `npm i -g chainlesschain@latest` when an older CLI is detected.
+- Preserve the existing base bridge protocol floor and all fail-closed
+  capability checks while publishing a new immutable VSIX.
+
 ## [0.37.82] - Workbench capability preflight (2026-09-04)
 
 - Check the App Server's declared Evolution Workbench capability before

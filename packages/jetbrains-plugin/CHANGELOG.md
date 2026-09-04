@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.111] - CLI 0.166.22 session lease recovery (2026-09-05)
+
+- Recommend the exact-gated `chainlesschain@0.166.22` release, which keeps
+  persistent IDE Agent hosts responsive during slow foreground commands and
+  safely recovers an unchanged live lease after an event-loop stall.
+- Use the paired CLI as the offline upgrade floor when npm lookup is unavailable
+  or stale, and guide older installations to
+  `npm i -g chainlesschain@latest`.
+- Preserve the base bridge compatibility floor and fail-closed capability
+  checks while publishing a new immutable Marketplace plugin.
+
 ## [0.4.110] - Governed evolution review and retrieval (2026-09-04)
 
 - Add native Evolution Workbench and Skill Retrieval actions that consume only

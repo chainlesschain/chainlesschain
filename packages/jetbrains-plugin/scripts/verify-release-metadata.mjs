@@ -36,6 +36,7 @@ export function verifyReleaseMetadata({
   changelog,
   readme,
   cliManifest,
+  cliVersionCheck,
 }) {
   assert.equal(cliManifest.name, "chainlesschain");
   const sourceCliVersion = cliManifest.version;
@@ -57,6 +58,15 @@ export function verifyReleaseMetadata({
   assert.ok(
     compareVersions(recommendedCliVersion, sourceCliVersion) <= 0,
     "Recommended public CLI cannot be newer than the checked-out CLI source",
+  );
+  assert.equal(
+    oneMatch(
+      cliVersionCheck,
+      /RECOMMENDED_CLI_VERSION\s*=\s*"([^"]+)"/gmu,
+      "runtime recommended CLI version",
+    ),
+    recommendedCliVersion,
+    "Runtime CLI upgrade guidance must match the release recommendation",
   );
   const pluginVersion = oneMatch(
     gradle,
@@ -127,6 +137,19 @@ function main() {
     readme: readFileSync(join(PLUGIN_ROOT, "README.md"), "utf8"),
     cliManifest: JSON.parse(
       readFileSync(join(PLUGIN_ROOT, "..", "cli", "package.json"), "utf8"),
+    ),
+    cliVersionCheck: readFileSync(
+      join(
+        PLUGIN_ROOT,
+        "src",
+        "main",
+        "java",
+        "com",
+        "chainlesschain",
+        "ide",
+        "CliVersionCheck.java",
+      ),
+      "utf8",
     ),
   });
   process.stdout.write(

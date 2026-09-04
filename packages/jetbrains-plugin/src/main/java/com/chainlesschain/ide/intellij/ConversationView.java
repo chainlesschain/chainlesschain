@@ -442,7 +442,8 @@ final class ConversationView {
             try {
                 String installed = probeVersionCached(cwd);
                 String latestJson = fetchNpmLatest();
-                String latest = CliVersionCheck.parseNpmLatest(latestJson);
+                String latest = CliVersionCheck.preferredUpgradeTarget(
+                        CliVersionCheck.parseNpmLatest(latestJson));
                 String notice = CliVersionCheck.updateNotice(installed, latest);
                 if (notice == null) return;
                 String key = "cc.cliUpdateNudge." + CliVersionCheck.parseVersion(latest);

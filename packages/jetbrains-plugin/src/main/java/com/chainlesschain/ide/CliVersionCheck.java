@@ -18,6 +18,9 @@ public final class CliVersionCheck {
     /** The shell command that upgrades the global CLI to the latest npm. */
     public static final String UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
+    /** Exact public CLI paired with this plugin release. */
+    public static final String RECOMMENDED_CLI_VERSION = "0.166.22";
+
     private static final Pattern SEMVER = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
 
     /** Extract {@code x.y.z} (prerelease suffix ignored) from version output, or null. */
@@ -58,6 +61,18 @@ public final class CliVersionCheck {
         if (compare(installed, latest) >= 0) return null; // up to date or ahead
         return "A newer cc " + latest + " is available (you have " + installed + ") — run `"
                 + UPGRADE_COMMAND + "` to get the latest features.";
+    }
+
+    /**
+     * Prefer a newer npm release when one is visible, but never guide users to
+     * a version older than the immutable CLI paired with this plugin.
+     */
+    public static String preferredUpgradeTarget(String npmLatestRaw) {
+        String latest = parseVersion(npmLatestRaw);
+        if (latest == null || compare(latest, RECOMMENDED_CLI_VERSION) < 0) {
+            return RECOMMENDED_CLI_VERSION;
+        }
+        return latest;
     }
 
     /** Pull the {@code "version":"x.y.z"} out of a npm registry JSON body, or null. */
