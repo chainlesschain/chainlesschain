@@ -86,7 +86,7 @@ GraphDefinition 先由 compiler 验证 DAG、typed port、能力、预算与写�
 ### 快速开始
 
 ```bash
-npm install --global "chainlesschain@0.166.15"
+npm install --global "chainlesschain@0.166.21"
 
 # 查看完整投影
 cc team graph inspect <run-id>

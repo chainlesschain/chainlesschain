@@ -141,7 +141,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.2
+npm install -g chainlesschain@0.166.21
 chainlesschain setup
 chainlesschain start
 ```
@@ -158,7 +158,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.2
+npm install -g chainlesschain@0.166.21
 ```
 
 安装后提供 3 个等价命令：

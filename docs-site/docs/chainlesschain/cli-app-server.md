@@ -1,6 +1,6 @@
 # CC App Server 使用指南
 
-> 适用版本：`chainlesschain@0.166.6`、`@chainlesschain/agent-sdk@0.2.4`、`@chainlesschain/agent-protocol@0.1.5`｜传输：stdio（默认）/ WebSocket（experimental）JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主；App Server pilot/WS 的专项 soak 证据来自前序 `0.166.5`
+> 适用版本：`chainlesschain@0.166.21`、`@chainlesschain/agent-sdk@0.2.8`、`@chainlesschain/agent-protocol@0.1.8`｜传输：stdio（默认）/ WebSocket（experimental）JSON-RPC v1｜适用对象：桌面端、IDE、CI 与自定义 Agent 宿主；App Server pilot/WS 的历史专项 soak 证据仍绑定其原始版本和提交
 
 ## 概述
 
@@ -15,14 +15,14 @@ CC App Server 是完整产品集成入口。它在一个长期运行的 `cc` 子
 
 它与其他入口的选择关系：
 
-| 需求                              | 推荐入口                                    |
-| --------------------------------- | ------------------------------------------- |
-| 单次脚本/CI 命令                  | `cc exec -p "..."` 或 `cc agent -p "..."`   |
-| 轻量流式会话                      | Agent SDK `AgentSession`                    |
-| 完整产品、持久线程、服务端审批    | Agent SDK `AppServerClient` + CC App Server |
+| 需求                              | 推荐入口                                        |
+| --------------------------------- | ----------------------------------------------- |
+| 单次脚本/CI 命令                  | `cc exec -p "..."` 或 `cc agent -p "..."`       |
+| 轻量流式会话                      | Agent SDK `AgentSession`                        |
+| 完整产品、持久线程、服务端审批    | Agent SDK `AppServerClient` + CC App Server     |
 | Desktop / VS Code 限定试点        | `AppServerPilotClient`（固定 Thread/Turn 方法） |
-| 受控网络实验                      | `cc serve --app-server --app-server-websocket` |
-| 浏览器 Web Panel / 既有 WS 客户端 | `cc serve` 或 `cc ui`                       |
+| 受控网络实验                      | `cc serve --app-server --app-server-websocket`  |
+| 浏览器 Web Panel / 既有 WS 客户端 | `cc serve` 或 `cc ui`                           |
 
 ## 核心特性
 
@@ -61,13 +61,13 @@ stdout 只承载协议帧，诊断写入 stderr。App Server 复用 CLI Agent Ke
 ## 安装
 
 ```bash
-npm install --global "chainlesschain@0.166.6"
-npm install "@chainlesschain/agent-sdk@0.2.4"
+npm install --global "chainlesschain@0.166.21"
+npm install "@chainlesschain/agent-sdk@0.2.8"
 
 cc --version
 ```
 
-`@chainlesschain/agent-sdk` 需要 Node.js ≥ 22.12.0。Python SDK `0.2.4` 携带生成的 App Server 协议类型，但当前公开的进程客户端 `AppServerClient` / `AppServerPilotClient` 位于 TypeScript 包。
+`@chainlesschain/agent-sdk` 需要 Node.js ≥ 22.12.0。TypeScript 与 Python SDK `0.2.8` 均提供 `AppServerClient` / `AppServerPilotClient`，但固定 Pilot 方法面按语言包分别生成：当前 Evolution Workbench 与 knowledge review 便捷方法位于 TypeScript Pilot，Python Pilot 公开 Context/Memory 固定方法；需要其他方法时不要绕过能力协商自行扩权。
 
 ## 使用示例
 

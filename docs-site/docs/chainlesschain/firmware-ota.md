@@ -468,15 +468,7 @@ it('rejects firmware version lower than current installed version', async () => 
 | 连接 U 盾超时               | USB/BLE 连接不稳定或设备未就绪           | 重新插拔 U 盾或重新配对 BLE 连接，确认设备驱动正常加载，Windows 下检查设备管理器状态        |
 | 版本号不匹配（显示旧版本）  | 安装完成但设备未正确重启或版本缓存未刷新 | 手动重启 U 盾设备，调用 `firmware:check-updates` 刷新本地版本缓存                           |
 
-**常见修复操作**:
-
-```bash
-# 清除固件下载缓存并重新检查更新
-chainlesschain firmware clear-cache && chainlesschain firmware check --channel STABLE
-
-# 查看最近升级日志，排查失败原因
-chainlesschain firmware history --limit 5 --verbose
-```
+**常见修复操作**：当前公开 CLI `0.166.21` 没有注册顶层 `firmware` 命令。请在 Desktop 固件管理页面清除下载缓存、重新检查更新并查看升级历史；宿主集成方使用受控 IPC `firmware:check-updates`、`firmware:start-update` 与 `firmware:get-history`。不要把 IPC channel 拼成 `chainlesschain firmware ...` 命令。
 
 ## 相关文档
 

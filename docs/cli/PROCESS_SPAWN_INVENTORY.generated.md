@@ -582,7 +582,7 @@ Runtime audit: brokered: 209, audited-exemption: 37, non-executable: 48, unrevie
 
 | File | Line | Match |
 | --- | ---: | --- |
-| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js` | 506 | `FakePilotClient.options.spawn("node", ["cli.js"], {` |
+| `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js` | 528 | `FakePilotClient.options.spawn("node", ["cli.js"], {` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 75 | `_deps.spawn = vi.fn(() => mockProcess);` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 98 | `expect(_deps.spawn).toHaveBeenCalledTimes(1);` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 99 | `expect(_deps.spawn.mock.calls[0][2]).toMatchObject({` |
