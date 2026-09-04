@@ -13,9 +13,13 @@ import {
 
 const {
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+  createEvolvableArtifactActiveReleaseReader,
   digestEvolvableArtifactValue,
+  isEvolvableArtifactActiveReleaseReader:
+    isProtocolEvolvableArtifactActiveReleaseReader,
   verifyEvolvableArtifact,
 } = evolvableArtifactProtocol;
 
@@ -31,7 +35,6 @@ export const EVOLVABLE_ARTIFACT_TRANSITION_EVENT =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const TRANSITION_READERS = new WeakSet();
 const RELEASE_RESOLVERS = new WeakSet();
-const ACTIVE_RELEASE_READERS = new WeakSet();
 const ARTIFACT_TYPES = new Set(["skill", "prompt", "hook", "knowledge"]);
 const RECORD_KEYS = new Set([
   "artifact",
@@ -568,6 +571,7 @@ export class EvolvableArtifactLedgerAdapter {
     )
       throw new Error("active artifact content lineage is invalid");
     return freeze({
+      schema: EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
       authenticated: true,
       durable: true,
       tenantId: artifact.tenantId,
@@ -576,16 +580,15 @@ export class EvolvableArtifactLedgerAdapter {
       releaseId: artifact.activeReleaseId,
       contentDigest: artifact.contentDigest,
       artifactDigest: artifact.artifactDigest,
+      artifact,
       contentAvailable: candidate.contentAvailable === true,
       content: candidate.contentAvailable === true ? candidate.content : null,
     });
   }
 
-  activeReleaseReader() {
+  activeReleaseReader(releaseGate) {
     const adapter = this;
-    const tenantId = this.descriptor.tenantId;
-    const reader = Object.freeze({
-      tenantId,
+    const provider = Object.freeze({
       readerScope: this.readerScope,
       async listActive({ type = null } = {}) {
         if (type !== null && !ARTIFACT_TYPES.has(type))
@@ -620,8 +623,10 @@ export class EvolvableArtifactLedgerAdapter {
           : adapter._activeReleaseRecord(matches[0]);
       },
     });
-    ACTIVE_RELEASE_READERS.add(reader);
-    return reader;
+    return createEvolvableArtifactActiveReleaseReader({
+      releaseGate,
+      provider,
+    });
   }
 
   releaseResolver() {
@@ -679,5 +684,5 @@ export function isEvolvableArtifactReleaseResolver(value) {
 }
 
 export function isEvolvableArtifactActiveReleaseReader(value) {
-  return ACTIVE_RELEASE_READERS.has(value);
+  return isProtocolEvolvableArtifactActiveReleaseReader(value);
 }

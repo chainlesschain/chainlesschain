@@ -620,7 +620,7 @@ describe("EvolvableArtifactLedgerAdapter", () => {
       promotionReceipt: receipt(staged.artifact, "promotion"),
       releaseId: "knowledge-active-content-release",
     });
-    const reader = verifier.activeReleaseReader();
+    const reader = verifier.activeReleaseReader(releaseGate);
     expect(isEvolvableArtifactActiveReleaseReader(reader)).toBe(true);
     expect(isEvolvableArtifactActiveReleaseReader({ ...reader })).toBe(false);
     await expect(

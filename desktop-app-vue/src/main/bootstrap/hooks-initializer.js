@@ -6,8 +6,7 @@
  * @module bootstrap/hooks-initializer
  */
 
-const { logger } = require('../utils/logger.js');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 注册 Hooks 系统初始化器
@@ -18,46 +17,51 @@ function registerHooksInitializer(factory) {
   // Hooks 系统初始化器 (Phase 0 - 最先初始化)
   // =====================================================
   factory.register({
-    name: 'hookSystem',
+    name: "hookSystem",
     required: false,
     dependsOn: [], // 无依赖
 
-    async init(_context) {
-      const { initializeHookSystem } = require('../hooks');
-
-      // 获取配置路径
-      const projectHooksConfig = path.join(process.cwd(), '.chainlesschain', 'hooks.json');
-      const userHooksConfig = path.join(
-        process.env.HOME || process.env.USERPROFILE || '',
-        '.chainlesschain',
-        'hooks.json'
-      );
+    async init(context) {
+      const { initializeHookSystem } = require("../hooks");
+      const artifactActiveReleaseReader =
+        context.evolvableArtifactHookActiveReleaseReader || null;
 
       // 初始化 Hook System
       const hookSystem = await initializeHookSystem({
-        configPaths: [projectHooksConfig, userHooksConfig].filter(Boolean),
-        autoLoadConfig: true,
+        artifactActiveReleaseReader,
+        autoLoadConfig: artifactActiveReleaseReader !== null,
         defaultTimeout: 30000,
         continueOnError: true,
       });
 
       // 设置事件监听器用于日志
-      hookSystem.on('hook-registered', ({ hook }) => {
-        logger.debug(`[HookSystem] Hook registered: ${hook.name} (${hook.event})`);
+      hookSystem.on("hook-registered", ({ hook }) => {
+        logger.debug(
+          `[HookSystem] Hook registered: ${hook.name} (${hook.event})`,
+        );
       });
 
-      hookSystem.on('hook-error', ({ hookName, eventName, error }) => {
-        logger.warn(`[HookSystem] Hook error in ${hookName} for ${eventName}: ${error}`);
+      hookSystem.on("hook-error", ({ hookName, eventName, error }) => {
+        logger.warn(
+          `[HookSystem] Hook error in ${hookName} for ${eventName}: ${error}`,
+        );
       });
 
-      hookSystem.on('execution-complete', ({ eventName, executedHooks, totalTime }) => {
-        if (executedHooks > 0 && totalTime > 100) {
-          logger.debug(`[HookSystem] ${eventName}: ${executedHooks} hooks in ${totalTime}ms`);
-        }
-      });
+      hookSystem.on(
+        "execution-complete",
+        ({ eventName, executedHooks, totalTime }) => {
+          if (executedHooks > 0 && totalTime > 100) {
+            logger.debug(
+              `[HookSystem] ${eventName}: ${executedHooks} hooks in ${totalTime}ms`,
+            );
+          }
+        },
+      );
 
       const stats = hookSystem.getStats();
-      logger.info(`[HookSystem] Initialized with ${stats.hookCount} hooks (${stats.enabledCount} enabled)`);
+      logger.info(
+        `[HookSystem] Initialized with ${stats.hookCount} hooks (${stats.enabledCount} enabled)`,
+      );
 
       return hookSystem;
     },
@@ -71,10 +75,11 @@ function registerHooksInitializer(factory) {
  * @param {Object} instances - 所有初始化的实例
  */
 async function bindHooksToManagers(instances) {
-  const { hookSystem, sessionManager, agentOrchestrator, functionCaller } = instances;
+  const { hookSystem, sessionManager, agentOrchestrator, functionCaller } =
+    instances;
 
   if (!hookSystem) {
-    logger.warn('[HookSystem] Hook system not initialized, skipping bindings');
+    logger.warn("[HookSystem] Hook system not initialized, skipping bindings");
     return;
   }
 
@@ -82,9 +87,12 @@ async function bindHooksToManagers(instances) {
   if (sessionManager) {
     try {
       hookSystem.sessionMiddleware.bindToSessionManager(sessionManager);
-      logger.info('[HookSystem] Bound to SessionManager');
+      logger.info("[HookSystem] Bound to SessionManager");
     } catch (error) {
-      logger.warn('[HookSystem] Failed to bind to SessionManager:', error.message);
+      logger.warn(
+        "[HookSystem] Failed to bind to SessionManager:",
+        error.message,
+      );
     }
   }
 
@@ -92,23 +100,29 @@ async function bindHooksToManagers(instances) {
   if (agentOrchestrator) {
     try {
       hookSystem.agentMiddleware.bindToOrchestrator(agentOrchestrator);
-      logger.info('[HookSystem] Bound to AgentOrchestrator');
+      logger.info("[HookSystem] Bound to AgentOrchestrator");
     } catch (error) {
-      logger.warn('[HookSystem] Failed to bind to AgentOrchestrator:', error.message);
+      logger.warn(
+        "[HookSystem] Failed to bind to AgentOrchestrator:",
+        error.message,
+      );
     }
   }
 
   // 设置 FunctionCaller 的 hooks
-  if (functionCaller && typeof functionCaller.setHookSystem === 'function') {
+  if (functionCaller && typeof functionCaller.setHookSystem === "function") {
     try {
       functionCaller.setHookSystem(hookSystem);
-      logger.info('[HookSystem] Bound to FunctionCaller');
+      logger.info("[HookSystem] Bound to FunctionCaller");
     } catch (error) {
-      logger.warn('[HookSystem] Failed to bind to FunctionCaller:', error.message);
+      logger.warn(
+        "[HookSystem] Failed to bind to FunctionCaller:",
+        error.message,
+      );
     }
   }
 
-  logger.info('[HookSystem] All bindings completed');
+  logger.info("[HookSystem] All bindings completed");
 }
 
 module.exports = {

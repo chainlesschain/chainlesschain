@@ -5,10 +5,13 @@ const {
   ARTIFACT_TYPE,
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
   createEvolvableArtifactPolicy,
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
   createEvolvableArtifactReleaseGate,
+  createEvolvableArtifactActiveReleaseReader,
+  isEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactReleaseGate,
   isEvolvableArtifactCandidateGate,
   createEvolvableArtifactReceipt,
@@ -222,6 +225,67 @@ describe("EvolvableArtifact protocol", () => {
     await expect(
       badGate.stageCandidate(candidate(ARTIFACT_TYPE.PROMPT)),
     ).rejects.toThrow(/persistence receipt is invalid/);
+  });
+
+  it("brands only a type-scoped active release reader with exact content", async () => {
+    const promptAuthority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority: promptAuthority,
+      transitionWriter: { commitTransition: vi.fn() },
+      transitionReader: { readTransition: vi.fn() },
+    });
+    let artifact = promptAuthority.stageCandidate(
+      candidate(ARTIFACT_TYPE.PROMPT),
+    );
+    artifact = promptAuthority.recordEvaluation(
+      artifact,
+      receipt(artifact, "eval"),
+    );
+    artifact = promptAuthority.activateCandidate(artifact, {
+      reviewReceipt: receipt(artifact, "review"),
+      promotionReceipt: receipt(artifact, "promotion"),
+      releaseId: "prompt-release-a",
+    });
+    const active = {
+      schema: EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+      authenticated: true,
+      durable: true,
+      tenantId: "tenant-a",
+      type: ARTIFACT_TYPE.PROMPT,
+      artifactId: "prompt-a",
+      releaseId: "prompt-release-a",
+      contentDigest: digest("prompt-content"),
+      artifactDigest: artifact.artifactDigest,
+      artifact,
+      contentAvailable: true,
+      content: "prompt-content",
+    };
+    const provider = {
+      listActive: vi.fn(async () => [active]),
+      readActive: vi.fn(async () => active),
+    };
+    const reader = createEvolvableArtifactActiveReleaseReader({
+      releaseGate,
+      provider,
+    });
+    expect(
+      isEvolvableArtifactActiveReleaseReader(reader, ARTIFACT_TYPE.PROMPT),
+    ).toBe(true);
+    expect(isEvolvableArtifactActiveReleaseReader({ ...reader })).toBe(false);
+    await expect(reader.listActive()).resolves.toEqual([active]);
+    await expect(
+      reader.readActive({ artifactId: "prompt-a" }),
+    ).resolves.toEqual(active);
+    provider.readActive.mockResolvedValueOnce({
+      ...active,
+      content: "substituted",
+    });
+    await expect(reader.readActive({ artifactId: "prompt-a" })).rejects.toThrow(
+      "active artifact release is invalid",
+    );
   });
 
   it("enforces signed executable metadata and a two-human high-risk Hook quorum", () => {

@@ -13,6 +13,8 @@ const EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA =
   "chainlesschain.evolvable-artifact-transition-request/v1";
 const EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA =
   "chainlesschain.evolvable-artifact-transition-receipt/v1";
+const EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA =
+  "chainlesschain.evolvable-artifact-active-release/v1";
 
 const ARTIFACT_TYPE = Object.freeze({
   SKILL: "skill",
@@ -34,6 +36,7 @@ const policyBrands = new WeakSet();
 const authorityBrands = new WeakSet();
 const candidateGateBrands = new WeakSet();
 const releaseGateBrands = new WeakSet();
+const activeReleaseReaderBrands = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -781,6 +784,103 @@ function isEvolvableArtifactReleaseGate(value, type = null) {
   );
 }
 
+function normalizeActiveRelease(value, gate) {
+  let artifact;
+  try {
+    artifact = verifyEvolvableArtifact(value?.artifact);
+  } catch {
+    throw new Error("active artifact release is invalid");
+  }
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.schema !== EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA ||
+    value.authenticated !== true ||
+    value.durable !== true ||
+    value.tenantId !== gate.tenantId ||
+    value.type !== gate.type ||
+    typeof value.artifactId !== "string" ||
+    value.artifactId.trim() === "" ||
+    typeof value.releaseId !== "string" ||
+    value.releaseId.trim() === "" ||
+    !DIGEST.test(value.contentDigest || "") ||
+    !DIGEST.test(value.artifactDigest || "") ||
+    typeof value.contentAvailable !== "boolean" ||
+    artifact.tenantId !== value.tenantId ||
+    artifact.type !== value.type ||
+    artifact.artifactId !== value.artifactId ||
+    artifact.activeReleaseId !== value.releaseId ||
+    artifact.contentDigest !== value.contentDigest ||
+    artifact.artifactDigest !== value.artifactDigest ||
+    artifact.release?.status !== "active" ||
+    (value.contentAvailable
+      ? digestValue(value.content) !== value.contentDigest
+      : value.content !== null)
+  ) {
+    throw new Error("active artifact release is invalid");
+  }
+  return deepFreeze(clone(value));
+}
+
+function createEvolvableArtifactActiveReleaseReader({ releaseGate, provider }) {
+  if (!releaseGateBrands.has(releaseGate)) {
+    throw new TypeError("a branded EvolvableArtifact release gate is required");
+  }
+  if (
+    !provider ||
+    typeof provider.listActive !== "function" ||
+    typeof provider.readActive !== "function"
+  ) {
+    throw new TypeError("active release reader provider is required");
+  }
+  const listActive = provider.listActive.bind(provider);
+  const readActive = provider.readActive.bind(provider);
+  const reader = Object.freeze({
+    tenantId: releaseGate.tenantId,
+    type: releaseGate.type,
+    readerScope: provider.readerScope ?? provider,
+    async listActive() {
+      const values = await listActive({ type: releaseGate.type });
+      if (!Array.isArray(values) || values.length > 10_000) {
+        throw new Error("active artifact release list is invalid");
+      }
+      const normalized = values.map((value) =>
+        normalizeActiveRelease(value, releaseGate),
+      );
+      const ids = normalized.map((value) => value.artifactId);
+      if (new Set(ids).size !== ids.length) {
+        throw new Error("active artifact release list is ambiguous");
+      }
+      normalized.sort((left, right) =>
+        left.artifactId.localeCompare(right.artifactId),
+      );
+      return deepFreeze(normalized);
+    },
+    async readActive({ artifactId } = {}) {
+      const normalizedId = requiredString(artifactId, "artifactId");
+      const value = await readActive({
+        type: releaseGate.type,
+        artifactId: normalizedId,
+      });
+      if (value === null) return null;
+      const normalized = normalizeActiveRelease(value, releaseGate);
+      if (normalized.artifactId !== normalizedId) {
+        throw new Error("active artifact release substituted artifactId");
+      }
+      return normalized;
+    },
+  });
+  activeReleaseReaderBrands.add(reader);
+  return reader;
+}
+
+function isEvolvableArtifactActiveReleaseReader(value, type = null) {
+  return (
+    activeReleaseReaderBrands.has(value) &&
+    (type == null || value.type === normalizeType(type))
+  );
+}
+
 function projectEvolvableArtifactDependencyChange(
   artifacts,
   changedDependency,
@@ -870,6 +970,7 @@ module.exports = {
   EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
   ARTIFACT_TYPE,
   ARTIFACT_TYPES,
   digestEvolvableArtifactValue: digestValue,
@@ -879,6 +980,8 @@ module.exports = {
   isEvolvableArtifactCandidateGate,
   createEvolvableArtifactReleaseGate,
   isEvolvableArtifactReleaseGate,
+  createEvolvableArtifactActiveReleaseReader,
+  isEvolvableArtifactActiveReleaseReader,
   verifyEvolvableArtifact,
   projectEvolvableArtifactDependencyChange,
   createEvolvableArtifactReceipt,

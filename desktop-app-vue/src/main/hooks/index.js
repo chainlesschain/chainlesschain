@@ -10,7 +10,7 @@
  * const { initializeHookSystem } = require('./hooks');
  * const hookSystem = await initializeHookSystem();
  *
- * // 注册钩子
+ * // 可信运行时代码可以注册函数钩子
  * hookSystem.register({
  *   event: 'PreToolUse',
  *   name: 'my-validator',
@@ -27,8 +27,10 @@
  */
 
 const { EventEmitter } = require("events");
-const path = require("path");
-const fs = require("fs").promises;
+const {
+  ARTIFACT_TYPE,
+  isEvolvableArtifactActiveReleaseReader,
+} = require("@chainlesschain/session-core/evolvable-artifact");
 const {
   HookRegistry,
   HookPriority,
@@ -51,7 +53,7 @@ class HookSystem extends EventEmitter {
   /**
    * @param {Object} options 配置选项
    * @param {string[]} [options.configPaths] 额外的配置文件路径
-   * @param {boolean} [options.autoLoadConfig=true] 是否自动加载配置
+   * @param {boolean} [options.autoLoadConfig=false] 是否从治理后的激活发布加载配置
    * @param {number} [options.defaultTimeout=30000] 默认超时时间
    * @param {boolean} [options.continueOnError=true] 钩子出错是否继续
    */
@@ -59,12 +61,32 @@ class HookSystem extends EventEmitter {
     super();
 
     this.options = {
+      ...options,
       configPaths: options.configPaths || [],
-      autoLoadConfig: options.autoLoadConfig !== false,
+      autoLoadConfig: options.autoLoadConfig === true,
       defaultTimeout: options.defaultTimeout || 30000,
       continueOnError: options.continueOnError !== false,
-      ...options,
     };
+    this.artifactActiveReleaseReader =
+      options.artifactActiveReleaseReader || null;
+    if (
+      this.artifactActiveReleaseReader !== null &&
+      !isEvolvableArtifactActiveReleaseReader(
+        this.artifactActiveReleaseReader,
+        ARTIFACT_TYPE.HOOK,
+      )
+    ) {
+      throw new TypeError(
+        "HookSystem requires a branded Hook active release reader",
+      );
+    }
+    if (this.options.autoLoadConfig && !this.artifactActiveReleaseReader) {
+      const error = new Error(
+        "Hook auto-load requires a governed active release reader",
+      );
+      error.code = "CC_HOOK_ACTIVE_RELEASE_READER_UNAVAILABLE";
+      throw error;
+    }
 
     // 核心组件
     this.registry = new HookRegistry(options);
@@ -110,47 +132,54 @@ class HookSystem extends EventEmitter {
    * 加载默认配置文件
    */
   async loadDefaultConfigs() {
-    const configPaths = [
-      // 项目级配置
-      path.join(process.cwd(), ".chainlesschain", "hooks.json"),
-      // 用户级配置 (跨平台)
-      path.join(
-        process.env.HOME || process.env.USERPROFILE || "",
-        ".chainlesschain",
-        "hooks.json",
-      ),
-      // 自定义配置路径
-      ...this.options.configPaths,
-    ];
-
-    for (const configPath of configPaths) {
-      if (!configPath) {
-        continue;
-      }
-      try {
-        await fs.access(configPath);
-        await this.registry.loadFromConfig(configPath);
-        console.log(`[HookSystem] Loaded hooks from: ${configPath}`);
-      } catch {
-        // 配置文件不存在，跳过
-      }
+    if (!this.artifactActiveReleaseReader) {
+      const error = new Error(
+        "Direct Hook config loading is denied; an active release reader is required",
+      );
+      error.code = "CC_HOOK_DIRECT_CONFIG_LOAD_DENIED";
+      throw error;
     }
-
-    // 加载脚本钩子目录
-    const scriptDirs = [
-      path.join(process.cwd(), ".chainlesschain", "hooks"),
-      path.join(
-        process.env.HOME || process.env.USERPROFILE || "",
-        ".chainlesschain",
-        "hooks",
-      ),
-    ];
-
-    for (const scriptDir of scriptDirs) {
-      if (!scriptDir) {
-        continue;
+    const releases = await this.artifactActiveReleaseReader.listActive();
+    for (const release of releases) {
+      if (!release.contentAvailable || !release.content) {
+        throw new Error("Active Hook release content is unavailable");
       }
-      await this._loadScriptHooks(scriptDir);
+      const content = release.content;
+      if (
+        typeof content !== "object" ||
+        Array.isArray(content) ||
+        content.type !== HookType.COMMAND ||
+        typeof content.event !== "string" ||
+        typeof content.command !== "string" ||
+        content.command.trim() === "" ||
+        ![null, undefined].includes(content.script) ||
+        (![null, undefined].includes(content.matcher) &&
+          typeof content.matcher !== "string") ||
+        (content.priority != null && !Number.isFinite(content.priority)) ||
+        (content.timeout != null &&
+          (!Number.isSafeInteger(content.timeout) ||
+            content.timeout < 1 ||
+            content.timeout > 300_000)) ||
+        !Array.isArray(content.environmentAllowlist) ||
+        !Array.isArray(content.envAllowlist) ||
+        [...content.environmentAllowlist, ...content.envAllowlist].some(
+          (value) => typeof value !== "string" || value.trim() === "",
+        )
+      ) {
+        throw new Error("Active Hook release content is unsafe");
+      }
+      this.registry.register({
+        ...content,
+        id: release.artifactId,
+        name: release.artifactId,
+        enabled: true,
+        metadata: {
+          governed: true,
+          releaseId: release.releaseId,
+          artifactDigest: release.artifactDigest,
+          contentDigest: release.contentDigest,
+        },
+      });
     }
   }
 
@@ -159,36 +188,11 @@ class HookSystem extends EventEmitter {
    * @private
    */
   async _loadScriptHooks(dirPath) {
-    try {
-      const files = await fs.readdir(dirPath);
-
-      for (const file of files) {
-        if (!file.endsWith(".js")) {
-          continue;
-        }
-
-        const scriptPath = path.join(dirPath, file);
-        try {
-          // 清除缓存以支持热重载
-          delete require.cache[require.resolve(scriptPath)];
-          const hookModule = require(scriptPath);
-
-          if (hookModule.hooks && Array.isArray(hookModule.hooks)) {
-            this.registry.registerMultiple(hookModule.hooks);
-            console.log(
-              `[HookSystem] Loaded ${hookModule.hooks.length} hooks from: ${scriptPath}`,
-            );
-          }
-        } catch (error) {
-          console.error(
-            `[HookSystem] Failed to load script: ${scriptPath}`,
-            error.message,
-          );
-        }
-      }
-    } catch {
-      // 目录不存在，跳过
-    }
+    const error = new Error(
+      `Direct Hook script loading is denied: ${String(dirPath)}`,
+    );
+    error.code = "CC_HOOK_DIRECT_SCRIPT_LOAD_DENIED";
+    throw error;
   }
 
   /**
@@ -269,6 +273,18 @@ class HookSystem extends EventEmitter {
    * @returns {string} 钩子ID
    */
   register(hookConfig) {
+    if (
+      hookConfig?.type === HookType.COMMAND ||
+      hookConfig?.type === HookType.SCRIPT ||
+      hookConfig?.command != null ||
+      hookConfig?.script != null
+    ) {
+      const error = new Error(
+        "Direct executable Hook registration is denied; activate a governed Hook release",
+      );
+      error.code = "CC_HOOK_DIRECT_EXECUTABLE_REGISTRATION_DENIED";
+      throw error;
+    }
     return this.registry.register(hookConfig);
   }
 
@@ -278,7 +294,10 @@ class HookSystem extends EventEmitter {
    * @returns {Array<string>} 钩子ID数组
    */
   registerMultiple(hookConfigs) {
-    return this.registry.registerMultiple(hookConfigs);
+    if (!Array.isArray(hookConfigs)) {
+      throw new TypeError("hookConfigs must be an array");
+    }
+    return hookConfigs.map((hookConfig) => this.register(hookConfig));
   }
 
   /**
