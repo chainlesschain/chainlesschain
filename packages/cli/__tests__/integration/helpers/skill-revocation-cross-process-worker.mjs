@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import {
+import { createHash, createHmac } from "node:crypto";
+import fs, {
   existsSync,
   mkdirSync,
   readFileSync,
@@ -7,6 +7,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+
+import { ArtifactStore } from "../../../src/lib/artifact-store.js";
+import {
+  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+  EvolutionArtifactPorts,
+} from "../../../src/lib/evolution/evolution-artifact-ports.js";
+import { createEvolutionLedgerFileBackend } from "../../../src/lib/evolution/evolution-ledger-file-backend.js";
 
 import {
   EvidenceBackedWikiMaintainer,
@@ -25,6 +32,8 @@ import {
   SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
   createSkillRevocationPropagation,
 } from "../../../src/lib/evolution/skill-revocation-propagation.js";
+import { openSkillRetrievalRevocationAuthority } from "../../../src/lib/evolution/skill-retrieval-revocation-authority.js";
+import { SkillRetrievalRevocationLedgerAdapter } from "../../../src/lib/evolution/skill-retrieval-revocation-ledger-adapter.js";
 import {
   SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
@@ -44,6 +53,12 @@ function canonical(value) {
 }
 const D = (value) =>
   `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`;
+const domainDigest = (domain, value) =>
+  `sha256:${createHash("sha256")
+    .update(domain)
+    .update("\0")
+    .update(canonical(value))
+    .digest("hex")}`;
 const file = (name) => join(root, `${name}.json`);
 const load = (name, fallback) =>
   existsSync(file(name))
@@ -53,6 +68,175 @@ function save(name, value) {
   const temporary = `${file(name)}.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(value), "utf8");
   renameSync(temporary, file(name));
+}
+
+function signingAuthority(label) {
+  const trust = Object.freeze({
+    algorithm: "hmac-sha256",
+    keyId: `key://tests/revocation-process-${label}`,
+    trustPolicyDigest: D(`${label}-policy`),
+  });
+  const secret = `test-only-revocation-process-${label}-secret`;
+  const sign = (message) =>
+    createHmac("sha256", secret).update(message).digest("base64url");
+  return Object.freeze({
+    trust,
+    signer: Object.freeze({
+      sign: ({ message }) => Object.freeze({ ...trust, value: sign(message) }),
+    }),
+    verifier: Object.freeze({
+      verify: ({ message, signature }) =>
+        signature.algorithm === trust.algorithm &&
+        signature.keyId === trust.keyId &&
+        signature.trustPolicyDigest === trust.trustPolicyDigest &&
+        signature.value === sign(message),
+    }),
+  });
+}
+
+function durableFilesystem() {
+  const directories = new Set();
+  let nextDescriptor = -110_000;
+  return {
+    ...fs,
+    constants: fs.constants,
+    realpathSync: fs.realpathSync,
+    closeSync(descriptor) {
+      if (directories.delete(descriptor)) return;
+      return fs.closeSync(descriptor);
+    },
+    fsyncSync(descriptor) {
+      if (directories.has(descriptor)) return;
+      try {
+        return fs.fsyncSync(descriptor);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.fstatSync(descriptor).isDirectory()
+        ) {
+          return;
+        }
+        throw error;
+      }
+    },
+    openSync(target, flags, mode) {
+      try {
+        return fs.openSync(target, flags, mode);
+      } catch (error) {
+        if (
+          process.platform === "win32" &&
+          flags === "r" &&
+          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
+          fs.statSync(target).isDirectory()
+        ) {
+          const descriptor = nextDescriptor;
+          nextDescriptor -= 1;
+          directories.add(descriptor);
+          return descriptor;
+        }
+        throw error;
+      }
+    },
+  };
+}
+
+async function retrievalAuthority() {
+  const now = Date.parse("2026-09-05T10:00:00.000Z");
+  const artifactTenantId = "artifact-tenant-a-retrieval";
+  const secret = "test-only-revocation-retrieval-artifact-secret";
+  const algorithm = "hmac-sha256";
+  const keyId = "test:key/revocation-retrieval-artifacts";
+  const policyDigest = D("revocation-retrieval-artifact-policy");
+  const sign = (message) =>
+    createHmac("sha256", secret).update(message).digest("base64url");
+  const artifactPorts = new EvolutionArtifactPorts({
+    artifactStore: new ArtifactStore({
+      dir: join(root, "retrieval-artifacts"),
+      now: () => now,
+    }),
+    audience: "evolution-runtime",
+    tenantId: artifactTenantId,
+    now: () => now,
+    envelopeSigner: {
+      sign: ({ message }) => ({ algorithm, keyId, value: sign(message) }),
+    },
+    envelopeVerifier: {
+      verify: ({ message, signature }) =>
+        signature.algorithm === algorithm &&
+        signature.keyId === keyId &&
+        signature.value === sign(message),
+    },
+    currentAuthorityResolver: {
+      resolve(request) {
+        const core = {
+          action: request.action,
+          algorithm,
+          allowed: true,
+          audience: request.audience,
+          checkedAt: "2026-09-05T10:00:00.000Z",
+          decisionExpiresAt: "2026-09-05T10:01:00.000Z",
+          digest: request.digest,
+          issuedAt: request.issuedAt,
+          issuedPolicyDigest: request.issuedPolicyDigest,
+          issuedPolicyRevision: request.issuedPolicyRevision,
+          issuedPolicyTrusted: true,
+          keyId: request.keyId || keyId,
+          policyDigest,
+          policyRevision: 1,
+          purpose: request.purpose,
+          requestedAt: request.requestedAt,
+          retention: request.retention,
+          revocationRevision: 1,
+          revoked: false,
+          schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+          tenantId: request.tenantId,
+          type: request.type,
+        };
+        return {
+          ...core,
+          receiptDigest: domainDigest(
+            "chainlesschain.evolution-artifact-authority-decision/v1",
+            core,
+          ),
+        };
+      },
+    },
+  });
+  const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
+    purpose: "evolution-ledger",
+  });
+  mkdirSync(join(root, "retrieval-witness"), { recursive: true });
+  const backend = createEvolutionLedgerFileBackend({
+    rootDir: join(root, "retrieval-ledger-events"),
+    authorityRootDir: join(root, "retrieval-ledger-authority"),
+    witnessFilePath: join(root, "retrieval-witness", "checkpoint.json"),
+    witnessId: "skill-retrieval-revocation-process-witness",
+    ledgerAuthority: signingAuthority("retrieval-ledger"),
+    witnessAuthority: signingAuthority("retrieval-witness"),
+    artifactResolver: resolver,
+    fsImpl: durableFilesystem(),
+    secure: false,
+    clock: () => now,
+  });
+  const adapter = new SkillRetrievalRevocationLedgerAdapter({
+    descriptor: {
+      tenantId: "tenant-a",
+      artifactTenantId,
+      streamId: "retrieval-revocations:process",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts,
+    ledger: backend.ledger,
+    ledgerArtifactResolver: resolver,
+    now: () => now,
+  });
+  const authority = await openSkillRetrievalRevocationAuthority({
+    tenantId: "tenant-a",
+    ports: adapter.persistencePorts(),
+  });
+  return Object.freeze({ authority, backend });
 }
 
 function externalSource() {
@@ -258,6 +442,7 @@ async function wiki() {
 
 async function propagate() {
   const source = externalSource();
+  const retrieval = await retrievalAuthority();
   const effectState = load("effects", {});
   const dependencies = [
     ["wiki-pattern", "stale"],
@@ -268,7 +453,10 @@ async function propagate() {
     .map(([kind, disposition]) => ({
       kind,
       disposition,
-      ref: `${kind}://tenant-a/safe-refactor`,
+      ref:
+        kind === "retrieval-index"
+          ? "skill-content:tenant-a:safe-refactor"
+          : `${kind}://tenant-a/safe-refactor`,
       digest: D([kind, "dependency"]),
     }))
     .sort((a, b) => `${a.kind}:${a.ref}`.localeCompare(`${b.kind}:${b.ref}`));
@@ -327,7 +515,9 @@ async function propagate() {
       },
       stalePattern: effect,
       quarantineMemory: effect,
-      invalidateRetrieval: effect,
+      invalidateRetrieval: retrieval.authority.invalidateRetrieval.bind(
+        retrieval.authority,
+      ),
       revokeMarketplaceBadge: effect,
       loadCheckpoint: async () => load("propagation-checkpoint", null),
       commitCheckpoint: async ({ checkpoint }) => {
@@ -346,6 +536,16 @@ async function propagate() {
     },
   });
   await propagation.propagate();
+  const retrievalDependency = dependencies.find(
+    ({ kind }) => kind === "retrieval-index",
+  );
+  save("retrieval-inspection", {
+    ...retrieval.authority.inspect({
+      skillName: "safe-refactor",
+      contentDigest: retrievalDependency.digest,
+    }),
+    ledgerSequence: retrieval.backend.ledger.verify().sequence,
+  });
 }
 
 if (operation === "wiki") await wiki();

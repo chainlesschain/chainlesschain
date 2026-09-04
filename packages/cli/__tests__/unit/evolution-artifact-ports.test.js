@@ -604,6 +604,7 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-attempt",
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
+      "skill-retrieval-revocation-state",
       "evolution-run-event",
       "evolution-eval-child-evidence",
       "evolution-raw-deletion-receipt",

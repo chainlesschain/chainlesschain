@@ -123,11 +123,11 @@ function timestamp(value, label) {
   return value;
 }
 
-function stateDigest(core) {
+export function digestSkillRetrievalRevocationState(core) {
   return hash({ domain: SKILL_RETRIEVAL_REVOCATION_STATE_SCHEMA, ...core });
 }
 
-function normalizeState(value, tenantId) {
+export function verifySkillRetrievalRevocationState(value, tenantId) {
   exact(value, STATE_KEYS, "retrieval revocation state");
   if (
     value.schema !== SKILL_RETRIEVAL_REVOCATION_STATE_SCHEMA ||
@@ -164,7 +164,7 @@ function normalizeState(value, tenantId) {
     revision: value.revision,
     invalidations: value.invalidations,
   };
-  if (value.stateDigest !== stateDigest(core)) {
+  if (value.stateDigest !== digestSkillRetrievalRevocationState(core)) {
     throw new Error("Retrieval revocation state digest is invalid");
   }
   return freeze(structuredClone(value));
@@ -239,7 +239,9 @@ export async function openSkillRetrievalRevocationAuthority({
     ) {
       throw new Error("Retrieval revocation load is not authoritative");
     }
-    state = loaded.found ? normalizeState(loaded.state, tenantId) : null;
+    state = loaded.found
+      ? verifySkillRetrievalRevocationState(loaded.state, tenantId)
+      : null;
     return state;
   }
 
@@ -296,7 +298,10 @@ export async function openSkillRetrievalRevocationAuthority({
           },
         },
       };
-      const next = freeze({ ...core, stateDigest: stateDigest(core) });
+      const next = freeze({
+        ...core,
+        stateDigest: digestSkillRetrievalRevocationState(core),
+      });
       try {
         const receipt = await commit({
           state: next,

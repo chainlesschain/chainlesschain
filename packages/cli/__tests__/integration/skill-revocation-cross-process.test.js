@@ -54,8 +54,14 @@ describe("Skill revocation real cross-process recovery", () => {
       );
       expect(run(root, "propagate", "none").status).toBe(0);
       const effects = Object.values(read(root, "effects"));
-      expect(effects).toHaveLength(4);
+      expect(effects).toHaveLength(3);
       expect(effects.every(({ applyCount }) => applyCount === 1)).toBe(true);
+      expect(read(root, "retrieval-inspection")).toMatchObject({
+        invalidated: true,
+        tenantId: "tenant-a",
+        skillName: "safe-refactor",
+        ledgerSequence: 1,
+      });
       expect(read(root, "propagation-checkpoint").cursor).toBe(1);
     }
 
