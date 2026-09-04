@@ -22,6 +22,10 @@ const WORKER = fileURLToPath(
 );
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
+const DEFAULT_MEMORY_LIMIT_MB = 128;
+const MIN_MEMORY_LIMIT_MB = 32;
+const MAX_MEMORY_LIMIT_MB = 1024;
+const MAX_PERMISSION_PATHS = 32;
 const PROCESS_SUPERVISORS = new WeakSet();
 
 function canonical(value) {
@@ -108,6 +112,50 @@ function moduleSnapshotSync(path, expectedDigest) {
     digest: expectedDigest,
     moduleUrl: `data:text/javascript;base64,${bytes.toString("base64")}`,
   });
+}
+
+function sandboxPolicy(value) {
+  if (value === undefined) value = {};
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new TypeError("process target sandboxPolicy must be an object");
+  const keys = Object.keys(value);
+  if (keys.some((key) => !["fsRead", "fsWrite", "memoryLimitMb"].includes(key)))
+    throw new TypeError("process target sandboxPolicy contains unknown fields");
+  const normalizePaths = (paths, label) => {
+    if (paths === undefined) return Object.freeze([]);
+    if (!Array.isArray(paths) || paths.length > MAX_PERMISSION_PATHS)
+      throw new TypeError(`${label} must be a bounded array`);
+    const normalized = paths.map((path) => {
+      if (typeof path !== "string" || !isAbsolute(path))
+        throw new TypeError(`${label} paths must be absolute`);
+      return resolve(path);
+    });
+    if (new Set(normalized).size !== normalized.length)
+      throw new TypeError(`${label} paths must be unique`);
+    return Object.freeze(normalized);
+  };
+  const memoryLimitMb = value.memoryLimitMb ?? DEFAULT_MEMORY_LIMIT_MB;
+  if (
+    !Number.isSafeInteger(memoryLimitMb) ||
+    memoryLimitMb < MIN_MEMORY_LIMIT_MB ||
+    memoryLimitMb > MAX_MEMORY_LIMIT_MB
+  )
+    throw new TypeError("process target memoryLimitMb is out of bounds");
+  return Object.freeze({
+    fsRead: normalizePaths(value.fsRead, "sandboxPolicy.fsRead"),
+    fsWrite: normalizePaths(value.fsWrite, "sandboxPolicy.fsWrite"),
+    memoryLimitMb,
+  });
+}
+
+function workerArguments(policy) {
+  return Object.freeze([
+    `--max-old-space-size=${policy.memoryLimitMb}`,
+    "--permission",
+    ...policy.fsRead.map((path) => `--allow-fs-read=${path}`),
+    ...policy.fsWrite.map((path) => `--allow-fs-write=${path}`),
+    WORKER,
+  ]);
 }
 
 async function attest(core, purpose, authority) {
@@ -238,6 +286,7 @@ export function createEvolutionEvalProcessSupervisor({
         target: Object.freeze(structuredClone(entry.target)),
         exportName: entry.exportName,
         snapshot,
+        sandboxPolicy: sandboxPolicy(entry.sandboxPolicy),
       }),
     );
   }
@@ -331,15 +380,19 @@ export function createEvolutionEvalProcessSupervisor({
       throw new Error("evaluation capability is already active");
     await moduleSnapshot(entry.snapshot.physical, entry.snapshot.digest);
     const invokedAt = timestamp(clock);
-    const child = spawnProcess(process.execPath, [WORKER], {
-      cwd: dirname(entry.snapshot.physical),
-      env: Object.freeze({}),
-      shell: false,
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "pipe"],
-      origin: "evolution-eval-process-supervisor",
-      reason: "Execute an attested evaluation target in a killable process",
-    });
+    const child = spawnProcess(
+      process.execPath,
+      workerArguments(entry.sandboxPolicy),
+      {
+        cwd: dirname(entry.snapshot.physical),
+        env: Object.freeze({}),
+        shell: false,
+        windowsHide: true,
+        stdio: ["pipe", "pipe", "pipe"],
+        origin: "evolution-eval-process-supervisor",
+        reason: "Execute an attested evaluation target in a killable process",
+      },
+    );
     const closed = new Promise((resolveClose) =>
       child.once("close", (code, signal) => resolveClose({ code, signal })),
     );

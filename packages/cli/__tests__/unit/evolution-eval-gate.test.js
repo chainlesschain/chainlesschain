@@ -3357,7 +3357,12 @@ describe("Evolution Eval Gate P0 foundation", () => {
           targets: new Map([
             [
               executorTarget.handlerId,
-              { target: executorTarget, modulePath, exportName: "execute" },
+              {
+                target: executorTarget,
+                modulePath,
+                exportName: "execute",
+                sandboxPolicy: { fsWrite: [root], memoryLimitMb: 128 },
+              },
             ],
           ]),
           authorityDescriptor: fallbackSupervisor.authorityDescriptor,

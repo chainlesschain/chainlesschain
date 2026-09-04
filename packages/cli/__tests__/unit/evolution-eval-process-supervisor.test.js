@@ -32,7 +32,7 @@ function trust(label) {
   };
 }
 
-async function fixture(source) {
+async function fixture(source, { allowFixtureWrites = false } = {}) {
   const root = await mkdtemp(join(tmpdir(), "cc-eval-process-"));
   const modulePath = join(root, "target.mjs");
   await writeFile(modulePath, source);
@@ -59,7 +59,18 @@ async function fixture(source) {
   });
   const supervisor = await createEvolutionEvalProcessSupervisor({
     targets: new Map([
-      [target.handlerId, { target, modulePath, exportName: "runTarget" }],
+      [
+        target.handlerId,
+        {
+          target,
+          modulePath,
+          exportName: "runTarget",
+          sandboxPolicy: {
+            fsWrite: allowFixtureWrites ? [root] : [],
+            memoryLimitMb: 128,
+          },
+        },
+      ],
     ]),
     authorityDescriptor,
     supervisorRevision: "supervisor-v1",
@@ -168,7 +179,9 @@ describe("Evolution Eval process supervisor", () => {
       "  return { late: true };",
       "}",
     ].join("\n");
-    const { root, target, supervisor } = await fixture(source);
+    const { root, target, supervisor } = await fixture(source, {
+      allowFixtureWrites: true,
+    });
     const pidFile = join(root, "pid.txt");
     const lateFile = join(root, "late.txt");
     const request = requests(target, new Date(Date.now() + 500).toISOString(), {
@@ -206,6 +219,33 @@ describe("Evolution Eval process supervisor", () => {
     );
   });
 
+  it("denies filesystem and child-process capabilities unless the target policy grants them", async () => {
+    const source = [
+      'import { readFile } from "node:fs/promises";',
+      'import { spawnSync } from "node:child_process";',
+      "export async function runTarget(payload) {",
+      "  const denied = [];",
+      '  try { await readFile(payload.path, "utf8"); } catch (error) { denied.push(error.code); }',
+      '  try { spawnSync(process.execPath, ["--version"]); } catch (error) { denied.push(error.code); }',
+      "  return { denied };",
+      "}",
+    ].join("\n");
+    const { modulePath, target, supervisor } = await fixture(source);
+    const request = requests(
+      target,
+      new Date(Date.now() + 2_000).toISOString(),
+      { path: modulePath },
+    );
+    const result = await supervisor.run(
+      request.supervision,
+      capability(supervisor, request),
+    );
+    expect(result.value.denied).toEqual([
+      "ERR_ACCESS_DENIED",
+      "ERR_ACCESS_DENIED",
+    ]);
+  });
+
   it("fails closed after a target process crash and observes process settlement", async () => {
     const source = [
       'import { writeFile } from "node:fs/promises";',
@@ -214,7 +254,9 @@ describe("Evolution Eval process supervisor", () => {
       '  throw new Error("grader crashed");',
       "}",
     ].join("\n");
-    const { root, target, supervisor } = await fixture(source);
+    const { root, target, supervisor } = await fixture(source, {
+      allowFixtureWrites: true,
+    });
     const pidFile = join(root, "crashed-pid.txt");
     const request = requests(
       target,
