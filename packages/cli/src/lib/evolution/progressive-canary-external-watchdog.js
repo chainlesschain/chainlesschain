@@ -293,6 +293,40 @@ export function createProgressiveCanaryExternalRollbackAuthority({
     typeof verifyRollback !== "function"
   )
     throw new TypeError("external rollback authority ports are required");
+  async function verifyEffects({
+    incidentDigest,
+    heartbeatReceiptDigest,
+    observedAt,
+    killReceipt: killInput,
+    rollbackReceipt: rollbackInput,
+  }) {
+    digest(incidentDigest, "incidentDigest");
+    digest(heartbeatReceiptDigest, "heartbeatReceiptDigest");
+    timestamp(observedAt, "observedAt");
+    const request = Object.freeze({
+      planDigest: plan.planDigest,
+      incidentDigest,
+      heartbeatReceiptDigest,
+      observedAt,
+    });
+    const killReceipt = verifyActionReceipt(
+      killInput,
+      "kill",
+      plan,
+      incidentDigest,
+    );
+    if ((await verifyKill({ request, receipt: killReceipt })) !== true)
+      throw new Error("external kill receipt signature rejected");
+    const rollbackReceipt = verifyActionReceipt(
+      rollbackInput,
+      "rollback",
+      plan,
+      incidentDigest,
+    );
+    if ((await verifyRollback({ request, receipt: rollbackReceipt })) !== true)
+      throw new Error("external rollback receipt signature rejected");
+    return Object.freeze({ killReceipt, rollbackReceipt });
+  }
   const authority = Object.freeze({
     planDigest: plan.planDigest,
     async engage({ incidentDigest, heartbeatReceiptDigest, observedAt }) {
@@ -328,6 +362,7 @@ export function createProgressiveCanaryExternalRollbackAuthority({
         throw new Error("external rollback receipt signature rejected");
       return Object.freeze({ killReceipt, rollbackReceipt });
     },
+    verifyEffects,
   });
   ROLLBACK_AUTHORITIES.add(authority);
   return authority;
@@ -357,7 +392,7 @@ export function createProgressiveCanaryHeartbeatSource({ readLatest } = {}) {
   return source;
 }
 
-function verifyIncident(value, plan, incidentDigest) {
+async function verifyIncident(value, plan, incidentDigest, rollbackAuthority) {
   if (
     value?.schema !== PROGRESSIVE_CANARY_WATCHDOG_INCIDENT_SCHEMA ||
     value.planDigest !== plan.planDigest ||
@@ -379,6 +414,13 @@ function verifyIncident(value, plan, incidentDigest) {
     value.rollbackReceipt.incidentDigest !== incidentDigest
   )
     throw new Error("watchdog incident digest mismatch");
+  await rollbackAuthority.verifyEffects({
+    incidentDigest,
+    heartbeatReceiptDigest: value.heartbeatReceiptDigest,
+    observedAt: value.observedAt,
+    killReceipt: value.killReceipt,
+    rollbackReceipt: value.rollbackReceipt,
+  });
   return Object.freeze(structuredClone(value));
 }
 
@@ -458,12 +500,19 @@ export class ProgressiveCanaryExternalWatchdog {
       return Object.freeze({
         healthy: false,
         rolledBack: true,
-        incident: verifyIncident(prior, this.plan, incidentDigest),
+        incident: await verifyIncident(
+          prior,
+          this.plan,
+          incidentDigest,
+          this._rollback,
+        ),
         recovered: true,
       });
     const reservation = await this._store.reserve({
       planDigest: this.plan.planDigest,
       incidentDigest,
+      observedAt,
+      leaseDurationMs: this.plan.leaseDurationMs,
     });
     if (
       reservation?.authenticated !== true ||
@@ -482,7 +531,12 @@ export class ProgressiveCanaryExternalWatchdog {
       return Object.freeze({
         healthy: false,
         rolledBack: true,
-        incident: verifyIncident(completed, this.plan, incidentDigest),
+        incident: await verifyIncident(
+          completed,
+          this.plan,
+          incidentDigest,
+          this._rollback,
+        ),
         recovered: true,
       });
     }
@@ -505,13 +559,14 @@ export class ProgressiveCanaryExternalWatchdog {
       acknowledgement.incidentDigest !== incidentDigest
     )
       throw new Error("watchdog incident was not durably authenticated");
-    const readback = verifyIncident(
+    const readback = await verifyIncident(
       await this._store.load({
         planDigest: this.plan.planDigest,
         incidentDigest,
       }),
       this.plan,
       incidentDigest,
+      this._rollback,
     );
     return Object.freeze({
       healthy: false,
