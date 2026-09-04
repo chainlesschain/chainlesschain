@@ -1,5 +1,37 @@
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
+function validReleaseId(value) {
+  return (
+    value === null ||
+    (typeof value === "string" && value.length > 0 && value.length <= 256)
+  );
+}
+
+function validateGovernance(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    typeof value.runStatus !== "string" ||
+    value.runStatus.length < 1 ||
+    value.runStatus.length > 64 ||
+    !validReleaseId(value.activeReleaseId) ||
+    !validReleaseId(value.lastKnownGoodReleaseId) ||
+    !Number.isSafeInteger(value.conflictCount) ||
+    value.conflictCount < 0 ||
+    (value.pilot !== null &&
+      (!value.pilot ||
+        !["candidate", "shadow", "canary", "active", "rolled-back"].includes(
+          value.pilot.stage,
+        ) ||
+        !Number.isSafeInteger(value.pilot.revision) ||
+        value.pilot.revision < 0 ||
+        typeof value.pilot.killSwitch !== "boolean" ||
+        typeof value.pilot.reconciliationRequired !== "boolean"))
+  ) {
+    throw new Error("Evolution Workbench governance state is invalid");
+  }
+}
+
 export function validateEvolutionWorkbenchResponse(response) {
   const value = response?.result;
   if (
@@ -13,6 +45,7 @@ export function validateEvolutionWorkbenchResponse(response) {
       response?.error || "Evolution Workbench projection is invalid",
     );
   }
+  validateGovernance(value.governance);
   for (const candidate of value.candidates) {
     if (
       !DIGEST.test(candidate?.packetDigest || "") ||

@@ -39,6 +39,13 @@ const pending = candidate({
   status: "pending",
   active: false,
 });
+const governance = {
+  runStatus: "active",
+  activeReleaseId: null,
+  lastKnownGoodReleaseId: null,
+  conflictCount: 0,
+  pilot: null,
+};
 
 describe("Evolution Workbench renderer boundary", () => {
   it("compiles the Desktop reviewer surface", () => {
@@ -50,6 +57,18 @@ describe("Evolution Workbench renderer boundary", () => {
   it("accepts a bounded digest-addressed projection", () => {
     const result = {
       projectionDigest: digest("a"),
+      governance: {
+        runStatus: "active",
+        activeReleaseId: digest("b"),
+        lastKnownGoodReleaseId: digest("c"),
+        conflictCount: 1,
+        pilot: {
+          stage: "canary",
+          revision: 4,
+          killSwitch: false,
+          reconciliationRequired: true,
+        },
+      },
       candidates: [active, target, pending],
     };
 
@@ -70,10 +89,27 @@ describe("Evolution Workbench renderer boundary", () => {
         success: true,
         result: {
           projectionDigest: digest("a"),
+          governance,
           candidates: [{ ...pending, packetDigest: "forged" }],
         },
       }),
     ).toThrow(/candidate is invalid/u);
+    expect(() =>
+      validateEvolutionWorkbenchResponse({
+        success: true,
+        result: {
+          projectionDigest: digest("a"),
+          governance: {
+            runStatus: "active",
+            activeReleaseId: null,
+            lastKnownGoodReleaseId: null,
+            conflictCount: 0,
+            pilot: { stage: "canary", revision: 1 },
+          },
+          candidates: [],
+        },
+      }),
+    ).toThrow(/governance state is invalid/u);
   });
 
   it("builds an exact pending review request with a human reason", () => {

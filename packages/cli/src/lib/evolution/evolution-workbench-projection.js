@@ -211,8 +211,11 @@ function normalizePilot(value, descriptor) {
     ) ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 0 ||
+    typeof value.killSwitch !== "boolean" ||
     typeof value.reconciliationRequired !== "boolean" ||
-    value.cohort?.id == null
+    typeof value.cohort?.id !== "string" ||
+    value.cohort.id.length < 1 ||
+    value.cohort.id.length > 256
   ) {
     throw new Error("pilot source result is invalid");
   }
@@ -674,8 +677,24 @@ export function filterEvolutionWorkbenchProjection(
       .toLowerCase();
     return searchable.includes(needle);
   });
+  const governance = {
+    runStatus: projection.run.status,
+    activeReleaseId: projection.run.activeReleaseId,
+    lastKnownGoodReleaseId: projection.run.lastKnownGoodReleaseId,
+    conflictCount: projection.summary.conflictCount,
+    pilot:
+      projection.pilot === null
+        ? null
+        : {
+            stage: projection.pilot.stage,
+            revision: projection.pilot.revision,
+            killSwitch: projection.pilot.killSwitch,
+            reconciliationRequired: projection.pilot.reconciliationRequired,
+          },
+  };
   return deepFreeze({
     projectionDigest: projection.projectionDigest,
+    governance: clone(governance),
     total: matches.length,
     offset,
     limit,

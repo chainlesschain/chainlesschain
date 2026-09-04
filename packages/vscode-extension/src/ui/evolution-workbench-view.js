@@ -1,6 +1,21 @@
 "use strict";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const UNAVAILABLE_MESSAGE =
+  "Evolution Workbench is unavailable because the installed CLI deployment has no governed Workbench host. " +
+  "No Workbench RPC was sent; review and rollback remain safely disabled.";
+const INCOMPATIBLE_MESSAGE =
+  "Evolution Workbench is unavailable because the installed CLI does not advertise the required list capability. " +
+  "No Workbench RPC was sent.";
+const PILOT_DISABLED_MESSAGE =
+  "Evolution Workbench requires the CC App Server pilot. Enable " +
+  "chainlesschain.appServer.pilot.enabled and try again.";
+
+function localize(vscode, message) {
+  return typeof vscode.l10n?.t === "function"
+    ? vscode.l10n.t(message)
+    : message;
+}
 
 function validateCandidate(value) {
   if (
@@ -17,7 +32,38 @@ function validateCandidate(value) {
   return value;
 }
 
-function validateList(value) {
+function validateGovernance(value) {
+  const release = (candidate) =>
+    candidate === null ||
+    (typeof candidate === "string" &&
+      candidate.length > 0 &&
+      candidate.length <= 256);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    typeof value.runStatus !== "string" ||
+    value.runStatus.length < 1 ||
+    value.runStatus.length > 64 ||
+    !release(value.activeReleaseId) ||
+    !release(value.lastKnownGoodReleaseId) ||
+    !Number.isSafeInteger(value.conflictCount) ||
+    value.conflictCount < 0 ||
+    (value.pilot !== null &&
+      (!value.pilot ||
+        !["candidate", "shadow", "canary", "active", "rolled-back"].includes(
+          value.pilot.stage,
+        ) ||
+        !Number.isSafeInteger(value.pilot.revision) ||
+        value.pilot.revision < 0 ||
+        typeof value.pilot.killSwitch !== "boolean" ||
+        typeof value.pilot.reconciliationRequired !== "boolean"))
+  ) {
+    throw new Error("Evolution Workbench returned invalid governance state");
+  }
+  return value;
+}
+
+function validateProjection(value) {
   if (
     !value ||
     typeof value !== "object" ||
@@ -27,7 +73,20 @@ function validateList(value) {
   ) {
     throw new Error("Evolution Workbench returned an invalid projection");
   }
-  return value.candidates.map(validateCandidate);
+  validateGovernance(value.governance);
+  value.candidates.forEach(validateCandidate);
+  return value;
+}
+
+function validateList(value) {
+  return validateProjection(value).candidates;
+}
+
+function governanceTitle(value) {
+  const pilot = value.pilot
+    ? `${value.pilot.stage}@${value.pilot.revision}${value.pilot.killSwitch ? " KILL-SWITCH" : ""}${value.pilot.reconciliationRequired ? " RECONCILE" : ""}`
+    : "none";
+  return `ChainlessChain Evolution Workbench · active ${value.activeReleaseId || "none"} · LKG ${value.lastKnownGoodReleaseId || "none"} · pilot ${pilot}`;
 }
 
 function item(candidate) {
@@ -126,9 +185,41 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
   if (typeof getPilot !== "function") {
     throw new TypeError("Evolution Workbench App Server provider is required");
   }
-  const pilot = await getPilot();
-  const projection = await pilot.evolutionWorkbenchList({ limit: 500 });
-  const candidates = validateList(projection);
+  let pilot;
+  try {
+    pilot = await getPilot();
+  } catch (error) {
+    if (error?.code !== "ERR_APP_SERVER_PILOT_DISABLED") throw error;
+    await vscode.window.showInformationMessage(
+      localize(vscode, PILOT_DISABLED_MESSAGE),
+    );
+    return null;
+  }
+  if (!pilot || typeof pilot.start !== "function") {
+    throw new TypeError("Evolution Workbench App Server pilot is invalid");
+  }
+  const capabilities = await pilot.start();
+  const workbench = capabilities?.evolutionWorkbench;
+  if (workbench?.available !== true) {
+    await vscode.window.showInformationMessage(
+      localize(vscode, UNAVAILABLE_MESSAGE),
+    );
+    return null;
+  }
+  if (
+    !Array.isArray(workbench.methods) ||
+    !workbench.methods.includes("list")
+  ) {
+    await vscode.window.showInformationMessage(
+      localize(vscode, INCOMPATIBLE_MESSAGE),
+    );
+    return null;
+  }
+  const methods = new Set(workbench.methods);
+  const projection = validateProjection(
+    await pilot.evolutionWorkbenchList({ limit: 500 }),
+  );
+  const candidates = projection.candidates;
   if (candidates.length === 0) {
     await vscode.window.showInformationMessage(
       "Evolution Workbench has no candidate versions.",
@@ -136,22 +227,23 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
     return null;
   }
   const selected = await vscode.window.showQuickPick(candidates.map(item), {
-    title: "ChainlessChain Evolution Workbench",
+    title: governanceTitle(projection.governance),
     placeHolder: "Select a governed Skill version",
     matchOnDescription: true,
     matchOnDetail: true,
   });
   if (!selected) return null;
   const actions = [{ label: "View evidence and diff", id: "details" }];
-  if (candidates.length > 1)
+  if (methods.has("compare") && candidates.length > 1)
     actions.push({ label: "Compare versions", id: "compare" });
-  if (selected.candidate.status === "pending") {
+  if (methods.has("review") && selected.candidate.status === "pending") {
     actions.push({ label: "Approve", id: "approve" });
     actions.push({ label: "Reject", id: "reject" });
   }
   if (
     selected.candidate.status === "approved" &&
     selected.candidate.actualUsage.active === false &&
+    methods.has("rollback") &&
     candidates.some(({ actualUsage }) => actualUsage.active)
   ) {
     actions.push({ label: "Roll back to this version", id: "rollback" });
@@ -164,7 +256,10 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
 
   let result;
   if (action.id === "details") {
-    result = selected.candidate;
+    result = {
+      governance: projection.governance,
+      candidate: selected.candidate,
+    };
   } else if (action.id === "compare") {
     const other = await vscode.window.showQuickPick(
       candidates
@@ -192,6 +287,10 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
 }
 
 module.exports = {
+  EVOLUTION_WORKBENCH_INCOMPATIBLE_MESSAGE: INCOMPATIBLE_MESSAGE,
+  EVOLUTION_WORKBENCH_PILOT_DISABLED_MESSAGE: PILOT_DISABLED_MESSAGE,
+  EVOLUTION_WORKBENCH_UNAVAILABLE_MESSAGE: UNAVAILABLE_MESSAGE,
   openEvolutionWorkbench,
   validateEvolutionWorkbenchList: validateList,
+  validateEvolutionWorkbenchProjection: validateProjection,
 };

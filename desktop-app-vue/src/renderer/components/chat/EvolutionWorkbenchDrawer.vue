@@ -21,6 +21,30 @@
       description="暂无候选版本"
     />
 
+    <div v-if="governance" class="governance-state">
+      <strong>Governance</strong>
+      <span>Run: {{ governance.runStatus }}</span>
+      <span>Active: {{ governance.activeReleaseId || "none" }}</span>
+      <span>LKG: {{ governance.lastKnownGoodReleaseId || "none" }}</span>
+      <span>
+        Pilot:
+        {{
+          governance.pilot
+            ? `${governance.pilot.stage}@${governance.pilot.revision}`
+            : "none"
+        }}
+      </span>
+      <a-tag v-if="governance.pilot?.killSwitch" color="red">
+        KILL SWITCH ENGAGED
+      </a-tag>
+      <a-tag v-if="governance.pilot?.reconciliationRequired" color="orange">
+        RECONCILIATION REQUIRED
+      </a-tag>
+      <a-tag v-if="governance.conflictCount > 0" color="orange">
+        {{ governance.conflictCount }} CONFLICT(S)
+      </a-tag>
+    </div>
+
     <div v-if="candidates.length > 1" class="compare-row">
       <a-select
         v-model:value="compareLeft"
@@ -143,6 +167,7 @@ const loading = ref(false);
 const mutating = ref(false);
 const errorMessage = ref("");
 const candidates = ref([]);
+const governance = ref(null);
 const expandedPacket = ref(null);
 const compareLeft = ref(null);
 const compareRight = ref(null);
@@ -188,6 +213,7 @@ async function refresh() {
       await api()?.appServerEvolutionWorkbenchList({ limit: 500 }),
     );
     candidates.value = result.candidates;
+    governance.value = result.governance;
     const active = result.candidates.find(
       ({ actualUsage }) => actualUsage.active,
     );
@@ -199,6 +225,7 @@ async function refresh() {
       )?.packetDigest || null;
   } catch (error) {
     candidates.value = [];
+    governance.value = null;
     errorMessage.value = error?.message || String(error);
   } finally {
     loading.value = false;
@@ -282,6 +309,13 @@ watch(
   grid-template-columns: 1fr 1fr auto;
   gap: 8px;
   margin-bottom: 16px;
+}
+.governance-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
 }
 .candidate-card {
   border-bottom: 1px solid var(--border-color, #eee);

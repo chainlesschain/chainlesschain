@@ -5,7 +5,11 @@ import path from "node:path";
 import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { registerServeCommand } from "../../src/commands/serve.js";
+import {
+  captureServeGovernanceHosts,
+  registerServeCommand,
+} from "../../src/commands/serve.js";
+import { createEvolutionWorkbenchCliHost } from "../../src/lib/evolution/evolution-workbench-cli-host.js";
 import { JsonlRolloutStore } from "../../src/lib/app-server/rollout-store.js";
 
 const roots = [];
@@ -24,7 +28,33 @@ function makeProgram() {
   return program;
 }
 
+function workbenchHost() {
+  return createEvolutionWorkbenchCliHost({
+    tenantId: "tenant:serve",
+    projectionLoader: { load() {} },
+    projectionAuthority: { retain() {} },
+    identityProvider: { current() {} },
+    activeStateReader: { read() {} },
+    batchExecutor: { execute() {} },
+    rollbackExecutor: { execute() {} },
+  });
+}
+
 describe("serve migrate-rollouts", () => {
+  it("captures only branded governance hosts for both App Server transports", () => {
+    const evolutionWorkbenchHost = workbenchHost();
+    expect(captureServeGovernanceHosts({ evolutionWorkbenchHost })).toEqual({
+      evolutionWorkbenchHost,
+      governedKnowledgeReviewHost: null,
+    });
+    expect(() =>
+      captureServeGovernanceHosts({ evolutionWorkbenchHost: {} }),
+    ).toThrow(/branded Workbench host/u);
+    expect(() =>
+      captureServeGovernanceHosts({ governedKnowledgeReviewHost: {} }),
+    ).toThrow(/branded review host/u);
+  });
+
   it("dry-runs by default and copies the same canonical hashes only with --apply", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rollout-command-"));
     roots.push(root);

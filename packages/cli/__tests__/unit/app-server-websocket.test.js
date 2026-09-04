@@ -11,8 +11,21 @@ import {
   validateWebSocketAppServerOptions,
 } from "../../src/lib/app-server/websocket-transport.js";
 import { APP_SERVER_PROTOCOL_VERSION } from "../../src/lib/app-server/protocol.js";
+import { createEvolutionWorkbenchCliHost } from "../../src/lib/evolution/evolution-workbench-cli-host.js";
 
 const TEST_TOKEN = "app-server-websocket-test-token-0001";
+
+function workbenchHost() {
+  return createEvolutionWorkbenchCliHost({
+    tenantId: "tenant:websocket",
+    projectionLoader: { load: vi.fn() },
+    projectionAuthority: { retain: vi.fn() },
+    identityProvider: { current: vi.fn() },
+    activeStateReader: { read: vi.fn() },
+    batchExecutor: { execute: vi.fn() },
+    rollbackExecutor: { execute: vi.fn() },
+  });
+}
 
 function initialize(id = 1) {
   return {
@@ -151,6 +164,43 @@ describe("experimental App Server WebSocket transport", () => {
         protocolVersion: APP_SERVER_PROTOCOL_VERSION,
         transports: ["websocket"],
         websocket: { stability: "experimental" },
+      },
+    });
+
+    socket.close();
+    await once(socket, "close");
+    await host.close();
+  });
+
+  it("injects only a branded Workbench host into each server connection", async () => {
+    expect(
+      () =>
+        new WebSocketAppServerHost({
+          host: "127.0.0.1",
+          token: TEST_TOKEN,
+          evolutionWorkbenchHost: {},
+        }),
+    ).toThrow(/branded Workbench host/u);
+
+    const host = new WebSocketAppServerHost({
+      host: "127.0.0.1",
+      port: 0,
+      token: TEST_TOKEN,
+      store: new MemoryRolloutStore(),
+      kernelFactory: () => ({ close: vi.fn() }),
+      evolutionWorkbenchHost: workbenchHost(),
+    });
+    const info = await host.start();
+    const socket = await openSocket(info.url);
+    const response = nextMessage(socket);
+    socket.send(JSON.stringify(initialize()));
+    await expect(response).resolves.toMatchObject({
+      id: 1,
+      result: {
+        evolutionWorkbench: {
+          available: true,
+          methods: ["list", "compare", "review", "rollback"],
+        },
       },
     });
 

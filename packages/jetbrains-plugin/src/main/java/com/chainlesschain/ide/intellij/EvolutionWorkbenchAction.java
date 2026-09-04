@@ -79,7 +79,9 @@ public final class EvolutionWorkbenchAction extends AnAction implements DumbAwar
                             : parsed.candidates.size() + " of " + parsed.total
                                     + " verified version(s)"
                                     + (parsed.hasMore ? " (bounded first page)" : "") + " · "
-                                    + EvolutionWorkbench.shortDigest(parsed.projectionDigest));
+                                    + EvolutionWorkbench.shortDigest(parsed.projectionDigest)
+                                    + " | "
+                                    + EvolutionWorkbench.describeGovernance(parsed.governance));
                     refresh.setEnabled(true);
                     syncButtons.run();
                 });

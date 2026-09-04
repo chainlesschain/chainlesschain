@@ -70,6 +70,18 @@ function fixture(overrides = {}) {
     tenantId: "tenant:a",
     runId: "run:1",
     skillName: "repair-tests",
+    run: {
+      status: "active",
+      activeReleaseId: D("release:current"),
+      lastKnownGoodReleaseId: D("release:previous"),
+    },
+    summary: { conflictCount: 0 },
+    pilot: {
+      stage: "canary",
+      revision: 4,
+      killSwitch: false,
+      reconciliationRequired: false,
+    },
     candidates: [current, previous, pending],
   };
   const projection = {
@@ -139,6 +151,18 @@ describe("Evolution Workbench CLI host", () => {
     const h = fixture();
     const listed = await h.host.list({ status: "pending" });
     expect(listed.candidates).toHaveLength(1);
+    expect(listed.governance).toEqual({
+      runStatus: "active",
+      activeReleaseId: D("release:current"),
+      lastKnownGoodReleaseId: D("release:previous"),
+      conflictCount: 0,
+      pilot: {
+        stage: "canary",
+        revision: 4,
+        killSwitch: false,
+        reconciliationRequired: false,
+      },
+    });
     const compared = await h.host.compare(
       h.current.packetDigest,
       h.previous.packetDigest,

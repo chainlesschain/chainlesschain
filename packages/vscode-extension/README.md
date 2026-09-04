@@ -8,30 +8,33 @@ MCP bridge.
 
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
-| VS Code extension         | **0.37.81**; immutable tag-gated Open VSX release            |
+| VS Code extension         | **0.37.82**; immutable tag-gated Open VSX release            |
 | Recommended CLI           | **`chainlesschain@0.166.21`** public npm release             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
 
-### What's new in 0.37.81
+### What's new in 0.37.82
 
-- **Evolution Workbench** opens the CLI-owned candidate timeline, evidence and
-  diffs, then submits only exact approve, reject, or rollback arguments after
-  an explicit modal confirmation.
-- **Skill Retrieval** searches the canonical CLI catalog and displays witnessed
-  outcome and vector-routing evidence, including a visible abstain result when
-  the evidence cannot select a safe Skill.
-- The paired **CLI 0.166.21** adds encrypted tenant-scoped evolution knowledge,
-  durable human merge decisions, reviewer-key revocation, and dependency
-  settlement. Those authorities remain in the CLI/App Server; the extension
-  receives only bounded projections and cannot mint approvals or publish data.
+- **Evolution Workbench now preflights App Server capabilities.** If the
+  installed CLI deployment has no governed Workbench host, the command explains
+  that the feature is unavailable and does not issue the failing RPC.
+- A list-only deployment can expose evidence without showing compare, approve,
+  reject, or rollback actions it did not authorize; any additional action is
+  shown only when the CLI advertises its method. The extension still cannot
+  mint approvals or publish data.
+- This patch does not provision a Workbench host, identity, PKI, promotion
+  writer, or rollback authority. The public CLI's default App Server therefore
+  reports Workbench unavailable until a trusted deployment supplies them.
+- **Skill Retrieval** remains available through the canonical CLI catalog and
+  shows witnessed outcome and vector-routing evidence, including a visible
+  abstain result when evidence cannot select a safe Skill.
 
 > [!IMPORTANT]
 > Stock Microsoft VS Code does not query Open VSX. Do not use the Open VSX
 > **Install** URI with stock VS Code; it redirects the editor to the Microsoft
 > Marketplace, where this extension is intentionally not listed. Download the
-> [0.37.81 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.81/file/chainlesschain.chainlesschain-ide-0.37.81.vsix)
+> [0.37.82 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.82/file/chainlesschain.chainlesschain-ide-0.37.82.vsix)
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can continue to install by extension ID.
 
@@ -55,7 +58,7 @@ identities, artifacts, and authority digests never enter the Webview.
 
 CLI `0.166.21` includes the governed Automation/Routine commands, the
 Automation Center v3 projection, scoped permission and side-effect authority,
-and shared permission/budget enforcement. Version `0.37.81` accepts only the
+and shared permission/budget enforcement. Version `0.37.82` accepts only the
 exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired
 versions fail closed. With v3 it shows sanitized run incidents and bounded live
 scheduler occurrences. Incident retry/cancel and cooperative occurrence
@@ -63,7 +66,7 @@ pause/resume appear only when the CLI supplies an exact revision/fence-gated
 action preview. The extension refreshes the projection and rechecks that
 preview before execution; it never derives argv from display data.
 
-Version `0.37.81` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.37.82` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -72,7 +75,7 @@ corresponding governed `team merge-review` command and exact evidence contract.
 
 CLI `0.166.21` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.37.81`. The extension continues to fail closed when an older CLI cannot
+`0.37.82`. The extension continues to fail closed when an older CLI cannot
 provide the exact projection or refreshed action evidence.
 
 CLI `0.166.21` also bounds durable-session event backlogs and sidecars, routes
@@ -105,7 +108,7 @@ under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
 The immutable publication tag for this package is
-[`ide-vscode-v0.37.81`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.81).
+[`ide-vscode-v0.37.82`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.82).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. Registry availability can be checked on the
@@ -192,7 +195,7 @@ The extension is published on
 - In VSCodium and other Open VSX-compatible editors, search for
   **ChainlessChain IDE** (`chainlesschain.chainlesschain-ide`).
 - In stock Microsoft VS Code, do not click Open VSX's generic **Install** link.
-  Download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.81/file/chainlesschain.chainlesschain-ide-0.37.81.vsix)
+  Download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.82/file/chainlesschain.chainlesschain-ide-0.37.82.vsix)
   and run **Extensions: Install from VSIX...**. The extension is intentionally
   not listed on the Microsoft VS Code Marketplace.
 - JetBrains users can install the sibling plugin from the
@@ -348,7 +351,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.81.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.82.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

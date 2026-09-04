@@ -10,6 +10,8 @@ import { WebSocketServer } from "ws";
 import { BoundedAsyncQueue, QueueOverloadedError } from "./bounded-queue.js";
 import { CcAppServer } from "./server.js";
 import { JSON_RPC_ERROR, JsonRpcError, rpcError } from "./protocol.js";
+import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
+import { isGovernedKnowledgeReviewHost } from "../evolution/governed-knowledge-review-host.js";
 
 export const APP_SERVER_WEBSOCKET_PROTOCOL =
   "chainlesschain.app-server.experimental.v1";
@@ -250,6 +252,22 @@ export class WebSocketConnectionTransport extends EventEmitter {
 export class WebSocketAppServerHost extends EventEmitter {
   constructor(options = {}) {
     super();
+    if (
+      options.evolutionWorkbenchHost != null &&
+      !isEvolutionWorkbenchCliHost(options.evolutionWorkbenchHost)
+    ) {
+      throw new TypeError(
+        "WebSocket App Server evolutionWorkbenchHost must be a branded Workbench host",
+      );
+    }
+    if (
+      options.governedKnowledgeReviewHost != null &&
+      !isGovernedKnowledgeReviewHost(options.governedKnowledgeReviewHost)
+    ) {
+      throw new TypeError(
+        "WebSocket App Server governedKnowledgeReviewHost must be a branded review host",
+      );
+    }
     this.options = options;
     this.binding = validateWebSocketAppServerOptions(options);
     this.port = boundedInteger(options.port, 18800, 0, 65_535);
@@ -400,6 +418,9 @@ export class WebSocketAppServerHost extends EventEmitter {
             this.options.evolutionCompositionFactory ?? null,
           skillOutcomeIndex: this.options.skillOutcomeIndex ?? null,
           skillVectorAuthority: this.options.skillVectorAuthority ?? null,
+          evolutionWorkbenchHost: this.options.evolutionWorkbenchHost ?? null,
+          governedKnowledgeReviewHost:
+            this.options.governedKnowledgeReviewHost ?? null,
           transport: "websocket",
           maxQueuedRequests: this.options.maxQueuedRequests,
           maxQueuedRequestBytes: this.options.maxQueuedRequestBytes,

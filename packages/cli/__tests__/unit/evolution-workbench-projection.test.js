@@ -255,6 +255,7 @@ function sourceFixture({ status = "approved", transitions = [] } = {}) {
         descriptorDigest: D("pilot-descriptor"),
         stage: "shadow",
         revision: 3,
+        killSwitch: false,
         reconciliationRequired: false,
         candidateDigest: candidate.candidateId,
         reviewPacketDigest: packet.packetDigest,
@@ -320,7 +321,22 @@ describe("Evolution Workbench projection", () => {
         status: "approved",
         limit: 10,
       }),
-    ).toMatchObject({ total: 1, hasMore: false });
+    ).toMatchObject({
+      total: 1,
+      hasMore: false,
+      governance: {
+        runStatus: "running",
+        activeReleaseId: null,
+        lastKnownGoodReleaseId: null,
+        conflictCount: 1,
+        pilot: {
+          stage: "shadow",
+          revision: 3,
+          killSwitch: false,
+          reconciliationRequired: false,
+        },
+      },
+    });
     expect(
       filterEvolutionWorkbenchProjection(projection, {
         query: "missing",
@@ -412,6 +428,34 @@ describe("Evolution Workbench projection", () => {
     });
     await expect(buildEvolutionWorkbenchProjection(source)).rejects.toThrow(
       "receipt digest is invalid",
+    );
+  });
+
+  it("fails closed when pilot safety state is incomplete", async () => {
+    const { candidate, packet } = packetFixture();
+    const source = createEvolutionWorkbenchDataSource({
+      tenantId: TENANT,
+      runId: RUN,
+      skillName: SKILL,
+      runAdapter: { load: () => runFixture(candidate) },
+      reviewAdapter: {
+        listReviews: () => [{ packet, decision: null, status: "pending" }],
+      },
+      transitionAdapter: { list: () => [] },
+      pilotSource: {
+        view: () => ({
+          descriptorDigest: D("pilot-descriptor"),
+          candidateDigest: candidate.candidateId,
+          reviewPacketDigest: packet.packetDigest,
+          stage: "canary",
+          revision: 4,
+          reconciliationRequired: false,
+          cohort: { id: "cohort:workbench" },
+        }),
+      },
+    });
+    await expect(buildEvolutionWorkbenchProjection(source)).rejects.toThrow(
+      "pilot source result is invalid",
     );
   });
 

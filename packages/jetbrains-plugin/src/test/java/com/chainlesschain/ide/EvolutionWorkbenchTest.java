@@ -36,6 +36,12 @@ final class EvolutionWorkbenchTest {
         int count = candidates.isEmpty() ? 0 : candidates.split("candidateId", -1).length - 1;
         return "{\"projectionDigest\":\"" + digest('a') + "\",\"total\":" +
                 count + ",\"offset\":0,\"limit\":500,\"hasMore\":false," +
+                "\"governance\":{\"runStatus\":\"active\"," +
+                "\"activeReleaseId\":\"release:current\"," +
+                "\"lastKnownGoodReleaseId\":\"release:lkg\"," +
+                "\"conflictCount\":1,\"pilot\":{\"stage\":\"canary\"," +
+                "\"revision\":4,\"killSwitch\":false," +
+                "\"reconciliationRequired\":true}}," +
                 "\"candidates\":[" + candidates + "]}";
     }
 
@@ -55,6 +61,12 @@ final class EvolutionWorkbenchTest {
         assertEquals(3, result.candidates.size());
         assertEquals("active", result.activeCandidate().candidateId);
         assertEquals(3, result.candidates.get(0).receiptCount);
+        assertEquals("release:current", result.governance.activeReleaseId);
+        assertEquals("release:lkg", result.governance.lastKnownGoodReleaseId);
+        assertEquals("canary", result.governance.pilotStage);
+        assertTrue(result.governance.reconciliationRequired);
+        assertTrue(EvolutionWorkbench.describeGovernance(result.governance)
+                .contains("Pilot: canary@4 RECONCILE"));
         assertTrue(EvolutionWorkbench.describe(result.candidates.get(0)).contains("+active"));
     }
 
@@ -69,6 +81,9 @@ final class EvolutionWorkbenchTest {
         assertNull(EvolutionWorkbench.parseProjection(
                 projection(candidate("bad", '1', '2', "pending", false))
                         .replace("\"receiptCount\":3", "\"receiptCount\":-1")));
+        assertNull(EvolutionWorkbench.parseProjection(
+                projection(candidate("bad", '1', '2', "pending", false))
+                        .replace("\"killSwitch\":false", "\"killSwitch\":\"false\"")));
     }
 
     @Test

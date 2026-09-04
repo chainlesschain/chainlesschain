@@ -7,7 +7,35 @@ import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { isEvolutionWorkbenchCliHost } from "../lib/evolution/evolution-workbench-cli-host.js";
+import { isGovernedKnowledgeReviewHost } from "../lib/evolution/governed-knowledge-review-host.js";
 import path from "node:path";
+
+export function captureServeGovernanceHosts({
+  evolutionWorkbenchHost = null,
+  governedKnowledgeReviewHost = null,
+} = {}) {
+  if (
+    evolutionWorkbenchHost !== null &&
+    !isEvolutionWorkbenchCliHost(evolutionWorkbenchHost)
+  ) {
+    throw new TypeError(
+      "serve evolutionWorkbenchHost must be a branded Workbench host",
+    );
+  }
+  if (
+    governedKnowledgeReviewHost !== null &&
+    !isGovernedKnowledgeReviewHost(governedKnowledgeReviewHost)
+  ) {
+    throw new TypeError(
+      "serve governedKnowledgeReviewHost must be a branded review host",
+    );
+  }
+  return Object.freeze({
+    evolutionWorkbenchHost,
+    governedKnowledgeReviewHost,
+  });
+}
 
 export function registerServeCommand(program, dependencies = {}) {
   const evolutionCompositionFactory =
@@ -20,6 +48,7 @@ export function registerServeCommand(program, dependencies = {}) {
     dependencies.skillVectorAuthority == null
       ? null
       : captureSkillVectorAuthority(dependencies.skillVectorAuthority);
+  const governanceHosts = captureServeGovernanceHosts(dependencies);
   const serve = program
     .command("serve")
     .description("Start WebSocket server for remote CLI access")
@@ -141,6 +170,7 @@ export function registerServeCommand(program, dependencies = {}) {
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
+              ...governanceHosts,
               maxQueuedRequests,
             });
             const info = await host.start();
@@ -173,6 +203,7 @@ export function registerServeCommand(program, dependencies = {}) {
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
+              ...governanceHosts,
               maxQueuedRequests,
             });
           } finally {

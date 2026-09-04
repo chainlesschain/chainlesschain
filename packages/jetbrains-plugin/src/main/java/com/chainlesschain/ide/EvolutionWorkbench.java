@@ -26,6 +26,8 @@ public final class EvolutionWorkbench {
     private static final Pattern DIGEST = Pattern.compile("sha256:[a-f0-9]{64}");
     private static final Set<String> STATUSES =
             Set.of("pending", "approved", "rejected", "expired");
+    private static final Set<String> PILOT_STAGES =
+            Set.of("candidate", "shadow", "canary", "active", "rolled-back");
 
     private EvolutionWorkbench() {}
 
@@ -73,13 +75,15 @@ public final class EvolutionWorkbench {
         public final String projectionDigest;
         public final long total;
         public final boolean hasMore;
+        public final Governance governance;
         public final List<Candidate> candidates;
 
         private Projection(String projectionDigest, long total, boolean hasMore,
-                List<Candidate> candidates) {
+                Governance governance, List<Candidate> candidates) {
             this.projectionDigest = projectionDigest;
             this.total = total;
             this.hasMore = hasMore;
+            this.governance = governance;
             this.candidates = List.copyOf(candidates);
         }
 
@@ -104,6 +108,31 @@ public final class EvolutionWorkbench {
         }
     }
 
+    public static final class Governance {
+        public final String runStatus;
+        public final String activeReleaseId;
+        public final String lastKnownGoodReleaseId;
+        public final long conflictCount;
+        public final String pilotStage;
+        public final Long pilotRevision;
+        public final boolean killSwitch;
+        public final boolean reconciliationRequired;
+
+        private Governance(String runStatus, String activeReleaseId,
+                String lastKnownGoodReleaseId, long conflictCount,
+                String pilotStage, Long pilotRevision, boolean killSwitch,
+                boolean reconciliationRequired) {
+            this.runStatus = runStatus;
+            this.activeReleaseId = activeReleaseId;
+            this.lastKnownGoodReleaseId = lastKnownGoodReleaseId;
+            this.conflictCount = conflictCount;
+            this.pilotStage = pilotStage;
+            this.pilotRevision = pilotRevision;
+            this.killSwitch = killSwitch;
+            this.reconciliationRequired = reconciliationRequired;
+        }
+    }
+
     public static Projection parseProjection(String json) {
         if (json == null || json.isBlank() || json.length() > MAX_JSON_LENGTH) return null;
         try {
@@ -113,10 +142,11 @@ public final class EvolutionWorkbench {
             Long offset = nonNegativeLong(root.get("offset"));
             Long limit = nonNegativeLong(root.get("limit"));
             Object hasMore = root.get("hasMore");
+            Governance governance = parseGovernance(object(root.get("governance")));
             List<Object> rawCandidates = list(root.get("candidates"));
             if (projectionDigest == null || total == null || offset == null
                     || limit == null || limit != MAX_CANDIDATES
-                    || offset != 0 || !(hasMore instanceof Boolean)
+                    || offset != 0 || !(hasMore instanceof Boolean) || governance == null
                     || rawCandidates == null || rawCandidates.size() > limit
                     || rawCandidates.size() > MAX_CANDIDATES
                     || total < rawCandidates.size()
@@ -130,7 +160,8 @@ public final class EvolutionWorkbench {
                 if (candidate == null || !packets.add(candidate.packetDigest)) return null;
                 candidates.add(candidate);
             }
-            return new Projection(projectionDigest, total, (Boolean) hasMore, candidates);
+            return new Projection(projectionDigest, total, (Boolean) hasMore,
+                    governance, candidates);
         } catch (RuntimeException ignored) {
             return null;
         }
@@ -238,6 +269,20 @@ public final class EvolutionWorkbench {
                 + "\n\n" + candidate.unifiedDiff;
     }
 
+    public static String describeGovernance(Governance value) {
+        if (value == null) return "";
+        String pilot = value.pilotStage == null ? "none"
+                : value.pilotStage + "@" + value.pilotRevision
+                        + (value.killSwitch ? " KILL-SWITCH" : "")
+                        + (value.reconciliationRequired ? " RECONCILE" : "");
+        return "Run: " + value.runStatus
+                + " | Active: " + (value.activeReleaseId == null ? "none" : value.activeReleaseId)
+                + " | LKG: " + (value.lastKnownGoodReleaseId == null
+                        ? "none" : value.lastKnownGoodReleaseId)
+                + " | Pilot: " + pilot
+                + " | Conflicts: " + value.conflictCount;
+    }
+
     public static String shortDigest(String value) {
         return isDigest(value) ? value.substring(0, 15) + "…" + value.substring(63) : "—";
     }
@@ -276,6 +321,38 @@ public final class EvolutionWorkbench {
         return new Candidate(packet, candidateId, content, status,
                 (Boolean) usage.get("active"), approved, receiptCount, completed,
                 failed, cost, parent, diff, unifiedDiff, matrix, runtimes);
+    }
+
+    private static Governance parseGovernance(Map<String, Object> value) {
+        if (value == null) return null;
+        String runStatus = requiredText(value.get("runStatus"), 64);
+        Object rawActiveReleaseId = value.get("activeReleaseId");
+        Object rawLkgReleaseId = value.get("lastKnownGoodReleaseId");
+        String activeReleaseId = rawActiveReleaseId == null
+                ? null : requiredText(rawActiveReleaseId, 256);
+        String lkgReleaseId = rawLkgReleaseId == null
+                ? null : requiredText(rawLkgReleaseId, 256);
+        Long conflictCount = nonNegativeLong(value.get("conflictCount"));
+        if (runStatus == null
+                || (rawActiveReleaseId != null && activeReleaseId == null)
+                || (rawLkgReleaseId != null && lkgReleaseId == null)
+                || conflictCount == null) return null;
+        Object rawPilot = value.get("pilot");
+        if (rawPilot == null) {
+            return new Governance(runStatus, activeReleaseId, lkgReleaseId,
+                    conflictCount, null, null, false, false);
+        }
+        Map<String, Object> pilot = object(rawPilot);
+        String stage = pilot == null ? null : text(pilot.get("stage"), 32);
+        Long revision = pilot == null ? null : nonNegativeLong(pilot.get("revision"));
+        Object killSwitch = pilot == null ? null : pilot.get("killSwitch");
+        Object reconciliation = pilot == null ? null : pilot.get("reconciliationRequired");
+        if (!PILOT_STAGES.contains(stage) || revision == null
+                || !(killSwitch instanceof Boolean)
+                || !(reconciliation instanceof Boolean)) return null;
+        return new Governance(runStatus, activeReleaseId, lkgReleaseId,
+                conflictCount, stage, revision, (Boolean) killSwitch,
+                (Boolean) reconciliation);
     }
 
     private static boolean summaryMatches(Map<String, Object> value, Candidate expected) {
