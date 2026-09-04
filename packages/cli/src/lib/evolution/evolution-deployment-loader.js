@@ -124,12 +124,14 @@ async function loadBuiltInFactories(commandName) {
         createWikiSkillBenchmarkRunner,
       },
       { createWikiSkillBenchmarkLedgerAdapter },
+      { createEvolutionEvalProcessSupervisor },
     ] = await Promise.all([
       import("./evolution-workbench-cli-host.js"),
       import("./governed-knowledge-review-host.js"),
       import("./wikiskill-benchmark-cli-host.js"),
       import("./wikiskill-benchmark-execution-host.js"),
       import("./wikiskill-benchmark-ledger-adapter.js"),
+      import("./evolution-eval-process-supervisor.js"),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createGovernedKnowledgeReviewHost =
@@ -145,6 +147,8 @@ async function loadBuiltInFactories(commandName) {
     factories.createWikiSkillBenchmarkRunner = createWikiSkillBenchmarkRunner;
     factories.createWikiSkillBenchmarkLedgerAdapter =
       createWikiSkillBenchmarkLedgerAdapter;
+    factories.createEvolutionEvalProcessSupervisor =
+      createEvolutionEvalProcessSupervisor;
   }
   if (commandName === "agent" || commandName === "serve") {
     const { createAgentEvolutionRuntimeComposition } =
@@ -155,7 +159,7 @@ async function loadBuiltInFactories(commandName) {
   return Object.freeze(factories);
 }
 
-function bindBenchmarkFactoriesToModule(factories, moduleDigest) {
+function bindFactoriesToModule(factories, moduleDigest) {
   const result = { ...factories };
   const providerFactories = [
     "createWikiSkillBenchmarkDatasetProvider",
@@ -189,6 +193,15 @@ function bindBenchmarkFactoriesToModule(factories, moduleDigest) {
           );
       }
       return factories.createWikiSkillBenchmarkExecutionManifest(input);
+    };
+  }
+  if (typeof factories.createEvolutionEvalProcessSupervisor === "function") {
+    result.createEvolutionEvalProcessSupervisor = (options = {}) => {
+      if (options?.authorityDescriptor?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          "process Eval supervisor handlerArtifactDigest must equal the authenticated deployment module digest",
+        );
+      return factories.createEvolutionEvalProcessSupervisor(options);
     };
   }
   return Object.freeze(result);
@@ -258,7 +271,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw new Error(
       "evolution deployment module must export createChainlessChainCommandDependencies",
     );
-  const builtInFactories = bindBenchmarkFactoriesToModule(
+  const builtInFactories = bindFactoriesToModule(
     await loadBuiltInFactories(commandName),
     descriptor.moduleDigest,
   );

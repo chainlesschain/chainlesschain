@@ -1,5 +1,7 @@
 import { generateKeyPairSync, sign as signBytes } from "node:crypto";
-import { resolve } from "node:path";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,6 +11,7 @@ import {
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../../src/lib/evolution/evolution-deployment-loader.js";
 import { isWikiSkillBenchmarkRunner } from "../../src/lib/evolution/wikiskill-benchmark-execution-host.js";
+import { isEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 import { dispatchManifestEntry } from "../../src/lazy-dispatch.js";
 
 function deploymentFixture({
@@ -190,6 +193,99 @@ describe("signed evolution deployment loader", () => {
               },
               run: async () => ({}),
               verifyAttestation: async () => true,
+            }),
+          }),
+        }),
+      }),
+    ).rejects.toThrow("authenticated deployment module digest");
+  });
+
+  it("binds the process Eval supervisor authority to authenticated deployment bytes", async () => {
+    const fixture = deploymentFixture({ commands: ["evolution"] });
+    const targetSource =
+      "export async function runTarget(value) { return value; }\n";
+    const targetRoot = await mkdtemp(join(tmpdir(), "cc-loader-eval-target-"));
+    const targetPath = join(targetRoot, "eval-target.mjs");
+    const targetDigest = computeEvolutionDeploymentDigest(
+      Buffer.from(targetSource),
+    );
+    await writeFile(targetPath, targetSource);
+    const result = await loadEvolutionDeploymentCommandDependencies(
+      "evolution",
+      {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({
+            descriptor,
+            factories,
+          }) => {
+            const trust = {
+              algorithm: "ed25519",
+              issuer: "deployment",
+              keyId: "deployment-key",
+              trustPolicyDigest: computeEvolutionDeploymentDigest(
+                Buffer.from("trust-policy"),
+              ),
+            };
+            const target = {
+              schema: "chainlesschain.evolution-eval-isolated-target/v2",
+              handlerId: "deployment-target",
+              handlerRevision: "target-v1",
+              operation: "cell-eval-run",
+              isolation: "process",
+              handlerArtifactDigest: targetDigest,
+              authority: trust,
+            };
+            const authorityDescriptor = {
+              schema: "chainlesschain.evolution-eval-authority-descriptor/v1",
+              handlerId: "deployment-supervisor",
+              handlerRevision: "supervisor-v1",
+              operation: "deadline-supervision",
+              handlerArtifactDigest: descriptor.moduleDigest,
+              authority: trust,
+            };
+            return {
+              supervisor: await factories.createEvolutionEvalProcessSupervisor({
+                targets: new Map([
+                  [
+                    target.handlerId,
+                    { target, modulePath: targetPath, exportName: "runTarget" },
+                  ],
+                ]),
+                authorityDescriptor,
+                supervisorRevision: "supervisor-v1",
+                invocationRevision: "invocation-v1",
+                revocationRevision: "revocation-v1",
+                attestSupervisor: async () => trust,
+                attestInvocation: async () => trust,
+                attestRevocation: async () => trust,
+                verifyEnforcement: () => true,
+                spawnProcess: vi.fn(),
+              }),
+            };
+          },
+        }),
+      },
+    );
+    expect(isEvolutionEvalProcessSupervisor(result.supervisor)).toBe(true);
+    expect(result.supervisor.authorityDescriptor.handlerArtifactDigest).toBe(
+      fixture.descriptor.moduleDigest,
+    );
+  });
+
+  it("rejects a process Eval supervisor outside authenticated deployment bytes", async () => {
+    const fixture = deploymentFixture({ commands: ["evolution"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("evolution", {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({ factories }) => ({
+            supervisor: await factories.createEvolutionEvalProcessSupervisor({
+              authorityDescriptor: {
+                handlerArtifactDigest: computeEvolutionDeploymentDigest(
+                  Buffer.from("substituted-supervisor"),
+                ),
+              },
             }),
           }),
         }),
