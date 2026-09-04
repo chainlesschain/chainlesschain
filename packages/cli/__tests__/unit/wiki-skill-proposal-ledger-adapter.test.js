@@ -76,7 +76,11 @@ function drafted(summary = "Use the evidence-backed procedure.") {
       { ref: "evidence://pattern/1", digest: hash("evidence") },
     ],
     wikiRevision: "wiki:revision-7",
-    proposerModel: "provider:model-v1",
+    proposerModel: {
+      provider: "provider",
+      model: "model-v1",
+      version: "2026-09-05",
+    },
   };
   return {
     status: "proposal",

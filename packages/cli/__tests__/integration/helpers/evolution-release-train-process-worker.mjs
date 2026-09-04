@@ -11,9 +11,11 @@ import { createEvolutionLedgerFileBackend } from "../../../src/lib/evolution/evo
 import {
   createEvolutionCandidateStage,
   createEvolutionProposalStage,
+  createEvolutionReviewStage,
   createEvolutionWikiMaintainStage,
 } from "../../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "../../../src/lib/evolution/evolution-release-train-ledger-adapter.js";
+import { EvolutionReleaseTrainStageOutputLedgerAdapter } from "../../../src/lib/evolution/evolution-release-train-stage-output-ledger-adapter.js";
 import {
   EVOLUTION_RELEASE_TRAIN_STAGES,
   createEvolutionPlan,
@@ -26,6 +28,19 @@ import {
   createEmptyWikiState,
   digestWikiState,
 } from "../../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
+import { buildSkillCandidateDraft } from "../../../src/lib/evolution/skill-candidate-registry.js";
+import {
+  buildSkillDependencyLock,
+  buildSkillRuntimeManifest,
+  buildSkillTargetMatrix,
+} from "../../../src/lib/evolution/skill-execution-manifest.js";
+import { SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA } from "../../../src/lib/evolution/skill-evaluated-promotion.js";
+import { EMPTY_SKILL_ACTIVE_DIGEST } from "../../../src/lib/evolution/skill-promotion-controller.js";
+import { SkillPromotionReviewLedgerAdapter } from "../../../src/lib/evolution/skill-promotion-review-ledger-adapter.js";
+import {
+  SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
+  buildSkillPromotionReviewPacket,
+} from "../../../src/lib/evolution/skill-promotion-review.js";
 import { WikiInformedSkillProposer } from "../../../src/lib/evolution/wiki-informed-skill-proposer.js";
 import { WikiSkillProposalLedgerAdapter } from "../../../src/lib/evolution/wiki-skill-proposal-ledger-adapter.js";
 
@@ -81,6 +96,55 @@ const WIKI_REQUEST = Object.freeze({
   evidenceRefs: [...WIKI_EVIDENCE.keys()],
   effectiveAt: NOW,
 });
+
+const dependencyLock = buildSkillDependencyLock({
+  tenantId: TENANT,
+  lock: { generation: 1, packages: { vitest: "4.1.10" } },
+});
+const runtimeManifest = buildSkillRuntimeManifest({
+  tenantId: TENANT,
+  runtimes: [
+    {
+      runtimeId: "cli",
+      descriptor: {
+        platform: "process-test",
+        runtime: "node-22.12.0",
+        sandboxPolicyDigest: digest("process-sandbox"),
+      },
+    },
+  ],
+});
+const environmentBindings = [
+  {
+    cellId: "cli-process",
+    runtimeId: "cli",
+    targetEnvironmentRef: "environment:cli-process",
+    environmentDigest: digest("process-environment"),
+  },
+];
+const targetMatrix = buildSkillTargetMatrix({
+  tenantId: TENANT,
+  dependencyLock,
+  runtimeManifest,
+  cells: environmentBindings,
+});
+
+function candidateFromProposalInput(input) {
+  return buildSkillCandidateDraft(
+    {
+      ...input,
+      parentDigest: null,
+      evalRunId: null,
+      dependencyLock,
+      runtimeManifest,
+      targetMatrix,
+    },
+    {
+      expectedEnvironmentBindings: environmentBindings,
+      expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
+    },
+  );
+}
 
 function createMaintainer({ load, commit }) {
   return new EvidenceBackedWikiMaintainer({
@@ -184,14 +248,18 @@ function createProposer(wikiDigest) {
       wikiDigest,
     ),
   };
-  const targetRuntimes = ["node22-process"];
-  return new WikiInformedSkillProposer({
+  let candidate = null;
+  const proposer = new WikiInformedSkillProposer({
     descriptor: {
       tenantId: TENANT,
       evolutionRunId: "run-real-prefix",
       targetSkillName: SKILL,
       wikiRevision: wikiDigest,
-      proposerModel: "provider:real-prefix-proposer",
+      proposerModel: {
+        provider: "provider",
+        model: "real-prefix-proposer",
+        version: "2026-09-05",
+      },
       minEvidenceSamples: 3,
       maxSelectiveEvidence: 1,
     },
@@ -220,7 +288,7 @@ function createProposer(wikiDigest) {
           rollbackSteps: ["retain the current active release"],
           validationMethods: ["run the fixed target matrix"],
           requestedCapabilities: ["workspace.read"],
-          targetRuntimes,
+          targetRuntimes: targetMatrix.targetRuntimes,
           contextCost: { maxTokens: 800, maxBytes: 4_096 },
           machineDiff: [
             {
@@ -233,18 +301,20 @@ function createProposer(wikiDigest) {
         };
       },
       async createCandidate(input) {
+        candidate = candidateFromProposalInput(input);
         return {
           created: true,
-          candidate: {
-            ...input,
-            candidateId: domainDigest("real-prefix-candidate-id", input),
-            contentDigest: domainDigest("real-prefix-candidate-content", input),
-            targetRuntimes,
-          },
+          candidate,
         };
       },
     },
   });
+  return {
+    proposer,
+    getCandidate() {
+      return candidate;
+    },
+  };
 }
 
 function signingAuthority(label) {
@@ -481,9 +551,9 @@ if (operation === "real-prefix-run") {
     },
   });
   const calibratedWiki = await calibrationMaintainer.maintain(WIKI_REQUEST);
-  const calibratedCandidate = await createProposer(
-    calibratedWiki.stateDigest,
-  ).propose();
+  const calibrationProposer = createProposer(calibratedWiki.stateDigest);
+  const calibratedCandidate = await calibrationProposer.proposer.propose();
+  const reviewCandidate = calibrationProposer.getCandidate();
   const selectedPlanInput = structuredClone(plan);
   delete selectedPlanInput.schema;
   delete selectedPlanInput.planDigest;
@@ -492,6 +562,10 @@ if (operation === "real-prefix-run") {
     candidateId: calibratedCandidate.candidateId,
     candidateDigest: calibratedCandidate.contentDigest,
     wikiRevisionDigest: calibratedWiki.stateDigest,
+    baselineReleaseDigest: null,
+    baselineContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+    baselineRevision: 0,
+    targetMatrixDigest: targetMatrix.targetMatrixRoot,
   });
 
   const wikiStatePath = path.join(root, "real-prefix-wiki-state.json");
@@ -508,7 +582,7 @@ if (operation === "real-prefix-run") {
     load: loadWikiState,
     commit: commitWikiState,
   });
-  const proposer = createProposer(selectedPlan.wikiRevisionDigest);
+  const proposer = createProposer(selectedPlan.wikiRevisionDigest).proposer;
   const proposalLedger = new WikiSkillProposalLedgerAdapter({
     descriptor: {
       tenantId: TENANT,
@@ -521,6 +595,95 @@ if (operation === "real-prefix-run") {
     artifactPorts: artifacts,
     ledger: backend.ledger,
     ledgerArtifactResolver: resolver,
+  });
+  const outputLedger = new EvolutionReleaseTrainStageOutputLedgerAdapter({
+    descriptor: {
+      tenantId: TENANT,
+      artifactTenantId: TENANT,
+      skillName: SKILL,
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: artifacts,
+    ledger: backend.ledger,
+    ledgerArtifactResolver: resolver,
+  });
+  const matrixBinding = {
+    schema: SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA,
+    tenantId: TENANT,
+    skillName: SKILL,
+    candidateId: reviewCandidate.candidateId,
+    candidateContentDigest: reviewCandidate.contentDigest,
+    expectedActiveContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+    expectedActiveRevision: 0,
+    matrixEvalId: "matrix-eval:real-prefix",
+    matrixReceiptDigest: digest(`${selectedPlan.planDigest}:eval`),
+    decisionCommitmentDigest: digest("real-prefix-matrix-decision"),
+    expiresAt: "2026-09-05T12:10:00.000Z",
+    receiptResolution: {
+      authorityId: "authority:real-prefix-matrix",
+      resolverDescriptorDigest: digest("real-prefix-matrix-resolver"),
+      resolverRevision: 1,
+      resolvedAt: NOW,
+    },
+  };
+  const reviewState = {
+    tenantId: TENANT,
+    skillName: SKILL,
+    revision: 0,
+    activeReleaseDigest: null,
+  };
+  const reviewPacket = buildSkillPromotionReviewPacket({
+    candidate: reviewCandidate,
+    matrixBinding,
+    state: reviewState,
+  });
+  const reviewLedger = new SkillPromotionReviewLedgerAdapter({
+    descriptor: {
+      tenantId: TENANT,
+      artifactTenantId: TENANT,
+      streamId: "review-stream:real-prefix",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+      authorityId: "authority:real-prefix-human-review",
+      revision: 1,
+      handlerArtifactDigest: digest("real-prefix-review-handler"),
+    },
+    artifactPorts: artifacts,
+    ledger: backend.ledger,
+    ledgerArtifactResolver: resolver,
+    decisionVerifier: { verify: async () => true },
+    now: () => Date.parse(NOW),
+  });
+  await reviewLedger.submitPacket(reviewPacket);
+  const reviewDecisionCore = {
+    schema: SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
+    tenantId: TENANT,
+    skillName: SKILL,
+    candidateId: reviewCandidate.candidateId,
+    packetDigest: reviewPacket.packetDigest,
+    decision: "approved",
+    automated: false,
+    reviewerIds: ["human:process-reviewer", "human:process-security"],
+    quorum: 2,
+    reason: "Approved the process-test release train candidate.",
+    decidedAt: NOW,
+    expiresAt: "2026-09-05T12:10:00.000Z",
+    acknowledgedContentRiskDigest: reviewPacket.contentRisk.detected
+      ? reviewPacket.contentRisk.contentRiskDigest
+      : null,
+  };
+  const reviewDecision = {
+    ...reviewDecisionCore,
+    receiptDigest: domainDigest(
+      "chainlesschain.skill-promotion-review-decision/v1",
+      reviewDecisionCore,
+    ),
+    signature: "signed-process-human-review-value-0001",
+  };
+  await reviewLedger.retainDecision({
+    packetDigest: reviewPacket.packetDigest,
+    decision: reviewDecision,
   });
   const realPrefix = {
     "wiki-maintain": createEvolutionWikiMaintainStage({
@@ -537,6 +700,16 @@ if (operation === "real-prefix-run") {
     candidate: createEvolutionCandidateStage({
       proposer,
       proposalLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    }),
+    review: createEvolutionReviewStage({
+      reviewLedger,
+      packetInput: {
+        candidate: reviewCandidate,
+        matrixBinding,
+        state: reviewState,
+      },
+      outputLedger,
       usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
     }),
   };

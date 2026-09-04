@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const WIKI_SKILL_PROPOSAL_SCHEMA =
-  "chainlesschain.wiki-informed-skill-proposal/v1";
+  "chainlesschain.wiki-informed-skill-proposal/v2";
 export const WIKI_PROPOSAL_STATUS = Object.freeze({
   PROPOSAL: "proposal",
   NO_PROPOSAL: "no-proposal",
@@ -57,6 +57,24 @@ function requiredString(value, name) {
   return value;
 }
 
+function normalizeProposerModel(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+    canonical(Object.keys(value).sort()) !==
+      canonical(["model", "provider", "version"])
+  ) {
+    throw new TypeError("proposerModel must be an exact plain object");
+  }
+  return {
+    provider: requiredString(value.provider, "proposerModel.provider"),
+    model: requiredString(value.model, "proposerModel.model"),
+    version: requiredString(value.version, "proposerModel.version"),
+  };
+}
+
 function stringList(value, name, { allowEmpty = false, max = 64 } = {}) {
   if (
     !Array.isArray(value) ||
@@ -100,7 +118,7 @@ function normalizeDescriptor(input) {
     evolutionRunId: requiredString(input?.evolutionRunId, "evolutionRunId"),
     targetSkillName: requiredString(input?.targetSkillName, "targetSkillName"),
     wikiRevision: requiredString(input?.wikiRevision, "wikiRevision"),
-    proposerModel: requiredString(input?.proposerModel, "proposerModel"),
+    proposerModel: normalizeProposerModel(input?.proposerModel),
     minEvidenceSamples: Math.max(1, Number(input?.minEvidenceSamples) || 1),
     maxSelectiveEvidence: Math.min(
       16,
@@ -211,11 +229,21 @@ function validateProposal(output, descriptor, evidence) {
       output.requestedCapabilities,
       "requestedCapabilities",
       { allowEmpty: true },
-    ),
-    targetRuntimes: stringList(output.targetRuntimes, "targetRuntimes"),
+    ).sort(),
+    targetRuntimes: stringList(output.targetRuntimes, "targetRuntimes").sort(),
     contextCost,
     machineDiff: validateDiff(output.machineDiff),
-    sourceEvidenceRefs: evidence.map(({ ref, digest }) => ({ ref, digest })),
+    sourceEvidenceRefs: evidence
+      .map(({ ref, digest }) => ({ ref, digest }))
+      .sort(
+        (left, right) =>
+          (left.ref < right.ref ? -1 : left.ref > right.ref ? 1 : 0) ||
+          (left.digest < right.digest
+            ? -1
+            : left.digest > right.digest
+              ? 1
+              : 0),
+      ),
     wikiRevision: descriptor.wikiRevision,
     proposerModel: descriptor.proposerModel,
   });
@@ -391,7 +419,8 @@ export class WikiInformedSkillProposer {
       candidate.content !== candidateInput.content ||
       candidate.derivationMode !== "wiki" ||
       candidate.wikiRevision !== proposal.wikiRevision ||
-      candidate.proposerModel !== proposal.proposerModel ||
+      canonical(candidate.proposerModel) !==
+        canonical(proposal.proposerModel) ||
       canonical(candidate.requestedCapabilities) !==
         canonical(proposal.requestedCapabilities) ||
       canonical(candidate.targetRuntimes) !==

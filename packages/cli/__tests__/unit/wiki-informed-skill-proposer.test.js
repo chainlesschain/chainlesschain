@@ -28,7 +28,11 @@ const descriptor = (overrides = {}) => ({
   evolutionRunId: "run-1",
   targetSkillName: "safe-refactor",
   wikiRevision: "wiki:revision-7",
-  proposerModel: "provider:model-v1",
+  proposerModel: {
+    provider: "provider",
+    model: "model-v1",
+    version: "2026-09-05",
+  },
   minEvidenceSamples: 3,
   maxSelectiveEvidence: 2,
   ...overrides,
@@ -96,7 +100,7 @@ function ports(overrides = {}) {
         ...input,
         candidateId: "candidate:1",
         contentDigest: "sha256:1",
-        targetRuntimes: ["node22-windows", "node22-linux"],
+        targetRuntimes: ["node22-linux", "node22-windows"],
       },
     })),
     ...overrides,
@@ -158,7 +162,7 @@ describe("WikiInformedSkillProposer", () => {
     expect(result.proposal).toMatchObject({
       skillName: "safe-refactor",
       requestedCapabilities: ["workspace-write"],
-      targetRuntimes: ["node22-windows", "node22-linux"],
+      targetRuntimes: ["node22-linux", "node22-windows"],
     });
     expect(result.proposal.purpose.sourceEvidenceRefs).toHaveLength(4);
     expect(p.readInitial.mock.calls.map((call) => call[0])).toEqual([
@@ -172,7 +176,11 @@ describe("WikiInformedSkillProposer", () => {
     expect(p.createCandidate.mock.calls[0][0]).toMatchObject({
       derivationMode: "wiki",
       wikiRevision: "wiki:revision-7",
-      proposerModel: "provider:model-v1",
+      proposerModel: {
+        provider: "provider",
+        model: "model-v1",
+        version: "2026-09-05",
+      },
     });
   });
 

@@ -105,6 +105,31 @@ describe("EvolutionReleaseTrain", () => {
     ).toThrow("cannot increase Skill capabilities");
   });
 
+  it("represents a first release with an explicit canonical empty baseline", () => {
+    const emptyActiveDigest = D("chainlesschain.skill-active/empty/v1\0");
+    const initial = createEvolutionPlan(
+      planInput({
+        baselineReleaseDigest: null,
+        baselineContentDigest: emptyActiveDigest,
+        baselineRevision: 0,
+      }),
+    );
+    expect(initial).toMatchObject({
+      baselineReleaseDigest: null,
+      baselineContentDigest: emptyActiveDigest,
+      baselineRevision: 0,
+    });
+    expect(() =>
+      createEvolutionPlan(
+        planInput({
+          baselineReleaseDigest: null,
+          baselineContentDigest: D("forged-empty-baseline"),
+          baselineRevision: 0,
+        }),
+      ),
+    ).toThrow(/canonical empty active digest/u);
+  });
+
   it("triggers only on attributable repeated evidence for one Skill", () => {
     const failure = (eventId, failureClass = "procedure") => ({
       eventId,

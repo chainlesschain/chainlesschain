@@ -48,20 +48,20 @@ afterEach(() => {
 });
 
 describe("EvolutionReleaseTrain real process recovery", () => {
-  it("recovers real Wiki, Proposer, and Candidate controllers across a hard exit", () => {
+  it("recovers real Wiki, Proposer, Candidate, and Review controllers across a hard exit", () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-train-real-prefix-"),
     );
     roots.push(root);
     expect(sync(root, "init").status).toBe(0);
-    expect(sync(root, "real-prefix-run", "candidate").status).toBe(73);
+    expect(sync(root, "real-prefix-run", "review").status).toBe(75);
     const recovered = sync(root, "real-prefix-run");
     expect(recovered.status, recovered.stderr).toBe(0);
     expect(output(recovered)).toMatchObject({
       ok: true,
       stageIndex: 8,
       effectCount: 8,
-      ledgerEventCount: 9,
+      ledgerEventCount: 12,
     });
     expect(
       JSON.parse(

@@ -19,6 +19,9 @@ export const EVOLUTION_RELEASE_TRAIN_STAGES = Object.freeze([
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const COMMIT = /^[a-f0-9]{40}$/u;
+const EMPTY_SKILL_ACTIVE_DIGEST = `sha256:${createHash("sha256")
+  .update("chainlesschain.skill-active/empty/v1\0", "utf8")
+  .digest("hex")}`;
 const NOISE_FAILURES = new Set([
   "provider",
   "mcp",
@@ -150,29 +153,40 @@ export function createEvolutionPlan(input = {}) {
   const gitCommit = text(input.gitCommit, "gitCommit");
   if (!COMMIT.test(gitCommit))
     throw new TypeError("gitCommit must be a full commit SHA");
+  const baselineReleaseDigest =
+    input.baselineReleaseDigest === null
+      ? null
+      : sha(input.baselineReleaseDigest, "baselineReleaseDigest");
+  const baselineContentDigest = sha(
+    input.baselineContentDigest,
+    "baselineContentDigest",
+  );
+  const baselineRevision =
+    Number.isSafeInteger(input.baselineRevision) && input.baselineRevision >= 0
+      ? input.baselineRevision
+      : (() => {
+          throw new TypeError(
+            "baselineRevision must be a non-negative integer",
+          );
+        })();
+  if (
+    baselineReleaseDigest === null &&
+    (baselineRevision !== 0 ||
+      baselineContentDigest !== EMPTY_SKILL_ACTIVE_DIGEST)
+  ) {
+    throw new TypeError(
+      "an empty release baseline requires revision 0 and the canonical empty active digest",
+    );
+  }
   const core = {
     schema: EVOLUTION_PLAN_SCHEMA,
     tenantId: text(input.tenantId, "tenantId"),
     skillId: text(input.skillId, "skillId"),
     gitCommit,
-    baselineReleaseDigest: sha(
-      input.baselineReleaseDigest,
-      "baselineReleaseDigest",
-    ),
+    baselineReleaseDigest,
     baselineId: sha(input.baselineId, "baselineId"),
-    baselineContentDigest: sha(
-      input.baselineContentDigest,
-      "baselineContentDigest",
-    ),
-    baselineRevision:
-      Number.isSafeInteger(input.baselineRevision) &&
-      input.baselineRevision >= 0
-        ? input.baselineRevision
-        : (() => {
-            throw new TypeError(
-              "baselineRevision must be a non-negative integer",
-            );
-          })(),
+    baselineContentDigest,
+    baselineRevision,
     candidateId: sha(input.candidateId, "candidateId"),
     candidateDigest: sha(input.candidateDigest, "candidateDigest"),
     wikiRevisionDigest: sha(input.wikiRevisionDigest, "wikiRevisionDigest"),

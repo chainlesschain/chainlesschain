@@ -397,7 +397,11 @@ describe("SkillWikiReconciler", () => {
         evolutionRunId: "run-after-release",
         targetSkillName: plan.skillId,
         wikiRevision: `wiki:${digestWikiState(wikiState).slice(7)}`,
-        proposerModel: "provider:lineage-test",
+        proposerModel: {
+          provider: "provider",
+          model: "lineage-test",
+          version: "2026-09-05",
+        },
         minEvidenceSamples: 3,
         maxSelectiveEvidence: 1,
       },
