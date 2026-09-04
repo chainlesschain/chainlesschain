@@ -196,6 +196,22 @@ describe("governed Skill loading", () => {
     expect(registry.skills.size).toBe(0);
   });
 
+  it("unloads the previous governed Skill when replacement content is unsafe", async () => {
+    const registry = new SkillRegistry({
+      autoLoad: false,
+      artifactActiveReleaseReader: activeReader(skillPackage()),
+    });
+    await registry.loadGovernedActiveSkills();
+    registry.setArtifactActiveReleaseReader(
+      activeReader(skillPackage({ executable: true })),
+    );
+
+    await expect(registry.loadGovernedActiveSkills()).rejects.toThrow(
+      "Active Skill release content is unsafe or invalid",
+    );
+    expect(registry.getSkill("governed-docs")).toBeUndefined();
+  });
+
   it("unloads a governed Skill when it is no longer active", async () => {
     const state = { empty: false };
     const registry = new SkillRegistry({

@@ -201,9 +201,7 @@ class SkillRegistry extends EventEmitter {
     }
     let skills;
     try {
-      skills = releases.map((release) =>
-        this._activeSkillFromRelease(release),
-      );
+      skills = releases.map((release) => this._activeSkillFromRelease(release));
     } catch (error) {
       this._unloadGovernedSkills();
       throw error;
