@@ -19,6 +19,7 @@ function context(stage, inputDigest, overrides = {}) {
     plan: Object.freeze({
       planDigest: digest("plan"),
       wikiRevisionDigest: digest("wiki"),
+      candidateId: digest("candidate-id"),
       candidateDigest: digest("candidate"),
       ...overrides,
     }),
@@ -115,7 +116,7 @@ describe("Evolution release train domain stages", () => {
     const proposalDigest = digest("proposal");
     const created = {
       status: "proposal",
-      candidateId: "candidate:1",
+      candidateId: digest("candidate-id"),
       contentDigest: digest("candidate"),
     };
     const proposer = {

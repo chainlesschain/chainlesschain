@@ -20,6 +20,9 @@ import {
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "./evolution-release-train-ledger-adapter.js";
+import { WikiSkillProposalLedgerAdapter } from "./wiki-skill-proposal-ledger-adapter.js";
+import { EvolutionReleaseTrainStageOutputLedgerAdapter } from "./evolution-release-train-stage-output-ledger-adapter.js";
+import { createEvolutionReleaseTrainDomainStages } from "./evolution-release-train-domain-stages.js";
 import { createEvolutionReleaseTrain } from "./evolution-release-train.js";
 import { captureSkillOutcomeSourceCatalogAuthority } from "./skill-outcome-source-catalog-authority.js";
 import {
@@ -57,7 +60,8 @@ const ARTIFACT_AUTHORITY_KEYS = new Set([
 const SKILL_OUTCOME_SOURCE_KEYS = new Set(["composition", "skillName"]);
 const SKILL_OUTCOME_CATALOG_ENTRY_KEYS = new Set(["runId", "skillNames"]);
 const MAX_SKILL_OUTCOME_SOURCES = 128;
-const RELEASE_TRAIN_KEYS = new Set(["plan", "stages"]);
+const RELEASE_TRAIN_STAGE_KEYS = new Set(["plan", "stages"]);
+const RELEASE_TRAIN_DOMAIN_KEYS = new Set(["plan", "domain"]);
 
 function exactRecord(value, keys, label) {
   if (
@@ -382,9 +386,12 @@ export function createAgentEvolutionRuntimeComposition({
   });
   let releaseTrain = null;
   if (releaseTrainInput !== null) {
+    const releaseTrainKeys = Object.hasOwn(releaseTrainInput, "domain")
+      ? RELEASE_TRAIN_DOMAIN_KEYS
+      : RELEASE_TRAIN_STAGE_KEYS;
     const releaseTrainConfig = exactRecord(
       releaseTrainInput,
-      RELEASE_TRAIN_KEYS,
+      releaseTrainKeys,
       "releaseTrain",
     );
     if (
@@ -408,10 +415,43 @@ export function createAgentEvolutionRuntimeComposition({
       ledgerArtifactResolver,
       clock: () => new Date(clock()).toISOString(),
     });
+    let stages = releaseTrainConfig.stages;
+    if (Object.hasOwn(releaseTrainConfig, "domain")) {
+      const proposalLedger = new WikiSkillProposalLedgerAdapter({
+        descriptor: {
+          tenantId,
+          artifactTenantId: tenantId,
+          evolutionRunId: runId,
+          skillName: releaseTrainConfig.plan.skillId,
+          audience,
+          purpose: "evolution-ledger",
+        },
+        artifactPorts,
+        ledger: backend.ledger,
+        ledgerArtifactResolver,
+      });
+      const outputLedger = new EvolutionReleaseTrainStageOutputLedgerAdapter({
+        descriptor: {
+          tenantId,
+          artifactTenantId: tenantId,
+          skillName: releaseTrainConfig.plan.skillId,
+          audience,
+          purpose: "evolution-ledger",
+        },
+        artifactPorts,
+        ledger: backend.ledger,
+        ledgerArtifactResolver,
+      });
+      stages = createEvolutionReleaseTrainDomainStages({
+        domain: releaseTrainConfig.domain,
+        proposalLedger,
+        outputLedger,
+      });
+    }
     releaseTrain = createEvolutionReleaseTrain({
       plan: releaseTrainConfig.plan,
       stateStore: releaseTrainAdapter.createStateStore(),
-      stages: releaseTrainConfig.stages,
+      stages,
       clock,
     });
   }

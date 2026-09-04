@@ -12,6 +12,11 @@ import {
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 import {
+  EVOLUTION_RELEASE_TRAIN_STAGE_OUTPUT_CONFLICT_CODE,
+  EVOLUTION_RELEASE_TRAIN_STAGE_OUTPUT_EVENT,
+  EvolutionReleaseTrainStageOutputLedgerAdapter,
+} from "../../src/lib/evolution/evolution-release-train-stage-output-ledger-adapter.js";
+import {
   WIKI_SKILL_PROPOSAL_SCHEMA,
   computeWikiSkillProposalDigest,
 } from "../../src/lib/evolution/wiki-informed-skill-proposer.js";
@@ -205,6 +210,21 @@ function adapter(value) {
   });
 }
 
+function outputAdapter(value) {
+  return new EvolutionReleaseTrainStageOutputLedgerAdapter({
+    descriptor: {
+      tenantId: "tenant-a",
+      artifactTenantId: "tenant-a",
+      skillName: "safe-refactor",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: value.artifactPorts,
+    ledger: value.ledger,
+    ledgerArtifactResolver: value.resolver,
+  });
+}
+
 function request(overrides = {}) {
   return {
     planDigest: hash("plan"),
@@ -260,6 +280,74 @@ describe("WikiSkillProposalLedgerAdapter", () => {
     ).toThrow(
       expect.objectContaining({ code: WIKI_SKILL_PROPOSAL_CONFLICT_CODE }),
     );
+    expect(value.state.events).toHaveLength(1);
+  });
+});
+
+describe("EvolutionReleaseTrainStageOutputLedgerAdapter", () => {
+  const outputRequest = (overrides = {}) => ({
+    planDigest: hash("output-plan"),
+    stage: "eval",
+    operationKey: hash("output-operation"),
+    inputDigest: hash("candidate"),
+    outputDigest: hash("eval-receipt"),
+    value: { decision: "accepted", receiptDigest: hash("eval-receipt") },
+    effectiveAt: "2026-09-05T00:00:00.000Z",
+    ...overrides,
+  });
+
+  it("persists and recovers a semantic stage output without rerunning it", () => {
+    const value = backend();
+    const first = outputAdapter(value).commit(outputRequest());
+    const reopened = outputAdapter(value).load({
+      planDigest: outputRequest().planDigest,
+      stage: "eval",
+    });
+
+    expect(first).toMatchObject({ committed: true, recovered: false });
+    expect(reopened).toMatchObject({
+      outputDigest: outputRequest().outputDigest,
+      value: outputRequest().value,
+    });
+    expect(value.state.events[0].type).toBe(
+      EVOLUTION_RELEASE_TRAIN_STAGE_OUTPUT_EVENT,
+    );
+  });
+
+  it("rejects a competing semantic output for the same plan stage", () => {
+    const value = backend();
+    outputAdapter(value).commit(outputRequest());
+
+    expect(() =>
+      outputAdapter(value).commit(
+        outputRequest({
+          outputDigest: hash("different-eval-receipt"),
+          value: {
+            decision: "accepted",
+            receiptDigest: hash("different-eval-receipt"),
+          },
+        }),
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: EVOLUTION_RELEASE_TRAIN_STAGE_OUTPUT_CONFLICT_CODE,
+      }),
+    );
+    expect(value.state.events).toHaveLength(1);
+  });
+
+  it("recovers the exact stage output after a lost Ledger response", () => {
+    const value = backend();
+    value.state.failAfterAppend = true;
+    expect(() => outputAdapter(value).commit(outputRequest())).toThrow(
+      /response loss/u,
+    );
+
+    expect(outputAdapter(value).commit(outputRequest())).toMatchObject({
+      committed: true,
+      recovered: true,
+      outputDigest: outputRequest().outputDigest,
+    });
     expect(value.state.events).toHaveLength(1);
   });
 });

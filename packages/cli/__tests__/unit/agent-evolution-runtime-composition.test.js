@@ -522,6 +522,118 @@ function options(root) {
 }
 
 describe("Agent evolution runtime production composition", () => {
+  it("constructs all eight default domain adapters with root-owned durable ledgers", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-domain-train-"),
+    );
+    roots.push(root);
+    const plan = createEvolutionPlan({
+      tenantId: "tenant-production",
+      skillId: "safe-refactor",
+      gitCommit: "a".repeat(40),
+      baselineReleaseDigest: digest("baseline"),
+      baselineId: digest("baseline-id"),
+      baselineContentDigest: digest("baseline-content"),
+      baselineRevision: 1,
+      candidateId: digest("candidate-id"),
+      candidateDigest: digest("candidate"),
+      wikiRevisionDigest: digest("wiki"),
+      evalSuiteDigest: digest("eval"),
+      matrixEvalPlanDigest: digest("matrix-eval-plan"),
+      targetMatrixDigest: digest("matrix"),
+      riskTier: "low",
+      rolloutPolicyDigest: digest("rollout"),
+      metricPolicyDigest: digest("metrics"),
+      permissionManifestDigest: digest("permissions"),
+      policyDigest: digest("policy"),
+      requestedCapabilityDigests: [digest("read")],
+      baselineCapabilityDigests: [digest("read")],
+      rootBudget: { tokens: 100, cost: 1, timeMs: 60_000, turns: 16 },
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      triggerDigest: digest("trigger"),
+    });
+    const usage = { tokens: 0, cost: 0, timeMs: 1, turns: 1 };
+    const proposer = {
+      draft: async () => ({}),
+      createCandidateFromDraft: async () => ({}),
+    };
+    const pilot = {
+      descriptor: {},
+      start: async () => ({}),
+      approveShadow: async () => ({}),
+      advance: async () => ({}),
+      reconcilePendingTransition: async () => ({}),
+      snapshot: () => ({}),
+      view: () => ({}),
+    };
+    const composition = createAgentEvolutionRuntimeComposition({
+      ...options(root),
+      releaseTrain: {
+        plan,
+        domain: {
+          "wiki-maintain": {
+            maintainer: { maintain: async () => ({}) },
+            request: {},
+            usage,
+          },
+          propose: {
+            proposer,
+            effectiveAt: NOW,
+            usage,
+          },
+          candidate: { proposer, usage },
+          eval: {
+            aggregator: {},
+            receiptVerifier: {},
+            planRef: {
+              ref: "matrix-plan:one",
+              digest: plan.matrixEvalPlanDigest,
+            },
+            expectedReceipt: {},
+            durability: { retain: async () => ({}) },
+            usage,
+          },
+          review: {
+            reviewLedger: {
+              submitPacket: async () => ({}),
+              listReviews: async () => [],
+            },
+            packetInput: {},
+            usage,
+          },
+          pilot: {
+            pilot,
+            startRequest: {},
+            approvalInput: {},
+            nextAdvanceInput: async () => null,
+            effectiveAt: NOW,
+            usage,
+          },
+          promotion: {
+            controller: { promoteEvaluated: async () => ({}) },
+            releaseRegistry: {
+              readState: () => ({}),
+              readRelease: () => ({}),
+            },
+            promotionInput: {},
+            effectiveAt: NOW,
+            usage,
+          },
+          "wiki-impact": {
+            reconciler: {
+              source: { list: async () => [] },
+              reconcile: async () => ({}),
+            },
+            effectiveAt: NOW,
+            usage,
+          },
+        },
+      },
+    });
+
+    expect(composition.releaseTrain.planDigest).toBe(plan.planDigest);
+  });
+
   it("mounts the fixed eight-stage train on the production ArtifactStore and Ledger", async () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-agent-release-train-"),
@@ -532,9 +644,14 @@ describe("Agent evolution runtime production composition", () => {
       skillId: "safe-refactor",
       gitCommit: "a".repeat(40),
       baselineReleaseDigest: digest("baseline"),
+      baselineId: digest("baseline-id"),
+      baselineContentDigest: digest("baseline-content"),
+      baselineRevision: 1,
+      candidateId: digest("candidate-id"),
       candidateDigest: digest("candidate"),
       wikiRevisionDigest: digest("wiki"),
       evalSuiteDigest: digest("eval"),
+      matrixEvalPlanDigest: digest("matrix-eval-plan"),
       targetMatrixDigest: digest("matrix"),
       riskTier: "low",
       rolloutPolicyDigest: digest("rollout"),

@@ -72,6 +72,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "skill-registry-transition-settlement",
   "evolution-run-event",
   "evolution-release-train-checkpoint",
+  "evolution-release-train-stage-output",
   "evolvable-artifact-candidate",
   "evolvable-artifact-transition",
   "evolution-workbench-metrics-receipt-retention",
@@ -111,6 +112,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "evaluation-result",
   "evolution-run-event",
   "evolution-release-train-checkpoint",
+  "evolution-release-train-stage-output",
   "evolvable-artifact-candidate",
   "evolvable-artifact-transition",
   "evolution-workbench-metrics-receipt-retention",
@@ -328,6 +330,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["skill-registry-transition-settlement", new Set(["evolution-ledger"])],
   ["evolution-run-event", new Set(["evolution-ledger"])],
   ["evolution-release-train-checkpoint", new Set(["evolution-ledger"])],
+  ["evolution-release-train-stage-output", new Set(["evolution-ledger"])],
   ["evolvable-artifact-candidate", new Set(["evolution-ledger"])],
   ["evolvable-artifact-transition", new Set(["evolution-ledger"])],
   [

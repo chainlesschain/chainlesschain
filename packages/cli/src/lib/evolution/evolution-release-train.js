@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const EVOLUTION_PLAN_SCHEMA = "chainlesschain.evolution-plan/v1";
+export const EVOLUTION_PLAN_SCHEMA = "chainlesschain.evolution-plan/v2";
 export const EVOLUTION_TRAIN_RECEIPT_SCHEMA =
   "chainlesschain.evolution-train-stage-receipt/v1";
 export const EVOLUTION_TRAIN_STATE_SCHEMA =
@@ -107,9 +107,14 @@ export function createEvolutionPlan(input = {}) {
       "skillId",
       "gitCommit",
       "baselineReleaseDigest",
+      "baselineId",
+      "baselineContentDigest",
+      "baselineRevision",
+      "candidateId",
       "candidateDigest",
       "wikiRevisionDigest",
       "evalSuiteDigest",
+      "matrixEvalPlanDigest",
       "targetMatrixDigest",
       "riskTier",
       "rolloutPolicyDigest",
@@ -154,9 +159,28 @@ export function createEvolutionPlan(input = {}) {
       input.baselineReleaseDigest,
       "baselineReleaseDigest",
     ),
+    baselineId: sha(input.baselineId, "baselineId"),
+    baselineContentDigest: sha(
+      input.baselineContentDigest,
+      "baselineContentDigest",
+    ),
+    baselineRevision:
+      Number.isSafeInteger(input.baselineRevision) &&
+      input.baselineRevision >= 0
+        ? input.baselineRevision
+        : (() => {
+            throw new TypeError(
+              "baselineRevision must be a non-negative integer",
+            );
+          })(),
+    candidateId: sha(input.candidateId, "candidateId"),
     candidateDigest: sha(input.candidateDigest, "candidateDigest"),
     wikiRevisionDigest: sha(input.wikiRevisionDigest, "wikiRevisionDigest"),
     evalSuiteDigest: sha(input.evalSuiteDigest, "evalSuiteDigest"),
+    matrixEvalPlanDigest: sha(
+      input.matrixEvalPlanDigest,
+      "matrixEvalPlanDigest",
+    ),
     targetMatrixDigest: sha(input.targetMatrixDigest, "targetMatrixDigest"),
     riskTier: text(input.riskTier, "riskTier"),
     rolloutPolicyDigest: sha(input.rolloutPolicyDigest, "rolloutPolicyDigest"),
