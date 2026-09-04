@@ -13,6 +13,11 @@ import {
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 import {
+  createEvolutionEvalStage,
+  createEvolutionPromotionStage,
+} from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
+import { createEvolutionPlan } from "../../src/lib/evolution/evolution-release-train.js";
+import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
   EVOLUTION_EVAL_ATTESTATION_PURPOSES,
   EVOLUTION_EVAL_AUTHORITY_DESCRIPTOR_SCHEMA,
@@ -2121,6 +2126,7 @@ function makeMatrixComposition({
   expectedDecision = "accepted",
   expectedActiveContentDigest = `sha256:${"6".repeat(64)}`,
   expectedActiveRevision = 7,
+  baselineReleaseDigest = null,
   fixtureId = "accepted",
   planTtlMs = 300_000,
   useCanonicalCandidate = false,
@@ -2398,7 +2404,7 @@ function makeMatrixComposition({
     candidateContentDigest:
       candidate?.contentDigest ?? `sha256:${"5".repeat(64)}`,
     baselineId: BASELINE_ID,
-    baselineReleaseDigest: null,
+    baselineReleaseDigest,
     expectedActiveContentDigest,
     expectedActiveRevision,
     dependencyLockDigest: dependencyLock.dependencyLockDigest,
@@ -2822,6 +2828,102 @@ describe("Skill target matrix evaluation foundation", () => {
       /own data property/i,
     );
     expect(getterReads).toBe(0);
+  });
+
+  it("executes the ReleaseTrain Eval adapter through two real Gate cells and the matrix verifier", async () => {
+    const firstHarness = makeHarness();
+    const secondHarness = makeHarness();
+    const calibration = await runEvolutionEvalGate(
+      firstHarness.gate,
+      RUN_REQUEST,
+    );
+    const baselineReleaseDigest = matrixDigest(
+      "release-train-real-eval-baseline",
+      "v1",
+    );
+    const fixture = makeMatrixComposition({
+      calibration,
+      firstHarness,
+      secondHarness,
+      baselineReleaseDigest,
+      useCanonicalCandidate: true,
+      fixtureId: "release-train-adapter",
+    });
+    const plan = createEvolutionPlan({
+      tenantId: fixture.plan.tenantId,
+      skillId: fixture.plan.skillName,
+      gitCommit: "a".repeat(40),
+      baselineReleaseDigest,
+      baselineId: fixture.plan.baselineId,
+      baselineContentDigest: fixture.plan.expectedActiveContentDigest,
+      baselineRevision: fixture.plan.expectedActiveRevision,
+      candidateId: fixture.plan.candidateId,
+      candidateDigest: fixture.plan.candidateContentDigest,
+      wikiRevisionDigest: matrixDigest("release-train-wiki", "v1"),
+      evalSuiteDigest: calibration.suiteDigest,
+      matrixEvalPlanDigest: fixture.plan.planDigest,
+      targetMatrixDigest: fixture.plan.targetMatrixRoot,
+      riskTier: "low",
+      rolloutPolicyDigest: matrixDigest("release-train-rollout", "v1"),
+      metricPolicyDigest: matrixDigest("release-train-metrics", "v1"),
+      permissionManifestDigest: matrixDigest("release-train-permissions", "v1"),
+      policyDigest: calibration.policyDigest,
+      requestedCapabilityDigests: [],
+      baselineCapabilityDigests: [],
+      rootBudget: { tokens: 10_000, cost: 100, timeMs: 90_000, turns: 16 },
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      triggerDigest: matrixDigest("release-train-trigger", "v1"),
+    });
+    let stored = null;
+    const outputLedger = {
+      load: vi.fn(() => stored),
+      commit: vi.fn((input) => {
+        stored = {
+          ...structuredClone(input),
+          valueDigest: matrixDigest("release-train-stage-value", input.value),
+        };
+        return { committed: true };
+      }),
+    };
+    const durability = {
+      retain: vi.fn(async (receipt) => ({
+        durable: true,
+        receiptDigest: receipt.receiptDigest,
+      })),
+    };
+    const stage = createEvolutionEvalStage({
+      aggregator: new SkillTargetMatrixEvalAggregator(
+        fixture.aggregatorOptions,
+      ),
+      receiptVerifier: new SkillTargetMatrixEvalReceiptVerifier(
+        fixture.verifierOptions,
+      ),
+      planRef: fixture.planRef,
+      expectedReceipt: fixture.expected,
+      durability,
+      outputLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    });
+    const context = Object.freeze({
+      plan,
+      stage: "eval",
+      operationKey: matrixDigest("release-train-eval-operation", "v1"),
+      inputDigest: plan.candidateDigest,
+    });
+
+    await expect(stage(context)).resolves.toMatchObject({
+      stage: "eval",
+      inputDigest: plan.candidateDigest,
+      outputDigest: expect.stringMatching(/^sha256:/u),
+      durable: true,
+    });
+    expect(stored.value).toMatchObject({
+      decision: "accepted",
+      cellCount: 2,
+      targetMatrixRoot: plan.targetMatrixDigest,
+    });
+    expect(durability.retain).toHaveBeenCalledTimes(1);
+    expect(outputLedger.commit).toHaveBeenCalledTimes(1);
   });
 
   it("runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt", async () => {
@@ -3366,23 +3468,99 @@ describe("Skill target matrix evaluation foundation", () => {
       transitionAuthorityHarness.auditEvents.map((event) => event.phase),
     ).toEqual(["authorize", "consume"]);
 
+    const releaseTrainPlan = Object.freeze({
+      tenantId: receipt.tenantId,
+      skillId: candidate.skillName,
+      planDigest: matrixDigest("release-train-promotion-plan", "v1"),
+      candidateId: candidate.candidateId,
+      candidateDigest: candidate.contentDigest,
+      baselineRevision: receipt.expectedActiveRevision,
+    });
+    const pilotOutputDigest = matrixDigest(
+      "release-train-pilot-output",
+      "stable-active",
+    );
+    const releaseTrainEntries = new Map([
+      [
+        "eval",
+        {
+          outputDigest: receipt.receiptDigest,
+          value: receipt,
+          valueDigest: matrixDigest("release-train-eval-value", receipt),
+        },
+      ],
+      [
+        "review",
+        {
+          outputDigest: reviewReceiptDigest,
+          value: { packet: reviewPacket, decision: reviewDecision },
+          valueDigest: matrixDigest(
+            "release-train-review-value",
+            reviewDecision,
+          ),
+        },
+      ],
+      [
+        "pilot",
+        {
+          outputDigest: pilotOutputDigest,
+          value: {
+            stage: "active",
+            progressiveCanary: { stepId: null },
+          },
+          valueDigest: matrixDigest(
+            "release-train-pilot-value",
+            pilotOutputDigest,
+          ),
+        },
+      ],
+    ]);
+    const releaseTrainOutputLedger = {
+      load: vi.fn(({ stage }) => releaseTrainEntries.get(stage) ?? null),
+      commit: vi.fn((input) => {
+        releaseTrainEntries.set(input.stage, {
+          ...structuredClone(input),
+          valueDigest: matrixDigest(
+            `release-train-${input.stage}-value`,
+            input.value,
+          ),
+        });
+        return { committed: true };
+      }),
+    };
+    const promotionInput = {
+      authorization: {
+        capability:
+          await authorityHarness.authority.authorize(promotionRequest),
+        request: promotionRequest,
+      },
+      candidateId: candidate.candidateId,
+      matrixContext: {
+        matrixEvalId: receipt.matrixEvalId,
+        baselineId: receipt.baselineId,
+        matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+        planDigest: receipt.planDigest,
+      },
+    };
+    const promotionStage = createEvolutionPromotionStage({
+      controller: evaluatedOnly,
+      releaseRegistry,
+      promotionInput,
+      outputLedger: releaseTrainOutputLedger,
+      effectiveAt: new Date().toISOString(),
+      usage: { tokens: 0, cost: 0, timeMs: 1, turns: 1 },
+    });
+    const promotionStageContext = Object.freeze({
+      plan: releaseTrainPlan,
+      stage: "promotion",
+      operationKey: matrixDigest("release-train-promotion-operation", "v1"),
+      inputDigest: pilotOutputDigest,
+    });
+
     memoryRoot.ledgerState.failBeforeType = "memory.event.persisted";
     let pendingError;
     try {
-      await evaluatedOnly.promoteEvaluated({
-        authorization: {
-          capability:
-            await authorityHarness.authority.authorize(promotionRequest),
-          request: promotionRequest,
-        },
-        candidateId: candidate.candidateId,
-        matrixContext: {
-          matrixEvalId: receipt.matrixEvalId,
-          baselineId: receipt.baselineId,
-          matrixAuthorityRoot: receipt.matrixAuthorityRoot,
-          planDigest: receipt.planDigest,
-        },
-      });
+      await promotionStage(promotionStageContext);
     } catch (error) {
       pendingError = error;
     }
@@ -3438,6 +3616,19 @@ describe("Skill target matrix evaluation foundation", () => {
     const memoryTransition =
       await evaluatedOnly.recordPromotionMemory(committedPromotion);
     const promoted = { ...committedPromotion, memoryTransition };
+    await expect(promotionStage(promotionStageContext)).resolves.toMatchObject({
+      stage: "promotion",
+      inputDigest: pilotOutputDigest,
+      outputDigest: committedPromotion.release.releaseDigest,
+      durable: true,
+    });
+    expect(releaseTrainEntries.get("promotion")).toMatchObject({
+      value: {
+        state: { revision: 1 },
+        release: { releaseDigest: committedPromotion.release.releaseDigest },
+      },
+    });
+    expect(releaseTrainOutputLedger.commit).toHaveBeenCalledTimes(1);
     expect(promoted).toMatchObject({
       matrixBinding: {
         candidateId: candidate.candidateId,

@@ -6,6 +6,7 @@ import {
   CONTROLLED_SKILL_PILOT_STAGE,
   ControlledSkillProductionPilot,
 } from "../../src/lib/evolution/controlled-skill-production-pilot.js";
+import { createEvolutionPilotStage } from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import {
   createProgressiveCanaryAssignmentAuthority,
   createProgressiveCanaryGateAuthority,
@@ -762,6 +763,107 @@ describe("ControlledSkillProductionPilot", () => {
       ["canary", "active-probation"],
       ["active-probation", "active"],
     ]);
+  });
+
+  it("executes the ReleaseTrain Pilot adapter through every signed progressive gate", async () => {
+    const progressive = progressiveHarness();
+    const h = harness();
+    const pilot = new ControlledSkillProductionPilot({
+      descriptor: descriptor(),
+      ports: h.ports,
+      now: () => 1,
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
+      },
+    });
+    const plan = Object.freeze({
+      tenantId: pilot.descriptor.tenantId,
+      skillId: pilot.descriptor.skillName,
+      planDigest: D("release-train-pilot-plan"),
+      candidateId: D("release-train-pilot-candidate-id"),
+      candidateDigest: pilot.descriptor.candidateDigest,
+      baselineReleaseDigest: pilot.descriptor.baselineDigest,
+      rolloutPolicyDigest: progressive.plan.planDigest,
+    });
+    const reviewDecisionDigest = D("approval");
+    const entries = new Map([
+      [
+        "review",
+        {
+          planDigest: plan.planDigest,
+          stage: "review",
+          operationKey: D("release-train-review-operation"),
+          inputDigest: pilot.descriptor.evalReceiptDigest,
+          outputDigest: reviewDecisionDigest,
+          valueDigest: D("release-train-review-value"),
+          value: {
+            packet: {
+              packetDigest: pilot.descriptor.reviewPacketDigest,
+              evaluation: {
+                matrixReceiptDigest: pilot.descriptor.evalReceiptDigest,
+              },
+            },
+            decision: { receiptDigest: reviewDecisionDigest },
+          },
+        },
+      ],
+    ]);
+    const outputLedger = {
+      load: vi.fn(({ stage }) => entries.get(stage) ?? null),
+      commit: vi.fn((input) => {
+        entries.set(input.stage, {
+          ...structuredClone(input),
+          valueDigest: D(`release-train-${input.stage}-value`),
+        });
+        return { committed: true };
+      }),
+    };
+    const stage = createEvolutionPilotStage({
+      pilot,
+      startRequest: {
+        optedIn: true,
+        tenantId: plan.tenantId,
+        cohortId: "cohort-a",
+      },
+      approvalInput: {},
+      nextAdvanceInput: async (current) => ({
+        gateReceipt: await progressiveGateReceipt(
+          progressive,
+          current.progressiveCanary.stepId,
+        ),
+      }),
+      effectiveAt: "2026-09-05T00:00:00.000Z",
+      outputLedger,
+      usage: { tokens: 0, cost: 0, timeMs: 4, turns: 4 },
+    });
+
+    await expect(
+      stage({
+        plan,
+        stage: "pilot",
+        operationKey: D("release-train-pilot-operation"),
+        inputDigest: reviewDecisionDigest,
+      }),
+    ).resolves.toMatchObject({
+      stage: "pilot",
+      inputDigest: reviewDecisionDigest,
+      outputDigest: expect.stringMatching(/^sha256:/u),
+      durable: true,
+    });
+    expect(entries.get("pilot")).toMatchObject({
+      value: {
+        stage: "active",
+        progressiveCanary: {
+          stepId: null,
+          gateReceiptDigests: expect.any(Array),
+        },
+      },
+    });
+    expect(
+      entries.get("pilot").value.progressiveCanary.gateReceiptDigests,
+    ).toHaveLength(4);
+    expect(outputLedger.commit).toHaveBeenCalledTimes(1);
   });
 
   it("rejects unverified reports and legacy observations in progressive mode", async () => {

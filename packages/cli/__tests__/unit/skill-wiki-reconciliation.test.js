@@ -8,6 +8,7 @@ import {
   createEmptyWikiState,
   digestWikiState,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
+import { createEvolutionWikiImpactStage } from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import {
   SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
@@ -284,6 +285,76 @@ describe("SkillWikiReconciler", () => {
       fixture.getState().skillImpact["safe-refactor"].decisions,
     ).toHaveLength(1);
     expect(fixture.ports.resolveImpact).toHaveBeenCalledTimes(1);
+  });
+
+  it("executes the ReleaseTrain Wiki-impact adapter through the real reconciler", async () => {
+    const fixture = await harness();
+    const promoted = transition();
+    const [sourceTransition] = await fixture.source.list({
+      afterSequence: 0,
+      limit: 64,
+    });
+    const plan = Object.freeze({
+      tenantId: promoted.tenantId,
+      skillId: promoted.skillName,
+      planDigest: hash("release-train-wiki-impact-plan"),
+      candidateId: promoted.candidateId,
+    });
+    const entries = new Map([
+      [
+        "promotion",
+        {
+          outputDigest: promoted.activeReleaseDigest,
+          valueDigest: hash("release-train-promotion-value"),
+          value: {
+            release: { releaseDigest: promoted.activeReleaseDigest },
+          },
+        },
+      ],
+    ]);
+    const outputLedger = {
+      load: vi.fn(({ stage }) => entries.get(stage) ?? null),
+      commit: vi.fn((input) => {
+        entries.set(input.stage, {
+          ...structuredClone(input),
+          valueDigest: hash(input.value),
+        });
+        return { committed: true };
+      }),
+    };
+    const stage = createEvolutionWikiImpactStage({
+      reconciler: fixture.reconciler,
+      outputLedger,
+      effectiveAt: "2026-09-05T00:00:00.000Z",
+      usage: { tokens: 0, cost: 0, timeMs: 1, turns: 1 },
+    });
+
+    await expect(
+      stage({
+        plan,
+        stage: "wiki-impact",
+        operationKey: hash("release-train-wiki-impact-operation"),
+        inputDigest: promoted.activeReleaseDigest,
+      }),
+    ).resolves.toMatchObject({
+      stage: "wiki-impact",
+      inputDigest: promoted.activeReleaseDigest,
+      outputDigest: expect.stringMatching(/^sha256:/u),
+      durable: true,
+    });
+    expect(entries.get("wiki-impact")).toMatchObject({
+      value: {
+        releaseDigest: promoted.activeReleaseDigest,
+        transitionDigest: sourceTransition.transitionDigest,
+        transitionSequence: sourceTransition.sequence,
+        checkpointCursor: sourceTransition.sequence,
+      },
+    });
+    expect(fixture.getState().skillImpact[plan.skillId]).toMatchObject({
+      accepted: 1,
+      rejected: 0,
+    });
+    expect(outputLedger.commit).toHaveBeenCalledTimes(1);
   });
 
   it("recovers Wiki and checkpoint response loss without duplicate impact", async () => {

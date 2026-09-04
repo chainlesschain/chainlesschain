@@ -68,6 +68,24 @@ function freezeClone(value) {
   return Object.freeze(structuredClone(value));
 }
 
+function bindPromotionInput(value) {
+  const capability = value?.authorization?.capability;
+  if (!capability) return freezeClone(value);
+  const { authorization, ...request } = value;
+  const authorizationData = { ...authorization };
+  delete authorizationData.capability;
+  return Object.freeze({
+    ...freezeClone(request),
+    authorization: Object.freeze({
+      ...freezeClone(authorizationData),
+      // Mutation capabilities are opaque identity tokens held in an
+      // authority WeakMap. Cloning them turns a valid capability into a
+      // forgery, so preserve the already-frozen authority object itself.
+      capability,
+    }),
+  });
+}
+
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
@@ -496,7 +514,7 @@ export function createEvolutionPromotionStage({
   );
   const load = capture(outputLedger, "load", "outputLedger");
   const commit = capture(outputLedger, "commit", "outputLedger");
-  const boundInput = freezeClone(promotionInput);
+  const boundInput = bindPromotionInput(promotionInput);
   const timestamp = new Date(effectiveAt).toISOString();
   const boundUsage = freezeClone(usage);
   const active = (plan) => {

@@ -12,6 +12,7 @@ import {
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
+import { createEvolutionReviewStage } from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import { buildSkillCandidateDraft } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   buildSkillDependencyLock,
@@ -483,6 +484,73 @@ describe("SkillPromotionReviewLedgerAdapter", () => {
         },
       }),
     ).resolves.toMatchObject({ reviewReceiptDigest: decision.receiptDigest });
+  });
+
+  it("executes the ReleaseTrain Review adapter against the durable human-review ledger", async () => {
+    const storage = backends();
+    const fixture = packetFixture(
+      "Review through the production train adapter.",
+    );
+    const review = adapter(storage).adapter;
+    await review.submitPacket(fixture.packet);
+    const decision = decisionFor(fixture.packet);
+    await review.retainDecision({
+      packetDigest: fixture.packet.packetDigest,
+      decision,
+    });
+
+    let stored = null;
+    const outputLedger = {
+      load: vi.fn(() => stored),
+      commit: vi.fn((input) => {
+        stored = {
+          ...structuredClone(input),
+          valueDigest: digest("release-train-review-output", input.value),
+        };
+        return { committed: true };
+      }),
+    };
+    const plan = Object.freeze({
+      tenantId: TENANT_ID,
+      skillId: fixture.candidate.skillName,
+      planDigest: digest("release-train-review-plan"),
+      candidateId: fixture.candidate.candidateId,
+      candidateDigest: fixture.candidate.contentDigest,
+      baselineReleaseDigest: null,
+      baselineRevision: fixture.state.revision,
+    });
+    const stage = createEvolutionReviewStage({
+      reviewLedger: review,
+      packetInput: {
+        candidate: fixture.candidate,
+        matrixBinding: fixture.matrixBinding,
+        state: fixture.state,
+      },
+      outputLedger,
+      usage: { tokens: 0, cost: 0, timeMs: 1, turns: 1 },
+    });
+
+    await expect(
+      stage({
+        plan,
+        stage: "review",
+        operationKey: digest("release-train-review-operation"),
+        inputDigest: fixture.matrixBinding.matrixReceiptDigest,
+      }),
+    ).resolves.toMatchObject({
+      stage: "review",
+      inputDigest: fixture.matrixBinding.matrixReceiptDigest,
+      outputDigest: decision.receiptDigest,
+      durable: true,
+    });
+    expect(stored).toMatchObject({
+      value: {
+        packet: { packetDigest: fixture.packet.packetDigest },
+        decision: { receiptDigest: decision.receiptDigest },
+      },
+    });
+    expect(storage.state.events).toHaveLength(2);
+    expect(outputLedger.commit).toHaveBeenCalledTimes(1);
   });
 
   it("recovers packet submission after a lost append response", async () => {

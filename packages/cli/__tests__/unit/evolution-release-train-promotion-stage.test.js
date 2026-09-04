@@ -125,6 +125,7 @@ const usage = Object.freeze({ tokens: 0, cost: 0, timeMs: 5, turns: 1 });
 describe("Evolution release train Promotion stage", () => {
   it("uses the evaluated human-reviewed controller and verifies active pointer", async () => {
     const releases = registry();
+    const capability = Object.freeze(Object.create(null));
     const controller = {
       promoteEvaluated: vi.fn(async () => releases.promote()),
     };
@@ -132,7 +133,10 @@ describe("Evolution release train Promotion stage", () => {
     const stage = createEvolutionPromotionStage({
       controller,
       releaseRegistry: releases.port,
-      promotionInput: { candidateId: plan.candidateId },
+      promotionInput: {
+        authorization: { capability, request: { operation: "promote" } },
+        candidateId: plan.candidateId,
+      },
       outputLedger: outputs,
       effectiveAt: "2026-09-05T00:00:00.000Z",
       usage,
@@ -144,6 +148,9 @@ describe("Evolution release train Promotion stage", () => {
       durable: true,
     });
     expect(controller.promoteEvaluated).toHaveBeenCalledTimes(1);
+    expect(
+      controller.promoteEvaluated.mock.calls[0][0].authorization.capability,
+    ).toBe(capability);
     expect(outputs.commit).toHaveBeenCalledTimes(1);
   });
 
