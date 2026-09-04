@@ -253,6 +253,7 @@ function requestFor(tenantId, streamId, outcome, resolution, dependency) {
     transitionDigest: outcome.transitionDigest,
     candidateId: outcome.candidateId,
     skillName: outcome.skillName,
+    occurredAt: outcome.occurredAt,
     sourceReceiptDigest: outcome.sourceReceiptDigest,
     resolutionDigest: resolution.resolutionDigest,
     dependency,

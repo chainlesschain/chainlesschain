@@ -340,6 +340,7 @@ function rebuildDerivedState(state, effectiveAt, descriptor) {
       ).toFixed(6),
     );
     if (
+      (pattern.rollbackCount ?? 0) > 0 ||
       positive.length === 0 ||
       expired ||
       pattern.operationalConfidence < descriptor.staleConfidenceFloor
@@ -425,6 +426,7 @@ function applyUpsert(state, operation, evidenceByRef, effectiveAt) {
       ...new Set([...(existing?.supersedes ?? []), ...proposed.supersedes]),
     ].sort(),
     rejectionCount: existing?.rejectionCount ?? 0,
+    rollbackCount: existing?.rollbackCount ?? 0,
     status: WIKI_PATTERN_STATUS.HYPOTHESIS,
     actionable: false,
     evidenceCounts: { positive: 0, negative: 0, trustDomains: 0 },
@@ -549,8 +551,12 @@ function applyOperation(state, operation, evidenceByRef, effectiveAt) {
       throw new Error(
         `proposal decision references unknown pattern: ${patternId}`,
       );
-    if (decision.outcome === "rejected")
+    if (decision.outcome === "rejected") {
       pattern.rejectionCount = (pattern.rejectionCount ?? 0) + 1;
+      if (evidence.data?.pilotOutcome === "rollback") {
+        pattern.rollbackCount = (pattern.rollbackCount ?? 0) + 1;
+      }
+    }
   }
   appendLog(
     state,

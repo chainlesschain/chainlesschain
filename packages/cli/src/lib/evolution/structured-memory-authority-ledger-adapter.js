@@ -258,7 +258,11 @@ export class StructuredMemoryAuthorityLedgerAdapter {
   }
 
   async listReceipts(kind) {
-    if (!["critic", "evaluator", "promotion", "policy"].includes(kind)) {
+    if (
+      !["critic", "evaluator", "promotion", "revocation", "policy"].includes(
+        kind,
+      )
+    ) {
       throw new TypeError(
         "a structured memory authority receipt kind is required",
       );

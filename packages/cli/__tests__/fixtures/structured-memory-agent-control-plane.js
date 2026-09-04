@@ -18,7 +18,10 @@ import { createCliStructuredMemoryPostCompactVerifier } from "../../src/lib/evol
 import { createStructuredMemoryPromotionReceiptWriter } from "../../src/lib/evolution/structured-memory-promotion-receipt-writer.js";
 import { createStructuredMemorySemanticReviewer } from "../../src/lib/evolution/structured-memory-semantic-review-pipeline.js";
 
-const { createStructuredMemoryAuthority } = structuredMemory;
+const {
+  createStructuredMemoryAuthority,
+  createStructuredMemoryAuthorityReceipt,
+} = structuredMemory;
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -315,6 +318,7 @@ export function createStructuredMemoryAgentControlPlaneFixture({
       },
       clock: () => "2026-09-02T00:00:00.000Z",
     });
+  let seedProceduralMemory;
   const open = () => {
     const authorityAdapter = new StructuredMemoryAuthorityLedgerAdapter({
       descriptor: authorityDescriptor,
@@ -375,14 +379,15 @@ export function createStructuredMemoryAgentControlPlaneFixture({
         },
         clock: () => "2026-09-02T00:00:00.000Z",
       });
-    return createStructuredMemoryAgentControlPlane({
+    const promotionAuthority = actor("promotion-controller", "service");
+    const controlPlane = createStructuredMemoryAgentControlPlane({
       memoryAdapter,
       authorityAdapter,
       critic: reviewer("critic"),
       evaluator: reviewer("evaluator"),
       proposerAuthority: actor("child-agent"),
       governorAuthority: actor("governor", "service"),
-      promotionAuthority: actor("promotion-controller", "service"),
+      promotionAuthority,
       promotionReceiptWriter: writer(
         "promotion",
         createStructuredMemoryPromotionReceiptWriter,
@@ -392,12 +397,56 @@ export function createStructuredMemoryAgentControlPlaneFixture({
         createStructuredMemoryPolicyReceiptWriter,
       ),
     });
+    seedProceduralMemory = async ({
+      memoryId,
+      contentDigest,
+      artifactRef,
+      evidenceRefs = [],
+    }) => {
+      const receipt = createStructuredMemoryAuthorityReceipt({
+        tenantId,
+        kind: "promotion",
+        decision: "accepted",
+        memoryId,
+        layer: "procedural",
+        action: "accept",
+        contentDigest,
+        artifactRef,
+        evidenceRefs,
+        issuerId: "promotion-root-writer",
+        issuerRevision: 1,
+        issuerHandlerDigest: digest("promotion-root-writer-handler"),
+        issuedAt: "2026-09-02T00:00:00.000Z",
+      });
+      const signed = Object.freeze({
+        ...receipt,
+        attestation: digest(`attest:${receipt.receiptDigest}`),
+      });
+      await authorityAdapter.retainReceipt(signed);
+      return controlPlane.memory.append({
+        eventId: `seed-${receipt.receiptDigest.slice(7)}`,
+        memoryId,
+        layer: "procedural",
+        action: "accept",
+        authority: promotionAuthority,
+        automatic: true,
+        contentDigest,
+        artifactRef,
+        evidenceRefs,
+        supersedes: [],
+        receiptRefs: { promotion: receipt.receiptDigest },
+        timestamp: "2026-09-02T00:00:00.000Z",
+        metadata: { fixture: "procedural-memory" },
+      });
+    };
+    return controlPlane;
   };
   const controlPlane = open();
   return Object.freeze({
     controlPlane,
     ledgerState,
     open,
+    seedProceduralMemory: (...args) => seedProceduralMemory(...args),
     cleanup: () => fs.rmSync(root, { recursive: true, force: true }),
   });
 }

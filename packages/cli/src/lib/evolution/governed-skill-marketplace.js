@@ -29,6 +29,7 @@ const REVOCATION_DEPENDENCY_REQUEST_KEYS = new Set([
   "transitionDigest",
   "candidateId",
   "skillName",
+  "occurredAt",
   "sourceReceiptDigest",
   "resolutionDigest",
   "dependency",
@@ -489,6 +490,9 @@ export class GovernedSkillMarketplace {
     id(request.skillName, "skillName");
     id(request.streamId, "streamId");
     id(request.operationId, "operationId");
+    if (new Date(request.occurredAt).toISOString() !== request.occurredAt) {
+      throw new Error("marketplace revocation timestamp is invalid");
+    }
     let current = await this._verifiedState(request.skillName);
     const expectedStateDigest = request.dependency.digest;
     if (!(

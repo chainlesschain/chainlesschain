@@ -118,6 +118,7 @@ function revocationDependencyRequest(state) {
     transitionDigest: D("outcome"),
     candidateId: D("candidate"),
     skillName: "repair-tests",
+    occurredAt: "2026-09-05T00:00:00.000Z",
     sourceReceiptDigest: D("rollback"),
     resolutionDigest: D("resolution"),
     dependency: {

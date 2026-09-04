@@ -377,6 +377,18 @@ describe("SkillWikiReconciler", () => {
     expect(
       fixture.getState().patterns["pat-safe-refactor"].rejectionCount,
     ).toBe(outcome === "rollback" ? 1 : 0);
+    if (outcome === "rollback") {
+      expect(fixture.getState().patterns["pat-safe-refactor"]).toMatchObject({
+        status: "stale",
+        actionable: false,
+        rollbackCount: 1,
+      });
+      expect(fixture.getState().index).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ patternId: "pat-safe-refactor" }),
+        ]),
+      );
+    }
   });
 
   it("fails closed for cross-tenant or forged transition records", () => {
