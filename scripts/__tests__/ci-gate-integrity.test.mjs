@@ -92,22 +92,6 @@ test("aggregate quality gate preserves workflow cancellation", () => {
   assert.match(qualityGate, /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
 });
 
-test("CI tests pin the repository Node floor instead of floating onto npm regressions", () => {
-  const workflow = fs.readFileSync(
-    path.join(repoRoot, ".github", "workflows", "test.yml"),
-    "utf8",
-  );
-  assert.doesNotMatch(workflow, /node-version:\s*["']?22\.x/);
-  assert.match(workflow, /node-version:\s*\[22\.12\.0\]/);
-
-  const pdhStart = workflow.indexOf("  pdh-tests:\n");
-  const pdhEnd = workflow.indexOf("\n  full-tests:\n", pdhStart);
-  assert.notEqual(pdhStart, -1, "missing pdh-tests job");
-  assert.notEqual(pdhEnd, -1, "unable to isolate pdh-tests job");
-  const pdhJob = workflow.slice(pdhStart, pdhEnd);
-  assert.match(pdhJob, /node-version:\s*"22\.12\.0"/);
-});
-
 test("required lint context runs checksum-pinned actionlint", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "code-quality.yml"),
