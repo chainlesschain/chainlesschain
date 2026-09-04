@@ -48,6 +48,32 @@ afterEach(() => {
 });
 
 describe("EvolutionReleaseTrain real process recovery", () => {
+  it("recovers real Wiki, Proposer, and Candidate controllers across a hard exit", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-train-real-prefix-"),
+    );
+    roots.push(root);
+    expect(sync(root, "init").status).toBe(0);
+    expect(sync(root, "real-prefix-run", "candidate").status).toBe(73);
+    const recovered = sync(root, "real-prefix-run");
+    expect(recovered.status, recovered.stderr).toBe(0);
+    expect(output(recovered)).toMatchObject({
+      ok: true,
+      stageIndex: 8,
+      effectCount: 8,
+      ledgerEventCount: 9,
+    });
+    expect(
+      JSON.parse(
+        fs.readFileSync(path.join(root, "real-prefix-wiki-state.json"), "utf8"),
+      ),
+    ).toMatchObject({
+      tenantId: "tenant-process",
+      patterns: { "pat-safe-refactor": { actionable: true } },
+    });
+    expect(fs.readdirSync(path.join(root, "stage-effects"))).toHaveLength(8);
+  }, 180_000);
+
   it("recovers a stage-effect hard exit without repeating any of eight effects", () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-train-crash-"),

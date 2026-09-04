@@ -8,6 +8,11 @@ import {
   EvolutionArtifactPorts,
 } from "../../../src/lib/evolution/evolution-artifact-ports.js";
 import { createEvolutionLedgerFileBackend } from "../../../src/lib/evolution/evolution-ledger-file-backend.js";
+import {
+  createEvolutionCandidateStage,
+  createEvolutionProposalStage,
+  createEvolutionWikiMaintainStage,
+} from "../../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "../../../src/lib/evolution/evolution-release-train-ledger-adapter.js";
 import {
   EVOLUTION_RELEASE_TRAIN_STAGES,
@@ -15,6 +20,14 @@ import {
   createEvolutionReleaseTrain,
   createEvolutionTrainStageReceipt,
 } from "../../../src/lib/evolution/evolution-release-train.js";
+import {
+  EvidenceBackedWikiMaintainer,
+  WIKI_EVIDENCE_SCHEMA,
+  createEmptyWikiState,
+  digestWikiState,
+} from "../../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
+import { WikiInformedSkillProposer } from "../../../src/lib/evolution/wiki-informed-skill-proposer.js";
+import { WikiSkillProposalLedgerAdapter } from "../../../src/lib/evolution/wiki-skill-proposal-ledger-adapter.js";
 
 const [rootInput, operation = "run", crashStage = "none"] =
   process.argv.slice(2);
@@ -39,6 +52,200 @@ const digest = (value) =>
     .digest("hex")}`;
 const domainDigest = (domain, value) =>
   digest(`${domain}\0${canonical(value)}`);
+
+function wikiEvidence(ref, trustDomain) {
+  const core = {
+    schema: WIKI_EVIDENCE_SCHEMA,
+    tenantId: TENANT,
+    ref,
+    sourceDigest: digest(`source:${ref}`),
+    projectionDigest: digest(`projection:${ref}`),
+    artifactRef: `artifact://${ref}`,
+    trustedProjection: true,
+    trustDomain,
+    kind: "tool-observation",
+    status: "active",
+    observedAt: NOW,
+    expiresAt: null,
+    data: { result: "verified" },
+  };
+  return { ...core, envelopeDigest: digest(core) };
+}
+
+const WIKI_EVIDENCE = new Map([
+  ["wiki-proof-a", wikiEvidence("wiki-proof-a", "workspace-a")],
+  ["wiki-proof-b", wikiEvidence("wiki-proof-b", "workspace-b")],
+]);
+
+const WIKI_REQUEST = Object.freeze({
+  evidenceRefs: [...WIKI_EVIDENCE.keys()],
+  effectiveAt: NOW,
+});
+
+function createMaintainer({ load, commit }) {
+  return new EvidenceBackedWikiMaintainer({
+    descriptor: {
+      tenantId: TENANT,
+      evolutionRunId: "run-real-prefix",
+      maintainerModel: "provider:real-prefix-maintainer",
+      rulesDigest: digest("real-prefix-wiki-rules"),
+      minCorroboratingSources: 2,
+    },
+    policy: {
+      trustedProjectionRead: true,
+      rawEvidenceRead: false,
+      activeSkillWrite: false,
+      shell: false,
+      network: false,
+      secretRead: false,
+    },
+    ports: {
+      async loadWiki() {
+        const state = load();
+        return { trusted: true, state, stateDigest: digestWikiState(state) };
+      },
+      async resolveEvidence(ref) {
+        return WIKI_EVIDENCE.get(ref);
+      },
+      async derive() {
+        return {
+          operations: [
+            {
+              type: "upsert",
+              pattern: {
+                patternId: "pat-safe-refactor",
+                kind: "success",
+                summary: "Bounded refactors pass deterministic verification.",
+                rootCause: "Small changes preserve observable behavior.",
+                procedure: "Apply one bounded change and run fixed tests.",
+                appliesWhen: ["deterministic tests exist"],
+                doesNotApplyWhen: [],
+                positiveEvidence: [...WIKI_EVIDENCE.keys()],
+                negativeEvidence: [],
+                contradicts: [],
+                supersedes: [],
+                confidence: 0.8,
+                trustDomains: [],
+                lastVerifiedAt: NOW,
+                expiresAt: null,
+                skillNames: [SKILL],
+              },
+            },
+          ],
+        };
+      },
+      async commitRevision({ expectedStateDigest, revision }) {
+        const current = load();
+        if (digestWikiState(current) !== expectedStateDigest) {
+          throw new Error("Wiki state CAS conflict");
+        }
+        commit(revision.state);
+        return {
+          committed: true,
+          revisionId: revision.revisionId,
+          stateDigest: revision.stateDigest,
+          evolutionRunId: revision.evolutionRunId,
+        };
+      },
+    },
+  });
+}
+
+function proposalEnvelope(kind, data, wikiDigest) {
+  return {
+    kind,
+    ref: `wiki://${kind}/${wikiDigest.slice(7)}`,
+    data,
+    trusted: true,
+    digest: digest(data),
+  };
+}
+
+function createProposer(wikiDigest) {
+  const initial = {
+    "wiki-index": proposalEnvelope(
+      "wiki-index",
+      { contradictionRefs: [], wikiDigest },
+      wikiDigest,
+    ),
+    "skill-impact": proposalEnvelope(
+      "skill-impact",
+      { affectedSkills: [SKILL] },
+      wikiDigest,
+    ),
+    "active-skill": proposalEnvelope(
+      "active-skill",
+      { skillName: SKILL, digest: digest("baseline-content") },
+      wikiDigest,
+    ),
+    "training-summary": proposalEnvelope(
+      "training-summary",
+      { sampleCount: 4, passed: 4 },
+      wikiDigest,
+    ),
+  };
+  const targetRuntimes = ["node22-process"];
+  return new WikiInformedSkillProposer({
+    descriptor: {
+      tenantId: TENANT,
+      evolutionRunId: "run-real-prefix",
+      targetSkillName: SKILL,
+      wikiRevision: wikiDigest,
+      proposerModel: "provider:real-prefix-proposer",
+      minEvidenceSamples: 3,
+      maxSelectiveEvidence: 1,
+    },
+    policy: { proposerWikiRead: true, executionAgentWikiRead: false },
+    ports: {
+      async readInitial(kind) {
+        return initial[kind];
+      },
+      async readSelective() {
+        throw new Error("selective evidence is not expected");
+      },
+      async generate({ evidence }) {
+        const refs = evidence.map((item) => item.ref);
+        return {
+          status: "proposal",
+          skillName: SKILL,
+          purpose: {
+            summary:
+              "Apply a bounded refactor backed by durable Wiki evidence.",
+            patternRefs: [refs[0]],
+            sourceEvidenceRefs: refs,
+          },
+          applicableWhen: ["deterministic tests exist"],
+          notApplicableWhen: ["persisted data migrations are required"],
+          failureCounterexamples: ["the public contract changes"],
+          rollbackSteps: ["retain the current active release"],
+          validationMethods: ["run the fixed target matrix"],
+          requestedCapabilities: ["workspace.read"],
+          targetRuntimes,
+          contextCost: { maxTokens: 800, maxBytes: 4_096 },
+          machineDiff: [
+            {
+              op: "replace",
+              path: "SKILL.md",
+              beforeDigest: digest("baseline-content"),
+              afterDigest: digest("candidate-content"),
+            },
+          ],
+        };
+      },
+      async createCandidate(input) {
+        return {
+          created: true,
+          candidate: {
+            ...input,
+            candidateId: domainDigest("real-prefix-candidate-id", input),
+            contentDigest: domainDigest("real-prefix-candidate-content", input),
+            targetRuntimes,
+          },
+        };
+      },
+    },
+  });
+}
 
 function signingAuthority(label) {
   const secret = `test-only-${label}-process-secret`;
@@ -221,43 +428,128 @@ const plan = createEvolutionPlan({
 
 const effectsDir = path.join(root, "stage-effects");
 fs.mkdirSync(effectsDir, { recursive: true });
-const stages = Object.fromEntries(
+async function recordEffect(stage, index, action) {
+  const receipt = await action();
+  const effectPath = path.join(
+    effectsDir,
+    `${String(index).padStart(2, "0")}-${stage}.json`,
+  );
+  let created = false;
+  try {
+    fs.writeFileSync(effectPath, JSON.stringify(receipt), {
+      encoding: "utf8",
+      flag: "wx",
+    });
+    created = true;
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+    const prior = JSON.parse(fs.readFileSync(effectPath, "utf8"));
+    if (canonical(prior) !== canonical(receipt)) {
+      throw new Error(`stage effect conflict: ${stage}`);
+    }
+  }
+  if (created && crashStage === stage) process.exit(71 + index);
+  return receipt;
+}
+
+let selectedPlan = plan;
+let stages = Object.fromEntries(
   EVOLUTION_RELEASE_TRAIN_STAGES.map((stage, index) => [
     stage,
-    (context) => {
-      const receipt = createEvolutionTrainStageReceipt({
-        planDigest: context.plan.planDigest,
-        stage,
-        operationKey: context.operationKey,
-        inputDigest: context.inputDigest,
-        outputDigest: digest(`${context.plan.planDigest}:${stage}`),
-        accepted: true,
-        durable: true,
-        usage: { tokens: 1, cost: 0.01, timeMs: 10, turns: 1 },
-      });
-      const effectPath = path.join(
-        effectsDir,
-        `${String(index).padStart(2, "0")}-${stage}.json`,
-      );
-      let created = false;
-      try {
-        fs.writeFileSync(effectPath, JSON.stringify(receipt), {
-          encoding: "utf8",
-          flag: "wx",
-        });
-        created = true;
-      } catch (error) {
-        if (error?.code !== "EEXIST") throw error;
-        const prior = JSON.parse(fs.readFileSync(effectPath, "utf8"));
-        if (canonical(prior) !== canonical(receipt)) {
-          throw new Error(`stage effect conflict: ${stage}`);
-        }
-      }
-      if (created && crashStage === stage) process.exit(71 + index);
-      return receipt;
-    },
+    (context) =>
+      recordEffect(stage, index, () =>
+        createEvolutionTrainStageReceipt({
+          planDigest: context.plan.planDigest,
+          stage,
+          operationKey: context.operationKey,
+          inputDigest: context.inputDigest,
+          outputDigest: digest(`${context.plan.planDigest}:${stage}`),
+          accepted: true,
+          durable: true,
+          usage: { tokens: 1, cost: 0.01, timeMs: 10, turns: 1 },
+        }),
+      ),
   ]),
 );
+
+if (operation === "real-prefix-run") {
+  let calibrationState = createEmptyWikiState(TENANT);
+  const calibrationMaintainer = createMaintainer({
+    load: () => calibrationState,
+    commit: (state) => {
+      calibrationState = structuredClone(state);
+    },
+  });
+  const calibratedWiki = await calibrationMaintainer.maintain(WIKI_REQUEST);
+  const calibratedCandidate = await createProposer(
+    calibratedWiki.stateDigest,
+  ).propose();
+  const selectedPlanInput = structuredClone(plan);
+  delete selectedPlanInput.schema;
+  delete selectedPlanInput.planDigest;
+  selectedPlan = createEvolutionPlan({
+    ...selectedPlanInput,
+    candidateId: calibratedCandidate.candidateId,
+    candidateDigest: calibratedCandidate.contentDigest,
+    wikiRevisionDigest: calibratedWiki.stateDigest,
+  });
+
+  const wikiStatePath = path.join(root, "real-prefix-wiki-state.json");
+  const loadWikiState = () =>
+    fs.existsSync(wikiStatePath)
+      ? JSON.parse(fs.readFileSync(wikiStatePath, "utf8"))
+      : createEmptyWikiState(TENANT);
+  const commitWikiState = (state) => {
+    const temporary = `${wikiStatePath}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, `${JSON.stringify(state)}\n`, "utf8");
+    fs.renameSync(temporary, wikiStatePath);
+  };
+  const maintainer = createMaintainer({
+    load: loadWikiState,
+    commit: commitWikiState,
+  });
+  const proposer = createProposer(selectedPlan.wikiRevisionDigest);
+  const proposalLedger = new WikiSkillProposalLedgerAdapter({
+    descriptor: {
+      tenantId: TENANT,
+      artifactTenantId: TENANT,
+      evolutionRunId: "run-real-prefix",
+      skillName: SKILL,
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: artifacts,
+    ledger: backend.ledger,
+    ledgerArtifactResolver: resolver,
+  });
+  const realPrefix = {
+    "wiki-maintain": createEvolutionWikiMaintainStage({
+      maintainer,
+      request: WIKI_REQUEST,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    }),
+    propose: createEvolutionProposalStage({
+      proposer,
+      proposalLedger,
+      effectiveAt: NOW,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    }),
+    candidate: createEvolutionCandidateStage({
+      proposer,
+      proposalLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    }),
+  };
+  stages = Object.fromEntries(
+    EVOLUTION_RELEASE_TRAIN_STAGES.map((stage, index) => [
+      stage,
+      Object.hasOwn(realPrefix, stage)
+        ? (context) =>
+            recordEffect(stage, index, () => realPrefix[stage](context))
+        : stages[stage],
+    ]),
+  );
+}
 
 const adapter = new EvolutionReleaseTrainLedgerAdapter({
   descriptor: {
@@ -273,7 +565,7 @@ const adapter = new EvolutionReleaseTrainLedgerAdapter({
   clock: () => NOW,
 });
 const result = await createEvolutionReleaseTrain({
-  plan,
+  plan: selectedPlan,
   stateStore: adapter.createStateStore(),
   stages,
   clock: () => Date.parse(NOW),
