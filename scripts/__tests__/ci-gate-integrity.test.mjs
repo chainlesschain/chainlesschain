@@ -1881,6 +1881,11 @@ test("PDH workflow bounds native test concurrency on Windows", () => {
     pdhWorkflow,
     /npx vitest run --reporter=default "\$\{VITEST_ARGS\[@\]\}"/,
   );
+  assert.equal(
+    pdhWorkflow.match(/npm install[^\n]*--legacy-peer-deps/g)?.length,
+    2,
+    "both isolated PDH installs must avoid npm Arborist optional-peer crashes",
+  );
 });
 
 test("legacy Linux release builds the embedded web panel before packaging", () => {
