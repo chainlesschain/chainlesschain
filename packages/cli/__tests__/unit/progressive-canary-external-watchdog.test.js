@@ -35,11 +35,13 @@ function planFixture() {
       id: "heartbeat-authority-a",
       revision: 1,
       handlerDigest: D("heartbeat-handler"),
+      publicKeySpkiDigest: D("heartbeat-public-key"),
     },
     rollbackAuthority: {
       id: "rollback-authority-a",
       revision: 2,
       handlerDigest: D("rollback-handler"),
+      publicKeySpkiDigest: D("rollback-public-key"),
     },
   });
 }
@@ -67,6 +69,7 @@ function actionReceipt(plan, request, action) {
     authorityId: plan.rollbackAuthority.id,
     authorityRevision: plan.rollbackAuthority.revision,
     handlerDigest: plan.rollbackAuthority.handlerDigest,
+    publicKeySpkiDigest: plan.rollbackAuthority.publicKeySpkiDigest,
     ...(action === "kill"
       ? { hostId: plan.hostId }
       : {

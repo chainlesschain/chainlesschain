@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 
 export const PROGRESSIVE_CANARY_WATCHDOG_PLAN_SCHEMA =
-  "chainlesschain.progressive-canary-watchdog-plan/v1";
+  "chainlesschain.progressive-canary-watchdog-plan/v2";
 export const PROGRESSIVE_CANARY_HOST_HEARTBEAT_SCHEMA =
-  "chainlesschain.progressive-canary-host-heartbeat/v1";
+  "chainlesschain.progressive-canary-host-heartbeat/v2";
 export const PROGRESSIVE_CANARY_WATCHDOG_INCIDENT_SCHEMA =
   "chainlesschain.progressive-canary-watchdog-incident/v1";
 
@@ -68,13 +68,21 @@ function timestamp(value, label) {
 }
 
 function authorityDescriptor(value, label) {
-  exact(value, ["id", "revision", "handlerDigest"], label);
+  exact(
+    value,
+    ["id", "revision", "handlerDigest", "publicKeySpkiDigest"],
+    label,
+  );
   if (!Number.isSafeInteger(value.revision) || value.revision < 1)
     throw new TypeError(`${label}.revision is invalid`);
   return Object.freeze({
     id: id(value.id, `${label}.id`),
     revision: value.revision,
     handlerDigest: digest(value.handlerDigest, `${label}.handlerDigest`),
+    publicKeySpkiDigest: digest(
+      value.publicKeySpkiDigest,
+      `${label}.publicKeySpkiDigest`,
+    ),
   });
 }
 
@@ -164,6 +172,7 @@ export function createProgressiveCanaryHeartbeatAuthority({
         "authorityId",
         "authorityRevision",
         "handlerDigest",
+        "publicKeySpkiDigest",
         "signature",
         "receiptDigest",
       ],
@@ -186,6 +195,8 @@ export function createProgressiveCanaryHeartbeatAuthority({
       receipt.authorityId !== plan.heartbeatAuthority.id ||
       receipt.authorityRevision !== plan.heartbeatAuthority.revision ||
       receipt.handlerDigest !== plan.heartbeatAuthority.handlerDigest ||
+      receipt.publicKeySpkiDigest !==
+        plan.heartbeatAuthority.publicKeySpkiDigest ||
       typeof receipt.signature !== "string" ||
       receipt.signature.length < 32
     )
@@ -222,6 +233,7 @@ export function createProgressiveCanaryHeartbeatAuthority({
         authorityId: plan.heartbeatAuthority.id,
         authorityRevision: plan.heartbeatAuthority.revision,
         handlerDigest: plan.heartbeatAuthority.handlerDigest,
+        publicKeySpkiDigest: plan.heartbeatAuthority.publicKeySpkiDigest,
       };
       if (payload.expiresAt !== payload.issuedAt + plan.leaseDurationMs)
         throw new Error("heartbeat clock changed during issuance");
@@ -250,6 +262,8 @@ function verifyActionReceipt(receipt, action, plan, incidentDigest) {
     receipt.authorityId !== plan.rollbackAuthority.id ||
     receipt.authorityRevision !== plan.rollbackAuthority.revision ||
     receipt.handlerDigest !== plan.rollbackAuthority.handlerDigest ||
+    receipt.publicKeySpkiDigest !==
+      plan.rollbackAuthority.publicKeySpkiDigest ||
     !DIGEST.test(receipt.receiptDigest ?? "")
   )
     throw new Error(`external ${action} authority receipt is invalid`);
