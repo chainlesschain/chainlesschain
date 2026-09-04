@@ -76,8 +76,13 @@ describe("signed evolution deployment loader", () => {
 
   it("loads exact-digest deployment dependencies after Ed25519 verification", async () => {
     const fixture = deploymentFixture();
-    const factory = vi.fn(async ({ commandName, descriptor }) => ({
-      workbenchHost: { commandName, revision: descriptor.revision },
+    const factory = vi.fn(async ({ commandName, descriptor, factories }) => ({
+      workbenchHost: {
+        commandName,
+        revision: descriptor.revision,
+        factoryAvailable:
+          typeof factories.createEvolutionWorkbenchCliHost === "function",
+      },
     }));
     const importModule = vi.fn(async () => ({
       createChainlessChainCommandDependencies: factory,
@@ -89,7 +94,11 @@ describe("signed evolution deployment loader", () => {
     );
 
     expect(result).toEqual({
-      workbenchHost: { commandName: "evolution", revision: 7 },
+      workbenchHost: {
+        commandName: "evolution",
+        revision: 7,
+        factoryAvailable: true,
+      },
     });
     expect(factory).toHaveBeenCalledOnce();
     expect(importModule).toHaveBeenCalledWith(
@@ -102,12 +111,12 @@ describe("signed evolution deployment loader", () => {
   it("executes the authenticated bytes instead of reopening the module pathname", async () => {
     const fixture = deploymentFixture({
       moduleSource:
-        "export async function createChainlessChainCommandDependencies(context) { return { loadedFor: context.commandName }; }\n",
+        "export async function createChainlessChainCommandDependencies(context) { return { loadedFor: context.commandName, hasWorkbenchFactory: typeof context.factories.createEvolutionWorkbenchCliHost === 'function' }; }\n",
     });
 
     await expect(
       loadEvolutionDeploymentCommandDependencies("serve", fixture),
-    ).resolves.toEqual({ loadedFor: "serve" });
+    ).resolves.toEqual({ loadedFor: "serve", hasWorkbenchFactory: true });
   });
 
   it("does not import a module for a command outside the signed allowlist", async () => {

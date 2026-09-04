@@ -104,7 +104,11 @@ module SHA-256, trust-root SHA-256, and an allowlist containing any of
 `agent`, `evolution`, and `serve`; its canonical payload must carry an Ed25519
 signature. The authenticated module exports
 `createChainlessChainCommandDependencies({ commandName, descriptor })` and
-returns the command-specific branded hosts/factories. The CLI executes the
+returns the command-specific branded hosts/factories. The invocation also
+receives narrow built-in factory functions for the Workbench host, governed
+knowledge review host, and Agent evolution composition as applicable, so the
+deployment bundle can construct objects carrying the CLI's unforgeable brands
+without importing mutable package files. The CLI executes the
 verified module bytes directly, so replacing the pathname after verification
 cannot change the loaded code. Partial configuration, signature/digest drift,
 missing exports, or absent production authorities keeps Workbench unavailable;

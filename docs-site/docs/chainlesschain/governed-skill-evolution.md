@@ -224,7 +224,7 @@ if ($LASTEXITCODE -ne 0) {
 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`。描述符使用
 `chainlesschain.evolution-deployment-descriptor/v1`，以 Ed25519 签名固定 revision、单文件 ESM
 宿主路径及 SHA-256、trust-root SHA-256 和 `agent/evolution/serve` 命令白名单。宿主必须导出
-`createChainlessChainCommandDependencies()` 并返回各命令需要的 branded authority；CLI 直接执行已验签的模块字节，避免摘要校验后的路径替换窗口。
+`createChainlessChainCommandDependencies()` 并返回各命令需要的 branded authority；调用上下文按命令提供 Workbench、knowledge review 与 Agent composition 的窄内置 factory，使已验签模块无需重新导入可变包文件也能取得 CLI 自身的不可伪造品牌。CLI 直接执行已验签的模块字节，避免摘要校验后的路径替换窗口。
 
 这只是安全装载入口，不会生成生产身份或密钥。描述符/信任根只配置一项、签名或摘要漂移、导出缺失，或目标 KMS/PKI/Ledger/witness/identity authority 不完整时，Workbench 继续显示 unavailable，且不会回退测试密钥、内存 store 或客户端自报权限。
 

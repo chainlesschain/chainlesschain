@@ -109,6 +109,29 @@ function dependencies(value, commandName) {
   return Object.freeze({ ...value });
 }
 
+async function loadBuiltInFactories(commandName) {
+  const factories = {};
+  if (commandName === "evolution" || commandName === "serve") {
+    const [
+      { createEvolutionWorkbenchCliHost },
+      { createGovernedKnowledgeReviewHost },
+    ] = await Promise.all([
+      import("./evolution-workbench-cli-host.js"),
+      import("./governed-knowledge-review-host.js"),
+    ]);
+    factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
+    factories.createGovernedKnowledgeReviewHost =
+      createGovernedKnowledgeReviewHost;
+  }
+  if (commandName === "agent" || commandName === "serve") {
+    const { createAgentEvolutionRuntimeComposition } =
+      await import("./agent-evolution-runtime-composition.js");
+    factories.createAgentEvolutionRuntimeComposition =
+      createAgentEvolutionRuntimeComposition;
+  }
+  return Object.freeze(factories);
+}
+
 export async function loadEvolutionDeploymentCommandDependencies(
   commandName,
   {
@@ -177,6 +200,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
       Object.freeze({
         commandName,
         descriptor: Object.freeze({ ...descriptor }),
+        factories: await loadBuiltInFactories(commandName),
       }),
     ),
     commandName,
