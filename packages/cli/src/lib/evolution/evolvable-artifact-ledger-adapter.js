@@ -28,6 +28,17 @@ export const EVOLVABLE_ARTIFACT_TRANSITION_EVENT =
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const TRANSITION_READERS = new WeakSet();
+const RELEASE_RESOLVERS = new WeakSet();
+const DEPENDENCY_KIND_TYPES = new Map([
+  ["skill", "skill"],
+  ["active-skill", "skill"],
+  ["prompt", "prompt"],
+  ["active-prompt", "prompt"],
+  ["hook", "hook"],
+  ["active-hook", "hook"],
+  ["knowledge", "knowledge"],
+  ["active-knowledge", "knowledge"],
+]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -416,8 +427,90 @@ export class EvolvableArtifactLedgerAdapter {
     TRANSITION_READERS.add(reader);
     return reader;
   }
+
+  _activeArtifacts() {
+    const histories = new Map();
+    for (const event of this._events(EVOLVABLE_ARTIFACT_TRANSITION_EVENT)) {
+      const record = this._resolve(
+        event,
+        "evolvable-artifact-transition",
+        "transition",
+      );
+      const history = histories.get(record.artifact.artifactId) ?? [];
+      history.push({ event, artifact: record.artifact });
+      histories.set(record.artifact.artifactId, history);
+    }
+    const active = [];
+    for (const history of histories.values()) {
+      history.sort((left, right) => left.event.sequence - right.event.sequence);
+      const latest = history.at(-1).artifact;
+      if (latest.release?.status === "active") {
+        active.push(latest);
+        continue;
+      }
+      const target = [...history]
+        .reverse()
+        .map(({ artifact }) => artifact)
+        .find(
+          (artifact) =>
+            artifact.release?.status === "active" &&
+            artifact.activeReleaseId === latest.activeReleaseId,
+        );
+      if (target) active.push(target);
+    }
+    return active;
+  }
+
+  releaseResolver() {
+    const tenantId = this.descriptor.tenantId;
+    const adapter = this;
+    const resolver = Object.freeze({
+      tenantId,
+      readerScope: this.readerScope,
+      async resolveDependency(input) {
+        if (
+          input?.tenantId !== tenantId ||
+          !DIGEST.test(input.digest ?? "") ||
+          typeof input.kind !== "string" ||
+          typeof input.disposition !== "string"
+        )
+          throw new TypeError("artifact dependency request is invalid");
+        const type = DEPENDENCY_KIND_TYPES.get(input.kind);
+        if (!type)
+          throw new Error("artifact dependency kind is not resolvable");
+        const matches = adapter
+          ._activeArtifacts()
+          .filter(
+            (artifact) =>
+              artifact.type === type && artifact.contentDigest === input.digest,
+          );
+        if (matches.length !== 1)
+          throw new Error("artifact dependency active release is ambiguous");
+        const artifact = matches[0];
+        return freeze({
+          authenticated: true,
+          durable: true,
+          tenantId,
+          sourceKind: input.kind,
+          sourceDigest: input.digest,
+          sourceDisposition: input.disposition,
+          artifactId: artifact.artifactId,
+          type: artifact.type,
+          releaseId: artifact.activeReleaseId,
+          contentDigest: artifact.contentDigest,
+          artifactDigest: artifact.artifactDigest,
+        });
+      },
+    });
+    RELEASE_RESOLVERS.add(resolver);
+    return resolver;
+  }
 }
 
 export function isEvolvableArtifactTransitionReader(value) {
   return TRANSITION_READERS.has(value);
+}
+
+export function isEvolvableArtifactReleaseResolver(value) {
+  return RELEASE_RESOLVERS.has(value);
 }

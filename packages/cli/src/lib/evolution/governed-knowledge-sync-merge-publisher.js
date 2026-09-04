@@ -10,7 +10,10 @@ import {
 } from "./governed-knowledge-merge-publisher-authority.js";
 import { isGovernedKnowledgeSync } from "./governed-knowledge-sync.js";
 import { isGovernedKnowledgePublicationReader } from "./governed-knowledge-sync-ledger-adapter.js";
-import { isEvolvableArtifactTransitionReader } from "./evolvable-artifact-ledger-adapter.js";
+import {
+  isEvolvableArtifactReleaseResolver,
+  isEvolvableArtifactTransitionReader,
+} from "./evolvable-artifact-ledger-adapter.js";
 
 const {
   ARTIFACT_TYPE,
@@ -55,12 +58,7 @@ function manifest(body) {
   });
 }
 
-function knowledgeCandidateInput(plan) {
-  if (plan.mergedKnowledge.dependencies.length > 0) {
-    throw new Error(
-      "governed knowledge dependencies require a trusted artifact release resolver",
-    );
-  }
+function knowledgeCandidateInput(plan, dependencyLock) {
   const parentReleaseId = `knowledge-content:${plan.localContentDigest.slice(7)}`;
   return freeze({
     tenantId: plan.tenantId,
@@ -77,10 +75,7 @@ function knowledgeCandidateInput(plan) {
       plan.remoteContentDigest,
       plan.mergedKnowledge.contentDigest,
     ],
-    dependencyLock: {
-      dependencies: [],
-      digest: digestEvolvableArtifactValue({ dependencies: [] }),
-    },
+    dependencyLock,
     runtimeManifest: manifest({
       executable: false,
       mergePlanDigest: plan.planDigest,
@@ -99,6 +94,40 @@ function knowledgeCandidateInput(plan) {
     candidateId: `knowledge-merge:${plan.planDigest.slice(7)}`,
     activeReleaseId: parentReleaseId,
     lastKnownGoodReleaseId: null,
+  });
+}
+
+async function resolveDependencyLock(plan, resolveDependency) {
+  const dependencies = [];
+  for (const dependency of plan.mergedKnowledge.dependencies) {
+    const resolved = await resolveDependency({
+      tenantId: plan.tenantId,
+      ...dependency,
+    });
+    if (
+      resolved?.authenticated !== true ||
+      resolved.durable !== true ||
+      resolved.tenantId !== plan.tenantId ||
+      resolved.sourceKind !== dependency.kind ||
+      resolved.sourceDigest !== dependency.digest ||
+      resolved.sourceDisposition !== dependency.disposition ||
+      !DIGEST.test(resolved.artifactDigest ?? "")
+    ) {
+      throw new Error("artifact dependency resolution is invalid");
+    }
+    dependencies.push({
+      artifactId: resolved.artifactId,
+      type: resolved.type,
+      releaseId: resolved.releaseId,
+      contentDigest: resolved.contentDigest,
+    });
+  }
+  dependencies.sort((left, right) =>
+    left.artifactId.localeCompare(right.artifactId),
+  );
+  return freeze({
+    dependencies,
+    digest: digestEvolvableArtifactValue({ dependencies }),
   });
 }
 
@@ -204,6 +233,7 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
   sync,
   artifactCandidateGate,
   artifactReleaseGate,
+  artifactDependencyResolver,
   verifierArtifactTransitionReader,
   providerPublicationReader,
   verifierPublicationReader,
@@ -241,6 +271,19 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
     artifactCandidateGate,
     "stageCandidate",
     "artifactCandidateGate",
+  );
+  if (
+    !isEvolvableArtifactReleaseResolver(artifactDependencyResolver) ||
+    artifactDependencyResolver.tenantId !== tenantId
+  ) {
+    throw new TypeError(
+      "a tenant-bound artifact dependency release resolver is required",
+    );
+  }
+  const resolveArtifactDependency = capture(
+    artifactDependencyResolver,
+    "resolveDependency",
+    "artifactDependencyResolver",
   );
   if (
     !isEvolvableArtifactReleaseGate(
@@ -296,8 +339,12 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
   );
   const provider = Object.freeze({
     async publish(request, plan) {
+      const dependencyLock = await resolveDependencyLock(
+        plan,
+        resolveArtifactDependency,
+      );
       const staged = await stageArtifactCandidate(
-        knowledgeCandidateInput(plan),
+        knowledgeCandidateInput(plan, dependencyLock),
       );
       if (
         staged?.artifact?.candidate?.candidateId !==

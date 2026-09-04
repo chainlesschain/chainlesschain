@@ -18,6 +18,7 @@ import {
 } from "../../src/lib/evolution/evolution-ledger.js";
 import {
   EvolvableArtifactLedgerAdapter,
+  isEvolvableArtifactReleaseResolver,
   isEvolvableArtifactTransitionReader,
 } from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
 
@@ -364,6 +365,23 @@ describe("EvolvableArtifactLedgerAdapter", () => {
     const independentReader = reopened.adapter.transitionReader();
     expect(isEvolvableArtifactTransitionReader(independentReader)).toBe(true);
     expect(isEvolvableArtifactTransitionReader({})).toBe(false);
+    const releaseResolver = reopened.adapter.releaseResolver();
+    expect(isEvolvableArtifactReleaseResolver(releaseResolver)).toBe(true);
+    await expect(
+      releaseResolver.resolveDependency({
+        tenantId: descriptor.tenantId,
+        kind: "active-knowledge",
+        digest: promoted.artifact.contentDigest,
+        disposition: "refresh-index",
+      }),
+    ).resolves.toMatchObject({
+      authenticated: true,
+      durable: true,
+      artifactId: promoted.artifact.artifactId,
+      type: ARTIFACT_TYPE.KNOWLEDGE,
+      releaseId: "knowledge-release-2",
+      contentDigest: promoted.artifact.contentDigest,
+    });
     const recovered = await independentReader.readTransition({
       operationId: promoted.receipt.operationId,
     });
@@ -412,6 +430,14 @@ describe("EvolvableArtifactLedgerAdapter", () => {
       lastKnownGoodReleaseId: "knowledge-release-2",
       release: { status: "rolled-back" },
     });
+    await expect(
+      releaseResolver.resolveDependency({
+        tenantId: descriptor.tenantId,
+        kind: "active-knowledge",
+        digest: promoted.artifact.contentDigest,
+        disposition: "refresh-index",
+      }),
+    ).rejects.toThrow("active release is ambiguous");
     expect(reopened.ledger.verify()).toMatchObject({ sequence: 3 });
   });
 });

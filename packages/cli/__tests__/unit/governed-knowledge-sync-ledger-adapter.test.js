@@ -64,7 +64,9 @@ const {
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
   createEvolvableArtifactPolicy,
+  createEvolvableArtifactReceipt,
   createEvolvableArtifactReleaseGate,
+  digestEvolvableArtifactValue: artifactDigest,
 } = evolvableArtifactProtocol;
 
 const roots = [];
@@ -441,7 +443,10 @@ function controller(storage, crypto, dependencyExecutor = null) {
   };
 }
 
-async function mergePlanFixture({ realLedger = false } = {}) {
+async function mergePlanFixture({
+  realLedger = false,
+  mergedDependencies = [],
+} = {}) {
   const crypto = cryptoPorts();
   const senderStorage = backends("device:a");
   const remoteEnvelope = await controller(
@@ -463,6 +468,7 @@ async function mergePlanFixture({ realLedger = false } = {}) {
   const merged = knowledge({
     contentDigest: D("content:merged"),
     vectorClock: { "device:a": 2, "device:b": 3 },
+    dependencies: mergedDependencies,
   });
   const receiptCore = {
     schema: GOVERNED_KNOWLEDGE_HUMAN_MERGE_RECEIPT_SCHEMA,
@@ -615,6 +621,96 @@ function mergePublisher({ loseFirstResponse = false } = {}) {
   return { authority, provider, requests, verifier };
 }
 
+function knowledgeArtifactPolicy(activationDecision = "allow") {
+  const revision = "knowledge-merge-test/v1";
+  const allow = () => ({ decision: "allow", policyRevision: revision });
+  return createEvolvableArtifactPolicy({
+    type: ARTIFACT_TYPE.KNOWLEDGE,
+    revision,
+    admission: allow,
+    evaluator: allow,
+    activation: () => ({
+      decision: activationDecision,
+      policyRevision: revision,
+    }),
+    rollback: allow,
+  });
+}
+
+function artifactReceipt(artifact, kind) {
+  return createEvolvableArtifactReceipt({
+    kind,
+    tenantId: artifact.tenantId,
+    artifactId: artifact.artifactId,
+    candidateId: artifact.candidate.candidateId,
+    contentDigest: artifact.contentDigest,
+    dependencyLockDigest: artifact.dependencyLock.digest,
+    issuerId: `test:${kind}`,
+    issuerRevision: "1",
+    issuedAt: "2026-09-04T00:00:00.000Z",
+    decision: "allow",
+  });
+}
+
+async function seedKnowledgeArtifactRelease(storage, contentDigest) {
+  const artifactAdapter = new EvolvableArtifactLedgerAdapter({
+    descriptor: {
+      tenantId: storage.descriptor.tenantId,
+      artifactTenantId: storage.descriptor.artifactTenantId,
+      streamId: `knowledge-artifacts:${storage.descriptor.deviceId}`,
+      audience: storage.descriptor.audience,
+      purpose: storage.descriptor.purpose,
+    },
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    clock: () => "2026-09-04T00:00:00.000Z",
+  });
+  const authority = createEvolvableArtifactAuthority({
+    tenantId: storage.descriptor.tenantId,
+    policy: knowledgeArtifactPolicy(),
+  });
+  const emptyDependencies = { dependencies: [] };
+  const staged = await createEvolvableArtifactCandidateGate({
+    authority,
+    candidateWriter: artifactAdapter,
+  }).stageCandidate({
+    tenantId: storage.descriptor.tenantId,
+    artifactId: "knowledge-dependency-1",
+    type: ARTIFACT_TYPE.KNOWLEDGE,
+    contentDigest,
+    parent: null,
+    lineage: [contentDigest],
+    dependencyLock: {
+      ...emptyDependencies,
+      digest: artifactDigest(emptyDependencies),
+    },
+    runtimeManifest: {
+      executable: false,
+      digest: artifactDigest({ executable: false }),
+    },
+    permissionManifest: {
+      capabilities: ["knowledge:team:read"],
+      digest: artifactDigest({ capabilities: ["knowledge:team:read"] }),
+    },
+    candidateId: "knowledge-dependency-candidate-1",
+    activeReleaseId: null,
+    lastKnownGoodReleaseId: null,
+  });
+  return createEvolvableArtifactReleaseGate({
+    authority,
+    transitionWriter: artifactAdapter,
+    transitionReader: artifactAdapter.transitionReader(),
+  }).promote({
+    artifact: staged.artifact,
+    candidatePersistenceReceipt: staged.receipt,
+    evaluationReceipt: artifactReceipt(staged.artifact, "eval"),
+    reviewReceipt: artifactReceipt(staged.artifact, "review"),
+    promotionReceipt: artifactReceipt(staged.artifact, "promotion"),
+    releaseId: "knowledge-dependency-release-1",
+  });
+}
+
 function syncMergePublisher(
   storage,
   crypto,
@@ -622,6 +718,7 @@ function syncMergePublisher(
     activationDecision = "allow",
     candidateFailure = null,
     omitCandidateGate = false,
+    omitDependencyResolver = false,
     reuseArtifactReader = false,
   } = {},
 ) {
@@ -656,26 +753,7 @@ function syncMergePublisher(
     if (candidateFailure) throw candidateFailure;
     return providerArtifactAdapter.persistCandidate(artifact);
   });
-  const policy = createEvolvableArtifactPolicy({
-    type: ARTIFACT_TYPE.KNOWLEDGE,
-    revision: "knowledge-merge-test/v1",
-    admission: () => ({
-      decision: "allow",
-      policyRevision: "knowledge-merge-test/v1",
-    }),
-    evaluator: () => ({
-      decision: "allow",
-      policyRevision: "knowledge-merge-test/v1",
-    }),
-    activation: () => ({
-      decision: activationDecision,
-      policyRevision: "knowledge-merge-test/v1",
-    }),
-    rollback: () => ({
-      decision: "allow",
-      policyRevision: "knowledge-merge-test/v1",
-    }),
-  });
+  const policy = knowledgeArtifactPolicy(activationDecision);
   const artifactAuthority = createEvolvableArtifactAuthority({
     tenantId: storage.descriptor.tenantId,
     policy,
@@ -696,6 +774,12 @@ function syncMergePublisher(
       sync: publishing.controller,
       ...(omitCandidateGate ? {} : { artifactCandidateGate }),
       artifactReleaseGate,
+      ...(omitDependencyResolver
+        ? {}
+        : {
+            artifactDependencyResolver:
+              verifierArtifactAdapter.releaseResolver(),
+          }),
       verifierArtifactTransitionReader: (reuseArtifactReader
         ? providerArtifactAdapter
         : verifierArtifactAdapter
@@ -1264,6 +1348,76 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
         reuseArtifactReader: true,
       }),
     ).toThrow("independent tenant-bound artifact transition reader");
+  });
+
+  it("requires a branded artifact dependency release resolver", async () => {
+    const fixture = await mergePlanFixture();
+    expect(() =>
+      syncMergePublisher(fixture.receiverStorage, cryptoPorts(), {
+        omitDependencyResolver: true,
+      }),
+    ).toThrow("artifact dependency release resolver");
+  });
+
+  it("does not stage or publish an unresolved Knowledge dependency", async () => {
+    const fixture = await mergePlanFixture({
+      mergedDependencies: [
+        {
+          kind: "active-knowledge",
+          digest: D("missing-active-knowledge"),
+          disposition: "refresh-index",
+        },
+      ],
+    });
+    const publishingCrypto = cryptoPorts();
+    const publisher = syncMergePublisher(
+      fixture.receiverStorage,
+      publishingCrypto,
+    );
+    await expect(
+      mergeExecutor(fixture.receiverStorage, publisher.authority).execute(
+        fixture.plan,
+      ),
+    ).rejects.toThrow("active release is ambiguous");
+    expect(publisher.persistCandidate).not.toHaveBeenCalled();
+    expect(publishingCrypto.send.send).not.toHaveBeenCalled();
+  });
+
+  it("locks a Knowledge dependency to the current typed Ledger release", async () => {
+    const dependencyContentDigest = D("active-knowledge-dependency");
+    const fixture = await mergePlanFixture({
+      mergedDependencies: [
+        {
+          kind: "active-knowledge",
+          digest: dependencyContentDigest,
+          disposition: "refresh-index",
+        },
+      ],
+    });
+    const dependencyRelease = await seedKnowledgeArtifactRelease(
+      fixture.receiverStorage,
+      dependencyContentDigest,
+    );
+    const publisher = syncMergePublisher(
+      fixture.receiverStorage,
+      cryptoPorts(),
+    );
+
+    await expect(
+      mergeExecutor(fixture.receiverStorage, publisher.authority).execute(
+        fixture.plan,
+      ),
+    ).resolves.toMatchObject({ authenticated: true, durable: true });
+    expect(
+      publisher.persistCandidate.mock.calls[0][0].dependencyLock.dependencies,
+    ).toEqual([
+      {
+        artifactId: dependencyRelease.artifact.artifactId,
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        releaseId: dependencyRelease.artifact.activeReleaseId,
+        contentDigest: dependencyContentDigest,
+      },
+    ]);
   });
 
   it("does not publish a merge when Knowledge candidate persistence fails", async () => {
