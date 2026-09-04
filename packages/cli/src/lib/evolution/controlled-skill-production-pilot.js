@@ -1,10 +1,18 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import {
+  isProgressiveCanaryGateAuthority,
+  nextProgressiveCanaryStage,
+  verifyProgressiveCanaryPlan,
+} from "./statistical-progressive-canary.js";
+
 export const CONTROLLED_SKILL_PILOT_SCHEMA =
   "chainlesschain.controlled-skill-production-pilot/v1";
 export const CONTROLLED_SKILL_PILOT_STATE_SCHEMA =
   "chainlesschain.controlled-skill-production-pilot-state/v1";
+export const CONTROLLED_SKILL_PILOT_PROGRESSIVE_STATE_SCHEMA =
+  "chainlesschain.controlled-skill-production-pilot-state/v2";
 export const CONTROLLED_SKILL_PILOT_EVENT_SCHEMA =
   "chainlesschain.controlled-skill-production-pilot-event/v1";
 
@@ -12,6 +20,7 @@ export const CONTROLLED_SKILL_PILOT_STAGE = Object.freeze({
   CANDIDATE: "candidate",
   SHADOW: "shadow",
   CANARY: "canary",
+  ACTIVE_PROBATION: "active-probation",
   ACTIVE: "active",
   ROLLED_BACK: "rolled-back",
 });
@@ -264,9 +273,11 @@ function normalizeDescriptor(input) {
   return deepFreeze(normalized);
 }
 
-function emptyState(descriptorDigest) {
-  return {
-    schema: CONTROLLED_SKILL_PILOT_STATE_SCHEMA,
+function emptyState(descriptorDigest, progressive = null) {
+  const state = {
+    schema: progressive
+      ? CONTROLLED_SKILL_PILOT_PROGRESSIVE_STATE_SCHEMA
+      : CONTROLLED_SKILL_PILOT_STATE_SCHEMA,
     descriptorDigest,
     revision: 0,
     stage: CONTROLLED_SKILL_PILOT_STAGE.CANDIDATE,
@@ -278,9 +289,50 @@ function emptyState(descriptorDigest) {
     pendingTransition: null,
     lastTransitionReceiptDigest: null,
   };
+  if (progressive) {
+    state.progressivePlanDigest = progressive.plan.planDigest;
+    state.progressiveStepId = null;
+    state.progressiveGateReceiptDigests = [];
+  }
+  return state;
 }
 
-function normalizeRestore(input, descriptorDigest) {
+function progressiveStateIsCoherent(state, progressive) {
+  if (!progressive) return true;
+  const digests = state.progressiveGateReceiptDigests;
+  if (
+    !Array.isArray(digests) ||
+    digests.length > progressive.plan.steps.length ||
+    new Set(digests).size !== digests.length
+  ) {
+    return false;
+  }
+  const effectiveStage = state.pendingTransition?.request?.to ?? state.stage;
+  if (effectiveStage === CONTROLLED_SKILL_PILOT_STAGE.ROLLED_BACK) {
+    return (
+      state.progressiveStepId === null ||
+      progressive.plan.steps.some(
+        ({ id: stepId }) => stepId === state.progressiveStepId,
+      )
+    );
+  }
+  if (effectiveStage === CONTROLLED_SKILL_PILOT_STAGE.CANDIDATE) {
+    return state.progressiveStepId === null && digests.length === 0;
+  }
+  if (effectiveStage === CONTROLLED_SKILL_PILOT_STAGE.ACTIVE) {
+    return (
+      state.progressiveStepId === null &&
+      digests.length === progressive.plan.steps.length
+    );
+  }
+  const index = progressive.plan.steps.findIndex(
+    ({ id: stepId, stage }) =>
+      stepId === state.progressiveStepId && stage === effectiveStage,
+  );
+  return index >= 0 && digests.length === index;
+}
+
+function normalizeRestore(input, descriptorDigest, progressive) {
   plain(input, "pilot restore");
   const state = plain(input.state, "pilot restore.state");
   if (
@@ -288,18 +340,35 @@ function normalizeRestore(input, descriptorDigest) {
     input.durable !== true ||
     input.descriptorDigest !== descriptorDigest ||
     input.stateDigest !== hash(state) ||
-    state.schema !== CONTROLLED_SKILL_PILOT_STATE_SCHEMA ||
+    state.schema !==
+      (progressive
+        ? CONTROLLED_SKILL_PILOT_PROGRESSIVE_STATE_SCHEMA
+        : CONTROLLED_SKILL_PILOT_STATE_SCHEMA) ||
     state.descriptorDigest !== descriptorDigest ||
     !STAGES.has(state.stage) ||
     !Number.isSafeInteger(state.revision) ||
     state.revision < 0 ||
     !Array.isArray(state.observations) ||
+    (progressive === null
+      ? state.progressivePlanDigest !== undefined ||
+        state.progressiveStepId !== undefined ||
+        state.progressiveGateReceiptDigests !== undefined
+      : state.progressivePlanDigest !== progressive.plan.planDigest ||
+        (state.progressiveStepId !== null &&
+          !progressive.plan.steps.some(
+            ({ id: stepId }) => stepId === state.progressiveStepId,
+          )) ||
+        !Array.isArray(state.progressiveGateReceiptDigests) ||
+        state.progressiveGateReceiptDigests.some(
+          (value) => !DIGEST.test(value),
+        )) ||
     (state.pendingTransition !== null &&
       (!state.pendingTransition ||
         typeof state.pendingTransition !== "object" ||
         state.pendingTransition.requestDigest !==
           hash(state.pendingTransition.request) ||
-        state.pendingTransition.request?.from !== state.stage))
+        state.pendingTransition.request?.from !== state.stage)) ||
+    !progressiveStateIsCoherent(state, progressive)
   ) {
     fail(
       CONTROLLED_SKILL_PILOT_ERROR.PERSISTENCE_FAILED,
@@ -307,6 +376,37 @@ function normalizeRestore(input, descriptorDigest) {
     );
   }
   return clone(state);
+}
+
+function normalizeProgressiveCanary(input, descriptor) {
+  if (input == null) return null;
+  plain(input, "progressive Canary configuration");
+  if (
+    Reflect.ownKeys(input).length !== 2 ||
+    !Object.hasOwn(input, "plan") ||
+    !Object.hasOwn(input, "gateAuthority")
+  ) {
+    throw new TypeError("progressive Canary configuration is not exact");
+  }
+  const plan = verifyProgressiveCanaryPlan(input.plan);
+  if (!isProgressiveCanaryGateAuthority(input.gateAuthority)) {
+    throw new TypeError(
+      "a branded progressive Canary gate authority is required",
+    );
+  }
+  if (
+    plan.tenantId !== descriptor.tenantId ||
+    plan.pilotId !== descriptor.pilotId ||
+    plan.skillName !== descriptor.skillName ||
+    plan.candidateDigest !== descriptor.candidateDigest ||
+    plan.baselineDigest !== descriptor.baselineDigest ||
+    input.gateAuthority.planDigest !== plan.planDigest ||
+    input.gateAuthority.tenantId !== plan.tenantId ||
+    input.gateAuthority.pilotId !== plan.pilotId
+  ) {
+    throw new TypeError("progressive Canary plan is not bound to this pilot");
+  }
+  return Object.freeze({ plan, gateAuthority: input.gateAuthority });
 }
 
 function normalizeApproval(value, descriptor, descriptorDigest) {
@@ -447,9 +547,14 @@ export class ControlledSkillProductionPilot {
     ports,
     now = Date.now,
     restore = null,
+    progressiveCanary = null,
   } = {}) {
     this.descriptor = normalizeDescriptor(input);
     this.descriptorDigest = hash(this.descriptor);
+    this._progressiveCanary = normalizeProgressiveCanary(
+      progressiveCanary,
+      this.descriptor,
+    );
     this._now = typeof now === "function" ? now : Date.now;
     this._readActiveState = capture(ports, "readActiveState");
     this._verifyApproval = capture(ports, "verifyApproval");
@@ -465,8 +570,9 @@ export class ControlledSkillProductionPilot {
             descriptorDigest: this.descriptorDigest,
           }),
           this.descriptorDigest,
+          this._progressiveCanary,
         )
-      : emptyState(this.descriptorDigest);
+      : emptyState(this.descriptorDigest, this._progressiveCanary);
   }
 
   async start({ optedIn, tenantId, cohortId } = {}) {
@@ -510,15 +616,35 @@ export class ControlledSkillProductionPilot {
     await this._assertActiveUnchanged();
     const next = clone(this._state);
     next.reviewReceiptDigest = reviewReceiptDigest;
-    await this._advance(next, CONTROLLED_SKILL_PILOT_STAGE.SHADOW, {
-      reviewReceiptDigest,
-    });
+    if (this._progressiveCanary) {
+      next.progressiveStepId = this._progressiveCanary.plan.steps[0].id;
+    }
+    await this._advance(
+      next,
+      CONTROLLED_SKILL_PILOT_STAGE.SHADOW,
+      {
+        reviewReceiptDigest,
+        ...(this._progressiveCanary
+          ? {
+              progressivePlanDigest: this._progressiveCanary.plan.planDigest,
+              progressiveStepId: next.progressiveStepId,
+            }
+          : {}),
+      },
+      { progressive: this._progressiveCanary !== null },
+    );
     return this.view();
   }
 
   async recordObservation(input) {
     this._started();
     this._noPending();
+    if (this._progressiveCanary) {
+      fail(
+        CONTROLLED_SKILL_PILOT_ERROR.INVALID,
+        "progressive Canary observations must enter the gate authority",
+      );
+    }
     if (
       ![
         CONTROLLED_SKILL_PILOT_STAGE.SHADOW,
@@ -627,9 +753,12 @@ export class ControlledSkillProductionPilot {
     return this.view();
   }
 
-  async advance() {
+  async advance(input = {}) {
     this._started();
     this._noPending();
+    if (this._progressiveCanary) {
+      return this._advanceProgressive(input);
+    }
     const target = FORWARD.get(this._state.stage);
     if (!target) {
       fail(
@@ -736,7 +865,81 @@ export class ControlledSkillProductionPilot {
       cohort: clone(this.descriptor.cohort),
       lastTransitionReceiptDigest: this._state.lastTransitionReceiptDigest,
       reconciliationRequired: this._state.pendingTransition !== null,
+      progressiveCanary:
+        this._progressiveCanary === null
+          ? null
+          : {
+              planDigest: this._state.progressivePlanDigest,
+              stepId: this._state.progressiveStepId,
+              gateReceiptDigests: clone(
+                this._state.progressiveGateReceiptDigests,
+              ),
+            },
     });
+  }
+
+  async _advanceProgressive({ gateReceipt } = {}) {
+    if (this._state.stage === CONTROLLED_SKILL_PILOT_STAGE.CANDIDATE) {
+      fail(
+        CONTROLLED_SKILL_PILOT_ERROR.REVIEW_REQUIRED,
+        "shadow requires explicit durable human approval",
+      );
+    }
+    if (this._state.killSwitch) {
+      fail(
+        CONTROLLED_SKILL_PILOT_ERROR.KILL_SWITCH,
+        "pilot kill switch is set",
+      );
+    }
+    const currentStepId = this._state.progressiveStepId;
+    if (typeof currentStepId !== "string") {
+      fail(
+        CONTROLLED_SKILL_PILOT_ERROR.INVALID,
+        "progressive Canary step is unavailable",
+      );
+    }
+    let receipt;
+    let nextStep;
+    try {
+      receipt = await this._progressiveCanary.gateAuthority.verify(
+        gateReceipt,
+        {
+          stepId: currentStepId,
+        },
+      );
+      nextStep = nextProgressiveCanaryStage({
+        plan: this._progressiveCanary.plan,
+        currentStepId,
+        gateReport: receipt.report,
+      });
+    } catch (error) {
+      const failure = new Error(
+        `pilot progressive gate failed: ${error.message}`,
+      );
+      failure.code = CONTROLLED_SKILL_PILOT_ERROR.GATE_FAILED;
+      throw failure;
+    }
+    const target =
+      nextStep.stage === "stable"
+        ? CONTROLLED_SKILL_PILOT_STAGE.ACTIVE
+        : nextStep.stage;
+    await this._assertActiveUnchanged();
+    const next = clone(this._state);
+    next.progressiveStepId = nextStep.stepId;
+    next.progressiveGateReceiptDigests.push(receipt.receiptDigest);
+    await this._advance(
+      next,
+      target,
+      {
+        progressivePlanDigest: this._progressiveCanary.plan.planDigest,
+        gateReportDigest: receipt.reportDigest,
+        gateReceiptDigest: receipt.receiptDigest,
+        fromStepId: currentStepId,
+        toStepId: nextStep.stepId,
+      },
+      { progressive: true },
+    );
+    return this.view();
   }
 
   _started() {
@@ -777,9 +980,26 @@ export class ControlledSkillProductionPilot {
     }
   }
 
-  async _advance(next, target, evidence) {
+  async _advance(next, target, evidence, { progressive = false } = {}) {
     const from = this._state.stage;
-    if (target !== CONTROLLED_PILOT_ROLLBACK && FORWARD.get(from) !== target) {
+    const progressiveTransition =
+      progressive &&
+      ((from === CONTROLLED_SKILL_PILOT_STAGE.CANDIDATE &&
+        target === CONTROLLED_SKILL_PILOT_STAGE.SHADOW) ||
+        (from === CONTROLLED_SKILL_PILOT_STAGE.SHADOW &&
+          target === CONTROLLED_SKILL_PILOT_STAGE.CANARY) ||
+        (from === CONTROLLED_SKILL_PILOT_STAGE.CANARY &&
+          [
+            CONTROLLED_SKILL_PILOT_STAGE.CANARY,
+            CONTROLLED_SKILL_PILOT_STAGE.ACTIVE_PROBATION,
+          ].includes(target)) ||
+        (from === CONTROLLED_SKILL_PILOT_STAGE.ACTIVE_PROBATION &&
+          target === CONTROLLED_SKILL_PILOT_STAGE.ACTIVE));
+    if (
+      target !== CONTROLLED_PILOT_ROLLBACK &&
+      !progressiveTransition &&
+      FORWARD.get(from) !== target
+    ) {
       fail(
         CONTROLLED_SKILL_PILOT_ERROR.INVALID,
         "non-canonical pilot transition",

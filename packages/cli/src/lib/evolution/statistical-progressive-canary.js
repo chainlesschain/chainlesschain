@@ -1,16 +1,19 @@
 import { createHash } from "node:crypto";
 
 export const PROGRESSIVE_CANARY_PLAN_SCHEMA =
-  "chainlesschain.progressive-canary-plan/v1";
+  "chainlesschain.progressive-canary-plan/v2";
 export const PROGRESSIVE_CANARY_ASSIGNMENT_SCHEMA =
-  "chainlesschain.progressive-canary-assignment/v1";
+  "chainlesschain.progressive-canary-assignment/v2";
 export const PROGRESSIVE_CANARY_GATE_REPORT_SCHEMA =
-  "chainlesschain.progressive-canary-gate-report/v1";
+  "chainlesschain.progressive-canary-gate-report/v2";
+export const PROGRESSIVE_CANARY_GATE_RECEIPT_SCHEMA =
+  "chainlesschain.progressive-canary-gate-receipt/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const RISK_TIERS = new Set(["low", "medium", "high"]);
 const AUTHORITIES = new WeakSet();
+const GATE_AUTHORITIES = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -68,6 +71,10 @@ function verifyPlan(plan) {
   if (hash(PROGRESSIVE_CANARY_PLAN_SCHEMA, core) !== plan.planDigest)
     throw new Error("progressive Canary plan digest mismatch");
   return plan;
+}
+
+export function verifyProgressiveCanaryPlan(plan) {
+  return verifyPlan(plan);
 }
 
 function normalizeSteps(steps) {
@@ -160,6 +167,7 @@ export function createProgressiveCanaryPlan(input = {}) {
       "riskTier",
       "assignmentSaltDigest",
       "assignmentAuthority",
+      "gateAuthority",
       "steps",
       "thresholds",
     ],
@@ -171,6 +179,11 @@ export function createProgressiveCanaryPlan(input = {}) {
     input.assignmentAuthority,
     ["id", "revision", "handlerDigest"],
     "assignmentAuthority",
+  );
+  exact(
+    input.gateAuthority,
+    ["id", "revision", "handlerDigest"],
+    "gateAuthority",
   );
   exact(
     input.thresholds,
@@ -209,6 +222,20 @@ export function createProgressiveCanaryPlan(input = {}) {
       handlerDigest: sha(
         input.assignmentAuthority.handlerDigest,
         "assignmentAuthority.handlerDigest",
+      ),
+    }),
+    gateAuthority: Object.freeze({
+      id: id(input.gateAuthority.id, "gateAuthority.id"),
+      revision: integer(
+        input.gateAuthority.revision,
+        "gateAuthority.revision",
+        {
+          min: 1,
+        },
+      ),
+      handlerDigest: sha(
+        input.gateAuthority.handlerDigest,
+        "gateAuthority.handlerDigest",
       ),
     }),
     steps: normalizeSteps(input.steps),
@@ -337,6 +364,9 @@ export function createProgressiveCanaryAssignmentAuthority({
   }
 
   const authority = Object.freeze({
+    planDigest: plan.planDigest,
+    tenantId: plan.tenantId,
+    pilotId: plan.pilotId,
     async assign({ stepId, subjectDigest: subjectDigestInput } = {}) {
       const step = plan.steps.find(({ id: value }) => value === stepId);
       if (!step) throw new TypeError("Canary assignment step is invalid");
@@ -421,6 +451,134 @@ function verifyGateReport(report, plan) {
   if (hash(PROGRESSIVE_CANARY_GATE_REPORT_SCHEMA, core) !== report.reportDigest)
     throw new Error("progressive Canary gate report digest mismatch");
   return report;
+}
+
+export function createProgressiveCanaryGateAuthority({
+  plan: planInput,
+  assignmentAuthority,
+  attestor,
+  verifier,
+  now = Date.now,
+} = {}) {
+  const plan = verifyPlan(planInput);
+  if (!AUTHORITIES.has(assignmentAuthority))
+    throw new TypeError("a branded Canary assignment authority is required");
+  if (
+    assignmentAuthority.planDigest !== plan.planDigest ||
+    assignmentAuthority.tenantId !== plan.tenantId ||
+    assignmentAuthority.pilotId !== plan.pilotId
+  )
+    throw new TypeError("Canary assignment authority belongs to another plan");
+  if (typeof attestor !== "function" || typeof verifier !== "function")
+    throw new TypeError("Canary gate attestor and verifier are required");
+  if (typeof now !== "function")
+    throw new TypeError("Canary gate authority clock is required");
+
+  async function verifyReceipt(receipt, { stepId } = {}) {
+    exact(
+      receipt,
+      [
+        "schema",
+        "planDigest",
+        "tenantId",
+        "pilotId",
+        "stepId",
+        "report",
+        "reportDigest",
+        "authorityId",
+        "authorityRevision",
+        "handlerDigest",
+        "issuedAt",
+        "expiresAt",
+        "signature",
+        "receiptDigest",
+      ],
+      "Canary gate receipt",
+    );
+    const report = verifyGateReport(receipt.report, plan);
+    if (
+      receipt.schema !== PROGRESSIVE_CANARY_GATE_RECEIPT_SCHEMA ||
+      receipt.planDigest !== plan.planDigest ||
+      receipt.tenantId !== plan.tenantId ||
+      receipt.pilotId !== plan.pilotId ||
+      receipt.stepId !== stepId ||
+      report.stepId !== stepId ||
+      receipt.reportDigest !== report.reportDigest ||
+      receipt.authorityId !== plan.gateAuthority.id ||
+      receipt.authorityRevision !== plan.gateAuthority.revision ||
+      receipt.handlerDigest !== plan.gateAuthority.handlerDigest ||
+      typeof receipt.issuedAt !== "string" ||
+      typeof receipt.expiresAt !== "string" ||
+      !Number.isFinite(Date.parse(receipt.issuedAt)) ||
+      !Number.isFinite(Date.parse(receipt.expiresAt)) ||
+      Date.parse(receipt.issuedAt) > Number(now()) ||
+      Date.parse(receipt.expiresAt) < Number(now()) ||
+      typeof receipt.signature !== "string" ||
+      receipt.signature.length < 32 ||
+      !DIGEST.test(receipt.receiptDigest ?? "")
+    )
+      throw new Error("Canary gate receipt binding is invalid or expired");
+    const core = structuredClone(receipt);
+    delete core.receiptDigest;
+    if (
+      hash(PROGRESSIVE_CANARY_GATE_RECEIPT_SCHEMA, core) !==
+      receipt.receiptDigest
+    )
+      throw new Error("Canary gate receipt digest mismatch");
+    const payload = structuredClone(core);
+    delete payload.signature;
+    if (!(await verifier({ payload, signature: receipt.signature })))
+      throw new Error("Canary gate receipt signature rejected");
+    return Object.freeze(structuredClone(receipt));
+  }
+
+  const authority = Object.freeze({
+    planDigest: plan.planDigest,
+    tenantId: plan.tenantId,
+    pilotId: plan.pilotId,
+    async evaluate(input = {}) {
+      const report = await evaluateProgressiveCanaryGate({
+        ...input,
+        plan,
+        assignmentAuthority,
+      });
+      const payload = {
+        schema: PROGRESSIVE_CANARY_GATE_RECEIPT_SCHEMA,
+        planDigest: plan.planDigest,
+        tenantId: plan.tenantId,
+        pilotId: plan.pilotId,
+        stepId: report.stepId,
+        report,
+        reportDigest: report.reportDigest,
+        authorityId: plan.gateAuthority.id,
+        authorityRevision: plan.gateAuthority.revision,
+        handlerDigest: plan.gateAuthority.handlerDigest,
+      };
+      const attestation = await attestor(
+        Object.freeze(structuredClone(payload)),
+      );
+      exact(
+        attestation,
+        ["issuedAt", "expiresAt", "signature"],
+        "gate attestation",
+      );
+      const core = { ...payload, ...attestation };
+      return verifyReceipt(
+        Object.freeze({
+          ...core,
+          receiptDigest: hash(PROGRESSIVE_CANARY_GATE_RECEIPT_SCHEMA, core),
+        }),
+        { stepId: report.stepId },
+      );
+    },
+    verify: verifyReceipt,
+  });
+  GATE_AUTHORITIES.add(authority);
+  return authority;
+}
+
+export function isProgressiveCanaryGateAuthority(value) {
+  return GATE_AUTHORITIES.has(value);
 }
 
 export async function evaluateProgressiveCanaryGate({

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -6,6 +6,11 @@ import {
   CONTROLLED_SKILL_PILOT_STAGE,
   ControlledSkillProductionPilot,
 } from "../../src/lib/evolution/controlled-skill-production-pilot.js";
+import {
+  createProgressiveCanaryAssignmentAuthority,
+  createProgressiveCanaryGateAuthority,
+  createProgressiveCanaryPlan,
+} from "../../src/lib/evolution/statistical-progressive-canary.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -156,6 +161,134 @@ function observation(index, overrides = {}) {
     observedAt: 0,
     ...overrides,
   };
+}
+
+function progressiveHarness() {
+  const plan = createProgressiveCanaryPlan({
+    tenantId: "tenant-a",
+    pilotId: "pilot-a",
+    skillName: "focused-skill",
+    candidateDigest: D("candidate"),
+    baselineDigest: D("baseline"),
+    riskTier: "medium",
+    assignmentSaltDigest: D("assignment-salt"),
+    assignmentAuthority: {
+      id: "traffic-authority",
+      revision: 1,
+      handlerDigest: D("traffic-handler"),
+    },
+    gateAuthority: {
+      id: "gate-authority",
+      revision: 1,
+      handlerDigest: D("gate-handler"),
+    },
+    steps: [
+      {
+        id: "shadow",
+        stage: "shadow",
+        trafficPercent: 0,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      {
+        id: "canary-10",
+        stage: "canary",
+        trafficPercent: 10,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      {
+        id: "canary-50",
+        stage: "canary",
+        trafficPercent: 50,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      {
+        id: "probation",
+        stage: "active-probation",
+        trafficPercent: 100,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+    ],
+    thresholds: {
+      confidence: 0.95,
+      bootstrapSamples: 1_000,
+      minQualityDeltaLowerBound: 0,
+      maxMeanCostDelta: 0,
+      maxP95LatencyRatio: 1,
+      maxP99LatencyRatio: 1,
+      maxMeanToolCallDelta: 0,
+    },
+  });
+  const sign = (secret, payload) =>
+    createHmac("sha256", secret).update(canonical(payload)).digest("base64url");
+  const attestation = (secret) => async (payload) => {
+    const issuedAt = new Date(900).toISOString();
+    const expiresAt = new Date(2_000).toISOString();
+    return {
+      issuedAt,
+      expiresAt,
+      signature: sign(secret, { ...payload, issuedAt, expiresAt }),
+    };
+  };
+  const trafficSecret = "traffic-secret";
+  const traffic = createProgressiveCanaryAssignmentAuthority({
+    plan,
+    now: () => 1_000,
+    attestor: attestation(trafficSecret),
+    verifier: async ({ payload, signature }) =>
+      signature === sign(trafficSecret, payload),
+  });
+  const gateSecret = "gate-secret";
+  const gate = createProgressiveCanaryGateAuthority({
+    plan,
+    assignmentAuthority: traffic,
+    now: () => 1_000,
+    attestor: attestation(gateSecret),
+    verifier: async ({ payload, signature }) =>
+      signature === sign(gateSecret, payload),
+  });
+  return { plan, traffic, gate };
+}
+
+async function progressiveGateReceipt({ traffic, gate }, stepId) {
+  let assignmentReceipt;
+  let subjectDigest;
+  for (let index = 0; index < 10_000; index += 1) {
+    subjectDigest = D(`${stepId}:subject:${index}`);
+    assignmentReceipt = await traffic.assign({ stepId, subjectDigest });
+    if (assignmentReceipt.assigned) break;
+  }
+  if (!assignmentReceipt?.assigned) throw new Error("no assigned test subject");
+  return gate.evaluate({
+    stepId,
+    stepStartedAt: 0,
+    observedAt: 1,
+    observations: [
+      {
+        subjectDigest,
+        assignmentReceipt,
+        outcomeReceiptDigest: D(`${stepId}:outcome`),
+        observedAt: 1,
+        baselineSuccess: false,
+        candidateSuccess: true,
+        baselineCost: 1,
+        candidateCost: 1,
+        baselineLatencyMs: 100,
+        candidateLatencyMs: 100,
+        baselineToolCalls: 1,
+        candidateToolCalls: 1,
+        securityEvents: 0,
+        permissionEvents: 0,
+      },
+    ],
+  });
 }
 
 async function shadowPilot({ nowRef = { value: 0 }, h = harness() } = {}) {
@@ -548,6 +681,157 @@ describe("ControlledSkillProductionPilot", () => {
           descriptor: descriptor(),
           ports: h.ports,
           restore: { ...snapshot, stateDigest: D("tampered") },
+        }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: CONTROLLED_SKILL_PILOT_ERROR.PERSISTENCE_FAILED,
+      }),
+    );
+  });
+
+  it("uses signed progressive gate receipts for shadow through active probation", async () => {
+    const progressive = progressiveHarness();
+    const h = harness();
+    const pilot = new ControlledSkillProductionPilot({
+      descriptor: descriptor(),
+      ports: h.ports,
+      now: () => 1,
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
+      },
+    });
+    await pilot.start({
+      optedIn: true,
+      tenantId: "tenant-a",
+      cohortId: "cohort-a",
+    });
+    await pilot.approveShadow({});
+
+    for (const [stepId, expectedStage, expectedStepId] of [
+      ["shadow", "canary", "canary-10"],
+      ["canary-10", "canary", "canary-50"],
+      ["canary-50", "active-probation", "probation"],
+      ["probation", "active", null],
+    ]) {
+      const gateReceipt = await progressiveGateReceipt(progressive, stepId);
+      const view = await pilot.advance({ gateReceipt });
+      expect(view.stage).toBe(expectedStage);
+      expect(view.progressiveCanary.stepId).toBe(expectedStepId);
+    }
+
+    expect(pilot.view().progressiveCanary.gateReceiptDigests).toHaveLength(4);
+    expect(
+      h.ports.transitionStage.mock.calls.map(([{ request }]) => [
+        request.from,
+        request.to,
+      ]),
+    ).toEqual([
+      ["candidate", "shadow"],
+      ["shadow", "canary"],
+      ["canary", "canary"],
+      ["canary", "active-probation"],
+      ["active-probation", "active"],
+    ]);
+  });
+
+  it("rejects unverified reports and legacy observations in progressive mode", async () => {
+    const progressive = progressiveHarness();
+    const h = harness();
+    const pilot = new ControlledSkillProductionPilot({
+      descriptor: descriptor(),
+      ports: h.ports,
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
+      },
+    });
+    await pilot.start({
+      optedIn: true,
+      tenantId: "tenant-a",
+      cohortId: "cohort-a",
+    });
+    await pilot.approveShadow({});
+
+    await expect(pilot.recordObservation(observation(1))).rejects.toMatchObject(
+      {
+        code: CONTROLLED_SKILL_PILOT_ERROR.INVALID,
+      },
+    );
+    const receipt = await progressiveGateReceipt(progressive, "shadow");
+    await expect(
+      pilot.advance({
+        gateReceipt: { ...receipt, reportDigest: D("substituted") },
+      }),
+    ).rejects.toMatchObject({
+      code: CONTROLLED_SKILL_PILOT_ERROR.GATE_FAILED,
+    });
+    expect(pilot.view()).toMatchObject({
+      stage: "shadow",
+      progressiveCanary: { stepId: "shadow", gateReceiptDigests: [] },
+    });
+  });
+
+  it("restores progressive state and continues from the exact next step", async () => {
+    const progressive = progressiveHarness();
+    const h = harness();
+    const first = new ControlledSkillProductionPilot({
+      descriptor: descriptor(),
+      ports: h.ports,
+      now: () => 1,
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
+      },
+    });
+    await first.start({
+      optedIn: true,
+      tenantId: "tenant-a",
+      cohortId: "cohort-a",
+    });
+    await first.approveShadow({});
+    await first.advance({
+      gateReceipt: await progressiveGateReceipt(progressive, "shadow"),
+    });
+
+    const restored = new ControlledSkillProductionPilot({
+      descriptor: descriptor(),
+      ports: h.ports,
+      now: () => 1,
+      restore: first.snapshot(),
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
+      },
+    });
+    expect(restored.view()).toEqual(first.view());
+    await restored.advance({
+      gateReceipt: await progressiveGateReceipt(progressive, "canary-10"),
+    });
+    expect(restored.view()).toMatchObject({
+      stage: "canary",
+      progressiveCanary: {
+        stepId: "canary-50",
+        gateReceiptDigests: expect.any(Array),
+      },
+    });
+    expect(restored.view().progressiveCanary.gateReceiptDigests).toHaveLength(
+      2,
+    );
+
+    const incoherent = structuredClone(first.snapshot());
+    incoherent.state.progressiveStepId = "probation";
+    incoherent.stateDigest = H(incoherent.state);
+    expect(
+      () =>
+        new ControlledSkillProductionPilot({
+          descriptor: descriptor(),
+          ports: h.ports,
+          restore: incoherent,
+          progressiveCanary: {
+            plan: progressive.plan,
+            gateAuthority: progressive.gate,
+          },
         }),
     ).toThrowError(
       expect.objectContaining({

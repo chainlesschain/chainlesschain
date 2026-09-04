@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createProgressiveCanaryAssignmentAuthority,
+  createProgressiveCanaryGateAuthority,
   createProgressiveCanaryPlan,
   evaluateProgressiveCanaryGate,
   nextProgressiveCanaryStage,
@@ -33,6 +34,11 @@ function planInput(overrides = {}) {
       id: "traffic-authority-a",
       revision: 3,
       handlerDigest: D("traffic-handler"),
+    },
+    gateAuthority: {
+      id: "gate-authority-a",
+      revision: 2,
+      handlerDigest: D("gate-handler"),
     },
     steps: [
       {
@@ -78,6 +84,28 @@ function authority(plan, { secret = "traffic-authority-test-key" } = {}) {
     createHmac("sha256", secret).update(canonical(payload)).digest("base64url");
   return createProgressiveCanaryAssignmentAuthority({
     plan,
+    now: () => 1_000,
+    attestor: async (payload) => {
+      const issuedAt = new Date(900).toISOString();
+      const expiresAt = new Date(2_000).toISOString();
+      return {
+        issuedAt,
+        expiresAt,
+        signature: signature({ ...payload, issuedAt, expiresAt }),
+      };
+    },
+    verifier: async ({ payload, signature: value }) =>
+      value === signature(payload),
+  });
+}
+
+function gateAuthority(plan, assignmentAuthority) {
+  const secret = "gate-authority-test-key";
+  const signature = (payload) =>
+    createHmac("sha256", secret).update(canonical(payload)).digest("base64url");
+  return createProgressiveCanaryGateAuthority({
+    plan,
+    assignmentAuthority,
     now: () => 1_000,
     attestor: async (payload) => {
       const issuedAt = new Date(900).toISOString();
@@ -313,5 +341,45 @@ describe("statistical progressive Canary", () => {
         gateReport: failed,
       }),
     ).toThrow("digest mismatch");
+  });
+
+  it("attests a full gate report for durable Pilot consumption", async () => {
+    const plan = createProgressiveCanaryPlan(planInput());
+    const traffic = authority(plan);
+    const gate = gateAuthority(plan, traffic);
+    const receipt = await gate.evaluate({
+      stepId: "probation",
+      stepStartedAt: 0,
+      observedAt: 100,
+      observations: await observations({
+        assignmentAuthority: traffic,
+        stepId: "probation",
+      }),
+    });
+
+    await expect(
+      gate.verify(receipt, { stepId: "probation" }),
+    ).resolves.toEqual(receipt);
+    await expect(
+      gate.verify(
+        { ...receipt, reportDigest: D("substituted-report") },
+        { stepId: "probation" },
+      ),
+    ).rejects.toThrow("binding");
+  });
+
+  it("rejects an assignment authority branded for another plan", () => {
+    const first = createProgressiveCanaryPlan(planInput());
+    const second = createProgressiveCanaryPlan(
+      planInput({ candidateDigest: D("another-candidate") }),
+    );
+    expect(() =>
+      createProgressiveCanaryGateAuthority({
+        plan: second,
+        assignmentAuthority: authority(first),
+        attestor: async () => ({}),
+        verifier: async () => true,
+      }),
+    ).toThrow("belongs to another plan");
   });
 });
