@@ -12,6 +12,9 @@ const {
   createEvolvableArtifactReleaseGate,
   createEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactActiveReleaseReader,
+  createEvolvableArtifactRuntimeComposition,
+  isEvolvableArtifactRuntimeComposition,
+  getEvolvableArtifactRuntimeDependencies,
   isEvolvableArtifactReleaseGate,
   isEvolvableArtifactCandidateGate,
   createEvolvableArtifactReceipt,
@@ -147,6 +150,75 @@ function transitionStore({ loseResponse = false, mutateReadback = null } = {}) {
 }
 
 describe("EvolvableArtifact protocol", () => {
+  it("assembles branded, tenant-scoped runtime dependencies by artifact type", () => {
+    const allow = (revision) => () => ({
+      decision: "allow",
+      policyRevision: revision,
+    });
+    const config = (revision) => ({
+      policy: {
+        revision,
+        admission: allow(revision),
+        evaluator: allow(revision),
+        activation: allow(revision),
+        rollback: allow(revision),
+      },
+      candidateWriter: { persistCandidate: async () => null },
+      transitionWriter: { commitTransition: async () => null },
+      transitionReader: { readTransition: async () => null },
+      activeProvider: {
+        listActive: async () => [],
+        readActive: async () => null,
+      },
+    });
+    const composition = createEvolvableArtifactRuntimeComposition({
+      tenantId: "tenant-runtime",
+      artifacts: {
+        [ARTIFACT_TYPE.SKILL]: config("skill-policy-v1"),
+        [ARTIFACT_TYPE.PROMPT]: config("prompt-policy-v1"),
+        [ARTIFACT_TYPE.HOOK]: config("hook-policy-v1"),
+      },
+    });
+    const deps = getEvolvableArtifactRuntimeDependencies(composition);
+
+    expect(isEvolvableArtifactRuntimeComposition(composition)).toBe(true);
+    expect(isEvolvableArtifactRuntimeComposition({ ...composition })).toBe(
+      false,
+    );
+    expect(
+      isEvolvableArtifactActiveReleaseReader(
+        deps.evolvableArtifactSkillActiveReleaseReader,
+        ARTIFACT_TYPE.SKILL,
+      ),
+    ).toBe(true);
+    expect(
+      isEvolvableArtifactActiveReleaseReader(
+        deps.evolvableArtifactPromptActiveReleaseReader,
+        ARTIFACT_TYPE.PROMPT,
+      ),
+    ).toBe(true);
+    expect(
+      isEvolvableArtifactActiveReleaseReader(
+        deps.evolvableArtifactHookActiveReleaseReader,
+        ARTIFACT_TYPE.HOOK,
+      ),
+    ).toBe(true);
+    expect(() =>
+      getEvolvableArtifactRuntimeDependencies({ ...composition }),
+    ).toThrow("branded EvolvableArtifact runtime composition");
+    expect(() =>
+      createEvolvableArtifactRuntimeComposition({
+        tenantId: "tenant-runtime",
+        artifacts: {
+          [ARTIFACT_TYPE.SKILL]: {
+            ...config("skill-policy-v1"),
+            misspelledProvider: {},
+          },
+        },
+      }),
+    ).toThrow("unexpected or missing fields");
+  });
+
   it("requires independently branded type policies and isolates their authority", () => {
     const promptPolicy = policy(ARTIFACT_TYPE.PROMPT);
     const knowledgePolicy = policy(ARTIFACT_TYPE.KNOWLEDGE);

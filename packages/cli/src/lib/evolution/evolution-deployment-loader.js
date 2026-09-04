@@ -7,7 +7,7 @@ export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-const SUPPORTED_COMMANDS = new Set(["agent", "evolution", "serve"]);
+const SUPPORTED_COMMANDS = new Set(["agent", "desktop", "evolution", "serve"]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -139,6 +139,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
     read = readFile,
     resolveRealPath = realpath,
     importModule = (url) => import(url),
+    additionalFactories = {},
   } = {},
 ) {
   if (!SUPPORTED_COMMANDS.has(commandName)) return null;
@@ -195,12 +196,42 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw new Error(
       "evolution deployment module must export createChainlessChainCommandDependencies",
     );
+  const builtInFactories = await loadBuiltInFactories(commandName);
+  if (
+    !additionalFactories ||
+    typeof additionalFactories !== "object" ||
+    Array.isArray(additionalFactories) ||
+    utilTypes.isProxy(additionalFactories)
+  ) {
+    throw new TypeError(
+      "additional evolution deployment factories are invalid",
+    );
+  }
+  const additionalFactoryEntries = Object.entries(additionalFactories);
+  if (additionalFactoryEntries.length > 0 && commandName !== "desktop") {
+    throw new Error(
+      "additional evolution deployment factories are reserved for desktop",
+    );
+  }
+  if (
+    additionalFactoryEntries.some(
+      ([name, factory]) =>
+        Object.hasOwn(builtInFactories, name) || typeof factory !== "function",
+    )
+  ) {
+    throw new TypeError(
+      "additional evolution deployment factories are invalid",
+    );
+  }
   return dependencies(
     await loaded.createChainlessChainCommandDependencies(
       Object.freeze({
         commandName,
         descriptor: Object.freeze({ ...descriptor }),
-        factories: await loadBuiltInFactories(commandName),
+        factories: Object.freeze({
+          ...builtInFactories,
+          ...additionalFactories,
+        }),
       }),
     ),
     commandName,

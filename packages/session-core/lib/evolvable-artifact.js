@@ -37,6 +37,8 @@ const authorityBrands = new WeakSet();
 const candidateGateBrands = new WeakSet();
 const releaseGateBrands = new WeakSet();
 const activeReleaseReaderBrands = new WeakSet();
+const runtimeCompositionBrands = new WeakSet();
+const runtimeCompositionDependencies = new WeakMap();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -82,6 +84,16 @@ function normalizeType(type) {
     throw new TypeError("artifact type is invalid");
   }
   return type;
+}
+
+function requireExactObjectKeys(value, keys, name) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`${name} must be an object`);
+  }
+  if (canonical(Object.keys(value).sort()) !== canonical([...keys].sort())) {
+    throw new TypeError(`${name} has unexpected or missing fields`);
+  }
+  return value;
 }
 
 function normalizeParent(parent) {
@@ -881,6 +893,90 @@ function isEvolvableArtifactActiveReleaseReader(value, type = null) {
   );
 }
 
+const ARTIFACT_DEPENDENCY_PREFIX = Object.freeze({
+  [ARTIFACT_TYPE.SKILL]: "Skill",
+  [ARTIFACT_TYPE.PROMPT]: "Prompt",
+  [ARTIFACT_TYPE.HOOK]: "Hook",
+  [ARTIFACT_TYPE.KNOWLEDGE]: "Knowledge",
+});
+
+function createEvolvableArtifactRuntimeComposition({ tenantId, artifacts }) {
+  requiredString(tenantId, "tenantId");
+  if (!artifacts || typeof artifacts !== "object" || Array.isArray(artifacts)) {
+    throw new TypeError("runtime composition artifacts must be an object");
+  }
+  const entries = Object.entries(artifacts);
+  if (entries.length === 0) {
+    throw new TypeError(
+      "runtime composition requires at least one artifact type",
+    );
+  }
+
+  const dependencies = {};
+  const types = [];
+  for (const [type, config] of entries) {
+    normalizeType(type);
+    requireExactObjectKeys(
+      config,
+      [
+        "policy",
+        "candidateWriter",
+        "transitionWriter",
+        "transitionReader",
+        "activeProvider",
+      ],
+      `${type} runtime composition config`,
+    );
+    requireExactObjectKeys(
+      config.policy,
+      ["revision", "admission", "evaluator", "activation", "rollback"],
+      `${type} runtime composition policy`,
+    );
+    const policy = createEvolvableArtifactPolicy({ type, ...config.policy });
+    const authority = createEvolvableArtifactAuthority({ tenantId, policy });
+    const candidateGate = createEvolvableArtifactCandidateGate({
+      authority,
+      candidateWriter: config.candidateWriter,
+    });
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: config.transitionWriter,
+      transitionReader: config.transitionReader,
+    });
+    const activeReleaseReader = createEvolvableArtifactActiveReleaseReader({
+      releaseGate,
+      provider: config.activeProvider,
+    });
+    const prefix = ARTIFACT_DEPENDENCY_PREFIX[type];
+    dependencies[`evolvableArtifact${prefix}CandidateGate`] = candidateGate;
+    dependencies[`evolvableArtifact${prefix}ReleaseGate`] = releaseGate;
+    dependencies[`evolvableArtifact${prefix}ActiveReleaseReader`] =
+      activeReleaseReader;
+    types.push(type);
+  }
+
+  const composition = Object.freeze({
+    tenantId,
+    types: Object.freeze(types.sort()),
+  });
+  runtimeCompositionBrands.add(composition);
+  runtimeCompositionDependencies.set(composition, Object.freeze(dependencies));
+  return composition;
+}
+
+function isEvolvableArtifactRuntimeComposition(value) {
+  return runtimeCompositionBrands.has(value);
+}
+
+function getEvolvableArtifactRuntimeDependencies(composition) {
+  if (!runtimeCompositionBrands.has(composition)) {
+    throw new TypeError(
+      "a branded EvolvableArtifact runtime composition is required",
+    );
+  }
+  return runtimeCompositionDependencies.get(composition);
+}
+
 function projectEvolvableArtifactDependencyChange(
   artifacts,
   changedDependency,
@@ -982,6 +1078,9 @@ module.exports = {
   isEvolvableArtifactReleaseGate,
   createEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactActiveReleaseReader,
+  createEvolvableArtifactRuntimeComposition,
+  isEvolvableArtifactRuntimeComposition,
+  getEvolvableArtifactRuntimeDependencies,
   verifyEvolvableArtifact,
   projectEvolvableArtifactDependencyChange,
   createEvolvableArtifactReceipt,

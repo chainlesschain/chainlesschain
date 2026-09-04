@@ -76,6 +76,9 @@ const {
 const {
   cleanupOwnedManagers,
 } = require("./bootstrap/social-manager-lifecycle");
+const {
+  loadDesktopEvolutionDependencies,
+} = require("./evolution/desktop-evolution-deployment");
 
 // 是否使用旧版单阶段启动（回退开关）
 const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
@@ -129,6 +132,7 @@ class ChainlessChainApp {
     this.initialSetupIPC = null;
     this.deepLinkHandler = null;
     this.ipcModules = null;
+    this.evolutionDeploymentDependencies = Object.freeze({});
     // Tray + minimize-to-tray state:
     //   trayManager  — EnhancedTrayManager instance (created in createWindow)
     //   isQuitting   — set true by `before-quit` so the window's close handler
@@ -281,6 +285,18 @@ class ChainlessChainApp {
       return;
     }
 
+    try {
+      this.evolutionDeploymentDependencies =
+        await loadDesktopEvolutionDependencies({
+          isPackaged: app.isPackaged,
+          resourcesPath: process.resourcesPath,
+        });
+    } catch (error) {
+      logger.error("Desktop evolution deployment failed closed:", error);
+      app.exit(1);
+      return;
+    }
+
     // 创建启动画面
     // Show splash in BOTH desktop-renderer AND webshell modes — packaged
     // boot takes 1+ minute (backend services start, skill registry loads
@@ -332,7 +348,10 @@ class ChainlessChainApp {
           const mappedProgress = 5 + Math.round(progress * 0.8);
           this.splashWindow?.updateProgress(message, mappedProgress);
         },
-        context: { mainWindow: this.mainWindow },
+        context: {
+          mainWindow: this.mainWindow,
+          ...this.evolutionDeploymentDependencies,
+        },
       });
 
       this.applyInstances(instances);
@@ -386,7 +405,10 @@ class ChainlessChainApp {
           const mappedProgress = 5 + Math.round(progress * 0.5);
           this.splashWindow?.updateProgress(message, mappedProgress);
         },
-        context: { mainWindow: this.mainWindow },
+        context: {
+          mainWindow: this.mainWindow,
+          ...this.evolutionDeploymentDependencies,
+        },
       });
 
       this.applyInstances(criticalInstances);
@@ -409,7 +431,10 @@ class ChainlessChainApp {
           const mappedProgress = 55 + Math.round(progress * 0.35);
           this.splashWindow?.updateProgress(message, mappedProgress);
         },
-        context: { mainWindow: this.mainWindow },
+        context: {
+          mainWindow: this.mainWindow,
+          ...this.evolutionDeploymentDependencies,
+        },
       });
 
       this.applyInstances(allInstances);
@@ -1542,6 +1567,7 @@ class ChainlessChainApp {
         mtcFederationManager: this.mtcFederationManager,
         dbManager: this.database,
         versionManager: this.versionManager,
+        ...this.evolutionDeploymentDependencies,
       });
       logger.info("[Main] IPC Registry 注册完成");
     } catch (error) {

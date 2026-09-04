@@ -108,6 +108,46 @@ describe("signed evolution deployment loader", () => {
     );
   });
 
+  it("admits desktop only through a signed descriptor and caller-owned factory", async () => {
+    const fixture = deploymentFixture({ commands: ["desktop"] });
+    const composition = Object.freeze({ branded: true });
+    const runtimeFactory = vi.fn(() => composition);
+    const factory = vi.fn(async ({ commandName, factories }) => ({
+      evolvableArtifactRuntimeComposition:
+        factories.createEvolvableArtifactRuntimeComposition({ commandName }),
+    }));
+
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("desktop", {
+        ...fixture,
+        additionalFactories: {
+          createEvolvableArtifactRuntimeComposition: runtimeFactory,
+        },
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: factory,
+        }),
+      }),
+    ).resolves.toEqual({
+      evolvableArtifactRuntimeComposition: composition,
+    });
+    expect(runtimeFactory).toHaveBeenCalledWith({ commandName: "desktop" });
+  });
+
+  it("does not let non-desktop callers inject or replace built-in factories", async () => {
+    const fixture = deploymentFixture({ commands: ["evolution"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("evolution", {
+        ...fixture,
+        additionalFactories: {
+          createEvolutionWorkbenchCliHost: vi.fn(),
+        },
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async () => ({}),
+        }),
+      }),
+    ).rejects.toThrow("reserved for desktop");
+  });
+
   it("executes the authenticated bytes instead of reopening the module pathname", async () => {
     const fixture = deploymentFixture({
       moduleSource:
