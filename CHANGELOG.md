@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.21: governed evolution knowledge and IDE review
+
+> `chainlesschain` **0.166.20 -> 0.166.21** (release candidate,
+> 2026-09-04).
+
+- **Governed knowledge synchronization**: add tenant-scoped encrypted sharing,
+  durable conflict review, human-approved merge publication, revocation
+  dependency settlement, reviewer key lifecycle, and response-loss recovery.
+- **Evolution Workbench and Skill Retrieval**: expose bounded, digest-verified
+  review and evidence-ranked search through CLI, App Server, Desktop, VS Code,
+  and JetBrains surfaces without moving mutation authority into IDE clients.
+- **Release boundary**: publication requires this exact release commit to pass
+  every configured Linux, Windows, and macOS job in `CLI CI` and
+  `CLI Strict Sandbox`, followed by registry and IDE marketplace readback.
+
 ### Fixed - cc CLI 0.166.20 and Session Core 0.3.10: public-install agent startup
 
 > `chainlesschain` **0.166.18 -> 0.166.20** and

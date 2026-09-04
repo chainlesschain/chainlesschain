@@ -12,7 +12,19 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Plugin **0.4.109** is the current release candidate that re-certifies the read-only
+### What's new in 0.4.110
+
+- **Evolution Workbench** presents CLI-owned candidate history, evidence and
+  diffs, and sends only exact, explicitly confirmed review or rollback argv.
+- **Skill Retrieval** displays the canonical CLI search result with witnessed
+  outcome/vector evidence and preserves a visible abstain state for ambiguous
+  matches.
+- The paired **CLI 0.166.21** adds encrypted tenant-scoped evolution knowledge,
+  durable human merge decisions, reviewer-key revocation, and dependency
+  settlement. Trust, approval, and publication authority stay in the CLI host;
+  the plugin receives bounded projections only.
+
+Plugin **0.4.110** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -21,7 +33,7 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-Candidate CLI `0.166.20` routes Graph, Team, distributed-team, Cowork, Scheduler,
+Candidate CLI `0.166.21` routes Graph, Team, distributed-team, Cowork, Scheduler,
 and App Server entry points through persisted Graph Kernel cutover authority.
 It fences stale writers and takeover/recovery receipts, preserves explicitly
 read-only legacy history, and fails closed on retired mutation paths. It also
@@ -31,10 +43,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended public CLI is `chainlesschain@0.166.20`. Candidate CLI
-`0.166.20` contains the governed Automation/Routine commands, Automation Center
+The recommended public CLI is `chainlesschain@0.166.21`. Candidate CLI
+`0.166.21` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.109` accepts only the exact
+permission/budget enforcement. Version `0.4.110` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -43,19 +55,19 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.109` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.110` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Candidate CLI `0.166.20` provides the
+history-rewriting rollback commands. Candidate CLI `0.166.21` provides the
 governed `team merge-review` command and exact evidence contract.
 
-Candidate CLI `0.166.20` contains the audited Artifact access, managed-copy
+Candidate CLI `0.166.21` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.109`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.110`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
-Public CLI `0.166.20` supersedes `0.166.18`, whose public npm dependency graph
+Public CLI `0.166.21` supersedes `0.166.18`, whose public npm dependency graph
 could report `unknown command 'agent'` because Session Core's structured
 evolution-memory export was absent from the immutable `0.3.9` package. The
 fixed release publishes `@chainlesschain/session-core@0.3.10` first and proves
@@ -69,7 +81,7 @@ managed-policy requests. It also pairs the CLI with
 `@chainlesschain/session-core@0.3.10`, including the published
 `./runtime-claims` and `./structured-evolution-memory` entry points.
 
-Candidate CLI `0.166.20` also adds lease-bound real-time teammate send/receive/ack and
+Candidate CLI `0.166.21` also adds lease-bound real-time teammate send/receive/ack and
 follow-up tools with durable, retry-safe TeamMailbox v3 receipts. The native
 Team Monitor reports only bounded delivery health (retained, pending,
 processed, dead-letter, follow-up, recipient, byte, and pressure metadata);
@@ -230,7 +242,7 @@ This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
 The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sections below may require a newer CLI.
 
-- JetBrains actions: **35** registered entries
+- JetBrains actions: **37** registered entries
 - Doctor entries: `chainlesschain.ide.DiagnoseBridge`
 - Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
@@ -251,6 +263,8 @@ The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sectio
 - `chainlesschain.policy.Viewer`
 - `chainlesschain.context.Center`
 - `chainlesschain.plugins.Manage`
+- `chainlesschain.skills.Retrieve`
+- `chainlesschain.evolution.Workbench`
 - `chainlesschain.worktree.Tasks`
 - `chainlesschain.chrome.Connector`
 - `chainlesschain.workspace.ScanAutoExec`

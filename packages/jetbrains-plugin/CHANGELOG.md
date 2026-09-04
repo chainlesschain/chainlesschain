@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.110] - Governed evolution review and retrieval (2026-09-04)
+
+- Add native Evolution Workbench and Skill Retrieval actions that consume only
+  strict CLI-issued projections and exact digest-bound decisions.
+- Keep review identity, publication, and rollback authority in the CLI host.
+- Recommend the exact-gated `chainlesschain@0.166.21` release and publish only
+  after the shared CLI, sandbox, and real-host matrices pass.
+
 ## [0.4.109] - CLI 0.166.20 public Agent startup recovery (2026-09-03)
 
 - Recommend the exact-gated `chainlesschain@0.166.20` release with
