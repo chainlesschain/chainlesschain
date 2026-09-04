@@ -33,6 +33,7 @@ const TRIGGER_KINDS = new Set([
   "user-correction",
 ]);
 const STORE_BRAND = new WeakSet();
+const TRAIN_BRAND = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -463,7 +464,7 @@ export function createEvolutionReleaseTrain({
   if (typeof clock !== "function")
     throw new TypeError("clock must be a function");
 
-  return Object.freeze({
+  const train = Object.freeze({
     planDigest: plan.planDigest,
     async run() {
       if (Number(clock()) >= Date.parse(plan.expiresAt))
@@ -535,4 +536,13 @@ export function createEvolutionReleaseTrain({
       return Object.freeze({ state, receipts: Object.freeze(receipts) });
     },
   });
+  TRAIN_BRAND.add(train);
+  return train;
+}
+
+export function captureEvolutionReleaseTrain(value) {
+  if (!TRAIN_BRAND.has(value)) {
+    throw new TypeError("a branded Evolution release train is required");
+  }
+  return value;
 }

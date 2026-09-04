@@ -5,6 +5,7 @@ import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
 import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
+import { captureEvolutionReleaseTrain } from "./evolution-release-train.js";
 
 const { EVOLUTION_RUN_EVENT_SCHEMA, EVENT_TYPES } = evolutionRun;
 
@@ -97,6 +98,7 @@ export function createAgentEvolutionIngress({
   runAdapter,
   sourceEnvelopeAuthority,
   wikiMaintenanceProducer = null,
+  releaseTrain = null,
   completionTriggerKind = WIKI_MAINTENANCE_TRIGGER_KIND.SESSION_END,
   now = () => new Date(),
   idGenerator = () => crypto.randomUUID(),
@@ -117,6 +119,8 @@ export function createAgentEvolutionIngress({
     wikiMaintenanceProducer === null
       ? null
       : captureEvolutionRunWikiMaintenanceProducer(wikiMaintenanceProducer);
+  const completionReleaseTrain =
+    releaseTrain === null ? null : captureEvolutionReleaseTrain(releaseTrain);
   if (
     ![
       WIKI_MAINTENANCE_TRIGGER_KIND.SESSION_END,
@@ -280,6 +284,9 @@ export function createAgentEvolutionIngress({
               kind: completionTriggerKind,
               runId: descriptor.runId,
             });
+          }
+          if (completionReleaseTrain !== null) {
+            await completionReleaseTrain.run();
           }
           return projection;
         }),

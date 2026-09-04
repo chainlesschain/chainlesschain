@@ -19,6 +19,8 @@ import {
 } from "./evolution-ledger-file-backend.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
+import { EvolutionReleaseTrainLedgerAdapter } from "./evolution-release-train-ledger-adapter.js";
+import { createEvolutionReleaseTrain } from "./evolution-release-train.js";
 import { captureSkillOutcomeSourceCatalogAuthority } from "./skill-outcome-source-catalog-authority.js";
 import {
   captureAgentEvolutionIngress,
@@ -55,6 +57,7 @@ const ARTIFACT_AUTHORITY_KEYS = new Set([
 const SKILL_OUTCOME_SOURCE_KEYS = new Set(["composition", "skillName"]);
 const SKILL_OUTCOME_CATALOG_ENTRY_KEYS = new Set(["runId", "skillNames"]);
 const MAX_SKILL_OUTCOME_SOURCES = 128;
+const RELEASE_TRAIN_KEYS = new Set(["plan", "stages"]);
 
 function exactRecord(value, keys, label) {
   if (
@@ -183,6 +186,7 @@ export function createAgentEvolutionRuntimeComposition({
   evidenceIdGenerator,
   ingressIdGenerator,
   wikiMaintenanceProducer = null,
+  releaseTrain: releaseTrainInput = null,
   completionTriggerKind,
   secure = true,
   fsImpl,
@@ -376,11 +380,48 @@ export function createAgentEvolutionRuntimeComposition({
     skillOutcomeReaders.set(skillName, reader);
     return reader;
   });
+  let releaseTrain = null;
+  if (releaseTrainInput !== null) {
+    const releaseTrainConfig = exactRecord(
+      releaseTrainInput,
+      RELEASE_TRAIN_KEYS,
+      "releaseTrain",
+    );
+    if (
+      releaseTrainConfig.plan?.tenantId !== tenantId ||
+      typeof releaseTrainConfig.plan?.skillId !== "string"
+    ) {
+      throw new TypeError(
+        "releaseTrain plan must belong to the composition tenant",
+      );
+    }
+    const releaseTrainAdapter = new EvolutionReleaseTrainLedgerAdapter({
+      descriptor: {
+        tenantId,
+        artifactTenantId: tenantId,
+        skillName: releaseTrainConfig.plan.skillId,
+        audience,
+        purpose: "evolution-ledger",
+      },
+      artifactPorts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver,
+      clock: () => new Date(clock()).toISOString(),
+    });
+    releaseTrain = createEvolutionReleaseTrain({
+      plan: releaseTrainConfig.plan,
+      stateStore: releaseTrainAdapter.createStateStore(),
+      stages: releaseTrainConfig.stages,
+      clock,
+    });
+  }
+
   const evolutionIngress = createAgentEvolutionIngress({
     evidenceAdapter,
     runAdapter,
     sourceEnvelopeAuthority: ports.sourceEnvelope,
     wikiMaintenanceProducer,
+    releaseTrain,
     ...(completionTriggerKind === undefined ? {} : { completionTriggerKind }),
     now: () => new Date(clock()),
     idGenerator: ingressIdGenerator,
@@ -395,6 +436,7 @@ export function createAgentEvolutionRuntimeComposition({
     loadRun: Object.freeze(() => runAdapter.load()),
     ledgerDescriptor: backend.descriptor,
     storage,
+    releaseTrain,
   });
   return composition;
 }

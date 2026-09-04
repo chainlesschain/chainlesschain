@@ -23,6 +23,11 @@ import {
 import { isEvolutionWorkbenchMetricsOutcomeReader } from "../../src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js";
 import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 import {
+  EVOLUTION_RELEASE_TRAIN_STAGES,
+  createEvolutionPlan,
+  createEvolutionTrainStageReceipt,
+} from "../../src/lib/evolution/evolution-release-train.js";
+import {
   SKILL_OUTCOME_SOURCE_CATALOG_ATTESTATION_SCHEMA,
   SKILL_OUTCOME_SOURCE_CATALOG_SCHEMA,
   createSkillOutcomeSourceCatalogAuthority,
@@ -517,6 +522,76 @@ function options(root) {
 }
 
 describe("Agent evolution runtime production composition", () => {
+  it("mounts the fixed eight-stage train on the production ArtifactStore and Ledger", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-release-train-"),
+    );
+    roots.push(root);
+    const plan = createEvolutionPlan({
+      tenantId: "tenant-production",
+      skillId: "safe-refactor",
+      gitCommit: "a".repeat(40),
+      baselineReleaseDigest: digest("baseline"),
+      candidateDigest: digest("candidate"),
+      wikiRevisionDigest: digest("wiki"),
+      evalSuiteDigest: digest("eval"),
+      targetMatrixDigest: digest("matrix"),
+      riskTier: "low",
+      rolloutPolicyDigest: digest("rollout"),
+      metricPolicyDigest: digest("metrics"),
+      permissionManifestDigest: digest("permissions"),
+      policyDigest: digest("policy"),
+      requestedCapabilityDigests: [digest("read")],
+      baselineCapabilityDigests: [digest("read")],
+      rootBudget: { tokens: 100, cost: 1, timeMs: 60_000, turns: 16 },
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      triggerDigest: digest("trigger"),
+    });
+    const calls = Object.fromEntries(
+      EVOLUTION_RELEASE_TRAIN_STAGES.map((stage) => [stage, vi.fn()]),
+    );
+    const stages = Object.fromEntries(
+      EVOLUTION_RELEASE_TRAIN_STAGES.map((stage) => [
+        stage,
+        (context) => {
+          calls[stage](context);
+          return createEvolutionTrainStageReceipt({
+            planDigest: context.plan.planDigest,
+            stage,
+            operationKey: context.operationKey,
+            inputDigest: context.inputDigest,
+            outputDigest: digest(`${context.plan.planDigest}:${stage}`),
+            accepted: true,
+            durable: true,
+            usage: { tokens: 1, cost: 0.01, timeMs: 10, turns: 1 },
+          });
+        },
+      ]),
+    );
+    const firstInput = {
+      ...options(root),
+      releaseTrain: { plan, stages },
+    };
+    const first = createAgentEvolutionRuntimeComposition(firstInput);
+    await first.evolutionIngress.complete();
+    const completed = await first.releaseTrain.run();
+    expect(completed.state).toMatchObject({
+      status: "complete",
+      stageIndex: 8,
+    });
+
+    const reopened = createAgentEvolutionRuntimeComposition({
+      ...options(root),
+      releaseTrain: { plan, stages },
+    });
+    await reopened.evolutionIngress.complete();
+    const recovered = await reopened.releaseTrain.run();
+    expect(recovered.state.stateDigest).toBe(completed.state.stateDigest);
+    for (const stage of EVOLUTION_RELEASE_TRAIN_STAGES) {
+      expect(calls[stage]).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it("builds and reopens one authenticated run without embedding authority secrets", async () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-agent-evolution-root-"),
