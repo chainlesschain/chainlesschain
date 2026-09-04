@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Regression coverage**: verify event-loop responsiveness, late renewal, and
   the IDE stream's non-blocking shell option while retaining the existing
   takeover, revocation, and delegated-writer fences.
+- **Release inventory coherence**: align the Skill-writer inventory with the
+  current candidate-only sync and inactive marketplace-plugin staging paths,
+  removing stale evidence for legacy active hot-loading.
 - **Release boundary**: publication requires this exact release commit to pass
   every configured Linux, Windows, and macOS job in `CLI CI` and
   `CLI Strict Sandbox`; no Session Core, Agent SDK/Protocol, Personal Data Hub,

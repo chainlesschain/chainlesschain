@@ -705,8 +705,8 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
         file: "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-sync-manager.js",
         symbol: "SkillSyncManager.importSkill",
         evidence: [
-          "await this.candidateStore.create(createRequest)",
-          "validateCandidateReadback(readback, receipt, createRequest)",
+          "const staged = await this.artifactCandidateGate.stageCandidate(",
+          "persistenceReceipt: staged.receipt",
           'action: "candidate-staged"',
           "activeMutation: false",
         ],
@@ -716,9 +716,9 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
       id: "desktop-plugin-install",
       surface: "desktop",
       triggerClass: "manual",
-      targetAuthority: "legacy-active",
-      mutationType: "indirect-plugin-tree",
-      discoverySymbol: "installPlugin",
+      targetAuthority: "candidate-only",
+      mutationType: "inactive-plugin-tree",
+      discoverySymbol: null,
       entrypoint: {
         file: "desktop-app-vue/src/main/marketplace/plugin-installer.js",
         symbol: "PluginInstaller.installPlugin",
@@ -730,7 +730,8 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
         evidence: [
           "await this.extractPlugin(downloadPath, pluginDir)",
           'path.join(pluginDir, "SKILL.md")',
-          "registry.hotLoadSkill(definition.name, definition)",
+          "Marketplace SKILL.md files are not active at install time",
+          "governed promotion is required",
         ],
       },
     }),

@@ -96,8 +96,8 @@ describe("Skill writer inventory", () => {
     expect(report.ok).toBe(true);
     expect(report.writerCount).toBe(SKILL_WRITER_INVENTORY.writers.length);
     expect(report.writerCount).toBe(39);
-    expect(report.legacyActiveCount).toBe(33);
-    expect(report.candidateOnlyCount).toBe(6);
+    expect(report.legacyActiveCount).toBe(32);
+    expect(report.candidateOnlyCount).toBe(7);
     expect(report.scopeExclusionCount).toBe(3);
     expect(report.directDiscoveredCount).toBeGreaterThan(0);
     expect(report.unknownDirectCount).toBe(0);
