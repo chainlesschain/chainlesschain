@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 560
+**Total Components**: 562
 
 ---
 
@@ -4101,6 +4101,18 @@
 ### HarnessTaskDrawer
 
 **File**: `src/renderer/components/chat/HarnessTaskDrawer.vue`
+
+---
+
+### GovernedKnowledgeReviewDrawer
+
+**File**: `src/renderer/components/chat/GovernedKnowledgeReviewDrawer.vue`
+
+---
+
+### EvolutionWorkbenchDrawer
+
+**File**: `src/renderer/components/chat/EvolutionWorkbenchDrawer.vue`
 
 ---
 
