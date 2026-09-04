@@ -4,13 +4,13 @@
     {
       "productVersion": null,
       "cliVersion": "0.166.21",
-      "cliVersions": ["0.166.20", "0.166.21"],
+      "cliVersions": ["0.1.8", "0.2.8", "0.3.11", "0.166.20", "0.166.21"],
       "date": "2026-09-04",
       "title": "",
       "sections": [
         {
           "heading": "Added - cc CLI 0.166.21: governed evolution knowledge and IDE review",
-          "body": "> `chainlesschain` **0.166.20 -> 0.166.21** (release candidate,\n> 2026-09-04).\n\n- **Governed knowledge synchronization**: add tenant-scoped encrypted sharing,\n  durable conflict review, human-approved merge publication, revocation\n  dependency settlement, reviewer key lifecycle, and response-loss recovery.\n- **Evolution Workbench and Skill Retrieval**: expose bounded, digest-verified\n  review and evidence-ranked search through CLI, App Server, Desktop, VS Code,\n  and JetBrains surfaces without moving mutation authority into IDE clients.\n- **Release boundary**: publication requires this exact release commit to pass\n  every configured Linux, Windows, and macOS job in `CLI CI` and\n  `CLI Strict Sandbox`, followed by registry and IDE marketplace readback."
+          "body": "> `chainlesschain` **0.166.20 -> 0.166.21**,\n> `@chainlesschain/session-core` **0.3.10 -> 0.3.11**,\n> `@chainlesschain/agent-protocol` **0.1.7 -> 0.1.8**,\n> `@chainlesschain/agent-sdk` **0.2.7 -> 0.2.8**, and\n> `chainlesschain-agent-sdk` **0.2.7 -> 0.2.8** (release candidates,\n> 2026-09-04).\n\n- **Governed knowledge synchronization**: add tenant-scoped encrypted sharing,\n  durable conflict review, human-approved merge publication, revocation\n  dependency settlement, reviewer key lifecycle, and response-loss recovery.\n- **Evolution Workbench and Skill Retrieval**: expose bounded, digest-verified\n  review and evidence-ranked search through CLI, App Server, Desktop, VS Code,\n  and JetBrains surfaces without moving mutation authority into IDE clients.\n- **Coordinated runtime contracts**: ship durable Skill-invocation receipts in\n  Session Core, refreshed Kotlin and Swift protocol projections, and the latest\n  App Server pilot client behavior in both TypeScript and Python SDKs. Personal\n  Data Hub remains `0.4.59` because its published source has not changed.\n- **Release boundary**: publication requires this exact release commit to pass\n  every configured Linux, Windows, and macOS job in `CLI CI` and\n  `CLI Strict Sandbox`, plus the affected protocol and SDK gates. Publish the\n  dependency packages before the pinned CLI, followed by registry and IDE\n  marketplace readback."
         }
       ]
     },

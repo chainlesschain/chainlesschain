@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - cc CLI 0.166.21: governed evolution knowledge and IDE review
 
-> `chainlesschain` **0.166.20 -> 0.166.21** (release candidate,
+> `chainlesschain` **0.166.20 -> 0.166.21**,
+> `@chainlesschain/session-core` **0.3.10 -> 0.3.11**,
+> `@chainlesschain/agent-protocol` **0.1.7 -> 0.1.8**,
+> `@chainlesschain/agent-sdk` **0.2.7 -> 0.2.8**, and
+> `chainlesschain-agent-sdk` **0.2.7 -> 0.2.8** (release candidates,
 > 2026-09-04).
 
 - **Governed knowledge synchronization**: add tenant-scoped encrypted sharing,
@@ -18,9 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Evolution Workbench and Skill Retrieval**: expose bounded, digest-verified
   review and evidence-ranked search through CLI, App Server, Desktop, VS Code,
   and JetBrains surfaces without moving mutation authority into IDE clients.
+- **Coordinated runtime contracts**: ship durable Skill-invocation receipts in
+  Session Core, refreshed Kotlin and Swift protocol projections, and the latest
+  App Server pilot client behavior in both TypeScript and Python SDKs. Personal
+  Data Hub remains `0.4.59` because its published source has not changed.
 - **Release boundary**: publication requires this exact release commit to pass
   every configured Linux, Windows, and macOS job in `CLI CI` and
-  `CLI Strict Sandbox`, followed by registry and IDE marketplace readback.
+  `CLI Strict Sandbox`, plus the affected protocol and SDK gates. Publish the
+  dependency packages before the pinned CLI, followed by registry and IDE
+  marketplace readback.
 
 ### Fixed - cc CLI 0.166.20 and Session Core 0.3.10: public-install agent startup
 

@@ -115,7 +115,7 @@ describe("packed session-core authorization boundary", () => {
       expect(
         packedCliManifest.dependencies["@chainlesschain/session-core"],
       ).toBe(packedSessionManifest.version);
-      expect(packedSessionManifest.version).toBe("0.3.10");
+      expect(packedSessionManifest.version).toBe("0.3.11");
       expect(packedSessionManifest.exports).toHaveProperty(
         "./structured-evolution-memory",
         "./lib/structured-evolution-memory.js",
