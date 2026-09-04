@@ -10,11 +10,14 @@ import {
 } from "./governed-knowledge-merge-publisher-authority.js";
 import { isGovernedKnowledgeSync } from "./governed-knowledge-sync.js";
 import { isGovernedKnowledgePublicationReader } from "./governed-knowledge-sync-ledger-adapter.js";
+import { isEvolvableArtifactTransitionReader } from "./evolvable-artifact-ledger-adapter.js";
 
 const {
   ARTIFACT_TYPE,
+  createEvolvableArtifactReceipt,
   digestEvolvableArtifactValue,
   isEvolvableArtifactCandidateGate,
+  isEvolvableArtifactReleaseGate,
 } = evolvableArtifactProtocol;
 
 export const GOVERNED_KNOWLEDGE_SYNC_MERGE_VERIFICATION_SCHEMA =
@@ -96,6 +99,22 @@ function knowledgeCandidateInput(plan) {
     candidateId: `knowledge-merge:${plan.planDigest.slice(7)}`,
     activeReleaseId: parentReleaseId,
     lastKnownGoodReleaseId: null,
+  });
+}
+
+function artifactReceipt(artifact, kind, plan, claims) {
+  return createEvolvableArtifactReceipt({
+    kind,
+    tenantId: artifact.tenantId,
+    artifactId: artifact.artifactId,
+    candidateId: artifact.candidate.candidateId,
+    contentDigest: artifact.contentDigest,
+    dependencyLockDigest: artifact.dependencyLock.digest,
+    issuerId: `governed-knowledge-merge:${kind}`,
+    issuerRevision: "v1",
+    issuedAt: plan.decidedAt,
+    decision: "allow",
+    claims,
   });
 }
 
@@ -184,6 +203,8 @@ function verifyStoredPublication(record, request, envelope = null) {
 export function createGovernedKnowledgeSyncMergePublisherAuthority({
   sync,
   artifactCandidateGate,
+  artifactReleaseGate,
+  verifierArtifactTransitionReader,
   providerPublicationReader,
   verifierPublicationReader,
   providerDescriptor,
@@ -221,6 +242,43 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
     "stageCandidate",
     "artifactCandidateGate",
   );
+  if (
+    !isEvolvableArtifactReleaseGate(
+      artifactReleaseGate,
+      ARTIFACT_TYPE.KNOWLEDGE,
+    ) ||
+    artifactReleaseGate.tenantId !== tenantId ||
+    artifactReleaseGate.authorityScope !== artifactCandidateGate.authorityScope
+  ) {
+    throw new TypeError(
+      "a same-authority Knowledge artifact release gate is required",
+    );
+  }
+  if (
+    !isEvolvableArtifactTransitionReader(verifierArtifactTransitionReader) ||
+    verifierArtifactTransitionReader.tenantId !== tenantId ||
+    verifierArtifactTransitionReader.readerScope ===
+      artifactReleaseGate.transitionReaderScope
+  ) {
+    throw new TypeError(
+      "an independent tenant-bound artifact transition reader is required",
+    );
+  }
+  const prepareArtifactPromotion = capture(
+    artifactReleaseGate,
+    "preparePromotion",
+    "artifactReleaseGate",
+  );
+  const commitArtifactPromotion = capture(
+    artifactReleaseGate,
+    "commitPreparedPromotion",
+    "artifactReleaseGate",
+  );
+  const readArtifactTransition = capture(
+    verifierArtifactTransitionReader,
+    "readTransition",
+    "verifierArtifactTransitionReader",
+  );
   const providerIdentity = descriptor(providerDescriptor, "provider");
   const verifierIdentity = descriptor(verifierDescriptor, "verifier");
   const publish = capture(sync, "publish", "sync");
@@ -252,6 +310,30 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
           "governed knowledge candidate was not persistently staged",
         );
       }
+      const releaseId = `knowledge-release:${plan.planDigest.slice(7)}`;
+      const preparedPromotion = prepareArtifactPromotion({
+        artifact: staged.artifact,
+        candidatePersistenceReceipt: staged.receipt,
+        evaluationReceipt: artifactReceipt(staged.artifact, "eval", plan, {
+          planDigest: plan.planDigest,
+          conflictEnvelopeDigest: plan.conflictEnvelopeDigest,
+          localContentDigest: plan.localContentDigest,
+          remoteContentDigest: plan.remoteContentDigest,
+        }),
+        reviewReceipt: artifactReceipt(staged.artifact, "review", plan, {
+          planDigest: plan.planDigest,
+          humanReceiptDigest: plan.humanReceiptDigest,
+          reviewerId: plan.requestedBy,
+          automated: false,
+        }),
+        promotionReceipt: artifactReceipt(staged.artifact, "promotion", plan, {
+          planDigest: plan.planDigest,
+          publishOperationId: request.operationId,
+          scope: plan.scope,
+          scopeId: plan.scopeId,
+        }),
+        releaseId,
+      });
       const envelope = await publish(request.mergedKnowledge, {
         operationId: request.operationId,
       });
@@ -267,6 +349,7 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
       ) {
         throw new Error("merge publication confirmation clock is invalid");
       }
+      const promoted = await commitArtifactPromotion(preparedPromotion);
       const core = {
         schema: GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
         tenantId,
@@ -277,6 +360,11 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
         knowledgeId: request.knowledgeId,
         mergedContentDigest: request.mergedContentDigest,
         envelopeDigest: stored.envelopeDigest,
+        artifactCandidateDigest: staged.artifact.artifactDigest,
+        artifactDigest: promoted.artifact.artifactDigest,
+        artifactReleaseId: promoted.artifact.activeReleaseId,
+        artifactTransitionOperationId: promoted.receipt.operationId,
+        artifactTransitionReceiptDigest: promoted.receipt.receiptDigest,
         providerAuthorityId: providerIdentity.authorityId,
         providerRevision: providerIdentity.revision,
         providerHandlerArtifactDigest: providerIdentity.handlerArtifactDigest,
@@ -297,13 +385,29 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
         await readVerifierPublication({ operationId: request.operationId }),
         request,
       );
+      const transition = await readArtifactTransition({
+        operationId: result.artifactTransitionOperationId,
+      });
       if (
         result.envelopeDigest !== stored.envelopeDigest ||
         Date.parse(result.publishedAt) < Date.parse(stored.committedAt) ||
         canonical(result.attestation) !==
           canonical(stored.envelope.signature) ||
         result.resultDigest !==
-          digestGovernedKnowledgeMergePublishResult(result)
+          digestGovernedKnowledgeMergePublishResult(result) ||
+        transition?.request?.previousArtifactDigest !==
+          result.artifactCandidateDigest ||
+        transition.request.nextArtifactDigest !== result.artifactDigest ||
+        transition.artifact.artifactDigest !== result.artifactDigest ||
+        transition.artifact.activeReleaseId !== result.artifactReleaseId ||
+        transition.artifact.contentDigest !== request.mergedContentDigest ||
+        transition.artifact.runtimeManifest.mergePlanDigest !==
+          request.planDigest ||
+        transition.receipt.operationId !==
+          result.artifactTransitionOperationId ||
+        transition.receipt.receiptDigest !==
+          result.artifactTransitionReceiptDigest ||
+        transition.receipt.durable !== true
       ) {
         throw new Error("merge publication result differs from durable state");
       }
@@ -317,6 +421,12 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
           resultDigest: result.resultDigest,
           envelopeDigest: stored.envelopeDigest,
           publicationRecordDigest: stored.recordDigest,
+          artifactCandidateDigest: result.artifactCandidateDigest,
+          artifactDigest: result.artifactDigest,
+          artifactReleaseId: result.artifactReleaseId,
+          artifactTransitionOperationId: result.artifactTransitionOperationId,
+          artifactTransitionReceiptDigest:
+            result.artifactTransitionReceiptDigest,
           verifierAuthorityId: verifierIdentity.authorityId,
           verifierRevision: verifierIdentity.revision,
           verifierHandlerArtifactDigest: verifierIdentity.handlerArtifactDigest,
@@ -332,6 +442,11 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
         planDigest: request.planDigest,
         resultDigest: result.resultDigest,
         envelopeDigest: stored.envelopeDigest,
+        artifactCandidateDigest: result.artifactCandidateDigest,
+        artifactDigest: result.artifactDigest,
+        artifactReleaseId: result.artifactReleaseId,
+        artifactTransitionOperationId: result.artifactTransitionOperationId,
+        artifactTransitionReceiptDigest: result.artifactTransitionReceiptDigest,
         providerAuthorityId: providerIdentity.authorityId,
         providerRevision: providerIdentity.revision,
         verifierAuthorityId: verifierIdentity.authorityId,

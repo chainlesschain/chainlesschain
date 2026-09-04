@@ -5,8 +5,10 @@ import { verifyGovernedKnowledgeMergePlan } from "./governed-knowledge-conflict-
 
 export const GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA =
   "chainlesschain.governed-knowledge-merge-publish-request/v1";
-export const GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA =
+export const GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_LEGACY_SCHEMA =
   "chainlesschain.governed-knowledge-merge-publish-result/v1";
+export const GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA =
+  "chainlesschain.governed-knowledge-merge-publish-result/v2";
 
 const AUTHORITIES = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -20,6 +22,11 @@ const DESCRIPTOR_KEYS = new Set([
 ]);
 const RESULT_KEYS = new Set([
   "attestation",
+  "artifactCandidateDigest",
+  "artifactDigest",
+  "artifactReleaseId",
+  "artifactTransitionOperationId",
+  "artifactTransitionReceiptDigest",
   "deviceId",
   "durable",
   "envelopeDigest",
@@ -166,6 +173,12 @@ function validateResult(input, request, providerDescriptor, now) {
       providerDescriptor.handlerArtifactDigest ||
     result.durable !== true ||
     result.idempotent !== true ||
+    !DIGEST.test(result.artifactCandidateDigest ?? "") ||
+    !DIGEST.test(result.artifactDigest ?? "") ||
+    !ID.test(result.artifactReleaseId ?? "") ||
+    !ID.test(result.artifactTransitionOperationId ?? "") ||
+    !result.artifactTransitionOperationId.startsWith("artifact-transition:") ||
+    !DIGEST.test(result.artifactTransitionReceiptDigest ?? "") ||
     !DIGEST.test(result.envelopeDigest ?? "") ||
     !DIGEST.test(result.resultDigest ?? "") ||
     result.resultDigest !==
@@ -194,7 +207,15 @@ export function digestGovernedKnowledgeMergePublishResult(value) {
   delete core.resultDigest;
   delete core.attestation;
   delete core.verificationReceiptDigest;
-  return hash(GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA, core);
+  if (
+    ![
+      GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
+      GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_LEGACY_SCHEMA,
+    ].includes(value.schema)
+  ) {
+    throw new TypeError("merge publish result schema is invalid");
+  }
+  return hash(value.schema, core);
 }
 
 export function createGovernedKnowledgeMergePublisherAuthority({
@@ -257,6 +278,13 @@ export function createGovernedKnowledgeMergePublisherAuthority({
         verified.planDigest !== plan.planDigest ||
         verified.resultDigest !== result.resultDigest ||
         verified.envelopeDigest !== result.envelopeDigest ||
+        verified.artifactCandidateDigest !== result.artifactCandidateDigest ||
+        verified.artifactDigest !== result.artifactDigest ||
+        verified.artifactReleaseId !== result.artifactReleaseId ||
+        verified.artifactTransitionOperationId !==
+          result.artifactTransitionOperationId ||
+        verified.artifactTransitionReceiptDigest !==
+          result.artifactTransitionReceiptDigest ||
         verified.providerAuthorityId !== providerDescriptor.authorityId ||
         verified.providerRevision !== providerDescriptor.revision ||
         verified.verifierAuthorityId !== verifierDescriptor.authorityId ||

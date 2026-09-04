@@ -107,6 +107,7 @@ export class EvolvableArtifactLedgerAdapter {
       audience: text(input?.audience, "audience"),
       purpose: text(input?.purpose, "purpose"),
     });
+    this.readerScope = Object.freeze({});
     if (this.descriptor.purpose !== "evolution-ledger")
       throw new TypeError("artifact adapter purpose must be evolution-ledger");
     this._put = capture(artifactPorts, "putCanonical", "artifactPorts");
@@ -409,6 +410,7 @@ export class EvolvableArtifactLedgerAdapter {
     const readTransition = this.readTransition.bind(this);
     const reader = Object.freeze({
       tenantId: this.descriptor.tenantId,
+      readerScope: this.readerScope,
       readTransition,
     });
     TRANSITION_READERS.add(reader);

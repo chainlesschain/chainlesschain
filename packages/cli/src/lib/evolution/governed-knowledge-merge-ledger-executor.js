@@ -15,6 +15,7 @@ import {
 } from "./governed-knowledge-conflict-merge.js";
 import {
   GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA,
+  GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_LEGACY_SCHEMA,
   GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
   digestGovernedKnowledgeMergePublishResult,
   isGovernedKnowledgeMergePublisherAuthority,
@@ -55,6 +56,11 @@ const SETTLED_KEYS = new Set([
 ]);
 const PUBLISH_EVIDENCE_KEYS = new Set([
   "attestation",
+  "artifactCandidateDigest",
+  "artifactDigest",
+  "artifactReleaseId",
+  "artifactTransitionOperationId",
+  "artifactTransitionReceiptDigest",
   "deviceId",
   "durable",
   "envelopeDigest",
@@ -73,6 +79,9 @@ const PUBLISH_EVIDENCE_KEYS = new Set([
   "tenantId",
   "verificationReceiptDigest",
 ]);
+const LEGACY_PUBLISH_EVIDENCE_KEYS = new Set(
+  [...PUBLISH_EVIDENCE_KEYS].filter((key) => !key.startsWith("artifact")),
+);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -181,7 +190,13 @@ function settledCore(value) {
 }
 
 function validatePublishEvidence(value, plan, descriptorValue) {
-  exact(value, PUBLISH_EVIDENCE_KEYS, "merge publish evidence");
+  const legacy =
+    value?.schema === GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_LEGACY_SCHEMA;
+  exact(
+    value,
+    legacy ? LEGACY_PUBLISH_EVIDENCE_KEYS : PUBLISH_EVIDENCE_KEYS,
+    "merge publish evidence",
+  );
   const requestCore = {
     schema: GOVERNED_KNOWLEDGE_MERGE_PUBLISH_REQUEST_SCHEMA,
     tenantId: plan.tenantId,
@@ -193,7 +208,10 @@ function validatePublishEvidence(value, plan, descriptorValue) {
     mergedKnowledge: plan.mergedKnowledge,
   };
   if (
-    value.schema !== GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA ||
+    ![
+      GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
+      GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_LEGACY_SCHEMA,
+    ].includes(value.schema) ||
     value.tenantId !== descriptorValue.tenantId ||
     value.deviceId !== descriptorValue.deviceId ||
     value.operationId !== `knowledge-merge:${plan.planDigest.slice(7)}` ||
@@ -207,6 +225,15 @@ function validatePublishEvidence(value, plan, descriptorValue) {
     !DIGEST.test(value.envelopeDigest ?? "") ||
     !DIGEST.test(value.resultDigest ?? "") ||
     !DIGEST.test(value.verificationReceiptDigest ?? "") ||
+    (!legacy &&
+      (!DIGEST.test(value.artifactCandidateDigest ?? "") ||
+        !DIGEST.test(value.artifactDigest ?? "") ||
+        !ID.test(value.artifactReleaseId ?? "") ||
+        !ID.test(value.artifactTransitionOperationId ?? "") ||
+        !value.artifactTransitionOperationId.startsWith(
+          "artifact-transition:",
+        ) ||
+        !DIGEST.test(value.artifactTransitionReceiptDigest ?? ""))) ||
     value.resultDigest !== digestGovernedKnowledgeMergePublishResult(value)
   ) {
     corrupt("merge publish evidence is not exactly bound");

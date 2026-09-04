@@ -723,6 +723,7 @@ function createEvolvableArtifactReleaseGate({
     tenantId: authority.tenantId,
     type: authority.type,
     authorityScope: authority.authorityScope,
+    transitionReaderScope: transitionReader.readerScope ?? transitionReader,
     preparePromotion({
       artifact,
       candidatePersistenceReceipt,
