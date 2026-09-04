@@ -257,7 +257,16 @@ function requestFor(tenantId, streamId, outcome, resolution, dependency) {
     resolutionDigest: resolution.resolutionDigest,
     dependency,
   };
-  return freeze({ ...core, requestDigest: hash(core) });
+  return freeze({
+    ...core,
+    requestDigest: digestSkillRevocationDependencyRequest(core),
+  });
+}
+
+export function digestSkillRevocationDependencyRequest(value) {
+  const core = structuredClone(value);
+  delete core.requestDigest;
+  return hash(core);
 }
 
 function normalizeResult(value, request, dependency, tenantId) {

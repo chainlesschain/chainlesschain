@@ -5,6 +5,10 @@ import {
   GovernedSkillMarketplace,
   buildGovernedSkillMarketplaceManifest,
 } from "../../src/lib/evolution/governed-skill-marketplace.js";
+import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+  digestSkillRevocationDependencyRequest,
+} from "../../src/lib/evolution/skill-revocation-propagation.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -48,6 +52,7 @@ function manifest(overrides = {}) {
 
 function harness() {
   let state = null;
+  let loseCommitAck = false;
   const ports = {
     verifySignature: vi.fn(async () => true),
     adapt: vi.fn(async ({ manifest: value, cell }) => ({
@@ -60,6 +65,10 @@ function harness() {
     load: vi.fn(async () => state),
     commit: vi.fn(async ({ state: next, expectedStateDigest }) => {
       state = next;
+      if (loseCommitAck) {
+        loseCommitAck = false;
+        throw new Error("simulated marketplace commit response loss");
+      }
       return {
         authenticated: true,
         durable: true,
@@ -94,6 +103,33 @@ function harness() {
     get state() {
       return state;
     },
+    loseNextCommitAck() {
+      loseCommitAck = true;
+    },
+  };
+}
+
+function revocationDependencyRequest(state) {
+  const core = {
+    schema: SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+    tenantId: "tenant:a",
+    streamId: "pilot-a:wiki-outcomes",
+    operationId: `skill-revocation:${D("outcome").slice(7)}:${D("dependency").slice(7)}`,
+    transitionDigest: D("outcome"),
+    candidateId: D("candidate"),
+    skillName: "repair-tests",
+    sourceReceiptDigest: D("rollback"),
+    resolutionDigest: D("resolution"),
+    dependency: {
+      kind: "marketplace-badge",
+      ref: "marketplace-state:tenant:a:repair-tests",
+      digest: state.stateDigest,
+      disposition: "revoke",
+    },
+  };
+  return {
+    ...core,
+    requestDigest: digestSkillRevocationDependencyRequest(core),
   };
 }
 
@@ -263,6 +299,38 @@ describe("Governed Skill Marketplace", () => {
         request: expect.objectContaining({ nextStage: "rolled-back" }),
       }),
     );
+  });
+
+  it("serves the rollback propagation port idempotently after commit response loss", async () => {
+    const h = harness();
+    const state = await h.market.stage({
+      manifest: manifest(),
+      target: TARGET,
+      expectedStateDigest: null,
+    });
+    const request = revocationDependencyRequest(state);
+    h.loseNextCommitAck();
+
+    const first = await h.market.revokeMarketplaceBadge(request);
+    const retried = await h.market.revokeMarketplaceBadge(request);
+
+    expect(first).toEqual(retried);
+    expect(first).toMatchObject({
+      authenticated: true,
+      durable: true,
+      applied: true,
+      idempotent: true,
+      requestDigest: request.requestDigest,
+      dependencyKind: "marketplace-badge",
+      disposition: "revoke",
+    });
+    expect(h.state).toMatchObject({
+      stage: "rolled-back",
+      revoked: true,
+      revocationPropagationRequestDigest: request.requestDigest,
+      revocationBaselineStateDigest: state.stateDigest,
+    });
+    expect(h.ports.verifyRevocation).toHaveBeenCalledTimes(1);
   });
 
   it("ranks by target Eval and verified outcomes, not installs or self-confidence", async () => {

@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+  SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
+  digestSkillRevocationDependencyRequest,
+} from "./skill-revocation-propagation.js";
+
 export const GOVERNED_SKILL_MARKETPLACE_MANIFEST_SCHEMA =
   "chainlesschain.governed-skill-marketplace-manifest/v1";
 export const GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA =
@@ -14,6 +20,25 @@ const STAGES = new Map([
   ["candidate", "shadow"],
   ["shadow", "canary"],
   ["canary", "active"],
+]);
+const REVOCATION_DEPENDENCY_REQUEST_KEYS = new Set([
+  "schema",
+  "tenantId",
+  "streamId",
+  "operationId",
+  "transitionDigest",
+  "candidateId",
+  "skillName",
+  "sourceReceiptDigest",
+  "resolutionDigest",
+  "dependency",
+  "requestDigest",
+]);
+const REVOCATION_DEPENDENCY_KEYS = new Set([
+  "kind",
+  "ref",
+  "digest",
+  "disposition",
 ]);
 
 function canonical(value) {
@@ -52,6 +77,24 @@ function record(value, label) {
     ![Object.prototype, null].includes(Object.getPrototypeOf(value))
   )
     throw new TypeError(`${label} must be a plain object`);
+  return value;
+}
+
+function exact(value, keys, label) {
+  record(value, label);
+  const own = Reflect.ownKeys(value);
+  if (
+    own.length !== keys.size ||
+    own.some((key) => typeof key !== "string" || !keys.has(key))
+  ) {
+    throw new TypeError(`${label} has an invalid shape`);
+  }
+  for (const key of own) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw new TypeError(`${label}.${String(key)} is not a data field`);
+    }
+  }
   return value;
 }
 
@@ -350,7 +393,15 @@ export class GovernedSkillMarketplace {
     );
   }
 
-  async revoke({ skillName, expectedStateDigest, revocationReceipt } = {}) {
+  async revoke({
+    skillName,
+    expectedStateDigest,
+    revocationReceipt,
+    propagationRequestDigest = null,
+  } = {}) {
+    if (propagationRequestDigest !== null) {
+      digest(propagationRequestDigest, "propagationRequestDigest");
+    }
     const current = await this._exact(skillName, expectedStateDigest);
     const verified = await this._verifyRevocation({
       state: current,
@@ -393,6 +444,12 @@ export class GovernedSkillMarketplace {
         stage: "rolled-back",
         revoked: true,
         revocationReceiptDigest: verified.receiptDigest,
+        ...(propagationRequestDigest === null
+          ? {}
+          : {
+              revocationPropagationRequestDigest: propagationRequestDigest,
+              revocationBaselineStateDigest: current.stateDigest,
+            }),
         transitionRequestDigest: requestDigest,
         transitionReceiptDigest: transition.receiptDigest,
       },
@@ -401,10 +458,112 @@ export class GovernedSkillMarketplace {
     );
   }
 
+  async revokeMarketplaceBadge(request) {
+    exact(
+      request,
+      REVOCATION_DEPENDENCY_REQUEST_KEYS,
+      "marketplace revocation dependency request",
+    );
+    exact(
+      request.dependency,
+      REVOCATION_DEPENDENCY_KEYS,
+      "marketplace revocation dependency",
+    );
+    const expectedRef = `marketplace-state:${this.tenantId}:${request.skillName}`;
+    if (
+      request.schema !== SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA ||
+      request.tenantId !== this.tenantId ||
+      request.dependency.kind !== "marketplace-badge" ||
+      request.dependency.disposition !== "revoke" ||
+      request.dependency.ref !== expectedRef ||
+      request.requestDigest !==
+        digestSkillRevocationDependencyRequest(request) ||
+      !DIGEST.test(request.dependency.digest ?? "") ||
+      !DIGEST.test(request.transitionDigest ?? "") ||
+      !DIGEST.test(request.candidateId ?? "") ||
+      !DIGEST.test(request.sourceReceiptDigest ?? "") ||
+      !DIGEST.test(request.resolutionDigest ?? "")
+    ) {
+      throw new Error("marketplace revocation dependency is not exactly bound");
+    }
+    id(request.skillName, "skillName");
+    id(request.streamId, "streamId");
+    id(request.operationId, "operationId");
+    let current = await this._verifiedState(request.skillName);
+    const expectedStateDigest = request.dependency.digest;
+    if (!(
+      current.revoked === true &&
+      current.stage === "rolled-back" &&
+      current.revocationBaselineStateDigest === expectedStateDigest &&
+      current.revocationPropagationRequestDigest === request.requestDigest
+    )) {
+      if (current.stateDigest !== expectedStateDigest) {
+        throw new Error("marketplace revocation dependency baseline changed");
+      }
+      try {
+        current = await this.revoke({
+          skillName: request.skillName,
+          expectedStateDigest,
+          revocationReceipt: request,
+          propagationRequestDigest: request.requestDigest,
+        });
+      } catch (cause) {
+        const recovered = await this._verifiedState(request.skillName);
+        if (
+          recovered.revoked !== true ||
+          recovered.stage !== "rolled-back" ||
+          recovered.revocationBaselineStateDigest !== expectedStateDigest ||
+          recovered.revocationPropagationRequestDigest !== request.requestDigest
+        ) {
+          throw cause;
+        }
+        current = recovered;
+      }
+    }
+    return freeze({
+      schema: SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
+      authenticated: true,
+      durable: true,
+      applied: true,
+      idempotent: true,
+      tenantId: this.tenantId,
+      operationId: request.operationId,
+      requestDigest: request.requestDigest,
+      dependencyKind: request.dependency.kind,
+      dependencyRef: request.dependency.ref,
+      dependencyDigest: request.dependency.digest,
+      disposition: request.dependency.disposition,
+      receiptDigest: current.stateDigest,
+    });
+  }
+
+  async _verifiedState(skillName) {
+    const current = await this._load({ skillName });
+    record(current, "marketplace state");
+    for (const key of Reflect.ownKeys(current)) {
+      const descriptor = Object.getOwnPropertyDescriptor(current, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        throw new Error("marketplace state contains an unsafe field");
+      }
+    }
+    const core = clone(current);
+    delete core.stateDigest;
+    if (
+      current.schema !== GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA ||
+      current.tenantId !== this.tenantId ||
+      current.skillName !== skillName ||
+      current.stateDigest !==
+        hash(GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA, core)
+    ) {
+      throw new Error("marketplace state is unauthenticated or corrupt");
+    }
+    return current;
+  }
+
   async _exact(skillName, expectedStateDigest) {
     id(skillName, "skillName");
     digest(expectedStateDigest, "expectedStateDigest");
-    const current = await this._load({ skillName });
+    const current = await this._verifiedState(skillName);
     if (!current || current.stateDigest !== expectedStateDigest)
       throw new Error("marketplace state changed or is missing");
     return current;
