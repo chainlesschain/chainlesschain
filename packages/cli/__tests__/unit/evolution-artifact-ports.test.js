@@ -620,6 +620,7 @@ describe("EvolutionArtifactPorts", () => {
       "wiki-maintenance-request",
       "wiki-maintenance-settlement",
       "wiki-revision",
+      "wiki-skill-proposal",
     ]);
     const results = EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES.map((type) =>
       publish({

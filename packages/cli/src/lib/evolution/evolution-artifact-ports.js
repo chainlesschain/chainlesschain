@@ -86,6 +86,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "wiki-maintenance-request",
   "wiki-maintenance-settlement",
   "wiki-revision",
+  "wiki-skill-proposal",
 ]);
 export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_PURPOSES = Object.freeze([
   "evolution-ledger",
@@ -143,6 +144,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "wiki-maintenance-request",
   "wiki-maintenance-settlement",
   "wiki-revision",
+  "wiki-skill-proposal",
   "skill-release-transition-intent",
   "source",
   "source-evidence",
@@ -338,6 +340,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["governed-knowledge-dependency-operation", new Set(["evolution-ledger"])],
   ["governed-knowledge-trust-record", new Set(["evolution-ledger"])],
   ["wiki-revision", new Set(["evolution-ledger"])],
+  ["wiki-skill-proposal", new Set(["evolution-ledger"])],
   ["structured-memory-authority-receipt", new Set(["evolution-ledger"])],
   ["structured-memory-event", new Set(["evolution-ledger"])],
   ["structured-memory-snapshot", new Set(["evolution-ledger"])],

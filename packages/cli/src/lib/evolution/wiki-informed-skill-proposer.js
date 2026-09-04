@@ -38,6 +38,10 @@ function hash(value) {
   return `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`;
 }
 
+export function computeWikiSkillProposalDigest(proposal) {
+  return hash(proposal);
+}
+
 function deepFreeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -329,7 +333,7 @@ export class WikiInformedSkillProposer {
     }
 
     const proposal = validateProposal(output, this.descriptor, evidence);
-    const proposalDigest = hash(proposal);
+    const proposalDigest = computeWikiSkillProposalDigest(proposal);
     return deepFreeze({
       status: WIKI_PROPOSAL_STATUS.PROPOSAL,
       proposal,
@@ -359,7 +363,7 @@ export class WikiInformedSkillProposer {
       proposal?.tenantId !== this.descriptor.tenantId ||
       proposal?.evolutionRunId !== this.descriptor.evolutionRunId ||
       canonical(normalized) !== canonical(proposal) ||
-      drafted?.proposalDigest !== hash(proposal)
+      drafted?.proposalDigest !== computeWikiSkillProposalDigest(proposal)
     ) {
       const error = new Error(
         "draft is not an exact proposal bound to this proposer",
