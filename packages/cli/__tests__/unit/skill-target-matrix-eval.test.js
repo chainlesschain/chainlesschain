@@ -1027,6 +1027,7 @@ function makeAnonymousSubjectBrokerFixture({
 }
 
 function makeHarness({
+  tenantId = TENANT_ID,
   suite = suiteWithCounts(),
   evalPolicy = policy(),
   baselinePass = () => false,
@@ -1741,7 +1742,7 @@ function makeHarness({
     attestationSigner: attestationSignerPort,
     attestationVerifier: attestationVerifierPort,
     receiptTrust: crypto.receiptTrust,
-    tenantId: TENANT_ID,
+    tenantId,
     provenanceAudience: PROVENANCE_AUDIENCE,
     expectedTrainerAuthority: TRAINER_AUTHORITY,
     expectedTrainerRevision: TRAINER_REVISION,
@@ -2130,6 +2131,9 @@ function makeMatrixComposition({
   fixtureId = "accepted",
   planTtlMs = 300_000,
   useCanonicalCandidate = false,
+  candidateOverride = null,
+  tenantId = TENANT_ID,
+  skillName = "skill-pilot",
 }) {
   const secrets = new Map();
   const makeTrust = (role) => {
@@ -2261,11 +2265,11 @@ function makeMatrixComposition({
     return attestation.value === expected;
   };
   const dependencyLock = buildSkillDependencyLock({
-    tenantId: TENANT_ID,
+    tenantId,
     lock: { packageManager: "npm", lockfileDigest: `sha256:${"4".repeat(64)}` },
   });
   const runtimeManifest = buildSkillRuntimeManifest({
-    tenantId: TENANT_ID,
+    tenantId,
     runtimes: [
       {
         runtimeId: "node22-linux-x64",
@@ -2278,7 +2282,7 @@ function makeMatrixComposition({
     ],
   });
   const targetMatrix = buildSkillTargetMatrix({
-    tenantId: TENANT_ID,
+    tenantId,
     dependencyLock,
     runtimeManifest,
     cells: [
@@ -2296,34 +2300,36 @@ function makeMatrixComposition({
       },
     ],
   });
-  const candidate = useCanonicalCandidate
-    ? buildSkillCandidateDraft(
-        {
-          tenantId: TENANT_ID,
-          skillName: "skill-pilot",
-          parentDigest: null,
-          sourceEvidenceRefs: [
-            {
-              ref: "recording://matrix-promotion/source",
-              digest: matrixDigest("matrix-promotion-source", fixtureId),
-            },
-          ],
-          derivationMode: "record-replay",
-          wikiRevision: null,
-          proposerModel: null,
-          requestedCapabilities: ["workspace.read"],
-          evalRunId: null,
-          content: `---\nname: skill-pilot\n---\n\nMatrix candidate ${fixtureId}.\n`,
-          dependencyLock,
-          runtimeManifest,
-          targetMatrix,
-        },
-        {
-          expectedEnvironmentBindings: targetMatrix.cells,
-          expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
-        },
-      )
-    : null;
+  const candidate = candidateOverride
+    ? structuredClone(candidateOverride)
+    : useCanonicalCandidate
+      ? buildSkillCandidateDraft(
+          {
+            tenantId,
+            skillName,
+            parentDigest: null,
+            sourceEvidenceRefs: [
+              {
+                ref: "recording://matrix-promotion/source",
+                digest: matrixDigest("matrix-promotion-source", fixtureId),
+              },
+            ],
+            derivationMode: "record-replay",
+            wikiRevision: null,
+            proposerModel: null,
+            requestedCapabilities: ["workspace.read"],
+            evalRunId: null,
+            content: `---\nname: skill-pilot\n---\n\nMatrix candidate ${fixtureId}.\n`,
+            dependencyLock,
+            runtimeManifest,
+            targetMatrix,
+          },
+          {
+            expectedEnvironmentBindings: targetMatrix.cells,
+            expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
+          },
+        )
+      : null;
   const cellAuthorities = Object.freeze([
     Object.freeze({
       cellId: "cell-linux",
@@ -2398,8 +2404,8 @@ function makeMatrixComposition({
   const plan = buildSkillTargetMatrixEvalPlan({
     matrixEvalId: `matrix-eval-${fixtureId}-v1`,
     nonce: `matrix-eval-plan-${fixtureId}-nonce-v1`,
-    tenantId: TENANT_ID,
-    skillName: "skill-pilot",
+    tenantId,
+    skillName,
     candidateId: candidate?.candidateId ?? CANDIDATE_ID,
     candidateContentDigest:
       candidate?.contentDigest ?? `sha256:${"5".repeat(64)}`,
@@ -2569,7 +2575,7 @@ function makeMatrixComposition({
     clock: Object.freeze({ trust: roles.clock, revision: revisions.clock }),
   });
   const aggregatorOptions = {
-    tenantId: TENANT_ID,
+    tenantId,
     dependencyLock,
     runtimeManifest,
     targetMatrix,
@@ -2924,7 +2930,106 @@ describe("Skill target matrix evaluation foundation", () => {
     });
     expect(durability.retain).toHaveBeenCalledTimes(1);
     expect(outputLedger.commit).toHaveBeenCalledTimes(1);
-  });
+  }, 30_000);
+
+  it.runIf(Boolean(process.env.CC_RELEASE_TRAIN_MATRIX_ROOT))(
+    "materializes a real matrix Eval stage for the cross-process ReleaseTrain",
+    async () => {
+      const root = path.resolve(process.env.CC_RELEASE_TRAIN_MATRIX_ROOT);
+      const request = JSON.parse(
+        fs.readFileSync(path.join(root, "matrix-request.json"), "utf8"),
+      );
+      const firstHarness = makeHarness({ tenantId: request.tenantId });
+      const secondHarness = makeHarness({ tenantId: request.tenantId });
+      const calibration = await runEvolutionEvalGate(
+        firstHarness.gate,
+        RUN_REQUEST,
+      );
+      const fixture = makeMatrixComposition({
+        calibration,
+        firstHarness,
+        secondHarness,
+        baselineReleaseDigest: request.baselineReleaseDigest,
+        expectedActiveContentDigest: request.baselineContentDigest,
+        expectedActiveRevision: request.baselineRevision,
+        fixtureId: "release-train-process",
+        candidateOverride: request.candidate,
+        tenantId: request.tenantId,
+        skillName: request.skillName,
+      });
+      const planResult = {
+        matrixPlan: fixture.plan,
+        matrixPlanRef: fixture.planRef,
+        expectedReceipt: fixture.expected,
+        evalSuiteDigest: calibration.suiteDigest,
+        policyDigest: calibration.policyDigest,
+      };
+      fs.writeFileSync(
+        path.join(root, "matrix-plan.json"),
+        `${JSON.stringify(planResult)}\n`,
+        "utf8",
+      );
+      if (request.mode === "plan") return;
+
+      const stageOutputPath = path.join(root, "matrix-stage-output.json");
+      let stored = fs.existsSync(stageOutputPath)
+        ? JSON.parse(fs.readFileSync(stageOutputPath, "utf8"))
+        : null;
+      const outputLedger = {
+        load: () => stored,
+        commit: (input) => {
+          stored = {
+            ...structuredClone(input),
+            valueDigest: matrixDigest(
+              "release-train-process-matrix-stage-output",
+              input.value,
+            ),
+          };
+          fs.writeFileSync(
+            stageOutputPath,
+            `${JSON.stringify(stored)}\n`,
+            "utf8",
+          );
+          return { committed: true };
+        },
+      };
+      const durability = {
+        retain: async (receipt) => {
+          fs.writeFileSync(
+            path.join(root, "matrix-receipt.json"),
+            `${JSON.stringify(receipt)}\n`,
+            "utf8",
+          );
+          return { durable: true, receiptDigest: receipt.receiptDigest };
+        },
+      };
+      const stage = createEvolutionEvalStage({
+        aggregator: new SkillTargetMatrixEvalAggregator(
+          fixture.aggregatorOptions,
+        ),
+        receiptVerifier: new SkillTargetMatrixEvalReceiptVerifier(
+          fixture.verifierOptions,
+        ),
+        planRef: fixture.planRef,
+        expectedReceipt: fixture.expected,
+        durability,
+        outputLedger,
+        usage: { tokens: 1, cost: 0, timeMs: 2, turns: 1 },
+      });
+      const stageReceipt = await stage(request.context);
+      fs.writeFileSync(
+        path.join(root, "matrix-stage-receipt.json"),
+        `${JSON.stringify(stageReceipt)}\n`,
+        "utf8",
+      );
+      expect(stored.value).toMatchObject({
+        decision: "accepted",
+        candidateId: request.candidate.candidateId,
+        candidateContentDigest: request.candidate.contentDigest,
+      });
+    },
+    120_000,
+  );
 
   it("runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt", async () => {
     const firstHarness = makeHarness();

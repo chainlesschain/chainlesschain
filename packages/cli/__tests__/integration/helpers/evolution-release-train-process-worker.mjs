@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { ArtifactStore } from "../../../src/lib/artifact-store.js";
 import {
@@ -36,6 +38,7 @@ import {
   buildSkillRuntimeManifest,
   buildSkillTargetMatrix,
 } from "../../../src/lib/evolution/skill-execution-manifest.js";
+import { computeEvolutionEvalEnvironmentDigest } from "../../../src/lib/evolution/evolution-eval-gate.js";
 import { SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA } from "../../../src/lib/evolution/skill-evaluated-promotion.js";
 import { EMPTY_SKILL_ACTIVE_DIGEST } from "../../../src/lib/evolution/skill-promotion-controller.js";
 import { SkillPromotionReviewLedgerAdapter } from "../../../src/lib/evolution/skill-promotion-review-ledger-adapter.js";
@@ -54,9 +57,45 @@ import { WikiSkillProposalLedgerAdapter } from "../../../src/lib/evolution/wiki-
 const [rootInput, operation = "run", crashStage = "none"] =
   process.argv.slice(2);
 const root = path.resolve(rootInput);
-const NOW = "2026-09-05T12:00:00.000Z";
+const NOW = "2026-09-01T12:00:00.000Z";
 const TENANT = "tenant-process";
 const SKILL = "safe-refactor";
+const CLI_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../..",
+);
+const MATRIX_TEST_NAME =
+  "materializes a real matrix Eval stage for the cross-process ReleaseTrain";
+
+function runMatrixTest() {
+  const vitestPath = path.resolve(
+    CLI_ROOT,
+    "../../node_modules/vitest/vitest.mjs",
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      vitestPath,
+      "run",
+      "__tests__/unit/skill-target-matrix-eval.test.js",
+      "-t",
+      MATRIX_TEST_NAME,
+      "--reporter=dot",
+    ],
+    {
+      cwd: CLI_ROOT,
+      encoding: "utf8",
+      env: { ...process.env, CC_RELEASE_TRAIN_MATRIX_ROOT: root },
+      timeout: 120_000,
+      windowsHide: true,
+    },
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      `matrix Eval subprocess failed (${result.status}): ${result.stderr || result.stdout}`,
+    );
+  }
+}
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -106,27 +145,43 @@ const WIKI_REQUEST = Object.freeze({
 
 const dependencyLock = buildSkillDependencyLock({
   tenantId: TENANT,
-  lock: { generation: 1, packages: { vitest: "4.1.10" } },
+  lock: {
+    packageManager: "npm",
+    lockfileDigest: `sha256:${"4".repeat(64)}`,
+  },
 });
 const runtimeManifest = buildSkillRuntimeManifest({
   tenantId: TENANT,
   runtimes: [
     {
-      runtimeId: "cli",
-      descriptor: {
-        platform: "process-test",
-        runtime: "node-22.12.0",
-        sandboxPolicyDigest: digest("process-sandbox"),
-      },
+      runtimeId: "node22-linux-x64",
+      descriptor: { abi: "node22", os: "linux" },
+    },
+    {
+      runtimeId: "node22-windows-x64",
+      descriptor: { abi: "node22", os: "windows" },
     },
   ],
 });
+const evaluationEnvironmentDigest = computeEvolutionEvalEnvironmentDigest({
+  model: "provider/model@2026-09-01",
+  osImage: "windows-2025-ltsc",
+  toolManifestDigest: `sha256:${"1".repeat(64)}`,
+  permissionDigest: `sha256:${"2".repeat(64)}`,
+  sandboxDigest: `sha256:${"3".repeat(64)}`,
+});
 const environmentBindings = [
   {
-    cellId: "cli-process",
-    runtimeId: "cli",
-    targetEnvironmentRef: "environment:cli-process",
-    environmentDigest: digest("process-environment"),
+    cellId: "cell-linux",
+    runtimeId: "node22-linux-x64",
+    targetEnvironmentRef: "shared-production-environment-v1",
+    environmentDigest: evaluationEnvironmentDigest,
+  },
+  {
+    cellId: "cell-windows",
+    runtimeId: "node22-windows-x64",
+    targetEnvironmentRef: "shared-production-environment-v1",
+    environmentDigest: evaluationEnvironmentDigest,
   },
 ];
 const targetMatrix = buildSkillTargetMatrix({
@@ -551,7 +606,7 @@ function artifactPorts() {
           allowed: true,
           audience: request.audience,
           checkedAt: NOW,
-          decisionExpiresAt: "2026-09-05T12:01:00.000Z",
+          decisionExpiresAt: "2026-09-01T12:01:00.000Z",
           digest: request.digest,
           issuedAt: request.issuedAt,
           issuedPolicyDigest: request.issuedPolicyDigest,
@@ -690,6 +745,25 @@ if (operation === "real-prefix-run") {
   const calibratedCandidate = await calibrationProposer.proposer.propose();
   const reviewCandidate = calibrationProposer.getCandidate();
   const progressive = createProgressiveFixture(reviewCandidate.contentDigest);
+  const matrixRequestPath = path.join(root, "matrix-request.json");
+  const matrixPlanPath = path.join(root, "matrix-plan.json");
+  if (!fs.existsSync(matrixPlanPath)) {
+    fs.writeFileSync(
+      matrixRequestPath,
+      `${JSON.stringify({
+        mode: "plan",
+        tenantId: TENANT,
+        skillName: SKILL,
+        candidate: reviewCandidate,
+        baselineReleaseDigest: null,
+        baselineContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+        baselineRevision: 0,
+      })}\n`,
+      "utf8",
+    );
+    runMatrixTest();
+  }
+  const matrixPlan = JSON.parse(fs.readFileSync(matrixPlanPath, "utf8"));
   const selectedPlanInput = structuredClone(plan);
   delete selectedPlanInput.schema;
   delete selectedPlanInput.planDigest;
@@ -703,6 +777,10 @@ if (operation === "real-prefix-run") {
     baselineRevision: 0,
     targetMatrixDigest: targetMatrix.targetMatrixRoot,
     rolloutPolicyDigest: progressive.plan.planDigest,
+    baselineId: matrixPlan.matrixPlan.baselineId,
+    evalSuiteDigest: matrixPlan.evalSuiteDigest,
+    matrixEvalPlanDigest: matrixPlan.matrixPlan.planDigest,
+    policyDigest: matrixPlan.policyDigest,
   });
 
   const wikiStatePath = path.join(root, "real-prefix-wiki-state.json");
@@ -745,180 +823,227 @@ if (operation === "real-prefix-run") {
     ledger: backend.ledger,
     ledgerArtifactResolver: resolver,
   });
-  const matrixBinding = {
-    schema: SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA,
-    tenantId: TENANT,
-    skillName: SKILL,
-    candidateId: reviewCandidate.candidateId,
-    candidateContentDigest: reviewCandidate.contentDigest,
-    expectedActiveContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
-    expectedActiveRevision: 0,
-    matrixEvalId: "matrix-eval:real-prefix",
-    matrixReceiptDigest: digest(`${selectedPlan.planDigest}:eval`),
-    decisionCommitmentDigest: digest("real-prefix-matrix-decision"),
-    expiresAt: "2026-09-05T12:10:00.000Z",
-    receiptResolution: {
-      authorityId: "authority:real-prefix-matrix",
-      resolverDescriptorDigest: digest("real-prefix-matrix-resolver"),
-      resolverRevision: 1,
-      resolvedAt: NOW,
-    },
+  const loadEvalReceipt = () => {
+    const record = outputLedger.load({
+      planDigest: selectedPlan.planDigest,
+      stage: "eval",
+    });
+    if (!record) {
+      throw new Error("Review requires the durable real matrix Eval output");
+    }
+    return record.value;
   };
-  const reviewState = {
-    tenantId: TENANT,
-    skillName: SKILL,
-    revision: 0,
-    activeReleaseDigest: null,
-  };
-  const reviewPacket = buildSkillPromotionReviewPacket({
-    candidate: reviewCandidate,
-    matrixBinding,
-    state: reviewState,
-  });
-  const reviewLedger = new SkillPromotionReviewLedgerAdapter({
-    descriptor: {
+  const buildReviewInput = () => {
+    const matrixReceipt = loadEvalReceipt();
+    const matrixBinding = {
+      schema: SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA,
       tenantId: TENANT,
-      artifactTenantId: TENANT,
-      streamId: "review-stream:real-prefix",
-      audience: "evolution-runtime",
-      purpose: "evolution-ledger",
-      authorityId: "authority:real-prefix-human-review",
-      revision: 1,
-      handlerArtifactDigest: digest("real-prefix-review-handler"),
-    },
-    artifactPorts: artifacts,
-    ledger: backend.ledger,
-    ledgerArtifactResolver: resolver,
-    decisionVerifier: { verify: async () => true },
-    now: () => Date.parse(NOW),
-  });
-  await reviewLedger.submitPacket(reviewPacket);
-  const reviewDecisionCore = {
-    schema: SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
-    tenantId: TENANT,
-    skillName: SKILL,
-    candidateId: reviewCandidate.candidateId,
-    packetDigest: reviewPacket.packetDigest,
-    decision: "approved",
-    automated: false,
-    reviewerIds: ["human:process-reviewer", "human:process-security"],
-    quorum: 2,
-    reason: "Approved the process-test release train candidate.",
-    decidedAt: NOW,
-    expiresAt: "2026-09-05T12:10:00.000Z",
-    acknowledgedContentRiskDigest: reviewPacket.contentRisk.detected
-      ? reviewPacket.contentRisk.contentRiskDigest
-      : null,
-  };
-  const reviewDecision = {
-    ...reviewDecisionCore,
-    receiptDigest: domainDigest(
-      "chainlesschain.skill-promotion-review-decision/v1",
-      reviewDecisionCore,
-    ),
-    signature: "signed-process-human-review-value-0001",
-  };
-  await reviewLedger.retainDecision({
-    packetDigest: reviewPacket.packetDigest,
-    decision: reviewDecision,
-  });
-  let activeState = { release: null, revision: 0 };
-  const pilot = new ControlledSkillProductionPilot({
-    descriptor: {
-      tenantId: TENANT,
-      pilotId: "pilot-real-train",
       skillName: SKILL,
-      candidateDigest: reviewCandidate.contentDigest,
-      baselineDigest: EMPTY_SKILL_ACTIVE_DIGEST,
-      evalReceiptDigest: matrixBinding.matrixReceiptDigest,
-      whyEvidenceDigest: digest("real-train-why"),
-      candidateDiffDigest: reviewPacket.candidateDiffDigest,
-      permissionDiffDigest: reviewPacket.capabilityDiff.capabilityDiffDigest,
-      beforeEvaluationDigest: digest("real-train-before-evaluation"),
-      afterEvaluationDigest: digest("real-train-after-evaluation"),
-      reviewPacketDigest: reviewPacket.packetDigest,
-      cohort: {
-        id: "cohort-real-train",
-        optInRequired: true,
-        maxSubjects: 3,
-        canaryPercent: 100,
+      candidateId: reviewCandidate.candidateId,
+      candidateContentDigest: reviewCandidate.contentDigest,
+      expectedActiveContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      expectedActiveRevision: 0,
+      matrixEvalId: matrixReceipt.matrixEvalId,
+      matrixReceiptDigest: matrixReceipt.receiptDigest,
+      decisionCommitmentDigest: matrixReceipt.decisionCommitmentDigest,
+      expiresAt: matrixReceipt.expiresAt,
+      receiptResolution: {
+        authorityId: "authority:real-prefix-matrix",
+        resolverDescriptorDigest: digest("real-prefix-matrix-resolver"),
+        resolverRevision: 1,
+        resolvedAt: NOW,
       },
-      observation: {
-        minSamples: 1,
-        minWindowMs: 1,
-        maxWindowMs: 1_000,
+    };
+    const state = {
+      tenantId: TENANT,
+      skillName: SKILL,
+      revision: 0,
+      activeReleaseDigest: null,
+    };
+    const packet = buildSkillPromotionReviewPacket({
+      candidate: reviewCandidate,
+      matrixBinding,
+      state,
+    });
+    const decisionCore = {
+      schema: SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
+      tenantId: TENANT,
+      skillName: SKILL,
+      candidateId: reviewCandidate.candidateId,
+      packetDigest: packet.packetDigest,
+      decision: "approved",
+      automated: false,
+      reviewerIds: ["human:process-reviewer", "human:process-security"],
+      quorum: 2,
+      reason: "Approved the process-test release train candidate.",
+      decidedAt: NOW,
+      expiresAt: "2026-09-01T12:10:00.000Z",
+      acknowledgedContentRiskDigest: packet.contentRisk.detected
+        ? packet.contentRisk.contentRiskDigest
+        : null,
+    };
+    return {
+      matrixBinding,
+      state,
+      packet,
+      decision: {
+        ...decisionCore,
+        receiptDigest: domainDigest(
+          "chainlesschain.skill-promotion-review-decision/v1",
+          decisionCore,
+        ),
+        signature: "signed-process-human-review-value-0001",
       },
-      thresholds: {
-        minAdoptionRate: 0.5,
-        minSuccessDelta: 0,
-        maxCostDelta: 0,
-        maxUserRevisionRate: 0,
-        maxMisPromotionRate: 0,
-        maxRollbackRate: 0,
-        maxSecurityEvents: 0,
+    };
+  };
+  const runReview = async (context) => {
+    const { matrixBinding, state, packet, decision } = buildReviewInput();
+    const reviewLedger = new SkillPromotionReviewLedgerAdapter({
+      descriptor: {
+        tenantId: TENANT,
+        artifactTenantId: TENANT,
+        streamId: "review-stream:real-prefix",
+        audience: "evolution-runtime",
+        purpose: "evolution-ledger",
+        authorityId: "authority:real-prefix-human-review",
+        revision: 1,
+        handlerArtifactDigest: digest("real-prefix-review-handler"),
       },
-    },
-    ports: {
-      async readActiveState() {
-        return activeState;
+      artifactPorts: artifacts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver: resolver,
+      decisionVerifier: { verify: async () => true },
+      now: () => Date.parse(NOW),
+    });
+    await reviewLedger.submitPacket(packet);
+    await reviewLedger.retainDecision({
+      packetDigest: packet.packetDigest,
+      decision,
+    });
+    return createEvolutionReviewStage({
+      reviewLedger,
+      packetInput: { candidate: reviewCandidate, matrixBinding, state },
+      outputLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    })(context);
+  };
+  const runPilot = async (context) => {
+    const reviewRecord = outputLedger.load({
+      planDigest: selectedPlan.planDigest,
+      stage: "review",
+    });
+    if (!reviewRecord) {
+      throw new Error("Pilot requires the durable real Review output");
+    }
+    const { packet, decision } = reviewRecord.value;
+    const matrixReceipt = loadEvalReceipt();
+    let activeState = { release: null, revision: 0 };
+    const pilot = new ControlledSkillProductionPilot({
+      descriptor: {
+        tenantId: TENANT,
+        pilotId: "pilot-real-train",
+        skillName: SKILL,
+        candidateDigest: reviewCandidate.contentDigest,
+        baselineDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+        evalReceiptDigest: matrixReceipt.receiptDigest,
+        whyEvidenceDigest: digest("real-train-why"),
+        candidateDiffDigest: packet.candidateDiffDigest,
+        permissionDiffDigest: packet.capabilityDiff.capabilityDiffDigest,
+        beforeEvaluationDigest: digest("real-train-before-evaluation"),
+        afterEvaluationDigest: digest("real-train-after-evaluation"),
+        reviewPacketDigest: packet.packetDigest,
+        cohort: {
+          id: "cohort-real-train",
+          optInRequired: true,
+          maxSubjects: 3,
+          canaryPercent: 100,
+        },
+        observation: { minSamples: 1, minWindowMs: 1, maxWindowMs: 1_000 },
+        thresholds: {
+          minAdoptionRate: 0.5,
+          minSuccessDelta: 0,
+          maxCostDelta: 0,
+          maxUserRevisionRate: 0,
+          maxMisPromotionRate: 0,
+          maxRollbackRate: 0,
+          maxSecurityEvents: 0,
+        },
       },
-      async verifyApproval({ descriptor, descriptorDigest }) {
-        return {
-          authenticated: true,
-          durable: true,
-          automated: false,
-          tenantId: descriptor.tenantId,
-          pilotId: descriptor.pilotId,
-          packetDigest: descriptor.reviewPacketDigest,
-          descriptorDigest,
-          decision: "approved",
-          receiptDigest: reviewDecision.receiptDigest,
-        };
+      ports: {
+        async readActiveState() {
+          return activeState;
+        },
+        async verifyApproval({ descriptor, descriptorDigest }) {
+          return {
+            authenticated: true,
+            durable: true,
+            automated: false,
+            tenantId: descriptor.tenantId,
+            pilotId: descriptor.pilotId,
+            packetDigest: descriptor.reviewPacketDigest,
+            descriptorDigest,
+            decision: "approved",
+            receiptDigest: decision.receiptDigest,
+          };
+        },
+        async verifyObservation(input) {
+          return { ...input, authenticated: true, durable: true };
+        },
+        verifyRestore({ restore }) {
+          return { ...restore, authenticated: true, durable: true };
+        },
+        async transitionStage({ request, requestDigest }) {
+          if (request.to === "active") {
+            activeState = { release: "candidate", revision: 1 };
+          }
+          return {
+            authenticated: true,
+            durable: true,
+            descriptorDigest: request.descriptorDigest,
+            requestDigest,
+            from: request.from,
+            to: request.to,
+            receiptDigest: digest(
+              `real-train-transition:${request.from}:${request.to}`,
+            ),
+            activeStateDigest: digest(activeState),
+          };
+        },
+        async commitState(input) {
+          return {
+            authenticated: true,
+            durable: true,
+            descriptorDigest: input.state.descriptorDigest,
+            revision: input.state.revision,
+            stateDigest: input.stateDigest,
+            eventDigest: input.eventDigest,
+          };
+        },
       },
-      async verifyObservation(input) {
-        return {
-          ...input,
-          authenticated: true,
-          durable: true,
-        };
+      now: () => 1,
+      progressiveCanary: {
+        plan: progressive.plan,
+        gateAuthority: progressive.gate,
       },
-      verifyRestore({ restore }) {
-        return { ...restore, authenticated: true, durable: true };
+    });
+    return createEvolutionPilotStage({
+      pilot,
+      startRequest: {
+        optedIn: true,
+        tenantId: TENANT,
+        cohortId: "cohort-real-train",
       },
-      async transitionStage({ request, requestDigest }) {
-        if (request.to === "active") {
-          activeState = { release: "candidate", revision: 1 };
-        }
-        return {
-          authenticated: true,
-          durable: true,
-          descriptorDigest: request.descriptorDigest,
-          requestDigest,
-          from: request.from,
-          to: request.to,
-          receiptDigest: digest(
-            `real-train-transition:${request.from}:${request.to}`,
-          ),
-          activeStateDigest: digest(activeState),
-        };
-      },
-      async commitState(input) {
-        return {
-          authenticated: true,
-          durable: true,
-          descriptorDigest: input.state.descriptorDigest,
-          revision: input.state.revision,
-          stateDigest: input.stateDigest,
-          eventDigest: input.eventDigest,
-        };
-      },
-    },
-    now: () => 1,
-    progressiveCanary: {
-      plan: progressive.plan,
-      gateAuthority: progressive.gate,
-    },
-  });
+      approvalInput: {},
+      nextAdvanceInput: async (current) => ({
+        gateReceipt: await progressive.gateReceipt(
+          current.progressiveCanary.stepId,
+        ),
+      }),
+      effectiveAt: NOW,
+      outputLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 3, turns: 3 },
+    })(context);
+  };
   const realPrefix = {
     "wiki-maintain": createEvolutionWikiMaintainStage({
       maintainer,
@@ -936,33 +1061,41 @@ if (operation === "real-prefix-run") {
       proposalLedger,
       usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
     }),
-    review: createEvolutionReviewStage({
-      reviewLedger,
-      packetInput: {
-        candidate: reviewCandidate,
-        matrixBinding,
-        state: reviewState,
-      },
-      outputLedger,
-      usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
-    }),
-    pilot: createEvolutionPilotStage({
-      pilot,
-      startRequest: {
-        optedIn: true,
-        tenantId: TENANT,
-        cohortId: "cohort-real-train",
-      },
-      approvalInput: {},
-      nextAdvanceInput: async (current) => ({
-        gateReceipt: await progressive.gateReceipt(
-          current.progressiveCanary.stepId,
-        ),
-      }),
-      effectiveAt: NOW,
-      outputLedger,
-      usage: { tokens: 1, cost: 0, timeMs: 3, turns: 3 },
-    }),
+    eval: async (context) => {
+      fs.writeFileSync(
+        matrixRequestPath,
+        `${JSON.stringify({
+          mode: "eval",
+          tenantId: TENANT,
+          skillName: SKILL,
+          candidate: reviewCandidate,
+          baselineReleaseDigest: null,
+          baselineContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+          baselineRevision: 0,
+          context,
+        })}\n`,
+        "utf8",
+      );
+      runMatrixTest();
+      const stageOutput = JSON.parse(
+        fs.readFileSync(path.join(root, "matrix-stage-output.json"), "utf8"),
+      );
+      if (
+        !outputLedger.load({
+          planDigest: selectedPlan.planDigest,
+          stage: "eval",
+        })
+      ) {
+        const commitInput = structuredClone(stageOutput);
+        delete commitInput.valueDigest;
+        outputLedger.commit(commitInput);
+      }
+      return JSON.parse(
+        fs.readFileSync(path.join(root, "matrix-stage-receipt.json"), "utf8"),
+      );
+    },
+    review: runReview,
+    pilot: runPilot,
   };
   stages = Object.fromEntries(
     EVOLUTION_RELEASE_TRAIN_STAGES.map((stage, index) => [
