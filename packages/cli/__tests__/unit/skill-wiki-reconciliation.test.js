@@ -8,7 +8,11 @@ import {
   createEmptyWikiState,
   digestWikiState,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
-import { createEvolutionWikiImpactStage } from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
+import {
+  createEvolutionProposalStage,
+  createEvolutionWikiImpactStage,
+} from "../../src/lib/evolution/evolution-release-train-domain-stages.js";
+import { WikiInformedSkillProposer } from "../../src/lib/evolution/wiki-informed-skill-proposer.js";
 import {
   SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
@@ -260,7 +264,14 @@ async function harness({
       }
     },
   });
-  return { getState: () => state, maintainer, ports, reconciler, source };
+  return {
+    getEvidence: (ref) => evidenceByRef.get(ref),
+    getState: () => state,
+    maintainer,
+    ports,
+    reconciler,
+    source,
+  };
 }
 
 describe("SkillWikiReconciler", () => {
@@ -287,7 +298,7 @@ describe("SkillWikiReconciler", () => {
     expect(fixture.ports.resolveImpact).toHaveBeenCalledTimes(1);
   });
 
-  it("executes the ReleaseTrain Wiki-impact adapter through the real reconciler", async () => {
+  it("carries a ReleaseTrain Wiki impact into the subsequent Wiki-informed proposal", async () => {
     const fixture = await harness();
     const promoted = transition();
     const [sourceTransition] = await fixture.source.list({
@@ -329,14 +340,13 @@ describe("SkillWikiReconciler", () => {
       usage: { tokens: 0, cost: 0, timeMs: 1, turns: 1 },
     });
 
-    await expect(
-      stage({
-        plan,
-        stage: "wiki-impact",
-        operationKey: hash("release-train-wiki-impact-operation"),
-        inputDigest: promoted.activeReleaseDigest,
-      }),
-    ).resolves.toMatchObject({
+    const impactReceipt = await stage({
+      plan,
+      stage: "wiki-impact",
+      operationKey: hash("release-train-wiki-impact-operation"),
+      inputDigest: promoted.activeReleaseDigest,
+    });
+    expect(impactReceipt).toMatchObject({
       stage: "wiki-impact",
       inputDigest: promoted.activeReleaseDigest,
       outputDigest: expect.stringMatching(/^sha256:/u),
@@ -355,6 +365,127 @@ describe("SkillWikiReconciler", () => {
       rejected: 0,
     });
     expect(outputLedger.commit).toHaveBeenCalledTimes(1);
+
+    const wikiState = fixture.getState();
+    const evidenceEnvelope = (kind, data) => ({
+      kind,
+      ref: `wiki://${kind}/${digestWikiState(wikiState).slice(7)}`,
+      data,
+      trusted: true,
+      digest: hash(data),
+    });
+    const initial = {
+      "wiki-index": evidenceEnvelope("wiki-index", {
+        contradictionRefs: [],
+      }),
+      "skill-impact": evidenceEnvelope(
+        "skill-impact",
+        wikiState.skillImpact[plan.skillId],
+      ),
+      "active-skill": evidenceEnvelope("active-skill", {
+        skillName: plan.skillId,
+        releaseDigest: promoted.activeReleaseDigest,
+      }),
+      "training-summary": evidenceEnvelope("training-summary", {
+        sampleCount: 4,
+        passed: 4,
+      }),
+    };
+    const proposer = new WikiInformedSkillProposer({
+      descriptor: {
+        tenantId: plan.tenantId,
+        evolutionRunId: "run-after-release",
+        targetSkillName: plan.skillId,
+        wikiRevision: `wiki:${digestWikiState(wikiState).slice(7)}`,
+        proposerModel: "provider:lineage-test",
+        minEvidenceSamples: 3,
+        maxSelectiveEvidence: 1,
+      },
+      policy: { proposerWikiRead: true, executionAgentWikiRead: false },
+      ports: {
+        readInitial: vi.fn(async (kind) => initial[kind]),
+        readSelective: vi.fn(),
+        generate: vi.fn(async ({ evidence: proposalEvidence }) => {
+          const impact = proposalEvidence.find(
+            (item) => item.kind === "skill-impact",
+          );
+          const priorDecision = impact.data.decisions[0];
+          expect(priorDecision.candidateId).toBe(promoted.candidateId);
+          const retained = fixture.getEvidence(priorDecision.receiptRef);
+          expect(retained.data).toMatchObject({
+            activeReleaseDigest: promoted.activeReleaseDigest,
+            transitionDigest: sourceTransition.transitionDigest,
+          });
+          const refs = proposalEvidence.map((item) => item.ref);
+          return {
+            status: "proposal",
+            skillName: plan.skillId,
+            purpose: {
+              summary: "Improve the Skill using its verified release impact.",
+              patternRefs: [refs[0]],
+              sourceEvidenceRefs: refs,
+            },
+            applicableWhen: ["the prior release impact remains accepted"],
+            notApplicableWhen: ["the prior release has been revoked"],
+            failureCounterexamples: ["the accepted impact is no longer valid"],
+            rollbackSteps: ["retain the currently active release"],
+            validationMethods: ["rerun the fixed target matrix"],
+            requestedCapabilities: [],
+            targetRuntimes: ["node22-test"],
+            contextCost: { maxTokens: 800, maxBytes: 4_096 },
+            machineDiff: [
+              {
+                op: "replace",
+                path: "SKILL.md",
+                beforeDigest: promoted.activeReleaseDigest,
+                afterDigest: hash("next-skill-content"),
+              },
+            ],
+          };
+        }),
+        createCandidate: vi.fn(),
+      },
+    });
+    let proposalRecord = null;
+    const proposalStage = createEvolutionProposalStage({
+      proposer,
+      proposalLedger: {
+        load: vi.fn(() => proposalRecord),
+        commit: vi.fn((input) => {
+          proposalRecord = {
+            ...structuredClone(input),
+            outputDigest: input.drafted.proposalDigest,
+          };
+          return { committed: true };
+        }),
+      },
+      effectiveAt: "2026-09-05T00:01:00.000Z",
+      usage: { tokens: 20, cost: 0, timeMs: 2, turns: 1 },
+    });
+    const nextPlan = Object.freeze({
+      planDigest: hash("release-train-next-plan"),
+      wikiRevisionDigest: digestWikiState(wikiState),
+    });
+    await expect(
+      proposalStage({
+        plan: nextPlan,
+        stage: "propose",
+        operationKey: hash("release-train-next-proposal-operation"),
+        inputDigest: nextPlan.wikiRevisionDigest,
+      }),
+    ).resolves.toMatchObject({
+      stage: "propose",
+      inputDigest: nextPlan.wikiRevisionDigest,
+      outputDigest: expect.stringMatching(/^sha256:/u),
+      durable: true,
+    });
+    expect(proposalRecord.drafted.proposal.sourceEvidenceRefs).toContainEqual({
+      ref: initial["skill-impact"].ref,
+      digest: initial["skill-impact"].digest,
+    });
+    expect(proposalRecord.drafted.proposal.wikiRevision).toBe(
+      `wiki:${digestWikiState(wikiState).slice(7)}`,
+    );
   });
 
   it("recovers Wiki and checkpoint response loss without duplicate impact", async () => {
