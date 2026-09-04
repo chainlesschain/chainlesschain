@@ -11,6 +11,10 @@ const {
   assertSkillHandlerExecution,
   captureExternalHandlerSource,
 } = require("./skill-execution-security");
+const {
+  isGovernedSkillExecutionAuthority,
+  captureGovernedSkillHandlerSource,
+} = require("./governed-skill-execution");
 
 /**
  * MarkdownSkill 类
@@ -66,6 +70,8 @@ class MarkdownSkill extends BaseSkill {
       typeof definition._externalHandlerExecutor === "function"
         ? definition._externalHandlerExecutor
         : null;
+    this._governedExecutionAuthority =
+      definition._governedExecutionAuthority || null;
 
     // handler 模块（延迟加载）
     this._handler = null;
@@ -161,6 +167,28 @@ class MarkdownSkill extends BaseSkill {
 
     // 如果有 handler，加载并执行
     if (this.definition.handler) {
+      if (isGovernedSkillExecutionAuthority(this._governedExecutionAuthority)) {
+        if (!this._externalHandlerExecutor) {
+          const error = new Error(
+            `Governed skill "${this.skillId}" requires the isolated executor`,
+          );
+          error.name = "SkillExecutionSecurityError";
+          error.code = "CC_SKILL_GOVERNED_HANDLER_ISOLATION_REQUIRED";
+          throw error;
+        }
+        const authority = this._governedExecutionAuthority;
+        return await this._externalHandlerExecutor({
+          skillId: this.skillId,
+          source: "governed",
+          handlerFileName: authority.handlerRelativePath,
+          handlerSource: captureGovernedSkillHandlerSource(authority),
+          contentDigest: authority.executorContentDigest,
+          publicKeySha256: authority.publicKeySha256,
+          executionCapabilities: [...authority.executionCapabilities],
+          task,
+          context,
+        });
+      }
       const authority = assertSkillHandlerExecution(
         this.definition,
         this._executionSecurity,
@@ -356,6 +384,7 @@ class MarkdownSkill extends BaseSkill {
     delete definition._executionSecurity;
     delete definition._skillSecurityPolicy;
     delete definition._externalHandlerExecutor;
+    delete definition._governedExecutionAuthority;
     delete definition._sourceContentSha256;
     return definition;
   }

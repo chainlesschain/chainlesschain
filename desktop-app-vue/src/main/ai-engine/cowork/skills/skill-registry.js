@@ -16,6 +16,9 @@ const { startSkillInvocation } = require("./skill-invocation-receipt.js");
 const { SkillMdParser } = require("./skill-md-parser");
 const { MarkdownSkill } = require("./markdown-skill");
 const {
+  createGovernedSkillExecutionAuthority,
+} = require("./governed-skill-execution");
+const {
   SKILL_PACKAGE_FORMAT,
   calculateSkillPackageChecksum,
 } = require("./skill-sync-manager");
@@ -63,6 +66,10 @@ class SkillRegistry extends EventEmitter {
       maxSkills: options.maxSkills || 1000,
     };
     this.artifactActiveReleaseReader = null;
+    this._governedSkillExecutor =
+      typeof options.governedSkillExecutor === "function"
+        ? options.governedSkillExecutor
+        : null;
     if (options.artifactActiveReleaseReader != null) {
       this.setArtifactActiveReleaseReader(options.artifactActiveReleaseReader);
     }
@@ -143,23 +150,15 @@ class SkillRegistry extends EventEmitter {
       typeof pkg.body !== "string" ||
       pkg.body.length === 0 ||
       Buffer.byteLength(pkg.body, "utf8") > GOVERNED_SKILL_MAX_BODY_BYTES ||
-      pkg.handler !== null ||
-      pkg.signatureLock !== null ||
       !Number.isSafeInteger(pkg.exportedAt) ||
       pkg.exportedAt < 0 ||
       typeof pkg.exportedFrom !== "string" ||
       pkg.exportedFrom.length === 0 ||
       Buffer.byteLength(pkg.exportedFrom, "utf8") > 256 ||
-      runtimeManifest.executable !== false ||
-      runtimeManifest.handlerDigest !== null ||
-      runtimeManifest.signatureLockDigest !== null ||
       !runtimeManifest.requires ||
       !Array.isArray(runtimeManifest.requires.bins) ||
-      runtimeManifest.requires.bins.length !== 0 ||
       !Array.isArray(runtimeManifest.requires.env) ||
-      runtimeManifest.requires.env.length !== 0 ||
       !Array.isArray(permissionManifest.capabilities) ||
-      permissionManifest.capabilities.length !== 0 ||
       typeof pkg.checksum !== "string" ||
       !/^[a-f0-9]{64}$/u.test(pkg.checksum) ||
       calculateSkillPackageChecksum(pkg) !== pkg.checksum
@@ -172,7 +171,7 @@ class SkillRegistry extends EventEmitter {
     if (
       definition.name !== pkg.metadata.skillId ||
       String(pkg.metadata.version || "") !== definition.version ||
-      definition.handler
+      Boolean(definition.handler) !== Boolean(pkg.handler)
     ) {
       throw new Error("Active Skill release definition is not package-bound");
     }
@@ -184,6 +183,32 @@ class SkillRegistry extends EventEmitter {
       contentDigest: release.contentDigest,
       artifactDigest: release.artifactDigest,
     });
+    if (definition.handler) {
+      const executor =
+        this._governedSkillExecutor || this._loader?.externalHandlerExecutor;
+      if (typeof executor !== "function") {
+        throw new Error("Governed Skill isolated executor is unavailable");
+      }
+      definition._governedExecutionAuthority =
+        createGovernedSkillExecutionAuthority({
+          definition,
+          packageContent: pkg,
+          artifact: release.artifact,
+        });
+      definition._executionSecurity = definition._governedExecutionAuthority;
+      definition._externalHandlerExecutor = executor;
+    } else if (
+      pkg.handler !== null ||
+      pkg.signatureLock !== null ||
+      runtimeManifest.executable !== false ||
+      runtimeManifest.handlerDigest !== null ||
+      runtimeManifest.signatureLockDigest !== null ||
+      runtimeManifest.requires.bins.length !== 0 ||
+      runtimeManifest.requires.env.length !== 0 ||
+      permissionManifest.capabilities.length !== 0
+    ) {
+      throw new Error("Active Skill release content is unsafe or invalid");
+    }
     return new MarkdownSkill(definition);
   }
 

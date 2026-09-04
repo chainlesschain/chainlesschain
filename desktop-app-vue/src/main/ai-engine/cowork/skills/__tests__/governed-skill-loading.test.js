@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import {
+  createHash,
+  generateKeyPairSync,
+  sign as signBytes,
+} from "node:crypto";
 
 vi.mock("../../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -11,6 +16,13 @@ const {
   SKILL_PACKAGE_FORMAT,
   calculateSkillPackageChecksum,
 } = require("../skill-sync-manager");
+const {
+  MANIFEST_SCHEMA,
+  canonicalJson,
+} = require("../skill-execution-security");
+const {
+  captureGovernedSkillHandlerSource,
+} = require("../governed-skill-execution");
 
 const {
   ARTIFACT_TYPE,
@@ -65,6 +77,39 @@ Use exact active instructions.`;
     exportedAt: 1_788_451_200_000,
     exportedFrom: "device-a",
   };
+  if (executable) {
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const signedManifest = {
+      schema: MANIFEST_SCHEMA,
+      skillId: "governed-docs",
+      version: "1.0.0",
+      handler: "handler.js",
+      executionCapabilities: ["host:process"],
+      files: [
+        {
+          path: "SKILL.md",
+          bytes: Buffer.byteLength(body, "utf8"),
+          sha256: createHash("sha256").update(body).digest("hex"),
+        },
+        {
+          path: "handler.js",
+          bytes: Buffer.byteLength(pkg.handler, "utf8"),
+          sha256: createHash("sha256").update(pkg.handler).digest("hex"),
+        },
+      ],
+    };
+    pkg.signatureLock = {
+      lockVersion: 1,
+      algorithm: "ed25519",
+      manifest: signedManifest,
+      signatureBase64: signBytes(
+        null,
+        Buffer.from(canonicalJson(signedManifest), "utf8"),
+        privateKey,
+      ).toString("base64"),
+      publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+    };
+  }
   pkg.checksum = calculateSkillPackageChecksum(pkg);
   return pkg;
 }
@@ -87,7 +132,8 @@ function activeReader(pkg, { state = null } = {}) {
   const runtimeBody = {
     executable: pkg.handler !== null,
     handlerDigest: pkg.handler === null ? null : digest(pkg.handler),
-    signatureLockDigest: null,
+    signatureLockDigest:
+      pkg.signatureLock === null ? null : digest(pkg.signatureLock),
     requires: { bins: [], env: [] },
   };
   let artifact = authority.stageCandidate({
@@ -182,18 +228,38 @@ describe("governed Skill loading", () => {
     });
   });
 
-  it("rejects executable package bytes until a content-addressed runner exists", async () => {
+  it("executes signed active package bytes through the isolated runner", async () => {
+    const executor = vi.fn(async () => ({ success: true, isolated: true }));
+    const pkg = skillPackage({ executable: true });
     const registry = new SkillRegistry({
       autoLoad: false,
-      artifactActiveReleaseReader: activeReader(
-        skillPackage({ executable: true }),
-      ),
+      artifactActiveReleaseReader: activeReader(pkg),
+      governedSkillExecutor: executor,
     });
 
-    await expect(registry.loadGovernedActiveSkills()).rejects.toThrow(
-      "Active Skill release content is unsafe or invalid",
+    await expect(registry.loadGovernedActiveSkills()).resolves.toMatchObject({
+      loaded: 1,
+      registered: 1,
+    });
+    await expect(
+      registry.getSkill("governed-docs").execute({ operation: "test" }),
+    ).resolves.toEqual({ success: true, isolated: true });
+    expect(executor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillId: "governed-docs",
+        source: "governed",
+        handlerFileName: "handler.js",
+        handlerSource: pkg.handler,
+        contentDigest: digest(pkg).slice(7),
+        executionCapabilities: ["host:process"],
+      }),
     );
-    expect(registry.skills.size).toBe(0);
+    const authority =
+      registry.getSkill("governed-docs")._governedExecutionAuthority;
+    expect(captureGovernedSkillHandlerSource(authority)).toBe(pkg.handler);
+    expect(() => captureGovernedSkillHandlerSource({ ...authority })).toThrow(
+      "governed Skill execution authority",
+    );
   });
 
   it("unloads the previous governed Skill when replacement content is unsafe", async () => {
@@ -202,12 +268,14 @@ describe("governed Skill loading", () => {
       artifactActiveReleaseReader: activeReader(skillPackage()),
     });
     await registry.loadGovernedActiveSkills();
-    registry.setArtifactActiveReleaseReader(
-      activeReader(skillPackage({ executable: true })),
-    );
+    const unsafe = skillPackage({ executable: true });
+    unsafe.signatureLock.signatureBase64 = Buffer.alloc(64).toString("base64");
+    unsafe.checksum = calculateSkillPackageChecksum(unsafe);
+    registry._governedSkillExecutor = vi.fn();
+    registry.setArtifactActiveReleaseReader(activeReader(unsafe));
 
     await expect(registry.loadGovernedActiveSkills()).rejects.toThrow(
-      "Active Skill release content is unsafe or invalid",
+      "signature verification failed",
     );
     expect(registry.getSkill("governed-docs")).toBeUndefined();
   });
