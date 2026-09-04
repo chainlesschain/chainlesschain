@@ -13,6 +13,7 @@ import {
 } from "../../src/lib/evolution/governed-knowledge-rbac-approval-authority.js";
 import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledge-sync.js";
 import { grantPermission } from "../../src/lib/permission-engine.js";
+import { knowledgeArtifactLifecycle } from "../helpers/governed-knowledge-artifact-lifecycle.js";
 
 const NOW = Date.parse("2026-09-04T00:00:00.000Z");
 const D = (value) =>
@@ -128,6 +129,8 @@ describe("Governed knowledge RBAC and approval authority", () => {
     const sync = new GovernedKnowledgeSync({
       tenantId: "tenant:a",
       deviceId: "device:a",
+      artifactLifecycle: knowledgeArtifactLifecycle(),
+      clock: () => NOW,
       ports: {
         authorize: f.authority.authorize,
         encrypt: async () => ({

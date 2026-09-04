@@ -11,11 +11,14 @@ import {
 } from "./evolution-ledger.js";
 import {
   GOVERNED_KNOWLEDGE_ENVELOPE_SCHEMA,
+  verifyGovernedKnowledgeArtifactBinding,
   verifyGovernedKnowledgeEnvelopeIntegrity,
   verifyGovernedKnowledgeRecord,
 } from "./governed-knowledge-sync.js";
 
 export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.governed-evolution-knowledge-ledger-record/v3";
+export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-ledger-record/v2";
 export const GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA =
   "chainlesschain.governed-evolution-knowledge-ledger-record/v1";
@@ -32,6 +35,7 @@ const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DISPOSITIONS = new Set(["conflict", "local", "remote"]);
 const MAX_CONFLICT_PAGE = 256;
 const RECORD_KEYS = new Set([
+  "artifactBinding",
   "committedAt",
   "authorizationReceiptDigest",
   "conflictWithDigest",
@@ -45,8 +49,11 @@ const RECORD_KEYS = new Set([
   "schema",
   "tenantId",
 ]);
+const V2_RECORD_KEYS = new Set(
+  [...RECORD_KEYS].filter((key) => key !== "artifactBinding"),
+);
 const LEGACY_RECORD_KEYS = new Set(
-  [...RECORD_KEYS].filter((key) => key !== "operationId"),
+  [...V2_RECORD_KEYS].filter((key) => key !== "operationId"),
 );
 
 function canonical(value) {
@@ -132,8 +139,16 @@ function recordCore(value) {
     authorizationReceiptDigest: value.authorizationReceiptDigest,
     committedAt: value.committedAt,
   };
-  if (value.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA) {
+  if (
+    [
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA,
+    ].includes(value.schema)
+  ) {
     core.operationId = value.operationId;
+  }
+  if (value.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA) {
+    core.artifactBinding = value.artifactBinding;
   }
   return core;
 }
@@ -208,14 +223,17 @@ function validateEnvelope(value, knowledge, descriptor, disposition) {
 function validateLedgerRecord(value, descriptor) {
   const current =
     value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA;
+  const version2 =
+    value?.schema === GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA;
   exact(
     value,
-    current ? RECORD_KEYS : LEGACY_RECORD_KEYS,
+    current ? RECORD_KEYS : version2 ? V2_RECORD_KEYS : LEGACY_RECORD_KEYS,
     "knowledge sync ledger record",
   );
   if (
     ![
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_SCHEMA,
+      GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_V2_SCHEMA,
       GOVERNED_KNOWLEDGE_SYNC_LEDGER_RECORD_LEGACY_SCHEMA,
     ].includes(value.schema) ||
     value.tenantId !== descriptor.tenantId ||
@@ -231,10 +249,10 @@ function validateLedgerRecord(value, descriptor) {
     corrupt("knowledge sync ledger record binding is invalid");
   }
   if (
-    (current &&
+    ((current || version2) &&
       value.operationId !== null &&
       !SAFE_ID.test(value.operationId ?? "")) ||
-    (!current && Object.hasOwn(value, "operationId"))
+    (!current && !version2 && Object.hasOwn(value, "operationId"))
   ) {
     corrupt("knowledge sync operation binding is invalid");
   }
@@ -245,6 +263,21 @@ function validateLedgerRecord(value, descriptor) {
   );
   if (value.conflictWithDigest !== conflictWithDigest) {
     corrupt("knowledge sync conflict digest was substituted");
+  }
+  if (current) {
+    if (value.disposition === "local") {
+      try {
+        verifyGovernedKnowledgeArtifactBinding(value.artifactBinding, {
+          tenantId: descriptor.tenantId,
+          knowledge: value.knowledge,
+          authorizationReceiptDigest: value.authorizationReceiptDigest,
+        });
+      } catch {
+        corrupt("knowledge sync artifact binding is invalid");
+      }
+    } else if (value.artifactBinding !== null) {
+      corrupt("remote knowledge sync cannot claim an artifact binding");
+    }
   }
   validateEnvelope(
     value.envelope,
@@ -398,6 +431,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
     disposition,
     authorizationReceiptDigest,
     operationId = null,
+    artifactBinding = null,
   } = {}) => {
     if (!DISPOSITIONS.has(disposition)) {
       throw new TypeError("knowledge sync disposition is invalid");
@@ -451,6 +485,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
         conflictWithDigest,
         authorizationReceiptDigest,
         operationId,
+        artifactBinding,
       };
       if (canonical(stableExisting) !== canonical(stableRequest)) {
         corrupt("knowledge sync event identity resolved different content");
@@ -479,6 +514,7 @@ export class GovernedKnowledgeSyncLedgerAdapter {
       conflictWithDigest,
       authorizationReceiptDigest,
       operationId,
+      artifactBinding: clone(artifactBinding),
       committedAt,
     };
     const record = Object.freeze({

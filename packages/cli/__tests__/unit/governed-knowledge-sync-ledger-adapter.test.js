@@ -44,6 +44,7 @@ import {
 } from "../../src/lib/evolution/governed-knowledge-merge-publisher-authority.js";
 import { createGovernedKnowledgeReviewHost } from "../../src/lib/evolution/governed-knowledge-review-host.js";
 import { createGovernedKnowledgeSyncMergePublisherAuthority } from "../../src/lib/evolution/governed-knowledge-sync-merge-publisher.js";
+import { createGovernedKnowledgeArtifactLifecycle } from "../../src/lib/evolution/governed-knowledge-artifact-lifecycle.js";
 import {
   EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
   EvolvableArtifactLedgerAdapter,
@@ -55,6 +56,7 @@ import {
   digestGovernedKnowledgeSyncLedgerRecord,
 } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import {
+  GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA,
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
   GovernedKnowledgeSync,
 } from "../../src/lib/evolution/governed-knowledge-sync.js";
@@ -430,8 +432,14 @@ function adapter(storage, crypto) {
   });
 }
 
-function controller(storage, crypto, dependencyExecutor = null) {
+function controller(
+  storage,
+  crypto,
+  dependencyExecutor = null,
+  artifactLifecycle = null,
+) {
   const persisted = adapter(storage, crypto);
+  storage.artifactLifecycle ??= storageKnowledgeArtifactLifecycle(storage);
   return {
     persisted,
     controller: new GovernedKnowledgeSync({
@@ -439,8 +447,52 @@ function controller(storage, crypto, dependencyExecutor = null) {
       deviceId: storage.descriptor.deviceId,
       ports: persisted.syncPorts(crypto),
       dependencyExecutor,
+      artifactLifecycle: artifactLifecycle ?? storage.artifactLifecycle,
+      clock: () => Date.parse("2026-09-04T00:00:00.000Z"),
     }),
   };
+}
+
+function storageKnowledgeArtifactLifecycle(storage) {
+  const descriptor = {
+    tenantId: storage.descriptor.tenantId,
+    artifactTenantId: storage.descriptor.artifactTenantId,
+    streamId: `knowledge-artifacts:${storage.descriptor.deviceId}`,
+    audience: storage.descriptor.audience,
+    purpose: storage.descriptor.purpose,
+  };
+  const provider = new EvolvableArtifactLedgerAdapter({
+    descriptor,
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    clock: () => "2026-09-04T00:00:00.000Z",
+  });
+  const verifier = new EvolvableArtifactLedgerAdapter({
+    descriptor,
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    clock: () => "2026-09-04T00:00:00.000Z",
+  });
+  const authority = createEvolvableArtifactAuthority({
+    tenantId: storage.descriptor.tenantId,
+    policy: knowledgeArtifactPolicy(),
+  });
+  return createGovernedKnowledgeArtifactLifecycle({
+    tenantId: storage.descriptor.tenantId,
+    artifactCandidateGate: createEvolvableArtifactCandidateGate({
+      authority,
+      candidateWriter: provider,
+    }),
+    artifactReleaseGate: createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: provider,
+      transitionReader: provider.transitionReader(),
+    }),
+    artifactReleaseResolver: verifier.releaseResolver(),
+    verifierArtifactTransitionReader: verifier.transitionReader(),
+  });
 }
 
 async function mergePlanFixture({
@@ -722,12 +774,6 @@ function syncMergePublisher(
     reuseArtifactReader = false,
   } = {},
 ) {
-  const publishing = controller(storage, crypto);
-  const providerPublicationReader = publishing.persisted.publicationReader();
-  const verifierPublicationReader = adapter(
-    storage,
-    crypto,
-  ).publicationReader();
   const artifactDescriptor = {
     tenantId: storage.descriptor.tenantId,
     artifactTenantId: storage.descriptor.artifactTenantId,
@@ -767,23 +813,30 @@ function syncMergePublisher(
     transitionWriter: providerArtifactAdapter,
     transitionReader: providerArtifactAdapter.transitionReader(),
   });
+  const verifierArtifactTransitionReader = (
+    reuseArtifactReader ? providerArtifactAdapter : verifierArtifactAdapter
+  ).transitionReader();
+  const artifactLifecycle = createGovernedKnowledgeArtifactLifecycle({
+    tenantId: storage.descriptor.tenantId,
+    ...(omitCandidateGate ? {} : { artifactCandidateGate }),
+    artifactReleaseGate,
+    ...(omitDependencyResolver
+      ? {}
+      : { artifactReleaseResolver: verifierArtifactAdapter.releaseResolver() }),
+    verifierArtifactTransitionReader,
+  });
+  const publishing = controller(storage, crypto, null, artifactLifecycle);
+  const providerPublicationReader = publishing.persisted.publicationReader();
+  const verifierPublicationReader = adapter(
+    storage,
+    crypto,
+  ).publicationReader();
   return {
     publishing,
     persistCandidate,
     authority: createGovernedKnowledgeSyncMergePublisherAuthority({
       sync: publishing.controller,
-      ...(omitCandidateGate ? {} : { artifactCandidateGate }),
-      artifactReleaseGate,
-      ...(omitDependencyResolver
-        ? {}
-        : {
-            artifactDependencyResolver:
-              verifierArtifactAdapter.releaseResolver(),
-          }),
-      verifierArtifactTransitionReader: (reuseArtifactReader
-        ? providerArtifactAdapter
-        : verifierArtifactAdapter
-      ).transitionReader(),
+      verifierArtifactTransitionReader,
       providerPublicationReader,
       verifierPublicationReader,
       providerDescriptor: {
@@ -1044,8 +1097,8 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       operationId: "knowledge-publish:real-ledger",
     });
     expect(reopenedLedger.verify()).toMatchObject({
-      eventCount: 1,
-      sequence: 1,
+      eventCount: 3,
+      sequence: 3,
     });
   });
 
@@ -1057,7 +1110,11 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     await expect(
       adapter(storage, crypto).load({ knowledgeId: "knowledge:1" }),
     ).resolves.toMatchObject({ contentDigest: D("content:a") });
-    expect(storage.state.events).toHaveLength(1);
+    expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "evolvable-artifact.candidate.persisted",
+      "knowledge.sync.committed",
+      "evolvable-artifact.transition.committed",
+    ]);
   });
 
   it("durably preserves concurrent remote edits for human merge", async () => {
@@ -1251,6 +1308,10 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       publishingCrypto,
     );
     const first = mergeExecutor(fixture.receiverStorage, publisher.authority);
+    const transitionCountBeforeMerge =
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+      ).length;
 
     await expect(first.execute(fixture.plan)).rejects.toThrow(
       "sync transport response loss",
@@ -1259,7 +1320,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       fixture.receiverStorage.state.events.filter(
         ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
       ),
-    ).toHaveLength(0);
+    ).toHaveLength(transitionCountBeforeMerge);
     const operationId = `knowledge-merge:${fixture.plan.planDigest.slice(7)}`;
     const committed = await publisher.publishing.persisted.getPublication({
       operationId,
@@ -1268,6 +1329,12 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       operationId,
       disposition: "local",
       knowledge: { contentDigest: fixture.merged.contentDigest },
+      artifactBinding: {
+        operation: "merge",
+        operationId,
+        evidenceDigest: fixture.plan.humanReceiptDigest,
+        humanReviewed: true,
+      },
     });
 
     const reopenedCrypto = cryptoPorts();
@@ -1290,7 +1357,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       fixture.receiverStorage.state.events.filter(
         ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(transitionCountBeforeMerge + 1);
     expect(publishingCrypto.send.send).toHaveBeenCalledOnce();
     expect(publisher.persistCandidate).toHaveBeenCalledOnce();
     expect(publisher.persistCandidate.mock.calls[0][0]).toMatchObject({
@@ -1299,18 +1366,16 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       type: ARTIFACT_TYPE.KNOWLEDGE,
       contentDigest: fixture.merged.contentDigest,
       candidate: {
-        candidateId: `knowledge-merge:${fixture.plan.planDigest.slice(7)}`,
+        candidateId: expect.stringMatching(/^knowledge-candidate:/u),
         status: "candidate",
       },
-      activeReleaseId: `knowledge-content:${fixture.plan.localContentDigest.slice(7)}`,
       runtimeManifest: {
         executable: false,
-        mergePlanDigest: fixture.plan.planDigest,
-        humanReceiptDigest: fixture.plan.humanReceiptDigest,
+        operation: "merge",
+        operationId,
       },
       permissionManifest: {
-        automated: false,
-        requestedBy: fixture.plan.requestedBy,
+        capabilities: ["knowledge:team:merge"],
       },
     });
     expect(reopenedCrypto.send.send).toHaveBeenCalledOnce();
@@ -1338,7 +1403,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       syncMergePublisher(fixture.receiverStorage, cryptoPorts(), {
         omitCandidateGate: true,
       }),
-    ).toThrow("Knowledge artifact candidate gate");
+    ).toThrow("Knowledge candidate gate");
   });
 
   it("requires an independent artifact transition verifier reader", async () => {
@@ -1347,7 +1412,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       syncMergePublisher(fixture.receiverStorage, cryptoPorts(), {
         reuseArtifactReader: true,
       }),
-    ).toThrow("independent tenant-bound artifact transition reader");
+    ).toThrow("independent artifact transition reader");
   });
 
   it("requires a branded artifact dependency release resolver", async () => {
@@ -1356,7 +1421,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       syncMergePublisher(fixture.receiverStorage, cryptoPorts(), {
         omitDependencyResolver: true,
       }),
-    ).toThrow("artifact dependency release resolver");
+    ).toThrow("artifact release resolver");
   });
 
   it("does not stage or publish an unresolved Knowledge dependency", async () => {
@@ -1451,6 +1516,10 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       publishingCrypto,
       { activationDecision: "deny" },
     );
+    const transitionCountBeforeMerge =
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+      ).length;
 
     await expect(
       mergeExecutor(fixture.receiverStorage, publisher.authority).execute(
@@ -1463,7 +1532,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       fixture.receiverStorage.state.events.filter(
         ({ type }) => type === EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
       ),
-    ).toHaveLength(0);
+    ).toHaveLength(transitionCountBeforeMerge);
   });
 
   it("reopens a settled merge through actual Ledger files and witness", async () => {
@@ -1489,8 +1558,8 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     ).resolves.toMatchObject({ durable: true, recovered: true });
     expect(publisher.provider.publish).toHaveBeenCalledOnce();
     expect(reopenedLedger.verify()).toMatchObject({
-      eventCount: 4,
-      sequence: 4,
+      eventCount: 6,
+      sequence: 6,
     });
   });
 
@@ -1659,9 +1728,11 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     ).resolves.toMatchObject({ action: "revoke" });
     expect(dependency.provider.apply).toHaveBeenCalledTimes(2);
     expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "evolvable-artifact.candidate.persisted",
       "knowledge.revocation-dependencies.prepared",
       "knowledge.revocation-dependencies.settled",
       "knowledge.sync.committed",
+      "evolvable-artifact.transition.committed",
     ]);
   });
 
@@ -1706,6 +1777,7 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       ),
     ).rejects.toThrow("dependency response loss");
     expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "evolvable-artifact.candidate.persisted",
       "knowledge.revocation-dependencies.prepared",
     ]);
 
@@ -1756,8 +1828,8 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
     });
     expect(dependency.provider.apply).toHaveBeenCalledTimes(2);
     expect(reopenedLedger.verify()).toMatchObject({
-      eventCount: 3,
-      sequence: 3,
+      eventCount: 5,
+      sequence: 5,
     });
   });
 
@@ -1774,6 +1846,16 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       envelopeDigest: envelope.envelopeDigest,
       disposition: "local",
       authorizationReceiptDigest: D("authorization"),
+      artifactBinding: {
+        schema: GOVERNED_KNOWLEDGE_ARTIFACT_BINDING_SCHEMA,
+        operationId: "raw-adapter-recovery",
+        operation: "publish",
+        issuedAt: "2026-09-04T00:00:00.000Z",
+        authorizationReceiptDigest: D("authorization"),
+        evidenceDigest: D("authorization"),
+        humanReviewed: false,
+        baseline: null,
+      },
     };
     storage.state.loseResponse = true;
     await expect(persisted.commit(request)).resolves.toMatchObject({

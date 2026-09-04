@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledge-sync.js";
+import { knowledgeArtifactLifecycle } from "../helpers/governed-knowledge-artifact-lifecycle.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -98,6 +99,8 @@ function harness({ deviceId = "device:a", initial = null } = {}) {
       tenantId: "tenant:a",
       deviceId,
       ports,
+      artifactLifecycle: knowledgeArtifactLifecycle(),
+      clock: () => Date.parse("2026-09-04T00:00:00.000Z"),
     }),
     ports,
     records,
@@ -106,9 +109,32 @@ function harness({ deviceId = "device:a", initial = null } = {}) {
 }
 
 describe("Governed evolution knowledge synchronization", () => {
+  it("rejects construction without a branded Knowledge artifact lifecycle", () => {
+    const h = harness();
+    expect(
+      () =>
+        new GovernedKnowledgeSync({
+          tenantId: "tenant:a",
+          deviceId: "device:missing-lifecycle",
+          ports: h.ports,
+        }),
+    ).toThrow("branded governed Knowledge artifact lifecycle");
+  });
+
   it("publishes only ciphertext after exact approval, authorization and durable commit", async () => {
     const h = harness();
-    const envelope = await h.controller.publish(knowledge());
+    const published =
+      await h.controller.publishWithArtifactEvidence(knowledge());
+    const { envelope } = published;
+    expect(published).toMatchObject({
+      recovered: false,
+      artifact: {
+        candidateOnly: false,
+        artifactCandidateDigest: expect.stringMatching(/^sha256:/u),
+        artifactReleaseId: expect.stringMatching(/^knowledge-release:/u),
+        artifactTransitionReceiptDigest: expect.stringMatching(/^sha256:/u),
+      },
+    });
     expect(envelope).toMatchObject({
       tenantId: "tenant:a",
       scope: "team",

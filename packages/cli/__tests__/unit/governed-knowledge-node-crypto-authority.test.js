@@ -7,6 +7,7 @@ import {
   isGovernedKnowledgeNodeCryptoAuthority,
 } from "../../src/lib/evolution/governed-knowledge-node-crypto-authority.js";
 import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledge-sync.js";
+import { knowledgeArtifactLifecycle } from "../helpers/governed-knowledge-artifact-lifecycle.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -95,6 +96,8 @@ function controller(deviceId, cryptoAuthority, { initial = null } = {}) {
     sync: new GovernedKnowledgeSync({
       tenantId: "tenant:a",
       deviceId,
+      artifactLifecycle: knowledgeArtifactLifecycle(),
+      clock: () => Date.parse("2026-09-04T00:00:00.000Z"),
       ports: {
         authorize,
         encrypt: cryptoAuthority.encrypt,
