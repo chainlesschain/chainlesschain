@@ -178,6 +178,55 @@ export function createWikiSkillBenchmarkPlan(input = {}) {
   });
 }
 
+export function verifyWikiSkillBenchmarkPlan(plan) {
+  exactKeys(
+    plan,
+    [
+      "schema",
+      "gitCommit",
+      "runnerDigest",
+      "model",
+      "inference",
+      "environment",
+      "datasets",
+      "toolDigest",
+      "apiDigest",
+      "promptDigest",
+      "skillDigest",
+      "wikiDigest",
+      "seedSchedule",
+      "bootstrapSamples",
+      "planDigest",
+    ],
+    "benchmark plan",
+  );
+  if (plan.schema !== WIKISKILL_BENCHMARK_PLAN_SCHEMA)
+    throw new TypeError("benchmark plan schema is invalid");
+  const recreated = createWikiSkillBenchmarkPlan({
+    gitCommit: plan.gitCommit,
+    runnerDigest: plan.runnerDigest,
+    model: plan.model,
+    inference: plan.inference,
+    environment: plan.environment,
+    datasets: plan.datasets.map(({ id, version, digest: value, splitIds }) => ({
+      id,
+      version,
+      digest: value,
+      splitIds,
+    })),
+    toolDigest: plan.toolDigest,
+    apiDigest: plan.apiDigest,
+    promptDigest: plan.promptDigest,
+    skillDigest: plan.skillDigest,
+    wikiDigest: plan.wikiDigest,
+    seedSchedule: plan.seedSchedule,
+    bootstrapSamples: plan.bootstrapSamples,
+  });
+  if (canonical(recreated) !== canonical(plan))
+    throw new Error("benchmark plan digest mismatch");
+  return recreated;
+}
+
 function normalizeArm(arm, name) {
   exactKeys(
     arm,
@@ -232,20 +281,12 @@ function mean(values) {
 }
 
 export function buildWikiSkillBenchmarkReport({ plan, runs } = {}) {
-  if (
-    !plan ||
-    plan.schema !== WIKISKILL_BENCHMARK_PLAN_SCHEMA ||
-    !DIGEST.test(plan.planDigest ?? "")
-  )
-    throw new TypeError("a canonical benchmark plan is required");
-  const expectedPlanDigest = digest(
-    WIKISKILL_BENCHMARK_PLAN_SCHEMA,
-    Object.fromEntries(
-      Object.entries(plan).filter(([key]) => key !== "planDigest"),
-    ),
-  );
-  if (expectedPlanDigest !== plan.planDigest)
-    throw new Error("benchmark plan digest mismatch");
+  try {
+    plan = verifyWikiSkillBenchmarkPlan(plan);
+  } catch (cause) {
+    if (cause?.message === "benchmark plan digest mismatch") throw cause;
+    throw new TypeError("a canonical benchmark plan is required", { cause });
+  }
   if (!Array.isArray(runs) || runs.length !== plan.seedSchedule.length)
     throw new TypeError("runs must exactly cover the seed schedule");
   const expectedCases = new Map(
@@ -381,6 +422,19 @@ export function buildWikiSkillBenchmarkReport({ plan, runs } = {}) {
     ...core,
     reportDigest: digest(WIKISKILL_BENCHMARK_REPORT_SCHEMA, core),
   });
+}
+
+export function verifyWikiSkillBenchmarkReport({ plan, report } = {}) {
+  const verifiedPlan = verifyWikiSkillBenchmarkPlan(plan);
+  if (!report || report.schema !== WIKISKILL_BENCHMARK_REPORT_SCHEMA)
+    throw new TypeError("a canonical benchmark report is required");
+  const recreated = buildWikiSkillBenchmarkReport({
+    plan: verifiedPlan,
+    runs: report.runs,
+  });
+  if (canonical(recreated) !== canonical(report))
+    throw new Error("benchmark report digest mismatch");
+  return recreated;
 }
 
 export async function executeWikiSkillBenchmark({ plan, runner } = {}) {

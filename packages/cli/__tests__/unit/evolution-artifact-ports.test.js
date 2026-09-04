@@ -622,6 +622,9 @@ describe("EvolutionArtifactPorts", () => {
       "wiki-maintenance-settlement",
       "wiki-revision",
       "wiki-skill-proposal",
+      "wikiskill-benchmark-envelope-manifest",
+      "wikiskill-benchmark-plan",
+      "wikiskill-benchmark-report-chunk",
     ]);
     const results = EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES.map((type) =>
       publish({
@@ -666,7 +669,7 @@ describe("EvolutionArtifactPorts", () => {
       digest: results[0].digest,
       found: true,
     });
-  });
+  }, 30_000);
 
   it("lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation", () => {
     const result = publish({

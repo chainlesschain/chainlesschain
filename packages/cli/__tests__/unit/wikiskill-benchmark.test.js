@@ -7,6 +7,8 @@ import {
   executeWikiSkillBenchmark,
   projectWikiSkillBenchmarkClaim,
   signWikiSkillBenchmarkReport,
+  verifyWikiSkillBenchmarkPlan,
+  verifyWikiSkillBenchmarkReport,
 } from "../../src/lib/evolution/wikiskill-benchmark.js";
 
 const D = (value) =>
@@ -180,6 +182,34 @@ describe("WikiSkill reproducible benchmark truth gate", () => {
     expect(() =>
       buildWikiSkillBenchmarkReport({ plan, runs: makeRuns(makePlan()) }),
     ).toThrow("plan digest mismatch");
+  });
+
+  it("revalidates exact plan structure and every derived report field", () => {
+    const plan = makePlan();
+    const report = buildWikiSkillBenchmarkReport({
+      plan,
+      runs: makeRuns(plan),
+    });
+
+    expect(verifyWikiSkillBenchmarkPlan(plan)).toEqual(plan);
+    expect(verifyWikiSkillBenchmarkReport({ plan, report })).toEqual(report);
+    expect(() =>
+      verifyWikiSkillBenchmarkPlan({
+        ...plan,
+        datasets: plan.datasets.map((dataset, index) =>
+          index === 0 ? { ...dataset, splitDigest: D("forged") } : dataset,
+        ),
+      }),
+    ).toThrow("digest mismatch");
+    expect(() =>
+      verifyWikiSkillBenchmarkReport({
+        plan,
+        report: {
+          ...report,
+          metrics: { ...report.metrics, delta: report.metrics.delta + 0.1 },
+        },
+      }),
+    ).toThrow("report digest mismatch");
   });
 
   it("keeps public claims on HOLD until an immutable report has a trusted signature", async () => {
