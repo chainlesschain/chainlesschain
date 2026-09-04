@@ -76,7 +76,9 @@ function verifyEnvelope(value, expectedKind) {
     !DIGEST.test(value.digest ?? "") ||
     value.digest !== hash(value.data)
   ) {
-    const error = new Error(`${expectedKind} evidence is not digest-bound and trusted`);
+    const error = new Error(
+      `${expectedKind} evidence is not digest-bound and trusted`,
+    );
     error.code = "WIKI_PROPOSAL_UNTRUSTED_EVIDENCE";
     throw error;
   }
@@ -115,7 +117,10 @@ function validateDiff(diff) {
     if (!entry || !["add", "replace", "remove"].includes(entry.op)) {
       throw new TypeError("machineDiff operation is invalid");
     }
-    const path = requiredString(entry.path, "machineDiff.path").replaceAll("\\", "/");
+    const path = requiredString(entry.path, "machineDiff.path").replaceAll(
+      "\\",
+      "/",
+    );
     const parts = path.split("/");
     if (
       path.startsWith("/") ||
@@ -141,7 +146,9 @@ function validateProposal(output, descriptor, evidence) {
     throw new TypeError("proposal output status is invalid");
   }
   if (output.skillName !== descriptor.targetSkillName) {
-    const error = new Error("proposer attempted to change more than the fixed Skill");
+    const error = new Error(
+      "proposer attempted to change more than the fixed Skill",
+    );
     error.code = "WIKI_PROPOSAL_MULTI_SKILL";
     throw error;
   }
@@ -156,7 +163,9 @@ function validateProposal(output, descriptor, evidence) {
   };
   for (const ref of [...purpose.patternRefs, ...purpose.sourceEvidenceRefs]) {
     if (!knownRefs.has(ref)) {
-      const error = new Error("PURPOSE references evidence outside the resolved set");
+      const error = new Error(
+        "PURPOSE references evidence outside the resolved set",
+      );
       error.code = "WIKI_PROPOSAL_UNKNOWN_LINEAGE";
       throw error;
     }
@@ -181,13 +190,19 @@ function validateProposal(output, descriptor, evidence) {
     skillName: descriptor.targetSkillName,
     purpose,
     applicableWhen: stringList(output.applicableWhen, "applicableWhen"),
-    notApplicableWhen: stringList(output.notApplicableWhen, "notApplicableWhen"),
+    notApplicableWhen: stringList(
+      output.notApplicableWhen,
+      "notApplicableWhen",
+    ),
     failureCounterexamples: stringList(
       output.failureCounterexamples,
       "failureCounterexamples",
     ),
     rollbackSteps: stringList(output.rollbackSteps, "rollbackSteps"),
-    validationMethods: stringList(output.validationMethods, "validationMethods"),
+    validationMethods: stringList(
+      output.validationMethods,
+      "validationMethods",
+    ),
     requestedCapabilities: stringList(
       output.requestedCapabilities,
       "requestedCapabilities",
@@ -214,8 +229,13 @@ function abstention(status, reason, evidence = []) {
 export class WikiInformedSkillProposer {
   constructor({ descriptor, policy, ports } = {}) {
     this.descriptor = normalizeDescriptor(descriptor);
-    if (policy?.proposerWikiRead !== true || policy?.executionAgentWikiRead === true) {
-      throw new Error("capability policy must isolate Wiki reads to the proposer");
+    if (
+      policy?.proposerWikiRead !== true ||
+      policy?.executionAgentWikiRead === true
+    ) {
+      throw new Error(
+        "capability policy must isolate Wiki reads to the proposer",
+      );
     }
     if (typeof ports?.readInitial !== "function")
       throw new TypeError("readInitial port is required");
@@ -229,7 +249,7 @@ export class WikiInformedSkillProposer {
     Object.freeze(this);
   }
 
-  async propose() {
+  async draft() {
     const initial = [];
     for (const kind of INITIAL_SOURCES) {
       initial.push(verifyEnvelope(await this._ports.readInitial(kind), kind));
@@ -243,7 +263,9 @@ export class WikiInformedSkillProposer {
         initial,
       );
     }
-    if (Number(training.data?.sampleCount) < this.descriptor.minEvidenceSamples) {
+    if (
+      Number(training.data?.sampleCount) < this.descriptor.minEvidenceSamples
+    ) {
       return abstention(
         WIKI_PROPOSAL_STATUS.NEEDS_EVIDENCE,
         "training evidence sample is insufficient",
@@ -257,7 +279,11 @@ export class WikiInformedSkillProposer {
       evidence: deepFreeze([...evidence]),
     });
     if (output?.status === WIKI_PROPOSAL_STATUS.NO_PROPOSAL) {
-      return abstention(output.status, requiredString(output.reason, "reason"), evidence);
+      return abstention(
+        output.status,
+        requiredString(output.reason, "reason"),
+        evidence,
+      );
     }
     if (output?.status === WIKI_PROPOSAL_STATUS.NEEDS_EVIDENCE) {
       const requests = output.requests;
@@ -266,11 +292,19 @@ export class WikiInformedSkillProposer {
         requests.length === 0 ||
         requests.length > this.descriptor.maxSelectiveEvidence
       ) {
-        return abstention(output.status, "selective evidence request is invalid", evidence);
+        return abstention(
+          output.status,
+          "selective evidence request is invalid",
+          evidence,
+        );
       }
       for (const request of requests) {
         if (!SELECTIVE_SOURCES.has(request?.kind)) {
-          return abstention(output.status, "requested evidence scope is not allowed", evidence);
+          return abstention(
+            output.status,
+            "requested evidence scope is not allowed",
+            evidence,
+          );
         }
         evidence.push(
           verifyEnvelope(
@@ -296,6 +330,44 @@ export class WikiInformedSkillProposer {
 
     const proposal = validateProposal(output, this.descriptor, evidence);
     const proposalDigest = hash(proposal);
+    return deepFreeze({
+      status: WIKI_PROPOSAL_STATUS.PROPOSAL,
+      proposal,
+      proposalDigest,
+    });
+  }
+
+  async propose() {
+    const drafted = await this.draft();
+    if (drafted.status !== WIKI_PROPOSAL_STATUS.PROPOSAL) return drafted;
+    return this.createCandidateFromDraft(drafted);
+  }
+
+  async createCandidateFromDraft(drafted) {
+    const proposal = drafted?.proposal;
+    const sourceEvidenceRefs = Array.isArray(proposal?.sourceEvidenceRefs)
+      ? proposal.sourceEvidenceRefs
+      : [];
+    const normalized = validateProposal(
+      proposal,
+      this.descriptor,
+      sourceEvidenceRefs,
+    );
+    if (
+      drafted?.status !== WIKI_PROPOSAL_STATUS.PROPOSAL ||
+      proposal?.schema !== WIKI_SKILL_PROPOSAL_SCHEMA ||
+      proposal?.tenantId !== this.descriptor.tenantId ||
+      proposal?.evolutionRunId !== this.descriptor.evolutionRunId ||
+      canonical(normalized) !== canonical(proposal) ||
+      drafted?.proposalDigest !== hash(proposal)
+    ) {
+      const error = new Error(
+        "draft is not an exact proposal bound to this proposer",
+      );
+      error.code = "WIKI_PROPOSAL_DRAFT_UNCONFIRMED";
+      throw error;
+    }
+    const { proposalDigest } = drafted;
     const candidateInput = deepFreeze({
       tenantId: proposal.tenantId,
       skillName: proposal.skillName,
@@ -318,7 +390,8 @@ export class WikiInformedSkillProposer {
       candidate.proposerModel !== proposal.proposerModel ||
       canonical(candidate.requestedCapabilities) !==
         canonical(proposal.requestedCapabilities) ||
-      canonical(candidate.targetRuntimes) !== canonical(proposal.targetRuntimes) ||
+      canonical(candidate.targetRuntimes) !==
+        canonical(proposal.targetRuntimes) ||
       canonical(candidate.sourceEvidenceRefs) !==
         canonical(proposal.sourceEvidenceRefs)
     ) {
