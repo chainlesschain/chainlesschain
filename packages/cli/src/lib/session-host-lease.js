@@ -3,10 +3,13 @@
  *
  * A lease is cooperative authority for production hosts, not a same-UID
  * sandbox. Every process sharing CHAINLESSCHAIN_HOME observes the same strict
- * state file. A monotonically increasing fencing token prevents an expired or
- * crashed host from publishing through guarded session-store write paths after
- * a successor takes over. A separate monotonic revocation epoch lets an
- * operator fence a still-live host; every guarded transition re-reads it.
+ * state file. A monotonically increasing fencing token prevents a crashed host
+ * from publishing through guarded session-store write paths after a successor
+ * takes over. A separate monotonic revocation epoch lets an operator fence a
+ * still-live host; every guarded transition re-reads it. An exact local owner
+ * may renew after its TTL when the event loop was blocked: no successor can
+ * have been admitted while that owner PID remained live, and any revocation or
+ * takeover still changes the durable authority tuple and fences the old host.
  */
 
 import fs from "node:fs";
@@ -440,9 +443,9 @@ export class SessionHostLeaseAuthority {
           const incumbent = snapshot.active;
           // Never take authority from a process that the OS still reports as
           // alive, even after its heartbeat TTL. It may be blocked inside an
-          // external side effect and resume later. Expiry fences that host's
-          // next guarded transition; takeover additionally requires proven
-          // process death so two executors cannot overlap.
+          // external side effect and resume later. The exact local owner may
+          // renew late; takeover additionally requires proven process death so
+          // two executors cannot overlap.
           if (incumbent && this._isProcessAlive(incumbent.ownerPid)) {
             throw leaseError(
               SESSION_HOST_LEASE_HELD_CODE,
@@ -522,13 +525,6 @@ export class SessionHostLeaseAuthority {
               );
             }
             const now = Math.trunc(this._now());
-            if (snapshot.active.expiresAtMs <= now) {
-              throw leaseError(
-                SESSION_HOST_LEASE_FENCED_CODE,
-                `Session host lease expired for ${id}`,
-                { sessionId: id, fencingToken: record.active.fencingToken },
-              );
-            }
             const next = {
               ...snapshot.active,
               renewedAtMs: now,
@@ -898,8 +894,7 @@ export class SessionHostLeaseAuthority {
             record &&
             (record.released ||
               record.active.revocationEpoch !== snapshot.revocationEpoch ||
-              !sameLease(snapshot.active, record.active) ||
-              snapshot.active.expiresAtMs <= now)
+              !sameLease(snapshot.active, record.active))
           ) {
             const error = leaseError(
               SESSION_HOST_LEASE_FENCED_CODE,

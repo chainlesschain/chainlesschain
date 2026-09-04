@@ -292,6 +292,27 @@ describe("agent-core run_shell configurable foreground timeout", () => {
     expect(res.error).toBeUndefined();
     expect(res.stdout).toContain("fast");
   });
+
+  it("keeps the event loop responsive for stream-host foreground commands", async () => {
+    let heartbeatObserved = false;
+    const heartbeat = setTimeout(() => {
+      heartbeatObserved = true;
+    }, 25);
+    try {
+      const res = await executeTool(
+        "run_shell",
+        {
+          command: `${NODE} -e "setTimeout(()=>process.stdout.write('done'),150)"`,
+        },
+        { nonBlockingShell: true },
+      );
+      expect(res.error).toBeUndefined();
+      expect(res.stdout).toContain("done");
+      expect(heartbeatObserved).toBe(true);
+    } finally {
+      clearTimeout(heartbeat);
+    }
+  });
 });
 
 // killAllBackgroundShellTasks is the disposer the REPL exit (rl.on('close'))

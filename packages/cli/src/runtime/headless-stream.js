@@ -4580,6 +4580,9 @@ async function runAgentHeadlessStreamInWorkspace(
           onUsageSettlement: persistUsageEvent,
           onToolCallBoundary: persistChildToolBoundary,
           onToolCallSettlement: persistChildToolSettlement,
+          // Keep the session heartbeat and protocol pumps live while a
+          // foreground command such as a networked git push is still running.
+          nonBlockingShell: true,
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
