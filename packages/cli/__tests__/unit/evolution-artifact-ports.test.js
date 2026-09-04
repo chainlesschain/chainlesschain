@@ -606,6 +606,8 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-settlement",
       "evolution-run-event",
       "evolution-eval-child-evidence",
+      "evolution-raw-deletion-receipt",
+      "evolution-raw-deletion-tombstone",
       "evolution-release-train-checkpoint",
       "evolution-release-train-stage-output",
       "evolvable-artifact-candidate",
