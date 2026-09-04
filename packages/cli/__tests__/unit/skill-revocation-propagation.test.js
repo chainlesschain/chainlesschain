@@ -9,7 +9,9 @@ import {
 } from "../../src/lib/evolution/skill-revocation-propagation.js";
 import {
   SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+  SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
   createSkillWikiPilotReconciliationSource,
+  createSkillWikiRevocationReconciliationSource,
 } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 
 function canonical(value) {
@@ -220,5 +222,43 @@ describe("SkillRevocationPropagation", () => {
       code: "CC_SKILL_REVOCATION_PROPAGATION_INVALID",
     });
     expect(h.effect).not.toHaveBeenCalled();
+  });
+
+  it("applies the same four dispositions for an independent revoke source", async () => {
+    const h = fixture();
+    const revokeSource = createSkillWikiRevocationReconciliationSource({
+      tenantId: "tenant-a",
+      streamId: "security-revocations",
+      readRevocations: async () => [
+        {
+          schema: SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          streamId: "security-revocations",
+          sequence: 1,
+          revocationId: "security-incident-1",
+          candidateId: hash("candidate"),
+          skillName: "safe-refactor",
+          outcome: "revoke",
+          reason: "Independent security authority revoked the Skill.",
+          occurredAt: "2026-09-05T01:00:00.000Z",
+          activeStateDigest: hash("active-state"),
+          evidenceReceiptDigests: [hash("incident")],
+          sourceReceiptDigest: hash("security-verification"),
+        },
+      ],
+    });
+    const propagation = createSkillRevocationPropagation({
+      source: revokeSource,
+      ports: h.ports,
+    });
+
+    await expect(propagation.propagate()).resolves.toMatchObject({
+      processed: 1,
+      cursor: 1,
+      outcomes: [{ outcome: "revoke", effects: 4 }],
+    });
+    expect(h.effect).toHaveBeenCalledTimes(4);
   });
 });

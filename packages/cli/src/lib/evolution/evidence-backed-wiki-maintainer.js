@@ -553,7 +553,10 @@ function applyOperation(state, operation, evidenceByRef, effectiveAt) {
       );
     if (decision.outcome === "rejected") {
       pattern.rejectionCount = (pattern.rejectionCount ?? 0) + 1;
-      if (evidence.data?.pilotOutcome === "rollback") {
+      if (
+        evidence.data?.pilotOutcome === "rollback" ||
+        evidence.data?.revocationOutcome === "revoke"
+      ) {
         pattern.rollbackCount = (pattern.rollbackCount ?? 0) + 1;
       }
     }

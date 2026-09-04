@@ -13,6 +13,8 @@ export const SKILL_WIKI_REVIEW_DECISION_SCHEMA =
   "chainlesschain.skill-wiki-review-decision/v1";
 export const SKILL_WIKI_PILOT_OUTCOME_SCHEMA =
   "chainlesschain.skill-wiki-pilot-outcome/v1";
+export const SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA =
+  "chainlesschain.skill-wiki-revocation-outcome/v1";
 export const SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA =
   "chainlesschain.skill-wiki-impact-resolution/v1";
 export const SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA =
@@ -69,6 +71,23 @@ const PILOT_KEYS = new Set([
   "sequence",
   "pilotId",
   "descriptorDigest",
+  "candidateId",
+  "skillName",
+  "outcome",
+  "reason",
+  "occurredAt",
+  "activeStateDigest",
+  "evidenceReceiptDigests",
+  "sourceReceiptDigest",
+]);
+const REVOCATION_KEYS = new Set([
+  "schema",
+  "authenticated",
+  "durable",
+  "tenantId",
+  "streamId",
+  "sequence",
+  "revocationId",
   "candidateId",
   "skillName",
   "outcome",
@@ -544,6 +563,119 @@ export function createSkillWikiPilotReconciliationSource({
   return freeze(source);
 }
 
+function normalizeRevocationOutcome(input, tenantId, streamId) {
+  exact(input, REVOCATION_KEYS, "skill Wiki revocation outcome");
+  if (
+    !Array.isArray(input.evidenceReceiptDigests) ||
+    utilTypes.isProxy(input.evidenceReceiptDigests) ||
+    input.evidenceReceiptDigests.length < 1 ||
+    input.evidenceReceiptDigests.length > 128
+  ) {
+    fail("revocation evidence receipts must be a bounded non-empty list");
+  }
+  const evidenceReceiptDigests = [
+    ...new Set(
+      input.evidenceReceiptDigests.map((value) =>
+        digest(value, "revocation evidence receipt"),
+      ),
+    ),
+  ].sort();
+  if (evidenceReceiptDigests.length !== input.evidenceReceiptDigests.length) {
+    fail("revocation evidence receipts must be unique");
+  }
+  const core = {
+    schema: SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
+    tenantId,
+    streamId,
+    sequence: sequence(input.sequence, "revocation outcome sequence"),
+    revocationId: string(
+      input.revocationId,
+      "revocation outcome revocationId",
+      256,
+    ),
+    candidateId: digest(input.candidateId, "revocation outcome candidateId"),
+    skillName: string(input.skillName, "revocation outcome skillName", 128),
+    outcome: input.outcome,
+    reason: string(input.reason, "revocation outcome reason", 1024),
+    occurredAt: timestamp(input.occurredAt, "revocation outcome occurredAt"),
+    activeStateDigest: digest(
+      input.activeStateDigest,
+      "revocation outcome activeStateDigest",
+    ),
+    evidenceReceiptDigests,
+    sourceReceiptDigest: digest(
+      input.sourceReceiptDigest,
+      "revocation outcome sourceReceiptDigest",
+    ),
+  };
+  if (
+    input.schema !== SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA ||
+    input.authenticated !== true ||
+    input.durable !== true ||
+    input.tenantId !== tenantId ||
+    input.streamId !== streamId ||
+    input.outcome !== "revoke" ||
+    !SKILL_NAME.test(core.skillName)
+  ) {
+    fail("skill Wiki revocation outcome is not durably tenant-bound");
+  }
+  return freeze({
+    ...core,
+    authenticated: true,
+    durable: true,
+    wikiRevision: null,
+    transitionDigest: hash(core),
+  });
+}
+
+export function createSkillWikiRevocationReconciliationSource({
+  tenantId: tenantInput,
+  streamId: streamInput,
+  readRevocations,
+} = {}) {
+  const tenantId = string(tenantInput, "tenantId", 256);
+  const streamId = string(streamInput, "streamId", 256);
+  if (
+    typeof readRevocations !== "function" ||
+    utilTypes.isProxy(readRevocations)
+  ) {
+    throw new TypeError("readRevocations is required");
+  }
+  const source = {
+    tenantId,
+    streamId,
+    async list({ afterSequence = 0, limit = 64 } = {}) {
+      const cursor = sequence(afterSequence, "afterSequence", {
+        allowZero: true,
+      });
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 256) {
+        fail("limit must be between 1 and 256");
+      }
+      const raw = await readRevocations();
+      if (
+        !Array.isArray(raw) ||
+        utilTypes.isProxy(raw) ||
+        raw.length > 10_000
+      ) {
+        fail("revocation source did not return a bounded list");
+      }
+      const all = raw
+        .map((entry) => normalizeRevocationOutcome(entry, tenantId, streamId))
+        .sort((left, right) => left.sequence - right.sequence);
+      for (let index = 1; index < all.length; index += 1) {
+        if (all[index - 1].sequence >= all[index].sequence) {
+          fail("revocation outcome sequences must be unique and increasing");
+        }
+      }
+      return freeze(
+        all.filter((entry) => entry.sequence > cursor).slice(0, limit),
+      );
+    },
+  };
+  SOURCES.add(source);
+  return freeze(source);
+}
+
 export function captureSkillWikiReconciliationSource(source) {
   if (!SOURCES.has(source)) {
     throw new TypeError(
@@ -703,21 +835,26 @@ export class SkillWikiReconciler {
         this.source.tenantId,
       );
       const pilot = transition.schema === SKILL_WIKI_PILOT_OUTCOME_SCHEMA;
+      const revocation =
+        transition.schema === SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA;
       const rejected =
         transition.schema === SKILL_WIKI_REVIEW_DECISION_SCHEMA ||
-        (pilot && transition.outcome === "rollback");
+        (pilot && transition.outcome === "rollback") ||
+        revocation;
       const decision = {
         candidateId: transition.candidateId,
         skillName: transition.skillName,
         outcome: rejected ? "rejected" : "accepted",
         patternRefs: impact.patternRefs,
-        reason: pilot || rejected ? transition.reason : impact.reason,
+        reason:
+          pilot || revocation || rejected ? transition.reason : impact.reason,
       };
-      const sourceDigest = pilot
-        ? transition.sourceReceiptDigest
-        : rejected
-          ? transition.decisionReceiptDigest
-          : transition.settlementDigest;
+      const sourceDigest =
+        pilot || revocation
+          ? transition.sourceReceiptDigest
+          : rejected
+            ? transition.decisionReceiptDigest
+            : transition.settlementDigest;
       const evidenceCore = {
         schema: WIKI_EVIDENCE_SCHEMA,
         tenantId: this.source.tenantId,
@@ -726,9 +863,11 @@ export class SkillWikiReconciler {
         projectionDigest: hash({ transition, impact }),
         artifactRef: pilot
           ? `skill-pilot://${this.source.tenantId}/${transition.pilotId}/${transition.sequence}`
-          : rejected
-            ? `skill-review://${this.source.tenantId}/${transition.decisionReceiptDigest.slice(7)}`
-            : `skill-release://${this.source.tenantId}/${transition.activeReleaseDigest.slice(7)}`,
+          : revocation
+            ? `skill-revocation://${this.source.tenantId}/${transition.revocationId}/${transition.sequence}`
+            : rejected
+              ? `skill-review://${this.source.tenantId}/${transition.decisionReceiptDigest.slice(7)}`
+              : `skill-release://${this.source.tenantId}/${transition.activeReleaseDigest.slice(7)}`,
         trustedProjection: true,
         trustDomain: `skill-registry:${this.source.streamId}`,
         kind: "proposal-decision",
@@ -750,13 +889,20 @@ export class SkillWikiReconciler {
                 activeStateDigest: transition.activeStateDigest,
                 evidenceReceiptDigests: transition.evidenceReceiptDigests,
               }
-            : rejected
-              ? { packetDigest: transition.packetDigest }
-              : {
-                  settlementDigest: transition.settlementDigest,
-                  activeReleaseDigest: transition.activeReleaseDigest,
-                  stateDigest: transition.stateDigest,
-                }),
+            : revocation
+              ? {
+                  revocationId: transition.revocationId,
+                  revocationOutcome: transition.outcome,
+                  activeStateDigest: transition.activeStateDigest,
+                  evidenceReceiptDigests: transition.evidenceReceiptDigests,
+                }
+              : rejected
+                ? { packetDigest: transition.packetDigest }
+                : {
+                    settlementDigest: transition.settlementDigest,
+                    activeReleaseDigest: transition.activeReleaseDigest,
+                    stateDigest: transition.stateDigest,
+                  }),
         },
       };
       const evidence = freeze({

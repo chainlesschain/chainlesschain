@@ -13,10 +13,12 @@ import {
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
   SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
   SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+  SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
   SKILL_WIKI_TRANSITION_SCHEMA,
   createSkillWikiReconciliationSource,
   createSkillWikiPilotReconciliationSource,
   createSkillWikiReviewReconciliationSource,
+  createSkillWikiRevocationReconciliationSource,
   createSkillWikiReconciler,
 } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 
@@ -389,6 +391,51 @@ describe("SkillWikiReconciler", () => {
         ]),
       );
     }
+  });
+
+  it("reconciles an independent revoke as rejected impact", async () => {
+    const fixture = await harness();
+    const source = createSkillWikiRevocationReconciliationSource({
+      tenantId: "tenant-a",
+      streamId: "security-revocations",
+      readRevocations: async () => [
+        {
+          schema: SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          streamId: "security-revocations",
+          sequence: 3,
+          revocationId: "security-incident-3",
+          candidateId: hash("revoked-candidate"),
+          skillName: "safe-refactor",
+          outcome: "revoke",
+          reason: "Independent security authority revoked the Skill.",
+          occurredAt: "2026-09-05T02:00:00.000Z",
+          activeStateDigest: hash("revoked-active-state"),
+          evidenceReceiptDigests: [hash("security-incident")],
+          sourceReceiptDigest: hash("security-verification"),
+        },
+      ],
+    });
+    const reconciler = createSkillWikiReconciler({
+      source,
+      maintainer: fixture.maintainer,
+      ports: fixture.ports,
+    });
+
+    await expect(reconciler.reconcile()).resolves.toMatchObject({
+      processed: 1,
+      cursor: 3,
+    });
+    expect(fixture.getState().skillImpact["safe-refactor"]).toMatchObject({
+      accepted: 0,
+      rejected: 1,
+    });
+    expect(fixture.getState().patterns["pat-safe-refactor"]).toMatchObject({
+      status: "stale",
+      actionable: false,
+    });
   });
 
   it("fails closed for cross-tenant or forged transition records", () => {

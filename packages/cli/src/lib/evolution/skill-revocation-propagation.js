@@ -3,6 +3,7 @@ import { types as utilTypes } from "node:util";
 
 import {
   SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+  SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA,
   captureSkillWikiReconciliationSource,
 } from "./skill-wiki-reconciliation.js";
 
@@ -392,11 +393,14 @@ export class SkillRevocationPropagation {
     });
     const processed = [];
     for (const outcome of outcomes) {
-      if (outcome.schema !== SKILL_WIKI_PILOT_OUTCOME_SCHEMA) {
-        fail("revocation propagation requires a Pilot outcome source");
+      if (
+        outcome.schema !== SKILL_WIKI_PILOT_OUTCOME_SCHEMA &&
+        outcome.schema !== SKILL_WIKI_REVOCATION_OUTCOME_SCHEMA
+      ) {
+        fail("revocation propagation requires a rollback or revoke source");
       }
       let results = [];
-      if (outcome.outcome === "rollback") {
+      if (["rollback", "revoke"].includes(outcome.outcome)) {
         const resolution = normalizeResolution(
           await this._resolveDependencies(outcome),
           outcome,
