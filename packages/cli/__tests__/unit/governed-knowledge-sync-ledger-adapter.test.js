@@ -6,6 +6,8 @@ import path from "node:path";
 import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import evolvableArtifactProtocol from "@chainlesschain/session-core/evolvable-artifact";
+
 import { registerGovernedKnowledgeCommands } from "../../src/commands/evolution-knowledge.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
@@ -52,6 +54,14 @@ import {
   GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
   GovernedKnowledgeSync,
 } from "../../src/lib/evolution/governed-knowledge-sync.js";
+
+const {
+  ARTIFACT_TYPE,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+  createEvolvableArtifactPolicy,
+} = evolvableArtifactProtocol;
 
 const roots = [];
 const D = (value) =>
@@ -589,17 +599,64 @@ function mergePublisher({ loseFirstResponse = false } = {}) {
   return { authority, provider, requests, verifier };
 }
 
-function syncMergePublisher(storage, crypto) {
+function syncMergePublisher(
+  storage,
+  crypto,
+  { candidateFailure = null, omitCandidateGate = false } = {},
+) {
   const publishing = controller(storage, crypto);
   const providerPublicationReader = publishing.persisted.publicationReader();
   const verifierPublicationReader = adapter(
     storage,
     crypto,
   ).publicationReader();
+  const persistCandidate = vi.fn(async (artifact) => {
+    if (candidateFailure) throw candidateFailure;
+    return {
+      schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+      tenantId: artifact.tenantId,
+      type: artifact.type,
+      artifactId: artifact.artifactId,
+      candidateId: artifact.candidate.candidateId,
+      contentDigest: artifact.contentDigest,
+      artifactDigest: artifact.artifactDigest,
+      status: "candidate",
+      persisted: true,
+    };
+  });
+  const policy = createEvolvableArtifactPolicy({
+    type: ARTIFACT_TYPE.KNOWLEDGE,
+    revision: "knowledge-merge-test/v1",
+    admission: () => ({
+      decision: "allow",
+      policyRevision: "knowledge-merge-test/v1",
+    }),
+    evaluator: () => ({
+      decision: "allow",
+      policyRevision: "knowledge-merge-test/v1",
+    }),
+    activation: () => ({
+      decision: "allow",
+      policyRevision: "knowledge-merge-test/v1",
+    }),
+    rollback: () => ({
+      decision: "allow",
+      policyRevision: "knowledge-merge-test/v1",
+    }),
+  });
+  const artifactCandidateGate = createEvolvableArtifactCandidateGate({
+    authority: createEvolvableArtifactAuthority({
+      tenantId: storage.descriptor.tenantId,
+      policy,
+    }),
+    candidateWriter: { persistCandidate },
+  });
   return {
     publishing,
+    persistCandidate,
     authority: createGovernedKnowledgeSyncMergePublisherAuthority({
       sync: publishing.controller,
+      ...(omitCandidateGate ? {} : { artifactCandidateGate }),
       providerPublicationReader,
       verifierPublicationReader,
       providerDescriptor: {
@@ -1098,7 +1155,29 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
       envelopeDigest: committed.envelopeDigest,
     });
     expect(publishingCrypto.send.send).toHaveBeenCalledOnce();
+    expect(publisher.persistCandidate).toHaveBeenCalledOnce();
+    expect(publisher.persistCandidate.mock.calls[0][0]).toMatchObject({
+      tenantId: fixture.plan.tenantId,
+      artifactId: fixture.plan.knowledgeId,
+      type: ARTIFACT_TYPE.KNOWLEDGE,
+      contentDigest: fixture.merged.contentDigest,
+      candidate: {
+        candidateId: `knowledge-merge:${fixture.plan.planDigest.slice(7)}`,
+        status: "candidate",
+      },
+      activeReleaseId: `knowledge-content:${fixture.plan.localContentDigest.slice(7)}`,
+      runtimeManifest: {
+        executable: false,
+        mergePlanDigest: fixture.plan.planDigest,
+        humanReceiptDigest: fixture.plan.humanReceiptDigest,
+      },
+      permissionManifest: {
+        automated: false,
+        requestedBy: fixture.plan.requestedBy,
+      },
+    });
     expect(reopenedCrypto.send.send).toHaveBeenCalledOnce();
+    expect(reopenedPublisher.persistCandidate).toHaveBeenCalledOnce();
     expect(
       fixture.receiverStorage.state.events.filter(
         ({ type }) => type === "knowledge.sync.committed",
@@ -1114,6 +1193,38 @@ describe("GovernedKnowledgeSyncLedgerAdapter", () => {
         { operationId },
       ),
     ).rejects.toThrow("resolved different knowledge");
+  });
+
+  it("requires the shared Knowledge candidate gate at composition time", async () => {
+    const fixture = await mergePlanFixture();
+    expect(() =>
+      syncMergePublisher(fixture.receiverStorage, cryptoPorts(), {
+        omitCandidateGate: true,
+      }),
+    ).toThrow("Knowledge artifact candidate gate");
+  });
+
+  it("does not publish a merge when Knowledge candidate persistence fails", async () => {
+    const fixture = await mergePlanFixture();
+    const publishingCrypto = cryptoPorts();
+    const publisher = syncMergePublisher(
+      fixture.receiverStorage,
+      publishingCrypto,
+      { candidateFailure: new Error("candidate store unavailable") },
+    );
+
+    await expect(
+      mergeExecutor(fixture.receiverStorage, publisher.authority).execute(
+        fixture.plan,
+      ),
+    ).rejects.toThrow("candidate store unavailable");
+    expect(publisher.persistCandidate).toHaveBeenCalledOnce();
+    expect(publishingCrypto.send.send).not.toHaveBeenCalled();
+    expect(
+      fixture.receiverStorage.state.events.filter(
+        ({ type }) => type === "knowledge.merge.settled",
+      ),
+    ).toHaveLength(0);
   });
 
   it("reopens a settled merge through actual Ledger files and witness", async () => {

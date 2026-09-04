@@ -236,7 +236,7 @@ export function createGovernedKnowledgeMergePublisherAuthority({
         throw new TypeError("merge publisher authority clock is invalid");
       }
       const result = validateResult(
-        await publish(request),
+        await publish(request, plan),
         request,
         providerDescriptor,
         currentTime,

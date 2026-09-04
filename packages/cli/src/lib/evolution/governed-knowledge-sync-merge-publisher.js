@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import evolvableArtifactProtocol from "@chainlesschain/session-core/evolvable-artifact";
+
 import {
   GOVERNED_KNOWLEDGE_MERGE_PUBLISH_RESULT_SCHEMA,
   createGovernedKnowledgeMergePublisherAuthority,
@@ -8,6 +10,12 @@ import {
 } from "./governed-knowledge-merge-publisher-authority.js";
 import { isGovernedKnowledgeSync } from "./governed-knowledge-sync.js";
 import { isGovernedKnowledgePublicationReader } from "./governed-knowledge-sync-ledger-adapter.js";
+
+const {
+  ARTIFACT_TYPE,
+  digestEvolvableArtifactValue,
+  isEvolvableArtifactCandidateGate,
+} = evolvableArtifactProtocol;
 
 export const GOVERNED_KNOWLEDGE_SYNC_MERGE_VERIFICATION_SCHEMA =
   "chainlesschain.governed-knowledge-sync-merge-verification/v1";
@@ -35,6 +43,60 @@ function hash(domain, value) {
     .update("\0")
     .update(canonical(value))
     .digest("hex")}`;
+}
+
+function manifest(body) {
+  return freeze({
+    ...body,
+    digest: digestEvolvableArtifactValue(body),
+  });
+}
+
+function knowledgeCandidateInput(plan) {
+  if (plan.mergedKnowledge.dependencies.length > 0) {
+    throw new Error(
+      "governed knowledge dependencies require a trusted artifact release resolver",
+    );
+  }
+  const parentReleaseId = `knowledge-content:${plan.localContentDigest.slice(7)}`;
+  return freeze({
+    tenantId: plan.tenantId,
+    artifactId: plan.knowledgeId,
+    type: ARTIFACT_TYPE.KNOWLEDGE,
+    contentDigest: plan.mergedKnowledge.contentDigest,
+    parent: {
+      artifactId: plan.knowledgeId,
+      releaseId: parentReleaseId,
+      contentDigest: plan.localContentDigest,
+    },
+    lineage: [
+      plan.localContentDigest,
+      plan.remoteContentDigest,
+      plan.mergedKnowledge.contentDigest,
+    ],
+    dependencyLock: {
+      dependencies: [],
+      digest: digestEvolvableArtifactValue({ dependencies: [] }),
+    },
+    runtimeManifest: manifest({
+      executable: false,
+      mergePlanDigest: plan.planDigest,
+      humanReceiptDigest: plan.humanReceiptDigest,
+      scope: plan.scope,
+      scopeId: plan.scopeId,
+      action: plan.mergedKnowledge.action,
+      vectorClock: plan.mergedKnowledge.vectorClock,
+    }),
+    permissionManifest: manifest({
+      automated: false,
+      requestedBy: plan.requestedBy,
+      capabilities: [`knowledge:${plan.scope}:merge`],
+      approvalReceiptDigest: plan.mergedKnowledge.approvalReceiptDigest ?? null,
+    }),
+    candidateId: `knowledge-merge:${plan.planDigest.slice(7)}`,
+    activeReleaseId: parentReleaseId,
+    lastKnownGoodReleaseId: null,
+  });
 }
 
 function clone(value) {
@@ -121,6 +183,7 @@ function verifyStoredPublication(record, request, envelope = null) {
 
 export function createGovernedKnowledgeSyncMergePublisherAuthority({
   sync,
+  artifactCandidateGate,
   providerPublicationReader,
   verifierPublicationReader,
   providerDescriptor,
@@ -142,6 +205,22 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
   }
   const tenantId = sync.tenantId;
   const deviceId = sync.deviceId;
+  if (
+    !isEvolvableArtifactCandidateGate(
+      artifactCandidateGate,
+      ARTIFACT_TYPE.KNOWLEDGE,
+    ) ||
+    artifactCandidateGate.tenantId !== tenantId
+  ) {
+    throw new TypeError(
+      "a tenant-bound Knowledge artifact candidate gate is required",
+    );
+  }
+  const stageArtifactCandidate = capture(
+    artifactCandidateGate,
+    "stageCandidate",
+    "artifactCandidateGate",
+  );
   const providerIdentity = descriptor(providerDescriptor, "provider");
   const verifierIdentity = descriptor(verifierDescriptor, "verifier");
   const publish = capture(sync, "publish", "sync");
@@ -158,7 +237,21 @@ export function createGovernedKnowledgeSyncMergePublisherAuthority({
     "verifierPublicationReader",
   );
   const provider = Object.freeze({
-    async publish(request) {
+    async publish(request, plan) {
+      const staged = await stageArtifactCandidate(
+        knowledgeCandidateInput(plan),
+      );
+      if (
+        staged?.artifact?.candidate?.candidateId !==
+          `knowledge-merge:${plan.planDigest.slice(7)}` ||
+        staged.artifact.contentDigest !== request.mergedContentDigest ||
+        staged.receipt?.artifactDigest !== staged.artifact.artifactDigest ||
+        staged.receipt?.persisted !== true
+      ) {
+        throw new Error(
+          "governed knowledge candidate was not persistently staged",
+        );
+      }
       const envelope = await publish(request.mergedKnowledge, {
         operationId: request.operationId,
       });
