@@ -91,6 +91,7 @@ import {
   SKILL_REGISTRY_TRANSITION_SETTLED_EVENT_TYPE,
   createSkillRegistryTransitionLedgerAdapter,
 } from "../../src/lib/evolution/skill-registry-transition-ledger-adapter.js";
+import { SKILL_WIKI_TRANSITION_SCHEMA } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 import {
   SKILL_REGISTRY_CANDIDATE_CREATED_RESOLUTION_SCHEMA,
   SKILL_REGISTRY_EVAL_COMPLETED_RESOLUTION_SCHEMA,
@@ -3338,6 +3339,20 @@ describe("Skill target matrix evaluation foundation", () => {
     });
     expect(reopenedTransitionAdapter.list()).toMatchObject([
       { status: "committed", settlement: { revision: 1 } },
+    ]);
+    expect(
+      reopenedTransitionAdapter.createWikiReconciliationSource().list(),
+    ).toMatchObject([
+      {
+        schema: SKILL_WIKI_TRANSITION_SCHEMA,
+        authenticated: true,
+        durable: true,
+        tenantId: receipt.tenantId,
+        candidateId: candidate.candidateId,
+        skillName: candidate.skillName,
+        activeReleaseDigest: expect.stringMatching(/^sha256:/u),
+        transitionDigest: expect.stringMatching(/^sha256:/u),
+      },
     ]);
     expect(transitionStorage.state.events.map((event) => event.type)).toEqual([
       "skill.registry-transition.requested",

@@ -22,6 +22,10 @@ import {
   digestSkillMutationTransitionSubject,
   verifySkillMutationRequest,
 } from "./skill-mutation-authority.js";
+import {
+  SKILL_WIKI_TRANSITION_SCHEMA,
+  createSkillWikiReconciliationSource,
+} from "./skill-wiki-reconciliation.js";
 
 export const SKILL_REGISTRY_TRANSITION_REQUEST_SCHEMA =
   "chainlesschain.skill-registry-transition-request/v1";
@@ -1172,6 +1176,44 @@ export class SkillRegistryTransitionLedgerAdapter {
             left.requestEventSequence - right.requestEventSequence,
         ),
     );
+  }
+
+  createWikiReconciliationSource() {
+    return createSkillWikiReconciliationSource({
+      tenantId: this.descriptor.tenantId,
+      streamId: this.descriptor.streamId,
+      readTransitions: () =>
+        this._settlements().map(({ event, settlement }) => {
+          const candidate = this._readCandidate(settlement.candidateId);
+          if (
+            candidate?.tenantId !== this.descriptor.tenantId ||
+            candidate.candidateId !== settlement.candidateId ||
+            candidate.skillName !== settlement.skillName
+          ) {
+            fail(
+              SKILL_REGISTRY_TRANSITION_CORRUPT_CODE,
+              "transition candidate lineage is invalid for Wiki reconciliation",
+            );
+          }
+          return {
+            schema: SKILL_WIKI_TRANSITION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: this.descriptor.tenantId,
+            streamId: this.descriptor.streamId,
+            sequence: event.sequence,
+            candidateId: settlement.candidateId,
+            skillName: settlement.skillName,
+            activeReleaseDigest: settlement.activeReleaseDigest,
+            stateDigest: settlement.stateDigest,
+            settlementDigest: settlement.settlementDigest,
+            occurredAt: settlement.settledAt,
+            wikiRevision: candidate.wikiRevision,
+            sourceEvidenceRefs: candidate.sourceEvidenceRefs,
+            sourceReceiptDigest: event.eventDigest,
+          };
+        }),
+    });
   }
 
   async processNext() {
