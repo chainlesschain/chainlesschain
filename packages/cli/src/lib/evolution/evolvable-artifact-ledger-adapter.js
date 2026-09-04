@@ -1,0 +1,406 @@
+import { createHash } from "node:crypto";
+
+import evolvableArtifactProtocol from "@chainlesschain/session-core/evolvable-artifact";
+
+import {
+  EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
+  isEvolutionLedgerArtifactResolver,
+} from "./evolution-artifact-ports.js";
+import {
+  EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
+  EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+} from "./evolution-ledger.js";
+
+const {
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
+  EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+  digestEvolvableArtifactValue,
+  verifyEvolvableArtifact,
+} = evolvableArtifactProtocol;
+
+export const EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.evolvable-artifact-ledger-record/v1";
+export const EVOLVABLE_ARTIFACT_CANDIDATE_EVENT =
+  "evolvable-artifact.candidate.persisted";
+export const EVOLVABLE_ARTIFACT_TRANSITION_EVENT =
+  "evolvable-artifact.transition.committed";
+
+const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function hash(value) {
+  return `sha256:${createHash("sha256")
+    .update(EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA)
+    .update("\0")
+    .update(canonical(value))
+    .digest("hex")}`;
+}
+
+function text(value, name) {
+  if (typeof value !== "string" || value.trim() === "")
+    throw new TypeError(`${name} is required`);
+  return value;
+}
+
+function capture(owner, method, name) {
+  if (!owner || typeof owner[method] !== "function")
+    throw new TypeError(`${name}.${method}() is required`);
+  return (...args) => Reflect.apply(owner[method], owner, args);
+}
+
+function freeze(value) {
+  const result = structuredClone(value);
+  function visit(entry) {
+    if (entry && typeof entry === "object" && !Object.isFrozen(entry)) {
+      Object.freeze(entry);
+      for (const child of Object.values(entry)) visit(child);
+    }
+  }
+  visit(result);
+  return result;
+}
+
+function transitionReceipt(request, revision) {
+  const body = {
+    schema: EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+    operationId: request.operationId,
+    requestDigest: request.requestDigest,
+    kind: request.kind,
+    tenantId: request.tenantId,
+    type: request.type,
+    artifactId: request.artifactId,
+    candidateId: request.candidateId,
+    releaseId: request.releaseId,
+    artifactDigest: request.nextArtifactDigest,
+    persisted: true,
+    durable: true,
+    revision,
+  };
+  return freeze({
+    ...body,
+    receiptDigest: digestEvolvableArtifactValue(body),
+  });
+}
+
+export class EvolvableArtifactLedgerAdapter {
+  constructor({
+    descriptor: input,
+    artifactPorts,
+    ledger,
+    ledgerArtifactResolver,
+    clock = () => new Date().toISOString(),
+  } = {}) {
+    this.descriptor = Object.freeze({
+      tenantId: text(input?.tenantId, "tenantId"),
+      artifactTenantId: text(input?.artifactTenantId, "artifactTenantId"),
+      streamId: text(input?.streamId, "streamId"),
+      audience: text(input?.audience, "audience"),
+      purpose: text(input?.purpose, "purpose"),
+    });
+    if (this.descriptor.purpose !== "evolution-ledger")
+      throw new TypeError("artifact adapter purpose must be evolution-ledger");
+    this._put = capture(artifactPorts, "putCanonical", "artifactPorts");
+    this._read = capture(ledger, "read", "ledger");
+    this._verifyLedger = capture(ledger, "verify", "ledger");
+    this._append = capture(ledger, "appendDomainEvent", "ledger");
+    if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver))
+      throw new TypeError("a branded ledger artifact resolver is required");
+    this._resolveArtifact = ledgerArtifactResolver;
+    if (typeof clock !== "function") throw new TypeError("clock is required");
+    this._clock = clock;
+  }
+
+  _events(type) {
+    const events = this._read();
+    if (!Array.isArray(events)) throw new Error("artifact ledger read failed");
+    return events.filter(
+      (event) =>
+        event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
+        event.type === type &&
+        event.tenantId === this.descriptor.tenantId &&
+        event.correlationId === this.descriptor.streamId,
+    );
+  }
+
+  _event(eventId, type) {
+    const matches = this._events(type).filter(
+      (event) => event.eventId === eventId,
+    );
+    if (matches.length > 1) throw new Error("artifact event is ambiguous");
+    return matches[0] ?? null;
+  }
+
+  _resolve(event, expectedType, expectedKind) {
+    const identity = this._verifyLedger();
+    const resolution = this._resolveArtifact({
+      epoch: identity.epoch,
+      ledgerId: identity.ledgerId,
+      ref: event.subjectRef,
+      tenantId: this.descriptor.artifactTenantId,
+    });
+    if (
+      resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+      resolution.authenticated !== true ||
+      resolution.found !== true ||
+      resolution.ref !== event.subjectRef.ref ||
+      resolution.digest !== event.subjectRef.digest ||
+      !Buffer.isBuffer(resolution.bytes)
+    )
+      throw new Error("artifact ledger resolution is invalid");
+    let durable;
+    try {
+      durable = JSON.parse(resolution.bytes.toString("utf8"));
+    } catch {
+      throw new Error("artifact ledger record is not JSON");
+    }
+    if (
+      durable?.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+      durable.tenantId !== this.descriptor.artifactTenantId ||
+      durable.audience !== this.descriptor.audience ||
+      durable.purpose !== this.descriptor.purpose ||
+      durable.retention !== "ledger" ||
+      durable.type !== expectedType ||
+      durable.value?.schema !== EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA ||
+      durable.value.kind !== expectedKind
+    )
+      throw new Error("artifact durable record binding is invalid");
+    const core = structuredClone(durable.value);
+    delete core.recordDigest;
+    if (durable.value.recordDigest !== hash(core))
+      throw new Error("artifact ledger record digest is invalid");
+    verifyEvolvableArtifact(durable.value.artifact);
+    return freeze(durable.value);
+  }
+
+  _publish(type, value) {
+    const published = this._put(type, value, {
+      audience: this.descriptor.audience,
+      purpose: this.descriptor.purpose,
+      retention: "ledger",
+    });
+    if (
+      !published?.ref ||
+      published.receipt?.persisted !== true ||
+      published.receipt?.readbackVerified !== true ||
+      published.receipt?.integrityVerified !== true ||
+      published.receipt?.retention !== "ledger"
+    )
+      throw new Error("artifact record was not persistently read back");
+    return published.ref;
+  }
+
+  _appendRecord({ eventId, type, reason, ref, sourceRefs = [] }) {
+    const head = this._verifyLedger();
+    const timestamp = this._clock();
+    if (
+      typeof timestamp !== "string" ||
+      !Number.isFinite(Date.parse(timestamp))
+    )
+      throw new Error("artifact ledger clock is invalid");
+    return this._append(
+      {
+        artifactTenantId: this.descriptor.artifactTenantId,
+        correlationId: this.descriptor.streamId,
+        decision: "committed",
+        eventId,
+        reason,
+        skillName: null,
+        sourceRefs,
+        subjectRef: ref,
+        tenantId: this.descriptor.tenantId,
+        timestamp,
+        type,
+      },
+      { expectedHeadDigest: head.headDigest, expectedSequence: head.sequence },
+    );
+  }
+
+  async persistCandidate(artifactInput) {
+    const artifact = verifyEvolvableArtifact(artifactInput);
+    if (artifact.tenantId !== this.descriptor.tenantId)
+      throw new Error("candidate crossed artifact adapter tenant");
+    const eventId = `artifact-candidate.${artifact.artifactDigest.slice(7)}`;
+    const existing = this._event(eventId, EVOLVABLE_ARTIFACT_CANDIDATE_EVENT);
+    if (existing) {
+      const stored = this._resolve(
+        existing,
+        "evolvable-artifact-candidate",
+        "candidate",
+      );
+      if (canonical(stored.artifact) !== canonical(artifact))
+        throw new Error("candidate operation resolved different artifact");
+      return stored.receipt;
+    }
+    const receipt = freeze({
+      schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+      tenantId: artifact.tenantId,
+      type: artifact.type,
+      artifactId: artifact.artifactId,
+      candidateId: artifact.candidate.candidateId,
+      contentDigest: artifact.contentDigest,
+      artifactDigest: artifact.artifactDigest,
+      status: "candidate",
+      persisted: true,
+    });
+    const core = {
+      schema: EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA,
+      kind: "candidate",
+      artifact,
+      request: null,
+      receipt,
+    };
+    const record = freeze({ ...core, recordDigest: hash(core) });
+    const ref = this._publish("evolvable-artifact-candidate", record);
+    try {
+      this._appendRecord({
+        eventId,
+        type: EVOLVABLE_ARTIFACT_CANDIDATE_EVENT,
+        reason: `${artifact.type} candidate persisted`,
+        ref,
+      });
+    } catch (error) {
+      const recovered = this._event(
+        eventId,
+        EVOLVABLE_ARTIFACT_CANDIDATE_EVENT,
+      );
+      if (!recovered) throw error;
+    }
+    const stored = this._resolve(
+      this._event(eventId, EVOLVABLE_ARTIFACT_CANDIDATE_EVENT),
+      "evolvable-artifact-candidate",
+      "candidate",
+    );
+    if (canonical(stored.artifact) !== canonical(artifact))
+      throw new Error("candidate durable readback differs");
+    return stored.receipt;
+  }
+
+  async commitTransition({ request, artifact: artifactInput }) {
+    const artifact = verifyEvolvableArtifact(artifactInput);
+    const requestCore = request && {
+      schema: request.schema,
+      kind: request.kind,
+      tenantId: request.tenantId,
+      type: request.type,
+      artifactId: request.artifactId,
+      candidateId: request.candidateId,
+      releaseId: request.releaseId,
+      previousArtifactDigest: request.previousArtifactDigest,
+      nextArtifactDigest: request.nextArtifactDigest,
+    };
+    if (
+      request?.schema !== EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA ||
+      !["promote", "rollback"].includes(request.kind) ||
+      request?.tenantId !== this.descriptor.tenantId ||
+      artifact.tenantId !== this.descriptor.tenantId ||
+      request.type !== artifact.type ||
+      request.artifactId !== artifact.artifactId ||
+      request.candidateId !== artifact.candidate.candidateId ||
+      request.releaseId !== artifact.activeReleaseId ||
+      request.nextArtifactDigest !== artifact.artifactDigest ||
+      !DIGEST.test(request.requestDigest ?? "") ||
+      request.requestDigest !== digestEvolvableArtifactValue(requestCore) ||
+      request.operationId !==
+        `artifact-transition:${request.requestDigest.slice(7)}`
+    )
+      throw new Error("artifact transition request is invalid");
+    const eventId = `artifact-transition.${request.requestDigest.slice(7)}`;
+    const existing = this._event(eventId, EVOLVABLE_ARTIFACT_TRANSITION_EVENT);
+    if (existing) return this._readTransitionEvent(existing, request).receipt;
+    const sourceEvent = [
+      ...this._events(EVOLVABLE_ARTIFACT_CANDIDATE_EVENT).map((event) => ({
+        event,
+        record: this._resolve(
+          event,
+          "evolvable-artifact-candidate",
+          "candidate",
+        ),
+      })),
+      ...this._events(EVOLVABLE_ARTIFACT_TRANSITION_EVENT).map((event) => ({
+        event,
+        record: this._resolve(
+          event,
+          "evolvable-artifact-transition",
+          "transition",
+        ),
+      })),
+    ].find(
+      ({ record }) =>
+        record.artifact.artifactDigest === request.previousArtifactDigest,
+    )?.event;
+    if (!sourceEvent)
+      throw new Error("transition has no persisted artifact lineage");
+    const revision = this._verifyLedger().sequence + 1;
+    const receipt = transitionReceipt(request, revision);
+    const core = {
+      schema: EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA,
+      kind: "transition",
+      artifact,
+      request,
+      receipt,
+    };
+    const record = freeze({ ...core, recordDigest: hash(core) });
+    const ref = this._publish("evolvable-artifact-transition", record);
+    try {
+      this._appendRecord({
+        eventId,
+        type: EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+        reason: `${artifact.type} ${request.kind} transition committed`,
+        ref,
+        sourceRefs: [sourceEvent.subjectRef],
+      });
+    } catch (error) {
+      const recovered = this._event(
+        eventId,
+        EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+      );
+      if (!recovered) throw error;
+    }
+    return this._readTransitionEvent(
+      this._event(eventId, EVOLVABLE_ARTIFACT_TRANSITION_EVENT),
+      request,
+    ).receipt;
+  }
+
+  _readTransitionEvent(event, expectedRequest = null) {
+    const stored = this._resolve(
+      event,
+      "evolvable-artifact-transition",
+      "transition",
+    );
+    if (
+      expectedRequest &&
+      canonical(stored.request) !== canonical(expectedRequest)
+    )
+      throw new Error("transition operation resolved different request");
+    return stored;
+  }
+
+  async readTransition({ operationId }) {
+    const prefix = "artifact-transition:";
+    if (typeof operationId !== "string" || !operationId.startsWith(prefix))
+      throw new TypeError("operationId is invalid");
+    const event = this._event(
+      `artifact-transition.${operationId.slice(prefix.length)}`,
+      EVOLVABLE_ARTIFACT_TRANSITION_EVENT,
+    );
+    if (!event) return null;
+    const stored = this._readTransitionEvent(event);
+    if (stored.request.operationId !== operationId)
+      throw new Error("transition operationId was substituted");
+    return freeze({
+      request: stored.request,
+      artifact: stored.artifact,
+      receipt: stored.receipt,
+    });
+  }
+}

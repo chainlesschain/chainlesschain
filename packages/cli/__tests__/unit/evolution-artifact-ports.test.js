@@ -606,6 +606,8 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-settlement",
       "evolution-run-event",
       "evolution-release-train-checkpoint",
+      "evolvable-artifact-candidate",
+      "evolvable-artifact-transition",
       "evolution-workbench-metrics-receipt-retention",
       "evolution-workbench-metrics-snapshot",
       "governed-knowledge-sync-record",
