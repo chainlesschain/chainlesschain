@@ -17,6 +17,11 @@ import {
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
 import {
+  createGovernedKnowledgeArtifactLifecycle,
+  isGovernedKnowledgeArtifactLifecycle,
+} from "../../src/lib/evolution/governed-knowledge-artifact-lifecycle.js";
+import { GOVERNED_KNOWLEDGE_SYNC_SCHEMA } from "../../src/lib/evolution/governed-knowledge-sync.js";
+import {
   EvolvableArtifactLedgerAdapter,
   isEvolvableArtifactReleaseResolver,
   isEvolvableArtifactTransitionReader,
@@ -439,5 +444,113 @@ describe("EvolvableArtifactLedgerAdapter", () => {
       }),
     ).rejects.toThrow("active release is ambiguous");
     expect(reopened.ledger.verify()).toMatchObject({ sequence: 3 });
+  });
+
+  it("prepares and commits one governed Knowledge lifecycle without a parallel release path", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-lifecycle-"),
+    );
+    roots.push(root);
+    const witness = durableWitness("witness-knowledge-lifecycle");
+    const provider = open(root, witness);
+    const verifierPorts = artifactPorts(root);
+    const verifier = new EvolvableArtifactLedgerAdapter({
+      descriptor,
+      artifactPorts: verifierPorts,
+      ledger: provider.ledger,
+      ledgerArtifactResolver:
+        verifierPorts.createEvolutionLedgerArtifactResolver({
+          purpose: descriptor.purpose,
+        }),
+      clock: () => new Date(now).toISOString(),
+    });
+    const scopedAuthority = authority();
+    const lifecycle = createGovernedKnowledgeArtifactLifecycle({
+      tenantId: descriptor.tenantId,
+      artifactCandidateGate: createEvolvableArtifactCandidateGate({
+        authority: scopedAuthority,
+        candidateWriter: provider.adapter,
+      }),
+      artifactReleaseGate: createEvolvableArtifactReleaseGate({
+        authority: scopedAuthority,
+        transitionWriter: provider.adapter,
+        transitionReader: provider.adapter.transitionReader(),
+      }),
+      artifactReleaseResolver: verifier.releaseResolver(),
+      verifierArtifactTransitionReader: verifier.transitionReader(),
+    });
+    expect(isGovernedKnowledgeArtifactLifecycle(lifecycle)).toBe(true);
+    const prepared = await lifecycle.prepare({
+      knowledge: {
+        schema: GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
+        tenantId: descriptor.tenantId,
+        knowledgeId: "knowledge-lifecycle-1",
+        scope: "project",
+        scopeId: "project-1",
+        action: "upsert",
+        contentDigest: digest("lifecycle-content"),
+        vectorClock: { "device-a": 1 },
+        approvalReceiptDigest: null,
+        revocationReceiptDigest: null,
+        dependencies: [],
+      },
+      operation: "publish",
+      operationId: "knowledge-publish-1",
+      authorizationReceiptDigest: digest("authorization"),
+      evidenceDigest: digest("user-review"),
+      issuedAt: new Date(now).toISOString(),
+      humanReviewed: true,
+    });
+    expect(provider.ledger.verify()).toMatchObject({ sequence: 1 });
+    await expect(lifecycle.commit({ ...prepared })).rejects.toThrow(
+      "prepared Knowledge lifecycle handle",
+    );
+    const committed = await lifecycle.commit(prepared);
+    expect(committed).toMatchObject({
+      candidateOnly: false,
+      artifactReleaseId: expect.stringMatching(/^knowledge-release:/u),
+      artifactTransitionReceiptDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(provider.ledger.verify()).toMatchObject({ sequence: 2 });
+
+    const next = await lifecycle.prepare({
+      knowledge: {
+        schema: GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
+        tenantId: descriptor.tenantId,
+        knowledgeId: "knowledge-lifecycle-1",
+        scope: "project",
+        scopeId: "project-1",
+        action: "upsert",
+        contentDigest: digest("lifecycle-content-v2"),
+        vectorClock: { "device-a": 2 },
+        approvalReceiptDigest: null,
+        revocationReceiptDigest: null,
+        dependencies: [],
+      },
+      currentKnowledge: {
+        schema: GOVERNED_KNOWLEDGE_SYNC_SCHEMA,
+        tenantId: descriptor.tenantId,
+        knowledgeId: "knowledge-lifecycle-1",
+        scope: "project",
+        scopeId: "project-1",
+        action: "upsert",
+        contentDigest: digest("lifecycle-content"),
+        vectorClock: { "device-a": 1 },
+        approvalReceiptDigest: null,
+        revocationReceiptDigest: null,
+        dependencies: [],
+      },
+      operation: "publish",
+      operationId: "knowledge-publish-2",
+      authorizationReceiptDigest: digest("authorization-v2"),
+      issuedAt: new Date(now).toISOString(),
+      humanReviewed: true,
+    });
+    expect(next.candidate.artifact.parent).toMatchObject({
+      artifactId: "knowledge-lifecycle-1",
+      releaseId: committed.artifactReleaseId,
+      contentDigest: digest("lifecycle-content"),
+    });
+    expect(provider.ledger.verify()).toMatchObject({ sequence: 3 });
   });
 });
