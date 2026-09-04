@@ -20,6 +20,8 @@ const {
 } = evolvableArtifactProtocol;
 
 export const EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.evolvable-artifact-ledger-record/v2";
+export const EVOLVABLE_ARTIFACT_LEDGER_RECORD_LEGACY_SCHEMA =
   "chainlesschain.evolvable-artifact-ledger-record/v1";
 export const EVOLVABLE_ARTIFACT_CANDIDATE_EVENT =
   "evolvable-artifact.candidate.persisted";
@@ -29,6 +31,23 @@ export const EVOLVABLE_ARTIFACT_TRANSITION_EVENT =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const TRANSITION_READERS = new WeakSet();
 const RELEASE_RESOLVERS = new WeakSet();
+const ACTIVE_RELEASE_READERS = new WeakSet();
+const ARTIFACT_TYPES = new Set(["skill", "prompt", "hook", "knowledge"]);
+const RECORD_KEYS = new Set([
+  "artifact",
+  "content",
+  "contentAvailable",
+  "kind",
+  "receipt",
+  "recordDigest",
+  "request",
+  "schema",
+]);
+const LEGACY_RECORD_KEYS = new Set(
+  [...RECORD_KEYS].filter(
+    (key) => !["content", "contentAvailable"].includes(key),
+  ),
+);
 const DEPENDENCY_KIND_TYPES = new Map([
   ["skill", "skill"],
   ["active-skill", "skill"],
@@ -49,12 +68,29 @@ function canonical(value) {
     .join(",")}}`;
 }
 
-function hash(value) {
+function hash(schema, value) {
   return `sha256:${createHash("sha256")
-    .update(EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA)
+    .update(schema)
     .update("\0")
     .update(canonical(value))
     .digest("hex")}`;
+}
+
+function exactRecord(value) {
+  const keys =
+    value?.schema === EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA
+      ? RECORD_KEYS
+      : LEGACY_RECORD_KEYS;
+  const ownKeys = Reflect.ownKeys(value ?? {});
+  if (
+    ![
+      EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA,
+      EVOLVABLE_ARTIFACT_LEDGER_RECORD_LEGACY_SCHEMA,
+    ].includes(value?.schema) ||
+    ownKeys.length !== keys.size ||
+    ownKeys.some((key) => typeof key !== "string" || !keys.has(key))
+  )
+    throw new Error("artifact ledger record shape is invalid");
 }
 
 function text(value, name) {
@@ -182,15 +218,30 @@ export class EvolvableArtifactLedgerAdapter {
       durable.purpose !== this.descriptor.purpose ||
       durable.retention !== "ledger" ||
       durable.type !== expectedType ||
-      durable.value?.schema !== EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA ||
+      ![
+        EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA,
+        EVOLVABLE_ARTIFACT_LEDGER_RECORD_LEGACY_SCHEMA,
+      ].includes(durable.value?.schema) ||
       durable.value.kind !== expectedKind
     )
       throw new Error("artifact durable record binding is invalid");
+    exactRecord(durable.value);
     const core = structuredClone(durable.value);
     delete core.recordDigest;
-    if (durable.value.recordDigest !== hash(core))
+    if (durable.value.recordDigest !== hash(durable.value.schema, core))
       throw new Error("artifact ledger record digest is invalid");
     verifyEvolvableArtifact(durable.value.artifact);
+    if (durable.value.schema === EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA) {
+      if (
+        typeof durable.value.contentAvailable !== "boolean" ||
+        (durable.value.contentAvailable
+          ? digestEvolvableArtifactValue(durable.value.content) !==
+            durable.value.artifact.contentDigest
+          : durable.value.content !== null) ||
+        (expectedKind === "transition" && durable.value.contentAvailable)
+      )
+        throw new Error("artifact ledger content binding is invalid");
+    }
     return freeze(durable.value);
   }
 
@@ -237,8 +288,15 @@ export class EvolvableArtifactLedgerAdapter {
     );
   }
 
-  async persistCandidate(artifactInput) {
+  async persistCandidate(artifactInput, contentInput = undefined) {
     const artifact = verifyEvolvableArtifact(artifactInput);
+    const contentAvailable = contentInput !== undefined;
+    const content = contentAvailable ? freeze(contentInput) : null;
+    if (
+      contentAvailable &&
+      digestEvolvableArtifactValue(content) !== artifact.contentDigest
+    )
+      throw new Error("candidate content does not match contentDigest");
     if (artifact.tenantId !== this.descriptor.tenantId)
       throw new Error("candidate crossed artifact adapter tenant");
     const eventId = `artifact-candidate.${artifact.artifactDigest.slice(7)}`;
@@ -251,6 +309,12 @@ export class EvolvableArtifactLedgerAdapter {
       );
       if (canonical(stored.artifact) !== canonical(artifact))
         throw new Error("candidate operation resolved different artifact");
+      if (
+        contentAvailable &&
+        (stored.contentAvailable !== true ||
+          canonical(stored.content) !== canonical(content))
+      )
+        throw new Error("candidate content is unavailable or differs");
       return stored.receipt;
     }
     const receipt = freeze({
@@ -270,8 +334,13 @@ export class EvolvableArtifactLedgerAdapter {
       artifact,
       request: null,
       receipt,
+      contentAvailable,
+      content,
     };
-    const record = freeze({ ...core, recordDigest: hash(core) });
+    const record = freeze({
+      ...core,
+      recordDigest: hash(EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA, core),
+    });
     const ref = this._publish("evolvable-artifact-candidate", record);
     try {
       this._appendRecord({
@@ -294,6 +363,11 @@ export class EvolvableArtifactLedgerAdapter {
     );
     if (canonical(stored.artifact) !== canonical(artifact))
       throw new Error("candidate durable readback differs");
+    if (
+      stored.contentAvailable !== contentAvailable ||
+      canonical(stored.content) !== canonical(content)
+    )
+      throw new Error("candidate content durable readback differs");
     return stored.receipt;
   }
 
@@ -360,8 +434,13 @@ export class EvolvableArtifactLedgerAdapter {
       artifact,
       request,
       receipt,
+      contentAvailable: false,
+      content: null,
     };
-    const record = freeze({ ...core, recordDigest: hash(core) });
+    const record = freeze({
+      ...core,
+      recordDigest: hash(EVOLVABLE_ARTIFACT_LEDGER_RECORD_SCHEMA, core),
+    });
     const ref = this._publish("evolvable-artifact-transition", record);
     try {
       this._appendRecord({
@@ -461,6 +540,90 @@ export class EvolvableArtifactLedgerAdapter {
     return active;
   }
 
+  _activeReleaseRecord(artifact) {
+    const transitions = this._events(EVOLVABLE_ARTIFACT_TRANSITION_EVENT)
+      .map((event) =>
+        this._resolve(event, "evolvable-artifact-transition", "transition"),
+      )
+      .filter(
+        (record) => record.artifact.artifactDigest === artifact.artifactDigest,
+      );
+    if (transitions.length !== 1)
+      throw new Error("active artifact transition is ambiguous");
+    const candidateDigest = transitions[0].request.previousArtifactDigest;
+    const candidates = this._events(EVOLVABLE_ARTIFACT_CANDIDATE_EVENT)
+      .map((event) =>
+        this._resolve(event, "evolvable-artifact-candidate", "candidate"),
+      )
+      .filter((record) => record.artifact.artifactDigest === candidateDigest);
+    if (candidates.length !== 1)
+      throw new Error("active artifact candidate is ambiguous");
+    const candidate = candidates[0];
+    if (
+      candidate.artifact.artifactId !== artifact.artifactId ||
+      candidate.artifact.type !== artifact.type ||
+      candidate.artifact.contentDigest !== artifact.contentDigest ||
+      candidate.artifact.candidate.candidateId !==
+        artifact.candidate.candidateId
+    )
+      throw new Error("active artifact content lineage is invalid");
+    return freeze({
+      authenticated: true,
+      durable: true,
+      tenantId: artifact.tenantId,
+      type: artifact.type,
+      artifactId: artifact.artifactId,
+      releaseId: artifact.activeReleaseId,
+      contentDigest: artifact.contentDigest,
+      artifactDigest: artifact.artifactDigest,
+      contentAvailable: candidate.contentAvailable === true,
+      content: candidate.contentAvailable === true ? candidate.content : null,
+    });
+  }
+
+  activeReleaseReader() {
+    const adapter = this;
+    const tenantId = this.descriptor.tenantId;
+    const reader = Object.freeze({
+      tenantId,
+      readerScope: this.readerScope,
+      async listActive({ type = null } = {}) {
+        if (type !== null && !ARTIFACT_TYPES.has(type))
+          throw new TypeError("active artifact type is invalid");
+        return freeze(
+          adapter
+            ._activeArtifacts()
+            .filter((artifact) => type === null || artifact.type === type)
+            .sort((left, right) =>
+              `${left.type}:${left.artifactId}`.localeCompare(
+                `${right.type}:${right.artifactId}`,
+              ),
+            )
+            .map((artifact) => adapter._activeReleaseRecord(artifact)),
+        );
+      },
+      async readActive({ type, artifactId } = {}) {
+        if (!ARTIFACT_TYPES.has(type))
+          throw new TypeError("active artifact type is invalid");
+        const normalizedArtifactId = text(artifactId, "artifactId");
+        const matches = adapter
+          ._activeArtifacts()
+          .filter(
+            (artifact) =>
+              artifact.type === type &&
+              artifact.artifactId === normalizedArtifactId,
+          );
+        if (matches.length > 1)
+          throw new Error("active artifact release is ambiguous");
+        return matches.length === 0
+          ? null
+          : adapter._activeReleaseRecord(matches[0]);
+      },
+    });
+    ACTIVE_RELEASE_READERS.add(reader);
+    return reader;
+  }
+
   releaseResolver() {
     const tenantId = this.descriptor.tenantId;
     const adapter = this;
@@ -513,4 +676,8 @@ export function isEvolvableArtifactTransitionReader(value) {
 
 export function isEvolvableArtifactReleaseResolver(value) {
   return RELEASE_RESOLVERS.has(value);
+}
+
+export function isEvolvableArtifactActiveReleaseReader(value) {
+  return ACTIVE_RELEASE_READERS.has(value);
 }

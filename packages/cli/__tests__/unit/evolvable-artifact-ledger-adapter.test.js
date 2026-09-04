@@ -23,6 +23,7 @@ import {
 import { GOVERNED_KNOWLEDGE_SYNC_SCHEMA } from "../../src/lib/evolution/governed-knowledge-sync.js";
 import {
   EvolvableArtifactLedgerAdapter,
+  isEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactReleaseResolver,
   isEvolvableArtifactTransitionReader,
 } from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
@@ -552,5 +553,158 @@ describe("EvolvableArtifactLedgerAdapter", () => {
       contentDigest: digest("lifecycle-content"),
     });
     expect(provider.ledger.verify()).toMatchObject({ sequence: 3 });
+  });
+
+  it("recovers exact active content through a branded release reader", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-active-content-reader-"),
+    );
+    roots.push(root);
+    const provider = open(root, durableWitness("witness-active-content"));
+    const verifierPorts = artifactPorts(root);
+    const verifier = new EvolvableArtifactLedgerAdapter({
+      descriptor,
+      artifactPorts: verifierPorts,
+      ledger: provider.ledger,
+      ledgerArtifactResolver:
+        verifierPorts.createEvolutionLedgerArtifactResolver({
+          purpose: descriptor.purpose,
+        }),
+      clock: () => new Date(now).toISOString(),
+    });
+    const content = "governed active knowledge content";
+    const scopedAuthority = authority();
+    const candidateGate = createEvolvableArtifactCandidateGate({
+      authority: scopedAuthority,
+      candidateWriter: provider.adapter,
+    });
+    const dependencyLock = { dependencies: [] };
+    const runtimeManifest = { executable: false };
+    const permissionManifest = { capabilities: ["knowledge:project:read"] };
+    const staged = await candidateGate.stageCandidate(
+      {
+        tenantId: descriptor.tenantId,
+        artifactId: "knowledge-active-content",
+        candidateId: "knowledge-active-content-candidate",
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        contentDigest: digest(content),
+        parent: null,
+        lineage: [digest(content)],
+        dependencyLock: {
+          ...dependencyLock,
+          digest: digest(dependencyLock),
+        },
+        runtimeManifest: {
+          ...runtimeManifest,
+          digest: digest(runtimeManifest),
+        },
+        permissionManifest: {
+          ...permissionManifest,
+          digest: digest(permissionManifest),
+        },
+        activeReleaseId: null,
+        lastKnownGoodReleaseId: null,
+      },
+      content,
+    );
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority: scopedAuthority,
+      transitionWriter: provider.adapter,
+      transitionReader: provider.adapter.transitionReader(),
+    });
+    const promoted = await releaseGate.promote({
+      artifact: staged.artifact,
+      candidatePersistenceReceipt: staged.receipt,
+      evaluationReceipt: receipt(staged.artifact, "eval"),
+      reviewReceipt: receipt(staged.artifact, "review"),
+      promotionReceipt: receipt(staged.artifact, "promotion"),
+      releaseId: "knowledge-active-content-release",
+    });
+    const reader = verifier.activeReleaseReader();
+    expect(isEvolvableArtifactActiveReleaseReader(reader)).toBe(true);
+    expect(isEvolvableArtifactActiveReleaseReader({ ...reader })).toBe(false);
+    await expect(
+      reader.readActive({
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        artifactId: "knowledge-active-content",
+      }),
+    ).resolves.toMatchObject({
+      authenticated: true,
+      durable: true,
+      releaseId: promoted.artifact.activeReleaseId,
+      contentDigest: digest(content),
+      contentAvailable: true,
+      content,
+    });
+    await expect(
+      provider.adapter.persistCandidate(staged.artifact, "substituted"),
+    ).rejects.toThrow("content does not match contentDigest");
+    await expect(
+      reader.listActive({ type: ARTIFACT_TYPE.KNOWLEDGE }),
+    ).resolves.toHaveLength(1);
+
+    const nextContent = "governed active knowledge content v2";
+    const next = await candidateGate.stageCandidate(
+      {
+        tenantId: descriptor.tenantId,
+        artifactId: "knowledge-active-content",
+        candidateId: "knowledge-active-content-candidate-v2",
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        contentDigest: digest(nextContent),
+        parent: {
+          artifactId: "knowledge-active-content",
+          releaseId: promoted.artifact.activeReleaseId,
+          contentDigest: digest(content),
+        },
+        lineage: [digest(content), digest(nextContent)],
+        dependencyLock: {
+          ...dependencyLock,
+          digest: digest(dependencyLock),
+        },
+        runtimeManifest: {
+          ...runtimeManifest,
+          digest: digest(runtimeManifest),
+        },
+        permissionManifest: {
+          ...permissionManifest,
+          digest: digest(permissionManifest),
+        },
+        activeReleaseId: promoted.artifact.activeReleaseId,
+        lastKnownGoodReleaseId: null,
+      },
+      nextContent,
+    );
+    const promotedNext = await releaseGate.promote({
+      artifact: next.artifact,
+      candidatePersistenceReceipt: next.receipt,
+      evaluationReceipt: receipt(next.artifact, "eval"),
+      reviewReceipt: receipt(next.artifact, "review"),
+      promotionReceipt: receipt(next.artifact, "promotion"),
+      releaseId: "knowledge-active-content-release-v2",
+    });
+    await expect(
+      reader.readActive({
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        artifactId: "knowledge-active-content",
+      }),
+    ).resolves.toMatchObject({
+      releaseId: promotedNext.artifact.activeReleaseId,
+      content: nextContent,
+    });
+    await releaseGate.rollBack({
+      artifact: promotedNext.artifact,
+      rollbackReceipt: receipt(promotedNext.artifact, "rollback"),
+      targetReleaseId: promoted.artifact.activeReleaseId,
+    });
+    await expect(
+      reader.readActive({
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        artifactId: "knowledge-active-content",
+      }),
+    ).resolves.toMatchObject({
+      releaseId: promoted.artifact.activeReleaseId,
+      contentDigest: digest(content),
+      content,
+    });
   });
 });
