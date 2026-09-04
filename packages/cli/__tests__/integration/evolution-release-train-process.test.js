@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe("EvolutionReleaseTrain real process recovery", () => {
-  it("recovers real Wiki, Proposer, Candidate, and Review controllers across a hard exit", () => {
+  it("recovers real Wiki through Pilot controllers across a hard exit", () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-train-real-prefix-"),
     );
@@ -61,7 +61,7 @@ describe("EvolutionReleaseTrain real process recovery", () => {
       ok: true,
       stageIndex: 8,
       effectCount: 8,
-      ledgerEventCount: 12,
+      ledgerEventCount: 13,
     });
     expect(
       JSON.parse(

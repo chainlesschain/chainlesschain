@@ -423,7 +423,9 @@ export function createEvolutionPilotStage({
       pilot.descriptor?.tenantId !== context.plan.tenantId ||
       pilot.descriptor?.skillName !== context.plan.skillId ||
       pilot.descriptor?.candidateDigest !== context.plan.candidateDigest ||
-      pilot.descriptor?.baselineDigest !== context.plan.baselineReleaseDigest ||
+      pilot.descriptor?.baselineDigest !==
+        (context.plan.baselineReleaseDigest ??
+          context.plan.baselineContentDigest) ||
       pilot.descriptor?.evalReceiptDigest !==
         review.value.packet?.evaluation?.matrixReceiptDigest ||
       pilot.descriptor?.reviewPacketDigest !== review.value.packet?.packetDigest

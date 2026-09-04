@@ -7,9 +7,11 @@ import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
 } from "../../../src/lib/evolution/evolution-artifact-ports.js";
+import { ControlledSkillProductionPilot } from "../../../src/lib/evolution/controlled-skill-production-pilot.js";
 import { createEvolutionLedgerFileBackend } from "../../../src/lib/evolution/evolution-ledger-file-backend.js";
 import {
   createEvolutionCandidateStage,
+  createEvolutionPilotStage,
   createEvolutionProposalStage,
   createEvolutionReviewStage,
   createEvolutionWikiMaintainStage,
@@ -41,6 +43,11 @@ import {
   SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
   buildSkillPromotionReviewPacket,
 } from "../../../src/lib/evolution/skill-promotion-review.js";
+import {
+  createProgressiveCanaryAssignmentAuthority,
+  createProgressiveCanaryGateAuthority,
+  createProgressiveCanaryPlan,
+} from "../../../src/lib/evolution/statistical-progressive-canary.js";
 import { WikiInformedSkillProposer } from "../../../src/lib/evolution/wiki-informed-skill-proposer.js";
 import { WikiSkillProposalLedgerAdapter } from "../../../src/lib/evolution/wiki-skill-proposal-ledger-adapter.js";
 
@@ -317,6 +324,134 @@ function createProposer(wikiDigest) {
   };
 }
 
+function createProgressiveFixture(candidateDigest) {
+  const plan = createProgressiveCanaryPlan({
+    tenantId: TENANT,
+    pilotId: "pilot-real-train",
+    skillName: SKILL,
+    candidateDigest,
+    baselineDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+    riskTier: "medium",
+    assignmentSaltDigest: digest("process-assignment-salt"),
+    assignmentAuthority: {
+      id: "process-traffic-authority",
+      revision: 1,
+      handlerDigest: digest("process-traffic-handler"),
+    },
+    gateAuthority: {
+      id: "process-gate-authority",
+      revision: 1,
+      handlerDigest: digest("process-gate-handler"),
+    },
+    steps: [
+      {
+        id: "shadow",
+        stage: "shadow",
+        trafficPercent: 0,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      {
+        id: "canary-10",
+        stage: "canary",
+        trafficPercent: 10,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      {
+        id: "probation",
+        stage: "active-probation",
+        trafficPercent: 100,
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+    ],
+    thresholds: {
+      confidence: 0.95,
+      bootstrapSamples: 1_000,
+      minQualityDeltaLowerBound: 0,
+      maxMeanCostDelta: 0,
+      maxP95LatencyRatio: 1,
+      maxP99LatencyRatio: 1,
+      maxMeanToolCallDelta: 0,
+    },
+  });
+  const authority = (secret) => {
+    const sign = (payload) =>
+      crypto
+        .createHmac("sha256", secret)
+        .update(canonical(payload))
+        .digest("base64url");
+    return {
+      attestor: async (payload) => {
+        const issuedAt = new Date(900).toISOString();
+        const expiresAt = new Date(2_000).toISOString();
+        return {
+          issuedAt,
+          expiresAt,
+          signature: sign({ ...payload, issuedAt, expiresAt }),
+        };
+      },
+      verifier: async ({ payload, signature }) => signature === sign(payload),
+    };
+  };
+  const trafficAuthority = authority("process-traffic-secret");
+  const traffic = createProgressiveCanaryAssignmentAuthority({
+    plan,
+    now: () => 1_000,
+    ...trafficAuthority,
+  });
+  const gateAuthority = authority("process-gate-secret");
+  const gate = createProgressiveCanaryGateAuthority({
+    plan,
+    assignmentAuthority: traffic,
+    now: () => 1_000,
+    ...gateAuthority,
+  });
+  return {
+    plan,
+    gate,
+    async gateReceipt(stepId) {
+      let assignmentReceipt;
+      let subjectDigest;
+      for (let index = 0; index < 10_000; index += 1) {
+        subjectDigest = digest(`${stepId}:process-subject:${index}`);
+        assignmentReceipt = await traffic.assign({ stepId, subjectDigest });
+        if (assignmentReceipt.assigned) break;
+      }
+      if (!assignmentReceipt?.assigned) {
+        throw new Error(`no assigned process subject for ${stepId}`);
+      }
+      return gate.evaluate({
+        stepId,
+        stepStartedAt: 0,
+        observedAt: 1,
+        observations: [
+          {
+            subjectDigest,
+            assignmentReceipt,
+            outcomeReceiptDigest: digest(`${stepId}:process-outcome`),
+            observedAt: 1,
+            baselineSuccess: false,
+            candidateSuccess: true,
+            baselineCost: 1,
+            candidateCost: 1,
+            baselineLatencyMs: 100,
+            candidateLatencyMs: 100,
+            baselineToolCalls: 1,
+            candidateToolCalls: 1,
+            securityEvents: 0,
+            permissionEvents: 0,
+          },
+        ],
+      });
+    },
+  };
+}
+
 function signingAuthority(label) {
   const secret = `test-only-${label}-process-secret`;
   const trust = Object.freeze({
@@ -554,6 +689,7 @@ if (operation === "real-prefix-run") {
   const calibrationProposer = createProposer(calibratedWiki.stateDigest);
   const calibratedCandidate = await calibrationProposer.proposer.propose();
   const reviewCandidate = calibrationProposer.getCandidate();
+  const progressive = createProgressiveFixture(reviewCandidate.contentDigest);
   const selectedPlanInput = structuredClone(plan);
   delete selectedPlanInput.schema;
   delete selectedPlanInput.planDigest;
@@ -566,6 +702,7 @@ if (operation === "real-prefix-run") {
     baselineContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
     baselineRevision: 0,
     targetMatrixDigest: targetMatrix.targetMatrixRoot,
+    rolloutPolicyDigest: progressive.plan.planDigest,
   });
 
   const wikiStatePath = path.join(root, "real-prefix-wiki-state.json");
@@ -685,6 +822,103 @@ if (operation === "real-prefix-run") {
     packetDigest: reviewPacket.packetDigest,
     decision: reviewDecision,
   });
+  let activeState = { release: null, revision: 0 };
+  const pilot = new ControlledSkillProductionPilot({
+    descriptor: {
+      tenantId: TENANT,
+      pilotId: "pilot-real-train",
+      skillName: SKILL,
+      candidateDigest: reviewCandidate.contentDigest,
+      baselineDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      evalReceiptDigest: matrixBinding.matrixReceiptDigest,
+      whyEvidenceDigest: digest("real-train-why"),
+      candidateDiffDigest: reviewPacket.candidateDiffDigest,
+      permissionDiffDigest: reviewPacket.capabilityDiff.capabilityDiffDigest,
+      beforeEvaluationDigest: digest("real-train-before-evaluation"),
+      afterEvaluationDigest: digest("real-train-after-evaluation"),
+      reviewPacketDigest: reviewPacket.packetDigest,
+      cohort: {
+        id: "cohort-real-train",
+        optInRequired: true,
+        maxSubjects: 3,
+        canaryPercent: 100,
+      },
+      observation: {
+        minSamples: 1,
+        minWindowMs: 1,
+        maxWindowMs: 1_000,
+      },
+      thresholds: {
+        minAdoptionRate: 0.5,
+        minSuccessDelta: 0,
+        maxCostDelta: 0,
+        maxUserRevisionRate: 0,
+        maxMisPromotionRate: 0,
+        maxRollbackRate: 0,
+        maxSecurityEvents: 0,
+      },
+    },
+    ports: {
+      async readActiveState() {
+        return activeState;
+      },
+      async verifyApproval({ descriptor, descriptorDigest }) {
+        return {
+          authenticated: true,
+          durable: true,
+          automated: false,
+          tenantId: descriptor.tenantId,
+          pilotId: descriptor.pilotId,
+          packetDigest: descriptor.reviewPacketDigest,
+          descriptorDigest,
+          decision: "approved",
+          receiptDigest: reviewDecision.receiptDigest,
+        };
+      },
+      async verifyObservation(input) {
+        return {
+          ...input,
+          authenticated: true,
+          durable: true,
+        };
+      },
+      verifyRestore({ restore }) {
+        return { ...restore, authenticated: true, durable: true };
+      },
+      async transitionStage({ request, requestDigest }) {
+        if (request.to === "active") {
+          activeState = { release: "candidate", revision: 1 };
+        }
+        return {
+          authenticated: true,
+          durable: true,
+          descriptorDigest: request.descriptorDigest,
+          requestDigest,
+          from: request.from,
+          to: request.to,
+          receiptDigest: digest(
+            `real-train-transition:${request.from}:${request.to}`,
+          ),
+          activeStateDigest: digest(activeState),
+        };
+      },
+      async commitState(input) {
+        return {
+          authenticated: true,
+          durable: true,
+          descriptorDigest: input.state.descriptorDigest,
+          revision: input.state.revision,
+          stateDigest: input.stateDigest,
+          eventDigest: input.eventDigest,
+        };
+      },
+    },
+    now: () => 1,
+    progressiveCanary: {
+      plan: progressive.plan,
+      gateAuthority: progressive.gate,
+    },
+  });
   const realPrefix = {
     "wiki-maintain": createEvolutionWikiMaintainStage({
       maintainer,
@@ -711,6 +945,23 @@ if (operation === "real-prefix-run") {
       },
       outputLedger,
       usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    }),
+    pilot: createEvolutionPilotStage({
+      pilot,
+      startRequest: {
+        optedIn: true,
+        tenantId: TENANT,
+        cohortId: "cohort-real-train",
+      },
+      approvalInput: {},
+      nextAdvanceInput: async (current) => ({
+        gateReceipt: await progressive.gateReceipt(
+          current.progressiveCanary.stepId,
+        ),
+      }),
+      effectiveAt: NOW,
+      outputLedger,
+      usage: { tokens: 1, cost: 0, timeMs: 3, turns: 3 },
     }),
   };
   stages = Object.fromEntries(
