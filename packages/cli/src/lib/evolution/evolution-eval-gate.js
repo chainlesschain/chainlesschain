@@ -1055,6 +1055,19 @@ export function buildEvolutionEvalAttestationDigest(value, purpose) {
   return digest(value, `chainlesschain.evolution-eval-attestation/${purpose}`);
 }
 
+export function computeEvolutionEvalSignedEvidenceDigest(record, purpose) {
+  if (
+    purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetInvocation &&
+    purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation
+  ) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "signed evidence purpose is invalid",
+    );
+  }
+  return digest(cloneCanonical(record), `${purpose}/signed-record`);
+}
+
 export function computeEvolutionEvalEnvironmentDigest(environment) {
   return digest(
     cloneCanonical(environment),
@@ -2345,7 +2358,7 @@ function verifySynchronousEvidence({
   }
   return deepFreeze({
     core,
-    recordDigest: digest(cloneCanonical(record), `${purpose}/signed-record`),
+    recordDigest: computeEvolutionEvalSignedEvidenceDigest(record, purpose),
   });
 }
 

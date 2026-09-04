@@ -48,6 +48,7 @@ import {
   computeEvolutionEvalTargetAuthorityDigest,
   runEvolutionEvalGate,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
+import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import { buildSkillCandidateDraft } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   buildSkillDependencyLock,
@@ -2134,6 +2135,7 @@ function makeMatrixComposition({
   candidateOverride = null,
   tenantId = TENANT_ID,
   skillName = "skill-pilot",
+  childReceiptStoreAttack = null,
 }) {
   const secrets = new Map();
   const makeTrust = (role) => {
@@ -2348,6 +2350,43 @@ function makeMatrixComposition({
       maximumCellSettlementMs: 35_000,
     }),
   ]);
+  const childReceiptRecords = new Map();
+  const childReceiptStoreDescriptor = Object.freeze({
+    tenantId,
+    streamId: `matrix-child-receipts:${fixtureId}`,
+    authorityId: "authority:matrix-child-receipts",
+    revision: 1,
+    handlerArtifactDigest: matrixDigest(
+      "matrix-child-receipt-store",
+      fixtureId,
+    ),
+  });
+  const childReceiptStore = createEvolutionEvalChildEvidenceStorePort({
+    descriptor: childReceiptStoreDescriptor,
+    retain: async (request) => {
+      childReceiptRecords.set(request.receiptDigest, structuredClone(request));
+      return {
+        authenticated: true,
+        durable: childReceiptStoreAttack !== "non-durable",
+        kind: request.kind,
+        receiptDigest: request.receiptDigest,
+      };
+    },
+    resolve: async (request) => {
+      const retained = childReceiptRecords.get(request.receiptDigest);
+      const evidence = structuredClone(retained.evidence);
+      if (childReceiptStoreAttack === "substitute")
+        evidence.runId = "substituted-run";
+      return {
+        authenticated: true,
+        durable: true,
+        ...childReceiptStoreDescriptor,
+        kind: request.kind,
+        receiptDigest: request.receiptDigest,
+        evidence,
+      };
+    },
+  });
   const matrixAuthorityRoot = computeSkillTargetMatrixEvalAuthorityRoot({
     planResolverDescriptor: descriptors.planResolver,
     evidenceVerifierDescriptor: descriptors.evidenceVerifier,
@@ -2359,6 +2398,7 @@ function makeMatrixComposition({
     clockDescriptor: descriptors.clock,
     planTrust: roles.plan,
     matrixReceiptTrust: roles.receipt,
+    childReceiptStoreDescriptor,
     cellAuthorities,
   });
   const cellConfig = (
@@ -2597,6 +2637,7 @@ function makeMatrixComposition({
     clock,
     clockPolicy: policies.clock,
     maximumMatrixWallClockMs: 90_000,
+    childReceiptStore,
   };
   const expected = Object.freeze({
     matrixEvalId: plan.matrixEvalId,
@@ -2621,6 +2662,7 @@ function makeMatrixComposition({
     planRef,
     expected,
     aggregatorOptions,
+    childReceiptRecords,
     verifierOptions: {
       matrixReceiptVerifier,
       matrixReceiptSignerDescriptor: descriptors.receiptSigner,
@@ -3227,6 +3269,35 @@ describe("Skill target matrix evaluation foundation", () => {
     120_000,
   );
 
+  it.each([
+    ["non-durable", /not durably retained/i],
+    ["substitute", /readback was substituted/i],
+  ])(
+    "fails closed when the child receipt store attack is %s",
+    async (childReceiptStoreAttack, expectedError) => {
+      const firstHarness = makeHarness();
+      const secondHarness = makeHarness();
+      const calibration = await runEvolutionEvalGate(
+        firstHarness.gate,
+        RUN_REQUEST,
+      );
+      const fixture = makeMatrixComposition({
+        calibration,
+        firstHarness,
+        secondHarness,
+        fixtureId: `child-store-${childReceiptStoreAttack}`,
+        childReceiptStoreAttack,
+      });
+      const aggregator = new SkillTargetMatrixEvalAggregator(
+        fixture.aggregatorOptions,
+      );
+      await expect(
+        evaluateSkillTargetMatrix(aggregator, fixture.planRef),
+      ).rejects.toThrow(expectedError);
+    },
+    60_000,
+  );
+
   it("runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt", async () => {
     const firstHarness = makeHarness();
     const secondHarness = makeHarness();
@@ -3268,6 +3339,19 @@ describe("Skill target matrix evaluation foundation", () => {
       new Set(receipt.cellResults.map((cell) => cell.evaluationContextDigest))
         .size,
     ).toBe(2);
+    expect(fixture.childReceiptRecords.size).toBe(2);
+    expect(
+      [...fixture.childReceiptRecords.values()].map(({ kind }) => kind),
+    ).toEqual(["gate-receipt", "gate-receipt"]);
+    expect(
+      [...fixture.childReceiptRecords.values()]
+        .map(({ receiptDigest }) => receiptDigest)
+        .sort(),
+    ).toEqual(
+      receipt.cellResults
+        .map(({ childReceiptDigest }) => childReceiptDigest)
+        .sort(),
+    );
     const verifier = new SkillTargetMatrixEvalReceiptVerifier(
       fixture.verifierOptions,
     );
@@ -4512,6 +4596,16 @@ describe("Skill target matrix evaluation foundation", () => {
         }),
     ).toThrow(/share a raw callable/i);
 
+    expect(
+      () =>
+        new SkillTargetMatrixEvalAggregator({
+          ...fixture.aggregatorOptions,
+          childReceiptStore: {
+            ...fixture.aggregatorOptions.childReceiptStore,
+          },
+        }),
+    ).toThrow(/branded durable evidence store/i);
+
     const authorityRootInput = {
       planResolverDescriptor:
         fixture.aggregatorOptions.planResolver.authorityDescriptor,
@@ -4530,6 +4624,8 @@ describe("Skill target matrix evaluation foundation", () => {
       clockDescriptor: originalClockDescriptor,
       planTrust: fixture.aggregatorOptions.planTrust,
       matrixReceiptTrust: fixture.aggregatorOptions.matrixReceiptTrust,
+      childReceiptStoreDescriptor:
+        fixture.aggregatorOptions.childReceiptStore.descriptor,
       cellAuthorities: [...fixture.aggregatorOptions.cellRuntimes].map(
         ([cellId, config]) => ({
           cellId,
@@ -4550,6 +4646,15 @@ describe("Skill target matrix evaluation foundation", () => {
         clockDescriptor: {
           ...originalClockDescriptor,
           handlerArtifactDigest: `sha256:${"f".repeat(64)}`,
+        },
+      }),
+    ).not.toBe(fixture.plan.matrixAuthorityRoot);
+    expect(
+      computeSkillTargetMatrixEvalAuthorityRoot({
+        ...authorityRootInput,
+        childReceiptStoreDescriptor: {
+          ...authorityRootInput.childReceiptStoreDescriptor,
+          handlerArtifactDigest: `sha256:${"e".repeat(64)}`,
         },
       }),
     ).not.toBe(fixture.plan.matrixAuthorityRoot);

@@ -10,6 +10,7 @@ import {
   runEvolutionEvalGate,
   verifyEvolutionEvalReceipt,
 } from "./evolution-eval-gate.js";
+import { isEvolutionEvalChildEvidenceStore } from "./evolution-eval-child-evidence-ledger-adapter.js";
 import {
   verifySkillDependencyLock,
   verifySkillRuntimeManifest,
@@ -49,9 +50,9 @@ export const SKILL_TARGET_MATRIX_EVAL_FOUNDATION_SEMANTICS = Object.freeze({
   crossCellStatistics: "bonferroni-two-sided-family-wise-confidence",
   requiresAttestedLoader: true,
   residuals: Object.freeze([
-    "attested descriptor-to-callable loader",
-    "process-level hard termination",
-    "production durable plan nonce and receipt resolver",
+    "cross-platform sandbox deployment",
+    "production PKI and durable plan authority",
+    "versioned target corpus and operating-system matrix",
   ]),
 });
 
@@ -145,6 +146,13 @@ const VERIFY_PORT_KEYS = new Set(["verify", "authorityDescriptor"]);
 const SIGN_PORT_KEYS = new Set(["sign", "authorityDescriptor"]);
 const CLOCK_PORT_KEYS = new Set(["now", "authorityDescriptor"]);
 const SUPERVISOR_PORT_KEYS = new Set(["run", "authorityDescriptor"]);
+const CHILD_RECEIPT_STORE_DESCRIPTOR_KEYS = new Set([
+  "tenantId",
+  "streamId",
+  "authorityId",
+  "revision",
+  "handlerArtifactDigest",
+]);
 const RESERVATION_PORT_KEYS = new Set([
   "reserve",
   "finalize",
@@ -174,6 +182,7 @@ const AGGREGATOR_OPTION_KEYS = new Set([
   "clock",
   "clockPolicy",
   "maximumMatrixWallClockMs",
+  "childReceiptStore",
 ]);
 const CELL_RUNTIME_KEYS = new Set([
   "gate",
@@ -324,6 +333,7 @@ const AUTHORITY_ROOT_INPUT_KEYS = new Set([
   "planTrust",
   "matrixReceiptTrust",
   "cellAuthorities",
+  "childReceiptStoreDescriptor",
 ]);
 const CELL_AUTHORITY_KEYS = new Set([
   "cellId",
@@ -824,6 +834,23 @@ function normalizeDescriptor(value, label, expected = {}) {
     );
   }
   return normalized;
+}
+
+function normalizeChildReceiptStoreDescriptor(value, label) {
+  assertExactRecord(value, CHILD_RECEIPT_STORE_DESCRIPTOR_KEYS, label);
+  return deepFreeze({
+    tenantId: normalizeId(value.tenantId, `${label}.tenantId`),
+    streamId: normalizeId(value.streamId, `${label}.streamId`),
+    authorityId: normalizeId(value.authorityId, `${label}.authorityId`),
+    revision: normalizeInteger(value.revision, `${label}.revision`, {
+      minimum: 1,
+      maximum: Number.MAX_SAFE_INTEGER,
+    }),
+    handlerArtifactDigest: normalizeDigest(
+      value.handlerArtifactDigest,
+      `${label}.handlerArtifactDigest`,
+    ),
+  });
 }
 
 function descriptorDigest(value) {
@@ -1446,10 +1473,14 @@ export function computeSkillTargetMatrixEvalAuthorityRoot(input) {
       input.matrixReceiptTrust,
       "matrix authority root matrixReceiptTrust",
     ),
+    childReceiptStoreDescriptor: normalizeChildReceiptStoreDescriptor(
+      input.childReceiptStoreDescriptor,
+      "matrix authority root childReceiptStoreDescriptor",
+    ),
     cellAuthorities: normalizeCellAuthorities(input.cellAuthorities),
   });
   return domainDigest(
-    "chainlesschain.skill-target-matrix-eval-authority-root/v1",
+    "chainlesschain.skill-target-matrix-eval-authority-root/v2",
     normalized,
     "matrix authority root",
   );
@@ -1578,6 +1609,34 @@ function captureComposition(options) {
   const supervisionClock = () => normalizeClockResult(clock(), "trusted clock");
   Object.freeze(clock);
   Object.freeze(supervisionClock);
+  if (!isEvolutionEvalChildEvidenceStore(options.childReceiptStore)) {
+    throw matrixError(
+      SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+      "childReceiptStore must be a branded durable evidence store",
+    );
+  }
+  const childReceiptRetainRaw = options.childReceiptStore.retain;
+  const childReceiptResolveRaw = options.childReceiptStore.resolve;
+  if (
+    typeof childReceiptRetainRaw !== "function" ||
+    typeof childReceiptResolveRaw !== "function"
+  ) {
+    throw matrixError(
+      SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+      "childReceiptStore retain/resolve ports are required",
+    );
+  }
+  const childReceiptStoreDescriptor = normalizeChildReceiptStoreDescriptor(
+    options.childReceiptStore.descriptor,
+    "childReceiptStore.descriptor",
+  );
+  const childReceiptStore = Object.freeze({
+    descriptor: childReceiptStoreDescriptor,
+    retain: (...args) =>
+      Reflect.apply(childReceiptRetainRaw, options.childReceiptStore, args),
+    resolve: (...args) =>
+      Reflect.apply(childReceiptResolveRaw, options.childReceiptStore, args),
+  });
   ensureUniqueCallables([
     { role: "planResolver.resolve", raw: planResolver.raw },
     { role: "evidenceVerifier.verify", raw: evidenceVerifier.raw },
@@ -1587,6 +1646,8 @@ function captureComposition(options) {
     { role: "matrixReceiptSigner.sign", raw: signer.raw },
     { role: "matrixReceiptVerifier.verify", raw: verifier.raw },
     { role: "trustedClock.now", raw: clockPort.raw },
+    { role: "childReceiptStore.retain", raw: childReceiptRetainRaw },
+    { role: "childReceiptStore.resolve", raw: childReceiptResolveRaw },
   ]);
   return Object.freeze({
     planResolver,
@@ -1615,6 +1676,7 @@ function captureComposition(options) {
     clock,
     clockDescriptor: clockPort.descriptor,
     clockPolicy,
+    childReceiptStore,
   });
 }
 
@@ -2697,6 +2759,80 @@ async function verifyReceiptSignature(
   }
 }
 
+async function retainAndResolveChildReceipt(
+  composition,
+  tenantId,
+  planCell,
+  receipt,
+  deadlineMs,
+  wallDeadlineAt,
+) {
+  const receiptDigest = normalizeDigest(
+    receipt.receiptDigest,
+    `matrix cell ${planCell.cellId} receiptDigest`,
+  );
+  const acknowledgement = await invokeSupervised(
+    composition.supervision,
+    `cell-receipt-retain-${planCell.cellId}`,
+    { tenantId, cellId: planCell.cellId, receiptDigest },
+    () =>
+      composition.childReceiptStore.retain({
+        kind: "gate-receipt",
+        evidence: receipt,
+        receiptDigest,
+      }),
+    deadlineMs,
+    wallDeadlineAt,
+  );
+  if (
+    acknowledgement?.authenticated !== true ||
+    acknowledgement.durable !== true ||
+    acknowledgement.kind !== "gate-receipt" ||
+    acknowledgement.receiptDigest !== receiptDigest
+  ) {
+    throw matrixError(
+      SKILL_TARGET_MATRIX_EVAL_AUTHORITY_FAILED_CODE,
+      `matrix cell ${planCell.cellId} receipt was not durably retained`,
+    );
+  }
+  const storeDescriptor = composition.childReceiptStore.descriptor;
+  const resolution = await invokeSupervised(
+    composition.supervision,
+    `cell-receipt-resolve-${planCell.cellId}`,
+    { tenantId, cellId: planCell.cellId, receiptDigest },
+    () =>
+      composition.childReceiptStore.resolve({
+        tenantId,
+        kind: "gate-receipt",
+        receiptDigest,
+      }),
+    deadlineMs,
+    wallDeadlineAt,
+  );
+  if (
+    resolution?.authenticated !== true ||
+    resolution.durable !== true ||
+    resolution.authorityId !== storeDescriptor.authorityId ||
+    resolution.revision !== storeDescriptor.revision ||
+    resolution.handlerArtifactDigest !==
+      storeDescriptor.handlerArtifactDigest ||
+    resolution.tenantId !== tenantId ||
+    resolution.streamId !== storeDescriptor.streamId ||
+    resolution.kind !== "gate-receipt" ||
+    resolution.receiptDigest !== receiptDigest ||
+    !sameCanonical(resolution.evidence, receipt)
+  ) {
+    throw matrixError(
+      SKILL_TARGET_MATRIX_EVAL_AUTHORITY_FAILED_CODE,
+      `matrix cell ${planCell.cellId} durable receipt readback was substituted`,
+    );
+  }
+  return canonicalClone(
+    resolution.evidence,
+    `matrix cell ${planCell.cellId} durable child receipt`,
+  );
+}
+
 function compositionPrincipalEntries(composition, cellAuthorities) {
   const entries = [
     { role: "planSigner", trust: composition.planTrust },
@@ -2777,6 +2913,12 @@ export class SkillTargetMatrixEvalAggregator {
       );
     }
     const composition = captureComposition(options);
+    if (composition.childReceiptStore.descriptor.tenantId !== tenantId) {
+      throw matrixError(
+        SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+        "childReceiptStore belongs to another tenant",
+      );
+    }
     validatePrincipalMatrix(
       compositionPrincipalEntries(composition, cells.authorities),
     );
@@ -2791,6 +2933,7 @@ export class SkillTargetMatrixEvalAggregator {
       clockDescriptor: composition.clockDescriptor,
       planTrust: composition.planTrust,
       matrixReceiptTrust: composition.receiptTrust,
+      childReceiptStoreDescriptor: composition.childReceiptStore.descriptor,
       cellAuthorities: cells.authorities,
     });
     const maximumMatrixWallClockMs = normalizeInteger(
@@ -2973,12 +3116,20 @@ export class SkillTargetMatrixEvalAggregator {
           `matrix cell verifier returned a different receipt: ${planCell.cellId}`,
         );
       }
+      const durableChild = await retainAndResolveChildReceipt(
+        state.composition,
+        plan.tenantId,
+        planCell,
+        verifiedSnapshot,
+        deadlineMs,
+        wallDeadlineAt,
+      );
       const issuedAt = normalizeTimestamp(
-        verifiedSnapshot.issuedAt,
+        durableChild.issuedAt,
         `matrix cell ${planCell.cellId} issuedAt`,
       ).timestamp;
       const expiresAt = normalizeTimestamp(
-        verifiedSnapshot.expiresAt,
+        durableChild.expiresAt,
         `matrix cell ${planCell.cellId} expiresAt`,
       ).timestamp;
       cellResults.push(
@@ -2988,25 +3139,25 @@ export class SkillTargetMatrixEvalAggregator {
           runNonce: expectedChild.runNonce,
           evaluationContextDigest: expectedContextDigest,
           childReceiptDigest: normalizeDigest(
-            verifiedSnapshot.receiptDigest,
+            durableChild.receiptDigest,
             `matrix cell ${planCell.cellId} receiptDigest`,
           ),
           childFullDigest: domainDigest(
             "chainlesschain.skill-target-matrix-eval-child-receipt/v1",
-            verifiedSnapshot,
+            durableChild,
             `matrix cell ${planCell.cellId} verified full receipt`,
           ),
           confidenceZ: normalizeFinite(
-            verifiedSnapshot.confidenceZ,
+            durableChild.confidenceZ,
             `matrix cell ${planCell.cellId} confidenceZ`,
             { minimum: 1.64, maximum: 4 },
           ),
           decision: normalizeDecision(
-            verifiedSnapshot.decision,
+            durableChild.decision,
             `matrix cell ${planCell.cellId} decision`,
           ),
           reasonCodes: normalizeReasonCodes(
-            verifiedSnapshot.reasonCodes,
+            durableChild.reasonCodes,
             `matrix cell ${planCell.cellId} reasonCodes`,
           ),
           issuedAt,

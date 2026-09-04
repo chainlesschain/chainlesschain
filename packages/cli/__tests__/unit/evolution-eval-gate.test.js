@@ -53,6 +53,7 @@ import {
   verifyEvolutionEvalSuite,
   verifyEvolutionEvalTask,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
+import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 
 const CANDIDATE_ID = `sha256:${"c".repeat(64)}`;
@@ -3340,6 +3341,40 @@ describe("Evolution Eval Gate P0 foundation", () => {
     const handlerArtifactDigest = `sha256:${createHash("sha256")
       .update(source)
       .digest("hex")}`;
+    const childEvidenceRecords = new Map();
+    const childEvidenceDescriptor = {
+      tenantId: "tenant-a",
+      streamId: "eval-child-stream:gate-hard-kill",
+      authorityId: "authority:eval-child-evidence",
+      revision: 1,
+      handlerArtifactDigest: `sha256:${"8".repeat(64)}`,
+    };
+    const childEvidenceStore = createEvolutionEvalChildEvidenceStorePort({
+      descriptor: childEvidenceDescriptor,
+      retain: async (request) => {
+        childEvidenceRecords.set(
+          request.receiptDigest,
+          structuredClone(request),
+        );
+        return {
+          authenticated: true,
+          durable: true,
+          kind: request.kind,
+          receiptDigest: request.receiptDigest,
+        };
+      },
+      resolve: async (request) => {
+        const retained = childEvidenceRecords.get(request.receiptDigest);
+        return {
+          authenticated: true,
+          durable: true,
+          ...childEvidenceDescriptor,
+          kind: request.kind,
+          receiptDigest: request.receiptDigest,
+          evidence: structuredClone(retained.evidence),
+        };
+      },
+    });
     const harness = makeHarness({
       ...targetedHangingOptions(),
       executorTargetTransform: (target) => ({
@@ -3379,6 +3414,7 @@ describe("Evolution Eval Gate P0 foundation", () => {
           clock,
           spawnProcess: spawn,
           fallbackSupervisor,
+          childEvidenceStore,
         }),
     });
 
@@ -3390,6 +3426,9 @@ describe("Evolution Eval Gate P0 foundation", () => {
     await new Promise((resolve) => setTimeout(resolve, 2_100));
     expect(() => readFileSync(lateFile, "utf8")).toThrow();
     expect(harness.ports.executor.execute).not.toHaveBeenCalled();
+    expect([...childEvidenceRecords.values()].map(({ kind }) => kind)).toEqual([
+      "revocation",
+    ]);
   }, 15_000);
 
   it.each([

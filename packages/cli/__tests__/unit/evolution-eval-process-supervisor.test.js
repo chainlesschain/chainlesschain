@@ -13,6 +13,7 @@ import {
   EVOLUTION_EVAL_AUTHORITY_DESCRIPTOR_SCHEMA,
   EVOLUTION_EVAL_ISOLATED_TARGET_SCHEMA,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
+import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import {
   createEvolutionEvalProcessSupervisor,
   isEvolutionEvalProcessSupervisor,
@@ -32,7 +33,10 @@ function trust(label) {
   };
 }
 
-async function fixture(source, { allowFixtureWrites = false } = {}) {
+async function fixture(
+  source,
+  { allowFixtureWrites = false, childEvidenceStore = null } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), "cc-eval-process-"));
   const modulePath = join(root, "target.mjs");
   await writeFile(modulePath, source);
@@ -81,8 +85,49 @@ async function fixture(source, { allowFixtureWrites = false } = {}) {
     attestRevocation: attest,
     verifyEnforcement: () => true,
     spawnProcess: spawn,
+    childEvidenceStore,
   });
   return { root, modulePath, target, supervisor };
+}
+
+function evidenceStore({ substitute = false, durable = true } = {}) {
+  const records = new Map();
+  const descriptor = {
+    tenantId: "tenant:process-supervisor",
+    streamId: "eval-child-stream:process-supervisor",
+    authorityId: "authority:child-evidence-store",
+    revision: 1,
+    handlerArtifactDigest: D("child-evidence-store-handler"),
+  };
+  const port = createEvolutionEvalChildEvidenceStorePort({
+    descriptor,
+    retain: async (request) => {
+      records.set(request.receiptDigest, structuredClone(request));
+      return {
+        authenticated: true,
+        durable,
+        kind: request.kind,
+        receiptDigest: request.receiptDigest,
+      };
+    },
+    resolve: async (request) => {
+      const record = records.get(request.receiptDigest);
+      return {
+        authenticated: true,
+        durable: true,
+        ...descriptor,
+        kind: request.kind,
+        receiptDigest: request.receiptDigest,
+        evidence: substitute
+          ? { ...record.evidence, invocationId: "substituted" }
+          : structuredClone(record.evidence),
+      };
+    },
+  });
+  return {
+    port,
+    records,
+  };
 }
 
 function requests(target, deadlineAt, payload = { input: "hello" }) {
@@ -167,6 +212,70 @@ describe("Evolution Eval process supervisor", () => {
     expect(result.value.pid).not.toBe(process.pid);
     expect(result.receipt.status).toBe("completed");
     expect(result.receipt.isolation).toBe("process");
+  });
+
+  it("durably retains and freshly resolves invocation and revocation evidence", async () => {
+    const store = evidenceStore();
+    const { target, supervisor } = await fixture(
+      "export async function runTarget(payload) { return { output: payload.input }; }",
+      { childEvidenceStore: store.port },
+    );
+    const request = requests(
+      target,
+      new Date(Date.now() + 2_000).toISOString(),
+    );
+    await expect(
+      supervisor.run(request.supervision, capability(supervisor, request)),
+    ).resolves.toMatchObject({ value: { output: "hello" } });
+    expect([...store.records.values()].map(({ kind }) => kind).sort()).toEqual([
+      "invocation",
+      "revocation",
+    ]);
+  });
+
+  it("fails closed when durable child evidence readback is substituted", async () => {
+    const store = evidenceStore({ substitute: true });
+    const { target, supervisor } = await fixture(
+      "export async function runTarget() { return { safe: true }; }",
+      { childEvidenceStore: store.port },
+    );
+    const request = requests(
+      target,
+      new Date(Date.now() + 2_000).toISOString(),
+    );
+    await expect(
+      supervisor.run(request.supervision, capability(supervisor, request)),
+    ).rejects.toThrow("durable readback was substituted");
+  });
+
+  it("fails closed when child evidence persistence is not durable", async () => {
+    const store = evidenceStore({ durable: false });
+    const { target, supervisor } = await fixture(
+      "export async function runTarget() { return { safe: true }; }",
+      { childEvidenceStore: store.port },
+    );
+    const request = requests(
+      target,
+      new Date(Date.now() + 2_000).toISOString(),
+    );
+    await expect(
+      supervisor.run(request.supervision, capability(supervisor, request)),
+    ).rejects.toThrow("retention was not durably confirmed");
+  });
+
+  it("rejects an unbranded child evidence store before target execution", async () => {
+    await expect(
+      fixture(
+        "export async function runTarget() { return { unsafe: true }; }",
+        {
+          childEvidenceStore: {
+            descriptor: evidenceStore().port.descriptor,
+            retain: async () => ({ authenticated: true, durable: true }),
+            resolve: async () => ({ authenticated: true, durable: true }),
+          },
+        },
+      ),
+    ).rejects.toThrow("childEvidenceStore contract is invalid");
   });
 
   it("hard-kills a hung child and prevents its late filesystem side effect", async () => {

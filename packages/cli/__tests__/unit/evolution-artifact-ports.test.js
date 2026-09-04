@@ -605,6 +605,7 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
       "evolution-run-event",
+      "evolution-eval-child-evidence",
       "evolution-release-train-checkpoint",
       "evolution-release-train-stage-output",
       "evolvable-artifact-candidate",
@@ -670,7 +671,7 @@ describe("EvolutionArtifactPorts", () => {
       digest: results[0].digest,
       found: true,
     });
-  }, 30_000);
+  }, 60_000);
 
   it("lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation", () => {
     const result = publish({

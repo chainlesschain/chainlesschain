@@ -5,10 +5,12 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import executionBroker from "../process-execution-broker/index.js";
+import { isEvolutionEvalChildEvidenceStore } from "./evolution-eval-child-evidence-ledger-adapter.js";
 
 import {
   buildEvolutionEvalAttestationDigest,
   computeEvolutionEvalIsolatedTargetDigest,
+  computeEvolutionEvalSignedEvidenceDigest,
   computeEvolutionEvalSupervisedResultDigest,
   computeEvolutionEvalTargetAuthorityDigest,
   EVOLUTION_EVAL_ATTESTATION_PURPOSES,
@@ -242,6 +244,7 @@ export function createEvolutionEvalProcessSupervisor({
   clock = Date.now,
   spawnProcess = (...args) => executionBroker.spawn(...args),
   fallbackSupervisor = null,
+  childEvidenceStore = null,
 } = {}) {
   if (!(targets instanceof Map) || targets.size < 1 || targets.size > 256)
     throw new TypeError("process supervisor targets must be a bounded Map");
@@ -304,6 +307,69 @@ export function createEvolutionEvalProcessSupervisor({
       typeof fallbackSupervisor.revokeTarget !== "function")
   )
     throw new TypeError("fallbackSupervisor contract is invalid");
+  let durableEvidence = null;
+  if (childEvidenceStore !== null) {
+    const storeDescriptor = childEvidenceStore?.descriptor;
+    if (
+      !isEvolutionEvalChildEvidenceStore(childEvidenceStore) ||
+      typeof childEvidenceStore?.retain !== "function" ||
+      typeof childEvidenceStore?.resolve !== "function" ||
+      typeof storeDescriptor?.tenantId !== "string" ||
+      typeof storeDescriptor.streamId !== "string" ||
+      typeof storeDescriptor.authorityId !== "string" ||
+      !Number.isSafeInteger(storeDescriptor.revision) ||
+      !DIGEST.test(storeDescriptor.handlerArtifactDigest ?? "")
+    ) {
+      throw new TypeError("childEvidenceStore contract is invalid");
+    }
+    durableEvidence = Object.freeze({
+      descriptor: Object.freeze(structuredClone(storeDescriptor)),
+      retain: childEvidenceStore.retain.bind(childEvidenceStore),
+      resolve: childEvidenceStore.resolve.bind(childEvidenceStore),
+    });
+  }
+
+  async function persistEvidence(kind, evidence, purpose) {
+    if (!durableEvidence) return evidence;
+    const receiptDigest = computeEvolutionEvalSignedEvidenceDigest(
+      evidence,
+      purpose,
+    );
+    const acknowledgement = await durableEvidence.retain({
+      kind,
+      evidence,
+      receiptDigest,
+    });
+    if (
+      acknowledgement?.authenticated !== true ||
+      acknowledgement.durable !== true ||
+      acknowledgement.kind !== kind ||
+      acknowledgement.receiptDigest !== receiptDigest
+    ) {
+      throw new Error("child evidence retention was not durably confirmed");
+    }
+    const resolution = await durableEvidence.resolve({
+      tenantId: durableEvidence.descriptor.tenantId,
+      kind,
+      receiptDigest,
+    });
+    if (
+      resolution?.authenticated !== true ||
+      resolution.durable !== true ||
+      resolution.authorityId !== durableEvidence.descriptor.authorityId ||
+      resolution.revision !== durableEvidence.descriptor.revision ||
+      resolution.handlerArtifactDigest !==
+        durableEvidence.descriptor.handlerArtifactDigest ||
+      resolution.tenantId !== durableEvidence.descriptor.tenantId ||
+      resolution.streamId !== durableEvidence.descriptor.streamId ||
+      resolution.kind !== kind ||
+      resolution.receiptDigest !== receiptDigest ||
+      canonical(resolution.evidence) !== canonical(evidence)
+    ) {
+      throw new Error("child evidence durable readback was substituted");
+    }
+    return Object.freeze(structuredClone(resolution.evidence));
+  }
 
   async function invocationEvidence(request, target, result, invokedAt) {
     const core = {
@@ -322,10 +388,14 @@ export function createEvolutionEvalProcessSupervisor({
       resultDigest: computeEvolutionEvalSupervisedResultDigest(result),
       authorityRevision: invocationRevision,
     };
-    return attest(
-      core,
+    return persistEvidence(
+      "invocation",
+      await attest(
+        core,
+        EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetInvocation,
+        attestInvocation,
+      ),
       EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetInvocation,
-      attestInvocation,
     );
   }
 
@@ -359,10 +429,14 @@ export function createEvolutionEvalProcessSupervisor({
         request.mode === "hard-terminate" && wasActive ? revokedAt : null,
       authorityRevision: revocationRevision,
     };
-    return attest(
-      core,
+    return persistEvidence(
+      "revocation",
+      await attest(
+        core,
+        EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation,
+        attestRevocation,
+      ),
       EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation,
-      attestRevocation,
     );
   }
 
