@@ -15,6 +15,8 @@ const EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA =
   "chainlesschain.evolvable-artifact-transition-receipt/v1";
 const EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA =
   "chainlesschain.evolvable-artifact-active-release/v1";
+const EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA =
+  "chainlesschain.evolvable-artifact-candidate-read/v1";
 
 const ARTIFACT_TYPE = Object.freeze({
   SKILL: "skill",
@@ -37,6 +39,8 @@ const authorityBrands = new WeakSet();
 const candidateGateBrands = new WeakSet();
 const releaseGateBrands = new WeakSet();
 const activeReleaseReaderBrands = new WeakSet();
+const candidateReaderBrands = new WeakSet();
+const lifecycleProducerBrands = new WeakSet();
 const runtimeCompositionBrands = new WeakSet();
 const runtimeCompositionDependencies = new WeakMap();
 
@@ -893,6 +897,205 @@ function isEvolvableArtifactActiveReleaseReader(value, type = null) {
   );
 }
 
+function createEvolvableArtifactCandidateReader({ candidateGate, provider }) {
+  if (!candidateGateBrands.has(candidateGate)) {
+    throw new TypeError(
+      "a branded EvolvableArtifact candidate gate is required",
+    );
+  }
+  if (!provider || typeof provider.readCandidate !== "function") {
+    throw new TypeError("candidate reader provider is required");
+  }
+  const readCandidate = provider.readCandidate.bind(provider);
+  const reader = Object.freeze({
+    tenantId: candidateGate.tenantId,
+    type: candidateGate.type,
+    readerScope: provider.readerScope ?? provider,
+    async readCandidate({ artifactId, candidateId } = {}) {
+      const expectedArtifactId = requiredString(artifactId, "artifactId");
+      const expectedCandidateId = requiredString(candidateId, "candidateId");
+      const value = await readCandidate({
+        type: candidateGate.type,
+        artifactId: expectedArtifactId,
+        candidateId: expectedCandidateId,
+      });
+      if (value === null) return null;
+      let artifact;
+      try {
+        artifact = verifyEvolvableArtifact(value?.artifact);
+      } catch {
+        throw new Error("candidate artifact read is invalid");
+      }
+      const persistenceReceipt = verifyPersistenceReceipt(
+        value.persistenceReceipt,
+        artifact,
+      );
+      if (
+        value.schema !== EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA ||
+        value.authenticated !== true ||
+        value.durable !== true ||
+        value.tenantId !== candidateGate.tenantId ||
+        value.type !== candidateGate.type ||
+        value.artifactId !== expectedArtifactId ||
+        value.candidateId !== expectedCandidateId ||
+        value.contentDigest !== artifact.contentDigest ||
+        value.artifactDigest !== artifact.artifactDigest ||
+        artifact.tenantId !== candidateGate.tenantId ||
+        artifact.type !== candidateGate.type ||
+        artifact.artifactId !== expectedArtifactId ||
+        artifact.candidate.candidateId !== expectedCandidateId ||
+        artifact.candidate.status !== "candidate" ||
+        artifact.release !== null ||
+        typeof value.contentAvailable !== "boolean" ||
+        (value.contentAvailable
+          ? digestValue(value.content) !== artifact.contentDigest
+          : value.content !== null)
+      ) {
+        throw new Error("candidate artifact read is invalid");
+      }
+      return deepFreeze({
+        ...clone(value),
+        artifact,
+        persistenceReceipt,
+      });
+    },
+  });
+  candidateReaderBrands.add(reader);
+  return reader;
+}
+
+function isEvolvableArtifactCandidateReader(value, type = null) {
+  return (
+    candidateReaderBrands.has(value) &&
+    (type == null || value.type === normalizeType(type))
+  );
+}
+
+function createEvolvableArtifactLifecycleProducer({
+  candidateGate,
+  releaseGate,
+  activeReleaseReader,
+  candidateReader,
+  promotionProvider,
+  revalidationProvider,
+}) {
+  if (
+    !candidateGateBrands.has(candidateGate) ||
+    !releaseGateBrands.has(releaseGate) ||
+    !activeReleaseReaderBrands.has(activeReleaseReader) ||
+    !candidateReaderBrands.has(candidateReader) ||
+    candidateGate.authorityScope !== releaseGate.authorityScope ||
+    new Set([
+      candidateGate.tenantId,
+      releaseGate.tenantId,
+      activeReleaseReader.tenantId,
+      candidateReader.tenantId,
+    ]).size !== 1 ||
+    new Set([
+      candidateGate.type,
+      releaseGate.type,
+      activeReleaseReader.type,
+      candidateReader.type,
+    ]).size !== 1
+  ) {
+    throw new TypeError(
+      "lifecycle producer requires one branded artifact scope",
+    );
+  }
+  if (typeof promotionProvider?.authorizePromotion !== "function") {
+    throw new TypeError("promotionProvider.authorizePromotion is required");
+  }
+  if (typeof revalidationProvider?.authorizeRevalidation !== "function") {
+    throw new TypeError(
+      "revalidationProvider.authorizeRevalidation is required",
+    );
+  }
+  const authorizePromotion =
+    promotionProvider.authorizePromotion.bind(promotionProvider);
+  const authorizeRevalidation =
+    revalidationProvider.authorizeRevalidation.bind(revalidationProvider);
+  const producer = Object.freeze({
+    tenantId: candidateGate.tenantId,
+    type: candidateGate.type,
+    async promote({ artifactId, candidateId } = {}) {
+      const candidate = await candidateReader.readCandidate({
+        artifactId,
+        candidateId,
+      });
+      if (!candidate) throw new Error("artifact candidate is unavailable");
+      const authorization = await authorizePromotion({
+        tenantId: candidateGate.tenantId,
+        type: candidateGate.type,
+        artifact: candidate.artifact,
+        persistenceReceipt: candidate.persistenceReceipt,
+      });
+      if (
+        authorization?.authenticated !== true ||
+        authorization?.durable !== true
+      ) {
+        throw new Error("artifact promotion authorization is not durable");
+      }
+      const transition = await releaseGate.promote({
+        artifact: candidate.artifact,
+        candidatePersistenceReceipt: candidate.persistenceReceipt,
+        evaluationReceipt: authorization.evaluationReceipt,
+        reviewReceipt: authorization.reviewReceipt,
+        promotionReceipt: authorization.promotionReceipt,
+        releaseId: authorization.releaseId,
+      });
+      const active = await activeReleaseReader.readActive({ artifactId });
+      if (
+        !active ||
+        active.artifactDigest !== transition.artifact.artifactDigest ||
+        active.releaseId !== transition.artifact.activeReleaseId ||
+        active.contentDigest !== transition.artifact.contentDigest
+      ) {
+        throw new Error("artifact promotion active readback differs");
+      }
+      return deepFreeze({ transition, active });
+    },
+    async revalidate({ artifactId } = {}) {
+      const active = await activeReleaseReader.readActive({ artifactId });
+      if (!active) throw new Error("active artifact is unavailable");
+      if (!active.artifact.stale) {
+        throw new Error("only a stale active artifact can be revalidated");
+      }
+      if (!active.contentAvailable) {
+        throw new Error("stale artifact content is unavailable");
+      }
+      const authorization = await authorizeRevalidation({
+        tenantId: candidateGate.tenantId,
+        type: candidateGate.type,
+        artifact: active.artifact,
+      });
+      if (
+        authorization?.authenticated !== true ||
+        authorization?.durable !== true
+      ) {
+        throw new Error("artifact revalidation authorization is not durable");
+      }
+      return candidateGate.stageRevalidationCandidate(
+        active.artifact,
+        {
+          candidateId: authorization.candidateId,
+          dependencyLock: authorization.dependencyLock,
+          revalidationReceipt: authorization.revalidationReceipt,
+        },
+        active.content,
+      );
+    },
+  });
+  lifecycleProducerBrands.add(producer);
+  return producer;
+}
+
+function isEvolvableArtifactLifecycleProducer(value, type = null) {
+  return (
+    lifecycleProducerBrands.has(value) &&
+    (type == null || value.type === normalizeType(type))
+  );
+}
+
 const ARTIFACT_DEPENDENCY_PREFIX = Object.freeze({
   [ARTIFACT_TYPE.SKILL]: "Skill",
   [ARTIFACT_TYPE.PROMPT]: "Prompt",
@@ -924,6 +1127,9 @@ function createEvolvableArtifactRuntimeComposition({ tenantId, artifacts }) {
         "transitionWriter",
         "transitionReader",
         "activeProvider",
+        "candidateProvider",
+        "promotionProvider",
+        "revalidationProvider",
       ],
       `${type} runtime composition config`,
     );
@@ -947,11 +1153,26 @@ function createEvolvableArtifactRuntimeComposition({ tenantId, artifacts }) {
       releaseGate,
       provider: config.activeProvider,
     });
+    const candidateReader = createEvolvableArtifactCandidateReader({
+      candidateGate,
+      provider: config.candidateProvider,
+    });
+    const lifecycleProducer = createEvolvableArtifactLifecycleProducer({
+      candidateGate,
+      releaseGate,
+      activeReleaseReader,
+      candidateReader,
+      promotionProvider: config.promotionProvider,
+      revalidationProvider: config.revalidationProvider,
+    });
     const prefix = ARTIFACT_DEPENDENCY_PREFIX[type];
     dependencies[`evolvableArtifact${prefix}CandidateGate`] = candidateGate;
     dependencies[`evolvableArtifact${prefix}ReleaseGate`] = releaseGate;
     dependencies[`evolvableArtifact${prefix}ActiveReleaseReader`] =
       activeReleaseReader;
+    dependencies[`evolvableArtifact${prefix}CandidateReader`] = candidateReader;
+    dependencies[`evolvableArtifact${prefix}LifecycleProducer`] =
+      lifecycleProducer;
     types.push(type);
   }
 
@@ -1067,6 +1288,7 @@ module.exports = {
   EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+  EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA,
   ARTIFACT_TYPE,
   ARTIFACT_TYPES,
   digestEvolvableArtifactValue: digestValue,
@@ -1078,6 +1300,10 @@ module.exports = {
   isEvolvableArtifactReleaseGate,
   createEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactActiveReleaseReader,
+  createEvolvableArtifactCandidateReader,
+  isEvolvableArtifactCandidateReader,
+  createEvolvableArtifactLifecycleProducer,
+  isEvolvableArtifactLifecycleProducer,
   createEvolvableArtifactRuntimeComposition,
   isEvolvableArtifactRuntimeComposition,
   getEvolvableArtifactRuntimeDependencies,

@@ -519,6 +519,8 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "hooks:register",
   "hooks:trigger",
   "hooks:unregister",
+  "evolution-artifact:promote",
+  "evolution-artifact:revalidate",
   "hsm:connect-device",
   "hsm:execute-operation",
   "hsm:generate-key",

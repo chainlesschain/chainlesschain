@@ -61,6 +61,11 @@ async function loadDesktopEvolutionDependencies({
         `desktop evolution deployment is missing ${type} runtime`,
       );
     }
+    if (!dependencies[`evolvableArtifact${type}LifecycleProducer`]) {
+      throw new Error(
+        `desktop evolution deployment is missing ${type} lifecycle producer`,
+      );
+    }
   }
   return dependencies;
 }

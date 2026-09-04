@@ -14,6 +14,7 @@ import {
 const {
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+  EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
   createEvolvableArtifactActiveReleaseReader,
@@ -508,6 +509,53 @@ export class EvolvableArtifactLedgerAdapter {
     });
     TRANSITION_READERS.add(reader);
     return reader;
+  }
+
+  candidateProvider() {
+    const adapter = this;
+    return Object.freeze({
+      readerScope: this.readerScope,
+      async readCandidate({ type, artifactId, candidateId } = {}) {
+        if (!ARTIFACT_TYPES.has(type))
+          throw new TypeError("candidate artifact type is invalid");
+        const normalizedArtifactId = text(artifactId, "artifactId");
+        const normalizedCandidateId = text(candidateId, "candidateId");
+        const matches = adapter
+          ._events(EVOLVABLE_ARTIFACT_CANDIDATE_EVENT)
+          .map((event) =>
+            adapter._resolve(
+              event,
+              "evolvable-artifact-candidate",
+              "candidate",
+            ),
+          )
+          .filter(
+            (record) =>
+              record.artifact.type === type &&
+              record.artifact.artifactId === normalizedArtifactId &&
+              record.artifact.candidate.candidateId === normalizedCandidateId,
+          );
+        if (matches.length > 1)
+          throw new Error("candidate artifact read is ambiguous");
+        if (matches.length === 0) return null;
+        const record = matches[0];
+        return freeze({
+          schema: EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: record.artifact.tenantId,
+          type: record.artifact.type,
+          artifactId: record.artifact.artifactId,
+          candidateId: record.artifact.candidate.candidateId,
+          contentDigest: record.artifact.contentDigest,
+          artifactDigest: record.artifact.artifactDigest,
+          artifact: record.artifact,
+          persistenceReceipt: record.receipt,
+          contentAvailable: record.contentAvailable,
+          content: record.content,
+        });
+      },
+    });
   }
 
   _activeArtifacts() {

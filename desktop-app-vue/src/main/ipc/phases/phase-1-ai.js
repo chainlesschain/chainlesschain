@@ -126,6 +126,23 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     handlers: 11,
   });
 
+  safeRegister("Evolvable Artifact Lifecycle IPC", {
+    register: () => {
+      const {
+        registerArtifactLifecycleIPC,
+      } = require("../../evolution/artifact-lifecycle-ipc");
+      registerArtifactLifecycleIPC({
+        evolvableArtifactSkillLifecycleProducer:
+          deps.evolvableArtifactSkillLifecycleProducer || undefined,
+        evolvableArtifactPromptLifecycleProducer:
+          deps.evolvableArtifactPromptLifecycleProducer || undefined,
+        evolvableArtifactHookLifecycleProducer:
+          deps.evolvableArtifactHookLifecycleProducer || undefined,
+      });
+    },
+    handlers: 2,
+  });
+
   // 🔥 Plan Mode 系统 (Claude Code 风格, 14 handlers)
   safeRegister("Plan Mode IPC", {
     register: () => {

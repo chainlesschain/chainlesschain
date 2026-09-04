@@ -6,15 +6,20 @@ const {
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+  EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA,
   createEvolvableArtifactPolicy,
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
   createEvolvableArtifactReleaseGate,
   createEvolvableArtifactActiveReleaseReader,
+  createEvolvableArtifactCandidateReader,
+  createEvolvableArtifactLifecycleProducer,
   isEvolvableArtifactActiveReleaseReader,
   createEvolvableArtifactRuntimeComposition,
   isEvolvableArtifactRuntimeComposition,
   getEvolvableArtifactRuntimeDependencies,
+  isEvolvableArtifactCandidateReader,
+  isEvolvableArtifactLifecycleProducer,
   isEvolvableArtifactReleaseGate,
   isEvolvableArtifactCandidateGate,
   createEvolvableArtifactReceipt,
@@ -170,6 +175,9 @@ describe("EvolvableArtifact protocol", () => {
         listActive: async () => [],
         readActive: async () => null,
       },
+      candidateProvider: { readCandidate: async () => null },
+      promotionProvider: { authorizePromotion: async () => null },
+      revalidationProvider: { authorizeRevalidation: async () => null },
     });
     const composition = createEvolvableArtifactRuntimeComposition({
       tenantId: "tenant-runtime",
@@ -188,6 +196,18 @@ describe("EvolvableArtifact protocol", () => {
     expect(
       isEvolvableArtifactActiveReleaseReader(
         deps.evolvableArtifactSkillActiveReleaseReader,
+        ARTIFACT_TYPE.SKILL,
+      ),
+    ).toBe(true);
+    expect(
+      isEvolvableArtifactCandidateReader(
+        deps.evolvableArtifactSkillCandidateReader,
+        ARTIFACT_TYPE.SKILL,
+      ),
+    ).toBe(true);
+    expect(
+      isEvolvableArtifactLifecycleProducer(
+        deps.evolvableArtifactSkillLifecycleProducer,
         ARTIFACT_TYPE.SKILL,
       ),
     ).toBe(true);
@@ -445,6 +465,227 @@ describe("EvolvableArtifact protocol", () => {
       persisted: true,
       durable: true,
     });
+  });
+
+  it("promotes only a durably read candidate with authority receipts and active readback", async () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const content = { prompt: "review this change" };
+    const artifact = authority.stageCandidate(
+      candidate(ARTIFACT_TYPE.PROMPT, { contentDigest: digest(content) }),
+    );
+    const persistenceReceipt = candidatePersistenceReceipt(artifact);
+    const candidateGate = createEvolvableArtifactCandidateGate({
+      authority,
+      candidateWriter: {
+        async persistCandidate() {
+          return persistenceReceipt;
+        },
+      },
+    });
+    const store = transitionStore();
+    let active = null;
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: {
+        async commitTransition(input) {
+          const result = await store.writer.commitTransition(input);
+          active = {
+            schema: EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: input.artifact.tenantId,
+            type: input.artifact.type,
+            artifactId: input.artifact.artifactId,
+            releaseId: input.artifact.activeReleaseId,
+            contentDigest: input.artifact.contentDigest,
+            artifactDigest: input.artifact.artifactDigest,
+            artifact: input.artifact,
+            contentAvailable: true,
+            content,
+          };
+          return result;
+        },
+      },
+      transitionReader: store.reader,
+    });
+    const activeReleaseReader = createEvolvableArtifactActiveReleaseReader({
+      releaseGate,
+      provider: {
+        async listActive() {
+          return active ? [active] : [];
+        },
+        async readActive() {
+          return active;
+        },
+      },
+    });
+    const candidateReader = createEvolvableArtifactCandidateReader({
+      candidateGate,
+      provider: {
+        async readCandidate() {
+          return {
+            schema: EVOLVABLE_ARTIFACT_CANDIDATE_READ_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: artifact.tenantId,
+            type: artifact.type,
+            artifactId: artifact.artifactId,
+            candidateId: artifact.candidate.candidateId,
+            contentDigest: artifact.contentDigest,
+            artifactDigest: artifact.artifactDigest,
+            artifact,
+            persistenceReceipt,
+            contentAvailable: true,
+            content,
+          };
+        },
+      },
+    });
+    const authorizePromotion = vi.fn(async ({ artifact: input }) => ({
+      authenticated: true,
+      durable: true,
+      evaluationReceipt: receipt(input, "eval"),
+      reviewReceipt: receipt(input, "review"),
+      promotionReceipt: receipt(input, "promotion"),
+      releaseId: "prompt-release-1",
+    }));
+    const producer = createEvolvableArtifactLifecycleProducer({
+      candidateGate,
+      releaseGate,
+      activeReleaseReader,
+      candidateReader,
+      promotionProvider: { authorizePromotion },
+      revalidationProvider: { authorizeRevalidation: vi.fn() },
+    });
+
+    await expect(
+      producer.promote({
+        artifactId: artifact.artifactId,
+        candidateId: artifact.candidate.candidateId,
+      }),
+    ).resolves.toMatchObject({
+      transition: { artifact: { activeReleaseId: "prompt-release-1" } },
+      active: { releaseId: "prompt-release-1", content },
+    });
+    expect(authorizePromotion).toHaveBeenCalledOnce();
+  });
+
+  it("revalidates only stale active content through a durable authority decision", async () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const content = { prompt: "stable prompt" };
+    const oldDependency = {
+      artifactId: "skill-a",
+      type: ARTIFACT_TYPE.SKILL,
+      releaseId: "skill-release-1",
+      contentDigest: digest("skill-v1"),
+    };
+    let artifact = authority.stageCandidate(
+      candidate(ARTIFACT_TYPE.PROMPT, {
+        contentDigest: digest(content),
+        dependencyLock: dependencyLock([oldDependency]),
+      }),
+    );
+    artifact = authority.recordEvaluation(artifact, receipt(artifact, "eval"));
+    artifact = authority.activateCandidate(artifact, {
+      reviewReceipt: receipt(artifact, "review"),
+      promotionReceipt: receipt(artifact, "promotion"),
+      releaseId: "prompt-release-1",
+    });
+    const stale = projectEvolvableArtifactDependencyChange([artifact], {
+      artifactId: "skill-a",
+      releaseId: "skill-release-2",
+      contentDigest: digest("skill-v2"),
+    }).artifacts[0];
+    const active = {
+      schema: EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+      authenticated: true,
+      durable: true,
+      tenantId: stale.tenantId,
+      type: stale.type,
+      artifactId: stale.artifactId,
+      releaseId: stale.activeReleaseId,
+      contentDigest: stale.contentDigest,
+      artifactDigest: stale.artifactDigest,
+      artifact: stale,
+      contentAvailable: true,
+      content,
+    };
+    const persistCandidate = vi.fn(async (input) =>
+      candidatePersistenceReceipt(input),
+    );
+    const candidateGate = createEvolvableArtifactCandidateGate({
+      authority,
+      candidateWriter: { persistCandidate },
+    });
+    const store = transitionStore();
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: store.writer,
+      transitionReader: store.reader,
+    });
+    const activeReleaseReader = createEvolvableArtifactActiveReleaseReader({
+      releaseGate,
+      provider: {
+        async listActive() {
+          return [active];
+        },
+        async readActive() {
+          return active;
+        },
+      },
+    });
+    const candidateReader = createEvolvableArtifactCandidateReader({
+      candidateGate,
+      provider: { readCandidate: async () => null },
+    });
+    const nextLock = dependencyLock([
+      {
+        ...oldDependency,
+        releaseId: "skill-release-2",
+        contentDigest: digest("skill-v2"),
+      },
+    ]);
+    const revalidationShape = {
+      ...stale,
+      candidate: { candidateId: "prompt-revalidation-2", status: "candidate" },
+      dependencyLock: nextLock,
+    };
+    const producer = createEvolvableArtifactLifecycleProducer({
+      candidateGate,
+      releaseGate,
+      activeReleaseReader,
+      candidateReader,
+      promotionProvider: { authorizePromotion: vi.fn() },
+      revalidationProvider: {
+        async authorizeRevalidation() {
+          return {
+            authenticated: true,
+            durable: true,
+            candidateId: "prompt-revalidation-2",
+            dependencyLock: nextLock,
+            revalidationReceipt: receipt(revalidationShape, "revalidation"),
+          };
+        },
+      },
+    });
+
+    await expect(
+      producer.revalidate({ artifactId: stale.artifactId }),
+    ).resolves.toMatchObject({
+      artifact: {
+        stale: false,
+        candidate: { candidateId: "prompt-revalidation-2" },
+        dependencyLock: nextLock,
+      },
+      receipt: { persisted: true },
+    });
+    expect(persistCandidate).toHaveBeenCalledWith(expect.any(Object), content);
   });
 
   it("prepares policy-authorized promotion before committing active state", async () => {

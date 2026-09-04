@@ -368,6 +368,19 @@ describe("EvolvableArtifactLedgerAdapter", () => {
     expect(first.ledger.verify()).toMatchObject({ sequence: 2 });
 
     const reopened = open(root, witness);
+    await expect(
+      reopened.adapter.candidateProvider().readCandidate({
+        type: ARTIFACT_TYPE.KNOWLEDGE,
+        artifactId: "knowledge-1",
+        candidateId: "knowledge-candidate-2",
+      }),
+    ).resolves.toMatchObject({
+      schema: "chainlesschain.evolvable-artifact-candidate-read/v1",
+      authenticated: true,
+      durable: true,
+      artifactDigest: staged.artifact.artifactDigest,
+      persistenceReceipt: staged.receipt,
+    });
     const independentReader = reopened.adapter.transitionReader();
     expect(isEvolvableArtifactTransitionReader(independentReader)).toBe(true);
     expect(isEvolvableArtifactTransitionReader({})).toBe(false);

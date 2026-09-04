@@ -21,9 +21,9 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 22 safeRegister calls total: 21 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 21 unconditional fire.
-    expectedRegistrations: 21,
+    // 23 safeRegister calls total: 22 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 22 unconditional fire.
+    expectedRegistrations: 22,
     needsRegisteredModules: false,
   },
   {

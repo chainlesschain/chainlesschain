@@ -24,6 +24,9 @@ function runtimeConfig(revision) {
       listActive: async () => [],
       readActive: async () => null,
     },
+    candidateProvider: { readCandidate: async () => null },
+    promotionProvider: { authorizePromotion: async () => null },
+    revalidationProvider: { authorizeRevalidation: async () => null },
   };
 }
 
@@ -64,6 +67,9 @@ describe("desktop evolution deployment", () => {
     expect(result.evolvableArtifactSkillActiveReleaseReader).toBeDefined();
     expect(result.evolvableArtifactPromptActiveReleaseReader).toBeDefined();
     expect(result.evolvableArtifactHookActiveReleaseReader).toBeDefined();
+    expect(result.evolvableArtifactSkillLifecycleProducer).toBeDefined();
+    expect(result.evolvableArtifactPromptLifecycleProducer).toBeDefined();
+    expect(result.evolvableArtifactHookLifecycleProducer).toBeDefined();
   });
 
   it("rejects unbranded and incomplete deployment results", async () => {
