@@ -18,13 +18,17 @@ vi.mock("../../../utils/logger.js", () => ({
 }));
 
 // ─── Imports ─────────────────────────────────────────────────────────────────
-const { PromptOptimizer } = require("../prompt-optimizer");
+const { PromptOptimizer, getPromptOptimizer } = require("../prompt-optimizer");
 const {
   ARTIFACT_TYPE,
+  EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  createEvolvableArtifactActiveReleaseReader,
   createEvolvableArtifactPolicy,
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
+  createEvolvableArtifactReceipt,
+  createEvolvableArtifactReleaseGate,
   digestEvolvableArtifactValue: digest,
 } = require("@chainlesschain/session-core/evolvable-artifact");
 
@@ -110,6 +114,85 @@ function createPromptCandidateGate() {
           status: "candidate",
           persisted: true,
         };
+      },
+    },
+  });
+}
+
+function artifactReceipt(artifact, kind) {
+  return createEvolvableArtifactReceipt({
+    kind,
+    tenantId: artifact.tenantId,
+    artifactId: artifact.artifactId,
+    candidateId: artifact.candidate.candidateId,
+    contentDigest: artifact.contentDigest,
+    dependencyLockDigest: artifact.dependencyLock.digest,
+    issuerId: `${kind}-authority`,
+    issuerRevision: `${kind}-v1`,
+    issuedAt: "2026-09-04T00:00:00.000Z",
+    decision: "allow",
+  });
+}
+
+function createPromptActiveReleaseReader(promptText = "Use the active prompt") {
+  const revision = "prompt-policy-v1";
+  const allow = () => ({ decision: "allow", policyRevision: revision });
+  const authority = createEvolvableArtifactAuthority({
+    tenantId: "tenant-a",
+    policy: createEvolvableArtifactPolicy({
+      type: ARTIFACT_TYPE.PROMPT,
+      revision,
+      admission: allow,
+      evaluator: allow,
+      activation: allow,
+      rollback: allow,
+    }),
+  });
+  let artifact = authority.stageCandidate({
+    ...artifactCandidate(),
+    tenantId: "tenant-a",
+    artifactId: "prompt:code-review",
+    candidateId: "prompt-candidate-active",
+    type: ARTIFACT_TYPE.PROMPT,
+    contentDigest: digest(promptText),
+    lineage: [digest(promptText)],
+  });
+  artifact = authority.recordEvaluation(
+    artifact,
+    artifactReceipt(artifact, "eval"),
+  );
+  artifact = authority.activateCandidate(artifact, {
+    reviewReceipt: artifactReceipt(artifact, "review"),
+    promotionReceipt: artifactReceipt(artifact, "promotion"),
+    releaseId: "prompt-release-active",
+  });
+  const active = {
+    schema: EVOLVABLE_ARTIFACT_ACTIVE_RELEASE_SCHEMA,
+    authenticated: true,
+    durable: true,
+    tenantId: artifact.tenantId,
+    type: artifact.type,
+    artifactId: artifact.artifactId,
+    releaseId: artifact.activeReleaseId,
+    contentDigest: artifact.contentDigest,
+    artifactDigest: artifact.artifactDigest,
+    artifact,
+    contentAvailable: true,
+    content: promptText,
+  };
+  const releaseGate = createEvolvableArtifactReleaseGate({
+    authority,
+    transitionWriter: { async commitTransition() {} },
+    transitionReader: { async readTransition() {} },
+  });
+  return createEvolvableArtifactActiveReleaseReader({
+    releaseGate,
+    provider: {
+      async listActive() {
+        return [active];
+      },
+      async readActive({ artifactId }) {
+        return artifactId === active.artifactId ? active : null;
       },
     },
   });
@@ -298,6 +381,61 @@ describe("PromptOptimizer", () => {
       ).rejects.toMatchObject({
         code: "CC_PROMPT_EVOLUTION_CANDIDATE_GATE_UNAVAILABLE",
       });
+    });
+  });
+
+  describe("getActiveVariant()", () => {
+    it("fails closed instead of trusting the local is_active projection", async () => {
+      await po.initialize(db);
+      db._prep.get.mockReturnValueOnce(makeVariantRow());
+
+      await expect(po.getActiveVariant("code-review")).rejects.toMatchObject({
+        code: "CC_PROMPT_ACTIVE_RELEASE_READER_UNAVAILABLE",
+      });
+    });
+
+    it("rejects an unbranded active release reader", () => {
+      expect(
+        () =>
+          new PromptOptimizer({
+            artifactActiveReleaseReader: { type: ARTIFACT_TYPE.PROMPT },
+          }),
+      ).toThrow(/branded prompt active release reader/);
+    });
+
+    it("returns exact content only from the active Prompt release", async () => {
+      const governed = new PromptOptimizer({
+        artifactCandidateGate: createPromptCandidateGate(),
+        artifactActiveReleaseReader: createPromptActiveReleaseReader(),
+      });
+      await governed.initialize(db);
+      db.prepare.mockClear();
+
+      await expect(
+        governed.getActiveVariant("code-review"),
+      ).resolves.toMatchObject({
+        id: "prompt-candidate-active",
+        skillName: "code-review",
+        variantName: "prompt-release-active",
+        promptText: "Use the active prompt",
+        isActive: true,
+        lifecycle: "active",
+        releaseId: "prompt-release-active",
+      });
+      expect(db.prepare).not.toHaveBeenCalled();
+      await expect(governed.getActiveVariant("unknown")).resolves.toBeNull();
+    });
+
+    it("upgrades an existing singleton with the host-owned active reader", () => {
+      const existing = getPromptOptimizer({
+        artifactCandidateGate: createPromptCandidateGate(),
+      });
+      const reader = createPromptActiveReleaseReader();
+
+      expect(getPromptOptimizer({ artifactActiveReleaseReader: reader })).toBe(
+        existing,
+      );
+      expect(existing.artifactActiveReleaseReader).toBe(reader);
     });
   });
 
@@ -498,7 +636,9 @@ describe("PromptOptimizer", () => {
       expect(stats).toMatchObject({
         totalExecutions: 0,
         totalVariants: 0,
-        activeVariants: 0,
+        activeVariants: null,
+        activeAuthority: "unavailable",
+        legacyActiveProjectionRows: 0,
         skillsCovered: 0,
         avgSuccessRate: 0,
       });
@@ -516,7 +656,9 @@ describe("PromptOptimizer", () => {
 
       expect(stats.totalExecutions).toBe(50);
       expect(stats.totalVariants).toBe(5);
-      expect(stats.activeVariants).toBe(4);
+      expect(stats.activeVariants).toBeNull();
+      expect(stats.activeAuthority).toBe("unavailable");
+      expect(stats.legacyActiveProjectionRows).toBe(4);
       expect(stats.skillsCovered).toBe(3);
       expect(stats.avgSuccessRate).toBe(0.72);
     });

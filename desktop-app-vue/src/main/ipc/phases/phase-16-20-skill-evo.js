@@ -550,6 +550,8 @@ function registerPhases16to20({
       const promptOptimizer = getPromptOptimizer({
         artifactCandidateGate:
           deps.evolvableArtifactPromptCandidateGate || undefined,
+        artifactActiveReleaseReader:
+          deps.evolvableArtifactPromptActiveReleaseReader || undefined,
       });
       const skillDiscoverer = getSkillDiscoverer();
       const debateReview = getDebateReview();

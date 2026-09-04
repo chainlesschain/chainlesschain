@@ -4,17 +4,18 @@
  * Registers all IPC handlers for:
  * - Code Knowledge Graph (14 handlers)
  * - Decision Knowledge Base (6 handlers)
- * - Prompt Optimizer (5 handlers)
+ * - Prompt Optimizer (6 handlers)
  * - Skill Discoverer (4 handlers)
  * - Debate Review (3 handlers)
  * - A/B Comparator (3 handlers)
  *
- * Total: 35 handlers
+ * Total: 36 handlers
  *
  * @module ai-engine/cowork/evolution-ipc
  */
 
-const { ipcMain } = require("electron");
+const electron = require("electron");
+const electronIpcMain = electron.ipcMain || electron.default?.ipcMain;
 const { logger } = require("../../utils/logger.js");
 
 const EVOLUTION_CHANNELS = [
@@ -42,9 +43,10 @@ const EVOLUTION_CHANNELS = [
   "dkb:get-success-rates",
   "dkb:get-stats",
 
-  // Prompt Optimizer (5)
+  // Prompt Optimizer (6)
   "prompt-opt:record-execution",
   "prompt-opt:create-variant",
+  "prompt-opt:get-active-variant",
   "prompt-opt:optimize",
   "prompt-opt:compare-variants",
   "prompt-opt:get-stats",
@@ -70,7 +72,7 @@ const EVOLUTION_CHANNELS = [
  * Register all evolution IPC handlers
  * @param {Object} deps - Manager instances
  */
-function registerEvolutionIPC(deps) {
+function registerEvolutionIPC(deps, ipcMain = electronIpcMain) {
   const {
     codeKnowledgeGraph,
     decisionKnowledgeBase,
@@ -395,7 +397,7 @@ function registerEvolutionIPC(deps) {
   });
 
   // ============================================================
-  // Prompt Optimizer (5 handlers)
+  // Prompt Optimizer (6 handlers)
   // ============================================================
 
   ipcMain.handle("prompt-opt:record-execution", async (_event, data) => {
@@ -427,6 +429,22 @@ function registerEvolutionIPC(deps) {
         error.message,
       );
       return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("prompt-opt:get-active-variant", async (_event, skillName) => {
+    try {
+      if (!promptOptimizer?.initialized) {
+        return { success: false, error: "PromptOptimizer not initialized" };
+      }
+      const variant = await promptOptimizer.getActiveVariant(skillName);
+      return { success: true, data: variant };
+    } catch (error) {
+      logger.error(
+        "[EvolutionIPC] prompt-opt:get-active-variant error:",
+        error.message,
+      );
+      return { success: false, error: error.message, code: error.code };
     }
   });
 
@@ -636,7 +654,7 @@ function registerEvolutionIPC(deps) {
 /**
  * Unregister all evolution IPC handlers
  */
-function unregisterEvolutionIPC() {
+function unregisterEvolutionIPC(ipcMain = electronIpcMain) {
   for (const channel of EVOLUTION_CHANNELS) {
     ipcMain.removeHandler(channel);
   }

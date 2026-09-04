@@ -1967,7 +1967,7 @@ function createTables(dbManager, logger) {
         granted_at INTEGER NOT NULL,
         granted_by TEXT,  -- user_did
         expires_at INTEGER,
-        is_active INTEGER DEFAULT 1,
+        is_active INTEGER DEFAULT 0,
         metadata TEXT,  -- JSON格式
         FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
         UNIQUE(team_id, path, permission)

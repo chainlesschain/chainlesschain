@@ -16,6 +16,7 @@ const crypto = require("crypto");
 const {
   ARTIFACT_TYPE,
   digestEvolvableArtifactValue,
+  isEvolvableArtifactActiveReleaseReader,
   isEvolvableArtifactCandidateGate,
 } = require("@chainlesschain/session-core/evolvable-artifact");
 
@@ -35,8 +36,12 @@ class PromptOptimizer {
     this.db = null;
     this.initialized = false;
     this.artifactCandidateGate = null;
+    this.artifactActiveReleaseReader = null;
     if (options.artifactCandidateGate != null) {
       this.setArtifactCandidateGate(options.artifactCandidateGate);
+    }
+    if (options.artifactActiveReleaseReader != null) {
+      this.setArtifactActiveReleaseReader(options.artifactActiveReleaseReader);
     }
   }
 
@@ -49,6 +54,20 @@ class PromptOptimizer {
       );
     }
     this.artifactCandidateGate = candidateGate;
+  }
+
+  setArtifactActiveReleaseReader(activeReleaseReader) {
+    if (
+      !isEvolvableArtifactActiveReleaseReader(
+        activeReleaseReader,
+        ARTIFACT_TYPE.PROMPT,
+      )
+    ) {
+      throw new TypeError(
+        "PromptOptimizer requires a branded prompt active release reader",
+      );
+    }
+    this.artifactActiveReleaseReader = activeReleaseReader;
   }
 
   /**
@@ -95,7 +114,7 @@ class PromptOptimizer {
           prompt_text TEXT NOT NULL,
           success_rate REAL DEFAULT 0,
           use_count INTEGER DEFAULT 0,
-          is_active INTEGER DEFAULT 1,
+          is_active INTEGER DEFAULT 0,
           created_at TEXT DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_prompt_variants_skill ON prompt_variants(skill_name);
@@ -256,21 +275,45 @@ class PromptOptimizer {
   /**
    * Get the currently best-performing active variant for a skill
    * @param {string} skillName - Skill name
-   * @returns {Object|null} Best variant
+   * @returns {Promise<Object|null>} Governed active variant
    */
-  getActiveVariant(skillName) {
-    try {
-      const row = this.db
-        .prepare(
-          `SELECT * FROM prompt_variants WHERE skill_name = ? AND is_active = 1
-           ORDER BY success_rate DESC, use_count DESC LIMIT 1`,
-        )
-        .get(skillName);
-      return row ? this._rowToVariant(row) : null;
-    } catch (e) {
-      logger.error("[PromptOptimizer] getActiveVariant error:", e.message);
-      return null;
+  async getActiveVariant(skillName) {
+    if (typeof skillName !== "string" || skillName.trim() === "") {
+      throw new TypeError("skillName is required");
     }
+    if (!this.artifactActiveReleaseReader) {
+      const error = new Error(
+        "Prompt active release reader is unavailable; local variant projection cannot authorize activation",
+      );
+      error.code = "CC_PROMPT_ACTIVE_RELEASE_READER_UNAVAILABLE";
+      throw error;
+    }
+    const release = await this.artifactActiveReleaseReader.readActive({
+      artifactId: `prompt:${skillName}`,
+    });
+    if (release === null) return null;
+    if (
+      !release.contentAvailable ||
+      typeof release.content !== "string" ||
+      release.content.length === 0
+    ) {
+      throw new Error(
+        "Active Prompt release content is unavailable or invalid",
+      );
+    }
+    return Object.freeze({
+      id: release.artifact.candidate.candidateId,
+      skillName,
+      variantName: release.releaseId,
+      promptText: release.content,
+      successRate: null,
+      useCount: null,
+      isActive: true,
+      lifecycle: "active",
+      releaseId: release.releaseId,
+      contentDigest: release.contentDigest,
+      artifactDigest: release.artifactDigest,
+    });
   }
 
   /**
@@ -457,7 +500,7 @@ class PromptOptimizer {
       const totalVariants = this.db
         .prepare("SELECT COUNT(*) as count FROM prompt_variants")
         .get().count;
-      const activeVariants = this.db
+      const legacyActiveProjectionRows = this.db
         .prepare(
           "SELECT COUNT(*) as count FROM prompt_variants WHERE is_active = 1",
         )
@@ -475,7 +518,11 @@ class PromptOptimizer {
       return {
         totalExecutions,
         totalVariants,
-        activeVariants,
+        activeVariants: null,
+        activeAuthority: this.artifactActiveReleaseReader
+          ? "governed-active-release-reader"
+          : "unavailable",
+        legacyActiveProjectionRows,
         skillsCovered,
         avgSuccessRate: parseFloat(avgSuccessRate.toFixed(3)),
       };
@@ -484,7 +531,11 @@ class PromptOptimizer {
       return {
         totalExecutions: 0,
         totalVariants: 0,
-        activeVariants: 0,
+        activeVariants: null,
+        activeAuthority: this.artifactActiveReleaseReader
+          ? "governed-active-release-reader"
+          : "unavailable",
+        legacyActiveProjectionRows: 0,
         skillsCovered: 0,
         avgSuccessRate: 0,
       };
@@ -552,8 +603,15 @@ let instance = null;
 function getPromptOptimizer(options = {}) {
   if (!instance) {
     instance = new PromptOptimizer(options);
-  } else if (options.artifactCandidateGate != null) {
-    instance.setArtifactCandidateGate(options.artifactCandidateGate);
+  } else {
+    if (options.artifactCandidateGate != null) {
+      instance.setArtifactCandidateGate(options.artifactCandidateGate);
+    }
+    if (options.artifactActiveReleaseReader != null) {
+      instance.setArtifactActiveReleaseReader(
+        options.artifactActiveReleaseReader,
+      );
+    }
   }
   return instance;
 }
