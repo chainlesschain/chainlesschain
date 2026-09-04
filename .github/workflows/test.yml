@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [22.x]
+        node-version: [22.12.0]
 
     steps:
       - name: Checkout code
@@ -137,7 +137,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: |
             package-lock.json
@@ -175,7 +175,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: |
             package-lock.json
@@ -222,7 +222,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
 
       - name: Pack CLI and exact internal dependency candidates
         shell: bash
@@ -259,7 +259,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: |
             package-lock.json
@@ -297,7 +297,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
 
       - name: Run PDH suite in an isolated install (host-ABI native drivers)
         shell: bash
@@ -367,7 +367,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: |
             package-lock.json
