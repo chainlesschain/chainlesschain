@@ -27,6 +27,7 @@ export const EVOLVABLE_ARTIFACT_TRANSITION_EVENT =
   "evolvable-artifact.transition.committed";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const TRANSITION_READERS = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -403,4 +404,18 @@ export class EvolvableArtifactLedgerAdapter {
       receipt: stored.receipt,
     });
   }
+
+  transitionReader() {
+    const readTransition = this.readTransition.bind(this);
+    const reader = Object.freeze({
+      tenantId: this.descriptor.tenantId,
+      readTransition,
+    });
+    TRANSITION_READERS.add(reader);
+    return reader;
+  }
+}
+
+export function isEvolvableArtifactTransitionReader(value) {
+  return TRANSITION_READERS.has(value);
 }

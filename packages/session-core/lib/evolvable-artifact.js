@@ -361,9 +361,11 @@ function createEvolvableArtifactAuthority({ tenantId, policy }) {
   if (!policyBrands.has(policy)) {
     throw new TypeError("a branded EvolvableArtifact policy is required");
   }
+  const authorityScope = Object.freeze({});
   const authority = Object.freeze({
     tenantId,
     type: policy.type,
+    authorityScope,
     stageCandidate(input) {
       const candidate = normalizeCandidate(input, tenantId, policy.type);
       assertPolicyAllowed(policy.admit(candidate), "admission", policy);
@@ -563,6 +565,7 @@ function createEvolvableArtifactCandidateGate({ authority, candidateWriter }) {
   const gate = Object.freeze({
     tenantId: authority.tenantId,
     type: authority.type,
+    authorityScope: authority.authorityScope,
     async stageCandidate(input, content = undefined) {
       const artifact = authority.stageCandidate(input);
       return persist(artifact, content);
@@ -682,6 +685,7 @@ function createEvolvableArtifactReleaseGate({
   const commitTransition =
     transitionWriter.commitTransition.bind(transitionWriter);
   const readTransition = transitionReader.readTransition.bind(transitionReader);
+  const preparedPromotions = new WeakSet();
 
   async function commit(kind, previous, next) {
     const request = createTransitionRequest(kind, previous, next);
@@ -718,7 +722,8 @@ function createEvolvableArtifactReleaseGate({
   const gate = Object.freeze({
     tenantId: authority.tenantId,
     type: authority.type,
-    async promote({
+    authorityScope: authority.authorityScope,
+    preparePromotion({
       artifact,
       candidatePersistenceReceipt,
       evaluationReceipt,
@@ -734,7 +739,26 @@ function createEvolvableArtifactReleaseGate({
         promotionReceipt,
         releaseId,
       });
-      return commit("promote", artifact, active);
+      const prepared = deepFreeze({
+        kind: "promote",
+        tenantId: authority.tenantId,
+        type: authority.type,
+        previousArtifact: artifact,
+        artifact: active,
+      });
+      preparedPromotions.add(prepared);
+      return prepared;
+    },
+    async commitPreparedPromotion(prepared) {
+      if (!preparedPromotions.has(prepared) || prepared.kind !== "promote") {
+        throw new TypeError(
+          "a promotion prepared by this release gate is required",
+        );
+      }
+      return commit("promote", prepared.previousArtifact, prepared.artifact);
+    },
+    async promote(input) {
+      return gate.commitPreparedPromotion(gate.preparePromotion(input));
     },
     async rollBack({ artifact, rollbackReceipt, targetReleaseId }) {
       verifyEvolvableArtifact(artifact);

@@ -105,7 +105,7 @@ function transitionStore({ loseResponse = false, mutateReadback = null } = {}) {
   const records = new Map();
   return {
     writer: {
-      async commitTransition({ request, artifact }) {
+      commitTransition: vi.fn(async ({ request, artifact }) => {
         const body = {
           schema: EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
           operationId: request.operationId,
@@ -132,7 +132,7 @@ function transitionStore({ loseResponse = false, mutateReadback = null } = {}) {
         });
         if (loseResponse) throw new Error("response lost after commit");
         return transitionReceipt;
-      },
+      }),
     },
     reader: {
       async readTransition({ operationId }) {
@@ -198,6 +198,7 @@ describe("EvolvableArtifact protocol", () => {
     expect(isEvolvableArtifactCandidateGate(gate, ARTIFACT_TYPE.PROMPT)).toBe(
       true,
     );
+    expect(gate.authorityScope).toBe(promptAuthority.authorityScope);
     expect(result.artifact.candidate.status).toBe("candidate");
     expect(result.artifact.release).toBeNull();
     expect(writer.persistCandidate).toHaveBeenCalledOnce();
@@ -308,6 +309,43 @@ describe("EvolvableArtifact protocol", () => {
       persisted: true,
       durable: true,
     });
+  });
+
+  it("prepares policy-authorized promotion before committing active state", async () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.KNOWLEDGE).value,
+    });
+    const store = transitionStore();
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: store.writer,
+      transitionReader: store.reader,
+    });
+    const knowledge = authority.stageCandidate(
+      candidate(ARTIFACT_TYPE.KNOWLEDGE),
+    );
+    const prepared = releaseGate.preparePromotion({
+      artifact: knowledge,
+      candidatePersistenceReceipt: candidatePersistenceReceipt(knowledge),
+      evaluationReceipt: receipt(knowledge, "eval"),
+      reviewReceipt: receipt(knowledge, "review"),
+      promotionReceipt: receipt(knowledge, "promotion"),
+      releaseId: "knowledge-release-1",
+    });
+
+    expect(prepared.artifact.activeReleaseId).toBe("knowledge-release-1");
+    expect(store.writer.commitTransition).not.toHaveBeenCalled();
+    await expect(
+      releaseGate.commitPreparedPromotion({ ...prepared }),
+    ).rejects.toThrow(/prepared by this release gate/);
+    await expect(
+      releaseGate.commitPreparedPromotion(prepared),
+    ).resolves.toMatchObject({
+      artifact: { activeReleaseId: "knowledge-release-1" },
+      receipt: { durable: true },
+    });
+    expect(store.writer.commitTransition).toHaveBeenCalledOnce();
   });
 
   it("rejects a substituted durable transition readback", async () => {

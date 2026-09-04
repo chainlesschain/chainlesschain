@@ -16,7 +16,10 @@ import {
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
 } from "../../src/lib/evolution/evolution-ledger.js";
-import { EvolvableArtifactLedgerAdapter } from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
+import {
+  EvolvableArtifactLedgerAdapter,
+  isEvolvableArtifactTransitionReader,
+} from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
 
 const {
   ARTIFACT_TYPE,
@@ -358,7 +361,10 @@ describe("EvolvableArtifactLedgerAdapter", () => {
     expect(first.ledger.verify()).toMatchObject({ sequence: 2 });
 
     const reopened = open(root, witness);
-    const recovered = await reopened.adapter.readTransition({
+    const independentReader = reopened.adapter.transitionReader();
+    expect(isEvolvableArtifactTransitionReader(independentReader)).toBe(true);
+    expect(isEvolvableArtifactTransitionReader({})).toBe(false);
+    const recovered = await independentReader.readTransition({
       operationId: promoted.receipt.operationId,
     });
     expect(recovered).toEqual({
