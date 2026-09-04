@@ -9,6 +9,10 @@ const EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA =
   "chainlesschain.evolvable-artifact-persistence-receipt/v1";
 const EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA =
   "chainlesschain.evolvable-artifact-dependency-projection/v1";
+const EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA =
+  "chainlesschain.evolvable-artifact-transition-request/v1";
+const EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA =
+  "chainlesschain.evolvable-artifact-transition-receipt/v1";
 
 const ARTIFACT_TYPE = Object.freeze({
   SKILL: "skill",
@@ -29,6 +33,7 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const policyBrands = new WeakSet();
 const authorityBrands = new WeakSet();
 const candidateGateBrands = new WeakSet();
+const releaseGateBrands = new WeakSet();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -567,6 +572,171 @@ function isEvolvableArtifactCandidateGate(value, type = null) {
   );
 }
 
+function createTransitionRequest(kind, previous, next) {
+  const core = {
+    schema: EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
+    kind,
+    tenantId: next.tenantId,
+    type: next.type,
+    artifactId: next.artifactId,
+    candidateId: next.candidate.candidateId,
+    releaseId: next.activeReleaseId,
+    previousArtifactDigest: previous.artifactDigest,
+    nextArtifactDigest: next.artifactDigest,
+  };
+  const requestDigest = digestValue(core);
+  return deepFreeze({
+    ...core,
+    requestDigest,
+    operationId: `artifact-transition:${requestDigest.slice(7)}`,
+  });
+}
+
+function verifyTransitionReceipt(receipt, request) {
+  if (
+    receipt?.schema !== EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA ||
+    receipt.operationId !== request.operationId ||
+    receipt.requestDigest !== request.requestDigest ||
+    receipt.kind !== request.kind ||
+    receipt.tenantId !== request.tenantId ||
+    receipt.type !== request.type ||
+    receipt.artifactId !== request.artifactId ||
+    receipt.candidateId !== request.candidateId ||
+    receipt.releaseId !== request.releaseId ||
+    receipt.artifactDigest !== request.nextArtifactDigest ||
+    receipt.persisted !== true ||
+    receipt.durable !== true ||
+    !Number.isSafeInteger(receipt.revision) ||
+    receipt.revision < 1
+  ) {
+    throw new Error("artifact transition receipt is invalid");
+  }
+  requiredDigest(receipt.receiptDigest, "transition receiptDigest");
+  const body = Object.fromEntries(
+    Object.entries(receipt).filter(([key]) => key !== "receiptDigest"),
+  );
+  if (receipt.receiptDigest !== digestValue(body)) {
+    throw new Error("artifact transition receipt digest is invalid");
+  }
+  return deepFreeze(clone(receipt));
+}
+
+function verifyTransitionReadback(readback, request, artifact, receipt = null) {
+  if (
+    !readback ||
+    canonical(readback.request) !== canonical(request) ||
+    readback.artifact?.artifactDigest !== artifact.artifactDigest ||
+    canonical(readback.artifact) !== canonical(artifact)
+  ) {
+    throw new Error("artifact transition durable readback is invalid");
+  }
+  verifyEvolvableArtifact(readback.artifact);
+  const storedReceipt = verifyTransitionReceipt(readback.receipt, request);
+  if (receipt && canonical(storedReceipt) !== canonical(receipt)) {
+    throw new Error(
+      "artifact transition response differs from durable readback",
+    );
+  }
+  return storedReceipt;
+}
+
+function createEvolvableArtifactReleaseGate({
+  authority,
+  transitionWriter,
+  transitionReader,
+}) {
+  if (!authorityBrands.has(authority)) {
+    throw new TypeError("a branded EvolvableArtifact authority is required");
+  }
+  if (
+    !transitionWriter ||
+    typeof transitionWriter.commitTransition !== "function"
+  ) {
+    throw new TypeError("transitionWriter.commitTransition is required");
+  }
+  if (
+    !transitionReader ||
+    typeof transitionReader.readTransition !== "function"
+  ) {
+    throw new TypeError("transitionReader.readTransition is required");
+  }
+  const commitTransition =
+    transitionWriter.commitTransition.bind(transitionWriter);
+  const readTransition = transitionReader.readTransition.bind(transitionReader);
+
+  async function commit(kind, previous, next) {
+    const request = createTransitionRequest(kind, previous, next);
+    let responseReceipt = null;
+    let responseError = null;
+    try {
+      responseReceipt = verifyTransitionReceipt(
+        await commitTransition({ request, artifact: next }),
+        request,
+      );
+    } catch (error) {
+      responseError = error;
+    }
+    const readback = await readTransition({
+      operationId: request.operationId,
+    });
+    if (!readback) {
+      if (responseError) throw responseError;
+      throw new Error("artifact transition was not durably readable");
+    }
+    const durableReceipt = verifyTransitionReadback(
+      readback,
+      request,
+      next,
+      responseReceipt,
+    );
+    return deepFreeze({
+      artifact: next,
+      receipt: durableReceipt,
+      recovered: responseError !== null,
+    });
+  }
+
+  const gate = Object.freeze({
+    tenantId: authority.tenantId,
+    type: authority.type,
+    async promote({
+      artifact,
+      candidatePersistenceReceipt,
+      evaluationReceipt,
+      reviewReceipt,
+      promotionReceipt,
+      releaseId,
+    }) {
+      verifyEvolvableArtifact(artifact);
+      verifyPersistenceReceipt(candidatePersistenceReceipt, artifact);
+      const evaluated = authority.recordEvaluation(artifact, evaluationReceipt);
+      const active = authority.activateCandidate(evaluated, {
+        reviewReceipt,
+        promotionReceipt,
+        releaseId,
+      });
+      return commit("promote", artifact, active);
+    },
+    async rollBack({ artifact, rollbackReceipt, targetReleaseId }) {
+      verifyEvolvableArtifact(artifact);
+      const rolledBack = authority.rollBack(artifact, {
+        rollbackReceipt,
+        targetReleaseId,
+      });
+      return commit("rollback", artifact, rolledBack);
+    },
+  });
+  releaseGateBrands.add(gate);
+  return gate;
+}
+
+function isEvolvableArtifactReleaseGate(value, type = null) {
+  return (
+    releaseGateBrands.has(value) &&
+    (type == null || value.type === normalizeType(type))
+  );
+}
+
 function projectEvolvableArtifactDependencyChange(
   artifacts,
   changedDependency,
@@ -654,6 +824,8 @@ module.exports = {
   EVOLVABLE_ARTIFACT_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
   EVOLVABLE_ARTIFACT_DEPENDENCY_PROJECTION_SCHEMA,
+  EVOLVABLE_ARTIFACT_TRANSITION_REQUEST_SCHEMA,
+  EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
   ARTIFACT_TYPE,
   ARTIFACT_TYPES,
   digestEvolvableArtifactValue: digestValue,
@@ -661,6 +833,8 @@ module.exports = {
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
   isEvolvableArtifactCandidateGate,
+  createEvolvableArtifactReleaseGate,
+  isEvolvableArtifactReleaseGate,
   verifyEvolvableArtifact,
   projectEvolvableArtifactDependencyChange,
   createEvolvableArtifactReceipt,

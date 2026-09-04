@@ -4,9 +4,12 @@ import protocol from "../lib/evolvable-artifact.js";
 const {
   ARTIFACT_TYPE,
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
   createEvolvableArtifactPolicy,
   createEvolvableArtifactAuthority,
   createEvolvableArtifactCandidateGate,
+  createEvolvableArtifactReleaseGate,
+  isEvolvableArtifactReleaseGate,
   isEvolvableArtifactCandidateGate,
   createEvolvableArtifactReceipt,
   digestEvolvableArtifactValue: digest,
@@ -82,6 +85,62 @@ function receipt(artifact, kind, claims = {}) {
     decision: "allow",
     claims,
   });
+}
+
+function candidatePersistenceReceipt(artifact) {
+  return {
+    schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+    tenantId: artifact.tenantId,
+    type: artifact.type,
+    artifactId: artifact.artifactId,
+    candidateId: artifact.candidate.candidateId,
+    contentDigest: artifact.contentDigest,
+    artifactDigest: artifact.artifactDigest,
+    status: "candidate",
+    persisted: true,
+  };
+}
+
+function transitionStore({ loseResponse = false, mutateReadback = null } = {}) {
+  const records = new Map();
+  return {
+    writer: {
+      async commitTransition({ request, artifact }) {
+        const body = {
+          schema: EVOLVABLE_ARTIFACT_TRANSITION_RECEIPT_SCHEMA,
+          operationId: request.operationId,
+          requestDigest: request.requestDigest,
+          kind: request.kind,
+          tenantId: request.tenantId,
+          type: request.type,
+          artifactId: request.artifactId,
+          candidateId: request.candidateId,
+          releaseId: request.releaseId,
+          artifactDigest: request.nextArtifactDigest,
+          persisted: true,
+          durable: true,
+          revision: 1,
+        };
+        const transitionReceipt = {
+          ...body,
+          receiptDigest: digest(body),
+        };
+        records.set(request.operationId, {
+          request,
+          artifact,
+          receipt: transitionReceipt,
+        });
+        if (loseResponse) throw new Error("response lost after commit");
+        return transitionReceipt;
+      },
+    },
+    reader: {
+      async readTransition({ operationId }) {
+        const record = records.get(operationId) || null;
+        return record && mutateReadback ? mutateReadback(record) : record;
+      },
+    },
+  };
 }
 
 describe("EvolvableArtifact protocol", () => {
@@ -207,6 +266,80 @@ describe("EvolvableArtifact protocol", () => {
     });
     expect(active.activeReleaseId).toBe("hook-release-1");
     expect(active.candidate.status).toBe("promoted");
+  });
+
+  it("durably promotes and recovers a lost transition response by operationId", async () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.PROMPT).value,
+    });
+    const store = transitionStore({ loseResponse: true });
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: store.writer,
+      transitionReader: store.reader,
+    });
+    const prompt = authority.stageCandidate(
+      candidate(ARTIFACT_TYPE.PROMPT, {
+        activeReleaseId: "prompt-release-0",
+        lastKnownGoodReleaseId: "prompt-release-minus-1",
+      }),
+    );
+    const promoted = await releaseGate.promote({
+      artifact: prompt,
+      candidatePersistenceReceipt: candidatePersistenceReceipt(prompt),
+      evaluationReceipt: receipt(prompt, "eval"),
+      reviewReceipt: receipt(prompt, "review"),
+      promotionReceipt: receipt(prompt, "promotion"),
+      releaseId: "prompt-release-1",
+    });
+
+    expect(
+      isEvolvableArtifactReleaseGate(releaseGate, ARTIFACT_TYPE.PROMPT),
+    ).toBe(true);
+    expect(promoted.recovered).toBe(true);
+    expect(promoted.artifact).toMatchObject({
+      activeReleaseId: "prompt-release-1",
+      lastKnownGoodReleaseId: "prompt-release-0",
+      release: { releaseId: "prompt-release-1", status: "active" },
+    });
+    expect(promoted.receipt).toMatchObject({
+      kind: "promote",
+      persisted: true,
+      durable: true,
+    });
+  });
+
+  it("rejects a substituted durable transition readback", async () => {
+    const authority = createEvolvableArtifactAuthority({
+      tenantId: "tenant-a",
+      policy: policy(ARTIFACT_TYPE.KNOWLEDGE).value,
+    });
+    const store = transitionStore({
+      mutateReadback: (record) => ({
+        ...record,
+        artifact: { ...record.artifact, activeReleaseId: "substituted" },
+      }),
+    });
+    const releaseGate = createEvolvableArtifactReleaseGate({
+      authority,
+      transitionWriter: store.writer,
+      transitionReader: store.reader,
+    });
+    const knowledge = authority.stageCandidate(
+      candidate(ARTIFACT_TYPE.KNOWLEDGE),
+    );
+
+    await expect(
+      releaseGate.promote({
+        artifact: knowledge,
+        candidatePersistenceReceipt: candidatePersistenceReceipt(knowledge),
+        evaluationReceipt: receipt(knowledge, "eval"),
+        reviewReceipt: receipt(knowledge, "review"),
+        promotionReceipt: receipt(knowledge, "promotion"),
+        releaseId: "knowledge-release-1",
+      }),
+    ).rejects.toThrow(/durable readback is invalid/);
   });
 
   it("cascades dependency drift and blocks stale activation", () => {
