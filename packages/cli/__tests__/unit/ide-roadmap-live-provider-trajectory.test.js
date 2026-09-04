@@ -493,7 +493,14 @@ describe("IDE roadmap live-provider trajectory", () => {
       workflow.indexOf("  loopback:\n"),
       workflow.indexOf("  loopback-aggregate:\n"),
     );
+    const loopbackAggregateJob = workflow.slice(
+      workflow.indexOf("  loopback-aggregate:\n"),
+      workflow.indexOf("  live-provider:\n"),
+    );
     expect(loopbackJob).not.toContain("secrets.CC_LLM_API_KEY");
     expect(loopbackJob).toContain("--mode loopback");
+    expect(loopbackAggregateJob).toContain(
+      "if: ${{ always() && !cancelled() }}",
+    );
   });
 });

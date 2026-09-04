@@ -103,7 +103,9 @@ jobs:
 
   loopback-aggregate:
     name: Production trajectory loopback matrix
-    if: always()
+    # Preserve fail-closed aggregation for real matrix failures, but do not turn
+    # an operator-requested workflow cancellation into a misleading red gate.
+    if: ${{ always() && !cancelled() }}
     needs: loopback
     runs-on: ubuntu-latest
     timeout-minutes: 15
