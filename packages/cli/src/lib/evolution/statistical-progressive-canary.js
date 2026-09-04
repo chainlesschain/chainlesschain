@@ -581,6 +581,10 @@ export function isProgressiveCanaryGateAuthority(value) {
   return GATE_AUTHORITIES.has(value);
 }
 
+export function isProgressiveCanaryAssignmentAuthority(value) {
+  return AUTHORITIES.has(value);
+}
+
 export async function evaluateProgressiveCanaryGate({
   plan: planInput,
   stepId,
