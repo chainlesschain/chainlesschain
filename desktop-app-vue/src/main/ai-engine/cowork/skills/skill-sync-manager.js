@@ -26,6 +26,10 @@ const {
 } = require("./skill-execution-security");
 const {
   ARTIFACT_TYPE,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
   digestEvolvableArtifactValue,
   isEvolvableArtifactCandidateGate,
 } = require("@chainlesschain/session-core/evolvable-artifact");
@@ -321,6 +325,95 @@ function validateCandidateReadback(record, receipt, createRequest) {
   }
 }
 
+function createSkillSyncLegacyCandidateGate({ tenantId, candidateStore }) {
+  if (
+    typeof tenantId !== "string" ||
+    tenantId.trim() !== tenantId ||
+    !tenantId
+  ) {
+    throw new TypeError(
+      "legacy Skill candidate storage requires an explicit tenantId",
+    );
+  }
+  if (
+    !candidateStore ||
+    typeof candidateStore.create !== "function" ||
+    typeof candidateStore.read !== "function"
+  ) {
+    throw new TypeError("legacy Skill candidate store is invalid");
+  }
+  const policyRevision = "skill-sync-import-policy/v1";
+  const allow = () => ({ decision: "allow", policyRevision });
+  const authority = createEvolvableArtifactAuthority({
+    tenantId,
+    policy: createEvolvableArtifactPolicy({
+      type: ARTIFACT_TYPE.SKILL,
+      revision: policyRevision,
+      admission: allow,
+      evaluator: allow,
+      activation: allow,
+      rollback: allow,
+    }),
+  });
+  return createEvolvableArtifactCandidateGate({
+    authority,
+    candidateWriter: {
+      async persistCandidate(artifact, candidatePackage) {
+        if (
+          !candidatePackage ||
+          artifact.type !== ARTIFACT_TYPE.SKILL ||
+          artifact.contentDigest !== packageEnvelopeDigest(candidatePackage) ||
+          artifact.artifactId !== `skill:${candidatePackage.metadata?.skillId}`
+        ) {
+          throw syncError(
+            "CC_SKILL_SYNC_CANDIDATE_PERSISTENCE_FAILED",
+            "legacy candidate payload is not bound to its Skill artifact",
+          );
+        }
+        const skillId = validateSkillId(candidatePackage.metadata.skillId);
+        const expectedReceipt = Object.freeze({
+          schema: CANDIDATE_RECORD_SCHEMA,
+          version: CANDIDATE_RECORD_VERSION,
+          status: "draft",
+          persisted: true,
+          skillId,
+          sourceDigest: artifact.contentDigest,
+          derivationMode: CANDIDATE_DERIVATION_MODE,
+          trust: CANDIDATE_TRUST,
+          quarantined: true,
+        });
+        const createRequest = deepFreeze({
+          ...expectedReceipt,
+          sourceEvidence: {
+            ref: `skill-sync://${encodeURIComponent(candidatePackage.exportedFrom)}/${skillId}`,
+            digest: artifact.contentDigest,
+          },
+          package: candidatePackage,
+        });
+        const legacyReceipt = await candidateStore.create(createRequest);
+        const backendCandidateId = validateCandidateReceipt(
+          legacyReceipt,
+          expectedReceipt,
+        );
+        const readback = await candidateStore.read(backendCandidateId);
+        validateCandidateReadback(readback, legacyReceipt, createRequest);
+        return {
+          schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+          tenantId: artifact.tenantId,
+          type: artifact.type,
+          artifactId: artifact.artifactId,
+          candidateId: artifact.candidate.candidateId,
+          contentDigest: artifact.contentDigest,
+          artifactDigest: artifact.artifactDigest,
+          status: "candidate",
+          persisted: true,
+          backendCandidateId,
+        };
+      },
+    },
+  });
+}
+
 class SkillSyncManager extends EventEmitter {
   /**
    * @param {Object} options
@@ -339,7 +432,7 @@ class SkillSyncManager extends EventEmitter {
     this.skillRegistry = options.skillRegistry;
     this.mobileBridge = options.mobileBridge || null;
     this.managedDir = options.managedDir || this._resolveManagedDir();
-    this.candidateStore =
+    const legacyCandidateStore =
       options.candidateStore &&
       typeof options.candidateStore.create === "function" &&
       typeof options.candidateStore.read === "function"
@@ -356,7 +449,19 @@ class SkillSyncManager extends EventEmitter {
         "SkillSyncManager requires a branded Skill EvolvableArtifact candidate gate",
       );
     }
-    this.artifactCandidateGate = options.artifactCandidateGate || null;
+    if (options.artifactCandidateGate && legacyCandidateStore) {
+      throw new TypeError(
+        "configure either artifactCandidateGate or candidateStore, not both",
+      );
+    }
+    this.artifactCandidateGate =
+      options.artifactCandidateGate ||
+      (legacyCandidateStore
+        ? createSkillSyncLegacyCandidateGate({
+            tenantId: options.tenantId || legacyCandidateStore.tenantId,
+            candidateStore: legacyCandidateStore,
+          })
+        : null);
     this.resolveArtifactDependencies =
       typeof options.resolveArtifactDependencies === "function"
         ? options.resolveArtifactDependencies
@@ -606,7 +711,7 @@ class SkillSyncManager extends EventEmitter {
       }
     }
 
-    if (!this.candidateStore && !this.artifactCandidateGate) {
+    if (!this.artifactCandidateGate) {
       const error = new Error(
         "Skill sync candidate store is unavailable; active import is denied",
       );
@@ -742,53 +847,7 @@ class SkillSyncManager extends EventEmitter {
       };
     }
 
-    const expectedReceipt = Object.freeze({
-      schema: CANDIDATE_RECORD_SCHEMA,
-      version: CANDIDATE_RECORD_VERSION,
-      status: "draft",
-      persisted: true,
-      skillId,
-      sourceDigest,
-      derivationMode: CANDIDATE_DERIVATION_MODE,
-      trust: CANDIDATE_TRUST,
-      quarantined: true,
-    });
-    const createRequest = deepFreeze({
-      ...expectedReceipt,
-      sourceEvidence: {
-        ref: `skill-sync://${encodeURIComponent(exportedFrom)}/${skillId}`,
-        digest: sourceDigest,
-      },
-      package: candidatePackage,
-    });
-    const receipt = await this.candidateStore.create(createRequest);
-    const candidateId = validateCandidateReceipt(receipt, expectedReceipt);
-    const readback = await this.candidateStore.read(candidateId);
-    validateCandidateReadback(readback, receipt, createRequest);
-
-    this.emit("skill-candidate-staged", {
-      skillId,
-      candidateId,
-      from: exportedFrom,
-      trust: CANDIDATE_TRUST,
-      quarantined: true,
-    });
-    logger.info(`[SkillSync] Staged skill candidate: ${skillId}`);
-
-    return {
-      skillId,
-      action: "candidate-staged",
-      version: normalizedMetadata.version,
-      candidateId,
-      sourceDigest,
-      candidateOnly: true,
-      persisted: true,
-      trust: CANDIDATE_TRUST,
-      quarantined: true,
-      activeMutation: false,
-      hotLoaded: false,
-      reloadRequired: false,
-    };
+    throw new Error("Skill artifact candidate gate did not return a result");
   }
 
   /**
@@ -1163,4 +1222,5 @@ module.exports = {
   SkillSyncManager,
   SKILL_PACKAGE_FORMAT,
   calculateSkillPackageChecksum: packageChecksum,
+  createSkillSyncLegacyCandidateGate,
 };

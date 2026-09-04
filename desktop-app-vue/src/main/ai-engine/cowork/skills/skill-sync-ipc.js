@@ -8,6 +8,9 @@
  */
 
 const { logger } = require("../../../utils/logger.js");
+const {
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+} = require("@chainlesschain/session-core/evolvable-artifact");
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
@@ -70,6 +73,16 @@ function isSafeImportResult(result) {
     DIGEST_PATTERN.test(result.candidateId) &&
     typeof result.sourceDigest === "string" &&
     DIGEST_PATTERN.test(result.sourceDigest) &&
+    typeof result.artifactDigest === "string" &&
+    DIGEST_PATTERN.test(result.artifactDigest) &&
+    result.persistenceReceipt?.schema ===
+      EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA &&
+    result.persistenceReceipt.type === "skill" &&
+    result.persistenceReceipt.candidateId === result.candidateId &&
+    result.persistenceReceipt.contentDigest === result.sourceDigest &&
+    result.persistenceReceipt.artifactDigest === result.artifactDigest &&
+    result.persistenceReceipt.status === "candidate" &&
+    result.persistenceReceipt.persisted === true &&
     result.candidateOnly === true &&
     result.persisted === true &&
     result.trust === "untrusted" &&

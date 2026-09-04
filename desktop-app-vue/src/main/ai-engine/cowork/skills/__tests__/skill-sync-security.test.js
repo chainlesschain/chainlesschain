@@ -38,6 +38,7 @@ const CANDIDATE_ID = `sha256:${"c".repeat(64)}`;
 function candidateStore({ receipt = {}, readback = {}, onCreate } = {}) {
   const records = new Map();
   const store = {
+    tenantId: "tenant-a",
     create: vi.fn(async (request) => {
       onCreate?.(request);
       const createReceipt = {
@@ -106,12 +107,26 @@ function unifiedSkillCandidateGate(onPersist = () => {}) {
 }
 
 function stagedImportResult(overrides = {}) {
+  const sourceDigest = `sha256:${"d".repeat(64)}`;
+  const artifactDigest = `sha256:${"e".repeat(64)}`;
   return {
     skillId: "portable-skill",
     action: "candidate-staged",
     version: "1.0.0",
     candidateId: CANDIDATE_ID,
-    sourceDigest: `sha256:${"d".repeat(64)}`,
+    sourceDigest,
+    artifactDigest,
+    persistenceReceipt: {
+      schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+      tenantId: "tenant-a",
+      type: "skill",
+      artifactId: "skill:portable-skill",
+      candidateId: CANDIDATE_ID,
+      contentDigest: sourceDigest,
+      artifactDigest,
+      status: "candidate",
+      persisted: true,
+    },
     candidateOnly: true,
     persisted: true,
     trust: "untrusted",
@@ -331,7 +346,7 @@ describe("SkillSyncManager package boundary", () => {
 
     await expect(manager.importSkill(pkg)).resolves.toMatchObject({
       action: "candidate-staged",
-      candidateId: CANDIDATE_ID,
+      candidateId: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       candidateOnly: true,
       persisted: true,
       trust: "untrusted",
@@ -572,6 +587,16 @@ describe("SkillSyncManager package boundary", () => {
       }),
       managedDir,
       candidateStore: store,
+      resolveArtifactBase: async () => ({
+        parent: {
+          artifactId: "skill:portable-skill",
+          releaseId: "skill-release-1",
+          contentDigest: `sha256:${"a".repeat(64)}`,
+        },
+        lineage: [`sha256:${"a".repeat(64)}`],
+        activeReleaseId: "skill-release-1",
+        lastKnownGoodReleaseId: "skill-release-0",
+      }),
     });
     const pkg = makePackage({ metadata: { exportedAt: 0, updatedAt: 0 } });
     pkg.exportedAt = localTime + 1;
