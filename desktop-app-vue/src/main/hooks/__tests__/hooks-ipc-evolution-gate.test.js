@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createHash,
+  generateKeyPairSync,
+  sign as signBytes,
+} from "node:crypto";
 
 const handlers = new Map();
 const testIpcMain = {
@@ -28,6 +33,13 @@ vi.mock("../index", () => ({
 
 const { registerHooksIPC } = require("../hooks-ipc");
 const {
+  HOOK_EXECUTABLE_FORMAT,
+  HOOK_EXECUTION_MANIFEST_SCHEMA,
+} = require("../governed-hook-execution");
+const {
+  canonicalJson,
+} = require("../../ai-engine/cowork/skills/skill-execution-security");
+const {
   ARTIFACT_TYPE,
   EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
   createEvolvableArtifactPolicy,
@@ -40,25 +52,67 @@ function manifest(body) {
   return { ...body, digest: digest(body) };
 }
 
-function hookArtifactCandidate() {
+function signedHookInput() {
+  const hookId = "hook:lint-after-write";
+  const event = "PostToolUse";
+  const source =
+    "module.exports.execute = async () => ({ result: 'continue' });";
+  const capabilities = ["process:spawn-eslint"];
+  const runtimeBody = {
+    executable: true,
+    codeSignatureDigest: null,
+    sbomDigest: digest("sbom"),
+    sandboxDigest: digest("sandbox"),
+    networkEgressPolicyDigest: digest("network-egress-policy"),
+  };
+  const signedManifest = {
+    schema: HOOK_EXECUTION_MANIFEST_SCHEMA,
+    hookId,
+    event,
+    runtime: "node-isolated",
+    fileName: "hook.js",
+    sourceBytes: Buffer.byteLength(source, "utf8"),
+    sourceSha256: createHash("sha256").update(source).digest("hex"),
+    capabilities,
+    sbomDigest: runtimeBody.sbomDigest,
+    sandboxDigest: runtimeBody.sandboxDigest,
+    networkEgressPolicyDigest: runtimeBody.networkEgressPolicyDigest,
+  };
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const signatureLock = {
+    lockVersion: 1,
+    algorithm: "ed25519",
+    manifest: signedManifest,
+    signatureBase64: signBytes(
+      null,
+      Buffer.from(canonicalJson(signedManifest), "utf8"),
+      privateKey,
+    ).toString("base64"),
+    publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+  };
+  runtimeBody.codeSignatureDigest = digest(signatureLock);
   const dependencies = [];
   return {
-    artifactId: "hook:lint-after-write",
-    candidateId: "hook-candidate-1",
-    parent: null,
-    lineage: [],
-    dependencyLock: {
-      dependencies,
-      digest: digest({ dependencies }),
+    event,
+    type: "script",
+    script: {
+      format: HOOK_EXECUTABLE_FORMAT,
+      fileName: "hook.js",
+      source,
+      signatureLock,
     },
-    runtimeManifest: manifest({
-      executable: true,
-      codeSignatureDigest: digest("code-signature"),
-      sbomDigest: digest("sbom"),
-      sandboxDigest: digest("sandbox"),
-      networkEgressPolicyDigest: digest("network-egress-policy"),
-    }),
-    permissionManifest: manifest({ capabilities: ["process.spawn:eslint"] }),
+    artifactCandidate: {
+      artifactId: hookId,
+      candidateId: "hook-candidate-1",
+      parent: null,
+      lineage: [],
+      dependencyLock: {
+        dependencies,
+        digest: digest({ dependencies }),
+      },
+      runtimeManifest: manifest(runtimeBody),
+      permissionManifest: manifest({ capabilities }),
+    },
   };
 }
 
@@ -127,9 +181,7 @@ describe("Hooks IPC EvolvableArtifact boundary", () => {
 
     await expect(
       handlers.get("hooks:register")(null, {
-        event: "PostToolUse",
-        type: "command",
-        command: "eslint .",
+        ...signedHookInput(),
       }),
     ).rejects.toMatchObject({
       code: "CC_HOOK_EVOLUTION_CANDIDATE_GATE_UNAVAILABLE",
@@ -137,7 +189,7 @@ describe("Hooks IPC EvolvableArtifact boundary", () => {
     expect(system.register).not.toHaveBeenCalled();
   });
 
-  it("stages command content as a candidate and never calls HookSystem.register", async () => {
+  it("stages signed inline bytes as a candidate and never activates them", async () => {
     const system = hookSystem();
     registerHooksIPC({
       hookSystem: system,
@@ -145,12 +197,10 @@ describe("Hooks IPC EvolvableArtifact boundary", () => {
       ipcMain: testIpcMain,
     });
 
-    const result = await handlers.get("hooks:register")(null, {
-      event: "PostToolUse",
-      type: "command",
-      command: "eslint .",
-      artifactCandidate: hookArtifactCandidate(),
-    });
+    const result = await handlers.get("hooks:register")(
+      null,
+      signedHookInput(),
+    );
 
     expect(result).toMatchObject({
       candidateId: "hook-candidate-1",
@@ -158,6 +208,25 @@ describe("Hooks IPC EvolvableArtifact boundary", () => {
       activeMutation: false,
     });
     expect(result.persistenceReceipt.persisted).toBe(true);
+    expect(system.register).not.toHaveBeenCalled();
+  });
+
+  it("does not admit mutable shell commands as Hook candidates", async () => {
+    const system = hookSystem();
+    registerHooksIPC({
+      hookSystem: system,
+      artifactCandidateGate: hookGate(),
+      ipcMain: testIpcMain,
+    });
+
+    await expect(
+      handlers.get("hooks:register")(null, {
+        event: "PostToolUse",
+        type: "command",
+        command: "eslint .",
+        artifactCandidate: signedHookInput().artifactCandidate,
+      }),
+    ).rejects.toThrow("Only signed inline script hooks");
     expect(system.register).not.toHaveBeenCalled();
   });
 

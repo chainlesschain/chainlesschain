@@ -14,6 +14,9 @@ const {
   digestEvolvableArtifactValue,
   isEvolvableArtifactCandidateGate,
 } = require("@chainlesschain/session-core/evolvable-artifact");
+const {
+  createGovernedHookExecutionAuthority,
+} = require("./governed-hook-execution");
 
 function directHookActivationDenied(message) {
   const error = new Error(message);
@@ -148,12 +151,9 @@ function registerHooksIPC(dependencies = {}) {
    */
   hostIpcMain.handle("hooks:register", async (event, hookConfig) => {
     // 安全检查: 只允许注册命令和脚本类型钩子
-    if (
-      hookConfig.type !== HookType.COMMAND &&
-      hookConfig.type !== HookType.SCRIPT
-    ) {
+    if (hookConfig.type !== HookType.SCRIPT) {
       throw new Error(
-        "Only command and script hooks can be registered via IPC for security reasons",
+        "Only signed inline script hooks can enter governed evolution",
       );
     }
 
@@ -162,12 +162,8 @@ function registerHooksIPC(dependencies = {}) {
       throw new Error("Hook event is required");
     }
 
-    if (hookConfig.type === HookType.COMMAND && !hookConfig.command) {
-      throw new Error("Command is required for command hooks");
-    }
-
-    if (hookConfig.type === HookType.SCRIPT && !hookConfig.script) {
-      throw new Error("Script path is required for script hooks");
+    if (!hookConfig.script || typeof hookConfig.script !== "object") {
+      throw new Error("Signed inline Hook script package is required");
     }
 
     if (!artifactCandidateGate) {
@@ -186,6 +182,13 @@ function registerHooksIPC(dependencies = {}) {
       );
     }
     const content = hookCandidateContent(hookConfig);
+    createGovernedHookExecutionAuthority({
+      hookId: hookConfig.artifactCandidate.artifactId,
+      event: content.event,
+      script: content.script,
+      runtimeManifest: hookConfig.artifactCandidate.runtimeManifest,
+      permissionManifest: hookConfig.artifactCandidate.permissionManifest,
+    });
     const contentDigest = digestEvolvableArtifactValue(content);
     const candidateId = hookConfig.artifactCandidate.candidateId;
     const artifactId = hookConfig.artifactCandidate.artifactId;

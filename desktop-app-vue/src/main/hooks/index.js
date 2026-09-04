@@ -39,6 +39,13 @@ const {
 } = require("./hook-registry");
 const { HookExecutor, HookResult } = require("./hook-executor");
 const {
+  getDefaultExternalSkillExecutor,
+} = require("../ai-engine/cowork/skills/external-skill-executor");
+const {
+  createGovernedHookExecutionAuthority,
+  captureGovernedHookSource,
+} = require("./governed-hook-execution");
+const {
   createIPCHookMiddleware,
   createToolHookMiddleware,
   createSessionHookMiddleware,
@@ -69,6 +76,12 @@ class HookSystem extends EventEmitter {
     };
     this.artifactActiveReleaseReader =
       options.artifactActiveReleaseReader || null;
+    this.governedHookExecutor =
+      typeof options.governedHookExecutor === "function"
+        ? options.governedHookExecutor
+        : options.governedHookExecutor === null
+          ? null
+          : getDefaultExternalSkillExecutor();
     if (
       this.artifactActiveReleaseReader !== null &&
       !isEvolvableArtifactActiveReleaseReader(
@@ -148,11 +161,12 @@ class HookSystem extends EventEmitter {
       if (
         typeof content !== "object" ||
         Array.isArray(content) ||
-        content.type !== HookType.COMMAND ||
+        content.type !== HookType.SCRIPT ||
         typeof content.event !== "string" ||
-        typeof content.command !== "string" ||
-        content.command.trim() === "" ||
-        ![null, undefined].includes(content.script) ||
+        content.event.trim() === "" ||
+        content.command !== null ||
+        !content.script ||
+        typeof content.script !== "object" ||
         (![null, undefined].includes(content.matcher) &&
           typeof content.matcher !== "string") ||
         (content.priority != null && !Number.isFinite(content.priority)) ||
@@ -168,13 +182,39 @@ class HookSystem extends EventEmitter {
       ) {
         throw new Error("Active Hook release content is unsafe");
       }
+      if (typeof this.governedHookExecutor !== "function") {
+        throw new Error("Governed Hook isolated executor is unavailable");
+      }
+      const executionAuthority = createGovernedHookExecutionAuthority({
+        hookId: release.artifactId,
+        event: content.event,
+        script: content.script,
+        runtimeManifest: release.artifact.runtimeManifest,
+        permissionManifest: release.artifact.permissionManifest,
+      });
       this.registry.register({
         ...content,
+        type: HookType.ASYNC,
+        command: null,
+        script: null,
         id: release.artifactId,
         name: release.artifactId,
         enabled: true,
+        handler: async ({ event, data, context, signal }) =>
+          this.governedHookExecutor({
+            skillId: `hook:${release.artifactId}`,
+            source: "governed-hook",
+            handlerFileName: executionAuthority.fileName,
+            handlerSource: captureGovernedHookSource(executionAuthority),
+            contentDigest: release.contentDigest.slice("sha256:".length),
+            publicKeySha256: executionAuthority.publicKeySha256,
+            executionCapabilities: [...executionAuthority.capabilities],
+            task: { event, data },
+            context: { ...context, signal },
+          }),
         metadata: {
           governed: true,
+          executableType: HookType.SCRIPT,
           releaseId: release.releaseId,
           artifactDigest: release.artifactDigest,
           contentDigest: release.contentDigest,

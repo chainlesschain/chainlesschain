@@ -1,7 +1,20 @@
-/* global describe, expect, it */
+/* global describe, expect, it, vi */
+
+const {
+  createHash,
+  generateKeyPairSync,
+  sign: signBytes,
+} = require("node:crypto");
 
 const protocol = require("@chainlesschain/session-core/evolvable-artifact");
 const { HookSystem, HookType } = require("../index");
+const {
+  HOOK_EXECUTABLE_FORMAT,
+  HOOK_EXECUTION_MANIFEST_SCHEMA,
+} = require("../governed-hook-execution");
+const {
+  canonicalJson,
+} = require("../../ai-engine/cowork/skills/skill-execution-security");
 
 const {
   ARTIFACT_TYPE,
@@ -34,7 +47,19 @@ function receipt(artifact, kind, claims = {}) {
   });
 }
 
-function createActiveHookReader(content) {
+function createActiveHookReader(
+  content,
+  {
+    runtimeBody = {
+      executable: true,
+      codeSignatureDigest: digest("hook-signature"),
+      sbomDigest: digest("hook-sbom"),
+      sandboxDigest: digest("hook-sandbox"),
+      networkEgressPolicyDigest: digest("hook-network"),
+    },
+    capabilities = [],
+  } = {},
+) {
   const allow = () => ({ decision: "allow", policyRevision: "hook-policy-v1" });
   const authority = createEvolvableArtifactAuthority({
     tenantId: "tenant-a",
@@ -58,14 +83,8 @@ function createActiveHookReader(content) {
     parent: null,
     lineage: [digest(content)],
     dependencyLock,
-    runtimeManifest: manifest({
-      executable: true,
-      codeSignatureDigest: digest("hook-signature"),
-      sbomDigest: digest("hook-sbom"),
-      sandboxDigest: digest("hook-sandbox"),
-      networkEgressPolicyDigest: digest("hook-network"),
-    }),
-    permissionManifest: manifest({ capabilities: [] }),
+    runtimeManifest: manifest(runtimeBody),
+    permissionManifest: manifest({ capabilities }),
   });
   artifact = authority.recordEvaluation(artifact, receipt(artifact, "eval"));
   artifact = authority.activateCandidate(artifact, {
@@ -111,6 +130,66 @@ function createActiveHookReader(content) {
   });
 }
 
+function signedHookFixture() {
+  const source =
+    "module.exports.execute = async () => ({ result: 'continue' });";
+  const runtimeBody = {
+    executable: true,
+    codeSignatureDigest: null,
+    sbomDigest: digest("hook-sbom"),
+    sandboxDigest: digest("hook-sandbox"),
+    networkEgressPolicyDigest: digest("hook-network"),
+  };
+  const capabilities = ["hook:execute"];
+  const signedManifest = {
+    schema: HOOK_EXECUTION_MANIFEST_SCHEMA,
+    hookId: "governed-command-hook",
+    event: "PreToolUse",
+    runtime: "node-isolated",
+    fileName: "hook.js",
+    sourceBytes: Buffer.byteLength(source, "utf8"),
+    sourceSha256: createHash("sha256").update(source).digest("hex"),
+    capabilities,
+    sbomDigest: runtimeBody.sbomDigest,
+    sandboxDigest: runtimeBody.sandboxDigest,
+    networkEgressPolicyDigest: runtimeBody.networkEgressPolicyDigest,
+  };
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const signatureLock = {
+    lockVersion: 1,
+    algorithm: "ed25519",
+    manifest: signedManifest,
+    signatureBase64: signBytes(
+      null,
+      Buffer.from(canonicalJson(signedManifest), "utf8"),
+      privateKey,
+    ).toString("base64"),
+    publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+  };
+  runtimeBody.codeSignatureDigest = digest(signatureLock);
+  return {
+    content: {
+      event: "PreToolUse",
+      type: HookType.SCRIPT,
+      command: null,
+      script: {
+        format: HOOK_EXECUTABLE_FORMAT,
+        fileName: "hook.js",
+        source,
+        signatureLock,
+      },
+      matcher: null,
+      priority: 500,
+      timeout: 1000,
+      environmentAllowlist: [],
+      envAllowlist: [],
+    },
+    runtimeBody,
+    capabilities,
+    source,
+  };
+}
+
 describe("governed Hook loading", () => {
   it("keeps config auto-load disabled by default and installs builtins", async () => {
     const hookSystem = new HookSystem();
@@ -136,21 +215,16 @@ describe("governed Hook loading", () => {
     );
   });
 
-  it("loads only exact active command content with governed release metadata", async () => {
-    const content = {
-      event: "PreToolUse",
-      type: HookType.COMMAND,
-      command: "echo governed",
-      script: null,
-      matcher: null,
-      priority: 500,
-      timeout: 1000,
-      environmentAllowlist: [],
-      envAllowlist: [],
-    };
+  it("runs exact signed active bytes through the isolated executor", async () => {
+    const { content, runtimeBody, capabilities, source } = signedHookFixture();
+    const governedHookExecutor = vi.fn(async () => ({ result: "continue" }));
     const hookSystem = new HookSystem({
-      artifactActiveReleaseReader: createActiveHookReader(content),
+      artifactActiveReleaseReader: createActiveHookReader(content, {
+        runtimeBody,
+        capabilities,
+      }),
       autoLoadConfig: true,
+      governedHookExecutor,
     });
     await hookSystem.initialize();
 
@@ -158,14 +232,26 @@ describe("governed Hook loading", () => {
       .listHooks()
       .find((value) => value.id === "governed-command-hook");
     expect(hook).toMatchObject({
-      command: "echo governed",
+      type: HookType.ASYNC,
       enabled: true,
       metadata: {
         governed: true,
+        executableType: HookType.SCRIPT,
         releaseId: "governed-command-hook-release",
         contentDigest: digest(content),
       },
     });
+    await hookSystem.trigger("PreToolUse", { toolName: "example" });
+    expect(governedHookExecutor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillId: "hook:governed-command-hook",
+        source: "governed-hook",
+        handlerFileName: "hook.js",
+        handlerSource: source,
+        contentDigest: digest(content).slice(7),
+        executionCapabilities: capabilities,
+      }),
+    );
     hookSystem.clear();
   });
 
@@ -205,6 +291,33 @@ describe("governed Hook loading", () => {
     ).rejects.toThrowError(
       expect.objectContaining({ code: "CC_HOOK_DIRECT_SCRIPT_LOAD_DENIED" }),
     );
+    hookSystem.clear();
+  });
+
+  it("rejects a release whose inline executable signature was replaced", async () => {
+    const fixture = signedHookFixture();
+    fixture.content.script.signatureLock.signatureBase64 =
+      Buffer.alloc(64).toString("base64");
+    fixture.runtimeBody.codeSignatureDigest = digest(
+      fixture.content.script.signatureLock,
+    );
+    const hookSystem = new HookSystem({
+      artifactActiveReleaseReader: createActiveHookReader(fixture.content, {
+        runtimeBody: fixture.runtimeBody,
+        capabilities: fixture.capabilities,
+      }),
+      autoLoadConfig: true,
+      governedHookExecutor: vi.fn(),
+    });
+
+    await expect(hookSystem.initialize()).rejects.toThrow(
+      "signature verification failed",
+    );
+    expect(
+      hookSystem
+        .listHooks()
+        .some((hook) => hook.id === "governed-command-hook"),
+    ).toBe(false);
     hookSystem.clear();
   });
 });
