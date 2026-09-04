@@ -6,6 +6,10 @@ import {
   nextProgressiveCanaryStage,
   verifyProgressiveCanaryPlan,
 } from "./statistical-progressive-canary.js";
+import {
+  SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+  createSkillWikiPilotReconciliationSource,
+} from "./skill-wiki-reconciliation.js";
 
 export const CONTROLLED_SKILL_PILOT_SCHEMA =
   "chainlesschain.controlled-skill-production-pilot/v1";
@@ -875,6 +879,58 @@ export class ControlledSkillProductionPilot {
                 this._state.progressiveGateReceiptDigests,
               ),
             },
+    });
+  }
+
+  createWikiOutcomeSource() {
+    return createSkillWikiPilotReconciliationSource({
+      tenantId: this.descriptor.tenantId,
+      streamId: `${this.descriptor.pilotId}:wiki-outcomes`,
+      readPilotOutcomes: () => {
+        if (
+          this._state.pendingTransition !== null ||
+          this._state.lastTransitionReceiptDigest === null ||
+          this._state.activeStateDigest === null
+        ) {
+          return [];
+        }
+        const stable =
+          this._progressiveCanary !== null &&
+          this._state.stage === CONTROLLED_SKILL_PILOT_STAGE.ACTIVE &&
+          this._state.progressiveStepId === null &&
+          this._state.progressiveGateReceiptDigests.length ===
+            this._progressiveCanary.plan.steps.length;
+        const rolledBack =
+          this._state.stage === CONTROLLED_SKILL_PILOT_STAGE.ROLLED_BACK;
+        if (!stable && !rolledBack) return [];
+        return [
+          {
+            schema: SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: this.descriptor.tenantId,
+            streamId: `${this.descriptor.pilotId}:wiki-outcomes`,
+            sequence: this._state.revision,
+            pilotId: this.descriptor.pilotId,
+            descriptorDigest: this.descriptorDigest,
+            candidateId: this.descriptor.candidateDigest,
+            skillName: this.descriptor.skillName,
+            outcome: stable ? "stable" : "rollback",
+            reason: stable
+              ? "The statistical progressive Canary reached stable."
+              : "The production Pilot rolled back the candidate.",
+            occurredAt: new Date(this._state.stageStartedAt).toISOString(),
+            activeStateDigest: this._state.activeStateDigest,
+            evidenceReceiptDigests: [
+              ...(this._state.reviewReceiptDigest === null
+                ? []
+                : [this._state.reviewReceiptDigest]),
+              ...(this._state.progressiveGateReceiptDigests ?? []),
+            ],
+            sourceReceiptDigest: this._state.lastTransitionReceiptDigest,
+          },
+        ];
+      },
     });
   }
 

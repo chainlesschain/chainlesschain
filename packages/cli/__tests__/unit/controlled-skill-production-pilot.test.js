@@ -11,6 +11,7 @@ import {
   createProgressiveCanaryGateAuthority,
   createProgressiveCanaryPlan,
 } from "../../src/lib/evolution/statistical-progressive-canary.js";
+import { SKILL_WIKI_PILOT_OUTCOME_SCHEMA } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
@@ -575,6 +576,20 @@ describe("ControlledSkillProductionPilot", () => {
       to: "rolled-back",
       evidence: { reasonDigest: D("incident"), emergency: true },
     });
+    await expect(pilot.createWikiOutcomeSource().list()).resolves.toMatchObject(
+      [
+        {
+          schema: SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          skillName: "focused-skill",
+          outcome: "rollback",
+          sourceReceiptDigest: expect.stringMatching(/^sha256:/u),
+          transitionDigest: expect.stringMatching(/^sha256:/u),
+        },
+      ],
+    );
     await expect(pilot.recordObservation(observation(1))).rejects.toMatchObject(
       {
         code: CONTROLLED_SKILL_PILOT_ERROR.INVALID,
@@ -721,6 +736,20 @@ describe("ControlledSkillProductionPilot", () => {
     }
 
     expect(pilot.view().progressiveCanary.gateReceiptDigests).toHaveLength(4);
+    await expect(pilot.createWikiOutcomeSource().list()).resolves.toMatchObject(
+      [
+        {
+          schema: SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          skillName: "focused-skill",
+          outcome: "stable",
+          evidenceReceiptDigests: expect.arrayContaining([D("approval")]),
+          transitionDigest: expect.stringMatching(/^sha256:/u),
+        },
+      ],
+    );
     expect(
       h.ports.transitionStage.mock.calls.map(([{ request }]) => [
         request.from,

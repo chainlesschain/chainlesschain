@@ -11,9 +11,11 @@ import {
 import {
   SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
+  SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
   SKILL_WIKI_REVIEW_DECISION_SCHEMA,
   SKILL_WIKI_TRANSITION_SCHEMA,
   createSkillWikiReconciliationSource,
+  createSkillWikiPilotReconciliationSource,
   createSkillWikiReviewReconciliationSource,
   createSkillWikiReconciler,
 } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
@@ -69,6 +71,31 @@ function transition(overrides = {}) {
       { ref: "source://observation", digest: hash("source") },
     ],
     sourceReceiptDigest: hash("settlement-event"),
+    ...overrides,
+  };
+}
+
+function pilotOutcome(outcome, overrides = {}) {
+  return {
+    schema: SKILL_WIKI_PILOT_OUTCOME_SCHEMA,
+    authenticated: true,
+    durable: true,
+    tenantId: "tenant-a",
+    streamId: `pilot-${outcome}:wiki-outcomes`,
+    sequence: 9,
+    pilotId: `pilot-${outcome}`,
+    descriptorDigest: hash(`descriptor:${outcome}`),
+    candidateId: hash(`candidate:${outcome}`),
+    skillName: "safe-refactor",
+    outcome,
+    reason:
+      outcome === "stable"
+        ? "The statistical progressive Canary reached stable."
+        : "The production Pilot rolled back the candidate.",
+    occurredAt: "2026-09-04T00:00:00.000Z",
+    activeStateDigest: hash(`active-state:${outcome}`),
+    evidenceReceiptDigests: [hash(`gate:${outcome}`)],
+    sourceReceiptDigest: hash(`pilot-transition:${outcome}`),
     ...overrides,
   };
 }
@@ -324,6 +351,32 @@ describe("SkillWikiReconciler", () => {
     expect(
       fixture.getState().patterns["pat-safe-refactor"].rejectionCount,
     ).toBe(1);
+  });
+
+  it.each([
+    ["stable", "accepted"],
+    ["rollback", "rejected"],
+  ])("reconciles a durable Pilot %s outcome", async (outcome, counter) => {
+    const fixture = await harness();
+    const source = createSkillWikiPilotReconciliationSource({
+      tenantId: "tenant-a",
+      streamId: `pilot-${outcome}:wiki-outcomes`,
+      readPilotOutcomes: async () => [pilotOutcome(outcome)],
+    });
+    const reconciler = createSkillWikiReconciler({
+      source,
+      maintainer: fixture.maintainer,
+      ports: fixture.ports,
+    });
+
+    await expect(reconciler.reconcile()).resolves.toMatchObject({
+      processed: 1,
+      cursor: 9,
+    });
+    expect(fixture.getState().skillImpact["safe-refactor"][counter]).toBe(1);
+    expect(
+      fixture.getState().patterns["pat-safe-refactor"].rejectionCount,
+    ).toBe(outcome === "rollback" ? 1 : 0);
   });
 
   it("fails closed for cross-tenant or forged transition records", () => {
