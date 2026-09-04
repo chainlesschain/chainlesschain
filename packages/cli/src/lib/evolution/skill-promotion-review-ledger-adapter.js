@@ -13,6 +13,10 @@ import {
   verifySkillPromotionReviewDecision,
   verifySkillPromotionReviewPacketArtifact,
 } from "./skill-promotion-review.js";
+import {
+  SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+  createSkillWikiReviewReconciliationSource,
+} from "./skill-wiki-reconciliation.js";
 
 export const SKILL_PROMOTION_REVIEW_REQUEST_EVENT_TYPE =
   "skill.promotion-review.requested";
@@ -441,6 +445,38 @@ export class SkillPromotionReviewLedgerAdapter {
           decision,
           resolvedAt: new Date(Number(this._now())).toISOString(),
         });
+      },
+    });
+  }
+
+  createWikiRejectionReconciliationSource() {
+    return createSkillWikiReviewReconciliationSource({
+      tenantId: this.descriptor.tenantId,
+      streamId: `${this.descriptor.streamId}:wiki-rejections`,
+      readReviewDecisions: async () => {
+        await this.listReviews();
+        return this._decisionEntries()
+          .filter(({ decision }) => decision.decision === "rejected")
+          .map(({ decision, event }) => {
+            const { packet } = this._packetByDigest(decision.packetDigest);
+            return {
+              schema: SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+              authenticated: true,
+              durable: true,
+              tenantId: this.descriptor.tenantId,
+              streamId: `${this.descriptor.streamId}:wiki-rejections`,
+              sequence: event.sequence,
+              candidateId: packet.candidateId,
+              skillName: packet.skillName,
+              decision: decision.decision,
+              reason: decision.reason,
+              occurredAt: decision.decidedAt,
+              packetDigest: decision.packetDigest,
+              decisionReceiptDigest: decision.receiptDigest,
+              sourceEvidenceRefs: packet.evidenceSummary,
+              sourceReceiptDigest: event.eventDigest,
+            };
+          });
       },
     });
   }

@@ -9,6 +9,8 @@ import {
 
 export const SKILL_WIKI_TRANSITION_SCHEMA =
   "chainlesschain.skill-wiki-transition/v1";
+export const SKILL_WIKI_REVIEW_DECISION_SCHEMA =
+  "chainlesschain.skill-wiki-review-decision/v1";
 export const SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA =
   "chainlesschain.skill-wiki-impact-resolution/v1";
 export const SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA =
@@ -36,6 +38,23 @@ const TRANSITION_KEYS = new Set([
   "settlementDigest",
   "occurredAt",
   "wikiRevision",
+  "sourceEvidenceRefs",
+  "sourceReceiptDigest",
+]);
+const REVIEW_KEYS = new Set([
+  "schema",
+  "authenticated",
+  "durable",
+  "tenantId",
+  "streamId",
+  "sequence",
+  "candidateId",
+  "skillName",
+  "decision",
+  "reason",
+  "occurredAt",
+  "packetDigest",
+  "decisionReceiptDigest",
   "sourceEvidenceRefs",
   "sourceReceiptDigest",
 ]);
@@ -298,6 +317,101 @@ export function createSkillWikiReconciliationSource({
   return freeze(source);
 }
 
+function normalizeReviewDecision(input, tenantId, streamId) {
+  exact(input, REVIEW_KEYS, "skill Wiki review decision");
+  const core = {
+    schema: SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+    tenantId,
+    streamId,
+    sequence: sequence(input.sequence, "review.sequence"),
+    candidateId: digest(input.candidateId, "review.candidateId"),
+    skillName: string(input.skillName, "review.skillName", 128),
+    decision: input.decision,
+    reason: string(input.reason, "review.reason", 1024),
+    occurredAt: timestamp(input.occurredAt, "review.occurredAt"),
+    packetDigest: digest(input.packetDigest, "review.packetDigest"),
+    decisionReceiptDigest: digest(
+      input.decisionReceiptDigest,
+      "review.decisionReceiptDigest",
+    ),
+    sourceEvidenceRefs: references(
+      input.sourceEvidenceRefs,
+      "review.sourceEvidenceRefs",
+      { allowEmpty: false },
+    ),
+    sourceReceiptDigest: digest(
+      input.sourceReceiptDigest,
+      "review.sourceReceiptDigest",
+    ),
+  };
+  if (
+    input.schema !== SKILL_WIKI_REVIEW_DECISION_SCHEMA ||
+    input.authenticated !== true ||
+    input.durable !== true ||
+    input.tenantId !== tenantId ||
+    input.streamId !== streamId ||
+    input.decision !== "rejected" ||
+    !SKILL_NAME.test(core.skillName)
+  ) {
+    fail("skill Wiki review decision is not durably tenant-bound");
+  }
+  return freeze({
+    ...core,
+    authenticated: true,
+    durable: true,
+    wikiRevision: null,
+    transitionDigest: hash(core),
+  });
+}
+
+export function createSkillWikiReviewReconciliationSource({
+  tenantId: tenantInput,
+  streamId: streamInput,
+  readReviewDecisions,
+} = {}) {
+  const tenantId = string(tenantInput, "tenantId", 256);
+  const streamId = string(streamInput, "streamId", 256);
+  if (
+    typeof readReviewDecisions !== "function" ||
+    utilTypes.isProxy(readReviewDecisions)
+  ) {
+    throw new TypeError("readReviewDecisions is required");
+  }
+  const source = {
+    tenantId,
+    streamId,
+    async list({ afterSequence = 0, limit = 64 } = {}) {
+      const cursor = sequence(afterSequence, "afterSequence", {
+        allowZero: true,
+      });
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 256) {
+        fail("limit must be between 1 and 256");
+      }
+      const raw = await readReviewDecisions();
+      if (
+        !Array.isArray(raw) ||
+        utilTypes.isProxy(raw) ||
+        raw.length > 100_000
+      ) {
+        fail("review source did not return a bounded list");
+      }
+      const all = raw
+        .map((entry) => normalizeReviewDecision(entry, tenantId, streamId))
+        .sort((left, right) => left.sequence - right.sequence);
+      for (let index = 1; index < all.length; index += 1) {
+        if (all[index - 1].sequence >= all[index].sequence) {
+          fail("review source sequences must be unique and increasing");
+        }
+      }
+      return freeze(
+        all.filter((entry) => entry.sequence > cursor).slice(0, limit),
+      );
+    },
+  };
+  SOURCES.add(source);
+  return freeze(source);
+}
+
 export function captureSkillWikiReconciliationSource(source) {
   if (!SOURCES.has(source)) {
     throw new TypeError(
@@ -445,7 +559,7 @@ export class SkillWikiReconciler {
 
   async reconcile({ limit = 64 } = {}) {
     let checkpoint = await this._checkpoint();
-    const transitions = this.source.list({
+    const transitions = await this.source.list({
       afterSequence: checkpoint?.cursor ?? 0,
       limit,
     });
@@ -456,20 +570,26 @@ export class SkillWikiReconciler {
         transition,
         this.source.tenantId,
       );
+      const rejected = transition.schema === SKILL_WIKI_REVIEW_DECISION_SCHEMA;
       const decision = {
         candidateId: transition.candidateId,
         skillName: transition.skillName,
-        outcome: "accepted",
+        outcome: rejected ? "rejected" : "accepted",
         patternRefs: impact.patternRefs,
-        reason: impact.reason,
+        reason: rejected ? transition.reason : impact.reason,
       };
+      const sourceDigest = rejected
+        ? transition.decisionReceiptDigest
+        : transition.settlementDigest;
       const evidenceCore = {
         schema: WIKI_EVIDENCE_SCHEMA,
         tenantId: this.source.tenantId,
-        ref: `wiki-evidence://skill-transition/${transition.settlementDigest.slice(7)}`,
-        sourceDigest: transition.settlementDigest,
+        ref: `wiki-evidence://skill-decision/${sourceDigest.slice(7)}`,
+        sourceDigest,
         projectionDigest: hash({ transition, impact }),
-        artifactRef: `skill-release://${this.source.tenantId}/${transition.activeReleaseDigest.slice(7)}`,
+        artifactRef: rejected
+          ? `skill-review://${this.source.tenantId}/${transition.decisionReceiptDigest.slice(7)}`
+          : `skill-release://${this.source.tenantId}/${transition.activeReleaseDigest.slice(7)}`,
         trustedProjection: true,
         trustDomain: `skill-registry:${this.source.streamId}`,
         kind: "proposal-decision",
@@ -480,11 +600,16 @@ export class SkillWikiReconciler {
           decisionDigest: hash(decision),
           decision,
           transitionDigest: transition.transitionDigest,
-          settlementDigest: transition.settlementDigest,
-          activeReleaseDigest: transition.activeReleaseDigest,
-          stateDigest: transition.stateDigest,
+          sourceDecisionDigest: sourceDigest,
           impactReceiptDigest: impact.receiptDigest,
           wikiRevision: transition.wikiRevision,
+          ...(rejected
+            ? { packetDigest: transition.packetDigest }
+            : {
+                settlementDigest: transition.settlementDigest,
+                activeReleaseDigest: transition.activeReleaseDigest,
+                stateDigest: transition.stateDigest,
+              }),
         },
       };
       const evidence = freeze({

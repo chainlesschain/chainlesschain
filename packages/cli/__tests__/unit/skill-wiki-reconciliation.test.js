@@ -11,8 +11,10 @@ import {
 import {
   SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
+  SKILL_WIKI_REVIEW_DECISION_SCHEMA,
   SKILL_WIKI_TRANSITION_SCHEMA,
   createSkillWikiReconciliationSource,
+  createSkillWikiReviewReconciliationSource,
   createSkillWikiReconciler,
 } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 
@@ -276,6 +278,52 @@ describe("SkillWikiReconciler", () => {
     });
     expect(fixture.getState().skillImpact["safe-refactor"].accepted).toBe(1);
     await expect(reopened.reconcile()).resolves.toMatchObject({ processed: 0 });
+  });
+
+  it("records a rejected human review against its dependent pattern", async () => {
+    const fixture = await harness();
+    const reviewSource = createSkillWikiReviewReconciliationSource({
+      tenantId: "tenant-a",
+      streamId: "review-main:wiki-rejections",
+      readReviewDecisions: async () => [
+        {
+          schema: SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          streamId: "review-main:wiki-rejections",
+          sequence: 2,
+          candidateId: hash("rejected-candidate"),
+          skillName: "safe-refactor",
+          decision: "rejected",
+          reason: "The candidate failed the human review policy.",
+          occurredAt: "2026-09-02T00:00:00.000Z",
+          packetDigest: hash("review-packet"),
+          decisionReceiptDigest: hash("review-rejection"),
+          sourceEvidenceRefs: [
+            { ref: "source://rejected", digest: hash("rejected-source") },
+          ],
+          sourceReceiptDigest: hash("review-ledger-event"),
+        },
+      ],
+    });
+    const reconciler = createSkillWikiReconciler({
+      source: reviewSource,
+      maintainer: fixture.maintainer,
+      ports: fixture.ports,
+    });
+
+    await expect(reconciler.reconcile()).resolves.toMatchObject({
+      processed: 1,
+      cursor: 2,
+    });
+    expect(fixture.getState().skillImpact["safe-refactor"]).toMatchObject({
+      accepted: 0,
+      rejected: 1,
+    });
+    expect(
+      fixture.getState().patterns["pat-safe-refactor"].rejectionCount,
+    ).toBe(1);
   });
 
   it("fails closed for cross-tenant or forged transition records", () => {

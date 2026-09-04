@@ -20,6 +20,7 @@ import {
 } from "../../src/lib/evolution/skill-execution-manifest.js";
 import { SKILL_EVALUATED_PROMOTION_BINDING_SCHEMA } from "../../src/lib/evolution/skill-evaluated-promotion.js";
 import { SkillPromotionReviewLedgerAdapter } from "../../src/lib/evolution/skill-promotion-review-ledger-adapter.js";
+import { SKILL_WIKI_REVIEW_DECISION_SCHEMA } from "../../src/lib/evolution/skill-wiki-reconciliation.js";
 import {
   SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
   buildSkillPromotionReviewEnvelope,
@@ -525,6 +526,21 @@ describe("SkillPromotionReviewLedgerAdapter", () => {
       {
         status: "rejected",
         decision: { receiptDigest: rejection.receiptDigest },
+      },
+    ]);
+    await expect(
+      review.createWikiRejectionReconciliationSource().list(),
+    ).resolves.toMatchObject([
+      {
+        schema: SKILL_WIKI_REVIEW_DECISION_SCHEMA,
+        authenticated: true,
+        durable: true,
+        tenantId: TENANT_ID,
+        candidateId: fixture.candidate.candidateId,
+        skillName: fixture.candidate.skillName,
+        decision: "rejected",
+        decisionReceiptDigest: rejection.receiptDigest,
+        transitionDigest: expect.stringMatching(/^sha256:/u),
       },
     ]);
   });
