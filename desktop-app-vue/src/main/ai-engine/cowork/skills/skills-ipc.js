@@ -56,7 +56,10 @@ function registerSkillsIPC(options = {}) {
       : () => options.skillVectorAuthority ?? null;
 
   // 获取或创建注册表
-  const registry = getSkillRegistry();
+  const registry = getSkillRegistry({
+    artifactActiveReleaseReader:
+      options.artifactActiveReleaseReader || undefined,
+  });
   const credentialStore =
     options.bundledSkillCredentialStore || getBundledSkillCredentialStore();
 

@@ -13,6 +13,28 @@ const {
   BUNDLED_SKILL_CAPABILITY_CATALOG,
 } = require("./bundled-skill-capability-catalog");
 const { startSkillInvocation } = require("./skill-invocation-receipt.js");
+const { SkillMdParser } = require("./skill-md-parser");
+const { MarkdownSkill } = require("./markdown-skill");
+const {
+  SKILL_PACKAGE_FORMAT,
+  calculateSkillPackageChecksum,
+} = require("./skill-sync-manager");
+const {
+  ARTIFACT_TYPE,
+  isEvolvableArtifactActiveReleaseReader,
+} = require("@chainlesschain/session-core/evolvable-artifact");
+
+const GOVERNED_SKILL_MAX_BODY_BYTES = 256 * 1024;
+const GOVERNED_SKILL_PACKAGE_KEYS = new Set([
+  "format",
+  "metadata",
+  "body",
+  "handler",
+  "signatureLock",
+  "checksum",
+  "exportedAt",
+  "exportedFrom",
+]);
 
 function fallbackSkillDigest(skill) {
   return `sha256:${nodeCrypto
@@ -33,13 +55,17 @@ class SkillRegistry extends EventEmitter {
     super();
 
     this.options = {
+      ...options,
       // 是否启用自动加载
       autoLoad: options.autoLoad !== false,
       // 最大技能数（内置 ~139 + marketplace + 用户自定义；1000 仅作 sanity 上限，
       // 防御循环注册等异常导致 OOM。tests 显式传 maxSkills 覆盖此默认值）
       maxSkills: options.maxSkills || 1000,
-      ...options,
     };
+    this.artifactActiveReleaseReader = null;
+    if (options.artifactActiveReleaseReader != null) {
+      this.setArtifactActiveReleaseReader(options.artifactActiveReleaseReader);
+    }
     this._executionAuthorizer = null;
     this._bundledSkillFilesystemAuthorityFactory = null;
     this._bundledSkillEnvironmentAuthorityFactory = null;
@@ -79,6 +105,145 @@ class SkillRegistry extends EventEmitter {
     this.fileTypeIndex = new Map();
 
     this._log("SkillRegistry 已初始化");
+  }
+
+  setArtifactActiveReleaseReader(activeReleaseReader) {
+    if (
+      !isEvolvableArtifactActiveReleaseReader(
+        activeReleaseReader,
+        ARTIFACT_TYPE.SKILL,
+      )
+    ) {
+      throw new TypeError(
+        "SkillRegistry requires a branded Skill active release reader",
+      );
+    }
+    this.artifactActiveReleaseReader = activeReleaseReader;
+  }
+
+  _activeSkillFromRelease(release) {
+    const pkg = release.content;
+    const runtimeManifest = release.artifact.runtimeManifest;
+    const permissionManifest = release.artifact.permissionManifest;
+    if (
+      !release.contentAvailable ||
+      !pkg ||
+      typeof pkg !== "object" ||
+      Array.isArray(pkg) ||
+      Reflect.ownKeys(pkg).some((key) => typeof key !== "string") ||
+      Object.keys(pkg).length !== GOVERNED_SKILL_PACKAGE_KEYS.size ||
+      Object.keys(pkg).some((key) => !GOVERNED_SKILL_PACKAGE_KEYS.has(key)) ||
+      pkg.format !== SKILL_PACKAGE_FORMAT ||
+      !pkg.metadata ||
+      typeof pkg.metadata !== "object" ||
+      Array.isArray(pkg.metadata) ||
+      typeof pkg.metadata.skillId !== "string" ||
+      !/^[a-z][a-z0-9-]{0,127}$/u.test(pkg.metadata.skillId) ||
+      release.artifactId !== `skill:${pkg.metadata.skillId}` ||
+      typeof pkg.body !== "string" ||
+      pkg.body.length === 0 ||
+      Buffer.byteLength(pkg.body, "utf8") > GOVERNED_SKILL_MAX_BODY_BYTES ||
+      pkg.handler !== null ||
+      pkg.signatureLock !== null ||
+      !Number.isSafeInteger(pkg.exportedAt) ||
+      pkg.exportedAt < 0 ||
+      typeof pkg.exportedFrom !== "string" ||
+      pkg.exportedFrom.length === 0 ||
+      Buffer.byteLength(pkg.exportedFrom, "utf8") > 256 ||
+      runtimeManifest.executable !== false ||
+      runtimeManifest.handlerDigest !== null ||
+      runtimeManifest.signatureLockDigest !== null ||
+      !runtimeManifest.requires ||
+      !Array.isArray(runtimeManifest.requires.bins) ||
+      runtimeManifest.requires.bins.length !== 0 ||
+      !Array.isArray(runtimeManifest.requires.env) ||
+      runtimeManifest.requires.env.length !== 0 ||
+      !Array.isArray(permissionManifest.capabilities) ||
+      permissionManifest.capabilities.length !== 0 ||
+      typeof pkg.checksum !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(pkg.checksum) ||
+      calculateSkillPackageChecksum(pkg) !== pkg.checksum
+    ) {
+      throw new Error("Active Skill release content is unsafe or invalid");
+    }
+    const definition = new SkillMdParser({
+      strictValidation: true,
+    }).parseContent(pkg.body, "unknown");
+    if (
+      definition.name !== pkg.metadata.skillId ||
+      String(pkg.metadata.version || "") !== definition.version ||
+      definition.handler
+    ) {
+      throw new Error("Active Skill release definition is not package-bound");
+    }
+    definition.source = "governed";
+    definition.sourcePath = "unknown";
+    definition.enabled = true;
+    definition._governedRelease = Object.freeze({
+      releaseId: release.releaseId,
+      contentDigest: release.contentDigest,
+      artifactDigest: release.artifactDigest,
+    });
+    return new MarkdownSkill(definition);
+  }
+
+  async loadGovernedActiveSkills() {
+    if (!this.artifactActiveReleaseReader) {
+      this._unloadGovernedSkills();
+      return { loaded: 0, registered: 0, authority: "unavailable" };
+    }
+    let releases;
+    try {
+      releases = await this.artifactActiveReleaseReader.listActive();
+    } catch (error) {
+      this._unloadGovernedSkills();
+      throw error;
+    }
+    let skills;
+    try {
+      skills = releases.map((release) =>
+        this._activeSkillFromRelease(release),
+      );
+    } catch (error) {
+      this._unloadGovernedSkills();
+      throw error;
+    }
+    const activeIds = new Set(skills.map((skill) => skill.skillId));
+    const finalIds = new Set(
+      [...this.skills.values()]
+        .filter((skill) => skill.source !== "governed")
+        .map((skill) => skill.skillId),
+    );
+    for (const activeId of activeIds) finalIds.add(activeId);
+    if (finalIds.size > this.options.maxSkills) {
+      this._unloadGovernedSkills();
+      throw new Error(`已达到最大技能数限制: ${this.options.maxSkills}`);
+    }
+    for (const skill of [...this.skills.values()]) {
+      if (skill.source === "governed" && !activeIds.has(skill.skillId)) {
+        this.unregister(skill.skillId);
+      }
+    }
+    try {
+      for (const skill of skills) {
+        if (this.skills.has(skill.skillId)) this.unregister(skill.skillId);
+        this.register(skill);
+      }
+    } catch (error) {
+      this._unloadGovernedSkills();
+      throw error;
+    }
+    return {
+      loaded: releases.length,
+      registered: skills.length,
+      authority: "governed-active-release-reader",
+    };
+  }
+
+  _unloadGovernedSkills() {
+    for (const skill of [...this.skills.values()]) {
+      if (skill.source === "governed") this.unregister(skill.skillId);
+    }
   }
 
   // ==========================================
@@ -826,7 +991,7 @@ class SkillRegistry extends EventEmitter {
   }
 
   /**
-   * 从加载器加载所有技能（三层加载）
+   * 加载可信内建 Skill 和治理后的 active Skill
    * @returns {Promise<{loaded: number, registered: number, errors: Array}>}
    */
   async loadAllSkills() {
@@ -834,8 +999,12 @@ class SkillRegistry extends EventEmitter {
       throw new Error("SkillLoader not set. Call setLoader() first.");
     }
 
-    // 加载所有层级
-    const loadResult = await this._loader.loadAll();
+    for (const skill of [...this.skills.values()]) {
+      if (["marketplace", "managed", "workspace"].includes(skill.source)) {
+        this.unregister(skill.skillId);
+      }
+    }
+    const loadResult = await this._loader.loadBundledOnly();
 
     // 创建技能实例并注册
     const instances = this._loader.createSkillInstances();
@@ -854,11 +1023,16 @@ class SkillRegistry extends EventEmitter {
       }
     }
 
-    this._log(`三层加载完成: ${loadResult.loaded} 加载, ${registered} 注册`);
+    const governed = await this.loadGovernedActiveSkills();
+
+    this._log(
+      `可信技能加载完成: ${loadResult.loaded + governed.loaded} 加载, ${registered + governed.registered} 注册`,
+    );
 
     return {
-      loaded: loadResult.loaded,
-      registered,
+      loaded: loadResult.loaded + governed.loaded,
+      registered: registered + governed.registered,
+      activeAuthority: governed.authority,
       errors: loadResult.errors,
     };
   }
@@ -943,6 +1117,10 @@ let registryInstance = null;
 function getSkillRegistry(options = {}) {
   if (!registryInstance) {
     registryInstance = new SkillRegistry(options);
+  } else if (options.artifactActiveReleaseReader != null) {
+    registryInstance.setArtifactActiveReleaseReader(
+      options.artifactActiveReleaseReader,
+    );
   }
   return registryInstance;
 }

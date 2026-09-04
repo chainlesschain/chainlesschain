@@ -149,6 +149,8 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       registerSkillsIPC({
         hookSystem,
         workspacePath: process.cwd(),
+        artifactActiveReleaseReader:
+          deps.evolvableArtifactSkillActiveReleaseReader || undefined,
         getSkillVectorAuthority: () =>
           deps.skillVectorAuthority ??
           app?.codingAgentBootstrap?.skillVectorAuthority ??

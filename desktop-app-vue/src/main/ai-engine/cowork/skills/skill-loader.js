@@ -156,6 +156,23 @@ class SkillLoader extends EventEmitter {
   }
 
   /**
+   * Load only repository-bundled Skills. External layers require the shared
+   * EvolvableArtifact active-release boundary and are assembled by the registry.
+   * @returns {Promise<{loaded: number, skipped: number, errors: Array}>}
+   */
+  async loadBundledOnly() {
+    for (const definitions of Object.values(this.layerDefinitions)) {
+      definitions.clear();
+    }
+    this.resolvedSkills.clear();
+    this.gating.clearCache();
+
+    const result = await this.loadLayer("bundled");
+    this.resolveConflicts();
+    return result;
+  }
+
+  /**
    * 加载指定层级的技能
    * @param {'bundled'|'managed'|'workspace'} layer - 层级名称
    * @returns {Promise<{loaded: number, skipped: number, errors: Array}>}

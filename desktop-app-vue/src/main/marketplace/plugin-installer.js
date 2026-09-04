@@ -338,7 +338,8 @@ class PluginInstaller {
         ],
       );
 
-      // v1.1.0: Hot-load skill if plugin contains SKILL.md
+      // Marketplace SKILL.md files are not active at install time. They must
+      // enter the shared candidate/review/release lifecycle before loading.
       try {
         const skillMdPath = path.join(pluginDir, "SKILL.md");
         const hasSkillMd = await fs
@@ -348,28 +349,8 @@ class PluginInstaller {
 
         if (hasSkillMd) {
           logger.info(
-            `[PluginInstaller] Found SKILL.md in ${pluginId}, hot-loading skill...`,
+            `[PluginInstaller] Found inactive SKILL.md in ${pluginId}; governed promotion is required`,
           );
-          const {
-            getSkillRegistry,
-          } = require("../ai-engine/cowork/skills/skill-registry");
-          const {
-            SkillLoader,
-          } = require("../ai-engine/cowork/skills/skill-loader");
-
-          const registry = getSkillRegistry?.();
-          if (registry && registry._loader) {
-            const definition = await registry._loader.loadSingleSkill?.(
-              pluginDir,
-              "marketplace",
-            );
-            if (definition) {
-              registry.hotLoadSkill(definition.name, definition);
-              logger.info(
-                `[PluginInstaller] Skill hot-loaded: ${definition.name}`,
-              );
-            }
-          }
         }
       } catch (skillError) {
         logger.warn(
