@@ -299,7 +299,9 @@ jobs:
     name: Quality Gate
     runs-on: ubuntu-latest
     needs: [validate-rules, security-audit, build-check]
-    if: always()
+    # Continue to fail closed for completed prerequisites, while preserving an
+    # operator-requested workflow cancellation as cancelled instead of failure.
+    if: ${{ always() && !cancelled() }}
 
     steps:
       - name: Check quality gate status

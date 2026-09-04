@@ -81,6 +81,17 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("aggregate quality gate preserves workflow cancellation", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "code-quality.yml"),
+    "utf8",
+  );
+  const gateStart = workflow.indexOf("  quality-gate:\n");
+  assert.notEqual(gateStart, -1, "missing quality-gate job");
+  const qualityGate = workflow.slice(gateStart);
+  assert.match(qualityGate, /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
+});
+
 test("required lint context runs checksum-pinned actionlint", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "code-quality.yml"),
