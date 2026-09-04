@@ -543,22 +543,41 @@ function createEvolvableArtifactCandidateGate({ authority, candidateWriter }) {
   ) {
     throw new TypeError("candidateWriter.persistCandidate is required");
   }
+  const persistCandidate =
+    candidateWriter.persistCandidate.bind(candidateWriter);
+
+  async function persist(artifact, content) {
+    if (
+      content !== undefined &&
+      digestValue(content) !== artifact.contentDigest
+    ) {
+      throw new Error("candidate content does not match contentDigest");
+    }
+    const receipt = verifyPersistenceReceipt(
+      await persistCandidate(artifact, content),
+      artifact,
+    );
+    return deepFreeze({ artifact, receipt });
+  }
+
   const gate = Object.freeze({
     tenantId: authority.tenantId,
     type: authority.type,
     async stageCandidate(input, content = undefined) {
       const artifact = authority.stageCandidate(input);
-      if (
-        content !== undefined &&
-        digestValue(content) !== artifact.contentDigest
-      ) {
-        throw new Error("candidate content does not match contentDigest");
-      }
-      const receipt = verifyPersistenceReceipt(
-        await candidateWriter.persistCandidate(artifact, content),
-        artifact,
-      );
-      return deepFreeze({ artifact, receipt });
+      return persist(artifact, content);
+    },
+    async stageRevalidationCandidate(
+      staleArtifact,
+      { candidateId, dependencyLock, revalidationReceipt },
+      content = undefined,
+    ) {
+      const artifact = authority.createRevalidationCandidate(staleArtifact, {
+        candidateId,
+        dependencyLock,
+        revalidationReceipt,
+      });
+      return persist(artifact, content);
     },
   });
   candidateGateBrands.add(gate);

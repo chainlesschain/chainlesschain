@@ -342,7 +342,7 @@ describe("EvolvableArtifact protocol", () => {
     ).rejects.toThrow(/durable readback is invalid/);
   });
 
-  it("cascades dependency drift and blocks stale activation", () => {
+  it("cascades dependency drift and persists revalidation through the candidate gate", async () => {
     const skillAuthority = createEvolvableArtifactAuthority({
       tenantId: "tenant-a",
       policy: policy(ARTIFACT_TYPE.SKILL).value,
@@ -419,14 +419,20 @@ describe("EvolvableArtifact protocol", () => {
     const revalidationReceipt = receipt(revalidationShape, "revalidation", {
       resolvedReleaseIds: ["skill-release-2"],
     });
-    const revalidation = promptAuthority.createRevalidationCandidate(
-      stalePrompt,
-      {
+    const persistCandidate = vi.fn(async (artifact) =>
+      candidatePersistenceReceipt(artifact),
+    );
+    const revalidationGate = createEvolvableArtifactCandidateGate({
+      authority: promptAuthority,
+      candidateWriter: { persistCandidate },
+    });
+    const stagedRevalidation =
+      await revalidationGate.stageRevalidationCandidate(stalePrompt, {
         candidateId: "prompt-revalidation-2",
         dependencyLock: newDependencyLock,
         revalidationReceipt,
-      },
-    );
+      });
+    const revalidation = stagedRevalidation.artifact;
     expect(revalidation).toMatchObject({
       stale: false,
       staleReasons: [],
@@ -439,6 +445,10 @@ describe("EvolvableArtifact protocol", () => {
       },
     });
     expect(revalidation.receipts.revalidation.kind).toBe("revalidation");
+    expect(stagedRevalidation.receipt).toEqual(
+      candidatePersistenceReceipt(revalidation),
+    );
+    expect(persistCandidate).toHaveBeenCalledOnce();
     expect(() =>
       promptAuthority.createRevalidationCandidate(revalidation, {
         candidateId: "another",
