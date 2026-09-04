@@ -111,7 +111,9 @@ describe("Skill vector process authority", () => {
   });
 
   it("fails closed on timeout, non-JSON and oversized output", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-vector-worker-"));
+    const tempDir = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-vector-worker-")),
+    );
     const workerPath = path.join(tempDir, "worker.mjs");
     try {
       fs.writeFileSync(workerPath, "setTimeout(() => {}, 60_000);\n", {
