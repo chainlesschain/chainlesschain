@@ -51,6 +51,26 @@ function fixture() {
     tenantId: "tenant:a",
     runId: "run:1",
     skillName: "repair-tests",
+    observedAt: "2026-09-04T00:00:00.000Z",
+    run: {
+      status: "running",
+      projectionDigest: D("run-projection"),
+      eventRoot: D("event-root"),
+      eventCount: 0,
+      wikiRevision: 0,
+      wikiRevisionDigest: D("wiki-revision"),
+      activeReleaseId: null,
+      lastKnownGoodReleaseId: null,
+    },
+    summary: {
+      candidateCount: 1,
+      pendingReviewCount: 1,
+      approvedCount: 0,
+      rejectedCount: 0,
+      transitionCount: 0,
+      invocationCount: 0,
+      conflictCount: 0,
+    },
     candidates: [
       {
         packetDigest: packet.packetDigest,
@@ -58,6 +78,9 @@ function fixture() {
         status: "pending",
       },
     ],
+    timeline: [],
+    conflicts: [],
+    pilot: null,
   };
   const projection = {
     ...projectionCore,
