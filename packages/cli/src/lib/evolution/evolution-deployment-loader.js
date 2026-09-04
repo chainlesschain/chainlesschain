@@ -155,6 +155,45 @@ async function loadBuiltInFactories(commandName) {
   return Object.freeze(factories);
 }
 
+function bindBenchmarkFactoriesToModule(factories, moduleDigest) {
+  const result = { ...factories };
+  const providerFactories = [
+    "createWikiSkillBenchmarkDatasetProvider",
+    "createWikiSkillBenchmarkGrader",
+    "createWikiSkillBenchmarkReportAttestor",
+    "createWikiSkillBenchmarkRunner",
+  ];
+  for (const name of providerFactories) {
+    if (typeof factories[name] !== "function") continue;
+    result[name] = (options = {}) => {
+      if (options?.descriptor?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,
+        );
+      return factories[name](options);
+    };
+  }
+  if (
+    typeof factories.createWikiSkillBenchmarkExecutionManifest === "function"
+  ) {
+    result.createWikiSkillBenchmarkExecutionManifest = (input = {}) => {
+      for (const authority of [
+        "datasetProvider",
+        "runner",
+        "grader",
+        "reportAttestor",
+      ]) {
+        if (input?.[authority]?.handlerArtifactDigest !== moduleDigest)
+          throw new Error(
+            `benchmark ${authority} handlerArtifactDigest must equal the authenticated deployment module digest`,
+          );
+      }
+      return factories.createWikiSkillBenchmarkExecutionManifest(input);
+    };
+  }
+  return Object.freeze(result);
+}
+
 export async function loadEvolutionDeploymentCommandDependencies(
   commandName,
   {
@@ -219,7 +258,10 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw new Error(
       "evolution deployment module must export createChainlessChainCommandDependencies",
     );
-  const builtInFactories = await loadBuiltInFactories(commandName);
+  const builtInFactories = bindBenchmarkFactoriesToModule(
+    await loadBuiltInFactories(commandName),
+    descriptor.moduleDigest,
+  );
   if (
     !additionalFactories ||
     typeof additionalFactories !== "object" ||

@@ -8,6 +8,7 @@ import {
   loadEvolutionDeploymentCommandDependencies,
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../../src/lib/evolution/evolution-deployment-loader.js";
+import { isWikiSkillBenchmarkRunner } from "../../src/lib/evolution/wikiskill-benchmark-execution-host.js";
 import { dispatchManifestEntry } from "../../src/lazy-dispatch.js";
 
 function deploymentFixture({
@@ -116,6 +117,84 @@ describe("signed evolution deployment loader", () => {
         encodeURIComponent(fixture.descriptor.moduleDigest),
       ),
     );
+  });
+
+  it("binds Benchmark provider callables and manifests to the authenticated module bytes", async () => {
+    const fixture = deploymentFixture({ commands: ["evolution"] });
+    const result = await loadEvolutionDeploymentCommandDependencies(
+      "evolution",
+      {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({
+            descriptor,
+            factories,
+          }) => {
+            const authority = (name) => ({
+              authorityId: `authority:${name}`,
+              revision: 1,
+              handlerArtifactDigest: descriptor.moduleDigest,
+            });
+            const runner = factories.createWikiSkillBenchmarkRunner({
+              descriptor: authority("runner"),
+              run: async () => ({}),
+              verifyAttestation: async () => true,
+            });
+            const executionManifest =
+              factories.createWikiSkillBenchmarkExecutionManifest({
+                datasetProvider: authority("datasets"),
+                runner: authority("runner"),
+                grader: authority("grader"),
+                reportAttestor: authority("report"),
+                targetEnvironmentDigest: computeEvolutionDeploymentDigest(
+                  Buffer.from("environment"),
+                ),
+              });
+            return { runner, executionManifest };
+          },
+        }),
+      },
+    );
+
+    expect(isWikiSkillBenchmarkRunner(result.runner)).toBe(true);
+    expect(result.runner.descriptor.handlerArtifactDigest).toBe(
+      fixture.descriptor.moduleDigest,
+    );
+    expect(
+      Object.values({
+        datasetProvider: result.executionManifest.datasetProvider,
+        runner: result.executionManifest.runner,
+        grader: result.executionManifest.grader,
+        reportAttestor: result.executionManifest.reportAttestor,
+      }).every(
+        (authority) =>
+          authority.handlerArtifactDigest === fixture.descriptor.moduleDigest,
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a Benchmark callable that claims bytes outside the signed module", async () => {
+    const fixture = deploymentFixture({ commands: ["evolution"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("evolution", {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({ factories }) => ({
+            runner: factories.createWikiSkillBenchmarkRunner({
+              descriptor: {
+                authorityId: "authority:runner",
+                revision: 1,
+                handlerArtifactDigest: computeEvolutionDeploymentDigest(
+                  Buffer.from("substituted module"),
+                ),
+              },
+              run: async () => ({}),
+              verifyAttestation: async () => true,
+            }),
+          }),
+        }),
+      }),
+    ).rejects.toThrow("authenticated deployment module digest");
   });
 
   it("admits desktop only through a signed descriptor and caller-owned factory", async () => {
