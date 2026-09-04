@@ -326,14 +326,30 @@ export function createEvolutionTrainStageReceipt(input = {}) {
   });
 }
 
-function validateReceipt(receipt, expected) {
+export function verifyEvolutionTrainStageReceipt(receipt) {
   if (!receipt || receipt.schema !== EVOLUTION_TRAIN_RECEIPT_SCHEMA)
-    throw new Error(`${expected.stage} did not return a canonical receipt`);
+    throw new Error("value is not a canonical release train stage receipt");
   const core = Object.fromEntries(
     Object.entries(receipt).filter(([key]) => key !== "receiptDigest"),
   );
   if (hash(EVOLUTION_TRAIN_RECEIPT_SCHEMA, core) !== receipt.receiptDigest)
-    throw new Error(`${expected.stage} receipt digest mismatch`);
+    throw new Error("release train stage receipt digest mismatch");
+  if (!EVOLUTION_RELEASE_TRAIN_STAGES.includes(receipt.stage))
+    throw new Error("release train stage receipt stage is invalid");
+  if (receipt.accepted !== true || receipt.durable !== true)
+    throw new Error("release train stage receipt is not accepted and durable");
+  normalizeBudget(receipt.usage, "release train stage receipt usage");
+  return receipt;
+}
+
+function validateReceipt(receipt, expected) {
+  try {
+    verifyEvolutionTrainStageReceipt(receipt);
+  } catch (error) {
+    throw new Error(`${expected.stage} did not return a canonical receipt`, {
+      cause: error,
+    });
+  }
   for (const field of ["planDigest", "stage", "operationKey", "inputDigest"]) {
     if (receipt[field] !== expected[field])
       throw new Error(`${expected.stage} receipt ${field} mismatch`);
@@ -375,12 +391,17 @@ function makeState({ planDigest, receipts }) {
   });
 }
 
-function validateState(state, plan) {
-  if (state === null) return null;
+export function verifyEvolutionReleaseTrainState(
+  state,
+  { planDigest = null, allowNull = false } = {},
+) {
+  if (state === null && allowNull) return null;
+  if (state === null) throw new Error("release train state is invalid");
   if (
     !state ||
     state.schema !== EVOLUTION_TRAIN_STATE_SCHEMA ||
-    state.planDigest !== plan.planDigest
+    !DIGEST.test(state.planDigest ?? "") ||
+    (planDigest !== null && state.planDigest !== planDigest)
   )
     throw new Error("release train state is invalid");
   const core = Object.fromEntries(
@@ -396,6 +417,7 @@ function validateState(state, plan) {
     state.outputDigests.length !== state.stageIndex
   )
     throw new Error("release train state progression is invalid");
+  normalizeBudget(state.usage, "release train state usage");
   return state;
 }
 
@@ -446,7 +468,10 @@ export function createEvolutionReleaseTrain({
     async run() {
       if (Number(clock()) >= Date.parse(plan.expiresAt))
         throw new Error("EvolutionPlan has expired");
-      let state = validateState(await stateStore.load(plan.planDigest), plan);
+      let state = verifyEvolutionReleaseTrainState(
+        await stateStore.load(plan.planDigest),
+        { planDigest: plan.planDigest, allowNull: true },
+      );
       const receipts = [];
       if (state) {
         for (let index = 0; index < state.stageIndex; index += 1) {
