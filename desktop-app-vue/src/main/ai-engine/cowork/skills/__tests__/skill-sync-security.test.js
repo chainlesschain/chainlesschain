@@ -23,6 +23,15 @@ import {
   buildSkillSignatureLock,
 } from "../skill-execution-security.js";
 import { registerSkillSyncIPC } from "../skill-sync-ipc.js";
+const artifactProtocol = require("@chainlesschain/session-core/evolvable-artifact");
+
+const {
+  ARTIFACT_TYPE,
+  EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+  createEvolvableArtifactPolicy,
+  createEvolvableArtifactAuthority,
+  createEvolvableArtifactCandidateGate,
+} = artifactProtocol;
 
 const CANDIDATE_ID = `sha256:${"c".repeat(64)}`;
 
@@ -59,6 +68,41 @@ function candidateStore({ receipt = {}, readback = {}, onCreate } = {}) {
     read: vi.fn(async (candidateId) => records.get(candidateId) || null),
   };
   return store;
+}
+
+function unifiedSkillCandidateGate(onPersist = () => {}) {
+  const revision = "skill-sync-policy-v1";
+  const allow = () => ({ decision: "allow", policyRevision: revision });
+  const authority = createEvolvableArtifactAuthority({
+    tenantId: "tenant-a",
+    policy: createEvolvableArtifactPolicy({
+      type: ARTIFACT_TYPE.SKILL,
+      revision,
+      admission: allow,
+      evaluator: allow,
+      activation: allow,
+      rollback: allow,
+    }),
+  });
+  return createEvolvableArtifactCandidateGate({
+    authority,
+    candidateWriter: {
+      async persistCandidate(artifact, content) {
+        onPersist(artifact, content);
+        return {
+          schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
+          tenantId: artifact.tenantId,
+          type: artifact.type,
+          artifactId: artifact.artifactId,
+          candidateId: artifact.candidate.candidateId,
+          contentDigest: artifact.contentDigest,
+          artifactDigest: artifact.artifactDigest,
+          status: "candidate",
+          persisted: true,
+        };
+      },
+    },
+  });
 }
 
 function stagedImportResult(overrides = {}) {
@@ -232,6 +276,39 @@ describe("SkillSyncManager package boundary", () => {
 
     await expect(manager.importSkill(makePackage())).rejects.toMatchObject({
       code: "CC_SKILL_SYNC_CANDIDATE_STORE_UNAVAILABLE",
+    });
+    expect(fs.existsSync(managedDir)).toBe(false);
+  });
+
+  it("can route the legacy sync import through the shared Skill artifact gate", async () => {
+    const persisted = vi.fn();
+    const manager = new SkillSyncManager({
+      skillRegistry: registry(),
+      managedDir,
+      artifactCandidateGate: unifiedSkillCandidateGate(persisted),
+    });
+    const result = await manager.importSkill(makePackage());
+
+    expect(result).toMatchObject({
+      action: "candidate-staged",
+      candidateOnly: true,
+      activeMutation: false,
+      hotLoaded: false,
+      reloadRequired: false,
+    });
+    expect(result.candidateId).toBe(result.sourceDigest);
+    expect(result.persistenceReceipt.persisted).toBe(true);
+    expect(persisted).toHaveBeenCalledOnce();
+    expect(persisted.mock.calls[0][0]).toMatchObject({
+      tenantId: "tenant-a",
+      type: "skill",
+      artifactId: "skill:portable-skill",
+      release: null,
+      activeReleaseId: null,
+    });
+    expect(persisted.mock.calls[0][1]).toMatchObject({
+      format: SKILL_PACKAGE_FORMAT,
+      metadata: { skillId: "portable-skill" },
     });
     expect(fs.existsSync(managedDir)).toBe(false);
   });

@@ -24,6 +24,11 @@ const {
   normalizeCapabilities,
   preflightSkillPath,
 } = require("./skill-execution-security");
+const {
+  ARTIFACT_TYPE,
+  digestEvolvableArtifactValue,
+  isEvolvableArtifactCandidateGate,
+} = require("@chainlesschain/session-core/evolvable-artifact");
 
 const SKILL_PACKAGE_FORMAT = "chainlesschain-skill-v2";
 const MAX_SKILL_MD_BYTES = 256 * 1024;
@@ -324,6 +329,9 @@ class SkillSyncManager extends EventEmitter {
    * @param {string} [options.managedDir] - Path to managed skills directory
    * @param {{create: Function, read: Function}} [options.candidateStore]
    * Host-owned durable candidate-only store. It has no active-layer authority.
+   * @param {Object} [options.artifactCandidateGate]
+   * Branded shared EvolvableArtifact candidate boundary. Preferred over the
+   * legacy Skill-only store when supplied by the deployment composition.
    */
   constructor(options = {}) {
     super();
@@ -336,6 +344,26 @@ class SkillSyncManager extends EventEmitter {
       typeof options.candidateStore.create === "function" &&
       typeof options.candidateStore.read === "function"
         ? options.candidateStore
+        : null;
+    if (
+      options.artifactCandidateGate != null &&
+      !isEvolvableArtifactCandidateGate(
+        options.artifactCandidateGate,
+        ARTIFACT_TYPE.SKILL,
+      )
+    ) {
+      throw new TypeError(
+        "SkillSyncManager requires a branded Skill EvolvableArtifact candidate gate",
+      );
+    }
+    this.artifactCandidateGate = options.artifactCandidateGate || null;
+    this.resolveArtifactDependencies =
+      typeof options.resolveArtifactDependencies === "function"
+        ? options.resolveArtifactDependencies
+        : null;
+    this.resolveArtifactBase =
+      typeof options.resolveArtifactBase === "function"
+        ? options.resolveArtifactBase
         : null;
 
     // Sync state
@@ -578,7 +606,7 @@ class SkillSyncManager extends EventEmitter {
       }
     }
 
-    if (!this.candidateStore) {
+    if (!this.candidateStore && !this.artifactCandidateGate) {
       const error = new Error(
         "Skill sync candidate store is unavailable; active import is denied",
       );
@@ -597,6 +625,123 @@ class SkillSyncManager extends EventEmitter {
       exportedFrom,
     });
     const sourceDigest = packageEnvelopeDigest(candidatePackage);
+
+    if (this.artifactCandidateGate) {
+      const declaredDependencies = parsedDefinition.dependencies || [];
+      if (
+        declaredDependencies.length > 0 &&
+        !this.resolveArtifactDependencies
+      ) {
+        throw syncError(
+          "CC_SKILL_SYNC_DEPENDENCY_LOCK_UNAVAILABLE",
+          "Skill import dependencies require a trusted release resolver",
+        );
+      }
+      const dependencies = this.resolveArtifactDependencies
+        ? await this.resolveArtifactDependencies({
+            skillId,
+            package: candidatePackage,
+            declaredDependencies: [...declaredDependencies],
+          })
+        : [];
+      if (!Array.isArray(dependencies)) {
+        throw syncError(
+          "CC_SKILL_SYNC_DEPENDENCY_LOCK_INVALID",
+          "Skill dependency resolver must return an array",
+        );
+      }
+      const dependencyEntries = [...dependencies].sort((a, b) =>
+        String(a.artifactId).localeCompare(String(b.artifactId)),
+      );
+      const dependencyLockBody = { dependencies: dependencyEntries };
+      const base = this.resolveArtifactBase
+        ? await this.resolveArtifactBase({
+            skillId,
+            package: candidatePackage,
+            existing: existing || null,
+          })
+        : { parent: null, lineage: [] };
+      if (!base || typeof base !== "object" || !Array.isArray(base.lineage)) {
+        throw syncError(
+          "CC_SKILL_SYNC_LINEAGE_INVALID",
+          "Skill artifact base resolver returned invalid lineage",
+        );
+      }
+      if (existing && !this.resolveArtifactBase) {
+        throw syncError(
+          "CC_SKILL_SYNC_LINEAGE_UNAVAILABLE",
+          "Replacing an existing Skill requires a trusted lineage resolver",
+        );
+      }
+      const runtimeManifestBody = {
+        executable: parsedDefinition.handler != null,
+        handlerDigest:
+          candidatePackage.handler == null
+            ? null
+            : digestEvolvableArtifactValue(candidatePackage.handler),
+        signatureLockDigest:
+          candidatePackage.signatureLock == null
+            ? null
+            : digestEvolvableArtifactValue(candidatePackage.signatureLock),
+        requires: parsedDefinition.requires || { bins: [], env: [] },
+      };
+      const permissionManifestBody = {
+        capabilities: [
+          ...(parsedDefinition.executionCapabilities || []),
+        ].sort(),
+      };
+      const staged = await this.artifactCandidateGate.stageCandidate(
+        {
+          tenantId: this.artifactCandidateGate.tenantId,
+          artifactId: `skill:${skillId}`,
+          candidateId: sourceDigest,
+          type: ARTIFACT_TYPE.SKILL,
+          contentDigest: sourceDigest,
+          parent: base.parent ?? null,
+          lineage: [...base.lineage, sourceDigest],
+          dependencyLock: {
+            ...dependencyLockBody,
+            digest: digestEvolvableArtifactValue(dependencyLockBody),
+          },
+          runtimeManifest: {
+            ...runtimeManifestBody,
+            digest: digestEvolvableArtifactValue(runtimeManifestBody),
+          },
+          permissionManifest: {
+            ...permissionManifestBody,
+            digest: digestEvolvableArtifactValue(permissionManifestBody),
+          },
+          activeReleaseId: base.activeReleaseId ?? null,
+          lastKnownGoodReleaseId: base.lastKnownGoodReleaseId ?? null,
+        },
+        candidatePackage,
+      );
+
+      this.emit("skill-candidate-staged", {
+        skillId,
+        candidateId: staged.artifact.candidate.candidateId,
+        from: exportedFrom,
+        trust: CANDIDATE_TRUST,
+        quarantined: true,
+      });
+      return {
+        skillId,
+        action: "candidate-staged",
+        version: normalizedMetadata.version,
+        candidateId: staged.artifact.candidate.candidateId,
+        sourceDigest,
+        artifactDigest: staged.artifact.artifactDigest,
+        persistenceReceipt: staged.receipt,
+        candidateOnly: true,
+        persisted: true,
+        trust: CANDIDATE_TRUST,
+        quarantined: true,
+        activeMutation: false,
+        hotLoaded: false,
+        reloadRequired: false,
+      };
+    }
+
     const expectedReceipt = Object.freeze({
       schema: CANDIDATE_RECORD_SCHEMA,
       version: CANDIDATE_RECORD_VERSION,

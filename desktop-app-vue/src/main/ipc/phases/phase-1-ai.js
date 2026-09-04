@@ -173,6 +173,11 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
 
       const skillSyncManager = new SkillSyncManager({
         skillRegistry: getSkillRegistry(),
+        artifactCandidateGate:
+          deps.evolvableArtifactSkillCandidateGate || undefined,
+        resolveArtifactDependencies:
+          deps.resolveSkillArtifactDependencies || undefined,
+        resolveArtifactBase: deps.resolveSkillArtifactBase || undefined,
       });
       registerSkillSyncIPC({ syncManager: skillSyncManager });
     },

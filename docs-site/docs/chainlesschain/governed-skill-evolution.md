@@ -203,7 +203,7 @@ if ($LASTEXITCODE -ne 0) {
 - Wiki/Memory/review：CAS、幂等恢复、四层 authority、PostCompact、人工 quorum 与 content-risk acknowledgement。
 - Migration/transition：旧 candidate/release/state ledger journal、启动 reconciliation、故障阶段恢复和 durable registry request/attempt/settlement。
 - Desktop：Skill Creator candidate-only、Skill Sync candidate store、Phase 16 metrics wiring 与 legacy simulator 退役。
-- Typed artifacts：共享 Skill/Prompt/Hook/Knowledge schema、类型隔离 policy/authority、Prompt/Hook candidate gate、Hook 高风险硬门与依赖 stale 级联；Skill Sync/knowledge 统一 adapter 尚待接线。
+- Typed artifacts：共享 Skill/Prompt/Hook/Knowledge schema、类型隔离 policy/authority、Prompt/Hook candidate gate、Hook 高风险硬门与依赖 stale 级联；Skill Sync 已支持部署方注入共享 Skill gate，旧 Skill-only store 兼容路径与 knowledge 统一 adapter 尚待收口。
 - Workbench/Retrieval：候选比较、陈旧 revision、批准/拒绝/回滚、canonical digest、索引 witness、来源过滤与 verified outcome 排序。
 - Governed knowledge：密文冲突删节、认证 merge plan、Ed25519/AES-256-GCM、撤销依赖结算、响应丢失和进程重启恢复。
 - 路径安全：canonical ancestor alias、leaf link、父目录逃逸与 marketplace fail-closed 路径。
