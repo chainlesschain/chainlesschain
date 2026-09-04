@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildWikiSkillBenchmarkReport,
   createWikiSkillBenchmarkPlan,
+  executeWikiSkillBenchmark,
   projectWikiSkillBenchmarkClaim,
   signWikiSkillBenchmarkReport,
 } from "../../src/lib/evolution/wikiskill-benchmark.js";
@@ -105,6 +106,58 @@ describe("WikiSkill reproducible benchmark truth gate", () => {
     expect(report.metrics.latencyMs.p99).toBeGreaterThan(100);
     expect(report.failureCounts.tool).toBe(1);
     expect(report.reportDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
+  it("runs every no-skill/skill pair from zero with the exact preregistered inputs", async () => {
+    const plan = makePlan();
+    const requests = [];
+    const report = await executeWikiSkillBenchmark({
+      plan,
+      runner: async (request) => {
+        requests.push(request);
+        return arm(
+          `${request.seed}-${request.dataset.id}-${request.dataset.splitId}-${request.arm}`,
+          request.arm === "skill" ? 0.75 : 0.5,
+        );
+      },
+    });
+
+    expect(requests).toHaveLength(60);
+    expect(requests[0]).toMatchObject({
+      planDigest: plan.planDigest,
+      seed: 11,
+      arm: "no-skill",
+      skillDigest: null,
+      wikiDigest: null,
+    });
+    expect(requests[1]).toMatchObject({
+      planDigest: plan.planDigest,
+      seed: 11,
+      arm: "skill",
+      skillDigest: plan.skillDigest,
+      wikiDigest: plan.wikiDigest,
+    });
+    expect(report.runCount).toBe(3);
+    expect(report.metrics.delta).toBe(0.25);
+  });
+
+  it("does not emit a report when the external runner returns incomplete evidence", async () => {
+    const plan = makePlan();
+    await expect(
+      executeWikiSkillBenchmark({
+        plan,
+        runner: async (request) => {
+          const result = arm(
+            "incomplete",
+            request.arm === "skill" ? 0.75 : 0.5,
+          );
+          if (request.seed === 22 && request.arm === "skill") {
+            delete result.graderReceiptDigest;
+          }
+          return result;
+        },
+      }),
+    ).rejects.toThrow("unexpected or missing fields");
   });
 
   it("fails closed when a run omits a split or reuses a seed", () => {

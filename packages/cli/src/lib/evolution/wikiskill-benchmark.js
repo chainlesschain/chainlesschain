@@ -383,6 +383,74 @@ export function buildWikiSkillBenchmarkReport({ plan, runs } = {}) {
   });
 }
 
+export async function executeWikiSkillBenchmark({ plan, runner } = {}) {
+  if (
+    !plan ||
+    plan.schema !== WIKISKILL_BENCHMARK_PLAN_SCHEMA ||
+    !DIGEST.test(plan.planDigest ?? "")
+  )
+    throw new TypeError("a canonical benchmark plan is required");
+  if (typeof runner !== "function")
+    throw new TypeError("benchmark runner is required");
+  const runs = [];
+  for (const seed of plan.seedSchedule) {
+    const cases = [];
+    for (const dataset of plan.datasets) {
+      for (const splitId of dataset.splitIds) {
+        const common = Object.freeze({
+          planDigest: plan.planDigest,
+          seed,
+          dataset: Object.freeze({
+            id: dataset.id,
+            version: dataset.version,
+            digest: dataset.digest,
+            splitId,
+            splitDigest: dataset.splitDigest,
+          }),
+          model: plan.model,
+          inference: plan.inference,
+          environment: plan.environment,
+          toolDigest: plan.toolDigest,
+          apiDigest: plan.apiDigest,
+          promptDigest: plan.promptDigest,
+          runnerDigest: plan.runnerDigest,
+        });
+        const baseline = await runner(
+          Object.freeze({
+            ...common,
+            arm: "no-skill",
+            skillDigest: null,
+            wikiDigest: null,
+          }),
+        );
+        const skill = await runner(
+          Object.freeze({
+            ...common,
+            arm: "skill",
+            skillDigest: plan.skillDigest,
+            wikiDigest: plan.wikiDigest,
+          }),
+        );
+        cases.push({
+          datasetId: dataset.id,
+          splitId,
+          baseline,
+          skill,
+        });
+      }
+    }
+    runs.push({
+      runId: digest(WIKISKILL_BENCHMARK_REPORT_SCHEMA, {
+        planDigest: plan.planDigest,
+        seed,
+      }),
+      seed,
+      cases,
+    });
+  }
+  return buildWikiSkillBenchmarkReport({ plan, runs });
+}
+
 export async function signWikiSkillBenchmarkReport({ report, attestor } = {}) {
   if (
     !report ||

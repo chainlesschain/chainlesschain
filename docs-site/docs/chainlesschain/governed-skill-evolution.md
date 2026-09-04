@@ -72,6 +72,8 @@ Trajectory / Skill Creator / Skill Sync
 
 ## WikiSkill 论文数据怎么读
 
+> **Provenance：`external-paper-only / HOLD`。** 以下数字不得生成 ChainlessChain 产品性能声明；只有通过仓库 benchmark truth gate 的可信签名报告才能切换为 `chainlesschain-measured / VERIFIED`。
+
 以下数字来自 [WikiSkill 论文](https://arxiv.org/html/2608.27454) Table 1 的五个 benchmark 等权平均，是外部研究结果，不是 ChainlessChain 实测或性能承诺：
 
 | 模型                 | No skill | WikiSkill | 相对自身提升 | 相对 Qwen-3.6-27B No skill `39.4%` |
