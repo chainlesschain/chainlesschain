@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -87,6 +88,28 @@ async function moduleSnapshot(path, expectedDigest) {
   });
 }
 
+function moduleSnapshotSync(path, expectedDigest) {
+  const info = lstatSync(path);
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1)
+    throw new Error(
+      "evaluation target module is not a single-link regular file",
+    );
+  const physical = realpathSync(path);
+  const bytes = readFileSync(physical);
+  if (bytes.length < 1 || bytes.length > MAX_OUTPUT_BYTES)
+    throw new Error("evaluation target module exceeds 1 MiB");
+  if (sha(bytes) !== expectedDigest)
+    throw new Error(
+      "evaluation target module bytes differ from its descriptor",
+    );
+  return Object.freeze({
+    physical,
+    size: bytes.length,
+    digest: expectedDigest,
+    moduleUrl: `data:text/javascript;base64,${bytes.toString("base64")}`,
+  });
+}
+
 async function attest(core, purpose, authority) {
   const payloadDigest = buildEvolutionEvalAttestationDigest(core, purpose);
   const attestation = await authority({ purpose, payloadDigest });
@@ -158,7 +181,7 @@ function processResult(child, input) {
   });
 }
 
-export async function createEvolutionEvalProcessSupervisor({
+export function createEvolutionEvalProcessSupervisor({
   targets,
   authorityDescriptor,
   supervisorRevision,
@@ -170,6 +193,7 @@ export async function createEvolutionEvalProcessSupervisor({
   verifyEnforcement,
   clock = Date.now,
   spawnProcess = (...args) => executionBroker.spawn(...args),
+  fallbackSupervisor = null,
 } = {}) {
   if (!(targets instanceof Map) || targets.size < 1 || targets.size > 256)
     throw new TypeError("process supervisor targets must be a bounded Map");
@@ -204,7 +228,7 @@ export async function createEvolutionEvalProcessSupervisor({
     )
       throw new TypeError(`process target is invalid: ${handlerId}`);
     digest(entry.target.handlerArtifactDigest, "target handlerArtifactDigest");
-    const snapshot = await moduleSnapshot(
+    const snapshot = moduleSnapshotSync(
       resolve(entry.modulePath),
       entry.target.handlerArtifactDigest,
     );
@@ -218,6 +242,19 @@ export async function createEvolutionEvalProcessSupervisor({
     );
   }
   const active = new Map();
+  const processTargetDigests = new Set(
+    [...registry.values()].map(({ target }) =>
+      computeEvolutionEvalIsolatedTargetDigest(target),
+    ),
+  );
+  if (
+    fallbackSupervisor !== null &&
+    (!fallbackSupervisor ||
+      typeof fallbackSupervisor.run !== "function" ||
+      typeof fallbackSupervisor.invokeTarget !== "function" ||
+      typeof fallbackSupervisor.revokeTarget !== "function")
+  )
+    throw new TypeError("fallbackSupervisor contract is invalid");
 
   async function invocationEvidence(request, target, result, invokedAt) {
     const core = {
@@ -244,6 +281,10 @@ export async function createEvolutionEvalProcessSupervisor({
   }
 
   async function revokeTarget(request) {
+    if (!processTargetDigests.has(request.targetDigest)) {
+      if (fallbackSupervisor) return fallbackSupervisor.revokeTarget(request);
+      throw new Error("evaluation revocation target is not registered");
+    }
     const running = active.get(request.capabilityDigest);
     const wasActive = Boolean(running);
     if (request.mode === "hard-terminate" && running) {
@@ -278,7 +319,11 @@ export async function createEvolutionEvalProcessSupervisor({
 
   async function invokeTarget(request) {
     const entry = registry.get(request?.target?.handlerId);
-    if (!entry || canonical(entry.target) !== canonical(request.target))
+    if (!entry) {
+      if (fallbackSupervisor) return fallbackSupervisor.invokeTarget(request);
+      throw new Error("evaluation target is not in the process registry");
+    }
+    if (canonical(entry.target) !== canonical(request.target))
       throw new Error(
         "evaluation target is not in the captured process registry",
       );
@@ -369,6 +414,11 @@ export async function createEvolutionEvalProcessSupervisor({
     revokeTarget,
     verifyEnforcement,
     async run(request, capability) {
+      if (!registry.has(request.targetHandlerId)) {
+        if (fallbackSupervisor)
+          return fallbackSupervisor.run(request, capability);
+        throw new Error("evaluation supervision target is not registered");
+      }
       const remaining =
         new Date(request.deadlineAt).getTime() -
         new Date(timestamp(clock)).getTime();

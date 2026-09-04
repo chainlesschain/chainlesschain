@@ -1,4 +1,8 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
+import { spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 
 import { describe, expect, it, vi } from "vitest";
@@ -49,6 +53,7 @@ import {
   verifyEvolutionEvalSuite,
   verifyEvolutionEvalTask,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
+import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 
 const CANDIDATE_ID = `sha256:${"c".repeat(64)}`;
 const BASELINE_ID = `sha256:${"b".repeat(64)}`;
@@ -1071,6 +1076,8 @@ function makeHarness({
   trustedClockPortOverride = null,
   terminationResponseDelayMs = 0,
   completedResponseDelayMs = 0,
+  executorTargetTransform = null,
+  deadlineSupervisorFactory = null,
 } = {}) {
   let clockMilliseconds = new Date(FIXED_TIME).getTime();
   const crypto = makeAttestationAuthority({
@@ -1447,12 +1454,14 @@ function makeHarness({
     executorLimitsOverride,
     executionExpiresAtOverride,
   });
-  const executorTarget = isolatedTarget({
+  let executorTarget = isolatedTarget({
     handlerId: "sandbox-executor",
     handlerRevision: crypto.revisions.execution,
     operation: "sandbox-execute",
     authority: crypto.trusts.execution,
   });
+  if (executorTargetTransform)
+    executorTarget = Object.freeze(executorTargetTransform(executorTarget));
   registerTarget(executorTarget, executor.execute);
   const executorPort = targetPort("execute", executorTarget);
 
@@ -1624,7 +1633,7 @@ function makeHarness({
     "verify",
     attestationVerifierTarget,
   );
-  const deadlineSupervisor = makeDeadlineSupervisor({
+  const fallbackDeadlineSupervisor = makeDeadlineSupervisor({
     crypto,
     clock,
     targetRegistry,
@@ -1637,6 +1646,15 @@ function makeHarness({
     terminationResponseDelayMs,
     completedResponseDelayMs,
   });
+  const deadlineSupervisor = deadlineSupervisorFactory
+    ? deadlineSupervisorFactory({
+        fallbackSupervisor: fallbackDeadlineSupervisor,
+        executorTarget,
+        crypto,
+        clock,
+        authorityPolicies,
+      })
+    : fallbackDeadlineSupervisor;
   if (supervisorCallableAlias) {
     deadlineSupervisor[supervisorCallableAlias.target] =
       deadlineSupervisor[supervisorCallableAlias.source];
@@ -3303,6 +3321,71 @@ describe("Evolution Eval Gate P0 foundation", () => {
     );
     expect(harness.ports.suiteVerifier.resolveSuite).not.toHaveBeenCalled();
   });
+
+  it("routes a hanging executor through the production process supervisor and confirms hard-kill settlement", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-gate-process-supervisor-"));
+    const pidFile = join(root, "executor.pid");
+    const lateFile = join(root, "late.txt");
+    const source = [
+      'import { writeFile } from "node:fs/promises";',
+      "export async function execute(request) {",
+      `  await writeFile(${JSON.stringify(pidFile)}, String(process.pid));`,
+      "  await new Promise((resolve) => setTimeout(resolve, 3000));",
+      `  await writeFile(${JSON.stringify(lateFile)}, "late");`,
+      "  return request;",
+      "}",
+    ].join("\n");
+    const modulePath = join(root, "executor.mjs");
+    writeFileSync(modulePath, source);
+    const handlerArtifactDigest = `sha256:${createHash("sha256")
+      .update(source)
+      .digest("hex")}`;
+    const harness = makeHarness({
+      ...targetedHangingOptions(),
+      executorTargetTransform: (target) => ({
+        ...target,
+        isolation: "process",
+        handlerArtifactDigest,
+      }),
+      deadlineSupervisorFactory: ({
+        fallbackSupervisor,
+        executorTarget,
+        crypto,
+        clock,
+      }) =>
+        createEvolutionEvalProcessSupervisor({
+          targets: new Map([
+            [
+              executorTarget.handlerId,
+              { target: executorTarget, modulePath, exportName: "execute" },
+            ],
+          ]),
+          authorityDescriptor: fallbackSupervisor.authorityDescriptor,
+          supervisorRevision: crypto.revisions.supervisor,
+          invocationRevision: crypto.revisions.invocationEvidence,
+          revocationRevision: crypto.revisions.revocationEvidence,
+          attestSupervisor: (request) =>
+            crypto.signers.supervisor.sign(request),
+          attestInvocation: (request) =>
+            crypto.signers.invocationEvidence.sign(request),
+          attestRevocation: (request) =>
+            crypto.signers.revocationEvidence.sign(request),
+          verifyEnforcement: crypto.verifyEnforcement,
+          clock,
+          spawnProcess: spawn,
+          fallbackSupervisor,
+        }),
+    });
+
+    await expect(
+      runEvolutionEvalGate(harness.gate, RUN_REQUEST),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_EXECUTION_FAILED_CODE });
+    const childPid = Number(readFileSync(pidFile, "utf8"));
+    expect(() => process.kill(childPid, 0)).toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 2_100));
+    expect(() => readFileSync(lateFile, "utf8")).toThrow();
+    expect(harness.ports.executor.execute).not.toHaveBeenCalled();
+  }, 15_000);
 
   it.each([
     ["suite attestation verifier", EVOLUTION_EVAL_ATTESTATION_PURPOSES.suite],
