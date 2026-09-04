@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const WIKISKILL_BENCHMARK_PLAN_SCHEMA =
-  "chainlesschain.wikiskill-benchmark-plan/v1";
+  "chainlesschain.wikiskill-benchmark-plan/v2";
 export const WIKISKILL_BENCHMARK_REPORT_SCHEMA =
   "chainlesschain.wikiskill-benchmark-report/v1";
 export const WIKISKILL_BENCHMARK_ENVELOPE_SCHEMA =
@@ -102,6 +102,7 @@ export function createWikiSkillBenchmarkPlan(input = {}) {
     [
       "gitCommit",
       "runnerDigest",
+      "executionManifestDigest",
       "model",
       "inference",
       "environment",
@@ -150,6 +151,10 @@ export function createWikiSkillBenchmarkPlan(input = {}) {
     schema: WIKISKILL_BENCHMARK_PLAN_SCHEMA,
     gitCommit,
     runnerDigest: sha(input.runnerDigest, "runnerDigest"),
+    executionManifestDigest: sha(
+      input.executionManifestDigest,
+      "executionManifestDigest",
+    ),
     model: Object.freeze({
       checkpoint: string(input.model.checkpoint, "model checkpoint"),
       digest: sha(input.model.digest, "model digest"),
@@ -185,6 +190,7 @@ export function verifyWikiSkillBenchmarkPlan(plan) {
       "schema",
       "gitCommit",
       "runnerDigest",
+      "executionManifestDigest",
       "model",
       "inference",
       "environment",
@@ -205,6 +211,7 @@ export function verifyWikiSkillBenchmarkPlan(plan) {
   const recreated = createWikiSkillBenchmarkPlan({
     gitCommit: plan.gitCommit,
     runnerDigest: plan.runnerDigest,
+    executionManifestDigest: plan.executionManifestDigest,
     model: plan.model,
     inference: plan.inference,
     environment: plan.environment,
@@ -437,7 +444,10 @@ export function verifyWikiSkillBenchmarkReport({ plan, report } = {}) {
   return recreated;
 }
 
-export async function executeWikiSkillBenchmark({ plan, runner } = {}) {
+export async function executeWikiSkillBenchmarkProtocolFixture({
+  plan,
+  runner,
+} = {}) {
   if (
     !plan ||
     plan.schema !== WIKISKILL_BENCHMARK_PLAN_SCHEMA ||

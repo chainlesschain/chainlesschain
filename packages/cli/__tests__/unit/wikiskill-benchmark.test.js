@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildWikiSkillBenchmarkReport,
   createWikiSkillBenchmarkPlan,
-  executeWikiSkillBenchmark,
+  executeWikiSkillBenchmarkProtocolFixture,
   projectWikiSkillBenchmarkClaim,
   signWikiSkillBenchmarkReport,
   verifyWikiSkillBenchmarkPlan,
@@ -18,6 +18,7 @@ function makePlan() {
   return createWikiSkillBenchmarkPlan({
     gitCommit: "a".repeat(40),
     runnerDigest: D("runner"),
+    executionManifestDigest: D("execution-manifest"),
     model: { checkpoint: "example/model@revision", digest: D("model") },
     inference: { temperature: 0, topP: 1, maxTokens: 1024 },
     environment: {
@@ -113,7 +114,7 @@ describe("WikiSkill reproducible benchmark truth gate", () => {
   it("runs every no-skill/skill pair from zero with the exact preregistered inputs", async () => {
     const plan = makePlan();
     const requests = [];
-    const report = await executeWikiSkillBenchmark({
+    const report = await executeWikiSkillBenchmarkProtocolFixture({
       plan,
       runner: async (request) => {
         requests.push(request);
@@ -146,7 +147,7 @@ describe("WikiSkill reproducible benchmark truth gate", () => {
   it("does not emit a report when the external runner returns incomplete evidence", async () => {
     const plan = makePlan();
     await expect(
-      executeWikiSkillBenchmark({
+      executeWikiSkillBenchmarkProtocolFixture({
         plan,
         runner: async (request) => {
           const result = arm(

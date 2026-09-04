@@ -13,6 +13,10 @@ import {
   verifyWikiSkillBenchmarkPlan,
   verifyWikiSkillBenchmarkReport,
 } from "./wikiskill-benchmark.js";
+import {
+  verifyWikiSkillBenchmarkExecutionBinding,
+  verifyWikiSkillBenchmarkExecutionManifest,
+} from "./wikiskill-benchmark-execution-host.js";
 
 export const WIKISKILL_BENCHMARK_BUNDLE_SCHEMA =
   "chainlesschain.wikiskill-benchmark-bundle/v1";
@@ -274,8 +278,10 @@ export class WikiSkillBenchmarkLedgerAdapter {
         "tenantId",
         "skillName",
         "planDigest",
+        "executionManifestDigest",
         "reportDigest",
         "planRef",
+        "executionManifestRef",
         "chunks",
         "reportBytes",
         "reportBytesDigest",
@@ -292,6 +298,7 @@ export class WikiSkillBenchmarkLedgerAdapter {
       manifest.skillName !== this.descriptor.skillName ||
       manifest.reportDigest !== reportDigest ||
       !DIGEST.test(manifest.planDigest ?? "") ||
+      !DIGEST.test(manifest.executionManifestDigest ?? "") ||
       !DIGEST.test(manifest.reportBytesDigest ?? "") ||
       !DIGEST.test(manifest.manifestDigest ?? "") ||
       !Number.isSafeInteger(manifest.reportBytes) ||
@@ -326,6 +333,21 @@ export class WikiSkillBenchmarkLedgerAdapter {
         WIKISKILL_BENCHMARK_LEDGER_CORRUPT_CODE,
         "benchmark plan differs from its manifest",
       );
+    const executionManifest = verifyWikiSkillBenchmarkExecutionManifest(
+      this._artifact(
+        manifest.executionManifestRef,
+        "wikiskill-benchmark-execution-manifest",
+      ),
+    );
+    if (
+      executionManifest.manifestDigest !== manifest.executionManifestDigest ||
+      plan.executionManifestDigest !== executionManifest.manifestDigest
+    )
+      fail(
+        WIKISKILL_BENCHMARK_LEDGER_CORRUPT_CODE,
+        "benchmark execution manifest differs from its plan",
+      );
+    verifyWikiSkillBenchmarkExecutionBinding({ plan, executionManifest });
     const buffers = manifest.chunks.map((entry, index) => {
       exact(
         entry,
@@ -417,20 +439,32 @@ export class WikiSkillBenchmarkLedgerAdapter {
       );
     return Object.freeze({
       plan,
+      executionManifest,
       envelope,
       effectiveAt: manifest.effectiveAt,
       manifestDigest: manifest.manifestDigest,
     });
   }
 
-  async commit({ plan: planInput, envelope: envelopeInput, effectiveAt } = {}) {
+  async commit({
+    plan: planInput,
+    executionManifest: executionManifestInput,
+    envelope: envelopeInput,
+    effectiveAt,
+  } = {}) {
     const plan = verifyWikiSkillBenchmarkPlan(planInput);
+    const executionManifest = verifyWikiSkillBenchmarkExecutionManifest(
+      executionManifestInput,
+    );
+    verifyWikiSkillBenchmarkExecutionBinding({ plan, executionManifest });
     const envelope = await this._verifyEnvelope(plan, envelopeInput);
     const timestamp = new Date(effectiveAt).toISOString();
     const existing = await this.load(envelope.report.reportDigest);
     if (existing) {
       if (
         existing.plan.planDigest === plan.planDigest &&
+        existing.executionManifest.manifestDigest ===
+          executionManifest.manifestDigest &&
         canonical(existing.envelope) === canonical(envelope)
       ) {
         return Object.freeze({
@@ -452,6 +486,12 @@ export class WikiSkillBenchmarkLedgerAdapter {
       this._put,
       "wikiskill-benchmark-plan",
       plan,
+      this.descriptor,
+    );
+    const executionManifestRef = publish(
+      this._put,
+      "wikiskill-benchmark-execution-manifest",
+      executionManifest,
       this.descriptor,
     );
     const count = Math.ceil(reportBytes.length / REPORT_CHUNK_BYTES);
@@ -484,8 +524,10 @@ export class WikiSkillBenchmarkLedgerAdapter {
       tenantId: this.descriptor.tenantId,
       skillName: this.descriptor.skillName,
       planDigest: plan.planDigest,
+      executionManifestDigest: executionManifest.manifestDigest,
       reportDigest: envelope.report.reportDigest,
       planRef,
+      executionManifestRef,
       chunks,
       reportBytes: reportBytes.length,
       reportBytesDigest: sha(reportBytes),
@@ -516,7 +558,7 @@ export class WikiSkillBenchmarkLedgerAdapter {
           eventId,
           reason: "Signed WikiSkill benchmark bundle committed",
           skillName: this.descriptor.skillName,
-          sourceRefs: [planRef],
+          sourceRefs: [planRef, executionManifestRef],
           subjectRef: manifestRef,
           tenantId: this.descriptor.tenantId,
           timestamp,

@@ -18,6 +18,10 @@ import {
   signWikiSkillBenchmarkReport,
 } from "../../src/lib/evolution/wikiskill-benchmark.js";
 import {
+  computeWikiSkillBenchmarkExecutionDigest,
+  createWikiSkillBenchmarkExecutionManifest,
+} from "../../src/lib/evolution/wikiskill-benchmark-execution-host.js";
+import {
   WIKISKILL_BENCHMARK_LEDGER_EVENT,
   WikiSkillBenchmarkLedgerAdapter,
 } from "../../src/lib/evolution/wikiskill-benchmark-ledger-adapter.js";
@@ -41,17 +45,44 @@ function hash(value) {
     .digest("hex")}`;
 }
 
+function environment() {
+  return {
+    containerDigest: hash("container"),
+    vllmVersion: "0.10.1",
+    hardware: "gpu-example",
+  };
+}
+
+function executionManifest() {
+  const authority = (name) => ({
+    authorityId: `authority:benchmark-${name}`,
+    revision: 1,
+    handlerArtifactDigest: hash(`${name}-handler`),
+  });
+  return createWikiSkillBenchmarkExecutionManifest({
+    datasetProvider: authority("datasets"),
+    runner: {
+      authorityId: "authority:benchmark-runner",
+      revision: 1,
+      handlerArtifactDigest: hash("runner"),
+    },
+    grader: authority("grader"),
+    reportAttestor: authority("report"),
+    targetEnvironmentDigest: computeWikiSkillBenchmarkExecutionDigest(
+      "chainlesschain.wikiskill-benchmark-target-environment/v1",
+      environment(),
+    ),
+  });
+}
+
 function plan(splitCount = 2) {
   return createWikiSkillBenchmarkPlan({
     gitCommit: "a".repeat(40),
     runnerDigest: hash("runner"),
+    executionManifestDigest: executionManifest().manifestDigest,
     model: { checkpoint: "example/model@revision", digest: hash("model") },
     inference: { temperature: 0, topP: 1, maxTokens: 1024 },
-    environment: {
-      containerDigest: hash("container"),
-      vllmVersion: "0.10.1",
-      hardware: "gpu-example",
-    },
+    environment: environment(),
     datasets: Array.from({ length: 5 }, (_, index) => ({
       id: `dataset-${index}`,
       version: "1.0.0",
@@ -347,6 +378,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
     const firstBackend = createEvolutionLedgerFileBackend(backendOptions);
     await adapter({ ...value, ledger: firstBackend.ledger }).commit({
       plan: benchmarkPlan,
+      executionManifest: executionManifest(),
       envelope: signed,
       effectiveAt: "2026-09-05T00:00:00.000Z",
     });
@@ -374,6 +406,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
     await expect(
       adapter(first).commit({
         plan: benchmarkPlan,
+        executionManifest: executionManifest(),
         envelope: signed,
         effectiveAt: "2026-09-05T00:00:00.000Z",
       }),
@@ -405,6 +438,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
 
     const committed = await adapter(value).commit({
       plan: benchmarkPlan,
+      executionManifest: executionManifest(),
       envelope: await envelope(benchmarkReport),
       effectiveAt: "2026-09-05T00:00:00.000Z",
     });
@@ -425,6 +459,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
     await expect(
       adapter(value).commit({
         plan: benchmarkPlan,
+        executionManifest: executionManifest(),
         envelope: signed,
         effectiveAt: "2026-09-05T00:00:00.000Z",
       }),
@@ -433,6 +468,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
     await expect(
       adapter(storage(value)).commit({
         plan: benchmarkPlan,
+        executionManifest: executionManifest(),
         envelope: signed,
         effectiveAt: "2026-09-05T00:00:00.000Z",
       }),
@@ -452,6 +488,7 @@ describe("WikiSkillBenchmarkLedgerAdapter", () => {
     await expect(
       adapter(value).commit({
         plan: benchmarkPlan,
+        executionManifest: executionManifest(),
         envelope: forged,
         effectiveAt: "2026-09-05T00:00:00.000Z",
       }),

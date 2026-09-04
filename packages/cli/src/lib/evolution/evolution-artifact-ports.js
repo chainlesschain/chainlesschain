@@ -89,6 +89,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "wiki-revision",
   "wiki-skill-proposal",
   "wikiskill-benchmark-envelope-manifest",
+  "wikiskill-benchmark-execution-manifest",
   "wikiskill-benchmark-plan",
   "wikiskill-benchmark-report-chunk",
 ]);
@@ -151,6 +152,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "wiki-revision",
   "wiki-skill-proposal",
   "wikiskill-benchmark-envelope-manifest",
+  "wikiskill-benchmark-execution-manifest",
   "wikiskill-benchmark-plan",
   "wikiskill-benchmark-report-chunk",
   "skill-release-transition-intent",
@@ -351,6 +353,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["wiki-revision", new Set(["evolution-ledger"])],
   ["wiki-skill-proposal", new Set(["evolution-ledger"])],
   ["wikiskill-benchmark-envelope-manifest", new Set(["evolution-ledger"])],
+  ["wikiskill-benchmark-execution-manifest", new Set(["evolution-ledger"])],
   ["wikiskill-benchmark-plan", new Set(["evolution-ledger"])],
   ["wikiskill-benchmark-report-chunk", new Set(["evolution-ledger"])],
   ["structured-memory-authority-receipt", new Set(["evolution-ledger"])],

@@ -623,6 +623,7 @@ describe("EvolutionArtifactPorts", () => {
       "wiki-revision",
       "wiki-skill-proposal",
       "wikiskill-benchmark-envelope-manifest",
+      "wikiskill-benchmark-execution-manifest",
       "wikiskill-benchmark-plan",
       "wikiskill-benchmark-report-chunk",
     ]);
