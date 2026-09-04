@@ -81,5 +81,8 @@
   "ChainlessChain: managed CLI install failed ({0}: {1}).": "ChainlessChain：托管 CLI 安装失败（{0}：{1}）。",
   "ChainlessChain: no previous managed cc version to roll back to.": "ChainlessChain：没有可回滚的上一个托管 cc 版本。",
   "ChainlessChain: managed CLI rollback failed ({0}).": "ChainlessChain：托管 CLI 回滚失败（{0}）。",
-  "ChainlessChain: managed cc rolled back to {0}.": "ChainlessChain：托管 cc 已回滚到 {0}。"
+  "ChainlessChain: managed cc rolled back to {0}.": "ChainlessChain：托管 cc 已回滚到 {0}。",
+  "Evolution Workbench is unavailable because the installed CLI deployment has no governed Workbench host. No Workbench RPC was sent; review and rollback remain safely disabled.": "演化工作台不可用：已安装的 CLI 部署未配置受治理的工作台宿主。未发送任何工作台 RPC；审核和回滚仍保持安全禁用。",
+  "Evolution Workbench is unavailable because the installed CLI does not advertise the required list capability. No Workbench RPC was sent.": "演化工作台不可用：已安装的 CLI 未声明必需的 list 能力。未发送任何工作台 RPC。",
+  "Evolution Workbench requires the CC App Server pilot. Enable chainlesschain.appServer.pilot.enabled and try again.": "演化工作台需要启用 CC App Server 试点。请启用 chainlesschain.appServer.pilot.enabled 后重试。"
 }

@@ -1,6 +1,21 @@
 "use strict";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const UNAVAILABLE_MESSAGE =
+  "Evolution Workbench is unavailable because the installed CLI deployment has no governed Workbench host. " +
+  "No Workbench RPC was sent; review and rollback remain safely disabled.";
+const INCOMPATIBLE_MESSAGE =
+  "Evolution Workbench is unavailable because the installed CLI does not advertise the required list capability. " +
+  "No Workbench RPC was sent.";
+const PILOT_DISABLED_MESSAGE =
+  "Evolution Workbench requires the CC App Server pilot. Enable " +
+  "chainlesschain.appServer.pilot.enabled and try again.";
+
+function localize(vscode, message) {
+  return typeof vscode.l10n?.t === "function"
+    ? vscode.l10n.t(message)
+    : message;
+}
 
 function validateCandidate(value) {
   if (
@@ -126,9 +141,40 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
   if (typeof getPilot !== "function") {
     throw new TypeError("Evolution Workbench App Server provider is required");
   }
-  const pilot = await getPilot();
-  const projection = await pilot.evolutionWorkbenchList({ limit: 500 });
-  const candidates = validateList(projection);
+  let pilot;
+  try {
+    pilot = await getPilot();
+  } catch (error) {
+    if (error?.code !== "ERR_APP_SERVER_PILOT_DISABLED") throw error;
+    await vscode.window.showInformationMessage(
+      localize(vscode, PILOT_DISABLED_MESSAGE),
+    );
+    return null;
+  }
+  if (!pilot || typeof pilot.start !== "function") {
+    throw new TypeError("Evolution Workbench App Server pilot is invalid");
+  }
+  const capabilities = await pilot.start();
+  const workbench = capabilities?.evolutionWorkbench;
+  if (workbench?.available !== true) {
+    await vscode.window.showInformationMessage(
+      localize(vscode, UNAVAILABLE_MESSAGE),
+    );
+    return null;
+  }
+  if (
+    !Array.isArray(workbench.methods) ||
+    !workbench.methods.includes("list")
+  ) {
+    await vscode.window.showInformationMessage(
+      localize(vscode, INCOMPATIBLE_MESSAGE),
+    );
+    return null;
+  }
+  const methods = new Set(workbench.methods);
+  const candidates = validateList(
+    await pilot.evolutionWorkbenchList({ limit: 500 }),
+  );
   if (candidates.length === 0) {
     await vscode.window.showInformationMessage(
       "Evolution Workbench has no candidate versions.",
@@ -143,15 +189,16 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
   });
   if (!selected) return null;
   const actions = [{ label: "View evidence and diff", id: "details" }];
-  if (candidates.length > 1)
+  if (methods.has("compare") && candidates.length > 1)
     actions.push({ label: "Compare versions", id: "compare" });
-  if (selected.candidate.status === "pending") {
+  if (methods.has("review") && selected.candidate.status === "pending") {
     actions.push({ label: "Approve", id: "approve" });
     actions.push({ label: "Reject", id: "reject" });
   }
   if (
     selected.candidate.status === "approved" &&
     selected.candidate.actualUsage.active === false &&
+    methods.has("rollback") &&
     candidates.some(({ actualUsage }) => actualUsage.active)
   ) {
     actions.push({ label: "Roll back to this version", id: "rollback" });
@@ -192,6 +239,9 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
 }
 
 module.exports = {
+  EVOLUTION_WORKBENCH_INCOMPATIBLE_MESSAGE: INCOMPATIBLE_MESSAGE,
+  EVOLUTION_WORKBENCH_PILOT_DISABLED_MESSAGE: PILOT_DISABLED_MESSAGE,
+  EVOLUTION_WORKBENCH_UNAVAILABLE_MESSAGE: UNAVAILABLE_MESSAGE,
   openEvolutionWorkbench,
   validateEvolutionWorkbenchList: validateList,
 };
