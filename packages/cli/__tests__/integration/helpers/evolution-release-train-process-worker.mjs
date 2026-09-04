@@ -16,6 +16,7 @@ import {
   createEvolutionPilotStage,
   createEvolutionProposalStage,
   createEvolutionReviewStage,
+  createEvolutionWikiImpactStage,
   createEvolutionWikiMaintainStage,
 } from "../../../src/lib/evolution/evolution-release-train-domain-stages.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "../../../src/lib/evolution/evolution-release-train-ledger-adapter.js";
@@ -46,6 +47,13 @@ import {
   SKILL_PROMOTION_REVIEW_DECISION_SCHEMA,
   buildSkillPromotionReviewPacket,
 } from "../../../src/lib/evolution/skill-promotion-review.js";
+import {
+  SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
+  SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
+  SKILL_WIKI_TRANSITION_SCHEMA,
+  createSkillWikiReconciliationSource,
+  createSkillWikiReconciler,
+} from "../../../src/lib/evolution/skill-wiki-reconciliation.js";
 import {
   createProgressiveCanaryAssignmentAuthority,
   createProgressiveCanaryGateAuthority,
@@ -208,7 +216,12 @@ function candidateFromProposalInput(input) {
   );
 }
 
-function createMaintainer({ load, commit }) {
+function createMaintainer({
+  load,
+  commit,
+  evidenceResolver = (ref) => WIKI_EVIDENCE.get(ref),
+  deriver = null,
+}) {
   return new EvidenceBackedWikiMaintainer({
     descriptor: {
       tenantId: TENANT,
@@ -231,9 +244,10 @@ function createMaintainer({ load, commit }) {
         return { trusted: true, state, stateDigest: digestWikiState(state) };
       },
       async resolveEvidence(ref) {
-        return WIKI_EVIDENCE.get(ref);
+        return evidenceResolver(ref);
       },
-      async derive() {
+      async derive(input) {
+        if (deriver) return deriver(input);
         return {
           operations: [
             {
@@ -1044,6 +1058,188 @@ if (operation === "real-prefix-run") {
       usage: { tokens: 1, cost: 0, timeMs: 3, turns: 3 },
     })(context);
   };
+  const runPromotion = async (context) => {
+    const reviewRecord = outputLedger.load({
+      planDigest: selectedPlan.planDigest,
+      stage: "review",
+    });
+    const pilotRecord = outputLedger.load({
+      planDigest: selectedPlan.planDigest,
+      stage: "pilot",
+    });
+    if (!reviewRecord || !pilotRecord) {
+      throw new Error("Promotion requires durable Review and Pilot outputs");
+    }
+    fs.writeFileSync(
+      matrixRequestPath,
+      `${JSON.stringify({
+        mode: "promotion",
+        tenantId: TENANT,
+        skillName: SKILL,
+        candidate: reviewCandidate,
+        baselineReleaseDigest: null,
+        baselineContentDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+        baselineRevision: 0,
+        context,
+        reviewRecord,
+        pilotRecord,
+      })}\n`,
+      "utf8",
+    );
+    runMatrixTest();
+    const stageOutput = JSON.parse(
+      fs.readFileSync(path.join(root, "promotion-stage-output.json"), "utf8"),
+    );
+    if (
+      !outputLedger.load({
+        planDigest: selectedPlan.planDigest,
+        stage: "promotion",
+      })
+    ) {
+      const commitInput = structuredClone(stageOutput);
+      delete commitInput.valueDigest;
+      outputLedger.commit(commitInput);
+    }
+    return JSON.parse(
+      fs.readFileSync(path.join(root, "promotion-stage-receipt.json"), "utf8"),
+    );
+  };
+  const runWikiImpact = async (context) => {
+    const promotionRecord = outputLedger.load({
+      planDigest: selectedPlan.planDigest,
+      stage: "promotion",
+    });
+    if (!promotionRecord) {
+      throw new Error("Wiki impact requires the durable Promotion output");
+    }
+    const { release, state } = promotionRecord.value;
+    const streamId = "registry-real-train";
+    const transition = {
+      schema: SKILL_WIKI_TRANSITION_SCHEMA,
+      authenticated: true,
+      durable: true,
+      tenantId: TENANT,
+      streamId,
+      sequence: 1,
+      candidateId: release.candidateId,
+      skillName: release.skillName,
+      activeReleaseDigest: release.releaseDigest,
+      stateDigest: state.stateDigest ?? digest(state),
+      settlementDigest: digest({ release, state }),
+      occurredAt: NOW,
+      wikiRevision: `wiki:${digestWikiState(loadWikiState()).slice(7)}`,
+      sourceEvidenceRefs: [
+        {
+          ref: `skill-release://${TENANT}/${release.releaseDigest.slice(7)}`,
+          digest: release.releaseDigest,
+        },
+      ],
+      sourceReceiptDigest: digest({
+        releaseDigest: release.releaseDigest,
+        revision: state.revision,
+      }),
+    };
+    const source = createSkillWikiReconciliationSource({
+      tenantId: TENANT,
+      streamId,
+      readTransitions: () => [transition],
+    });
+    const retainedEvidence = new Map();
+    const impactMaintainer = createMaintainer({
+      load: loadWikiState,
+      commit: commitWikiState,
+      evidenceResolver: (ref) =>
+        retainedEvidence.get(ref) ?? WIKI_EVIDENCE.get(ref),
+      deriver: ({ evidence }) => {
+        const proposalDecision = evidence.find(
+          (item) => item.kind === "proposal-decision",
+        );
+        if (!proposalDecision) {
+          throw new Error("Wiki impact requires proposal-decision evidence");
+        }
+        return {
+          operations: [
+            {
+              type: "proposal-impact",
+              decision: {
+                ...proposalDecision.data.decision,
+                receiptRef: proposalDecision.ref,
+              },
+            },
+          ],
+        };
+      },
+    });
+    const checkpointPath = path.join(root, "wiki-impact-checkpoint.json");
+    const reconciler = createSkillWikiReconciler({
+      source,
+      maintainer: impactMaintainer,
+      ports: {
+        async resolveImpact(item) {
+          return {
+            schema: SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: TENANT,
+            transitionDigest: item.transitionDigest,
+            candidateId: item.candidateId,
+            skillName: item.skillName,
+            wikiRevision: item.wikiRevision,
+            patternRefs: ["pat-safe-refactor"],
+            reason: "The evaluated candidate became the active release.",
+            receiptDigest: digest({
+              transitionDigest: item.transitionDigest,
+              releaseDigest: item.activeReleaseDigest,
+            }),
+          };
+        },
+        async retainEvidence(item) {
+          retainedEvidence.set(item.ref, item);
+          return {
+            schema: SKILL_WIKI_EVIDENCE_RETENTION_SCHEMA,
+            authenticated: true,
+            durable: true,
+            tenantId: TENANT,
+            ref: item.ref,
+            envelopeDigest: item.envelopeDigest,
+            receiptDigest: digest(`retained:${item.ref}`),
+          };
+        },
+        async loadCheckpoint() {
+          return fs.existsSync(checkpointPath)
+            ? JSON.parse(fs.readFileSync(checkpointPath, "utf8"))
+            : null;
+        },
+        async commitCheckpoint({ checkpoint, expectedCheckpointDigest }) {
+          const current = fs.existsSync(checkpointPath)
+            ? JSON.parse(fs.readFileSync(checkpointPath, "utf8"))
+            : null;
+          if (
+            (current?.checkpointDigest ?? null) !== expectedCheckpointDigest
+          ) {
+            throw new Error("Wiki impact checkpoint CAS conflict");
+          }
+          fs.writeFileSync(
+            checkpointPath,
+            `${JSON.stringify(checkpoint)}\n`,
+            "utf8",
+          );
+          return {
+            authenticated: true,
+            durable: true,
+            committed: true,
+            checkpointDigest: checkpoint.checkpointDigest,
+          };
+        },
+      },
+    });
+    return createEvolutionWikiImpactStage({
+      reconciler,
+      outputLedger,
+      effectiveAt: NOW,
+      usage: { tokens: 1, cost: 0, timeMs: 2, turns: 1 },
+    })(context);
+  };
   const realPrefix = {
     "wiki-maintain": createEvolutionWikiMaintainStage({
       maintainer,
@@ -1096,6 +1292,8 @@ if (operation === "real-prefix-run") {
     },
     review: runReview,
     pilot: runPilot,
+    promotion: runPromotion,
+    "wiki-impact": runWikiImpact,
   };
   stages = Object.fromEntries(
     EVOLUTION_RELEASE_TRAIN_STAGES.map((stage, index) => [

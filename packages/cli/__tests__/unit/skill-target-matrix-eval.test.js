@@ -2971,6 +2971,202 @@ describe("Skill target matrix evaluation foundation", () => {
       );
       if (request.mode === "plan") return;
 
+      if (request.mode === "promotion") {
+        const receipt = JSON.parse(
+          fs.readFileSync(path.join(root, "matrix-stage-output.json"), "utf8"),
+        ).value;
+        const review = request.reviewRecord.value;
+        const resolverDescriptor = {
+          schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLVER_SCHEMA,
+          authorityId: "authority:release-train-matrix-receipts",
+          trust: "trusted",
+          revision: 1,
+          handlerArtifactDigest: matrixDigest(
+            "release-train-matrix-receipt-resolver",
+            "v1",
+          ),
+        };
+        const evaluatedPromotionProvider =
+          createSkillEvaluatedPromotionProvider({
+            authorityId: "authority:release-train-evaluated-promotion",
+            handlerArtifactDigest: matrixDigest(
+              "release-train-evaluated-promotion",
+              "v1",
+            ),
+            revision: 1,
+            verifier: new SkillTargetMatrixEvalReceiptVerifier(
+              fixture.verifierOptions,
+            ),
+            receiptResolver: {
+              ...resolverDescriptor,
+              resolve(resolutionRequest) {
+                return {
+                  ...resolverDescriptor,
+                  schema: SKILL_EVALUATED_PROMOTION_RECEIPT_RESOLUTION_SCHEMA,
+                  tenantId: resolutionRequest.tenantId,
+                  receiptDigest: resolutionRequest.receiptDigest,
+                  matrixReceipt: receipt,
+                  resolvedAt: FIXED_TIME,
+                };
+              },
+            },
+          });
+        const promotionReviewProvider = createSkillPromotionReviewProvider({
+          tenantId: request.tenantId,
+          authorityId: "authority:release-train-human-review",
+          handlerArtifactDigest: matrixDigest(
+            "release-train-human-review",
+            "v1",
+          ),
+          revision: 1,
+          decisionResolver: {
+            resolve(resolutionRequest) {
+              return {
+                schema: SKILL_PROMOTION_REVIEW_RESOLUTION_SCHEMA,
+                authorityId: "authority:release-train-human-review",
+                handlerArtifactDigest: matrixDigest(
+                  "release-train-human-review",
+                  "v1",
+                ),
+                revision: 1,
+                tenantId: resolutionRequest.tenantId,
+                receiptDigest: resolutionRequest.receiptDigest,
+                decision: review.decision,
+                resolvedAt: FIXED_TIME,
+              };
+            },
+          },
+          decisionVerifier: { verify: () => true },
+          now: () => Date.parse(FIXED_TIME),
+        });
+        const policyReceipt = buildSkillPromotionReviewEnvelope(
+          review.decision.receiptDigest,
+        );
+        const promotionRequest = buildSkillMutationRequest({
+          tenantId: request.tenantId,
+          audience: "worker:release-train-promotion",
+          operationId: "promotion:release-train-process",
+          operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+          transitionSubjectDigest: digestSkillMutationTransitionSubject({
+            tenantId: request.tenantId,
+            skillName: request.skillName,
+            operation: SKILL_MUTATION_OPERATIONS.PROMOTE,
+            candidateId: request.candidate.candidateId,
+            rollbackTargetReleaseDigest: null,
+            dependencyLockDigest: receipt.dependencyLockDigest,
+            expectedActiveContentDigest: receipt.expectedActiveContentDigest,
+            expectedActiveRevision: receipt.expectedActiveRevision,
+          }),
+          skillName: request.skillName,
+          targetScope: SKILL_MUTATION_TARGET_SCOPES.ACTIVE,
+          expectedTargetDigest: receipt.expectedActiveContentDigest,
+          expectedTargetRevision: receipt.expectedActiveRevision,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          nonce: "release_train_process_promotion_nonce_0001",
+          receipts: {
+            candidateReceipt: "candidate:signed:release-train",
+            evalReceipt: buildSkillEvaluatedPromotionReceiptEnvelope(receipt),
+            policyReceipt,
+            actorReceipt: "actor:signed:release-train",
+            parentReceipt: "parent:signed:release-train",
+            targetReceipt: "target:signed:release-train",
+          },
+        });
+        const authorityHarness = promotionAuthority();
+        const releaseRegistry = new SkillReleaseRegistry({
+          tenantId: request.tenantId,
+          rootDir: path.join(root, "release-train-registry"),
+          secure: false,
+          transactionLedger: new PromotionTransactionLedger(),
+        });
+        const controller = createSkillEvaluatedPromotionControlPlane({
+          authority: authorityHarness.authority,
+          candidateRegistry: {
+            tenantId: request.tenantId,
+            read(candidateId) {
+              expect(candidateId).toBe(request.candidate.candidateId);
+              return request.candidate;
+            },
+          },
+          evaluatedPromotionProvider,
+          promotionReviewProvider,
+          releaseRegistry,
+        });
+        const entries = new Map([
+          [
+            "eval",
+            JSON.parse(
+              fs.readFileSync(
+                path.join(root, "matrix-stage-output.json"),
+                "utf8",
+              ),
+            ),
+          ],
+          ["review", request.reviewRecord],
+          ["pilot", request.pilotRecord],
+        ]);
+        const promotionOutputPath = path.join(
+          root,
+          "promotion-stage-output.json",
+        );
+        const outputLedger = {
+          load: ({ stage }) => entries.get(stage) ?? null,
+          commit: (input) => {
+            const stored = {
+              ...structuredClone(input),
+              valueDigest: matrixDigest(
+                "release-train-process-promotion-stage-output",
+                input.value,
+              ),
+            };
+            entries.set(input.stage, stored);
+            fs.writeFileSync(
+              promotionOutputPath,
+              `${JSON.stringify(stored)}\n`,
+              "utf8",
+            );
+            return { committed: true };
+          },
+        };
+        const stage = createEvolutionPromotionStage({
+          controller,
+          releaseRegistry,
+          promotionInput: {
+            authorization: {
+              capability:
+                await authorityHarness.authority.authorize(promotionRequest),
+              request: promotionRequest,
+            },
+            candidateId: request.candidate.candidateId,
+            matrixContext: {
+              matrixEvalId: receipt.matrixEvalId,
+              baselineId: receipt.baselineId,
+              matrixAuthorityRoot: receipt.matrixAuthorityRoot,
+              planDigest: receipt.planDigest,
+            },
+          },
+          outputLedger,
+          effectiveAt: FIXED_TIME,
+          usage: { tokens: 1, cost: 0, timeMs: 2, turns: 1 },
+        });
+        const stageReceipt = await stage(request.context);
+        fs.writeFileSync(
+          path.join(root, "promotion-stage-receipt.json"),
+          `${JSON.stringify(stageReceipt)}\n`,
+          "utf8",
+        );
+        expect(entries.get("promotion")).toMatchObject({
+          value: {
+            state: { revision: 1 },
+            release: {
+              candidateId: request.candidate.candidateId,
+              contentDigest: request.candidate.contentDigest,
+            },
+          },
+        });
+        return;
+      }
+
       const stageOutputPath = path.join(root, "matrix-stage-output.json");
       let stored = fs.existsSync(stageOutputPath)
         ? JSON.parse(fs.readFileSync(stageOutputPath, "utf8"))
