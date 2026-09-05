@@ -73,6 +73,9 @@ export async function openKnowledgeSkillRollbackStore(
     wikiProvenance = false,
     unsafeWikiBaseline = false,
     lateWikiProvenance = false,
+    onReleaseRetain = null,
+    onTransition = null,
+    beforeDependencyAppend = null,
   } = {},
 ) {
   const resources = openEvolutionDurableStore(root, {
@@ -100,6 +103,8 @@ export async function openKnowledgeSkillRollbackStore(
     artifactTenantId: resources.descriptor.artifactTenantId,
     seed,
     crashPoint,
+    onReleaseRetain,
+    onTransition,
     candidateEvidenceRefs: wikiSeed
       ? wikiReferences(wikiSeed.candidate)
       : candidateEvidenceRefs,
@@ -149,6 +154,7 @@ export async function openKnowledgeSkillRollbackStore(
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
     verify: resources.backend.ledger.verify.bind(resources.backend.ledger),
     appendDomainEvent(event, expected) {
+      beforeDependencyAppend?.(event, expected);
       if (
         event.type === "knowledge.revocation-dependencies.settled" &&
         crashPoint === "before-dependency-settlement"
@@ -158,6 +164,11 @@ export async function openKnowledgeSkillRollbackStore(
         event,
         expected,
       );
+      if (
+        event.type === "knowledge.revocation-dependencies.prepared" &&
+        crashPoint === "after-dependency-prepare"
+      )
+        process.exit(98);
       if (
         event.type === "knowledge.revocation-dependencies.settled" &&
         crashPoint === "after-dependency-settlement"

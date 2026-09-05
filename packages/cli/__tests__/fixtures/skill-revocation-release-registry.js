@@ -51,7 +51,7 @@ const D = (value) => digestBytes(canonical(value));
 
 // Test-only replica, persisted and read back in every process. Production key
 // custody and remote durability are intentionally outside this fixture.
-function replicaAuthority(root) {
+function replicaAuthority(root, onRetain = null) {
   fs.mkdirSync(root, { recursive: true });
   const id = "durability:revocation-release-test";
   const location = (ref) => join(root, `${D(ref).slice(7)}.json`);
@@ -107,6 +107,7 @@ function replicaAuthority(root) {
         }
       }
       read(binding);
+      onRetain?.(binding);
       return receipt(binding);
     },
     resolve(request) {
@@ -172,10 +173,13 @@ export async function openRevocationReleaseRegistry({
   baselineEvidenceRefs = null,
   candidateWikiRevision = null,
   baselineWikiRevision = null,
+  onReleaseRetain = null,
+  onTransition = null,
 }) {
   const ports = createEvolutionLedgerPorts({
     artifactDurabilityAuthority: replicaAuthority(
       join(root, "release-replica"),
+      onReleaseRetain,
     ),
     artifactPorts: storage.artifactPorts,
     artifactTenantId: artifactTenantId,
@@ -228,7 +232,7 @@ export async function openRevocationReleaseRegistry({
     fsImpl,
     secure: false,
     leaseTtlMs: 60_000,
-    crashHook(phase, transaction) {
+    async crashHook(phase, transaction) {
       if (
         crashPoint === "after-release-pointer" &&
         phase === "after-pointer" &&
@@ -236,6 +240,7 @@ export async function openRevocationReleaseRegistry({
       ) {
         process.exit(95);
       }
+      await onTransition?.(phase, transaction);
     },
   });
   // Fixed test principal/receipts isolate Registry recovery from external PKI.
@@ -408,6 +413,22 @@ export async function openRevocationReleaseRegistry({
     baseline,
     candidateRelease,
     readActive: () => releases.readActive(SKILL),
+    async promoteCandidate(operationId) {
+      const candidate = candidates.read(candidateRelease.candidate.candidateId);
+      const request = requestFor({
+        operation: "promote",
+        operationId,
+        candidate,
+        current: releases.readActive(SKILL),
+      });
+      return controller.promote({
+        candidateId: candidate.candidateId,
+        authorization: {
+          request,
+          capability: await authority.authorize(request),
+        },
+      });
+    },
     pruningRollbackOptions: {
       tenantId,
       releaseRegistry: releases,

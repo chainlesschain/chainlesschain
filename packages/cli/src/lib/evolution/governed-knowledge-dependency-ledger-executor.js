@@ -255,8 +255,12 @@ function validateResult(
   return freeze(clone(value));
 }
 
-function validatePrepared(value, descriptorValue) {
+export function verifyGovernedKnowledgeDependencyPrepared(
+  value,
+  descriptorValue,
+) {
   exact(value, PREPARED_KEYS, "dependency prepared record");
+  identifier(value.deviceId, "dependency prepared deviceId");
   const knowledge = verifyGovernedKnowledgeRecord(value.knowledge, {
     tenantId: descriptorValue.tenantId,
   });
@@ -417,7 +421,10 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
       GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
     );
     if (!event) return null;
-    const record = validatePrepared(this._resolve(event), this.descriptor);
+    const record = verifyGovernedKnowledgeDependencyPrepared(
+      this._resolve(event),
+      this.descriptor,
+    );
     if (
       record.operationDigest !== operationDigest ||
       event.decision !== "prepared" ||

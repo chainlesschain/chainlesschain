@@ -39,6 +39,10 @@ import {
   verifySkillReleaseState,
   verifySkillReleaseStateMigrationPlan,
 } from "./skill-release-registry.js";
+import {
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+  verifyGovernedKnowledgeDependencyPrepared,
+} from "./governed-knowledge-dependency-ledger-executor.js";
 
 export const EVOLUTION_LEDGER_PORTS_INVALID_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_INVALID";
@@ -59,6 +63,8 @@ export const EVOLUTION_LEDGER_PORTS_CORRUPT_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_CORRUPT";
 export const EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_UNAVAILABLE";
+export const EVOLUTION_LEDGER_CANDIDATE_REVOKED_CODE =
+  "CC_EVOLUTION_LEDGER_CANDIDATE_REVOKED";
 export const EVOLUTION_ARTIFACT_DURABILITY_BINDING_SCHEMA =
   "chainlesschain.evolution-artifact-durability-binding/v1";
 export const EVOLUTION_ARTIFACT_DURABILITY_RETAIN_REQUEST_SCHEMA =
@@ -2431,65 +2437,214 @@ class EvolutionLedgerDomainPorts {
     );
   }
 
+  #assertCandidateNotRevoked(snapshot, intent) {
+    if (intent.operation !== "promote") return;
+    // A prepared revocation is already a durable admission fence. Waiting for
+    // every dependency effect to settle would allow promotion while offline
+    // recovery, active rollback or another dependency is still outstanding.
+    // Scan all streams/devices in this tenant; a new controller cannot opt out.
+    for (const event of snapshot.events) {
+      if (
+        event.type !== GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE ||
+        event.tenantId !== intent.mutationRequest.tenantId
+      )
+        continue;
+      if (
+        event.schema !== EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA ||
+        event.artifactTenantId !== this.#artifactTenantId ||
+        event.decision !== "prepared" ||
+        !Array.isArray(event.sourceRefs) ||
+        event.sourceRefs.length !== 0
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation event binding is invalid",
+        );
+      }
+      const ref = normalizeArtifactRef(
+        event.subjectRef,
+        "candidate revocation subjectRef",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      // Knowledge records use their own durable ArtifactStore, not the release
+      // replica. Missing or corrupt retained bytes must fail closed, never be
+      // interpreted as the absence of a revocation.
+      const resolution = assertSynchronous(
+        this.#artifactResolve(
+          deepFreeze({
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            ref,
+            tenantId: this.#artifactTenantId,
+          }),
+        ),
+        "candidate revocation artifact resolution",
+      );
+      assertAllExactRecord(
+        resolution,
+        LEDGER_RESOLUTION_KEYS,
+        "candidate revocation artifact resolution",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      if (
+        resolution.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+        resolution.authenticated !== true ||
+        resolution.found !== true ||
+        resolution.ref !== ref.ref ||
+        resolution.digest !== ref.digest
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation artifact is not authenticated and exactly bound",
+        );
+      }
+      digest(
+        resolution.receiptDigest,
+        "candidate revocation artifact receiptDigest",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      const bytes = copyBytes(resolution.bytes);
+      if (sha256(bytes) !== ref.digest) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation artifact digest mismatch",
+        );
+      }
+      const json = bufferToString(bytes, "utf8");
+      let record;
+      try {
+        record = JSON.parse(json);
+      } catch (cause) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation artifact is not JSON",
+          { cause },
+        );
+      }
+      assertAllExactRecord(
+        record,
+        ARTIFACT_RECORD_KEYS,
+        "candidate revocation artifact",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      if (
+        canonicalJson(record) !== json ||
+        record.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+        record.tenantId !== this.#artifactTenantId ||
+        record.type !== "governed-knowledge-dependency-operation" ||
+        record.retention !== "ledger" ||
+        record.purpose !== this.#purpose ||
+        record.audience !== intent.mutationRequest.audience
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation artifact boundary is invalid",
+        );
+      }
+      const prepared = verifyGovernedKnowledgeDependencyPrepared(record.value, {
+        tenantId: event.tenantId,
+        deviceId: record.value?.deviceId,
+      });
+      if (
+        event.eventId !==
+        `${GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE}.${prepared.operationDigest.slice(7)}`
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate revocation event does not bind its prepared operation",
+        );
+      }
+      if (
+        prepared.knowledge.dependencies.some(
+          (dependency) =>
+            dependency.kind === "candidate" &&
+            dependency.digest === intent.candidateId &&
+            ["reject-candidate", "quarantine"].includes(dependency.disposition),
+        )
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_CANDIDATE_REVOKED_CODE,
+          "candidate promotion is blocked by a durable knowledge revocation",
+          {
+            candidateId: intent.candidateId,
+            operationDigest: prepared.operationDigest,
+          },
+        );
+      }
+    }
+  }
+
   prepare(input) {
     const intent = normalizeIntent(input);
     this.#assertAudience(intent.mutationRequest.audience, "intent audience");
     const eventId = deterministicEventId("prepare", {
       transactionId: intent.transactionId,
     });
-    const snapshot = this.#snapshot();
-    const existing = snapshot.byEventId.get(eventId);
-    if (existing) {
+    for (let attempt = 0; attempt < MAX_FINALIZE_RETRIES; attempt += 1) {
+      const snapshot = this.#snapshot();
+      const existing = snapshot.byEventId.get(eventId);
+      if (existing) {
+        return this.#prepareProjection(
+          this.#prepareFromSnapshot(snapshot, existing, {
+            authorityReceiptDigest: intent.authorityReceiptDigest,
+            intentDigest: intent.intentDigest,
+            transactionId: intent.transactionId,
+          }),
+        );
+      }
+      const audit = this.#auditFromSnapshot(snapshot, intent.authorityReceipt);
+      this.#assertCandidateNotRevoked(snapshot, intent);
+      const subjectRef = this.#putSubject(
+        ARTIFACT_TYPES.prepare,
+        intent,
+        intent.intentDigest,
+        intent.mutationRequest.audience,
+      );
+      const eventInput = {
+        artifactTenantId: this.#artifactTenantId,
+        correlationId: intent.transactionId,
+        decision: "prepared",
+        eventId,
+        reason: intent.intentDigest,
+        skillName: intent.skillName,
+        sourceRefs: [audit.event.subjectRef],
+        subjectRef,
+        tenantId: intent.mutationRequest.tenantId,
+        type: EVENT_TYPES.prepare,
+      };
+      let persistedSnapshot;
+      try {
+        const previous = snapshot.events.at(-1) || null;
+        const verification = this.#verifiedAppend(eventInput, {
+          expectedHeadDigest: previous?.eventDigest ?? null,
+          expectedSequence: previous?.sequence ?? 0,
+        });
+        persistedSnapshot =
+          this.#snapshotWithVerifiedEvent(snapshot, verification) ||
+          this.#snapshot();
+      } catch (cause) {
+        if (isHeadConflict(cause)) continue;
+        if (!isCommitUnknown(cause) && !isEventConflict(cause)) throw cause;
+        persistedSnapshot = this.#snapshot();
+      }
+      const persisted = persistedSnapshot.byEventId.get(eventId);
+      if (!persisted) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
+          "release prepare append did not converge to a queryable event",
+        );
+      }
       return this.#prepareProjection(
-        this.#prepareFromSnapshot(snapshot, existing, {
+        this.#prepareFromSnapshot(persistedSnapshot, persisted, {
           authorityReceiptDigest: intent.authorityReceiptDigest,
           intentDigest: intent.intentDigest,
           transactionId: intent.transactionId,
         }),
       );
     }
-    const audit = this.#auditFromSnapshot(snapshot, intent.authorityReceipt);
-    const subjectRef = this.#putSubject(
-      ARTIFACT_TYPES.prepare,
-      intent,
-      intent.intentDigest,
-      intent.mutationRequest.audience,
-    );
-    const eventInput = {
-      artifactTenantId: this.#artifactTenantId,
-      correlationId: intent.transactionId,
-      decision: "prepared",
-      eventId,
-      reason: intent.intentDigest,
-      skillName: intent.skillName,
-      sourceRefs: [audit.event.subjectRef],
-      subjectRef,
-      tenantId: intent.mutationRequest.tenantId,
-      type: EVENT_TYPES.prepare,
-    };
-    let persistedSnapshot;
-    try {
-      const verification = this.#verifiedAppend(eventInput);
-      persistedSnapshot =
-        this.#snapshotWithVerifiedEvent(snapshot, verification) ||
-        this.#snapshot();
-    } catch (cause) {
-      if (!isCommitUnknown(cause) && !isEventConflict(cause)) throw cause;
-      persistedSnapshot = this.#snapshot();
-    }
-    const persisted = persistedSnapshot.byEventId.get(eventId);
-    if (!persisted) {
-      throw portsError(
-        EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
-        "release prepare append did not converge to a queryable event",
-      );
-    }
-    return this.#prepareProjection(
-      this.#prepareFromSnapshot(persistedSnapshot, persisted, {
-        authorityReceiptDigest: intent.authorityReceiptDigest,
-        intentDigest: intent.intentDigest,
-        transactionId: intent.transactionId,
-      }),
+    throw portsError(
+      EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
+      "release prepare could not acquire a stable ledger head",
     );
   }
 
