@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { openEvolutionDurableStore } from "./evolution-durable-store.js";
+import { wikiPruningDeletionSource } from "./wiki-pruning-deletion-source.js";
 import {
   EvidenceBackedWikiMaintainer,
   WIKI_EVIDENCE_SCHEMA,
@@ -49,7 +50,10 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     descriptor,
     wikiLedgerAdapter: wiki,
   });
-  const deletionReceipts = {
+  const deletionSource = hooks.dependencyDeletion
+    ? wikiPruningDeletionSource(resources, wiki)
+    : null;
+  const deletionReceipts = deletionSource ?? {
     resolve: () => {
       throw new Error("Raw deletion is outside this Wiki fixture");
     },
@@ -90,7 +94,11 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     clock: resources.clock,
     operationReceiptVerifier: {
       verify(input) {
-        if (input.request.operation === "wiki-revision")
+        if (
+          input.request.operation === "wiki-revision" ||
+          (hooks.realDependencies &&
+            input.request.operation === "dependency-dispositions")
+        )
           return wikiReceiptVerifier.verify(input);
         if (retrieval && input.request.operation === "retrieval-projection")
           return retrievalReceiptVerifier.verify(input);
@@ -140,10 +148,17 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     ports: {
       loadWikiState: wiki.loadWiki,
       resolveDeletionReceipt: deletionReceipts.resolve,
-      applyDependencyDispositions: otherEffect,
+      applyDependencyDispositions: hooks.realDependencies
+        ? provider.applyDependencyDispositions
+        : otherEffect,
       applyWikiRevision: provider.applyWikiRevision,
-      cryptoShred: () => {
-        throw new Error("unexpected Raw deletion");
+      cryptoShred: (call) => {
+        // Explicit test effect only; dependency tests may continue to the real
+        // retrieval projection, but do not establish crypto-shred closure.
+        if (hooks.testCryptoShred) return otherEffect(call);
+        throw new Error(
+          "Raw deletion requires a separately verified KMS provider",
+        );
       },
       publishRetrievalProjection:
         retrievalProvider?.publishRetrievalProjection ?? otherEffect,
@@ -206,7 +221,7 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
         : {}),
     });
   }
-  async function seed(count = 1) {
+  async function seed(count = 1, { skillNames = [] } = {}) {
     for (let start = 0; start < count; start += 128) {
       await writeWiki(
         Array.from({ length: Math.min(count - start, 128) }, (_, index) => ({
@@ -227,16 +242,20 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
             trustDomains: [],
             lastVerifiedAt: "2026-06-01T00:00:00.000Z",
             expiresAt: "2026-07-01T00:00:00.000Z",
-            skillNames: [],
+            skillNames,
           },
         })),
       );
     }
+    if (deletionSource) await deletionSource.retain();
   }
   const plan = () =>
     controller.plan({
       expectedStateDigest: wiki.loadWiki().stateDigest,
       effectiveAt: AT,
+      deletionReceiptDigests: deletionSource
+        ? [deletionSource.receipt().receiptDigest]
+        : [],
     });
   async function execute() {
     const restored = await journal.load({ tenantId: descriptor.tenantId });
@@ -259,6 +278,9 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       ),
       ledgerSequence: ledger.verify().sequence,
       wikiReceipt: restored.state?.operationReceipts[1] ?? null,
+      ...(hooks.realDependencies
+        ? { dependencyReceipt: restored.state?.operationReceipts[0] ?? null }
+        : {}),
       ...(retrieval
         ? { retrievalReceipt: restored.state?.operationReceipts.at(-1) ?? null }
         : {}),
@@ -274,6 +296,7 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     journal,
     provider,
     wikiReceiptVerifier,
+    deletionSource,
     retrieval,
     retrievalProvider,
     retrievalReader,

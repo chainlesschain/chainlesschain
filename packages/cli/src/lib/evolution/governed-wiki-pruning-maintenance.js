@@ -15,6 +15,8 @@ import {
 
 export const WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA =
   "chainlesschain.wiki-pruning-maintenance-receipt/v1";
+export const WIKI_PRUNING_DEPENDENCY_RECEIPT_SCHEMA =
+  "chainlesschain.wiki-pruning-dependency-receipt/v1";
 const RULES = Object.freeze({
   schema: "chainlesschain.wiki-pruning-maintenance-rules/v1",
   reducer:
@@ -29,6 +31,16 @@ const RULES = Object.freeze({
 });
 const RULES_DIGEST = pruningDigest(RULES.schema, RULES);
 const MODEL = "deterministic:governed-wiki-pruning/v1";
+const DEPENDENCY_RULES = Object.freeze({
+  ...RULES,
+  schema: "chainlesschain.wiki-pruning-dependency-rules/v1",
+  disposition: "tombstone-only-without-skill-dependencies",
+  duplicatePatterns: "one-tombstone-per-pattern-lexical",
+});
+const DEPENDENCY_RULES_DIGEST = pruningDigest(
+  DEPENDENCY_RULES.schema,
+  DEPENDENCY_RULES,
+);
 const HEAD_KEYS = [
   "epoch",
   "ledgerId",
@@ -70,9 +82,10 @@ function matchHead(expected, actual) {
   );
 }
 
-// Owns only the Wiki operation. Rollback, key destruction and retrieval effects
-// need their own independently verified providers. It never infers those effects
-// from this receipt. No model, raw-evidence, shell, network or skill-write access.
+// Owns Wiki-only dependency tombstones and the later maintenance operation.
+// Skill rollback is deliberately unsupported: a Wiki tombstone is NOT proof of
+// an active release rollback. Key destruction and retrieval need their own
+// independently verified providers. No Raw, shell, network or Skill-write access.
 export class GovernedWikiPruningMaintenance {
   #reader;
   #commit;
@@ -111,6 +124,63 @@ export class GovernedWikiPruningMaintenance {
   #plan(input) {
     return verifyPruningJournalPlan(input, this.descriptor.tenantId);
   }
+  #dependencyParts(plan) {
+    const targets = new Set();
+    const evidenceRefs = new Set(
+      plan.deletions.map((item) => item.evidenceRef),
+    );
+    for (const disposition of plan.dependencyDispositions) {
+      if (
+        !disposition ||
+        typeof disposition !== "object" ||
+        Array.isArray(disposition) ||
+        Object.keys(disposition).length !== 4 ||
+        disposition.action !== "tombstone" ||
+        !Array.isArray(disposition.skillNames) ||
+        disposition.skillNames.length !== 0 ||
+        typeof disposition.patternId !== "string" ||
+        !disposition.patternId.trim() ||
+        !evidenceRefs.has(disposition.evidenceRef)
+      )
+        fail(
+          "Wiki-only dependency disposition cannot authorize Skill rollback or unbound tombstones",
+        );
+      targets.add(disposition.patternId);
+    }
+    const operations = [...targets].sort().map((patternId) => ({
+      type: "tombstone",
+      patternId,
+      reason: "privacy-deletion-dependency",
+    }));
+    return this.#batches(operations, pruningOperationCalls(plan)[0], true);
+  }
+  #batches(operations, call, dependency = false) {
+    const count = Math.ceil(operations.length / RULES.batchSize);
+    return Array.from({ length: count }, (_, index) => {
+      const batch = operations.slice(
+        index * RULES.batchSize,
+        (index + 1) * RULES.batchSize,
+      );
+      return {
+        dependency,
+        operations: batch,
+        requestDigest:
+          count === 1
+            ? call.requestDigest
+            : pruningDigest(
+                dependency
+                  ? "chainlesschain.wiki-pruning-dependency-batch/v1"
+                  : "chainlesschain.wiki-pruning-batch/v1",
+                {
+                  requestDigest: call.requestDigest,
+                  index,
+                  count,
+                  operations: batch,
+                },
+              ),
+      };
+    });
+  }
   #parts(plan) {
     for (const action of plan.patternActions) {
       if (
@@ -127,26 +197,10 @@ export class GovernedWikiPruningMaintenance {
           "Wiki pruning maintenance permits only exact planned tombstone operations",
         );
     }
-    const call = pruningOperationCalls(plan)[1];
-    const count = Math.ceil(plan.patternActions.length / RULES.batchSize);
-    return Array.from({ length: count }, (_, index) => {
-      const operations = plan.patternActions.slice(
-        index * RULES.batchSize,
-        (index + 1) * RULES.batchSize,
-      );
-      return {
-        operations,
-        requestDigest:
-          count === 1
-            ? call.requestDigest
-            : pruningDigest("chainlesschain.wiki-pruning-batch/v1", {
-                requestDigest: call.requestDigest,
-                index,
-                count,
-                operations,
-              }),
-      };
-    });
+    return [
+      ...this.#dependencyParts(plan),
+      ...this.#batches(plan.patternActions, pruningOperationCalls(plan)[1]),
+    ];
   }
   authorityPorts() {
     return Object.freeze({
@@ -172,7 +226,14 @@ export class GovernedWikiPruningMaintenance {
     const evidence = { ...core, envelopeDigest: digestWikiState(core) };
     let revision = null;
     const maintainer = new EvidenceBackedWikiMaintainer({
-      descriptor: this.#maintainerDescriptor,
+      descriptor: part.dependency
+        ? {
+            ...this.#maintainerDescriptor,
+            maintainerModel:
+              "deterministic:governed-wiki-pruning-dependency/v1",
+            rulesDigest: DEPENDENCY_RULES_DIGEST,
+          }
+        : this.#maintainerDescriptor,
       policy: POLICY,
       ports: Object.freeze({
         loadWiki: () => source,
@@ -284,41 +345,55 @@ export class GovernedWikiPruningMaintenance {
     return history;
   }
 
-  #receipt(plan, history) {
+  #receipt(plan, history, operationIndex) {
+    const dependencyCount = this.#dependencyParts(plan).length;
+    const start = operationIndex === 0 ? 0 : dependencyCount;
+    const end =
+      operationIndex === 0 ? dependencyCount : this.#parts(plan).length;
+    const sourceStateDigest =
+      start === 0
+        ? plan.wikiStateDigest
+        : history.successors[start - 1].revision.stateDigest;
+    const resultStateDigest =
+      end === 0
+        ? plan.wikiStateDigest
+        : history.successors[end - 1].revision.stateDigest;
+    const schema =
+      operationIndex === 0
+        ? WIKI_PRUNING_DEPENDENCY_RECEIPT_SCHEMA
+        : WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA;
     const core = {
-      schema: WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA,
+      schema,
       authenticated: true,
       durable: true,
       tenantId: plan.tenantId,
       streamId: this.descriptor.streamId,
-      requestDigest: pruningOperationCalls(plan)[1].requestDigest,
+      requestDigest: pruningOperationCalls(plan)[operationIndex].requestDigest,
       planDigest: plan.planDigest,
-      rulesDigest: RULES_DIGEST,
-      sourceStateDigest: plan.wikiStateDigest,
-      resultStateDigest: history.current.stateDigest,
-      mode: plan.patternActions.length === 0 ? "noop" : "revisions",
+      rulesDigest:
+        operationIndex === 0 ? DEPENDENCY_RULES_DIGEST : RULES_DIGEST,
+      sourceStateDigest,
+      resultStateDigest,
+      mode: start === end ? "noop" : "revisions",
       ledger: Object.fromEntries(
         ["epoch", "ledgerId", "identityDigest"].map((key) => [
           key,
           history.ledgerHead[key],
         ]),
       ),
-      revisions: history.successors.map(
-        ({ revision, eventDigest, artifactRef }) => ({
+      revisions: history.successors
+        .slice(start, end)
+        .map(({ revision, eventDigest, artifactRef }) => ({
           requestDigest: revision.maintenanceRequestDigest,
           revisionId: revision.revisionId,
           stateDigest: revision.stateDigest,
           eventDigest,
           artifactRef,
-        }),
-      ),
+        })),
     };
     return capturePruningData({
       ...core,
-      receiptDigest: pruningDigest(
-        WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA,
-        core,
-      ),
+      receiptDigest: pruningDigest(schema, core),
     });
   }
 
@@ -339,16 +414,20 @@ export class GovernedWikiPruningMaintenance {
     const plan = this.#plan(input);
     const call = capturePruningData({ request, requestDigest });
     const receipt = capturePruningData(inputReceipt);
-    if (!same(call, pruningOperationCalls(plan)[1])) return false;
+    const operationIndex =
+      call.request.operation === "dependency-dispositions" ? 0 : 1;
+    if (!same(call, pruningOperationCalls(plan)[operationIndex])) return false;
     const history = this.#history(plan, context);
     if (
-      history.successors.length !== this.#parts(plan).length ||
+      (operationIndex === 0
+        ? history.successors.length < this.#dependencyParts(plan).length
+        : history.successors.length !== this.#parts(plan).length) ||
       !(await this.#verifySuccessors(plan, history))
     )
       return false;
     // Regenerate from authenticated artifacts/events and deterministic replay,
     // not the receipt's flags, self-digest or an in-memory idempotency map.
-    return same(receipt, this.#receipt(plan, history));
+    return same(receipt, this.#receipt(plan, history, operationIndex));
   }
 
   createProvider(journalStore) {
@@ -359,11 +438,12 @@ export class GovernedWikiPruningMaintenance {
     )
       throw new TypeError("Wiki pruning provider journal scope is invalid");
     return Object.freeze({
-      applyWikiRevision: (call) => this.#apply(journal, call),
+      applyDependencyDispositions: (call) => this.#apply(journal, call, 0),
+      applyWikiRevision: (call) => this.#apply(journal, call, 1),
     });
   }
 
-  async #apply(journal, input) {
+  async #apply(journal, input, operationIndex) {
     const call = capturePruningData(input);
     for (let attempt = 0; attempt <= 4096 / RULES.batchSize; attempt++) {
       const resolution = await journal.load({
@@ -373,10 +453,10 @@ export class GovernedWikiPruningMaintenance {
       if (!state)
         fail("Wiki pruning must be durably prepared before applying effects");
       const plan = this.#plan(state.plan);
-      if (!same(call, pruningOperationCalls(plan)[1]))
+      if (!same(call, pruningOperationCalls(plan)[operationIndex]))
         fail("Wiki pruning call differs from the current journal plan");
-      if (state.operationReceipts.length > 1) {
-        const receipt = state.operationReceipts[1];
+      if (state.operationReceipts.length > operationIndex) {
+        const receipt = state.operationReceipts[operationIndex];
         if (
           !(await this.#verifyReceipt({
             ...call,
@@ -392,7 +472,10 @@ export class GovernedWikiPruningMaintenance {
           );
         return receipt;
       }
-      if (state.phase !== "running" || state.operationReceipts.length !== 1)
+      if (
+        state.phase !== (operationIndex === 0 ? "prepared" : "running") ||
+        state.operationReceipts.length !== operationIndex
+      )
         fail("Wiki pruning dependency disposition must be acknowledged first");
       const history = this.#history(plan);
       if (!matchHead(resolution.ledgerHead, history.ledgerHead))
@@ -400,8 +483,16 @@ export class GovernedWikiPruningMaintenance {
       if (!(await this.#verifySuccessors(plan, history)))
         fail("Wiki pruning committed effects differ from deterministic replay");
       const parts = this.#parts(plan);
-      if (history.successors.length === parts.length)
-        return this.#receipt(plan, history);
+      const end =
+        operationIndex === 0
+          ? this.#dependencyParts(plan).length
+          : parts.length;
+      if (history.successors.length > end)
+        fail(
+          "Wiki pruning effects advanced beyond the journal dependency frontier",
+        );
+      if (history.successors.length === end)
+        return this.#receipt(plan, history, operationIndex);
       const next = await this.#derive(
         plan,
         history.current,
