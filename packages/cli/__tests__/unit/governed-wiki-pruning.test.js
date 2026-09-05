@@ -6,10 +6,31 @@ import {
   digestWikiState,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
 import { EvolutionRawCryptoShred } from "../../src/lib/evolution/evolution-raw-crypto-shred.js";
-import { GovernedWikiPruning } from "../../src/lib/evolution/governed-wiki-pruning.js";
+import {
+  GOVERNED_WIKI_PRUNING_PLAN_SCHEMA,
+  GovernedWikiPruning,
+} from "../../src/lib/evolution/governed-wiki-pruning.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function redigestPlan(plan) {
+  const core = structuredClone(plan);
+  delete core.planDigest;
+  return {
+    ...core,
+    planDigest: D(`${GOVERNED_WIKI_PRUNING_PLAN_SCHEMA}\0${canonical(core)}`),
+  };
+}
 
 function wikiState() {
   const evidence = {
@@ -182,6 +203,161 @@ describe("Governed Wiki Pruning", () => {
     expect(h.ports.applyDependencyDispositions).toHaveBeenCalledOnce();
     expect(h.ports.cryptoShred).toHaveBeenCalledOnce();
     expect(h.ports.publishRetrievalProjection).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [
+      "omitted dependencies",
+      (plan) => {
+        plan.dependencyDispositions = [];
+      },
+    ],
+    [
+      "omitted tombstones",
+      (plan) => {
+        plan.patternActions = [];
+      },
+    ],
+    [
+      "omitted index removals",
+      (plan) => {
+        plan.retrievalRemovals = [];
+      },
+    ],
+    [
+      "unrelated pattern",
+      (plan) => {
+        plan.patternActions[0].patternId = "pat-live-skill";
+      },
+    ],
+    [
+      "replaced deletion target",
+      (plan) => {
+        plan.deletions[0].keyRef = "kms://tenant:a/unrelated";
+      },
+    ],
+    [
+      "discarded audit retention",
+      (plan) => {
+        plan.auditPolicy.retainEvolutionLog = false;
+      },
+    ],
+    [
+      "unknown plan fields",
+      (plan) => {
+        plan.skipApproval = true;
+      },
+    ],
+  ])(
+    "rejects redigested plan %s before any side effect",
+    async (_label, mutate) => {
+      const h = harness();
+      const original = await h.pruning.plan({
+        expectedStateDigest: h.stateDigest,
+        effectiveAt: "2026-09-03T00:00:00.000Z",
+        deletionReceiptDigests: [D("deletion")],
+      });
+      const altered = structuredClone(original);
+      mutate(altered);
+      const forged = redigestPlan(altered);
+      expect(forged.planDigest).not.toBe(original.planDigest);
+      await expect(h.pruning.execute({ plan: forged })).rejects.toThrow(
+        /current trusted policy/u,
+      );
+      for (const name of [
+        "commitControl",
+        "applyDependencyDispositions",
+        "applyWikiRevision",
+        "cryptoShred",
+        "publishRetrievalProjection",
+      ])
+        expect(h.ports[name], name).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reauthenticates deletion authorization between planning and execution", async () => {
+    const h = harness();
+    const plan = await h.pruning.plan({
+      expectedStateDigest: h.stateDigest,
+      effectiveAt: "2026-09-03T00:00:00.000Z",
+      deletionReceiptDigests: [D("deletion")],
+    });
+    h.ports.resolveDeletionReceipt.mockResolvedValueOnce({
+      authenticated: false,
+    });
+    await expect(h.pruning.execute({ plan })).rejects.toThrow(
+      /not exactly bound/u,
+    );
+    expect(h.ports.commitControl).not.toHaveBeenCalled();
+    expect(h.ports.cryptoShred).not.toHaveBeenCalled();
+  });
+
+  it("captures the policy and ports so callers cannot replace execution authorization", async () => {
+    const h = harness();
+    const plan = await h.pruning.plan({
+      expectedStateDigest: h.stateDigest,
+      effectiveAt: "2026-09-03T00:00:00.000Z",
+      deletionReceiptDigests: [D("deletion")],
+    });
+    const captured = { ...h.ports };
+    for (const name of Object.keys(h.ports))
+      h.ports[name] = vi.fn(() => {
+        throw new Error("substituted port");
+      });
+    expect(Object.isFrozen(h.pruning)).toBe(true);
+    expect(Object.isFrozen(h.pruning.descriptor)).toBe(true);
+    expect(Reflect.set(h.pruning, "plan", async () => plan)).toBe(false);
+    expect(
+      Reflect.set(h.pruning, "_commitControl", h.ports.commitControl),
+    ).toBe(false);
+    expect(Reflect.set(h.pruning, "descriptor", { tenantId: "attacker" })).toBe(
+      false,
+    );
+    expect(Object.keys(h.pruning)).toEqual(["descriptor"]);
+    await expect(h.pruning.execute({ plan })).resolves.toMatchObject({
+      phase: "finalized",
+    });
+    expect(captured.cryptoShred).toHaveBeenCalledOnce();
+    expect(captured.resolveDeletionReceipt).toHaveBeenCalledTimes(2);
+    for (const operation of Object.values(h.ports))
+      expect(operation).not.toHaveBeenCalled();
+  });
+
+  it("enforces the executor's current action budget on a previously valid plan", async () => {
+    const h = harness();
+    const plan = await h.pruning.plan({
+      expectedStateDigest: h.stateDigest,
+      effectiveAt: "2026-09-03T00:00:00.000Z",
+      deletionReceiptDigests: [D("deletion")],
+    });
+    const stricter = new GovernedWikiPruning({
+      descriptor: { tenantId: "tenant:a", maxActions: 1 },
+      ports: h.ports,
+    });
+    await expect(stricter.execute({ plan })).rejects.toThrow(/action budget/u);
+    expect(h.ports.commitControl).not.toHaveBeenCalled();
+    expect(h.ports.cryptoShred).not.toHaveBeenCalled();
+  });
+
+  it("captures the submitted plan before asynchronous revalidation", async () => {
+    const h = harness();
+    const plan = structuredClone(
+      await h.pruning.plan({
+        expectedStateDigest: h.stateDigest,
+        effectiveAt: "2026-09-03T00:00:00.000Z",
+        deletionReceiptDigests: [D("deletion")],
+      }),
+    );
+    const execution = h.pruning.execute({ plan });
+    plan.dependencyDispositions = [];
+    plan.deletions[0].keyRef = "kms://tenant:a/substituted-after-await";
+    await expect(execution).resolves.toMatchObject({ phase: "finalized" });
+    expect(
+      h.ports.applyDependencyDispositions.mock.calls[0][0].request.payload,
+    ).toHaveLength(1);
+    expect(h.ports.cryptoShred.mock.calls[0][0].request.payload.keyRef).toBe(
+      "kms://tenant:a/private",
+    );
   });
 
   it("composes with the Raw KMS shredder and retains a deletion tombstone", async () => {

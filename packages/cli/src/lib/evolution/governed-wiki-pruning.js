@@ -154,8 +154,11 @@ function requireDurableAck(result, requestDigest, label) {
 }
 
 export class GovernedWikiPruning {
+  #ports;
+
   constructor({ descriptor, ports } = {}) {
     this.descriptor = normalizeDescriptor(descriptor);
+    const captured = {};
     for (const name of [
       "loadWikiState",
       "resolveDeletionReceipt",
@@ -168,11 +171,17 @@ export class GovernedWikiPruning {
     ]) {
       if (typeof ports?.[name] !== "function")
         throw new TypeError(`Wiki pruning port ${name} is required`);
-      this[`_${name}`] = ports[name].bind(ports);
+      captured[name] = ports[name].bind(ports);
     }
+    this.#ports = Object.freeze(captured);
+    Object.freeze(this);
   }
 
-  async plan({
+  async plan(input) {
+    return this.#buildPlan(input);
+  }
+
+  async #buildPlan({
     expectedStateDigest,
     effectiveAt,
     deletionReceiptDigests = [],
@@ -186,7 +195,7 @@ export class GovernedWikiPruning {
     );
     receiptDigests.forEach((value) => digest(value, "deletionReceiptDigest"));
     const state = verifyStateEnvelope(
-      await this._loadWikiState({ tenantId: this.descriptor.tenantId }),
+      await this.#ports.loadWikiState({ tenantId: this.descriptor.tenantId }),
       this.descriptor.tenantId,
       expectedStateDigest,
     );
@@ -217,7 +226,7 @@ export class GovernedWikiPruning {
     const deletions = [];
     const dependencyDispositions = [];
     for (const receiptDigest of receiptDigests) {
-      const receipt = await this._resolveDeletionReceipt({
+      const receipt = await this.#ports.resolveDeletionReceipt({
         tenantId: this.descriptor.tenantId,
         receiptDigest,
       });
@@ -293,11 +302,22 @@ export class GovernedWikiPruning {
     const plan = assertPlan(input, this.descriptor.tenantId);
     if (expectedControlDigest != null)
       digest(expectedControlDigest, "expectedControlDigest");
-    verifyStateEnvelope(
-      await this._loadWikiState({ tenantId: this.descriptor.tenantId }),
-      this.descriptor.tenantId,
-      plan.wikiStateDigest,
-    );
+    if (!Array.isArray(plan.deletions))
+      throw new TypeError("Wiki pruning plan deletions are invalid");
+    // A self-consistent digest is not authorization. Rebuild all derived
+    // actions using the current trusted Wiki, captured policy, and freshly
+    // authenticated deletion receipts before preparing any side effects.
+    const authorizedPlan = await this.#buildPlan({
+      expectedStateDigest: plan.wikiStateDigest,
+      effectiveAt: plan.effectiveAt,
+      deletionReceiptDigests: plan.deletions.map(
+        (entry) => entry.receiptDigest,
+      ),
+    });
+    if (canonical(plan) !== canonical(authorizedPlan))
+      throw new Error(
+        "Wiki pruning plan does not match current trusted policy",
+      );
     const preparedCore = {
       schema: GOVERNED_WIKI_PRUNING_CONTROL_SCHEMA,
       tenantId: this.descriptor.tenantId,
@@ -310,7 +330,7 @@ export class GovernedWikiPruning {
       ...preparedCore,
       controlDigest: hash(GOVERNED_WIKI_PRUNING_CONTROL_SCHEMA, preparedCore),
     });
-    const preparation = await this._commitControl({
+    const preparation = await this.#ports.commitControl({
       state: prepared,
       expectedControlDigest,
     });
@@ -326,9 +346,9 @@ export class GovernedWikiPruning {
       [
         "dependency-dispositions",
         plan.dependencyDispositions,
-        this._applyDependencyDispositions,
+        this.#ports.applyDependencyDispositions,
       ],
-      ["wiki-revision", plan.patternActions, this._applyWikiRevision],
+      ["wiki-revision", plan.patternActions, this.#ports.applyWikiRevision],
     ]) {
       const call = operationRequest(plan, operation, payload);
       receipts.push(
@@ -343,7 +363,7 @@ export class GovernedWikiPruning {
       const call = operationRequest(plan, "crypto-shred", deletion);
       receipts.push(
         requireDurableAck(
-          await this._cryptoShred(call),
+          await this.#ports.cryptoShred(call),
           call.requestDigest,
           "Wiki privacy deletion",
         ),
@@ -354,7 +374,7 @@ export class GovernedWikiPruning {
     });
     receipts.push(
       requireDurableAck(
-        await this._publishRetrievalProjection(projection),
+        await this.#ports.publishRetrievalProjection(projection),
         projection.requestDigest,
         "Wiki retrieval projection",
       ),
@@ -368,7 +388,7 @@ export class GovernedWikiPruning {
       ...finalCore,
       controlDigest: hash(GOVERNED_WIKI_PRUNING_CONTROL_SCHEMA, finalCore),
     });
-    const completion = await this._commitControl({
+    const completion = await this.#ports.commitControl({
       state: finalized,
       expectedControlDigest: prepared.controlDigest,
     });
@@ -400,7 +420,7 @@ export class GovernedWikiPruning {
       requested.some((capability) => !baseline.includes(capability))
     )
       throw new Error("online adaptation cannot expand authority");
-    const closure = await this._verifyOfflineClosure({
+    const closure = await this.#ports.verifyOfflineClosure({
       tenantId: this.descriptor.tenantId,
       receiptDigest: digest(
         input.offlineClosureReceiptDigest,
