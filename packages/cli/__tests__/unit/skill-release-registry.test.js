@@ -262,7 +262,10 @@ class StrictTransactionLedger {
     this.#queryOverride = value;
   }
 
-  prepare(intent) {
+  prepare(intent, targetRelease) {
+    expect(verifySkillRelease(targetRelease).releaseDigest).toBe(
+      intent.targetReleaseDigest,
+    );
     if (this.#failure === "prepare") throw new Error("prepare failed");
     if (!Object.isFrozen(intent)) throw new Error("intent is not frozen");
     const existing = this.#records.get(intent.transactionId);
@@ -332,7 +335,13 @@ class StrictTransactionLedger {
     return record.committed;
   }
 
-  migrate(input) {
+  migrate(input, targets) {
+    expect(verifySkillRelease(targets.active).releaseDigest).toBe(
+      input.plan.activeReleaseDigest,
+    );
+    expect(verifySkillRelease(targets.lastKnownGood).releaseDigest).toBe(
+      input.plan.lastKnownGoodReleaseDigest,
+    );
     if (this.#failure === "migrate") throw new Error("migrate failed");
     if (!Object.isFrozen(input))
       throw new Error("migration input is not frozen");

@@ -16,10 +16,16 @@ const helper = fileURLToPath(
     import.meta.url,
   ),
 );
-function run(root, mode, status = 0) {
+function run(
+  root,
+  mode,
+  status = 0,
+  identity = "original",
+  provenance = "direct",
+) {
   const result = spawnSync(
     process.execPath,
-    ["--max-old-space-size=256", helper, root, mode],
+    ["--max-old-space-size=256", helper, root, mode, identity, provenance],
     {
       encoding: "utf8",
       timeout: 90_000,
@@ -53,3 +59,34 @@ it("keeps the admission fence across a process exit immediately after durable re
   }
   expect(new Set([seed.pid, rejected.pid, again.pid]).size).toBe(3);
 }, 300_000);
+
+it.each(["direct", "wiki"])(
+  "blocks new %s-derived identities in two fresh processes after a revocation crash",
+  (provenance) => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync(os.tmpdir()), "cc-source-admission-process-"),
+    );
+    roots.push(root);
+    const worker = (mode, status = 0) =>
+      run(root, mode, status, "derived", provenance);
+    const seed = worker("seed");
+    worker("prepare", 98);
+    const rejected = worker("promote");
+    const again = worker("promote");
+    for (const result of [rejected, again]) {
+      expect(result).toMatchObject({
+        active: seed.baseline,
+        revision: 3,
+        transitions: 3,
+        prepared: 1,
+        settled: 0,
+        published: 0,
+      });
+      expect(result.errors).toContain("CC_EVOLUTION_LEDGER_SOURCE_REVOKED");
+      expect(result.candidateId).not.toBe(result.originalCandidateId);
+    }
+    expect(rejected.candidateId).not.toBe(again.candidateId);
+    expect(new Set([seed.pid, rejected.pid, again.pid]).size).toBe(3);
+  },
+  300_000,
+);

@@ -3697,7 +3697,7 @@ export class SkillReleaseRegistry {
       });
       let projection;
       try {
-        projection = this.#ledgerMigrate(request);
+        projection = this.#ledgerMigrate(request, { active, lastKnownGood });
       } catch (cause) {
         throw failure(
           "SKILL_RELEASE_STATE_MIGRATION_LEDGER_FAILED",
@@ -4626,10 +4626,10 @@ export class SkillReleaseRegistry {
     );
   }
 
-  #prepare(intent) {
+  #prepare(intent, targetRelease) {
     let projection;
     try {
-      projection = this.#ledgerPrepare(intent);
+      projection = this.#ledgerPrepare(intent, targetRelease);
     } catch (cause) {
       throw failure(
         "SKILL_RELEASE_LEDGER_PREPARE_FAILED",
@@ -5394,7 +5394,7 @@ export class SkillReleaseRegistry {
       await this.#crash("after-journal", journal);
 
       this.#renewLease(lease);
-      prepareReceipt = this.#prepare(intent);
+      prepareReceipt = this.#prepare(intent, target);
       journal = this.#persistJournal({
         ...journal,
         phase: "prepared",

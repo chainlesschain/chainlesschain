@@ -51,7 +51,7 @@ const D = (value) => digestBytes(canonical(value));
 
 // Test-only replica, persisted and read back in every process. Production key
 // custody and remote durability are intentionally outside this fixture.
-function replicaAuthority(root, onRetain = null) {
+export function replicaAuthority(root, onRetain = null) {
   fs.mkdirSync(root, { recursive: true });
   const id = "durability:revocation-release-test";
   const location = (ref) => join(root, `${D(ref).slice(7)}.json`);
@@ -413,6 +413,46 @@ export async function openRevocationReleaseRegistry({
     baseline,
     candidateRelease,
     candidateRegistry: candidates,
+    createDerivedCandidate(overrides = {}) {
+      const original = candidateRelease.candidate;
+      const input = Object.fromEntries(
+        [
+          "tenantId",
+          "skillName",
+          "content",
+          "dependencyLock",
+          "runtimeManifest",
+          "targetMatrix",
+          "derivationMode",
+          "evalRunId",
+          "proposerModel",
+          "requestedCapabilities",
+          "sourceEvidenceRefs",
+          "wikiRevision",
+        ].map((key) => [key, original[key]]),
+      );
+      return candidates.create({
+        ...input,
+        parentDigest: releases.readActive(SKILL).release.contentDigest,
+        content: `${original.content}\nA distinct derived candidate.\n`,
+        ...overrides,
+      }).candidate;
+    },
+    async rollbackTo(targetReleaseDigest, operationId) {
+      const request = requestFor({
+        operation: "rollback",
+        operationId,
+        target: releases.readRelease(targetReleaseDigest),
+        current: releases.readActive(SKILL),
+      });
+      return controller.rollback({
+        authorization: {
+          request,
+          capability: await authority.authorize(request),
+        },
+        targetReleaseDigest,
+      });
+    },
     readActive: () => releases.readActive(SKILL),
     async promoteCandidate(
       operationId,

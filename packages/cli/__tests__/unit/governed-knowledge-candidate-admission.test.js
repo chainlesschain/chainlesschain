@@ -82,7 +82,14 @@ describe("Knowledge candidate admission fence in real release transactions", () 
   );
 
   it("does not confuse source content digest with immutable candidate identity", async () => {
-    const h = await setup();
+    const h = await setup({
+      candidateEvidenceRefs: [
+        {
+          ref: "knowledge://unrelated/source",
+          digest: `sha256:${"a".repeat(64)}`,
+        },
+      ],
+    });
     await prepare(
       h,
       revocation(
@@ -156,8 +163,8 @@ describe("Knowledge candidate admission fence in real release transactions", () 
           throw new Error("test: inconsistent preparation");
         },
       });
-      await prepare(h);
       await h.release.rollback(h.knowledge.contentDigest);
+      await prepare(h);
       const error = await h.release
         .promoteCandidate(`invalid:${attack}`)
         .catch((cause) => cause);

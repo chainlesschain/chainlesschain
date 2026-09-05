@@ -36,6 +36,7 @@ import {
   SKILL_RELEASE_LEDGER_PROJECTION_SCHEMA,
   SKILL_RELEASE_STATE_LEDGER_MIGRATION_SCHEMA,
   SKILL_RELEASE_STATE_MIGRATION_RECEIPT_SCHEMA,
+  verifySkillRelease,
   verifySkillReleaseState,
   verifySkillReleaseStateMigrationPlan,
 } from "./skill-release-registry.js";
@@ -43,6 +44,11 @@ import {
   GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
   verifyGovernedKnowledgeDependencyPrepared,
 } from "./governed-knowledge-dependency-ledger-executor.js";
+import {
+  WIKI_LEDGER_EVENT_TYPE,
+  WikiMaintainerLedgerAdapter,
+  captureWikiRevisionReader,
+} from "./wiki-maintainer-ledger-adapter.js";
 
 export const EVOLUTION_LEDGER_PORTS_INVALID_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_INVALID";
@@ -65,6 +71,8 @@ export const EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_UNAVAILABLE";
 export const EVOLUTION_LEDGER_CANDIDATE_REVOKED_CODE =
   "CC_EVOLUTION_LEDGER_CANDIDATE_REVOKED";
+export const EVOLUTION_LEDGER_SOURCE_REVOKED_CODE =
+  "CC_EVOLUTION_LEDGER_SOURCE_REVOKED";
 export const EVOLUTION_ARTIFACT_DURABILITY_BINDING_SCHEMA =
   "chainlesschain.evolution-artifact-durability-binding/v1";
 export const EVOLUTION_ARTIFACT_DURABILITY_RETAIN_REQUEST_SCHEMA =
@@ -2344,7 +2352,7 @@ class EvolutionLedgerDomainPorts {
     return { existing: null, lineages, prepared };
   }
 
-  migrate(input) {
+  migrate(input, releases) {
     const migration = normalizeStateMigration(input);
     const transactionId = migration.plan.stateMigrationDigest;
     const eventId = deterministicEventId("migration", { transactionId });
@@ -2378,6 +2386,29 @@ class EvolutionLedgerDomainPorts {
         throw portsError(
           EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
           "release state migration requires an empty Skill ledger lineage",
+        );
+      }
+      if (releases !== undefined) {
+        assertAllExactRecord(
+          releases,
+          new Set(["active", "lastKnownGood"]),
+          "migration release evidence",
+        );
+      }
+      for (const [key, releaseDigest] of [
+        ["active", migration.plan.activeReleaseDigest],
+        ["lastKnownGood", migration.plan.lastKnownGoodReleaseDigest],
+      ]) {
+        this.#assertReleaseNotRevoked(
+          snapshot,
+          {
+            tenantId: migration.plan.tenantId,
+            skillName: migration.plan.skillName,
+            audience: this.#audience,
+            releaseDigest,
+            candidateId: null,
+          },
+          releases?.[key],
         );
       }
       const subjectRef = this.#putSubject(
@@ -2557,34 +2588,180 @@ class EvolutionLedgerDomainPorts {
     }
   }
 
-  #assertCandidateNotRevoked(snapshot, intent) {
-    if (intent.operation !== "promote") return;
-    for (const { prepared } of this.#knowledgeRevocations(
-      snapshot,
-      intent.mutationRequest.tenantId,
-      intent.mutationRequest.audience,
-    )) {
+  #assertReleaseNotRevoked(snapshot, binding, targetInput) {
+    const assertCandidate = (prepared, candidateId) => {
       if (
         prepared.knowledge.dependencies.some(
           (dependency) =>
             dependency.kind === "candidate" &&
-            dependency.digest === intent.candidateId &&
+            dependency.digest === candidateId &&
             ["reject-candidate", "quarantine"].includes(dependency.disposition),
         )
       ) {
         throw portsError(
           EVOLUTION_LEDGER_CANDIDATE_REVOKED_CODE,
-          "candidate promotion is blocked by a durable knowledge revocation",
+          "candidate activation is blocked by a durable knowledge revocation",
           {
-            candidateId: intent.candidateId,
+            candidateId,
+            operationDigest: prepared.operationDigest,
+          },
+        );
+      }
+    };
+    let target = null;
+    let evidence = null;
+    const readTarget = () => {
+      if (target) return target;
+      let verified;
+      try {
+        verified = verifySkillRelease(targetInput);
+      } catch (cause) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+          "release admission requires verified immutable target evidence",
+          { cause },
+        );
+      }
+      if (
+        verified.releaseDigest !== binding.releaseDigest ||
+        verified.tenantId !== binding.tenantId ||
+        verified.skillName !== binding.skillName ||
+        (binding.candidateId !== null &&
+          verified.candidateId !== binding.candidateId)
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+          "release admission evidence differs from the intended target",
+        );
+      }
+      target = verified;
+      return target;
+    };
+    // Stream authenticated revocations: do not retain every full Knowledge
+    // artifact in memory or reuse authorization evidence across attempts.
+    for (const { prepared } of this.#knowledgeRevocations(
+      snapshot,
+      binding.tenantId,
+      binding.audience,
+    )) {
+      assertCandidate(prepared, binding.candidateId);
+      readTarget();
+      assertCandidate(prepared, target.candidateId);
+      evidence ??= this.#releaseSourceEvidence(snapshot, binding, target);
+      const knowledge = prepared.knowledge;
+      const sourceRef = `knowledge://${encodeURIComponent(binding.tenantId)}/${encodeURIComponent(knowledge.knowledgeId)}`;
+      const revokedRelease = knowledge.dependencies.some(
+        (dependency) =>
+          dependency.kind === "active-skill" &&
+          dependency.digest === target.releaseDigest,
+      );
+      if (
+        revokedRelease ||
+        evidence.some(
+          (item) =>
+            item.ref === sourceRef ||
+            item.artifactRef === sourceRef ||
+            item.sourceDigest === knowledge.contentDigest,
+        )
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_SOURCE_REVOKED_CODE,
+          "release activation references a durably revoked Knowledge source or release",
+          {
+            candidateId: target.candidateId,
+            releaseDigest: target.releaseDigest,
             operationDigest: prepared.operationDigest,
           },
         );
       }
     }
+    // Bare legacy calls remain compatible only before any Knowledge revocation.
+    // Once a fence exists, missing provenance must not mean unrelated/safe.
+    if (targetInput !== undefined) readTarget();
   }
 
-  prepare(input) {
+  #releaseSourceEvidence(snapshot, binding, target) {
+    const evidence = target.candidate.sourceEvidenceRefs.map(
+      ({ ref, digest }) => ({
+        ref,
+        artifactRef: ref,
+        sourceDigest: digest,
+      }),
+    );
+    if (target.candidate.derivationMode === "wiki") {
+      // Discover the original run on the same authenticated ledger. Neither a
+      // configurable reader nor a self-reported safe subset establishes origin.
+      const event = snapshot.byEventId.get(
+        `wiki.revision.${target.candidate.wikiRevision.slice(5)}`,
+      );
+      if (
+        !event ||
+        event.type !== WIKI_LEDGER_EVENT_TYPE ||
+        event.tenantId !== binding.tenantId ||
+        event.artifactTenantId !== this.#artifactTenantId
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "release admission cannot authenticate its original Wiki revision",
+        );
+      }
+      const readOnly = () => {
+        throw new TypeError("admission Wiki reader is read-only");
+      };
+      const adapter = new WikiMaintainerLedgerAdapter({
+        descriptor: {
+          tenantId: binding.tenantId,
+          artifactTenantId: this.#artifactTenantId,
+          evolutionRunId: event.correlationId,
+          audience: binding.audience,
+          purpose: this.#purpose,
+        },
+        artifactPorts: { putCanonical: readOnly },
+        ledger: {
+          read: this.#ledgerRead,
+          verify: this.#ledgerVerify,
+          appendDomainEvent: readOnly,
+        },
+        ledgerArtifactResolver: this.#artifactResolve,
+      });
+      const revision = captureWikiRevisionReader(adapter).readRevision({
+        tenantId: binding.tenantId,
+        revisionId: target.candidate.wikiRevision,
+      });
+      const tail = snapshot.events.at(-1);
+      if (
+        revision.ledgerHead.sequence !== tail.sequence ||
+        revision.ledgerHead.headDigest !== tail.eventDigest ||
+        ["epoch", "ledgerId", "identityDigest"].some(
+          (key) => revision.ledgerHead[key] !== tail[key],
+        )
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
+          "ledger changed while checking immutable Wiki provenance",
+        );
+      }
+      // Whole pinned pattern context may inform generation, including negative
+      // evidence and patterns removed by a later Wiki revision.
+      for (const pattern of Object.values(revision.state.patterns)) {
+        for (const ref of [
+          ...pattern.positiveEvidence,
+          ...pattern.negativeEvidence,
+        ]) {
+          const item = revision.state.evidence[ref];
+          if (!item)
+            throw portsError(
+              EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+              "release Wiki provenance has unresolved pattern evidence",
+            );
+          evidence.push(item);
+        }
+      }
+    }
+    return evidence;
+  }
+
+  prepare(input, targetRelease) {
     const intent = normalizeIntent(input);
     this.#assertAudience(intent.mutationRequest.audience, "intent audience");
     const eventId = deterministicEventId("prepare", {
@@ -2603,7 +2780,17 @@ class EvolutionLedgerDomainPorts {
         );
       }
       const audit = this.#auditFromSnapshot(snapshot, intent.authorityReceipt);
-      this.#assertCandidateNotRevoked(snapshot, intent);
+      this.#assertReleaseNotRevoked(
+        snapshot,
+        {
+          tenantId: intent.mutationRequest.tenantId,
+          skillName: intent.skillName,
+          audience: intent.mutationRequest.audience,
+          releaseDigest: intent.targetReleaseDigest,
+          candidateId: intent.candidateId,
+        },
+        targetRelease,
+      );
       const subjectRef = this.#putSubject(
         ARTIFACT_TYPES.prepare,
         intent,
@@ -3617,9 +3804,13 @@ export function createEvolutionLedgerPorts(options = {}) {
         )
       : "evolution-ledger",
   });
-  const prepare = Object.freeze((input) => adapter.prepare(input));
+  const prepare = Object.freeze((input, targetRelease) =>
+    adapter.prepare(input, targetRelease),
+  );
   const finalize = Object.freeze((input) => adapter.finalize(input));
-  const migrate = Object.freeze((input) => adapter.migrate(input));
+  const migrate = Object.freeze((input, releases) =>
+    adapter.migrate(input, releases),
+  );
   const query = Object.freeze((transactionId) => adapter.query(transactionId));
   const append = Object.freeze((event) => adapter.appendAudit(event));
   const claim = Object.freeze((nonce) => adapter.claimNonce(nonce));
