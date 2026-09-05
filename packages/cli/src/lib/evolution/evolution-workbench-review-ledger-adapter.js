@@ -14,6 +14,7 @@ import {
 import { SkillPromotionReviewLedgerAdapter } from "./skill-promotion-review-ledger-adapter.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { EvolutionWorkbenchBatchExecutor } from "./evolution-workbench-batch-executor.js";
+import { captureWorkbenchRegistrySource } from "./evolution-workbench-registry-source.js";
 import {
   buildEvolutionWorkbenchProjection,
   filterEvolutionWorkbenchProjection,
@@ -705,8 +706,9 @@ export class EvolutionWorkbenchReviewLedgerAdapter {
 }
 
 // Deployment assembly: Run and Review readers cannot be replaced with caller
-// summaries. Transition/outcome/Pilot authorities still belong to deployment;
-// this supplies the real review leg, not identity or Registry rollback powers.
+// summaries. The genuine Registry source owns current state/workflow readers;
+// outcome/Pilot authorities still belong to deployment. This supplies the real
+// review leg, not identity or Registry rollback powers.
 export function createEvolutionWorkbenchReviewRuntime(options = {}) {
   const {
     descriptor,
@@ -714,11 +716,20 @@ export function createEvolutionWorkbenchReviewRuntime(options = {}) {
     artifactPorts,
     ledgerArtifactResolver,
     decisionVerifier,
-    transitionAdapter,
+    registrySource,
     invocationReceiptSource = null,
     pilotSource = null,
     now = Date.now,
   } = options;
+  const capturedRegistry = captureWorkbenchRegistrySource(registrySource);
+  if (
+    !capturedRegistry.matchesLedger(ledger) ||
+    canonical(capturedRegistry.descriptor) !== canonical(descriptor) ||
+    Object.hasOwn(options, "transitionAdapter")
+  )
+    throw new TypeError(
+      "Workbench review runtime requires its own exact Registry source and no replacement transition adapter",
+    );
   const fixedLedger = Object.freeze({
     read: () =>
       EvolutionLedger.prototype.read.call(ledger, {
@@ -748,7 +759,7 @@ export function createEvolutionWorkbenchReviewRuntime(options = {}) {
     skillName: descriptor.skillName,
     runAdapter,
     reviewAdapter,
-    transitionAdapter,
+    registrySource: capturedRegistry,
     invocationReceiptSource,
     pilotSource,
   });

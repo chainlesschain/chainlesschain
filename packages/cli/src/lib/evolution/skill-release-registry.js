@@ -2781,6 +2781,7 @@ export class SkillReleaseRegistry {
       Object.freeze({
         tenantId: ownerTenantId,
         readActive: SkillReleaseRegistry.prototype.readActive.bind(this),
+        readState: SkillReleaseRegistry.prototype.readState.bind(this),
         readRelease: SkillReleaseRegistry.prototype.readRelease.bind(this),
         matchesTransactionLedger: (value) => value === transactionLedger,
       }),

@@ -26,7 +26,7 @@ import {
   WORKBENCH_ROLLBACK_AUTHORIZATION_SCHEMA,
   digestWorkbenchRollbackAuthorization,
 } from "../../src/lib/evolution/evolution-workbench-rollback-authorization.js";
-import { captureSkillReleaseOperationReader } from "../../src/lib/evolution/evolution-ledger-ports.js";
+import { createEvolutionWorkbenchRegistrySource } from "../../src/lib/evolution/evolution-workbench-registry-source.js";
 export { NOW };
 export const TENANT = "tenant:workbench-rollback";
 const SKILL = "safe-refactor";
@@ -192,53 +192,24 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
       });
     }
   }
-  const operations = captureSkillReleaseOperationReader(
-    release.pruningRollbackOptions.transactionLedger,
-  );
-  // Projection fixture over two real seeded promotion transactions. This is
-  // not a production Registry-transition/Run reconciliation implementation.
-  const transitionAdapter = {
-    list: () =>
-      [release.baseline, release.candidateRelease].map((value) => {
-        const actual = operations.resolveReleaseOrigin({
-          tenantId: TENANT,
-          skillName: SKILL,
-          releaseDigest: value.releaseDigest,
-          context: operations.currentContext(),
-        }).result;
-        const request = {
-          tenantId: TENANT,
-          skillName: SKILL,
-          candidateId: value.candidate.candidateId,
-          requestId: actual.intent.operationId,
-          requestDigest: actual.intent.requestDigest,
-          effectiveAt: actual.finalizationEvidence.timestamp,
-        };
-        return {
-          request,
-          requestEventSequence: actual.preparationCheckpoint.sequence,
-          status: "committed",
-          attempts: [],
-          settlement: {
-            tenantId: TENANT,
-            skillName: SKILL,
-            requestDigest: request.requestDigest,
-            candidateId: value.candidate.candidateId,
-            activeReleaseDigest: value.releaseDigest,
-            settlementDigest: actual.projection.receiptDigest,
-            settledAt: actual.finalizationEvidence.timestamp,
-            outcome: "promoted",
-          },
-        };
-      }),
+  const registryOptions = {
+    ...shared,
+    ...release.pruningRollbackOptions,
+    verifierLedger: independentStore.backend.ledger,
+    verifierLedgerArtifactResolver: independentStore.resolver,
+    verifierReleaseRegistry: independent.pruningRollbackOptions.releaseRegistry,
+    verifierTransactionLedger:
+      independent.pruningRollbackOptions.transactionLedger,
   };
+  const registrySource =
+    createEvolutionWorkbenchRegistrySource(registryOptions);
   const projectionSource = createEvolutionWorkbenchDataSource({
     tenantId: TENANT,
     runId: RUN,
     skillName: SKILL,
     runAdapter: run,
     reviewAdapter: review,
-    transitionAdapter,
+    registrySource,
   });
   const reviewBridge = new EvolutionWorkbenchReviewLedgerAdapter({
     ...shared,
@@ -305,6 +276,10 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
     independentStore,
     review,
     reviewBridge,
+    run,
+    projectionSource,
+    registrySource,
+    registryOptions,
     adapter,
     adapterOptions,
     plan,

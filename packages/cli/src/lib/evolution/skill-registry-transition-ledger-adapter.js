@@ -8,7 +8,10 @@ import {
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_MAX_EVENTS,
+  EvolutionLedger,
 } from "./evolution-ledger.js";
+import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
 import {
   EMPTY_SKILL_ACTIVE_DIGEST,
   captureSkillEvaluatedPromotionControlPlane,
@@ -129,6 +132,85 @@ const SETTLEMENT_KEYS = new Set([
   "settlementDigest",
 ]);
 const AUTHORIZATION_TTL_MS = 4 * 60_000;
+const sortedRefs = (refs) =>
+  [...refs].sort((left, right) =>
+    left.ref < right.ref
+      ? -1
+      : left.ref > right.ref
+        ? 1
+        : left.digest < right.digest
+          ? -1
+          : left.digest > right.digest
+            ? 1
+            : 0,
+  );
+
+// Read-only assembly over the same canonical parsing/effect checks as the
+// transition writer. No source verifier, mutation authority or writer is
+// invented merely to inspect existing workflow records.
+export function createSkillRegistryTransitionLedgerReader({
+  descriptor,
+  ledger,
+  ledgerArtifactResolver,
+  releaseRegistry,
+} = {}) {
+  if (
+    !(ledger instanceof EvolutionLedger) ||
+    utilTypes.isProxy(ledger) ||
+    !isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)
+  )
+    throw new TypeError(
+      "transition reader requires actual Ledger and artifact resolver",
+    );
+  const registry = captureSkillReleaseRegistryReader(releaseRegistry);
+  const scope = normalizeDescriptor(descriptor);
+  if (registry.tenantId !== scope.tenantId)
+    throw new TypeError("transition reader Registry tenant differs");
+  const view = {
+    descriptor: scope,
+    _readLedger: () =>
+      EvolutionLedger.prototype.read.call(ledger, {
+        limit: EVOLUTION_LEDGER_MAX_EVENTS,
+      }),
+    _verifyLedger: EvolutionLedger.prototype.verify.bind(ledger),
+    _resolveArtifact: ledgerArtifactResolver,
+    _readState: registry.readState,
+    _readRelease: registry.readRelease,
+  };
+  for (const name of [
+    "_events",
+    "_resolveEvent",
+    "_requests",
+    "_attempts",
+    "_settlements",
+    "_verifyCommittedSettlement",
+    "list",
+  ])
+    view[name] =
+      SkillRegistryTransitionLedgerAdapter.prototype[name].bind(view);
+  Object.freeze(view);
+  return Object.freeze({
+    list() {
+      const before = view._verifyLedger();
+      const rows = view.list();
+      const settlements = rows.some((row) => row.status === "committed")
+        ? view._settlements()
+        : [];
+      const values = rows.map((row) => ({
+        ...row,
+        settlementEventSequence:
+          settlements.find(
+            (entry) => entry.settlement.requestId === row.request.requestId,
+          )?.event.sequence ?? null,
+      }));
+      if (values.length > 10_000 || !same(before, view._verifyLedger()))
+        throw new Error(
+          "transition history is over budget or changed during authentication",
+        );
+      return deepFreeze(values);
+    },
+  });
+}
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -707,8 +789,13 @@ export class SkillRegistryTransitionLedgerAdapter {
           event.skillName !== settlement.skillName ||
           !Array.isArray(event.sourceRefs) ||
           event.sourceRefs.length !== 2 ||
-          !same(event.sourceRefs[0], attempt.request.event.subjectRef) ||
-          !same(event.sourceRefs[1], attempt.event.subjectRef)
+          !same(
+            event.sourceRefs,
+            sortedRefs([
+              attempt.request.event.subjectRef,
+              attempt.event.subjectRef,
+            ]),
+          )
         ) {
           fail(
             SKILL_REGISTRY_TRANSITION_CORRUPT_CODE,

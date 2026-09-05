@@ -57,6 +57,9 @@ describe("Workbench rollback real process recovery", () => {
         committed: phase === "committed" ? 1 : 0,
         revision: needsMutation ? 2 : 3,
         releaseFinalizations: needsMutation ? 2 : 3,
+        workbenchActiveReleaseDigest: needsMutation
+          ? before.candidateReleaseDigest
+          : before.baselineReleaseDigest,
       });
       const recovered = run(root, "resume", phase);
       expect(recovered.pid).not.toBe(killed.pid);
@@ -70,6 +73,10 @@ describe("Workbench rollback real process recovery", () => {
         resumed: phase === "committed" ? 0 : 1,
         contentDigest: recovered.baselineContentDigest,
         dependencyLockDigest: recovered.baselineLockDigest,
+        workbenchActiveReleaseDigest: recovered.baselineReleaseDigest,
+        workbenchLastKnownGoodReleaseDigest: recovered.baselineReleaseDigest,
+        historicalRunActiveReleaseDigest: recovered.candidateReleaseDigest,
+        registryOperationCount: 3,
       });
       const repeated = run(root, "resume", phase);
       expect(repeated.pid).not.toBe(recovered.pid);
@@ -84,6 +91,7 @@ describe("Workbench rollback real process recovery", () => {
         mutations: 0,
         contentDigest: recovered.contentDigest,
         dependencyLockDigest: recovered.dependencyLockDigest,
+        workbenchActiveReleaseDigest: recovered.baselineReleaseDigest,
       });
     },
     300_000,

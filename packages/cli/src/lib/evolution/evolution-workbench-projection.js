@@ -8,12 +8,18 @@ import {
   verifySkillPromotionReviewDecision,
   verifySkillPromotionReviewPacketArtifact,
 } from "./skill-promotion-review.js";
+import {
+  captureWorkbenchRegistrySource,
+  verifyWorkbenchRegistryState,
+} from "./evolution-workbench-registry-source.js";
 
 const { projectEvolutionRun } = evolutionRun;
 const { verifySkillInvocationReceipt } = skillInvocationReceipt;
 
 export const EVOLUTION_WORKBENCH_PROJECTION_SCHEMA =
   "chainlesschain.evolution-workbench-projection/v1";
+export const EVOLUTION_WORKBENCH_REGISTRY_PROJECTION_SCHEMA =
+  "chainlesschain.evolution-workbench-projection/v2";
 export const EVOLUTION_WORKBENCH_BATCH_PLAN_SCHEMA =
   "chainlesschain.evolution-workbench-batch-plan/v1";
 export const EVOLUTION_WORKBENCH_MAX_ITEMS = 10_000;
@@ -232,7 +238,8 @@ export function createEvolutionWorkbenchDataSource({
   skillName: skillNameInput,
   runAdapter,
   reviewAdapter,
-  transitionAdapter,
+  transitionAdapter = null,
+  registrySource = null,
   invocationReceiptSource = null,
   pilotSource = null,
 } = {}) {
@@ -241,11 +248,23 @@ export function createEvolutionWorkbenchDataSource({
   const skillName = identifier(skillNameInput, "skillName");
   const loadRun = capture(runAdapter, "load", "runAdapter");
   const listReviews = capture(reviewAdapter, "listReviews", "reviewAdapter");
-  const listTransitions = capture(
-    transitionAdapter,
-    "list",
-    "transitionAdapter",
-  );
+  const registryReader =
+    registrySource === null
+      ? null
+      : captureWorkbenchRegistrySource(registrySource);
+  if (
+    registryReader &&
+    (transitionAdapter !== null ||
+      registryReader.descriptor.tenantId !== tenantId ||
+      registryReader.descriptor.skillName !== skillName ||
+      registryReader.descriptor.runId !== runId)
+  )
+    throw new TypeError(
+      "Workbench Registry source scope differs or has a second transition authority",
+    );
+  const listTransitions = registryReader
+    ? null
+    : capture(transitionAdapter, "list", "transitionAdapter");
   const listInvocations =
     invocationReceiptSource === null
       ? () => []
@@ -259,6 +278,7 @@ export function createEvolutionWorkbenchDataSource({
     runId,
     skillName,
     async load() {
+      const context = registryReader?.currentContext();
       const run = normalizeRun(await loadRun(), { tenantId, runId });
       const reviews = normalizeReviews(await listReviews(), {
         tenantId,
@@ -278,10 +298,14 @@ export function createEvolutionWorkbenchDataSource({
       const reviewPacketDigests = new Set(
         reviews.map(({ packet }) => packet.packetDigest),
       );
-      const transitions = normalizeTransitions(await listTransitions(), {
-        tenantId,
-        skillName,
-      });
+      const registryData = registryReader?.load();
+      const transitions = normalizeTransitions(
+        registryData ? registryData.transitions : await listTransitions(),
+        {
+          tenantId,
+          skillName,
+        },
+      );
       for (const { request } of transitions) {
         if (!run.projection.registry.candidates[request.candidateId]) {
           throw new Error(
@@ -289,13 +313,16 @@ export function createEvolutionWorkbenchDataSource({
           );
         }
       }
-      return deepFreeze({
+      const result = deepFreeze({
         run,
         reviews,
         transitions,
+        registry: registryData?.registry ?? null,
         invocations: normalizeInvocations(await listInvocations(), { runId }),
         pilot: normalizePilot(await readPilot(), { reviewPacketDigests }),
       });
+      if (registryReader) registryReader.assertCurrent(context);
+      return result;
     },
   });
   DATA_SOURCES.add(source);
@@ -563,15 +590,17 @@ export async function buildEvolutionWorkbenchProjection(
   normalizeTime(observedAt, "observedAt");
   const data = await source.load();
   const activeReleaseId = data.run.projection.registry.activeReleaseId;
-  const activeCandidateIds = new Set(
-    data.transitions
-      .filter(
-        ({ status, settlement }) =>
-          status === "committed" &&
-          settlement?.activeReleaseDigest === activeReleaseId,
-      )
-      .map(({ settlement }) => settlement.candidateId),
-  );
+  const activeCandidateIds = data.registry
+    ? new Set(data.registry.active ? [data.registry.active.candidateId] : [])
+    : new Set(
+        data.transitions
+          .filter(
+            ({ status, settlement }) =>
+              status === "committed" &&
+              settlement?.activeReleaseDigest === activeReleaseId,
+          )
+          .map(({ settlement }) => settlement.candidateId),
+      );
   const candidates = data.reviews.map((review) =>
     candidateView(review, data.invocations, activeCandidateIds),
   );
@@ -579,14 +608,61 @@ export async function buildEvolutionWorkbenchProjection(
     ...runTimeline(data.run.events),
     ...reviewTimeline(data.reviews),
     ...transitionTimeline(data.transitions),
+    ...(data.registry?.operations ?? []).map((operation) => ({
+      id: `release:${operation.transactionId}`,
+      sequence: operation.sequence ?? operation.preparationSequence,
+      phase:
+        operation.status === "prepared"
+          ? `release-${operation.operation}-prepared`
+          : operation.operation === "rollback"
+            ? "release-rolled-back"
+            : "release-promoted",
+      status: operation.status,
+      subjectId: operation.candidateId,
+      digest: operation.receiptDigest,
+      artifactRef: null,
+      occurredAt: operation.occurredAt,
+      source: "release-registry",
+      detail: {
+        operationId: operation.operationId,
+        requestDigest: operation.requestDigest,
+        releaseDigest: operation.releaseDigest,
+        fromReleaseDigest: operation.fromReleaseDigest,
+        stateDigest: operation.stateDigest,
+        transactionId: operation.transactionId,
+      },
+    })),
   ].sort(timelineOrder);
   const conflicts = conflictsFor(candidates, data.transitions, data.pilot);
+  for (const operation of data.registry?.operations ?? [])
+    if (operation.status === "prepared")
+      conflicts.push({
+        type: "pending-registry-effect",
+        candidateId: operation.candidateId,
+        packetDigest: null,
+        reason: "actual Registry transaction has not finalized",
+      });
+  if (
+    data.registry?.active &&
+    !candidates.some((candidate) => candidate.actualUsage.active)
+  )
+    conflicts.push({
+      type: "active-outside-run",
+      candidateId: data.registry.active.candidateId,
+      packetDigest: null,
+      reason:
+        "current Registry release is outside this run's review candidates",
+    });
+  const schema = data.registry
+    ? EVOLUTION_WORKBENCH_REGISTRY_PROJECTION_SCHEMA
+    : EVOLUTION_WORKBENCH_PROJECTION_SCHEMA;
   const core = {
-    schema: EVOLUTION_WORKBENCH_PROJECTION_SCHEMA,
+    schema,
     tenantId: source.tenantId,
     runId: source.runId,
     skillName: source.skillName,
     observedAt,
+    ...(data.registry ? { registry: data.registry } : {}),
     run: {
       status: data.run.projection.status,
       projectionDigest: data.run.projection.projectionDigest,
@@ -608,6 +684,9 @@ export async function buildEvolutionWorkbenchProjection(
       rejectedCount: candidates.filter(({ status }) => status === "rejected")
         .length,
       transitionCount: data.transitions.length,
+      ...(data.registry
+        ? { registryOperationCount: data.registry.operations.length }
+        : {}),
       invocationCount: data.invocations.length,
       conflictCount: conflicts.length,
     },
@@ -618,7 +697,7 @@ export async function buildEvolutionWorkbenchProjection(
   };
   return deepFreeze({
     ...core,
-    projectionDigest: hash(EVOLUTION_WORKBENCH_PROJECTION_SCHEMA, core),
+    projectionDigest: hash(schema, core),
   });
 }
 
@@ -627,10 +706,13 @@ export function filterEvolutionWorkbenchProjection(
   { query = "", status = null, offset = 0, limit = 100 } = {},
 ) {
   if (
-    projection?.schema !== EVOLUTION_WORKBENCH_PROJECTION_SCHEMA ||
+    ![
+      EVOLUTION_WORKBENCH_PROJECTION_SCHEMA,
+      EVOLUTION_WORKBENCH_REGISTRY_PROJECTION_SCHEMA,
+    ].includes(projection?.schema) ||
     projection.projectionDigest !==
       hash(
-        EVOLUTION_WORKBENCH_PROJECTION_SCHEMA,
+        projection.schema,
         Object.fromEntries(
           Object.entries(projection).filter(
             ([key]) => key !== "projectionDigest",
@@ -642,6 +724,28 @@ export function filterEvolutionWorkbenchProjection(
       "a verified Evolution Workbench projection is required",
     );
   }
+  const registry =
+    projection.schema === EVOLUTION_WORKBENCH_REGISTRY_PROJECTION_SCHEMA
+      ? verifyWorkbenchRegistryState(
+          projection.registry,
+          projection.tenantId,
+          projection.skillName,
+        )
+      : null;
+  if (
+    registry &&
+    (projection.summary.registryOperationCount !== registry.operations.length ||
+      projection.candidates.some(
+        (candidate) =>
+          candidate.actualUsage.active !==
+          (candidate.candidateId === registry.active?.candidateId &&
+            candidate.candidateContentDigest ===
+              registry.active?.contentDigest),
+      ))
+  )
+    throw new Error(
+      "Workbench candidate activity differs from current Registry state",
+    );
   if (
     !Number.isSafeInteger(offset) ||
     offset < 0 ||
@@ -679,8 +783,12 @@ export function filterEvolutionWorkbenchProjection(
   });
   const governance = {
     runStatus: projection.run.status,
-    activeReleaseId: projection.run.activeReleaseId,
-    lastKnownGoodReleaseId: projection.run.lastKnownGoodReleaseId,
+    activeReleaseId: registry
+      ? (registry.active?.releaseDigest ?? null)
+      : projection.run.activeReleaseId,
+    lastKnownGoodReleaseId: registry
+      ? (registry.active?.lastKnownGoodReleaseDigest ?? null)
+      : projection.run.lastKnownGoodReleaseId,
     conflictCount: projection.summary.conflictCount,
     pilot:
       projection.pilot === null

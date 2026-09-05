@@ -21,6 +21,7 @@ import {
   EVOLUTION_ARTIFACT_DURABILITY_RETAIN_REQUEST_SCHEMA,
   EVOLUTION_LEDGER_PORTS_COLLISION_CODE,
   EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+  captureSkillReleaseOperationReader,
   createEvolutionLedgerDurableArtifactResolver,
   createEvolutionLedgerPorts,
 } from "../../src/lib/evolution/evolution-ledger-ports.js";
@@ -1015,6 +1016,32 @@ describe("EvolutionLedger domain ports", () => {
       tenantId: migration.plan.tenantId,
     });
     expect(subjectValue(instance.store, migrationEvent)).toEqual(migration);
+
+    const reader = captureSkillReleaseOperationReader(
+      instance.ports.transactionLedger,
+    );
+    const history = reader.readReleaseHistory({
+      tenantId: migration.plan.tenantId,
+      skillName: migration.plan.skillName,
+      context: reader.currentContext(),
+    });
+    expect(history.migration).toEqual({
+      value: migration,
+      artifactRef: migrationEvent.subjectRef,
+      sequence: migrationEvent.sequence,
+      eventDigest: migrationEvent.eventDigest,
+    });
+    expect(history.operations).toHaveLength(1);
+    expect(history.operations[0]).toMatchObject({
+      intent: next.intent,
+      previous: {
+        revision: migration.state.revision,
+        stateDigest: migration.state.stateDigest,
+        activeReleaseDigest: migration.state.activeReleaseDigest,
+        lastKnownGoodReleaseDigest: migration.state.lastKnownGoodReleaseDigest,
+      },
+      projection: finalized,
+    });
 
     const reopened = open();
     expect(

@@ -6,6 +6,7 @@ import {
   buildEvolutionWorkbenchRollbackRequest,
   buildEvolutionWorkbenchRollbackReceipt,
 } from "../../../src/lib/evolution/evolution-workbench-version-control.js";
+import { filterEvolutionWorkbenchProjection } from "../../../src/lib/evolution/evolution-workbench-projection.js";
 
 const [root, mode, phase] = process.argv.slice(2);
 let rollbackStarted = false;
@@ -77,6 +78,8 @@ if (mode !== "seed") {
   const events = h.backend.ledger.read();
   const count = (type) => events.filter((event) => event.type === type).length;
   const active = h.release.readActive();
+  const projection = await h.reviewBridge.loadCurrentProjection();
+  const visible = filterEvolutionWorkbenchProjection(projection);
   process.stdout.write(
     JSON.stringify({
       pid: process.pid,
@@ -93,6 +96,13 @@ if (mode !== "seed") {
       dependencyLockDigest: active.release.dependencyLockDigest,
       baselineContentDigest: h.release.baseline.contentDigest,
       baselineLockDigest: h.release.baseline.dependencyLockDigest,
+      baselineReleaseDigest: h.release.baseline.releaseDigest,
+      candidateReleaseDigest: h.release.candidateRelease.releaseDigest,
+      workbenchActiveReleaseDigest: visible.governance.activeReleaseId,
+      workbenchLastKnownGoodReleaseDigest:
+        visible.governance.lastKnownGoodReleaseId,
+      historicalRunActiveReleaseDigest: projection.run.activeReleaseId,
+      registryOperationCount: projection.registry.operations.length,
     }),
   );
 }

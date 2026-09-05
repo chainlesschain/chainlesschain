@@ -62,10 +62,10 @@ const authorization = {
 
 ## 尚未关闭的启动条件
 
-真实回滚效果不等于整个工作台已经可用。目标宿主仍须组装真实身份与密钥、签名 descriptor、authority 和独立 witness；实际 Registry transition 历史、EvolutionRun active/LKG、Wiki/Pilot 等状态传播尚需接到同一启动/恢复链。特别是回滚后不能让旧 Run 投影继续表示原版本 active，也不能用空 transition 列表掩盖实际历史。完成 CLI → App Server → IDE 的目标环境验收前，不声明截图中的工作台已启用。
+真实回滚效果不等于整个工作台已经可用。当前[Registry source](EVOLUTION_WORKBENCH_REGISTRY_RUNTIME.md)已将真实事务历史和当前 active/LKG 接入 Workbench v2 投影；完成的 EvolutionRun 仍保持历史原样，不追加伪事件来改写它。宿主应先让实际 Registry 完成自身 journal 恢复，再恢复工作台 settlement，之后开放工作台读取。目标宿主仍须组装真实身份与密钥、签名 descriptor、authority 和独立 witness，以及 Wiki/Pilot/实际调用等相关域来源。完成 CLI → App Server → IDE 的目标环境验收前，不声明截图中的工作台已启用。
 
 ## 验证边界
 
 单元用例覆盖真实发布内容/依赖锁回读、过期/自动化/错误 policy/撤销/状态漂移拒绝，以及后续合法晋升后的历史补记。跨进程用例在 preparation、authority 已消费但仅获取 Registry lease、Registry 指针写入、实际回滚已完成及 settlement 五个窗口执行 SIGKILL，由新进程重新打开原文件恢复。具体执行结果记录在总任务文档；测试文件存在本身不等于验收通过。
 
-测试使用 `__tests__` 中的 Ed25519 人工测试密钥、测试 mutation authority 及 Ledger/witness 测试签名。投影夹具只连接两个真实晋升事务，不是生产 Run/transition reconciler。没有证明真实用户审批、目标模型评测、跨主机故障域或物理断电恢复；本地测试也不替代 exact release commit 的 GitHub 三平台发布门禁。
+测试使用 `__tests__` 中的 Ed25519 人工测试密钥、测试 mutation authority 及 Ledger/witness 测试签名。回滚夹具的投影现在读取实际 Registry source，不再手写两个晋升的 transition 摘要；另有 canonical workflow 读取夹具绑定实际已完成事务，用于正向与伪造事务拒绝测试，它不是生产 Eval→promotion producer。没有证明真实用户审批、目标模型评测、跨主机故障域或物理断电恢复；本地测试也不替代 exact release commit 的 GitHub 三平台发布门禁。

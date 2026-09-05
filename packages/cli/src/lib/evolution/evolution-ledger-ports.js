@@ -2969,6 +2969,10 @@ class EvolutionLedgerDomainPorts {
     return this.#resolveRelease(inputValue, true);
   }
 
+  readReleaseHistory(inputValue) {
+    return this.#resolveRelease(inputValue, false, true);
+  }
+
   resolveKnowledgeRevocation(inputValue) {
     if (this.#audience === null)
       throw new TypeError(
@@ -3201,23 +3205,22 @@ class EvolutionLedgerDomainPorts {
     });
   }
 
-  #resolveRelease(inputValue, origin) {
+  #resolveRelease(inputValue, origin, history = false) {
     const input = frozenCanonicalClone(inputValue);
     assertAllExactRecord(
       input,
       new Set([
         "tenantId",
         "skillName",
-        origin ? "releaseDigest" : "operationId",
+        ...(history ? [] : [origin ? "releaseDigest" : "operationId"]),
         "context",
       ]),
       "release operation query",
     );
     const tenantId = identifier(input.tenantId, "tenantId");
     const name = skillName(input.skillName, "skillName");
-    const operationId = origin
-      ? null
-      : identifier(input.operationId, "operationId");
+    const operationId =
+      origin || history ? null : identifier(input.operationId, "operationId");
     const releaseDigest = origin
       ? digest(
           input.releaseDigest,
@@ -3322,58 +3325,74 @@ class EvolutionLedgerDomainPorts {
       if (
         entry.intent.mutationRequest.tenantId === tenantId &&
         entry.intent.skillName === name &&
-        (origin
-          ? entry.intent.operation === "promote" &&
-            entry.intent.targetReleaseDigest === releaseDigest
-          : entry.intent.operationId === operationId)
+        (history ||
+          (origin
+            ? entry.intent.operation === "promote" &&
+              entry.intent.targetReleaseDigest === releaseDigest
+            : entry.intent.operationId === operationId))
       )
         prepared.push(entry);
     }
-    if (prepared.length > 1)
+    if (!history && prepared.length > 1)
       throw portsError(
         EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
         "release operation has multiple transaction intents",
       );
-    let result = null;
-    if (prepared.length === 1) {
-      const entry = prepared[0];
-      const groupKey = `${tenantId}\0${name}`;
-      const baseline = lineages.migrations.get(groupKey)?.migration.state;
-      let previous = baseline
-        ? {
-            revision: baseline.revision,
-            stateDigest: baseline.stateDigest,
-            activeReleaseDigest: baseline.activeReleaseDigest,
-            lastKnownGoodReleaseDigest: baseline.lastKnownGoodReleaseDigest,
-          }
-        : {
-            revision: 0,
-            stateDigest: null,
-            activeReleaseDigest: null,
-            lastKnownGoodReleaseDigest: null,
-          };
-      for (const prior of lineages.groups.get(groupKey) ?? []) {
-        if (prior.finalization.revision > entry.intent.expectedRevision) break;
-        const intent = prior.prepared.intent;
-        if (
-          intent.operation === "rollback" &&
-          intent.targetReleaseDigest !== previous.lastKnownGoodReleaseDigest
-        )
-          throw portsError(
-            EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
-            "historical rollback does not target the last-known-good release",
-          );
-        previous = {
-          revision: prior.finalization.revision,
-          stateDigest: prior.finalization.stateDigest,
-          activeReleaseDigest: intent.targetReleaseDigest,
-          lastKnownGoodReleaseDigest:
-            intent.operation === "promote"
-              ? (previous.activeReleaseDigest ?? intent.targetReleaseDigest)
-              : intent.targetReleaseDigest,
+    if (history && prepared.length > 10_000)
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release history exceeds its bounded budget",
+      );
+    if (
+      history &&
+      new Set(prepared.map((entry) => entry.intent.operationId)).size !==
+        prepared.length
+    )
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release operation has multiple transaction intents",
+      );
+    const groupKey = `${tenantId}\0${name}`;
+    const baseline = lineages.migrations.get(groupKey)?.migration.state;
+    let previous = baseline
+      ? {
+          revision: baseline.revision,
+          stateDigest: baseline.stateDigest,
+          activeReleaseDigest: baseline.activeReleaseDigest,
+          lastKnownGoodReleaseDigest: baseline.lastKnownGoodReleaseDigest,
+        }
+      : {
+          revision: 0,
+          stateDigest: null,
+          activeReleaseDigest: null,
+          lastKnownGoodReleaseDigest: null,
         };
-      }
+    const predecessors = new Map([[previous.revision, previous]]);
+    for (const prior of lineages.groups.get(groupKey) ?? []) {
+      const intent = prior.prepared.intent;
       if (
+        intent.operation === "rollback" &&
+        intent.targetReleaseDigest !== previous.lastKnownGoodReleaseDigest
+      )
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "historical rollback does not target the last-known-good release",
+        );
+      previous = {
+        revision: prior.finalization.revision,
+        stateDigest: prior.finalization.stateDigest,
+        activeReleaseDigest: intent.targetReleaseDigest,
+        lastKnownGoodReleaseDigest:
+          intent.operation === "promote"
+            ? (previous.activeReleaseDigest ?? intent.targetReleaseDigest)
+            : intent.targetReleaseDigest,
+      };
+      predecessors.set(previous.revision, previous);
+    }
+    const results = prepared.map((entry) => {
+      const previous = predecessors.get(entry.intent.expectedRevision);
+      if (
+        !previous ||
         previous.revision !== entry.intent.expectedRevision ||
         previous.stateDigest !== entry.intent.previousStateDigest
       )
@@ -3382,7 +3401,7 @@ class EvolutionLedgerDomainPorts {
           "release operation has no exact predecessor",
         );
       const finalized = lineages.byTransaction.get(entry.intent.transactionId);
-      result = {
+      return {
         intent: entry.intent,
         previous,
         preparationCheckpoint: {
@@ -3403,13 +3422,33 @@ class EvolutionLedgerDomainPorts {
             }
           : null,
       };
-    }
+    });
+    const result = results[0] ?? null;
     const fresh = this.#ledgerVerify();
     if (keys.some((key) => fresh[key] !== head[key]))
       throw portsError(
         EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
         "release operation ledger changed during verification",
       );
+    if (history) {
+      const migration = lineages.migrations.get(`${tenantId}\0${name}`);
+      return deepFreeze({
+        authenticated: true,
+        durable: true,
+        tenantId,
+        skillName: name,
+        checkpoint: { ...checkpoint },
+        migration: migration
+          ? {
+              value: migration.migration,
+              artifactRef: migration.event.subjectRef,
+              sequence: migration.event.sequence,
+              eventDigest: migration.event.eventDigest,
+            }
+          : null,
+        operations: results,
+      });
+    }
     return deepFreeze({
       authenticated: true,
       durable: true,
@@ -3914,6 +3953,9 @@ export function createEvolutionLedgerPorts(options = {}) {
       ),
       resolveReleaseOrigin: Object.freeze((input) =>
         adapter.resolveReleaseOrigin(input),
+      ),
+      readReleaseHistory: Object.freeze((input) =>
+        adapter.readReleaseHistory(input),
       ),
       resolveCandidateRevocation: Object.freeze((input) =>
         adapter.resolveCandidateRevocation(input),

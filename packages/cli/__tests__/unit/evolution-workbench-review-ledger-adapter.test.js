@@ -12,7 +12,11 @@ import {
   buildWorkbenchBatchItemRequest,
 } from "../../src/lib/evolution/evolution-workbench-review-protocol.js";
 import { pruningDigest } from "../../src/lib/evolution/governed-wiki-pruning-journal.js";
-import { EVOLUTION_WORKBENCH_PROJECTION_SCHEMA } from "../../src/lib/evolution/evolution-workbench-projection.js";
+import {
+  EVOLUTION_WORKBENCH_PROJECTION_SCHEMA,
+  buildEvolutionWorkbenchBatchPlan,
+} from "../../src/lib/evolution/evolution-workbench-projection.js";
+import { openEmptyWorkbenchRegistry } from "../fixtures/evolution-workbench-empty-registry.js";
 import {
   openWorkbenchReviewStore,
   responseFor,
@@ -87,18 +91,37 @@ describe("actual Workbench Review Ledger bridge", () => {
     ).toBeNull();
   });
   it("assembles the deployment review leg from actual Run and Review adapters", async () => {
-    const h = openWorkbenchReviewStore(rootDir());
-    const { plan, projection } = await h.seed();
-    const runtime = createEvolutionWorkbenchReviewRuntime({
+    const root = rootDir();
+    const h = openWorkbenchReviewStore(root);
+    const legacy = await h.seed();
+    const { registrySource } = openEmptyWorkbenchRegistry(root, h);
+    const runtimeOptions = {
       ...h.shared,
       decisionVerifier: { verify: verifyDecision },
-      transitionAdapter: { list: () => [] },
+      registrySource,
       humanDecisionProvider: {
         request: (request) => responseFor(h.packet, request),
       },
       humanDecisionVerifier: { verify: verifyHuman },
-    });
-    expect(await runtime.projectionLoader.load()).toEqual(projection);
+    };
+    for (const replacement of [
+      { registrySource: { ...registrySource } },
+      { ledger: {} },
+      { descriptor: { ...h.shared.descriptor, runId: "another-run" } },
+      { transitionAdapter: { list: () => [] } },
+    ])
+      expect(() =>
+        createEvolutionWorkbenchReviewRuntime({
+          ...runtimeOptions,
+          ...replacement,
+        }),
+      ).toThrow();
+    const runtime = createEvolutionWorkbenchReviewRuntime(runtimeOptions);
+    const projection = await runtime.projectionLoader.load();
+    expect(projection.registry.active).toBeNull();
+    expect(projection.registry.operations).toEqual([]);
+    expect(projection.run).toEqual(legacy.projection.run);
+    const plan = buildEvolutionWorkbenchBatchPlan(projection, legacy.plan);
     expect(
       await runtime.projectionAuthority.retain({
         tenantId: TENANT,

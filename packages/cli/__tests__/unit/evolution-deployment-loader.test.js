@@ -146,6 +146,9 @@ describe("signed evolution deployment loader", () => {
         rollbackRuntimeAvailable:
           typeof factories.createEvolutionWorkbenchRollbackRuntime ===
           "function",
+        registrySourceAvailable:
+          typeof factories.createEvolutionWorkbenchRegistrySource ===
+          "function",
         benchmarkFactoriesAvailable: [
           "createWikiSkillBenchmarkCliHost",
           "createWikiSkillBenchmarkDatasetProvider",
@@ -173,6 +176,7 @@ describe("signed evolution deployment loader", () => {
         factoryAvailable: true,
         reviewRuntimeAvailable: true,
         rollbackRuntimeAvailable: true,
+        registrySourceAvailable: true,
         benchmarkFactoriesAvailable: true,
       },
     });
@@ -189,6 +193,7 @@ describe("signed evolution deployment loader", () => {
       [
         "createEvolutionWorkbenchReviewRuntime",
         "createEvolutionWorkbenchRollbackRuntime",
+        "createEvolutionWorkbenchRegistrySource",
       ].map((factoryName) => [commandName, factoryName]),
     ),
   )(
