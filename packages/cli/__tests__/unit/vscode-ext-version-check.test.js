@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   MIN_CLI_VERSION,
+  RECOMMENDED_CLI_VERSION,
   UPGRADE_COMMAND,
   INSTALL_COMMAND,
   MIN_NODE_VERSION,
@@ -156,8 +157,21 @@ describe("runCliVersionSync", () => {
   }
 
   it("does nothing when cc is up to date", async () => {
-    const d = deps({ getVersion: async () => MIN_CLI_VERSION });
+    const d = deps({ getVersion: async () => RECOMMENDED_CLI_VERSION });
     expect(await runCliVersionSync(d)).toBe("none");
+  });
+
+  it("nudges a compatible CLI that is below the recommended release", async () => {
+    expect(
+      compareVersions(MIN_CLI_VERSION, RECOMMENDED_CLI_VERSION),
+    ).toBeLessThan(0);
+    const d = deps({ getVersion: async () => MIN_CLI_VERSION });
+    expect(await runCliVersionSync(d)).toBe("shown");
+  });
+
+  it("still respects an explicit compatibility floor", async () => {
+    const d = deps({ getVersion: async () => MIN_CLI_VERSION });
+    expect(await runCliVersionSync(d, MIN_CLI_VERSION)).toBe("none");
   });
 
   it("runs the upgrade command when the user accepts", async () => {
@@ -166,18 +180,18 @@ describe("runCliVersionSync", () => {
     expect(d._calls.upgraded).toBe("npm i -g chainlesschain@latest");
   });
 
-  it("remembers 'don't show again' (keyed by minimum)", async () => {
+  it("remembers 'don't show again' (keyed by recommended release)", async () => {
     const d = deps({ prompt: async () => "dismiss" });
     expect(await runCliVersionSync(d)).toBe("dismissed");
     expect(d._calls.dismissedKey).toBe(
-      "cliUpgradeDismissed:" + MIN_CLI_VERSION,
+      "cliUpgradeDismissed:" + RECOMMENDED_CLI_VERSION,
     );
   });
 
-  it("stays quiet once dismissed for that minimum", async () => {
+  it("stays quiet once dismissed for that recommended release", async () => {
     const d = deps({
       prompt: async () => "upgrade",
-      dismissedKeys: ["cliUpgradeDismissed:" + MIN_CLI_VERSION],
+      dismissedKeys: ["cliUpgradeDismissed:" + RECOMMENDED_CLI_VERSION],
     });
     expect(await runCliVersionSync(d)).toBe("none");
     expect(d._calls.upgraded).toBe(null); // never prompted

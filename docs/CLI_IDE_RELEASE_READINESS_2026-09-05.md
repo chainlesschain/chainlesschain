@@ -1,6 +1,6 @@
 # CLI 与 IDE 下一轮发布检查表
 
-当前只做本地准备，不代表已经获准推送 GitHub、打 tag 或发布 npm / IDE 插件。IDE 可随后发布，更新说明应包含它实际配套的 CLI 版本和变更。
+2026-09-06 用户已授权整理独立发布候选并推送 GitHub 跑 CI，尚未授权打发布 tag 或发布 npm / IDE 插件。IDE 可随后发布，更新说明应包含它实际配套的 CLI 版本和变更。当前候选及重新完成的 13 包审计见 [CLI 0.166.23 发布候选](CLI_RELEASE_CANDIDATE_0.166.23.md)。
 
 ## 启动里程碑与发布边界
 
@@ -38,7 +38,7 @@ JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源
 
 ## 发布顺序与门禁
 
-1. 完成当前代码批次、本地验证和子包 tarball 复核，确定候选版本；只提交本地 Git。
+1. 冻结已验证代码批次、完成本地验证和子包 tarball 复核，确定候选版本；未完成改动留在原工作区，不混入候选。
 2. 获得推送授权后，把候选提交送到 GitHub。CLI 必须在**完全相同的 release commit** 上通过 `CLI CI` 与 `CLI Strict Sandbox` 的全部已配置 Linux、Windows、macOS 检查；相关子包也必须通过对应工作流矩阵。
 3. 按工作流依赖顺序先发布必需子包，确认 registry 中的新版本、文件和出口可用。
 4. 验证仅从 registry 安装、不依靠 monorepo workspace 链接的 CLI，然后发布 CLI。
@@ -51,7 +51,7 @@ JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源
 审计时 CLI npm 最新版为 `0.166.22`；VS Code 插件为 `0.37.83`，VS Code 与 JetBrains 均推荐 CLI `0.166.22`。最新远端 main 当时为 `93bd25a1f8c7b282e9a834c00de5349ab1a3a07b`，其工作流仍有失败：
 
 - [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33935598426)：推荐版本与最低版本的测试预期不一致（本地复现 3 项失败）；另有 Windows 队列超时和 macOS 跨进程用例失败。
-- [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33935598279)：Windows 出现语法 / worker 错误。
+- [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33935598279)：Windows worker 异常退出。2026-09-06 复查确认日志中的 `bad.js` 语法错误来自故意构造错误代码的负面测试，不应当作源码语法缺陷；实际未处理的 worker 错误与不完整用例报告仍阻止发布。
 
 后续本地修正不等于这些门禁已通过；必须以最终候选 SHA 的完整新结果复核。不要把此快照当作持续更新的 GitHub 状态。
 

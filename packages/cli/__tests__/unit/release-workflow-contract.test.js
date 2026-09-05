@@ -237,6 +237,42 @@ describe("CLI release workflow contracts", () => {
     );
   });
 
+  it("gates Core DB and Session Core on all exact-SHA CLI verification platforms", () => {
+    const ci = workflow("cli-ci.yml");
+    const verification = ci
+      .split("  verify-cli:")[1]
+      .split("  pack-linux-dryrun:")[0];
+    expect(verification).toContain(
+      "os: [ubuntu-latest, windows-latest, macos-latest]",
+    );
+    expect(verification).toContain(
+      "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+    for (const name of ["core-db", "session-core"]) {
+      expect(verification).toContain(
+        `working-directory: packages/${name}\n        run: npm test -- --maxWorkers=1`,
+      );
+      expect(ci.split(`- "packages/${name}/**"`)).toHaveLength(3);
+    }
+    expect(verification).not.toContain("continue-on-error:");
+  });
+
+  it("keeps the CLI child release pins and workspace lock metadata consistent", () => {
+    const read = (relative) =>
+      JSON.parse(fs.readFileSync(path.join(repositoryRoot, relative), "utf8"));
+    const cli = read("packages/cli/package.json");
+    const lock = read("package-lock.json");
+    expect(lock.packages["packages/cli"].version).toBe(cli.version);
+    for (const dir of ["core-db", "session-core"]) {
+      const child = read(`packages/${dir}/package.json`);
+      expect(cli.dependencies[child.name]).toBe(child.version);
+      expect(lock.packages["packages/cli"].dependencies[child.name]).toBe(
+        child.version,
+      );
+      expect(lock.packages[`packages/${dir}`].version).toBe(child.version);
+    }
+  });
+
   it("keeps generic workspace publishing outside the CLI release authority", () => {
     const generic = workflow("workspace-npm-publish.yml");
     const detector = fs.readFileSync(
