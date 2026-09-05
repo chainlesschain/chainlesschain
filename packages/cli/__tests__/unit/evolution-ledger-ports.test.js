@@ -328,6 +328,16 @@ function filesystemWith(overrides = {}, readMetrics = null) {
       }
       return fs.readFileSync(target, ...args);
     },
+    readSync(descriptor, buffer, offset, length, position) {
+      if (
+        readMetrics !== null &&
+        headDescriptors.has(descriptor) &&
+        position === 0
+      ) {
+        readMetrics.headReads += 1;
+      }
+      return fs.readSync(descriptor, buffer, offset, length, position);
+    },
     realpathSync: fs.realpathSync,
     ...overrides,
   };

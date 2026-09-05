@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
+import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
@@ -461,6 +462,7 @@ const REQUIRED_FS_METHODS = Object.freeze([
   "mkdirSync",
   "openSync",
   "readFileSync",
+  "readSync",
   "readdirSync",
   "realpathSync",
   "renameSync",
@@ -2806,7 +2808,21 @@ export class EvolutionLedger {
           `${label} changed while it was opened`,
         );
       }
-      const bytes = this.#fs.readFileSync(descriptor);
+      let bytes;
+      try {
+        bytes = readBoundedDescriptor(
+          this.#fs,
+          descriptor,
+          opened.size,
+          maximum,
+        );
+      } catch (cause) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `${label} changed during bounded read`,
+          { cause },
+        );
+      }
       const after = this.#fs.fstatSync(descriptor);
       if (
         after.nlink !== 1 ||
@@ -3365,7 +3381,12 @@ export class EvolutionLedger {
       ) {
         return false;
       }
-      const bytes = this.#fs.readFileSync(descriptor);
+      const bytes = readBoundedDescriptor(
+        this.#fs,
+        descriptor,
+        opened.size,
+        EVOLUTION_LEDGER_MAX_EVENT_BYTES,
+      );
       const after = this.#fs.fstatSync(descriptor);
       return (
         after.nlink === 1 &&

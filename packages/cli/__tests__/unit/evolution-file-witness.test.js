@@ -240,6 +240,87 @@ describe("createEvolutionFileWitness", () => {
     expect(() => create().read()).toThrow(/authentication|current state/u);
   });
 
+  it.each(["grow", "truncate", "replace"])(
+    "rejects a witness that changes during descriptor IO: %s",
+    (change) => {
+      const first = create();
+      first.initialize({
+        expected: first.read(),
+        snapshot: snapshot(witnessId, 0),
+      });
+      const checkedSize = fs.statSync(filePath).size;
+      let altered = false;
+      let bytesRead = 0;
+      const descriptors = new Set();
+      const witness = create({
+        fsImpl: {
+          ...fs,
+          openSync(file, flags, mode) {
+            const fd = fs.openSync(file, flags, mode);
+            descriptors.add(fd);
+            return fd;
+          },
+          closeSync(fd) {
+            descriptors.delete(fd);
+            return fs.closeSync(fd);
+          },
+          readFileSync() {
+            throw new Error("unbounded witness read is forbidden");
+          },
+          readSync(fd, buffer, offset, length, position) {
+            if (!altered) {
+              altered = true;
+              if (change === "grow")
+                fs.appendFileSync(filePath, Buffer.alloc(256 * 1024, 32));
+              else if (change === "truncate") fs.truncateSync(filePath, 1);
+              else {
+                fs.renameSync(filePath, `${filePath}.old`);
+                fs.copyFileSync(`${filePath}.old`, filePath);
+              }
+            }
+            const count = fs.readSync(fd, buffer, offset, length, position);
+            bytesRead += count;
+            expect(length).toBeLessThanOrEqual(64 * 1024);
+            return count;
+          },
+        },
+      });
+      expect(() => witness.read()).toThrow(
+        /bounded read|changed while reading/u,
+      );
+      expect(altered).toBe(true);
+      expect(bytesRead).toBeLessThanOrEqual(checkedSize + 1);
+      expect(descriptors.size).toBe(0);
+    },
+  );
+
+  it("accepts short reads and checks the size bound before reading a witness", () => {
+    const witness = create();
+    const committed = witness.initialize({
+      expected: witness.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+    const read = vi.fn((fd, buffer, offset, length, position) =>
+      fs.readSync(fd, buffer, offset, Math.min(length, 19), position),
+    );
+    const reopened = create({
+      fsImpl: {
+        ...fs,
+        readSync: read,
+        readFileSync() {
+          throw new Error("unbounded witness read is forbidden");
+        },
+      },
+    });
+    expect(reopened.read()).toEqual(committed);
+    read.mockClear();
+    fs.appendFileSync(filePath, Buffer.alloc(8192, 32));
+    expect(() =>
+      create({ maximumBytes: 4096, fsImpl: { ...fs, readSync: read } }).read(),
+    ).toThrow(/size is invalid/u);
+    expect(read).not.toHaveBeenCalled();
+  });
+
   it("requires external synchronous signing and verification authorities", () => {
     expect(() =>
       createEvolutionFileWitness({ filePath, id: witnessId, trust: TRUST }),

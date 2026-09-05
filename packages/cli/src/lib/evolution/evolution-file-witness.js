@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
 import {
   EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
@@ -444,12 +445,53 @@ export function createEvolutionFileWitness({
   const readStore = () => {
     if (!fsImpl.existsSync(target)) return emptyStore();
     ensurePrivateFile(target, secureOptions);
-    const stat = fsImpl.statSync(target);
-    if (!stat.isFile() || stat.size < 2 || stat.size > maximumBytes) {
+    const stat = fsImpl.lstatSync(target);
+    if (
+      !stat.isFile() ||
+      stat.isSymbolicLink() ||
+      stat.nlink !== 1 ||
+      stat.size < 2 ||
+      stat.size > maximumBytes
+    ) {
       throw new Error("witness store size is invalid");
     }
-    const bytes = fsImpl.readFileSync(target, "utf8");
-    return validateStore(JSON.parse(bytes));
+    let descriptor;
+    const sameFile = (observed) =>
+      observed.isFile() &&
+      observed.nlink === 1 &&
+      observed.dev === stat.dev &&
+      observed.ino === stat.ino &&
+      observed.size === stat.size &&
+      observed.mtimeMs === stat.mtimeMs &&
+      observed.ctimeMs === stat.ctimeMs;
+    try {
+      descriptor = fsImpl.openSync(
+        target,
+        fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
+      );
+      if (!sameFile(fsImpl.fstatSync(descriptor))) {
+        throw new Error("witness store changed while opening");
+      }
+      const bytes = readBoundedDescriptor(
+        fsImpl,
+        descriptor,
+        stat.size,
+        maximumBytes,
+      );
+      const afterPath = fsImpl.lstatSync(target);
+      if (
+        !sameFile(fsImpl.fstatSync(descriptor)) ||
+        afterPath.isSymbolicLink() ||
+        !sameFile(afterPath)
+      ) {
+        throw new Error("witness store changed while reading");
+      }
+      return validateStore(
+        JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
+      );
+    } finally {
+      if (descriptor !== undefined) fsImpl.closeSync(descriptor);
+    }
   };
 
   const syncDirectory = () => {

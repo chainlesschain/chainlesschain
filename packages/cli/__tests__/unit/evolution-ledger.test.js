@@ -1821,6 +1821,102 @@ describe("EvolutionLedger v2", () => {
     );
   });
 
+  it.each(["cold", "cached", "snapshot"])(
+    "bounds a %s read when a checked file grows before IO",
+    (mode) => {
+      let target;
+      let armed = false;
+      let growthRead = null;
+      const openFiles = new Map();
+      const base = filesystemWith();
+      const monitored = filesystemWith({
+        openSync(file, flags, permissions) {
+          const fd = base.openSync(file, flags, permissions);
+          openFiles.set(fd, { file, bytes: 0, largestRead: 0 });
+          return fd;
+        },
+        closeSync(fd) {
+          openFiles.delete(fd);
+          return base.closeSync(fd);
+        },
+        readFileSync(file, ...options) {
+          if (typeof file === "string" && path.basename(file) === "owner.json")
+            return fs.readFileSync(file, ...options);
+          throw new Error("unbounded ledger read is forbidden");
+        },
+        readSync(fd, buffer, offset, length, position) {
+          const opened = openFiles.get(fd);
+          if (armed && opened.file === target) {
+            armed = false;
+            growthRead = opened;
+            fs.appendFileSync(target, Buffer.alloc(256 * 1024, 32));
+          }
+          const count = fs.readSync(fd, buffer, offset, length, position);
+          opened.bytes += count;
+          opened.largestRead = Math.max(opened.largestRead, length);
+          return count;
+        },
+      });
+      const ledger = createLedger({ fsImpl: monitored });
+      ledger.append(eventInput(1, artifacts));
+      if (mode === "snapshot") ledger.checkpointState();
+      target =
+        mode === "snapshot"
+          ? path.join(
+              authorityRoot,
+              fs
+                .readdirSync(authorityRoot)
+                .find((name) => name.startsWith("state-snapshot-v1-")),
+            )
+          : path.join(ledger.segmentDir, regularFiles(ledger.segmentDir)[0]);
+      const checkedSize = fs.statSync(target).size;
+      armed = true;
+      if (mode === "snapshot") {
+        // A disposable snapshot may be ignored, but the signed source chain must
+        // still be read and verified rather than accepting the damaged snapshot.
+        expect(createLedger({ fsImpl: monitored }).verify()).toMatchObject({
+          sequence: 1,
+        });
+      } else {
+        const operation =
+          mode === "cached"
+            ? () => ledger.findByEventId("event-1")
+            : () => createLedger({ fsImpl: monitored });
+        expect(capturedError(operation).code).toBe(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+        );
+      }
+      expect(armed).toBe(false);
+      expect(growthRead.bytes).toBe(checkedSize + 1);
+      expect(growthRead.largestRead).toBeLessThanOrEqual(64 * 1024);
+      expect(openFiles.size).toBe(0);
+    },
+  );
+
+  it("accepts partial descriptor reads without using unbounded file reads", () => {
+    const ledger = createLedger({
+      fsImpl: filesystemWith({
+        readFileSync(file, ...options) {
+          if (typeof file === "string" && path.basename(file) === "owner.json")
+            return fs.readFileSync(file, ...options);
+          throw new Error("unbounded ledger read is forbidden");
+        },
+        readSync(fd, buffer, offset, length, position) {
+          return fs.readSync(
+            fd,
+            buffer,
+            offset,
+            Math.min(length, 17),
+            position,
+          );
+        },
+      }),
+    });
+    ledger.append(eventInput(1, artifacts));
+    ledger.checkpointState();
+    expect(ledger.findByEventId("event-1")).toMatchObject({ sequence: 1 });
+  });
+
   it("serves bounded batch queries from a revalidated incremental prefix index", () => {
     const ledger = createLedger();
     ledger.append(eventInput(1, artifacts));
