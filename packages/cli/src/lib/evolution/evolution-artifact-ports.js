@@ -94,6 +94,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "wiki-maintenance-settlement",
   "wiki-revision",
   "wiki-pruning-journal",
+  "wiki-pruning-retrieval-projection",
   "wiki-skill-proposal",
   "wikiskill-benchmark-envelope-manifest",
   "wikiskill-benchmark-execution-manifest",
@@ -164,6 +165,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "wiki-maintenance-settlement",
   "wiki-revision",
   "wiki-pruning-journal",
+  "wiki-pruning-retrieval-projection",
   "wiki-skill-proposal",
   "wikiskill-benchmark-envelope-manifest",
   "wikiskill-benchmark-execution-manifest",
@@ -353,6 +355,7 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["skill-registry-transition-settlement", new Set(["evolution-ledger"])],
   ["skill-retrieval-revocation-state", new Set(["evolution-ledger"])],
   ["wiki-pruning-journal", new Set(["evolution-ledger"])],
+  ["wiki-pruning-retrieval-projection", new Set(["evolution-ledger"])],
   ["evolution-run-event", new Set(["evolution-ledger"])],
   ["evolution-eval-child-evidence", new Set(["evolution-ledger"])],
   ["evolution-raw-deletion-receipt", new Set(["evolution-ledger"])],
@@ -2123,9 +2126,13 @@ export class EvolutionArtifactPorts {
     }
   }
 
-  #assertUniqueRecordDigest(recordDigest, artifactId) {
+  #assertUniqueRecordDigest(
+    recordDigest,
+    artifactId,
+    entries = this.#boundedIndexEntries(),
+  ) {
     const matches = this.#entriesByDataField(
-      this.#boundedIndexEntries(),
+      entries,
       "recordDigest",
       recordDigest,
     );
@@ -2152,6 +2159,32 @@ export class EvolutionArtifactPorts {
         "recordDigest index authority does not match the requested locator",
       );
     }
+  }
+
+  #loadLedgerEntry(artifactId, recordDigest = null) {
+    // Ledger resolution is read-only. Read the already attested physical index
+    // directly instead of invoking ArtifactStore.list/get (both acquire writer
+    // locks). Every call still obtains a fresh bounded descriptor snapshot;
+    // nothing caches index contents, signatures or current authority.
+    const { entries } = readTrustedIndexSnapshot(this.#store.layout);
+    const matches = this.#entriesByDataField(entries, "id", artifactId);
+    if (matches.length === 0) {
+      throw artifactError(
+        EVOLUTION_ARTIFACT_NOT_FOUND_CODE,
+        "evolution artifact index entry was removed or expired",
+        { artifactId },
+      );
+    }
+    if (matches.length !== 1) {
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        "evolution artifact id has duplicate index rows",
+        { artifactId },
+      );
+    }
+    if (recordDigest !== null)
+      this.#assertUniqueRecordDigest(recordDigest, artifactId, entries);
+    return matches[0];
   }
 
   #validateLineage(value, envelope, core, envelopeDigest) {
@@ -2837,14 +2870,18 @@ export class EvolutionArtifactPorts {
     options,
     artifactId,
     preauthenticated = null,
+    ledgerRead = false,
   ) {
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
-    this.#assertUniqueRecordDigest(
-      authentication.core.recordDigest,
-      artifactId,
-    );
-    const entry = this.#loadCurrentEntryById(artifactId);
+    if (!ledgerRead)
+      this.#assertUniqueRecordDigest(
+        authentication.core.recordDigest,
+        artifactId,
+      );
+    const entry = ledgerRead
+      ? this.#loadLedgerEntry(artifactId, authentication.core.recordDigest)
+      : this.#loadCurrentEntryById(artifactId);
     const normalizedEntry = this.#validateIndexEntry(
       entry,
       envelope,
@@ -2863,11 +2900,25 @@ export class EvolutionArtifactPorts {
       authentication.core.recordDigest,
     );
     const record = this.#parseRecordBytes(bytes, authentication.core);
-    this.#assertEntryStable(artifactId, entry);
-    this.#assertUniqueRecordDigest(
-      authentication.core.recordDigest,
-      artifactId,
-    );
+    if (ledgerRead) {
+      const after = this.#loadLedgerEntry(
+        artifactId,
+        authentication.core.recordDigest,
+      );
+      if (canonicalJson(after) !== canonicalJson(entry)) {
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "ArtifactStore index entry was replaced during ledger readback",
+          { artifactId },
+        );
+      }
+    } else {
+      this.#assertEntryStable(artifactId, entry);
+      this.#assertUniqueRecordDigest(
+        authentication.core.recordDigest,
+        artifactId,
+      );
+    }
     const releaseClock = this.#clock();
     if (
       releaseClock.milliseconds <
@@ -3287,7 +3338,7 @@ export class EvolutionArtifactPorts {
     const artifactRef = normalizeArtifactRef(
       ownData(request, "ref", "evolution ledger artifact request"),
     );
-    const entry = this.#loadCurrentEntryById(artifactRef.artifactId);
+    const entry = this.#loadLedgerEntry(artifactRef.artifactId);
     assertExactRecord(
       entry,
       INDEX_ENTRY_KEYS,
@@ -3320,6 +3371,7 @@ export class EvolutionArtifactPorts {
       options,
       artifactRef.artifactId,
       authentication,
+      true,
     );
     const ledgerReceiptCore = {
       artifactReceiptDigest: resolved.receipt.receiptDigest,

@@ -628,6 +628,7 @@ describe("EvolutionArtifactPorts", () => {
       "wiki-maintenance-settlement",
       "wiki-revision",
       "wiki-pruning-journal",
+      "wiki-pruning-retrieval-projection",
       "wiki-skill-proposal",
       "wikiskill-benchmark-envelope-manifest",
       "wikiskill-benchmark-execution-manifest",
@@ -991,6 +992,104 @@ describe("EvolutionArtifactPorts", () => {
         }),
       ).code,
     ).toBe(EVOLUTION_ARTIFACT_STORE_FAILED_CODE);
+  });
+
+  it("resolves ledger bytes without list/get locks while rejecting an index change during readback", () => {
+    let denyIndexMethods = false;
+    let changeDuringRead = false;
+    class DescriptorOnlyStore extends ArtifactStore {
+      list(options) {
+        if (denyIndexMethods) throw new Error("ledger resolution invoked list");
+        return super.list(options);
+      }
+      get(id) {
+        if (denyIndexMethods) throw new Error("ledger resolution invoked get");
+        return super.get(id);
+      }
+      verifyIntegrity(entry) {
+        const result = super.verifyIntegrity(entry);
+        if (changeDuringRead) {
+          changeDuringRead = false;
+          writeIndex(
+            readIndex().map((row) => ({
+              ...row,
+              title: "changed during descriptor read",
+            })),
+          );
+        }
+        return result;
+      }
+    }
+    const directPorts = new EvolutionArtifactPorts({
+      artifactStore: new DescriptorOnlyStore({
+        dir: storeDir,
+        now: () => nowMs,
+      }),
+      audience: AUDIENCE,
+      currentAuthorityResolver,
+      envelopeSigner,
+      envelopeVerifier,
+      now: () => nowMs,
+      tenantId: TENANT_ID,
+    });
+    const result = directPorts.putCanonical(
+      "wiki-revision",
+      { revision: 1 },
+      { purpose: "evolution-ledger", retention: "ledger" },
+    );
+    const resolver = directPorts.createEvolutionLedgerArtifactResolver({
+      purpose: "evolution-ledger",
+    });
+    denyIndexMethods = true;
+    expect(resolver(ledgerRequest(result))).toMatchObject({
+      authenticated: true,
+      found: true,
+    });
+    changeDuringRead = true;
+    expect(() => resolver(ledgerRequest(result))).toThrow(
+      /replaced during ledger readback/u,
+    );
+    expect(changeDuringRead).toBe(false);
+  });
+
+  it.each([
+    "missing",
+    "duplicate-id",
+    "duplicate-digest",
+    "lineage",
+    "payload",
+    "revocation",
+  ])("rejects %s through the descriptor-only ledger resolver", (fault) => {
+    const result = publish({
+      type: "wiki-revision",
+      retention: "ledger",
+      purpose: "evolution-ledger",
+    });
+    const resolver = ports.createEvolutionLedgerArtifactResolver({
+      purpose: "evolution-ledger",
+    });
+    const rows = readIndex();
+    if (fault === "missing")
+      fs.writeFileSync(path.join(storeDir, "index.jsonl"), "", "utf8");
+    if (fault === "duplicate-id") writeIndex([...rows, { ...rows[0] }]);
+    if (fault === "duplicate-digest")
+      writeIndex([...rows, { ...rows[0], id: "art_duplicate_digest" }]);
+    if (fault === "lineage")
+      writeIndex(
+        rows.map((row) => ({
+          ...row,
+          lineage: { ...row.lineage, envelopeDigest: digestBytes("forged") },
+        })),
+      );
+    if (fault === "payload") {
+      // Simulate an owner-level attacker overriding the immutable file mode;
+      // otherwise Windows rejects the injection before the resolver is tested.
+      const stored = store.storedPath(rows[0]);
+      fs.chmodSync(stored, 0o600);
+      fs.writeFileSync(stored, "substituted payload", "utf8");
+    }
+    if (fault === "revocation") authorityState.revoked = true;
+    expect(() => resolver(ledgerRequest(result))).toThrow();
   });
 
   it("cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot", () => {

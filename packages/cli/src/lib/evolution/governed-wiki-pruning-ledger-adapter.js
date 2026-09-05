@@ -165,10 +165,22 @@ export class GovernedWikiPruningLedgerAdapter {
   }
 
   async #history() {
-    const head = this.#verifyLedger();
     const all = this.#read({ limit: EVOLUTION_LEDGER_MAX_EVENTS });
     if (!Array.isArray(all))
       fail("pruning journal ledger did not return events");
+    // read() already authenticates this snapshot. Resolve its artifacts using
+    // the same identity and compare to a freshly authenticated head after ALL
+    // transition/business checks; no cached authorization crosses calls.
+    const tail = all.at(-1);
+    const head = tail
+      ? {
+          epoch: tail.epoch,
+          ledgerId: tail.ledgerId,
+          identityDigest: tail.identityDigest,
+          sequence: tail.sequence,
+          headDigest: tail.eventDigest,
+        }
+      : this.#verifyLedger();
     if (
       all.length !== head.sequence ||
       (all.at(-1)?.eventDigest ?? null) !== head.headDigest ||
@@ -277,7 +289,9 @@ export class GovernedWikiPruningLedgerAdapter {
     if (
       after.headDigest !== head.headDigest ||
       after.sequence !== head.sequence ||
-      after.identityDigest !== head.identityDigest
+      after.identityDigest !== head.identityDigest ||
+      after.epoch !== head.epoch ||
+      after.ledgerId !== head.ledgerId
     )
       conflict("pruning journal ledger changed while restoring");
     return { head, history };

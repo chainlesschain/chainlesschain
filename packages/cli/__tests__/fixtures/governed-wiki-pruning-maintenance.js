@@ -11,6 +11,7 @@ import { GovernedWikiPruning } from "../../src/lib/evolution/governed-wiki-pruni
 import { GovernedWikiPruningLedgerAdapter } from "../../src/lib/evolution/governed-wiki-pruning-ledger-adapter.js";
 import { GovernedWikiPruningPlanAuthority } from "../../src/lib/evolution/governed-wiki-pruning-plan-authority.js";
 import { GovernedWikiPruningMaintenance } from "../../src/lib/evolution/governed-wiki-pruning-maintenance.js";
+import { GovernedWikiPruningRetrieval } from "../../src/lib/evolution/governed-wiki-pruning-retrieval.js";
 import { pruningCanonical } from "../../src/lib/evolution/governed-wiki-pruning-journal.js";
 
 const AT = "2026-09-05T00:00:00.000Z";
@@ -20,8 +21,8 @@ const sign = (core) =>
     .digest("hex");
 
 // Actual Wiki/Maintainer, plan authority, controller, journal, artifacts and
-// independent file witness. ONLY non-Wiki effects remain signed test fixtures;
-// this is not a production rollback/KMS/retrieval implementation.
+// independent file witness. realRetrieval opts into the real projection provider;
+// other effects remain explicit test fixtures, not production rollback/KMS.
 export function openPruningMaintenanceStore(root, hooks = {}) {
   const resources = openEvolutionDurableStore(root);
   const ledger = resources.backend.ledger;
@@ -60,6 +61,27 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     wikiMaintenance: maintenance.authorityPorts(),
   });
   const wikiReceiptVerifier = maintenance.operationReceiptVerifier();
+  const retrieval =
+    hooks.realRetrieval === true
+      ? new GovernedWikiPruningRetrieval({
+          descriptor: resources.descriptor,
+          wikiLedgerAdapter: wiki,
+          artifactPorts: resources.artifactPorts,
+          ledgerArtifactResolver: resources.resolver,
+          clock: resources.clock,
+          ledger: {
+            read: (options) => ledger.read(options),
+            verify: () => ledger.verify(),
+            appendDomainEvent(input, options) {
+              hooks.beforeRetrievalAppend?.(input, options);
+              const result = ledger.appendDomainEvent(input, options);
+              hooks.afterRetrievalAppend?.(input, result);
+              return result;
+            },
+          },
+        })
+      : null;
+  const retrievalReceiptVerifier = retrieval?.operationReceiptVerifier();
   const journal = new GovernedWikiPruningLedgerAdapter({
     descriptor: resources.descriptor,
     artifactPorts: resources.artifactPorts,
@@ -70,6 +92,8 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       verify(input) {
         if (input.request.operation === "wiki-revision")
           return wikiReceiptVerifier.verify(input);
+        if (retrieval && input.request.operation === "retrieval-projection")
+          return retrievalReceiptVerifier.verify(input);
         const { attestation, ...core } = input.receipt;
         return (
           core.requestDigest === input.requestDigest &&
@@ -90,6 +114,11 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     },
   });
   const provider = maintenance.createProvider(journal);
+  const retrievalProvider = retrieval?.createProvider(journal);
+  const retrievalReader = retrieval?.createProposerReader({
+    journalStore: journal,
+    policy: { proposerWikiRead: true, executionAgentWikiRead: false },
+  });
   const otherEffect = (call) => {
     if (
       call.request.operation === "dependency-dispositions" &&
@@ -116,7 +145,8 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       cryptoShred: () => {
         throw new Error("unexpected Raw deletion");
       },
-      publishRetrievalProjection: otherEffect,
+      publishRetrievalProjection:
+        retrievalProvider?.publishRetrievalProjection ?? otherEffect,
       verifyOfflineClosure: () => {
         throw new Error("unexpected online adaptation");
       },
@@ -229,6 +259,9 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       ),
       ledgerSequence: ledger.verify().sequence,
       wikiReceipt: restored.state?.operationReceipts[1] ?? null,
+      ...(retrieval
+        ? { retrievalReceipt: restored.state?.operationReceipts.at(-1) ?? null }
+        : {}),
     };
   }
   return {
@@ -241,6 +274,10 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     journal,
     provider,
     wikiReceiptVerifier,
+    retrieval,
+    retrievalProvider,
+    retrievalReader,
+    retrievalReceiptVerifier,
     controller,
     seed,
     writeWiki,

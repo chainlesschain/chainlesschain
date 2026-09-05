@@ -318,6 +318,74 @@ describe("Wiki pruning durable journal", () => {
     );
   });
 
+  it.each(["truncated", "identity", "race"])(
+    "rejects %s snapshots without trusting a derived head",
+    async (fault) => {
+      const h = await harness();
+      const prepared = buildWikiPruningJournal({ plan: h.plan });
+      await h.store.commit({ state: prepared, expectedJournalDigest: null });
+      await h.store.commit({
+        state: buildWikiPruningJournal({
+          plan: h.plan,
+          previous: prepared,
+          receipt: receipt(pruningOperationCalls(h.plan)[0]),
+        }),
+        expectedJournalDigest: prepared.journalDigest,
+      });
+      const ledger = h.resources.backend.ledger;
+      const original = ledger.read();
+      let armed = fault === "race";
+      const store = h.open(h.resources, {
+        ledger: {
+          read: (options) => {
+            const events = ledger.read(options);
+            if (fault === "truncated") return events.slice(0, -1);
+            if (fault === "identity")
+              return events.map((event) => ({
+                ...event,
+                epoch: "forged-epoch",
+              }));
+            return events;
+          },
+          verify: () => ledger.verify(),
+          appendDomainEvent: () => {
+            throw new Error("unexpected journal write");
+          },
+        },
+        planVerifier: {
+          verify: () => {
+            if (armed) {
+              armed = false;
+              const head = ledger.verify();
+              ledger.appendDomainEvent(
+                {
+                  artifactTenantId: h.resources.descriptor.artifactTenantId,
+                  correlationId: "external",
+                  decision: "committed",
+                  eventId: "test.journal-read-race",
+                  reason: "Concurrent domain append",
+                  skillName: null,
+                  sourceRefs: [],
+                  subjectRef: original[0].subjectRef,
+                  tenantId: h.plan.tenantId,
+                  timestamp: "2026-09-05T00:00:00.000Z",
+                  type: "test.other-domain",
+                },
+                {
+                  expectedHeadDigest: head.headDigest,
+                  expectedSequence: head.sequence,
+                },
+              );
+            }
+            return true;
+          },
+        },
+      });
+      await expect(store.load({ tenantId: h.plan.tenantId })).rejects.toThrow();
+      expect(ledger.verify().sequence).toBe(fault === "race" ? 3 : 2);
+    },
+  );
+
   it("rejects forged receipts, current authorization revocation, and stale CAS", async () => {
     const h = await harness();
     const state = buildWikiPruningJournal({ plan: h.plan });
