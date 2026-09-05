@@ -2794,6 +2794,13 @@ class EvolutionLedgerDomainPorts {
         projection: finalized
           ? this.#committedProjection(finalized, lineages)
           : this.#prepareProjection(entry),
+        finalizationEvidence: finalized
+          ? {
+              timestamp: finalized.event.timestamp,
+              signature: finalized.event.signature,
+              eventDigest: finalized.event.eventDigest,
+            }
+          : null,
       };
     }
     const fresh = this.#ledgerVerify();
@@ -3274,9 +3281,25 @@ export function createEvolutionLedgerPorts(options = {}) {
     prepare,
     query,
   });
+  const readCurrentHead = ledger.verify.bind(ledger);
   RELEASE_OPERATION_READERS.set(
     transactionLedger,
     Object.freeze({
+      currentContext: Object.freeze(() => {
+        const head = readCurrentHead();
+        return deepFreeze({
+          mode: "current",
+          checkpoint: Object.fromEntries(
+            [
+              "epoch",
+              "ledgerId",
+              "identityDigest",
+              "sequence",
+              "headDigest",
+            ].map((key) => [key, head[key]]),
+          ),
+        });
+      }),
       resolveOperation: Object.freeze((input) =>
         adapter.resolveReleaseOperation(input),
       ),
