@@ -1,11 +1,39 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
-import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledge-sync.js";
+import {
+  GovernedKnowledgeSync,
+  verifyGovernedKnowledgeRecord,
+} from "../../src/lib/evolution/governed-knowledge-sync.js";
 import { knowledgeArtifactLifecycle } from "../helpers/governed-knowledge-artifact-lifecycle.js";
 
 const D = (value) =>
   `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
+
+const SAFE_REVOCATION_DEPENDENCIES = [
+  ["wiki", "tombstone"],
+  ["wiki", "quarantine"],
+  ["candidate", "reject-candidate"],
+  ["candidate", "quarantine"],
+  ["active-skill", "rollback-active"],
+  ["active-skill", "quarantine"],
+];
+const UNSAFE_REVOCATION_DEPENDENCIES = [
+  "wiki",
+  "candidate",
+  "active-skill",
+  "unknown",
+].flatMap((kind) =>
+  ["tombstone", "quarantine", "reject-candidate", "rollback-active"]
+    .filter(
+      (disposition) =>
+        !SAFE_REVOCATION_DEPENDENCIES.some(
+          ([safeKind, safeDisposition]) =>
+            safeKind === kind && safeDisposition === disposition,
+        ),
+    )
+    .map((disposition) => [kind, disposition]),
+);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -211,6 +239,139 @@ describe("Governed evolution knowledge synchronization", () => {
       ),
     ).rejects.toThrow("dependency executor is unavailable");
     expect(h.ports.encrypt).not.toHaveBeenCalled();
+  });
+
+  describe.each(["revoke", "tombstone"])("%s dependency policy", (action) => {
+    it.each(SAFE_REVOCATION_DEPENDENCIES)(
+      "admits the explicit %s / %s pair without claiming execution",
+      (kind, disposition) => {
+        const dependencies = [{ kind, digest: D("dependency"), disposition }];
+        expect(
+          verifyGovernedKnowledgeRecord(
+            knowledge({
+              action,
+              revocationReceiptDigest: D("revoke"),
+              dependencies,
+            }),
+            { tenantId: "tenant:a" },
+          ).dependencies,
+        ).toEqual(dependencies);
+      },
+    );
+
+    it.each(UNSAFE_REVOCATION_DEPENDENCIES)(
+      "rejects %s / %s before outbound authorization or persistence",
+      async (kind, disposition) => {
+        const h = harness();
+        await expect(
+          h.controller.publish(
+            knowledge({
+              action,
+              revocationReceiptDigest: D("revoke"),
+              dependencies: [{ kind, digest: D("dependency"), disposition }],
+            }),
+          ),
+        ).rejects.toThrow("unsafe");
+        expect(h.ports.authorize).not.toHaveBeenCalled();
+        expect(h.ports.encrypt).not.toHaveBeenCalled();
+        expect(h.ports.commit).not.toHaveBeenCalled();
+        expect(h.ports.send).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(UNSAFE_REVOCATION_DEPENDENCIES)(
+      "rejects authenticated inbound %s / %s before authorization or commit",
+      async (kind, disposition) => {
+        const sender = harness();
+        const envelope = await sender.controller.publish(knowledge());
+        const unsafe = {
+          ...verifyGovernedKnowledgeRecord(knowledge(), {
+            tenantId: "tenant:a",
+          }),
+          action,
+          revocationReceiptDigest: D("revoke"),
+          dependencies: [{ kind, digest: D("dependency"), disposition }],
+        };
+        const encrypted = await sender.ports.encrypt({
+          plaintext: Buffer.from(canonical(unsafe)),
+        });
+        const receiver = harness({ deviceId: "device:b" });
+        await expect(
+          receiver.controller.receive(
+            resign(envelope, {
+              action,
+              ciphertext: encrypted.ciphertext.toString("base64"),
+              ciphertextDigest: encrypted.ciphertextDigest,
+            }),
+          ),
+        ).rejects.toThrow("unsafe");
+        expect(receiver.ports.verify).toHaveBeenCalled();
+        expect(receiver.ports.authorize).not.toHaveBeenCalled();
+        expect(receiver.ports.commit).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  it("preserves non-revocation dependency locks", () => {
+    const dependencies = [
+      {
+        kind: "active-knowledge",
+        digest: D("baseline"),
+        disposition: "baseline",
+      },
+    ];
+    expect(
+      verifyGovernedKnowledgeRecord(knowledge({ dependencies }), {
+        tenantId: "tenant:a",
+      }).dependencies,
+    ).toEqual(dependencies);
+  });
+
+  it.each(["knowledge", "dependency", "vector", "array"])(
+    "rejects %s accessors without invoking them",
+    (target) => {
+      const input = knowledge({
+        action: "revoke",
+        revocationReceiptDigest: D("revoke"),
+        dependencies: [
+          {
+            kind: "active-skill",
+            digest: D("skill"),
+            disposition: "rollback-active",
+          },
+        ],
+      });
+      const getter = vi.fn(() => "quarantine");
+      const targets = {
+        knowledge: [input, "action"],
+        dependency: [input.dependencies[0], "disposition"],
+        vector: [input.vectorClock, "device:a"],
+        array: [input.dependencies, "0"],
+      };
+      const [owner, key] = targets[target];
+      Object.defineProperty(owner, key, { enumerable: true, get: getter });
+      expect(() =>
+        verifyGovernedKnowledgeRecord(input, { tenantId: "tenant:a" }),
+      ).toThrow(/data/);
+      expect(getter).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects sparse and proxy dependency arrays", () => {
+    const get = vi.fn();
+    for (const dependencies of [new Array(1), new Proxy([], { get })]) {
+      expect(() =>
+        verifyGovernedKnowledgeRecord(
+          knowledge({
+            action: "revoke",
+            revocationReceiptDigest: D("revoke"),
+            dependencies,
+          }),
+          { tenantId: "tenant:a" },
+        ),
+      ).toThrow();
+    }
+    expect(get).not.toHaveBeenCalled();
   });
 
   it("receives an authenticated newer record and rejects tenant/signature substitution", async () => {

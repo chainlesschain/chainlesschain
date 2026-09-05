@@ -32,6 +32,7 @@ export const GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT_CODE =
   "CC_GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT";
 
 const EXECUTORS = new WeakSet();
+const EXECUTION_REQUESTS = new WeakMap();
 const ARTIFACT_TYPE = "governed-knowledge-dependency-operation";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
@@ -139,15 +140,26 @@ function identifier(value, label) {
 }
 
 function capture(owner, method, label) {
-  if (
-    !owner ||
-    typeof owner !== "object" ||
-    utilTypes.isProxy(owner) ||
-    typeof owner[method] !== "function"
-  ) {
+  if (!owner || typeof owner !== "object" || utilTypes.isProxy(owner)) {
     throw new TypeError(`${label}.${method}() is required`);
   }
-  return (...args) => Reflect.apply(owner[method], owner, args);
+  const implementation = owner[method];
+  if (
+    typeof implementation !== "function" ||
+    utilTypes.isProxy(implementation)
+  ) {
+    throw new TypeError(`${label}.${method}() must be a non-proxy function`);
+  }
+  return (...args) => Reflect.apply(implementation, owner, args);
+}
+
+export function isGovernedKnowledgeDependencyExecutionRequest(
+  value,
+  authority,
+) {
+  return (
+    EXECUTION_REQUESTS.has(value) && EXECUTION_REQUESTS.get(value) === authority
+  );
 }
 
 function descriptor(input) {
@@ -305,6 +317,9 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     dependencyAuthority,
     now = Date.now,
   } = {}) {
+    if (new.target !== GovernedKnowledgeDependencyLedgerExecutor) {
+      throw new TypeError("dependency executors cannot be subclassed");
+    }
     this.descriptor = descriptor(descriptorInput);
     this._put = capture(artifactPorts, "putCanonical", "artifactPorts");
     this._read = capture(ledger, "read", "ledger");
@@ -331,6 +346,7 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     }
     this._resolveArtifact = ledgerArtifactResolver;
     this._apply = capture(dependencyAuthority, "apply", "dependencyAuthority");
+    this._dependencyAuthority = dependencyAuthority;
     this._now = now;
     Object.freeze(this);
     EXECUTORS.add(this);
@@ -585,6 +601,9 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
   }
 
   async execute(knowledgeInput) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError("dependency execution requires its branded executor");
+    }
     const knowledge = verifyGovernedKnowledgeRecord(knowledgeInput, {
       tenantId: this.descriptor.tenantId,
     });
@@ -599,24 +618,38 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     const prepared = this._prepared(operationDigest);
     const completed = prepared ? this._settled(prepared.record) : null;
     if (completed) return this._result(completed.record, knowledge, true);
-    await this._prepare(knowledgeInput, knowledge, operationDigest);
+    const durablePrepare = await this._prepare(
+      knowledgeInput,
+      knowledge,
+      operationDigest,
+    );
+    if (
+      !durablePrepare ||
+      durablePrepare.record.operationDigest !== operationDigest ||
+      canonical(durablePrepare.record.knowledge) !== canonical(knowledge)
+    ) {
+      corrupt("dependency prepare was not durably read back");
+    }
     const results = [];
     for (const dependency of knowledge.dependencies) {
-      results.push(
-        await this._apply({
-          tenantId: this.descriptor.tenantId,
-          deviceId: this.descriptor.deviceId,
-          operationDigest,
-          knowledge,
-          dependency,
-        }),
-      );
+      const request = freeze({
+        tenantId: this.descriptor.tenantId,
+        deviceId: this.descriptor.deviceId,
+        operationDigest,
+        knowledge,
+        dependency,
+      });
+      EXECUTION_REQUESTS.set(request, this._dependencyAuthority);
+      results.push(await this._apply(request));
     }
     const settled = await this._settle({ operationDigest, knowledge }, results);
     return this._result(settled.record, knowledge, prepared !== null);
   }
 
   async resume({ operationDigest } = {}) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError("dependency recovery requires its branded executor");
+    }
     if (!DIGEST.test(operationDigest ?? "")) {
       throw new TypeError("operationDigest is invalid");
     }
@@ -640,6 +673,8 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     });
   }
 }
+
+Object.freeze(GovernedKnowledgeDependencyLedgerExecutor.prototype);
 
 export function isGovernedKnowledgeDependencyExecutor(value) {
   return EXECUTORS.has(value);

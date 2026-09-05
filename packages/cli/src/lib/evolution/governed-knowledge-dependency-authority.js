@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import { verifyGovernedKnowledgeRecord } from "./governed-knowledge-sync.js";
+import {
+  digestGovernedKnowledgeDependencyOperation,
+  isGovernedKnowledgeDependencyExecutionRequest,
+} from "./governed-knowledge-dependency-ledger-executor.js";
+
 export const GOVERNED_KNOWLEDGE_DEPENDENCY_REQUEST_SCHEMA =
   "chainlesschain.governed-knowledge-dependency-request/v1";
 export const GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA =
@@ -36,6 +42,14 @@ const RESULT_KEYS = new Set([
   "tenantId",
 ]);
 const ATTESTATION_KEYS = new Set(["algorithm", "keyId", "value"]);
+const INPUT_KEYS = new Set([
+  "tenantId",
+  "deviceId",
+  "operationDigest",
+  "knowledge",
+  "dependency",
+]);
+const DEPENDENCY_KEYS = new Set(["kind", "digest", "disposition"]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -83,6 +97,14 @@ function exact(value, keys, label) {
   ) {
     throw new TypeError(`${label} has an invalid shape`);
   }
+  if (
+    actual.some(
+      (key) =>
+        !Object.hasOwn(Object.getOwnPropertyDescriptor(value, key), "value"),
+    )
+  ) {
+    throw new TypeError(`${label} must contain only data properties`);
+  }
   return value;
 }
 
@@ -94,15 +116,17 @@ function identifier(value, label) {
 }
 
 function capture(owner, method, label) {
-  if (
-    !owner ||
-    typeof owner !== "object" ||
-    utilTypes.isProxy(owner) ||
-    typeof owner[method] !== "function"
-  ) {
+  if (!owner || typeof owner !== "object" || utilTypes.isProxy(owner)) {
     throw new TypeError(`${label}.${method}() is required`);
   }
-  return (...args) => Reflect.apply(owner[method], owner, args);
+  const implementation = owner[method];
+  if (
+    typeof implementation !== "function" ||
+    utilTypes.isProxy(implementation)
+  ) {
+    throw new TypeError(`${label}.${method}() must be a non-proxy function`);
+  }
+  return (...args) => Reflect.apply(implementation, owner, args);
 }
 
 function descriptor(input, label) {
@@ -223,6 +247,12 @@ export function createGovernedKnowledgeDependencyAuthority({
     tenantId,
     deviceId,
     async apply(input) {
+      if (!isGovernedKnowledgeDependencyExecutionRequest(input, authority)) {
+        throw new TypeError(
+          "dependency execution requires a prepared executor request",
+        );
+      }
+      exact(input, INPUT_KEYS, "dependency execution input");
       if (
         input?.tenantId !== tenantId ||
         input.deviceId !== deviceId ||
@@ -230,7 +260,40 @@ export function createGovernedKnowledgeDependencyAuthority({
       ) {
         throw new Error("dependency request crossed its authority boundary");
       }
-      const request = requestFor(input);
+      // Normalize and snapshot before the first await, then bind both the entire
+      // operation and the selected edge. A plausible digest is not authorization
+      // to apply an unlisted dependency or to change its disposition.
+      const knowledge = verifyGovernedKnowledgeRecord(input.knowledge, {
+        tenantId,
+      });
+      const dependency = exact(input.dependency, DEPENDENCY_KEYS, "dependency");
+      const selected = knowledge.dependencies.find(
+        (entry) =>
+          entry.kind === dependency.kind &&
+          entry.digest === dependency.digest &&
+          entry.disposition === dependency.disposition,
+      );
+      if (
+        !["tombstone", "revoke"].includes(knowledge.action) ||
+        !selected ||
+        input.operationDigest !==
+          digestGovernedKnowledgeDependencyOperation({
+            tenantId,
+            deviceId,
+            knowledge,
+          })
+      ) {
+        throw new Error(
+          "dependency request is not bound to its revocation operation",
+        );
+      }
+      const request = requestFor({
+        tenantId,
+        deviceId,
+        operationDigest: input.operationDigest,
+        knowledge,
+        dependency: selected,
+      });
       const result = validateResult(
         await apply(request),
         request,

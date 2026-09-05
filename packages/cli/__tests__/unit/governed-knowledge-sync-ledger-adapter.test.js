@@ -28,6 +28,8 @@ import {
   digestGovernedKnowledgeDependencyResult,
 } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
 import {
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA,
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
   GovernedKnowledgeDependencyLedgerExecutor,
   digestGovernedKnowledgeDependencyOperation,
 } from "../../src/lib/evolution/governed-knowledge-dependency-ledger-executor.js";
@@ -1022,6 +1024,232 @@ function dependencyExecutor(storage, authority) {
     now: () => Date.parse("2026-09-04T00:00:00.000Z"),
   });
 }
+
+function dependencyRequest(knowledgeInput = revocationKnowledge()) {
+  const input = {
+    tenantId: "tenant:a",
+    deviceId: "device:a",
+    knowledge: knowledgeInput,
+    dependency: knowledgeInput.dependencies[0],
+  };
+  return {
+    ...input,
+    operationDigest: digestGovernedKnowledgeDependencyOperation(input),
+  };
+}
+
+describe("Governed knowledge dependency authority boundary", () => {
+  it("rejects a well-formed but unprepared direct request", async () => {
+    const fixture = dependencyAuthority();
+    await expect(fixture.authority.apply(dependencyRequest())).rejects.toThrow(
+      "prepared executor request",
+    );
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "unsafe kind/action pair",
+      () =>
+        dependencyRequest(
+          revocationKnowledge({
+            dependencies: [
+              {
+                kind: "active-skill",
+                digest: D("skill"),
+                disposition: "tombstone",
+              },
+            ],
+          }),
+        ),
+    ],
+    [
+      "another operation",
+      () => ({
+        ...dependencyRequest(),
+        operationDigest: D("another-operation"),
+      }),
+    ],
+    [
+      "another knowledge tenant",
+      () => dependencyRequest(revocationKnowledge({ tenantId: "tenant:b" })),
+    ],
+    [
+      "non-revocation",
+      () => dependencyRequest(revocationKnowledge({ action: "upsert" })),
+    ],
+    [
+      "unlisted dependency",
+      () => ({
+        ...dependencyRequest(),
+        dependency: {
+          kind: "candidate",
+          digest: D("unlisted-candidate"),
+          disposition: "reject-candidate",
+        },
+      }),
+    ],
+    [
+      "substituted disposition",
+      () => ({
+        ...dependencyRequest(),
+        dependency: {
+          ...revocationKnowledge().dependencies[0],
+          disposition: "quarantine",
+        },
+      }),
+    ],
+  ])("rejects %s before provider effects", async (_label, makeRequest) => {
+    const fixture = dependencyAuthority();
+    await expect(fixture.authority.apply(makeRequest())).rejects.toThrow();
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    expect(fixture.verifier.verify).not.toHaveBeenCalled();
+  });
+
+  it("captures provider and verifier methods at construction", async () => {
+    const storage = backends("device:a");
+    const fixture = dependencyAuthority();
+    const originalApply = fixture.provider.apply;
+    const originalVerify = fixture.verifier.verify;
+    fixture.provider.apply = vi.fn(() => {
+      throw new Error("substituted provider");
+    });
+    fixture.verifier.verify = vi.fn(() => {
+      throw new Error("substituted verifier");
+    });
+    await expect(
+      controller(
+        storage,
+        cryptoPorts(),
+        dependencyExecutor(storage, fixture.authority),
+      ).controller.publish(revocationKnowledge()),
+    ).resolves.toMatchObject({ action: "revoke" });
+    expect(originalApply).toHaveBeenCalledTimes(2);
+    expect(originalVerify).toHaveBeenCalledTimes(2);
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    expect(fixture.verifier.verify).not.toHaveBeenCalled();
+  });
+
+  it("does not mint execution requests through a forged receiver or subclass", async () => {
+    const fixture = dependencyAuthority();
+    const forged = {
+      descriptor: { tenantId: "tenant:a", deviceId: "device:a" },
+      _dependencyAuthority: fixture.authority,
+      _prepared: () => null,
+      _prepare: vi.fn(async () => ({ record: revocationKnowledge() })),
+      _apply: fixture.authority.apply,
+    };
+    await expect(
+      GovernedKnowledgeDependencyLedgerExecutor.prototype.execute.call(
+        forged,
+        revocationKnowledge(),
+      ),
+    ).rejects.toThrow("branded executor");
+    await expect(
+      GovernedKnowledgeDependencyLedgerExecutor.prototype.resume.call(forged, {
+        operationDigest: D("operation"),
+      }),
+    ).rejects.toThrow("branded executor");
+    expect(forged._prepare).not.toHaveBeenCalled();
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    class ForgedExecutor extends GovernedKnowledgeDependencyLedgerExecutor {}
+    expect(() => new ForgedExecutor()).toThrow("cannot be subclassed");
+    expect(
+      Object.isFrozen(GovernedKnowledgeDependencyLedgerExecutor.prototype),
+    ).toBe(true);
+  });
+
+  it("does not execute after an append acknowledgment without durable prepare readback", async () => {
+    const storage = backends("device:a");
+    const append = storage.ledger.appendDomainEvent;
+    storage.ledger.appendDomainEvent = (event, expected) => {
+      if (event.type === GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE) {
+        return {
+          authenticated: true,
+          durable: true,
+          receiptDigest: D("false-ack"),
+        };
+      }
+      return append(event, expected);
+    };
+    const fixture = dependencyAuthority();
+    await expect(
+      controller(
+        storage,
+        cryptoPorts(),
+        dependencyExecutor(storage, fixture.authority),
+      ).controller.publish(revocationKnowledge()),
+    ).rejects.toThrow("not durably read back");
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    expect(storage.state.events.map(({ type }) => type)).toEqual([
+      "evolvable-artifact.candidate.persisted",
+    ]);
+  });
+
+  it("rejects an authenticated legacy unsafe prepare on actual Ledger reopen", async () => {
+    const storage = backends("device:a");
+    const witness = durableWitness("witness-unsafe-dependencies");
+    storage.ledger = openRealLedger(storage, witness);
+    const knowledgeInput = revocationKnowledge({
+      dependencies: [
+        { kind: "active-skill", digest: D("skill"), disposition: "tombstone" },
+      ],
+    });
+    const { operationDigest } = dependencyRequest(knowledgeInput);
+    const core = {
+      schema: GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA,
+      tenantId: "tenant:a",
+      deviceId: "device:a",
+      operationDigest,
+      knowledge: knowledgeInput,
+      preparedAt: "2026-09-04T00:00:00.000Z",
+    };
+    const published = storage.artifactPorts.putCanonical(
+      "governed-knowledge-dependency-operation",
+      {
+        ...core,
+        recordDigest: D(
+          `${GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA}\0${canonical(core)}`,
+        ),
+      },
+      {
+        audience: storage.descriptor.audience,
+        purpose: storage.descriptor.purpose,
+        retention: "ledger",
+      },
+    );
+    storage.ledger.appendDomainEvent(
+      {
+        artifactTenantId: storage.descriptor.artifactTenantId,
+        correlationId: storage.descriptor.streamId,
+        decision: "prepared",
+        eventId: `${GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE}.${operationDigest.slice(7)}`,
+        reason: "previous version admitted an unsafe dependency disposition",
+        skillName: null,
+        sourceRefs: [],
+        subjectRef: published.ref,
+        tenantId: storage.descriptor.tenantId,
+        timestamp: core.preparedAt,
+        type: GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+      },
+      { expectedHeadDigest: null, expectedSequence: 0 },
+    );
+    const reopenedLedger = openRealLedger(storage, witness);
+    const fixture = dependencyAuthority();
+    const reopened = dependencyExecutor(
+      { ...storage, ledger: reopenedLedger },
+      fixture.authority,
+    );
+    await expect(reopened.resume({ operationDigest })).rejects.toThrow(
+      "unsafe",
+    );
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    expect(reopenedLedger.verify()).toMatchObject({
+      eventCount: 1,
+      sequence: 1,
+    });
+  });
+});
 
 describe("GovernedKnowledgeSyncLedgerAdapter", () => {
   it("continues to authenticate and load legacy v1 sync records", async () => {

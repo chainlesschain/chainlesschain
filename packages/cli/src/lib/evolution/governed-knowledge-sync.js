@@ -23,6 +23,13 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const SCOPES = new Set(Object.values(GOVERNED_KNOWLEDGE_SCOPE));
 const ACTIONS = new Set(["upsert", "tombstone", "revoke"]);
+// A durable receipt for a different kind of effect is not a revocation.
+// In particular, tombstoning metadata must never count as stopping an active Skill.
+const REVOCATION_DISPOSITIONS = new Map([
+  ["wiki", new Set(["tombstone", "quarantine"])],
+  ["candidate", new Set(["reject-candidate", "quarantine"])],
+  ["active-skill", new Set(["rollback-active", "quarantine"])],
+]);
 const MAX_CIPHERTEXT_BYTES = 12 * 1024 * 1024;
 const EXECUTION_RECORDS = new WeakSet();
 const SYNCHRONIZERS = new WeakSet();
@@ -97,6 +104,11 @@ function record(value, label) {
     ![Object.prototype, null].includes(Object.getPrototypeOf(value))
   )
     throw new TypeError(`${label} must be a plain object`);
+  for (const key of Reflect.ownKeys(value)) {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    if (typeof key !== "string" || !Object.hasOwn(property, "value"))
+      throw new TypeError(`${label} must contain only data properties`);
+  }
   return value;
 }
 
@@ -157,10 +169,15 @@ function relation(left, right) {
 }
 
 function normalizeDependencies(value, action) {
-  if (!Array.isArray(value) || value.length > 256)
+  if (!Array.isArray(value) || utilTypes.isProxy(value) || value.length > 256)
     throw new TypeError("dependency dispositions are unbounded");
   const seen = new Set();
-  return value.map((entry) => {
+  const result = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const property = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!property || !Object.hasOwn(property, "value"))
+      throw new TypeError("dependency dispositions must be dense data");
+    const entry = property.value;
     record(entry, "dependency disposition");
     const normalized = {
       kind: id(entry.kind, "dependency kind"),
@@ -172,16 +189,12 @@ function normalizeDependencies(value, action) {
     seen.add(key);
     if (
       ["tombstone", "revoke"].includes(action) &&
-      ![
-        "tombstone",
-        "quarantine",
-        "reject-candidate",
-        "rollback-active",
-      ].includes(normalized.disposition)
+      !REVOCATION_DISPOSITIONS.get(normalized.kind)?.has(normalized.disposition)
     )
       throw new TypeError("revocation dependency disposition is unsafe");
-    return normalized;
-  });
+    result.push(normalized);
+  }
+  return result;
 }
 
 function normalizeRecord(input, descriptor, { executionRecord = false } = {}) {
