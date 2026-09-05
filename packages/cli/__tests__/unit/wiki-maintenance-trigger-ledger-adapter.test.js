@@ -242,6 +242,7 @@ function backends() {
     verify: vi.fn(() => ({
       epoch: "epoch-a",
       ledgerId: "ledger-a",
+      identityDigest: hash("ledger-identity"),
       sequence: state.events.length,
       headDigest: state.events.at(-1)?.eventDigest ?? null,
     })),
@@ -258,6 +259,9 @@ function backends() {
       const event = {
         ...structuredClone(input),
         schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        epoch: "epoch-a",
+        ledgerId: "ledger-a",
+        identityDigest: hash("ledger-identity"),
         sequence: state.events.length + 1,
         eventDigest: hash(input),
       };
