@@ -143,6 +143,9 @@ describe("signed evolution deployment loader", () => {
           typeof factories.createEvolutionWorkbenchCliHost === "function",
         reviewRuntimeAvailable:
           typeof factories.createEvolutionWorkbenchReviewRuntime === "function",
+        rollbackRuntimeAvailable:
+          typeof factories.createEvolutionWorkbenchRollbackRuntime ===
+          "function",
         benchmarkFactoriesAvailable: [
           "createWikiSkillBenchmarkCliHost",
           "createWikiSkillBenchmarkDatasetProvider",
@@ -169,6 +172,7 @@ describe("signed evolution deployment loader", () => {
         revision: 7,
         factoryAvailable: true,
         reviewRuntimeAvailable: true,
+        rollbackRuntimeAvailable: true,
         benchmarkFactoriesAvailable: true,
       },
     });
@@ -180,16 +184,23 @@ describe("signed evolution deployment loader", () => {
     );
   });
 
-  it.each(["evolution", "serve"])(
-    "pins the Workbench review runtime to the signed %s deployment module",
-    async (commandName) => {
+  it.each(
+    ["evolution", "serve"].flatMap((commandName) =>
+      [
+        "createEvolutionWorkbenchReviewRuntime",
+        "createEvolutionWorkbenchRollbackRuntime",
+      ].map((factoryName) => [commandName, factoryName]),
+    ),
+  )(
+    "pins the signed %s deployment module to %s",
+    async (commandName, factoryName) => {
       const fixture = deploymentFixture({ commands: [commandName] });
       await expect(
         loadEvolutionDeploymentCommandDependencies(commandName, {
           ...fixture,
           importModule: async () => ({
             createChainlessChainCommandDependencies: async ({ factories }) => {
-              factories.createEvolutionWorkbenchReviewRuntime({
+              factories[factoryName]({
                 descriptor: {
                   handlerArtifactDigest: "sha256:" + "0".repeat(64),
                 },

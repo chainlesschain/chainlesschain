@@ -18,21 +18,21 @@
 | `transitionAdapter`                                 | 目标部署的真实 Registry transition reader；不能以空数组掩盖已有晋升/回滚历史                                                                                                                                                   |
 | 可选 invocationReceiptSource / pilotSource          | 与原 Workbench source 相同的受治理来源；配置时仍需完整验证                                                                                                                                                                     |
 
-生产工厂在内部构造实际 Run 和 Review Ledger reader，然后构造 branded projection source；不接受调用方替换的 Run/Review 汇总。它返回 `projectionLoader`、`projectionAuthority`、`batchExecutor`、`resume()`，供原 `createEvolutionWorkbenchCliHost` 复用。宿主仍必须另行提供真实 `identityProvider`、`activeStateReader` 和 `rollbackExecutor`。本工厂不授予这三种能力，也不会单独让 IDE 声明所有工作台方法可用。
+生产工厂在内部构造实际 Run 和 Review Ledger reader，然后构造 branded projection source；不接受调用方替换的 Run/Review 汇总。它返回 `projectionLoader`、`projectionAuthority`、`projectionReader`、`batchExecutor`、`resume()`，供原 `createEvolutionWorkbenchCliHost` 复用。只读 `projectionReader` 绑定原 Ledger，可交给[真实回滚运行时](EVOLUTION_WORKBENCH_ROLLBACK_RUNTIME.md)构造 `activeStateReader` 和 `rollbackExecutor`。宿主仍必须另行提供真实 `identityProvider`，并完成两类运行时的恢复、实际 transition/Run 状态传播和部署验收；审核工厂不会单独让 IDE 声明所有工作台方法可用。
 
 ## 人工决策合同
 
 原 `chainlesschain.skill-promotion-review-decision/v1` 字段和签名保持不变，禁止往其中添加或删除 `requestDigest` 等工作台字段。人工服务现在返回单独签名的外层：
 
 ```js
-{
-  schema: ("chainlesschain.evolution-workbench-human-decision/v1",
-    tenantId,
-    requestDigest,
-    decision, // 完整、未修改、带原签名的 canonical Review decision
-    responseDigest,
-    signature); // Workbench 外层签名，不复用 decision.signature
-}
+const response = {
+  schema: "chainlesschain.evolution-workbench-human-decision/v1",
+  tenantId,
+  requestDigest,
+  decision, // 完整、未修改、带原签名的 canonical Review decision
+  responseDigest,
+  signature, // Workbench 外层签名，不复用 decision.signature
+};
 ```
 
 `responseDigest` 使用 `digestWorkbenchHumanDecisionResponse(core)`，其中 core 是 schema、tenantId、requestDigest 和完整 decision（包含原签名）。外层 verifier 必须按部署自己的 PKI 协议验证该摘要；仅比较摘要或检查签名字符串长度不构成认证。内部决策还必须与 request 的 decision/reason 精确一致，reviewerIds 必须包含发起人，且满足原 quorum、content-risk 确认和时效规则。

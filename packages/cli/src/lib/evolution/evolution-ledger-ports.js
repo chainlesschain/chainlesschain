@@ -3908,6 +3908,7 @@ export function createEvolutionLedgerPorts(options = {}) {
       matchesWikiAdapter: Object.freeze((wikiAdapter) =>
         captureWikiRevisionReader(wikiAdapter).matchesLedger(ledger),
       ),
+      matchesLedger: Object.freeze((value) => value === ledger),
       resolveOperation: Object.freeze((input) =>
         adapter.resolveReleaseOperation(input),
       ),

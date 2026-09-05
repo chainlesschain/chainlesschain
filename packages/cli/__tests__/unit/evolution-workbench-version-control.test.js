@@ -112,6 +112,9 @@ function fixture() {
     })),
     readActiveState: vi.fn(async () => ({
       authenticated: true,
+      durable: true,
+      tenantId: "tenant:a",
+      skillName: "repair-tests",
       contentDigest: previous.candidateContentDigest,
       stateDigest: D("rolled-back-state"),
     })),
@@ -214,4 +217,24 @@ describe("Evolution Workbench version control", () => {
       "not durably committed",
     );
   });
+
+  it.each([
+    { durable: false },
+    { tenantId: "tenant:other" },
+    { skillName: "other-skill" },
+  ])(
+    "rejects durable or scope drift in active readback: %j",
+    async (overrides) => {
+      const h = fixture();
+      const active = await h.ports.readActiveState();
+      h.ports.readActiveState.mockResolvedValueOnce({
+        ...active,
+        ...overrides,
+      });
+      await expect(h.executor.execute(h.plan)).rejects.toThrow(
+        "readback differs",
+      );
+      expect(h.ports.commitRollback).not.toHaveBeenCalled();
+    },
+  );
 });

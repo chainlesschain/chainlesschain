@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import { join } from "node:path";
 
@@ -301,6 +301,8 @@ export async function openRevocationReleaseRegistry({
     candidate = null,
     target = null,
     current,
+    policyReceipt = null,
+    deadlineMs = Infinity,
   }) {
     const expectedTargetDigest =
       current?.release.contentDigest ?? EMPTY_SKILL_ACTIVE_DIGEST;
@@ -324,12 +326,19 @@ export async function openRevocationReleaseRegistry({
         expectedActiveContentDigest: expectedTargetDigest,
         expectedActiveRevision: expectedTargetRevision,
       }),
-      expiresAt: new Date(storage.now + 120_000).toISOString(),
-      nonce: D(operationId).slice(7),
+      expiresAt: new Date(
+        Math.min(storage.now + 120_000, deadlineMs),
+      ).toISOString(),
+      nonce:
+        policyReceipt === null
+          ? D(operationId).slice(7)
+          : randomBytes(32).toString("hex"),
       receipts: Object.fromEntries(
         SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
           `${kind}Receipt`,
-          `${kind}:test:${operationId}`,
+          kind === "policy" && policyReceipt !== null
+            ? policyReceipt
+            : `${kind}:test:${operationId}`,
         ]),
       ),
     });
@@ -485,6 +494,10 @@ export async function openRevocationReleaseRegistry({
             operationId: expected.operationId,
             target: releases.readRelease(expected.targetReleaseDigest),
             current: releases.readActive(SKILL),
+            policyReceipt: expected.policyReceipt ?? null,
+            deadlineMs: expected.expiresAt
+              ? Date.parse(expected.expiresAt)
+              : Infinity,
           });
           return { request, capability: await authority.authorize(request) };
         },

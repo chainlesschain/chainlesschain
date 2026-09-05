@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { types } from "node:util";
+import { capturePruningData } from "./governed-wiki-pruning-journal.js";
 
 import { filterEvolutionWorkbenchProjection } from "./evolution-workbench-projection.js";
 
@@ -156,7 +158,8 @@ export function buildEvolutionWorkbenchRollbackPlan(
   });
 }
 
-function verifyPlan(plan, tenantId) {
+export function verifyEvolutionWorkbenchRollbackPlan(input, tenantId) {
+  const plan = capturePruningData(input);
   if (
     plan?.schema !== EVOLUTION_WORKBENCH_ROLLBACK_PLAN_SCHEMA ||
     plan.tenantId !== tenantId ||
@@ -170,9 +173,57 @@ function verifyPlan(plan, tenantId) {
   return freeze(clone(plan));
 }
 
+export function buildEvolutionWorkbenchRollbackRequest(
+  plan,
+  authorizationReceiptDigest,
+) {
+  const core = {
+    planDigest: plan.planDigest,
+    expectedActiveStateDigest: plan.expectedActiveStateDigest,
+    fromContentDigest: plan.fromContentDigest,
+    toContentDigest: plan.toContentDigest,
+    authorizationReceiptDigest: digest(
+      authorizationReceiptDigest,
+      "authorization receipt",
+    ),
+  };
+  return freeze({
+    ...core,
+    requestDigest: hash(
+      "chainlesschain.evolution-workbench-rollback-request/v1",
+      core,
+    ),
+  });
+}
+
+export function buildEvolutionWorkbenchRollbackReceipt(
+  plan,
+  request,
+  transitionReceiptDigest,
+  active,
+) {
+  const core = {
+    schema: EVOLUTION_WORKBENCH_ROLLBACK_RECEIPT_SCHEMA,
+    tenantId: plan.tenantId,
+    skillName: plan.skillName,
+    planDigest: plan.planDigest,
+    requestDigest: request.requestDigest,
+    authorizationReceiptDigest: request.authorizationReceiptDigest,
+    transitionReceiptDigest,
+    activeStateDigest: active.stateDigest,
+    activeContentDigest: active.contentDigest,
+  };
+  return freeze({
+    ...core,
+    receiptDigest: hash(EVOLUTION_WORKBENCH_ROLLBACK_RECEIPT_SCHEMA, core),
+  });
+}
+
 export class EvolutionWorkbenchRollbackExecutor {
   constructor({ tenantId, ports } = {}) {
     this.tenantId = string(tenantId, "tenantId");
+    if (!ports || types.isProxy(ports))
+      throw new TypeError("fixed rollback ports are required");
     for (const name of [
       "loadProjection",
       "authorizeHumanRollback",
@@ -180,14 +231,16 @@ export class EvolutionWorkbenchRollbackExecutor {
       "readActiveState",
       "commitRollback",
     ]) {
-      if (typeof ports?.[name] !== "function")
+      const method = Object.getOwnPropertyDescriptor(ports, name)?.value;
+      if (typeof method !== "function" || types.isProxy(method))
         throw new TypeError(`Workbench rollback port ${name} is required`);
-      this[`_${name}`] = ports[name].bind(ports);
+      this[`_${name}`] = method.bind(ports);
     }
+    Object.freeze(this);
   }
 
   async execute(input) {
-    const plan = verifyPlan(input, this.tenantId);
+    const plan = verifyEvolutionWorkbenchRollbackPlan(input, this.tenantId);
     const projection = await this._loadProjection({
       tenantId: this.tenantId,
       projectionDigest: plan.sourceProjectionDigest,
@@ -210,20 +263,10 @@ export class EvolutionWorkbenchRollbackExecutor {
       !DIGEST.test(authorization.receiptDigest ?? "")
     )
       throw new Error("Workbench rollback lacks exact human authorization");
-    const requestCore = {
-      planDigest: plan.planDigest,
-      expectedActiveStateDigest: plan.expectedActiveStateDigest,
-      fromContentDigest: plan.fromContentDigest,
-      toContentDigest: plan.toContentDigest,
-      authorizationReceiptDigest: authorization.receiptDigest,
-    };
-    const request = freeze({
-      ...requestCore,
-      requestDigest: hash(
-        "chainlesschain.evolution-workbench-rollback-request/v1",
-        requestCore,
-      ),
-    });
+    const request = buildEvolutionWorkbenchRollbackRequest(
+      plan,
+      authorization.receiptDigest,
+    );
     const applied = await this._applyRollback(request);
     if (
       applied?.authenticated !== true ||
@@ -238,28 +281,19 @@ export class EvolutionWorkbenchRollbackExecutor {
     });
     if (
       active?.authenticated !== true ||
+      active.durable !== true ||
+      active.tenantId !== this.tenantId ||
+      active.skillName !== plan.skillName ||
       active.contentDigest !== plan.toContentDigest ||
       !DIGEST.test(active.stateDigest ?? "")
     )
       throw new Error("Workbench rollback active readback differs from target");
-    const receiptCore = {
-      schema: EVOLUTION_WORKBENCH_ROLLBACK_RECEIPT_SCHEMA,
-      tenantId: this.tenantId,
-      skillName: plan.skillName,
-      planDigest: plan.planDigest,
-      requestDigest: request.requestDigest,
-      authorizationReceiptDigest: authorization.receiptDigest,
-      transitionReceiptDigest: applied.receiptDigest,
-      activeStateDigest: active.stateDigest,
-      activeContentDigest: active.contentDigest,
-    };
-    const receipt = freeze({
-      ...receiptCore,
-      receiptDigest: hash(
-        EVOLUTION_WORKBENCH_ROLLBACK_RECEIPT_SCHEMA,
-        receiptCore,
-      ),
-    });
+    const receipt = buildEvolutionWorkbenchRollbackReceipt(
+      plan,
+      request,
+      applied.receiptDigest,
+      active,
+    );
     const committed = await this._commitRollback({ receipt });
     if (
       committed?.authenticated !== true ||

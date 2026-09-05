@@ -606,6 +606,8 @@ describe("EvolutionArtifactPorts", () => {
       "evolution-workbench-projection",
       "evolution-workbench-review-preparation",
       "evolution-workbench-review-settlement",
+      "evolution-workbench-rollback-preparation",
+      "evolution-workbench-rollback-settlement",
       "skill-registry-transition-attempt",
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
@@ -769,6 +771,8 @@ describe("EvolutionArtifactPorts", () => {
       "evolution-workbench-projection",
       "evolution-workbench-review-preparation",
       "evolution-workbench-review-settlement",
+      "evolution-workbench-rollback-preparation",
+      "evolution-workbench-rollback-settlement",
     ]) {
       expect(
         capturedError(() =>

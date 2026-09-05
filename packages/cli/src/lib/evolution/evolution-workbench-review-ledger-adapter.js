@@ -50,6 +50,15 @@ const TYPES = Object.freeze({
   ],
 });
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const PROJECTION_READERS = new WeakSet();
+const ADAPTER_PROJECTION_READERS = new WeakMap();
+export function captureWorkbenchProjectionReader(value) {
+  if (!PROJECTION_READERS.has(value))
+    throw new TypeError(
+      "a genuine Workbench retained projection reader is required",
+    );
+  return value;
+}
 const same = (a, b) => canonical(a) === canonical(b);
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const sortedRefs = (refs) =>
@@ -157,7 +166,29 @@ export class EvolutionWorkbenchReviewLedgerAdapter {
       decisionVerifier: { verify: method(decisionVerifier, "verify") },
       now,
     });
+    const reader = Object.freeze({
+      descriptor: d,
+      matchesLedger: (value) => value === ledger,
+      read: ({ tenantId, projectionDigest }) => {
+        if (tenantId !== d.tenantId)
+          fail("Workbench projection tenant differs");
+        const entry = this.#projection(projectionDigest);
+        return capture({
+          projection: entry.value,
+          artifactRef: entry.event.subjectRef,
+          sequence: entry.event.sequence,
+          eventDigest: entry.event.eventDigest,
+        });
+      },
+      readReview: (packetDigest) => this.#review.readReview(packetDigest),
+    });
+    PROJECTION_READERS.add(reader);
+    ADAPTER_PROJECTION_READERS.set(this, reader);
     Object.freeze(this);
+  }
+
+  createProjectionReader() {
+    return ADAPTER_PROJECTION_READERS.get(this);
   }
 
   #stable(head) {
@@ -733,6 +764,7 @@ export function createEvolutionWorkbenchReviewRuntime(options = {}) {
       retain: adapter.retainProjection.bind(adapter),
     }),
     batchExecutor: adapter.createExecutor(),
+    projectionReader: adapter.createProjectionReader(),
     resume: adapter.resume.bind(adapter),
   });
 }
