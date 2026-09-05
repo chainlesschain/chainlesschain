@@ -3,12 +3,14 @@ import {
   knowledgeId,
 } from "../../fixtures/governed-knowledge-skill-rollback.js";
 
-const [root, mode, crashPoint = "none"] = process.argv.slice(2);
+const [root, mode, crashPoint = "none", provenance = "direct"] =
+  process.argv.slice(2);
 if (!root || !["seed", "execute", "inspect"].includes(mode))
   throw new Error("invalid rollback worker request");
 const h = await openKnowledgeSkillRollbackStore(root, {
   seed: mode === "seed",
   crashPoint,
+  wikiProvenance: provenance === "wiki",
 });
 if (mode === "execute") {
   await h.makeSync().publishWithArtifactEvidence(h.knowledge, {

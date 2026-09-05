@@ -2,6 +2,7 @@ import { types } from "node:util";
 import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
 import { captureSkillReleaseOperationReader } from "./evolution-ledger-ports.js";
 import { captureSkillRollbackProvider } from "./skill-promotion-controller.js";
+import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 import {
   verifySkillMutationRequest,
   digestSkillMutationTransitionSubject,
@@ -37,7 +38,7 @@ export function governedKnowledgeSourceRef({ tenantId, knowledgeId }) {
   return `knowledge://${encodeURIComponent(tenantId)}/${encodeURIComponent(knowledgeId)}`;
 }
 
-function bindReader(registry, transactionLedger, tenantId) {
+function bindReader(registry, transactionLedger, tenantId, wikiAdapter) {
   const reader = captureSkillReleaseRegistryReader(registry);
   if (
     reader.tenantId !== tenantId ||
@@ -46,9 +47,77 @@ function bindReader(registry, transactionLedger, tenantId) {
     throw new TypeError(
       "knowledge rollback registry/ledger tenant binding differs",
     );
+  const wiki =
+    wikiAdapter == null ? null : captureWikiRevisionReader(wikiAdapter);
+  if (wiki && wiki.descriptor.tenantId !== tenantId)
+    throw new TypeError("Knowledge Wiki lineage tenant differs");
   return Object.freeze({
     registry: reader,
     operations: captureSkillReleaseOperationReader(transactionLedger),
+    wiki,
+  });
+}
+
+function wikiLineage(reader, request, release) {
+  if (release.candidate.derivationMode !== "wiki") return null;
+  if (!reader.wiki)
+    fail("Wiki-derived release requires an authenticated Wiki reader");
+  const revision = reader.wiki.readRevision({
+    tenantId: request.tenantId,
+    revisionId: release.candidate.wikiRevision,
+  });
+  const context = reader.operations.currentContext();
+  if (
+    ["epoch", "ledgerId", "identityDigest"].some(
+      (key) => revision.checkpoint[key] !== context.checkpoint[key],
+    )
+  )
+    fail("Wiki provenance belongs to another release ledger");
+  const origin = reader.operations.resolveReleaseOrigin({
+    tenantId: request.tenantId,
+    skillName: release.skillName,
+    releaseDigest: release.releaseDigest,
+    context,
+  }).result;
+  if (
+    !origin ||
+    origin.projection.status !== "committed" ||
+    origin.intent.mutationRequest.requestDigest !==
+      release.mutationRequestDigest ||
+    revision.checkpoint.sequence >= origin.preparationCheckpoint.sequence
+  )
+    fail("Wiki provenance must precede the original release preparation");
+  const sourceRef = governedKnowledgeSourceRef(request);
+  const exactRefs = new Set();
+  const unsafeRefs = new Set();
+  for (const evidence of Object.values(revision.state.evidence)) {
+    const sameSource =
+      evidence.ref === sourceRef || evidence.artifactRef === sourceRef;
+    const sameContent = evidence.sourceDigest === request.contentDigest;
+    if (sameSource && sameContent) exactRefs.add(evidence.ref);
+    if (sameSource || sameContent) unsafeRefs.add(evidence.ref);
+  }
+  // Wiki index summaries are also model context. Treat the entire pinned
+  // revision as potential lineage, not only PURPOSE's self-reported selection.
+  const affectedPatternIds = [];
+  const unsafePatternIds = [];
+  for (const pattern of Object.values(revision.state.patterns)) {
+    const refs = [...pattern.positiveEvidence, ...pattern.negativeEvidence];
+    if (refs.some((ref) => !revision.state.evidence[ref]))
+      fail("Wiki pattern has unresolved evidence");
+    if (refs.some((ref) => exactRefs.has(ref)))
+      affectedPatternIds.push(pattern.patternId);
+    if (refs.some((ref) => unsafeRefs.has(ref)))
+      unsafePatternIds.push(pattern.patternId);
+  }
+  return captureData({
+    wikiRevision: revision.revisionId,
+    stateDigest: revision.stateDigest,
+    checkpoint: revision.checkpoint,
+    releaseOriginTransactionId: origin.intent.transactionId,
+    releaseOriginReceiptDigest: origin.projection.receiptDigest,
+    affectedPatternIds: affectedPatternIds.sort(),
+    unsafePatternIds: unsafePatternIds.sort(),
   });
 }
 
@@ -79,17 +148,19 @@ function releasesFor(reader, request) {
   )
     fail("dependent release is missing or substituted");
   const sourceRef = governedKnowledgeSourceRef(request);
+  const wiki = wikiLineage(reader, request, from);
   if (
     !from.candidate.sourceEvidenceRefs.some(
       (entry) =>
         entry.ref === sourceRef && entry.digest === request.contentDigest,
-    )
+    ) &&
+    !wiki?.affectedPatternIds.length
   )
     fail("dependent candidate has no exact Knowledge source lineage");
-  return { from, sourceRef };
+  return { from, sourceRef, wiki };
 }
 
-function validateTarget(request, from, target, sourceRef) {
+function validateTarget(reader, request, from, target, sourceRef) {
   if (
     !target ||
     target.tenantId !== request.tenantId ||
@@ -104,6 +175,10 @@ function validateTarget(request, from, target, sourceRef) {
     )
   )
     fail("last-known-good still depends on revoked Knowledge");
+  const wiki = wikiLineage(reader, request, target);
+  if (wiki?.unsafePatternIds.length)
+    fail("last-known-good Wiki revision still depends on revoked Knowledge");
+  return wiki;
 }
 
 function resolve(reader, request, from) {
@@ -116,14 +191,14 @@ function resolve(reader, request, from) {
 }
 
 function committedProof(reader, request) {
-  const { from, sourceRef } = releasesFor(reader, request);
+  const { from, sourceRef, wiki } = releasesFor(reader, request);
   const result = resolve(reader, request, from);
   if (!result) return null;
   const { intent, previous, projection, finalizationEvidence } = result;
   if (projection.status !== "committed")
     fail("release transaction is pending; reopen the registry to recover");
   const target = reader.registry.readRelease(intent.targetReleaseDigest);
-  validateTarget(request, from, target, sourceRef);
+  const targetWiki = validateTarget(reader, request, from, target, sourceRef);
   if (
     intent.operation !== "rollback" ||
     intent.operationId !== request.operationId ||
@@ -160,6 +235,9 @@ function committedProof(reader, request) {
     ledgerId: projection.ledgerId,
     sequence: projection.sequence,
     finalizationEvidence,
+    ...(wiki || targetWiki
+      ? { wikiLineage: { from: wiki, target: targetWiki } }
+      : {}),
   });
 }
 
@@ -182,8 +260,8 @@ function authorizationData(value) {
   };
 }
 
-// Narrow real effect for directly derived active Skills. Wiki/indirect lineage,
-// candidate rejection and quarantine are deliberately not simulated here.
+// Real active-release effect with direct or historically authenticated Wiki
+// provenance. Candidate rejection and quarantine require separate effects.
 export function createGovernedKnowledgeSkillRollbackAuthority({
   tenantId,
   deviceId,
@@ -193,6 +271,8 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
   authorizationProvider,
   verifierReleaseRegistry,
   verifierTransactionLedger,
+  wikiLedgerAdapter = null,
+  verifierWikiLedgerAdapter = null,
   providerDescriptor,
   verifierDescriptor,
 } = {}) {
@@ -203,16 +283,30 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
     throw new TypeError(
       "knowledge rollback verifier must use independent readers",
     );
+  if (
+    (wikiLedgerAdapter === null) !== (verifierWikiLedgerAdapter === null) ||
+    (wikiLedgerAdapter !== null &&
+      wikiLedgerAdapter === verifierWikiLedgerAdapter)
+  )
+    throw new TypeError("Wiki provenance requires independent paired readers");
   const providerReader = bindReader(
     releaseRegistry,
     transactionLedger,
     tenantId,
+    wikiLedgerAdapter,
   );
   const verifierReader = bindReader(
     verifierReleaseRegistry,
     verifierTransactionLedger,
     tenantId,
+    verifierWikiLedgerAdapter,
   );
+  if (
+    providerReader.wiki &&
+    canonical(providerReader.wiki.descriptor) !==
+      canonical(verifierReader.wiki.descriptor)
+  )
+    throw new TypeError("Wiki provenance reader scopes differ");
   sameLedger(providerReader, verifierReader);
   const rollback = captureSkillRollbackProvider(
     rollbackProvider,
@@ -239,18 +333,39 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
     sameLedger(providerReader, verifierReader);
     let proof = committedProof(providerReader, request);
     if (!proof) {
-      const { from, sourceRef } = releasesFor(providerReader, request);
+      const { from, sourceRef, wiki } = releasesFor(providerReader, request);
       const active = providerReader.registry.readActive(from.skillName);
       if (!active || active.release.releaseDigest !== from.releaseDigest)
         fail("dependent release is not currently active");
       const target = providerReader.registry.readRelease(
         active.state.lastKnownGoodReleaseDigest,
       );
-      validateTarget(request, from, target, sourceRef);
+      const targetWiki = validateTarget(
+        providerReader,
+        request,
+        from,
+        target,
+        sourceRef,
+      );
       // Independently preflight before asking for a destructive capability.
       const independent = verifierReader.registry.readActive(from.skillName);
       if (canonical(independent) !== canonical(active))
         fail("independent active state differs");
+      const independentSource = releasesFor(verifierReader, request);
+      const independentTargetWiki = validateTarget(
+        verifierReader,
+        request,
+        independentSource.from,
+        verifierReader.registry.readRelease(
+          active.state.lastKnownGoodReleaseDigest,
+        ),
+        sourceRef,
+      );
+      if (
+        canonical(wiki) !== canonical(independentSource.wiki) ||
+        canonical(targetWiki) !== canonical(independentTargetWiki)
+      )
+        fail("independent Wiki provenance differs");
       const expected = captureData({
         tenantId,
         skillName: from.skillName,

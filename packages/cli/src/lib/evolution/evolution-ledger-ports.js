@@ -2625,15 +2625,37 @@ class EvolutionLedgerDomainPorts {
   }
 
   resolveReleaseOperation(inputValue) {
+    return this.#resolveRelease(inputValue, false);
+  }
+
+  resolveReleaseOrigin(inputValue) {
+    return this.#resolveRelease(inputValue, true);
+  }
+
+  #resolveRelease(inputValue, origin) {
     const input = frozenCanonicalClone(inputValue);
     assertAllExactRecord(
       input,
-      new Set(["tenantId", "skillName", "operationId", "context"]),
+      new Set([
+        "tenantId",
+        "skillName",
+        origin ? "releaseDigest" : "operationId",
+        "context",
+      ]),
       "release operation query",
     );
     const tenantId = identifier(input.tenantId, "tenantId");
     const name = skillName(input.skillName, "skillName");
-    const operationId = identifier(input.operationId, "operationId");
+    const operationId = origin
+      ? null
+      : identifier(input.operationId, "operationId");
+    const releaseDigest = origin
+      ? digest(
+          input.releaseDigest,
+          "releaseDigest",
+          EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+        )
+      : null;
     const context = input.context;
     assertAllExactRecord(
       context,
@@ -2731,7 +2753,10 @@ class EvolutionLedgerDomainPorts {
       if (
         entry.intent.mutationRequest.tenantId === tenantId &&
         entry.intent.skillName === name &&
-        entry.intent.operationId === operationId
+        (origin
+          ? entry.intent.operation === "promote" &&
+            entry.intent.targetReleaseDigest === releaseDigest
+          : entry.intent.operationId === operationId)
       )
         prepared.push(entry);
     }
@@ -2791,6 +2816,13 @@ class EvolutionLedgerDomainPorts {
       result = {
         intent: entry.intent,
         previous,
+        preparationCheckpoint: {
+          epoch: entry.event.epoch,
+          ledgerId: entry.event.ledgerId,
+          identityDigest: entry.event.identityDigest,
+          sequence: entry.event.sequence,
+          headDigest: entry.event.eventDigest,
+        },
         projection: finalized
           ? this.#committedProjection(finalized, lineages)
           : this.#prepareProjection(entry),
@@ -2814,7 +2846,7 @@ class EvolutionLedgerDomainPorts {
       durable: true,
       tenantId,
       skillName: name,
-      operationId,
+      operationId: origin ? (result?.intent.operationId ?? null) : operationId,
       checkpoint: { ...checkpoint },
       result,
     });
@@ -3302,6 +3334,9 @@ export function createEvolutionLedgerPorts(options = {}) {
       }),
       resolveOperation: Object.freeze((input) =>
         adapter.resolveReleaseOperation(input),
+      ),
+      resolveReleaseOrigin: Object.freeze((input) =>
+        adapter.resolveReleaseOrigin(input),
       ),
     }),
   );

@@ -260,13 +260,19 @@ export class WikiMaintainerLedgerAdapter {
       Object.freeze({
         descriptor: this.descriptor,
         loadWiki: () => this.#loadWiki(),
+        readRevision: (input) => this.#readRevision(input),
         resolveHistory: (input) => this.#resolveHistory(input),
         resolveAtCheckpoint: (input) => this.#resolveHistory(input, true),
       }),
     );
   }
 
-  #history({ sourceDigest = null, allowed = [], checkpoint = null } = {}) {
+  #history({
+    sourceDigest = null,
+    allowed = [],
+    checkpoint = null,
+    revisionId = null,
+  } = {}) {
     // read() already authenticates its snapshot. Resolve against that snapshot's
     // identity, then compare the entire event range with a fresh authority head.
     // This avoids a redundant pre-read scan without caching authorization.
@@ -321,6 +327,7 @@ export class WikiMaintainerLedgerAdapter {
     let state = createEmptyWikiState(this.descriptor.tenantId);
     let viewState = state;
     let latest = null;
+    let selectedRevision = null;
     let source = sourceDigest === digestWikiState(state) ? state : null;
     const successors = [];
     let retainedBytes = 0;
@@ -387,6 +394,24 @@ export class WikiMaintainerLedgerAdapter {
         );
       }
       verifyRequestTransition(state, revision);
+      if (revision.revisionId === revisionId) {
+        if (selectedRevision)
+          fail(WIKI_LEDGER_CORRUPT_CODE, "Wiki revision identity is ambiguous");
+        selectedRevision = {
+          trusted: true,
+          state: revision.state,
+          stateDigest: revision.stateDigest,
+          revisionId,
+          checkpoint: {
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            identityDigest: event.identityDigest,
+            sequence: event.sequence,
+            headDigest: event.eventDigest,
+          },
+          artifactRef: event.subjectRef,
+        };
+      }
       if (source && inView) {
         if (
           !revision.maintenanceRequestDigest ||
@@ -437,7 +462,40 @@ export class WikiMaintainerLedgerAdapter {
         "Wiki ledger changed while authenticating history",
       );
     }
-    return { head, latest, state, viewState, source, successors };
+    return {
+      head,
+      latest,
+      state,
+      viewState,
+      source,
+      successors,
+      selectedRevision,
+    };
+  }
+
+  // Immutable provenance, not an authorization to use an obsolete Wiki as current.
+  // Authenticate the full present history, retaining only the selected revision.
+  #readRevision({ tenantId, revisionId } = {}) {
+    if (
+      tenantId !== this.descriptor.tenantId ||
+      !REVISION_ID.test(revisionId ?? "")
+    )
+      throw new TypeError(
+        "Wiki provenance requires an exact tenant and revisionId",
+      );
+    const { head, selectedRevision } = this.#history({ revisionId });
+    if (!selectedRevision)
+      fail(
+        WIKI_LEDGER_CONFLICT_CODE,
+        "Wiki revision is not in authenticated history",
+      );
+    return freeze({
+      authenticated: true,
+      tenantId,
+      evolutionRunId: this.descriptor.evolutionRunId,
+      ...selectedRevision,
+      ledgerHead: head,
+    });
   }
 
   #resolveEvent(event, authority, capturedResolution = null) {

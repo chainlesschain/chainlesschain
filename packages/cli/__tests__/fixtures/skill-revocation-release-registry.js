@@ -170,6 +170,8 @@ export async function openRevocationReleaseRegistry({
   artifactTenantId = ARTIFACT_TENANT,
   candidateEvidenceRefs = null,
   baselineEvidenceRefs = null,
+  candidateWikiRevision = null,
+  baselineWikiRevision = null,
 }) {
   const ports = createEvolutionLedgerPorts({
     artifactDurabilityAuthority: replicaAuthority(
@@ -332,6 +334,8 @@ export async function openRevocationReleaseRegistry({
       if (releases.readState(SKILL).revision > index) continue;
       const current = releases.readActive(SKILL);
       const generation = index === 0 ? "baseline" : "candidate";
+      const wikiRevision =
+        index === 0 ? baselineWikiRevision : candidateWikiRevision;
       const { candidate } = candidates.create({
         tenantId: tenantId,
         skillName: SKILL,
@@ -344,9 +348,16 @@ export async function openRevocationReleaseRegistry({
             digest: D(generation),
           },
         ],
-        derivationMode: "record-replay",
-        wikiRevision: null,
-        proposerModel: null,
+        derivationMode: wikiRevision === null ? "record-replay" : "wiki",
+        wikiRevision,
+        proposerModel:
+          wikiRevision === null
+            ? null
+            : {
+                provider: "test",
+                model: "knowledge-wiki-proposer",
+                version: "1",
+              },
         requestedCapabilities: ["workspace.read"],
         evalRunId: null,
         content: `---\nname: safe-refactor\n---\n\nApply the ${generation} procedure and verify tests.\n`,

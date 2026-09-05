@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import protocol from "@chainlesschain/session-core/evolvable-artifact";
 import { openEvolutionDurableStore } from "./evolution-durable-store.js";
 import { openRevocationReleaseRegistry } from "./skill-revocation-release-registry.js";
+import { openKnowledgeWikiProvenance } from "./knowledge-wiki-provenance.js";
 import {
   createGovernedKnowledgeSkillRollbackAuthority,
   governedKnowledgeSourceRef,
@@ -69,12 +70,28 @@ export async function openKnowledgeSkillRollbackStore(
     candidateEvidenceRefs = [source],
     baselineEvidenceRefs = null,
     crashPoint = "none",
+    wikiProvenance = false,
+    unsafeWikiBaseline = false,
+    lateWikiProvenance = false,
   } = {},
 ) {
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
   });
+  const wiki = wikiProvenance
+    ? openKnowledgeWikiProvenance(resources, source)
+    : null;
+  const wikiSeed =
+    wiki && seed ? await wiki.seed({ late: lateWikiProvenance }) : null;
+  const wikiReferences = (state) => [
+    {
+      ref: `wiki-source://${tenantId}/${state.state.revisionId}`,
+      digest: state.stateDigest,
+    },
+  ];
+  const baselineWiki =
+    wikiSeed && (unsafeWikiBaseline ? wikiSeed.candidate : wikiSeed.baseline);
   const release = await openRevocationReleaseRegistry({
     root,
     storage: { ...resources, now: resources.clock() },
@@ -83,9 +100,16 @@ export async function openKnowledgeSkillRollbackStore(
     artifactTenantId: resources.descriptor.artifactTenantId,
     seed,
     crashPoint,
-    candidateEvidenceRefs,
-    baselineEvidenceRefs,
+    candidateEvidenceRefs: wikiSeed
+      ? wikiReferences(wikiSeed.candidate)
+      : candidateEvidenceRefs,
+    baselineEvidenceRefs: wikiSeed
+      ? wikiReferences(baselineWiki)
+      : baselineEvidenceRefs,
+    candidateWikiRevision: wikiSeed?.candidate.state.revisionId ?? null,
+    baselineWikiRevision: baselineWiki?.state.revisionId ?? null,
   });
+  if (wikiSeed && lateWikiProvenance) wikiSeed.commitDelayed();
   const independentResources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
@@ -97,9 +121,14 @@ export async function openKnowledgeSkillRollbackStore(
     tenantId,
     artifactTenantId: independentResources.descriptor.artifactTenantId,
   });
+  const independentWiki = wikiProvenance
+    ? openKnowledgeWikiProvenance(independentResources, source)
+    : null;
   const options = {
     ...release.pruningRollbackOptions,
     deviceId,
+    wikiLedgerAdapter: wiki?.adapter ?? null,
+    verifierWikiLedgerAdapter: independentWiki?.adapter ?? null,
     verifierReleaseRegistry: independent.pruningRollbackOptions.releaseRegistry,
     verifierTransactionLedger:
       independent.pruningRollbackOptions.transactionLedger,
@@ -224,6 +253,8 @@ export async function openKnowledgeSkillRollbackStore(
   };
   return {
     root,
+    wiki,
+    wikiSeed,
     sent,
     resources,
     release,

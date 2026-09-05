@@ -13,10 +13,16 @@ afterEach(() => {
   for (const root of roots.splice(0))
     fs.rmSync(root, { recursive: true, force: true });
 });
-function run(root, mode, crashPoint = "none", status = 0) {
+function run(
+  root,
+  mode,
+  crashPoint = "none",
+  status = 0,
+  provenance = "direct",
+) {
   const child = spawnSync(
     process.execPath,
-    ["--max-old-space-size=256", worker, root, mode, crashPoint],
+    ["--max-old-space-size=256", worker, root, mode, crashPoint, provenance],
     {
       encoding: "utf8",
       timeout: 90_000,
@@ -33,12 +39,15 @@ function run(root, mode, crashPoint = "none", status = 0) {
 
 describe("Knowledge revocation real Skill process recovery", () => {
   it.each([
-    ["after-release-pointer", 95],
-    ["before-dependency-settlement", 96],
-    ["after-dependency-settlement", 97],
+    ["after-release-pointer", 95, "direct"],
+    ["before-dependency-settlement", 96, "direct"],
+    ["after-dependency-settlement", 97, "direct"],
+    ["after-release-pointer", 95, "wiki"],
+    ["before-dependency-settlement", 96, "wiki"],
+    ["after-dependency-settlement", 97, "wiki"],
   ])(
-    "recovers %s without a second rollback",
-    (crashPoint, status) => {
+    "recovers %s (%s, %s) without a second rollback",
+    (crashPoint, status, provenance = "direct") => {
       const root = fs.mkdtempSync(
         path.join(
           fs.realpathSync(os.tmpdir()),
@@ -46,12 +55,12 @@ describe("Knowledge revocation real Skill process recovery", () => {
         ),
       );
       roots.push(root);
-      const seeded = run(root, "seed");
+      const seeded = run(root, "seed", "none", 0, provenance);
       expect(seeded.revision).toBe(2);
       expect(seeded.activeReleaseDigest).toBe(seeded.candidateReleaseDigest);
       const started = Date.now();
-      run(root, "execute", crashPoint, status);
-      const recovered = run(root, "execute");
+      run(root, "execute", crashPoint, status, provenance);
+      const recovered = run(root, "execute", "none", 0, provenance);
       expect(recovered.pid).not.toBe(seeded.pid);
       expect(recovered).toMatchObject({
         revision: 3,
@@ -65,11 +74,11 @@ describe("Knowledge revocation real Skill process recovery", () => {
       expect(
         recovered.transitions.filter((item) => item.operation === "rollback"),
       ).toHaveLength(1);
-      const verified = run(root, "inspect");
+      const verified = run(root, "inspect", "none", 0, provenance);
       expect(verified.pid).not.toBe(recovered.pid);
       expect({ ...verified, pid: null }).toEqual({ ...recovered, pid: null });
       process.stdout.write(
-        `Knowledge rollback ${crashPoint}: ${Date.now() - started}ms\n`,
+        `Knowledge ${provenance} rollback ${crashPoint}: ${Date.now() - started}ms\n`,
       );
     },
     300_000,
