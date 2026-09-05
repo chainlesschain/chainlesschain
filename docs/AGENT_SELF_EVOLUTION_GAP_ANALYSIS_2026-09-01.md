@@ -1231,6 +1231,12 @@ Wiki 来源不接收调用者注入的“安全 reader”：准入端从同一�
 
 CLI 与后续 IDE 的发布准备见 [CLI / IDE 发布检查表](CLI_IDE_RELEASE_READINESS_2026-09-05.md)。本地仓库验证不替代完全相同 release commit 上的 `CLI CI`、`CLI Strict Sandbox` 全平台门禁；需先处理实际 npm payload 落后的子包，再发布 CLI，最后更新 IDE 推荐版本及对应 CLI 更新说明。本地命令入口可启动与整份演化路线图完成是不同里程碑，不要求先完成全部剩余路线项才能做安装和启动验收。用户截图中的工作台不可用已进一步核对为缺少受信部署宿主，实际 `evolution workbench list` 也返回 unavailable；下一最小启动里程碑应集中在真实宿主配置、CLI/App Server 能力暴露和 IDE 连接，不把本批测试完成当作工作台已启用。
 
+后续 candidate quarantine 批次新增 `createGovernedKnowledgeCandidateQuarantineAuthority` 与只读 `resolveCandidateQuarantine()`，保留 `reject-candidate` 和 `quarantine` 的精确处置身份及独立验证摘要域。隔离效果是已经提交到真实 Ledger 的候选晋升栅栏，并非改写不可变 candidate 字节、删除草稿，或把 rejection 回执改名后当作隔离。provider 与独立 verifier 分别从真实 Candidate/Release Registry、同一 Ledger 及必要的 Wiki reader 回读；必须确认来源、Knowledge/device/撤销准备、当前 head、原始发布顺序，并证明候选既不处于 active/LKG，也没有尚未结束的 release transaction。
+
+真实组合执行按已列出的依赖计划先回滚启用版本，再确认候选隔离，最后写入一次联合 settlement 和 Knowledge sync commit。准入栅栏从撤销 prepared 后即生效，处置未完成或进程重开也不能重新晋升。初轮 3 文件 23 项验证通过，包含直接/Wiki 来源在准备后、结算前、结算后退出并由新进程恢复的 6 个窗口；随后已启动包含旧 rejection、admission、Ledger ports 与全部既有回滚进程模式的最终联合回归，完成前不计入已验收批次数。
+
+本批只针对**已明确列出的 candidate 隔离及其与真实回滚的组合**。active Skill/Wiki quarantine、解除隔离及恢复策略、全租户依赖枚举/来源完整性/有序计划、双设备离线/隐私删除和最终产品装配仍未因此完成。测试身份、软件 witness 和显式进程退出不代替生产 KMS/HSM/PKI、物理断电或实体两机部署；P2-4 保持部分完成。本地隔离工作未加入 CLI 0.166.23 发布候选。
+
 ### 7.5 EVO-P2-5：跨模型 Skill 来源/目标适配与市场治理
 
 WikiSkill 实验的是 source-model-evolved Skill 文件向 target inference model 的直接迁移，不是教师/学生蒸馏。实验既有正迁移，例如 Qwen-3.6-27B 的 ALFWorld Skill 使 Qwen-3.5-9B 达到 `70.2%`、高于其 self-evolved Skill 的 `63.4%`，也有 Spreadsheet 的严重负迁移。因此可以把“强模型 proposer 为小模型起草候选”作为产品假设，但必须在目标模型上重新评测，且不能预设更强 source 必然更可迁移。

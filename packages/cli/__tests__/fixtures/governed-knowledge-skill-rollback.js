@@ -12,7 +12,10 @@ import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledg
 import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import { EvolvableArtifactLedgerAdapter } from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
 import { createGovernedKnowledgeArtifactLifecycle } from "../../src/lib/evolution/governed-knowledge-artifact-lifecycle.js";
-import { createGovernedKnowledgeCandidateRejectionAuthority } from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
+import {
+  createGovernedKnowledgeCandidateRejectionAuthority,
+  createGovernedKnowledgeCandidateQuarantineAuthority,
+} from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
 import { createGovernedKnowledgeDependencyRouter } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
 import { createGovernedKnowledgeWikiTombstoneAuthority } from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
 
@@ -80,6 +83,7 @@ export async function openKnowledgeSkillRollbackStore(
     onTransition = null,
     beforeDependencyAppend = null,
     candidateRejection = false,
+    candidateQuarantine = false,
     wikiTombstone = false,
     wikiPatternCount = 1,
     wikiHops = 0,
@@ -88,6 +92,8 @@ export async function openKnowledgeSkillRollbackStore(
     transformWikiHopSource = null,
   } = {},
 ) {
+  if (candidateRejection && candidateQuarantine)
+    throw new Error("test candidate dispositions must not be conflated");
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
@@ -230,6 +236,22 @@ export async function openKnowledgeSkillRollbackStore(
     candidateRejection || wikiTombstone === "combined"
       ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
       : null;
+  const quarantineOptions = {
+    ...rejectionOptions,
+    providerDescriptor: {
+      authorityId: "knowledge-candidate-quarantine:provider",
+      revision: 1,
+      handlerArtifactDigest: D("candidate-quarantine-provider"),
+    },
+    verifierDescriptor: {
+      authorityId: "knowledge-candidate-quarantine:verifier",
+      revision: 1,
+      handlerArtifactDigest: D("candidate-quarantine-verifier"),
+    },
+  };
+  const quarantineAuthority = candidateQuarantine
+    ? createGovernedKnowledgeCandidateQuarantineAuthority(quarantineOptions)
+    : null;
   const wikiTombstoneOptions = {
     tenantId,
     deviceId,
@@ -253,17 +275,27 @@ export async function openKnowledgeSkillRollbackStore(
     ? createGovernedKnowledgeWikiTombstoneAuthority(wikiTombstoneOptions)
     : null;
   const authority =
-    candidateRejection === "combined" || wikiTombstone === "combined"
+    candidateRejection === "combined" ||
+    candidateQuarantine === "combined" ||
+    wikiTombstone === "combined"
       ? createGovernedKnowledgeDependencyRouter({
           tenantId,
           deviceId,
           routes: {
             "active-skill/rollback-active": rollbackAuthority,
-            "candidate/reject-candidate": rejectionAuthority,
+            ...(rejectionAuthority
+              ? { "candidate/reject-candidate": rejectionAuthority }
+              : {}),
+            ...(quarantineAuthority
+              ? { "candidate/quarantine": quarantineAuthority }
+              : {}),
             ...(wikiAuthority ? { "wiki/tombstone": wikiAuthority } : {}),
           },
         })
-      : (wikiAuthority ?? rejectionAuthority ?? rollbackAuthority);
+      : (wikiAuthority ??
+        quarantineAuthority ??
+        rejectionAuthority ??
+        rollbackAuthority);
   const descriptor = { ...resources.descriptor, deviceId };
   const executorLedger = {
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
@@ -377,14 +409,14 @@ export async function openKnowledgeSkillRollbackStore(
       },
     ],
   };
-  if (candidateRejection) {
+  if (candidateRejection || candidateQuarantine) {
     const candidate = {
       kind: "candidate",
       digest: release.candidateRelease.candidate.candidateId,
-      disposition: "reject-candidate",
+      disposition: candidateQuarantine ? "quarantine" : "reject-candidate",
     };
     knowledge.dependencies =
-      candidateRejection === "combined"
+      candidateRejection === "combined" || candidateQuarantine === "combined"
         ? [...knowledge.dependencies, candidate]
         : [candidate];
   }
@@ -427,6 +459,7 @@ export async function openKnowledgeSkillRollbackStore(
     descriptor,
     authority,
     rejectionOptions,
+    quarantineOptions,
     wikiTombstoneOptions,
     executor,
     makeSync,

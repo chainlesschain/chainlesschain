@@ -18,6 +18,7 @@ const h = await openKnowledgeSkillRollbackStore(root, {
   wikiProvenance: ["wiki", "wiki-multihop"].includes(provenance),
   wikiHops: provenance === "wiki-multihop" ? 2 : 0,
   candidateRejection: dependencies === "combined" ? "combined" : false,
+  candidateQuarantine: dependencies === "quarantine" ? "combined" : false,
   wikiTombstone: dependencies === "all" ? "combined" : dependencies === "wiki",
 });
 if (mode === "execute") {
@@ -27,17 +28,25 @@ if (mode === "execute") {
 }
 const events = h.resources.backend.ledger.read();
 const dependencyResult =
-  ["combined", "wiki", "all"].includes(dependencies) &&
+  ["combined", "quarantine", "wiki", "all"].includes(dependencies) &&
   events.some(
     (event) => event.type === "knowledge.revocation-dependencies.settled",
   )
     ? await h.executor.execute(h.knowledge)
     : null;
+const persistedKnowledge = await h.persisted.load({ knowledgeId });
 process.stdout.write(
   JSON.stringify({
     pid: process.pid,
-    ...(["combined", "wiki", "all"].includes(dependencies)
+    ...(["combined", "quarantine", "wiki", "all"].includes(dependencies)
       ? { dependencyResultCount: dependencyResult?.resultDigests.length ?? 0 }
+      : {}),
+    ...(dependencies === "quarantine"
+      ? {
+          dependencyDispositions:
+            persistedKnowledge?.dependencies.map((item) => item.disposition) ??
+            [],
+        }
       : {}),
     ...(["wiki", "all"].includes(dependencies)
       ? {
@@ -63,7 +72,7 @@ process.stdout.write(
     published: events.filter(
       (event) => event.type === "knowledge.sync.committed",
     ).length,
-    knowledge: await h.persisted.load({ knowledgeId }),
+    knowledge: persistedKnowledge,
     sequence: h.resources.backend.ledger.verify().sequence,
   }),
 );

@@ -3055,6 +3055,14 @@ class EvolutionLedgerDomainPorts {
   }
 
   resolveCandidateRevocation(inputValue) {
+    return this.#resolveCandidateDisposition(inputValue, "reject-candidate");
+  }
+
+  resolveCandidateQuarantine(inputValue) {
+    return this.#resolveCandidateDisposition(inputValue, "quarantine");
+  }
+
+  #resolveCandidateDisposition(inputValue, disposition) {
     if (this.#audience === null)
       throw new TypeError(
         "candidate revocation proof requires audience-bound ledger ports",
@@ -3124,7 +3132,7 @@ class EvolutionLedgerDomainPorts {
         (item) =>
           item.kind === "candidate" &&
           item.digest === candidateId &&
-          item.disposition === "reject-candidate",
+          item.disposition === disposition,
       );
       if (dependency) fence = entry;
     }
@@ -3959,6 +3967,9 @@ export function createEvolutionLedgerPorts(options = {}) {
       ),
       resolveCandidateRevocation: Object.freeze((input) =>
         adapter.resolveCandidateRevocation(input),
+      ),
+      resolveCandidateQuarantine: Object.freeze((input) =>
+        adapter.resolveCandidateQuarantine(input),
       ),
       resolveKnowledgeRevocation: Object.freeze((input) =>
         adapter.resolveKnowledgeRevocation(input),

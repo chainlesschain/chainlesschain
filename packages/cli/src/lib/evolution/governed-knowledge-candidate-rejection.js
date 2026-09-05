@@ -16,8 +16,10 @@ import {
 
 const VERIFICATION_SCHEMA =
   "chainlesschain.knowledge-candidate-rejection-verification/v1";
+const QUARANTINE_VERIFICATION_SCHEMA =
+  "chainlesschain.knowledge-candidate-quarantine-verification/v1";
 function fail(message) {
-  throw new Error(`knowledge candidate rejection: ${message}`);
+  throw new Error(`knowledge candidate disposition: ${message}`);
 }
 
 function bindReader(
@@ -90,12 +92,12 @@ function sourceProof(reader, candidate, request, admission) {
   return captureData({ direct, wiki });
 }
 
-function prove(reader, request, context) {
+function prove(reader, request, context, disposition) {
   if (
     request.dependency.kind !== "candidate" ||
-    request.dependency.disposition !== "reject-candidate"
+    request.dependency.disposition !== disposition
   ) {
-    fail("this provider requires a candidate / reject-candidate dependency");
+    fail(`this provider requires a candidate / ${disposition} dependency`);
   }
   const candidate = reader.candidates.read(request.dependency.digest);
   if (
@@ -103,7 +105,11 @@ function prove(reader, request, context) {
     candidate.candidateId !== request.dependency.digest
   )
     fail("candidate identity differs");
-  const admission = reader.operations.resolveCandidateRevocation({
+  const resolve =
+    disposition === "quarantine"
+      ? reader.operations.resolveCandidateQuarantine
+      : reader.operations.resolveCandidateRevocation;
+  const admission = resolve({
     tenantId: request.tenantId,
     skillName: candidate.skillName,
     candidateId: candidate.candidateId,
@@ -125,7 +131,7 @@ function prove(reader, request, context) {
   }
   if (admission.pendingTransactions.length)
     fail(
-      "in-flight release transition requires recovery before rejection can settle",
+      "in-flight release transition requires recovery before candidate disposition can settle",
     );
   const active = reader.releases.readActive(candidate.skillName);
   if (
@@ -169,20 +175,37 @@ function prove(reader, request, context) {
   });
 }
 
-export function createGovernedKnowledgeCandidateRejectionAuthority({
-  tenantId,
-  deviceId,
-  candidateRegistry,
-  releaseRegistry,
-  transactionLedger,
-  verifierCandidateRegistry,
-  verifierReleaseRegistry,
-  verifierTransactionLedger,
-  wikiLedgerAdapter = null,
-  verifierWikiLedgerAdapter = null,
-  providerDescriptor,
-  verifierDescriptor,
-} = {}) {
+export function createGovernedKnowledgeCandidateRejectionAuthority(
+  options = {},
+) {
+  return createCandidateDispositionAuthority(options, "reject-candidate");
+}
+
+// Quarantine is a distinct, persistent admission disposition, not rejection or
+// a draft-label rewrite. Neither factory may certify an active/LKG candidate.
+export function createGovernedKnowledgeCandidateQuarantineAuthority(
+  options = {},
+) {
+  return createCandidateDispositionAuthority(options, "quarantine");
+}
+
+function createCandidateDispositionAuthority(
+  {
+    tenantId,
+    deviceId,
+    candidateRegistry,
+    releaseRegistry,
+    transactionLedger,
+    verifierCandidateRegistry,
+    verifierReleaseRegistry,
+    verifierTransactionLedger,
+    wikiLedgerAdapter = null,
+    verifierWikiLedgerAdapter = null,
+    providerDescriptor,
+    verifierDescriptor,
+  },
+  disposition,
+) {
   if (
     candidateRegistry === verifierCandidateRegistry ||
     releaseRegistry === verifierReleaseRegistry ||
@@ -232,8 +255,8 @@ export function createGovernedKnowledgeCandidateRejectionAuthority({
     const other = verifier.operations.currentContext();
     if (canonical(context) !== canonical(other))
       fail("independent readers do not authenticate the same current ledger");
-    const left = prove(provider, request, context);
-    const right = prove(verifier, request, context);
+    const left = prove(provider, request, context, disposition);
+    const right = prove(verifier, request, context, disposition);
     if (canonical(left) !== canonical(right))
       fail("independent candidate rejection proof differs");
     return left;
@@ -300,14 +323,19 @@ export function createGovernedKnowledgeCandidateRejectionAuthority({
           providerRevision: providerIdentity.revision,
           verifierAuthorityId: verifierIdentity.authorityId,
           verifierRevision: verifierIdentity.revision,
-          verificationReceiptDigest: digest(VERIFICATION_SCHEMA, {
-            tenantId,
-            deviceId,
-            requestDigest: request.requestDigest,
-            resultDigest: result.resultDigest,
-            proof,
-            verifierIdentity,
-          }),
+          verificationReceiptDigest: digest(
+            disposition === "quarantine"
+              ? QUARANTINE_VERIFICATION_SCHEMA
+              : VERIFICATION_SCHEMA,
+            {
+              tenantId,
+              deviceId,
+              requestDigest: request.requestDigest,
+              resultDigest: result.resultDigest,
+              proof,
+              verifierIdentity,
+            },
+          ),
         });
       },
     }),
