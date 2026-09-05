@@ -7,7 +7,13 @@ export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-const SUPPORTED_COMMANDS = new Set(["agent", "desktop", "evolution", "serve"]);
+const SUPPORTED_COMMANDS = new Set([
+  "agent",
+  "desktop",
+  "evolution",
+  "marketplace",
+  "serve",
+]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -111,6 +117,19 @@ function dependencies(value, commandName) {
 
 async function loadBuiltInFactories(commandName) {
   const factories = {};
+  if (commandName === "marketplace") {
+    const [
+      { createGovernedSkillMarketplaceCliHost },
+      { createGovernedSkillMarketplaceLedgerAdapter },
+    ] = await Promise.all([
+      import("./governed-skill-marketplace-cli-host.js"),
+      import("./governed-skill-marketplace-ledger-adapter.js"),
+    ]);
+    factories.createGovernedSkillMarketplaceCliHost =
+      createGovernedSkillMarketplaceCliHost;
+    factories.createGovernedSkillMarketplaceLedgerAdapter =
+      createGovernedSkillMarketplaceLedgerAdapter;
+  }
   if (commandName === "evolution" || commandName === "serve") {
     const [
       { createEvolutionWorkbenchCliHost },

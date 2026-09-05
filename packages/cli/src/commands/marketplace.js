@@ -5,6 +5,7 @@
  */
 
 import chalk from "chalk";
+import { registerGovernedSkillMarketplaceCommands } from "./governed-skill-marketplace.js";
 import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
@@ -82,12 +83,14 @@ function _printService(s) {
   logger.log(`  ${chalk.bold("Invocations:")}  ${s.invocationCount}`);
 }
 
-export function registerMarketplaceCommand(program) {
+export function registerMarketplaceCommand(program, dependencies = {}) {
   const mp = program
     .command("marketplace")
     .description(
       "Skill marketplace — publish skill services, record invocations, view stats",
     );
+
+  registerGovernedSkillMarketplaceCommands(mp, dependencies);
 
   mp.command("status-types")
     .description("List known service statuses")

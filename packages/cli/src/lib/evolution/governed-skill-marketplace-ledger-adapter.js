@@ -19,6 +19,7 @@ export const GOVERNED_SKILL_MARKETPLACE_LEDGER_CONFLICT_CODE =
   "CC_GOVERNED_SKILL_MARKETPLACE_LEDGER_CONFLICT";
 
 const ARTIFACT_TYPE = "governed-skill-marketplace-state";
+const ADAPTERS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SKILL = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const EVENTS = new Set([
@@ -62,10 +63,15 @@ function expectedDigest(value) {
 }
 
 function capture(owner, method, label = method) {
-  if (typeof owner?.[method] !== "function") {
+  const callable = owner?.[method];
+  if (typeof callable !== "function") {
     throw new TypeError(`${label} port is required`);
   }
-  return (...args) => Reflect.apply(owner[method], owner, args);
+  return (...args) => Reflect.apply(callable, owner, args);
+}
+
+export function isGovernedSkillMarketplaceLedgerAdapter(value) {
+  return ADAPTERS.has(value);
 }
 
 function fail(code, message, options) {
@@ -221,6 +227,7 @@ export class GovernedSkillMarketplaceLedgerAdapter {
       throw new TypeError("now must be a function");
     this._resolveArtifact = ledgerArtifactResolver;
     this._now = now;
+    ADAPTERS.add(this);
     Object.freeze(this);
   }
 
@@ -292,6 +299,14 @@ export class GovernedSkillMarketplaceLedgerAdapter {
   load = ({ skillName } = {}) => {
     const normalizedSkill = skill(skillName);
     return this._history(normalizedSkill).at(-1)?.state ?? null;
+  };
+
+  isManifestRevoked = ({ skillName, manifestDigest } = {}) => {
+    if (!DIGEST.test(manifestDigest ?? ""))
+      throw new TypeError("manifestDigest is invalid");
+    return this._history(skill(skillName)).some(
+      ({ state }) => state.revoked && state.manifestDigest === manifestDigest,
+    );
   };
 
   commit = ({ state: input, expectedStateDigest, event } = {}) => {

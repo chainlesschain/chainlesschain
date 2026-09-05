@@ -70,12 +70,59 @@ describe("signed evolution deployment loader", () => {
       loadEvolutionDeploymentCommandDependencies("evolution", { env: {} }),
     ).resolves.toBeNull();
     await expect(
+      loadEvolutionDeploymentCommandDependencies("marketplace", { env: {} }),
+    ).resolves.toBeNull();
+    await expect(
       loadEvolutionDeploymentCommandDependencies("status", {
         env: {
           CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR: "ignored",
         },
       }),
     ).resolves.toBeNull();
+  });
+
+  it("exposes governed marketplace factories only to an authenticated allowlisted deployment", async () => {
+    const fixture = deploymentFixture({ commands: ["marketplace"] });
+    const importModule = vi.fn(async () => ({
+      createChainlessChainCommandDependencies: async ({
+        commandName,
+        factories,
+      }) => ({
+        commandName,
+        hostFactoryAvailable:
+          typeof factories.createGovernedSkillMarketplaceCliHost === "function",
+        ledgerFactoryAvailable:
+          typeof factories.createGovernedSkillMarketplaceLedgerAdapter ===
+          "function",
+      }),
+    }));
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("marketplace", {
+        ...fixture,
+        importModule,
+      }),
+    ).resolves.toEqual({
+      commandName: "marketplace",
+      hostFactoryAvailable: true,
+      ledgerFactoryAvailable: true,
+    });
+    expect(importModule).toHaveBeenCalledOnce();
+    const excluded = deploymentFixture({ commands: ["evolution"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("marketplace", {
+        ...excluded,
+        importModule,
+      }),
+    ).resolves.toBeNull();
+    expect(importModule).toHaveBeenCalledOnce();
+    fixture.files.set(fixture.modulePath, Buffer.from("replaced module"));
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("marketplace", {
+        ...fixture,
+        importModule,
+      }),
+    ).rejects.toThrow("module digest mismatch");
+    expect(importModule).toHaveBeenCalledOnce();
   });
 
   it("loads exact-digest deployment dependencies after Ed25519 verification", async () => {
@@ -395,25 +442,31 @@ describe("signed evolution deployment loader", () => {
     ).rejects.toThrow("module digest mismatch");
   });
 
-  it("passes deployment dependencies through the lazy registration boundary", async () => {
-    const parseAsync = vi.fn(async () => {});
-    const dependency = Object.freeze({ workbenchHost: {} });
-    const register = vi.fn();
-    await dispatchManifestEntry(
-      ["node", "cc", "evolution"],
-      {
-        name: "evolution",
-        module: "./commands/evolution.js",
-        register: "registerEvolutionCommand",
-      },
-      {
-        createBaseProgram: async () => ({ parseAsync }),
-        loadCommandModule: async () => ({ registerEvolutionCommand: register }),
-        loadCommandDependencies: async () => dependency,
-      },
-    );
+  it.each([
+    ["evolution", "workbenchHost", "registerEvolutionCommand"],
+    ["marketplace", "marketplaceHost", "registerMarketplaceCommand"],
+  ])(
+    "passes %s deployment dependencies through the lazy registration boundary",
+    async (commandName, hostName, registerName) => {
+      const parseAsync = vi.fn(async () => {});
+      const dependency = Object.freeze({ [hostName]: {} });
+      const register = vi.fn();
+      await dispatchManifestEntry(
+        ["node", "cc", commandName],
+        {
+          name: commandName,
+          module: `./commands/${commandName}.js`,
+          register: registerName,
+        },
+        {
+          createBaseProgram: async () => ({ parseAsync }),
+          loadCommandModule: async () => ({ [registerName]: register }),
+          loadCommandDependencies: async () => dependency,
+        },
+      );
 
-    expect(register).toHaveBeenCalledWith(expect.anything(), dependency);
-    expect(parseAsync).toHaveBeenCalledOnce();
-  });
+      expect(register).toHaveBeenCalledWith(expect.anything(), dependency);
+      expect(parseAsync).toHaveBeenCalledOnce();
+    },
+  );
 });
