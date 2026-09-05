@@ -82,22 +82,70 @@ export async function openKnowledgeSkillRollbackStore(
     candidateRejection = false,
     wikiTombstone = false,
     wikiPatternCount = 1,
+    wikiHops = 0,
+    wikiHopReference = "uri",
+    wikiNegativeSource = false,
+    transformWikiHopSource = null,
   } = {},
 ) {
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
   });
-  const wiki = wikiProvenance
-    ? openKnowledgeWikiProvenance(resources, source)
+  let wiki = wikiProvenance
+    ? openKnowledgeWikiProvenance(resources, source, {
+        negativeSource: wikiNegativeSource,
+      })
     : null;
-  const wikiSeed =
+  let wikiSeed =
     wiki && seed
       ? await wiki.seed({
-          late: lateWikiProvenance,
+          late: lateWikiProvenance && wikiHops === 0,
           patternCount: wikiPatternCount,
         })
       : null;
+  const upstreamWikis = [];
+  let wikiSource = source;
+  let wikiRunId = "knowledge-source-wiki";
+  if (
+    !Number.isSafeInteger(wikiHops) ||
+    wikiHops < 0 ||
+    wikiHops > 8 ||
+    !["uri", "state-digest", "artifact-digest"].includes(wikiHopReference)
+  )
+    throw new Error("invalid test Wiki hop configuration");
+  for (let hop = 1; wiki && hop <= wikiHops; hop += 1) {
+    upstreamWikis.push(wiki);
+    const parent = wiki.adapter.loadWiki();
+    const original = wiki.reader.readRevision({
+      tenantId,
+      revisionId: parent.state.revisionId,
+    });
+    wikiSource =
+      wikiHopReference === "uri"
+        ? {
+            ref: `wiki-source://${tenantId}/${parent.state.revisionId}`,
+            digest: parent.stateDigest,
+          }
+        : {
+            ref: `recording://alias/wiki-hop-${hop}`,
+            digest:
+              wikiHopReference === "artifact-digest"
+                ? original.artifactRef.digest
+                : parent.stateDigest,
+          };
+    wikiRunId = `knowledge-source-wiki-hop-${hop}`;
+    wikiSource = transformWikiHopSource?.(wikiSource, hop) ?? wikiSource;
+    wiki = openKnowledgeWikiProvenance(resources, wikiSource, {
+      evolutionRunId: wikiRunId,
+    });
+    wikiSeed = seed
+      ? await wiki.seed({
+          late: lateWikiProvenance && hop === wikiHops,
+          patternCount: wikiPatternCount,
+        })
+      : null;
+  }
   const wikiReferences = (state) => [
     {
       ref: `wiki-source://${tenantId}/${state.state.revisionId}`,
@@ -138,7 +186,9 @@ export async function openKnowledgeSkillRollbackStore(
     artifactTenantId: independentResources.descriptor.artifactTenantId,
   });
   const independentWiki = wikiProvenance
-    ? openKnowledgeWikiProvenance(independentResources, source)
+    ? openKnowledgeWikiProvenance(independentResources, wikiSource, {
+        evolutionRunId: wikiRunId,
+      })
     : null;
   const options = {
     ...release.pruningRollbackOptions,
@@ -368,6 +418,7 @@ export async function openKnowledgeSkillRollbackStore(
     root,
     wiki,
     wikiSeed,
+    upstreamWikis,
     sent,
     resources,
     release,

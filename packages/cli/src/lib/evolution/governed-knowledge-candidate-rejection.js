@@ -41,7 +41,11 @@ function bindReader(
   const operations = captureSkillReleaseOperationReader(transactionLedger);
   const wiki =
     wikiAdapter == null ? null : captureWikiRevisionReader(wikiAdapter);
-  if (wiki && wiki.descriptor.tenantId !== tenantId)
+  if (
+    wiki &&
+    (wiki.descriptor.tenantId !== tenantId ||
+      !operations.matchesWikiAdapter(wikiAdapter))
+  )
     throw new TypeError("candidate Wiki tenant differs");
   return Object.freeze({ candidates, releases, operations, wiki });
 }
@@ -55,9 +59,11 @@ function sourceProof(reader, candidate, request, admission) {
   if (candidate.derivationMode === "wiki") {
     if (!reader.wiki)
       fail("Wiki-derived candidate requires an authenticated Wiki reader");
-    const revision = reader.wiki.readRevision({
+    const revision = reader.wiki.readKnowledgeProvenance({
       tenantId: request.tenantId,
       revisionId: candidate.wikiRevision,
+      knowledgeId: request.knowledgeId,
+      contentDigest: request.contentDigest,
     });
     if (
       ["epoch", "ledgerId", "identityDigest"].some(
@@ -72,33 +78,11 @@ function sourceProof(reader, candidate, request, admission) {
         "Wiki provenance must precede revocation and every original promotion",
       );
     }
-    const refs = new Set(
-      Object.values(revision.state.evidence)
-        .filter(
-          (entry) =>
-            (entry.ref === ref || entry.artifactRef === ref) &&
-            entry.sourceDigest === request.contentDigest,
-        )
-        .map((entry) => entry.ref),
-    );
-    const affectedPatternIds = [];
-    // Index summaries can also be model input, so inspect the whole original
-    // pinned context, not only the candidate's claimed selected patterns.
-    for (const pattern of Object.values(revision.state.patterns)) {
-      const evidence = [
-        ...pattern.positiveEvidence,
-        ...pattern.negativeEvidence,
-      ];
-      if (evidence.some((item) => !revision.state.evidence[item]))
-        fail("Wiki pattern has unresolved evidence");
-      if (evidence.some((item) => refs.has(item)))
-        affectedPatternIds.push(pattern.patternId);
-    }
     wiki = {
       revisionId: revision.revisionId,
       stateDigest: revision.stateDigest,
       checkpoint: revision.checkpoint,
-      affectedPatternIds: affectedPatternIds.sort(),
+      affectedPatternIds: revision.affectedPatternIds,
     };
   }
   if (!direct && !wiki?.affectedPatternIds.length)

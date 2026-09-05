@@ -92,13 +92,15 @@ function requestFor(active, lastKnownGood) {
     },
   };
 }
-async function setup() {
+async function setup(wikiHops = 0) {
   const root = fs.mkdtempSync(
     path.join(fs.realpathSync(os.tmpdir()), "cc-source-migration-"),
   );
   roots.push(root);
   const h = await openKnowledgeSkillRollbackStore(path.join(root, "origin"), {
     seed: true,
+    wikiProvenance: wikiHops > 0,
+    wikiHops,
   });
   await expect(
     h.makeSync().publish({
@@ -131,6 +133,45 @@ async function setup() {
     tenantId: h.descriptor.tenantId,
     streamId: "source-migration",
   });
+  // Recreate actual immutable Wiki subjects/events in the migration ledger,
+  // with no Skill lineage. Missing upstream proof is not a safe migration.
+  const refs = new Map();
+  for (const original of h.resources.backend.ledger.read()) {
+    if (original.type !== "wiki.revision.committed") continue;
+    const record = JSON.parse(
+      h.resources
+        .resolver({
+          epoch: identity.epoch,
+          ledgerId: identity.ledgerId,
+          tenantId: h.resources.descriptor.artifactTenantId,
+          ref: original.subjectRef,
+        })
+        .bytes.toString("utf8"),
+    );
+    const subjectRef = resources.artifactPorts.putCanonical(
+      record.type,
+      record.value,
+      {
+        audience: record.audience,
+        purpose: record.purpose,
+        retention: "ledger",
+      },
+    ).ref;
+    resources.backend.ledger.appendDomainEvent({
+      type: original.type,
+      eventId: original.eventId,
+      timestamp: original.timestamp,
+      tenantId: original.tenantId,
+      artifactTenantId: resources.descriptor.artifactTenantId,
+      correlationId: original.correlationId,
+      decision: original.decision,
+      reason: original.reason,
+      skillName: null,
+      subjectRef,
+      sourceRefs: original.sourceRefs.map((ref) => refs.get(ref.ref)),
+    });
+    refs.set(original.subjectRef.ref, subjectRef);
+  }
   const appendRevocation = () => {
     const subjectRef = resources.artifactPorts.putCanonical(
       artifact.type,
@@ -181,10 +222,15 @@ async function setup() {
   };
 }
 
-it.each(["active", "lastKnownGood"])(
-  "blocks revoked provenance in migration %s without appending a migration",
-  async (position) => {
-    const h = await setup();
+it.each([
+  ["active", 0],
+  ["lastKnownGood", 0],
+  ["active", 2],
+  ["lastKnownGood", 2],
+])(
+  "blocks revoked provenance in migration %s (%s Wiki hops) without appending a migration",
+  async (position, wikiHops) => {
+    const h = await setup(wikiHops);
     h.appendRevocation();
     const releases = {
       active: h.h.release.baseline,

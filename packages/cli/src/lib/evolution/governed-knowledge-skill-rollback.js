@@ -49,7 +49,13 @@ function bindReader(registry, transactionLedger, tenantId, wikiAdapter) {
     );
   const wiki =
     wikiAdapter == null ? null : captureWikiRevisionReader(wikiAdapter);
-  if (wiki && wiki.descriptor.tenantId !== tenantId)
+  if (
+    wiki &&
+    (wiki.descriptor.tenantId !== tenantId ||
+      !captureSkillReleaseOperationReader(transactionLedger).matchesWikiAdapter(
+        wikiAdapter,
+      ))
+  )
     throw new TypeError("Knowledge Wiki lineage tenant differs");
   return Object.freeze({
     registry: reader,
@@ -62,9 +68,11 @@ function wikiLineage(reader, request, release) {
   if (release.candidate.derivationMode !== "wiki") return null;
   if (!reader.wiki)
     fail("Wiki-derived release requires an authenticated Wiki reader");
-  const revision = reader.wiki.readRevision({
+  const revision = reader.wiki.readKnowledgeProvenance({
     tenantId: request.tenantId,
     revisionId: release.candidate.wikiRevision,
+    knowledgeId: request.knowledgeId,
+    contentDigest: request.contentDigest,
   });
   const context = reader.operations.currentContext();
   if (
@@ -87,37 +95,14 @@ function wikiLineage(reader, request, release) {
     revision.checkpoint.sequence >= origin.preparationCheckpoint.sequence
   )
     fail("Wiki provenance must precede the original release preparation");
-  const sourceRef = governedKnowledgeSourceRef(request);
-  const exactRefs = new Set();
-  const unsafeRefs = new Set();
-  for (const evidence of Object.values(revision.state.evidence)) {
-    const sameSource =
-      evidence.ref === sourceRef || evidence.artifactRef === sourceRef;
-    const sameContent = evidence.sourceDigest === request.contentDigest;
-    if (sameSource && sameContent) exactRefs.add(evidence.ref);
-    if (sameSource || sameContent) unsafeRefs.add(evidence.ref);
-  }
-  // Wiki index summaries are also model context. Treat the entire pinned
-  // revision as potential lineage, not only PURPOSE's self-reported selection.
-  const affectedPatternIds = [];
-  const unsafePatternIds = [];
-  for (const pattern of Object.values(revision.state.patterns)) {
-    const refs = [...pattern.positiveEvidence, ...pattern.negativeEvidence];
-    if (refs.some((ref) => !revision.state.evidence[ref]))
-      fail("Wiki pattern has unresolved evidence");
-    if (refs.some((ref) => exactRefs.has(ref)))
-      affectedPatternIds.push(pattern.patternId);
-    if (refs.some((ref) => unsafeRefs.has(ref)))
-      unsafePatternIds.push(pattern.patternId);
-  }
   return captureData({
     wikiRevision: revision.revisionId,
     stateDigest: revision.stateDigest,
     checkpoint: revision.checkpoint,
     releaseOriginTransactionId: origin.intent.transactionId,
     releaseOriginReceiptDigest: origin.projection.receiptDigest,
-    affectedPatternIds: affectedPatternIds.sort(),
-    unsafePatternIds: unsafePatternIds.sort(),
+    affectedPatternIds: revision.affectedPatternIds,
+    unsafePatternIds: revision.unsafePatternIds,
   });
 }
 

@@ -2,6 +2,16 @@
 
 当前只做本地准备，不代表已经获准推送 GitHub、打 tag 或发布 npm / IDE 插件。IDE 可随后发布，更新说明应包含它实际配套的 CLI 版本和变更。
 
+## 启动里程碑与发布边界
+
+本地 CLI 入口不需要等待整份演化路线图完成。2026-09-05 实测 `node packages/cli/bin/chainlesschain.js --version` 返回 `0.166.22`，`agent --help` 正常退出。这只证明当前工作区的命令入口可加载，不等于干净环境安装、真实模型会话、IDE 宿主联动或三平台发布验收通过。
+
+用户截图中的“演化工作台不可用”是另一项启动条件：IDE 在能力协商时未得到 `evolutionWorkbench.available=true`，尚未发送工作台 RPC，审核和回滚继续禁用。它不是等完本轮测试或只升级版本就会自动消失。公开 CLI 的部署 loader 需要同时提供绝对路径的 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，认证签名、模块摘要及 `serve` / `evolution` 命令许可；真实部署模块还须构造并返回受治理的 `workbenchHost`，接入同租户投影、持久化、身份、active state 及审核/回滚执行器，不能用空对象或测试回执冒充可用宿主。2026-09-06 本轮只读检查发现当前终端的两项变量均未配置；IDE 子进程实际环境仍需独立核对。
+
+下一个面向截图的里程碑应集中在 **真实宿主部署配置 → CLI / App Server 能力暴露与候选列表 → IDE 连接和权限验收**。该最小可用链不要求先完成全部演化路线项，但也不等于默认启用自动晋升；真实审核和回滚必须另有受信身份、权限与持久效果证明。当前批次测试收尾的时间估计不能当作工作台正式启用时间，仍需先明确目标部署和凭据提供方式。
+
+本轮实际执行 `node packages/cli/bin/chainlesschain.js evolution workbench list --limit 1` 返回退出码 1：`Evolution Workbench is unavailable: a trusted deployment host is required`。这是当前命令环境的真实未配置状态，不是启动验收通过；没有为消除提示而注入假宿主或启用审核/回滚。
+
 ## 子 npm 包必须先核对
 
 2026-09-05 在本地提交 `db473898ab` 上，对 13 个 CLI 子包逐一比较 npm 已发布 tarball 与仓库声明的发布文件（文本比较只归一化 CRLF）。结果不能用“本地版本号已经存在”代替：
@@ -37,7 +47,7 @@
 
 版本号在 CLI 公开发布后填入，不提前写入当前已发布版本的历史说明。
 
-> 配套 CLI：`待发布版本`。本轮 CLI 完善受控 Knowledge 撤销：真实 Skill 回滚、候选拒绝及持久准入阻断；基于已知直接 / Wiki 来源的晋升、回滚和迁移防复活；指定 Wiki 原始状态的定点 tombstone、独立效果回读和联合结算；真实账本提交处的后续 Wiki 写入阻断及多级 Wiki 来源追踪；并发写入保护与进程退出后的幂等恢复。
+> 配套 CLI：`待发布版本`。本轮 CLI 完善受控 Knowledge 撤销：真实 Skill 回滚、候选拒绝及持久准入阻断；基于已知直接 / Wiki 来源的晋升、回滚和迁移防复活；指定 Wiki 原始状态的定点 tombstone、独立效果回读和联合结算；真实账本提交处的后续 Wiki 写入阻断及多级 Wiki 来源追踪；已有多级 Wiki 派生 Skill 的原始来源复核、安全回滚及候选拒绝，覆盖负面证据和来源摘要别名；并发写入保护与进程退出后的幂等恢复。
 >
 > 这些是受控演化后端能力。IDE 只展示实际宿主提供的能力，未配置 authority 的功能仍保持 unavailable，不代表默认启用了无人值守晋升、完整跨设备知识治理或隐私物理删除。
 

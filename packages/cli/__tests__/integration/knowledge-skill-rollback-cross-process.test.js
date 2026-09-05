@@ -107,6 +107,9 @@ describe("Knowledge revocation real Skill process recovery", () => {
     ["after-release-pointer", 95, "wiki", "combined"],
     ["before-dependency-settlement", 96, "wiki", "combined"],
     ["after-dependency-settlement", 97, "wiki", "combined"],
+    ["after-release-pointer", 95, "wiki-multihop", "combined"],
+    ["before-dependency-settlement", 96, "wiki-multihop", "combined"],
+    ["after-dependency-settlement", 97, "wiki-multihop", "combined"],
   ])(
     "recovers %s (%s, %s, %s) without a second rollback",
     (crashPoint, status, provenance, dependencies) => {

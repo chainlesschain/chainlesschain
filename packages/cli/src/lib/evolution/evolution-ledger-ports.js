@@ -2609,7 +2609,6 @@ class EvolutionLedgerDomainPorts {
       }
     };
     let target = null;
-    let evidence = null;
     const readTarget = () => {
       if (target) return target;
       let verified;
@@ -2647,8 +2646,13 @@ class EvolutionLedgerDomainPorts {
       assertCandidate(prepared, binding.candidateId);
       readTarget();
       assertCandidate(prepared, target.candidateId);
-      evidence ??= this.#releaseSourceEvidence(snapshot, binding, target);
       const knowledge = prepared.knowledge;
+      const wiki = this.#releaseWikiProvenance(
+        snapshot,
+        binding,
+        target,
+        knowledge,
+      );
       const sourceRef = `knowledge://${encodeURIComponent(binding.tenantId)}/${encodeURIComponent(knowledge.knowledgeId)}`;
       const revokedRelease = knowledge.dependencies.some(
         (dependency) =>
@@ -2657,11 +2661,10 @@ class EvolutionLedgerDomainPorts {
       );
       if (
         revokedRelease ||
-        evidence.some(
+        wiki?.unsafePatternIds.length ||
+        target.candidate.sourceEvidenceRefs.some(
           (item) =>
-            item.ref === sourceRef ||
-            item.artifactRef === sourceRef ||
-            item.sourceDigest === knowledge.contentDigest,
+            item.ref === sourceRef || item.digest === knowledge.contentDigest,
         )
       ) {
         throw portsError(
@@ -2680,14 +2683,7 @@ class EvolutionLedgerDomainPorts {
     if (targetInput !== undefined) readTarget();
   }
 
-  #releaseSourceEvidence(snapshot, binding, target) {
-    const evidence = target.candidate.sourceEvidenceRefs.map(
-      ({ ref, digest }) => ({
-        ref,
-        artifactRef: ref,
-        sourceDigest: digest,
-      }),
-    );
+  #releaseWikiProvenance(snapshot, binding, target, knowledge) {
     if (target.candidate.derivationMode === "wiki") {
       // Discover the original run on the same authenticated ledger. Neither a
       // configurable reader nor a self-reported safe subset establishes origin.
@@ -2724,9 +2720,13 @@ class EvolutionLedgerDomainPorts {
         },
         ledgerArtifactResolver: this.#artifactResolve,
       });
-      const revision = captureWikiRevisionReader(adapter).readRevision({
+      const revision = captureWikiRevisionReader(
+        adapter,
+      ).readKnowledgeProvenance({
         tenantId: binding.tenantId,
         revisionId: target.candidate.wikiRevision,
+        knowledgeId: knowledge.knowledgeId,
+        contentDigest: knowledge.contentDigest,
       });
       const tail = snapshot.events.at(-1);
       if (
@@ -2741,24 +2741,9 @@ class EvolutionLedgerDomainPorts {
           "ledger changed while checking immutable Wiki provenance",
         );
       }
-      // Whole pinned pattern context may inform generation, including negative
-      // evidence and patterns removed by a later Wiki revision.
-      for (const pattern of Object.values(revision.state.patterns)) {
-        for (const ref of [
-          ...pattern.positiveEvidence,
-          ...pattern.negativeEvidence,
-        ]) {
-          const item = revision.state.evidence[ref];
-          if (!item)
-            throw portsError(
-              EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
-              "release Wiki provenance has unresolved pattern evidence",
-            );
-          evidence.push(item);
-        }
-      }
+      return revision;
     }
-    return evidence;
+    return null;
   }
 
   prepare(input, targetRelease) {

@@ -15,7 +15,8 @@ if (!root || !["seed", "execute", "inspect"].includes(mode))
 const h = await openKnowledgeSkillRollbackStore(root, {
   seed: mode === "seed",
   crashPoint,
-  wikiProvenance: provenance === "wiki",
+  wikiProvenance: ["wiki", "wiki-multihop"].includes(provenance),
+  wikiHops: provenance === "wiki-multihop" ? 2 : 0,
   candidateRejection: dependencies === "combined" ? "combined" : false,
   wikiTombstone: dependencies === "all" ? "combined" : dependencies === "wiki",
 });

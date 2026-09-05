@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { resolveKnowledgeWikiSourceProvenance } from "./knowledge-wiki-source-provenance.js";
 import {
   EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
@@ -161,6 +163,8 @@ export class WikiMaintainerLedgerAdapter {
         matchesLedger: (candidate) => candidate === ledger,
         loadWiki: () => this.#loadWiki(),
         readRevision: (input) => this.#readRevision(input),
+        readKnowledgeProvenance: (input) =>
+          this.#readKnowledgeProvenance(input),
         readStateRevision: (input) => this.#readStateRevision(input),
         resolveHistory: (input) => this.#resolveHistory(input),
         resolveAtCheckpoint: (input) => this.#resolveHistory(input, true),
@@ -376,6 +380,116 @@ export class WikiMaintainerLedgerAdapter {
       successors,
       selectedRevision,
     };
+  }
+
+  #readKnowledgeProvenance({
+    tenantId,
+    revisionId,
+    knowledgeId,
+    contentDigest,
+  } = {}) {
+    if (
+      tenantId !== this.descriptor.tenantId ||
+      !REVISION_ID.test(revisionId ?? "") ||
+      typeof knowledgeId !== "string" ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u.test(knowledgeId) ||
+      !DIGEST.test(contentDigest ?? "")
+    )
+      throw new TypeError(
+        "Wiki Knowledge provenance requires exact source identities",
+      );
+    const events = this.#readLedger({ limit: EVOLUTION_LEDGER_MAX_EVENTS });
+    const tail = Array.isArray(events) ? events.at(-1) : null;
+    if (
+      !tail ||
+      events.length > EVOLUTION_LEDGER_MAX_EVENTS ||
+      events.some(
+        (event, index) =>
+          event.sequence !== index + 1 ||
+          ["epoch", "ledgerId", "identityDigest"].some(
+            (key) => event[key] !== tail[key],
+          ),
+      )
+    )
+      fail(
+        WIKI_LEDGER_CORRUPT_CODE,
+        "Wiki provenance event range is incomplete",
+      );
+    const selected = events.find(
+      (event) =>
+        event.eventId === `wiki.revision.${revisionId.slice(5)}` &&
+        event.tenantId === tenantId,
+    );
+    const sources = events.filter(
+      (event) =>
+        event.type === WIKI_LEDGER_EVENT_TYPE &&
+        event.tenantId === tenantId &&
+        event.sequence <= (selected?.sequence ?? 0),
+    );
+    const positions = new Map(
+      sources.map((event, index) => [event.sequence, index]),
+    );
+    // Same bounded four-subject read as normal Wiki history. Retain no proof
+    // across calls and never resolve a future revision as an earlier source.
+    let batchStart = -1;
+    let batch = [];
+    const proof = resolveKnowledgeWikiSourceProvenance({
+      events,
+      descriptor: this.descriptor,
+      revisionId,
+      knowledge: { knowledgeId, contentDigest },
+      resolveSubject: (event) => {
+        const position = positions.get(event.sequence);
+        const start = position - (position % 4);
+        if (start !== batchStart) {
+          batch = this.#resolveArtifactBatch(
+            sources.slice(start, start + 4).map((item) => ({
+              epoch: tail.epoch,
+              ledgerId: tail.ledgerId,
+              tenantId: this.descriptor.artifactTenantId,
+              ref: item.subjectRef,
+            })),
+          );
+          batchStart = start;
+        }
+        const resolution = batch[position - start];
+        if (
+          resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+          resolution.authenticated !== true ||
+          resolution.found !== true ||
+          resolution.ref !== event.subjectRef.ref ||
+          resolution.digest !== event.subjectRef.digest ||
+          !DIGEST.test(resolution.receiptDigest ?? "") ||
+          !Buffer.isBuffer(resolution.bytes) ||
+          resolution.bytes.length > EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES ||
+          `sha256:${createHash("sha256").update(resolution.bytes).digest("hex")}` !==
+            event.subjectRef.digest
+        )
+          fail(
+            WIKI_LEDGER_CORRUPT_CODE,
+            "Wiki provenance subject is not authenticated and exactly bound",
+          );
+        return resolution.bytes;
+      },
+    });
+    const head = this.#verifyLedger();
+    if (
+      head.sequence !== events.length ||
+      head.headDigest !== tail.eventDigest ||
+      ["epoch", "ledgerId", "identityDigest"].some(
+        (key) => head[key] !== tail[key],
+      )
+    )
+      fail(
+        WIKI_LEDGER_CONFLICT_CODE,
+        "Wiki ledger changed while authenticating source provenance",
+      );
+    return freeze({
+      authenticated: true,
+      tenantId,
+      ...proof,
+      ledgerHead: head,
+    });
   }
 
   // Immutable provenance, not an authorization to use an obsolete Wiki as current.

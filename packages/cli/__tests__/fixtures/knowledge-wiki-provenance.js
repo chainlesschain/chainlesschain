@@ -11,7 +11,7 @@ import {
 export function openKnowledgeWikiProvenance(
   resources,
   source,
-  { evolutionRunId = "knowledge-source-wiki" } = {},
+  { evolutionRunId = "knowledge-source-wiki", negativeSource = false } = {},
 ) {
   const descriptor = {
     ...resources.descriptor,
@@ -50,6 +50,7 @@ export function openKnowledgeWikiProvenance(
     } = {},
   ) {
     const item = evidence(known);
+    const positive = known && negativeSource ? evidence(false) : item;
     let pending = null;
     const maintainer = new EvidenceBackedWikiMaintainer({
       descriptor: {
@@ -68,7 +69,7 @@ export function openKnowledgeWikiProvenance(
       },
       ports: {
         ...adapter.maintainerPorts({
-          resolveEvidence: () => item,
+          resolveEvidence: (ref) => (ref === item.ref ? item : positive),
           derive: () => ({
             operations: patternIds.map((patternId) =>
               tombstone
@@ -92,8 +93,8 @@ export function openKnowledgeWikiProvenance(
                       procedure: "Verify the applicable procedure",
                       appliesWhen: ["verified source"],
                       doesNotApplyWhen: [],
-                      positiveEvidence: [item.ref],
-                      negativeEvidence: [],
+                      positiveEvidence: [positive.ref],
+                      negativeEvidence: positive === item ? [] : [item.ref],
                       contradicts: [],
                       supersedes: [],
                       confidence: 0.8,
@@ -118,7 +119,7 @@ export function openKnowledgeWikiProvenance(
     });
     try {
       await maintainer.maintain({
-        evidenceRefs: [item.ref],
+        evidenceRefs: [...new Set([item.ref, positive.ref])],
         effectiveAt: item.observedAt,
       });
     } catch (error) {
