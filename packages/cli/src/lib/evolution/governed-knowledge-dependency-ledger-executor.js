@@ -14,6 +14,7 @@ import {
   GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA,
   digestGovernedKnowledgeDependencyResult,
   isGovernedKnowledgeDependencyAuthority,
+  captureGovernedKnowledgeDependencyReverifier,
 } from "./governed-knowledge-dependency-authority.js";
 import {
   isGovernedKnowledgeExecutionRecord,
@@ -350,6 +351,8 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     }
     this._resolveArtifact = ledgerArtifactResolver;
     this._apply = capture(dependencyAuthority, "apply", "dependencyAuthority");
+    this._reverify =
+      captureGovernedKnowledgeDependencyReverifier(dependencyAuthority);
     this._dependencyAuthority = dependencyAuthority;
     this._now = now;
     Object.freeze(this);
@@ -551,7 +554,7 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     return this._prepared(operationDigest);
   }
 
-  async _settle(prepared, results) {
+  async _settle(prepared, results, verifiedHead) {
     const existing = this._settled(prepared);
     if (existing) return existing;
     const settledAt = this._timestamp();
@@ -570,6 +573,13 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     const preparedEntry = this._prepared(prepared.operationDigest);
     if (!preparedEntry) corrupt("cannot settle unprepared dependencies");
     const head = this._verifyLedger();
+    if (
+      !verifiedHead ||
+      ["epoch", "ledgerId", "identityDigest", "sequence", "headDigest"].some(
+        (key) => verifiedHead[key] !== head[key],
+      )
+    )
+      corrupt("dependency effects changed before settlement authorization");
     const ref = this._publishArtifact(record);
     const eventId = `${GOVERNED_KNOWLEDGE_DEPENDENCY_SETTLED_EVENT_TYPE}.${prepared.operationDigest.slice(7)}`;
     try {
@@ -638,6 +648,7 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
       corrupt("dependency prepare was not durably read back");
     }
     const results = [];
+    const requests = [];
     for (const dependency of knowledge.dependencies) {
       const request = freeze({
         tenantId: this.descriptor.tenantId,
@@ -647,9 +658,21 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
         dependency,
       });
       EXECUTION_REQUESTS.set(request, this._dependencyAuthority);
+      requests.push(request);
       results.push(await this._apply(request));
     }
-    const settled = await this._settle({ operationDigest, knowledge }, results);
+    // All effects must still hold together at one authenticated head. Earlier
+    // per-effect checks may predate later dependencies or a concurrent writer.
+    // This path only rereads/verifies; it never repeats provider side effects.
+    const verifiedHead = this._verifyLedger();
+    const verifiedResults = [];
+    for (const [index, request] of requests.entries())
+      verifiedResults.push(await this._reverify(request, results[index]));
+    const settled = await this._settle(
+      { operationDigest, knowledge },
+      verifiedResults,
+      verifiedHead,
+    );
     return this._result(settled.record, knowledge, prepared !== null);
   }
 

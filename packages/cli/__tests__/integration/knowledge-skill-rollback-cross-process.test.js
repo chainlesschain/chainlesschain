@@ -48,6 +48,53 @@ function run(
 
 describe("Knowledge revocation real Skill process recovery", () => {
   it.each([
+    ["before-dependency-settlement", 96, "wiki"],
+    ["after-dependency-settlement", 97, "wiki"],
+    ["before-dependency-settlement", 96, "all"],
+    ["after-dependency-settlement", 97, "all"],
+  ])(
+    "recovers actual Wiki tombstones at %s (%s, %s)",
+    (crashPoint, status, dependencies) => {
+      const root = fs.mkdtempSync(
+        path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-wiki-process-"),
+      );
+      roots.push(root);
+      const seeded = run(root, "seed", "none", 0, "wiki", dependencies);
+      expect(seeded.wikiRevisions).toBe(2);
+      run(root, "execute", crashPoint, status, "wiki", dependencies);
+      const interrupted = run(root, "inspect", "none", 0, "wiki", dependencies);
+      expect(interrupted).toMatchObject({
+        prepared: 1,
+        settled: status === 97 ? 1 : 0,
+        published: 0,
+        wikiStatus: "tombstoned",
+        wikiRevisions: 3,
+      });
+      const recovered = run(root, "execute", "none", 0, "wiki", dependencies);
+      expect(recovered.pid).not.toBe(interrupted.pid);
+      expect(recovered).toMatchObject({
+        prepared: 1,
+        settled: 1,
+        published: 1,
+        wikiStatus: "tombstoned",
+        wikiRevisions: 3,
+        wikiStateDigest: interrupted.wikiStateDigest,
+        dependencyResultCount: dependencies === "all" ? 3 : 1,
+        revision: dependencies === "all" ? 3 : 2,
+        activeReleaseDigest:
+          dependencies === "all"
+            ? seeded.baselineReleaseDigest
+            : seeded.candidateReleaseDigest,
+        knowledge: { action: "revoke" },
+      });
+      const verified = run(root, "inspect", "none", 0, "wiki", dependencies);
+      expect(verified.pid).not.toBe(recovered.pid);
+      expect({ ...verified, pid: null }).toEqual({ ...recovered, pid: null });
+    },
+    300_000,
+  );
+
+  it.each([
     ["after-release-pointer", 95, "direct", "active"],
     ["before-dependency-settlement", 96, "direct", "active"],
     ["after-dependency-settlement", 97, "direct", "active"],

@@ -17,6 +17,7 @@ const h = await openKnowledgeSkillRollbackStore(root, {
   crashPoint,
   wikiProvenance: provenance === "wiki",
   candidateRejection: dependencies === "combined" ? "combined" : false,
+  wikiTombstone: dependencies === "all" ? "combined" : dependencies === "wiki",
 });
 if (mode === "execute") {
   await h.makeSync().publishWithArtifactEvidence(h.knowledge, {
@@ -25,7 +26,7 @@ if (mode === "execute") {
 }
 const events = h.resources.backend.ledger.read();
 const dependencyResult =
-  dependencies === "combined" &&
+  ["combined", "wiki", "all"].includes(dependencies) &&
   events.some(
     (event) => event.type === "knowledge.revocation-dependencies.settled",
   )
@@ -34,8 +35,18 @@ const dependencyResult =
 process.stdout.write(
   JSON.stringify({
     pid: process.pid,
-    ...(dependencies === "combined"
+    ...(["combined", "wiki", "all"].includes(dependencies)
       ? { dependencyResultCount: dependencyResult?.resultDigests.length ?? 0 }
+      : {}),
+    ...(["wiki", "all"].includes(dependencies)
+      ? {
+          wikiStatus:
+            h.wiki.adapter.loadWiki().state.patterns["pat-knowledge"].status,
+          wikiStateDigest: h.wiki.adapter.loadWiki().stateDigest,
+          wikiRevisions: events.filter(
+            (event) => event.type === "wiki.revision.committed",
+          ).length,
+        }
       : {}),
     activeReleaseDigest: h.release.readActive().release.releaseDigest,
     baselineReleaseDigest: h.release.baseline.releaseDigest,

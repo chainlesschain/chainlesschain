@@ -16,6 +16,16 @@ const AUTHORITIES = new WeakSet();
 // Only this module can dispatch a prepared router request into a leaf's full
 // request/result verification pipeline. No public rebranding API is exposed.
 const PREPARED_EXECUTIONS = new WeakMap();
+const PREPARED_REVERIFIERS = new WeakMap();
+
+// A read-only final check for the genuine executor. Reverification cannot call
+// a provider again, mint a request, or bypass the original leaf verifier.
+export function captureGovernedKnowledgeDependencyReverifier(authority) {
+  const verify = PREPARED_REVERIFIERS.get(authority);
+  if (!verify)
+    throw new TypeError("a genuine dependency authority is required");
+  return verify;
+}
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DESCRIPTOR_KEYS = new Set([
@@ -246,7 +256,7 @@ export function createGovernedKnowledgeDependencyAuthority({
   }
   const apply = capture(provider, "apply", "provider");
   const verify = capture(verifier, "verify", "verifier");
-  const executePrepared = async (input) => {
+  const executePrepared = async (input, revalidation = null) => {
     exact(input, INPUT_KEYS, "dependency execution input");
     if (
       input?.tenantId !== tenantId ||
@@ -289,8 +299,20 @@ export function createGovernedKnowledgeDependencyAuthority({
       knowledge,
       dependency: selected,
     });
+    let supplied;
+    if (revalidation !== null) {
+      exact(
+        revalidation.result,
+        new Set([...RESULT_KEYS, "verificationReceiptDigest"]),
+        "previously verified dependency result",
+      );
+      if (!DIGEST.test(revalidation.result.verificationReceiptDigest))
+        throw new TypeError("dependency verification receipt is invalid");
+      supplied = clone(revalidation.result);
+      delete supplied.verificationReceiptDigest;
+    }
     const result = validateResult(
-      await apply(request),
+      revalidation === null ? await apply(request) : supplied,
       request,
       providerDescriptor,
     );
@@ -335,6 +357,16 @@ export function createGovernedKnowledgeDependencyAuthority({
   });
   AUTHORITIES.add(authority);
   PREPARED_EXECUTIONS.set(authority, executePrepared);
+  PREPARED_REVERIFIERS.set(
+    authority,
+    Object.freeze((input, result) => {
+      if (!isGovernedKnowledgeDependencyExecutionRequest(input, authority))
+        throw new TypeError(
+          "dependency verification requires a prepared executor request",
+        );
+      return executePrepared(input, { result });
+    }),
+  );
   return authority;
 }
 
@@ -399,6 +431,23 @@ export function createGovernedKnowledgeDependencyRouter({
     },
   });
   AUTHORITIES.add(router);
+  PREPARED_REVERIFIERS.set(
+    router,
+    Object.freeze((input, result) => {
+      if (!isGovernedKnowledgeDependencyExecutionRequest(input, router))
+        throw new TypeError(
+          "dependency verification requires a prepared router request",
+        );
+      exact(input, INPUT_KEYS, "dependency verification input");
+      exact(input.dependency, DEPENDENCY_KEYS, "dependency verification route");
+      const execute = handlers.get(
+        `${input.dependency.kind}/${input.dependency.disposition}`,
+      );
+      if (!execute)
+        throw new Error("no real authority for dependency verification");
+      return execute(input, { result });
+    }),
+  );
   return router;
 }
 

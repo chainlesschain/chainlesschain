@@ -259,8 +259,10 @@ export class WikiMaintainerLedgerAdapter {
       this,
       Object.freeze({
         descriptor: this.descriptor,
+        matchesLedger: (candidate) => candidate === ledger,
         loadWiki: () => this.#loadWiki(),
         readRevision: (input) => this.#readRevision(input),
+        readStateRevision: (input) => this.#readStateRevision(input),
         resolveHistory: (input) => this.#resolveHistory(input),
         resolveAtCheckpoint: (input) => this.#resolveHistory(input, true),
       }),
@@ -272,6 +274,7 @@ export class WikiMaintainerLedgerAdapter {
     allowed = [],
     checkpoint = null,
     revisionId = null,
+    stateRevisionDigest = null,
   } = {}) {
     // read() already authenticates its snapshot. Resolve against that snapshot's
     // identity, then compare the entire event range with a fresh authority head.
@@ -394,14 +397,17 @@ export class WikiMaintainerLedgerAdapter {
         );
       }
       verifyRequestTransition(state, revision);
-      if (revision.revisionId === revisionId) {
+      if (
+        revision.revisionId === revisionId ||
+        revision.stateDigest === stateRevisionDigest
+      ) {
         if (selectedRevision)
           fail(WIKI_LEDGER_CORRUPT_CODE, "Wiki revision identity is ambiguous");
         selectedRevision = {
           trusted: true,
           state: revision.state,
           stateDigest: revision.stateDigest,
-          revisionId,
+          revisionId: revision.revisionId,
           checkpoint: {
             epoch: event.epoch,
             ledgerId: event.ledgerId,
@@ -488,6 +494,33 @@ export class WikiMaintainerLedgerAdapter {
       fail(
         WIKI_LEDGER_CONFLICT_CODE,
         "Wiki revision is not in authenticated history",
+      );
+    return freeze({
+      authenticated: true,
+      tenantId,
+      evolutionRunId: this.descriptor.evolutionRunId,
+      ...selectedRevision,
+      ledgerHead: head,
+    });
+  }
+
+  // Content-addressed original state lookup, without authorizing intervening
+  // changes. Effect consumers still replay their exact permitted successors.
+  #readStateRevision({ tenantId, stateDigest } = {}) {
+    if (
+      tenantId !== this.descriptor.tenantId ||
+      !DIGEST.test(stateDigest ?? "")
+    )
+      throw new TypeError(
+        "Wiki source requires an exact tenant and state digest",
+      );
+    const { head, selectedRevision } = this.#history({
+      stateRevisionDigest: stateDigest,
+    });
+    if (!selectedRevision)
+      fail(
+        WIKI_LEDGER_CONFLICT_CODE,
+        "Wiki state revision is not in authenticated history",
       );
     return freeze({
       authenticated: true,

@@ -14,6 +14,7 @@ import { EvolvableArtifactLedgerAdapter } from "../../src/lib/evolution/evolvabl
 import { createGovernedKnowledgeArtifactLifecycle } from "../../src/lib/evolution/governed-knowledge-artifact-lifecycle.js";
 import { createGovernedKnowledgeCandidateRejectionAuthority } from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
 import { createGovernedKnowledgeDependencyRouter } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
+import { createGovernedKnowledgeWikiTombstoneAuthority } from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
 
 export const tenantId = "tenant-knowledge-rollback";
 export const deviceId = "device:a";
@@ -79,6 +80,8 @@ export async function openKnowledgeSkillRollbackStore(
     onTransition = null,
     beforeDependencyAppend = null,
     candidateRejection = false,
+    wikiTombstone = false,
+    wikiPatternCount = 1,
   } = {},
 ) {
   const resources = openEvolutionDurableStore(root, {
@@ -89,7 +92,12 @@ export async function openKnowledgeSkillRollbackStore(
     ? openKnowledgeWikiProvenance(resources, source)
     : null;
   const wikiSeed =
-    wiki && seed ? await wiki.seed({ late: lateWikiProvenance }) : null;
+    wiki && seed
+      ? await wiki.seed({
+          late: lateWikiProvenance,
+          patternCount: wikiPatternCount,
+        })
+      : null;
   const wikiReferences = (state) => [
     {
       ref: `wiki-source://${tenantId}/${state.state.revisionId}`,
@@ -168,20 +176,44 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("candidate-rejection-verifier"),
     },
   };
-  const rejectionAuthority = candidateRejection
-    ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
+  const rejectionAuthority =
+    candidateRejection || wikiTombstone === "combined"
+      ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
+      : null;
+  const wikiTombstoneOptions = {
+    tenantId,
+    deviceId,
+    wikiLedgerAdapter: wiki?.adapter,
+    verifierWikiLedgerAdapter: independentWiki?.adapter,
+    transactionLedger: release.pruningRollbackOptions.transactionLedger,
+    verifierTransactionLedger:
+      independent.pruningRollbackOptions.transactionLedger,
+    providerDescriptor: {
+      authorityId: "knowledge-wiki:provider",
+      revision: 1,
+      handlerArtifactDigest: D("wiki-tombstone-provider"),
+    },
+    verifierDescriptor: {
+      authorityId: "knowledge-wiki:verifier",
+      revision: 1,
+      handlerArtifactDigest: D("wiki-tombstone-verifier"),
+    },
+  };
+  const wikiAuthority = wikiTombstone
+    ? createGovernedKnowledgeWikiTombstoneAuthority(wikiTombstoneOptions)
     : null;
   const authority =
-    candidateRejection === "combined"
+    candidateRejection === "combined" || wikiTombstone === "combined"
       ? createGovernedKnowledgeDependencyRouter({
           tenantId,
           deviceId,
           routes: {
             "active-skill/rollback-active": rollbackAuthority,
             "candidate/reject-candidate": rejectionAuthority,
+            ...(wikiAuthority ? { "wiki/tombstone": wikiAuthority } : {}),
           },
         })
-      : (rejectionAuthority ?? rollbackAuthority);
+      : (wikiAuthority ?? rejectionAuthority ?? rollbackAuthority);
   const descriptor = { ...resources.descriptor, deviceId };
   const executorLedger = {
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
@@ -306,6 +338,32 @@ export async function openKnowledgeSkillRollbackStore(
         ? [...knowledge.dependencies, candidate]
         : [candidate];
   }
+  if (wikiTombstone) {
+    const dependency = {
+      kind: "wiki",
+      disposition: "tombstone",
+      digest: wiki.reader.readRevision({
+        tenantId,
+        revisionId: release.candidateRelease.candidate.wikiRevision,
+      }).stateDigest,
+    };
+    knowledge.dependencies =
+      wikiTombstone === "combined"
+        ? [
+            {
+              kind: "active-skill",
+              digest: release.candidateRelease.releaseDigest,
+              disposition: "rollback-active",
+            },
+            {
+              kind: "candidate",
+              digest: release.candidateRelease.candidateId,
+              disposition: "reject-candidate",
+            },
+            dependency,
+          ]
+        : [dependency];
+  }
   return {
     root,
     wiki,
@@ -318,6 +376,7 @@ export async function openKnowledgeSkillRollbackStore(
     descriptor,
     authority,
     rejectionOptions,
+    wikiTombstoneOptions,
     executor,
     makeSync,
     crypto,

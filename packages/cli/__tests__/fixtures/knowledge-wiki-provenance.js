@@ -37,9 +37,15 @@ export function openKnowledgeWikiProvenance(resources, source) {
     };
     return { ...core, envelopeDigest: D(core) };
   };
-  async function write(known, { delayed = false, tombstone = false } = {}) {
+  async function write(
+    known,
+    {
+      delayed = false,
+      tombstone = false,
+      patternIds = [known ? "pat-knowledge" : "pat-safe"],
+    } = {},
+  ) {
     const item = evidence(known);
-    const patternId = known ? "pat-knowledge" : "pat-safe";
     let pending = null;
     const maintainer = new EvidenceBackedWikiMaintainer({
       descriptor: {
@@ -60,7 +66,7 @@ export function openKnowledgeWikiProvenance(resources, source) {
         ...adapter.maintainerPorts({
           resolveEvidence: () => item,
           derive: () => ({
-            operations: [
+            operations: patternIds.map((patternId) =>
               tombstone
                 ? {
                     type: "tombstone",
@@ -74,7 +80,7 @@ export function openKnowledgeWikiProvenance(resources, source) {
                       patternId,
                       kind: "success",
                       summary: known
-                        ? "Procedure derived from revoked knowledge"
+                        ? `Procedure derived from revoked knowledge${patternId.startsWith("pat-knowledge-") ? ` ${patternId}` : ""}`
                         : "Independent safe baseline procedure",
                       rootCause: known
                         ? "Knowledge evidence"
@@ -93,7 +99,7 @@ export function openKnowledgeWikiProvenance(resources, source) {
                       skillNames: ["safe-refactor"],
                     },
                   },
-            ],
+            ),
           }),
         }),
         ...(delayed
@@ -128,10 +134,28 @@ export function openKnowledgeWikiProvenance(resources, source) {
     adapter,
     reader,
     write,
-    async seed({ late = false } = {}) {
+    async seed({ late = false, patternCount = 1 } = {}) {
+      if (
+        !Number.isSafeInteger(patternCount) ||
+        patternCount < 1 ||
+        (late && patternCount !== 1)
+      )
+        throw new Error("invalid test Wiki pattern count");
       await write(false);
       const baseline = adapter.loadWiki();
-      const pending = await write(true, { delayed: late });
+      let pending;
+      for (let offset = 0; offset < patternCount; offset += 128) {
+        pending = await write(true, {
+          delayed: late,
+          patternIds: Array.from(
+            { length: Math.min(128, patternCount - offset) },
+            (_, index) =>
+              offset + index === 0
+                ? "pat-knowledge"
+                : `pat-knowledge-${String(offset + index).padStart(4, "0")}`,
+          ),
+        });
+      }
       const candidate = late
         ? {
             state: pending.revision.state,

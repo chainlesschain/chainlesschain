@@ -1,8 +1,4 @@
-import {
-  EvidenceBackedWikiMaintainer,
-  WIKI_MAINTENANCE_REQUEST_SCHEMA,
-  digestWikiState,
-} from "./evidence-backed-wiki-maintainer.js";
+import { deriveWikiTargetTombstoneRevision } from "./wiki-target-tombstone-revision.js";
 import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 import { captureWikiPruningJournalStore } from "./governed-wiki-pruning-ledger-adapter.js";
 import { captureWikiPruningSkillRollback } from "./governed-wiki-pruning-skill-rollback.js";
@@ -60,14 +56,6 @@ const HEAD_KEYS = [
   "sequence",
   "headDigest",
 ];
-const POLICY = Object.freeze({
-  trustedProjectionRead: true,
-  rawEvidenceRead: false,
-  activeSkillWrite: false,
-  shell: false,
-  network: false,
-  secretRead: false,
-});
 
 function fail(message) {
   const error = new Error(message);
@@ -76,13 +64,6 @@ function fail(message) {
 }
 function same(left, right) {
   return pruningCanonical(left) === pruningCanonical(right);
-}
-function freeze(value) {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
-    Object.freeze(value);
-    for (const child of Object.values(value)) freeze(child);
-  }
-  return value;
 }
 function matchHead(expected, actual) {
   return (
@@ -251,17 +232,11 @@ export class GovernedWikiPruningMaintenance {
   }
 
   async #derive(plan, source, part) {
-    const ref = Object.keys(source.state.evidence ?? {}).sort()[0];
-    if (!ref)
-      fail(
-        "Wiki pruning actions require retained authenticated evidence metadata",
-      );
-    // The source is authenticated immutable Wiki metadata. Reconstruct its
-    // existing envelope; do not fabricate a new artifact ref or read Raw bytes.
-    const core = source.state.evidence[ref];
-    const evidence = { ...core, envelopeDigest: digestWikiState(core) };
-    let revision = null;
-    const maintainer = new EvidenceBackedWikiMaintainer({
+    return deriveWikiTargetTombstoneRevision({
+      source,
+      operations: part.operations,
+      effectiveAt: plan.effectiveAt,
+      requestDigest: part.requestDigest,
       descriptor: part.dependency
         ? {
             ...this.#maintainerDescriptor,
@@ -273,58 +248,6 @@ export class GovernedWikiPruningMaintenance {
               : DEPENDENCY_RULES_DIGEST,
           }
         : this.#maintainerDescriptor,
-      policy: POLICY,
-      ports: Object.freeze({
-        loadWiki: () => source,
-        resolveEvidence: () => evidence,
-        derive: () => ({ operations: part.operations }),
-        commitRevision: ({ revision: next }) => {
-          revision = next;
-          return {
-            committed: true,
-            revisionId: next.revisionId,
-            stateDigest: next.stateDigest,
-            evolutionRunId: next.evolutionRunId,
-          };
-        },
-      }),
-    });
-    await maintainer.maintain({
-      evidenceRefs: [ref],
-      effectiveAt: plan.effectiveAt,
-      maintenanceRequest: {
-        schema: WIKI_MAINTENANCE_REQUEST_SCHEMA,
-        tenantId: plan.tenantId,
-        requestDigest: part.requestDigest,
-        requestId: `wiki-maintenance:${part.requestDigest.slice(7)}`,
-      },
-    });
-    if (!revision)
-      fail(
-        "Wiki pruning replay unexpectedly reused an existing maintenance request",
-      );
-    // The general Maintainer also recalculates confidence for unrelated
-    // patterns. Pruning has no authority to change their evidence thresholds,
-    // lifecycle or actionability. Retain only the requested tombstones, their
-    // audit entries and request bookkeeping; preserve all other facts verbatim.
-    const scoped = structuredClone(source.state);
-    const targets = new Set(
-      part.operations.map((operation) => operation.patternId),
-    );
-    for (const id of targets) scoped.patterns[id] = revision.state.patterns[id];
-    if (!Array.isArray(source.state.index))
-      fail("Wiki pruning source index is invalid");
-    scoped.index = source.state.index.filter(
-      (entry) => !targets.has(entry.patternId),
-    );
-    scoped.revision = revision.revision;
-    scoped.revisionId = revision.revisionId;
-    scoped.maintenanceRequests = revision.state.maintenanceRequests;
-    scoped.evolutionLog = revision.state.evolutionLog;
-    return freeze({
-      ...revision,
-      state: scoped,
-      stateDigest: digestWikiState(scoped),
     });
   }
 

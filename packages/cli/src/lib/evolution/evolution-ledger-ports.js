@@ -2984,6 +2984,87 @@ class EvolutionLedgerDomainPorts {
     return this.#resolveRelease(inputValue, true);
   }
 
+  resolveKnowledgeRevocation(inputValue) {
+    if (this.#audience === null)
+      throw new TypeError(
+        "Knowledge revocation proof requires audience-bound ledger ports",
+      );
+    const input = frozenCanonicalClone(inputValue);
+    assertAllExactRecord(
+      input,
+      new Set(["tenantId", "operationDigest", "context"]),
+      "Knowledge revocation query",
+    );
+    const tenantId = identifier(input.tenantId, "tenantId");
+    const operationDigest = digest(input.operationDigest, "operationDigest");
+    const keys = [
+      "epoch",
+      "ledgerId",
+      "identityDigest",
+      "sequence",
+      "headDigest",
+    ];
+    assertAllExactRecord(
+      input.context,
+      new Set(["mode", "checkpoint"]),
+      "Knowledge revocation context",
+    );
+    assertAllExactRecord(
+      input.context.checkpoint,
+      new Set(keys),
+      "Knowledge revocation checkpoint",
+    );
+    const head = this.#ledgerVerify();
+    if (
+      input.context.mode !== "current" ||
+      keys.some((key) => input.context.checkpoint[key] !== head[key])
+    )
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "Knowledge revocation requires the current authenticated head",
+      );
+    const snapshot = this.#snapshot();
+    if (
+      snapshot.events.length !== head.sequence ||
+      (snapshot.events.at(-1)?.eventDigest ?? null) !== head.headDigest
+    )
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "Knowledge revocation snapshot changed",
+      );
+    let fence = null;
+    for (const entry of this.#knowledgeRevocations(
+      snapshot,
+      tenantId,
+      this.#audience,
+    )) {
+      if (entry.prepared.operationDigest !== operationDigest) continue;
+      fence = {
+        record: entry.prepared,
+        sequence: entry.event.sequence,
+        evidence: {
+          timestamp: entry.event.timestamp,
+          signature: entry.event.signature,
+          eventDigest: entry.event.eventDigest,
+        },
+      };
+    }
+    const fresh = this.#ledgerVerify();
+    if (keys.some((key) => fresh[key] !== head[key]))
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "Knowledge revocation changed during verification",
+      );
+    return deepFreeze({
+      authenticated: true,
+      durable: true,
+      tenantId,
+      operationDigest,
+      checkpoint: { ...input.context.checkpoint },
+      fence,
+    });
+  }
+
   resolveCandidateRevocation(inputValue) {
     if (this.#audience === null)
       throw new TypeError(
@@ -3839,6 +3920,9 @@ export function createEvolutionLedgerPorts(options = {}) {
           ),
         });
       }),
+      matchesWikiAdapter: Object.freeze((wikiAdapter) =>
+        captureWikiRevisionReader(wikiAdapter).matchesLedger(ledger),
+      ),
       resolveOperation: Object.freeze((input) =>
         adapter.resolveReleaseOperation(input),
       ),
@@ -3847,6 +3931,9 @@ export function createEvolutionLedgerPorts(options = {}) {
       ),
       resolveCandidateRevocation: Object.freeze((input) =>
         adapter.resolveCandidateRevocation(input),
+      ),
+      resolveKnowledgeRevocation: Object.freeze((input) =>
+        adapter.resolveKnowledgeRevocation(input),
       ),
     }),
   );

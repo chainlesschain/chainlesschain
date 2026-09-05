@@ -25,6 +25,7 @@ import {
 import {
   GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA,
   createGovernedKnowledgeDependencyAuthority,
+  captureGovernedKnowledgeDependencyReverifier,
   digestGovernedKnowledgeDependencyResult,
 } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
 import {
@@ -935,6 +936,7 @@ function revocationKnowledge(overrides = {}) {
 function dependencyAuthority({
   loseFirstResponse = false,
   deviceId = "device:a",
+  onVerify = null,
 } = {}) {
   const durableResults = new Map();
   let shouldLose = loseFirstResponse;
@@ -980,20 +982,23 @@ function dependencyAuthority({
     }),
   };
   const verifier = {
-    verify: vi.fn(async ({ request, result }) => ({
-      authenticated: true,
-      durable: true,
-      tenantId: request.tenantId,
-      deviceId: request.deviceId,
-      operationId: request.operationId,
-      requestDigest: request.requestDigest,
-      resultDigest: result.resultDigest,
-      providerAuthorityId: "dependency-provider:test",
-      providerRevision: 1,
-      verifierAuthorityId: "dependency-verifier:test",
-      verifierRevision: 1,
-      verificationReceiptDigest: D(`verified:${result.resultDigest}`),
-    })),
+    verify: vi.fn(async ({ request, result }) => {
+      await onVerify?.({ request, result });
+      return {
+        authenticated: true,
+        durable: true,
+        tenantId: request.tenantId,
+        deviceId: request.deviceId,
+        operationId: request.operationId,
+        requestDigest: request.requestDigest,
+        resultDigest: result.resultDigest,
+        providerAuthorityId: "dependency-provider:test",
+        providerRevision: 1,
+        verifierAuthorityId: "dependency-verifier:test",
+        verifierRevision: 1,
+        verificationReceiptDigest: D(`verified:${result.resultDigest}`),
+      };
+    }),
   };
   const authority = createGovernedKnowledgeDependencyAuthority({
     tenantId: "tenant:a",
@@ -1039,6 +1044,79 @@ function dependencyRequest(knowledgeInput = revocationKnowledge()) {
 }
 
 describe("Governed knowledge dependency authority boundary", () => {
+  it("cannot use read-only reverification to mint execution authority", () => {
+    const fixture = dependencyAuthority();
+    expect(() =>
+      captureGovernedKnowledgeDependencyReverifier({ ...fixture.authority }),
+    ).toThrow(/genuine/);
+    const reverify = captureGovernedKnowledgeDependencyReverifier(
+      fixture.authority,
+    );
+    expect(() => reverify(dependencyRequest(), {})).toThrow(
+      /prepared executor/,
+    );
+    expect(fixture.provider.apply).not.toHaveBeenCalled();
+    expect(fixture.verifier.verify).not.toHaveBeenCalled();
+  });
+
+  it("rejects a ledger write during final read-only verification, then recovers without repeating durable effects", async () => {
+    const storage = backends("device:a");
+    let checks = 0;
+    const fixture = dependencyAuthority({
+      onVerify() {
+        checks += 1;
+        if (checks !== 3) return;
+        const prepared = storage.ledger
+          .read()
+          .find(
+            (event) =>
+              event.type === "knowledge.revocation-dependencies.prepared",
+          );
+        const head = storage.ledger.verify();
+        storage.ledger.appendDomainEvent(
+          {
+            ...prepared,
+            eventId: `${prepared.eventId}.concurrent-write`,
+            type: "test.concurrent-write",
+          },
+          {
+            expectedSequence: head.sequence,
+            expectedHeadDigest: head.headDigest,
+          },
+        );
+      },
+    });
+    const executor = dependencyExecutor(storage, fixture.authority);
+    const crypto = cryptoPorts();
+    const sync = controller(storage, crypto, executor).controller;
+    await expect(sync.publish(revocationKnowledge())).rejects.toThrow(
+      /effects changed before settlement/,
+    );
+    expect(fixture.provider.apply).toHaveBeenCalledTimes(2);
+    expect(fixture.verifier.verify).toHaveBeenCalledTimes(4);
+    expect(
+      storage.ledger
+        .read()
+        .filter(
+          (event) => event.type === "knowledge.revocation-dependencies.settled",
+        ),
+    ).toHaveLength(0);
+    expect(crypto.send.send).not.toHaveBeenCalled();
+    await expect(sync.publish(revocationKnowledge())).resolves.toMatchObject({
+      action: "revoke",
+    });
+    expect(
+      storage.ledger
+        .read()
+        .filter(
+          (event) => event.type === "knowledge.revocation-dependencies.settled",
+        ),
+    ).toHaveLength(1);
+    expect(
+      new Set(fixture.requests.map((request) => request.operationId)).size,
+    ).toBe(2);
+  });
+
   it("rejects a well-formed but unprepared direct request", async () => {
     const fixture = dependencyAuthority();
     await expect(fixture.authority.apply(dependencyRequest())).rejects.toThrow(
@@ -1125,7 +1203,9 @@ describe("Governed knowledge dependency authority boundary", () => {
       ).controller.publish(revocationKnowledge()),
     ).resolves.toMatchObject({ action: "revoke" });
     expect(originalApply).toHaveBeenCalledTimes(2);
-    expect(originalVerify).toHaveBeenCalledTimes(2);
+    // Each effect is checked once individually and again at the final shared
+    // settlement head; reverification does not repeat the provider effect.
+    expect(originalVerify).toHaveBeenCalledTimes(4);
     expect(fixture.provider.apply).not.toHaveBeenCalled();
     expect(fixture.verifier.verify).not.toHaveBeenCalled();
   });
