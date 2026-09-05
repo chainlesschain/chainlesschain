@@ -322,13 +322,18 @@ export class GovernedSkillMarketplace {
     this._verifyRevocation = capture(ports, "verifyRevocation");
   }
 
-  async inspect(input, target) {
+  async verifyListing(input, target) {
     const manifest = normalizeManifest(input, this.tenantId);
     if ((await this._verifySignature({ manifest })) !== true)
       throw new Error("marketplace manifest signature is invalid");
     const cell = targetCell(manifest, target);
     if (cell.safetyPassed !== true)
       throw new Error("marketplace target safety gate failed");
+    return freeze({ manifest, target: clone(target), cell });
+  }
+
+  async inspect(input, target) {
+    const { manifest, cell } = await this.verifyListing(input, target);
     const adapted = await this._adapt({
       manifest,
       target: clone(target),

@@ -7,6 +7,8 @@ const HOSTS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const TARGET_KEYS = ["model", "os", "runtime", "tool"];
+export const GOVERNED_SKILL_MARKETPLACE_PUBLIC_BADGE_SCHEMA =
+  "chainlesschain.governed-skill-marketplace-public-badge/v1";
 
 function id(value, name) {
   if (typeof value !== "string" || !ID.test(value))
@@ -170,6 +172,48 @@ export function createGovernedSkillMarketplaceCliHost({
         sampleCount: inspected.cell.sampleCount,
         adaptedOutputDigest: inspected.adapted.outputDigest,
         state: await stateFor(skillName),
+      });
+    },
+    async preparePublicBadge({ skillName, version, manifestDigest } = {}) {
+      id(version, "exact public badge version");
+      digest(manifestDigest, "manifestDigest");
+      const manifest = await resolveManifest(skillName, version);
+      if (manifest.manifestDigest !== manifestDigest)
+        throw new Error("public badge manifest changed");
+      // Adaptation/evaluation happens only during explicit publication, never
+      // in response to anonymous HTTP traffic. The server expires this snapshot.
+      const inspected = await marketplace.inspect(manifest, target);
+      const projection = Object.freeze({
+        schema: GOVERNED_SKILL_MARKETPLACE_PUBLIC_BADGE_SCHEMA,
+        skillName,
+        version,
+        manifestDigest,
+        sourceModel: inspected.manifest.sourceModel,
+        sourceCommitDigest: inspected.manifest.sourceCommitDigest,
+        packageDigest: inspected.manifest.packageDigest,
+        sbomDigest: inspected.manifest.sbomDigest,
+        dependencyLockDigest: inspected.manifest.dependencyLockDigest,
+        permissionManifestDigest: inspected.manifest.permissionManifestDigest,
+        targetMatrixDigest: inspected.manifest.targetMatrixDigest,
+        evalBadgeDigest: inspected.manifest.evalBadgeDigest,
+        evalReceiptDigest: inspected.cell.evalReceiptDigest,
+        qualityScore: inspected.cell.qualityScore,
+        sampleCount: inspected.cell.sampleCount,
+        adaptedOutputDigest: inspected.adapted.outputDigest,
+        target,
+      });
+      return Object.freeze({
+        read: async () => {
+          const current = await resolveManifest(skillName, version);
+          if (current.manifestDigest !== manifestDigest)
+            throw new Error("public badge manifest changed");
+          await marketplace.verifyListing(current, target);
+          const revoked = await isManifestRevoked({
+            skillName,
+            manifestDigest,
+          });
+          return Object.freeze({ ...projection, revoked });
+        },
       });
     },
     state: ({ skillName } = {}) => stateFor(skillName),

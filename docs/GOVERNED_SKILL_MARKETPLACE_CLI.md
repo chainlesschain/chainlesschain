@@ -2,6 +2,8 @@
 
 The governed Skill commands coexist with the existing remote-service marketplace commands. They do not change service publishing, invocation recording, purchasing or billing.
 
+Use `--skill-version` for a Skill's catalog version. The executable reserves `--version` for its own CLI version; it must not be used as a Skill selector.
+
 ## Availability and deployment
 
 These commands require a deployment-owned `marketplaceHost`. Without it, they report `unavailable`; they do not create a local mock registry or use test signing keys.
@@ -37,13 +39,13 @@ The adapted package is published through the existing candidate registry's tenan
 First inspect a signed listing for the deployment's target:
 
 ```text
-cc marketplace inspect safe-refactor --version 2.0.0
+cc marketplace inspect safe-refactor --skill-version 2.0.0
 ```
 
 Use the returned manifest digest to pin the candidate:
 
 ```text
-cc marketplace install safe-refactor --version 2.0.0 --manifest sha256:<digest>
+cc marketplace install safe-refactor --skill-version 2.0.0 --manifest sha256:<digest>
 cc marketplace state safe-refactor
 ```
 
@@ -83,11 +85,31 @@ All marketplace IPC requests require the trusted Desktop main frame and an allow
 
 Production catalog/PKI/SBOM/adapter/Eval authorities, actual Pilot/Release activation, public badge hosting and target-deployment end-to-end acceptance remain required before claiming production availability. This integration does not install test keys or supply a default authority.
 
+## Public Eval badge page
+
+Publish one explicitly selected immutable listing through the same authenticated CLI deployment host:
+
+```text
+cc marketplace serve-badge safe-refactor --skill-version 2.0.0 --manifest sha256:<digest>
+```
+
+The command prints the page URL and stays running until stopped. It binds to `127.0.0.1:8321` by default; `--port 0` selects an available port. An explicit `--listen <ip>` can expose the selected metadata beyond loopback. Public deployments need an operator-managed TLS reverse proxy, network access policy and rate limits. No service is started by installation or by normal Desktop startup.
+
+Only `GET`/`HEAD /` and `/badge.json` are served. There is no catalog browsing, tenant selector, target override, installation or mutation endpoint. The projection contains the selected Skill/version, fixed target, target evaluation score/sample count and provenance digests. It excludes tenant IDs, candidate files/content, raw signatures, lineage, private approval receipts and installation state. Publishing requires both an exact version and manifest pin; catalog substitution fails closed.
+
+Target adaptation/evaluation is checked once during explicit publication. Anonymous HTTP requests only re-read the pinned catalog, revalidate its signature and check the real marketplace Ledger for historical revocation. They never invoke adaptation/evaluation or materialize candidates. A revoked older version remains visibly revoked even after a newer version is installed. Missing catalog data, unavailable signature authority, corrupt Ledger or failed readback yields a generic `503`, without exposing internal errors.
+
+The evaluation snapshot expires after 600 seconds by default (`--snapshot-seconds`, 1–3600); expiration requires an explicit restart and new publication-time verification. Responses use `no-store` and show publication, expiry and request-check timestamps. A snapshot is not proof of subsequent revocation status from other Eval/adapter authorities, and is never installation or runtime authorization. Independent verification/reproduction still requires the publisher's original signed evidence and publishable evaluation materials; this page does not expose private holdouts or replace production evidence hosting.
+
+The HTML has no scripts or external assets, escapes metadata, and uses a hash-pinned style CSP. The server bounds headers, connections and concurrent verifications; a timed-out verifier keeps its slot until settlement, so repeated timeouts cannot create unlimited background work.
+
 ## Local verification
 
 The marketplace ledger tests use real ArtifactStore/Ledger files, witness reopening and candidate files, including an installer process that exits immediately after publication and a separate verification process. Catalog signatures and target/Pilot/transition/admission authorities remain test fixtures. These tests are not production deployment or power-loss durability acceptance.
 
 The same suite also exercises the real Desktop bootstrap, client and IPC handlers with a branded host, candidate files and Ledger reopening. Vue component tests cover unavailable deployment, manifest pinning, candidate-only status, receipt-bound advancement, updating after revocation, emergency revocation and stale responses. These are not an actual packaged Electron GUI end-to-end run.
+
+Public badge tests start real temporary loopback HTTP servers and check the JSON whitelist, HTML/CSP, historical revocation after newer staging and Ledger reopening, expiry, bounded timeout handling and read-only routes. Command tests use the actual root parser to verify that `--skill-version` reaches inspect/install instead of triggering the global CLI version option. Test authorities are not production credentials, and these checks do not publish an externally hosted page.
 
 ```text
 cd packages/cli

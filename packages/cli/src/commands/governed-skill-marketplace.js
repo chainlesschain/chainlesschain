@@ -1,4 +1,6 @@
 import { isGovernedSkillMarketplaceCliHost } from "../lib/evolution/governed-skill-marketplace-cli-host.js";
+import { startGovernedSkillMarketplaceBadgeServer } from "../lib/evolution/governed-skill-marketplace-badge.js";
+import { intArg } from "../lib/cli-arg.js";
 
 function host(value) {
   if (!isGovernedSkillMarketplaceCliHost(value))
@@ -17,16 +19,67 @@ export function registerGovernedSkillMarketplaceCommands(
   { marketplaceHost = null } = {},
 ) {
   marketplace
+    .command("serve-badge <skill-name>")
+    .description(
+      "Serve a read-only public Eval badge for one explicitly pinned listing",
+    )
+    .requiredOption("--skill-version <version>", "Exact public catalog version")
+    .requiredOption(
+      "--manifest <digest>",
+      "Explicitly approved manifest digest",
+    )
+    .option(
+      "--listen <ip>",
+      "Bind IP; non-loopback explicitly publishes the badge",
+      "127.0.0.1",
+    )
+    .option(
+      "--port <port>",
+      "HTTP port (0 selects an available port)",
+      intArg("--port", { min: 0, max: 65535 }),
+      8321,
+    )
+    .option(
+      "--snapshot-seconds <seconds>",
+      "Snapshot lifetime; expiration requires explicit restart",
+      intArg("--snapshot-seconds", { min: 1, max: 3600 }),
+      600,
+    )
+    .action(async (skillName, options) => {
+      const service = await startGovernedSkillMarketplaceBadgeServer({
+        marketplaceHost: host(marketplaceHost),
+        skillName,
+        version: options.skillVersion,
+        manifestDigest: options.manifest,
+        listen: options.listen,
+        port: options.port,
+        snapshotTtlMs: options.snapshotSeconds * 1000,
+      });
+      const close = () => {
+        service.close().catch(() => {
+          process.exitCode = 1;
+        });
+      };
+      process.once("SIGINT", close);
+      process.once("SIGTERM", close);
+      service.server.once("close", () => {
+        process.removeListener("SIGINT", close);
+        process.removeListener("SIGTERM", close);
+      });
+      console.log(`Public Eval badge: ${service.url}`);
+    });
+
+  marketplace
     .command("inspect <skill-name>")
     .description(
       "Verify a signed Skill listing for the deployment's fixed target",
     )
-    .option("--version <version>", "Exact catalog version")
+    .option("--skill-version <version>", "Exact catalog version")
     .action(async (skillName, options) =>
       output(
         await host(marketplaceHost).inspect({
           skillName,
-          version: options.version ?? null,
+          version: options.skillVersion ?? null,
         }),
       ),
     );
@@ -36,7 +89,7 @@ export function registerGovernedSkillMarketplaceCommands(
     .description(
       "Persist verified candidate files and governance state; does not activate the Skill",
     )
-    .option("--version <version>", "Exact catalog version")
+    .option("--skill-version <version>", "Exact catalog version")
     .requiredOption(
       "--manifest <digest>",
       "Manifest digest returned by inspect",
@@ -49,7 +102,7 @@ export function registerGovernedSkillMarketplaceCommands(
       output(
         await host(marketplaceHost).install({
           skillName,
-          version: options.version ?? null,
+          version: options.skillVersion ?? null,
           manifestDigest: options.manifest,
           expectedStateDigest: options.expectedState ?? null,
         }),

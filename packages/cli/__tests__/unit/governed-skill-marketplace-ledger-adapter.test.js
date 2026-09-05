@@ -2,14 +2,17 @@ import { createHash, createHmac } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { EventEmitter } from "node:events";
+import { request as httpRequest } from "node:http";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Command } from "commander";
+import { createBaseProgram } from "../../src/program-base.js";
 import { registerMarketplaceCommand } from "../../src/commands/marketplace.js";
 import { dispatchManifestEntry } from "../../src/lazy-dispatch.js";
+import * as publicBadges from "../../src/lib/evolution/governed-skill-marketplace-badge.js";
 import {
   createGovernedSkillMarketplaceCandidateInstaller,
   digestGovernedSkillMarketplaceCandidatePermissions,
@@ -63,8 +66,10 @@ const TARGET = {
 };
 const roots = [];
 const adapterStorage = new WeakMap();
+const badgeServers = [];
 
-afterEach(() => {
+afterEach(async () => {
+  for (const service of badgeServers.splice(0)) await service.close();
   vi.restoreAllMocks();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -581,10 +586,12 @@ function installRequest(version = "2.0.0", expectedStateDigest = null) {
 }
 
 function cliProgram(host) {
-  const program = new Command().exitOverride().configureOutput({
-    writeOut: () => {},
-    writeErr: () => {},
-  });
+  const program = createBaseProgram()
+    .exitOverride()
+    .configureOutput({
+      writeOut: () => {},
+      writeErr: () => {},
+    });
   registerMarketplaceCommand(program, { marketplaceHost: host });
   return program;
 }
@@ -599,7 +606,347 @@ function candidateEntries(storage) {
   return fs.existsSync(directory) ? fs.readdirSync(directory) : [];
 }
 
+async function publicBadge(harness, options = {}) {
+  const service = await publicBadges.startGovernedSkillMarketplaceBadgeServer({
+    marketplaceHost: harness.host,
+    skillName: "safe-refactor",
+    version: "2.0.0",
+    manifestDigest: catalogManifest().manifestDigest,
+    port: 0,
+    ...options,
+  });
+  badgeServers.push(service);
+  return service;
+}
+
+function badgeHarness(overrides = {}) {
+  const storage = resources();
+  const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+  return { ...cliHost(adapter(storage, backend.ledger), overrides), backend };
+}
+
+describe("public marketplace Eval badge", () => {
+  it("serves a real read-only HTML/JSON page without tenant, candidate or private receipt data", async () => {
+    const harness = badgeHarness();
+    const service = await publicBadge(harness);
+    const response = await fetch(service.url);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("content-security-policy")).toContain(
+      "default-src 'none'",
+    );
+    expect(response.headers.get("content-security-policy")).not.toContain(
+      "unsafe-inline",
+    );
+    const html = await response.text();
+    const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+    expect(response.headers.get("content-security-policy")).toContain(
+      `sha256-${createHash("sha256").update(style).digest("base64")}`,
+    );
+    expect(html).toContain("已核验的评测快照");
+    expect(html).toContain("safe-refactor");
+    expect(html).not.toContain("<script");
+    const json = await (await fetch(`${service.url}badge.json`)).json();
+    expect(json).toMatchObject({
+      skillName: "safe-refactor",
+      version: "2.0.0",
+      revoked: false,
+      manifestDigest: catalogManifest().manifestDigest,
+      target: TARGET,
+    });
+    expect(new Date(json.expiresAt) - new Date(json.verifiedAt)).toBe(600_000);
+    expect(Object.keys(json).sort()).toEqual(
+      [
+        "schema",
+        "skillName",
+        "version",
+        "manifestDigest",
+        "sourceModel",
+        "sourceCommitDigest",
+        "packageDigest",
+        "sbomDigest",
+        "dependencyLockDigest",
+        "permissionManifestDigest",
+        "targetMatrixDigest",
+        "evalBadgeDigest",
+        "evalReceiptDigest",
+        "qualityScore",
+        "sampleCount",
+        "adaptedOutputDigest",
+        "target",
+        "revoked",
+        "verifiedAt",
+        "expiresAt",
+        "checkedAt",
+      ].sort(),
+    );
+    for (const value of [
+      TENANT_ID,
+      ARTIFACT_TENANT_ID,
+      "candidateBinding",
+      "signature",
+      "receipt:pilot",
+    ])
+      expect(JSON.stringify(json)).not.toContain(value);
+    expect(harness.ports.adapt).toHaveBeenCalledOnce();
+    expect(harness.ports.transition).not.toHaveBeenCalled();
+    expect(harness.artifacts.resolve).not.toHaveBeenCalled();
+    expect(harness.backend.ledger.verify().sequence).toBe(0);
+    expect(candidateEntries(harness.storage)).toEqual([]);
+  });
+
+  it("shows a historical revocation after a newer version and real ledger reopening", async () => {
+    const harness = badgeHarness();
+    const { state } = await harness.host.install(installRequest());
+    const service = await publicBadge(harness);
+    const revoked = await harness.host.revoke({
+      skillName: state.skillName,
+      expectedStateDigest: state.stateDigest,
+      receiptRef: `receipt:revoke:${state.stateDigest.slice(7)}`,
+    });
+    await harness.host.install(installRequest("3.0.0", revoked.stateDigest));
+    const adaptationCount = harness.ports.adapt.mock.calls.length;
+    expect(
+      await (await fetch(`${service.url}badge.json`)).json(),
+    ).toMatchObject({ revoked: true, version: "2.0.0" });
+    expect(await (await fetch(service.url)).text()).toContain(
+      "已撤销 · 不可用于安装",
+    );
+    expect(harness.ports.adapt).toHaveBeenCalledTimes(adaptationCount);
+    const reopened = createEvolutionLedgerFileBackend(
+      harness.storage.backendOptions,
+    );
+    const next = cliHost(adapter(harness.storage, reopened.ledger));
+    const fresh = await publicBadge(next);
+    expect(await (await fetch(`${fresh.url}badge.json`)).json()).toMatchObject({
+      revoked: true,
+    });
+    expect(reopened.ledger.verify().sequence).toBe(3);
+  });
+
+  it("fails closed on changed catalog or revoked signing trust without leaking errors", async () => {
+    const harness = badgeHarness();
+    const service = await publicBadge(harness);
+    const originalSignature =
+      harness.ports.verifySignature.getMockImplementation();
+    harness.ports.verifySignature.mockImplementation(async () => {
+      throw new Error("PRIVATE_INTERNAL_RECEIPT_PATH");
+    });
+    const denied = await fetch(service.url);
+    expect(denied.status).toBe(503);
+    expect(await denied.text()).not.toContain("PRIVATE_INTERNAL");
+    harness.ports.verifySignature.mockImplementation(originalSignature);
+    harness.catalog.resolve.mockResolvedValue(catalogManifest("3.0.0"));
+    expect((await fetch(service.url)).status).toBe(503);
+    expect(harness.ports.adapt).toHaveBeenCalledOnce();
+  });
+
+  it("expires a published evaluation without re-running adaptation for public requests", async () => {
+    let time = Date.now();
+    const harness = badgeHarness();
+    const service = await publicBadge(harness, {
+      snapshotTtlMs: 1000,
+      now: () => time,
+    });
+    expect((await fetch(service.url)).status).toBe(200);
+    time += 1000;
+    expect((await fetch(service.url)).status).toBe(503);
+    expect(harness.ports.adapt).toHaveBeenCalledOnce();
+    time -= 2000;
+    expect((await fetch(service.url)).status).toBe(503);
+  });
+
+  it("bounds timed-out verifiers and retains the concurrency slot until settlement", async () => {
+    let blocked = false;
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const harness = badgeHarness({
+      catalog: {
+        resolve: async () => {
+          if (blocked) await gate;
+          return catalogManifest();
+        },
+      },
+    });
+    const service = await publicBadge(harness, {
+      requestTimeoutMs: 20,
+      maxConcurrentRequests: 1,
+    });
+    try {
+      blocked = true;
+      expect((await fetch(service.url)).status).toBe(503);
+      expect((await fetch(service.url)).status).toBe(429);
+    } finally {
+      blocked = false;
+      release();
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+    expect((await fetch(service.url)).status).toBe(200);
+    expect(harness.ports.adapt).toHaveBeenCalledOnce();
+  });
+
+  it("rejects mutation methods, bodies and undeclared paths while supporting HEAD", async () => {
+    const service = await publicBadge(badgeHarness());
+    expect(
+      (await fetch(service.url, { method: "POST", body: "install" })).status,
+    ).toBe(405);
+    expect((await fetch(`${service.url}badge.json?skill=private`)).status).toBe(
+      404,
+    );
+    expect((await fetch(`${service.url}install`)).status).toBe(404);
+    const head = await fetch(service.url, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+    const status = await new Promise((resolve, reject) => {
+      const request = httpRequest(
+        service.url,
+        { method: "GET", headers: { "Content-Length": "1" } },
+        (response) => {
+          response.resume();
+          response.once("end", () => resolve(response.statusCode));
+        },
+      );
+      request.once("error", reject);
+      request.end("x");
+    });
+    expect(status).toBe(400);
+  });
+
+  it("requires the real host, explicit version/pin and bounded publication settings", async () => {
+    const harness = badgeHarness();
+    for (const options of [
+      { marketplaceHost: {} },
+      { marketplaceHost: new Proxy(harness.host, {}) },
+      { version: null },
+      { manifestDigest: digest("wrong") },
+      { listen: "attacker.example" },
+      { port: 65536 },
+      { snapshotTtlMs: 0 },
+    ])
+      await expect(publicBadge(harness, options)).rejects.toThrow();
+    expect(harness.ports.adapt).not.toHaveBeenCalled();
+  });
+
+  it("escapes page data and never treats metadata as executable markup", () => {
+    const html = publicBadges.renderGovernedSkillMarketplaceBadge({
+      skillName: '</title><script>alert("x")</script>',
+      version: "<img src=x onerror=alert(1)>",
+      target: { model: "<svg/onload=alert(1)>" },
+      qualityScore: 0.9,
+      sampleCount: 100,
+      revoked: false,
+    });
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("wires the CLI publication command to the exact selected host and cleans signal handlers", async () => {
+    const harness = badgeHarness();
+    const server = new EventEmitter();
+    const close = vi.fn(async () => server.emit("close"));
+    const start = vi
+      .spyOn(publicBadges, "startGovernedSkillMarketplaceBadgeServer")
+      .mockResolvedValue({ server, close, url: "http://127.0.0.1:1234/" });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const prior = process.listeners("SIGTERM");
+    try {
+      await cliProgram(harness.host).parseAsync(
+        [
+          "marketplace",
+          "serve-badge",
+          "safe-refactor",
+          "--skill-version",
+          "2.0.0",
+          "--manifest",
+          catalogManifest().manifestDigest,
+          "--port",
+          "1234",
+          "--snapshot-seconds",
+          "30",
+        ],
+        { from: "user" },
+      );
+      expect(start).toHaveBeenCalledOnce();
+      const { marketplaceHost: forwardedHost, ...forwarded } =
+        start.mock.calls[0][0];
+      // Chai treats an object's async inspect() as its synchronous debug hook.
+      expect(forwardedHost === harness.host).toBe(true);
+      expect(forwarded).toEqual({
+        skillName: "safe-refactor",
+        version: "2.0.0",
+        manifestDigest: catalogManifest().manifestDigest,
+        listen: "127.0.0.1",
+        port: 1234,
+        snapshotTtlMs: 30_000,
+      });
+      expect(log).toHaveBeenCalledWith(
+        "Public Eval badge: http://127.0.0.1:1234/",
+      );
+      const added = process
+        .listeners("SIGTERM")
+        .filter((listener) => !prior.includes(listener));
+      expect(added).toHaveLength(1);
+      added[0]();
+      await Promise.resolve();
+      expect(close).toHaveBeenCalledOnce();
+    } finally {
+      server.emit("close");
+    }
+    expect(process.listeners("SIGTERM")).toEqual(prior);
+  });
+});
+
 describe("governed marketplace CLI with real durable storage", () => {
+  it("passes the Skill version through the real root parser instead of printing the CLI version", async () => {
+    const { host, storage, backend } = badgeHarness();
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await cliProgram(host).parseAsync(
+      ["marketplace", "inspect", "safe-refactor", "--skill-version", "3.0.0"],
+      { from: "user" },
+    );
+    expect(JSON.parse(log.mock.lastCall[0])).toMatchObject({
+      version: "3.0.0",
+      manifestDigest: catalogManifest("3.0.0").manifestDigest,
+    });
+    await cliProgram(host).parseAsync(
+      [
+        "marketplace",
+        "install",
+        "safe-refactor",
+        "--skill-version",
+        "3.0.0",
+        "--manifest",
+        catalogManifest("3.0.0").manifestDigest,
+      ],
+      { from: "user" },
+    );
+    const staged = JSON.parse(log.mock.lastCall[0]);
+    expect(staged).toMatchObject({
+      status: "candidate-staged",
+      state: { version: "3.0.0" },
+      materialized: true,
+    });
+    const candidateFile = `${staged.state.candidateBinding.candidateId.slice(7)}.json`;
+    // The tenant directory also contains its registry identity marker.
+    expect(candidateEntries(storage)).toContain(candidateFile);
+    expect(
+      fs.readFileSync(
+        path.join(
+          storage.root,
+          "marketplace-candidates",
+          "tenants",
+          deriveSkillCandidateTenantKey(TENANT_ID),
+          candidateFile,
+        ),
+      ),
+    ).toEqual(packageFixture("3.0.0").adaptedBytes);
+    expect(backend.ledger.verify().sequence).toBe(1);
+  });
+
   it("drives Desktop bootstrap/client/IPC through the real governed host and durable candidate files", async () => {
     const require = createRequire(import.meta.url);
     const {
@@ -1190,7 +1537,7 @@ describe("governed marketplace CLI with real durable storage", () => {
         register: "registerMarketplaceCommand",
       },
       {
-        createBaseProgram: async () => new Command().exitOverride(),
+        createBaseProgram: async () => createBaseProgram().exitOverride(),
         loadCommandDependencies: async () => ({ marketplaceHost: host }),
         loadFullProgram: fallback,
       },
@@ -1451,6 +1798,14 @@ describe("governed marketplace CLI with real durable storage", () => {
     };
     for (const host of [null, fake]) {
       for (const args of [
+        [
+          "serve-badge",
+          "safe-refactor",
+          "--skill-version",
+          "2.0.0",
+          "--manifest",
+          digest("manifest"),
+        ],
         ["inspect", "safe-refactor"],
         ["state", "safe-refactor"],
         ["install", "safe-refactor", "--manifest", digest("manifest")],
