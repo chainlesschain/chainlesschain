@@ -46,6 +46,10 @@ import {
   agentLoop as coreAgentLoop,
   chatWithTools,
 } from "../../src/runtime/agent-core.js";
+import {
+  makeFallbackChatFn,
+  captureCanonicalFallbackChatFn,
+} from "../../src/runtime/fallback-model.js";
 import { compactConversationWithProvider } from "../../src/harness/provider-backed-compaction.js";
 import { WSAgentHandler } from "../../src/gateways/ws/ws-agent-handler.js";
 import { createChatFn } from "../../src/lib/cowork-adapter.js";
@@ -945,6 +949,341 @@ describe("Agent evolution runtime production composition", () => {
       return metered.result;
     };
   }
+
+  async function collectFallbackCore(
+    f,
+    extra = {},
+    messages = [{ role: "user", content: "inspect" }],
+  ) {
+    const events = [];
+    for await (const event of coreAgentLoop(messages, {
+      ...f.callOptions,
+      hermeticExecution: true,
+      cwd: f.root,
+      ...extra,
+    }))
+      events.push(event);
+    return events;
+  }
+
+  it.each(["backup-model", "openai:gpt-4o"])(
+    "runs the actual fallback chain to %s with a fresh durable projection per attempt",
+    async (backup) => {
+      const f = modelFixture();
+      const canary = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const input = [
+        { role: "user", content: `inspect ${canary} alice@example.com` },
+      ];
+      const original = structuredClone(input);
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        if (f.seen.length === 1) throw new Error("503 overloaded");
+        return {
+          ok: true,
+          json: async () => ({
+            message: { role: "assistant", content: "done" },
+            choices: [{ message: { role: "assistant", content: "done" } }],
+          }),
+        };
+      });
+      const chatFn = makeFallbackChatFn({
+        fallbackModels: [backup],
+        env: { OPENAI_API_KEY: "test-only-target-key" },
+      });
+      const events = await collectFallbackCore(f, { chatFn }, input);
+      expect(events.some((event) => event.type === "response-complete")).toBe(
+        true,
+      );
+      expect(f.seen.map((body) => body.model)).toEqual([
+        "test-model",
+        backup.split(":").at(-1),
+      ]);
+      expect(JSON.stringify(f.seen)).not.toContain(canary);
+      expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+      for (const body of f.seen)
+        expect(JSON.stringify(body)).toContain("projectionDigest");
+      expect(input.slice(0, original.length)).toEqual(original);
+      const rawWrites = f.config.authorities.rawEncryptor.encrypt.mock.calls;
+      expect(rawWrites).toHaveLength(2);
+      for (const [request] of rawWrites)
+        expect(request.plaintext.toString()).toContain(canary);
+      expect(
+        f.composition
+          .loadRun()
+          .events.filter((event) => event.data.evidenceKind === "model-input"),
+      ).toHaveLength(2);
+      expect(
+        createAgentEvolutionRuntimeComposition(f.config).loadRun(),
+      ).toEqual(f.composition.loadRun());
+      if (backup.startsWith("openai:")) {
+        expect(f.transport.mock.calls[1][1].headers.Authorization).toBe(
+          "Bearer test-only-target-key",
+        );
+        expect(f.transport.mock.calls[1][0]).toContain("api.openai.com");
+      }
+    },
+    60_000,
+  );
+
+  it("keeps a fallback Run binding despite constructor, call and loop option mutation", async () => {
+    const f = modelFixture();
+    const custom = vi.fn();
+    const factoryOptions = {
+      fallbackModel: "backup",
+      evolutionIngress: f.composition.evolutionIngress,
+    };
+    const chatFn = makeFallbackChatFn(factoryOptions);
+    factoryOptions.evolutionIngress = null;
+    factoryOptions.baseChatFn = custom;
+    const callOptions = { ...f.callOptions, evolutionIngress: null };
+    await chatFn([{ role: "user", content: "alice@example.com" }], callOptions);
+    expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+    const loopOptions = {
+      ...f.callOptions,
+      chatFn,
+      hermeticExecution: true,
+      cwd: f.root,
+    };
+    const generator = coreAgentLoop(
+      [{ role: "user", content: "bob@example.com" }],
+      loopOptions,
+    );
+    expect((await generator.next()).value.type).toBe("run-started");
+    loopOptions.chatFn = custom;
+    loopOptions.evolutionIngress = null;
+    for await (const _event of generator) {
+      /* finish actual model request */
+    }
+    expect(custom).not.toHaveBeenCalled();
+    expect(f.transport).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(f.seen)).not.toContain("bob@example.com");
+    expect(f.config.authorities.rawEncryptor.encrypt).toHaveBeenCalledTimes(2);
+  }, 60_000);
+
+  it("rejects forged, proxied, custom-base and cross-Run fallback transports", async () => {
+    const f = modelFixture();
+    const other = modelFixture();
+    // Both fixtures use the same fetch spy only for asserting zero dispatch.
+    const custom = vi.fn();
+    const owned = makeFallbackChatFn({ fallbackModel: "backup" });
+    const bound = captureCanonicalFallbackChatFn(
+      owned,
+      f.composition.evolutionIngress,
+    );
+    for (const chatFn of [
+      Object.assign(custom, owned),
+      new Proxy(owned, {}),
+      (...args) => owned(...args),
+      makeFallbackChatFn({ fallbackModel: "backup", baseChatFn: custom }),
+      captureCanonicalFallbackChatFn(owned, other.composition.evolutionIngress),
+    ]) {
+      await expect(collectFallbackCore(f, { chatFn })).rejects.toThrow(
+        /canonical chatWithTools/u,
+      );
+    }
+    await expect(bound([], other.callOptions)).rejects.toThrow(/same Run/u);
+    expect(() =>
+      makeFallbackChatFn({
+        evolutionIngress: f.composition.evolutionIngress,
+        baseChatFn: custom,
+      }),
+    ).toThrow(/canonical chatWithTools/u);
+    expect(custom).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(other.transport).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it.each(["primary", "backup"])(
+    "does not retry or complete after durable projection denial on the %s fallback attempt",
+    async (when) => {
+      const f = modelFixture();
+      const denied = new Error("503 timeout: invalid api key, model not found");
+      if (when === "primary")
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(denied);
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(denied);
+        throw new Error("503 overloaded");
+      });
+      const onFallback = vi.fn();
+      const chatFn = makeFallbackChatFn({
+        fallbackModels: ["backup", "third"],
+        onFallback,
+        isRetryable: () => true,
+      });
+      await expect(collectFallbackCore(f, { chatFn })).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(f.transport).toHaveBeenCalledTimes(when === "primary" ? 0 : 1);
+      expect(onFallback).toHaveBeenCalledTimes(when === "primary" ? 0 : 1);
+      await expect(
+        f.composition.evolutionIngress.complete(),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    60_000,
+  );
+
+  it.each([false, true])(
+    "accepts a canonical fallback in the strict core without hidden retries (primary fails=%s)",
+    async (fails) => {
+      const f = modelFixture();
+      const error = new Error("503 overloaded");
+      if (fails) f.transport.mockRejectedValue(error);
+      else {
+        f.transport.mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            message: { role: "assistant", content: "done" },
+            prompt_eval_count: 10,
+            eval_count: 2,
+          }),
+        });
+      }
+      const onFallback = vi.fn();
+      const chatFn = makeFallbackChatFn({
+        fallbackModel: "backup",
+        onFallback,
+      });
+      const operation = collectFallbackCore(f, {
+        chatFn,
+        strictUsageTelemetry: true,
+      });
+      if (fails) await expect(operation).rejects.toBe(error);
+      else {
+        const events = await operation;
+        expect(events.some((event) => event.type === "response-complete")).toBe(
+          true,
+        );
+        const started = events.find(
+          (event) => event.type === "model-usage-started",
+        );
+        expect(
+          events.find((event) => event.type === "token-usage"),
+        ).toMatchObject({
+          callId: started.callId,
+          provider: "ollama",
+          model: "test-model",
+          usage: { input_tokens: 10, output_tokens: 2 },
+        });
+        expect(
+          events.some((event) => event.type === "model-usage-unknown"),
+        ).toBe(false);
+      }
+      expect(f.transport).toHaveBeenCalledOnce();
+      expect(onFallback).not.toHaveBeenCalled();
+    },
+    60_000,
+  );
+
+  it("runs the real headless host with the canonical fallback and completes its durable Run", async () => {
+    const f = modelFixture();
+    f.transport.mockRejectedValueOnce(new Error("503 overloaded"));
+    const chatFn = makeFallbackChatFn({ fallbackModel: "backup" });
+    const result = await runAgentHeadless(
+      {
+        ...f.callOptions,
+        chatFn,
+        prompt: "inspect alice@example.com",
+        outputFormat: "text",
+        ephemeral: true,
+        hermeticExecution: true,
+        cwd: f.root,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: vi.fn(),
+        writeErr: vi.fn(),
+      },
+    );
+    expect(result).toMatchObject({ exitCode: 0, result: "done" });
+    expect(f.transport).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+    expect(
+      f.composition
+        .loadRun()
+        .events.filter((event) => event.data.evidenceKind === "model-input"),
+    ).toHaveLength(2);
+    expect(f.composition.loadRun().projection.status).toBe("completed");
+  }, 60_000);
+
+  it.each([false, true])(
+    "runs the real stream fallback with per-turn ingress (projection denied=%s)",
+    async (denied) => {
+      const f = modelFixture();
+      let attempts = 0;
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        attempts += 1;
+        if (attempts === 1) {
+          if (denied) {
+            f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+              new Error("503 source authority timeout"),
+            );
+          }
+          throw new Error("503 overloaded");
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            message: {
+              role: "assistant",
+              content: `Inspection ${attempts} done.`,
+            },
+          }),
+        };
+      });
+      async function* input() {
+        for (const text of [
+          "Inspect alice@example.com",
+          "Continue inspection",
+        ]) {
+          yield `${JSON.stringify({ type: "user", text })}\n`;
+        }
+      }
+      const output = [];
+      const result = await runAgentHeadlessStream(
+        {
+          ...f.callOptions,
+          chatFn: makeFallbackChatFn({ fallbackModels: ["backup", "third"] }),
+          systemPrompt: "You inspect workspaces.",
+          expandFileRefs: false,
+          projectMemory: false,
+          ephemeral: true,
+          cwd: f.root,
+          contextMemoryEnv: {
+            CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "shadow",
+          },
+        },
+        {
+          input: input(),
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => null,
+          writeOut: (text) => output.push(String(text)),
+          writeErr: vi.fn(),
+        },
+      );
+      expect(result.exitCode).toBe(denied ? 1 : 0);
+      expect(f.transport).toHaveBeenCalledTimes(denied ? 1 : 3);
+      expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+      if (denied) {
+        expect(output.join("")).toContain("error_evolution_ingress");
+        expect(f.composition.loadRun().projection.status).not.toBe("completed");
+      } else {
+        expect(result.turns).toBe(2);
+        expect(
+          f.composition
+            .loadRun()
+            .events.filter(
+              (event) => event.data.evidenceKind === "model-input",
+            ),
+        ).toHaveLength(3);
+        expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    60_000,
+  );
 
   it.each(["debate", "compare"])(
     "does not synthesize a %s result after moderator projection denial",

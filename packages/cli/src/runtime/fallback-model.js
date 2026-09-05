@@ -23,10 +23,35 @@
  * would be the silent auth-substitution this project forbids). A cross-provider
  * entry whose key is missing is SKIPPED with a clear reason, not attempted with
  * the wrong credential.
+ *
+ * Evolution-enabled loops bind factory-owned canonical transports to their
+ * ingress before startup awaits; every attempted model enters chatWithTools
+ * again and obtains a fresh durable projection. Strict call-ledger sessions
+ * and workflow-bound requests still allow only the primary attempt: retries
+ * require separate durable accounting/effect boundaries, not this wrapper.
  */
 
 import { chatWithTools } from "./agent-core.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { throwIfAborted } from "../lib/abort-utils.js";
+import { isTerminalModelFailure } from "../lib/model-failure-policy.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+
+// Only this module can register a canonical transport. Function properties,
+// wrappers and proxies cannot confer this authority.
+const CANONICAL_FALLBACKS = new WeakMap();
+
+/** Bind a factory-owned canonical fallback to exactly one admitted Run. */
+export function captureCanonicalFallbackChatFn(value, evolutionIngress) {
+  const ingress = captureAgentEvolutionIngress(evolutionIngress);
+  const owned = CANONICAL_FALLBACKS.get(value);
+  if (!owned || (owned.ingress !== null && owned.ingress !== ingress)) {
+    throw new TypeError(
+      "Evolution ingress requires the canonical chatWithTools transport bound to the same Run",
+    );
+  }
+  return owned.ingress === ingress ? value : owned.bind(ingress);
+}
 
 // Claude Code caps the fallback chain at 3 backups; mirror that here so a
 // mis-configured comma list can't fan out into an unbounded retry storm.
@@ -77,7 +102,7 @@ const MODEL_NOT_FOUND_PATTERNS = [
  * @returns {boolean}
  */
 export function isRetryableModelError(err) {
-  if (!err) return false;
+  if (!err || isTerminalModelFailure(err)) return false;
   const status =
     typeof err.status === "number"
       ? err.status
@@ -107,7 +132,7 @@ export function isRetryableModelError(err) {
  * @returns {boolean}
  */
 export function isModelNotFoundError(err) {
-  if (!err) return false;
+  if (!err || isTerminalModelFailure(err)) return false;
   const status =
     typeof err.status === "number"
       ? err.status
@@ -245,6 +270,7 @@ export function resolveFallbackTarget(entry, opts = {}) {
  * @param {Function} [opts.isRetryable]              transient-error predicate (seam)
  * @param {Function} [opts.isModelNotFound]          missing-model predicate (seam)
  * @param {Function} [opts.onFallback]               notified ({from,to,error}) per hop
+ * @param {object} [opts.evolutionIngress]           optional fixed Run authority
  * @returns {Function} a (messages, options) => Promise<result> chatFn
  */
 export function makeFallbackChatFn(opts = {}) {
@@ -258,79 +284,134 @@ export function makeFallbackChatFn(opts = {}) {
 
   const env = opts.env || process.env;
   const providers = opts.providers || BUILT_IN_PROVIDERS || {};
+  const initialIngress =
+    opts.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(opts.evolutionIngress);
+  const canonical = baseChatFn === chatWithTools;
+  if (initialIngress !== null && !canonical) {
+    throw new TypeError(
+      "Evolution ingress requires the canonical chatWithTools transport",
+    );
+  }
 
-  return async function chatWithFallback(messages, options = {}) {
-    try {
-      return await baseChatFn(messages, options);
-    } catch (firstErr) {
-      // A strict call-ledger boundary identifies exactly one provider/model
-      // transport. Retrying behind that boundary would either attribute the
-      // fallback's usage to the primary identity or lose the failed attempt's
-      // possible spend, so surface the primary error without another call.
-      if (options.strictUsageTelemetry === true) throw firstErr;
-      let err = firstErr;
-      let lastTried = options.model;
-      for (const candidate of models) {
-        const target = resolveFallbackTarget(candidate, { env, providers });
-        // A cross-provider hop whose key is absent (or an unknown provider) is
-        // skipped — never attempted with the wrong credential. Surface why.
-        if (target.unavailable) {
+  function createChatFn(boundIngress) {
+    const chatFn = async function chatWithFallback(messages, callOptions = {}) {
+      // Snapshot before any callback/await. Per-call overrides cannot remove a
+      // factory/loop-owned ingress, strict accounting or cancellation signal.
+      const options = { ...callOptions };
+      const requestedIngress =
+        options.evolutionIngress == null
+          ? null
+          : captureAgentEvolutionIngress(options.evolutionIngress);
+      if (
+        (requestedIngress !== null && !canonical) ||
+        (boundIngress !== null &&
+          requestedIngress !== null &&
+          requestedIngress !== boundIngress)
+      ) {
+        throw new TypeError(
+          "Evolution ingress requires the canonical chatWithTools transport bound to the same Run",
+        );
+      }
+      if (boundIngress !== null || requestedIngress !== null) {
+        options.evolutionIngress = boundIngress || requestedIngress;
+      }
+      const signal = options.signal;
+      throwIfAborted(signal);
+      try {
+        return await baseChatFn(messages, options);
+      } catch (firstErr) {
+        // A strict call-ledger boundary identifies exactly one provider/model
+        // transport. Retrying behind that boundary would either attribute the
+        // fallback's usage to the primary identity or lose the failed attempt's
+        // possible spend, so surface the primary error without another call.
+        if (
+          options.strictUsageTelemetry === true ||
+          options.workflowEffectId != null ||
+          options.providerRequestId != null
+        )
+          throw firstErr;
+        let err = firstErr;
+        let lastTried = options.model;
+        let lastProvider = options.provider;
+        for (const candidate of models) {
+          // Admission/ledger/cancellation failures are terminal even when a
+          // nested cause says "timeout", or an injected predicate says retry.
+          if (isTerminalModelFailure(err)) throw err;
+          throwIfAborted(signal);
+          if (!isRetryable(err) && !isModelNotFound(err)) throw err;
+          const target = resolveFallbackTarget(candidate, { env, providers });
+          // A cross-provider hop whose key is absent (or an unknown provider) is
+          // skipped — never attempted with the wrong credential. Surface why.
+          if (target.unavailable) {
+            if (typeof onFallback === "function") {
+              try {
+                onFallback({
+                  from: lastTried,
+                  to: candidate,
+                  skipped: true,
+                  reason: target.reason,
+                  error: err?.message || String(err),
+                });
+              } catch {
+                /* best-effort */
+              }
+            }
+            continue;
+          }
+          // Skip a no-op hop (same provider + same model just attempted).
+          const sameModel = target.model === lastTried;
+          const sameProvider =
+            (target.crossProvider ? target.provider : options.provider) ===
+            lastProvider;
+          if (!target.model || (sameModel && sameProvider)) continue;
           if (typeof onFallback === "function") {
             try {
               onFallback({
                 from: lastTried,
-                to: candidate,
-                skipped: true,
-                reason: target.reason,
+                to: target.crossProvider
+                  ? `${target.provider}:${target.model}`
+                  : target.model,
+                crossProvider: target.crossProvider,
                 error: err?.message || String(err),
               });
             } catch {
-              /* best-effort */
+              // Notification is best-effort — never mask the retry.
             }
           }
-          continue;
-        }
-        // Skip a no-op hop (same provider + same model just attempted).
-        const sameModel = target.model === lastTried;
-        const sameProvider =
-          !target.crossProvider || target.provider === options.provider;
-        if (!target.model || (sameModel && sameProvider)) continue;
-        // Only advance the chain for transient failures or a missing primary;
-        // a real bad-request / auth error is surfaced immediately.
-        if (!isRetryable(err) && !isModelNotFound(err)) throw err;
-        if (typeof onFallback === "function") {
+          lastTried = target.model;
+          lastProvider = target.crossProvider
+            ? target.provider
+            : options.provider;
+          // Build the per-hop options: same-provider swaps only the model; a
+          // cross-provider hop also swaps provider/baseUrl/apiKey.
+          const hopOptions = target.crossProvider
+            ? {
+                ...options,
+                model: target.model,
+                provider: target.provider,
+                baseUrl: target.baseUrl,
+                apiKey: target.apiKey,
+              }
+            : { ...options, model: target.model };
           try {
-            onFallback({
-              from: lastTried,
-              to: target.crossProvider
-                ? `${target.provider}:${target.model}`
-                : target.model,
-              crossProvider: target.crossProvider,
-              error: err?.message || String(err),
-            });
-          } catch {
-            // Notification is best-effort — never mask the retry.
+            throwIfAborted(signal);
+            return await baseChatFn(messages, hopOptions);
+          } catch (nextErr) {
+            err = nextErr;
           }
         }
-        lastTried = target.model;
-        // Build the per-hop options: same-provider swaps only the model; a
-        // cross-provider hop also swaps provider/baseUrl/apiKey.
-        const hopOptions = target.crossProvider
-          ? {
-              ...options,
-              model: target.model,
-              provider: target.provider,
-              baseUrl: target.baseUrl,
-              apiKey: target.apiKey,
-            }
-          : { ...options, model: target.model };
-        try {
-          return await baseChatFn(messages, hopOptions);
-        } catch (nextErr) {
-          err = nextErr;
-        }
+        throw err;
       }
-      throw err;
+    };
+    if (canonical) {
+      CANONICAL_FALLBACKS.set(chatFn, {
+        ingress: boundIngress,
+        bind: createChatFn,
+      });
     }
-  };
+    return chatFn;
+  }
+  return createChatFn(initialIngress);
 }

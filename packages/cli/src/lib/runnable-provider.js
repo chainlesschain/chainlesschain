@@ -15,6 +15,7 @@
  */
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { selectModelForTask, TaskType } from "./task-model-selector.js";
+import { isTerminalModelFailure } from "./model-failure-policy.js";
 
 function nonEmpty(v) {
   return typeof v === "string" && v.trim().length > 0;
@@ -22,7 +23,7 @@ function nonEmpty(v) {
 
 /** Is this an authentication/authorization failure (missing/invalid/expired key)? */
 export function isAuthError(err) {
-  if (!err) return false;
+  if (!err || isTerminalModelFailure(err)) return false;
   const status =
     typeof err.status === "number"
       ? err.status

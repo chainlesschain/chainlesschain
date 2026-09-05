@@ -42,6 +42,106 @@ describe("isRetryableModelError", () => {
 });
 
 describe("makeFallbackChatFn", () => {
+  it.each([
+    ["projection", { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" }],
+    ["ledger", { runtimeLedgerPersistence: true }],
+    ["workflow", { workflowEffectOutcomeUnknown: true }],
+    ["budget", { code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT" }],
+    ["abort", { name: "AbortError" }],
+  ])(
+    "never retries a nested %s failure even with permissive predicates",
+    async (_label, marker) => {
+      const terminal = Object.assign(
+        new Error("timeout: model not found"),
+        marker,
+      );
+      const error = Object.assign(
+        new Error("provider 503", { cause: terminal }),
+        {
+          status: 503,
+        },
+      );
+      expect(isRetryableModelError(error)).toBe(false);
+      expect(isModelNotFoundError({ status: 404, cause: terminal })).toBe(
+        false,
+      );
+      for (const afterFallback of [false, true]) {
+        const baseChatFn = vi.fn().mockRejectedValue(error);
+        if (afterFallback)
+          baseChatFn.mockRejectedValueOnce(new Error("overloaded"));
+        const onFallback = vi.fn();
+        const fn = makeFallbackChatFn({
+          fallbackModels: ["backup", "third"],
+          baseChatFn,
+          onFallback,
+          isRetryable: () => true,
+          isModelNotFound: () => true,
+        });
+        await expect(fn([], { model: "primary" })).rejects.toBe(error);
+        expect(baseChatFn).toHaveBeenCalledTimes(afterFallback ? 2 : 1);
+        expect(onFallback).toHaveBeenCalledTimes(afterFallback ? 1 : 0);
+      }
+    },
+  );
+
+  it("fails closed on cyclic error causes", async () => {
+    const error = new Error("timeout");
+    error.cause = error;
+    const baseChatFn = vi.fn().mockRejectedValue(error);
+    await expect(
+      makeFallbackChatFn({ baseChatFn, fallbackModel: "backup" })([], {}),
+    ).rejects.toBe(error);
+    expect(baseChatFn).toHaveBeenCalledOnce();
+  });
+
+  it.each(["workflowEffectId", "providerRequestId"])(
+    "does not hide another attempt under one %s",
+    async (field) => {
+      const error = new Error("503");
+      const baseChatFn = vi.fn().mockRejectedValue(error);
+      const fn = makeFallbackChatFn({ baseChatFn, fallbackModel: "backup" });
+      await expect(
+        fn([], { model: "primary", [field]: "effect:1" }),
+      ).rejects.toBe(error);
+      expect(baseChatFn).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["before-primary", "before-backup"])(
+    "honors cancellation %s even when it contains a retryable message",
+    async (when) => {
+      const controller = new AbortController();
+      const cancelled = new Error("timeout");
+      const baseChatFn = vi.fn().mockRejectedValue(new Error("503"));
+      const onFallback = () => controller.abort(cancelled);
+      const fn = makeFallbackChatFn({
+        baseChatFn,
+        fallbackModel: "backup",
+        onFallback,
+      });
+      if (when === "before-primary") controller.abort(cancelled);
+      await expect(
+        fn([], { model: "primary", signal: controller.signal }),
+      ).rejects.toBe(cancelled);
+      expect(baseChatFn).toHaveBeenCalledTimes(
+        when === "before-primary" ? 0 : 1,
+      );
+    },
+  );
+
+  it("captures strict accounting before the caller mutates options", async () => {
+    const options = { model: "primary", strictUsageTelemetry: true };
+    const error = new Error("503");
+    const baseChatFn = vi.fn(async () => {
+      options.strictUsageTelemetry = false;
+      throw error;
+    });
+    await expect(
+      makeFallbackChatFn({ baseChatFn, fallbackModel: "backup" })([], options),
+    ).rejects.toBe(error);
+    expect(baseChatFn).toHaveBeenCalledOnce();
+  });
+
   it("passes through on success without invoking fallback", async () => {
     const baseChatFn = vi.fn(async () => ({ message: { content: "ok" } }));
     const onFallback = vi.fn();
@@ -327,6 +427,33 @@ describe("makeFallbackChatFn — cross-provider hops", () => {
       apiKeyEnv: "OPENAI_API_KEY",
     },
   };
+
+  it("compares no-op hops against the last provider, not just its model name", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("503"))
+      .mockRejectedValueOnce(new Error("503"))
+      .mockResolvedValueOnce({
+        message: { content: "back at original provider" },
+      });
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["openai:shared", "shared"],
+      providers,
+      env: { OPENAI_API_KEY: "test-key" },
+      baseChatFn,
+    });
+    await expect(
+      fn([], { model: "primary", provider: "ollama", apiKey: "original-key" }),
+    ).resolves.toMatchObject({
+      message: { content: "back at original provider" },
+    });
+    expect(baseChatFn).toHaveBeenCalledTimes(3);
+    expect(baseChatFn.mock.calls[2][1]).toMatchObject({
+      provider: "ollama",
+      model: "shared",
+      apiKey: "original-key",
+    });
+  });
 
   it("switches provider + baseUrl + apiKey when a cross-provider fallback is used", async () => {
     const baseChatFn = vi

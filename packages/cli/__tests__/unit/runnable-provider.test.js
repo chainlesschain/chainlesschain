@@ -3,7 +3,7 @@
  * with no usable key (the "fast → claude-haiku with no Anthropic key → 401"
  * trap), and fall back to a provider we can actually run.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   hasUsableKey,
   runnableTaskModel,
@@ -12,6 +12,37 @@ import {
   inferProviderFromBaseUrl,
   makeRunnableProviderFallback,
 } from "../../src/lib/runnable-provider.js";
+
+describe("terminal model failure policy", () => {
+  it.each([
+    ["projection", { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" }],
+    ["ledger", { runtimeLedgerPersistence: true }],
+    ["budget", { code: "CC_SESSION_BUDGET_ADMISSION_DENIED" }],
+    ["abort", { name: "AbortError" }],
+  ])(
+    "never interprets a nested %s denial as vendor authentication recovery",
+    async (_name, marker) => {
+      const error = Object.assign(
+        new Error("401 unauthorized", {
+          cause: Object.assign(new Error("invalid api key"), marker),
+        }),
+        { status: 401 },
+      );
+      expect(isAuthError(error)).toBe(false);
+      const chatFn = vi.fn().mockRejectedValue(error);
+      const onFallback = vi.fn();
+      const wrapped = makeRunnableProviderFallback(chatFn, {
+        env: { ANTHROPIC_API_KEY: "test-only-other-vendor-key" },
+        onFallback,
+      });
+      await expect(
+        wrapped([], { provider: "openai", model: "gpt-4o", apiKey: "" }),
+      ).rejects.toBe(error);
+      expect(chatFn).toHaveBeenCalledOnce();
+      expect(onFallback).not.toHaveBeenCalled();
+    },
+  );
+});
 
 describe("hasUsableKey", () => {
   it("keyless local provider (ollama) is always usable", () => {

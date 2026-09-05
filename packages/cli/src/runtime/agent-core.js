@@ -13246,13 +13246,18 @@ function permissionDecision(callId, tool, result) {
 }
 
 export async function* agentLoop(messages, options) {
+  const configuredChatFn = options.chatFn;
   const evolutionIngress =
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
-  if (evolutionIngress !== null && options.chatFn) {
-    throw new TypeError(
-      "Evolution ingress requires the canonical chatWithTools transport",
+  let llmCall = configuredChatFn || chatWithTools;
+  if (evolutionIngress !== null && configuredChatFn) {
+    const { captureCanonicalFallbackChatFn } =
+      await import("./fallback-model.js");
+    llmCall = captureCanonicalFallbackChatFn(
+      configuredChatFn,
+      evolutionIngress,
     );
   }
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
@@ -13571,11 +13576,8 @@ export async function* agentLoop(messages, options) {
     }
   }
 
-  // Phase 7 parity harness hook: tests can inject a mock LLM function via
-  // `options.chatFn` to drive the loop deterministically without hitting a
-  // real provider. Production code path is unchanged — the fallback is the
-  // real `chatWithTools`.
-  let llmCall = options.chatFn || chatWithTools;
+  // llmCall was captured before startup awaits. With evolution ingress, only
+  // a factory-owned canonical fallback bound to this Run may replace it.
 
   // Runnable-first auth recovery: if the resolved provider's key is missing /
   // wrong / expired, self-heal to a provider we can actually run (endpoint-
@@ -14301,9 +14303,13 @@ export async function* agentLoop(messages, options) {
             canonicalProviderContext.selectedToolNames,
         }
       : effectiveToolOptions;
-    const providerCallOptions = providerRequestId
+    const requestOptions = providerRequestId
       ? { ...plannedProviderOptions, providerRequestId }
       : plannedProviderOptions;
+    const providerCallOptions =
+      evolutionIngress !== null
+        ? { ...requestOptions, evolutionIngress }
+        : requestOptions;
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),
