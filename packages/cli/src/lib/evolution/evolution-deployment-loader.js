@@ -140,6 +140,7 @@ async function loadBuiltInFactories(commandName) {
       { createEvolutionWorkbenchReviewRuntime },
       { createEvolutionWorkbenchRollbackRuntime },
       { createEvolutionWorkbenchRegistrySource },
+      { createEvolutionWorkbenchRuntime },
       { createGovernedKnowledgeReviewHost },
       { createWikiSkillBenchmarkCliHost },
       {
@@ -156,6 +157,7 @@ async function loadBuiltInFactories(commandName) {
       import("./evolution-workbench-review-ledger-adapter.js"),
       import("./evolution-workbench-rollback-ledger-adapter.js"),
       import("./evolution-workbench-registry-source.js"),
+      import("./evolution-workbench-runtime.js"),
       import("./governed-knowledge-review-host.js"),
       import("./wikiskill-benchmark-cli-host.js"),
       import("./wikiskill-benchmark-execution-host.js"),
@@ -169,6 +171,7 @@ async function loadBuiltInFactories(commandName) {
       createEvolutionWorkbenchRollbackRuntime;
     factories.createEvolutionWorkbenchRegistrySource =
       createEvolutionWorkbenchRegistrySource;
+    factories.createEvolutionWorkbenchRuntime = createEvolutionWorkbenchRuntime;
     factories.createGovernedKnowledgeReviewHost =
       createGovernedKnowledgeReviewHost;
     factories.createWikiSkillBenchmarkCliHost = createWikiSkillBenchmarkCliHost;
@@ -200,6 +203,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createEvolutionWorkbenchReviewRuntime",
     "createEvolutionWorkbenchRollbackRuntime",
     "createEvolutionWorkbenchRegistrySource",
+    "createEvolutionWorkbenchRuntime",
     "createWikiSkillBenchmarkDatasetProvider",
     "createWikiSkillBenchmarkGrader",
     "createWikiSkillBenchmarkReportAttestor",

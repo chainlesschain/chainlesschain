@@ -71,7 +71,7 @@ export const verifyAuthorization = ({ authorization }) =>
     Buffer.from(authorization.signature, "base64url"),
   );
 
-function packetFor(release, activeRelease, revision) {
+export function packetFor(release, activeRelease, revision) {
   const candidate = release.candidate;
   return buildSkillPromotionReviewPacket({
     candidate,
@@ -138,7 +138,8 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
     skillName: SKILL,
     authorityId: "authority:workbench-rollback-test",
     revision: 1,
-    handlerArtifactDigest: D("rollback-test-module"),
+    handlerArtifactDigest:
+      options.handlerArtifactDigest ?? D("rollback-test-module"),
   };
   const shared = {
     descriptor,

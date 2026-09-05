@@ -33,7 +33,7 @@ workflow transition 使用与原 writer 相同的 canonical request/attempt/sett
 
 投影读取开始与所有异步来源读取结束之间，完整 Ledger checkpoint 必须保持一致，期间改变则重试读取，不能返回混合快照。Registry 的语义摘要不包含无关审核/身份审计/投影保留事件的最新 head，避免保存投影本身就使其立即失效；每次读取仍认证完整当前账本，而不是跳过新增事件。
 
-宿主启动时先打开实际 Registry 并完成自身 journal 恢复，再恢复 Review/rollback settlement，随后向 CLI/App Server 开放工作台。回滚已完成但尚未补记工作台 settlement 时，当前状态仍来自真实 Registry，历史补记不会再次切换发布版本。
+宿主启动时先打开实际 Registry 并完成自身 journal 恢复，再通过[完整宿主工厂](EVOLUTION_WORKBENCH_STARTUP.md)仅补记 Review/rollback 的已发生效果，随后向 CLI/App Server 开放工作台。未执行的 preparation 不在启动时继续执行。回滚已完成但尚未补记工作台 settlement 时，当前状态仍来自真实 Registry，历史补记不会再次切换发布版本。
 
 `verifyWorkbenchRegistryState()` 只验证视图的结构、摘要和历史一致性，不能替代上述真实 source 的认证。重新散列一个 JSON 对象不会得到 Ledger 权限。两个本机 reader 也不代表两个主机的独立故障域。
 

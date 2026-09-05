@@ -6,7 +6,7 @@
 
 本地 CLI 入口不需要等待整份演化路线图完成。2026-09-05 实测 `node packages/cli/bin/chainlesschain.js --version` 返回 `0.166.22`，`agent --help` 正常退出。这只证明当前工作区的命令入口可加载，不等于干净环境安装、真实模型会话、IDE 宿主联动或三平台发布验收通过。
 
-用户截图中的“演化工作台不可用”是另一项启动条件：IDE 在能力协商时未得到 `evolutionWorkbench.available=true`，尚未发送工作台 RPC，审核和回滚继续禁用。它不是等完本轮测试或只升级版本就会自动消失。公开 CLI 的部署 loader 需要同时提供绝对路径的 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，认证签名、模块摘要及 `serve` / `evolution` 命令许可；真实部署模块还须构造并返回受治理的 `workbenchHost`，接入同租户投影、持久化、身份、active state 及审核/回滚执行器，不能用空对象或测试回执冒充可用宿主。2026-09-06 本轮只读检查发现当前终端的两项变量均未配置；IDE 子进程实际环境仍需独立核对。
+用户截图中的“演化工作台不可用”是另一项启动条件：IDE 在能力协商时未得到 `evolutionWorkbench.available=true`，尚未发送工作台 RPC，审核和回滚继续禁用。它不是等完本轮测试或只升级版本就会自动消失。公开 CLI 的部署 loader 需要同时提供绝对路径的 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，认证签名、模块摘要及 `serve` / `evolution` 命令许可；真实部署模块还须构造同一个受治理 host，向 `evolution` 返回 `{ workbenchHost }`，向 `serve` 返回 `{ evolutionWorkbenchHost: workbenchHost }`，接入同租户投影、持久化、身份、active state 及审核/回滚执行器。两个参数名不可混用；完整组装与启动补账见 [Workbench 启动合同](EVOLUTION_WORKBENCH_STARTUP.md)。不能用空对象或测试回执冒充可用宿主。2026-09-06 本轮只读检查发现当前终端的两项变量均未配置；IDE 子进程实际环境仍需独立核对。
 
 下一个面向截图的里程碑应集中在 **真实宿主部署配置 → CLI / App Server 能力暴露与候选列表 → IDE 连接和权限验收**。该最小可用链不要求先完成全部演化路线项，但也不等于默认启用自动晋升；真实审核和回滚必须另有受信身份、权限与持久效果证明。当前批次测试收尾的时间估计不能当作工作台正式启用时间，仍需先明确目标部署和凭据提供方式。
 
@@ -19,6 +19,8 @@
 JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源码编译并通过 `EvolutionWorkbenchTest` **6/6**。最初默认工具链和另一不完整 JDK 目录均未被 Gradle 识别，未将这些失败计为通过；最终成功使用 `chainlesschain-temurin21/jdk-21.0.12+8`。没有修改系统 Java 配置或已安装插件。
 
 ## 子 npm 包必须先核对
+
+2026-09-06 后续源码补齐 Workbench 当前 Registry 投影与异步完整宿主组合，启动只补记已经发生的审核/回滚效果；未执行的计划保持 deferred。签名部署入口须使用上面的 CLI/serve 字段映射，部署认证失败也不再被兼容回退隐藏成 unknown command。后续 CLI 更新说明应包含这些实际变更，并与原 v2 审核回执一起告知 IDE 用户；这不自动改变插件版本、推荐 CLI、用户部署配置或 npm 发布状态。
 
 2026-09-05 在本地提交 `db473898ab` 上，对 13 个 CLI 子包逐一比较 npm 已发布 tarball 与仓库声明的发布文件（文本比较只归一化 CRLF）。结果不能用“本地版本号已经存在”代替：
 

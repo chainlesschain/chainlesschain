@@ -26,16 +26,22 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const commandModules = [];
 
 for (const entry of manifest.commands) {
+  let deploymentStarted = false;
   try {
     const modulePath = join(__dirname, entry.module.replace("./", ""));
     const moduleUrl = pathToFileURL(modulePath).href;
     const mod = await import(moduleUrl);
+    deploymentStarted = true;
     const deploymentDependencies =
       await loadEvolutionDeploymentCommandDependencies(entry.name);
     commandModules.push({ entry, mod, deploymentDependencies });
   } catch (err) {
     // Store error for later reporting
-    commandModules.push({ entry, error: err });
+    commandModules.push({
+      entry,
+      error: err,
+      deploymentError: deploymentStarted,
+    });
   }
 }
 
@@ -82,9 +88,16 @@ export function createProgram(options = {}) {
   });
 
   // Register all preloaded commands
-  for (const { entry, mod, error, deploymentDependencies } of commandModules) {
+  for (const {
+    entry,
+    mod,
+    error,
+    deploymentError,
+    deploymentDependencies,
+  } of commandModules) {
     if (shouldFilter && !allowedCommands.has(entry.name)) continue;
     if (error) {
+      if (deploymentError) throw error;
       if (process.env.DEBUG) {
         console.warn(
           chalk.yellow(
@@ -109,6 +122,11 @@ export function createProgram(options = {}) {
           undefined,
       );
     } catch (err) {
+      if (
+        options.commandDependencies?.[entry.name] != null ||
+        deploymentDependencies != null
+      )
+        throw err;
       if (process.env.DEBUG) {
         console.warn(
           chalk.yellow(

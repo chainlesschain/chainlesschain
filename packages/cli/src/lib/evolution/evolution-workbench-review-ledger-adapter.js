@@ -449,7 +449,7 @@ export class EvolutionWorkbenchReviewLedgerAdapter {
     this.#stable(snapshot.head);
     return { plan, request, review, projection, snapshot };
   }
-  async #state(context) {
+  async #state(context, historicalPreparation = false) {
     const { plan, request, review, projection, snapshot } = context;
     const prepared = this.#find("prepared", request.requestDigest, snapshot);
     const committed = this.#find("committed", request.requestDigest, snapshot);
@@ -488,7 +488,9 @@ export class EvolutionWorkbenchReviewLedgerAdapter {
       review.packet,
       review.decision
         ? Date.parse(response.decision.decidedAt)
-        : Number(this.#now()),
+        : historicalPreparation
+          ? Date.parse(prepared.event.timestamp)
+          : Number(this.#now()),
     );
     if ((await this.#verifyHuman({ request, response })) !== true)
       fail("Workbench human decision signature verification failed");
@@ -669,6 +671,45 @@ export class EvolutionWorkbenchReviewLedgerAdapter {
       },
     });
   }
+  // Startup may finish accounting for an existing effect, but must not issue
+  // new decisions or ask a human to continue an unfinished batch.
+  async reconcileCommitted() {
+    const snapshot = this.#records();
+    const applied = [];
+    const deferredRequestDigests = [];
+    for (const { event, value } of snapshot.records) {
+      if (
+        event.type === TYPES.committed[1] &&
+        !this.#find("prepared", value.requestDigest, snapshot)
+      )
+        fail("Workbench settlement has no preparation");
+      if (event.type !== TYPES.prepared[1]) continue;
+      const context = await this.#context({
+        plan: value.plan,
+        request: value.request,
+      });
+      // Audit a pending signature at its real durable preparation time; this
+      // never makes that signature valid for a new effect at the current time.
+      const state = await this.#state(context, true);
+      if (!state) fail("Workbench recovery preparation is missing");
+      if (state.status === "applied")
+        applied.push({
+          plan: value.plan,
+          request: value.request,
+          response: state.response,
+          item: state.item,
+        });
+      if (state.status === "prepared")
+        deferredRequestDigests.push(value.request.requestDigest);
+    }
+    this.#stable(snapshot.head);
+    const settledItems = [];
+    for (const item of applied) {
+      await this.commitExecutionItem(item);
+      settledItems.push(item.item);
+    }
+    return capture({ settledItems, deferredRequestDigests });
+  }
   async resume() {
     const snapshot = this.#records();
     const plans = new Map();
@@ -776,6 +817,7 @@ export function createEvolutionWorkbenchReviewRuntime(options = {}) {
     }),
     batchExecutor: adapter.createExecutor(),
     projectionReader: adapter.createProjectionReader(),
+    reconcileCommitted: adapter.reconcileCommitted.bind(adapter),
     resume: adapter.resume.bind(adapter),
   });
 }

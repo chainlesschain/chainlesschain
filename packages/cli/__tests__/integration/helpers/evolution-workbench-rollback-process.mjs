@@ -7,6 +7,8 @@ import {
   buildEvolutionWorkbenchRollbackReceipt,
 } from "../../../src/lib/evolution/evolution-workbench-version-control.js";
 import { filterEvolutionWorkbenchProjection } from "../../../src/lib/evolution/evolution-workbench-projection.js";
+import { createEvolutionWorkbenchRuntime } from "../../../src/lib/evolution/evolution-workbench-runtime.js";
+import { workbenchRuntimeOptions } from "../../fixtures/evolution-workbench-runtime.js";
 
 const [root, mode, phase] = process.argv.slice(2);
 let rollbackStarted = false;
@@ -43,6 +45,7 @@ const h = await openWorkbenchRollbackStore(root, {
   },
 });
 let resumed = [];
+let startupRecovery = null;
 if (mode === "seed") {
   const authorization = await h.adapter.authorizeHumanRollback({
     plan: h.plan,
@@ -72,6 +75,10 @@ if (mode === "seed") {
   await killAtCheckpoint();
 } else if (mode === "resume") {
   resumed = await h.adapter.resume();
+} else if (mode === "startup") {
+  startupRecovery = (
+    await createEvolutionWorkbenchRuntime(workbenchRuntimeOptions(h))
+  ).recovery;
 } else if (mode !== "inspect") throw new Error("unknown test mode");
 
 if (mode !== "seed") {
@@ -90,6 +97,7 @@ if (mode !== "seed") {
       asks: h.asks.length,
       mutations: h.mutationRequests.length,
       resumed: resumed.length,
+      startupRecovery,
       receiptDigests: resumed.map((receipt) => receipt.receiptDigest),
       revision: active.state.revision,
       contentDigest: active.release.contentDigest,

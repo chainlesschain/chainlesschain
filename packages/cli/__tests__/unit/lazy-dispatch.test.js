@@ -435,6 +435,54 @@ describe("lazy action execution boundary", () => {
     expect(loadFullProgram).toHaveBeenCalledOnce();
     expect(parseAsync).toHaveBeenCalledOnce();
   });
+
+  it("preserves deployment failure and never retries a possibly stateful assembly", async () => {
+    const error = new Error(
+      "deployment signature rejected after initialization began",
+    );
+    const loadFullProgram = vi.fn();
+    const loadCommandDependencies = vi.fn(async () => {
+      throw error;
+    });
+    const registerMutateCommand = vi.fn();
+    await expect(
+      dispatchManifestEntry(["node", "cc", "mutate"], entry, {
+        createBaseProgram: async () => ({}),
+        loadCommandModule: async () => ({ registerMutateCommand }),
+        loadCommandDependencies,
+        loadFullProgram,
+      }),
+    ).rejects.toBe(error);
+    expect(loadCommandDependencies).toHaveBeenCalledOnce();
+    expect(registerMutateCommand).not.toHaveBeenCalled();
+    expect(loadFullProgram).not.toHaveBeenCalled();
+  });
+
+  it.each([null, {}])(
+    "only permits registration fallback without governed dependencies (%s)",
+    async (dependencies) => {
+      const error = new Error("registration failed");
+      const parseAsync = vi.fn(async () => {});
+      const loadFullProgram = vi.fn(async () => ({ parseAsync }));
+      const result = dispatchManifestEntry(["node", "cc", "mutate"], entry, {
+        createBaseProgram: async () => ({}),
+        loadCommandModule: async () => ({
+          registerMutateCommand: () => {
+            throw error;
+          },
+        }),
+        loadCommandDependencies: async () => dependencies,
+        loadFullProgram,
+      });
+      if (dependencies === null) {
+        await result;
+        expect(loadFullProgram).toHaveBeenCalledOnce();
+      } else {
+        await expect(result).rejects.toBe(error);
+        expect(loadFullProgram).not.toHaveBeenCalled();
+      }
+    },
+  );
 });
 
 describe("lazy binary Event Runtime lifecycle", () => {

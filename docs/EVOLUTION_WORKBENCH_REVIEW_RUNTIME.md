@@ -41,6 +41,8 @@ const response = {
 
 ## 持久化与恢复
 
+完整宿主可使用[启动组装工厂](EVOLUTION_WORKBENCH_STARTUP.md)。启动只调用 `reconcileCommitted()` 补记已有真实效果；下面的 `resume()` 是显式继续执行，不应在每次打开工作台时自动调用。未执行的过期 preparation 可审计并报告 deferred，但不会重新获得执行权限。
+
 持久化顺序是：认证源投影并保留 → 逐项保留外层人工决策 → 写实际 Review decision → 独立回读实际效果 → 写 execution settlement → 再次回读确认。
 
 三个新增制品类型 `evolution-workbench-projection`、`evolution-workbench-review-preparation`、`evolution-workbench-review-settlement` 只允许 `evolution-ledger` 的 ledger retention。事件通过确定性 ID、Ledger head/sequence CAS 和精确 sourceRefs 连接投影、Review packet、preparation 与真正落账的 Review decision。伪造 settlement、不同 tenant/run/Skill、错绑来源、重新散列的伪投影、并发替换人工响应或只返回成功确认都不能完成审核。

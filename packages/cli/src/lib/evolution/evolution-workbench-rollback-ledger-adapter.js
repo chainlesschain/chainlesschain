@@ -534,7 +534,49 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
     this.#stable(snapshot.head);
     return { result, finalizationRef: finalizations[0].subjectRef };
   }
-  async #load(context) {
+  #activeAtPreparation(plan, prepared) {
+    const event = prepared.event;
+    const values = [this.#writer, this.#reader].map((reader) => {
+      const history = reader.operations.readReleaseHistory({
+        tenantId: plan.tenantId,
+        skillName: plan.skillName,
+        context: {
+          mode: "checkpoint",
+          checkpoint: {
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            identityDigest: event.identityDigest,
+            sequence: event.sequence,
+            headDigest: event.eventDigest,
+          },
+        },
+      });
+      const last = history.operations
+        .filter((operation) => operation.projection.status === "committed")
+        .at(-1);
+      const state = last
+        ? {
+            revision: last.projection.revision,
+            stateDigest: last.projection.stateDigest,
+            activeReleaseDigest: last.intent.targetReleaseDigest,
+            lastKnownGoodReleaseDigest:
+              last.intent.operation === "rollback"
+                ? last.intent.targetReleaseDigest
+                : (last.previous.activeReleaseDigest ??
+                  last.intent.targetReleaseDigest),
+          }
+        : history.migration?.value.state;
+      if (!state) fail("Workbench preparation has no historical active state");
+      return {
+        state,
+        release: reader.registry.readRelease(state.activeReleaseDigest),
+      };
+    });
+    if (!same(values[0], values[1]))
+      fail("Workbench historical preparation states differ");
+    return values[0];
+  }
+  async #load(context, historicalPreparation = false) {
     const { plan, retained, fromReview, toReview, snapshot } = context;
     const prepared = this.#find("prepared", plan.planDigest, snapshot);
     const committed = this.#find("committed", plan.planDigest, snapshot);
@@ -570,7 +612,9 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
     const proof = this.#proof(context, prepared);
     const authorizationTime = proof
       ? Date.parse(proof.result.intent.authorityReceipt.occurredAt)
-      : Number(this.#now());
+      : historicalPreparation
+        ? Date.parse(prepared.event.timestamp)
+        : Number(this.#now());
     verifyWorkbenchRollbackAuthorization(
       authorization,
       plan,
@@ -587,15 +631,24 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
       verifyWorkbenchRollbackAuthorization(
         authorization,
         plan,
-        Number(this.#now()),
+        historicalPreparation ? authorizationTime : Number(this.#now()),
       );
       verifySkillPromotionReviewDecision(
         toReview.decision,
         toReview.packet,
-        Number(this.#now()),
+        historicalPreparation ? authorizationTime : Number(this.#now()),
       );
       if (
-        !same(this.#basis(plan, this.#active(plan.skillName), request), basis)
+        !same(
+          this.#basis(
+            plan,
+            historicalPreparation
+              ? this.#activeAtPreparation(plan, prepared)
+              : this.#active(plan.skillName),
+            request,
+          ),
+          basis,
+        )
       )
         fail("Workbench rollback preparation target changed");
     }
@@ -857,6 +910,31 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
       },
     });
   }
+  // Unlike resume(), startup reconciliation cannot request authority or switch
+  // Registry state. Expired/stale pending plans remain pending for explicit action.
+  async reconcileCommitted() {
+    const snapshot = this.#snapshot();
+    for (const row of snapshot.rows)
+      if (
+        row.kind === "committed" &&
+        !this.#find("prepared", row.value.planDigest, snapshot)
+      )
+        fail("Workbench rollback settlement lacks preparation");
+    const plans = snapshot.rows
+      .filter((row) => row.kind === "prepared")
+      .map((row) => row.value.plan);
+    const settledReceipts = [];
+    const deferredPlanDigests = [];
+    for (const plan of plans) {
+      const context = await this.#context(plan);
+      const state = await this.#load(context, true);
+      if (!state) fail("Workbench recovery preparation is missing");
+      if (!state.proof) deferredPlanDigests.push(plan.planDigest);
+      else if (!state.committed)
+        settledReceipts.push(await this.#settle(context, state, null, false));
+    }
+    return capture({ settledReceipts, deferredPlanDigests });
+  }
   async resume() {
     const snapshot = this.#snapshot();
     for (const row of snapshot.rows)
@@ -894,6 +972,7 @@ export function createEvolutionWorkbenchRollbackRuntime(options) {
     activeStateReader: Object.freeze({
       read: adapter.readActiveState.bind(adapter),
     }),
+    reconcileCommitted: adapter.reconcileCommitted.bind(adapter),
     resume: adapter.resume.bind(adapter),
   });
 }

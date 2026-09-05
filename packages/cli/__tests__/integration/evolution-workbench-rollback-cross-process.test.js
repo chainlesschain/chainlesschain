@@ -51,15 +51,23 @@ describe("Workbench rollback real process recovery", () => {
       const killed = run(root, "seed", phase);
       // Opening the actual Registry also reconciles its own unfinished journal;
       // the Workbench must recover from that evidence, not from the kill marker.
-      const before = run(root, "inspect", phase);
+      const before = run(root, "startup", phase);
       expect(before).toMatchObject({
         prepared: 1,
-        committed: phase === "committed" ? 1 : 0,
+        committed: needsMutation ? 0 : 1,
         revision: needsMutation ? 2 : 3,
         releaseFinalizations: needsMutation ? 2 : 3,
         workbenchActiveReleaseDigest: needsMutation
           ? before.candidateReleaseDigest
           : before.baselineReleaseDigest,
+        asks: 0,
+        mutations: 0,
+        startupRecovery: {
+          reviewsSettled: 0,
+          reviewPreparationsDeferred: 0,
+          rollbacksSettled: !needsMutation && phase !== "committed" ? 1 : 0,
+          rollbackPlansDeferred: needsMutation ? 1 : 0,
+        },
       });
       const recovered = run(root, "resume", phase);
       expect(recovered.pid).not.toBe(killed.pid);
@@ -70,7 +78,7 @@ describe("Workbench rollback real process recovery", () => {
         releaseFinalizations: 3,
         asks: 0,
         mutations: needsMutation ? 1 : 0,
-        resumed: phase === "committed" ? 0 : 1,
+        resumed: needsMutation ? 1 : 0,
         contentDigest: recovered.baselineContentDigest,
         dependencyLockDigest: recovered.baselineLockDigest,
         workbenchActiveReleaseDigest: recovered.baselineReleaseDigest,

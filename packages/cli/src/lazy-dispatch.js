@@ -706,6 +706,7 @@ export async function dispatchManifestEntry(
   } = {},
 ) {
   let program;
+  let allowCompatibilityFallback = true;
   try {
     program = await createBaseProgram();
     const mod = await loadCommandModule(entry);
@@ -715,9 +716,14 @@ export async function dispatchManifestEntry(
         `Register function '${entry.register}' not found in ${entry.module}`,
       );
     }
+    // Governed deployment loading may reconcile durable state. Do not hide a
+    // failed trust check or retry that assembly through the eager program.
+    allowCompatibilityFallback = false;
     const dependencies = await loadCommandDependencies(entry.name);
+    allowCompatibilityFallback = dependencies == null;
     registerFn(program, dependencies ?? undefined);
   } catch (error) {
+    if (!allowCompatibilityFallback) throw error;
     if (env.DEBUG || env.CC_DEBUG) {
       stderr.write(
         `Lazy command registration failed; loading compatibility program: ${error.message}\n`,

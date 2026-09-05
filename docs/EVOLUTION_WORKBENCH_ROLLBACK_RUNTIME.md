@@ -46,6 +46,8 @@ const authorization = {
 
 ## 持久化与恢复
 
+[完整宿主启动](EVOLUTION_WORKBENCH_STARTUP.md)使用 `reconcileCommitted()`：只补记实际 Registry 效果，没有效果的 preparation 先按当时的真实 checkpoint 审计，再保持 deferred。它不会请求真人或 mutation authority。下面的 `resume()` 仍为显式执行入口，不与启动补账混用。
+
 顺序为：重新认证已保留投影/Review/active/LKG → 验证真人授权 → preparation 落账 → mutation authority → 实际控制器 prepare/CAS/finalize → 两个 Registry reader 核验内容、依赖锁及实际事务 → settlement 落账并回读。
 
 新增制品类型 `evolution-workbench-rollback-preparation` 和 `evolution-workbench-rollback-settlement` 只允许 evolution-ledger 的 ledger retention。preparation 的四个 sourceRefs 精确指向投影、源 packet、目标 packet、目标批准；settlement 的两个 sourceRefs 指向 preparation 和实际 Registry finalization。计划、授权、request、basis、事务、内容或引用不匹配都拒绝。
