@@ -60,6 +60,17 @@ export const SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA =
   "chainlesschain.skill-release-journal-archive/v1";
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
+const REGISTRY_READERS = new WeakMap();
+
+export function captureSkillReleaseRegistryReader(value) {
+  const reader = REGISTRY_READERS.get(value);
+  if (
+    !reader ||
+    Object.getPrototypeOf(value) !== SkillReleaseRegistry.prototype
+  )
+    throw new TypeError("a genuine SkillReleaseRegistry reader is required");
+  return reader;
+}
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
 const RELEASE_DOMAIN = `${SKILL_RELEASE_SCHEMA}\0`;
 const STATE_DOMAIN = `${SKILL_RELEASE_STATE_SCHEMA}\0`;
@@ -2765,6 +2776,15 @@ export class SkillReleaseRegistry {
         { cause },
       );
     }
+    REGISTRY_READERS.set(
+      this,
+      Object.freeze({
+        tenantId: ownerTenantId,
+        readActive: SkillReleaseRegistry.prototype.readActive.bind(this),
+        readRelease: SkillReleaseRegistry.prototype.readRelease.bind(this),
+        matchesTransactionLedger: (value) => value === transactionLedger,
+      }),
+    );
     Object.freeze(this);
   }
 

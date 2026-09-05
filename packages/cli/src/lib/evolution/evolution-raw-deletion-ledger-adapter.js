@@ -8,7 +8,9 @@ import {
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_MAX_EVENTS,
 } from "./evolution-ledger.js";
+import { capturePruningData } from "./governed-wiki-pruning-journal.js";
 import { EVOLUTION_RAW_DELETION_TOMBSTONE_SCHEMA } from "./evolution-raw-crypto-shred.js";
 
 export const EVOLUTION_RAW_DELETION_RECEIPT_SCHEMA =
@@ -29,6 +31,27 @@ export const EVOLUTION_RAW_DELETION_LEDGER_CORRUPT_CODE =
 const RECEIPT_ARTIFACT_TYPE = "evolution-raw-deletion-receipt";
 const TOMBSTONE_ARTIFACT_TYPE = "evolution-raw-deletion-tombstone";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const READERS = new WeakMap();
+const HEAD_KEYS = [
+  "epoch",
+  "ledgerId",
+  "identityDigest",
+  "sequence",
+  "headDigest",
+];
+
+export function captureRawDeletionLedgerReader(value, tenantId, streamId) {
+  const reader = READERS.get(value);
+  if (
+    !reader ||
+    Object.getPrototypeOf(value) !==
+      EvolutionRawDeletionLedgerAdapter.prototype ||
+    value.descriptor.tenantId !== tenantId ||
+    value.descriptor.streamId !== streamId
+  )
+    throw new TypeError("a same-scope branded Raw deletion ledger is required");
+  return reader;
+}
 const RECEIPT_KEYS = new Set([
   "schema",
   "tenantId",
@@ -155,7 +178,8 @@ function capture(owner, method, label = method) {
   if (typeof owner?.[method] !== "function") {
     throw new TypeError(`${label} port is required`);
   }
-  return (...args) => Reflect.apply(owner[method], owner, args);
+  const captured = owner[method];
+  return (...args) => Reflect.apply(captured, owner, args);
 }
 
 function normalizeDescriptor(input) {
@@ -352,11 +376,132 @@ export class EvolutionRawDeletionLedgerAdapter {
       throw new TypeError("now must be a function");
     this._resolveArtifact = ledgerArtifactResolver;
     this._now = now;
+    READERS.set(
+      this,
+      Object.freeze({
+        descriptor: this.descriptor,
+        head: () => this._verifyLedger(),
+        resolveDeletionReceipt: (input) => this.resolveDeletionReceipt(input),
+        resolveTombstone: (input) => this._resolvePruningTombstone(input),
+        cryptoShredPorts: (ports) => this.cryptoShredPorts(ports),
+      }),
+    );
     Object.freeze(this);
   }
 
-  _events(type) {
-    const events = this._read();
+  async _resolvePruningTombstone(value) {
+    const input = capturePruningData(value);
+    exact(
+      input,
+      new Set(["tenantId", "tombstoneDigest", "context"]),
+      "pruning tombstone query",
+    );
+    exact(
+      input.context,
+      new Set(["mode", "checkpoint"]),
+      "pruning tombstone context",
+    );
+    const checkpoint = input.context.checkpoint;
+    exact(checkpoint, new Set(HEAD_KEYS), "pruning tombstone checkpoint");
+    const events = this._read({
+      afterSequence: 0,
+      limit: EVOLUTION_LEDGER_MAX_EVENTS,
+    });
+    const tail = events.at(-1);
+    // read() authenticates the complete chain. Resolve both immutable subjects
+    // from THIS snapshot, then verify the full current head again after the
+    // asynchronous privacy verifier. No authority result survives this call.
+    const head = tail
+      ? { ...tail, headDigest: tail.eventDigest }
+      : this._verifyLedger();
+    if (
+      events.length !== head.sequence ||
+      events.some(
+        (event, index) =>
+          event.sequence !== index + 1 ||
+          ["epoch", "ledgerId", "identityDigest"].some(
+            (key) => event[key] !== head[key],
+          ),
+      )
+    )
+      corrupt("Raw deletion read is not the complete current ledger");
+    const at =
+      checkpoint.sequence === 0 ? null : events[checkpoint.sequence - 1];
+    if (
+      !["current", "checkpoint"].includes(input.context.mode) ||
+      !Number.isSafeInteger(checkpoint.sequence) ||
+      checkpoint.sequence < 0 ||
+      checkpoint.sequence > head.sequence ||
+      ["epoch", "ledgerId", "identityDigest"].some(
+        (key) => checkpoint[key] !== head[key],
+      ) ||
+      checkpoint.headDigest !== (at?.eventDigest ?? null) ||
+      (input.context.mode === "current" &&
+        HEAD_KEYS.some((key) => checkpoint[key] !== head[key]))
+    )
+      corrupt("Raw tombstone checkpoint is not authenticated by this ledger");
+    const event = this._event(
+      EVOLUTION_RAW_DELETION_TOMBSTONE_EVENT_TYPE,
+      input.tombstoneDigest,
+      events,
+    );
+    if (
+      !event ||
+      event.sequence > checkpoint.sequence ||
+      events[event.sequence - 1]?.eventDigest !== event.eventDigest
+    )
+      corrupt("Raw tombstone was not retained at this pruning checkpoint");
+    const resolved = this._resolvedTombstone(event, head);
+    const receiptEvent = this._event(
+      EVOLUTION_RAW_DELETION_RECEIPT_EVENT_TYPE,
+      resolved.tombstone.deletionReceiptDigest,
+      events,
+    );
+    if (
+      resolved.tombstone.tombstoneDigest !== input.tombstoneDigest ||
+      !receiptEvent ||
+      receiptEvent.sequence >= event.sequence ||
+      canonical(event.sourceRefs[0]) !== canonical(receiptEvent.subjectRef)
+    )
+      corrupt("Raw tombstone receipt lineage is invalid");
+    const { receipt } = await this._verifiedReceipt(
+      receiptEvent,
+      "resolve-tombstone",
+      head,
+    );
+    if (
+      receipt.receiptDigest !== resolved.tombstone.deletionReceiptDigest ||
+      receipt.evidenceRef !== resolved.tombstone.evidenceRef ||
+      receipt.rawArtifactRef !== resolved.tombstone.rawArtifactRef ||
+      receipt.rawCipherDigest !== resolved.tombstone.rawCipherDigest
+    )
+      corrupt("Raw tombstone target differs from its deletion receipt");
+    const fresh = this._verifyLedger();
+    if (HEAD_KEYS.some((key) => fresh[key] !== head[key]))
+      corrupt("Raw tombstone ledger changed during verification");
+    return freeze({
+      schema: EVOLUTION_RAW_TOMBSTONE_RESOLUTION_SCHEMA,
+      authenticated: true,
+      durable: true,
+      authorityId: this.descriptor.authorityId,
+      revision: this.descriptor.revision,
+      handlerArtifactDigest: this.descriptor.handlerArtifactDigest,
+      tenantId: this.descriptor.tenantId,
+      streamId: this.descriptor.streamId,
+      tombstoneDigest: input.tombstoneDigest,
+      tombstone: resolved.tombstone,
+      ledgerEventDigest: event.eventDigest,
+      ledgerHead: Object.fromEntries(HEAD_KEYS.map((key) => [key, head[key]])),
+    });
+  }
+
+  _events(type, snapshot = null) {
+    const events =
+      snapshot ??
+      this._read({
+        afterSequence: 0,
+        limit: EVOLUTION_LEDGER_MAX_EVENTS,
+      });
     if (!Array.isArray(events)) {
       corrupt("EvolutionLedger did not return an event array");
     }
@@ -369,16 +514,16 @@ export class EvolutionRawDeletionLedgerAdapter {
     );
   }
 
-  _event(type, logicalDigest) {
+  _event(type, logicalDigest, snapshot = null) {
     const eventId = `${type}.${logicalDigest.slice("sha256:".length)}`;
-    const matches = this._events(type).filter(
+    const matches = this._events(type, snapshot).filter(
       (event) => event.eventId === eventId,
     );
     if (matches.length > 1) corrupt("raw deletion ledger event is ambiguous");
     return matches[0] ?? null;
   }
 
-  _resolveEvent(event, expected) {
+  _resolveEvent(event, expected, snapshotHead = null) {
     if (
       event.artifactTenantId !== this.descriptor.artifactTenantId ||
       event.decision !== expected.decision ||
@@ -388,7 +533,7 @@ export class EvolutionRawDeletionLedgerAdapter {
     ) {
       corrupt("raw deletion ledger event binding is invalid");
     }
-    const identity = this._verifyLedger();
+    const identity = snapshotHead ?? this._verifyLedger();
     const resolution = this._resolveArtifact({
       epoch: identity.epoch,
       ledgerId: identity.ledgerId,
@@ -404,13 +549,17 @@ export class EvolutionRawDeletionLedgerAdapter {
     return parseRecord(resolution, this.descriptor, expected);
   }
 
-  async _verifiedReceipt(event, source) {
-    const record = this._resolveEvent(event, {
-      artifactType: RECEIPT_ARTIFACT_TYPE,
-      decision: "accepted",
-      kind: "deletion-receipt",
-      sourceCount: 0,
-    });
+  async _verifiedReceipt(event, source, snapshotHead = null) {
+    const record = this._resolveEvent(
+      event,
+      {
+        artifactType: RECEIPT_ARTIFACT_TYPE,
+        decision: "accepted",
+        kind: "deletion-receipt",
+        sourceCount: 0,
+      },
+      snapshotHead,
+    );
     const receipt = normalizeDeletionReceipt(
       record.value,
       this.descriptor.tenantId,
@@ -429,13 +578,17 @@ export class EvolutionRawDeletionLedgerAdapter {
     return Object.freeze({ event, receipt });
   }
 
-  _resolvedTombstone(event) {
-    const record = this._resolveEvent(event, {
-      artifactType: TOMBSTONE_ARTIFACT_TYPE,
-      decision: "committed",
-      kind: "tombstone",
-      sourceCount: 1,
-    });
+  _resolvedTombstone(event, snapshotHead = null) {
+    const record = this._resolveEvent(
+      event,
+      {
+        artifactType: TOMBSTONE_ARTIFACT_TYPE,
+        decision: "committed",
+        kind: "tombstone",
+        sourceCount: 1,
+      },
+      snapshotHead,
+    );
     const tombstone = normalizeTombstone(
       record.value,
       this.descriptor.tenantId,
@@ -708,3 +861,5 @@ export class EvolutionRawDeletionLedgerAdapter {
 export function createEvolutionRawDeletionLedgerAdapter(options) {
   return new EvolutionRawDeletionLedgerAdapter(options);
 }
+
+Object.freeze(EvolutionRawDeletionLedgerAdapter.prototype);

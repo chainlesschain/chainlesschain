@@ -89,6 +89,7 @@ export class GovernedWikiPruningRetrieval {
   constructor({
     descriptor,
     wikiLedgerAdapter,
+    skillRollbackProvider = null,
     artifactPorts,
     ledger,
     ledgerArtifactResolver,
@@ -124,6 +125,7 @@ export class GovernedWikiPruningRetrieval {
     this.#maintenance = new GovernedWikiPruningMaintenance({
       descriptor: normalized,
       wikiLedgerAdapter,
+      skillRollbackProvider,
     }).authorityPorts();
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver))
       throw new TypeError("a branded artifact resolver is required");
@@ -299,7 +301,14 @@ export class GovernedWikiPruningRetrieval {
         : this.#wiki.resolveAtCheckpoint({ ...query, checkpoint });
     if (
       history.successors.length !== requests.length ||
-      !(await this.#maintenance.verifySuccessors({ plan, history }))
+      !(await this.#maintenance.verifySuccessors({
+        plan,
+        history,
+        context:
+          checkpoint === null
+            ? { mode: "current", checkpoint: headOf(history.ledgerHead) }
+            : { mode: "checkpoint", checkpoint },
+      }))
     )
       fail("Wiki retrieval requires all exact Wiki maintenance effects");
     const removals = new Set(plan.retrievalRemovals);

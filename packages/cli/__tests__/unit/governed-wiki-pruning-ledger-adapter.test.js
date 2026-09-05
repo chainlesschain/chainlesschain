@@ -190,7 +190,7 @@ describe("Wiki pruning durable journal", () => {
         ports,
         journalStore: reopened,
       });
-      const completed = await resumed.execute({ plan: h.plan });
+      const completed = await resumed.resume();
       expect(completed.phase).toBe("finalized");
       expect(completed.operationReceipts).toHaveLength(3);
       expect(effects.size).toBe(3);
@@ -215,6 +215,9 @@ describe("Wiki pruning durable journal", () => {
       journalStore: h.store,
     });
     await expect(controller.execute({ plan: h.plan })).rejects.toThrow(
+      /current trusted policy/u,
+    );
+    await expect(controller.resume()).rejects.toThrow(
       /current trusted policy/u,
     );
     expect(invoke).not.toHaveBeenCalled();
@@ -269,6 +272,43 @@ describe("Wiki pruning durable journal", () => {
     expect(captureWikiPruningJournalStore(reopened).descriptor).toEqual(
       h.resources.descriptor,
     );
+  });
+
+  it("reauthenticates every retained effect on each load through a captured batch verifier", async () => {
+    const h = await harness();
+    let revoked = false;
+    const batch = vi.fn(
+      (inputs) =>
+        !revoked &&
+        inputs.every((input) => h.operationReceiptVerifier.verify(input)),
+    );
+    const verifier = {
+      verify: h.operationReceiptVerifier.verify,
+      verifyAll: batch,
+    };
+    const store = h.open(h.resources, { operationReceiptVerifier: verifier });
+    verifier.verifyAll = () => true;
+    const prepared = buildWikiPruningJournal({ plan: h.plan });
+    await store.commit({ state: prepared, expectedJournalDigest: null });
+    const call = pruningOperationCalls(h.plan)[0];
+    const state = buildWikiPruningJournal({
+      plan: h.plan,
+      previous: prepared,
+      receipt: receipt(call),
+    });
+    await store.commit({
+      state,
+      expectedJournalDigest: prepared.journalDigest,
+    });
+    expect(batch).toHaveBeenCalled();
+    expect(batch.mock.calls.at(-1)[0]).toMatchObject([
+      { ...call, receipt: receipt(call), context: { mode: "current" } },
+    ]);
+    revoked = true;
+    await expect(store.load({ tenantId: h.plan.tenantId })).rejects.toThrow(
+      /batch authentication/u,
+    );
+    expect(h.resources.backend.ledger.verify().sequence).toBe(2);
   });
 
   it("reconciles append response loss only by authenticated readback", async () => {

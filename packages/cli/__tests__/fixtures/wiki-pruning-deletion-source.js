@@ -11,7 +11,7 @@ import {
 
 // Real retained deletion authority records; test-only signing identity. This
 // fixture never pretends to operate a KMS or to prove that a key was destroyed.
-export function wikiPruningDeletionSource(resources, wiki) {
+export function wikiPruningDeletionSource(resources, wiki, hooks = {}) {
   const material = (receipt) => {
     const core = structuredClone(receipt);
     delete core.receiptDigest;
@@ -37,7 +37,19 @@ export function wikiPruningDeletionSource(resources, wiki) {
     },
     artifactPorts: resources.artifactPorts,
     ledgerArtifactResolver: resources.resolver,
-    ledger: resources.backend.ledger,
+    ledger: {
+      read: (query) => resources.backend.ledger.read(query),
+      verify: () => resources.backend.ledger.verify(),
+      appendDomainEvent(input, options) {
+        hooks.beforeRawAppend?.(input, options);
+        const result = resources.backend.ledger.appendDomainEvent(
+          input,
+          options,
+        );
+        hooks.afterRawAppend?.(input, result);
+        return result;
+      },
+    },
     now: resources.clock,
     deletionReceiptVerifier: {
       verify: ({ receipt }) =>
@@ -58,7 +70,9 @@ export function wikiPruningDeletionSource(resources, wiki) {
       sourceDigest: source.sourceDigest,
       artifactRef: source.artifactRef,
       rawArtifactRef: `artifact://${resources.descriptor.tenantId}/raw/dependency`,
-      rawCipherDigest: pruningDigest("test-only-ciphertext", {}),
+      rawCipherDigest:
+        hooks.keyAuthority?.rawCipherDigest() ??
+        pruningDigest("test-only-ciphertext", {}),
       keyRef: `kms://${resources.descriptor.tenantId}/dependency`,
       issuedAt: new Date(resources.clock()).toISOString(),
       attestation: { ...trust, value: "pending" },
@@ -67,6 +81,7 @@ export function wikiPruningDeletionSource(resources, wiki) {
     return { ...core, receiptDigest: digestEvolutionRawDeletionReceipt(core) };
   }
   return {
+    adapter,
     receipt,
     retain: () => adapter.retainDeletionReceipt({ receipt: receipt() }),
     resolve: (request) => adapter.resolveDeletionReceipt(request),

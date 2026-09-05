@@ -158,6 +158,7 @@ export function openEvolutionDurableStore(
     purpose: "evolution-ledger",
   });
   fs.mkdirSync(path.join(root, "witness"), { recursive: true, mode: 0o700 });
+  const fsImpl = durableFilesystem();
   const backend = createEvolutionLedgerFileBackend({
     rootDir: path.join(root, "events"),
     authorityRootDir: path.join(root, "authority"),
@@ -167,8 +168,15 @@ export function openEvolutionDurableStore(
     witnessAuthority: authority("pruning-witness"),
     artifactResolver: resolver,
     secure: false,
-    fsImpl: durableFilesystem(),
+    fsImpl,
     clock: () => NOW,
   });
-  return { descriptor, artifactPorts, resolver, backend, clock: () => NOW };
+  return {
+    descriptor,
+    artifactPorts,
+    resolver,
+    backend,
+    fsImpl,
+    clock: () => NOW,
+  };
 }

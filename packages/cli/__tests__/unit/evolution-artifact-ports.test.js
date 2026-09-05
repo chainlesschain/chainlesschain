@@ -21,6 +21,7 @@ import {
   EVOLUTION_ARTIFACT_TYPE_DENIED_CODE,
   EvolutionArtifactPorts,
   createEvolutionLedgerArtifactResolver,
+  captureEvolutionLedgerBatchResolver,
   isEvolutionLedgerArtifactResolver,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import {
@@ -1052,45 +1053,142 @@ describe("EvolutionArtifactPorts", () => {
     expect(changeDuringRead).toBe(false);
   });
 
-  it.each([
-    "missing",
-    "duplicate-id",
-    "duplicate-digest",
-    "lineage",
-    "payload",
-    "revocation",
-  ])("rejects %s through the descriptor-only ledger resolver", (fault) => {
-    const result = publish({
-      type: "wiki-revision",
-      retention: "ledger",
-      purpose: "evolution-ledger",
-    });
+  it("resolves a bounded ledger batch with fresh authority for every item", () => {
+    const values = [
+      publish({ value: { id: 1 } }),
+      publish({ value: { id: 2 } }),
+    ];
     const resolver = ports.createEvolutionLedgerArtifactResolver({
-      purpose: "evolution-ledger",
+      purpose: PURPOSE,
     });
-    const rows = readIndex();
-    if (fault === "missing")
-      fs.writeFileSync(path.join(storeDir, "index.jsonl"), "", "utf8");
-    if (fault === "duplicate-id") writeIndex([...rows, { ...rows[0] }]);
-    if (fault === "duplicate-digest")
-      writeIndex([...rows, { ...rows[0], id: "art_duplicate_digest" }]);
-    if (fault === "lineage")
-      writeIndex(
-        rows.map((row) => ({
-          ...row,
-          lineage: { ...row.lineage, envelopeDigest: digestBytes("forged") },
-        })),
-      );
-    if (fault === "payload") {
-      // Simulate an owner-level attacker overriding the immutable file mode;
-      // otherwise Windows rejects the injection before the resolver is tested.
-      const stored = store.storedPath(rows[0]);
-      fs.chmodSync(stored, 0o600);
-      fs.writeFileSync(stored, "substituted payload", "utf8");
-    }
-    if (fault === "revocation") authorityState.revoked = true;
-    expect(() => resolver(ledgerRequest(result))).toThrow();
+    const batch = captureEvolutionLedgerBatchResolver(resolver);
+    currentAuthorityResolver.resolve.mockClear();
+    expect(batch(values.map(ledgerRequest))).toEqual(
+      values.map((value) => resolver(ledgerRequest(value))),
+    );
+    expect(currentAuthorityResolver.resolve).toHaveBeenCalledTimes(4);
+    expect(() =>
+      captureEvolutionLedgerBatchResolver((request) => resolver(request)),
+    ).toThrow(/branded/u);
+    const sparse = new Array(2);
+    sparse[0] = ledgerRequest(values[0]);
+    expect(() => batch(sparse)).toThrow();
+    expect(() => batch(Array(129).fill(ledgerRequest(values[0])))).toThrow();
+    let accessed = false;
+    const accessor = [];
+    Object.defineProperty(accessor, "0", {
+      enumerable: true,
+      get() {
+        accessed = true;
+        return ledgerRequest(values[0]);
+      },
+    });
+    expect(() => batch(accessor)).toThrow();
+    expect(accessed).toBe(false);
   });
+
+  it("rechecks every decision lease at the end of a ledger batch", () => {
+    const values = [
+      publish({ retention: "ledger", type: "wiki-revision", value: { id: 1 } }),
+      publish({ retention: "ledger", type: "wiki-revision", value: { id: 2 } }),
+    ];
+    const original = envelopeVerifier.verify.getMockImplementation();
+    let count = 0;
+    // Move time between items, before the second authority request starts.
+    // Advancing it inside that request instead violates its own TTL binding
+    // and never reaches the batch's end-of-read lease check.
+    envelopeVerifier.verify.mockImplementation((request) => {
+      if (++count === 2) nowMs += 30_001;
+      return original(request);
+    });
+    const batch = captureEvolutionLedgerBatchResolver(
+      ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+    );
+    expect(() => batch(values.map(ledgerRequest))).toThrow(
+      /expired before ledger batch/u,
+    );
+  });
+
+  it.each(["single", "batch"])(
+    "rejects index replacement during authority lookup in a %s descriptor read",
+    (mode) => {
+      const result = publish({ type: "wiki-revision", retention: "ledger" });
+      const original = currentAuthorityResolver.resolve.getMockImplementation();
+      currentAuthorityResolver.resolve.mockImplementation((request) => {
+        const decision = original(request);
+        writeIndex(
+          readIndex().map((row) => ({
+            ...row,
+            title: "replaced during authority lookup",
+          })),
+        );
+        return decision;
+      });
+      const resolver = ports.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      });
+      expect(() =>
+        mode === "single"
+          ? resolver(ledgerRequest(result))
+          : captureEvolutionLedgerBatchResolver(resolver)([
+              ledgerRequest(result),
+            ]),
+      ).toThrow(
+        /(?:replaced during ledger|changed during ledger batch) readback/u,
+      );
+    },
+  );
+
+  it.each(
+    [
+      "missing",
+      "duplicate-id",
+      "duplicate-digest",
+      "lineage",
+      "payload",
+      "revocation",
+    ].flatMap((fault) => ["single", "batch"].map((mode) => [fault, mode])),
+  )(
+    "rejects %s through the %s descriptor-only ledger resolver",
+    (fault, mode) => {
+      const result = publish({
+        type: "wiki-revision",
+        retention: "ledger",
+        purpose: "evolution-ledger",
+      });
+      const resolver = ports.createEvolutionLedgerArtifactResolver({
+        purpose: "evolution-ledger",
+      });
+      const rows = readIndex();
+      if (fault === "missing")
+        fs.writeFileSync(path.join(storeDir, "index.jsonl"), "", "utf8");
+      if (fault === "duplicate-id") writeIndex([...rows, { ...rows[0] }]);
+      if (fault === "duplicate-digest")
+        writeIndex([...rows, { ...rows[0], id: "art_duplicate_digest" }]);
+      if (fault === "lineage")
+        writeIndex(
+          rows.map((row) => ({
+            ...row,
+            lineage: { ...row.lineage, envelopeDigest: digestBytes("forged") },
+          })),
+        );
+      if (fault === "payload") {
+        // Simulate an owner-level attacker overriding the immutable file mode;
+        // otherwise Windows rejects the injection before the resolver is tested.
+        const stored = store.storedPath(rows[0]);
+        fs.chmodSync(stored, 0o600);
+        fs.writeFileSync(stored, "substituted payload", "utf8");
+      }
+      if (fault === "revocation") authorityState.revoked = true;
+      expect(() =>
+        mode === "single"
+          ? resolver(ledgerRequest(result))
+          : captureEvolutionLedgerBatchResolver(resolver)([
+              ledgerRequest(result),
+            ]),
+      ).toThrow();
+    },
+  );
 
   it("cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot", () => {
     const result = publish();

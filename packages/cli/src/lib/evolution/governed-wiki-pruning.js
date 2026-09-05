@@ -455,19 +455,41 @@ export class GovernedWikiPruning {
     return finalized;
   }
 
-  async #executeJournal(plan, expectedJournalDigest) {
+  async resume({ expectedJournalDigest } = {}) {
+    if (!this.#journal)
+      throw new TypeError("a durable journal is required for pruning recovery");
+    const latest = await this.#journal.load({
+      tenantId: this.descriptor.tenantId,
+    });
+    if (!latest.state) return null;
+    const plan = assertPlan(latest.state.plan, this.descriptor.tenantId);
+    if (
+      plan.policyDigest !==
+      hash(GOVERNED_WIKI_PRUNING_POLICY_SCHEMA, this.descriptor)
+    )
+      throw new Error(
+        "Wiki pruning plan does not match current trusted policy",
+      );
+    return this.#executeJournal(plan, expectedJournalDigest, latest);
+  }
+
+  async #executeJournal(plan, expectedJournalDigest, restoredLatest = null) {
     if (expectedJournalDigest !== undefined && expectedJournalDigest !== null)
       digest(expectedJournalDigest, "expectedJournalDigest");
     const scope = { tenantId: this.descriptor.tenantId };
-    const known = await this.#journal.load({
-      ...scope,
-      planDigest: plan.planDigest,
-    });
+    // The usual case is the current plan. One fully authenticated load proves
+    // both its identity and that it is latest; no duplicate restore is needed.
+    // An explicitly requested older plan still gets its separate historical
+    // lookup. Providers and commits independently authorize their own effects.
+    const latest = restoredLatest ?? (await this.#journal.load(scope));
+    const known =
+      !latest.state || latest.state.plan.planDigest === plan.planDigest
+        ? latest
+        : await this.#journal.load({ ...scope, planDigest: plan.planDigest });
     let state = known.state;
     if (state && canonical(state.plan) !== canonical(plan))
       throw new Error("restored pruning journal plan was substituted");
     if (state?.phase === "finalized") return state;
-    const latest = await this.#journal.load(scope);
     if (
       expectedJournalDigest !== undefined &&
       expectedJournalDigest !== (latest.state?.journalDigest ?? null)

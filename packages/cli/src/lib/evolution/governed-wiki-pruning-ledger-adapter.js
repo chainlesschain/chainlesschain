@@ -101,6 +101,7 @@ export class GovernedWikiPruningLedgerAdapter {
   #resolve;
   #verifyPlan;
   #verifyOperation;
+  #verifyOperations;
   #clock;
 
   constructor({
@@ -124,6 +125,10 @@ export class GovernedWikiPruningLedgerAdapter {
     this.#resolve = ledgerArtifactResolver;
     this.#verifyPlan = capture(planVerifier, "verify");
     this.#verifyOperation = capture(operationReceiptVerifier, "verify");
+    this.#verifyOperations =
+      operationReceiptVerifier.verifyAll === undefined
+        ? null
+        : capture(operationReceiptVerifier, "verifyAll");
     if (typeof clock !== "function")
       throw new TypeError("clock port is required");
     this.#clock = clock;
@@ -138,8 +143,9 @@ export class GovernedWikiPruningLedgerAdapter {
     );
   }
 
-  async #authenticate(state, context) {
+  async #authenticate(state, context, verifiedPrefix = null) {
     if (
+      verifiedPrefix === null &&
       (await this.#verifyPlan({
         plan: state.plan,
         tenantId: this.descriptor.tenantId,
@@ -149,17 +155,25 @@ export class GovernedWikiPruningLedgerAdapter {
     )
       fail("pruning plan authorization is unavailable or revoked");
     const calls = pruningOperationCalls(state.plan);
+    const inputs = [];
     for (const [index, receipt] of state.operationReceipts.entries()) {
-      if (
-        (await this.#verifyOperation({
-          ...calls[index],
-          plan: state.plan,
-          receipt,
-          tenantId: this.descriptor.tenantId,
-          streamId: this.descriptor.streamId,
-          context,
-        })) !== true
-      )
+      if (index < (verifiedPrefix?.operationReceipts.length ?? 0)) continue;
+      inputs.push({
+        ...calls[index],
+        plan: state.plan,
+        receipt,
+        tenantId: this.descriptor.tenantId,
+        streamId: this.descriptor.streamId,
+        context,
+      });
+    }
+    if (this.#verifyOperations && inputs.length) {
+      if ((await this.#verifyOperations(inputs)) !== true)
+        fail("pruning operation receipt batch authentication failed");
+      return;
+    }
+    for (const input of inputs) {
+      if ((await this.#verifyOperation(input)) !== true)
         fail("pruning operation receipt authentication failed");
     }
   }
@@ -274,16 +288,31 @@ export class GovernedWikiPruningLedgerAdapter {
     // its source at preparation and its full retained receipt prefix at the
     // latest checkpoint. Intermediate states retain the exact same plan and
     // immutable receipt prefixes, so need no duplicate business verification.
+    const latestEntry = history.at(-1);
+    const currentIsLatestCheckpoint =
+      latestEntry?.state.phase !== "finalized" &&
+      latestEntry?.event.sequence === head.sequence &&
+      latestEntry?.event.eventDigest === head.headDigest;
     for (const entry of history) {
+      // When the latest checkpoint IS the current head, current verification
+      // proves the exact same historical boundary and additionally enforces
+      // current authorities/active pointers. Do not verify that boundary twice.
+      // Older preparation checkpoints always retain their own as-of check.
+      const latestContext =
+        entry === latestEntry && currentIsLatestCheckpoint
+          ? currentContext(head)
+          : historicalContext(entry.event);
       await this.#authenticate(
         entry.prepared.state,
-        historicalContext(entry.prepared.event),
+        entry.state.journalDigest === entry.prepared.state.journalDigest
+          ? latestContext
+          : historicalContext(entry.prepared.event),
       );
       if (entry.state.journalDigest !== entry.prepared.state.journalDigest)
-        await this.#authenticate(entry.state, historicalContext(entry.event));
+        await this.#authenticate(entry.state, latestContext);
     }
     const latest = history.at(-1)?.state;
-    if (latest && latest.phase !== "finalized")
+    if (latest && latest.phase !== "finalized" && !currentIsLatestCheckpoint)
       await this.#authenticate(latest, currentContext(head));
     const after = this.#verifyLedger();
     if (
@@ -353,7 +382,17 @@ export class GovernedWikiPruningLedgerAdapter {
       )
     )
       fail("pruning journal cannot restart a historical plan");
-    await this.#authenticate(state, currentContext(head));
+    // #history reauthenticated the unfinished plan and EVERY existing effect
+    // at this exact current head in this commit call. The transition validator
+    // above requires an identical plan and immutable receipt prefix. Only the
+    // newly appended receipt needs additional authentication; finalize adds
+    // none. Nothing is cached across calls, and the same head still guards CAS.
+    const verifiedPrefix =
+      previous?.state.phase !== "finalized" &&
+      previous?.state.plan.planDigest === state.plan.planDigest
+        ? previous.state
+        : null;
+    await this.#authenticate(state, currentContext(head), verifiedPrefix);
     const now = Number(this.#clock());
     if (!Number.isFinite(now))
       throw new TypeError("pruning journal clock is invalid");

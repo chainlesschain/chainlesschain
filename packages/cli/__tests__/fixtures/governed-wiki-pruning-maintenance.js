@@ -13,6 +13,7 @@ import { GovernedWikiPruningLedgerAdapter } from "../../src/lib/evolution/govern
 import { GovernedWikiPruningPlanAuthority } from "../../src/lib/evolution/governed-wiki-pruning-plan-authority.js";
 import { GovernedWikiPruningMaintenance } from "../../src/lib/evolution/governed-wiki-pruning-maintenance.js";
 import { GovernedWikiPruningRetrieval } from "../../src/lib/evolution/governed-wiki-pruning-retrieval.js";
+import { GovernedWikiPruningRawShred } from "../../src/lib/evolution/governed-wiki-pruning-raw-shred.js";
 import { pruningCanonical } from "../../src/lib/evolution/governed-wiki-pruning-journal.js";
 
 const AT = "2026-09-05T00:00:00.000Z";
@@ -49,9 +50,10 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
   const maintenance = new GovernedWikiPruningMaintenance({
     descriptor,
     wikiLedgerAdapter: wiki,
+    skillRollbackProvider: hooks.skillRollbackProvider ?? null,
   });
   const deletionSource = hooks.dependencyDeletion
-    ? wikiPruningDeletionSource(resources, wiki)
+    ? wikiPruningDeletionSource(resources, wiki, hooks)
     : null;
   const deletionReceipts = deletionSource ?? {
     resolve: () => {
@@ -65,11 +67,20 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     wikiMaintenance: maintenance.authorityPorts(),
   });
   const wikiReceiptVerifier = maintenance.operationReceiptVerifier();
+  const rawShred = hooks.keyAuthority
+    ? new GovernedWikiPruningRawShred({
+        descriptor,
+        deletionLedgerAdapter: deletionSource.adapter,
+        keyAuthority: hooks.keyAuthority,
+      })
+    : null;
+  const rawReceiptVerifier = rawShred?.operationReceiptVerifier();
   const retrieval =
     hooks.realRetrieval === true
       ? new GovernedWikiPruningRetrieval({
           descriptor: resources.descriptor,
           wikiLedgerAdapter: wiki,
+          skillRollbackProvider: hooks.skillRollbackProvider ?? null,
           artifactPorts: resources.artifactPorts,
           ledgerArtifactResolver: resources.resolver,
           clock: resources.clock,
@@ -102,6 +113,8 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
           return wikiReceiptVerifier.verify(input);
         if (retrieval && input.request.operation === "retrieval-projection")
           return retrievalReceiptVerifier.verify(input);
+        if (rawShred && input.request.operation === "crypto-shred")
+          return rawReceiptVerifier.verify(input);
         const { attestation, ...core } = input.receipt;
         return (
           core.requestDigest === input.requestDigest &&
@@ -123,6 +136,7 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
   });
   const provider = maintenance.createProvider(journal);
   const retrievalProvider = retrieval?.createProvider(journal);
+  const rawProvider = rawShred?.createProvider(journal);
   const retrievalReader = retrieval?.createProposerReader({
     journalStore: journal,
     policy: { proposerWikiRead: true, executionAgentWikiRead: false },
@@ -153,6 +167,7 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
         : otherEffect,
       applyWikiRevision: provider.applyWikiRevision,
       cryptoShred: (call) => {
+        if (rawProvider) return rawProvider.cryptoShred(call);
         // Explicit test effect only; dependency tests may continue to the real
         // retrieval projection, but do not establish crypto-shred closure.
         if (hooks.testCryptoShred) return otherEffect(call);
@@ -182,7 +197,11 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     expiresAt: null,
     data: { result: "verified" },
   };
-  async function writeWiki(operations, requestDigest = null) {
+  async function writeWiki(
+    operations,
+    requestDigest = null,
+    evidence = evidenceCore,
+  ) {
     const maintainer = new EvidenceBackedWikiMaintainer({
       descriptor: {
         tenantId: descriptor.tenantId,
@@ -200,14 +219,14 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       },
       ports: wiki.maintainerPorts({
         resolveEvidence: () => ({
-          ...evidenceCore,
-          envelopeDigest: D(evidenceCore),
+          ...evidence,
+          envelopeDigest: D(evidence),
         }),
         derive: () => ({ operations }),
       }),
     });
     return maintainer.maintain({
-      evidenceRefs: [evidenceCore.ref],
+      evidenceRefs: [evidence.ref],
       effectiveAt: AT,
       ...(requestDigest
         ? {
@@ -301,6 +320,9 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     retrievalProvider,
     retrievalReader,
     retrievalReceiptVerifier,
+    rawShred,
+    rawProvider,
+    rawReceiptVerifier,
     controller,
     seed,
     writeWiki,

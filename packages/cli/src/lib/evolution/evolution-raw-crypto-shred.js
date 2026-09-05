@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { capturePruningData } from "./governed-wiki-pruning-journal.js";
 
 export const EVOLUTION_RAW_CRYPTO_SHRED_SCHEMA =
   "chainlesschain.evolution-raw-crypto-shred/v1";
@@ -80,6 +81,26 @@ function verifyPruningCall(call, tenantId) {
   return request;
 }
 
+export function buildEvolutionRawCryptoShredRequest(call, tenantId) {
+  const request = verifyPruningCall(capturePruningData(call), tenantId);
+  const target = request.payload;
+  const core = {
+    schema: EVOLUTION_RAW_CRYPTO_SHRED_SCHEMA,
+    tenantId,
+    planDigest: request.planDigest,
+    wikiStateDigest: request.wikiStateDigest,
+    evidenceRef: target.evidenceRef,
+    rawArtifactRef: target.rawArtifactRef,
+    rawCipherDigest: target.rawCipherDigest,
+    keyRef: target.keyRef,
+    deletionReceiptDigest: target.receiptDigest,
+  };
+  return freeze({
+    ...core,
+    requestDigest: hash(EVOLUTION_RAW_CRYPTO_SHRED_SCHEMA, core),
+  });
+}
+
 export class EvolutionRawCryptoShred {
   constructor({ tenantId, ports } = {}) {
     this.tenantId = string(tenantId, "tenantId");
@@ -87,9 +108,11 @@ export class EvolutionRawCryptoShred {
     this._destroyKey = capture(ports, "destroyKey");
     this._confirmKeyDestroyed = capture(ports, "confirmKeyDestroyed");
     this._retainTombstone = capture(ports, "retainTombstone");
+    Object.freeze(this);
   }
 
   async shred(call) {
+    call = capturePruningData(call);
     const request = verifyPruningCall(call, this.tenantId);
     const target = request.payload;
     const deletion = await this._verifyDeletionReceipt({
@@ -109,21 +132,10 @@ export class EvolutionRawCryptoShred {
       deletion.keyRef !== target.keyRef
     )
       throw new Error("Raw deletion receipt was substituted");
-    const destructionCore = {
-      schema: EVOLUTION_RAW_CRYPTO_SHRED_SCHEMA,
-      tenantId: this.tenantId,
-      planDigest: request.planDigest,
-      wikiStateDigest: request.wikiStateDigest,
-      evidenceRef: target.evidenceRef,
-      rawArtifactRef: target.rawArtifactRef,
-      rawCipherDigest: target.rawCipherDigest,
-      keyRef: target.keyRef,
-      deletionReceiptDigest: target.receiptDigest,
-    };
-    const destructionRequest = freeze({
-      ...destructionCore,
-      requestDigest: hash(EVOLUTION_RAW_CRYPTO_SHRED_SCHEMA, destructionCore),
-    });
+    const destructionRequest = buildEvolutionRawCryptoShredRequest(
+      call,
+      this.tenantId,
+    );
     const destroyed = await this._destroyKey(destructionRequest);
     if (
       destroyed?.authenticated !== true ||
@@ -183,3 +195,5 @@ export class EvolutionRawCryptoShred {
     });
   }
 }
+
+Object.freeze(EvolutionRawCryptoShred.prototype);

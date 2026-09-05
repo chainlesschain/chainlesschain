@@ -326,6 +326,7 @@ const CONSTRUCTOR_REQUIRED_KEYS = new Set([
 ]);
 const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
 const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
+const EVOLUTION_LEDGER_BATCH_RESOLVERS = new WeakMap();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
 const dateGetTime = Object.freeze(
@@ -991,6 +992,12 @@ function samePath(left, right) {
     : normalizedLeft === normalizedRight;
 }
 
+// The native implementation performs the same physical canonicalization
+// without the JS fallback's repeated ancestor lstats (especially costly on
+// Windows). Identity, containment, no-link and descriptor readback checks
+// below remain mandatory on every access; this does not cache any pathname.
+const physicalRealpath = (fs.realpathSync.native ?? fs.realpathSync).bind(fs);
+
 function isContained(root, candidate) {
   const relative = path.relative(root, candidate);
   return (
@@ -1059,7 +1066,7 @@ function inspectPhysicalDirectory(directory, label) {
   try {
     stat = fs.lstatSync(directory);
     assertDirectory(stat, label);
-    realPath = fs.realpathSync(directory);
+    realPath = physicalRealpath(directory);
   } catch (cause) {
     if (isEvolutionArtifactPortError(cause)) throw cause;
     throw artifactError(
@@ -1087,7 +1094,7 @@ function inspectPhysicalIndex(indexPath, rootRealPath) {
   try {
     pathStat = fs.lstatSync(indexPath);
     assertRegularSingleLink(pathStat, "ArtifactStore index");
-    realPath = fs.realpathSync(indexPath);
+    realPath = physicalRealpath(indexPath);
     if (
       !samePath(realPath, indexPath) ||
       !isContained(rootRealPath, realPath)
@@ -1366,7 +1373,7 @@ function readTrustedIndexSnapshot(layout) {
         "ArtifactStore index physical identity changed",
       );
     }
-    indexRealPath = fs.realpathSync(layout.indexPath);
+    indexRealPath = physicalRealpath(layout.indexPath);
     if (
       !samePath(indexRealPath, layout.indexRealPath) ||
       !samePath(indexRealPath, layout.indexPath) ||
@@ -1423,7 +1430,7 @@ function readTrustedIndexSnapshot(layout) {
     if (
       !sameFileIdentity(beforePathStat, afterPathStat) ||
       !samePhysicalIdentity(afterPathStat, layout.indexIdentity) ||
-      !samePath(fs.realpathSync(layout.indexPath), indexRealPath)
+      !samePath(physicalRealpath(layout.indexPath), indexRealPath)
     ) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2161,12 +2168,13 @@ export class EvolutionArtifactPorts {
     }
   }
 
-  #loadLedgerEntry(artifactId, recordDigest = null) {
+  #loadLedgerEntry(artifactId, recordDigest = null, snapshot = null) {
     // Ledger resolution is read-only. Read the already attested physical index
     // directly instead of invoking ArtifactStore.list/get (both acquire writer
-    // locks). Every call still obtains a fresh bounded descriptor snapshot;
+    // locks). Each read/batch obtains a fresh bounded descriptor snapshot;
     // nothing caches index contents, signatures or current authority.
-    const { entries } = readTrustedIndexSnapshot(this.#store.layout);
+    const { entries } =
+      snapshot ?? readTrustedIndexSnapshot(this.#store.layout);
     const matches = this.#entriesByDataField(entries, "id", artifactId);
     if (matches.length === 0) {
       throw artifactError(
@@ -2336,7 +2344,7 @@ export class EvolutionArtifactPorts {
     let afterDescriptorStat;
     let bytes;
     try {
-      rootRealPath = fs.realpathSync(filesRoot);
+      rootRealPath = physicalRealpath(filesRoot);
       if (!samePath(rootRealPath, this.#store.layout.filesRealPath)) {
         throw artifactError(
           EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2345,7 +2353,7 @@ export class EvolutionArtifactPorts {
       }
       beforePathStat = fs.lstatSync(resolvedStoredPath);
       assertRegularSingleLink(beforePathStat, "stored artifact path");
-      targetRealPath = fs.realpathSync(resolvedStoredPath);
+      targetRealPath = physicalRealpath(resolvedStoredPath);
       if (!isContained(rootRealPath, targetRealPath)) {
         throw artifactError(
           EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2395,7 +2403,7 @@ export class EvolutionArtifactPorts {
           "stored artifact pathname changed during readback",
         );
       }
-      const afterRealPath = fs.realpathSync(resolvedStoredPath);
+      const afterRealPath = physicalRealpath(resolvedStoredPath);
       if (!samePath(targetRealPath, afterRealPath)) {
         throw artifactError(
           EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2871,6 +2879,8 @@ export class EvolutionArtifactPorts {
     artifactId,
     preauthenticated = null,
     ledgerRead = false,
+    capturedLedgerEntry = null,
+    batchWindow = null,
   ) {
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
@@ -2880,7 +2890,8 @@ export class EvolutionArtifactPorts {
         artifactId,
       );
     const entry = ledgerRead
-      ? this.#loadLedgerEntry(artifactId, authentication.core.recordDigest)
+      ? (capturedLedgerEntry ??
+        this.#loadLedgerEntry(artifactId, authentication.core.recordDigest))
       : this.#loadCurrentEntryById(artifactId);
     const normalizedEntry = this.#validateIndexEntry(
       entry,
@@ -2900,7 +2911,7 @@ export class EvolutionArtifactPorts {
       authentication.core.recordDigest,
     );
     const record = this.#parseRecordBytes(bytes, authentication.core);
-    if (ledgerRead) {
+    if (ledgerRead && batchWindow === null) {
       const after = this.#loadLedgerEntry(
         artifactId,
         authentication.core.recordDigest,
@@ -2912,7 +2923,7 @@ export class EvolutionArtifactPorts {
           { artifactId },
         );
       }
-    } else {
+    } else if (!ledgerRead) {
       this.#assertEntryStable(artifactId, entry);
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
@@ -2957,6 +2968,13 @@ export class EvolutionArtifactPorts {
     const receipt = deepFreeze({
       ...receiptCore,
       receiptDigest: domainDigest(RESOLUTION_RECEIPT_DOMAIN, receiptCore),
+    });
+    batchWindow?.push({
+      checkedAt: releaseClock.milliseconds,
+      expiresAt: Math.min(
+        authentication.core.expiresAtMs ?? Infinity,
+        authentication.authority.decisionExpiresAtMs,
+      ),
     });
     return {
       artifactRef,
@@ -3311,7 +3329,7 @@ export class EvolutionArtifactPorts {
     });
   }
 
-  #resolveLedgerRequest(request, purpose) {
+  #resolveLedgerRequest(request, purpose, snapshot = null, batchWindow = null) {
     assertExactRecord(
       request,
       LEDGER_REQUEST_KEYS,
@@ -3338,7 +3356,7 @@ export class EvolutionArtifactPorts {
     const artifactRef = normalizeArtifactRef(
       ownData(request, "ref", "evolution ledger artifact request"),
     );
-    const entry = this.#loadLedgerEntry(artifactRef.artifactId);
+    const entry = this.#loadLedgerEntry(artifactRef.artifactId, null, snapshot);
     assertExactRecord(
       entry,
       INDEX_ENTRY_KEYS,
@@ -3366,12 +3384,20 @@ export class EvolutionArtifactPorts {
       tenantId: this.#tenantId,
     });
     const authentication = this.#authenticateEnvelope(envelope, options);
+    if (snapshot !== null)
+      this.#assertUniqueRecordDigest(
+        authentication.core.recordDigest,
+        artifactRef.artifactId,
+        snapshot.entries,
+      );
     const resolved = this.#resolveAuthenticatedEntry(
       envelope,
       options,
       artifactRef.artifactId,
       authentication,
       true,
+      entry,
+      batchWindow,
     );
     const ledgerReceiptCore = {
       artifactReceiptDigest: resolved.receipt.receiptDigest,
@@ -3396,6 +3422,36 @@ export class EvolutionArtifactPorts {
     });
   }
 
+  #resolveLedgerBatch(input, purpose) {
+    assertDenseDataArray(input, "ledger artifact batch", 128);
+    const requests = frozenCanonicalClone(input);
+    const snapshot = readTrustedIndexSnapshot(this.#store.layout);
+    const window = [];
+    const results = requests.map((request) =>
+      this.#resolveLedgerRequest(request, purpose, snapshot, window),
+    );
+    // One bounded synchronous read, not a cache: every envelope/current
+    // authority and payload is authenticated individually. Re-attest the full
+    // index after ALL reads, and all decision leases before releasing bytes.
+    const after = readTrustedIndexSnapshot(this.#store.layout);
+    if (after.bytesDigest !== snapshot.bytesDigest)
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        "ArtifactStore index changed during ledger batch readback",
+      );
+    const completed = this.#clock().milliseconds;
+    if (
+      window.some(
+        (entry) => completed < entry.checkedAt || completed >= entry.expiresAt,
+      )
+    )
+      throw artifactError(
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+        "artifact authority expired before ledger batch release",
+      );
+    return Object.freeze(results);
+  }
+
   /** Return a frozen read-only function; it exposes no put/signing authority. */
   createEvolutionLedgerArtifactResolver(options = {}) {
     assertOptionalExactRecord(
@@ -3416,6 +3472,9 @@ export class EvolutionArtifactPorts {
     const resolveReadOnly = (request) =>
       this.#resolveLedgerRequest(request, normalizedPurpose);
     EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.add(resolveReadOnly);
+    EVOLUTION_LEDGER_BATCH_RESOLVERS.set(resolveReadOnly, (requests) =>
+      this.#resolveLedgerBatch(requests, normalizedPurpose),
+    );
     return Object.freeze(resolveReadOnly);
   }
 }
@@ -3441,6 +3500,13 @@ export function isEvolutionLedgerArtifactResolver(value) {
     typeof value === "function" &&
     EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.has(value)
   );
+}
+
+export function captureEvolutionLedgerBatchResolver(value) {
+  const resolve = EVOLUTION_LEDGER_BATCH_RESOLVERS.get(value);
+  if (!resolve)
+    throw new TypeError("a branded ledger artifact resolver is required");
+  return resolve;
 }
 
 Object.freeze(EvolutionArtifactPorts.prototype);

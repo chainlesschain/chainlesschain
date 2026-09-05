@@ -2,6 +2,7 @@ import {
   EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   isEvolutionLedgerArtifactResolver,
+  captureEvolutionLedgerBatchResolver,
 } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -223,6 +224,7 @@ export class WikiMaintainerLedgerAdapter {
   #verifyLedger;
   #appendDomainEvent;
   #resolveArtifact;
+  #resolveArtifactBatch;
 
   constructor({
     descriptor,
@@ -249,6 +251,9 @@ export class WikiMaintainerLedgerAdapter {
       );
     }
     this.#resolveArtifact = ledgerArtifactResolver;
+    this.#resolveArtifactBatch = captureEvolutionLedgerBatchResolver(
+      ledgerArtifactResolver,
+    );
     Object.freeze(this);
     READERS.set(
       this,
@@ -319,7 +324,8 @@ export class WikiMaintainerLedgerAdapter {
     let source = sourceDigest === digestWikiState(state) ? state : null;
     const successors = [];
     let retainedBytes = 0;
-    for (const event of matches) {
+    let batch = [];
+    for (const [index, event] of matches.entries()) {
       const previous = latest;
       if (
         !Number.isSafeInteger(event.sequence) ||
@@ -333,7 +339,19 @@ export class WikiMaintainerLedgerAdapter {
       ) {
         fail(WIKI_LEDGER_CORRUPT_CODE, "Wiki ledger event lineage is invalid");
       }
-      const revision = this.#resolveEvent(event, tail);
+      // Four revisions at most (4 MiB of payload), retained only while this
+      // synchronous chunk is checked. Full index readback and fresh authority
+      // remain inside each batch; no snapshot survives this history read.
+      if (index % 4 === 0)
+        batch = this.#resolveArtifactBatch(
+          matches.slice(index, index + 4).map((item) => ({
+            epoch: tail.epoch,
+            ledgerId: tail.ledgerId,
+            ref: item.subjectRef,
+            tenantId: this.descriptor.artifactTenantId,
+          })),
+        );
+      const revision = this.#resolveEvent(event, tail, batch[index % 4]);
       const inView =
         checkpoint === null || event.sequence <= checkpoint.sequence;
       // Before durable maintenance requests, v1 genesis did not contain that
@@ -390,6 +408,13 @@ export class WikiMaintainerLedgerAdapter {
           revision,
           eventDigest: event.eventDigest,
           artifactRef: event.subjectRef,
+          predecessorHead: {
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            identityDigest: event.identityDigest,
+            sequence: event.sequence - 1,
+            headDigest: event.prevDigest,
+          },
         });
       } else if (inView && sourceDigest === revision.stateDigest) {
         source = revision.state;
@@ -415,13 +440,15 @@ export class WikiMaintainerLedgerAdapter {
     return { head, latest, state, viewState, source, successors };
   }
 
-  #resolveEvent(event, authority) {
-    const resolution = this.#resolveArtifact({
-      epoch: authority.epoch,
-      ledgerId: authority.ledgerId,
-      ref: event.subjectRef,
-      tenantId: this.descriptor.artifactTenantId,
-    });
+  #resolveEvent(event, authority, capturedResolution = null) {
+    const resolution =
+      capturedResolution ??
+      this.#resolveArtifact({
+        epoch: authority.epoch,
+        ledgerId: authority.ledgerId,
+        ref: event.subjectRef,
+        tenantId: this.descriptor.artifactTenantId,
+      });
     if (
       resolution?.ref !== event.subjectRef.ref ||
       resolution.digest !== event.subjectRef.digest

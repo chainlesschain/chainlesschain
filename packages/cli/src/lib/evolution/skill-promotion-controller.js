@@ -19,6 +19,7 @@ import {
   issueRegistryTransitionCapability,
 } from "./skill-registry-transition-capability.js";
 import { captureSkillPromotionReviewProvider } from "./skill-promotion-review.js";
+import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
 
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMPTY_ACTIVE_DOMAIN = "chainlesschain.skill-active/empty/v1\0";
@@ -47,6 +48,16 @@ const EVALUATED_CONTROL_PLANE_REQUIRED_KEYS = new Set([
 export const SKILL_EVALUATED_PROMOTION_CONTROL_PLANE_SCHEMA =
   "chainlesschain.skill-evaluated-promotion-control-plane/v1";
 const EVALUATED_PROMOTION_CONTROL_PLANES = new WeakSet();
+const ROLLBACK_PROVIDERS = new WeakMap();
+
+export function captureSkillRollbackProvider(value, releaseRegistry) {
+  const entry = ROLLBACK_PROVIDERS.get(value);
+  if (!entry || entry.registry !== releaseRegistry)
+    throw new TypeError(
+      "a branded rollback provider for the same release registry is required",
+    );
+  return entry.provider;
+}
 
 export class SkillPromotionControllerError extends Error {
   constructor(code, message, details = {}) {
@@ -544,6 +555,20 @@ export class SkillPromotionController {
       reviewBinding,
       memoryAuthorityReceipt,
     });
+  }
+
+  createRollbackProvider() {
+    captureSkillReleaseRegistryReader(this.#registryIdentity);
+    const provider = Object.freeze({
+      tenantId: this.#tenantId,
+      rollback: (input) =>
+        SkillPromotionController.prototype.rollback.call(this, input),
+    });
+    ROLLBACK_PROVIDERS.set(provider, {
+      registry: this.#registryIdentity,
+      provider,
+    });
+    return provider;
   }
 
   async rollback(input = {}) {

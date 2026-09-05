@@ -12,6 +12,7 @@ import {
   EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   EvolutionArtifactPorts,
+  captureEvolutionLedgerBatchResolver,
 } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
@@ -41,6 +42,17 @@ import {
 
 export const EVOLUTION_LEDGER_PORTS_INVALID_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_INVALID";
+const RELEASE_OPERATION_READERS = new WeakMap();
+
+// This read-only recovery surface is minted only alongside real Ledger ports.
+// Matching JSON, inherited methods or a caller-supplied query function cannot
+// establish that a release operation actually committed.
+export function captureSkillReleaseOperationReader(transactionLedger) {
+  const reader = RELEASE_OPERATION_READERS.get(transactionLedger);
+  if (!reader)
+    throw new TypeError("a branded release transaction ledger is required");
+  return reader;
+}
 export const EVOLUTION_LEDGER_PORTS_COLLISION_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_COLLISION";
 export const EVOLUTION_LEDGER_PORTS_CORRUPT_CODE =
@@ -1127,6 +1139,7 @@ class EvolutionLedgerDomainPorts {
   #appendDomainEvent;
   #artifactPut;
   #artifactResolve;
+  #artifactResolveBatch;
   #artifactTenantId;
   #audience;
   #durabilityAuthority;
@@ -1134,6 +1147,7 @@ class EvolutionLedgerDomainPorts {
   #durabilityRetain;
   #ledgerQuery;
   #ledgerRead;
+  #ledgerVerify;
   #ledgerVerifyReceipt;
   #purpose;
 
@@ -1161,6 +1175,9 @@ class EvolutionLedgerDomainPorts {
     this.#ledgerRead = Object.freeze(
       EvolutionLedger.prototype.read.bind(ledger),
     );
+    this.#ledgerVerify = Object.freeze(
+      EvolutionLedger.prototype.verify.bind(ledger),
+    );
     this.#ledgerVerifyReceipt = Object.freeze(
       EvolutionLedger.prototype.verifyReceipt.bind(ledger),
     );
@@ -1172,6 +1189,9 @@ class EvolutionLedgerDomainPorts {
         artifactPorts,
         Object.freeze({ purpose: this.#purpose }),
       );
+    this.#artifactResolveBatch = captureEvolutionLedgerBatchResolver(
+      this.#artifactResolve,
+    );
     Object.freeze(this);
   }
 
@@ -1452,26 +1472,32 @@ class EvolutionLedgerDomainPorts {
     return ref;
   }
 
-  #resolveSubject(event, expectedType, expectedAudience = null) {
+  #resolveSubject(
+    event,
+    expectedType,
+    expectedAudience = null,
+    capturedResolution = null,
+  ) {
     const ref = normalizeArtifactRef(
       event.subjectRef,
       "domain event subjectRef",
       EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
     );
     const durable = this.#resolveDurably(ref, expectedType);
-    let resolution = null;
+    let resolution = capturedResolution;
     try {
-      resolution = assertSynchronous(
-        this.#artifactResolve(
-          deepFreeze({
-            epoch: event.epoch,
-            ledgerId: event.ledgerId,
-            ref,
-            tenantId: this.#artifactTenantId,
-          }),
-        ),
-        "artifact resolver result",
-      );
+      if (resolution === null)
+        resolution = assertSynchronous(
+          this.#artifactResolve(
+            deepFreeze({
+              epoch: event.epoch,
+              ledgerId: event.ledgerId,
+              ref,
+              tenantId: this.#artifactTenantId,
+            }),
+          ),
+          "artifact resolver result",
+        );
     } catch {
       // A removed/corrupt local cache is recoverable only through the trusted
       // durability authority's exact canonical-byte replica above.
@@ -1698,7 +1724,40 @@ class EvolutionLedgerDomainPorts {
   }
 
   #snapshot() {
-    return this.#indexSnapshot(this.#events());
+    const snapshot = this.#indexSnapshot(this.#events());
+    const types = new Set([
+      EVENT_TYPES.prepare,
+      EVENT_TYPES.finalize,
+      EVENT_TYPES.migration,
+      EVENT_TYPES.audit,
+    ]);
+    const subjects = new Map();
+    for (const event of snapshot.events) {
+      if (types.has(event.type)) subjects.set(event.subjectRef.ref, event);
+      // Bound retained byte buffers independently of total ledger size. Larger
+      // histories keep the existing individually verified streaming path.
+      if (subjects.size > 16) return snapshot;
+    }
+    if (subjects.size) {
+      const events = [...subjects.values()];
+      try {
+        const results = this.#artifactResolveBatch(
+          events.map((event) => ({
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            ref: event.subjectRef,
+            tenantId: this.#artifactTenantId,
+          })),
+        );
+        snapshot.localResolutions = new Map(
+          events.map((event, index) => [event.subjectRef.ref, results[index]]),
+        );
+      } catch {
+        // As on individual reads, a missing local cache may recover only from
+        // the independently authenticated exact-byte durability authority.
+      }
+    }
+    return snapshot;
   }
 
   #snapshotWithVerifiedEvent(snapshot, verification) {
@@ -1743,7 +1802,12 @@ class EvolutionLedgerDomainPorts {
     const cacheKey = `${expectedType}\0${expectedAudience ?? ""}\0${ref.ref}\0${ref.digest}`;
     let record = snapshot.subjects.get(cacheKey);
     if (!record) {
-      record = this.#resolveSubject(event, expectedType, expectedAudience);
+      record = this.#resolveSubject(
+        event,
+        expectedType,
+        expectedAudience,
+        snapshot.localResolutions?.get(ref.ref) ?? null,
+      );
       snapshot.subjects.set(cacheKey, record);
     }
     return record;
@@ -2560,6 +2624,195 @@ class EvolutionLedgerDomainPorts {
     return this.#committedProjection(finalized, lineages);
   }
 
+  resolveReleaseOperation(inputValue) {
+    const input = frozenCanonicalClone(inputValue);
+    assertAllExactRecord(
+      input,
+      new Set(["tenantId", "skillName", "operationId", "context"]),
+      "release operation query",
+    );
+    const tenantId = identifier(input.tenantId, "tenantId");
+    const name = skillName(input.skillName, "skillName");
+    const operationId = identifier(input.operationId, "operationId");
+    const context = input.context;
+    assertAllExactRecord(
+      context,
+      new Set(["mode", "checkpoint"]),
+      "release operation context",
+    );
+    const keys = [
+      "epoch",
+      "ledgerId",
+      "identityDigest",
+      "sequence",
+      "headDigest",
+    ];
+    assertAllExactRecord(
+      context.checkpoint,
+      new Set(keys),
+      "release operation checkpoint",
+    );
+    if (!["current", "checkpoint"].includes(context.mode))
+      throw new TypeError("invalid release operation mode");
+    const snapshot = this.#snapshot();
+    const tail = snapshot.events.at(-1);
+    const head = tail
+      ? { ...tail, headDigest: tail.eventDigest }
+      : this.#ledgerVerify();
+    if (
+      snapshot.events.length !== head.sequence ||
+      snapshot.events.some((event) =>
+        ["epoch", "ledgerId", "identityDigest"].some(
+          (key) => event[key] !== head[key],
+        ),
+      )
+    )
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release operation snapshot is not the full current ledger",
+      );
+    const checkpoint = context.checkpoint;
+    const historical =
+      checkpoint.sequence === 0
+        ? null
+        : snapshot.bySequence.get(checkpoint.sequence);
+    if (
+      !Number.isSafeInteger(checkpoint.sequence) ||
+      checkpoint.sequence < 0 ||
+      checkpoint.sequence > head.sequence ||
+      ["epoch", "ledgerId", "identityDigest"].some(
+        (key) => checkpoint[key] !== head[key],
+      ) ||
+      checkpoint.headDigest !== (historical?.eventDigest ?? null) ||
+      (context.mode === "current" &&
+        keys.some((key) => checkpoint[key] !== head[key]))
+    ) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release operation checkpoint differs from the authenticated ledger",
+      );
+    }
+    // Authenticate the whole present lineage even for a historical query, then
+    // derive the exact as-of prefix. A later finalize cannot prove an earlier ack.
+    const prepareCache = new Map();
+    const presentLineages = this.#lineages(snapshot, prepareCache);
+    const prefix = this.#indexSnapshot(
+      snapshot.events.slice(0, checkpoint.sequence),
+      snapshot.subjects,
+    );
+    // Reuse only work authenticated in THIS read, and only when all release
+    // events and their consumed authority precede the requested checkpoint.
+    // Unrelated later Wiki/journal events do not change the release lineage.
+    // A later prepare/finalize/migration still forces exact prefix replay.
+    const unchangedReleaseHistory =
+      !snapshot.events
+        .slice(checkpoint.sequence)
+        .some((event) =>
+          [
+            EVENT_TYPES.prepare,
+            EVENT_TYPES.finalize,
+            EVENT_TYPES.migration,
+          ].includes(event.type),
+        ) &&
+      [...prepareCache.values()].every((entry) =>
+        prefix.byEventId.has(entry.consumeAudit.event.eventId),
+      );
+    const lineages = unchangedReleaseHistory
+      ? presentLineages
+      : this.#lineages(prefix);
+    const prepared = [];
+    for (const event of prefix.events) {
+      if (event.type !== EVENT_TYPES.prepare) continue;
+      const cached = prepareCache.get(event.eventId);
+      const entry =
+        cached && prefix.byEventId.has(cached.consumeAudit.event.eventId)
+          ? cached
+          : this.#prepareFromSnapshot(prefix, event);
+      if (
+        entry.intent.mutationRequest.tenantId === tenantId &&
+        entry.intent.skillName === name &&
+        entry.intent.operationId === operationId
+      )
+        prepared.push(entry);
+    }
+    if (prepared.length > 1)
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release operation has multiple transaction intents",
+      );
+    let result = null;
+    if (prepared.length === 1) {
+      const entry = prepared[0];
+      const groupKey = `${tenantId}\0${name}`;
+      const baseline = lineages.migrations.get(groupKey)?.migration.state;
+      let previous = baseline
+        ? {
+            revision: baseline.revision,
+            stateDigest: baseline.stateDigest,
+            activeReleaseDigest: baseline.activeReleaseDigest,
+            lastKnownGoodReleaseDigest: baseline.lastKnownGoodReleaseDigest,
+          }
+        : {
+            revision: 0,
+            stateDigest: null,
+            activeReleaseDigest: null,
+            lastKnownGoodReleaseDigest: null,
+          };
+      for (const prior of lineages.groups.get(groupKey) ?? []) {
+        if (prior.finalization.revision > entry.intent.expectedRevision) break;
+        const intent = prior.prepared.intent;
+        if (
+          intent.operation === "rollback" &&
+          intent.targetReleaseDigest !== previous.lastKnownGoodReleaseDigest
+        )
+          throw portsError(
+            EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+            "historical rollback does not target the last-known-good release",
+          );
+        previous = {
+          revision: prior.finalization.revision,
+          stateDigest: prior.finalization.stateDigest,
+          activeReleaseDigest: intent.targetReleaseDigest,
+          lastKnownGoodReleaseDigest:
+            intent.operation === "promote"
+              ? (previous.activeReleaseDigest ?? intent.targetReleaseDigest)
+              : intent.targetReleaseDigest,
+        };
+      }
+      if (
+        previous.revision !== entry.intent.expectedRevision ||
+        previous.stateDigest !== entry.intent.previousStateDigest
+      )
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "release operation has no exact predecessor",
+        );
+      const finalized = lineages.byTransaction.get(entry.intent.transactionId);
+      result = {
+        intent: entry.intent,
+        previous,
+        projection: finalized
+          ? this.#committedProjection(finalized, lineages)
+          : this.#prepareProjection(entry),
+      };
+    }
+    const fresh = this.#ledgerVerify();
+    if (keys.some((key) => fresh[key] !== head[key]))
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "release operation ledger changed during verification",
+      );
+    return deepFreeze({
+      authenticated: true,
+      durable: true,
+      tenantId,
+      skillName: name,
+      operationId,
+      checkpoint: { ...checkpoint },
+      result,
+    });
+  }
+
   appendAudit(input) {
     const value = frozenCanonicalClone(input);
     const audit = verifySkillMutationAuditEvent(value);
@@ -3015,10 +3268,24 @@ export function createEvolutionLedgerPorts(options = {}) {
   const query = Object.freeze((transactionId) => adapter.query(transactionId));
   const append = Object.freeze((event) => adapter.appendAudit(event));
   const claim = Object.freeze((nonce) => adapter.claimNonce(nonce));
+  const transactionLedger = Object.freeze({
+    finalize,
+    migrate,
+    prepare,
+    query,
+  });
+  RELEASE_OPERATION_READERS.set(
+    transactionLedger,
+    Object.freeze({
+      resolveOperation: Object.freeze((input) =>
+        adapter.resolveReleaseOperation(input),
+      ),
+    }),
+  );
   return Object.freeze({
     auditSink: Object.freeze({ append }),
     nonceStore: Object.freeze({ claim }),
-    transactionLedger: Object.freeze({ finalize, migrate, prepare, query }),
+    transactionLedger,
   });
 }
 

@@ -120,9 +120,9 @@ function replicaAuthority(root) {
   };
 }
 
-function execution(generation) {
+function execution(generation, tenantId = TENANT) {
   const dependencyLock = buildSkillDependencyLock({
-    tenantId: TENANT,
+    tenantId,
     lock: {
       generation,
       packages: {
@@ -131,7 +131,7 @@ function execution(generation) {
     },
   });
   const runtimeManifest = buildSkillRuntimeManifest({
-    tenantId: TENANT,
+    tenantId,
     runtimes: [
       {
         runtimeId: "cli",
@@ -152,7 +152,7 @@ function execution(generation) {
     },
   ];
   const targetMatrix = buildSkillTargetMatrix({
-    tenantId: TENANT,
+    tenantId,
     dependencyLock,
     runtimeManifest,
     cells,
@@ -166,17 +166,24 @@ export async function openRevocationReleaseRegistry({
   fsImpl,
   seed = false,
   crashPoint = "none",
+  tenantId = TENANT,
+  artifactTenantId = ARTIFACT_TENANT,
+  candidateEvidenceRefs = null,
+  baselineEvidenceRefs = null,
 }) {
   const ports = createEvolutionLedgerPorts({
     artifactDurabilityAuthority: replicaAuthority(
       join(root, "release-replica"),
     ),
     artifactPorts: storage.artifactPorts,
-    artifactTenantId: ARTIFACT_TENANT,
+    artifactTenantId: artifactTenantId,
     audience: "evolution-runtime",
     ledger: storage.backend.ledger,
   });
-  const plans = [execution("baseline"), execution("candidate")];
+  const plans = [
+    execution("baseline", tenantId),
+    execution("candidate", tenantId),
+  ];
   const admission = {
     schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
     authorityId: "authority:revocation-test-admission",
@@ -188,7 +195,7 @@ export async function openRevocationReleaseRegistry({
         ({ targetMatrix }) =>
           targetMatrix.targetMatrixRoot === request.proposedTargetMatrixRoot,
       );
-      if (!plan || request.tenantId !== TENANT || request.skillName !== SKILL)
+      if (!plan || request.tenantId !== tenantId || request.skillName !== SKILL)
         return false;
       return {
         authorityId: admission.authorityId,
@@ -197,7 +204,7 @@ export async function openRevocationReleaseRegistry({
         handlerArtifactDigest: admission.handlerArtifactDigest,
         schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
         admitted: true,
-        tenantId: TENANT,
+        tenantId: tenantId,
         skillName: SKILL,
         dependencyLockDigest: plan.dependencyLock.dependencyLockDigest,
         runtimeManifestDigest: plan.runtimeManifest.runtimeManifestDigest,
@@ -207,13 +214,13 @@ export async function openRevocationReleaseRegistry({
     },
   };
   const candidates = new SkillCandidateRegistry({
-    tenantId: TENANT,
+    tenantId: tenantId,
     rootDir: join(root, "release-candidates"),
     targetMatrixAdmissionAuthority: admission,
     secure: false,
   });
   const releases = new SkillReleaseRegistry({
-    tenantId: TENANT,
+    tenantId: tenantId,
     rootDir: join(root, "skill-releases"),
     transactionLedger: ports.transactionLedger,
     fsImpl,
@@ -292,7 +299,7 @@ export async function openRevocationReleaseRegistry({
       current?.release.contentDigest ?? EMPTY_SKILL_ACTIVE_DIGEST;
     const expectedTargetRevision = current?.state.revision ?? 0;
     return buildSkillMutationRequest({
-      tenantId: TENANT,
+      tenantId: tenantId,
       audience: "evolution-runtime",
       operationId,
       operation,
@@ -301,7 +308,7 @@ export async function openRevocationReleaseRegistry({
       expectedTargetDigest,
       expectedTargetRevision,
       transitionSubjectDigest: digestSkillMutationTransitionSubject({
-        tenantId: TENANT,
+        tenantId: tenantId,
         skillName: SKILL,
         operation,
         candidateId: candidate?.candidateId ?? null,
@@ -326,10 +333,12 @@ export async function openRevocationReleaseRegistry({
       const current = releases.readActive(SKILL);
       const generation = index === 0 ? "baseline" : "candidate";
       const { candidate } = candidates.create({
-        tenantId: TENANT,
+        tenantId: tenantId,
         skillName: SKILL,
         parentDigest: current?.release.contentDigest ?? null,
-        sourceEvidenceRefs: [
+        sourceEvidenceRefs: (index === 0
+          ? baselineEvidenceRefs
+          : candidateEvidenceRefs) ?? [
           {
             ref: `recording://revocation/${generation}`,
             digest: D(generation),
@@ -368,7 +377,7 @@ export async function openRevocationReleaseRegistry({
         const resolved = storage.resolver({
           epoch: identity.epoch,
           ledgerId: identity.ledgerId,
-          tenantId: ARTIFACT_TENANT,
+          tenantId: artifactTenantId,
           ref: event.subjectRef,
         });
         return JSON.parse(resolved.bytes.toString("utf8")).value;
@@ -388,6 +397,23 @@ export async function openRevocationReleaseRegistry({
     baseline,
     candidateRelease,
     readActive: () => releases.readActive(SKILL),
+    pruningRollbackOptions: {
+      tenantId,
+      releaseRegistry: releases,
+      transactionLedger: ports.transactionLedger,
+      rollbackProvider: controller.createRollbackProvider(),
+      authorizationProvider: {
+        async authorizeRollback(expected) {
+          const request = requestFor({
+            operation: "rollback",
+            operationId: expected.operationId,
+            target: releases.readRelease(expected.targetReleaseDigest),
+            current: releases.readActive(SKILL),
+          });
+          return { request, capability: await authority.authorize(request) };
+        },
+      },
+    },
     async rollback(pilotRequestDigest) {
       const operationId = `pilot-rollback:${pilotRequestDigest.slice(7)}`;
       let current = releases.readActive(SKILL);

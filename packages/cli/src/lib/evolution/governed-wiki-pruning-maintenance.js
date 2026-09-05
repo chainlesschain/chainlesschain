@@ -5,6 +5,7 @@ import {
 } from "./evidence-backed-wiki-maintainer.js";
 import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 import { captureWikiPruningJournalStore } from "./governed-wiki-pruning-ledger-adapter.js";
+import { captureWikiPruningSkillRollback } from "./governed-wiki-pruning-skill-rollback.js";
 import {
   capturePruningData,
   pruningCanonical,
@@ -17,6 +18,8 @@ export const WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA =
   "chainlesschain.wiki-pruning-maintenance-receipt/v1";
 export const WIKI_PRUNING_DEPENDENCY_RECEIPT_SCHEMA =
   "chainlesschain.wiki-pruning-dependency-receipt/v1";
+export const WIKI_PRUNING_ROLLBACK_DEPENDENCY_RECEIPT_SCHEMA =
+  "chainlesschain.wiki-pruning-dependency-receipt/v2";
 const RULES = Object.freeze({
   schema: "chainlesschain.wiki-pruning-maintenance-rules/v1",
   reducer:
@@ -40,6 +43,15 @@ const DEPENDENCY_RULES = Object.freeze({
 const DEPENDENCY_RULES_DIGEST = pruningDigest(
   DEPENDENCY_RULES.schema,
   DEPENDENCY_RULES,
+);
+const ROLLBACK_RULES = Object.freeze({
+  ...DEPENDENCY_RULES,
+  schema: "chainlesschain.wiki-pruning-dependency-rules/v2",
+  disposition: "verified-same-ledger-release-rollback-before-tombstone",
+});
+const ROLLBACK_RULES_DIGEST = pruningDigest(
+  ROLLBACK_RULES.schema,
+  ROLLBACK_RULES,
 );
 const HEAD_KEYS = [
   "epoch",
@@ -83,15 +95,22 @@ function matchHead(expected, actual) {
 }
 
 // Owns Wiki-only dependency tombstones and the later maintenance operation.
-// Skill rollback is deliberately unsupported: a Wiki tombstone is NOT proof of
-// an active release rollback. Key destruction and retrieval need their own
-// independently verified providers. No Raw, shell, network or Skill-write access.
+// Skill rollback requires a branded real ReleaseRegistry provider: a Wiki
+// tombstone is NOT proof of a release rollback. Key destruction and retrieval
+// need their own independently verified providers. The Maintainer reducer has
+// no Raw/shell/network/Skill-write access; release effects are delegated only
+// through the separately authorized branded rollback provider.
 export class GovernedWikiPruningMaintenance {
   #reader;
   #commit;
   #maintainerDescriptor;
+  #rollback;
 
-  constructor({ descriptor, wikiLedgerAdapter } = {}) {
+  constructor({
+    descriptor,
+    wikiLedgerAdapter,
+    skillRollbackProvider = null,
+  } = {}) {
     this.#reader = captureWikiRevisionReader(wikiLedgerAdapter);
     if (
       descriptor?.tenantId !== this.#reader.descriptor.tenantId ||
@@ -109,6 +128,13 @@ export class GovernedWikiPruningMaintenance {
     // This is an own, frozen arrow function on a branded adapter, not a virtual
     // subclass method or a caller-supplied acknowledgement function.
     this.#commit = wikiLedgerAdapter.commitRevision;
+    this.#rollback =
+      skillRollbackProvider === null
+        ? null
+        : captureWikiPruningSkillRollback(
+            skillRollbackProvider,
+            descriptor.tenantId,
+          );
     this.#maintainerDescriptor = Object.freeze({
       tenantId: this.descriptor.tenantId,
       evolutionRunId: this.descriptor.evolutionRunId,
@@ -135,9 +161,11 @@ export class GovernedWikiPruningMaintenance {
         typeof disposition !== "object" ||
         Array.isArray(disposition) ||
         Object.keys(disposition).length !== 4 ||
-        disposition.action !== "tombstone" ||
+        !["tombstone", "rollback"].includes(disposition.action) ||
         !Array.isArray(disposition.skillNames) ||
-        disposition.skillNames.length !== 0 ||
+        (disposition.action === "tombstone"
+          ? disposition.skillNames.length !== 0
+          : !this.#rollback || disposition.skillNames.length === 0) ||
         typeof disposition.patternId !== "string" ||
         !disposition.patternId.trim() ||
         !evidenceRefs.has(disposition.evidenceRef)
@@ -152,7 +180,12 @@ export class GovernedWikiPruningMaintenance {
       patternId,
       reason: "privacy-deletion-dependency",
     }));
-    return this.#batches(operations, pruningOperationCalls(plan)[0], true);
+    const rollback = plan.dependencyDispositions.some(
+      (item) => item.action === "rollback",
+    );
+    return this.#batches(operations, pruningOperationCalls(plan)[0], true).map(
+      (part) => ({ ...part, rollback }),
+    );
   }
   #batches(operations, call, dependency = false) {
     const count = Math.ceil(operations.length / RULES.batchSize);
@@ -206,12 +239,15 @@ export class GovernedWikiPruningMaintenance {
     return Object.freeze({
       requestDigests: ({ plan }) =>
         this.#parts(this.#plan(plan)).map((part) => part.requestDigest),
-      verifySuccessors: ({ plan, history }) =>
-        this.#verifySuccessors(this.#plan(plan), history),
+      verifySuccessors: ({ plan, history, context }) =>
+        this.#verifySuccessors(this.#plan(plan), history, context),
     });
   }
   operationReceiptVerifier() {
-    return Object.freeze({ verify: (input) => this.#verifyReceipt(input) });
+    return Object.freeze({
+      verify: (input) => this.#verifyReceipt(input),
+      verifyMany: (inputs) => this.#verifyReceipts(inputs),
+    });
   }
 
   async #derive(plan, source, part) {
@@ -229,9 +265,12 @@ export class GovernedWikiPruningMaintenance {
       descriptor: part.dependency
         ? {
             ...this.#maintainerDescriptor,
-            maintainerModel:
-              "deterministic:governed-wiki-pruning-dependency/v1",
-            rulesDigest: DEPENDENCY_RULES_DIGEST,
+            maintainerModel: part.rollback
+              ? "deterministic:governed-wiki-pruning-dependency/v2"
+              : "deterministic:governed-wiki-pruning-dependency/v1",
+            rulesDigest: part.rollback
+              ? ROLLBACK_RULES_DIGEST
+              : DEPENDENCY_RULES_DIGEST,
           }
         : this.#maintainerDescriptor,
       policy: POLICY,
@@ -289,8 +328,31 @@ export class GovernedWikiPruningMaintenance {
     });
   }
 
-  async #verifySuccessors(plan, history) {
+  #rollbackInput(plan, history, context) {
+    const captured = context ?? {
+      mode: "current",
+      checkpoint: Object.fromEntries(
+        HEAD_KEYS.map((key) => [key, history.ledgerHead[key]]),
+      ),
+    };
+    return {
+      plan,
+      source: history.source,
+      context: captured,
+      requireCurrent: captured.mode === "current",
+    };
+  }
+  #hasRollback(plan) {
+    return plan.dependencyDispositions.some(
+      (item) => item.action === "rollback",
+    );
+  }
+  async #verifySuccessors(plan, history, context) {
+    return (await this.#replay(plan, history, context)).valid;
+  }
+  async #replay(plan, history, context) {
     const parts = this.#parts(plan);
+    let rollbacks = null;
     if (
       history?.authenticated !== true ||
       history.tenantId !== plan.tenantId ||
@@ -299,21 +361,36 @@ export class GovernedWikiPruningMaintenance {
       !Array.isArray(history.successors) ||
       history.successors.length > parts.length
     )
-      return false;
+      return { valid: false, rollbacks };
+    if (history.successors.length > 0 && this.#hasRollback(plan)) {
+      // Prove rollback BEFORE the first dependent Wiki revision, not merely
+      // before today's read or a later journal checkpoint. Current executions
+      // separately retain the actual active-pointer readback requirement.
+      rollbacks = this.#rollback.verify({
+        ...this.#rollbackInput(plan, history, context),
+        context: {
+          mode: "checkpoint",
+          checkpoint: history.successors[0].predecessorHead,
+        },
+      });
+      if (rollbacks === null) return { valid: false, rollbacks };
+    }
     let source = history.source;
     for (const [index, entry] of history.successors.entries()) {
       const expected = await this.#derive(plan, source, parts[index]);
-      if (!same(expected, entry.revision)) return false;
+      if (!same(expected, entry.revision)) return { valid: false, rollbacks };
       source = {
         trusted: true,
         state: expected.state,
         stateDigest: expected.stateDigest,
       };
     }
-    return (
-      history.current?.stateDigest === source.stateDigest &&
-      same(history.current.state, source.state)
-    );
+    return {
+      valid:
+        history.current?.stateDigest === source.stateDigest &&
+        same(history.current.state, source.state),
+      rollbacks,
+    };
   }
 
   #history(plan, context = null) {
@@ -345,7 +422,7 @@ export class GovernedWikiPruningMaintenance {
     return history;
   }
 
-  #receipt(plan, history, operationIndex) {
+  #receipt(plan, history, operationIndex, rollbacks = null) {
     const dependencyCount = this.#dependencyParts(plan).length;
     const start = operationIndex === 0 ? 0 : dependencyCount;
     const end =
@@ -360,7 +437,9 @@ export class GovernedWikiPruningMaintenance {
         : history.successors[end - 1].revision.stateDigest;
     const schema =
       operationIndex === 0
-        ? WIKI_PRUNING_DEPENDENCY_RECEIPT_SCHEMA
+        ? this.#hasRollback(plan)
+          ? WIKI_PRUNING_ROLLBACK_DEPENDENCY_RECEIPT_SCHEMA
+          : WIKI_PRUNING_DEPENDENCY_RECEIPT_SCHEMA
         : WIKI_PRUNING_MAINTENANCE_RECEIPT_SCHEMA;
     const core = {
       schema,
@@ -371,7 +450,11 @@ export class GovernedWikiPruningMaintenance {
       requestDigest: pruningOperationCalls(plan)[operationIndex].requestDigest,
       planDigest: plan.planDigest,
       rulesDigest:
-        operationIndex === 0 ? DEPENDENCY_RULES_DIGEST : RULES_DIGEST,
+        operationIndex === 0
+          ? this.#hasRollback(plan)
+            ? ROLLBACK_RULES_DIGEST
+            : DEPENDENCY_RULES_DIGEST
+          : RULES_DIGEST,
       sourceStateDigest,
       resultStateDigest,
       mode: start === end ? "noop" : "revisions",
@@ -391,43 +474,70 @@ export class GovernedWikiPruningMaintenance {
           artifactRef,
         })),
     };
+    if (operationIndex === 0 && this.#hasRollback(plan)) {
+      core.rollbacks = rollbacks;
+      if (core.rollbacks === null)
+        fail("dependency receipt has no committed release rollback");
+    }
     return capturePruningData({
       ...core,
       receiptDigest: pruningDigest(schema, core),
     });
   }
 
-  async #verifyReceipt({
-    plan: input,
-    request,
-    requestDigest,
-    receipt: inputReceipt,
-    tenantId,
-    streamId,
-    context,
-  } = {}) {
+  #verifyReceipt(input) {
+    return this.#verifyReceipts([input]);
+  }
+
+  async #verifyReceipts(values) {
+    const inputs = capturePruningData(values);
+    if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 2)
+      fail("Wiki receipt batch must contain one or two operations");
+    const { plan: input, tenantId, streamId, context } = inputs[0];
     if (
       tenantId !== this.descriptor.tenantId ||
       streamId !== this.descriptor.streamId
     )
       return false;
     const plan = this.#plan(input);
-    const call = capturePruningData({ request, requestDigest });
-    const receipt = capturePruningData(inputReceipt);
-    const operationIndex =
-      call.request.operation === "dependency-dispositions" ? 0 : 1;
-    if (!same(call, pruningOperationCalls(plan)[operationIndex])) return false;
     const history = this.#history(plan, context);
-    if (
-      (operationIndex === 0
-        ? history.successors.length < this.#dependencyParts(plan).length
-        : history.successors.length !== this.#parts(plan).length) ||
-      !(await this.#verifySuccessors(plan, history))
-    )
-      return false;
-    // Regenerate from authenticated artifacts/events and deterministic replay,
-    // not the receipt's flags, self-digest or an in-memory idempotency map.
-    return same(receipt, this.#receipt(plan, history, operationIndex));
+    const replay = await this.#replay(plan, history, context);
+    const seen = new Set();
+    for (const value of inputs) {
+      if (
+        value.tenantId !== tenantId ||
+        value.streamId !== streamId ||
+        !same(value.plan, plan) ||
+        !same(value.context ?? null, context ?? null)
+      )
+        return false;
+      const call = {
+        request: value.request,
+        requestDigest: value.requestDigest,
+      };
+      const operationIndex =
+        call.request.operation === "dependency-dispositions" ? 0 : 1;
+      if (
+        seen.has(operationIndex) ||
+        !same(call, pruningOperationCalls(plan)[operationIndex])
+      )
+        return false;
+      seen.add(operationIndex);
+      if (
+        (operationIndex === 0
+          ? history.successors.length < this.#dependencyParts(plan).length
+          : history.successors.length !== this.#parts(plan).length) ||
+        !replay.valid ||
+        !same(
+          value.receipt,
+          this.#receipt(plan, history, operationIndex, replay.rollbacks),
+        )
+      )
+        return false;
+    }
+    // One authenticated history/replay proves both exact receipts, with no
+    // proof or authority cached for another read/checkpoint.
+    return true;
   }
 
   createProvider(journalStore) {
@@ -445,7 +555,11 @@ export class GovernedWikiPruningMaintenance {
 
   async #apply(journal, input, operationIndex) {
     const call = capturePruningData(input);
-    for (let attempt = 0; attempt <= 4096 / RULES.batchSize; attempt++) {
+    for (
+      let attempt = 0;
+      attempt <= (this.#rollback ? 4096 : 0) + 4096 / RULES.batchSize;
+      attempt++
+    ) {
       const resolution = await journal.load({
         tenantId: this.descriptor.tenantId,
       });
@@ -480,8 +594,36 @@ export class GovernedWikiPruningMaintenance {
       const history = this.#history(plan);
       if (!matchHead(resolution.ledgerHead, history.ledgerHead))
         fail("Wiki pruning authorization changed before the effect");
-      if (!(await this.#verifySuccessors(plan, history)))
+      const replay = await this.#replay(plan, history);
+      if (!replay.valid)
         fail("Wiki pruning committed effects differ from deterministic replay");
+      if (
+        operationIndex === 0 &&
+        this.#hasRollback(plan) &&
+        history.successors.length === 0
+      ) {
+        const result = await this.#rollback.apply(
+          this.#rollbackInput(plan, history),
+          async () => {
+            const latest = await journal.load({
+              tenantId: this.descriptor.tenantId,
+            });
+            if (
+              latest.state?.plan.planDigest !== plan.planDigest ||
+              latest.state.phase !== "prepared" ||
+              latest.state.operationReceipts.length !== 0
+            )
+              fail(
+                "pruning journal changed while authorizing release rollback",
+              );
+            const fresh = this.#history(plan);
+            if (!matchHead(latest.ledgerHead, fresh.ledgerHead))
+              fail("pruning rollback authorization head changed");
+            return this.#rollbackInput(plan, fresh);
+          },
+        );
+        if (result.changed) continue;
+      }
       const parts = this.#parts(plan);
       const end =
         operationIndex === 0
@@ -492,7 +634,7 @@ export class GovernedWikiPruningMaintenance {
           "Wiki pruning effects advanced beyond the journal dependency frontier",
         );
       if (history.successors.length === end)
-        return this.#receipt(plan, history, operationIndex);
+        return this.#receipt(plan, history, operationIndex, replay.rollbacks);
       const next = await this.#derive(
         plan,
         history.current,
