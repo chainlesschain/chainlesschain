@@ -18,6 +18,8 @@
 
 两个 reader 独立重新读取真实发布字节、依赖锁与实际事务证明，不能用相同 JSON 对象模拟“独立验证”。同一机器上两个实例并不等于独立主机故障域。
 
+文件部署可使用 `createEvolutionWorkbenchControlPorts` 构造实际同账本 mutation authority 和仅供回滚的 controller 端口，见[启动合同中的控制端口](EVOLUTION_WORKBENCH_STARTUP.md#真实回滚控制端口)。它不接受调用方直接构造的 expected JSON，只消费本适配器在当前认证 preparation 上临时生成、绑定确切 Registry/Ledger 的一次性上下文；旧外部 authority 的字段合同不变，回调结束后临时标记失效，重启仍按持久证据重新验证。真实 principal/receipt verifier、五种外部回执与真人签名仍须由部署提供，不由工厂生成。
+
 ## 人工授权与 mutation 绑定
 
 人工服务接收 `{ plan }`，返回以下精确字段，不能添加“authenticated”等自报成功字段：

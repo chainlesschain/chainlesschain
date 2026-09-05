@@ -12,10 +12,13 @@ import { workbenchRuntimeOptions } from "../../fixtures/evolution-workbench-runt
 import { createHash } from "node:crypto";
 import { openEvolutionWorkbenchFileResources } from "../../../src/lib/evolution/evolution-workbench-file-resources.js";
 import { workbenchFileResourceOptions } from "../../fixtures/evolution-workbench-file-resources.js";
+import { workbenchControlOptions } from "../../fixtures/evolution-workbench-control-ports.js";
+import { createEvolutionWorkbenchControlPorts } from "../../../src/lib/evolution/evolution-workbench-control-ports.js";
+import { EvolutionWorkbenchRollbackLedgerAdapter } from "../../../src/lib/evolution/evolution-workbench-rollback-ledger-adapter.js";
 
 const [root, mode, phase] = process.argv.slice(2);
 const fileOptions =
-  mode === "startup"
+  mode !== "seed"
     ? workbenchFileResourceOptions(root, {
         tenantId: "tenant:workbench-rollback",
         streamId: "workbench-rollback",
@@ -63,6 +66,22 @@ const h = await openWorkbenchRollbackStore(root, {
       await killAtCheckpoint();
   },
 });
+if (fileResources) {
+  const controls = createEvolutionWorkbenchControlPorts(
+    workbenchControlOptions(h, fileResources),
+  );
+  h.adapterOptions = {
+    ...h.adapterOptions,
+    ...controls,
+    authorizationProvider: {
+      async authorizeRollback(expected) {
+        h.mutationRequests.push(expected);
+        return controls.authorizationProvider.authorizeRollback(expected);
+      },
+    },
+  };
+  h.adapter = new EvolutionWorkbenchRollbackLedgerAdapter(h.adapterOptions);
+}
 let resumed = [];
 let startupRecovery = null;
 if (mode === "seed") {

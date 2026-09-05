@@ -32,6 +32,10 @@ const fileOptionsUrl = new URL(
   "../fixtures/evolution-workbench-file-resources.js",
   import.meta.url,
 ).href;
+const controlOptionsUrl = new URL(
+  "../fixtures/evolution-workbench-control-ports.js",
+  import.meta.url,
+).href;
 
 function runCli(args, env, root, executable = bin) {
   const result = spawnSync(process.execPath, [executable, ...args], {
@@ -159,7 +163,9 @@ it("loads a signed deployment in real CLI and stdio App Server processes, retain
       });
       const fileResources = factories.openEvolutionWorkbenchFileResources(options);
       const h = await openWorkbenchRollbackStore(${JSON.stringify(storeRoot)}, { fileResources, fsImpl: options.fsImpl, handlerArtifactDigest: descriptor.moduleDigest });
-      const runtime = await factories.createEvolutionWorkbenchRuntime(workbenchRuntimeOptions(h, { identityProvider: workbenchTestIdentity(h, ${JSON.stringify(storeRoot)}) }));
+      const { workbenchControlOptions } = await import(${JSON.stringify(controlOptionsUrl)});
+      const controls = factories.createEvolutionWorkbenchControlPorts(workbenchControlOptions(h, fileResources));
+      const runtime = await factories.createEvolutionWorkbenchRuntime(workbenchRuntimeOptions(h, { ...controls, identityProvider: workbenchTestIdentity(h, ${JSON.stringify(storeRoot)}) }));
       return commandName === "serve" ? { evolutionWorkbenchHost: runtime.workbenchHost } : { workbenchHost: runtime.workbenchHost };
     }\n`;
     const modulePath = path.join(root, "test-deployment.mjs");

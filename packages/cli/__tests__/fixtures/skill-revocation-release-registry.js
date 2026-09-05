@@ -161,6 +161,65 @@ function execution(generation, tenantId = TENANT) {
   return { dependencyLock, runtimeManifest, targetMatrix, cells };
 }
 
+// Explicit TEST identity/receipt authorities, separated from storage and the
+// production mutation-request builder. These are not production PKI adapters.
+export function revocationTestMutationAuthorities() {
+  return {
+    principalResolver: {
+      async resolve({ request }) {
+        return {
+          schema: SKILL_MUTATION_PRINCIPAL_SCHEMA,
+          authenticated: true,
+          principalId: "principal:revocation-test",
+          role: SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER,
+          tenantId: request.tenantId,
+          audience: request.audience,
+          operationId: request.operationId,
+          operation: request.operation,
+          transitionSubjectDigest: request.transitionSubjectDigest,
+          requestDigest: request.requestDigest,
+          expiresAt: request.expiresAt,
+        };
+      },
+    },
+    receiptVerifier: {
+      async verify({ receipts, request, principal }) {
+        return {
+          schema: SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
+          verified: true,
+          bindings: Object.fromEntries(
+            SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
+              kind,
+              {
+                ...request,
+                schema: SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
+                kind,
+                principalId: principal.principalId,
+                role: principal.role,
+                receiptDigest: digestSkillMutationReceiptEnvelope(
+                  receipts[`${kind}Receipt`],
+                ),
+              },
+            ]),
+          ),
+        };
+      },
+    },
+    rollbackReceiptSource: {
+      resolve({ mutation }) {
+        return Object.fromEntries(
+          SKILL_MUTATION_RECEIPT_KINDS.filter((kind) => kind !== "policy").map(
+            (kind) => [
+              `${kind}Receipt`,
+              `${kind}:test:${mutation.operationId}`,
+            ],
+          ),
+        );
+      },
+    },
+  };
+}
+
 export async function openRevocationReleaseRegistry({
   root,
   storage,
@@ -254,46 +313,8 @@ export async function openRevocationReleaseRegistry({
     auditSink: ports.auditSink,
     nonceStore: ports.nonceStore,
     now: () => new Date(storage.now),
-    principalResolver: {
-      async resolve({ request }) {
-        return {
-          schema: SKILL_MUTATION_PRINCIPAL_SCHEMA,
-          authenticated: true,
-          principalId: "principal:revocation-test",
-          role: SKILL_MUTATION_ROLES.PROMOTION_CONTROLLER,
-          tenantId: request.tenantId,
-          audience: request.audience,
-          operationId: request.operationId,
-          operation: request.operation,
-          transitionSubjectDigest: request.transitionSubjectDigest,
-          requestDigest: request.requestDigest,
-          expiresAt: request.expiresAt,
-        };
-      },
-    },
-    receiptVerifier: {
-      async verify({ receipts, request, principal }) {
-        return {
-          schema: SKILL_MUTATION_RECEIPT_VERIFICATION_SCHEMA,
-          verified: true,
-          bindings: Object.fromEntries(
-            SKILL_MUTATION_RECEIPT_KINDS.map((kind) => [
-              kind,
-              {
-                ...request,
-                schema: SKILL_MUTATION_RECEIPT_BINDING_SCHEMA,
-                kind,
-                principalId: principal.principalId,
-                role: principal.role,
-                receiptDigest: digestSkillMutationReceiptEnvelope(
-                  receipts[`${kind}Receipt`],
-                ),
-              },
-            ]),
-          ),
-        };
-      },
-    },
+    principalResolver: revocationTestMutationAuthorities().principalResolver,
+    receiptVerifier: revocationTestMutationAuthorities().receiptVerifier,
   });
   const controller = new SkillPromotionController({
     candidateRegistry: candidates,

@@ -24,6 +24,8 @@ JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源
 
 随后新增 `openEvolutionWorkbenchFileResources`，为认证的 evolution/serve 部署模块打开实际 Artifact、Ledger/witness、ReleaseRegistry 及独立重开的校验实例，复用同账本 audit/nonce ports。它补的是持久资源接线，不生成默认身份、审批或成功回执；目标 PKI/控制端口与实际 IDE 验收仍未完成。此变更在 CLI 包内，不另行调整子包版本；最终发布仍须重新核对下面列出的子包 payload 和准确 release SHA 门禁。
 
+控制接线继续新增 `createEvolutionWorkbenchControlPorts`：实际 mutation request、随机 nonce、最早授权期限、同账本 authority/controller 现由仓库工厂组装，且只消费真实工作台 preparation 对应的一次性进程内上下文，不接受裸请求借权。该项没有改变 IDE wire schema 或默认可用状态；外部身份/回执验签与实际部署验收仍保留，后续 CLI/IDE 更新说明应准确区分“控制工厂已实现”和“用户环境已启用”。
+
 2026-09-05 在本地提交 `db473898ab` 上，对 13 个 CLI 子包逐一比较 npm 已发布 tarball 与仓库声明的发布文件（文本比较只归一化 CRLF）。结果不能用“本地版本号已经存在”代替：
 
 | 子包                           | 审计时 npm 版本 | 下一轮处理                                                                                          |

@@ -53,6 +53,29 @@ const TYPES = {
   ],
 };
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+// Only this adapter can mint a mutation context, after it authenticated the
+// durable human preparation and exact current active/LKG state. The token is
+// invisible in the existing wire shape and cannot be reconstructed from JSON.
+const MUTATION_CONTEXTS = new WeakMap();
+export function consumeWorkbenchRollbackMutationContext(
+  value,
+  registry,
+  ledger,
+  descriptor,
+) {
+  const context = MUTATION_CONTEXTS.get(value);
+  if (
+    !context ||
+    context.registry !== registry ||
+    context.ledger !== ledger ||
+    canonical(context.descriptor) !== canonical(descriptor)
+  )
+    throw new TypeError(
+      "a live same-store, same-scope Workbench rollback mutation context is required",
+    );
+  MUTATION_CONTEXTS.delete(value);
+  return value;
+}
 const same = (a, b) => canonical(a) === canonical(b);
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const sortedRefs = (refs) =>
@@ -90,6 +113,8 @@ function bindRegistry(registry, transactionLedger, tenantId) {
 // The Workbench journal never substitutes for Registry effect evidence. Both
 // readers must re-open real release bytes and authenticate the same Ledger.
 export class EvolutionWorkbenchRollbackLedgerAdapter {
+  #registryIdentity;
+  #ledgerIdentity;
   #ledger;
   #put;
   #resolve;
@@ -170,6 +195,8 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
     if (typeof now !== "function" || types.isProxy(now))
       throw new TypeError("Workbench rollback clock is required");
     this.#now = now;
+    this.#registryIdentity = releaseRegistry;
+    this.#ledgerIdentity = ledger;
     this.#ledger = Object.freeze({
       read: () =>
         EvolutionLedger.prototype.read.call(ledger, {
@@ -771,15 +798,26 @@ export class EvolutionWorkbenchRollbackLedgerAdapter {
         Date.parse(state.authorization.expiresAt),
         Date.parse(context.toReview.decision.expiresAt),
       );
-      const raw = await this.#authorize(
-        capture({
-          ...state.basis,
-          policyReceipt,
-          planDigest: context.plan.planDigest,
-          authorizationReceiptDigest: state.authorization.receiptDigest,
-          expiresAt: new Date(deadline).toISOString(),
-        }),
-      );
+      const expected = capture({
+        ...state.basis,
+        policyReceipt,
+        planDigest: context.plan.planDigest,
+        authorizationReceiptDigest: state.authorization.receiptDigest,
+        expiresAt: new Date(deadline).toISOString(),
+      });
+      MUTATION_CONTEXTS.set(expected, {
+        registry: this.#registryIdentity,
+        ledger: this.#ledgerIdentity,
+        descriptor: this.descriptor,
+      });
+      let raw;
+      try {
+        raw = await this.#authorize(expected);
+      } finally {
+        // Legacy authority ports need not consume the token, but may not keep
+        // it alive after this exact request has returned or failed.
+        MUTATION_CONTEXTS.delete(expected);
+      }
       if (!raw || types.isProxy(raw))
         fail("Workbench mutation authorization must be own data");
       const fields = Object.getOwnPropertyDescriptors(raw);

@@ -37,7 +37,32 @@
 
 该入口不构造真人、候选、审批、mutation capability 或演化 Run，不把空存储填成演示成功状态，也不返回 Workbench host。它不自动迁移旧格式、不覆盖既有状态、不安装插件。构造中途失败可能留下已经初始化的合法目录或已经恢复的 Registry journal；不执行破坏性清理或跨存储回滚，后续重开必须重新认证。
 
-**文件 opener 不等于一键启用。** 部署仍需提供控制端口：实际 CandidateRegistry、同 Registry 的 controller rollback provider、mutation principal/receipt 与 request authority，以及真人身份/审核/回滚签名和当前撤销策略。`secure:false` 不是耐久性兼容开关，不会忽略 fsync 错误；Windows 测试显式使用 TEST directory-fsync 适配器，不能把这些测试当作原生 Windows 物理断电或生产文件系统验收。两个本机 reader 也不等于两个独立主机故障域。
+**文件 opener 不等于一键启用。** 下述控制工厂可以组装真实 controller 与 mutation authority，但部署仍须提供实际 CandidateRegistry、principal/receipt authority、真实回执来源，以及真人身份/审核/回滚签名和当前撤销策略。`secure:false` 不是耐久性兼容开关，不会忽略 fsync 错误；Windows 测试显式使用 TEST directory-fsync 适配器，不能把这些测试当作原生 Windows 物理断电或生产文件系统验收。两个本机 reader 也不等于两个独立主机故障域。
+
+## 真实回滚控制端口
+
+`createEvolutionWorkbenchControlPorts(options)` 使用文件 opener 的原始 branded 返回对象，构造同一主账本 audit/nonce store 上的真实 `SkillMutationAuthority`，再构造 `SkillPromotionController`，仅返回 `rollbackProvider/authorizationProvider`。不返回 controller、通用 authorize、promote、候选 writer 或私钥。签名 evolution/serve loader 同样固定其 handler 模块摘要。
+
+六个必填字段为 `descriptor/fileResources/candidateRegistry/principalResolver/receiptVerifier/rollbackReceiptSource`。descriptor 须与文件资源完全相同；CandidateRegistry 须为同租户的实际实例。文件资源的 JSON/浅复制对象、伪 Candidate、替换 descriptor、访问器或缺端口都拒绝。三个 authority 方法分别为固定 own `resolve/verify/resolve`；回执来源与 verifier 不得是同一对象或同一个函数。该进程内端口隔离并不证明外部 PKI 或故障域已独立部署。
+
+回滚适配器只在重新认证已有人工 preparation 与当前 active/LKG 后，临时赋予原有 expected 对象一个不可序列化的、绑定确切主 Registry/Ledger 实例和完整 descriptor（含 run/stream/handler）的 mutation context。新控制端口必须一次性消费该上下文；裸 JSON、克隆、跨实例或跨 scope 借用、重复调用均不能申请 authority。回调结束或失败时未消费的 context 也失效。这个标记不改变既有 expected 字段或持久格式；重启后必须从真实 preparation 重新验证和生成上下文，不能从日志反序列化权限。
+
+`rollbackReceiptSource.resolve` 收到下列只读数据；`mutation` 是尚未附回执的固定请求字段（包含新的 32 字节随机 nonce 和有效期），不是 capability：
+
+```js
+const receiptInput = {
+  mutation,
+  planDigest,
+  authorizationReceiptDigest,
+  policyReceipt,
+  fromReleaseDigest,
+  targetReleaseDigest,
+};
+```
+
+来源必须精确返回五个非空 opaque 回执字符串：`candidateReceipt/evalReceipt/actorReceipt/parentReceipt/targetReceipt`。不能返回或替换 `policyReceipt`，也不能添加自报成功字段；实际 policy 始终来自适配器已认证的 preparation 引用和人工授权。完整六种回执交给独立的真实 principal/receipt verifier 复核，字符串或摘要本身不代表验签通过。
+
+请求固定 rollback/active、原 active 的 CAS、当前精确 LKG 及其依赖锁/transition subject。有效期取“当前时间加 120 秒”与人工回滚授权/目标 Review 的最早期限；来源返回后及 authority 签发后都重读两组实际 active/target 并检查期限，陈旧状态或迟到回执不能得到可返回的 capability。外部异步来源的网络超时/取消由其部署适配器负责；这里的时效检查不是进程强杀或网络中断器。随后控制器的实际消费、nonce 落账和 Registry prepare/CAS/finalize 仍走原有安全边界。授权失败可能已经留下审计或人工 preparation，但不能据此声称已回滚。
 
 ## 启动只补账，不继续未执行操作
 
@@ -84,27 +109,37 @@ export async function createChainlessChainCommandDependencies({
 }
 ```
 
-现在可用实际文件 opener 实现上述资源函数的存储部分。以下 `readTrustedFileResourceOptions` 和 `openDeploymentControlPorts` 仍由目标部署提供；它们不是仓库内已经实现的凭据安装器：
+现在可用文件与控制工厂实现上述资源函数的大部分装配。以下 `readTrustedFileResourceOptions` 和 `openDeploymentAuthorities` 仍由目标部署提供；它们不是仓库内已经实现的凭据安装器：
 
 ```js
-const { runtimeResources, mutationPorts } =
-  factories.openEvolutionWorkbenchFileResources(
-    await readTrustedFileResourceOptions({
-      handlerArtifactDigest: descriptor.moduleDigest,
-    }),
-  );
-const controls = await openDeploymentControlPorts({
+const fileResources = factories.openEvolutionWorkbenchFileResources(
+  await readTrustedFileResourceOptions({
+    handlerArtifactDigest: descriptor.moduleDigest,
+  }),
+);
+const { runtimeResources } = fileResources;
+const authorities = await openDeploymentAuthorities();
+const controls = factories.createEvolutionWorkbenchControlPorts({
   descriptor: runtimeResources.descriptor,
-  releaseRegistry: runtimeResources.releaseRegistry,
-  mutationPorts,
+  fileResources,
+  candidateRegistry: authorities.candidateRegistry,
+  principalResolver: authorities.principalResolver,
+  receiptVerifier: authorities.receiptVerifier,
+  rollbackReceiptSource: authorities.rollbackReceiptSource,
 });
 const { workbenchHost } = await factories.createEvolutionWorkbenchRuntime({
   ...runtimeResources,
   ...controls,
+  identityProvider: authorities.identityProvider,
+  decisionVerifier: authorities.decisionVerifier,
+  humanDecisionProvider: authorities.humanDecisionProvider,
+  humanDecisionVerifier: authorities.humanDecisionVerifier,
+  humanRollbackProvider: authorities.humanRollbackProvider,
+  humanRollbackVerifier: authorities.humanRollbackVerifier,
 });
 ```
 
-`controls` 只提供必需的治理端口（及显式可选来源），不得替换 `runtimeResources` 中的存储；controller 的 capability 必须由使用上述同账本 audit/nonce ports 的真实 authority 签发、消费。仅将外部 authority 函数名写进配置不代表该部署已完成。
+`controls` 只提供两个治理端口，不替换 `runtimeResources` 中的存储；显式可选 invocation/Pilot 来源仍由部署配置。controller 的 capability 已固定由使用同账本 audit/nonce ports 的真实 authority 签发、消费，但仅将外部 authority 函数名写进配置不代表该部署已完成。
 
 descriptor 签名、module/trust-root digest 与 command allowlist 验证仍由现有 loader 完成；其入口模块是按精确字节认证的单文件 ESM。目标环境需要同时设置绝对路径 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`。CLI 数据目录、安全锚和工作目录必须满足现有隔离规则，不能把 `CHAINLESSCHAIN_HOME` 放在工作区里。
 

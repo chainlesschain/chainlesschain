@@ -12,6 +12,13 @@ import { capturePruningData as capture } from "./governed-wiki-pruning-journal.j
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const STORAGE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
+const FILE_RESOURCES = new WeakSet();
+
+export function captureWorkbenchFileResources(value) {
+  if (!FILE_RESOURCES.has(value))
+    throw new TypeError("genuine Workbench file resources are required");
+  return value;
+}
 const DESCRIPTOR_KEYS = [
   "tenantId",
   "artifactTenantId",
@@ -372,7 +379,7 @@ export function openEvolutionWorkbenchFileResources(input) {
   ])
     if (left[key] !== right[key])
       throw new Error("Workbench file readers disagree at startup");
-  return Object.freeze({
+  const result = Object.freeze({
     runtimeResources: Object.freeze({
       descriptor,
       artifactPorts: primary.artifactPorts,
@@ -391,4 +398,6 @@ export function openEvolutionWorkbenchFileResources(input) {
       nonceStore: primary.nonceStore,
     }),
   });
+  FILE_RESOURCES.add(result);
+  return result;
 }

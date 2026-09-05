@@ -153,6 +153,8 @@ describe("signed evolution deployment loader", () => {
           typeof factories.createEvolutionWorkbenchRuntime === "function",
         fileResourcesAvailable:
           typeof factories.openEvolutionWorkbenchFileResources === "function",
+        controlPortsAvailable:
+          typeof factories.createEvolutionWorkbenchControlPorts === "function",
         benchmarkFactoriesAvailable: [
           "createWikiSkillBenchmarkCliHost",
           "createWikiSkillBenchmarkDatasetProvider",
@@ -183,6 +185,7 @@ describe("signed evolution deployment loader", () => {
         registrySourceAvailable: true,
         runtimeAvailable: true,
         fileResourcesAvailable: true,
+        controlPortsAvailable: true,
         benchmarkFactoriesAvailable: true,
       },
     });
@@ -202,6 +205,7 @@ describe("signed evolution deployment loader", () => {
         "createEvolutionWorkbenchRegistrySource",
         "createEvolutionWorkbenchRuntime",
         "openEvolutionWorkbenchFileResources",
+        "createEvolutionWorkbenchControlPorts",
       ].map((factoryName) => [commandName, factoryName]),
     ),
   )(
