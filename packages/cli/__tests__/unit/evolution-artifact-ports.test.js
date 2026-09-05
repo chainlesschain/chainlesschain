@@ -594,6 +594,7 @@ describe("EvolutionArtifactPorts", () => {
 
   it("supports only the approved ledger-retention types without an envelope TTL", () => {
     expect(EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES).toEqual([
+      "controlled-skill-pilot-state",
       "skill-release-transition-intent",
       "skill-release-finalization",
       "skill-release-state-migration",

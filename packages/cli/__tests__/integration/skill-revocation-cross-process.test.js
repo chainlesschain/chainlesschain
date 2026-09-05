@@ -14,12 +14,16 @@ const WORKER = fileURLToPath(
 const roots = [];
 const read = (root, name) =>
   JSON.parse(readFileSync(join(root, `${name}.json`), "utf8"));
-function run(root, operation, crashPoint) {
-  return spawnSync(process.execPath, [WORKER, root, operation, crashPoint], {
-    cwd: fileURLToPath(new URL("../..", import.meta.url)),
-    encoding: "utf8",
-    timeout: 20_000,
-  });
+function run(root, operation, crashPoint, pilotRoot = root) {
+  return spawnSync(
+    process.execPath,
+    [WORKER, root, operation, crashPoint, pilotRoot],
+    {
+      cwd: fileURLToPath(new URL("../..", import.meta.url)),
+      encoding: "utf8",
+      timeout: 30_000,
+    },
+  );
 }
 
 afterEach(() => {
@@ -29,12 +33,17 @@ afterEach(() => {
 
 describe("Skill revocation real cross-process recovery", () => {
   it("recovers Wiki commit and dependency/checkpoint settlement kills within 60 seconds", () => {
+    const pilotRoot = mkdtempSync(join(tmpdir(), "cc-revoke-pilot-"));
+    roots.push(pilotRoot);
+    expect(run(pilotRoot, "pilot", "none", pilotRoot).status).toBe(0);
     const startedAt = Date.now();
 
     const wikiRoot = mkdtempSync(join(tmpdir(), "cc-revoke-wiki-"));
     roots.push(wikiRoot);
-    expect(run(wikiRoot, "wiki", "after-wiki-commit").status).toBe(92);
-    expect(run(wikiRoot, "wiki", "none").status).toBe(0);
+    expect(run(wikiRoot, "wiki", "after-wiki-commit", pilotRoot).status).toBe(
+      92,
+    );
+    expect(run(wikiRoot, "wiki", "none", pilotRoot).status).toBe(0);
     expect(read(wikiRoot, "wiki-inspection")).toMatchObject({
       state: {
         patterns: {
@@ -44,6 +53,21 @@ describe("Skill revocation real cross-process recovery", () => {
       },
       ledgerSequence: 2,
     });
+    expect(read(wikiRoot, "pilot-inspection")).toMatchObject({
+      view: {
+        stage: "rolled-back",
+        revision: 5,
+        killSwitch: true,
+        reconciliationRequired: false,
+      },
+      restore: {
+        authenticated: true,
+        durable: true,
+        state: { stage: "rolled-back", revision: 5, killSwitch: true },
+      },
+      ledgerSequence: 5,
+      activeState: { release: "last-known-good", revision: 2 },
+    });
 
     for (const crashPoint of [
       "after-dependencies",
@@ -51,10 +75,10 @@ describe("Skill revocation real cross-process recovery", () => {
     ]) {
       const root = mkdtempSync(join(tmpdir(), `cc-revoke-${crashPoint}-`));
       roots.push(root);
-      expect(run(root, "propagate", crashPoint).status).toBe(
+      expect(run(root, "propagate", crashPoint, pilotRoot).status).toBe(
         crashPoint === "after-dependencies" ? 93 : 94,
       );
-      expect(run(root, "propagate", "none").status).toBe(0);
+      expect(run(root, "propagate", "none", pilotRoot).status).toBe(0);
       expect(existsSync(join(root, "effects.json"))).toBe(false);
       expect(read(root, "retrieval-inspection")).toMatchObject({
         invalidated: true,
@@ -92,9 +116,24 @@ describe("Skill revocation real cross-process recovery", () => {
         },
         ledgerSequence: 2,
       });
-      expect(read(root, "propagation-checkpoint").cursor).toBe(1);
+      expect(read(root, "pilot-inspection")).toMatchObject({
+        view: {
+          stage: "rolled-back",
+          revision: 5,
+          killSwitch: true,
+          reconciliationRequired: false,
+        },
+        restore: {
+          authenticated: true,
+          durable: true,
+          state: { stage: "rolled-back", revision: 5, killSwitch: true },
+        },
+        ledgerSequence: 5,
+        activeState: { release: "last-known-good", revision: 2 },
+      });
+      expect(read(root, "propagation-checkpoint").cursor).toBe(5);
     }
 
     expect(Date.now() - startedAt).toBeLessThan(60_000);
-  }, 60_000);
+  }, 75_000);
 });

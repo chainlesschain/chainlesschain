@@ -10,6 +10,12 @@ import { join } from "node:path";
 
 import { ArtifactStore } from "../../../src/lib/artifact-store.js";
 import {
+  CONTROLLED_SKILL_PILOT_STAGE,
+  ControlledSkillProductionPilot,
+  digestControlledSkillPilotDescriptor,
+} from "../../../src/lib/evolution/controlled-skill-production-pilot.js";
+import { ControlledSkillPilotLedgerAdapter } from "../../../src/lib/evolution/controlled-skill-pilot-ledger-adapter.js";
+import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
 } from "../../../src/lib/evolution/evolution-artifact-ports.js";
@@ -26,12 +32,6 @@ import {
   WIKI_EVIDENCE_SCHEMA,
 } from "../../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
 import {
-  INDEPENDENT_SKILL_REVOCATION_RECORD_SCHEMA,
-  INDEPENDENT_SKILL_REVOCATION_VERIFICATION_SCHEMA,
-  createIndependentSkillRevocationSource,
-  digestIndependentSkillRevocationRecord,
-} from "../../../src/lib/evolution/independent-skill-revocation-source.js";
-import {
   SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
   SKILL_REVOCATION_DEPENDENCY_RESOLUTION_SCHEMA,
   SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
@@ -47,8 +47,11 @@ import {
 } from "../../../src/lib/evolution/skill-wiki-reconciliation.js";
 import { WikiMaintainerLedgerAdapter } from "../../../src/lib/evolution/wiki-maintainer-ledger-adapter.js";
 
-const [root, operation, crashPoint = "none"] = process.argv.slice(2);
+const [root, operation, crashPoint = "none", pilotRootInput] =
+  process.argv.slice(2);
+const pilotRoot = pilotRootInput ?? root;
 mkdirSync(root, { recursive: true });
+mkdirSync(pilotRoot, { recursive: true });
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -66,15 +69,19 @@ const domainDigest = (domain, value) =>
     .update("\0")
     .update(canonical(value))
     .digest("hex")}`;
-const file = (name) => join(root, `${name}.json`);
-const load = (name, fallback) =>
-  existsSync(file(name))
-    ? JSON.parse(readFileSync(file(name), "utf8"))
+const fileAt = (directory, name) => join(directory, `${name}.json`);
+const loadAt = (directory, name, fallback) =>
+  existsSync(fileAt(directory, name))
+    ? JSON.parse(readFileSync(fileAt(directory, name), "utf8"))
     : structuredClone(fallback);
-function save(name, value) {
-  const temporary = `${file(name)}.${process.pid}.tmp`;
+const load = (name, fallback) => loadAt(root, name, fallback);
+function saveAt(directory, name, value) {
+  const temporary = `${fileAt(directory, name)}.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(value), "utf8");
-  renameSync(temporary, file(name));
+  renameSync(temporary, fileAt(directory, name));
+}
+function save(name, value) {
+  saveAt(root, name, value);
 }
 
 function signingAuthority(label) {
@@ -148,7 +155,7 @@ function durableFilesystem() {
   };
 }
 
-function durableDomainLedger(label, artifactTenantId) {
+function durableDomainLedger(label, artifactTenantId, storageRoot = root) {
   const now = Date.parse("2026-09-05T10:00:00.000Z");
   const secret = `test-only-revocation-${label}-artifact-secret`;
   const algorithm = "hmac-sha256";
@@ -158,7 +165,7 @@ function durableDomainLedger(label, artifactTenantId) {
     createHmac("sha256", secret).update(message).digest("base64url");
   const artifactPorts = new EvolutionArtifactPorts({
     artifactStore: new ArtifactStore({
-      dir: join(root, `${label}-artifacts`),
+      dir: join(storageRoot, `${label}-artifacts`),
       now: () => now,
     }),
     audience: "evolution-runtime",
@@ -212,11 +219,11 @@ function durableDomainLedger(label, artifactTenantId) {
   const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
     purpose: "evolution-ledger",
   });
-  mkdirSync(join(root, `${label}-witness`), { recursive: true });
+  mkdirSync(join(storageRoot, `${label}-witness`), { recursive: true });
   const backend = createEvolutionLedgerFileBackend({
-    rootDir: join(root, `${label}-ledger-events`),
-    authorityRootDir: join(root, `${label}-ledger-authority`),
-    witnessFilePath: join(root, `${label}-witness`, "checkpoint.json"),
+    rootDir: join(storageRoot, `${label}-ledger-events`),
+    authorityRootDir: join(storageRoot, `${label}-ledger-authority`),
+    witnessFilePath: join(storageRoot, `${label}-witness`, "checkpoint.json"),
     witnessId: `skill-${label}-revocation-process-witness`,
     ledgerAuthority: signingAuthority(`${label}-ledger`),
     witnessAuthority: signingAuthority(`${label}-witness`),
@@ -378,45 +385,145 @@ async function memoryAuthority() {
   });
 }
 
-function externalSource() {
-  const unsigned = {
-    schema: INDEPENDENT_SKILL_REVOCATION_RECORD_SCHEMA,
+function pilotDescriptor() {
+  return {
     tenantId: "tenant-a",
-    streamId: "security-revocations",
-    sequence: 1,
-    revocationId: "security-incident-1",
-    candidateId: D("candidate"),
+    pilotId: "pilot-revocation-process",
     skillName: "safe-refactor",
-    reason: "Independent security authority revoked the active Skill.",
-    occurredAt: "2026-09-05T10:00:00.000Z",
-    activeStateDigest: D("active-state"),
-    evidenceReceiptDigests: [D("incident")],
-    attestation: {
-      algorithm: "ed25519",
-      keyId: "security-key-1",
-      value: "A".repeat(64),
+    candidateDigest: D("candidate"),
+    baselineDigest: D("baseline"),
+    evalReceiptDigest: D("eval"),
+    whyEvidenceDigest: D("why"),
+    candidateDiffDigest: D("candidate-diff"),
+    permissionDiffDigest: D("permission-diff"),
+    beforeEvaluationDigest: D("before-evaluation"),
+    afterEvaluationDigest: D("after-evaluation"),
+    reviewPacketDigest: D("review-packet"),
+    cohort: {
+      id: "cohort-revocation-process",
+      optInRequired: true,
+      maxSubjects: 3,
+      canaryPercent: 100,
+    },
+    observation: {
+      minSamples: 1,
+      minWindowMs: 1,
+      maxWindowMs: 1_000,
+    },
+    thresholds: {
+      minAdoptionRate: 0.5,
+      minSuccessDelta: 0,
+      maxCostDelta: 0,
+      maxUserRevisionRate: 0,
+      maxMisPromotionRate: 0,
+      maxRollbackRate: 0,
+      maxSecurityEvents: 0,
     },
   };
-  const record = {
-    ...unsigned,
-    recordDigest: digestIndependentSkillRevocationRecord(unsigned),
-  };
-  return createIndependentSkillRevocationSource({
-    tenantId: "tenant-a",
-    streamId: "security-revocations",
-    ports: {
-      readRevocations: async () => [record],
-      verifyRevocation: async (request) => ({
-        schema: INDEPENDENT_SKILL_REVOCATION_VERIFICATION_SCHEMA,
+}
+
+async function pilotAuthority() {
+  const artifactTenantId = "artifact-tenant-a-pilot";
+  const descriptor = pilotDescriptor();
+  const descriptorDigest = digestControlledSkillPilotDescriptor(descriptor);
+  const storage = durableDomainLedger("pilot", artifactTenantId, pilotRoot);
+  const adapter = new ControlledSkillPilotLedgerAdapter({
+    descriptor: {
+      tenantId: descriptor.tenantId,
+      artifactTenantId,
+      streamId: "controlled-pilot:revocation-process",
+      pilotId: descriptor.pilotId,
+      skillName: descriptor.skillName,
+      descriptorDigest,
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.backend.ledger,
+    ledgerArtifactResolver: storage.resolver,
+  });
+  const restore = adapter.load();
+  let activeState = loadAt(pilotRoot, "pilot-active-state", {
+    release: "candidate-active",
+    revision: 1,
+  });
+  const pilot = new ControlledSkillProductionPilot({
+    descriptor,
+    ports: adapter.pilotPorts({
+      readActiveState: async () => activeState,
+      verifyApproval: async (request) => ({
         authenticated: true,
         durable: true,
-        tenantId: request.tenantId,
-        streamId: request.streamId,
-        sequence: request.sequence,
-        recordDigest: request.recordDigest,
-        receiptDigest: D(["verified", request.recordDigest]),
+        automated: false,
+        tenantId: request.descriptor.tenantId,
+        pilotId: request.descriptor.pilotId,
+        packetDigest: request.descriptor.reviewPacketDigest,
+        descriptorDigest: request.descriptorDigest,
+        decision: "approved",
+        receiptDigest: D("pilot-review-approval"),
       }),
-    },
+      verifyObservation: async () => {
+        throw new Error("rollback fixture must not accept observations");
+      },
+      transitionStage: async ({ request, requestDigest }) => {
+        if (
+          request.descriptorDigest !== descriptorDigest ||
+          request.tenantId !== descriptor.tenantId ||
+          request.pilotId !== descriptor.pilotId
+        ) {
+          throw new Error("Pilot transition is not exactly bound");
+        }
+        if (request.to === CONTROLLED_SKILL_PILOT_STAGE.ROLLED_BACK) {
+          activeState = { release: "last-known-good", revision: 2 };
+          saveAt(pilotRoot, "pilot-active-state", activeState);
+        }
+        return {
+          authenticated: true,
+          durable: true,
+          descriptorDigest,
+          requestDigest,
+          from: request.from,
+          to: request.to,
+          receiptDigest: D([
+            "pilot-transition",
+            request.from,
+            request.to,
+            requestDigest,
+          ]),
+          activeStateDigest: D(activeState),
+        };
+      },
+    }),
+    now: () => storage.now,
+    restore,
+  });
+  if (pilot.view().revision === 0) {
+    await pilot.start({
+      optedIn: true,
+      tenantId: descriptor.tenantId,
+      cohortId: descriptor.cohort.id,
+    });
+    await pilot.approveShadow({ approvalRef: "review:revocation-process" });
+    await pilot.engageKillSwitch({
+      reasonDigest: D("revocation-process-kill-switch"),
+    });
+  }
+  const snapshot = pilot.snapshot();
+  return Object.freeze({
+    adapter,
+    backend: storage.backend,
+    pilot,
+    source: pilot.createWikiOutcomeSource(),
+    activeState,
+    restore:
+      restore ??
+      Object.freeze({
+        authenticated: true,
+        durable: true,
+        descriptorDigest: snapshot.descriptorDigest,
+        stateDigest: snapshot.stateDigest,
+        state: snapshot.state,
+      }),
   });
 }
 
@@ -439,7 +546,7 @@ function evidence(ref, trustDomain) {
   return { ...core, envelopeDigest: D(core) };
 }
 
-async function wikiAuthority() {
+async function wikiAuthority(source) {
   const artifactTenantId = "artifact-tenant-a-wiki";
   const storage = durableDomainLedger("wiki", artifactTenantId);
   const adapter = new WikiMaintainerLedgerAdapter({
@@ -528,7 +635,6 @@ async function wikiAuthority() {
       effectiveAt: "2026-09-01T00:00:00.000Z",
     });
   }
-  const source = externalSource();
   const reconciler = createSkillWikiReconciler({
     source,
     maintainer,
@@ -578,8 +684,15 @@ async function wikiAuthority() {
 }
 
 async function wiki() {
-  const authority = await wikiAuthority();
+  const pilot = await pilotAuthority();
+  const authority = await wikiAuthority(pilot.source);
   await authority.reconciler.reconcile();
+  save("pilot-inspection", {
+    view: pilot.pilot.view(),
+    restore: pilot.restore,
+    ledgerSequence: pilot.pilot.view().revision,
+    activeState: loadAt(pilotRoot, "pilot-active-state", null),
+  });
   save("wiki-inspection", {
     state: authority.adapter.loadWiki().state,
     ledgerSequence: authority.backend.ledger.verify().sequence,
@@ -587,11 +700,12 @@ async function wiki() {
 }
 
 async function propagate() {
-  const source = externalSource();
+  const pilot = await pilotAuthority();
+  const source = pilot.source;
   const retrieval = await retrievalAuthority();
   const marketplace = await marketplaceAuthority();
   const memory = await memoryAuthority();
-  const wiki = await wikiAuthority();
+  const wiki = await wikiAuthority(source);
   const dependencies = [
     ["wiki-pattern", "stale"],
     ["memory", "quarantine"],
@@ -730,8 +844,25 @@ async function propagate() {
     state: wiki.adapter.loadWiki().state,
     ledgerSequence: wiki.backend.ledger.verify().sequence,
   });
+  save("pilot-inspection", {
+    view: pilot.pilot.view(),
+    restore: pilot.restore,
+    ledgerSequence: pilot.pilot.view().revision,
+    activeState: loadAt(pilotRoot, "pilot-active-state", null),
+  });
 }
 
-if (operation === "wiki") await wiki();
+async function inspectPilot() {
+  const pilot = await pilotAuthority();
+  save("pilot-inspection", {
+    view: pilot.pilot.view(),
+    restore: pilot.restore,
+    ledgerSequence: pilot.pilot.view().revision,
+    activeState: loadAt(pilotRoot, "pilot-active-state", null),
+  });
+}
+
+if (operation === "pilot") await inspectPilot();
+else if (operation === "wiki") await wiki();
 else if (operation === "propagate") await propagate();
 else throw new Error("unknown operation");

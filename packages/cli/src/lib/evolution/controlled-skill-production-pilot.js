@@ -63,6 +63,14 @@ function hash(value) {
   return `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`;
 }
 
+export function digestControlledSkillPilotState(value) {
+  return hash(value);
+}
+
+export function digestControlledSkillPilotEvent(value) {
+  return hash(value);
+}
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -277,6 +285,10 @@ function normalizeDescriptor(input) {
   return deepFreeze(normalized);
 }
 
+export function digestControlledSkillPilotDescriptor(input) {
+  return hash(normalizeDescriptor(input));
+}
+
 function emptyState(descriptorDigest, progressive = null) {
   const state = {
     schema: progressive
@@ -343,7 +355,7 @@ function normalizeRestore(input, descriptorDigest, progressive) {
     input.authenticated !== true ||
     input.durable !== true ||
     input.descriptorDigest !== descriptorDigest ||
-    input.stateDigest !== hash(state) ||
+    input.stateDigest !== digestControlledSkillPilotState(state) ||
     state.schema !==
       (progressive
         ? CONTROLLED_SKILL_PILOT_PROGRESSIVE_STATE_SCHEMA
@@ -554,7 +566,9 @@ export class ControlledSkillProductionPilot {
     progressiveCanary = null,
   } = {}) {
     this.descriptor = normalizeDescriptor(input);
-    this.descriptorDigest = hash(this.descriptor);
+    this.descriptorDigest = digestControlledSkillPilotDescriptor(
+      this.descriptor,
+    );
     this._progressiveCanary = normalizeProgressiveCanary(
       progressiveCanary,
       this.descriptor,
@@ -826,7 +840,7 @@ export class ControlledSkillProductionPilot {
   snapshot() {
     return deepFreeze({
       descriptorDigest: this.descriptorDigest,
-      stateDigest: hash(this._state),
+      stateDigest: digestControlledSkillPilotState(this._state),
       state: clone(this._state),
     });
   }
@@ -1145,7 +1159,7 @@ export class ControlledSkillProductionPilot {
   async _commit(next, type, evidence) {
     const expectedRevision = this._state.revision;
     next.revision = expectedRevision + 1;
-    const stateDigest = hash(next);
+    const stateDigest = digestControlledSkillPilotState(next);
     const event = deepFreeze({
       schema: CONTROLLED_SKILL_PILOT_EVENT_SCHEMA,
       descriptorDigest: this.descriptorDigest,
@@ -1158,7 +1172,7 @@ export class ControlledSkillProductionPilot {
       evidence: clone(evidence),
       committedAt: this._timestamp(),
     });
-    const eventDigest = hash(event);
+    const eventDigest = digestControlledSkillPilotEvent(event);
     const acknowledgement = await this._commitState({
       expectedRevision,
       state: deepFreeze(clone(next)),

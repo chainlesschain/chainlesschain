@@ -60,6 +60,7 @@ export const EVOLUTION_ARTIFACT_DEFAULT_TTL_MS = 15 * 60 * 1000;
 export const EVOLUTION_ARTIFACT_MAX_TTL_MS = 24 * 60 * 60 * 1000;
 export const EVOLUTION_ARTIFACT_RETENTIONS = Object.freeze(["ttl", "ledger"]);
 export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
+  "controlled-skill-pilot-state",
   "skill-release-transition-intent",
   "skill-release-finalization",
   "skill-release-state-migration",
@@ -112,6 +113,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "actor",
   "candidate",
   "candidate-diff",
+  "controlled-skill-pilot-state",
   "diff",
   "eval",
   "eval-policy",
@@ -327,6 +329,7 @@ const dateGetTime = Object.freeze(
 );
 const RETENTION_SET = new Set(EVOLUTION_ARTIFACT_RETENTIONS);
 const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
+  ["controlled-skill-pilot-state", new Set(["evolution-ledger"])],
   [
     "skill-release-transition-intent",
     new Set(["evolution-ledger", "skill-release-transition"]),
