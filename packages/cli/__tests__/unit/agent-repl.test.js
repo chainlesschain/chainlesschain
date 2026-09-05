@@ -1389,6 +1389,27 @@ describe("agent-repl thin wrapper contracts", () => {
     );
   });
 
+  it("waits for active work and closes the owned EvolutionRun before process exit", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    const closeAt = content.indexOf('rl.on("close", async () => {');
+    const waitAt = content.indexOf("await _lineSettled;", closeAt);
+    const finishAt = content.indexOf("await _evolutionSession.close(", waitAt);
+    const exitAt = content.indexOf("process.exit(outputExitCode);", finishAt);
+    expect(waitAt).toBeGreaterThan(closeAt);
+    expect(finishAt).toBeGreaterThan(waitAt);
+    expect(exitAt).toBeGreaterThan(finishAt);
+    expect(content.slice(closeAt, finishAt)).toContain(
+      "await Promise.allSettled([..._activeBtwCalls]);",
+    );
+    expect(content.slice(exitAt)).toContain(
+      "return _evolutionSession?.handle;",
+    );
+    const ownedAt = content.indexOf(
+      "async function startAgentReplInWorkspaceOwned(",
+    );
+    expect(content.indexOf("let _compressor = null;")).toBeGreaterThan(ownedAt);
+  });
+
   it("executeTool wrapper passes host and budget authority to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
     // Direct REPL tools must reach the same host and budget context as tools
@@ -4092,9 +4113,10 @@ describe("agent-repl /btw side-question wiring", () => {
   it("runs /btw immediately and allows it alongside a main turn", () => {
     expect(content).toContain("await runBtwSideQuestion(btw);");
     expect(content).toContain("parseBtwCommand(input.trim())");
-    expect(content).toContain(
-      "void runBtwSideQuestion(concurrentBtw, { concurrent: true });",
+    expect(content).toMatch(
+      /const sideCall = runBtwSideQuestion\(concurrentBtw,\s*\{\s*concurrent: true,?\s*\}\);/u,
     );
+    expect(content).toContain("_activeBtwCalls.add(sideCall);");
   });
 
   it("queues /note-next guidance and consumes it on send", () => {

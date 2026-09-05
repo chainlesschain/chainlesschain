@@ -25,6 +25,22 @@ function longConversation() {
 }
 
 describe("compactConversationWithProvider", () => {
+  it("propagates evolution admission failures without replacing history", async () => {
+    const history = longConversation();
+    const before = structuredClone(history);
+    const failure = Object.assign(new Error("projection denied"), {
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    await expect(
+      compactConversationWithProvider(history, {
+        force: true,
+        llmQuery: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(history).toEqual(before);
+  });
   it("uses a tool-free provider call and projects semantic usage", async () => {
     const chatFn = vi.fn(async () => ({
       message: { content: structuredSummary },

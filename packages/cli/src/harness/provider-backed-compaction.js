@@ -3,6 +3,7 @@ import {
   PromptCompressor,
   sanitizeToolPairs,
 } from "./prompt-compressor.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 
 const DEFAULT_MAX_OUTPUT_TOKENS = 2048;
 const MIN_MAX_OUTPUT_TOKENS = 256;
@@ -121,11 +122,35 @@ export function compactionTokenUsage(stats) {
  * contract instead of falling back to positional truncation.
  */
 export async function compactConversationWithProvider(messages, options = {}) {
+  const configuredIngress =
+    options.evolutionIngress ?? options.chatOptions?.evolutionIngress ?? null;
+  const evolutionIngress =
+    configuredIngress === null
+      ? null
+      : captureAgentEvolutionIngress(configuredIngress);
   const originalMessages = Array.isArray(messages) ? [...messages] : [];
   const provider = options.provider || null;
   const model = options.model || null;
   const maxOutputTokens = boundedMaxOutputTokens(options.maxOutputTokens);
-  const chatFn = options.chatFn;
+  let chatFn = options.chatFn;
+  if (evolutionIngress !== null) {
+    const { chatWithTools } = await import("../runtime/agent-core.js");
+    if (
+      (chatFn != null && chatFn !== chatWithTools) ||
+      options.llmQuery != null ||
+      options.compressor != null ||
+      (options.evolutionIngress != null &&
+        options.chatOptions?.evolutionIngress != null &&
+        options.evolutionIngress !== options.chatOptions.evolutionIngress)
+    ) {
+      const error = new TypeError(
+        "Evolution compaction requires the canonical model transport and compressor",
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+    chatFn = chatWithTools;
+  }
   const invokeProviderCall = async (call) => {
     const callId = safeUsageCallId(await options.onProviderCallStart?.());
     try {
@@ -145,12 +170,14 @@ export async function compactConversationWithProvider(messages, options = {}) {
           return invokeProviderCall(async () => {
             const response = await chatFn([{ role: "user", content: prompt }], {
               ...(options.chatOptions || {}),
+              ...(evolutionIngress === null ? {} : { evolutionIngress }),
               provider,
               model,
               baseUrl: options.baseUrl,
               apiKey: options.apiKey,
               signal: options.signal,
               contextEngine: null,
+              contextMemorySkipPlanning: true,
               enabledToolNames: [],
               extraToolDefinitions: [],
               hostManagedToolPolicy: null,

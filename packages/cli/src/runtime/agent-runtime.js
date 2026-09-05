@@ -34,6 +34,10 @@ import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.
 import { captureStructuredMemoryPolicyReceiptWriter } from "../lib/evolution/structured-memory-policy-receipt-writer.js";
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import {
+  AGENT_EVOLUTION_SESSION_SCHEMA,
+  waitForAgentEvolutionSession,
+} from "../lib/evolution/agent-evolution-session-lifecycle.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
@@ -362,6 +366,13 @@ export class AgentRuntime {
           }),
     });
     if (this.evolutionIngress !== null) {
+      if (result?.schema === AGENT_EVOLUTION_SESSION_SCHEMA) {
+        return await waitForAgentEvolutionSession(
+          result,
+          this.evolutionIngress,
+        );
+      }
+      if (result?.started === false) return result;
       await this.evolutionIngress.complete();
     }
     return result;

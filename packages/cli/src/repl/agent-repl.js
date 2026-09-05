@@ -173,6 +173,7 @@ import { newCostStore, addUsage } from "./session-cost.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { captureStructuredMemoryAgentControlPlane } from "../lib/evolution/structured-memory-agent-control-plane.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import { createAgentEvolutionSessionLifecycle } from "../lib/evolution/agent-evolution-session-lifecycle.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import {
@@ -451,7 +452,6 @@ export async function runReplDirectToolWithLedger({
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
  */
 let _hookDb = null;
-let _compressor = null;
 let _approvalGate = null;
 // Static + CLI-owned scoped permission rules (deny > ask > allow) and an
 // interactive confirmer for `ask` matches. Scoped rules are refreshed at each
@@ -3044,6 +3044,13 @@ async function startAgentReplInWorkspaceOwned(
   startupAdmission,
   outputScope,
 ) {
+  // The compressor captures this session's ingress and metering callbacks.
+  // A later REPL instance must not replace another session's authority.
+  let _compressor = null;
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   // EPIPE guard: if the REPL's stdout is piped and the consumer closes (e.g.
   // `cc agent | head`), the async stream `error` would otherwise crash the
   // process. Route a broken pipe into the REPL's own graceful shutdown (the
@@ -3052,6 +3059,10 @@ async function startAgentReplInWorkspaceOwned(
   // a cleanup write that also EPIPEs can't loop. An early EPIPE remains pending
   // until the close handler is attached; it never skips directly to exit.
   let _replRl = null;
+  const _evolutionSession =
+    evolutionIngress === null
+      ? null
+      : createAgentEvolutionSessionLifecycle(evolutionIngress);
   let _replClosing = false;
   let _replCloseReady = false;
   let _replCleanupStarted = false;
@@ -3165,6 +3176,8 @@ async function startAgentReplInWorkspaceOwned(
   // above every direct-model surface (Advisor, /btw, /auto, /plan, /goal), and
   // clear steering immediately so queued work cannot start another paid call.
   let _processingLine = false;
+  let _lineSettled = null;
+  const _activeBtwCalls = new Set();
   const _pendingLines = [];
   const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
     onTrip: (terminalError) => {
@@ -3427,6 +3440,7 @@ async function startAgentReplInWorkspaceOwned(
           includeLedgerMetadata: true,
           call: ({ signal }) =>
             chatWithTools([{ role: "user", content: prompt }], {
+              ...(evolutionIngress === null ? {} : { evolutionIngress }),
               provider,
               model,
               baseUrl,
@@ -9748,6 +9762,7 @@ async function startAgentReplInWorkspaceOwned(
               source: "model",
               call: ({ signal }) =>
                 chatWithTools([{ role: "user", content: p }], {
+                  ...(evolutionIngress === null ? {} : { evolutionIngress }),
                   model: activeModel,
                   provider,
                   baseUrl,
@@ -9789,6 +9804,7 @@ async function startAgentReplInWorkspaceOwned(
             logger.log(chalk.cyan(l));
           if (done) _sessionGoal = null; // completed or exhausted → drop
         } catch (err) {
+          if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
           const terminalError = _runtimeLedgerTerminalLatch.trip(err);
           if (terminalError) _reportRuntimeLedgerTerminal();
           else logger.verbose(`/goal eval skipped: ${err.message}`);
@@ -9973,6 +9989,7 @@ async function startAgentReplInWorkspaceOwned(
             throw error;
           }
           if (error?.runtimeLedgerPersistence === true) throw error;
+          if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
           logger.warn(`Auto-compaction failed: ${error.message}`);
         }
       }
@@ -10060,6 +10077,7 @@ async function startAgentReplInWorkspaceOwned(
 
   rl.on("line", async (input) => {
     if (!(await _waitForReplOutput())) return;
+    if (_replClosing) return;
     if (_runtimeLedgerTerminalLatch.isTripped()) {
       const terminalInput = input.trim();
       if (terminalInput === "/exit" || terminalInput === "/quit") {
@@ -10077,7 +10095,14 @@ async function startAgentReplInWorkspaceOwned(
       if (concurrentBtw) {
         // Intentionally do not await: the main turn keeps streaming while this
         // independent, tool-free snapshot call runs alongside it.
-        void runBtwSideQuestion(concurrentBtw, { concurrent: true });
+        const sideCall = runBtwSideQuestion(concurrentBtw, {
+          concurrent: true,
+        });
+        _activeBtwCalls.add(sideCall);
+        void sideCall.then(
+          () => _activeBtwCalls.delete(sideCall),
+          () => _activeBtwCalls.delete(sideCall),
+        );
         return;
       }
       if (input.trim()) {
@@ -10091,10 +10116,18 @@ async function startAgentReplInWorkspaceOwned(
       return;
     }
     _processingLine = true;
+    let settleLine;
+    _lineSettled = new Promise((resolve) => {
+      settleLine = resolve;
+    });
     try {
       await handleLine(input);
       if (!(await _waitForReplOutput())) return;
-      while (_pendingLines.length && !_runtimeLedgerTerminalLatch.isTripped()) {
+      while (
+        _pendingLines.length &&
+        !_replClosing &&
+        !_runtimeLedgerTerminalLatch.isTripped()
+      ) {
         const next = _pendingLines.shift();
         logger.log(chalk.cyan(`▶ running queued input: ${next}`));
         await handleLine(next);
@@ -10102,6 +10135,8 @@ async function startAgentReplInWorkspaceOwned(
       }
     } finally {
       _processingLine = false;
+      settleLine();
+      _lineSettled = null;
     }
   });
 
@@ -10109,7 +10144,22 @@ async function startAgentReplInWorkspaceOwned(
     if (_replCleanupStarted) return;
     _replCleanupStarted = true;
     _replClosing = true;
+    _pendingLines.length = 0;
+    // Do not certify a Run while its model/tool or auxiliary usage settlement
+    // is still in flight. EOF during a main turn cancels and leaves it incomplete.
+    if (_turnAbort !== null) {
+      const error = Object.assign(
+        new Error("REPL closed during an active turn"),
+        {
+          code: "CC_AGENT_EVOLUTION_SESSION_INTERRUPTED",
+        },
+      );
+      if (_evolutionSession !== null) _replOutputFailure ||= error;
+      _turnAbort.abort(error);
+    }
     _promptInteractions.dispose();
+    await _lineSettled;
+    await Promise.allSettled([..._activeBtwCalls]);
     if (process.stdin.isTTY) {
       if (_replKeypressHandler) {
         process.stdin.removeListener("keypress", _replKeypressHandler);
@@ -10194,10 +10244,14 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
     // Fire SessionEnd hook before shutdown (fire-and-forget)
-    await fireSessionHook(_hookDb, HookEvents.SessionEnd, {
-      sessionId,
-      messageCount: messages.length,
-    });
+    try {
+      await fireSessionHook(_hookDb, HookEvents.SessionEnd, {
+        sessionId,
+        messageCount: messages.length,
+      });
+    } catch (error) {
+      _replOutputFailure ||= error;
+    }
 
     // Phase H — park the SessionManager handle on clean exit so the session
     // can be resumed later via `cc session unpark <id>`. `--no-park-on-exit`
@@ -10323,6 +10377,15 @@ async function startAgentReplInWorkspaceOwned(
         _replOutputFailure ||= error;
       }
     }
+    if (_evolutionSession !== null) {
+      try {
+        await _evolutionSession.close(
+          _replOutputFailure || _runtimeLedgerTerminalLatch.error() || null,
+        );
+      } catch (error) {
+        _replOutputFailure ||= error;
+      }
+    }
     const outputExitCode = _replOutputFailure
       ? _replOutputFailure.code === "EPIPE"
         ? 0
@@ -10343,4 +10406,5 @@ async function startAgentReplInWorkspaceOwned(
       }
     });
   }
+  return _evolutionSession?.handle;
 }

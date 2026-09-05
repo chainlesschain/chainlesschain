@@ -12906,7 +12906,26 @@ function _instrumentAutoCompactorUsage(compactor, options) {
  * loaded — callers treat that as "don't compact". Cached (including null) so we
  * import once per run, not once per iteration.
  */
+const evolutionAutoCompactors = new WeakMap();
+
 async function _getAutoCompactor(options) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
+  if (
+    evolutionIngress !== null &&
+    (typeof options.compactionLlmQuery === "function" ||
+      (options._autoCompactor != null &&
+        evolutionAutoCompactors.get(options._autoCompactor) !==
+          evolutionIngress))
+  ) {
+    const error = new TypeError(
+      "Evolution auto-compaction requires the canonical model transport and owned compressor",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   if (Object.prototype.hasOwnProperty.call(options, "_autoCompactor")) {
     return _instrumentAutoCompactorUsage(options._autoCompactor, options);
   }
@@ -13000,8 +13019,11 @@ async function _getAutoCompactor(options) {
     }
   } catch (error) {
     if (canonicalRequired) throw error;
+    if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
     compressor = null;
   }
+  if (evolutionIngress !== null && compressor !== null)
+    evolutionAutoCompactors.set(compressor, evolutionIngress);
   try {
     options._autoCompactor = compressor;
   } catch {
@@ -14094,6 +14116,7 @@ export async function* agentLoop(messages, options) {
       } catch (_e) {
         if (isAbortError(_e) || signal?.aborted) throw _e;
         if (_e?.runtimeLedgerPersistence === true) throw _e;
+        if (_e?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw _e;
         if (
           _e?.workflowEffectOutcomeUnknown === true &&
           _e?.compactionFailureReported === true

@@ -2928,6 +2928,7 @@ async function runAgentHeadlessInWorkspace(
       sessionBudget: options.sessionBudget || null,
       call: () =>
         chatWithTools([{ role: "user", content: judgePrompt }], {
+          ...(evolutionIngress === null ? {} : { evolutionIngress }),
           model,
           provider,
           baseUrl,
@@ -3569,6 +3570,13 @@ async function runAgentHeadlessInWorkspace(
               lastOutput: finalText,
             });
           } else {
+            if (evolutionIngress !== null && deps.goalConditionJudge) {
+              const error = new TypeError(
+                "Evolution goal judging requires the canonical model transport",
+              );
+              error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+              throw error;
+            }
             const judge = deps.goalConditionJudge || _defaultGoalJudge;
             evaluation = await judge(cond, {
               prompt: options.prompt,
@@ -3578,6 +3586,7 @@ async function runAgentHeadlessInWorkspace(
           }
         } catch (err) {
           if (err?.runtimeLedgerPersistence === true) throw err;
+          if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
           evaluation = {
             met: false,
             reason: `goal check failed: ${err.message}`,
@@ -3835,15 +3844,13 @@ async function runAgentHeadlessInWorkspace(
   // remains observable through onCleanupReport but must not replace it.
   if (loopFailureOutcome) return loopFailureOutcome;
   if (cleanupFailure) throw cleanupFailure;
-  if (evolutionIngress !== null) {
-    await evolutionIngress.complete();
-  }
 
   // A downstream consumer closed stdout/stderr. The abort above unwound the
   // model loop through the same `finally` as every other termination, so MCP,
   // background tasks, approval bridges, and hooks are settled. Do not attempt
   // more writes to the closed pipe or persist a partial assistant answer.
   if (pipeState.closed) {
+    if (evolutionIngress !== null) await evolutionIngress.complete();
     return { exitCode: 0, result: finalText, isError: false };
   }
 
@@ -3903,6 +3910,16 @@ async function runAgentHeadlessInWorkspace(
   // terminal because reporting the extra paid call as successful is unsafe.
   if (options.goalAssess && boundGoalId && !isError) {
     try {
+      if (
+        evolutionIngress !== null &&
+        (deps.assessChat || deps.assessGoalProgress)
+      ) {
+        const error = new TypeError(
+          "Evolution goal assessment requires the canonical model transport and assessor",
+        );
+        error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw error;
+      }
       const { getGoal } = await import("../lib/goal-store.js");
       const goal = (deps.getGoal || getGoal)(boundGoalId);
       if (goal) {
@@ -3923,6 +3940,7 @@ async function runAgentHeadlessInWorkspace(
               sessionBudget: options.sessionBudget || null,
               call: () =>
                 chatWithTools([{ role: "user", content: assessPrompt }], {
+                  ...(evolutionIngress === null ? {} : { evolutionIngress }),
                   model,
                   provider,
                   baseUrl,
@@ -3965,9 +3983,13 @@ async function runAgentHeadlessInWorkspace(
           writeErr(`${RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE}\n`);
         }
       }
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       // Non-ledger assessment failures remain best-effort.
     }
   }
+
+  // The Run includes the final auxiliary assessment, not just the main loop.
+  if (evolutionIngress !== null && !isError) await evolutionIngress.complete();
 
   // End-of-run policy-denial summary so a non-interactive run surfaces what was
   // blocked (mirrors the REPL's `/permissions denials`). Text → stderr lines;

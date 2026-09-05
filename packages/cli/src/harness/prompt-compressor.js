@@ -16,7 +16,10 @@ import {
   CONTEXT_WINDOWS,
   getContextWindow,
 } from "../lib/model-context-window.js";
-export { CONTEXT_WINDOWS, getContextWindow } from "../lib/model-context-window.js";
+export {
+  CONTEXT_WINDOWS,
+  getContextWindow,
+} from "../lib/model-context-window.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   getDurableSystemMessageProvenance,
@@ -627,6 +630,7 @@ export class PromptCompressor {
       // A durable-ledger write failure is authoritative too. Falling back here
       // would let the host continue after losing the model-call boundary.
       if (error?.runtimeLedgerPersistence === true) throw error;
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       // A workflow-bound query may already have reached the provider. An
       // extractive fallback would make the outer durable effect look completed
       // and authorize a replay of that physically unknown request.

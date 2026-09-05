@@ -46,6 +46,12 @@ import {
   agentLoop as coreAgentLoop,
   chatWithTools,
 } from "../../src/runtime/agent-core.js";
+import { compactConversationWithProvider } from "../../src/harness/provider-backed-compaction.js";
+import { WSAgentHandler } from "../../src/gateways/ws/ws-agent-handler.js";
+import {
+  createAgentEvolutionSessionLifecycle,
+  waitForAgentEvolutionSession,
+} from "../../src/lib/evolution/agent-evolution-session-lifecycle.js";
 import {
   registerAgentCommand,
   resolveAgentCommandEvolutionComposition,
@@ -527,6 +533,353 @@ function options(root) {
 }
 
 describe("Agent evolution runtime production composition", () => {
+  const auxiliarySummary = JSON.stringify({
+    objective: "Continue inspecting the workspace",
+    constraints: ["Keep credentials private"],
+    keyDecisions: [],
+    changedFiles: [],
+    tests: [],
+    unresolvedSideEffects: [],
+    checkpoints: [],
+    blockers: [],
+    nextSteps: ["Continue inspection"],
+  });
+  function auxiliaryConversation() {
+    return [
+      { role: "system", content: "You inspect workspaces." },
+      {
+        role: "user",
+        content: "Inspect sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      },
+      { role: "assistant", content: "Inspection started." },
+      { role: "user", content: "Keep constraints." },
+      { role: "assistant", content: "Constraints retained." },
+      { role: "user", content: "Continue inspection." },
+      { role: "assistant", content: "Ready to continue." },
+    ];
+  }
+  function auxiliaryTransport(f, responseForCall = () => auxiliarySummary) {
+    f.transport.mockImplementation(async (_url, request) => {
+      f.seen.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({
+          message: {
+            role: "assistant",
+            content: responseForCall(f.seen.length),
+          },
+          prompt_eval_count: 20,
+          eval_count: 5,
+        }),
+      };
+    });
+  }
+
+  it("projects real provider-backed compaction and never exposes Raw history to the provider", async () => {
+    const f = modelFixture();
+    auxiliaryTransport(f);
+    const messages = auxiliaryConversation();
+    const result = await compactConversationWithProvider(messages, {
+      ...f.callOptions,
+      force: true,
+    });
+    expect(result.stats.summaryMode).toBe("llm-structured");
+    expect(result.degradedEvent).toBeNull();
+    expect(f.transport).toHaveBeenCalledOnce();
+    expect(f.seen[0].tools).toEqual([]);
+    expect(JSON.stringify(f.seen)).not.toContain(
+      "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+    );
+    expect(JSON.stringify(f.seen)).toContain("REDACTED");
+    expect(messages[1].content).toContain(
+      "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+    );
+    expect(f.composition.loadRun().events.at(-1).data.evidenceKind).toBe(
+      "model-input",
+    );
+  }, 60_000);
+
+  it("does not convert compaction projection denial into an extractive success", async () => {
+    const f = modelFixture("restricted");
+    const messages = auxiliaryConversation();
+    const before = structuredClone(messages);
+    await expect(
+      compactConversationWithProvider(messages, {
+        ...f.callOptions,
+        force: true,
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(messages).toEqual(before);
+    await expect(f.composition.evolutionIngress.complete()).rejects.toThrow();
+  }, 60_000);
+
+  it("refuses ungoverned custom compaction callbacks and borrowed auto-compactors", async () => {
+    const f = modelFixture();
+    const callback = vi.fn();
+    for (const overrides of [
+      { chatFn: callback },
+      { llmQuery: callback },
+      { compressor: { compress: callback } },
+    ]) {
+      await expect(
+        compactConversationWithProvider(auxiliaryConversation(), {
+          ...f.callOptions,
+          ...overrides,
+          force: true,
+        }),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    }
+    const generator = coreAgentLoop(auxiliaryConversation(), {
+      ...f.callOptions,
+      autoCompact: true,
+      _autoCompactor: { compress: callback },
+    });
+    await expect(
+      (async () => {
+        for await (const event of generator) void event;
+      })(),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(callback).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it.each(["condition", "assessment"])(
+    "keeps real headless %s calls within the same unfinished Run",
+    async (kind) => {
+      const f = modelFixture();
+      const goal = {
+        id: "goal-auxiliary",
+        objective: "Inspect the workspace",
+        status: "active",
+        progress: 0,
+        keyResults: [],
+      };
+      auxiliaryTransport(f, (call) =>
+        call === 1
+          ? "done"
+          : kind === "condition"
+            ? '{"met":true,"reason":"inspection complete"}'
+            : "No assessment available.",
+      );
+      const result = await runAgentHeadless(
+        {
+          ...f.callOptions,
+          prompt: "Inspect sk-abcdefghijklmnopqrstuvwxyz1234567890",
+          outputFormat: "text",
+          ephemeral: true,
+          hermeticExecution: true,
+          cwd: f.root,
+          ...(kind === "condition"
+            ? { goalCondition: "model:inspection complete" }
+            : { goal: goal.id, goalAssess: true }),
+        },
+        {
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => null,
+          resolveActiveGoal: () => goal,
+          getGoal: () => goal,
+          writeOut: vi.fn(),
+          writeErr: vi.fn(),
+        },
+      );
+      expect(result).toMatchObject({ exitCode: 0, result: "done" });
+      expect(f.transport).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(f.seen)).not.toContain(
+        "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+      expect(
+        f.composition
+          .loadRun()
+          .events.filter((event) => event.data.evidenceKind === "model-input"),
+      ).toHaveLength(2);
+      expect(f.composition.loadRun().projection.status).toBe("completed");
+    },
+    60_000,
+  );
+
+  it.each(["condition", "assessment"])(
+    "does not complete a headless Run after %s source denial",
+    async (kind) => {
+      const f = modelFixture();
+      const goal = {
+        id: "goal-auxiliary",
+        objective: "Inspect the workspace",
+        status: "active",
+        progress: 0,
+        keyResults: [],
+      };
+      auxiliaryTransport(f, () => "done");
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        async ({ kind: evidenceKind }) =>
+          evidenceKind === "model-input" && f.seen.length > 0
+            ? "denied-source"
+            : `signed-source:${evidenceKind}`,
+      );
+      const outcome = await Promise.allSettled([
+        runAgentHeadless(
+          {
+            ...f.callOptions,
+            prompt: "Inspect the workspace",
+            outputFormat: "text",
+            ephemeral: true,
+            hermeticExecution: true,
+            cwd: f.root,
+            ...(kind === "condition"
+              ? { goalCondition: "model:inspection complete" }
+              : { goal: goal.id, goalAssess: true }),
+          },
+          {
+            bootstrap: async () => ({ db: null }),
+            getApprovalGate: async () => null,
+            resolveActiveGoal: () => goal,
+            getGoal: () => goal,
+            writeOut: vi.fn(),
+            writeErr: vi.fn(),
+          },
+        ),
+      ]);
+      if (outcome[0].status === "fulfilled")
+        expect(outcome[0].value.exitCode).toBe(1);
+      else
+        expect(outcome[0].reason.code).toBe(
+          "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        );
+      expect(f.transport).toHaveBeenCalledOnce();
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    60_000,
+  );
+
+  it.each([false, true])(
+    "owns a durable EvolutionRun for a real WebSocket manual compaction (denied=%s)",
+    async (denied) => {
+      const f = modelFixture(denied ? "restricted" : "internal");
+      auxiliaryTransport(f);
+      const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+      let owned;
+      const session = {
+        id: "ws-auxiliary",
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://127.0.0.1:1",
+        projectRoot: f.root,
+        contextMemoryEnv: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "shadow" },
+        messages: auxiliaryConversation(),
+      };
+      const handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        evolutionCompositionFactory: async ({ runId }) => {
+          owned = createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return owned;
+        },
+      });
+      const before = structuredClone(session.messages);
+      await handler.handleSlashCommand("/compact", "req-auxiliary");
+      if (denied) {
+        expect(f.transport).not.toHaveBeenCalled();
+        expect(session.messages).toEqual(before);
+        expect(owned.loadRun().projection.status).not.toBe("completed");
+        const response = interaction.emit.mock.calls.find(
+          ([type]) => type === "command-response",
+        );
+        expect(response[1].result.error).toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        return;
+      }
+      expect(f.transport).toHaveBeenCalledOnce();
+      expect(JSON.stringify(f.seen)).not.toContain(
+        "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+      expect(owned.loadRun().projection.status).toBe("completed");
+      expect(
+        owned
+          .loadRun()
+          .events.map((event) => event.data.evidenceKind)
+          .filter(Boolean),
+      ).toEqual(["model-input"]);
+      const response = interaction.emit.mock.calls.find(
+        ([type]) => type === "command-response",
+      );
+      expect(response[1].result).not.toHaveProperty("error");
+    },
+    60_000,
+  );
+
+  it.each([false, true])(
+    "protects the real stream manual compaction (denied=%s)",
+    async (denied) => {
+      const f = modelFixture();
+      // Distinct replies keep the real compressor's exact/fuzzy deduplication
+      // from shrinking this small fixture below its semantic-summary threshold.
+      auxiliaryTransport(f, (call) =>
+        call === 1
+          ? "Files: app.js."
+          : call === 2
+            ? "Next: verify behavior."
+            : auxiliarySummary,
+      );
+      if (denied) {
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          async ({ kind }) =>
+            kind === "model-input" && f.seen.length >= 2
+              ? "denied-source"
+              : `signed-source:${kind}`,
+        );
+      }
+      async function* input() {
+        for (const text of [
+          "Inspect sk-abcdefghijklmnopqrstuvwxyz1234567890",
+          "Continue inspection",
+        ]) {
+          yield `${JSON.stringify({ type: "user", text })}\n`;
+        }
+        yield `${JSON.stringify({ type: "compact" })}\n`;
+      }
+      const output = [];
+      const result = await runAgentHeadlessStream(
+        {
+          ...f.callOptions,
+          systemPrompt: "You inspect workspaces.",
+          enabledToolNames: ["read_file"],
+          expandFileRefs: false,
+          projectMemory: false,
+          ephemeral: true,
+          cwd: f.root,
+          contextMemoryEnv: {
+            CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "shadow",
+          },
+        },
+        {
+          input: input(),
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => null,
+          writeOut: (text) => output.push(String(text)),
+          writeErr: vi.fn(),
+        },
+      );
+      expect(result).toMatchObject({ exitCode: denied ? 1 : 0, turns: 2 });
+      expect(f.transport).toHaveBeenCalledTimes(denied ? 2 : 3);
+      expect(JSON.stringify(f.seen)).not.toContain(
+        "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+      if (denied) {
+        expect(output.join("")).toContain("error_evolution_ingress");
+        expect(f.composition.loadRun().projection.status).not.toBe("completed");
+      } else {
+        expect(output.join("")).toContain('"type":"compaction"');
+        expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    90_000,
+  );
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), "cc-agent-model-boundary-"),
@@ -567,6 +920,135 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  it("keeps the interactive Run open until its owned teardown completes", async () => {
+    const f = modelFixture();
+    const lifecycle = createAgentEvolutionSessionLifecycle(
+      f.composition.evolutionIngress,
+    );
+    let signalStarted;
+    const started = new Promise((resolve) => {
+      signalStarted = resolve;
+    });
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      evolutionComposition: f.composition,
+      deps: {
+        startAgentRepl: async () => {
+          signalStarted();
+          return lifecycle.handle;
+        },
+      },
+    }).createAgentRuntime({ sessionId: f.config.runId });
+    let finished = false;
+    const running = runtime.startAgentSession().then(() => {
+      finished = true;
+    });
+    await started;
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(finished).toBe(false);
+    expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    await chatWithTools(
+      [{ role: "user", content: "Inspect this session" }],
+      f.callOptions,
+    );
+    expect(f.transport).toHaveBeenCalledOnce();
+    const closing = lifecycle.close();
+    expect(lifecycle.close()).toBe(closing);
+    await closing;
+    await running;
+    expect(finished).toBe(true);
+    expect(f.composition.loadRun().projection.status).toBe("completed");
+    expect(
+      f.composition
+        .loadRun()
+        .events.filter((event) => event.eventId.endsWith(":completed")),
+    ).toHaveLength(1);
+  }, 60_000);
+
+  it.each(["teardown", "projection"])(
+    "does not certify an interactive Run after %s failure",
+    async (mode) => {
+      const f = modelFixture(mode === "projection" ? "restricted" : "internal");
+      const lifecycle = createAgentEvolutionSessionLifecycle(
+        f.composition.evolutionIngress,
+      );
+      const runtime = createAgentRuntimeFactory({
+        config: {},
+        evolutionComposition: f.composition,
+        deps: { startAgentRepl: async () => lifecycle.handle },
+      }).createAgentRuntime({ sessionId: f.config.runId });
+      const running = runtime.startAgentSession();
+      const settled = Promise.allSettled([running]);
+      let error = null;
+      if (mode === "projection") {
+        await expect(
+          chatWithTools(
+            [{ role: "user", content: "restricted" }],
+            f.callOptions,
+          ),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      } else {
+        error = Object.assign(new Error("teardown failed"), {
+          code: "CC_TEST_TEARDOWN_FAILED",
+        });
+      }
+      await expect(lifecycle.close(error)).rejects.toMatchObject({
+        code:
+          mode === "projection"
+            ? "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+            : "CC_TEST_TEARDOWN_FAILED",
+      });
+      expect((await settled)[0].status).toBe("rejected");
+      expect(f.transport).not.toHaveBeenCalled();
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    60_000,
+  );
+
+  it("rejects counterfeit or differently owned interactive session handles", async () => {
+    const f = modelFixture();
+    const other = modelFixture();
+    const lifecycle = createAgentEvolutionSessionLifecycle(
+      f.composition.evolutionIngress,
+    );
+    for (const handle of [
+      { ...lifecycle.handle },
+      new Proxy(lifecycle.handle, {}),
+    ]) {
+      expect(() =>
+        waitForAgentEvolutionSession(handle, f.composition.evolutionIngress),
+      ).toThrow(/unbound/);
+    }
+    expect(() =>
+      waitForAgentEvolutionSession(
+        lifecycle.handle,
+        other.composition.evolutionIngress,
+      ),
+    ).toThrow(/unbound/);
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      evolutionComposition: f.composition,
+      deps: { startAgentRepl: async () => ({ ...lifecycle.handle }) },
+    }).createAgentRuntime({ sessionId: f.config.runId });
+    await expect(runtime.startAgentSession()).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(f.composition.loadRun().projection.status).not.toBe("completed");
+  }, 30_000);
+
+  it("does not complete a Run when interactive startup is refused", async () => {
+    const f = modelFixture();
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      evolutionComposition: f.composition,
+      deps: { startAgentRepl: async () => ({ started: false }) },
+    }).createAgentRuntime({ sessionId: f.config.runId });
+    await expect(runtime.startAgentSession()).resolves.toEqual({
+      started: false,
+    });
+    expect(f.composition.loadRun().projection.status).not.toBe("completed");
+  }, 30_000);
 
   it("sends fresh authenticated projections after context optimization, including tool descriptions", async () => {
     const f = modelFixture();

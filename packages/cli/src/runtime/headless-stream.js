@@ -3809,6 +3809,7 @@ async function runAgentHeadlessStreamInWorkspace(
       let compactionProviderStarted = false;
       try {
         const providerCompactionOptions = {
+          ...(evolutionIngress === null ? {} : { evolutionIngress }),
           provider,
           model,
           baseUrl,
@@ -3923,6 +3924,10 @@ async function runAgentHeadlessStreamInWorkspace(
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
+        if (error?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
+          evolutionIngressFailed = true;
+          sawError = true;
+        }
         if (compactionProviderStarted) {
           const event = {
             type: "model-usage-unknown",
@@ -3939,6 +3944,17 @@ async function runAgentHeadlessStreamInWorkspace(
               "headless semantic compaction",
             );
           }
+        }
+        if (error?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
+          emit({
+            type: "result",
+            subtype: "error_evolution_ingress",
+            is_error: true,
+            code: error.code,
+            error: error.message,
+            session_id: sessionId,
+          });
+          break;
         }
         emit({
           type: "compaction-degraded",

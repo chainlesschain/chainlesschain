@@ -274,6 +274,7 @@ export class WSAgentHandler {
       );
     }
     this._compactionLlmQuery = compactionLlmQuery || null;
+    this._customCompactionChatFn = typeof compactionChatFn === "function";
     this._compactionSettlementBlock = null;
     this._compactionChatFn =
       compactionChatFn ||
@@ -836,7 +837,11 @@ export class WSAgentHandler {
     return null;
   }
 
-  async _compactCanonicalHistoryBeforeClaim(requestId, signal = null) {
+  async _compactCanonicalHistoryBeforeClaim(
+    requestId,
+    signal = null,
+    evolutionComposition = null,
+  ) {
     const { session } = this;
     if (
       session.autoCompact === false ||
@@ -873,6 +878,14 @@ export class WSAgentHandler {
           preserveCompletedExchange: true,
           llmQuery: this._compactionLlmQuery,
           chatFn: this._compactionChatFn,
+          ...(evolutionComposition === null
+            ? {}
+            : {
+                evolutionIngress: evolutionComposition.evolutionIngress,
+                chatFn: this._customCompactionChatFn
+                  ? this._compactionChatFn
+                  : undefined,
+              }),
           chatOptions: {
             cwd: session.projectRoot,
             sessionId: session.id,
@@ -1395,9 +1408,13 @@ export class WSAgentHandler {
           strictUsageTelemetry =
             this._resolveCanonicalUsageProtocol() === "call-ledger";
           if (strictUsageTelemetry) this._assertUsageLedgerWritable();
+          if (this._evolutionCompositionFactory !== null) {
+            evolutionComposition = await this._prepareEvolutionTurn(requestId);
+          }
           const compacted = await this._compactCanonicalHistoryBeforeClaim(
             requestId,
             turnSignal,
+            evolutionComposition,
           );
           if (!compacted) return;
         }
@@ -1429,7 +1446,10 @@ export class WSAgentHandler {
           return;
         }
       }
-      if (this._evolutionCompositionFactory !== null) {
+      if (
+        this._evolutionCompositionFactory !== null &&
+        evolutionComposition === null
+      ) {
         evolutionComposition = await this._prepareEvolutionTurn(requestId);
       }
       if (evolutionComposition !== null) {
@@ -2233,11 +2253,15 @@ export class WSAgentHandler {
         const expectedMessages = [...session.messages];
         let result = null;
         let commandError = null;
+        let compactionEvolution = null;
         let compactionUsageCall = null;
         let compactionUsageSettled = false;
         try {
           this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
+          compactionEvolution = await this._prepareEvolutionTurn(
+            `compact:${requestId || randomUUID()}`,
+          );
           result = await this._compactContextMemory(
             session.messages,
             {
@@ -2251,6 +2275,14 @@ export class WSAgentHandler {
               preserveCompletedExchange: true,
               llmQuery: this._compactionLlmQuery,
               chatFn: this._compactionChatFn,
+              ...(compactionEvolution === null
+                ? {}
+                : {
+                    evolutionIngress: compactionEvolution.evolutionIngress,
+                    chatFn: this._customCompactionChatFn
+                      ? this._compactionChatFn
+                      : undefined,
+                  }),
               chatOptions: {
                 cwd: session.projectRoot,
                 sessionId: session.id,
@@ -2432,6 +2464,26 @@ export class WSAgentHandler {
           // rejects the candidate; the paid request already happened and is
           // never retried by this command.
           this._emitCompactionUsage(requestId, usageEvent);
+        }
+        if (
+          compactionEvolution !== null &&
+          result !== null &&
+          commandError === null
+        ) {
+          try {
+            await compactionEvolution.evolutionIngress.complete();
+          } catch {
+            commandError = this._latchCompactionSettlement({
+              code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+              reason: "compaction_evolution_completion_failed",
+              commitState: "evolution-unconfirmed",
+            });
+            this.interaction.emit("compaction-degraded", {
+              requestId,
+              ...commandError,
+              summaryMode: "none",
+            });
+          }
         }
         this.interaction.emit("command-response", {
           requestId,

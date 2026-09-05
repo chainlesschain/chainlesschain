@@ -218,7 +218,12 @@ export async function assessGoalProgress({
   let reply;
   try {
     reply = await chat(prompt);
-  } catch {
+  } catch (error) {
+    if (
+      error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED" ||
+      error?.runtimeLedgerPersistence === true
+    )
+      throw error;
     return { assessment: null, goal };
   }
   const assessment = parseAssessment(reply);
