@@ -9,8 +9,26 @@ import {
 import { filterEvolutionWorkbenchProjection } from "../../../src/lib/evolution/evolution-workbench-projection.js";
 import { createEvolutionWorkbenchRuntime } from "../../../src/lib/evolution/evolution-workbench-runtime.js";
 import { workbenchRuntimeOptions } from "../../fixtures/evolution-workbench-runtime.js";
+import { createHash } from "node:crypto";
+import { openEvolutionWorkbenchFileResources } from "../../../src/lib/evolution/evolution-workbench-file-resources.js";
+import { workbenchFileResourceOptions } from "../../fixtures/evolution-workbench-file-resources.js";
 
 const [root, mode, phase] = process.argv.slice(2);
+const fileOptions =
+  mode === "startup"
+    ? workbenchFileResourceOptions(root, {
+        tenantId: "tenant:workbench-rollback",
+        streamId: "workbench-rollback",
+        runId: "run:workbench-rollback",
+        skillName: "safe-refactor",
+        authorityId: "authority:workbench-rollback-test",
+        revision: 1,
+        handlerArtifactDigest: `sha256:${createHash("sha256").update("rollback-test-module").digest("hex")}`,
+      })
+    : null;
+const fileResources = fileOptions
+  ? openEvolutionWorkbenchFileResources(fileOptions)
+  : null;
 let rollbackStarted = false;
 async function killAtCheckpoint() {
   await new Promise((resolve) =>
@@ -22,6 +40,7 @@ async function killAtCheckpoint() {
   process.kill(process.pid, "SIGKILL");
 }
 const h = await openWorkbenchRollbackStore(root, {
+  ...(fileResources ? { fileResources, fsImpl: fileOptions.fsImpl } : {}),
   seed: mode === "seed",
   now: () =>
     mode === "seed" || ["prepared", "after-lease"].includes(phase)

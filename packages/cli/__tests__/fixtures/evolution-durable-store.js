@@ -84,7 +84,7 @@ function durableFilesystem() {
 
 // Test authorities only. Actual ArtifactStore, Ledger, signatures and witness
 // files; directory-fsync compatibility is not a physical power-loss proof.
-export function openEvolutionDurableStore(
+export function evolutionDurableStoreConfiguration(
   root,
   { tenantId = "tenant-pruning", streamId = "pruning" } = {},
 ) {
@@ -102,14 +102,7 @@ export function openEvolutionDurableStore(
     createHmac("sha256", "test-only-pruning-artifact")
       .update(message)
       .digest("base64url");
-  const artifactPorts = new EvolutionArtifactPorts({
-    artifactStore: new ArtifactStore({
-      dir: path.join(root, "artifacts"),
-      now: () => NOW,
-    }),
-    audience: descriptor.audience,
-    tenantId: descriptor.artifactTenantId,
-    now: () => NOW,
+  const artifactAuthority = {
     envelopeSigner: {
       sign: ({ message }) => ({ algorithm, keyId, value: sign(message) }),
     },
@@ -153,19 +146,42 @@ export function openEvolutionDurableStore(
         };
       },
     },
+  };
+  return {
+    descriptor,
+    artifactAuthority,
+    ledgerAuthority: authority("pruning-ledger"),
+    witnessAuthority: authority("pruning-witness"),
+    fsImpl: durableFilesystem(),
+    clock: () => NOW,
+    root,
+  };
+}
+
+export function openEvolutionDurableStore(root, options = {}) {
+  const config = evolutionDurableStoreConfiguration(root, options);
+  const { descriptor, fsImpl } = config;
+  const artifactPorts = new EvolutionArtifactPorts({
+    artifactStore: new ArtifactStore({
+      dir: path.join(root, "artifacts"),
+      now: config.clock,
+    }),
+    audience: descriptor.audience,
+    tenantId: descriptor.artifactTenantId,
+    now: config.clock,
+    ...config.artifactAuthority,
   });
   const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
     purpose: "evolution-ledger",
   });
   fs.mkdirSync(path.join(root, "witness"), { recursive: true, mode: 0o700 });
-  const fsImpl = durableFilesystem();
   const backend = createEvolutionLedgerFileBackend({
     rootDir: path.join(root, "events"),
     authorityRootDir: path.join(root, "authority"),
     witnessFilePath: path.join(root, "witness", "checkpoint.json"),
     witnessId: "pruning-test-witness",
-    ledgerAuthority: authority("pruning-ledger"),
-    witnessAuthority: authority("pruning-witness"),
+    ledgerAuthority: config.ledgerAuthority,
+    witnessAuthority: config.witnessAuthority,
     artifactResolver: resolver,
     secure: false,
     fsImpl,

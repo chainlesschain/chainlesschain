@@ -106,10 +106,21 @@ export function packetFor(release, activeRelease, revision) {
 }
 
 export async function openWorkbenchRollbackStore(root, options = {}) {
-  const store = openEvolutionDurableStore(root, {
-    tenantId: TENANT,
-    streamId: "workbench-rollback",
-  });
+  const resources = options.fileResources?.runtimeResources;
+  const mutationPorts = options.fileResources?.mutationPorts;
+  const store = resources
+    ? {
+        descriptor: resources.descriptor,
+        artifactPorts: resources.artifactPorts,
+        backend: { ledger: resources.ledger },
+        resolver: resources.ledgerArtifactResolver,
+        fsImpl: options.fsImpl,
+        clock: resources.now,
+      }
+    : openEvolutionDurableStore(root, {
+        tenantId: TENANT,
+        streamId: "workbench-rollback",
+      });
   const now = options.now ?? (() => NOW);
   const release = await openRevocationReleaseRegistry({
     root,
@@ -120,17 +131,37 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
     seed: options.seed ?? false,
     crashPoint: options.crashPoint ?? "none",
     onTransition: options.onTransition ?? null,
+    openedResources: resources
+      ? {
+          ...mutationPorts,
+          releaseRegistry: resources.releaseRegistry,
+          transactionLedger: resources.transactionLedger,
+        }
+      : null,
   });
-  const independentStore = openEvolutionDurableStore(root, {
-    tenantId: TENANT,
-    streamId: "workbench-rollback",
-  });
+  const independentStore = resources
+    ? {
+        ...store,
+        backend: { ledger: resources.verifierLedger },
+        resolver: resources.verifierLedgerArtifactResolver,
+      }
+    : openEvolutionDurableStore(root, {
+        tenantId: TENANT,
+        streamId: "workbench-rollback",
+      });
   const independent = await openRevocationReleaseRegistry({
     root,
     storage: { ...independentStore, now: NOW },
     fsImpl: independentStore.fsImpl,
     tenantId: TENANT,
     artifactTenantId: store.descriptor.artifactTenantId,
+    openedResources: resources
+      ? {
+          ...mutationPorts,
+          releaseRegistry: resources.verifierReleaseRegistry,
+          transactionLedger: resources.verifierTransactionLedger,
+        }
+      : null,
   });
   const descriptor = {
     ...store.descriptor,

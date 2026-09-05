@@ -22,6 +22,8 @@ JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源
 
 2026-09-06 后续源码补齐 Workbench 当前 Registry 投影与异步完整宿主组合，启动只补记已经发生的审核/回滚效果；未执行的计划保持 deferred。签名部署入口须使用上面的 CLI/serve 字段映射，部署认证失败也不再被兼容回退隐藏成 unknown command。后续 CLI 更新说明应包含这些实际变更，并与原 v2 审核回执一起告知 IDE 用户；这不自动改变插件版本、推荐 CLI、用户部署配置或 npm 发布状态。
 
+随后新增 `openEvolutionWorkbenchFileResources`，为认证的 evolution/serve 部署模块打开实际 Artifact、Ledger/witness、ReleaseRegistry 及独立重开的校验实例，复用同账本 audit/nonce ports。它补的是持久资源接线，不生成默认身份、审批或成功回执；目标 PKI/控制端口与实际 IDE 验收仍未完成。此变更在 CLI 包内，不另行调整子包版本；最终发布仍须重新核对下面列出的子包 payload 和准确 release SHA 门禁。
+
 2026-09-05 在本地提交 `db473898ab` 上，对 13 个 CLI 子包逐一比较 npm 已发布 tarball 与仓库声明的发布文件（文本比较只归一化 CRLF）。结果不能用“本地版本号已经存在”代替：
 
 | 子包                           | 审计时 npm 版本 | 下一轮处理                                                                                          |

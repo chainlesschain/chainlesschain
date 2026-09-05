@@ -28,6 +28,10 @@ const runtimeUrl = new URL(
   "../fixtures/evolution-workbench-runtime.js",
   import.meta.url,
 ).href;
+const fileOptionsUrl = new URL(
+  "../fixtures/evolution-workbench-file-resources.js",
+  import.meta.url,
+).href;
 
 function runCli(args, env, root, executable = bin) {
   const result = spawnSync(process.execPath, [executable, ...args], {
@@ -148,7 +152,13 @@ it("loads a signed deployment in real CLI and stdio App Server processes, retain
     const source = `export async function createChainlessChainCommandDependencies({ commandName, descriptor, factories }) {
       const { openWorkbenchRollbackStore } = await import(${JSON.stringify(resourcesUrl)});
       const { workbenchRuntimeOptions, workbenchTestIdentity } = await import(${JSON.stringify(runtimeUrl)});
-      const h = await openWorkbenchRollbackStore(${JSON.stringify(storeRoot)}, { handlerArtifactDigest: descriptor.moduleDigest });
+      const { workbenchFileResourceOptions } = await import(${JSON.stringify(fileOptionsUrl)});
+      const options = workbenchFileResourceOptions(${JSON.stringify(storeRoot)}, {
+        tenantId: "tenant:workbench-rollback", streamId: "workbench-rollback", runId: "run:workbench-rollback", skillName: "safe-refactor",
+        authorityId: "authority:workbench-rollback-test", revision: 1, handlerArtifactDigest: descriptor.moduleDigest,
+      });
+      const fileResources = factories.openEvolutionWorkbenchFileResources(options);
+      const h = await openWorkbenchRollbackStore(${JSON.stringify(storeRoot)}, { fileResources, fsImpl: options.fsImpl, handlerArtifactDigest: descriptor.moduleDigest });
       const runtime = await factories.createEvolutionWorkbenchRuntime(workbenchRuntimeOptions(h, { identityProvider: workbenchTestIdentity(h, ${JSON.stringify(storeRoot)}) }));
       return commandName === "serve" ? { evolutionWorkbenchHost: runtime.workbenchHost } : { workbenchHost: runtime.workbenchHost };
     }\n`;

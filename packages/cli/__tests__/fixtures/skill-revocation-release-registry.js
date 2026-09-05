@@ -175,17 +175,20 @@ export async function openRevocationReleaseRegistry({
   baselineWikiRevision = null,
   onReleaseRetain = null,
   onTransition = null,
+  openedResources = null,
 }) {
-  const ports = createEvolutionLedgerPorts({
-    artifactDurabilityAuthority: replicaAuthority(
-      join(root, "release-replica"),
-      onReleaseRetain,
-    ),
-    artifactPorts: storage.artifactPorts,
-    artifactTenantId: artifactTenantId,
-    audience: "evolution-runtime",
-    ledger: storage.backend.ledger,
-  });
+  const ports =
+    openedResources ??
+    createEvolutionLedgerPorts({
+      artifactDurabilityAuthority: replicaAuthority(
+        join(root, "release-replica"),
+        onReleaseRetain,
+      ),
+      artifactPorts: storage.artifactPorts,
+      artifactTenantId: artifactTenantId,
+      audience: "evolution-runtime",
+      ledger: storage.backend.ledger,
+    });
   const plans = [
     execution("baseline", tenantId),
     execution("candidate", tenantId),
@@ -225,24 +228,26 @@ export async function openRevocationReleaseRegistry({
     targetMatrixAdmissionAuthority: admission,
     secure: false,
   });
-  const releases = new SkillReleaseRegistry({
-    tenantId: tenantId,
-    rootDir: join(root, "skill-releases"),
-    transactionLedger: ports.transactionLedger,
-    fsImpl,
-    secure: false,
-    leaseTtlMs: 60_000,
-    async crashHook(phase, transaction) {
-      if (
-        crashPoint === "after-release-pointer" &&
-        phase === "after-pointer" &&
-        transaction.intent.operation === "rollback"
-      ) {
-        process.exit(95);
-      }
-      await onTransition?.(phase, transaction);
-    },
-  });
+  const releases =
+    openedResources?.releaseRegistry ??
+    new SkillReleaseRegistry({
+      tenantId: tenantId,
+      rootDir: join(root, "skill-releases"),
+      transactionLedger: ports.transactionLedger,
+      fsImpl,
+      secure: false,
+      leaseTtlMs: 60_000,
+      async crashHook(phase, transaction) {
+        if (
+          crashPoint === "after-release-pointer" &&
+          phase === "after-pointer" &&
+          transaction.intent.operation === "rollback"
+        ) {
+          process.exit(95);
+        }
+        await onTransition?.(phase, transaction);
+      },
+    });
   // Fixed test principal/receipts isolate Registry recovery from external PKI.
   // Audit and one-use nonce decisions still go through the real durable Ledger.
   const authority = new SkillMutationAuthority({
