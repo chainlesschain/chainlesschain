@@ -1,4 +1,12 @@
 import { createHash } from "node:crypto";
+import { captureWikiPruningJournalStore } from "./governed-wiki-pruning-ledger-adapter.js";
+import {
+  GOVERNED_WIKI_PRUNING_PLAN_SCHEMA,
+  GOVERNED_WIKI_PRUNING_POLICY_SCHEMA,
+  buildWikiPruningJournal,
+  pruningOperationCalls,
+  verifyPruningJournalPlan,
+} from "./governed-wiki-pruning-journal.js";
 
 import {
   WIKI_PATTERN_STATUS,
@@ -6,8 +14,7 @@ import {
   digestWikiState,
 } from "./evidence-backed-wiki-maintainer.js";
 
-export const GOVERNED_WIKI_PRUNING_PLAN_SCHEMA =
-  "chainlesschain.governed-wiki-pruning-plan/v1";
+export { GOVERNED_WIKI_PRUNING_PLAN_SCHEMA } from "./governed-wiki-pruning-journal.js";
 export const GOVERNED_WIKI_PRUNING_CONTROL_SCHEMA =
   "chainlesschain.governed-wiki-pruning-control/v1";
 export const GOVERNED_ONLINE_ADAPTATION_AUTHORIZATION_SCHEMA =
@@ -112,17 +119,7 @@ function verifiedAt(pattern) {
 }
 
 function assertPlan(plan, tenantId) {
-  if (
-    plan?.schema !== GOVERNED_WIKI_PRUNING_PLAN_SCHEMA ||
-    plan.tenantId !== tenantId ||
-    !DIGEST.test(plan?.planDigest ?? "")
-  )
-    throw new TypeError("Wiki pruning plan is invalid");
-  const core = clone(plan);
-  delete core.planDigest;
-  if (hash(GOVERNED_WIKI_PRUNING_PLAN_SCHEMA, core) !== plan.planDigest)
-    throw new Error("Wiki pruning plan digest is invalid");
-  return freeze(clone(plan));
+  return verifyPruningJournalPlan(plan, tenantId);
 }
 
 function operationRequest(plan, operation, payload) {
@@ -155,9 +152,19 @@ function requireDurableAck(result, requestDigest, label) {
 
 export class GovernedWikiPruning {
   #ports;
+  #journal;
 
-  constructor({ descriptor, ports } = {}) {
+  constructor({ descriptor, ports, journalStore = null } = {}) {
     this.descriptor = normalizeDescriptor(descriptor);
+    this.#journal =
+      journalStore === null
+        ? null
+        : captureWikiPruningJournalStore(journalStore);
+    if (
+      this.#journal &&
+      this.#journal.descriptor.tenantId !== this.descriptor.tenantId
+    )
+      throw new TypeError("Wiki pruning journal belongs to another tenant");
     const captured = {};
     for (const name of [
       "loadWikiState",
@@ -169,6 +176,7 @@ export class GovernedWikiPruning {
       "publishRetrievalProjection",
       "verifyOfflineClosure",
     ]) {
+      if (name === "commitControl" && this.#journal) continue;
       if (typeof ports?.[name] !== "function")
         throw new TypeError(`Wiki pruning port ${name} is required`);
       captured[name] = ports[name].bind(ports);
@@ -280,6 +288,7 @@ export class GovernedWikiPruning {
       schema: GOVERNED_WIKI_PRUNING_PLAN_SCHEMA,
       tenantId: this.descriptor.tenantId,
       wikiStateDigest: expectedStateDigest,
+      policyDigest: hash(GOVERNED_WIKI_PRUNING_POLICY_SCHEMA, this.descriptor),
       effectiveAt,
       patternActions,
       retrievalRemovals: [...new Set(retrievalRemovals)].sort(),
@@ -298,8 +307,30 @@ export class GovernedWikiPruning {
     });
   }
 
-  async execute({ plan: input, expectedControlDigest = null }) {
+  async execute({
+    plan: input,
+    expectedControlDigest = null,
+    expectedJournalDigest,
+  }) {
     const plan = assertPlan(input, this.descriptor.tenantId);
+    if (
+      plan.policyDigest !==
+      hash(GOVERNED_WIKI_PRUNING_POLICY_SCHEMA, this.descriptor)
+    )
+      throw new Error(
+        "Wiki pruning plan does not match current trusted policy",
+      );
+    if (this.#journal) {
+      if (expectedControlDigest !== null)
+        throw new TypeError(
+          "durable pruning uses expectedJournalDigest, not legacy control digests",
+        );
+      return this.#executeJournal(plan, expectedJournalDigest);
+    }
+    if (expectedJournalDigest !== undefined)
+      throw new TypeError(
+        "a durable journal is required for expectedJournalDigest",
+      );
     if (expectedControlDigest != null)
       digest(expectedControlDigest, "expectedControlDigest");
     if (!Array.isArray(plan.deletions))
@@ -398,6 +429,89 @@ export class GovernedWikiPruning {
       completion.controlDigest !== finalized.controlDigest
     )
       throw new Error("Wiki pruning completion was not durably committed");
+    return finalized;
+  }
+
+  async #executeJournal(plan, expectedJournalDigest) {
+    if (expectedJournalDigest !== undefined && expectedJournalDigest !== null)
+      digest(expectedJournalDigest, "expectedJournalDigest");
+    const scope = { tenantId: this.descriptor.tenantId };
+    const known = await this.#journal.load({
+      ...scope,
+      planDigest: plan.planDigest,
+    });
+    let state = known.state;
+    if (state && canonical(state.plan) !== canonical(plan))
+      throw new Error("restored pruning journal plan was substituted");
+    if (state?.phase === "finalized") return state;
+    const latest = await this.#journal.load(scope);
+    if (
+      expectedJournalDigest !== undefined &&
+      expectedJournalDigest !== (latest.state?.journalDigest ?? null)
+    )
+      throw new Error("pruning journal changed before execution");
+    if (state && latest.state?.journalDigest !== state.journalDigest)
+      throw new Error("pruning journal is no longer the current execution");
+    if (!state) {
+      if (latest.state && latest.state.phase !== "finalized")
+        throw new Error("another pruning plan is unfinished");
+      const authorized = await this.#buildPlan({
+        expectedStateDigest: plan.wikiStateDigest,
+        effectiveAt: plan.effectiveAt,
+        deletionReceiptDigests: plan.deletions.map(
+          (entry) => entry.receiptDigest,
+        ),
+      });
+      if (canonical(plan) !== canonical(authorized))
+        throw new Error(
+          "Wiki pruning plan does not match current trusted policy",
+        );
+      state = buildWikiPruningJournal({ plan, previous: latest.state });
+      await this.#journal.commit({
+        state,
+        expectedJournalDigest: latest.state?.journalDigest ?? null,
+      });
+    }
+    // Restore is authenticated by the branded journal's current plan and
+    // operation verifiers, including the historical source Wiki binding. Do
+    // not require the original Wiki to remain current after our own revision.
+    // Effect providers MUST reconcile the same requestDigest after a response
+    // loss or a crash between their durable effect and this checkpoint.
+    const handlers = {
+      "dependency-dispositions": this.#ports.applyDependencyDispositions,
+      "wiki-revision": this.#ports.applyWikiRevision,
+      "crypto-shred": this.#ports.cryptoShred,
+      "retrieval-projection": this.#ports.publishRetrievalProjection,
+    };
+    const calls = pruningOperationCalls(plan);
+    for (
+      let index = state.operationReceipts.length;
+      index < calls.length;
+      index++
+    ) {
+      const call = calls[index];
+      const receipt = await handlers[call.request.operation](call);
+      requireDurableAck(
+        receipt,
+        call.requestDigest,
+        `Wiki pruning ${call.request.operation}`,
+      );
+      const next = buildWikiPruningJournal({ plan, previous: state, receipt });
+      await this.#journal.commit({
+        state: next,
+        expectedJournalDigest: state.journalDigest,
+      });
+      state = next;
+    }
+    const finalized = buildWikiPruningJournal({
+      plan,
+      previous: state,
+      finalize: true,
+    });
+    await this.#journal.commit({
+      state: finalized,
+      expectedJournalDigest: state.journalDigest,
+    });
     return finalized;
   }
 

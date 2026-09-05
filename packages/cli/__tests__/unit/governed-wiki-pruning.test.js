@@ -129,6 +129,25 @@ function harness(overrides = {}) {
 }
 
 describe("Governed Wiki Pruning", () => {
+  it("rejects legacy unbound v1 plans before side effects", async () => {
+    const h = harness();
+    const plan = structuredClone(
+      await h.pruning.plan({
+        expectedStateDigest: h.stateDigest,
+        effectiveAt: "2026-09-03T00:00:00.000Z",
+      }),
+    );
+    plan.schema = "chainlesschain.governed-wiki-pruning-plan/v1";
+    delete plan.policyDigest;
+    delete plan.planDigest;
+    plan.planDigest = D(`${plan.schema}\0${canonical(plan)}`);
+    await expect(h.pruning.execute({ plan })).rejects.toThrow(
+      /fields|binding/u,
+    );
+    expect(h.ports.commitControl).not.toHaveBeenCalled();
+    expect(h.ports.applyDependencyDispositions).not.toHaveBeenCalled();
+  });
+
   it("separates retrieval cleanup from immutable audit retention", async () => {
     const h = harness();
     const plan = await h.pruning.plan({
@@ -262,7 +281,7 @@ describe("Governed Wiki Pruning", () => {
       const forged = redigestPlan(altered);
       expect(forged.planDigest).not.toBe(original.planDigest);
       await expect(h.pruning.execute({ plan: forged })).rejects.toThrow(
-        /current trusted policy/u,
+        /current trusted policy|pruning plan fields/u,
       );
       for (const name of [
         "commitControl",
@@ -334,7 +353,9 @@ describe("Governed Wiki Pruning", () => {
       descriptor: { tenantId: "tenant:a", maxActions: 1 },
       ports: h.ports,
     });
-    await expect(stricter.execute({ plan })).rejects.toThrow(/action budget/u);
+    await expect(stricter.execute({ plan })).rejects.toThrow(
+      /action budget|current trusted policy/u,
+    );
     expect(h.ports.commitControl).not.toHaveBeenCalled();
     expect(h.ports.cryptoShred).not.toHaveBeenCalled();
   });

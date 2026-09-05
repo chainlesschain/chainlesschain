@@ -627,6 +627,7 @@ describe("EvolutionArtifactPorts", () => {
       "wiki-maintenance-request",
       "wiki-maintenance-settlement",
       "wiki-revision",
+      "wiki-pruning-journal",
       "wiki-skill-proposal",
       "wikiskill-benchmark-envelope-manifest",
       "wikiskill-benchmark-execution-manifest",
