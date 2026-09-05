@@ -12,6 +12,7 @@ import { CostBudget } from "./cost-budget.js";
 import { FREE_PROVIDERS, mergePricing } from "./llm-pricing.js";
 import { redactSecrets } from "./secret-scan.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 
 export const ADVISOR_TRIGGERS = Object.freeze({
   MANUAL: "manual",
@@ -609,7 +610,12 @@ export async function invokeToolFreeAdvisor({
   apiKey,
   maxTokens = DEFAULT_ADVISOR_MAX_TOKENS,
   signal,
+  evolutionIngress = null,
 } = {}) {
+  const ingress =
+    evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(evolutionIngress);
   const { chatWithTools } = await import("../runtime/agent-core.js");
   let resolvedBaseUrl = baseUrl;
   if (!resolvedBaseUrl) {
@@ -625,6 +631,7 @@ export async function invokeToolFreeAdvisor({
     resolvedBaseUrl = "http://localhost:11434";
   }
   return chatWithTools(messages, {
+    ...(ingress === null ? {} : { evolutionIngress: ingress }),
     provider,
     model,
     baseUrl: resolvedBaseUrl,
@@ -640,6 +647,9 @@ export async function invokeToolFreeAdvisor({
 }
 
 export class AdvisorRuntime {
+  #evolutionIngress;
+  #callWrapper;
+
   constructor({
     config,
     managed,
@@ -649,11 +659,28 @@ export class AdvisorRuntime {
     baseUrl = null,
     apiKey = null,
     invoke = invokeToolFreeAdvisor,
+    evolutionIngress = null,
+    callWrapper = null,
     onEvent = null,
     priceTable = null,
     now = () => Date.now(),
     id = () => randomUUID(),
   } = {}) {
+    this.#evolutionIngress =
+      evolutionIngress == null
+        ? null
+        : captureAgentEvolutionIngress(evolutionIngress);
+    if (this.#evolutionIngress !== null && invoke !== invokeToolFreeAdvisor) {
+      throw Object.assign(
+        new TypeError(
+          "Evolution Advisor requires the canonical model transport",
+        ),
+        { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+      );
+    }
+    if (callWrapper !== null && typeof callWrapper !== "function")
+      throw new TypeError("Advisor callWrapper must be a function");
+    this.#callWrapper = callWrapper;
     this.config = resolveAdvisorConfig({
       config,
       managed,
@@ -837,7 +864,7 @@ export class AdvisorRuntime {
       toolCount: 0,
     });
     try {
-      const rawResult = await this.invoke({
+      const request = {
         messages: requestMessages,
         provider: this.config.provider,
         model: this.config.model,
@@ -846,7 +873,28 @@ export class AdvisorRuntime {
         maxTokens: this.config.maxTokens,
         signal,
         enabledToolNames: [],
-      });
+        ...(this.#evolutionIngress === null
+          ? {}
+          : { evolutionIngress: this.#evolutionIngress }),
+      };
+      const invoke =
+        this.#evolutionIngress === null ? this.invoke : invokeToolFreeAdvisor;
+      const invokeCall = ({ signal: hostSignal = signal } = {}) =>
+        invoke({
+          ...request,
+          signal:
+            hostSignal && signal && hostSignal !== signal
+              ? AbortSignal.any([signal, hostSignal])
+              : hostSignal || signal,
+        });
+      const rawResult =
+        this.#callWrapper === null
+          ? await invokeCall()
+          : await this.#callWrapper({
+              call: invokeCall,
+              provider: request.provider,
+              model: request.model,
+            });
       const rawText = resultText(rawResult);
       const advice = parseAdvisorAdvice(rawText);
       const usage = usageFrom(rawResult, requestMessages, rawText);
@@ -889,6 +937,7 @@ export class AdvisorRuntime {
       };
     } catch (error) {
       if (error?.runtimeLedgerPersistence === true) throw error;
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       const failure = {
         callId,
         trigger,
@@ -1019,6 +1068,8 @@ export async function createConfiguredAdvisorRuntime({
   overrides = {},
   onEvent = null,
   invoke = invokeToolFreeAdvisor,
+  evolutionIngress = null,
+  callWrapper = null,
   now,
   id,
 } = {}) {
@@ -1037,6 +1088,8 @@ export async function createConfiguredAdvisorRuntime({
     baseUrl,
     apiKey,
     invoke,
+    evolutionIngress,
+    callWrapper,
     onEvent,
     priceTable: mergePricing(config?.llm?.pricing),
     now,

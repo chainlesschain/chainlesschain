@@ -119,6 +119,11 @@ List all decisions you can find. If no explicit decisions are documented, infer 
       summary: `Found ${decisions.length} architectural decisions in ${targetPath}\n\n${decisions.map((d) => `  - ${d.title} (${d.status})`).join("\n")}`,
     };
   } catch (err) {
+    if (
+      err?.runtimeLedgerPersistence === true ||
+      err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+    )
+      throw err;
     return {
       decisions: [],
       summary: `Decision extraction failed: ${err.message}`,

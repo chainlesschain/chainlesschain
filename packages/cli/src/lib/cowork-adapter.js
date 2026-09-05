@@ -10,6 +10,7 @@
 import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { loadConfig } from "./config-manager.js";
 import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
+import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 
 function plainUsage(value) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -106,6 +107,8 @@ async function invokeChatCall(callWrapper, provider, model, call) {
  * @param {string} [options.model] - Model name override
  * @param {string} [options.baseUrl] - Base URL override
  * @param {string} [options.apiKey] - API key override
+ * @param {object} [options.evolutionIngress] - Branded session ingress captured
+ *        by the adapter; per-call options cannot remove or replace it.
  * @param {(request: {call: function, provider: string, model: string}) => Promise<object>} [options.callWrapper]
  *        Optional host boundary around each real provider call. The callback
  *        may invoke `call({ signal })` to bind cancellation and resolves to a
@@ -114,6 +117,10 @@ async function invokeChatCall(callWrapper, provider, model, call) {
  * @returns {(messages: object[], opts?: object) => Promise<string>}
  */
 export function createChatFn(options = {}) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   // Fill provider/model/baseUrl/apiKey from config.llm only when the caller
   // gave no explicit provider AND no LLM_PROVIDER env override (both still win).
   // Fail-open: a config read must never break chat construction.
@@ -140,6 +147,20 @@ export function createChatFn(options = {}) {
   return async function chat(messages, opts = {}) {
     const currentModel = opts.model || model;
     const maxTokens = opts.maxTokens || 2048;
+    const requestSignal = (hostSignal) => {
+      const signals = [
+        ...new Set([hostSignal, opts.signal, resolved.signal].filter(Boolean)),
+      ];
+      return signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+    };
+    // Run inside the host's per-call meter, immediately before provider encoding.
+    // Every invocation (including concurrent reviewers) gets fresh durable
+    // admission; the original conversation is never replaced in place.
+    const prepareMessages = async () =>
+      evolutionIngress === null
+        ? messages
+        : (await evolutionIngress.prepareModelRequest({ messages, tools: [] }))
+            .messages;
 
     if (provider === "ollama") {
       const envelope = await invokeChatCall(
@@ -147,13 +168,14 @@ export function createChatFn(options = {}) {
         provider,
         currentModel,
         async ({ signal = opts.signal || resolved.signal } = {}) => {
+          const modelMessages = await prepareMessages();
           const res = await fetch(`${baseUrl}/api/chat`, {
             method: "POST",
-            signal,
+            signal: requestSignal(signal),
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               model: currentModel,
-              messages,
+              messages: modelMessages,
               stream: false,
               options: { num_predict: maxTokens },
             }),
@@ -172,25 +194,24 @@ export function createChatFn(options = {}) {
     if (provider === "anthropic") {
       const key = resolved.apiKey || process.env[providerDef.apiKeyEnv];
       if (!key) throw new Error("ANTHROPIC_API_KEY not set");
-      // Extract system message if present
-      const systemMsgs = messages.filter((m) => m.role === "system");
-      const otherMsgs = messages.filter((m) => m.role !== "system");
-      const body = {
-        model: currentModel,
-        max_tokens: maxTokens,
-        messages: otherMsgs,
-      };
-      if (systemMsgs.length > 0) {
-        body.system = systemMsgs.map((m) => m.content).join("\n");
-      }
       const envelope = await invokeChatCall(
         callWrapper,
         provider,
         currentModel,
         async ({ signal = opts.signal || resolved.signal } = {}) => {
+          const modelMessages = await prepareMessages();
+          const systemMsgs = modelMessages.filter((m) => m.role === "system");
+          const body = {
+            model: currentModel,
+            max_tokens: maxTokens,
+            messages: modelMessages.filter((m) => m.role !== "system"),
+            ...(systemMsgs.length
+              ? { system: systemMsgs.map((m) => m.content).join("\n") }
+              : {}),
+          };
           const res = await fetch(`${baseUrl}/messages`, {
             method: "POST",
-            signal,
+            signal: requestSignal(signal),
             headers: {
               "Content-Type": "application/json",
               "x-api-key": key,
@@ -218,16 +239,17 @@ export function createChatFn(options = {}) {
       provider,
       currentModel,
       async ({ signal = opts.signal || resolved.signal } = {}) => {
+        const modelMessages = await prepareMessages();
         const res = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
-          signal,
+          signal: requestSignal(signal),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${key}`,
           },
           body: JSON.stringify({
             model: currentModel,
-            messages,
+            messages: modelMessages,
             max_tokens: maxTokens,
           }),
         });

@@ -43,6 +43,9 @@ export class CLIAutonomousAgent extends EventEmitter {
   constructor() {
     super();
     this._goals = new Map();
+    this._runningLoops = new Map();
+    this._closing = false;
+    this._shutdownAbort = new AbortController();
     this._llmChat = null;
     this._toolExecutor = null;
     this._hookManager = null;
@@ -88,6 +91,7 @@ export class CLIAutonomousAgent extends EventEmitter {
   async submitGoal(description, { tokenBudget = 50000 } = {}) {
     assertCLILegacyMutationAllowed("CLIAutonomousAgent.submitGoal");
     if (!this._initialized) throw new Error("Agent not initialized");
+    if (this._closing) throw new Error("Agent session is closing");
     if (!description) throw new Error("Goal description required");
 
     const goalId = `goal-${_deps.Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -111,11 +115,7 @@ export class CLIAutonomousAgent extends EventEmitter {
     this.emit("goal:submitted", { goalId, description });
 
     // Start the ReAct loop asynchronously
-    this._runReActLoop(goal).catch((err) => {
-      goal.status = GoalStatus.FAILED;
-      goal.errors.push(err.message);
-      this.emit("goal:failed", { goalId, error: err.message });
-    });
+    this._launchGoalLoop(goal);
 
     return { goalId };
   }
@@ -162,6 +162,7 @@ export class CLIAutonomousAgent extends EventEmitter {
    */
   resumeGoal(goalId) {
     assertCLILegacyMutationAllowed("CLIAutonomousAgent.resumeGoal");
+    if (this._closing) return { error: "Agent session is closing" };
     const goal = this._goals.get(goalId);
     if (!goal) return { error: "Goal not found" };
     if (goal.status !== GoalStatus.PAUSED)
@@ -172,12 +173,49 @@ export class CLIAutonomousAgent extends EventEmitter {
     this.emit("goal:resumed", { goalId });
 
     // Continue the loop
-    this._runReActLoop(goal).catch((err) => {
-      goal.status = GoalStatus.FAILED;
-      goal.errors.push(err.message);
-    });
+    this._launchGoalLoop(goal);
 
     return { success: true };
+  }
+
+  _launchGoalLoop(goal) {
+    // Resume during an in-flight model/tool call reuses that loop, rather than
+    // launching a second execution of the same goal.
+    if (this._runningLoops.has(goal.id)) return this._runningLoops.get(goal.id);
+    const running = this._runReActLoop(goal)
+      .catch((err) => {
+        if (goal.status === GoalStatus.CANCELLED) return;
+        goal.status = GoalStatus.FAILED;
+        goal.errors.push(err.message);
+        this.emit("goal:failed", { goalId: goal.id, error: err.message });
+      })
+      .finally(() => this._runningLoops.delete(goal.id));
+    this._runningLoops.set(goal.id, running);
+    return running;
+  }
+
+  get signal() {
+    return this._shutdownAbort.signal;
+  }
+
+  async shutdown() {
+    this._closing = true;
+    let interrupted = 0;
+    for (const goal of this._goals.values()) {
+      if (
+        ![GoalStatus.PENDING, GoalStatus.RUNNING, GoalStatus.PAUSED].includes(
+          goal.status,
+        )
+      )
+        continue;
+      interrupted++;
+      goal.status = GoalStatus.CANCELLED;
+      goal.updatedAt = new Date().toISOString();
+      this.emit("goal:cancelled", { goalId: goal.id });
+    }
+    this._shutdownAbort.abort(new Error("Agent session is closing"));
+    await Promise.allSettled([...this._runningLoops.values()]);
+    return { interrupted };
   }
 
   /**
@@ -379,7 +417,7 @@ Only return the JSON array, no other text.`;
 
       const response = await this._llmChat(
         [{ role: "user", content: prompt }],
-        { maxTokens: 1024 },
+        { maxTokens: 1024, signal: this.signal },
       );
 
       // Parse steps from LLM response
@@ -396,6 +434,11 @@ Only return the JSON array, no other text.`;
       }));
     } catch (_err) {
       // Fallback: single step
+      if (
+        _err?.runtimeLedgerPersistence === true ||
+        _err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+      )
+        throw _err;
       return [
         {
           description: goal.description,
@@ -454,7 +497,7 @@ Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...},
 
       const response = await this._llmChat(
         [{ role: "user", content: prompt }],
-        { maxTokens: 512 },
+        { maxTokens: 512, signal: this.signal },
       );
 
       const correction = this._parseJSON(response);
@@ -499,6 +542,11 @@ Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...},
 
       return false;
     } catch (_err) {
+      if (
+        _err?.runtimeLedgerPersistence === true ||
+        _err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+      )
+        throw _err;
       return false;
     }
   }

@@ -5,6 +5,43 @@ describe("cowork-adapter", () => {
   // ─── createChatFn ─────────────────────────────────────
 
   describe("createChatFn", () => {
+    it.each(["ollama", "anthropic", "openai"])(
+      "preserves operation cancellation under a %s host meter",
+      async (provider) => {
+        const originalFetch = globalThis.fetch;
+        const host = new AbortController();
+        const operation = new AbortController();
+        let requestSignal;
+        globalThis.fetch = vi.fn(async (_url, options) => {
+          requestSignal = options.signal;
+          return {
+            ok: true,
+            json: async () => ({
+              message: { content: "ok" },
+              content: [{ text: "ok" }],
+              choices: [{ message: { content: "ok" } }],
+            }),
+          };
+        });
+        try {
+          const chat = createChatFn({
+            provider,
+            apiKey: "test-only",
+            callWrapper: ({ call }) => call({ signal: host.signal }),
+          });
+          await chat([{ role: "user", content: "inspect" }], {
+            signal: operation.signal,
+          });
+          expect(requestSignal.aborted).toBe(false);
+          operation.abort();
+          expect(requestSignal.aborted).toBe(true);
+          expect(host.signal.aborted).toBe(false);
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
+
     it("returns a function", () => {
       const chat = createChatFn({ provider: "ollama" });
       expect(typeof chat).toBe("function");

@@ -96,6 +96,11 @@ export class CLIInteractivePlanner extends EventEmitter {
       };
     } catch (err) {
       session.status = PlanSessionStatus.FAILED;
+      if (
+        err?.runtimeLedgerPersistence === true ||
+        err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+      )
+        throw err;
       return {
         sessionId,
         status: session.status,
@@ -345,7 +350,10 @@ Keep plans concise (3-8 steps). Use appropriate tools for each step.`;
       { role: "user", content: prompt },
     ]);
 
-    const content = response?.message?.content || response?.content || "";
+    const content =
+      typeof response === "string"
+        ? response
+        : response?.message?.content || response?.content || "";
     const jsonText = firstBalancedJson(content, "{");
     if (!jsonText) {
       throw new Error("Failed to parse plan from LLM response");

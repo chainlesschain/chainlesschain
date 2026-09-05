@@ -3236,7 +3236,7 @@ async function startAgentReplInWorkspaceOwned(
       callModel,
       source: "model",
     });
-  const _runReplDirectTool = async (tool, args) => {
+  const _runReplDirectTool = async (tool, args, { signal = null } = {}) => {
     _runtimeLedgerTerminalLatch.assertOpen();
     try {
       const durableSessionId = resolveReplMeteredSessionId(useJsonl, sessionId);
@@ -3248,7 +3248,7 @@ async function startAgentReplInWorkspaceOwned(
           executeTool(name, toolArgs, {
             sessionId: durableSessionId,
             sessionBudget: _sessionBudget,
-            signal: options.signal || null,
+            signal: combineReplSignals(signal, options.signal),
           }),
         now: options.now || Date.now,
         terminalLatch: _runtimeLedgerTerminalLatch,
@@ -4840,7 +4840,7 @@ async function startAgentReplInWorkspaceOwned(
   // transcript snapshot and ZERO tools. Compact call/outcome metadata shares
   // the session hash chain, while advice text itself is never persisted.
   try {
-    const { createConfiguredAdvisorRuntime, invokeToolFreeAdvisor } =
+    const { createConfiguredAdvisorRuntime } =
       await import("../lib/advisor-runtime.js");
     const advisorOverrides = {};
     if (options.advisorEnabled !== undefined) {
@@ -4855,17 +4855,8 @@ async function startAgentReplInWorkspaceOwned(
       baseUrl,
       apiKey,
       overrides: advisorOverrides,
-      invoke: (request) =>
-        _runReplMeteredModelCall({
-          callProvider: request?.provider,
-          callModel: request?.model,
-          source: "model",
-          call: ({ signal }) =>
-            invokeToolFreeAdvisor({
-              ...request,
-              signal: combineReplSignals(request?.signal, signal),
-            }),
-        }),
+      ...(evolutionIngress === null ? {} : { evolutionIngress }),
+      callWrapper: _directChatCallWrapper,
       onEvent: (event) => {
         if (!useJsonl || !sessionId) return;
         try {
@@ -5653,6 +5644,7 @@ async function startAgentReplInWorkspaceOwned(
     }
     try {
       const chatFn = createChatFn({
+        ...(evolutionIngress === null ? {} : { evolutionIngress }),
         provider,
         model,
         baseUrl,
@@ -8026,7 +8018,7 @@ async function startAgentReplInWorkspaceOwned(
           `  ${chalk.cyan("/cowork graph <path>")}       Code knowledge graph (ASCII)`,
         );
         logger.log(
-          `  ${chalk.cyan("/cowork decision <topic>")}   Architecture decision tracking`,
+          `  ${chalk.cyan("/cowork decision <path>")}    Extract architecture decisions`,
         );
         logger.log("");
       } else if (subCmd === "debate" && coworkInput) {
@@ -8048,6 +8040,7 @@ async function startAgentReplInWorkspaceOwned(
             target: targetLabel,
             code,
             llmOptions: {
+              ...(evolutionIngress === null ? {} : { evolutionIngress }),
               provider,
               model,
               baseUrl,
@@ -8087,6 +8080,7 @@ async function startAgentReplInWorkspaceOwned(
           const result = await compare({
             prompt: coworkInput,
             llmOptions: {
+              ...(evolutionIngress === null ? {} : { evolutionIngress }),
               provider,
               model,
               baseUrl,
@@ -8113,12 +8107,11 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (subCmd === "graph" && coworkInput) {
         try {
-          const { analyzeCodeKnowledgeGraph } =
+          const { buildKnowledgeGraph } =
             await import("../lib/cowork/code-knowledge-graph-cli.js");
           process.stdout.write(chalk.gray("\n  Analyzing code graph...\n"));
-          const result = await analyzeCodeKnowledgeGraph({
-            target: coworkInput,
-            llmOptions: { provider, model, baseUrl, apiKey },
+          const result = await buildKnowledgeGraph({
+            targetPath: path.resolve(coworkInput),
           });
           // ASCII dependency graph
           if (result.entities && result.entities.length > 0) {
@@ -8133,7 +8126,7 @@ async function startAgentReplInWorkspaceOwned(
               process.stdout.write(chalk.bold("\n  Relationships:\n"));
               for (const rel of result.relationships.slice(0, 10)) {
                 process.stdout.write(
-                  `  ${rel.source} ${chalk.gray(`—${rel.type}→`)} ${rel.target}\n`,
+                  `  ${rel.from} ${chalk.gray(`—${rel.type}→`)} ${rel.to}\n`,
                 );
               }
             }
@@ -8152,12 +8145,19 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (subCmd === "decision" && coworkInput) {
         try {
-          const { analyzeDecisions } =
+          const { extractDecisions } =
             await import("../lib/cowork/decision-kb-cli.js");
           process.stdout.write(chalk.gray("\n  Analyzing decisions...\n"));
-          const result = await analyzeDecisions({
-            target: coworkInput,
-            llmOptions: { provider, model, baseUrl, apiKey },
+          const result = await extractDecisions({
+            targetPath: path.resolve(coworkInput),
+            llmOptions: {
+              ...(evolutionIngress === null ? {} : { evolutionIngress }),
+              provider,
+              model,
+              baseUrl,
+              apiKey,
+              callWrapper: _directChatCallWrapper,
+            },
           });
           if (result.decisions && result.decisions.length > 0) {
             process.stdout.write(chalk.bold("  Architecture Decisions:\n"));
@@ -8192,7 +8192,7 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else {
         logger.info(
-          "Usage: /cowork debate <file> | compare <prompt> | graph <path> | decision <topic>",
+          "Usage: /cowork debate <file> | compare <prompt> | graph <path> | decision <path>",
         );
       }
 
@@ -8295,6 +8295,7 @@ async function startAgentReplInWorkspaceOwned(
         // Lazy-init autonomous agent with LLM chat function
         if (!autonomousAgent._initialized) {
           const chatFn = createChatFn({
+            ...(evolutionIngress === null ? {} : { evolutionIngress }),
             provider,
             model,
             baseUrl,
@@ -8303,7 +8304,10 @@ async function startAgentReplInWorkspaceOwned(
           });
           autonomousAgent.initialize({
             llmChat: chatFn,
-            toolExecutor: _runReplDirectTool,
+            toolExecutor: (tool, args) =>
+              _runReplDirectTool(tool, args, {
+                signal: autonomousAgent.signal,
+              }),
           });
         }
 
@@ -8415,6 +8419,16 @@ async function startAgentReplInWorkspaceOwned(
                 logger.warn(result.error);
               }
             } catch (error) {
+              if (
+                error?.runtimeLedgerPersistence === true ||
+                error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+              ) {
+                logger.error(
+                  "Plan approval stopped because Advisor admission or settlement failed.",
+                );
+                prompt();
+                return;
+              }
               logger.warn(`Advisor plan review skipped: ${error.message}`);
             }
           }
@@ -8506,6 +8520,7 @@ async function startAgentReplInWorkspaceOwned(
           const { TerminalInteractionAdapter } =
             await import("../lib/interaction-adapter.js");
           const chatFn = createChatFn({
+            ...(evolutionIngress === null ? {} : { evolutionIngress }),
             provider,
             model,
             baseUrl,
@@ -10158,8 +10173,23 @@ async function startAgentReplInWorkspaceOwned(
       _turnAbort.abort(error);
     }
     _promptInteractions.dispose();
+    // Autonomous goals outlive the input line that submitted them. Cancel
+    // their next-step execution and wait for any current call to settle too.
+    const autonomousShutdown = autonomousAgent.shutdown();
+    void autonomousShutdown.catch(() => {});
     await _lineSettled;
     await Promise.allSettled([..._activeBtwCalls]);
+    try {
+      const { interrupted } = await autonomousShutdown;
+      if (interrupted > 0 && _evolutionSession !== null) {
+        _replOutputFailure ||= Object.assign(
+          new Error("REPL closed during an autonomous goal"),
+          { code: "CC_AGENT_EVOLUTION_SESSION_INTERRUPTED" },
+        );
+      }
+    } catch (error) {
+      _replOutputFailure ||= error;
+    }
     if (process.stdin.isTTY) {
       if (_replKeypressHandler) {
         process.stdin.removeListener("keypress", _replKeypressHandler);

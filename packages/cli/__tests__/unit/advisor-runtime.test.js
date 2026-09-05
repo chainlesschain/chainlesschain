@@ -223,6 +223,25 @@ describe("AdvisorTriggerEngine", () => {
 });
 
 describe("AdvisorRuntime", () => {
+  it.each([false, true])(
+    "retains request cancellation through the meter (host signal=%s)",
+    async (withHost) => {
+      const operation = new AbortController();
+      const host = new AbortController();
+      const advisor = runtime({
+        callWrapper: ({ call }) =>
+          call({ signal: withHost ? host.signal : null }),
+      });
+      await advisor.advise({ force: true, signal: operation.signal });
+      const signal = advisor.invoke.mock.calls[0][0].signal;
+      if (!withHost) expect(signal).toBe(operation.signal);
+      expect(signal.aborted).toBe(false);
+      operation.abort();
+      expect(signal.aborted).toBe(true);
+      expect(host.signal.aborted).toBe(false);
+    },
+  );
+
   it("maps the advisor output limit to the provider runtime contract", async () => {
     await invokeToolFreeAdvisor({
       messages: [{ role: "user", content: "review" }],

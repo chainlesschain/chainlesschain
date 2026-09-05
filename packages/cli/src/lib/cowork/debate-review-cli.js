@@ -10,8 +10,9 @@ import { runPeerGroup } from "./agent-group-runner.js";
 
 const DEFAULT_PERSPECTIVES = ["performance", "security", "maintainability"];
 
-function throwRuntimeLedgerFailure(error) {
+function throwTerminalModelFailure(error) {
   if (error?.runtimeLedgerPersistence === true) throw error;
+  if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
 }
 
 const PERSPECTIVE_PROMPTS = {
@@ -104,7 +105,7 @@ export async function startDebate({
   // rows. A durable usage-ledger failure is host-terminal, not review content:
   // let the REPL latch stop this and every later paid call.
   for (const outcome of runResult.results) {
-    throwRuntimeLedgerFailure(outcome.error);
+    throwTerminalModelFailure(outcome.error);
   }
 
   const reviews = runResult.results.map((r) => {
@@ -153,7 +154,7 @@ export async function startDebate({
     finalVerdict = extractVerdict(summary);
     consensusScore = extractConsensusScore(summary);
   } catch (err) {
-    throwRuntimeLedgerFailure(err);
+    throwTerminalModelFailure(err);
     summary = `Moderator error: ${err.message}`;
   }
 

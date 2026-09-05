@@ -54,15 +54,18 @@ describe("REPL runtime-ledger terminal latch", () => {
     expect(source.match(/createChatFn\(/g)).toHaveLength(3);
     expect(
       source.match(/_runReplMeteredModelCall\(\{/g).length,
-    ).toBeGreaterThanOrEqual(4);
-    expect(source).toContain(
-      "invoke: (request) =>\n        _runReplMeteredModelCall({",
+    ).toBeGreaterThanOrEqual(3);
+    const advisorAt = source.indexOf(
+      "_advisorRuntime = await createConfiguredAdvisorRuntime(",
     );
+    expect(
+      source.slice(advisorAt, source.indexOf("onEvent:", advisorAt)),
+    ).toContain("callWrapper: _directChatCallWrapper");
     expect(source).toContain(
       "generateSuggestions: resolveReplPromptSuggestionGenerator(",
     );
     expect(source.match(/callWrapper: _directChatCallWrapper/g)).toHaveLength(
-      5,
+      7,
     );
     expect(source).toContain("const _directChatCallWrapper = (");
     expect(source).not.toContain("const rawChatFn = createChatFn(");

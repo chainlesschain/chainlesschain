@@ -48,6 +48,15 @@ import {
 } from "../../src/runtime/agent-core.js";
 import { compactConversationWithProvider } from "../../src/harness/provider-backed-compaction.js";
 import { WSAgentHandler } from "../../src/gateways/ws/ws-agent-handler.js";
+import { createChatFn } from "../../src/lib/cowork-adapter.js";
+import { AdvisorRuntime } from "../../src/lib/advisor-runtime.js";
+import { runBtwQuestion } from "../../src/repl/btw-command.js";
+import { startDebate } from "../../src/lib/cowork/debate-review-cli.js";
+import { compare } from "../../src/lib/cowork/ab-comparator-cli.js";
+import { extractDecisions } from "../../src/lib/cowork/decision-kb-cli.js";
+import { CLIInteractivePlanner } from "../../src/lib/interactive-planner.js";
+import { CLIAutonomousAgent } from "../../src/lib/autonomous-agent.js";
+import { runReplMeteredModelCallWithLedger } from "../../src/repl/agent-repl.js";
 import {
   createAgentEvolutionSessionLifecycle,
   waitForAgentEvolutionSession,
@@ -920,6 +929,317 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  function queryMeter(records) {
+    return async ({ call, provider, model }) => {
+      const metered = await runReplMeteredModelCallWithLedger({
+        sessionId: "query-projection-test",
+        provider,
+        model,
+        source: "model",
+        persist: (type, data) => {
+          records.push({ type, data });
+        },
+        call,
+      });
+      return metered.result;
+    };
+  }
+
+  it.each(["debate", "compare"])(
+    "does not synthesize a %s result after moderator projection denial",
+    async (surface) => {
+      const f = modelFixture();
+      auxiliaryTransport(
+        f,
+        () => "APPROVE sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        async ({ kind }) =>
+          kind === "model-input" && f.seen.length >= 2
+            ? "denied-source"
+            : `signed-source:${kind}`,
+      );
+      const run =
+        surface === "debate"
+          ? startDebate({
+              target: "input",
+              code: "Review this",
+              perspectives: ["correctness", "security"],
+              llmOptions: f.callOptions,
+            })
+          : compare({
+              prompt: "Inspect the input",
+              variants: 2,
+              llmOptions: f.callOptions,
+            });
+      await expect(run).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(f.transport).toHaveBeenCalledTimes(2);
+      await expect(
+        f.composition.evolutionIngress.complete(),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    90_000,
+  );
+
+  it.each(["ollama", "anthropic", "openai"])(
+    "projects the real Cowork %s request inside its usage boundary",
+    async (provider) => {
+      const f = modelFixture();
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const messages = [
+        { role: "system", content: "Contact alice@example.com" },
+        { role: "user", content: secret },
+      ];
+      const before = structuredClone(messages);
+      const records = [];
+      f.transport.mockImplementation(async (_url, request) => {
+        expect(records.at(-1).type).toBe("model_usage_started");
+        f.seen.push(JSON.parse(request.body));
+        return {
+          ok: true,
+          json: async () =>
+            provider === "ollama"
+              ? {
+                  message: { content: "done" },
+                  prompt_eval_count: 7,
+                  eval_count: 3,
+                }
+              : provider === "anthropic"
+                ? {
+                    content: [{ type: "text", text: "done" }],
+                    usage: { input_tokens: 7, output_tokens: 3 },
+                  }
+                : {
+                    choices: [{ message: { content: "done" } }],
+                    usage: { prompt_tokens: 7, completion_tokens: 3 },
+                  },
+        };
+      });
+      const options = {
+        ...f.callOptions,
+        provider,
+        apiKey: "test-only",
+        callWrapper: queryMeter(records),
+      };
+      const chat = createChatFn(options);
+      options.evolutionIngress = null;
+      await expect(chat(messages, { evolutionIngress: null })).resolves.toBe(
+        "done",
+      );
+      expect(f.transport).toHaveBeenCalledOnce();
+      expect(JSON.stringify(f.seen)).not.toContain(secret);
+      expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+      expect(JSON.stringify(f.seen)).toContain("REDACTED");
+      expect(messages).toEqual(before);
+      expect(records.map((row) => row.type)).toEqual([
+        "model_usage_started",
+        "token_usage",
+      ]);
+      expect(
+        f.composition
+          .loadRun()
+          .events.filter((event) => event.data.evidenceKind === "model-input"),
+      ).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it.each([false, true])(
+    "protects real Advisor invocation and its terminal denial (denied=%s)",
+    async (denied) => {
+      const f = modelFixture(denied ? "restricted" : "internal");
+      const records = [];
+      auxiliaryTransport(f, () =>
+        JSON.stringify({
+          risk: "low",
+          recommendation: "Inspect the local result.",
+          verification: ["Read output"],
+          confidence: 0.8,
+        }),
+      );
+      const advisor = new AdvisorRuntime({
+        mainProvider: "ollama",
+        mainModel: "test-model",
+        baseUrl: "http://127.0.0.1:1",
+        overrides: { enabled: true },
+        evolutionIngress: f.composition.evolutionIngress,
+        callWrapper: queryMeter(records),
+      });
+      const replacement = vi.fn();
+      advisor.invoke = replacement;
+      const request = {
+        force: true,
+        subject: "Check the result",
+        messages: [
+          { role: "user", content: "sk-abcdefghijklmnopqrstuvwxyz1234567890" },
+        ],
+      };
+      if (denied) {
+        await expect(advisor.advise(request)).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        await expect(advisor.advise(request)).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        expect(f.transport).not.toHaveBeenCalled();
+        expect(f.composition.loadRun().projection.status).not.toBe("completed");
+      } else {
+        await expect(advisor.advise(request)).resolves.toMatchObject({
+          ok: true,
+        });
+        expect(f.transport).toHaveBeenCalledOnce();
+        expect(JSON.stringify(f.seen)).not.toContain(
+          "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        );
+        expect(records.map((row) => row.type)).toEqual([
+          "model_usage_started",
+          "token_usage",
+        ]);
+      }
+      expect(replacement).not.toHaveBeenCalled();
+      expect(
+        () =>
+          new AdvisorRuntime({
+            evolutionIngress: f.composition.evolutionIngress,
+            invoke: replacement,
+          }),
+      ).toThrow(/canonical model transport/);
+    },
+    60_000,
+  );
+
+  it.each(
+    ["btw", "planner", "debate", "compare", "decisions"].flatMap((surface) =>
+      [false, true].map((denied) => [surface, denied]),
+    ),
+  )(
+    "protects the actual %s query workflow (denied=%s)",
+    async (surface, denied) => {
+      const f = modelFixture(denied ? "restricted" : "internal");
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const records = [];
+      const responses = {
+        btw: "Inspect the file next.",
+        planner: JSON.stringify({
+          title: "Inspect",
+          description: "Review local evidence",
+          complexity: "low",
+          steps: [{ title: "Read", tool: "read_file", impact: "low" }],
+        }),
+        debate: "Final Verdict: APPROVE\nConsensus Score: 100",
+        compare:
+          "WINNER: conservative\nRANKING: conservative, innovative\nREASON: verified",
+        decisions:
+          "### Decision: Local storage\n- **Status**: accepted\n- **Context**: offline\n- **Decision**: use local files\n- **Consequences**: independent",
+      };
+      auxiliaryTransport(f, () => responses[surface]);
+      const llmOptions = { ...f.callOptions, callWrapper: queryMeter(records) };
+      const messages = [{ role: "user", content: `Inspect ${secret}` }];
+      const before = structuredClone(messages);
+      const file = path.join(f.root, "input.md");
+      fs.writeFileSync(file, `Use local storage. Test credential: ${secret}`);
+      const run = () => {
+        if (surface === "btw")
+          return runBtwQuestion({
+            messages,
+            question: "What next?",
+            chatFn: createChatFn(llmOptions),
+          });
+        if (surface === "planner")
+          return new CLIInteractivePlanner({
+            llmChat: createChatFn(llmOptions),
+          }).startPlanSession(`Inspect ${secret}`, { cwd: f.root });
+        if (surface === "debate")
+          return startDebate({
+            target: "input",
+            code: secret,
+            perspectives: ["correctness", "security"],
+            llmOptions,
+          });
+        if (surface === "compare")
+          return compare({
+            prompt: `Inspect ${secret}`,
+            variants: 2,
+            llmOptions,
+          });
+        return extractDecisions({ targetPath: file, llmOptions });
+      };
+      if (denied) {
+        await expect(run()).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        expect(f.transport).not.toHaveBeenCalled();
+        expect(f.composition.loadRun().projection.status).not.toBe("completed");
+      } else {
+        const result = await run();
+        if (surface === "planner")
+          expect(result).toMatchObject({
+            status: "awaiting_confirmation",
+            plan: expect.any(Object),
+          });
+        if (surface === "debate") expect(result.verdict).toBe("APPROVE");
+        if (surface === "compare") expect(result.winner).toBe("conservative");
+        if (surface === "decisions") expect(result.decisions).toHaveLength(1);
+        expect(f.transport).toHaveBeenCalledTimes(
+          ["debate", "compare"].includes(surface) ? 3 : 1,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).toContain("REDACTED");
+        expect(
+          records.filter((row) => row.type === "token_usage"),
+        ).toHaveLength(f.seen.length);
+      }
+      expect(messages).toEqual(before);
+    },
+    90_000,
+  );
+
+  it.each([false, true])(
+    "keeps the actual autonomous decomposition fail closed (denied=%s)",
+    async (denied) => {
+      const f = modelFixture(denied ? "restricted" : "internal");
+      auxiliaryTransport(
+        f,
+        () =>
+          '[{"description":"Inspect","tool":"read_file","params":{"path":"input.md"}}]',
+      );
+      fs.writeFileSync(
+        path.join(f.root, "input.md"),
+        "Local verification evidence.",
+      );
+      const { executeTool } = await import("../../src/runtime/agent-core.js");
+      const execute = vi.fn((name, args) =>
+        executeTool(name, args, { cwd: f.root }),
+      );
+      const agent = new CLIAutonomousAgent();
+      agent.initialize({
+        llmChat: createChatFn(f.callOptions),
+        toolExecutor: execute,
+      });
+      const settled = new Promise((resolve) => {
+        agent.once("goal:completed", resolve);
+        agent.once("goal:failed", resolve);
+      });
+      const { goalId } = await agent.submitGoal(
+        "Inspect sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+      await settled;
+      await agent.shutdown();
+      expect(agent.getGoalStatus(goalId).status).toBe(
+        denied ? "failed" : "completed",
+      );
+      expect(execute).toHaveBeenCalledTimes(denied ? 0 : 1);
+      expect(f.transport).toHaveBeenCalledTimes(denied ? 0 : 1);
+      expect(JSON.stringify(f.seen)).not.toContain(
+        "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+      );
+    },
+    60_000,
+  );
 
   it("keeps the interactive Run open until its owned teardown completes", async () => {
     const f = modelFixture();

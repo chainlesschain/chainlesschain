@@ -205,7 +205,8 @@ describe("REPL compact persistence fencing", () => {
       ),
       "utf8",
     );
-    expect(source).toContain("toolExecutor: _runReplDirectTool");
+    expect(source).toContain("_runReplDirectTool(tool, args, {");
+    expect(source).toContain("signal: autonomousAgent.signal");
     expect(source).toContain(
       "return await _runReplDirectTool(item.tool, item.params)",
     );
@@ -1401,6 +1402,12 @@ describe("agent-repl thin wrapper contracts", () => {
     expect(content.slice(closeAt, finishAt)).toContain(
       "await Promise.allSettled([..._activeBtwCalls]);",
     );
+    expect(content.slice(closeAt, finishAt)).toContain(
+      "autonomousAgent.shutdown()",
+    );
+    expect(content.slice(closeAt, finishAt)).toContain(
+      "await autonomousShutdown",
+    );
     expect(content.slice(exitAt)).toContain(
       "return _evolutionSession?.handle;",
     );
@@ -1408,6 +1415,35 @@ describe("agent-repl thin wrapper contracts", () => {
       "async function startAgentReplInWorkspaceOwned(",
     );
     expect(content.indexOf("let _compressor = null;")).toBeGreaterThan(ownedAt);
+  });
+
+  it("binds every REPL query adapter and the Advisor to the session ingress and meter", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    const adapters = [...content.matchAll(/createChatFn\(\{([\s\S]*?)\}\);/gu)];
+    expect(adapters).toHaveLength(3);
+    for (const [, options] of adapters) {
+      expect(options).toContain("evolutionIngress");
+      expect(options).toContain("_directChatCallWrapper");
+    }
+    const cowork = [...content.matchAll(/llmOptions: \{([\s\S]*?)\n\s*\},/gu)];
+    expect(cowork).toHaveLength(3);
+    for (const [, options] of cowork) {
+      expect(options).toContain("evolutionIngress");
+      expect(options).toContain("_directChatCallWrapper");
+    }
+    const advisorAt = content.indexOf(
+      "_advisorRuntime = await createConfiguredAdvisorRuntime(",
+    );
+    const advisor = content.slice(
+      advisorAt,
+      content.indexOf("onEvent:", advisorAt),
+    );
+    expect(advisor).toContain("evolutionIngress");
+    expect(advisor).toContain("callWrapper: _directChatCallWrapper");
+    expect(content).toContain("await extractDecisions({");
+    expect(content).toContain("await buildKnowledgeGraph({");
+    expect(content).not.toContain("analyzeDecisions");
+    expect(content).not.toContain("analyzeCodeKnowledgeGraph");
   });
 
   it("executeTool wrapper passes host and budget authority to coreExecuteTool", () => {

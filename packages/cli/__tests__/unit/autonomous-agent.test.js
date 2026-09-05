@@ -22,6 +22,110 @@ describe("CLIAutonomousAgent", () => {
 
   // ── Constructor ──
 
+  it("waits for an in-flight model on shutdown and prevents its planned tools", async () => {
+    let release;
+    const toolExecutor = vi.fn();
+    agent.initialize({
+      llmChat: () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+      toolExecutor,
+    });
+    const completed = vi.fn();
+    agent.on("goal:completed", completed);
+    const { goalId } = await agent.submitGoal("inspect");
+    let closed = false;
+    const shutdown = agent.shutdown().then((result) => {
+      closed = true;
+      return result;
+    });
+    await Promise.resolve();
+    expect(closed).toBe(false);
+    await expect(agent.submitGoal("another")).rejects.toThrow(/closing/);
+    expect(agent.resumeGoal(goalId)).toHaveProperty("error");
+    release('[{"description":"read","tool":"read_file","params":{}}]');
+    await expect(shutdown).resolves.toEqual({ interrupted: 1 });
+    expect(agent.getGoalStatus(goalId).status).toBe(GoalStatus.CANCELLED);
+    expect(toolExecutor).not.toHaveBeenCalled();
+    expect(completed).not.toHaveBeenCalled();
+  });
+
+  it("reuses the running loop when resuming during model decomposition", async () => {
+    let release;
+    const llmChat = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const toolExecutor = vi.fn(async () => "read");
+    agent.initialize({ llmChat, toolExecutor });
+    const done = new Promise((resolve) =>
+      agent.once("goal:completed", resolve),
+    );
+    const { goalId } = await agent.submitGoal("inspect");
+    agent.pauseGoal(goalId);
+    expect(agent.resumeGoal(goalId)).toEqual({ success: true });
+    expect(llmChat).toHaveBeenCalledOnce();
+    release('[{"description":"read","tool":"read_file","params":{}}]');
+    await done;
+    await agent.shutdown();
+    expect(toolExecutor).toHaveBeenCalledOnce();
+  });
+
+  it("aborts the active model before waiting for shutdown settlement", async () => {
+    let modelSignal;
+    agent.initialize({
+      llmChat: (_messages, options) =>
+        new Promise((_resolve, reject) => {
+          modelSignal = options.signal;
+          options.signal.addEventListener(
+            "abort",
+            () => reject(options.signal.reason),
+            { once: true },
+          );
+        }),
+    });
+    const { goalId } = await agent.submitGoal("inspect");
+    await expect(agent.shutdown()).resolves.toEqual({ interrupted: 1 });
+    expect(modelSignal.aborted).toBe(true);
+    expect(agent.signal).toBe(modelSignal);
+    expect(agent.getGoalStatus(goalId).status).toBe(GoalStatus.CANCELLED);
+  });
+
+  it("does not execute later steps when self-correction admission fails", async () => {
+    const failure = Object.assign(new Error("source denied"), {
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    const llmChat = vi
+      .fn()
+      .mockResolvedValueOnce(
+        JSON.stringify([
+          {
+            description: "first",
+            tool: "read_file",
+            critical: false,
+            params: {},
+          },
+          { description: "later", tool: "read_file", params: {} },
+        ]),
+      )
+      .mockRejectedValue(failure);
+    const toolExecutor = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("missing file"))
+      .mockResolvedValue("must not run");
+    agent.initialize({ llmChat, toolExecutor });
+    const failed = new Promise((resolve) => agent.once("goal:failed", resolve));
+    const { goalId } = await agent.submitGoal("inspect");
+    await failed;
+    await agent.shutdown();
+    expect(agent.getGoalStatus(goalId).status).toBe(GoalStatus.FAILED);
+    expect(llmChat).toHaveBeenCalledTimes(2);
+    expect(toolExecutor).toHaveBeenCalledOnce();
+  });
+
   describe("constructor", () => {
     it("creates uninitialized agent", () => {
       expect(agent._initialized).toBe(false);
