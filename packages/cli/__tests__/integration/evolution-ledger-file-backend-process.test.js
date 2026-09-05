@@ -1,65 +1,14 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { runBackendProcess } from "../helpers/evolution-ledger-process.js";
 
 const roots = [];
-const fixture = fileURLToPath(
-  new URL(
-    "../fixtures/evolution-ledger-file-backend-process.mjs",
-    import.meta.url,
-  ),
-);
-
 afterEach(() => {
-  for (const root of roots.splice(0)) {
+  for (const root of roots.splice(0))
     fs.rmSync(root, { recursive: true, force: true });
-  }
 });
-
-function runBackendProcess(root) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [fixture, root], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        CC_TEST_LEDGER_SECRET: "test-only-process-ledger-secret",
-        CC_TEST_WITNESS_SECRET: "test-only-process-witness-secret",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true,
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    child.once("error", reject);
-    child.once("close", (code, signal) => {
-      try {
-        resolve({
-          code,
-          signal,
-          stderr,
-          result: JSON.parse(stdout.trim()),
-        });
-      } catch (cause) {
-        reject(
-          new Error(`invalid backend process output: ${stdout || stderr}`, {
-            cause,
-          }),
-        );
-      }
-    });
-  });
-}
 
 describe("EvolutionLedger file backend process restart", () => {
   it("reopens across OS processes and rejects local reincarnation behind the witness", async () => {

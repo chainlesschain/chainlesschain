@@ -84,3 +84,47 @@ cannot be persisted. If assistant persistence fails after model/tool work, the
 answer remains in the result for recovery, but the result subtype is
 `error_persistence`, exit status is non-zero, and the content-free persistence
 projection is attached.
+
+## EvolutionLedger repository checks
+
+The separate `test:evolution-ledger-reliability-soak` command exercises the
+EvolutionLedger file backend. It is a repository-local check, not the formal
+CLI release matrix described above. Run from the repository root:
+
+```powershell
+npm --prefix packages/cli run test:evolution-ledger-reliability-soak -- --events 1000
+npm --prefix packages/cli run test:evolution-ledger-reliability-soak -- --fault-rounds 100
+```
+
+`--events` accepts 1–10,000 (default 1,000). The writer uses the real append
+path for every event, persists a signed state snapshot, and exits. A fresh
+process verifies the same head and first/middle/last events, then separate
+processes must reject old-segment corruption and a tampered witness signature.
+All children have a 256 MiB V8 heap limit; cold reopen must finish within 60
+seconds with peak RSS below 512 MiB. This is not a total process-memory limit
+for the seed run. Seed timing is reported without asserting production write
+throughput; large runs may take tens of minutes. The seed process has a
+one-hour deadline; other child processes have a 60-second deadline and bounded
+combined stdout/stderr.
+
+`--fault-rounds` accepts 1–1,000 and cycles through six forced-exit points:
+
+| Exit point                             | Expected fresh-process recovery                                |
+| -------------------------------------- | -------------------------------------------------------------- |
+| Segment hard link or completed segment | Preserve the previous witnessed head; discard uncommitted tail |
+| Anchor hard link or completed anchor   | Preserve the previous witnessed head; discard uncommitted tail |
+| Witness commit or HEAD replacement     | Recover the committed next event exactly once                  |
+
+Each round seeds a separate temporary store, exits with code 86 inside the
+real append path, verifies recovery in a new process, and reopens once more to
+prove the recovered head/witness and event count do not change. All temporary
+files belong to that run and are removed after children settle. A failed run
+exits nonzero and must not be counted as passed.
+
+Both modes use actual file stores, process locks and separate OS processes,
+but use test-only HMAC authorities and a test artifact resolver. The Windows
+test filesystem tolerates unavailable directory fsync. Process exit is not
+power loss; these runs do not establish production PKI, independent witness
+failure domains, physical durability, DB/Hook/Eval fault coverage or automatic
+Skill-promotion acceptance. The ordinary regression suite runs only the
+small-scale driver and recovery cases; the long workload is explicit.
