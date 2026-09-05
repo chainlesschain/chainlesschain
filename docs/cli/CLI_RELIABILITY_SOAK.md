@@ -165,3 +165,15 @@ with seed 13.42 seconds, cold reopen 1.03 seconds and cold peak RSS 56,676 KiB;
 the 5,872 historical witness verifications were unchanged. It ran alongside
 regression and the 1,000-event soak, so neither this timing nor the earlier
 diagnostics establishes an isolated or fixed-factor throughput improvement.
+
+The optimized 1,000-event run subsequently completed successfully on
+2026-09-05: seed PID 6376, reopen PID 10028, seed 1,202.369 seconds, cold reopen
+6.988 seconds, and cold peak RSS 120,464 KiB (about 117.6 MiB). All children
+retained the 256 MiB V8 heap limit; old-segment and witness tampering were
+rejected. Seed historical-witness verification calls were 2,017,022; cold
+reopen calls were 4,012, with one snapshot verification and no historical
+domain-event verification. The same process was observed to completion,
+without restarting it on an observation timeout. These are exact report
+metrics, not production authority, physical-durability or 250,000-event
+capacity evidence. The earlier 1,612.04-second result measured a whole test
+group, so it is not directly comparable to this seed-only duration.
