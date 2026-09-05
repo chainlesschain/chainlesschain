@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,12 +35,14 @@ describe("Skill revocation real cross-process recovery", () => {
     roots.push(wikiRoot);
     expect(run(wikiRoot, "wiki", "after-wiki-commit").status).toBe(92);
     expect(run(wikiRoot, "wiki", "none").status).toBe(0);
-    expect(read(wikiRoot, "wiki").patterns["pat-safe-refactor"]).toMatchObject({
-      status: "stale",
-      actionable: false,
-    });
-    expect(read(wikiRoot, "wiki").skillImpact["safe-refactor"]).toMatchObject({
-      rejected: 1,
+    expect(read(wikiRoot, "wiki-inspection")).toMatchObject({
+      state: {
+        patterns: {
+          "pat-safe-refactor": { status: "stale", actionable: false },
+        },
+        skillImpact: { "safe-refactor": { rejected: 1 } },
+      },
+      ledgerSequence: 2,
     });
 
     for (const crashPoint of [
@@ -53,9 +55,7 @@ describe("Skill revocation real cross-process recovery", () => {
         crashPoint === "after-dependencies" ? 93 : 94,
       );
       expect(run(root, "propagate", "none").status).toBe(0);
-      const effects = Object.values(read(root, "effects"));
-      expect(effects).toHaveLength(1);
-      expect(effects.every(({ applyCount }) => applyCount === 1)).toBe(true);
+      expect(existsSync(join(root, "effects.json"))).toBe(false);
       expect(read(root, "retrieval-inspection")).toMatchObject({
         invalidated: true,
         tenantId: "tenant-a",
@@ -82,6 +82,15 @@ describe("Skill revocation real cross-process recovery", () => {
           },
         },
         projectionSequence: 2,
+      });
+      expect(read(root, "wiki-inspection")).toMatchObject({
+        state: {
+          patterns: {
+            "pat-safe-refactor": { status: "stale", actionable: false },
+          },
+          skillImpact: { "safe-refactor": { rejected: 1 } },
+        },
+        ledgerSequence: 2,
       });
       expect(read(root, "propagation-checkpoint").cursor).toBe(1);
     }

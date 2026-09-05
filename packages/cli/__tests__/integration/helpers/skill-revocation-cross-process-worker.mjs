@@ -24,8 +24,6 @@ import { createStructuredMemoryAgentControlPlaneFixture } from "../../fixtures/s
 import {
   EvidenceBackedWikiMaintainer,
   WIKI_EVIDENCE_SCHEMA,
-  createEmptyWikiState,
-  digestWikiState,
 } from "../../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
 import {
   INDEPENDENT_SKILL_REVOCATION_RECORD_SCHEMA,
@@ -34,9 +32,11 @@ import {
   digestIndependentSkillRevocationRecord,
 } from "../../../src/lib/evolution/independent-skill-revocation-source.js";
 import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
   SKILL_REVOCATION_DEPENDENCY_RESOLUTION_SCHEMA,
   SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
   createSkillRevocationPropagation,
+  digestSkillRevocationDependencyRequest,
 } from "../../../src/lib/evolution/skill-revocation-propagation.js";
 import { openSkillRetrievalRevocationAuthority } from "../../../src/lib/evolution/skill-retrieval-revocation-authority.js";
 import { SkillRetrievalRevocationLedgerAdapter } from "../../../src/lib/evolution/skill-retrieval-revocation-ledger-adapter.js";
@@ -45,6 +45,7 @@ import {
   SKILL_WIKI_IMPACT_RESOLUTION_SCHEMA,
   createSkillWikiReconciler,
 } from "../../../src/lib/evolution/skill-wiki-reconciliation.js";
+import { WikiMaintainerLedgerAdapter } from "../../../src/lib/evolution/wiki-maintainer-ledger-adapter.js";
 
 const [root, operation, crashPoint = "none"] = process.argv.slice(2);
 mkdirSync(root, { recursive: true });
@@ -438,8 +439,21 @@ function evidence(ref, trustDomain) {
   return { ...core, envelopeDigest: D(core) };
 }
 
-async function wiki() {
-  let wikiState = load("wiki", createEmptyWikiState("tenant-a"));
+async function wikiAuthority() {
+  const artifactTenantId = "artifact-tenant-a-wiki";
+  const storage = durableDomainLedger("wiki", artifactTenantId);
+  const adapter = new WikiMaintainerLedgerAdapter({
+    descriptor: {
+      tenantId: "tenant-a",
+      artifactTenantId,
+      evolutionRunId: "run-cross-process",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.backend.ledger,
+    ledgerArtifactResolver: storage.resolver,
+  });
   const retained = load("evidence", {});
   const base = {
     "ev-1": evidence("ev-1", "workspace-a"),
@@ -461,12 +475,7 @@ async function wiki() {
       network: false,
       secretRead: false,
     },
-    ports: {
-      loadWiki: async () => ({
-        trusted: true,
-        state: wikiState,
-        stateDigest: digestWikiState(wikiState),
-      }),
+    ports: adapter.maintainerPorts({
       resolveEvidence: async (ref) => retained[ref] ?? base[ref],
       derive: async ({ evidence: items }) => {
         const proposal = items.find(
@@ -511,19 +520,9 @@ async function wiki() {
               ],
             };
       },
-      commitRevision: async ({ revision }) => {
-        wikiState = revision.state;
-        save("wiki", wikiState);
-        return {
-          committed: true,
-          revisionId: revision.revisionId,
-          stateDigest: revision.stateDigest,
-          evolutionRunId: revision.evolutionRunId,
-        };
-      },
-    },
+    }),
   });
-  if (!wikiState.patterns["pat-safe-refactor"]) {
+  if (!adapter.loadWiki().state.patterns["pat-safe-refactor"]) {
     await maintainer.maintain({
       evidenceRefs: ["ev-1", "ev-2"],
       effectiveAt: "2026-09-01T00:00:00.000Z",
@@ -575,7 +574,16 @@ async function wiki() {
       if (crashPoint === "after-wiki-commit") process.exit(92);
     },
   });
-  await reconciler.reconcile();
+  return Object.freeze({ adapter, backend: storage.backend, reconciler });
+}
+
+async function wiki() {
+  const authority = await wikiAuthority();
+  await authority.reconciler.reconcile();
+  save("wiki-inspection", {
+    state: authority.adapter.loadWiki().state,
+    ledgerSequence: authority.backend.ledger.verify().sequence,
+  });
 }
 
 async function propagate() {
@@ -583,7 +591,7 @@ async function propagate() {
   const retrieval = await retrievalAuthority();
   const marketplace = await marketplaceAuthority();
   const memory = await memoryAuthority();
-  const effectState = load("effects", {});
+  const wiki = await wikiAuthority();
   const dependencies = [
     ["wiki-pattern", "stale"],
     ["memory", "quarantine"],
@@ -600,7 +608,9 @@ async function propagate() {
             ? "marketplace-state:tenant-a:safe-refactor"
             : kind === "memory"
               ? memory.memoryId
-              : `${kind}://tenant-a/safe-refactor`,
+              : kind === "wiki-pattern"
+                ? "wiki-pattern:tenant-a:pat-safe-refactor"
+                : `${kind}://tenant-a/safe-refactor`,
       digest:
         kind === "marketplace-badge"
           ? (marketplace.state.revocationBaselineStateDigest ??
@@ -610,17 +620,25 @@ async function propagate() {
             : D([kind, "dependency"]),
     }))
     .sort((a, b) => `${a.kind}:${a.ref}`.localeCompare(`${b.kind}:${b.ref}`));
-  const effect = async (request) => {
-    const prior = effectState[request.operationId];
-    if (!prior) {
-      effectState[request.operationId] = {
-        applyCount: 1,
-        requestDigest: request.requestDigest,
-        receiptDigest: D(["effect", request.operationId]),
-      };
-      save("effects", effectState);
-    } else if (prior.requestDigest !== request.requestDigest)
-      throw new Error("operation substitution");
+  const stalePattern = async (request) => {
+    if (
+      request?.schema !== SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA ||
+      request.tenantId !== "tenant-a" ||
+      request.skillName !== "safe-refactor" ||
+      request.dependency?.kind !== "wiki-pattern" ||
+      request.dependency.ref !== "wiki-pattern:tenant-a:pat-safe-refactor" ||
+      request.dependency.digest !== D(["wiki-pattern", "dependency"]) ||
+      request.dependency.disposition !== "stale" ||
+      request.requestDigest !== digestSkillRevocationDependencyRequest(request)
+    ) {
+      throw new Error("Wiki revocation dependency is not exactly bound");
+    }
+    await wiki.reconciler.reconcile();
+    const envelope = wiki.adapter.loadWiki();
+    const pattern = envelope.state.patterns["pat-safe-refactor"];
+    if (pattern?.status !== "stale" || pattern.actionable !== false) {
+      throw new Error("Wiki pattern did not durably become stale");
+    }
     return {
       schema: SKILL_REVOCATION_DEPENDENCY_RESULT_SCHEMA,
       authenticated: true,
@@ -634,7 +652,7 @@ async function propagate() {
       dependencyRef: request.dependency.ref,
       dependencyDigest: request.dependency.digest,
       disposition: request.dependency.disposition,
-      receiptDigest: effectState[request.operationId].receiptDigest,
+      receiptDigest: envelope.stateDigest,
     };
   };
   const propagation = createSkillRevocationPropagation({
@@ -663,7 +681,7 @@ async function propagate() {
           receiptDigest: D("resolution"),
         };
       },
-      stalePattern: effect,
+      stalePattern,
       quarantineMemory: memory.authority.quarantineMemory,
       invalidateRetrieval: retrieval.authority.invalidateRetrieval.bind(
         retrieval.authority,
@@ -707,6 +725,10 @@ async function propagate() {
     active: memoryProjection.memories[memory.memoryId] ?? null,
     quarantine: memoryProjection.quarantines[memory.memoryId] ?? null,
     projectionSequence: memoryProjection.sequence,
+  });
+  save("wiki-inspection", {
+    state: wiki.adapter.loadWiki().state,
+    ledgerSequence: wiki.backend.ledger.verify().sequence,
   });
 }
 
