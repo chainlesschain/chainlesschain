@@ -150,9 +150,143 @@ function requireDurableAck(result, requestDigest, label) {
   return result.receiptDigest;
 }
 
+export function createWikiPruningPlanner({ descriptor: input, ports } = {}) {
+  const descriptor = normalizeDescriptor(input);
+  const captured = {};
+  for (const name of ["loadWikiState", "resolveDeletionReceipt"]) {
+    if (typeof ports?.[name] !== "function")
+      throw new TypeError(`Wiki pruning planner port ${name} is required`);
+    captured[name] = ports[name].bind(ports);
+  }
+  Object.freeze(captured);
+  return Object.freeze({
+    descriptor,
+    plan: (input) => buildPruningPlan(descriptor, captured, input),
+  });
+}
+
+async function buildPruningPlan(
+  descriptor,
+  ports,
+  { expectedStateDigest, effectiveAt, deletionReceiptDigests = [] },
+) {
+  digest(expectedStateDigest, "expectedStateDigest");
+  time(effectiveAt, "effectiveAt");
+  const receiptDigests = boundedUniqueStrings(
+    deletionReceiptDigests,
+    "deletionReceiptDigests",
+    descriptor.maxActions,
+  );
+  receiptDigests.forEach((value) => digest(value, "deletionReceiptDigest"));
+  const state = verifyStateEnvelope(
+    await ports.loadWikiState({ tenantId: descriptor.tenantId }),
+    descriptor.tenantId,
+    expectedStateDigest,
+  );
+  const cutoff =
+    Date.parse(effectiveAt) - descriptor.staleGraceDays * 86_400_000;
+  const patternActions = [];
+  const retrievalRemovals = [];
+  for (const pattern of Object.values(state.patterns).sort((a, b) =>
+    a.patternId.localeCompare(b.patternId),
+  )) {
+    if (
+      pattern.status === WIKI_PATTERN_STATUS.STALE &&
+      Number.isFinite(Date.parse(verifiedAt(pattern))) &&
+      Date.parse(verifiedAt(pattern)) <= cutoff
+    )
+      patternActions.push({
+        type: "tombstone",
+        patternId: pattern.patternId,
+        reason: "stale-grace-elapsed",
+      });
+    if (
+      pattern.status === WIKI_PATTERN_STATUS.STALE ||
+      TERMINAL_PATTERN_STATUSES.has(pattern.status)
+    )
+      retrievalRemovals.push(pattern.patternId);
+  }
+
+  const deletions = [];
+  const dependencyDispositions = [];
+  for (const receiptDigest of receiptDigests) {
+    const receipt = await ports.resolveDeletionReceipt({
+      tenantId: descriptor.tenantId,
+      receiptDigest,
+    });
+    const evidence = state.evidence?.[receipt?.evidenceRef];
+    if (
+      receipt?.authenticated !== true ||
+      receipt.tenantId !== descriptor.tenantId ||
+      receipt.decision !== "delete" ||
+      receipt.receiptDigest !== receiptDigest ||
+      evidence == null ||
+      receipt.sourceDigest !== evidence.sourceDigest ||
+      receipt.artifactRef !== evidence.artifactRef ||
+      typeof receipt.rawArtifactRef !== "string" ||
+      !receipt.rawArtifactRef.startsWith(
+        `artifact://${descriptor.tenantId}/raw/`,
+      ) ||
+      !DIGEST.test(receipt.rawCipherDigest ?? "") ||
+      typeof receipt.keyRef !== "string" ||
+      !receipt.keyRef.startsWith(`kms://${descriptor.tenantId}/`)
+    )
+      throw new Error("privacy deletion receipt is not exactly bound");
+    const dependentPatternIds = [
+      ...new Set(state.evidenceDependents?.[receipt.evidenceRef] ?? []),
+    ].sort();
+    for (const patternId of dependentPatternIds) {
+      const pattern = state.patterns[patternId];
+      if (!pattern) throw new Error("Wiki evidence dependency is corrupt");
+      dependencyDispositions.push({
+        evidenceRef: receipt.evidenceRef,
+        patternId,
+        action: pattern.skillNames?.length > 0 ? "rollback" : "tombstone",
+        skillNames: [...(pattern.skillNames ?? [])].sort(),
+      });
+      retrievalRemovals.push(patternId);
+    }
+    deletions.push({
+      evidenceRef: receipt.evidenceRef,
+      sourceDigest: evidence.sourceDigest,
+      artifactRef: evidence.artifactRef,
+      rawArtifactRef: receipt.rawArtifactRef,
+      rawCipherDigest: receipt.rawCipherDigest,
+      keyRef: receipt.keyRef,
+      receiptDigest,
+    });
+  }
+  const actionCount =
+    patternActions.length + deletions.length + dependencyDispositions.length;
+  if (actionCount > descriptor.maxActions)
+    throw new Error("Wiki pruning plan exceeds its action budget");
+  const core = {
+    schema: GOVERNED_WIKI_PRUNING_PLAN_SCHEMA,
+    tenantId: descriptor.tenantId,
+    wikiStateDigest: expectedStateDigest,
+    policyDigest: hash(GOVERNED_WIKI_PRUNING_POLICY_SCHEMA, descriptor),
+    effectiveAt,
+    patternActions,
+    retrievalRemovals: [...new Set(retrievalRemovals)].sort(),
+    dependencyDispositions,
+    deletions,
+    auditPolicy: {
+      retainWikiRevisions: true,
+      retainEvolutionLog: true,
+      retainDeletionReceipts: true,
+      removeDeletedEvidenceFromRetrieval: true,
+    },
+  };
+  return freeze({
+    ...core,
+    planDigest: hash(GOVERNED_WIKI_PRUNING_PLAN_SCHEMA, core),
+  });
+}
+
 export class GovernedWikiPruning {
   #ports;
   #journal;
+  #planner;
 
   constructor({ descriptor, ports, journalStore = null } = {}) {
     this.descriptor = normalizeDescriptor(descriptor);
@@ -182,6 +316,10 @@ export class GovernedWikiPruning {
       captured[name] = ports[name].bind(ports);
     }
     this.#ports = Object.freeze(captured);
+    this.#planner = createWikiPruningPlanner({
+      descriptor: this.descriptor,
+      ports: this.#ports,
+    });
     Object.freeze(this);
   }
 
@@ -189,124 +327,9 @@ export class GovernedWikiPruning {
     return this.#buildPlan(input);
   }
 
-  async #buildPlan({
-    expectedStateDigest,
-    effectiveAt,
-    deletionReceiptDigests = [],
-  }) {
-    digest(expectedStateDigest, "expectedStateDigest");
-    time(effectiveAt, "effectiveAt");
-    const receiptDigests = boundedUniqueStrings(
-      deletionReceiptDigests,
-      "deletionReceiptDigests",
-      this.descriptor.maxActions,
-    );
-    receiptDigests.forEach((value) => digest(value, "deletionReceiptDigest"));
-    const state = verifyStateEnvelope(
-      await this.#ports.loadWikiState({ tenantId: this.descriptor.tenantId }),
-      this.descriptor.tenantId,
-      expectedStateDigest,
-    );
-    const cutoff =
-      Date.parse(effectiveAt) - this.descriptor.staleGraceDays * 86_400_000;
-    const patternActions = [];
-    const retrievalRemovals = [];
-    for (const pattern of Object.values(state.patterns).sort((a, b) =>
-      a.patternId.localeCompare(b.patternId),
-    )) {
-      if (
-        pattern.status === WIKI_PATTERN_STATUS.STALE &&
-        Number.isFinite(Date.parse(verifiedAt(pattern))) &&
-        Date.parse(verifiedAt(pattern)) <= cutoff
-      )
-        patternActions.push({
-          type: "tombstone",
-          patternId: pattern.patternId,
-          reason: "stale-grace-elapsed",
-        });
-      if (
-        pattern.status === WIKI_PATTERN_STATUS.STALE ||
-        TERMINAL_PATTERN_STATUSES.has(pattern.status)
-      )
-        retrievalRemovals.push(pattern.patternId);
-    }
-
-    const deletions = [];
-    const dependencyDispositions = [];
-    for (const receiptDigest of receiptDigests) {
-      const receipt = await this.#ports.resolveDeletionReceipt({
-        tenantId: this.descriptor.tenantId,
-        receiptDigest,
-      });
-      const evidence = state.evidence?.[receipt?.evidenceRef];
-      if (
-        receipt?.authenticated !== true ||
-        receipt.tenantId !== this.descriptor.tenantId ||
-        receipt.decision !== "delete" ||
-        receipt.receiptDigest !== receiptDigest ||
-        evidence == null ||
-        receipt.sourceDigest !== evidence.sourceDigest ||
-        receipt.artifactRef !== evidence.artifactRef ||
-        typeof receipt.rawArtifactRef !== "string" ||
-        !receipt.rawArtifactRef.startsWith(
-          `artifact://${this.descriptor.tenantId}/raw/`,
-        ) ||
-        !DIGEST.test(receipt.rawCipherDigest ?? "") ||
-        typeof receipt.keyRef !== "string" ||
-        !receipt.keyRef.startsWith(`kms://${this.descriptor.tenantId}/`)
-      )
-        throw new Error("privacy deletion receipt is not exactly bound");
-      const dependentPatternIds = [
-        ...new Set(state.evidenceDependents?.[receipt.evidenceRef] ?? []),
-      ].sort();
-      for (const patternId of dependentPatternIds) {
-        const pattern = state.patterns[patternId];
-        if (!pattern) throw new Error("Wiki evidence dependency is corrupt");
-        dependencyDispositions.push({
-          evidenceRef: receipt.evidenceRef,
-          patternId,
-          action: pattern.skillNames?.length > 0 ? "rollback" : "tombstone",
-          skillNames: [...(pattern.skillNames ?? [])].sort(),
-        });
-        retrievalRemovals.push(patternId);
-      }
-      deletions.push({
-        evidenceRef: receipt.evidenceRef,
-        sourceDigest: evidence.sourceDigest,
-        artifactRef: evidence.artifactRef,
-        rawArtifactRef: receipt.rawArtifactRef,
-        rawCipherDigest: receipt.rawCipherDigest,
-        keyRef: receipt.keyRef,
-        receiptDigest,
-      });
-    }
-    const actionCount =
-      patternActions.length + deletions.length + dependencyDispositions.length;
-    if (actionCount > this.descriptor.maxActions)
-      throw new Error("Wiki pruning plan exceeds its action budget");
-    const core = {
-      schema: GOVERNED_WIKI_PRUNING_PLAN_SCHEMA,
-      tenantId: this.descriptor.tenantId,
-      wikiStateDigest: expectedStateDigest,
-      policyDigest: hash(GOVERNED_WIKI_PRUNING_POLICY_SCHEMA, this.descriptor),
-      effectiveAt,
-      patternActions,
-      retrievalRemovals: [...new Set(retrievalRemovals)].sort(),
-      dependencyDispositions,
-      deletions,
-      auditPolicy: {
-        retainWikiRevisions: true,
-        retainEvolutionLog: true,
-        retainDeletionReceipts: true,
-        removeDeletedEvidenceFromRetrieval: true,
-      },
-    };
-    return freeze({
-      ...core,
-      planDigest: hash(GOVERNED_WIKI_PRUNING_PLAN_SCHEMA, core),
-    });
+  async #buildPlan(input) {
+    return this.#planner.plan(input);
   }
-
   async execute({
     plan: input,
     expectedControlDigest = null,

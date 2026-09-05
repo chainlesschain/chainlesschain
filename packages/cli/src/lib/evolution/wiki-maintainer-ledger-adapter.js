@@ -256,11 +256,12 @@ export class WikiMaintainerLedgerAdapter {
         descriptor: this.descriptor,
         loadWiki: () => this.#loadWiki(),
         resolveHistory: (input) => this.#resolveHistory(input),
+        resolveAtCheckpoint: (input) => this.#resolveHistory(input, true),
       }),
     );
   }
 
-  #history({ sourceDigest = null, allowed = [] } = {}) {
+  #history({ sourceDigest = null, allowed = [], checkpoint = null } = {}) {
     // read() already authenticates its snapshot. Resolve against that snapshot's
     // identity, then compare the entire event range with a fresh authority head.
     // This avoids a redundant pre-read scan without caching authorization.
@@ -271,6 +272,21 @@ export class WikiMaintainerLedgerAdapter {
         "EvolutionLedger read did not return events",
       );
     const tail = events.at(-1);
+    if (checkpoint) {
+      const boundary = events[checkpoint.sequence - 1];
+      if (
+        !boundary ||
+        ["epoch", "ledgerId", "identityDigest"].some(
+          (key) => checkpoint[key] !== boundary[key],
+        ) ||
+        checkpoint.headDigest !== boundary.eventDigest
+      ) {
+        fail(
+          WIKI_LEDGER_CONFLICT_CODE,
+          "Wiki checkpoint is not in this authenticated ledger",
+        );
+      }
+    }
     if (
       tail &&
       (typeof tail.epoch !== "string" ||
@@ -298,6 +314,7 @@ export class WikiMaintainerLedgerAdapter {
         event.correlationId === this.descriptor.evolutionRunId,
     );
     let state = createEmptyWikiState(this.descriptor.tenantId);
+    let viewState = state;
     let latest = null;
     let source = sourceDigest === digestWikiState(state) ? state : null;
     const successors = [];
@@ -317,6 +334,8 @@ export class WikiMaintainerLedgerAdapter {
         fail(WIKI_LEDGER_CORRUPT_CODE, "Wiki ledger event lineage is invalid");
       }
       const revision = this.#resolveEvent(event, tail);
+      const inView =
+        checkpoint === null || event.sequence <= checkpoint.sequence;
       // Before durable maintenance requests, v1 genesis did not contain that
       // map. Accept only the exact known legacy genesis, never an arbitrary
       // caller-supplied predecessor or a modern revision with missing fields.
@@ -332,7 +351,10 @@ export class WikiMaintainerLedgerAdapter {
         delete legacyGenesis.maintenanceRequests;
         if (revision.priorStateDigest === digestWikiState(legacyGenesis)) {
           state = freeze(legacyGenesis);
-          source = sourceDigest === revision.priorStateDigest ? state : null;
+          if (inView) {
+            viewState = state;
+            source = sourceDigest === revision.priorStateDigest ? state : null;
+          }
         }
       }
       if (
@@ -347,7 +369,7 @@ export class WikiMaintainerLedgerAdapter {
         );
       }
       verifyRequestTransition(state, revision);
-      if (source) {
+      if (source && inView) {
         if (
           !revision.maintenanceRequestDigest ||
           revision.maintenanceRequestDigest !== allowed[successors.length]
@@ -369,9 +391,10 @@ export class WikiMaintainerLedgerAdapter {
           eventDigest: event.eventDigest,
           artifactRef: event.subjectRef,
         });
-      } else if (sourceDigest === revision.stateDigest) {
+      } else if (inView && sourceDigest === revision.stateDigest) {
         source = revision.state;
       }
+      if (inView) viewState = revision.state;
       latest = { event, revision };
       state = revision.state;
     }
@@ -389,7 +412,7 @@ export class WikiMaintainerLedgerAdapter {
         "Wiki ledger changed while authenticating history",
       );
     }
-    return { head, latest, state, source, successors };
+    return { head, latest, state, viewState, source, successors };
   }
 
   #resolveEvent(event, authority) {
@@ -426,14 +449,54 @@ export class WikiMaintainerLedgerAdapter {
     return this.#resolveHistory(input);
   }
 
+  resolveAtCheckpoint(input) {
+    return this.#resolveHistory(input, true);
+  }
+
   // Provenance only: callers must authorize the plan and independently check
   // the successor's actual operation/state, not treat a request digest as an
   // effect receipt. Allowed digests describe an ordered prefix, not a set.
-  #resolveHistory({
-    tenantId,
-    stateDigest,
-    allowedMaintenanceRequestDigests = [],
-  } = {}) {
+  #resolveHistory(
+    {
+      tenantId,
+      stateDigest,
+      allowedMaintenanceRequestDigests = [],
+      checkpoint = null,
+    } = {},
+    historical = false,
+  ) {
+    if (historical) {
+      const fields = [
+        "epoch",
+        "ledgerId",
+        "identityDigest",
+        "sequence",
+        "headDigest",
+      ];
+      if (
+        !checkpoint ||
+        typeof checkpoint !== "object" ||
+        Array.isArray(checkpoint) ||
+        Object.keys(checkpoint).length !== fields.length ||
+        fields.some((key) => !Object.hasOwn(checkpoint, key)) ||
+        typeof checkpoint.epoch !== "string" ||
+        typeof checkpoint.ledgerId !== "string" ||
+        !DIGEST.test(checkpoint.identityDigest ?? "") ||
+        !DIGEST.test(checkpoint.headDigest ?? "") ||
+        !Number.isSafeInteger(checkpoint.sequence) ||
+        checkpoint.sequence < 1 ||
+        checkpoint.sequence > EVOLUTION_LEDGER_MAX_EVENTS
+      ) {
+        throw new TypeError(
+          "Wiki historical read requires an exact authenticated checkpoint",
+        );
+      }
+      checkpoint = Object.freeze({ ...checkpoint });
+    } else if (checkpoint !== null) {
+      throw new TypeError(
+        "current Wiki history cannot be downgraded to a checkpoint view",
+      );
+    }
     if (
       tenantId !== this.descriptor.tenantId ||
       !DIGEST.test(stateDigest ?? "") ||
@@ -455,9 +518,10 @@ export class WikiMaintainerLedgerAdapter {
       }
       allowed.push(value);
     }
-    const { head, state, source, successors } = this.#history({
+    const { head, viewState, source, successors } = this.#history({
       sourceDigest: stateDigest,
       allowed,
+      checkpoint,
     });
     if (!source) {
       fail(
@@ -470,9 +534,15 @@ export class WikiMaintainerLedgerAdapter {
       tenantId,
       evolutionRunId: this.descriptor.evolutionRunId,
       source: { trusted: true, state: source, stateDigest },
-      current: { trusted: true, state, stateDigest: digestWikiState(state) },
+      current: {
+        trusted: true,
+        state: viewState,
+        stateDigest: digestWikiState(viewState),
+      },
       successors,
       ledgerHead: head,
+      scope: historical ? "checkpoint" : "current",
+      checkpoint,
     });
   }
 

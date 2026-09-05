@@ -5,6 +5,7 @@ import {
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_MAX_EVENTS,
 } from "./evolution-ledger.js";
 import {
   WIKI_PRUNING_JOURNAL_MAX_BYTES,
@@ -18,6 +19,31 @@ export const WIKI_PRUNING_JOURNAL_EVENT_TYPE = "wiki.pruning.journal-committed";
 export const WIKI_PRUNING_JOURNAL_ARTIFACT_TYPE = "wiki-pruning-journal";
 const STORES = new WeakMap();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+function currentContext(head) {
+  return Object.freeze({
+    mode: "current",
+    checkpoint: Object.freeze({
+      epoch: head.epoch,
+      ledgerId: head.ledgerId,
+      identityDigest: head.identityDigest,
+      sequence: head.sequence,
+      headDigest: head.headDigest,
+    }),
+  });
+}
+
+function historicalContext(event) {
+  return Object.freeze({
+    mode: "checkpoint",
+    checkpoint: Object.freeze({
+      epoch: event.epoch,
+      ledgerId: event.ledgerId,
+      identityDigest: event.identityDigest,
+      sequence: event.sequence,
+      headDigest: event.eventDigest,
+    }),
+  });
+}
 
 function fail(message) {
   const error = new Error(message);
@@ -59,8 +85,11 @@ function descriptor(input) {
 
 // This adapter authenticates persistence, not business authorization by itself.
 // Plan and operation verifiers are mandatory and reconsulted on every restore.
-// The plan verifier must resolve the original trusted Wiki/policy/deletion
-// authority and permit only the execution's authenticated Wiki successors.
+// Historical entries are verified at their authenticated checkpoint, NOT
+// against an arbitrarily newer Wiki. The current unfinished execution and all
+// proposed writes additionally require current authorization. A completed
+// record is never treated as permission to perform more effects. Plan verifiers
+// must bind checkpoint context to the Wiki ledger identity and ordered effects.
 // The operation verifier must independently authenticate the exact provider
 // receipt, not merely echo its authenticated/durable flags. Effect providers
 // must reconcile duplicate requestDigest values across process boundaries.
@@ -109,12 +138,13 @@ export class GovernedWikiPruningLedgerAdapter {
     );
   }
 
-  async #authenticate(state) {
+  async #authenticate(state, context) {
     if (
       (await this.#verifyPlan({
         plan: state.plan,
         tenantId: this.descriptor.tenantId,
         streamId: this.descriptor.streamId,
+        context,
       })) !== true
     )
       fail("pruning plan authorization is unavailable or revoked");
@@ -126,6 +156,7 @@ export class GovernedWikiPruningLedgerAdapter {
           receipt,
           tenantId: this.descriptor.tenantId,
           streamId: this.descriptor.streamId,
+          context,
         })) !== true
       )
         fail("pruning operation receipt authentication failed");
@@ -134,9 +165,22 @@ export class GovernedWikiPruningLedgerAdapter {
 
   async #history() {
     const head = this.#verifyLedger();
-    const all = this.#read();
+    const all = this.#read({ limit: EVOLUTION_LEDGER_MAX_EVENTS });
     if (!Array.isArray(all))
       fail("pruning journal ledger did not return events");
+    if (
+      all.length !== head.sequence ||
+      (all.at(-1)?.eventDigest ?? null) !== head.headDigest ||
+      all.some(
+        (event, index) =>
+          event.sequence !== index + 1 ||
+          ["epoch", "ledgerId", "identityDigest"].some(
+            (key) => event[key] !== head[key],
+          ),
+      )
+    ) {
+      conflict("pruning journal ledger range is incomplete or changed");
+    }
     const events = all.filter(
       (event) =>
         event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
@@ -203,9 +247,31 @@ export class GovernedWikiPruningLedgerAdapter {
           fail("pruning journal restarted a historical plan");
         plans.add(state.plan.planDigest);
       }
-      await this.#authenticate(state);
-      history.push({ event, state });
+      const samePlan =
+        previous?.state.plan.planDigest === state.plan.planDigest;
+      const entry = {
+        event,
+        state,
+        prepared: samePlan ? previous.prepared : { event, state },
+      };
+      if (samePlan) history[history.length - 1] = entry;
+      else history.push(entry);
     }
+    // Every immutable event/transition above is checked. Per plan, authenticate
+    // its source at preparation and its full retained receipt prefix at the
+    // latest checkpoint. Intermediate states retain the exact same plan and
+    // immutable receipt prefixes, so need no duplicate business verification.
+    for (const entry of history) {
+      await this.#authenticate(
+        entry.prepared.state,
+        historicalContext(entry.prepared.event),
+      );
+      if (entry.state.journalDigest !== entry.prepared.state.journalDigest)
+        await this.#authenticate(entry.state, historicalContext(entry.event));
+    }
+    const latest = history.at(-1)?.state;
+    if (latest && latest.phase !== "finalized")
+      await this.#authenticate(latest, currentContext(head));
     const after = this.#verifyLedger();
     if (
       after.headDigest !== head.headDigest ||
@@ -269,7 +335,7 @@ export class GovernedWikiPruningLedgerAdapter {
       )
     )
       fail("pruning journal cannot restart a historical plan");
-    await this.#authenticate(state);
+    await this.#authenticate(state, currentContext(head));
     const now = Number(this.#clock());
     if (!Number.isFinite(now))
       throw new TypeError("pruning journal clock is invalid");
