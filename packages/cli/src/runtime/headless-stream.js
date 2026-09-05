@@ -3245,6 +3245,7 @@ async function runAgentHeadlessStreamInWorkspace(
   }
 
   const loopOptionsBase = {
+    ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
     provider,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink).

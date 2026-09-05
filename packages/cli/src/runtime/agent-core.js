@@ -21,6 +21,7 @@ import os from "os";
 import { createHash, randomUUID } from "node:crypto";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
@@ -10733,6 +10734,10 @@ function _openAIProviderRequestReceipt(response, data, clientRequestId) {
  * @returns {Promise<object>} response with .message
  */
 export async function chatWithTools(rawMessages, options) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const {
     provider,
     model,
@@ -10774,12 +10779,21 @@ export async function chatWithTools(rawMessages, options) {
   const lastUserMsg = [...providerMessages]
     .reverse()
     .find((m) => m.role === "user");
-  const messages =
+  let messages =
     ce && !canonicalPlan
       ? ce.buildOptimizedMessages(providerMessages, {
           userQuery: lastUserMsg?.content,
         })
       : providerMessages;
+
+  if (evolutionIngress !== null) {
+    const projected = await evolutionIngress.prepareModelRequest({
+      messages,
+      tools,
+    });
+    messages = projected.messages;
+    tools = projected.tools;
+  }
 
   throwIfAborted(signal);
 
@@ -13210,6 +13224,15 @@ function permissionDecision(callId, tool, result) {
 }
 
 export async function* agentLoop(messages, options) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
+  if (evolutionIngress !== null && options.chatFn) {
+    throw new TypeError(
+      "Evolution ingress requires the canonical chatWithTools transport",
+    );
+  }
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
   // the same budget instance is shared, so parent+child consume from one pool.
@@ -13350,6 +13373,7 @@ export async function* agentLoop(messages, options) {
     // Parent LLM config — forwarded to spawn_sub_agent so a delegated subagent
     // inherits the provider/key and can override just the model (cc agents `model:`).
     llmOptions: {
+      ...(evolutionIngress === null ? {} : { evolutionIngress }),
       provider: options.provider || null,
       model: options.model || null,
       baseUrl: options.baseUrl || null,

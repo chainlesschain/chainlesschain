@@ -165,6 +165,7 @@ describe("WSAgentHandler", () => {
       });
       const loop = vi.fn(async function* (_messages, loopOptions) {
         order.push("model");
+        expect(loopOptions.evolutionIngress).toBe(ingress);
         expect(loopOptions.skillOutcomeIndex).toBe(skillOutcomeIndex);
         expect(loopOptions.skillVectorAuthority).toBe(skillVectorAuthority);
         yield {

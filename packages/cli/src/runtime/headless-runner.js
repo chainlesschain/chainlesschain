@@ -2481,6 +2481,7 @@ async function runAgentHeadlessInWorkspace(
 
   const childToolExecs = new Map();
   const loopOptions = {
+    ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
     provider,
     recorder: _otlpRecorder,

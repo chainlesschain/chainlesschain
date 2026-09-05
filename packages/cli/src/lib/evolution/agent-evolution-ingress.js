@@ -6,6 +6,10 @@ import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
 import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
 import { captureEvolutionReleaseTrain } from "./evolution-release-train.js";
+import {
+  snapshotAgentModelRequest,
+  buildAgentModelRequest,
+} from "./agent-model-projection.js";
 
 const { EVOLUTION_RUN_EVENT_SCHEMA, EVENT_TYPES } = evolutionRun;
 
@@ -81,15 +85,19 @@ function normalizeId(value, label) {
   return result;
 }
 
+function ingressFailure(cause) {
+  if (cause?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) return cause;
+  const error = new Error(
+    `Agent evolution ingress failed: ${cause?.message || String(cause)}`,
+    { cause },
+  );
+  error.code = AGENT_EVOLUTION_INGRESS_FAILED_CODE;
+  return error;
+}
+
 function guardIngress(operation) {
   return Promise.resolve(operation).catch((cause) => {
-    if (cause?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) throw cause;
-    const error = new Error(
-      `Agent evolution ingress failed: ${cause?.message || String(cause)}`,
-      { cause },
-    );
-    error.code = AGENT_EVOLUTION_INGRESS_FAILED_CODE;
-    throw error;
+    throw ingressFailure(cause);
   });
 }
 
@@ -136,9 +144,22 @@ export function createAgentEvolutionIngress({
   );
   const descriptor = runAdapter.descriptor;
   let tail = Promise.resolve();
+  let modelAdmissionFailure = null;
 
-  const serialize = (operation) => {
-    const pending = tail.then(operation, operation);
+  const serialize = (operation, latchModelFailure = false) => {
+    const invoke = latchModelFailure
+      ? async () => {
+          try {
+            return await operation();
+          } catch (cause) {
+            // Latch inside the serialized operation, before releasing the queue.
+            // A complete() already queued by another caller cannot win this race.
+            modelAdmissionFailure = ingressFailure(cause);
+            throw modelAdmissionFailure;
+          }
+        }
+      : operation;
+    const pending = tail.then(invoke, invoke);
     tail = pending.catch(() => undefined);
     return pending;
   };
@@ -168,9 +189,10 @@ export function createAgentEvolutionIngress({
     }).projection;
   };
 
-  const ingest = (kind, evidence, options = {}) =>
+  const ingest = (kind, evidence, options = {}, modelRequest = null) =>
     guardIngress(
       serialize(async () => {
+        if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
         const projection = appendStarted();
         if (projection.status === "completed") {
           throw new Error(
@@ -185,7 +207,7 @@ export function createAgentEvolutionIngress({
           options.occurredAt ?? currentTimestamp(),
           "Agent evidence occurredAt",
         );
-        const payload = clone(evidence);
+        const payload = modelRequest ?? clone(evidence);
         const sourceEnvelope = await issueSourceEnvelope(
           Object.freeze({
             schema: AGENT_EVOLUTION_INGRESS_SCHEMA,
@@ -212,7 +234,7 @@ export function createAgentEvolutionIngress({
           );
         }
         const current = runAdapter.load();
-        return runAdapter.appendEvent({
+        const appended = runAdapter.appendEvent({
           schema: EVOLUTION_RUN_EVENT_SCHEMA,
           tenantId: descriptor.tenantId,
           runId: descriptor.runId,
@@ -229,7 +251,35 @@ export function createAgentEvolutionIngress({
             derivationManifestDigest: persisted.manifest.digest,
           },
         });
-      }),
+        if (modelRequest === null) return appended;
+        // Resolve the published manifest and every attested component afresh.
+        // The prototype call requires the real adapter's private state; an
+        // instance-shaped facade cannot mint model-visible input.
+        const resolved =
+          await EvolutionEvidenceArtifactAdapter.prototype.resolve.call(
+            evidenceAdapter,
+            persisted,
+          );
+        if (
+          resolved.verification.verified !== true ||
+          resolved.verification.tenantId !== descriptor.tenantId ||
+          resolved.bundle.modelProjection.evidenceId !== persisted.evidenceId
+        ) {
+          throw new Error("Agent model projection readback is unbound");
+        }
+        // A concurrent writer/completion must not make this stale admission
+        // authoritative. Reauthenticate the exact committed Run frontier.
+        if (
+          digest(runAdapter.load().projection) !== digest(appended.projection)
+        ) {
+          throw new Error("Agent model projection Run frontier changed");
+        }
+        if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
+        return buildAgentModelRequest(
+          modelRequest,
+          resolved.bundle.modelProjection,
+        );
+      }, modelRequest !== null),
     );
 
   const ingress = Object.freeze({
@@ -237,6 +287,18 @@ export function createAgentEvolutionIngress({
     tenantId: descriptor.tenantId,
     runId: descriptor.runId,
     start: () => guardIngress(serialize(() => appendStarted())),
+    prepareModelRequest: (request) => {
+      if (modelAdmissionFailure !== null)
+        return Promise.reject(modelAdmissionFailure);
+      let snapshot;
+      try {
+        snapshot = snapshotAgentModelRequest(request);
+      } catch (error) {
+        modelAdmissionFailure = ingressFailure(error);
+        return Promise.reject(modelAdmissionFailure);
+      }
+      return ingest("model-input", snapshot, {}, snapshot);
+    },
     ingestUserPrompt: (input, options) =>
       ingest("user-prompt", { input: clone(input) }, options),
     ingestAgentEvent: (event, options) => {
@@ -254,6 +316,7 @@ export function createAgentEvolutionIngress({
     complete: (options = {}) =>
       guardIngress(
         serialize(async () => {
+          if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
           const loaded = runAdapter.load();
           let projection;
           if (loaded.projection?.status === "completed") {

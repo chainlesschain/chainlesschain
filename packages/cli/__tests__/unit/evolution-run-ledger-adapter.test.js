@@ -403,7 +403,7 @@ describe("EvolutionRunLedgerAdapter", () => {
     expect(evidenceAdapter.projectAndPersist).toHaveBeenCalledTimes(4);
   });
 
-  it("routes a production headless turn and closes the durable run", async () => {
+  it("routes headless event boundaries and forwards the same ingress to the core", async () => {
     const fixture = backend();
     const evidenceAdapter = fakeEvidenceAdapter();
     let id = 0;
@@ -439,10 +439,11 @@ describe("EvolutionRunLedgerAdapter", () => {
           let value = 1_000;
           return () => (value += 5);
         })(),
-        chatFn: vi.fn(async () => ({
-          message: { role: "assistant", content: "done" },
-          usage: { input_tokens: 3, output_tokens: 1 },
-        })),
+        agentLoop: async function* (_messages, loopOptions) {
+          expect(loopOptions.evolutionIngress).toBe(ingress);
+          yield { type: "response-complete", content: "done" };
+          yield { type: "run-ended", reason: "complete" };
+        },
       },
     );
 
@@ -537,6 +538,9 @@ describe("EvolutionRunLedgerAdapter", () => {
     );
 
     expect(result).toMatchObject({ exitCode: 0, turns: 2 });
+    for (const [, loopOptions] of coreLoop.mock.calls) {
+      expect(loopOptions.evolutionIngress).toBe(ingress);
+    }
     const recovered = fixture.makeAdapter().load();
     expect(recovered.projection.status).toBe("completed");
     expect(

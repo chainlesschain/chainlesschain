@@ -1489,6 +1489,11 @@ export class WSAgentHandler {
       const approvalGate = await this._ensureApprovalGate();
       approvalGate?.beginTurn?.(requestId || `turn-${Date.now()}`);
       const loopOptions = {
+        ...(evolutionComposition === null
+          ? {}
+          : {
+              evolutionIngress: evolutionComposition.evolutionIngress,
+            }),
         provider: session.provider,
         model: activeModel,
         baseUrl: session.baseUrl || "http://localhost:11434",
