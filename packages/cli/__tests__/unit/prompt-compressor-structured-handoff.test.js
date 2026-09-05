@@ -182,6 +182,18 @@ describe("structured handoff protocol", () => {
 
     expect(llmQuery).toHaveBeenCalledOnce();
     const prompt = llmQuery.mock.calls[0][0];
+    const schemaLine = prompt
+      .split("\n")
+      .find((line) => line.startsWith("Return exactly one strict JSON object"));
+    const schema = JSON.parse(
+      schemaLine.slice(
+        schemaLine.indexOf("{"),
+        schemaLine.lastIndexOf("}") + 1,
+      ),
+    );
+    expect(Object.keys(schema)).toEqual(STRUCTURED_HANDOFF_FIELDS);
+    expect(schema.objective).toBe("");
+    expect(schema.constraints).toEqual([]);
     expect(prompt.length).toBeLessThanOrEqual(1_024);
     expect(prompt).toContain("Fix the checkout race");
     expect(stats).toMatchObject({

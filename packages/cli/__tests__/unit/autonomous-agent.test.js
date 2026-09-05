@@ -367,6 +367,11 @@ describe("CLIAutonomousAgent", () => {
       expect(steps.length).toBe(2);
       expect(steps[0].tool).toBe("read_file");
       expect(steps[1].tool).toBe("edit_file");
+      const prompt = mockLlm.mock.calls[0][0][0].content;
+      const example = prompt.split("for example: ")[1].split("\n")[0];
+      expect(JSON.parse(example)).toEqual([
+        { description: "Describe the step", tool: "tool_name", params: {} },
+      ]);
     });
 
     it("handles LLM error gracefully", async () => {
@@ -378,6 +383,28 @@ describe("CLIAutonomousAgent", () => {
       const steps = await agent._decomposeGoal({ description: "test" });
       expect(steps.length).toBe(1);
     });
+  });
+
+  it("uses valid JSON in the self-correction example without executing its sample tool", async () => {
+    const mockLlm = vi.fn(async () => '{"action":"skip"}');
+    const executor = vi.fn();
+    agent.initialize({ llmChat: mockLlm, toolExecutor: executor });
+    const goal = {
+      description: "Inspect",
+      steps: [
+        { description: "Read", status: StepStatus.RUNNING, error: "missing" },
+      ],
+    };
+    expect(await agent._selfCorrect(goal, new Error("missing"))).toBe(true);
+    const prompt = mockLlm.mock.calls[0][0][0].content;
+    const example = prompt.split("for example: ")[1].split("\n")[0];
+    expect(JSON.parse(example)).toMatchObject({
+      action: "retry",
+      newParams: {},
+      newStep: { params: {} },
+    });
+    expect(executor).not.toHaveBeenCalled();
+    expect(goal.steps[0].status).toBe(StepStatus.SKIPPED);
   });
 
   // ── _executeStep ──

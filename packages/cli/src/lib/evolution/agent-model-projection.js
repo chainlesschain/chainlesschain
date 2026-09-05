@@ -1,4 +1,5 @@
 import { types } from "node:util";
+import { isAgentToolArgumentsPath } from "./evidence-json-text.js";
 
 const MAX_NODES = 32_768;
 const MAX_BYTES = 1024 * 1024;
@@ -12,7 +13,10 @@ const MESSAGE_KEYS = new Set([
 
 // Capture before the first await. Accessors, proxies and exotic objects cannot
 // change the request between commitment, durable publication and dispatch.
-export function snapshotAgentModelRequest(value) {
+export function snapshotAgentModelRequest(
+  value,
+  { allowStructuredArgumentText = true } = {},
+) {
   let nodes = 0;
   let bytes = 0;
   const seen = new Set();
@@ -21,7 +25,7 @@ export function snapshotAgentModelRequest(value) {
       throw new TypeError("Agent model request exceeds the input budget");
     }
     if (typeof entry === "string") {
-      if (entry.length > 8192 && !textPath(path)) {
+      if (entry.length > 8192 && !textPath(path, allowStructuredArgumentText)) {
         throw new TypeError(
           "Agent model protocol metadata exceeds the text budget",
         );
@@ -123,10 +127,14 @@ export function snapshotAgentModelRequest(value) {
   return request;
 }
 
-function textPath(path) {
+function textPath(path, allowStructuredArgumentText = true) {
   return (
     /^messages\.\d+\.content$/u.test(path) ||
-    /^messages\.\d+\.tool_calls\.\d+\.function\.arguments$/u.test(path) ||
+    (allowStructuredArgumentText
+      ? /^messages\.\d+\.tool_calls\.\d+\.function\.arguments(?:\.|$)/u.test(
+          path,
+        )
+      : /^messages\.\d+\.tool_calls\.\d+\.function\.arguments$/u.test(path)) ||
     /^tools\.\d+\.function\.(?:description|parameters(?:\..*)?\.description)$/u.test(
       path,
     )
@@ -136,6 +144,18 @@ function textPath(path) {
 // Redaction can change text, not roles, tool-call ids, callable names, schema
 // keys or control values. Refuse a structurally damaged/truncated protocol.
 function assertProtocol(original, projected, path = "") {
+  // Object-valued arguments are historical data (e.g. Ollama), not callable
+  // metadata. Projection never replaces the live arguments used for execution.
+  if (
+    isAgentToolArgumentsPath(path.split(".")) &&
+    original &&
+    projected &&
+    typeof original === "object" &&
+    typeof projected === "object" &&
+    !Array.isArray(original) &&
+    !Array.isArray(projected)
+  )
+    return;
   if (
     typeof original === "string" &&
     typeof projected === "string" &&

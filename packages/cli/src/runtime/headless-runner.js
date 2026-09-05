@@ -2916,7 +2916,8 @@ async function runAgentHeadlessInWorkspace(
       `You are judging whether a coding session met a completion condition.\n` +
       `Condition: ${cond.text || cond.source}\n\n` +
       `Latest assistant output:\n${String(transcript.finalText || "").slice(0, 2000)}\n\n` +
-      `Reply with STRICT JSON only: {"met": true|false, "reason": "<short>"}.`;
+      `Reply with STRICT JSON only, for example: {"met": false, "reason": "<short>"}. ` +
+      `Set met to true only when the condition is satisfied; otherwise false.`;
     const r = await runMeteredDirectModelCall({
       sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
       persist: persist

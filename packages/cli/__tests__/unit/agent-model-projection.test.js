@@ -137,6 +137,51 @@ describe("Agent model projection protocol boundary", () => {
     ).toThrow(/opaque or truncated/u);
   });
 
+  it("allows projected object arguments while preserving live history and callable metadata", () => {
+    const original = {
+      messages: [
+        {
+          role: "assistant",
+          content: null,
+          tool_calls: [
+            {
+              id: "call-1",
+              type: "function",
+              function: {
+                name: "lookup",
+                arguments: {
+                  password: "private",
+                  nested: { contact: "alice@example.com" },
+                  ok: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      tools: [],
+    };
+    const safe = structuredClone(original);
+    safe.messages[0].tool_calls[0].function.arguments.password =
+      "[REDACTED:credential]";
+    safe.messages[0].tool_calls[0].function.arguments.nested.contact =
+      "[REDACTED:email]";
+    const output = buildAgentModelRequest(
+      snapshotAgentModelRequest(original),
+      projection(safe),
+    );
+    expect(output.messages[1].tool_calls[0].function.arguments).toEqual(
+      safe.messages[0].tool_calls[0].function.arguments,
+    );
+    expect(original.messages[0].tool_calls[0].function.arguments.password).toBe(
+      "private",
+    );
+    safe.messages[0].tool_calls[0].function.name = "run_shell";
+    expect(() => buildAgentModelRequest(original, projection(safe))).toThrow(
+      /protocol/u,
+    );
+  });
+
   it("refuses changed roles, callable ids, names, schema and structure", () => {
     const original = {
       messages: [

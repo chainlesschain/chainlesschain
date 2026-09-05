@@ -27,6 +27,15 @@ describe("goal-assess — prompt", () => {
     expect(p).toContain("write_file, run_shell");
     expect(p).toContain("I wrote 3 tests");
     expect(p).toContain('"advanced"');
+    const example = JSON.parse(
+      p.split("\n").find((line) => line.startsWith("{")),
+    );
+    expect(example).toMatchObject({
+      advanced: false,
+      progress: null,
+      keyResults: [{ current: null, done: false }],
+      concerns: [],
+    });
   });
 });
 

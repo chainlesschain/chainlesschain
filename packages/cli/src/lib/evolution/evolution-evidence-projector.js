@@ -11,6 +11,11 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { snapshotAgentModelRequest } from "./agent-model-projection.js";
+import {
+  createEvidenceJsonTextBoundary,
+  EVIDENCE_JSON_POLICY,
+  isAgentToolArgumentsPath,
+} from "./evidence-json-text.js";
 
 export const EVOLUTION_SOURCE_VERIFICATION_SCHEMA =
   "chainlesschain.evolution-source-verification/v1";
@@ -457,7 +462,7 @@ const PREFIXED_CREDENTIAL_SOURCE =
   "(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}";
 const EMBEDDED_CREDENTIAL_SOURCE =
   "(?:sk-|ghp_|github_pat_|xox[baprs]-)[A-Za-z0-9_-]{12,}";
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V1 = Object.freeze({
   ...RULESET,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v1",
   version: 1,
@@ -466,6 +471,18 @@ const AGENT_MODEL_RULESET = Object.freeze({
   textPolicy: "whole-field-before-budget-v1",
   overflowPolicy: "reject",
   embeddedCredentialPattern: EMBEDDED_CREDENTIAL_SOURCE,
+});
+const AGENT_MODEL_RULESET_V1_DIGEST = `sha256:${createHash("sha256")
+  .update(
+    `${AGENT_MODEL_RULESET_V1.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V1)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V1,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v2",
+  version: 2,
+  jsonTextPolicy: EVIDENCE_JSON_POLICY,
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
   "sha256",
@@ -477,6 +494,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createH
   .digest("hex")}`;
 const SUPPORTED_RULESETS = new Map([
   [RULESET_DIGEST, RULESET],
+  [AGENT_MODEL_RULESET_V1_DIGEST, AGENT_MODEL_RULESET_V1],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -550,7 +568,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 ]);
 
 function valuePatterns(ruleset) {
-  return ruleset === AGENT_MODEL_RULESET
+  return ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V1
     ? AGENT_VALUE_PATTERNS
     : VALUE_PATTERNS;
 }
@@ -1190,7 +1208,12 @@ function sanitizePayload(
   const injections = [];
   let nodes = 0;
   let truncated = false;
-  const visit = (value, path, depth) => {
+  const jsonText = ruleset.jsonTextPolicy
+    ? createEvidenceJsonTextBoundary((message) =>
+        projectionError(EVOLUTION_PROJECTION_INVALID_CODE, message),
+      )
+    : null;
+  const visit = (value, path, depth, layer = 0) => {
     nodes += 1;
     if (nodes > ruleset.maxNodes || depth > ruleset.maxDepth) {
       truncated = true;
@@ -1201,15 +1224,48 @@ function sanitizePayload(
       });
       return "[TRUNCATED:CONTENT_BUDGET]";
     }
-    if (typeof value === "string")
-      return sanitizeString(
-        value,
-        path,
-        findings,
-        injections,
-        ruleset,
-        patterns,
+    const toolArguments = jsonText && isAgentToolArgumentsPath(path);
+    if (toolArguments && typeof value !== "string" && !isPlainRecord(value)) {
+      throw projectionError(
+        EVOLUTION_PROJECTION_INVALID_CODE,
+        "Agent tool arguments require a JSON object",
       );
+    }
+    if (typeof value === "string") {
+      const plain = (text) =>
+        sanitizeString(text, path, findings, injections, ruleset, patterns);
+      if (!jsonText) return plain(value);
+      const output = jsonText(value, {
+        layer,
+        objectOnly: toolArguments,
+        visit: (decoded, nextLayer) =>
+          visit(decoded, [...path, "$json"], depth + 1, nextLayer),
+        plain,
+        equal: (left, right) => canonicalJson(left) === canonicalJson(right),
+      });
+      if (output.length > ruleset.maxStringChars) {
+        throw projectionError(
+          EVOLUTION_PROJECTION_INVALID_CODE,
+          "Agent model projection exceeds the text budget",
+        );
+      }
+      // Check instruction spans, but never regex-rewrite JSON syntax/numbers
+      // after decoding: numeric PII must become a quoted, valid JSON marker.
+      const matched = injectionMatches(output);
+      if (matched.length) {
+        injections.push({
+          path: findingPath(path),
+          patternIds: matched.map(({ id }) => id),
+        });
+        if (toolArguments)
+          throw projectionError(
+            EVOLUTION_PROJECTION_INVALID_CODE,
+            "Agent tool arguments contain unsafe cross-field text",
+          );
+        return "[QUARANTINED:POTENTIAL_PROMPT_INJECTION]";
+      }
+      return output;
+    }
     if (value === null || typeof value === "boolean") return value;
     if (typeof value === "number") {
       if (!Number.isFinite(value)) {
@@ -1217,6 +1273,24 @@ function sanitizePayload(
           EVOLUTION_PROJECTION_INVALID_CODE,
           "Raw payload contains a non-finite number",
         );
+      }
+      if (jsonText) {
+        if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+          throw projectionError(
+            EVOLUTION_PROJECTION_INVALID_CODE,
+            "Agent model JSON number exceeds the safe integer budget",
+          );
+        }
+        const numberText = String(value);
+        const safe = sanitizeString(
+          numberText,
+          path,
+          findings,
+          injections,
+          ruleset,
+          patterns,
+        );
+        if (safe !== numberText) return safe;
       }
       return value;
     }
@@ -1233,7 +1307,9 @@ function sanitizePayload(
           output.push("[TRUNCATED:CONTENT_BUDGET]");
           break;
         }
-        output.push(visit(value[index], [...path, String(index)], depth + 1));
+        output.push(
+          visit(value[index], [...path, String(index)], depth + 1, layer),
+        );
       }
       return output;
     }
@@ -1276,7 +1352,12 @@ function sanitizePayload(
           count: 1,
         });
       } else {
-        projectedValue = visit(value[key], [...path, safeKey], depth + 1);
+        projectedValue = visit(
+          value[key],
+          [...path, safeKey],
+          depth + 1,
+          layer,
+        );
       }
       Object.defineProperty(output, safeKey, {
         value: projectedValue,
@@ -2980,8 +3061,10 @@ function validateBundleIntegrity(bundle) {
     );
   }
   if (model.content !== null) {
-    if (ruleset === AGENT_MODEL_RULESET) {
-      snapshotAgentModelRequest(model.content);
+    if (ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V1) {
+      snapshotAgentModelRequest(model.content, {
+        allowStructuredArgumentText: ruleset === AGENT_MODEL_RULESET,
+      });
       if (
         model.truncated ||
         (model.redactionSummary.byType["content-truncation"] ?? 0) > 0
@@ -2991,6 +3074,16 @@ function validateBundleIntegrity(bundle) {
           "Agent model projection cannot be truncated",
         );
       }
+    }
+    if (
+      ruleset.jsonTextPolicy &&
+      canonicalJson(sanitizePayload(model.content, ruleset).content) !==
+        canonicalJson(model.content)
+    ) {
+      throw projectionError(
+        EVOLUTION_PROJECTION_INVALID_CODE,
+        "Agent model JSON content is not a safe projection",
+      );
     }
     assertNoKnownSecrets(model.content, valuePatterns(ruleset));
     assertNoInjectionText(model.content);

@@ -412,7 +412,8 @@ Goal: ${goal.description}
 
 Available tools: read_file, write_file, edit_file, run_shell, search_files, list_dir, run_skill
 
-Return a JSON array of steps, each with: { "description": "...", "tool": "tool_name", "params": {...} }
+Return a JSON array of steps, for example: [{ "description": "Describe the step", "tool": "tool_name", "params": {} }]
+Populate params with the selected tool's actual arguments.
 Only return the JSON array, no other text.`;
 
       const response = await this._llmChat(
@@ -493,7 +494,8 @@ Should I:
 2. Add a new prerequisite step
 3. Skip this step and continue
 
-Reply with a JSON object: { "action": "retry|add_step|skip", "newParams": {...}, "newStep": {...} }`;
+Reply with a JSON object, for example: { "action": "retry", "newParams": {}, "newStep": { "description": "Corrective step", "tool": "tool_name", "params": {} } }
+Set action to retry, add_step, or skip. Supply newParams for retry and newStep for add_step.`;
 
       const response = await this._llmChat(
         [{ role: "user", content: prompt }],

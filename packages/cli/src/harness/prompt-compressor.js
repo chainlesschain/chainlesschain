@@ -110,7 +110,14 @@ function buildBoundedHistory(messages, maxChars) {
 }
 
 function summaryPrompt(messages, maxChars) {
-  const schema = `{${STRUCTURED_HANDOFF_FIELDS.map((field) => `"${field}"`).join(",")}}`;
+  const schema = JSON.stringify(
+    Object.fromEntries(
+      STRUCTURED_HANDOFF_FIELDS.map((field) => [
+        field,
+        field === "objective" ? "" : [],
+      ]),
+    ),
+  );
   const instructions = [
     "Create a durable conversation handoff from the history below.",
     `Return exactly one strict JSON object with all keys in this order: ${schema}.`,

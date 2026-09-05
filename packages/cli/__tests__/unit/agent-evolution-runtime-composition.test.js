@@ -1987,6 +1987,100 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
+  it.each([false, true])(
+    "projects JSON from a real tool and historical arguments without changing executed data (object arguments=%s)",
+    async (objectArgs) => {
+      const f = modelFixture();
+      const secret = "verySecretCredentialValue123";
+      fs.writeFileSync(
+        path.join(f.root, "structured-result.json"),
+        JSON.stringify({
+          body: JSON.stringify({ password: secret, ok: true }),
+          count: 2,
+        }),
+      );
+      const args = { path: "structured-result.json", password: secret };
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        const message =
+          f.seen.length === 1
+            ? {
+                role: "assistant",
+                content: "reading",
+                tool_calls: [
+                  {
+                    id: "call-read",
+                    type: "function",
+                    function: {
+                      name: "read_file",
+                      arguments: objectArgs ? args : JSON.stringify(args),
+                    },
+                  },
+                ],
+              }
+            : { role: "assistant", content: "done" };
+        return { ok: true, json: async () => ({ message }) };
+      });
+      const events = await collectFallbackCore(f, {
+        enabledToolNames: ["read_file"],
+      });
+      expect(f.seen).toHaveLength(2);
+      expect(
+        JSON.stringify(
+          events.find((event) => event.type === "tool-result").result,
+        ),
+      ).toContain(secret);
+      expect(JSON.stringify(f.seen)).not.toContain(secret);
+      expect(JSON.stringify(f.seen[1])).toContain("REDACTED:credential");
+      expect(JSON.stringify(f.seen[1])).toContain("structured-result.json");
+      const projectedArgs = f.seen[1].messages.find(
+        (message) => message.tool_calls?.length,
+      ).tool_calls[0].function.arguments;
+      expect(
+        typeof projectedArgs === "string"
+          ? JSON.parse(projectedArgs)
+          : projectedArgs,
+      ).toEqual({
+        path: "structured-result.json",
+        password: "[REDACTED:credential]",
+      });
+      const raw = JSON.parse(
+        f.config.authorities.rawEncryptor.encrypt.mock.calls[1][0].plaintext.toString(),
+      );
+      expect(JSON.stringify(raw)).toContain(secret);
+      const reopened = createAgentEvolutionRuntimeComposition(f.config);
+      expect(
+        reopened
+          .loadRun()
+          .events.filter((event) => event.data.evidenceKind === "model-input"),
+      ).toHaveLength(2);
+      expect(args.password).toBe(secret);
+    },
+    60_000,
+  );
+
+  it.each(["malformed", "duplicates", "nested-budget"])(
+    "refuses JSON %s before provider dispatch and latches run failure",
+    async (mode) => {
+      const f = modelFixture();
+      const content =
+        mode === "malformed"
+          ? '{"password":"private",}'
+          : mode === "duplicates"
+            ? '{"password":"first","\\u0070assword":"second"}'
+            : '{"x":'.repeat(20) + "null" + "}".repeat(20);
+      await expect(
+        chatWithTools([{ role: "user", content }], f.callOptions),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(f.transport).not.toHaveBeenCalled();
+      await expect(
+        f.composition.evolutionIngress.complete(),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    60_000,
+  );
+
   it("runs the real headless host with a long prompt through durable projection", async () => {
     const f = modelFixture();
     const text =

@@ -62,15 +62,17 @@ export function buildAssessPrompt(goal, transcript = {}) {
     `RUN RESULT:\n${finalText || "(no final text)"}`,
     "",
     "Reply with ONLY a JSON object (no prose, no code fence) of this shape:",
-    "{",
-    '  "advanced": true|false,            // did this run move the goal forward?',
-    '  "progress": <0-100 or null>,        // your estimate of new overall progress, or null to leave unchanged',
-    '  "keyResults": [                     // updates for specific key results (omit if none)',
-    '    {"id": "<kr-id>", "current": <number or null>, "done": true|false}',
-    "  ],",
-    '  "note": "<one short sentence summarizing what changed>",',
-    '  "concerns": ["<short concern>", ...]   // anything blocking/at-risk (omit if none)',
-    "}",
+    JSON.stringify({
+      advanced: false,
+      progress: null,
+      keyResults: [{ id: "<kr-id>", current: null, done: false }],
+      note: "<one short sentence summarizing what changed>",
+      concerns: [],
+    }),
+    "Set advanced to true only if this run moved the goal forward; otherwise false.",
+    "Set progress to an estimated number from 0 to 100, or null to leave it unchanged.",
+    "Each keyResults entry uses a real key-result id, a numeric current value or null, and a boolean done. Omit keyResults if there are no updates.",
+    "Include short strings in concerns for blocking or at-risk items; omit concerns if there are none.",
   ].join("\n");
 }
 
