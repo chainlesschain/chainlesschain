@@ -17,7 +17,7 @@ afterEach(() => {
 });
 async function setup(options = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-full-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-pruning-full-"),
   );
   roots.push(root);
   return openPruningFullChain(root, { seed: true, ...options });

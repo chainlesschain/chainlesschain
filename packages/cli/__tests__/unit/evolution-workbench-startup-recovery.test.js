@@ -20,7 +20,7 @@ afterEach(() => {
 });
 function temp() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-startup-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-workbench-startup-"),
   );
   roots.push(root);
   return root;

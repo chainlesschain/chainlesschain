@@ -56,7 +56,10 @@ describe("Knowledge revocation real Skill process recovery", () => {
     "recovers actual Wiki tombstones at %s (%s, %s)",
     (crashPoint, status, dependencies) => {
       const root = fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-wiki-process-"),
+        path.join(
+          fs.realpathSync.native(os.tmpdir()),
+          "cc-knowledge-wiki-process-",
+        ),
       );
       roots.push(root);
       const seeded = run(root, "seed", "none", 0, "wiki", dependencies);
@@ -115,7 +118,7 @@ describe("Knowledge revocation real Skill process recovery", () => {
     (crashPoint, status, provenance, dependencies) => {
       const root = fs.mkdtempSync(
         path.join(
-          fs.realpathSync(os.tmpdir()),
+          fs.realpathSync.native(os.tmpdir()),
           "cc-knowledge-rollback-process-",
         ),
       );

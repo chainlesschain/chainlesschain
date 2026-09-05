@@ -43,7 +43,7 @@ describe("Workbench rollback real process recovery", () => {
       const needsMutation = ["prepared", "after-lease"].includes(phase);
       const root = fs.mkdtempSync(
         path.join(
-          fs.realpathSync(os.tmpdir()),
+          fs.realpathSync.native(os.tmpdir()),
           "cc-workbench-rollback-process-",
         ),
       );

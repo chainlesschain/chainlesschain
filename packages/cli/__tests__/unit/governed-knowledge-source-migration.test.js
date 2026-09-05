@@ -94,7 +94,7 @@ function requestFor(active, lastKnownGood) {
 }
 async function setup(wikiHops = 0) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-source-migration-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-source-migration-"),
   );
   roots.push(root);
   const h = await openKnowledgeSkillRollbackStore(path.join(root, "origin"), {

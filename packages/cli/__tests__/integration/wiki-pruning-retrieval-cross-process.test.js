@@ -37,7 +37,7 @@ describe("real Wiki pruning retrieval process recovery", () => {
     "recovers %s with no duplicate publication",
     (fault, exitCode) => {
       const root = fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-retrieval-process-"),
+        path.join(fs.realpathSync.native(os.tmpdir()), "cc-retrieval-process-"),
       );
       roots.push(root);
       expect(run(root, "seed")).toMatchObject({

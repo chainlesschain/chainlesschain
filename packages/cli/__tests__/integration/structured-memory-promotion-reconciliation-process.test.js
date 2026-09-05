@@ -153,7 +153,7 @@ describe("structured Memory promotion process reconciliation", () => {
   it("kills the real release producer and reconciles Memory in fresh processes", async () => {
     const root = fs.mkdtempSync(
       path.join(
-        fs.realpathSync(os.tmpdir()),
+        fs.realpathSync.native(os.tmpdir()),
         "cc-promotion-reconcile-process-",
       ),
     );

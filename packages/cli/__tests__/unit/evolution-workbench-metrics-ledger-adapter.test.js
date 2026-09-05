@@ -211,7 +211,7 @@ function invocation(id, contentDigest, outcome = {}) {
 
 function backends() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-metrics-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-workbench-metrics-"),
   );
   roots.push(root);
   const secret = "test-only-workbench-metrics-key";

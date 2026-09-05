@@ -71,7 +71,10 @@ function verifyAck({ requestDigest, receipt }) {
 
 async function harness() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-plan-authority-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-pruning-plan-authority-",
+    ),
   );
   roots.push(root);
   const resources = openEvolutionDurableStore(root);
@@ -534,7 +537,10 @@ describe("Wiki pruning plan authority", () => {
     const h = await harness();
     const plan = await h.plan();
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-wrong-ledger-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-pruning-wrong-ledger-",
+      ),
     );
     roots.push(root);
     const other = openEvolutionDurableStore(root);

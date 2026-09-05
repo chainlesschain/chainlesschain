@@ -1,5 +1,6 @@
 import { createHash, generateKeyPairSync } from "node:crypto";
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { mkdtemp, open, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -35,6 +36,10 @@ afterEach(async () => {
 function waitForReady(child) {
   return new Promise((resolve, reject) => {
     let output = "";
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr = (stderr + chunk.toString("utf8")).slice(-16_384);
+    });
     const timer = setTimeout(
       () => reject(new Error("host readiness timed out")),
       10_000,
@@ -53,7 +58,9 @@ function waitForReady(child) {
     child.once("exit", (code, signal) => {
       if (output.includes("\n")) return;
       clearTimeout(timer);
-      reject(new Error(`host exited before ready: ${code}/${signal}`));
+      reject(
+        new Error(`host exited before ready: ${code}/${signal}: ${stderr}`),
+      );
     });
   });
 }
@@ -86,7 +93,9 @@ async function durableWrite(path, value) {
 
 describe("progressive Canary watchdog across processes", () => {
   it("verifies a child heartbeat, kills its PID, rolls back LKG, and reopens the incident", async () => {
-    const root = await mkdtemp(join(tmpdir(), "cc-watchdog-process-"));
+    const root = await mkdtemp(
+      join(realpathSync.native(tmpdir()), "cc-watchdog-process-"),
+    );
     const storeRoot = join(root, "store");
     const heartbeatKeys = generateKeyPairSync("ed25519");
     const rollbackKeys = generateKeyPairSync("ed25519");

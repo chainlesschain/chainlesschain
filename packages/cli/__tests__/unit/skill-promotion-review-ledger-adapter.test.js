@@ -248,7 +248,7 @@ function decisionFor(packet, overrides = {}) {
 
 function backends() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-review-ledger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-review-ledger-"),
   );
   roots.push(root);
   const now = Date.parse(NOW);

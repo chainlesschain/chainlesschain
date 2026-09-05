@@ -173,7 +173,7 @@ function durableFilesystem() {
 
 function backends() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-trigger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-wiki-trigger-"),
   );
   roots.push(root);
   const now = Date.parse("2026-09-03T00:00:00.000Z");

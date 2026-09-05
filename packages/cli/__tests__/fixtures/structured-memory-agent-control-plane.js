@@ -93,7 +93,7 @@ export function createStructuredMemoryAgentControlPlaneFixture({
   const root = rootDir
     ? path.resolve(rootDir)
     : fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-memory-agent-root-"),
+        path.join(fs.realpathSync.native(os.tmpdir()), "cc-memory-agent-root-"),
       );
   fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   const now = Date.parse("2026-09-02T00:00:00.000Z");

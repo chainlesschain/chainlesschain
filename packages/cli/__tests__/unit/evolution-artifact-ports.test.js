@@ -91,7 +91,7 @@ describe("EvolutionArtifactPorts", () => {
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evolution-artifacts-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-evolution-artifacts-"),
     );
     storeDir = path.join(tempRoot, "artifacts");
     nowMs = Date.parse("2026-09-01T10:00:00.000Z");

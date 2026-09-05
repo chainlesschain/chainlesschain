@@ -40,7 +40,10 @@ describe("complete pruning real process recovery", () => {
     "recovers %s across actual release/key/Wiki/retrieval effects",
     (crash, status) => {
       const root = fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-full-process-"),
+        path.join(
+          fs.realpathSync.native(os.tmpdir()),
+          "cc-pruning-full-process-",
+        ),
       );
       roots.push(root);
       const seeded = run(root, "seed");

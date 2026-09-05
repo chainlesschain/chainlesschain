@@ -898,7 +898,10 @@ describe("Agent evolution runtime production composition", () => {
 
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-model-boundary-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-agent-model-boundary-",
+      ),
     );
     roots.push(root);
     const config = options(root);
@@ -2297,7 +2300,7 @@ describe("Agent evolution runtime production composition", () => {
 
   it("constructs all eight default domain adapters with root-owned durable ledgers", () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-domain-train-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-agent-domain-train-"),
     );
     roots.push(root);
     const plan = createEvolutionPlan({
@@ -2409,7 +2412,7 @@ describe("Agent evolution runtime production composition", () => {
 
   it("mounts the fixed eight-stage train on the production ArtifactStore and Ledger", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-release-train-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-agent-release-train-"),
     );
     roots.push(root);
     const plan = createEvolutionPlan({
@@ -2484,7 +2487,10 @@ describe("Agent evolution runtime production composition", () => {
 
   it("builds and reopens one authenticated run without embedding authority secrets", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-evolution-root-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-agent-evolution-root-",
+      ),
     );
     roots.push(root);
     const firstOptions = options(root);
@@ -2645,7 +2651,10 @@ describe("Agent evolution runtime production composition", () => {
 
   it("fails closed without every external production authority", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-evolution-deny-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-agent-evolution-deny-",
+      ),
     );
     roots.push(root);
     const input = options(root);
@@ -2702,7 +2711,10 @@ describe("Agent evolution runtime production composition", () => {
 
   it("routes one branded outcome index through single-turn and streaming headless runtimes", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-outcome-headless-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-agent-outcome-headless-",
+      ),
     );
     roots.push(root);
     const composition = createAgentEvolutionRuntimeComposition(options(root));
@@ -2818,7 +2830,10 @@ describe("Agent evolution runtime production composition", () => {
 
   it("reopens a bounded historical source catalog with exact tenant and run binding", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-agent-outcome-catalog-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-agent-outcome-catalog-",
+      ),
     );
     roots.push(root);
     const firstInput = options(root);

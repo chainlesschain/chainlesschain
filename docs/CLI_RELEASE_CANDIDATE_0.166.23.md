@@ -1,6 +1,6 @@
 # CLI 0.166.23 发布候选
 
-状态：发布准备，不是已发布版本，也不是全绿证明。用户于 2026-09-06 授权独立候选分支推送 GitHub 和执行 CI；npm、IDE 发布及发布 tag 尚未授权。
+状态：发布准备，不是已发布版本，也不是全绿证明。用户于 2026-09-06 已授权推送候选、执行 CI，以及全部门禁通过后的子 npm 包、CLI 发布；IDE 插件也已授权，但必须在 CLI 发布并验证公开安装后再验收发布。
 
 ## 候选边界
 
@@ -42,9 +42,24 @@ Core DB 差异是未带前缀的 SQL 命名参数规范化。Session Core 新增
 
 1. 将候选提交推送 GitHub，只执行 CI，不创建会触发发布的 tag。
 2. 最终完全相同的 SHA 必须通过 `CLI CI` 和 `CLI Strict Sandbox` 全部已配置 Linux、Windows、macOS 检查。`CLI CI` 的三平台 `verify-cli` 已加入 Core DB 与 Session Core 的独立完整测试；失败或未执行均不可视为完成。
-3. 获得正式 npm 发布授权后，按现有依赖顺序先发布 `core-db@0.1.5`、`session-core@0.3.12`，确认 registry 的精确版本、实际 tarball 与所需出口可用。
+3. 按现有依赖顺序先发布 `core-db@0.1.5`、`session-core@0.3.12`。这两个子包先打包、发布同一 tarball，再从公开 npm 下载并逐字节比较；即使精确版本已存在而跳过 publish，也必须比较通过。
 4. 在没有 monorepo workspace 链接的干净目录，安装候选 CLI tarball，让其依赖只从 registry 解析；验证 `--version`、`agent --capabilities`、关键子包出口和数据库参数绑定。子包尚未公开时，此项不能提前宣称通过。
-5. 以上通过后才发布 CLI；公开安装回读成功后，再更新 IDE 推荐版本及配套更新说明，完成插件验收并另行发布。
+5. 以上通过后才发布 CLI；公开安装回读成功后，再更新 IDE 推荐版本及配套更新说明，完成插件验收并发布。IDE 不随 npm tag 自动发布。
+
+新增 `verify-cli-registry-install.mjs` 验证干净安装的实际内部依赖版本、物理路径、无 workspace 链接，以及 lockfile 的公开 npm URL 和 SHA-512 integrity。工作流在 CLI publish 前保存 `cli-public-child-install.json`，并验证 Agent capability JSON 和新的 Session Core 出口。CLI 本身在这一步仍是不可变候选 tarball，不能将其误称为 CLI 已公开安装。
+
+## 第一轮候选 CI 与修复记录
+
+候选 `e19dda1148051f71591ee795bf79e4d2cfbdc81d` 的 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33997804805) 三平台及 Context Memory Kernel CI 已通过，但 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33997802210) 失败，不具备发布资格。
+
+- Windows 的多份测试临时路径使用 JS realpath，与 ArtifactStore 原生真实路径校验不一致；统一测试夹具的原生路径解析，保留生产安全校验。macOS 撤销进程用例也改用物理临时路径，避免 `/var` 别名。
+- Session Core 实际打包测试改为核对源码版本和 CLI 精确依赖，新增实际 `evolvable-artifact` 文件/出口检查，不再硬编码旧版 `0.3.11`。
+- 快照增长竞态测试绑定本次 checkpoint 的 witness digest，不再任取目录里的第一份历史快照。
+- Target Matrix 的内存 Ledger 夹具采用真实 Ledger 的引用排序规则，避免随机 artifact locator 导致恢复结果漂移。
+- Skill writer 清单更新 Desktop 已切换到品牌化治理宿主委托的源码证据；清单仍只证明其声明的直接扫描范围，不代表全程序无间接写入。
+- Canary 子进程失败补充 stderr 诊断，需由回归测试继续确认原因。
+
+本地原生路径定向回归有 48 通过、2 失败、1 平台跳过：两项完整剪枝恢复分别耗时 63,586ms、66,463ms，超过原有 60 秒要求。未提高阈值或忽略失败；后续验证必须保留此记录并确认修复后的实际结果。其后 7 文件修复验证为 96 通过、1 项既有 process-producer 专用条件跳过，包括 Target Matrix、完整 Ledger、发布合同、新安装检查器、清单、真实子包打包及 Canary 进程用例。新修复会产生新 SHA，不能使用上述旧候选的绿色 Strict 结果放行。
 
 ## 旧 GitHub 失败与本轮处理
 

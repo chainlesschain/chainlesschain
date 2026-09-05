@@ -448,7 +448,10 @@ describe("EvolutionLedger domain ports", () => {
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evolution-ledger-ports-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-evolution-ledger-ports-",
+      ),
     );
     eventRoot = path.join(tempRoot, "events");
     authorityRoot = path.join(tempRoot, "authority");

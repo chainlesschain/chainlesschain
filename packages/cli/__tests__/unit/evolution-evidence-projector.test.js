@@ -1269,7 +1269,7 @@ describe("EvolutionEvidenceProjector", () => {
 
   it("persists ciphertext-only Raw and an authenticated derivation manifest across adapter restart", async () => {
     const tempRoot = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evidence-projection-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-evidence-projection-"),
     );
     try {
       const rawDir = path.join(tempRoot, "raw");

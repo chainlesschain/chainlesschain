@@ -176,7 +176,7 @@ function durableFilesystem() {
 
 function backends() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-structured-memory-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-structured-memory-"),
   );
   roots.push(root);
   const now = Date.parse("2026-09-02T00:00:00.000Z");

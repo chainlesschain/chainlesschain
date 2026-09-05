@@ -55,6 +55,41 @@ function occurrences(text, needle) {
 }
 
 describe("CLI release workflow contracts", () => {
+  it("verifies public child archives and clean registry dependency installation before publishing CLI", () => {
+    const text = workflow("npm-publish.yml");
+    const start = text.indexOf(
+      "- name: Verify public child bytes and registry-only dependencies before CLI publish",
+    );
+    const publish = text.indexOf('- name: "Publish chainlesschain (CLI)"');
+    expect(start).toBeGreaterThan(0);
+    expect(start).toBeLessThan(publish);
+    const gate = text.slice(start, publish);
+    expect(gate).toContain("set -euo pipefail");
+    expect(gate).toContain(
+      'cmp "release-artifacts/children/$ARCHIVE" "$READBACK_ROOT/$CHILD/$ARCHIVE"',
+    );
+    expect(gate).toContain("--registry=https://registry.npmjs.org");
+    expect(gate).toContain("verify-cli-registry-install.mjs");
+    expect(gate).toContain("npm-release-artifact.mjs verify");
+    expect(gate).toContain("node_modules/.bin/cc agent --capabilities");
+    expect(gate).toContain("@chainlesschain/session-core/evolvable-artifact");
+    expect(gate).toContain("smoke-installed-core-db.mjs");
+    expect(gate).not.toContain("continue-on-error");
+    expect(gate).not.toContain("if: steps.");
+    expect(gate).not.toContain("--pack-candidates");
+    for (const child of ["core-db", "session-core"]) {
+      const childStart = text.indexOf(
+        `- name: "Publish @chainlesschain/${child}"`,
+      );
+      const childEnd = text.indexOf("\n      - name:", childStart + 1);
+      expect(childStart).toBeLessThan(start);
+      const childStep = text.slice(childStart, childEnd);
+      expect(childStep).toContain("npm pack --ignore-scripts");
+      expect(childStep).toContain('npm publish "$CHILD_TARBALL"');
+    }
+    expect(text).toContain("release-artifacts/cli-public-child-install.json");
+  });
+
   it("gates npm production on exact-SHA matrices and one immutable tarball", () => {
     const text = workflow("npm-publish.yml");
     expectExternalActionsPinned(text);

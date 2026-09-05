@@ -13,7 +13,10 @@ import { APP_SERVER_PROTOCOL_VERSION } from "../../src/lib/app-server/protocol.j
 
 it("delivers actual post-rollback Registry state through Commander and fixed App Server methods", async () => {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-registry-transport-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-workbench-registry-transport-",
+    ),
   );
   let server;
   try {

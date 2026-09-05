@@ -54,7 +54,7 @@ function hash(value) {
 
 function backend() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-evolution-run-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-evolution-run-"),
   );
   roots.push(root);
   const tenantId = "tenant-agent";

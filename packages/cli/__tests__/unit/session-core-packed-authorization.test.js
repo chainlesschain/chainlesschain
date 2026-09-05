@@ -115,16 +115,23 @@ describe("packed session-core authorization boundary", () => {
       expect(
         packedCliManifest.dependencies["@chainlesschain/session-core"],
       ).toBe(packedSessionManifest.version);
-      expect(packedSessionManifest.version).toBe("0.3.11");
+      const sourceSessionManifest = JSON.parse(
+        fs.readFileSync(path.join(sessionRoot, "package.json"), "utf8"),
+      );
+      expect(packedSessionManifest.version).toBe(sourceSessionManifest.version);
+      expect(packedSessionManifest.exports).toHaveProperty(
+        "./evolvable-artifact",
+        "./lib/evolvable-artifact.js",
+      );
+      expect(() =>
+        tarEntry(sessionTarball, "package/lib/evolvable-artifact.js"),
+      ).not.toThrow();
       expect(packedSessionManifest.exports).toHaveProperty(
         "./structured-evolution-memory",
         "./lib/structured-evolution-memory.js",
       );
       expect(() =>
-        tarEntry(
-          sessionTarball,
-          "package/lib/structured-evolution-memory.js",
-        ),
+        tarEntry(sessionTarball, "package/lib/structured-evolution-memory.js"),
       ).not.toThrow();
       expect(
         tarEntry(cliTarball, "package/src/runtime/headless-runner.js").toString(

@@ -159,7 +159,7 @@ function deletionReceipt() {
 
 function resources() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-raw-deletion-ledger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-raw-deletion-ledger-"),
   );
   roots.push(root);
   const now = Date.parse(NOW);

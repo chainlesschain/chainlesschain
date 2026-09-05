@@ -221,7 +221,10 @@ function openAdapter(root, descriptor, ledger, ports) {
 export function knowledgeArtifactLifecycle({ tenantId = "tenant:a" } = {}) {
   sequence += 1;
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-sync-artifact-lifecycle-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-sync-artifact-lifecycle-",
+    ),
   );
   roots.push(root);
   const descriptor = {
