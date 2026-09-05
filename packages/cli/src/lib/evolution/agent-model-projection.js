@@ -16,14 +16,14 @@ export function snapshotAgentModelRequest(value) {
   let nodes = 0;
   let bytes = 0;
   const seen = new Set();
-  const visit = (entry, depth) => {
+  const visit = (entry, depth, path = "") => {
     if (++nodes > MAX_NODES || depth > 24) {
       throw new TypeError("Agent model request exceeds the input budget");
     }
     if (typeof entry === "string") {
-      if (entry.length > 8192) {
+      if (entry.length > 8192 && !textPath(path)) {
         throw new TypeError(
-          "Agent model request text would be truncated by the projection budget",
+          "Agent model protocol metadata exceeds the text budget",
         );
       }
       bytes += Buffer.byteLength(entry, "utf8");
@@ -73,10 +73,13 @@ export function snapshotAgentModelRequest(value) {
         );
       }
       bytes += Buffer.byteLength(key, "utf8");
+      if (key.length > 8192) {
+        throw new TypeError("Agent model protocol key exceeds the text budget");
+      }
       if (bytes > MAX_BYTES)
         throw new TypeError("Agent model request is too large");
       Object.defineProperty(output, key, {
-        value: visit(property.value, depth + 1),
+        value: visit(property.value, depth + 1, path ? `${path}.${key}` : key),
         enumerable: true,
       });
     }
@@ -112,6 +115,11 @@ export function snapshotAgentModelRequest(value) {
       );
     }
   }
+  // Include escaping, punctuation and numeric values in the transport/storage
+  // budget, not just string values. Whole fields are never split or truncated.
+  if (Buffer.byteLength(JSON.stringify(request), "utf8") > MAX_BYTES) {
+    throw new TypeError("Agent model request is too large");
+  }
   return request;
 }
 
@@ -119,7 +127,7 @@ function textPath(path) {
   return (
     /^messages\.\d+\.content$/u.test(path) ||
     /^messages\.\d+\.tool_calls\.\d+\.function\.arguments$/u.test(path) ||
-    /^tools\.\d+\.function\.(?:description|parameters\..*\.description)$/u.test(
+    /^tools\.\d+\.function\.(?:description|parameters(?:\..*)?\.description)$/u.test(
       path,
     )
   );

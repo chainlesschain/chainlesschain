@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
 
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
+import { EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST } from "./evolution-evidence-projector.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
 import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
@@ -219,10 +220,17 @@ export function createAgentEvolutionIngress({
             evidence: payload,
           }),
         );
-        const persisted = await evidenceAdapter.projectAndPersist({
+        const projectionInput = {
           sourceEnvelope,
           payload,
-        });
+        };
+        const persisted =
+          modelRequest === null
+            ? await evidenceAdapter.projectAndPersist(projectionInput)
+            : await EvolutionEvidenceArtifactAdapter.prototype.projectAndPersistAgentModelRequest.call(
+                evidenceAdapter,
+                projectionInput,
+              );
         if (
           persisted?.tenantId !== descriptor.tenantId ||
           persisted.evidenceId == null ||
@@ -263,6 +271,8 @@ export function createAgentEvolutionIngress({
         if (
           resolved.verification.verified !== true ||
           resolved.verification.tenantId !== descriptor.tenantId ||
+          resolved.bundle.modelProjection.rulesetDigest !==
+            EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST ||
           resolved.bundle.modelProjection.evidenceId !== persisted.evidenceId
         ) {
           throw new Error("Agent model projection readback is unbound");

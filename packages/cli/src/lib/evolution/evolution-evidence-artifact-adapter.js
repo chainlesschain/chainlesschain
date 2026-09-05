@@ -337,6 +337,7 @@ export class EvolutionEvidenceArtifactAdapter {
   #purpose;
   #ttlMs;
   #project;
+  #projectAgentModel;
   #verify;
   #ports;
 
@@ -376,6 +377,11 @@ export class EvolutionEvidenceArtifactAdapter {
     );
     this.#ttlMs = ttlMs;
     this.#project = captureMethod(projector, "project", "projector");
+    this.#projectAgentModel = captureMethod(
+      projector,
+      "projectAgentModelRequest",
+      "projector",
+    );
     this.#verify = captureMethod(bundleVerifier, "verify", "bundleVerifier");
     this.#ports = artifactPorts;
     Object.freeze(this);
@@ -391,7 +397,14 @@ export class EvolutionEvidenceArtifactAdapter {
   }
 
   async projectAndPersist(input) {
-    const bundle = await this.#project(input);
+    return this.#persist(await this.#project(input));
+  }
+
+  async projectAndPersistAgentModelRequest(input) {
+    return this.#persist(await this.#projectAgentModel(input));
+  }
+
+  async #persist(bundle) {
     const verification = await this.#verify(bundle);
     if (
       verification.verified !== true ||

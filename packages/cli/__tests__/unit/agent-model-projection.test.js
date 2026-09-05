@@ -68,11 +68,11 @@ describe("Agent model projection protocol boundary", () => {
         messages: [{ role: "user", content: "a".repeat(1024 * 1024) }],
         tools: [],
       }),
-    ).toThrow(/truncated/u);
+    ).toThrow(/large/u);
     expect(() =>
       snapshotAgentModelRequest({
         ...request(),
-        tools: Array(129).fill("a".repeat(8192)),
+        messages: Array(129).fill({ role: "user", content: "a".repeat(8192) }),
       }),
     ).toThrow(/large/u);
     const deep = request();
@@ -83,6 +83,35 @@ describe("Agent model projection protocol boundary", () => {
     expect(() =>
       snapshotAgentModelRequest({ ...request(), tools: Array(32_768).fill(0) }),
     ).toThrow(/budget/u);
+  });
+
+  it("keeps complete long text fields while limiting protocol metadata and serialized bytes", () => {
+    const text = "A useful detail. ".repeat(2000) + "END-OF-TEXT";
+    const original = request();
+    original.messages[0].content = text;
+    original.tools.push({
+      type: "function",
+      function: {
+        name: "lookup",
+        description: text,
+        parameters: { type: "object", description: text, properties: {} },
+      },
+    });
+    const captured = snapshotAgentModelRequest(original);
+    expect(captured.messages[0].content).toBe(text);
+    expect(
+      buildAgentModelRequest(captured, projection(captured)).messages[1]
+        .content,
+    ).toBe(text);
+    const bad = request();
+    bad.messages[0].name = "n".repeat(8193);
+    expect(() => snapshotAgentModelRequest(bad)).toThrow(/metadata/u);
+    expect(() =>
+      snapshotAgentModelRequest({
+        messages: [{ role: "user", content: "\u0000".repeat(200_000) }],
+        tools: [],
+      }),
+    ).toThrow(/large/u);
   });
 
   it("uses only projected text and host-generated provenance without mutating raw history", () => {

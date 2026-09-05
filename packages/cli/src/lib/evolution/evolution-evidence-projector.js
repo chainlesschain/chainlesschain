@@ -10,6 +10,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
+import { snapshotAgentModelRequest } from "./agent-model-projection.js";
 
 export const EVOLUTION_SOURCE_VERIFICATION_SCHEMA =
   "chainlesschain.evolution-source-verification/v1";
@@ -448,6 +449,41 @@ const RULESET_DIGEST = `sha256:${createHash("sha256")
   )
   .digest("hex")}`;
 
+// A separate policy keeps existing v2 artifacts readable without changing
+// their meaning/digest. Agent messages are authenticated and scanned as whole
+// fields; the existing total model-content ceiling still applies. Never scan
+// independent 8 KiB slices, which would miss secrets/injections at the seams.
+const PREFIXED_CREDENTIAL_SOURCE =
+  "(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}";
+const EMBEDDED_CREDENTIAL_SOURCE =
+  "(?:sk-|ghp_|github_pat_|xox[baprs]-)[A-Za-z0-9_-]{12,}";
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...RULESET,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v1",
+  version: 1,
+  maxStringChars: RULESET.maxModelBytes,
+  maxInputBytes: 1024 * 1024,
+  textPolicy: "whole-field-before-budget-v1",
+  overflowPolicy: "reject",
+  embeddedCredentialPattern: EMBEDDED_CREDENTIAL_SOURCE,
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET.schema}\0${JSON.stringify(AGENT_MODEL_RULESET)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const SUPPORTED_RULESETS = new Map([
+  [RULESET_DIGEST, RULESET],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
+]);
+
+const PREFIXED_CREDENTIAL_PATTERN = Object.freeze({
+  type: "credential",
+  regex: new RegExp(`\\b${PREFIXED_CREDENTIAL_SOURCE}\\b`, "gu"),
+});
 const VALUE_PATTERNS = Object.freeze([
   Object.freeze({
     type: "private-key",
@@ -463,10 +499,7 @@ const VALUE_PATTERNS = Object.freeze([
     regex:
       /\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret)\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{8,}["']?/giu,
   }),
-  Object.freeze({
-    type: "credential",
-    regex: /\b(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}\b/gu,
-  }),
+  PREFIXED_CREDENTIAL_PATTERN,
   Object.freeze({
     type: "credential",
     regex: /\bAKIA[A-Z0-9]{16}\b/gu,
@@ -505,6 +538,22 @@ const VALUE_PATTERNS = Object.freeze([
     regex: /(?<!\d)(?:\+?86[- ]?)?1[3-9]\d{9}(?!\d)/gu,
   }),
 ]);
+
+const AGENT_VALUE_PATTERNS = Object.freeze([
+  ...VALUE_PATTERNS,
+  Object.freeze({
+    type: "credential",
+    // Use each provider's real prefix/delimiter for embedded matches. Treating
+    // embedded "sk_" as a key would corrupt identifiers like ask_user_question.
+    regex: new RegExp(`${EMBEDDED_CREDENTIAL_SOURCE}\\b`, "gu"),
+  }),
+]);
+
+function valuePatterns(ruleset) {
+  return ruleset === AGENT_MODEL_RULESET
+    ? AGENT_VALUE_PATTERNS
+    : VALUE_PATTERNS;
+}
 
 const REDACTION_TYPES = new Set([
   ...VALUE_PATTERNS.map(({ type }) => type),
@@ -689,10 +738,10 @@ function deepFreeze(value, seen = new WeakSet()) {
   return Object.freeze(value);
 }
 
-function assertNoKnownSecrets(content) {
+function assertNoKnownSecrets(content, patterns = VALUE_PATTERNS) {
   const serialized =
     typeof content === "string" ? content : canonicalJson(content);
-  for (const pattern of VALUE_PATTERNS) {
+  for (const pattern of patterns) {
     pattern.regex.lastIndex = 0;
     if (pattern.regex.test(serialized)) {
       throw projectionError(
@@ -1080,9 +1129,9 @@ function sanitizeKey(key, path, findings, injections) {
   return safeKey;
 }
 
-function sanitizeString(value, path, findings, injections) {
+function sanitizeString(value, path, findings, injections, ruleset, patterns) {
   let output = value;
-  for (const pattern of VALUE_PATTERNS) {
+  for (const pattern of patterns) {
     pattern.regex.lastIndex = 0;
     let count = 0;
     output = output.replace(pattern.regex, () => {
@@ -1094,7 +1143,7 @@ function sanitizeString(value, path, findings, injections) {
   }
   const securityNormalized = unicodeSecurityText(output);
   if (securityNormalized !== output) {
-    for (const pattern of VALUE_PATTERNS) {
+    for (const pattern of patterns) {
       pattern.regex.lastIndex = 0;
       if (pattern.regex.test(securityNormalized)) {
         findings.push({
@@ -1115,25 +1164,35 @@ function sanitizeString(value, path, findings, injections) {
     });
     output = "[QUARANTINED:POTENTIAL_PROMPT_INJECTION]";
   }
-  if (output.length > RULESET.maxStringChars) {
+  if (output.length > ruleset.maxStringChars) {
+    if (ruleset.overflowPolicy === "reject") {
+      throw projectionError(
+        EVOLUTION_PROJECTION_INVALID_CODE,
+        "Agent model projection exceeds the text budget",
+      );
+    }
     findings.push({
       type: "content-truncation",
       path: findingPath(path),
       count: 1,
     });
-    output = `${output.slice(0, RULESET.maxStringChars)}[TRUNCATED]`;
+    output = `${output.slice(0, ruleset.maxStringChars)}[TRUNCATED]`;
   }
   return output;
 }
 
-function sanitizePayload(payload) {
+function sanitizePayload(
+  payload,
+  ruleset = RULESET,
+  patterns = valuePatterns(ruleset),
+) {
   const findings = [];
   const injections = [];
   let nodes = 0;
   let truncated = false;
   const visit = (value, path, depth) => {
     nodes += 1;
-    if (nodes > RULESET.maxNodes || depth > RULESET.maxDepth) {
+    if (nodes > ruleset.maxNodes || depth > ruleset.maxDepth) {
       truncated = true;
       findings.push({
         type: "content-truncation",
@@ -1143,7 +1202,14 @@ function sanitizePayload(payload) {
       return "[TRUNCATED:CONTENT_BUDGET]";
     }
     if (typeof value === "string")
-      return sanitizeString(value, path, findings, injections);
+      return sanitizeString(
+        value,
+        path,
+        findings,
+        injections,
+        ruleset,
+        patterns,
+      );
     if (value === null || typeof value === "boolean") return value;
     if (typeof value === "number") {
       if (!Number.isFinite(value)) {
@@ -1157,7 +1223,7 @@ function sanitizePayload(payload) {
     if (Array.isArray(value)) {
       const output = [];
       for (let index = 0; index < value.length; index += 1) {
-        if (nodes >= RULESET.maxNodes) {
+        if (nodes >= ruleset.maxNodes) {
           truncated = true;
           findings.push({
             type: "content-truncation",
@@ -1183,7 +1249,7 @@ function sanitizePayload(payload) {
     // projected content before the receipt is attested.
     const output = Object.create(null);
     for (const key of Object.keys(value).sort()) {
-      if (nodes >= RULESET.maxNodes) {
+      if (nodes >= ruleset.maxNodes) {
         truncated = true;
         findings.push({
           type: "content-truncation",
@@ -1223,7 +1289,7 @@ function sanitizePayload(payload) {
   };
   let content = visit(payload, [], 0);
   if (
-    Buffer.byteLength(canonicalJson(content), "utf8") > RULESET.maxModelBytes
+    Buffer.byteLength(canonicalJson(content), "utf8") > ruleset.maxModelBytes
   ) {
     truncated = true;
     content = {
@@ -1241,12 +1307,21 @@ function sanitizePayload(payload) {
     byType[finding.type] = (byType[finding.type] || 0) + finding.count;
     paths.add(finding.path);
   }
+  if (
+    ruleset.overflowPolicy === "reject" &&
+    (truncated || (byType["content-truncation"] ?? 0) > 0)
+  ) {
+    throw projectionError(
+      EVOLUTION_PROJECTION_INVALID_CODE,
+      "Agent model projection exceeds the content budget",
+    );
+  }
   const redactionSummary = {
     total: Object.values(byType).reduce((sum, count) => sum + count, 0),
     byType,
     paths: [...paths].sort(),
   };
-  assertNoKnownSecrets(content);
+  assertNoKnownSecrets(content, patterns);
   return deepFreeze({
     content,
     redactionSummary,
@@ -1936,7 +2011,7 @@ function buildRawRecord(source, commitment, evidenceId, storage) {
   });
 }
 
-function buildModelProjection(raw, sanitized) {
+function buildModelProjection(raw, sanitized, rulesetDigest) {
   const opaque = ["confidential", "restricted"].includes(raw.sensitivity);
   const core = {
     schema: EVOLUTION_MODEL_PROJECTION_SCHEMA,
@@ -1952,7 +2027,7 @@ function buildModelProjection(raw, sanitized) {
       : sanitized.redactionSummary,
     injectionFindings: opaque ? [] : sanitized.injectionFindings,
     truncated: opaque ? false : sanitized.truncated,
-    rulesetDigest: RULESET_DIGEST,
+    rulesetDigest,
   };
   return deepFreeze({
     ...core,
@@ -1990,7 +2065,7 @@ function buildTrustedProjection(
     status,
     reasonCodes,
     content: status === "trusted" ? trustedSanitized.content : null,
-    rulesetDigest: RULESET_DIGEST,
+    rulesetDigest: model.rulesetDigest,
   };
   return deepFreeze({
     ...core,
@@ -2013,7 +2088,7 @@ function buildReceipt(raw, model, trusted, createdAt) {
     rawRecordDigest: raw.rawRecordDigest,
     modelProjectionDigest: model.projectionDigest,
     trustedProjectionDigest: trusted.projectionDigest,
-    rulesetDigest: RULESET_DIGEST,
+    rulesetDigest: model.rulesetDigest,
     redactionSummary: model.redactionSummary,
     injectionCount: model.injectionFindings.length,
     trustedStatus: trusted.status,
@@ -2767,6 +2842,13 @@ function validateBundleIntegrity(bundle) {
     "projection receipt",
   );
   validateRawMetadata(raw, receipt);
+  const ruleset = SUPPORTED_RULESETS.get(model.rulesetDigest);
+  if (!ruleset) {
+    throw projectionError(
+      EVOLUTION_PROJECTION_INVALID_CODE,
+      "unsupported projection ruleset",
+    );
+  }
   validateRedactionSummary(model.redactionSummary);
   if (
     !Array.isArray(model.injectionFindings) ||
@@ -2864,9 +2946,8 @@ function validateBundleIntegrity(bundle) {
     canonicalJson(receipt.redactionSummary) !==
       canonicalJson(model.redactionSummary) ||
     receipt.trustedStatus !== trusted.status ||
-    model.rulesetDigest !== RULESET_DIGEST ||
-    trusted.rulesetDigest !== RULESET_DIGEST ||
-    receipt.rulesetDigest !== RULESET_DIGEST ||
+    trusted.rulesetDigest !== model.rulesetDigest ||
+    receipt.rulesetDigest !== model.rulesetDigest ||
     trusted.status !== expectedStatus ||
     canonicalJson(trusted.reasonCodes) !== canonicalJson(expectedReasons) ||
     (trusted.status === "quarantined" && trusted.content !== null) ||
@@ -2891,7 +2972,7 @@ function validateBundleIntegrity(bundle) {
     !Number.isSafeInteger(receipt.injectionCount) ||
     receipt.injectionCount < 0 ||
     Buffer.byteLength(canonicalJson(model.content), "utf8") >
-      RULESET.maxModelBytes
+      ruleset.maxModelBytes
   ) {
     throw projectionError(
       EVOLUTION_PROJECTION_INVALID_CODE,
@@ -2899,11 +2980,23 @@ function validateBundleIntegrity(bundle) {
     );
   }
   if (model.content !== null) {
-    assertNoKnownSecrets(model.content);
+    if (ruleset === AGENT_MODEL_RULESET) {
+      snapshotAgentModelRequest(model.content);
+      if (
+        model.truncated ||
+        (model.redactionSummary.byType["content-truncation"] ?? 0) > 0
+      ) {
+        throw projectionError(
+          EVOLUTION_PROJECTION_INVALID_CODE,
+          "Agent model projection cannot be truncated",
+        );
+      }
+    }
+    assertNoKnownSecrets(model.content, valuePatterns(ruleset));
     assertNoInjectionText(model.content);
   }
   if (trusted.content !== null) {
-    assertNoKnownSecrets(trusted.content);
+    assertNoKnownSecrets(trusted.content, valuePatterns(ruleset));
     assertNoInjectionText(trusted.content);
   }
   const attestation = validateAttestation(bundle.attestation, receipt);
@@ -3129,7 +3222,15 @@ export class EvolutionEvidenceProjector {
     return { iso, milliseconds: new Date(iso).getTime() };
   }
 
-  async project(input) {
+  project(input) {
+    return this.#project(input, RULESET);
+  }
+
+  projectAgentModelRequest(input) {
+    return this.#project(input, AGENT_MODEL_RULESET);
+  }
+
+  async #project(input, ruleset) {
     assertExactRecord(input, INPUT_KEYS, "evidence projection input");
     if (
       typeof input.sourceEnvelope !== "string" ||
@@ -3141,7 +3242,10 @@ export class EvolutionEvidenceProjector {
         "sourceEnvelope is invalid",
       );
     }
-    const payload = cloneCanonical(input.payload);
+    const payload =
+      ruleset === AGENT_MODEL_RULESET
+        ? snapshotAgentModelRequest(input.payload)
+        : cloneCanonical(input.payload);
     const sourceInputDigest = digest(
       payload,
       "chainlesschain.evolution-raw-plaintext/v2",
@@ -3381,10 +3485,16 @@ export class EvolutionEvidenceProjector {
           injectionFindings: [],
           truncated: false,
         })
-      : sanitizePayload(payload);
-    const modelProjection = buildModelProjection(rawRecord, sanitized);
+      : sanitizePayload(payload, ruleset);
+    const modelProjection = buildModelProjection(
+      rawRecord,
+      sanitized,
+      ruleset === AGENT_MODEL_RULESET
+        ? EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST
+        : RULESET_DIGEST,
+    );
     const trustedSanitized = source.compilable
-      ? sanitizePayload(source.trustedPayload)
+      ? sanitizePayload(source.trustedPayload, RULESET, valuePatterns(ruleset))
       : null;
     const trustedInputStructured =
       source.compilable && isStructuredTrustedPayload(source.trustedPayload);
