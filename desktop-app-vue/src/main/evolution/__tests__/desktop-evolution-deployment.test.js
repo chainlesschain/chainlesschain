@@ -31,6 +31,61 @@ function runtimeConfig(revision) {
 }
 
 describe("desktop evolution deployment", () => {
+  it("loads an independent marketplace capability through its branded Desktop facade", async () => {
+    const marketplaceHost = {
+      tenantId: "tenant:desktop",
+      target: {
+        tool: "desktop",
+        model: "test",
+        os: "win32-x64",
+        runtime: "electron-39",
+      },
+      ...Object.fromEntries(
+        ["inspect", "install", "list", "state", "rollout", "revoke"].map(
+          (name) => [name, vi.fn()],
+        ),
+      ),
+    };
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          marketplaceHost,
+        }),
+      }),
+      importMarketplaceHostModule: async () => ({
+        isGovernedSkillMarketplaceCliHost: (value) => value === marketplaceHost,
+      }),
+    });
+    const {
+      isDesktopGovernedSkillMarketplaceHost,
+    } = require("../../marketplace/governed-skill-marketplace-host");
+    expect(
+      isDesktopGovernedSkillMarketplaceHost(
+        result.governedSkillMarketplaceHost,
+      ),
+    ).toBe(true);
+    expect(result.governedSkillMarketplaceHost.target.tool).toBe("desktop");
+    result.governedSkillMarketplaceHost.state({ skillName: "safe-refactor" });
+    expect(marketplaceHost.state).toHaveBeenCalledWith({
+      skillName: "safe-refactor",
+    });
+  });
+
+  it("rejects a marketplace host for a non-Desktop target", async () => {
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            marketplaceHost: { target: { tool: "cli" } },
+          }),
+        }),
+        importMarketplaceHostModule: async () => ({
+          isGovernedSkillMarketplaceCliHost: () => true,
+        }),
+      }),
+    ).rejects.toThrow("fixed desktop target");
+  });
+
   it("returns no governed dependencies when deployment is not configured", async () => {
     const load = vi.fn(async () => null);
     await expect(

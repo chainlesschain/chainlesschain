@@ -1,6 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -330,7 +331,7 @@ function manifest(version = "2.0.0") {
   );
 }
 
-function packageFixture(version = "2.0.0") {
+function packageFixture(version = "2.0.0", target = TARGET) {
   const dependencyLock = buildSkillDependencyLock({
     tenantId: TENANT_ID,
     lock: { packages: { "fixture-tool": version } },
@@ -339,15 +340,15 @@ function packageFixture(version = "2.0.0") {
     tenantId: TENANT_ID,
     runtimes: [
       {
-        runtimeId: "cli",
-        descriptor: { platform: TARGET.os, runtime: TARGET.runtime },
+        runtimeId: target.tool,
+        descriptor: { platform: target.os, runtime: target.runtime },
       },
     ],
   });
   const cells = [
     {
       cellId: "cli-linux",
-      runtimeId: "cli",
+      runtimeId: target.tool,
       targetEnvironmentRef: "environment:marketplace-cli",
       environmentDigest: digest("fixture-environment"),
     },
@@ -410,14 +411,18 @@ function packageFixture(version = "2.0.0") {
   };
 }
 
-function catalogManifest(version = "2.0.0") {
-  const pack = packageFixture(version);
+function catalogManifest(version = "2.0.0", target = TARGET) {
+  const pack = packageFixture(version, target);
   const core = { ...manifest(version) };
   delete core.manifestDigest;
   delete core.signature;
   const value = buildGovernedSkillMarketplaceManifest(
     {
       ...core,
+      compatibilityMatrix: core.compatibilityMatrix.map((cell) => ({
+        ...cell,
+        ...target,
+      })),
       packageDigest: pack.packageDigest,
       sbomDigest: pack.sbomDigest,
       dependencyLockDigest: pack.candidate.dependencyLockDigest,
@@ -435,7 +440,7 @@ function catalogManifest(version = "2.0.0") {
   });
 }
 
-function candidateInstaller(storage, artifacts, extra = {}) {
+function candidateInstaller(storage, artifacts, extra = {}, target = TARGET) {
   const descriptor = {
     schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
     authorityId: "authority:marketplace-test-admission",
@@ -447,7 +452,7 @@ function candidateInstaller(storage, artifacts, extra = {}) {
     ...descriptor,
     resolve(request) {
       const pack = ["2.0.0", "3.0.0"]
-        .map(packageFixture)
+        .map((version) => packageFixture(version, target))
         .find(
           ({ candidate }) =>
             candidate.targetMatrixRoot === request.proposedTargetMatrixRoot,
@@ -485,6 +490,7 @@ function candidateInstaller(storage, artifacts, extra = {}) {
 
 // Real durable persistence and signed listings; deployment adapter/Pilot authorities are fixtures.
 function cliHost(ledgerAdapter, overrides = {}) {
+  const fixtureTarget = overrides.fixtureTarget ?? TARGET;
   const ports = {
     verifySignature: vi.fn(
       async ({ manifest: value }) =>
@@ -497,7 +503,8 @@ function cliHost(ledgerAdapter, overrides = {}) {
       authenticated: true,
       manifestDigest: value.manifestDigest,
       evalReceiptDigest: cell.evalReceiptDigest,
-      outputDigest: packageFixture(value.version).adaptedOutputDigest,
+      outputDigest: packageFixture(value.version, fixtureTarget)
+        .adaptedOutputDigest,
       adapterDigest: digest("test-adapter"),
     })),
     verifyPilot: vi.fn(async ({ state, nextStage, pilotReceipt }) => ({
@@ -526,16 +533,25 @@ function cliHost(ledgerAdapter, overrides = {}) {
     ...overrides.ports,
   };
   const catalog = overrides.catalog ?? {
-    resolve: vi.fn(async ({ version }) => catalogManifest(version ?? "2.0.0")),
+    resolve: vi.fn(async ({ version }) =>
+      catalogManifest(version ?? "2.0.0", fixtureTarget),
+    ),
   };
   const artifacts = overrides.artifacts ?? {
-    resolve: vi.fn(async ({ version }) => packageFixture(version)),
+    resolve: vi.fn(async ({ version }) =>
+      packageFixture(version, fixtureTarget),
+    ),
   };
   const storage = adapterStorage.get(ledgerAdapter);
   const installer = Object.hasOwn(overrides, "candidateInstaller")
     ? overrides.candidateInstaller
     : storage
-      ? candidateInstaller(storage, artifacts, overrides.registryOptions)
+      ? candidateInstaller(
+          storage,
+          artifacts,
+          overrides.registryOptions,
+          fixtureTarget,
+        )
       : undefined;
   const host = createGovernedSkillMarketplaceCliHost({
     tenantId: TENANT_ID,
@@ -584,6 +600,196 @@ function candidateEntries(storage) {
 }
 
 describe("governed marketplace CLI with real durable storage", () => {
+  it("drives Desktop bootstrap/client/IPC through the real governed host and durable candidate files", async () => {
+    const require = createRequire(import.meta.url);
+    const {
+      createDesktopGovernedSkillMarketplaceHost,
+    } = require("../../../../desktop-app-vue/src/main/marketplace/governed-skill-marketplace-host.js");
+    const {
+      registerAIInitializers,
+    } = require("../../../../desktop-app-vue/src/main/bootstrap/ai-initializer.js");
+    const {
+      registerSkillMarketplaceIPC,
+    } = require("../../../../desktop-app-vue/src/main/marketplace/skill-marketplace-ipc.js");
+    const desktopTarget = {
+      ...TARGET,
+      tool: "desktop",
+      os: "win32-x64",
+      runtime: "electron-39",
+    };
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const { host } = cliHost(adapter(storage, backend.ledger), {
+      target: desktopTarget,
+      fixtureTarget: desktopTarget,
+    });
+    const bridgeOptions = {
+      importHostModule: async () => ({ isGovernedSkillMarketplaceCliHost }),
+    };
+    await expect(
+      createDesktopGovernedSkillMarketplaceHost({}, bridgeOptions),
+    ).rejects.toThrow("branded host");
+    const facade = await createDesktopGovernedSkillMarketplaceHost(
+      host,
+      bridgeOptions,
+    );
+    const registrations = new Map();
+    registerAIInitializers({
+      register: (entry) => registrations.set(entry.name, entry),
+    });
+    const db = {
+      exec: vi.fn(),
+      prepare: vi.fn(() => {
+        throw new Error("legacy database writes are forbidden");
+      }),
+    };
+    const client = await registrations
+      .get("skillMarketplace")
+      .init({ database: { db }, governedSkillMarketplaceHost: facade });
+    const mainFrame = { parent: null, url: "http://127.0.0.1:5173" };
+    const mainWindow = { webContents: { mainFrame } };
+    const event = { sender: mainWindow.webContents, senderFrame: mainFrame };
+    const handlers = new Map();
+    registerSkillMarketplaceIPC({
+      skillMarketplace: client,
+      mainWindow,
+      ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
+    });
+    const invoke = (channel, input) => handlers.get(channel)(event, input);
+    expect(handlers.size).toBe(20);
+    mainFrame.url = "https://untrusted.invalid/";
+    expect(() => handlers.get("skill-market:capabilities")(event, {})).toThrow(
+      "trusted Desktop main frame",
+    );
+    mainFrame.url = "http://127.0.0.1:5173";
+    expect(() =>
+      handlers.get("skill-market:install")(
+        { sender: {}, senderFrame: mainFrame },
+        {},
+      ),
+    ).toThrow("trusted Desktop main frame");
+    expect(() =>
+      handlers.get("skill-market:inspect")(
+        { sender: event.sender, senderFrame: {} },
+        {},
+      ),
+    ).toThrow("trusted Desktop main frame");
+    await expect(
+      invoke("skill-market:capabilities", {}),
+    ).resolves.toMatchObject({ available: true, target: desktopTarget });
+    const inspected = await invoke("skill-market:inspect", {
+      skillId: "safe-refactor",
+      version: "2.0.0",
+    });
+    await expect(
+      invoke("skill-market:install", {
+        skillId: "safe-refactor",
+        skillData: { name: "forged", manifestDigest: inspected.manifestDigest },
+      }),
+    ).rejects.toThrow("unsupported fields");
+    await expect(
+      invoke("skill-market:install", {
+        skillId: "safe-refactor",
+        skillData: {},
+        target: TARGET,
+      }),
+    ).rejects.toThrow("unsupported fields");
+    const installed = await invoke("skill-market:install", {
+      skillId: "safe-refactor",
+      skillData: {
+        version: inspected.version,
+        manifestDigest: inspected.manifestDigest,
+      },
+    });
+    expect(installed).toMatchObject({
+      materialized: true,
+      activated: false,
+      state: { target: desktopTarget },
+    });
+    const pack = packageFixture("2.0.0", desktopTarget);
+    const filePath = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+      `${installed.state.candidateBinding.candidateId.slice(7)}.json`,
+    );
+    expect(fs.readFileSync(filePath)).toEqual(pack.adaptedBytes);
+    await expect(invoke("skill-market:get-installed")).resolves.toMatchObject([
+      { status: "candidate", materialized: true, activated: false },
+    ]);
+    await expect(
+      invoke("skill-market:auto-update", {
+        skillId: "safe-refactor",
+        enabled: true,
+      }),
+    ).rejects.toThrow("each update requires");
+    await expect(
+      invoke("skill-market:rollout", {
+        skillId: "safe-refactor",
+        expectedStateDigest: installed.state.stateDigest,
+        receiptRef: "receipt:invalid",
+      }),
+    ).rejects.toThrow("exact-stage pilot receipt");
+    const shadow = await invoke("skill-market:rollout", {
+      skillId: "safe-refactor",
+      expectedStateDigest: installed.state.stateDigest,
+      receiptRef: `receipt:pilot:shadow:${installed.state.stateDigest.slice(7)}`,
+    });
+    expect(shadow.stage).toBe("shadow");
+    const revoked = await invoke("skill-market:uninstall", {
+      skillId: "safe-refactor",
+      expectedStateDigest: shadow.stateDigest,
+      receiptRef: `receipt:revoke:${shadow.stateDigest.slice(7)}`,
+    });
+    expect(revoked).toMatchObject({ stage: "rolled-back", revoked: true });
+    const update = await invoke("skill-market:inspect", {
+      skillId: "safe-refactor",
+      version: "3.0.0",
+    });
+    await expect(
+      invoke("skill-market:update", {
+        skillId: "safe-refactor",
+        skillData: {
+          version: update.version,
+          manifestDigest: update.manifestDigest,
+        },
+      }),
+    ).rejects.toThrow("exact version and state digest");
+    const updated = await invoke("skill-market:update", {
+      skillId: "safe-refactor",
+      skillData: {
+        version: update.version,
+        manifestDigest: update.manifestDigest,
+        expectedStateDigest: revoked.stateDigest,
+      },
+    });
+    expect(updated).toMatchObject({
+      materialized: true,
+      activated: false,
+      state: { version: "3.0.0", stage: "candidate" },
+    });
+    expect(db.prepare).not.toHaveBeenCalled();
+    const reopened = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const next = cliHost(adapter(storage, reopened.ledger), {
+      target: desktopTarget,
+      fixtureTarget: desktopTarget,
+    });
+    await expect(next.host.list()).resolves.toMatchObject({
+      total: 1,
+      items: [updated.state],
+    });
+    await expect(next.host.list({ offset: 1, limit: 1 })).resolves.toEqual({
+      items: [],
+      total: 1,
+      offset: 1,
+      limit: 1,
+    });
+    await expect(next.host.list({ limit: 501 })).rejects.toThrow("list bounds");
+    await expect(next.host.list({ offset: -1 })).rejects.toThrow("list bounds");
+    expect(reopened.ledger.verify().sequence).toBe(4);
+  }, 60_000);
+
   it("allows a fresh CLI host to revoke a corrupt on-disk candidate without opening its registry", async () => {
     const storage = resources();
     const backend = createEvolutionLedgerFileBackend(storage.backendOptions);

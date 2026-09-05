@@ -24,6 +24,12 @@ const ignoredDirectories = new Set([
   "node_modules",
   "dist",
 ]);
+// Preserve these existing fixed lifecycle capabilities even when their callers
+// are composed dynamically. They still require an exact main registration.
+const retainedLifecycleChannels = [
+  "evolution-artifact:promote",
+  "evolution-artifact:revalidate",
+];
 
 function listFiles(directory) {
   const files = [];
@@ -103,7 +109,7 @@ function directIpcChannels(source, patterns) {
 function mainAuthorityChannels() {
   const channels = new Set();
   const registrationPatterns = [
-    /\b_?ipcMain\s*\.\s*(?:handle|handleOnce|on|once)\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
+    /\b(?:_?ipcMain|hostIpcMain)\s*\.\s*(?:handle|handleOnce|on|once)\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bsafeHandle\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bregisterHandler\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bsendToRenderer\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
@@ -148,6 +154,8 @@ function rendererBridgeChannels() {
 
 function expectedChannels() {
   const rendererChannels = channelsIn(rendererRoot);
+  for (const channel of retainedLifecycleChannels)
+    rendererChannels.add(channel);
   const mainChannels = mainAuthorityChannels();
   // A generic renderer call is useful only when the same exact channel is an
   // actual main-process registration/delivery point or an existing scoped

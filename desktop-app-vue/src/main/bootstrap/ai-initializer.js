@@ -415,18 +415,9 @@ function registerAIInitializers(factory) {
       const {
         SkillMarketplaceClient,
       } = require("../marketplace/skill-marketplace-client");
-      const {
-        getSkillRegistry,
-      } = require("../ai-engine/cowork/skills/skill-registry");
-      let skillRegistry = null;
-      try {
-        skillRegistry = getSkillRegistry();
-      } catch {
-        // skill registry may not be initialized yet
-      }
       const client = new SkillMarketplaceClient({
         database: context.database,
-        skillRegistry,
+        governedHost: context.governedSkillMarketplaceHost || null,
       });
       await client.initialize();
       return client;

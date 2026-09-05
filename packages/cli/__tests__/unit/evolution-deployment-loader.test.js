@@ -81,53 +81,57 @@ describe("signed evolution deployment loader", () => {
     ).resolves.toBeNull();
   });
 
-  it("exposes governed marketplace factories only to an authenticated allowlisted deployment", async () => {
-    const fixture = deploymentFixture({ commands: ["marketplace"] });
-    const importModule = vi.fn(async () => ({
-      createChainlessChainCommandDependencies: async ({
+  it.each(["marketplace", "desktop"])(
+    "exposes governed marketplace factories only to an authenticated allowlisted %s deployment",
+    async (commandName) => {
+      const fixture = deploymentFixture({ commands: [commandName] });
+      const importModule = vi.fn(async () => ({
+        createChainlessChainCommandDependencies: async ({
+          commandName,
+          factories,
+        }) => ({
+          commandName,
+          hostFactoryAvailable:
+            typeof factories.createGovernedSkillMarketplaceCliHost ===
+            "function",
+          ledgerFactoryAvailable:
+            typeof factories.createGovernedSkillMarketplaceLedgerAdapter ===
+            "function",
+          candidateInstallerFactoryAvailable:
+            typeof factories.createGovernedSkillMarketplaceCandidateInstaller ===
+            "function",
+        }),
+      }));
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...fixture,
+          importModule,
+        }),
+      ).resolves.toEqual({
         commandName,
-        factories,
-      }) => ({
-        commandName,
-        hostFactoryAvailable:
-          typeof factories.createGovernedSkillMarketplaceCliHost === "function",
-        ledgerFactoryAvailable:
-          typeof factories.createGovernedSkillMarketplaceLedgerAdapter ===
-          "function",
-        candidateInstallerFactoryAvailable:
-          typeof factories.createGovernedSkillMarketplaceCandidateInstaller ===
-          "function",
-      }),
-    }));
-    await expect(
-      loadEvolutionDeploymentCommandDependencies("marketplace", {
-        ...fixture,
-        importModule,
-      }),
-    ).resolves.toEqual({
-      commandName: "marketplace",
-      hostFactoryAvailable: true,
-      ledgerFactoryAvailable: true,
-      candidateInstallerFactoryAvailable: true,
-    });
-    expect(importModule).toHaveBeenCalledOnce();
-    const excluded = deploymentFixture({ commands: ["evolution"] });
-    await expect(
-      loadEvolutionDeploymentCommandDependencies("marketplace", {
-        ...excluded,
-        importModule,
-      }),
-    ).resolves.toBeNull();
-    expect(importModule).toHaveBeenCalledOnce();
-    fixture.files.set(fixture.modulePath, Buffer.from("replaced module"));
-    await expect(
-      loadEvolutionDeploymentCommandDependencies("marketplace", {
-        ...fixture,
-        importModule,
-      }),
-    ).rejects.toThrow("module digest mismatch");
-    expect(importModule).toHaveBeenCalledOnce();
-  });
+        hostFactoryAvailable: true,
+        ledgerFactoryAvailable: true,
+        candidateInstallerFactoryAvailable: true,
+      });
+      expect(importModule).toHaveBeenCalledOnce();
+      const excluded = deploymentFixture({ commands: ["evolution"] });
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...excluded,
+          importModule,
+        }),
+      ).resolves.toBeNull();
+      expect(importModule).toHaveBeenCalledOnce();
+      fixture.files.set(fixture.modulePath, Buffer.from("replaced module"));
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...fixture,
+          importModule,
+        }),
+      ).rejects.toThrow("module digest mismatch");
+      expect(importModule).toHaveBeenCalledOnce();
+    },
+  );
 
   it("loads exact-digest deployment dependencies after Ed25519 verification", async () => {
     const fixture = deploymentFixture();

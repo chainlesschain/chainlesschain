@@ -10,6 +10,7 @@
         </a-button>
       </template>
     </a-page-header>
+    <GovernedSkillMarketplacePanel />
     <a-row :gutter="16" style="margin-bottom: 16px">
       <a-col :span="8">
         <a-statistic title="Total Skills" :value="store.skillCount" />
@@ -91,6 +92,7 @@ import { message } from "ant-design-vue";
 import { SafetyOutlined } from "@ant-design/icons-vue";
 import { useSkillServiceStore } from "../../stores/skillService";
 import MtcInclusionProofDrawer from "../../components/mtc/MtcInclusionProofDrawer.vue";
+import GovernedSkillMarketplacePanel from "../../components/skills/GovernedSkillMarketplacePanel.vue";
 
 const store = useSkillServiceStore();
 const showPublishModal = ref(false);

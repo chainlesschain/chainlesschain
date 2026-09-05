@@ -214,13 +214,14 @@ function registerPhases21to30({
   // ============================================================
 
   safeRegister("Skill Marketplace IPC", {
-    handlers: 15,
+    handlers: 20,
     register: () => {
       const {
         registerSkillMarketplaceIPC,
       } = require("../../marketplace/skill-marketplace-ipc");
       registerSkillMarketplaceIPC({
         skillMarketplace: app?.skillMarketplace || null,
+        mainWindow,
       });
     },
   });

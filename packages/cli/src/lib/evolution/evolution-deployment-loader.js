@@ -117,7 +117,7 @@ function dependencies(value, commandName) {
 
 async function loadBuiltInFactories(commandName) {
   const factories = {};
-  if (commandName === "marketplace") {
+  if (commandName === "marketplace" || commandName === "desktop") {
     const [
       { createGovernedSkillMarketplaceCliHost },
       { createGovernedSkillMarketplaceLedgerAdapter },

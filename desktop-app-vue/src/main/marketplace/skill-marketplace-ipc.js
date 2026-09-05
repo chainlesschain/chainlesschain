@@ -1,129 +1,155 @@
-/**
- * Skill Marketplace IPC Handlers - 技能市场IPC处理器
- *
- * 提供15个IPC处理器用于技能市场操作
- *
- * @module marketplace/skill-marketplace-ipc
- * @version 1.0.0
- */
+"use strict";
 
 const { ipcMain } = require("electron");
+const { types: utilTypes } = require("node:util");
 const { logger } = require("../utils/logger.js");
+const { validateSender } = require("../ipc/ipc-sender-guard");
 
-/**
- * 注册技能市场IPC处理器
- * @param {Object} deps
- * @param {Object} deps.skillMarketplace - SkillMarketplaceClient 实例
- */
-function registerSkillMarketplaceIPC({ skillMarketplace }) {
-  const market = skillMarketplace;
+function inputFields(value, fields) {
+  if (
+    !value ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("marketplace IPC request must be a plain object");
+  }
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      !fields.includes(key) ||
+      !descriptor ||
+      !Object.hasOwn(descriptor, "value") ||
+      !descriptor.enumerable
+    ) {
+      throw new TypeError(
+        "marketplace IPC request contains unsupported fields",
+      );
+    }
+  }
+  return value;
+}
 
-  // 1. 搜索技能
-  ipcMain.handle("skill-market:search", async (event, { query, filters }) => {
-    if (!market) {throw new Error("SkillMarketplace not initialized");}
-    return await market.searchSkills(query, filters);
-  });
-
-  // 2. 技能详情
-  ipcMain.handle("skill-market:get-details", async (event, { skillId }) => {
-    if (!market) {throw new Error("SkillMarketplace not initialized");}
-    return await market.getSkillDetails(skillId);
-  });
-
-  // 3. 发布技能
-  ipcMain.handle("skill-market:publish", async (event, { skillPackage }) => {
-    if (!market) {throw new Error("SkillMarketplace not initialized");}
-    return await market.publishSkill(skillPackage);
-  });
-
-  // 4. 安装技能
-  ipcMain.handle(
-    "skill-market:install",
-    async (event, { skillId, skillData }) => {
-      if (!market) {throw new Error("SkillMarketplace not initialized");}
-      return await market.installSkill(skillId, skillData);
+function registerSkillMarketplaceIPC({
+  skillMarketplace,
+  mainWindow,
+  ipcMain: targetIpcMain = ipcMain,
+}) {
+  const market = () => {
+    if (!skillMarketplace) {
+      throw new Error("SkillMarketplace not initialized");
+    }
+    return skillMarketplace;
+  };
+  const _ipcMain = {
+    handle(channel, handler) {
+      targetIpcMain.handle(channel, (event, ...args) => {
+        const contents = mainWindow?.webContents;
+        if (
+          !contents ||
+          event?.sender !== contents ||
+          !event.senderFrame ||
+          event.senderFrame !== contents.mainFrame ||
+          validateSender(event).trusted !== true
+        ) {
+          throw new Error(
+            "marketplace IPC requires the trusted Desktop main frame",
+          );
+        }
+        return handler(event, ...args);
+      });
     },
-  );
+  };
 
-  // 5. 卸载技能
-  ipcMain.handle("skill-market:uninstall", async (event, { skillId }) => {
-    if (!market) {throw new Error("SkillMarketplace not initialized");}
-    return await market.uninstallSkill(skillId);
+  _ipcMain.handle("skill-market:search", async (_event, { query, filters }) =>
+    market().searchSkills(query, filters),
+  );
+  _ipcMain.handle("skill-market:get-details", async (_event, { skillId }) =>
+    market().getSkillDetails(skillId),
+  );
+  _ipcMain.handle("skill-market:publish", async (_event, { skillPackage }) =>
+    market().publishSkill(skillPackage),
+  );
+  _ipcMain.handle("skill-market:install", async (_event, input) => {
+    const { skillId, skillData } = inputFields(input, ["skillId", "skillData"]);
+    return market().installSkill(skillId, skillData);
   });
-
-  // 6. 更新技能
-  ipcMain.handle(
-    "skill-market:update",
-    async (event, { skillId, version }) => {
-      if (!market) {throw new Error("SkillMarketplace not initialized");}
-      return await market.updateSkill(skillId, version);
-    },
-  );
-
-  // 7. 评价技能
-  ipcMain.handle(
+  _ipcMain.handle("skill-market:uninstall", async (_event, input) => {
+    const { skillId, expectedStateDigest, receiptRef } = inputFields(input, [
+      "skillId",
+      "expectedStateDigest",
+      "receiptRef",
+    ]);
+    return market().uninstallSkill(skillId, {
+      expectedStateDigest,
+      receiptRef,
+    });
+  });
+  _ipcMain.handle("skill-market:update", async (_event, input) => {
+    const { skillId, skillData } = inputFields(input, ["skillId", "skillData"]);
+    return market().updateSkill(skillId, skillData);
+  });
+  _ipcMain.handle(
     "skill-market:rate",
-    async (event, { skillId, rating, review }) => {
-      if (!market) {throw new Error("SkillMarketplace not initialized");}
-      return await market.rateSkill(skillId, rating, review);
-    },
+    async (_event, { skillId, rating, review }) =>
+      market().rateSkill(skillId, rating, review),
   );
-
-  // 8. 用户发布的技能
-  ipcMain.handle("skill-market:get-my-published", async () => {
-    if (!market) {return [];}
-    return await market.getMyPublished();
-  });
-
-  // 9. 已安装技能列表
-  ipcMain.handle("skill-market:get-installed", async () => {
-    if (!market) {return [];}
-    return await market.getInstalled();
-  });
-
-  // 10. 分类列表
-  ipcMain.handle("skill-market:get-categories", async () => {
-    if (!market) {return [];}
-    return await market.getCategories();
-  });
-
-  // 11. 精选/热门
-  ipcMain.handle("skill-market:get-featured", async () => {
-    if (!market) {return { featured: [], trending: [], newest: [] };}
-    return await market.getFeatured();
-  });
-
-  // 12. 举报技能
-  ipcMain.handle(
-    "skill-market:report",
-    async (event, { skillId, reason }) => {
-      if (!market) {throw new Error("SkillMarketplace not initialized");}
-      return await market.reportSkill(skillId, reason);
-    },
+  _ipcMain.handle("skill-market:get-my-published", async () =>
+    market().getMyPublished(),
   );
-
-  // 13. 检查更新
-  ipcMain.handle("skill-market:check-updates", async () => {
-    if (!market) {return { checked: 0, updates: [] };}
-    return await market.checkUpdates();
-  });
-
-  // 14. 切换自动更新
-  ipcMain.handle(
+  _ipcMain.handle("skill-market:get-installed", async () =>
+    market().getInstalled(),
+  );
+  _ipcMain.handle("skill-market:get-categories", async () =>
+    market().getCategories(),
+  );
+  _ipcMain.handle("skill-market:get-featured", async () =>
+    market().getFeatured(),
+  );
+  _ipcMain.handle("skill-market:report", async (_event, { skillId, reason }) =>
+    market().reportSkill(skillId, reason),
+  );
+  _ipcMain.handle("skill-market:check-updates", async () =>
+    market().checkUpdates(),
+  );
+  _ipcMain.handle(
     "skill-market:auto-update",
-    async (event, { skillId, enabled }) => {
-      if (!market) {return false;}
-      return await market.toggleAutoUpdate(skillId, enabled);
-    },
+    async (_event, { skillId, enabled }) =>
+      market().toggleAutoUpdate(skillId, enabled),
   );
+  _ipcMain.handle("skill-market:get-stats", async () => market().getStats());
 
-  // 15. 市场统计
-  ipcMain.handle("skill-market:get-stats", async () => {
-    if (!market) {return {};}
-    return await market.getStats();
+  _ipcMain.handle("skill-market:capabilities", async (_event, input = {}) => {
+    inputFields(input, []);
+    return market().getGovernanceStatus();
   });
-
-  logger.info("[SkillMarketplaceIPC] 15个技能市场IPC处理器注册成功");
+  _ipcMain.handle("skill-market:inspect", async (_event, input) => {
+    const { skillId, version } = inputFields(input, ["skillId", "version"]);
+    return market().inspectSkill(skillId, version ?? null);
+  });
+  _ipcMain.handle("skill-market:state", async (_event, input) => {
+    const { skillId } = inputFields(input, ["skillId"]);
+    return market().getGovernedState(skillId);
+  });
+  _ipcMain.handle("skill-market:rollout", async (_event, input) => {
+    const { skillId, expectedStateDigest, receiptRef } = inputFields(input, [
+      "skillId",
+      "expectedStateDigest",
+      "receiptRef",
+    ]);
+    return market().rolloutSkill(skillId, { expectedStateDigest, receiptRef });
+  });
+  _ipcMain.handle("skill-market:revoke", async (_event, input) => {
+    const { skillId, expectedStateDigest, receiptRef } = inputFields(input, [
+      "skillId",
+      "expectedStateDigest",
+      "receiptRef",
+    ]);
+    return market().uninstallSkill(skillId, {
+      expectedStateDigest,
+      receiptRef,
+    });
+  });
+  logger.info("[SkillMarketplaceIPC] Registered 20 marketplace handlers");
 }
 
 module.exports = { registerSkillMarketplaceIPC };

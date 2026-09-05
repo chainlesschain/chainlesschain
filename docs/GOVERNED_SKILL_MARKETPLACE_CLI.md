@@ -47,7 +47,7 @@ cc marketplace install safe-refactor --version 2.0.0 --manifest sha256:<digest>
 cc marketplace state safe-refactor
 ```
 
-`install` persists the actual adapted Candidate v2 file and its governed state. Its response is `status: "candidate-staged"`, `materialized: true`, `activated: false`. It does **not** enable the Skill or change the active release. Promotion into executable runtime files still belongs to the verified Pilot/Release authority; Desktop marketplace integration is a separate remaining task.
+`install` persists the actual adapted Candidate v2 file and its governed state. Its response is `status: "candidate-staged"`, `materialized: true`, `activated: false`. It does **not** enable the Skill or change the active release. Promotion into executable runtime files still belongs to the verified Pilot/Release authority.
 
 For an update, include `--expected-state sha256:<current-state-digest>`. Missing or stale baselines cannot overwrite existing state. Retrying the same candidate request recovers the durable state without another Ledger event. A manifest revoked anywhere in that Skill's recorded history cannot be staged again.
 
@@ -69,9 +69,25 @@ cc marketplace revoke safe-refactor --expected-state sha256:<current-state-diges
 
 The authority must verify revocation for the same manifest and durably apply rollback before the governed state becomes `rolled-back`. If a transition command reports an error after an uncertain external acknowledgement, read `state` and reconcile with the deployment's transition authority; do not assume no effect occurred.
 
+## Native Desktop marketplace
+
+The native Vue `skill-marketplace` page now includes a governed installation panel alongside the existing remote-service marketplace. This is not a replacement for the separate web-shell marketplace UI.
+
+Desktop uses the same signed deployment descriptor and factories. The command allowlist must include `desktop`; its authenticated module returns `{ marketplaceHost }` for `commandName === "desktop"`. Construct that host with a fixed target whose `tool` is `"desktop"` and whose model, OS and runtime match the actual deployment. The Desktop bridge accepts only the branded host from the bundled shared module, not a renderer-supplied object. A marketplace-only deployment is supported; a separately supplied evolvable-artifact runtime composition must still pass its existing Skill/Prompt/Hook validation.
+
+The panel checks availability, inspects a signed listing, pins its manifest and current state, and installs only a materialized candidate. It displays the exact Eval badge digest and target score/sample count, not an independently hosted public badge. Stage advancement requires the next verified Pilot receipt; revocation requires the exact state and a verified revocation receipt. If candidate listing fails because files are damaged, the receipt and state fields remain available for emergency revocation. Uncertain errors are not automatically retried.
+
+Existing `skill-market:install`, `update` and `uninstall` IPC routes now use the same governed host; they no longer write installation metadata as proof of success. Update requires an exact version and state digest; uninstall means authenticated revocation/rollback, not deleting a database row or candidate files. Automatic activation is unavailable. Without a signed host, mutations fail closed and historical local records are explicitly `unverified`, not installed or active.
+
+All marketplace IPC requests require the trusted Desktop main frame and an allowed local origin. Mutations reject extra request fields; the renderer cannot choose a target, inject an authority or force a stage. The preload allowlist exposes only exact channels used by the native page. Lists are read from the tenant's durable marketplace Ledger and candidate files (up to 500 entries in this panel); they do not reuse the old installation cache.
+
+Production catalog/PKI/SBOM/adapter/Eval authorities, actual Pilot/Release activation, public badge hosting and target-deployment end-to-end acceptance remain required before claiming production availability. This integration does not install test keys or supply a default authority.
+
 ## Local verification
 
 The marketplace ledger tests use real ArtifactStore/Ledger files, witness reopening and candidate files, including an installer process that exits immediately after publication and a separate verification process. Catalog signatures and target/Pilot/transition/admission authorities remain test fixtures. These tests are not production deployment or power-loss durability acceptance.
+
+The same suite also exercises the real Desktop bootstrap, client and IPC handlers with a branded host, candidate files and Ledger reopening. Vue component tests cover unavailable deployment, manifest pinning, candidate-only status, receipt-bound advancement, updating after revocation, emergency revocation and stale responses. These are not an actual packaged Electron GUI end-to-end run.
 
 ```text
 cd packages/cli

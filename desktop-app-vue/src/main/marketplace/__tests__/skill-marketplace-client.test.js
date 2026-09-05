@@ -133,7 +133,12 @@ describe("SkillMarketplaceClient", () => {
       mockDb._prep.get.mockReturnValueOnce(cacheRow);
       await client.initialize();
       const details = await client.getSkillDetails("skill-1");
-      expect(details).toEqual({ id: "skill-1", name: "Test" });
+      expect(details).toMatchObject({
+        id: "skill-1",
+        name: "Test",
+        installed: false,
+        status: "unverified",
+      });
     });
 
     it("returns installed record when not cached", async () => {
@@ -196,75 +201,57 @@ describe("SkillMarketplaceClient", () => {
 
   // ── installSkill ──────────────────────────────────────────────────────────────
 
-  describe("installSkill()", () => {
-    it("installs a skill and returns install record", async () => {
-      await client.initialize();
-      const result = await client.installSkill("skill-1", {
-        name: "Test Skill",
-        version: "1.0.0",
-        author: "alice",
-        category: "development",
-      });
-      expect(result).toBeDefined();
-      expect(result.skillId).toBe("skill-1");
-      expect(result.status).toBe("installed");
-    });
-
-    it("uses defaults when no skill data provided", async () => {
-      await client.initialize();
-      const result = await client.installSkill("skill-2");
-      expect(result.skillId).toBe("skill-2");
-    });
-
-    it("emits skill-installed event", async () => {
-      await client.initialize();
-      const spy = vi.fn();
-      client.on("skill-installed", spy);
-      await client.installSkill("skill-3");
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
-
-    it("clears a prior install for the same skill before inserting (no duplicate rows)", async () => {
+  describe("governed mutations without deployment", () => {
+    it.each([
+      ["installSkill", {}],
+      ["uninstallSkill", {}],
+      ["rolloutSkill", {}],
+      [
+        "updateSkill",
+        {
+          version: "2.0.0",
+          manifestDigest: "sha256:" + "a".repeat(64),
+          expectedStateDigest: "sha256:" + "b".repeat(64),
+        },
+      ],
+    ])("rejects %s before changing legacy records", async (method, options) => {
       await client.initialize();
       mockDb.db.prepare.mockClear();
-      await client.installSkill("skill-dup", { name: "Dup" });
-      // PK `id` is a fresh uuid each call, so without this delete INSERT OR
-      // REPLACE never conflicts and re-installs accumulate duplicate rows.
-      const deleted = mockDb.db.prepare.mock.calls.some((c) =>
-        /DELETE FROM skill_marketplace_installs WHERE skill_id/i.test(c[0]),
+      const installed = vi.fn();
+      client.on("skill-installed", installed);
+      await expect(client[method]("safe-refactor", options)).rejects.toThrow(
+        "unavailable",
       );
-      expect(deleted).toBe(true);
+      expect(mockDb.db.prepare).not.toHaveBeenCalled();
+      expect(installed).not.toHaveBeenCalled();
+    });
+
+    it("rejects arbitrary host objects and automatic activation", async () => {
+      expect(
+        () =>
+          new SkillMarketplaceClient({ database: mockDb, governedHost: {} }),
+      ).toThrow("branded");
+      await expect(
+        client.toggleAutoUpdate("safe-refactor", true),
+      ).rejects.toThrow("each update requires");
+      expect(mockDb.db.prepare).not.toHaveBeenCalled();
+      expect(client.getGovernanceStatus()).toEqual({ available: false });
+    });
+
+    it("labels existing database rows unverified rather than installed", async () => {
+      mockDb._prep.all.mockReturnValue([
+        { skill_id: "safe-refactor", name: "Safe", installed: true },
+      ]);
+      await expect(client.getInstalled()).resolves.toMatchObject([
+        {
+          status: "unverified",
+          installed: false,
+          activated: false,
+          materialized: false,
+        },
+      ]);
     });
   });
-
-  // ── uninstallSkill ────────────────────────────────────────────────────────────
-
-  describe("uninstallSkill()", () => {
-    it("uninstalls existing skill and returns true", async () => {
-      mockDb._prep.run.mockReturnValue({ changes: 1 });
-      await client.initialize();
-      const result = await client.uninstallSkill("skill-1");
-      expect(result).toBe(true);
-    });
-
-    it("returns false when skill was not installed", async () => {
-      mockDb._prep.run.mockReturnValue({ changes: 0 });
-      await client.initialize();
-      const result = await client.uninstallSkill("not-installed");
-      expect(result).toBe(false);
-    });
-
-    it("emits skill-uninstalled event on success", async () => {
-      mockDb._prep.run.mockReturnValue({ changes: 1 });
-      await client.initialize();
-      const spy = vi.fn();
-      client.on("skill-uninstalled", spy);
-      await client.uninstallSkill("skill-1");
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ── rateSkill ─────────────────────────────────────────────────────────────────
 
   describe("rateSkill()", () => {
     it("throws when rating < 1", async () => {
@@ -398,7 +385,8 @@ describe("SkillMarketplaceClient", () => {
       const stats = await client.getStats();
       expect(stats).toBeDefined();
       expect(typeof stats.installedCount).toBe("number");
-      expect(stats.installedCount).toBe(3);
+      expect(stats.installedCount).toBe(0);
+      expect(stats.unverifiedCount).toBe(3);
       expect(stats.byCategory).toBeInstanceOf(Array);
     });
   });

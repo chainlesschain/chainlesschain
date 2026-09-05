@@ -302,6 +302,27 @@ export class GovernedSkillMarketplaceLedgerAdapter {
     return this._history(normalizedSkill).at(-1)?.state ?? null;
   };
 
+  listSkillNames = () => {
+    const events = this._read();
+    if (!Array.isArray(events))
+      corrupt("EvolutionLedger did not return an event array");
+    return Object.freeze(
+      [
+        ...new Set(
+          events
+            .filter(
+              (event) =>
+                event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
+                event.type === GOVERNED_SKILL_MARKETPLACE_LEDGER_EVENT_TYPE &&
+                event.tenantId === this.descriptor.tenantId &&
+                event.correlationId === this.descriptor.streamId,
+            )
+            .map((event) => skill(event.skillName)),
+        ),
+      ].sort(),
+    );
+  };
+
   isManifestRevoked = ({ skillName, manifestDigest } = {}) => {
     if (!DIGEST.test(manifestDigest ?? ""))
       throw new TypeError("manifestDigest is invalid");

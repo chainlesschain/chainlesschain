@@ -79,6 +79,7 @@ export function createGovernedSkillMarketplaceCliHost({
     );
   const resolve = capture(catalog, "resolve");
   const load = ledgerAdapter.load;
+  const listSkillNames = ledgerAdapter.listSkillNames;
   const isManifestRevoked = ledgerAdapter.isManifestRevoked;
   const marketplace = new GovernedSkillMarketplace({
     tenantId,
@@ -133,6 +134,26 @@ export function createGovernedSkillMarketplaceCliHost({
   const host = Object.freeze({
     tenantId,
     target,
+    async list({ offset = 0, limit = 100 } = {}) {
+      if (
+        !Number.isSafeInteger(offset) ||
+        offset < 0 ||
+        !Number.isSafeInteger(limit) ||
+        limit < 1 ||
+        limit > 500
+      )
+        throw new TypeError("marketplace list bounds are invalid");
+      const names = listSkillNames();
+      const items = [];
+      for (const skillName of names.slice(offset, offset + limit))
+        items.push(await stateFor(skillName));
+      return Object.freeze({
+        items: Object.freeze(items),
+        total: names.length,
+        offset,
+        limit,
+      });
+    },
     async inspect({ skillName, version = null } = {}) {
       const manifest = await resolveManifest(skillName, version);
       const inspected = await marketplace.inspect(manifest, target);

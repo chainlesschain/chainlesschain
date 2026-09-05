@@ -53,6 +53,28 @@ describe("legacy generic IPC policy", () => {
     }
   });
 
+  it("preserves existing lifecycle channels when adding governed marketplace capabilities", () => {
+    for (const channel of [
+      "hooks:list",
+      "hooks:register",
+      "hooks:unregister",
+      "hooks:trigger",
+      "evolution-artifact:promote",
+      "evolution-artifact:revalidate",
+      "skill-market:capabilities",
+      "skill-market:inspect",
+      "skill-market:install",
+      "skill-market:get-installed",
+      "skill-market:rollout",
+      "skill-market:revoke",
+    ]) {
+      expect(isFixedRendererIpcChannel(channel), channel).toBe(true);
+    }
+    expect(isFixedRendererIpcChannel("skill-market:force-activate")).toBe(
+      false,
+    );
+  });
+
   it("keeps the generated preload block synchronized with the manifest", () => {
     const preloadSource = readFileSync(
       resolve(process.cwd(), "src/preload/index.js"),

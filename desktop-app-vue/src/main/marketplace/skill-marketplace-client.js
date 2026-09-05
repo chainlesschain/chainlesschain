@@ -11,6 +11,46 @@
 const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
+const { types: utilTypes } = require("node:util");
+const {
+  isDesktopGovernedSkillMarketplaceHost,
+} = require("./governed-skill-marketplace-host");
+const GOVERNED_HOSTS = new WeakMap();
+
+function requestOptions(value, keys) {
+  if (
+    !value ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("governed marketplace request must be a plain object");
+  }
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      !keys.includes(key) ||
+      !descriptor ||
+      !Object.hasOwn(descriptor, "value") ||
+      !descriptor.enumerable
+    ) {
+      throw new TypeError(
+        "governed marketplace request contains unsupported fields",
+      );
+    }
+  }
+  return value;
+}
+
+function legacyRecord(value) {
+  return {
+    ...value,
+    installed: false,
+    activated: false,
+    materialized: false,
+    status: "unverified",
+    source: "legacy-local",
+  };
+}
 
 const SkillMarketStatus = {
   DRAFT: "draft",
@@ -34,11 +74,18 @@ const SkillMarketCategory = {
 };
 
 class SkillMarketplaceClient extends EventEmitter {
-  constructor({ database, skillRegistry }) {
+  constructor({ database, skillRegistry, governedHost = null }) {
     super();
 
     this.database = database;
     this.skillRegistry = skillRegistry;
+    if (
+      governedHost !== null &&
+      !isDesktopGovernedSkillMarketplaceHost(governedHost)
+    ) {
+      throw new TypeError("a branded Desktop marketplace host is required");
+    }
+    GOVERNED_HOSTS.set(this, governedHost);
     this.initialized = false;
     this.apiBaseUrl =
       process.env.SKILL_MARKETPLACE_URL || "http://localhost:8091/api/skills";
@@ -107,9 +154,12 @@ class SkillMarketplaceClient extends EventEmitter {
   }
 
   async getSkillDetails(skillId) {
+    if (GOVERNED_HOSTS.get(this)) {
+      return this.inspectSkill(skillId);
+    }
     const cached = await this._getCachedDetails(skillId);
     if (cached) {
-      return cached;
+      return legacyRecord(cached);
     }
 
     const db = this.database?.db;
@@ -122,7 +172,7 @@ class SkillMarketplaceClient extends EventEmitter {
       .get(skillId);
 
     if (install) {
-      return { ...install, installed: true, source: "local" };
+      return legacyRecord(install);
     }
 
     return null;
@@ -152,81 +202,85 @@ class SkillMarketplaceClient extends EventEmitter {
     return publishRecord;
   }
 
-  async installSkill(skillId, skillData = {}) {
-    const db = this.database?.db;
-    if (!db) {
-      throw new Error("Database not available");
+  _governedHost() {
+    const host = GOVERNED_HOSTS.get(this);
+    if (!host) {
+      const error = new Error(
+        "Governed Skill marketplace is unavailable: configure a signed Desktop deployment",
+      );
+      error.code = "CC_GOVERNED_MARKETPLACE_UNAVAILABLE";
+      throw error;
     }
-
-    const installId = uuidv4();
-    const now = Math.floor(Date.now() / 1000);
-
-    // One install record per skill. The PK `id` is a fresh uuid every call, so
-    // INSERT OR REPLACE never conflicts — re-installing a skill accumulated
-    // DUPLICATE rows (listInstalled showed dups, getStats COUNT over-counted).
-    // All reads are by skill_id, so clear any prior install for this skill first.
-    db.prepare("DELETE FROM skill_marketplace_installs WHERE skill_id = ?").run(
-      skillId,
-    );
-
-    db.prepare(
-      `INSERT OR REPLACE INTO skill_marketplace_installs
-       (id, skill_id, name, version, author, category, installed_at, last_updated, auto_update)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      installId,
-      skillId,
-      skillData.name || skillId,
-      skillData.version || "1.0.0",
-      skillData.author || "unknown",
-      skillData.category || SkillMarketCategory.OTHER,
-      now,
-      now,
-      1,
-    );
-
-    this.emit("skill-installed", { skillId, installId });
-    logger.info(`[SkillMarketplace] 技能 ${skillId} 安装成功`);
-
-    return { installId, skillId, status: "installed" };
+    return host;
   }
 
-  async uninstallSkill(skillId) {
-    const db = this.database?.db;
-    if (!db) {
-      return false;
-    }
-
-    const result = db
-      .prepare("DELETE FROM skill_marketplace_installs WHERE skill_id = ?")
-      .run(skillId);
-
-    if (result.changes > 0) {
-      this.emit("skill-uninstalled", { skillId });
-      logger.info(`[SkillMarketplace] 技能 ${skillId} 已卸载`);
-    }
-
-    return result.changes > 0;
+  getGovernanceStatus() {
+    const host = GOVERNED_HOSTS.get(this);
+    return host
+      ? { available: true, tenantId: host.tenantId, target: host.target }
+      : { available: false };
   }
 
-  async updateSkill(skillId, newVersion) {
-    const db = this.database?.db;
-    if (!db) {
-      return false;
+  async inspectSkill(skillId, version = null) {
+    return this._governedHost().inspect({ skillName: skillId, version });
+  }
+
+  async getGovernedState(skillId) {
+    return this._governedHost().state({ skillName: skillId });
+  }
+
+  async installSkill(skillId, options = {}) {
+    const host = this._governedHost();
+    requestOptions(options, [
+      "version",
+      "manifestDigest",
+      "expectedStateDigest",
+    ]);
+    const result = await host.install({
+      skillName: skillId,
+      version: options.version ?? null,
+      manifestDigest: options.manifestDigest,
+      expectedStateDigest: options.expectedStateDigest ?? null,
+    });
+    this.emit("skill-candidate-staged", {
+      skillId,
+      stateDigest: result.state.stateDigest,
+    });
+    return result;
+  }
+
+  async updateSkill(skillId, options = {}) {
+    requestOptions(options, [
+      "version",
+      "manifestDigest",
+      "expectedStateDigest",
+    ]);
+    if (!options.version || !options.expectedStateDigest) {
+      throw new TypeError(
+        "governed update requires an exact version and state digest",
+      );
     }
+    return this.installSkill(skillId, options);
+  }
 
-    const now = Math.floor(Date.now() / 1000);
-    const result = db
-      .prepare(
-        "UPDATE skill_marketplace_installs SET version = ?, last_updated = ? WHERE skill_id = ?",
-      )
-      .run(newVersion || "latest", now, skillId);
+  async rolloutSkill(skillId, options = {}) {
+    const host = this._governedHost();
+    requestOptions(options, ["expectedStateDigest", "receiptRef"]);
+    const state = await host.rollout({ skillName: skillId, ...options });
+    this.emit("skill-rollout-advanced", {
+      skillId,
+      stage: state.stage,
+      stateDigest: state.stateDigest,
+    });
+    return state;
+  }
 
-    if (result.changes > 0) {
-      this.emit("skill-updated", { skillId, version: newVersion });
-    }
-
-    return result.changes > 0;
+  async uninstallSkill(skillId, options = {}) {
+    const host = this._governedHost();
+    requestOptions(options, ["expectedStateDigest", "receiptRef"]);
+    const state = await host.revoke({ skillName: skillId, ...options });
+    this.emit("skill-revoked", { skillId, stateDigest: state.stateDigest });
+    return state;
   }
 
   async rateSkill(skillId, rating, review = "") {
@@ -253,6 +307,27 @@ class SkillMarketplaceClient extends EventEmitter {
   }
 
   async getInstalled() {
+    const host = GOVERNED_HOSTS.get(this);
+    if (host) {
+      const { items, total } = await host.list({ offset: 0, limit: 500 });
+      if (total > 500) {
+        throw new Error(
+          "marketplace catalog exceeds the Desktop list limit; use paginated host access",
+        );
+      }
+      return items.map((state) => ({
+        id: state.skillName,
+        skill_id: state.skillName,
+        name: state.skillName,
+        version: state.version,
+        status: state.stage,
+        installed: state.stage === "active" && !state.revoked,
+        activated: state.stage === "active" && !state.revoked,
+        materialized: Boolean(state.candidateBinding) && !state.revoked,
+        stateDigest: state.stateDigest,
+        source: "governed-ledger",
+      }));
+    }
     const db = this.database?.db;
     if (!db) {
       return [];
@@ -262,7 +337,8 @@ class SkillMarketplaceClient extends EventEmitter {
       .prepare(
         "SELECT * FROM skill_marketplace_installs ORDER BY installed_at DESC",
       )
-      .all();
+      .all()
+      .map(legacyRecord);
   }
 
   async getCategories() {
@@ -295,6 +371,11 @@ class SkillMarketplaceClient extends EventEmitter {
   }
 
   async toggleAutoUpdate(skillId, enabled) {
+    if (enabled) {
+      throw new Error(
+        "Automatic activation is unavailable: each update requires verified Pilot stages",
+      );
+    }
     const db = this.database?.db;
     if (!db) {
       return false;
@@ -310,6 +391,16 @@ class SkillMarketplaceClient extends EventEmitter {
   }
 
   async getStats() {
+    if (GOVERNED_HOSTS.get(this)) {
+      const items = await this.getInstalled();
+      return {
+        installedCount: items.filter((item) => item.activated).length,
+        candidateCount: items.filter((item) => item.status === "candidate")
+          .length,
+        governedCount: items.length,
+        byCategory: [],
+      };
+    }
     const db = this.database?.db;
     if (!db) {
       return {};
@@ -325,7 +416,8 @@ class SkillMarketplaceClient extends EventEmitter {
       .all();
 
     return {
-      installedCount: installed?.count || 0,
+      installedCount: 0,
+      unverifiedCount: installed?.count || 0,
       byCategory,
     };
   }

@@ -3,6 +3,9 @@
 const path = require("path");
 const { pathToFileURL } = require("url");
 const {
+  createDesktopGovernedSkillMarketplaceHost,
+} = require("../marketplace/governed-skill-marketplace-host");
+const {
   createEvolvableArtifactRuntimeComposition,
   isEvolvableArtifactRuntimeComposition,
   getEvolvableArtifactRuntimeDependencies,
@@ -29,6 +32,7 @@ async function loadDesktopEvolutionDependencies({
   resourcesPath,
   importLoader = (url) => import(url),
   loaderOptions = {},
+  importMarketplaceHostModule,
 } = {}) {
   const loaderPath = resolveLoaderPath({ isPackaged, resourcesPath });
   const loader = await importLoader(pathToFileURL(loaderPath).href);
@@ -48,7 +52,22 @@ async function loadDesktopEvolutionDependencies({
     return Object.freeze({});
   }
 
+  const marketplaceDependencies = {};
+  if (result.marketplaceHost !== undefined) {
+    marketplaceDependencies.governedSkillMarketplaceHost =
+      await createDesktopGovernedSkillMarketplaceHost(result.marketplaceHost, {
+        isPackaged,
+        resourcesPath,
+        importHostModule: importMarketplaceHostModule,
+      });
+  }
   const composition = result.evolvableArtifactRuntimeComposition;
+  if (
+    composition === undefined &&
+    marketplaceDependencies.governedSkillMarketplaceHost
+  ) {
+    return Object.freeze(marketplaceDependencies);
+  }
   if (!isEvolvableArtifactRuntimeComposition(composition)) {
     throw new Error(
       "desktop evolution deployment must return a branded runtime composition",
@@ -67,7 +86,7 @@ async function loadDesktopEvolutionDependencies({
       );
     }
   }
-  return dependencies;
+  return Object.freeze({ ...dependencies, ...marketplaceDependencies });
 }
 
 module.exports = {
