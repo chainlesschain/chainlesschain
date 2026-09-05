@@ -3,14 +3,20 @@ import {
   knowledgeId,
 } from "../../fixtures/governed-knowledge-skill-rollback.js";
 
-const [root, mode, crashPoint = "none", provenance = "direct"] =
-  process.argv.slice(2);
+const [
+  root,
+  mode,
+  crashPoint = "none",
+  provenance = "direct",
+  dependencies = "active",
+] = process.argv.slice(2);
 if (!root || !["seed", "execute", "inspect"].includes(mode))
   throw new Error("invalid rollback worker request");
 const h = await openKnowledgeSkillRollbackStore(root, {
   seed: mode === "seed",
   crashPoint,
   wikiProvenance: provenance === "wiki",
+  candidateRejection: dependencies === "combined" ? "combined" : false,
 });
 if (mode === "execute") {
   await h.makeSync().publishWithArtifactEvidence(h.knowledge, {
@@ -18,9 +24,19 @@ if (mode === "execute") {
   });
 }
 const events = h.resources.backend.ledger.read();
+const dependencyResult =
+  dependencies === "combined" &&
+  events.some(
+    (event) => event.type === "knowledge.revocation-dependencies.settled",
+  )
+    ? await h.executor.execute(h.knowledge)
+    : null;
 process.stdout.write(
   JSON.stringify({
     pid: process.pid,
+    ...(dependencies === "combined"
+      ? { dependencyResultCount: dependencyResult?.resultDigests.length ?? 0 }
+      : {}),
     activeReleaseDigest: h.release.readActive().release.releaseDigest,
     baselineReleaseDigest: h.release.baseline.releaseDigest,
     candidateReleaseDigest: h.release.candidateRelease.releaseDigest,

@@ -19,10 +19,19 @@ function run(
   crashPoint = "none",
   status = 0,
   provenance = "direct",
+  dependencies = "active",
 ) {
   const child = spawnSync(
     process.execPath,
-    ["--max-old-space-size=256", worker, root, mode, crashPoint, provenance],
+    [
+      "--max-old-space-size=256",
+      worker,
+      root,
+      mode,
+      crashPoint,
+      provenance,
+      dependencies,
+    ],
     {
       encoding: "utf8",
       timeout: 90_000,
@@ -39,15 +48,21 @@ function run(
 
 describe("Knowledge revocation real Skill process recovery", () => {
   it.each([
-    ["after-release-pointer", 95, "direct"],
-    ["before-dependency-settlement", 96, "direct"],
-    ["after-dependency-settlement", 97, "direct"],
-    ["after-release-pointer", 95, "wiki"],
-    ["before-dependency-settlement", 96, "wiki"],
-    ["after-dependency-settlement", 97, "wiki"],
+    ["after-release-pointer", 95, "direct", "active"],
+    ["before-dependency-settlement", 96, "direct", "active"],
+    ["after-dependency-settlement", 97, "direct", "active"],
+    ["after-release-pointer", 95, "wiki", "active"],
+    ["before-dependency-settlement", 96, "wiki", "active"],
+    ["after-dependency-settlement", 97, "wiki", "active"],
+    ["after-release-pointer", 95, "direct", "combined"],
+    ["before-dependency-settlement", 96, "direct", "combined"],
+    ["after-dependency-settlement", 97, "direct", "combined"],
+    ["after-release-pointer", 95, "wiki", "combined"],
+    ["before-dependency-settlement", 96, "wiki", "combined"],
+    ["after-dependency-settlement", 97, "wiki", "combined"],
   ])(
-    "recovers %s (%s, %s) without a second rollback",
-    (crashPoint, status, provenance = "direct") => {
+    "recovers %s (%s, %s, %s) without a second rollback",
+    (crashPoint, status, provenance, dependencies) => {
       const root = fs.mkdtempSync(
         path.join(
           fs.realpathSync(os.tmpdir()),
@@ -55,12 +70,19 @@ describe("Knowledge revocation real Skill process recovery", () => {
         ),
       );
       roots.push(root);
-      const seeded = run(root, "seed", "none", 0, provenance);
+      const seeded = run(root, "seed", "none", 0, provenance, dependencies);
       expect(seeded.revision).toBe(2);
       expect(seeded.activeReleaseDigest).toBe(seeded.candidateReleaseDigest);
       const started = Date.now();
-      run(root, "execute", crashPoint, status, provenance);
-      const recovered = run(root, "execute", "none", 0, provenance);
+      run(root, "execute", crashPoint, status, provenance, dependencies);
+      const recovered = run(
+        root,
+        "execute",
+        "none",
+        0,
+        provenance,
+        dependencies,
+      );
       expect(recovered.pid).not.toBe(seeded.pid);
       expect(recovered).toMatchObject({
         revision: 3,
@@ -70,15 +92,24 @@ describe("Knowledge revocation real Skill process recovery", () => {
         knowledge: { action: "revoke" },
       });
       expect(recovered.activeReleaseDigest).toBe(seeded.baselineReleaseDigest);
+      if (dependencies === "combined")
+        expect(recovered.dependencyResultCount).toBe(2);
       expect(recovered.transitions).toHaveLength(3);
       expect(
         recovered.transitions.filter((item) => item.operation === "rollback"),
       ).toHaveLength(1);
-      const verified = run(root, "inspect", "none", 0, provenance);
+      const verified = run(
+        root,
+        "inspect",
+        "none",
+        0,
+        provenance,
+        dependencies,
+      );
       expect(verified.pid).not.toBe(recovered.pid);
       expect({ ...verified, pid: null }).toEqual({ ...recovered, pid: null });
       process.stdout.write(
-        `Knowledge ${provenance} rollback ${crashPoint}: ${Date.now() - started}ms\n`,
+        `Knowledge ${provenance} ${dependencies} rollback ${crashPoint}: ${Date.now() - started}ms\n`,
       );
     },
     300_000,

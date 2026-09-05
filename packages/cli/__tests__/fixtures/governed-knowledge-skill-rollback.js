@@ -12,6 +12,8 @@ import { GovernedKnowledgeSync } from "../../src/lib/evolution/governed-knowledg
 import { GovernedKnowledgeSyncLedgerAdapter } from "../../src/lib/evolution/governed-knowledge-sync-ledger-adapter.js";
 import { EvolvableArtifactLedgerAdapter } from "../../src/lib/evolution/evolvable-artifact-ledger-adapter.js";
 import { createGovernedKnowledgeArtifactLifecycle } from "../../src/lib/evolution/governed-knowledge-artifact-lifecycle.js";
+import { createGovernedKnowledgeCandidateRejectionAuthority } from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
+import { createGovernedKnowledgeDependencyRouter } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
 
 export const tenantId = "tenant-knowledge-rollback";
 export const deviceId = "device:a";
@@ -76,6 +78,7 @@ export async function openKnowledgeSkillRollbackStore(
     onReleaseRetain = null,
     onTransition = null,
     beforeDependencyAppend = null,
+    candidateRejection = false,
   } = {},
 ) {
   const resources = openEvolutionDurableStore(root, {
@@ -148,7 +151,37 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("rollback-verifier"),
     },
   };
-  const authority = createGovernedKnowledgeSkillRollbackAuthority(options);
+  const rollbackAuthority =
+    createGovernedKnowledgeSkillRollbackAuthority(options);
+  const rejectionOptions = {
+    ...options,
+    candidateRegistry: release.candidateRegistry,
+    verifierCandidateRegistry: independent.candidateRegistry,
+    providerDescriptor: {
+      authorityId: "knowledge-candidate:provider",
+      revision: 1,
+      handlerArtifactDigest: D("candidate-rejection-provider"),
+    },
+    verifierDescriptor: {
+      authorityId: "knowledge-candidate:verifier",
+      revision: 1,
+      handlerArtifactDigest: D("candidate-rejection-verifier"),
+    },
+  };
+  const rejectionAuthority = candidateRejection
+    ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
+    : null;
+  const authority =
+    candidateRejection === "combined"
+      ? createGovernedKnowledgeDependencyRouter({
+          tenantId,
+          deviceId,
+          routes: {
+            "active-skill/rollback-active": rollbackAuthority,
+            "candidate/reject-candidate": rejectionAuthority,
+          },
+        })
+      : (rejectionAuthority ?? rollbackAuthority);
   const descriptor = { ...resources.descriptor, deviceId };
   const executorLedger = {
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
@@ -262,6 +295,17 @@ export async function openKnowledgeSkillRollbackStore(
       },
     ],
   };
+  if (candidateRejection) {
+    const candidate = {
+      kind: "candidate",
+      digest: release.candidateRelease.candidate.candidateId,
+      disposition: "reject-candidate",
+    };
+    knowledge.dependencies =
+      candidateRejection === "combined"
+        ? [...knowledge.dependencies, candidate]
+        : [candidate];
+  }
   return {
     root,
     wiki,
@@ -273,6 +317,7 @@ export async function openKnowledgeSkillRollbackStore(
     options,
     descriptor,
     authority,
+    rejectionOptions,
     executor,
     makeSync,
     crypto,

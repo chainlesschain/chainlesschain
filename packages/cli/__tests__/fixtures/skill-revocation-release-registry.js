@@ -412,9 +412,13 @@ export async function openRevocationReleaseRegistry({
   return Object.freeze({
     baseline,
     candidateRelease,
+    candidateRegistry: candidates,
     readActive: () => releases.readActive(SKILL),
-    async promoteCandidate(operationId) {
-      const candidate = candidates.read(candidateRelease.candidate.candidateId);
+    async promoteCandidate(
+      operationId,
+      candidateId = candidateRelease.candidate.candidateId,
+    ) {
+      const candidate = candidates.read(candidateId);
       const request = requestFor({
         operation: "promote",
         operationId,

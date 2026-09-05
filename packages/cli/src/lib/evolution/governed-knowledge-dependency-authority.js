@@ -13,6 +13,9 @@ export const GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA =
   "chainlesschain.governed-knowledge-dependency-result/v1";
 
 const AUTHORITIES = new WeakSet();
+// Only this module can dispatch a prepared router request into a leaf's full
+// request/result verification pipeline. No public rebranding API is exposed.
+const PREPARED_EXECUTIONS = new WeakMap();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DESCRIPTOR_KEYS = new Set([
@@ -243,6 +246,81 @@ export function createGovernedKnowledgeDependencyAuthority({
   }
   const apply = capture(provider, "apply", "provider");
   const verify = capture(verifier, "verify", "verifier");
+  const executePrepared = async (input) => {
+    exact(input, INPUT_KEYS, "dependency execution input");
+    if (
+      input?.tenantId !== tenantId ||
+      input.deviceId !== deviceId ||
+      !DIGEST.test(input.operationDigest ?? "")
+    ) {
+      throw new Error("dependency request crossed its authority boundary");
+    }
+    // Normalize and snapshot before the first await, then bind both the entire
+    // operation and the selected edge. A plausible digest is not authorization
+    // to apply an unlisted dependency or to change its disposition.
+    const knowledge = verifyGovernedKnowledgeRecord(input.knowledge, {
+      tenantId,
+    });
+    const dependency = exact(input.dependency, DEPENDENCY_KEYS, "dependency");
+    const selected = knowledge.dependencies.find(
+      (entry) =>
+        entry.kind === dependency.kind &&
+        entry.digest === dependency.digest &&
+        entry.disposition === dependency.disposition,
+    );
+    if (
+      !["tombstone", "revoke"].includes(knowledge.action) ||
+      !selected ||
+      input.operationDigest !==
+        digestGovernedKnowledgeDependencyOperation({
+          tenantId,
+          deviceId,
+          knowledge,
+        })
+    ) {
+      throw new Error(
+        "dependency request is not bound to its revocation operation",
+      );
+    }
+    const request = requestFor({
+      tenantId,
+      deviceId,
+      operationDigest: input.operationDigest,
+      knowledge,
+      dependency: selected,
+    });
+    const result = validateResult(
+      await apply(request),
+      request,
+      providerDescriptor,
+    );
+    const verified = await verify({
+      request,
+      result,
+      providerDescriptor,
+      verifierDescriptor,
+    });
+    if (
+      verified?.authenticated !== true ||
+      verified.durable !== true ||
+      verified.tenantId !== tenantId ||
+      verified.deviceId !== deviceId ||
+      verified.operationId !== request.operationId ||
+      verified.requestDigest !== request.requestDigest ||
+      verified.resultDigest !== result.resultDigest ||
+      verified.providerAuthorityId !== providerDescriptor.authorityId ||
+      verified.providerRevision !== providerDescriptor.revision ||
+      verified.verifierAuthorityId !== verifierDescriptor.authorityId ||
+      verified.verifierRevision !== verifierDescriptor.revision ||
+      !DIGEST.test(verified.verificationReceiptDigest ?? "")
+    ) {
+      throw new Error("dependency result was not independently verified");
+    }
+    return freeze({
+      ...clone(result),
+      verificationReceiptDigest: verified.verificationReceiptDigest,
+    });
+  };
   const authority = Object.freeze({
     tenantId,
     deviceId,
@@ -252,83 +330,76 @@ export function createGovernedKnowledgeDependencyAuthority({
           "dependency execution requires a prepared executor request",
         );
       }
-      exact(input, INPUT_KEYS, "dependency execution input");
-      if (
-        input?.tenantId !== tenantId ||
-        input.deviceId !== deviceId ||
-        !DIGEST.test(input.operationDigest ?? "")
-      ) {
-        throw new Error("dependency request crossed its authority boundary");
-      }
-      // Normalize and snapshot before the first await, then bind both the entire
-      // operation and the selected edge. A plausible digest is not authorization
-      // to apply an unlisted dependency or to change its disposition.
-      const knowledge = verifyGovernedKnowledgeRecord(input.knowledge, {
-        tenantId,
-      });
-      const dependency = exact(input.dependency, DEPENDENCY_KEYS, "dependency");
-      const selected = knowledge.dependencies.find(
-        (entry) =>
-          entry.kind === dependency.kind &&
-          entry.digest === dependency.digest &&
-          entry.disposition === dependency.disposition,
-      );
-      if (
-        !["tombstone", "revoke"].includes(knowledge.action) ||
-        !selected ||
-        input.operationDigest !==
-          digestGovernedKnowledgeDependencyOperation({
-            tenantId,
-            deviceId,
-            knowledge,
-          })
-      ) {
-        throw new Error(
-          "dependency request is not bound to its revocation operation",
-        );
-      }
-      const request = requestFor({
-        tenantId,
-        deviceId,
-        operationDigest: input.operationDigest,
-        knowledge,
-        dependency: selected,
-      });
-      const result = validateResult(
-        await apply(request),
-        request,
-        providerDescriptor,
-      );
-      const verified = await verify({
-        request,
-        result,
-        providerDescriptor,
-        verifierDescriptor,
-      });
-      if (
-        verified?.authenticated !== true ||
-        verified.durable !== true ||
-        verified.tenantId !== tenantId ||
-        verified.deviceId !== deviceId ||
-        verified.operationId !== request.operationId ||
-        verified.requestDigest !== request.requestDigest ||
-        verified.resultDigest !== result.resultDigest ||
-        verified.providerAuthorityId !== providerDescriptor.authorityId ||
-        verified.providerRevision !== providerDescriptor.revision ||
-        verified.verifierAuthorityId !== verifierDescriptor.authorityId ||
-        verified.verifierRevision !== verifierDescriptor.revision ||
-        !DIGEST.test(verified.verificationReceiptDigest ?? "")
-      ) {
-        throw new Error("dependency result was not independently verified");
-      }
-      return freeze({
-        ...clone(result),
-        verificationReceiptDigest: verified.verificationReceiptDigest,
-      });
+      return executePrepared(input);
     },
   });
   AUTHORITIES.add(authority);
+  PREPARED_EXECUTIONS.set(authority, executePrepared);
   return authority;
+}
+
+export function createGovernedKnowledgeDependencyRouter({
+  tenantId,
+  deviceId,
+  routes,
+} = {}) {
+  identifier(tenantId, "router tenantId");
+  identifier(deviceId, "router deviceId");
+  if (
+    !routes ||
+    typeof routes !== "object" ||
+    utilTypes.isProxy(routes) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(routes))
+  ) {
+    throw new TypeError("dependency routes must be a plain object");
+  }
+  const keys = Reflect.ownKeys(routes);
+  exact(routes, new Set(keys), "dependency routes");
+  const allowed = new Set([
+    "wiki/tombstone",
+    "wiki/quarantine",
+    "candidate/reject-candidate",
+    "candidate/quarantine",
+    "active-skill/rollback-active",
+    "active-skill/quarantine",
+  ]);
+  if (!keys.length || keys.some((key) => !allowed.has(key)))
+    throw new TypeError("dependency route is unsupported");
+  const handlers = new Map();
+  for (const key of keys) {
+    const authority = routes[key];
+    const execute = PREPARED_EXECUTIONS.get(authority);
+    if (
+      !execute ||
+      authority.tenantId !== tenantId ||
+      authority.deviceId !== deviceId
+    ) {
+      throw new TypeError(
+        "dependency route requires a genuine same-boundary leaf authority",
+      );
+    }
+    handlers.set(key, execute);
+  }
+  const router = Object.freeze({
+    tenantId,
+    deviceId,
+    async apply(input) {
+      if (!isGovernedKnowledgeDependencyExecutionRequest(input, router))
+        throw new TypeError(
+          "dependency routing requires a prepared executor request",
+        );
+      exact(input, INPUT_KEYS, "dependency routing input");
+      exact(input.dependency, DEPENDENCY_KEYS, "dependency route selection");
+      const execute = handlers.get(
+        `${input.dependency.kind}/${input.dependency.disposition}`,
+      );
+      if (!execute)
+        throw new Error("no real authority for this dependency disposition");
+      return execute(input);
+    },
+  });
+  AUTHORITIES.add(router);
+  return router;
 }
 
 export function isGovernedKnowledgeDependencyAuthority(value) {

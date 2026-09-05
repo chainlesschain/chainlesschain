@@ -1529,6 +1529,19 @@ function normalizeRegistryOptions(options) {
  * This class deliberately has no active pointer or promotion API. A later
  * promotion controller can consume verified drafts through read().
  */
+const CANDIDATE_READERS = new WeakMap();
+
+export function captureSkillCandidateRegistryReader(registry) {
+  const reader = CANDIDATE_READERS.get(registry);
+  if (
+    !reader ||
+    Object.getPrototypeOf(registry) !== SkillCandidateRegistry.prototype
+  ) {
+    throw new TypeError("a genuine SkillCandidateRegistry reader is required");
+  }
+  return reader;
+}
+
 export class SkillCandidateRegistry {
   constructor(options) {
     const {
@@ -1578,6 +1591,13 @@ export class SkillCandidateRegistry {
       );
     }
     Object.freeze(this);
+    CANDIDATE_READERS.set(
+      this,
+      Object.freeze({
+        tenantId,
+        read: Object.freeze(SkillCandidateRegistry.prototype.read.bind(this)),
+      }),
+    );
   }
 
   _initializeDirectory(
@@ -2905,3 +2925,5 @@ export class SkillCandidateRegistry {
     return Object.freeze(candidates);
   }
 }
+
+Object.freeze(SkillCandidateRegistry.prototype);

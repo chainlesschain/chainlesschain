@@ -2437,8 +2437,7 @@ class EvolutionLedgerDomainPorts {
     );
   }
 
-  #assertCandidateNotRevoked(snapshot, intent) {
-    if (intent.operation !== "promote") return;
+  *#knowledgeRevocations(snapshot, tenantId, audience) {
     // A prepared revocation is already a durable admission fence. Waiting for
     // every dependency effect to settle would allow promotion while offline
     // recovery, active rollback or another dependency is still outstanding.
@@ -2446,7 +2445,7 @@ class EvolutionLedgerDomainPorts {
     for (const event of snapshot.events) {
       if (
         event.type !== GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE ||
-        event.tenantId !== intent.mutationRequest.tenantId
+        event.tenantId !== tenantId
       )
         continue;
       if (
@@ -2534,7 +2533,7 @@ class EvolutionLedgerDomainPorts {
         record.type !== "governed-knowledge-dependency-operation" ||
         record.retention !== "ledger" ||
         record.purpose !== this.#purpose ||
-        record.audience !== intent.mutationRequest.audience
+        record.audience !== audience
       ) {
         throw portsError(
           EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
@@ -2554,6 +2553,17 @@ class EvolutionLedgerDomainPorts {
           "candidate revocation event does not bind its prepared operation",
         );
       }
+      yield { event, prepared };
+    }
+  }
+
+  #assertCandidateNotRevoked(snapshot, intent) {
+    if (intent.operation !== "promote") return;
+    for (const { prepared } of this.#knowledgeRevocations(
+      snapshot,
+      intent.mutationRequest.tenantId,
+      intent.mutationRequest.audience,
+    )) {
       if (
         prepared.knowledge.dependencies.some(
           (dependency) =>
@@ -2785,6 +2795,157 @@ class EvolutionLedgerDomainPorts {
 
   resolveReleaseOrigin(inputValue) {
     return this.#resolveRelease(inputValue, true);
+  }
+
+  resolveCandidateRevocation(inputValue) {
+    if (this.#audience === null)
+      throw new TypeError(
+        "candidate revocation proof requires audience-bound ledger ports",
+      );
+    const input = frozenCanonicalClone(inputValue);
+    assertAllExactRecord(
+      input,
+      new Set([
+        "tenantId",
+        "skillName",
+        "candidateId",
+        "operationDigest",
+        "context",
+      ]),
+      "candidate revocation query",
+    );
+    const tenantId = identifier(input.tenantId, "tenantId");
+    const name = skillName(input.skillName, "skillName");
+    const candidateId = digest(input.candidateId, "candidateId");
+    const operationDigest = digest(input.operationDigest, "operationDigest");
+    const keys = [
+      "epoch",
+      "ledgerId",
+      "identityDigest",
+      "sequence",
+      "headDigest",
+    ];
+    assertAllExactRecord(
+      input.context,
+      new Set(["mode", "checkpoint"]),
+      "candidate revocation context",
+    );
+    assertAllExactRecord(
+      input.context.checkpoint,
+      new Set(keys),
+      "candidate revocation checkpoint",
+    );
+    if (input.context.mode !== "current")
+      throw new TypeError("candidate revocation requires a current context");
+    const head = this.#ledgerVerify();
+    if (keys.some((key) => input.context.checkpoint[key] !== head[key])) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "candidate revocation checkpoint is stale",
+      );
+    }
+    const snapshot = this.#snapshot();
+    if (
+      snapshot.events.length !== head.sequence ||
+      (snapshot.events.at(-1)?.eventDigest ?? null) !== head.headDigest
+    ) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "candidate revocation snapshot changed",
+      );
+    }
+    let fence = null;
+    // This is the exact same authenticated parser as mandatory prepare, not a
+    // separate provider's assertion that admission has supposedly been denied.
+    for (const entry of this.#knowledgeRevocations(
+      snapshot,
+      tenantId,
+      this.#audience,
+    )) {
+      if (entry.prepared.operationDigest !== operationDigest) continue;
+      const dependency = entry.prepared.knowledge.dependencies.find(
+        (item) =>
+          item.kind === "candidate" &&
+          item.digest === candidateId &&
+          item.disposition === "reject-candidate",
+      );
+      if (dependency) fence = entry;
+    }
+    const cache = new Map();
+    const lineages = this.#lineages(snapshot, cache);
+    const history = [];
+    const pendingTransactions = [];
+    for (const event of snapshot.events) {
+      if (event.type !== EVENT_TYPES.prepare || event.tenantId !== tenantId)
+        continue;
+      const entry =
+        cache.get(event.eventId) ?? this.#prepareFromSnapshot(snapshot, event);
+      const intent = entry.intent;
+      if (intent.candidateId === candidateId && intent.skillName !== name) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "candidate history belongs to another Skill",
+        );
+      }
+      if (intent.skillName !== name) continue;
+      const finalized = lineages.byTransaction.get(intent.transactionId);
+      if (!finalized) pendingTransactions.push(intent.transactionId);
+      if (intent.candidateId !== candidateId) continue;
+      history.push({
+        transactionId: intent.transactionId,
+        releaseDigest: intent.targetReleaseDigest,
+        preparationSequence: event.sequence,
+        committed: Boolean(finalized),
+      });
+    }
+    const groupKey = `${tenantId}\0${name}`;
+    const latest = lineages.groups.get(groupKey)?.at(-1);
+    const migrated = lineages.migrations.get(groupKey);
+    const current = latest
+      ? {
+          releaseDigest: latest.prepared.intent.targetReleaseDigest,
+          revision: latest.finalization.revision,
+          stateDigest: latest.finalization.stateDigest,
+          projection: this.#committedProjection(latest, lineages),
+        }
+      : migrated
+        ? {
+            releaseDigest: migrated.migration.state.activeReleaseDigest,
+            revision: migrated.migration.state.revision,
+            stateDigest: migrated.migration.state.stateDigest,
+            projection: this.#migrationProjection(migrated, true),
+          }
+        : null;
+    const fresh = this.#ledgerVerify();
+    if (keys.some((key) => fresh[key] !== head[key])) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "candidate revocation ledger changed during verification",
+      );
+    }
+    return deepFreeze({
+      authenticated: true,
+      durable: true,
+      tenantId,
+      skillName: name,
+      candidateId,
+      operationDigest,
+      checkpoint: { ...input.context.checkpoint },
+      fence: fence
+        ? {
+            record: fence.prepared,
+            sequence: fence.event.sequence,
+            evidence: {
+              timestamp: fence.event.timestamp,
+              signature: fence.event.signature,
+              eventDigest: fence.event.eventDigest,
+            },
+          }
+        : null,
+      pendingTransactions,
+      history,
+      current,
+    });
   }
 
   #resolveRelease(inputValue, origin) {
@@ -3492,6 +3653,9 @@ export function createEvolutionLedgerPorts(options = {}) {
       ),
       resolveReleaseOrigin: Object.freeze((input) =>
         adapter.resolveReleaseOrigin(input),
+      ),
+      resolveCandidateRevocation: Object.freeze((input) =>
+        adapter.resolveCandidateRevocation(input),
       ),
     }),
   );
