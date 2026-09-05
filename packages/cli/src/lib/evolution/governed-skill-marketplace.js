@@ -21,6 +21,40 @@ const STAGES = new Map([
   ["shadow", "canary"],
   ["canary", "active"],
 ]);
+const MARKETPLACE_STATE_KEYS = new Set([
+  "schema",
+  "tenantId",
+  "skillName",
+  "version",
+  "manifestDigest",
+  "packageDigest",
+  "adaptedOutputDigest",
+  "target",
+  "stage",
+  "previousStateDigest",
+  "revoked",
+  "transitionRequestDigest",
+  "transitionReceiptDigest",
+  "revocationReceiptDigest",
+  "revocationPropagationRequestDigest",
+  "revocationBaselineStateDigest",
+  "stateDigest",
+]);
+const MARKETPLACE_STATE_REQUIRED_KEYS = new Set([
+  "schema",
+  "tenantId",
+  "skillName",
+  "version",
+  "manifestDigest",
+  "packageDigest",
+  "adaptedOutputDigest",
+  "target",
+  "stage",
+  "previousStateDigest",
+  "revoked",
+  "stateDigest",
+]);
+const MARKETPLACE_TARGET_KEYS = new Set(["model", "os", "tool", "runtime"]);
 const REVOCATION_DEPENDENCY_REQUEST_KEYS = new Set([
   "schema",
   "tenantId",
@@ -202,6 +236,71 @@ export function buildGovernedSkillMarketplaceManifest(input, signature) {
   };
   const manifestDigest = hash(GOVERNED_SKILL_MARKETPLACE_MANIFEST_SCHEMA, core);
   return freeze({ ...core, manifestDigest, signature });
+}
+
+export function digestGovernedSkillMarketplaceState(core) {
+  return hash(GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA, core);
+}
+
+export function verifyGovernedSkillMarketplaceState(
+  input,
+  tenantId,
+  skillName,
+) {
+  record(input, "marketplace state");
+  for (const key of Reflect.ownKeys(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+      throw new Error("marketplace state contains an unsafe field");
+    }
+  }
+  const ownKeys = Reflect.ownKeys(input);
+  if (
+    ownKeys.some(
+      (key) => typeof key !== "string" || !MARKETPLACE_STATE_KEYS.has(key),
+    ) ||
+    [...MARKETPLACE_STATE_REQUIRED_KEYS].some(
+      (key) => !Object.hasOwn(input, key),
+    )
+  ) {
+    throw new Error("marketplace state has an invalid shape");
+  }
+  exact(input.target, MARKETPLACE_TARGET_KEYS, "marketplace state target");
+  const state = clone(input);
+  const core = clone(state);
+  delete core.stateDigest;
+  if (
+    state.schema !== GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA ||
+    state.tenantId !== tenantId ||
+    state.skillName !== skillName ||
+    !ID.test(state.version ?? "") ||
+    !["candidate", "shadow", "canary", "active", "rolled-back"].includes(
+      state.stage,
+    ) ||
+    typeof state.revoked !== "boolean" ||
+    (state.previousStateDigest !== null &&
+      !DIGEST.test(state.previousStateDigest ?? "")) ||
+    !["model", "os", "tool", "runtime"].every((field) =>
+      ID.test(state.target[field] ?? ""),
+    ) ||
+    [
+      "manifestDigest",
+      "packageDigest",
+      "adaptedOutputDigest",
+      "stateDigest",
+      ...[
+        "transitionRequestDigest",
+        "transitionReceiptDigest",
+        "revocationReceiptDigest",
+        "revocationPropagationRequestDigest",
+        "revocationBaselineStateDigest",
+      ].filter((field) => Object.hasOwn(state, field)),
+    ].some((field) => !DIGEST.test(state[field] ?? "")) ||
+    state.stateDigest !== digestGovernedSkillMarketplaceState(core)
+  ) {
+    throw new Error("marketplace state is unauthenticated or corrupt");
+  }
+  return freeze(state);
 }
 
 export class GovernedSkillMarketplace {
@@ -543,25 +642,11 @@ export class GovernedSkillMarketplace {
 
   async _verifiedState(skillName) {
     const current = await this._load({ skillName });
-    record(current, "marketplace state");
-    for (const key of Reflect.ownKeys(current)) {
-      const descriptor = Object.getOwnPropertyDescriptor(current, key);
-      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
-        throw new Error("marketplace state contains an unsafe field");
-      }
-    }
-    const core = clone(current);
-    delete core.stateDigest;
-    if (
-      current.schema !== GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA ||
-      current.tenantId !== this.tenantId ||
-      current.skillName !== skillName ||
-      current.stateDigest !==
-        hash(GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA, core)
-    ) {
-      throw new Error("marketplace state is unauthenticated or corrupt");
-    }
-    return current;
+    return verifyGovernedSkillMarketplaceState(
+      current,
+      this.tenantId,
+      skillName,
+    );
   }
 
   async _exact(skillName, expectedStateDigest) {
@@ -578,7 +663,7 @@ export class GovernedSkillMarketplace {
     delete core.stateDigest;
     const state = freeze({
       ...core,
-      stateDigest: hash(GOVERNED_SKILL_MARKETPLACE_STATE_SCHEMA, core),
+      stateDigest: digestGovernedSkillMarketplaceState(core),
     });
     const result = await this._commit({ state, expectedStateDigest, event });
     if (

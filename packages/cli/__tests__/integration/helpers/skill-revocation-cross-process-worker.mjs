@@ -14,6 +14,11 @@ import {
   EvolutionArtifactPorts,
 } from "../../../src/lib/evolution/evolution-artifact-ports.js";
 import { createEvolutionLedgerFileBackend } from "../../../src/lib/evolution/evolution-ledger-file-backend.js";
+import {
+  GovernedSkillMarketplace,
+  buildGovernedSkillMarketplaceManifest,
+} from "../../../src/lib/evolution/governed-skill-marketplace.js";
+import { GovernedSkillMarketplaceLedgerAdapter } from "../../../src/lib/evolution/governed-skill-marketplace-ledger-adapter.js";
 
 import {
   EvidenceBackedWikiMaintainer,
@@ -141,18 +146,17 @@ function durableFilesystem() {
   };
 }
 
-async function retrievalAuthority() {
+function durableDomainLedger(label, artifactTenantId) {
   const now = Date.parse("2026-09-05T10:00:00.000Z");
-  const artifactTenantId = "artifact-tenant-a-retrieval";
-  const secret = "test-only-revocation-retrieval-artifact-secret";
+  const secret = `test-only-revocation-${label}-artifact-secret`;
   const algorithm = "hmac-sha256";
-  const keyId = "test:key/revocation-retrieval-artifacts";
-  const policyDigest = D("revocation-retrieval-artifact-policy");
+  const keyId = `test:key/revocation-${label}-artifacts`;
+  const policyDigest = D(`revocation-${label}-artifact-policy`);
   const sign = (message) =>
     createHmac("sha256", secret).update(message).digest("base64url");
   const artifactPorts = new EvolutionArtifactPorts({
     artifactStore: new ArtifactStore({
-      dir: join(root, "retrieval-artifacts"),
+      dir: join(root, `${label}-artifacts`),
       now: () => now,
     }),
     audience: "evolution-runtime",
@@ -206,19 +210,25 @@ async function retrievalAuthority() {
   const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
     purpose: "evolution-ledger",
   });
-  mkdirSync(join(root, "retrieval-witness"), { recursive: true });
+  mkdirSync(join(root, `${label}-witness`), { recursive: true });
   const backend = createEvolutionLedgerFileBackend({
-    rootDir: join(root, "retrieval-ledger-events"),
-    authorityRootDir: join(root, "retrieval-ledger-authority"),
-    witnessFilePath: join(root, "retrieval-witness", "checkpoint.json"),
-    witnessId: "skill-retrieval-revocation-process-witness",
-    ledgerAuthority: signingAuthority("retrieval-ledger"),
-    witnessAuthority: signingAuthority("retrieval-witness"),
+    rootDir: join(root, `${label}-ledger-events`),
+    authorityRootDir: join(root, `${label}-ledger-authority`),
+    witnessFilePath: join(root, `${label}-witness`, "checkpoint.json"),
+    witnessId: `skill-${label}-revocation-process-witness`,
+    ledgerAuthority: signingAuthority(`${label}-ledger`),
+    witnessAuthority: signingAuthority(`${label}-witness`),
     artifactResolver: resolver,
     fsImpl: durableFilesystem(),
     secure: false,
     clock: () => now,
   });
+  return Object.freeze({ artifactPorts, backend, now, resolver });
+}
+
+async function retrievalAuthority() {
+  const artifactTenantId = "artifact-tenant-a-retrieval";
+  const storage = durableDomainLedger("retrieval", artifactTenantId);
   const adapter = new SkillRetrievalRevocationLedgerAdapter({
     descriptor: {
       tenantId: "tenant-a",
@@ -227,16 +237,119 @@ async function retrievalAuthority() {
       audience: "evolution-runtime",
       purpose: "evolution-ledger",
     },
-    artifactPorts,
-    ledger: backend.ledger,
-    ledgerArtifactResolver: resolver,
-    now: () => now,
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.backend.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    now: () => storage.now,
   });
   const authority = await openSkillRetrievalRevocationAuthority({
     tenantId: "tenant-a",
     ports: adapter.persistencePorts(),
   });
-  return Object.freeze({ authority, backend });
+  return Object.freeze({ authority, backend: storage.backend });
+}
+
+const MARKETPLACE_TARGET = Object.freeze({
+  model: "qwen-3.5-9b",
+  os: "windows-x64",
+  tool: "cli",
+  runtime: "node-22.12.0",
+});
+
+function marketplaceManifest() {
+  return buildGovernedSkillMarketplaceManifest(
+    {
+      tenantId: "tenant-a",
+      skillName: "safe-refactor",
+      version: "1.0.0",
+      sourceModel: "qwen-3.5-27b",
+      packageDigest: D("marketplace-package"),
+      sourceCommitDigest: D("marketplace-commit"),
+      sbomDigest: D("marketplace-sbom"),
+      dependencyLockDigest: D("marketplace-lock"),
+      permissionManifestDigest: D("marketplace-permissions"),
+      targetMatrixDigest: D("marketplace-target-matrix"),
+      evalBadgeDigest: D("marketplace-eval-badge"),
+      lineage: [D("marketplace-evidence")],
+      compatibilityMatrix: [
+        {
+          ...MARKETPLACE_TARGET,
+          accepted: true,
+          safetyPassed: true,
+          qualityScore: 0.9,
+          sampleCount: 100,
+          evalReceiptDigest: D("marketplace-target-eval"),
+        },
+      ],
+    },
+    "signed-marketplace-manifest",
+  );
+}
+
+async function marketplaceAuthority() {
+  const artifactTenantId = "artifact-tenant-a-marketplace";
+  const storage = durableDomainLedger("marketplace", artifactTenantId);
+  const adapter = new GovernedSkillMarketplaceLedgerAdapter({
+    descriptor: {
+      tenantId: "tenant-a",
+      artifactTenantId,
+      streamId: "governed-marketplace:process",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+    },
+    artifactPorts: storage.artifactPorts,
+    ledger: storage.backend.ledger,
+    ledgerArtifactResolver: storage.resolver,
+    now: () => storage.now,
+  });
+  const authority = new GovernedSkillMarketplace({
+    tenantId: "tenant-a",
+    ports: {
+      ...adapter.persistencePorts(),
+      verifySignature: async () => true,
+      adapt: async ({ manifest, cell }) => ({
+        authenticated: true,
+        manifestDigest: manifest.manifestDigest,
+        evalReceiptDigest: cell.evalReceiptDigest,
+        outputDigest: D("marketplace-adapted-output"),
+        adapterDigest: D("marketplace-target-adapter"),
+      }),
+      transition: async ({ request, requestDigest }) => ({
+        authenticated: true,
+        durable: true,
+        requestDigest,
+        nextStage: request.nextStage,
+        receiptDigest: D(["marketplace-transition", request.nextStage]),
+      }),
+      verifyPilot: async ({ state, nextStage }) => ({
+        authenticated: true,
+        accepted: true,
+        stateDigest: state.stateDigest,
+        nextStage,
+        receiptDigest: D(["marketplace-pilot", nextStage]),
+      }),
+      verifyRevocation: async ({ state }) => ({
+        authenticated: true,
+        revoked: true,
+        manifestDigest: state.manifestDigest,
+        receiptDigest: D("marketplace-revocation"),
+      }),
+    },
+  });
+  let state = adapter.load({ skillName: "safe-refactor" });
+  if (!state) {
+    state = await authority.stage({
+      manifest: marketplaceManifest(),
+      target: MARKETPLACE_TARGET,
+      expectedStateDigest: null,
+    });
+  }
+  return Object.freeze({
+    adapter,
+    authority,
+    backend: storage.backend,
+    state,
+  });
 }
 
 function externalSource() {
@@ -443,6 +556,7 @@ async function wiki() {
 async function propagate() {
   const source = externalSource();
   const retrieval = await retrievalAuthority();
+  const marketplace = await marketplaceAuthority();
   const effectState = load("effects", {});
   const dependencies = [
     ["wiki-pattern", "stale"],
@@ -456,8 +570,14 @@ async function propagate() {
       ref:
         kind === "retrieval-index"
           ? "skill-content:tenant-a:safe-refactor"
-          : `${kind}://tenant-a/safe-refactor`,
-      digest: D([kind, "dependency"]),
+          : kind === "marketplace-badge"
+            ? "marketplace-state:tenant-a:safe-refactor"
+            : `${kind}://tenant-a/safe-refactor`,
+      digest:
+        kind === "marketplace-badge"
+          ? (marketplace.state.revocationBaselineStateDigest ??
+            marketplace.state.stateDigest)
+          : D([kind, "dependency"]),
     }))
     .sort((a, b) => `${a.kind}:${a.ref}`.localeCompare(`${b.kind}:${b.ref}`));
   const effect = async (request) => {
@@ -518,7 +638,9 @@ async function propagate() {
       invalidateRetrieval: retrieval.authority.invalidateRetrieval.bind(
         retrieval.authority,
       ),
-      revokeMarketplaceBadge: effect,
+      revokeMarketplaceBadge: marketplace.authority.revokeMarketplaceBadge.bind(
+        marketplace.authority,
+      ),
       loadCheckpoint: async () => load("propagation-checkpoint", null),
       commitCheckpoint: async ({ checkpoint }) => {
         save("propagation-checkpoint", checkpoint);
@@ -545,6 +667,10 @@ async function propagate() {
       contentDigest: retrievalDependency.digest,
     }),
     ledgerSequence: retrieval.backend.ledger.verify().sequence,
+  });
+  save("marketplace-inspection", {
+    state: marketplace.adapter.load({ skillName: "safe-refactor" }),
+    ledgerSequence: marketplace.backend.ledger.verify().sequence,
   });
 }
 
