@@ -54,7 +54,7 @@ describe("Skill revocation real cross-process recovery", () => {
       );
       expect(run(root, "propagate", "none").status).toBe(0);
       const effects = Object.values(read(root, "effects"));
-      expect(effects).toHaveLength(2);
+      expect(effects).toHaveLength(1);
       expect(effects.every(({ applyCount }) => applyCount === 1)).toBe(true);
       expect(read(root, "retrieval-inspection")).toMatchObject({
         invalidated: true,
@@ -70,6 +70,18 @@ describe("Skill revocation real cross-process recovery", () => {
           revoked: true,
         },
         ledgerSequence: 2,
+      });
+      expect(read(root, "memory-inspection")).toMatchObject({
+        active: null,
+        quarantine: {
+          layer: "procedural",
+          contentDigest: expect.stringMatching(/^sha256:/u),
+          metadata: {
+            revocationPropagationRequestDigest:
+              expect.stringMatching(/^sha256:/u),
+          },
+        },
+        projectionSequence: 2,
       });
       expect(read(root, "propagation-checkpoint").cursor).toBe(1);
     }

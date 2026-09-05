@@ -19,6 +19,7 @@ import {
   buildGovernedSkillMarketplaceManifest,
 } from "../../../src/lib/evolution/governed-skill-marketplace.js";
 import { GovernedSkillMarketplaceLedgerAdapter } from "../../../src/lib/evolution/governed-skill-marketplace-ledger-adapter.js";
+import { createStructuredMemoryAgentControlPlaneFixture } from "../../fixtures/structured-memory-agent-control-plane.js";
 
 import {
   EvidenceBackedWikiMaintainer,
@@ -352,6 +353,30 @@ async function marketplaceAuthority() {
   });
 }
 
+async function memoryAuthority() {
+  const fixture = createStructuredMemoryAgentControlPlaneFixture({
+    tenantId: "tenant-a",
+    rootDir: join(root, "memory-control-plane"),
+    durableLedger: true,
+  });
+  const memoryId = `skill-release:safe-refactor:${D("memory-release")}`;
+  const contentDigest = D(["memory", "dependency"]);
+  const projection = fixture.controlPlane.memory.projection();
+  if (!projection.memories[memoryId] && !projection.quarantines?.[memoryId]) {
+    await fixture.seedProceduralMemory({
+      memoryId,
+      contentDigest,
+      artifactRef: D("memory-release"),
+      evidenceRefs: [D("memory-promotion")],
+    });
+  }
+  return Object.freeze({
+    authority: fixture.controlPlane,
+    contentDigest,
+    memoryId,
+  });
+}
+
 function externalSource() {
   const unsigned = {
     schema: INDEPENDENT_SKILL_REVOCATION_RECORD_SCHEMA,
@@ -557,6 +582,7 @@ async function propagate() {
   const source = externalSource();
   const retrieval = await retrievalAuthority();
   const marketplace = await marketplaceAuthority();
+  const memory = await memoryAuthority();
   const effectState = load("effects", {});
   const dependencies = [
     ["wiki-pattern", "stale"],
@@ -572,12 +598,16 @@ async function propagate() {
           ? "skill-content:tenant-a:safe-refactor"
           : kind === "marketplace-badge"
             ? "marketplace-state:tenant-a:safe-refactor"
-            : `${kind}://tenant-a/safe-refactor`,
+            : kind === "memory"
+              ? memory.memoryId
+              : `${kind}://tenant-a/safe-refactor`,
       digest:
         kind === "marketplace-badge"
           ? (marketplace.state.revocationBaselineStateDigest ??
             marketplace.state.stateDigest)
-          : D([kind, "dependency"]),
+          : kind === "memory"
+            ? memory.contentDigest
+            : D([kind, "dependency"]),
     }))
     .sort((a, b) => `${a.kind}:${a.ref}`.localeCompare(`${b.kind}:${b.ref}`));
   const effect = async (request) => {
@@ -634,7 +664,7 @@ async function propagate() {
         };
       },
       stalePattern: effect,
-      quarantineMemory: effect,
+      quarantineMemory: memory.authority.quarantineMemory,
       invalidateRetrieval: retrieval.authority.invalidateRetrieval.bind(
         retrieval.authority,
       ),
@@ -671,6 +701,12 @@ async function propagate() {
   save("marketplace-inspection", {
     state: marketplace.adapter.load({ skillName: "safe-refactor" }),
     ledgerSequence: marketplace.backend.ledger.verify().sequence,
+  });
+  const memoryProjection = memory.authority.memory.projection();
+  save("memory-inspection", {
+    active: memoryProjection.memories[memory.memoryId] ?? null,
+    quarantine: memoryProjection.quarantines[memory.memoryId] ?? null,
+    projectionSequence: memoryProjection.sequence,
   });
 }
 
