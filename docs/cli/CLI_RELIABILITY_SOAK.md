@@ -128,3 +128,16 @@ power loss; these runs do not establish production PKI, independent witness
 failure domains, physical durability, DB/Hook/Eval fault coverage or automatic
 Skill-promotion acceptance. The ordinary regression suite runs only the
 small-scale driver and recovery cases; the long workload is explicit.
+
+The report also exposes `seedVerificationCounts` and
+`reopenVerificationCounts`, keyed by authority and verification purpose.
+These are call counts, not evidence that production keys were used.
+Local Windows diagnostic runs on 2026-09-05 recorded 1,697 historical witness
+verifications for 25 events and 5,872 for 50 events. Their seed timings were
+5.70 and 14.98 seconds; other validation was running concurrently, so these
+are not isolated throughput benchmarks. The increasing verification work
+matches the current full-history validation on each witness read. Cold
+reopen still invoked the snapshot verifier and no historical domain-event
+verifier in both runs. Any optimization must preserve current authority
+revalidation and detection of changed history; passing these small workloads
+does not establish the 250,000-event capacity boundary.

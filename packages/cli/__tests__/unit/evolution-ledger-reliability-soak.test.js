@@ -29,6 +29,18 @@ describe("EvolutionLedger reliability soak driver", () => {
     expect(report.seedPid).not.toBe(report.reopenPid);
     expect(report.reopenMaxRssKiB).toBeGreaterThan(0);
     expect(report.reopenMs).toBeLessThan(60_000);
+    expect(
+      report.seedVerificationCounts["ledger-restart:domain-event"],
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      report.seedVerificationCounts["witness-restart:evolution-ledger-witness"],
+    ).toBeGreaterThan(0);
+    expect(
+      report.reopenVerificationCounts["ledger-restart:domain-event"] ?? 0,
+    ).toBe(0);
+    expect(
+      report.reopenVerificationCounts["ledger-restart:state-snapshot"],
+    ).toBeGreaterThan(0);
   }, 90_000);
 
   it.each([0, -1, 10_001, 1.5, NaN, Infinity, "1000"])(

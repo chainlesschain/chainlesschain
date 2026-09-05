@@ -666,6 +666,10 @@ Maintainer 和 Proposer 默认只应拥有读取指定证据、写 candidate 的
 
 后续跨进程故障验证批次新增显式 `test:evolution-ledger-reliability-soak` 仓库命令，复用真实 File Backend/签名 witness，而非以 JSON 指针替代实际账本。`--fault-rounds 100` 已在 Windows 完成 **100/100** 轮、约 **234.7 秒**：segment-link、segment、anchor-link、anchor 各 17 轮，witness 与 HEAD 各 16 轮；每轮独立临时目录与 4 个顺序 OS 进程，追加在指定边界以 exit 86 强退，新进程重验恢复，再次重开验证 head/witness/事件数不变。68 轮 witness 前失败仅保留原 head，32 轮 witness 后失败恢复且只提交一次。正式回归为 6 个文件 **88/88**；大规模长链移至显式 `--events 1000`，普通回归仅执行真实小规模 driver 与六个强退窗口，不把长测尚未结束的过程计为通过。脚本的测试 HMAC、artifact resolver、Windows directory-fsync 兼容层不是生产 PKI、独立故障域或断电耐久性证据；这 100 轮也不能替代原路线要求的 DB/磁盘满/Hook/Eval 混合故障与自动晋级整链验收。运行方法及资源/证据边界见 [CLI reliability soak](cli/CLI_RELIABILITY_SOAK.md#evolutionledger-repository-checks)。P0-5 继续核对长链与资源范围，尚不升级为仓库闭环。
 
+2026-09-05 长链结果补记：原 1,000-event 集成试验最终 **2/2 通过**（含既有空账本跨进程重开用例），整组耗时 **1,612.04 秒，约 26 分 52 秒**；这不是 seed 单项精确计时。试验验证 1,000 条真实 append 后的签名 snapshot、不同 PID 冷重开、首/中/末事件、同一 head、历史 domain-event 验签调用为零且 snapshot 验签确实执行，以及旧 segment 和 witness 篡改的拒绝。冷重开的断言门为 `<60s`、峰值 RSS `<512 MiB`，子进程 V8 heap 为 256 MiB；成功终端只保留整组耗时，因此不补造此次冷重开的精确耗时或 RSS。长测运行期间测试入口已移至上述独立 soak 命令；同一 backend/fixture 路径的小规模 driver 已独立复核，未把未完成的旧进程重启成一个更小测试。追加复核 Promotion Controller **18/18**，仅证明其 fixture 条件下的摘要/授权绑定、并发单写者和回滚保护，不代替部署自动晋级验收。
+
+规模诊断仍显示仓库内余项：新增报告保留 seed/reopen 按 authority/purpose 分类的验签次数；25 条、50 条实际命令分别通过，但历史 witness 验签由 **1,697** 增至 **5,872**（约 3.46 倍），与每次读取重验完整 history 的源码路径一致。对应 seed 为 5.70s、14.98s，运行有并发负载，不当作隔离性能基准。1,000 条通过不能外推 250,000 条容量、整体资源上限或生产吞吐；P0-5 仍须处理规模增长成本，因此不能仅按“外部部署待定”升级为仓库闭环。下一步优化须保留当前 authority 校验、历史篡改检测和 witness 单调性，不能为速度跳过验证。
+
 ## 6. P1：建立统一演化控制面
 
 ### 6.1 EVO-P1-1：Canonical Raw/Wiki/Skill 架构
