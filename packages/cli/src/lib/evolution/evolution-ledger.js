@@ -6,6 +6,11 @@ import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import {
+  assertKnowledgeWikiSourceAdmission,
+  WIKI_SOURCE_ADMISSION_INVALID_CODE,
+  WIKI_SOURCE_REVOKED_CODE,
+} from "./knowledge-wiki-source-admission.js";
 
 export const EVOLUTION_LEDGER_EVENT_SCHEMA =
   "chainlesschain.evolution-event/v2";
@@ -4447,6 +4452,44 @@ export class EvolutionLedger {
             "CC_EVOLUTION_LEDGER_CAPACITY_EXCEEDED",
             "evolution ledger capacity is exhausted",
           );
+        }
+        // Mandatory Wiki admission is inside the genuine Ledger write lock,
+        // after current-state authentication and before any event is signed or
+        // persisted. Raw domain append callers and adapters share this fence.
+        if (domainEvent && normalized.type === "wiki.revision.committed") {
+          try {
+            assertKnowledgeWikiSourceAdmission({
+              input: normalized,
+              events: current.events,
+              resolveSubject: (entry) => {
+                const evidence = this.#resolveArtifactEvidence(
+                  { ...entry, sourceRefs: [] },
+                  current.identity,
+                  { includeBytes: true },
+                );
+                const subject = evidence.artifacts.find(
+                  (artifact) =>
+                    artifact.artifactRef.ref === entry.subjectRef.ref &&
+                    artifact.artifactRef.digest === entry.subjectRef.digest,
+                );
+                if (!subject)
+                  throw ledgerError(
+                    WIKI_SOURCE_ADMISSION_INVALID_CODE,
+                    "Wiki admission subject was not resolved",
+                  );
+                return Buffer.from(subject.bytesBase64, "base64");
+              },
+            });
+          } catch (cause) {
+            if (cause instanceof EvolutionLedgerError) throw cause;
+            throw ledgerError(
+              cause?.code === WIKI_SOURCE_REVOKED_CODE
+                ? WIKI_SOURCE_REVOKED_CODE
+                : WIKI_SOURCE_ADMISSION_INVALID_CODE,
+              "Wiki source admission rejected the proposed revision",
+              { cause },
+            );
+          }
         }
         const artifactValidationDigest = this.#resolveArtifacts(
           normalized,

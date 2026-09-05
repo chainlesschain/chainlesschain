@@ -21,31 +21,30 @@ import {
   verifyGovernedKnowledgeRecord,
 } from "./governed-knowledge-sync.js";
 
-export const GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA =
-  "chainlesschain.governed-knowledge-dependencies-prepared/v1";
+import {
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA,
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+  GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT_CODE,
+  digestGovernedKnowledgeDependencyOperation,
+  verifyGovernedKnowledgeDependencyPrepared,
+} from "./governed-knowledge-revocation-record.js";
+export {
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA,
+  GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+  GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT_CODE,
+  digestGovernedKnowledgeDependencyOperation,
+  verifyGovernedKnowledgeDependencyPrepared,
+} from "./governed-knowledge-revocation-record.js";
+
 export const GOVERNED_KNOWLEDGE_DEPENDENCY_SETTLED_SCHEMA =
   "chainlesschain.governed-knowledge-dependencies-settled/v1";
-export const GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE =
-  "knowledge.revocation-dependencies.prepared";
 export const GOVERNED_KNOWLEDGE_DEPENDENCY_SETTLED_EVENT_TYPE =
   "knowledge.revocation-dependencies.settled";
-export const GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT_CODE =
-  "CC_GOVERNED_KNOWLEDGE_DEPENDENCY_LEDGER_CORRUPT";
-
 const EXECUTORS = new WeakSet();
 const EXECUTION_REQUESTS = new WeakMap();
 const ARTIFACT_TYPE = "governed-knowledge-dependency-operation";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
-const PREPARED_KEYS = new Set([
-  "deviceId",
-  "knowledge",
-  "operationDigest",
-  "preparedAt",
-  "recordDigest",
-  "schema",
-  "tenantId",
-]);
 const SETTLED_KEYS = new Set([
   "deviceId",
   "operationDigest",
@@ -174,29 +173,6 @@ function descriptor(input) {
   });
 }
 
-export function digestGovernedKnowledgeDependencyOperation({
-  tenantId,
-  deviceId,
-  knowledge,
-}) {
-  return hash(GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA, {
-    tenantId,
-    deviceId,
-    knowledge,
-  });
-}
-
-function preparedCore(value) {
-  return {
-    schema: value.schema,
-    tenantId: value.tenantId,
-    deviceId: value.deviceId,
-    operationDigest: value.operationDigest,
-    knowledge: value.knowledge,
-    preparedAt: value.preparedAt,
-  };
-}
-
 function settledCore(value) {
   return {
     schema: value.schema,
@@ -252,35 +228,6 @@ function validateResult(
     value.resultDigest !== digestGovernedKnowledgeDependencyResult(value)
   ) {
     corrupt("dependency execution result is not exactly bound");
-  }
-  return freeze(clone(value));
-}
-
-export function verifyGovernedKnowledgeDependencyPrepared(
-  value,
-  descriptorValue,
-) {
-  exact(value, PREPARED_KEYS, "dependency prepared record");
-  identifier(value.deviceId, "dependency prepared deviceId");
-  const knowledge = verifyGovernedKnowledgeRecord(value.knowledge, {
-    tenantId: descriptorValue.tenantId,
-  });
-  const operationDigest = digestGovernedKnowledgeDependencyOperation({
-    tenantId: descriptorValue.tenantId,
-    deviceId: descriptorValue.deviceId,
-    knowledge,
-  });
-  if (
-    value.schema !== GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA ||
-    value.tenantId !== descriptorValue.tenantId ||
-    value.deviceId !== descriptorValue.deviceId ||
-    !["tombstone", "revoke"].includes(knowledge.action) ||
-    value.operationDigest !== operationDigest ||
-    !Number.isFinite(Date.parse(value.preparedAt)) ||
-    value.recordDigest !==
-      hash(GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_SCHEMA, preparedCore(value))
-  ) {
-    corrupt("dependency prepared record is invalid");
   }
   return freeze(clone(value));
 }

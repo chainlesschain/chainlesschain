@@ -8,10 +8,14 @@ import {
   digestWikiState as D,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
 
-export function openKnowledgeWikiProvenance(resources, source) {
+export function openKnowledgeWikiProvenance(
+  resources,
+  source,
+  { evolutionRunId = "knowledge-source-wiki" } = {},
+) {
   const descriptor = {
     ...resources.descriptor,
-    evolutionRunId: "knowledge-source-wiki",
+    evolutionRunId,
   };
   const adapter = new WikiMaintainerLedgerAdapter({
     descriptor,
