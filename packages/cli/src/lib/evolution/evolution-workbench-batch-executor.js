@@ -1,175 +1,134 @@
-import { createHash } from "node:crypto";
-
+import { types } from "node:util";
 import {
-  EVOLUTION_WORKBENCH_BATCH_PLAN_SCHEMA,
-  filterEvolutionWorkbenchProjection,
-} from "./evolution-workbench-projection.js";
-import { verifySkillPromotionReviewPacketArtifact } from "./skill-promotion-review.js";
-
-export const EVOLUTION_WORKBENCH_BATCH_ITEM_REQUEST_SCHEMA =
-  "chainlesschain.evolution-workbench-batch-item-request/v1";
-export const EVOLUTION_WORKBENCH_BATCH_EXECUTION_SCHEMA =
-  "chainlesschain.evolution-workbench-batch-execution/v1";
-
-const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-
-function canonical(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  return `{${Object.keys(value)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
-    .join(",")}}`;
-}
-
-function hash(domain, value) {
-  return `sha256:${createHash("sha256")
-    .update(domain)
-    .update("\0")
-    .update(canonical(value))
-    .digest("hex")}`;
-}
-
-function clone(value) {
-  return value == null ? value : structuredClone(value);
-}
-
-function freeze(value) {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
-    Object.freeze(value);
-    for (const child of Object.values(value)) freeze(child);
-  }
-  return value;
-}
-
-function verifyPlan(input, tenantId) {
-  if (
-    input?.schema !== EVOLUTION_WORKBENCH_BATCH_PLAN_SCHEMA ||
-    input.tenantId !== tenantId ||
-    !DIGEST.test(input?.planDigest ?? "")
-  )
-    throw new TypeError("Workbench batch plan is invalid");
-  const core = clone(input);
-  delete core.planDigest;
-  if (hash(EVOLUTION_WORKBENCH_BATCH_PLAN_SCHEMA, core) !== input.planDigest)
-    throw new Error("Workbench batch plan digest is invalid");
-  return freeze(clone(input));
-}
-
-function itemRequest(plan, packet) {
-  const core = {
-    schema: EVOLUTION_WORKBENCH_BATCH_ITEM_REQUEST_SCHEMA,
-    tenantId: plan.tenantId,
-    planDigest: plan.planDigest,
-    sourceProjectionDigest: plan.sourceProjectionDigest,
-    packetDigest: packet.packetDigest,
-    candidateId: packet.candidateId,
-    candidateContentDigest: packet.candidateContentDigest,
-    decision: plan.decision,
-    reason: plan.reason,
-    requestedBy: plan.requestedBy,
-    requiredHumanQuorum: packet.requiredHumanQuorum,
-    contentRiskDigest: packet.contentRisk.contentRiskDigest,
-    contentRiskDetected: packet.contentRisk.detected,
-  };
-  return freeze({
-    ...core,
-    requestDigest: hash(EVOLUTION_WORKBENCH_BATCH_ITEM_REQUEST_SCHEMA, core),
-  });
-}
+  verifyWorkbenchBatchPlan,
+  buildWorkbenchBatchItemRequest,
+  verifyWorkbenchHumanDecisionResponse,
+  buildWorkbenchExecutionItem,
+  buildWorkbenchBatchExecution,
+} from "./evolution-workbench-review-protocol.js";
+import { capturePruningData as captureData } from "./governed-wiki-pruning-journal.js";
+export {
+  EVOLUTION_WORKBENCH_BATCH_ITEM_REQUEST_SCHEMA,
+  EVOLUTION_WORKBENCH_BATCH_EXECUTION_SCHEMA,
+} from "./evolution-workbench-review-protocol.js";
 
 export class EvolutionWorkbenchBatchExecutor {
-  constructor({ tenantId, ports } = {}) {
+  constructor({ tenantId, ports, now = Date.now } = {}) {
     if (typeof tenantId !== "string" || tenantId.trim() === "")
       throw new TypeError("tenantId is required");
+    if (typeof now !== "function" || types.isProxy(now))
+      throw new TypeError("Workbench clock is required");
+    if (!ports || typeof ports !== "object" || types.isProxy(ports))
+      throw new TypeError("Workbench ports must be fixed own methods");
     this.tenantId = tenantId;
+    this._now = now;
     for (const name of [
       "loadProjection",
       "resolvePacket",
+      "loadExecutionItem",
       "requestHumanDecision",
+      "verifyHumanDecision",
+      "prepareDecision",
       "retainDecision",
       "commitExecutionItem",
     ]) {
-      if (typeof ports?.[name] !== "function")
+      const method = Object.getOwnPropertyDescriptor(ports, name)?.value;
+      if (typeof method !== "function" || types.isProxy(method))
         throw new TypeError(
           `Workbench batch executor port ${name} is required`,
         );
-      this[`_${name}`] = ports[name].bind(ports);
+      this[`_${name}`] = method.bind(ports);
     }
+    Object.freeze(this);
   }
 
   async execute(input) {
-    const plan = verifyPlan(input, this.tenantId);
-    const projection = await this._loadProjection({
-      tenantId: this.tenantId,
-      projectionDigest: plan.sourceProjectionDigest,
-    });
-    filterEvolutionWorkbenchProjection(projection, { limit: 1 });
-    if (
-      projection.tenantId !== plan.tenantId ||
-      projection.runId !== plan.runId ||
-      projection.skillName !== plan.skillName ||
-      projection.projectionDigest !== plan.sourceProjectionDigest
-    )
-      throw new Error("Workbench batch source projection changed");
+    const plan = verifyWorkbenchBatchPlan(input, this.tenantId);
+    const projection = captureData(
+      await this._loadProjection({
+        tenantId: this.tenantId,
+        projectionDigest: plan.sourceProjectionDigest,
+      }),
+    );
+    verifyWorkbenchBatchPlan(plan, this.tenantId, projection);
     const pending = new Map(
-      projection.candidates
-        .filter(({ status }) => status === "pending")
-        .map((candidate) => [candidate.packetDigest, candidate]),
+      projection.candidates.map((candidate) => [
+        candidate.packetDigest,
+        candidate,
+      ]),
     );
     const items = [];
     for (const packetDigest of plan.packetDigests) {
-      if (!pending.has(packetDigest))
-        throw new Error("Workbench batch packet is no longer pending");
-      const packet = verifySkillPromotionReviewPacketArtifact(
+      const packet = captureData(
         await this._resolvePacket({ tenantId: this.tenantId, packetDigest }),
       );
+      const request = buildWorkbenchBatchItemRequest(plan, packet);
       if (
-        packet.packetDigest !== packetDigest ||
-        packet.candidateId !== pending.get(packetDigest).candidateId
+        packet.candidateId !== pending.get(packetDigest)?.candidateId ||
+        packet.candidateContentDigest !==
+          pending.get(packetDigest)?.candidateContentDigest
       )
         throw new Error("Workbench batch packet was substituted");
-      const request = itemRequest(plan, packet);
-      const decision = await this._requestHumanDecision(request);
-      const expectedDecision =
-        plan.decision === "approve" ? "approved" : "rejected";
+      const stored = captureData(
+        await this._loadExecutionItem({ plan, request }),
+      );
       if (
-        decision?.tenantId !== this.tenantId ||
-        decision.packetDigest !== packetDigest ||
-        decision.candidateId !== packet.candidateId ||
-        decision.decision !== expectedDecision ||
-        decision.automated !== false ||
-        decision.reason !== plan.reason ||
-        decision.requestDigest !== request.requestDigest ||
-        !DIGEST.test(decision.receiptDigest ?? "") ||
-        typeof decision.signature !== "string" ||
-        decision.signature.length < 32
+        stored &&
+        !["prepared", "applied", "committed"].includes(stored.status)
       )
-        throw new Error("Workbench batch human decision is not exactly bound");
+        throw new Error("Workbench execution state is invalid");
+      const raw =
+        stored?.response ?? (await this._requestHumanDecision(request));
+      // Historical freshness is allowed only for an effect the fixed durable
+      // reader has already observed. An unapplied expired approval cannot run.
+      const historical =
+        stored?.status === "applied" || stored?.status === "committed";
+      const response = verifyWorkbenchHumanDecisionResponse(
+        raw,
+        request,
+        packet,
+        historical ? Date.parse(raw.decision?.decidedAt) : Number(this._now()),
+      );
+      if ((await this._verifyHumanDecision({ request, response })) !== true)
+        throw new Error(
+          "Workbench human decision signature verification failed",
+        );
+      const item = buildWorkbenchExecutionItem(request, response);
+      if (stored?.status === "committed") {
+        if (stored.item?.itemDigest !== item.itemDigest)
+          throw new Error("Workbench durable execution item differs");
+        items.push(item);
+        continue;
+      }
+      if (!stored) {
+        const prepared = await this._prepareDecision({
+          plan,
+          request,
+          response,
+        });
+        if (
+          prepared?.authenticated !== true ||
+          prepared.durable !== true ||
+          prepared.responseDigest !== response.responseDigest
+        )
+          throw new Error("Workbench human decision was not durably prepared");
+      }
       const retained = await this._retainDecision({
+        plan,
         packetDigest,
-        decision,
+        decision: response.decision,
+        request,
+        response,
       });
       if (
         retained?.persisted !== true ||
-        retained.receiptDigest !== decision.receiptDigest
+        retained.receiptDigest !== response.decision.receiptDigest
       )
         throw new Error("Workbench batch decision was not durably retained");
-      const itemCore = {
-        packetDigest,
-        requestDigest: request.requestDigest,
-        decisionReceiptDigest: decision.receiptDigest,
-      };
-      const item = freeze({
-        ...itemCore,
-        itemDigest: hash(
-          "chainlesschain.evolution-workbench-batch-execution-item/v1",
-          itemCore,
-        ),
-      });
       const committed = await this._commitExecutionItem({
-        tenantId: this.tenantId,
-        planDigest: plan.planDigest,
+        plan,
+        request,
+        response,
         item,
       });
       if (
@@ -178,18 +137,16 @@ export class EvolutionWorkbenchBatchExecutor {
         committed.itemDigest !== item.itemDigest
       )
         throw new Error("Workbench batch execution item was not committed");
+      const readback = await this._loadExecutionItem({ plan, request });
+      if (
+        readback?.status !== "committed" ||
+        readback.item?.itemDigest !== item.itemDigest
+      )
+        throw new Error(
+          "Workbench batch execution item was not durably read back",
+        );
       items.push(item);
     }
-    const core = {
-      schema: EVOLUTION_WORKBENCH_BATCH_EXECUTION_SCHEMA,
-      tenantId: this.tenantId,
-      planDigest: plan.planDigest,
-      sourceProjectionDigest: plan.sourceProjectionDigest,
-      items,
-    };
-    return freeze({
-      ...core,
-      executionDigest: hash(EVOLUTION_WORKBENCH_BATCH_EXECUTION_SCHEMA, core),
-    });
+    return buildWorkbenchBatchExecution(plan, captureData(items));
   }
 }

@@ -603,6 +603,9 @@ describe("EvolutionArtifactPorts", () => {
       "skill-mutation-nonce-claim",
       "skill-promotion-review-decision",
       "skill-promotion-review-packet",
+      "evolution-workbench-projection",
+      "evolution-workbench-review-preparation",
+      "evolution-workbench-review-settlement",
       "skill-registry-transition-attempt",
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
@@ -762,6 +765,24 @@ describe("EvolutionArtifactPorts", () => {
   });
 
   it("denies caller-selected infinite retention without an approved type, purpose, and authority", () => {
+    for (const type of [
+      "evolution-workbench-projection",
+      "evolution-workbench-review-preparation",
+      "evolution-workbench-review-settlement",
+    ]) {
+      expect(
+        capturedError(() =>
+          ports.putCanonical(
+            type,
+            { denied: true },
+            {
+              purpose: "skill-mutation",
+              retention: "ledger",
+            },
+          ),
+        ).code,
+      ).toBe(EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE);
+    }
     expect(
       capturedError(() =>
         ports.putCanonical(

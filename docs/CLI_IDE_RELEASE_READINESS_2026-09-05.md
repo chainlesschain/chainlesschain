@@ -12,6 +12,12 @@
 
 本轮实际执行 `node packages/cli/bin/chainlesschain.js evolution workbench list --limit 1` 返回退出码 1：`Evolution Workbench is unavailable: a trusted deployment host is required`。这是当前命令环境的真实未配置状态，不是启动验收通过；没有为消除提示而注入假宿主或启用审核/回滚。
 
+2026-09-06 的启动接线批次已补上实际 Workbench Review Ledger 适配器与签名部署工厂：逐项人工响应采用独立签名外层，原 canonical Review decision 不增删字段；投影/preparation/真实决策/settlement 均有持久认证与跨进程恢复。CLI 13 文件最终 149 通过、1 项既有平台跳过。该结果只证明审核运行时这一段，真实身份、active-state/Registry 回滚、完整宿主和 IDE 环境联调仍未完成。详见 [接线合同与恢复边界](EVOLUTION_WORKBENCH_REVIEW_RUNTIME.md)。
+
+批处理成功回执现为 v2，JetBrains 新源码兼容 v1/v2 的终态显示；旧已安装插件不随本地源码自动更新。后续 CLI/IDE 发布应明确该合同变化，插件推荐版本仍等 CLI 真正发布后再调整。
+
+JetBrains 使用本机完整 JDK 21 运行 Gradle 定向任务，完成插件源码编译并通过 `EvolutionWorkbenchTest` **6/6**。最初默认工具链和另一不完整 JDK 目录均未被 Gradle 识别，未将这些失败计为通过；最终成功使用 `chainlesschain-temurin21/jdk-21.0.12+8`。没有修改系统 Java 配置或已安装插件。
+
 ## 子 npm 包必须先核对
 
 2026-09-05 在本地提交 `db473898ab` 上，对 13 个 CLI 子包逐一比较 npm 已发布 tarball 与仓库声明的发布文件（文本比较只归一化 CRLF）。结果不能用“本地版本号已经存在”代替：
@@ -50,5 +56,7 @@
 > 配套 CLI：`待发布版本`。本轮 CLI 完善受控 Knowledge 撤销：真实 Skill 回滚、候选拒绝及持久准入阻断；基于已知直接 / Wiki 来源的晋升、回滚和迁移防复活；指定 Wiki 原始状态的定点 tombstone、独立效果回读和联合结算；真实账本提交处的后续 Wiki 写入阻断及多级 Wiki 来源追踪；已有多级 Wiki 派生 Skill 的原始来源复核、安全回滚及候选拒绝，覆盖负面证据和来源摘要别名；并发写入保护与进程退出后的幂等恢复。
 >
 > 这些是受控演化后端能力。IDE 只展示实际宿主提供的能力，未配置 authority 的功能仍保持 unavailable，不代表默认启用了无人值守晋升、完整跨设备知识治理或隐私物理删除。
+
+> Workbench 审核新增真实账本持久化及重启恢复：人工请求绑定与原审核决策分别验签，过期且未执行的审批拒绝执行，已经落账的项不重复要求人工或重复记账；JetBrains 配套支持新的 v2 批审完成回执。该项不代表默认部署已启用审核或回滚。
 
 最终说明应结合实际发布差异删减，明确哪些是 CLI 后端变更、哪些是 IDE 自身变更，不将未接通的产品入口标为可用。

@@ -141,6 +141,8 @@ describe("signed evolution deployment loader", () => {
         revision: descriptor.revision,
         factoryAvailable:
           typeof factories.createEvolutionWorkbenchCliHost === "function",
+        reviewRuntimeAvailable:
+          typeof factories.createEvolutionWorkbenchReviewRuntime === "function",
         benchmarkFactoriesAvailable: [
           "createWikiSkillBenchmarkCliHost",
           "createWikiSkillBenchmarkDatasetProvider",
@@ -166,6 +168,7 @@ describe("signed evolution deployment loader", () => {
         commandName: "evolution",
         revision: 7,
         factoryAvailable: true,
+        reviewRuntimeAvailable: true,
         benchmarkFactoriesAvailable: true,
       },
     });
@@ -176,6 +179,30 @@ describe("signed evolution deployment loader", () => {
       ),
     );
   });
+
+  it.each(["evolution", "serve"])(
+    "pins the Workbench review runtime to the signed %s deployment module",
+    async (commandName) => {
+      const fixture = deploymentFixture({ commands: [commandName] });
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...fixture,
+          importModule: async () => ({
+            createChainlessChainCommandDependencies: async ({ factories }) => {
+              factories.createEvolutionWorkbenchReviewRuntime({
+                descriptor: {
+                  handlerArtifactDigest: "sha256:" + "0".repeat(64),
+                },
+              });
+              return {};
+            },
+          }),
+        }),
+      ).rejects.toThrow(
+        "handlerArtifactDigest must equal the authenticated deployment module digest",
+      );
+    },
+  );
 
   it("binds Benchmark provider callables and manifests to the authenticated module bytes", async () => {
     const fixture = deploymentFixture({ commands: ["evolution"] });

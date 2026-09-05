@@ -302,6 +302,9 @@ export class SkillPromotionReviewLedgerAdapter {
     ) {
       throw new Error("review decision signature verification failed");
     }
+    // The verifier may perform I/O. Do not commit an approval whose lease
+    // expired while that verification was in flight.
+    verifySkillPromotionReviewDecision(decision, packet, Number(this._now()));
     const decisionsForPacket = this._decisionEntries().filter(
       ({ decision: stored }) => stored.packetDigest === packet.packetDigest,
     );
@@ -402,6 +405,67 @@ export class SkillPromotionReviewLedgerAdapter {
       );
     }
     return Object.freeze(output);
+  }
+
+  // Historical evidence is not a fresh approval. Workbench recovery may use
+  // this only to reconcile an effect already committed to this exact Ledger.
+  async readReview(packetDigest) {
+    if (!DIGEST.test(packetDigest ?? ""))
+      throw new TypeError("packetDigest is required");
+    const head = this._verifyLedger();
+    const { packet, event: packetEvent } = this._packetByDigest(packetDigest);
+    const matches = this._decisionEntries().filter(
+      ({ decision }) => decision.packetDigest === packetDigest,
+    );
+    if (matches.length > 1) corrupt("review packet has conflicting decisions");
+    const entry = matches[0] ?? null;
+    for (const event of [packetEvent, entry?.event].filter(Boolean)) {
+      if (
+        event.artifactTenantId !== this.descriptor.artifactTenantId ||
+        event.skillName !== packet.skillName ||
+        packet.tenantId !== this.descriptor.tenantId
+      )
+        corrupt("review evidence crossed its durable scope");
+    }
+    if (
+      packetEvent.decision !== "proposed" ||
+      packetEvent.sourceRefs.length !== 0
+    )
+      corrupt("review packet lineage is invalid");
+    if (entry) {
+      verifySkillPromotionReviewDecision(
+        entry.decision,
+        packet,
+        Date.parse(entry.decision.decidedAt),
+      );
+      if (
+        entry.event.sequence <= packetEvent.sequence ||
+        entry.event.timestamp !== entry.decision.decidedAt ||
+        entry.event.reason !== entry.decision.reason ||
+        entry.event.decision !==
+          (entry.decision.decision === "approved" ? "accepted" : "rejected")
+      )
+        corrupt("review decision event binding is invalid");
+      if (
+        (await this._verifyDecisionSignature({
+          decision: entry.decision,
+          packet,
+          source: "workbench-recovery",
+          ledgerEventDigest: entry.event.eventDigest,
+        })) !== true
+      )
+        throw new Error("review decision signature verification failed");
+    }
+    if (this._verifyLedger().headDigest !== head.headDigest)
+      corrupt("review Ledger changed during evidence authentication");
+    return Object.freeze({
+      packet,
+      packetRef: packetEvent.subjectRef,
+      packetSequence: packetEvent.sequence,
+      decision: entry?.decision ?? null,
+      decisionRef: entry?.event.subjectRef ?? null,
+      decisionSequence: entry?.event.sequence ?? null,
+    });
   }
 
   createDecisionResolver() {

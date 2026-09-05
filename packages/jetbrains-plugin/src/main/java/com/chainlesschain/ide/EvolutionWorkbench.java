@@ -17,6 +17,8 @@ public final class EvolutionWorkbench {
             "chainlesschain.evolution-workbench-version-comparison/v1";
     public static final String BATCH_EXECUTION_SCHEMA =
             "chainlesschain.evolution-workbench-batch-execution/v1";
+    public static final String BATCH_EXECUTION_V2_SCHEMA =
+            "chainlesschain.evolution-workbench-batch-execution/v2";
     public static final String ROLLBACK_RECEIPT_SCHEMA =
             "chainlesschain.evolution-workbench-rollback-receipt/v1";
     public static final int MAX_CANDIDATES = 500;
@@ -213,7 +215,9 @@ public final class EvolutionWorkbench {
             Map<String, Object> root = MiniJson.parseObject(json);
             String schema = text(root.get("schema"), 128);
             String terminalDigest;
-            if (BATCH_EXECUTION_SCHEMA.equals(schema)) {
+            // Compatibility is for the CLI's terminal display only. The IDE
+            // never turns either receipt into approval/Registry authority.
+            if (BATCH_EXECUTION_SCHEMA.equals(schema) || BATCH_EXECUTION_V2_SCHEMA.equals(schema)) {
                 terminalDigest = digest(root.get("executionDigest"));
             } else if (ROLLBACK_RECEIPT_SCHEMA.equals(schema)) {
                 terminalDigest = digest(root.get("receiptDigest"));

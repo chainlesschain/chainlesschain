@@ -172,5 +172,15 @@ final class EvolutionWorkbenchTest {
                 digest('d') + "\"}"));
         assertNull(EvolutionWorkbench.parseMutationPlanDigest(
                 "{\"planDigest\":\"" + digest('c') + "\"}"));
+        assertEquals(digest('c'), EvolutionWorkbench.parseMutationPlanDigest(
+                "{\"schema\":\"" + EvolutionWorkbench.BATCH_EXECUTION_V2_SCHEMA +
+                "\",\"planDigest\":\"" + digest('c') +
+                "\",\"executionDigest\":\"" + digest('d') + "\"}"));
+        assertNull(EvolutionWorkbench.parseMutationPlanDigest(
+                "{\"schema\":\"" + EvolutionWorkbench.BATCH_EXECUTION_V2_SCHEMA +
+                "\",\"planDigest\":\"" + digest('c') + "\"}"));
+        assertNull(EvolutionWorkbench.parseMutationPlanDigest(
+                "{\"schema\":\"chainlesschain.evolution-workbench-batch-execution/v3\","
+                + "\"planDigest\":\"" + digest('c') + "\",\"executionDigest\":\"" + digest('d') + "\"}"));
     }
 }
