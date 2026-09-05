@@ -546,7 +546,38 @@ export class WikiMaintainerLedgerAdapter {
     });
   }
 
-  commitRevision = ({ expectedStateDigest, revision } = {}) => {
+  commitRevision = ({
+    expectedStateDigest,
+    revision,
+    expectedLedgerHead,
+  } = {}) => {
+    const headKeys = [
+      "epoch",
+      "ledgerId",
+      "identityDigest",
+      "sequence",
+      "headDigest",
+    ];
+    if (expectedLedgerHead !== undefined) {
+      if (
+        !expectedLedgerHead ||
+        typeof expectedLedgerHead !== "object" ||
+        Array.isArray(expectedLedgerHead) ||
+        Object.keys(expectedLedgerHead).length !== headKeys.length ||
+        headKeys.some((key) => !Object.hasOwn(expectedLedgerHead, key)) ||
+        typeof expectedLedgerHead.epoch !== "string" ||
+        typeof expectedLedgerHead.ledgerId !== "string" ||
+        !DIGEST.test(expectedLedgerHead.identityDigest ?? "") ||
+        !Number.isSafeInteger(expectedLedgerHead.sequence) ||
+        expectedLedgerHead.sequence < 0 ||
+        (expectedLedgerHead.sequence === 0
+          ? expectedLedgerHead.headDigest !== null
+          : !DIGEST.test(expectedLedgerHead.headDigest ?? ""))
+      ) {
+        throw new TypeError("Wiki expected ledger head is invalid");
+      }
+      expectedLedgerHead = Object.freeze({ ...expectedLedgerHead });
+    }
     if (
       !DIGEST.test(expectedStateDigest ?? "") ||
       revision?.schema !== WIKI_REVISION_SCHEMA ||
@@ -563,6 +594,15 @@ export class WikiMaintainerLedgerAdapter {
       structuredClone(verifyRevision(revision, this.descriptor)),
     );
     const { head, latest, state: currentState } = this.#history();
+    if (
+      expectedLedgerHead &&
+      headKeys.some((key) => expectedLedgerHead[key] !== head[key])
+    ) {
+      fail(
+        WIKI_LEDGER_CONFLICT_CODE,
+        "Wiki authorization ledger head changed before revision commit",
+      );
+    }
     const currentDigest = digestWikiState(currentState);
     if (currentDigest !== expectedStateDigest) {
       if (

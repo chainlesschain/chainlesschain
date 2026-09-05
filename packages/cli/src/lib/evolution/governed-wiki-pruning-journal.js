@@ -156,6 +156,10 @@ export function verifyPruningJournalPlan(input, tenantId) {
   return plan;
 }
 
+export function capturePruningData(input) {
+  return snapshot(input);
+}
+
 export function pruningOperationCalls(plan) {
   const steps = [
     ["dependency-dispositions", plan.dependencyDispositions],

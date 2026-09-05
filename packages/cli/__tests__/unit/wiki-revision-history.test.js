@@ -449,6 +449,52 @@ describe("authenticated Wiki revision history", () => {
     );
   });
 
+  it("rejects a stale authorization head even when the Wiki state itself did not change", () => {
+    const h = setup();
+    const fields = [
+      "epoch",
+      "ledgerId",
+      "identityDigest",
+      "sequence",
+      "headDigest",
+    ];
+    const captureHead = () => {
+      const head = h.backend.ledger.verify();
+      return Object.fromEntries(fields.map((key) => [key, head[key]]));
+    };
+    const expectedLedgerHead = captureHead();
+    const state = createEmptyWikiState(tenantId);
+    const revision = nextRevision(state);
+    appendUnchecked(h, revision, {
+      type: "other.event",
+      eventId: "other.authorization-change",
+    });
+    expect(h.adapter.loadWiki().stateDigest).toBe(hash(state));
+    expect(() =>
+      h.adapter.commitRevision({
+        expectedStateDigest: hash(state),
+        revision,
+        expectedLedgerHead,
+      }),
+    ).toThrow(/authorization ledger head/u);
+    expect(h.backend.ledger.verify().sequence).toBe(1);
+    expect(
+      h.adapter.commitRevision({
+        expectedStateDigest: hash(state),
+        revision,
+        expectedLedgerHead: captureHead(),
+      }).committed,
+    ).toBe(true);
+    expect(h.adapter.loadWiki().state.revision).toBe(1);
+    expect(() =>
+      h.adapter.commitRevision({
+        expectedStateDigest: hash(state),
+        revision,
+        expectedLedgerHead: { sequence: 0 },
+      }),
+    ).toThrow(/expected ledger head/u);
+  });
+
   it("rejects imitation readers and does not dispatch through subclass overrides", () => {
     const h = setup();
     class Substitution extends WikiMaintainerLedgerAdapter {

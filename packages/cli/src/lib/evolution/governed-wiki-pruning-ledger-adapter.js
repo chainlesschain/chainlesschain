@@ -153,6 +153,7 @@ export class GovernedWikiPruningLedgerAdapter {
       if (
         (await this.#verifyOperation({
           ...calls[index],
+          plan: state.plan,
           receipt,
           tenantId: this.descriptor.tenantId,
           streamId: this.descriptor.streamId,
@@ -282,7 +283,7 @@ export class GovernedWikiPruningLedgerAdapter {
     return { head, history };
   }
 
-  #resolution(entry) {
+  #resolution(entry, head) {
     return Object.freeze({
       authenticated: true,
       durable: true,
@@ -291,6 +292,8 @@ export class GovernedWikiPruningLedgerAdapter {
       streamId: this.descriptor.streamId,
       state: entry?.state ?? null,
       receiptDigest: entry?.event.eventDigest ?? null,
+      ledgerHead: currentContext(head).checkpoint,
+      checkpoint: entry ? historicalContext(entry.event).checkpoint : null,
     });
   }
 
@@ -304,12 +307,13 @@ export class GovernedWikiPruningLedgerAdapter {
       (planDigest !== null && !DIGEST.test(planDigest))
     )
       throw new TypeError("pruning journal load scope is invalid");
-    const { history } = await this.#history();
+    const { history, head } = await this.#history();
     return this.#resolution(
       (planDigest === null
         ? history
         : history.filter((entry) => entry.state.plan.planDigest === planDigest)
       ).at(-1),
+      head,
     );
   }
 
@@ -324,7 +328,7 @@ export class GovernedWikiPruningLedgerAdapter {
     const { history, head } = await this.#history();
     const previous = history.at(-1) ?? null;
     if (previous?.state.journalDigest === state.journalDigest)
-      return this.#resolution(previous);
+      return this.#resolution(previous, head);
     if ((previous?.state.journalDigest ?? null) !== expectedJournalDigest)
       conflict("pruning journal changed before commit");
     assertPruningJournalTransition(previous?.state ?? null, state);
@@ -384,12 +388,13 @@ export class GovernedWikiPruningLedgerAdapter {
       // Only authenticated readback may turn response loss into success.
       appendError = error;
     }
-    const recovered = (await this.#history()).history.at(-1);
+    const restored = await this.#history();
+    const recovered = restored.history.at(-1);
     if (recovered?.state.journalDigest !== state.journalDigest) {
       if (appendError) throw appendError;
       fail("pruning journal readback did not match commit");
     }
-    return this.#resolution(recovered);
+    return this.#resolution(recovered, restored.head);
   }
 }
 
