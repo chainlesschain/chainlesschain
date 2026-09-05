@@ -84,6 +84,7 @@ describe("createEvolutionFileWitness", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(root, { force: true, recursive: true });
   });
 
@@ -239,6 +240,226 @@ describe("createEvolutionFileWitness", () => {
     fs.writeFileSync(filePath, `${JSON.stringify(store)}\n`, "utf8");
     expect(() => create().read()).toThrow(/authentication|current state/u);
   });
+
+  function populatedWitness() {
+    const witness = create();
+    const genesis = witness.initialize({
+      expected: witness.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+    const head = witness.compareAndSwap({
+      expected: genesis,
+      next: snapshot(witnessId, 1),
+    });
+    witness.read();
+    return { witness, head, genesis };
+  }
+
+  it("reuses canonical encodings but reverifies every historical and current signature", () => {
+    const { witness, head } = populatedWitness();
+    const hashCalls = vi.spyOn(crypto, "createHash");
+    ports.verifier.verify.mockClear();
+    expect(witness.read()).toEqual(head);
+    expect(witness.read()).toEqual(head);
+    expect(hashCalls).not.toHaveBeenCalled();
+    // Absent genesis, committed genesis, head, and current pointer on EACH read.
+    expect(ports.verifier.verify).toHaveBeenCalledTimes(8);
+    const storeBytes = fs.readFileSync(filePath, "utf8");
+    expect(storeBytes).toBe(`${canonical(JSON.parse(storeBytes))}\n`);
+  });
+
+  it("rejects a revoked historical signature even when the current signature remains valid", () => {
+    const { witness, head, genesis } = populatedWitness();
+    const originalVerify = ports.verifier.verify.getMockImplementation();
+    ports.verifier.verify.mockImplementation(
+      (input) =>
+        input.signature.value !== genesis.signature.value &&
+        originalVerify(input),
+    );
+    // The independently signed latest record is still authorized.
+    expect(
+      originalVerify({
+        message: Buffer.from(
+          `chainlesschain.evolution-ledger-witness/v1\0${canonicalCore(head, "witnessDigest")}`,
+        ),
+        signature: head.signature,
+        trust: TRUST,
+      }),
+    ).toBe(true);
+    expect(() => witness.read()).toThrow(/authentication failed/u);
+    expect(() =>
+      witness.compareAndSwap({
+        expected: head,
+        next: snapshot(witnessId, 2),
+      }),
+    ).toThrow(/authentication failed/u);
+    ports.verifier.verify.mockImplementation(originalVerify);
+    expect(witness.read()).toEqual(head);
+  });
+
+  it("isolates cached data from returned records and verifier input mutation", () => {
+    const { witness, head } = populatedWitness();
+    const returned = witness.read();
+    returned.signature.value = "caller mutation";
+    returned.sequence = 99;
+    const originalVerify = ports.verifier.verify.getMockImplementation();
+    ports.verifier.verify.mockImplementation((input) => {
+      const result = originalVerify(input);
+      input.message.fill(0);
+      input.signature.value = "verifier mutation";
+      return result;
+    });
+    expect(witness.read()).toEqual(head);
+    expect(witness.read()).toEqual(head);
+    // Cover cold cache population too, not only cache hits.
+    const reopened = create();
+    expect(reopened.read()).toEqual(head);
+    expect(reopened.read()).toEqual(head);
+  });
+
+  it.each([
+    "algorithm",
+    "anchorDigest",
+    "authenticated",
+    "discardAccumulatorDigest",
+    "durable",
+    "epoch",
+    "generation",
+    "headDigest",
+    "identityDigest",
+    "keyId",
+    "ledgerId",
+    "payloadDigest",
+    "previousWitnessDigest",
+    "schema",
+    "segmentDigest",
+    "sequence",
+    "status",
+    "storeMarkerDigest",
+    "storeMarkerEntryDigest",
+    "storeMarkerId",
+    "trustPolicyDigest",
+    "witnessDigest",
+    "witnessId",
+    "signature.algorithm",
+    "signature.keyId",
+    "signature.trustPolicyDigest",
+    "signature.value",
+    "extra-field",
+    "missing-field",
+    "extra-signature-field",
+    "missing-signature-field",
+    "object-field",
+    "array-signature",
+    "null-signature",
+  ])("rejects warm-cache history tampering: %s", (field) => {
+    const { witness, head } = populatedWitness();
+    const original = fs.readFileSync(filePath, "utf8");
+    const store = JSON.parse(original);
+    const record = store.history[1];
+    if (field === "extra-field") record.extra = true;
+    else if (field === "missing-field") delete record.epoch;
+    else if (field === "extra-signature-field") record.signature.extra = true;
+    else if (field === "missing-signature-field") delete record.signature.value;
+    else if (field === "object-field") record.epoch = { epoch: record.epoch };
+    else if (field === "array-signature") record.signature = [record.signature];
+    else if (field === "null-signature") record.signature = null;
+    else if (field.startsWith("signature."))
+      record.signature[field.slice(10)] += "tampered";
+    else if (typeof record[field] === "number") record[field] += 1;
+    else if (typeof record[field] === "boolean") record[field] = !record[field];
+    else record[field] = `${record[field]}tampered`;
+    fs.writeFileSync(filePath, `${JSON.stringify(store)}\n`, "utf8");
+    expect(() => witness.read()).toThrow();
+    fs.writeFileSync(filePath, original, "utf8");
+    expect(witness.read()).toEqual(head);
+  });
+
+  it("checks same-size tampering with restored mtime on a warm cache", () => {
+    const { witness } = populatedWitness();
+    const stat = fs.statSync(filePath);
+    const store = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const oldDigest = store.history[1].anchorDigest;
+    store.history[1].anchorDigest = `${oldDigest.slice(0, -1)}${oldDigest.endsWith("0") ? "1" : "0"}`;
+    fs.writeFileSync(filePath, `${canonical(store)}\n`, "utf8");
+    fs.utimesSync(filePath, stat.atime, stat.mtime);
+    expect(fs.statSync(filePath).size).toBe(stat.size);
+    expect(() => witness.read()).toThrow(/authentication failed/u);
+  });
+
+  it("does not reuse a cached current record based only on its digest or key count", () => {
+    const { witness } = populatedWitness();
+    const original = fs.readFileSync(filePath, "utf8");
+    for (const target of ["current", "history"]) {
+      for (const signature of [false, true]) {
+        const store = JSON.parse(original);
+        const record = target === "current" ? store.current : store.history[1];
+        const fields = signature ? record.signature : record;
+        const field = signature ? "value" : "sequence";
+        fields.substituted = fields[field];
+        delete fields[field];
+        fs.writeFileSync(filePath, `${canonical(store)}\n`, "utf8");
+        expect(() => witness.read()).toThrow(/fields are invalid/u);
+      }
+    }
+  });
+
+  it.each([
+    { label: "entry count", records: 1100, paddedSignature: false },
+    { label: "retained text", records: 300, paddedSignature: true },
+  ])(
+    "bounds the encoding cache by $label and validates uncached records",
+    ({ records, paddedSignature }) => {
+      const { head } = populatedWitness();
+      const store = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      const signatureValue = (message) =>
+        paddedSignature ? hmac(message).padEnd(16_384, ".") : hmac(message);
+      const signRecord = (record) => {
+        const message = Buffer.from(
+          `chainlesschain.evolution-ledger-witness/v1\0${canonicalCore(record, "witnessDigest")}`,
+        );
+        record.witnessDigest = digest(message);
+        record.signature = { ...TRUST, value: signatureValue(message) };
+        return record;
+      };
+      const history = [signRecord(store.history[0])];
+      // Generate signed input once, without an O(N²) append loop in a unit test.
+      for (let generation = 1; generation <= records; generation += 1) {
+        history.push(
+          signRecord({
+            ...head,
+            generation,
+            previousWitnessDigest: history.at(-1).witnessDigest,
+          }),
+        );
+      }
+      store.history = history;
+      store.current = history.at(-1);
+      fs.writeFileSync(filePath, `${canonical(store)}\n`, "utf8");
+      const verifier = {
+        verify: vi.fn(
+          ({ message, signature }) =>
+            signature.value === signatureValue(message),
+        ),
+      };
+      const witness = create({ verifier });
+      expect(witness.read()).toEqual(store.current);
+      const hashCalls = vi.spyOn(crypto, "createHash");
+      verifier.verify.mockClear();
+      expect(witness.read()).toEqual(store.current);
+      expect(verifier.verify).toHaveBeenCalledTimes(records + 2);
+      if (paddedSignature) {
+        expect(hashCalls.mock.calls.length).toBeGreaterThan(0);
+        expect(hashCalls.mock.calls.length).toBeLessThan(records);
+      } else {
+        // Only the first 1,024 records fit; current is separately reverified.
+        expect(hashCalls).toHaveBeenCalledTimes(records + 2 - 1024);
+      }
+      store.history.at(-1).anchorDigest = digest("uncached tamper");
+      fs.writeFileSync(filePath, `${canonical(store)}\n`, "utf8");
+      expect(() => witness.read()).toThrow(/authentication failed/u);
+    },
+  );
 
   it.each(["grow", "truncate", "replace"])(
     "rejects a witness that changes during descriptor IO: %s",

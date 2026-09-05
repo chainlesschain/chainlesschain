@@ -141,3 +141,27 @@ reopen still invoked the snapshot verifier and no historical domain-event
 verifier in both runs. Any optimization must preserve current authority
 revalidation and detection of changed history; passing these small workloads
 does not establish the 250,000-event capacity boundary.
+
+The subsequent file-witness optimization caches canonical messages, digests
+already checked against those messages, and canonical record encodings only
+after full validation. Reuse requires the exact scalar fields and signature,
+not just a supplied digest or file timestamp. Every historical and current
+record still calls the current verifier on every read, with fresh message and
+signature inputs. Revoking an old signature therefore rejects the store even
+when its latest signature remains authorized. Cache admission is bounded by
+1,024 records and a conservative 16 MiB retained-text budget; entry overhead
+is separately bounded by the record count, not included in a process-RSS
+claim. Oversized or later records use the uncached validation path. Publishing
+preserves the existing canonical store bytes, fsync and atomic-replace steps.
+This reduces repeated encoding and hashing, not the full-history verifier
+call count or its asymptotic growth.
+
+The final cache implementation passed 129 related tests (six files), including
+51 file-witness cases. Warm-read tests assert zero repeated SHA-256 construction
+while preserving all verifier calls; negative cases exercise old-key revocation,
+field/signature substitution, same-size edits with restored mtime, input
+mutation and both cache admission limits. A subsequent 50-event run passed
+with seed 13.42 seconds, cold reopen 1.03 seconds and cold peak RSS 56,676 KiB;
+the 5,872 historical witness verifications were unchanged. It ran alongside
+regression and the 1,000-event soak, so neither this timing nor the earlier
+diagnostics establishes an isolated or fixed-factor throughput improvement.

@@ -19,6 +19,8 @@ const DISCARD_DOMAIN =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const DEFAULT_MAXIMUM_BYTES = 64 * 1024 * 1024;
+const MAXIMUM_CACHED_RECORDS = 1024;
+const MAXIMUM_CACHED_TEXT_BYTES = 16 * 1024 * 1024;
 const STORE_KEYS = new Set([
   "current",
   "discardedAnchors",
@@ -150,6 +152,29 @@ function clone(value) {
   return structuredClone(value);
 }
 
+function sameRecord(record, cached) {
+  if (
+    !record ||
+    typeof record !== "object" ||
+    Array.isArray(record) ||
+    Object.keys(record).length !== RECORD_KEYS.size ||
+    !record.signature ||
+    typeof record.signature !== "object" ||
+    Array.isArray(record.signature) ||
+    Object.keys(record.signature).length !== SIGNATURE_KEYS.size
+  ) {
+    return false;
+  }
+  for (const key of RECORD_KEYS) {
+    if (key !== "signature" && !Object.is(record[key], cached[key]))
+      return false;
+  }
+  for (const key of SIGNATURE_KEYS) {
+    if (!Object.is(record.signature[key], cached.signature[key])) return false;
+  }
+  return true;
+}
+
 export function createEvolutionFileWitness({
   id,
   filePath,
@@ -175,6 +200,52 @@ export function createEvolutionFileWitness({
   }
   const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
   ensurePrivateDirectory(directory, secureOptions);
+  // Cache immutable encodings, never an authority decision. Keep the earliest
+  // entries when full so full-history scans cannot churn the bounded cache.
+  const recordEncodings = new Map();
+  let cachedTextBytes = 0;
+  const cachedEncoding = (record) => {
+    const cached = recordEncodings.get(record?.witnessDigest);
+    return cached && sameRecord(record, cached.record) ? cached : null;
+  };
+  const rememberEncoding = (record, message) => {
+    if (
+      recordEncodings.size >= MAXIMUM_CACHED_RECORDS ||
+      recordEncodings.has(record.witnessDigest)
+    )
+      return;
+    // Only flat scalar records may share field values with the cache. Caller
+    // objects, signature objects and verifier buffers must never be retained.
+    for (const key of RECORD_KEYS) {
+      const value = record[key];
+      if (
+        key !== "signature" &&
+        value !== null &&
+        !["string", "number", "boolean"].includes(typeof value)
+      )
+        return;
+    }
+    for (const key of SIGNATURE_KEYS) {
+      if (typeof record.signature[key] !== "string") return;
+    }
+    const encoded = canonical(record);
+    // Conservatively charge UTF-16 strings plus the copied record's scalar
+    // strings (bounded by encoded.length). Entry count bounds object overhead;
+    // this is not a claim about the entire process's RSS.
+    const bytes = 2 * (message.length + 2 * encoded.length);
+    if (cachedTextBytes + bytes > MAXIMUM_CACHED_TEXT_BYTES) return;
+    // Decode from the small owned encoding so parser substring backing stores
+    // cannot retain the entire source history through one cached scalar/key.
+    const ownedRecord = JSON.parse(encoded);
+    recordEncodings.set(ownedRecord.witnessDigest, {
+      record: ownedRecord,
+      message,
+      encoded,
+    });
+    cachedTextBytes += bytes;
+  };
+  const encodeRecord = (record) =>
+    cachedEncoding(record)?.encoded ?? canonical(record);
 
   const signed = (domain, core, digestField, purpose) => {
     const message = Buffer.from(`${domain}${canonical(core)}`, "utf8");
@@ -195,20 +266,42 @@ export function createEvolutionFileWitness({
     });
   };
 
-  const verifySigned = (record, domain, digestField, purpose) => {
+  const verifySigned = (record) => {
+    const cached = cachedEncoding(record);
+    if (cached) {
+      // Reconsult the current verifier even for byte-identical historical
+      // records. Give it fresh mutable inputs, not the cached representation.
+      if (
+        verify({
+          message: Buffer.from(cached.message, "utf8"),
+          purpose: "evolution-ledger-witness",
+          signature: { ...record.signature },
+          trust,
+        }) !== true
+      ) {
+        throw new Error("witness record authentication failed");
+      }
+      return record;
+    }
     assertExactKeys(record, RECORD_KEYS, "witness record");
     const core = clone(record);
     const signature = core.signature;
-    const observedDigest = core[digestField];
+    const observedDigest = core.witnessDigest;
     delete core.signature;
-    delete core[digestField];
-    const message = Buffer.from(`${domain}${canonical(core)}`, "utf8");
+    delete core.witnessDigest;
+    const encodedMessage = `${WITNESS_DOMAIN}${canonical(core)}`;
+    const message = Buffer.from(encodedMessage, "utf8");
     assertExactKeys(signature, SIGNATURE_KEYS, "witness signature");
     if (
       !DIGEST.test(observedDigest || "") ||
       observedDigest !== hash(message) ||
       !sameTrust(signature, trust) ||
-      verify({ message, purpose, signature, trust }) !== true
+      verify({
+        message,
+        purpose: "evolution-ledger-witness",
+        signature,
+        trust,
+      }) !== true
     ) {
       throw new Error("witness record authentication failed");
     }
@@ -279,6 +372,7 @@ export function createEvolutionFileWitness({
     ) {
       throw new Error("witness record state is inconsistent");
     }
+    rememberEncoding(record, encodedMessage);
     return record;
   };
 
@@ -327,12 +421,7 @@ export function createEvolutionFileWitness({
       "witnessDigest",
       "evolution-ledger-witness",
     );
-    return verifySigned(
-      record,
-      WITNESS_DOMAIN,
-      "witnessDigest",
-      "evolution-ledger-witness",
-    );
+    return verifySigned(record);
   };
 
   const emptyStore = () => {
@@ -390,12 +479,7 @@ export function createEvolutionFileWitness({
     }
     let discardIndex = 0;
     for (const [index, record] of store.history.entries()) {
-      verifySigned(
-        record,
-        WITNESS_DOMAIN,
-        "witnessDigest",
-        "evolution-ledger-witness",
-      );
+      verifySigned(record);
       if (index === 0) continue;
       const previous = store.history[index - 1];
       if (
@@ -428,14 +512,8 @@ export function createEvolutionFileWitness({
     if (
       discardIndex !== store.discardedAnchors.length ||
       store.current?.witnessDigest !== store.history.at(-1).witnessDigest ||
-      canonical(
-        verifySigned(
-          store.current,
-          WITNESS_DOMAIN,
-          "witnessDigest",
-          "evolution-ledger-witness",
-        ),
-      ) !== canonical(store.history.at(-1))
+      encodeRecord(verifySigned(store.current)) !==
+        encodeRecord(store.history.at(-1))
     ) {
       throw new Error("witness current state is not its durable history");
     }
@@ -512,7 +590,10 @@ export function createEvolutionFileWitness({
 
   const publish = (store) => {
     const temporary = `${target}.${requiredString(random(), "random token")}.tmp`;
-    const bytes = Buffer.from(`${canonical(store)}\n`, "utf8");
+    // Preserve the canonical on-disk format without reserializing every
+    // unchanged historical record. Uncached records take the normal path.
+    const encoded = `{"current":${encodeRecord(store.current)},"discardedAnchors":${canonical(store.discardedAnchors)},"history":[${store.history.map(encodeRecord).join(",")}],"schema":${JSON.stringify(store.schema)}}`;
+    const bytes = Buffer.from(`${encoded}\n`, "utf8");
     if (bytes.length > maximumBytes) {
       throw new Error("witness store exceeds its configured maximum size");
     }
