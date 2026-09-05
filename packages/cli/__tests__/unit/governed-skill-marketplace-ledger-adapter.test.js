@@ -1,4 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,6 +9,22 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
 import { registerMarketplaceCommand } from "../../src/commands/marketplace.js";
 import { dispatchManifestEntry } from "../../src/lazy-dispatch.js";
+import {
+  createGovernedSkillMarketplaceCandidateInstaller,
+  digestGovernedSkillMarketplaceCandidatePermissions,
+  serializeGovernedSkillMarketplaceCandidatePackage,
+} from "../../src/lib/evolution/governed-skill-marketplace-candidate.js";
+import {
+  buildSkillCandidateDraft,
+  deriveSkillCandidateTenantKey,
+  SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
+  SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
+} from "../../src/lib/evolution/skill-candidate-registry.js";
+import {
+  buildSkillDependencyLock,
+  buildSkillRuntimeManifest,
+  buildSkillTargetMatrix,
+} from "../../src/lib/evolution/skill-execution-manifest.js";
 import {
   createGovernedSkillMarketplaceCliHost,
   isGovernedSkillMarketplaceCliHost,
@@ -43,6 +61,7 @@ const TARGET = {
   runtime: "node-22.12.0",
 };
 const roots = [];
+const adapterStorage = new WeakMap();
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -208,6 +227,7 @@ function resources() {
   const witnessRoot = path.join(root, "witness");
   fs.mkdirSync(witnessRoot, { mode: 0o700 });
   return {
+    root,
     artifactPorts,
     resolver,
     backendOptions: {
@@ -226,7 +246,7 @@ function resources() {
 }
 
 function adapter(storage, ledger) {
-  return new GovernedSkillMarketplaceLedgerAdapter({
+  const value = new GovernedSkillMarketplaceLedgerAdapter({
     descriptor: {
       tenantId: TENANT_ID,
       artifactTenantId: ARTIFACT_TENANT_ID,
@@ -239,6 +259,8 @@ function adapter(storage, ledger) {
     ledgerArtifactResolver: storage.resolver,
     now: () => Date.parse(NOW),
   });
+  adapterStorage.set(value, storage);
+  return value;
 }
 
 function marketplace(ledgerAdapter) {
@@ -308,13 +330,156 @@ function manifest(version = "2.0.0") {
   );
 }
 
+function packageFixture(version = "2.0.0") {
+  const dependencyLock = buildSkillDependencyLock({
+    tenantId: TENANT_ID,
+    lock: { packages: { "fixture-tool": version } },
+  });
+  const runtimeManifest = buildSkillRuntimeManifest({
+    tenantId: TENANT_ID,
+    runtimes: [
+      {
+        runtimeId: "cli",
+        descriptor: { platform: TARGET.os, runtime: TARGET.runtime },
+      },
+    ],
+  });
+  const cells = [
+    {
+      cellId: "cli-linux",
+      runtimeId: "cli",
+      targetEnvironmentRef: "environment:marketplace-cli",
+      environmentDigest: digest("fixture-environment"),
+    },
+  ];
+  const targetMatrix = buildSkillTargetMatrix({
+    tenantId: TENANT_ID,
+    dependencyLock,
+    runtimeManifest,
+    cells,
+  });
+  const input = {
+    tenantId: TENANT_ID,
+    skillName: "safe-refactor",
+    derivationMode: "manual-import",
+    sourceEvidenceRefs: [
+      {
+        ref: `evidence:marketplace-${version}`,
+        digest: digest(`evidence:${version}`),
+      },
+    ],
+    dependencyLock,
+    runtimeManifest,
+    targetMatrix,
+    requestedCapabilities: ["file:read"],
+  };
+  const context = {
+    expectedEnvironmentBindings: cells,
+    expectedTargetMatrixRoot: targetMatrix.targetMatrixRoot,
+  };
+  const source = buildSkillCandidateDraft(
+    { ...input, content: `# Safe refactor\nSource guidance ${version}.\n` },
+    context,
+  );
+  const candidate = buildSkillCandidateDraft(
+    {
+      ...input,
+      content: `# Safe refactor\nTarget-specific guidance ${version}.\n`,
+    },
+    context,
+  );
+  const packageBytes =
+    serializeGovernedSkillMarketplaceCandidatePackage(source);
+  const adaptedBytes =
+    serializeGovernedSkillMarketplaceCandidatePackage(candidate);
+  const sbomBytes = Buffer.from(
+    canonical({ components: [{ name: "fixture-tool", version }] }),
+  );
+  const byteDigest = (value) =>
+    `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  return {
+    source,
+    candidate,
+    context,
+    packageBytes,
+    adaptedBytes,
+    sbomBytes,
+    packageDigest: byteDigest(packageBytes),
+    adaptedOutputDigest: byteDigest(adaptedBytes),
+    sbomDigest: byteDigest(sbomBytes),
+  };
+}
+
 function catalogManifest(version = "2.0.0") {
-  const value = manifest(version);
+  const pack = packageFixture(version);
+  const core = { ...manifest(version) };
+  delete core.manifestDigest;
+  delete core.signature;
+  const value = buildGovernedSkillMarketplaceManifest(
+    {
+      ...core,
+      packageDigest: pack.packageDigest,
+      sbomDigest: pack.sbomDigest,
+      dependencyLockDigest: pack.candidate.dependencyLockDigest,
+      targetMatrixDigest: pack.candidate.targetMatrixRoot,
+      permissionManifestDigest:
+        digestGovernedSkillMarketplaceCandidatePermissions(pack.candidate),
+    },
+    "placeholder-catalog-signature",
+  );
   return Object.freeze({
     ...value,
     signature: createHmac("sha256", "test-only-catalog-key")
       .update(value.manifestDigest)
       .digest("base64"),
+  });
+}
+
+function candidateInstaller(storage, artifacts, extra = {}) {
+  const descriptor = {
+    schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
+    authorityId: "authority:marketplace-test-admission",
+    trust: "trusted",
+    revision: 1,
+    handlerArtifactDigest: digest("test-marketplace-admission"),
+  };
+  const authority = {
+    ...descriptor,
+    resolve(request) {
+      const pack = ["2.0.0", "3.0.0"]
+        .map(packageFixture)
+        .find(
+          ({ candidate }) =>
+            candidate.targetMatrixRoot === request.proposedTargetMatrixRoot,
+        );
+      if (
+        !pack ||
+        request.tenantId !== TENANT_ID ||
+        request.skillName !== "safe-refactor"
+      )
+        return false;
+      return {
+        ...descriptor,
+        schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_RESOLUTION_SCHEMA,
+        admitted: true,
+        tenantId: TENANT_ID,
+        skillName: "safe-refactor",
+        dependencyLockDigest: pack.candidate.dependencyLockDigest,
+        runtimeManifestDigest: pack.candidate.runtimeManifestDigest,
+        ...pack.context,
+      };
+    },
+  };
+  return createGovernedSkillMarketplaceCandidateInstaller({
+    tenantId: TENANT_ID,
+    registryOptions: {
+      rootDir: path.join(storage.root, "marketplace-candidates"),
+      targetMatrixAdmissionAuthority: authority,
+      fsImpl: durableFilesystem(),
+      secure: false,
+      ...extra,
+    },
+    artifacts,
   });
 }
 
@@ -332,7 +497,7 @@ function cliHost(ledgerAdapter, overrides = {}) {
       authenticated: true,
       manifestDigest: value.manifestDigest,
       evalReceiptDigest: cell.evalReceiptDigest,
-      outputDigest: digest(`output:${value.manifestDigest}`),
+      outputDigest: packageFixture(value.version).adaptedOutputDigest,
       adapterDigest: digest("test-adapter"),
     })),
     verifyPilot: vi.fn(async ({ state, nextStage, pilotReceipt }) => ({
@@ -363,14 +528,31 @@ function cliHost(ledgerAdapter, overrides = {}) {
   const catalog = overrides.catalog ?? {
     resolve: vi.fn(async ({ version }) => catalogManifest(version ?? "2.0.0")),
   };
+  const artifacts = overrides.artifacts ?? {
+    resolve: vi.fn(async ({ version }) => packageFixture(version)),
+  };
+  const storage = adapterStorage.get(ledgerAdapter);
+  const installer = Object.hasOwn(overrides, "candidateInstaller")
+    ? overrides.candidateInstaller
+    : storage
+      ? candidateInstaller(storage, artifacts, overrides.registryOptions)
+      : undefined;
   const host = createGovernedSkillMarketplaceCliHost({
     tenantId: TENANT_ID,
     target: overrides.target ?? TARGET,
     ledgerAdapter,
+    candidateInstaller: installer,
     ports,
     catalog,
   });
-  return { host, ports, catalog };
+  return {
+    host,
+    ports,
+    catalog,
+    candidateInstaller: installer,
+    artifacts,
+    storage,
+  };
 }
 
 function installRequest(version = "2.0.0", expectedStateDigest = null) {
@@ -391,7 +573,393 @@ function cliProgram(host) {
   return program;
 }
 
+function candidateEntries(storage) {
+  const directory = path.join(
+    storage.root,
+    "marketplace-candidates",
+    "tenants",
+    deriveSkillCandidateTenantKey(TENANT_ID),
+  );
+  return fs.existsSync(directory) ? fs.readdirSync(directory) : [];
+}
+
 describe("governed marketplace CLI with real durable storage", () => {
+  it("allows a fresh CLI host to revoke a corrupt on-disk candidate without opening its registry", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const { state } = await cliHost(
+      adapter(storage, backend.ledger),
+    ).host.install(installRequest());
+    const filePath = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+      `${state.candidateBinding.candidateId.slice(7)}.json`,
+    );
+    fs.writeFileSync(filePath, "corrupted candidate bytes");
+    const reopened = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const { host, ports } = cliHost(adapter(storage, reopened.ledger));
+    await expect(host.state({ skillName: "safe-refactor" })).rejects.toThrow(
+      "not bounded UTF-8 JSON",
+    );
+    const revoked = await host.revoke({
+      skillName: "safe-refactor",
+      expectedStateDigest: state.stateDigest,
+      receiptRef: `receipt:revoke:${state.stateDigest.slice(7)}`,
+    });
+    expect(revoked).toMatchObject({ stage: "rolled-back", revoked: true });
+    expect(ports.transition).toHaveBeenCalledOnce();
+    await expect(host.state({ skillName: "safe-refactor" })).resolves.toEqual(
+      revoked,
+    );
+    expect(reopened.ledger.verify().sequence).toBe(2);
+  });
+  it("requires explicit CAS to materialize legacy metadata-only state before rollout", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const real = adapter(storage, backend.ledger);
+    const legacy = await marketplace(real).stage({
+      manifest: catalogManifest(),
+      target: TARGET,
+    });
+    const { host, ports } = cliHost(real);
+    await expect(
+      host.rollout({
+        skillName: "safe-refactor",
+        expectedStateDigest: legacy.stateDigest,
+        receiptRef: "receipt:pilot",
+      }),
+    ).rejects.toThrow("candidate binding");
+    expect(ports.verifyPilot).not.toHaveBeenCalled();
+    await expect(host.install(installRequest())).rejects.toThrow(
+      "baseline changed",
+    );
+    const result = await host.install(
+      installRequest("2.0.0", legacy.stateDigest),
+    );
+    expect(result).toMatchObject({
+      materialized: true,
+      state: { previousStateDigest: legacy.stateDigest, stage: "candidate" },
+    });
+    expect(result.state.candidateBinding.candidateId).toBe(
+      packageFixture().candidate.candidateId,
+    );
+    expect(backend.ledger.verify().sequence).toBe(2);
+  });
+
+  it("does not report materialized success if the file disappears during Ledger commit", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const candidate = packageFixture().candidate;
+    const filePath = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+      `${candidate.candidateId.slice(7)}.json`,
+    );
+    const ledger = {
+      read: backend.ledger.read.bind(backend.ledger),
+      verify: backend.ledger.verify.bind(backend.ledger),
+      appendDomainEvent(input, options) {
+        const receipt = backend.ledger.appendDomainEvent(input, options);
+        fs.unlinkSync(filePath);
+        return receipt;
+      },
+    };
+    await expect(
+      cliHost(adapter(storage, ledger)).host.install(installRequest()),
+    ).rejects.toThrow("not found");
+    expect(backend.ledger.verify().sequence).toBe(1);
+  });
+
+  it("recovers publication across a hard-exited installer process and independently verifies the committed file", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const pack = packageFixture();
+    const manifest = catalogManifest();
+    const input = {
+      candidate: pack.candidate,
+      inspected: {
+        manifest,
+        target: TARGET,
+        adapted: { outputDigest: pack.adaptedOutputDigest },
+      },
+      ...Object.fromEntries(
+        ["packageBytes", "adaptedBytes", "sbomBytes"].map((key) => [
+          key,
+          pack[key].toString("base64"),
+        ]),
+      ),
+    };
+    const inputPath = path.join(storage.root, "candidate-worker-input.json");
+    fs.writeFileSync(inputPath, JSON.stringify(input));
+    const run = (operation) =>
+      spawnSync(
+        process.execPath,
+        [
+          fileURLToPath(
+            new URL(
+              "../integration/helpers/marketplace-candidate-worker.mjs",
+              import.meta.url,
+            ),
+          ),
+          storage.root,
+          operation,
+        ],
+        { encoding: "utf8", timeout: 30_000, windowsHide: true },
+      );
+    const crashed = run("materialize-crash");
+    expect(crashed.status, crashed.error?.message || crashed.stderr).toBe(97);
+    expect(backend.ledger.verify().sequence).toBe(0);
+    const { host } = cliHost(adapter(storage, backend.ledger));
+    const { state } = await host.install(installRequest());
+    fs.writeFileSync(inputPath, JSON.stringify({ ...input, state }));
+    const verified = run("verify");
+    expect(verified.status, verified.error?.message || verified.stderr).toBe(0);
+    expect(JSON.parse(verified.stdout)).toEqual(state.candidateBinding);
+    await expect(host.install(installRequest())).resolves.toMatchObject({
+      recovered: true,
+      state,
+    });
+    expect(backend.ledger.verify().sequence).toBe(1);
+  }, 60_000);
+
+  it.each([
+    "dependencyLockDigest",
+    "targetMatrixDigest",
+    "permissionManifestDigest",
+    "lineage",
+  ])(
+    "rejects signed %s claims that differ from actual candidate bytes",
+    async (field) => {
+      const storage = resources();
+      const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+      const core = {
+        ...catalogManifest(),
+        [field]:
+          field === "lineage"
+            ? [digest("other-evidence")]
+            : digest("other-execution"),
+      };
+      delete core.manifestDigest;
+      delete core.signature;
+      const unsigned = buildGovernedSkillMarketplaceManifest(
+        core,
+        "placeholder-catalog-signature",
+      );
+      const changed = {
+        ...unsigned,
+        signature: createHmac("sha256", "test-only-catalog-key")
+          .update(unsigned.manifestDigest)
+          .digest("base64"),
+      };
+      const { host } = cliHost(adapter(storage, backend.ledger), {
+        catalog: { resolve: async () => changed },
+      });
+      await expect(
+        host.install({
+          ...installRequest(),
+          manifestDigest: changed.manifestDigest,
+        }),
+      ).rejects.toThrow("differ from the signed manifest");
+      expect(backend.ledger.verify().sequence).toBe(0);
+      expect(candidateEntries(storage)).toEqual([]);
+    },
+  );
+
+  it("does not replace a materialized candidate binding during rollout", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const real = adapter(storage, backend.ledger);
+    const { state } = await cliHost(real).host.install(installRequest());
+    const bindingCore = {
+      ...state.candidateBinding,
+      candidateId: digest("substituted-candidate"),
+    };
+    delete bindingCore.bindingDigest;
+    const core = {
+      ...state,
+      stage: "shadow",
+      transitionRequestDigest: digest("transition"),
+      transitionReceiptDigest: digest("receipt"),
+      candidateBinding: {
+        ...bindingCore,
+        bindingDigest: digest(
+          "chainlesschain.governed-skill-marketplace-candidate-binding/v1",
+          bindingCore,
+        ),
+      },
+    };
+    delete core.stateDigest;
+    expect(() =>
+      real.commit({
+        state: {
+          ...core,
+          stateDigest: digestGovernedSkillMarketplaceState(core),
+        },
+        expectedStateDigest: state.stateDigest,
+        event: "marketplace.advanced",
+      }),
+    ).toThrow("immutable candidateBinding");
+    expect(backend.ledger.verify().sequence).toBe(1);
+  });
+
+  it("requires a genuine candidate installer, not a caller-supplied write receipt", () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const real = adapter(storage, backend.ledger);
+    const { candidateInstaller: installer } = cliHost(real);
+    for (const fake of [
+      undefined,
+      {},
+      { tenantId: TENANT_ID, materialize: () => ({ durable: true }) },
+      new Proxy(installer, {}),
+    ]) {
+      expect(() => cliHost(real, { candidateInstaller: fake })).toThrow(
+        "branded marketplace candidate installer",
+      );
+    }
+    expect(backend.ledger.verify().sequence).toBe(0);
+  });
+
+  it("writes exact adapted content and dependency files before publishing the marketplace state", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const pack = packageFixture();
+    const filePath = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+      `${pack.candidate.candidateId.slice(7)}.json`,
+    );
+    const ledger = {
+      read: backend.ledger.read.bind(backend.ledger),
+      verify: backend.ledger.verify.bind(backend.ledger),
+      appendDomainEvent(input, options) {
+        expect(fs.readFileSync(filePath)).toEqual(pack.adaptedBytes);
+        return backend.ledger.appendDomainEvent(input, options);
+      },
+    };
+    const { host } = cliHost(adapter(storage, ledger));
+    const result = await host.install(installRequest());
+    expect(result).toMatchObject({
+      status: "candidate-staged",
+      materialized: true,
+      activated: false,
+    });
+    expect(result.state.candidateBinding).toMatchObject({
+      candidateId: pack.candidate.candidateId,
+      contentDigest: pack.candidate.contentDigest,
+      dependencyLockDigest: pack.candidate.dependencyLockDigest,
+      runtimeManifestDigest: pack.candidate.runtimeManifestDigest,
+      targetMatrixRoot: pack.candidate.targetMatrixRoot,
+    });
+    expect(JSON.parse(fs.readFileSync(filePath, "utf8"))).toMatchObject({
+      content: pack.candidate.content,
+      dependencyLock: pack.candidate.dependencyLock,
+    });
+    expect(fs.readFileSync(filePath)).not.toEqual(pack.packageBytes);
+    const reopened = createEvolutionLedgerFileBackend(storage.backendOptions);
+    await expect(
+      cliHost(adapter(storage, reopened.ledger)).host.state({
+        skillName: "safe-refactor",
+      }),
+    ).resolves.toEqual(result.state);
+    expect(reopened.ledger.verify().sequence).toBe(1);
+  });
+
+  it("recovers a candidate-only crash window before the marketplace Ledger append", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const ledger = {
+      read: backend.ledger.read.bind(backend.ledger),
+      verify: backend.ledger.verify.bind(backend.ledger),
+      appendDomainEvent() {
+        throw new Error("simulated crash after candidate publication");
+      },
+    };
+    const first = cliHost(adapter(storage, ledger));
+    await expect(first.host.install(installRequest())).rejects.toThrow(
+      "simulated crash",
+    );
+    expect(backend.ledger.verify().sequence).toBe(0);
+    const directory = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+    );
+    const entries = fs.readdirSync(directory);
+    expect(entries).toHaveLength(2); // One tenant marker and one immutable candidate, no active pointer.
+    const reopened = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const second = cliHost(adapter(storage, reopened.ledger));
+    await expect(second.host.install(installRequest())).resolves.toMatchObject({
+      materialized: true,
+    });
+    expect(fs.readdirSync(directory)).toEqual(entries);
+    expect(reopened.ledger.verify().sequence).toBe(1);
+  });
+
+  it("blocks reads and rollout when the candidate file is missing but still permits emergency revocation", async () => {
+    const storage = resources();
+    const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+    const { host, ports } = cliHost(adapter(storage, backend.ledger));
+    const { state } = await host.install(installRequest());
+    const filePath = path.join(
+      storage.root,
+      "marketplace-candidates",
+      "tenants",
+      deriveSkillCandidateTenantKey(TENANT_ID),
+      `${state.candidateBinding.candidateId.slice(7)}.json`,
+    );
+    fs.unlinkSync(filePath);
+    await expect(host.state({ skillName: "safe-refactor" })).rejects.toThrow(
+      "not found",
+    );
+    await expect(host.install(installRequest())).rejects.toThrow("not found");
+    await expect(
+      host.rollout({
+        skillName: "safe-refactor",
+        expectedStateDigest: state.stateDigest,
+        receiptRef: `receipt:pilot:shadow:${state.stateDigest.slice(7)}`,
+      }),
+    ).rejects.toThrow("not found");
+    expect(ports.transition).not.toHaveBeenCalled();
+    const revoked = await host.revoke({
+      skillName: "safe-refactor",
+      expectedStateDigest: state.stateDigest,
+      receiptRef: `receipt:revoke:${state.stateDigest.slice(7)}`,
+    });
+    expect(revoked).toMatchObject({ stage: "rolled-back", revoked: true });
+    await expect(host.state({ skillName: "safe-refactor" })).resolves.toEqual(
+      revoked,
+    );
+  });
+
+  it.each(["packageBytes", "adaptedBytes", "sbomBytes"])(
+    "rejects substituted %s before creating a candidate or marketplace event",
+    async (field) => {
+      const storage = resources();
+      const backend = createEvolutionLedgerFileBackend(storage.backendOptions);
+      const { host } = cliHost(adapter(storage, backend.ledger), {
+        artifacts: {
+          resolve: async () => ({
+            ...packageFixture(),
+            [field]: Buffer.from("substituted"),
+          }),
+        },
+      });
+      await expect(host.install(installRequest())).rejects.toThrow(
+        "digest mismatch",
+      );
+      expect(candidateEntries(storage)).toEqual([]);
+      expect(backend.ledger.verify().sequence).toBe(0);
+    },
+  );
+
   it("passes the same governed host through lazy and eager entrypoints", async () => {
     const storage = resources();
     const backend = createEvolutionLedgerFileBackend(storage.backendOptions);

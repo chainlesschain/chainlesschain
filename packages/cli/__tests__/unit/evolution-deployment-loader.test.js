@@ -94,6 +94,9 @@ describe("signed evolution deployment loader", () => {
         ledgerFactoryAvailable:
           typeof factories.createGovernedSkillMarketplaceLedgerAdapter ===
           "function",
+        candidateInstallerFactoryAvailable:
+          typeof factories.createGovernedSkillMarketplaceCandidateInstaller ===
+          "function",
       }),
     }));
     await expect(
@@ -105,6 +108,7 @@ describe("signed evolution deployment loader", () => {
       commandName: "marketplace",
       hostFactoryAvailable: true,
       ledgerFactoryAvailable: true,
+      candidateInstallerFactoryAvailable: true,
     });
     expect(importModule).toHaveBeenCalledOnce();
     const excluded = deploymentFixture({ commands: ["evolution"] });

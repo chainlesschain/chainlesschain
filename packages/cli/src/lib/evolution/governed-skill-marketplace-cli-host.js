@@ -1,6 +1,7 @@
 import { types as utilTypes } from "node:util";
 import { GovernedSkillMarketplace } from "./governed-skill-marketplace.js";
 import { isGovernedSkillMarketplaceLedgerAdapter } from "./governed-skill-marketplace-ledger-adapter.js";
+import { isGovernedSkillMarketplaceCandidateInstaller } from "./governed-skill-marketplace-candidate.js";
 
 const HOSTS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -56,6 +57,7 @@ export function createGovernedSkillMarketplaceCliHost({
   tenantId,
   target: inputTarget,
   ledgerAdapter,
+  candidateInstaller,
   catalog,
   ports,
 } = {}) {
@@ -68,6 +70,13 @@ export function createGovernedSkillMarketplaceCliHost({
       "a same-tenant branded marketplace ledger adapter is required",
     );
   const target = targetSnapshot(inputTarget);
+  if (
+    !isGovernedSkillMarketplaceCandidateInstaller(candidateInstaller) ||
+    candidateInstaller.tenantId !== tenantId
+  )
+    throw new TypeError(
+      "a same-tenant branded marketplace candidate installer is required",
+    );
   const resolve = capture(catalog, "resolve");
   const load = ledgerAdapter.load;
   const isManifestRevoked = ledgerAdapter.isManifestRevoked;
@@ -84,11 +93,13 @@ export function createGovernedSkillMarketplaceCliHost({
     },
   });
 
-  const stateFor = async (skillName) => {
+  const stateFor = async (skillName, verifyCandidate = true) => {
     id(skillName, "skillName");
     const state = await load({ skillName });
     if (state && TARGET_KEYS.some((key) => state.target[key] !== target[key]))
       throw new Error("marketplace state belongs to another deployment target");
+    if (verifyCandidate && state?.candidateBinding && !state.revoked)
+      candidateInstaller.verify(state);
     return state;
   };
   const resolveManifest = async (skillName, version) => {
@@ -107,9 +118,13 @@ export function createGovernedSkillMarketplaceCliHost({
       );
     return manifest;
   };
-  const exactState = async (skillName, expectedStateDigest) => {
+  const exactState = async (
+    skillName,
+    expectedStateDigest,
+    verifyCandidate = true,
+  ) => {
     digest(expectedStateDigest, "expectedStateDigest");
-    const state = await stateFor(skillName);
+    const state = await stateFor(skillName, verifyCandidate);
     if (!state || state.stateDigest !== expectedStateDigest)
       throw new Error("marketplace state baseline changed");
     return state;
@@ -155,29 +170,44 @@ export function createGovernedSkillMarketplaceCliHost({
           "marketplace manifest was revoked and cannot be staged again",
         );
       const isReplay = (state) =>
+        state?.candidateBinding !== undefined &&
         state?.stage === "candidate" &&
         state.revoked === false &&
         state.manifestDigest === manifestDigest &&
         state.adaptedOutputDigest === inspected.adapted.outputDigest &&
         state.previousStateDigest === expectedStateDigest;
-      const result = (state, recovered) =>
-        Object.freeze({
+      const result = (state, recovered) => {
+        candidateInstaller.verify(state);
+        return Object.freeze({
           status: "candidate-staged",
           activated: false,
+          materialized: true,
           recovered,
           state,
         });
+      };
       const current = await stateFor(skillName);
       if (isReplay(current)) return result(current, true);
-      if (current?.manifestDigest === manifestDigest)
+      if (
+        current?.manifestDigest === manifestDigest &&
+        (current.candidateBinding ||
+          current.stage !== "candidate" ||
+          current.revoked)
+      )
         throw new Error(
           "marketplace manifest is already staged, advanced or revoked",
         );
       if ((current?.stateDigest ?? null) !== expectedStateDigest)
         throw new Error("marketplace install baseline changed");
+      const candidateBinding = await candidateInstaller.materialize(inspected);
       try {
         return result(
-          await marketplace.stage({ manifest, target, expectedStateDigest }),
+          await marketplace.stage({
+            manifest,
+            target,
+            expectedStateDigest,
+            candidateBinding,
+          }),
           false,
         );
       } catch (error) {
@@ -189,7 +219,8 @@ export function createGovernedSkillMarketplaceCliHost({
     },
     async rollout({ skillName, expectedStateDigest, receiptRef } = {}) {
       id(receiptRef, "Pilot receipt reference");
-      await exactState(skillName, expectedStateDigest);
+      const current = await exactState(skillName, expectedStateDigest);
+      candidateInstaller.verify(current);
       return marketplace.advance({
         skillName,
         expectedStateDigest,
@@ -198,7 +229,8 @@ export function createGovernedSkillMarketplaceCliHost({
     },
     async revoke({ skillName, expectedStateDigest, receiptRef } = {}) {
       id(receiptRef, "revocation receipt reference");
-      await exactState(skillName, expectedStateDigest);
+      // A missing/corrupt candidate must block rollout, not emergency rollback.
+      await exactState(skillName, expectedStateDigest, false);
       return marketplace.revoke({
         skillName,
         expectedStateDigest,

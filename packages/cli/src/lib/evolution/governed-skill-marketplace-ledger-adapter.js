@@ -139,6 +139,7 @@ function parseState(resolution, descriptor, skillName) {
 function assertStableIdentity(previous, next) {
   if (!previous) return;
   for (const field of [
+    "candidateBinding",
     "tenantId",
     "skillName",
     "version",

@@ -121,14 +121,18 @@ async function loadBuiltInFactories(commandName) {
     const [
       { createGovernedSkillMarketplaceCliHost },
       { createGovernedSkillMarketplaceLedgerAdapter },
+      { createGovernedSkillMarketplaceCandidateInstaller },
     ] = await Promise.all([
       import("./governed-skill-marketplace-cli-host.js"),
       import("./governed-skill-marketplace-ledger-adapter.js"),
+      import("./governed-skill-marketplace-candidate.js"),
     ]);
     factories.createGovernedSkillMarketplaceCliHost =
       createGovernedSkillMarketplaceCliHost;
     factories.createGovernedSkillMarketplaceLedgerAdapter =
       createGovernedSkillMarketplaceLedgerAdapter;
+    factories.createGovernedSkillMarketplaceCandidateInstaller =
+      createGovernedSkillMarketplaceCandidateInstaller;
   }
   if (commandName === "evolution" || commandName === "serve") {
     const [

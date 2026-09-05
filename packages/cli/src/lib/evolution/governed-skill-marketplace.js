@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { types as utilTypes } from "node:util";
+import { verifyGovernedSkillMarketplaceCandidateBinding } from "./governed-skill-marketplace-candidate.js";
 
 import {
   SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
@@ -22,6 +23,7 @@ const STAGES = new Map([
   ["canary", "active"],
 ]);
 const MARKETPLACE_STATE_KEYS = new Set([
+  "candidateBinding",
   "schema",
   "tenantId",
   "skillName",
@@ -266,6 +268,11 @@ export function verifyGovernedSkillMarketplaceState(
     throw new Error("marketplace state has an invalid shape");
   }
   exact(input.target, MARKETPLACE_TARGET_KEYS, "marketplace state target");
+  if (Object.hasOwn(input, "candidateBinding"))
+    verifyGovernedSkillMarketplaceCandidateBinding(
+      input.candidateBinding,
+      input,
+    );
   const state = clone(input);
   const core = clone(state);
   delete core.stateDigest;
@@ -345,7 +352,12 @@ export class GovernedSkillMarketplace {
     });
   }
 
-  async stage({ manifest: input, target, expectedStateDigest = null } = {}) {
+  async stage({
+    manifest: input,
+    target,
+    expectedStateDigest = null,
+    candidateBinding = null,
+  } = {}) {
     const inspected = await this.inspect(input, target);
     const current = await this._load({
       skillName: inspected.manifest.skillName,
@@ -365,6 +377,24 @@ export class GovernedSkillMarketplace {
       previousStateDigest: expectedStateDigest,
       revoked: false,
     };
+    if (candidateBinding !== null) {
+      const binding = verifyGovernedSkillMarketplaceCandidateBinding(
+        candidateBinding,
+        state,
+      );
+      if (
+        binding.dependencyLockDigest !==
+          inspected.manifest.dependencyLockDigest ||
+        binding.targetMatrixRoot !== inspected.manifest.targetMatrixDigest ||
+        binding.sbomDigest !== inspected.manifest.sbomDigest ||
+        binding.permissionManifestDigest !==
+          inspected.manifest.permissionManifestDigest
+      )
+        throw new Error(
+          "marketplace candidate binding differs from the signed manifest",
+        );
+      state.candidateBinding = binding;
+    }
     return this._persist(state, expectedStateDigest, "marketplace.staged");
   }
 

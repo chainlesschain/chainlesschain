@@ -34,7 +34,7 @@ export function registerGovernedSkillMarketplaceCommands(
   marketplace
     .command("install <skill-name>")
     .description(
-      "Stage a governed candidate only; does not activate or install runtime files",
+      "Persist verified candidate files and governance state; does not activate the Skill",
     )
     .option("--version <version>", "Exact catalog version")
     .requiredOption(
