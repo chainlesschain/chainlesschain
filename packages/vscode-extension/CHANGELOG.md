@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.84] - Durable long-running chat tasks (2026-09-06)
+
+- Recommend the exact-gated public `chainlesschain@0.166.24` release and let
+  interactive streamed Agent turns continue until completion or an explicit
+  stop. Explicit turn, cost, environment, and session budgets remain
+  authoritative; unattended runs retain their conservative default ceiling.
+- Add `chainlesschain.chat.maxTurns`; `0` follows the CLI's unlimited
+  interactive default, while a positive value applies an explicit per-message
+  cap without discarding the current session history.
+- Preserve exact large-file read cursors across context compression, including
+  oversized single lines, and avoid reinjecting unchanged pages while still
+  invalidating cached results after a file changes.
+- Keep normal startup Docker-optional. Explicit sandbox and managed-policy
+  requests continue to fail closed when their required runtime is unavailable.
+
 ## [0.37.83] - CLI 0.166.22 session lease recovery (2026-09-05)
 
 - Recommend the exact-gated `chainlesschain@0.166.22` release, which keeps

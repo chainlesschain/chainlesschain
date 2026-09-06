@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Release track: `chainlesschain@0.166.22` (2026-09-05), from immutable tag `v-npm-0-166-22`. Publication is allowed only after the exact release commit passes the complete Linux, Windows, and macOS CLI CI and Strict Sandbox matrices, followed by npm registry readback.
+> Release track: `chainlesschain@0.166.24` (2026-09-06), from immutable tag `v-npm-0-166-24`. Publication is allowed only after the exact release commit passes the complete Linux, Windows, and macOS CLI CI and Strict Sandbox matrices, followed by npm registry readback.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.22
+npm install -g chainlesschain@0.166.24
 chainlesschain setup
 ```
 
