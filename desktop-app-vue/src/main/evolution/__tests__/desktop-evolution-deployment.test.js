@@ -32,6 +32,30 @@ function runtimeConfig(revision) {
 }
 
 describe("desktop evolution deployment", () => {
+  it("rejects opaque Ollama context before opening authority or dispatching", async () => {
+    const {
+      createDesktopModelIngressHost,
+      bindDesktopModelIngressClient,
+      runDesktopOllamaRequest,
+    } = require("../desktop-model-ingress");
+    const factory = vi.fn();
+    const post = vi.fn();
+    const client = bindDesktopModelIngressClient(
+      { model: "test", client: { post } },
+      createDesktopModelIngressHost(factory),
+    );
+    await expect(
+      runDesktopOllamaRequest(
+        client,
+        "hi",
+        { context: [1, 2, 3] },
+        null,
+        false,
+      ),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(factory).not.toHaveBeenCalled();
+    expect(post).not.toHaveBeenCalled();
+  });
   it("retains an independent model factory as an opaque branded host", async () => {
     const factory = vi.fn();
     const result = await loadDesktopEvolutionDependencies({

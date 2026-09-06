@@ -1265,6 +1265,101 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
+  it.each(["generate", "chat", "generateStream", "chatStream"])(
+    "governs Desktop Ollama %s final payload and failures",
+    async (method) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const OllamaClient = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/ollama-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      const stream = method.endsWith("Stream");
+      const chat = method.startsWith("chat");
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new OllamaClient({ model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const response = {
+          model: "test",
+          done: mode !== "truncated",
+          eval_count: 3,
+          ...(chat
+            ? { message: { role: "assistant", content: "完成" } }
+            : { response: "完成" }),
+        };
+        const bytes = Buffer.from(JSON.stringify(response));
+        const split = bytes.indexOf(Buffer.from("完成")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : response,
+        }));
+        client.client.post = wire;
+        const content = "Contact owner@example.com";
+        const input = chat ? [{ role: "user", content }] : content;
+        const chunks = vi.fn();
+        const result = stream
+          ? client[method](input, chunks, { model: "override" })
+          : client[method](input, { model: "override" });
+        if (mode === "success") {
+          expect(await result).toMatchObject({
+            tokens: 3,
+            model: "test",
+            ...(chat ? { message: { content: "完成" } } : { text: "完成" }),
+          });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream) expect(chunks).toHaveBeenCalledWith("完成", "完成");
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+            "owner@example.com",
+          );
+          expect(wire.mock.calls[0][1].model).toBe("override");
+        }
+      }
+    },
+    90_000,
+  );
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(
