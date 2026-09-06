@@ -32,6 +32,50 @@ function runtimeConfig(revision) {
 }
 
 describe("desktop evolution deployment", () => {
+  it("retains an independent model factory as an opaque branded host", async () => {
+    const factory = vi.fn();
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          evolutionCompositionFactory: factory,
+        }),
+      }),
+    });
+    const { isDesktopModelIngressHost } = require("../desktop-model-ingress");
+    expect(isDesktopModelIngressHost(result.desktopModelIngressHost)).toBe(
+      true,
+    );
+    expect(Object.keys(result.desktopModelIngressHost)).toEqual([]);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(factory).not.toHaveBeenCalled();
+  });
+
+  it("rejects accessor and Proxy model factories", async () => {
+    const getter = vi.fn();
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () =>
+            Object.defineProperty({}, "evolutionCompositionFactory", {
+              get: getter,
+            }),
+        }),
+      }),
+    ).rejects.toThrow(/data property/);
+    expect(getter).not.toHaveBeenCalled();
+    const {
+      createDesktopModelIngressHost,
+    } = require("../desktop-model-ingress");
+    expect(() =>
+      createDesktopModelIngressHost(new Proxy(() => {}, {})),
+    ).toThrow(/must be a function/);
+    expect(() =>
+      createDesktopModelIngressHost(() => {}, {
+        isPackaged: true,
+        resourcesPath: "relative",
+      }),
+    ).toThrow(/absolute/);
+  });
   it("loads an independent marketplace capability through its branded Desktop facade", async () => {
     const marketplaceHost = {
       tenantId: "tenant:desktop",

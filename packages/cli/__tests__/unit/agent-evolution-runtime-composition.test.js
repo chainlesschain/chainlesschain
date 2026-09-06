@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -84,6 +85,9 @@ import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
+const { createDesktopModelIngressHost, openDesktopModelRun } = createRequire(
+  import.meta.url,
+)("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -1083,6 +1087,63 @@ describe("Agent evolution runtime production composition", () => {
         output.mockRestore();
         input.destroy();
       }
+    },
+    30_000,
+  );
+
+  it.each(["success", "source-denied", "wrong-run"])(
+    "opens Desktop host against real durable composition (%s)",
+    async (mode) => {
+      // Desktop's CJS bridge uses native import; construct in the same native
+      // module realm so this exercises the real WeakSet brand, not a test seam.
+      const nativeComposition = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (mode === "source-denied" && request.kind === "user-prompt")
+            throw new Error("denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = nativeComposition.createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed" : runId,
+        });
+        return composition;
+      });
+      const host = createDesktopModelIngressHost(factory);
+      const content = "Contact owner@example.com";
+      if (mode !== "success") {
+        await expect(openDesktopModelRun(host, content)).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        if (mode === "wrong-run")
+          expect(composition.loadRun().events).toEqual([]);
+        else expect(composition.loadRun().projection.status).toBe("running");
+      } else {
+        const ingress = await openDesktopModelRun(host, content);
+        const request = await ingress.prepareModelRequest({
+          messages: [{ role: "user", content }],
+          tools: [],
+        });
+        expect(JSON.stringify(request)).not.toContain("owner@example.com");
+        await ingress.ingestAgentEvent({
+          type: "response-complete",
+          content: "done",
+        });
+        await ingress.complete();
+        expect(composition.loadRun().projection.status).toBe("completed");
+      }
+      expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+      expect(JSON.stringify(factory.mock.calls[0][0])).not.toContain(content);
+      await expect(openDesktopModelRun({}, content)).rejects.toThrow(/branded/);
+      expect(factory).toHaveBeenCalledOnce();
     },
     30_000,
   );

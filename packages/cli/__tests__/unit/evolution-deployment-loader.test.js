@@ -139,6 +139,7 @@ describe("signed evolution deployment loader", () => {
     "chat",
     "compact",
     "complete",
+    "desktop",
     "cowork",
     "orchestrate",
     "serve",

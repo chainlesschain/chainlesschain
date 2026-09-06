@@ -285,6 +285,7 @@ async function loadBuiltInFactories(commandName) {
     commandName === "chat" ||
     commandName === "compact" ||
     commandName === "complete" ||
+    commandName === "desktop" ||
     commandName === "cowork" ||
     commandName === "orchestrate" ||
     commandName === "serve"

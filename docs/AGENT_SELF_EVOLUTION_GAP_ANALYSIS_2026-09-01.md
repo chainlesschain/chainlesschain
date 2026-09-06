@@ -1643,6 +1643,8 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 2026-09-06 Desktop 原生模型入口审计：已沿 authenticated loader→bootstrap→LLMManager→provider 逐段核实，当前 loader 仅提取 evolvable artifact/marketplace 依赖，bootstrap 未给 LLMManager 注入模型 composition；query/chat、两类 stream、模型 fallback 和独立 toolsClient 均存在直接模型出口。完整调用链与验收清单见 [Desktop model ingress audit](development/EVOLUTION_DESKTOP_MODEL_INGRESS_AUDIT_2026-09-06.md)。这将 P0-4 的“其他最终入口审计”明确为实际仓库实现缺口；需要同时覆盖压缩后请求、缓存来源、工具回合和拒绝后的重试控制，尚未修复，状态保持部分完成。既有 Desktop deployment loader 证据证明 artifact 生命周期接线，不证明此处原生模型出口已经治理。
 
+2026-09-06 Desktop 模型宿主连接基础：签名 loader 的 Desktop factories 现提供真实 Agent runtime composition 构造器；Desktop deployment 提取独立的 `evolutionCompositionFactory` 后仅暴露进程内 WeakMap 品牌化的 opaque `desktopModelIngressHost`，不把工厂作为普通客户端配置公开。新增 `openDesktopModelRun()` 以固定 dev/packaged 路径原生加载品牌校验器，每次创建独立 Run，校验 tenant/run 后持久 start/user evidence，factory 只取得冻结元数据；拒绝均带 terminal ingress error code。真实 Native CJS→ESM 工厂/校验器组合覆盖 success/source-denied/wrong-run 3/3，并实际执行投影脱敏、response/completion 与持久读取；Desktop deployment 7/7、signed loader 38/38，静态检查 0 错误。首次 Vitest/native 双模块实例拒绝后，测试改用原生 CJS import helper 构造同实例，未放宽品牌校验。本批次仅完成宿主连接；bootstrap LLMManager、实际 client/toolsClient 出口、缓存/压缩/fallback 和流式生命周期尚未接入，P0-4 保持部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

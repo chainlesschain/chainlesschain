@@ -2,6 +2,7 @@
 
 const path = require("path");
 const { pathToFileURL } = require("url");
+const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
   createDesktopGovernedSkillMarketplaceHost,
 } = require("../marketplace/governed-skill-marketplace-host");
@@ -53,6 +54,22 @@ async function loadDesktopEvolutionDependencies({
   }
 
   const marketplaceDependencies = {};
+  const modelFactoryDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "evolutionCompositionFactory",
+  );
+  if (modelFactoryDescriptor) {
+    if (!Object.hasOwn(modelFactoryDescriptor, "value")) {
+      throw new TypeError(
+        "Desktop model composition factory must be a data property",
+      );
+    }
+    marketplaceDependencies.desktopModelIngressHost =
+      createDesktopModelIngressHost(modelFactoryDescriptor.value, {
+        isPackaged,
+        resourcesPath,
+      });
+  }
   if (result.marketplaceHost !== undefined) {
     marketplaceDependencies.governedSkillMarketplaceHost =
       await createDesktopGovernedSkillMarketplaceHost(result.marketplaceHost, {
@@ -64,7 +81,8 @@ async function loadDesktopEvolutionDependencies({
   const composition = result.evolvableArtifactRuntimeComposition;
   if (
     composition === undefined &&
-    marketplaceDependencies.governedSkillMarketplaceHost
+    (marketplaceDependencies.governedSkillMarketplaceHost ||
+      marketplaceDependencies.desktopModelIngressHost)
   ) {
     return Object.freeze(marketplaceDependencies);
   }
