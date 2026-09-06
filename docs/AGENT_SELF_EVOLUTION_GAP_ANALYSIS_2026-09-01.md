@@ -1713,6 +1713,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Whisper 音频转写入口复核：`WhisperClient` 原可在 local 模式通过 `whisper.cpp` 子进程读取音频，或在 API 模式把文件上传至 `/audio/transcriptions`；实时流也会启动本地模型，voice-chat 会把转写错误包装成普通 STT 错误。当前不存在认证音频 Raw/projection/response-evidence 协议，故 public `transcribe()`、实时 `startStream()` 和两个实际 local/API 转写辅助方法均在读取文件、创建流、启动子进程或网络请求之前，以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝；voice-chat 保留该 terminal code 而不降级为普通失败。定向 8/8 覆盖 public/private local/API、实时流、voice-chat、零文件访问/零子进程/零 HTTP，以及非模型解析/模型管理辅助功能。本批次封堵该 Whisper 入口，不代表全项目音频/视频、远程媒体 URL 与签名二进制载荷均已治理，P0-4 继续为部分完成。
 
+2026-09-06 第二套 SpeechRecognizer 音频出口复核：独立的 `WhisperAPIRecognizer`、`WhisperLocalRecognizer` 与统一 facade 原可读取文件并分别上传到 OpenAI/本地 HTTP 服务；facade 会在识别前 health probe 本地服务，批量接口可把拒绝降级为普通逐项结果。现三个 actual recognize 入口及 facade batch 均在文件/HTTP/probe 前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝，API/local catch 保留 terminal code；本地 `isAvailable()` 无网络探针地报告 unavailable，模型列表为空。相关测试 37 passed、6 个既有跳过，覆盖 API/local/facade/batch 零读取零上传及无 health probe。该批次与 WhisperClient 共同关闭已发现的 Desktop Whisper 音频实现；其他音视频、远程媒体 URL 与签名二进制载荷仍需独立协议和验收，P0-4 继续为部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

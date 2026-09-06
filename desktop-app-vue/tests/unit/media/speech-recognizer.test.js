@@ -193,20 +193,26 @@ describe("WhisperAPIRecognizer", () => {
       expect(mockAxios.post).toHaveBeenCalled();
     });
 
-    it("should throw error if API key is missing", async () => {
+    it("fails closed before checking API credentials or audio files", async () => {
       recognizer.apiKey = null;
 
-      await expect(recognizer.recognize("/test.wav")).rejects.toThrow(
-        "缺少 OpenAI API 密钥",
-      );
+      await expect(recognizer.recognize("/test.wav")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(mockFs.promises.access).not.toHaveBeenCalled();
+      expect(mockFs.createReadStream).not.toHaveBeenCalled();
+      expect(mockAxios.post).not.toHaveBeenCalled();
     });
 
-    it("should throw error if file does not exist", async () => {
+    it("fails closed before checking a missing audio file", async () => {
       mockFs.promises.access.mockRejectedValueOnce(new Error("ENOENT"));
 
-      await expect(recognizer.recognize("/nonexistent.wav")).rejects.toThrow(
-        "文件不存在",
-      );
+      await expect(
+        recognizer.recognize("/nonexistent.wav"),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(mockFs.promises.access).not.toHaveBeenCalled();
+      expect(mockFs.createReadStream).not.toHaveBeenCalled();
+      expect(mockAxios.post).not.toHaveBeenCalled();
     });
 
     it.skip("should throw error if file exceeds 25MB", async () => {
@@ -287,11 +293,13 @@ describe("WhisperLocalRecognizer", () => {
   });
 
   describe("recognize()", () => {
-    it("should throw error when audio file does not exist", async () => {
-      // Note: This test works because the actual fs.promises.access fails for non-existent files
-      await expect(recognizer.recognize("/nonexistent.wav")).rejects.toThrow(
-        "音频文件不存在",
-      );
+    it("fails closed before reading audio or calling the local server", async () => {
+      await expect(
+        recognizer.recognize("/nonexistent.wav"),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(mockFs.promises.access).not.toHaveBeenCalled();
+      expect(mockFs.createReadStream).not.toHaveBeenCalled();
+      expect(mockAxios.post).not.toHaveBeenCalled();
     });
 
     it.skip("should call Whisper server when file exists", async () => {
@@ -326,17 +334,10 @@ describe("WhisperLocalRecognizer", () => {
   });
 
   describe("isAvailable()", () => {
-    it.skip("should return true when server health check succeeds", async () => {
-      // SKIP: CommonJS require() 限制导致 axios mock 无法生效
-      // 源代码使用 require('axios')，vitest 的 vi.mock() 主要支持 ES 模块
-      mockAxios.get.mockResolvedValue({ status: 200 });
-
+    it("reports unavailable without probing the local model service", async () => {
       const available = await recognizer.isAvailable();
-      expect(available).toBe(true);
-      expect(mockAxios.get).toHaveBeenCalledWith(
-        "http://localhost:8002/health",
-        { timeout: 5000 },
-      );
+      expect(available).toBe(false);
+      expect(mockAxios.get).not.toHaveBeenCalled();
     });
 
     it.skip("should return false when server health check fails", async () => {
@@ -482,10 +483,22 @@ describe("SpeechRecognizer", () => {
       expect(result.text).toBe("Test transcription");
     });
 
-    it("should throw error if engine is not available", async () => {
+    it("fails closed before probing the configured engine", async () => {
       recognizer.engine.isAvailable = vi.fn().mockResolvedValue(false);
 
-      await expect(recognizer.recognize("/test.wav")).rejects.toThrow("不可用");
+      await expect(recognizer.recognize("/test.wav")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(recognizer.engine.isAvailable).not.toHaveBeenCalled();
+    });
+
+    it("fails closed for batch recognition before dispatching an item", async () => {
+      await expect(
+        recognizer.recognizeBatch(["/private-a.wav", "/private-b.wav"]),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(mockFs.promises.access).not.toHaveBeenCalled();
+      expect(mockFs.createReadStream).not.toHaveBeenCalled();
+      expect(mockAxios.post).not.toHaveBeenCalled();
     });
   });
 
