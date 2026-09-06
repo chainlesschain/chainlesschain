@@ -66,6 +66,30 @@ describe("IterationBudget", () => {
   });
 
   // ── consume / remaining / percentage ─────────────────────────────────
+  describe("interactive run policy", () => {
+    it("continues beyond both 50 and 200 calls without premature warnings", () => {
+      delete process.env.CC_ITERATION_BUDGET;
+      const budget = IterationBudget.forRun({ continuous: true });
+      for (let i = 0; i < 1000; i++) {
+        expect(budget.hasRemaining()).toBe(true);
+        expect(budget.consume()).toBe(WarningLevel.NONE);
+      }
+      expect(budget.isExhausted()).toBe(false);
+      expect(budget.toWarningMessage()).toBeNull();
+      expect(budget.toSummary()).toContain("1000 iterations used");
+    });
+
+    it("preserves unattended defaults and explicit environment/argument caps", () => {
+      delete process.env.CC_ITERATION_BUDGET;
+      expect(IterationBudget.forRun().limit).toBe(50);
+      process.env.CC_ITERATION_BUDGET = "12";
+      expect(IterationBudget.forRun({ continuous: true }).limit).toBe(12);
+      expect(
+        IterationBudget.forRun({ continuous: true, maxTurns: 3 }).limit,
+      ).toBe(3);
+      expect(IterationBudget.forRun({ maxTurns: 0 }).limit).toBe(Infinity);
+    });
+  });
 
   describe("consume, remaining, percentage", () => {
     it("starts with 0 consumed", () => {

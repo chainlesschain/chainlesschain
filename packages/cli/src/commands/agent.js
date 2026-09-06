@@ -465,7 +465,10 @@ export function registerAgentCommand(program, dependencies = {}) {
       "Headless output: text | json | stream-json",
       "text",
     )
-    .option("--max-turns <n>", "Cap agent loop iterations (headless)")
+    .option(
+      "--max-turns <n>",
+      "Cap agent loop iterations (0 = unlimited; interactive streams default to unlimited, unattended runs to 50)",
+    )
     .option(
       "--json-schema <file>",
       "Headless structured output: final reply must be JSON validating against this schema (invalid replies retried)",

@@ -82,7 +82,7 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
       input: input({ text: "one" }, { text: "two" }),
     });
     const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false, maxCostUsd: 8 },
+      { expandFileRefs: false, interactiveApprovals: true, maxCostUsd: 8 },
       deps,
     );
     const events = parse(deps._lines);

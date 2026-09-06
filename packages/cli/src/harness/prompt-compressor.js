@@ -10,6 +10,11 @@
  */
 
 import { createHash } from "node:crypto";
+import {
+  collectFileReadProgress,
+  FILE_READ_PROGRESS_PREFIX,
+  fileReadProgressBody,
+} from "../lib/read-file-page.js";
 import { feature, featureVariant } from "../lib/feature-flags.js";
 import { isAbortError } from "../lib/abort-utils.js";
 import {
@@ -366,6 +371,7 @@ export class PromptCompressor {
       ? messages.filter((m) => !isPinned(m))
       : messages;
 
+    const readProgress = collectFileReadProgress(messages);
     const originalTokens = estimateMessagesTokens(messages);
     let result = [...working];
     const applied = [];
@@ -407,7 +413,10 @@ export class PromptCompressor {
     }
 
     if (result.length > this.maxMessages) {
-      result = this._truncate(result);
+      result = this._truncate(
+        result,
+        this.maxMessages - (readProgress.length ? 1 : 0),
+      );
       applied.push("truncate");
     }
 
@@ -425,6 +434,32 @@ export class PromptCompressor {
     // an orphaned tool result or unanswered tool_call for a strict API.
     if (options.preserveToolPairs) {
       result = sanitizeToolPairs(result);
+    }
+
+    // The LLM summary may omit paging state. Preserve bounded cursors from the
+    // actual read results even when old tool pairs are removed completely.
+    if (applied.length && readProgress.length) {
+      result = result.filter(
+        (message) => fileReadProgressBody(message) === null,
+      );
+      const insertion = result.findIndex(
+        (message) => message.role !== "system",
+      );
+      result.splice(
+        insertion < 0 ? result.length : insertion,
+        0,
+        markDurableSystemMessage(
+          {
+            role: "system",
+            content:
+              FILE_READ_PROGRESS_PREFIX +
+              JSON.stringify(readProgress) +
+              "\nHistorical read positions, not retained file contents. Continue with nextRead when relevant; if the file changed or an earlier section is needed, read that specific section.",
+          },
+          DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+        ),
+      );
+      applied.push("file-read-progress");
     }
 
     const compressedTokens = estimateMessagesTokens(result);
@@ -503,7 +538,7 @@ export class PromptCompressor {
     return result;
   }
 
-  _truncate(messages) {
+  _truncate(messages, maxMessages = this.maxMessages) {
     const system = messages.filter(
       (m) => m.role === "system" && !isCompactionArtifact(m),
     );
@@ -512,7 +547,7 @@ export class PromptCompressor {
       (m) => (m.role !== "system" || isCompactionArtifact(m)) && m !== last,
     );
 
-    let slots = this.maxMessages - system.length;
+    let slots = maxMessages - system.length;
     if (last) slots -= 1;
 
     const recent = rest.slice(-Math.max(slots, 1));

@@ -118,3 +118,45 @@ describe("ChatViewProvider — lean context env", () => {
     expect(spawns[0].cfg.args).not.toContain("--no-project-memory");
   });
 });
+
+describe("ChatViewProvider — long task limits", () => {
+  it("does not impose a hidden cap by default", () => {
+    const { provider, spawns } = makeProvider();
+    provider._handleMessage({ type: "send", text: "long task" });
+    expect(spawns[0].cfg.args).not.toContain("--max-turns");
+    expect(spawns[0].cfg.args).toContain("--interactive-approvals");
+  });
+
+  it("applies a changed cap on the next idle message and resumes the same session", () => {
+    let maxTurns = 100;
+    const { provider, spawns } = makeProvider((key) =>
+      key === "maxTurns" ? maxTurns : undefined,
+    );
+    provider._handleMessage({ type: "send", text: "long task" });
+    expect(spawns[0].cfg.args).toContain("100");
+    const sessionId = provider._activeConv().sessionId;
+    maxTurns = 500;
+    expect(provider._ensureSession()).toBe(spawns[0]); // work still active
+    spawns[0].cfg.onEvent({
+      type: "result",
+      subtype: "error_max_turns",
+      is_error: true,
+    });
+    provider._handleMessage({ type: "send", text: "continue" });
+    expect(spawns).toHaveLength(2);
+    expect(spawns[1].cfg.args).toContain("500");
+    expect(spawns[1].cfg.args).toContain(sessionId);
+    expect(spawns[0].running).toBe(false);
+  });
+
+  it.each([0, -1, 1.5, "500", "1 & injected"])(
+    "does not pass invalid/default setting %s to the shell",
+    (value) => {
+      const { provider, spawns } = makeProvider((key) =>
+        key === "maxTurns" ? value : undefined,
+      );
+      provider._handleMessage({ type: "send", text: "go" });
+      expect(spawns[0].cfg.args).not.toContain("--max-turns");
+    },
+  );
+});

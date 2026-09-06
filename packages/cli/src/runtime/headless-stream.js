@@ -4325,12 +4325,15 @@ async function runAgentHeadlessStreamInWorkspace(
       });
     }
 
-    // Per-turn iteration budget so one turn can't starve the rest.
-    const budget = Number.isFinite(options.maxTurns)
-      ? new IterationBudget({
-          limit: Math.max(1, Math.floor(options.maxTurns)),
-        })
-      : new IterationBudget();
+    // Interactive hosts support interruption and steering. Do not silently
+    // stop long tasks at the unattended default of 50 model calls. Explicit
+    // --max-turns / CC_ITERATION_BUDGET and cost/session caps still apply.
+    const budget = IterationBudget.forRun({
+      maxTurns: options.maxTurns,
+      continuous:
+        options.interactiveApprovals === true ||
+        options.interactiveQuestions === true,
+    });
 
     // Custom slash-command macro expansion per user event (Claude-Code parity:
     // a /name from .claude/commands runs in panel / stream mode too, not just
