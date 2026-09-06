@@ -1689,6 +1689,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 后续 Desktop 专用 Multi-Agent 基类审计发现 `SpecializedAgent.callLLM()` 将 `{messages, ...options}` 对象作为第一个参数传给 `LLMManager.chat()`；后者要求数组，因此实际 manager 会在治理前拒绝，容易诱使调用方另接 provider。现基类只接受消息数组，显式把可选 system prompt 固化为首条 system message，再将其余选项作为第二参数传入标准 manager chat 入口；对象形 messages 在到达 manager 前拒绝。专用 Agent 定向回归与 IPC/manager 回归共 130/130 通过，覆盖 system prompt、所有生成参数和非法对象不触达 manager；Prettier/diff 检查通过，ESLint 0 错误（2 个既有未使用变量警告）。这修复一条已存在但先前不可用的 Desktop 多 Agent 入模调用，不代表其余最终入口、流式工具或完整 bootstrap 已验收，P0-4 状态不变。
 
+2026-09-06 Desktop `LLMDecisionEngine` 调用链审计发现低置信度决策把 `{ prompt, temperature, maxTokens }` 对象作为 `LLMManager.query()` 的第一个实参；标准 manager 的签名是 `(prompt, options)`，该形状会在受治理 query 入口前失配。现决策引擎显式以 prompt 字符串和 options 分参调用，因而沿既有受治理 query→chat 路径进入模型；单元测试同时断言 prompt 内容及 temperature/maxTokens 的完整透传。Decision Engine、专用 Agent、IPC 治理和 manager 定向回归共 156/156 通过，Prettier/diff 检查通过；源文件 ESLint 为 0 错误（1 个既有未使用 catch 参数警告），旧 CommonJS 测试文件缺少测试全局 ESLint 配置，不能作为该源文件错误。此修复仅关闭一条已发现的非流式决策入口形状缺口，P0-4 仍因其他最终入口、流式工具循环和完整 bootstrap 等项保持部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
