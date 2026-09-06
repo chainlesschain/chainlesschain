@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 Cowork 并行入口补充：WebSocket 在选择 parallel runner 时传递宿主 `evolutionCompositionFactory`，`runCoworkTaskParallel` 继续传给 Orchestrator，从而沿用逐任务 Run 认证、投影和 completion 时序。客户端消息中的 factory 不会覆盖宿主；runner 对 admission 异常保留 `failed` 结果。Cowork runner/action protocol 115/115 通过，测试验证两个转发接点与失败状态（不是外部 Agent 内部模型调用的真实验收）；静态检查 0 error。顺序与 debate Cowork 的独立执行器尚未完成这条宿主接线，仍为仓库内余项。
+
 2026-09-06 WebSocket 编排接线补充：`handleOrchestrate` 现在将 `server.evolutionCompositionFactory` 传入实际 Orchestrator，每个请求复用宿主配置的逐任务认证机制。消息中的同名 factory 或 ingress 不参与构造；宿主 factory 拒绝时返回 `ORCHESTRATE_FAILED`，不会发送 `orchestrate:done`，也不会请求模型或派生执行进程。action protocol 4/4 通过，静态检查 0 error。此处关闭 WS 编排的 factory 漏传，尚不覆盖 Cowork 入口与外部 Agent 子进程内部的模型请求。
 
 2026-09-06 编排启动失败状态补充：composition factory、品牌/Run 绑定验证、ingress start 和初始 user-prompt 持久化统一捕获失败，保留原异常并写入任务失败状态、发送一次失败事件，避免已登记任务永远停留 pending。工厂异常/未品牌化组合和真实 source authority 拒绝已验证不会调用模型、dispatch 或 CI，也不会报告成功；编排回归与真实来源拒绝专项共 31 passed（其余 84 项按名称过滤未运行），静态检查 0 error。

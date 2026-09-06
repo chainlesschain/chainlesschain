@@ -1497,6 +1497,22 @@ describe("runCoworkTaskParallel", () => {
     );
   });
 
+  it("retains the host evolution factory and reports admission failure without success", async () => {
+    const factory = vi.fn();
+    _mockAddTask.mockRejectedValueOnce(new Error("evolution admission denied"));
+    const result = await runCoworkTaskParallel({
+      userMessage: "inspect",
+      evolutionCompositionFactory: factory,
+    });
+    expect(_MockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evolutionCompositionFactory: factory,
+      }),
+    );
+    expect(result.status).toBe("failed");
+    expect(result.result.summary).toContain("evolution admission denied");
+  });
+
   it("caps agents at 10", async () => {
     await runCoworkTaskParallel({
       templateId: "data-analysis",

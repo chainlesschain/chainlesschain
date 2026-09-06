@@ -60,6 +60,8 @@ export async function handleCoworkTask(server, id, ws, message) {
         ? {
             agents: message.agents || 3,
             strategy: message.strategy,
+            evolutionCompositionFactory:
+              server.evolutionCompositionFactory ?? null,
           }
         : {}),
       ...(useDebate && message.perspectives

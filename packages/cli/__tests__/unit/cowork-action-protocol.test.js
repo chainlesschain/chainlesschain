@@ -443,12 +443,20 @@ describe("handleCoworkTask parallel routing", () => {
   });
 
   it("uses runCoworkTaskParallel when message.parallel is true", async () => {
+    const hostFactory = vi.fn();
+    const clientFactory = vi.fn();
+    server.evolutionCompositionFactory = hostFactory;
     await handleCoworkTask(server, "req-par", ws, {
+      evolutionCompositionFactory: clientFactory,
       userMessage: "并行调研",
       parallel: true,
     });
 
-    expect(runCoworkTaskParallel).toHaveBeenCalled();
+    expect(runCoworkTaskParallel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evolutionCompositionFactory: hostFactory,
+      }),
+    );
     expect(runCoworkTask).not.toHaveBeenCalled();
   });
 

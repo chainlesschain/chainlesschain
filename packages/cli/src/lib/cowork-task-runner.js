@@ -810,6 +810,7 @@ export async function runCoworkTaskParallel(options = {}) {
     const orch = new Orchestrator({
       cwd,
       maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
+      evolutionCompositionFactory: options.evolutionCompositionFactory ?? null,
       ciCommand: "echo ok",
       agents: strategy ? { strategy } : undefined,
       verbose: false,
