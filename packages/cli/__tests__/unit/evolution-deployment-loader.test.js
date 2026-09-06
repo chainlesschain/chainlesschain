@@ -133,7 +133,15 @@ describe("signed evolution deployment loader", () => {
     },
   );
 
-  it.each(["agent", "ask", "chat", "cowork", "orchestrate", "serve"])(
+  it.each([
+    "agent",
+    "ask",
+    "chat",
+    "compact",
+    "cowork",
+    "orchestrate",
+    "serve",
+  ])(
     "exposes the Agent runtime composition only to an authenticated %s deployment",
     async (commandName) => {
       const fixture = deploymentFixture({ commands: [commandName] });
@@ -549,6 +557,7 @@ describe("signed evolution deployment loader", () => {
 
   it.each([
     ["evolution", "workbenchHost", "registerEvolutionCommand"],
+    ["compact", "evolutionCompositionFactory", "registerCompactCommand"],
     ["marketplace", "marketplaceHost", "registerMarketplaceCommand"],
   ])(
     "passes %s deployment dependencies through the lazy registration boundary",

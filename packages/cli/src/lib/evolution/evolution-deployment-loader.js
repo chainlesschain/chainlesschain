@@ -11,6 +11,7 @@ const SUPPORTED_COMMANDS = new Set([
   "agent",
   "ask",
   "chat",
+  "compact",
   "cowork",
   "desktop",
   "evolution",
@@ -281,6 +282,7 @@ async function loadBuiltInFactories(commandName) {
     commandName === "agent" ||
     commandName === "ask" ||
     commandName === "chat" ||
+    commandName === "compact" ||
     commandName === "cowork" ||
     commandName === "orchestrate" ||
     commandName === "serve"

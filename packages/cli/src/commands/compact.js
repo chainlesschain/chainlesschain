@@ -21,6 +21,7 @@
 
 import chalk from "chalk";
 import { randomUUID } from "node:crypto";
+import { types as utilTypes } from "node:util";
 import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { logger } from "../lib/logger.js";
 import {
@@ -429,16 +430,28 @@ function readCompactSource(sessionId) {
 }
 
 export function registerCompactCommand(program, dependencies = {}) {
-  const evolutionCompositionFactory =
-    dependencies.evolutionCompositionFactory ?? null;
   if (
-    evolutionCompositionFactory !== null &&
-    typeof evolutionCompositionFactory !== "function"
+    !dependencies ||
+    typeof dependencies !== "object" ||
+    Array.isArray(dependencies) ||
+    utilTypes.isProxy(dependencies)
+  ) {
+    throw new TypeError("Compact command dependencies must be a plain object");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    dependencies,
+    "evolutionCompositionFactory",
+  );
+  if (
+    descriptor &&
+    (!Object.hasOwn(descriptor, "value") ||
+      typeof descriptor.value !== "function")
   ) {
     throw new TypeError(
-      "Compact evolution composition factory must be a function",
+      "Compact evolution composition factory must be a function data property",
     );
   }
+  const evolutionCompositionFactory = descriptor?.value ?? null;
   program
     .command("compact <session-id>")
     .description(

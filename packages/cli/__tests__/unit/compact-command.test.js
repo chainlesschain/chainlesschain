@@ -98,6 +98,26 @@ async function runCompact(args, dependencies = {}) {
 }
 
 describe("cc compact", () => {
+  it("rejects accessor and Proxy dependencies without executing them", () => {
+    const getter = vi.fn();
+    expect(() =>
+      registerCompactCommand(
+        {},
+        Object.defineProperty({}, "evolutionCompositionFactory", {
+          get: getter,
+        }),
+      ),
+    ).toThrow(/function data property/);
+    expect(getter).not.toHaveBeenCalled();
+    const trap = vi.fn();
+    expect(() =>
+      registerCompactCommand(
+        {},
+        new Proxy({}, { getOwnPropertyDescriptor: trap }),
+      ),
+    ).toThrow(/plain object/);
+    expect(trap).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     process.exitCode = 0;

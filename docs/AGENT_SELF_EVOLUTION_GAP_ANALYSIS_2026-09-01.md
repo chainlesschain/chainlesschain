@@ -1637,6 +1637,8 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 2026-09-06 最终入口审计补充（EVO-P0-4）：正式 `cc ask` 已接收签名 deployment loader 的构造期 composition factory，生成独立 Run 并验证 composition/ingress 的 run/tenant 绑定；factory 仅接收冻结的 mode/run/task/cwd。用户问题与 `@文件` 展开结果先持久确认，再由 branded ingress 投影后发送到 Ollama 或 OpenAI-compatible HTTP 分支；response evidence 与 Run completion 确认后才输出答案。真实 Commander→production composition→Ollama 请求体测试覆盖成功、source denial、response denial 与跨 Run composition 拒绝，验证文件邮箱/密钥脱敏、拒绝时零请求或零成功输出，4/4 通过；ask/file-ref/Android-local/deployment loader 回归 64/64，静态检查 0 错误。该证据覆盖 ask 入口，不作为全部入口审计完成的证明。后续已定位 `compact` 命令内部存在治理 seam，但签名 deployment loader 尚未 allowlist `compact`，仍需补齐公开启动链并验证；EVO-P0-4 保持部分完成。
 
+2026-09-06 `compact` 公开启动链收口（EVO-P0-4）：签名 deployment descriptor 的 allowlist 与内置 composition factories 已加入 `compact`，lazy dispatcher 将部署依赖传给正式命令注册器。注册器捕获 function data property，并在读取前拒绝 Proxy/accessor；已有 admission/model/response 治理拒绝继续禁止降级压缩或会话写入，offline/dry-run 不打开模型 authority。部署加载、lazy 注册传递、命令压缩及 provider-backed compaction 三文件 69/69 通过，静态检查与 diff check 通过。审计继续发现 `cc complete` 发送 IDE prefix/suffix 时调用 `queryLLM` 却未传入 ingress，属于下一处仓库内缺口；`llm test` 当前仅发送固定连通性探针，不包含用户问题/文件，但其运行审计范围仍待核定。P0-4 的全入口验收尚未完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
