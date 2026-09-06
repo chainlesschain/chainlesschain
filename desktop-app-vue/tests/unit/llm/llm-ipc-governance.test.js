@@ -58,6 +58,12 @@ describe("native IPC configuration authority continuity", () => {
           throw refusal;
         }),
       };
+      manager.chatWithGovernedFunctions = vi.fn(
+        async (_messages, _functions, executor) => {
+          if (mode === "mcp-request") throw refusal;
+          await executor.execute("lookup", {});
+        },
+      );
       const agentOrchestrator = {
         getCapableAgents: () => [{ agentId: "test", score: 1 }],
         dispatch: vi.fn(async () => {
@@ -100,7 +106,8 @@ describe("native IPC configuration authority continuity", () => {
           },
         ),
       ).rejects.toBe(refusal);
-      expect(manager.chatWithMessages).toHaveBeenCalledTimes(
+      expect(manager.chatWithMessages).not.toHaveBeenCalled();
+      expect(manager.chatWithGovernedFunctions).toHaveBeenCalledTimes(
         mode.startsWith("mcp") ? 1 : 0,
       );
       if (execute)
