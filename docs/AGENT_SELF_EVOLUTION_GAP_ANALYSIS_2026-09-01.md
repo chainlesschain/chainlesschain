@@ -1691,6 +1691,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Desktop `LLMDecisionEngine` 调用链审计发现低置信度决策把 `{ prompt, temperature, maxTokens }` 对象作为 `LLMManager.query()` 的第一个实参；标准 manager 的签名是 `(prompt, options)`，该形状会在受治理 query 入口前失配。现决策引擎显式以 prompt 字符串和 options 分参调用，因而沿既有受治理 query→chat 路径进入模型；单元测试同时断言 prompt 内容及 temperature/maxTokens 的完整透传。Decision Engine、专用 Agent、IPC 治理和 manager 定向回归共 156/156 通过，Prettier/diff 检查通过；源文件 ESLint 为 0 错误（1 个既有未使用 catch 参数警告），旧 CommonJS 测试文件缺少测试全局 ESLint 配置，不能作为该源文件错误。此修复仅关闭一条已发现的非流式决策入口形状缺口，P0-4 仍因其他最终入口、流式工具循环和完整 bootstrap 等项保持部分完成。
 
+2026-09-06 Desktop 记忆辅助模型入口复核发现会话预压缩、长期记忆发现提取和 MemGPT 工作记忆摘要均把单个配置对象传给 `LLMManager.chat()`，而标准签名是 `(messages, options)`；在受治理 manager 下这会在入口前失配。三处现均显式传递消息数组和独立 options，因而复用既有受治理 chat 路径；新增会话预压缩和长期记忆提取断言，分别验证 system/user 消息与 model/stream/temperature、以及 user prompt 与 maxTokens 的完整透传，定向 2/2 通过。Decision Engine、专用 Agent、IPC 治理和 manager 回归另为 156/156 通过；三处源文件 Prettier/diff 检查通过，ESLint 0 错误（8 个既有未使用变量警告）。本批只修复已发现的非流式辅助入口 API 形状，其他最终入口、流式工具循环、完整 Electron bootstrap、跨进程缓存和删除传播仍未关闭，P0-4 状态不变。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

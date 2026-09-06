@@ -53,9 +53,8 @@ vi.mock("../../../src/main/rag/embedding-cache.js", () => ({
 }));
 
 // Import after mocks
-const { PermanentMemoryManager } = await import(
-  "../../../src/main/llm/permanent-memory-manager.js"
-);
+const { PermanentMemoryManager } =
+  await import("../../../src/main/llm/permanent-memory-manager.js");
 
 describe("PermanentMemoryManager", () => {
   let manager;
@@ -205,13 +204,33 @@ describe("PermanentMemoryManager", () => {
   });
 
   describe("extractFromConversation", () => {
+    it("passes discovery prompts through the standard LLM chat signature", async () => {
+      const chat = vi.fn().mockResolvedValue({
+        content: "使用数据库事务保证写入原子性",
+      });
+      manager.llmManager = { chat };
+
+      const discoveries = await manager._extractDiscoveries([
+        { role: "user", content: "如何保证数据一致性？" },
+      ]);
+
+      expect(discoveries).toEqual(["使用数据库事务保证写入原子性"]);
+      expect(chat).toHaveBeenCalledWith(
+        [expect.objectContaining({ role: "user" })],
+        { maxTokens: 500 },
+      );
+    });
+
     it("should extract conversation to daily notes", async () => {
       const messages = [
         { role: "user", content: "你好" },
         { role: "assistant", content: "你好！有什么我可以帮助你的吗？" },
       ];
 
-      const result = await manager.extractFromConversation(messages, "测试对话");
+      const result = await manager.extractFromConversation(
+        messages,
+        "测试对话",
+      );
 
       expect(result.savedTo).toBe("daily_notes");
       expect(result.messageCount).toBe(2);
@@ -220,7 +239,7 @@ describe("PermanentMemoryManager", () => {
 
     it("should throw on empty messages", async () => {
       await expect(manager.extractFromConversation([], "")).rejects.toThrow(
-        "消息列表为空"
+        "消息列表为空",
       );
     });
 

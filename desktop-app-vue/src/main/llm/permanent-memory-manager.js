@@ -1432,10 +1432,10 @@ ${conversationText.substring(0, 3000)}
 
       // 调用 LLM (如果可用)
       if (this.llmManager.chat) {
-        const response = await this.llmManager.chat({
-          messages: [{ role: "user", content: prompt }],
-          maxTokens: 500,
-        });
+        const response = await this.llmManager.chat(
+          [{ role: "user", content: prompt }],
+          { maxTokens: 500 },
+        );
 
         if (response && response.content) {
           // 解析响应，提取每行作为一个发现

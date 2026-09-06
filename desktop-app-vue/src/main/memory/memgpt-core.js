@@ -783,8 +783,8 @@ class MemGPTCore extends EventEmitter {
         .join("\n");
 
       // Request summarization from LLM
-      const response = await this.llmManager.chat({
-        messages: [
+      const response = await this.llmManager.chat(
+        [
           {
             role: "system",
             content:
@@ -795,8 +795,8 @@ class MemGPTCore extends EventEmitter {
             content,
           },
         ],
-        maxTokens: 500,
-      });
+        { maxTokens: 500 },
+      );
 
       const summary = response?.content || response?.message?.content;
       if (summary) {
