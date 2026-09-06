@@ -14276,6 +14276,13 @@ export async function* agentLoop(messages, options) {
     // system-message supplement that is NOT persisted to messages history.
     let callMessages = messages;
     const contextMemoryTrustedSystemIndexes = [];
+    if (readFileLoopGuard.progressHint) {
+      callMessages = [
+        ...callMessages,
+        { role: "system", content: readFileLoopGuard.progressHint },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
     if (readFileLoopGuard.recoveryHint) {
       callMessages = [
         ...callMessages,
