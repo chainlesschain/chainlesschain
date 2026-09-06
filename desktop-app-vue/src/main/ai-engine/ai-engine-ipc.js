@@ -39,13 +39,8 @@ const AI_ENGINE_IPC_CHANNELS = [
 function createDefaultAIEngineRuntime() {
   return {
     createIntentLLMManager: async () => {
-      const { getLLMConfig } = require("../llm/llm-config");
-      const { LLMManager } = require("../llm/llm-manager");
-
-      const llmConfig = getLLMConfig();
-      const llmManager = new LLMManager(llmConfig.getManagerConfig());
-      await llmManager.initialize();
-      return llmManager;
+      const { getGovernedLLMManagerInstance } = require("../llm/llm-manager");
+      return getGovernedLLMManagerInstance();
     },
     recognizeProjectIntent: async (userInput, llmManager) => {
       const { recognizeProjectIntent } = require("./intent-recognizer");
@@ -104,7 +99,8 @@ class AIEngineIPC {
 
   registerHandlers(mainWindow, options = {}) {
     const ipc = options.ipcMain || this.ipcMain || electronIpcMain;
-    const windowRef = options.mainWindow || mainWindow || this.mainWindow || null;
+    const windowRef =
+      options.mainWindow || mainWindow || this.mainWindow || null;
     const runtime = this.getRuntime(options.runtime);
 
     this.ipcMain = ipc;
@@ -126,27 +122,31 @@ class AIEngineIPC {
 
     removeExistingHandlers(ipc);
 
-    safeHandle("ai:processInput", "processInput", async (_event, payload = {}) => {
-      const { input, context } = payload;
-      logger.info("[AI Engine IPC] Processing user input:", input);
+    safeHandle(
+      "ai:processInput",
+      "processInput",
+      async (_event, payload = {}) => {
+        const { input, context } = payload;
+        logger.info("[AI Engine IPC] Processing user input:", input);
 
-      const onStepUpdate = (step) => {
-        if (windowRef && windowRef.webContents?.send) {
-          windowRef.webContents.send("ai:stepUpdate", step);
-        }
-      };
+        const onStepUpdate = (step) => {
+          if (windowRef && windowRef.webContents?.send) {
+            windowRef.webContents.send("ai:stepUpdate", step);
+          }
+        };
 
-      const result = await this.aiEngineManager.processUserInput(
-        input,
-        context,
-        onStepUpdate,
-      );
+        const result = await this.aiEngineManager.processUserInput(
+          input,
+          context,
+          onStepUpdate,
+        );
 
-      return {
-        success: true,
-        result,
-      };
-    });
+        return {
+          success: true,
+          result,
+        };
+      },
+    );
 
     safeHandle("ai:getHistory", "getHistory", async (_event, limit = 10) => {
       const history = this.aiEngineManager.getExecutionHistory(limit);
@@ -169,20 +169,28 @@ class AIEngineIPC {
       };
     });
 
-    safeHandle("web-engine:generate", "web-engine:generate", async (_event, opts) => {
-      logger.info("[Web Engine IPC] Generating web project:", opts);
-      return {
-        success: true,
-        ...(await this.webEngineManager.generateProject(opts)),
-      };
-    });
+    safeHandle(
+      "web-engine:generate",
+      "web-engine:generate",
+      async (_event, opts) => {
+        logger.info("[Web Engine IPC] Generating web project:", opts);
+        return {
+          success: true,
+          ...(await this.webEngineManager.generateProject(opts)),
+        };
+      },
+    );
 
-    safeHandle("web-engine:getTemplates", "web-engine:getTemplates", async () => {
-      return {
-        success: true,
-        templates: this.webEngineManager.getTemplates(),
-      };
-    });
+    safeHandle(
+      "web-engine:getTemplates",
+      "web-engine:getTemplates",
+      async () => {
+        return {
+          success: true,
+          templates: this.webEngineManager.getTemplates(),
+        };
+      },
+    );
 
     safeHandle(
       "web-engine:startPreview",
@@ -258,12 +266,16 @@ class AIEngineIPC {
       },
     );
 
-    safeHandle("data-engine:readCSV", "data-engine:readCSV", async (_event, filePath) => {
-      return {
-        success: true,
-        ...(await this.dataEngineManager.readCSV(filePath)),
-      };
-    });
+    safeHandle(
+      "data-engine:readCSV",
+      "data-engine:readCSV",
+      async (_event, filePath) => {
+        return {
+          success: true,
+          ...(await this.dataEngineManager.readCSV(filePath)),
+        };
+      },
+    );
 
     safeHandle(
       "data-engine:writeCSV",
@@ -298,12 +310,16 @@ class AIEngineIPC {
       },
     );
 
-    safeHandle("data-engine:analyze", "data-engine:analyze", async (_event, data, opts) => {
-      return {
-        success: true,
-        ...this.dataEngineManager.analyzeData(data, opts),
-      };
-    });
+    safeHandle(
+      "data-engine:analyze",
+      "data-engine:analyze",
+      async (_event, data, opts) => {
+        return {
+          success: true,
+          ...this.dataEngineManager.analyzeData(data, opts),
+        };
+      },
+    );
 
     safeHandle(
       "data-engine:generateChart",
@@ -339,15 +355,23 @@ class AIEngineIPC {
       },
     );
 
-    safeHandle("git-auto-commit:stop", "git-auto-commit:stop", async (_event, projectId) => {
-      this.gitAutoCommit.stop(projectId);
-      return { success: true };
-    });
+    safeHandle(
+      "git-auto-commit:stop",
+      "git-auto-commit:stop",
+      async (_event, projectId) => {
+        this.gitAutoCommit.stop(projectId);
+        return { success: true };
+      },
+    );
 
-    safeHandle("git-auto-commit:stopAll", "git-auto-commit:stopAll", async () => {
-      this.gitAutoCommit.stopAll();
-      return { success: true };
-    });
+    safeHandle(
+      "git-auto-commit:stopAll",
+      "git-auto-commit:stopAll",
+      async () => {
+        this.gitAutoCommit.stopAll();
+        return { success: true };
+      },
+    );
 
     safeHandle(
       "git-auto-commit:setInterval",
@@ -384,7 +408,10 @@ class AIEngineIPC {
       async (_event, userInput) => {
         logger.info("[AI Engine IPC] Recognizing intent:", userInput);
         const llmManager = await runtime.createIntentLLMManager();
-        const result = await runtime.recognizeProjectIntent(userInput, llmManager);
+        const result = await runtime.recognizeProjectIntent(
+          userInput,
+          llmManager,
+        );
         logger.info("[AI Engine IPC] Intent recognized:", result);
         return result;
       },
@@ -431,7 +458,9 @@ class AIEngineIPC {
       },
     );
 
-    logger.info(`[AI Engine IPC] Registered ${AI_ENGINE_IPC_CHANNELS.length} IPC handlers`);
+    logger.info(
+      `[AI Engine IPC] Registered ${AI_ENGINE_IPC_CHANNELS.length} IPC handlers`,
+    );
     return { handlerCount: AI_ENGINE_IPC_CHANNELS.length };
   }
 

@@ -1911,6 +1911,15 @@ function _setLLMManagerInstance(instance) {
   llmManagerInstance = instance;
 }
 
+function getGovernedLLMManagerInstance() {
+  if (!llmManagerInstance || !modelIngressHosts.has(llmManagerInstance)) {
+    const error = new Error("Governed Desktop LLM manager is unavailable");
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+  return llmManagerInstance;
+}
+
 function createLLMManagerReplacement(previous, config) {
   if (previous != null && !(previous instanceof LLMManager))
     throw new TypeError("LLM replacement requires the current native manager");
@@ -2642,6 +2651,7 @@ module.exports = {
   LLMManager,
   LLMProviders,
   getLLMManager,
+  getGovernedLLMManagerInstance,
   _setLLMManagerInstance,
   createLLMManagerReplacement,
   isGovernedLLMManager: (manager) => modelIngressHosts.has(manager),
