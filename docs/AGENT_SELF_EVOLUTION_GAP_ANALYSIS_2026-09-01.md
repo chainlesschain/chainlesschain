@@ -1641,6 +1641,8 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 2026-09-06 IDE inline completion 入口收口（EVO-P0-4）：`cc complete` 已加入签名部署 allowlist 与内置 composition factories；命令捕获受校验的 factory data property，每次非空补全请求创建独立 Run，验证 run/tenant 精确绑定。prefix/suffix/language 组成的完整 FIM prompt 经 user evidence 持久确认与 branded model projection 后进入现有 `queryLLM`；回复证据与 Run completion 完成后才清理并输出插入文本。真实 stdin→Commander→production composition→Ollama 请求体/JSON 输出的 success/source-denied/response-denied/wrong-run/empty 五场景 5/5 通过：密钥/邮箱脱敏且保留 CURSOR，拒绝不返回代码，空请求零 factory/模型调用；complete/ask/deployment loader 三文件 64/64，静态检查 0 错误。P0-4 仍需完成 Desktop 直接 LLMManager query/stream 等入口的调用链审计与固定诊断探针的范围核定，不能用以上 CLI 单入口证据宣称全产品完成。
 
+2026-09-06 Desktop 原生模型入口审计：已沿 authenticated loader→bootstrap→LLMManager→provider 逐段核实，当前 loader 仅提取 evolvable artifact/marketplace 依赖，bootstrap 未给 LLMManager 注入模型 composition；query/chat、两类 stream、模型 fallback 和独立 toolsClient 均存在直接模型出口。完整调用链与验收清单见 [Desktop model ingress audit](development/EVOLUTION_DESKTOP_MODEL_INGRESS_AUDIT_2026-09-06.md)。这将 P0-4 的“其他最终入口审计”明确为实际仓库实现缺口；需要同时覆盖压缩后请求、缓存来源、工具回合和拒绝后的重试控制，尚未修复，状态保持部分完成。既有 Desktop deployment loader 证据证明 artifact 生命周期接线，不证明此处原生模型出口已经治理。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
