@@ -122,9 +122,48 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
     // Capture the final wire payload, after client-specific tool filtering.
     const captured = JSON.parse(JSON.stringify(body));
     const ingress = await openDesktopModelRun(host, JSON.stringify(captured));
-    const messages = Array.isArray(captured.messages)
-      ? [...captured.messages]
-      : [{ role: "user", content: captured.prompt }];
+    const geminiParts = (parts) => {
+      if (
+        !Array.isArray(parts) ||
+        parts.some(
+          (part) =>
+            !part ||
+            Object.keys(part).join() !== "text" ||
+            typeof part.text !== "string",
+        )
+      )
+        throw new Error("Unsupported Gemini text part");
+      return JSON.stringify(parts.map((part) => part.text));
+    };
+    const restoreGeminiParts = (content) => {
+      const texts = JSON.parse(content);
+      if (
+        !Array.isArray(texts) ||
+        texts.some((text) => typeof text !== "string")
+      )
+        throw new Error("Invalid projected Gemini parts");
+      return texts.map((text) => ({ text }));
+    };
+    const hasGeminiSystem =
+      protocol === "gemini" && captured.systemInstruction != null;
+    const messages =
+      protocol === "gemini"
+        ? captured.contents.map((item) => {
+            if (!["user", "model"].includes(item.role))
+              throw new Error("Unsupported Gemini role");
+            return {
+              role: item.role === "model" ? "assistant" : "user",
+              content: geminiParts(item.parts),
+            };
+          })
+        : Array.isArray(captured.messages)
+          ? [...captured.messages]
+          : [{ role: "user", content: captured.prompt }];
+    if (hasGeminiSystem)
+      messages.unshift({
+        role: "system",
+        content: geminiParts(captured.systemInstruction.parts),
+      });
     const hasSystem = Object.hasOwn(captured, "system");
     const hasStops = Object.hasOwn(captured, "stop_sequences");
     if (hasSystem)
@@ -155,7 +194,19 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
         throw new Error("Invalid projected stop sequences");
       captured.stop_sequences = stops;
     }
-    if (protocol === "anthropic") {
+    if (protocol === "gemini") {
+      const system = hasGeminiSystem
+        ? restoreGeminiParts(projectedMessages.shift().content)
+        : [];
+      captured.systemInstruction = {
+        ...(captured.systemInstruction || {}),
+        parts: [{ text: provenance.content }, ...system],
+      };
+      captured.contents = captured.contents.map((item, index) => ({
+        ...item,
+        parts: restoreGeminiParts(projectedMessages[index].content),
+      }));
+    } else if (protocol === "anthropic") {
       captured.system = [provenance.content, captured.system]
         .filter(Boolean)
         .join("\n\n");
@@ -187,6 +238,83 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
     };
   } catch (cause) {
     const error = new Error("Desktop model request evidence failed", { cause });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
+async function consumeDesktopGeminiStream(
+  prepared,
+  response,
+  model,
+  onChunk,
+  signal,
+) {
+  try {
+    const decoder = new StringDecoder("utf8");
+    let buffer = "";
+    let content = "";
+    let finishReason = null;
+    let usage = {};
+    const accept = (event) => {
+      const data = event
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .join("\n");
+      if (!data || data === "[DONE]") return;
+      const parsed = JSON.parse(data);
+      if (parsed.error) throw new Error("Gemini stream returned an error");
+      const candidate = parsed.candidates?.[0];
+      const parts = candidate?.content?.parts || [];
+      const text = parts
+        .map((part) => {
+          if (typeof part.text !== "string")
+            throw new Error("Unsupported Gemini response part");
+          return part.text;
+        })
+        .join("");
+      if (text && finishReason)
+        throw new Error("Gemini returned content after its terminal frame");
+      if (text) {
+        content += text;
+        if (onChunk) onChunk({ content: text, done: false });
+      }
+      if (candidate?.finishReason) finishReason = candidate.finishReason;
+      if (parsed.usageMetadata) usage = parsed.usageMetadata;
+    };
+    for await (const chunk of response.data) {
+      buffer += typeof chunk === "string" ? chunk : decoder.write(chunk);
+      buffer = buffer.replace(/\r\n/g, "\n");
+      let boundary;
+      while ((boundary = buffer.indexOf("\n\n")) !== -1) {
+        accept(buffer.slice(0, boundary));
+        buffer = buffer.slice(boundary + 2);
+      }
+    }
+    buffer += decoder.end();
+    if (buffer.trim()) accept(buffer);
+    if (signal?.aborted || !finishReason)
+      throw new Error("Gemini stream did not complete");
+    await prepared.complete({ role: "assistant", content });
+    if (onChunk) onChunk({ content: "", done: true });
+    return {
+      content,
+      text: content,
+      message: { role: "assistant", content },
+      model,
+      finish_reason: finishReason,
+      usage: {
+        prompt_tokens: usage.promptTokenCount || 0,
+        completion_tokens: usage.candidatesTokenCount || 0,
+        total_tokens: usage.totalTokenCount || 0,
+      },
+    };
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Governed Desktop Gemini stream did not complete", {
+      cause,
+    });
     error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
     throw error;
   }
@@ -275,4 +403,5 @@ module.exports = {
   bindDesktopModelIngressClient,
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,
+  consumeDesktopGeminiStream,
 };

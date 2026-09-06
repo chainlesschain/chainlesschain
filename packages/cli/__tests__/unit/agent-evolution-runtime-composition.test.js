@@ -1462,6 +1462,123 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
+  it.each([false, true])(
+    "governs Desktop Gemini payload and lifecycle (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { GeminiClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/gemini-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new GeminiClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const data = {
+          candidates: [
+            {
+              content: { parts: [{ text: "完" }, { text: "成" }] },
+              ...(mode === "truncated" ? {} : { finishReason: "STOP" }),
+            },
+          ],
+          usageMetadata: { totalTokenCount: 3 },
+        };
+        const bytes = Buffer.from(`data: ${JSON.stringify(data)}\n\n`);
+        const split = bytes.indexOf(Buffer.from("完")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : data,
+        }));
+        client.client.post = wire;
+        const messages = [
+          { role: "system", content: "Contact owner@example.com" },
+          { role: "user", content: "Answer user@example.com" },
+          { role: "assistant", content: "Earlier answer" },
+        ];
+        const chunks = vi.fn();
+        const result = stream
+          ? client.chatStream(messages, chunks, { temperature: 0 })
+          : client.chat(messages, { temperature: 0 });
+        if (mode === "success") {
+          expect(await result).toMatchObject({
+            content: "完成",
+            text: "完成",
+            message: { role: "assistant", content: "完成" },
+            usage: { total_tokens: 3 },
+          });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream)
+            expect(chunks).toHaveBeenLastCalledWith({
+              content: "",
+              done: true,
+            });
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+          expect(chunks.mock.calls.some(([chunk]) => chunk.done === true)).toBe(
+            false,
+          );
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          const body = wire.mock.calls[0][1];
+          expect(JSON.stringify(body)).not.toContain("@example.com");
+          expect(JSON.stringify(body.systemInstruction)).toContain("Contact");
+          expect(JSON.stringify(body.systemInstruction)).toContain(
+            "Evolution input projection",
+          );
+          expect(body.contents).toHaveLength(2);
+          expect(body.contents[0]).toMatchObject({
+            role: "user",
+            parts: [{ text: expect.stringContaining("Answer") }],
+          });
+          expect(body.contents[1]).toMatchObject({
+            role: "model",
+            parts: [{ text: "Earlier answer" }],
+          });
+          expect(body.generationConfig.temperature).toBe(0);
+        }
+      }
+    },
+    90_000,
+  );
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(

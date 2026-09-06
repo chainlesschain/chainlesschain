@@ -1653,6 +1653,10 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 本次 Anthropic/共享协议映射修正后的 OpenAI、Ollama、Anthropic 持久组合联合验收为 9/9 聚合测试、32 个内部成功/拒绝/截断场景（178.80s），正文保留、PII 脱敏与协议字段布局均通过；与上述 83/83 兼容性证据互补，不等同于外部 provider 或全 Desktop 完成验收。
 
+2026-09-06 Desktop Gemini 文本出口接线：最终 contents/systemInstruction 文本片段以有界协议中的 JSON 字符串进入同一持久投影，独立解码后恢复原 roles/parts，provenance 放入 systemInstruction 且业务正文与 generationConfig 保持；不放宽 shared 协议对 system/assistant content 的类型限制。chat/chatStream 只在 response evidence/completion 后返回成功，流式终态通知也后置；SSE 增量 UTF-8 解码保留跨字节中文和多片段响应，要求 finishReason 与正常结束，拒绝截断/error/终态后新增文本，错误码贯穿客户端到 manager 防止治理拒绝 fallback。额外补齐 Gemini 返回的 text/message 兼容字段，避免 LLMManager 忽略仅有 content 的有效回复。兼容性 Gemini/Manager/deployment 74/74，静态检查 0 错误。验证范围是文本协议；独立 toolsClient、embedding/探针、缓存/压缩与完整启动矩阵仍未关闭，P0-4 保持部分完成。
+
+Gemini 最终版本的 native composition+实际客户端方法+Axios post 替身验收为 2/2 聚合测试、7 个内部场景（55.15s），同时检查正文存在、系统/用户邮箱脱敏、model 角色和 parts 布局、零温度参数、多片段回复、回复拒绝时无 done=true 回调及截断后 Run 未完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
