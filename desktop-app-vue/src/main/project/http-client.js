@@ -1,6 +1,14 @@
 const { logger } = require("../utils/logger.js");
 const axios = require("axios");
 
+function assertGovernedProjectAiIngress() {
+  const error = new Error(
+    "External project AI requests require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * 项目服务HTTP客户端
  * 用于与后端project-service (Spring Boot) 通信
@@ -175,6 +183,7 @@ class ProjectHTTPClient {
     createData,
     { onProgress, onContent, onComplete, onError },
   ) {
+    assertGovernedProjectAiIngress();
     const AI_SERVICE_URL =
       process.env.AI_SERVICE_URL || "http://localhost:8001";
 
