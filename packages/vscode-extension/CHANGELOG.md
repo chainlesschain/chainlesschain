@@ -6,7 +6,7 @@ All notable changes to this extension are documented here.
 
 - Show the requested line range and long-line column in file-read traces so
   forward paging can be distinguished from repeatedly reading the same page.
-- Recommend `chainlesschain@0.166.27`, which directs task-count questions to
+- Recommend `chainlesschain@0.166.28`, which directs task-count questions to
   current status sections and local aggregation instead of full-document dumps.
 - Reuse identical large command output already in context, explicitly report
   truncated script output, and detect repeated code/shell dumps across compaction.

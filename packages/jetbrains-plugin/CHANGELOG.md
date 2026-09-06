@@ -2,7 +2,7 @@
 
 ## [0.4.112] - Efficient long-document tasks (2026-09-06)
 
-- Recommend `chainlesschain@0.166.27` for focused status-table reads and local
+- Recommend `chainlesschain@0.166.28` for focused status-table reads and local
   task counting instead of repeated full-document dumps.
 - Consume the shared runtime's explicit script-output truncation, reuse of
   identical large outputs, and read/code/shell loop recovery across compaction.

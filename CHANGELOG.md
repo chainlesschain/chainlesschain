@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.27: reduce repeated long-document output
+### Fixed - cc CLI 0.166.28: reduce repeated long-document output
 
-> `chainlesschain` **0.166.26 -> 0.166.27** (2026-09-06), paired with
+> `chainlesschain` **0.166.26 -> 0.166.28** (2026-09-06; incorporates the
+> unpublished 0.166.27 candidate), paired with
 > VS Code **0.37.85** and JetBrains **0.4.112**.
 
 - Direct task-count/status questions to current summary sections and local
@@ -22,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retaining recovery guidance and the incomplete-task backstop.
 - Validate with 80 focused regression tests; publication requires successful
   CLI CI and CLI Strict Sandbox matrices for the exact release commit.
+- Regenerate the bundled changelog index so its entries match the canonical
+  release notes and package version before CI tests and packaging.
 
 ### Fixed - cc CLI 0.166.26: recover repeated file reads and continue the task
 
