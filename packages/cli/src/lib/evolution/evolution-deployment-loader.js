@@ -220,6 +220,10 @@ async function loadBuiltInFactories(commandName) {
         createGovernedKnowledgeWikiTombstoneAuthority,
       },
       { createGovernedKnowledgeDependencyRouter },
+      {
+        GovernedKnowledgeQuarantineReleaseLedger,
+        createGovernedKnowledgeQuarantineReleaseDecisionAuthority,
+      },
     ] = await Promise.all([
       import("./skill-candidate-registry.js"),
       import("./skill-release-registry.js"),
@@ -236,6 +240,7 @@ async function loadBuiltInFactories(commandName) {
       import("./governed-knowledge-skill-rollback.js"),
       import("./governed-knowledge-wiki-tombstone.js"),
       import("./governed-knowledge-dependency-authority.js"),
+      import("./governed-knowledge-quarantine-release.js"),
     ]);
     Object.assign(factories, {
       createSkillCandidateRegistry: (options) =>
@@ -263,6 +268,9 @@ async function loadBuiltInFactories(commandName) {
       createGovernedKnowledgeWikiQuarantineAuthority,
       createGovernedKnowledgeWikiTombstoneAuthority,
       createGovernedKnowledgeDependencyRouter,
+      createGovernedKnowledgeQuarantineReleaseDecisionAuthority,
+      createGovernedKnowledgeQuarantineReleaseLedger: (options) =>
+        new GovernedKnowledgeQuarantineReleaseLedger(options),
     });
   }
   if (commandName === "agent" || commandName === "serve") {

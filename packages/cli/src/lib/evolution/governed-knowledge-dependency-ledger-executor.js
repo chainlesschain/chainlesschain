@@ -682,6 +682,7 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
           authenticated: true,
           durable: true,
           operationDigest,
+          preparedRecordDigest: prepared.record.recordDigest,
           knowledge: clone(prepared.record.knowledge),
         });
   }
@@ -723,7 +724,25 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
           authenticated: true,
           durable: true,
           operationDigest: matches[0].operationDigest,
+          preparedRecordDigest: matches[0].recordDigest,
           knowledge: clone(matches[0].knowledge),
+        });
+  }
+
+  readSettlement({ operationDigest } = {}) {
+    if (!EXECUTORS.has(this) || !DIGEST.test(operationDigest ?? "")) {
+      throw new TypeError("dependency settlement identity is invalid");
+    }
+    const prepared = this._prepared(operationDigest);
+    if (!prepared) return null;
+    const settled = this._settled(prepared.record);
+    return settled === null
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest,
+          record: clone(settled.record),
         });
   }
 

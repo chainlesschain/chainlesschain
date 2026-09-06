@@ -542,12 +542,14 @@ export async function openKnowledgeSkillRollbackStore(
             {
               kind: "active-skill",
               digest: release.candidateRelease.releaseDigest,
-              disposition: "rollback-active",
+              disposition: activeQuarantine ? "quarantine" : "rollback-active",
             },
             {
               kind: "candidate",
               digest: release.candidateRelease.candidateId,
-              disposition: "reject-candidate",
+              disposition: candidateQuarantine
+                ? "quarantine"
+                : "reject-candidate",
             },
             ...wikiDependencies,
           ]

@@ -183,6 +183,8 @@ describe("signed evolution deployment loader", () => {
           "createGovernedKnowledgeSkillRollbackAuthority",
           "createGovernedKnowledgeWikiTombstoneAuthority",
           "createGovernedKnowledgeDependencyRouter",
+          "createGovernedKnowledgeQuarantineReleaseDecisionAuthority",
+          "createGovernedKnowledgeQuarantineReleaseLedger",
         ].every((name) => typeof factories[name] === "function"),
       },
     }));
