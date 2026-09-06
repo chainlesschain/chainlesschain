@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 560
+**Total Components**: 563
 
 ---
 
@@ -2462,6 +2462,14 @@
 
 ---
 
+## src/renderer/components/skills
+
+### GovernedSkillMarketplacePanel
+
+**File**: `src/renderer/components/skills/GovernedSkillMarketplacePanel.vue`
+
+---
+
 ## src/renderer/components/skill
 
 ### SkillStats
@@ -4101,6 +4109,18 @@
 ### HarnessTaskDrawer
 
 **File**: `src/renderer/components/chat/HarnessTaskDrawer.vue`
+
+---
+
+### GovernedKnowledgeReviewDrawer
+
+**File**: `src/renderer/components/chat/GovernedKnowledgeReviewDrawer.vue`
+
+---
+
+### EvolutionWorkbenchDrawer
+
+**File**: `src/renderer/components/chat/EvolutionWorkbenchDrawer.vue`
 
 ---
 
