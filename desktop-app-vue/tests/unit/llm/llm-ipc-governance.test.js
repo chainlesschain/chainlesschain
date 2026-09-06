@@ -23,6 +23,169 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it.each(["rag", "agent", "mcp-request", "mcp-execute"])(
+    "keeps %s evidence refusal terminal at the IPC boundary",
+    async (mode) => {
+      const manager = new managerModule.LLMManager(
+        {
+          provider: "openai",
+          model: "test",
+          enableStateBus: false,
+          enableManusOptimizations: false,
+        },
+        createDesktopModelIngressHost(async () => {
+          throw new Error("routing fixture");
+        }),
+      );
+      const refusal = Object.assign(
+        new Error("timeout in evidence authority"),
+        { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+      );
+      manager.chatWithMessages = vi.fn(async () => {
+        if (mode === "mcp-request") throw refusal;
+        return {
+          message: {
+            role: "assistant",
+            content: null,
+            tool_calls: [
+              { id: "call-one", function: { name: "lookup", arguments: "{}" } },
+            ],
+          },
+        };
+      });
+      const ragManager = {
+        enhanceQuery: vi.fn(async () => {
+          throw refusal;
+        }),
+      };
+      const agentOrchestrator = {
+        getCapableAgents: () => [{ agentId: "test", score: 1 }],
+        dispatch: vi.fn(async () => {
+          throw refusal;
+        }),
+      };
+      const errorMonitor = { analyzeError: vi.fn() };
+      const handlers = new Map();
+      const ctx = {
+        ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
+        managerRef: { current: manager },
+        detectTaskType: () => "code",
+        errorMonitor,
+      };
+      let execute;
+      if (mode.startsWith("mcp")) {
+        const Executor = require("../../../src/main/mcp/mcp-function-executor.js");
+        vi.spyOn(Executor.prototype, "getFunctions").mockResolvedValue([
+          { name: "lookup", parameters: { type: "object", properties: {} } },
+        ]);
+        execute = vi
+          .spyOn(Executor.prototype, "execute")
+          .mockRejectedValue(refusal);
+        ctx.mcpClientManager = { getConnectedServers: () => ["test"] };
+        ctx.mcpToolAdapter = {};
+      }
+      if (mode === "rag") ctx.ragManager = ragManager;
+      if (mode === "agent") ctx.agentOrchestrator = agentOrchestrator;
+      registerCoreHandlers(ctx);
+      await expect(
+        handlers.get("llm:chat")(
+          {},
+          {
+            messages: [{ role: "user", content: "Inspect this project" }],
+            enableRAG: mode === "rag",
+            enableMultiAgent: mode === "agent",
+            enableSessionTracking: false,
+            enableManusOptimization: false,
+            enableErrorPrecheck: false,
+          },
+        ),
+      ).rejects.toBe(refusal);
+      expect(manager.chatWithMessages).toHaveBeenCalledTimes(
+        mode.startsWith("mcp") ? 1 : 0,
+      );
+      if (execute)
+        expect(execute).toHaveBeenCalledTimes(mode === "mcp-execute" ? 1 : 0);
+      expect(errorMonitor.analyzeError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    "does not bypass manager evidence through IPC cache/compression (denied=%s)",
+    async (denied) => {
+      const manager = new managerModule.LLMManager(
+        {
+          provider: "openai",
+          model: "test",
+          enableStateBus: false,
+          enableManusOptimizations: false,
+        },
+        createDesktopModelIngressHost(async () => {
+          throw new Error("not used by routing test");
+        }),
+      );
+      const refusal = Object.assign(new Error("evidence refused"), {
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      manager.chatWithMessages = vi.fn(async () => {
+        if (denied) throw refusal;
+        return {
+          text: "verified cached result",
+          wasCached: true,
+          wasCompressed: true,
+          compressionRatio: 0.5,
+          tokensSaved: 12,
+        };
+      });
+      const cache = {
+        get: vi.fn(async () => ({
+          hit: true,
+          response: { text: "unverified" },
+        })),
+        set: vi.fn(),
+      };
+      const compressor = { compress: vi.fn() };
+      const errorMonitor = { analyzeError: vi.fn() };
+      const handlers = new Map();
+      registerCoreHandlers({
+        ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
+        managerRef: { current: manager },
+        responseCache: cache,
+        promptCompressor: compressor,
+        errorMonitor,
+      });
+      const request = {
+        messages: Array.from({ length: 6 }, (_, i) => ({
+          role: "user",
+          content: `message ${i}`,
+        })),
+        enableRAG: false,
+        enableMultiAgent: false,
+        enableSessionTracking: false,
+        enableManusOptimization: false,
+        enableErrorPrecheck: false,
+      };
+      const pending = handlers.get("llm:chat")({}, request);
+      if (denied) await expect(pending).rejects.toBe(refusal);
+      else
+        await expect(pending).resolves.toMatchObject({
+          content: "verified cached result",
+          wasCached: true,
+          wasCompressed: true,
+          compressionRatio: 0.5,
+          tokensSaved: 12,
+        });
+      expect(manager.chatWithMessages).toHaveBeenCalledOnce();
+      expect(manager.chatWithMessages.mock.calls[0][1]).toMatchObject({
+        skipCache: false,
+        skipCompression: false,
+      });
+      expect(cache.get).not.toHaveBeenCalled();
+      expect(cache.set).not.toHaveBeenCalled();
+      expect(compressor.compress).not.toHaveBeenCalled();
+      expect(errorMonitor.analyzeError).not.toHaveBeenCalled();
+    },
+  );
+
   it("does not revive a manager closed during provider initialization", async () => {
     const tracker = new EventEmitter();
     const manager = new managerModule.LLMManager({

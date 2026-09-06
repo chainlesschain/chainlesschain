@@ -1995,6 +1995,33 @@ describe("Agent evolution runtime production composition", () => {
       });
       expect(wire).toHaveBeenCalledTimes(2);
       expect(published).toHaveBeenCalledOnce();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(issue);
+      const {
+        registerCoreHandlers,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-ipc-core.js");
+      const handlers = new Map();
+      registerCoreHandlers({
+        ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+        managerRef: { current: manager },
+        responseCache: manager.responseCache,
+      });
+      const ipcRequest = {
+        messages: [{ role: "user", content: "IPC cache journey" }],
+        enableRAG: false,
+        enableMultiAgent: false,
+        enableSessionTracking: false,
+        enableManusOptimization: false,
+        enableErrorPrecheck: false,
+      };
+      expect(await handlers.get("llm:chat")({}, ipcRequest)).toMatchObject({
+        wasCached: false,
+      });
+      const cachedIPC = await handlers.get("llm:chat")({}, ipcRequest);
+      expect(cachedIPC).toMatchObject({ wasCached: true, tokensSaved: 10 });
+      expect(cachedIPC.content).toContain("Contact");
+      expect(cachedIPC.content).not.toContain("owner@example.com");
+      expect(wire).toHaveBeenCalledTimes(3);
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
     } finally {
       manager.responseCache.destroy();
       db.close();
