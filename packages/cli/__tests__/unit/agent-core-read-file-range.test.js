@@ -11,6 +11,22 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
 
+function retainedContext(messages, prefix) {
+  for (const message of messages) {
+    if (message.content?.startsWith(prefix)) return message;
+    if (message.role !== "tool") continue;
+    try {
+      const content = JSON.parse(message.content).retainedReadContext?.find(
+        (value) => value.startsWith(prefix),
+      );
+      if (content) return { ...message, content };
+    } catch {
+      /* A budget warning may follow a serialized tool result. */
+    }
+  }
+  return null;
+}
+
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
     isActive: () => false,
@@ -88,8 +104,9 @@ describe("read_file offset/limit line ranges", () => {
         chatFn: async (messages) => {
           modelCalls++;
           expect(modelCalls).toBeLessThan(30);
-          const progress = messages.find((message) =>
-            message.content?.startsWith("[Current run file read progress"),
+          const progress = retainedContext(
+            messages,
+            "[Current run file read progress",
           );
           const cursor = progress
             ? JSON.parse(progress.content.split("\n")[1])[0]
@@ -147,8 +164,9 @@ describe("read_file offset/limit line ranges", () => {
         chatFn: async (messages) => {
           calls++;
           expect(calls).toBeLessThan(30);
-          const progress = messages.find((message) =>
-            message.content?.startsWith("[Current run file read progress"),
+          const progress = retainedContext(
+            messages,
+            "[Current run file read progress",
           );
           const cursor = progress
             ? JSON.parse(progress.content.split("\n")[1])[0]
@@ -245,17 +263,19 @@ describe("read_file offset/limit line ranges", () => {
           ).toBe("user");
           if (wrote)
             return { message: { role: "assistant", content: "Index written" } };
-          const progress = messages.find((message) =>
-            message.content?.startsWith("[Current run file read progress"),
+          const progress = retainedContext(
+            messages,
+            "[Current run file read progress",
           );
           const cursor = progress
             ? JSON.parse(progress.content.split("\n")[1])[0]
             : null;
           if (cursor?.reachedEnd) {
-            const findings = messages.find((message) =>
-              message.content?.startsWith("[File excerpts retained"),
+            const findings = retainedContext(
+              messages,
+              "[File excerpts retained",
             );
-            expect(findings.role).toBe("assistant");
+            expect(["assistant", "tool"]).toContain(findings.role);
             const outline = JSON.parse(findings.content.split("\n")[1])[0]
               .outline;
             expect(outline.headings.length).toBeGreaterThan(0);
