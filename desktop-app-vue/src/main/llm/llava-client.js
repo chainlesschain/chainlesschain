@@ -23,6 +23,14 @@ const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
  */
 const DEFAULT_VISION_MODEL = "llava:7b";
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "LLaVA inference requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * LLaVA 客户端类
  * 继承 EventEmitter 以支持事件驱动
@@ -134,6 +142,7 @@ class LLaVAClient extends EventEmitter {
     { imagePath, imageBase64, prompt = "请详细描述这张图片的内容" },
     options = {},
   ) {
+    assertGovernedMultimodalIngress();
     try {
       this.emit("analyze-start", { imagePath, prompt });
 
@@ -193,6 +202,7 @@ class LLaVAClient extends EventEmitter {
     onChunk,
     options = {},
   ) {
+    assertGovernedMultimodalIngress();
     try {
       this.emit("analyze-stream-start", { imagePath, prompt });
 
@@ -382,6 +392,7 @@ class LLaVAClient extends EventEmitter {
    * @returns {Promise<Object>} 对话结果
    */
   async chat(messages, options = {}) {
+    assertGovernedMultimodalIngress();
     try {
       // 处理消息中的图片
       const processedMessages = await Promise.all(
