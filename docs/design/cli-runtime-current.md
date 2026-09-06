@@ -1,11 +1,19 @@
-# CLI Runtime 当前实现核对（Agent Platform 0.166.21）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.24）
 
-> 更新时间：2026-09-04。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.21`，绑定不可变 tag `v-npm-0-166-21` 的精确 SHA `1ff70b785629e2967dc69677f73cf00190f30a71`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.11`、Open VSX `0.37.81` 与 JetBrains Marketplace `0.4.110` 已公开。
+> 更新时间：2026-09-06。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.24`，绑定不可变 tag `v-npm-0-166-24` 的精确 SHA `9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.12`、Open VSX `0.37.84` 与 JetBrains Marketplace `0.4.111` 已公开。
+
+## 2026-09-06 增量：长任务与治理恢复
+
+交互式流式 Agent 不再因默认 50 次模型调用上限中断长任务；显式轮次、费用和会话预算继续生效，无人值守任务仍保留默认上限。大文件读取按字节/行游标分页，压缩后保留最新读取位置，未变化页避免重复注入；慢命令期间 IDE 会话继续保活。
+
+受治理演进补齐持久 Workbench 审核/回滚与启动恢复、知识候选独立隔离/拒绝、跨 Wiki 多级来源撤销和 tombstone 恢复、Skill/Prompt/Hook 制品发布与受控市场候选安装。启动仅补记已发生的效果，未执行计划保持待处理；候选安装不会直接激活 Skill。真实身份、签名、策略、KMS/PKI、witness、grader 和目标环境验收仍由部署方提供。
+
+[Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，新增 `chainlesschain.chat.maxTurns`（`0` 跟随 CLI 交互默认；正整数限制每条消息的模型轮次）。[JetBrains Marketplace 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开，其内置 CLI 推荐仍为 `0.166.22`；源码中的 v2 批审回执支持尚未随新的 JetBrains 制品发布。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
 
 ## 版本与证据边界
 
-- `0.166.21` 是当前生产推荐与 npm `latest`。`v-npm-0-166-21` 精确指向 `1ff70b785629e2967dc69677f73cf00190f30a71`；同一发布提交的三平台 CLI CI `33834470492`、CLI Strict Sandbox `33834470272` 与 npm Trusted Publishing/public-install `33837198632` 均成功。
-- `@chainlesschain/agent-sdk@0.2.8`、`chainlesschain-agent-sdk==0.2.8` 与 `@chainlesschain/agent-protocol@0.1.8` 已公开；SDK 与 Protocol 保持独立安装和发版边界。Session Core `0.3.11` 与 Context/Memory Kernel `0.1.0` 也已完成 npm 回读。
+- `0.166.24` 是当前生产推荐与 npm `latest`。`v-npm-0-166-24` 精确指向 `9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`；同一发布提交的三平台 CLI CI `34006348566`、CLI Strict Sandbox `34006348459` 与 npm Trusted Publishing/public-install `34007761162` 均成功。
+- `@chainlesschain/agent-sdk@0.2.8`、`chainlesschain-agent-sdk==0.2.8` 与 `@chainlesschain/agent-protocol@0.1.8` 已公开；SDK 与 Protocol 保持独立安装和发版边界。Session Core `0.3.12` 与 Context/Memory Kernel `0.1.0` 也已完成 npm 回读。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
@@ -27,8 +35,8 @@
 - `main@458b342f5f` 的瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和最终 `1.65` 平台时延比上限晚于 `v-npm-0-166-15`。固定 SHA `db53dc2da4` 的 run `33411796790` 未变为成功，也没有最终 SHA 的三平台 aggregate success/OIDC attestation；发布负责人依据 Windows `1.6379980224 <= 1.65`、全部功能/安全指标通过及离线加权 aggregate `0.6008293973 < 1.5` 显式接受剩余证据风险并关闭 P2-3。该关闭不继承 `0.166.15` 发布授权，也不构成通用豁免先例。
 - `cc serve --app-server` 默认以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。`--app-server-websocket` 是强制 token、远程 TLS 与固定子协议的实验入口。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
-- IDE 当前公开版本为 Open VSX `0.37.81` 与 JetBrains Marketplace `0.4.110`；双端提供受治理 Workbench 与证据排序 Skill Retrieval。微软 VS Code Marketplace仍未发布。
-- CLI/SDK/Protocol 当前公开组合为 `0.166.21/0.2.8 TS + 0.2.8 Python/0.1.8`。Desktop 签名/Skill 资格、真实 UI replay 与 Codex compatibility 都有自己的 exact-SHA 专项证据，但公共 native 分发、生产 relay 与真实 provider 验收仍需独立判断。
+- IDE 当前公开版本为 Open VSX `0.37.84` 与 JetBrains Marketplace `0.4.111`；双端提供受治理 Workbench 与证据排序 Skill Retrieval。微软 VS Code Marketplace仍未发布。
+- CLI/SDK/Protocol 当前公开组合为 `0.166.24/0.2.8 TS + 0.2.8 Python/0.1.8`。Desktop 签名/Skill 资格、真实 UI replay 与 Codex compatibility 都有自己的 exact-SHA 专项证据，但公共 native 分发、生产 relay 与真实 provider 验收仍需独立判断。
 
 ## 2026-09-04 受治理 Skill 与知识 evolution 公开基线
 
@@ -355,10 +363,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 公开版 Open VSX `0.37.81` / JetBrains Marketplace `0.4.110` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE 公开版 Open VSX `0.37.84` / JetBrains Marketplace `0.4.111` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.81`；JetBrains Marketplace 当前公开 `0.4.110`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影，并新增 Workbench/Retrieval 投影。Microsoft VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.84`；JetBrains Marketplace 当前公开 `0.4.111`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影，并新增 Workbench/Retrieval 投影。Microsoft VS Code Marketplace 仍未发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -410,7 +418,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.21` 的精确正式发布提交为 [`1ff70b785629e2967dc69677f73cf00190f30a71`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)。同一提交的 [Linux/Windows/macOS CLI CI run 33834470492](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[Strict Sandbox run 33834470272](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272)和[Trusted Publishing/public-install run 33837198632](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632)均成功。Agent Protocol `0.1.8`、TS/Python SDK `0.2.8`、Open VSX `0.37.81` 与 JetBrains `0.4.110` 均已公开回读。
+`0.166.24` 的精确正式发布提交为 [`9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`](https://github.com/chainlesschain/chainlesschain/commit/9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436)。同一提交的 [Linux/Windows/macOS CLI CI run 34006348566](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)、[Strict Sandbox run 34006348459](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459)和[Trusted Publishing/public-install run 34007761162](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162)均成功。Agent Protocol `0.1.8`、TS/Python SDK `0.2.8`、Open VSX `0.37.84` 与 JetBrains `0.4.111` 均已公开回读。
 
 后续版本仍必须在各自 final exact SHA 上重新完成权威门；当前 `main` 与 `v-npm-0-166-21` 都指向本次 SHA，也不能让 npm tarball、Open VSX VSIX、JetBrains ZIP 与 Desktop/native 合并为同一制品身份，仍必须分别按公共回读证据处理。
 

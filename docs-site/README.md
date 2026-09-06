@@ -2,9 +2,9 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-04）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.21@1ff70b7856`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.11`、PDH 为 `0.4.59`；Open VSX 为 `0.37.81`，JetBrains Marketplace 为 `0.4.110`。
+> 当前文档快照（2026-09-06）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.24@9cf9c7bfd7`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.12`、PDH 为 `0.4.59`；Open VSX 为 `0.37.84`，JetBrains Marketplace 为 `0.4.111`。
 
-> 新功能边界：`0.166.21` 已公开 Evolution Workbench、摘要绑定 Skill Retrieval，以及加密知识冲突的审核与合并入口；Desktop 和双 IDE 同步提供受治理投影。所有变更仍要求 trusted deployment host、精确 revision/digest、策略与账本，缺少 KMS/PKI/witness/grader 等生产 authority 时失败闭合，不会默认改写 active Skill。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
+> 新功能边界：`0.166.24` 已公开 Evolution Workbench、摘要绑定 Skill Retrieval，以及加密知识冲突的审核与合并入口；Desktop 和双 IDE 同步提供受治理投影。所有变更仍要求 trusted deployment host、精确 revision/digest、策略与账本，缺少 KMS/PKI/witness/grader 等生产 authority 时失败闭合，不会默认改写 active Skill。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
 
 ## 📚 文档内容
 

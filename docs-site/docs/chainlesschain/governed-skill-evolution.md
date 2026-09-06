@@ -1,6 +1,6 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.21`；更新：2026-09-04
+> 适用版本：Agent Platform CLI `0.166.24`；更新：2026-09-06
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
@@ -11,6 +11,16 @@
 `0.166.21` 在既有 candidate、目标矩阵 Eval、证据投影、可检测篡改的 append-only 账本、mutation authority、promotion/release、持久 `EvolutionRun`、Wiki/Memory 和 registry transition 之上，公开了 Evolution Workbench、摘要绑定的 Skill Retrieval，以及受治理的加密知识冲突审核与合并入口。候选比较、人工批准/拒绝、回滚请求、冲突分页和合并计划现在都有 CLI/App Server 投影。
 
 这些入口不把客户端变成 authority。Workbench 和知识审核需要部署方注入受信治理宿主；未接线时 CLI 明确失败闭合。批准只提交与确切 revision、digest 和 dependency lock 绑定的决定，发布仍由 mutation authority、CAS、账本和策略共同裁决。生产 KMS/PKI、identity、policy、witness、scheduler 与真实 grader 仍由目标部署提供，当前版本不宣称会无人值守地升级 active Skill。
+
+## 0.166.23–0.166.24：恢复、撤销与候选安装
+
+- **工作台恢复**：审核、回滚计划与真实结果持久保存。宿主启动时核验当前 Registry，并补记已发生而未结算的效果；尚未执行的计划保持 deferred，不自动续批审批或切换 active。CLI 返回 `workbenchHost`，App Server 使用 `evolutionWorkbenchHost`。
+- **撤销来源**：对 Knowledge 的直接来源、历史 Wiki 和跨 Wiki 多级来源做认证追踪；受影响的 Skill 回滚、候选处置和指定 Wiki tombstone 分别留下效果证据，再完成联合结算。重新启动或重复请求不会让已撤销来源重新晋升。
+- **隔离与拒绝**：`quarantine` 是独立候选处置，保留隔离状态及原因；`reject` 表示拒绝该候选，`rollback` 针对已经发布的 Skill，`tombstone` 针对受影响的 Wiki 来源状态。不能把这几种结果当作同一成功状态，也不能把 tombstone 当成磁盘或备份物理擦除证明。
+- **持久 Wiki 与模型边界**：剪枝计划、checkpoint、检索投影和依赖影响可重放；模型入口只接受经过验证的投影，长文本有界处理，结构化 JSON 中的敏感信息同样脱敏。
+- **市场候选**：签名清单与精确摘要固定后才写入真实候选文件；`candidate-staged / activated:false` 表示待审核。后续 shadow/canary/active 每步都需要新状态摘要及独立回执，详见[CLI 技能市场](/chainlesschain/cli-marketplace)。
+
+管理员必须同时配置签名部署描述文件和信任根。文件资源与控制端口工厂已提供，但真实人工身份、签名/撤销规则、policy、账本见证及目标环境验收仍由部署负责。VS Code `0.37.84` 会先核对 Workbench 能力；未配置宿主时显示不可用。JetBrains 公共 `0.4.111` 尚未包含主线新增的 v2 批审回执适配，使用该新合同前需相应插件发行支持。
 
 ## 核心特性
 
@@ -26,7 +36,7 @@
 - Wiki revision、Memory event/snapshot、human-review packet/decision 与 registry transition 复用 ArtifactPorts + Ledger，可在响应丢失或进程重启后按同一 digest 恢复。
 - Agent 完成和 `SchedulerStore` 成功 occurrence 可由独立 authority 生成 Wiki 维护触发；客户端不能替换触发来源或 composition。
 - 旧 Phase 100 simulator 与不可达 IPC 已退役；历史公式训练只保留 metrics，不再显示为真实训练或 active mutation。
-- 当前仓库候选新增共享 `EvolvableArtifact` 协议；Desktop Prompt 新变体只写 inactive candidate，Renderer Hook 注册只写候选且不能直接 enable/reload。Hook candidate 必须绑定代码签名、SBOM、沙箱、网络出口策略和双人高风险审批；该能力尚未包含在上方所列公开版本中。
+- Session Core `0.3.12` 已公开共享 `EvolvableArtifact` 协议，CLI 提供 Skill/Prompt/Hook/Knowledge 的持久发布与依赖重验基础。Desktop 源码中的 Prompt、Hook、Skill Sync 与市场入口先写候选，执行时只读取验证后的 active release；npm 更新不会升级 Electron 安装包。Hook 还需代码签名、SBOM、沙箱、网络出口策略及高风险审批。
 - Evolution Workbench 可列出候选、比较 revision、提交 approve/reject 决定和 rollback 请求；CLI、Desktop、VS Code 与 JetBrains 消费同一受治理投影。
 - `cc skill search` 对 bundled、marketplace、managed 与 workspace Skill 做摘要绑定的混合检索，验证后的结果和 outcome evidence 优先。
 - 加密知识同步只输出删节冲突投影；合并计划经过认证、签名，并绑定基线、vector clock 与依赖处置，在 crash/response-loss 恢复后才可发布 canonical record。
@@ -62,12 +72,12 @@ Trajectory / Skill Creator / Skill Sync
 
 外部材料把演化概括为 Mutation、Selection、Promotion 和 Stabilization，这个方向可以借鉴，但在当前产品中必须按下面的治理语义理解：
 
-| 阶段          | 可借鉴的做法                                                    | `0.166.21` 的真实边界                                                                                                                                      |
-| ------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mutation      | 从重复失败、成功模式和用户纠正中提出一个聚焦改动                | 只能生成单 Skill candidate 或 diff；一次失败不会直接改 active，provider/MCP/sandbox/权限故障也不能被误记为 Skill 缺陷                                      |
-| Selection     | 在隔离环境使用独立 grader、隐藏 holdout、安全门和目标运行时矩阵 | 仓库已有控制协议，但目标部署仍需提供真实跨平台 runner、attested loader、进程级 hard kill 和版本化回归集；不能理解为公共 CLI 已执行“全部历史测试”           |
-| Promotion     | 先 Shadow，再以稳定 cohort 做 Canary，越界立即回滚              | 仓库已有受控 Pilot 协议，但公共版本尚未接入真实流量分配器。`1%` 不是固定规则；低流量使用固定 N 个显式 cohort，高流量才按风险和统计功效使用预注册百分比阶梯 |
-| Stabilization | 把发布结果和回滚影响作为持久知识，供下一轮复用                  | 一次晋升只新增 evidence，不自动成为“真理”；需要独立结果、观察窗口和多来源佐证后，Wiki pattern 才能从 hypothesis 变为 corroborated/actionable               |
+| 阶段          | 可借鉴的做法                                                    | `0.166.21` 的真实边界                                                                                                                                                                                |
+| ------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mutation      | 从重复失败、成功模式和用户纠正中提出一个聚焦改动                | 只能生成单 Skill candidate 或 diff；一次失败不会直接改 active，provider/MCP/sandbox/权限故障也不能被误记为 Skill 缺陷                                                                                |
+| Selection     | 在隔离环境使用独立 grader、隐藏 holdout、安全门和目标运行时矩阵 | 仓库已有进程 Eval supervisor、隔离 target 与持久子回执；目标部署仍须提供真实 runner/grader、终止权限和版本化回归集，不能据此声称已执行全部历史测试                                                   |
+| Promotion     | 先 Shadow，再以稳定 cohort 做 Canary，越界立即回滚              | 仓库已有统计门、progressive canary traffic worker 和外部 watchdog；实际流量及运营密钥仍由部署方接入。`1%` 不是固定规则；低流量使用固定 N 个显式 cohort，高流量才按风险和统计功效使用预注册百分比阶梯 |
+| Stabilization | 把发布结果和回滚影响作为持久知识，供下一轮复用                  | 一次晋升只新增 evidence，不自动成为“真理”；需要独立结果、观察窗口和多来源佐证后，Wiki pattern 才能从 hypothesis 变为 corroborated/actionable                                                         |
 
 因此，“可控”在这里指变更制品可版本化、可审计、可失败关闭，不代表 LLM 行为、第三方工具或已经发生的外部副作用绝对可控。回滚可以恢复受管 Skill 的 active/LKG 指针，但不能自动撤销已发送的网络请求、已写入的外部数据库或 SaaS 操作。
 
@@ -176,6 +186,14 @@ if ($LASTEXITCODE -ne 0) {
 | target runner/grader                | 执行真实平台 cell 和独立判定                             | matrix `needs-more-evidence`    |
 | trusted Workbench host              | 校验 revision、review packet、rollback target 与可用动作 | Workbench unavailable           |
 | knowledge KMS/PKI + merge authority | 解密、验签、撤销依赖结算与 canonical merge               | knowledge review unavailable    |
+
+## 管理员接线与恢复检查
+
+`CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 与 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT` 必须同时指向绝对路径，描述文件固定模块摘要、信任根摘要、版本和命令 allowlist；环境变量仅选择已签名部署，不能授予权限。
+
+启动恢复报告的 `reviewsSettled` / `rollbacksSettled` 是已核验并补账的效果数；`reviewPreparationsDeferred` / `rollbackPlansDeferred` 是已保存但尚无效果的计划数。对后者应先核对当前状态和有效授权，再显式恢复。签名撤销、陈旧状态或账本损坏时停止变更并保留证据。
+
+部署接口详见[Workbench 启动合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_STARTUP.md)。
 
 ## 状态与结果
 

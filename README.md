@@ -2,28 +2,30 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.21`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.24`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.21 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.24 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-04 当前发布 — **CLI 0.166.21 / Session Core 0.3.11：受治理演进工作台与加密知识审核**
+## 2026-09-06 当前发布 — **CLI 0.166.24 / VS Code 0.37.84：长任务聊天与持久治理恢复**
 
-> npm `latest` `0.166.21` 来自不可变 tag `v-npm-0-166-21` 与精确提交 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm Trusted Publishing](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 已成功，Linux、Windows、macOS 矩阵与官方 registry 均已回读。
+> npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9cf9c7bfd7`](https://github.com/chainlesschain/chainlesschain/commit/9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459) 三平台矩阵及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162) 均成功，官方 registry 已回读。
 >
-> 本版新增 `cc evolution workbench` 与 `cc evolution knowledge`：可通过可信宿主审阅候选、比较版本、提交 approve/reject/rollback，并处理加密知识同步产生的脱敏冲突与人工合并；`cc skill search` 通过 canonical router 消费摘要绑定的检索、向量与已验证 outcome 证据。知识合并使用持久冲突队列、认证人工 receipt、AES-256-GCM/Ed25519、RBAC 审批、可撤销 trust ledger、prepare/settlement 与响应丢失恢复。自动生成、改进和同步导入仍统一遵循 candidate-first，生成成功不等于安装。
+> 交互式流式 Agent 不再因默认 50 次模型调用上限中断长任务；显式轮次、费用和会话预算继续生效，无人值守任务仍保留默认上限。大文件读取按字节/行游标分页，压缩后保留最新读取位置，未变化页避免重复注入；慢命令期间 IDE 会话继续保活。
 >
-> TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Open VSX `0.37.81` 与 JetBrains Marketplace `0.4.110` 均已公开。Desktop、VS Code 与 JetBrains 已提供只读 Evolution Workbench / Skill Retrieval 投影，Desktop 另提供知识冲突审核入口；客户端不持有发布、回滚或身份 authority。普通 CLI 未注入可信 Workbench/Knowledge host 时相关治理命令会明确 unavailable，生产 KMS/HSM、PKI、identity、policy、witness、真实 grader 与跨主机灾备仍由目标部署提供，无人值守 active promotion 继续关闭。
+> 受治理演进补齐持久 Workbench 审核/回滚与启动恢复、知识候选独立隔离/拒绝、跨 Wiki 多级来源撤销和 tombstone 恢复、Skill/Prompt/Hook 制品发布与受控市场候选安装。启动仅补记已发生的效果，未执行计划保持待处理；候选安装不会直接激活 Skill。真实身份、签名、策略、KMS/PKI、witness、grader 和目标环境验收仍由部署方提供。
 >
-> 详见[受治理的 Skill 自进化用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)与[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)。
+> [Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，新增 `chainlesschain.chat.maxTurns`（`0` 跟随 CLI 交互默认；正整数限制每条消息的模型轮次）。[JetBrains Marketplace 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开，其内置 CLI 推荐仍为 `0.166.22`；源码中的 v2 批审回执支持尚未随新的 JetBrains 制品发布。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
+>
+> 详见[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[受治理的 Skill 自进化](docs-site/docs/chainlesschain/governed-skill-evolution.md)与[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)。
 
 ## 2026-09-01 历史发布快照 — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
-> **当时的发布口径**：`chainlesschain@0.166.15` 是该历史快照的完整门禁生产推荐版与 npm `latest`；其余证据只描述当时状态，现行安装版本见上方 `0.166.21`。
+> **当时的发布口径**：`chainlesschain@0.166.15` 是该历史快照的完整门禁生产推荐版与 npm `latest`；其余证据只描述当时状态，现行安装版本见上方 `0.166.24`。
 >
 > **Agent Platform 0.166.15**：完整承接 `0.166.14` 的 canonical Context/Memory Kernel、耐久 rollout store、Hooks v2、P0 执行安全与 Windows Docker-optional 启动，并对正式 Graph 质量评测的 hermetic 文件工具上限做热修复。control 与 candidate 共用冻结的 read/list/search/write/edit 契约，shell、网络、Git、MCP、插件、IDE 与子 Agent 工具仍不可用，写入继续限制到任务精确文件。
 >
