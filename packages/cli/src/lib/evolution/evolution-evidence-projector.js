@@ -457,6 +457,19 @@ const RULESET_DIGEST = `sha256:${createHash("sha256")
   )
   .digest("hex")}`;
 
+// Keep v2 and every Agent ruleset byte-identical for historical verification.
+// New raw-event projections scan finite numeric scalars as well as strings;
+// encrypted Raw remains unchanged, including the original numeric types.
+const RAW_RULESET_V3 = Object.freeze({
+  ...RULESET,
+  schema: "chainlesschain.evolution-projection-rules/v3",
+  version: 3,
+  numericScalarPolicy: "safe-integer-sensitive-text-redaction-v1",
+});
+const RAW_RULESET_V3_DIGEST = `sha256:${createHash("sha256")
+  .update(`${RAW_RULESET_V3.schema}\0${JSON.stringify(RAW_RULESET_V3)}`, "utf8")
+  .digest("hex")}`;
+
 // A separate policy keeps existing v2 artifacts readable without changing
 // their meaning/digest. Agent messages are authenticated and scanned as whole
 // fields; the existing total model-content ceiling still applies. Never scan
@@ -512,6 +525,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createH
   .digest("hex")}`;
 const SUPPORTED_RULESETS = new Map([
   [RULESET_DIGEST, RULESET],
+  [RAW_RULESET_V3_DIGEST, RAW_RULESET_V3],
   [AGENT_MODEL_RULESET_V1_DIGEST, AGENT_MODEL_RULESET_V1],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST, AGENT_MODEL_RULESET_V2],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
@@ -1300,7 +1314,7 @@ function sanitizePayload(
           "Raw payload contains a non-finite number",
         );
       }
-      if (jsonText) {
+      if (jsonText || ruleset.numericScalarPolicy) {
         if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
           throw projectionError(
             EVOLUTION_PROJECTION_INVALID_CODE,
@@ -3107,7 +3121,7 @@ function validateBundleIntegrity(bundle) {
       }
     }
     if (
-      ruleset.jsonTextPolicy &&
+      (ruleset.jsonTextPolicy || ruleset.numericScalarPolicy) &&
       canonicalJson(sanitizePayload(model.content, ruleset).content) !==
         canonicalJson(model.content)
     ) {
@@ -3347,7 +3361,7 @@ export class EvolutionEvidenceProjector {
   }
 
   project(input) {
-    return this.#project(input, RULESET);
+    return this.#project(input, RAW_RULESET_V3);
   }
 
   projectAgentModelRequest(input) {
@@ -3615,10 +3629,14 @@ export class EvolutionEvidenceProjector {
       sanitized,
       ruleset === AGENT_MODEL_RULESET
         ? EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST
-        : RULESET_DIGEST,
+        : RAW_RULESET_V3_DIGEST,
     );
     const trustedSanitized = source.compilable
-      ? sanitizePayload(source.trustedPayload, RULESET, valuePatterns(ruleset))
+      ? sanitizePayload(
+          source.trustedPayload,
+          ruleset === RAW_RULESET_V3 ? RAW_RULESET_V3 : RULESET,
+          valuePatterns(ruleset),
+        )
       : null;
     const trustedInputStructured =
       source.compilable && isStructuredTrustedPayload(source.trustedPayload);
@@ -4077,4 +4095,5 @@ Object.freeze(EvolutionEvidenceProjector.prototype);
 Object.freeze(EvolutionEvidenceBundleVerifier.prototype);
 Object.freeze(EvolutionEvidenceReader.prototype);
 
-export const EVOLUTION_PROJECTION_RULESET_DIGEST = RULESET_DIGEST;
+export const EVOLUTION_PROJECTION_RULESET_V2_DIGEST = RULESET_DIGEST;
+export const EVOLUTION_PROJECTION_RULESET_DIGEST = RAW_RULESET_V3_DIGEST;

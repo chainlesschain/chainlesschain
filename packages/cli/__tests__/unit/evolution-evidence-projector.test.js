@@ -36,6 +36,7 @@ import {
   EVOLUTION_PROJECTION_PRINCIPAL_SCHEMA,
   EVOLUTION_PROJECTION_QUARANTINED_CODE,
   EVOLUTION_PROJECTION_RULESET_DIGEST,
+  EVOLUTION_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
@@ -776,6 +777,49 @@ describe("EvolutionEvidenceProjector", () => {
     };
   }
 
+  it("redacts sensitive raw numeric scalars without rewriting Raw or historical v2", async () => {
+    const h = harness();
+    const payload = {
+      timestamp: 1788680720000,
+      card: 4111111111111111,
+      count: 3,
+      ratio: 0.5,
+    };
+    const bundle = await h.projector.project(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    expect(bundle.modelProjection.content).toEqual({
+      timestamp: "[REDACTED:payment-card]",
+      card: "[REDACTED:payment-card]",
+      count: 3,
+      ratio: 0.5,
+    });
+    expect(h.rawStore.putEncrypted.mock.calls[0][0].payload).toEqual(payload);
+    expect(bundle.receipt.rulesetDigest).toBe(
+      EVOLUTION_PROJECTION_RULESET_DIGEST,
+    );
+    expect(bundle.receipt.rulesetDigest).not.toBe(
+      EVOLUTION_PROJECTION_RULESET_V2_DIGEST,
+    );
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+    const forged = await reattest(h, bundle, payload);
+    await expect(h.verifier.verify(forged)).rejects.toThrow();
+    const safe = await h.projector.project(
+      input({ count: 3 }, "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      safe,
+      { count: 3 },
+      EVOLUTION_PROJECTION_RULESET_V2_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
   it("retains the exact Agent v1 policy for historical reads without using it for new requests", async () => {
     const h = harness();
     const payload = jsonRequest("Historical safe text.");
@@ -1150,7 +1194,7 @@ describe("EvolutionEvidenceProjector", () => {
     const text = "A useful context detail. ".repeat(2000) + "END-OF-TEXT";
     const payload = { messages: [{ role: "user", content: text }], tools: [] };
     const legacy = await h.projector.project(input(payload));
-    expect(EVOLUTION_PROJECTION_RULESET_DIGEST).toBe(
+    expect(EVOLUTION_PROJECTION_RULESET_V2_DIGEST).toBe(
       "sha256:76f73b955f915b665b9d752fd114700173537f6e573a12b7137d574f0f638153",
     );
     expect(

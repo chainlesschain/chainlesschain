@@ -1224,7 +1224,7 @@ describe("Agent evolution runtime production composition", () => {
     },
   );
 
-  it("correlates missing IDs before failing closed on numeric tool telemetry evidence", async () => {
+  it("completes real sequential Cowork with missing IDs and numeric tool telemetry", async () => {
     const { runCoworkTask } =
       await import("../../src/lib/cowork-task-runner.js");
     const f = modelFixture();
@@ -1273,12 +1273,8 @@ describe("Agent evolution runtime production composition", () => {
         return composition;
       },
     });
-    // Known follow-up: numeric telemetry is not sanitized by the raw-event
-    // projector, so independent verification refuses the 13-digit timestamp.
-    // Preserve that refusal; this is not a successful real-tool journey.
-    expect(result.status).toBe("failed");
-    expect(result.result.summary).toContain("payment-card");
-    expect(requests).toHaveLength(1);
+    expect(result.status, result.result.summary).toBe("completed");
+    expect(requests).toHaveLength(2);
     const events = f.config.authorities.sourceEnvelope.issue.mock.calls
       .map(([input]) => input.evidence?.event)
       .filter(Boolean);
@@ -1290,7 +1286,17 @@ describe("Agent evolution runtime production composition", () => {
       "Contact owner@example.com",
     );
     expect(typeof settled.result.toolTelemetryRecord.timestamp).toBe("number");
-    expect(composition.loadRun().projection.status).not.toBe("completed");
+    const assistant = requests[1].messages.find(
+      (message) => message.tool_calls?.length,
+    );
+    const tool = requests[1].messages.find(
+      (message) => message.role === "tool",
+    );
+    expect(assistant.tool_calls[0].id).toBe(started.tool_use_id);
+    expect(tool.tool_call_id).toBe(started.tool_use_id);
+    expect(tool.content).toContain("Contact");
+    expect(JSON.stringify(requests[1])).not.toContain("owner@example.com");
+    expect(composition.loadRun().projection.status).toBe("completed");
   });
 
   function queryMeter(records) {
