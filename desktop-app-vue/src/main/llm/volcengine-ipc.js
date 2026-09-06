@@ -6,33 +6,24 @@
 
 const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
-const { VolcengineToolsClient } = require("./volcengine-tools");
 const { getLLMConfig } = require("./llm-config");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
 const SqlSecurity = require("../database/sql-security.js");
-
-let toolsClient = null;
 
 /**
  * 获取或创建工具客户端
  */
 function getToolsClient() {
-  if (!toolsClient) {
-    const llmConfig = getLLMConfig();
-    const volcengineConfig = llmConfig.getProviderConfig("volcengine");
-
-    if (!volcengineConfig.apiKey) {
-      throw new Error("火山引擎 API Key 未配置");
-    }
-
-    toolsClient = new VolcengineToolsClient({
-      apiKey: volcengineConfig.apiKey,
-      baseURL: volcengineConfig.baseURL,
-      model: volcengineConfig.model,
-    });
-  }
-
-  return toolsClient;
+  // Every caller in this module is a renderer-reachable, provider-owned
+  // model or tool loop. It is not connected to the branded Desktop ingress,
+  // so it cannot authenticate projection, evidence, budget, or a Run.
+  // Keep the channels registered for an explicit compatibility error, but
+  // never construct a client that could bypass LLMManager.
+  const error = new Error(
+    "Volcengine direct IPC requires a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
 }
 
 /**
@@ -383,6 +374,7 @@ function registerVolcengineIPC() {
         return {
           success: false,
           error: error.message,
+          code: error.code,
         };
       }
     },
@@ -488,9 +480,6 @@ function registerVolcengineIPC() {
       // 更新 LLM 配置
       const llmConfig = getLLMConfig();
       llmConfig.setProviderConfig("volcengine", config);
-
-      // 重新创建客户端
-      toolsClient = null;
 
       return {
         success: true,
