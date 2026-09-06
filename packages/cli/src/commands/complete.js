@@ -13,6 +13,9 @@
  * makes it snappier.
  */
 import { loadConfig } from "../lib/config-manager.js";
+import { randomUUID } from "node:crypto";
+import { types as utilTypes } from "node:util";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { resolveOllamaBaseUrl, queryLLM } from "./ask.js";
 
 /** Hard cap so a runaway model can't flood the editor with a whole file. */
@@ -73,7 +76,29 @@ function readStdin() {
   });
 }
 
-export function registerCompleteCommand(program) {
+export function registerCompleteCommand(program, dependencies = {}) {
+  if (
+    !dependencies ||
+    typeof dependencies !== "object" ||
+    Array.isArray(dependencies) ||
+    utilTypes.isProxy(dependencies)
+  ) {
+    throw new TypeError("Complete command dependencies must be a plain object");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    dependencies,
+    "evolutionCompositionFactory",
+  );
+  if (
+    descriptor &&
+    (!Object.hasOwn(descriptor, "value") ||
+      typeof descriptor.value !== "function")
+  ) {
+    throw new TypeError(
+      "Complete evolutionCompositionFactory must be a function data property",
+    );
+  }
+  const evolutionCompositionFactory = descriptor?.value ?? null;
   program
     .command("complete")
     .description(
@@ -125,10 +150,44 @@ export function registerCompleteCommand(program) {
           : options.baseUrl || config.llm?.baseUrl;
 
       try {
-        const reply = await queryLLM(
-          buildFimPrompt(prefix, suffix, language),
-          resolvedOptions,
-        );
+        const prompt = buildFimPrompt(prefix, suffix, language);
+        let ingress = null;
+        if (evolutionCompositionFactory !== null) {
+          const runId = `complete-${randomUUID()}`;
+          const composition = captureAgentEvolutionRuntimeComposition(
+            await evolutionCompositionFactory(
+              Object.freeze({
+                mode: "complete",
+                runId,
+                taskId: runId,
+                cwd: process.cwd(),
+              }),
+            ),
+          );
+          ingress = composition.evolutionIngress;
+          if (
+            composition.runId !== runId ||
+            ingress.runId !== runId ||
+            composition.tenantId !== ingress.tenantId
+          ) {
+            throw new Error(
+              "Complete evolution composition is not bound to the requested Run",
+            );
+          }
+          await ingress.start();
+          await ingress.ingestUserPrompt({
+            content: prompt,
+            source: "complete",
+          });
+        }
+        const reply = await queryLLM(prompt, resolvedOptions, ingress);
+        if (ingress !== null) {
+          await ingress.ingestAgentEvent({
+            type: "response-complete",
+            content: reply,
+          });
+          await ingress.complete();
+        }
         emit(cleanCompletion(reply), {
           model: resolvedOptions.model,
           provider,

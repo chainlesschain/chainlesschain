@@ -138,6 +138,7 @@ describe("signed evolution deployment loader", () => {
     "ask",
     "chat",
     "compact",
+    "complete",
     "cowork",
     "orchestrate",
     "serve",
@@ -558,6 +559,7 @@ describe("signed evolution deployment loader", () => {
   it.each([
     ["evolution", "workbenchHost", "registerEvolutionCommand"],
     ["compact", "evolutionCompositionFactory", "registerCompactCommand"],
+    ["complete", "evolutionCompositionFactory", "registerCompleteCommand"],
     ["marketplace", "marketplaceHost", "registerMarketplaceCommand"],
   ])(
     "passes %s deployment dependencies through the lazy registration boundary",

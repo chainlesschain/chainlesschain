@@ -1639,6 +1639,8 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 2026-09-06 `compact` 公开启动链收口（EVO-P0-4）：签名 deployment descriptor 的 allowlist 与内置 composition factories 已加入 `compact`，lazy dispatcher 将部署依赖传给正式命令注册器。注册器捕获 function data property，并在读取前拒绝 Proxy/accessor；已有 admission/model/response 治理拒绝继续禁止降级压缩或会话写入，offline/dry-run 不打开模型 authority。部署加载、lazy 注册传递、命令压缩及 provider-backed compaction 三文件 69/69 通过，静态检查与 diff check 通过。审计继续发现 `cc complete` 发送 IDE prefix/suffix 时调用 `queryLLM` 却未传入 ingress，属于下一处仓库内缺口；`llm test` 当前仅发送固定连通性探针，不包含用户问题/文件，但其运行审计范围仍待核定。P0-4 的全入口验收尚未完成。
 
+2026-09-06 IDE inline completion 入口收口（EVO-P0-4）：`cc complete` 已加入签名部署 allowlist 与内置 composition factories；命令捕获受校验的 factory data property，每次非空补全请求创建独立 Run，验证 run/tenant 精确绑定。prefix/suffix/language 组成的完整 FIM prompt 经 user evidence 持久确认与 branded model projection 后进入现有 `queryLLM`；回复证据与 Run completion 完成后才清理并输出插入文本。真实 stdin→Commander→production composition→Ollama 请求体/JSON 输出的 success/source-denied/response-denied/wrong-run/empty 五场景 5/5 通过：密钥/邮箱脱敏且保留 CURSOR，拒绝不返回代码，空请求零 factory/模型调用；complete/ask/deployment loader 三文件 64/64，静态检查 0 错误。P0-4 仍需完成 Desktop 直接 LLMManager query/stream 等入口的调用链审计与固定诊断探针的范围核定，不能用以上 CLI 单入口证据宣称全产品完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

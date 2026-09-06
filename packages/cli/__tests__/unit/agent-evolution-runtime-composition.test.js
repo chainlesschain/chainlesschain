@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Writable } from "node:stream";
+import { Writable, Readable } from "node:stream";
 import { Command } from "commander";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -79,6 +79,7 @@ import {
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
 import { registerChatCommand } from "../../src/commands/chat.js";
 import { registerAskCommand } from "../../src/commands/ask.js";
+import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
@@ -980,6 +981,107 @@ describe("Agent evolution runtime production composition", () => {
       } finally {
         output.mockRestore();
         exit.mockRestore();
+      }
+    },
+    30_000,
+  );
+
+  it.each([
+    "success",
+    "source-denied",
+    "response-denied",
+    "wrong-run",
+    "empty",
+  ])(
+    "governs IDE complete command (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("completion evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const input = Readable.from([
+        JSON.stringify(
+          mode === "empty"
+            ? {}
+            : {
+                prefix: `// ${secret}\nconst x = `,
+                suffix: "; // owner@example.com",
+                language: "javascript",
+              },
+        ),
+      ]);
+      const stdin = vi.spyOn(process, "stdin", "get").mockReturnValue(input);
+      const output = vi
+        .spyOn(process.stdout, "write")
+        .mockImplementation(() => true);
+      try {
+        const program = new Command();
+        registerCompleteCommand(program, {
+          evolutionCompositionFactory: factory,
+        });
+        await program.parseAsync([
+          "node",
+          "cc",
+          "complete",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+          "--json",
+        ]);
+        const result = JSON.parse(output.mock.calls.at(-1)[0]);
+        if (mode === "empty") {
+          expect(factory).not.toHaveBeenCalled();
+          expect(f.transport).not.toHaveBeenCalled();
+          expect(result).toEqual({ completion: "" });
+          return;
+        }
+        const context = factory.mock.calls[0][0];
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(context).toMatchObject({
+          mode: "complete",
+          runId: expect.stringMatching(/^complete-/u),
+        });
+        expect(JSON.stringify(context)).not.toContain(secret);
+        expect(f.transport).toHaveBeenCalledTimes(
+          mode === "source-denied" || mode === "wrong-run" ? 0 : 1,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        if (mode === "success") {
+          expect(result.completion).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+          expect(JSON.stringify(f.seen)).toContain("<CURSOR>");
+        } else {
+          expect(result.completion).toBe("");
+          expect(result.error).toBeTruthy();
+          if (mode === "wrong-run")
+            expect(composition.loadRun().events).toEqual([]);
+          else expect(composition.loadRun().projection.status).toBe("running");
+        }
+      } finally {
+        stdin.mockRestore();
+        output.mockRestore();
+        input.destroy();
       }
     },
     30_000,
