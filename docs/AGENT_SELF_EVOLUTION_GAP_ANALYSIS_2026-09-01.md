@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 完成时序后续修复：下述编排审计提到的成功事件/通知过早问题已关闭。CI 与免 CI 路径统一进入 `finalizing`，等待 evolution ingress completion 后才允许成功通知、完成时间与 `task:complete`；completion 拒绝时只产生失败结果。编排套件 28/28，通过可控延迟/拒绝覆盖两种路径；真实持久 composition 专项 1/1，在成功事件回调中重新读取 Run，确认状态已为 `completed`。其他最终入口与外部 CLI 内部模型调用的审计仍保留。
+
 2026-09-06 编排入口审计补充：`orchestrate` 已接入签名 deployment loader 与逐任务 composition，API 子任务和外部 CLI 初始 prompt 可消费持久认证投影。后续审计修复 API 路由把治理拒绝降级为备用后端重试、分解器吞掉嵌套终态错误的问题：二者复用 `isTerminalModelFailure`，覆盖演化拒绝、账本持久化失败、effect outcome unknown、预算与取消，保留普通 provider/JSON 失败的原有处理；API 请求结算后清理 deadline timer。Router 与 Orchestrator 测试 73/73 通过，包含 10 个嵌套失败阻止 fallback/spawn/CI 的用例。此批不代表最终入口审计完成：编排成功事件/通知早于 evolution completion 的时序仍待收口，外部 CLI 启动后的自主模型调用也尚未获得逐次投影证明，独立 compact/Cowork/WS 编排入口仍需逐项核验。
 
 Raw trajectory 同时包含用户输入、工具参数、工具结果和模型输出。任何一层都可能携带秘密、个人信息、prompt injection、恶意路径、伪造成功信息或跨租户内容。把这些内容交给 Maintainer/Proposer，会把一次性攻击编译为持久 Skill。

@@ -1034,6 +1034,10 @@ describe("Agent evolution runtime production composition", () => {
       evolutionCompositionFactory: factory,
     });
     orchestrator._assertSuccessfulAgentResults = vi.fn();
+    const completionStates = [];
+    orchestrator.on("task:complete", () => {
+      completionStates.push(turnComposition.loadRun().projection.status);
+    });
 
     const task = await orchestrator.addTask(`repair with ${secret}`, {
       runCI: false,
@@ -1041,6 +1045,7 @@ describe("Agent evolution runtime production composition", () => {
     });
 
     expect(task.status).toBe(TASK_STATUS.COMPLETED);
+    expect(completionStates).toEqual(["completed"]);
     expect(factory).toHaveBeenCalledOnce();
     expect(factory.mock.calls[0][0]).toMatchObject({
       mode: "orchestrate",

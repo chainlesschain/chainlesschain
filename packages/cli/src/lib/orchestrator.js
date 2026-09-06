@@ -60,6 +60,7 @@ export const TASK_STATUS = {
   CI_PASSED: "ci-passed",
   CI_FAILED: "ci-failed",
   RETRYING: "retrying",
+  FINALIZING: "finalizing",
   COMPLETED: "completed",
   FAILED: "failed",
 };
@@ -259,19 +260,6 @@ export class Orchestrator extends EventEmitter {
       task,
       evolutionComposition?.evolutionIngress ?? null,
     );
-    if (
-      evolutionComposition !== null &&
-      task.status === TASK_STATUS.COMPLETED
-    ) {
-      try {
-        await evolutionComposition.evolutionIngress.complete();
-      } catch (error) {
-        task.status = TASK_STATUS.FAILED;
-        task.error = error.message;
-        this.emit("task:failed", { task, error });
-        throw error;
-      }
-    }
     return task;
   }
 
@@ -333,9 +321,7 @@ export class Orchestrator extends EventEmitter {
       if (task.runCI) {
         await this._ciLoop(task, evolutionIngress);
       } else {
-        task.status = TASK_STATUS.COMPLETED;
-        task.completedAt = new Date().toISOString();
-        this.emit("task:complete", task);
+        await this._completeTask(task, evolutionIngress);
       }
     } catch (err) {
       task.status = TASK_STATUS.FAILED;
@@ -343,6 +329,24 @@ export class Orchestrator extends EventEmitter {
       this.emit("task:failed", { task, error: err });
       this._log(`Task ${task.id} failed: ${err.message}`);
     }
+  }
+
+  async _completeTask(task, evolutionIngress, ciResult = null) {
+    assertCLILegacyMutationAllowed("Orchestrator._completeTask");
+    task.status = TASK_STATUS.FINALIZING;
+    if (evolutionIngress !== null) await evolutionIngress.complete();
+    if (ciResult !== null && this.notifier.isConfigured && task.notify) {
+      await this.notifier.notifySuccess({
+        taskId: task.id,
+        description: task.description.slice(0, 100),
+        agentCount: task.subtasks.length,
+        duration: Date.now() - new Date(task.createdAt).getTime(),
+        filesChanged: ciResult.filesChanged || [],
+      });
+    }
+    task.completedAt = new Date().toISOString();
+    task.status = TASK_STATUS.COMPLETED;
+    this.emit("task:complete", task);
   }
 
   /** LLM-driven task decomposition into coding subtasks. */
@@ -426,22 +430,10 @@ export class Orchestrator extends EventEmitter {
 
       if (ciResult.pass) {
         task.status = TASK_STATUS.CI_PASSED;
-        task.completedAt = new Date().toISOString();
         this.emit("ci:pass", { task });
         this._log(`CI passed for task ${task.id}`);
 
-        if (this.notifier.isConfigured && task.notify) {
-          await this.notifier.notifySuccess({
-            taskId: task.id,
-            description: task.description.slice(0, 100),
-            agentCount: task.subtasks.length,
-            duration: Date.now() - new Date(task.createdAt).getTime(),
-            filesChanged: ciResult.filesChanged || [],
-          });
-        }
-
-        task.status = TASK_STATUS.COMPLETED;
-        this.emit("task:complete", task);
+        await this._completeTask(task, evolutionIngress, ciResult);
         return;
       }
 

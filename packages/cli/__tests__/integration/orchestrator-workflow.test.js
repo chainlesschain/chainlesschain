@@ -129,6 +129,73 @@ describe("Orchestrator: task lifecycle", () => {
     expect(completeFn.mock.calls[0][0].status).toBe(TASK_STATUS.COMPLETED);
   });
 
+  it.each([true, false])(
+    "waits for evolution settlement before success (CI=%s)",
+    async (runCI) => {
+      const { orch, notifier } = buildOrchestrator();
+      let settle;
+      let entered;
+      const started = new Promise((resolve) => {
+        entered = resolve;
+      });
+      const settlement = new Promise((resolve) => {
+        settle = resolve;
+      });
+      const ingress = {
+        complete: vi.fn(() => {
+          entered();
+          return settlement;
+        }),
+      };
+      // Isolate completion ordering from the separately tested projection transport.
+      const dispatch = orch._dispatch.bind(orch);
+      orch._dispatch = (task) => dispatch(task);
+      const decompose = orch._decompose.bind(orch);
+      orch._decompose = (task) => decompose(task);
+      const orchestrate = orch._orchestrate.bind(orch);
+      orch._orchestrate = (task) => orchestrate(task, ingress);
+      const completed = vi.fn();
+      orch.on("task:complete", completed);
+      const pending = orch.addTask("task", { runCI });
+      await started;
+      expect(orch.status().tasks[0].status).toBe(TASK_STATUS.FINALIZING);
+      expect(completed).not.toHaveBeenCalled();
+      expect(notifier.notifySuccess).not.toHaveBeenCalled();
+      settle();
+      const task = await pending;
+      expect(task.status).toBe(TASK_STATUS.COMPLETED);
+      expect(ingress.complete).toHaveBeenCalledTimes(1);
+      expect(completed).toHaveBeenCalledTimes(1);
+      expect(notifier.notifySuccess).toHaveBeenCalledTimes(runCI ? 1 : 0);
+    },
+  );
+
+  it.each([true, false])(
+    "does not announce success when evolution settlement fails (CI=%s)",
+    async (runCI) => {
+      const { orch, notifier } = buildOrchestrator();
+      const ingress = {
+        complete: vi.fn().mockRejectedValue(new Error("witness unavailable")),
+      };
+      const dispatch = orch._dispatch.bind(orch);
+      orch._dispatch = (task) => dispatch(task);
+      const decompose = orch._decompose.bind(orch);
+      orch._decompose = (task) => decompose(task);
+      const orchestrate = orch._orchestrate.bind(orch);
+      orch._orchestrate = (task) => orchestrate(task, ingress);
+      const completed = vi.fn();
+      const failed = vi.fn();
+      orch.on("task:complete", completed);
+      orch.on("task:failed", failed);
+      const task = await orch.addTask("task", { runCI });
+      expect(task.status).toBe(TASK_STATUS.FAILED);
+      expect(task.completedAt).toBeNull();
+      expect(completed).not.toHaveBeenCalled();
+      expect(notifier.notifySuccess).not.toHaveBeenCalled();
+      expect(failed).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("calls notifyStart and notifySuccess on successful pipeline", async () => {
     const { orch, notifier } = buildOrchestrator({ ciPasses: true });
     await orch.addTask("task", { cwd: "/tmp", notify: true });
