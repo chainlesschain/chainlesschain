@@ -1307,6 +1307,71 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
+  it("keeps a governed Desktop manager stream in one durable Run", async () => {
+    const require = createRequire(import.meta.url);
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const {
+      LLMManager,
+    } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+    const {
+      OpenAIClient,
+    } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+    const {
+      bindDesktopModelIngressClient,
+    } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+    const f = modelFixture();
+    const compositions = [];
+    const host = createDesktopModelIngressHost(async ({ runId }) => {
+      const composition = native.createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const client = bindDesktopModelIngressClient(
+      new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+      host,
+    );
+    const wire = vi.fn(async () => ({
+      data: Readable.from([
+        'data: {"choices":[{"delta":{"content":"done"}}]}\n\n',
+        "data: [DONE]\n\n",
+      ]),
+    }));
+    client.client.post = wire;
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    await expect(
+      manager.chatWithMessagesStream(
+        [{ role: "user", content: "Contact owner@example.com" }],
+        vi.fn(),
+      ),
+    ).resolves.toMatchObject({ text: "done" });
+    expect(compositions).toHaveLength(1);
+    expect(compositions[0].loadRun().projection.status).toBe("completed");
+    expect(
+      compositions[0]
+        .loadRun()
+        .events.map((event) => event.data?.evidenceKind)
+        .filter(Boolean),
+    ).toEqual(["user-prompt", "model-input", "response-completed"]);
+    expect(wire).toHaveBeenCalledOnce();
+    expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+      "owner@example.com",
+    );
+  }, 120000);
+
   it.each(["generate", "chat", "generateStream", "chatStream"])(
     "governs Desktop Ollama %s final payload and failures",
     async (method) => {
