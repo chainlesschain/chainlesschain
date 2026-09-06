@@ -23,6 +23,14 @@ const _deps = {
   now: () => Date.now(),
 };
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Video generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 function buildContentParts({ prompt, imageUrl, ratio, duration, resolution }) {
   const parts = [];
   const textPieces = [prompt];
@@ -105,6 +113,7 @@ async function generateVideo({
   pollIntervalMs = POLL_INTERVAL_MS,
   pollTimeoutMs = POLL_TIMEOUT_MS,
 }) {
+  assertGovernedMultimodalIngress();
   if (!apiKey) {
     throw new Error("Volcengine apiKey required");
   }
