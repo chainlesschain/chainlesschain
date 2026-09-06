@@ -490,6 +490,58 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
   try {
     // Capture the final wire payload, after client-specific tool filtering.
     const captured = JSON.parse(JSON.stringify(body));
+    const hasMultimodalBlocks =
+      Array.isArray(captured.messages) &&
+      captured.messages.some((message) => Array.isArray(message?.content));
+    if (hasMultimodalBlocks) {
+      // Agent v3 owns opaque image transport: it persists a digest-bound
+      // commitment and only restores the original block after authenticated
+      // readback. Do not coerce these blocks through the text-only path below.
+      const opened = await openDesktopMultimodalModelRun(host, {
+        messages: captured.messages,
+        tools: captured.tools || [],
+      });
+      if (
+        !opened.request ||
+        !Array.isArray(opened.request.messages) ||
+        !Array.isArray(opened.request.tools)
+      ) {
+        throw new Error(
+          "Desktop multimodal projection returned an invalid request",
+        );
+      }
+      return {
+        body: {
+          ...captured,
+          messages: opened.request.messages,
+          tools: opened.request.tools,
+        },
+        async complete(message, result) {
+          try {
+            const desktopResult =
+              result === undefined
+                ? undefined
+                : JSON.parse(JSON.stringify(result));
+            await opened.ingress.ingestAgentEvent({
+              type: "response-complete",
+              content:
+                typeof message === "string" ? message : JSON.stringify(message),
+              ...(desktopResult === undefined ? {} : { desktopResult }),
+            });
+            await opened.ingress.complete();
+          } catch (cause) {
+            const error = new Error(
+              "Desktop multimodal response evidence failed",
+              {
+                cause,
+              },
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
+        },
+      };
+    }
     const scope = workflows.getStore();
     const sharedWorkflow = scope?.client === client;
     const ingress = sharedWorkflow

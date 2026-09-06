@@ -1721,6 +1721,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Desktop Agent v3 多模态桥接基础：新增 `openDesktopMultimodalModelRun()`，只接受 branded Desktop host 与对象请求，创建独立 `desktop-multimodal-model-*` Run，验证 composition/ingress 的 run 与 tenant 绑定，并调用真实 CLI `evolutionIngress.prepareModelRequest()`；该路径是 CLI Agent v3 将图片块先以 digest/长度持久投影、readback 后才恢复 transport 的唯一准入点。非法请求在 factory 前拒绝，部署定向测试 10/10 通过。当前尚未让任何图片/音视频业务入口调用此原语，亦未完成真实 Desktop deployment factory 的多模态 composition/readback/provider E2E，因此现有失败关闭不变，P0-4 不升级。
 
+2026-09-06 Desktop OpenAI-compatible 图片请求路由：`prepareDesktopModelRequest()` 现在识别最终 wire payload 中的 `messages[].content` block 数组，转入 `openDesktopMultimodalModelRun()`，而不将图片强转为文本；返回的 request 只能是 CLI Agent v3 `prepareModelRequest()` authenticated readback 后的 messages/tools，响应仍写入并 complete 同一 Run。无 branded/有效 composition 时在 provider 前以原 terminal code 失败。新增路由测试确认图片 block 必经 `desktop-multimodal-model` mode，连同部署与 LLM 治理回归 31/31 通过。尚无真实 Desktop deployment factory+provider 成功 E2E，且现有业务图片入口仍故意失败关闭，故 P0-4 继续为部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

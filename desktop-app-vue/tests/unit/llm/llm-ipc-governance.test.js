@@ -24,6 +24,36 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it("routes image blocks to the multimodal Run bridge instead of text projection", async () => {
+    const factory = vi.fn(async () => ({}));
+    const client = bindDesktopModelIngressClient(
+      {},
+      createDesktopModelIngressHost(factory),
+    );
+
+    await expect(
+      prepareDesktopModelRequest(client, {
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "describe" },
+              {
+                type: "image_url",
+                image_url: { url: "data:image/png;base64,aGVsbG8=" },
+              },
+            ],
+          },
+        ],
+        tools: [],
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory.mock.calls[0][0]).toMatchObject({
+      mode: "desktop-multimodal-model",
+    });
+  });
+
   it("only exposes the bootstrap singleton to auxiliary model callers", () => {
     expect(() => managerModule.getLLMManager()).toThrow(
       "Desktop LLM manager has not been bootstrapped",
