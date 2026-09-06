@@ -28,6 +28,7 @@ import {
   SKILL_CANDIDATE_TENANT_MARKER_SCHEMA,
   SkillCandidateRegistry,
   buildSkillCandidateDraft,
+  captureSkillCandidateRegistryReader,
   deriveSkillCandidateTenantKey,
   verifyLegacySkillCandidateDraft,
   verifySkillCandidateDraft,
@@ -433,6 +434,57 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     );
     expect(refError).toMatchObject({ code: "SKILL_CANDIDATE_SECRET_LEAK" });
     expect(registry.list()).toEqual([]);
+  });
+
+  it("captures a complete authenticated tenant inventory and rejects enumeration drift", () => {
+    const execution = executionFixture();
+    const registry = new SkillCandidateRegistry(
+      registryOptions(TENANT_ALPHA, [execution], {
+        rootDir: registryBase,
+        secure: false,
+      }),
+    );
+    const first = registry.create(draftInput(execution)).candidate;
+    const second = registry.create(
+      draftInput(execution, {
+        content: "---\nname: repair-unit-tests\n---\n\nRepair the second test.",
+      }),
+    ).candidate;
+    const reader = captureSkillCandidateRegistryReader(registry);
+
+    expect(reader.readInventory().map(({ candidateId }) => candidateId)).toEqual(
+      [first.candidateId, second.candidateId].sort(),
+    );
+    expect(reader).not.toHaveProperty("list");
+
+    const originalOpen = registry._fs.opendirSync.bind(registry._fs);
+    let tenantScans = 0;
+    registry._fs.opendirSync = (target, options) => {
+      if (path.resolve(target) !== path.resolve(registry.rootDir)) {
+        return originalOpen(target, options);
+      }
+      tenantScans += 1;
+      const handle = originalOpen(target, options);
+      if (tenantScans !== 2) return handle;
+      const entries = [];
+      while (true) {
+        const entry = handle.readSync();
+        if (entry === null) break;
+        if (!entry.name.startsWith(first.candidateId.slice("sha256:".length))) {
+          entries.push(entry);
+        }
+      }
+      handle.closeSync();
+      let index = 0;
+      return {
+        readSync: () => entries[index++] ?? null,
+        closeSync() {},
+      };
+    };
+
+    const error = capturedError(() => reader.readInventory());
+    expect(error).toMatchObject({ code: "SKILL_CANDIDATE_STORE_UNSAFE" });
+    expect(error.message).toMatch(/changed during authenticated enumeration/u);
   });
 
   it("requires explicit tenant construction and rejects tenant or context ambiguity", () => {
