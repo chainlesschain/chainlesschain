@@ -1707,6 +1707,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 多模态边界复核发现 `ImageEngine.generateImageFromText()` 可直接把 prompt 发往本地 Stable Diffusion 或 OpenAI DALL·E，尚无 Raw/投影/response evidence 的多模态 ingress。文档原先已将图像/音视频载荷排除在当前支持范围外；实现现与该边界一致：外部文生图在任何网络派发前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝，本地图像 resize/crop/enhance 等非模型操作不变。定向 image-engine 测试 1/1 验证拒绝，`node --check`、Prettier/diff 检查通过，源 ESLint 0 错误（5 个既有未使用变量警告）。这关闭已发现的图像 prompt 直接外发，不等同于多模态 ingress 已实现；audio/video、远程媒体 URL 和签名二进制载荷仍需独立协议与验收，P0-4 状态不变。
 
+2026-09-06 视觉分析入口复核：`VisionManager` 原先可将图片字节和提示词直接发送到本地 LLaVA 或云端模型，流式入口也可绕过文本模型 ingress。当前多模态 Raw/投影/response-evidence 协议尚未实现，因此 `analyzeImage()` 与 `analyzeImageStream()` 在缓存、读取图片或调度任一提供方之前，均以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 失败关闭。新增定向测试 2/2 覆盖普通和流式入口，分别断言本地/云端提供方零调用；本地非模型图片操作未改动。这是对未受管视觉模型外发的封堵，不代表已具备可用的多模态模型能力；audio/video、远程媒体 URL 与签名二进制载荷仍待独立协议与验收，P0-4 继续为部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

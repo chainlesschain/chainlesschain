@@ -13,6 +13,14 @@ const { EventEmitter } = require("events");
 const path = require("path");
 const fs = require("fs").promises;
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Image analysis requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * 视觉提供商类型
  */
@@ -137,6 +145,10 @@ class VisionManager extends EventEmitter {
    * @returns {Promise<Object>} 分析结果
    */
   async analyzeImage(params, options = {}) {
+    // Image bytes and prompts cannot be authenticated by the text-only Desktop
+    // model ingress. Do not silently send either to local or cloud providers
+    // until the multimodal protocol has a durable projection/evidence path.
+    assertGovernedMultimodalIngress();
     const startTime = Date.now();
     const analysisType = params.type || AnalysisTypes.ANALYZE;
 
@@ -391,6 +403,7 @@ class VisionManager extends EventEmitter {
    * @returns {Promise<Object>} 完整结果
    */
   async analyzeImageStream(params, onChunk, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.llavaClient) {
       throw new Error("流式分析需要本地 LLaVA 模型");
     }
