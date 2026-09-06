@@ -1715,6 +1715,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 第二套 SpeechRecognizer 音频出口复核：独立的 `WhisperAPIRecognizer`、`WhisperLocalRecognizer` 与统一 facade 原可读取文件并分别上传到 OpenAI/本地 HTTP 服务；facade 会在识别前 health probe 本地服务，批量接口可把拒绝降级为普通逐项结果。现三个 actual recognize 入口及 facade batch 均在文件/HTTP/probe 前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝，API/local catch 保留 terminal code；本地 `isAvailable()` 无网络探针地报告 unavailable，模型列表为空。相关测试 37 passed、6 个既有跳过，覆盖 API/local/facade/batch 零读取零上传及无 health probe。该批次与 WhisperClient 共同关闭已发现的 Desktop Whisper 音频实现；其他音视频、远程媒体 URL 与签名二进制载荷仍需独立协议和验收，P0-4 继续为部分完成。
 
+2026-09-06 Volcengine 文生视频出口复核：`video-generator` 会读取 provider 配置并调用 Seedance provider，后者可将 prompt 与可选 `image_url` 首帧发往远端、轮询任务并下载临时签名视频 URL 落盘。没有认证视频 Raw/projection/response-evidence 协议时，这些步骤均不可接受。现 router 与 provider `generateVideo()` 双层在读取配置、创建任务、轮询或下载前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 失败关闭；`video:generate` IPC 因而不发送 progress。unit + renderer-boundary + IPC 定向测试 4/4 通过，断言零 provider/config 调度与零进度事件。此批次只封堵这一视频生成链；视频分析、远程媒体 URL 与签名二进制载荷的完整可用协议仍未实现，P0-4 继续为部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

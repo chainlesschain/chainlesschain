@@ -14,6 +14,14 @@ const _deps = {
   ffmpegFallback: null, // optional — only used when explicitly requested
 };
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Video generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 function getLLMConfig() {
   if (!_deps.getLLMConfig) {
     _deps.getLLMConfig = require("../llm/llm-config.js").getLLMConfig;
@@ -25,6 +33,7 @@ function getLLMConfig() {
  * @param {{prompt, outputPath, provider?, model?, imageUrl?, ratio?, duration?, resolution?, onProgress?}} opts
  */
 async function generateVideo(opts) {
+  assertGovernedMultimodalIngress();
   const provider = opts.provider || "volcengine";
   if (provider === "volcengine") {
     const cfg = getLLMConfig();
