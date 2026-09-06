@@ -6,6 +6,14 @@
 
 const { logger } = require("../utils/logger.js");
 const { looseParseJSON } = require("../ai-engine/response-parser.js");
+
+function assertGovernedDocumentIngress() {
+  const error = new Error(
+    "External document generation requires a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const pptxgen = require("pptxgenjs");
 const fs = require("fs").promises;
 const path = require("path");
@@ -528,6 +536,7 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt) {
+    assertGovernedDocumentIngress();
     const http = require("http");
 
     return new Promise((resolve, reject) => {

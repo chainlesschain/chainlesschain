@@ -8,6 +8,14 @@ const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 
+function assertGovernedDocumentIngress() {
+  const error = new Error(
+    "External document generation requires a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class DocumentEngine {
   constructor(options = {}) {
     // Python工具集成选项
@@ -1362,6 +1370,7 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt, options = {}) {
+    assertGovernedDocumentIngress();
     const https = require("https");
     const http = require("http");
     const { URL } = require("url");
