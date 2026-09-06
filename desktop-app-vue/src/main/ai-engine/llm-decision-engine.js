@@ -392,8 +392,7 @@ ${subtaskInfo}
 
 只输出JSON，不要有其他内容。`;
 
-    const response = await this.llmManager.query({
-      prompt,
+    const response = await this.llmManager.query(prompt, {
       temperature: this.config.llmTemperature,
       maxTokens: this.config.llmMaxTokens,
     });

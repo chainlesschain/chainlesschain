@@ -234,8 +234,12 @@ describe("LLMDecisionEngine", () => {
 
     it("应该在低置信度时调用LLM", async () => {
       let llmCalled = false;
-      mockLLMManager.query = async () => {
+      let receivedPrompt;
+      let receivedOptions;
+      mockLLMManager.query = async (prompt, options) => {
         llmCalled = true;
+        receivedPrompt = prompt;
+        receivedOptions = options;
         return {
           text: JSON.stringify({
             useMultiAgent: true,
@@ -262,6 +266,12 @@ describe("LLMDecisionEngine", () => {
 
       assert.ok(llmCalled, "LLM应该被调用");
       assert.strictEqual(engine.stats.llmCallCount, 1, "LLM调用次数应为1");
+      assert.strictEqual(typeof receivedPrompt, "string");
+      assert.ok(receivedPrompt.includes("Borderline task"));
+      assert.deepStrictEqual(receivedOptions, {
+        temperature: engine.config.llmTemperature,
+        maxTokens: engine.config.llmMaxTokens,
+      });
     });
 
     it("应该处理LLM错误并降级", async () => {
