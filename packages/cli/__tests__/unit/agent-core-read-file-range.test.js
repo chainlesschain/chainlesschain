@@ -8,6 +8,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
 
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
@@ -36,8 +38,13 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool, capToolResultString, toolResultForModel, agentLoop } =
-  await import("../../src/runtime/agent-core.js");
+const {
+  executeTool,
+  capToolResultString,
+  toolResultForModel,
+  agentLoop,
+  _toAnthropicMessages,
+} = await import("../../src/runtime/agent-core.js");
 
 describe("read_file offset/limit line ranges", () => {
   let dir;
@@ -123,8 +130,274 @@ describe("read_file offset/limit line ranges", () => {
     expect(compactions).toBeGreaterThan(2);
   });
 
+  it("auto-continues a model that repeatedly omits nextRead, even with search batches", async () => {
+    const documentLines = Array.from(
+      { length: 4000 },
+      (_, i) => `section ${i + 1}: ${"document content ".repeat(12)}`,
+    );
+    writeFileSync(join(dir, "f.txt"), documentLines.join("\n"), "utf8");
+    let calls = 0;
+    const pages = [];
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Read the document and finish the task" }],
+      {
+        cwd: dir,
+        autoCompact: false,
+        contextMemorySkipPlanning: true,
+        chatFn: async (messages) => {
+          calls++;
+          expect(calls).toBeLessThan(30);
+          const progress = messages.find((message) =>
+            message.content?.startsWith("[Current run file read progress"),
+          );
+          const cursor = progress
+            ? JSON.parse(progress.content.split("\n")[1])[0]
+            : null;
+          if (cursor?.reachedEnd)
+            return { message: { role: "assistant", content: "completed" } };
+          return {
+            message: {
+              role: "assistant",
+              tool_calls: [
+                ...(calls % 2 === 0
+                  ? [
+                      {
+                        id: `search-${calls}`,
+                        type: "function",
+                        function: {
+                          name: "search_files",
+                          arguments: JSON.stringify({ query: "TODO" }),
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  id: `read-${calls}`,
+                  type: "function",
+                  function: {
+                    name: "read_file",
+                    arguments: JSON.stringify({ path: "f.txt" }),
+                  },
+                },
+              ],
+            },
+          };
+        },
+      },
+    )) {
+      if (event.type === "tool-result" && event.tool === "read_file")
+        pages.push(event.result);
+    }
+    expect(pages.at(-1).nextRead).toBeUndefined();
+    expect(pages.map((value) => value.range?.startLine || 1)).toEqual(
+      [...pages.map((_, index) => index)].map((index) =>
+        index === 0 ? 1 : pages[index - 1].range.endLine + 1,
+      ),
+    );
+    expect(calls).toBe(pages.length + 1);
+  });
+
+  it("recovers the reported real document through compaction and completes a follow-up file task", async () => {
+    const source = fs.readFileSync(
+      fileURLToPath(
+        new URL(
+          "../../../../docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md",
+          import.meta.url,
+        ),
+      ),
+      "utf8",
+    );
+    writeFileSync(join(dir, "report.md"), source);
+    let calls = 0;
+    let compactions = 0;
+    let covered = 0;
+    let wrote = false;
+    let completed = false;
+    const compactor = {
+      shouldAutoCompact: (messages) => messages.length > 4,
+      compress: async (messages) => ({
+        messages: [messages[0]],
+        stats: {
+          originalMessages: messages.length,
+          compressedMessages: 1,
+          saved: 1,
+        },
+      }),
+    };
+    for await (const event of agentLoop(
+      [
+        {
+          role: "user",
+          content: "Read report.md, then write a heading index to result.txt",
+        },
+      ],
+      {
+        cwd: dir,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        _autoCompactor: compactor,
+        chatFn: async (messages) => {
+          expect(++calls).toBeLessThan(40);
+          expect(
+            _toAnthropicMessages(
+              messages.filter((message) => message.role !== "system"),
+            ).at(-1)?.role,
+          ).toBe("user");
+          if (wrote)
+            return { message: { role: "assistant", content: "Index written" } };
+          const progress = messages.find((message) =>
+            message.content?.startsWith("[Current run file read progress"),
+          );
+          const cursor = progress
+            ? JSON.parse(progress.content.split("\n")[1])[0]
+            : null;
+          if (cursor?.reachedEnd) {
+            const findings = messages.find((message) =>
+              message.content?.startsWith("[File excerpts retained"),
+            );
+            expect(findings.role).toBe("assistant");
+            const outline = JSON.parse(findings.content.split("\n")[1])[0]
+              .outline;
+            expect(outline.headings.length).toBeGreaterThan(0);
+            return {
+              message: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "write-index",
+                    type: "function",
+                    function: {
+                      name: "write_file",
+                      arguments: JSON.stringify({
+                        path: "result.txt",
+                        content: outline.headings
+                          .map(({ line, text }) => `${line}: ${text}`)
+                          .join("\n"),
+                      }),
+                    },
+                  },
+                ],
+              },
+            };
+          }
+          // Deliberately ignore every nextRead, as in the user screenshots.
+          return {
+            message: {
+              role: "assistant",
+              tool_calls: [
+                {
+                  id: `read-${calls}`,
+                  type: "function",
+                  function: {
+                    name: "read_file",
+                    arguments: JSON.stringify({
+                      path: "report.md",
+                      offset: 1,
+                      limit: 5000,
+                    }),
+                  },
+                },
+              ],
+            },
+          };
+        },
+      },
+    )) {
+      if (event.type === "compaction") compactions++;
+      if (event.type === "tool-result" && event.tool === "read_file") {
+        expect(event.result.readSpan.start).toBe(covered);
+        expect(event.result.readSpan.end).toBeGreaterThan(covered);
+        covered = event.result.readSpan.end;
+        expect(JSON.stringify(event.result).length).toBeLessThan(50000);
+      }
+      if (event.type === "tool-result" && event.tool === "write_file") {
+        expect(event.result.error).toBeUndefined();
+        wrote = true;
+      }
+      if (event.type === "response-complete") completed = true;
+    }
+    expect(covered).toBe(source.length);
+    expect(compactions).toBeGreaterThan(2);
+    expect(fs.readFileSync(join(dir, "result.txt"), "utf8")).toContain("#");
+    expect(completed).toBe(true);
+  });
+
+  it("does not consult read recovery when capability authorization denies the read", async () => {
+    const guard = new ReadFileLoopGuard();
+    const spy = vi.spyOn(guard, "read");
+    const result = await executeTool(
+      "read_file",
+      { path: "f.txt" },
+      {
+        cwd: dir,
+        readFileLoopGuard: guard,
+        effectiveAllowedToolNames: [],
+      },
+    );
+    expect(result.error).toBeTruthy();
+    expect(spy).not.toHaveBeenCalled();
+    expect(guard.progress.size).toBe(0);
+  });
+
+  it("offers an action turn after repeated EOF reads and restores targeted reading afterwards", async () => {
+    let calls = 0;
+    const events = [];
+    const tool = (name, args) => ({
+      role: "assistant",
+      tool_calls: [
+        {
+          id: `call-${calls}`,
+          type: "function",
+          function: { name, arguments: JSON.stringify(args) },
+        },
+      ],
+    });
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Extract line 8 to result.txt" }],
+      {
+        cwd: dir,
+        autoCompact: false,
+        contextMemorySkipPlanning: true,
+        chatFn: async (_messages, options) => {
+          calls++;
+          if (calls <= 3)
+            return { message: tool("read_file", { path: "f.txt" }) };
+          if (calls === 4) {
+            expect(options.disabledTools).toContain("read_file");
+            return {
+              message: tool("search_files", { pattern: "line8", path: "." }),
+            };
+          }
+          expect(options.disabledTools || []).not.toContain("read_file");
+          if (calls === 5)
+            return {
+              message: tool("read_file", {
+                path: "f.txt",
+                offset: 8,
+                limit: 1,
+              }),
+            };
+          if (calls === 6)
+            return {
+              message: tool("write_file", {
+                path: "result.txt",
+                content: "line8",
+              }),
+            };
+          return { message: { role: "assistant", content: "extracted" } };
+        },
+      },
+    ))
+      events.push(event);
+    expect(calls).toBe(7);
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toBe("extracted");
+    expect(fs.readFileSync(join(dir, "result.txt"), "utf8")).toBe("line8");
+  });
+
   it.each([false, true])(
-    "stops looping reads after one recovery opportunity (parallel=%s)",
+    "bounds a model that ignores EOF recovery without claiming completion (parallel=%s)",
     async (parallel) => {
       const messages = [{ role: "user", content: "finish the task" }];
       const events = [];
@@ -146,8 +419,6 @@ describe("read_file offset/limit line ranges", () => {
                 name: "read_file",
                 arguments: JSON.stringify({
                   path: "f.txt",
-                  offset: i + 1,
-                  limit: 1,
                 }),
               },
             })),
@@ -168,10 +439,11 @@ describe("read_file offset/limit line ranges", () => {
         failure = error;
       }
       expect(failure?.code).toBe("CC_AGENT_REPEATED_FILE_READ");
-      expect(calls).toBe(4);
+      expect(calls).toBe(7);
       expect(recoverySeen).toBe(true);
       const results = events.filter((e) => e.type === "tool-result");
-      expect(results).toHaveLength(parallel ? 8 : 4);
+      expect(results).toHaveLength(parallel ? 14 : 7);
+      expect(results.filter((e) => e.result.content)).toHaveLength(1);
       expect(results.every((e) => !e.result.error)).toBe(true);
       const toolMessages = messages.filter((m) => m.role === "tool");
       expect(toolMessages.map((m) => m.tool_call_id)).toEqual(

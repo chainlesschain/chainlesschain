@@ -2,7 +2,7 @@
 export function buildReadFilePage(
   rendered,
   args,
-  { filePath, fileVersion, maxChars },
+  { filePath, fileVersion, maxChars, outline = null },
 ) {
   const positive = (value) => {
     const n = typeof value === "number" ? value : parseInt(value, 10);
@@ -21,7 +21,10 @@ export function buildReadFilePage(
 
   // Budget the JSON-escaped content, not raw characters: newlines, quotes and
   // backslashes otherwise cause a SECOND truncation that loses the cursor.
-  const contentBudget = Math.max(0, maxChars - 1024);
+  const contentBudget = Math.max(
+    0,
+    maxChars - 2048 - (outline ? JSON.stringify(outline).length : 0),
+  );
   let count = requested.length;
   if (JSON.stringify(requested).length > contentBudget) {
     let lo = 0;
@@ -53,6 +56,11 @@ export function buildReadFilePage(
   const nextOffset = truncated ? start + newlines + 1 : end + 1;
   const nextColumn = truncated && !endsAtLine ? skipped + count + 1 : 1;
   const hasMore = truncated || end < lines.length;
+  const charStart =
+    lines.slice(0, start).reduce((n, line) => n + line.length + 1, 0) + skipped;
+  const charEnd = truncated
+    ? charStart + count
+    : lines.slice(0, end).reduce((n, line) => n + line.length + 1, 0);
   return {
     path: filePath,
     ...(fileVersion ? { fileVersion } : {}),
@@ -79,9 +87,54 @@ export function buildReadFilePage(
         }
       : {}),
     ...(truncated ? { truncated: true, size: requested.length } : {}),
+    readSpan: {
+      start: Math.min(charStart, rendered.length),
+      end: Math.min(charEnd, rendered.length),
+      total: rendered.length,
+    },
+    ...(outline ? { outline } : {}),
     hashed: args.hashed === true,
     content,
   };
+}
+
+/** A bounded navigation index, not a substitute for reading the cited lines. */
+export function buildReadFileOutline(rendered) {
+  const headings = [];
+  const markers = [];
+  rendered.split("\n").forEach((line, index) => {
+    const value = { line: index + 1, text: line.trim().slice(0, 150) };
+    if (/^\s{0,3}#{1,6}\s/.test(line)) headings.push(value);
+    if (
+      /\[ \]|\b(?:TODO|FIXME|TBD)\b|未完成|待实现|待修复|尚未|未实现/i.test(
+        line,
+      )
+    )
+      markers.push(value);
+  });
+  const sample = (values) =>
+    values.length <= 16
+      ? values
+      : Array.from(
+          { length: 16 },
+          (_, i) => values[Math.floor((i * (values.length - 1)) / 15)],
+        );
+  if (!headings.length && !markers.length) return null;
+  const outline = {
+    note: "Sampled file excerpts for navigation only; markers may describe historical or completed work. Inspect the cited lines before acting. This index does not count as reading the file.",
+    headings: sample(headings),
+    markers: sample(markers),
+    totalHeadings: headings.length,
+    totalMarkers: markers.length,
+  };
+  while (JSON.stringify(outline).length > 6000) {
+    const values =
+      outline.headings.length > outline.markers.length
+        ? outline.headings
+        : outline.markers;
+    values.splice(Math.floor(values.length / 2), 1);
+  }
+  return outline;
 }
 
 /** Keep read progress, rather than an arbitrary file prefix, after compaction. */
