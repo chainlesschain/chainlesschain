@@ -339,6 +339,30 @@ describe("read_file offset/limit line ranges", () => {
     expect(guard.progress.size).toBe(0);
   });
 
+  it("skips the already-read prefix when a broad request advances by just one line", async () => {
+    writeFileSync(
+      join(dir, "f.txt"),
+      Array.from(
+        { length: 4000 },
+        (_, index) => `${index}: ${"content ".repeat(40)}`,
+      ).join("\n"),
+    );
+    const context = { cwd: dir, readFileLoopGuard: new ReadFileLoopGuard() };
+    const first = await executeTool(
+      "read_file",
+      { path: "f.txt", offset: 1, limit: 5000 },
+      context,
+    );
+    const overlap = await executeTool(
+      "read_file",
+      { path: "f.txt", offset: 2, limit: 5000 },
+      context,
+    );
+    expect(overlap.readRecovery.action).toBe("continued");
+    expect(overlap.readSpan.start).toBe(first.readSpan.end);
+    expect(overlap.readSpan.end).toBeGreaterThan(first.readSpan.end);
+  });
+
   it("offers an action turn after repeated EOF reads and restores targeted reading afterwards", async () => {
     let calls = 0;
     const events = [];

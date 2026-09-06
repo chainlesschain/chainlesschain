@@ -59,20 +59,23 @@ export class ReadFileLoopGuard {
     const covered = entry.spans.some(
       ([start, end]) => start <= span.start && end >= span.end,
     );
+    const targeted =
+      Number(args.offset) > 0 &&
+      Number(args.limit) > 0 &&
+      Number(args.limit) <= 200 &&
+      !page.truncated;
+    const coveredPrefix = entry.spans.some(
+      ([start, end]) => start <= span.start && end > span.start,
+    );
     let newContent = !covered;
     const hadOutline = !!entry.summary?.outline;
-    if (covered) {
+    if (covered || (coveredPrefix && !targeted)) {
       // Permit a bounded, explicit reread for editing or lost context. Broad
       // rescans and subsequent repeats recover automatically, including when
       // the model varies offset/limit inside an already covered region.
       const fingerprint = createHash("sha256")
         .update(JSON.stringify(span))
         .digest("hex");
-      const targeted =
-        Number(args.offset) > 0 &&
-        Number(args.limit) > 0 &&
-        Number(args.limit) <= 200 &&
-        !page.truncated;
       if (
         targeted &&
         !entry.rereads.has(fingerprint) &&
