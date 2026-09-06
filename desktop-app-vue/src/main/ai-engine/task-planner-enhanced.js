@@ -15,6 +15,14 @@ const {
 } = require("./code-agent/desktop-runtime-authority.js");
 const { looseParseJSON } = require("./response-parser.js");
 
+function assertGovernedTaskPlannerIngress() {
+  const error = new Error(
+    "External task-planning requests require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
   if (raw == null || raw === "") {
@@ -1918,6 +1926,7 @@ ${userRequest}
    */
   async queryBackendAI(prompt, options = {}) {
     assertDesktopLegacyMutationAllowed("TaskPlannerEnhanced.queryBackendAI");
+    assertGovernedTaskPlannerIngress();
     const https = require("https");
     const http = require("http");
     const { URL } = require("url");

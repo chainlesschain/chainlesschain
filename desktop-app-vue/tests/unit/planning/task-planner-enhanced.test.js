@@ -121,6 +121,22 @@ describe("TaskPlannerEnhanced", () => {
 
   // ==================== 任务分解测试 ====================
   describe("任务分解 (decomposeTask)", () => {
+    it("rejects the ungoverned backend before creating a network request", async () => {
+      await expect(
+        planner.queryBackendAI("sensitive prompt"),
+      ).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+    });
+
+    it("uses the local rule fallback after a blocked backend request", async () => {
+      mockLLM.query.mockResolvedValue({ text: "not valid json" });
+
+      const plan = await planner.decomposeTask("sensitive request");
+      expect(plan.task_title).toContain("sensitive request");
+      expect(plan.subtasks.length).toBeGreaterThan(0);
+    });
+
     it("should decompose task using LLM", async () => {
       mockLLM.query.mockResolvedValue({
         text: JSON.stringify({
