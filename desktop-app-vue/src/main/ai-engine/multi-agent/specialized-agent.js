@@ -174,11 +174,17 @@ class SpecializedAgent extends EventEmitter {
       throw new Error("LLM 管理器未设置");
     }
 
-    return await this.llmManager.chat({
-      messages: options.messages,
-      systemPrompt: options.systemPrompt,
-      ...options,
-    });
+    const { messages, systemPrompt, ...chatOptions } = options || {};
+    if (!Array.isArray(messages)) {
+      throw new TypeError("SpecializedAgent requires an array of LLM messages");
+    }
+    const conversation = [
+      ...(typeof systemPrompt === "string" && systemPrompt
+        ? [{ role: "system", content: systemPrompt }]
+        : []),
+      ...messages,
+    ];
+    return await this.llmManager.chat(conversation, chatOptions);
   }
 
   /**
