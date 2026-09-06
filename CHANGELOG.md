@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.24: durable long-running IDE tasks
+
+> `chainlesschain` **0.166.23 -> 0.166.24** (release candidate,
+> 2026-09-06).
+
+- **Long-running interactive turns**: remove the implicit 50-model-call ceiling
+  from interactive streamed Agent sessions. Explicit `--max-turns`, environment,
+  cost, and session budgets remain authoritative, while unattended runs retain
+  the conservative default ceiling.
+- **Bounded large-file traversal**: page reads by exact byte and line cursors,
+  including oversized Unicode and escaped single lines, and return an explicit
+  continuation cursor without claiming unread ranges.
+- **No redundant file reinjection**: cache a bounded set of unchanged read
+  pages per Agent loop, invalidate entries when the file version changes, and
+  reference an already-visible page instead of injecting the same content into
+  the model again.
+- **Compaction-safe progress**: retain the newest file-read cursor through both
+  micro-compaction and full context compression so a long task resumes from the
+  correct page rather than restarting a large file.
+- **Regression coverage**: exercise an 80-page task using more than 50 model
+  calls with repeated shadow and canonical compactions, proving completion with
+  every page read exactly once.
+- **Release boundary**: no child npm package version changes are required. This
+  exact commit must pass every configured Linux, Windows, and macOS job in
+  `CLI CI` and `CLI Strict Sandbox` before the immutable npm tag is created.
+
 ### Added - cc CLI 0.166.23: durable governed evolution and Workbench controls
 
 > `chainlesschain` **0.166.22 -> 0.166.23**,

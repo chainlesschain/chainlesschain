@@ -20,7 +20,7 @@ function fixture() {
   roots.push(root);
   const expected = {
     name: "chainlesschain",
-    version: "0.166.23",
+    version: "0.166.24",
     dependencies: {
       "@chainlesschain/core-db": "0.1.5",
       "@chainlesschain/session-core": "0.3.12",
@@ -120,7 +120,7 @@ describe("pre-publish CLI public dependency install evidence", () => {
   });
   it("rejects a different CLI archive and non-exact dependency pins", () => {
     const f = fixture();
-    write(f.cliFile, { ...f.expected, version: "0.166.22" });
+    write(f.cliFile, { ...f.expected, version: "0.166.23" });
     expect(() => verifyCliRegistryInstall(f.root, f.expected)).toThrow(
       /CLI identity/u,
     );

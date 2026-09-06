@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.24",
+      "cliVersions": ["0.166.23", "0.166.24"],
+      "date": "2026-09-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.24: durable long-running IDE tasks",
+          "body": "> `chainlesschain` **0.166.23 -> 0.166.24** (release candidate,\n> 2026-09-06).\n\n- **Long-running interactive turns**: remove the implicit 50-model-call ceiling\n  from interactive streamed Agent sessions. Explicit `--max-turns`, environment,\n  cost, and session budgets remain authoritative, while unattended runs retain\n  the conservative default ceiling.\n- **Bounded large-file traversal**: page reads by exact byte and line cursors,\n  including oversized Unicode and escaped single lines, and return an explicit\n  continuation cursor without claiming unread ranges.\n- **No redundant file reinjection**: cache a bounded set of unchanged read\n  pages per Agent loop, invalidate entries when the file version changes, and\n  reference an already-visible page instead of injecting the same content into\n  the model again.\n- **Compaction-safe progress**: retain the newest file-read cursor through both\n  micro-compaction and full context compression so a long task resumes from the\n  correct page rather than restarting a large file.\n- **Regression coverage**: exercise an 80-page task using more than 50 model\n  calls with repeated shadow and canonical compactions, proving completion with\n  every page read exactly once.\n- **Release boundary**: no child npm package version changes are required. This\n  exact commit must pass every configured Linux, Windows, and macOS job in\n  `CLI CI` and `CLI Strict Sandbox` before the immutable npm tag is created."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.23",
       "cliVersions": ["0.1.5", "0.3.12", "0.166.22", "0.166.23"],
       "date": "2026-09-06",
