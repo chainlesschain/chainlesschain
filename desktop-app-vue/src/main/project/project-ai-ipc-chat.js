@@ -9,6 +9,14 @@
 const { logger } = require("../utils/logger.js");
 const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const axios = require("axios");
+
+function assertGovernedProjectAiIngress() {
+  const error = new Error(
+    "External project AI requests require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const crypto = require("crypto");
 const path = require("path");
 const {
@@ -401,6 +409,11 @@ function registerChatHandlers(ctx) {
         };
 
         logger.info("[Main] 尝试连接后端AI服务:", AI_SERVICE_URL);
+
+        // This legacy backend accepts raw project context but cannot prove a
+        // per-request Agent v3 projection. Keep the governed local fallback
+        // below; never send raw conversation/files to this opaque endpoint.
+        assertGovernedProjectAiIngress();
 
         const response = await axios.post(
           `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
