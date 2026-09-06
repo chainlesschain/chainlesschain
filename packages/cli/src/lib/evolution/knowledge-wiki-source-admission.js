@@ -12,7 +12,7 @@ import {
 export { WIKI_SOURCE_ADMISSION_INVALID_CODE } from "./knowledge-wiki-source-provenance.js";
 export const WIKI_SOURCE_REVOKED_CODE = "CC_EVOLUTION_WIKI_SOURCE_REVOKED";
 const WIKI_EVENT = "wiki.revision.committed";
-const TERMINAL = new Set(["revoked", "tombstoned"]);
+const TERMINAL = new Set(["quarantined", "revoked", "tombstoned"]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);

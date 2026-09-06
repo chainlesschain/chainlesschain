@@ -61,6 +61,38 @@ it("commits exact Wiki tombstones and independent settlement without claiming a 
   expect(events(reopened, "wiki.revision.committed")).toHaveLength(3);
 }, 240_000);
 
+it("quarantines affected Wiki patterns without tombstoning or rewriting unrelated facts", async () => {
+  const h = await setup({ wikiTombstone: false, wikiQuarantine: true });
+  const before = h.wiki.adapter.loadWiki();
+
+  await h.makeSync().publish(h.knowledge);
+
+  const current = h.wiki.adapter.loadWiki();
+  expect(current.state.patterns["pat-knowledge"]).toMatchObject({
+    status: "quarantined",
+    actionable: false,
+  });
+  expect(current.state.patterns["pat-knowledge"].revocationReason).toBe(
+    "governed-knowledge-revocation",
+  );
+  expect(current.state.patterns["pat-safe"]).toEqual(
+    before.state.patterns["pat-safe"],
+  );
+  expect(current.state.evidence).toEqual(before.state.evidence);
+  expect(
+    current.state.index.some((entry) => entry.patternId === "pat-knowledge"),
+  ).toBe(false);
+  expect(current.state.patterns["pat-knowledge"].status).not.toBe("tombstoned");
+
+  await expect(h.executor.execute(h.knowledge)).resolves.toMatchObject({
+    recovered: true,
+  });
+  expect(h.wiki.adapter.loadWiki()).toEqual(current);
+  expect(events(h, "knowledge.revocation-dependencies.settled")).toHaveLength(
+    1,
+  );
+}, 240_000);
+
 it("settles rollback, candidate rejection and Wiki tombstone together before publication", async () => {
   const h = await setup({ wikiTombstone: "combined" });
   await h.makeSync().publish(h.knowledge);

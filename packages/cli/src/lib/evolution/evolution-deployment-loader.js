@@ -212,7 +212,10 @@ async function loadBuiltInFactories(commandName) {
         createGovernedKnowledgeCandidateRejectionAuthority,
       },
       { createGovernedKnowledgeSkillRollbackAuthority },
-      { createGovernedKnowledgeWikiTombstoneAuthority },
+      {
+        createGovernedKnowledgeWikiQuarantineAuthority,
+        createGovernedKnowledgeWikiTombstoneAuthority,
+      },
       { createGovernedKnowledgeDependencyRouter },
     ] = await Promise.all([
       import("./skill-candidate-registry.js"),
@@ -253,6 +256,7 @@ async function loadBuiltInFactories(commandName) {
       createGovernedKnowledgeCandidateQuarantineAuthority,
       createGovernedKnowledgeCandidateRejectionAuthority,
       createGovernedKnowledgeSkillRollbackAuthority,
+      createGovernedKnowledgeWikiQuarantineAuthority,
       createGovernedKnowledgeWikiTombstoneAuthority,
       createGovernedKnowledgeDependencyRouter,
     });

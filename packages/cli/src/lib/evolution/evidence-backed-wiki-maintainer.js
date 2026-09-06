@@ -11,6 +11,7 @@ export const WIKI_PATTERN_STATUS = Object.freeze({
   CORROBORATED: "corroborated",
   CONTRADICTED: "contradicted",
   STALE: "stale",
+  QUARANTINED: "quarantined",
   REVOKED: "revoked",
   TOMBSTONED: "tombstoned",
 });
@@ -47,6 +48,7 @@ const EVIDENCE_FIELDS = new Set([
 const OPERATIONS = new Set([
   "upsert",
   "merge",
+  "quarantine",
   "revoke",
   "tombstone",
   "proposal-impact",
@@ -309,9 +311,11 @@ function rebuildDerivedState(state, effectiveAt, descriptor) {
       (dependents[ref] ??= []).push(pattern.patternId);
     }
     if (
-      [WIKI_PATTERN_STATUS.REVOKED, WIKI_PATTERN_STATUS.TOMBSTONED].includes(
-        pattern.status,
-      )
+      [
+        WIKI_PATTERN_STATUS.QUARANTINED,
+        WIKI_PATTERN_STATUS.REVOKED,
+        WIKI_PATTERN_STATUS.TOMBSTONED,
+      ].includes(pattern.status)
     )
       continue;
     const positive = pattern.positiveEvidence
@@ -373,6 +377,7 @@ function rebuildDerivedState(state, effectiveAt, descriptor) {
         ![
           WIKI_PATTERN_STATUS.REVOKED,
           WIKI_PATTERN_STATUS.TOMBSTONED,
+          WIKI_PATTERN_STATUS.QUARANTINED,
           WIKI_PATTERN_STATUS.STALE,
         ].includes(pattern.status),
     )
@@ -403,6 +408,9 @@ function applyUpsert(state, operation, evidenceByRef, effectiveAt) {
       fingerprint(item) === fingerprint(proposed),
   );
   const existing = duplicate ?? state.patterns[proposed.patternId];
+  if (existing?.status === WIKI_PATTERN_STATUS.QUARANTINED) {
+    throw new Error("cannot rewrite a quarantined pattern");
+  }
   const patternId = existing?.patternId ?? proposed.patternId;
   state.patterns[patternId] = {
     ...proposed,
@@ -491,14 +499,19 @@ function applyOperation(state, operation, evidenceByRef, effectiveAt) {
     });
     return;
   }
-  if (operation.type === "revoke" || operation.type === "tombstone") {
+  if (
+    operation.type === "quarantine" ||
+    operation.type === "revoke" ||
+    operation.type === "tombstone"
+  ) {
     const pattern =
       state.patterns[requiredString(operation.patternId, "patternId")];
-    if (!pattern) throw new Error("cannot revoke an unknown pattern");
-    pattern.status =
-      operation.type === "revoke"
-        ? WIKI_PATTERN_STATUS.REVOKED
-        : WIKI_PATTERN_STATUS.TOMBSTONED;
+    if (!pattern) throw new Error("cannot disposition an unknown pattern");
+    pattern.status = {
+      quarantine: WIKI_PATTERN_STATUS.QUARANTINED,
+      revoke: WIKI_PATTERN_STATUS.REVOKED,
+      tombstone: WIKI_PATTERN_STATUS.TOMBSTONED,
+    }[operation.type];
     pattern.revocationReason = requiredString(operation.reason, "reason");
     pattern.actionable = false;
     appendLog(

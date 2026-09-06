@@ -174,6 +174,7 @@ describe("signed evolution deployment loader", () => {
           "createGovernedKnowledgeSyncLedgerAdapter",
           "createGovernedKnowledgeDependencyLedgerExecutor",
           "createGovernedKnowledgeDependencyInventoryPlanner",
+          "createGovernedKnowledgeWikiQuarantineAuthority",
           "createGovernedKnowledgeSync",
           "createGovernedKnowledgeRevocationHost",
           "createGovernedKnowledgeCandidateQuarantineAuthority",

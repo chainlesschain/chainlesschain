@@ -27,6 +27,7 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const PATTERN = /^pat-[a-z0-9][a-z0-9-]{2,127}$/u;
 const STATUSES = new Set(Object.values(WIKI_PATTERN_STATUS));
 const TERMINAL = new Set([
+  WIKI_PATTERN_STATUS.QUARANTINED,
   WIKI_PATTERN_STATUS.REVOKED,
   WIKI_PATTERN_STATUS.TOMBSTONED,
 ]);

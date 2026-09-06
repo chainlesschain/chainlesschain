@@ -23,7 +23,7 @@ function freeze(value) {
 // Pure derivation only; this function has no persistence or authorization port.
 // Callers must authenticate the source and authorize the exact operations, then
 // commit through the real adapter with the same authenticated head/sequence CAS.
-export async function deriveWikiTargetTombstoneRevision({
+export async function deriveWikiTargetDispositionRevision({
   source,
   descriptor,
   operations,
@@ -34,15 +34,18 @@ export async function deriveWikiTargetTombstoneRevision({
     !Array.isArray(operations) ||
     operations.length < 1 ||
     operations.length > 128 ||
-    operations.some((operation) => operation.type !== "tombstone")
+    operations.some(
+      (operation) => !["quarantine", "tombstone"].includes(operation.type),
+    ) ||
+    new Set(operations.map((operation) => operation.type)).size !== 1
   )
     throw new TypeError(
-      "target-only Wiki derivation requires bounded tombstones",
+      "target-only Wiki derivation requires one bounded disposition",
     );
   const ref = Object.keys(source.state.evidence ?? {}).sort()[0];
   if (!ref)
     throw new TypeError(
-      "Wiki tombstones require retained authenticated evidence metadata",
+      "Wiki dispositions require retained authenticated evidence metadata",
     );
   const core = source.state.evidence[ref];
   const evidence = { ...core, envelopeDigest: digestWikiState(core) };
@@ -76,9 +79,7 @@ export async function deriveWikiTargetTombstoneRevision({
     },
   });
   if (!revision)
-    throw new Error(
-      "Wiki tombstone derivation unexpectedly reused an existing request",
-    );
+    throw new Error("Wiki disposition unexpectedly reused an existing request");
   // General maintenance also recalculates unrelated patterns. A targeted
   // revocation has no authority to change their lifecycle, confidence or facts.
   const scoped = structuredClone(source.state);
@@ -98,4 +99,11 @@ export async function deriveWikiTargetTombstoneRevision({
     state: scoped,
     stateDigest: digestWikiState(scoped),
   });
+}
+
+export async function deriveWikiTargetTombstoneRevision(input) {
+  if (input?.operations?.some((operation) => operation.type !== "tombstone")) {
+    throw new TypeError("target-only Wiki derivation requires tombstones");
+  }
+  return deriveWikiTargetDispositionRevision(input);
 }

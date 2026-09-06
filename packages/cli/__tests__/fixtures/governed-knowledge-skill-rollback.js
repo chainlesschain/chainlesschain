@@ -19,7 +19,10 @@ import {
   createGovernedKnowledgeCandidateQuarantineAuthority,
 } from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
 import { createGovernedKnowledgeDependencyRouter } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
-import { createGovernedKnowledgeWikiTombstoneAuthority } from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
+import {
+  createGovernedKnowledgeWikiQuarantineAuthority,
+  createGovernedKnowledgeWikiTombstoneAuthority,
+} from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
 
 export const tenantId = "tenant-knowledge-rollback";
 export const deviceId = "device:a";
@@ -87,6 +90,7 @@ export async function openKnowledgeSkillRollbackStore(
     candidateRejection = false,
     candidateQuarantine = false,
     wikiTombstone = false,
+    wikiQuarantine = false,
     wikiTombstoneAllRuns = false,
     wikiPatternCount = 1,
     wikiHops = 0,
@@ -97,6 +101,10 @@ export async function openKnowledgeSkillRollbackStore(
 ) {
   if (candidateRejection && candidateQuarantine)
     throw new Error("test candidate dispositions must not be conflated");
+  if (wikiTombstone && wikiQuarantine)
+    throw new Error("test Wiki dispositions must not be conflated");
+  const wikiDisposition = wikiQuarantine ? "quarantine" : "tombstone";
+  const wikiDispositionMode = wikiQuarantine || wikiTombstone;
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
@@ -261,7 +269,7 @@ export async function openKnowledgeSkillRollbackStore(
     },
   };
   const rejectionAuthority =
-    candidateRejection || wikiTombstone === "combined"
+    candidateRejection || wikiDispositionMode === "combined"
       ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
       : null;
   const quarantineOptions = {
@@ -309,13 +317,15 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("wiki-tombstone-verifier"),
     },
   };
-  const wikiAuthority = wikiTombstone
-    ? createGovernedKnowledgeWikiTombstoneAuthority(wikiTombstoneOptions)
+  const wikiAuthority = wikiDispositionMode
+    ? (wikiQuarantine
+        ? createGovernedKnowledgeWikiQuarantineAuthority
+        : createGovernedKnowledgeWikiTombstoneAuthority)(wikiTombstoneOptions)
     : null;
   const authority =
     candidateRejection === "combined" ||
     candidateQuarantine === "combined" ||
-    wikiTombstone === "combined"
+    wikiDispositionMode === "combined"
       ? createGovernedKnowledgeDependencyRouter({
           tenantId,
           deviceId,
@@ -327,7 +337,9 @@ export async function openKnowledgeSkillRollbackStore(
             ...(quarantineAuthority
               ? { "candidate/quarantine": quarantineAuthority }
               : {}),
-            ...(wikiAuthority ? { "wiki/tombstone": wikiAuthority } : {}),
+            ...(wikiAuthority
+              ? { [`wiki/${wikiDisposition}`]: wikiAuthority }
+              : {}),
           },
         })
       : (wikiAuthority ??
@@ -459,14 +471,14 @@ export async function openKnowledgeSkillRollbackStore(
         ? [...knowledge.dependencies, candidate]
         : [candidate];
   }
-  if (wikiTombstone) {
+  if (wikiDispositionMode) {
     const original = wiki.reader.readRevision({
       tenantId,
       revisionId: release.candidateRelease.candidate.wikiRevision,
     });
     const dependency = {
       kind: "wiki",
-      disposition: "tombstone",
+      disposition: wikiDisposition,
       digest: original.stateDigest,
     };
     const wikiDependencies = [dependency];
@@ -485,7 +497,7 @@ export async function openKnowledgeSkillRollbackStore(
         if (!event) throw new Error("test upstream Wiki source is missing");
         wikiDependencies.push({
           kind: "wiki",
-          disposition: "tombstone",
+          disposition: wikiDisposition,
           digest: upstream.reader.readRevision({
             tenantId,
             revisionId: event.eventId.replace("wiki.revision.", "wiki:"),
@@ -494,7 +506,7 @@ export async function openKnowledgeSkillRollbackStore(
       }
     }
     knowledge.dependencies =
-      wikiTombstone === "combined"
+      wikiDispositionMode === "combined"
         ? [
             {
               kind: "active-skill",
