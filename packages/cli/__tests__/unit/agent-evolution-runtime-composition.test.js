@@ -1259,6 +1259,9 @@ describe("Agent evolution runtime production composition", () => {
             "owner@example.com",
           );
           expect(wire.mock.calls[0][1].model).toBe("override");
+          expect(JSON.stringify(wire.mock.calls[0][1])).toContain(
+            method === "complete" ? "Contact" : "Answer",
+          );
         }
       }
     },
@@ -1354,6 +1357,105 @@ describe("Agent evolution runtime production composition", () => {
             "owner@example.com",
           );
           expect(wire.mock.calls[0][1].model).toBe("override");
+          expect(JSON.stringify(wire.mock.calls[0][1])).toContain("Contact");
+        }
+      }
+    },
+    90_000,
+  );
+
+  it.each([false, true])(
+    "governs Desktop Anthropic payload and lifecycle (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { AnthropicClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/anthropic-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new AnthropicClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const frames =
+          'event: content_block_delta\ndata: {"delta":{"text":"完成"}}\n\n' +
+          (mode === "truncated" ? "" : "event: message_stop\ndata: {}\n\n");
+        const bytes = Buffer.from(frames);
+        const split = bytes.indexOf(Buffer.from("完成")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : {
+                content: [{ type: "text", text: "完成" }],
+                stop_reason: "end_turn",
+              },
+        }));
+        client.client.post = wire;
+        const messages = [
+          { role: "system", content: "Contact owner@example.com" },
+          { role: "user", content: "Answer user@example.com" },
+        ];
+        const options = {
+          stop_sequences: ["stop@example.com"],
+          model: "override",
+        };
+        const chunks = vi.fn();
+        const result = stream
+          ? client.chatStream(messages, chunks, options)
+          : client.chat(messages, options);
+        if (mode === "success") {
+          expect(await result).toMatchObject({ message: { content: "完成" } });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream) expect(chunks).toHaveBeenCalledWith("完成", "完成");
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          const body = wire.mock.calls[0][1];
+          expect(JSON.stringify(body)).not.toContain("@example.com");
+          expect(body.system).toBeTruthy();
+          expect(body.system).toContain("Contact");
+          expect(body.system).toContain("Evolution input projection");
+          expect(body.messages).toHaveLength(1);
+          expect(body.messages[0].content).toContain("Answer");
+          expect(body.stop_sequences).toHaveLength(1);
+          expect(body.model).toBe("override");
         }
       }
     },

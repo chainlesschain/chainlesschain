@@ -115,7 +115,7 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
   }
 }
 
-async function prepareDesktopModelRequest(client, body) {
+async function prepareDesktopModelRequest(client, body, protocol = "openai") {
   const host = clients.get(client);
   if (!host) return null;
   try {
@@ -123,15 +123,48 @@ async function prepareDesktopModelRequest(client, body) {
     const captured = JSON.parse(JSON.stringify(body));
     const ingress = await openDesktopModelRun(host, JSON.stringify(captured));
     const messages = Array.isArray(captured.messages)
-      ? captured.messages
+      ? [...captured.messages]
       : [{ role: "user", content: captured.prompt }];
+    const hasSystem = Object.hasOwn(captured, "system");
+    const hasStops = Object.hasOwn(captured, "stop_sequences");
+    if (hasSystem)
+      messages.unshift({ role: "system", content: captured.system });
+    if (hasStops)
+      messages.push({
+        role: "user",
+        content: JSON.stringify(captured.stop_sequences),
+      });
     const projected = await ingress.prepareModelRequest({
       messages,
       tools: captured.tools || [],
     });
-    if (Array.isArray(captured.messages))
-      captured.messages = projected.messages;
-    else captured.prompt = projected.messages[0].content;
+    const projectedMessages = [...projected.messages];
+    if (
+      projectedMessages.length !== messages.length + 1 ||
+      projectedMessages[0]?.role !== "system"
+    )
+      throw new Error("Unexpected model projection provenance layout");
+    const provenance = projectedMessages.shift();
+    if (hasSystem) captured.system = projectedMessages.shift().content;
+    if (hasStops) {
+      const stops = JSON.parse(projectedMessages.pop().content);
+      if (
+        !Array.isArray(stops) ||
+        stops.some((value) => typeof value !== "string")
+      )
+        throw new Error("Invalid projected stop sequences");
+      captured.stop_sequences = stops;
+    }
+    if (protocol === "anthropic") {
+      captured.system = [provenance.content, captured.system]
+        .filter(Boolean)
+        .join("\n\n");
+      captured.messages = projectedMessages;
+    } else if (Array.isArray(captured.messages)) {
+      captured.messages = [provenance, ...projectedMessages];
+    } else {
+      captured.prompt = `${provenance.content}\n\n${projectedMessages[0].content}`;
+    }
     if (Object.hasOwn(captured, "tools")) captured.tools = projected.tools;
     return {
       body: captured,

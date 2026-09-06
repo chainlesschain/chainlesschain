@@ -1649,6 +1649,10 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 2026-09-06 Desktop Ollama 文本模型出口接线：已绑定可信 host 的 OllamaClient generate/chat/generateStream/chatStream 通过同一请求投影和 response/completion 边界发送最终请求，保留模型与采样参数；非流式必须返回 done=true。受治理流采用 UTF-8 增量解码与 NDJSON 累积，接受跨字节中文和无末尾换行的合法最终对象，要求明确 done 帧及正常流结束，拒绝截断、错误帧和终态后的额外数据；回调失败/取消保持 terminal ingress error，不进入 manager fallback。opaque context token 无法重验原始输入，在 authority/provider 调用前明确拒绝，调用方需传显式会话消息。真实 native composition+实际 OllamaClient 方法、Axios post 替身共四聚合测试覆盖 14 个成功/输入拒绝/回复拒绝/截断场景，4/4 通过（90.81s）；既有 Ollama 32/32、Manager/deployment 66/66，静态检查 0 错误。本批次覆盖文本路径，其他 provider、独立工具客户端、embedding/诊断探针、缓存来源、语义压缩与完整启动端到端矩阵仍未关闭，P0-4 保持部分完成。
 
+2026-09-06 Desktop Anthropic 文本出口接线：chat/chatStream 的最终 provider payload 接入真实宿主投影，顶层 system 与 stop_sequences 进入认证文本投影后按原协议恢复；source/response 拒绝保持 terminal code，普通回复需有效 content/stop_reason。受治理 SSE 使用增量 UTF-8 解码，等待 message_stop（或兼容 DONE）和底层 end，拒绝截断、error frame、解析错误与终态后额外数据；正文/停止序列/系统提示脱敏，成功事件在回复持久确认后返回。测试发现并修正共享适配器对 provenance 头的错误位置假设：OpenAI legacy complete 与 Ollama generate 现在同时保留 provenance 和真实 prompt，Anthropic 把 provenance 与原系统提示归并到顶层 system，不把 system role 留在 messages。新增业务正文存在断言与既有脱敏断言一起验收，避免“只剩来源说明”被误判通过。兼容性四文件 83/83；Mistral/DeepSeek 继承 OpenAI 实现的事实已核实，但其独立持久端到端矩阵仍需补验。Gemini、工具客户端、embedding/probe、缓存与语义压缩仍有剩余，P0-4 保持部分完成。
+
+本次 Anthropic/共享协议映射修正后的 OpenAI、Ollama、Anthropic 持久组合联合验收为 9/9 聚合测试、32 个内部成功/拒绝/截断场景（178.80s），正文保留、PII 脱敏与协议字段布局均通过；与上述 83/83 兼容性证据互补，不等同于外部 provider 或全 Desktop 完成验收。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
