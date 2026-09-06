@@ -223,6 +223,14 @@ describe('EmbeddingsService', () => {
       expect(Array.isArray(embedding)).toBe(true);
       expect(embedding.length).toBe(128);
     });
+
+    it('应该传播治理入口拒绝而不降级', async () => {
+      const error = new Error('governed ingress denied');
+      error.code = 'CC_AGENT_EVOLUTION_INGRESS_FAILED';
+      mockLLMManager.embeddings.mockRejectedValueOnce(error);
+
+      await expect(service.generateEmbedding('test')).rejects.toBe(error);
+    });
   });
 
   describe('generateEmbeddings', () => {
