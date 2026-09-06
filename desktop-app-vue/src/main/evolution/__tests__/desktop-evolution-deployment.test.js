@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import path from "node:path";
 const {
   ARTIFACT_TYPE,
 } = require("@chainlesschain/session-core/evolvable-artifact");
@@ -140,6 +141,16 @@ describe("desktop evolution deployment", () => {
 
     expect(
       resolveLoaderPath({ isPackaged: true, resourcesPath: "C:\\app" }),
-    ).toContain("packages\\cli\\src\\lib\\evolution");
+    ).toBe(
+      path.join(
+        "C:\\app",
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "evolution",
+        "evolution-deployment-loader.js",
+      ),
+    );
   });
 });

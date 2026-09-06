@@ -60,7 +60,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "api-tester": Object.freeze([
-    "d0c8a85d51d57b78a5eda85dda0073902b8d4e4d41d196a03162f539efbfc72a",
+    "49ffe3e5db93d5e566e85cf9ff167ebf82b250022b0190fa92f500dd3677261a",
     Object.freeze([
       "data:result",
       "data:task",

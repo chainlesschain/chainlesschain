@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 CI 失败实证修复：用户指定的 Actions run 34014851613（commit 372ca707ec，整体最终 cancelled）在 Ubuntu/macOS 均有相同 3 条失败：Desktop deployment 测试硬编码 Windows 分隔符，以及 api-tester 源码变更后 capability catalog 未同步引发的目录与运行时身份两条失败。路径断言改为平台 path.join 的完整 loader 路径；逐文件比对 145 个 handler 后，仅 api-tester 摘要不匹配，已核对 0c0445253d 对 ipcMain/hostIpcMain 正则的改动并更新这一摘要，不修改任何能力或 filesystem scope。审计脚本 145/145 通过，三个失败测试文件本地 34/34 通过。尚未推送或重跑远端矩阵，不能据此声称 GitHub 发布门已经通过。
+
 2026-09-06 原始证据快照补强：Agent ingress 的 canonical 编码改为只读取 own data descriptors，在任何属性读取前拒绝 Proxy，拒绝 accessor/symbol/non-enumerable 字段、循环引用与稀疏/附加属性数组；合法 plain JSON 的排序与编码不变。事件类型也通过自有描述符识别，已识别工具事件先快照再分类 error/result，避免分类时先执行 getter；无关事件继续不采集。错误沿同实例锁定规则传播。七类输入（事件类型 getter、结果 getter、顶层/嵌套 Proxy、循环、稀疏数组、用户输入 getter）均验证零 getter/trap 执行、零 source authority/provider 请求及 complete 拒绝；与真实两轮 read_file 合并 8/8 通过（45.13s），Ledger/Wiki 15/15 回归通过。该批只加固 JavaScript 对象快照边界，不替代进程隔离或恶意插件的其他执行权限控制。
 
 2026-09-06 同实例证据失败锁定：Agent ingress 的 serialized queue 从仅锁定 model-input 失败扩展到所有证据/生命周期操作；失败在释放队列前保留首个 ingress error，输入或事件快照无法形成 JSON 证据时也锁定。已排队 complete、随后 start/user/event/model/complete 均不能越过失败，即使底层 source authority 恢复也不在原实例内自动重试。真实 composition 两条定向测试 2/2 覆盖工具证据 authority 拒绝与 malformed 快照、并发完成拒绝及零 provider 请求；Ledger/Wiki/projector 联合 110/110 通过。此锁定是当前 ingress 实例的运行保护，不自称持久故障标记、跨进程恢复或重新授权流程已经完成，也不撤销失败前已确认的耐久事实。
