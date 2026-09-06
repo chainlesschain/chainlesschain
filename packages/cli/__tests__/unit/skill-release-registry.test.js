@@ -57,6 +57,7 @@ import {
   buildLegacySkillReleaseJournalDisposition,
   buildMigratedSkillRelease,
   buildSkillReleaseStateMigrationPlan,
+  captureSkillReleaseRegistryReader,
   createSkillReleaseJournalResolutionAuthority,
   deriveSkillReleaseTenantKey,
   verifyLegacySkillRelease,
@@ -1276,6 +1277,67 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       authorization: { capability, request },
     });
   }
+
+  it("captures all releases and active pointers and rejects enumeration drift", async () => {
+    const fsImpl = Object.create(fs);
+    const inventoryLedger = new StrictTransactionLedger();
+    const inventoryReleases = new SkillReleaseRegistry({
+      tenantId: TENANT_ID,
+      rootDir: path.join(tempRoot, "inventory-releases"),
+      secure: false,
+      leaseTtlMs: 40,
+      transactionLedger: inventoryLedger,
+      fsImpl,
+    });
+    const inventoryController = new SkillPromotionController({
+      candidateRegistry: candidates,
+      releaseRegistry: inventoryReleases,
+      authority,
+    });
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+    const request = requestFor({
+      targetDigest: EMPTY_SKILL_ACTIVE_DIGEST,
+      revision: 0,
+      operationId: "promotion:inventory",
+      candidateId: candidate.candidateId,
+      dependencyLockDigest: candidate.dependencyLockDigest,
+    });
+    const capability = await authority.authorize(request);
+    const promoted = await inventoryController.promote({
+      candidateId: candidate.candidateId,
+      authorization: { capability, request },
+    });
+    const reader = captureSkillReleaseRegistryReader(inventoryReleases);
+
+    expect(reader.readInventory()).toEqual({
+      active: [
+        {
+          skillName: promoted.release.skillName,
+          release: promoted.release,
+          state: promoted.state,
+        },
+      ],
+      releases: [promoted.release],
+    });
+
+    const originalOpen = fsImpl.opendirSync.bind(fsImpl);
+    let activeScans = 0;
+    fsImpl.opendirSync = (target, options) => {
+      if (
+        path.resolve(target) ===
+        path.resolve(inventoryReleases.rootDir, "active")
+      ) {
+        activeScans += 1;
+        if (activeScans === 2) {
+          return { readSync: () => null, closeSync() {} };
+        }
+      }
+      return originalOpen(target, options);
+    };
+    const error = capturedError(() => reader.readInventory());
+    expect(error).toMatchObject({ code: "SKILL_RELEASE_STORE_UNSAFE" });
+    expect(error.message).toMatch(/changed during authenticated enumeration/u);
+  });
 
   it("creates an exact tenant marker and isolates identical releases and ledger projections", async () => {
     expect(
