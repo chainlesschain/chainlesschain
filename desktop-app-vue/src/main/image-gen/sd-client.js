@@ -104,6 +104,7 @@ class SDClient extends EventEmitter {
    * @returns {Promise<Object>} Generated image data
    */
   async txt2img(prompt, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {
@@ -172,6 +173,7 @@ class SDClient extends EventEmitter {
    * @returns {Promise<Object>} Generated image data
    */
   async img2img(prompt, initImage, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {
@@ -237,6 +239,7 @@ class SDClient extends EventEmitter {
    * @returns {Promise<Object>} Upscaled image data
    */
   async upscale(image, options = {}) {
+    assertGovernedMultimodalIngress();
     const params = {
       image: image,
       upscaler_1: options.upscaler || 'R-ESRGAN 4x+',
