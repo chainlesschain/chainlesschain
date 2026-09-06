@@ -5,9 +5,155 @@ const { types } = require("node:util");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { StringDecoder } = require("node:string_decoder");
+const { AsyncLocalStorage } = require("node:async_hooks");
 
 const hosts = new WeakMap();
 const clients = new WeakMap();
+const workflows = new AsyncLocalStorage();
+
+function assertDesktopToolLoopComplete(client) {
+  if (!clients.has(client)) return;
+  const error = new Error("Governed tool loop exhausted its iteration limit");
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
+async function consumeDesktopToolStream(prepared, response, onChunk) {
+  try {
+    const decoder = new StringDecoder("utf8");
+    let buffer = "";
+    let text = "";
+    let terminal = false;
+    let finishReason = null;
+    let model;
+    let usage;
+    const calls = new Map();
+    const accept = (line) => {
+      if (!line.startsWith("data:")) return;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") {
+        terminal = true;
+        return;
+      }
+      const parsed = JSON.parse(data);
+      if (parsed.error) throw new Error("Tool stream returned an error");
+      const choice = parsed.choices?.[0];
+      const delta = choice?.delta;
+      if (terminal && (delta?.content || delta?.tool_calls?.length))
+        throw new Error("Tool stream produced data after completion");
+      if (delta?.content) {
+        text += delta.content;
+        if (onChunk) onChunk(delta.content);
+      }
+      for (const part of delta?.tool_calls || []) {
+        if (
+          !Number.isSafeInteger(part.index) ||
+          part.index < 0 ||
+          part.index >= 128
+        )
+          throw new Error("Invalid streamed tool index");
+        const call = calls.get(part.index) || {
+          id: "",
+          type: "function",
+          function: { name: "", arguments: "" },
+        };
+        if (part.id) call.id += part.id;
+        if (part.function?.name) call.function.name += part.function.name;
+        if (part.function?.arguments)
+          call.function.arguments += part.function.arguments;
+        calls.set(part.index, call);
+      }
+      if (choice?.finish_reason) {
+        terminal = true;
+        finishReason = choice.finish_reason;
+      }
+      if (parsed.model) model = parsed.model;
+      if (parsed.usage) usage = parsed.usage;
+    };
+    for await (const chunk of response.body) {
+      buffer += typeof chunk === "string" ? chunk : decoder.write(chunk);
+      let newline;
+      while ((newline = buffer.indexOf("\n")) !== -1) {
+        accept(buffer.slice(0, newline).trim());
+        buffer = buffer.slice(newline + 1);
+      }
+    }
+    buffer += decoder.end();
+    if (buffer.trim()) accept(buffer.trim());
+    if (!terminal)
+      throw new Error("Tool stream ended without a terminal frame");
+    const toolCalls = [...calls.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, call]) => call);
+    if (toolCalls.some((call) => !call.id || !call.function.name))
+      throw new Error("Incomplete streamed tool call");
+    const message = {
+      role: "assistant",
+      content: text,
+      ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+    };
+    await prepared.complete(message);
+    return {
+      text,
+      model,
+      usage,
+      choices: [{ message, finish_reason: finishReason || "stop" }],
+    };
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Governed Desktop tool stream did not complete", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
+async function runDesktopModelWorkflow(client, input, work) {
+  const host = clients.get(client);
+  if (!host) return work();
+  const ingress = await openDesktopModelRun(host, JSON.stringify(input));
+  return workflows.run({ client, ingress }, async () => {
+    const result = await work();
+    await ingress.complete();
+    return result;
+  });
+}
+
+async function runDesktopToolExecution(client, toolCall, execute) {
+  if (!clients.has(client)) return execute();
+  const scope = workflows.getStore();
+  if (!scope || scope.client !== client) {
+    const error = new Error(
+      "Desktop tool execution requires its model workflow",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+  const event = {
+    tool: toolCall.function.name,
+    toolCallId: toolCall.id,
+    arguments: toolCall.function.arguments,
+  };
+  await scope.ingress.ingestAgentEvent({ type: "tool-executing", ...event });
+  let result;
+  try {
+    result = await execute();
+  } catch (error) {
+    await scope.ingress.ingestAgentEvent({
+      type: "tool-error",
+      ...event,
+      error: String(error.message || error),
+    });
+    throw error;
+  }
+  await scope.ingress.ingestAgentEvent({
+    type: "tool-result",
+    ...event,
+    result: result ?? null,
+  });
+  return result;
+}
 
 function bindDesktopModelIngressClient(client, host) {
   if (!hosts.has(host))
@@ -121,7 +267,11 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
   try {
     // Capture the final wire payload, after client-specific tool filtering.
     const captured = JSON.parse(JSON.stringify(body));
-    const ingress = await openDesktopModelRun(host, JSON.stringify(captured));
+    const scope = workflows.getStore();
+    const sharedWorkflow = scope?.client === client;
+    const ingress = sharedWorkflow
+      ? scope.ingress
+      : await openDesktopModelRun(host, JSON.stringify(captured));
     const geminiParts = (parts) => {
       if (
         !Array.isArray(parts) ||
@@ -226,7 +376,7 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
             content:
               typeof message === "string" ? message : JSON.stringify(message),
           });
-          await ingress.complete();
+          if (!sharedWorkflow) await ingress.complete();
         } catch (cause) {
           const error = new Error("Desktop model response evidence failed", {
             cause,
@@ -404,4 +554,8 @@ module.exports = {
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,
   consumeDesktopGeminiStream,
+  runDesktopModelWorkflow,
+  runDesktopToolExecution,
+  consumeDesktopToolStream,
+  assertDesktopToolLoopComplete,
 };

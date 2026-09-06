@@ -32,6 +32,30 @@ function runtimeConfig(revision) {
 }
 
 describe("desktop evolution deployment", () => {
+  it("rejects bound tool execution outside its workflow and unresolved iteration limits", async () => {
+    const {
+      createDesktopModelIngressHost,
+      bindDesktopModelIngressClient,
+      runDesktopToolExecution,
+      assertDesktopToolLoopComplete,
+    } = require("../desktop-model-ingress");
+    const client = bindDesktopModelIngressClient(
+      {},
+      createDesktopModelIngressHost(() => {}),
+    );
+    const execute = vi.fn();
+    await expect(
+      runDesktopToolExecution(
+        client,
+        { id: "call", function: { name: "lookup", arguments: "{}" } },
+        execute,
+      ),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(execute).not.toHaveBeenCalled();
+    expect(() => assertDesktopToolLoopComplete(client)).toThrow(
+      /iteration limit/,
+    );
+  });
   it("rejects opaque Ollama context before opening authority or dispatching", async () => {
     const {
       createDesktopModelIngressHost,

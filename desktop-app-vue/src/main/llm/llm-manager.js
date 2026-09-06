@@ -211,6 +211,11 @@ class LLMManager extends EventEmitter {
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
             model: this.config.model || "doubao-seed-1.6-lite",
           });
+          if (modelIngressHosts.has(this))
+            bindDesktopModelIngressClient(
+              this.toolsClient,
+              modelIngressHosts.get(this),
+            );
           logger.info("[LLMManager] 火山引擎工具调用客户端已初始化");
         } catch (toolsError) {
           logger.warn(

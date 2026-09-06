@@ -1657,6 +1657,8 @@ REJECTED | QUARANTINED | ROLLED_BACK | RECONCILIATION_REQUIRED
 
 Gemini 最终版本的 native composition+实际客户端方法+Axios post 替身验收为 2/2 聚合测试、7 个内部场景（55.15s），同时检查正文存在、系统/用户邮箱脱敏、model 角色和 parts 布局、零温度参数、多片段回复、回复拒绝时无 done=true 回调及截断后 Run 未完成。
 
+2026-09-06 Desktop 独立函数工具链接线：LLMManager 现将相同可信 host 绑定到 VolcengineToolsClient；模型端点的普通/流式最终请求均进入投影，回复在 durable response evidence 后返回。executeFunctionCalling 以 AsyncLocalStorage 绑定单一 Run，依次覆盖 user→model→response→tool-requested→实际 executor→tool-completed→下一轮 model→response，只有整个工作流返回后才 complete；拒绝不能被工具 catch 转换成普通失败后继续。流式工具参数按 index 累积并保留 tool-call id/name/arguments，完整终态和流结束后才能执行工具；有待执行调用却达到迭代上限时拒绝成功闭环。函数参数明文日志已移除。真实 native composition、实际客户端/函数 executor 与明确 loopback HTTP 服务的普通/流式共 8 场景、2/2 聚合测试通过（107.51s），验证同一 factory/Run、工具前拒绝零 executor、工具后拒绝零后续请求、原始参数执行与后续入模脱敏、精确事件顺序；Manager/deployment 67/67，静态检查 0 错误。早期全局 fetch 替身未拦截 node-fetch 的无效密钥请求不计入证据；最终夹具固定本机端口及 Connection: close，避免重用闲置连接造成误报。该证据覆盖函数工具链，内置搜索/图像/知识/MCP 模式、embedding/probe、缓存/压缩和全启动矩阵仍需独立验收，P0-4 保持部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

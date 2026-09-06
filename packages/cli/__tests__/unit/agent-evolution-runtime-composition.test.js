@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import http from "node:http";
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
@@ -85,11 +86,49 @@ import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
+const toolServers = [];
+async function localToolEndpoint(wire, stream) {
+  const server = http.createServer(async (request, response) => {
+    try {
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const result = await wire(request.url, {
+        body: Buffer.concat(chunks).toString("utf8"),
+      });
+      response.writeHead(200, {
+        "Content-Type": stream ? "text/event-stream" : "application/json",
+        Connection: "close",
+      });
+      if (stream) {
+        for await (const chunk of result.body) response.write(chunk);
+        response.end();
+      } else response.end(JSON.stringify(await result.json()));
+    } catch (error) {
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ fixtureError: error.message }));
+    }
+  });
+  toolServers.push(server);
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  return `http://127.0.0.1:${server.address().port}`;
+}
 const { createDesktopModelIngressHost, openDesktopModelRun } = createRequire(
   import.meta.url,
 )("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
 
-afterEach(() => {
+afterEach(async () => {
+  await Promise.all(
+    toolServers.splice(0).map(
+      (server) =>
+        new Promise((resolve) => {
+          server.closeAllConnections();
+          server.close(resolve);
+        }),
+    ),
+  );
   vi.unstubAllGlobals();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -1577,6 +1616,130 @@ describe("Agent evolution runtime production composition", () => {
       }
     },
     90_000,
+  );
+
+  it.each([false, true])(
+    "governs Desktop tool workflow in one Run (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { VolcengineToolsClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/volcengine-tools.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "tool-requested",
+        "tool-completed",
+        "response-completed",
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (mode !== "success" && request.kind === mode)
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new VolcengineToolsClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const toolCall = {
+          id: "call-1",
+          type: "function",
+          function: {
+            name: "lookup",
+            arguments: '{"owner":"owner@example.com"}',
+          },
+        };
+        const wire = vi.fn(async () => {
+          const first = wire.mock.calls.length === 1;
+          const message = {
+            role: "assistant",
+            content: first ? "" : "done",
+            ...(first ? { tool_calls: [toolCall] } : {}),
+          };
+          const delta = {
+            content: message.content,
+            ...(first ? { tool_calls: [{ index: 0, ...toolCall }] } : {}),
+          };
+          const bytes = Buffer.from(
+            `data: ${JSON.stringify({ choices: [{ delta, finish_reason: first ? "tool_calls" : "stop" }] })}\n\ndata: [DONE]\n\n`,
+          );
+          return {
+            ok: true,
+            json: async () => ({ model: "test", choices: [{ message }] }),
+            body: Readable.from([bytes.subarray(0, 25), bytes.subarray(25)]),
+          };
+        });
+        client.baseURL = await localToolEndpoint(wire, stream);
+        const execute = vi.fn(async () => ({
+          owner: "owner@example.com",
+          result: "found",
+        }));
+        const result = client.executeFunctionCalling(
+          [{ role: "user", content: "Find owner@example.com" }],
+          [
+            {
+              name: "lookup",
+              description: "Ask owner@example.com",
+              parameters: { type: "object", properties: {} },
+            },
+          ],
+          { execute },
+          { stream, onChunk: () => {} },
+        );
+        if (mode === "success") {
+          expect(await result).toMatchObject({ text: "done" });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          expect(execute).toHaveBeenCalledWith("lookup", {
+            owner: "owner@example.com",
+          });
+          const kinds = composition
+            .loadRun()
+            .events.map((event) => event.data?.evidenceKind)
+            .filter(Boolean);
+          expect(kinds).toEqual([
+            "user-prompt",
+            "model-input",
+            "response-completed",
+            "tool-requested",
+            "tool-completed",
+            "model-input",
+            "response-completed",
+          ]);
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "success" ? 2 : 1);
+        expect(execute).toHaveBeenCalledTimes(
+          mode === "success" || mode === "tool-completed" ? 1 : 0,
+        );
+        for (const [, request] of wire.mock.calls) {
+          expect(request.body).not.toContain("owner@example.com");
+          expect(request.body).toContain("lookup");
+        }
+      }
+    },
+    120_000,
   );
 
   function modelFixture(sensitivity = "internal") {
