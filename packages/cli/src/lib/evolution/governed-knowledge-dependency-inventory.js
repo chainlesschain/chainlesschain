@@ -1,0 +1,225 @@
+import { createHash } from "node:crypto";
+import { captureSkillCandidateRegistryReader } from "./skill-candidate-registry.js";
+import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
+import { governedKnowledgeSourceRef } from "./governed-knowledge-skill-rollback.js";
+import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
+
+export const GOVERNED_KNOWLEDGE_DEPENDENCY_INVENTORY_SCHEMA =
+  "chainlesschain.governed-knowledge-dependency-inventory/v1";
+const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function freeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) freeze(child);
+  }
+  return value;
+}
+
+function fail(message) {
+  throw new Error(`knowledge dependency inventory: ${message}`);
+}
+
+function sameHead(left, right) {
+  return [
+    "epoch",
+    "ledgerId",
+    "identityDigest",
+    "sequence",
+    "headDigest",
+  ].every((key) => left?.[key] === right?.[key]);
+}
+
+function orderWikiRuns(affectedRuns, inventories, revisionOwners) {
+  const edges = new Map([...affectedRuns].map((run) => [run, new Set()]));
+  for (const [run, inventory] of inventories) {
+    if (!affectedRuns.has(run)) continue;
+    for (const revision of inventory.revisions) {
+      for (const sourceRevisionId of revision.wikiSourceRevisionIds) {
+        const parent = revisionOwners.get(sourceRevisionId);
+        if (parent && parent !== run && affectedRuns.has(parent)) {
+          edges.get(run).add(parent);
+        }
+      }
+    }
+  }
+  const indegree = new Map([...affectedRuns].map((run) => [run, 0]));
+  for (const parents of edges.values()) {
+    for (const parent of parents)
+      indegree.set(parent, indegree.get(parent) + 1);
+  }
+  const ready = [...affectedRuns]
+    .filter((run) => indegree.get(run) === 0)
+    .sort();
+  const ordered = [];
+  while (ready.length > 0) {
+    const run = ready.shift();
+    ordered.push(run);
+    for (const parent of [...edges.get(run)].sort()) {
+      indegree.set(parent, indegree.get(parent) - 1);
+      if (indegree.get(parent) === 0) {
+        ready.push(parent);
+        ready.sort();
+      }
+    }
+  }
+  if (ordered.length !== affectedRuns.size)
+    fail("Wiki source graph contains a cycle");
+  return ordered;
+}
+
+export function buildGovernedKnowledgeDependencyInventory({
+  tenantId,
+  knowledgeId,
+  contentDigest,
+  candidateRegistry,
+  releaseRegistry,
+  wikiAdapters,
+  candidateDisposition = "reject-candidate",
+  wikiDisposition = "tombstone",
+} = {}) {
+  if (
+    typeof tenantId !== "string" ||
+    !ID.test(tenantId) ||
+    typeof knowledgeId !== "string" ||
+    !ID.test(knowledgeId) ||
+    !DIGEST.test(contentDigest ?? "") ||
+    !Array.isArray(wikiAdapters) ||
+    wikiAdapters.length < 1 ||
+    wikiAdapters.length > 64 ||
+    !["reject-candidate", "quarantine"].includes(candidateDisposition) ||
+    !["tombstone", "quarantine"].includes(wikiDisposition)
+  ) {
+    throw new TypeError(
+      "bounded knowledge dependency inventory input is required",
+    );
+  }
+  const candidates = captureSkillCandidateRegistryReader(candidateRegistry);
+  const releases = captureSkillReleaseRegistryReader(releaseRegistry);
+  if (candidates.tenantId !== tenantId || releases.tenantId !== tenantId) {
+    throw new TypeError("knowledge dependency inventory tenant differs");
+  }
+  const readers = wikiAdapters.map(captureWikiRevisionReader);
+  if (readers.some((reader) => reader.descriptor.tenantId !== tenantId)) {
+    throw new TypeError("knowledge dependency Wiki tenant differs");
+  }
+  const inventories = new Map();
+  let ledgerHead = null;
+  let discoveredRuns = null;
+  const revisionOwners = new Map();
+  for (const reader of readers) {
+    const run = reader.descriptor.evolutionRunId;
+    if (inventories.has(run)) fail("duplicate Wiki run reader");
+    const inventory = reader.readInventory();
+    if (ledgerHead && !sameHead(ledgerHead, inventory.ledgerHead)) {
+      fail("Wiki inventories do not share one stable ledger head");
+    }
+    if (
+      discoveredRuns &&
+      canonical(discoveredRuns) !== canonical(inventory.tenantWikiRunIds)
+    ) {
+      fail("Wiki inventories disagree about tenant run completeness");
+    }
+    ledgerHead = inventory.ledgerHead;
+    discoveredRuns = inventory.tenantWikiRunIds;
+    inventories.set(run, { inventory, reader });
+    for (const revision of inventory.revisions) {
+      if (revisionOwners.has(revision.revisionId))
+        fail("duplicate Wiki revision identity");
+      revisionOwners.set(revision.revisionId, run);
+    }
+  }
+  const suppliedRuns = [...inventories.keys()].sort();
+  if (canonical(suppliedRuns) !== canonical(discoveredRuns)) {
+    fail("Wiki run manifest is incomplete for this tenant ledger");
+  }
+  const sourceRef = governedKnowledgeSourceRef({ tenantId, knowledgeId });
+  const wikiProof = (candidate) => {
+    if (candidate.derivationMode !== "wiki") return null;
+    const run = revisionOwners.get(candidate.wikiRevision);
+    if (!run) fail("Wiki-derived artifact references an unconfigured revision");
+    return inventories.get(run).reader.readKnowledgeProvenance({
+      tenantId,
+      revisionId: candidate.wikiRevision,
+      knowledgeId,
+      contentDigest,
+    });
+  };
+  const depends = (candidate) =>
+    candidate.sourceEvidenceRefs.some(
+      (entry) => entry.ref === sourceRef && entry.digest === contentDigest,
+    ) || (wikiProof(candidate)?.affectedPatternIds.length ?? 0) > 0;
+  const candidateItems = candidates.readInventory();
+  const releaseItems = releases.readInventory();
+  const activeDependencies = releaseItems.active
+    .filter(({ release }) => depends(release.candidate))
+    .map(({ release }) => ({
+      kind: "active-skill",
+      digest: release.releaseDigest,
+      disposition: "rollback-active",
+    }));
+  const candidateDependencies = candidateItems
+    .filter(depends)
+    .map((candidate) => ({
+      kind: "candidate",
+      digest: candidate.candidateId,
+      disposition: candidateDisposition,
+    }));
+  const wikiTargets = new Map();
+  for (const [run, { inventory, reader }] of inventories) {
+    for (const revision of inventory.revisions) {
+      const proof = reader.readKnowledgeProvenance({
+        tenantId,
+        revisionId: revision.revisionId,
+        knowledgeId,
+        contentDigest,
+      });
+      if (proof.affectedPatternIds.length > 0) {
+        wikiTargets.set(run, revision.stateDigest);
+        break;
+      }
+    }
+  }
+  const wikiDependencies = orderWikiRuns(
+    new Set(wikiTargets.keys()),
+    new Map([...inventories].map(([run, value]) => [run, value.inventory])),
+    revisionOwners,
+  ).map((run) => ({
+    kind: "wiki",
+    digest: wikiTargets.get(run),
+    disposition: wikiDisposition,
+  }));
+  const dependencies = [
+    ...activeDependencies.sort((a, b) => a.digest.localeCompare(b.digest)),
+    ...candidateDependencies.sort((a, b) => a.digest.localeCompare(b.digest)),
+    ...wikiDependencies,
+  ];
+  if (dependencies.length < 1 || dependencies.length > 256) {
+    fail("dependency result is empty or exceeds the governed record bound");
+  }
+  const core = {
+    schema: GOVERNED_KNOWLEDGE_DEPENDENCY_INVENTORY_SCHEMA,
+    tenantId,
+    knowledgeId,
+    contentDigest,
+    candidateDisposition,
+    wikiDisposition,
+    ledgerHead,
+    wikiRuns: suppliedRuns,
+    dependencies,
+  };
+  return freeze({
+    ...core,
+    inventoryDigest: `sha256:${createHash("sha256").update(canonical(core)).digest("hex")}`,
+  });
+}
