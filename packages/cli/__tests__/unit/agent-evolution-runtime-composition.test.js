@@ -1299,14 +1299,29 @@ describe("Agent evolution runtime production composition", () => {
     expect(composition.loadRun().projection.status).toBe("completed");
   });
 
-  it.each(["shadow", "canonical_default"])(
-    "governs the real standalone compact command before persisting its session revision (%s)",
-    async (stage) => {
+  it.each(
+    ["shadow", "canonical_default"].flatMap((stage) =>
+      [false, true].map((denied) => [stage, denied]),
+    ),
+  )(
+    "governs the real standalone compact command before persisting its session revision (%s, responseDenied=%s)",
+    async (stage, denied) => {
       const { Command } = await import("commander");
       const { registerCompactCommand } =
         await import("../../src/commands/compact.js");
       const sessions = await import("../../src/harness/jsonl-session-store.js");
       const f = modelFixture();
+      if (denied) {
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          async (input) => {
+            if (input.kind === "response-completed")
+              throw new Error("response evidence denied");
+            return issue(input);
+          },
+        );
+      }
       const oldHome = process.env.CHAINLESSCHAIN_HOME;
       const oldAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
       const oldExitCode = process.exitCode;
@@ -1379,12 +1394,11 @@ describe("Agent evolution runtime production composition", () => {
           "--max-tokens",
           "1200",
         ]);
-        expect(process.exitCode).toBe(0);
+        expect(process.exitCode).toBe(denied ? 1 : 0);
         expect(f.transport).toHaveBeenCalledOnce();
         expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
-        expect(composition.loadRun().projection.status).toBe("completed");
-        expect(sessions.readVerifiedMessages(sessionId).length).toBeLessThan(
-          messages.length,
+        expect(composition.loadRun().projection.status === "completed").toBe(
+          !denied,
         );
         const events = sessions.readVerifiedEvents(sessionId);
         const started = events.filter(
@@ -1394,7 +1408,7 @@ describe("Agent evolution runtime production composition", () => {
         const commits = events.filter((event) => event.type === "compact");
         expect(started).toHaveLength(1);
         expect(settled).toHaveLength(1);
-        expect(commits).toHaveLength(2); // Fixture snapshot + this command's commit.
+        expect(commits).toHaveLength(denied ? 1 : 2); // Fixture snapshot + successful command commit.
         expect(settled[0].data.callId).toBe(started[0].data.callId);
         expect(settled[0].data.usage).toMatchObject({
           input_tokens: 100,
@@ -1402,6 +1416,18 @@ describe("Agent evolution runtime production composition", () => {
         });
         expect(events.indexOf(started[0])).toBeLessThan(
           events.indexOf(settled[0]),
+        );
+        if (denied) {
+          expect(sessions.readVerifiedMessages(sessionId)).toEqual(messages);
+          expect(
+            f.config.authorities.sourceEnvelope.issue.mock.calls.some(
+              ([input]) => input.kind === "response-completed",
+            ),
+          ).toBe(true);
+          return;
+        }
+        expect(sessions.readVerifiedMessages(sessionId).length).toBeLessThan(
+          messages.length,
         );
         expect(events.indexOf(settled[0])).toBeLessThan(
           events.indexOf(commits[1]),
