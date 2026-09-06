@@ -129,6 +129,26 @@ describe("Orchestrator: task lifecycle", () => {
     expect(completeFn.mock.calls[0][0].status).toBe(TASK_STATUS.COMPLETED);
   });
 
+  it.each(["factory-error", "unbranded"])(
+    "records failed admission before dispatch: %s",
+    async (mode) => {
+      const { orch, notifier } = buildOrchestrator();
+      orch._evolutionCompositionFactory = async () => {
+        if (mode === "factory-error") throw new Error("authority unavailable");
+        return {};
+      };
+      const failed = vi.fn();
+      orch.on("task:failed", failed);
+      await expect(orch.addTask("task")).rejects.toThrow();
+      expect(orch.status().tasks[0].status).toBe(TASK_STATUS.FAILED);
+      expect(failed).toHaveBeenCalledTimes(1);
+      expect(orch._chat).not.toHaveBeenCalled();
+      expect(bridgeDeps.spawn).not.toHaveBeenCalled();
+      expect(orchDeps.execSync).not.toHaveBeenCalled();
+      expect(notifier.notifySuccess).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([true, false])(
     "waits for evolution settlement before success (CI=%s)",
     async (runCI) => {

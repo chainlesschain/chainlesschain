@@ -223,37 +223,44 @@ export class Orchestrator extends EventEmitter {
     }
 
     let evolutionComposition = null;
-    if (this._evolutionCompositionFactory !== null) {
-      evolutionComposition = captureAgentEvolutionRuntimeComposition(
-        await this._evolutionCompositionFactory(
-          Object.freeze({
-            mode: "orchestrate",
-            runId: task.id,
-            taskId: task.id,
-            source: task.source,
-            cwd: task.cwd,
-          }),
-        ),
-      );
-      if (
-        evolutionComposition.runId !== task.id ||
-        evolutionComposition.evolutionIngress.runId !== task.id ||
-        evolutionComposition.evolutionIngress.tenantId !==
-          evolutionComposition.tenantId
-      ) {
-        const error = new Error(
-          "Orchestrator evolution composition is not bound to the requested Run",
+    try {
+      if (this._evolutionCompositionFactory !== null) {
+        evolutionComposition = captureAgentEvolutionRuntimeComposition(
+          await this._evolutionCompositionFactory(
+            Object.freeze({
+              mode: "orchestrate",
+              runId: task.id,
+              taskId: task.id,
+              source: task.source,
+              cwd: task.cwd,
+            }),
+          ),
         );
-        error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-        throw error;
+        if (
+          evolutionComposition.runId !== task.id ||
+          evolutionComposition.evolutionIngress.runId !== task.id ||
+          evolutionComposition.evolutionIngress.tenantId !==
+            evolutionComposition.tenantId
+        ) {
+          const error = new Error(
+            "Orchestrator evolution composition is not bound to the requested Run",
+          );
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+        await evolutionComposition.evolutionIngress.start();
+        await evolutionComposition.evolutionIngress.ingestUserPrompt({
+          content: task.description,
+          context: task.context,
+          taskId: task.id,
+          source: `orchestrate:${task.source}`,
+        });
       }
-      await evolutionComposition.evolutionIngress.start();
-      await evolutionComposition.evolutionIngress.ingestUserPrompt({
-        content: task.description,
-        context: task.context,
-        taskId: task.id,
-        source: `orchestrate:${task.source}`,
-      });
+    } catch (error) {
+      task.status = TASK_STATUS.FAILED;
+      task.error = error.message;
+      this.emit("task:failed", { task, error });
+      throw error;
     }
 
     await this._orchestrate(

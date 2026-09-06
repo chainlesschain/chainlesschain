@@ -1067,6 +1067,41 @@ describe("Agent evolution runtime production composition", () => {
     expect(turnComposition.loadRun().projection.status).toBe("completed");
   });
 
+  it("records orchestrator failure when the real source authority rejects admission", async () => {
+    const f = modelFixture();
+    f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+      new Error("source denied"),
+    );
+    const router = { on: vi.fn(), summary: () => [], dispatch: vi.fn() };
+    let composition;
+    const orch = new Orchestrator({
+      cwd: f.root,
+      agentRouter: router,
+      evolutionCompositionFactory: async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        return composition;
+      },
+    });
+    const failed = vi.fn();
+    const complete = vi.fn();
+    orch.on("task:failed", failed);
+    orch.on("task:complete", complete);
+    await expect(
+      orch.addTask("inspect", { notify: false }),
+    ).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(orch.status().tasks[0].status).toBe(TASK_STATUS.FAILED);
+    expect(failed).toHaveBeenCalledTimes(1);
+    expect(complete).not.toHaveBeenCalled();
+    expect(router.dispatch).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(composition.loadRun().projection.status).not.toBe("completed");
+  });
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({
