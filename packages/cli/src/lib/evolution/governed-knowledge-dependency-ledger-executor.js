@@ -139,6 +139,13 @@ function identifier(value, label) {
   return value;
 }
 
+function portableKnowledge(value, tenantId) {
+  const knowledge = verifyGovernedKnowledgeRecord(value, { tenantId });
+  const portable = clone(knowledge);
+  delete portable.dependencies;
+  return portable;
+}
+
 function capture(owner, method, label) {
   if (!owner || typeof owner !== "object" || utilTypes.isProxy(owner)) {
     throw new TypeError(`${label}.${method}() is required`);
@@ -676,6 +683,47 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
           durable: true,
           operationDigest,
           knowledge: clone(prepared.record.knowledge),
+        });
+  }
+
+  readPreparedForKnowledge(knowledgeInput) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError(
+        "prepared dependency lookup requires its branded executor",
+      );
+    }
+    const target = portableKnowledge(knowledgeInput, this.descriptor.tenantId);
+    const matches = [];
+    for (const event of this._events(
+      GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+    )) {
+      const record = verifyGovernedKnowledgeDependencyPrepared(
+        this._resolve(event),
+        this.descriptor,
+      );
+      if (
+        canonical(
+          portableKnowledge(record.knowledge, this.descriptor.tenantId),
+        ) !== canonical(target)
+      ) {
+        continue;
+      }
+      const prepared = this._prepared(record.operationDigest);
+      if (!prepared || prepared.event.eventDigest !== event.eventDigest) {
+        corrupt("prepared dependency lookup event binding differs");
+      }
+      matches.push(prepared.record);
+    }
+    if (matches.length > 1) {
+      corrupt("prepared dependency lookup is ambiguous");
+    }
+    return matches.length === 0
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest: matches[0].operationDigest,
+          knowledge: clone(matches[0].knowledge),
         });
   }
 

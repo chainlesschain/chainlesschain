@@ -307,6 +307,9 @@ export class GovernedKnowledgeSync {
     this._readPreparedDependencies = dependencyPlanner
       ? capture(dependencyExecutor, "readPrepared")
       : null;
+    this._readPreparedDependenciesForKnowledge = dependencyPlanner
+      ? capture(dependencyExecutor, "readPreparedForKnowledge")
+      : null;
     SYNCHRONIZERS.add(this);
   }
 
@@ -702,7 +705,8 @@ export class GovernedKnowledgeSync {
       activate: binding.activate,
       humanReviewed: binding.humanReviewed,
     });
-    await this._applyRevocationDependencies(knowledge);
+    const dependencyKnowledge = await this._receivedDependencyPlan(knowledge);
+    await this._applyRevocationDependencies(dependencyKnowledge);
     await this._persist(
       knowledge,
       envelope,
@@ -810,6 +814,65 @@ export class GovernedKnowledgeSync {
     ) {
       throw new Error("revocation dependencies were not durably applied");
     }
+  }
+
+  async _receivedDependencyPlan(remoteKnowledge) {
+    if (
+      !["tombstone", "revoke"].includes(remoteKnowledge.action) ||
+      !this._planDependencies
+    ) {
+      return remoteKnowledge;
+    }
+    const portable = (value) => {
+      const copy = clone(value);
+      delete copy.dependencies;
+      return copy;
+    };
+    const recovered =
+      this._readPreparedDependenciesForKnowledge(remoteKnowledge);
+    let localKnowledge;
+    if (recovered) {
+      if (
+        recovered.authenticated !== true ||
+        recovered.durable !== true ||
+        !DIGEST.test(recovered.operationDigest ?? "")
+      ) {
+        throw new Error("received revocation local plan is unauthenticated");
+      }
+      localKnowledge = normalizeRecord(recovered.knowledge, this, {
+        executionRecord: true,
+      });
+    } else {
+      const draft = portable(remoteKnowledge);
+      delete draft.schema;
+      const planned = this._planDependencies(draft);
+      captureGovernedKnowledgeDependencyInventoryPlan(
+        this._dependencyPlanner,
+        planned,
+      );
+      localKnowledge = normalizeRecord(planned.knowledge, this, {
+        executionRecord: true,
+      });
+    }
+    if (
+      canonical(portable(localKnowledge)) !==
+      canonical(portable(remoteKnowledge))
+    ) {
+      throw new Error(
+        "received revocation local plan changed signed knowledge",
+      );
+    }
+    const prepared = await this._prepareDependencies(localKnowledge);
+    if (
+      prepared?.authenticated !== true ||
+      prepared.durable !== true ||
+      canonical(prepared.knowledge) !== canonical(localKnowledge)
+    ) {
+      throw new Error(
+        "received revocation local plan was not durably prepared",
+      );
+    }
+    return localKnowledge;
   }
 }
 

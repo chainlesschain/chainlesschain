@@ -79,6 +79,8 @@ export async function openKnowledgeSkillRollbackStore(
   root,
   {
     seed = false,
+    localDeviceId = deviceId,
+    cryptoAuthority = null,
     candidateEvidenceRefs = [source],
     baselineEvidenceRefs = null,
     crashPoint = "none",
@@ -236,7 +238,7 @@ export async function openKnowledgeSkillRollbackStore(
     : null;
   const options = {
     ...release.pruningRollbackOptions,
-    deviceId,
+    deviceId: localDeviceId,
     wikiLedgerAdapter: wiki?.adapter ?? null,
     verifierWikiLedgerAdapter: independentWiki?.adapter ?? null,
     verifierReleaseRegistry: independent.pruningRollbackOptions.releaseRegistry,
@@ -305,7 +307,7 @@ export async function openKnowledgeSkillRollbackStore(
     : null;
   const wikiTombstoneOptions = {
     tenantId,
-    deviceId,
+    deviceId: localDeviceId,
     wikiLedgerAdapter: wiki?.adapter,
     verifierWikiLedgerAdapter: independentWiki?.adapter,
     transactionLedger: release.pruningRollbackOptions.transactionLedger,
@@ -343,7 +345,7 @@ export async function openKnowledgeSkillRollbackStore(
     wikiDispositionMode === "combined"
       ? createGovernedKnowledgeDependencyRouter({
           tenantId,
-          deviceId,
+          deviceId: localDeviceId,
           routes: {
             [`active-skill/${activeQuarantine ? "quarantine" : "rollback-active"}`]:
               rollbackAuthority,
@@ -362,7 +364,7 @@ export async function openKnowledgeSkillRollbackStore(
         quarantineAuthority ??
         rejectionAuthority ??
         rollbackAuthority);
-  const descriptor = { ...resources.descriptor, deviceId };
+  const descriptor = { ...resources.descriptor, deviceId: localDeviceId };
   const executorLedger = {
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
     verify: resources.backend.ledger.verify.bind(resources.backend.ledger),
@@ -401,7 +403,7 @@ export async function openKnowledgeSkillRollbackStore(
   // Transport/identity here are test-owned. Actual release mutations, artifact
   // storage, signed Ledger/witness, independent readers and recovery are real.
   const sent = [];
-  const crypto = {
+  const defaultCrypto = {
     verifier: {
       verify: async ({ envelopeDigest, signature }) =>
         signature === `test:${envelopeDigest}`,
@@ -440,6 +442,15 @@ export async function openKnowledgeSkillRollbackStore(
       },
     },
   };
+  const crypto = cryptoAuthority
+    ? {
+        ...defaultCrypto,
+        verifier: cryptoAuthority,
+        encrypt: cryptoAuthority,
+        decrypt: cryptoAuthority,
+        sign: cryptoAuthority,
+      }
+    : defaultCrypto;
   const persisted = new GovernedKnowledgeSyncLedgerAdapter({
     descriptor,
     artifactPorts: resources.artifactPorts,
@@ -448,11 +459,15 @@ export async function openKnowledgeSkillRollbackStore(
     envelopeVerifier: crypto.verifier,
     now: resources.clock,
   });
-  const makeSync = (dependencyExecutor = executor, dependencyPlanner = null) =>
+  const makeSync = (
+    dependencyExecutor = executor,
+    dependencyPlanner = null,
+    portOverrides = {},
+  ) =>
     new GovernedKnowledgeSync({
       tenantId,
-      deviceId,
-      ports: persisted.syncPorts(crypto),
+      deviceId: localDeviceId,
+      ports: { ...persisted.syncPorts(crypto), ...portOverrides },
       dependencyExecutor,
       dependencyPlanner,
       artifactLifecycle: knowledgeLifecycle(resources, descriptor),
@@ -465,7 +480,7 @@ export async function openKnowledgeSkillRollbackStore(
     scopeId: "project:1",
     action: "revoke",
     contentDigest: source.digest,
-    vectorClock: { [deviceId]: 1 },
+    vectorClock: { [localDeviceId]: 1 },
     approvalReceiptDigest: null,
     revocationReceiptDigest: D("revocation-receipt"),
     dependencies: [
