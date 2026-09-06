@@ -140,7 +140,7 @@ export function createAgentRuntimeFactory({
         kind: "chat",
         policy: resolveAgentPolicy({ config, overrides }),
         config,
-        deps,
+        deps: runtimeDeps,
       });
     },
 

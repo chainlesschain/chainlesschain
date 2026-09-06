@@ -379,6 +379,9 @@ export class AgentRuntime {
   }
 
   async startChatSession() {
+    if (this.evolutionIngress !== null) {
+      await this.evolutionIngress.start();
+    }
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,
       policy: this.policy,
@@ -387,7 +390,23 @@ export class AgentRuntime {
       kind: this.kind,
       sessionId: this.policy.sessionId || null,
     });
-    return this.deps.startChatRepl(this.policy);
+    const result = await this.deps.startChatRepl({
+      ...this.policy,
+      ...(this.evolutionIngress === null
+        ? {}
+        : { evolutionIngress: this.evolutionIngress }),
+    });
+    if (this.evolutionIngress !== null) {
+      if (result?.schema === AGENT_EVOLUTION_SESSION_SCHEMA) {
+        return await waitForAgentEvolutionSession(
+          result,
+          this.evolutionIngress,
+        );
+      }
+      if (result?.started === false) return result;
+      await this.evolutionIngress.complete();
+    }
+    return result;
   }
 
   async startServer() {

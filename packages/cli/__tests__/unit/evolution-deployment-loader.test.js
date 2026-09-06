@@ -133,7 +133,7 @@ describe("signed evolution deployment loader", () => {
     },
   );
 
-  it.each(["agent", "cowork", "orchestrate", "serve"])(
+  it.each(["agent", "chat", "cowork", "orchestrate", "serve"])(
     "exposes the Agent runtime composition only to an authenticated %s deployment",
     async (commandName) => {
       const fixture = deploymentFixture({ commands: [commandName] });

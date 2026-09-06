@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Writable } from "node:stream";
 import { Command } from "commander";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -76,6 +77,8 @@ import {
   resolveAgentCommandEvolutionComposition,
 } from "../../src/commands/agent.js";
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
+import { registerChatCommand } from "../../src/commands/chat.js";
+import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
@@ -943,6 +946,224 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  it("binds chat and chat --agent to separate deployment-created Runs", async () => {
+    const f = modelFixture();
+    const compositions = [];
+    const deploymentFactory = vi.fn(async (context) => {
+      let evidenceId = 0;
+      let ingressId = 0;
+      const config = {
+        ...options(f.root),
+        runId: context.runId,
+        evidenceIdGenerator: () => `chat-command-evidence-${++evidenceId}`,
+        ingressIdGenerator: () => `chat-command-ingress-${++ingressId}`,
+      };
+      const composition = createAgentEvolutionRuntimeComposition(config);
+      compositions.push(composition);
+      return composition;
+    });
+    const createRuntime = vi.fn(({ evolutionComposition }) =>
+      createAgentRuntimeFactory({
+        config: {},
+        evolutionComposition,
+        deps: {
+          startChatRepl: async ({ evolutionIngress }) => {
+            const lifecycle =
+              createAgentEvolutionSessionLifecycle(evolutionIngress);
+            queueMicrotask(() => void lifecycle.close());
+            return lifecycle.handle;
+          },
+          startAgentRepl: async ({ evolutionIngress }) => {
+            const lifecycle =
+              createAgentEvolutionSessionLifecycle(evolutionIngress);
+            queueMicrotask(() => void lifecycle.close());
+            return lifecycle.handle;
+          },
+        },
+      }),
+    );
+    const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+    for (const [index, agent] of [false, true].entries()) {
+      const program = new Command();
+      program.exitOverride();
+      registerChatCommand(program, {
+        evolutionCompositionFactory: deploymentFactory,
+        createAgentRuntimeFactory: createRuntime,
+      });
+      await program.parseAsync([
+        "node",
+        "cc",
+        "chat",
+        ...(agent ? ["--agent"] : []),
+        "--model",
+        "test-model",
+        "--api-key",
+        secret,
+      ]);
+      const mode = agent ? "chat-agent" : "chat";
+      const context = deploymentFactory.mock.calls[index][0];
+      expect(context).toMatchObject({
+        mode,
+        runId: expect.stringMatching(new RegExp(`^${mode}-`, "u")),
+        taskId: expect.stringMatching(new RegExp(`^${mode}-`, "u")),
+        cwd: process.cwd(),
+      });
+      expect(Object.isFrozen(context)).toBe(true);
+      expect(JSON.stringify(context)).not.toContain(secret);
+      expect(createRuntime).toHaveBeenNthCalledWith(index + 1, {
+        evolutionComposition: compositions[index],
+      });
+      expect(compositions[index].loadRun().projection.status).toBe("completed");
+    }
+    expect(deploymentFactory).toHaveBeenCalledTimes(2);
+  }, 30_000);
+
+  it("rejects a borrowed chat composition before runtime construction", async () => {
+    const f = modelFixture();
+    const createRuntime = vi.fn();
+    const program = new Command();
+    program.exitOverride();
+    registerChatCommand(program, {
+      evolutionCompositionFactory: async () => f.composition,
+      createAgentRuntimeFactory: createRuntime,
+    });
+
+    await expect(program.parseAsync(["node", "cc", "chat"])).rejects.toThrow(
+      /not bound to the requested Run/u,
+    );
+    expect(createRuntime).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(f.composition.loadRun().events).toHaveLength(0);
+  }, 30_000);
+
+  it.each(["success", "source-denied", "response-denied"])(
+    "governs the actual standalone chat REPL provider boundary (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const originalIssue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      if (mode !== "success") {
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          async (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            ) {
+              throw new Error(`${mode} by authority`);
+            }
+            return originalIssue(request);
+          },
+        );
+      }
+      const encoder = new TextEncoder();
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        let read = false;
+        return {
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: async () => {
+                if (read) return { done: true, value: undefined };
+                read = true;
+                return {
+                  done: false,
+                  value: encoder.encode(
+                    '{"message":{"content":"done"},"done":true}\n',
+                  ),
+                };
+              },
+            }),
+          },
+        };
+      });
+      const output = [];
+      const sink = () =>
+        new Writable({
+          write(chunk, _encoding, callback) {
+            output.push(String(chunk));
+            callback();
+          },
+        });
+      const stdout = sink();
+      const stderr = sink();
+      const handlers = Object.create(null);
+      const repl = {
+        on: vi.fn((event, handler) => {
+          handlers[event] = handler;
+          return repl;
+        }),
+        prompt: vi.fn(),
+        close: vi.fn(() => handlers.close?.()),
+      };
+
+      await f.composition.evolutionIngress.start();
+      const handle = await startChatRepl({
+        provider: "ollama",
+        model: "test-model",
+        baseUrl: "http://127.0.0.1:1",
+        recordUsage: false,
+        stdout,
+        stderr,
+        evolutionIngress: f.composition.evolutionIngress,
+        createInterface: vi.fn(() => repl),
+      });
+      const running = Promise.allSettled([
+        waitForAgentEvolutionSession(handle, f.composition.evolutionIngress),
+      ]);
+      await handlers.line("Inspect sk-abcdefghijklmnopqrstuvwxyz1234567890");
+
+      expect(f.transport).toHaveBeenCalledTimes(
+        mode === "source-denied" ? 0 : 1,
+      );
+      if (mode !== "source-denied") {
+        expect(JSON.stringify(f.seen)).not.toContain(
+          "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        );
+        expect(JSON.stringify(f.seen)).toContain("REDACTED");
+      }
+      const exit = vi
+        .spyOn(process, "exit")
+        .mockImplementation(() => undefined);
+      try {
+        await handlers.close();
+        const [settled] = await running;
+        expect(settled.status).toBe(
+          mode === "success" ? "fulfilled" : "rejected",
+        );
+        expect(exit).toHaveBeenCalledWith(mode === "success" ? 0 : 1);
+      } finally {
+        exit.mockRestore();
+      }
+      expect(f.composition.loadRun().projection.status).toBe(
+        mode === "success" ? "completed" : "running",
+      );
+      expect(
+        f.composition
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual(
+        mode === "success"
+          ? ["user-prompt", "model-input", "response-completed"]
+          : mode === "source-denied"
+            ? []
+            : ["user-prompt", "model-input"],
+      );
+      if (mode === "source-denied") {
+        expect(output.join("")).not.toContain("ai>");
+      }
+      if (mode === "response-denied") {
+        // Streaming tokens are already user-visible, matching the Agent REPL;
+        // the denied terminal response still cannot enter successful history.
+        expect(output.join("")).toContain("ai>  done");
+        expect(output.join("")).not.toContain("done\n\n");
+      }
+    },
+    60_000,
+  );
 
   it("rejects an opaque external AgentRouter CLI before it can bypass durable ingress", async () => {
     const f = modelFixture();

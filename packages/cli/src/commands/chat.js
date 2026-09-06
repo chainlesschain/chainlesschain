@@ -5,10 +5,69 @@
 
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
+import { randomUUID } from "node:crypto";
+import { types as utilTypes } from "node:util";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition.js";
 
 export { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
 
+function captureChatEvolutionCompositionFactory(commandDeps) {
+  if (
+    commandDeps === null ||
+    typeof commandDeps !== "object" ||
+    Array.isArray(commandDeps) ||
+    utilTypes.isProxy(commandDeps)
+  ) {
+    throw new TypeError("Chat command dependencies must be a plain object");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    commandDeps,
+    "evolutionCompositionFactory",
+  );
+  if (!descriptor) return null;
+  if (
+    !Object.hasOwn(descriptor, "value") ||
+    typeof descriptor.value !== "function"
+  ) {
+    throw new TypeError(
+      "Chat evolutionCompositionFactory must be a function data property",
+    );
+  }
+  return descriptor.value;
+}
+
+export async function resolveChatCommandEvolutionComposition(
+  evolutionCompositionFactory,
+  { agent = false } = {},
+) {
+  if (evolutionCompositionFactory === null) return null;
+  const mode = agent ? "chat-agent" : "chat";
+  const runId = `${mode}-${randomUUID()}`;
+  const composition = captureAgentEvolutionRuntimeComposition(
+    await evolutionCompositionFactory(
+      Object.freeze({
+        mode,
+        runId,
+        taskId: runId,
+        cwd: process.cwd(),
+      }),
+    ),
+  );
+  if (
+    composition.runId !== runId ||
+    composition.evolutionIngress.runId !== runId ||
+    composition.tenantId !== composition.evolutionIngress.tenantId
+  ) {
+    throw new Error(
+      "Chat evolution composition is not bound to the requested Run",
+    );
+  }
+  return composition;
+}
+
 export function registerChatCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    captureChatEvolutionCompositionFactory(dependencies);
   const createRuntimeFactory =
     dependencies.createAgentRuntimeFactory || createAgentRuntimeFactory;
   const assertUsageAdmission =
@@ -31,7 +90,14 @@ export function registerChatCommand(program, dependencies = {}) {
     .option("--session <id>", "Resume a previous session (agent mode)")
     .action(async (options) => {
       if (!options.agent) assertUsageAdmission(options.session);
-      const factory = createRuntimeFactory();
+      const evolutionComposition = await resolveChatCommandEvolutionComposition(
+        evolutionCompositionFactory,
+        { agent: Boolean(options.agent) },
+      );
+      const factory =
+        evolutionComposition === null
+          ? createRuntimeFactory()
+          : createRuntimeFactory({ evolutionComposition });
       const runtimeOptions = {
         model: options.model,
         provider: options.provider,

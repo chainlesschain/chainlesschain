@@ -56,6 +56,8 @@ import { installPipeSafety } from "../runtime/pipe-safety.js";
 import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import { createAgentEvolutionSessionLifecycle } from "../lib/evolution/agent-evolution-session-lifecycle.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -94,9 +96,17 @@ const SLASH_COMMANDS = {
  * @param {object} options
  */
 export async function startChatRepl(options = {}) {
+  const evolutionIngress =
+    options.evolutionIngress == null
+      ? null
+      : captureAgentEvolutionIngress(options.evolutionIngress);
   const admittedSessionId = options.sessionId
     ? assertChatSessionUsageAdmission(options.sessionId)
     : null;
+  const evolutionSession =
+    evolutionIngress === null
+      ? null
+      : createAgentEvolutionSessionLifecycle(evolutionIngress);
   let model = options.model || "qwen2:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
@@ -147,7 +157,9 @@ export async function startChatRepl(options = {}) {
     ),
   );
   try {
-    rl = readline.createInterface({
+    const createInterface =
+      options.createInterface || readline.createInterface.bind(readline);
+    rl = createInterface({
       input: options.input || process.stdin,
       output: stdout,
       prompt: chalk.green("you> "),
@@ -266,13 +278,20 @@ export async function startChatRepl(options = {}) {
       logger.verbose?.(`[@ref] expansion skipped: ${err.message}`);
     }
 
-    // Add user message
-    messages.push({ role: "user", content: userContent });
-
-    // Stream the response
-    stdout.write(chalk.blue("ai>  "));
-
     try {
+      if (evolutionIngress !== null) {
+        await evolutionIngress.ingestUserPrompt({
+          content: userContent,
+          sessionId,
+        });
+      }
+
+      // Add user message
+      messages.push({ role: "user", content: userContent });
+
+      // Stream the response
+      stdout.write(chalk.blue("ai>  "));
+
       let response;
       const onToken = (token) => {
         const accepted = stdout.write(token);
@@ -302,9 +321,19 @@ export async function startChatRepl(options = {}) {
       if (sessionId)
         appendEvent(sessionId, "user_message", { content: trimmed });
 
+      const providerMessages =
+        evolutionIngress === null
+          ? messages
+          : (
+              await evolutionIngress.prepareModelRequest({
+                messages,
+                tools: [],
+              })
+            ).messages;
+
       if (provider === "ollama") {
         response = await streamOllama(
-          messages,
+          providerMessages,
           model,
           baseUrl,
           onToken,
@@ -325,7 +354,7 @@ export async function startChatRepl(options = {}) {
             `API key required for anthropic (set ${providerDef?.apiKeyEnv || "ANTHROPIC_API_KEY"})`,
           );
         response = await streamAnthropic(
-          messages,
+          providerMessages,
           model,
           url,
           key,
@@ -348,7 +377,7 @@ export async function startChatRepl(options = {}) {
             `API key required for ${provider} (set ${providerDef?.apiKeyEnv || "API key"})`,
           );
         response = await streamOpenAI(
-          messages,
+          providerMessages,
           model,
           url,
           key,
@@ -356,6 +385,14 @@ export async function startChatRepl(options = {}) {
           onUsage,
           onStall,
         );
+      }
+
+      if (evolutionIngress !== null) {
+        await evolutionIngress.ingestAgentEvent({
+          type: "response-complete",
+          content: response,
+          sessionId,
+        });
       }
 
       stdout.write("\n\n");
@@ -410,6 +447,19 @@ export async function startChatRepl(options = {}) {
       : 0;
     disposePipeSafety();
     outputFlow.restore();
-    process.exit(exitCode);
+    if (evolutionSession !== null) {
+      try {
+        await evolutionSession.close(outputFailure);
+      } catch (error) {
+        outputFailure ||= error;
+      }
+    }
+    const finalExitCode = outputFailure
+      ? outputFailure.code === "EPIPE"
+        ? 0
+        : 1
+      : exitCode;
+    process.exit(finalExitCode);
   });
+  return evolutionSession?.handle;
 }
