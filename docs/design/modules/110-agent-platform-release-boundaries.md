@@ -1,15 +1,15 @@
-# 110. Agent Platform 0.166.21 发布与运行时边界设计
+# 110. Agent Platform 0.166.24 发布与运行时边界设计
 
-> 状态：2026-09-04 核对，CLI、协调 SDK/Protocol 与双 IDE 已发布并完成公共注册表回读
+> 状态：2026-09-06 核对，CLI、协调 SDK/Protocol 与双 IDE 已发布并完成公共注册表回读
 >
-> - CLI 精确源码：`1ff70b785629e2967dc69677f73cf00190f30a71`
-> - CLI 不可变标签：`v-npm-0-166-21`
-> - 当前 GitHub 主线：`1ff70b785629e2967dc69677f73cf00190f30a71`
-> - IDE 源码标签：`ide-vscode-v0.37.81` / `ide-jetbrains-v0.4.110`
+> - CLI 精确源码：`9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`
+> - CLI 不可变标签：`v-npm-0-166-24`
+> - 核对的 GitHub 主线：`eb7cc93dce34bb2495fe56cfcfc82a82a9b4e2f8`
+> - IDE 源码标签：`ide-vscode-v0.37.84` / `ide-jetbrains-v0.4.111`
 
 ## 1. 目标
 
-本设计记录 Agent Platform `0.166.21` 的公共制品、运行时安全、Evolution Workbench、Skill Retrieval、受治理知识演化和后续主线边界，避免以下身份被错误合并：
+本设计记录 Agent Platform `0.166.24` 的公共制品、运行时安全、Evolution Workbench、Skill Retrieval、受治理知识演化和后续主线边界，避免以下身份被错误合并：
 
 1. Git tag、npm/PyPI/Open VSX/JetBrains 制品与 Desktop/native 资格证据分别判断；
 2. npm `latest` 与 GitHub `main` 即使版本字段相同，也保留各自 exact SHA；
@@ -22,17 +22,17 @@
 
 | 表面                          | 源码/标签                               | 公共状态                     | 结论                            |
 | ----------------------------- | --------------------------------------- | ---------------------------- | ------------------------------- |
-| CLI                           | `v-npm-0-166-21` → `1ff70b7856`         | npm `latest=0.166.21`        | 生产推荐                        |
+| CLI                           | `v-npm-0-166-24` → `9cf9c7bfd7`         | npm `latest=0.166.24`        | 生产推荐                        |
 | Context/Memory Kernel         | 包版本 `0.1.0`                          | npm 已回读                   | 公开                            |
-| Session Core                  | 包版本 `0.3.11`                         | npm 已回读                   | 公开                            |
+| Session Core                  | 包版本 `0.3.12`                         | npm 已回读                   | 公开                            |
 | Agent Protocol                | 包版本 `0.1.8`                          | npm 已回读                   | 公开                            |
 | TypeScript Agent SDK          | 包版本 `0.2.8`                          | npm 已回读                   | 公开                            |
 | Python Agent SDK              | `0.2.8`                                 | PyPI 已回读                  | 公开                            |
-| VS Code                       | `ide-vscode-v0.37.81` → `1ff70b7856`    | Open VSX `0.37.81` 已回读    | 公开                            |
-| JetBrains                     | `ide-jetbrains-v0.4.110` → `1ff70b7856` | Marketplace `0.4.110` 已回读 | 公开                            |
+| VS Code                       | `ide-vscode-v0.37.84` → `eb7cc93dce`    | Open VSX `0.37.84` 已回读    | 公开                            |
+| JetBrains                     | `ide-jetbrains-v0.4.111` → `9a06eb722b` | Marketplace `0.4.111` 已回读 | 公开                            |
 | Microsoft VS Code Marketplace | 同一扩展                                | 未发现公共记录               | 不作为安装渠道                  |
 | Desktop/native                | 仓库源码与 exact-SHA qualification      | 历史资格证据存在             | 不等于当前公共安装包发行        |
-| GitHub `main`                 | `1ff70b7856`                            | 与本次 tag 同 SHA            | 源码 head；仍不合并独立制品身份 |
+| GitHub `main`                 | `eb7cc93dce`                            | 晚于 npm release SHA         | 源码 head；仍不合并独立制品身份 |
 
 所有安装口径以公共 registry/Marketplace 实际回读为准。共用源码 SHA 或版本号不表示 npm tarball、VSIX、JetBrains ZIP 与 Desktop 安装包是同一制品。
 
@@ -64,13 +64,13 @@ Release evidence
 
 上层投影只能消费带 revision、attempt、operation、lease/fence 或 evidence digest 的数据并提交有界决定，不能从按钮状态、客户端 payload、环境变量或本地时间重建 authority。
 
-## 4. 0.166.21 的运行时变化
+## 4. 0.166.24 的运行时变化
 
 ### 4.1 公共安装启动
 
 `0.166.18` 引用了当时未进入公共 Session Core `0.3.9` 包字节的 `./structured-evolution-memory` export，导致全新安装可能把 `agent` 误报为 unknown command。`0.166.20` 先发布 Session Core `0.3.10`，再发布 pin 住该依赖的 CLI，并在发布工作流中执行公共安装与 `cc agent --capabilities` 检查。
 
-`0.166.21` 继续承接该修复，并把 Session Core 更新到 `0.3.11`。
+`0.166.24` 继续承接该修复，并把 Session Core 更新到 `0.3.12`。
 
 ### 4.2 Evolution composition
 
@@ -97,11 +97,23 @@ legacy candidate、inactive release、state ledger 和 journal 使用 tenant-sco
 - `cc skill search`、Agent runtime 与 Desktop/IDE 共用 canonical router；BM25、可选独立向量和 verified invocation outcome 的 source/query/index/result digest 必须一致。
 - 加密知识同步先持久 local/remote/conflict，冲突只输出删节投影；人工 merge 绑定 baseline/vector clock、认证 receipt、trust ledger 与 dependency settlement，并支持 crash/response-loss 恢复。
 
+### 4.6 长任务执行与文件读取（0.166.24）
+
+交互式流式 Agent 不再因默认 50 次模型调用上限中断长任务；显式轮次、费用和会话预算继续生效，无人值守任务仍保留默认上限。大文件读取按字节/行游标分页，压缩后保留最新读取位置，未变化页避免重复注入；慢命令期间 IDE 会话继续保活。
+
+`IterationBudget.forRun` 区分持续交互与无人值守运行；`read-file-page.js` 返回精确 continuation，Agent loop 使用有界页缓存并在文件版本变化后失效；`micro-compact` 与 `prompt-compressor` 保存最新 cursor。`headless-stream-long-task.test.js` 覆盖超过 50 次调用、80 页读取及多次压缩，不能将该回归解释为无限时间或费用保证。
+
+### 4.7 持久治理与受信部署（0.166.23–0.166.24）
+
+受治理演进补齐持久 Workbench 审核/回滚与启动恢复、知识候选独立隔离/拒绝、跨 Wiki 多级来源撤销和 tombstone 恢复、Skill/Prompt/Hook 制品发布与受控市场候选安装。启动仅补记已发生的效果，未执行计划保持待处理；候选安装不会直接激活 Skill。真实身份、签名、策略、KMS/PKI、witness、grader 和目标环境验收仍由部署方提供。
+
+签名部署 loader 提供文件资源、控制端口和异步 Workbench runtime 工厂。CLI 的 `{ workbenchHost }` 与 App Server 的 `{ evolutionWorkbenchHost: workbenchHost }` 显式映射；人工 Review、rollback 和当前 Registry 读取分别认证，重启不自动执行未完成授权。详细来源、跨 Wiki 撤销和市场候选边界见[模块 112](112-governed-skill-evolution-design.md)。
+
 ## 5. 生产未关闭边界
 
 仓库内 adapter 和文件恢复测试不等于生产环境完成。以下条件仍是 active automation 的发布阻断：
 
-- 真实跨平台 target runner/grader、进程级 hard kill、shadow/canary 与分布级 anti-gaming；
+- 仓库已实现 process Eval supervisor、隔离 target、progressive canary traffic worker 与外部 watchdog；目标部署仍须配置真实 runner/grader、终止能力和生产流量，并验证统计门；
 - 生产 KMS/HSM、PKI、用户身份、review policy、撤销/轮换、独立 witness 和 scheduler/transition authority；
 - Desktop 默认 launcher、其他最终入口和部署 worker 注入唯一 branded composition；
 - Workbench/Knowledge 审阅面之外的 active/LKG、kill switch 与 canary 完整运营控制；
@@ -111,20 +123,20 @@ legacy candidate、inactive release、state ledger 和 journal 使用 tenant-sco
 
 ## 6. IDE 与公共渠道
 
-Open VSX `0.37.81` 与 JetBrains Marketplace `0.4.110` 已公开并推荐 CLI `0.166.21`。双端提供 CLI-owned Evolution Workbench 与 Skill Retrieval 投影。
+Open VSX `0.37.84` 已公开并推荐 CLI `0.166.24`；JetBrains Marketplace `0.4.111` 已公开，其内置推荐仍为 `0.166.22`。JetBrains 主线新增 v2 批审回执支持，尚无对应的新公共插件制品。双端提供 CLI-owned Evolution Workbench 与 Skill Retrieval 投影。
 
 IDE 继续只提交宿主已审阅决定并消费 CLI-owned projection。Marketplace 可见性不会授予 IDE Graph、Session、approval、evolution 或 Skill active writer 权限。Microsoft VS Code Marketplace 未公开时，stock VS Code 用户从 Open VSX 下载 VSIX。
 
 ## 7. 权威验证记录
 
-| 证据                                          | 精确提交       | GitHub Actions run                                                                         | 状态                       |
-| --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
-| CLI CI（Linux/Windows/macOS）                 | `1ff70b7856`   | [`33834470492`](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492) | 成功                       |
-| CLI Strict Sandbox（三平台）                  | `1ff70b7856`   | [`33834470272`](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) | 成功                       |
-| npm Trusted Publishing / public-install check | `1ff70b7856`   | [`33837198632`](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) | 成功                       |
-| IDE 公共 listing                              | `1ff70b7856`   | Open VSX / JetBrains Marketplace API 回读                                                  | `0.37.81` / `0.4.110` 公开 |
-| Record Replay UI Journey                      | 历史 exact SHA | 历史记录                                                                                   | 不被本版改写               |
-| Desktop Signed Skill Qualification            | 历史 exact SHA | 历史记录                                                                                   | 不等于当前 native 发行     |
+| 证据                                          | 精确提交                                      | GitHub Actions run                                                                         | 状态                       |
+| --------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
+| CLI CI（Linux/Windows/macOS）                 | `9cf9c7bfd7`                                  | [`34006348566`](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566) | 成功                       |
+| CLI Strict Sandbox（三平台）                  | `9cf9c7bfd7`                                  | [`34006348459`](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459) | 成功                       |
+| npm Trusted Publishing / public-install check | `9cf9c7bfd7`                                  | [`34007761162`](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162) | 成功                       |
+| IDE 公共 listing                              | VS Code `eb7cc93dce` / JetBrains `9a06eb722b` | Open VSX / JetBrains Marketplace API 回读                                                  | `0.37.84` / `0.4.111` 公开 |
+| Record Replay UI Journey                      | 历史 exact SHA                                | 历史记录                                                                                   | 不被本版改写               |
+| Desktop Signed Skill Qualification            | 历史 exact SHA                                | 历史记录                                                                                   | 不等于当前 native 发行     |
 
 后续版本必须在自己的 final exact SHA 上重新完成适用矩阵。被新 push 自动取消的旧 run、部分矩阵、本地测试或旧 SHA 成功都不能代替本表。
 

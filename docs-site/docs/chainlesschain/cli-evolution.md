@@ -2,7 +2,7 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **当前版本（2026-09-04）**：Agent Platform CLI `0.166.21`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；新增 `workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。
+> **当前版本（2026-09-06）**：Agent Platform CLI `0.166.24`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；新增 `workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。
 
 ## 核心特性
 
@@ -22,9 +22,9 @@ ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和
 
 系统根据数据库中的既有记录生成诊断投影。`repair <issue>` 只在用户显式指定 issue 后执行内置维护策略并记录结果，不训练模型，也不修改 active Skill。`predict` 命令根据历史记录生成公式化行为预测。
 
-`0.166.21` 在 candidate-only/diff-only writer、target-matrix Eval、promotion/release registry、持久 `EvolutionRun`、Wiki/Memory 和 tamper-evident ledger 之上，增加 Evolution Workbench、摘要绑定 Skill Retrieval 与受治理加密知识同步。mutation 和 merge subject 绑定确切 operation、revision/digest、candidate/rollback target、dependency lock 与 CAS，防止有效授权或 receipt 被换用于另一状态转换。
+`0.166.24` 在 candidate-only/diff-only writer、target-matrix Eval、promotion/release registry、持久 `EvolutionRun`、Wiki/Memory 和 tamper-evident ledger 之上，增加 Evolution Workbench、摘要绑定 Skill Retrieval 与受治理加密知识同步。mutation 和 merge subject 绑定确切 operation、revision/digest、candidate/rollback target、dependency lock 与 CAS，防止有效授权或 receipt 被换用于另一状态转换。
 
-## 0.166.21 命令面的职责边界
+## 0.166.24 命令面的职责边界
 
 新能力治理的是 **Skill 制品生命周期**，而本页下方 `cc evolution assess/record-model-metrics/diagnose/repair/predict/growth/stats/export` 治理的是既有能力指标、模型记录和诊断数据。二者不能互相替代：
 
@@ -70,6 +70,20 @@ Skill 搜索属于 `cc skill search`，不是 `cc evolution` 子命令：
 cc skill search "知识冲突合并" --source managed --limit 8
 cc skill search "Electron 性能" --category development --tag desktop --json
 ```
+
+## 可恢复 Workbench 与 Benchmark
+
+`0.166.24` 的签名部署 loader 提供持久文件资源、控制端口和异步 Workbench runtime 工厂。重启只补记已发生的审核/回滚效果，未执行计划保持 deferred。知识候选区分 quarantine/reject，跨 Wiki 多级来源撤销可恢复；[完整流程](/chainlesschain/governed-skill-evolution)。
+
+`cc evolution benchmark` 提供受治理的 WikiSkill benchmark 执行和报告读取，要求真实签名部署宿主、预注册计划与执行清单；报告须验签并持久保存。查看当前语法：
+
+```bash
+cc evolution benchmark --help
+cc evolution benchmark run --help
+cc evolution benchmark show --help
+```
+
+benchmark 命令存在不等于已完成生产模型测量。外部论文结果保持 `external-paper-only / HOLD`，不能写成本项目性能。
 
 ## 命令参考
 
@@ -186,7 +200,7 @@ chainlesschain evolution export "embedder" --json
 
 ## 系统架构
 
-Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted projection → EvolutionRun/Wiki → immutable candidate → target-matrix Eval + human review → Workbench → mutation authority → CAS promotion → release/LKG/rollback`。`0.166.21` 已提供文件 Ledger/witness、迁移、registry transition、Workbench、digest-bound Retrieval 与 knowledge merge host；下方 `evolution-system.js` 旧命令仍只是 metrics/diagnosis 表面。目标环境未注入生产 authority 时所有变更路径保持关闭。
+Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted projection → EvolutionRun/Wiki → immutable candidate → target-matrix Eval + human review → Workbench → mutation authority → CAS promotion → release/LKG/rollback`。`0.166.24` 已提供文件 Ledger/witness、迁移、registry transition、Workbench、digest-bound Retrieval 与 knowledge merge host；下方 `evolution-system.js` 旧命令仍只是 metrics/diagnosis 表面。目标环境未注入生产 authority 时所有变更路径保持关闭。
 
 ```
 用户命令 → evolution.js (Commander) → evolution-system.js
@@ -202,7 +216,7 @@ Skill evolution 的治理链为 `encrypted Raw → model-visible/trusted project
 
 ## 配置参考
 
-candidate store、mutation authority、promotion controller、release registry、Workbench host 与 knowledge merge host 不是公共 `0.166.21` 的本地绕过配置项。不能用 active Skill 目录替代 candidate root，也不能通过环境变量或客户端 payload 伪造 production composition。
+candidate store、mutation authority、promotion controller、release registry、Workbench host 与 knowledge merge host 不是公共 `0.166.24` 的本地绕过配置项。不能用 active Skill 目录替代 candidate root，也不能通过环境变量或客户端 payload 伪造 production composition。
 
 ```bash
 chainlesschain evolution assess <name> <score> [--category <cat>] [--json]
@@ -225,7 +239,7 @@ chainlesschain evolution knowledge merge <conflict-envelope-digest> --record <js
 
 ## 性能指标
 
-下表只描述既有 `cc evolution` 指标命令，不是 `0.166.21` Workbench、Retrieval 或知识治理链的 SLA；真实 Eval、Ledger、KMS/PKI 和跨主机 witness 的 P50/P95 必须由目标部署单独验收。
+下表只描述既有 `cc evolution` 指标命令，不是 `0.166.24` Workbench、Retrieval 或知识治理链的 SLA；真实 Eval、Ledger、KMS/PKI 和跨主机 witness 的 P50/P95 必须由目标部署单独验收。
 
 | 操作                          | 目标    | 实际        | 状态 |
 | ----------------------------- | ------- | ----------- | ---- |
@@ -238,7 +252,7 @@ chainlesschain evolution knowledge merge <conflict-envelope-digest> --record <js
 
 ## 测试覆盖率
 
-治理回归覆盖 candidate/release/promotion、target matrix、evidence/artifact/ledger、Workbench、digest-bound Retrieval、governed knowledge、三模式 Agent ingress、Wiki/Memory/review、legacy migration、registry transition、进程重启和 crash recovery。CLI `0.166.21@1ff70b7856` 的发布结论来自该 exact SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共 registry 回读；单个测试文件或旧快照不能替代发布门，也不能证明目标环境 authority 已部署。
+治理回归覆盖 candidate/release/promotion、target matrix、evidence/artifact/ledger、Workbench、digest-bound Retrieval、governed knowledge、三模式 Agent ingress、Wiki/Memory/review、legacy migration、registry transition、进程重启和 crash recovery。CLI `0.166.24@9cf9c7bfd7` 的发布结论来自该 exact SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共 registry 回读；单个测试文件或旧快照不能替代发布门，也不能证明目标环境 authority 已部署。
 
 ```
 ✅ evolution.test.js  - 覆盖 CLI 主要路径

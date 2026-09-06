@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 状态：`0.166.21` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、Evolution Workbench、Skill Retrieval，以及受治理知识同步、审核与可恢复合并；目标环境 authority 和自动 active promotion 保持 HOLD
+> 状态：2026-09-06 核对，`0.166.24` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、Evolution Workbench、Skill Retrieval，以及受治理知识同步、审核与可恢复合并；目标环境 authority 和自动 active promotion 保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
@@ -120,7 +120,7 @@ PROPOSED → CANDIDATE → EVALUATING → VALIDATED → PROMOTING → ACTIVE
 - commit 结果未知时进入 recovery，不自动重复副作用。
 - Rollback 只接受绑定 release/LKG digest 的授权目标。
 
-上述是 `0.166.21` 已有领域状态的合并视图。生产闭环计划在外层 release-train orchestration 增加以下状态，而不改写现有 Registry/Eval/Pilot 内部状态机：
+上述是既有领域状态的合并视图。`0.166.24` 已实现外层 release-train、持久阶段输出及跨进程恢复；以下是跨域生命周期视图，不能据此推断目标部署已启用每个阶段：
 
 ```text
 NEEDS_EVIDENCE → CANDIDATE → PRECHECK → EVALUATING → VALIDATED
@@ -176,7 +176,7 @@ API 不允许“日志写失败但 mutation 成功”或“候选未落盘但报
 
 可信宿主至少要配置：tenant root/marker authority、candidate/release durable adapter、ledger/PKI authority、target/grader/safety callable descriptor、全 run deadline、资源上限、permission/policy digest、active/LKG store 和 kill switch。
 
-这些配置尚未冻结为公共最终用户 schema。`0.166.21` 不允许用户通过环境变量或客户端 payload 拼装 production composition；宿主必须从进程内可信构造点注入 branded root。Workbench 与 Knowledge 命令虽已公开注册，但缺少可信 host 时必须明确 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。
+这些配置尚未冻结为公共最终用户 schema。`0.166.24` 可通过签名 deployment descriptor 与 trust-root 的绝对路径加载固定模块；模块使用 loader 提供的工厂创建 branded root。环境变量仅选择已认证部署，不赋予调用者 authority。Workbench 与 Knowledge 命令虽已公开注册，但缺少可信 host 时必须明确 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。
 
 ## 13. 性能与容量
 
@@ -204,9 +204,9 @@ Artifact Port 对 canonical artifact、envelope、index entries 和 index bytes 
 
 仓库内已经关闭 canonical `EvolutionRun`、Raw/Wiki/Skill 投影、Wiki Maintainer、单 Skill proposer、四层 Memory、`SkillInvocationReceipt`、有界评分改进循环、持久 human-review authority、旧状态迁移和 registry transition 的主要组合缺口。`0.166.21` 又补齐 Workbench 多端审阅、证据排序 Skill Retrieval，以及 governed knowledge 的持久冲突、认证合并、加密/RBAC、trust ledger、撤销依赖和持久发布恢复。目标矩阵采用全 cell 合取与 Bonferroni family-wise confidence 校正。
 
-仍未关闭的是目标环境真实跨平台 grader/runner 与进程级 kill、生产 KMS/HSM/PKI/身份/policy/witness/scheduler/transition authority、默认 launcher 注入、Pilot kill-switch/canary 的完整运营面、两机离线与隐私删除传播 E2E、跨主机灾备和生产规模演练。现有 Workbench/Knowledge UI 是受信 host 的有界审阅面，不等于生产 authority 已部署。关闭这些条件前，production auto-promotion 必须保持 HOLD。
+仓库已有进程 Eval supervisor、隔离 target、签名子回执、progressive canary traffic worker、外部 watchdog 和持久 Workbench 工厂。仍未关闭的是目标环境真实 grader/runner/kill 权限、生产 KMS/HSM/PKI/身份/policy/witness/scheduler/transition authority 接线、默认 launcher 及实际 IDE 验收、Pilot 运营、两机离线与物理删除传播 E2E、跨主机灾备和生产规模演练。现有 Workbench/Knowledge UI 是受信 host 的有界审阅面，不等于生产 authority 已部署。关闭这些条件前，production auto-promotion 必须保持 HOLD。
 
-## 18. 生产闭环优化设计（计划）
+## 18. 生产闭环设计与实现进展
 
 ### 18.1 Evolution Release Train
 
@@ -248,6 +248,44 @@ Skill、Prompt、Hook 与 Knowledge 可共享最小制品 envelope：tenant/type
 | 6    | `EVO-OPT-6` multi-artifact governance         | Prompt/Hook/Knowledge 合同测试证明不能绕过 candidate gate，类型专属安全门和依赖重评测有效                                                          |
 
 统一硬门包括：`100%` active/stable lineage 可回溯、未授权 active writer 与 security/permission violation 为 `0`、paired quality 置信下界通过、成本和 p95/p99 非劣、reconciliation backlog/age 有上限、rollback MTTR 达标，以及 Wiki contradiction/stale/删除传播可观测。详细任务和状态以 [Agent 自进化差距与优化建议](https://github.com/chainlesschain/chainlesschain/blob/main/docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md) §13 为准。在目标部署验收完成前，production auto-promotion 继续 HOLD。
+
+## 18.6 2026-09-06 实现核对：持久治理运行时
+
+本节依据 `0b497ce521..eb7cc93dce` Git 增量核对。CLI 发布为 `0.166.24@9cf9c7bfd7`；VS Code `0.37.84@eb7cc93dce` 与 JetBrains `0.4.111@9a06eb722b` 是独立制品。Desktop 下述入口仅描述当前源码。
+
+| 域               | 已实现行为                                                                                                  | 部署边界                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Release Train    | proposal/candidate 分阶段持久输出、真实域控制器、checkpoint 与跨进程重放；结果可影响下一轮 proposal         | 真实 authority、业务输入和评测环境仍需部署                    |
+| Eval / Benchmark | 进程 supervisor、隔离 target、持久子回执，配对 WikiSkill 执行、签名 bundle 与 CLI report                    | 代码和测试不产生生产模型分数                                  |
+| Canary           | 统计门、流量 worker、独立 watchdog、跨进程 reservation 与恢复                                               | operator 提供实际 cohort、密钥、deadline 和回滚运营           |
+| Typed artifacts  | Skill/Prompt/Hook/Knowledge 依赖重验、持久 transition 与 active 内容恢复；Desktop 只加载受治理 release 字节 | Hook/Skill 隔离与高风险审批仍须完整                           |
+| Workbench        | 认证当前 Registry、人工 review/rollback 效果持久化、双实例回读、异步启动工厂                                | 不创建默认 reviewer 或成功回执                                |
+| Knowledge / Wiki | 准入 fence、候选 quarantine/reject、真实 Skill 回滚、多级跨 Wiki provenance 与定点 tombstone 联合结算       | 不等于物理删除或两机离线传播验收                              |
+| Marketplace      | 实际候选包安装、目标适配与清单校验、状态恢复、只读 Eval 徽章发布；Desktop 同一治理宿主                      | 外部 catalog、PKI、Eval/Pilot/Release 与公网 TLS 仍由部署提供 |
+
+### 持久 Workbench 装配顺序
+
+1. 签名 loader 固定单文件模块字节与 command allowlist；`openEvolutionWorkbenchFileResources` 打开 Artifact、Ledger/witness、ReleaseRegistry，并独立重开校验实例。
+2. `createEvolutionWorkbenchControlPorts` 用同账本 audit/nonce ports 组装 mutation authority 和 rollback controller。它仅消费实际 preparation 对应的一次性进程内上下文，克隆 JSON、跨实例或重复请求不能借权。
+3. 等待 `createEvolutionWorkbenchRuntime`：验证 Review/rollback 适配器 → 补记已发生审核效果 → 补记已发生回滚效果 → 认证当前完整 Registry → 返回 host。
+4. `evolution` 返回 `{ workbenchHost }`；`serve --app-server` 返回 `{ evolutionWorkbenchHost: workbenchHost }`。工厂失败时不通过兼容回退隐藏为 unknown command。
+
+启动 `reconcileCommitted()` 不等于显式 `resume()`：只有已经落账的决策/Registry mutation 可以补 settlement，尚无效果的 preparation 保持 deferred。过期计划不重新取得当前有效性；当前撤销或伪造证据仍拒绝启动。跨两个域的补账不是全或无事务，前域成功后域失败时保留已有 settlement，并阻止宿主开放。
+
+### 撤销和多级 Wiki 来源
+
+Knowledge revocation 绑定已 prepare 的 dependency action、tenant、来源摘要及历史 Wiki checkpoint。跨 Wiki 追踪认证每跳 provenance，而不把当前 head 当成历史证明；对派生 Skill 的回滚、候选 quarantine/reject 与目标 Wiki tombstone 分项执行、独立回读后结算。候选隔离具有独立 disposition 与 receipt，不能等价替换为 reject。准入和真实 Wiki commit 处都检查来源撤销，阻止后续写入或晋升复活旧知识。
+
+Wiki pruning 的计划、授权 checkpoint、维护结果、检索投影和 wiki-only dependency effects 持久恢复。模型入口对正常/辅助模型、fallback chain 与结构化 JSON 使用受验证的持久投影；长文本分段有界且敏感字段脱敏。原始证据删除 tombstone 不证明备份或设备介质已物理擦除。
+
+### 验证与来源
+
+仓库回归覆盖真实文件账本、进程退出/SIGKILL 窗口、双实例恢复、超期人工 preparation、来源撤销、候选包损坏和徽章 HTTP 只读边界。测试中的签名身份、grader 和文件系统适配器明确属于 TEST fixture，不是生产 PKI、实际用户 IDE 或断电演练。
+
+- [Workbench 启动合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_STARTUP.md)
+- [审核持久化合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_REVIEW_RUNTIME.md)
+- [回滚持久化合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_ROLLBACK_RUNTIME.md)
+- [市场候选与徽章合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/GOVERNED_SKILL_MARKETPLACE_CLI.md)
 
 ## 19. 关键文件
 

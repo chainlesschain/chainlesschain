@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.21 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.6 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.24 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.7 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.21
-    details: Evolution Workbench、摘要绑定 Skill Retrieval 与加密知识审核/合并按 exact-SHA、信任账本和目标环境 authority 分层
+    title: Agent Platform 0.166.24
+    details: 长任务预算与文件游标、持久 Workbench 工厂、跨 Wiki 来源撤销、typed artifact 和受治理市场候选的架构与恢复语义
     link: /modules/112-governed-skill-evolution-design
 
   - icon: 🧬
@@ -56,7 +56,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-04 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.21@1ff70b7856`。模块 112 已覆盖 Evolution Workbench、canonical digest-bound Skill Retrieval、加密知识冲突/合并、向量 authority worker、持久 trust ledger 及原有 candidate/Eval/release composition；客户端没有 authority，缺少目标环境 KMS/PKI/witness/grader 或 trusted deployment host 时变更失败闭合。详见[模块 112](/modules/112-governed-skill-evolution-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
+> **2026-09-06 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.24@9cf9c7bfd7`。模块 112 已补齐持久 Workbench 工厂、release train、进程 Eval、统计 canary/watchdog、跨 Wiki 来源撤销、候选隔离与受治理市场安装；客户端没有 authority，缺少目标环境 KMS/PKI/witness/grader 或 trusted deployment host 时变更失败闭合。详见[模块 112](/modules/112-governed-skill-evolution-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
 
 > **生产边界**：仓库已从早期 source-only 快照前进到真实文件 Ledger/witness、CLI 三模式 ingress、Graph/WebSocket 接线缝和可恢复状态迁移。部署仍须提供独立 trust root、密钥与身份运营、最终用户审阅面、真实 target runner/grader 和跨主机灾备；这些条件不能由本地测试或 tag 自动推导。
 

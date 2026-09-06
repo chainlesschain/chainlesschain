@@ -855,7 +855,7 @@ chainlesschain import --source markdown --path ~/ObsidianVault/
 
 ### 备份和恢复
 
-当前公开 CLI `0.166.21` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
+当前公开 CLI `0.166.24` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
 
 ---
 

@@ -14,6 +14,37 @@
 
 ChainlessChain CLI 技能市场模块 (Phase 65) 提供去中心化的技能服务发布和调用管理。`publish` 发布技能服务（名称、版本、描述、端点、定价），`status` 管理服务生命周期状态。`record` 记录调用事件（调用者、输入输出、耗时、成功/失败），`invocations` 查看调用列表，`stats` 聚合统计。
 
+## 受治理的 Skill 候选安装（0.166.24）
+
+以下命令用于可安装 Skill 的候选治理；原有 `publish/list/record/stats` 继续管理远程技能服务。部署需要签名的 `marketplaceHost`，未配置时返回 unavailable。
+
+```bash
+# 检查签名清单，并使用返回的摘要固定安装输入
+cc marketplace inspect safe-refactor --skill-version 2.0.0
+cc marketplace install safe-refactor --skill-version 2.0.0 --manifest sha256:<digest>
+cc marketplace state safe-refactor
+
+# 每步使用最新 state digest 与部署方核验过的 Pilot/撤销回执
+cc marketplace rollout safe-refactor --expected-state sha256:<state-digest> --receipt receipt:<pilot-reference>
+cc marketplace revoke safe-refactor --expected-state sha256:<state-digest> --receipt receipt:<revocation-reference>
+```
+
+安装版本必须使用 `--skill-version`；`--version` 保留给 CLI 自身版本。安装会核对清单、包、适配输出和 SBOM 摘要，写入实际 Candidate v2 文件并独立回读。成功返回 `candidate-staged`、`materialized:true`、`activated:false`。更新必须添加 `--expected-state`；陈旧状态、文件损坏或已撤销清单不能继续晋升。
+
+`rollout` 一次只前进一阶段：candidate → shadow → canary → active；回执引用仍由独立 authority 验证。命令报错但外部结果不确定时，先读取 `state` 并由管理员对账，不盲目重试。`revoke` 需真实回滚后才记录 rolled-back。
+
+### 显式发布 Eval 徽章
+
+```bash
+cc marketplace serve-badge safe-refactor --skill-version 2.0.0 --manifest sha256:<digest>
+```
+
+默认仅监听 `127.0.0.1:8321`，命令运行期间提供只读首页和 `/badge.json`，不会安装或修改 Skill。评测快照默认 600 秒到期；`--snapshot-seconds` 允许 1–3600 秒，到期须重新核验并启动。需要对外提供时由管理员明确配置监听地址、TLS 反向代理和访问策略。
+
+徽章展示指定版本、目标、评测分数/样本量和来源摘要，不返回租户、候选内容或私有审核回执；每次访问复核当前签名与已记录撤销，异常返回 503。徽章不是安装授权，也不是本项目通用性能承诺。
+
+签名部署同时设置绝对路径 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，allowlist 包含 `marketplace`。目标、catalog、PKI、适配/Eval/Pilot/回滚 authority 均由部署提供。详细合同见[市场接线说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/GOVERNED_SKILL_MARKETPLACE_CLI.md)。
+
 ## 命令参考
 
 ### marketplace status-types — 服务状态类型

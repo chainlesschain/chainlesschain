@@ -8,6 +8,12 @@ ChainlessChain Skill Marketplace 是一个去中心化的技能即服务（Skill
 
 技能市场是 ChainlessChain 的去中心化技能交易与协作平台，允许用户发布、发现和远程调用标准化技能。技能通过输入/输出/依赖/SLA 四维描述格式注册到分布式注册表，支持语义化版本管理和 DAG 流水线组合，可将多个技能串联或并行编排为复杂工作流，并与 EvoMap Gene 进化网络深度集成。
 
+## 当前原生桌面入口（2026-09-06 源码）
+
+原生 Vue 技能市场页面新增受治理安装面板：先检查宿主能力、读取签名清单并固定摘要，再落盘为候选；显示真实 Eval 目标分数和样本量。shadow/canary/active 推进和撤销分别要求最新状态与有效回执。旧安装记录标记为 unverified；缺少受信部署时不自动激活。
+
+原有 install/update/uninstall IPC 已接入同一治理宿主；uninstall 表示认证撤销与回滚。此项属于 Desktop 源码，CLI npm 或 IDE 插件升级不会替换 Electron 安装包；Web Shell 页面也不能据此推断已更新。管理员接线与命令参见[CLI 技能市场](/chainlesschain/cli-marketplace)。
+
 ## 核心特性
 
 - 📦 **标准化技能描述**: 输入/输出/依赖/SLA 四维描述格式，统一技能元数据

@@ -9,8 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.24: durable long-running IDE tasks
 
-> `chainlesschain` **0.166.23 -> 0.166.24** (release candidate,
-> 2026-09-06).
+> `chainlesschain` **0.166.22 -> 0.166.24** (published 2026-09-06;
+> incorporates the unpublished 0.166.23 candidate).
+> Immutable tag `v-npm-0-166-24` resolves to
+> `9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`: the complete
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)
+> and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459)
+> matrices passed, followed by
+> [npm publishing and public-install verification](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162).
+> npm latest, Session Core `0.3.12` and Core DB `0.1.5` were read back on 2026-09-06.
 
 - **Long-running interactive turns**: remove the implicit 50-model-call ceiling
   from interactive streamed Agent sessions. Explicit `--max-turns`, environment,
@@ -41,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `chainlesschain` **0.166.22 -> 0.166.23**,
 > `@chainlesschain/core-db` **0.1.4 -> 0.1.5**, and
 > `@chainlesschain/session-core` **0.3.11 -> 0.3.12** (release candidates,
-> 2026-09-06; not yet published).
+> 2026-09-06; CLI 0.166.23 was not published separately and is superseded by
+> 0.166.24. The two child packages were published before 0.166.24).
 
 - **Public-install dependency closure**: ship Session Core's missing
   `./evolvable-artifact` export and structured evolution memory updates, plus

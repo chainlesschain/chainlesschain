@@ -206,36 +206,50 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 
 完整安装/协议/排错见 [PDH Bridge 个人数据 IDE 桥接](/chainlesschain/pdh-bridge)。
 
+## 长任务与大文件（CLI 0.166.24）
+
+IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务；显式的轮次、费用、环境和会话预算仍会使任务停止。普通无人值守运行保留默认 50 次模型调用上限，按需用正整数明确提高上限：
+
+```bash
+cc agent -p "逐个检查模块并更新迁移说明" --max-turns 100
+```
+
+VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.111` 没有同名设置。
+
+大文件按字节和行游标读取，超长 Unicode 单行也可以续读。上下文压缩保留最近读取位置；已读且未变化的页可复用，文件修改后缓存失效。因此续读不会把尚未读取的范围标成已读。慢命令运行时会话心跳继续处理；撤销或接管会话后，原宿主不能继续写入。
+
+若任务提前结束，检查实际停止原因、`--max-turns`、`CC_ITERATION_BUDGET`、费用/会话预算及审批状态。升级 CLI 后重启 IDE 聊天宿主，使新进程加载新版运行时。无默认轮次上限不表示无限上下文、无限费用或后台自动常驻。
+
 ## 内置工具
 
 代理模式提供 25 个内置工具（cli ≥ 0.162.158）：
 
-| 工具                | 说明                                                                                                                   |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `read_file`         | 读取文件内容（支持 `hashed: true` 返回带哈希锚点的内容）                                                               |
-| `write_file`        | 写入文件                                                                                                               |
-| `edit_file`         | 编辑文件（查找替换）                                                                                                   |
-| `edit_file_hashed`  | 基于内容哈希锚点的行编辑（抗空白/行号漂移）                                                                            |
-| `run_shell`         | 执行 Shell 命令（超时 60s，输出截断 30KB；`run_in_background: true` 返回 task_id）                                     |
-| `check_shell`       | 轮询/终止后台 `run_shell` 任务（增量读取 + `kill`，详见[后台 Shell](./run-shell-background)）                          |
-| `git`               | Git 操作封装（status / diff / log / commit 等）                                                                        |
-| `search_files`      | 搜索文件内容                                                                                                           |
-| `search_sessions`   | 跨历史会话语义搜索                                                                                                     |
-| `list_dir`          | 列出目录内容                                                                                                           |
-| `run_skill`         | 运行内置技能                                                                                                           |
-| `list_skills`       | 列出可用技能                                                                                                           |
-| `run_code`          | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB                                                      |
-| `spawn_sub_agent`   | 分派独立上下文的子代理（支持 `profile: explorer/executor/design`）                                                     |
-| `web_fetch`         | 抓取 URL 内容（默认拒绝私网 / SSRF 防护）                                                                              |
-| `web_search`        | 联网搜索（7 个可插拔搜索源，`auto` 按密钥择优，详见[联网搜索](./web-search)）                                          |
-| `notebook_edit`     | 编辑 Jupyter `.ipynb` 单元格：按 `cell_id`（优先）或 `cell_index` 定位，`edit_mode` = replace（默认）/ insert / delete |
-| `todo_write`        | 会话级待办清单（open-agents 对标）                                                                                     |
-| `ask_user_question` | 主动向用户提问并阻塞等待回答                                                                                           |
-| `code_intelligence` | LSP 语义代码智能：定义 / 引用 / 诊断 / 重命名（详见 [code-intel](./cli-code-intel)）                                   |
-| `slash_command`     | 在会话内执行 REPL 斜杠命令                                                                                             |
-| `notify`            | 落一条通知意图到 `~/.chainlesschain/agent-schedule/`，由 [cc agenda](./cli-agenda) 消费触发                            |
-| `schedule`          | 落一条定时任务意图（同上，agenda 调度执行）                                                                            |
-| `publish_artifact`  | 把完工交付物发布进个人交付物库，只回传元数据（详见 [Artifacts](./cli-artifacts)）                                      |
+| 工具                | 说明                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read_file`         | 读取文件内容（支持 `hashed: true` 返回带哈希锚点的内容）                                                                                                                  |
+| `write_file`        | 写入文件                                                                                                                                                                  |
+| `edit_file`         | 编辑文件（查找替换）                                                                                                                                                      |
+| `edit_file_hashed`  | 基于内容哈希锚点的行编辑（抗空白/行号漂移）                                                                                                                               |
+| `run_shell`         | 执行 Shell 命令（超时 60s，输出截断 30KB；`run_in_background: true` 返回 task_id）                                                                                        |
+| `check_shell`       | 轮询/终止后台 `run_shell` 任务（增量读取 + `kill`，详见[后台 Shell](./run-shell-background)）                                                                             |
+| `git`               | Git 操作封装（status / diff / log / commit 等）                                                                                                                           |
+| `search_files`      | 搜索文件内容                                                                                                                                                              |
+| `search_sessions`   | 跨历史会话语义搜索                                                                                                                                                        |
+| `list_dir`          | 列出目录内容                                                                                                                                                              |
+| `run_skill`         | 运行内置技能                                                                                                                                                              |
+| `list_skills`       | 列出可用技能                                                                                                                                                              |
+| `run_code`          | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB                                                                                                         |
+| `spawn_sub_agent`   | 分派独立上下文的子代理（支持 `profile: explorer/executor/design`）                                                                                                        |
+| `web_fetch`         | 抓取 URL 内容（默认拒绝私网 / SSRF 防护）                                                                                                                                 |
+| `web_search`        | 联网搜索（7 个可插拔搜索源，`auto` 按密钥择优，详见[联网搜索](./web-search)）                                                                                             |
+| `notebook_edit`     | 编辑 Jupyter `.ipynb` 单元格：按 `cell_id`（优先）或 `cell_index` 定位，`edit_mode` = replace（默认）/ insert / delete                                                    |
+| `todo_write`        | 会话级待办清单（open-agents 对标）                                                                                                                                        |
+| `ask_user_question` | 主动向用户提问并阻塞等待回答                                                                                                                                              |
+| `code_intelligence` | LSP 语义代码智能：定义 / 引用 / 诊断 / 重命名（详见 [code-intel](./cli-code-intel)）                                                                                      |
+| `slash_command`     | 在会话内执行 REPL 斜杠命令                                                                                                                                                |
+| `notify`            | 落一条通知意图到 `~/.chainlesschain/agent-schedule/`，由 [cc agenda](./cli-agenda) 消费触发                                                                               |
+| `schedule`          | 落一条定时任务意图（同上，agenda 调度执行）                                                                                                                               |
+| `publish_artifact`  | 把完工交付物发布进个人交付物库，只回传元数据（详见 [Artifacts](./cli-artifacts)）                                                                                         |
 | `browser_state`     | 观察用户 Chrome 当前状态（CDP，需先 `cc browse chrome launch`）：URL/标题/标签页 + 观察窗口 console/失败网络请求 + DOM 快照（40k cap）+ 可选截图；只读不操控，仅 loopback |
 
 ### run_code 工具详情
@@ -243,11 +257,12 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 `run_code` 是 v0.40.3 新增的代码执行工具，让 AI 能主动编写脚本解决用户问题。
 
 **参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `language` | string | 是 | 编程语言：`python`、`node`、`bash` |
-| `code` | string | 是 | 要执行的代码 |
-| `timeout` | number | 否 | 超时时间（秒），默认 60，最大 300 |
+
+| 参数       | 类型   | 必填 | 说明                               |
+| ---------- | ------ | ---- | ---------------------------------- |
+| `language` | string | 是   | 编程语言：`python`、`node`、`bash` |
+| `code`     | string | 是   | 要执行的代码                       |
+| `timeout`  | number | 否   | 超时时间（秒），默认 60，最大 300  |
 
 **执行流程**：
 
@@ -282,13 +297,14 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 `notebook_edit` 补齐了 cc 此前缺失的最后一个 Claude Code 代理工具（NotebookEdit），用于编辑 Jupyter `.ipynb` 笔记本的单元格。纯函数 `editNotebookCell()` 实现：解析 → 变更 → 以 nbformat 规范（1 空格缩进 + 末尾换行）重新序列化。
 
 **参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `notebook_path` | string | 是 | `.ipynb` 文件路径 |
-| `cell_id` | string | 否* | 目标单元格 id（**优先**） |
-| `cell_index` | number | 否* | 0 基单元格下标（无 `cell_id` 时用） |
-| `edit_mode` | string | 否 | `replace`（默认）/ `insert` / `delete` |
-| `new_source` | string | replace/insert 必填 | 新单元格源码 |
+
+| 参数            | 类型   | 必填                | 说明                                   |
+| --------------- | ------ | ------------------- | -------------------------------------- |
+| `notebook_path` | string | 是                  | `.ipynb` 文件路径                      |
+| `cell_id`       | string | 否*                 | 目标单元格 id（**优先**）              |
+| `cell_index`    | number | 否*                 | 0 基单元格下标（无 `cell_id` 时用）    |
+| `edit_mode`     | string | 否                  | `replace`（默认）/ `insert` / `delete` |
+| `new_source`    | string | replace/insert 必填 | 新单元格源码                           |
 
 > \*`replace` / `delete` 须给 `cell_id` 或 `cell_index` 之一定位目标。
 

@@ -2,24 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.21` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.24` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.21 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.24 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-04 current release — **CLI 0.166.21 / Session Core 0.3.11: governed Evolution Workbench and encrypted knowledge review**
+## 2026-09-06 current release — CLI 0.166.24 / VS Code 0.37.84: long-running chat and durable governance
 
-> npm `latest` `0.166.21` comes from immutable tag `v-npm-0-166-21` at exact commit [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71). Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272), and [npm Trusted Publishing](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) runs passed; the Linux, Windows, and macOS matrices and official registry were read back.
+> npm latest is `0.166.24`, tagged `v-npm-0-166-24` at [`9cf9c7bfd7`](https://github.com/chainlesschain/chainlesschain/commit/9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436). The same commit passed the complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459) matrices, followed by [npm publishing and public-install checks](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162).
 >
-> This release adds `cc evolution workbench` and `cc evolution knowledge`. A trusted host can list and compare candidates, submit approve/reject/rollback decisions, and resolve redacted conflicts from encrypted knowledge sync. `cc skill search` uses the canonical router with digest-bound retrieval, vector, and verified-outcome evidence. Knowledge merges use a durable conflict queue, authenticated human receipts, AES-256-GCM/Ed25519, RBAC approval, a revocable trust ledger, prepare/settlement, and response-loss recovery. Generation, improvement, and sync import remain candidate-first; generated never means installed.
+> Interactive streamed Agent tasks no longer stop at the implicit 50-model-call ceiling. Explicit turn, cost and session budgets still apply; unattended runs keep their default cap. Large-file reads preserve exact byte/line cursors through compaction, reuse unchanged pages and invalidate cached pages after edits. Slow shell commands keep IDE streams and session heartbeats responsive.
 >
-> TypeScript/Python Agent SDK `0.2.8`, Agent Protocol `0.1.8`, Open VSX `0.37.81`, and JetBrains Marketplace `0.4.110` are public. Desktop, VS Code, and JetBrains expose read-only Evolution Workbench and Skill Retrieval projections, while Desktop also exposes knowledge-conflict review; clients never own publication, rollback, or identity authority. Without a trusted Workbench/Knowledge host, the ordinary CLI reports those governance commands as unavailable. Production KMS/HSM, PKI, identity, policy, witness, real graders, and cross-host recovery remain deployment responsibilities, and unattended active promotion stays off.
+> Governed evolution adds durable Workbench review/rollback recovery, distinct candidate quarantine and rejection, multi-hop cross-Wiki revocation and tombstones, typed Skill/Prompt/Hook releases, and materialized marketplace candidates. Startup settles already-completed effects and defers unexecuted plans. Candidate installation does not activate a Skill; production identity, signing, policy, KMS/PKI, witness and grader remain deployment requirements.
 >
-> See the [governed Skill-evolution user guide](docs-site/docs/chainlesschain/governed-skill-evolution.md) and [module 112 design](docs/design/modules/112-governed-skill-evolution-design.md).
+> [Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) adds `chainlesschain.chat.maxTurns` (`0` follows the interactive default; a positive integer caps each message). [JetBrains 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) remains paired with CLI `0.166.22`; newer v2 batch-review receipt support is source-only for that plugin. Session Core `0.3.12` and Core DB `0.1.5` are public; both SDKs remain `0.2.8`, Protocol `0.1.8`.
+>
+> See the [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [governed evolution guide](docs-site/docs/chainlesschain/governed-skill-evolution.md) and [module 112 design](docs/design/modules/112-governed-skill-evolution-design.md).
 
 ## 2026-09-01 historical release snapshot — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7 (TS/Python) / Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 

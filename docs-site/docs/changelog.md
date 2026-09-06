@@ -5,9 +5,17 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.24 / VS Code 0.37.84（2026-09-06）
+
+npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9cf9c7bfd7`](https://github.com/chainlesschain/chainlesschain/commit/9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459) 三平台矩阵及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162) 均成功，官方 registry 已回读。
+
+- **长任务与大文件**：交互式流式 Agent 不再因默认 50 次模型调用上限中断长任务；显式轮次、费用和会话预算继续生效，无人值守任务仍保留默认上限。大文件读取按字节/行游标分页，压缩后保留最新读取位置，未变化页避免重复注入；慢命令期间 IDE 会话继续保活。
+- **持久治理**：受治理演进补齐持久 Workbench 审核/回滚与启动恢复、知识候选独立隔离/拒绝、跨 Wiki 多级来源撤销和 tombstone 恢复、Skill/Prompt/Hook 制品发布与受控市场候选安装。启动仅补记已发生的效果，未执行计划保持待处理；候选安装不会直接激活 Skill。真实身份、签名、策略、KMS/PKI、witness、grader 和目标环境验收仍由部署方提供。
+- **安装组合**：[Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，新增 `chainlesschain.chat.maxTurns`（`0` 跟随 CLI 交互默认；正整数限制每条消息的模型轮次）。[JetBrains Marketplace 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开，其内置 CLI 推荐仍为 `0.166.22`；源码中的 v2 批审回执支持尚未随新的 JetBrains 制品发布。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
+
 #### Released — Agent Platform CLI 0.166.21 / Session Core 0.3.11 / IDE Workbench
 
-> `chainlesschain@0.166.21` 是当前 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-166-21` 精确指向 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 均成功，npm 公共 registry 已回读。
+> `chainlesschain@0.166.21` 是 2026-09-04 的历史发布，当前版本见上方 `0.166.24`。不可变 tag `v-npm-0-166-21` 精确指向 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 均成功，npm 公共 registry 已回读。
 
 - **Evolution Workbench**：CLI 可列出候选、比较 revision、提交 approve/reject 决定和 rollback 请求；Desktop、VS Code `0.37.81` 与 JetBrains `0.4.110` 消费同一受治理投影。
 - **Skill Retrieval**：`cc skill search` 支持 bundled、marketplace、managed、workspace 来源，使用 canonical digest、索引 witness、混合向量路由与 verified outcome evidence 排序。
