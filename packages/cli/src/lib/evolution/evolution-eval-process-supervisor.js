@@ -153,7 +153,7 @@ function sandboxPolicy(value) {
 function workerArguments(policy) {
   return Object.freeze([
     `--max-old-space-size=${policy.memoryLimitMb}`,
-    "--permission",
+    "--experimental-permission",
     ...policy.fsRead.map((path) => `--allow-fs-read=${path}`),
     ...policy.fsWrite.map((path) => `--allow-fs-write=${path}`),
     WORKER,
