@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 WebSocket 编排接线补充：`handleOrchestrate` 现在将 `server.evolutionCompositionFactory` 传入实际 Orchestrator，每个请求复用宿主配置的逐任务认证机制。消息中的同名 factory 或 ingress 不参与构造；宿主 factory 拒绝时返回 `ORCHESTRATE_FAILED`，不会发送 `orchestrate:done`，也不会请求模型或派生执行进程。action protocol 4/4 通过，静态检查 0 error。此处关闭 WS 编排的 factory 漏传，尚不覆盖 Cowork 入口与外部 Agent 子进程内部的模型请求。
+
 2026-09-06 编排启动失败状态补充：composition factory、品牌/Run 绑定验证、ingress start 和初始 user-prompt 持久化统一捕获失败，保留原异常并写入任务失败状态、发送一次失败事件，避免已登记任务永远停留 pending。工厂异常/未品牌化组合和真实 source authority 拒绝已验证不会调用模型、dispatch 或 CI，也不会报告成功；编排回归与真实来源拒绝专项共 31 passed（其余 84 项按名称过滤未运行），静态检查 0 error。
 
 2026-09-06 完成时序后续修复：下述编排审计提到的成功事件/通知过早问题已关闭。CI 与免 CI 路径统一进入 `finalizing`，等待 evolution ingress completion 后才允许成功通知、完成时间与 `task:complete`；completion 拒绝时只产生失败结果。编排套件 28/28，通过可控延迟/拒绝覆盖两种路径；真实持久 composition 专项 1/1，在成功事件回调中重新读取 Run，确认状态已为 `completed`。其他最终入口与外部 CLI 内部模型调用的审计仍保留。

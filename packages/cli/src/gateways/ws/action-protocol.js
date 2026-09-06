@@ -247,6 +247,7 @@ export async function handleOrchestrate(server, id, ws, message) {
       maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
       ciCommand: ci,
       agents: strategy ? { strategy } : undefined,
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
       verbose: false,
     });
 
