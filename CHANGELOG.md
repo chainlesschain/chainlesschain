@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.26: recover repeated file reads and continue the task
+
+> `chainlesschain` **0.166.25 -> 0.166.26** (2026-09-06).
+
+- Automatically continue repeated broad reads at an unread character position,
+  including explicit restarts and concurrent reads. Versioned interval coverage
+  survives compaction, handles long Unicode lines, and never treats skipped
+  sections as read. Permission checks precede recovery and cached content.
+- Return a bounded heading/task-marker index and a small initial preview for
+  large Markdown/text documents. Retain that index as source data across
+  compaction; targeted small-range rereads remain available for editing.
+- At EOF, return a lightweight use-findings response. Repeated no-progress
+  batches receive a model turn without read_file in its available tools so the
+  task can move to search or implementation. Restore reading on the next turn.
+  Discovery calls cannot clear a read loop; six ignored recovery batches remain
+  an explicit incomplete-task backstop.
+- Regression coverage includes the reported gap-analysis document, deliberately
+  repeated first-page requests through compaction followed by a successful
+  write, serial/parallel EOF loops, targeted reviews, edits, and denied reads.
+- Publish only after all Linux, Windows and macOS jobs in CLI CI and CLI Strict
+  Sandbox pass for this exact release commit.
+
 ### Fixed - cc CLI 0.166.25: preserve large-file reading progress
 
 > `chainlesschain` **0.166.24 -> 0.166.25** (2026-09-06).
