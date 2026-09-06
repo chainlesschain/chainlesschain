@@ -4,6 +4,22 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Long-running chat tasks
+
+With the updated CLI, interactive chat continues until the agent finishes or
+you press Stop, without an implicit 50-model-call limit. Explicit
+`CC_ITERATION_BUDGET`, cost and session budgets still apply. To set a per-message
+cap, configure `chainlesschain.chat.maxTurns`; `0` uses the CLI's interactive
+default. Changes apply on the next idle message, retaining the session history.
+Older CLI releases still use 50 by default: update the CLI together with the
+extension, or set a larger positive limit while using an older CLI.
+
+Large-file reads now report the actual returned line range and `nextRead` cursor,
+including a column cursor for oversized single lines. Unchanged pages are cached
+within a run, duplicate visible content is referenced instead of reinjected, and
+compaction retains bounded reading positions. Changed files and content no longer
+available in context can still be read again when needed.
+
 ## Current release
 
 | Component                 | Current status                                               |

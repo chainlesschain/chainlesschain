@@ -721,6 +721,16 @@ class ChatViewProvider {
       }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);
+      if (evt?.type === "result" && evt.subtype === "error_max_turns") {
+        this._postFrom(convId, {
+          kind: "info",
+          text:
+            'The model-call limit was reached. Send "continue" to resume this conversation. ' +
+            "Adjust chainlesschain.chat.maxTurns (0 uses the CLI's interactive default). " +
+            "If it still stops at 50, update the CLI or check CC_ITERATION_BUDGET. " +
+            "This limit is separate from context-window usage.",
+        });
+      }
       if (ui?.kind === "plan") {
         conv.plan = ui;
         this._syncPlanReviewEditor(convId, ui).catch(() => {});
@@ -1356,7 +1366,20 @@ class ChatViewProvider {
    * (resuming its own session id) if not. Returns the live session. */
   _ensureSession() {
     const conv = this._activeConv();
-    if (conv.session?.running) return conv.session;
+    const chatCfg = this.vscode.workspace.getConfiguration(
+      "chainlesschain.chat",
+    );
+    const configuredMaxTurns = chatCfg.get("maxTurns");
+    const maxTurns =
+      Number.isSafeInteger(configuredMaxTurns) && configuredMaxTurns > 0
+        ? configuredMaxTurns
+        : null;
+    if (conv.session?.running) {
+      // Apply a changed cap on the next idle turn, preserving the resume id.
+      // A setting edit must never interrupt work or a pending approval.
+      if (conv.turnActive || conv.maxTurns === maxTurns) return conv.session;
+      this._stopSession(conv);
+    }
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
     const bridgeEnv =
@@ -1364,9 +1387,6 @@ class ChatViewProvider {
         ? this.opts.getBridgeEnv()
         : {};
     this._convs.resetTurnState(conv.id);
-    const chatCfg = this.vscode.workspace.getConfiguration(
-      "chainlesschain.chat",
-    );
     // Pin the effective provider/model (panel override, else the user's
     // cc config) so the panel deterministically uses the SAME LLM as the
     // terminal `cc` — never drifts to a stale ambient default.
@@ -1395,6 +1415,7 @@ class ChatViewProvider {
       args: [
         ...buildSessionArgs({
           ...llm,
+          maxTurns,
           // Continue THIS tab's conversation across child restarts; the id is
           // panel-generated on first spawn (created + persisted by the CLI).
           resume: conv.sessionId,
@@ -1461,6 +1482,7 @@ class ChatViewProvider {
       },
     });
     if (exited || conv._sessionToken !== sessionToken) return session;
+    conv.maxTurns = maxTurns;
     this._convs.setSession(conv.id, session);
     this._indexConversation(conv, "running");
     if (typeof this.opts.log === "function") {

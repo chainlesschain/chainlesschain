@@ -59,6 +59,12 @@ describe("chat-events — iteration_warning mapping", () => {
       kind: "info",
       text: "⏹ turn budget exhausted",
     });
+    expect(
+      map({
+        type: "iteration_budget_exhausted",
+        budget: "Iteration budget: 50/50 (100%).",
+      }).text,
+    ).toContain("50/50");
   });
 });
 

@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import fs from "node:fs";
 
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
@@ -35,7 +36,8 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool } = await import("../../src/runtime/agent-core.js");
+const { executeTool, capToolResultString, toolResultForModel } =
+  await import("../../src/runtime/agent-core.js");
 
 describe("read_file offset/limit line ranges", () => {
   let dir;
@@ -104,5 +106,84 @@ describe("read_file offset/limit line ranges", () => {
     expect(r.content).toMatch(/line2/);
     expect(r.content).toMatch(/line3/);
     expect(r.range).toEqual({ startLine: 2, endLine: 3, totalLines: 20 });
+  });
+
+  it("reports the actual page boundary and preserves its cursor after JSON serialization", async () => {
+    const largeLines = Array.from(
+      { length: 1500 },
+      (_, i) => `${i + 1}: "quoted" \\ ${"内容".repeat(45)}`,
+    );
+    writeFileSync(join(dir, "f.txt"), largeLines.join("\n"), "utf8");
+    const first = await read({ offset: 1, limit: 1500 });
+    const visible = JSON.parse(capToolResultString(JSON.stringify(first)));
+    expect(visible.truncated).toBe(true);
+    expect(visible.range.endLine).toBeLessThan(1500);
+    expect(visible.nextRead.offset).toBe(visible.range.endLine + 1);
+    expect(visible.content.trimEnd().split("\n")).toEqual(
+      largeLines.slice(0, visible.range.endLine),
+    );
+    const next = await read(visible.nextRead);
+    expect(next.content.startsWith(largeLines[visible.range.endLine])).toBe(
+      true,
+    );
+  });
+
+  it("does not reinject an unchanged page, but rereads after edits or compaction", async () => {
+    const first = await read({ offset: 1, limit: 5 });
+    const original = toolResultForModel("read_file", first, []);
+    const messages = [
+      { role: "tool", tool_call_id: "read-1", content: original },
+    ];
+    const duplicate = await read({ offset: 1, limit: 5 });
+    expect(
+      JSON.parse(toolResultForModel("read_file", duplicate, messages)),
+    ).toMatchObject({
+      alreadyRead: true,
+      previousToolCallId: "read-1",
+      nextRead: { offset: 6 },
+    });
+    writeFileSync(join(dir, "f.txt"), "changed content", "utf8");
+    const changed = await read({ offset: 1, limit: 5 });
+    expect(
+      JSON.parse(toolResultForModel("read_file", changed, messages)).content,
+    ).toBe("changed content");
+    messages[0].content = "[earlier file content compacted]";
+    expect(
+      JSON.parse(toolResultForModel("read_file", first, messages)).content,
+    ).toBe(first.content);
+  });
+
+  it("caches repeated reads within a run and invalidates the cache when the file changes", async () => {
+    const filePath = join(dir, "f.txt");
+    const readSpy = vi.spyOn(fs, "readFileSync");
+    const context = { cwd: dir, readFileCache: new Map() };
+    try {
+      const first = await executeTool(
+        "read_file",
+        { path: "f.txt", limit: 2 },
+        context,
+      );
+      const second = await executeTool(
+        "read_file",
+        { path: "f.txt", limit: 2 },
+        context,
+      );
+      expect(second.content).toBe(first.content);
+      expect(readSpy.mock.calls.filter(([p]) => p === filePath)).toHaveLength(
+        1,
+      );
+      writeFileSync(filePath, "modified file contents", "utf8");
+      const changed = await executeTool(
+        "read_file",
+        { path: "f.txt", limit: 2 },
+        context,
+      );
+      expect(changed.content).toBe("modified file contents");
+      expect(readSpy.mock.calls.filter(([p]) => p === filePath)).toHaveLength(
+        2,
+      );
+    } finally {
+      readSpy.mockRestore();
+    }
   });
 });

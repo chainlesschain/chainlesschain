@@ -45,13 +45,24 @@ export class IterationBudget {
    * Resolve the budget limit from config/env/default.
    * Priority: CC_ITERATION_BUDGET env > default
    */
-  static resolveLimit() {
+  static resolveLimit(fallback = DEFAULT_BUDGET) {
     const env = process.env.CC_ITERATION_BUDGET;
     if (env) {
       const parsed = parseInt(env, 10);
       if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return DEFAULT_BUDGET;
+    return fallback;
+  }
+
+  /** Interactive work can continue until completion; explicit caps still win. */
+  static forRun({ maxTurns, continuous = false } = {}) {
+    return new IterationBudget({
+      limit: Number.isFinite(maxTurns)
+        ? maxTurns === 0
+          ? Infinity
+          : Math.max(1, Math.floor(maxTurns))
+        : IterationBudget.resolveLimit(continuous ? Infinity : DEFAULT_BUDGET),
+    });
   }
 
   /** Total iteration limit. */
@@ -141,6 +152,9 @@ export class IterationBudget {
    * @returns {string}
    */
   toSummary() {
+    if (!Number.isFinite(this._limit)) {
+      return `Iteration budget: ${this._consumed} iterations used (no turn limit).`;
+    }
     const pct = Math.round(this.percentage() * 100);
     return (
       `Iteration budget: ${this._consumed}/${this._limit} (${pct}%). ` +

@@ -9,6 +9,8 @@
  * Pure → unit-testable.
  */
 
+import { compactReadFileResult } from "./read-file-page.js";
+
 const DEFAULT_KEEP_RECENT = 6; // last N messages kept verbatim
 const DEFAULT_MAX_TOOL_CHARS = 400; // trim older tool results longer than this
 
@@ -44,7 +46,8 @@ export function microCompact(messages, opts = {}) {
         ? fullMarker
         : "…[trimmed]".slice(0, maxChars);
     const head = content.slice(0, Math.max(0, maxChars - marker.length));
-    const compactedContent = `${head}${marker}`;
+    const compactedContent =
+      compactReadFileResult(content, maxChars) || `${head}${marker}`;
     trimmed += 1;
     saved += content.length - compactedContent.length;
     return {

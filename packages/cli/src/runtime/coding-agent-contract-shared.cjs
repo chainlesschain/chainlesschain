@@ -28,7 +28,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "filesystem",
     tier: "mvp",
     description:
-      "Read a file's content. For a large file, page through it with offset+limit (line range) instead of re-reading the head. Jupyter notebooks (.ipynb) are rendered as a compact cell listing (index/id/type/source, outputs hidden) for use with notebook_edit — pass raw:true for the underlying JSON.",
+      "Read a file's content. Use search_files to locate relevant sections and offset+limit to read them. For large files, follow the returned nextRead cursor; range describes only the lines actually returned. Reuse unchanged content already in context instead of re-reading the same page. Jupyter notebooks (.ipynb) are rendered as a compact cell listing for notebook_edit — pass raw:true for underlying JSON.",
     inputSchema: {
       type: "object",
       properties: {
@@ -42,6 +42,12 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           type: "integer",
           description:
             "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap).",
+        },
+        column: {
+          type: "integer",
+          minimum: 1,
+          description:
+            "1-based character position within the first rendered line. Use the column from nextRead to continue an oversized single line without repeating its beginning.",
         },
         hashed: {
           type: "boolean",

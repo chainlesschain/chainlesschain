@@ -332,7 +332,11 @@ function mapAgentEvent(evt, state) {
         kind: "info",
         text:
           "⏹ turn budget exhausted" +
-          (Number.isFinite(evt.budget) ? ` (${evt.budget} turns)` : ""),
+          (Number.isFinite(evt.budget)
+            ? ` (${evt.budget} turns)`
+            : typeof evt.budget === "string"
+              ? ` (${evt.budget.slice(0, 240)})`
+              : ""),
       };
     case "cost_budget_exhausted": {
       const spent = Number.isFinite(evt.spent_usd)
@@ -445,8 +449,12 @@ function buildSessionArgs({
   mode,
   think,
   goalCondition,
+  maxTurns,
 } = {}) {
   const args = [];
+  if (Number.isSafeInteger(maxTurns) && maxTurns > 0) {
+    args.push("--max-turns", String(maxTurns));
+  }
   if (typeof provider === "string" && provider.trim()) {
     args.push("--provider", provider.trim());
   }

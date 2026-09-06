@@ -54,7 +54,7 @@ describe("stream turn interrupt", () => {
       yield JSON.stringify({ type: "user", text: "second question" }) + "\n";
     }
     const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false },
+      { expandFileRefs: false, interactiveApprovals: true },
       {
         bootstrap: async () => ({ db: null }),
         getApprovalGate: async () => null,

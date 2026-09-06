@@ -1707,11 +1707,7 @@ async function runAgentHeadlessInWorkspace(
     }
   }
 
-  const budget = Number.isFinite(options.maxTurns)
-    ? new IterationBudget({
-        limit: Math.max(1, Math.floor(options.maxTurns)),
-      })
-    : new IterationBudget();
+  const budget = IterationBudget.forRun({ maxTurns: options.maxTurns });
 
   // Effective system prompt: built-in base, optionally replaced by
   // --system-prompt and/or extended by --append-system-prompt.
@@ -2838,7 +2834,7 @@ async function runAgentHeadlessInWorkspace(
     // True isolation level for tool subprocesses: os-sandbox (bwrap) /
     // container (docker) / policy-only (no sandbox — rules are pre-execution).
     isolation_level: isolationLevel(options.sandbox),
-    max_turns: budget.limit,
+    max_turns: Number.isFinite(budget.limit) ? budget.limit : null,
     resumed_from: resumeId,
     history_messages: history.length,
     additional_directories: additionalDirectories,

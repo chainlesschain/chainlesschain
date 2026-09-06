@@ -600,6 +600,13 @@
           "default": "",
           "description": "%config.chat.model.description%"
         },
+        "chainlesschain.chat.maxTurns": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "%config.chat.maxTurns.description%"
+        },
         "chainlesschain.chat.contextIndicator": {
           "type": "boolean",
           "default": true,

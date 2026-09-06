@@ -16,6 +16,7 @@
 
 import fs from "fs";
 import path from "path";
+import { buildReadFilePage } from "../lib/read-file-page.js";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
@@ -1085,7 +1086,7 @@ Key behaviors:
 - When asked to run/test something, use run_shell to execute it
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
-- When asked about files or code, use read_file and search_files to find information
+- When asked about files or code, use search_files to locate relevant sections, then read_file with offset/limit. Follow nextRead for large files. Reuse unchanged content already in context instead of repeatedly reading the same page; re-read when the file changes or the earlier content is no longer available.
 - Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
 - After an edit, if the tool result includes a "newDiagnostics" array, you just introduced (or exposed) those errors/warnings — read them and fix before moving on. You can also run code_intelligence (action: diagnostics) on any file to check it on demand.
 - If a tool result includes a "subtreeInstructions" array, you just entered a subdirectory that carries its own cc.md/CLAUDE.md/AGENTS.md — treat that content as authoritative project rules for work in that subtree (it is injected once, the first time you touch the subtree).
@@ -3630,6 +3631,7 @@ export async function executeTool(name, args, context = {}) {
       subAgentBudget: context.subAgentBudget || null,
       sessionBudget: context.sessionBudget || null,
       hostResourceBudget: context.hostResourceBudget || null,
+      readFileCache: context.readFileCache || null,
       // Effective contract of THIS loop (parent ceiling for a nested spawn) +
       // the MCP tool definitions this loop exposes (inheritable by a spawn).
       subAgentContract: context.subAgentContract || null,
@@ -5174,6 +5176,7 @@ async function executeToolInner(
     backgroundUsageFailureState = null,
     toolAdmission = null,
     hostResourceBudget = null,
+    readFileCache = null,
     unattendedActionPolicy = null,
     managedCheckpoint = false,
     fileMutationScope = null,
@@ -5242,10 +5245,36 @@ async function executeToolInner(
       }
       // A clear, self-correcting error beats the cryptic "EISDIR: illegal
       // operation on a directory" that readFileSync throws on a directory.
-      if (fs.statSync(filePath).isDirectory()) {
+      const fileStat = fs.statSync(filePath);
+      if (fileStat.isDirectory()) {
         return attachDescriptor({
           error: `Path is a directory, not a file: ${filePath}. Use list_dir to see its contents.`,
         });
+      }
+      const fileVersion = `${fileStat.size}:${fileStat.mtimeMs}:${fileStat.ctimeMs}`;
+      const cacheKey = JSON.stringify([
+        filePath,
+        args.offset ?? null,
+        args.limit ?? null,
+        args.column ?? null,
+        args.hashed === true,
+        args.raw === true,
+      ]);
+      const cached = readFileCache?.get(cacheKey);
+      if (cached?.fileVersion === fileVersion) {
+        // All permission checks ran before this point. A fresh stat still
+        // invalidates changed/deleted files; cache only bounded pages per run.
+        _recordFileObservation(filePath);
+        readFileCache.delete(cacheKey);
+        readFileCache.set(cacheKey, cached);
+        return attachDescriptor(
+          await _withSubtreeInstructions(
+            structuredClone(cached.page),
+            filePath,
+            cwd,
+            subtreeInstructionScope,
+          ),
+        );
       }
       const content = fs.readFileSync(filePath, "utf8");
       // Record the mtime so a later edit can detect an external change that
@@ -5255,69 +5284,32 @@ async function executeToolInner(
       // outputs summarized) so the model can find cells for notebook_edit
       // without ingesting raw JSON / base64 output blobs. `raw:true` returns the
       // underlying JSON. Non-.ipynb reads are unchanged.
-      if (args.raw !== true && /\.ipynb$/i.test(filePath)) {
-        const nbView = renderNotebook(content);
-        if (nbView) {
-          return attachDescriptor(
-            nbView.length > 50000
-              ? {
-                  content: nbView.substring(0, 50000) + "\n...(truncated)",
-                  size: nbView.length,
-                  notebook: true,
-                }
-              : { content: nbView, notebook: true },
-          );
-        }
-      }
+      const nbView =
+        args.raw !== true && /\.ipynb$/i.test(filePath)
+          ? renderNotebook(content)
+          : null;
       // Hashline mode: prefix each line with a 6-char content hash tag
       // so downstream edit_file_hashed calls can anchor by hash.
-      let rendered = args.hashed === true ? annotateLines(content) : content;
-
-      // Line-range slice (Claude-Code Read offset/limit parity): `offset` is the
-      // 1-based first line, `limit` the max line count — so a file larger than
-      // the size cap can be paged through instead of being stuck at its head.
-      // Coerces numeric strings the model may emit ("10" → 10).
-      const toPos = (v) => {
-        const n = typeof v === "number" ? v : parseInt(v, 10);
-        return Number.isInteger(n) && n > 0 ? n : null;
-      };
-      const offset = toPos(args.offset);
-      const limit = toPos(args.limit);
-      let range = null;
-      if (offset || limit) {
-        const lines = rendered.split("\n");
-        const start = offset ? offset - 1 : 0;
-        const end = limit != null ? start + limit : lines.length;
-        rendered = lines.slice(start, end).join("\n");
-        range = {
-          startLine: Math.min(start + 1, lines.length),
-          endLine: Math.min(end, lines.length),
-          totalLines: lines.length,
-        };
-      }
-
-      if (rendered.length > 50000) {
-        return attachDescriptor(
-          await _withSubtreeInstructions(
-            {
-              content: rendered.substring(0, 50000) + "\n...(truncated)",
-              size: rendered.length,
-              hashed: args.hashed === true,
-              ...(range ? { range } : {}),
-            },
-            filePath,
-            cwd,
-            subtreeInstructionScope,
-          ),
-        );
+      const rendered =
+        nbView || (args.hashed === true ? annotateLines(content) : content);
+      const page = buildReadFilePage(rendered, args, {
+        filePath,
+        fileVersion,
+        maxChars: MAX_TOOL_RESULT_CHARS,
+      });
+      if (nbView) page.notebook = true;
+      if (readFileCache && !page.error) {
+        readFileCache.delete(cacheKey);
+        readFileCache.set(cacheKey, {
+          fileVersion,
+          page: structuredClone(page),
+        });
+        while (readFileCache.size > 8)
+          readFileCache.delete(readFileCache.keys().next().value);
       }
       return attachDescriptor(
         await _withSubtreeInstructions(
-          {
-            content: rendered,
-            hashed: args.hashed === true,
-            ...(range ? { range } : {}),
-          },
+          page,
           filePath,
           cwd,
           subtreeInstructionScope,
@@ -9330,6 +9322,46 @@ export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
   );
 }
 
+/** Avoid injecting the same file page twice while its original is still visible. */
+export function toolResultForModel(tool, result, messages) {
+  const serialized = capToolResultString(safeStringifyToolResult(result));
+  if (
+    tool !== "read_file" ||
+    result?.error ||
+    !result?.path ||
+    !result.content ||
+    result.subtreeInstructions?.length
+  ) {
+    return serialized;
+  }
+  const previous = messages.find((message) => {
+    if (message.role !== "tool" || typeof message.content !== "string")
+      return false;
+    try {
+      const prior = JSON.parse(message.content.split("\n\n[Budget ")[0]);
+      return (
+        prior.path === result.path &&
+        prior.fileVersion === result.fileVersion &&
+        prior.content === result.content &&
+        prior.hashed === result.hashed &&
+        JSON.stringify(prior.range) === JSON.stringify(result.range)
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (!previous) return serialized;
+  return JSON.stringify({
+    path: result.path,
+    alreadyRead: true,
+    previousToolCallId: previous.tool_call_id,
+    readAt: result.toolTelemetryRecord?.timestamp,
+    ...(result.range ? { range: result.range } : {}),
+    ...(result.nextRead ? { nextRead: result.nextRead } : {}),
+    hint: "This unchanged file page is already present in the earlier tool result. Use that content to continue the task. For more content, use nextRead or search_files for a different section; do not repeat this same read.",
+  });
+}
+
 /**
  * Serialize a tool result for the transcript without ever throwing. A plain
  * `JSON.stringify` throws on a circular reference, a BigInt, or a value whose
@@ -13326,6 +13358,7 @@ export async function* agentLoop(messages, options) {
     options.mcpConflictScheduler || createMcpConflictScheduler();
 
   const toolContext = {
+    readFileCache: new Map(),
     hookDb: hermeticExecution ? null : options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     skillOutcomeIndex: options.skillOutcomeIndex,
@@ -14757,8 +14790,10 @@ export async function* agentLoop(messages, options) {
           failed,
         });
         const warningMsg = budget.toWarningMessage();
-        const resultStr = capToolResultString(
-          safeStringifyToolResult(toolResult),
+        const resultStr = toolResultForModel(
+          call.function.name,
+          toolResult,
+          messages,
         );
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
@@ -15207,9 +15242,7 @@ export async function* agentLoop(messages, options) {
         // Cap an individual tool result so one giant output can't blow the
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
-        const resultStr = capToolResultString(
-          safeStringifyToolResult(toolResult),
-        );
+        const resultStr = toolResultForModel(toolName, toolResult, messages);
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
           : resultStr;
@@ -15300,7 +15333,7 @@ export async function* agentLoop(messages, options) {
     backgroundUsageFailureState,
   );
   yield* _drainSubAgentUsage(subAgentUsageSink);
-  yield { type: "iteration-budget-exhausted", budget: budget.toSummary() };
+  yield { type: "iteration-budget-exhausted", budget: budget.limit };
   yield {
     type: "response-complete",
     content: `(Iteration budget exhausted — ${budget.toSummary()})`,
