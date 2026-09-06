@@ -292,6 +292,44 @@ describe("cowork-task-runner", () => {
 
   // ─── SubAgentContext creation ─────────────────────────────
 
+  it.each(["denied", "forged"])(
+    "does not mount MCP or construct a child after evolution %s",
+    async (mode) => {
+      const factory = vi.fn(async () => {
+        if (mode === "denied") throw new Error("admission denied");
+        return {};
+      });
+      const result = await runCoworkTask({
+        userMessage: "inspect files",
+        evolutionCompositionFactory: factory,
+      });
+      expect(result.status).toBe("failed");
+      expect(result.taskId).toMatch(/^cowork-/);
+      expect(factory.mock.calls[0][0]).toMatchObject({
+        mode: "cowork-sequential",
+        taskId: result.taskId,
+        runId: result.taskId,
+      });
+      expect(_mockMount).not.toHaveBeenCalled();
+      expect(_mockCreate).not.toHaveBeenCalled();
+      expect(_mockRun).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves workflow failure propagation before MCP admission", async () => {
+    await expect(
+      runCoworkTask({
+        userMessage: "inspect files",
+        workflowEffectId: `sha256:${"a".repeat(64)}`,
+        evolutionCompositionFactory: async () => {
+          throw new Error("admission denied");
+        },
+      }),
+    ).rejects.toThrow("admission denied");
+    expect(_mockMount).not.toHaveBeenCalled();
+    expect(_mockCreate).not.toHaveBeenCalled();
+  });
+
   it("creates SubAgentContext with correct role", async () => {
     await runCoworkTask({
       templateId: "media-process",

@@ -606,6 +606,58 @@ export async function runCoworkTask(options = {}) {
 
   let task = taskParts.join("\n");
 
+  // The governed task identity exists before any local MCP server can start.
+  // A child context gets its own identity only after task admission succeeds.
+  const admittedTaskId =
+    evolutionCompositionFactory === null ? null : `cowork-${randomUUID()}`;
+  let ingress = null;
+  if (admittedTaskId !== null) {
+    try {
+      const composition = captureAgentEvolutionRuntimeComposition(
+        await evolutionCompositionFactory(
+          Object.freeze({
+            mode: "cowork-sequential",
+            runId: admittedTaskId,
+            taskId: admittedTaskId,
+            cwd,
+          }),
+        ),
+      );
+      ingress = composition.evolutionIngress;
+      if (
+        composition.runId !== admittedTaskId ||
+        ingress.runId !== admittedTaskId ||
+        composition.tenantId !== ingress.tenantId
+      ) {
+        throw new Error(
+          "Cowork evolution composition is not bound to the requested Run",
+        );
+      }
+      await ingress.start();
+      await ingress.ingestUserPrompt({
+        content: userMessage,
+        source: "cowork-sequential",
+      });
+    } catch (error) {
+      if (workflowEffectId) throw error;
+      const entry = {
+        taskId: admittedTaskId,
+        status: "failed",
+        templateId: template.id,
+        templateName: template.name,
+        result: {
+          summary: `Task failed: ${error.message}`,
+          artifacts: [],
+          tokenCount: 0,
+          toolsUsed: [],
+          iterationCount: 0,
+        },
+      };
+      _appendHistory(cwd, entry, userMessage);
+      return entry;
+    }
+  }
+
   // Mount template-declared MCP servers (best-effort, failures are tolerated)
   const mcp = await mountTemplateMcpTools(template, {
     workspaceRoot: cwd,
@@ -662,7 +714,7 @@ export async function runCoworkTask(options = {}) {
       ...(mcpRuntime.ledger ? { mcpCallLedger: mcpRuntime.ledger } : {}),
     });
 
-    const taskId = subAgent.id;
+    const taskId = admittedTaskId ?? subAgent.id;
 
     if (mcpRuntime.sessionId && mcpRuntime.bindingAllowed) {
       const mapped = await _deps.appendSessionEventIfHead(
@@ -709,33 +761,7 @@ export async function runCoworkTask(options = {}) {
 
     // Run the agent with the user's message
     try {
-      let ingress = null;
-      if (evolutionCompositionFactory !== null) {
-        const composition = captureAgentEvolutionRuntimeComposition(
-          await evolutionCompositionFactory(
-            Object.freeze({
-              mode: "cowork-sequential",
-              runId: taskId,
-              taskId,
-              cwd,
-            }),
-          ),
-        );
-        ingress = composition.evolutionIngress;
-        if (
-          composition.runId !== taskId ||
-          ingress.runId !== taskId ||
-          composition.tenantId !== ingress.tenantId
-        ) {
-          throw new Error(
-            "Cowork evolution composition is not bound to the requested Run",
-          );
-        }
-        await ingress.start();
-        await ingress.ingestUserPrompt({
-          content: userMessage,
-          source: "cowork-sequential",
-        });
+      if (ingress !== null) {
         loopOptions.evolutionIngress = ingress;
       }
       const result = await subAgent.run(userMessage, loopOptions);

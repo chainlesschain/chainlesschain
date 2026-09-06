@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 顺序 Cowork 的 MCP 前置准入：治理任务先生成独立 task/Run ID，完成 branded factory 身份与 tenant/Run 精确核对、ingress.start 和用户输入证据准入后，才允许 mountTemplateMcpTools 或构造子 Agent；子 Agent 保有独立 child ID，历史与 MCP 会话映射使用已准入 task ID。准入拒绝/伪造返回失败记录，workflow-bound 调用保持抛错语义，均不触发 MCP 挂载或子 Agent 创建。未配置 factory 的旧路径维持原有 ID 行为。Cowork/WS 118/118 回归通过；真实 composition 正常/拒绝及真实两轮 read_file 3/3 定向通过（58.29s），补齐此前记录的 MCP 挂载前演化准入缺口。该门约束初始演化准入，不把它等同于后续每个 MCP 工具的独立权限、结果投影或生产进程隔离验收。
+
 2026-09-06 compact canonical 成功路径验收：真实 Commander+JSONL/独立 anti-rollback anchor+演化 composition 测试扩为 shadow 与 canonical_default 两种模式，最终 2/2 通过（63.40s）；两者均恰好一次 provider 调用，投影请求不含原邮箱，Run durable completed，用量 started→token_usage→compact 提交顺序及相同 callId、100/20 token 结算均从认证重读的事件验证。canonical 提交必须带 canonical payload，legacy 不伪造该字段；重读会话经正式 encodePersistedMessage 恢复 `_cc_replay` provenance 后与提交消息完全一致，不用丢弃来源元数据的比较代替恢复验收。16/16 命令回归通过。此批补齐上一条尚未验证的 canonical 成功路径，不代表跨进程灾备、生产 provider/KMS/默认 launcher 注入或其余未审计入口已经完成。
 
 2026-09-06 独立 compact 入口补强：`registerCompactCommand` 捕获宿主 evolutionCompositionFactory；每次实际语义查询以独立 Run 绑定 compact/session/operation，在用户输入证据准入后执行既有 metered canonical 模型出口，携带同一 ingress，完成响应证据与 Run 后才返回摘要供会话 CAS 使用。工厂拒绝、未品牌化对象或 Run/tenant 错绑统一作为不可降级的 ingress failure，不能被 PromptCompressor 的 extractive fallback 吞掉；dry-run/offline 不创建 Run。16/16 命令测试覆盖拒绝/伪造、两种离线路径及 canonical kernel 拒绝时不改写历史；真实 Commander+JSONL session/独立文件 anti-rollback anchor+演化 composition 定向 1/1 验证模型请求脱敏、完成 Run 后持久压缩 revision。此 Run 描述语义模型调用，不将随后可能失败的 session CAS 等同演化成功；完整 canonical 成功路径、默认 launcher 生产 factory 注入及其他入口/外部部署门仍需继续验证。测试没有向用户实际安全锚点或 GitHub 发布写入。
