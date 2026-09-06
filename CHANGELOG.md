@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.23: durable governed evolution and Workbench controls
+
+> `chainlesschain` **0.166.22 -> 0.166.23**,
+> `@chainlesschain/core-db` **0.1.4 -> 0.1.5**, and
+> `@chainlesschain/session-core` **0.3.11 -> 0.3.12** (release candidates,
+> 2026-09-06; not yet published).
+
+- **Public-install dependency closure**: ship Session Core's missing
+  `./evolvable-artifact` export and structured evolution memory updates, plus
+  Core DB's unprefixed named-parameter normalization. Publish these two child
+  packages before the exactly pinned CLI; the other 11 audited related package
+  payloads match their existing public releases and do not need a version bump.
+- **Governed knowledge rollback**: persist real Skill rollback, candidate
+  rejection, revocation admission fences, and targeted Wiki tombstones;
+  authenticate multi-hop Wiki provenance and recover interrupted settlement
+  without duplicate effects or reactivation of revoked sources.
+- **Durable Wiki and model boundaries**: authenticate pruning checkpoints and
+  retrieval projections, recover maintenance effects, and enforce bounded,
+  redacted durable projections at the model ingress boundary.
+- **Trusted Workbench assembly**: provide authenticated current-state
+  projections, durable review/rollback adapters, file-backed resources, and
+  one-use-bound control ports for signed CLI/App Server deployment modules.
+  Review batch completion uses the v2 receipt contract supported by the updated
+  JetBrains source; installed IDE extensions do not update automatically.
+- **Release and deployment boundary**: require the exact candidate SHA to pass
+  both complete three-platform CLI gates, including independent Core DB and
+  Session Core tests. Workbench remains unavailable without a real trusted
+  deployment, identity, and policy configuration; this release does not enable
+  unattended promotion or claim that the entire evolution roadmap is complete.
+
 ### Fixed - cc CLI 0.166.22: keep IDE Agent streams alive during slow commands
 
 > `chainlesschain` **0.166.21 -> 0.166.22** (release candidate,

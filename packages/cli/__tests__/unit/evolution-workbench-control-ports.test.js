@@ -25,7 +25,7 @@ afterEach(() => {
 });
 async function fixture(storeOptions = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-control-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-workbench-control-"),
   );
   roots.push(root);
   const h = await openWorkbenchRollbackStore(root, {

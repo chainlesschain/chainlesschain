@@ -1859,14 +1859,12 @@ describe("EvolutionLedger v2", () => {
       });
       const ledger = createLedger({ fsImpl: monitored });
       ledger.append(eventInput(1, artifacts));
-      if (mode === "snapshot") ledger.checkpointState();
+      const snapshot = mode === "snapshot" ? ledger.checkpointState() : null;
       target =
         mode === "snapshot"
           ? path.join(
               authorityRoot,
-              fs
-                .readdirSync(authorityRoot)
-                .find((name) => name.startsWith("state-snapshot-v1-")),
+              `state-snapshot-v1-${snapshot.witnessDigest.slice("sha256:".length)}.json`,
             )
           : path.join(ledger.segmentDir, regularFiles(ledger.segmentDir)[0]);
       const checkedSize = fs.statSync(target).size;

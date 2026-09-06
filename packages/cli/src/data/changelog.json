@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.23",
+      "cliVersions": ["0.1.5", "0.3.12", "0.166.22", "0.166.23"],
+      "date": "2026-09-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.23: durable governed evolution and Workbench controls",
+          "body": "> `chainlesschain` **0.166.22 -> 0.166.23**,\n> `@chainlesschain/core-db` **0.1.4 -> 0.1.5**, and\n> `@chainlesschain/session-core` **0.3.11 -> 0.3.12** (release candidates,\n> 2026-09-06; not yet published).\n\n- **Public-install dependency closure**: ship Session Core's missing\n  `./evolvable-artifact` export and structured evolution memory updates, plus\n  Core DB's unprefixed named-parameter normalization. Publish these two child\n  packages before the exactly pinned CLI; the other 11 audited related package\n  payloads match their existing public releases and do not need a version bump.\n- **Governed knowledge rollback**: persist real Skill rollback, candidate\n  rejection, revocation admission fences, and targeted Wiki tombstones;\n  authenticate multi-hop Wiki provenance and recover interrupted settlement\n  without duplicate effects or reactivation of revoked sources.\n- **Durable Wiki and model boundaries**: authenticate pruning checkpoints and\n  retrieval projections, recover maintenance effects, and enforce bounded,\n  redacted durable projections at the model ingress boundary.\n- **Trusted Workbench assembly**: provide authenticated current-state\n  projections, durable review/rollback adapters, file-backed resources, and\n  one-use-bound control ports for signed CLI/App Server deployment modules.\n  Review batch completion uses the v2 receipt contract supported by the updated\n  JetBrains source; installed IDE extensions do not update automatically.\n- **Release and deployment boundary**: require the exact candidate SHA to pass\n  both complete three-platform CLI gates, including independent Core DB and\n  Session Core tests. Workbench remains unavailable without a real trusted\n  deployment, identity, and policy configuration; this release does not enable\n  unattended promotion or claim that the entire evolution roadmap is complete."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.22",
       "cliVersions": ["0.166.21", "0.166.22"],
       "date": "2026-09-05",

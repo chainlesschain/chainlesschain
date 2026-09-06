@@ -51,7 +51,7 @@ function open(root) {
 }
 function setup() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-history-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-wiki-history-"),
   );
   roots.push(root);
   return open(root);

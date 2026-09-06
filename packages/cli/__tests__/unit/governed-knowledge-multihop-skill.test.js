@@ -13,7 +13,7 @@ afterEach(() => {
 });
 async function setup(options = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-multihop-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-knowledge-multihop-"),
   );
   roots.push(root);
   return openKnowledgeSkillRollbackStore(root, {

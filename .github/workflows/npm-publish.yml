@@ -405,12 +405,17 @@ jobs:
       - name: "Publish @chainlesschain/core-db"
         working-directory: packages/core-db
         run: |
+          set -euo pipefail
           PKG_VER=$(node -p "require('./package.json').version")
+          mkdir -p "$GITHUB_WORKSPACE/release-artifacts/children"
+          npm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/release-artifacts/children"
+          CHILD_TARBALL="$GITHUB_WORKSPACE/release-artifacts/children/chainlesschain-core-db-$PKG_VER.tgz"
+          test -s "$CHILD_TARBALL"
           echo "target: @chainlesschain/core-db@$PKG_VER"
           if npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            npm publish "$CHILD_TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -431,12 +436,17 @@ jobs:
       - name: "Publish @chainlesschain/session-core"
         working-directory: packages/session-core
         run: |
+          set -euo pipefail
           PKG_VER=$(node -p "require('./package.json').version")
+          mkdir -p "$GITHUB_WORKSPACE/release-artifacts/children"
+          npm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/release-artifacts/children"
+          CHILD_TARBALL="$GITHUB_WORKSPACE/release-artifacts/children/chainlesschain-session-core-$PKG_VER.tgz"
+          test -s "$CHILD_TARBALL"
           echo "target: @chainlesschain/session-core@$PKG_VER"
           if npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            npm publish "$CHILD_TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -621,6 +631,47 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Verify public child bytes and registry-only dependencies before CLI publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          READBACK_ROOT=$(mktemp -d)
+          trap 'rm -rf "$READBACK_ROOT"' EXIT
+          for CHILD in core-db session-core; do
+            CHILD_VERSION=$(node -p "require('./packages/$CHILD/package.json').version")
+            ARCHIVE="chainlesschain-$CHILD-$CHILD_VERSION.tgz"
+            mkdir -p "$READBACK_ROOT/$CHILD"
+            for ATTEMPT in {1..30}; do
+              if npm pack "@chainlesschain/$CHILD@$CHILD_VERSION" --ignore-scripts --prefer-online \
+                --registry=https://registry.npmjs.org --pack-destination "$READBACK_ROOT/$CHILD"; then
+                break
+              fi
+              if [ "$ATTEMPT" -eq 30 ]; then exit 1; fi
+              sleep 10
+            done
+            # Compare the exact archive submitted to npm, including all exports.
+            cmp "release-artifacts/children/$ARCHIVE" "$READBACK_ROOT/$CHILD/$ARCHIVE"
+          done
+          TARBALL=$(find "$GITHUB_WORKSPACE/release-artifacts" -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" release-artifacts/chainlesschain-release.json
+          INSTALL_ROOT="$READBACK_ROOT/install"
+          mkdir -p "$INSTALL_ROOT"
+          (
+            cd "$INSTALL_ROOT"
+            npm init --yes >/dev/null
+            # The CLI is the immutable candidate archive. No local child packs
+            # or workspace paths are supplied; children must resolve from npm.
+            npm install --ignore-scripts --no-audit --no-fund --prefer-online \
+              --registry=https://registry.npmjs.org "$TARBALL"
+            node_modules/.bin/cc --version
+            node_modules/.bin/cc agent --capabilities > agent-capabilities.json
+            node -e 'const v=require("./agent-capabilities.json"); if(!v.protocol_version) throw new Error("invalid Agent capability manifest")'
+            node -e 'require("@chainlesschain/session-core/evolvable-artifact"); require("@chainlesschain/session-core/structured-evolution-memory")'
+            node "$GITHUB_WORKSPACE/packages/cli/scripts/smoke-installed-core-db.mjs" "$INSTALL_ROOT"
+          )
+          node packages/cli/scripts/verify-cli-registry-install.mjs \
+            "$INSTALL_ROOT" packages/cli/package.json release-artifacts/cli-public-child-install.json
+
       - name: "Publish chainlesschain (CLI)"
         shell: bash
         run: |
@@ -743,6 +794,8 @@ jobs:
             release-artifacts/chainlesschain-npm-provenance.json
             release-artifacts/agent-sdk-npm-provenance.json
             release-artifacts/context-memory-kernel-npm-provenance.json
+            release-artifacts/cli-public-child-install.json
+            release-artifacts/children/
           if-no-files-found: error
           retention-days: 90
 

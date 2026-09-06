@@ -13,7 +13,10 @@ afterEach(() => {
 });
 async function setup(options = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-wiki-disposition-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-knowledge-wiki-disposition-",
+    ),
   );
   roots.push(root);
   return openKnowledgeSkillRollbackStore(root, {

@@ -50,7 +50,7 @@ afterEach(() => {
 describe("EvolutionReleaseTrain real process recovery", () => {
   it("recovers all eight real domain controllers across a hard exit", () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-train-real-prefix-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-train-real-prefix-"),
     );
     roots.push(root);
     expect(sync(root, "init").status).toBe(0);
@@ -76,7 +76,7 @@ describe("EvolutionReleaseTrain real process recovery", () => {
 
   it("recovers a stage-effect hard exit without repeating any of eight effects", () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-train-crash-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-train-crash-"),
     );
     roots.push(root);
     expect(sync(root, "init").status).toBe(0);
@@ -94,7 +94,7 @@ describe("EvolutionReleaseTrain real process recovery", () => {
 
   it("converges two competing OS processes to one deterministic lineage", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-train-race-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-train-race-"),
     );
     roots.push(root);
     expect(sync(root, "init").status).toBe(0);

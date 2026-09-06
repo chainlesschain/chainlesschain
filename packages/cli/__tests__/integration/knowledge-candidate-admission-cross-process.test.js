@@ -39,7 +39,10 @@ function run(
 }
 it("keeps the admission fence across a process exit immediately after durable revocation preparation", () => {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-candidate-admission-process-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-candidate-admission-process-",
+    ),
   );
   roots.push(root);
   const seed = run(root, "seed");
@@ -64,7 +67,10 @@ it.each(["direct", "wiki"])(
   "blocks new %s-derived identities in two fresh processes after a revocation crash",
   (provenance) => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-source-admission-process-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-source-admission-process-",
+      ),
     );
     roots.push(root);
     const worker = (mode, status = 0) =>

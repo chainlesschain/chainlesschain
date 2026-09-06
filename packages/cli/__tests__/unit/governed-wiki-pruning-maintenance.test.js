@@ -25,7 +25,7 @@ afterEach(() => {
 });
 function setup(hooks) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-maintenance-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-wiki-maintenance-"),
   );
   roots.push(root);
   return openPruningMaintenanceStore(root, hooks);

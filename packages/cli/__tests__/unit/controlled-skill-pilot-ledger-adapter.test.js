@@ -121,7 +121,7 @@ function durableFilesystem() {
 
 function resources() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pilot-ledger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-pilot-ledger-"),
   );
   roots.push(root);
   const now = Date.parse("2026-09-05T18:00:00.000Z");

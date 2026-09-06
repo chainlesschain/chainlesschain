@@ -1,6 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -137,7 +143,9 @@ afterEach(() => {
 
 describe("Skill revocation real cross-process recovery", () => {
   it("recovers real release pointer, Wiki, dependency and checkpoint crashes within 60 seconds each", () => {
-    const pilotRoot = mkdtempSync(join(tmpdir(), "cc-revoke-pilot-"));
+    const pilotRoot = mkdtempSync(
+      join(realpathSync.native(tmpdir()), "cc-revoke-pilot-"),
+    );
     roots.push(pilotRoot);
     expectExit(run(pilotRoot, "seed", "none"), 0);
     const seeded = read(pilotRoot, "pilot-inspection");
@@ -155,7 +163,9 @@ describe("Skill revocation real cross-process recovery", () => {
       ["propagate", "after-dependencies", 93],
       ["propagate", "after-checkpoint-commit", 94],
     ]) {
-      const root = mkdtempSync(join(tmpdir(), `cc-revoke-${crashPoint}-`));
+      const root = mkdtempSync(
+        join(realpathSync.native(tmpdir()), `cc-revoke-${crashPoint}-`),
+      );
       roots.push(root);
       expectExit(run(root, "seed-dependencies", "none", pilotRoot), 0);
       expect(read(root, "dependency-seed-inspection")).toMatchObject({

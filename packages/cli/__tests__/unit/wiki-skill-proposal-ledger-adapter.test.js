@@ -91,7 +91,7 @@ function drafted(summary = "Use the evidence-backed procedure.") {
 
 function backend() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-proposal-ledger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-proposal-ledger-"),
   );
   roots.push(root);
   const secret = "test-only-proposal-artifact-key";

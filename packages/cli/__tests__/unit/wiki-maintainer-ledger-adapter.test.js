@@ -166,7 +166,7 @@ function durableFilesystem() {
 
 function durableBackends() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-ledger-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-wiki-ledger-"),
   );
   temporaryRoots.push(root);
   const secret = "test-only-wiki-artifact-key";

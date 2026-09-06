@@ -8,6 +8,9 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/**"
+      - "packages/core-db/**"
+      - "packages/session-core/**"
+      - "package-lock.json"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
@@ -38,6 +41,9 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "packages/core-db/**"
+      - "packages/session-core/**"
+      - "package-lock.json"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
@@ -115,6 +121,14 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: ./.github/actions/setup-node-deps
+      # These independently published dependencies must pass on the same
+      # three platforms and exact SHA as the CLI, before any npm publication.
+      - name: Test Core DB release payload source
+        working-directory: packages/core-db
+        run: npm test -- --maxWorkers=1
+      - name: Test Session Core release payload source
+        working-directory: packages/session-core
+        run: npm test -- --maxWorkers=1
       - name: Run mapped Claude security delta tests
         shell: bash
         run: >-

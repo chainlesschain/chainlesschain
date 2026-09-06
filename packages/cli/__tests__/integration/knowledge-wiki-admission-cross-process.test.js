@@ -39,7 +39,10 @@ it.each([
   "blocks %s Wiki writes in %s runs after a revocation preparation process exit",
   (writer, wikiRun) => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-wiki-admission-process-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-wiki-admission-process-",
+      ),
     );
     roots.push(root);
     const seeded = run(root, "seed", writer, wikiRun);

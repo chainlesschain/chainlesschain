@@ -89,7 +89,10 @@ describe("createEvolutionLedgerFileBackend", () => {
 
   beforeEach(() => {
     root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evolution-file-backend-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-evolution-file-backend-",
+      ),
     );
     fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });
     options = {

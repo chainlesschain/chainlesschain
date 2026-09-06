@@ -26,7 +26,7 @@ const reopen = (root, hooks = {}) =>
   openPruningMaintenanceStore(root, { ...hooks, realRetrieval: true });
 function setup(hooks) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-retrieval-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-pruning-retrieval-"),
   );
   roots.push(root);
   return reopen(root, hooks);

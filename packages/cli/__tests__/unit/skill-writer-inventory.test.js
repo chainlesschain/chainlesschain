@@ -110,6 +110,15 @@ describe("Skill writer inventory", () => {
       "direct-unknown-zero-is-not-a-whole-program-semantic-proof",
     );
     expect(report.errors).toEqual([]);
+    const desktopDelegation = SKILL_WRITER_INVENTORY.scopeExclusions.find(
+      (entry) => entry.id === "desktop-marketplace-governed-host-delegation",
+    );
+    expect(desktopDelegation.reasonCode).toBe(
+      "branded-governed-host-delegation-without-direct-skill-byte-write",
+    );
+    expect(desktopDelegation.evidence.evidence).toContain(
+      "!isDesktopGovernedSkillMarketplaceHost(governedHost)",
+    );
 
     const triggers = new Set(
       SKILL_WRITER_INVENTORY.writers.map((writer) => writer.triggerClass),

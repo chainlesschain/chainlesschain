@@ -76,7 +76,10 @@ describe("createEvolutionFileWitness", () => {
 
   beforeEach(() => {
     root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evolution-file-witness-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-evolution-file-witness-",
+      ),
     );
     filePath = path.join(root, "authority", "witness.json");
     fs.mkdirSync(path.dirname(filePath), { mode: 0o700 });

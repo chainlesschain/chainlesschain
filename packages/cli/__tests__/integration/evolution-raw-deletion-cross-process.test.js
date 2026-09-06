@@ -38,7 +38,7 @@ describe("Raw deletion ArtifactStore/Ledger cross-process recovery", () => {
   it("reopens an authenticated receipt and crypto-shred tombstone within 60 seconds", () => {
     const startedAt = Date.now();
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-raw-delete-process-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-raw-delete-process-"),
     );
     roots.push(root);
 

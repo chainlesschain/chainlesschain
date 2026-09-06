@@ -13,7 +13,10 @@ afterEach(() => {
 describe("EvolutionLedger file backend process restart", () => {
   it("reopens across OS processes and rejects local reincarnation behind the witness", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-ledger-process-restart-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-ledger-process-restart-",
+      ),
     );
     roots.push(root);
     fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });

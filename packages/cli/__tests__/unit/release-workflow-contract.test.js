@@ -55,6 +55,41 @@ function occurrences(text, needle) {
 }
 
 describe("CLI release workflow contracts", () => {
+  it("verifies public child archives and clean registry dependency installation before publishing CLI", () => {
+    const text = workflow("npm-publish.yml");
+    const start = text.indexOf(
+      "- name: Verify public child bytes and registry-only dependencies before CLI publish",
+    );
+    const publish = text.indexOf('- name: "Publish chainlesschain (CLI)"');
+    expect(start).toBeGreaterThan(0);
+    expect(start).toBeLessThan(publish);
+    const gate = text.slice(start, publish);
+    expect(gate).toContain("set -euo pipefail");
+    expect(gate).toContain(
+      'cmp "release-artifacts/children/$ARCHIVE" "$READBACK_ROOT/$CHILD/$ARCHIVE"',
+    );
+    expect(gate).toContain("--registry=https://registry.npmjs.org");
+    expect(gate).toContain("verify-cli-registry-install.mjs");
+    expect(gate).toContain("npm-release-artifact.mjs verify");
+    expect(gate).toContain("node_modules/.bin/cc agent --capabilities");
+    expect(gate).toContain("@chainlesschain/session-core/evolvable-artifact");
+    expect(gate).toContain("smoke-installed-core-db.mjs");
+    expect(gate).not.toContain("continue-on-error");
+    expect(gate).not.toContain("if: steps.");
+    expect(gate).not.toContain("--pack-candidates");
+    for (const child of ["core-db", "session-core"]) {
+      const childStart = text.indexOf(
+        `- name: "Publish @chainlesschain/${child}"`,
+      );
+      const childEnd = text.indexOf("\n      - name:", childStart + 1);
+      expect(childStart).toBeLessThan(start);
+      const childStep = text.slice(childStart, childEnd);
+      expect(childStep).toContain("npm pack --ignore-scripts");
+      expect(childStep).toContain('npm publish "$CHILD_TARBALL"');
+    }
+    expect(text).toContain("release-artifacts/cli-public-child-install.json");
+  });
+
   it("gates npm production on exact-SHA matrices and one immutable tarball", () => {
     const text = workflow("npm-publish.yml");
     expectExternalActionsPinned(text);
@@ -235,6 +270,42 @@ describe("CLI release workflow contracts", () => {
     expect(strict.match(/name: Verify exact source identity/gu)).toHaveLength(
       1,
     );
+  });
+
+  it("gates Core DB and Session Core on all exact-SHA CLI verification platforms", () => {
+    const ci = workflow("cli-ci.yml");
+    const verification = ci
+      .split("  verify-cli:")[1]
+      .split("  pack-linux-dryrun:")[0];
+    expect(verification).toContain(
+      "os: [ubuntu-latest, windows-latest, macos-latest]",
+    );
+    expect(verification).toContain(
+      "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+    for (const name of ["core-db", "session-core"]) {
+      expect(verification).toContain(
+        `working-directory: packages/${name}\n        run: npm test -- --maxWorkers=1`,
+      );
+      expect(ci.split(`- "packages/${name}/**"`)).toHaveLength(3);
+    }
+    expect(verification).not.toContain("continue-on-error:");
+  });
+
+  it("keeps the CLI child release pins and workspace lock metadata consistent", () => {
+    const read = (relative) =>
+      JSON.parse(fs.readFileSync(path.join(repositoryRoot, relative), "utf8"));
+    const cli = read("packages/cli/package.json");
+    const lock = read("package-lock.json");
+    expect(lock.packages["packages/cli"].version).toBe(cli.version);
+    for (const dir of ["core-db", "session-core"]) {
+      const child = read(`packages/${dir}/package.json`);
+      expect(cli.dependencies[child.name]).toBe(child.version);
+      expect(lock.packages["packages/cli"].dependencies[child.name]).toBe(
+        child.version,
+      );
+      expect(lock.packages[`packages/${dir}`].version).toBe(child.version);
+    }
   });
 
   it("keeps generic workspace publishing outside the CLI release authority", () => {

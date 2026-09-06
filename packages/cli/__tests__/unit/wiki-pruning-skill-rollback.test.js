@@ -21,7 +21,7 @@ afterEach(() => {
 });
 async function setup(options = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-rollback-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-pruning-rollback-"),
   );
   roots.push(root);
   return openPruningRollbackStore(root, { seed: true, ...options });

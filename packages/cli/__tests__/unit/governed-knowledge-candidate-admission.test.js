@@ -16,7 +16,7 @@ afterEach(() => {
 });
 async function setup(options = {}) {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-candidate-revocation-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-candidate-revocation-"),
   );
   roots.push(root);
   return openKnowledgeSkillRollbackStore(root, { ...options, seed: true });

@@ -11,7 +11,10 @@ import { inspectPrivatePaths } from "../../src/lib/secure-fs.js";
 // check. The per-ACL process limits and all existing test budgets are unchanged.
 it("uses owner-only storage by default and independently inspects actual OS permissions", () => {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-private-files-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-workbench-private-files-",
+    ),
   );
   try {
     const options = workbenchFileResourceOptions(root, {

@@ -41,7 +41,7 @@ describe("Wiki pruning maintenance real process recovery", () => {
     "recovers %s without duplicate Wiki effects",
     (crashPoint, exitCode) => {
       const root = fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-process-"),
+        path.join(fs.realpathSync.native(os.tmpdir()), "cc-pruning-process-"),
       );
       roots.push(root);
       expect(result(run(root, "seed"))).toMatchObject({

@@ -310,7 +310,7 @@ afterEach(() => {
 describe("EvolvableArtifactLedgerAdapter", () => {
   it("reopens a typed candidate and release transition from real ArtifactStore and Ledger files", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-evolvable-ledger-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-evolvable-ledger-"),
     );
     roots.push(root);
     const witness = durableWitness("witness-evolvable-artifact");
@@ -462,7 +462,7 @@ describe("EvolvableArtifactLedgerAdapter", () => {
 
   it("prepares and commits one governed Knowledge lifecycle without a parallel release path", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-lifecycle-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-knowledge-lifecycle-"),
     );
     roots.push(root);
     const witness = durableWitness("witness-knowledge-lifecycle");
@@ -570,7 +570,10 @@ describe("EvolvableArtifactLedgerAdapter", () => {
 
   it("recovers exact active content through a branded release reader", async () => {
     const root = fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-active-content-reader-"),
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-active-content-reader-",
+      ),
     );
     roots.push(root);
     const provider = open(root, durableWitness("witness-active-content"));

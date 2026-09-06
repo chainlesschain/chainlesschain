@@ -145,7 +145,10 @@ function stdioClient(env, root) {
 
 it("loads a signed deployment in real CLI and stdio App Server processes, retaining actual review/rollback effects", async () => {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-signed-startup-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-workbench-signed-startup-",
+    ),
   );
   let client;
   try {

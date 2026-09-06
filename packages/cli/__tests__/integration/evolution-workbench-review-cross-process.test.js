@@ -38,7 +38,10 @@ describe("Workbench review real process recovery", () => {
     "recovers after SIGKILL at %s without duplicate decisions",
     (phase) => {
       const root = fs.mkdtempSync(
-        path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-review-process-"),
+        path.join(
+          fs.realpathSync.native(os.tmpdir()),
+          "cc-workbench-review-process-",
+        ),
       );
       roots.push(root);
       const killed = run(root, "seed", phase);

@@ -12,7 +12,7 @@ const shPath = path.join(installDir, "install.sh");
 const ps1Path = path.join(installDir, "install.ps1");
 const binPath = path.resolve(testDir, "../../bin/chainlesschain.js");
 const temporaryDirectories = [];
-const fixtureTempRoot = fs.realpathSync(os.tmpdir());
+const fixtureTempRoot = fs.realpathSync.native(os.tmpdir());
 const fixtureDirectoryPrefixes = [
   "cc-sh-install-tx-",
   "cc-ps-install-tx-",

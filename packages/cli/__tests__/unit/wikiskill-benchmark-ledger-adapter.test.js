@@ -346,7 +346,7 @@ function storage(existing = null) {
   const root =
     existing?.root ??
     fs.mkdtempSync(
-      path.join(fs.realpathSync(os.tmpdir()), "cc-wikiskill-benchmark-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-wikiskill-benchmark-"),
     );
   if (!existing) roots.push(root);
   const state = existing?.state ?? { events: [], failAfterAppend: false };

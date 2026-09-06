@@ -1929,6 +1929,19 @@ function transitionArtifactStorage(root, now) {
       }
       const event = {
         ...structuredClone(input),
+        // Match the real EvolutionLedger's canonical source-reference order.
+        // Artifact locators include randomness; insertion order is not stable.
+        sourceRefs: structuredClone(input.sourceRefs).sort((left, right) =>
+          left.ref < right.ref
+            ? -1
+            : left.ref > right.ref
+              ? 1
+              : left.digest < right.digest
+                ? -1
+                : left.digest > right.digest
+                  ? 1
+                  : 0,
+        ),
         schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
         sequence: state.events.length + 1,
         eventDigest: matrixDigest("registry-transition-event", input),
@@ -3627,7 +3640,10 @@ describe("Skill target matrix evaluation foundation", () => {
     const promotionRoot = processCrashRoot
       ? path.join(processCrashRoot, "promotion")
       : fs.mkdtempSync(
-          path.join(fs.realpathSync(os.tmpdir()), "cc-matrix-promotion-"),
+          path.join(
+            fs.realpathSync.native(os.tmpdir()),
+            "cc-matrix-promotion-",
+          ),
         );
     if (processCrashRoot) {
       fs.mkdirSync(promotionRoot, { recursive: true, mode: 0o700 });

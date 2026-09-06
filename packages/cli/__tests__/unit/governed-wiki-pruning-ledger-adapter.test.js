@@ -47,7 +47,7 @@ function receipt(call) {
 
 async function harness() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-pruning-journal-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-pruning-journal-"),
   );
   roots.push(root);
   const resources = openEvolutionDurableStore(root);

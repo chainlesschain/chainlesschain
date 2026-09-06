@@ -739,7 +739,7 @@ describe("Graph production cutover signed source contract", () => {
 });
 
 function canonicalTempDirectory(prefix) {
-  const canonicalTempRoot = fs.realpathSync(os.tmpdir());
+  const canonicalTempRoot = fs.realpathSync.native(os.tmpdir());
   return fs.realpathSync(fs.mkdtempSync(path.join(canonicalTempRoot, prefix)));
 }
 

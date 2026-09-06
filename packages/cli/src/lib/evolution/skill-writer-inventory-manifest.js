@@ -981,17 +981,19 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
       },
     }),
     scopeExclusion({
-      id: "desktop-marketplace-skill-install-metadata",
+      id: "desktop-marketplace-governed-host-delegation",
       surface: "desktop",
-      reasonCode: "marketplace-install-record-without-skill-artifact-mutation",
+      reasonCode:
+        "branded-governed-host-delegation-without-direct-skill-byte-write",
       evidence: {
         file: "desktop-app-vue/src/main/marketplace/skill-marketplace-client.js",
         symbol: "SkillMarketplaceClient.installSkill/uninstallSkill",
         evidence: [
-          "async installSkill(skillId, skillData = {})",
-          "INSERT OR REPLACE INTO skill_marketplace_installs",
-          "async uninstallSkill(skillId)",
-          'prepare("DELETE FROM skill_marketplace_installs WHERE skill_id = ?")',
+          "!isDesktopGovernedSkillMarketplaceHost(governedHost)",
+          "async installSkill(skillId, options = {})",
+          "const result = await host.install({",
+          "async uninstallSkill(skillId, options = {})",
+          "const state = await host.revoke({ skillName: skillId, ...options });",
         ],
       },
     }),

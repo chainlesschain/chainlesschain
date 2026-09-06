@@ -20,7 +20,7 @@ afterEach(() => {
 });
 function temp() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-workbench-rollback-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-workbench-rollback-"),
   );
   roots.push(root);
   return root;

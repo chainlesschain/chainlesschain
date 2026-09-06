@@ -308,7 +308,7 @@ function cryptoPorts({ loseFirstSendResponse = false } = {}) {
 
 function backends(deviceId = "device:a") {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-knowledge-sync-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-knowledge-sync-"),
   );
   roots.push(root);
   const now = Date.parse("2026-09-04T00:00:00.000Z");

@@ -37,7 +37,7 @@ describe("Wiki dependency pruning real process recovery", () => {
     (crashPoint, exitCode) => {
       const root = fs.mkdtempSync(
         path.join(
-          fs.realpathSync(os.tmpdir()),
+          fs.realpathSync.native(os.tmpdir()),
           "cc-pruning-dependency-process-",
         ),
       );

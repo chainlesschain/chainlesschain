@@ -56,7 +56,7 @@ function hash(value) {
 
 function fixture() {
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-run-wiki-source-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-run-wiki-source-"),
   );
   roots.push(root);
   const audience = "evolution-runtime";
