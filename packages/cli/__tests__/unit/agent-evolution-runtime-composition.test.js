@@ -942,7 +942,7 @@ describe("Agent evolution runtime production composition", () => {
     };
   }
 
-  it("projects external AgentRouter CLI prompts through the durable Run boundary", async () => {
+  it("rejects an opaque external AgentRouter CLI before it can bypass durable ingress", async () => {
     const f = modelFixture();
     const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
     const pool = {
@@ -973,29 +973,71 @@ describe("Agent evolution runtime production composition", () => {
       source: "orchestrate:test",
     });
 
-    await router.dispatch(
-      [
+    await expect(
+      router.dispatch(
+        [
+          {
+            id: "sub-1",
+            description: `repair with ${secret}`,
+            context: "contact owner@example.com",
+          },
+        ],
         {
-          id: "sub-1",
-          description: `repair with ${secret}`,
-          context: "contact owner@example.com",
+          cwd: f.root,
+          evolutionIngress: f.composition.evolutionIngress,
         },
-      ],
-      {
-        cwd: f.root,
-        evolutionIngress: f.composition.evolutionIngress,
-      },
-    );
+      ),
+    ).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
 
-    const dispatched = pool.dispatch.mock.calls[0][0][0];
-    expect(dispatched.context).toBe("");
-    expect(dispatched.description).toContain("Evolution input projection:");
-    expect(dispatched.description).toContain("[REDACTED:");
-    expect(dispatched.description).not.toContain(secret);
-    expect(dispatched.description).not.toContain("owner@example.com");
+    expect(pool.dispatch).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
     expect(
       f.composition.loadRun().events.map((event) => event.data?.evidenceKind),
-    ).toEqual([undefined, "user-prompt", "model-input"]);
+    ).toEqual([undefined, "user-prompt"]);
+    expect(f.composition.loadRun()).toMatchObject({
+      projection: { status: "running" },
+    });
+
+    router._backends.push({
+      type: BACKEND_TYPE.OLLAMA,
+      isCLI: false,
+      weight: 1,
+      provider: "ollama",
+      model: "test-model",
+      apiKey: null,
+      baseUrl: "http://127.0.0.1:1",
+      timeout: 30_000,
+    });
+    for (const strategy of [
+      "round-robin",
+      "by-type",
+      "primary",
+      "parallel-all",
+    ]) {
+      router.strategy = strategy;
+      await router.dispatch(
+        [{ id: `sub-${strategy}`, description: "continue the repair" }],
+        {
+          cwd: f.root,
+          evolutionIngress: f.composition.evolutionIngress,
+        },
+      );
+    }
+
+    expect(pool.dispatch).not.toHaveBeenCalled();
+    expect(f.transport).toHaveBeenCalledTimes(4);
+    expect(
+      f.composition.loadRun().events.map((event) => event.data?.evidenceKind),
+    ).toEqual([
+      undefined,
+      "user-prompt",
+      "model-input",
+      "model-input",
+      "model-input",
+      "model-input",
+    ]);
   });
 
   it("binds orchestrator decomposition and dispatch to one production composition", async () => {

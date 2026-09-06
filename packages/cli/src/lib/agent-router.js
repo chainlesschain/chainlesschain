@@ -80,6 +80,8 @@ const TYPE_KEYWORDS = {
 
 export const AGENT_ROUTER_ERROR = Object.freeze({
   WRITE_ISOLATION_REQUIRED: "AGENT_ROUTER_WRITE_ISOLATION_REQUIRED",
+  EXTERNAL_MODEL_INGRESS_UNATTESTED:
+    "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
 });
 
 function normalizedScopes(task) {
@@ -259,32 +261,59 @@ export class AgentRouter extends EventEmitter {
       options.evolutionIngress == null
         ? null
         : captureAgentEvolutionIngress(options.evolutionIngress);
+    const backends =
+      evolutionIngress === null
+        ? this._backends
+        : this._backends.filter((backend) => !backend.isCLI);
 
     if (this._backends.length === 0) {
       throw new Error(
         "No agent backends available. Install Claude Code: npm i -g @anthropic-ai/claude-code",
       );
     }
+    if (backends.length === 0) {
+      const error = new Error(
+        "No backend can attest per-request evolution ingress; external agent CLIs are opaque",
+      );
+      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
+      throw error;
+    }
 
     switch (this.strategy) {
       case "parallel-all":
-        return this._dispatchParallelAll(subtasks, { cwd, evolutionIngress });
+        return this._dispatchParallelAll(subtasks, {
+          cwd,
+          evolutionIngress,
+          backends,
+        });
       case "by-type":
-        return this._dispatchByType(subtasks, { cwd, evolutionIngress });
+        return this._dispatchByType(subtasks, {
+          cwd,
+          evolutionIngress,
+          backends,
+        });
       case "primary":
-        return this._dispatchPrimary(subtasks, { cwd, evolutionIngress });
+        return this._dispatchPrimary(subtasks, {
+          cwd,
+          evolutionIngress,
+          backends,
+        });
       default: // round-robin
-        return this._dispatchRoundRobin(subtasks, { cwd, evolutionIngress });
+        return this._dispatchRoundRobin(subtasks, {
+          cwd,
+          evolutionIngress,
+          backends,
+        });
     }
   }
 
   // ─── Strategies ────────────────────────────────────────────────
 
   /** Round-robin: distribute tasks evenly across all backends. */
-  async _dispatchRoundRobin(subtasks, { cwd, evolutionIngress }) {
+  async _dispatchRoundRobin(subtasks, { cwd, evolutionIngress, backends }) {
     // Assign each subtask a backend
     const assignments = subtasks.map((task) => {
-      const backend = this._weightedNext();
+      const backend = this._weightedNext(backends);
       return { task, backend };
     });
 
@@ -292,11 +321,13 @@ export class AgentRouter extends EventEmitter {
   }
 
   /** By-type: route task to the best backend for its type. */
-  async _dispatchByType(subtasks, { cwd, evolutionIngress }) {
+  async _dispatchByType(subtasks, { cwd, evolutionIngress, backends }) {
     const assignments = subtasks.map((task) => {
       const taskType = task.type || detectTaskType(task.description);
       const preferredType = TASK_TYPE_ROUTING[taskType];
-      const backend = this._findBackend(preferredType) || this._weightedNext();
+      const backend =
+        this._findBackend(preferredType, backends) ||
+        this._weightedNext(backends);
       return { task, backend };
     });
 
@@ -304,8 +335,8 @@ export class AgentRouter extends EventEmitter {
   }
 
   /** Primary: all tasks go to first backend; fallback on failure. */
-  async _dispatchPrimary(subtasks, { cwd, evolutionIngress }) {
-    const primary = this._backends[0];
+  async _dispatchPrimary(subtasks, { cwd, evolutionIngress, backends }) {
+    const primary = backends[0];
     const assignments = subtasks.map((task) => ({ task, backend: primary }));
     const results = await this._runAssignments(assignments, {
       cwd,
@@ -315,8 +346,8 @@ export class AgentRouter extends EventEmitter {
     // Retry failed tasks on next available backend
     const retries = [];
     for (let i = 0; i < results.length; i++) {
-      if (!results[i].success && this._backends.length > 1) {
-        const fallback = this._backends[1];
+      if (!results[i].success && backends.length > 1) {
+        const fallback = backends[1];
         retries.push(
           this._runSingleTask(subtasks[i], fallback, {
             cwd,
@@ -332,8 +363,8 @@ export class AgentRouter extends EventEmitter {
   }
 
   /** Parallel-all: run every task on ALL backends; return best result per task. */
-  async _dispatchParallelAll(subtasks, { cwd, evolutionIngress }) {
-    if (this._backends.length > 1) {
+  async _dispatchParallelAll(subtasks, { cwd, evolutionIngress, backends }) {
+    if (backends.length > 1) {
       const error = new Error(
         "parallel-all requires per-attempt worktrees and accepted-winner merge",
       );
@@ -343,7 +374,7 @@ export class AgentRouter extends EventEmitter {
     const results = [];
     for (const task of subtasks) {
       const allResults = await Promise.all(
-        this._backends.map((backend) =>
+        backends.map((backend) =>
           this._runSingleTask(task, backend, { cwd, evolutionIngress }),
         ),
       );
@@ -386,38 +417,24 @@ export class AgentRouter extends EventEmitter {
 
     let result;
     if (backend.isCLI) {
-      // Use ClaudeCodePool for CLI-based backends
-      const pool = backend._pool;
-      let dispatchedTask = task;
+      // Claude/Codex own every provider call made inside their subprocess. A
+      // projected initial prompt cannot prove that later compaction, retry,
+      // tool, or model calls crossed this Run's durable ingress. Until an
+      // authenticated child protocol can bind every such call and return
+      // evidence, admitting the black box would create an unobservable model
+      // bypass. Keep unmanaged legacy dispatch available, but fail closed for
+      // governed evolution Runs before the process can be spawned.
       if (evolutionIngress !== null) {
-        const fullPrompt = task.context
-          ? `Context:\n${task.context}\n\nTask:\n${task.description}`
-          : task.description;
-        const projected = await evolutionIngress.prepareModelRequest({
-          messages: [{ role: "user", content: fullPrompt }],
-          tools: [],
-        });
-        const [projectionNotice, projectedUser] = projected.messages;
-        if (
-          projected.messages.length !== 2 ||
-          projectionNotice?.role !== "system" ||
-          typeof projectionNotice?.content !== "string" ||
-          projectedUser?.role !== "user" ||
-          typeof projectedUser?.content !== "string" ||
-          !Array.isArray(projected.tools) ||
-          projected.tools.length !== 0
-        ) {
-          throw new Error(
-            "Agent evolution projection changed the external agent prompt protocol",
-          );
-        }
-        dispatchedTask = {
-          ...task,
-          description: `${projectionNotice.content}\n\n${projectedUser.content}`,
-          context: "",
-        };
+        const error = new Error(
+          `External ${backend.type} CLI does not attest per-request evolution ingress`,
+        );
+        error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
+        throw error;
       }
-      const [r] = await pool.dispatch([dispatchedTask], { cwd });
+
+      // Use ClaudeCodePool for unmanaged CLI-based backends.
+      const pool = backend._pool;
+      const [r] = await pool.dispatch([task], { cwd });
       result = r;
     } else {
       // Use LLM API for API-based backends
@@ -484,18 +501,18 @@ export class AgentRouter extends EventEmitter {
   }
 
   /** Find the first backend matching a given type. */
-  _findBackend(type) {
-    return this._backends.find((b) => b.type === type) || null;
+  _findBackend(type, backends = this._backends) {
+    return backends.find((b) => b.type === type) || null;
   }
 
   /** Pick next backend using weighted round-robin. */
-  _weightedNext() {
-    if (this._backends.length === 0) throw new Error("No backends");
-    if (this._backends.length === 1) return this._backends[0];
+  _weightedNext(backends = this._backends) {
+    if (backends.length === 0) throw new Error("No backends");
+    if (backends.length === 1) return backends[0];
 
     // Build weighted list
     const weighted = [];
-    for (const b of this._backends) {
+    for (const b of backends) {
       for (let i = 0; i < (b.weight || 1); i++) weighted.push(b);
     }
 
