@@ -18,6 +18,7 @@ const {
   bindDesktopModelIngressClient,
   runDesktopCachedModelWorkflow,
   runDesktopFunctionWorkflow,
+  runDesktopModelWorkflow,
 } = require("../evolution/desktop-model-ingress");
 const modelIngressHosts = new WeakMap();
 const budgetListeners = new WeakMap();
@@ -923,6 +924,37 @@ class LLMManager extends EventEmitter {
    */
   async chatWithMessagesStream(messages, onChunk, options = {}) {
     if (!this.isInitialized) {
+      throw new Error("LLM鏈嶅姟鏈垵濮嬪寲");
+    }
+    if (this.paused) {
+      throw new Error("LLM service is unavailable or paused");
+    }
+    const selectedClient = this.client;
+    if (modelIngressHosts.has(this)) {
+      return runDesktopModelWorkflow(selectedClient, { messages }, () =>
+        this._chatWithMessagesStream(
+          messages,
+          onChunk,
+          options,
+          selectedClient,
+        ),
+      );
+    }
+    return this._chatWithMessagesStream(
+      messages,
+      onChunk,
+      options,
+      selectedClient,
+    );
+  }
+
+  async _chatWithMessagesStream(
+    messages,
+    onChunk,
+    options = {},
+    selectedClient = this.client,
+  ) {
+    if (!this.isInitialized) {
       throw new Error("LLM服务未初始化");
     }
 
@@ -968,7 +1000,7 @@ class LLMManager extends EventEmitter {
 
       // 🔥 调用流式 LLM API（带模型回退）
       try {
-        result = await this.client.chatStream(
+        result = await selectedClient.chatStream(
           processedMessages,
           onChunk,
           options,
@@ -983,7 +1015,7 @@ class LLMManager extends EventEmitter {
           );
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
-          result = await this.client.chatStream(
+          result = await selectedClient.chatStream(
             processedMessages,
             onChunk,
             fallbackOptions,

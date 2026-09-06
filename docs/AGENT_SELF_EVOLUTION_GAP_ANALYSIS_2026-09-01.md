@@ -1683,6 +1683,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 后续 `LLMManager.query()` 与 `queryStream()` 审计发现两者在受治理 manager 中仍直接调用 provider；其中 Ollama 的 `generate`/`generateStream` 可携带不透明 context token，不能被 durable model-input 投影认证。现受治理分支把显式历史、system prompt 和本次 user prompt 统一传给既有 `chatWithMessages()` / `chatWithMessagesStream()`，再更新显式 conversation history；不再调用 generate/chat provider 快捷路径，也不二次记录 Token。未接 host 的既有 provider 分支保持不变。branded manager 定向验证覆盖非流式与流式 query：历史和 system prompt 完整传递、不触及 `generate`/`generateStream`/直连 `chatStream`，并保留 query/stream 完成事件；与 IPC、manager、MCP executor 回归共 102/102 通过。此处关闭的是两条 manager 快捷入口的仓库内绕过，不代表完整流式工具循环、Electron bootstrap、其他原生入口、跨进程缓存或删除传播已验收，P0-4 仍为部分完成。
 
+后续流式 manager 生命周期审计发现 `chatWithMessagesStream()` 本身只在底层 client 调用时创建 Run，导致压缩/请求准备与 provider stream 缺少一个完整的共同外层上下文。现受治理 manager 在捕获本次 client 后，先用 `runDesktopModelWorkflow()` 打开外层 Run，再让流式 client 的 prepare/complete 复用该 AsyncLocalStorage scope；provider 切换中的 client 替换不会影响在途 stream。准入失败发生在 provider stream 启动之前，流式 client 的响应完成后才由外层完成 Run。真实 native composition、OpenAI stream client、ArtifactStore/Ledger/witness 组合验证单次成功流式请求仅创建一个 Run，状态 completed、事件为 user-prompt→model-input→response-completed，wire payload 不含 email canary；1/1 通过（44.64 秒；152 项因定向筛选未运行）。桌面 IPC/manager/MCP executor 回归 103/103 通过；Prettier 和 diff 检查通过，ESLint 0 错误（6 个既有未使用变量警告）。压缩内部模型调用与流式工具循环仍需独立的完整 lineage/工具验收，不能据此关闭 P0-4。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

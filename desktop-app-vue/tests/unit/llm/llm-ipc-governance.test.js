@@ -12,6 +12,7 @@ const {
 } = require("../../../src/main/llm/llm-ipc-selector.js");
 const {
   createDesktopModelIngressHost,
+  bindDesktopModelIngressClient,
   prepareDesktopModelRequest,
 } = require("../../../src/main/evolution/desktop-model-ingress.js");
 
@@ -548,5 +549,37 @@ describe("native queryStream governance", () => {
     );
     expect(manager.client.generate).not.toHaveBeenCalled();
     expect(manager.client.chat).not.toHaveBeenCalled();
+  });
+});
+
+describe("native stream lifecycle governance", () => {
+  it("opens model admission before the provider stream starts", async () => {
+    const source = vi.fn(async () => {
+      throw new Error("stream admission denied");
+    });
+    const host = createDesktopModelIngressHost(source);
+    const manager = new managerModule.LLMManager(
+      {
+        provider: "openai",
+        model: "test",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      host,
+    );
+    manager.isInitialized = true;
+    const stream = vi.fn();
+    manager.client = bindDesktopModelIngressClient(
+      { chatStream: stream },
+      host,
+    );
+    await expect(
+      manager.chatWithMessagesStream(
+        [{ role: "user", content: "admit this stream" }],
+        vi.fn(),
+      ),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(source).toHaveBeenCalledOnce();
+    expect(stream).not.toHaveBeenCalled();
   });
 });
