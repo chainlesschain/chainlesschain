@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> CLI version: `chainlesschain@0.166.25`. The immutable release tag is `v-npm-0-166-25`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
+> CLI version: `chainlesschain@0.166.26`. The immutable release tag is `v-npm-0-166-26`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.25
+npm install -g chainlesschain@0.166.26
 chainlesschain setup
 ```
 
@@ -31,15 +31,21 @@ cc
 git diff | cc
 ```
 
-## Long-running tasks (0.166.24)
+## Long-running tasks (0.166.26)
 
-Version 0.166.25 preserves the forward file-reading cursor for every model call,
-including after context compaction. Re-reading an earlier unchanged page does
-not reset that cursor. If the model repeatedly returns to the same pages, the
-runtime offers a recovery opportunity and stops with an explicit incomplete-task
-error after three tool batches without new reading progress. Reading the next
-page, observing an edited file, or doing other tool work allows the task to
-continue normally.
+Version 0.166.26 automatically continues repeated large-file requests from an
+unread region, including after context compaction. Actual character coverage
+prevents a read of the tail from being mistaken for a complete scan. A changed
+file resets coverage; explicit small-range reviews remain available for editing.
+
+Large Markdown/text documents return a sampled heading/task-marker index and
+a small initial preview. The index survives compaction as source data, allowing
+the model to locate relevant work without rescanning the entire document.
+At EOF, a repeated scan returns a lightweight use-findings response. After two
+no-progress batches, one model request omits read_file to encourage a concrete
+action or search; normal reading resumes on the following turn. Searches do not
+clear a reading loop. A model that ignores recovery for six no-progress batches
+still fails explicitly rather than claiming the task is complete.
 
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended

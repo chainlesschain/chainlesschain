@@ -12,7 +12,15 @@
     "result": {
       "content": "golden transcript content",
       "hashed": false,
-      "path": "<WORKSPACE>/note.txt"
+      "path": "<WORKSPACE>/note.txt",
+      "readProgress": {
+        "newContent": true
+      },
+      "readSpan": {
+        "end": 25,
+        "start": 0,
+        "total": 25
+      }
     },
     "tool": "read_file",
     "type": "tool-result"

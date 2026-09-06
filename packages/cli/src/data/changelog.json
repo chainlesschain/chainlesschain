@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.26",
+      "cliVersions": ["0.166.25", "0.166.26"],
+      "date": "2026-09-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.26: recover repeated file reads and continue the task",
+          "body": "> `chainlesschain` **0.166.25 -> 0.166.26** (2026-09-06).\n\n- Automatically continue repeated broad reads at an unread character position,\n  including explicit restarts and concurrent reads. Versioned interval coverage\n  survives compaction, handles long Unicode lines, and never treats skipped\n  sections as read. Permission checks precede recovery and cached content.\n- Return a bounded heading/task-marker index and a small initial preview for\n  large Markdown/text documents. Retain that index as source data across\n  compaction; targeted small-range rereads remain available for editing.\n- At EOF, return a lightweight use-findings response. Repeated no-progress\n  batches receive a model turn without read_file in its available tools so the\n  task can move to search or implementation. Restore reading on the next turn.\n  Discovery calls cannot clear a read loop; six ignored recovery batches remain\n  an explicit incomplete-task backstop.\n- Regression coverage includes the reported gap-analysis document, deliberately\n  repeated first-page requests through compaction followed by a successful\n  write, serial/parallel EOF loops, targeted reviews, edits, and denied reads.\n- Publish only after all Linux, Windows and macOS jobs in CLI CI and CLI Strict\n  Sandbox pass for this exact release commit."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.25",
       "cliVersions": ["0.166.24", "0.166.25"],
       "date": "2026-09-06",
