@@ -437,37 +437,18 @@ describe("BackendClient", () => {
 
   describe("RAGAPI", () => {
     describe("indexProject", () => {
-      it("should index project with custom timeout", async () => {
-        const mockResponse = { data: { indexed: 100 } };
-        fakePythonClient.post.mockResolvedValue(mockResponse);
-
-        await RAGAPI.indexProject(
-          "proj1",
-          "/path/to/repo",
-          ["js", "ts"],
-          false,
-        );
-
-        expect(fakePythonClient.post).toHaveBeenCalledWith(
-          "/api/rag/index/project",
-          {
-            project_id: "proj1",
-            repo_path: "/path/to/repo",
-            file_types: ["js", "ts"],
-            force_reindex: false,
-          },
-          { timeout: 300000 },
-        );
+      it("blocks project indexing before it can send repository data", async () => {
+        await expect(
+          RAGAPI.indexProject("proj1", "/path/to/repo", ["js", "ts"], false),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+        expect(fakePythonClient.post).not.toHaveBeenCalled();
       });
 
-      it("should support force reindex", async () => {
-        const mockResponse = { data: { indexed: 200 } };
-        fakePythonClient.post.mockResolvedValue(mockResponse);
-
-        await RAGAPI.indexProject("proj1", "/path", null, true);
-
-        const call = fakePythonClient.post.mock.calls[0];
-        expect(call[1].force_reindex).toBe(true);
+      it("blocks force reindex before it can contact the AI service", async () => {
+        await expect(
+          RAGAPI.indexProject("proj1", "/path", null, true),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+        expect(fakePythonClient.post).not.toHaveBeenCalled();
       });
     });
 
@@ -489,41 +470,23 @@ describe("BackendClient", () => {
     });
 
     describe("enhancedQuery", () => {
-      it("should perform enhanced query", async () => {
-        const mockResults = { data: { results: [], reranked: true } };
-        fakePythonClient.post.mockResolvedValue(mockResults);
-
-        const result = await RAGAPI.enhancedQuery(
-          "proj1",
-          "search query",
-          10,
-          true,
-          ["project", "docs"],
-        );
-
-        expect(fakePythonClient.post).toHaveBeenCalledWith(
-          "/api/rag/query/enhanced",
-          {
-            project_id: "proj1",
-            query: "search query",
-            top_k: 10,
-            use_reranker: true,
-            sources: ["project", "docs"],
-          },
-        );
-        expect(result).toEqual(mockResults.data);
+      it("blocks enhanced queries before it can send user text", async () => {
+        await expect(
+          RAGAPI.enhancedQuery("proj1", "search query", 10, true, [
+            "project",
+            "docs",
+          ]),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+        expect(fakePythonClient.post).not.toHaveBeenCalled();
       });
 
-      it("should use default parameters", async () => {
-        const mockResults = { data: { results: [] } };
-        fakePythonClient.post.mockResolvedValue(mockResults);
-
-        await RAGAPI.enhancedQuery("proj1", "query");
-
-        const call = fakePythonClient.post.mock.calls[0];
-        expect(call[1].top_k).toBe(5);
-        expect(call[1].use_reranker).toBe(false);
-        expect(call[1].sources).toEqual(["project"]);
+      it("blocks enhanced queries with default options before network access", async () => {
+        await expect(
+          RAGAPI.enhancedQuery("proj1", "query"),
+        ).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        expect(fakePythonClient.post).not.toHaveBeenCalled();
       });
     });
 
@@ -541,20 +504,11 @@ describe("BackendClient", () => {
     });
 
     describe("updateFileIndex", () => {
-      it("should update single file index", async () => {
-        const mockResponse = { data: { updated: true } };
-        fakePythonClient.post.mockResolvedValue(mockResponse);
-
-        await RAGAPI.updateFileIndex("proj1", "/path/file.js", "file content");
-
-        expect(fakePythonClient.post).toHaveBeenCalledWith(
-          "/api/rag/index/update-file",
-          {
-            project_id: "proj1",
-            file_path: "/path/file.js",
-            content: "file content",
-          },
-        );
+      it("blocks a file update before it can send file contents", async () => {
+        await expect(
+          RAGAPI.updateFileIndex("proj1", "/path/file.js", "file content"),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+        expect(fakePythonClient.post).not.toHaveBeenCalled();
       });
     });
   });
@@ -806,14 +760,11 @@ describe("BackendClient", () => {
       expect(fakeJavaClient.post).toHaveBeenCalledWith(expect.any(String), []);
     });
 
-    it("should handle very long timeouts", async () => {
-      const mockResponse = { data: { indexed: 1000 } };
-      fakePythonClient.post.mockResolvedValue(mockResponse);
-
-      await RAGAPI.indexProject("proj1", "/path", null, true);
-
-      const call = fakePythonClient.post.mock.calls[0];
-      expect(call[2].timeout).toBe(300000);
+    it("blocks legacy RAG indexing regardless of its requested timeout", async () => {
+      await expect(
+        RAGAPI.indexProject("proj1", "/path", null, true),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(fakePythonClient.post).not.toHaveBeenCalled();
     });
 
     it("should handle unicode in parameters", async () => {

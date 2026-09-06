@@ -43,6 +43,14 @@ let _pythonClient = axios.create({
   },
 });
 
+function assertGovernedRagIngress() {
+  const error = new Error(
+    "External RAG requests require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 function _setClientsForTesting(clients) {
   _javaClient =
     clients?.java ??
@@ -445,6 +453,7 @@ class RAGAPI {
     fileTypes = null,
     forceReindex = false,
   ) {
+    assertGovernedRagIngress();
     try {
       const response = await _pythonClient.post(
         "/api/rag/index/project",
@@ -488,6 +497,7 @@ class RAGAPI {
     useReranker = false,
     sources = ["project"],
   ) {
+    assertGovernedRagIngress();
     try {
       const response = await _pythonClient.post("/api/rag/query/enhanced", {
         project_id: projectId,
@@ -520,6 +530,7 @@ class RAGAPI {
    * 更新单文件索引
    */
   static async updateFileIndex(projectId, filePath, content) {
+    assertGovernedRagIngress();
     try {
       const response = await _pythonClient.post("/api/rag/index/update-file", {
         project_id: projectId,
