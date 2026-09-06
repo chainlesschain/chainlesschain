@@ -639,6 +639,18 @@ function registerCoreHandlers(ctx) {
         if (mcpFunctions.length > 0 && mcpExecutor) {
           const provider = managerRef.current.provider;
 
+          // The Volcengine tools client owns an opaque multi-request loop.
+          // A governed manager must not send it unprojected messages or let it
+          // execute MCP calls outside the single-run workflow. Until its wire
+          // protocol is adapted to that workflow, reject rather than bypass.
+          if (governed && provider === "volcengine") {
+            const error = new Error(
+              "Governed Volcengine MCP tool calls are not supported",
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
+
           // 火山引擎使用 executeFunctionCalling 方法
           if (provider === "volcengine" && managerRef.current.toolsClient) {
             logger.info(
