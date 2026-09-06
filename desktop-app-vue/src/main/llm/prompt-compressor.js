@@ -199,6 +199,10 @@ class PromptCompressor {
           );
           appliedStrategies.push("summarization");
         } catch (summaryError) {
+          // Evidence refusal is terminal for the whole request, not an
+          // optional summarization failure that may fall back to raw history.
+          if (summaryError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+            throw summaryError;
           logger.error(
             "[PromptCompressor] 总结失败，跳过总结策略:",
             summaryError.message,

@@ -155,6 +155,56 @@ describe("LLMManager", () => {
   });
 
   describe("构造函数", () => {
+    it.each([false, true])(
+      "stops the entire chat when real prompt compression refuses evidence (stream=%s)",
+      async (stream) => {
+        const { PromptCompressor } =
+          await import("../../../src/main/llm/prompt-compressor.js");
+        llmManager = new LLMManager({
+          provider: "openai",
+          model: "default",
+          enableManusOptimizations: false,
+          enableStateBus: false,
+        });
+        llmManager.isInitialized = true;
+        const refusal = Object.assign(new Error("summary evidence refused"), {
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        const summaryQuery = vi.fn().mockRejectedValue(refusal);
+        llmManager.promptCompressor = new PromptCompressor({
+          enableDeduplication: false,
+          enableTruncation: false,
+          enableSummarization: true,
+          maxTotalTokens: 1,
+          llmManager: { query: summaryQuery },
+        });
+        const call = vi.fn();
+        llmManager.client = { chat: call, chatStream: call };
+        const cacheWrite = vi.fn();
+        llmManager.responseCache = { set: cacheWrite };
+        const published = vi.fn();
+        llmManager.on(
+          stream ? "chat-stream-completed" : "chat-completed",
+          published,
+        );
+        const messages = Array.from({ length: 8 }, (_, index) => ({
+          role: index % 2 ? "assistant" : "user",
+          content: `Conversation history entry ${index}`,
+        }));
+        await expect(
+          stream
+            ? llmManager.chatWithMessagesStream(messages, () => {}, {
+                skipCache: true,
+              })
+            : llmManager.chatWithMessages(messages, { skipCache: true }),
+        ).rejects.toBe(refusal);
+        expect(summaryQuery).toHaveBeenCalledOnce();
+        expect(call).not.toHaveBeenCalled();
+        expect(cacheWrite).not.toHaveBeenCalled();
+        expect(published).not.toHaveBeenCalled();
+      },
+    );
+
     it("rejects an unbranded host separately from persisted model settings", () => {
       expect(() => new LLMManager({}, {})).toThrow(/branded Desktop/);
     });
