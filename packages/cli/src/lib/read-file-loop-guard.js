@@ -1,10 +1,5 @@
 import { createHash } from "node:crypto";
-
-const DISCOVERY_TOOLS = new Set([
-  "search_files",
-  "list_dir",
-  "code_intelligence",
-]);
+import { EXPLORATION_TOOLS } from "./task-progress-tracker.js";
 const MAX_FILES = 12;
 
 function keyFor(filePath, args) {
@@ -146,8 +141,16 @@ export class ReadFileLoopGuard {
     return { ...page, readProgress: { newContent } };
   }
 
-  record(tool, result) {
-    if (!this.batch || result?.error) return;
+  record(tool, result, actionable = true) {
+    if (
+      !this.batch ||
+      result?.error ||
+      result?.success === false ||
+      result?.isError === true ||
+      result?.alreadyApplied === true ||
+      result?.changed === false
+    )
+      return;
     if (tool === "read_file") {
       if (result?.readProgress?.newContent === true) this.batch.advanced = true;
       if (result?.readRecovery?.action === "targeted-review")
@@ -171,7 +174,7 @@ export class ReadFileLoopGuard {
         while (this.largeOutputs.size > 64)
           this.largeOutputs.delete(this.largeOutputs.values().next().value);
       }
-    } else if (!DISCOVERY_TOOLS.has(tool)) {
+    } else if (actionable && !EXPLORATION_TOOLS.has(tool)) {
       this.batch.substantive = true;
     }
   }

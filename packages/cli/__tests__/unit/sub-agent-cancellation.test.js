@@ -18,6 +18,7 @@ vi.mock("../../src/lib/agent-core.js", () => ({
 
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
 import { agentLoop } from "../../src/lib/agent-core.js";
+import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
 
 function makeLoop(events) {
   return async function* () {
@@ -27,6 +28,26 @@ function makeLoop(events) {
 
 describe("sub-agent _runCore force-complete preservation", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("inherits root exploration accounting even when child loop options try to replace it", async () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 11; i++)
+      tracker.record("read_file", { readProgress: { newContent: true } });
+    agentLoop.mockImplementation(async function* (_messages, options) {
+      expect(options.taskProgressTracker).toBe(tracker);
+      options.taskProgressTracker.record("search_files", { matches: [] });
+      yield { type: "response-complete", content: "partial findings" };
+    });
+    const ctx = SubAgentContext.create({
+      role: "researcher",
+      task: "inspect the gate",
+      useWorktree: false,
+      taskProgressTracker: tracker,
+    });
+    await ctx.run("go", { taskProgressTracker: new TaskProgressTracker() });
+    expect(tracker.explorationCalls).toBe(12);
+    expect(tracker.intervention).not.toBe(null);
+  });
 
   it("preserves the cancelled result when the abort signal fires mid-loop", async () => {
     agentLoop.mockImplementation(

@@ -528,6 +528,79 @@ describe("VS Code chat reset and tab lifecycle", () => {
 });
 
 describe("VS Code chat action feedback and stale child isolation", () => {
+  it("sends Stop to a live session even when turnActive drifted false", () => {
+    vi.useFakeTimers();
+    const { provider, createSession, posted } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const conv = provider._activeConv();
+    conv.turnActive = false;
+    provider._handleMessage({ type: "interrupt" });
+    expect(createSession.sessions[0].sendEvent).toHaveBeenLastCalledWith({
+      type: "interrupt",
+    });
+    expect(posted.some((m) => m.text === "/stop: no active turn")).toBe(false);
+  });
+
+  it("terminates an unresponsive session after the interrupt grace period", () => {
+    vi.useFakeTimers();
+    const { provider, createSession, posted } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const session = createSession.sessions[0];
+    provider._handleMessage({ type: "interrupt" });
+    expect(session.stop).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(5000);
+    expect(session.stop).toHaveBeenCalledOnce();
+    expect(provider._activeConv().session).toBe(null);
+    expect(posted.at(-1)).toMatchObject({ kind: "turn_end", isError: false });
+    const count = posted.length;
+    session.emit({ type: "tool_use", tool: "read_file" });
+    expect(posted).toHaveLength(count);
+  });
+
+  it("a second Stop terminates immediately instead of endlessly resending", () => {
+    vi.useFakeTimers();
+    const { provider, createSession } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const session = createSession.sessions[0];
+    provider._handleMessage({ type: "interrupt" });
+    provider._handleMessage({ type: "interrupt" });
+    expect(session.stop).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(10000);
+    expect(session.stop).toHaveBeenCalledOnce();
+  });
+
+  it("clears the stop timer on completion and never kills a subsequent turn", () => {
+    vi.useFakeTimers();
+    const { provider, createSession } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const session = createSession.sessions[0];
+    provider._handleMessage({ type: "interrupt" });
+    session.emit({ type: "result", subtype: "interrupted", interrupted: true });
+    provider._handleMessage({ type: "send", text: "continue" });
+    vi.advanceTimersByTime(10000);
+    expect(session.stop).not.toHaveBeenCalled();
+    expect(provider._activeConv().turnActive).toBe(true);
+  });
+
+  it("does not leave a broken interrupt pipe as the only way to stop", () => {
+    const { provider, createSession, posted } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const session = createSession.sessions[0];
+    session.sendEvent.mockReturnValue(false);
+    provider._handleMessage({ type: "interrupt" });
+    expect(session.stop).toHaveBeenCalledOnce();
+    expect(posted.at(-1)).toMatchObject({ kind: "turn_end" });
+  });
+
+  it("stream activity repairs stale active state", () => {
+    const { provider, createSession } = makeProvider();
+    provider._handleMessage({ type: "send", text: "implement the task" });
+    const conv = provider._activeConv();
+    conv.turnActive = false;
+    createSession.sessions[0].emit({ type: "tool_use", tool: "read_file" });
+    expect(conv.turnActive).toBe(true);
+  });
+
   it("reports stop, compact and approve no-ops when there is no active target", () => {
     const { provider, posted } = makeProvider();
 

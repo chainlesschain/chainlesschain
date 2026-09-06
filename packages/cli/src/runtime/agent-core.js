@@ -21,6 +21,10 @@ import {
   buildReadFileOutline,
 } from "../lib/read-file-page.js";
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
+import {
+  TaskProgressTracker,
+  TASK_RECOVERY_TOOLS,
+} from "../lib/task-progress-tracker.js";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
@@ -3641,6 +3645,7 @@ export async function executeTool(name, args, context = {}) {
       hostResourceBudget: context.hostResourceBudget || null,
       readFileCache: context.readFileCache || null,
       readFileLoopGuard: context.readFileLoopGuard || null,
+      taskProgressTracker: context.taskProgressTracker || null,
       // Effective contract of THIS loop (parent ceiling for a nested spawn) +
       // the MCP tool definitions this loop exposes (inheritable by a spawn).
       subAgentContract: context.subAgentContract || null,
@@ -10349,6 +10354,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     ...(ctx.hostResourceBudget
       ? { hostResourceBudget: ctx.hostResourceBudget }
       : {}),
+    ...(ctx.taskProgressTracker
+      ? { taskProgressTracker: ctx.taskProgressTracker }
+      : {}),
     onUsage,
     ...(interaction && typeof interaction.emit === "function"
       ? {
@@ -13390,6 +13398,8 @@ export async function* agentLoop(messages, options) {
   const { HostResourceBudget } = await import("../lib/host-resource-budget.js");
   const hostResourceBudget =
     options.hostResourceBudget || new HostResourceBudget();
+  const taskProgressTracker =
+    options.taskProgressTracker || new TaskProgressTracker();
   const signal = options.signal || null;
   const workflowEffectId = _normalizeWorkflowEffectId(options.workflowEffectId);
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
@@ -13615,6 +13625,7 @@ export async function* agentLoop(messages, options) {
     // the main loop and every nested subagent. A host can tighten these limits
     // by supplying its own budget; otherwise the conservative defaults apply.
     hostResourceBudget,
+    taskProgressTracker,
     // This loop's EFFECTIVE subagent contract (set when this loop IS a spawned
     // sub-agent). Threaded so a nested spawn_sub_agent sees it as the parent
     // ceiling (tighten-only). null at the top level (no ceiling).
@@ -13797,6 +13808,7 @@ export async function* agentLoop(messages, options) {
   let emptyThinkingReprompted = false;
   const readFileLoopGuard = new ReadFileLoopGuard();
   toolContext.readFileLoopGuard = readFileLoopGuard;
+  let lastTaskProgressIntervention = null;
 
   while (budget.hasRemaining()) {
     readFileLoopGuard.finishBatch();
@@ -14342,6 +14354,14 @@ export async function* agentLoop(messages, options) {
           role: "user",
           content: _backgroundSubAgentResultText(entry),
         });
+        taskProgressTracker.retainChildResult(
+          entry.id,
+          {
+            ...entry.outcome?.result,
+            error: entry.outcome?.error,
+          },
+          runId,
+        );
         yield {
           type: "background-sub-agent-result",
           runId,
@@ -14368,18 +14388,42 @@ export async function* agentLoop(messages, options) {
     // whole-file request. This changes discovery for one request only; runtime
     // permissions are untouched and ordinary reads return on the next turn.
     const readRecoveryTurn = readFileLoopGuard.takeRecoveryTurn();
-    const iterationToolOptions = readRecoveryTurn
-      ? {
-          ...effectiveToolOptions,
-          disabledTools: [
-            ...(effectiveToolOptions.disabledTools || []),
-            "read_file",
-          ],
-        }
-      : effectiveToolOptions;
+    const progressIntervention = taskProgressTracker.intervention;
+    const newProgressIntervention =
+      progressIntervention &&
+      progressIntervention.key !== lastTaskProgressIntervention;
+    const taskRecoveryTurn =
+      newProgressIntervention && progressIntervention.recovery;
+    if (newProgressIntervention) {
+      lastTaskProgressIntervention = progressIntervention.key;
+      // Reuse the existing warning event so CLI, REPL and IDE clients all show
+      // the recovery instead of leaving the user with an unexplained spinner.
+      yield {
+        type: "iteration-warning",
+        message:
+          progressIntervention.message +
+          (taskRecoveryTurn
+            ? " Broad reading and new delegation are paused for one model turn."
+            : ""),
+      };
+    }
+    const iterationToolOptions =
+      readRecoveryTurn || taskRecoveryTurn
+        ? {
+            ...effectiveToolOptions,
+            disabledTools: [
+              ...new Set([
+                ...(effectiveToolOptions.disabledTools || []),
+                ...(readRecoveryTurn ? ["read_file"] : []),
+                ...(taskRecoveryTurn ? TASK_RECOVERY_TOOLS : []),
+              ]),
+            ],
+          }
+        : effectiveToolOptions;
     const readContext = [
       readFileLoopGuard.findingsHint,
       readFileLoopGuard.progressHint,
+      taskProgressTracker.checkpointFor(runId),
     ].filter(Boolean);
     if (readContext.length) {
       // Preserve the last conversational turn and never split a tool call
@@ -14424,6 +14468,20 @@ export async function* agentLoop(messages, options) {
       }
     }
     const contextMemoryTrustedSystemIndexes = [];
+    if (progressIntervention) {
+      callMessages = [
+        ...callMessages,
+        {
+          role: "system",
+          content:
+            progressIntervention.guidance +
+            (taskRecoveryTurn
+              ? " One-turn recovery: read_file, list_dir, todo_write, spawn_sub_agent and tool_search are omitted for this request only."
+              : ""),
+        },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
     if (readRecoveryTurn) {
       callMessages = [
         ...callMessages,
@@ -14742,6 +14800,14 @@ export async function* agentLoop(messages, options) {
               _backgroundSubAgentResultText(entry) +
               "\n\nAll background sub-agents have finished. Incorporate their results and give your final answer.",
           });
+          taskProgressTracker.retainChildResult(
+            entry.id,
+            {
+              ...entry.outcome?.result,
+              error: entry.outcome?.error,
+            },
+            runId,
+          );
           yield {
             type: "background-sub-agent-result",
             runId,
@@ -14978,7 +15044,16 @@ export async function* agentLoop(messages, options) {
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
-        readFileLoopGuard.record(call.function.name, toolResult);
+        readFileLoopGuard.record(
+          call.function.name,
+          toolResult,
+          taskProgressTracker.record(
+            call.function.name,
+            toolResult,
+            toolArgs,
+            runId,
+          ),
+        );
         const failed = emitToolHookLifecycle({
           tool: call.function.name,
           args: toolArgs,
@@ -15453,7 +15528,11 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
-        readFileLoopGuard.record(toolName, toolResult);
+        readFileLoopGuard.record(
+          toolName,
+          toolResult,
+          taskProgressTracker.record(toolName, toolResult, toolArgs, runId),
+        );
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
           : resultStr;

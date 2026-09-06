@@ -578,6 +578,7 @@ class ChatViewProvider {
    */
   _stopSession(conv) {
     if (!conv) return false;
+    this._clearInterruptTimer(conv);
     const session = conv.session;
     const pendingInteractions = this._convs.pendingInteractions(conv.id);
     conv._sessionToken = null;
@@ -639,6 +640,11 @@ class ChatViewProvider {
       const conv = this._convs.get(convId);
       if (!conv) return;
       if (sessionToken && conv._sessionToken !== sessionToken) return;
+      // Turn flags can drift after plan acknowledgements or rejected sends.
+      // Actual activity from the current process is stronger evidence.
+      if (["stream_event", "tool_use"].includes(evt?.type)) {
+        conv.turnActive = true;
+      }
       if (evt?.type === "system" && evt.subtype === "init") {
         conv.sessionSlashCommands = Array.isArray(evt.slash_commands)
           ? evt.slash_commands.map((name) => String(name))
@@ -783,6 +789,7 @@ class ChatViewProvider {
         if (changed) this._postTabs();
       }
       if (evt?.type === "result") {
+        this._clearInterruptTimer(conv);
         if (this._convs.clearApproval(convId)) this._postTabs();
         conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
@@ -1476,6 +1483,7 @@ class ChatViewProvider {
         current.sessionSlashCommands = null;
         current.unconfirmedSessionSlashCommands = [];
         current.turnActive = false;
+        this._clearInterruptTimer(current);
         this._convs.setSession(conv.id, null);
         this._indexConversation(current, "stopped");
         this._postFrom(conv.id, { kind: "exited", code });
@@ -3111,11 +3119,39 @@ class ChatViewProvider {
     );
   }
 
+  _clearInterruptTimer(conversation) {
+    if (conversation?._interruptTimer) {
+      clearTimeout(conversation._interruptTimer);
+      conversation._interruptTimer = null;
+    }
+  }
+
+  _forceStopConversation(conversation, reason) {
+    this._stopLoop(conversation.id);
+    this._stopSession(conversation);
+    this._convs.resetTurnState(conversation.id);
+    this._postFrom(conversation.id, {
+      kind: "turn_end",
+      isError: false,
+      text: `⏹ stopped — ${reason}`,
+      usage: null,
+    });
+    return true;
+  }
+
   _interruptConversation(conversation = this._activeConv()) {
-    if (!conversation?.session?.running || !conversation.turnActive) {
+    // A stale UI flag must never veto the user's explicit Stop. The CLI can
+    // decide whether a turn is active; a live but wedged session has a bounded
+    // hard-stop fallback below.
+    if (!conversation?.session?.running) {
       this._post({ kind: "info", text: "/stop: no active turn" });
       return false;
     }
+    if (conversation._interruptTimer) {
+      return this._forceStopConversation(conversation, "Stop pressed again");
+    }
+    this._stopLoop(conversation.id);
+    const session = conversation.session;
 
     const reserved = this._convs
       .pendingInteractions(conversation.id)
@@ -3142,11 +3178,10 @@ class ChatViewProvider {
           "interrupting",
         );
       }
-      this._post({
-        kind: "error",
-        text: "/stop: could not reach the agent session",
-      });
-      return false;
+      return this._forceStopConversation(
+        conversation,
+        "interrupt pipe unavailable",
+      );
     }
 
     let cleared = false;
@@ -3162,6 +3197,20 @@ class ChatViewProvider {
       });
     }
     if (cleared) this._postTabs();
+    this._postFrom(conversation.id, {
+      kind: "info",
+      text: "/stop: interrupt requested; press Stop again to terminate the session",
+    });
+    conversation._interruptTimer = setTimeout(() => {
+      // Completion, closing a tab, and replacing a child all clear the timer.
+      // Also bind the fallback to this exact session so it cannot kill a new one.
+      if (conversation.session !== session) return;
+      this._forceStopConversation(
+        conversation,
+        "agent did not acknowledge interrupt within 5 seconds",
+      );
+    }, 5000);
+    conversation._interruptTimer.unref?.();
     return true;
   }
 
@@ -3272,7 +3321,7 @@ class ChatViewProvider {
             images,
           })
         : session.send(m.text);
-      this._activeConv().turnActive = ok === true;
+      if (ok === true) this._activeConv().turnActive = true;
       if (!ok) {
         this._post({
           kind: "error",

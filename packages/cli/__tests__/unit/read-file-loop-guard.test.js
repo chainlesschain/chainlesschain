@@ -41,6 +41,38 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it.each(["todo_write", "spawn_sub_agent", "notify", "tool_search"])(
+    "%s cannot erase repeated reads or reopen targeted reread allowances",
+    (tool) => {
+      const { guard, batch } = fixture();
+      batch({}, "small");
+      for (let i = 0; i < 6; i++) {
+        batch({}, "small");
+        guard.startBatch();
+        guard.record(tool, { success: true });
+        guard.finishBatch();
+      }
+      expect(guard.repeatedBatches).toBe(6);
+      expect(guard.stalled).toBe(true);
+    },
+  );
+
+  it("failed and already-applied edits do not clear a read loop", () => {
+    const { guard, batch } = fixture();
+    batch({}, "small");
+    batch({}, "small");
+    for (const result of [
+      { success: false },
+      { success: true, alreadyApplied: true },
+      { success: true, changed: false },
+    ]) {
+      guard.startBatch();
+      guard.record("edit_file", result);
+      guard.finishBatch();
+      expect(guard.repeatedBatches).toBe(1);
+    }
+  });
+
   it("detects repeated large dumps across code/shell and timing changes", () => {
     const guard = new ReadFileLoopGuard();
     const output = "same document\n".repeat(1000);

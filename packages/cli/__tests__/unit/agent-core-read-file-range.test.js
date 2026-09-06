@@ -53,6 +53,14 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
     ToolError: "ToolError",
   },
 }));
+vi.mock("../../src/lib/todo-manager.js", () => ({
+  writeTodos: vi.fn(() => ({
+    success: true,
+    count: 1,
+    summary: "plan recorded",
+    revision: 1,
+  })),
+}));
 
 const {
   executeTool,
@@ -74,6 +82,158 @@ describe("read_file offset/limit line ranges", () => {
 
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
+
+  it("recovers broad investigation through compaction, retains the plan and lands a real change", async () => {
+    for (let i = 0; i < 30; i++)
+      writeFileSync(join(dir, `part-${i}.js`), `export const part = ${i};`);
+    let calls = 0;
+    let readIndex = 0;
+    let recovery = false;
+    let wrote = false;
+    let compactions = 0;
+    const warnings = [];
+    const tool = (name, args) => ({
+      message: {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: `call-${calls}`,
+            type: "function",
+            function: {
+              name,
+              arguments: JSON.stringify(args),
+            },
+          },
+        ],
+      },
+    });
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Implement the fix and write result.js" }],
+      {
+        cwd: dir,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        _autoCompactor: {
+          shouldAutoCompact: (messages) => messages.length > 4,
+          compress: async (messages) => ({
+            messages: [messages[0]],
+            stats: {
+              originalMessages: messages.length,
+              compressedMessages: 1,
+              saved: 1,
+            },
+          }),
+        },
+        chatFn: async (messages, options) => {
+          expect(++calls).toBeLessThan(30);
+          if (calls === 1)
+            return tool("todo_write", {
+              todos: [
+                {
+                  content: "Fix the gate, then validate",
+                  status: "in_progress",
+                },
+              ],
+            });
+          const checkpoint = retainedContext(
+            messages,
+            "[Task execution checkpoint",
+          );
+          expect(checkpoint?.content).toContain("Fix the gate");
+          if (wrote) {
+            expect(options.disabledTools || []).not.toContain("read_file");
+            expect(checkpoint?.content).toContain("result.js");
+            return {
+              message: { role: "assistant", content: "Change written" },
+            };
+          }
+          if (options.disabledTools?.includes("read_file")) {
+            recovery = true;
+            expect(options.disabledTools).toEqual(
+              expect.arrayContaining(["todo_write", "spawn_sub_agent"]),
+            );
+            expect(
+              messages.some(
+                (m) =>
+                  m.role === "system" &&
+                  m.content?.includes("smallest justified, authorized change"),
+              ),
+            ).toBe(true);
+            return tool("write_file", {
+              path: "result.js",
+              content: "export const fixed = true;",
+            });
+          }
+          return tool("read_file", { path: `part-${readIndex++}.js` });
+        },
+      },
+    )) {
+      if (event.type === "iteration-warning") warnings.push(event.message);
+      if (event.type === "compaction") compactions++;
+      if (event.type === "tool-result" && event.tool === "write_file") {
+        expect(event.result.error).toBeUndefined();
+        wrote = true;
+      }
+    }
+    expect(recovery).toBe(true);
+    expect(readIndex).toBe(23);
+    expect(compactions).toBeGreaterThan(2);
+    expect(warnings.filter((m) => m.startsWith("Task progress:"))).toHaveLength(
+      2,
+    );
+    expect(fs.readFileSync(join(dir, "result.js"), "utf8")).toBe(
+      "export const fixed = true;",
+    );
+  });
+
+  it("planning between repeated EOF reads cannot evade the incomplete-task stop", async () => {
+    let calls = 0;
+    await expect(
+      (async () => {
+        for await (const _event of agentLoop(
+          [{ role: "user", content: "Implement the fix" }],
+          {
+            cwd: dir,
+            autoCompact: false,
+            contextMemorySkipPlanning: true,
+            chatFn: async () => {
+              expect(++calls).toBeLessThan(16);
+              const planning = calls % 2 === 0;
+              return {
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: `loop-${calls}`,
+                      type: "function",
+                      function: {
+                        name: planning ? "todo_write" : "read_file",
+                        arguments: JSON.stringify(
+                          planning
+                            ? {
+                                todos: [
+                                  {
+                                    content: "read before implementing",
+                                    status: "in_progress",
+                                  },
+                                ],
+                              }
+                            : { path: "f.txt" },
+                        ),
+                      },
+                    },
+                  ],
+                },
+              };
+            },
+          },
+        )) {
+          /* consume the run */
+        }
+      })(),
+    ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_FILE_READ" });
+    expect(calls).toBe(13);
+  });
 
   it("stops repeated full-file code dumps across compaction without skipping executions", async () => {
     const original = _agentToolProcessDeps.runCode;

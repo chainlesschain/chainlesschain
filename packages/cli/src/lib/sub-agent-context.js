@@ -199,6 +199,7 @@ export class SubAgentContext {
     this.iterationBudget = options.iterationBudget || null; // shared budget from parent
     this.sessionBudget = options.sessionBudget || null;
     this.hostResourceBudget = options.hostResourceBudget || null;
+    this.taskProgressTracker = options.taskProgressTracker || null;
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools ?? null; // null = all; [] = none
@@ -643,6 +644,7 @@ export class SubAgentContext {
       subAgentBudget: this.subAgentBudget,
       sessionBudget: this.sessionBudget,
       hostResourceBudget: this.hostResourceBudget,
+      taskProgressTracker: this.taskProgressTracker,
       // This context's effective contract = the ceiling for its nested spawns.
       subAgentContract: this.subAgentContract,
       toolAdmission: this.toolAdmission,
@@ -664,6 +666,7 @@ export class SubAgentContext {
     options.subAgentContract = this.subAgentContract;
     options.sessionBudget = this.sessionBudget;
     options.hostResourceBudget = this.hostResourceBudget;
+    options.taskProgressTracker = this.taskProgressTracker;
     if (this._runAbortController) {
       options.signal = this._runAbortController.signal;
     }
