@@ -1175,6 +1175,56 @@ describe("Agent evolution runtime production composition", () => {
     },
   );
 
+  it.each(["cancelled", "no-response", "budget-exhausted"])(
+    "does not complete sequential Cowork after %s",
+    async (reason) => {
+      const { runCoworkTask } =
+        await import("../../src/lib/cowork-task-runner.js");
+      const f = modelFixture();
+      const controller = new AbortController();
+      if (reason === "cancelled") controller.abort();
+      else
+        f.transport.mockImplementation(async () => ({
+          ok: true,
+          json: async () =>
+            reason === "no-response"
+              ? {}
+              : {
+                  message: {
+                    role: "assistant",
+                    content: "",
+                    tool_calls: [
+                      {
+                        id: "call-budget-1",
+                        type: "function",
+                        function: { name: "unavailable_tool", arguments: {} },
+                      },
+                    ],
+                  },
+                },
+        }));
+      let composition;
+      const result = await runCoworkTask({
+        userMessage: "review this task",
+        cwd: f.root,
+        maxIterations: 1,
+        signal: controller.signal,
+        llmOptions: { ...f.callOptions, evolutionIngress: undefined },
+        evolutionCompositionFactory: async ({ runId }) => {
+          composition = createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        },
+      });
+      expect(result.status).toBe("failed");
+      expect(result.result.incomplete, result.result.summary).toBe(true);
+      expect(composition.loadRun().projection.status).not.toBe("completed");
+      expect(f.transport).toHaveBeenCalledTimes(reason === "cancelled" ? 0 : 1);
+    },
+  );
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({

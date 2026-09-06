@@ -739,12 +739,13 @@ export async function runCoworkTask(options = {}) {
         loopOptions.evolutionIngress = ingress;
       }
       const result = await subAgent.run(userMessage, loopOptions);
-      if (ingress !== null && subAgent.status === "completed") {
+      const status = result?.incomplete === true ? "failed" : subAgent.status;
+      if (ingress !== null && status === "completed") {
         await ingress.complete();
       }
       const entry = {
         taskId,
-        status: subAgent.status,
+        status,
         templateId: template.id,
         templateName: template.name,
         ...(mcpRuntime.sessionId ? { mcpSessionId: mcpRuntime.sessionId } : {}),

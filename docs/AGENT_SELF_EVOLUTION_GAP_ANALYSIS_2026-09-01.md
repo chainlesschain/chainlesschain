@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 顺序 Cowork 终态补强：子 Agent 生命周期的 `completed` 原本也包含 `forceComplete()` 取消/截断，不能等同业务成功。强制结束现返回 `incomplete=true` 与明确 completionReason；core 的 no-response/budget-exhausted 终态保留部分输出并标记未完成。顺序 Cowork 将此结果报告为 failed，禁止调用 ingress.complete。真实 composition 定向验证取消（零模型请求）、空响应、预算耗尽三个路径均不生成 completed Run；同批正常/准入拒绝两条也通过，预算用例补齐工具调用 ID 后单独复验通过。既有单测 134/134、隔离集成 62/62 通过；provider 工具响应缺少 ID 的事件规范化问题仍需单独审计，不以本次带 ID fixture 代表全 provider 验收。
+
 2026-09-06 顺序 Cowork 入口补强：`runCoworkTask` 使用宿主 factory 签发的 branded composition，精确核对 task/Run/tenant 后 start 与记录用户输入，再把同一 ingress 交给子 Agent 模型出口；子 Agent 逐事件等待证据持久化，顺序任务仅在子 Agent completed 且 ingress.complete 成功后返回成功记录。WS 三种 Cowork 模式统一透传宿主 factory，不接受客户端替换。真实 composition 定向测试 2/2 验证正常模型请求脱敏与 durable completed、source admission 拒绝时零模型请求；网络响应仍为固定测试 transport，不代表生产模型或 KMS 验收。MCP 挂载前的演化准入、独立 compact、外部 CLI 内部 provider 调用及其余最终入口仍需继续审计，EVO-P0-4 保持部分完成。
 
 2026-09-06 Cowork debate 接线补充：WebSocket 将宿主 factory 传给 debate runner，后者以 UUID taskId 创建并复核 branded composition 的 Run/tenant 绑定，写入初始输入后把同一 ingress 固定到 reviewer/moderator 的 Cowork chat adapter。输出 evidence 与 completion 都成功后才发送 debate-completed 和完成结果；授权拒绝返回失败。真实组合专项 2/2 覆盖两次模型请求脱敏、成功事件时 durable Run 已完成、来源拒绝零模型调用；Cowork 回归 115/115。顺序 Cowork、独立 compact 和外部 CLI 内部请求仍待审计，尚不能宣称全入口完成。

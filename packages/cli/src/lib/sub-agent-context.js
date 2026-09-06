@@ -1109,6 +1109,13 @@ export class SubAgentContext {
           this._tokenCount += Math.ceil((lastContent.length || 0) / 4);
         }
 
+        if (event.type === "run-ended" && event.reason !== "complete") {
+          this.forceComplete(event.reason || "unknown-terminal-reason", {
+            partialContent: lastContent,
+            artifacts,
+          });
+        }
+
         // Emit progress to consumer if callback provided
         if (this._onProgress) {
           try {
@@ -1305,6 +1312,8 @@ export class SubAgentContext {
             : "";
         this.result = {
           summary: `(Sub-agent force-completed: ${reason})${partialText}`,
+          incomplete: true,
+          completionReason: reason,
           artifacts: Array.isArray(partial.artifacts) ? partial.artifacts : [],
           tokenCount: this._tokenCount,
           toolsUsed: [...new Set(this._toolsUsed)],
