@@ -2660,6 +2660,12 @@ describe("Agent evolution runtime production composition", () => {
       cwd: f.root,
       agentRouter: router,
       evolutionCompositionFactory: factory,
+      // Keep the mocked transport independent of ambient model configuration.
+      llm: {
+        provider: f.callOptions.provider,
+        model: f.callOptions.model,
+        baseUrl: f.callOptions.baseUrl,
+      },
     });
     orchestrator._assertSuccessfulAgentResults = vi.fn();
     const completionStates = [];
