@@ -1144,6 +1144,322 @@ describe("Agent evolution runtime production composition", () => {
     ]);
   });
 
+  it("rejects every standalone Cowork model command at source admission", async () => {
+    const f = modelFixture();
+    f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+      new Error("source denied"),
+    );
+    const compositions = [];
+    const factory = vi.fn(async ({ runId }) => {
+      const composition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const previousExitCode = process.exitCode;
+    const exit = vi.spyOn(process, "exit").mockImplementation((code) => {
+      process.exitCode = code;
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cases = [
+      {
+        mode: "cowork-debate",
+        exitCode: 1,
+        args: [
+          "cowork",
+          "debate",
+          "review owner@example.com",
+          "--perspectives",
+          "security",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        mode: "cowork-compare",
+        exitCode: 1,
+        args: [
+          "cowork",
+          "compare",
+          "compare owner@example.com",
+          "--variants",
+          "1",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        mode: "cowork-analyze-style",
+        exitCode: 1,
+        args: [
+          "cowork",
+          "analyze",
+          f.root,
+          "--type",
+          "style",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        mode: "cowork-analyze-decisions",
+        exitCode: 1,
+        args: [
+          "cowork",
+          "analyze",
+          f.root,
+          "--type",
+          "decisions",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        mode: "cowork-workflow-draft",
+        exitCode: 2,
+        args: [
+          "cowork",
+          "workflow",
+          "draft",
+          "draft for owner@example.com",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+    ];
+
+    try {
+      for (const testCase of cases) {
+        process.exitCode = undefined;
+        const program = new Command();
+        program.exitOverride();
+        registerCoworkCommand(program, {
+          evolutionCompositionFactory: factory,
+        });
+        await program.parseAsync(["node", "cc", ...testCase.args]);
+        expect(process.exitCode).toBe(testCase.exitCode);
+        expect(factory.mock.calls.at(-1)[0]).toMatchObject({
+          mode: testCase.mode,
+          runId: expect.stringMatching(new RegExp(`^${testCase.mode}-`, "u")),
+        });
+        expect(JSON.stringify(factory.mock.calls.at(-1)[0])).not.toContain(
+          "owner@example.com",
+        );
+      }
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      process.exitCode = previousExitCode;
+    }
+
+    expect(factory).toHaveBeenCalledTimes(cases.length);
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(compositions).toHaveLength(cases.length);
+    for (const composition of compositions) {
+      expect(composition.loadRun().projection.status).not.toBe("completed");
+      expect(
+        composition.loadRun().events.map((event) => event.data?.evidenceKind),
+      ).toEqual([undefined]);
+    }
+  });
+
+  it("does not complete or print standalone Cowork success after response evidence denial", async () => {
+    const f = modelFixture();
+    fs.writeFileSync(
+      path.join(f.root, "sample.js"),
+      "export const ok = true;\n",
+    );
+    fs.writeFileSync(
+      path.join(f.root, "README.md"),
+      "# Decisions\nUse JavaScript modules for the CLI.\n",
+    );
+    const issue =
+      f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+    f.config.authorities.sourceEnvelope.issue.mockImplementation((input) => {
+      if (input.kind === "response-completed") {
+        throw new Error("response evidence denied");
+      }
+      return issue(input);
+    });
+    const compositions = [];
+    const factory = vi.fn(async ({ runId }) => {
+      const composition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const workflowDefinition = {
+      id: "denied-workflow",
+      name: "Denied workflow",
+      steps: [{ id: "review", message: "Review the release" }],
+      facade: {
+        requirements: {
+          capabilities: ["cowork-task", "dag", "variables"],
+          executionLocations: ["local"],
+          permissions: {
+            file: "read",
+            shell: false,
+            network: false,
+            mcp: false,
+            externalSystems: false,
+          },
+          sandbox: "strong",
+          dataBoundary: "repository",
+          credentials: [],
+        },
+        estimates: {
+          tokensPerTask: 100,
+          usdPerTask: 0.01,
+          durationMsPerTask: 1000,
+        },
+        budget: {
+          maxExpandedTasks: 4,
+          maxParallel: 1,
+          maxTokens: 500,
+          maxUsd: 1,
+          maxDurationMs: 5000,
+        },
+      },
+    };
+    const cases = [
+      {
+        expectedCalls: 2,
+        content:
+          "## Verdict\nAPPROVE\nFinal Verdict: APPROVE\nConsensus Score: 90",
+        args: [
+          "cowork",
+          "debate",
+          "review this topic",
+          "--perspectives",
+          "security",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        expectedCalls: 2,
+        content:
+          "SCORES:\nVariant 1 (conservative): quality=8, performance=8, readability=8\nRANKING: conservative\nWINNER: conservative\nREASON: Good.",
+        args: [
+          "cowork",
+          "compare",
+          "compare approaches",
+          "--variants",
+          "1",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        expectedCalls: 1,
+        content: "Use camelCase and ES modules.",
+        args: [
+          "cowork",
+          "analyze",
+          f.root,
+          "--type",
+          "style",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        expectedCalls: 1,
+        content:
+          "### Decision: ES modules\n- **Status**: accepted\n- **Context**: CLI modules\n- **Decision**: Use ESM\n- **Consequences**: Explicit imports",
+        args: [
+          "cowork",
+          "analyze",
+          f.root,
+          "--type",
+          "decisions",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+      {
+        expectedCalls: 1,
+        content: JSON.stringify(workflowDefinition),
+        args: [
+          "cowork",
+          "workflow",
+          "draft",
+          "draft a workflow",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+        ],
+      },
+    ];
+    const previousExitCode = process.exitCode;
+    const exit = vi.spyOn(process, "exit").mockImplementation((code) => {
+      process.exitCode = code;
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      for (const testCase of cases) {
+        process.exitCode = undefined;
+        f.transport.mockReset();
+        f.transport.mockImplementation(async (_url, request) => {
+          f.seen.push(JSON.parse(request.body));
+          return {
+            ok: true,
+            json: async () => ({
+              message: { role: "assistant", content: testCase.content },
+            }),
+          };
+        });
+        const program = new Command();
+        program.exitOverride();
+        registerCoworkCommand(program, {
+          evolutionCompositionFactory: factory,
+        });
+        await program.parseAsync(["node", "cc", ...testCase.args]);
+        expect(f.transport).toHaveBeenCalledTimes(testCase.expectedCalls);
+        expect(process.exitCode).toBe(testCase.args.includes("draft") ? 2 : 1);
+      }
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+      log.mockRestore();
+      process.exitCode = previousExitCode;
+    }
+
+    expect(factory).toHaveBeenCalledTimes(cases.length);
+    expect(log).not.toHaveBeenCalled();
+    expect(compositions).toHaveLength(cases.length);
+    for (const composition of compositions) {
+      const loaded = composition.loadRun();
+      expect(loaded.projection.status).not.toBe("completed");
+      expect(loaded.events.at(-1).type).not.toBe("run-completed");
+    }
+  });
+
   it("binds orchestrator decomposition and dispatch to one production composition", async () => {
     const f = modelFixture();
     const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
