@@ -9,6 +9,14 @@ const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const { getBGERerankerClient } = require("./bge-reranker-client");
 
+function assertGovernedRerankerIngress() {
+  const error = new Error(
+    "External reranker requests require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class Reranker extends EventEmitter {
   constructor(llmManager) {
     super();
@@ -92,6 +100,7 @@ class Reranker extends EventEmitter {
 
       return filtered;
     } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error("[Reranker] 重排序失败:", error);
       this.emit("rerank-error", { query, error });
       // 失败时返回原始结果
@@ -206,6 +215,8 @@ ${docList}
    * 支持远程API和本地关键词回退
    */
   async rerankWithCrossEncoder(query, documents, topK) {
+    assertGovernedRerankerIngress();
+
     // 尝试调用远程CrossEncoder API
     try {
       const crossEncoderUrl =
@@ -396,6 +407,8 @@ ${docList}
    * @returns {Promise<Array>} 重排序后的文档列表
    */
   async rerankWithBGE(query, documents, topK) {
+    assertGovernedRerankerIngress();
+
     try {
       const client = this._initBGEClient();
 
@@ -428,6 +441,8 @@ ${docList}
    * @returns {Promise<Array>} 重排序后的文档列表
    */
   async rerankWithBGEHybrid(query, documents, topK) {
+    assertGovernedRerankerIngress();
+
     try {
       const client = this._initBGEClient();
 
