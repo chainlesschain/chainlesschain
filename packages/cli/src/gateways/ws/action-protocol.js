@@ -54,20 +54,13 @@ export async function handleCoworkTask(server, id, ws, message) {
       files,
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
-      ...(useDebate
-        ? {
-            evolutionCompositionFactory:
-              server.evolutionCompositionFactory ?? null,
-          }
-        : {}),
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
       signal: ac.signal,
       ...(message.mcpSessionId ? { mcpSessionId: message.mcpSessionId } : {}),
       ...(useParallel
         ? {
             agents: message.agents || 3,
             strategy: message.strategy,
-            evolutionCompositionFactory:
-              server.evolutionCompositionFactory ?? null,
           }
         : {}),
       ...(useDebate && message.perspectives

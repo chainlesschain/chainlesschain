@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 顺序 Cowork 入口补强：`runCoworkTask` 使用宿主 factory 签发的 branded composition，精确核对 task/Run/tenant 后 start 与记录用户输入，再把同一 ingress 交给子 Agent 模型出口；子 Agent 逐事件等待证据持久化，顺序任务仅在子 Agent completed 且 ingress.complete 成功后返回成功记录。WS 三种 Cowork 模式统一透传宿主 factory，不接受客户端替换。真实 composition 定向测试 2/2 验证正常模型请求脱敏与 durable completed、source admission 拒绝时零模型请求；网络响应仍为固定测试 transport，不代表生产模型或 KMS 验收。MCP 挂载前的演化准入、独立 compact、外部 CLI 内部 provider 调用及其余最终入口仍需继续审计，EVO-P0-4 保持部分完成。
+
 2026-09-06 Cowork debate 接线补充：WebSocket 将宿主 factory 传给 debate runner，后者以 UUID taskId 创建并复核 branded composition 的 Run/tenant 绑定，写入初始输入后把同一 ingress 固定到 reviewer/moderator 的 Cowork chat adapter。输出 evidence 与 completion 都成功后才发送 debate-completed 和完成结果；授权拒绝返回失败。真实组合专项 2/2 覆盖两次模型请求脱敏、成功事件时 durable Run 已完成、来源拒绝零模型调用；Cowork 回归 115/115。顺序 Cowork、独立 compact 和外部 CLI 内部请求仍待审计，尚不能宣称全入口完成。
 
 2026-09-06 Cowork 并行入口补充：WebSocket 在选择 parallel runner 时传递宿主 `evolutionCompositionFactory`，`runCoworkTaskParallel` 继续传给 Orchestrator，从而沿用逐任务 Run 认证、投影和 completion 时序。客户端消息中的 factory 不会覆盖宿主；runner 对 admission 异常保留 `failed` 结果。Cowork runner/action protocol 115/115 通过，测试验证两个转发接点与失败状态（不是外部 Agent 内部模型调用的真实验收）；静态检查 0 error。顺序与 debate Cowork 的独立执行器尚未完成这条宿主接线，仍为仓库内余项。

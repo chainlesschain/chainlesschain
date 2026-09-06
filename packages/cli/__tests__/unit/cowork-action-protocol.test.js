@@ -195,7 +195,10 @@ describe("handleCoworkTask (action-protocol)", () => {
   });
 
   it("calls runCoworkTask with correct parameters", async () => {
+    const hostFactory = vi.fn();
+    server.evolutionCompositionFactory = hostFactory;
     await handleCoworkTask(server, "req-4", ws, {
+      evolutionCompositionFactory: vi.fn(),
       templateId: "media-process",
       userMessage: "压缩视频",
       files: ["/tmp/video.mp4"],
@@ -207,6 +210,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       files: ["/tmp/video.mp4"],
       cwd: "/test/project",
       llmOptions: {},
+      evolutionCompositionFactory: hostFactory,
       onProgress: expect.any(Function),
       signal: expect.any(AbortSignal),
     });

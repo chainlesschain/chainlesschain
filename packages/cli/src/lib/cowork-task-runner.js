@@ -554,6 +554,7 @@ export async function runCoworkTask(options = {}) {
     onToolCallBoundary = null,
     onToolCallSettlement = null,
     approveMcpLocalCodeExecution = null,
+    evolutionCompositionFactory = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
@@ -708,7 +709,39 @@ export async function runCoworkTask(options = {}) {
 
     // Run the agent with the user's message
     try {
+      let ingress = null;
+      if (evolutionCompositionFactory !== null) {
+        const composition = captureAgentEvolutionRuntimeComposition(
+          await evolutionCompositionFactory(
+            Object.freeze({
+              mode: "cowork-sequential",
+              runId: taskId,
+              taskId,
+              cwd,
+            }),
+          ),
+        );
+        ingress = composition.evolutionIngress;
+        if (
+          composition.runId !== taskId ||
+          ingress.runId !== taskId ||
+          composition.tenantId !== ingress.tenantId
+        ) {
+          throw new Error(
+            "Cowork evolution composition is not bound to the requested Run",
+          );
+        }
+        await ingress.start();
+        await ingress.ingestUserPrompt({
+          content: userMessage,
+          source: "cowork-sequential",
+        });
+        loopOptions.evolutionIngress = ingress;
+      }
       const result = await subAgent.run(userMessage, loopOptions);
+      if (ingress !== null && subAgent.status === "completed") {
+        await ingress.complete();
+      }
       const entry = {
         taskId,
         status: subAgent.status,

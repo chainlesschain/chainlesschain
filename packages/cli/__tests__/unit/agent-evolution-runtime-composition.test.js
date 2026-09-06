@@ -1142,6 +1142,39 @@ describe("Agent evolution runtime production composition", () => {
     },
   );
 
+  it.each([false, true])(
+    "governs actual sequential Cowork admission and completion (denied=%s)",
+    async (denied) => {
+      const { runCoworkTask } =
+        await import("../../src/lib/cowork-task-runner.js");
+      const f = modelFixture();
+      if (denied)
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+          new Error("source denied"),
+        );
+      let composition;
+      const result = await runCoworkTask({
+        userMessage: "review owner@example.com",
+        cwd: f.root,
+        llmOptions: { ...f.callOptions, evolutionIngress: undefined },
+        evolutionCompositionFactory: async ({ runId, mode }) => {
+          expect(mode).toBe("cowork-sequential");
+          composition = createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        },
+      });
+      expect(result.status).toBe(denied ? "failed" : "completed");
+      expect(f.transport).toHaveBeenCalledTimes(denied ? 0 : 1);
+      expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+      expect(composition.loadRun().projection.status === "completed").toBe(
+        !denied,
+      );
+    },
+  );
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({

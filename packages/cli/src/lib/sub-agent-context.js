@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import { agentLoop, buildSystemPrompt, AGENT_TOOLS } from "./agent-core.js";
 import { feature } from "./feature-flags.js";
+import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 import {
   createWorktree,
   removeWorktree,
@@ -875,12 +876,21 @@ export class SubAgentContext {
       options.approvalGate = this._approvalGate;
     }
 
+    const evolutionIngress =
+      options.evolutionIngress == null
+        ? null
+        : captureAgentEvolutionIngress(options.evolutionIngress);
+    if (evolutionIngress !== null) options.evolutionIngress = evolutionIngress;
+
     try {
       // Use a separate messages array for the agent loop
       // The agentLoop will append to this.messages directly
       const gen = agentLoop(this.messages, options);
 
       for await (const event of gen) {
+        if (evolutionIngress !== null) {
+          await evolutionIngress.ingestAgentEvent(event);
+        }
         this._iterationCount++;
 
         if (event.type === "run-started" && event.runId) {
