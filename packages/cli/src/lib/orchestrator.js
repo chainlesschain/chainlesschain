@@ -26,6 +26,7 @@ import crypto from "crypto";
 import { AgentRouter } from "./agent-router.js";
 import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
+import { captureAgentEvolutionRuntimeComposition } from "./evolution/agent-evolution-runtime-composition-brand.js";
 import { firstBalancedJson } from "./json-schema-output.js";
 import {
   assertCLILegacyMutationAllowed,
@@ -98,6 +99,15 @@ export class Orchestrator extends EventEmitter {
     this.maxRetries = options.maxRetries || 3;
     this.ciCommand = options.ciCommand || "npm test";
     this.verbose = options.verbose || false;
+    this._evolutionCompositionFactory =
+      options.evolutionCompositionFactory ?? null;
+    if (
+      this._evolutionCompositionFactory !== null &&
+      typeof this._evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
+    }
+    this._llmOptions = options.llm || {};
 
     // Cap retained task history. Every addTask stores a record in _tasks and
     // nothing ever removes it, so a long-running orchestrator (cron-watch /
@@ -141,7 +151,7 @@ export class Orchestrator extends EventEmitter {
     this.notifier =
       options.notifier || NotificationManager.fromEnv(options.notify || {});
 
-    this._chat = createChatFn(options.llm || {});
+    this._chat = createChatFn(this._llmOptions);
     this._cronTimer = null;
 
     // Forward router events
@@ -210,7 +220,57 @@ export class Orchestrator extends EventEmitter {
         .catch(() => {});
     }
 
-    await this._orchestrate(task);
+    let evolutionComposition = null;
+    if (this._evolutionCompositionFactory !== null) {
+      evolutionComposition = captureAgentEvolutionRuntimeComposition(
+        await this._evolutionCompositionFactory(
+          Object.freeze({
+            mode: "orchestrate",
+            runId: task.id,
+            taskId: task.id,
+            source: task.source,
+            cwd: task.cwd,
+          }),
+        ),
+      );
+      if (
+        evolutionComposition.runId !== task.id ||
+        evolutionComposition.evolutionIngress.runId !== task.id ||
+        evolutionComposition.evolutionIngress.tenantId !==
+          evolutionComposition.tenantId
+      ) {
+        const error = new Error(
+          "Orchestrator evolution composition is not bound to the requested Run",
+        );
+        error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw error;
+      }
+      await evolutionComposition.evolutionIngress.start();
+      await evolutionComposition.evolutionIngress.ingestUserPrompt({
+        content: task.description,
+        context: task.context,
+        taskId: task.id,
+        source: `orchestrate:${task.source}`,
+      });
+    }
+
+    await this._orchestrate(
+      task,
+      evolutionComposition?.evolutionIngress ?? null,
+    );
+    if (
+      evolutionComposition !== null &&
+      task.status === TASK_STATUS.COMPLETED
+    ) {
+      try {
+        await evolutionComposition.evolutionIngress.complete();
+      } catch (error) {
+        task.status = TASK_STATUS.FAILED;
+        task.error = error.message;
+        this.emit("task:failed", { task, error });
+        throw error;
+      }
+    }
     return task;
   }
 
@@ -257,20 +317,20 @@ export class Orchestrator extends EventEmitter {
 
   // ─── Orchestration pipeline ──────────────────────────────────────
 
-  async _orchestrate(task) {
+  async _orchestrate(task, evolutionIngress = null) {
     assertCLILegacyMutationAllowed("Orchestrator._orchestrate");
     try {
       // Step 1: Decompose
-      task.subtasks = await this._decompose(task);
+      task.subtasks = await this._decompose(task, evolutionIngress);
       task.status = TASK_STATUS.DISPATCHED;
 
       // Step 2: Dispatch to Claude Code agents
-      task.agentResults = await this._dispatch(task);
+      task.agentResults = await this._dispatch(task, evolutionIngress);
       this._assertSuccessfulAgentResults(task);
 
       // Step 3: CI/CD check
       if (task.runCI) {
-        await this._ciLoop(task);
+        await this._ciLoop(task, evolutionIngress);
       } else {
         task.status = TASK_STATUS.COMPLETED;
         task.completedAt = new Date().toISOString();
@@ -285,7 +345,7 @@ export class Orchestrator extends EventEmitter {
   }
 
   /** LLM-driven task decomposition into coding subtasks. */
-  async _decompose(task) {
+  async _decompose(task, evolutionIngress = null) {
     assertCLILegacyMutationAllowed("Orchestrator._decompose");
     task.status = TASK_STATUS.DECOMPOSING;
     this.emit("task:decomposing", task);
@@ -302,7 +362,14 @@ export class Orchestrator extends EventEmitter {
       (task.context ? `\nAdditional context:\n${task.context}` : "");
 
     try {
-      const raw = await this._chat(
+      const chat =
+        evolutionIngress === null
+          ? this._chat
+          : createChatFn({
+              ...this._llmOptions,
+              evolutionIngress,
+            });
+      const raw = await chat(
         [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMsg },
@@ -317,7 +384,8 @@ export class Orchestrator extends EventEmitter {
       this.emit("task:decomposed", { task, subtasks });
       this._log(`Decomposed into ${subtasks.length} subtask(s)`);
       return subtasks;
-    } catch {
+    } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       // Fallback: treat whole task as single subtask
       const fallback = [
         { id: "sub-1", description: task.description, context: task.context },
@@ -328,7 +396,7 @@ export class Orchestrator extends EventEmitter {
   }
 
   /** Dispatch subtasks to the Claude Code pool. */
-  async _dispatch(task) {
+  async _dispatch(task, evolutionIngress = null) {
     assertCLILegacyMutationAllowed("Orchestrator._dispatch");
     this.emit("agents:dispatched", { task, count: task.subtasks.length });
     this._log(
@@ -337,13 +405,14 @@ export class Orchestrator extends EventEmitter {
 
     const results = await this._router.dispatch(task.subtasks, {
       cwd: task.cwd,
+      ...(evolutionIngress === null ? {} : { evolutionIngress }),
     });
     this.emit("agents:complete", { task, results });
     return results;
   }
 
   /** Run CI command and retry loop. */
-  async _ciLoop(task) {
+  async _ciLoop(task, evolutionIngress = null) {
     assertCLILegacyMutationAllowed("Orchestrator._ciLoop");
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       task.status = TASK_STATUS.CI_CHECKING;
@@ -409,6 +478,7 @@ export class Orchestrator extends EventEmitter {
 
       task.agentResults = await this._router.dispatch(fixSubtasks, {
         cwd: task.cwd,
+        ...(evolutionIngress === null ? {} : { evolutionIngress }),
       });
       this._assertSuccessfulAgentResults(task);
       this.emit("agents:complete", { task, results: task.agentResults });

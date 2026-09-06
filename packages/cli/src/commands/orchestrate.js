@@ -16,7 +16,9 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
 
-export function registerOrchestrateCommand(program) {
+export function registerOrchestrateCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    dependencies.evolutionCompositionFactory ?? null;
   const cmd = program
     .command("orchestrate [task]")
     .description(
@@ -122,13 +124,13 @@ export function registerOrchestrateCommand(program) {
 
     // --watch mode
     if (options.watch) {
-      await _watchMode(cwd, options);
+      await _watchMode(cwd, options, evolutionCompositionFactory);
       return;
     }
 
     // --webhook mode: start HTTP server to receive commands from IM platforms
     if (options.webhook) {
-      await _webhookMode(cwd, options);
+      await _webhookMode(cwd, options, evolutionCompositionFactory);
       return;
     }
 
@@ -177,6 +179,7 @@ export function registerOrchestrateCommand(program) {
         ? { provider: options.provider, model: options.model }
         : {},
       verbose: options.verbose,
+      evolutionCompositionFactory,
     });
 
     if (options.json) {
@@ -520,7 +523,7 @@ async function _showStatus(cwd, options) {
 
 // ─── Webhook mode (receive commands from IM platforms) ─────────────
 
-async function _webhookMode(cwd, options) {
+async function _webhookMode(cwd, options, evolutionCompositionFactory = null) {
   const { createServer } = await import("http");
   const { parseDingTalkIncoming, parseFeishuIncoming, parseWeComIncoming } =
     await import("../lib/notifiers/index.js");
@@ -529,7 +532,11 @@ async function _webhookMode(cwd, options) {
 
   const port = parseInt(options.webhookPort, 10) || 18820;
 
-  const orch = new Orchestrator({ cwd, verbose: options.verbose });
+  const orch = new Orchestrator({
+    cwd,
+    verbose: options.verbose,
+    evolutionCompositionFactory,
+  });
   const secretEnvironmentName =
     options.webhookSecretEnv || "CC_ORCHESTRATE_WEBHOOK_SECRET";
   if (!/^[A-Z_][A-Z0-9_]{0,127}$/u.test(secretEnvironmentName)) {
@@ -738,11 +745,15 @@ async function _webhookMode(cwd, options) {
 
 // ─── Watch mode ──────────────────────────────────────────────────
 
-async function _watchMode(cwd, options) {
+async function _watchMode(cwd, options, evolutionCompositionFactory = null) {
   const { Orchestrator } = await import("../lib/orchestrator.js");
   const intervalMs = parseInt(options.interval, 10) * 60_000 || 600_000;
 
-  const orch = new Orchestrator({ cwd, verbose: options.verbose });
+  const orch = new Orchestrator({
+    cwd,
+    verbose: options.verbose,
+    evolutionCompositionFactory,
+  });
   orch.startCronWatch(intervalMs);
 
   orch.on("cron:tick", ({ at }) => {

@@ -133,6 +133,25 @@ describe("signed evolution deployment loader", () => {
     },
   );
 
+  it.each(["agent", "orchestrate", "serve"])(
+    "exposes the Agent runtime composition only to an authenticated %s deployment",
+    async (commandName) => {
+      const fixture = deploymentFixture({ commands: [commandName] });
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...fixture,
+          importModule: async () => ({
+            createChainlessChainCommandDependencies: async ({ factories }) => ({
+              compositionFactoryAvailable:
+                typeof factories.createAgentEvolutionRuntimeComposition ===
+                "function",
+            }),
+          }),
+        }),
+      ).resolves.toEqual({ compositionFactoryAvailable: true });
+    },
+  );
+
   it("loads exact-digest deployment dependencies after Ed25519 verification", async () => {
     const fixture = deploymentFixture();
     const factory = vi.fn(async ({ commandName, descriptor, factories }) => ({

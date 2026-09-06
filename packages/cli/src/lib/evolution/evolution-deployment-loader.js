@@ -12,6 +12,7 @@ const SUPPORTED_COMMANDS = new Set([
   "desktop",
   "evolution",
   "marketplace",
+  "orchestrate",
   "serve",
 ]);
 
@@ -273,7 +274,11 @@ async function loadBuiltInFactories(commandName) {
         new GovernedKnowledgeQuarantineReleaseLedger(options),
     });
   }
-  if (commandName === "agent" || commandName === "serve") {
+  if (
+    commandName === "agent" ||
+    commandName === "orchestrate" ||
+    commandName === "serve"
+  ) {
     const { createAgentEvolutionRuntimeComposition } =
       await import("./agent-evolution-runtime-composition.js");
     factories.createAgentEvolutionRuntimeComposition =

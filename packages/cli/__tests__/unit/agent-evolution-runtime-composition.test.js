@@ -57,6 +57,8 @@ import { compactConversationWithProvider } from "../../src/harness/provider-back
 import { WSAgentHandler } from "../../src/gateways/ws/ws-agent-handler.js";
 import { createChatFn } from "../../src/lib/cowork-adapter.js";
 import { AdvisorRuntime } from "../../src/lib/advisor-runtime.js";
+import { AgentRouter, BACKEND_TYPE } from "../../src/lib/agent-router.js";
+import { Orchestrator, TASK_STATUS } from "../../src/lib/orchestrator.js";
 import { runBtwQuestion } from "../../src/repl/btw-command.js";
 import { startDebate } from "../../src/lib/cowork/debate-review-cli.js";
 import { compare } from "../../src/lib/cowork/ab-comparator-cli.js";
@@ -939,6 +941,125 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  it("projects external AgentRouter CLI prompts through the durable Run boundary", async () => {
+    const f = modelFixture();
+    const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+    const pool = {
+      dispatch: vi.fn(async ([task]) => [
+        {
+          taskId: task.id,
+          success: false,
+          status: "simulated",
+          output: "",
+          terminalEvidence: [],
+        },
+      ]),
+      on: vi.fn(),
+    };
+    const router = new AgentRouter({ backends: [] });
+    router._backends = [
+      {
+        type: BACKEND_TYPE.CLAUDE,
+        isCLI: true,
+        weight: 1,
+        _pool: pool,
+        timeout: 30_000,
+      },
+    ];
+    await f.composition.evolutionIngress.start();
+    await f.composition.evolutionIngress.ingestUserPrompt({
+      content: `repair with ${secret}`,
+      source: "orchestrate:test",
+    });
+
+    await router.dispatch(
+      [
+        {
+          id: "sub-1",
+          description: `repair with ${secret}`,
+          context: "contact owner@example.com",
+        },
+      ],
+      {
+        cwd: f.root,
+        evolutionIngress: f.composition.evolutionIngress,
+      },
+    );
+
+    const dispatched = pool.dispatch.mock.calls[0][0][0];
+    expect(dispatched.context).toBe("");
+    expect(dispatched.description).toContain("[REDACTED:");
+    expect(dispatched.description).not.toContain(secret);
+    expect(dispatched.description).not.toContain("owner@example.com");
+    expect(
+      f.composition.loadRun().events.map((event) => event.data?.evidenceKind),
+    ).toEqual([undefined, "user-prompt", "model-input"]);
+  });
+
+  it("binds orchestrator decomposition and dispatch to one production composition", async () => {
+    const f = modelFixture();
+    const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+    f.transport.mockImplementation(async (_url, request) => {
+      f.seen.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({
+          message: {
+            role: "assistant",
+            content: JSON.stringify([
+              { id: "sub-1", description: "apply projected repair" },
+            ]),
+          },
+        }),
+      };
+    });
+    const router = {
+      on: vi.fn(),
+      summary: vi.fn(() => [{ type: "test", kind: "cli", weight: 1 }]),
+      dispatch: vi.fn(async () => []),
+    };
+    let turnComposition = null;
+    const factory = vi.fn(async ({ runId }) => {
+      turnComposition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      return turnComposition;
+    });
+    const orchestrator = new Orchestrator({
+      cwd: f.root,
+      agentRouter: router,
+      evolutionCompositionFactory: factory,
+    });
+    orchestrator._assertSuccessfulAgentResults = vi.fn();
+
+    const task = await orchestrator.addTask(`repair with ${secret}`, {
+      runCI: false,
+      notify: false,
+    });
+
+    expect(task.status).toBe(TASK_STATUS.COMPLETED);
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory.mock.calls[0][0]).toMatchObject({
+      mode: "orchestrate",
+      runId: task.id,
+      taskId: task.id,
+      source: "cli",
+      cwd: f.root,
+    });
+    expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+    expect(router.dispatch).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({
+        cwd: f.root,
+        evolutionIngress: turnComposition.evolutionIngress,
+      }),
+    );
+    expect(JSON.stringify(f.seen)).toContain("[REDACTED:");
+    expect(JSON.stringify(f.seen)).not.toContain(secret);
+    expect(turnComposition.loadRun().projection.status).toBe("completed");
+  });
 
   function queryMeter(records) {
     return async ({ call, provider, model }) => {

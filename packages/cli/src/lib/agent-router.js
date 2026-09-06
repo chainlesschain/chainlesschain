@@ -32,6 +32,7 @@ import {
   detectCodex,
 } from "./claude-code-bridge.js";
 import { createChatFn } from "./cowork-adapter.js";
+import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 
 const { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;
@@ -122,9 +123,23 @@ function detectTaskType(description) {
  * through ChainlessChain's existing llm-providers infrastructure.
  */
 async function executeViaAPI(task, options) {
-  const { provider, model, apiKey, baseUrl, cwd, timeout = 120_000 } = options;
+  const {
+    provider,
+    model,
+    apiKey,
+    baseUrl,
+    cwd,
+    timeout = 120_000,
+    evolutionIngress = null,
+  } = options;
 
-  const chat = createChatFn({ provider, model, apiKey, baseUrl });
+  const chat = createChatFn({
+    provider,
+    model,
+    apiKey,
+    baseUrl,
+    ...(evolutionIngress === null ? {} : { evolutionIngress }),
+  });
 
   const systemPrompt =
     "You are an expert software engineer. Implement the requested changes precisely. " +
@@ -232,6 +247,10 @@ export class AgentRouter extends EventEmitter {
    */
   async dispatch(subtasks, options = {}) {
     const { cwd = process.cwd() } = options;
+    const evolutionIngress =
+      options.evolutionIngress == null
+        ? null
+        : captureAgentEvolutionIngress(options.evolutionIngress);
 
     if (this._backends.length === 0) {
       throw new Error(
@@ -241,31 +260,31 @@ export class AgentRouter extends EventEmitter {
 
     switch (this.strategy) {
       case "parallel-all":
-        return this._dispatchParallelAll(subtasks, { cwd });
+        return this._dispatchParallelAll(subtasks, { cwd, evolutionIngress });
       case "by-type":
-        return this._dispatchByType(subtasks, { cwd });
+        return this._dispatchByType(subtasks, { cwd, evolutionIngress });
       case "primary":
-        return this._dispatchPrimary(subtasks, { cwd });
+        return this._dispatchPrimary(subtasks, { cwd, evolutionIngress });
       default: // round-robin
-        return this._dispatchRoundRobin(subtasks, { cwd });
+        return this._dispatchRoundRobin(subtasks, { cwd, evolutionIngress });
     }
   }
 
   // ─── Strategies ────────────────────────────────────────────────
 
   /** Round-robin: distribute tasks evenly across all backends. */
-  async _dispatchRoundRobin(subtasks, { cwd }) {
+  async _dispatchRoundRobin(subtasks, { cwd, evolutionIngress }) {
     // Assign each subtask a backend
     const assignments = subtasks.map((task) => {
       const backend = this._weightedNext();
       return { task, backend };
     });
 
-    return this._runAssignments(assignments, { cwd });
+    return this._runAssignments(assignments, { cwd, evolutionIngress });
   }
 
   /** By-type: route task to the best backend for its type. */
-  async _dispatchByType(subtasks, { cwd }) {
+  async _dispatchByType(subtasks, { cwd, evolutionIngress }) {
     const assignments = subtasks.map((task) => {
       const taskType = task.type || detectTaskType(task.description);
       const preferredType = TASK_TYPE_ROUTING[taskType];
@@ -273,14 +292,17 @@ export class AgentRouter extends EventEmitter {
       return { task, backend };
     });
 
-    return this._runAssignments(assignments, { cwd });
+    return this._runAssignments(assignments, { cwd, evolutionIngress });
   }
 
   /** Primary: all tasks go to first backend; fallback on failure. */
-  async _dispatchPrimary(subtasks, { cwd }) {
+  async _dispatchPrimary(subtasks, { cwd, evolutionIngress }) {
     const primary = this._backends[0];
     const assignments = subtasks.map((task) => ({ task, backend: primary }));
-    const results = await this._runAssignments(assignments, { cwd });
+    const results = await this._runAssignments(assignments, {
+      cwd,
+      evolutionIngress,
+    });
 
     // Retry failed tasks on next available backend
     const retries = [];
@@ -288,7 +310,10 @@ export class AgentRouter extends EventEmitter {
       if (!results[i].success && this._backends.length > 1) {
         const fallback = this._backends[1];
         retries.push(
-          this._runSingleTask(subtasks[i], fallback, { cwd }).then((r) => {
+          this._runSingleTask(subtasks[i], fallback, {
+            cwd,
+            evolutionIngress,
+          }).then((r) => {
             results[i] = r;
           }),
         );
@@ -299,7 +324,7 @@ export class AgentRouter extends EventEmitter {
   }
 
   /** Parallel-all: run every task on ALL backends; return best result per task. */
-  async _dispatchParallelAll(subtasks, { cwd }) {
+  async _dispatchParallelAll(subtasks, { cwd, evolutionIngress }) {
     if (this._backends.length > 1) {
       const error = new Error(
         "parallel-all requires per-attempt worktrees and accepted-winner merge",
@@ -311,7 +336,7 @@ export class AgentRouter extends EventEmitter {
     for (const task of subtasks) {
       const allResults = await Promise.all(
         this._backends.map((backend) =>
-          this._runSingleTask(task, backend, { cwd }),
+          this._runSingleTask(task, backend, { cwd, evolutionIngress }),
         ),
       );
       // Pick the first successful result; if all fail, pick the first
@@ -324,7 +349,7 @@ export class AgentRouter extends EventEmitter {
 
   // ─── Execution ─────────────────────────────────────────────────
 
-  async _runAssignments(assignments, { cwd }) {
+  async _runAssignments(assignments, { cwd, evolutionIngress }) {
     const results = new Array(assignments.length);
     const concurrency = assignmentsHaveDisjointWrites(assignments)
       ? this.maxParallel
@@ -337,7 +362,7 @@ export class AgentRouter extends EventEmitter {
       const batch = assignments.slice(i, i + concurrency);
       const batchResults = await Promise.all(
         batch.map(({ task, backend }) =>
-          this._runSingleTask(task, backend, { cwd }),
+          this._runSingleTask(task, backend, { cwd, evolutionIngress }),
         ),
       );
       for (let j = 0; j < batchResults.length; j++) {
@@ -348,14 +373,39 @@ export class AgentRouter extends EventEmitter {
     return results;
   }
 
-  async _runSingleTask(task, backend, { cwd }) {
+  async _runSingleTask(task, backend, { cwd, evolutionIngress }) {
     this.emit("agent:start", { taskId: task.id, backend: backend.type });
 
     let result;
     if (backend.isCLI) {
       // Use ClaudeCodePool for CLI-based backends
       const pool = backend._pool;
-      const [r] = await pool.dispatch([task], { cwd });
+      let dispatchedTask = task;
+      if (evolutionIngress !== null) {
+        const fullPrompt = task.context
+          ? `Context:\n${task.context}\n\nTask:\n${task.description}`
+          : task.description;
+        const projected = await evolutionIngress.prepareModelRequest({
+          messages: [{ role: "user", content: fullPrompt }],
+          tools: [],
+        });
+        if (
+          projected.messages.length !== 1 ||
+          projected.messages[0]?.role !== "user" ||
+          typeof projected.messages[0]?.content !== "string" ||
+          projected.tools.length !== 0
+        ) {
+          throw new Error(
+            "Agent evolution projection changed the external agent prompt protocol",
+          );
+        }
+        dispatchedTask = {
+          ...task,
+          description: projected.messages[0].content,
+          context: "",
+        };
+      }
+      const [r] = await pool.dispatch([dispatchedTask], { cwd });
       result = r;
     } else {
       // Use LLM API for API-based backends
@@ -366,6 +416,7 @@ export class AgentRouter extends EventEmitter {
         baseUrl: backend.baseUrl,
         cwd,
         timeout: backend.timeout,
+        evolutionIngress,
       });
     }
 
