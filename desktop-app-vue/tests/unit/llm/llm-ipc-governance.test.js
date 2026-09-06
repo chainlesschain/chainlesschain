@@ -25,6 +25,9 @@ afterEach(() => {
 
 describe("native IPC configuration authority continuity", () => {
   it("only exposes the bootstrap singleton to auxiliary model callers", () => {
+    expect(() => managerModule.getLLMManager()).toThrow(
+      "Desktop LLM manager has not been bootstrapped",
+    );
     expect(() => managerModule.getGovernedLLMManagerInstance()).toThrow(
       "Governed Desktop LLM manager is unavailable",
     );

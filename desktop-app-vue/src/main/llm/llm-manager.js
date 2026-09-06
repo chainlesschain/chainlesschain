@@ -1894,9 +1894,11 @@ let llmManagerInstance = null;
  * @param {Object} config - 配置对象（仅首次调用时生效）
  * @returns {LLMManager}
  */
-function getLLMManager(config = {}) {
+function getLLMManager() {
   if (!llmManagerInstance) {
-    llmManagerInstance = new LLMManager(config);
+    const error = new Error("Desktop LLM manager has not been bootstrapped");
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
   }
   return llmManagerInstance;
 }
