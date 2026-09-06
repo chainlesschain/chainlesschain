@@ -1813,6 +1813,62 @@ describe("agentLoop", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it.each([false, true])(
+    "correlates missing tool IDs and rejects duplicates (duplicate=%s)",
+    async (duplicate) => {
+      const messages = [{ role: "user", content: "test correlation" }];
+      const calls = [
+        { function: { name: "unavailable_tool", arguments: {} } },
+        {
+          id: "provider-id",
+          function: { name: "unavailable_tool", arguments: {} },
+        },
+      ];
+      if (duplicate) calls[0].id = "provider-id";
+      const chatFn = vi
+        .fn()
+        .mockResolvedValueOnce({
+          message: { role: "assistant", content: "", tool_calls: calls },
+        })
+        .mockResolvedValue({ message: { role: "assistant", content: "done" } });
+      const events = [];
+      const run = async () => {
+        for await (const event of agentLoop(messages, {
+          chatFn,
+          runnableProviderFallback: false,
+          autoCompact: false,
+          contextMemorySkipPlanning: true,
+          enabledToolNames: [],
+          exactToolNames: true,
+        }))
+          events.push(event);
+      };
+      if (duplicate) {
+        await expect(run()).rejects.toThrow("duplicate tool call identity");
+        expect(
+          events.some(
+            (event) =>
+              event.type === "tool-executing" || event.type === "tool-result",
+          ),
+        ).toBe(false);
+      } else {
+        await run();
+        expect(calls[0].id).toMatch(/^cc_tool_/);
+        expect(calls[1].id).toBe("provider-id");
+        expect(
+          events
+            .filter((event) => event.type === "tool-result")
+            .map((event) => event.tool_use_id),
+        ).toEqual(calls.map((call) => call.id));
+        expect(
+          messages
+            .filter((message) => message.role === "tool")
+            .map((message) => message.tool_call_id),
+        ).toEqual(calls.map((call) => call.id));
+      }
+    },
+  );
+
   it("binds a workflow effect to a stable per-turn provider request receipt", async () => {
     const workflowEffectId = `sha256:${"a".repeat(64)}`;
     const seenRequestIds = [];

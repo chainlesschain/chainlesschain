@@ -1195,7 +1195,6 @@ describe("Agent evolution runtime production composition", () => {
                     content: "",
                     tool_calls: [
                       {
-                        id: "call-budget-1",
                         type: "function",
                         function: { name: "unavailable_tool", arguments: {} },
                       },
@@ -1224,6 +1223,75 @@ describe("Agent evolution runtime production composition", () => {
       expect(f.transport).toHaveBeenCalledTimes(reason === "cancelled" ? 0 : 1);
     },
   );
+
+  it("correlates missing IDs before failing closed on numeric tool telemetry evidence", async () => {
+    const { runCoworkTask } =
+      await import("../../src/lib/cowork-task-runner.js");
+    const f = modelFixture();
+    fs.writeFileSync(
+      path.join(f.root, "input.txt"),
+      "Contact owner@example.com",
+    );
+    const requests = [];
+    f.transport.mockImplementation(async (_url, request) => {
+      requests.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({
+          message:
+            requests.length === 1
+              ? {
+                  role: "assistant",
+                  content: "",
+                  tool_calls: [
+                    {
+                      function: {
+                        name: "read_file",
+                        arguments: { path: "input.txt" },
+                      },
+                    },
+                  ],
+                }
+              : { role: "assistant", content: "done" },
+        }),
+      };
+    });
+    let composition;
+    const result = await runCoworkTask({
+      userMessage: "Read input.txt",
+      cwd: f.root,
+      llmOptions: {
+        ...f.callOptions,
+        evolutionIngress: undefined,
+        enabledToolNames: ["read_file"],
+      },
+      evolutionCompositionFactory: async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        return composition;
+      },
+    });
+    // Known follow-up: numeric telemetry is not sanitized by the raw-event
+    // projector, so independent verification refuses the 13-digit timestamp.
+    // Preserve that refusal; this is not a successful real-tool journey.
+    expect(result.status).toBe("failed");
+    expect(result.result.summary).toContain("payment-card");
+    expect(requests).toHaveLength(1);
+    const events = f.config.authorities.sourceEnvelope.issue.mock.calls
+      .map(([input]) => input.evidence?.event)
+      .filter(Boolean);
+    const started = events.find((event) => event.type === "tool-executing");
+    const settled = events.find((event) => event.type === "tool-result");
+    expect(started.tool_use_id).toMatch(/^cc_tool_/);
+    expect(settled.tool_use_id).toBe(started.tool_use_id);
+    expect(JSON.stringify(settled.result)).toContain(
+      "Contact owner@example.com",
+    );
+    expect(typeof settled.result.toolTelemetryRecord.timestamp).toBe("number");
+    expect(composition.loadRun().projection.status).not.toBe("completed");
+  });
 
   function queryMeter(records) {
     return async ({ call, provider, model }) => {

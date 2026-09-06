@@ -14538,6 +14538,29 @@ export async function* agentLoop(messages, options) {
     }
 
     const toolCalls = msg.tool_calls;
+    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+      // Allocate missing provider IDs once, before transcript insertion and
+      // any evidence or execution boundary. This is only local correlation,
+      // not a provider receipt or an exactly-once execution guarantee.
+      const usedIds = new Set();
+      for (const call of toolCalls) {
+        if (!call || typeof call !== "object") continue;
+        if (call.id == null || call.id === "") {
+          // Letter-only encoding retains UUID entropy without introducing
+          // number-like control IDs into sensitive-data classification.
+          const localId = randomUUID()
+            .replaceAll("-", "")
+            .replace(/[0-9]/g, (digit) =>
+              String.fromCharCode(103 + Number(digit)),
+            );
+          call.id = `cc_tool_${localId}`;
+        }
+        if (typeof call.id !== "string" || usedIds.has(call.id)) {
+          throw new Error("Malformed or duplicate tool call identity");
+        }
+        usedIds.add(call.id);
+      }
+    }
 
     if (!toolCalls || toolCalls.length === 0) {
       // A final answer while background sub-agents are still outstanding is
