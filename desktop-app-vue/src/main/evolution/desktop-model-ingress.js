@@ -11,6 +11,111 @@ const hosts = new WeakMap();
 const clients = new WeakMap();
 const workflows = new AsyncLocalStorage();
 
+function desktopChatResult(result) {
+  return {
+    text: result.message?.content ?? result.text,
+    message: result.message,
+    model: result.model,
+    tokens: result.tokens || result.usage?.total_tokens || 0,
+    usage: result.usage,
+  };
+}
+
+async function runDesktopCachedModelWorkflow(client, request, cache, work) {
+  const host = clients.get(client);
+  if (!host) return work(false, request);
+  try {
+    const {
+      calculateCacheKey,
+      snapshotCacheData,
+    } = require("../llm/response-cache");
+    let cacheable = true;
+    try {
+      request = snapshotCacheData(request);
+    } catch {
+      cacheable = false;
+    }
+    const ingress = await openDesktopModelRun(host, JSON.stringify(request));
+    const scope = { client, ingress, result: null };
+    return await workflows.run(scope, async () => {
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      let requestKey = null;
+      if (
+        cache?.getEvidenceReceipt &&
+        cache?.setEvidenceReceipt &&
+        cacheable &&
+        !request.options.skipCache
+      ) {
+        try {
+          requestKey = calculateCacheKey(
+            request.provider,
+            request.model,
+            request.messages,
+            {
+              tenantId: ingress.tenantId,
+              connection: request.connection,
+              options: request.options,
+            },
+          );
+        } catch {
+          /* Opaque options are non-cacheable; model admission still applies. */
+        }
+      }
+      const receipt = requestKey
+        ? await cache.getEvidenceReceipt(requestKey)
+        : null;
+      if (receipt) {
+        const event = await ingress.replayResponseCache({
+          receipt,
+          requestKey,
+        });
+        const result = event.desktopResult;
+        if (
+          !result ||
+          (typeof result.text !== "string" &&
+            result.message?.role !== "assistant")
+        )
+          throw new Error(
+            "Cached response lacks its authenticated Desktop result",
+          );
+        if (request.options.signal?.aborted)
+          throw new Error("Desktop request aborted");
+        await ingress.complete();
+        cache.recordEvidenceHit?.(requestKey, desktopChatResult(result).tokens);
+        return {
+          ...desktopChatResult(result),
+          timestamp: Date.now(),
+          wasCached: true,
+          tokensSaved: result.tokens || result.usage?.total_tokens || 0,
+        };
+      }
+      const result = await work(true, request);
+      if (
+        !scope.result ||
+        JSON.stringify(desktopChatResult(result)) !==
+          JSON.stringify(desktopChatResult(scope.result))
+      )
+        throw new Error(
+          "Desktop result is not bound to its recorded provider response",
+        );
+      const proof = requestKey
+        ? await ingress.createResponseCacheReceipt({ requestKey })
+        : null;
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      await ingress.complete();
+      if (proof) await cache.setEvidenceReceipt(requestKey, proof);
+      return result;
+    });
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Desktop cached model workflow failed", { cause });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 function assertDesktopToolLoopComplete(client) {
   if (!clients.has(client)) return;
   const error = new Error("Governed tool loop exhausted its iteration limit");
@@ -240,8 +345,7 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
     const content = chat ? data.message?.content : data.response;
     if (typeof content !== "string")
       throw new Error("Invalid Ollama response content");
-    await prepared.complete(chat ? data.message : content);
-    return {
+    const result = {
       ...(chat
         ? { message: data.message }
         : { text: content, context: data.context }),
@@ -250,6 +354,8 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
       total_duration: data.total_duration,
       tokens: data.eval_count || 0,
     };
+    await prepared.complete(chat ? data.message : content, result);
+    return result;
   } catch (cause) {
     if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
     const error = new Error(
@@ -369,13 +475,19 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
     if (Object.hasOwn(captured, "tools")) captured.tools = projected.tools;
     return {
       body: captured,
-      async complete(message) {
+      async complete(message, result) {
         try {
+          const desktopResult =
+            result === undefined
+              ? undefined
+              : JSON.parse(JSON.stringify(result));
           await ingress.ingestAgentEvent({
             type: "response-complete",
             content:
               typeof message === "string" ? message : JSON.stringify(message),
+            ...(desktopResult === undefined ? {} : { desktopResult }),
           });
+          if (sharedWorkflow) scope.result = desktopResult ?? null;
           if (!sharedWorkflow) await ingress.complete();
         } catch (cause) {
           const error = new Error("Desktop model response evidence failed", {
@@ -558,4 +670,5 @@ module.exports = {
   runDesktopToolExecution,
   consumeDesktopToolStream,
   assertDesktopToolLoopComplete,
+  runDesktopCachedModelWorkflow,
 };

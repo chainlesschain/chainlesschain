@@ -86,6 +86,60 @@ function calculateCacheKey(provider, model, messages, options = {}) {
 }
 
 class ResponseCache {
+  async getEvidenceReceipt(requestKey) {
+    const key = calculateCacheKey("evolution-receipt", "v1", [], {
+      requestKey,
+    });
+    const row = this.db
+      .prepare(
+        "SELECT response_content, expires_at FROM llm_cache WHERE cache_key = ?",
+      )
+      .get(key);
+    if (!row || row.expires_at <= Date.now()) {
+      this.stats.misses++;
+      return null;
+    }
+    // Malformed/tampered proof is not a miss: propagate it to fail closed.
+    const response = JSON.parse(row.response_content);
+    if (
+      response?.schema !== "chainlesschain.desktop-cache-index/v1" ||
+      !response.receipt
+    )
+      throw new Error("Invalid Desktop cache receipt index");
+    return response.receipt;
+  }
+
+  recordEvidenceHit(requestKey, tokens) {
+    try {
+      const key = calculateCacheKey("evolution-receipt", "v1", [], {
+        requestKey,
+      });
+      const saved = Number.isSafeInteger(tokens) && tokens >= 0 ? tokens : 0;
+      this.db
+        .prepare(
+          "UPDATE llm_cache SET hit_count = hit_count + 1, tokens_saved = tokens_saved + ?, last_accessed_at = ? WHERE cache_key = ?",
+        )
+        .run(saved, Date.now(), key);
+      this.stats.hits++;
+    } catch (error) {
+      logger.error("[ResponseCache] 更新已验证缓存命中统计失败:", error);
+    }
+  }
+
+  async setEvidenceReceipt(requestKey, receipt) {
+    // The ordinary SQLite cache is an index only: no prompt or response text.
+    return this.set(
+      "evolution-receipt",
+      "v1",
+      [],
+      {
+        schema: "chainlesschain.desktop-cache-index/v1",
+        receipt,
+      },
+      { requestKey },
+    );
+  }
+
   /**
    * 创建响应缓存
    * @param {Object} database - 数据库实例
@@ -564,5 +618,6 @@ class ResponseCache {
 
 module.exports = {
   ResponseCache,
+  snapshotCacheData: (value) => JSON.parse(canonicalCacheData(value)),
   calculateCacheKey, // 导出供测试使用
 };

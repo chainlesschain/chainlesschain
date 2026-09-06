@@ -137,10 +137,9 @@ class GeminiClient {
           error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
           throw error;
         }
-        await governed.complete(candidate);
       }
 
-      return {
+      const result = {
         content: text,
         text,
         message: { role: "assistant", content: text },
@@ -152,6 +151,8 @@ class GeminiClient {
         },
         finish_reason: candidate?.finishReason || "STOP",
       };
+      if (governed) await governed.complete(candidate, result);
+      return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error("[GeminiClient] 聊天请求失败:", error.message);
