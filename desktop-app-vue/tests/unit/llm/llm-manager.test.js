@@ -155,6 +155,46 @@ describe("LLMManager", () => {
   });
 
   describe("构造函数", () => {
+    it("rejects an unbranded host separately from persisted model settings", () => {
+      expect(() => new LLMManager({}, {})).toThrow(/branded Desktop/);
+    });
+
+    it.each([false, true])(
+      "does not fall back or publish success after governance refusal (stream=%s)",
+      async (stream) => {
+        llmManager = new LLMManager({
+          provider: "openai",
+          model: "default",
+          enableManusOptimizations: false,
+          enableStateBus: false,
+        });
+        llmManager.isInitialized = true;
+        const refusal = Object.assign(
+          new Error("timeout in evidence authority"),
+          { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+        );
+        const call = vi.fn().mockRejectedValue(refusal);
+        llmManager.client = { chat: call, chatStream: call };
+        const cacheWrite = vi.fn();
+        llmManager.responseCache = { set: cacheWrite };
+        const published = vi.fn();
+        llmManager.on(
+          stream ? "chat-stream-completed" : "chat-completed",
+          published,
+        );
+        const messages = [{ role: "user", content: "hi" }];
+        const options = { model: "override", skipCache: true };
+        await expect(
+          stream
+            ? llmManager.chatWithMessagesStream(messages, () => {}, options)
+            : llmManager.chatWithMessages(messages, options),
+        ).rejects.toBe(refusal);
+        expect(call).toHaveBeenCalledOnce();
+        expect(cacheWrite).not.toHaveBeenCalled();
+        expect(published).not.toHaveBeenCalled();
+      },
+    );
+
     it("应该创建实例", () => {
       llmManager = new LLMManager();
 

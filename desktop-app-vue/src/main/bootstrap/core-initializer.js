@@ -580,7 +580,10 @@ function registerCoreInitializers(factory) {
         managerConfig.promptCompressor = context.promptCompressor;
       }
 
-      const llmManager = new LLMManager(managerConfig);
+      const llmManager = new LLMManager(
+        managerConfig,
+        context.desktopModelIngressHost ?? null,
+      );
       await llmManager.initialize();
 
       // 把这个 instance 注册为 getLLMManager() singleton — 否则任何后续调用

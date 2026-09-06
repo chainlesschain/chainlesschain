@@ -1148,6 +1148,123 @@ describe("Agent evolution runtime production composition", () => {
     30_000,
   );
 
+  it.each(["chat", "stream", "complete"])(
+    "governs Desktop OpenAI %s final payload and response denial",
+    async (method) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { OpenAIClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/openai-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(method === "stream" ? ["stream-closed", "stream-truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("timeout: evidence denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const wire = vi.fn(async () => ({
+          data:
+            mode === "stream-truncated"
+              ? Readable.from([
+                  'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+                ])
+              : mode === "stream-closed"
+                ? new Readable({
+                    read() {
+                      this.destroy(new Error("connection closed"));
+                    },
+                  })
+                : method === "stream"
+                  ? Readable.from([
+                      'data: {"choices":[{"delta":{"content":"done"}}]}\n\ndata: [DONE]\n\n',
+                    ])
+                  : {
+                      choices: [
+                        {
+                          message: { role: "assistant", content: "done" },
+                          text: "done",
+                        },
+                      ],
+                    },
+        }));
+        client.client.post = wire;
+        const content = "Contact owner@example.com";
+        const messages = [
+          { role: "system", content },
+          { role: "user", content: "Answer" },
+        ];
+        const options = {
+          model: "override",
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "lookup",
+                description: content,
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+        };
+        const call =
+          method === "complete"
+            ? client.complete(content, options)
+            : method === "stream"
+              ? client.chatStream(messages, () => {}, options)
+              : client.chat(messages, options);
+        if (mode === "success") {
+          const result = await call;
+          expect(result.message?.content || result.text).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+        } else {
+          await expect(call).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+            "owner@example.com",
+          );
+          expect(wire.mock.calls[0][1].model).toBe("override");
+        }
+      }
+    },
+    90_000,
+  );
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(

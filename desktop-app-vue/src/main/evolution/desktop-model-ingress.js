@@ -6,6 +6,60 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
 const hosts = new WeakMap();
+const clients = new WeakMap();
+
+function bindDesktopModelIngressClient(client, host) {
+  if (!hosts.has(host))
+    throw new TypeError("A branded Desktop model ingress host is required");
+  if (clients.has(client) && clients.get(client) !== host)
+    throw new Error("Desktop model client authority cannot be replaced");
+  clients.set(client, host);
+  return client;
+}
+
+async function prepareDesktopModelRequest(client, body) {
+  const host = clients.get(client);
+  if (!host) return null;
+  try {
+    // Capture the final wire payload, after client-specific tool filtering.
+    const captured = JSON.parse(JSON.stringify(body));
+    const ingress = await openDesktopModelRun(host, JSON.stringify(captured));
+    const messages = Array.isArray(captured.messages)
+      ? captured.messages
+      : [{ role: "user", content: captured.prompt }];
+    const projected = await ingress.prepareModelRequest({
+      messages,
+      tools: captured.tools || [],
+    });
+    if (Array.isArray(captured.messages))
+      captured.messages = projected.messages;
+    else captured.prompt = projected.messages[0].content;
+    if (Object.hasOwn(captured, "tools")) captured.tools = projected.tools;
+    return {
+      body: captured,
+      async complete(message) {
+        try {
+          await ingress.ingestAgentEvent({
+            type: "response-complete",
+            content:
+              typeof message === "string" ? message : JSON.stringify(message),
+          });
+          await ingress.complete();
+        } catch (cause) {
+          const error = new Error("Desktop model response evidence failed", {
+            cause,
+          });
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+      },
+    };
+  } catch (cause) {
+    const error = new Error("Desktop model request evidence failed", { cause });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
 
 function createDesktopModelIngressHost(
   factory,
@@ -87,4 +141,6 @@ module.exports = {
   createDesktopModelIngressHost,
   isDesktopModelIngressHost,
   openDesktopModelRun,
+  bindDesktopModelIngressClient,
+  prepareDesktopModelRequest,
 };
