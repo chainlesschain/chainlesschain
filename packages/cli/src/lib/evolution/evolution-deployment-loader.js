@@ -195,6 +195,67 @@ async function loadBuiltInFactories(commandName) {
       createWikiSkillBenchmarkLedgerAdapter;
     factories.createEvolutionEvalProcessSupervisor =
       createEvolutionEvalProcessSupervisor;
+    const [
+      { SkillCandidateRegistry },
+      { SkillReleaseRegistry },
+      { SkillPromotionController },
+      { createEvolutionLedgerPorts },
+      { createWikiMaintainerLedgerAdapter },
+      { createGovernedKnowledgeArtifactLifecycle },
+      { GovernedKnowledgeSyncLedgerAdapter },
+      { GovernedKnowledgeDependencyLedgerExecutor },
+      { GovernedKnowledgeDependencyInventoryPlanner },
+      { GovernedKnowledgeSync },
+      { createGovernedKnowledgeRevocationHost },
+      {
+        createGovernedKnowledgeCandidateQuarantineAuthority,
+        createGovernedKnowledgeCandidateRejectionAuthority,
+      },
+      { createGovernedKnowledgeSkillRollbackAuthority },
+      { createGovernedKnowledgeWikiTombstoneAuthority },
+      { createGovernedKnowledgeDependencyRouter },
+    ] = await Promise.all([
+      import("./skill-candidate-registry.js"),
+      import("./skill-release-registry.js"),
+      import("./skill-promotion-controller.js"),
+      import("./evolution-ledger-ports.js"),
+      import("./wiki-maintainer-ledger-adapter.js"),
+      import("./governed-knowledge-artifact-lifecycle.js"),
+      import("./governed-knowledge-sync-ledger-adapter.js"),
+      import("./governed-knowledge-dependency-ledger-executor.js"),
+      import("./governed-knowledge-dependency-inventory.js"),
+      import("./governed-knowledge-sync.js"),
+      import("./governed-knowledge-revocation-host.js"),
+      import("./governed-knowledge-candidate-rejection.js"),
+      import("./governed-knowledge-skill-rollback.js"),
+      import("./governed-knowledge-wiki-tombstone.js"),
+      import("./governed-knowledge-dependency-authority.js"),
+    ]);
+    Object.assign(factories, {
+      createSkillCandidateRegistry: (options) =>
+        new SkillCandidateRegistry(options),
+      createSkillReleaseRegistry: (options) =>
+        new SkillReleaseRegistry(options),
+      createSkillPromotionController: (options) =>
+        new SkillPromotionController(options),
+      createEvolutionLedgerPorts,
+      createWikiMaintainerLedgerAdapter,
+      createGovernedKnowledgeArtifactLifecycle,
+      createGovernedKnowledgeSyncLedgerAdapter: (options) =>
+        new GovernedKnowledgeSyncLedgerAdapter(options),
+      createGovernedKnowledgeDependencyLedgerExecutor: (options) =>
+        new GovernedKnowledgeDependencyLedgerExecutor(options),
+      createGovernedKnowledgeDependencyInventoryPlanner: (options) =>
+        new GovernedKnowledgeDependencyInventoryPlanner(options),
+      createGovernedKnowledgeSync: (options) =>
+        new GovernedKnowledgeSync(options),
+      createGovernedKnowledgeRevocationHost,
+      createGovernedKnowledgeCandidateQuarantineAuthority,
+      createGovernedKnowledgeCandidateRejectionAuthority,
+      createGovernedKnowledgeSkillRollbackAuthority,
+      createGovernedKnowledgeWikiTombstoneAuthority,
+      createGovernedKnowledgeDependencyRouter,
+    });
   }
   if (commandName === "agent" || commandName === "serve") {
     const { createAgentEvolutionRuntimeComposition } =

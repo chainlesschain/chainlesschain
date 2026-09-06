@@ -1847,6 +1847,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
         "coding-agent:app-server-governed-knowledge-merge",
         payload,
       ),
+    appServerGovernedKnowledgeRevocationPrepare: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-governed-knowledge-revocation-prepare",
+        payload,
+      ),
+    appServerGovernedKnowledgeRevocationPublish: (payload) =>
+      ipcRenderer.invoke(
+        "coding-agent:app-server-governed-knowledge-revocation-publish",
+        payload,
+      ),
     appServerApprovalList: () =>
       ipcRenderer.invoke("coding-agent:app-server-approval-list"),
     appServerApprovalDecide: (payload) =>

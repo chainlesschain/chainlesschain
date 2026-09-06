@@ -208,6 +208,14 @@ export class AppServerPilotClient extends EventEmitter {
     return this.call("evolution/knowledge/merge", params);
   }
 
+  governedKnowledgeRevocationPrepare(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/knowledge/revocation/prepare", params);
+  }
+
+  governedKnowledgeRevocationPublish(params: JsonValue): Promise<unknown> {
+    return this.call("evolution/knowledge/revocation/publish", params);
+  }
+
   contextPlan(params: ContextPlanRequest): Promise<ContextPlan> {
     return this.call("context/plan", params) as Promise<ContextPlan>;
   }

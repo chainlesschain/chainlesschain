@@ -1,12 +1,18 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { Command } from "commander";
+import { afterEach, expect, it, vi } from "vitest";
+import { registerGovernedKnowledgeCommands } from "../../src/commands/evolution-knowledge.js";
+import { APP_SERVER_PROTOCOL_VERSION } from "../../src/lib/app-server/protocol.js";
+import { MemoryRolloutStore } from "../../src/lib/app-server/rollout-store.js";
+import { CcAppServer } from "../../src/lib/app-server/server.js";
 import { openKnowledgeSkillRollbackStore } from "../fixtures/governed-knowledge-skill-rollback.js";
 import {
   GovernedKnowledgeDependencyInventoryPlanner,
   buildGovernedKnowledgeDependencyInventory,
 } from "../../src/lib/evolution/governed-knowledge-dependency-inventory.js";
+import { createGovernedKnowledgeRevocationHost } from "../../src/lib/evolution/governed-knowledge-revocation-host.js";
 
 const roots = [];
 afterEach(() => {
@@ -89,8 +95,24 @@ it("durably freezes an authorized plan before effects and recovers it without re
   });
   const draft = { ...h.knowledge };
   delete draft.dependencies;
-  const firstSync = h.makeSync(h.executor, planner);
-  const planned = await firstSync.planRevocation(draft);
+  const firstHost = createGovernedKnowledgeRevocationHost({
+    sync: h.makeSync(h.executor, planner),
+  });
+  const prepareRoot = new Command().exitOverride();
+  registerGovernedKnowledgeCommands(prepareRoot.command("evolution"), {
+    governedKnowledgeRevocationHost: firstHost,
+  });
+  const printed = vi.spyOn(console, "log").mockImplementation(() => {});
+  await prepareRoot.parseAsync([
+    "node",
+    "cc",
+    "evolution",
+    "knowledge",
+    "revoke-prepare",
+    "--record",
+    JSON.stringify(draft),
+  ]);
+  const planned = JSON.parse(printed.mock.calls.at(-1)[0]);
 
   expect(planned.knowledge.dependencies).toEqual(h.knowledge.dependencies);
   expect(
@@ -101,18 +123,68 @@ it("durably freezes an authorized plan before effects and recovers it without re
       ),
   ).toHaveLength(1);
 
-  const recoveredSync = h.makeSync(h.executor, planner);
-  const recovered = await recoveredSync.recoverPlannedRevocation({
-    operationDigest: planned.operationDigest,
+  const recoveredHost = createGovernedKnowledgeRevocationHost({
+    sync: h.makeSync(h.executor, planner),
   });
-  expect(recovered).toMatchObject({
-    recovered: true,
-    operationDigest: planned.operationDigest,
-    knowledge: planned.knowledge,
+  const publishRoot = new Command().exitOverride();
+  registerGovernedKnowledgeCommands(publishRoot.command("evolution"), {
+    governedKnowledgeRevocationHost: recoveredHost,
   });
-  await recoveredSync.publishPlanned(recovered);
+  await publishRoot.parseAsync([
+    "node",
+    "cc",
+    "evolution",
+    "knowledge",
+    "revoke-publish",
+    planned.operationDigest,
+  ]);
+  const published = JSON.parse(printed.mock.calls.at(-1)[0]);
+  printed.mockRestore();
+  expect(published).toMatchObject({
+    authenticated: true,
+    durable: true,
+    recoveredPlan: true,
+    operationDigest: planned.operationDigest,
+    knowledgeId: planned.knowledge.knowledgeId,
+  });
   expect(h.release.readActive().release).toEqual(h.release.baseline);
   expect(h.wiki.adapter.loadWiki().state.patterns["pat-knowledge"].status).toBe(
     "tombstoned",
   );
+
+  const server = new CcAppServer({
+    send: async () => {},
+    store: new MemoryRolloutStore(),
+    governedKnowledgeRevocationHost: recoveredHost,
+  });
+  try {
+    const initialized = await server.receive({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: APP_SERVER_PROTOCOL_VERSION,
+        minimumProtocolVersion: 1,
+        client: { name: "knowledge-revocation-test", version: "1" },
+        features: [],
+      },
+    });
+    expect(initialized.result.governedKnowledgeRevocation).toEqual({
+      available: true,
+      methods: ["prepare", "publish"],
+    });
+    const repeated = await server.receive({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "evolution/knowledge/revocation/publish",
+      params: { operationDigest: planned.operationDigest },
+    });
+    expect(repeated.result).toMatchObject({
+      authenticated: true,
+      durable: true,
+      operationDigest: planned.operationDigest,
+    });
+  } finally {
+    await server.close();
+  }
 });

@@ -99,6 +99,10 @@ describe("AppServerPilotClient", () => {
         reason: "rollback",
       }),
       pilot.governedKnowledgeConflicts({ cursor: 0, limit: 50 }),
+      pilot.governedKnowledgeRevocationPrepare({ record: {} }),
+      pilot.governedKnowledgeRevocationPublish({
+        operationDigest: "sha256:operation",
+      }),
       pilot.governedKnowledgeMerge({
         conflictEnvelopeDigest: "sha256:conflict",
         mergedRecord: {},
@@ -118,6 +122,8 @@ describe("AppServerPilotClient", () => {
       "evolution/workbench/review",
       "evolution/workbench/rollback",
       "evolution/knowledge/conflicts",
+      "evolution/knowledge/revocation/prepare",
+      "evolution/knowledge/revocation/publish",
       "evolution/knowledge/merge",
     ]);
     expect("request" in pilot).toBe(false);

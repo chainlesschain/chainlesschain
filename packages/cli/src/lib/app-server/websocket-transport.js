@@ -12,6 +12,7 @@ import { CcAppServer } from "./server.js";
 import { JSON_RPC_ERROR, JsonRpcError, rpcError } from "./protocol.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
 import { isGovernedKnowledgeReviewHost } from "../evolution/governed-knowledge-review-host.js";
+import { isGovernedKnowledgeRevocationHost } from "../evolution/governed-knowledge-revocation-host.js";
 
 export const APP_SERVER_WEBSOCKET_PROTOCOL =
   "chainlesschain.app-server.experimental.v1";
@@ -268,6 +269,16 @@ export class WebSocketAppServerHost extends EventEmitter {
         "WebSocket App Server governedKnowledgeReviewHost must be a branded review host",
       );
     }
+    if (
+      options.governedKnowledgeRevocationHost != null &&
+      !isGovernedKnowledgeRevocationHost(
+        options.governedKnowledgeRevocationHost,
+      )
+    ) {
+      throw new TypeError(
+        "WebSocket App Server governedKnowledgeRevocationHost must be a branded revocation host",
+      );
+    }
     this.options = options;
     this.binding = validateWebSocketAppServerOptions(options);
     this.port = boundedInteger(options.port, 18800, 0, 65_535);
@@ -423,6 +434,8 @@ export class WebSocketAppServerHost extends EventEmitter {
           evolutionWorkbenchHost: this.options.evolutionWorkbenchHost ?? null,
           governedKnowledgeReviewHost:
             this.options.governedKnowledgeReviewHost ?? null,
+          governedKnowledgeRevocationHost:
+            this.options.governedKnowledgeRevocationHost ?? null,
           transport: "websocket",
           maxQueuedRequests: this.options.maxQueuedRequests,
           maxQueuedRequestBytes: this.options.maxQueuedRequestBytes,

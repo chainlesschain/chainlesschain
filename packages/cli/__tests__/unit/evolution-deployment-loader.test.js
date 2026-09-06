@@ -164,6 +164,24 @@ describe("signed evolution deployment loader", () => {
           "createWikiSkillBenchmarkRunner",
           "createWikiSkillBenchmarkLedgerAdapter",
         ].every((name) => typeof factories[name] === "function"),
+        revocationFactoriesAvailable: [
+          "createSkillCandidateRegistry",
+          "createSkillReleaseRegistry",
+          "createSkillPromotionController",
+          "createEvolutionLedgerPorts",
+          "createWikiMaintainerLedgerAdapter",
+          "createGovernedKnowledgeArtifactLifecycle",
+          "createGovernedKnowledgeSyncLedgerAdapter",
+          "createGovernedKnowledgeDependencyLedgerExecutor",
+          "createGovernedKnowledgeDependencyInventoryPlanner",
+          "createGovernedKnowledgeSync",
+          "createGovernedKnowledgeRevocationHost",
+          "createGovernedKnowledgeCandidateQuarantineAuthority",
+          "createGovernedKnowledgeCandidateRejectionAuthority",
+          "createGovernedKnowledgeSkillRollbackAuthority",
+          "createGovernedKnowledgeWikiTombstoneAuthority",
+          "createGovernedKnowledgeDependencyRouter",
+        ].every((name) => typeof factories[name] === "function"),
       },
     }));
     const importModule = vi.fn(async () => ({
@@ -187,6 +205,7 @@ describe("signed evolution deployment loader", () => {
         fileResourcesAvailable: true,
         controlPortsAvailable: true,
         benchmarkFactoriesAvailable: true,
+        revocationFactoriesAvailable: true,
       },
     });
     expect(factory).toHaveBeenCalledOnce();

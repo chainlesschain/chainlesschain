@@ -517,6 +517,12 @@ export interface CodingAgentAPI {
   appServerGovernedKnowledgeMerge(
     payload: Record<string, unknown>,
   ): Promise<any>;
+  appServerGovernedKnowledgeRevocationPrepare(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
+  appServerGovernedKnowledgeRevocationPublish(
+    payload: Record<string, unknown>,
+  ): Promise<any>;
   appServerApprovalList(): Promise<{
     success: boolean;
     result?: Array<Record<string, unknown>>;
