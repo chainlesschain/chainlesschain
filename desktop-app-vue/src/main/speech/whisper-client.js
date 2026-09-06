@@ -33,6 +33,14 @@ const _deps = {
   getAxios: () => require("axios"),
 };
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Audio transcription requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * Model definitions with metadata
  */
@@ -132,6 +140,9 @@ class WhisperClient extends EventEmitter {
    * @returns {Promise<Object>} Transcription result { text, segments, language, duration }
    */
   async transcribe(audioPath, options = {}) {
+    // Audio bytes and optional prompt hints need a durable multimodal
+    // projection. Reject before checking the file or selecting local/API STT.
+    assertGovernedMultimodalIngress();
     const startTime = Date.now();
 
     // Validate audio file exists
@@ -186,6 +197,7 @@ class WhisperClient extends EventEmitter {
    * @private
    */
   async _transcribeLocal(audioPath, options = {}) {
+    assertGovernedMultimodalIngress();
     const language = options.language || this.language;
     const resolvedModelPath =
       this.modelPath || this._getModelPath(this.modelSize);
@@ -285,6 +297,7 @@ class WhisperClient extends EventEmitter {
    * @private
    */
   async _transcribeAPI(audioPath, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.apiKey) {
       throw new Error(
         "API key is required for Whisper API mode. Set OPENAI_API_KEY or pass apiKey in config.",
@@ -380,6 +393,7 @@ class WhisperClient extends EventEmitter {
    * @returns {Promise<string>} Stream ID
    */
   async startStream(options = {}) {
+    assertGovernedMultimodalIngress();
     if (this.mode !== "local") {
       throw new Error(
         "Streaming transcription is only available in local mode with whisper.cpp",
@@ -762,6 +776,7 @@ class WhisperClient extends EventEmitter {
         status: "error",
         error: error.message,
       });
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       throw new Error(`STT failed: ${error.message}`);
     }
 
