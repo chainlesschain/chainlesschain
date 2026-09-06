@@ -775,10 +775,63 @@ async function openDesktopModelRun(host, content) {
   }
 }
 
+/**
+ * Opens a Desktop Run for an Agent v3 model request. Unlike openDesktopModelRun
+ * this delegates the complete request to the CLI ingress' authenticated
+ * prepareModelRequest() path, which can persist opaque image blocks as
+ * digest-bound transport commitments before restoring them for a provider.
+ * Callers must not dispatch the returned request until this promise resolves.
+ */
+async function openDesktopMultimodalModelRun(host, request) {
+  const captured = hosts.get(host);
+  if (!captured)
+    throw new TypeError("A branded Desktop model ingress host is required");
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    throw new TypeError("Desktop multimodal model request must be an object");
+  }
+  try {
+    const { captureAgentEvolutionRuntimeComposition } = await import(
+      captured.moduleUrl
+    );
+    const runId = `desktop-multimodal-model-${randomUUID()}`;
+    const composition = captureAgentEvolutionRuntimeComposition(
+      await captured.factory(
+        Object.freeze({
+          mode: "desktop-multimodal-model",
+          runId,
+          taskId: runId,
+          cwd: process.cwd(),
+        }),
+      ),
+    );
+    const ingress = composition.evolutionIngress;
+    if (
+      composition.runId !== runId ||
+      ingress.runId !== runId ||
+      composition.tenantId !== ingress.tenantId ||
+      typeof ingress.prepareModelRequest !== "function"
+    ) {
+      throw new Error(
+        "Desktop multimodal composition is not bound to the requested Run",
+      );
+    }
+    await ingress.start();
+    const prepared = await ingress.prepareModelRequest(request);
+    return Object.freeze({ ingress, request: prepared });
+  } catch (cause) {
+    const error = new Error("Desktop multimodal evolution admission failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 module.exports = {
   createDesktopModelIngressHost,
   isDesktopModelIngressHost,
   openDesktopModelRun,
+  openDesktopMultimodalModelRun,
   bindDesktopModelIngressClient,
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,
