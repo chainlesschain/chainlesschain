@@ -2292,6 +2292,63 @@ describe("Agent evolution runtime production composition", () => {
         "model-response-cache",
       ]);
       expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+
+      const streamBodies = [];
+      wire.mockImplementation(async (_url, body, config) => {
+        streamBodies.push(body);
+        if (config?.responseType === "stream") {
+          return {
+            data: Readable.from([
+              'data: {"choices":[{"delta":{"content":"streamed compressed answer"}}]}\n\n',
+              "data: [DONE]\n\n",
+            ]),
+          };
+        }
+        return {
+          data: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: "streamed summary owner@example.com",
+                },
+                finish_reason: "stop",
+              },
+            ],
+            model: "test-model",
+            usage: { total_tokens: 4 },
+          },
+        };
+      });
+      const streamRuns = compositions.length;
+      expect(
+        await manager.chatWithMessagesStream(conversation, vi.fn()),
+      ).toMatchObject({
+        text: "streamed compressed answer",
+        wasCompressed: true,
+      });
+      expect(compositions).toHaveLength(streamRuns + 1);
+      expect(streamBodies).toHaveLength(2);
+      expect(JSON.stringify(streamBodies[1].messages)).toContain(
+        "streamed summary",
+      );
+      expect(JSON.stringify(streamBodies[1].messages)).not.toContain(
+        "owner@example.com",
+      );
+      expect(
+        compositions
+          .at(-1)
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual([
+        "user-prompt",
+        "model-input",
+        "response-completed",
+        "model-input",
+        "response-completed",
+      ]);
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
     } finally {
       for (const release of releases.values()) release();
       await Promise.allSettled([a, b]);

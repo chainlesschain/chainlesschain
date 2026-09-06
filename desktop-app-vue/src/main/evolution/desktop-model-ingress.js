@@ -35,6 +35,16 @@ async function runDesktopCachedModelWorkflow(client, request, cache, work) {
     } catch {
       cacheable = false;
     }
+    // A nested manager request (for example prompt summarization while a
+    // stream is being prepared) is an intermediate model step of the active
+    // Run. It must not create a second Run or independently replay/store a
+    // response-cache receipt.
+    const parentScope = workflows.getStore();
+    if (parentScope?.client === client) {
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      return await work(true, request);
+    }
     const ingress = await openDesktopModelRun(host, JSON.stringify(request));
     const scope = { client, ingress, result: null };
     return await workflows.run(scope, async () => {
