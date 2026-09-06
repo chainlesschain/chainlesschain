@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { createRequire } from "node:module";
+import { EventEmitter } from "node:events";
 
 const require = createRequire(import.meta.url);
 const managerModule = require("../../../src/main/llm/llm-manager.js");
@@ -22,6 +23,128 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it("does not revive a manager closed during provider initialization", async () => {
+    const tracker = new EventEmitter();
+    const manager = new managerModule.LLMManager({
+      provider: "ollama",
+      tokenTracker: tracker,
+      enableStateBus: false,
+      enableManusOptimizations: false,
+    });
+    manager.isInitialized = true;
+    let release;
+    const status = new Promise((resolve) => {
+      release = resolve;
+    });
+    const closeClient = vi.fn();
+    managerModule._setLLMDepsForTesting({
+      OpenAIClient: class {
+        async checkStatus() {
+          return status;
+        }
+        async close() {
+          closeClient();
+        }
+      },
+    });
+    const pending = manager.switchProvider("openai");
+    await manager.close();
+    release({ available: true, models: [] });
+    await expect(pending).rejects.toThrow("closed during provider switch");
+    expect(manager.client).toBe(null);
+    expect(manager.isInitialized).toBe(false);
+    expect(manager.provider).toBe("ollama");
+    expect(closeClient).toHaveBeenCalledOnce();
+    expect(tracker.listenerCount("budget-alert")).toBe(0);
+  });
+
+  it("closes only its own budget listener on a shared tracker", async () => {
+    const tracker = new EventEmitter();
+    const observer = vi.fn();
+    tracker.on("budget-alert", observer);
+    const config = {
+      tokenTracker: tracker,
+      enableStateBus: false,
+      enableManusOptimizations: false,
+    };
+    const oldManager = new managerModule.LLMManager(config);
+    const nextManager = new managerModule.LLMManager(config);
+    expect(tracker.listenerCount("budget-alert")).toBe(3);
+    await oldManager.close();
+    expect(tracker.listenerCount("budget-alert")).toBe(2);
+    await oldManager.close();
+    expect(tracker.listenerCount("budget-alert")).toBe(2);
+    await nextManager.close();
+    expect(tracker.listeners("budget-alert")).toEqual([observer]);
+  });
+
+  it("stages provider switches without exposing mixed configuration or losing authority", async () => {
+    const tracker = new EventEmitter();
+    const source = vi.fn(async () => {
+      throw new Error("original authority");
+    });
+    const previous = new managerModule.LLMManager(
+      {
+        provider: "ollama",
+        model: "original",
+        tokenTracker: tracker,
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      createDesktopModelIngressHost(source),
+    );
+    const originalClient = { close: vi.fn() };
+    previous.client = originalClient;
+    previous.isInitialized = true;
+    const originalConfig = previous.config;
+    const changed = vi.fn();
+    previous.on("provider-changed", changed);
+    await expect(previous.switchProvider("invalid-provider")).rejects.toThrow();
+    expect(previous.provider).toBe("ollama");
+    expect(previous.config).toBe(originalConfig);
+    expect(previous.client).toBe(originalClient);
+    expect(previous.isInitialized).toBe(true);
+    expect(changed).not.toHaveBeenCalled();
+    expect(tracker.listenerCount("budget-alert")).toBe(1);
+    let release;
+    const status = new Promise((resolve) => {
+      release = resolve;
+    });
+    managerModule._setLLMDepsForTesting({
+      OpenAIClient: class {
+        async checkStatus() {
+          return status;
+        }
+      },
+    });
+    const pending = previous.switchProvider("openai", { model: "updated" });
+    try {
+      expect(previous.provider).toBe("ollama");
+      expect(previous.config).toBe(originalConfig);
+      expect(previous.client).toBe(originalClient);
+      await expect(previous.switchProvider("openai")).rejects.toThrow(
+        "already in progress",
+      );
+      release({ available: true, models: [] });
+      await expect(pending).resolves.toBe(true);
+      expect(previous.provider).toBe("openai");
+      expect(previous.config.model).toBe("updated");
+      expect(previous.client).not.toBe(originalClient);
+      expect(originalClient.close).not.toHaveBeenCalled();
+      expect(tracker.listenerCount("budget-alert")).toBe(1);
+      await expect(
+        prepareDesktopModelRequest(previous.client, {
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(source).toHaveBeenCalledOnce();
+    } finally {
+      release({ available: true, models: [] });
+      await pending.catch(() => {});
+      await previous.close();
+    }
+  });
+
   it.each([
     ["llm:set-config", false],
     ["llm:set-config", true],

@@ -1671,6 +1671,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 后续 IPC 配置切换审计发现 `llm:set-config` 与 `llm:switch-provider` 均直接 `new LLMManager(managerConfig)`，会丢失启动时注入的私有治理 host；前者在 initialize 前清空旧引用，后者提前 close 旧实例。现统一使用 `createLLMManagerReplacement()` 从原生 manager 私有 WeakMap 继承 host，同时继承原 tokenTracker/cache/compressor 引用，不接受配置字段替换 authority；初始化成功且原引用未被并发替换后才更新 IPC/app/singleton，并重连 compressor.llmManager。失败保留旧实例，已开始的旧请求不被提前关闭。两个真实 IPC group handlers 经主进程配置读取端口测试，实际创建/初始化 manager（模型客户端为确定性替身），验证成功替换、失败保留、服务引用延续，以及入模时确实访问原 authority 而非配置中伪造 host；4/4 新增用例与 manager 共 64/64 通过。未把配置文件写入宣称为事务回滚：存储配置仍遵循既有先保存行为。尝试旧 `llm-ipc.test.js` 时，51 项均因当前共享 node_modules 的 Electron 安装不完整而在加载阶段失败，未算作通过，也未修改共享依赖。完整 Electron bootstrap/IPC→实际 provider 的环境级验收仍未完成；此批关闭已证实的两个配置切换 host 丢失路径，P0-4 状态不变。
 
+后续原生 manager 生命周期批次修复 `switchProvider()` 先改 provider/config 再 initialize 的混合状态：新 client/tools 在继承原私有 host 的隔离候选 manager 中初始化，成功后才整体替换当前 provider/config/client/tools；失败保留原实例可用状态，并拒绝同实例重叠切换。候选关闭不影响已移交客户端，旧在途客户端不被提前关闭；关闭 epoch 阻止初始化晚到结果复活已关闭 manager，未移交候选客户端会清理。另将 TokenTracker budget-alert 订阅改为私有 WeakMap 记录的精确 listener，close 只移除自身监听，不再 removeAllListeners 误删其他 manager/observer 的预算守卫。确定性客户端替身配合真实 manager、EventEmitter 和原 authority 调用验证失败保持原配置/客户端、成功仍访问原 host、重叠切换拒绝、关闭竞态不复活、临时候选清理和共享预算监听隔离；IPC+manager 最终 67/67 通过。该验证针对 manager 方法与先前两个 IPC 替换入口，不冒充完整 Electron 启动、实际多 provider 网络或旧在途客户端最终资源回收验收；P0-4 保持部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
