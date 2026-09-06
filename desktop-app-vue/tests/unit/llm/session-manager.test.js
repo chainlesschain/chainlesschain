@@ -1080,6 +1080,42 @@ describe("SessionManager", () => {
       await sessionManager.initialize();
     });
 
+    it("预压缩记忆提取使用标准 chat(messages, options) 签名", async () => {
+      const chat = vi.fn().mockResolvedValue({
+        content: JSON.stringify({
+          dailyNotes: "完成了会话压缩治理",
+          longTermMemory: "架构决策：模型入口必须受治理",
+          shouldSave: true,
+        }),
+      });
+      const writeDailyNote = vi.fn().mockResolvedValue();
+      const appendToMemory = vi.fn().mockResolvedValue();
+      sessionManager.llmManager = { chat };
+      sessionManager.permanentMemoryManager = {
+        writeDailyNote,
+        appendToMemory,
+      };
+      sessionManager.loadSession = vi.fn().mockResolvedValue({
+        messages: [{ role: "user", content: "请记录这项架构决策" }],
+      });
+
+      await sessionManager.flushMemoryBeforeCompaction("sess-governed-chat");
+
+      expect(chat).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ role: "system" }),
+          expect.objectContaining({ role: "user" }),
+        ],
+        {
+          model: "qwen2:7b",
+          stream: false,
+          temperature: 0.3,
+        },
+      );
+      expect(writeDailyNote).toHaveBeenCalled();
+      expect(appendToMemory).toHaveBeenCalled();
+    });
+
     it("应该生成会话摘要", async () => {
       const session = {
         id: "sess-1",

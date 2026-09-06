@@ -101,9 +101,8 @@ module.exports = {
       const extractionPrompt = this.buildMemoryExtractionPrompt(recentMessages);
 
       // 使用 LLM 提取重要信息
-      const response = await this.llmManager.chat({
-        model: "qwen2:7b", // 使用本地模型，免费
-        messages: [
+      const response = await this.llmManager.chat(
+        [
           {
             role: "system",
             content: `你是一个记忆提取助手。从对话中提取重要信息，分为两类：
@@ -122,9 +121,12 @@ module.exports = {
             content: extractionPrompt,
           },
         ],
-        stream: false,
-        temperature: 0.3, // 低温度，确保稳定输出
-      });
+        {
+          model: "qwen2:7b", // 使用本地模型，免费
+          stream: false,
+          temperature: 0.3, // 低温度，确保稳定输出
+        },
+      );
 
       // 解析响应
       const extraction = this.parseMemoryExtraction(response.content);
