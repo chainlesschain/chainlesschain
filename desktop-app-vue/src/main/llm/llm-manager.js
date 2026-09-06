@@ -16,6 +16,7 @@ const EventEmitter = require("events");
 const {
   isDesktopModelIngressHost,
   bindDesktopModelIngressClient,
+  runDesktopCachedModelWorkflow,
 } = require("../evolution/desktop-model-ingress");
 const modelIngressHosts = new WeakMap();
 
@@ -573,6 +574,45 @@ class LLMManager extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chatWithMessages(messages, options = {}) {
+    if (!this.isInitialized) throw new Error("LLM服务未初始化");
+    if (this.paused)
+      throw new Error(
+        "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+      );
+    let publication;
+    const selectedClient = this.client;
+    const result = await runDesktopCachedModelWorkflow(
+      selectedClient,
+      {
+        provider: this.provider,
+        model: this.config.model || selectedClient.model || "unknown",
+        connection: selectedClient.baseURL || selectedClient.host || null,
+        messages,
+        options,
+      },
+      this.responseCache,
+      (governed, captured) =>
+        this._chatWithMessages(
+          captured.messages,
+          captured.options,
+          governed,
+          (event) => {
+            publication = event;
+          },
+          selectedClient,
+        ),
+    );
+    if (publication) this.emit("chat-completed", publication);
+    return result;
+  }
+
+  async _chatWithMessages(
+    messages,
+    options,
+    governed,
+    publish,
+    selectedClient,
+  ) {
     if (!this.isInitialized) {
       throw new Error("LLM服务未初始化");
     }
@@ -592,7 +632,7 @@ class LLMManager extends EventEmitter {
 
     try {
       // 🔥 步骤 1: 检查响应缓存（如果启用）
-      if (this.responseCache && !options.skipCache) {
+      if (!governed && this.responseCache && !options.skipCache) {
         const cacheResult = await this.responseCache.get(
           this.provider,
           this.config.model,
@@ -671,7 +711,7 @@ class LLMManager extends EventEmitter {
       let result;
 
       try {
-        result = await this.client.chat(processedMessages, options);
+        result = await selectedClient.chat(processedMessages, options);
       } catch (chatError) {
         if (chatError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
           throw chatError;
@@ -682,18 +722,22 @@ class LLMManager extends EventEmitter {
           );
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
-          result = await this.client.chat(processedMessages, fallbackOptions);
+          result = await selectedClient.chat(
+            processedMessages,
+            fallbackOptions,
+          );
         } else {
           throw chatError;
         }
       }
 
-      this.emit("chat-completed", { messages: processedMessages, result });
+      if (governed) publish({ messages: processedMessages, result });
+      else this.emit("chat-completed", { messages: processedMessages, result });
 
       const responseTime = Date.now() - startTime;
 
       // 🔥 步骤 4: 存入响应缓存（如果启用）
-      if (this.responseCache && !options.skipCache && !wasCached) {
+      if (!governed && this.responseCache && !options.skipCache && !wasCached) {
         try {
           await this.responseCache.set(
             this.provider,
@@ -740,7 +784,7 @@ class LLMManager extends EventEmitter {
       }
 
       return {
-        text: result.message?.content || result.text,
+        text: result.message?.content ?? result.text,
         message: result.message,
         model: result.model,
         tokens: result.tokens || result.usage?.total_tokens || 0,

@@ -151,15 +151,15 @@ class OpenAIClient extends EventEmitter {
         );
 
         const choice = response.data.choices[0];
-        if (governed) await governed.complete(choice.message);
-
-        return {
+        const result = {
           message: choice.message,
           finish_reason: choice.finish_reason,
           model: response.data.model,
           usage: response.data.usage,
           tokens: response.data.usage?.total_tokens || 0,
         };
+        if (governed) await governed.complete(choice.message, result);
+        return result;
       } catch (error) {
         if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
         lastError = error;

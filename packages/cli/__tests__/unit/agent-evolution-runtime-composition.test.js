@@ -1848,6 +1848,159 @@ describe("Agent evolution runtime production composition", () => {
     expect(replay.loadRun().events).toHaveLength(0);
   }, 120000);
 
+  it("governs actual Desktop manager cache storage and replay without plaintext", async () => {
+    const require = createRequire(import.meta.url);
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const {
+      LLMManager,
+    } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+    const {
+      OpenAIClient,
+    } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+    const {
+      ResponseCache,
+    } = require("../../../../desktop-app-vue/src/main/llm/response-cache.js");
+    const {
+      bindDesktopModelIngressClient,
+    } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+    const { DatabaseSync } = require("node:sqlite");
+    const f = modelFixture();
+    const db = new DatabaseSync(path.join(f.root, "desktop-cache.sqlite"));
+    db.exec(`CREATE TABLE llm_cache (
+      id TEXT PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE,
+      provider TEXT NOT NULL, model TEXT NOT NULL, request_messages TEXT NOT NULL,
+      response_content TEXT NOT NULL, response_tokens INTEGER DEFAULT 0,
+      hit_count INTEGER DEFAULT 0, tokens_saved INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, last_accessed_at INTEGER NOT NULL
+    )`);
+    const compositions = [];
+    const host = createDesktopModelIngressHost(async ({ runId }) => {
+      const composition = native.createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const client = bindDesktopModelIngressClient(
+      new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+      host,
+    );
+    const wire = vi.fn(async () => ({
+      data: {
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "Contact owner@example.com",
+            },
+            finish_reason: "stop",
+          },
+        ],
+        model: "test-model",
+        usage: { total_tokens: 10 },
+      },
+    }));
+    client.client.post = wire;
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableManusOptimizations: false,
+        enableStateBus: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    manager.responseCache = new ResponseCache(db, { enableAutoCleanup: false });
+    const published = vi.fn(() => {
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+    });
+    manager.on("chat-completed", published);
+    const messages = [{ role: "user", content: "Contact owner@example.com" }];
+    try {
+      const firstPending = manager.chatWithMessages(messages);
+      messages[0].content = "late request replacement";
+      const first = await firstPending;
+      messages[0].content = "Contact owner@example.com";
+      expect(JSON.stringify(wire.mock.calls)).not.toContain(
+        "late request replacement",
+      );
+      expect(first.wasCached).toBe(false);
+      const rows = db
+        .prepare("SELECT request_messages, response_content FROM llm_cache")
+        .all();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].request_messages).toBe("[]");
+      expect(JSON.stringify(rows)).not.toContain("owner@example.com");
+      expect(JSON.stringify(rows)).not.toContain("Contact");
+      manager.responseCache.destroy();
+      manager.responseCache = new ResponseCache(db, {
+        enableAutoCleanup: false,
+      });
+      const second = await manager.chatWithMessages(messages);
+      expect(second.wasCached).toBe(true);
+      expect(second.text).toContain("Contact");
+      expect(second.text).not.toContain("owner@example.com");
+      expect(second.model).toBe("test-model");
+      expect(
+        db.prepare("SELECT hit_count, tokens_saved FROM llm_cache").get(),
+      ).toMatchObject({ hit_count: 1, tokens_saved: 10 });
+      expect(wire).toHaveBeenCalledOnce();
+      expect(published).toHaveBeenCalledOnce();
+      expect(compositions).toHaveLength(2);
+      expect(
+        compositions[1]
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual(["user-prompt", "model-response-cache-replayed"]);
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === "model-response-cache-replayed")
+            throw new Error("cache replay evidence denied");
+          return issue(request);
+        },
+      );
+      await expect(manager.chatWithMessages(messages)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(compositions.at(-1).loadRun().projection.status).toBe("running");
+      expect(wire).toHaveBeenCalledOnce();
+      expect(published).toHaveBeenCalledOnce();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === "model-response-cache")
+            throw new Error("cache publication evidence denied");
+          return issue(request);
+        },
+      );
+      await expect(
+        manager.chatWithMessages([
+          { role: "user", content: "different request" },
+        ]),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(published).toHaveBeenCalledOnce();
+      expect(
+        db.prepare("SELECT COUNT(*) AS count FROM llm_cache").get().count,
+      ).toBe(1);
+      db.prepare("UPDATE llm_cache SET response_content = ?").run("{");
+      await expect(manager.chatWithMessages(messages)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(published).toHaveBeenCalledOnce();
+    } finally {
+      manager.responseCache.destroy();
+      db.close();
+    }
+  }, 120000);
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(
