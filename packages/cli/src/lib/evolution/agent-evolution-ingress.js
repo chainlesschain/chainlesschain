@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { types } from "node:util";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
 
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
@@ -35,7 +36,7 @@ function requiredString(value, label) {
   return value;
 }
 
-function canonical(value) {
+function canonical(value, seen = new Set()) {
   if (value === null || typeof value === "boolean") {
     return JSON.stringify(value);
   }
@@ -49,17 +50,44 @@ function canonical(value) {
   if (!value || typeof value !== "object") {
     throw new TypeError("Agent evolution evidence must be JSON-compatible");
   }
-  if (Array.isArray(value)) {
-    return `[${value.map(canonical).join(",")}]`;
+  if (types.isProxy(value) || seen.has(value)) {
+    throw new TypeError("Agent evolution evidence must be acyclic plain data");
   }
+  const array = Array.isArray(value);
   const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) {
+  if (!array && prototype !== Object.prototype && prototype !== null) {
     throw new TypeError("Agent evolution evidence must use plain objects");
   }
-  return `{${Object.keys(value)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
-    .join(",")}}`;
+  const keys = Reflect.ownKeys(value).filter(
+    (key) => !(array && key === "length"),
+  );
+  if (
+    array &&
+    (keys.length !== value.length ||
+      keys.some((key, index) => key !== String(index)))
+  ) {
+    throw new TypeError("Agent evolution evidence arrays must be dense data");
+  }
+  seen.add(value);
+  try {
+    const entries = (array ? keys : keys.sort()).map((key) => {
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        typeof key !== "string" ||
+        !property?.enumerable ||
+        !("value" in property)
+      ) {
+        throw new TypeError(
+          "Agent evolution evidence cannot contain accessors or symbols",
+        );
+      }
+      const encoded = canonical(property.value, seen);
+      return array ? encoded : `${JSON.stringify(key)}:${encoded}`;
+    });
+    return array ? `[${entries.join(",")}]` : `{${entries.join(",")}}`;
+  } finally {
+    seen.delete(value);
+  }
 }
 
 function clone(value) {
@@ -321,16 +349,34 @@ export function createAgentEvolutionIngress({
       ingest("user-prompt", { input: cloneEvidence(input) }, options),
     ingestAgentEvent: async (event, options) => {
       if (admissionFailure !== null) throw admissionFailure;
-      const baseKind = CORE_EVENT_KINDS.get(event?.type);
+      let type;
+      try {
+        if (types.isProxy(event))
+          throw new TypeError("Agent event cannot be a Proxy");
+        const property =
+          event && typeof event === "object"
+            ? Object.getOwnPropertyDescriptor(event, "type")
+            : null;
+        if (property && !("value" in property))
+          throw new TypeError("Agent event type cannot be an accessor");
+        type = property?.value;
+      } catch (cause) {
+        admissionFailure = ingressFailure(cause);
+        throw admissionFailure;
+      }
+      const baseKind = CORE_EVENT_KINDS.get(type);
       if (!baseKind) {
         return Promise.resolve(Object.freeze({ ignored: true }));
       }
+      const snapshot = cloneEvidence(event);
       const kind =
-        event.type === "tool-result" &&
-        Boolean(event.error || event.result?.error || event.result?.isError)
+        type === "tool-result" &&
+        Boolean(
+          snapshot.error || snapshot.result?.error || snapshot.result?.isError,
+        )
           ? "tool-failed"
           : baseKind;
-      return ingest(kind, { event: cloneEvidence(event) }, options);
+      return ingest(kind, { event: snapshot }, options);
     },
     complete: (options = {}) =>
       guardIngress(

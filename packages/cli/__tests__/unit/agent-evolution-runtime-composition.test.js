@@ -1563,6 +1563,60 @@ describe("Agent evolution runtime production composition", () => {
     },
   );
 
+  it.each([
+    "event-getter",
+    "result-getter",
+    "proxy",
+    "nested-proxy",
+    "cycle",
+    "sparse",
+    "user-getter",
+  ])("rejects unsafe raw evidence without evaluating it (%s)", async (kind) => {
+    const f = modelFixture();
+    const touched = vi.fn(() => "tool-result");
+    const event = { type: "tool-result", tool: "read_file", result: {} };
+    if (kind === "event-getter")
+      Object.defineProperty(event, "type", { enumerable: true, get: touched });
+    if (kind === "result-getter")
+      Object.defineProperty(event.result, "content", {
+        enumerable: true,
+        get: touched,
+      });
+    if (kind === "cycle") event.result.self = event;
+    if (kind === "nested-proxy")
+      event.result = new Proxy(
+        {},
+        { get: touched, ownKeys: touched, getPrototypeOf: touched },
+      );
+    if (kind === "sparse") event.result = new Array(2);
+    const input =
+      kind === "proxy"
+        ? new Proxy(event, {
+            get: touched,
+            ownKeys: touched,
+            getPrototypeOf: touched,
+          })
+        : event;
+    const user = {};
+    if (kind === "user-getter")
+      Object.defineProperty(user, "content", {
+        enumerable: true,
+        get: touched,
+      });
+    const ingress = f.composition.evolutionIngress;
+    await expect(
+      kind === "user-getter"
+        ? ingress.ingestUserPrompt(user)
+        : ingress.ingestAgentEvent(input),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(touched).not.toHaveBeenCalled();
+    expect(f.config.authorities.sourceEnvelope.issue).not.toHaveBeenCalled();
+    expect(f.transport).not.toHaveBeenCalled();
+    await expect(ingress.complete()).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+  });
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({
