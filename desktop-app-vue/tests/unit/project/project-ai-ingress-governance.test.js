@@ -22,4 +22,21 @@ describe("project AI ingress governance", () => {
       'error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED"',
     );
   });
+
+  it("blocks project creation streaming before the AI backend request", () => {
+    const source = fs.readFileSync(
+      path.resolve("src/main/project/http-client.js"),
+      "utf8",
+    );
+    const method = source.indexOf("async createProjectStream(");
+    const guard = source.indexOf("assertGovernedProjectAiIngress();", method);
+    const request = source.indexOf("this.client.post(", guard);
+
+    expect(method).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(method);
+    expect(request).toBeGreaterThan(guard);
+    expect(source).toContain(
+      'error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED"',
+    );
+  });
 });
