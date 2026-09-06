@@ -24,6 +24,20 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it("only exposes the bootstrap singleton to auxiliary model callers", () => {
+    expect(() => managerModule.getGovernedLLMManagerInstance()).toThrow(
+      "Governed Desktop LLM manager is unavailable",
+    );
+    const manager = new managerModule.LLMManager(
+      { provider: "openai", enableStateBus: false },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("not reached");
+      }),
+    );
+    managerModule._setLLMManagerInstance(manager);
+    expect(managerModule.getGovernedLLMManagerInstance()).toBe(manager);
+  });
+
   it("rejects every opaque Volcengine tool method on a governed manager", async () => {
     const manager = new managerModule.LLMManager(
       { provider: "volcengine", enableStateBus: false },
