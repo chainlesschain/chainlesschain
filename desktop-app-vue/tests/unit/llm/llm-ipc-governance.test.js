@@ -407,3 +407,57 @@ describe("native IPC configuration authority continuity", () => {
     },
   );
 });
+
+describe("native conversation agent-chat governance", () => {
+  it("uses the single-Run function workflow instead of its legacy tool loop", async () => {
+    const {
+      registerConversationIPC,
+    } = require("../../../src/main/conversation/conversation-ipc.js");
+    const ipcGuard = require("../../../src/main/ipc/ipc-guard.js");
+    ipcGuard.resetAll();
+    const manager = new managerModule.LLMManager(
+      {
+        provider: "openai",
+        model: "test",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("conversation routing fixture");
+      }),
+    );
+    const governed = vi.fn(async (_messages, functions, executor, options) => {
+      expect(functions.length).toBeGreaterThan(0);
+      expect(executor).toMatchObject({ execute: expect.any(Function) });
+      expect(options.maxToolIterations).toBe(10);
+      return { message: { role: "assistant", content: "governed answer" } };
+    });
+    manager.chatWithGovernedFunctions = governed;
+    manager.chat = vi.fn();
+    const handlers = new Map();
+    const sent = [];
+    registerConversationIPC({
+      database: {},
+      llmManager: manager,
+      mainWindow: null,
+      ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+    });
+    await expect(
+      handlers.get("conversation:agent-chat")(
+        { sender: { send: (...event) => sent.push(event) } },
+        { conversationId: "conversation-1", userMessage: "inspect it" },
+      ),
+    ).resolves.toEqual({
+      success: true,
+      content: "governed answer",
+      agentMode: true,
+    });
+    expect(governed).toHaveBeenCalledOnce();
+    expect(manager.chat).not.toHaveBeenCalled();
+    expect(sent).toContainEqual([
+      "conversation:agent-response",
+      { conversationId: "conversation-1", content: "governed answer" },
+    ]);
+    ipcGuard.resetAll();
+  });
+});

@@ -7,7 +7,12 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+let electronIpcMain;
+
+function getElectronIpcMain() {
+  if (!electronIpcMain) ({ ipcMain: electronIpcMain } = require("electron"));
+  return electronIpcMain;
+}
 
 /**
  * 全局注册状态跟踪
@@ -78,7 +83,7 @@ function safeRegisterHandler(channel, handler, moduleName = "unknown") {
   }
 
   try {
-    ipcMain.handle(channel, handler);
+    getElectronIpcMain().handle(channel, handler);
     markChannelRegistered(channel, moduleName);
     return true;
   } catch (error) {
@@ -143,7 +148,7 @@ function safeRegisterModule(moduleName, registerFunc) {
 function unregisterChannel(channel) {
   if (registeredChannels.has(channel)) {
     try {
-      ipcMain.removeHandler(channel);
+      getElectronIpcMain().removeHandler(channel);
       registeredChannels.delete(channel);
       logger.info(`[IPC Guard] Channel "${channel}" unregistered`);
     } catch (error) {
@@ -189,7 +194,7 @@ function resetAll() {
   try {
     for (const channel of registeredChannels.keys()) {
       try {
-        ipcMain.removeHandler(channel);
+        getElectronIpcMain().removeHandler(channel);
       } catch (err) {
         // 忽略单个channel移除失败
       }
