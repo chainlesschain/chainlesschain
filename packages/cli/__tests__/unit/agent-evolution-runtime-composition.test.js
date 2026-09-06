@@ -989,6 +989,7 @@ describe("Agent evolution runtime production composition", () => {
 
     const dispatched = pool.dispatch.mock.calls[0][0][0];
     expect(dispatched.context).toBe("");
+    expect(dispatched.description).toContain("Evolution input projection:");
     expect(dispatched.description).toContain("[REDACTED:");
     expect(dispatched.description).not.toContain(secret);
     expect(dispatched.description).not.toContain("owner@example.com");

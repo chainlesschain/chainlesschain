@@ -389,10 +389,14 @@ export class AgentRouter extends EventEmitter {
           messages: [{ role: "user", content: fullPrompt }],
           tools: [],
         });
+        const [projectionNotice, projectedUser] = projected.messages;
         if (
-          projected.messages.length !== 1 ||
-          projected.messages[0]?.role !== "user" ||
-          typeof projected.messages[0]?.content !== "string" ||
+          projected.messages.length !== 2 ||
+          projectionNotice?.role !== "system" ||
+          typeof projectionNotice?.content !== "string" ||
+          projectedUser?.role !== "user" ||
+          typeof projectedUser?.content !== "string" ||
+          !Array.isArray(projected.tools) ||
           projected.tools.length !== 0
         ) {
           throw new Error(
@@ -401,7 +405,7 @@ export class AgentRouter extends EventEmitter {
         }
         dispatchedTask = {
           ...task,
-          description: projected.messages[0].content,
+          description: `${projectionNotice.content}\n\n${projectedUser.content}`,
           context: "",
         };
       }
