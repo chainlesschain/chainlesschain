@@ -1705,6 +1705,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Desktop singleton 复核确认：尽管 bootstrap 已注册带 host 的 manager，`getLLMManager()` 原先在缺实例时仍会惰性构造默认未治理 manager，AI Engine、Code Engine、Web Shell、Manus 与 PDH 等辅助调用点均可触发该后门。现该 getter 只返回 bootstrap 已注册 singleton；缺实例即以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 失败，`getGovernedLLMManagerInstance()` 进一步要求 host 品牌。定向验证覆盖缺实例拒绝和受治理实例复用，相关模型入口整组 159/159 通过；Prettier/diff 检查通过，ESLint 0 错误（5 个既有未使用变量警告）。这消除全局默认 provider fallback，不替代完整启动顺序、流式工具协议、跨进程缓存和删除传播的验收，P0-4 保持部分完成。
 
+2026-09-06 多模态边界复核发现 `ImageEngine.generateImageFromText()` 可直接把 prompt 发往本地 Stable Diffusion 或 OpenAI DALL·E，尚无 Raw/投影/response evidence 的多模态 ingress。文档原先已将图像/音视频载荷排除在当前支持范围外；实现现与该边界一致：外部文生图在任何网络派发前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝，本地图像 resize/crop/enhance 等非模型操作不变。定向 image-engine 测试 1/1 验证拒绝，`node --check`、Prettier/diff 检查通过，源 ESLint 0 错误（5 个既有未使用变量警告）。这关闭已发现的图像 prompt 直接外发，不等同于多模态 ingress 已实现；audio/video、远程媒体 URL 和签名二进制载荷仍需独立协议与验收，P0-4 状态不变。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

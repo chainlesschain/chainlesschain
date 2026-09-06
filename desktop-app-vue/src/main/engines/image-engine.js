@@ -16,6 +16,14 @@ const path = require("path");
 const { EventEmitter } = require("events");
 const axios = require("axios");
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "External image generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class ImageEngine extends EventEmitter {
   constructor(llmManager = null) {
     super();
@@ -143,6 +151,8 @@ class ImageEngine extends EventEmitter {
     options = {},
     onProgress = null,
   ) {
+    assertGovernedMultimodalIngress();
+
     const {
       service = "stable-diffusion",
       size = "square_md",
