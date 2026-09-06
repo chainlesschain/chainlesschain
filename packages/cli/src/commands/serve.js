@@ -10,11 +10,13 @@ import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { isEvolutionWorkbenchCliHost } from "../lib/evolution/evolution-workbench-cli-host.js";
 import { isGovernedKnowledgeReviewHost } from "../lib/evolution/governed-knowledge-review-host.js";
+import { isGovernedKnowledgeRevocationHost } from "../lib/evolution/governed-knowledge-revocation-host.js";
 import path from "node:path";
 
 export function captureServeGovernanceHosts({
   evolutionWorkbenchHost = null,
   governedKnowledgeReviewHost = null,
+  governedKnowledgeRevocationHost = null,
 } = {}) {
   if (
     evolutionWorkbenchHost !== null &&
@@ -32,9 +34,18 @@ export function captureServeGovernanceHosts({
       "serve governedKnowledgeReviewHost must be a branded review host",
     );
   }
+  if (
+    governedKnowledgeRevocationHost !== null &&
+    !isGovernedKnowledgeRevocationHost(governedKnowledgeRevocationHost)
+  ) {
+    throw new TypeError(
+      "serve governedKnowledgeRevocationHost must be a branded revocation host",
+    );
+  }
   return Object.freeze({
     evolutionWorkbenchHost,
     governedKnowledgeReviewHost,
+    governedKnowledgeRevocationHost,
   });
 }
 

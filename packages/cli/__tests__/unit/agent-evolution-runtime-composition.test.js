@@ -1823,6 +1823,93 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it.each(["ollama", "anthropic", "openai"])(
+    "restores digest-bound multimodal bytes only at the %s provider boundary",
+    async (provider) => {
+      const f = modelFixture();
+      const imageBytes = Buffer.from("private-image-bytes");
+      const encoded = imageBytes.toString("base64");
+      const dataUrl = `data:image/png;base64,${encoded}`;
+      const messages = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Contact alice@example.com" },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ];
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return {
+          ok: true,
+          json: async () => ({
+            message: { role: "assistant", content: "done" },
+            content: [{ type: "text", text: "done" }],
+            choices: [{ message: { role: "assistant", content: "done" } }],
+          }),
+        };
+      });
+      await chatWithTools(messages, {
+        ...f.callOptions,
+        provider,
+        apiKey: "test-only-key",
+      });
+      expect(f.transport).toHaveBeenCalledOnce();
+      const wire = JSON.stringify(f.seen[0]);
+      expect(wire).not.toContain("alice@example.com");
+      expect(wire).toContain("REDACTED");
+      expect(wire).toContain(encoded);
+      if (provider === "openai") expect(wire).toContain(dataUrl);
+      if (provider === "anthropic") {
+        expect(wire).toContain('"type":"base64"');
+        expect(wire).toContain('"media_type":"image/png"');
+      }
+      if (provider === "ollama") expect(wire).toContain('"images"');
+      const raw = JSON.parse(
+        f.config.authorities.rawEncryptor.encrypt.mock.calls[0][0].plaintext.toString(),
+      );
+      expect(raw.messages).toEqual(messages);
+    },
+    60_000,
+  );
+
+  it("restores an exact signed thinking replay only at the Anthropic provider boundary", async () => {
+    const f = modelFixture();
+    const thinkingBlock = {
+      type: "thinking",
+      thinking: "private chain of thought",
+      signature: "provider-signature-1234567890",
+    };
+    const messages = [
+      { role: "assistant", content: "", _thinkingBlocks: [thinkingBlock] },
+      { role: "user", content: "continue safely" },
+    ];
+    f.transport.mockImplementation(async (_url, request) => {
+      f.seen.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({ content: [{ type: "text", text: "done" }] }),
+      };
+    });
+    await chatWithTools(messages, {
+      ...f.callOptions,
+      provider: "anthropic",
+      apiKey: "test-only-key",
+    });
+    expect(f.transport).toHaveBeenCalledOnce();
+    const replay = f.seen[0].messages
+      .flatMap((message) =>
+        Array.isArray(message.content) ? message.content : [],
+      )
+      .find((block) => block.type === "thinking");
+    expect(replay).toEqual(thinkingBlock);
+    const raw = JSON.parse(
+      f.config.authorities.rawEncryptor.encrypt.mock.calls[0][0].plaintext.toString(),
+    );
+    expect(raw.messages).toEqual(messages);
+  }, 60_000);
+
+  it.each(["ollama", "anthropic", "openai"])(
     "sends complete authenticated long text with the %s provider encoding",
     async (provider) => {
       const f = modelFixture();

@@ -16,10 +16,13 @@ import {
 import {
   EvidenceBackedWikiMaintainer,
   WIKI_EVIDENCE_SCHEMA,
+  createEmptyWikiState,
+  digestWikiState,
 } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
 import {
   WIKI_LEDGER_CONFLICT_CODE,
   WikiMaintainerLedgerAdapter,
+  captureWikiRevisionReader,
 } from "../../src/lib/evolution/wiki-maintainer-ledger-adapter.js";
 
 function canonical(value) {
@@ -429,6 +432,29 @@ describe("WikiMaintainerLedgerAdapter", () => {
     expect(reopenedLedger.read()[0]).toMatchObject({
       type: "wiki.revision.committed",
       correlationId: "run-1",
+    });
+    expect(captureWikiRevisionReader(reopenedAdapter).readInventory()).toEqual({
+      authenticated: true,
+      descriptor,
+      ledgerHead: reopenedLedger.verify(),
+      tenantWikiRunIds: ["run-1"],
+      revisions: [
+        {
+          revision: result.revision,
+          revisionId: result.revisionId,
+          priorStateDigest: digestWikiState(createEmptyWikiState("tenant-a")),
+          stateDigest: result.stateDigest,
+          artifactRef: reopenedLedger.read()[0].subjectRef,
+          wikiSourceRevisionIds: [],
+          checkpoint: {
+            epoch: reopenedLedger.read()[0].epoch,
+            ledgerId: reopenedLedger.read()[0].ledgerId,
+            identityDigest: reopenedLedger.read()[0].identityDigest,
+            sequence: reopenedLedger.read()[0].sequence,
+            headDigest: reopenedLedger.read()[0].eventDigest,
+          },
+        },
+      ],
     });
   });
 

@@ -162,6 +162,7 @@ export class WikiMaintainerLedgerAdapter {
         descriptor: this.descriptor,
         matchesLedger: (candidate) => candidate === ledger,
         loadWiki: () => this.#loadWiki(),
+        readInventory: () => this.#readInventory(),
         readRevision: (input) => this.#readRevision(input),
         readKnowledgeProvenance: (input) =>
           this.#readKnowledgeProvenance(input),
@@ -177,6 +178,7 @@ export class WikiMaintainerLedgerAdapter {
     sourceDigest = null,
     allowed = [],
     checkpoint = null,
+    inventory = false,
     revisionId = null,
     stateRevisionDigest = null,
   } = {}) {
@@ -231,12 +233,25 @@ export class WikiMaintainerLedgerAdapter {
         event.tenantId === this.descriptor.tenantId &&
         event.correlationId === this.descriptor.evolutionRunId,
     );
+    const tenantWikiRunIds = [
+      ...new Set(
+        events
+          .filter(
+            (event) =>
+              event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
+              event.type === WIKI_LEDGER_EVENT_TYPE &&
+              event.tenantId === this.descriptor.tenantId,
+          )
+          .map((event) => requiredString(event.correlationId, "correlationId")),
+      ),
+    ].sort();
     let state = createEmptyWikiState(this.descriptor.tenantId);
     let viewState = state;
     let latest = null;
     let selectedRevision = null;
     let source = sourceDigest === digestWikiState(state) ? state : null;
     const successors = [];
+    const revisions = [];
     let retainedBytes = 0;
     let batch = [];
     for (const [index, event] of matches.entries()) {
@@ -301,6 +316,37 @@ export class WikiMaintainerLedgerAdapter {
         );
       }
       verifyRequestTransition(state, revision);
+      if (inventory) {
+        const wikiSourceRevisionIds = [
+          ...new Set(
+            Object.values(revision.state.evidence)
+              .flatMap((entry) => [entry.ref, entry.artifactRef])
+              .filter(
+                (ref) =>
+                  typeof ref === "string" &&
+                  ref.startsWith(`wiki-source://${this.descriptor.tenantId}/wiki:`),
+              )
+              .map((ref) => ref.slice(ref.lastIndexOf("/") + 1)),
+          ),
+        ].sort();
+        revisions.push(
+          freeze({
+            revision: revision.revision,
+            revisionId: revision.revisionId,
+            priorStateDigest: revision.priorStateDigest,
+            stateDigest: revision.stateDigest,
+            artifactRef: event.subjectRef,
+            wikiSourceRevisionIds,
+            checkpoint: {
+              epoch: event.epoch,
+              ledgerId: event.ledgerId,
+              identityDigest: event.identityDigest,
+              sequence: event.sequence,
+              headDigest: event.eventDigest,
+            },
+          }),
+        );
+      }
       if (
         revision.revisionId === revisionId ||
         revision.stateDigest === stateRevisionDigest
@@ -380,7 +426,22 @@ export class WikiMaintainerLedgerAdapter {
       source,
       successors,
       selectedRevision,
+      revisions,
+      tenantWikiRunIds,
     };
+  }
+
+  #readInventory() {
+    const { head, revisions, tenantWikiRunIds } = this.#history({
+      inventory: true,
+    });
+    return freeze({
+      authenticated: true,
+      descriptor: this.descriptor,
+      ledgerHead: head,
+      revisions,
+      tenantWikiRunIds,
+    });
   }
 
   #readKnowledgeProvenance({

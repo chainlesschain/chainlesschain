@@ -14,6 +14,7 @@ import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
 import { isGovernedKnowledgeReviewHost } from "../evolution/governed-knowledge-review-host.js";
+import { isGovernedKnowledgeRevocationHost } from "../evolution/governed-knowledge-revocation-host.js";
 import {
   contextPlanCreatedNotification,
   memoryDeletionNotification,
@@ -155,6 +156,7 @@ export class CcAppServer {
     skillRetrievalRevocationReader = null,
     evolutionWorkbenchHost = null,
     governedKnowledgeReviewHost = null,
+    governedKnowledgeRevocationHost = null,
     contextMemoryRuntimeFactory = createCliContextMemoryRuntime,
   } = {}) {
     if (typeof send !== "function") {
@@ -194,6 +196,15 @@ export class CcAppServer {
       );
     }
     this.governedKnowledgeReviewHost = governedKnowledgeReviewHost;
+    if (
+      governedKnowledgeRevocationHost !== null &&
+      !isGovernedKnowledgeRevocationHost(governedKnowledgeRevocationHost)
+    ) {
+      throw new TypeError(
+        "CcAppServer governedKnowledgeRevocationHost must be a branded revocation host",
+      );
+    }
+    this.governedKnowledgeRevocationHost = governedKnowledgeRevocationHost;
     this.skillOutcomeIndex =
       skillOutcomeIndex === null
         ? null
@@ -443,6 +454,10 @@ export class CcAppServer {
         this._governedKnowledgeConflicts(message.params),
       "evolution/knowledge/merge": () =>
         this._governedKnowledgeMerge(message.params),
+      "evolution/knowledge/revocation/prepare": () =>
+        this._governedKnowledgeRevocationPrepare(message.params),
+      "evolution/knowledge/revocation/publish": () =>
+        this._governedKnowledgeRevocationPublish(message.params),
     };
     const handler = handlers[method];
     if (!handler) {
@@ -503,6 +518,13 @@ export class CcAppServer {
           this.governedKnowledgeReviewHost === null
             ? []
             : ["conflicts", "merge"],
+      },
+      governedKnowledgeRevocation: {
+        available: this.governedKnowledgeRevocationHost !== null,
+        methods:
+          this.governedKnowledgeRevocationHost === null
+            ? []
+            : ["prepare", "publish"],
       },
       schema: {
         id: APP_SERVER_SCHEMA.$id,
@@ -601,6 +623,33 @@ export class CcAppServer {
       ),
       mergedRecord: requireObject(params.mergedRecord, "mergedRecord"),
       reason: requiredString(params.reason, "reason"),
+    });
+  }
+
+  _requireGovernedKnowledgeRevocationHost() {
+    if (this.governedKnowledgeRevocationHost === null) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.NOT_FOUND,
+        "Governed knowledge revocation is not configured for this App Server",
+      );
+    }
+    return this.governedKnowledgeRevocationHost;
+  }
+
+  _governedKnowledgeRevocationPrepare(rawParams) {
+    const params = requireObject(rawParams);
+    return this._requireGovernedKnowledgeRevocationHost().prepare(
+      requireObject(params.record, "record"),
+    );
+  }
+
+  _governedKnowledgeRevocationPublish(rawParams) {
+    const params = requireObject(rawParams);
+    return this._requireGovernedKnowledgeRevocationHost().publish({
+      operationDigest: requiredString(
+        params.operationDigest,
+        "operationDigest",
+      ),
     });
   }
 

@@ -1596,6 +1596,9 @@ export class SkillCandidateRegistry {
       Object.freeze({
         tenantId,
         read: Object.freeze(SkillCandidateRegistry.prototype.read.bind(this)),
+        readInventory: Object.freeze(
+          SkillCandidateRegistry.prototype.readInventory.bind(this),
+        ),
       }),
     );
   }
@@ -2914,14 +2917,29 @@ export class SkillCandidateRegistry {
         `limit must be an integer from 1 to ${MAX_LIST_LIMIT}`,
       );
     }
-    const names = this._assertNoMixedTenantArtifacts()
+    return Object.freeze(this.readInventory().slice(0, limit));
+  }
+
+  readInventory() {
+    const before = this._assertNoMixedTenantArtifacts()
       .filter((name) => CANDIDATE_FILE_PATTERN.test(name))
       .sort();
-    const candidates = names.slice(0, limit).map((name) => {
+    const candidates = before.map((name) => {
       const match = CANDIDATE_FILE_PATTERN.exec(name);
       return this.read(`sha256:${match[1]}`);
     });
-    this._assertBoundary();
+    const after = this._assertNoMixedTenantArtifacts()
+      .filter((name) => CANDIDATE_FILE_PATTERN.test(name))
+      .sort();
+    if (
+      before.length !== after.length ||
+      before.some((name, index) => name !== after[index])
+    ) {
+      throw registryError(
+        "SKILL_CANDIDATE_STORE_UNSAFE",
+        "candidate tenant inventory changed during authenticated enumeration",
+      );
+    }
     return Object.freeze(candidates);
   }
 }

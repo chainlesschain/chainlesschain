@@ -45,6 +45,10 @@ import {
   verifyGovernedKnowledgeDependencyPrepared,
 } from "./governed-knowledge-dependency-ledger-executor.js";
 import {
+  GOVERNED_KNOWLEDGE_QUARANTINE_RELEASE_EVENT_TYPE,
+  verifyGovernedKnowledgeQuarantineReleaseRecord,
+} from "./governed-knowledge-quarantine-release.js";
+import {
   WIKI_LEDGER_EVENT_TYPE,
   WikiMaintainerLedgerAdapter,
   captureWikiRevisionReader,
@@ -2588,16 +2592,166 @@ class EvolutionLedgerDomainPorts {
     }
   }
 
-  #assertReleaseNotRevoked(snapshot, binding, targetInput) {
-    const assertCandidate = (prepared, candidateId) => {
+  *#knowledgeQuarantineReleases(snapshot, tenantId, audience) {
+    const operations = new Set();
+    for (const event of snapshot.events) {
       if (
-        prepared.knowledge.dependencies.some(
-          (dependency) =>
-            dependency.kind === "candidate" &&
-            dependency.digest === candidateId &&
-            ["reject-candidate", "quarantine"].includes(dependency.disposition),
-        )
+        event.type !== GOVERNED_KNOWLEDGE_QUARANTINE_RELEASE_EVENT_TYPE ||
+        event.tenantId !== tenantId
       ) {
+        continue;
+      }
+      if (
+        event.schema !== EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA ||
+        event.artifactTenantId !== this.#artifactTenantId ||
+        event.decision !== "committed" ||
+        !Array.isArray(event.sourceRefs) ||
+        event.sourceRefs.length !== 0
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release event binding is invalid",
+        );
+      }
+      const ref = normalizeArtifactRef(
+        event.subjectRef,
+        "quarantine release subjectRef",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      const resolution = assertSynchronous(
+        this.#artifactResolve(
+          deepFreeze({
+            epoch: event.epoch,
+            ledgerId: event.ledgerId,
+            ref,
+            tenantId: this.#artifactTenantId,
+          }),
+        ),
+        "quarantine release artifact resolution",
+      );
+      assertAllExactRecord(
+        resolution,
+        LEDGER_RESOLUTION_KEYS,
+        "quarantine release artifact resolution",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      if (
+        resolution.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+        resolution.authenticated !== true ||
+        resolution.found !== true ||
+        resolution.ref !== ref.ref ||
+        resolution.digest !== ref.digest
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release artifact is not authenticated and exactly bound",
+        );
+      }
+      const bytes = copyBytes(resolution.bytes);
+      if (sha256(bytes) !== ref.digest) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release artifact digest mismatch",
+        );
+      }
+      let artifact;
+      try {
+        artifact = JSON.parse(bufferToString(bytes, "utf8"));
+      } catch (cause) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release artifact is not JSON",
+          { cause },
+        );
+      }
+      assertAllExactRecord(
+        artifact,
+        ARTIFACT_RECORD_KEYS,
+        "quarantine release artifact",
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+      );
+      if (
+        canonicalJson(artifact) !== bufferToString(bytes, "utf8") ||
+        artifact.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+        artifact.tenantId !== this.#artifactTenantId ||
+        artifact.type !== "governed-knowledge-quarantine-release" ||
+        artifact.retention !== "ledger" ||
+        artifact.purpose !== this.#purpose ||
+        artifact.audience !== audience
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release artifact boundary is invalid",
+        );
+      }
+      let release;
+      try {
+        release = verifyGovernedKnowledgeQuarantineReleaseRecord(
+          artifact.value,
+          { tenantId },
+        );
+      } catch (cause) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release record is invalid",
+          { cause },
+        );
+      }
+      if (
+        event.eventId !==
+          `${GOVERNED_KNOWLEDGE_QUARANTINE_RELEASE_EVENT_TYPE}.${release.operationDigest.slice(7)}` ||
+        event.timestamp !== release.committedAt ||
+        operations.has(release.operationDigest)
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release event identity is invalid or ambiguous",
+        );
+      }
+      operations.add(release.operationDigest);
+      yield release;
+    }
+  }
+
+  #assertReleaseNotRevoked(snapshot, binding, targetInput) {
+    const releases = new Map(
+      [
+        ...this.#knowledgeQuarantineReleases(
+          snapshot,
+          binding.tenantId,
+          binding.audience,
+        ),
+      ].map((release) => [release.operationDigest, release]),
+    );
+    const seenOperations = new Set();
+    const releaseFor = (prepared) => {
+      const release = releases.get(prepared.operationDigest) ?? null;
+      if (!release) return null;
+      seenOperations.add(prepared.operationDigest);
+      const quarantines = prepared.knowledge.dependencies.filter(
+        (dependency) => dependency.disposition === "quarantine",
+      );
+      if (
+        release.knowledgeId !== prepared.knowledge.knowledgeId ||
+        release.contentDigest !== prepared.knowledge.contentDigest ||
+        release.preparedRecordDigest !== prepared.recordDigest ||
+        canonicalJson(release.dependencies) !== canonicalJson(quarantines)
+      ) {
+        throw portsError(
+          EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+          "quarantine release does not bind its prepared revocation",
+        );
+      }
+      return release;
+    };
+    const assertCandidate = (prepared, candidateId) => {
+      const blocked = prepared.knowledge.dependencies.find(
+        (dependency) =>
+          dependency.kind === "candidate" &&
+          dependency.digest === candidateId &&
+          ["reject-candidate", "quarantine"].includes(dependency.disposition),
+      );
+      if (blocked) {
         throw portsError(
           EVOLUTION_LEDGER_CANDIDATE_REVOKED_CODE,
           "candidate activation is blocked by a durable knowledge revocation",
@@ -2643,6 +2797,7 @@ class EvolutionLedgerDomainPorts {
       binding.tenantId,
       binding.audience,
     )) {
+      const release = releaseFor(prepared);
       assertCandidate(prepared, binding.candidateId);
       readTarget();
       assertCandidate(prepared, target.candidateId);
@@ -2652,20 +2807,29 @@ class EvolutionLedgerDomainPorts {
         binding,
         target,
         knowledge,
+        release,
       );
       const sourceRef = `knowledge://${encodeURIComponent(binding.tenantId)}/${encodeURIComponent(knowledge.knowledgeId)}`;
-      const revokedRelease = knowledge.dependencies.some(
+      const targetDependencies = knowledge.dependencies.filter(
         (dependency) =>
-          dependency.kind === "active-skill" &&
-          dependency.digest === target.releaseDigest,
+          (dependency.kind === "active-skill" &&
+            dependency.digest === target.releaseDigest) ||
+          (dependency.kind === "candidate" &&
+            dependency.digest === target.candidateId),
       );
+      // Immutable candidate/release identities named by the quarantine remain
+      // fenced forever. A release restores only the reviewed Wiki source so a
+      // newly evaluated successor can traverse the ordinary promotion gates.
+      const revokedRelease = targetDependencies.length > 0;
+      const supersedingTarget = release !== null && !revokedRelease;
       if (
         revokedRelease ||
         wiki?.unsafePatternIds.length ||
-        target.candidate.sourceEvidenceRefs.some(
-          (item) =>
-            item.ref === sourceRef || item.digest === knowledge.contentDigest,
-        )
+        (!supersedingTarget &&
+          target.candidate.sourceEvidenceRefs.some(
+            (item) =>
+              item.ref === sourceRef || item.digest === knowledge.contentDigest,
+          ))
       ) {
         throw portsError(
           EVOLUTION_LEDGER_SOURCE_REVOKED_CODE,
@@ -2678,12 +2842,18 @@ class EvolutionLedgerDomainPorts {
         );
       }
     }
+    if (seenOperations.size !== releases.size) {
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_CORRUPT_CODE,
+        "quarantine release has no authenticated prepared revocation",
+      );
+    }
     // Bare legacy calls remain compatible only before any Knowledge revocation.
     // Once a fence exists, missing provenance must not mean unrelated/safe.
     if (targetInput !== undefined) readTarget();
   }
 
-  #releaseWikiProvenance(snapshot, binding, target, knowledge) {
+  #releaseWikiProvenance(snapshot, binding, target, knowledge, release = null) {
     if (target.candidate.derivationMode === "wiki") {
       // Discover the original run on the same authenticated ledger. Neither a
       // configurable reader nor a self-reported safe subset establishes origin.
@@ -2720,9 +2890,8 @@ class EvolutionLedgerDomainPorts {
         },
         ledgerArtifactResolver: this.#artifactResolve,
       });
-      const revision = captureWikiRevisionReader(
-        adapter,
-      ).readKnowledgeProvenance({
+      const reader = captureWikiRevisionReader(adapter);
+      const revision = reader.readKnowledgeProvenance({
         tenantId: binding.tenantId,
         revisionId: target.candidate.wikiRevision,
         knowledgeId: knowledge.knowledgeId,
@@ -2740,6 +2909,29 @@ class EvolutionLedgerDomainPorts {
           EVOLUTION_LEDGER_PORTS_UNAVAILABLE_CODE,
           "ledger changed while checking immutable Wiki provenance",
         );
+      }
+      const releasedDependency = release?.dependencies.find(
+        (dependency) =>
+          dependency.kind === "wiki" &&
+          dependency.disposition === "quarantine" &&
+          dependency.digest === revision.stateDigest,
+      );
+      if (releasedDependency) {
+        const current = reader.loadWiki();
+        const restored = revision.affectedPatternIds.every(
+          (patternId) =>
+            current.state.patterns[patternId]?.status !== "quarantined" &&
+            current.state.evolutionLog.some(
+              (entry) =>
+                entry.type === "pattern-quarantine-released" &&
+                entry.subjectId === patternId &&
+                entry.details?.operationDigest === release.operationDigest &&
+                entry.details?.releaseRecordDigest === release.recordDigest,
+            ),
+        );
+        if (restored) {
+          return deepFreeze({ ...revision, unsafePatternIds: [] });
+        }
       }
       return revision;
     }

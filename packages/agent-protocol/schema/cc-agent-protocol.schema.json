@@ -3655,7 +3655,9 @@
                     "evolution/workbench/review",
                     "evolution/workbench/rollback",
                     "evolution/knowledge/conflicts",
-                    "evolution/knowledge/merge"
+                    "evolution/knowledge/merge",
+                    "evolution/knowledge/revocation/prepare",
+                    "evolution/knowledge/revocation/publish"
                   ]
                 }
               }

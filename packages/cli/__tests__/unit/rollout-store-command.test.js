@@ -46,6 +46,7 @@ describe("serve migrate-rollouts", () => {
     expect(captureServeGovernanceHosts({ evolutionWorkbenchHost })).toEqual({
       evolutionWorkbenchHost,
       governedKnowledgeReviewHost: null,
+      governedKnowledgeRevocationHost: null,
     });
     expect(() =>
       captureServeGovernanceHosts({ evolutionWorkbenchHost: {} }),
@@ -53,6 +54,9 @@ describe("serve migrate-rollouts", () => {
     expect(() =>
       captureServeGovernanceHosts({ governedKnowledgeReviewHost: {} }),
     ).toThrow(/branded review host/u);
+    expect(() =>
+      captureServeGovernanceHosts({ governedKnowledgeRevocationHost: {} }),
+    ).toThrow(/branded revocation host/u);
   });
 
   it("dry-runs by default and copies the same canonical hashes only with --apply", async () => {

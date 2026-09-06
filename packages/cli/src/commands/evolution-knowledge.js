@@ -1,5 +1,6 @@
 import { intArg } from "../lib/cli-arg.js";
 import { isGovernedKnowledgeReviewHost } from "../lib/evolution/governed-knowledge-review-host.js";
+import { isGovernedKnowledgeRevocationHost } from "../lib/evolution/governed-knowledge-revocation-host.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function host(value) {
@@ -15,9 +16,21 @@ function output(value) {
   console.log(JSON.stringify(value, null, 2));
 }
 
+function revocationHost(value) {
+  if (!isGovernedKnowledgeRevocationHost(value)) {
+    throw new Error(
+      "Governed knowledge revocation is unavailable: a trusted deployment host is required",
+    );
+  }
+  return value;
+}
+
 export function registerGovernedKnowledgeCommands(
   evolution,
-  { governedKnowledgeReviewHost = null } = {},
+  {
+    governedKnowledgeReviewHost = null,
+    governedKnowledgeRevocationHost = null,
+  } = {},
 ) {
   const knowledge = evolution
     .command("knowledge")
@@ -48,6 +61,32 @@ export function registerGovernedKnowledgeCommands(
           conflictEnvelopeDigest,
           mergedRecord: parseJsonOption(options.record, "--record"),
           reason: options.reason,
+        }),
+      );
+    });
+
+  knowledge
+    .command("revoke-prepare")
+    .description("Discover and durably freeze a complete revocation plan")
+    .requiredOption(
+      "--record <json>",
+      "Governed revocation record without dependencies",
+    )
+    .action(async (options) => {
+      output(
+        await revocationHost(governedKnowledgeRevocationHost).prepare(
+          parseJsonOption(options.record, "--record"),
+        ),
+      );
+    });
+
+  knowledge
+    .command("revoke-publish <operation-digest>")
+    .description("Recover and publish a durably prepared revocation plan")
+    .action(async (operationDigest) => {
+      output(
+        await revocationHost(governedKnowledgeRevocationHost).publish({
+          operationDigest,
         }),
       );
     });

@@ -87,6 +87,9 @@ const TENANT_KEY_PATTERN = /^[a-f0-9]{64}$/u;
 const TEMP_PATTERN = /^\.(?:release|state|write)-[A-Za-z0-9._-]+\.tmp$/u;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_TENANT_MARKER_BYTES = 4096;
+export const SKILL_RELEASE_INVENTORY_MAX_ENTRIES = 4_096;
+export const SKILL_RELEASE_INVENTORY_MAX_BYTES = 32 * 1024 * 1024;
+export const SKILL_RELEASE_INVENTORY_MAX_NODES = 1_000_000;
 const MAX_CANONICAL_DEPTH = 32;
 const MAX_CANONICAL_NODES = 100_000;
 const MAX_CANONICAL_ARRAY_ENTRIES = 65_536;
@@ -2783,6 +2786,8 @@ export class SkillReleaseRegistry {
         readActive: SkillReleaseRegistry.prototype.readActive.bind(this),
         readState: SkillReleaseRegistry.prototype.readState.bind(this),
         readRelease: SkillReleaseRegistry.prototype.readRelease.bind(this),
+        readInventory:
+          SkillReleaseRegistry.prototype.readInventory.bind(this),
         matchesTransactionLedger: (value) => value === transactionLedger,
       }),
     );
@@ -3880,6 +3885,144 @@ export class SkillReleaseRegistry {
           state,
           release: this.readRelease(state.activeReleaseDigest),
         });
+  }
+
+  #readInventoryNames(area, pattern) {
+    const directory = this.#directories[area]?.path;
+    if (!directory || typeof this.#fs.opendirSync !== "function") {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release inventory requires bounded directory enumeration",
+      );
+    }
+    const names = [];
+    let handle = null;
+    let enumerationError = null;
+    try {
+      handle = this.#fs.opendirSync(directory);
+      while (true) {
+        const entry = handle.readSync();
+        if (entry === null) break;
+        if (
+          !entry ||
+          typeof entry.name !== "string" ||
+          !pattern.test(entry.name)
+        ) {
+          throw failure(
+            "SKILL_RELEASE_STORE_UNSAFE",
+            `release inventory found an unexpected ${area} entry`,
+          );
+        }
+        if (names.length >= SKILL_RELEASE_INVENTORY_MAX_ENTRIES) {
+          throw failure(
+            "SKILL_RELEASE_STORE_LIMIT",
+            `release inventory ${area} entry limit was exceeded`,
+          );
+        }
+        names.push(entry.name);
+      }
+    } catch (cause) {
+      enumerationError =
+        cause instanceof SkillReleaseRegistryError
+          ? cause
+          : failure(
+              "SKILL_RELEASE_STORE_UNSAFE",
+              `release inventory could not enumerate ${area} safely`,
+              { cause },
+            );
+    }
+    if (handle !== null && typeof handle.closeSync === "function") {
+      try {
+        handle.closeSync();
+      } catch (cause) {
+        enumerationError = failure(
+          "SKILL_RELEASE_STORE_UNSAFE",
+          `release inventory could not close ${area} safely`,
+          { cause, enumerationError },
+        );
+      }
+    }
+    if (enumerationError !== null) throw enumerationError;
+    return names.sort();
+  }
+
+  readInventory() {
+    this.#assertBoundary();
+    const releasePattern = /^[a-f0-9]{64}\.json$/u;
+    const statePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.json$/u;
+    const beforeReleases = this.#readInventoryNames(
+      "artifacts",
+      releasePattern,
+    );
+    const beforeStates = this.#readInventoryNames("active", statePattern);
+    if (
+      beforeReleases.length + beforeStates.length >
+      SKILL_RELEASE_INVENTORY_MAX_ENTRIES
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_LIMIT",
+        "release inventory aggregate entry limit was exceeded",
+      );
+    }
+    const releases = beforeReleases.map((name) =>
+      this.readRelease(`sha256:${name.slice(0, -".json".length)}`),
+    );
+    const active = beforeStates.map((name) => {
+      const skill = name.slice(0, -".json".length);
+      const value = this.readActive(skill);
+      if (value === null) {
+        throw failure(
+          "SKILL_RELEASE_STATE_CORRUPT",
+          "persisted active state has no committed release",
+        );
+      }
+      return deepFreeze({ skillName: skill, ...value });
+    });
+    let bytes = 0;
+    let nodes = 0;
+    const stack = [...releases, ...active.map(({ state }) => state)];
+    for (const value of stack) {
+      bytes += Buffer.byteLength(canonicalJson(value), "utf8");
+      const pending = [value];
+      while (pending.length > 0) {
+        const node = pending.pop();
+        nodes += 1;
+        if (nodes > SKILL_RELEASE_INVENTORY_MAX_NODES) {
+          throw failure(
+            "SKILL_RELEASE_STORE_LIMIT",
+            "release inventory aggregate node limit was exceeded",
+          );
+        }
+        if (node !== null && typeof node === "object") {
+          pending.push(...(Array.isArray(node) ? node : Object.values(node)));
+        }
+      }
+    }
+    if (bytes > SKILL_RELEASE_INVENTORY_MAX_BYTES) {
+      throw failure(
+        "SKILL_RELEASE_STORE_LIMIT",
+        "release inventory aggregate byte limit was exceeded",
+      );
+    }
+    const afterReleases = this.#readInventoryNames("artifacts", releasePattern);
+    const afterStates = this.#readInventoryNames("active", statePattern);
+    const afterStateDigests = afterStates.map((name) =>
+      this.readState(name.slice(0, -".json".length)).stateDigest,
+    );
+    if (
+      canonicalJson(beforeReleases) !== canonicalJson(afterReleases) ||
+      canonicalJson(beforeStates) !== canonicalJson(afterStates) ||
+      active.some(
+        ({ state }, index) => state.stateDigest !== afterStateDigests[index],
+      )
+    ) {
+      throw failure(
+        "SKILL_RELEASE_STORE_UNSAFE",
+        "release inventory changed during authenticated enumeration",
+      );
+    }
+    this.#assertBoundary();
+    return deepFreeze({ active, releases });
   }
 
   pinActive(name) {

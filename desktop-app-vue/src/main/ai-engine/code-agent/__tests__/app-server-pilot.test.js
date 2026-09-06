@@ -52,6 +52,8 @@ class FakePilotClient extends EventEmitter {
       "evolutionWorkbenchRollback",
       "governedKnowledgeConflicts",
       "governedKnowledgeMerge",
+      "governedKnowledgeRevocationPrepare",
+      "governedKnowledgeRevocationPublish",
     ]) {
       this[method] = vi.fn(async (params) => ({ method, params }));
     }
@@ -522,6 +524,22 @@ describe("DesktopAppServerPilot", () => {
         mergedRecord: { knowledgeId: "knowledge:1" },
         reason: "reviewed",
       },
+    });
+    await expect(
+      pilot.governedKnowledgeRevocationPrepare({
+        record: { action: "revoke" },
+      }),
+    ).resolves.toEqual({
+      method: "governedKnowledgeRevocationPrepare",
+      params: { record: { action: "revoke" } },
+    });
+    await expect(
+      pilot.governedKnowledgeRevocationPublish({
+        operationDigest: "sha256:operation",
+      }),
+    ).resolves.toEqual({
+      method: "governedKnowledgeRevocationPublish",
+      params: { operationDigest: "sha256:operation" },
     });
 
     expect(

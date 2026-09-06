@@ -521,6 +521,46 @@ describe("EvidenceBackedWikiMaintainer", () => {
     expect(tombstoned.result.state.index).toEqual([]);
   });
 
+  it("keeps quarantine distinct from deletion and blocks generic reactivation", async () => {
+    const created = await maintain({
+      state: createEmptyWikiState("tenant-a"),
+      evidenceRefs: ["ev-1", "ev-2"],
+      evidenceByRef: {
+        "ev-1": evidence("ev-1", { trustDomain: "a" }),
+        "ev-2": evidence("ev-2", { trustDomain: "b" }),
+      },
+      operations: [{ type: "upsert", pattern: pattern() }],
+    });
+    const quarantined = await maintain({
+      state: created.result.state,
+      evidenceRefs: ["ev-1"],
+      evidenceByRef: { "ev-1": evidence("ev-1", { trustDomain: "a" }) },
+      operations: [
+        {
+          type: "quarantine",
+          patternId: "pat-safe-refactor",
+          reason: "governed source quarantine",
+        },
+      ],
+    });
+
+    expect(
+      quarantined.result.state.patterns["pat-safe-refactor"],
+    ).toMatchObject({ status: "quarantined", actionable: false });
+    expect(quarantined.result.state.index).toEqual([]);
+    await expect(
+      maintain({
+        state: quarantined.result.state,
+        evidenceRefs: ["ev-1", "ev-2"],
+        evidenceByRef: {
+          "ev-1": evidence("ev-1", { trustDomain: "a" }),
+          "ev-2": evidence("ev-2", { trustDomain: "b" }),
+        },
+        operations: [{ type: "upsert", pattern: pattern() }],
+      }),
+    ).rejects.toThrow(/cannot rewrite a quarantined pattern/u);
+  });
+
   it("rejects raw/secret material, cross-tenant evidence, and excessive authority", async () => {
     expect(
       () =>

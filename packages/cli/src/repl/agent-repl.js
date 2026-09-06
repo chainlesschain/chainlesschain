@@ -3409,7 +3409,11 @@ async function startAgentReplInWorkspaceOwned(
   let _compactionUsageBlock = null;
 
   try {
-    const ctx = await bootstrap({ verbose: false });
+    const ctx = await bootstrap({
+      verbose: false,
+      ...(options.skipDb === true ? { skipDb: true } : {}),
+      ...(options.dbPath == null ? {} : { dbPath: options.dbPath }),
+    });
     db = ctx.db || null;
   } catch (_err) {
     // Continue without DB — static prompt fallback
@@ -9670,6 +9674,7 @@ async function startAgentReplInWorkspaceOwned(
         contextEngine,
         iterationBudget,
         sessionId,
+        ...(evolutionIngress === null ? {} : { evolutionIngress }),
         persistUsageTelemetry: useJsonl,
         skillLoader: _replSkillLoader,
         skillOutcomeIndex: options.skillOutcomeIndex,

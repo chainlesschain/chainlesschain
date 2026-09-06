@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildAgentModelRequest,
+  projectAgentOpaqueTransportBlock,
   snapshotAgentModelRequest,
 } from "../../src/lib/evolution/agent-model-projection.js";
 
@@ -44,12 +45,7 @@ describe("Agent model projection protocol boundary", () => {
     const sparse = request();
     sparse.messages.length = 3;
     const media = request();
-    media.messages[0].content = [
-      {
-        type: "image_url",
-        image_url: { url: "data:image/png;base64,private" },
-      },
-    ];
+    media.messages[0].content = [{ type: "audio", data: "private" }];
     for (const input of [
       accessor,
       new Proxy(request(), {}),
@@ -60,6 +56,95 @@ describe("Agent model projection protocol boundary", () => {
       expect(() => snapshotAgentModelRequest(input)).toThrow();
     }
     expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("restores only digest-bound image and signed thinking transport blocks", () => {
+    const original = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "private alice@example.com" },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${Buffer.from("image-bytes").toString("base64")}`,
+              },
+            },
+          ],
+        },
+        {
+          role: "assistant",
+          content: "",
+          _thinkingBlocks: [
+            {
+              type: "thinking",
+              thinking: "private chain of thought",
+              signature: "signed-provider-receipt-123456",
+            },
+          ],
+        },
+      ],
+      tools: [],
+    };
+    const safe = structuredClone(original);
+    safe.messages[0].content[0].text = "private [REDACTED:email]";
+    safe.messages[0].content[1] = projectAgentOpaqueTransportBlock(
+      original.messages[0].content[1],
+      "messages.0.content.1",
+    );
+    safe.messages[1]._thinkingBlocks[0] = projectAgentOpaqueTransportBlock(
+      original.messages[1]._thinkingBlocks[0],
+      "messages.1._thinkingBlocks.0",
+    );
+    expect(() => snapshotAgentModelRequest(safe)).toThrow(/unsupported/u);
+    const output = buildAgentModelRequest(original, projection(safe));
+    expect(output.messages[1].content[0].text).toContain("[REDACTED:email]");
+    expect(output.messages[1].content[1]).toEqual(
+      original.messages[0].content[1],
+    );
+    expect(output.messages[2]._thinkingBlocks[0]).toEqual(
+      original.messages[1]._thinkingBlocks[0],
+    );
+    const tampered = structuredClone(original);
+    tampered.messages[0].content[1].image_url.url = `data:image/png;base64,${Buffer.from("other-image").toString("base64")}`;
+    expect(() => buildAgentModelRequest(tampered, projection(safe))).toThrow(
+      /commitment/u,
+    );
+  });
+
+  it("rejects unsigned thinking and non-canonical or remote image blocks", () => {
+    for (const content of [
+      [{ type: "image_url", image_url: { url: "https://example.test/a.png" } }],
+      [
+        {
+          type: "image_url",
+          image_url: { url: "data:image/svg+xml;base64,PHN2Zz4=" },
+        },
+      ],
+      [{ type: "image_url", image_url: { url: "data:image/png;base64,YQ" } }],
+    ]) {
+      expect(() =>
+        snapshotAgentModelRequest({
+          messages: [{ role: "user", content }],
+          tools: [],
+        }),
+      ).toThrow();
+    }
+    expect(() =>
+      snapshotAgentModelRequest({
+        messages: [
+          {
+            role: "assistant",
+            content: "",
+            _thinkingBlocks: [
+              { type: "thinking", thinking: "secret", signature: "" },
+            ],
+          },
+        ],
+        tools: [],
+      }),
+    ).toThrow(/signature/u);
   });
 
   it("enforces input byte, depth and node budgets", () => {

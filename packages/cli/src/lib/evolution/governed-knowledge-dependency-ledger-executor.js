@@ -139,6 +139,13 @@ function identifier(value, label) {
   return value;
 }
 
+function portableKnowledge(value, tenantId) {
+  const knowledge = verifyGovernedKnowledgeRecord(value, { tenantId });
+  const portable = clone(knowledge);
+  delete portable.dependencies;
+  return portable;
+}
+
 function capture(owner, method, label) {
   if (!owner || typeof owner !== "object" || utilTypes.isProxy(owner)) {
     throw new TypeError(`${label}.${method}() is required`);
@@ -621,6 +628,122 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
       verifiedHead,
     );
     return this._result(settled.record, knowledge, prepared !== null);
+  }
+
+  async prepare(knowledgeInput) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError(
+        "dependency preparation requires its branded executor",
+      );
+    }
+    const knowledge = verifyGovernedKnowledgeRecord(knowledgeInput, {
+      tenantId: this.descriptor.tenantId,
+    });
+    if (
+      !["tombstone", "revoke"].includes(knowledge.action) ||
+      !isGovernedKnowledgeExecutionRecord(knowledgeInput)
+    ) {
+      throw new TypeError(
+        "dependency preparation requires a governed revocation record",
+      );
+    }
+    const operationDigest = digestGovernedKnowledgeDependencyOperation({
+      tenantId: this.descriptor.tenantId,
+      deviceId: this.descriptor.deviceId,
+      knowledge,
+    });
+    const prepared = await this._prepare(
+      knowledgeInput,
+      knowledge,
+      operationDigest,
+    );
+    if (
+      !prepared ||
+      canonical(prepared.record.knowledge) !== canonical(knowledge)
+    ) {
+      corrupt("dependency prepare was not durably read back");
+    }
+    return freeze({
+      authenticated: true,
+      durable: true,
+      operationDigest,
+      knowledge: clone(prepared.record.knowledge),
+    });
+  }
+
+  readPrepared({ operationDigest } = {}) {
+    if (!EXECUTORS.has(this) || !DIGEST.test(operationDigest ?? "")) {
+      throw new TypeError("prepared dependency operation identity is invalid");
+    }
+    const prepared = this._prepared(operationDigest);
+    return prepared === null
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest,
+          preparedRecordDigest: prepared.record.recordDigest,
+          knowledge: clone(prepared.record.knowledge),
+        });
+  }
+
+  readPreparedForKnowledge(knowledgeInput) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError(
+        "prepared dependency lookup requires its branded executor",
+      );
+    }
+    const target = portableKnowledge(knowledgeInput, this.descriptor.tenantId);
+    const matches = [];
+    for (const event of this._events(
+      GOVERNED_KNOWLEDGE_DEPENDENCY_PREPARED_EVENT_TYPE,
+    )) {
+      const record = verifyGovernedKnowledgeDependencyPrepared(
+        this._resolve(event),
+        this.descriptor,
+      );
+      if (
+        canonical(
+          portableKnowledge(record.knowledge, this.descriptor.tenantId),
+        ) !== canonical(target)
+      ) {
+        continue;
+      }
+      const prepared = this._prepared(record.operationDigest);
+      if (!prepared || prepared.event.eventDigest !== event.eventDigest) {
+        corrupt("prepared dependency lookup event binding differs");
+      }
+      matches.push(prepared.record);
+    }
+    if (matches.length > 1) {
+      corrupt("prepared dependency lookup is ambiguous");
+    }
+    return matches.length === 0
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest: matches[0].operationDigest,
+          preparedRecordDigest: matches[0].recordDigest,
+          knowledge: clone(matches[0].knowledge),
+        });
+  }
+
+  readSettlement({ operationDigest } = {}) {
+    if (!EXECUTORS.has(this) || !DIGEST.test(operationDigest ?? "")) {
+      throw new TypeError("dependency settlement identity is invalid");
+    }
+    const prepared = this._prepared(operationDigest);
+    if (!prepared) return null;
+    const settled = this._settled(prepared.record);
+    return settled === null
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest,
+          record: clone(settled.record),
+        });
   }
 
   async resume({ operationDigest } = {}) {

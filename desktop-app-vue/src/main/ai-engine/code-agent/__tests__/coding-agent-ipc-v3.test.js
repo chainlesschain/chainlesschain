@@ -1236,6 +1236,12 @@ describe("registerCodingAgentIPCV3", () => {
       evolutionWorkbenchRollback: vi.fn().mockResolvedValue({ accepted: true }),
       governedKnowledgeConflicts: vi.fn().mockResolvedValue({ items: [] }),
       governedKnowledgeMerge: vi.fn().mockResolvedValue({ durable: true }),
+      governedKnowledgeRevocationPrepare: vi
+        .fn()
+        .mockResolvedValue({ durable: true, operationDigest: "sha256:plan" }),
+      governedKnowledgeRevocationPublish: vi
+        .fn()
+        .mockResolvedValue({ durable: true }),
       listPendingApprovals: vi.fn().mockReturnValue([{ id: "approval-1" }]),
       respondApproval: vi.fn().mockReturnValue({
         accepted: true,
@@ -1367,6 +1373,24 @@ describe("registerCodingAgentIPCV3", () => {
     expect(appServerPilot.governedKnowledgeMerge).toHaveBeenCalledWith(
       mergeRequest,
     );
+    const revocationPrepare = { record: { action: "revoke" } };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-governed-knowledge-revocation-prepare"
+      ]({}, revocationPrepare),
+    ).toMatchObject({ success: true, result: { durable: true } });
+    expect(
+      appServerPilot.governedKnowledgeRevocationPrepare,
+    ).toHaveBeenCalledWith(revocationPrepare);
+    const revocationPublish = { operationDigest: "sha256:plan" };
+    expect(
+      await ipcMainMock.handlers[
+        "coding-agent:app-server-governed-knowledge-revocation-publish"
+      ]({}, revocationPublish),
+    ).toMatchObject({ success: true, result: { durable: true } });
+    expect(
+      appServerPilot.governedKnowledgeRevocationPublish,
+    ).toHaveBeenCalledWith(revocationPublish);
     expect(
       await ipcMainMock.handlers["coding-agent:app-server-approval-list"](),
     ).toEqual({ success: true, result: [{ id: "approval-1" }] });

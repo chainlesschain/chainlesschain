@@ -134,6 +134,12 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     governedKnowledgeMerge(params) {
         return this.call("evolution/knowledge/merge", params);
     }
+    governedKnowledgeRevocationPrepare(params) {
+        return this.call("evolution/knowledge/revocation/prepare", params);
+    }
+    governedKnowledgeRevocationPublish(params) {
+        return this.call("evolution/knowledge/revocation/publish", params);
+    }
     contextPlan(params) {
         return this.call("context/plan", params);
     }

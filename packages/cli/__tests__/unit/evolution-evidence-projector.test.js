@@ -15,6 +15,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { buildAgentModelRequest } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
@@ -36,6 +37,7 @@ import {
   EVOLUTION_PROJECTION_QUARANTINED_CODE,
   EVOLUTION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
   EVOLUTION_RAW_STORAGE_POLICY_SCHEMA,
@@ -783,6 +785,18 @@ describe("EvolutionEvidenceProjector", () => {
     const historicalDigest =
       "sha256:849190ae2133525c56d053b054a388275038e7a70eed75189415c252c050b0d3";
     expect(current.receipt.rulesetDigest).not.toBe(historicalDigest);
+    expect(current.receipt.rulesetDigest).not.toBe(
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
+    );
+    const previous = await reattest(
+      h,
+      current,
+      payload,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
+    );
+    await expect(h.verifier.verify(previous)).resolves.toMatchObject({
+      verified: true,
+    });
     const historical = await reattest(h, current, payload, historicalDigest);
     await expect(h.verifier.verify(historical)).resolves.toMatchObject({
       verified: true,
@@ -796,6 +810,65 @@ describe("EvolutionEvidenceProjector", () => {
     );
     await expect(h.verifier.verify(invalidHistorical)).rejects.toThrow(
       /metadata/u,
+    );
+  });
+
+  it("keeps mixed text, image bytes and signed thinking at source granularity", async () => {
+    const h = harness();
+    const imageUrl = `data:image/png;base64,${Buffer.from("private-image-bytes").toString("base64")}`;
+    const payload = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Contact alice@example.com" },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        },
+        {
+          role: "assistant",
+          content: "",
+          _thinkingBlocks: [
+            {
+              type: "thinking",
+              thinking: "private reasoning",
+              signature: "provider-signature-1234567890",
+            },
+          ],
+        },
+      ],
+      tools: [],
+    };
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    expect(bundle.receipt.rulesetDigest).toBe(
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+    );
+    expect(bundle.receipt.rulesetDigest).not.toBe(
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
+    );
+    expect(JSON.stringify(bundle)).not.toContain("private-image-bytes");
+    expect(JSON.stringify(bundle)).not.toContain("private reasoning");
+    expect(JSON.stringify(bundle)).not.toContain("provider-signature");
+    expect(bundle.modelProjection.content.messages[0].content).toEqual([
+      { type: "text", text: "Contact [REDACTED:email]" },
+      expect.objectContaining({
+        schema: "chainlesschain.evolution-agent-opaque-transport-block/v1",
+        kind: "image",
+      }),
+    ]);
+    expect(
+      bundle.modelProjection.content.messages[1]._thinkingBlocks[0],
+    ).toMatchObject({ kind: "thinking" });
+    expect(h.rawStore.putEncrypted.mock.calls[0][0].payload).toEqual(payload);
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+    const restored = buildAgentModelRequest(payload, bundle.modelProjection);
+    expect(restored.messages[1].content[1].image_url.url).toBe(imageUrl);
+    expect(restored.messages[2]._thinkingBlocks[0]).toEqual(
+      payload.messages[1]._thinkingBlocks[0],
     );
   });
 

@@ -6,6 +6,7 @@ import { openEvolutionDurableStore } from "./evolution-durable-store.js";
 import { openRevocationReleaseRegistry } from "./skill-revocation-release-registry.js";
 import { openKnowledgeWikiProvenance } from "./knowledge-wiki-provenance.js";
 import {
+  createGovernedKnowledgeSkillQuarantineAuthority,
   createGovernedKnowledgeSkillRollbackAuthority,
   governedKnowledgeSourceRef,
 } from "../../src/lib/evolution/governed-knowledge-skill-rollback.js";
@@ -19,7 +20,10 @@ import {
   createGovernedKnowledgeCandidateQuarantineAuthority,
 } from "../../src/lib/evolution/governed-knowledge-candidate-rejection.js";
 import { createGovernedKnowledgeDependencyRouter } from "../../src/lib/evolution/governed-knowledge-dependency-authority.js";
-import { createGovernedKnowledgeWikiTombstoneAuthority } from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
+import {
+  createGovernedKnowledgeWikiQuarantineAuthority,
+  createGovernedKnowledgeWikiTombstoneAuthority,
+} from "../../src/lib/evolution/governed-knowledge-wiki-tombstone.js";
 
 export const tenantId = "tenant-knowledge-rollback";
 export const deviceId = "device:a";
@@ -75,9 +79,12 @@ export async function openKnowledgeSkillRollbackStore(
   root,
   {
     seed = false,
+    localDeviceId = deviceId,
+    cryptoAuthority = null,
     candidateEvidenceRefs = [source],
     baselineEvidenceRefs = null,
     crashPoint = "none",
+    activeQuarantine = false,
     wikiProvenance = false,
     unsafeWikiBaseline = false,
     lateWikiProvenance = false,
@@ -87,6 +94,7 @@ export async function openKnowledgeSkillRollbackStore(
     candidateRejection = false,
     candidateQuarantine = false,
     wikiTombstone = false,
+    wikiQuarantine = false,
     wikiTombstoneAllRuns = false,
     wikiPatternCount = 1,
     wikiHops = 0,
@@ -97,6 +105,10 @@ export async function openKnowledgeSkillRollbackStore(
 ) {
   if (candidateRejection && candidateQuarantine)
     throw new Error("test candidate dispositions must not be conflated");
+  if (wikiTombstone && wikiQuarantine)
+    throw new Error("test Wiki dispositions must not be conflated");
+  const wikiDisposition = wikiQuarantine ? "quarantine" : "tombstone";
+  const wikiDispositionMode = wikiQuarantine || wikiTombstone;
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
@@ -226,7 +238,7 @@ export async function openKnowledgeSkillRollbackStore(
     : null;
   const options = {
     ...release.pruningRollbackOptions,
-    deviceId,
+    deviceId: localDeviceId,
     wikiLedgerAdapter: wiki?.adapter ?? null,
     verifierWikiLedgerAdapter: independentWiki?.adapter ?? null,
     verifierReleaseRegistry: independent.pruningRollbackOptions.releaseRegistry,
@@ -243,8 +255,21 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("rollback-verifier"),
     },
   };
-  const rollbackAuthority =
-    createGovernedKnowledgeSkillRollbackAuthority(options);
+  const rollbackAuthority = activeQuarantine
+    ? createGovernedKnowledgeSkillQuarantineAuthority({
+        ...options,
+        providerDescriptor: {
+          authorityId: "knowledge-active-quarantine:provider",
+          revision: 1,
+          handlerArtifactDigest: D("active-quarantine-provider"),
+        },
+        verifierDescriptor: {
+          authorityId: "knowledge-active-quarantine:verifier",
+          revision: 1,
+          handlerArtifactDigest: D("active-quarantine-verifier"),
+        },
+      })
+    : createGovernedKnowledgeSkillRollbackAuthority(options);
   const rejectionOptions = {
     ...options,
     candidateRegistry: release.candidateRegistry,
@@ -261,7 +286,7 @@ export async function openKnowledgeSkillRollbackStore(
     },
   };
   const rejectionAuthority =
-    candidateRejection || wikiTombstone === "combined"
+    candidateRejection || wikiDispositionMode === "combined"
       ? createGovernedKnowledgeCandidateRejectionAuthority(rejectionOptions)
       : null;
   const quarantineOptions = {
@@ -282,7 +307,7 @@ export async function openKnowledgeSkillRollbackStore(
     : null;
   const wikiTombstoneOptions = {
     tenantId,
-    deviceId,
+    deviceId: localDeviceId,
     wikiLedgerAdapter: wiki?.adapter,
     verifierWikiLedgerAdapter: independentWiki?.adapter,
     transactionLedger: release.pruningRollbackOptions.transactionLedger,
@@ -309,32 +334,37 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("wiki-tombstone-verifier"),
     },
   };
-  const wikiAuthority = wikiTombstone
-    ? createGovernedKnowledgeWikiTombstoneAuthority(wikiTombstoneOptions)
+  const wikiAuthority = wikiDispositionMode
+    ? (wikiQuarantine
+        ? createGovernedKnowledgeWikiQuarantineAuthority
+        : createGovernedKnowledgeWikiTombstoneAuthority)(wikiTombstoneOptions)
     : null;
   const authority =
     candidateRejection === "combined" ||
     candidateQuarantine === "combined" ||
-    wikiTombstone === "combined"
+    wikiDispositionMode === "combined"
       ? createGovernedKnowledgeDependencyRouter({
           tenantId,
-          deviceId,
+          deviceId: localDeviceId,
           routes: {
-            "active-skill/rollback-active": rollbackAuthority,
+            [`active-skill/${activeQuarantine ? "quarantine" : "rollback-active"}`]:
+              rollbackAuthority,
             ...(rejectionAuthority
               ? { "candidate/reject-candidate": rejectionAuthority }
               : {}),
             ...(quarantineAuthority
               ? { "candidate/quarantine": quarantineAuthority }
               : {}),
-            ...(wikiAuthority ? { "wiki/tombstone": wikiAuthority } : {}),
+            ...(wikiAuthority
+              ? { [`wiki/${wikiDisposition}`]: wikiAuthority }
+              : {}),
           },
         })
       : (wikiAuthority ??
         quarantineAuthority ??
         rejectionAuthority ??
         rollbackAuthority);
-  const descriptor = { ...resources.descriptor, deviceId };
+  const descriptor = { ...resources.descriptor, deviceId: localDeviceId };
   const executorLedger = {
     read: resources.backend.ledger.read.bind(resources.backend.ledger),
     verify: resources.backend.ledger.verify.bind(resources.backend.ledger),
@@ -373,7 +403,7 @@ export async function openKnowledgeSkillRollbackStore(
   // Transport/identity here are test-owned. Actual release mutations, artifact
   // storage, signed Ledger/witness, independent readers and recovery are real.
   const sent = [];
-  const crypto = {
+  const defaultCrypto = {
     verifier: {
       verify: async ({ envelopeDigest, signature }) =>
         signature === `test:${envelopeDigest}`,
@@ -412,6 +442,15 @@ export async function openKnowledgeSkillRollbackStore(
       },
     },
   };
+  const crypto = cryptoAuthority
+    ? {
+        ...defaultCrypto,
+        verifier: cryptoAuthority,
+        encrypt: cryptoAuthority,
+        decrypt: cryptoAuthority,
+        sign: cryptoAuthority,
+      }
+    : defaultCrypto;
   const persisted = new GovernedKnowledgeSyncLedgerAdapter({
     descriptor,
     artifactPorts: resources.artifactPorts,
@@ -420,12 +459,17 @@ export async function openKnowledgeSkillRollbackStore(
     envelopeVerifier: crypto.verifier,
     now: resources.clock,
   });
-  const makeSync = (dependencyExecutor = executor) =>
+  const makeSync = (
+    dependencyExecutor = executor,
+    dependencyPlanner = null,
+    portOverrides = {},
+  ) =>
     new GovernedKnowledgeSync({
       tenantId,
-      deviceId,
-      ports: persisted.syncPorts(crypto),
+      deviceId: localDeviceId,
+      ports: { ...persisted.syncPorts(crypto), ...portOverrides },
       dependencyExecutor,
+      dependencyPlanner,
       artifactLifecycle: knowledgeLifecycle(resources, descriptor),
       clock: resources.clock,
     });
@@ -436,14 +480,14 @@ export async function openKnowledgeSkillRollbackStore(
     scopeId: "project:1",
     action: "revoke",
     contentDigest: source.digest,
-    vectorClock: { [deviceId]: 1 },
+    vectorClock: { [localDeviceId]: 1 },
     approvalReceiptDigest: null,
     revocationReceiptDigest: D("revocation-receipt"),
     dependencies: [
       {
         kind: "active-skill",
         digest: release.candidateRelease.releaseDigest,
-        disposition: "rollback-active",
+        disposition: activeQuarantine ? "quarantine" : "rollback-active",
       },
     ],
   };
@@ -458,14 +502,14 @@ export async function openKnowledgeSkillRollbackStore(
         ? [...knowledge.dependencies, candidate]
         : [candidate];
   }
-  if (wikiTombstone) {
+  if (wikiDispositionMode) {
     const original = wiki.reader.readRevision({
       tenantId,
       revisionId: release.candidateRelease.candidate.wikiRevision,
     });
     const dependency = {
       kind: "wiki",
-      disposition: "tombstone",
+      disposition: wikiDisposition,
       digest: original.stateDigest,
     };
     const wikiDependencies = [dependency];
@@ -484,7 +528,7 @@ export async function openKnowledgeSkillRollbackStore(
         if (!event) throw new Error("test upstream Wiki source is missing");
         wikiDependencies.push({
           kind: "wiki",
-          disposition: "tombstone",
+          disposition: wikiDisposition,
           digest: upstream.reader.readRevision({
             tenantId,
             revisionId: event.eventId.replace("wiki.revision.", "wiki:"),
@@ -493,17 +537,19 @@ export async function openKnowledgeSkillRollbackStore(
       }
     }
     knowledge.dependencies =
-      wikiTombstone === "combined"
+      wikiDispositionMode === "combined"
         ? [
             {
               kind: "active-skill",
               digest: release.candidateRelease.releaseDigest,
-              disposition: "rollback-active",
+              disposition: activeQuarantine ? "quarantine" : "rollback-active",
             },
             {
               kind: "candidate",
               digest: release.candidateRelease.candidateId,
-              disposition: "reject-candidate",
+              disposition: candidateQuarantine
+                ? "quarantine"
+                : "reject-candidate",
             },
             ...wikiDependencies,
           ]

@@ -2,7 +2,7 @@ import { types } from "node:util";
 import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 import { captureSkillReleaseOperationReader } from "./evolution-ledger-ports.js";
 import { governedKnowledgeSourceRef } from "./governed-knowledge-skill-rollback.js";
-import { deriveWikiTargetTombstoneRevision } from "./wiki-target-tombstone-revision.js";
+import { deriveWikiTargetDispositionRevision } from "./wiki-target-tombstone-revision.js";
 import {
   createGovernedKnowledgeDependencyAuthority,
   GOVERNED_KNOWLEDGE_DEPENDENCY_RESULT_SCHEMA,
@@ -39,6 +39,36 @@ const MULTIHOP_RULES_DIGEST = digest(MULTIHOP_SCHEMA, {
   schema: MULTIHOP_SCHEMA,
   source: "authenticated-pinned-Wiki-exact-Knowledge-ancestry",
 });
+const QUARANTINE_SCHEMA = "chainlesschain.knowledge-wiki-quarantine/v1";
+const QUARANTINE_RULES = Object.freeze({
+  ...RULES,
+  schema: QUARANTINE_SCHEMA,
+  effect: "target-only-quarantine",
+});
+const QUARANTINE_RULES_DIGEST = digest(QUARANTINE_SCHEMA, QUARANTINE_RULES);
+const QUARANTINE_MULTIHOP_SCHEMA =
+  "chainlesschain.knowledge-wiki-quarantine/v2";
+const QUARANTINE_MULTIHOP_RULES_DIGEST = digest(QUARANTINE_MULTIHOP_SCHEMA, {
+  ...QUARANTINE_RULES,
+  schema: QUARANTINE_MULTIHOP_SCHEMA,
+  source: "authenticated-pinned-Wiki-exact-Knowledge-ancestry",
+});
+const TOMBSTONE = Object.freeze({
+  disposition: "tombstone",
+  schema: SCHEMA,
+  rulesDigest: RULES_DIGEST,
+  multihopSchema: MULTIHOP_SCHEMA,
+  multihopRulesDigest: MULTIHOP_RULES_DIGEST,
+  model: "deterministic:knowledge-wiki-tombstone",
+});
+const QUARANTINE = Object.freeze({
+  disposition: "quarantine",
+  schema: QUARANTINE_SCHEMA,
+  rulesDigest: QUARANTINE_RULES_DIGEST,
+  multihopSchema: QUARANTINE_MULTIHOP_SCHEMA,
+  multihopRulesDigest: QUARANTINE_MULTIHOP_RULES_DIGEST,
+  model: "deterministic:knowledge-wiki-quarantine",
+});
 function fail(message) {
   throw new Error(`Knowledge Wiki tombstone: ${message}`);
 }
@@ -57,7 +87,7 @@ function bind(wikiAdapter, transactionLedger, tenantId) {
     );
   return Object.freeze({ wiki, operations });
 }
-function partsFor(source, request, provenance) {
+function partsFor(source, request, provenance, configuration) {
   const sourceRef = governedKnowledgeSourceRef(request);
   const refs = new Set(
     Object.values(source.state.evidence)
@@ -82,7 +112,7 @@ function partsFor(source, request, provenance) {
     .sort();
   const targetIds = provenance.affectedPatternIds;
   const operations = targetIds.map((patternId) => ({
-    type: "tombstone",
+    type: configuration.disposition,
     patternId,
     reason: "governed-knowledge-revocation",
   }));
@@ -93,7 +123,7 @@ function partsFor(source, request, provenance) {
   // v2 contract, pinned to the original revision rather than today's head.
   const sourceProofDigest = same(directIds, targetIds)
     ? null
-    : digest(`${MULTIHOP_SCHEMA}/source`, {
+    : digest(`${configuration.multihopSchema}/source`, {
         revisionId: provenance.revisionId,
         stateDigest: provenance.stateDigest,
         checkpoint: provenance.checkpoint,
@@ -111,7 +141,7 @@ function partsFor(source, request, provenance) {
       operations: batch,
       ...(sourceProofDigest ? { sourceProofDigest } : {}),
       requestDigest: digest(
-        `${sourceProofDigest ? MULTIHOP_SCHEMA : SCHEMA}/batch`,
+        `${sourceProofDigest ? configuration.multihopSchema : configuration.schema}/batch`,
         {
           requestDigest: request.requestDigest,
           index,
@@ -123,8 +153,8 @@ function partsFor(source, request, provenance) {
     };
   });
 }
-function derive(reader, source, part, fence) {
-  return deriveWikiTargetTombstoneRevision({
+function derive(reader, source, part, fence, configuration) {
+  return deriveWikiTargetDispositionRevision({
     source,
     operations: part.operations,
     requestDigest: part.requestDigest,
@@ -132,24 +162,24 @@ function derive(reader, source, part, fence) {
     descriptor: {
       tenantId: reader.wiki.descriptor.tenantId,
       evolutionRunId: reader.wiki.descriptor.evolutionRunId,
-      maintainerModel: part.sourceProofDigest
-        ? "deterministic:knowledge-wiki-tombstone/v2"
-        : "deterministic:knowledge-wiki-tombstone/v1",
+      maintainerModel: `${configuration.model}/${part.sourceProofDigest ? "v2" : "v1"}`,
       rulesDigest: part.sourceProofDigest
-        ? MULTIHOP_RULES_DIGEST
-        : RULES_DIGEST,
+        ? configuration.multihopRulesDigest
+        : configuration.rulesDigest,
       minCorroboratingSources: RULES.minCorroboratingSources,
       decayHalfLifeDays: RULES.decayHalfLifeDays,
       staleConfidenceFloor: RULES.staleConfidenceFloor,
     },
   });
 }
-async function prove(reader, request, context, original) {
+async function prove(reader, request, context, original, configuration) {
   if (
     request.dependency.kind !== "wiki" ||
-    request.dependency.disposition !== "tombstone"
+    request.dependency.disposition !== configuration.disposition
   )
-    fail("only an exact wiki / tombstone dependency is supported");
+    fail(
+      `only an exact wiki / ${configuration.disposition} dependency is supported`,
+    );
   const admission = reader.operations.resolveKnowledgeRevocation({
     tenantId: request.tenantId,
     operationDigest: request.operationDigest,
@@ -189,7 +219,7 @@ async function prove(reader, request, context, original) {
     !matchHead(context.checkpoint, provenance.ledgerHead)
   )
     fail("Wiki ancestry does not bind the original state and current ledger");
-  const parts = partsFor(original, request, provenance);
+  const parts = partsFor(original, request, provenance, configuration);
   const history = reader.wiki.resolveHistory({
     tenantId: request.tenantId,
     stateDigest: request.dependency.digest,
@@ -204,7 +234,13 @@ async function prove(reader, request, context, original) {
   for (const [index, entry] of history.successors.entries()) {
     if (entry.predecessorHead.sequence < fence.sequence)
       fail("Wiki effect predates its prepared Knowledge authorization");
-    const expected = await derive(reader, source, parts[index], fence);
+    const expected = await derive(
+      reader,
+      source,
+      parts[index],
+      fence,
+      configuration,
+    );
     if (!same(expected, entry.revision))
       fail("Wiki successor does not match the exact target-only tombstones");
     source = {
@@ -228,17 +264,18 @@ async function prove(reader, request, context, original) {
   });
 }
 
-export function createGovernedKnowledgeWikiTombstoneAuthority({
-  tenantId,
-  deviceId,
-  wikiLedgerAdapter,
-  transactionLedger,
-  verifierWikiLedgerAdapter,
-  verifierTransactionLedger,
-  providerDescriptor,
-  verifierDescriptor,
-  additionalWikiTargets = [],
-} = {}) {
+function createWikiDispositionAuthority(options = {}, configuration) {
+  const {
+    tenantId,
+    deviceId,
+    wikiLedgerAdapter,
+    transactionLedger,
+    verifierWikiLedgerAdapter,
+    verifierTransactionLedger,
+    providerDescriptor,
+    verifierDescriptor,
+    additionalWikiTargets = [],
+  } = options;
   if (
     wikiLedgerAdapter === verifierWikiLedgerAdapter ||
     transactionLedger === verifierTransactionLedger
@@ -354,12 +391,14 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
       request,
       context,
       selected.original,
+      configuration,
     );
     const independent = await prove(
       selected.binding.verifier,
       request,
       context,
       selected.independentOriginal,
+      configuration,
     );
     if (!same(primary, independent))
       fail("independent Wiki effect proof differs");
@@ -407,6 +446,7 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
             proof.current,
             proof.parts[done],
             proof.fence,
+            configuration,
           );
           let commitError = null;
           try {
@@ -449,14 +489,28 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
           providerRevision: providerIdentity.revision,
           verifierAuthorityId: verifierIdentity.authorityId,
           verifierRevision: verifierIdentity.revision,
-          verificationReceiptDigest: digest(`${SCHEMA}/verification`, {
-            requestDigest: request.requestDigest,
-            resultDigest: result.resultDigest,
-            proof,
-            verifierIdentity,
-          }),
+          verificationReceiptDigest: digest(
+            `${configuration.schema}/verification`,
+            {
+              requestDigest: request.requestDigest,
+              resultDigest: result.resultDigest,
+              proof,
+              verifierIdentity,
+            },
+          ),
         });
       },
     }),
   });
+}
+
+export function createGovernedKnowledgeWikiTombstoneAuthority(options = {}) {
+  return createWikiDispositionAuthority(options, TOMBSTONE);
+}
+
+// Quarantine is a distinct non-deletion state. The generic Wiki maintainer
+// refuses to rewrite quarantined patterns, so only a future separately governed
+// release authority can make them actionable again.
+export function createGovernedKnowledgeWikiQuarantineAuthority(options = {}) {
+  return createWikiDispositionAuthority(options, QUARANTINE);
 }

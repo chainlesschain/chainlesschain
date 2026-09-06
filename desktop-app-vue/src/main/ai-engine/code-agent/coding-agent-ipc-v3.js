@@ -37,6 +37,8 @@ const APP_SERVER_PILOT_IPC_CHANNELS = [
   "coding-agent:app-server-evolution-workbench-rollback",
   "coding-agent:app-server-governed-knowledge-conflicts",
   "coding-agent:app-server-governed-knowledge-merge",
+  "coding-agent:app-server-governed-knowledge-revocation-prepare",
+  "coding-agent:app-server-governed-knowledge-revocation-publish",
 ];
 
 const CODING_AGENT_IPC_CHANNELS = [
@@ -231,6 +233,14 @@ function registerCodingAgentIPCV3(options = {}) {
     [
       "coding-agent:app-server-governed-knowledge-merge",
       "governedKnowledgeMerge",
+    ],
+    [
+      "coding-agent:app-server-governed-knowledge-revocation-prepare",
+      "governedKnowledgeRevocationPrepare",
+    ],
+    [
+      "coding-agent:app-server-governed-knowledge-revocation-publish",
+      "governedKnowledgeRevocationPublish",
     ],
   ]) {
     ipc.handle(channel, (_event, payload = {}) => runPilot(operation, payload));

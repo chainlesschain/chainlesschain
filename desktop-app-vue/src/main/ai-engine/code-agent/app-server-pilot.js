@@ -628,6 +628,18 @@ class DesktopAppServerPilot extends EventEmitter {
   governedKnowledgeMerge(params) {
     return this.client.governedKnowledgeMerge(normalizeParams(params));
   }
+
+  governedKnowledgeRevocationPrepare(params) {
+    return this.client.governedKnowledgeRevocationPrepare(
+      normalizeParams(params),
+    );
+  }
+
+  governedKnowledgeRevocationPublish(params) {
+    return this.client.governedKnowledgeRevocationPublish(
+      normalizeParams(params),
+    );
+  }
 }
 
 module.exports = {
