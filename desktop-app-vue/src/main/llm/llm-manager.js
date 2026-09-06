@@ -1720,6 +1720,20 @@ function _setLLMManagerInstance(instance) {
   llmManagerInstance = instance;
 }
 
+function createLLMManagerReplacement(previous, config) {
+  if (previous != null && !(previous instanceof LLMManager))
+    throw new TypeError("LLM replacement requires the current native manager");
+  return new LLMManager(
+    {
+      ...config,
+      tokenTracker: previous?.tokenTracker ?? null,
+      promptCompressor: previous?.promptCompressor ?? null,
+      responseCache: previous?.responseCache ?? null,
+    },
+    previous == null ? null : (modelIngressHosts.get(previous) ?? null),
+  );
+}
+
 /**
  * 为LLMManager添加AI标签生成和摘要生成功能
  */
@@ -2438,6 +2452,7 @@ module.exports = {
   LLMProviders,
   getLLMManager,
   _setLLMManagerInstance,
+  createLLMManagerReplacement,
   TaskTypes, // 导出任务类型枚举，方便外部使用
   // Category routing exports (v5.0.2.9)
   LLM_CATEGORIES,

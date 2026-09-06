@@ -7,6 +7,8 @@
 const { logger } = require("../utils/logger.js");
 
 function registerSelectorHandlers(ctx) {
+  const getConfiguration =
+    ctx.getLLMConfig || (() => require("./llm-config").getLLMConfig());
   const { ipcMain, managerRef, llmSelector, database, app } = ctx;
 
   // ============================================================
@@ -78,17 +80,17 @@ function registerSelectorHandlers(ctx) {
         throw new Error("数据库未初始化");
       }
 
-      const { getLLMConfig } = require("./llm-config");
-      const { LLMManager } = require("./llm-manager");
+      const {
+        createLLMManagerReplacement,
+        _setLLMManagerInstance,
+      } = require("./llm-manager");
 
       // 保存新的提供商到llm-config.json
-      const llmConfig = getLLMConfig();
+      const llmConfig = getConfiguration();
       llmConfig.setProvider(provider);
 
       // 重新初始化LLM管理器
-      if (managerRef.current) {
-        await managerRef.current.close();
-      }
+      const previousManager = managerRef.current;
 
       const managerConfig = llmConfig.getManagerConfig();
       logger.info(`[LLM IPC] 切换到LLM提供商: ${provider}, 配置:`, {
@@ -96,11 +98,19 @@ function registerSelectorHandlers(ctx) {
         baseURL: managerConfig.baseURL,
       });
 
-      const newManager = new LLMManager(managerConfig);
+      const newManager = createLLMManagerReplacement(
+        previousManager,
+        managerConfig,
+      );
       await newManager.initialize();
+      if (managerRef.current !== previousManager)
+        throw new Error("LLM manager changed during provider switch");
 
       // 更新引用容器
       managerRef.current = newManager;
+      _setLLMManagerInstance(newManager);
+      if (newManager.promptCompressor)
+        newManager.promptCompressor.llmManager = newManager;
 
       // 如果有 app 实例，也更新 app 上的引用
       if (app) {

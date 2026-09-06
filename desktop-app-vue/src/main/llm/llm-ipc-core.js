@@ -7,6 +7,8 @@
 const { logger } = require("../utils/logger.js");
 
 function registerCoreHandlers(ctx) {
+  const getConfiguration =
+    ctx.getLLMConfig || (() => require("./llm-config").getLLMConfig());
   const {
     ipcMain,
     managerRef,
@@ -1034,8 +1036,7 @@ function registerCoreHandlers(ctx) {
    */
   ipcMain.handle("llm:get-config", async () => {
     try {
-      const { getLLMConfig } = require("./llm-config");
-      const llmConfig = getLLMConfig();
+      const llmConfig = getConfiguration();
       return llmConfig.getAll();
     } catch (error) {
       logger.error("[LLM IPC] 获取LLM配置失败:", error);
@@ -1049,8 +1050,7 @@ function registerCoreHandlers(ctx) {
    */
   ipcMain.handle("llm:set-config", async (_event, config) => {
     try {
-      const { getLLMConfig } = require("./llm-config");
-      const llmConfig = getLLMConfig();
+      const llmConfig = getConfiguration();
 
       // 更新配置
       Object.keys(config).forEach((key) => {
@@ -1076,20 +1076,27 @@ function registerCoreHandlers(ctx) {
       }
 
       // 正常模式：重新初始化LLM管理器
-      const { LLMManager } = require("./llm-manager");
-
-      if (managerRef.current) {
-        // LLMManager 没有 close 方法，直接清空引用即可
-        managerRef.current = null;
-      }
+      const {
+        createLLMManagerReplacement,
+        _setLLMManagerInstance,
+      } = require("./llm-manager");
+      const previousManager = managerRef.current;
 
       const managerConfig = llmConfig.getManagerConfig();
       // 创建新的 LLMManager 实例
-      const newManager = new LLMManager(managerConfig);
+      const newManager = createLLMManagerReplacement(
+        previousManager,
+        managerConfig,
+      );
       await newManager.initialize();
+      if (managerRef.current !== previousManager)
+        throw new Error("LLM manager changed during configuration update");
 
       // 更新引用容器
       managerRef.current = newManager;
+      _setLLMManagerInstance(newManager);
+      if (newManager.promptCompressor)
+        newManager.promptCompressor.llmManager = newManager;
 
       // 如果有 app 实例，也更新 app 上的引用
       if (app) {
