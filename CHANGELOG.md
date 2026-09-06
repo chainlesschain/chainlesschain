@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.25: preserve large-file reading progress
+
+> `chainlesschain` **0.166.24 -> 0.166.25** (2026-09-06).
+
+- **Forward progress after compaction**: keep bounded, version-aware file cursors
+  outside the message history and include them in each model request. Reading an
+  older page cannot move the cursor backwards; changes on disk reset it.
+- **Repeated-read recovery**: detect unchanged pages across sequential and parallel
+  tool batches, including after context compaction. Give the model a recovery
+  opportunity, then fail explicitly after three batches with no new reading
+  progress instead of consuming tokens indefinitely or claiming completion.
+- **Normal reading remains available**: new pages, changed files, different
+  rendering modes and other tool work clear the repeated-read streak. New runs
+  can intentionally revisit a file.
+- **Validation**: cover a large document traversed to EOF through repeated
+  compaction, exact-page loops, parallel reads, changed-file reads and cursor
+  preservation. CLI publication requires the complete exact-commit operating
+  system matrices in `CLI CI` and `CLI Strict Sandbox`.
+
 ### Fixed - cc CLI 0.166.24: durable long-running IDE tasks
 
 > `chainlesschain` **0.166.22 -> 0.166.24** (published 2026-09-06;

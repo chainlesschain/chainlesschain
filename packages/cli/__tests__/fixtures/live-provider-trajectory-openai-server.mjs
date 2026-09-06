@@ -109,7 +109,11 @@ const server = http.createServer((request, response) => {
     requestCount += 1;
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const tools = Array.isArray(body.tools) ? body.tools : [];
-    const last = messages.at(-1);
+    // Ephemeral runtime instructions (including read-file progress) may follow
+    // a tool result. They do not start a new conversational turn.
+    const last = messages.findLast(
+      (message) => message?.role !== "system" && message?.role !== "developer",
+    );
 
     if (tools.length === 0) {
       const prompt = messages.length === 1 ? messages[0]?.content : null;

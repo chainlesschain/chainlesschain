@@ -36,7 +36,7 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool, capToolResultString, toolResultForModel } =
+const { executeTool, capToolResultString, toolResultForModel, agentLoop } =
   await import("../../src/runtime/agent-core.js");
 
 describe("read_file offset/limit line ranges", () => {
@@ -50,6 +50,182 @@ describe("read_file offset/limit line ranges", () => {
 
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
+
+  it("reads a large document to EOF using progress retained through repeated compaction", async () => {
+    const documentLines = Array.from(
+      { length: 4000 },
+      (_, i) => `section ${i + 1}: ${"document content ".repeat(12)}`,
+    );
+    writeFileSync(join(dir, "f.txt"), documentLines.join("\n"), "utf8");
+    const compactor = {
+      shouldAutoCompact: (messages) => messages.length > 4,
+      compress: async (messages) => ({
+        messages: [messages[0]],
+        stats: {
+          originalMessages: messages.length,
+          compressedMessages: 1,
+          saved: 1,
+        },
+      }),
+    };
+    let modelCalls = 0;
+    let nextLine = 1;
+    let compactions = 0;
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Read the document and finish the task" }],
+      {
+        cwd: dir,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        _autoCompactor: compactor,
+        chatFn: async (messages) => {
+          modelCalls++;
+          expect(modelCalls).toBeLessThan(30);
+          const progress = messages.find((message) =>
+            message.content?.startsWith("[Current run file read progress"),
+          );
+          const cursor = progress
+            ? JSON.parse(progress.content.split("\n")[1])[0]
+            : null;
+          return {
+            message: cursor?.reachedEnd
+              ? { role: "assistant", content: "completed" }
+              : {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: `page-${modelCalls}`,
+                      type: "function",
+                      function: {
+                        name: "read_file",
+                        arguments: JSON.stringify(
+                          cursor?.nextRead || { path: "f.txt" },
+                        ),
+                      },
+                    },
+                  ],
+                },
+          };
+        },
+      },
+    )) {
+      if (event.type === "compaction") compactions++;
+      if (event.type !== "tool-result") continue;
+      const page = event.result;
+      expect(page.error).toBeUndefined();
+      expect(page.range.startLine).toBe(nextLine);
+      expect(page.content.replace(/\n$/, "").split("\n")).toEqual(
+        documentLines.slice(nextLine - 1, page.range.endLine),
+      );
+      nextLine = page.range.endLine + 1;
+    }
+    expect(nextLine).toBe(documentLines.length + 1);
+    expect(compactions).toBeGreaterThan(2);
+  });
+
+  it.each([false, true])(
+    "stops looping reads after one recovery opportunity (parallel=%s)",
+    async (parallel) => {
+      const messages = [{ role: "user", content: "finish the task" }];
+      const events = [];
+      let recoverySeen = false;
+      let calls = 0;
+      const chatFn = async (context) => {
+        calls++;
+        recoverySeen ||= context.some((m) =>
+          m.content?.includes("Repeated unchanged file reads detected"),
+        );
+        return {
+          message: {
+            role: "assistant",
+            content: "Let me read the file again",
+            tool_calls: Array.from({ length: parallel ? 2 : 1 }, (_, i) => ({
+              id: `read-${calls}-${i}`,
+              type: "function",
+              function: {
+                name: "read_file",
+                arguments: JSON.stringify({
+                  path: "f.txt",
+                  offset: i + 1,
+                  limit: 1,
+                }),
+              },
+            })),
+          },
+        };
+      };
+      let failure;
+      try {
+        for await (const event of agentLoop(messages, {
+          cwd: dir,
+          chatFn,
+          autoCompact: false,
+          contextMemorySkipPlanning: true,
+          prepareCall: async () => ({ systemSuffix: "Keep working" }),
+        }))
+          events.push(event);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure?.code).toBe("CC_AGENT_REPEATED_FILE_READ");
+      expect(calls).toBe(4);
+      expect(recoverySeen).toBe(true);
+      const results = events.filter((e) => e.type === "tool-result");
+      expect(results).toHaveLength(parallel ? 8 : 4);
+      expect(results.every((e) => !e.result.error)).toBe(true);
+      const toolMessages = messages.filter((m) => m.role === "tool");
+      expect(toolMessages.map((m) => m.tool_call_id)).toEqual(
+        results.map((e) => e.tool_use_id),
+      );
+      expect(events.some((e) => e.type === "response-complete")).toBe(false);
+    },
+  );
+
+  it("continues when the model follows the next page after recovery guidance", async () => {
+    let calls = 0;
+    const events = [];
+    for await (const event of agentLoop(
+      [{ role: "user", content: "read both sections" }],
+      {
+        cwd: dir,
+        autoCompact: false,
+        contextMemorySkipPlanning: true,
+        chatFn: async () => {
+          calls++;
+          return {
+            message:
+              calls === 5
+                ? { role: "assistant", content: "completed" }
+                : {
+                    role: "assistant",
+                    tool_calls: [
+                      {
+                        id: `read-${calls}`,
+                        type: "function",
+                        function: {
+                          name: "read_file",
+                          arguments: JSON.stringify({
+                            path: "f.txt",
+                            offset: calls === 4 ? 6 : 1,
+                            limit: 5,
+                          }),
+                        },
+                      },
+                    ],
+                  },
+          };
+        },
+      },
+    ))
+      events.push(event);
+    expect(events.find((e) => e.type === "response-complete")?.content).toBe(
+      "completed",
+    );
+    expect(
+      events.filter((e) => e.type === "tool-result").at(-1).result.range
+        .startLine,
+    ).toBe(6);
+  });
 
   it("reads the whole file with no range (unchanged behavior)", async () => {
     const r = await read({});

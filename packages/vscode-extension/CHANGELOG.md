@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.85] - Unreleased
+
+- Show the requested line range and long-line column in file-read traces so
+  forward paging can be distinguished from repeatedly reading the same page.
+- Recommend the published `chainlesschain@0.166.25` CLI, which retains
+  version-aware read progress through compaction and stops unchanged-page
+  loops after an explicit recovery opportunity.
+- This entry prepares the next extension package; the CLI-only release does
+  not publish a VSIX or change the public extension listing.
+
 ## [0.37.84] - Durable long-running chat tasks (2026-09-06)
 
 - Recommend the exact-gated public `chainlesschain@0.166.24` release and let

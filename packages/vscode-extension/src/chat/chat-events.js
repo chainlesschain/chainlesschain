@@ -23,7 +23,7 @@ const {
 const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
 
 /** One-line argument summary for the tool trace (mirrors the CLI's trace). */
-function summarizeToolArgs(args) {
+function summarizeToolArgs(args, tool) {
   if (!args || typeof args !== "object") return "";
   const s =
     args.path ||
@@ -34,7 +34,21 @@ function summarizeToolArgs(args) {
     args.code ||
     "";
   const str = String(s);
-  return str.length > 80 ? str.slice(0, 80) + "…" : str;
+  const summary = str.length > 80 ? str.slice(0, 80) + "…" : str;
+  if (tool === "read_file") {
+    const positive = (value) => {
+      const n = Number.parseInt(value, 10);
+      return Number.isSafeInteger(n) && n > 0 ? n : null;
+    };
+    const offset = positive(args.offset);
+    const limit = positive(args.limit);
+    const column = positive(args.column);
+    if (offset || limit || column) {
+      const start = offset || 1;
+      return `${summary} (lines ${start}${limit ? `-${start + limit - 1}` : "+"}${column ? `, column ${column}` : ""})`;
+    }
+  }
+  return summary;
 }
 
 function createTurnState() {
@@ -129,7 +143,7 @@ function mapAgentEvent(evt, state) {
       return {
         kind: "tool",
         tool: evt.tool || "?",
-        summary: summarizeToolArgs(evt.args),
+        summary: summarizeToolArgs(evt.args, evt.tool),
       };
     case "tool_result": {
       // `ask_user_question` normally round-trips through the in-panel question

@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Published release: `chainlesschain@0.166.24` (verified 2026-09-06), immutable tag `v-npm-0-166-24` at `9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`. Its complete Linux/Windows/macOS CLI CI (`34006348566`), Strict Sandbox (`34006348459`) and npm publish/public-install gate (`34007761162`) passed; npm latest was read back.
+> CLI version: `chainlesschain@0.166.25`. The immutable release tag is `v-npm-0-166-25`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.24
+npm install -g chainlesschain@0.166.25
 chainlesschain setup
 ```
 
@@ -32,6 +32,14 @@ git diff | cc
 ```
 
 ## Long-running tasks (0.166.24)
+
+Version 0.166.25 preserves the forward file-reading cursor for every model call,
+including after context compaction. Re-reading an earlier unchanged page does
+not reset that cursor. If the model repeatedly returns to the same pages, the
+runtime offers a recovery opportunity and stops with an explicit incomplete-task
+error after three tool batches without new reading progress. Reading the next
+page, observing an edited file, or doing other tool work allows the task to
+continue normally.
 
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended

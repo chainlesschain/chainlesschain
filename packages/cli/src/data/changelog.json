@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.25",
+      "cliVersions": ["0.166.24", "0.166.25"],
+      "date": "2026-09-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.25: preserve large-file reading progress",
+          "body": "> `chainlesschain` **0.166.24 -> 0.166.25** (2026-09-06).\n\n- **Forward progress after compaction**: keep bounded, version-aware file cursors\n  outside the message history and include them in each model request. Reading an\n  older page cannot move the cursor backwards; changes on disk reset it.\n- **Repeated-read recovery**: detect unchanged pages across sequential and parallel\n  tool batches, including after context compaction. Give the model a recovery\n  opportunity, then fail explicitly after three batches with no new reading\n  progress instead of consuming tokens indefinitely or claiming completion.\n- **Normal reading remains available**: new pages, changed files, different\n  rendering modes and other tool work clear the repeated-read streak. New runs\n  can intentionally revisit a file.\n- **Validation**: cover a large document traversed to EOF through repeated\n  compaction, exact-page loops, parallel reads, changed-file reads and cursor\n  preservation. CLI publication requires the complete exact-commit operating\n  system matrices in `CLI CI` and `CLI Strict Sandbox`."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.24",
       "cliVersions": ["0.166.22", "0.166.24"],
       "date": "2026-09-06",
