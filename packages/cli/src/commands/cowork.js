@@ -7,10 +7,84 @@ import chalk from "chalk";
 import ora from "ora";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "node:crypto";
+import { types as utilTypes } from "node:util";
 import { logger } from "../lib/logger.js";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition.js";
 
 const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
+
+function captureCoworkEvolutionCompositionFactory(commandDeps) {
+  if (
+    commandDeps === null ||
+    typeof commandDeps !== "object" ||
+    Array.isArray(commandDeps) ||
+    utilTypes.isProxy(commandDeps)
+  ) {
+    throw new TypeError("Cowork command dependencies must be a plain object");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    commandDeps,
+    "evolutionCompositionFactory",
+  );
+  if (!descriptor) return null;
+  if (
+    !Object.hasOwn(descriptor, "value") ||
+    typeof descriptor.value !== "function"
+  ) {
+    throw new TypeError(
+      "Cowork evolutionCompositionFactory must be a function data property",
+    );
+  }
+  return descriptor.value;
+}
+
+async function startCoworkCommandEvolution(
+  evolutionCompositionFactory,
+  { mode, content, source },
+) {
+  if (evolutionCompositionFactory === null) return null;
+  try {
+    const runId = `cowork-${mode}-${randomUUID()}`;
+    const composition = captureAgentEvolutionRuntimeComposition(
+      await evolutionCompositionFactory(
+        Object.freeze({
+          mode: `cowork-${mode}`,
+          runId,
+          taskId: runId,
+          cwd: process.cwd(),
+        }),
+      ),
+    );
+    const ingress = composition.evolutionIngress;
+    if (
+      composition.runId !== runId ||
+      ingress.runId !== runId ||
+      composition.tenantId !== ingress.tenantId
+    ) {
+      throw new Error(
+        "Cowork evolution composition is not bound to the requested Run",
+      );
+    }
+    await ingress.start();
+    await ingress.ingestUserPrompt({ content, source });
+    return Object.freeze({ composition, ingress });
+  } catch (cause) {
+    const error = new Error("Cowork evolution admission failed", { cause });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
+async function completeCoworkCommandEvolution(evolution, result) {
+  if (evolution === null) return;
+  await evolution.ingress.ingestAgentEvent({
+    type: "response-complete",
+    content: result,
+  });
+  await evolution.ingress.complete();
+}
 
 function workflowAuthorityError(code, message) {
   const error = new Error(message);
@@ -114,6 +188,8 @@ function verifyWorkflowRunAuthorities(
 }
 
 export function registerCoworkCommand(program, commandDeps = {}) {
+  const evolutionCompositionFactory =
+    captureCoworkEvolutionCompositionFactory(commandDeps);
   const cowork = program
     .command("cowork")
     .description(
@@ -164,9 +240,20 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       ).start();
 
       try {
+        const evolution = await startCoworkCommandEvolution(
+          evolutionCompositionFactory,
+          {
+            mode: "debate",
+            content: code,
+            source: "cowork:debate",
+          },
+        );
         const llmOptions = {};
         if (options.provider) llmOptions.provider = options.provider;
         if (options.model) llmOptions.model = options.model;
+        if (evolution !== null) {
+          llmOptions.evolutionIngress = evolution.ingress;
+        }
 
         const result = await startDebate({
           target: targetLabel,
@@ -174,6 +261,7 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           perspectives,
           llmOptions,
         });
+        await completeCoworkCommandEvolution(evolution, result);
         spinner.stop();
 
         if (options.json) {
@@ -257,9 +345,20 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       ).start();
 
       try {
+        const evolution = await startCoworkCommandEvolution(
+          evolutionCompositionFactory,
+          {
+            mode: "compare",
+            content: prompt,
+            source: "cowork:compare",
+          },
+        );
         const llmOptions = {};
         if (options.provider) llmOptions.provider = options.provider;
         if (options.model) llmOptions.model = options.model;
+        if (evolution !== null) {
+          llmOptions.evolutionIngress = evolution.ingress;
+        }
 
         const result = await compare({
           prompt,
@@ -267,6 +366,7 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           criteria,
           llmOptions,
         });
+        await completeCoworkCommandEvolution(evolution, result);
         spinner.stop();
 
         if (options.json) {
@@ -342,6 +442,14 @@ export function registerCoworkCommand(program, commandDeps = {}) {
 
       try {
         let result;
+        const usesModel = ["style", "decisions"].includes(options.type);
+        const evolution = usesModel
+          ? await startCoworkCommandEvolution(evolutionCompositionFactory, {
+              mode: `analyze-${options.type}`,
+              content: resolved,
+              source: `cowork:analyze:${options.type}`,
+            })
+          : null;
 
         if (options.type === "style") {
           const { analyzeProjectStyle } =
@@ -349,6 +457,9 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           const llmOptions = {};
           if (options.provider) llmOptions.provider = options.provider;
           if (options.model) llmOptions.model = options.model;
+          if (evolution !== null) {
+            llmOptions.evolutionIngress = evolution.ingress;
+          }
           result = await analyzeProjectStyle({
             targetPath: resolved,
             llmOptions,
@@ -363,6 +474,9 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           const llmOptions = {};
           if (options.provider) llmOptions.provider = options.provider;
           if (options.model) llmOptions.model = options.model;
+          if (evolution !== null) {
+            llmOptions.evolutionIngress = evolution.ingress;
+          }
           result = await extractDecisions({
             targetPath: resolved,
             llmOptions,
@@ -371,6 +485,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           spinner.fail(`Unknown analysis type: ${options.type}`);
           process.exit(1);
         }
+
+        await completeCoworkCommandEvolution(evolution, result);
 
         spinner.stop();
 
@@ -875,10 +991,23 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--model <name>", "LLM model to use")
     .action(async (prompt, options) => {
       try {
+        const evolution = await startCoworkCommandEvolution(
+          evolutionCompositionFactory,
+          {
+            mode: "workflow-draft",
+            content: prompt,
+            source: "cowork:workflow-draft",
+          },
+        );
         let chat;
         let provider;
         let model;
         if (Object.hasOwn(commandDeps, "workflowDraftChat")) {
+          if (evolution !== null) {
+            throw new Error(
+              "Cowork workflow draft chat seam cannot replace governed model ingress",
+            );
+          }
           const descriptor = Object.getOwnPropertyDescriptor(
             commandDeps,
             "workflowDraftChat",
@@ -920,6 +1049,9 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           chat = createChatFn({
             provider,
             model,
+            ...(evolution === null
+              ? {}
+              : { evolutionIngress: evolution.ingress }),
             ...(config.provider === provider && config.baseUrl
               ? { baseUrl: config.baseUrl }
               : {}),
@@ -934,6 +1066,7 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           { prompt, provider, model },
           { chat },
         );
+        await completeCoworkCommandEvolution(evolution, draft);
         console.log(JSON.stringify(draft, null, 2));
       } catch (err) {
         logger.error(`WORKFLOW_DRAFT_FAILED: ${err.message}`);

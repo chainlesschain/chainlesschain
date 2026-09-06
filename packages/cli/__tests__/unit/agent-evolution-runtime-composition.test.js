@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Command } from "commander";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -74,6 +75,7 @@ import {
   registerAgentCommand,
   resolveAgentCommandEvolutionComposition,
 } from "../../src/commands/agent.js";
+import { registerCoworkCommand } from "../../src/commands/cowork.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
@@ -1037,6 +1039,108 @@ describe("Agent evolution runtime production composition", () => {
       "model-input",
       "model-input",
       "model-input",
+    ]);
+  });
+
+  it("governs the standalone Cowork workflow draft command through completion", async () => {
+    const f = modelFixture();
+    const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+    f.transport.mockImplementation(async (_url, request) => {
+      f.seen.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              id: "governed-workflow",
+              name: "Governed workflow",
+              steps: [{ id: "review", message: "Review the release" }],
+              facade: {
+                requirements: {
+                  capabilities: ["cowork-task", "dag", "variables"],
+                  executionLocations: ["local"],
+                  permissions: {
+                    file: "read",
+                    shell: false,
+                    network: false,
+                    mcp: false,
+                    externalSystems: false,
+                  },
+                  sandbox: "strong",
+                  dataBoundary: "repository",
+                  credentials: [],
+                },
+                estimates: {
+                  tokensPerTask: 100,
+                  usdPerTask: 0.01,
+                  durationMsPerTask: 1000,
+                },
+                budget: {
+                  maxExpandedTasks: 4,
+                  maxParallel: 1,
+                  maxTokens: 500,
+                  maxUsd: 1,
+                  maxDurationMs: 5000,
+                },
+              },
+            }),
+          },
+        }),
+      };
+    });
+    let composition = null;
+    const factory = vi.fn(async ({ runId }) => {
+      composition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      return composition;
+    });
+    const program = new Command();
+    program.exitOverride();
+    registerCoworkCommand(program, {
+      evolutionCompositionFactory: factory,
+    });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await program.parseAsync([
+        "node",
+        "cc",
+        "cowork",
+        "workflow",
+        "draft",
+        `Review the release with ${secret}`,
+        "--provider",
+        "ollama",
+        "--model",
+        "test-model",
+      ]);
+    } finally {
+      log.mockRestore();
+    }
+
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory.mock.calls[0][0]).toMatchObject({
+      mode: "cowork-workflow-draft",
+      runId: expect.stringMatching(/^cowork-workflow-draft-/u),
+      taskId: expect.stringMatching(/^cowork-workflow-draft-/u),
+      cwd: process.cwd(),
+    });
+    expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+    expect(JSON.stringify(factory.mock.calls[0][0])).not.toContain(secret);
+    expect(f.transport).toHaveBeenCalledOnce();
+    expect(JSON.stringify(f.seen)).not.toContain(secret);
+    expect(composition.loadRun().projection.status).toBe("completed");
+    expect(
+      composition.loadRun().events.map((event) => event.data?.evidenceKind),
+    ).toEqual([
+      undefined,
+      "user-prompt",
+      "model-input",
+      "response-completed",
+      undefined,
     ]);
   });
 
