@@ -5,6 +5,14 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+function assertGovernedModelIngress() {
+  const error = new Error(
+    "External OpenAI embeddings require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const axios = require("axios");
 const EventEmitter = require("events");
 const {
@@ -398,6 +406,7 @@ class OpenAIClient extends EventEmitter {
    */
   async embeddings(input, model = null) {
     try {
+      assertGovernedModelIngress();
       const embeddingModel = model || this.embeddingModel;
 
       const response = await this.client.post("/embeddings", {
@@ -411,6 +420,7 @@ class OpenAIClient extends EventEmitter {
         return response.data.data[0].embedding;
       }
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error(
         "[OpenAIClient] 生成嵌入失败:",
         error.response?.data || error,

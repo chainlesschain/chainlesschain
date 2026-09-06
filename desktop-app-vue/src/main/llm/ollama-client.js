@@ -5,6 +5,14 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+function assertGovernedModelIngress() {
+  const error = new Error(
+    "External Ollama embeddings require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const axios = require("axios");
 const {
   runDesktopOllamaRequest,
@@ -446,6 +454,7 @@ class OllamaClient extends EventEmitter {
    */
   async embeddings(text, model = null) {
     try {
+      assertGovernedModelIngress();
       const response = await this.client.post("/api/embeddings", {
         model: model || this.model,
         prompt: text,
@@ -453,6 +462,7 @@ class OllamaClient extends EventEmitter {
 
       return response.data.embedding;
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error("[OllamaClient] 生成嵌入失败:", error);
       throw error;
     }
