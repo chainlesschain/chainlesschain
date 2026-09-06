@@ -452,6 +452,37 @@ class LLMManager extends EventEmitter {
       const conversationId = options.conversationId;
       let result;
 
+      // A governed manager must retain the full prompt and lifecycle in
+      // chatWithMessages. In particular, Ollama's generate accepts
+      // opaque context tokens which cannot be admitted as a durable model input.
+      if (modelIngressHosts.has(this)) {
+        const messages =
+          conversationId && this.conversationContext.has(conversationId)
+            ? [...this.conversationContext.get(conversationId).messages]
+            : [];
+        if (options.systemPrompt) {
+          messages.unshift({ role: "system", content: options.systemPrompt });
+        }
+        messages.push({ role: "user", content: prompt });
+        result = await this.chatWithMessages(messages, options);
+        if (conversationId) {
+          if (!this.conversationContext.has(conversationId)) {
+            this.conversationContext.set(conversationId, { messages: [] });
+          }
+          this.conversationContext
+            .get(conversationId)
+            .messages.push({ role: "user", content: prompt }, result.message);
+        }
+        this.emit("query-completed", { prompt, result });
+        return {
+          text: result.text || result.message?.content,
+          model: result.model,
+          tokens: result.tokens || result.usage?.total_tokens || 0,
+          usage: result.usage,
+          timestamp: Date.now(),
+        };
+      }
+
       if (this.provider === LLMProviders.OLLAMA) {
         // Ollama使用generate或chat
         if (conversationId && this.conversationContext.has(conversationId)) {
@@ -1033,6 +1064,31 @@ class LLMManager extends EventEmitter {
     try {
       const conversationId = options.conversationId;
       let result;
+
+      // A governed manager must retain the full prompt and stream lifecycle in
+      // chatWithMessagesStream. In particular, Ollama's generateStream accepts
+      // opaque context tokens which cannot be admitted as a durable model input.
+      if (modelIngressHosts.has(this)) {
+        const messages =
+          conversationId && this.conversationContext.has(conversationId)
+            ? [...this.conversationContext.get(conversationId).messages]
+            : [];
+        if (options.systemPrompt) {
+          messages.unshift({ role: "system", content: options.systemPrompt });
+        }
+        messages.push({ role: "user", content: prompt });
+        result = await this.chatWithMessagesStream(messages, onChunk, options);
+        if (conversationId) {
+          if (!this.conversationContext.has(conversationId)) {
+            this.conversationContext.set(conversationId, { messages: [] });
+          }
+          this.conversationContext
+            .get(conversationId)
+            .messages.push({ role: "user", content: prompt }, result.message);
+        }
+        this.emit("stream-completed", { prompt, result });
+        return result;
+      }
 
       if (this.provider === LLMProviders.OLLAMA) {
         if (conversationId && this.conversationContext.has(conversationId)) {

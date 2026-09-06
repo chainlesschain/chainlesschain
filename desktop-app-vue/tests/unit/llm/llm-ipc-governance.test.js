@@ -461,3 +461,92 @@ describe("native conversation agent-chat governance", () => {
     ipcGuard.resetAll();
   });
 });
+
+describe("native queryStream governance", () => {
+  it("routes the complete prompt through chatWithMessagesStream", async () => {
+    const manager = new managerModule.LLMManager(
+      {
+        provider: "ollama",
+        model: "test",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("query stream routing fixture");
+      }),
+    );
+    manager.isInitialized = true;
+    manager.conversationContext.set("conversation-1", {
+      messages: [{ role: "assistant", content: "prior answer" }],
+      context: ["opaque legacy token"],
+    });
+    const stream = vi.fn(async () => ({
+      text: "streamed answer",
+      message: { role: "assistant", content: "streamed answer" },
+      model: "test",
+      tokens: 3,
+    }));
+    manager.chatWithMessagesStream = stream;
+    manager.client = { generateStream: vi.fn(), chatStream: vi.fn() };
+    const completed = vi.fn();
+    manager.on("stream-completed", completed);
+    await expect(
+      manager.queryStream("next question", vi.fn(), {
+        conversationId: "conversation-1",
+        systemPrompt: "governed system",
+      }),
+    ).resolves.toMatchObject({ text: "streamed answer" });
+    expect(stream).toHaveBeenCalledWith(
+      [
+        { role: "system", content: "governed system" },
+        { role: "assistant", content: "prior answer" },
+        { role: "user", content: "next question" },
+      ],
+      expect.any(Function),
+      expect.objectContaining({ conversationId: "conversation-1" }),
+    );
+    expect(manager.client.generateStream).not.toHaveBeenCalled();
+    expect(manager.client.chatStream).not.toHaveBeenCalled();
+    expect(completed).toHaveBeenCalledOnce();
+    expect(manager.getContext("conversation-1").messages).toEqual([
+      { role: "assistant", content: "prior answer" },
+      { role: "user", content: "next question" },
+      { role: "assistant", content: "streamed answer" },
+    ]);
+  });
+
+  it("routes non-streaming query through chatWithMessages", async () => {
+    const manager = new managerModule.LLMManager(
+      {
+        provider: "ollama",
+        model: "test",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("query routing fixture");
+      }),
+    );
+    manager.isInitialized = true;
+    const chat = vi.fn(async () => ({
+      text: "answer",
+      message: { role: "assistant", content: "answer" },
+      model: "test",
+      tokens: 2,
+    }));
+    manager.chatWithMessages = chat;
+    manager.client = { generate: vi.fn(), chat: vi.fn() };
+    await expect(
+      manager.query("question", { systemPrompt: "governed system" }),
+    ).resolves.toMatchObject({ text: "answer" });
+    expect(chat).toHaveBeenCalledWith(
+      [
+        { role: "system", content: "governed system" },
+        { role: "user", content: "question" },
+      ],
+      expect.objectContaining({ systemPrompt: "governed system" }),
+    );
+    expect(manager.client.generate).not.toHaveBeenCalled();
+    expect(manager.client.chat).not.toHaveBeenCalled();
+  });
+});
