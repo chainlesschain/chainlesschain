@@ -1679,6 +1679,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 本批最终验证：原生 IPC MCP 组合覆盖成功、requested 证据拒绝、completed 证据拒绝、未注册工具、重复 ID、非对象参数、预算暂停和循环上限，8/8 通过（118.54 秒；144 项因定向筛选未运行）；断言单 Run、工具执行次数、TokenTracker 计数、终止后无成功事件及出站数据脱敏。桌面 IPC/manager/MCP executor 回归 99/99 通过；所改代码 Prettier 与 `git diff --check` 通过，ESLint 0 错误、8 个未使用变量警告。此次仅本地提交，不推送、不发布，整项统计不变。
 
+后续 Desktop `conversation:agent-chat` 审计发现它自建模型→FunctionCaller 工具→模型循环，受治理 manager 仍可能绕开 IPC MCP 的单 Run 路径，并在工具调用失败时回退为无工具模型请求。现仅在原生受治理 manager 时将完整 Agent Chat 调到 `chatWithGovernedFunctions()`：FunctionCaller 的注册 schema 和 executor 作为受约束工具集传入，工具开始/结果 UI 事件保持不变；工具循环、参数/重复 ID 校验、工具 requested/completed evidence、预算暂停和最终成功发布均由已有单 Run 工作流负责。FunctionCaller 初始化或治理路径失败不再回退模型；未接 host 的旧 manager 保留兼容循环。`ipc-guard` 同时改为真正需要 Electron handler 时才加载 Electron，使依赖注入的主进程 handler 可在当前不完整 Electron 安装下验证而不改变生产注册行为。真实受治理 manager + branded host 的 conversation handler 验证不调用 legacy `manager.chat`、传入 executor 与 10 次上限并返回最终事件；IPC/manager/MCP executor 回归 100/100 通过，Prettier、diff 检查通过，ESLint 0 错误（7 个既有未使用变量警告）。仍未将流式 Agent/工具、完整 Electron bootstrap、其他原生入模入口、跨进程缓存和全域删除作为已关闭，P0-4 保持部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
