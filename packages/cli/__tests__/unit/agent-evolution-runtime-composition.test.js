@@ -1299,6 +1299,97 @@ describe("Agent evolution runtime production composition", () => {
     expect(composition.loadRun().projection.status).toBe("completed");
   });
 
+  it("governs the real standalone compact command before persisting its session revision", async () => {
+    const { Command } = await import("commander");
+    const { registerCompactCommand } =
+      await import("../../src/commands/compact.js");
+    const sessions = await import("../../src/harness/jsonl-session-store.js");
+    const f = modelFixture();
+    const oldHome = process.env.CHAINLESSCHAIN_HOME;
+    const oldAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    const oldExitCode = process.exitCode;
+    process.env.CHAINLESSCHAIN_HOME = path.join(f.root, "session-home");
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = path.join(
+      f.root,
+      "session-anchors",
+    );
+    process.exitCode = 0;
+    try {
+      const sessionId = `compact-evolution-${crypto.randomUUID()}`;
+      sessions.startSession(sessionId, {
+        provider: "ollama",
+        model: "test-model",
+      });
+      const messages = [
+        { role: "system", content: "system" },
+        ...Array.from({ length: 40 }, (_, index) => ({
+          role: index % 2 ? "assistant" : "user",
+          content: `${String.fromCodePoint(0x4e00 + index).repeat(80)} owner@example.com`,
+        })),
+      ];
+      sessions.appendAuthorityEvent(sessionId, "compact", { messages });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return {
+          ok: true,
+          json: async () => ({
+            message: {
+              role: "assistant",
+              content: JSON.stringify({
+                objective: "Compact",
+                constraints: [],
+                keyDecisions: [],
+                changedFiles: [],
+                tests: [],
+                unresolvedSideEffects: [],
+                checkpoints: [],
+                blockers: [],
+                nextSteps: ["Resume"],
+              }),
+            },
+            prompt_eval_count: 100,
+            eval_count: 20,
+          }),
+        };
+      });
+      let composition;
+      const program = new Command();
+      program.exitOverride();
+      registerCompactCommand(program, {
+        evolutionCompositionFactory: async ({ runId, mode }) => {
+          expect(mode).toBe("compact");
+          composition = createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        },
+      });
+      await program.parseAsync([
+        "node",
+        "cc",
+        "compact",
+        sessionId,
+        "--max-messages",
+        "5",
+      ]);
+      expect(process.exitCode).toBe(0);
+      expect(f.transport).toHaveBeenCalledOnce();
+      expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+      expect(composition.loadRun().projection.status).toBe("completed");
+      expect(sessions.readVerifiedMessages(sessionId).length).toBeLessThan(
+        messages.length,
+      );
+    } finally {
+      if (oldHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = oldHome;
+      if (oldAnchorHome === undefined)
+        delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+      else process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = oldAnchorHome;
+      process.exitCode = oldExitCode;
+    }
+  });
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({

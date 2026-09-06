@@ -20,6 +20,8 @@
  */
 
 import chalk from "chalk";
+import { randomUUID } from "node:crypto";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { logger } from "../lib/logger.js";
 import {
   appendAuthorityEventIfHead,
@@ -85,7 +87,14 @@ function attachMeteringMetadata(value, { callId, settled }) {
   }
 }
 
-function buildSemanticQuery(options, recorded, sessionId, operationId, ledger) {
+function buildSemanticQuery(
+  options,
+  recorded,
+  sessionId,
+  operationId,
+  ledger,
+  evolutionCompositionFactory,
+) {
   const provider = options.provider || recorded.provider || undefined;
   const model = options.model || recorded.model || undefined;
   // A preview must be both write-free and spend-free. It uses the same
@@ -97,6 +106,44 @@ function buildSemanticQuery(options, recorded, sessionId, operationId, ledger) {
   return async (prompt) => {
     let callId = null;
     try {
+      let ingress = null;
+      if (evolutionCompositionFactory !== null) {
+        try {
+          const runId = `compact-run-${randomUUID()}`;
+          const composition = captureAgentEvolutionRuntimeComposition(
+            await evolutionCompositionFactory(
+              Object.freeze({
+                mode: "compact",
+                runId,
+                sessionId,
+                operationId,
+                cwd: process.cwd(),
+              }),
+            ),
+          );
+          ingress = composition.evolutionIngress;
+          if (
+            composition.runId !== runId ||
+            ingress.runId !== runId ||
+            composition.tenantId !== ingress.tenantId
+          ) {
+            throw new Error(
+              "Compact evolution composition is not bound to the requested Run",
+            );
+          }
+          await ingress.start();
+          await ingress.ingestUserPrompt({
+            content: prompt,
+            source: "compact",
+          });
+        } catch (cause) {
+          const error = new Error("Compact evolution admission failed", {
+            cause,
+          });
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+      }
       const response = await runMeteredDirectModelCall({
         sessionId,
         provider,
@@ -129,8 +176,16 @@ function buildSemanticQuery(options, recorded, sessionId, operationId, ledger) {
             hostManagedToolPolicy: null,
             contextEngine: null,
             maxOutputTokens: 2048,
+            ...(ingress === null ? {} : { evolutionIngress: ingress }),
           }),
       });
+      if (ingress !== null) {
+        await ingress.ingestAgentEvent({
+          type: "response-complete",
+          content: response?.message?.content || "",
+        });
+        await ingress.complete();
+      }
       return {
         summary: response?.message?.content || "",
         usage: response?.usage || null,
@@ -373,7 +428,17 @@ function readCompactSource(sessionId) {
   });
 }
 
-export function registerCompactCommand(program) {
+export function registerCompactCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    dependencies.evolutionCompositionFactory ?? null;
+  if (
+    evolutionCompositionFactory !== null &&
+    typeof evolutionCompositionFactory !== "function"
+  ) {
+    throw new TypeError(
+      "Compact evolution composition factory must be a function",
+    );
+  }
   program
     .command("compact <session-id>")
     .description(
@@ -430,6 +495,7 @@ export function registerCompactCommand(program) {
           sessionId,
           operationId,
           ledger,
+          evolutionCompositionFactory,
         );
         const compressor = buildCompressor(options, source.recorded, llmQuery);
         const memoryRevision =

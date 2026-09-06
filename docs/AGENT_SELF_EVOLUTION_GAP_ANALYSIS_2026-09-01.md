@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 独立 compact 入口补强：`registerCompactCommand` 捕获宿主 evolutionCompositionFactory；每次实际语义查询以独立 Run 绑定 compact/session/operation，在用户输入证据准入后执行既有 metered canonical 模型出口，携带同一 ingress，完成响应证据与 Run 后才返回摘要供会话 CAS 使用。工厂拒绝、未品牌化对象或 Run/tenant 错绑统一作为不可降级的 ingress failure，不能被 PromptCompressor 的 extractive fallback 吞掉；dry-run/offline 不创建 Run。16/16 命令测试覆盖拒绝/伪造、两种离线路径及 canonical kernel 拒绝时不改写历史；真实 Commander+JSONL session/独立文件 anti-rollback anchor+演化 composition 定向 1/1 验证模型请求脱敏、完成 Run 后持久压缩 revision。此 Run 描述语义模型调用，不将随后可能失败的 session CAS 等同演化成功；完整 canonical 成功路径、默认 launcher 生产 factory 注入及其他入口/外部部署门仍需继续验证。测试没有向用户实际安全锚点或 GitHub 发布写入。
+
 2026-09-06 数值型 Raw-event 投影闭环：修复上一批真实 read_file 被 13 位遥测毫秒值阻断的问题，新增独立 Raw ruleset v3，在投影中对有限数值执行相同敏感文本扫描（不安全整数拒绝）；命中时生成脱敏字符串，未命中的计数/小数保持数值，原始 Raw 不改写。旧 Raw v2 与 Agent v1/v2/v3 的规则对象及 digest 不变，v2 继续可读；独立 verifier 对 v3 重新检查投影稳定性，重新签名但还原敏感数值也不能通过。Projector 95/95 测试通过，真实 composition 两轮 Cowork 定向 1/1 通过：实际 read_file、缺少 provider ID 时分配关联 ID、Raw 原邮箱和数值遥测保留、第二轮模型消息邮箱脱敏、工具关联一致及 durable Run completed 均已验证；网络返回仍为固定测试响应，不能替代生产 provider/KMS 验收。此前记录的数值遥测阻断已解决，其余入口与部署门仍保持未完成。
 
 2026-09-06 工具关联 ID 补强：core 在 transcript 插入及任何工具边界前为缺失 ID 分配一次本地 `cc_tool_` 标识（UUID 熵、纯字母编码），保留 provider 已有 ID，并拒绝同批重复/非字符串 ID。关联测试覆盖结果事件与下一轮 transcript 相同 ID、重复 ID 时零工具边界；Agent core 131/131 通过，编码调整后定向 2/2 复验，真实 composition 缺少 ID 的预算耗尽路径通过。真实 read_file 进一步揭示独立缺口：Raw-event projector 保留数值型 `toolTelemetryRecord.timestamp`，13 位毫秒值被独立 payment-card verifier 拒绝，因此该完整旅程仍不通过，不能称作全工具闭环。复现检查保留真实文件读取与 tool-start/result 相同 ID，并确认请求停在第一轮、Run 不完成；下一步需在保留原始 Raw、历史 ruleset 可验证及独立 secret gate 的前提下修复数值投影，不通过豁免敏感检查掩盖问题。

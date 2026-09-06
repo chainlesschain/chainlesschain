@@ -7,6 +7,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Command } from "commander";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 vi.mock("../../src/lib/logger.js", () => ({
   logger: {
@@ -87,10 +90,10 @@ const structuredSummary = JSON.stringify({
   nextSteps: ["Resume from the compact event"],
 });
 
-async function runCompact(args) {
+async function runCompact(args, dependencies = {}) {
   const program = new Command();
   program.exitOverride(); // throw instead of process.exit
-  registerCompactCommand(program);
+  registerCompactCommand(program, dependencies);
   await program.parseAsync(["node", "cc", "compact", ...args]);
 }
 
@@ -116,6 +119,81 @@ describe("cc compact", () => {
       message: { content: structuredSummary },
       usage: { input_tokens: 100, output_tokens: 20 },
     });
+  });
+
+  it.each(["denied", "forged"])(
+    "does not fall back or write a compact event after evolution %s",
+    async (mode) => {
+      store.readEvents.mockReturnValue([
+        { type: "session_start", data: { model: "test", provider: "ollama" } },
+      ]);
+      store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+      const factory = vi.fn(async () => {
+        if (mode === "denied") throw new Error("denied");
+        return {};
+      });
+      await runCompact(["sess-1", "--max-messages", "5"], {
+        evolutionCompositionFactory: factory,
+      });
+      expect(factory).toHaveBeenCalledOnce();
+      expect(process.exitCode).toBe(1);
+      expect(chatWithTools).not.toHaveBeenCalled();
+      expect(store.appendEventIfHead).not.toHaveBeenCalled();
+      expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
+      process.exitCode = 0;
+    },
+  );
+
+  it.each(["--dry-run", "--offline"])(
+    "does not open evolution authority with %s",
+    async (mode) => {
+      store.readEvents.mockReturnValue([
+        { type: "session_start", data: { provider: "ollama", model: "test" } },
+      ]);
+      store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+      const factory = vi.fn();
+      await runCompact(["sess-1", mode, "--max-messages", "5"], {
+        evolutionCompositionFactory: factory,
+      });
+      expect(factory).not.toHaveBeenCalled();
+      expect(chatWithTools).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not let the canonical kernel replace history after denied evolution admission", async () => {
+    const previous = process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const testHome = mkdtempSync(join(tmpdir(), "cc-compact-canonical-"));
+    process.env.CHAINLESSCHAIN_HOME = testHome;
+    process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "canonical_default";
+    try {
+      store.readEvents.mockReturnValue([
+        { type: "session_start", data: { provider: "ollama", model: "test" } },
+      ]);
+      store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+      const factory = vi.fn(async () => {
+        throw new Error("denied");
+      });
+      await runCompact(
+        ["sess-1", "--max-tokens", "1200", "--max-messages", "5"],
+        { evolutionCompositionFactory: factory },
+      );
+      expect(
+        factory,
+        JSON.stringify(logger.error.mock.calls),
+      ).toHaveBeenCalledOnce();
+      expect(process.exitCode).toBe(1);
+      expect(chatWithTools).not.toHaveBeenCalled();
+      expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined)
+        delete process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
+      else process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = previous;
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(testHome, { recursive: true, force: true });
+      process.exitCode = 0;
+    }
   });
 
   it("errors with exit code 1 when the session does not exist", async () => {
