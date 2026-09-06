@@ -11,6 +11,14 @@
 const EventEmitter = require('events');
 const { logger } = require('../utils/logger.js');
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    'External Stable Diffusion requests require a governed multimodal ingress',
+  );
+  error.code = 'CC_AGENT_EVOLUTION_INGRESS_FAILED';
+  throw error;
+}
+
 /**
  * SD API Types
  */
@@ -362,6 +370,7 @@ class SDClient extends EventEmitter {
    * @private
    */
   async _fetch(endpoint, options = {}) {
+    assertGovernedMultimodalIngress();
     const url = `${this.config.baseUrl}${endpoint}`;
     const timeout = options.timeout || this.config.timeout;
 
