@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.113] - Reliable long-running task recovery (2026-09-06)
+
+- Recommend the publicly verified `chainlesschain@0.166.29` release.
+- Pair the IDE with task-recovery guidance that detects prolonged exploration
+  without implementation progress and keeps focused edit/validation tools.
+- Preserve the existing native bridge compatibility and fail-closed capability
+  contracts while refreshing the offline CLI upgrade floor.
+
 ## [0.4.112] - Efficient long-document tasks (2026-09-06)
 
 - Recommend `chainlesschain@0.166.28` for focused status-table reads and local

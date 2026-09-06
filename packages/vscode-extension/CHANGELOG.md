@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.86] - Reliable long-running task recovery (2026-09-06)
+
+- Recommend the publicly verified `chainlesschain@0.166.29` release.
+- Recover sustained exploration that makes no implementation progress, while
+  preserving focused search, edits, validation, and the current task context.
+- Make **Stop** reliable when chat state is stale: interrupt first, terminate
+  an unresponsive process after five seconds, and terminate immediately on a
+  second click. Late output from the stopped process is ignored.
+
 ## [0.37.85] - Efficient long-document tasks (2026-09-06)
 
 - Show the requested line range and long-line column in file-read traces so
