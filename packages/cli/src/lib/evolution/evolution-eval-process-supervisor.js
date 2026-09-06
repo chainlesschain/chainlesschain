@@ -153,7 +153,13 @@ function sandboxPolicy(value) {
 function workerArguments(policy) {
   return Object.freeze([
     `--max-old-space-size=${policy.memoryLimitMb}`,
+    // Node 22.12 is the supported release baseline. The stable --permission
+    // alias was added later; the experimental spelling remains accepted by
+    // both the baseline and newer supported Node releases.
     "--experimental-permission",
+    // Node 22.12 applies read restrictions while resolving the entry module,
+    // so the immutable supervisor worker itself must be granted explicitly.
+    `--allow-fs-read=${WORKER}`,
     ...policy.fsRead.map((path) => `--allow-fs-read=${path}`),
     ...policy.fsWrite.map((path) => `--allow-fs-write=${path}`),
     WORKER,

@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Regression coverage**: exercise an 80-page task using more than 50 model
   calls with repeated shadow and canonical compactions, proving completion with
   every page read exactly once.
+- **Release-runtime compatibility**: invoke the isolated evolution evaluator
+  with the permission-system flag supported by the Node 22.12 release baseline,
+  preventing the publish gate from failing before child-package publication.
 - **Release boundary**: no child npm package version changes are required. This
   exact commit must pass every configured Linux, Windows, and macOS job in
   `CLI CI` and `CLI Strict Sandbox` before the immutable npm tag is created.
