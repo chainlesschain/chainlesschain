@@ -1102,6 +1102,46 @@ describe("Agent evolution runtime production composition", () => {
     expect(composition.loadRun().projection.status).not.toBe("completed");
   });
 
+  it.each([false, true])(
+    "governs actual Cowork debate admission and completion (denied=%s)",
+    async (denied) => {
+      const { runCoworkDebate } =
+        await import("../../src/lib/cowork-task-runner.js");
+      const f = modelFixture();
+      if (denied)
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+          new Error("source denied"),
+        );
+      let composition;
+      const progress = [];
+      const result = await runCoworkDebate({
+        userMessage: "review owner@example.com",
+        cwd: f.root,
+        perspectives: ["security"],
+        llmOptions: {
+          provider: "ollama",
+          model: "test-model",
+          baseUrl: "http://127.0.0.1:1",
+        },
+        evolutionCompositionFactory: async ({ runId }) => {
+          composition = createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        },
+        onProgress: (event) => {
+          if (event.type === "debate-completed")
+            progress.push(composition.loadRun().projection.status);
+        },
+      });
+      expect(result.status).toBe(denied ? "failed" : "completed");
+      expect(f.transport).toHaveBeenCalledTimes(denied ? 0 : 2);
+      expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+      expect(progress).toEqual(denied ? [] : ["completed"]);
+    },
+  );
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({

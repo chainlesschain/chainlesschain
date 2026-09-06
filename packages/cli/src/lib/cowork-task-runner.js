@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
+import { captureAgentEvolutionRuntimeComposition } from "./evolution/agent-evolution-runtime-composition-brand.js";
 import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
@@ -926,6 +927,8 @@ export async function runCoworkTaskParallel(options = {}) {
  * @returns {Promise<{ taskId, status, result }>}
  */
 export async function runCoworkDebate(options = {}) {
+  const evolutionCompositionFactory =
+    options.evolutionCompositionFactory ?? null;
   const {
     templateId = "code-review",
     userMessage,
@@ -976,20 +979,59 @@ export async function runCoworkDebate(options = {}) {
     code = userMessage;
   }
 
-  const taskId = `cowork-debate-${Date.now()}`;
+  const taskId = `cowork-debate-${randomUUID()}`;
 
   if (onProgress) {
     onProgress({ type: "debate-started", perspectives: reviewPerspectives });
   }
 
   try {
+    let ingress = null;
+    if (evolutionCompositionFactory !== null) {
+      const composition = captureAgentEvolutionRuntimeComposition(
+        await evolutionCompositionFactory(
+          Object.freeze({
+            mode: "cowork-debate",
+            runId: taskId,
+            taskId,
+            cwd,
+          }),
+        ),
+      );
+      ingress = composition.evolutionIngress;
+      if (
+        composition.runId !== taskId ||
+        ingress.runId !== taskId ||
+        composition.tenantId !== ingress.tenantId
+      ) {
+        throw new Error(
+          "Cowork debate evolution composition is not bound to the requested Run",
+        );
+      }
+      await ingress.start();
+      await ingress.ingestUserPrompt({
+        content: userMessage,
+        source: "cowork-debate",
+      });
+    }
     const { startDebate } = await import("./cowork/debate-review-cli.js");
     const debateResult = await startDebate({
       target: userMessage,
       code,
       perspectives: reviewPerspectives,
-      llmOptions,
+      llmOptions:
+        ingress === null
+          ? llmOptions
+          : { ...llmOptions, evolutionIngress: ingress },
     });
+
+    if (ingress !== null) {
+      await ingress.ingestAgentEvent({
+        type: "response-complete",
+        content: debateResult.summary,
+      });
+      await ingress.complete();
+    }
 
     if (onProgress) {
       onProgress({ type: "debate-completed", verdict: debateResult.verdict });
