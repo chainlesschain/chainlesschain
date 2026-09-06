@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.29: recover long-running agent tasks
+
+> `chainlesschain` **0.166.26 -> 0.166.29** (2026-09-06). VS Code and
+> JetBrains plugin updates will follow after this CLI version is publicly
+> installable and verified.
+
+- Track task progress separately from file coverage. Reading new files, updating
+  a TODO plan, or dispatching a sub-agent no longer counts as implementing the
+  user's task.
+- Share bounded exploration accounting between the main agent and sub-agents;
+  preserve the current plan, observed work, and delivered child findings across
+  compaction without widening a child agent's source-data access.
+- Prompt the agent to consolidate findings after sustained exploration, then
+  offer a one-turn recovery mode that removes broad-read and re-delegation
+  tools while keeping focused search, edits, and validation available.
+- Keep the repeated-read backstop for ignored recovery guidance, including when
+  planning calls are interleaved with the same EOF read.
+- Make IDE Stop reliable when chat state drifts: request interruption first,
+  terminate an unresponsive process after five seconds, and terminate
+  immediately on a second Stop. Late output from the old process is ignored.
+- Validate task recovery, parent/child accounting, compaction, Stop escalation,
+  and existing CLI/IDE contracts with 180 focused tests. Publication still
+  requires successful exact-commit CLI CI and CLI Strict Sandbox matrices.
+
 ### Fixed - cc CLI 0.166.28: reduce repeated long-document output
 
 > `chainlesschain` **0.166.26 -> 0.166.28** (2026-09-06; incorporates the

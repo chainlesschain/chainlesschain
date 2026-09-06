@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.29",
+      "cliVersions": ["0.166.26", "0.166.29"],
+      "date": "2026-09-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.29: recover long-running agent tasks",
+          "body": "> `chainlesschain` **0.166.26 -> 0.166.29** (2026-09-06). VS Code and\n> JetBrains plugin updates will follow after this CLI version is publicly\n> installable and verified.\n\n- Track task progress separately from file coverage. Reading new files, updating\n  a TODO plan, or dispatching a sub-agent no longer counts as implementing the\n  user's task.\n- Share bounded exploration accounting between the main agent and sub-agents;\n  preserve the current plan, observed work, and delivered child findings across\n  compaction without widening a child agent's source-data access.\n- Prompt the agent to consolidate findings after sustained exploration, then\n  offer a one-turn recovery mode that removes broad-read and re-delegation\n  tools while keeping focused search, edits, and validation available.\n- Keep the repeated-read backstop for ignored recovery guidance, including when\n  planning calls are interleaved with the same EOF read.\n- Make IDE Stop reliable when chat state drifts: request interruption first,\n  terminate an unresponsive process after five seconds, and terminate\n  immediately on a second Stop. Late output from the old process is ignored.\n- Validate task recovery, parent/child accounting, compaction, Stop escalation,\n  and existing CLI/IDE contracts with 180 focused tests. Publication still\n  requires successful exact-commit CLI CI and CLI Strict Sandbox matrices."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.28",
       "cliVersions": ["0.166.26", "0.166.28"],
       "date": "2026-09-06",
