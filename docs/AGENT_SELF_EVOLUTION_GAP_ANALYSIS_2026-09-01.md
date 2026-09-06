@@ -1661,6 +1661,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 后续 Desktop 压缩失败传播审计发现：`PromptCompressor.compress()` 会把摘要模型返回的 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 当作普通可选总结失败吞掉，随后继续主对话。现保留该错误对象并向上抛出，禁止安全拒绝退化成原始历史回退。真实 PromptCompressor→LLMManager 普通/流式组合回归验证摘要 query 拒绝后主模型调用、缓存写入及成功事件均为零；摘要 query 使用定向拒绝替身，该测试不冒充真实持久 evidence authority 验收。Manager 与两个既有 compressor 套件合计 122 通过、1 项既有跳过。缓存命中的认证来源绑定、摘要与主请求的运行 lineage、完整原生启动链及其他已列入模入口仍需继续关闭，P0-4 保持部分完成，整项统计不变。
 
+后续缓存精确身份审计发现原 `ResponseCache` 完全忽略传入 options，导致相同 messages/default model 但不同实际 model override、tools、用户和生成参数可能共用结果。v2 cache key 现绑定 provider/model/messages 与完整可编码 options，plain-data canonical 编码稳定对象键顺序但保留数组顺序，拒绝 accessor、Proxy、循环、稀疏数组、非有限数、函数、undefined 与 AbortSignal 等 opaque 值，不能稳定编码时按既有缓存可选策略不读写缓存；不执行 getter/toJSON。schema 分域使旧未绑定行不再命中，保留原数据不删除。新增原生 SQLite 实际 SQL 测试验证七类选项差异隔离、精确命中和旧记录不误用，连同既有 cache/manager 套件 80 通过、6 项既有跳过。该身份散列不是来源签名，调用者 tenantId 也不是宿主 tenant authority；已认证模型响应来源、当前撤销/到期检查、SQLite 明文存储替换及 cache-hit Run evidence 接线仍未完成，P0-4 不升级。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
