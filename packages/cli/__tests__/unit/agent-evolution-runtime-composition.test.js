@@ -78,6 +78,7 @@ import {
 } from "../../src/commands/agent.js";
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
 import { registerChatCommand } from "../../src/commands/chat.js";
+import { registerAskCommand } from "../../src/commands/ask.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
@@ -901,6 +902,87 @@ describe("Agent evolution runtime production composition", () => {
       }
     },
     90_000,
+  );
+
+  it.each(["success", "source-denied", "response-denied", "wrong-run"])(
+    "governs standalone ask command (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          ) {
+            throw new Error("ask evidence denied");
+          }
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      const program = new Command();
+      registerAskCommand(program, { evolutionCompositionFactory: factory });
+      const output = vi.spyOn(console, "log").mockImplementation(() => {});
+      const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const file = path.join(f.root, "ask-input.txt");
+      fs.writeFileSync(file, `Contact owner@example.com with ${secret}`);
+      try {
+        await program.parseAsync([
+          "node",
+          "cc",
+          "ask",
+          `Summarize @${file}`,
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+          "--api-key",
+          secret,
+          "--json",
+        ]);
+        expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+        expect(factory.mock.calls[0][0]).toMatchObject({
+          mode: "ask",
+          runId: expect.stringMatching(/^ask-/u),
+        });
+        expect(JSON.stringify(factory.mock.calls[0][0])).not.toContain(secret);
+        expect(f.transport).toHaveBeenCalledTimes(
+          mode === "source-denied" || mode === "wrong-run" ? 0 : 1,
+        );
+        if (f.seen.length) {
+          expect(JSON.stringify(f.seen)).not.toContain(secret);
+          expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        }
+        if (mode === "success") {
+          expect(exit).not.toHaveBeenCalled();
+          expect(JSON.parse(output.mock.calls[0][0]).answer).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+        } else {
+          expect(exit).toHaveBeenCalledWith(1);
+          expect(output).not.toHaveBeenCalled();
+          if (mode === "wrong-run") {
+            expect(composition.loadRun().events).toEqual([]);
+          } else {
+            expect(composition.loadRun().projection.status).toBe("running");
+          }
+        }
+      } finally {
+        output.mockRestore();
+        exit.mockRestore();
+      }
+    },
+    30_000,
   );
 
   function modelFixture(sensitivity = "internal") {

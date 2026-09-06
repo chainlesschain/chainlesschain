@@ -22,6 +22,10 @@
  */
 
 import ora from "ora";
+import { randomUUID } from "node:crypto";
+import { types as utilTypes } from "node:util";
+import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 import { loadConfig } from "../lib/config-manager.js";
@@ -97,9 +101,22 @@ export function extractCompletion(data, provider = "provider") {
   return content;
 }
 
-export async function queryLLM(question, options = {}) {
+export async function queryLLM(
+  question,
+  options = {},
+  evolutionIngress = null,
+) {
   const provider = options.provider || "ollama";
   const model = options.model || "qwen2:7b";
+  const messages = [{ role: "user", content: question }];
+  const providerMessages =
+    evolutionIngress === null
+      ? messages
+      : (
+          await captureAgentEvolutionIngress(
+            evolutionIngress,
+          ).prepareModelRequest({ messages, tools: [] })
+        ).messages;
 
   // Claude-Code 2.1.183 parity: warn (stderr only, so --json/stdout stays
   // clean) if the requested model is a provider-retired snapshot. Suppressed
@@ -123,7 +140,7 @@ export async function queryLLM(question, options = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: question }],
+        messages: providerMessages,
         stream: false,
       }),
     });
@@ -169,7 +186,7 @@ export async function queryLLM(question, options = {}) {
     },
     body: JSON.stringify({
       model: model || providerDef.models[0],
-      messages: [{ role: "user", content: question }],
+      messages: providerMessages,
     }),
   });
 
@@ -183,7 +200,29 @@ export async function queryLLM(question, options = {}) {
   return extractCompletion(data, provider);
 }
 
-export function registerAskCommand(program) {
+export function registerAskCommand(program, dependencies = {}) {
+  if (
+    !dependencies ||
+    typeof dependencies !== "object" ||
+    Array.isArray(dependencies) ||
+    utilTypes.isProxy(dependencies)
+  ) {
+    throw new TypeError("Ask command dependencies must be a plain object");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    dependencies,
+    "evolutionCompositionFactory",
+  );
+  if (
+    descriptor &&
+    (!Object.hasOwn(descriptor, "value") ||
+      typeof descriptor.value !== "function")
+  ) {
+    throw new TypeError(
+      "Ask evolutionCompositionFactory must be a function data property",
+    );
+  }
+  const evolutionCompositionFactory = descriptor?.value ?? null;
   program
     .command("ask")
     .description("Ask a question to the AI (single-shot)")
@@ -239,7 +278,47 @@ export function registerAskCommand(program) {
 
       const spinner = ora("Thinking...").start();
       try {
-        const answer = await queryLLM(expandedQuestion, resolvedOptions);
+        let ingress = null;
+        if (evolutionCompositionFactory !== null) {
+          const runId = `ask-${randomUUID()}`;
+          const composition = captureAgentEvolutionRuntimeComposition(
+            await evolutionCompositionFactory(
+              Object.freeze({
+                mode: "ask",
+                runId,
+                taskId: runId,
+                cwd: process.cwd(),
+              }),
+            ),
+          );
+          ingress = composition.evolutionIngress;
+          if (
+            composition.runId !== runId ||
+            ingress.runId !== runId ||
+            composition.tenantId !== ingress.tenantId
+          ) {
+            throw new Error(
+              "Ask evolution composition is not bound to the requested Run",
+            );
+          }
+          await ingress.start();
+          await ingress.ingestUserPrompt({
+            content: expandedQuestion,
+            source: "ask",
+          });
+        }
+        const answer = await queryLLM(
+          expandedQuestion,
+          resolvedOptions,
+          ingress,
+        );
+        if (ingress !== null) {
+          await ingress.ingestAgentEvent({
+            type: "response-complete",
+            content: answer,
+          });
+          await ingress.complete();
+        }
 
         spinner.stop();
 
