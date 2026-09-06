@@ -60,6 +60,7 @@ const {
   toolResultForModel,
   agentLoop,
   _toAnthropicMessages,
+  _agentToolProcessDeps,
 } = await import("../../src/runtime/agent-core.js");
 
 describe("read_file offset/limit line ranges", () => {
@@ -73,6 +74,74 @@ describe("read_file offset/limit line ranges", () => {
 
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
+
+  it("stops repeated full-file code dumps across compaction without skipping executions", async () => {
+    const original = _agentToolProcessDeps.runCode;
+    const source = '最新状态表\\"\n'.repeat(20000);
+    const runCode = vi.fn(() => source);
+    _agentToolProcessDeps.runCode = runCode;
+    let calls = 0;
+    const results = [];
+    try {
+      await expect(
+        (async () => {
+          for await (const event of agentLoop(
+            [{ role: "user", content: "How many tasks remain?" }],
+            {
+              cwd: dir,
+              contextMemorySkipPlanning: true,
+              autoMicroCompact: false,
+              _autoCompactor: {
+                shouldAutoCompact: (messages) => messages.length > 4,
+                compress: async (messages) => ({
+                  messages: [messages[0]],
+                  stats: {
+                    originalMessages: messages.length,
+                    compressedMessages: 1,
+                    saved: 1,
+                  },
+                }),
+              },
+              chatFn: async () => {
+                expect(++calls).toBeLessThan(10);
+                return {
+                  message: {
+                    role: "assistant",
+                    tool_calls: [
+                      {
+                        id: `dump-${calls}`,
+                        type: "function",
+                        function: {
+                          name: "run_code",
+                          arguments: JSON.stringify({
+                            language: "node",
+                            code: `console.log('dump ${calls}')`,
+                          }),
+                        },
+                      },
+                    ],
+                  },
+                };
+              },
+            },
+          )) {
+            if (event.type === "tool-result") results.push(event.result);
+          }
+        })(),
+      ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_FILE_READ" });
+      expect(calls).toBe(7);
+      expect(runCode).toHaveBeenCalledTimes(7);
+      expect(results).toHaveLength(7);
+      for (const result of results) {
+        const visible = JSON.parse(capToolResultString(JSON.stringify(result)));
+        expect(visible.truncated).toBe(true);
+        expect(visible.outputChars).toBe(source.length);
+        expect(visible.hint).toContain("filter/count locally");
+      }
+    } finally {
+      _agentToolProcessDeps.runCode = original;
+    }
+  });
 
   it("reads a large document to EOF using progress retained through repeated compaction", async () => {
     const documentLines = Array.from(
@@ -450,7 +519,9 @@ describe("read_file offset/limit line ranges", () => {
       const chatFn = async (context) => {
         calls++;
         recoverySeen ||= context.some((m) =>
-          m.content?.includes("Repeated unchanged file reads detected"),
+          m.content?.includes(
+            "Repeated file reads or identical large command outputs detected",
+          ),
         );
         return {
           message: {

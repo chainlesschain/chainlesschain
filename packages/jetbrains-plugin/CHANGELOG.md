@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.112] - Efficient long-document tasks (2026-09-06)
+
+- Recommend `chainlesschain@0.166.27` for focused status-table reads and local
+  task counting instead of repeated full-document dumps.
+- Consume the shared runtime's explicit script-output truncation, reuse of
+  identical large outputs, and read/code/shell loop recovery across compaction.
+- Preserve versioned file-read progress, normal rereads after edits, and the
+  existing CLI-owned permission and execution boundaries.
+
 ## [0.4.111] - CLI 0.166.22 session lease recovery (2026-09-05)
 
 - Recommend the exact-gated `chainlesschain@0.166.22` release, which keeps

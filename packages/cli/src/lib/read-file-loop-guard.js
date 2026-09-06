@@ -34,6 +34,7 @@ export class ReadFileLoopGuard {
     this.repeatedBatches = 0;
     this.recoveryOfferedAt = 0;
     this.batch = null;
+    this.largeOutputs = new Set();
   }
 
   startBatch() {
@@ -152,6 +153,24 @@ export class ReadFileLoopGuard {
       if (result?.readRecovery?.action === "targeted-review")
         this.batch.advanced = true;
       if (result?.readProgress?.newContent === false) this.batch.duplicates++;
+    } else if (
+      (tool === "run_code" || tool === "run_shell") &&
+      typeof result?.output === "string" &&
+      result.output.length >= 8000
+    ) {
+      // Arbitrary code may just dump the same file again. Compare returned
+      // evidence, not code spelling or timings. Never cache/skip execution:
+      // identical stdout does not imply identical filesystem side effects.
+      const fingerprint = createHash("sha256")
+        .update(result.output)
+        .digest("hex");
+      if (this.largeOutputs.has(fingerprint)) this.batch.duplicates++;
+      else {
+        this.largeOutputs.add(fingerprint);
+        this.batch.advanced = true;
+        while (this.largeOutputs.size > 64)
+          this.largeOutputs.delete(this.largeOutputs.values().next().value);
+      }
     } else if (!DISCOVERY_TOOLS.has(tool)) {
       this.batch.substantive = true;
     }
@@ -163,6 +182,7 @@ export class ReadFileLoopGuard {
       this.repeatedBatches = 0;
       this.recoveryOfferedAt = 0;
       if (this.batch.substantive) {
+        this.largeOutputs.clear();
         for (const entry of this.progress.values()) entry.rereads.clear();
       }
     } else if (this.batch.duplicates) this.repeatedBatches++;
@@ -172,7 +192,7 @@ export class ReadFileLoopGuard {
 
   get recoveryHint() {
     return this.repeatedBatches >= 1
-      ? "Repeated unchanged file reads detected. The runtime continues unfinished scans automatically and returns use-findings after EOF. Use the retained file outline to locate the relevant work, then implement/verify the user's task. Do not restart a whole-file scan after context compaction. A targeted search does not itself complete the task."
+      ? "Repeated file reads or identical large command outputs detected. Do not switch to run_code/run_shell to dump the same file again. Filter/count locally and print only relevant rows, totals and source line numbers, or use a focused search. The runtime continues unfinished read_file scans automatically and returns use-findings after EOF. Use the retained outline to perform the user's task. Do not restart a whole-file scan after context compaction; answer once the requested evidence is sufficient."
       : null;
   }
 

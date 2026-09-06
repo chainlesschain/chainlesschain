@@ -1093,6 +1093,7 @@ Key behaviors:
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use search_files to locate relevant sections, then read_file with offset/limit. Follow nextRead for large files. Reuse unchanged content already in context instead of repeatedly reading the same page; re-read when the file changes or the earlier content is no longer available.
 - Large task documents include a sampled outline with line numbers. Use it to locate relevant unfinished work and inspect those sections instead of scanning the entire document unless the task requires full coverage. File coverage and excerpts survive compaction; reading to EOF is not completing the user's task.
+- For task counts or completion status, search the named document for the latest status/summary table first, then read that section. Distinguish historical entries from current status and repository work from external acceptance. Once the relevant entries are verified, answer; do not read every implementation detail just to count tasks.
 - Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
 - After an edit, if the tool result includes a "newDiagnostics" array, you just introduced (or exposed) those errors/warnings — read them and fix before moving on. You can also run code_intelligence (action: diagnostics) on any file to check it on demand.
 - If a tool result includes a "subtreeInstructions" array, you just entered a subdirectory that carries its own cc.md/CLAUDE.md/AGENTS.md — treat that content as authoritative project rules for work in that subtree (it is injected once, the first time you touch the subtree).
@@ -1102,6 +1103,7 @@ Key behaviors:
 
 When the user's problem involves data processing, calculations, file operations, text parsing, API calls, web scraping, or any task that can be solved programmatically:
 - Proactively write and execute code using run_code tool
+- For long documents, scripts should filter/count locally and print only the relevant rows, totals and source line numbers. Do not print an entire file or repeatedly dump its prefix through run_code/run_shell; use read_file offset/limit for missing sections. Truncated output is not full-file evidence.
 - Choose the best language: Python for data/math/scraping, Node.js for JSON/API, Bash for system tasks
 - Missing Python packages are NOT auto-installed by default; the tool result tells you (and the user) how to opt in (settings runCode.autoInstall)
 - Scripts run from a temp file by default; pass persist:true to keep one in .chainlesschain/agent-scripts/ for reference
@@ -9228,7 +9230,7 @@ async function _executeRunCode(args, cwd) {
 
             return {
               success: true,
-              output: retryOutput.substring(0, 50000),
+              ...boundedCodeOutput(retryOutput),
               language: lang,
               duration: `${retryDuration}ms`,
               autoInstalled: [packageName],
@@ -9271,7 +9273,7 @@ async function _executeRunCode(args, cwd) {
     const duration = Date.now() - start;
     return {
       success: true,
-      output: output.substring(0, 50000),
+      ...boundedCodeOutput(output),
       language: lang,
       duration: `${duration}ms`,
       scriptPath: persist ? scriptPath : undefined,
@@ -9349,9 +9351,66 @@ export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
   );
 }
 
+/** Leave room for JSON escaping and execution metadata, including the hint. */
+export function boundedCodeOutput(value) {
+  const output = String(value ?? "");
+  const budget = Math.max(0, MAX_TOOL_RESULT_CHARS - 4096);
+  let low = 0;
+  let high = Math.min(output.length, 50000);
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (JSON.stringify(output.slice(0, mid)).length <= budget) low = mid;
+    else high = mid - 1;
+  }
+  if (low === output.length) return { output };
+  if (low > 0 && /[\uD800-\uDBFF]/.test(output[low - 1])) low--;
+  return {
+    truncated: true,
+    outputChars: output.length,
+    returnedChars: low,
+    hint: "Only an output prefix is shown. Do not rerun the same full-file print: filter/count locally and print a bounded summary with source line numbers, or use read_file with offset/limit for a missing section. This prefix is not evidence of the entire file.",
+    output: output.slice(0, low),
+  };
+}
+
 /** Avoid injecting the same file page twice while its original is still visible. */
 export function toolResultForModel(tool, result, messages) {
   const serialized = capToolResultString(safeStringifyToolResult(result));
+  if (
+    (tool === "run_code" || tool === "run_shell") &&
+    !result?.error &&
+    typeof result?.output === "string" &&
+    result.output.length >= 8000
+  ) {
+    const callIds = new Set(
+      messages.flatMap((message) =>
+        (message.tool_calls || [])
+          .filter((call) => call.function?.name === tool)
+          .map((call) => call.id),
+      ),
+    );
+    const previous = messages.find((message) => {
+      if (message.role !== "tool" || !callIds.has(message.tool_call_id))
+        return false;
+      try {
+        const prior = JSON.parse(message.content.split("\n\n[Budget ")[0]);
+        return !prior.error && prior.output === result.output;
+      } catch {
+        return false;
+      }
+    });
+    if (previous) {
+      return capToolResultString(
+        safeStringifyToolResult({
+          ...result,
+          output: undefined,
+          outputOmitted: true,
+          previousToolCallId: previous.tool_call_id,
+          hint: "This command executed again and returned the same large output already visible in the referenced tool result. Reuse that output; filter/count locally or read a specific missing section instead of dumping it again. This does not establish that files or other command side effects are unchanged.",
+        }),
+      );
+    }
+  }
   if (
     tool !== "read_file" ||
     result?.error ||
@@ -13748,7 +13807,7 @@ export async function* agentLoop(messages, options) {
       );
       yield* _drainSubAgentUsage(subAgentUsageSink);
       const error = new Error(
-        "Repeated unchanged file reads: the model did not resume the task after automatic page continuation and six no-progress batches with retained findings. The task is not complete. Use a targeted section or revise the task before retrying.",
+        "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
       );
       error.code = "CC_AGENT_REPEATED_FILE_READ";
       throw error;

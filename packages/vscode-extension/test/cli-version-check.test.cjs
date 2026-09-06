@@ -9,7 +9,7 @@ const {
 } = require("../src/version-check");
 
 test("uses the extension release recommendation for the startup CLI nudge", async () => {
-  assert.equal(RECOMMENDED_CLI_VERSION, "0.166.25");
+  assert.match(RECOMMENDED_CLI_VERSION, /^0\.\d+\.\d+$/u);
   assert.equal(
     RECOMMENDED_CLI_VERSION,
     manifest.chainlesschain.recommendedCliVersion,
@@ -32,14 +32,14 @@ test("uses the extension release recommendation for the startup CLI nudge", asyn
 
   assert.equal(result, "upgrade");
   assert.match(promptMessage, /0\.166\.21/u);
-  assert.match(promptMessage, /0\.166\.25/u);
+  assert.ok(promptMessage.includes(manifest.chainlesschain.recommendedCliVersion));
   assert.equal(upgradeCommand, UPGRADE_COMMAND);
   assert.equal(upgradeCommand, "npm i -g chainlesschain@latest");
 });
 
 test("does not nudge when the installed CLI matches the recommendation", async () => {
   const result = await runCliVersionSync({
-    getVersion: async () => "0.166.25",
+    getVersion: async () => manifest.chainlesschain.recommendedCliVersion,
     isDismissed: () => false,
     setDismissed: () => {},
     prompt: async () => {

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.27: reduce repeated long-document output
+
+> `chainlesschain` **0.166.26 -> 0.166.27** (2026-09-06), paired with
+> VS Code **0.37.85** and JetBrains **0.4.112**.
+
+- Direct task-count/status questions to current summary sections and local
+  aggregation, returning relevant rows, totals and source line numbers.
+- Budget script output after JSON escaping and explicitly report truncation
+  with guidance to retrieve missing sections instead of printing the file again.
+- Reference identical large command output while the original remains visible;
+  restore content after compaction. Every authorized command still executes.
+- Detect repeated large code/shell dumps across compaction and tool changes,
+  retaining recovery guidance and the incomplete-task backstop.
+- Validate with 80 focused regression tests; publication requires successful
+  CLI CI and CLI Strict Sandbox matrices for the exact release commit.
+
 ### Fixed - cc CLI 0.166.26: recover repeated file reads and continue the task
 
 > `chainlesschain` **0.166.25 -> 0.166.26** (2026-09-06).

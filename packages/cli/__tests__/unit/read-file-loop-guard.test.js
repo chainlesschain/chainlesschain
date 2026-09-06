@@ -41,6 +41,46 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("detects repeated large dumps across code/shell and timing changes", () => {
+    const guard = new ReadFileLoopGuard();
+    const output = "same document\n".repeat(1000);
+    const batch = (tool, result) => {
+      guard.startBatch();
+      guard.record(tool, result);
+      guard.finishBatch();
+    };
+    batch("run_code", { output });
+    for (let i = 0; i < 6; i++) {
+      batch(i % 2 ? "run_shell" : "run_code", { output, duration: `${i}ms` });
+      batch("search_files", { matches: [] });
+    }
+    expect(guard.stalled).toBe(true);
+    expect(guard.recoveryHint).toMatch(/filter\/count/i);
+    expect(guard.takeRecoveryTurn()).toBe(true);
+    batch("run_code", { output: output + "new section" });
+    expect(guard.stalled).toBe(false);
+    batch("write_file", { success: true });
+    batch("run_code", { output });
+    expect(guard.repeatedBatches).toBe(0);
+    expect(guard.largeOutputs.size).toBe(1);
+  });
+
+  it("does not penalize small computed summaries or distinct large pages", () => {
+    const guard = new ReadFileLoopGuard();
+    for (let i = 0; i < 70; i++) {
+      guard.startBatch();
+      guard.record("run_code", { output: `page ${i}: ${"x".repeat(9000)}` });
+      guard.finishBatch();
+    }
+    expect(guard.largeOutputs.size).toBe(64);
+    for (let i = 0; i < 8; i++) {
+      guard.startBatch();
+      guard.record("run_code", { output: "6 remaining" });
+      guard.finishBatch();
+    }
+    expect(guard.stalled).toBe(false);
+  });
+
   it("automatically reaches EOF for identical broad requests without repeated content", () => {
     const { guard, batch } = fixture();
     let end = 0;

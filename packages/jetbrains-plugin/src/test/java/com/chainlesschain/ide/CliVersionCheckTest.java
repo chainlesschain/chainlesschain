@@ -49,13 +49,13 @@ class CliVersionCheckTest {
 
     @Test
     void recommendedReleaseIsTheOfflineUpgradeFloor() {
-        assertEquals("0.166.22", CliVersionCheck.RECOMMENDED_CLI_VERSION);
-        assertEquals("0.166.22", CliVersionCheck.preferredUpgradeTarget(null));
-        assertEquals("0.166.22", CliVersionCheck.preferredUpgradeTarget("0.166.21"));
-        assertEquals("0.166.23", CliVersionCheck.preferredUpgradeTarget("0.166.23"));
+        assertEquals("0.166.27", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+        assertEquals("0.166.27", CliVersionCheck.preferredUpgradeTarget(null));
+        assertEquals("0.166.27", CliVersionCheck.preferredUpgradeTarget("0.166.26"));
+        assertEquals("0.166.28", CliVersionCheck.preferredUpgradeTarget("0.166.28"));
 
         String notice = CliVersionCheck.updateNotice(
-                "0.166.21", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+                "0.166.26", CliVersionCheck.RECOMMENDED_CLI_VERSION);
         assertTrue(notice != null && notice.contains("npm i -g chainlesschain@latest"));
     }
 }

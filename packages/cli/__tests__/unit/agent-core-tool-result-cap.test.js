@@ -11,7 +11,65 @@ import {
   MAX_TOOL_RESULT_CHARS_HARD_LIMIT,
   resolveMaxToolResultChars,
   safeStringifyToolResult,
+  boundedCodeOutput,
+  toolResultForModel,
 } from "../../src/runtime/agent-core.js";
+
+describe("large command output", () => {
+  it("preserves short output and labels long JSON-escaped Unicode output", () => {
+    expect(boundedCodeOutput("hello")).toEqual({ output: "hello" });
+    const source = '中文😀\\"\n'.repeat(20000);
+    const result = boundedCodeOutput(source);
+    const visible = JSON.parse(
+      capToolResultString(
+        JSON.stringify({
+          success: true,
+          ...result,
+          duration: "12ms",
+          language: "python",
+        }),
+      ),
+    );
+    expect(visible.truncated).toBe(true);
+    expect(visible.outputChars).toBe(source.length);
+    expect(visible.returnedChars).toBe(visible.output.length);
+    expect(source.startsWith(visible.output)).toBe(true);
+    expect(visible.output).not.toMatch(/[\uD800-\uDBFF]$/);
+    expect(visible.hint).toContain("filter/count locally");
+  });
+
+  it("reuses visible output without replaying it, but restores it after compaction", () => {
+    const result = {
+      success: true,
+      ...boundedCodeOutput("rows\n".repeat(20000)),
+    };
+    const messages = [
+      {
+        role: "assistant",
+        tool_calls: [{ id: "c1", function: { name: "run_code" } }],
+      },
+      { role: "tool", tool_call_id: "c1", content: JSON.stringify(result) },
+    ];
+    const repeat = JSON.parse(
+      toolResultForModel("run_code", { ...result, duration: "9ms" }, messages),
+    );
+    expect(repeat.output).toBeUndefined();
+    expect(repeat.previousToolCallId).toBe("c1");
+    expect(repeat.truncated).toBe(true);
+    expect(repeat.duration).toBe("9ms");
+    expect(
+      JSON.parse(toolResultForModel("run_shell", result, messages)).output,
+    ).toBe(result.output);
+    const changed = { ...result, output: result.output + "new" };
+    expect(
+      JSON.parse(toolResultForModel("run_code", changed, messages)).output,
+    ).toBe(changed.output);
+    messages[1].content = "[compacted]";
+    expect(
+      JSON.parse(toolResultForModel("run_code", result, messages)).output,
+    ).toBe(result.output);
+  });
+});
 
 describe("capToolResultString", () => {
   it("returns short results unchanged (no marker)", () => {

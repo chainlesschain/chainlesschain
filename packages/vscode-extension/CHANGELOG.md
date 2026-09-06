@@ -2,15 +2,16 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.85] - Unreleased
+## [0.37.85] - Efficient long-document tasks (2026-09-06)
 
 - Show the requested line range and long-line column in file-read traces so
   forward paging can be distinguished from repeatedly reading the same page.
-- Recommend the published `chainlesschain@0.166.25` CLI, which retains
-  version-aware read progress through compaction and stops unchanged-page
-  loops after an explicit recovery opportunity.
-- This entry prepares the next extension package; the CLI-only release does
-  not publish a VSIX or change the public extension listing.
+- Recommend `chainlesschain@0.166.27`, which directs task-count questions to
+  current status sections and local aggregation instead of full-document dumps.
+- Reuse identical large command output already in context, explicitly report
+  truncated script output, and detect repeated code/shell dumps across compaction.
+- Preserve normal paging, rereads after edits, and execution of every authorized
+  command while bounding no-progress output loops.
 
 ## [0.37.84] - Durable long-running chat tasks (2026-09-06)
 
