@@ -183,6 +183,7 @@ export function openEvolutionDurableStore(root, options = {}) {
     ledgerAuthority: config.ledgerAuthority,
     witnessAuthority: config.witnessAuthority,
     artifactResolver: resolver,
+    crashHook: options.crashHook ?? null,
     secure: false,
     fsImpl,
     clock: () => NOW,

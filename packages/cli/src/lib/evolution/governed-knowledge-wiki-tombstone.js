@@ -1,3 +1,4 @@
+import { types } from "node:util";
 import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 import { captureSkillReleaseOperationReader } from "./evolution-ledger-ports.js";
 import { governedKnowledgeSourceRef } from "./governed-knowledge-skill-rollback.js";
@@ -32,6 +33,12 @@ const RULES = Object.freeze({
   staleConfidenceFloor: 0.2,
 });
 const RULES_DIGEST = digest(SCHEMA, RULES);
+const MULTIHOP_SCHEMA = "chainlesschain.knowledge-wiki-tombstone/v2";
+const MULTIHOP_RULES_DIGEST = digest(MULTIHOP_SCHEMA, {
+  ...RULES,
+  schema: MULTIHOP_SCHEMA,
+  source: "authenticated-pinned-Wiki-exact-Knowledge-ancestry",
+});
 function fail(message) {
   throw new Error(`Knowledge Wiki tombstone: ${message}`);
 }
@@ -50,7 +57,7 @@ function bind(wikiAdapter, transactionLedger, tenantId) {
     );
   return Object.freeze({ wiki, operations });
 }
-function partsFor(source, request) {
+function partsFor(source, request, provenance) {
   const sourceRef = governedKnowledgeSourceRef(request);
   const refs = new Set(
     Object.values(source.state.evidence)
@@ -61,7 +68,7 @@ function partsFor(source, request) {
       )
       .map((entry) => entry.ref),
   );
-  const operations = Object.values(source.state.patterns)
+  const directIds = Object.values(source.state.patterns)
     .filter((pattern) => {
       const evidence = [
         ...pattern.positiveEvidence,
@@ -71,16 +78,27 @@ function partsFor(source, request) {
         fail("pattern has unresolved source evidence");
       return evidence.some((ref) => refs.has(ref));
     })
-    .map((pattern) => ({
-      type: "tombstone",
-      patternId: pattern.patternId,
-      reason: "governed-knowledge-revocation",
-    }))
-    .sort((a, b) =>
-      a.patternId < b.patternId ? -1 : a.patternId > b.patternId ? 1 : 0,
-    );
+    .map((pattern) => pattern.patternId)
+    .sort();
+  const targetIds = provenance.affectedPatternIds;
+  const operations = targetIds.map((patternId) => ({
+    type: "tombstone",
+    patternId,
+    reason: "governed-knowledge-revocation",
+  }));
   if (!operations.length)
     fail("Wiki source does not identify the revoked Knowledge");
+  // Existing direct-only preparations retain their exact v1 batch identity and
+  // deterministic revision bytes. Newly discovered ancestry gets a distinct
+  // v2 contract, pinned to the original revision rather than today's head.
+  const sourceProofDigest = same(directIds, targetIds)
+    ? null
+    : digest(`${MULTIHOP_SCHEMA}/source`, {
+        revisionId: provenance.revisionId,
+        stateDigest: provenance.stateDigest,
+        checkpoint: provenance.checkpoint,
+        affectedPatternIds: targetIds,
+      });
   const count = Math.ceil(operations.length / RULES.batchSize);
   if (count > 128)
     fail("Wiki disposition exceeds the authenticated history bound");
@@ -91,12 +109,17 @@ function partsFor(source, request) {
     );
     return {
       operations: batch,
-      requestDigest: digest(`${SCHEMA}/batch`, {
-        requestDigest: request.requestDigest,
-        index,
-        count,
-        operations: batch,
-      }),
+      ...(sourceProofDigest ? { sourceProofDigest } : {}),
+      requestDigest: digest(
+        `${sourceProofDigest ? MULTIHOP_SCHEMA : SCHEMA}/batch`,
+        {
+          requestDigest: request.requestDigest,
+          index,
+          count,
+          operations: batch,
+          ...(sourceProofDigest ? { sourceProofDigest } : {}),
+        },
+      ),
     };
   });
 }
@@ -109,15 +132,19 @@ function derive(reader, source, part, fence) {
     descriptor: {
       tenantId: reader.wiki.descriptor.tenantId,
       evolutionRunId: reader.wiki.descriptor.evolutionRunId,
-      maintainerModel: "deterministic:knowledge-wiki-tombstone/v1",
-      rulesDigest: RULES_DIGEST,
+      maintainerModel: part.sourceProofDigest
+        ? "deterministic:knowledge-wiki-tombstone/v2"
+        : "deterministic:knowledge-wiki-tombstone/v1",
+      rulesDigest: part.sourceProofDigest
+        ? MULTIHOP_RULES_DIGEST
+        : RULES_DIGEST,
       minCorroboratingSources: RULES.minCorroboratingSources,
       decayHalfLifeDays: RULES.decayHalfLifeDays,
       staleConfidenceFloor: RULES.staleConfidenceFloor,
     },
   });
 }
-async function prove(reader, request, context) {
+async function prove(reader, request, context, original) {
   if (
     request.dependency.kind !== "wiki" ||
     request.dependency.disposition !== "tombstone"
@@ -145,16 +172,24 @@ async function prove(reader, request, context) {
     fail("Wiki dependency is not in the prepared operation");
   // The dependency digest binds the original complete Wiki STATE, not just a
   // pattern ID, caller-selected evidence subset or latest mutable Wiki label.
-  const original = reader.wiki.readStateRevision({
-    tenantId: request.tenantId,
-    stateDigest: request.dependency.digest,
-  });
   if (
     !matchHead(context.checkpoint, original.ledgerHead) ||
     original.checkpoint.sequence >= fence.sequence
   )
     fail("Wiki source must precede preparation on this same current ledger");
-  const parts = partsFor(original, request);
+  const provenance = reader.wiki.readKnowledgeProvenance({
+    tenantId: request.tenantId,
+    revisionId: original.revisionId,
+    knowledgeId: request.knowledgeId,
+    contentDigest: request.contentDigest,
+  });
+  if (
+    provenance.stateDigest !== original.stateDigest ||
+    !same(provenance.checkpoint, original.checkpoint) ||
+    !matchHead(context.checkpoint, provenance.ledgerHead)
+  )
+    fail("Wiki ancestry does not bind the original state and current ledger");
+  const parts = partsFor(original, request, provenance);
   const history = reader.wiki.resolveHistory({
     tenantId: request.tenantId,
     stateDigest: request.dependency.digest,
@@ -202,6 +237,7 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
   verifierTransactionLedger,
   providerDescriptor,
   verifierDescriptor,
+  additionalWikiTargets = [],
 } = {}) {
   if (
     wikiLedgerAdapter === verifierWikiLedgerAdapter ||
@@ -210,14 +246,76 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
     throw new TypeError(
       "Wiki disposition requires independent genuine readers",
     );
-  const provider = bind(wikiLedgerAdapter, transactionLedger, tenantId);
-  const verifier = bind(
-    verifierWikiLedgerAdapter,
-    verifierTransactionLedger,
-    tenantId,
-  );
-  if (!same(provider.wiki.descriptor, verifier.wiki.descriptor))
-    throw new TypeError("Wiki disposition reader scopes differ");
+  if (
+    types.isProxy(additionalWikiTargets) ||
+    !Array.isArray(additionalWikiTargets) ||
+    Object.getPrototypeOf(additionalWikiTargets) !== Array.prototype ||
+    additionalWikiTargets.length > 63 ||
+    Reflect.ownKeys(additionalWikiTargets).length !==
+      additionalWikiTargets.length + 1
+  )
+    throw new TypeError(
+      "Wiki disposition targets must be a bounded dense array",
+    );
+  const targets = [{ wikiLedgerAdapter, verifierWikiLedgerAdapter }];
+  for (let index = 0; index < additionalWikiTargets.length; index += 1) {
+    const property = Object.getOwnPropertyDescriptor(
+      additionalWikiTargets,
+      String(index),
+    );
+    const target = property?.value;
+    if (
+      !target ||
+      types.isProxy(target) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(target)) ||
+      Reflect.ownKeys(target).length !== 2
+    )
+      throw new TypeError(
+        "Wiki disposition target must contain two fixed readers",
+      );
+    const left = Object.getOwnPropertyDescriptor(target, "wikiLedgerAdapter");
+    const right = Object.getOwnPropertyDescriptor(
+      target,
+      "verifierWikiLedgerAdapter",
+    );
+    if (!left || !right || !("value" in left) || !("value" in right))
+      throw new TypeError("Wiki disposition target must not use accessors");
+    targets.push({
+      wikiLedgerAdapter: left.value,
+      verifierWikiLedgerAdapter: right.value,
+    });
+  }
+  const runs = new Set();
+  const bindings = targets.map((target) => {
+    if (target.wikiLedgerAdapter === target.verifierWikiLedgerAdapter)
+      throw new TypeError(
+        "Wiki disposition requires independent genuine readers",
+      );
+    const provider = bind(
+      target.wikiLedgerAdapter,
+      transactionLedger,
+      tenantId,
+    );
+    const verifier = bind(
+      target.verifierWikiLedgerAdapter,
+      verifierTransactionLedger,
+      tenantId,
+    );
+    if (!same(provider.wiki.descriptor, verifier.wiki.descriptor))
+      throw new TypeError("Wiki disposition reader scopes differ");
+    const run = provider.wiki.descriptor.evolutionRunId;
+    if (runs.has(run))
+      throw new TypeError(
+        "Wiki disposition runs must be unique, not duplicate",
+      );
+    runs.add(run);
+    return Object.freeze({
+      provider,
+      verifier,
+      commit: target.wikiLedgerAdapter.commitRevision,
+    });
+  });
+  const { provider, verifier } = bindings[0];
   const left = provider.operations.currentContext().checkpoint;
   const right = verifier.operations.currentContext().checkpoint;
   if (
@@ -226,18 +324,46 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
     )
   )
     throw new TypeError("Wiki disposition readers belong to different ledgers");
-  const commit = wikiLedgerAdapter.commitRevision;
   const providerIdentity = captureData(providerDescriptor);
   const verifierIdentity = captureData(verifierDescriptor);
   async function proofPair(request) {
     const context = provider.operations.currentContext();
     if (!same(context, verifier.operations.currentContext()))
       fail("independent ledger heads differ");
-    const primary = await prove(provider, request, context);
-    const independent = await prove(verifier, request, context);
+    let selected = null;
+    for (const binding of bindings) {
+      const query = {
+        tenantId: request.tenantId,
+        stateDigest: request.dependency.digest,
+      };
+      const original = binding.provider.wiki.findStateRevision(query);
+      const independentOriginal =
+        binding.verifier.wiki.findStateRevision(query);
+      if (!same(original, independentOriginal))
+        fail("independent Wiki target lookup differs");
+      if (original) {
+        if (selected)
+          fail("Wiki target resolves to more than one configured run");
+        selected = { binding, original, independentOriginal };
+      }
+    }
+    if (!selected)
+      fail("Wiki target is absent from the configured authenticated runs");
+    const primary = await prove(
+      selected.binding.provider,
+      request,
+      context,
+      selected.original,
+    );
+    const independent = await prove(
+      selected.binding.verifier,
+      request,
+      context,
+      selected.independentOriginal,
+    );
     if (!same(primary, independent))
       fail("independent Wiki effect proof differs");
-    return primary;
+    return { proof: primary, binding: selected.binding };
   }
   function resultFor(request, proof) {
     const core = {
@@ -273,18 +399,18 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
     verifierDescriptor: verifierIdentity,
     provider: Object.freeze({
       async apply(request) {
-        let proof = await proofPair(request);
+        let { proof, binding } = await proofPair(request);
         while (!proof.complete) {
           const done = proof.history.successors.length;
           const revision = await derive(
-            provider,
+            binding.provider,
             proof.current,
             proof.parts[done],
             proof.fence,
           );
           let commitError = null;
           try {
-            commit({
+            binding.commit({
               expectedStateDigest: proof.current.stateDigest,
               expectedLedgerHead: proof.checkpoint,
               revision,
@@ -294,7 +420,7 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
           }
           // Lost acknowledgements are resolved from independently replayed
           // actual history, never from a provider's success flag.
-          const next = await proofPair(request);
+          const next = (await proofPair(request)).proof;
           if (next.history.successors.length !== done + 1) {
             if (commitError) throw commitError;
             fail("Wiki commit did not durably advance the authorized sequence");
@@ -306,7 +432,7 @@ export function createGovernedKnowledgeWikiTombstoneAuthority({
     }),
     verifier: Object.freeze({
       async verify({ request, result }) {
-        const proof = await proofPair(request);
+        const { proof } = await proofPair(request);
         if (!proof.complete || !same(result, resultFor(request, proof)))
           fail(
             "Wiki disposition is not completely and independently confirmed",

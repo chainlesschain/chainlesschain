@@ -166,6 +166,7 @@ export class WikiMaintainerLedgerAdapter {
         readKnowledgeProvenance: (input) =>
           this.#readKnowledgeProvenance(input),
         readStateRevision: (input) => this.#readStateRevision(input),
+        findStateRevision: (input) => this.#readStateRevision(input, false),
         resolveHistory: (input) => this.#resolveHistory(input),
         resolveAtCheckpoint: (input) => this.#resolveHistory(input, true),
       }),
@@ -519,7 +520,7 @@ export class WikiMaintainerLedgerAdapter {
 
   // Content-addressed original state lookup, without authorizing intervening
   // changes. Effect consumers still replay their exact permitted successors.
-  #readStateRevision({ tenantId, stateDigest } = {}) {
+  #readStateRevision({ tenantId, stateDigest } = {}, required = true) {
     if (
       tenantId !== this.descriptor.tenantId ||
       !DIGEST.test(stateDigest ?? "")
@@ -530,6 +531,9 @@ export class WikiMaintainerLedgerAdapter {
     const { head, selectedRevision } = this.#history({
       stateRevisionDigest: stateDigest,
     });
+    // A scoped lookup may prove absence only after authenticating the complete
+    // run. Corrupt/missing bytes and concurrent ledger changes still throw.
+    if (!selectedRevision && !required) return null;
     if (!selectedRevision)
       fail(
         WIKI_LEDGER_CONFLICT_CODE,

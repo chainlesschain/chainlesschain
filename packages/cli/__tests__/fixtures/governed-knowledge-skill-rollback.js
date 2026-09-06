@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import protocol from "@chainlesschain/session-core/evolvable-artifact";
 import { openEvolutionDurableStore } from "./evolution-durable-store.js";
 import { openRevocationReleaseRegistry } from "./skill-revocation-release-registry.js";
@@ -85,6 +87,7 @@ export async function openKnowledgeSkillRollbackStore(
     candidateRejection = false,
     candidateQuarantine = false,
     wikiTombstone = false,
+    wikiTombstoneAllRuns = false,
     wikiPatternCount = 1,
     wikiHops = 0,
     wikiHopReference = "uri",
@@ -97,6 +100,31 @@ export async function openKnowledgeSkillRollbackStore(
   const resources = openEvolutionDurableStore(root, {
     tenantId,
     streamId: "knowledge-revocations",
+    crashHook:
+      crashPoint === "after-first-wiki-tombstone"
+        ? (phase, context) => {
+            if (phase !== "after-head") return;
+            // Inspect the already-written test event, without reentering the
+            // Ledger lock. Kill after one real Wiki commit, before readback or
+            // the next configured run; no fabricated effect/receipt is used.
+            const directory = path.join(root, "events", "segments-v1");
+            const latest = fs
+              .readdirSync(directory)
+              .filter((name) => /^\d{12}-[a-f0-9]{64}\.json$/.test(name))
+              .sort()
+              .at(-1);
+            if (!latest)
+              throw new Error(
+                "test crash hook cannot find its committed event",
+              );
+            const event = JSON.parse(
+              fs.readFileSync(path.join(directory, latest), "utf8"),
+            );
+            if (event.eventDigest !== context.eventDigest)
+              throw new Error("test crash hook event identity differs");
+            if (event.type === "wiki.revision.committed") process.exit(94);
+          }
+        : null,
   });
   let wiki = wikiProvenance
     ? openKnowledgeWikiProvenance(resources, source, {
@@ -260,6 +288,16 @@ export async function openKnowledgeSkillRollbackStore(
     transactionLedger: release.pruningRollbackOptions.transactionLedger,
     verifierTransactionLedger:
       independent.pruningRollbackOptions.transactionLedger,
+    additionalWikiTargets: wikiTombstoneAllRuns
+      ? upstreamWikis.map((upstream) => ({
+          wikiLedgerAdapter: upstream.adapter,
+          verifierWikiLedgerAdapter: openKnowledgeWikiProvenance(
+            independentResources,
+            source,
+            { evolutionRunId: upstream.adapter.descriptor.evolutionRunId },
+          ).adapter,
+        }))
+      : [],
     providerDescriptor: {
       authorityId: "knowledge-wiki:provider",
       revision: 1,
@@ -421,14 +459,39 @@ export async function openKnowledgeSkillRollbackStore(
         : [candidate];
   }
   if (wikiTombstone) {
+    const original = wiki.reader.readRevision({
+      tenantId,
+      revisionId: release.candidateRelease.candidate.wikiRevision,
+    });
     const dependency = {
       kind: "wiki",
       disposition: "tombstone",
-      digest: wiki.reader.readRevision({
-        tenantId,
-        revisionId: release.candidateRelease.candidate.wikiRevision,
-      }).stateDigest,
+      digest: original.stateDigest,
     };
+    const wikiDependencies = [dependency];
+    if (wikiTombstoneAllRuns) {
+      // Pin the source revisions that existed at the original derived Wiki,
+      // never whichever maintenance revision happens to be current on reopen.
+      const history = resources.backend.ledger.read();
+      for (const upstream of [...upstreamWikis].reverse()) {
+        const event = history.findLast(
+          (entry) =>
+            entry.type === "wiki.revision.committed" &&
+            entry.correlationId ===
+              upstream.adapter.descriptor.evolutionRunId &&
+            entry.sequence <= original.checkpoint.sequence,
+        );
+        if (!event) throw new Error("test upstream Wiki source is missing");
+        wikiDependencies.push({
+          kind: "wiki",
+          disposition: "tombstone",
+          digest: upstream.reader.readRevision({
+            tenantId,
+            revisionId: event.eventId.replace("wiki.revision.", "wiki:"),
+          }).stateDigest,
+        });
+      }
+    }
     knowledge.dependencies =
       wikiTombstone === "combined"
         ? [
@@ -442,9 +505,9 @@ export async function openKnowledgeSkillRollbackStore(
               digest: release.candidateRelease.candidateId,
               disposition: "reject-candidate",
             },
-            dependency,
+            ...wikiDependencies,
           ]
-        : [dependency];
+        : wikiDependencies;
   }
   return {
     root,
