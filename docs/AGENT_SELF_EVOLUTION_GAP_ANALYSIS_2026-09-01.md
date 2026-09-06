@@ -1717,6 +1717,8 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Volcengine 文生视频出口复核：`video-generator` 会读取 provider 配置并调用 Seedance provider，后者可将 prompt 与可选 `image_url` 首帧发往远端、轮询任务并下载临时签名视频 URL 落盘。没有认证视频 Raw/projection/response-evidence 协议时，这些步骤均不可接受。现 router 与 provider `generateVideo()` 双层在读取配置、创建任务、轮询或下载前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 失败关闭；`video:generate` IPC 因而不发送 progress。unit + renderer-boundary + IPC 定向测试 4/4 通过，断言零 provider/config 调度与零进度事件。此批次只封堵这一视频生成链；视频分析、远程媒体 URL 与签名二进制载荷的完整可用协议仍未实现，P0-4 继续为部分完成。
 
+2026-09-06 直接 LLaVA 客户端复核：除已封闭的 VisionManager 外，`LLaVAClient` 仍可被直接构造并将图片路径/base64 或 image-bearing chat 发送给本地 Ollama。普通、流式和 chat 三类推理入口现均在读取图片或调用本地服务之前以 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 拒绝；模型下载和纯本地转换等非推理工具未改动。新增定向测试 3/3 用实例 client spy 验证所有入口零 `/api/generate`/`/api/chat` 调用。此批次关闭该 direct-client 绕过，并不构成多模态可用协议；剩余视频分析、远程媒体 URL 与签名二进制载荷仍需独立实现，P0-4 继续为部分完成。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
