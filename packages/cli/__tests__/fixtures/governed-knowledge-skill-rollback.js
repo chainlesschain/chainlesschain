@@ -6,6 +6,7 @@ import { openEvolutionDurableStore } from "./evolution-durable-store.js";
 import { openRevocationReleaseRegistry } from "./skill-revocation-release-registry.js";
 import { openKnowledgeWikiProvenance } from "./knowledge-wiki-provenance.js";
 import {
+  createGovernedKnowledgeSkillQuarantineAuthority,
   createGovernedKnowledgeSkillRollbackAuthority,
   governedKnowledgeSourceRef,
 } from "../../src/lib/evolution/governed-knowledge-skill-rollback.js";
@@ -81,6 +82,7 @@ export async function openKnowledgeSkillRollbackStore(
     candidateEvidenceRefs = [source],
     baselineEvidenceRefs = null,
     crashPoint = "none",
+    activeQuarantine = false,
     wikiProvenance = false,
     unsafeWikiBaseline = false,
     lateWikiProvenance = false,
@@ -251,8 +253,21 @@ export async function openKnowledgeSkillRollbackStore(
       handlerArtifactDigest: D("rollback-verifier"),
     },
   };
-  const rollbackAuthority =
-    createGovernedKnowledgeSkillRollbackAuthority(options);
+  const rollbackAuthority = activeQuarantine
+    ? createGovernedKnowledgeSkillQuarantineAuthority({
+        ...options,
+        providerDescriptor: {
+          authorityId: "knowledge-active-quarantine:provider",
+          revision: 1,
+          handlerArtifactDigest: D("active-quarantine-provider"),
+        },
+        verifierDescriptor: {
+          authorityId: "knowledge-active-quarantine:verifier",
+          revision: 1,
+          handlerArtifactDigest: D("active-quarantine-verifier"),
+        },
+      })
+    : createGovernedKnowledgeSkillRollbackAuthority(options);
   const rejectionOptions = {
     ...options,
     candidateRegistry: release.candidateRegistry,
@@ -330,7 +345,8 @@ export async function openKnowledgeSkillRollbackStore(
           tenantId,
           deviceId,
           routes: {
-            "active-skill/rollback-active": rollbackAuthority,
+            [`active-skill/${activeQuarantine ? "quarantine" : "rollback-active"}`]:
+              rollbackAuthority,
             ...(rejectionAuthority
               ? { "candidate/reject-candidate": rejectionAuthority }
               : {}),
@@ -456,7 +472,7 @@ export async function openKnowledgeSkillRollbackStore(
       {
         kind: "active-skill",
         digest: release.candidateRelease.releaseDigest,
-        disposition: "rollback-active",
+        disposition: activeQuarantine ? "quarantine" : "rollback-active",
       },
     ],
   };

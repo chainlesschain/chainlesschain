@@ -59,6 +59,33 @@ describe("governed Knowledge real Skill rollback", () => {
     expect(reopened.release.inspect().transitions).toHaveLength(3);
   }, 180_000);
 
+  it("quarantines an active release by rolling back and durably blocking reactivation", async () => {
+    const h = await setup({ activeQuarantine: true });
+
+    await h.makeSync().publish(h.knowledge);
+
+    expect(h.release.readActive().release).toEqual(h.release.baseline);
+    expect(h.knowledge.dependencies).toEqual([
+      {
+        kind: "active-skill",
+        digest: h.release.candidateRelease.releaseDigest,
+        disposition: "quarantine",
+      },
+    ]);
+    await expect(
+      h.release.promoteCandidate("reactivate-quarantined-release"),
+    ).rejects.toMatchObject({
+      code: "SKILL_RELEASE_LEDGER_PREPARE_FAILED",
+      cause: { code: "CC_EVOLUTION_LEDGER_SOURCE_REVOKED" },
+    });
+    expect(h.release.readActive().release).toEqual(h.release.baseline);
+    await expect(h.executor.execute(h.knowledge)).resolves.toMatchObject({
+      recovered: true,
+      durable: true,
+    });
+    expect(h.release.inspect().transitions).toHaveLength(3);
+  }, 180_000);
+
   it.each([
     [
       "unrelated candidate",

@@ -55,6 +55,29 @@ it("discovers and orders every active, candidate, and Wiki dependency", async ()
       .sort(),
   );
   expect(inventory.inventoryDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+
+  const quarantine = buildGovernedKnowledgeDependencyInventory({
+    tenantId: h.knowledge.tenantId,
+    knowledgeId: h.knowledge.knowledgeId,
+    contentDigest: h.knowledge.contentDigest,
+    candidateRegistry: h.release.candidateRegistry,
+    releaseRegistry: h.release.pruningRollbackOptions.releaseRegistry,
+    wikiAdapters: [
+      h.wiki.adapter,
+      ...h.upstreamWikis.map(({ adapter }) => adapter),
+    ],
+    activeDisposition: "quarantine",
+    candidateDisposition: "quarantine",
+    wikiDisposition: "quarantine",
+  });
+  expect(
+    quarantine.dependencies.map(({ kind, disposition }) => [kind, disposition]),
+  ).toEqual([
+    ["active-skill", "quarantine"],
+    ["candidate", "quarantine"],
+    ["wiki", "quarantine"],
+    ["wiki", "quarantine"],
+  ]);
 });
 
 it("fails closed when a discovered tenant Wiki run is omitted", async () => {

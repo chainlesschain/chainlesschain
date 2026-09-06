@@ -22,6 +22,16 @@ import {
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const VERIFICATION_SCHEMA =
   "chainlesschain.knowledge-skill-rollback-verification/v1";
+const QUARANTINE_VERIFICATION_SCHEMA =
+  "chainlesschain.knowledge-skill-quarantine-verification/v1";
+const ROLLBACK = Object.freeze({
+  disposition: "rollback-active",
+  verificationSchema: VERIFICATION_SCHEMA,
+});
+const QUARANTINE = Object.freeze({
+  disposition: "quarantine",
+  verificationSchema: QUARANTINE_VERIFICATION_SCHEMA,
+});
 
 function fail(message) {
   throw new Error(`knowledge Skill rollback: ${message}`);
@@ -117,12 +127,14 @@ function sameLedger(provider, verifier) {
     fail("independent readers do not authenticate the same ledger");
 }
 
-function releasesFor(reader, request) {
+function releasesFor(reader, request, configuration) {
   if (
     request.dependency.kind !== "active-skill" ||
-    request.dependency.disposition !== "rollback-active"
+    request.dependency.disposition !== configuration.disposition
   )
-    fail("this provider requires an active-skill / rollback-active dependency");
+    fail(
+      `this provider requires an active-skill / ${configuration.disposition} dependency`,
+    );
   // This effect accepts an immutable release identity, never an ambiguous content
   // digest or a caller-supplied Skill name. Other dependency kinds need their own effect.
   const from = reader.registry.readRelease(request.dependency.digest);
@@ -175,8 +187,8 @@ function resolve(reader, request, from) {
   }).result;
 }
 
-function committedProof(reader, request) {
-  const { from, sourceRef, wiki } = releasesFor(reader, request);
+function committedProof(reader, request, configuration) {
+  const { from, sourceRef, wiki } = releasesFor(reader, request, configuration);
   const result = resolve(reader, request, from);
   if (!result) return null;
   const { intent, previous, projection, finalizationEvidence } = result;
@@ -247,20 +259,21 @@ function authorizationData(value) {
 
 // Real active-release effect with direct or historically authenticated Wiki
 // provenance. Candidate rejection and quarantine require separate effects.
-export function createGovernedKnowledgeSkillRollbackAuthority({
-  tenantId,
-  deviceId,
-  releaseRegistry,
-  transactionLedger,
-  rollbackProvider,
-  authorizationProvider,
-  verifierReleaseRegistry,
-  verifierTransactionLedger,
-  wikiLedgerAdapter = null,
-  verifierWikiLedgerAdapter = null,
-  providerDescriptor,
-  verifierDescriptor,
-} = {}) {
+function createSkillDispositionAuthority(options = {}, configuration) {
+  const {
+    tenantId,
+    deviceId,
+    releaseRegistry,
+    transactionLedger,
+    rollbackProvider,
+    authorizationProvider,
+    verifierReleaseRegistry,
+    verifierTransactionLedger,
+    wikiLedgerAdapter = null,
+    verifierWikiLedgerAdapter = null,
+    providerDescriptor,
+    verifierDescriptor,
+  } = options;
   if (
     releaseRegistry === verifierReleaseRegistry ||
     transactionLedger === verifierTransactionLedger
@@ -316,9 +329,13 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
 
   async function apply(request) {
     sameLedger(providerReader, verifierReader);
-    let proof = committedProof(providerReader, request);
+    let proof = committedProof(providerReader, request, configuration);
     if (!proof) {
-      const { from, sourceRef, wiki } = releasesFor(providerReader, request);
+      const { from, sourceRef, wiki } = releasesFor(
+        providerReader,
+        request,
+        configuration,
+      );
       const active = providerReader.registry.readActive(from.skillName);
       if (!active || active.release.releaseDigest !== from.releaseDigest)
         fail("dependent release is not currently active");
@@ -336,7 +353,11 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
       const independent = verifierReader.registry.readActive(from.skillName);
       if (canonical(independent) !== canonical(active))
         fail("independent active state differs");
-      const independentSource = releasesFor(verifierReader, request);
+      const independentSource = releasesFor(
+        verifierReader,
+        request,
+        configuration,
+      );
       const independentTargetWiki = validateTarget(
         verifierReader,
         request,
@@ -388,7 +409,7 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
           fail("authority authorized a different transition");
       sameLedger(providerReader, verifierReader);
       if (
-        committedProof(providerReader, request) !== null ||
+        committedProof(providerReader, request, configuration) !== null ||
         canonical(providerReader.registry.readActive(from.skillName)) !==
           canonical(active)
       )
@@ -397,7 +418,7 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
         authorization,
         targetReleaseDigest: target.releaseDigest,
       });
-      proof = committedProof(providerReader, request);
+      proof = committedProof(providerReader, request, configuration);
       if (!proof) fail("rollback was not durably read back");
     }
     const core = {
@@ -436,8 +457,12 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
     verifier: Object.freeze({
       async verify({ request, result }) {
         sameLedger(providerReader, verifierReader);
-        const proof = committedProof(verifierReader, request);
-        const providerProof = committedProof(providerReader, request);
+        const proof = committedProof(verifierReader, request, configuration);
+        const providerProof = committedProof(
+          providerReader,
+          request,
+          configuration,
+        );
         if (!proof || canonical(proof) !== canonical(providerProof))
           fail("independent durable rollback proof differs");
         const { algorithm, keyId, value } =
@@ -460,7 +485,7 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
           providerRevision: providerIdentity.revision,
           verifierAuthorityId: verifierIdentity.authorityId,
           verifierRevision: verifierIdentity.revision,
-          verificationReceiptDigest: digest(VERIFICATION_SCHEMA, {
+          verificationReceiptDigest: digest(configuration.verificationSchema, {
             tenantId,
             deviceId,
             requestDigest: request.requestDigest,
@@ -472,4 +497,14 @@ export function createGovernedKnowledgeSkillRollbackAuthority({
       },
     }),
   });
+}
+
+export function createGovernedKnowledgeSkillRollbackAuthority(options = {}) {
+  return createSkillDispositionAuthority(options, ROLLBACK);
+}
+
+// Active quarantine performs the same safety rollback, while the separately
+// typed durable dependency fence prevents this exact release from reactivation.
+export function createGovernedKnowledgeSkillQuarantineAuthority(options = {}) {
+  return createSkillDispositionAuthority(options, QUARANTINE);
 }

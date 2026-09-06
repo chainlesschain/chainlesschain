@@ -108,6 +108,7 @@ export function buildGovernedKnowledgeDependencyInventory({
   candidateRegistry,
   releaseRegistry,
   wikiAdapters,
+  activeDisposition = "rollback-active",
   candidateDisposition = "reject-candidate",
   wikiDisposition = "tombstone",
 } = {}) {
@@ -120,6 +121,7 @@ export function buildGovernedKnowledgeDependencyInventory({
     !Array.isArray(wikiAdapters) ||
     wikiAdapters.length < 1 ||
     wikiAdapters.length > 64 ||
+    !["rollback-active", "quarantine"].includes(activeDisposition) ||
     !["reject-candidate", "quarantine"].includes(candidateDisposition) ||
     !["tombstone", "quarantine"].includes(wikiDisposition)
   ) {
@@ -227,7 +229,7 @@ export function buildGovernedKnowledgeDependencyInventory({
   const activeDependencies = affectedActive.map(({ release }) => ({
     kind: "active-skill",
     digest: release.releaseDigest,
-    disposition: "rollback-active",
+    disposition: activeDisposition,
   }));
   const candidateDependencies = candidateItems
     .filter(depends)
@@ -295,6 +297,7 @@ export function buildGovernedKnowledgeDependencyInventory({
     tenantId,
     knowledgeId,
     contentDigest,
+    activeDisposition,
     candidateDisposition,
     wikiDisposition,
     ledgerHead,
@@ -339,6 +342,7 @@ export class GovernedKnowledgeDependencyInventoryPlanner {
         candidateRegistry: options.candidateRegistry,
         releaseRegistry: options.releaseRegistry,
         wikiAdapters: Object.freeze(wikiAdapters),
+        activeDisposition: options.activeDisposition,
         candidateDisposition: options.candidateDisposition,
         wikiDisposition: options.wikiDisposition,
       }),

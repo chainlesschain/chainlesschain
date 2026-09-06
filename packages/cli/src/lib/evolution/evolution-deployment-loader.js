@@ -211,7 +211,10 @@ async function loadBuiltInFactories(commandName) {
         createGovernedKnowledgeCandidateQuarantineAuthority,
         createGovernedKnowledgeCandidateRejectionAuthority,
       },
-      { createGovernedKnowledgeSkillRollbackAuthority },
+      {
+        createGovernedKnowledgeSkillQuarantineAuthority,
+        createGovernedKnowledgeSkillRollbackAuthority,
+      },
       {
         createGovernedKnowledgeWikiQuarantineAuthority,
         createGovernedKnowledgeWikiTombstoneAuthority,
@@ -255,6 +258,7 @@ async function loadBuiltInFactories(commandName) {
       createGovernedKnowledgeRevocationHost,
       createGovernedKnowledgeCandidateQuarantineAuthority,
       createGovernedKnowledgeCandidateRejectionAuthority,
+      createGovernedKnowledgeSkillQuarantineAuthority,
       createGovernedKnowledgeSkillRollbackAuthority,
       createGovernedKnowledgeWikiQuarantineAuthority,
       createGovernedKnowledgeWikiTombstoneAuthority,

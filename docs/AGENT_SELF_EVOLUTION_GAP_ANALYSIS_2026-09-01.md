@@ -1251,6 +1251,8 @@ CLI 与后续 IDE 的发布准备见 [CLI / IDE 发布检查表](CLI_IDE_RELEASE
 
 Wiki quarantine 批次把隔离从 tombstone/delete 中拆成独立的持久状态：认证来源库存可生成 `wiki/quarantine`，独立 provider/verifier 必须在同一准备记录、原始 Wiki state digest、固定来源祖先和当前 Ledger head 上达成一致，随后只提交目标 pattern 的 `quarantined + actionable=false` 修订，保留无关事实和全部证据。quarantine pattern 从索引移除，普通 Wiki upsert 不能将其重新激活；重复执行从 Ledger 历史独立重放并幂等结算。既有 tombstone 的 v1/v2 摘要域和多跳叶到根行为保持不变，签名 deployment loader 另行暴露 quarantine authority 工厂。维护器 **16/16**、Wiki adapter **6/6**、来源准入 **21/21**、Wiki disposition **10/10**、多跳回归 **7/7**、库存 **5/5**、deployment loader **27/27** 通过。仓库内剩余进一步缩小为最终用户撤销确认/结果展示、active quarantine、Wiki quarantine 的独立解除审批/恢复策略，以及双设备离线/隐私删除全旅程。
 
+Active Skill quarantine 批次新增独立 `active-skill/quarantine` authority 与库存策略，未将它伪装成普通 rollback disposition。执行时仍必须通过双 Registry/Ledger 读者验证来源 release、当前 active CAS、Wiki/直接 Knowledge lineage 和安全且不同的 LKG，再获取一次性 rollback capability 并真实切换到 LKG；区别在于 durable prepared dependency fence 保留 `quarantine` 类型，并在后续相同 release 激活的 Ledger prepare 阶段以 `CC_EVOLUTION_LEDGER_SOURCE_REVOKED` 失败关闭。authority 结果、独立验证 receipt 和路由键继续绑定原 quarantine disposition，签名 deployment loader 提供独立构造工厂。完整 Skill rollback/quarantine **9/9**、库存 **5/5**、deployment loader **27/27** 通过。仓库内 quarantine 执行面现已覆盖 candidate、active release 与 Wiki；剩余为最终用户撤销确认/结果展示、各隔离域的独立解除审批/恢复策略，以及双设备离线/隐私删除全旅程。
+
 ### 7.5 EVO-P2-5：跨模型 Skill 来源/目标适配与市场治理
 
 WikiSkill 实验的是 source-model-evolved Skill 文件向 target inference model 的直接迁移，不是教师/学生蒸馏。实验既有正迁移，例如 Qwen-3.6-27B 的 ALFWorld Skill 使 Qwen-3.5-9B 达到 `70.2%`、高于其 self-evolved Skill 的 `63.4%`，也有 Spreadsheet 的严重负迁移。因此可以把“强模型 proposer 为小模型起草候选”作为产品假设，但必须在目标模型上重新评测，且不能预设更强 source 必然更可迁移。
