@@ -3,7 +3,10 @@ import { types } from "node:util";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
 
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
-import { EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST } from "./evolution-evidence-projector.js";
+import {
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+  EVOLUTION_PROJECTION_RULESET_DIGEST,
+} from "./evolution-evidence-projector.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
 import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
@@ -134,6 +137,7 @@ export function createAgentEvolutionIngress({
   evidenceAdapter,
   runAdapter,
   sourceEnvelopeAuthority,
+  openCacheSourceRun = null,
   wikiMaintenanceProducer = null,
   releaseTrain = null,
   completionTriggerKind = WIKI_MAINTENANCE_TRIGGER_KIND.SESSION_END,
@@ -172,8 +176,12 @@ export function createAgentEvolutionIngress({
     sourceEnvelopeAuthority,
   );
   const descriptor = runAdapter.descriptor;
+  if (openCacheSourceRun !== null && typeof openCacheSourceRun !== "function")
+    throw new TypeError("cache source Run opener must be a function");
   let tail = Promise.resolve();
   let admissionFailure = null;
+  let lastModelResponse = null;
+  let modelAdmissionPending = false;
 
   const serialize = (operation) => {
     const invoke = async () => {
@@ -227,7 +235,13 @@ export function createAgentEvolutionIngress({
     }).projection;
   };
 
-  const ingest = (kind, evidence, options = {}, modelRequest = null) =>
+  const ingest = (
+    kind,
+    evidence,
+    options = {},
+    modelRequest = null,
+    cacheRecord = false,
+  ) =>
     guardIngress(
       serialize(async () => {
         if (admissionFailure !== null) throw admissionFailure;
@@ -245,7 +259,17 @@ export function createAgentEvolutionIngress({
           options.occurredAt ?? currentTimestamp(),
           "Agent evidence occurredAt",
         );
-        const payload = modelRequest ?? clone(evidence);
+        if (cacheRecord && lastModelResponse === null)
+          throw new Error("Cache receipt requires a recorded model response");
+        const payload = cacheRecord
+          ? {
+              schema: "chainlesschain.model-response-cache/v1",
+              requestKey: evidence.requestKey,
+              sourceRunId: descriptor.runId,
+              sourceEventId: lastModelResponse.eventId,
+              responseEvent: clone(lastModelResponse.event),
+            }
+          : (modelRequest ?? clone(evidence));
         const sourceEnvelope = await issueSourceEnvelope(
           Object.freeze({
             schema: AGENT_EVOLUTION_INGRESS_SCHEMA,
@@ -296,6 +320,21 @@ export function createAgentEvolutionIngress({
             derivationManifestDigest: persisted.manifest.digest,
           },
         });
+        if (kind === "model-input") {
+          lastModelResponse = null;
+          modelAdmissionPending = true;
+        } else if (kind === "response-completed" && modelAdmissionPending) {
+          lastModelResponse = { eventId, event: clone(payload.event) };
+          modelAdmissionPending = false;
+        }
+        if (cacheRecord)
+          return clone({
+            schema: "chainlesschain.model-response-cache-receipt/v1",
+            tenantId: descriptor.tenantId,
+            runId: descriptor.runId,
+            eventId,
+            artifact: persisted,
+          });
         if (modelRequest === null) return appended;
         // Resolve the published manifest and every attested component afresh.
         // The prototype call requires the real adapter's private state; an
@@ -333,6 +372,103 @@ export function createAgentEvolutionIngress({
     schema: AGENT_EVOLUTION_INGRESS_SCHEMA,
     tenantId: descriptor.tenantId,
     runId: descriptor.runId,
+    createResponseCacheReceipt: async (input) => {
+      const snapshot = cloneEvidence(input);
+      const requestKey = snapshot?.requestKey;
+      if (
+        typeof requestKey !== "string" ||
+        !/^[a-f0-9]{64}$/.test(requestKey)
+      ) {
+        admissionFailure ??= ingressFailure(
+          new TypeError("Cache request key must be SHA-256"),
+        );
+        throw admissionFailure;
+      }
+      return ingest("model-response-cache", { requestKey }, {}, null, true);
+    },
+    replayResponseCache: async (input) => {
+      const snapshot = cloneEvidence(input);
+      const response = await guardIngress(
+        serialize(async () => {
+          const { receipt, requestKey } = snapshot;
+          if (
+            typeof requestKey !== "string" ||
+            !/^[a-f0-9]{64}$/.test(requestKey) ||
+            !receipt ||
+            receipt.schema !==
+              "chainlesschain.model-response-cache-receipt/v1" ||
+            receipt.tenantId !== descriptor.tenantId ||
+            !openCacheSourceRun
+          )
+            throw new Error("Invalid or cross-tenant response cache receipt");
+          const opened = openCacheSourceRun(receipt.runId);
+          const source = opened?.runAdapter;
+          if (
+            !(source instanceof EvolutionRunLedgerAdapter) ||
+            !(
+              opened.evidenceAdapter instanceof EvolutionEvidenceArtifactAdapter
+            ) ||
+            source.descriptor.tenantId !== descriptor.tenantId ||
+            source.descriptor.runId !== receipt.runId
+          )
+            throw new Error("Unbound response cache source Run");
+          const loaded = source.load();
+          const event = loaded.events.find(
+            (item) => item.eventId === receipt.eventId,
+          );
+          if (
+            loaded.projection?.status !== "completed" ||
+            event?.data?.evidenceKind !== "model-response-cache" ||
+            event.subjectId !== receipt.artifact?.evidenceId ||
+            event.artifactRef !== receipt.artifact?.manifest?.ref?.ref ||
+            event.payloadDigest !== receipt.artifact?.manifest?.digest
+          )
+            throw new Error(
+              "Cache receipt is not committed in a completed Run",
+            );
+          const resolved =
+            await EvolutionEvidenceArtifactAdapter.prototype.resolve.call(
+              opened.evidenceAdapter,
+              receipt.artifact,
+            );
+          const projection = resolved.bundle.modelProjection;
+          const record = projection.content;
+          if (
+            resolved.verification.verified !== true ||
+            resolved.verification.tenantId !== descriptor.tenantId ||
+            projection.rulesetDigest !== EVOLUTION_PROJECTION_RULESET_DIGEST ||
+            projection.visibility !== "model-visible" ||
+            projection.truncated ||
+            projection.injectionFindings.length !== 0 ||
+            record?.schema !== "chainlesschain.model-response-cache/v1" ||
+            record.requestKey !== requestKey ||
+            record.sourceRunId !== receipt.runId ||
+            record.responseEvent?.type !== "response-complete"
+          )
+            throw new Error(
+              "Cache response projection is not safe or request-bound",
+            );
+          const responseEvent = loaded.events.find(
+            (item) => item.eventId === record.sourceEventId,
+          );
+          if (
+            responseEvent?.data?.evidenceKind !== "response-completed" ||
+            responseEvent.sequence >= event.sequence
+          )
+            throw new Error("Cache receipt lacks its preceding model response");
+          // Reopen after asynchronous attestation checks; no cached Run authority.
+          if (digest(source.load()) !== digest(loaded))
+            throw new Error("Cache source Run changed during verification");
+          return clone(record.responseEvent);
+        }),
+      );
+      await ingest("model-response-cache-replayed", {
+        requestKey: snapshot.requestKey,
+        sourceReceipt: snapshot.receipt,
+        responseEvent: response,
+      });
+      return response;
+    },
     start: () => guardIngress(serialize(() => appendStarted())),
     prepareModelRequest: (request) => {
       if (admissionFailure !== null) return Promise.reject(admissionFailure);

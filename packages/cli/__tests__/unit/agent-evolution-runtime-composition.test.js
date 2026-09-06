@@ -1742,6 +1742,112 @@ describe("Agent evolution runtime production composition", () => {
     120_000,
   );
 
+  it("reopens authenticated response cache evidence and rejects substitutions", async () => {
+    const f = modelFixture();
+    const ingress = f.composition.evolutionIngress;
+    const requestKey = "a".repeat(64);
+    await ingress.prepareModelRequest({
+      messages: [{ role: "user", content: "Contact" }],
+      tools: [],
+    });
+    await ingress.ingestAgentEvent({
+      type: "response-complete",
+      content: "Contact owner@example.com",
+    });
+    const receipt = await ingress.createResponseCacheReceipt({ requestKey });
+    await ingress.complete();
+    const reopen = (id) =>
+      createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId: id,
+        taskId: id,
+      });
+    const replay = reopen("cache-replay-success");
+    const result = await replay.evolutionIngress.replayResponseCache({
+      receipt: JSON.parse(JSON.stringify(receipt)),
+      requestKey,
+    });
+    expect(result.type).toBe("response-complete");
+    expect(result.content).toContain("Contact");
+    expect(result.content).not.toContain("owner@example.com");
+    expect(replay.loadRun().events.at(-1).data.evidenceKind).toBe(
+      "model-response-cache-replayed",
+    );
+    await replay.evolutionIngress.complete();
+    for (const [index, input] of [
+      { receipt, requestKey: "b".repeat(64) },
+      { receipt: { ...receipt, tenantId: "tenant:other" }, requestKey },
+      { receipt: { ...receipt, runId: "missing-run" }, requestKey },
+      { receipt: { ...receipt, eventId: "missing-event" }, requestKey },
+      {
+        receipt: {
+          ...receipt,
+          artifact: {
+            ...receipt.artifact,
+            manifest: {
+              ...receipt.artifact.manifest,
+              digest: `sha256:${"0".repeat(64)}`,
+            },
+          },
+        },
+        requestKey,
+      },
+    ].entries()) {
+      const denied = reopen(`cache-replay-denied-${index}`);
+      await expect(
+        denied.evolutionIngress.replayResponseCache(input),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      await expect(denied.evolutionIngress.complete()).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(denied.loadRun().events).toHaveLength(0);
+    }
+    const revoked = reopen("cache-replay-revoked");
+    f.config.authorities.attestationVerifier.verify.mockRejectedValue(
+      new Error("cache attestation revoked"),
+    );
+    await expect(
+      revoked.evolutionIngress.replayResponseCache({ receipt, requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(revoked.loadRun().events).toHaveLength(0);
+  }, 120000);
+
+  it("refuses cache receipts without model evidence or before source Run completion", async () => {
+    const f = modelFixture();
+    const requestKey = "a".repeat(64);
+    const invalid = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      runId: "cache-no-model",
+      taskId: "cache-no-model",
+    });
+    await invalid.evolutionIngress.ingestAgentEvent({
+      type: "response-complete",
+      content: "not a model response",
+    });
+    await expect(
+      invalid.evolutionIngress.createResponseCacheReceipt({ requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    const ingress = f.composition.evolutionIngress;
+    await ingress.prepareModelRequest({
+      messages: [{ role: "user", content: "hello" }],
+      tools: [],
+    });
+    await ingress.ingestAgentEvent({
+      type: "response-complete",
+      content: "answer",
+    });
+    const receipt = await ingress.createResponseCacheReceipt({ requestKey });
+    const replay = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      runId: "cache-premature",
+      taskId: "cache-premature",
+    });
+    await expect(
+      replay.evolutionIngress.replayResponseCache({ receipt, requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(replay.loadRun().events).toHaveLength(0);
+  }, 120000);
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(
