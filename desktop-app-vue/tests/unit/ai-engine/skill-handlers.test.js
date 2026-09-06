@@ -487,13 +487,72 @@ describe("Skill Handlers", () => {
     it("should generate test stubs for an IPC file", async () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const ipcFile = path.join(projectRoot, "src/main/hooks/hooks-ipc.js");
-      if (fs.existsSync(ipcFile)) {
+      expect(fs.existsSync(ipcFile)).toBe(true);
+      const result = await handler.execute(
+        { input: "--generate src/main/hooks/hooks-ipc.js" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.handlerCount).toBe(13);
+      expect(result.result.testCode).toContain("hooks:list");
+      expect(result.result.testCode).toContain("hooks:cancel-all");
+    });
+
+    it("should discover canonical and injected IPC receivers without suffix lookalikes", async () => {
+      const workspacePath = fs.mkdtempSync(
+        path.join(os.tmpdir(), "api-tester-"),
+      );
+      try {
+        fs.writeFileSync(
+          path.join(workspacePath, "handlers.js"),
+          [
+            'ipcMain.handle("plain:invoke", async (event, value) => {});',
+            'ipcMain.on("plain:event", (_event, payload) => {});',
+            'hostIpcMain.handle("host:invoke", async (event, options) => {});',
+            'hostIpcMain . on("host:event", (_, payload) => {});',
+            'other.handle("ignore:object", (event) => {});',
+            'notipcMain.handle("ignore:suffix", (event) => {});',
+            'nothostIpcMain.on("ignore:host-suffix", (event) => {});',
+          ].join("\n"),
+        );
         const result = await handler.execute(
-          { input: `--generate ${ipcFile}` },
-          { workspacePath: projectRoot },
+          { input: "--discover" },
+          { workspacePath },
         );
         expect(result.success).toBe(true);
-        expect(result.result.testCode).toBeDefined();
+        expect(result.result.totalHandlers).toBe(4);
+        expect(result.result.handlers).toEqual([
+          {
+            channel: "plain:invoke",
+            type: "handle",
+            params: ["value"],
+            file: "handlers.js",
+            line: 1,
+          },
+          {
+            channel: "host:invoke",
+            type: "handle",
+            params: ["options"],
+            file: "handlers.js",
+            line: 3,
+          },
+          {
+            channel: "plain:event",
+            type: "on",
+            params: ["payload"],
+            file: "handlers.js",
+            line: 2,
+          },
+          {
+            channel: "host:event",
+            type: "on",
+            params: ["payload"],
+            file: "handlers.js",
+            line: 4,
+          },
+        ]);
+      } finally {
+        fs.rmSync(workspacePath, { recursive: true, force: true });
       }
     });
   });

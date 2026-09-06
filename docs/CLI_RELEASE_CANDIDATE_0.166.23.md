@@ -79,7 +79,15 @@ Core DB 差异是未带前缀的 SQL 命名参数规范化。Session Core 新增
 
 用户要求恢复误删内容后，主工作区 10,904 个缺失的 Git 跟踪文件已从当时的 `bccd3b8ec2` 恢复，未重置索引或提交历史；后续 `4c5b802cbb` 合并保留。另有 16 份尚未提交的第三轮发布修复未进入该合并：13 份源码、测试、生成数据及二进制文件保留了逐字节 SHA-256 校验备份，3 份根目录文档/工作流改动依据原始修改记录重建。恢复到本地主线前，核实这些目标路径仍与 `c0837107d5` 一致，无已有修改冲突。
 
-本轮仅恢复并保存到本地 Git，不推送、不发布；原候选 CI 和被删除工作区中的本地测试均不能替代恢复后最终发布 SHA 的完整三平台门禁。恢复记录只覆盖已知的 Git 跟踪文件和这 16 份在途修复，不能证明所有未知的未跟踪文件或依赖目录均已找回。
+恢复步骤仅保存到本地 Git，不推送、不发布；后续主线上的恢复提交 `ed064a494e00da1e90a1b0c4862340f5f48a9ba2` 已出现在 GitHub，并触发新的矩阵。原候选 CI 和被删除工作区中的本地测试均不能替代恢复后最终发布 SHA 的完整三平台门禁。恢复记录只覆盖已知的 Git 跟踪文件和这 16 份在途修复，不能证明所有未知的未跟踪文件或依赖目录均已找回。
+
+### 恢复后 Actions 共同根因修复
+
+恢复提交的 [IDE Safety macOS 任务](https://github.com/chainlesschain/chainlesschain/actions/runs/34001157346/job/101400147998) 在运行映射测试之前被 producer digest 校验拒绝：新增原始异常 cause 断言后，`process-execution-broker-platform-sandbox.test.js` 的 SHA-256 已变化，但安全映射仍保留旧值。逐条核对 32 条映射仅发现这一项过期；原测试 ID 和安全断言仍然存在。本次只更新该文件的精确摘要，未放宽校验或删减覆盖。
+
+[Strict Sandbox 三平台](https://github.com/chainlesschain/chainlesschain/actions/runs/34001156965) 的日志均确认同一个摘要错误；[CLI Windows unit 3/8](https://github.com/chainlesschain/chainlesschain/actions/runs/34001157025/job/101400177594) 的唯一失败也来自统一审计读取该映射，其余 3,461 项通过、8 项跳过。IDE 上传缺失制品和矩阵汇总失败是上游提前退出后的结果，不通过忽略上传错误或接受不完整矩阵解决。
+
+修复后的本机验证：映射实际选中的 21 文件、29 项测试通过（另 920 项因精确名称筛选未执行，不计为通过）；安全映射与统一审计两份完整文件 22/22 通过。桌面 `api-tester` 的 4 项定向回归通过（同文件其余 250 项未执行）：识别实际 Hooks 的 13 个 handler、规范及注入 receiver 的 handle/on、拒绝后缀相似的其他标识符，并核对参数和行号。ESLint 零错误，原有 4 条未使用变量警告保留。上述是本地补充证据；新修复 SHA 的完整 GitHub 矩阵尚待验收，不能发布。
 
 ## 旧 GitHub 失败与本轮处理
 
@@ -88,6 +96,6 @@ Core DB 差异是未带前缀的 SQL 命名参数规范化。Session Core 新增
 - `CLI CI` 的版本提示测试混淆了最低兼容版与推荐版：本候选已修正预期并补充两类版本行为覆盖；没有提前改变 IDE 推荐版本。
 - 旧 `CLI CI` 另有 Windows 单元任务失败与 macOS 跨进程恢复失败，需以新候选的完整结果复核，尚不能宣称全部修复。
 - 旧 `CLI Strict Sandbox` Windows worker 异常退出，报告不完整，仍待新候选复核。日志里的 `bad.js` SyntaxError 是负面测试的预期错误输出，不是该 workflow 的源码语法修复项。
-- 用户提供的 [CI Tests / Full Test Suite](https://github.com/chainlesschain/chainlesschain/actions/runs/33935598327/job/101222792540) 有 14,713 通过、1 失败、417 跳过：`api-tester` 扫描器只匹配 `ipcMain.handle`，被测试的 Hooks IPC 已改用 `hostIpcMain.handle`，所以没有生成 `testCode`。此处已定位，尚未修复或重新验收，不与 CLI 子包缺失出口混为一谈。
+- 用户提供的 [CI Tests / Full Test Suite](https://github.com/chainlesschain/chainlesschain/actions/runs/33935598327/job/101222792540) 有 14,713 通过、1 失败、417 跳过：`api-tester` 扫描器只匹配 `ipcMain.handle`，被测试的 Hooks IPC 已改用 `hostIpcMain.handle`，所以没有生成 `testCode`。本次修复显式注入别名的识别，并补充上述定向回归；仍须由新提交的 CI Tests 验收，不与 CLI 子包缺失出口混为一谈。
 
 不得将此候选描述为“全部 GitHub Actions bug 已修复”。最终 CI 结果以精确提交的实际 run/job 记录为准。

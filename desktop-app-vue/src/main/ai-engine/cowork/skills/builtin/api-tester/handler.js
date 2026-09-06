@@ -134,9 +134,11 @@ function discoverHandlers(files, baseDir) {
       continue;
     }
 
-    // ipcMain.handle('channel', (event, arg1, arg2) => { ... })
+    // Hooks IPC uses hostIpcMain for its injected Electron dispatcher. Match
+    // that explicit alias as well as ipcMain, without matching arbitrary
+    // objects or identifiers that merely end in ipcMain.
     const handleRe =
-      /ipcMain\.handle\s*\(\s*['"]([^'"]+)['"],\s*(?:async\s*)?\(([^)]*)\)/g;
+      /\b(?:ipcMain|hostIpcMain)\s*\.\s*handle\s*\(\s*['"]([^'"]+)['"],\s*(?:async\s*)?\(([^)]*)\)/g;
     let m;
     while ((m = handleRe.exec(content)) !== null) {
       const params = m[2]
@@ -152,9 +154,9 @@ function discoverHandlers(files, baseDir) {
       });
     }
 
-    // ipcMain.on('channel', ...)
+    // ipcMain.on('channel', ...) and the same injected host alias.
     const onRe =
-      /ipcMain\.on\s*\(\s*['"]([^'"]+)['"],\s*(?:async\s*)?\(([^)]*)\)/g;
+      /\b(?:ipcMain|hostIpcMain)\s*\.\s*on\s*\(\s*['"]([^'"]+)['"],\s*(?:async\s*)?\(([^)]*)\)/g;
     while ((m = onRe.exec(content)) !== null) {
       const params = m[2]
         .split(",")
