@@ -33,6 +33,7 @@ import {
 } from "./claude-code-bridge.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
+import { isTerminalModelFailure } from "./model-failure-policy.js";
 import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 
 const { RUNTIME_MODE, createRuntimeClaims } = runtimeClaimsContract;
@@ -147,10 +148,14 @@ async function executeViaAPI(task, options) {
     `Working directory: ${cwd}`;
 
   const startTime = Date.now();
+  let timeoutHandle;
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("LLM API timeout")), timeout),
-    );
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new Error("LLM API timeout")),
+        timeout,
+      );
+    });
     const output = await Promise.race([
       chat(
         [
@@ -178,6 +183,7 @@ async function executeViaAPI(task, options) {
       terminalEvidence: [],
     };
   } catch (err) {
+    if (isTerminalModelFailure(err)) throw err;
     return {
       success: false,
       status: "failed",
@@ -189,6 +195,8 @@ async function executeViaAPI(task, options) {
       runtimeClaims: SIMULATED_API_CLAIMS,
       terminalEvidence: [],
     };
+  } finally {
+    clearTimeout(timeoutHandle);
   }
 }
 

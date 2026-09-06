@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 编排入口审计补充：`orchestrate` 已接入签名 deployment loader 与逐任务 composition，API 子任务和外部 CLI 初始 prompt 可消费持久认证投影。后续审计修复 API 路由把治理拒绝降级为备用后端重试、分解器吞掉嵌套终态错误的问题：二者复用 `isTerminalModelFailure`，覆盖演化拒绝、账本持久化失败、effect outcome unknown、预算与取消，保留普通 provider/JSON 失败的原有处理；API 请求结算后清理 deadline timer。Router 与 Orchestrator 测试 73/73 通过，包含 10 个嵌套失败阻止 fallback/spawn/CI 的用例。此批不代表最终入口审计完成：编排成功事件/通知早于 evolution completion 的时序仍待收口，外部 CLI 启动后的自主模型调用也尚未获得逐次投影证明，独立 compact/Cowork/WS 编排入口仍需逐项核验。
+
 Raw trajectory 同时包含用户输入、工具参数、工具结果和模型输出。任何一层都可能携带秘密、个人信息、prompt injection、恶意路径、伪造成功信息或跨租户内容。把这些内容交给 Maintainer/Proposer，会把一次性攻击编译为持久 Skill。
 
 需要明确区分三种表示：受 ACL 与保留策略保护的 raw evidence、经过脱敏/截断/来源标注后允许进入模型的 model-visible projection，以及可进入 Wiki/Skill 编译的 trusted projection。当前 MCP result admission 已限制结构、大小、深度和节点数，但这不能替代秘密/PII 清理、prompt-injection 标注和来源信任策略。每次转换都应记录 source digest、projection digest、规则版本和删改摘要，使模型看到的内容与审计原文可关联但不混存。

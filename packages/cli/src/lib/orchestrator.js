@@ -28,6 +28,7 @@ import { NotificationManager } from "./notifiers/index.js";
 import { createChatFn } from "./cowork-adapter.js";
 import { captureAgentEvolutionRuntimeComposition } from "./evolution/agent-evolution-runtime-composition-brand.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import { isTerminalModelFailure } from "./model-failure-policy.js";
 import {
   assertCLILegacyMutationAllowed,
   cliLegacyRuntimeReadOnly,
@@ -385,7 +386,7 @@ export class Orchestrator extends EventEmitter {
       this._log(`Decomposed into ${subtasks.length} subtask(s)`);
       return subtasks;
     } catch (error) {
-      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (isTerminalModelFailure(error)) throw error;
       // Fallback: treat whole task as single subtask
       const fallback = [
         { id: "sub-1", description: task.description, context: task.context },

@@ -185,6 +185,32 @@ describe("Orchestrator: LLM decomposition", () => {
     expect(bridgeDeps.spawn).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+    { runtimeLedgerPersistence: true },
+    { workflowEffectOutcomeUnknown: true },
+    { code: "CC_SESSION_BUDGET_EXCEEDED" },
+    { name: "AbortError" },
+  ])(
+    "stops before execution when decomposition fails terminally: %j",
+    async (fields) => {
+      const { orch } = buildOrchestrator();
+      orch._chat = vi.fn().mockRejectedValue(
+        new Error("wrapped denial", {
+          cause: Object.assign(new Error("denied"), fields),
+        }),
+      );
+      const completed = vi.fn();
+      orch.on("task:complete", completed);
+      const task = await orch.addTask("sensitive task", { notify: false });
+      expect(task.status).toBe(TASK_STATUS.FAILED);
+      expect(task.subtasks).toEqual([]);
+      expect(bridgeDeps.spawn).not.toHaveBeenCalled();
+      expect(orchDeps.execSync).not.toHaveBeenCalled();
+      expect(completed).not.toHaveBeenCalled();
+    },
+  );
+
   it("falls back to single subtask when LLM returns invalid JSON", async () => {
     const { orch } = buildOrchestrator({ ciPasses: true });
     orch._chat = vi.fn(async () => "not valid json");

@@ -198,6 +198,38 @@ describe("AgentRouter round-robin strategy", () => {
 // ─── Primary strategy ─────────────────────────────────────────────
 
 describe("AgentRouter primary strategy", () => {
+  it.each([
+    { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+    { runtimeLedgerPersistence: true },
+    { workflowEffectOutcomeUnknown: true },
+    { code: "CC_SESSION_BUDGET_EXCEEDED" },
+    { name: "AbortError" },
+  ])(
+    "does not dispatch a fallback after terminal admission failure %j",
+    async (fields) => {
+      const failure = new Error("provider wrapper", {
+        cause: Object.assign(new Error("denied"), fields),
+      });
+      const fallback = makeCliBackend();
+      const router = makeRouter(
+        [makeApiBackend("ollama"), fallback],
+        "primary",
+      );
+      vi.useFakeTimers();
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(failure));
+      try {
+        await expect(
+          router.dispatch([{ id: "t1", description: "task" }]),
+        ).rejects.toBe(failure);
+        expect(fallback._pool.dispatch).not.toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+      }
+    },
+  );
+
   it("dispatches all tasks to first backend", async () => {
     const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
     const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
