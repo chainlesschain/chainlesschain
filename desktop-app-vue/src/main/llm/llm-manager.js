@@ -2488,6 +2488,7 @@ module.exports = {
   getLLMManager,
   _setLLMManagerInstance,
   createLLMManagerReplacement,
+  isGovernedLLMManager: (manager) => modelIngressHosts.has(manager),
   TaskTypes, // 导出任务类型枚举，方便外部使用
   // Category routing exports (v5.0.2.9)
   LLM_CATEGORIES,
