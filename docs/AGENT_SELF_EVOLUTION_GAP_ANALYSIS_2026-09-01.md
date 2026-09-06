@@ -1253,6 +1253,8 @@ Wiki quarantine 批次把隔离从 tombstone/delete 中拆成独立的持久状�
 
 Active Skill quarantine 批次新增独立 `active-skill/quarantine` authority 与库存策略，未将它伪装成普通 rollback disposition。执行时仍必须通过双 Registry/Ledger 读者验证来源 release、当前 active CAS、Wiki/直接 Knowledge lineage 和安全且不同的 LKG，再获取一次性 rollback capability 并真实切换到 LKG；区别在于 durable prepared dependency fence 保留 `quarantine` 类型，并在后续相同 release 激活的 Ledger prepare 阶段以 `CC_EVOLUTION_LEDGER_SOURCE_REVOKED` 失败关闭。authority 结果、独立验证 receipt 和路由键继续绑定原 quarantine disposition，签名 deployment loader 提供独立构造工厂。完整 Skill rollback/quarantine **9/9**、库存 **5/5**、deployment loader **27/27** 通过。仓库内 quarantine 执行面现已覆盖 candidate、active release 与 Wiki；剩余为最终用户撤销确认/结果展示、各隔离域的独立解除审批/恢复策略，以及双设备离线/隐私删除全旅程。
 
+最终用户撤销界面批次在 Desktop Agent 模式增加“知识撤销”抽屉，并以两次独立确认对应 plan/prepare 与 publish 两个不可混淆的阶段。第一次要求用户明确确认“持久计划会立即安装准入 fence”，客户端拒绝调用方提供 `dependencies` 或携带额外/raw 字段的草稿；prepare 后只显示认证 operation/inventory/content digest、作用域和最多 256 项完整有序依赖。第二次必须勾选影响确认并逐字输入 `REVOKE <knowledgeId>` 才能调用 publish；结果必须与已验证计划的 operation/knowledge/content/dependency count 精确一致，才显示 durable envelope receipt。宿主同时移除对 renderer 无需的完整 lifecycle artifact，只返回固定脱敏摘要；宽字段、错计划回执和跳过任一确认均失败关闭。组件交互/边界 **5/5**、AI Chat 页面 **65/65**、真实 CLI 宿主/计划 **5/5** 通过。最终用户撤销确认与结果展示的仓库缺口已关闭；剩余为各 quarantine 域的独立解除审批/恢复策略，以及双设备离线/隐私删除全旅程。
+
 ### 7.5 EVO-P2-5：跨模型 Skill 来源/目标适配与市场治理
 
 WikiSkill 实验的是 source-model-evolved Skill 文件向 target inference model 的直接迁移，不是教师/学生蒸馏。实验既有正迁移，例如 Qwen-3.6-27B 的 ALFWorld Skill 使 Qwen-3.5-9B 达到 `70.2%`、高于其 self-evolved Skill 的 `63.4%`，也有 Spreadsheet 的严重负迁移。因此可以把“强模型 proposer 为小模型起草候选”作为产品假设，但必须在目标模型上重新评测，且不能预设更强 source 必然更可迁移。

@@ -188,7 +188,10 @@ it("durably freezes an authorized plan before effects and recovers it without re
     recoveredPlan: true,
     operationDigest: planned.operationDigest,
     knowledgeId: planned.knowledge.knowledgeId,
+    contentDigest: planned.knowledge.contentDigest,
+    dependencyCount: planned.knowledge.dependencies.length,
   });
+  expect(published).not.toHaveProperty("artifact");
   expect(h.release.readActive().release).toEqual(h.release.baseline);
   expect(h.wiki.adapter.loadWiki().state.patterns["pat-knowledge"].status).toBe(
     "tombstoned",

@@ -45,7 +45,8 @@ export function createGovernedKnowledgeRevocationHost({ sync } = {}) {
         operationDigest,
         envelopeDigest: result.envelope.envelopeDigest,
         knowledgeId: planned.knowledge.knowledgeId,
-        artifact: clone(result.artifact),
+        contentDigest: planned.knowledge.contentDigest,
+        dependencyCount: planned.knowledge.dependencies.length,
       });
     },
   });
