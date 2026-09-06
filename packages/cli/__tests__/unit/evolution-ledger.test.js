@@ -1099,7 +1099,7 @@ describe("EvolutionLedger v2", () => {
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "cc-evolution-ledger-v2-"),
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-evolution-ledger-v2-"),
     );
     eventRoot = path.join(tempRoot, "events");
     authorityRoot = path.join(tempRoot, "authority");

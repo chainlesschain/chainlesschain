@@ -14542,6 +14542,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     process.env.CC_SANDBOX_STRICT = "1";
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
+    const nativeFailure = new Error("job association failed");
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
       applySandbox: (command, args, options) =>
@@ -14549,16 +14550,21 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
           postSpawn: { required: true, mode: "sync" },
         }),
       postSpawnSandbox: () => {
-        throw new Error("job association failed");
+        throw nativeFailure;
       },
     };
 
-    expect(() =>
+    let failure;
+    try {
       executionBroker.spawn("tool", [], {
         origin: "test:sandbox-post-spawn",
         policy: "allow",
-      }),
-    ).toThrow(/Post-spawn sandbox setup failed/);
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure?.message).toMatch(/Post-spawn sandbox setup failed/);
+    expect(failure?.cause).toBe(nativeFailure);
     expect(nativeSpawn).toHaveBeenCalledOnce();
     expect(child.kill).toHaveBeenCalledOnce();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({

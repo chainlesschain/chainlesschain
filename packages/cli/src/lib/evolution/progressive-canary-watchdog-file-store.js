@@ -1,14 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import {
-  lstat,
-  mkdir,
-  open,
-  readFile,
-  readdir,
-  realpath,
-  unlink,
-} from "node:fs/promises";
+import fs from "node:fs";
+import { lstat, mkdir, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
+import { withFileLock } from "../with-file-lock.js";
 
 import {
   createProgressiveCanaryHeartbeatSource,
@@ -39,10 +33,10 @@ async function assertDirectory(path, label) {
   return realpath(path);
 }
 
-async function readRecord(path, label) {
+function readRecord(path, label) {
   let info;
   try {
-    info = await lstat(path);
+    info = fs.lstatSync(path);
   } catch (error) {
     if (error.code === "ENOENT") return null;
     throw error;
@@ -55,7 +49,7 @@ async function readRecord(path, label) {
     info.size > MAX_RECORD_BYTES
   )
     throw new Error(`${label} is not an admissible regular file`);
-  const bytes = await readFile(path);
+  const bytes = fs.readFileSync(path);
   if (bytes.length !== info.size)
     throw new Error(`${label} changed during readback`);
   let value;
@@ -64,31 +58,55 @@ async function readRecord(path, label) {
   } catch (cause) {
     throw new Error(`${label} is not JSON`, { cause });
   }
+  // null denotes an absent file to callers, never a present JSON payload.
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new Error(`${label} must contain an object`);
   return value;
 }
 
-async function writeOnce(path, value, label) {
+function replaceRecord(path, value, label) {
   const encoded = Buffer.from(JSON.stringify(value), "utf8");
   if (encoded.length < 2 || encoded.length > MAX_RECORD_BYTES)
     throw new TypeError(`${label} exceeds its size bound`);
-  let handle;
+  const stagingPath = `${path}.staging-${randomBytes(32).toString("hex")}`;
+  let descriptor;
+  let staged = false;
   try {
-    handle = await open(path, "wx", 0o600);
-    await handle.writeFile(encoded);
-    await handle.sync();
-  } catch (error) {
-    if (error.code !== "EEXIST") throw error;
-    const prior = await readRecord(path, label);
-    if (JSON.stringify(prior) !== encoded.toString("utf8"))
-      throw new Error(`${label} conflicts with an existing record`);
-    return false;
+    descriptor = fs.openSync(stagingPath, "wx", 0o600);
+    staged = true;
+    fs.writeFileSync(descriptor, encoded);
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = undefined;
+    // All writers hold the same strict cross-process lock. Readers only see
+    // the old complete record or the new complete record, never a wx-created
+    // empty/partial reservation. Staging names are outside the reader index.
+    fs.renameSync(stagingPath, path);
+    staged = false;
   } finally {
-    await handle?.close();
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+    if (staged) fs.unlinkSync(stagingPath);
   }
-  const readback = await readRecord(path, label);
+  const readback = readRecord(path, label);
   if (JSON.stringify(readback) !== encoded.toString("utf8"))
     throw new Error(`${label} durable readback differs`);
-  return true;
+}
+
+function writeOnce(path, value, label) {
+  return withFileLock(
+    path,
+    () => {
+      const prior = readRecord(path, label);
+      if (prior !== null) {
+        if (JSON.stringify(prior) !== JSON.stringify(value))
+          throw new Error(`${label} conflicts with an existing record`);
+        return false;
+      }
+      replaceRecord(path, value, label);
+      return true;
+    },
+    { failIfUnavailable: true },
+  );
 }
 
 function heartbeatName(receipt) {
@@ -197,34 +215,24 @@ export async function createProgressiveCanaryWatchdogFileStore({
         acquiredAt: binding.observedAt,
         expiresAt: binding.observedAt + binding.leaseDurationMs,
       };
-      let acquired = false;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        let handle;
-        try {
-          handle = await open(path, "wx", 0o600);
-          await handle.writeFile(JSON.stringify(reservation));
-          await handle.sync();
-          acquired = true;
-          break;
-        } catch (error) {
-          if (error.code !== "EEXIST") throw error;
-          const current = await readRecord(path, "incident reservation");
-          if (
-            current?.planDigest !== planDigest ||
-            current?.incidentDigest !== incidentDigest ||
-            !Number.isSafeInteger(current.expiresAt)
-          )
-            throw new Error("incident reservation binding is invalid");
-          if (current.expiresAt >= binding.observedAt) break;
-          try {
-            await unlink(path);
-          } catch (unlinkError) {
-            if (unlinkError.code !== "ENOENT") throw unlinkError;
+      const acquired = withFileLock(
+        path,
+        () => {
+          const current = readRecord(path, "incident reservation");
+          if (current !== null) {
+            if (
+              current.planDigest !== planDigest ||
+              current.incidentDigest !== incidentDigest ||
+              !Number.isSafeInteger(current.expiresAt)
+            )
+              throw new Error("incident reservation binding is invalid");
+            if (current.expiresAt >= binding.observedAt) return false;
           }
-        } finally {
-          await handle?.close();
-        }
-      }
+          replaceRecord(path, reservation, "incident reservation");
+          return true;
+        },
+        { failIfUnavailable: true },
+      );
       return Object.freeze({
         authenticated: true,
         durable: true,

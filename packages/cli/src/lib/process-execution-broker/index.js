@@ -3992,6 +3992,7 @@ class ProcessExecutionBroker extends EventEmitter {
           "post_spawn_failed",
           `Post-spawn sandbox setup failed: ${error.message}`,
         );
+        failure.cause = error;
         failure.processTerminationRequested = true;
         throw failure;
       }

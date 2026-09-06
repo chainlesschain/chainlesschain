@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one-use-bound control ports for signed CLI/App Server deployment modules.
   Review batch completion uses the v2 receipt contract supported by the updated
   JetBrains source; installed IDE extensions do not update automatically.
+- **Atomic watchdog reservations**: serialize first acquisition and expired
+  takeover across processes, publish only fully written records, and preserve
+  prior reservations when staging fails.
+- **Windows sandbox identity publication**: flush and close the helper's
+  identity record before a non-overwriting atomic move exposes it to the
+  broker. Late helper errors cannot overwrite an already-published identity;
+  post-spawn failures retain their original cause and remain fail-closed.
 - **Release and deployment boundary**: require the exact candidate SHA to pass
   both complete three-platform CLI gates, including independent Core DB and
   Session Core tests. Workbench remains unavailable without a real trusted

@@ -24,7 +24,9 @@ const fixtureDirectoryPrefixes = [
 
 afterEach(() => {
   while (temporaryDirectories.length) {
-    const temporaryDirectory = fs.realpathSync(temporaryDirectories.pop());
+    const temporaryDirectory = fs.realpathSync.native(
+      temporaryDirectories.pop(),
+    );
     if (
       path.dirname(temporaryDirectory) !== fixtureTempRoot ||
       !fixtureDirectoryPrefixes.some((prefix) =>
@@ -2905,7 +2907,9 @@ describe("native installer transaction contracts", () => {
   it.runIf(process.platform === "win32")(
     "PowerShell installer quarantines a legacy GUID stale lock before recovery",
     () => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ps-stale-lock-"));
+      const root = fs.mkdtempSync(
+        path.join(fixtureTempRoot, "cc-ps-stale-lock-"),
+      );
       temporaryDirectories.push(root);
       const targetDir = path.join(root, "bin");
       fs.mkdirSync(targetDir, { recursive: true });
@@ -2948,7 +2952,9 @@ describe("native installer transaction contracts", () => {
   it.runIf(process.platform === "win32")(
     "PowerShell installer rolls the primary binary back when alias commit fails",
     () => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ps-install-tx-"));
+      const root = fs.mkdtempSync(
+        path.join(fixtureTempRoot, "cc-ps-install-tx-"),
+      );
       temporaryDirectories.push(root);
       const fixtureDir = path.join(root, "fixtures");
       const targetDir = path.join(root, "bin");
@@ -3040,7 +3046,7 @@ describe("native installer transaction contracts", () => {
     "PowerShell installer recovers a hard crash after %s with a %s decision",
     (phase, decision) => {
       const root = fs.mkdtempSync(
-        path.join(os.tmpdir(), "cc-ps-install-crash-"),
+        path.join(fixtureTempRoot, "cc-ps-install-crash-"),
       );
       temporaryDirectories.push(root);
       const fixtureDir = path.join(root, "fixtures");
@@ -3213,7 +3219,7 @@ describe("native installer transaction contracts", () => {
     "PowerShell installer recovers a sidecar %s journal with a %s decision",
     (operation, decision) => {
       const root = fs.mkdtempSync(
-        path.join(os.tmpdir(), `cc-ps-sidecar-${operation}-${decision}-`),
+        path.join(fixtureTempRoot, `cc-ps-sidecar-${operation}-${decision}-`),
       );
       temporaryDirectories.push(root);
       const targetDir = path.join(root, "bin");
@@ -3357,7 +3363,7 @@ describe("native installer transaction contracts", () => {
     "PowerShell fresh install quarantines stale backup and lineage generations",
     () => {
       const root = fs.mkdtempSync(
-        path.join(os.tmpdir(), "cc-ps-install-fresh-"),
+        path.join(fixtureTempRoot, "cc-ps-install-fresh-"),
       );
       temporaryDirectories.push(root);
       const fixtureDir = path.join(root, "fixtures");

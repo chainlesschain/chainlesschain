@@ -520,7 +520,7 @@ jobs:
         env:
           CC_SANDBOX_LIVE: "1"
         run: >-
-          npx vitest run --reporter=json
+          npx vitest run --reporter=default --reporter=json
           --outputFile=strict-sandbox-result.json
           __tests__/integration/process-broker-platform-sandbox-live.test.js
           __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js

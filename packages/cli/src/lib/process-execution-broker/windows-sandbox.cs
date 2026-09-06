@@ -3172,6 +3172,37 @@ namespace ChainlessChain.WindowsSandbox
             return 0;
         }
 
+        public static void PublishTargetIdentity(string identityPath, string identity)
+        {
+            // Never expose a newly created empty identity file to the broker.
+            // Its full metadata/content check remains strict: publish only after
+            // the writer has flushed and closed, using a same-directory move
+            // that refuses to overwrite an existing identity (including errors
+            // reported after a successful launch).
+            string pendingPath = identityPath + ".pending-" + Guid.NewGuid().ToString("N");
+            bool ownsPending = false;
+            try
+            {
+                byte[] bytes = new UTF8Encoding(false).GetBytes(identity);
+                using (FileStream stream = new FileStream(
+                    pendingPath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None))
+                {
+                    ownsPending = true;
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush(true);
+                }
+                File.Move(pendingPath, identityPath);
+                ownsPending = false;
+            }
+            finally
+            {
+                if (ownsPending) File.Delete(pendingPath);
+            }
+        }
+
         public static int Run(
             string application,
             string[] arguments,
@@ -3632,17 +3663,7 @@ namespace ChainlessChain.WindowsSandbox
                         attestedAppContainerSid,
                         "capabilityCount",
                         useAppContainer ? 0 : -1);
-                    using (FileStream stream = new FileStream(
-                        identityPath,
-                        FileMode.CreateNew,
-                        FileAccess.Write,
-                        FileShare.Read))
-                    using (StreamWriter writer = new StreamWriter(
-                        stream,
-                        new UTF8Encoding(false)))
-                    {
-                        writer.Write(identity);
-                    }
+                    PublishTargetIdentity(identityPath, identity);
                 }
 
                 UInt32 targetWait = WaitForSingleObject(
@@ -4153,10 +4174,7 @@ namespace ChainlessChain.WindowsSandbox
                             System.Diagnostics.Process
                                 .GetCurrentProcess()
                                 .Id);
-                        File.WriteAllText(
-                            spec.identityPath,
-                            failure,
-                            new UTF8Encoding(false));
+                        Native.PublishTargetIdentity(spec.identityPath, failure);
                     }
                     catch
                     {
