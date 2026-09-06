@@ -587,6 +587,8 @@ status: draft
 
 ### 5.4 EVO-P0-4：Raw、入模投影与 Skill 编译安全边界
 
+2026-09-06 同实例证据失败锁定：Agent ingress 的 serialized queue 从仅锁定 model-input 失败扩展到所有证据/生命周期操作；失败在释放队列前保留首个 ingress error，输入或事件快照无法形成 JSON 证据时也锁定。已排队 complete、随后 start/user/event/model/complete 均不能越过失败，即使底层 source authority 恢复也不在原实例内自动重试。真实 composition 两条定向测试 2/2 覆盖工具证据 authority 拒绝与 malformed 快照、并发完成拒绝及零 provider 请求；Ledger/Wiki/projector 联合 110/110 通过。此锁定是当前 ingress 实例的运行保护，不自称持久故障标记、跨进程恢复或重新授权流程已经完成，也不撤销失败前已确认的耐久事实。
+
 2026-09-06 子 Agent 演化失败传播补强：新增有界 cause-chain 演化失败识别，子 Agent direct/worktree catch 不再将证据拒绝转换为普通失败摘要；前台 spawn、后台 settle/drain、隔离 Skill 与父 core 工具 catch 均向上保留该不可继续执行错误，后台仍使用 settled promise 防止未处理 rejection。普通取消仍沿既有 cutoff 语义处理，不把所有错误都强制改成同一类别。真实父 core→spawn_sub_agent→真实子 core→响应证据 authority 拒绝的组合测试 1/1 通过（42.02s），恰好父、子各一次 provider 调用、无父第三轮、Run 不 completed；前台/后台包装 cause 拒绝及 Agent core/子上下文/用量转发联合 219/219 回归通过。该证据不覆盖外部 CLI 黑箱内部 provider，也不代表所有 worktree/隔离 Skill 的生产故障注入已完成。
 
 2026-09-06 compact 后置证据拒绝验收：真实命令组合测试在 shadow/canonical_default 两模式注入 response-completed source authority 拒绝，故障发生于 provider 已返回及 100/20 token 用量已经持久结算之后。两条拒绝用例 2/2 通过（57.72s），确认不是零调用的前置拒绝：仍恰好一次 provider 调用、started/token_usage 同一 callId，认证会话事件中只有原 fixture 的 compact 而无新压缩提交，重读原消息完全不变，命令 exitCode=1、演化 Run 不 completed。该测试补充“用量已结算但响应证据不被接受”边界；不将其扩称所有文件写入阶段、宿主崩溃或外部 authority 故障矩阵已经验收。

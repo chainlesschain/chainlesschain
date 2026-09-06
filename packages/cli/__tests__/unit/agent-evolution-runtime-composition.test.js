@@ -1516,6 +1516,53 @@ describe("Agent evolution runtime production composition", () => {
     expect(f.composition.loadRun().projection.status).not.toBe("completed");
   });
 
+  it.each([false, true])(
+    "latches non-model evidence failure before queued completion (malformed=%s)",
+    async (malformed) => {
+      const f = modelFixture();
+      const ingress = f.composition.evolutionIngress;
+      await ingress.start();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      if (!malformed)
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+          new Error("event storage admission denied"),
+        );
+      const failed = ingress.ingestAgentEvent({
+        type: "tool-result",
+        tool: "read_file",
+        tool_use_id: "read-1",
+        result: malformed ? undefined : { content: "result" },
+      });
+      const completion = ingress.complete();
+      const results = await Promise.allSettled([failed, completion]);
+      expect(results.map((result) => result.status)).toEqual([
+        "rejected",
+        "rejected",
+      ]);
+      const error = results[0].reason;
+      expect(error.code).toBe("CC_AGENT_EVOLUTION_INGRESS_FAILED");
+      expect(results[1].reason).toBe(error);
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(issue);
+      await expect(ingress.start()).rejects.toBe(error);
+      await expect(ingress.ingestUserPrompt({ content: "retry" })).rejects.toBe(
+        error,
+      );
+      await expect(ingress.ingestAgentEvent({ type: "progress" })).rejects.toBe(
+        error,
+      );
+      await expect(
+        ingress.prepareModelRequest({
+          messages: [{ role: "user", content: "retry" }],
+          tools: [],
+        }),
+      ).rejects.toBe(error);
+      await expect(ingress.complete()).rejects.toBe(error);
+      expect(f.transport).not.toHaveBeenCalled();
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+  );
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({

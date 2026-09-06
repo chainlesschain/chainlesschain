@@ -145,24 +145,33 @@ export function createAgentEvolutionIngress({
   );
   const descriptor = runAdapter.descriptor;
   let tail = Promise.resolve();
-  let modelAdmissionFailure = null;
+  let admissionFailure = null;
 
-  const serialize = (operation, latchModelFailure = false) => {
-    const invoke = latchModelFailure
-      ? async () => {
-          try {
-            return await operation();
-          } catch (cause) {
-            // Latch inside the serialized operation, before releasing the queue.
-            // A complete() already queued by another caller cannot win this race.
-            modelAdmissionFailure = ingressFailure(cause);
-            throw modelAdmissionFailure;
-          }
-        }
-      : operation;
+  const serialize = (operation) => {
+    const invoke = async () => {
+      if (admissionFailure !== null) throw admissionFailure;
+      try {
+        return await operation();
+      } catch (cause) {
+        // Every evidence boundary is fail-stop, not just model admission.
+        // Latch before releasing queued requests or completion operations.
+        admissionFailure ??= ingressFailure(cause);
+        throw admissionFailure;
+      }
+    };
     const pending = tail.then(invoke, invoke);
     tail = pending.catch(() => undefined);
     return pending;
+  };
+
+  const cloneEvidence = (value) => {
+    if (admissionFailure !== null) throw admissionFailure;
+    try {
+      return clone(value);
+    } catch (cause) {
+      admissionFailure = ingressFailure(cause);
+      throw admissionFailure;
+    }
   };
 
   const currentTimestamp = () => {
@@ -193,7 +202,7 @@ export function createAgentEvolutionIngress({
   const ingest = (kind, evidence, options = {}, modelRequest = null) =>
     guardIngress(
       serialize(async () => {
-        if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
+        if (admissionFailure !== null) throw admissionFailure;
         const projection = appendStarted();
         if (projection.status === "completed") {
           throw new Error(
@@ -284,12 +293,12 @@ export function createAgentEvolutionIngress({
         ) {
           throw new Error("Agent model projection Run frontier changed");
         }
-        if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
+        if (admissionFailure !== null) throw admissionFailure;
         return buildAgentModelRequest(
           modelRequest,
           resolved.bundle.modelProjection,
         );
-      }, modelRequest !== null),
+      }),
     );
 
   const ingress = Object.freeze({
@@ -298,20 +307,20 @@ export function createAgentEvolutionIngress({
     runId: descriptor.runId,
     start: () => guardIngress(serialize(() => appendStarted())),
     prepareModelRequest: (request) => {
-      if (modelAdmissionFailure !== null)
-        return Promise.reject(modelAdmissionFailure);
+      if (admissionFailure !== null) return Promise.reject(admissionFailure);
       let snapshot;
       try {
         snapshot = snapshotAgentModelRequest(request);
       } catch (error) {
-        modelAdmissionFailure = ingressFailure(error);
-        return Promise.reject(modelAdmissionFailure);
+        admissionFailure = ingressFailure(error);
+        return Promise.reject(admissionFailure);
       }
       return ingest("model-input", snapshot, {}, snapshot);
     },
-    ingestUserPrompt: (input, options) =>
-      ingest("user-prompt", { input: clone(input) }, options),
-    ingestAgentEvent: (event, options) => {
+    ingestUserPrompt: async (input, options) =>
+      ingest("user-prompt", { input: cloneEvidence(input) }, options),
+    ingestAgentEvent: async (event, options) => {
+      if (admissionFailure !== null) throw admissionFailure;
       const baseKind = CORE_EVENT_KINDS.get(event?.type);
       if (!baseKind) {
         return Promise.resolve(Object.freeze({ ignored: true }));
@@ -321,12 +330,12 @@ export function createAgentEvolutionIngress({
         Boolean(event.error || event.result?.error || event.result?.isError)
           ? "tool-failed"
           : baseKind;
-      return ingest(kind, { event: clone(event) }, options);
+      return ingest(kind, { event: cloneEvidence(event) }, options);
     },
     complete: (options = {}) =>
       guardIngress(
         serialize(async () => {
-          if (modelAdmissionFailure !== null) throw modelAdmissionFailure;
+          if (admissionFailure !== null) throw admissionFailure;
           const loaded = runAdapter.load();
           let projection;
           if (loaded.projection?.status === "completed") {
