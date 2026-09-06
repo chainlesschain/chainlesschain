@@ -144,30 +144,68 @@ export function buildGovernedKnowledgeDependencyInventory({
     fail("Wiki run manifest is incomplete for this tenant ledger");
   }
   const sourceRef = governedKnowledgeSourceRef({ tenantId, knowledgeId });
+  const proofs = new Map();
   const wikiProof = (candidate) => {
     if (candidate.derivationMode !== "wiki") return null;
     const run = revisionOwners.get(candidate.wikiRevision);
     if (!run) fail("Wiki-derived artifact references an unconfigured revision");
-    return inventories.get(run).reader.readKnowledgeProvenance({
-      tenantId,
-      revisionId: candidate.wikiRevision,
-      knowledgeId,
-      contentDigest,
-    });
+    if (!proofs.has(candidate.wikiRevision)) {
+      proofs.set(
+        candidate.wikiRevision,
+        inventories.get(run).reader.readKnowledgeProvenance({
+          tenantId,
+          revisionId: candidate.wikiRevision,
+          knowledgeId,
+          contentDigest,
+        }),
+      );
+    }
+    return proofs.get(candidate.wikiRevision);
   };
-  const depends = (candidate) =>
-    candidate.sourceEvidenceRefs.some(
-      (entry) => entry.ref === sourceRef && entry.digest === contentDigest,
-    ) || (wikiProof(candidate)?.affectedPatternIds.length ?? 0) > 0;
+  const depends = (candidate) => {
+    const proof = wikiProof(candidate);
+    return (
+      candidate.sourceEvidenceRefs.some(
+        (entry) => entry.ref === sourceRef && entry.digest === contentDigest,
+      ) || (proof?.affectedPatternIds.length ?? 0) > 0
+    );
+  };
+  const unsafe = (candidate) => {
+    const proof = wikiProof(candidate);
+    return (
+      candidate.sourceEvidenceRefs.some(
+        (entry) => entry.ref === sourceRef || entry.digest === contentDigest,
+      ) || (proof?.unsafePatternIds.length ?? 0) > 0
+    );
+  };
   const candidateItems = candidates.readInventory();
   const releaseItems = releases.readInventory();
-  const activeDependencies = releaseItems.active
-    .filter(({ release }) => depends(release.candidate))
-    .map(({ release }) => ({
-      kind: "active-skill",
-      digest: release.releaseDigest,
-      disposition: "rollback-active",
-    }));
+  const releasesByDigest = new Map(
+    releaseItems.releases.map((release) => [release.releaseDigest, release]),
+  );
+  const affectedActive = releaseItems.active.filter(({ release }) =>
+    depends(release.candidate),
+  );
+  for (const { state, release } of affectedActive) {
+    const lastKnownGood = releasesByDigest.get(
+      state.lastKnownGoodReleaseDigest,
+    );
+    if (
+      !lastKnownGood ||
+      lastKnownGood.releaseDigest === release.releaseDigest ||
+      lastKnownGood.skillName !== release.skillName ||
+      unsafe(lastKnownGood.candidate)
+    ) {
+      fail(
+        "affected active Skill has no safe distinct last-known-good release",
+      );
+    }
+  }
+  const activeDependencies = affectedActive.map(({ release }) => ({
+    kind: "active-skill",
+    digest: release.releaseDigest,
+    disposition: "rollback-active",
+  }));
   const candidateDependencies = candidateItems
     .filter(depends)
     .map((candidate) => ({
@@ -206,6 +244,28 @@ export function buildGovernedKnowledgeDependencyInventory({
   ];
   if (dependencies.length < 1 || dependencies.length > 256) {
     fail("dependency result is empty or exceeds the governed record bound");
+  }
+  const finalCandidates = candidates.readInventory();
+  const finalReleases = releases.readInventory();
+  if (
+    canonical(candidateItems.map(({ candidateId }) => candidateId)) !==
+      canonical(finalCandidates.map(({ candidateId }) => candidateId)) ||
+    canonical(
+      releaseItems.releases.map(({ releaseDigest }) => releaseDigest),
+    ) !==
+      canonical(
+        finalReleases.releases.map(({ releaseDigest }) => releaseDigest),
+      ) ||
+    canonical(releaseItems.active.map(({ state }) => state.stateDigest)) !==
+      canonical(finalReleases.active.map(({ state }) => state.stateDigest))
+  ) {
+    fail("Candidate or Release inventory changed while planning");
+  }
+  for (const [run, { inventory, reader }] of inventories) {
+    const finalInventory = reader.readInventory();
+    if (canonical(inventory) !== canonical(finalInventory)) {
+      fail(`Wiki inventory changed while planning run ${run}`);
+    }
   }
   const core = {
     schema: GOVERNED_KNOWLEDGE_DEPENDENCY_INVENTORY_SCHEMA,

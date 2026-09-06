@@ -61,3 +61,17 @@ it("fails closed when a discovered tenant Wiki run is omitted", async () => {
     }),
   ).toThrow(/manifest is incomplete/u);
 });
+
+it("rejects rollback planning when the last-known-good still has unsafe Wiki lineage", async () => {
+  const h = await setup({ unsafeWikiBaseline: true });
+  expect(() =>
+    buildGovernedKnowledgeDependencyInventory({
+      tenantId: h.knowledge.tenantId,
+      knowledgeId: h.knowledge.knowledgeId,
+      contentDigest: h.knowledge.contentDigest,
+      candidateRegistry: h.release.candidateRegistry,
+      releaseRegistry: h.release.pruningRollbackOptions.releaseRegistry,
+      wikiAdapters: [h.wiki.adapter],
+    }),
+  ).toThrow(/no safe distinct last-known-good/u);
+});
