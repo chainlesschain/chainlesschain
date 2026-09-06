@@ -676,7 +676,18 @@ function registerCoreHandlers(ctx) {
             }
           }
           // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
-          else if (provider === "openai" || provider === "deepseek") {
+          else if (
+            governed &&
+            (provider === "openai" || provider === "deepseek")
+          ) {
+            response = await managerRef.current.chatWithGovernedFunctions(
+              enhancedMessages,
+              mcpFunctions,
+              mcpExecutor,
+              options,
+            );
+            usedMCPTools = true;
+          } else if (provider === "openai" || provider === "deepseek") {
             logger.info(
               "[LLM IPC] 使用 OpenAI 兼容 Function Calling，MCP 工具数:",
               mcpFunctions.length,

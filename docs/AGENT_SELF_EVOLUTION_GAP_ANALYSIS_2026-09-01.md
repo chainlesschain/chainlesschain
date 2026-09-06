@@ -1675,6 +1675,10 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 后续真实 `llm:chat` 上层审计发现 IPC 在 manager 之前另有 legacy cache get/compress、之后另有 plaintext cache set，且 Multi-Agent/RAG/MCP 等 catch 会吞掉下层治理拒绝。现以 manager 私有 host 绑定导出的只读判定选择路径：受治理请求不再经过 IPC legacy cache/压缩，enableCache/enableCompression 转成 manager skip 选项，交由已验收的单 Run 凭据链统一执行；返回 UI 的 wasCached/wasCompressed/compressionRatio/tokensSaved 取实际 manager 结果。session、Agent、cache、selector、MCP、RAG、compression 与工具执行 catch 对 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 保持同一错误并终止；顶层遇到该错误不再调用可能发起模型请求的 ErrorMonitor AI 诊断。真实 handlers 的定向替身负测覆盖 MCP 首次模型请求、MCP executor、RAG 和 Agent 拒绝均无备用模型调用/AI 诊断，以及旧缓存明确返回 hit 也不能绕过受治理 manager，IPC+manager 共 73/73 通过。进一步在既有 native manager/client+真实 SQLite+ArtifactStore/Ledger/witness 组合中实际注册 core IPC handler，连续两次相同 IPC 请求只有一次额外 provider 调用，第二次返回已脱敏且 wasCached=true 的凭据回放、当前 Run completed；组合 1/1 通过（108.85 秒；筛选排除 143 项）。provider HTTP 边界仍为确定性替身，不称为真实网络或 Electron 窗口启动证明。仍缺完整 Electron bootstrap、MCP 工具循环全程单 Run/准入、其他原生入模路径、跨进程与全域删除验收，P0-4 状态不变。
 
+后续 MCP 非流式工具循环批次将受治理的 OpenAI/DeepSeek IPC 分支接入 `chatWithGovernedFunctions()`：整个模型→工具→模型循环使用同一个 Run，工具执行前后分别持久化 requested/completed 证据，最终助手结果之后才完成 Run 并发布成功事件。整个工具批次先校验已注册名称、唯一调用 ID 和对象参数，再执行任何工具；限制循环次数和批次大小，治理拒绝不降级重试。每轮实际模型响应计入原 TokenTracker，后续模型或工具执行前检查暂停状态，保留 MCP 执行器原安全策略检查；移除执行器明文参数日志。该路径不使用 legacy 明文缓存。验证范围为真实 core IPC handler、manager、OpenAI client、MCP executor 与原生 ArtifactStore/Ledger/witness 组合；HTTP、MCP 远端和签发 authority 使用确定性测试边界，不代表真实服务或生产凭据验收。DeepSeek 路由共用兼容实现，尚未独立进行服务验收；流式工具、完整 Electron bootstrap、其他原生入模路径、跨进程缓存及全域删除仍未据此关闭。P0-4 保持部分完成。
+
+本批最终验证：原生 IPC MCP 组合覆盖成功、requested 证据拒绝、completed 证据拒绝、未注册工具、重复 ID、非对象参数、预算暂停和循环上限，8/8 通过（118.54 秒；144 项因定向筛选未运行）；断言单 Run、工具执行次数、TokenTracker 计数、终止后无成功事件及出站数据脱敏。桌面 IPC/manager/MCP executor 回归 99/99 通过；所改代码 Prettier 与 `git diff --check` 通过，ESLint 0 错误、8 个未使用变量警告。此次仅本地提交，不推送、不发布，整项统计不变。
+
 ## 14. 全量任务完成情况（截至 2026-09-06）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

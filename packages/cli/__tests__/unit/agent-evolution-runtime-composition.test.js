@@ -2235,6 +2235,194 @@ describe("Agent evolution runtime production composition", () => {
     }
   }, 120000);
 
+  it.each([
+    "success",
+    "tool-requested",
+    "tool-completed",
+    "unknown-tool",
+    "duplicate-id",
+    "bad-arguments",
+    "budget",
+    "limit",
+  ])(
+    "governs actual IPC MCP workflow in one Run (%s)",
+    async (mode) => {
+      const require = createRequire(import.meta.url);
+      const native =
+        await require("../helpers/native-evolution-composition.cjs")();
+      const {
+        LLMManager,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+      const {
+        OpenAIClient,
+      } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+      const {
+        bindDesktopModelIngressClient,
+      } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+      const {
+        registerCoreHandlers,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-ipc-core.js");
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === mode) throw new Error("tool evidence denied");
+          return issue(request);
+        },
+      );
+      const compositions = [];
+      const host = createDesktopModelIngressHost(async ({ runId }) => {
+        const composition = native.createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        compositions.push(composition);
+        return composition;
+      });
+      const client = bindDesktopModelIngressClient(
+        new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+        host,
+      );
+      const bodies = [];
+      const wire = vi.fn(async (_url, body) => {
+        bodies.push(body);
+        const tool = bodies.length === 1 || mode === "limit";
+        return {
+          data: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: tool ? null : "done",
+                  ...(tool
+                    ? {
+                        tool_calls: Array.from(
+                          { length: mode === "duplicate-id" ? 2 : 1 },
+                          () => ({
+                            type: "function",
+                            id: `call-${bodies.length}`,
+                            function: {
+                              name:
+                                mode === "unknown-tool"
+                                  ? "unregistered"
+                                  : "mcp_test_lookup",
+                              arguments: mode === "bad-arguments" ? "[]" : "{}",
+                            },
+                          }),
+                        ),
+                      }
+                    : {}),
+                },
+                finish_reason: tool ? "tool_calls" : "stop",
+              },
+            ],
+            model: "test-model",
+            usage: { total_tokens: 4 },
+          },
+        };
+      });
+      client.client.post = wire;
+      const manager = new LLMManager(
+        {
+          provider: "openai",
+          model: "test-model",
+          enableStateBus: false,
+          enableManusOptimizations: false,
+        },
+        host,
+      );
+      manager.client = client;
+      manager.isInitialized = true;
+      const usage = vi.fn(async () => {
+        if (mode === "budget") manager.paused = true;
+      });
+      manager.tokenTracker = { recordUsage: usage };
+      const published = vi.fn();
+      manager.on("chat-completed", published);
+      const policy = vi.fn(async () => {});
+      const execute = vi.fn(async () => ({
+        content: [{ type: "text", text: "owner@example.com" }],
+      }));
+      const handlers = new Map();
+      registerCoreHandlers({
+        ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+        managerRef: { current: manager },
+        mcpClientManager: {
+          getConnectedServers: () => ["test"],
+          callTool: execute,
+        },
+        mcpToolAdapter: {
+          getMCPTools: () => [
+            { toolId: "mcp_test_lookup", serverName: "test" },
+          ],
+          getToolInfo: () => ({
+            serverName: "test",
+            originalToolName: "lookup",
+          }),
+          toolManager: {
+            getTool: async () => ({
+              name: "mcp_test_lookup",
+              parameters_schema: { type: "object", properties: {} },
+            }),
+          },
+          securityPolicy: { validateToolExecution: policy },
+        },
+      });
+      const pending = handlers.get("llm:chat")(
+        {},
+        {
+          messages: [{ role: "user", content: "Look up owner@example.com" }],
+          maxToolIterations: 1,
+          enableRAG: false,
+          enableMultiAgent: false,
+          enableSessionTracking: false,
+          enableManusOptimization: false,
+          enableErrorPrecheck: false,
+        },
+      );
+      if (mode === "success") {
+        await expect(pending).resolves.toMatchObject({
+          content: "done",
+          usedMCPTools: true,
+        });
+        expect(published).toHaveBeenCalledOnce();
+        expect(compositions[0].loadRun().projection.status).toBe("completed");
+        expect(
+          compositions[0]
+            .loadRun()
+            .events.map((event) => event.data?.evidenceKind)
+            .filter(Boolean),
+        ).toEqual([
+          "user-prompt",
+          "model-input",
+          "response-completed",
+          "tool-requested",
+          "tool-completed",
+          "model-input",
+          "response-completed",
+        ]);
+      } else {
+        await expect(pending).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        expect(published).not.toHaveBeenCalled();
+        expect(compositions[0].loadRun().projection.status).toBe("running");
+      }
+      expect(compositions).toHaveLength(1);
+      expect(execute).toHaveBeenCalledTimes(
+        ["success", "tool-completed", "limit"].includes(mode) ? 1 : 0,
+      );
+      expect(policy).toHaveBeenCalledTimes(execute.mock.calls.length);
+      expect(usage).toHaveBeenCalledTimes(wire.mock.calls.length);
+      expect(wire).toHaveBeenCalledTimes(
+        ["success", "limit"].includes(mode) ? 2 : 1,
+      );
+      expect(JSON.stringify(bodies)).not.toContain("owner@example.com");
+    },
+    120000,
+  );
+
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(
       path.join(

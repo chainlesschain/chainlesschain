@@ -17,6 +17,7 @@ const {
   isDesktopModelIngressHost,
   bindDesktopModelIngressClient,
   runDesktopCachedModelWorkflow,
+  runDesktopFunctionWorkflow,
 } = require("../evolution/desktop-model-ingress");
 const modelIngressHosts = new WeakMap();
 const budgetListeners = new WeakMap();
@@ -633,6 +634,59 @@ class LLMManager extends EventEmitter {
     );
     if (publication) this.emit("chat-completed", publication);
     return result;
+  }
+
+  async chatWithGovernedFunctions(messages, functions, executor, options = {}) {
+    if (!this.isInitialized || this.paused)
+      throw new Error("LLM service is unavailable or paused");
+    const tracker = this.tokenTracker;
+    const provider = this.provider;
+    const configuredModel = this.config.model;
+    const result = await runDesktopFunctionWorkflow(
+      this.client,
+      messages,
+      functions,
+      executor,
+      options,
+      {
+        beforeStep: () => {
+          if (!this.isInitialized || this.paused)
+            throw new Error("LLM service is unavailable or paused");
+        },
+        onModelResult: async (response) => {
+          if (!tracker) return;
+          try {
+            await tracker.recordUsage({
+              conversationId: options.conversationId,
+              messageId: options.messageId,
+              provider,
+              model: response.model || configuredModel || "unknown",
+              inputTokens: response.usage?.prompt_tokens || 0,
+              outputTokens: response.usage?.completion_tokens || 0,
+              cachedTokens: response.usage?.cached_tokens || 0,
+              wasCached: false,
+              wasCompressed: false,
+              compressionRatio: 1,
+              endpoint: options.endpoint,
+              userId: options.userId || "default",
+            });
+          } catch (error) {
+            if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+            logger.error("[LLMManager] Token tracking failed:", error);
+          }
+        },
+      },
+    );
+    this.emit("chat-completed", { messages, result });
+    return {
+      text: result.message?.content ?? result.text,
+      message: result.message,
+      model: result.model,
+      usage: result.usage,
+      tokens: result.tokens || result.usage?.total_tokens || 0,
+      timestamp: Date.now(),
+      wasCached: false,
+    };
   }
 
   async _chatWithMessages(

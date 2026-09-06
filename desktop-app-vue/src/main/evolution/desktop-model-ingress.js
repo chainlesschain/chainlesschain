@@ -260,6 +260,113 @@ async function runDesktopToolExecution(client, toolCall, execute) {
   return result;
 }
 
+async function runDesktopFunctionWorkflow(
+  client,
+  messages,
+  functions,
+  executor,
+  options = {},
+  hooks = {},
+) {
+  try {
+    if (!clients.has(client) || typeof executor?.execute !== "function")
+      throw new Error(
+        "Governed function workflow requires a bound client and executor",
+      );
+    const captured = JSON.parse(JSON.stringify({ messages, functions }));
+    const names = new Set(captured.functions.map((fn) => fn.name));
+    if (
+      names.size !== captured.functions.length ||
+      [...names].some((name) => typeof name !== "string" || !name)
+    )
+      throw new Error("Function definitions must have unique names");
+    const limit = options.maxToolIterations ?? 8;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 16)
+      throw new Error("Function iteration limit must be between 1 and 16");
+    const callOptions = {
+      ...options,
+      tools: captured.functions.map((fn) => ({
+        type: "function",
+        function: fn,
+      })),
+    };
+    const execute = executor.execute.bind(executor);
+    return await runDesktopModelWorkflow(client, captured, async () => {
+      let history = captured.messages;
+      const usedIds = new Set();
+      for (let iteration = 0; ; iteration++) {
+        await hooks.beforeStep?.();
+        if (options.signal?.aborted)
+          throw new Error("Function workflow aborted");
+        const result = await client.chat(history, callOptions);
+        await hooks.onModelResult?.(result);
+        if (options.signal?.aborted)
+          throw new Error("Function workflow aborted");
+        const calls = result.message?.tool_calls;
+        if (calls == null || (Array.isArray(calls) && calls.length === 0)) {
+          if (
+            !result.message ||
+            result.message.role !== "assistant" ||
+            typeof (result.message.content ?? result.text) !== "string"
+          )
+            throw new Error("Function workflow lacks an assistant result");
+          return result;
+        }
+        if (iteration >= limit)
+          throw new Error("Function workflow exhausted its iteration limit");
+        if (!Array.isArray(calls) || calls.length > 16)
+          throw new Error("Invalid or excessive function call batch");
+        // Validate the entire batch before any side effect, including replayed IDs.
+        const batch = calls.map((call) => {
+          if (
+            call.type !== "function" ||
+            typeof call.id !== "string" ||
+            !call.id ||
+            call.id.length > 256 ||
+            usedIds.has(call.id) ||
+            !names.has(call.function?.name) ||
+            typeof call.function.arguments !== "string"
+          )
+            throw new Error("Unbound or repeated function call");
+          usedIds.add(call.id);
+          const args = JSON.parse(call.function.arguments);
+          if (!args || typeof args !== "object" || Array.isArray(args))
+            throw new Error("Function arguments must be an object");
+          return { call, args };
+        });
+        const toolMessages = [];
+        for (const { call, args } of batch) {
+          await hooks.beforeStep?.();
+          if (options.signal?.aborted)
+            throw new Error("Function workflow aborted");
+          let output;
+          try {
+            output = await runDesktopToolExecution(client, call, () =>
+              execute(call.function.name, args),
+            );
+          } catch (error) {
+            if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+            output = { error: String(error.message || error) };
+          }
+          toolMessages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify(output ?? null),
+          });
+        }
+        history = [...history, result.message, ...toolMessages];
+      }
+    });
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Governed Desktop function workflow failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 function bindDesktopModelIngressClient(client, host) {
   if (!hosts.has(host))
     throw new TypeError("A branded Desktop model ingress host is required");
@@ -671,4 +778,5 @@ module.exports = {
   consumeDesktopToolStream,
   assertDesktopToolLoopComplete,
   runDesktopCachedModelWorkflow,
+  runDesktopFunctionWorkflow,
 };

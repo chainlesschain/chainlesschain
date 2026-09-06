@@ -87,7 +87,6 @@ class MCPFunctionExecutor {
     logger.info(
       `[MCPFunctionExecutor] 执行工具: ${info.serverName}/${info.toolName}`,
     );
-    logger.info(`[MCPFunctionExecutor] 参数:`, JSON.stringify(args, null, 2));
 
     // Enforce the MCP security policy on the LLM-chat path too. This chokepoint
     // was previously bypassed: only mcp-tool-adapter validated path access /
