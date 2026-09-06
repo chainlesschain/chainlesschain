@@ -353,7 +353,7 @@ export class GovernedKnowledgeDependencyInventoryPlanner {
     dataRecord(input, "knowledge revocation draft");
     if (
       !["tombstone", "revoke"].includes(input.action) ||
-      (Object.hasOwn(input, "dependencies") && input.dependencies.length !== 0)
+      Object.hasOwn(input, "dependencies")
     ) {
       throw new TypeError(
         "revocation draft must not supply its own dependency plan",

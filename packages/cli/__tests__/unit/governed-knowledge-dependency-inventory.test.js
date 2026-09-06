@@ -85,6 +85,25 @@ it("rejects rollback planning when the last-known-good still has unsafe Wiki lin
   ).toThrow(/no safe distinct last-known-good/u);
 });
 
+it("rejects every caller-supplied dependency field before inventory planning", async () => {
+  const h = await setup();
+  const planner = new GovernedKnowledgeDependencyInventoryPlanner({
+    tenantId: h.knowledge.tenantId,
+    candidateRegistry: h.release.candidateRegistry,
+    releaseRegistry: h.release.pruningRollbackOptions.releaseRegistry,
+    wikiAdapters: [h.wiki.adapter],
+  });
+  const draft = { ...h.knowledge, dependencies: [] };
+
+  expect(() => planner.plan(draft)).toThrow(/must not supply/u);
+  expect(() => planner.plan({ ...draft, dependencies: null })).toThrow(
+    /must not supply/u,
+  );
+  expect(() => planner.plan({ ...draft, dependencies: {} })).toThrow(
+    /must not supply/u,
+  );
+});
+
 it("durably freezes an authorized plan before effects and recovers it without rescanning", async () => {
   const h = await setup();
   const planner = new GovernedKnowledgeDependencyInventoryPlanner({
