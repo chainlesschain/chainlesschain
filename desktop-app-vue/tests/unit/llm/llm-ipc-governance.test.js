@@ -24,6 +24,49 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it("fails closed instead of using Volcengine's opaque MCP tool loop", async () => {
+    const manager = new managerModule.LLMManager(
+      {
+        provider: "volcengine",
+        model: "test",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("not reached");
+      }),
+    );
+    manager.isInitialized = true;
+    manager.toolsClient = { executeFunctionCalling: vi.fn() };
+    const Executor = require("../../../src/main/mcp/mcp-function-executor.js");
+    vi.spyOn(Executor.prototype, "getFunctions").mockResolvedValue([
+      { name: "lookup", parameters: { type: "object", properties: {} } },
+    ]);
+    const handlers = new Map();
+    registerCoreHandlers({
+      ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
+      managerRef: { current: manager },
+      mcpClientManager: { getConnectedServers: () => ["test"] },
+      mcpToolAdapter: {},
+      errorMonitor: { analyzeError: vi.fn() },
+    });
+
+    await expect(
+      handlers.get("llm:chat")(
+        {},
+        {
+          messages: [{ role: "user", content: "look this up" }],
+          enableRAG: false,
+          enableMultiAgent: false,
+          enableSessionTracking: false,
+          enableManusOptimization: false,
+          enableErrorPrecheck: false,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(manager.toolsClient.executeFunctionCalling).not.toHaveBeenCalled();
+  });
+
   it.each(["rag", "agent", "mcp-request", "mcp-execute"])(
     "keeps %s evidence refusal terminal at the IPC boundary",
     async (mode) => {
