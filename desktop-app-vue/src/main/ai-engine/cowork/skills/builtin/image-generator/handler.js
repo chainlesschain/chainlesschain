@@ -22,6 +22,14 @@ const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "External image generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 // ── Size Presets ────────────────────────────────────────────────────
 
 const PRESETS = {
@@ -125,6 +133,7 @@ function getDefaultProvider(context) {
 // ── Generate via Stable Diffusion ───────────────────────────────────
 
 async function generateSD(prompt, size, context) {
+  assertGovernedMultimodalIngress();
   const broker = requireBundledSkillLocalServiceBroker(
     context,
     "image-generator",
@@ -159,6 +168,7 @@ async function generateSD(prompt, size, context) {
 // ── Generate via DALL-E ─────────────────────────────────────────────
 
 async function generateDALLE(prompt, size, apiKey, context) {
+  assertGovernedMultimodalIngress();
   const sizeStr = size.width + "x" + size.height;
   const validSizes = [
     "256x256",
