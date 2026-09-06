@@ -11,7 +11,8 @@
     "permission_decision": null,
     "result": {
       "content": "golden transcript content",
-      "hashed": false
+      "hashed": false,
+      "path": "<WORKSPACE>/note.txt"
     },
     "tool": "read_file",
     "type": "tool-result"

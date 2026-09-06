@@ -94,6 +94,7 @@ describe("Phase 7 parity: file-backed golden transcripts", () => {
           payload: {
             content: "ok",
             durationMs: 12,
+            fileVersion: "volatile-size-mtime-ctime",
             tool_use_id: "nested-call-random",
             turn_id: "nested-run-random:t1",
           },
