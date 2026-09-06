@@ -68,6 +68,24 @@ describe("ReadFileLoopGuard", () => {
     expect(guard.stalled).toBe(true);
   });
 
+  it("retains forward cursors when earlier pages are re-read, and resets them for changed files", () => {
+    const guard = new ReadFileLoopGuard();
+    batch(guard, [page()]);
+    batch(guard, [
+      page({
+        range: { startLine: 11, endLine: 20, totalLines: 100 },
+        nextRead: { path: "/work/report.md", offset: 21, limit: 10 },
+      }),
+    ]);
+    batch(guard, [page()]);
+    expect(guard.progressHint).toContain('"offset":21');
+    batch(guard, [page({ fileVersion: "100:2:2" })]);
+    expect(guard.progressHint).toContain('"offset":11');
+    expect(guard.progressHint).not.toContain('"offset":21');
+    batch(guard, [page({ fileVersion: "100:2:2", nextRead: undefined })]);
+    expect(guard.progressHint).toContain('"reachedEnd":true');
+  });
+
   it("recognizes full-file reads with equivalent explicit ranges", () => {
     const guard = new ReadFileLoopGuard();
     batch(guard, [page({ range: undefined, nextRead: undefined })]);

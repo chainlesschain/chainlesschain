@@ -51,6 +51,78 @@ describe("read_file offset/limit line ranges", () => {
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
 
+  it("reads a large document to EOF using progress retained through repeated compaction", async () => {
+    const documentLines = Array.from(
+      { length: 4000 },
+      (_, i) => `section ${i + 1}: ${"document content ".repeat(12)}`,
+    );
+    writeFileSync(join(dir, "f.txt"), documentLines.join("\n"), "utf8");
+    const compactor = {
+      shouldAutoCompact: (messages) => messages.length > 4,
+      compress: async (messages) => ({
+        messages: [messages[0]],
+        stats: {
+          originalMessages: messages.length,
+          compressedMessages: 1,
+          saved: 1,
+        },
+      }),
+    };
+    let modelCalls = 0;
+    let nextLine = 1;
+    let compactions = 0;
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Read the document and finish the task" }],
+      {
+        cwd: dir,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        _autoCompactor: compactor,
+        chatFn: async (messages) => {
+          modelCalls++;
+          expect(modelCalls).toBeLessThan(30);
+          const progress = messages.find((message) =>
+            message.content?.startsWith("[Current run file read progress"),
+          );
+          const cursor = progress
+            ? JSON.parse(progress.content.split("\n")[1])[0]
+            : null;
+          return {
+            message: cursor?.reachedEnd
+              ? { role: "assistant", content: "completed" }
+              : {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: `page-${modelCalls}`,
+                      type: "function",
+                      function: {
+                        name: "read_file",
+                        arguments: JSON.stringify(
+                          cursor?.nextRead || { path: "f.txt" },
+                        ),
+                      },
+                    },
+                  ],
+                },
+          };
+        },
+      },
+    )) {
+      if (event.type === "compaction") compactions++;
+      if (event.type !== "tool-result") continue;
+      const page = event.result;
+      expect(page.error).toBeUndefined();
+      expect(page.range.startLine).toBe(nextLine);
+      expect(page.content.replace(/\n$/, "").split("\n")).toEqual(
+        documentLines.slice(nextLine - 1, page.range.endLine),
+      );
+      nextLine = page.range.endLine + 1;
+    }
+    expect(nextLine).toBe(documentLines.length + 1);
+    expect(compactions).toBeGreaterThan(2);
+  });
+
   it.each([false, true])(
     "stops looping reads after one recovery opportunity (parallel=%s)",
     async (parallel) => {
