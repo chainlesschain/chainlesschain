@@ -122,7 +122,7 @@ function normalizeClock(clock) {
   });
 }
 
-function layout(stateRootDir, tenantId, runId) {
+function layout(stateRootDir, tenantId, runId, initialize = true) {
   if (typeof stateRootDir !== "string" || stateRootDir.trim() === "") {
     throw new TypeError("stateRootDir is required");
   }
@@ -140,10 +140,11 @@ function layout(stateRootDir, tenantId, runId) {
     ledgerAuthorityRootDir: path.join(scope, "ledger-authority"),
     witnessFilePath: path.join(scope, "witness", "checkpoint.json"),
   });
-  fs.mkdirSync(path.dirname(result.witnessFilePath), {
-    recursive: true,
-    mode: 0o700,
-  });
+  if (initialize)
+    fs.mkdirSync(path.dirname(result.witnessFilePath), {
+      recursive: true,
+      mode: 0o700,
+    });
   return result;
 }
 
@@ -350,6 +351,26 @@ export function createAgentEvolutionRuntimeComposition({
     ...(witnessMaximumBytes === undefined ? {} : { witnessMaximumBytes }),
   });
   captureEvolutionLedgerFileBackend(backend);
+  const cacheSourceAuthorities = Object.freeze(
+    Object.fromEntries(
+      ["ledger", "witness"].map((kind) => [
+        kind,
+        Object.freeze({
+          trust: Object.freeze({ ...backend.descriptor[`${kind}Trust`] }),
+          signer: captureAuthority(
+            authorities[kind].signer,
+            "sign",
+            `cache ${kind} signer`,
+          ),
+          verifier: captureAuthority(
+            authorities[kind].verifier,
+            "verify",
+            `cache ${kind} verifier`,
+          ),
+        }),
+      ]),
+    ),
+  );
   const runAdapter = new EvolutionRunLedgerAdapter({
     descriptor: {
       tenantId,
@@ -459,6 +480,65 @@ export function createAgentEvolutionRuntimeComposition({
   const evolutionIngress = createAgentEvolutionIngress({
     evidenceAdapter,
     runAdapter,
+    openCacheSourceRun: (input) => {
+      const sourceRunId = identifier(input, "cache source runId");
+      const sourceStorage = layout(
+        storage.rootDir,
+        tenantId,
+        sourceRunId,
+        false,
+      );
+      if (!fs.existsSync(sourceStorage.witnessFilePath))
+        throw new Error("Cache source Run witness does not exist");
+      const sourcePorts = new EvolutionArtifactPorts({
+        tenantId,
+        audience,
+        artifactStore: new ArtifactStore({
+          dir: sourceStorage.artifactDir,
+          now: clock,
+        }),
+        envelopeSigner: ports.artifactEnvelopeSigner,
+        envelopeVerifier: ports.artifactEnvelopeVerifier,
+        currentAuthorityResolver: ports.artifactCurrentAuthorityResolver,
+        now: clock,
+      });
+      const sourceResolver = sourcePorts.createEvolutionLedgerArtifactResolver({
+        purpose: "evolution-ledger",
+      });
+      const sourceBackend = createEvolutionLedgerFileBackend({
+        rootDir: sourceStorage.ledgerRootDir,
+        authorityRootDir: sourceStorage.ledgerAuthorityRootDir,
+        witnessFilePath: sourceStorage.witnessFilePath,
+        witnessId: witnessIdInput ?? defaultWitnessId(tenantId, sourceRunId),
+        ledgerAuthority: cacheSourceAuthorities.ledger,
+        witnessAuthority: cacheSourceAuthorities.witness,
+        artifactResolver: sourceResolver,
+        secure,
+        clock,
+        ...(fsImpl === undefined ? {} : { fsImpl }),
+        ...(lock === undefined ? {} : { lock }),
+        ...(random === undefined ? {} : { random }),
+        ...(lockTimeoutMs === undefined ? {} : { lockTimeoutMs }),
+        ...(witnessMaximumBytes === undefined ? {} : { witnessMaximumBytes }),
+      });
+      return {
+        runAdapter: new EvolutionRunLedgerAdapter({
+          descriptor: { ...runAdapter.descriptor, runId: sourceRunId },
+          artifactPorts: sourcePorts,
+          ledger: sourceBackend.ledger,
+          ledgerArtifactResolver: sourceResolver,
+          now: clock,
+        }),
+        evidenceAdapter: new EvolutionEvidenceArtifactAdapter({
+          tenantId,
+          audience,
+          projector,
+          bundleVerifier,
+          artifactPorts: sourcePorts,
+          ...(evidenceTtlMs === undefined ? {} : { ttlMs: evidenceTtlMs }),
+        }),
+      };
+    },
     sourceEnvelopeAuthority: ports.sourceEnvelope,
     wikiMaintenanceProducer,
     releaseTrain,

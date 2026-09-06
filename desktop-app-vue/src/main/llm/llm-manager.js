@@ -13,6 +13,11 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const {
+  isDesktopModelIngressHost,
+  bindDesktopModelIngressClient,
+} = require("../evolution/desktop-model-ingress");
+const modelIngressHosts = new WeakMap();
 
 // Module-level let + seam for vi.mock CJS interop (RFC T1, B3 batch).
 // vi.mock 不拦截 source require()，所有 LLM client/factory 走 _setLLMDepsForTesting 注入。
@@ -102,8 +107,13 @@ const normalizeProvider = (provider) => {
  * LLM管理器类
  */
 class LLMManager extends EventEmitter {
-  constructor(config = {}) {
+  constructor(config = {}, desktopModelIngressHost = null) {
     super();
+    if (desktopModelIngressHost !== null) {
+      if (!isDesktopModelIngressHost(desktopModelIngressHost))
+        throw new TypeError("A branded Desktop model ingress host is required");
+      modelIngressHosts.set(this, desktopModelIngressHost);
+    }
 
     this.config = config;
     this.provider = normalizeProvider(config.provider) || LLMProviders.OLLAMA;
@@ -188,6 +198,9 @@ class LLMManager extends EventEmitter {
 
     try {
       this.client = await this.createClient(this.provider);
+      if (modelIngressHosts.has(this)) {
+        bindDesktopModelIngressClient(this.client, modelIngressHosts.get(this));
+      }
 
       // 🔥 初始化火山引擎工具调用客户端
       if (this.provider === LLMProviders.VOLCENGINE) {
@@ -198,6 +211,11 @@ class LLMManager extends EventEmitter {
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
             model: this.config.model || "doubao-seed-1.6-lite",
           });
+          if (modelIngressHosts.has(this))
+            bindDesktopModelIngressClient(
+              this.toolsClient,
+              modelIngressHosts.get(this),
+            );
           logger.info("[LLMManager] 火山引擎工具调用客户端已初始化");
         } catch (toolsError) {
           logger.warn(
@@ -655,6 +673,8 @@ class LLMManager extends EventEmitter {
       try {
         result = await this.client.chat(processedMessages, options);
       } catch (chatError) {
+        if (chatError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+          throw chatError;
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
           logger.warn(
@@ -796,6 +816,8 @@ class LLMManager extends EventEmitter {
           options,
         );
       } catch (streamError) {
+        if (streamError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+          throw streamError;
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
           logger.warn(

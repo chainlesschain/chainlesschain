@@ -7,6 +7,9 @@
 const { logger } = require("../utils/logger.js");
 const axios = require("axios");
 const EventEmitter = require("events");
+const {
+  prepareDesktopModelRequest,
+} = require("../evolution/desktop-model-ingress");
 
 /**
  * OpenAI兼容客户端类
@@ -138,15 +141,17 @@ class OpenAIClient extends EventEmitter {
           }
         }
 
+        const governed = await prepareDesktopModelRequest(this, requestBody);
         const response = await this.client.post(
           "/chat/completions",
-          requestBody,
+          governed?.body ?? requestBody,
           {
             ...(options.signal && { signal: options.signal }),
           },
         );
 
         const choice = response.data.choices[0];
+        if (governed) await governed.complete(choice.message);
 
         return {
           message: choice.message,
@@ -156,6 +161,7 @@ class OpenAIClient extends EventEmitter {
           tokens: response.data.usage?.total_tokens || 0,
         };
       } catch (error) {
+        if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
         lastError = error;
         const isTimeout =
           error.code === "ECONNABORTED" || error.message?.includes("timeout");
@@ -190,6 +196,7 @@ class OpenAIClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chatStream(messages, onChunk, options = {}) {
+    let governed = null;
     try {
       // 构建请求体
       const requestBody = {
@@ -222,11 +229,13 @@ class OpenAIClient extends EventEmitter {
         }
       }
 
+      governed = await prepareDesktopModelRequest(this, requestBody);
       const response = await this.client.post(
         "/chat/completions",
-        requestBody,
+        governed?.body ?? requestBody,
         {
           responseType: "stream",
+          ...(options.signal && { signal: options.signal }),
         },
       );
 
@@ -235,8 +244,11 @@ class OpenAIClient extends EventEmitter {
         content: "",
       };
 
-      return new Promise((resolve, reject) => {
+      const result = await new Promise((resolve, reject) => {
         let buffer = "";
+        let sawTerminal = false;
+        let responseModel = options.model || this.model;
+        let finishReason = "stop";
         response.data.on("data", (chunk) => {
           // Buffer across 'data' events: a single SSE "data:" frame can be split
           // across TCP chunks; parsing each chunk independently dropped the
@@ -253,6 +265,8 @@ class OpenAIClient extends EventEmitter {
             const data = line.trim().replace(/^data: /, "");
 
             if (data === "[DONE]") {
+              sawTerminal = true;
+              if (governed) continue;
               resolve({
                 message: fullMessage,
                 model: options.model || this.model,
@@ -264,6 +278,11 @@ class OpenAIClient extends EventEmitter {
             try {
               const parsed = JSON.parse(data);
               const delta = parsed.choices[0]?.delta;
+              if (parsed.model) responseModel = parsed.model;
+              if (parsed.choices[0]?.finish_reason) {
+                sawTerminal = true;
+                finishReason = parsed.choices[0].finish_reason;
+              }
 
               if (delta?.content) {
                 fullMessage.content += delta.content;
@@ -275,7 +294,7 @@ class OpenAIClient extends EventEmitter {
                 });
               }
 
-              if (parsed.choices[0]?.finish_reason) {
+              if (parsed.choices[0]?.finish_reason && !governed) {
                 resolve({
                   message: fullMessage,
                   model: parsed.model,
@@ -291,17 +310,41 @@ class OpenAIClient extends EventEmitter {
         response.data.on("error", (error) => {
           reject(error);
         });
+        if (governed)
+          response.data.on("close", () => {
+            if (!response.data.readableEnded)
+              reject(
+                new Error("Desktop model stream closed before completion"),
+              );
+          });
 
         response.data.on("end", () => {
+          if (governed && !sawTerminal) {
+            reject(
+              new Error("Desktop model stream ended without a terminal frame"),
+            );
+            return;
+          }
           // 如果没有收到[DONE]，也要resolve
           resolve({
             message: fullMessage,
-            model: options.model || this.model,
-            finish_reason: "stop",
+            model: responseModel,
+            finish_reason: finishReason,
           });
         });
       });
+      if (governed) await governed.complete(result.message);
+      return result;
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (governed) {
+        const interrupted = new Error(
+          "Governed Desktop model stream did not complete",
+          { cause: error },
+        );
+        interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw interrupted;
+      }
       logger.error(
         "[OpenAIClient] 流式聊天失败:",
         error.response?.data || error,
@@ -317,16 +360,22 @@ class OpenAIClient extends EventEmitter {
    */
   async complete(prompt, options = {}) {
     try {
-      const response = await this.client.post("/completions", {
+      const requestBody = {
         model: options.model || "gpt-3.5-turbo-instruct",
         prompt,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || 1000,
         top_p: options.top_p || 1,
         stream: false,
-      });
+      };
+      const governed = await prepareDesktopModelRequest(this, requestBody);
+      const response = await this.client.post(
+        "/completions",
+        governed?.body ?? requestBody,
+      );
 
       const choice = response.data.choices[0];
+      if (governed) await governed.complete(choice.text);
 
       return {
         text: choice.text,
@@ -336,6 +385,7 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage?.total_tokens || 0,
       };
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error("[OpenAIClient] 补全失败:", error.response?.data || error);
       throw new Error(this._formatAPIError(error));
     }

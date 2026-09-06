@@ -1,8 +1,10 @@
 import crypto from "node:crypto";
+import http from "node:http";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Writable } from "node:stream";
+import { Writable, Readable } from "node:stream";
 import { Command } from "commander";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -78,12 +80,55 @@ import {
 } from "../../src/commands/agent.js";
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
 import { registerChatCommand } from "../../src/commands/chat.js";
+import { registerAskCommand } from "../../src/commands/ask.js";
+import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
+const toolServers = [];
+async function localToolEndpoint(wire, stream) {
+  const server = http.createServer(async (request, response) => {
+    try {
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const result = await wire(request.url, {
+        body: Buffer.concat(chunks).toString("utf8"),
+      });
+      response.writeHead(200, {
+        "Content-Type": stream ? "text/event-stream" : "application/json",
+        Connection: "close",
+      });
+      if (stream) {
+        for await (const chunk of result.body) response.write(chunk);
+        response.end();
+      } else response.end(JSON.stringify(await result.json()));
+    } catch (error) {
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ fixtureError: error.message }));
+    }
+  });
+  toolServers.push(server);
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  return `http://127.0.0.1:${server.address().port}`;
+}
+const { createDesktopModelIngressHost, openDesktopModelRun } = createRequire(
+  import.meta.url,
+)("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
 
-afterEach(() => {
+afterEach(async () => {
+  await Promise.all(
+    toolServers.splice(0).map(
+      (server) =>
+        new Promise((resolve) => {
+          server.closeAllConnections();
+          server.close(resolve);
+        }),
+    ),
+  );
   vi.unstubAllGlobals();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -902,6 +947,906 @@ describe("Agent evolution runtime production composition", () => {
     },
     90_000,
   );
+
+  it.each(["success", "source-denied", "response-denied", "wrong-run"])(
+    "governs standalone ask command (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          ) {
+            throw new Error("ask evidence denied");
+          }
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      const program = new Command();
+      registerAskCommand(program, { evolutionCompositionFactory: factory });
+      const output = vi.spyOn(console, "log").mockImplementation(() => {});
+      const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const file = path.join(f.root, "ask-input.txt");
+      fs.writeFileSync(file, `Contact owner@example.com with ${secret}`);
+      try {
+        await program.parseAsync([
+          "node",
+          "cc",
+          "ask",
+          `Summarize @${file}`,
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+          "--api-key",
+          secret,
+          "--json",
+        ]);
+        expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+        expect(factory.mock.calls[0][0]).toMatchObject({
+          mode: "ask",
+          runId: expect.stringMatching(/^ask-/u),
+        });
+        expect(JSON.stringify(factory.mock.calls[0][0])).not.toContain(secret);
+        expect(f.transport).toHaveBeenCalledTimes(
+          mode === "source-denied" || mode === "wrong-run" ? 0 : 1,
+        );
+        if (f.seen.length) {
+          expect(JSON.stringify(f.seen)).not.toContain(secret);
+          expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        }
+        if (mode === "success") {
+          expect(exit).not.toHaveBeenCalled();
+          expect(JSON.parse(output.mock.calls[0][0]).answer).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+        } else {
+          expect(exit).toHaveBeenCalledWith(1);
+          expect(output).not.toHaveBeenCalled();
+          if (mode === "wrong-run") {
+            expect(composition.loadRun().events).toEqual([]);
+          } else {
+            expect(composition.loadRun().projection.status).toBe("running");
+          }
+        }
+      } finally {
+        output.mockRestore();
+        exit.mockRestore();
+      }
+    },
+    30_000,
+  );
+
+  it.each([
+    "success",
+    "source-denied",
+    "response-denied",
+    "wrong-run",
+    "empty",
+  ])(
+    "governs IDE complete command (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("completion evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const input = Readable.from([
+        JSON.stringify(
+          mode === "empty"
+            ? {}
+            : {
+                prefix: `// ${secret}\nconst x = `,
+                suffix: "; // owner@example.com",
+                language: "javascript",
+              },
+        ),
+      ]);
+      const stdin = vi.spyOn(process, "stdin", "get").mockReturnValue(input);
+      const output = vi
+        .spyOn(process.stdout, "write")
+        .mockImplementation(() => true);
+      try {
+        const program = new Command();
+        registerCompleteCommand(program, {
+          evolutionCompositionFactory: factory,
+        });
+        await program.parseAsync([
+          "node",
+          "cc",
+          "complete",
+          "--provider",
+          "ollama",
+          "--model",
+          "test-model",
+          "--json",
+        ]);
+        const result = JSON.parse(output.mock.calls.at(-1)[0]);
+        if (mode === "empty") {
+          expect(factory).not.toHaveBeenCalled();
+          expect(f.transport).not.toHaveBeenCalled();
+          expect(result).toEqual({ completion: "" });
+          return;
+        }
+        const context = factory.mock.calls[0][0];
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(context).toMatchObject({
+          mode: "complete",
+          runId: expect.stringMatching(/^complete-/u),
+        });
+        expect(JSON.stringify(context)).not.toContain(secret);
+        expect(f.transport).toHaveBeenCalledTimes(
+          mode === "source-denied" || mode === "wrong-run" ? 0 : 1,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        if (mode === "success") {
+          expect(result.completion).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+          expect(JSON.stringify(f.seen)).toContain("<CURSOR>");
+        } else {
+          expect(result.completion).toBe("");
+          expect(result.error).toBeTruthy();
+          if (mode === "wrong-run")
+            expect(composition.loadRun().events).toEqual([]);
+          else expect(composition.loadRun().projection.status).toBe("running");
+        }
+      } finally {
+        stdin.mockRestore();
+        output.mockRestore();
+        input.destroy();
+      }
+    },
+    30_000,
+  );
+
+  it.each(["success", "source-denied", "wrong-run"])(
+    "opens Desktop host against real durable composition (%s)",
+    async (mode) => {
+      // Desktop's CJS bridge uses native import; construct in the same native
+      // module realm so this exercises the real WeakSet brand, not a test seam.
+      const nativeComposition = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (mode === "source-denied" && request.kind === "user-prompt")
+            throw new Error("denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = nativeComposition.createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed" : runId,
+        });
+        return composition;
+      });
+      const host = createDesktopModelIngressHost(factory);
+      const content = "Contact owner@example.com";
+      if (mode !== "success") {
+        await expect(openDesktopModelRun(host, content)).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        if (mode === "wrong-run")
+          expect(composition.loadRun().events).toEqual([]);
+        else expect(composition.loadRun().projection.status).toBe("running");
+      } else {
+        const ingress = await openDesktopModelRun(host, content);
+        const request = await ingress.prepareModelRequest({
+          messages: [{ role: "user", content }],
+          tools: [],
+        });
+        expect(JSON.stringify(request)).not.toContain("owner@example.com");
+        await ingress.ingestAgentEvent({
+          type: "response-complete",
+          content: "done",
+        });
+        await ingress.complete();
+        expect(composition.loadRun().projection.status).toBe("completed");
+      }
+      expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+      expect(JSON.stringify(factory.mock.calls[0][0])).not.toContain(content);
+      await expect(openDesktopModelRun({}, content)).rejects.toThrow(/branded/);
+      expect(factory).toHaveBeenCalledOnce();
+    },
+    30_000,
+  );
+
+  it.each(["chat", "stream", "complete"])(
+    "governs Desktop OpenAI %s final payload and response denial",
+    async (method) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { OpenAIClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/openai-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(method === "stream" ? ["stream-closed", "stream-truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("timeout: evidence denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const wire = vi.fn(async () => ({
+          data:
+            mode === "stream-truncated"
+              ? Readable.from([
+                  'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+                ])
+              : mode === "stream-closed"
+                ? new Readable({
+                    read() {
+                      this.destroy(new Error("connection closed"));
+                    },
+                  })
+                : method === "stream"
+                  ? Readable.from([
+                      'data: {"choices":[{"delta":{"content":"done"}}]}\n\ndata: [DONE]\n\n',
+                    ])
+                  : {
+                      choices: [
+                        {
+                          message: { role: "assistant", content: "done" },
+                          text: "done",
+                        },
+                      ],
+                    },
+        }));
+        client.client.post = wire;
+        const content = "Contact owner@example.com";
+        const messages = [
+          { role: "system", content },
+          { role: "user", content: "Answer" },
+        ];
+        const options = {
+          model: "override",
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "lookup",
+                description: content,
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+        };
+        const call =
+          method === "complete"
+            ? client.complete(content, options)
+            : method === "stream"
+              ? client.chatStream(messages, () => {}, options)
+              : client.chat(messages, options);
+        if (mode === "success") {
+          const result = await call;
+          expect(result.message?.content || result.text).toBe("done");
+          expect(composition.loadRun().projection.status).toBe("completed");
+        } else {
+          await expect(call).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+            "owner@example.com",
+          );
+          expect(wire.mock.calls[0][1].model).toBe("override");
+          expect(JSON.stringify(wire.mock.calls[0][1])).toContain(
+            method === "complete" ? "Contact" : "Answer",
+          );
+        }
+      }
+    },
+    90_000,
+  );
+
+  it.each(["generate", "chat", "generateStream", "chatStream"])(
+    "governs Desktop Ollama %s final payload and failures",
+    async (method) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const OllamaClient = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/ollama-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      const stream = method.endsWith("Stream");
+      const chat = method.startsWith("chat");
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new OllamaClient({ model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const response = {
+          model: "test",
+          done: mode !== "truncated",
+          eval_count: 3,
+          ...(chat
+            ? { message: { role: "assistant", content: "完成" } }
+            : { response: "完成" }),
+        };
+        const bytes = Buffer.from(JSON.stringify(response));
+        const split = bytes.indexOf(Buffer.from("完成")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : response,
+        }));
+        client.client.post = wire;
+        const content = "Contact owner@example.com";
+        const input = chat ? [{ role: "user", content }] : content;
+        const chunks = vi.fn();
+        const result = stream
+          ? client[method](input, chunks, { model: "override" })
+          : client[method](input, { model: "override" });
+        if (mode === "success") {
+          expect(await result).toMatchObject({
+            tokens: 3,
+            model: "test",
+            ...(chat ? { message: { content: "完成" } } : { text: "完成" }),
+          });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream) expect(chunks).toHaveBeenCalledWith("完成", "完成");
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+            "owner@example.com",
+          );
+          expect(wire.mock.calls[0][1].model).toBe("override");
+          expect(JSON.stringify(wire.mock.calls[0][1])).toContain("Contact");
+        }
+      }
+    },
+    90_000,
+  );
+
+  it.each([false, true])(
+    "governs Desktop Anthropic payload and lifecycle (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { AnthropicClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/anthropic-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new AnthropicClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const frames =
+          'event: content_block_delta\ndata: {"delta":{"text":"完成"}}\n\n' +
+          (mode === "truncated" ? "" : "event: message_stop\ndata: {}\n\n");
+        const bytes = Buffer.from(frames);
+        const split = bytes.indexOf(Buffer.from("完成")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : {
+                content: [{ type: "text", text: "完成" }],
+                stop_reason: "end_turn",
+              },
+        }));
+        client.client.post = wire;
+        const messages = [
+          { role: "system", content: "Contact owner@example.com" },
+          { role: "user", content: "Answer user@example.com" },
+        ];
+        const options = {
+          stop_sequences: ["stop@example.com"],
+          model: "override",
+        };
+        const chunks = vi.fn();
+        const result = stream
+          ? client.chatStream(messages, chunks, options)
+          : client.chat(messages, options);
+        if (mode === "success") {
+          expect(await result).toMatchObject({ message: { content: "完成" } });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream) expect(chunks).toHaveBeenCalledWith("完成", "完成");
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          const body = wire.mock.calls[0][1];
+          expect(JSON.stringify(body)).not.toContain("@example.com");
+          expect(body.system).toBeTruthy();
+          expect(body.system).toContain("Contact");
+          expect(body.system).toContain("Evolution input projection");
+          expect(body.messages).toHaveLength(1);
+          expect(body.messages[0].content).toContain("Answer");
+          expect(body.stop_sequences).toHaveLength(1);
+          expect(body.model).toBe("override");
+        }
+      }
+    },
+    90_000,
+  );
+
+  it.each([false, true])(
+    "governs Desktop Gemini payload and lifecycle (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { GeminiClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/gemini-client.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "source-denied",
+        "response-denied",
+        ...(stream ? ["truncated"] : []),
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (
+              (mode === "source-denied" && request.kind === "user-prompt") ||
+              (mode === "response-denied" &&
+                request.kind === "response-completed")
+            )
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new GeminiClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const data = {
+          candidates: [
+            {
+              content: { parts: [{ text: "完" }, { text: "成" }] },
+              ...(mode === "truncated" ? {} : { finishReason: "STOP" }),
+            },
+          ],
+          usageMetadata: { totalTokenCount: 3 },
+        };
+        const bytes = Buffer.from(`data: ${JSON.stringify(data)}\n\n`);
+        const split = bytes.indexOf(Buffer.from("完")) + 1;
+        const wire = vi.fn(async () => ({
+          data: stream
+            ? Readable.from([bytes.subarray(0, split), bytes.subarray(split)])
+            : data,
+        }));
+        client.client.post = wire;
+        const messages = [
+          { role: "system", content: "Contact owner@example.com" },
+          { role: "user", content: "Answer user@example.com" },
+          { role: "assistant", content: "Earlier answer" },
+        ];
+        const chunks = vi.fn();
+        const result = stream
+          ? client.chatStream(messages, chunks, { temperature: 0 })
+          : client.chat(messages, { temperature: 0 });
+        if (mode === "success") {
+          expect(await result).toMatchObject({
+            content: "完成",
+            text: "完成",
+            message: { role: "assistant", content: "完成" },
+            usage: { total_tokens: 3 },
+          });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (stream)
+            expect(chunks).toHaveBeenLastCalledWith({
+              content: "",
+              done: true,
+            });
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+          expect(chunks.mock.calls.some(([chunk]) => chunk.done === true)).toBe(
+            false,
+          );
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+        if (wire.mock.calls.length) {
+          const body = wire.mock.calls[0][1];
+          expect(JSON.stringify(body)).not.toContain("@example.com");
+          expect(JSON.stringify(body.systemInstruction)).toContain("Contact");
+          expect(JSON.stringify(body.systemInstruction)).toContain(
+            "Evolution input projection",
+          );
+          expect(body.contents).toHaveLength(2);
+          expect(body.contents[0]).toMatchObject({
+            role: "user",
+            parts: [{ text: expect.stringContaining("Answer") }],
+          });
+          expect(body.contents[1]).toMatchObject({
+            role: "model",
+            parts: [{ text: "Earlier answer" }],
+          });
+          expect(body.generationConfig.temperature).toBe(0);
+        }
+      }
+    },
+    90_000,
+  );
+
+  it.each([false, true])(
+    "governs Desktop tool workflow in one Run (stream=%s)",
+    async (stream) => {
+      const native = await createRequire(import.meta.url)(
+        "../helpers/native-evolution-composition.cjs",
+      )();
+      const { VolcengineToolsClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/llm/volcengine-tools.js",
+      );
+      const { bindDesktopModelIngressClient } = createRequire(import.meta.url)(
+        "../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js",
+      );
+      for (const mode of [
+        "success",
+        "tool-requested",
+        "tool-completed",
+        "response-completed",
+      ]) {
+        const f = modelFixture();
+        const issue =
+          f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+        f.config.authorities.sourceEnvelope.issue.mockImplementation(
+          (request) => {
+            if (mode !== "success" && request.kind === mode)
+              throw new Error("denied");
+            return issue(request);
+          },
+        );
+        let composition;
+        const factory = vi.fn(async ({ runId }) => {
+          composition = native.createAgentEvolutionRuntimeComposition({
+            ...f.config,
+            runId,
+          });
+          return composition;
+        });
+        const client = bindDesktopModelIngressClient(
+          new VolcengineToolsClient({ apiKey: "header-only", model: "test" }),
+          createDesktopModelIngressHost(factory),
+        );
+        const toolCall = {
+          id: "call-1",
+          type: "function",
+          function: {
+            name: "lookup",
+            arguments: '{"owner":"owner@example.com"}',
+          },
+        };
+        const wire = vi.fn(async () => {
+          const first = wire.mock.calls.length === 1;
+          const message = {
+            role: "assistant",
+            content: first ? "" : "done",
+            ...(first ? { tool_calls: [toolCall] } : {}),
+          };
+          const delta = {
+            content: message.content,
+            ...(first ? { tool_calls: [{ index: 0, ...toolCall }] } : {}),
+          };
+          const bytes = Buffer.from(
+            `data: ${JSON.stringify({ choices: [{ delta, finish_reason: first ? "tool_calls" : "stop" }] })}\n\ndata: [DONE]\n\n`,
+          );
+          return {
+            ok: true,
+            json: async () => ({ model: "test", choices: [{ message }] }),
+            body: Readable.from([bytes.subarray(0, 25), bytes.subarray(25)]),
+          };
+        });
+        client.baseURL = await localToolEndpoint(wire, stream);
+        const execute = vi.fn(async () => ({
+          owner: "owner@example.com",
+          result: "found",
+        }));
+        const result = client.executeFunctionCalling(
+          [{ role: "user", content: "Find owner@example.com" }],
+          [
+            {
+              name: "lookup",
+              description: "Ask owner@example.com",
+              parameters: { type: "object", properties: {} },
+            },
+          ],
+          { execute },
+          { stream, onChunk: () => {} },
+        );
+        if (mode === "success") {
+          expect(await result).toMatchObject({ text: "done" });
+          expect(composition.loadRun().projection.status).toBe("completed");
+          expect(execute).toHaveBeenCalledWith("lookup", {
+            owner: "owner@example.com",
+          });
+          const kinds = composition
+            .loadRun()
+            .events.map((event) => event.data?.evidenceKind)
+            .filter(Boolean);
+          expect(kinds).toEqual([
+            "user-prompt",
+            "model-input",
+            "response-completed",
+            "tool-requested",
+            "tool-completed",
+            "model-input",
+            "response-completed",
+          ]);
+        } else {
+          await expect(result).rejects.toMatchObject({
+            code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          });
+          expect(composition.loadRun().projection.status).toBe("running");
+        }
+        expect(factory).toHaveBeenCalledOnce();
+        expect(wire).toHaveBeenCalledTimes(mode === "success" ? 2 : 1);
+        expect(execute).toHaveBeenCalledTimes(
+          mode === "success" || mode === "tool-completed" ? 1 : 0,
+        );
+        for (const [, request] of wire.mock.calls) {
+          expect(request.body).not.toContain("owner@example.com");
+          expect(request.body).toContain("lookup");
+        }
+      }
+    },
+    120_000,
+  );
+
+  it("reopens authenticated response cache evidence and rejects substitutions", async () => {
+    const f = modelFixture();
+    const ingress = f.composition.evolutionIngress;
+    const requestKey = "a".repeat(64);
+    await ingress.prepareModelRequest({
+      messages: [{ role: "user", content: "Contact" }],
+      tools: [],
+    });
+    await ingress.ingestAgentEvent({
+      type: "response-complete",
+      content: "Contact owner@example.com",
+    });
+    const receipt = await ingress.createResponseCacheReceipt({ requestKey });
+    await ingress.complete();
+    const reopen = (id) =>
+      createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId: id,
+        taskId: id,
+      });
+    const replay = reopen("cache-replay-success");
+    const result = await replay.evolutionIngress.replayResponseCache({
+      receipt: JSON.parse(JSON.stringify(receipt)),
+      requestKey,
+    });
+    expect(result.type).toBe("response-complete");
+    expect(result.content).toContain("Contact");
+    expect(result.content).not.toContain("owner@example.com");
+    expect(replay.loadRun().events.at(-1).data.evidenceKind).toBe(
+      "model-response-cache-replayed",
+    );
+    await replay.evolutionIngress.complete();
+    for (const [index, input] of [
+      { receipt, requestKey: "b".repeat(64) },
+      { receipt: { ...receipt, tenantId: "tenant:other" }, requestKey },
+      { receipt: { ...receipt, runId: "missing-run" }, requestKey },
+      { receipt: { ...receipt, eventId: "missing-event" }, requestKey },
+      {
+        receipt: {
+          ...receipt,
+          artifact: {
+            ...receipt.artifact,
+            manifest: {
+              ...receipt.artifact.manifest,
+              digest: `sha256:${"0".repeat(64)}`,
+            },
+          },
+        },
+        requestKey,
+      },
+    ].entries()) {
+      const denied = reopen(`cache-replay-denied-${index}`);
+      await expect(
+        denied.evolutionIngress.replayResponseCache(input),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      await expect(denied.evolutionIngress.complete()).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(denied.loadRun().events).toHaveLength(0);
+    }
+    const revoked = reopen("cache-replay-revoked");
+    f.config.authorities.attestationVerifier.verify.mockRejectedValue(
+      new Error("cache attestation revoked"),
+    );
+    await expect(
+      revoked.evolutionIngress.replayResponseCache({ receipt, requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(revoked.loadRun().events).toHaveLength(0);
+  }, 120000);
+
+  it("refuses cache receipts without model evidence or before source Run completion", async () => {
+    const f = modelFixture();
+    const requestKey = "a".repeat(64);
+    const invalid = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      runId: "cache-no-model",
+      taskId: "cache-no-model",
+    });
+    await invalid.evolutionIngress.ingestAgentEvent({
+      type: "response-complete",
+      content: "not a model response",
+    });
+    await expect(
+      invalid.evolutionIngress.createResponseCacheReceipt({ requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    const ingress = f.composition.evolutionIngress;
+    await ingress.prepareModelRequest({
+      messages: [{ role: "user", content: "hello" }],
+      tools: [],
+    });
+    await ingress.ingestAgentEvent({
+      type: "response-complete",
+      content: "answer",
+    });
+    const receipt = await ingress.createResponseCacheReceipt({ requestKey });
+    const replay = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      runId: "cache-premature",
+      taskId: "cache-premature",
+    });
+    await expect(
+      replay.evolutionIngress.replayResponseCache({ receipt, requestKey }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(replay.loadRun().events).toHaveLength(0);
+  }, 120000);
 
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(

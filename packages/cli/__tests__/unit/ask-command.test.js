@@ -2,7 +2,28 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   resolveOllamaBaseUrl,
   extractCompletion,
+  registerAskCommand,
 } from "../../src/commands/ask.js";
+
+describe("ask command deployment dependencies", () => {
+  it("rejects accessor and Proxy dependencies without executing them", () => {
+    const getter = vi.fn();
+    const dependencies = Object.defineProperty(
+      {},
+      "evolutionCompositionFactory",
+      { get: getter },
+    );
+    expect(() => registerAskCommand({}, dependencies)).toThrow(
+      /function data property/,
+    );
+    expect(getter).not.toHaveBeenCalled();
+    const trap = vi.fn();
+    expect(() =>
+      registerAskCommand({}, new Proxy({}, { getOwnPropertyDescriptor: trap })),
+    ).toThrow(/plain object/);
+    expect(trap).not.toHaveBeenCalled();
+  });
+});
 
 describe("ask command — resolveOllamaBaseUrl precedence", () => {
   it("returns --base-url flag when set (highest precedence)", () => {

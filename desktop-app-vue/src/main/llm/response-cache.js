@@ -3,7 +3,7 @@
  * 实现 LLM 响应的智能缓存，减少重复调用
  *
  * 缓存策略：
- * 1. 精确匹配：使用 SHA-256 哈希对 (provider, model, messages) 进行缓存
+ * 1. 精确匹配：使用 SHA-256 哈希绑定 provider、model、messages 和完整可编码 options
  * 2. TTL 管理：缓存有效期为 7 天
  * 3. LRU 淘汰：缓存数量超过限制时，淘汰最久未使用的条目
  *
@@ -14,19 +14,72 @@
 
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
+const { types } = require("node:util");
+
+// Cache identity must not silently discard functions, accessors, undefined,
+// opaque handles or non-finite numbers. Such requests remain non-cacheable.
+function canonicalCacheData(value, seen = new Set()) {
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return JSON.stringify(value);
+  if (typeof value === "number" && Number.isFinite(value))
+    return JSON.stringify(value);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    types.isProxy(value) ||
+    seen.has(value)
+  )
+    throw new TypeError("Cache identity requires finite acyclic plain data");
+  const array = Array.isArray(value);
+  if (
+    !array &&
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  )
+    throw new TypeError("Opaque request options are not cacheable");
+  const keys = Reflect.ownKeys(value).filter(
+    (key) => !(array && key === "length"),
+  );
+  if (
+    array &&
+    (keys.length !== value.length || keys.some((key, i) => key !== String(i)))
+  )
+    throw new TypeError("Cache identity requires dense arrays");
+  seen.add(value);
+  try {
+    const entries = (array ? keys : keys.sort()).map((key) => {
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        typeof key !== "string" ||
+        !property.enumerable ||
+        !("value" in property)
+      )
+        throw new TypeError(
+          "Cache identity requires enumerable data properties",
+        );
+      const encoded = canonicalCacheData(property.value, seen);
+      return array ? encoded : `${JSON.stringify(key)}:${encoded}`;
+    });
+    return array ? `[${entries.join(",")}]` : `{${entries.join(",")}}`;
+  } finally {
+    seen.delete(value);
+  }
+}
 
 /**
  * 计算缓存键（SHA-256 哈希）
  * @param {string} provider - 提供商
  * @param {string} model - 模型名称
  * @param {Array} messages - 消息数组
+ * @param {Object} options - 完整请求选项；不支持稳定编码的请求不缓存
  * @returns {string} 缓存键
  */
-function calculateCacheKey(provider, model, messages) {
-  const payload = JSON.stringify({
+function calculateCacheKey(provider, model, messages, options = {}) {
+  const payload = canonicalCacheData({
+    schema: "chainlesschain.llm-response-cache/v2",
     provider,
     model,
     messages,
+    options,
   });
 
   return crypto.createHash("sha256").update(payload).digest("hex");
@@ -80,7 +133,7 @@ class ResponseCache {
    */
   async get(provider, model, messages, options = {}) {
     try {
-      const cacheKey = calculateCacheKey(provider, model, messages);
+      const cacheKey = calculateCacheKey(provider, model, messages, options);
       const now = Date.now();
 
       // 查询缓存
@@ -149,7 +202,7 @@ class ResponseCache {
    */
   async set(provider, model, messages, response, options = {}) {
     try {
-      const cacheKey = calculateCacheKey(provider, model, messages);
+      const cacheKey = calculateCacheKey(provider, model, messages, options);
       const now = Date.now();
       const expiresAt = now + this.ttl;
 

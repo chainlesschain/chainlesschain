@@ -9,7 +9,10 @@ export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SUPPORTED_COMMANDS = new Set([
   "agent",
+  "ask",
   "chat",
+  "compact",
+  "complete",
   "cowork",
   "desktop",
   "evolution",
@@ -278,7 +281,11 @@ async function loadBuiltInFactories(commandName) {
   }
   if (
     commandName === "agent" ||
+    commandName === "ask" ||
     commandName === "chat" ||
+    commandName === "compact" ||
+    commandName === "complete" ||
+    commandName === "desktop" ||
     commandName === "cowork" ||
     commandName === "orchestrate" ||
     commandName === "serve"

@@ -167,9 +167,21 @@ class AnthropicClient extends EventEmitter {
   async chat(messages, options = {}) {
     try {
       const payload = this.buildPayload(messages, options, false);
-      const response = await this.client.post("/v1/messages", payload, {
-        ...(options.signal && { signal: options.signal }),
-      });
+      const {
+        prepareDesktopModelRequest,
+      } = require("../evolution/desktop-model-ingress");
+      const governed = await prepareDesktopModelRequest(
+        this,
+        payload,
+        "anthropic",
+      );
+      const response = await this.client.post(
+        "/v1/messages",
+        governed?.body ?? payload,
+        {
+          ...(options.signal && { signal: options.signal }),
+        },
+      );
       const blocks = response.data?.content || [];
       const text = blocks
         .filter((block) => block.type === "text")
@@ -177,6 +189,18 @@ class AnthropicClient extends EventEmitter {
         .join("");
 
       const usage = response.data?.usage || {};
+      if (governed) {
+        if (
+          !Array.isArray(response.data?.content) ||
+          typeof response.data?.stop_reason !== "string" ||
+          response.data?.error
+        ) {
+          const error = new Error("Anthropic response is not complete");
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+        await governed.complete(blocks);
+      }
 
       return {
         message: { role: "assistant", content: text },
@@ -186,6 +210,7 @@ class AnthropicClient extends EventEmitter {
         tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
       };
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error(
         "[AnthropicClient] chat failed:",
         error.response?.data || error,
@@ -195,17 +220,37 @@ class AnthropicClient extends EventEmitter {
   }
 
   async chatStream(messages, onChunk, options = {}) {
+    let governed = null;
     try {
       const payload = this.buildPayload(messages, options, true);
-      const response = await this.client.post("/v1/messages", payload, {
-        responseType: "stream",
-      });
+      const {
+        prepareDesktopModelRequest,
+      } = require("../evolution/desktop-model-ingress");
+      governed = await prepareDesktopModelRequest(this, payload, "anthropic");
+      const response = await this.client.post(
+        "/v1/messages",
+        governed?.body ?? payload,
+        {
+          responseType: "stream",
+          ...(options.signal && { signal: options.signal }),
+        },
+      );
 
       const fullMessage = { role: "assistant", content: "" };
       let buffer = "";
       let settled = false;
+      let sawTerminal = false;
+      let ending = false;
+      let lastFinishReason = "stop";
+      const decoder = new (require("node:string_decoder").StringDecoder)(
+        "utf8",
+      );
 
       const maybeResolve = (finishReason = "stop", resolve) => {
+        if (governed && !ending) {
+          lastFinishReason = finishReason;
+          return;
+        }
         if (settled) {
           return;
         }
@@ -222,7 +267,10 @@ class AnthropicClient extends EventEmitter {
         if (!data) {
           return;
         }
+        if (governed && sawTerminal)
+          throw new Error("Anthropic sent data after message_stop");
         if (data === "[DONE]") {
+          sawTerminal = true;
           maybeResolve("stop", resolve);
           return;
         }
@@ -231,9 +279,12 @@ class AnthropicClient extends EventEmitter {
         try {
           parsed = JSON.parse(data);
         } catch (e) {
+          if (governed) throw e;
           return;
         }
 
+        if (governed && (event === "error" || parsed.error))
+          throw new Error("Anthropic stream returned an error");
         if (event === "content_block_start") {
           const text = parsed.content_block?.text;
           if (text) {
@@ -251,13 +302,14 @@ class AnthropicClient extends EventEmitter {
             }
           }
         } else if (event === "message_stop") {
-          maybeResolve("stop", resolve);
+          sawTerminal = true;
+          maybeResolve(lastFinishReason, resolve);
         } else if (event === "message_delta" && parsed.delta?.stop_reason) {
           maybeResolve(parsed.delta.stop_reason, resolve);
         }
       };
 
-      return await new Promise((resolve, reject) => {
+      const result = await new Promise((resolve, reject) => {
         const processBuffer = () => {
           buffer = buffer.replace(/\r\n/g, "\n");
           let boundary = buffer.indexOf("\n\n");
@@ -291,8 +343,12 @@ class AnthropicClient extends EventEmitter {
         };
 
         response.data.on("data", (chunk) => {
-          buffer += chunk.toString("utf8");
-          processBuffer();
+          try {
+            buffer += decoder.write(chunk);
+            processBuffer();
+          } catch (error) {
+            reject(error);
+          }
         });
 
         response.data.on("error", (error) => {
@@ -304,10 +360,38 @@ class AnthropicClient extends EventEmitter {
         });
 
         response.data.on("end", () => {
-          maybeResolve("stop", resolve);
+          try {
+            buffer += decoder.end();
+            if (buffer.trim()) {
+              buffer += "\n\n";
+              processBuffer();
+            }
+            if (governed && !sawTerminal)
+              throw new Error("Anthropic stream ended without message_stop");
+            ending = true;
+            maybeResolve(lastFinishReason, resolve);
+          } catch (error) {
+            reject(error);
+          }
         });
+        if (governed)
+          response.data.on("close", () => {
+            if (!response.data.readableEnded)
+              reject(new Error("Anthropic stream closed before completion"));
+          });
       });
+      if (governed) await governed.complete(result.message);
+      return result;
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (governed) {
+        const interrupted = new Error(
+          "Governed Desktop Anthropic stream did not complete",
+          { cause: error },
+        );
+        interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw interrupted;
+      }
       logger.error(
         "[AnthropicClient] stream chat failed:",
         error.response?.data || error,

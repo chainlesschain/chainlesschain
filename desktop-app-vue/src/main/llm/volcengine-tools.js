@@ -44,6 +44,13 @@ class VolcengineToolsClient {
     const url = `${this.baseURL}${endpoint}`;
 
     try {
+      const {
+        prepareDesktopModelRequest,
+      } = require("../evolution/desktop-model-ingress");
+      const governed =
+        endpoint === "/chat/completions"
+          ? await prepareDesktopModelRequest(this, body)
+          : null;
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -51,7 +58,7 @@ class VolcengineToolsClient {
           Authorization: `Bearer ${this.apiKey}`,
           ...options.headers,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(governed?.body ?? body),
         timeout: this.timeout,
       });
 
@@ -60,7 +67,16 @@ class VolcengineToolsClient {
         throw new Error(`API调用失败: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      if (governed) {
+        if (!result.choices?.[0]?.message || result.error) {
+          const error = new Error("Tool model response is invalid");
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+        await governed.complete(result.choices[0].message);
+      }
+      return result;
     } catch (error) {
       logger.error("[VolcengineTools] API调用错误:", error);
       throw error;
@@ -75,6 +91,14 @@ class VolcengineToolsClient {
     const url = `${this.baseURL}${endpoint}`;
 
     try {
+      const {
+        prepareDesktopModelRequest,
+        consumeDesktopToolStream,
+      } = require("../evolution/desktop-model-ingress");
+      const governed = await prepareDesktopModelRequest(this, {
+        ...body,
+        stream: true,
+      });
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -82,7 +106,7 @@ class VolcengineToolsClient {
           Authorization: `Bearer ${this.apiKey}`,
           ...options.headers,
         },
-        body: JSON.stringify({ ...body, stream: true }),
+        body: JSON.stringify(governed?.body ?? { ...body, stream: true }),
         timeout: this.timeout,
       });
 
@@ -92,6 +116,8 @@ class VolcengineToolsClient {
       }
 
       let fullText = "";
+      if (governed)
+        return await consumeDesktopToolStream(governed, response, onChunk);
       const reader = response.body;
 
       for await (const chunk of reader) {
@@ -360,6 +386,25 @@ class VolcengineToolsClient {
     functionExecutor,
     options = {},
   ) {
+    const {
+      runDesktopModelWorkflow,
+    } = require("../evolution/desktop-model-ingress");
+    return runDesktopModelWorkflow(this, { messages, functions }, () =>
+      this._executeFunctionCalling(
+        messages,
+        functions,
+        functionExecutor,
+        options,
+      ),
+    );
+  }
+
+  async _executeFunctionCalling(
+    messages,
+    functions,
+    functionExecutor,
+    options,
+  ) {
     logger.info("[VolcengineTools] 执行完整函数调用流程");
 
     // 第一次调用：模型决定是否调用函数
@@ -377,6 +422,9 @@ class VolcengineToolsClient {
     // 如果模型决定调用函数
     while (result.choices?.[0]?.message?.tool_calls) {
       if (++toolIterations > maxToolIterations) {
+        require("../evolution/desktop-model-ingress").assertDesktopToolLoopComplete(
+          this,
+        );
         logger.warn(
           `[VolcengineTools] 工具调用循环达到上限 (${maxToolIterations})，停止继续调用`,
         );
@@ -398,11 +446,12 @@ class VolcengineToolsClient {
           const functionArgs = JSON.parse(toolCall.function.arguments);
 
           logger.info("[VolcengineTools] 执行函数:", functionName);
-          logger.info("[VolcengineTools] 参数:", functionArgs);
 
-          const execResult = await functionExecutor.execute(
-            functionName,
-            functionArgs,
+          const {
+            runDesktopToolExecution,
+          } = require("../evolution/desktop-model-ingress");
+          const execResult = await runDesktopToolExecution(this, toolCall, () =>
+            functionExecutor.execute(functionName, functionArgs),
           );
           functionResults.push({
             tool_call_id: toolCall.id,
@@ -411,6 +460,7 @@ class VolcengineToolsClient {
             content: JSON.stringify(execResult),
           });
         } catch (error) {
+          if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
           logger.error("[VolcengineTools] 函数执行失败:", error);
           functionResults.push({
             tool_call_id: toolCall.id,

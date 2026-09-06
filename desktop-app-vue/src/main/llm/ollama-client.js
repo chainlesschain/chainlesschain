@@ -6,6 +6,9 @@
 
 const { logger } = require("../utils/logger.js");
 const axios = require("axios");
+const {
+  runDesktopOllamaRequest,
+} = require("../evolution/desktop-model-ingress");
 const EventEmitter = require("events");
 
 /**
@@ -60,6 +63,14 @@ class OllamaClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async generate(prompt, options = {}) {
+    const governed = await runDesktopOllamaRequest(
+      this,
+      prompt,
+      options,
+      null,
+      false,
+    );
+    if (governed) return governed;
     try {
       const response = await this.client.post("/api/generate", {
         model: options.model || this.model,
@@ -94,6 +105,16 @@ class OllamaClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async generateStream(prompt, onChunk, options = {}) {
+    if (typeof onChunk !== "function")
+      throw new TypeError("onChunk must be a function");
+    const governed = await runDesktopOllamaRequest(
+      this,
+      prompt,
+      options,
+      onChunk,
+      false,
+    );
+    if (governed) return governed;
     try {
       const response = await this.client.post(
         "/api/generate",
@@ -182,6 +203,14 @@ class OllamaClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chat(messages, options = {}) {
+    const governed = await runDesktopOllamaRequest(
+      this,
+      messages,
+      options,
+      null,
+      true,
+    );
+    if (governed) return governed;
     try {
       const response = await this.client.post(
         "/api/chat",
@@ -220,6 +249,16 @@ class OllamaClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chatStream(messages, onChunk, options = {}) {
+    if (typeof onChunk !== "function")
+      throw new TypeError("onChunk must be a function");
+    const governed = await runDesktopOllamaRequest(
+      this,
+      messages,
+      options,
+      onChunk,
+      true,
+    );
+    if (governed) return governed;
     try {
       const response = await this.client.post(
         "/api/chat",

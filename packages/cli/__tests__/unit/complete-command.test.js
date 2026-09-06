@@ -1,9 +1,33 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildFimPrompt,
   cleanCompletion,
   MAX_COMPLETION_CHARS,
+  registerCompleteCommand,
 } from "../../src/commands/complete.js";
+
+describe("complete deployment dependencies", () => {
+  it("rejects accessor and Proxy dependencies without invoking them", () => {
+    const getter = vi.fn();
+    expect(() =>
+      registerCompleteCommand(
+        {},
+        Object.defineProperty({}, "evolutionCompositionFactory", {
+          get: getter,
+        }),
+      ),
+    ).toThrow(/function data property/);
+    expect(getter).not.toHaveBeenCalled();
+    const trap = vi.fn();
+    expect(() =>
+      registerCompleteCommand(
+        {},
+        new Proxy({}, { getOwnPropertyDescriptor: trap }),
+      ),
+    ).toThrow(/plain object/);
+    expect(trap).not.toHaveBeenCalled();
+  });
+});
 
 describe("cc complete — buildFimPrompt", () => {
   it("embeds prefix, cursor sentinel, and suffix in order", () => {

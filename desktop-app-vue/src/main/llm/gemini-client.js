@@ -103,16 +103,47 @@ class GeminiClient {
 
     try {
       const url = `/models/${this.model}:generateContent?key=${this.apiKey}`;
-      const response = await this.client.post(url, payload);
+      const {
+        prepareDesktopModelRequest,
+      } = require("../evolution/desktop-model-ingress");
+      const governed = await prepareDesktopModelRequest(
+        this,
+        payload,
+        "gemini",
+      );
+      const response = await this.client.post(url, governed?.body ?? payload, {
+        ...(options.signal && { signal: options.signal }),
+      });
       const data = response.data;
 
       const candidate = data.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text || "";
+      const text = governed
+        ? (candidate?.content?.parts || [])
+            .map((part) => {
+              if (typeof part.text !== "string") {
+                const error = new Error("Unsupported Gemini response part");
+                error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+                throw error;
+              }
+              return part.text;
+            })
+            .join("")
+        : candidate?.content?.parts?.[0]?.text || "";
 
       const usageMetadata = data.usageMetadata || {};
+      if (governed) {
+        if (data.error || !candidate?.finishReason) {
+          const error = new Error("Gemini response is not complete");
+          error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+          throw error;
+        }
+        await governed.complete(candidate);
+      }
 
       return {
         content: text,
+        text,
+        message: { role: "assistant", content: text },
         model: this.model,
         usage: {
           prompt_tokens: usageMetadata.promptTokenCount || 0,
@@ -122,6 +153,7 @@ class GeminiClient {
         finish_reason: candidate?.finishReason || "STOP",
       };
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error("[GeminiClient] 聊天请求失败:", error.message);
       throw new Error(`Gemini API 错误: ${this._extractError(error)}`);
     }
@@ -137,6 +169,7 @@ class GeminiClient {
    * any streaming chat whenever the configured provider was Gemini.
    */
   async chatStream(messages, onChunk, options = {}) {
+    let governed = null;
     const { systemInstruction, contents } = this._convertMessages(messages);
 
     const payload = {
@@ -155,9 +188,23 @@ class GeminiClient {
 
     try {
       const url = `/models/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
-      const response = await this.client.post(url, payload, {
+      const {
+        prepareDesktopModelRequest,
+        consumeDesktopGeminiStream,
+      } = require("../evolution/desktop-model-ingress");
+      governed = await prepareDesktopModelRequest(this, payload, "gemini");
+      const response = await this.client.post(url, governed?.body ?? payload, {
         responseType: "stream",
+        ...(options.signal && { signal: options.signal }),
       });
+      if (governed)
+        return await consumeDesktopGeminiStream(
+          governed,
+          response,
+          this.model,
+          onChunk,
+          options.signal,
+        );
 
       let fullText = "";
       let usageMetadata = {};
@@ -209,6 +256,8 @@ class GeminiClient {
           }
           resolve({
             content: fullText,
+            text: fullText,
+            message: { role: "assistant", content: fullText },
             model: this.model,
             usage: {
               prompt_tokens: usageMetadata.promptTokenCount || 0,
@@ -223,6 +272,15 @@ class GeminiClient {
         });
       });
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (governed) {
+        const interrupted = new Error(
+          "Governed Desktop Gemini stream did not complete",
+          { cause: error },
+        );
+        interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw interrupted;
+      }
       logger.error("[GeminiClient] 流式聊天失败:", error.message);
       throw new Error(`Gemini stream API 错误: ${this._extractError(error)}`);
     }
