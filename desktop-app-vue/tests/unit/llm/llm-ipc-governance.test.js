@@ -24,6 +24,37 @@ afterEach(() => {
 });
 
 describe("native IPC configuration authority continuity", () => {
+  it("rejects every opaque Volcengine tool method on a governed manager", async () => {
+    const manager = new managerModule.LLMManager(
+      { provider: "volcengine", enableStateBus: false },
+      createDesktopModelIngressHost(async () => {
+        throw new Error("not reached");
+      }),
+    );
+    manager.toolsClient = {
+      chatWithWebSearch: vi.fn(),
+      chatWithImageProcess: vi.fn(),
+      chatWithKnowledgeBase: vi.fn(),
+      chatWithFunctionCalling: vi.fn(),
+      chatWithMultipleTools: vi.fn(),
+    };
+    const calls = [
+      () => manager.chatWithWebSearch([]),
+      () => manager.chatWithImageProcess([]),
+      () => manager.chatWithKnowledgeBase([], "knowledge-base"),
+      () => manager.chatWithFunctionCalling([], []),
+      () => manager.chatWithMultipleTools([], {}),
+    ];
+    for (const call of calls) {
+      await expect(call()).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+    }
+    Object.values(manager.toolsClient).forEach((method) =>
+      expect(method).not.toHaveBeenCalled(),
+    );
+  });
+
   it("fails closed instead of using Volcengine's opaque MCP tool loop", async () => {
     const manager = new managerModule.LLMManager(
       {

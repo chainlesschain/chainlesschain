@@ -25,6 +25,15 @@ const budgetListeners = new WeakMap();
 const providerSwitches = new WeakSet();
 const managerCloseEpochs = new WeakMap();
 
+function assertNoOpaqueGovernedTools(manager) {
+  if (!modelIngressHosts.has(manager)) return;
+  const error = new Error(
+    "Volcengine opaque tools require a governed protocol adapter",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 // Module-level let + seam for vi.mock CJS interop (RFC T1, B3 batch).
 // vi.mock 不拦截 source require()，所有 LLM client/factory 走 _setLLMDepsForTesting 注入。
 let _OllamaClient = require("./ollama-client");
@@ -1452,6 +1461,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithWebSearch(messages, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("联网搜索仅支持火山引擎");
     }
@@ -1471,6 +1481,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithImageProcess(messages, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("图像处理仅支持火山引擎");
     }
@@ -1491,6 +1502,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithKnowledgeBase(messages, knowledgeBaseId, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("知识库搜索仅支持火山引擎");
     }
@@ -1515,6 +1527,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithFunctionCalling(messages, functions, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("函数调用仅支持火山引擎");
     }
@@ -1538,6 +1551,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithMultipleTools(messages, toolConfig = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("工具调用仅支持火山引擎");
     }

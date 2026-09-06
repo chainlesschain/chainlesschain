@@ -803,6 +803,13 @@ function registerCoreHandlers(ctx) {
           managerRef.current.provider === "volcengine" &&
           managerRef.current.toolsClient
         ) {
+          if (governed) {
+            const error = new Error(
+              "Governed Volcengine built-in tools are not supported",
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
           logger.info("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
 
           // 如果只有一个工具，使用专用方法
