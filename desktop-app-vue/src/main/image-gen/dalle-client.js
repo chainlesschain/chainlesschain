@@ -8,39 +8,51 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const { logger } = require('../utils/logger.js');
+const EventEmitter = require("events");
+const { logger } = require("../utils/logger.js");
+
+// DALL-E requests contain user-controlled multimodal input and must be
+// projected by the authenticated Agent v3 ingress before any provider call.
+// This legacy client does not receive that capability, so it must not provide
+// a second, ungoverned model egress path.
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "External DALL-E generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 
 /**
  * DALL-E model versions
  */
 const DALLEModel = {
-  DALLE_2: 'dall-e-2',
-  DALLE_3: 'dall-e-3',
+  DALLE_2: "dall-e-2",
+  DALLE_3: "dall-e-3",
 };
 
 /**
  * Image sizes by model
  */
 const ImageSizes = {
-  [DALLEModel.DALLE_2]: ['256x256', '512x512', '1024x1024'],
-  [DALLEModel.DALLE_3]: ['1024x1024', '1792x1024', '1024x1792'],
+  [DALLEModel.DALLE_2]: ["256x256", "512x512", "1024x1024"],
+  [DALLEModel.DALLE_3]: ["1024x1024", "1792x1024", "1024x1792"],
 };
 
 /**
  * Quality options (DALL-E 3 only)
  */
 const ImageQuality = {
-  STANDARD: 'standard',
-  HD: 'hd',
+  STANDARD: "standard",
+  HD: "hd",
 };
 
 /**
  * Style options (DALL-E 3 only)
  */
 const ImageStyle = {
-  VIVID: 'vivid',
-  NATURAL: 'natural',
+  VIVID: "vivid",
+  NATURAL: "natural",
 };
 
 /**
@@ -48,9 +60,9 @@ const ImageStyle = {
  */
 const DEFAULT_CONFIG = {
   apiKey: null,
-  baseUrl: 'https://api.openai.com/v1',
+  baseUrl: "https://api.openai.com/v1",
   model: DALLEModel.DALLE_3,
-  defaultSize: '1024x1024',
+  defaultSize: "1024x1024",
   defaultQuality: ImageQuality.STANDARD,
   defaultStyle: ImageStyle.VIVID,
   timeout: 120000,
@@ -76,7 +88,7 @@ class DALLEClient extends EventEmitter {
       totalCost: 0,
     };
 
-    logger.info('[DALLEClient] Initialized with model:', this.config.model);
+    logger.info("[DALLEClient] Initialized with model:", this.config.model);
   }
 
   /**
@@ -109,8 +121,9 @@ class DALLEClient extends EventEmitter {
    * @returns {Promise<Object>} Generated image data
    */
   async generate(prompt, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.config.apiKey) {
-      throw new Error('DALL-E API key not configured');
+      throw new Error("DALL-E API key not configured");
     }
 
     const model = options.model || this.config.model;
@@ -118,7 +131,9 @@ class DALLEClient extends EventEmitter {
 
     // Validate size for model
     if (!ImageSizes[model].includes(size)) {
-      throw new Error(`Invalid size ${size} for model ${model}. Valid sizes: ${ImageSizes[model].join(', ')}`);
+      throw new Error(
+        `Invalid size ${size} for model ${model}. Valid sizes: ${ImageSizes[model].join(", ")}`,
+      );
     }
 
     const params = {
@@ -126,7 +141,7 @@ class DALLEClient extends EventEmitter {
       prompt: prompt,
       n: Math.min(options.count || 1, model === DALLEModel.DALLE_3 ? 1 : 10),
       size: size,
-      response_format: options.responseFormat || 'b64_json',
+      response_format: options.responseFormat || "b64_json",
     };
 
     // DALL-E 3 specific options
@@ -135,12 +150,12 @@ class DALLEClient extends EventEmitter {
       params.style = options.style || this.config.defaultStyle;
     }
 
-    this.emit('generation-start', { prompt, model });
+    this.emit("generation-start", { prompt, model });
 
     try {
       const startTime = Date.now();
-      const response = await this._fetch('/images/generations', {
-        method: 'POST',
+      const response = await this._fetch("/images/generations", {
+        method: "POST",
         body: JSON.stringify(params),
       });
 
@@ -149,7 +164,7 @@ class DALLEClient extends EventEmitter {
       this.stats.totalGenerations++;
       this._updateCost(model, size, params.n, params.quality);
 
-      this.emit('generation-complete', {
+      this.emit("generation-complete", {
         imageCount: response.data?.length || 0,
         duration,
         model,
@@ -160,8 +175,8 @@ class DALLEClient extends EventEmitter {
         images: (response.data || []).map((img, i) => ({
           data: img.b64_json || null,
           url: img.url || null,
-          format: img.b64_json ? 'base64' : 'url',
-          mimeType: 'image/png',
+          format: img.b64_json ? "base64" : "url",
+          mimeType: "image/png",
           index: i,
           revisedPrompt: img.revised_prompt, // DALL-E 3 may revise prompts
         })),
@@ -170,7 +185,7 @@ class DALLEClient extends EventEmitter {
         revisedPrompt: response.data?.[0]?.revised_prompt,
       };
     } catch (error) {
-      this.emit('generation-error', { error: error.message, model });
+      this.emit("generation-error", { error: error.message, model });
       throw error;
     }
   }
@@ -182,34 +197,38 @@ class DALLEClient extends EventEmitter {
    * @returns {Promise<Object>} Generated variations
    */
   async createVariation(image, options = {}) {
+    assertGovernedMultimodalIngress();
     if (this.config.model !== DALLEModel.DALLE_2) {
-      throw new Error('Variations are only supported by DALL-E 2');
+      throw new Error("Variations are only supported by DALL-E 2");
     }
 
     if (!this.config.apiKey) {
-      throw new Error('DALL-E API key not configured');
+      throw new Error("DALL-E API key not configured");
     }
 
     // Convert base64 to blob for form data
-    const imageBuffer = Buffer.from(image, 'base64');
-    const blob = new Blob([imageBuffer], { type: 'image/png' });
+    const imageBuffer = Buffer.from(image, "base64");
+    const blob = new Blob([imageBuffer], { type: "image/png" });
 
     const formData = new FormData();
-    formData.append('image', blob, 'image.png');
-    formData.append('n', String(options.count || 1));
-    formData.append('size', options.size || '1024x1024');
-    formData.append('response_format', options.responseFormat || 'b64_json');
+    formData.append("image", blob, "image.png");
+    formData.append("n", String(options.count || 1));
+    formData.append("size", options.size || "1024x1024");
+    formData.append("response_format", options.responseFormat || "b64_json");
 
     try {
-      const response = await this._fetchFormData('/images/variations', formData);
+      const response = await this._fetchFormData(
+        "/images/variations",
+        formData,
+      );
 
       return {
         success: true,
         images: (response.data || []).map((img, i) => ({
           data: img.b64_json || null,
           url: img.url || null,
-          format: img.b64_json ? 'base64' : 'url',
-          mimeType: 'image/png',
+          format: img.b64_json ? "base64" : "url",
+          mimeType: "image/png",
           index: i,
         })),
       };
@@ -227,35 +246,44 @@ class DALLEClient extends EventEmitter {
    * @returns {Promise<Object>} Edited image
    */
   async edit(image, prompt, mask, options = {}) {
+    assertGovernedMultimodalIngress();
     if (this.config.model !== DALLEModel.DALLE_2) {
-      throw new Error('Image editing is only supported by DALL-E 2');
+      throw new Error("Image editing is only supported by DALL-E 2");
     }
 
     if (!this.config.apiKey) {
-      throw new Error('DALL-E API key not configured');
+      throw new Error("DALL-E API key not configured");
     }
 
-    const imageBuffer = Buffer.from(image, 'base64');
-    const maskBuffer = Buffer.from(mask, 'base64');
+    const imageBuffer = Buffer.from(image, "base64");
+    const maskBuffer = Buffer.from(mask, "base64");
 
     const formData = new FormData();
-    formData.append('image', new Blob([imageBuffer], { type: 'image/png' }), 'image.png');
-    formData.append('mask', new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
-    formData.append('prompt', prompt);
-    formData.append('n', String(options.count || 1));
-    formData.append('size', options.size || '1024x1024');
-    formData.append('response_format', options.responseFormat || 'b64_json');
+    formData.append(
+      "image",
+      new Blob([imageBuffer], { type: "image/png" }),
+      "image.png",
+    );
+    formData.append(
+      "mask",
+      new Blob([maskBuffer], { type: "image/png" }),
+      "mask.png",
+    );
+    formData.append("prompt", prompt);
+    formData.append("n", String(options.count || 1));
+    formData.append("size", options.size || "1024x1024");
+    formData.append("response_format", options.responseFormat || "b64_json");
 
     try {
-      const response = await this._fetchFormData('/images/edits', formData);
+      const response = await this._fetchFormData("/images/edits", formData);
 
       return {
         success: true,
         images: (response.data || []).map((img, i) => ({
           data: img.b64_json || null,
           url: img.url || null,
-          format: img.b64_json ? 'base64' : 'url',
-          mimeType: 'image/png',
+          format: img.b64_json ? "base64" : "url",
+          mimeType: "image/png",
           index: i,
         })),
       };
@@ -284,14 +312,14 @@ class DALLEClient extends EventEmitter {
     // Approximate pricing (as of 2024)
     const prices = {
       [DALLEModel.DALLE_2]: {
-        '256x256': 0.016,
-        '512x512': 0.018,
-        '1024x1024': 0.020,
+        "256x256": 0.016,
+        "512x512": 0.018,
+        "1024x1024": 0.02,
       },
       [DALLEModel.DALLE_3]: {
-        '1024x1024': { standard: 0.040, hd: 0.080 },
-        '1792x1024': { standard: 0.080, hd: 0.120 },
-        '1024x1792': { standard: 0.080, hd: 0.120 },
+        "1024x1024": { standard: 0.04, hd: 0.08 },
+        "1792x1024": { standard: 0.08, hd: 0.12 },
+        "1024x1792": { standard: 0.08, hd: 0.12 },
       },
     };
 
@@ -319,10 +347,10 @@ class DALLEClient extends EventEmitter {
 
     try {
       const response = await fetch(url, {
-        method: options.method || 'POST',
+        method: options.method || "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`,
           ...options.headers,
         },
         body: options.body,
@@ -340,8 +368,8 @@ class DALLEClient extends EventEmitter {
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout');
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout");
       }
       throw error;
     }
@@ -360,9 +388,9 @@ class DALLEClient extends EventEmitter {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: formData,
         signal: controller.signal,
@@ -379,8 +407,8 @@ class DALLEClient extends EventEmitter {
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout');
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout");
       }
       throw error;
     }
