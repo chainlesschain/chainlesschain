@@ -24,6 +24,7 @@ import { createHash, randomUUID } from "node:crypto";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import { isEvolutionIngressFailure } from "../lib/model-failure-policy.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
@@ -8203,6 +8204,7 @@ async function executeToolInner(
           });
         } catch (err) {
           if (
+            isEvolutionIngressFailure(err) ||
             err?.runtimeLedgerPersistence === true ||
             err?.workflowEffectOutcomeUnknown === true
           ) {
@@ -9523,6 +9525,7 @@ function _backgroundSubAgentResultText(entry) {
 function _throwBackgroundSubAgentUsageFailure(entry) {
   const error = entry?.outcome?.fatalError;
   if (
+    isEvolutionIngressFailure(error) ||
     error?.runtimeLedgerPersistence === true ||
     error?.workflowEffectOutcomeUnknown === true
   ) {
@@ -10473,7 +10476,8 @@ async function _executeSpawnSubAgent(args, ctx) {
           return {
             result: subCtx.result,
             error: err.message,
-            ...(err?.runtimeLedgerPersistence === true ||
+            ...(isEvolutionIngressFailure(err) ||
+            err?.runtimeLedgerPersistence === true ||
             err?.workflowEffectOutcomeUnknown === true
               ? { fatalError: err }
               : {}),
@@ -10608,6 +10612,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     });
 
     if (
+      isEvolutionIngressFailure(err) ||
       err?.runtimeLedgerPersistence === true ||
       err?.workflowEffectOutcomeUnknown === true
     ) {
@@ -15198,7 +15203,11 @@ export async function* agentLoop(messages, options) {
               "tool_error",
             );
           } catch (err) {
-            if (err?.runtimeLedgerPersistence === true) throw err;
+            if (
+              isEvolutionIngressFailure(err) ||
+              err?.runtimeLedgerPersistence === true
+            )
+              throw err;
             toolResult = {
               error: err.message,
               ...(workflowBinding

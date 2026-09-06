@@ -213,6 +213,29 @@ describe("spawn_sub_agent background mode", () => {
     ).rejects.toBe(unknown);
   });
 
+  it.each([false, true])(
+    "propagates wrapped evolution failures without another parent call (background=%s)",
+    async (background) => {
+      const cause = Object.assign(new Error("evidence denied"), {
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      const failure = new Error("child failed", { cause });
+      _subState.autoResolve = (ctx) => ctx._rejectRun(failure);
+      const chatFn = vi.fn(async () => ({
+        message: {
+          content: "",
+          tool_calls: [
+            spawnCall({ role: "reviewer", task: "review", background }),
+          ],
+        },
+      }));
+      const error = await captureRejection(drive(chatFn));
+      expect(error).toBe(failure);
+      expect(chatFn).toHaveBeenCalledOnce();
+      expect(_subState.created).toHaveLength(1);
+    },
+  );
+
   it("fences a background descendant unknown before another parent provider call", async () => {
     const unknown = new Error("background child provider outcome is unknown");
     unknown.workflowEffectOutcomeUnknown = true;

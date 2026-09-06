@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import { agentLoop, buildSystemPrompt, AGENT_TOOLS } from "./agent-core.js";
 import { feature } from "./feature-flags.js";
+import { isEvolutionIngressFailure } from "./model-failure-policy.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 import {
   createWorktree,
@@ -590,7 +591,13 @@ export class SubAgentContext {
       }
       return result;
     } catch (err) {
-      if (err?.runtimeLedgerPersistence === true || this._workflowEffectId) {
+      if (
+        isEvolutionIngressFailure(err) ||
+        err?.runtimeLedgerPersistence === true ||
+        this._workflowEffectId
+      ) {
+        this.status = "failed";
+        this.completedAt = new Date().toISOString();
         throw err;
       }
       // If worktree creation fails (e.g. not a git repo), fall back to direct
@@ -1178,7 +1185,13 @@ export class SubAgentContext {
         throw error;
       }
     } catch (err) {
-      if (err?.runtimeLedgerPersistence === true || this._workflowEffectId) {
+      if (
+        isEvolutionIngressFailure(err) ||
+        err?.runtimeLedgerPersistence === true ||
+        this._workflowEffectId
+      ) {
+        this.status = "failed";
+        this.completedAt = new Date().toISOString();
         throw err;
       }
       if (this.isAborted()) {

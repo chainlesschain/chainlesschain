@@ -1,5 +1,15 @@
 import { isAbortError } from "./abort-utils.js";
 
+export function isEvolutionIngressFailure(error) {
+  const visited = new Set();
+  for (let current = error; current; current = current.cause) {
+    if (visited.has(current) || visited.size >= 32) return true;
+    visited.add(current);
+    if (current.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") return true;
+  }
+  return false;
+}
+
 // Admission failures are not provider outages, even when their causes contain
 // HTTP status codes or retryable/authentication words.
 export function isTerminalModelFailure(error) {

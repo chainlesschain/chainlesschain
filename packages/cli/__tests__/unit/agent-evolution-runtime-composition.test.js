@@ -1454,6 +1454,68 @@ describe("Agent evolution runtime production composition", () => {
     },
   );
 
+  it("stops the parent after a real child response evidence failure", async () => {
+    const f = modelFixture();
+    const issue =
+      f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+    f.config.authorities.sourceEnvelope.issue.mockImplementation(
+      async (input) => {
+        if (input.kind === "response-completed")
+          throw new Error("child response denied");
+        return issue(input);
+      },
+    );
+    f.transport.mockImplementation(async (_url, request) => {
+      f.seen.push(JSON.parse(request.body));
+      return {
+        ok: true,
+        json: async () => ({
+          message:
+            f.seen.length === 1
+              ? {
+                  role: "assistant",
+                  content: "",
+                  tool_calls: [
+                    {
+                      id: "spawn-child",
+                      type: "function",
+                      function: {
+                        name: "spawn_sub_agent",
+                        arguments: {
+                          role: "reviewer",
+                          task: "Review this task",
+                        },
+                      },
+                    },
+                  ],
+                }
+              : { role: "assistant", content: "Child result" },
+        }),
+      };
+    });
+    await f.composition.evolutionIngress.start();
+    await f.composition.evolutionIngress.ingestUserPrompt({
+      content: "Delegate a review",
+    });
+    const run = async () => {
+      for await (const event of coreAgentLoop(
+        [{ role: "user", content: "Delegate a review" }],
+        {
+          ...f.callOptions,
+          cwd: f.root,
+          enabledToolNames: ["spawn_sub_agent"],
+        },
+      )) {
+        await f.composition.evolutionIngress.ingestAgentEvent(event);
+      }
+    };
+    await expect(run()).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(f.transport).toHaveBeenCalledTimes(2);
+    expect(f.composition.loadRun().projection.status).not.toBe("completed");
+  });
+
   function queryMeter(records) {
     return async ({ call, provider, model }) => {
       const metered = await runReplMeteredModelCallWithLedger({
