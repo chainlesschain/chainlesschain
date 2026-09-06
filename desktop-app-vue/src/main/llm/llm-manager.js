@@ -19,6 +19,9 @@ const {
   runDesktopCachedModelWorkflow,
 } = require("../evolution/desktop-model-ingress");
 const modelIngressHosts = new WeakMap();
+const budgetListeners = new WeakMap();
+const providerSwitches = new WeakSet();
+const managerCloseEpochs = new WeakMap();
 
 // Module-level let + seam for vi.mock CJS interop (RFC T1, B3 batch).
 // vi.mock 不拦截 source require()，所有 LLM client/factory 走 _setLLMDepsForTesting 注入。
@@ -133,7 +136,9 @@ class LLMManager extends EventEmitter {
       logger.info("[LLMManager] Token 追踪已启用");
 
       // 🔥 监听预算告警事件
-      this.tokenTracker.on("budget-alert", this._handleBudgetAlert.bind(this));
+      const listener = this._handleBudgetAlert.bind(this);
+      budgetListeners.set(this, { tracker: this.tokenTracker, listener });
+      this.tokenTracker.on("budget-alert", listener);
     }
 
     // 🔥 响应缓存（可选）
@@ -356,19 +361,43 @@ class LLMManager extends EventEmitter {
    */
   async switchProvider(provider, config = {}) {
     logger.info("[LLMManager] 切换提供商:", provider);
-
+    if (providerSwitches.has(this))
+      throw new Error("LLM provider switch already in progress");
+    providerSwitches.add(this);
+    const closeEpoch = managerCloseEpochs.get(this) ?? 0;
+    let candidate;
     try {
-      this.provider = normalizeProvider(provider);
-      this.config = { ...this.config, ...config };
-
-      await this.initialize();
-
+      const nextProvider = normalizeProvider(provider);
+      const nextConfig = { ...this.config, ...config, provider: nextProvider };
+      // Initialize privately; in-flight requests keep the existing client and
+      // readers never observe new settings paired with the previous provider.
+      candidate = createLLMManagerReplacement(this, {
+        ...nextConfig,
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      });
+      await candidate.initialize();
+      if ((managerCloseEpochs.get(this) ?? 0) !== closeEpoch)
+        throw new Error("LLM manager closed during provider switch");
+      this.provider = nextProvider;
+      this.config = nextConfig;
+      this.client = candidate.client;
+      this.toolsClient = candidate.toolsClient;
+      this.isInitialized = candidate.isInitialized;
+      candidate.client = null;
+      candidate.toolsClient = null;
       this.emit("provider-changed", this.provider);
 
       return true;
     } catch (error) {
       logger.error("[LLMManager] 切换提供商失败:", error);
       throw error;
+    } finally {
+      try {
+        if (candidate) await candidate.close();
+      } finally {
+        providerSwitches.delete(this);
+      }
     }
   }
 
@@ -1662,11 +1691,17 @@ class LLMManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
+    managerCloseEpochs.set(this, (managerCloseEpochs.get(this) ?? 0) + 1);
     logger.info("[LLMManager] 关闭LLM管理器");
 
     // 移除 TokenTracker 监听器
-    if (this.tokenTracker) {
-      this.tokenTracker.removeAllListeners("budget-alert");
+    const budgetBinding = budgetListeners.get(this);
+    if (budgetBinding) {
+      budgetBinding.tracker.removeListener(
+        "budget-alert",
+        budgetBinding.listener,
+      );
+      budgetListeners.delete(this);
     }
 
     // L1: 解绑状态总线转发
