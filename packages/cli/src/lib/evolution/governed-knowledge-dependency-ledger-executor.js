@@ -623,6 +623,62 @@ export class GovernedKnowledgeDependencyLedgerExecutor {
     return this._result(settled.record, knowledge, prepared !== null);
   }
 
+  async prepare(knowledgeInput) {
+    if (!EXECUTORS.has(this)) {
+      throw new TypeError(
+        "dependency preparation requires its branded executor",
+      );
+    }
+    const knowledge = verifyGovernedKnowledgeRecord(knowledgeInput, {
+      tenantId: this.descriptor.tenantId,
+    });
+    if (
+      !["tombstone", "revoke"].includes(knowledge.action) ||
+      !isGovernedKnowledgeExecutionRecord(knowledgeInput)
+    ) {
+      throw new TypeError(
+        "dependency preparation requires a governed revocation record",
+      );
+    }
+    const operationDigest = digestGovernedKnowledgeDependencyOperation({
+      tenantId: this.descriptor.tenantId,
+      deviceId: this.descriptor.deviceId,
+      knowledge,
+    });
+    const prepared = await this._prepare(
+      knowledgeInput,
+      knowledge,
+      operationDigest,
+    );
+    if (
+      !prepared ||
+      canonical(prepared.record.knowledge) !== canonical(knowledge)
+    ) {
+      corrupt("dependency prepare was not durably read back");
+    }
+    return freeze({
+      authenticated: true,
+      durable: true,
+      operationDigest,
+      knowledge: clone(prepared.record.knowledge),
+    });
+  }
+
+  readPrepared({ operationDigest } = {}) {
+    if (!EXECUTORS.has(this) || !DIGEST.test(operationDigest ?? "")) {
+      throw new TypeError("prepared dependency operation identity is invalid");
+    }
+    const prepared = this._prepared(operationDigest);
+    return prepared === null
+      ? null
+      : freeze({
+          authenticated: true,
+          durable: true,
+          operationDigest,
+          knowledge: clone(prepared.record.knowledge),
+        });
+  }
+
   async resume({ operationDigest } = {}) {
     if (!EXECUTORS.has(this)) {
       throw new TypeError("dependency recovery requires its branded executor");

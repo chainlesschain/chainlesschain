@@ -420,12 +420,13 @@ export async function openKnowledgeSkillRollbackStore(
     envelopeVerifier: crypto.verifier,
     now: resources.clock,
   });
-  const makeSync = (dependencyExecutor = executor) =>
+  const makeSync = (dependencyExecutor = executor, dependencyPlanner = null) =>
     new GovernedKnowledgeSync({
       tenantId,
       deviceId,
       ports: persisted.syncPorts(crypto),
       dependencyExecutor,
+      dependencyPlanner,
       artifactLifecycle: knowledgeLifecycle(resources, descriptor),
       clock: resources.clock,
     });

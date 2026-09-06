@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { openKnowledgeSkillRollbackStore } from "../fixtures/governed-knowledge-skill-rollback.js";
-import { buildGovernedKnowledgeDependencyInventory } from "../../src/lib/evolution/governed-knowledge-dependency-inventory.js";
+import {
+  GovernedKnowledgeDependencyInventoryPlanner,
+  buildGovernedKnowledgeDependencyInventory,
+} from "../../src/lib/evolution/governed-knowledge-dependency-inventory.js";
 
 const roots = [];
 afterEach(() => {
@@ -74,4 +77,42 @@ it("rejects rollback planning when the last-known-good still has unsafe Wiki lin
       wikiAdapters: [h.wiki.adapter],
     }),
   ).toThrow(/no safe distinct last-known-good/u);
+});
+
+it("durably freezes an authorized plan before effects and recovers it without rescanning", async () => {
+  const h = await setup();
+  const planner = new GovernedKnowledgeDependencyInventoryPlanner({
+    tenantId: h.knowledge.tenantId,
+    candidateRegistry: h.release.candidateRegistry,
+    releaseRegistry: h.release.pruningRollbackOptions.releaseRegistry,
+    wikiAdapters: [h.wiki.adapter],
+  });
+  const draft = { ...h.knowledge };
+  delete draft.dependencies;
+  const firstSync = h.makeSync(h.executor, planner);
+  const planned = await firstSync.planRevocation(draft);
+
+  expect(planned.knowledge.dependencies).toEqual(h.knowledge.dependencies);
+  expect(
+    h.resources.backend.ledger
+      .read()
+      .filter(
+        (event) => event.type === "knowledge.revocation-dependencies.prepared",
+      ),
+  ).toHaveLength(1);
+
+  const recoveredSync = h.makeSync(h.executor, planner);
+  const recovered = await recoveredSync.recoverPlannedRevocation({
+    operationDigest: planned.operationDigest,
+  });
+  expect(recovered).toMatchObject({
+    recovered: true,
+    operationDigest: planned.operationDigest,
+    knowledge: planned.knowledge,
+  });
+  await recoveredSync.publishPlanned(recovered);
+  expect(h.release.readActive().release).toEqual(h.release.baseline);
+  expect(h.wiki.adapter.loadWiki().state.patterns["pat-knowledge"].status).toBe(
+    "tombstoned",
+  );
 });

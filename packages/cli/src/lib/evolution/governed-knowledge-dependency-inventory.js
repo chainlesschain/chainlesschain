@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
+import { types as utilTypes } from "node:util";
 import { captureSkillCandidateRegistryReader } from "./skill-candidate-registry.js";
 import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
+import { verifyGovernedKnowledgeRecord } from "./governed-knowledge-record.js";
 import { governedKnowledgeSourceRef } from "./governed-knowledge-skill-rollback.js";
 import { captureWikiRevisionReader } from "./wiki-maintainer-ledger-adapter.js";
 
@@ -8,6 +10,8 @@ export const GOVERNED_KNOWLEDGE_DEPENDENCY_INVENTORY_SCHEMA =
   "chainlesschain.governed-knowledge-dependency-inventory/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
+const PLANNERS = new WeakMap();
+const PLANS = new WeakMap();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -28,6 +32,25 @@ function freeze(value) {
 
 function fail(message) {
   throw new Error(`knowledge dependency inventory: ${message}`);
+}
+
+function dataRecord(value, label) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError(`${label} must be a plain data object`);
+  }
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (typeof key !== "string" || !Object.hasOwn(descriptor, "value")) {
+      throw new TypeError(`${label} must contain only data properties`);
+    }
+  }
+  return value;
 }
 
 function sameHead(left, right) {
@@ -282,4 +305,84 @@ export function buildGovernedKnowledgeDependencyInventory({
     ...core,
     inventoryDigest: `sha256:${createHash("sha256").update(canonical(core)).digest("hex")}`,
   });
+}
+
+export class GovernedKnowledgeDependencyInventoryPlanner {
+  constructor(options = {}) {
+    const tenantId = options.tenantId;
+    if (typeof tenantId !== "string" || !ID.test(tenantId)) {
+      throw new TypeError("dependency inventory planner tenantId is invalid");
+    }
+    // Capture and validate genuine sources now; the builder rechecks them on
+    // every plan so a substituted object can never inherit this authority.
+    const candidates = captureSkillCandidateRegistryReader(
+      options.candidateRegistry,
+    );
+    const releases = captureSkillReleaseRegistryReader(options.releaseRegistry);
+    const wikiAdapters = Array.isArray(options.wikiAdapters)
+      ? [...options.wikiAdapters]
+      : null;
+    if (
+      candidates.tenantId !== tenantId ||
+      releases.tenantId !== tenantId ||
+      !wikiAdapters ||
+      wikiAdapters.length < 1 ||
+      wikiAdapters.length > 64
+    ) {
+      throw new TypeError("dependency inventory planner sources are invalid");
+    }
+    wikiAdapters.forEach(captureWikiRevisionReader);
+    PLANNERS.set(
+      this,
+      Object.freeze({
+        tenantId,
+        candidateRegistry: options.candidateRegistry,
+        releaseRegistry: options.releaseRegistry,
+        wikiAdapters: Object.freeze(wikiAdapters),
+        candidateDisposition: options.candidateDisposition,
+        wikiDisposition: options.wikiDisposition,
+      }),
+    );
+    Object.freeze(this);
+  }
+
+  plan(input) {
+    const options = PLANNERS.get(this);
+    if (!options)
+      throw new TypeError("a genuine dependency planner is required");
+    dataRecord(input, "knowledge revocation draft");
+    if (
+      !["tombstone", "revoke"].includes(input.action) ||
+      (Object.hasOwn(input, "dependencies") && input.dependencies.length !== 0)
+    ) {
+      throw new TypeError(
+        "revocation draft must not supply its own dependency plan",
+      );
+    }
+    const inventory = buildGovernedKnowledgeDependencyInventory({
+      ...options,
+      knowledgeId: input.knowledgeId,
+      contentDigest: input.contentDigest,
+    });
+    const knowledge = verifyGovernedKnowledgeRecord(
+      { ...structuredClone(input), dependencies: inventory.dependencies },
+      { tenantId: options.tenantId },
+    );
+    const result = freeze({ inventory, knowledge });
+    PLANS.set(result, this);
+    return result;
+  }
+}
+
+Object.freeze(GovernedKnowledgeDependencyInventoryPlanner.prototype);
+
+export function isGovernedKnowledgeDependencyInventoryPlanner(value) {
+  return PLANNERS.has(value);
+}
+
+export function captureGovernedKnowledgeDependencyInventoryPlan(planner, plan) {
+  if (!PLANNERS.has(planner) || PLANS.get(plan) !== planner) {
+    throw new TypeError("a genuine dependency inventory plan is required");
+  }
+  return plan;
 }

@@ -3,6 +3,10 @@ import { types as utilTypes } from "node:util";
 
 import { isGovernedKnowledgeDependencyExecutor } from "./governed-knowledge-dependency-ledger-executor.js";
 import { isGovernedKnowledgeArtifactLifecycle } from "./governed-knowledge-artifact-lifecycle.js";
+import {
+  captureGovernedKnowledgeDependencyInventoryPlan,
+  isGovernedKnowledgeDependencyInventoryPlanner,
+} from "./governed-knowledge-dependency-inventory.js";
 
 import {
   GOVERNED_KNOWLEDGE_SCOPE,
@@ -28,6 +32,7 @@ const ACTIONS = new Set(["upsert", "tombstone", "revoke"]);
 const MAX_CIPHERTEXT_BYTES = 12 * 1024 * 1024;
 const EXECUTION_RECORDS = new WeakSet();
 const SYNCHRONIZERS = new WeakSet();
+const PLANNED_REVOCATIONS = new WeakMap();
 const ENVELOPE_KEYS = new Set([
   "action",
   "ciphertext",
@@ -244,6 +249,7 @@ export class GovernedKnowledgeSync {
     deviceId,
     ports,
     dependencyExecutor = null,
+    dependencyPlanner = null,
     artifactLifecycle,
     clock = () => Date.now(),
   } = {}) {
@@ -282,7 +288,101 @@ export class GovernedKnowledgeSync {
     this._executeDependencies = dependencyExecutor
       ? capture(dependencyExecutor, "execute")
       : null;
+    if (
+      dependencyPlanner !== null &&
+      (!isGovernedKnowledgeDependencyInventoryPlanner(dependencyPlanner) ||
+        dependencyExecutor === null)
+    ) {
+      throw new TypeError(
+        "dependencyPlanner requires a branded inventory planner and executor",
+      );
+    }
+    this._dependencyPlanner = dependencyPlanner;
+    this._planDependencies = dependencyPlanner
+      ? capture(dependencyPlanner, "plan")
+      : null;
+    this._prepareDependencies = dependencyPlanner
+      ? capture(dependencyExecutor, "prepare")
+      : null;
+    this._readPreparedDependencies = dependencyPlanner
+      ? capture(dependencyExecutor, "readPrepared")
+      : null;
     SYNCHRONIZERS.add(this);
+  }
+
+  async planRevocation(input) {
+    if (!this._planDependencies) {
+      throw new Error("knowledge dependency inventory planner is unavailable");
+    }
+    const planned = this._planDependencies(input);
+    captureGovernedKnowledgeDependencyInventoryPlan(
+      this._dependencyPlanner,
+      planned,
+    );
+    const knowledge = normalizeRecord(planned.knowledge, this, {
+      executionRecord: true,
+    });
+    if (knowledge.scope === "personal") {
+      throw new Error("personal knowledge cannot enter a shared sync channel");
+    }
+    await this._admit("publish", knowledge);
+    const prepared = await this._prepareDependencies(knowledge);
+    if (
+      prepared?.authenticated !== true ||
+      prepared.durable !== true ||
+      !DIGEST.test(prepared.operationDigest ?? "") ||
+      canonical(prepared.knowledge) !== canonical(knowledge)
+    ) {
+      throw new Error("knowledge dependency plan was not durably prepared");
+    }
+    const result = freeze({
+      inventory: planned.inventory,
+      knowledge,
+      operationDigest: prepared.operationDigest,
+      recovered: false,
+    });
+    PLANNED_REVOCATIONS.set(result, this);
+    return result;
+  }
+
+  async recoverPlannedRevocation({ operationDigest } = {}) {
+    if (
+      !this._readPreparedDependencies ||
+      !DIGEST.test(operationDigest ?? "")
+    ) {
+      throw new TypeError(
+        "planned revocation recovery is unavailable or invalid",
+      );
+    }
+    const prepared = this._readPreparedDependencies({ operationDigest });
+    if (
+      prepared?.authenticated !== true ||
+      prepared.durable !== true ||
+      prepared.operationDigest !== operationDigest
+    ) {
+      throw new Error("prepared knowledge revocation was not found");
+    }
+    const knowledge = normalizeRecord(prepared.knowledge, this, {
+      executionRecord: true,
+    });
+    await this._admit("publish", knowledge);
+    const result = freeze({
+      inventory: null,
+      knowledge,
+      operationDigest,
+      recovered: true,
+    });
+    PLANNED_REVOCATIONS.set(result, this);
+    return result;
+  }
+
+  async publishPlanned(plan, options = {}) {
+    if (PLANNED_REVOCATIONS.get(plan) !== this) {
+      throw new TypeError(
+        "a revocation plan prepared by this sync is required",
+      );
+    }
+    return this.publishWithArtifactEvidence(plan.knowledge, options);
   }
 
   async publish(input, options = {}) {
