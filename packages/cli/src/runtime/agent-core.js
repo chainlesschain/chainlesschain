@@ -17,6 +17,7 @@
 import fs from "fs";
 import path from "path";
 import { buildReadFilePage } from "../lib/read-file-page.js";
+import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
@@ -13706,8 +13707,22 @@ export async function* agentLoop(messages, options) {
   // one-shot guard means a model that keeps returning empty turns completes
   // rather than looping forever (the iteration budget is the hard backstop).
   let emptyThinkingReprompted = false;
+  const readFileLoopGuard = new ReadFileLoopGuard();
 
   while (budget.hasRemaining()) {
+    readFileLoopGuard.finishBatch();
+    if (readFileLoopGuard.stalled) {
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      yield* _drainSubAgentUsage(subAgentUsageSink);
+      const error = new Error(
+        "Repeated unchanged file reads: stopped after three tool batches made no new reading progress, including a recovery attempt. The task is not complete. Continue with a different file section or a targeted search.",
+      );
+      error.code = "CC_AGENT_REPEATED_FILE_READ";
+      throw error;
+    }
     if (typeof toolContext.sessionBudget?.consumeTurn === "function") {
       const turnBudgetId = `turn:${createHash("sha256")
         .update(`${runId}:t${budget.consumed + 1}`, "utf8")
@@ -14261,6 +14276,13 @@ export async function* agentLoop(messages, options) {
     // system-message supplement that is NOT persisted to messages history.
     let callMessages = messages;
     const contextMemoryTrustedSystemIndexes = [];
+    if (readFileLoopGuard.recoveryHint) {
+      callMessages = [
+        ...callMessages,
+        { role: "system", content: readFileLoopGuard.recoveryHint },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
     if (!hermeticExecution && typeof options.prepareCall === "function") {
       try {
         const hook = await options.prepareCall({
@@ -14274,7 +14296,7 @@ export async function* agentLoop(messages, options) {
           hook.systemSuffix
         ) {
           callMessages = [
-            ...messages,
+            ...callMessages,
             { role: "system", content: hook.systemSuffix },
           ];
           contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
@@ -14665,6 +14687,7 @@ export async function* agentLoop(messages, options) {
 
     // Add assistant message with tool calls
     messages.push(msg);
+    readFileLoopGuard.startBatch(toolCalls.length);
 
     // Concurrent READ-ONLY batch (latency optimization). When every call in the
     // turn is a well-formed read-only built-in (pure fs/DB reads — no mutation,
@@ -14773,6 +14796,7 @@ export async function* agentLoop(messages, options) {
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
+        readFileLoopGuard.record(call.function.name, toolResult);
         const failed = emitToolHookLifecycle({
           tool: call.function.name,
           args: toolArgs,
@@ -15243,6 +15267,7 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
+        readFileLoopGuard.record(toolName, toolResult);
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
           : resultStr;
