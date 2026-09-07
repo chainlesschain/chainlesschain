@@ -192,6 +192,7 @@
         "desktop-app-vue/src/main/llm/instinct-manager.js",
         "desktop-app-vue/src/main/llm/llm-ipc.js",
         "desktop-app-vue/src/main/llm/llm-ipc-core.js",
+        "desktop-app-vue/src/main/llm/llm-ipc-selector.js",
         "desktop-app-vue/src/main/llm/llm-manager.js",
         "desktop-app-vue/src/main/llm/memory-augmented-generation.js",
         "desktop-app-vue/src/main/llm/memory-file-watcher.js",
