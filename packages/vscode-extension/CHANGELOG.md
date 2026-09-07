@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.89] - Downloaded webpage chunks and visible fetch errors (2026-09-07)
+
+- Recommend CLI `0.166.33` for large-page downloads and local snapshot paging.
+- Support keyword web discovery, local saved-page search and long-file match
+  navigation through the CLI, with clear tool traces and protected read boundaries.
+- Show the actual tool error, error code and recovery guidance in chat instead
+  of only a generic `web_fetch failed` or `run_shell failed` line.
+- Read subsequent webpage chunks from the downloaded snapshot without
+  repeating remote requests; distinguish partial downloads from complete pages.
+
 ## [0.37.87] - Page-first workspaces and custom LLM connections (2026-09-07)
 
 - Recommend CLI `0.166.30` for atomic custom-connection configuration and

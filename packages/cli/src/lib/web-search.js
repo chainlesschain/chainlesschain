@@ -15,7 +15,7 @@ import http from "http";
 import https from "https";
 import { URL } from "url";
 
-const DEFAULT_MAX_BYTES = 2_000_000;
+const DEFAULT_MAX_BYTES = 10_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RESULTS = 8;
 export const MAX_WEB_SEARCH_RESULTS = 20;
@@ -98,6 +98,15 @@ function _request(
   const parsed = new URL(urlStr);
   const lib = parsed.protocol === "https:" ? _deps.https : _deps.http;
   return new Promise((resolve, reject) => {
+    let timer;
+    let settled = false;
+    const settle = (error, result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(result);
+    };
     const req = lib.request(
       {
         method,
@@ -113,28 +122,66 @@ function _request(
         timeout,
       },
       (res) => {
+        if (res.statusCode >= 400) {
+          settle(
+            Object.assign(new Error(`HTTP ${res.statusCode}`), {
+              code: "ERR_HTTP_STATUS",
+              statusCode: res.statusCode,
+              retryAfter: res.headers?.["retry-after"],
+            }),
+          );
+          res.destroy?.();
+          req.destroy();
+          return;
+        }
         const chunks = [];
         let size = 0;
         res.on("data", (chunk) => {
+          if (settled) return;
           size += chunk.length;
           if (size > maxBytes) {
-            req.destroy(new Error(`response exceeds maxBytes (${maxBytes})`));
+            settle(
+              Object.assign(
+                new Error(`response exceeds maxBytes (${maxBytes})`),
+                {
+                  code: "ERR_RESPONSE_TOO_LARGE",
+                },
+              ),
+            );
+            res.destroy?.();
+            req.destroy();
             return;
           }
           chunks.push(chunk);
         });
         res.on("end", () =>
-          resolve({
+          settle(null, {
             statusCode: res.statusCode,
             headers: res.headers,
             body: Buffer.concat(chunks).toString("utf8"),
           }),
         );
-        res.on("error", reject);
+        res.on("error", (error) => settle(error));
+        res.on("aborted", () =>
+          settle(
+            Object.assign(new Error("response aborted"), {
+              code: "ECONNRESET",
+            }),
+          ),
+        );
       },
     );
-    req.on("error", reject);
-    req.on("timeout", () => req.destroy(new Error("request timeout")));
+    const abortTimeout = () => {
+      settle(
+        Object.assign(new Error("request timeout"), { code: "ETIMEDOUT" }),
+      );
+      req.destroy();
+    };
+    req.on("error", (error) => settle(error));
+    req.on("timeout", abortTimeout);
+    // An overall deadline also bounds DNS and continuously streaming results.
+    timer = setTimeout(abortTimeout, timeout);
+    timer.unref?.();
     if (body != null) req.write(body);
     req.end();
   });
@@ -285,6 +332,19 @@ async function _searchDuckDuckGo(query, { maxResults, timeout, maxBytes }) {
     return { error: `duckduckgo HTTP ${res.statusCode}` };
   }
   const html = res.body;
+  if (
+    res.statusCode === 202 ||
+    (res.statusCode >= 300 && res.statusCode < 400) ||
+    /anomaly-modal|challenge-form|anomaly\.js|captcha/i.test(html)
+  ) {
+    return {
+      error:
+        "duckduckgo: verification challenge; search results are unavailable",
+      code: "ERR_SEARCH_CHALLENGE",
+      retryable: false,
+      hint: "Do not report this as no results or repeat the same request. Configure a keyed search provider (Tavily, Brave, Bocha or Qianfan), or use your configured SearXNG instance.",
+    };
+  }
   const results = [];
   const anchorRe =
     /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
@@ -453,8 +513,26 @@ export async function webSearch(query, options = {}) {
   const config = options.config || {};
   const provider = resolveProvider(options, config);
   let maxResults = normalizeMaxResults(options.maxResults ?? config.maxResults);
-  const timeout = Number(options.timeout) || DEFAULT_TIMEOUT_MS;
-  const maxBytes = Number(options.maxBytes) || DEFAULT_MAX_BYTES;
+  const timeout = options.timeout ?? config.timeout ?? DEFAULT_TIMEOUT_MS;
+  const maxBytes = options.maxBytes ?? config.maxBytes ?? DEFAULT_MAX_BYTES;
+  const maxSnippetChars =
+    options.maxSnippetChars ?? config.maxSnippetChars ?? 2000;
+  if (
+    !Number.isSafeInteger(timeout) ||
+    timeout <= 0 ||
+    timeout > 2_147_483_647 ||
+    !Number.isSafeInteger(maxBytes) ||
+    maxBytes <= 0 ||
+    !Number.isSafeInteger(maxSnippetChars) ||
+    maxSnippetChars <= 0 ||
+    maxSnippetChars > 10000
+  ) {
+    return {
+      error: "web_search: invalid download, snippet or timeout limit",
+      code: "ERR_SEARCH_OPTIONS",
+      retryable: false,
+    };
+  }
 
   if (!SUPPORTED_PROVIDERS.includes(provider)) {
     return {
@@ -533,17 +611,47 @@ export async function webSearch(query, options = {}) {
       return {
         error: `web_search (${provider}) failed: ${err.message}`,
         provider,
+        code: err.code || "ERR_WEB_SEARCH",
+        ...(err.statusCode ? { statusCode: err.statusCode } : {}),
+        ...(err.retryAfter ? { retryAfter: String(err.retryAfter) } : {}),
+        retryable:
+          err.statusCode === 429 ||
+          err.statusCode >= 500 ||
+          ["ETIMEDOUT", "ECONNRESET", "EAI_AGAIN"].includes(err.code),
+        hint:
+          err.code === "ERR_RESPONSE_TOO_LARGE"
+            ? "Search response exceeds maxBytes. Raise maxBytes for a larger download; use maxResults and maxSnippetChars to limit returned results, not maxBytes."
+            : err.statusCode === 429
+              ? "Honor Retry-After before a bounded retry. Do not repeat the same search immediately."
+              : "Check the search provider's configuration, API key and connectivity. Do not treat a provider failure as no results or invent source URLs.",
       };
     }
 
     if (out && out.error) return { ...out, provider };
-    const results = (out && out.results) || [];
+    let truncated = false;
+    const bound = (value, limit) => {
+      const text = String(value || "");
+      if (text.length <= limit) return text;
+      truncated = true;
+      return text.slice(
+        0,
+        /[\uD800-\uDBFF]/.test(text[limit - 1]) ? limit - 1 : limit,
+      );
+    };
+    const results = ((out && out.results) || []).map((result) => ({
+      ...result,
+      title: bound(result.title, 512),
+      snippet: bound(result.snippet, maxSnippetChars),
+    }));
+    const answer = bound(out?.answer, 8000);
     return {
       query: q,
       provider,
       count: results.length,
       results,
-      answer: (out && out.answer) || "",
+      answer,
+      ...(truncated ? { truncated: true, maxSnippetChars } : {}),
+      hint: "These are search results, not full webpages. Cite the returned source URLs. Use web_fetch only when a page needs closer reading; download it once, then continue with snapshotId and nextOffset as offset.",
     };
   } finally {
     toolLease?.release();

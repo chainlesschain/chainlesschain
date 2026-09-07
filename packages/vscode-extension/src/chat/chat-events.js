@@ -35,6 +35,10 @@ function summarizeToolArgs(args, tool) {
     "";
   const str = String(s);
   const summary = str.length > 80 ? str.slice(0, 80) + "…" : str;
+  if (tool === "web_fetch" && args.query && args.snapshotId)
+    return `${String(args.query).slice(0, 80)} (saved-page search)`;
+  if (tool === "search_files" && args.path)
+    return `${summary} (search: ${String(args.pattern || "").slice(0, 80)})`;
   if (tool === "read_file") {
     const positive = (value) => {
       const n = Number.parseInt(value, 10);
@@ -47,6 +51,18 @@ function summarizeToolArgs(args, tool) {
       const start = offset || 1;
       return `${summary} (lines ${start}${limit ? `-${start + limit - 1}` : "+"}${column ? `, column ${column}` : ""})`;
     }
+  }
+  if (
+    tool === "web_fetch" &&
+    (args.snapshotId || args.offset != null || args.maxChars != null)
+  ) {
+    const offset =
+      Number.isSafeInteger(args.offset) && args.offset >= 0 ? args.offset : 0;
+    const limit =
+      Number.isSafeInteger(args.maxChars) && args.maxChars > 0
+        ? args.maxChars
+        : 20000;
+    return `${summary} (chars ${offset}-${offset + limit - 1}${args.snapshotId ? ", saved page" : ""})`;
   }
   return summary;
 }
@@ -158,13 +174,26 @@ function mapAgentEvent(evt, state) {
           ? evt.error
           : evt.result && typeof evt.result.error === "string"
             ? evt.result.error
-            : null;
+            : evt.error?.message || evt.result?.error?.message || null;
       const benign =
         errText === "user_not_reachable" || errText === "user_timeout";
       return {
         kind: "tool_done",
         tool: evt.tool || "?",
         isError: evt.is_error === true && !benign,
+        ...(evt.is_error === true && !benign
+          ? {
+              ...(typeof errText === "string" && errText
+                ? { error: errText.slice(0, 1200) }
+                : {}),
+              ...(typeof evt.result?.code === "string"
+                ? { errorCode: evt.result.code.slice(0, 120) }
+                : {}),
+              ...(typeof evt.result?.hint === "string"
+                ? { hint: evt.result.hint.slice(0, 1200) }
+                : {}),
+            }
+          : {}),
         note: benign
           ? evt.tool === "ask_user_question"
             ? "couldn't ask interactively in the panel — proceeding autonomously"

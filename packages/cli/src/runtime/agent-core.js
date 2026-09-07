@@ -1097,6 +1097,8 @@ Key behaviors:
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use search_files to locate relevant sections, then read_file with offset/limit. Follow nextRead for large files. Reuse unchanged content already in context instead of repeatedly reading the same page; re-read when the file changes or the earlier content is no longer available.
+- For long text files, use search_files with path and pattern to find matching lines/columns and nearby text; read the returned nextRead location instead of paging from the top.
+- For online discovery without a known URL, use web_search with keywords. Return relevant source links and snippets; use web_fetch only when the source needs closer reading. For a known URL, fetch it directly. Download large pages once, then use snapshotId to search or read local chunks. Never invent URLs or claim a blocked search returned no results.
 - Large task documents include a sampled outline with line numbers. Use it to locate relevant unfinished work and inspect those sections instead of scanning the entire document unless the task requires full coverage. File coverage and excerpts survive compaction; reading to EOF is not completing the user's task.
 - For task counts or completion status, search the named document for the latest status/summary table first, then read that section. Distinguish historical entries from current status and repository work from external acceptance. Once the relevant entries are verified, answer; do not read every implementation detail just to count tasks.
 - Before renaming or changing a symbol, use code_intelligence (action: references/definition) to find every real usage instead of guessing with text search. It degrades to "unavailable" when no language server is installed — fall back to search_files then.
@@ -1704,6 +1706,8 @@ function agentFileToolPathRequests(name, args = {}, workspaceRoots = []) {
         },
       ];
     case "search_files":
+      if (typeof args.path === "string" && args.path.length > 0)
+        return one("path", "read");
       return typeof args.directory === "string" && args.directory.length > 0
         ? [
             {
@@ -7076,6 +7080,14 @@ async function executeToolInner(
         const result = await webFetch(args.url, {
           format: args.format,
           maxBytes: args.maxBytes,
+          maxChars: args.maxChars,
+          onOverflow: args.onOverflow,
+          snapshotId: args.snapshotId,
+          query: args.query,
+          maxMatches: args.maxMatches,
+          contextChars: args.contextChars,
+          caseSensitive: args.caseSensitive,
+          offset: args.offset,
           timeout: args.timeout,
           config: webFetchConfig,
           hostResourceBudget,
@@ -7104,6 +7116,8 @@ async function executeToolInner(
         const result = await webSearch(args.query, {
           provider: args.provider,
           maxResults: args.maxResults,
+          maxBytes: args.maxBytes,
+          maxSnippetChars: args.maxSnippetChars,
           timeout: args.timeout,
           config: webSearchConfig,
           hostResourceBudget,
@@ -7660,6 +7674,36 @@ async function executeToolInner(
     }
 
     case "search_files": {
+      if (typeof args.path === "string" && args.path.length > 0) {
+        const file = path.resolve(cwd, args.path);
+        const { credentialFileReason } =
+          await import("../lib/credential-guard.js");
+        const reason =
+          credentialFileReason(file) ||
+          (fs.existsSync(file)
+            ? credentialFileReason(fs.realpathSync(file))
+            : null);
+        if (reason)
+          return attachDescriptor({
+            error:
+              "Credential file content is protected; use read_file with confirmation",
+            code: "ERR_CREDENTIAL_FILE",
+          });
+        const { searchTextFile } = await import("../lib/text-file-search.js");
+        const result = await searchTextFile(file, args);
+        return attachDescriptor({
+          ...result,
+          path: file,
+          ...(result.matches
+            ? {
+                matches: result.matches.map((match) => ({
+                  ...match,
+                  nextRead: { path: args.path, ...match.nextRead },
+                })),
+              }
+            : {}),
+        });
+      }
       // An explicit directory scopes the search to one root; otherwise span
       // cwd plus any --add-dir roots so cross-package searches find matches.
       const extraRoots = Array.isArray(additionalDirectories)

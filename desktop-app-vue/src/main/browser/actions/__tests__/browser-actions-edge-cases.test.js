@@ -153,29 +153,37 @@ describe("NetworkInterceptor Edge Cases", () => {
 });
 
 describe("VisionAction Edge Cases", () => {
-  it("analyze throws when no LLM service configured", async () => {
+  it("analyze rejects before capture when no governed multimodal ingress is configured", async () => {
     const vision = new VisionAction(mockEngine, null);
 
-    await expect(vision.analyze("tab1", "describe this page")).rejects.toThrow(
-      "LLM Service not configured",
-    );
+    await expect(
+      vision.analyze("tab1", "describe this page"),
+    ).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
   });
 
-  it("analyze returns cached result within TTL", async () => {
+  it("analyze cannot bypass governed ingress with a cached legacy result", async () => {
     const mockLLM = {
       chat: vi.fn().mockResolvedValue({ text: '{"description": "test page"}' }),
     };
     const vision = new VisionAction(mockEngine, mockLLM);
 
-    const first = await vision.analyze("tab1", "describe this");
-    const second = await vision.analyze("tab1", "describe this");
-
-    // LLM should only be called once; second call uses cache
-    expect(mockLLM.chat).toHaveBeenCalledTimes(1);
-    expect(second).toEqual(first);
+    vision.analysisCache.set("tab1:describe this", {
+      timestamp: Date.now(),
+      result: { success: true, analysis: "legacy cached analysis" },
+    });
+    await expect(vision.analyze("tab1", "describe this")).rejects.toMatchObject(
+      {
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      },
+    );
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
+    expect(mockLLM.chat).not.toHaveBeenCalled();
   });
 
-  it("locateElement handles LLM returning malformed JSON", async () => {
+  it("locateElement rejects an ordinary LLM service before receiving any response", async () => {
     const mockLLM = {
       chat: vi
         .fn()
@@ -183,12 +191,13 @@ describe("VisionAction Edge Cases", () => {
     };
     const vision = new VisionAction(mockEngine, mockLLM);
 
-    const result = await vision.locateElement("tab1", "red button");
-
-    // Should gracefully return a not-found result instead of throwing
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("Failed to parse element location");
-    expect(result.rawResponse).toBeDefined();
+    await expect(
+      vision.locateElement("tab1", "red button"),
+    ).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
+    expect(mockLLM.chat).not.toHaveBeenCalled();
   });
 
   it("clearCache empties the analysis cache", async () => {
@@ -197,14 +206,24 @@ describe("VisionAction Edge Cases", () => {
     };
     const vision = new VisionAction(mockEngine, mockLLM);
 
-    await vision.analyze("tab1", "describe this");
+    // Legacy cache entries may still exist, but new ungoverned analysis must
+    // not create or repopulate them after the multimodal ingress cutover.
+    vision.analysisCache.set("tab1:describe this", {
+      timestamp: Date.now(),
+      result: { success: true, analysis: "cached" },
+    });
     expect(vision.analysisCache.size).toBe(1);
 
     vision.clearCache();
     expect(vision.analysisCache.size).toBe(0);
 
-    // Next call should hit LLM again
-    await vision.analyze("tab1", "describe this");
-    expect(mockLLM.chat).toHaveBeenCalledTimes(2);
+    await expect(vision.analyze("tab1", "describe this")).rejects.toMatchObject(
+      {
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      },
+    );
+    expect(vision.analysisCache.size).toBe(0);
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
+    expect(mockLLM.chat).not.toHaveBeenCalled();
   });
 });

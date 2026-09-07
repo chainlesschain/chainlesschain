@@ -377,7 +377,25 @@ chainlesschain agent --provider openai  # Reads the stored credential
 
 Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
 
-`web_fetch` supports Node's multi-address DNS lookup and bounds the entire request, including redirects and streaming bodies. HTTP/network failures include an error code, retry guidance and rate-limit backoff when available. Repeated failed fetches or unchanged GitHub Actions logs trigger recovery after three no-progress observations: the repeating tool is omitted for one model turn and bounded evidence survives context compaction. Six no-progress observations after recovery stop the loop with `CC_AGENT_REPEATED_REMOTE_READ`; this is an incomplete task, not success. For CI investigation, retrieve the specific job's `gh run view --log-failed` output once and search the saved log. Status queries, new jobs and changed log contents remain available.
+**Search first, then read the relevant source.** Use `web_search` with keywords when no URL is known. It returns source links and bounded snippets (`maxResults`, default 8; `maxSnippetChars`, default 2000). The configured provider is respected; `auto` selects an available API key or keyless DuckDuckGo. Captcha, authentication, rate-limit and network failures are errors, never a claim that no sources exist. Configure `.chainlesschain/config.json:webSearch` with an available provider if keyless search is blocked.
+
+**Download once, read or search locally.** `web_fetch` downloads the page, extracts text, saves a local snapshot, and returns the first chunk (`maxChars`, default 20000). Continue with the original URL, format, `snapshotId` and returned `nextOffset` as `offset`; later reads need no network access. Pass a literal `query` with `snapshotId` to search the saved page, then pass a hit's `nextRead` arguments to `web_fetch` to inspect it. Snapshots are process-local, expire after 30 minutes, and are bounded by 32 entries / 128 MB of UTF-16 disk storage; eviction or expiry returns an explicit error. Normal process exit removes them.
+
+```json
+{"url":"https://example.com/large-document","maxChars":5000}
+{"url":"https://example.com/large-document","snapshotId":"<returned-id>","offset":5000,"maxChars":5000}
+{"url":"https://example.com/large-document","snapshotId":"<returned-id>","query":"error","maxMatches":10}
+```
+
+The default raw download budget is 10 MB (`maxBytes: 10000000`), separate from returned text length. Above that, text pages return a marked prefix (`downloadTruncated: true`) that can still be saved, searched and paged. Raise `maxBytes` explicitly for the missing remainder, or use a focused source/API endpoint. Incomplete downloads never enter the complete-response memory cache, and unfinished scripts/styles are excluded. `onOverflow: "error"` requires a complete download; JSON always requires completeness and remains a typed value. To page a JSON document, use `format: "text"`. `totalChars` describes only the downloaded portion after extraction, not the complete remote resource. Exceeding snapshot storage returns a clear resource-limit error; no partial result is presented as complete.
+
+**Locate sections in long local files.** `search_files` with `path` and `pattern` streams one text file and returns line/column positions, surrounding text, and `nextRead` arguments for `read_file`. It handles huge single lines using overlapping windows, supports case sensitivity, and pages matches with `nextOffset`. Literal queries up to 2048 characters match across window boundaries. Optional `regex: true` runs in a time-limited worker over overlapping 64K windows; long cross-window regex matches are not guaranteed, so use a literal anchor and inspect the section. Credential and workspace-path guards remain enforced.
+
+```json
+{"path":"logs/build.log","pattern":"FAIL","maxMatches":10,"contextChars":150}
+```
+
+HTTP/network failures include error codes and recovery guidance, which IDE chat displays. Repeated failed downloads or unchanged GitHub Actions logs trigger recovery after three no-progress observations and stop after six if recovery fails; the task remains incomplete. Forward snapshot pages are progress even when their text is identical. For CI investigation, retrieve a completed job's log once (for example `gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs`), save it and search locally. Status queries, new jobs and changed log contents remain available.
 
 **Agent slash commands (49 built-in)** — type `/` for TAB completion, `/help` for the in-session list. Full reference: [cli-agent-mode](https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html).
 

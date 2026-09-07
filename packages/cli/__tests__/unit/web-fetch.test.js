@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
+import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 import {
   isPrivateHost,
   checkAllowed,
@@ -260,6 +261,17 @@ describe("web-fetch — webFetch() against local server", () => {
         res.on("close", () => clearInterval(timer));
       } else if (req.url === "/large") {
         res.end("x".repeat(2000));
+      } else if (req.url === "/large-page") {
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(
+          `<html><script>${"x".repeat(5_000_000)}</script><h1>Large page</h1><p>${"正文🙂".repeat(10_000)}</p></html>`,
+        );
+      } else if (req.url === "/over-default-limit") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("x".repeat(12_000_000));
+      } else if (req.url === "/json-string") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify("a complete JSON string"));
       } else {
         res.writeHead(404);
         res.end();
@@ -353,12 +365,183 @@ describe("web-fetch — webFetch() against local server", () => {
   it("returns a structured size failure", async () => {
     const result = await webFetch(`http://127.0.0.1:${port}/large`, {
       maxBytes: 100,
+      onOverflow: "error",
       config: { allowPrivateHosts: true },
     });
     expect(result).toMatchObject({
       code: "ERR_RESPONSE_TOO_LARGE",
       retryable: false,
+      maxBytes: 100,
+      suggestedMaxBytes: 10_000_000,
     });
+    expect(result.receivedBytes).toBeGreaterThan(100);
+    expect(result.hint).toContain("maxChars");
+  });
+
+  it("reads a 5 MB HTML page with the defaults and bounds extracted text", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/large-page`, {
+      config: { allowPrivateHosts: true },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.statusCode).toBe(200);
+    expect(result.bytes).toBeGreaterThan(5_000_000);
+    expect(result.content).toMatch(/^# Large page/);
+    expect(result.content).not.toContain("xxx");
+    expect(result.content.length).toBeLessThanOrEqual(20_000);
+    expect(result.totalChars).toBeGreaterThan(20_000);
+    expect(result.truncated).toBe(true);
+  });
+
+  it("uses maxChars after extraction without lowering the raw download budget", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/large-page`, {
+      maxChars: 12,
+      config: { allowPrivateHosts: true },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.content).toBe("# Large page");
+    expect(result.truncated).toBe(true);
+    expect(result.totalChars).toBeGreaterThan(40_000);
+  });
+
+  it("honors explicit download limits and supports pages above 10 MB when raised", async () => {
+    const url = `http://127.0.0.1:${port}/over-default-limit`;
+    const config = { allowPrivateHosts: true };
+    const partial = await webFetch(url, { config, maxChars: 100 });
+    expect(partial.error).toBeUndefined();
+    expect(partial).toMatchObject({
+      bytes: 10_000_000,
+      downloadTruncated: true,
+      truncated: true,
+      maxBytes: 10_000_000,
+      content: "x".repeat(100),
+    });
+    expect(partial.hint).toMatch(/increase maxBytes/i);
+    const blocked = await webFetch(url, { config, onOverflow: "error" });
+    expect(blocked).toMatchObject({
+      code: "ERR_RESPONSE_TOO_LARGE",
+      maxBytes: 10_000_000,
+    });
+    const result = await webFetch(url, {
+      config,
+      maxBytes: 13_000_000,
+      maxChars: 100,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.bytes).toBe(12_000_000);
+    expect(result.totalChars).toBe(12_000_000);
+    expect(result.content).toBe("x".repeat(100));
+    expect(result.truncated).toBe(true);
+    expect(result.downloadTruncated).toBeUndefined();
+  });
+
+  it("keeps short-output cache entries separate from requests for more text", async () => {
+    const hostResourceBudget = new HostResourceBudget();
+    const options = {
+      config: { allowPrivateHosts: true },
+      hostResourceBudget,
+      maxChars: 1,
+    };
+    const url = `http://127.0.0.1:${port}/hello`;
+    const short = await webFetch(url, options);
+    const cached = await webFetch(url, options);
+    const longer = await webFetch(url, { ...options, maxChars: 100 });
+    expect(short).toMatchObject({ content: "#", truncated: true });
+    expect(cached).toMatchObject({
+      content: "#",
+      truncated: true,
+      cached: true,
+    });
+    expect(longer.cached).toBeUndefined();
+    expect(longer).toMatchObject({
+      content: "# Hi\n\nWorld",
+      truncated: false,
+    });
+  });
+
+  it.each(["text", "html"])(
+    "bounds %s output without a fetch failure",
+    async (format) => {
+      const result = await webFetch(`http://127.0.0.1:${port}/hello`, {
+        format,
+        maxChars: 3,
+        config: { allowPrivateHosts: true },
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.content).toHaveLength(3);
+      expect(result.truncated).toBe(true);
+    },
+  );
+
+  it.each(["/json", "/json-string"])(
+    "preserves JSON values with a small maxChars: %s",
+    async (endpoint) => {
+      const result = await webFetch(`http://127.0.0.1:${port}${endpoint}`, {
+        format: "json",
+        maxChars: 1,
+        config: { allowPrivateHosts: true },
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.content).toEqual(
+        endpoint === "/json" ? { ok: true, n: 42 } : "a complete JSON string",
+      );
+      expect(result.truncated).toBeUndefined();
+    },
+  );
+
+  it.each([0, -1, 1.5, NaN, Infinity, "100"])(
+    "rejects invalid maxChars before I/O: %s",
+    async (maxChars) => {
+      const result = await webFetch("https://example.com/", { maxChars });
+      expect(result.code).toBe("ERR_FETCH_OPTIONS");
+    },
+  );
+
+  it("never caches an incomplete download as a complete page", async () => {
+    const hostResourceBudget = new HostResourceBudget();
+    const options = {
+      config: { allowPrivateHosts: true },
+      hostResourceBudget,
+      maxBytes: 8,
+    };
+    const url = `http://127.0.0.1:${port}/hello`;
+    const partial = await webFetch(url, options);
+    expect(partial.downloadTruncated).toBe(true);
+    expect(hostResourceBudget.status().webFetchCache.entries).toBe(0);
+    const strict = await webFetch(url, { ...options, onOverflow: "error" });
+    expect(strict.code).toBe("ERR_RESPONSE_TOO_LARGE");
+    const full = await webFetch(url, { ...options, maxBytes: 1000 });
+    expect(full).toMatchObject({ truncated: false, content: "# Hi\n\nWorld" });
+  });
+
+  it("drops an unfinished script when a page is cut off in its markup", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/large-page`, {
+      config: { allowPrivateHosts: true },
+      maxBytes: 1000,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.downloadTruncated).toBe(true);
+    expect(result.content).toBe("");
+    expect(result.hint).toContain("not the complete page");
+  });
+
+  it("fails explicitly for oversized JSON instead of returning a broken value", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/json`, {
+      config: { allowPrivateHosts: true },
+      format: "json",
+      maxBytes: 5,
+    });
+    expect(result.code).toBe("ERR_RESPONSE_TOO_LARGE");
+    expect(result.content).toBeUndefined();
+  });
+
+  it("does not report a download truncated when it exactly fits the limit", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/large`, {
+      config: { allowPrivateHosts: true },
+      maxBytes: 2000,
+      maxChars: 2000,
+    });
+    expect(result).toMatchObject({ bytes: 2000, truncated: false });
+    expect(result.downloadTruncated).toBeUndefined();
   });
 
   it("parses JSON format", async () => {

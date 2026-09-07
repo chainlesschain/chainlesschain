@@ -1197,8 +1197,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         break;
       case "tool_done":
         if (m.isError) {
-          const toolError = "✗ " + m.tool + " failed";
+          const toolError = "✗ " + m.tool + " failed" +
+            (m.errorCode ? " [" + m.errorCode + "]" : "") +
+            (m.error ? ": " + m.error : "");
           add("tool err", toolError);
+          if (m.hint) add("info", m.hint);
           announceTranscript("error", toolError, "tool-error:" + currentTurnState().number + ":" + m.tool);
         }
         else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);

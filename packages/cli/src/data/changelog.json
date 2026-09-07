@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.33",
+      "cliVersions": ["0.166.32", "0.166.33"],
+      "date": "2026-09-07",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.33: download large webpages once and read local chunks",
+          "body": "> `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with\n> VS Code / VSCodium extension **0.37.89**.\n\n- Raise the default raw webpage download budget to 10 MB and separate it from\n  the returned text budget (`maxChars`, default 20000).\n- Save extracted text as bounded local snapshots. Continue with `snapshotId`\n  and `offset` from `nextOffset`, without downloading the page again.\n- Return explicitly marked prefixes for oversized text pages, with guidance\n  to raise the download budget; preserve strict complete-response mode and JSON\n  integrity. Snapshot paging never claims an incomplete download is complete.\n- Bound snapshot storage and retention, isolate readers by host and URL/policy,\n  preserve Unicode across chunks, and remove snapshots on normal process exit.\n- Show concrete error codes and recovery guidance in IDE chat and preserve\n  those details when recovering from repeated remote-read failures.\n- Route keyword-based discovery through `web_search`; bound large search\n  responses independently of snippets and report verification challenges as errors.\n- Search saved webpages and stream long local files for keywords, return\n  precise positions/context and read cursors, and bound regex execution.\n- Update browser-vision edge-case tests to the governed multimodal ingress\n  contract, covering rejection before capture/provider calls and preventing\n  legacy cache entries from bypassing that boundary (Actions run 34127723046)."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.32",
       "cliVersions": ["0.166.30", "0.166.32"],
       "date": "2026-09-07",

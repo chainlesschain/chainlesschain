@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.33: download large webpages once and read local chunks
+
+> `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with
+> VS Code / VSCodium extension **0.37.89**.
+
+- Raise the default raw webpage download budget to 10 MB and separate it from
+  the returned text budget (`maxChars`, default 20000).
+- Save extracted text as bounded local snapshots. Continue with `snapshotId`
+  and `offset` from `nextOffset`, without downloading the page again.
+- Return explicitly marked prefixes for oversized text pages, with guidance
+  to raise the download budget; preserve strict complete-response mode and JSON
+  integrity. Snapshot paging never claims an incomplete download is complete.
+- Bound snapshot storage and retention, isolate readers by host and URL/policy,
+  preserve Unicode across chunks, and remove snapshots on normal process exit.
+- Show concrete error codes and recovery guidance in IDE chat and preserve
+  those details when recovering from repeated remote-read failures.
+- Route keyword-based discovery through `web_search`; bound large search
+  responses independently of snippets and report verification challenges as errors.
+- Search saved webpages and stream long local files for keywords, return
+  precise positions/context and read cursors, and bound regex execution.
+- Update browser-vision edge-case tests to the governed multimodal ingress
+  contract, covering rejection before capture/provider calls and preventing
+  legacy cache entries from bypassing that boundary (Actions run 34127723046).
+
 ### Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery
 
 > `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`
