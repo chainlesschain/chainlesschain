@@ -557,6 +557,12 @@
     "configuration": {
       "title": "%config.title%",
       "properties": {
+        "chainlesschain.evolution.workbench.profile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.evolution.workbench.profile.description%"
+        },
         "chainlesschain.ide.enabled": {
           "type": "boolean",
           "default": true,
@@ -705,6 +711,7 @@
     ]
   },
   "scripts": {
+    "test:workbench": "node --test test/evolution-workbench-profile.test.cjs test/evolution-workbench-view.test.cjs test/app-server-pilot.test.cjs",
     "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",
     "sync:agent-sdk": "node scripts/sync-agent-sdk.mjs",
     "check:agent-sdk": "node scripts/sync-agent-sdk.mjs --check",

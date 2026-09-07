@@ -56,6 +56,11 @@ let _treeProvider = null;
 let _preview = null;
 let _remoteControl = null;
 let _appServerPilot = null;
+const {
+  createWorkbenchProfileManager,
+  PROFILE_SETTING: WORKBENCH_PROFILE_SETTING,
+} = require("./evolution-workbench-profile.js");
+const _workbenchProfiles = createWorkbenchProfileManager();
 // Module-level so command callbacks registered in activate() (e.g. the
 // diff.accept/reject keybindings) can reach the facade created per-bridge in
 // startBridge(); reassigned on every restart, nulled on stop.
@@ -139,6 +144,7 @@ async function ensureAppServerPilot() {
 }
 
 async function stopBridge(context) {
+  await _workbenchProfiles.close();
   if (_appServerPilot) {
     try {
       await _appServerPilot.close();
@@ -952,7 +958,20 @@ async function activate(context) {
           openEvolutionWorkbench,
         } = require("./ui/evolution-workbench-view.js");
         return openEvolutionWorkbench(vscode, {
-          getPilot: ensureAppServerPilot,
+          getPilot: async () => {
+            const profile = vscode.workspace
+              .getConfiguration()
+              .get(WORKBENCH_PROFILE_SETTING, "")
+              .trim();
+            if (profile) return _workbenchProfiles.get(profile);
+            await _workbenchProfiles.close();
+            return ensureAppServerPilot();
+          },
+          openSetup: () =>
+            vscode.commands.executeCommand(
+              "workbench.action.openSettings",
+              WORKBENCH_PROFILE_SETTING,
+            ),
         });
       },
     ),
