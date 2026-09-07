@@ -294,10 +294,52 @@ describe("background turn pre-main bootstrap", () => {
       ready,
     );
     child.send(release);
-    child.send(release);
     const [code, signal] = await exitPromise;
     expect({ code, signal }).toEqual({ code: 0, signal: null });
     expect(readFileSync(marker, "utf8")).toBe("ran");
+  });
+
+  it("accepts matching duplicate releases while Agent main is still running", async () => {
+    const { authority, child, marker } = launch({
+      entrySource: [
+        'import { appendFileSync } from "node:fs";',
+        // Hold the fixture alive until both release frames have been consumed.
+        // An immediately exiting entry races the second send with IPC teardown.
+        "process.channel.ref();",
+        'process.on("message", (message) => {',
+        '  if (message?.type === "test:finish") process.exit(0);',
+        "});",
+        'appendFileSync(process.env.CC_TEST_TURN_MARKER, "ran\\n");',
+        "",
+      ].join("\n"),
+    });
+    const ready = await waitForReady(child, authority);
+    expect(existsSync(marker)).toBe(false);
+    const exitPromise = once(child, "exit");
+    const send = (message) =>
+      new Promise((resolve, reject) => {
+        child.send(message, (error) => (error ? reject(error) : resolve()));
+      });
+    const release = createBackgroundTurnBootstrapMessage(
+      BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+      ready,
+    );
+
+    try {
+      await send(release);
+      await waitForCondition(() => existsSync(marker), "Agent main marker");
+      await send(release);
+      // IPC preserves message order: finishing follows the duplicate release.
+      await send({ type: "test:finish" });
+      const [code, signal] = await exitPromise;
+      expect({ code, signal }).toEqual({ code: 0, signal: null });
+      expect(readFileSync(marker, "utf8")).toBe("ran\n");
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill();
+        await exitPromise;
+      }
+    }
   });
 
   it("exits without Agent work when the worker dies before pid commit", async () => {
