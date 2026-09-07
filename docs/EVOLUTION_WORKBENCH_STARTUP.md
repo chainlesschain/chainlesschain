@@ -1,5 +1,45 @@
 # Workbench 完整宿主启动合同
 
+## 本地开启与测试（源码仓库）
+
+IDE 出现“已安装的 CLI 部署未配置受治理的工作台宿主”表示当前 App Server
+未加载部署。仅升级 CLI 或启用 pilot 不会创建签名部署和治理资源。
+
+现在可在仓库根目录创建独立的本地测试环境：
+
+```powershell
+node packages/cli/scripts/evolution-workbench-local-test.mjs init
+```
+
+命令输出 `profilePath`。安装包含本次改动的 VS Code/VSCodium 扩展，在**用户设置**中将
+`chainlesschain.evolution.workbench.profile` 设为该绝对路径，再执行
+`ChainlessChain: 演化工作台`。更改配置后下次打开会重建工作台进程，无需重启普通聊天。
+首次安装新扩展时需要重载 IDE 窗口。
+
+工作台会显示“本地测试（测试身份与数据）”，提供一个当前版本、一个已批准历史版本和
+一个待审核候选。可以查看证据、对比、批准/拒绝候选，以及回滚到已批准历史版本；
+操作落入本地测试账本，关闭后重新打开可继续查看。此流程不调用大模型，不需要 API Key。
+
+自动验证整个测试旅程（会审核候选并执行回滚，应使用新建的测试环境）：
+
+```powershell
+node packages/cli/scripts/evolution-workbench-local-test.mjs verify "<profilePath>"
+```
+
+该验证使用真实 IDE 客户端、CLI 子进程和签名持久运行时，程序化选择界面动作；
+它不是屏幕点击测试。覆盖列表、证据、对比、审核、回滚、重启保留和测试环境标识。
+重新运行 `init` 可获取新的待审核候选；可用 `--root <新的绝对目录>` 指定保存位置。
+已存在目录会被拒绝，已有环境不会被覆盖。
+
+profile 仅用于独立工作台进程，不注入聊天、其他 App Server 功能或终端环境。
+清空此用户设置即可恢复原有部署。配置文件是受信任的本机启动配置，只应选择自己生成或
+部署方审核过的文件；CLI 仍负责验证 descriptor 签名和模块摘要。
+
+测试脚本仅在源码仓库可用，不随 npm CLI 发布。使用已有 TEST fixture 的公开密钥、
+固定时钟、模拟真人授权与 Eval，并在 Windows 使用测试目录 fsync 适配器。
+它不能作为生产身份、自动演化、模型质量或物理断电耐久性的验收结果。
+生产部署仍需下文列出的真实身份、审批服务、信任根及存储资源。
+
 `createEvolutionWorkbenchRuntime(options)` 将真实 Registry source、Review runtime、rollback runtime 和 CLI host 组装为同一个受信宿主。它是异步工厂；必须等待完成后再向命令或服务端提供 host。它不创建生产身份、密钥、测试数据或自动审批权限。
 
 ## 实际资源

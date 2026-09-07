@@ -2,9 +2,9 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "ChainlessChain agent workspace for VS Code-compatible editors with streaming chat, inline assistance, governed review, sessions, automation, and a localhost MCP bridge.",
-  "version": "0.37.86",
+  "version": "0.37.87",
   "chainlesschain": {
-    "recommendedCliVersion": "0.166.29"
+    "recommendedCliVersion": "0.166.30"
   },
   "publisher": "chainlesschain",
   "license": "MIT",
@@ -557,6 +557,18 @@
     "configuration": {
       "title": "%config.title%",
       "properties": {
+        "chainlesschain.llm.configurationCliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.llm.configurationCliPath.description%"
+        },
+        "chainlesschain.evolution.workbench.profile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.evolution.workbench.profile.description%"
+        },
         "chainlesschain.ide.enabled": {
           "type": "boolean",
           "default": true,
@@ -705,13 +717,15 @@
     ]
   },
   "scripts": {
+    "test:workbench": "node --test test/evolution-workbench-profile.test.cjs test/evolution-workbench-view.test.cjs test/app-server-pilot.test.cjs test/settings-panels.test.cjs test/skill-retrieval-view.test.cjs",
+    "test:settings-ui": "node test/settings-ui-smoke.cjs",
     "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",
     "sync:agent-sdk": "node scripts/sync-agent-sdk.mjs",
     "check:agent-sdk": "node scripts/sync-agent-sdk.mjs --check",
     "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
     "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
     "check:marketplace-overview": "node scripts/verify-marketplace-overview.mjs",
-    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/cli-version-check.test.cjs test/delivery-workflow.test.cjs test/evolution-workbench-view.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/skill-retrieval-view.test.cjs test/team-monitor-collaboration.test.cjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/cli-version-check.test.cjs test/delivery-workflow.test.cjs test/evolution-workbench-view.test.cjs test/evolution-workbench-profile.test.cjs test/settings-panels.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/skill-retrieval-view.test.cjs test/team-monitor-collaboration.test.cjs",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
     "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"

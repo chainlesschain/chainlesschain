@@ -30,8 +30,10 @@ const decodeStringLiteral = (literal) =>
     : JSON.parse(literal);
 
 const collectRuntimeL10nKeys = (source) => {
-  // Match l10n.t( "…" ) or l10n.t( '…' ), tolerating a newline before the arg.
-  const directRe = /l10n\.t\(\s*(("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*'))/g;
+  // Match literal calls both directly and through the compatibility wrapper,
+  // tolerating newlines before arguments in either form.
+  const directRe =
+    /(?:l10n\.t\(\s*|localize\(\s*vscode\s*,\s*)(("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*'))/g;
   const constantRe =
     /const\s+([A-Z][A-Z0-9_]*)\s*=\s*((?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*(?:\+\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*)*);/g;
   const localizedConstantRe =
@@ -100,16 +102,23 @@ describe("VS Code runtime l10n.t bundle coverage", () => {
     }
   }
 
-  it("tracks only statically used localization-wrapper constants", () => {
+  it("tracks wrapper literals and only statically used wrapper constants", () => {
     const fixture = `
       const USED_MESSAGE = "used " + "message";
       const UNUSED_MESSAGE = "unused message";
       vscode.l10n.t("direct message");
       localize(vscode, USED_MESSAGE);
+      localize(vscode, "wrapper message");
+      localize(
+        vscode,
+        'multiline wrapper message',
+      );
     `;
     expect([...collectRuntimeL10nKeys(fixture)].sort()).toEqual([
       "direct message",
+      "multiline wrapper message",
       "used message",
+      "wrapper message",
     ]);
   });
 

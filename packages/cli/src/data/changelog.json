@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.30",
+      "cliVersions": ["0.166.29", "0.166.30"],
+      "date": "2026-09-07",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.30: custom LLM connections and page-first IDE workspaces",
+          "body": "> `chainlesschain` **0.166.29 -> 0.166.30** (2026-09-07), paired with\n> VS Code / VSCodium extension **0.37.87**. Publication requires the exact\n> release commit's complete CLI CI, CLI Strict Sandbox and IDE release gates.\n\n- Save custom relay URLs, protocol selections, model aliases and credentials\n  atomically with `llm configure`; accept secrets only through bounded JSON\n  stdin, never argv. Changing destinations requires a destination-specific key.\n- Test OpenAI-compatible, Anthropic, Gemini and Ollama endpoints using their\n  native protocols, bounded request timeouts and no credential-bearing redirects.\n- Open Evolution Workbench on a status overview with a version list, optional\n  filtering, evidence inspection and confirmed, capability-gated decisions.\n- Open the IDE Skill Library on a paginated catalog; task retrieval is optional\n  and preserves canonical digest/conflict/authority validation without execution.\n- Add an isolated source-checkout local Workbench test profile. Test identities\n  remain explicitly marked; this does not provision real identity or approval\n  services or enable mutation in an unconfigured production deployment."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.29",
       "cliVersions": ["0.166.26", "0.166.29"],
       "date": "2026-09-06",
