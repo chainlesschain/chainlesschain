@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery
+
+> `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`
+> candidate was not published because two existing cache tests required the
+> flag-gated `node:sqlite` API on Node 22.12. Its immutable tag is retained.
+
+- Include the hostname-fetch repair, bounded request duration, structured errors
+  and repeated GitHub Actions log recovery prepared in the 0.166.31 candidate.
+- Exercise Desktop cache isolation and encrypted replay with the shipped SQLite
+  driver on the minimum supported Node 22.12, without skipping assertions.
+- Give Windows crash-recovery fixtures enough time to reach their intended
+  checkpoints before lease expiry, while preserving real expiry, stale-fence,
+  single-effect and rollback recovery checks.
+- Require the complete CLI CI and CLI Strict Sandbox matrices for the new exact
+  release commit before npm publication.
+
 ### Fixed - cc CLI 0.166.31: reliable web fetch and bounded CI log recovery
 
 > `chainlesschain` **0.166.30 -> 0.166.31** (2026-09-07). Publication requires

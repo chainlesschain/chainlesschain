@@ -2,7 +2,7 @@
 
 ## [0.4.114] - Reliable web fetch and CI-log recovery (2026-09-07)
 
-- Recommend `chainlesschain@0.166.31` as the offline CLI upgrade floor.
+- Recommend `chainlesschain@0.166.32` as the offline CLI upgrade floor.
 - Consume the CLI's Node 22 DNS fix, bounded fetch duration and structured
   HTTP/network errors with retry guidance.
 - Recover repeated failed downloads and unchanged GitHub Actions logs while

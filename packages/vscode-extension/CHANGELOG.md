@@ -4,7 +4,7 @@ All notable changes to this extension are documented here.
 
 ## [0.37.88] - Reliable web fetch and CI-log recovery (2026-09-07)
 
-- Recommend `chainlesschain@0.166.31` and prompt older CLI installations to upgrade.
+- Recommend `chainlesschain@0.166.32` and prompt older CLI installations to upgrade.
 - Consume the CLI's Node 22 DNS fix, bounded fetch duration and structured
   HTTP/network errors with retry guidance.
 - Recover repeated failed downloads and unchanged GitHub Actions logs while

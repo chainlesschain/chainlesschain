@@ -6,14 +6,14 @@ MCP bridge.
 
 ## Current release
 
-> Extension `0.37.88` pairs with `chainlesschain@0.166.31` for reliable web fetch
+> Extension `0.37.88` pairs with `chainlesschain@0.166.32` for reliable web fetch
 > and recovery from repeated CI-log requests. Publication follows the complete CLI and IDE release
 > gates; the Open VSX listing shows the currently available extension.
 
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
 | VS Code extension         | **0.37.88**; web fetch and CI-log recovery                   |
-| Recommended CLI           | **`chainlesschain@0.166.31`**                                |
+| Recommended CLI           | **`chainlesschain@0.166.32`**                                |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
@@ -25,7 +25,7 @@ MCP bridge.
 - **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
   evidence across compaction, offers a focused recovery turn, and stops persistent
   retries as an incomplete task. Status queries and fresh log evidence remain available.
-- Older CLI installations receive the normal upgrade prompt for `0.166.31`.
+- Older CLI installations receive the normal upgrade prompt for `0.166.32`.
 
 ### Retained workspace and connection features
 
@@ -34,7 +34,7 @@ MCP bridge.
   categories, sources and details. Task retrieval is an optional in-page action.
 - **Configure custom LLM relays in one form.** Choose a compatible protocol,
   base URL, arbitrary model alias, optional vision model and scoped API key.
-  CLI `0.166.31` saves the connection atomically through stdin and tests the
+  CLI `0.166.32` saves the connection atomically through stdin and tests the
   saved endpoint with its native protocol.
 - Saved keys never return to the page; changing destinations requires the new
   service's key. Review and rollback still require fresh state, confirmation
@@ -44,7 +44,7 @@ MCP bridge.
 
 ### Retained task-recovery and governance safeguards
 
-- **Recover work that keeps investigating without delivering.** CLI `0.166.31`
+- **Recover work that keeps investigating without delivering.** CLI `0.166.32`
   distinguishes source exploration from implementation progress, preserves the
   bounded task context, and offers a focused recovery turn with edits and
   validation still available.
@@ -57,17 +57,17 @@ MCP bridge.
   Repeated code/shell file dumps trigger recovery even after compaction.
 
 - File-read traces include requested line ranges and long-line columns. CLI
-  `0.166.31` keeps forward read progress through compaction and stops a run
+  `0.166.32` keeps forward read progress through compaction and stops a run
   that continues requesting only unchanged pages after a recovery warning.
 
 - **Interactive Agent turns now run to completion without a hidden 50-call
-  stop.** CLI `0.166.31` keeps explicit turn, cost, environment, and session
+  stop.** CLI `0.166.32` keeps explicit turn, cost, environment, and session
   budgets authoritative, while `chainlesschain.chat.maxTurns` lets users opt
   into a positive per-message cap.
 - **Large files advance without rereading earlier pages.** Exact line/column
   cursors survive context compression, unchanged pages are referenced instead
   of reinjected, and edits invalidate the bounded read cache.
-- On startup, an installed CLI older than `0.166.31` receives an explicit
+- On startup, an installed CLI older than `0.166.32` receives an explicit
   **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
   works even when the best-effort npm registry lookup is unavailable.
 
@@ -93,7 +93,7 @@ MCP bridge.
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can continue to install by extension ID.
 
-Public CLI `0.166.31` is the recommended install. It routes Graph, Team,
+Public CLI `0.166.32` is the recommended install. It routes Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
 fences stale writers and takeover/recovery receipts, preserves explicitly
@@ -103,7 +103,7 @@ interactions, outbound requests, JSONL frames, stderr diagnostics, and stdin
 backpressure. Overload now returns a structured retry hint, while initialization,
 heartbeat, disconnect, and late-response paths have finite cleanup fences.
 
-CLI `0.166.31` includes canonical scoped approval decisions, a
+CLI `0.166.32` includes canonical scoped approval decisions, a
 schema-owned Agent stream-event inventory, and durable Team collaboration
 authority. The chat approval card keeps one-shot approval as the fast path and
 opens a native, explicitly reviewed choice for exact turn/session grants,
@@ -111,7 +111,7 @@ denial, or cancellation. Team Monitor consumes the canonical Message/Handoff
 projection as bounded status counters only: message payloads, attempt/agent
 identities, artifacts, and authority digests never enter the Webview.
 
-CLI `0.166.31` includes the governed Automation/Routine commands, the
+CLI `0.166.32` includes the governed Automation/Routine commands, the
 Automation Center v3 projection, scoped permission and side-effect authority,
 and shared permission/budget enforcement. Version `0.37.88` accepts only the
 exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired
@@ -125,15 +125,15 @@ Version `0.37.88` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. CLI `0.166.31` supplies the
+history-rewriting rollback commands. CLI `0.166.32` supplies the
 corresponding governed `team merge-review` command and exact evidence contract.
 
-CLI `0.166.31` contains the audited Artifact access, managed-copy
+CLI `0.166.32` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
 `0.37.88`. The extension continues to fail closed when an older CLI cannot
 provide the exact projection or refreshed action evidence.
 
-CLI `0.166.31` also bounds durable-session event backlogs and sidecars, routes
+CLI `0.166.32` also bounds durable-session event backlogs and sidecars, routes
 project storage through canonical path authority, prevents Windows append-writer
 starvation under concurrent session activity, converges isolated local and
 remote execution state, and stabilizes cross-platform browser evidence. Its
@@ -145,7 +145,7 @@ publishes `@chainlesschain/session-core@0.3.7` with the required
 
 CLI `0.166.13` is superseded because normal Windows startup could incorrectly
 require an available Docker sandbox and could select Docker Desktop's
-extensionless POSIX shim before `docker.exe`. Public CLI `0.166.31` restores
+extensionless POSIX shim before `docker.exe`. Public CLI `0.166.32` restores
 Docker-optional normal startup while keeping explicit sandbox and managed-policy
 requests fail closed, and resolves native `PATHEXT` executables first. Its exact
 release commit passed the complete Linux,
@@ -155,7 +155,7 @@ send/receive/ack/follow-up tools
 with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
 follow-ups, recipients, bytes, and pressure); message content and attempt
-credentials never enter the Webview. For those reasons, `0.166.31` is the
+credentials never enter the Webview. For those reasons, `0.166.32` is the
 preferred CLI for this extension.
 
 The release package excludes local Extension Host evidence and diagnostics
@@ -182,7 +182,7 @@ the public registry artifact back. Registry availability can be checked on the
   call-chain, and per-resource recovery evidence through a bounded projection;
   create or revoke workspace-scoped permission rules through generation- and
   revision-bound CLI commands without letting the IDE edit authority state.
-  CLI `0.166.31` provides the exact `permissions activity`, `scoped`,
+  CLI `0.166.32` provides the exact `permissions activity`, `scoped`,
   and `revoke` contracts consumed by these surfaces.
 
 - **Governed multi-agent merge review** - inspect CLI-owned cross-branch
@@ -233,11 +233,11 @@ the public registry artifact back. Registry availability can be checked on the
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.166.31
+npm i -g chainlesschain@0.166.32
 cc --version
 ```
 
-Using `@0.166.31` reproduces the preferred, fully gated public CLI pairing,
+Using `@0.166.32` reproduces the preferred, fully gated public CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.
