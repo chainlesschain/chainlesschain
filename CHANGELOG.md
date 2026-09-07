@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.31: reliable web fetch and bounded CI log recovery
+
+> `chainlesschain` **0.166.30 -> 0.166.31** (2026-09-07). Publication requires
+> successful CLI CI and CLI Strict Sandbox matrices for the exact release commit.
+
+- Fix Node 22 multi-address DNS callbacks that caused hostname fetches to fail
+  with `Invalid IP address: undefined`, while preserving private-address checks.
+- Bound the full fetch duration, including redirects and streaming responses;
+  return structured HTTP, timeout and response-size errors with retry guidance.
+- Recognize repeated failed fetches and unchanged GitHub Actions logs across
+  web pages, `gh run view` and `gh api`; retain bounded evidence through context
+  compaction and offer a recovery turn before stopping persistent retry loops.
+- Preserve status monitoring, new job/log evidence and real local edits as
+  recovery paths, and never skip shell execution based on cached stdout.
+- Validate with 158 focused unit/integration tests covering network failures,
+  resource budgets, compaction, recovery and existing agent-loop behavior.
+
 ### Added - cc CLI 0.166.30: custom LLM connections and page-first IDE workspaces
 
 > `chainlesschain` **0.166.29 -> 0.166.30** (2026-09-07), paired with

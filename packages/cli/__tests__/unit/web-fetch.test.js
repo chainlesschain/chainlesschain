@@ -69,6 +69,21 @@ describe("web-fetch — makeSafeLookup() DNS-SSRF guard", () => {
     expect(result.addr).toBe("10.0.0.5");
   });
 
+  it("returns the full validated array for Node's autoSelectFamily lookup", () => {
+    const addresses = [
+      { address: "2606:4700:4700::1111", family: 6 },
+      { address: "93.184.216.34", family: 4 },
+    ];
+    const lookup = makeSafeLookup(false, {
+      lookup: fakeLookup({ "ok.example.com": addresses }),
+    });
+    let result;
+    lookup("ok.example.com", { all: true }, (error, value) => {
+      result = { error, value };
+    });
+    expect(result).toEqual({ error: null, value: addresses });
+  });
+
   it("propagates a resolution failure", () => {
     const lookup = makeSafeLookup(false, { lookup: fakeLookup({}) });
     let err = null;
@@ -231,6 +246,19 @@ describe("web-fetch — webFetch() against local server", () => {
       } else if (req.url === "/badjson") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end("not json");
+      } else if (req.url === "/denied") {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Forbidden" }));
+      } else if (req.url === "/busy") {
+        res.writeHead(429, { "Retry-After": "60" });
+        res.end("try later");
+      } else if (req.url === "/slow") {
+        // Keep producing data: a socket idle timeout alone never fires.
+        res.writeHead(200);
+        const timer = setInterval(() => res.write("."), 10);
+        res.on("close", () => clearInterval(timer));
+      } else if (req.url === "/large") {
+        res.end("x".repeat(2000));
       } else {
         res.writeHead(404);
         res.end();
@@ -255,6 +283,66 @@ describe("web-fetch — webFetch() against local server", () => {
     expect(result.format).toBe("markdown");
     expect(result.content).toMatch(/# Hi/);
     expect(result.content).toMatch(/World/);
+  });
+
+  it("fetches through a hostname using Node's multi-address connection path", async () => {
+    const result = await webFetch(`http://localhost:${port}/hello`, {
+      config: { allowPrivateHosts: true },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.content).toContain("# Hi");
+  });
+
+  it("classifies HTTP failure before attempting JSON parsing", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/missing`, {
+      format: "json",
+      config: { allowPrivateHosts: true },
+    });
+    expect(result).toMatchObject({
+      statusCode: 404,
+      code: "ERR_HTTP_STATUS",
+      retryable: false,
+    });
+    expect(result.error).toContain("404");
+  });
+
+  it("reports authorization failures without suggesting an identical retry", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/denied`, {
+      config: { allowPrivateHosts: true },
+    });
+    expect(result).toMatchObject({ statusCode: 403, retryable: false });
+    expect(result.error).toContain("403");
+    expect(result.hint).toMatch(/access|auth/i);
+  });
+
+  it("returns rate-limit backoff information", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/busy`, {
+      config: { allowPrivateHosts: true },
+    });
+    expect(result).toMatchObject({
+      statusCode: 429,
+      retryable: true,
+      retryAfter: "60",
+    });
+  });
+
+  it("bounds the total request duration even when data keeps arriving", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/slow`, {
+      timeout: 100,
+      config: { allowPrivateHosts: true },
+    });
+    expect(result).toMatchObject({ code: "ETIMEDOUT", retryable: true });
+  }, 3000);
+
+  it("returns a structured size failure", async () => {
+    const result = await webFetch(`http://127.0.0.1:${port}/large`, {
+      maxBytes: 100,
+      config: { allowPrivateHosts: true },
+    });
+    expect(result).toMatchObject({
+      code: "ERR_RESPONSE_TOO_LARGE",
+      retryable: false,
+    });
   });
 
   it("parses JSON format", async () => {

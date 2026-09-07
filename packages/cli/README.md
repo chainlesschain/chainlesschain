@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> CLI version: `chainlesschain@0.166.26`. The immutable release tag is `v-npm-0-166-26`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
+> CLI version: `chainlesschain@0.166.31`. The immutable release tag is `v-npm-0-166-31`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.26
+npm install -g chainlesschain@0.166.31
 chainlesschain setup
 ```
 
@@ -376,6 +376,8 @@ chainlesschain agent --provider openai  # Reads the stored credential
 ```
 
 Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
+
+`web_fetch` supports Node's multi-address DNS lookup and bounds the entire request, including redirects and streaming bodies. HTTP/network failures include an error code, retry guidance and rate-limit backoff when available. Repeated failed fetches or unchanged GitHub Actions logs trigger recovery after three no-progress observations: the repeating tool is omitted for one model turn and bounded evidence survives context compaction. Six no-progress observations after recovery stop the loop with `CC_AGENT_REPEATED_REMOTE_READ`; this is an incomplete task, not success. For CI investigation, retrieve the specific job's `gh run view --log-failed` output once and search the saved log. Status queries, new jobs and changed log contents remain available.
 
 **Agent slash commands (49 built-in)** — type `/` for TAB completion, `/help` for the in-session list. Full reference: [cli-agent-mode](https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html).
 

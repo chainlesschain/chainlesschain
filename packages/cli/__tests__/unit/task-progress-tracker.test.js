@@ -10,6 +10,22 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("counts even changing short GitHub log excerpts as exploration", () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 12; i++) {
+      expect(
+        tracker.record(
+          "run_shell",
+          { stdout: `FAIL test ${i}` },
+          {
+            command: "gh run view 123 --job 456 --log-failed --repo owner/repo",
+          },
+        ),
+      ).toBe(false);
+    }
+    expect(tracker.explorationCalls).toBe(12);
+    expect(tracker.intervention).toBeTruthy();
+  });
   it("intervenes even when every read returns new content", () => {
     const tracker = new TaskProgressTracker();
     observe(tracker, 11);

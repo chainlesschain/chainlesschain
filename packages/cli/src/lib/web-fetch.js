@@ -200,6 +200,9 @@ export function makeSafeLookup(allowPrivateHosts, deps = _deps) {
           }
         }
       }
+      // Node's autoSelectFamily path requests all addresses. Returning a scalar
+      // here makes Node read undefined.address and reject every hostname.
+      if (opts.all) return cb(null, list);
       const chosen = list[0];
       cb(null, chosen.address, chosen.family);
     });
@@ -212,11 +215,17 @@ async function _doRequest(
 ) {
   const lib = parsed.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
+    let timer;
+    const settle = (error, result) => {
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(result);
+    };
     const req = lib.request(
       {
         method: "GET",
         protocol: parsed.protocol,
-        hostname: parsed.hostname,
+        hostname: parsed.hostname.replace(/^\[|\]$/g, ""),
         port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
         path: parsed.pathname + parsed.search,
         // Resolve-and-check: reject the connection if the host resolves to a
@@ -237,30 +246,55 @@ async function _doRequest(
           res.headers.location
         ) {
           res.resume();
-          return resolve({ redirect: res.headers.location });
+          return settle(null, { redirect: res.headers.location });
         }
         const chunks = [];
         let size = 0;
         res.on("data", (chunk) => {
           size += chunk.length;
           if (size > maxBytes) {
-            req.destroy(new Error(`response exceeds maxBytes (${maxBytes})`));
+            const error = Object.assign(
+              new Error(`response exceeds maxBytes (${maxBytes})`),
+              {
+                code: "ERR_RESPONSE_TOO_LARGE",
+              },
+            );
+            settle(error);
+            res.destroy();
+            req.destroy();
             return;
           }
           chunks.push(chunk);
         });
         res.on("end", () => {
-          resolve({
+          settle(null, {
             statusCode: res.statusCode,
             headers: res.headers,
             body: Buffer.concat(chunks).toString("utf8"),
           });
         });
-        res.on("error", reject);
+        res.on("error", (error) => settle(error));
+        res.on("aborted", () =>
+          settle(
+            Object.assign(new Error("response aborted"), {
+              code: "ECONNRESET",
+            }),
+          ),
+        );
       },
     );
-    req.on("error", reject);
-    req.on("timeout", () => req.destroy(new Error("request timeout")));
+    const abortTimeout = () => {
+      settle(
+        Object.assign(new Error("request timeout"), { code: "ETIMEDOUT" }),
+      );
+      req.destroy();
+    };
+    req.on("error", (error) => settle(error));
+    req.on("timeout", abortTimeout);
+    // Covers DNS resolution and continuously streaming bodies as well as idle
+    // sockets. Redirects receive only the remaining overall request budget.
+    timer = setTimeout(abortTimeout, timeout);
+    timer.unref?.();
     req.end();
   });
 }
@@ -278,7 +312,26 @@ export async function webFetch(url, options = {}) {
 
   const check = checkAllowed(url, config);
   if (!check.allowed) {
-    return { error: `web_fetch blocked: ${check.reason}` };
+    return {
+      error: `web_fetch blocked: ${check.reason}`,
+      code: "ERR_FETCH_BLOCKED",
+      retryable: false,
+    };
+  }
+  if (
+    !Number.isSafeInteger(maxBytes) ||
+    maxBytes <= 0 ||
+    !Number.isSafeInteger(timeout) ||
+    timeout <= 0 ||
+    timeout > 2_147_483_647 ||
+    !Number.isSafeInteger(maxRedirects) ||
+    maxRedirects < 0
+  ) {
+    return {
+      error: "invalid web_fetch size, timeout or redirect limit",
+      code: "ERR_FETCH_OPTIONS",
+      retryable: false,
+    };
   }
 
   const cacheKey = webFetchCacheKey(check.url, {
@@ -314,27 +367,69 @@ export async function webFetch(url, options = {}) {
     let parsed = check.url;
     let redirects = 0;
     let response;
+    const deadline = Date.now() + timeout;
     while (true) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw Object.assign(new Error("request timeout"), {
+          code: "ETIMEDOUT",
+        });
+      }
       response = await _doRequest(parsed, {
         maxBytes,
-        timeout,
+        timeout: remaining,
         headers,
         allowPrivateHosts: config.allowPrivateHosts,
       });
       if (!response.redirect) break;
       if (++redirects > maxRedirects) {
-        return { error: "too many redirects" };
+        return {
+          error: "too many redirects",
+          code: "ERR_TOO_MANY_REDIRECTS",
+          retryable: false,
+        };
       }
       const next = new URL(response.redirect, parsed);
       const nextCheck = checkAllowed(next.toString(), config);
       if (!nextCheck.allowed) {
-        return { error: `redirect blocked: ${nextCheck.reason}` };
+        return {
+          error: `redirect blocked: ${nextCheck.reason}`,
+          code: "ERR_FETCH_BLOCKED",
+          retryable: false,
+        };
       }
       parsed = nextCheck.url;
     }
 
     const { statusCode, headers: respHeaders, body } = response;
     const contentType = String(respHeaders["content-type"] || "");
+
+    // Error pages are tool failures, not successful evidence or cache entries.
+    // Classify before JSON parsing so a 404 HTML page is not a JSON error.
+    if (statusCode >= 400) {
+      const rateLimited =
+        statusCode === 429 ||
+        (statusCode === 403 &&
+          (respHeaders["x-ratelimit-remaining"] === "0" ||
+            !!respHeaders["retry-after"]));
+      const retryable = rateLimited || statusCode === 408 || statusCode >= 500;
+      return {
+        url: parsed.toString(),
+        error: `web_fetch failed: HTTP ${statusCode}`,
+        code: "ERR_HTTP_STATUS",
+        statusCode,
+        retryable,
+        ...(respHeaders["retry-after"]
+          ? { retryAfter: String(respHeaders["retry-after"]) }
+          : {}),
+        body: body.slice(0, 2000),
+        hint: rateLimited
+          ? "Rate limited. Honor Retry-After or the service's rate-limit reset before a bounded retry. Do not retry immediately."
+          : [401, 403, 404].includes(statusCode)
+            ? "Check the URL and authentication/access. An identical unauthenticated request will not fix this. For GitHub Actions, use an authenticated gh run view with --log-failed for the specific run/job."
+            : "Retry at most once for a transient failure; otherwise use the existing evidence and report the missing information.",
+      };
+    }
 
     let output = body;
     let outputFormat = format;
@@ -346,7 +441,13 @@ export async function webFetch(url, options = {}) {
       try {
         output = JSON.parse(body);
       } catch {
-        return { error: "response is not valid JSON", statusCode, body };
+        return {
+          error: "response is not valid JSON",
+          code: "ERR_INVALID_JSON",
+          retryable: false,
+          statusCode,
+          body: body.slice(0, 2000),
+        };
       }
     }
 
@@ -366,6 +467,22 @@ export async function webFetch(url, options = {}) {
       }
     }
     return result;
+  } catch (error) {
+    const code = error.code || "ERR_WEB_FETCH";
+    return {
+      error: `web_fetch failed: ${error.message}`,
+      code,
+      retryable: [
+        "ETIMEDOUT",
+        "ECONNRESET",
+        "ECONNREFUSED",
+        "EAI_AGAIN",
+      ].includes(code),
+      hint:
+        code === "ERR_RESPONSE_TOO_LARGE"
+          ? "Request a smaller resource or a focused log excerpt. Do not repeatedly download the same full log."
+          : "Use the error code to check connectivity, DNS or access. Retry a transient failure at most once, then change approach or report the blocker.",
+    };
   } finally {
     toolLease?.release();
   }
