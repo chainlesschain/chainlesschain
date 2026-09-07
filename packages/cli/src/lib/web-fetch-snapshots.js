@@ -137,7 +137,6 @@ export class WebFetchSnapshots {
     this.entries.set(id, entry);
     return {
       ...entry.metadata,
-      content,
       snapshotId: id,
       offset,
       nextOffset: hasMore ? nextOffset : null,
@@ -150,6 +149,7 @@ export class WebFetchSnapshots {
             hint: `More saved text is available. Call web_fetch with the same URL, format and snapshotId, offset=${nextOffset}, and maxChars. This reads the local snapshot without another download.${entry.metadata.downloadTruncated ? " The downloaded page is incomplete; increase maxBytes in a new fetch for the missing remainder." : ""}`,
           }
         : {}),
+      content,
     };
   }
 
@@ -159,6 +159,7 @@ export class WebFetchSnapshots {
     const result = await searchTextFile(this.entries.get(id).file, {
       ...options,
       encoding: "utf16le",
+      hostResourceBudget: owner,
     });
     return {
       ...result,

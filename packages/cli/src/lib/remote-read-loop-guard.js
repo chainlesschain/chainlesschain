@@ -235,6 +235,7 @@ export class RemoteReadLoopGuard {
       "Remote-read loop recovery: repeated failures or unchanged GitHub Actions logs detected. " +
       "Stop repeating the same download, including switching between web_fetch, gh run view and gh api for the same run/job. " +
       "Use the retained evidence for the user's task. For implementation, inspect/fix the relevant local files; for research/review, synthesize the findings without making unsolicited edits. For a missing CI detail, use one authenticated gh run view <run-id> --job <job-id> --log-failed --repo <owner/repo>, save the result once and search that local log. " +
+      "If the overall run is still active but the required job has completed, fetch that job's log directly with gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs; gh run view may withhold logs until the whole run finishes. " +
       "Check auth, rate limits or command errors before another attempt. If access remains unavailable, report the exact blocker and useful findings; the task is not complete. " +
       "A new run/job, new log contents or a real edit is progress. Status monitoring should use status queries, not repeated full-log downloads."
     );

@@ -34,6 +34,18 @@ export function searchTextFile(file, options = {}) {
       code: "ERR_TEXT_SEARCH_OPTIONS",
     });
   }
+  let toolLease = null;
+  if (options.hostResourceBudget) {
+    try {
+      toolLease = options.hostResourceBudget.admitTool({ kind: "text-search" });
+    } catch (error) {
+      return Promise.resolve({
+        error: "Text search unavailable: host resource budget",
+        code: "ERR_HOST_RESOURCE_BUDGET",
+        reason: String(error?.budgetReason || "unavailable").slice(0, 128),
+      });
+    }
+  }
   return new Promise((resolve) => {
     let worker;
     let timer;
@@ -43,8 +55,15 @@ export function searchTextFile(file, options = {}) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      worker?.terminate().catch(() => {});
-      resolve(result);
+      Promise.resolve(worker?.terminate())
+        .catch(() => {})
+        .finally(() => {
+          try {
+            toolLease?.release();
+          } finally {
+            resolve(result);
+          }
+        });
     };
     try {
       worker = new Worker(

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -19,6 +19,36 @@ afterEach(() => {
 });
 
 describe("long text file keyword search", () => {
+  it("respects host concurrency admission and releases its worker lease", async () => {
+    const { file } = fixture("needle");
+    const release = vi.fn();
+    const admitTool = vi.fn(() => ({ release }));
+    expect(
+      (
+        await searchTextFile(file, {
+          pattern: "needle",
+          hostResourceBudget: { admitTool },
+        })
+      ).count,
+    ).toBe(1);
+    expect(admitTool).toHaveBeenCalledWith({ kind: "text-search" });
+    expect(release).toHaveBeenCalledOnce();
+    const denied = await searchTextFile(file, {
+      pattern: "needle",
+      hostResourceBudget: {
+        admitTool() {
+          throw Object.assign(new Error("busy"), {
+            budgetReason: "concurrency",
+          });
+        },
+      },
+    });
+    expect(denied).toMatchObject({
+      code: "ERR_HOST_RESOURCE_BUDGET",
+      reason: "concurrency",
+    });
+  });
+
   it("finds a late match in a multi-megabyte file with exact line/column and context", async () => {
     const { file } = fixture(
       "ordinary line\n".repeat(400000) + "before 关键字🙂 after\n",

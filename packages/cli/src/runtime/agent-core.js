@@ -7690,7 +7690,7 @@ async function executeToolInner(
             code: "ERR_CREDENTIAL_FILE",
           });
         const { searchTextFile } = await import("../lib/text-file-search.js");
-        const result = await searchTextFile(file, args);
+        const result = await searchTextFile(file, { ...args, hostResourceBudget });
         return attachDescriptor({
           ...result,
           path: file,
