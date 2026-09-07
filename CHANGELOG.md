@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery
+
+> `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`
+> candidate was not published because two existing cache tests required the
+> flag-gated `node:sqlite` API on Node 22.12. Its immutable tag is retained.
+
+- Include the hostname-fetch repair, bounded request duration, structured errors
+  and repeated GitHub Actions log recovery prepared in the 0.166.31 candidate.
+- Exercise Desktop cache isolation and encrypted replay with the shipped SQLite
+  driver on the minimum supported Node 22.12, without skipping assertions.
+- Give Windows crash-recovery fixtures enough time to reach their intended
+  checkpoints before lease expiry, while preserving real expiry, stale-fence,
+  single-effect and rollback recovery checks.
+- Verify fresh Wiki-recovery worker instances with child-generated identities
+  bound to the spawned child, since Windows can reuse exited process IDs.
+- Require the complete CLI CI and CLI Strict Sandbox matrices for the new exact
+  release commit before npm publication.
+
+### Fixed - cc CLI 0.166.31: reliable web fetch and bounded CI log recovery
+
+> `chainlesschain` **0.166.30 -> 0.166.31** (2026-09-07). Publication requires
+> successful CLI CI and CLI Strict Sandbox matrices for the exact release commit.
+
+- Fix Node 22 multi-address DNS callbacks that caused hostname fetches to fail
+  with `Invalid IP address: undefined`, while preserving private-address checks.
+- Bound the full fetch duration, including redirects and streaming responses;
+  return structured HTTP, timeout and response-size errors with retry guidance.
+- Recognize repeated failed fetches and unchanged GitHub Actions logs across
+  web pages, `gh run view` and `gh api`; retain bounded evidence through context
+  compaction and offer a recovery turn before stopping persistent retry loops.
+- Preserve status monitoring, new job/log evidence and real local edits as
+  recovery paths, and never skip shell execution based on cached stdout.
+- Validate with 158 focused unit/integration tests covering network failures,
+  resource budgets, compaction, recovery and existing agent-loop behavior.
+
 ### Added - cc CLI 0.166.30: custom LLM connections and page-first IDE workspaces
 
 > `chainlesschain` **0.166.29 -> 0.166.30** (2026-09-07), paired with

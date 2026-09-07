@@ -14,7 +14,11 @@ const WORKER_PATH = fileURLToPath(
   new URL("../../scripts/scheduler-kernel-soak-worker.mjs", import.meta.url),
 );
 const OPERATIONAL_TEST_LEASE_MS = 10_000;
-const CRASH_RECOVERY_TEST_LEASE_MS = 1_000;
+// Windows hosted runners can spend more than one second acquiring the claim.
+// Reach the intentional crash checkpoint before expiry, then still wait for the
+// real lease deadline and assert takeover, stale-fence rejection and no replay.
+const CRASH_RECOVERY_TEST_LEASE_MS =
+  process.platform === "win32" ? OPERATIONAL_TEST_LEASE_MS : 1_000;
 
 function authority() {
   return {

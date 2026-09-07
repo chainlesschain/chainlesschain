@@ -85,7 +85,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "audio-transcriber": Object.freeze([
-    "4ec0dbc31090b78c421f5d151aea632f8f5d90e9348f6e18c6ebb01366e6168e",
+    "ac24f397ef3357f2313ac0d85fb53baa5af7f6b1076d7e7c4ba5e36285c73d33",
     Object.freeze([
       "data:result",
       "data:task",
@@ -732,7 +732,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "image-generator": Object.freeze([
-    "2758d5f977126ed946786e10e9c44e7a7bfc17aa9a1a04d4b8492322912c4558",
+    "445edd74726617ed826730f873ec5e1ca7dd832c10e39edd9ec121ea0682275e",
     Object.freeze([
       "data:result",
       "data:task",

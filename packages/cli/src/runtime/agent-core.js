@@ -21,6 +21,7 @@ import {
   buildReadFileOutline,
 } from "../lib/read-file-page.js";
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
+import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   TaskProgressTracker,
   TASK_RECOVERY_TOOLS,
@@ -13807,11 +13808,24 @@ export async function* agentLoop(messages, options) {
   // rather than looping forever (the iteration budget is the hard backstop).
   let emptyThinkingReprompted = false;
   const readFileLoopGuard = new ReadFileLoopGuard();
+  const remoteReadLoopGuard = new RemoteReadLoopGuard();
   toolContext.readFileLoopGuard = readFileLoopGuard;
   let lastTaskProgressIntervention = null;
 
   while (budget.hasRemaining()) {
     readFileLoopGuard.finishBatch();
+    if (remoteReadLoopGuard.stalled) {
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      yield* _drainSubAgentUsage(subAgentUsageSink);
+      const error = new Error(
+        "Repeated remote fetch failures or unchanged GitHub Actions logs continued after recovery guidance. Stopped the retry loop; the task is not complete. Use the retained findings, check authentication/connectivity, or fetch a specific missing log section before retrying.",
+      );
+      error.code = "CC_AGENT_REPEATED_REMOTE_READ";
+      throw error;
+    }
     if (readFileLoopGuard.stalled) {
       await _awaitBackgroundUsageSettlement(
         backgroundSubAgents,
@@ -14388,6 +14402,14 @@ export async function* agentLoop(messages, options) {
     // whole-file request. This changes discovery for one request only; runtime
     // permissions are untouched and ordinary reads return on the next turn.
     const readRecoveryTurn = readFileLoopGuard.takeRecoveryTurn();
+    const remoteRecoveryTools = remoteReadLoopGuard.takeRecoveryTurn();
+    if (remoteRecoveryTools.length) {
+      yield {
+        type: "iteration-warning",
+        message:
+          "Repeated web/log requests made no progress. Use retained evidence; the repeating tool is paused for one model turn.",
+      };
+    }
     const progressIntervention = taskProgressTracker.intervention;
     const newProgressIntervention =
       progressIntervention &&
@@ -14408,7 +14430,7 @@ export async function* agentLoop(messages, options) {
       };
     }
     const iterationToolOptions =
-      readRecoveryTurn || taskRecoveryTurn
+      readRecoveryTurn || taskRecoveryTurn || remoteRecoveryTools.length
         ? {
             ...effectiveToolOptions,
             disabledTools: [
@@ -14416,6 +14438,7 @@ export async function* agentLoop(messages, options) {
                 ...(effectiveToolOptions.disabledTools || []),
                 ...(readRecoveryTurn ? ["read_file"] : []),
                 ...(taskRecoveryTurn ? TASK_RECOVERY_TOOLS : []),
+                ...remoteRecoveryTools,
               ]),
             ],
           }
@@ -14423,6 +14446,7 @@ export async function* agentLoop(messages, options) {
     const readContext = [
       readFileLoopGuard.findingsHint,
       readFileLoopGuard.progressHint,
+      remoteReadLoopGuard.findingsHint,
       taskProgressTracker.checkpointFor(runId),
     ].filter(Boolean);
     if (readContext.length) {
@@ -14468,6 +14492,20 @@ export async function* agentLoop(messages, options) {
       }
     }
     const contextMemoryTrustedSystemIndexes = [];
+    if (remoteReadLoopGuard.recoveryHint) {
+      callMessages = [
+        ...callMessages,
+        {
+          role: "system",
+          content:
+            remoteReadLoopGuard.recoveryHint +
+            (remoteRecoveryTools.length
+              ? ` One-turn recovery: ${remoteRecoveryTools.join(", ")} omitted for this request only; availability resumes on the next turn.`
+              : ""),
+        },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
     if (progressIntervention) {
       callMessages = [
         ...callMessages,
@@ -15044,6 +15082,7 @@ export async function* agentLoop(messages, options) {
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
+        remoteReadLoopGuard.record(call.function.name, toolResult, toolArgs);
         readFileLoopGuard.record(
           call.function.name,
           toolResult,
@@ -15528,6 +15567,7 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
+        remoteReadLoopGuard.record(toolName, toolResult, toolArgs);
         readFileLoopGuard.record(
           toolName,
           toolResult,

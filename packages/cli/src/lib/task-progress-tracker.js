@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { remoteReadTarget } from "./remote-read-loop-guard.js";
 
 // Discovery and bookkeeping are useful, but are not evidence that the task
 // advanced. In particular, dispatching a child must not buy a fresh budget.
@@ -116,7 +117,10 @@ export class TaskProgressTracker {
       // fingerprints affect guidance only: every authorized command still runs.
       const output = typeof result?.output === "string" ? result.output : "";
       const digest = createHash("sha256").update(output).digest("hex");
-      exploration = output.length >= 8000 || this.commandOutputs.has(digest);
+      exploration =
+        !!remoteReadTarget(tool, args) ||
+        output.length >= 8000 ||
+        this.commandOutputs.has(digest);
       if (!failed) remember(this.commandOutputs, digest, true, 64);
     }
     if (

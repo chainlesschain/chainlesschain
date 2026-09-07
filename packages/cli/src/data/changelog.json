@@ -3,6 +3,32 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.32",
+      "cliVersions": ["0.166.30", "0.166.32"],
+      "date": "2026-09-07",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery",
+          "body": "> `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`\n> candidate was not published because two existing cache tests required the\n> flag-gated `node:sqlite` API on Node 22.12. Its immutable tag is retained.\n\n- Include the hostname-fetch repair, bounded request duration, structured errors\n  and repeated GitHub Actions log recovery prepared in the 0.166.31 candidate.\n- Exercise Desktop cache isolation and encrypted replay with the shipped SQLite\n  driver on the minimum supported Node 22.12, without skipping assertions.\n- Give Windows crash-recovery fixtures enough time to reach their intended\n  checkpoints before lease expiry, while preserving real expiry, stale-fence,\n  single-effect and rollback recovery checks.\n- Verify fresh Wiki-recovery worker instances with child-generated identities\n  bound to the spawned child, since Windows can reuse exited process IDs.\n- Require the complete CLI CI and CLI Strict Sandbox matrices for the new exact\n  release commit before npm publication."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.31",
+      "cliVersions": ["0.166.30", "0.166.31"],
+      "date": "2026-09-07",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.31: reliable web fetch and bounded CI log recovery",
+          "body": "> `chainlesschain` **0.166.30 -> 0.166.31** (2026-09-07). Publication requires\n> successful CLI CI and CLI Strict Sandbox matrices for the exact release commit.\n\n- Fix Node 22 multi-address DNS callbacks that caused hostname fetches to fail\n  with `Invalid IP address: undefined`, while preserving private-address checks.\n- Bound the full fetch duration, including redirects and streaming responses;\n  return structured HTTP, timeout and response-size errors with retry guidance.\n- Recognize repeated failed fetches and unchanged GitHub Actions logs across\n  web pages, `gh run view` and `gh api`; retain bounded evidence through context\n  compaction and offer a recovery turn before stopping persistent retry loops.\n- Preserve status monitoring, new job/log evidence and real local edits as\n  recovery paths, and never skip shell execution based on cached stdout.\n- Validate with 158 focused unit/integration tests covering network failures,\n  resource budgets, compaction, recovery and existing agent-loop behavior."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.30",
       "cliVersions": ["0.166.29", "0.166.30"],
       "date": "2026-09-07",

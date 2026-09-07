@@ -34,7 +34,13 @@ function run(root, mode, crashPoint = "none", status = 0) {
   );
   expect(child.error, child.stderr).toBeUndefined();
   expect(child.status, child.stderr || child.stdout).toBe(status);
-  return status === 0 ? JSON.parse(child.stdout) : null;
+  if (status !== 0) return null;
+  const result = JSON.parse(child.stdout);
+  expect(result.pid).toBe(child.pid);
+  expect(result.processInstanceId).toMatch(
+    /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u,
+  );
+  return result;
 }
 it.each([
   ["after-first-wiki-tombstone", 94],
@@ -89,10 +95,20 @@ it.each([
       ),
     ).toHaveLength(1);
     const verified = run(root, "inspect");
+    // Exited process IDs can be reused (especially on Windows). Prove fresh
+    // worker instances with child-generated identities, not PID uniqueness.
     expect(
-      new Set([seeded.pid, interrupted.pid, recovered.pid, verified.pid]).size,
+      new Set(
+        [seeded, interrupted, recovered, verified].map(
+          (result) => result.processInstanceId,
+        ),
+      ).size,
     ).toBe(4);
-    expect({ ...verified, pid: null }).toEqual({ ...recovered, pid: null });
+    expect({ ...verified, pid: null, processInstanceId: null }).toEqual({
+      ...recovered,
+      pid: null,
+      processInstanceId: null,
+    });
     process.stdout.write(
       `Knowledge multihop Wiki ${crashPoint}: ${Date.now() - started}ms\n`,
     );
