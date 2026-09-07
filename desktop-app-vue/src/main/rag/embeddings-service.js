@@ -164,6 +164,9 @@ class EmbeddingsService extends EventEmitter {
 
       return embedding;
     } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       logger.error("[EmbeddingsService] 生成嵌入失败:", error);
 
       // 降级到简单嵌入

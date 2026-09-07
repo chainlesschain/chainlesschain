@@ -11,6 +11,121 @@ const hosts = new WeakMap();
 const clients = new WeakMap();
 const workflows = new AsyncLocalStorage();
 
+function desktopChatResult(result) {
+  return {
+    text: result.message?.content ?? result.text,
+    message: result.message,
+    model: result.model,
+    tokens: result.tokens || result.usage?.total_tokens || 0,
+    usage: result.usage,
+  };
+}
+
+async function runDesktopCachedModelWorkflow(client, request, cache, work) {
+  const host = clients.get(client);
+  if (!host) return work(false, request);
+  try {
+    const {
+      calculateCacheKey,
+      snapshotCacheData,
+    } = require("../llm/response-cache");
+    let cacheable = true;
+    try {
+      request = snapshotCacheData(request);
+    } catch {
+      cacheable = false;
+    }
+    // A nested manager request (for example prompt summarization while a
+    // stream is being prepared) is an intermediate model step of the active
+    // Run. It must not create a second Run or independently replay/store a
+    // response-cache receipt.
+    const parentScope = workflows.getStore();
+    if (parentScope?.client === client) {
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      return await work(true, request);
+    }
+    const ingress = await openDesktopModelRun(host, JSON.stringify(request));
+    const scope = { client, ingress, result: null };
+    return await workflows.run(scope, async () => {
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      let requestKey = null;
+      if (
+        cache?.getEvidenceReceipt &&
+        cache?.setEvidenceReceipt &&
+        cacheable &&
+        !request.options.skipCache
+      ) {
+        try {
+          requestKey = calculateCacheKey(
+            request.provider,
+            request.model,
+            request.messages,
+            {
+              tenantId: ingress.tenantId,
+              connection: request.connection,
+              options: request.options,
+            },
+          );
+        } catch {
+          /* Opaque options are non-cacheable; model admission still applies. */
+        }
+      }
+      const receipt = requestKey
+        ? await cache.getEvidenceReceipt(requestKey)
+        : null;
+      if (receipt) {
+        const event = await ingress.replayResponseCache({
+          receipt,
+          requestKey,
+        });
+        const result = event.desktopResult;
+        if (
+          !result ||
+          (typeof result.text !== "string" &&
+            result.message?.role !== "assistant")
+        )
+          throw new Error(
+            "Cached response lacks its authenticated Desktop result",
+          );
+        if (request.options.signal?.aborted)
+          throw new Error("Desktop request aborted");
+        await ingress.complete();
+        cache.recordEvidenceHit?.(requestKey, desktopChatResult(result).tokens);
+        return {
+          ...desktopChatResult(result),
+          timestamp: Date.now(),
+          wasCached: true,
+          tokensSaved: result.tokens || result.usage?.total_tokens || 0,
+        };
+      }
+      const result = await work(true, request);
+      if (
+        !scope.result ||
+        JSON.stringify(desktopChatResult(result)) !==
+          JSON.stringify(desktopChatResult(scope.result))
+      )
+        throw new Error(
+          "Desktop result is not bound to its recorded provider response",
+        );
+      const proof = requestKey
+        ? await ingress.createResponseCacheReceipt({ requestKey })
+        : null;
+      if (request.options.signal?.aborted)
+        throw new Error("Desktop request aborted");
+      await ingress.complete();
+      if (proof) await cache.setEvidenceReceipt(requestKey, proof);
+      return result;
+    });
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Desktop cached model workflow failed", { cause });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 function assertDesktopToolLoopComplete(client) {
   if (!clients.has(client)) return;
   const error = new Error("Governed tool loop exhausted its iteration limit");
@@ -155,6 +270,113 @@ async function runDesktopToolExecution(client, toolCall, execute) {
   return result;
 }
 
+async function runDesktopFunctionWorkflow(
+  client,
+  messages,
+  functions,
+  executor,
+  options = {},
+  hooks = {},
+) {
+  try {
+    if (!clients.has(client) || typeof executor?.execute !== "function")
+      throw new Error(
+        "Governed function workflow requires a bound client and executor",
+      );
+    const captured = JSON.parse(JSON.stringify({ messages, functions }));
+    const names = new Set(captured.functions.map((fn) => fn.name));
+    if (
+      names.size !== captured.functions.length ||
+      [...names].some((name) => typeof name !== "string" || !name)
+    )
+      throw new Error("Function definitions must have unique names");
+    const limit = options.maxToolIterations ?? 8;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 16)
+      throw new Error("Function iteration limit must be between 1 and 16");
+    const callOptions = {
+      ...options,
+      tools: captured.functions.map((fn) => ({
+        type: "function",
+        function: fn,
+      })),
+    };
+    const execute = executor.execute.bind(executor);
+    return await runDesktopModelWorkflow(client, captured, async () => {
+      let history = captured.messages;
+      const usedIds = new Set();
+      for (let iteration = 0; ; iteration++) {
+        await hooks.beforeStep?.();
+        if (options.signal?.aborted)
+          throw new Error("Function workflow aborted");
+        const result = await client.chat(history, callOptions);
+        await hooks.onModelResult?.(result);
+        if (options.signal?.aborted)
+          throw new Error("Function workflow aborted");
+        const calls = result.message?.tool_calls;
+        if (calls == null || (Array.isArray(calls) && calls.length === 0)) {
+          if (
+            !result.message ||
+            result.message.role !== "assistant" ||
+            typeof (result.message.content ?? result.text) !== "string"
+          )
+            throw new Error("Function workflow lacks an assistant result");
+          return result;
+        }
+        if (iteration >= limit)
+          throw new Error("Function workflow exhausted its iteration limit");
+        if (!Array.isArray(calls) || calls.length > 16)
+          throw new Error("Invalid or excessive function call batch");
+        // Validate the entire batch before any side effect, including replayed IDs.
+        const batch = calls.map((call) => {
+          if (
+            call.type !== "function" ||
+            typeof call.id !== "string" ||
+            !call.id ||
+            call.id.length > 256 ||
+            usedIds.has(call.id) ||
+            !names.has(call.function?.name) ||
+            typeof call.function.arguments !== "string"
+          )
+            throw new Error("Unbound or repeated function call");
+          usedIds.add(call.id);
+          const args = JSON.parse(call.function.arguments);
+          if (!args || typeof args !== "object" || Array.isArray(args))
+            throw new Error("Function arguments must be an object");
+          return { call, args };
+        });
+        const toolMessages = [];
+        for (const { call, args } of batch) {
+          await hooks.beforeStep?.();
+          if (options.signal?.aborted)
+            throw new Error("Function workflow aborted");
+          let output;
+          try {
+            output = await runDesktopToolExecution(client, call, () =>
+              execute(call.function.name, args),
+            );
+          } catch (error) {
+            if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+            output = { error: String(error.message || error) };
+          }
+          toolMessages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify(output ?? null),
+          });
+        }
+        history = [...history, result.message, ...toolMessages];
+      }
+    });
+  } catch (cause) {
+    if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
+    const error = new Error("Governed Desktop function workflow failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 function bindDesktopModelIngressClient(client, host) {
   if (!hosts.has(host))
     throw new TypeError("A branded Desktop model ingress host is required");
@@ -240,8 +462,7 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
     const content = chat ? data.message?.content : data.response;
     if (typeof content !== "string")
       throw new Error("Invalid Ollama response content");
-    await prepared.complete(chat ? data.message : content);
-    return {
+    const result = {
       ...(chat
         ? { message: data.message }
         : { text: content, context: data.context }),
@@ -250,6 +471,8 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
       total_duration: data.total_duration,
       tokens: data.eval_count || 0,
     };
+    await prepared.complete(chat ? data.message : content, result);
+    return result;
   } catch (cause) {
     if (cause.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw cause;
     const error = new Error(
@@ -267,6 +490,58 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
   try {
     // Capture the final wire payload, after client-specific tool filtering.
     const captured = JSON.parse(JSON.stringify(body));
+    const hasMultimodalBlocks =
+      Array.isArray(captured.messages) &&
+      captured.messages.some((message) => Array.isArray(message?.content));
+    if (hasMultimodalBlocks) {
+      // Agent v3 owns opaque image transport: it persists a digest-bound
+      // commitment and only restores the original block after authenticated
+      // readback. Do not coerce these blocks through the text-only path below.
+      const opened = await openDesktopMultimodalModelRun(host, {
+        messages: captured.messages,
+        tools: captured.tools || [],
+      });
+      if (
+        !opened.request ||
+        !Array.isArray(opened.request.messages) ||
+        !Array.isArray(opened.request.tools)
+      ) {
+        throw new Error(
+          "Desktop multimodal projection returned an invalid request",
+        );
+      }
+      return {
+        body: {
+          ...captured,
+          messages: opened.request.messages,
+          tools: opened.request.tools,
+        },
+        async complete(message, result) {
+          try {
+            const desktopResult =
+              result === undefined
+                ? undefined
+                : JSON.parse(JSON.stringify(result));
+            await opened.ingress.ingestAgentEvent({
+              type: "response-complete",
+              content:
+                typeof message === "string" ? message : JSON.stringify(message),
+              ...(desktopResult === undefined ? {} : { desktopResult }),
+            });
+            await opened.ingress.complete();
+          } catch (cause) {
+            const error = new Error(
+              "Desktop multimodal response evidence failed",
+              {
+                cause,
+              },
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
+        },
+      };
+    }
     const scope = workflows.getStore();
     const sharedWorkflow = scope?.client === client;
     const ingress = sharedWorkflow
@@ -369,13 +644,19 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
     if (Object.hasOwn(captured, "tools")) captured.tools = projected.tools;
     return {
       body: captured,
-      async complete(message) {
+      async complete(message, result) {
         try {
+          const desktopResult =
+            result === undefined
+              ? undefined
+              : JSON.parse(JSON.stringify(result));
           await ingress.ingestAgentEvent({
             type: "response-complete",
             content:
               typeof message === "string" ? message : JSON.stringify(message),
+            ...(desktopResult === undefined ? {} : { desktopResult }),
           });
+          if (sharedWorkflow) scope.result = desktopResult ?? null;
           if (!sharedWorkflow) await ingress.complete();
         } catch (cause) {
           const error = new Error("Desktop model response evidence failed", {
@@ -546,10 +827,63 @@ async function openDesktopModelRun(host, content) {
   }
 }
 
+/**
+ * Opens a Desktop Run for an Agent v3 model request. Unlike openDesktopModelRun
+ * this delegates the complete request to the CLI ingress' authenticated
+ * prepareModelRequest() path, which can persist opaque image blocks as
+ * digest-bound transport commitments before restoring them for a provider.
+ * Callers must not dispatch the returned request until this promise resolves.
+ */
+async function openDesktopMultimodalModelRun(host, request) {
+  const captured = hosts.get(host);
+  if (!captured)
+    throw new TypeError("A branded Desktop model ingress host is required");
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    throw new TypeError("Desktop multimodal model request must be an object");
+  }
+  try {
+    const { captureAgentEvolutionRuntimeComposition } = await import(
+      captured.moduleUrl
+    );
+    const runId = `desktop-multimodal-model-${randomUUID()}`;
+    const composition = captureAgentEvolutionRuntimeComposition(
+      await captured.factory(
+        Object.freeze({
+          mode: "desktop-multimodal-model",
+          runId,
+          taskId: runId,
+          cwd: process.cwd(),
+        }),
+      ),
+    );
+    const ingress = composition.evolutionIngress;
+    if (
+      composition.runId !== runId ||
+      ingress.runId !== runId ||
+      composition.tenantId !== ingress.tenantId ||
+      typeof ingress.prepareModelRequest !== "function"
+    ) {
+      throw new Error(
+        "Desktop multimodal composition is not bound to the requested Run",
+      );
+    }
+    await ingress.start();
+    const prepared = await ingress.prepareModelRequest(request);
+    return Object.freeze({ ingress, request: prepared });
+  } catch (cause) {
+    const error = new Error("Desktop multimodal evolution admission failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 module.exports = {
   createDesktopModelIngressHost,
   isDesktopModelIngressHost,
   openDesktopModelRun,
+  openDesktopMultimodalModelRun,
   bindDesktopModelIngressClient,
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,
@@ -558,4 +892,6 @@ module.exports = {
   runDesktopToolExecution,
   consumeDesktopToolStream,
   assertDesktopToolLoopComplete,
+  runDesktopCachedModelWorkflow,
+  runDesktopFunctionWorkflow,
 };

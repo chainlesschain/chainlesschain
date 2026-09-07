@@ -5,6 +5,14 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 
+function assertGovernedDocumentIngress() {
+  const error = new Error(
+    "External document generation requires a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 let browserWindowWarningLogged = false;
 
 // Allow injection for testing
@@ -600,6 +608,7 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt) {
+    assertGovernedDocumentIngress();
     const http = require("http");
 
     return new Promise((resolve, reject) => {

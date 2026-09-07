@@ -1648,6 +1648,8 @@ function registerConversationIPC({
       if (!llmManager) {
         return { success: false, error: "LLM管理器未初始化" };
       }
+      const { isGovernedLLMManager } = require("../llm/llm-manager");
+      const governed = isGovernedLLMManager(llmManager);
 
       const webContents =
         mainWindow && !mainWindow.isDestroyed()
@@ -1690,6 +1692,7 @@ function registerConversationIPC({
         functionCaller = new FunctionCaller({ enableToolMasking: false });
       } catch (err) {
         logger.warn("[Agent Chat] FunctionCaller not available:", err.message);
+        if (governed) throw err;
         // Fall back to regular chat
         const result = await llmManager.chat(messages, options);
         return {
@@ -1700,6 +1703,50 @@ function registerConversationIPC({
       }
 
       const tools = functionCaller.getAgentChatTools();
+      if (governed) {
+        const result = await llmManager.chatWithGovernedFunctions(
+          messages,
+          tools.map((tool) => tool.function),
+          {
+            execute: async (toolName, toolArgs) => {
+              webContents.send("conversation:agent-tool-start", {
+                conversationId,
+                tool: toolName,
+                args: toolArgs,
+              });
+              try {
+                const toolResult = await functionCaller.executeAgentTool(
+                  toolName,
+                  toolArgs,
+                );
+                webContents.send("conversation:agent-tool-result", {
+                  conversationId,
+                  tool: toolName,
+                  result: toolResult,
+                  error: null,
+                });
+                return toolResult;
+              } catch (error) {
+                webContents.send("conversation:agent-tool-result", {
+                  conversationId,
+                  tool: toolName,
+                  result: { error: error.message },
+                  error: error.message,
+                });
+                throw error;
+              }
+            },
+          },
+          { ...options, maxToolIterations: 10 },
+        );
+        const content =
+          result.message?.content ?? result.content ?? result.text;
+        webContents.send("conversation:agent-response", {
+          conversationId,
+          content,
+        });
+        return { success: true, content, agentMode: true };
+      }
       const MAX_ITERATIONS = 10;
       let finalContent = "";
 

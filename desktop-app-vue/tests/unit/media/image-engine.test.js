@@ -221,6 +221,21 @@ describe("图片引擎测试", () => {
     });
   });
 
+  describe("governed multimodal ingress", () => {
+    it("fails closed before dispatching an external image prompt", async () => {
+      const stableDiffusion = vi.spyOn(
+        imageEngine,
+        "generateWithStableDiffusion",
+      );
+      const dalle = vi.spyOn(imageEngine, "generateWithDALLE");
+      await expect(
+        imageEngine.generateImageFromText("private prompt", "/output.png"),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(stableDiffusion).not.toHaveBeenCalled();
+      expect(dalle).not.toHaveBeenCalled();
+    });
+  });
+
   describe.skip("generateImageFromText - AI文生图", () => {
     it("should generate image using Stable Diffusion", async () => {
       const mockImageData = Buffer.from("fake-image-data");

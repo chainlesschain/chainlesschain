@@ -13,6 +13,14 @@ const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Audio recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * 基础识别器接口
  */
@@ -68,6 +76,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    * @returns {Promise<Object>}
    */
   async recognize(audioPath, options = {}) {
+    assertGovernedMultimodalIngress();
     const {
       language = "zh", // 中文
       prompt = null, // 可选的提示文本
@@ -165,6 +174,8 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
       };
     } catch (error) {
       logger.error("[WhisperAPI] 识别失败:", error);
+
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
 
       // 处理特定错误
       let errorMessage = error.message;
@@ -370,6 +381,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
    * @returns {Promise<Object>}
    */
   async recognize(audioPath, options = {}) {
+    assertGovernedMultimodalIngress();
     const {
       language = "zh",
       task = "transcribe", // transcribe | translate
@@ -447,6 +459,8 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
     } catch (error) {
       logger.error("[WhisperLocal] 识别失败:", error);
 
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+
       let errorMessage = error.message;
 
       if (error.code === "ECONNREFUSED") {
@@ -478,33 +492,17 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
    * 检查本地 Whisper 服务是否可用
    */
   async isAvailable() {
-    try {
-      // 尝试连接到服务器
-      const response = await axios.get(`${this.serverUrl}/health`, {
-        timeout: 5000,
-      });
-
-      return response.status === 200;
-    } catch (error) {
-      logger.warn("[WhisperLocal] 服务不可用:", error.message);
-      return false;
-    }
+    // A health request still discloses the configured endpoint and creates an
+    // ungoverned model-service interaction. Until audio has a governed ingress,
+    // report the engine unavailable without probing it.
+    return false;
   }
 
   /**
    * 获取可用的模型列表
    */
   async getAvailableModels() {
-    try {
-      const response = await axios.get(`${this.serverUrl}/v1/models`, {
-        timeout: 5000,
-      });
-
-      return response.data.models || [];
-    } catch (error) {
-      logger.error("[WhisperLocal] 获取模型列表失败:", error);
-      return [];
-    }
+    return [];
   }
 
   /**
@@ -603,6 +601,7 @@ class SpeechRecognizer {
    * @returns {Promise<Object>}
    */
   async recognize(audioPath, options = {}) {
+    assertGovernedMultimodalIngress();
     const available = await this.engine.isAvailable();
 
     if (!available) {
@@ -694,6 +693,7 @@ class SpeechRecognizer {
    * 批量识别
    */
   async recognizeBatch(audioPaths, options = {}) {
+    assertGovernedMultimodalIngress();
     if (this.engine.recognizeBatch) {
       return await this.engine.recognizeBatch(audioPaths, options);
     }

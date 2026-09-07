@@ -17,6 +17,14 @@ const path = require("path");
 const { looseParseJSON } = require("../../ai-engine/response-parser.js");
 const { imageToViewport } = require("./coordinate-mapping.js");
 
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "Browser screenshot analysis requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * 支持的 Vision 模型
  */
@@ -81,6 +89,10 @@ class VisionAction extends EventEmitter {
    * @private
    */
   async _captureScreenshot(targetId, options = {}) {
+    // Every caller of this private method is preparing an image-bearing model
+    // request. The current Desktop ingress only authenticates text payloads,
+    // so do not capture browser content for an ungoverned vision dispatch.
+    assertGovernedMultimodalIngress();
     const page = this._getPage(targetId);
 
     const buffer = await page.screenshot({
@@ -172,6 +184,9 @@ class VisionAction extends EventEmitter {
    * @private
    */
   async _callVisionLLM(messages, options = {}) {
+    // Keep this independent of _captureScreenshot: compare/bespoke callers can
+    // construct a multimodal message without going through that helper.
+    assertGovernedMultimodalIngress();
     if (!this.llmService) {
       throw new Error(
         "LLM Service not configured. Please set LLM service first.",
@@ -201,6 +216,9 @@ class VisionAction extends EventEmitter {
    * @returns {Promise<Object>}
    */
   async analyze(targetId, prompt, options = {}) {
+    // Cache entries predate the authenticated multimodal receipt protocol and
+    // cannot be replayed as evidence for the current browser state.
+    assertGovernedMultimodalIngress();
     // 检查缓存
     const cacheKey = `${targetId}:${prompt}`;
     const cached = this.analysisCache.get(cacheKey);

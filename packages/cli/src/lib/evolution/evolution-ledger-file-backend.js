@@ -23,6 +23,11 @@ function capture(owner, name, label) {
   return Object.freeze((...args) => operation(...args));
 }
 
+function captureOptional(owner, name, label) {
+  if (owner?.[name] === undefined) return null;
+  return capture(owner, name, label);
+}
+
 function normalizeAuthority(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError(`${label} authority is required`);
@@ -34,6 +39,11 @@ function normalizeAuthority(value, label) {
     verifierIdentity: value.verifier,
     sign: capture(value.signer, "sign", `${label}.signer`),
     verify: capture(value.verifier, "verify", `${label}.verifier`),
+    getTrustEpoch: captureOptional(
+      value.verifier,
+      "getTrustEpoch",
+      `${label}.verifier`,
+    ),
   });
 }
 
@@ -123,7 +133,12 @@ export function createEvolutionLedgerFileBackend({
     filePath: paths.witnessPath,
     trust: witnessAuthority.trust,
     signer: { sign: witnessAuthority.sign },
-    verifier: { verify: witnessAuthority.verify },
+    verifier: {
+      verify: witnessAuthority.verify,
+      ...(witnessAuthority.getTrustEpoch === null
+        ? {}
+        : { getTrustEpoch: witnessAuthority.getTrustEpoch }),
+    },
     fsImpl,
     ...(lock === undefined ? {} : { lock }),
     ...(random === undefined ? {} : { random }),

@@ -80,6 +80,19 @@ describe("desktop evolution deployment", () => {
     expect(factory).not.toHaveBeenCalled();
     expect(post).not.toHaveBeenCalled();
   });
+  it("rejects malformed multimodal requests before opening a composition", async () => {
+    const {
+      createDesktopModelIngressHost,
+      openDesktopMultimodalModelRun,
+    } = require("../desktop-model-ingress");
+    const factory = vi.fn();
+    const host = createDesktopModelIngressHost(factory);
+
+    await expect(
+      openDesktopMultimodalModelRun(host, "not-a-request"),
+    ).rejects.toThrow(/must be an object/);
+    expect(factory).not.toHaveBeenCalled();
+  });
   it("retains an independent model factory as an opaque branded host", async () => {
     const factory = vi.fn();
     const result = await loadDesktopEvolutionDependencies({

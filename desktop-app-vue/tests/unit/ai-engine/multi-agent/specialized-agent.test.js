@@ -464,12 +464,23 @@ describe("SpecializedAgent", () => {
 
       const response = await agent.callLLM(options);
 
-      expect(mockLLMManager.chat).toHaveBeenCalledWith({
-        messages: options.messages,
-        systemPrompt: options.systemPrompt,
-        temperature: 0.7,
-      });
+      expect(mockLLMManager.chat).toHaveBeenCalledWith(
+        [
+          { role: "system", content: "You are a helpful assistant" },
+          ...options.messages,
+        ],
+        { temperature: 0.7 },
+      );
       expect(response).toBe("LLM response");
+    });
+
+    it("should reject an object-shaped message payload before the manager", async () => {
+      agent.setLLMManager(mockLLMManager);
+
+      await expect(
+        agent.callLLM({ messages: { role: "user" } }),
+      ).rejects.toThrow("requires an array of LLM messages");
+      expect(mockLLMManager.chat).not.toHaveBeenCalled();
     });
 
     it("should throw error if LLM manager not set", async () => {
@@ -491,13 +502,13 @@ describe("SpecializedAgent", () => {
         stream: false,
       });
 
-      expect(mockLLMManager.chat).toHaveBeenCalledWith({
-        messages: [{ role: "user", content: "Test" }],
-        systemPrompt: "System",
-        temperature: 0.5,
-        maxTokens: 1000,
-        stream: false,
-      });
+      expect(mockLLMManager.chat).toHaveBeenCalledWith(
+        [
+          { role: "system", content: "System" },
+          { role: "user", content: "Test" },
+        ],
+        { temperature: 0.5, maxTokens: 1000, stream: false },
+      );
     });
   });
 

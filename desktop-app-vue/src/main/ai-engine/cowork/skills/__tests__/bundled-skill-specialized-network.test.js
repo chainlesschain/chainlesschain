@@ -98,7 +98,7 @@ describe("specialized bundled Skill network paths", () => {
     }
   });
 
-  it("uploads Whisper multipart data through the fixed OpenAI broker", async () => {
+  it("blocks Whisper API upload before the network broker", async () => {
     const audioPath = path.join(temporaryDirectory, "sample.wav");
     writeFileSync(audioPath, Buffer.from("test-audio"));
     const { calls, transport: https } = createTransport({
@@ -119,20 +119,10 @@ describe("specialized bundled Skill network paths", () => {
       {},
     );
 
-    expect(result.success).toBe(true);
-    expect(result.result.text).toBe("hello");
-    expect(calls[0].options).toMatchObject({
-      hostname: "api.openai.com",
-      port: 443,
-      path: "/v1/audio/transcriptions",
-      method: "POST",
-    });
-    const multipartBody = calls[0].end.mock.calls[0][0];
-    expect(Buffer.isBuffer(multipartBody)).toBe(true);
-    expect(multipartBody.toString("utf8")).toContain('name="model"');
-    expect(JSON.stringify(auditSink.mock.calls)).not.toContain(
-      "test-openai-secret",
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("governed multimodal ingress");
+    expect(calls).toHaveLength(0);
+    expect(auditSink).not.toHaveBeenCalled();
   });
 
   it("rejects a plain object pretending to be the Whisper broker", async () => {
@@ -151,11 +141,11 @@ describe("specialized bundled Skill network paths", () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Trusted runtime network broker");
+    expect(result.error).toContain("governed multimodal ingress");
     expect(request).not.toHaveBeenCalled();
   });
 
-  it("generates DALL-E output through the fixed OpenAI broker", async () => {
+  it("blocks DALL-E generation before the network broker", async () => {
     const outputPath = path.join(temporaryDirectory, "dalle.png");
     const { calls, transport: https } = createTransport({
       data: [{ b64_json: Buffer.from("dalle-image").toString("base64") }],
@@ -173,16 +163,12 @@ describe("specialized bundled Skill network paths", () => {
       {},
     );
 
-    expect(result.success).toBe(true);
-    expect(readFileSync(outputPath, "utf8")).toBe("dalle-image");
-    expect(calls[0].options).toMatchObject({
-      hostname: "api.openai.com",
-      path: "/v1/images/generations",
-      method: "POST",
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("governed multimodal ingress");
+    expect(calls).toHaveLength(0);
   });
 
-  it("pins Stable Diffusion generation to the approved loopback service", async () => {
+  it("blocks Stable Diffusion generation before the local service broker", async () => {
     const outputPath = path.join(temporaryDirectory, "sd.png");
     const { calls, transport: http } = createTransport({
       images: [Buffer.from("sd-image").toString("base64")],
@@ -209,13 +195,8 @@ describe("specialized bundled Skill network paths", () => {
       {},
     );
 
-    expect(result.success).toBe(true);
-    expect(readFileSync(outputPath, "utf8")).toBe("sd-image");
-    expect(calls[0].options).toMatchObject({
-      hostname: "127.0.0.1",
-      port: 7860,
-      path: "/sdapi/v1/txt2img",
-      method: "POST",
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("governed multimodal ingress");
+    expect(calls).toHaveLength(0);
   });
 });

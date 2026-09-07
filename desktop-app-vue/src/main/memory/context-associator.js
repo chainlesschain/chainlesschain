@@ -358,14 +358,16 @@ Respond in JSON format:
   "answers": [{"content": "...", "to_question": "..."}]
 }`;
 
-      const response = await this.llmManager.complete({
-        prompt,
+      const response = await this.llmManager.query(prompt, {
         temperature: 0.2,
         maxTokens: 1000,
       });
 
       // Parse LLM response
-      const extracted = this._parseLLMResponse(response, sessionId);
+      const extracted = this._parseLLMResponse(
+        response?.text || response?.content || response,
+        sessionId,
+      );
       return extracted;
     } catch (error) {
       logger.error("[ContextAssociator] LLM extraction failed:", error);

@@ -5,6 +5,14 @@
  */
 
 const { logger } = require("../utils/logger.js");
+
+function assertGovernedModelIngress() {
+  const error = new Error(
+    "External OpenAI embeddings require a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const axios = require("axios");
 const EventEmitter = require("events");
 const {
@@ -44,36 +52,10 @@ class OpenAIClient extends EventEmitter {
    */
   async checkStatus() {
     try {
-      // 火山引擎特殊处理：使用简单的聊天测试代替模型列表
-      if (this.baseURL && this.baseURL.includes("volces.com")) {
-        logger.info("[OpenAIClient] 检测到火山引擎，使用聊天测试代替模型列表");
-
-        const testResponse = await this.client.post(
-          "/chat/completions",
-          {
-            model: this.model,
-            messages: [{ role: "user", content: "hi" }],
-            max_tokens: 5,
-          },
-          {
-            timeout: 10000, // 10秒快速超时
-          },
-        );
-
-        return {
-          available: true,
-          models: [
-            {
-              name: this.model,
-              created: Date.now(),
-              owned_by: "volcengine",
-            },
-          ],
-          testResponse: testResponse.data,
-        };
-      }
-
-      // 标准OpenAI API：尝试列出模型
+      // Health checks must not invoke a model.  In particular, the former
+      // Volcengine branch sent an ungoverned `/chat/completions` request just
+      // to determine availability.  `/models` is a control-plane request and
+      // keeps startup from becoming an unrecorded model ingress.
       const response = await this.client.get("/models");
 
       const models = response.data.data || [];
@@ -151,15 +133,15 @@ class OpenAIClient extends EventEmitter {
         );
 
         const choice = response.data.choices[0];
-        if (governed) await governed.complete(choice.message);
-
-        return {
+        const result = {
           message: choice.message,
           finish_reason: choice.finish_reason,
           model: response.data.model,
           usage: response.data.usage,
           tokens: response.data.usage?.total_tokens || 0,
         };
+        if (governed) await governed.complete(choice.message, result);
+        return result;
       } catch (error) {
         if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
         lastError = error;
@@ -398,6 +380,7 @@ class OpenAIClient extends EventEmitter {
    */
   async embeddings(input, model = null) {
     try {
+      assertGovernedModelIngress();
       const embeddingModel = model || this.embeddingModel;
 
       const response = await this.client.post("/embeddings", {
@@ -411,6 +394,7 @@ class OpenAIClient extends EventEmitter {
         return response.data.data[0].embedding;
       }
     } catch (error) {
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error(
         "[OpenAIClient] 生成嵌入失败:",
         error.response?.data || error,

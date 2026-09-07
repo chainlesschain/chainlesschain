@@ -7,6 +7,8 @@
 const { logger } = require("../utils/logger.js");
 
 function registerCoreHandlers(ctx) {
+  const getConfiguration =
+    ctx.getLLMConfig || (() => require("./llm-config").getLLMConfig());
   const {
     ipcMain,
     managerRef,
@@ -135,6 +137,13 @@ function registerCoreHandlers(ctx) {
         };
 
         const provider = managerRef.current.provider;
+        const { isGovernedLLMManager } = require("./llm-manager");
+        const governed = isGovernedLLMManager(managerRef.current);
+        if (governed) {
+          options.skipCache = !enableCache || options.skipCache === true;
+          options.skipCompression =
+            !enableCompression || options.skipCompression === true;
+        }
         const model =
           options.model || managerRef.current.config.model || "unknown";
 
@@ -158,6 +167,8 @@ function registerCoreHandlers(ctx) {
             integrationResults.errorPrechecked = true;
             logger.info("[LLM IPC] ✓ ErrorMonitor 预检查通过");
           } catch (precheckError) {
+            if (precheckError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw precheckError;
             logger.warn(
               "[LLM IPC] ErrorMonitor 预检查失败:",
               precheckError.message,
@@ -184,6 +195,8 @@ function registerCoreHandlers(ctx) {
                 currentConversationId = session.conversationId;
                 logger.info("[LLM IPC] ✓ 加载现有会话:", currentSessionId);
               } catch (loadError) {
+                if (loadError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                  throw loadError;
                 logger.warn("[LLM IPC] 会话不存在，将创建新会话");
                 currentSessionId = null;
               }
@@ -223,6 +236,8 @@ function registerCoreHandlers(ctx) {
             integrationResults.sessionUsed = true;
             integrationResults.sessionId = currentSessionId;
           } catch (sessionError) {
+            if (sessionError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw sessionError;
             logger.warn(
               "[LLM IPC] SessionManager 会话追踪失败:",
               sessionError.message,
@@ -298,6 +313,8 @@ function registerCoreHandlers(ctx) {
                     };
                   }
                 } catch (agentError) {
+                  if (agentError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                    throw agentError;
                   logger.warn(
                     "[LLM IPC] Agent 执行失败，回退到标准流程:",
                     agentError.message,
@@ -306,6 +323,8 @@ function registerCoreHandlers(ctx) {
               }
             }
           } catch (agentCheckError) {
+            if (agentCheckError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw agentCheckError;
             logger.warn(
               "[LLM IPC] Multi-Agent 路由检查失败:",
               agentCheckError.message,
@@ -319,7 +338,7 @@ function registerCoreHandlers(ctx) {
         // ============================================================
 
         // 🔥 优化步骤 1: 检查缓存
-        if (enableCache && responseCache && !stream) {
+        if (!governed && enableCache && responseCache && !stream) {
           try {
             const cached = await responseCache.get(
               provider,
@@ -372,6 +391,8 @@ function registerCoreHandlers(ctx) {
               };
             }
           } catch (cacheError) {
+            if (cacheError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw cacheError;
             logger.warn(
               "[LLM IPC] 缓存检查失败，继续正常流程:",
               cacheError.message,
@@ -462,6 +483,8 @@ function registerCoreHandlers(ctx) {
               );
             }
           } catch (selectError) {
+            if (selectError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw selectError;
             logger.warn(
               "[LLM IPC] 智能模型选择失败，使用默认配置:",
               selectError.message,
@@ -496,6 +519,8 @@ function registerCoreHandlers(ctx) {
               }
             }
           } catch (mcpError) {
+            if (mcpError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw mcpError;
             logger.warn("[LLM IPC] 获取 MCP 工具失败:", mcpError.message);
           }
         }
@@ -560,6 +585,8 @@ function registerCoreHandlers(ctx) {
               }
             }
           } catch (ragError) {
+            if (ragError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw ragError;
             logger.error("[LLM IPC] RAG检索失败，继续普通对话:", ragError);
           }
         }
@@ -567,6 +594,7 @@ function registerCoreHandlers(ctx) {
         // 🔥 优化步骤 2: Prompt 压缩（在 RAG 增强之后）
         if (
           enableCompression &&
+          !governed &&
           promptCompressor &&
           enhancedMessages.length > 3
         ) {
@@ -593,6 +621,8 @@ function registerCoreHandlers(ctx) {
               compressionResult = null;
             }
           } catch (compressError) {
+            if (compressError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw compressError;
             logger.warn(
               "[LLM IPC] Prompt 压缩失败，使用原始消息:",
               compressError.message,
@@ -608,6 +638,18 @@ function registerCoreHandlers(ctx) {
         // 🔥 优先使用 MCP 工具（如果有）
         if (mcpFunctions.length > 0 && mcpExecutor) {
           const provider = managerRef.current.provider;
+
+          // The Volcengine tools client owns an opaque multi-request loop.
+          // A governed manager must not send it unprojected messages or let it
+          // execute MCP calls outside the single-run workflow. Until its wire
+          // protocol is adapted to that workflow, reject rather than bypass.
+          if (governed && provider === "volcengine") {
+            const error = new Error(
+              "Governed Volcengine MCP tool calls are not supported",
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
 
           // 火山引擎使用 executeFunctionCalling 方法
           if (provider === "volcengine" && managerRef.current.toolsClient) {
@@ -637,6 +679,8 @@ function registerCoreHandlers(ctx) {
               };
               usedMCPTools = true;
             } catch (fcError) {
+              if (fcError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                throw fcError;
               logger.warn(
                 "[LLM IPC] 火山引擎 Function Calling 失败，回退到标准对话:",
                 fcError.message,
@@ -644,7 +688,18 @@ function registerCoreHandlers(ctx) {
             }
           }
           // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
-          else if (provider === "openai" || provider === "deepseek") {
+          else if (
+            governed &&
+            (provider === "openai" || provider === "deepseek")
+          ) {
+            response = await managerRef.current.chatWithGovernedFunctions(
+              enhancedMessages,
+              mcpFunctions,
+              mcpExecutor,
+              options,
+            );
+            usedMCPTools = true;
+          } else if (provider === "openai" || provider === "deepseek") {
             logger.info(
               "[LLM IPC] 使用 OpenAI 兼容 Function Calling，MCP 工具数:",
               mcpFunctions.length,
@@ -696,6 +751,8 @@ function registerCoreHandlers(ctx) {
                       content: JSON.stringify(execResult),
                     });
                   } catch (execError) {
+                    if (execError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                      throw execError;
                     logger.error(
                       "[LLM IPC] MCP 工具执行失败:",
                       execError.message,
@@ -729,6 +786,8 @@ function registerCoreHandlers(ctx) {
               response = result;
               usedMCPTools = true;
             } catch (fcError) {
+              if (fcError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                throw fcError;
               logger.warn(
                 "[LLM IPC] OpenAI Function Calling 失败，回退到标准对话:",
                 fcError.message,
@@ -744,6 +803,13 @@ function registerCoreHandlers(ctx) {
           managerRef.current.provider === "volcengine" &&
           managerRef.current.toolsClient
         ) {
+          if (governed) {
+            const error = new Error(
+              "Governed Volcengine built-in tools are not supported",
+            );
+            error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+            throw error;
+          }
           logger.info("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
 
           // 如果只有一个工具，使用专用方法
@@ -842,6 +908,8 @@ function registerCoreHandlers(ctx) {
               logger.info("[LLM IPC] ✓ AI响应已记录到会话");
             }
           } catch (sessionRecordError) {
+            if (sessionRecordError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw sessionRecordError;
             logger.warn(
               "[LLM IPC] 记录AI响应到会话失败:",
               sessionRecordError.message,
@@ -850,7 +918,7 @@ function registerCoreHandlers(ctx) {
         }
 
         // 🔥 优化步骤 3: 缓存响应（缓存未命中的情况）
-        if (enableCache && responseCache && !stream) {
+        if (!governed && enableCache && responseCache && !stream) {
           try {
             // 使用原始的 messages 作为缓存键（而非压缩后的）
             await responseCache.set(
@@ -869,6 +937,8 @@ function registerCoreHandlers(ctx) {
 
             logger.info("[LLM IPC] 响应已缓存");
           } catch (cacheError) {
+            if (cacheError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+              throw cacheError;
             logger.warn("[LLM IPC] 缓存响应失败:", cacheError.message);
           }
         }
@@ -891,10 +961,15 @@ function registerCoreHandlers(ctx) {
             score: doc.score,
           })),
           // 🔥 优化信息
-          wasCached: false,
-          wasCompressed: compressionResult !== null,
-          compressionRatio: compressionResult?.compressionRatio || 1.0,
-          tokensSaved: compressionResult?.tokensSaved || 0,
+          wasCached: response.wasCached === true,
+          wasCompressed:
+            response.wasCompressed === true || compressionResult !== null,
+          compressionRatio:
+            response.compressionRatio ??
+            compressionResult?.compressionRatio ??
+            1.0,
+          tokensSaved:
+            response.tokensSaved ?? compressionResult?.tokensSaved ?? 0,
           optimizationStrategy: compressionResult?.strategy || "none",
           // 🔥 MCP 工具使用信息
           usedMCPTools: usedMCPTools,
@@ -908,6 +983,7 @@ function registerCoreHandlers(ctx) {
         return finalResponse;
       } catch (error) {
         logger.error("[LLM IPC] LLM 聊天失败:", error);
+        if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
 
         // 🔥 使用 ErrorMonitor 进行错误分析（如果启用）
         if (errorMonitor) {
@@ -1034,8 +1110,7 @@ function registerCoreHandlers(ctx) {
    */
   ipcMain.handle("llm:get-config", async () => {
     try {
-      const { getLLMConfig } = require("./llm-config");
-      const llmConfig = getLLMConfig();
+      const llmConfig = getConfiguration();
       return llmConfig.getAll();
     } catch (error) {
       logger.error("[LLM IPC] 获取LLM配置失败:", error);
@@ -1049,8 +1124,7 @@ function registerCoreHandlers(ctx) {
    */
   ipcMain.handle("llm:set-config", async (_event, config) => {
     try {
-      const { getLLMConfig } = require("./llm-config");
-      const llmConfig = getLLMConfig();
+      const llmConfig = getConfiguration();
 
       // 更新配置
       Object.keys(config).forEach((key) => {
@@ -1076,20 +1150,27 @@ function registerCoreHandlers(ctx) {
       }
 
       // 正常模式：重新初始化LLM管理器
-      const { LLMManager } = require("./llm-manager");
-
-      if (managerRef.current) {
-        // LLMManager 没有 close 方法，直接清空引用即可
-        managerRef.current = null;
-      }
+      const {
+        createLLMManagerReplacement,
+        _setLLMManagerInstance,
+      } = require("./llm-manager");
+      const previousManager = managerRef.current;
 
       const managerConfig = llmConfig.getManagerConfig();
       // 创建新的 LLMManager 实例
-      const newManager = new LLMManager(managerConfig);
+      const newManager = createLLMManagerReplacement(
+        previousManager,
+        managerConfig,
+      );
       await newManager.initialize();
+      if (managerRef.current !== previousManager)
+        throw new Error("LLM manager changed during configuration update");
 
       // 更新引用容器
       managerRef.current = newManager;
+      _setLLMManagerInstance(newManager);
+      if (newManager.promptCompressor)
+        newManager.promptCompressor.llmManager = newManager;
 
       // 如果有 app 实例，也更新 app 上的引用
       if (app) {

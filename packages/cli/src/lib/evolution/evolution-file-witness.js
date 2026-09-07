@@ -21,6 +21,8 @@ const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const DEFAULT_MAXIMUM_BYTES = 64 * 1024 * 1024;
 const MAXIMUM_CACHED_RECORDS = 1024;
 const MAXIMUM_CACHED_TEXT_BYTES = 16 * 1024 * 1024;
+const MAXIMUM_TRUST_EPOCH_CHARS = 256;
+const MAXIMUM_TRUST_EPOCH_RETRIES = 2;
 const STORE_KEYS = new Set([
   "current",
   "discardedAnchors",
@@ -140,6 +142,24 @@ function capture(owner, name) {
   return (...args) => Reflect.apply(owner[name], owner, args);
 }
 
+function captureOptional(owner, name) {
+  if (owner?.[name] === undefined) return null;
+  if (typeof owner[name] !== "function")
+    throw new TypeError(`${name} port must be a function`);
+  return (...args) => Reflect.apply(owner[name], owner, args);
+}
+
+function normalizeTrustEpoch(value) {
+  if (
+    typeof value !== "string" ||
+    value.trim() === "" ||
+    value.length > MAXIMUM_TRUST_EPOCH_CHARS
+  ) {
+    throw new Error("witness verifier trust epoch is invalid");
+  }
+  return value;
+}
+
 function sameTrust(value, trust) {
   return (
     value?.algorithm === trust.algorithm &&
@@ -192,6 +212,7 @@ export function createEvolutionFileWitness({
   const trust = normalizeTrust(trustInput);
   const sign = capture(signer, "sign");
   const verify = capture(verifier, "verify");
+  const readTrustEpoch = captureOptional(verifier, "getTrustEpoch");
   if (typeof lock !== "function" || typeof random !== "function") {
     throw new TypeError("witness lock and random ports are required");
   }
@@ -213,7 +234,7 @@ export function createEvolutionFileWitness({
       recordEncodings.size >= MAXIMUM_CACHED_RECORDS ||
       recordEncodings.has(record.witnessDigest)
     )
-      return;
+      return null;
     // Only flat scalar records may share field values with the cache. Caller
     // objects, signature objects and verifier buffers must never be retained.
     for (const key of RECORD_KEYS) {
@@ -223,7 +244,7 @@ export function createEvolutionFileWitness({
         value !== null &&
         !["string", "number", "boolean"].includes(typeof value)
       )
-        return;
+        return null;
     }
     for (const key of SIGNATURE_KEYS) {
       if (typeof record.signature[key] !== "string") return;
@@ -233,16 +254,19 @@ export function createEvolutionFileWitness({
     // strings (bounded by encoded.length). Entry count bounds object overhead;
     // this is not a claim about the entire process's RSS.
     const bytes = 2 * (message.length + 2 * encoded.length);
-    if (cachedTextBytes + bytes > MAXIMUM_CACHED_TEXT_BYTES) return;
+    if (cachedTextBytes + bytes > MAXIMUM_CACHED_TEXT_BYTES) return null;
     // Decode from the small owned encoding so parser substring backing stores
     // cannot retain the entire source history through one cached scalar/key.
     const ownedRecord = JSON.parse(encoded);
-    recordEncodings.set(ownedRecord.witnessDigest, {
+    const cached = {
       record: ownedRecord,
       message,
       encoded,
-    });
+      verifiedTrustEpoch: null,
+    };
+    recordEncodings.set(ownedRecord.witnessDigest, cached);
     cachedTextBytes += bytes;
+    return cached;
   };
   const encodeRecord = (record) =>
     cachedEncoding(record)?.encoded ?? canonical(record);
@@ -266,8 +290,15 @@ export function createEvolutionFileWitness({
     });
   };
 
-  const verifySigned = (record) => {
+  const verifySigned = (record, trustEpoch = null) => {
     const cached = cachedEncoding(record);
+    if (
+      cached &&
+      trustEpoch !== null &&
+      cached.verifiedTrustEpoch === trustEpoch
+    ) {
+      return record;
+    }
     if (cached) {
       // Reconsult the current verifier even for byte-identical historical
       // records. Give it fresh mutable inputs, not the cached representation.
@@ -281,6 +312,7 @@ export function createEvolutionFileWitness({
       ) {
         throw new Error("witness record authentication failed");
       }
+      cached.verifiedTrustEpoch = trustEpoch;
       return record;
     }
     assertExactKeys(record, RECORD_KEYS, "witness record");
@@ -372,9 +404,13 @@ export function createEvolutionFileWitness({
     ) {
       throw new Error("witness record state is inconsistent");
     }
-    rememberEncoding(record, encodedMessage);
+    const remembered = rememberEncoding(record, encodedMessage);
+    if (remembered) remembered.verifiedTrustEpoch = trustEpoch;
     return record;
   };
+
+  const currentTrustEpoch = () =>
+    readTrustEpoch === null ? null : normalizeTrustEpoch(readTrustEpoch());
 
   const emptyDiscardDigest = hash(
     Buffer.from(`${DISCARD_DOMAIN}${canonical([])}`, "utf8"),
@@ -421,7 +457,7 @@ export function createEvolutionFileWitness({
       "witnessDigest",
       "evolution-ledger-witness",
     );
-    return verifySigned(record);
+    return verifySigned(record, currentTrustEpoch());
   };
 
   const emptyStore = () => {
@@ -434,7 +470,7 @@ export function createEvolutionFileWitness({
     };
   };
 
-  const validateStore = (store) => {
+  const validateStore = (store, trustEpoch = null) => {
     assertExactKeys(store, STORE_KEYS, "witness store");
     if (
       store.schema !== EVOLUTION_FILE_WITNESS_STORE_SCHEMA ||
@@ -479,7 +515,7 @@ export function createEvolutionFileWitness({
     }
     let discardIndex = 0;
     for (const [index, record] of store.history.entries()) {
-      verifySigned(record);
+      verifySigned(record, trustEpoch);
       if (index === 0) continue;
       const previous = store.history[index - 1];
       if (
@@ -512,7 +548,7 @@ export function createEvolutionFileWitness({
     if (
       discardIndex !== store.discardedAnchors.length ||
       store.current?.witnessDigest !== store.history.at(-1).witnessDigest ||
-      encodeRecord(verifySigned(store.current)) !==
+      encodeRecord(verifySigned(store.current, trustEpoch)) !==
         encodeRecord(store.history.at(-1))
     ) {
       throw new Error("witness current state is not its durable history");
@@ -564,9 +600,19 @@ export function createEvolutionFileWitness({
       ) {
         throw new Error("witness store changed while reading");
       }
-      return validateStore(
-        JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
+      const parsed = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes),
       );
+      for (
+        let attempt = 0;
+        attempt < MAXIMUM_TRUST_EPOCH_RETRIES;
+        attempt += 1
+      ) {
+        const trustEpoch = currentTrustEpoch();
+        const store = validateStore(parsed, trustEpoch);
+        if (trustEpoch === currentTrustEpoch()) return store;
+      }
+      throw new Error("witness verifier trust epoch changed while reading");
     } finally {
       if (descriptor !== undefined) fsImpl.closeSync(descriptor);
     }

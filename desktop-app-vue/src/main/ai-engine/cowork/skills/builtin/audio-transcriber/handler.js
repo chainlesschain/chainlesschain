@@ -17,6 +17,14 @@ const {
 const {
   requireBundledSkillEnvironmentBroker,
 } = require("../../bundled-skill-environment-broker.js");
+
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "External Whisper transcription requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 const {
   requireBundledSkillProcessBroker,
 } = require("../../bundled-skill-process-broker.js");
@@ -178,6 +186,7 @@ function createWhisperMultipartBody(filePath, language) {
 }
 
 async function transcribeWithAPI(filePath, language, context) {
+  assertGovernedMultimodalIngress();
   const apiKey = requireBundledSkillEnvironmentBroker(
     context,
     "audio-transcriber",

@@ -28,6 +28,7 @@ function authority(label, secret) {
       sign: ({ message }) => ({ ...trust, value: value(message) }),
     },
     verifier: {
+      getTrustEpoch: () => `${trust.keyId}:${trust.trustPolicyDigest}`,
       verify: ({ message, signature, purpose }) => {
         verificationCounts[`${label}:${purpose}`] =
           (verificationCounts[`${label}:${purpose}`] ?? 0) + 1;

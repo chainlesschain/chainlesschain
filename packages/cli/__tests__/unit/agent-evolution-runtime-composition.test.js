@@ -1307,6 +1307,71 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
+  it("keeps a governed Desktop manager stream in one durable Run", async () => {
+    const require = createRequire(import.meta.url);
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const {
+      LLMManager,
+    } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+    const {
+      OpenAIClient,
+    } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+    const {
+      bindDesktopModelIngressClient,
+    } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+    const f = modelFixture();
+    const compositions = [];
+    const host = createDesktopModelIngressHost(async ({ runId }) => {
+      const composition = native.createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const client = bindDesktopModelIngressClient(
+      new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+      host,
+    );
+    const wire = vi.fn(async () => ({
+      data: Readable.from([
+        'data: {"choices":[{"delta":{"content":"done"}}]}\n\n',
+        "data: [DONE]\n\n",
+      ]),
+    }));
+    client.client.post = wire;
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    await expect(
+      manager.chatWithMessagesStream(
+        [{ role: "user", content: "Contact owner@example.com" }],
+        vi.fn(),
+      ),
+    ).resolves.toMatchObject({ text: "done" });
+    expect(compositions).toHaveLength(1);
+    expect(compositions[0].loadRun().projection.status).toBe("completed");
+    expect(
+      compositions[0]
+        .loadRun()
+        .events.map((event) => event.data?.evidenceKind)
+        .filter(Boolean),
+    ).toEqual(["user-prompt", "model-input", "response-completed"]);
+    expect(wire).toHaveBeenCalledOnce();
+    expect(JSON.stringify(wire.mock.calls[0][1])).not.toContain(
+      "owner@example.com",
+    );
+  }, 120000);
+
   it.each(["generate", "chat", "generateStream", "chatStream"])(
     "governs Desktop Ollama %s final payload and failures",
     async (method) => {
@@ -1847,6 +1912,638 @@ describe("Agent evolution runtime production composition", () => {
     ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
     expect(replay.loadRun().events).toHaveLength(0);
   }, 120000);
+
+  it("governs actual Desktop manager cache storage and replay without plaintext", async () => {
+    const require = createRequire(import.meta.url);
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const {
+      LLMManager,
+    } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+    const {
+      OpenAIClient,
+    } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+    const {
+      ResponseCache,
+    } = require("../../../../desktop-app-vue/src/main/llm/response-cache.js");
+    const {
+      bindDesktopModelIngressClient,
+    } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+    const { DatabaseSync } = require("node:sqlite");
+    const f = modelFixture();
+    const db = new DatabaseSync(path.join(f.root, "desktop-cache.sqlite"));
+    db.exec(`CREATE TABLE llm_cache (
+      id TEXT PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE,
+      provider TEXT NOT NULL, model TEXT NOT NULL, request_messages TEXT NOT NULL,
+      response_content TEXT NOT NULL, response_tokens INTEGER DEFAULT 0,
+      hit_count INTEGER DEFAULT 0, tokens_saved INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, last_accessed_at INTEGER NOT NULL
+    )`);
+    const compositions = [];
+    const host = createDesktopModelIngressHost(async ({ runId }) => {
+      const composition = native.createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const client = bindDesktopModelIngressClient(
+      new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+      host,
+    );
+    const wire = vi.fn(async () => ({
+      data: {
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "Contact owner@example.com",
+            },
+            finish_reason: "stop",
+          },
+        ],
+        model: "test-model",
+        usage: { total_tokens: 10 },
+      },
+    }));
+    client.client.post = wire;
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableManusOptimizations: false,
+        enableStateBus: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    manager.responseCache = new ResponseCache(db, { enableAutoCleanup: false });
+    const published = vi.fn(() => {
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+    });
+    manager.on("chat-completed", published);
+    const messages = [{ role: "user", content: "Contact owner@example.com" }];
+    try {
+      const firstPending = manager.chatWithMessages(messages);
+      messages[0].content = "late request replacement";
+      const first = await firstPending;
+      messages[0].content = "Contact owner@example.com";
+      expect(JSON.stringify(wire.mock.calls)).not.toContain(
+        "late request replacement",
+      );
+      expect(first.wasCached).toBe(false);
+      const rows = db
+        .prepare("SELECT request_messages, response_content FROM llm_cache")
+        .all();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].request_messages).toBe("[]");
+      expect(JSON.stringify(rows)).not.toContain("owner@example.com");
+      expect(JSON.stringify(rows)).not.toContain("Contact");
+      manager.responseCache.destroy();
+      manager.responseCache = new ResponseCache(db, {
+        enableAutoCleanup: false,
+      });
+      const second = await manager.chatWithMessages(messages);
+      expect(second.wasCached).toBe(true);
+      expect(second.text).toContain("Contact");
+      expect(second.text).not.toContain("owner@example.com");
+      expect(second.model).toBe("test-model");
+      expect(
+        db.prepare("SELECT hit_count, tokens_saved FROM llm_cache").get(),
+      ).toMatchObject({ hit_count: 1, tokens_saved: 10 });
+      expect(wire).toHaveBeenCalledOnce();
+      expect(published).toHaveBeenCalledOnce();
+      expect(compositions).toHaveLength(2);
+      expect(
+        compositions[1]
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual(["user-prompt", "model-response-cache-replayed"]);
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === "model-response-cache-replayed")
+            throw new Error("cache replay evidence denied");
+          return issue(request);
+        },
+      );
+      await expect(manager.chatWithMessages(messages)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(compositions.at(-1).loadRun().projection.status).toBe("running");
+      expect(wire).toHaveBeenCalledOnce();
+      expect(published).toHaveBeenCalledOnce();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === "model-response-cache")
+            throw new Error("cache publication evidence denied");
+          return issue(request);
+        },
+      );
+      await expect(
+        manager.chatWithMessages([
+          { role: "user", content: "different request" },
+        ]),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(published).toHaveBeenCalledOnce();
+      expect(
+        db.prepare("SELECT COUNT(*) AS count FROM llm_cache").get().count,
+      ).toBe(1);
+      db.prepare("UPDATE llm_cache SET response_content = ?").run("{");
+      await expect(manager.chatWithMessages(messages)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(published).toHaveBeenCalledOnce();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(issue);
+      const {
+        registerCoreHandlers,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-ipc-core.js");
+      const handlers = new Map();
+      registerCoreHandlers({
+        ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+        managerRef: { current: manager },
+        responseCache: manager.responseCache,
+      });
+      const ipcRequest = {
+        messages: [{ role: "user", content: "IPC cache journey" }],
+        enableRAG: false,
+        enableMultiAgent: false,
+        enableSessionTracking: false,
+        enableManusOptimization: false,
+        enableErrorPrecheck: false,
+      };
+      expect(await handlers.get("llm:chat")({}, ipcRequest)).toMatchObject({
+        wasCached: false,
+      });
+      const cachedIPC = await handlers.get("llm:chat")({}, ipcRequest);
+      expect(cachedIPC).toMatchObject({ wasCached: true, tokensSaved: 10 });
+      expect(cachedIPC.content).toContain("Contact");
+      expect(cachedIPC.content).not.toContain("owner@example.com");
+      expect(wire).toHaveBeenCalledTimes(3);
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+    } finally {
+      manager.responseCache.destroy();
+      db.close();
+    }
+  }, 120000);
+
+  it("isolates concurrent Desktop cache Runs and pins the selected client", async () => {
+    const require = createRequire(import.meta.url);
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const {
+      LLMManager,
+    } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+    const {
+      OpenAIClient,
+    } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+    const {
+      ResponseCache,
+    } = require("../../../../desktop-app-vue/src/main/llm/response-cache.js");
+    const {
+      bindDesktopModelIngressClient,
+    } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+    const { DatabaseSync } = require("node:sqlite");
+    const f = modelFixture();
+    const db = new DatabaseSync(path.join(f.root, "concurrent-cache.sqlite"));
+    db.exec(`CREATE TABLE llm_cache (
+      id TEXT PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE,
+      provider TEXT NOT NULL, model TEXT NOT NULL, request_messages TEXT NOT NULL,
+      response_content TEXT NOT NULL, response_tokens INTEGER DEFAULT 0,
+      hit_count INTEGER DEFAULT 0, tokens_saved INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, last_accessed_at INTEGER NOT NULL
+    )`);
+    const compositions = [];
+    const host = createDesktopModelIngressHost(async ({ runId }) => {
+      const composition = native.createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      compositions.push(composition);
+      return composition;
+    });
+    const client = bindDesktopModelIngressClient(
+      new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+      host,
+    );
+    const releases = new Map();
+    let arrived;
+    const arrivals = new Promise((resolve) => {
+      arrived = resolve;
+    });
+    const wire = vi.fn(async (_url, body) => {
+      const name = body.messages.at(-1).content;
+      await new Promise((resolve) => {
+        releases.set(name, resolve);
+        if (releases.size === 2) arrived();
+      });
+      return {
+        data: {
+          choices: [
+            {
+              message: { role: "assistant", content: `${name}-answer` },
+              finish_reason: "stop",
+            },
+          ],
+          model: "test-model",
+          usage: { total_tokens: 4 },
+        },
+      };
+    });
+    client.client.post = wire;
+    const replacement = {
+      chat: vi.fn(async () => {
+        throw new Error("replacement client must not run");
+      }),
+    };
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableManusOptimizations: false,
+        enableStateBus: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    manager.responseCache = new ResponseCache(db, { enableAutoCleanup: false });
+    const completed = [];
+    manager.on("chat-completed", (event) =>
+      completed.push(event.result.message.content),
+    );
+    const alpha = [{ role: "user", content: "alpha" }];
+    const beta = [{ role: "user", content: "beta" }];
+    const a = manager.chatWithMessages(alpha);
+    const b = manager.chatWithMessages(beta);
+    const pending = Promise.all([a, b]);
+    manager.client = replacement;
+    try {
+      await Promise.race([arrivals, pending]);
+      releases.get("beta")();
+      expect((await b).text).toBe("beta-answer");
+      releases.get("alpha")();
+      expect((await a).text).toBe("alpha-answer");
+      expect(completed).toEqual(["beta-answer", "alpha-answer"]);
+      expect(replacement.chat).not.toHaveBeenCalled();
+      expect(
+        compositions.slice(0, 2).map((c) => c.loadRun().projection.status),
+      ).toEqual(["completed", "completed"]);
+      const rows = db
+        .prepare("SELECT cache_key, response_content FROM llm_cache")
+        .all();
+      expect(rows).toHaveLength(2);
+      expect(
+        new Set(
+          rows.map((row) => JSON.parse(row.response_content).receipt.runId),
+        ),
+      ).toEqual(new Set(compositions.slice(0, 2).map((c) => c.runId)));
+      manager.client = client;
+      expect(await manager.chatWithMessages(alpha)).toMatchObject({
+        wasCached: true,
+        text: "alpha-answer",
+      });
+      expect(await manager.chatWithMessages(beta)).toMatchObject({
+        wasCached: true,
+        text: "beta-answer",
+      });
+      expect(wire).toHaveBeenCalledTimes(2);
+      const alphaRow = rows.find(
+        (row) =>
+          JSON.parse(row.response_content).receipt.runId ===
+          compositions[0].runId,
+      );
+      const betaRow = rows.find((row) => row !== alphaRow);
+      db.prepare(
+        "UPDATE llm_cache SET response_content = ? WHERE cache_key = ?",
+      ).run(betaRow.response_content, alphaRow.cache_key);
+      await expect(manager.chatWithMessages(alpha)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(wire).toHaveBeenCalledTimes(2);
+      expect(completed).toHaveLength(2);
+      const {
+        PromptCompressor,
+      } = require("../../../../desktop-app-vue/src/main/llm/prompt-compressor.js");
+      manager.promptCompressor = new PromptCompressor({
+        enableDeduplication: false,
+        enableTruncation: false,
+        enableSummarization: true,
+        maxTotalTokens: 1,
+        llmManager: manager,
+      });
+      const summaryBodies = [];
+      wire.mockImplementation(async (_url, body) => {
+        summaryBodies.push(body);
+        return {
+          data: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content:
+                    summaryBodies.length === 1
+                      ? "brief summary owner@example.com"
+                      : "compressed-answer",
+                },
+                finish_reason: "stop",
+              },
+            ],
+            model: "test-model",
+            usage: { total_tokens: 4 },
+          },
+        };
+      });
+      const previousRuns = compositions.length;
+      const conversation = Array.from({ length: 8 }, (_, index) => ({
+        role: index % 2 ? "assistant" : "user",
+        content: `History item ${index}`,
+      }));
+      expect(await manager.chatWithMessages(conversation)).toMatchObject({
+        text: "compressed-answer",
+        wasCompressed: true,
+      });
+      expect(compositions).toHaveLength(previousRuns + 1);
+      expect(summaryBodies).toHaveLength(2);
+      expect(JSON.stringify(summaryBodies[1].messages)).toContain(
+        "brief summary",
+      );
+      expect(JSON.stringify(summaryBodies[1].messages)).not.toContain(
+        "owner@example.com",
+      );
+      expect(
+        compositions
+          .at(-1)
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual([
+        "user-prompt",
+        "model-input",
+        "response-completed",
+        "model-input",
+        "response-completed",
+        "model-response-cache",
+      ]);
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+
+      const streamBodies = [];
+      wire.mockImplementation(async (_url, body, config) => {
+        streamBodies.push(body);
+        if (config?.responseType === "stream") {
+          return {
+            data: Readable.from([
+              'data: {"choices":[{"delta":{"content":"streamed compressed answer"}}]}\n\n',
+              "data: [DONE]\n\n",
+            ]),
+          };
+        }
+        return {
+          data: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: "streamed summary owner@example.com",
+                },
+                finish_reason: "stop",
+              },
+            ],
+            model: "test-model",
+            usage: { total_tokens: 4 },
+          },
+        };
+      });
+      const streamRuns = compositions.length;
+      expect(
+        await manager.chatWithMessagesStream(conversation, vi.fn()),
+      ).toMatchObject({
+        text: "streamed compressed answer",
+        wasCompressed: true,
+      });
+      expect(compositions).toHaveLength(streamRuns + 1);
+      expect(streamBodies).toHaveLength(2);
+      expect(JSON.stringify(streamBodies[1].messages)).toContain(
+        "streamed summary",
+      );
+      expect(JSON.stringify(streamBodies[1].messages)).not.toContain(
+        "owner@example.com",
+      );
+      expect(
+        compositions
+          .at(-1)
+          .loadRun()
+          .events.map((event) => event.data?.evidenceKind)
+          .filter(Boolean),
+      ).toEqual([
+        "user-prompt",
+        "model-input",
+        "response-completed",
+        "model-input",
+        "response-completed",
+      ]);
+      expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+    } finally {
+      for (const release of releases.values()) release();
+      await Promise.allSettled([a, b]);
+      manager.responseCache.destroy();
+      db.close();
+    }
+  }, 120000);
+
+  it.each([
+    "success",
+    "tool-requested",
+    "tool-completed",
+    "unknown-tool",
+    "duplicate-id",
+    "bad-arguments",
+    "budget",
+    "limit",
+  ])(
+    "governs actual IPC MCP workflow in one Run (%s)",
+    async (mode) => {
+      const require = createRequire(import.meta.url);
+      const native =
+        await require("../helpers/native-evolution-composition.cjs")();
+      const {
+        LLMManager,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-manager.js");
+      const {
+        OpenAIClient,
+      } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
+      const {
+        bindDesktopModelIngressClient,
+      } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
+      const {
+        registerCoreHandlers,
+      } = require("../../../../desktop-app-vue/src/main/llm/llm-ipc-core.js");
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (request.kind === mode) throw new Error("tool evidence denied");
+          return issue(request);
+        },
+      );
+      const compositions = [];
+      const host = createDesktopModelIngressHost(async ({ runId }) => {
+        const composition = native.createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        compositions.push(composition);
+        return composition;
+      });
+      const client = bindDesktopModelIngressClient(
+        new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
+        host,
+      );
+      const bodies = [];
+      const wire = vi.fn(async (_url, body) => {
+        bodies.push(body);
+        const tool = bodies.length === 1 || mode === "limit";
+        return {
+          data: {
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: tool ? null : "done",
+                  ...(tool
+                    ? {
+                        tool_calls: Array.from(
+                          { length: mode === "duplicate-id" ? 2 : 1 },
+                          () => ({
+                            type: "function",
+                            id: `call-${bodies.length}`,
+                            function: {
+                              name:
+                                mode === "unknown-tool"
+                                  ? "unregistered"
+                                  : "mcp_test_lookup",
+                              arguments: mode === "bad-arguments" ? "[]" : "{}",
+                            },
+                          }),
+                        ),
+                      }
+                    : {}),
+                },
+                finish_reason: tool ? "tool_calls" : "stop",
+              },
+            ],
+            model: "test-model",
+            usage: { total_tokens: 4 },
+          },
+        };
+      });
+      client.client.post = wire;
+      const manager = new LLMManager(
+        {
+          provider: "openai",
+          model: "test-model",
+          enableStateBus: false,
+          enableManusOptimizations: false,
+        },
+        host,
+      );
+      manager.client = client;
+      manager.isInitialized = true;
+      const usage = vi.fn(async () => {
+        if (mode === "budget") manager.paused = true;
+      });
+      manager.tokenTracker = { recordUsage: usage };
+      const published = vi.fn();
+      manager.on("chat-completed", published);
+      const policy = vi.fn(async () => {});
+      const execute = vi.fn(async () => ({
+        content: [{ type: "text", text: "owner@example.com" }],
+      }));
+      const handlers = new Map();
+      registerCoreHandlers({
+        ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+        managerRef: { current: manager },
+        mcpClientManager: {
+          getConnectedServers: () => ["test"],
+          callTool: execute,
+        },
+        mcpToolAdapter: {
+          getMCPTools: () => [
+            { toolId: "mcp_test_lookup", serverName: "test" },
+          ],
+          getToolInfo: () => ({
+            serverName: "test",
+            originalToolName: "lookup",
+          }),
+          toolManager: {
+            getTool: async () => ({
+              name: "mcp_test_lookup",
+              parameters_schema: { type: "object", properties: {} },
+            }),
+          },
+          securityPolicy: { validateToolExecution: policy },
+        },
+      });
+      const pending = handlers.get("llm:chat")(
+        {},
+        {
+          messages: [{ role: "user", content: "Look up owner@example.com" }],
+          maxToolIterations: 1,
+          enableRAG: false,
+          enableMultiAgent: false,
+          enableSessionTracking: false,
+          enableManusOptimization: false,
+          enableErrorPrecheck: false,
+        },
+      );
+      if (mode === "success") {
+        await expect(pending).resolves.toMatchObject({
+          content: "done",
+          usedMCPTools: true,
+        });
+        expect(published).toHaveBeenCalledOnce();
+        expect(compositions[0].loadRun().projection.status).toBe("completed");
+        expect(
+          compositions[0]
+            .loadRun()
+            .events.map((event) => event.data?.evidenceKind)
+            .filter(Boolean),
+        ).toEqual([
+          "user-prompt",
+          "model-input",
+          "response-completed",
+          "tool-requested",
+          "tool-completed",
+          "model-input",
+          "response-completed",
+        ]);
+      } else {
+        await expect(pending).rejects.toMatchObject({
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        });
+        expect(published).not.toHaveBeenCalled();
+        expect(compositions[0].loadRun().projection.status).toBe("running");
+      }
+      expect(compositions).toHaveLength(1);
+      expect(execute).toHaveBeenCalledTimes(
+        ["success", "tool-completed", "limit"].includes(mode) ? 1 : 0,
+      );
+      expect(policy).toHaveBeenCalledTimes(execute.mock.calls.length);
+      expect(usage).toHaveBeenCalledTimes(wire.mock.calls.length);
+      expect(wire).toHaveBeenCalledTimes(
+        ["success", "limit"].includes(mode) ? 2 : 1,
+      );
+      expect(JSON.stringify(bodies)).not.toContain("owner@example.com");
+    },
+    120000,
+  );
 
   function modelFixture(sensitivity = "internal") {
     const root = fs.mkdtempSync(

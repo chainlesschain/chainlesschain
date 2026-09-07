@@ -157,6 +157,41 @@ describe('Reranker', () => {
     });
   });
 
+  describe('external reranker ingress governance', () => {
+    beforeEach(() => {
+      reranker = new Reranker(mockLLMManager);
+    });
+
+    it('应该在发送 CrossEncoder 请求前失败关闭', async () => {
+      await expect(
+        reranker.rerankWithCrossEncoder('query', sampleDocuments, 2)
+      ).rejects.toMatchObject({ code: 'CC_AGENT_EVOLUTION_INGRESS_FAILED' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each(['bge', 'bge-hybrid'])(
+      '应该在发送 %s 请求前失败关闭',
+      async method => {
+        const initBGEClient = vi.spyOn(reranker, '_initBGEClient');
+
+        await expect(
+          reranker.rerank('query', sampleDocuments, { method, topK: 2 })
+        ).rejects.toMatchObject({ code: 'CC_AGENT_EVOLUTION_INGRESS_FAILED' });
+        expect(initBGEClient).not.toHaveBeenCalled();
+      }
+    );
+
+    it('应该保留顶层 rerank 的治理拒绝', async () => {
+      await expect(
+        reranker.rerank('query', sampleDocuments, {
+          method: 'crossencoder',
+          topK: 2
+        })
+      ).rejects.toMatchObject({ code: 'CC_AGENT_EVOLUTION_INGRESS_FAILED' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('parseLLMScores', () => {
     beforeEach(() => {
       reranker = new Reranker(mockLLMManager);

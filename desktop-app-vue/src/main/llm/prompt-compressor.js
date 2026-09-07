@@ -450,9 +450,7 @@ ${historyText}
         throw new Error("LLM 返回空总结");
       }
 
-      logger.info(
-        `[PromptCompressor] 生成总结成功: ${summary.substring(0, 100)}...`,
-      );
+      logger.info("[PromptCompressor] 生成总结成功");
 
       // 创建总结消息
       const summaryMessage = {

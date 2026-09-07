@@ -199,16 +199,17 @@ class AnthropicClient extends EventEmitter {
           error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
           throw error;
         }
-        await governed.complete(blocks);
       }
 
-      return {
+      const result = {
         message: { role: "assistant", content: text },
         text,
         model: response.data?.model || payload.model,
         usage,
         tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
       };
+      if (governed) await governed.complete(blocks, result);
+      return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       logger.error(

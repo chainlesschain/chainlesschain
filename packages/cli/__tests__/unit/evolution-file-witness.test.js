@@ -271,6 +271,71 @@ describe("createEvolutionFileWitness", () => {
     expect(storeBytes).toBe(`${canonical(JSON.parse(storeBytes))}\n`);
   });
 
+  it("reuses verified records only inside one authenticated trust epoch", () => {
+    let epoch = "trust-epoch-1";
+    const verifier = {
+      ...ports.verifier,
+      getTrustEpoch: vi.fn(() => epoch),
+    };
+    const witness = create({ verifier });
+    const genesis = witness.initialize({
+      expected: witness.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+    const head = witness.compareAndSwap({
+      expected: genesis,
+      next: snapshot(witnessId, 1),
+    });
+
+    ports.verifier.verify.mockClear();
+    expect(witness.read()).toEqual(head);
+    expect(witness.read()).toEqual(head);
+    expect(ports.verifier.verify).not.toHaveBeenCalled();
+
+    epoch = "trust-epoch-2";
+    expect(witness.read()).toEqual(head);
+    // Genesis plus two committed history records are all rechecked.
+    expect(ports.verifier.verify).toHaveBeenCalledTimes(3);
+
+    const originalVerify = ports.verifier.verify.getMockImplementation();
+    ports.verifier.verify.mockImplementation(
+      (input) =>
+        input.signature.value !== genesis.signature.value &&
+        originalVerify(input),
+    );
+    epoch = "trust-epoch-3";
+    expect(() => witness.read()).toThrow(/authentication failed/u);
+  });
+
+  it("fails closed when the optional trust epoch is malformed or unstable", () => {
+    const malformed = create({
+      verifier: { ...ports.verifier, getTrustEpoch: () => "" },
+    });
+    expect(() =>
+      malformed.initialize({
+        expected: malformed.read(),
+        snapshot: snapshot(witnessId, 0),
+      }),
+    ).toThrow(/trust epoch is invalid/u);
+
+    const seeded = create({
+      verifier: { ...ports.verifier, getTrustEpoch: () => "stable-epoch" },
+    });
+    seeded.initialize({
+      expected: seeded.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+
+    let calls = 0;
+    const unstable = create({
+      verifier: {
+        ...ports.verifier,
+        getTrustEpoch: () => `epoch-${++calls}`,
+      },
+    });
+    expect(() => unstable.read()).toThrow(/trust epoch changed/u);
+  });
+
   it("rejects a revoked historical signature even when the current signature remains valid", () => {
     const { witness, head, genesis } = populatedWitness();
     const originalVerify = ports.verifier.verify.getMockImplementation();

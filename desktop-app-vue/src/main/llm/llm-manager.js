@@ -16,8 +16,23 @@ const EventEmitter = require("events");
 const {
   isDesktopModelIngressHost,
   bindDesktopModelIngressClient,
+  runDesktopCachedModelWorkflow,
+  runDesktopFunctionWorkflow,
+  runDesktopModelWorkflow,
 } = require("../evolution/desktop-model-ingress");
 const modelIngressHosts = new WeakMap();
+const budgetListeners = new WeakMap();
+const providerSwitches = new WeakSet();
+const managerCloseEpochs = new WeakMap();
+
+function assertNoOpaqueGovernedTools(manager) {
+  if (!modelIngressHosts.has(manager)) return;
+  const error = new Error(
+    "Volcengine opaque tools require a governed protocol adapter",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
 
 // Module-level let + seam for vi.mock CJS interop (RFC T1, B3 batch).
 // vi.mock 不拦截 source require()，所有 LLM client/factory 走 _setLLMDepsForTesting 注入。
@@ -132,7 +147,9 @@ class LLMManager extends EventEmitter {
       logger.info("[LLMManager] Token 追踪已启用");
 
       // 🔥 监听预算告警事件
-      this.tokenTracker.on("budget-alert", this._handleBudgetAlert.bind(this));
+      const listener = this._handleBudgetAlert.bind(this);
+      budgetListeners.set(this, { tracker: this.tokenTracker, listener });
+      this.tokenTracker.on("budget-alert", listener);
     }
 
     // 🔥 响应缓存（可选）
@@ -355,19 +372,43 @@ class LLMManager extends EventEmitter {
    */
   async switchProvider(provider, config = {}) {
     logger.info("[LLMManager] 切换提供商:", provider);
-
+    if (providerSwitches.has(this))
+      throw new Error("LLM provider switch already in progress");
+    providerSwitches.add(this);
+    const closeEpoch = managerCloseEpochs.get(this) ?? 0;
+    let candidate;
     try {
-      this.provider = normalizeProvider(provider);
-      this.config = { ...this.config, ...config };
-
-      await this.initialize();
-
+      const nextProvider = normalizeProvider(provider);
+      const nextConfig = { ...this.config, ...config, provider: nextProvider };
+      // Initialize privately; in-flight requests keep the existing client and
+      // readers never observe new settings paired with the previous provider.
+      candidate = createLLMManagerReplacement(this, {
+        ...nextConfig,
+        enableStateBus: false,
+        enableManusOptimizations: false,
+      });
+      await candidate.initialize();
+      if ((managerCloseEpochs.get(this) ?? 0) !== closeEpoch)
+        throw new Error("LLM manager closed during provider switch");
+      this.provider = nextProvider;
+      this.config = nextConfig;
+      this.client = candidate.client;
+      this.toolsClient = candidate.toolsClient;
+      this.isInitialized = candidate.isInitialized;
+      candidate.client = null;
+      candidate.toolsClient = null;
       this.emit("provider-changed", this.provider);
 
       return true;
     } catch (error) {
       logger.error("[LLMManager] 切换提供商失败:", error);
       throw error;
+    } finally {
+      try {
+        if (candidate) await candidate.close();
+      } finally {
+        providerSwitches.delete(this);
+      }
     }
   }
 
@@ -420,6 +461,37 @@ class LLMManager extends EventEmitter {
     try {
       const conversationId = options.conversationId;
       let result;
+
+      // A governed manager must retain the full prompt and lifecycle in
+      // chatWithMessages. In particular, Ollama's generate accepts
+      // opaque context tokens which cannot be admitted as a durable model input.
+      if (modelIngressHosts.has(this)) {
+        const messages =
+          conversationId && this.conversationContext.has(conversationId)
+            ? [...this.conversationContext.get(conversationId).messages]
+            : [];
+        if (options.systemPrompt) {
+          messages.unshift({ role: "system", content: options.systemPrompt });
+        }
+        messages.push({ role: "user", content: prompt });
+        result = await this.chatWithMessages(messages, options);
+        if (conversationId) {
+          if (!this.conversationContext.has(conversationId)) {
+            this.conversationContext.set(conversationId, { messages: [] });
+          }
+          this.conversationContext
+            .get(conversationId)
+            .messages.push({ role: "user", content: prompt }, result.message);
+        }
+        this.emit("query-completed", { prompt, result });
+        return {
+          text: result.text || result.message?.content,
+          model: result.model,
+          tokens: result.tokens || result.usage?.total_tokens || 0,
+          usage: result.usage,
+          timestamp: Date.now(),
+        };
+      }
 
       if (this.provider === LLMProviders.OLLAMA) {
         // Ollama使用generate或chat
@@ -573,6 +645,98 @@ class LLMManager extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chatWithMessages(messages, options = {}) {
+    if (!this.isInitialized) throw new Error("LLM服务未初始化");
+    if (this.paused)
+      throw new Error(
+        "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+      );
+    let publication;
+    const selectedClient = this.client;
+    const result = await runDesktopCachedModelWorkflow(
+      selectedClient,
+      {
+        provider: this.provider,
+        model: this.config.model || selectedClient.model || "unknown",
+        connection: selectedClient.baseURL || selectedClient.host || null,
+        messages,
+        options,
+      },
+      this.responseCache,
+      (governed, captured) =>
+        this._chatWithMessages(
+          captured.messages,
+          captured.options,
+          governed,
+          (event) => {
+            publication = event;
+          },
+          selectedClient,
+        ),
+    );
+    if (publication) this.emit("chat-completed", publication);
+    return result;
+  }
+
+  async chatWithGovernedFunctions(messages, functions, executor, options = {}) {
+    if (!this.isInitialized || this.paused)
+      throw new Error("LLM service is unavailable or paused");
+    const tracker = this.tokenTracker;
+    const provider = this.provider;
+    const configuredModel = this.config.model;
+    const result = await runDesktopFunctionWorkflow(
+      this.client,
+      messages,
+      functions,
+      executor,
+      options,
+      {
+        beforeStep: () => {
+          if (!this.isInitialized || this.paused)
+            throw new Error("LLM service is unavailable or paused");
+        },
+        onModelResult: async (response) => {
+          if (!tracker) return;
+          try {
+            await tracker.recordUsage({
+              conversationId: options.conversationId,
+              messageId: options.messageId,
+              provider,
+              model: response.model || configuredModel || "unknown",
+              inputTokens: response.usage?.prompt_tokens || 0,
+              outputTokens: response.usage?.completion_tokens || 0,
+              cachedTokens: response.usage?.cached_tokens || 0,
+              wasCached: false,
+              wasCompressed: false,
+              compressionRatio: 1,
+              endpoint: options.endpoint,
+              userId: options.userId || "default",
+            });
+          } catch (error) {
+            if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+            logger.error("[LLMManager] Token tracking failed:", error);
+          }
+        },
+      },
+    );
+    this.emit("chat-completed", { messages, result });
+    return {
+      text: result.message?.content ?? result.text,
+      message: result.message,
+      model: result.model,
+      usage: result.usage,
+      tokens: result.tokens || result.usage?.total_tokens || 0,
+      timestamp: Date.now(),
+      wasCached: false,
+    };
+  }
+
+  async _chatWithMessages(
+    messages,
+    options,
+    governed,
+    publish,
+    selectedClient,
+  ) {
     if (!this.isInitialized) {
       throw new Error("LLM服务未初始化");
     }
@@ -592,7 +756,7 @@ class LLMManager extends EventEmitter {
 
     try {
       // 🔥 步骤 1: 检查响应缓存（如果启用）
-      if (this.responseCache && !options.skipCache) {
+      if (!governed && this.responseCache && !options.skipCache) {
         const cacheResult = await this.responseCache.get(
           this.provider,
           this.config.model,
@@ -671,7 +835,7 @@ class LLMManager extends EventEmitter {
       let result;
 
       try {
-        result = await this.client.chat(processedMessages, options);
+        result = await selectedClient.chat(processedMessages, options);
       } catch (chatError) {
         if (chatError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
           throw chatError;
@@ -682,18 +846,22 @@ class LLMManager extends EventEmitter {
           );
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
-          result = await this.client.chat(processedMessages, fallbackOptions);
+          result = await selectedClient.chat(
+            processedMessages,
+            fallbackOptions,
+          );
         } else {
           throw chatError;
         }
       }
 
-      this.emit("chat-completed", { messages: processedMessages, result });
+      if (governed) publish({ messages: processedMessages, result });
+      else this.emit("chat-completed", { messages: processedMessages, result });
 
       const responseTime = Date.now() - startTime;
 
       // 🔥 步骤 4: 存入响应缓存（如果启用）
-      if (this.responseCache && !options.skipCache && !wasCached) {
+      if (!governed && this.responseCache && !options.skipCache && !wasCached) {
         try {
           await this.responseCache.set(
             this.provider,
@@ -740,7 +908,7 @@ class LLMManager extends EventEmitter {
       }
 
       return {
-        text: result.message?.content || result.text,
+        text: result.message?.content ?? result.text,
         message: result.message,
         model: result.model,
         tokens: result.tokens || result.usage?.total_tokens || 0,
@@ -764,6 +932,37 @@ class LLMManager extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chatWithMessagesStream(messages, onChunk, options = {}) {
+    if (!this.isInitialized) {
+      throw new Error("LLM鏈嶅姟鏈垵濮嬪寲");
+    }
+    if (this.paused) {
+      throw new Error("LLM service is unavailable or paused");
+    }
+    const selectedClient = this.client;
+    if (modelIngressHosts.has(this)) {
+      return runDesktopModelWorkflow(selectedClient, { messages }, () =>
+        this._chatWithMessagesStream(
+          messages,
+          onChunk,
+          options,
+          selectedClient,
+        ),
+      );
+    }
+    return this._chatWithMessagesStream(
+      messages,
+      onChunk,
+      options,
+      selectedClient,
+    );
+  }
+
+  async _chatWithMessagesStream(
+    messages,
+    onChunk,
+    options = {},
+    selectedClient = this.client,
+  ) {
     if (!this.isInitialized) {
       throw new Error("LLM服务未初始化");
     }
@@ -810,7 +1009,7 @@ class LLMManager extends EventEmitter {
 
       // 🔥 调用流式 LLM API（带模型回退）
       try {
-        result = await this.client.chatStream(
+        result = await selectedClient.chatStream(
           processedMessages,
           onChunk,
           options,
@@ -825,7 +1024,7 @@ class LLMManager extends EventEmitter {
           );
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
-          result = await this.client.chatStream(
+          result = await selectedClient.chatStream(
             processedMessages,
             onChunk,
             fallbackOptions,
@@ -906,6 +1105,31 @@ class LLMManager extends EventEmitter {
     try {
       const conversationId = options.conversationId;
       let result;
+
+      // A governed manager must retain the full prompt and stream lifecycle in
+      // chatWithMessagesStream. In particular, Ollama's generateStream accepts
+      // opaque context tokens which cannot be admitted as a durable model input.
+      if (modelIngressHosts.has(this)) {
+        const messages =
+          conversationId && this.conversationContext.has(conversationId)
+            ? [...this.conversationContext.get(conversationId).messages]
+            : [];
+        if (options.systemPrompt) {
+          messages.unshift({ role: "system", content: options.systemPrompt });
+        }
+        messages.push({ role: "user", content: prompt });
+        result = await this.chatWithMessagesStream(messages, onChunk, options);
+        if (conversationId) {
+          if (!this.conversationContext.has(conversationId)) {
+            this.conversationContext.set(conversationId, { messages: [] });
+          }
+          this.conversationContext
+            .get(conversationId)
+            .messages.push({ role: "user", content: prompt }, result.message);
+        }
+        this.emit("stream-completed", { prompt, result });
+        return result;
+      }
 
       if (this.provider === LLMProviders.OLLAMA) {
         if (conversationId && this.conversationContext.has(conversationId)) {
@@ -1237,6 +1461,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithWebSearch(messages, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("联网搜索仅支持火山引擎");
     }
@@ -1256,6 +1481,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithImageProcess(messages, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("图像处理仅支持火山引擎");
     }
@@ -1276,6 +1502,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithKnowledgeBase(messages, knowledgeBaseId, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("知识库搜索仅支持火山引擎");
     }
@@ -1300,6 +1527,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithFunctionCalling(messages, functions, options = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("函数调用仅支持火山引擎");
     }
@@ -1323,6 +1551,7 @@ class LLMManager extends EventEmitter {
    * @returns {Promise<Object>} API响应
    */
   async chatWithMultipleTools(messages, toolConfig = {}) {
+    assertNoOpaqueGovernedTools(this);
     if (this.provider !== LLMProviders.VOLCENGINE) {
       throw new Error("工具调用仅支持火山引擎");
     }
@@ -1618,11 +1847,17 @@ class LLMManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
+    managerCloseEpochs.set(this, (managerCloseEpochs.get(this) ?? 0) + 1);
     logger.info("[LLMManager] 关闭LLM管理器");
 
     // 移除 TokenTracker 监听器
-    if (this.tokenTracker) {
-      this.tokenTracker.removeAllListeners("budget-alert");
+    const budgetBinding = budgetListeners.get(this);
+    if (budgetBinding) {
+      budgetBinding.tracker.removeListener(
+        "budget-alert",
+        budgetBinding.listener,
+      );
+      budgetListeners.delete(this);
     }
 
     // L1: 解绑状态总线转发
@@ -1659,9 +1894,11 @@ let llmManagerInstance = null;
  * @param {Object} config - 配置对象（仅首次调用时生效）
  * @returns {LLMManager}
  */
-function getLLMManager(config = {}) {
+function getLLMManager() {
   if (!llmManagerInstance) {
-    llmManagerInstance = new LLMManager(config);
+    const error = new Error("Desktop LLM manager has not been bootstrapped");
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
   }
   return llmManagerInstance;
 }
@@ -1674,6 +1911,29 @@ function getLLMManager(config = {}) {
 // silently ignored everywhere except inside InitializerFactory's own context.
 function _setLLMManagerInstance(instance) {
   llmManagerInstance = instance;
+}
+
+function getGovernedLLMManagerInstance() {
+  if (!llmManagerInstance || !modelIngressHosts.has(llmManagerInstance)) {
+    const error = new Error("Governed Desktop LLM manager is unavailable");
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+  return llmManagerInstance;
+}
+
+function createLLMManagerReplacement(previous, config) {
+  if (previous != null && !(previous instanceof LLMManager))
+    throw new TypeError("LLM replacement requires the current native manager");
+  return new LLMManager(
+    {
+      ...config,
+      tokenTracker: previous?.tokenTracker ?? null,
+      promptCompressor: previous?.promptCompressor ?? null,
+      responseCache: previous?.responseCache ?? null,
+    },
+    previous == null ? null : (modelIngressHosts.get(previous) ?? null),
+  );
 }
 
 /**
@@ -2393,7 +2653,10 @@ module.exports = {
   LLMManager,
   LLMProviders,
   getLLMManager,
+  getGovernedLLMManagerInstance,
   _setLLMManagerInstance,
+  createLLMManagerReplacement,
+  isGovernedLLMManager: (manager) => modelIngressHosts.has(manager),
   TaskTypes, // 导出任务类型枚举，方便外部使用
   // Category routing exports (v5.0.2.9)
   LLM_CATEGORIES,

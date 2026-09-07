@@ -640,43 +640,13 @@ describe("OllamaClient", () => {
   });
 
   describe("embeddings", () => {
-    it("should generate embeddings successfully", async () => {
-      const embedding = [0.1, 0.2, 0.3, 0.4, 0.5];
+    it("fails closed before the ungoverned embedding request", async () => {
+      client.client.post = vi.fn();
 
-      client.client.post = vi.fn().mockResolvedValue({
-        data: { embedding },
+      await expect(client.embeddings("Test", "nomic-embed-text")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
       });
-
-      const result = await client.embeddings("Hello world");
-
-      expect(result).toEqual(embedding);
-      expect(client.client.post).toHaveBeenCalledWith("/api/embeddings", {
-        model: "llama2",
-        prompt: "Hello world",
-      });
-    });
-
-    it("should use custom model for embeddings", async () => {
-      client.client.post = vi.fn().mockResolvedValue({
-        data: { embedding: [0.1, 0.2] },
-      });
-
-      await client.embeddings("Test", "nomic-embed-text");
-
-      expect(client.client.post).toHaveBeenCalledWith("/api/embeddings", {
-        model: "nomic-embed-text",
-        prompt: "Test",
-      });
-    });
-
-    it("should throw error on embeddings failure", async () => {
-      client.client.post = vi
-        .fn()
-        .mockRejectedValue(new Error("Embeddings failed"));
-
-      await expect(client.embeddings("Test")).rejects.toThrow(
-        "Embeddings failed",
-      );
+      expect(client.client.post).not.toHaveBeenCalled();
     });
   });
 });
