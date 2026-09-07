@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.30: custom LLM connections and page-first IDE workspaces
+
+> `chainlesschain` **0.166.29 -> 0.166.30** (2026-09-07), paired with
+> VS Code / VSCodium extension **0.37.87**. Publication requires the exact
+> release commit's complete CLI CI, CLI Strict Sandbox and IDE release gates.
+
+- Save custom relay URLs, protocol selections, model aliases and credentials
+  atomically with `llm configure`; accept secrets only through bounded JSON
+  stdin, never argv. Changing destinations requires a destination-specific key.
+- Test OpenAI-compatible, Anthropic, Gemini and Ollama endpoints using their
+  native protocols, bounded request timeouts and no credential-bearing redirects.
+- Open Evolution Workbench on a status overview with a version list, optional
+  filtering, evidence inspection and confirmed, capability-gated decisions.
+- Open the IDE Skill Library on a paginated catalog; task retrieval is optional
+  and preserves canonical digest/conflict/authority validation without execution.
+- Add an isolated source-checkout local Workbench test profile. Test identities
+  remain explicitly marked; this does not provision real identity or approval
+  services or enable mutation in an unconfigured production deployment.
+
 ### Fixed - cc CLI 0.166.29: recover long-running agent tasks
 
 > `chainlesschain` **0.166.26 -> 0.166.29** (2026-09-06). VS Code and

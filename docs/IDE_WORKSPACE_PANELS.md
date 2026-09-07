@@ -1,7 +1,8 @@
 # IDE 工作台、技能库与 LLM 配置页面
 
-以下功能属于当前源码开发版本，尚未发布到扩展市场或 npm。无需启动
-Electron 桌面客户端即可在 VS Code / VSCodium 中打开页面。
+以下功能适用于 CLI `0.166.30` 和 IDE 插件 `0.37.87` 起的版本；只有通过
+发布门禁的版本才会上传到 npm / Open VSX。无需启动 Electron 桌面客户端
+即可在 VS Code / VSCodium 中打开页面。
 
 ## 演化工作台
 

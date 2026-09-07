@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.87] - Page-first workspaces and custom LLM connections (2026-09-07)
+
+- Recommend CLI `0.166.30` for atomic custom-connection configuration and
+  protocol-correct connection tests.
+- Open Evolution Workbench on a status overview and version list, with a return
+  path from details, capability checks and fresh-state confirmation for mutations.
+- Open Skills on a browsable, filterable, paginated library instead of an input
+  prompt. Preserve canonical retrieval evidence and keep all catalog actions read-only.
+- Configure official providers or custom relays in one form, including protocol,
+  base URL, arbitrary model aliases, optional vision model and a scoped API key.
+- Keep saved credentials out of the Webview and argv; save before testing and
+  require a separate key when changing destinations.
+- Support isolated Workbench profiles with an explicit local-test label. Real
+  governed operation still requires a trusted deployment, identity and approvals.
+
 ## [0.37.86] - Reliable long-running task recovery (2026-09-06)
 
 - Recommend the publicly verified `chainlesschain@0.166.29` release.
