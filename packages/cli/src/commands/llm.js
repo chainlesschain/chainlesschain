@@ -43,7 +43,11 @@ import {
   autoFailStuckRequestsV2,
   getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
-import { formatProviderResponseError } from "../lib/provider-http-error.js";
+import {
+  readLlmConnectionInput,
+  saveLlmConnection,
+} from "../lib/llm-connection-config.js";
+import { probeLlmConnection } from "../lib/llm-connection-probe.js";
 
 /**
  * Resolve the effective `cc llm test` target from CLI flags + persisted config.
@@ -108,6 +112,28 @@ export function resolveLlmTestTarget(
 
 export function registerLlmCommand(program) {
   const llm = program.command("llm").description("LLM provider management");
+
+  llm
+    .command("configure")
+    .description(
+      "Atomically save an LLM connection from stdin JSON (secrets never enter argv)",
+    )
+    .option(
+      "--storage <mode>",
+      "Secret storage: auto, keychain, or file",
+      "auto",
+    )
+    .action(async (options) => {
+      try {
+        const saved = saveLlmConnection(await readLlmConnectionInput(), {
+          storage: options.storage,
+        });
+        console.log(JSON.stringify({ ok: true, ...saved }));
+      } catch (error) {
+        logger.error(error.message);
+        process.exitCode = 1;
+      }
+    });
 
   // llm models - list available models
   llm
@@ -195,65 +221,11 @@ export function registerLlmCommand(program) {
       try {
         const start = Date.now();
 
-        if (target.isOllama) {
-          const response = await fetch(`${target.baseUrl}/api/generate`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: target.model,
-              prompt: "Say hi in one word.",
-              stream: false,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(
-              await formatProviderResponseError("ollama", response),
-            );
-          }
-
-          const data = await response.json();
-          const elapsed = Date.now() - start;
-
-          spinner.succeed(
-            `${chalk.green("Connected")} to Ollama (${target.model}) in ${elapsed}ms`,
-          );
-          logger.log(
-            `  Response: ${chalk.gray((data.response || "").trim().substring(0, 100))}`,
-          );
-        } else {
-          // OpenAI-compatible path (openai, volcengine, deepseek, dashscope,
-          // kimi, minimax, mistral, …).
-          if (!target.apiKey) throw new Error("API key required");
-
-          const response = await fetch(`${target.baseUrl}/chat/completions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${target.apiKey}`,
-            },
-            body: JSON.stringify({
-              model: target.model,
-              messages: [{ role: "user", content: "Say hi in one word." }],
-              max_tokens: 10,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(
-              await formatProviderResponseError(target.provider, response),
-            );
-          }
-
-          const data = await response.json();
-          const elapsed = Date.now() - start;
-          const reply = data.choices?.[0]?.message?.content?.trim() || "";
-
-          spinner.succeed(
-            `${chalk.green("Connected")} to ${target.label} (${target.model}) in ${elapsed}ms`,
-          );
-          logger.log(`  Response: ${chalk.gray(reply)}`);
-        }
+        const reply = await probeLlmConnection(target);
+        spinner.succeed(
+          `${chalk.green("Connected")} to ${target.label} (${target.model}) in ${Date.now() - start}ms`,
+        );
+        logger.log(`  Response: ${chalk.gray(reply)}`);
       } catch (err) {
         spinner.fail(`Test failed: ${err.message}`);
         process.exit(1);
