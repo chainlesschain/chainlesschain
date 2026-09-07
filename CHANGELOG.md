@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give Windows crash-recovery fixtures enough time to reach their intended
   checkpoints before lease expiry, while preserving real expiry, stale-fence,
   single-effect and rollback recovery checks.
+- Verify fresh Wiki-recovery worker instances with child-generated identities
+  bound to the spawned child, since Windows can reuse exited process IDs.
 - Require the complete CLI CI and CLI Strict Sandbox matrices for the new exact
   release commit before npm publication.
 

@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import {
   openKnowledgeSkillRollbackStore,
   knowledgeId,
 } from "../../fixtures/governed-knowledge-skill-rollback.js";
 
+const processInstanceId = randomUUID();
 const [
   root,
   mode,
@@ -57,6 +59,7 @@ process.stdout.write(
       : {}),
     ...(dependencies === "all-wikis"
       ? {
+          processInstanceId,
           wikiStates: [...h.upstreamWikis, h.wiki].map((wiki) => {
             const current = wiki.adapter.loadWiki();
             return {
