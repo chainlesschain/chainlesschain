@@ -392,7 +392,12 @@ The default raw download budget is 10 MB (`maxBytes: 10000000`), separate from r
 **Locate sections in long local files.** `search_files` with `path` and `pattern` streams one text file and returns line/column positions, surrounding text, and `nextRead` arguments for `read_file`. It handles huge single lines using overlapping windows, supports case sensitivity, and pages matches with `nextOffset`. Literal queries up to 2048 characters match across window boundaries. Optional `regex: true` runs in a time-limited worker over overlapping 64K windows; long cross-window regex matches are not guaranteed, so use a literal anchor and inspect the section. Credential and workspace-path guards remain enforced.
 
 ```json
-{"path":"logs/build.log","pattern":"FAIL","maxMatches":10,"contextChars":150}
+{
+  "path": "logs/build.log",
+  "pattern": "FAIL",
+  "maxMatches": 10,
+  "contextChars": 150
+}
 ```
 
 HTTP/network failures include error codes and recovery guidance, which IDE chat displays. Repeated failed downloads or unchanged GitHub Actions logs trigger recovery after three no-progress observations and stop after six if recovery fails; the task remains incomplete. Forward snapshot pages are progress even when their text is identical. For CI investigation, retrieve a completed job's log once (for example `gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs`), save it and search locally. Status queries, new jobs and changed log contents remain available.

@@ -2171,10 +2171,28 @@ describe("team distributed CLI", () => {
         runId: "conflict",
         tasks: fixture.graph,
       });
-      await Promise.all([
+      const workers = await Promise.all([
         spawnWorker({ ...fixture, runId: "conflict", workerId: "conflict-a" }),
         spawnWorker({ ...fixture, runId: "conflict", workerId: "conflict-b" }),
       ]);
+
+      // A failed worker is not a merge conflict. Preserve its actual evidence
+      // instead of reporting only the later, generic finalize-blocked error.
+      for (const worker of workers) {
+        expect(worker, JSON.stringify(worker)).toMatchObject({
+          code: 0,
+          output: { ok: true, failures: [], pendingAdjudications: [] },
+        });
+      }
+      const status = distributedQueueStatus({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "conflict",
+      });
+      expect(
+        status.stats,
+        JSON.stringify({ workers, tasks: status.tasks }),
+      ).toMatchObject({ total: 2, completed: 2, leased: 0 });
 
       expect(() =>
         finalizeDistributedQueue({
