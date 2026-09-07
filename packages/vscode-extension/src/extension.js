@@ -955,9 +955,9 @@ async function activate(context) {
       "chainlesschain.evolution.workbench",
       async () => {
         const {
-          openEvolutionWorkbench,
-        } = require("./ui/evolution-workbench-view.js");
-        return openEvolutionWorkbench(vscode, {
+          openEvolutionWorkbenchPanel,
+        } = require("./ui/evolution-workbench-panel.js");
+        return openEvolutionWorkbenchPanel(vscode, {
           getPilot: async () => {
             const profile = vscode.workspace
               .getConfiguration()
@@ -967,21 +967,36 @@ async function activate(context) {
             await _workbenchProfiles.close();
             return ensureAppServerPilot();
           },
-          openSetup: () =>
-            vscode.commands.executeCommand(
-              "workbench.action.openSettings",
-              WORKBENCH_PROFILE_SETTING,
-            ),
+          openSetup: async () => {
+            const selected = await vscode.window.showOpenDialog({
+              title: "选择受信任的演化工作台部署配置",
+              canSelectMany: false,
+              filters: { "工作台配置 JSON": ["json"] },
+            });
+            if (!selected?.length) return;
+            require("./evolution-workbench-profile.js").readWorkbenchProfile(
+              selected[0].fsPath,
+            );
+            await vscode.workspace
+              .getConfiguration()
+              .update(
+                WORKBENCH_PROFILE_SETTING,
+                selected[0].fsPath,
+                vscode.ConfigurationTarget.Global,
+              );
+          },
         });
       },
     ),
     vscode.commands.registerCommand(
       "chainlesschain.skills.retrieve",
       async () => {
-        const { openSkillRetrieval } = require("./ui/skill-retrieval-view.js");
+        const {
+          openSkillCatalogPanel,
+        } = require("./ui/skill-catalog-panel.js");
         const { getResolvedCli } = require("./cli-binary.js");
         const { runCliResult } = require("./chat/introspect-commands.js");
-        return openSkillRetrieval(vscode, {
+        return openSkillCatalogPanel(vscode, {
           command: getResolvedCli(),
           runCliResult,
           cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
@@ -1340,177 +1355,18 @@ async function activate(context) {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
       runInTerminal(vscode, buildInitCommand(pick.args), cwd);
     }),
-    // Guided LLM setup — thin wizard over `cc config set` + `cc llm test`
-    // (one source of truth: ~/.chainlesschain/config.json).
-    vscode.commands.registerCommand(
-      "chainlesschain.llm.configure",
-      async () => {
-        const {
-          PROVIDER_PRESETS,
-          applyLlmConfig,
-          suggestVisionModel,
-          testLlm,
-          getConfiguredProvider,
-          getConfiguredModel,
-          getConfiguredBaseUrl,
-          getConfiguredVisionModel,
-          hasConfiguredApiKey,
-        } = require("./llm-config.js");
-        // Reuse the binary that activation already proved is ChainlessChain.
-        // This may be `chainlesschain`/`clc` or the managed CLI when a stale
-        // global `cc.cmd` still points at a removed npm package directory.
-        const cliCmd = require("./cli-binary").getResolvedCli();
-        // Pre-read existing config so re-running the wizard PRE-FILLS instead of
-        // forcing a full re-type. Fixes "更新后又要重新配置模型和key": the model/
-        // baseUrl/vision default to the current values and the API key can be
-        // kept by leaving it blank. The key value is never read into the UI —
-        // only its presence (curHasKey), so "blank = keep" stays secure.
-        const [curProvider, curModel, curBaseUrl, curVision, curHasKey] =
-          await Promise.all([
-            getConfiguredProvider({ command: cliCmd }),
-            getConfiguredModel({ command: cliCmd }),
-            getConfiguredBaseUrl({ command: cliCmd }),
-            getConfiguredVisionModel({ command: cliCmd }),
-            hasConfiguredApiKey({ command: cliCmd }),
-          ]);
-        const items = PROVIDER_PRESETS.map((p) => ({
-          label:
-            vscode.l10n.t(p.label) +
-            (p.id === curProvider ? vscode.l10n.t("  ✓ current") : ""),
-          description: p.id,
-          detail: vscode.l10n.t(
-            "Default model {0} · {1}",
-            p.defaultModel,
-            p.needsKey
-              ? vscode.l10n.t("needs API key")
-              : vscode.l10n.t("no key"),
-          ),
-          preset: p,
-        }));
-        // Surface the current provider first so re-running defaults to "keep".
-        items.sort((a, b) =>
-          a.preset.id === curProvider
-            ? -1
-            : b.preset.id === curProvider
-              ? 1
-              : 0,
-        );
-        const pick = await vscode.window.showQuickPick(items, {
-          placeHolder: vscode.l10n.t(
-            "Choose an LLM provider (written to ~/.chainlesschain/config.json, shared by the CLI and the Chat panel)",
-          ),
-        });
-        if (!pick) return;
-        const preset = pick.preset;
-        // Same provider as before → pre-fill its current model/baseUrl/vision and
-        // allow keeping the stored key. Switched provider → use preset defaults.
-        const sameProvider = preset.id === curProvider;
-        const model = await vscode.window.showInputBox({
-          prompt: vscode.l10n.t("Model name ({0})", preset.id),
-          value: (sameProvider && curModel) || preset.defaultModel,
-          ignoreFocusOut: true,
-        });
-        if (model === undefined) return;
-        let apiKey = "";
-        if (preset.needsKey) {
-          const canKeep = sameProvider && curHasKey;
-          const entered = await vscode.window.showInputBox({
-            prompt: canKeep
-              ? vscode.l10n.t(
-                  "API key for {0} (leave blank = keep the existing key, no need to retype)",
-                  preset.label,
-                )
-              : vscode.l10n.t(
-                  "API key for {0} (stored securely by the local CLI; never saved in plaintext in config.json or VS Code settings)",
-                  preset.label,
-                ),
-            password: true,
-            ignoreFocusOut: true,
-            placeHolder: canKeep
-              ? vscode.l10n.t("leave blank to keep the existing key")
-              : "",
-          });
-          if (entered === undefined) return; // cancelled
-          // Blank + canKeep → applyLlmConfig omits llm.apiKey, keeping the
-          // existing one (buildConfigSetArgs skips empty values).
-          apiKey = entered;
-          if (!apiKey && !canKeep) {
-            vscode.window.showWarningMessage(
-              vscode.l10n.t(
-                "No API key entered — configuration cancelled (this provider requires a key).",
-              ),
-            );
-            return;
-          }
-        }
-        const baseUrl = await vscode.window.showInputBox({
-          prompt: vscode.l10n.t("Base URL (Enter for the default)"),
-          value: (sameProvider && curBaseUrl) || preset.baseUrl,
-          ignoreFocusOut: true,
-        });
-        if (baseUrl === undefined) return;
-        // Vision (image-recognition) model — can differ from the text model;
-        // the panel auto-switches to it when you paste a screenshot. Blank =
-        // reuse the text model / the CLI default.
-        const visionModel = await vscode.window.showInputBox({
-          prompt: vscode.l10n.t(
-            "Image-recognition (vision) model (blank = same as the text model / the CLI default; auto-selected when you paste a screenshot)",
-          ),
-          value: (sameProvider && curVision) || suggestVisionModel(preset.id),
-          ignoreFocusOut: true,
-        });
-        if (visionModel === undefined) return;
-        const applied = await applyLlmConfig({
-          command: cliCmd,
-          answers: { provider: preset.id, model, apiKey, baseUrl, visionModel },
-        });
-        if (!applied.ok) {
-          const {
-            looksLikeMissingCli,
-            installGuidance,
-          } = require("./version-check");
-          // A "cc not found" failure needs install guidance (with the Node
-          // floor), not the raw shell error — same fix as the JetBrains plugin.
-          const msg = looksLikeMissingCli(applied.error)
-            ? vscode.l10n.t(
-                "Failed to write LLM config: cc CLI not found. {0}",
-                installGuidance(true),
-              )
-            : vscode.l10n.t("Failed to write LLM config: {0}", applied.error);
-          vscode.window.showErrorMessage(msg);
-          return;
-        }
-        await vscode.window.withProgress(
-          {
-            location: vscode.ProgressLocation.Notification,
-            title: vscode.l10n.t(
-              "Wrote {0} config, verifying connectivity with cc llm test…",
-              preset.id,
-            ),
-          },
-          async () => {
-            const t = await testLlm({ command: cliCmd });
-            if (t.ok) {
-              vscode.window.showInformationMessage(
-                vscode.l10n.t(
-                  "LLM configured and reachable ✓ ({0} · {1}). The Chat panel's next message uses it.",
-                  preset.id,
-                  model,
-                ),
-              );
-            } else {
-              vscode.window.showWarningMessage(
-                vscode.l10n.t(
-                  "Config written, but the connectivity test failed: {0} — check the key, provider billing/account balance, model access, and network, then re-run ChainlessChain: Configure LLM.",
-                  t.detail || vscode.l10n.t("see output"),
-                ),
-              );
-            }
-          },
-        );
-        chatProvider.onLlmConfigured?.();
-      },
-    ),
+    // One configuration form; writes and probes continue through the CLI.
+    vscode.commands.registerCommand("chainlesschain.llm.configure", () => {
+      const { openLlmConfigPanel } = require("./ui/llm-config-panel.js");
+      return openLlmConfigPanel(vscode, {
+        getCommand: () =>
+          vscode.workspace
+            .getConfiguration("chainlesschain.llm")
+            .get("configurationCliPath", "")
+            .trim() || require("./cli-binary").getResolvedCli(),
+        onConfigured: () => chatProvider.onLlmConfigured?.(),
+      });
+    }),
     // Dedicated vision-model entry — set just llm.visionModel without re-running
     // the full wizard (or re-typing the API key). Mirrors the JetBrains
     // "Configure Vision Model" action / ⚙ LLM menu item.

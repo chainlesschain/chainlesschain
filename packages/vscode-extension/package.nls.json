@@ -1,4 +1,5 @@
 {
+  "config.llm.configurationCliPath.description": "Optional updated CLI entrypoint for the LLM configuration panel (supports atomic llm configure). Empty uses the normal resolved CLI. This does not change the chat runtime.",
   "config.evolution.workbench.profile.description": "Absolute path to a trusted Evolution Workbench profile JSON. Runs a separate CLI process with its signed deployment. For a local test profile, run node packages/cli/scripts/evolution-workbench-local-test.mjs init in a source checkout. Leave empty to use the existing App Server deployment.",
   "cmd.ide.showStatus.title": "ChainlessChain IDE: Show Bridge Status",
   "cmd.ide.restart.title": "ChainlessChain IDE: Restart Bridge",
@@ -14,7 +15,7 @@
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
   "cmd.evolution.workbench.title": "ChainlessChain: Evolution Workbench",
-  "cmd.skills.retrieve.title": "ChainlessChain: Search Skills",
+  "cmd.skills.retrieve.title": "ChainlessChain: Skill Library (Browse & Search)",
   "cmd.automation.center.title": "ChainlessChain: Automation Center",
   "cmd.remote.control.title": "ChainlessChain: Remote Control",
   "cmd.usage.show.title": "ChainlessChain: Show Token Usage",

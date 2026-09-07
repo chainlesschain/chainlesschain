@@ -14,8 +14,8 @@ const path = require("path");
 
 /**
  * Read the `llm` block straight from ~/.chainlesschain/config.json — the SAME
- * file `cc config set` writes (CONFIG_DIR_NAME=".chainlesschain"; paths.js
- * getConfigPath has NO env override, so this is authoritative).
+ * file `cc config set` writes by default. When a launcher supplies a config
+ * root override, defer to the CLI's authoritative path/security validation.
  *
  * WHY a direct file read instead of `cc config get`: detection must not depend
  * on the `cc` binary being runnable. Right after `npm i -g chainlesschain`,
@@ -28,6 +28,8 @@ const path = require("path");
  * Returns the llm object, or null when the file is missing/corrupt/has no llm.
  */
 function readLlmConfigFromFile(deps) {
+  const env = deps?.env || process.env;
+  if (env.CHAINLESSCHAIN_HOME || env.CLAUDE_CONFIG_DIR) return null;
   const readFileSync = deps?.readFileSync || fs.readFileSync;
   const homedir = deps?.homedir || os.homedir;
   try {
@@ -208,16 +210,20 @@ function runCli(command, args, deps, { stdin } = {}) {
     typeof command === "string" && command.trim()
       ? command
       : require("./cli-binary").getResolvedCli();
+  const script = /\.(?:m?js|cjs)$/i.test(executable);
   return new Promise((resolve) => {
     const child = run(
-      executable,
-      args,
+      script ? process.execPath : executable,
+      script ? [executable, ...args] : args,
       {
         timeout: 60000,
         windowsHide: true,
         // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
-        env: hardenedEnv(process.env),
-        shell: process.platform === "win32",
+        env: hardenedEnv({
+          ...process.env,
+          ...(script ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+        }),
+        shell: !script && process.platform === "win32",
       },
       (err, stdout, stderr) => {
         resolve({
@@ -351,6 +357,28 @@ async function testLlm({ command, deps } = {}) {
   return { ok: r.ok, detail: tail.slice(0, 300) };
 }
 
+async function applyLlmConnection({ command, answers, deps } = {}) {
+  const result = await runCli(command, ["llm", "configure"], deps, {
+    stdin: JSON.stringify(answers),
+  });
+  if (result.ok) return { ok: true };
+  // Do not forward subprocess output that could echo user-provided secrets.
+  const raw = `${result.stderr || ""} ${result.error || ""}`;
+  if (/unknown command|too many arguments/i.test(raw))
+    return {
+      ok: false,
+      error:
+        "当前 CLI 尚不支持原子保存连接配置，请更新 CLI 或选择已更新的本地 CLI。",
+    };
+  const secret = answers?.apiKey;
+  return {
+    ok: false,
+    error:
+      (secret ? raw.split(secret).join("[已隐藏]") : raw).slice(0, 500) ||
+      "配置保存失败",
+  };
+}
+
 module.exports = {
   PROVIDER_PRESETS,
   hasUnsafeShellChars,
@@ -367,4 +395,5 @@ module.exports = {
   setVisionModel,
   applyLlmConfig,
   testLlm,
+  applyLlmConnection,
 };

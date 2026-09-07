@@ -4,6 +4,16 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## In development: page-first workspaces
+
+The source build opens Evolution Workbench on a status overview and Skills on
+a browsable catalog, with search as an optional in-page action. The LLM form
+supports custom relay URLs, protocol selection, model aliases and atomic
+credential/configuration saves. This requires the source CLI's `llm configure`
+command; it is not part of the published version described below. See the
+[workspace panel guide](../../docs/IDE_WORKSPACE_PANELS.md) for setup, testing
+and the distinction between isolated local tests and real governed deployment.
+
 ## Current release
 
 > Extension `0.37.86` pairs with `chainlesschain@0.166.29` for reliable
