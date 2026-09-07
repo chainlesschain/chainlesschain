@@ -1929,9 +1929,11 @@ describe("Agent evolution runtime production composition", () => {
     const {
       bindDesktopModelIngressClient,
     } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
-    const { DatabaseSync } = require("node:sqlite");
+    // Use the shipped SQLite driver: node:sqlite is still flag-gated on the
+    // minimum supported Node 22.12 used by the npm release workflow.
+    const Database = require("better-sqlite3");
     const f = modelFixture();
-    const db = new DatabaseSync(path.join(f.root, "desktop-cache.sqlite"));
+    const db = new Database(path.join(f.root, "desktop-cache.sqlite"));
     db.exec(`CREATE TABLE llm_cache (
       id TEXT PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE,
       provider TEXT NOT NULL, model TEXT NOT NULL, request_messages TEXT NOT NULL,
@@ -2109,9 +2111,9 @@ describe("Agent evolution runtime production composition", () => {
     const {
       bindDesktopModelIngressClient,
     } = require("../../../../desktop-app-vue/src/main/evolution/desktop-model-ingress.js");
-    const { DatabaseSync } = require("node:sqlite");
+    const Database = require("better-sqlite3");
     const f = modelFixture();
-    const db = new DatabaseSync(path.join(f.root, "concurrent-cache.sqlite"));
+    const db = new Database(path.join(f.root, "concurrent-cache.sqlite"));
     db.exec(`CREATE TABLE llm_cache (
       id TEXT PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE,
       provider TEXT NOT NULL, model TEXT NOT NULL, request_messages TEXT NOT NULL,

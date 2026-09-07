@@ -21,7 +21,9 @@ function run(root, mode, phase) {
     ["--max-old-space-size=256", worker, root, mode, phase],
     {
       encoding: "utf8",
-      timeout: 90_000,
+      // Windows ACL/file operations can exceed 90s on loaded hosted runners.
+      // Keep process recovery bounded without changing any checkpoint assertion.
+      timeout: process.platform === "win32" ? 180_000 : 90_000,
       maxBuffer: 512 * 1024,
       windowsHide: true,
     },
@@ -102,6 +104,6 @@ describe("Workbench rollback real process recovery", () => {
         workbenchActiveReleaseDigest: recovered.baselineReleaseDigest,
       });
     },
-    300_000,
+    process.platform === "win32" ? 600_000 : 300_000,
   );
 });

@@ -6,6 +6,7 @@ import {
   htmlToMarkdown,
   webFetch,
   makeSafeLookup,
+  _deps,
 } from "../../src/lib/web-fetch.js";
 
 describe("web-fetch — makeSafeLookup() DNS-SSRF guard", () => {
@@ -286,11 +287,26 @@ describe("web-fetch — webFetch() against local server", () => {
   });
 
   it("fetches through a hostname using Node's multi-address connection path", async () => {
-    const result = await webFetch(`http://localhost:${port}/hello`, {
-      config: { allowPrivateHosts: true },
-    });
-    expect(result.error).toBeUndefined();
-    expect(result.content).toContain("# Hi");
+    // Node 22.12 on Windows can resolve localhost to IPv6 only. Keep the real
+    // HTTP connection and safe lookup adapter, but match DNS to our IPv4 fixture.
+    const originalLookup = _deps.lookup;
+    const lookups = [];
+    _deps.lookup = (hostname, options, callback) => {
+      lookups.push({ hostname, all: options.all });
+      queueMicrotask(() =>
+        callback(null, [{ address: "127.0.0.1", family: 4 }]),
+      );
+    };
+    try {
+      const result = await webFetch(`http://web-fetch.test:${port}/hello`, {
+        config: { allowPrivateHosts: true },
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.content).toContain("# Hi");
+      expect(lookups).toEqual([{ hostname: "web-fetch.test", all: true }]);
+    } finally {
+      _deps.lookup = originalLookup;
+    }
   });
 
   it("classifies HTTP failure before attempting JSON parsing", async () => {

@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> CLI version: `chainlesschain@0.166.31`. The immutable release tag is `v-npm-0-166-31`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
+> CLI version: `chainlesschain@0.166.32`. The immutable release tag is `v-npm-0-166-32`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.31
+npm install -g chainlesschain@0.166.32
 chainlesschain setup
 ```
 
