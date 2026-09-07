@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.34",
+      "cliVersions": ["0.166.32", "0.166.34"],
+      "date": "2026-09-08",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility",
+          "body": "> `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with\n> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.\n> The `0.166.33` candidate was not published: its minimum-Node release tests\n> exposed a reverted SQLite fixture fix. Its immutable tag is retained.\n\n- Include the large-page local snapshots, chunk reading, keyword web search,\n  long-file search and CI-log recovery prepared in the 0.166.33 candidate.\n- Restore the shipped SQLite driver in Desktop cache composition tests so the\n  complete release suite runs on Node 22.12 without experimental flags; add a\n  release-contract regression that detects the reverted fixture.\n- Keep duplicate background-release frames alive long enough to assert exactly\n  one entry execution, and surface concurrent restore failure diagnostics."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.33",
       "cliVersions": ["0.166.32", "0.166.33"],
       "date": "2026-09-07",

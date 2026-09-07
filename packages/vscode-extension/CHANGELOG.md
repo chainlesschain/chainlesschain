@@ -2,9 +2,9 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.89] - Downloaded webpage chunks and visible fetch errors (2026-09-07)
+## [0.37.89] - Downloaded webpage chunks and visible fetch errors (2026-09-08)
 
-- Recommend CLI `0.166.33` for large-page downloads and local snapshot paging.
+- Recommend CLI `0.166.34` for large-page downloads and local snapshot paging.
 - Support keyword web discovery, local saved-page search and long-file match
   navigation through the CLI, with clear tool traces and protected read boundaries.
 - Show the actual tool error, error code and recovery guidance in chat instead

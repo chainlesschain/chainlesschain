@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility
+
+> `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with
+> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.
+> The `0.166.33` candidate was not published: its minimum-Node release tests
+> exposed a reverted SQLite fixture fix. Its immutable tag is retained.
+
+- Include the large-page local snapshots, chunk reading, keyword web search,
+  long-file search and CI-log recovery prepared in the 0.166.33 candidate.
+- Restore the shipped SQLite driver in Desktop cache composition tests so the
+  complete release suite runs on Node 22.12 without experimental flags; add a
+  release-contract regression that detects the reverted fixture.
+- Keep duplicate background-release frames alive long enough to assert exactly
+  one entry execution, and surface concurrent restore failure diagnostics.
+
 ### Fixed - cc CLI 0.166.33: download large webpages once and read local chunks
 
 > `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with

@@ -1,8 +1,8 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.115] - Search and read downloaded webpages and long files (2026-09-07)
+## [0.4.115] - Search and read downloaded webpages and long files (2026-09-08)
 
-- Recommend CLI `0.166.33` for keyword web discovery, large webpage snapshots,
+- Recommend CLI `0.166.34` for keyword web discovery, large webpage snapshots,
   offline keyword search/paging, and streamed long-file match navigation.
 - Keep existing bridge permissions and CLI-owned execution boundaries.
 
