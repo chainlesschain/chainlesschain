@@ -49,10 +49,10 @@ class CliVersionCheckTest {
 
     @Test
     void recommendedReleaseIsTheOfflineUpgradeFloor() {
-        assertEquals("0.166.29", CliVersionCheck.RECOMMENDED_CLI_VERSION);
-        assertEquals("0.166.29", CliVersionCheck.preferredUpgradeTarget(null));
-        assertEquals("0.166.29", CliVersionCheck.preferredUpgradeTarget("0.166.27"));
-        assertEquals("0.166.29", CliVersionCheck.preferredUpgradeTarget("0.166.29"));
+        assertEquals("0.166.32", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+        assertEquals("0.166.32", CliVersionCheck.preferredUpgradeTarget(null));
+        assertEquals("0.166.32", CliVersionCheck.preferredUpgradeTarget("0.166.27"));
+        assertEquals("0.166.32", CliVersionCheck.preferredUpgradeTarget("0.166.32"));
 
         String notice = CliVersionCheck.updateNotice(
                 "0.166.27", CliVersionCheck.RECOMMENDED_CLI_VERSION);
