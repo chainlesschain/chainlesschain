@@ -491,10 +491,10 @@ async close()
 
 ---
 
-## function getLLMManager(config =
+## function getLLMManager()
 
 ```javascript
-function getLLMManager(config =
+function getLLMManager()
 ```
 
 * 获取LLM管理器单例

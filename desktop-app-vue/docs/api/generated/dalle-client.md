@@ -4,10 +4,10 @@
 
 ---
 
-## const EventEmitter = require('events');
+## const EventEmitter = require("events");
 
 ```javascript
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 ```
 
 * DALL-E Client
