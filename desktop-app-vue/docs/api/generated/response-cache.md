@@ -14,7 +14,7 @@ const
  * 实现 LLM 响应的智能缓存，减少重复调用
  *
  * 缓存策略：
- * 1. 精确匹配：使用 SHA-256 哈希对 (provider, model, messages) 进行缓存
+ * 1. 精确匹配：使用 SHA-256 哈希绑定 provider、model、messages 和完整可编码 options
  * 2. TTL 管理：缓存有效期为 7 天
  * 3. LRU 淘汰：缓存数量超过限制时，淘汰最久未使用的条目
  *
@@ -24,16 +24,17 @@ const
 
 ---
 
-## function calculateCacheKey(provider, model, messages)
+## function calculateCacheKey(provider, model, messages, options =
 
 ```javascript
-function calculateCacheKey(provider, model, messages)
+function calculateCacheKey(provider, model, messages, options =
 ```
 
 * 计算缓存键（SHA-256 哈希）
  * @param {string} provider - 提供商
  * @param {string} model - 模型名称
  * @param {Array} messages - 消息数组
+ * @param {Object} options - 完整请求选项；不支持稳定编码的请求不缓存
  * @returns {string} 缓存键
 
 ---

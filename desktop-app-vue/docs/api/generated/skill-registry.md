@@ -312,7 +312,7 @@ setLoader(loader)
 async loadAllSkills()
 ```
 
-* 从加载器加载所有技能（三层加载）
+* 加载可信内建 Skill 和治理后的 active Skill
    * @returns {Promise<{loaded: number, registered: number, errors: Array}>}
 
 ---
