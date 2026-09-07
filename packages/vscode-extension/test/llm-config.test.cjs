@@ -3,7 +3,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { setResolvedCli } = require("../src/cli-binary");
-const { applyLlmConfig, buildConfigSetArgs } = require("../src/llm-config");
+const {
+  applyLlmConfig,
+  buildConfigSetArgs,
+  readLlmConfigFromFile,
+} = require("../src/llm-config");
 
 test("LLM setup keeps the API key out of argv and uses the resolved CLI", async () => {
   setResolvedCli("chainlesschain");
@@ -52,4 +56,20 @@ test("ordinary config writes never include the API key", () => {
   assert.equal(args.length, 3);
   assert.ok(args.every((entry) => !entry.includes("llm.apiKey")));
   assert.ok(args.every((entry) => !entry.includes("sk-user-secret")));
+});
+
+test("overridden config roots never read credentials from the default user profile", () => {
+  assert.equal(
+    readLlmConfigFromFile({
+      env: { CHAINLESSCHAIN_HOME: "C:/isolated" },
+      readFileSync: () => {
+        throw new Error("must not read default config");
+      },
+    }),
+    null,
+  );
+  assert.equal(
+    readLlmConfigFromFile({ env: { CLAUDE_CONFIG_DIR: "C:/isolated" } }),
+    null,
+  );
 });
