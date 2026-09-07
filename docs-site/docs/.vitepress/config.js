@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.24 推荐 / npm latest · Agent SDK TS/Python 0.2.8 · Protocol 0.1.8 · Open VSX 0.37.84 · JetBrains 0.4.111｜受治理 Skill 自进化 · Context/Memory · Graph";
+        "v5.0.3.135 · CLI 0.166.30 推荐 / npm latest · Agent SDK TS/Python 0.2.8 · Protocol 0.1.8 · Open VSX 0.37.87 · JetBrains 0.4.113｜页面化 Workbench · Desktop 模型治理 · Context/Memory · Graph";
     }
   },
 
@@ -177,11 +177,11 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.24（推荐）",
+          text: "🧩 Agent Platform 0.166.30（推荐）",
           collapsed: false,
           items: [
             {
-              text: "0.166.24 发布、升级与证据边界 ⭐NEW",
+              text: "0.166.30 发布、升级与证据边界 ⭐NEW",
               link: "/chainlesschain/agent-platform-release",
             },
             {
@@ -211,6 +211,10 @@ export default defineConfig({
             {
               text: "Desktop Graph 调试与 Skill 安全 ⭐NEW",
               link: "/chainlesschain/desktop-graph-skill-security",
+            },
+            {
+              text: "Desktop 模型治理与失败闭合 ⭐NEW",
+              link: "/chainlesschain/desktop-model-governance",
             },
             {
               text: "Record & Replay → Skill ⭐NEW",
@@ -1980,6 +1984,10 @@ export default defineConfig({
             {
               text: "112 受治理的 Skill 自进化设计 ⭐NEW",
               link: "/design/modules/112-governed-skill-evolution-design",
+            },
+            {
+              text: "113 Desktop 受治理模型入口 ⭐NEW",
+              link: "/design/modules/113-governed-desktop-model-ingress-design",
             },
             {
               text: "60b CLI指令技能包 ⭐",

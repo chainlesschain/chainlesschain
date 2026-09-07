@@ -1053,6 +1053,10 @@ export default defineConfig({
               text: "112 受治理的 Skill 自进化设计 ⭐NEW",
               link: "/modules/112-governed-skill-evolution-design",
             },
+            {
+              text: "113 Desktop 受治理模型入口 ⭐NEW",
+              link: "/modules/113-governed-desktop-model-ingress-design",
+            },
           ],
         },
         {

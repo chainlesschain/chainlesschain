@@ -2,7 +2,7 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **当前版本（2026-09-06）**：Agent Platform CLI `0.166.24`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；新增 `workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。
+> **当前版本（2026-09-07）**：Agent Platform CLI `0.166.30`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；`workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。`0.166.30` 还提供页面化 Workbench/Skill Library 与聚焦恢复。
 
 ## 核心特性
 

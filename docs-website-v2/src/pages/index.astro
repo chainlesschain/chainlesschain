@@ -146,10 +146,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：Agent Platform <code class="font-mono">{CLI_VERSION}</code> 同时是生产推荐版与 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>）。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读。本版让交互式长任务持续执行，大文件在压缩后从原位置续读，并补齐工作台审核/回滚、知识撤销与候选安装的持久恢复。显式预算和人工授权继续生效。TypeScript/Python Agent SDK 均为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
+          发布说明：Agent Platform <code class="font-mono">{CLI_VERSION}</code> 同时是生产推荐版与 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>）。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读。本版新增原子自定义模型连接、OpenAI-compatible/Anthropic/Gemini/Ollama 原生协议探测、页面化 Workbench/Skill Library 与长任务聚焦恢复。TypeScript/Python Agent SDK 均为 <code class="font-mono">{AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains Marketplace {JETBRAINS_VERSION} 已公开。已核对源码 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 包含后续 VS Code 发行更新，但 npm、VSIX 与 JetBrains ZIP 仍是独立制品身份。Desktop/IDE 只消费受治理投影；缺少 trusted deployment host 或目标环境 KMS/PKI/witness/grader 时，Workbench 与知识变更失败闭合。
+          Open VSX {VSCODE_VERSION} 与 JetBrains Marketplace {JETBRAINS_VERSION} 已公开。当前源码 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 进一步收口 Desktop 普通、流式、工具与多模态模型入口，并阻断旧直连；这不属于 CLI {CLI_VERSION} npm 字节或已公开 Desktop 安装包。npm、VSIX、JetBrains ZIP 与 Desktop 仍是独立制品身份。
         </p>
 
         <!-- Trust badges -->

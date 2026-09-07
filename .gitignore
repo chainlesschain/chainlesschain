@@ -112,6 +112,9 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
+# Git worktrees (internal data, not to be committed)
+.worktrees/
+
 # Temporary files
 tmp/
 temp/

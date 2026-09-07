@@ -1,6 +1,6 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.24`；更新：2026-09-06
+> 适用版本：Agent Platform CLI `0.166.30`；更新：2026-09-07
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
@@ -20,7 +20,7 @@
 - **持久 Wiki 与模型边界**：剪枝计划、checkpoint、检索投影和依赖影响可重放；模型入口只接受经过验证的投影，长文本有界处理，结构化 JSON 中的敏感信息同样脱敏。
 - **市场候选**：签名清单与精确摘要固定后才写入真实候选文件；`candidate-staged / activated:false` 表示待审核。后续 shadow/canary/active 每步都需要新状态摘要及独立回执，详见[CLI 技能市场](/chainlesschain/cli-marketplace)。
 
-管理员必须同时配置签名部署描述文件和信任根。文件资源与控制端口工厂已提供，但真实人工身份、签名/撤销规则、policy、账本见证及目标环境验收仍由部署负责。VS Code `0.37.84` 会先核对 Workbench 能力；未配置宿主时显示不可用。JetBrains 公共 `0.4.111` 尚未包含主线新增的 v2 批审回执适配，使用该新合同前需相应插件发行支持。
+管理员必须同时配置签名部署描述文件和信任根。文件资源与控制端口工厂已提供，但真实人工身份、签名/撤销规则、policy、账本见证及目标环境验收仍由部署负责。VS Code `0.37.87` 会先核对 Workbench 能力并提供页面化只读入口；未配置宿主时显示不可用。JetBrains 公共 `0.4.113` 继续只消费 CLI-owned 投影，其内置推荐 CLI 为 `0.166.29`。
 
 ## 核心特性
 

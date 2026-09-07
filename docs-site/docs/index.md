@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.24 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.7 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.30 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.8 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.24
-    details: 长任务聊天、大文件分页与压缩续读、持久审核/回滚和跨 Wiki 来源撤销恢复；治理变更仍需受信部署宿主。
+    title: Agent Platform 0.166.30
+    details: 原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务聚焦恢复；治理变更仍需受信部署宿主。
     link: /chainlesschain/agent-platform-release
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -37,12 +37,12 @@ features:
     details: cc team graph 提供耐久事件投影、时间旅行、阻塞根因、diff 与 CI eval；Desktop 源码另提供 topology、timeline、budget、trace 与 causality 调试器。
     link: /chainlesschain/cli-team-graph
   - icon: 🛡️
-    title: Desktop Skill 签名与能力代理
-    details: 外部 Handler 必须经 Ed25519、摘要重读和一次性隔离 Worker；内置 Handler 绑定生成能力目录，网络/模型/诊断经有界宿主 Broker。
-    link: /chainlesschain/desktop-graph-skill-security
+    title: Desktop 模型与 Skill 治理
+    details: 外部 Handler 经签名与隔离 Worker；普通、工具和多模态模型请求共用受治理 Run，未迁移旧直连在网络发送前失败闭合。
+    link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
-    title: IDE Bridge 突破 3.7 万下载
-    details: Open VSX 0.37.84 与 JetBrains Marketplace 0.4.111 已公开回读；双端加入受治理 Workbench 与证据排序 Skill Retrieval，并继续保持 CLI-authoritative 投影。
+    title: IDE Bridge 突破 3.8 万下载
+    details: Open VSX 0.37.87 与 JetBrains Marketplace 0.4.113 已公开回读；VS Code 增加页面化工作台、Skill Library 与自定义模型连接。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -52,12 +52,12 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.24@9cf9c7bfd7 的三平台门、Trusted Publishing 与 npm 回读已闭环；Open VSX、JetBrains 与源码仍保持独立制品身份。
+    details: CLI 0.166.30@87ddf8b126 的三平台 CLI/Strict/IDE 门、Trusted Publishing 与 npm 回读已闭环；Open VSX、JetBrains 与源码仍保持独立制品身份。
 ---
 
-> **2026-09-06 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.24@9cf9c7bfd7`，三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读完成；Session Core 为 `0.3.12`，Agent SDK TS/Python 为 `0.2.8`，Protocol 为 `0.1.8`，Open VSX 为 `0.37.84`，JetBrains Marketplace 为 `0.4.111`。本版新增长任务聊天、大文件分页续读、持久审核/回滚与跨 Wiki 来源撤销恢复。生成候选、批准 review 或提交 merge plan 都不等于客户端拥有发布 authority。详细入口：[新功能用户指南](/chainlesschain/governed-skill-evolution)、[模块 112 设计](/design/modules/112-governed-skill-evolution-design)与[发布指南](/chainlesschain/agent-platform-release)。
+> **2026-09-07 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.30@87ddf8b126`，三平台 CLI CI、Strict Sandbox、IDE Extensions、Trusted Publishing 与 npm 公共回读完成；Session Core 为 `0.3.12`，Agent SDK TS/Python 为 `0.2.8`，Protocol 为 `0.1.8`，Open VSX 为 `0.37.87`，JetBrains Marketplace 为 `0.4.113`。本版新增原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 和长任务聚焦恢复。当前 `main@5db62db246` 的 Desktop 模型入口收口是更晚的源码能力。详细入口：[发布指南](/chainlesschain/agent-platform-release)、[模型治理用户指南](/chainlesschain/desktop-model-governance)、[模块 112](/design/modules/112-governed-skill-evolution-design)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 
-> **Agent/Skill evolution 当前边界**：公开 `0.166.24` 已把 Workbench、Retrieval、knowledge review/merge 和 trust ledger 接到 canonical composition。仓库闭环仍不等于目标环境已配置 KMS/PKI/witness/grader；Workbench/knowledge 命令缺 trusted deployment host 时失败闭合，`cc learning synthesize` 缺可信 evaluator/store/active roots 时继续 unavailable。
+> **Agent/Skill evolution 当前边界**：公开 `0.166.30` 已把页面化 Workbench、Retrieval、knowledge review/merge 和 trust ledger 接到 canonical composition。仓库闭环仍不等于目标环境已配置 KMS/PKI/witness/grader；Workbench/knowledge 命令缺 trusted deployment host 时失败闭合，`cc learning synthesize` 缺可信 evaluator/store/active roots 时继续 unavailable。
 
 > **2026-08-28 文档更新（2026-09-01 状态复核）**：[上下文与记忆](/chainlesschain/context-memory) 用户指南与[模块 108：Context/Memory Kernel](/design/modules/108-context-memory-kernel) 设计文档已建立双向入口。统一 schema、planner、压缩与记忆状态机现已贯通 CLI、Desktop、App Server 和 IDE projection；旧 SQLite/session-core 记忆会幂等迁移到 canonical authority，旧 writer 默认失败关闭。唯一关闭候选 `e93dc817ae7f65159ffa754472ebdac30de34180` 已完成 exact-SHA 三平台矩阵、30 分钟 soak、证据聚合与 production-close 验签。
 

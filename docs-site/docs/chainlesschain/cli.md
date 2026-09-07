@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-09-06）：产品 v5.0.3.135 / Agent Platform CLI 0.166.24（生产推荐与 npm latest，精确发布 SHA `9cf9c7bfd7`）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.12 | 175 命令 | Node.js ≥ 22.12.0。当前版新增长任务聊天、大文件压缩续读、持久 Workbench 审核/回滚与跨 Wiki 来源撤销恢复；客户端不获得 active Skill 或 canonical knowledge 写权限。**
+> **当前版本边界（2026-09-07）：产品 v5.0.3.135 / Agent Platform CLI 0.166.30（生产推荐与 npm latest，精确发布 SHA `87ddf8b126`）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.12 | 175 命令 | Node.js ≥ 22.12.0。当前版新增原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务聚焦恢复；当前 Desktop 模型治理仍是 `main@5db62db246` 的源码能力。**
 
 ## 概述
 
@@ -141,7 +141,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.24
+npm install -g chainlesschain@0.166.30
 chainlesschain setup
 chainlesschain start
 ```
@@ -158,7 +158,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.24
+npm install -g chainlesschain@0.166.30
 ```
 
 安装后提供 3 个等价命令：

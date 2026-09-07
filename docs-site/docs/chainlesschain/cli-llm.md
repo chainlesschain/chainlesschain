@@ -1,10 +1,49 @@
 # LLM 管理 (llm)
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
+>
+> 当前公开版本：CLI `0.166.30`。本版新增原子连接配置与 OpenAI-compatible / Anthropic / Gemini / Ollama 原生协议探测。
 
 ## 概述
 
 `llm` 命令用于管理大语言模型的提供商、模型和连通性，内置支持 10 个 LLM 提供商（含火山引擎、OpenAI、Anthropic、DeepSeek 等）。提供模型列表查看、API 连通性测试、提供商动态切换等功能，Agent 模式下还支持根据任务类型智能选择最佳模型。
+
+## 0.166.30：原子保存自定义连接
+
+`cc llm configure` 只从 stdin 接收最大 32 KiB JSON，在同一把锁和原子 rename 中保存 endpoint 与 credential。API Key 不进入 argv；目标 provider 或 Base URL 改变时，必须提供该目标自己的密钥，旧站点密钥不会被复用。
+
+```bash
+# Bash / zsh：真实使用时从安全输入或 secret manager 生成 JSON
+printf '%s' '{"provider":"anthropic","model":"claude-sonnet-4-6","baseUrl":"https://api.anthropic.com/v1","apiKey":"REPLACE_ME"}' \
+  | cc llm configure
+
+cc llm test
+```
+
+```powershell
+# PowerShell 7：密钥输入不回显，也不作为命令行参数
+$apiKey = Read-Host "API Key" -MaskInput
+@{
+  provider = "openai"
+  model = "gpt-4o"
+  baseUrl = "https://api.openai.com/v1"
+  apiKey = $apiKey
+} | ConvertTo-Json -Compress | cc llm configure
+Remove-Variable apiKey
+
+cc llm test
+```
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `provider` | 是 | 同时选择协议；使用 `openai`、`anthropic`、`gemini`、`ollama` 等内置标识 |
+| `model` | 是 | 可使用中转站提供的自定义模型别名 |
+| `baseUrl` | 是 | API 基础路径；不要填写 `/chat/completions`、`/messages` 或 `/api/generate` |
+| `visionModel` | 否 | 图片输入使用的模型；留空复用文本模型/默认值 |
+| `apiKey` | 云端模型是 | 切换 endpoint 时必须提供新 key；Ollama 可省略 |
+| `allowHttp` | 远程 HTTP 是 | 只有明确为 `true` 才允许非 loopback HTTP；生产建议 HTTPS |
+
+`--storage auto|keychain|file` 控制秘密存储方式，默认 `auto`。URL 不允许内嵌用户名/密码、query 或 fragment。
 
 ## 核心特性
 
@@ -39,6 +78,7 @@ task-model-selector.js ── 任务类型检测 → 模型推荐
 ```bash
 chainlesschain llm models               # 列出已安装的Ollama模型
 chainlesschain llm models --json        # JSON格式输出
+chainlesschain llm configure            # 从 stdin JSON 原子保存连接
 chainlesschain llm test                 # 测试Ollama连通性
 chainlesschain llm test --provider openai --api-key sk-...
 chainlesschain llm test --provider volcengine --api-key ark-...
@@ -61,6 +101,8 @@ chainlesschain llm models --json
 ### test
 
 测试 LLM 提供商连通性，发送一条简单消息验证 API 是否可用。
+
+`0.166.30` 会按 provider 使用原生 wire protocol：OpenAI-compatible 使用 `/chat/completions`，Anthropic 使用 `/messages`，Gemini 使用 `:generateContent`，Ollama 使用 `/api/generate`。请求拒绝 redirect，20 秒超时，并要求响应包含非空模型文本。该检查会产生一次真实模型调用，可能产生少量费用。
 
 ```bash
 chainlesschain llm test                                           # 测试默认提供商 (Ollama)
@@ -140,7 +182,8 @@ ai>  def bubble_sort(arr): ...
 # llm switch <provider>        # 切换默认提供商（写入 config.json）
 
 # 配置文件
-# ~/.chainlesschain/config.json   LLM 配置（provider / model / apiKey / baseUrl）
+# ~/.chainlesschain/config.json   LLM 非秘密配置（provider / model / baseUrl 等）
+# API Key 按 --storage 写入 keychain 或受保护文件；不要直接编辑/复制
 # 环境变量优先级高于 config.json
 ```
 
@@ -190,9 +233,10 @@ ai>  def bubble_sort(arr): ...
 
 ## 安全考虑
 
-- API Key 存储在本地 `~/.chainlesschain/config.json`，文件权限建议设为 600
+- 优先使用 `cc llm configure` 和默认 `--storage auto`；API Key 不进入 argv，系统 keychain 可用时优先使用 keychain
+- 若管理员明确选择 `--storage file`，必须限制运行目录和配置文件权限，不要把配置纳入 Git、日志或明文备份
 - 使用 Ollama 本地模型时无需 API Key，数据不出设备
-- `test` 命令仅发送简单测试消息，不传输敏感数据
+- `test` 命令发送固定的简短测试消息，不包含项目内容，但会触发一次真实模型调用
 
 ## 使用示例
 
@@ -247,7 +291,9 @@ chainlesschain llm test
 | ------------------- | ------------------------------------------------------------ |
 | `models` 返回空列表 | 确认 Ollama 已启动且已拉取模型：`ollama list`                |
 | `test` 连接超时     | 检查 `OLLAMA_HOST` 环境变量（默认 `http://localhost:11434`） |
-| 自定义提供商报错    | 检查 `baseUrl` 格式，确保以 `/v1` 结尾                       |
+| 自定义提供商报错    | 检查协议与 `baseUrl`；填写 API 基础路径，不要填写完整调用端点 |
+| 切换地址提示需要 Key | 新 endpoint 不复用旧密钥；重新输入该站点自己的 API Key       |
+| HTTP 地址被拒绝     | 改用 HTTPS；仅受信远程环境可显式设置 `allowHttp: true`         |
 | 火山引擎认证失败    | 检查 `VOLCENGINE_API_KEY` 是否正确设置                       |
 | 模型自动选择不生效  | 仅在 Agent 模式 (`chainlesschain agent`) 下生效              |
 

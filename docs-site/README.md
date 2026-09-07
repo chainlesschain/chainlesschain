@@ -2,9 +2,9 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-06）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.24@9cf9c7bfd7`；该 SHA 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与 npm 公共回读已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.12`、PDH 为 `0.4.59`；Open VSX 为 `0.37.84`，JetBrains Marketplace 为 `0.4.111`。
+> 当前文档快照（2026-09-07）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.30@87ddf8b126`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.12`、PDH 为 `0.4.59`；Open VSX 为 `0.37.87`，JetBrains Marketplace 为 `0.4.113`。
 
-> 新功能边界：`0.166.24` 已公开 Evolution Workbench、摘要绑定 Skill Retrieval，以及加密知识冲突的审核与合并入口；Desktop 和双 IDE 同步提供受治理投影。所有变更仍要求 trusted deployment host、精确 revision/digest、策略与账本，缺少 KMS/PKI/witness/grader 等生产 authority 时失败闭合，不会默认改写 active Skill。详见[新功能用户指南](docs/chainlesschain/governed-skill-evolution.md)和[模块 112 设计](../docs/design/modules/112-governed-skill-evolution-design.md)。
+> 新功能边界：`0.166.30` 已公开原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务恢复。当前 `main@5db62db246` 的 Desktop 受治理模型入口属于源码能力，不属于 `0.166.30` npm 字节或已公开 Desktop 安装包。详见[模型治理用户指南](docs/chainlesschain/desktop-model-governance.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
 
 ## 📚 文档内容
 

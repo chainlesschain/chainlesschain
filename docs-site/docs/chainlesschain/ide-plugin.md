@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-09-06）：CLI `0.166.24` + VS Code 扩展 `0.37.84`（Open VSX）+ JetBrains 插件 `0.4.111`（Marketplace）。两端加入受治理 Evolution Workbench 与证据排序 Skill Retrieval，并保持 CLI authority；npm tarball、VSIX 与 JetBrains ZIP 是独立制品身份。**
+> **当前推荐组合（2026-09-07）：CLI `0.166.30` + VS Code 扩展 `0.37.87`（Open VSX）+ JetBrains 插件 `0.4.113`（Marketplace）。VS Code 新增页面化 Workbench、只读 Skill Library 与自定义模型连接；两端保持 CLI authority，npm tarball、VSIX 与 JetBrains ZIP 是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.84` 与 JetBrains Marketplace `0.4.111` 已公开。npm `latest` CLI `0.166.24@9cf9c7bfd7` 已完成三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读。微软 VS Code Marketplace 尚未公开该扩展。
+> **发布提示**：Open VSX `0.37.87` 与 JetBrains Marketplace `0.4.113` 已公开。npm `latest` CLI `0.166.30@87ddf8b126` 已完成三平台 CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读。微软 VS Code Marketplace 尚未公开该扩展。
 
 ## 概述
 
@@ -15,7 +15,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 
 两端严格遵循**纯核 + 胶水**分层：协议与业务逻辑是零编辑器依赖的纯模块（VS Code 侧纯 Node、JetBrains 侧纯 JDK），可在无编辑器宿主下测试并做过跨语言 interop 实证；只有薄薄一层 glue 碰编辑器 SDK。因此双端功能面长期保持对齐，会话经**共享 IDE 会话索引**（`~/.chainlesschain/ide/session-index.json`）跨 IDE 可见、可续接。
 
-## 长任务与大文件（CLI 0.166.24）
+## 长任务、大文件与聚焦恢复（CLI 0.166.30）
 
 IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务；显式的轮次、费用、环境和会话预算仍会使任务停止。普通无人值守运行保留默认 50 次模型调用上限，按需用正整数明确提高上限：
 
@@ -23,7 +23,7 @@ IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务
 cc agent -p "逐个检查模块并更新迁移说明" --max-turns 100
 ```
 
-VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.111` 没有同名设置。
+VS Code / VSCodium 扩展 `0.37.87` 支持 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.113` 没有同名设置。CLI `0.166.30` 同时承接读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复和可靠 Stop。
 
 大文件按字节和行游标读取，超长 Unicode 单行也可以续读。上下文压缩保留最近读取位置；已读且未变化的页可复用，文件修改后缓存失效。因此续读不会把尚未读取的范围标成已读。慢命令运行时会话心跳继续处理；撤销或接管会话后，原宿主不能继续写入。
 
@@ -36,7 +36,7 @@ VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxT
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.24 # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.166.30 # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -46,7 +46,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.84 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.84/file/chainlesschain.chainlesschain-ide-0.37.84.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.87 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.87/file/chainlesschain.chainlesschain-ide-0.37.87.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -58,7 +58,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.84` 已从 Open VSX 公开回读，JetBrains `0.4.111` 已完成 Marketplace 公共回读，VS Code 配对 CLI `0.166.24`，JetBrains 公共插件内置推荐仍为 `0.166.22`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚和 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.87` 已从 Open VSX 公开回读，JetBrains `0.4.113` 已完成 Marketplace 公共回读，VS Code 配对 CLI `0.166.30`，JetBrains 公共插件内置推荐为 `0.166.29`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚和 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -88,15 +88,15 @@ cc ide doctor       # 发现失败时解释原因
 - **图片 / 视觉**：Ctrl/Cmd+V 粘贴截图或拖拽图片（单条最多 4 张），走独立视觉模型。
 - **`@` 提及**：文件（排序下拉）、`@folder/`（递归目录树）、**类 / 方法符号**（按符号名找文件）、`@terminal`、`@selection` / `@diagnostics`；支持 `@file#L5-10` 行区间引用。
 - **审批卡与提问卡**：危险动作（危险 shell、settings `ask` 规则）弹 Approve/Deny 卡片阻塞等裁决（默认 120s 超时回落拒绝）；agent 拿不准时经 `ask_user_question` 弹单选 / 多选 / 自由文本卡而不是瞎猜。
-- **结构化授权（VS Code 0.37.84）**：单次批准仍是快速路径；展开后可选当前回合、当前会话、拒绝或取消。回合/会话 grant 只采用 CLI 请求中的 exact capability/scope/binding，Webview 不能扩权。
+- **结构化授权（VS Code 0.37.87）**：单次批准仍是快速路径；展开后可选当前回合、当前会话、拒绝或取消。回合/会话 grant 只采用 CLI 请求中的 exact capability/scope/binding，Webview 不能扩权。
 - **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。
 - **后台 tab 信号**：非活动标签回合完成亮绿点、等待审批亮蓝点 + "Show" 提示，不抢焦点。
 - **Context Center（VS Code 0.37.54+ / JetBrains 0.4.90+）**：只读展示 CLI-owned context envelope、included source、scope、freshness、token allocation、symbol/file evidence、Git diff、项目记忆、bounded diagnostics 与 metadata-only MCP resource evidence。未知、超限、跨版本或不可用来源显式失败闭合，不把 MCP payload 或凭据值复制进 IDE 投影。
 - **权限与 Side-effect Center（VS Code 0.37.54+ / JetBrains 0.4.90+）**：解释 workspace-scoped authority、实际 filesystem/network/process/runtime/credential-name 资源、irreversibility、decision source、call chain、recovery coverage 与 unresolved resource。IDE 创建/撤销临时规则时只执行 CLI 提供、绑定 authority generation/rule revision 的 exact argv，不直接编辑 authority store。
 - **Governed Automation Center**：展示 CLI-owned versioned flow/Routine projection、scope、execution preflight 与 history；run-now、失败重试、pause/resume、disable/delete 和 Routine create/edit 都会在确认前重读 revision，并只执行 CLI 提供的 exact argv。过期投影失败闭合，IDE 不直接写权威存储。
-- **CLI-owned Sessions Workbench（公开版 VS Code 0.37.84 / JetBrains 0.4.111）**：会话列表只消费 CLI 生成的 immutable projection revision；resume、attach、delivery 与 remote-control 动作必须由该 revision 明确声明，过期按钮失败闭合。公开版显示跨会话消息的 delivered/refused/full/expired 结果，并包含分组、多选批量移动与 Focus View。
-- **Evolution Workbench 与 Skill Retrieval（VS Code 0.37.84 / JetBrains 0.4.111）**：双端展示候选、证据、版本比较和检索排序，可提交投影明确允许的 review/rollback exact argv；IDE 不持有 mutation authority，陈旧 revision 或摘要不一致时失败闭合。
-- **生成事件与无正文协作投影（VS Code 0.37.84 / JetBrains 0.4.111）**：双端使用 Schema 生成的 known-event 类型并保留未知未来事件；VS Code 额外显示 canonical message/follow-up 与 custody handoff 计数。malformed、oversize 或 duplicate 可选投影失败闭合，发送、接收、ACK 与 handoff authority 始终留在 CLI-owned agent bridge。
+- **CLI-owned Sessions Workbench（公开版 VS Code 0.37.87 / JetBrains 0.4.113）**：会话列表只消费 CLI 生成的 immutable projection revision；resume、attach、delivery 与 remote-control 动作必须由该 revision 明确声明，过期按钮失败闭合。公开版显示跨会话消息的 delivered/refused/full/expired 结果，并包含分组、多选批量移动与 Focus View。
+- **Evolution Workbench 与 Skill Retrieval（VS Code 0.37.87 / JetBrains 0.4.113）**：双端展示候选、证据、版本比较和检索排序；VS Code 另提供页面化版本列表和分页只读 Skill Library。IDE 不持有 mutation authority，陈旧 revision 或摘要不一致时失败闭合。
+- **生成事件与无正文协作投影（VS Code 0.37.87 / JetBrains 0.4.113）**：双端使用 Schema 生成的 known-event 类型并保留未知未来事件；VS Code 额外显示 canonical message/follow-up 与 custody handoff 计数。malformed、oversize 或 duplicate 可选投影失败闭合，发送、接收、ACK 与 handoff authority 始终留在 CLI-owned agent bridge。
 - **可恢复交付与 rewind timeline（VS Code 0.37.50 / JetBrains 0.4.86）**：交付覆盖 GitHub、Gitee、configured remote 与 manual handoff，每步要求显式确认并校验 result/effect digest；`/rewind` 展开为绑定 session、workspace、repository head、checkpoint revision 与 manifest digest 的 detail/restore/fork 流程。
 - **编辑器内联聊天与 ARM64 宿主门（VS Code 0.37.50）**：在当前选区旁打开独立浮层会话，逐字流式响应，代码块可复制、插入或替换；Explain / Refactor / Fix / Generate Docs / Generate Tests 六个 command 已进入 canonical IDE capability manifest。stable/minimum × 三系统 ARM64 的真实宿主与双端共享聚合证据继续保留。
 

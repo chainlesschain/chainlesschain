@@ -5,7 +5,19 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.30 / VS Code 0.37.87 / JetBrains 0.4.113（2026-09-07）
+
+npm `latest` `0.166.30` 对应不可变 tag `v-npm-0-166-30` 与精确提交 [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589530)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589387)、[npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427)和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725) 均成功。
+
+- **自定义模型连接**：`cc llm configure` 接受有界 stdin JSON，一次原子保存 provider、model、base URL、vision model 与密钥；密钥不进入 argv。端点改变时不会复用旧密钥，可显式选择 `auto`、`keychain` 或 `file` 存储。
+- **原生协议探测**：OpenAI-compatible、Anthropic、Gemini 与 Ollama 使用各自原生协议执行连通测试；拒绝重定向并设置 20 秒超时。
+- **IDE 工作台**：Open VSX `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分页筛选的只读 Skill Library 与自定义模型连接；JetBrains Marketplace `0.4.113` 已公开，内置推荐 CLI 为 `0.166.29`。
+- **长任务恢复**：承接 `0.166.25`–`0.166.29` 的读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复和可靠 Stop。
+- **源码边界**：当前 `main@5db62db246` 进一步加入 Desktop 受治理模型入口与 trust-epoch witness 验签缓存；它们不属于 `0.166.30` npm tarball，也不代表 Desktop 公共安装包已经发布。
+
 #### Released — CLI 0.166.24 / VS Code 0.37.84（2026-09-06）
+
+> 这是历史发布，当前生产推荐版本见上方 `0.166.30`。
 
 npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9cf9c7bfd7`](https://github.com/chainlesschain/chainlesschain/commit/9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459) 三平台矩阵及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162) 均成功，官方 registry 已回读。
 
@@ -15,7 +27,7 @@ npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9
 
 #### Released — Agent Platform CLI 0.166.21 / Session Core 0.3.11 / IDE Workbench
 
-> `chainlesschain@0.166.21` 是 2026-09-04 的历史发布，当前版本见上方 `0.166.24`。不可变 tag `v-npm-0-166-21` 精确指向 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 均成功，npm 公共 registry 已回读。
+> `chainlesschain@0.166.21` 是 2026-09-04 的历史发布，当前版本见上方 `0.166.30`。不可变 tag `v-npm-0-166-21` 精确指向 [`1ff70b7856`](https://github.com/chainlesschain/chainlesschain/commit/1ff70b785629e2967dc69677f73cf00190f30a71)；同一提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470492)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/33834470272) 和 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/33837198632) 均成功，npm 公共 registry 已回读。
 
 - **Evolution Workbench**：CLI 可列出候选、比较 revision、提交 approve/reject 决定和 rollback 请求；Desktop、VS Code `0.37.81` 与 JetBrains `0.4.110` 消费同一受治理投影。
 - **Skill Retrieval**：`cc skill search` 支持 bundled、marketplace、managed、workspace 来源，使用 canonical digest、索引 witness、混合向量路由与 verified outcome evidence 排序。

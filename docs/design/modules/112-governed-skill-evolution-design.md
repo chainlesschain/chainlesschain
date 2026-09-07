@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 状态：2026-09-06 核对，`0.166.24` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、Evolution Workbench、Skill Retrieval，以及受治理知识同步、审核与可恢复合并；目标环境 authority 和自动 active promotion 保持 HOLD
+> 状态：2026-09-07 核对，`0.166.30` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval，以及受治理知识同步、审核与可恢复合并；`main@5db62db246` 继续收口 Desktop 模型入口并优化 witness 验签缓存，目标环境 authority 和自动 active promotion 保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
@@ -28,7 +28,7 @@
 ### 2.2 非目标
 
 - 不把公式化 accuracy 增长或模型自评包装成真实训练/Skill 改善。
-- 不在 `0.166.21` 默认启用无人值守 active mutation。
+- 不在 `0.166.30` 默认启用无人值守 active mutation。
 - 不把单机内存 Map、普通目录写入或本地测试结果当作生产 durable authority。
 - 不用平均分替代缺失的目标平台 cell，也不用 LLM judge 替代确定性测试。
 - 不授予 Desktop、sync peer、candidate evaluator 或 marketplace active-layer 写权限。
@@ -287,6 +287,16 @@ Wiki pruning 的计划、授权 checkpoint、维护结果、检索投影和 wiki
 - [回滚持久化合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_ROLLBACK_RUNTIME.md)
 - [市场候选与徽章合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/GOVERNED_SKILL_MARKETPLACE_CLI.md)
 
+## 18.7 2026-09-07 源码核对：Desktop 模型入口与 witness 性能
+
+本节只描述 `main@5db62db246`，晚于公共 CLI `0.166.30@87ddf8b126`。Desktop 的 OpenAI、Anthropic、Gemini、Ollama、函数工具循环、response cache 与多模态模型请求现通过 branded host 进入同一个 `EvolutionRun`；用户输入、tool request/result、provider 终态与缓存回放必须保持 tenant、request 和 receipt 绑定。嵌套摘要复用父 Run，不能创建脱离父 lineage 的第二条记录。
+
+已识别的图像/语音/视频、embedding、reranker、项目、文档、planner 和 legacy RAG opaque backend 在没有受治理 bridge 时于网络发送前失败闭合。`CC_AGENT_EVOLUTION_INGRESS_FAILED` 必须越过 cache、关键词降级与 provider fallback 返回调用方，不能被改写为普通服务不可用。Volcengine health check 只检查配置完整性，不再用真实模型调用充当探测。
+
+`EvolutionFileWitness` 新增可选的认证 trust epoch。只有 verifier 在同一次读取前后给出稳定 epoch 才复用逐记录验签；撤销导致 epoch 改变后必须重新验证完整 history，未实现端口或 epoch 异常时保留逐签名校验。1,000-event 演练把验签约从 2,017,022 次降到 1,002 次，但 seed 仍约 1,021 秒，说明完整 history JSON 的 parse/serialize/fsync O(n²) 成本尚未关闭。
+
+详细入口、协议适配、旧路径处置矩阵与生产缺口见[模块 113：Desktop 受治理模型入口](./113-governed-desktop-model-ingress-design.md)。
+
 ## 19. 关键文件
 
 - `packages/cli/src/lib/evolution/skill-candidate-registry.js`
@@ -329,3 +339,4 @@ Wiki pruning 的计划、授权 checkpoint、维护结果、检索投影和 wiki
 - [Desktop Cowork Skill 执行安全](./109_Desktop_Cowork_Skill_Execution_Security.md)
 - [Agent Platform 发布与证据边界](./110-agent-platform-release-boundaries.md)
 - [Record & Replay → Skill](./111-record-replay-skill-design.md)
+- [Desktop 受治理模型入口](./113-governed-desktop-model-ingress-design.md)
