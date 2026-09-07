@@ -72,7 +72,8 @@ export class WebFetchSnapshots {
       }
       throw error;
     }
-    const { content, ...metadata } = result;
+    const metadata = { ...result };
+    delete metadata.content;
     this.entries.set(id, {
       file,
       size,
