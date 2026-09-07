@@ -18,6 +18,7 @@ const {
   encoding,
 } = workerData;
 const matches = [];
+let outputChars = 0;
 let position = 0;
 let line = 1;
 let column = 1;
@@ -75,7 +76,7 @@ function scan(text, committed) {
       text.length,
       start + Math.min(match[0].length, 512) + contextChars,
     );
-    matches.push({
+    const hit = {
       line: matchLine,
       column: matchColumn,
       offset: absolute,
@@ -87,7 +88,12 @@ function scan(text, committed) {
         column: Math.max(1, matchColumn - contextChars),
         limit: 5,
       },
-    });
+    };
+    const hitChars = JSON.stringify(hit).length;
+    if (matches.length && outputChars + hitChars > 24000)
+      return result(true, absolute);
+    matches.push(hit);
+    outputChars += hitChars;
     const next = absolute + Math.max(1, match[0].length);
     if (matches.length >= maxMatches) return result(true, next);
     if (!match[0].length)

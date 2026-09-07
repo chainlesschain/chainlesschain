@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed - cc CLI 0.166.33: download large webpages once and read local chunks
 
 > `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with
-> VS Code / VSCodium extension **0.37.89**.
+> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.
 
 - Raise the default raw webpage download budget to 10 MB and separate it from
   the returned text budget (`maxChars`, default 20000).

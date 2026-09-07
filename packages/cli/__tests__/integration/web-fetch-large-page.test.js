@@ -6,9 +6,13 @@ import {
   createTurnState,
 } from "../../../vscode-extension/src/chat/chat-events.js";
 
+const searchConfig = vi.hoisted(() => ({}));
 vi.mock("../../src/lib/project-detector.js", () => ({
   findProjectRoot: () => process.cwd(),
-  loadProjectConfig: () => ({ webFetch: { allowPrivateHosts: true } }),
+  loadProjectConfig: () => ({
+    webFetch: { allowPrivateHosts: true },
+    webSearch: searchConfig,
+  }),
   isInsideProject: () => true,
 }));
 
@@ -16,14 +20,48 @@ describe("large pages through agent dispatch and IDE result mapping", () => {
   let server;
   let url;
   beforeAll(async () => {
-    server = http.createServer((_req, res) => {
+    server = http.createServer((req, res) => {
+      if (req.url.startsWith("/search?")) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            results: [
+              {
+                title: "Large source",
+                url,
+                content: "A searchable large document",
+              },
+            ],
+          }),
+        );
+        return;
+      }
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(`<h1>Large page</h1><p>${"content ".repeat(700_000)}</p>`);
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     url = `http://127.0.0.1:${server.address().port}/`;
+    Object.assign(searchConfig, { provider: "searxng", instanceUrl: url });
   });
   afterAll(() => new Promise((resolve) => server.close(resolve)));
+
+  it("discovers a source by keywords before reading its large webpage", async () => {
+    const found = await executeTool(
+      "web_search",
+      { query: "large source", maxSnippetChars: 10 },
+      { cwd: process.cwd() },
+    );
+    expect(found.error).toBeUndefined();
+    expect(found.provider).toBe("searxng");
+    expect(found.results[0].snippet).toHaveLength(10);
+    const page = await executeTool(
+      "web_fetch",
+      { url: found.results[0].url, maxChars: 12 },
+      { cwd: process.cwd() },
+    );
+    expect(page.content).toBe("# Large page");
+    expect(page.snapshotId).toBeTruthy();
+  });
 
   it("passes the output limit through and reads a page above the old 2 MB cap", async () => {
     const result = await executeTool(

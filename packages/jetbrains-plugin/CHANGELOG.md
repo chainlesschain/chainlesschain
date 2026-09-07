@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.115] - Search and read downloaded webpages and long files (2026-09-07)
+
+- Recommend CLI `0.166.33` for keyword web discovery, large webpage snapshots,
+  offline keyword search/paging, and streamed long-file match navigation.
+- Keep existing bridge permissions and CLI-owned execution boundaries.
+
 ## [0.4.114] - Reliable web fetch and CI-log recovery (2026-09-07)
 
 - Recommend `chainlesschain@0.166.32` as the offline CLI upgrade floor.
