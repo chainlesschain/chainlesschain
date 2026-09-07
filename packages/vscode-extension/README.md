@@ -4,16 +4,6 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## In development: page-first workspaces
-
-The source build opens Evolution Workbench on a status overview and Skills on
-a browsable catalog, with search as an optional in-page action. The LLM form
-supports custom relay URLs, protocol selection, model aliases and atomic
-credential/configuration saves. This requires the source CLI's `llm configure`
-command; it is not part of the published version described below. See the
-[workspace panel guide](../../docs/IDE_WORKSPACE_PANELS.md) for setup, testing
-and the distinction between isolated local tests and real governed deployment.
-
 ## Current release
 
 > Extension `0.37.89` pairs with `chainlesschain@0.166.33` for reliable web fetch
@@ -50,8 +40,8 @@ and the distinction between isolated local tests and real governed deployment.
   categories, sources and details. Task retrieval is an optional in-page action.
 - **Configure custom LLM relays in one form.** Choose a compatible protocol,
   base URL, arbitrary model alias, optional vision model and scoped API key.
-  CLI `0.166.33` saves the connection atomically through stdin and tests the
-  saved endpoint with its native protocol.
+  CLI `0.166.33` saves the connection atomically through stdin using
+  `llm configure` and tests the saved endpoint with its native protocol.
 - Saved keys never return to the page; changing destinations requires the new
   service's key. Review and rollback still require fresh state, confirmation
   and real host authority. Local-test profiles remain visibly isolated.
@@ -164,9 +154,9 @@ require an available Docker sandbox and could select Docker Desktop's
 extensionless POSIX shim before `docker.exe`. Public CLI `0.166.33` restores
 Docker-optional normal startup while keeping explicit sandbox and managed-policy
 requests fail closed, and resolves native `PATHEXT` executables first. Its exact
-release commit passed the complete Linux,
-Windows, and macOS CLI CI and Strict Sandbox matrices, npm publication, and
-public-registry readback. It also adds lease-bound real-time teammate
+release commit must pass the complete Linux,
+Windows, and macOS CLI CI and Strict Sandbox matrices before npm publication
+and public-registry readback. It also adds lease-bound real-time teammate
 send/receive/ack/follow-up tools
 with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
