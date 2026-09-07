@@ -181,7 +181,7 @@ async function rollback(vscode, pilot, candidates, target) {
   });
 }
 
-async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
+async function openEvolutionWorkbench(vscode, { getPilot, openSetup } = {}) {
   if (typeof getPilot !== "function") {
     throw new TypeError("Evolution Workbench App Server provider is required");
   }
@@ -201,9 +201,12 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
   const capabilities = await pilot.start();
   const workbench = capabilities?.evolutionWorkbench;
   if (workbench?.available !== true) {
-    await vscode.window.showInformationMessage(
+    const setupLabel = localize(vscode, "Configure Evolution Workbench");
+    const choice = await vscode.window.showInformationMessage(
       localize(vscode, UNAVAILABLE_MESSAGE),
+      ...(openSetup ? [setupLabel] : []),
     );
+    if (openSetup && choice === setupLabel) await openSetup();
     return null;
   }
   if (
@@ -226,8 +229,15 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
     );
     return null;
   }
+  const testMode = pilot.workbenchMode === "local-test";
+  const title = testMode
+    ? localize(
+        vscode,
+        "Evolution Workbench — LOCAL TEST (test identities and data)",
+      )
+    : governanceTitle(projection.governance);
   const selected = await vscode.window.showQuickPick(candidates.map(item), {
-    title: governanceTitle(projection.governance),
+    title,
     placeHolder: "Select a governed Skill version",
     matchOnDescription: true,
     matchOnDetail: true,
@@ -249,7 +259,7 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
     actions.push({ label: "Roll back to this version", id: "rollback" });
   }
   const action = await vscode.window.showQuickPick(actions, {
-    title: selected.candidate.candidateId,
+    title: testMode ? title : selected.candidate.candidateId,
     placeHolder: "Choose a governed action",
   });
   if (!action) return null;
@@ -281,7 +291,11 @@ async function openEvolutionWorkbench(vscode, { getPilot } = {}) {
     result = await rollback(vscode, pilot, candidates, selected.candidate);
   }
   if (result !== null) {
-    await showJson(vscode, "Evolution Workbench result", result);
+    await showJson(
+      vscode,
+      testMode ? title : "Evolution Workbench result",
+      result,
+    );
   }
   return result;
 }

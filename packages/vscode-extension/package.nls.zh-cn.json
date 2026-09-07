@@ -1,4 +1,5 @@
 {
+  "config.evolution.workbench.profile.description": "受信任演化工作台配置 JSON 的绝对路径。使用独立 CLI 进程加载签名部署。在源码仓库运行 node packages/cli/scripts/evolution-workbench-local-test.mjs init 可生成本地测试配置。留空则使用现有 App Server 部署。",
   "cmd.session.prStatus.title": "ChainlessChain：查看关联的 PR / CI 状态",
   "cmd.ide.showStatus.title": "ChainlessChain IDE：查看桥接状态",
   "cmd.ide.restart.title": "ChainlessChain IDE：重启桥接",

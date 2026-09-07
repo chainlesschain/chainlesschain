@@ -172,6 +172,23 @@ test("Evolution Workbench rejects an available deployment without list capabilit
   assert.deepEqual(h.calls, []);
 });
 
+test("unavailable Workbench offers setup without calling Workbench RPC", async () => {
+  const h = fixture();
+  h.pilot.start = async () => ({
+    evolutionWorkbench: { available: false, methods: [] },
+  });
+  let setupCount = 0;
+  h.vscode.window.showInformationMessage = async (_message, action) => action;
+  await openEvolutionWorkbench(h.vscode, {
+    getPilot: async () => h.pilot,
+    openSetup: async () => {
+      setupCount++;
+    },
+  });
+  assert.equal(setupCount, 1);
+  assert.deepEqual(h.calls, []);
+});
+
 test("Evolution Workbench explains how to enable a disabled App Server pilot", async () => {
   const h = fixture();
   const disabled = new Error("pilot disabled");
