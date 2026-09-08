@@ -81,6 +81,9 @@ import {
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
 import { registerChatCommand } from "../../src/commands/chat.js";
 import { registerAskCommand } from "../../src/commands/ask.js";
+import { registerStreamCommand } from "../../src/commands/stream.js";
+import { handleLlmChat } from "../../src/gateways/ws/llm-chat-protocol.js";
+import { SESSION_CORE_STREAMING_HANDLERS } from "../../src/gateways/ws/session-core-protocol.js";
 import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
 
@@ -943,6 +946,166 @@ describe("Agent evolution runtime production composition", () => {
       } else {
         expect(output.join("")).toContain('"type":"compaction"');
         expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    90_000,
+  );
+
+  it.each(
+    ["cli-text", "cli-ndjson", "ws-stream", "ws-chat"]
+      .flatMap((entry) =>
+        [
+          "success",
+          "source-denied",
+          "response-denied",
+          "wrong-run",
+          "truncated",
+        ].map((mode) => [entry, mode, "ollama"]),
+      )
+      .concat(
+        ["cli-text", "cli-ndjson", "ws-stream", "ws-chat"].flatMap((entry) =>
+          ["success", "source-denied", "truncated"].map((mode) => [
+            entry,
+            mode,
+            "openai",
+          ]),
+        ),
+        ["success", "source-denied", "truncated"].map((mode) => [
+          "ws-chat",
+          mode,
+          "anthropic",
+        ]),
+      ),
+  )(
+    "governs direct model stream %s (%s, %s)",
+    async (entry, mode, provider) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          ) {
+            throw new Error("stream evidence denied");
+          }
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        if (provider !== "ollama") {
+          const delta =
+            provider === "anthropic"
+              ? { type: "content_block_delta", delta: { text: "done" } }
+              : { choices: [{ delta: { content: "done" } }] };
+          const terminal =
+            provider === "anthropic" ? '{"type":"message_stop"}' : "[DONE]";
+          return new Response(
+            "data: " +
+              JSON.stringify(delta) +
+              "\n\n" +
+              (mode === "truncated" ? "" : "data: " + terminal + "\n\n"),
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            message: { content: "done" },
+            done: mode !== "truncated",
+          }) + "\n",
+          { headers: { "Content-Type": "application/x-ndjson" } },
+        );
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const prompt = `Contact owner@example.com with ${secret}`;
+      const frames = [];
+      const server = {
+        evolutionCompositionFactory: factory,
+        _send: (_ws, frame) => frames.push(frame),
+      };
+      const write = vi
+        .spyOn(process.stdout, "write")
+        .mockImplementation(() => true);
+      const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+      const previousExitCode = process.exitCode;
+      try {
+        if (entry.startsWith("cli")) {
+          const program = new Command();
+          registerStreamCommand(program, {
+            evolutionCompositionFactory: factory,
+          });
+          await program.parseAsync([
+            "node",
+            "cc",
+            "stream",
+            prompt,
+            "--provider",
+            provider,
+            "--api-key",
+            "test-key",
+            ...(entry === "cli-text" ? ["--text"] : []),
+          ]);
+        } else if (entry === "ws-chat") {
+          await handleLlmChat(
+            server,
+            "request",
+            {},
+            {
+              messages: [{ role: "user", content: prompt }],
+              options: { provider, model: "test", apiKey: "test-key" },
+            },
+          );
+        } else {
+          try {
+            frames.push(
+              await SESSION_CORE_STREAMING_HANDLERS["stream.run"](
+                { prompt, provider, apiKey: "test-key" },
+                (frame) => frames.push(frame),
+                new AbortController().signal,
+                { server },
+              ),
+            );
+          } catch (error) {
+            frames.push({ ok: false, error: error.message });
+          }
+        }
+        expect(factory).toHaveBeenCalledTimes(1);
+        expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+        expect(f.transport).toHaveBeenCalledTimes(
+          ["source-denied", "wrong-run"].includes(mode) ? 0 : 1,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        if (mode === "success") {
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (entry.startsWith("ws")) expect(frames.at(-1).ok).toBe(true);
+          else expect(exit).not.toHaveBeenCalled();
+        } else {
+          expect(composition.loadRun().projection?.status).not.toBe(
+            "completed",
+          );
+          if (entry.startsWith("ws")) expect(frames.at(-1).ok).toBe(false);
+          else if (
+            entry === "cli-text" ||
+            ["source-denied", "wrong-run"].includes(mode)
+          )
+            expect(exit).toHaveBeenCalledWith(1);
+          else expect(process.exitCode).toBe(1);
+        }
+      } finally {
+        write.mockRestore();
+        exit.mockRestore();
+        process.exitCode = previousExitCode;
       }
     },
     90_000,

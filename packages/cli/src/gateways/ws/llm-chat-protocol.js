@@ -39,6 +39,7 @@ import {
 } from "../../lib/chat-core.js";
 import { BUILT_IN_PROVIDERS } from "../../lib/llm-providers.js";
 import { resolveLlmCreds } from "./llm-creds.js";
+import { prepareGovernedModelTurn } from "../../lib/evolution/governed-model-turn.js";
 
 function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0)
@@ -108,26 +109,46 @@ export async function handleLlmChat(server, id, ws, message) {
     usage = u;
   };
 
+  const controller = new AbortController();
+  const disconnect = () =>
+    controller.abort(new Error("Chat connection closed"));
+  ws?.once?.("close", disconnect);
   try {
+    const turn = await prepareGovernedModelTurn(
+      server.evolutionCompositionFactory ?? null,
+      {
+        mode: "ws-llm-chat",
+        messages: message.messages,
+        signal: controller.signal,
+      },
+    );
+    const streamOptions = {
+      requireCompletion: turn.governed,
+      signal: controller.signal,
+    };
     const baseUrl = creds.baseUrl || "http://localhost:11434";
     if (creds.provider === "ollama") {
       await streamOllama(
-        message.messages,
+        turn.messages,
         creds.model,
         baseUrl,
         onToken,
         onUsage,
+        undefined,
+        streamOptions,
       );
     } else if (creds.provider === "anthropic") {
       const def = BUILT_IN_PROVIDERS.anthropic;
       const url = baseUrl !== "http://localhost:11434" ? baseUrl : def.baseUrl;
       await streamAnthropic(
-        message.messages,
+        turn.messages,
         creds.model,
         url,
         creds.apiKey,
         onToken,
         onUsage,
+        undefined,
+        streamOptions,
       );
     } else {
       // OpenAI-compatible — covers openai / volcengine / deepseek / dashscope /
@@ -136,15 +157,18 @@ export async function handleLlmChat(server, id, ws, message) {
       const def = BUILT_IN_PROVIDERS[creds.provider];
       const url = baseUrl !== "http://localhost:11434" ? baseUrl : def?.baseUrl;
       await streamOpenAI(
-        message.messages,
+        turn.messages,
         creds.model,
         url,
         creds.apiKey,
         onToken,
         onUsage,
+        undefined,
+        streamOptions,
       );
     }
 
+    await turn.complete(accumulator);
     send({
       type: `${topic}.result`,
       ok: true,
@@ -162,5 +186,7 @@ export async function handleLlmChat(server, id, ws, message) {
       ok: false,
       error: err?.message || String(err),
     });
+  } finally {
+    ws?.removeListener?.("close", disconnect);
   }
 }

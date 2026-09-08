@@ -321,13 +321,29 @@ async function streamRun(message, sender, signal, context) {
   const { buildProviderSource } = await import("../../lib/provider-stream.js");
   const { createStreamRouter } = await loadSingletons();
   const router = createStreamRouter();
-  const source = buildProviderSource(provider, {
-    model: message.model,
-    baseUrl: message.baseUrl,
-    apiKey: message.apiKey,
-    prompt: message.prompt,
+  const { prepareGovernedModelTurn, governModelTokenSource } =
+    await import("../../lib/evolution/governed-model-turn.js");
+  const turn = await prepareGovernedModelTurn(
+    context?.server?.evolutionCompositionFactory ?? null,
+    {
+      mode: "ws-stream",
+      messages: [{ role: "user", content: message.prompt }],
+      signal,
+    },
+  );
+  const source = governModelTokenSource(
+    buildProviderSource(provider, {
+      model: message.model,
+      baseUrl: message.baseUrl,
+      apiKey: message.apiKey,
+      prompt: message.prompt,
+      messages: turn.governed ? turn.messages : undefined,
+      requireCompletion: turn.governed,
+      signal,
+    }),
+    turn,
     signal,
-  });
+  );
 
   let envelopeHelper = null;
   if (context?.server?.envelopeBus && message.sessionId) {
@@ -368,6 +384,7 @@ async function streamRun(message, sender, signal, context) {
     }
   }
   if (errored) return fail("STREAM_ERROR", errorMsg);
+  signal?.throwIfAborted();
   return ok({ text });
 }
 

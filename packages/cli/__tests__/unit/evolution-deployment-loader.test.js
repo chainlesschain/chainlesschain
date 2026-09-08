@@ -143,6 +143,7 @@ describe("signed evolution deployment loader", () => {
     "cowork",
     "orchestrate",
     "serve",
+    "stream",
   ])(
     "exposes the Agent runtime composition only to an authenticated %s deployment",
     async (commandName) => {
@@ -561,6 +562,7 @@ describe("signed evolution deployment loader", () => {
     ["evolution", "workbenchHost", "registerEvolutionCommand"],
     ["compact", "evolutionCompositionFactory", "registerCompactCommand"],
     ["complete", "evolutionCompositionFactory", "registerCompleteCommand"],
+    ["stream", "evolutionCompositionFactory", "registerStreamCommand"],
     ["marketplace", "marketplaceHost", "registerMarketplaceCommand"],
   ])(
     "passes %s deployment dependencies through the lazy registration boundary",

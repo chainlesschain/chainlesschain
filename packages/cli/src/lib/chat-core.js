@@ -98,7 +98,11 @@ async function _deliverToken(onToken, token, guard) {
   try {
     await onToken(token);
   } catch (error) {
-    if (error?.isOutputBackpressureFailure === true) throw error;
+    if (
+      options.requireCompletion ||
+      error?.isOutputBackpressureFailure === true
+    )
+      throw error;
     // Generic UI callbacks retain their historical best-effort semantics.
   } finally {
     guard.bump();
@@ -117,6 +121,7 @@ export async function streamOllama(
   onToken,
   onUsage,
   onStall,
+  options = {},
 ) {
   const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
@@ -130,7 +135,9 @@ export async function streamOllama(
         messages,
         stream: true,
       }),
-      signal: guard.signal,
+      signal: options.signal
+        ? AbortSignal.any([guard.signal, options.signal])
+        : guard.signal,
     });
   } catch (e) {
     guard.stop();
@@ -149,6 +156,7 @@ export async function streamOllama(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullResponse = "";
+  let completed = false;
   // Buffer incomplete lines across reads: an NDJSON line can be split across two
   // stream chunks (TCP doesn't align to '\n'), so parsing each chunk in
   // isolation would drop the split line entirely (both halves fail JSON.parse).
@@ -169,6 +177,9 @@ export async function streamOllama(
         if (!line) continue;
         try {
           const json = JSON.parse(line);
+          if (options.requireCompletion && json.error)
+            throw new Error("Ollama stream returned an error");
+          if (json.done === true) completed = true;
           if (json.message?.content) {
             fullResponse += json.message.content;
             await _deliverToken(onToken, json.message.content, guard);
@@ -181,7 +192,11 @@ export async function streamOllama(
             }
           }
         } catch (error) {
-          if (error?.isOutputBackpressureFailure === true) throw error;
+          if (
+            options.requireCompletion ||
+            error?.isOutputBackpressureFailure === true
+          )
+            throw error;
           // Partial JSON, skip
         }
       }
@@ -196,6 +211,9 @@ export async function streamOllama(
     guard.stop();
   }
 
+  options.signal?.throwIfAborted();
+  if (options.requireCompletion && !completed)
+    throw new Error("Model stream ended before its completion marker");
   return fullResponse;
 }
 
@@ -210,6 +228,7 @@ export async function streamOpenAI(
   onToken,
   onUsage,
   onStall,
+  options = {},
 ) {
   const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
@@ -229,7 +248,9 @@ export async function streamOpenAI(
         // Servers that don't understand it simply ignore it.
         stream_options: { include_usage: true },
       }),
-      signal: guard.signal,
+      signal: options.signal
+        ? AbortSignal.any([guard.signal, options.signal])
+        : guard.signal,
     });
   } catch (e) {
     guard.stop();
@@ -248,6 +269,7 @@ export async function streamOpenAI(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullResponse = "";
+  let completed = false;
   // Buffer incomplete lines across reads: an SSE `data:` line can be split
   // across two stream chunks, so parsing each chunk in isolation would drop the
   // split line (both halves fail JSON.parse) — losing content and usage. Keep
@@ -267,9 +289,14 @@ export async function streamOpenAI(
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const data = line.slice(6);
-          if (data === "[DONE]") continue;
+          if (data === "[DONE]") {
+            completed = true;
+            continue;
+          }
           try {
             const json = JSON.parse(data);
+            if (options.requireCompletion && json.error)
+              throw new Error("OpenAI stream returned an error");
             const content = json.choices?.[0]?.delta?.content;
             if (content) {
               fullResponse += content;
@@ -287,7 +314,11 @@ export async function streamOpenAI(
               }
             }
           } catch (error) {
-            if (error?.isOutputBackpressureFailure === true) throw error;
+            if (
+              options.requireCompletion ||
+              error?.isOutputBackpressureFailure === true
+            )
+              throw error;
             // Partial data
           }
         }
@@ -301,6 +332,9 @@ export async function streamOpenAI(
     guard.stop();
   }
 
+  options.signal?.throwIfAborted();
+  if (options.requireCompletion && !completed)
+    throw new Error("Model stream ended before its completion marker");
   return fullResponse;
 }
 
@@ -317,6 +351,7 @@ export async function streamAnthropic(
   onToken,
   onUsage,
   onStall,
+  options = {},
 ) {
   // Split out a leading system prompt (Anthropic requires it as top-level
   // `system`, not an OpenAI-style role=system message).
@@ -348,7 +383,9 @@ export async function streamAnthropic(
         ...(system ? { system } : {}),
         messages: convo,
       }),
-      signal: guard.signal,
+      signal: options.signal
+        ? AbortSignal.any([guard.signal, options.signal])
+        : guard.signal,
     });
   } catch (e) {
     guard.stop();
@@ -369,6 +406,7 @@ export async function streamAnthropic(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullResponse = "";
+  let completed = false;
   let buf = "";
   let inputTokens = 0;
   let outputTokens = 0;
@@ -390,6 +428,9 @@ export async function streamAnthropic(
         if (!payload) continue;
         try {
           const obj = JSON.parse(payload);
+          if (options.requireCompletion && (obj.error || obj.type === "error"))
+            throw new Error("Anthropic stream returned an error");
+          if (obj.type === "message_stop") completed = true;
           if (obj.type === "content_block_delta") {
             const delta = obj.delta?.text;
             if (delta) {
@@ -408,7 +449,11 @@ export async function streamAnthropic(
             outputTokens = Number(obj.usage?.output_tokens) || outputTokens;
           }
         } catch (error) {
-          if (error?.isOutputBackpressureFailure === true) throw error;
+          if (
+            options.requireCompletion ||
+            error?.isOutputBackpressureFailure === true
+          )
+            throw error;
           /* skip malformed */
         }
       }
@@ -435,6 +480,9 @@ export async function streamAnthropic(
     });
   }
 
+  options.signal?.throwIfAborted();
+  if (options.requireCompletion && !completed)
+    throw new Error("Model stream ended before its completion marker");
   return fullResponse;
 }
 

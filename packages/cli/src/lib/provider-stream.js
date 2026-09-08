@@ -6,11 +6,22 @@
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 
-export async function* ollamaTokenStream({ baseUrl, model, prompt, signal }) {
-  const res = await fetch(`${baseUrl}/api/generate`, {
+export async function* ollamaTokenStream({
+  baseUrl,
+  model,
+  prompt,
+  messages,
+  signal,
+  requireCompletion = false,
+}) {
+  const res = await fetch(`${baseUrl}/api/${messages ? "chat" : "generate"}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, prompt, stream: true }),
+    body: JSON.stringify(
+      messages
+        ? { model, messages, stream: true }
+        : { model, prompt, stream: true },
+    ),
     signal,
   });
   if (!res.ok || !res.body) {
@@ -30,13 +41,19 @@ export async function* ollamaTokenStream({ baseUrl, model, prompt, signal }) {
       if (!line) continue;
       try {
         const obj = JSON.parse(line);
-        if (obj.response) yield obj.response;
+        if (requireCompletion && obj.error)
+          throw new Error("Ollama stream returned an error");
+        const delta = messages ? obj.message?.content : obj.response;
+        if (delta) yield delta;
         if (obj.done) return;
-      } catch {
+      } catch (error) {
+        if (requireCompletion) throw error;
         /* skip malformed */
       }
     }
   }
+  if (requireCompletion)
+    throw new Error("Ollama stream ended before its completion marker");
 }
 
 export async function* openAIStream({
@@ -44,7 +61,9 @@ export async function* openAIStream({
   apiKey,
   model,
   prompt,
+  messages,
   signal,
+  requireCompletion = false,
 }) {
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -54,7 +73,7 @@ export async function* openAIStream({
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages: messages ?? [{ role: "user", content: prompt }],
       stream: true,
     }),
     signal,
@@ -78,13 +97,18 @@ export async function* openAIStream({
       if (payload === "[DONE]") return;
       try {
         const obj = JSON.parse(payload);
+        if (requireCompletion && obj.error)
+          throw new Error("OpenAI stream returned an error");
         const delta = obj?.choices?.[0]?.delta?.content;
         if (delta) yield delta;
-      } catch {
+      } catch (error) {
+        if (requireCompletion) throw error;
         /* skip */
       }
     }
   }
+  if (requireCompletion)
+    throw new Error("OpenAI stream ended before its completion marker");
 }
 
 /**
@@ -92,13 +116,23 @@ export async function* openAIStream({
  * Throws on unsupported provider / missing API key.
  */
 export function buildProviderSource(provider, opts = {}) {
-  const { model, baseUrl, apiKey, prompt, signal } = opts;
+  const {
+    model,
+    baseUrl,
+    apiKey,
+    prompt,
+    messages,
+    signal,
+    requireCompletion,
+  } = opts;
   if (provider === "ollama") {
     return ollamaTokenStream({
       baseUrl: baseUrl || "http://localhost:11434",
       model: model || "qwen2:7b",
       prompt,
+      messages,
       signal,
+      requireCompletion,
     });
   }
   const def = BUILT_IN_PROVIDERS[provider];
@@ -115,7 +149,9 @@ export function buildProviderSource(provider, opts = {}) {
     apiKey: finalKey,
     model: model || def.models[0],
     prompt,
+    messages,
     signal,
+    requireCompletion,
   });
 }
 
