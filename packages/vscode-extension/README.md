@@ -6,8 +6,8 @@ MCP bridge.
 
 ## Current release
 
-> Extension candidate `0.37.91` pairs with `chainlesschain@0.166.34` for reliable web fetch
-> and recovery from repeated CI-log requests. Publication follows the complete CLI and IDE release
+> Extension candidate `0.37.91` pairs with `chainlesschain@0.166.36` for verified model saves
+> and reasoning-model connection tests. Publication follows the complete CLI and IDE release
 > gates; the Open VSX listing shows the currently available extension.
 
 Source candidate `0.37.91` verifies saved model settings by fresh CLI readback
@@ -19,7 +19,7 @@ only after publication.
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
 | VS Code extension         | **0.37.91**; model-save confirmation candidate               |
-| Recommended CLI           | **`chainlesschain@0.166.34`**                                |
+| Recommended CLI           | **`chainlesschain@0.166.36`**                                |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
@@ -29,9 +29,9 @@ only after publication.
 - **Confirm that model settings were saved.** A fresh redacted readback must
   match the submitted connection before the form reports success. A failed
   connection test remains separate from a failed or unconfirmed write.
-- Reasoning-model connection probes require CLI `0.166.36`, currently a source
-  candidate awaiting its exact-commit release matrix. The public CLI
-  recommendation remains `0.166.34` until those gates pass.
+- CLI `0.166.36` gives reasoning-model connection probes enough output budget
+  to produce an answer. This plugin is published only after the CLI passes its
+  exact-commit release matrix and a fresh npm installation is verified.
 
 - **Recover and inspect the complete Workbench.** Timed-out reads restore refresh
   controls, stale responses are ignored, and up to 10,000 verified versions remain
@@ -48,7 +48,7 @@ only after publication.
 - **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
   evidence across compaction, offers a focused recovery turn, and stops persistent
   retries as an incomplete task. Status queries and fresh log evidence remain available.
-- Older CLI installations receive the normal upgrade prompt for `0.166.34`.
+- Older CLI installations receive the normal upgrade prompt for `0.166.36`.
 
 ### Retained workspace and connection features
 
@@ -90,7 +90,7 @@ only after publication.
 - **Large files advance without rereading earlier pages.** Exact line/column
   cursors survive context compression, unchanged pages are referenced instead
   of reinjected, and edits invalidate the bounded read cache.
-- On startup, an installed CLI older than `0.166.34` receives an explicit
+- On startup, an installed CLI older than `0.166.36` receives an explicit
   **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
   works even when the best-effort npm registry lookup is unavailable.
 
@@ -116,7 +116,7 @@ only after publication.
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can continue to install by extension ID.
 
-Public CLI `0.166.34` is the recommended install. It routes Graph, Team,
+Paired CLI `0.166.36` is the recommended install. It routes Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
 fences stale writers and takeover/recovery receipts, preserves explicitly
@@ -256,11 +256,11 @@ the public registry artifact back. Registry availability can be checked on the
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.166.34
+npm i -g chainlesschain@0.166.36
 cc --version
 ```
 
-Using `@0.166.34` reproduces the preferred, fully gated public CLI pairing,
+Using `@0.166.36` reproduces the preferred, fully gated public CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.

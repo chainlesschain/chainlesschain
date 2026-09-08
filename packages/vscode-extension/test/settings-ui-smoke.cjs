@@ -335,9 +335,9 @@ async function main() {
       const {
         createWorkbenchProfileManager,
       } = require("../src/evolution-workbench-profile");
-      const created = await createLocalWorkbenchTest({
-        root: path.join(output, "local-deployment"),
-      });
+      // Reports may live inside the checkout in CI. The CLI home must be
+      // outside that worktree, so use the deployment's isolated temp root.
+      const created = await createLocalWorkbenchTest();
       const manager = createWorkbenchProfileManager();
       let cliStderr = "";
       const captureStderr = (chunk) => {
@@ -424,6 +424,7 @@ async function main() {
       } finally {
         await live?.close();
         await manager.close();
+        fs.rmSync(created.root, { recursive: true, force: true });
       }
     }
 

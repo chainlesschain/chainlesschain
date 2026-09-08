@@ -7,6 +7,7 @@ import {
   EVOLUTION_FILE_WITNESS_STORE_SCHEMA,
   createEvolutionFileWitness,
 } from "../../src/lib/evolution/evolution-file-witness.js";
+import { EVOLUTION_SEGMENTED_WITNESS_SCHEMA } from "../../src/lib/evolution/evolution-witness-segments.js";
 
 const SECRET = "test-only-independent-file-witness-key";
 const TRUST = Object.freeze({
@@ -257,6 +258,434 @@ describe("createEvolutionFileWitness", () => {
     witness.read();
     return { witness, head, genesis };
   }
+
+  // Independently signed legacy fixture. Only fixture setup uses direct bytes;
+  // conversion, subsequent appends, ancestry and reopen use the real witness.
+  function legacyHistory(lastGeneration, overrides = {}) {
+    const witness = create(overrides);
+    witness.initialize({
+      expected: witness.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+    const store = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const template = store.current;
+    const history = [store.history[0]];
+    for (let generation = 1; generation <= lastGeneration; generation++) {
+      const core = {
+        ...template,
+        ...snapshot(witnessId, generation - 1),
+        generation,
+        previousWitnessDigest: history.at(-1).witnessDigest,
+      };
+      delete core.signature;
+      delete core.witnessDigest;
+      const message = Buffer.from(
+        `chainlesschain.evolution-ledger-witness/v1\0${canonical(core)}`,
+      );
+      history.push({
+        ...core,
+        witnessDigest: digest(message),
+        signature: ports.signer.sign({
+          message,
+          purpose: "evolution-ledger-witness",
+          trust: TRUST,
+        }),
+      });
+    }
+    store.history = history;
+    store.current = history.at(-1);
+    fs.writeFileSync(filePath, `${canonical(store)}\n`);
+    return { witness, head: store.current, history };
+  }
+
+  it("converts a complete legacy history to bounded immutable segments and preserves ancestry", () => {
+    const { witness, head, history } = legacyHistory(1100, {
+      verifier: { ...ports.verifier, getTrustEpoch: () => "segments-1" },
+    });
+    const next = witness.compareAndSwap({
+      expected: head,
+      next: snapshot(witnessId, 1100),
+    });
+    const encoded = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    expect(encoded.schema).toBe(EVOLUTION_SEGMENTED_WITNESS_SCHEMA);
+    expect(encoded.segments).toHaveLength(4);
+    expect(encoded.history).toHaveLength(78);
+    const segmentPath = path.join(
+      `${filePath}.segments-v2`,
+      `${encoded.segments[0].slice(7)}.json`,
+    );
+    const firstBytes = fs.readFileSync(segmentPath);
+    const firstStat = fs.statSync(segmentPath);
+    expect(witness.read()).toEqual(next);
+    ports.verifier.verify.mockClear();
+    expect(witness.read()).toEqual(next);
+    expect(
+      ports.verifier.verify.mock.calls.every(
+        ([input]) =>
+          JSON.parse(input.message.toString().split("\0")[1]).generation >=
+          1024,
+      ),
+    ).toBe(true);
+    const reopened = create();
+    expect(reopened.read()).toEqual(next);
+    expect(
+      reopened.proveAncestry({ ancestor: history[1], descendant: next })
+        .included,
+    ).toBe(true);
+    expect(
+      reopened.proveAncestry({
+        ancestor: history[513],
+        descendant: history[1000],
+      }).included,
+    ).toBe(true);
+    expect(() =>
+      reopened.proveAncestry({
+        ancestor: { ...history[513], generation: 1 },
+        descendant: next,
+      }),
+    ).toThrow(/exactly bound/u);
+    const following = reopened.compareAndSwap({
+      expected: next,
+      next: snapshot(witnessId, 1101),
+    });
+    expect(following.generation).toBe(1102);
+    expect(fs.readFileSync(segmentPath)).toEqual(firstBytes);
+    expect(fs.statSync(segmentPath).mtimeMs).toBe(firstStat.mtimeMs);
+    expect(fs.statSync(filePath).size).toBeLessThan(200_000);
+  });
+
+  it.skipIf(process.platform !== "win32")(
+    "reopens segmented history with the affected Windows path-device projection",
+    () => {
+      const original = fs.lstatSync;
+      const uvDescriptor = Object.getOwnPropertyDescriptor(
+        process.versions,
+        "uv",
+      );
+      Object.defineProperty(process.versions, "uv", {
+        ...uvDescriptor,
+        value: "1.49.1",
+      });
+      vi.spyOn(fs, "lstatSync").mockImplementation((target, options) => {
+        const observed = original(target, options);
+        return String(target).startsWith(root)
+          ? Object.assign(Object.create(observed), {
+              dev: options?.bigint ? 0n : 0,
+            })
+          : observed;
+      });
+      try {
+        const { witness, head, history } = legacyHistory(300);
+        const next = witness.compareAndSwap({
+          expected: head,
+          next: snapshot(witnessId, 300),
+        });
+        expect(JSON.parse(fs.readFileSync(filePath, "utf8")).schema).toBe(
+          EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
+        );
+        const reopened = create();
+        expect(reopened.read()).toEqual(next);
+        expect(
+          reopened.proveAncestry({ ancestor: history[1], descendant: next })
+            .included,
+        ).toBe(true);
+      } finally {
+        Object.defineProperty(process.versions, "uv", uvDescriptor);
+      }
+    },
+  );
+
+  it("charges the whole committed history to the byte budget after segmentation", () => {
+    const { witness, head } = legacyHistory(300);
+    const next = witness.compareAndSwap({
+      expected: head,
+      next: snapshot(witnessId, 300),
+    });
+    const headBytes = fs.readFileSync(filePath);
+    const manifest = JSON.parse(headBytes);
+    const partSizes = manifest.segments.map(
+      (entry) =>
+        fs.statSync(
+          path.join(`${filePath}.segments-v2`, `${entry.slice(7)}.json`),
+        ).size,
+    );
+    const maximumBytes = Math.max(headBytes.length, ...partSizes);
+    const totalBytes =
+      headBytes.length + partSizes.reduce((sum, size) => sum + size, 0);
+    expect(() => create({ maximumBytes }).read()).toThrow(/size/u);
+    expect(() =>
+      create({ maximumBytes, maximumHistoryBytes: totalBytes - 1 }).read(),
+    ).toThrow(/size/u);
+    const bounded = create({ maximumBytes, maximumHistoryBytes: totalBytes });
+    expect(bounded.read()).toEqual(next);
+    expect(() =>
+      bounded.compareAndSwap({
+        expected: next,
+        next: snapshot(witnessId, 301),
+      }),
+    ).toThrow(/maximum size/u);
+    expect(fs.readFileSync(filePath)).toEqual(headBytes);
+    const expanded = create({
+      maximumBytes,
+      maximumHistoryBytes: totalBytes + 10_000,
+    });
+    const advanced = expanded.compareAndSwap({
+      expected: next,
+      next: snapshot(witnessId, 301),
+    });
+    expect(expanded.read()).toEqual(advanced);
+  });
+
+  it("keeps the aggregate byte budget on legacy reads and writes", () => {
+    const witness = create({ maximumHistoryBytes: 4096 });
+    const absent = witness.read();
+    expect(() =>
+      witness.initialize({
+        expected: absent,
+        snapshot: snapshot(witnessId, 0),
+      }),
+    ).toThrow(/maximum size/u);
+    expect(fs.existsSync(filePath)).toBe(false);
+    legacyHistory(10);
+    expect(() => witness.read()).toThrow(/size/u);
+  });
+
+  it.each([0, 4095, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects an invalid aggregate history byte budget: %s",
+    (maximumHistoryBytes) => {
+      expect(() => create({ maximumHistoryBytes })).toThrow(
+        /maximumHistoryBytes/u,
+      );
+    },
+  );
+
+  it("rejects old segment tampering even with a warm trust-epoch cache and applies revocation", () => {
+    let epoch = "segments-1";
+    const { witness, head, history } = legacyHistory(300, {
+      verifier: { ...ports.verifier, getTrustEpoch: () => epoch },
+    });
+    const next = witness.compareAndSwap({
+      expected: head,
+      next: snapshot(witnessId, 300),
+    });
+    witness.read();
+    const encoded = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const part = path.join(
+      `${filePath}.segments-v2`,
+      `${encoded.segments[0].slice(7)}.json`,
+    );
+    const originalBytes = fs.readFileSync(part);
+    fs.appendFileSync(part, "\n");
+    expect(() => witness.read()).toThrow(/segment bytes changed/u);
+    fs.writeFileSync(part, originalBytes);
+    const verify = ports.verifier.verify.getMockImplementation();
+    ports.verifier.verify.mockImplementation(
+      (input) =>
+        input.signature.value !== history[20].signature.value && verify(input),
+    );
+    epoch = "segments-2";
+    expect(() => witness.read()).toThrow(/authentication failed/u);
+    expect(() =>
+      witness.compareAndSwap({
+        expected: next,
+        next: snapshot(witnessId, 301),
+      }),
+    ).toThrow(/authentication failed/u);
+  });
+
+  it("rejects missing, repeated, reordered and truncated segment projections", () => {
+    const { witness, head } = legacyHistory(800);
+    witness.compareAndSwap({ expected: head, next: snapshot(witnessId, 800) });
+    const original = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    for (const mutate of [
+      (value) => value.segments.pop(),
+      (value) => value.segments.reverse(),
+      (value) => {
+        value.segments[1] = value.segments[0];
+      },
+      (value) => value.history.pop(),
+      (value) => {
+        value.segments = Array(1024).fill(value.segments[0]);
+      },
+      (value) => {
+        value.segments[0] = "../outside.json";
+      },
+    ]) {
+      const changed = structuredClone(original);
+      mutate(changed);
+      fs.writeFileSync(filePath, `${canonical(changed)}\n`);
+      expect(() => create().read()).toThrow();
+    }
+    fs.writeFileSync(filePath, `${canonical(original)}\n`);
+    const missing = path.join(
+      `${filePath}.segments-v2`,
+      `${original.segments[0].slice(7)}.json`,
+    );
+    fs.unlinkSync(missing);
+    expect(() => witness.read()).toThrow();
+  });
+
+  it.each([
+    "before-segment-rename",
+    "after-segment-rename",
+    "before-head-rename",
+    "after-head-rename",
+  ])(
+    "recovers segmented conversion without duplicate effects after %s",
+    (phase) => {
+      const { head } = legacyHistory(255);
+      let fired = false;
+      const witness = create({
+        fsImpl: {
+          ...fs,
+          renameSync(from, to) {
+            const isSegment =
+              path.dirname(String(to)) === `${filePath}.segments-v2`;
+            const matches = isSegment
+              ? phase.endsWith("segment-rename")
+              : String(to) === filePath && phase.endsWith("head-rename");
+            if (!fired && matches && phase.startsWith("before-")) {
+              fired = true;
+              throw new Error("injected segment publication failure");
+            }
+            fs.renameSync(from, to);
+            if (!fired && matches && phase.startsWith("after-")) {
+              fired = true;
+              throw new Error("injected segment publication failure");
+            }
+          },
+        },
+      });
+      expect(() =>
+        witness.compareAndSwap({
+          expected: head,
+          next: snapshot(witnessId, 255),
+        }),
+      ).toThrow(/injected segment publication failure/u);
+      expect(fired).toBe(true);
+      const reopened = create();
+      expect(reopened.read().generation).toBe(
+        phase === "after-head-rename" ? 256 : 255,
+      );
+      const retried = reopened.compareAndSwap({
+        expected: head,
+        next: snapshot(witnessId, 255),
+      });
+      expect(retried.generation).toBe(256);
+      expect(create().read()).toEqual(retried);
+      expect(
+        fs
+          .readdirSync(`${filePath}.segments-v2`)
+          .filter((name) => name.endsWith(".json")),
+      ).toHaveLength(1);
+    },
+  );
+
+  it("preserves discard fences on both sides of segment boundaries", () => {
+    const { witness, head } = legacyHistory(254, {
+      verifier: {
+        ...ports.verifier,
+        getTrustEpoch: () => "discard-segments-1",
+      },
+    });
+    const discardedGenerations = new Set([255, 256, 511, 512]);
+    const discarded = [];
+    let current = head;
+    for (let generation = 255; generation <= 770; generation++) {
+      let discard = null;
+      if (discardedGenerations.has(generation)) {
+        const rejected = snapshot(witnessId, 10_000 + generation);
+        discard = {
+          anchorDigest: rejected.anchorDigest,
+          headDigest: rejected.headDigest,
+          segmentDigest: rejected.segmentDigest,
+          sequence: rejected.sequence,
+        };
+        discarded.push(rejected);
+      }
+      current = witness.compareAndSwap({
+        expected: current,
+        next: snapshot(witnessId, generation - 1),
+        discard,
+      });
+    }
+    for (const instance of [witness, create()]) {
+      expect(instance.read()).toEqual(current);
+      for (const next of discarded) {
+        expect(instance.compareAndSwap({ expected: current, next })).toEqual(
+          current,
+        );
+      }
+    }
+  });
+
+  it("captures authority methods once and rejects accessors without invoking them", () => {
+    const witness = create();
+    const verify = ports.verifier.verify;
+    ports.verifier.verify = () => {
+      throw new Error("replacement verifier");
+    };
+    const head = witness.initialize({
+      expected: witness.read(),
+      snapshot: snapshot(witnessId, 0),
+    });
+    expect(witness.read()).toEqual(head);
+    expect(verify).toHaveBeenCalled();
+    const getter = vi.fn(() => verify);
+    const verifier = Object.defineProperty({}, "verify", { get: getter });
+    expect(() => create({ verifier })).toThrow(/own data function/u);
+    expect(getter).not.toHaveBeenCalled();
+    expect(() => create({ verifier: new Proxy({ verify }, {}) })).toThrow(
+      /Proxy/u,
+    );
+  });
+
+  it("owns the next snapshot before authority calls can change the caller's input", () => {
+    const { witness, head } = legacyHistory(300);
+    const next = snapshot(witnessId, 300);
+    const originalVerify = ports.verifier.verify.getMockImplementation();
+    ports.verifier.verify.mockImplementation((input) => {
+      Object.assign(next, snapshot(witnessId, 99));
+      return originalVerify(input);
+    });
+    const committed = witness.compareAndSwap({ expected: head, next });
+    expect(next.sequence).toBe(99);
+    expect(committed.sequence).toBe(300);
+    expect(committed.headDigest).toBe(snapshot(witnessId, 300).headDigest);
+  });
+
+  it("does not advance HEAD when a segment write silently loses bytes", () => {
+    const { head } = legacyHistory(255);
+    const witness = create({
+      fsImpl: {
+        ...fs,
+        writeFileSync(file, bytes, ...options) {
+          if (
+            typeof file === "number" &&
+            Buffer.isBuffer(bytes) &&
+            bytes.includes(Buffer.from("evolution-file-witness-segment/v1"))
+          ) {
+            return fs.writeFileSync(
+              file,
+              bytes.subarray(0, bytes.length - 1),
+              ...options,
+            );
+          }
+          return fs.writeFileSync(file, bytes, ...options);
+        },
+      },
+    });
+    expect(() =>
+      witness.compareAndSwap({
+        expected: head,
+        next: snapshot(witnessId, 255),
+      }),
+    ).toThrow(/durable readback/u);
+    expect(create().read()).toEqual(head);
+    expect(JSON.parse(fs.readFileSync(filePath, "utf8")).schema).toBe(
+      EVOLUTION_FILE_WITNESS_STORE_SCHEMA,
+    );
+  });
 
   it("reuses canonical encodings but reverifies every historical and current signature", () => {
     const { witness, head } = populatedWitness();

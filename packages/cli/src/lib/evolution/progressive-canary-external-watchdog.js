@@ -218,6 +218,7 @@ export function createProgressiveCanaryHeartbeatAuthority({
   const authority = Object.freeze({
     planDigest: plan.planDigest,
     async issue({ sequence, stage, activeStateDigest } = {}) {
+      const issuedAt = timestamp(Number(now()), "heartbeat clock");
       const payload = {
         schema: PROGRESSIVE_CANARY_HOST_HEARTBEAT_SCHEMA,
         planDigest: plan.planDigest,
@@ -228,15 +229,16 @@ export function createProgressiveCanaryHeartbeatAuthority({
         sequence: timestamp(sequence, "heartbeat sequence"),
         stage: id(stage, "heartbeat stage"),
         activeStateDigest: digest(activeStateDigest, "activeStateDigest"),
-        issuedAt: timestamp(Number(now()), "heartbeat clock"),
-        expiresAt: Number(now()) + plan.leaseDurationMs,
+        issuedAt,
+        expiresAt: timestamp(
+          issuedAt + plan.leaseDurationMs,
+          "heartbeat expiry",
+        ),
         authorityId: plan.heartbeatAuthority.id,
         authorityRevision: plan.heartbeatAuthority.revision,
         handlerDigest: plan.heartbeatAuthority.handlerDigest,
         publicKeySpkiDigest: plan.heartbeatAuthority.publicKeySpkiDigest,
       };
-      if (payload.expiresAt !== payload.issuedAt + plan.leaseDurationMs)
-        throw new Error("heartbeat clock changed during issuance");
       const signature = await attestor(Object.freeze(structuredClone(payload)));
       const core = { ...payload, signature };
       return verify(

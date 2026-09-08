@@ -109,6 +109,7 @@ export function createEvolutionLedgerFileBackend({
   lockTimeoutMs,
   crashHook = null,
   witnessMaximumBytes,
+  witnessMaximumHistoryBytes,
 } = {}) {
   if (typeof artifactResolver !== "function") {
     throw new TypeError("artifactResolver port is required");
@@ -145,6 +146,9 @@ export function createEvolutionLedgerFileBackend({
     ...(witnessMaximumBytes === undefined
       ? {}
       : { maximumBytes: witnessMaximumBytes }),
+    ...(witnessMaximumHistoryBytes === undefined
+      ? {}
+      : { maximumHistoryBytes: witnessMaximumHistoryBytes }),
   };
   const witness = createEvolutionFileWitness(witnessOptions);
   const ledger = new EvolutionLedger({
