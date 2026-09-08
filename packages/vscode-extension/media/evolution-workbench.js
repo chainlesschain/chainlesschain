@@ -8,6 +8,8 @@ let snapshot = null,
   filter = "all",
   tab = "changes",
   busy = false;
+let pageIndex = 0;
+const pageSize = 25;
 const statusName = {
   pending: "待审核",
   approved: "已批准",
@@ -43,6 +45,14 @@ function renderHome() {
       ["当前发布", snapshot.governance.activeReleaseId || "暂无"],
       ["最近可回滚版本", snapshot.governance.lastKnownGoodReleaseId || "暂无"],
       ["待处理冲突", String(snapshot.governance.conflictCount)],
+      ["灰度阶段", snapshot.governance.pilot?.stage || "未启动"],
+      ["紧急停止", snapshot.governance.pilot?.killSwitch ? "已触发" : "未触发"],
+      [
+        "待恢复事务",
+        snapshot.governance.pilot?.reconciliationRequired
+          ? "需要核对与恢复"
+          : "无",
+      ],
     ]) {
       const row = document.createElement("div"),
         name = document.createElement("span"),
@@ -80,6 +90,27 @@ overview.onclick = () => {
   renderDetail();
 };
 document.querySelector(".detail-head").append(overview);
+const pagination = document.createElement("div");
+pagination.className = "workbench-pagination";
+const previousPage = document.createElement("button");
+previousPage.id = "previous-page";
+previousPage.textContent = "上一页";
+const pageLabel = document.createElement("span");
+pageLabel.id = "page-label";
+pageLabel.setAttribute("aria-live", "polite");
+const nextPage = document.createElement("button");
+nextPage.id = "next-page";
+nextPage.textContent = "下一页";
+previousPage.onclick = () => {
+  pageIndex--;
+  renderList();
+};
+nextPage.onclick = () => {
+  pageIndex++;
+  renderList();
+};
+pagination.append(previousPage, pageLabel, nextPage);
+document.querySelector(".list-card").append(pagination);
 function renderDetail() {
   $("detail").hidden = !selected;
   $("empty").hidden = !!selected;
@@ -155,12 +186,19 @@ function renderList() {
         .toLowerCase()
         .includes(query),
   );
+  const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+  pagination.hidden = !snapshot || pages === 1;
+  pageIndex = Math.min(Math.max(0, pageIndex), pages - 1);
+  pageLabel.textContent = `${pageIndex + 1} / ${pages} · ${rows.length} 个版本`;
+  previousPage.disabled = busy || pageIndex === 0;
+  nextPage.disabled = busy || pageIndex >= pages - 1;
   $("candidates").replaceChildren(
-    ...rows.map((c) => {
+    ...rows.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize).map((c) => {
       const button = document.createElement("button");
       button.className =
         "candidate" +
         (selected?.packetDigest === c.packetDigest ? " selected" : "");
+      button.disabled = busy;
       button.setAttribute(
         "aria-pressed",
         String(selected?.packetDigest === c.packetDigest),
@@ -218,12 +256,16 @@ function updateBusy() {
 $("refresh").onclick = () => send("refresh");
 $("setup").onclick = () => send("setup");
 $("raw").onclick = () => send("details");
-$("search").oninput = renderList;
+$("search").oninput = () => {
+  pageIndex = 0;
+  renderList();
+};
 $("reason").oninput = updateBusy;
 document.querySelectorAll("[data-filter]").forEach(
   (b) =>
     (b.onclick = () => {
       filter = b.dataset.filter;
+      pageIndex = 0;
       document
         .querySelectorAll("[data-filter]")
         .forEach((x) => x.classList.toggle("selected", x === b));
@@ -254,22 +296,24 @@ window.addEventListener("message", ({ data: m }) => {
     $("mode").textContent =
       m.mode === "local-test"
         ? "本地测试"
-        : m.mode === "unavailable"
-          ? "未连接"
-          : "受治理部署";
+        : m.mode === "connecting"
+          ? "连接中"
+          : m.mode === "unavailable"
+            ? "未连接"
+            : "受治理部署";
     $("mode").className =
       "badge " +
       (m.mode === "local-test" ? "test" : m.mode === "governed" ? "ok" : "");
-    $("total").textContent = candidates.length;
-    $("pending").textContent = candidates.filter(
-      (c) => c.status === "pending",
-    ).length;
-    $("approved").textContent = candidates.filter(
-      (c) => c.status === "approved",
-    ).length;
-    $("active").textContent = candidates.filter(
-      (c) => c.actualUsage.active,
-    ).length;
+    $("total").textContent = snapshot ? candidates.length : "—";
+    $("pending").textContent = snapshot
+      ? candidates.filter((c) => c.status === "pending").length
+      : "—";
+    $("approved").textContent = snapshot
+      ? candidates.filter((c) => c.status === "approved").length
+      : "—";
+    $("active").textContent = snapshot
+      ? candidates.filter((c) => c.actualUsage.active).length
+      : "—";
     renderHome();
     renderList();
     renderDetail();
@@ -278,6 +322,7 @@ window.addEventListener("message", ({ data: m }) => {
     $("notice").className = "notice " + m.kind;
   } else if (m.type === "busy") {
     busy = m.value;
+    renderList();
     updateBusy();
   } else if (m.type === "comparison") {
     $("detail-content").textContent = content(m.result);
@@ -286,4 +331,8 @@ window.addEventListener("message", ({ data: m }) => {
     updateBusy();
   }
 });
+renderHome();
+renderList();
+renderDetail();
+updateBusy();
 send("ready");

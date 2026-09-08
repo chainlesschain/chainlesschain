@@ -160,4 +160,45 @@ describe("AppServerPilotClient", () => {
     expect(transport.close).toHaveBeenCalledOnce();
     expect(pilot.status).toMatchObject({ running: false, initialized: false });
   });
+
+  it("clears stale Workbench capabilities when the server exits", async () => {
+    const transport = new FakeTransport();
+    const pilot = new AppServerPilotClient({ transport });
+    await pilot.start();
+    transport.running = false;
+    transport.emit("exit", 1);
+    expect(pilot.status).toMatchObject({
+      initialized: false,
+      capabilities: null,
+    });
+    await pilot.start();
+    expect(transport.start).toHaveBeenCalledTimes(2);
+    expect(pilot.status.initialized).toBe(true);
+  });
+
+  it("does not publish a late initialization after the host closes the connection", async () => {
+    const transport = new FakeTransport();
+    let finish!: (value: unknown) => void;
+    transport.start.mockImplementation(() => {
+      transport.running = true;
+      return new Promise((resolve) => {
+        finish = resolve;
+      }) as never;
+    });
+    const pilot = new AppServerPilotClient({ transport });
+    const ready = vi.fn();
+    pilot.on("ready", ready);
+    const started = pilot.start();
+    const rejected = expect(started).rejects.toThrow(
+      "closed during initialization",
+    );
+    await pilot.close();
+    finish({ evolutionWorkbench: { available: true } });
+    await rejected;
+    expect(ready).not.toHaveBeenCalled();
+    expect(pilot.status).toMatchObject({
+      initialized: false,
+      capabilities: null,
+    });
+  });
 });

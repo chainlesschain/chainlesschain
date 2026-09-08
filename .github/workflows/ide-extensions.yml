@@ -190,6 +190,20 @@ jobs:
       - name: Install Chromium (Windows/macOS)
         if: runner.os != 'Linux'
         run: npm exec -- playwright install chromium
+      - name: Run Workbench browser and real CLI persistence journey
+        timeout-minutes: 10
+        env:
+          CC_SETTINGS_UI_REPORT_DIRECTORY: build/reports/evolution-workbench/${{ matrix.slug }}
+        run: node packages/vscode-extension/test/settings-ui-smoke.cjs --live-evolution
+      - name: Upload Workbench browser and CLI evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: evolution-workbench-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: |
+            build/reports/evolution-workbench/${{ matrix.slug }}/*.png
+            build/reports/evolution-workbench/${{ matrix.slug }}/result.json
+          if-no-files-found: error
       - name: Run real local two-origin browser evidence journey
         shell: bash
         run: >-

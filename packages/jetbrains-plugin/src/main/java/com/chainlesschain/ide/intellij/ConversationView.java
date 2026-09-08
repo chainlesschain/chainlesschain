@@ -153,6 +153,7 @@ final class ConversationView {
     // and ensureSession() would happily spawn a fresh cc child for the dead
     // view — checked at the top of ensureSession and every queued task body.
     private volatile boolean disposed = false;
+    private volatile Object sessionGeneration;
     // One shared worker funnels ALL session-index writes off the EDT:
     // indexConversation used to read+parse+rewrite the 200-record index file
     // synchronously on the EDT several times per turn. Application-level (not
@@ -238,13 +239,11 @@ final class ConversationView {
                     new javax.swing.JMenuItem(CcBundle.message("chat.menu.configureLlm"));
             full.addActionListener(a -> {
                 ConfigureLlmAction.runWizard(project);
-                reloadLlmConfig();
             });
             javax.swing.JMenuItem vision =
                     new javax.swing.JMenuItem(CcBundle.message("chat.menu.visionModel"));
             vision.addActionListener(a -> {
                 ConfigureLlmAction.configureVisionModel(project);
-                reloadLlmConfig();
             });
             javax.swing.JMenuItem checkUpdate =
                     new javax.swing.JMenuItem(CcBundle.message("chat.menu.checkUpdate"));
@@ -609,10 +608,10 @@ final class ConversationView {
                 SwingUtilities.invokeLater(() -> {
                     sendInFlight = false;
                     if (err != null) {
-                        append("⚠ failed to start `cc` (is the ChainlessChain CLI installed and on "
-                                + "PATH?): " + err + "\n");
+                        append("⚠ could not send message: " + err + "\n");
                     } else if (ok) {
-                        turnActive = true;
+                        AgentChatSession session = liveSession();
+                        turnActive = session != null && session.hasPendingTurns();
                         transcript.beginTurn();
                         if (!text.isEmpty()) lastSentPrompt = text; // for /retry
                         String tag = imgs.isEmpty() ? ""
@@ -1573,24 +1572,6 @@ final class ConversationView {
     }
 
     /**
-     * After a Configure-LLM / vision-model change, restart this tab's child so it
-     * respawns with the new config. The provider/model are pinned at spawn time
-     * (SessionArgs reads config.json once via {@code ensureSession}), so a child
-     * started with the old/broken LLM config keeps erroring until it respawns —
-     * the "配置完还没用 / 新开一个对话才行" symptom. Mirrors the VS Code panel reload.
-     */
-    private void reloadLlmConfig() {
-        // The model (hence its context-window size) may have changed — drop the
-        // cached window so the next indicator refresh re-probes the CLI.
-        cachedContextWindow = 0;
-        boolean restarted = liveSession() != null;
-        restartForModeChange();
-        append((restarted
-                ? CcBundle.message("chat.llmUpdated.next")
-                : CcBundle.message("chat.llmUpdated")) + "\n");
-    }
-
-    /**
      * Restart the child so the next message respawns with the current
      * mode/thinking (§6). The teardown runs on the single-threaded
      * {@link #sendExecutor}, NOT inline on the EDT: that serializes it with
@@ -1663,21 +1644,41 @@ final class ConversationView {
     private void ensureSession() throws IOException {
         if (disposed) return; // never spawn a fresh child for a closed view
         AgentChatSession existing = liveSession();
-        if (existing != null && existing.isRunning()) return;
+        long configurationRevision = com.chainlesschain.ide.LlmConfig.configurationRevision();
+        boolean reload = existing != null && existing.isRunning()
+                && !turnActive && existing.shouldReloadConfiguration(configurationRevision);
+        if (existing != null && existing.isRunning() && !reload) return;
+
+        final Object generation = new Object();
+        sessionGeneration = generation;
+        if (reload) {
+            conv.session = null;
+            existing.stop();
+            cachedContextWindow = 0;
+            conv.turnState = new ChatEvents.TurnState();
+            SwingUtilities.invokeLater(() -> {
+                if (disposed || sessionGeneration != generation) return;
+                invalidateApprovalCards();
+                append(CcBundle.message("chat.llmUpdated") + "\n");
+            });
+        }
 
         sessionSlashCommands = null;
         pendingSessionSlashCommands.clear();
         pendingApprovalGrantCommands.clear();
         AgentChatSession.Options o = new AgentChatSession.Options();
+        o.configurationRevision = configurationRevision;
         String basePath = project.getBasePath();
         if (basePath != null) o.cwd = new File(basePath);
-        // Pin the user's configured provider/model (read straight from
-        // ~/.chainlesschain/config.json) so the panel deterministically uses the
+        // Pin the user's configured provider/model from the same redacted CLI
+        // snapshot as the settings form so the panel deterministically uses the
         // SAME LLM as the terminal `cc` — never drifts to a stale ambient default
         // (the cause of spurious "Anthropic error: 401" when another provider is
         // actually configured). Pass only provider/model/endpoint; the CLI
         // resolves the matching provider's key from its secure config store.
-        String[] llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock();
+        final String[] llm;
+        try { llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock(); }
+        catch (RuntimeException error) { throw new IOException(CcBundle.message("llm.form.readFailed")); }
         // Declare the session id UP FRONT (VS Code twin fix): anonymous
         // stream sessions are persistence-free by CLI design, so a first
         // conversation spawned without an id was never written — an IDE
@@ -1736,6 +1737,7 @@ final class ConversationView {
                 CcSettings.getInstance().isLeanContextEnabled());
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
+            if (disposed || sessionGeneration != generation) return;
             contextMemoryProjection.accept(event);
             if (event != null
                     && AgentStreamEventType.SYSTEM.getWireValue().equals(event.get("type"))
@@ -1795,10 +1797,13 @@ final class ConversationView {
             if (handleApprovalGrantCommandEvent(event)) return;
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
-            SwingUtilities.invokeLater(() -> render(ui));
+            SwingUtilities.invokeLater(() -> {
+                if (!disposed && sessionGeneration == generation) render(ui);
+            });
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
+            if (disposed || sessionGeneration != generation) return;
             pendingApprovalGrantCommands.clear();
             invalidateApprovalCards();
             indexConversation("stopped");
@@ -1867,7 +1872,8 @@ final class ConversationView {
             contextLabel.setText(" " + turnTokens.statusLine());
             contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
-            turnActive = false;
+            AgentChatSession session = liveSession();
+            turnActive = session != null && session.hasPendingTurns();
             invalidateApprovalCards();
             indexConversation("completed");
             Object text = ui.get("text");
@@ -1894,6 +1900,8 @@ final class ConversationView {
             deleteOldestSentImageBatch(); // THIS turn's images — CLI consumed them at its start
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
+            AgentChatSession session = liveSession();
+            turnActive = session != null && session.hasPendingTurns();
             showPlanCard(ui); // §5 interactive plan card (items + Approve/Reject)
         } else if ("approval".equals(kind)) {
             indexConversation("waiting_approval");
@@ -2602,6 +2610,10 @@ final class ConversationView {
                 s = liveSession();
             }
             if (s != null) {
+                // These controls start a model turn without a user message.
+                // Keep the final result queued on the EDT visible before reload.
+                if (java.util.Arrays.asList("approve", "revise", "regenerate").contains(action))
+                    turnActive = true;
                 s.sendEvent(PlanReview.planEvent(action, review));
             }
         });

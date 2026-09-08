@@ -127,7 +127,7 @@ public final class BridgeStatusBarWidgetFactory implements StatusBarWidgetFactor
         private int port() {
             if (project.isDisposed()) return -1;
             IdeBridgeService svc = IdeBridgeService.getInstance(project);
-            return svc != null ? svc.getPort() : -1;
+            return svc != null ? svc.getStatusPort() : -1;
         }
 
         private String mode() {

@@ -15,6 +15,7 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
     startPromise = null;
     capabilities = null;
     lastError = null;
+    connectionRevision = 0;
     constructor(options = {}) {
         super();
         const { transport, ...clientOptions } = options;
@@ -26,11 +27,15 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
         this.on("error", () => { });
         this.transport.on("error", (error) => {
             this.lastError = error?.message || String(error);
+            this.capabilities = null;
             this.emit("error", error);
         });
         this.transport.on("stderr", (message) => this.emit("stderr", message));
         this.transport.on("overloaded", (error) => this.emit("overloaded", error));
-        this.transport.on("exit", (code) => this.emit("exit", code));
+        this.transport.on("exit", (code) => {
+            this.capabilities = null;
+            this.emit("exit", code);
+        });
         this.transport.on("notification", (notification) => {
             this.emit("notification", notification);
             this.emit(notification.method, notification.params);
@@ -51,9 +56,12 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
         }
         if (this.startPromise)
             return this.startPromise;
+        const revision = this.connectionRevision;
         this.startPromise = this.transport
             .start()
             .then((capabilities) => {
+            if (revision !== this.connectionRevision || !this.transport.running)
+                throw new Error("App Server connection closed during initialization");
             this.capabilities = capabilities;
             this.lastError = null;
             this.emit("ready", capabilities);
@@ -71,8 +79,9 @@ class AppServerPilotClient extends node_events_1.EventEmitter {
         return this.startPromise;
     }
     async close() {
-        await this.transport.close();
+        this.connectionRevision++;
         this.capabilities = null;
+        await this.transport.close();
     }
     threadStart(params = {}) {
         return this.call("thread/start", params);

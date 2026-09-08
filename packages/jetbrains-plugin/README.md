@@ -12,7 +12,13 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-### What's new in 0.4.115
+Source candidate `0.4.118` adds complete Evolution Workbench snapshots, bounded
+loading and serialized approvals/rollbacks, plus one model connection form with
+verified atomic saves and configuration updates for existing chats. It awaits
+the IDE release gates. The reasoning-model connection probe fix is in candidate
+CLI `0.166.36`; its public release still requires the exact-commit CLI matrices.
+
+### Retained web discovery and recovery
 
 - **Search before reading.** The paired CLI supports keyword web discovery,
   saved-page keyword search and offline chunk reads, and streamed long-file
@@ -55,7 +61,7 @@ the corresponding exact-gated CLI command, as documented below.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.115** is the current release candidate that re-certifies the read-only
+Plugin **0.4.118** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -77,7 +83,7 @@ cleanup fences.
 The recommended public CLI is `chainlesschain@0.166.34`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.115` accepts only the exact
+permission/budget enforcement. Version `0.4.118` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -86,7 +92,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.115` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.118` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -95,7 +101,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.115`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.118`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph
@@ -251,6 +257,10 @@ package the plugin, verify the archive, and run a deterministic production-path
 chat/control plus canonical Sessions Workbench journey in stock IntelliJ
 2024.2 and 2025.2 across Windows, Linux, and macOS. The gate closes the first
 IDE, launches a second process, and verifies persisted artifact/PR recovery.
+The same native-host journey edits and saves model settings, reopens the form,
+discards unsaved edits, tests the saved connection, and verifies the existing
+chat and restarted IDE use the saved text/vision models. Fixture evidence
+checks the same conversation switched processes and only one save occurred.
 Live-provider and remote-host journeys remain separate release-environment
 checks.
 

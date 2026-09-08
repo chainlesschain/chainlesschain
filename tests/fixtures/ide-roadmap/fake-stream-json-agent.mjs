@@ -69,6 +69,77 @@ function writeState(value) {
   });
 }
 
+// Separate from the chat ledger: a long-lived agent must not overwrite settings
+// saved by a one-shot config process when it later records a turn.
+function readModelConfig() {
+  try {
+    return JSON.parse(readFileSync(`${statePath}.llm.json`, "utf8"));
+  } catch {
+    return {
+      provider: "ollama",
+      model: "deterministic-host-peer",
+      baseUrl: "http://127.0.0.1:11434",
+      visionModel: "",
+      apiKey: null,
+    };
+  }
+}
+
+async function handleModelConfigCommand() {
+  if (argv[0] === "config" && argv[1] === "list") {
+    const llm = readModelConfig();
+    trace({ direction: "command", command: "config-list", model: llm.model });
+    writeJson({ llm });
+    return true;
+  }
+  if (argv[0] === "llm" && argv[1] === "configure") {
+    let input = "";
+    for await (const chunk of process.stdin) {
+      input += chunk;
+      if (input.length > 16_384)
+        throw new Error("fixture config input too large");
+    }
+    const value = JSON.parse(input);
+    // This deterministic host journey uses a keyless local-model configuration.
+    // Refuse credentials instead of ever recording them in fixture evidence.
+    if (
+      !statePath ||
+      value.provider !== "ollama" ||
+      value.apiKey ||
+      !value.model
+    )
+      throw new Error("fixture accepts only a named keyless Ollama connection");
+    const llm = {
+      provider: value.provider,
+      model: String(value.model),
+      baseUrl: String(value.baseUrl),
+      visionModel: String(value.visionModel || ""),
+      apiKey: null,
+    };
+    writeFileSync(`${statePath}.llm.json`, `${JSON.stringify(llm)}\n`, {
+      mode: 0o600,
+    });
+    trace({
+      direction: "command",
+      command: "llm-configure",
+      model: llm.model,
+      visionModel: llm.visionModel,
+    });
+    writeJson({ ok: true });
+    return true;
+  }
+  if (argv[0] === "llm" && argv[1] === "test") {
+    trace({
+      direction: "command",
+      command: "llm-test",
+      model: readModelConfig().model,
+    });
+    process.stdout.write("fixture saved connection accepted\n");
+    return true;
+  }
+  return false;
+}
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -460,6 +531,8 @@ if (argv.includes("--version")) {
   await exitAfterStdout(0);
 }
 
+if (await handleModelConfigCommand()) await exitAfterStdout(0);
+
 // ConversationView probes these after a turn. Keep machine output valid so a
 // successful journey does not collect unrelated parse warnings.
 if (argv[0] === "context") {
@@ -484,6 +557,9 @@ if (argv[0] !== "agent") {
 
 const sessionId = option("--resume", "ui-host-session");
 const state = readState();
+const savedModelConfig = readModelConfig();
+const sessionModel = option("--model", savedModelConfig.model);
+const sessionProvider = option("--provider", savedModelConfig.provider);
 const priorMessages = Number(state.sessions[sessionId] || 0);
 let turn = Math.floor(priorMessages / 2);
 let pending = null;
@@ -493,8 +569,8 @@ emit({
   type: "system",
   subtype: "init",
   protocol_version: 1,
-  provider: "ui-fixture",
-  model: "deterministic-host-peer",
+  provider: sessionProvider,
+  model: sessionModel,
   session_id: sessionId,
   resumed_messages: priorMessages,
   slash_commands: ["compact", "context", "cost", "doctor"],
@@ -512,6 +588,23 @@ function handleUser(event) {
   turn += 1;
   rememberTurn();
   const text = String(event.text || "");
+
+  if (text.includes("journey:model")) {
+    trace({
+      direction: "command",
+      command: "model-probe",
+      sessionId,
+      processId: process.pid,
+      model: sessionModel,
+      visionModel: savedModelConfig.visionModel,
+      probe: text,
+    });
+    finish(
+      turn,
+      `fixture model ${sessionModel}; vision=${savedModelConfig.visionModel || "none"}; probe=${text}`,
+    );
+    return;
+  }
 
   if (text.includes("journey:plan")) {
     pending = { kind: "plan", turn };

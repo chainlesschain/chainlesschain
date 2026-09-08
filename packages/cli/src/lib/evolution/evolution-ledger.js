@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import { sameFileStatIdentity } from "../secure-file-identity.js";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
@@ -2768,6 +2770,24 @@ export class EvolutionLedger {
   }
 
   #readCanonicalFile(filePath, maximum, label, { allowMissing = false } = {}) {
+    return withEvolutionFileIdentity(this.#fs, filePath, (samePathHandle) =>
+      this.#readCanonicalFileWithIdentity(
+        filePath,
+        maximum,
+        label,
+        allowMissing,
+        samePathHandle,
+      ),
+    );
+  }
+
+  #readCanonicalFileWithIdentity(
+    filePath,
+    maximum,
+    label,
+    allowMissing,
+    samePathHandle,
+  ) {
     this.#assertBoundaries();
     let before;
     try {
@@ -2805,7 +2825,7 @@ export class EvolutionLedger {
       if (
         !opened.isFile() ||
         opened.nlink !== 1 ||
-        entryIdentity(opened) !== entryIdentity(before) ||
+        !samePathHandle(before, opened) ||
         opened.size !== before.size
       ) {
         throw ledgerError(
@@ -2831,7 +2851,7 @@ export class EvolutionLedger {
       const after = this.#fs.fstatSync(descriptor);
       if (
         after.nlink !== 1 ||
-        entryIdentity(after) !== entryIdentity(opened) ||
+        !sameFileStatIdentity(opened, after) ||
         after.size !== opened.size ||
         bytes.length !== opened.size
       ) {
@@ -2875,7 +2895,9 @@ export class EvolutionLedger {
       return {
         bytes,
         contentDigest: sha256(bytes),
-        fingerprint: fileFingerprint(after),
+        // Cache fingerprints belong to the pathname API. On affected Windows
+        // runtimes the handle API has a different device projection.
+        fingerprint: fileFingerprint(before),
         record,
       };
     } finally {
@@ -3361,6 +3383,16 @@ export class EvolutionLedger {
   }
 
   #matchesCachedFile(filePath, expected) {
+    try {
+      return withEvolutionFileIdentity(this.#fs, filePath, (samePathHandle) =>
+        this.#matchesCachedFileWithIdentity(filePath, expected, samePathHandle),
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  #matchesCachedFileWithIdentity(filePath, expected, samePathHandle) {
     let descriptor = null;
     try {
       const before = this.#fs.lstatSync(filePath);
@@ -3381,7 +3413,7 @@ export class EvolutionLedger {
       if (
         !opened.isFile() ||
         opened.nlink !== 1 ||
-        entryIdentity(opened) !== entryIdentity(before) ||
+        !samePathHandle(before, opened) ||
         opened.size !== before.size
       ) {
         return false;
@@ -3396,7 +3428,7 @@ export class EvolutionLedger {
       return (
         after.nlink === 1 &&
         entryIdentity(after) === entryIdentity(opened) &&
-        fileFingerprint(after) === expected.fingerprint &&
+        samePathHandle(before, after) &&
         bytes.length === opened.size &&
         sha256(bytes) === expected.contentDigest
       );

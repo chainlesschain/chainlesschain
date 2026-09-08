@@ -3,8 +3,12 @@ package com.chainlesschain.ide;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,6 +56,120 @@ final class EvolutionWorkbenchTest {
                 candidate("pending", '5', '6', "pending", false)));
         assertNotNull(result);
         return result;
+    }
+
+    private static String numberedDigest(int value) {
+        return "sha256:" + String.format(java.util.Locale.ROOT, "%064x", value + 1);
+    }
+
+    private static String page(int offset, int total) {
+        ArrayList<String> candidates = new ArrayList<>();
+        int end = Math.min(offset + EvolutionWorkbench.MAX_CANDIDATES, total);
+        for (int index = offset; index < end; index++) {
+            candidates.add(candidate("version-" + index, '1', '2',
+                    index == 500 ? "pending" : "approved", index == total - 1)
+                    .replace(digest('1'), numberedDigest(index)));
+        }
+        return projection(String.join(",", candidates))
+                .replace("\"total\":" + candidates.size(), "\"total\":" + total)
+                .replace("\"offset\":0", "\"offset\":" + offset)
+                .replace("\"hasMore\":false", "\"hasMore\":" + (end < total));
+    }
+
+    @Test
+    void loadsEveryPageBeforeReviewOrRollbackIncludingLateActiveVersion() {
+        List<List<String>> calls = new ArrayList<>();
+        EvolutionWorkbench.Projection result = EvolutionWorkbench.loadProjection(args -> {
+            calls.add(args);
+            return page(calls.size() == 1 ? 0 : 500, 502);
+        });
+        assertNotNull(result);
+        assertEquals(502, result.candidates.size());
+        assertEquals(502, result.total);
+        assertFalse(result.hasMore);
+        assertEquals("version-501", result.activeCandidate().candidateId);
+        assertEquals(List.of("evolution", "workbench", "list", "--limit", "500",
+                "--offset", "500"), calls.get(1));
+        assertEquals(numberedDigest(500), EvolutionWorkbench.buildReviewArgs(result,
+                result.findExact(numberedDigest(500)), "approve", "reviewed").get(4));
+        assertEquals(numberedDigest(501), EvolutionWorkbench.buildRollbackArgs(result,
+                result.candidates.get(0), "regression").get(3));
+
+        EvolutionWorkbench.Projection partial = EvolutionWorkbench.parseProjection(page(0, 502));
+        assertNotNull(partial);
+        assertThrows(IllegalArgumentException.class, () -> EvolutionWorkbench.buildCompareArgs(
+                partial, partial.candidates.get(0), partial.candidates.get(1)));
+    }
+
+    @Test
+    void rejectsMixedMissingDuplicatedOrForgedPagesWithoutExposingPartialResults() {
+        List<UnaryOperator<String>> corruptions = List.of(
+                value -> value.replace(digest('a'), digest('b')),
+                value -> value.replace("\"total\":502", "\"total\":503"),
+                value -> value.replace("\"offset\":500", "\"offset\":0"),
+                value -> value.replace("\"limit\":500", "\"limit\":2"),
+                value -> value.replace("\"hasMore\":false", "\"hasMore\":true"),
+                value -> value.replace(numberedDigest(500), numberedDigest(0)),
+                value -> value.replace("\"conflictCount\":1", "\"conflictCount\":2"),
+                value -> value.replace("\"reconciliationRequired\":true",
+                        "\"reconciliationRequired\":false"),
+                value -> value.replace("\"activeReleaseId\":\"release:current\"",
+                        "\"activeReleaseId\":\"release:changed\""),
+                value -> null);
+        for (UnaryOperator<String> corruption : corruptions) {
+            AtomicInteger calls = new AtomicInteger();
+            assertNull(EvolutionWorkbench.loadProjection(args -> calls.getAndIncrement() == 0
+                    ? page(0, 502) : corruption.apply(page(500, 502))));
+            assertEquals(2, calls.get());
+        }
+    }
+
+    @Test
+    void stopsAtEmptyExactPageAndMaximumBound() {
+        for (int total : new int[] {0, 500, EvolutionWorkbench.MAX_TOTAL_CANDIDATES}) {
+            AtomicInteger calls = new AtomicInteger();
+            EvolutionWorkbench.Projection result = EvolutionWorkbench.loadProjection(args ->
+                    page(calls.getAndIncrement() * 500, total));
+            assertNotNull(result);
+            assertEquals(total, result.total);
+            assertEquals(Math.max(1, (total + 499) / 500), calls.get());
+        }
+        AtomicInteger calls = new AtomicInteger();
+        assertNull(EvolutionWorkbench.loadProjection(args -> {
+            calls.incrementAndGet();
+            return page(0, 10_001);
+        }));
+        assertEquals(1, calls.get());
+        assertThrows(IllegalArgumentException.class, () -> EvolutionWorkbench.buildListArgs(-1));
+        assertThrows(IllegalArgumentException.class, () -> EvolutionWorkbench.buildListArgs(1));
+        assertThrows(IllegalArgumentException.class, () -> EvolutionWorkbench.buildListArgs(10_000));
+    }
+
+    @Test
+    void rejectsTruncatedPagesAndReaderFailure() {
+        assertNull(EvolutionWorkbench.parseProjection(page(500, 502)
+                .replace("\"total\":502", "\"total\":501"), 500));
+        assertNull(EvolutionWorkbench.parseProjection(page(500, 502), 0));
+        assertNull(EvolutionWorkbench.parseProjection(page(0, 500)
+                .replace("\"total\":500", "\"total\":501")));
+        assertNull(EvolutionWorkbench.loadProjection(args -> {
+            throw new IllegalStateException("CLI unavailable");
+        }));
+    }
+
+    @Test
+    void interruptionStopsFurtherReads() {
+        AtomicInteger calls = new AtomicInteger();
+        try {
+            assertNull(EvolutionWorkbench.loadProjection(args -> {
+                calls.incrementAndGet();
+                Thread.currentThread().interrupt();
+                return page(0, 502);
+            }));
+            assertEquals(1, calls.get());
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @Test

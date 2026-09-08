@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - IDE model configuration: atomic writes and visible save confirmation
+
+> VS Code / VSCodium **0.37.91** and JetBrains **0.4.118** (2026-09-08),
+> source candidates awaiting their exact-commit release checks.
+
+- Replace JetBrains' successive model prompts with a native connection form
+  containing provider/protocol, endpoint, text/vision models and key status.
+- Write JetBrains connections through one `llm configure` stdin transaction,
+  then verify the saved fields through a fresh redacted CLI read. Separate
+  save/reload/test actions and keep failed connection tests from obscuring
+  whether configuration was saved.
+- Verify VS Code's post-save readback before reporting success or refreshing
+  chat. Keep credentials out of form readback, output and command arguments.
+- Apply confirmed JetBrains saves across existing projects/tabs even when the
+  form closes during the write. Defer session replacement until submitted chat
+  and plan turns finish, and use the same CLI configuration root at chat startup.
+- Read back dedicated vision-model edits before reporting success or marking
+  existing sessions for reload.
+- Validate real CLI persistence in isolated storage: keep a same-endpoint key,
+  clear the vision override, reject a keyless endpoint change without writing,
+  and atomically bind a replacement endpoint/model/key across process restarts.
+
+### Fixed - cc CLI 0.166.36: test reasoning model connections without false failures
+
+> `chainlesschain` **0.166.35 -> 0.166.36** (2026-09-08), source candidate
+> awaiting the exact-commit release matrix.
+
+- Give CLI and IDE connection tests a bounded 1,024-token output allowance.
+  The previous 16-token request could exhaust a reasoning model's budget
+  before its final answer and incorrectly suggest invalid connection settings.
+- Distinguish output exhaustion from an empty or malformed response, and keep
+  Gemini thought parts out of the displayed answer. Preserve the configured
+  model's reasoning behavior and the request timeout; do not retry the probe.
+- When `llm test --provider` selects another provider, use that provider's
+  model, endpoint and credential defaults instead of mixing in saved values
+  from the previous provider.
+- Derive each Canary heartbeat expiry from its single issuance timestamp.
+  Crossing a wall-clock millisecond while building the signed lease no longer
+  rejects an otherwise valid heartbeat.
+- Reproduced against the configured Ark `deepseek-v4-flash-260425`: the old
+  request returned HTTP 200, `finish_reason=length`, 16 reasoning tokens and
+  no answer; the corrected request returned `finish_reason=stop` and `Hi`.
+  CLI and IDE adapter regression tests also use an isolated local relay.
+
+### Fixed - cc CLI 0.166.35: restore governed storage on minimum-Node Windows hosts
+
+> `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate
+> awaiting the exact-commit release matrix.
+
+- Use the existing trusted-directory device check for affected Windows libuv
+  path/handle stat projections across EvolutionLedger, file witness,
+  ArtifactStore and Candidate/Release Registry storage.
+- Keep inode, mode, link-count, size and read-time metadata comparisons exact,
+  and preserve pathname identities across publication and authenticated caches.
+- Retain bounded local-test CLI startup errors in the Workbench browser
+  evidence job so process exit failures identify their underlying cause.
+
 ### Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility
 
 > `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with

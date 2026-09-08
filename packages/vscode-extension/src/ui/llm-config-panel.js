@@ -132,6 +132,16 @@ function openLlmConfigPanel(
         });
         if (!result.ok) throw new Error(result.error || "保存失败");
         await read();
+        if (
+          current.provider !== answers.provider ||
+          current.model !== answers.model ||
+          current.baseUrl !== answers.baseUrl ||
+          current.visionModel !== answers.visionModel ||
+          (answers.provider !== "ollama" && !current.hasKey)
+        )
+          throw new Error(
+            "配置写入后的回读结果与提交内容不一致，请重新读取并确认保存状态。",
+          );
         await onConfigured?.();
         notice(
           "配置已保存。可以测试连接；聊天的下一条消息将使用新配置。",

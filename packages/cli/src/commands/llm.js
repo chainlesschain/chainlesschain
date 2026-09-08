@@ -71,12 +71,13 @@ export function resolveLlmTestTarget(
 ) {
   const llm = config.llm || {};
   const provider = options.provider || llm.provider || "ollama";
+  const sameProvider = provider === (llm.provider || "ollama");
   const isOllama = provider === "ollama";
   const builtIn = builtIns[provider];
 
   const model =
     options.model ||
-    llm.model ||
+    (sameProvider ? llm.model : undefined) ||
     (isOllama ? "qwen2:7b" : builtIn?.models?.[0] || "gpt-4o-mini");
 
   let baseUrl;
@@ -89,7 +90,7 @@ export function resolveLlmTestTarget(
   } else {
     baseUrl =
       options.baseUrl ||
-      llm.baseUrl ||
+      (sameProvider ? llm.baseUrl : undefined) ||
       builtIn?.baseUrl ||
       "https://api.openai.com/v1";
   }
@@ -97,7 +98,7 @@ export function resolveLlmTestTarget(
   const apiKey = isOllama
     ? undefined
     : options.apiKey ||
-      llm.apiKey ||
+      (sameProvider ? llm.apiKey : undefined) ||
       (builtIn?.apiKeyEnv ? env[builtIn.apiKeyEnv] : undefined);
 
   return {

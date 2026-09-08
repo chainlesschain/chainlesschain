@@ -1,5 +1,44 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.118] - Apply confirmed model settings to existing chats (2026-09-08)
+
+- Track confirmed saves across projects and tabs, including key-only changes
+  and saves that finish after the configuration window closes. Existing chats
+  reload before their next request once pending turns have finished.
+- Preserve submitted chat and plan tasks during configuration changes, and
+  ignore callbacks from a replaced session.
+- Read chat startup settings from the same CLI snapshot as the form, honoring
+  configured storage roots. Verify dedicated vision-model edits by readback.
+- Exercise the native form and existing conversation across a full IDE restart
+  in the host journey. Synchronize release metadata and bind evidence to the
+  current version's archive when previous builds remain in the output directory.
+- Save the sandbox project through the native Save All action and verify its
+  resume IDs on disk before the host journey terminates and reopens the IDE.
+- Keep status-bar painting from waiting for the bridge startup/lockfile monitor;
+  connection and credential access retain their synchronized lifecycle reads.
+
+## [0.4.117] - One model connection form and verified atomic saves (2026-09-08)
+
+- Replace the successive input dialogs with one native form for provider,
+  custom protocol, base URL, text/vision models and masked credential entry.
+- Save the whole connection with `llm configure` over stdin, then read back
+  the redacted configuration before reporting success. A blank vision model
+  clears the previous selection; a changed endpoint requires its own key.
+- Separate save, reload and connection-test actions, mark unsaved changes,
+  and keep requests off the UI thread with bounded CLI output and waits.
+- Use CLI `0.166.36` for reasoning-model connection tests. A failed test keeps
+  the saved settings and is reported separately from a write failure.
+
+## [0.4.116] - Complete Evolution Workbench reads and serialized decisions (2026-09-08)
+
+- Read and validate the complete version history, up to 10,000 candidates, before
+  comparison, review or rollback; reject mixed, missing and duplicate pages.
+- Update the modal Workbench while CLI requests complete, bound snapshot reads,
+  and ignore delayed callbacks after the window closes.
+- Allow one operation at a time, including confirmation dialogs; after a missing
+  mutation receipt, refresh current state and report an unconfirmed result without
+  automatically replaying the decision.
+
 ## [0.4.115] - Search and read downloaded webpages and long files (2026-09-08)
 
 - Recommend CLI `0.166.34` for keyword web discovery, large webpage snapshots,
