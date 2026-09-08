@@ -10,8 +10,11 @@ import https from "node:https";
 import { lookup as dnsLookup } from "node:dns";
 import { URL } from "node:url";
 import { createHash } from "node:crypto";
+import { StringDecoder } from "node:string_decoder";
+import { webFetchSnapshots } from "./web-fetch-snapshots.js";
 
-const DEFAULT_MAX_BYTES = 2_000_000;
+const DEFAULT_MAX_BYTES = 10_000_000;
+const DEFAULT_MAX_CHARS = 20_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 // RFC 1918 + loopback + link-local (IPv4 and IPv6). Blocked by default unless
@@ -99,13 +102,23 @@ export function checkAllowed(urlStr, config = {}) {
   return { allowed: true, url: parsed };
 }
 
-export function htmlToMarkdown(html) {
-  if (!html) return "";
+function stripHtmlNoise(html) {
   let text = String(html);
   // Strip scripts/styles entirely
   text = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
   text = text.replace(/<!--[\s\S]*?-->/g, "");
+  // A bounded download may end inside a script, stylesheet, comment or tag.
+  // Closed blocks were removed above; discard any unfinished non-content tail.
+  return text
+    .replace(/<(?:script|style)\b[^>]*>[\s\S]*$/gi, "")
+    .replace(/<!--[\s\S]*$/g, "")
+    .replace(/<[^>]*$/g, "");
+}
+
+export function htmlToMarkdown(html) {
+  if (!html) return "";
+  let text = stripHtmlNoise(html);
   // Convert headings
   text = text.replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi, (_, n, inner) => {
     return `\n\n${"#".repeat(Number(n))} ${inner.trim()}\n\n`;
@@ -141,7 +154,10 @@ function stripTags(html) {
   return String(html).replace(/<[^>]+>/g, "");
 }
 
-function webFetchCacheKey(parsed, { format, maxBytes, maxRedirects, headers }) {
+function webFetchCacheKey(
+  parsed,
+  { format, maxBytes, maxChars, offset, onOverflow, maxRedirects, headers },
+) {
   // A caller-provided header can carry credentials or change representation.
   // Keep those requests out of the shared host cache entirely.
   if (
@@ -155,6 +171,9 @@ function webFetchCacheKey(parsed, { format, maxBytes, maxRedirects, headers }) {
     url: parsed.toString(),
     format,
     maxBytes,
+    maxChars,
+    offset,
+    onOverflow,
     maxRedirects,
   });
   // Do not retain a raw URL/query as a long-lived Map key in the host cache.
@@ -211,12 +230,15 @@ export function makeSafeLookup(allowPrivateHosts, deps = _deps) {
 
 async function _doRequest(
   parsed,
-  { maxBytes, timeout, headers, allowPrivateHosts },
+  { maxBytes, timeout, headers, allowPrivateHosts, truncateOnOverflow },
 ) {
   const lib = parsed.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     let timer;
+    let settled = false;
     const settle = (error, result) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       if (error) reject(error);
       else resolve(result);
@@ -250,13 +272,38 @@ async function _doRequest(
         }
         const chunks = [];
         let size = 0;
+        const complete = (downloadTruncated = false) => {
+          const buffer = Buffer.concat(chunks);
+          settle(null, {
+            statusCode: res.statusCode,
+            headers: res.headers,
+            // With a partial response, discard an incomplete final UTF-8
+            // sequence instead of inventing a replacement character.
+            body: downloadTruncated
+              ? new StringDecoder("utf8").write(buffer)
+              : buffer.toString("utf8"),
+            bytes: buffer.length,
+            downloadTruncated,
+          });
+        };
         res.on("data", (chunk) => {
+          if (settled) return;
+          const available = maxBytes - size;
           size += chunk.length;
           if (size > maxBytes) {
+            if (truncateOnOverflow) {
+              if (available > 0) chunks.push(chunk.subarray(0, available));
+              complete(true);
+              res.destroy();
+              req.destroy();
+              return;
+            }
             const error = Object.assign(
               new Error(`response exceeds maxBytes (${maxBytes})`),
               {
                 code: "ERR_RESPONSE_TOO_LARGE",
+                maxBytes,
+                receivedBytes: size,
               },
             );
             settle(error);
@@ -267,11 +314,7 @@ async function _doRequest(
           chunks.push(chunk);
         });
         res.on("end", () => {
-          settle(null, {
-            statusCode: res.statusCode,
-            headers: res.headers,
-            body: Buffer.concat(chunks).toString("utf8"),
-          });
+          if (!settled) complete();
         });
         res.on("error", (error) => settle(error));
         res.on("aborted", () =>
@@ -303,6 +346,14 @@ export async function webFetch(url, options = {}) {
   const {
     format = "markdown",
     maxBytes = DEFAULT_MAX_BYTES,
+    maxChars = DEFAULT_MAX_CHARS,
+    offset = 0,
+    snapshotId = null,
+    query = null,
+    maxMatches = 20,
+    contextChars = 150,
+    caseSensitive = false,
+    onOverflow = "truncate",
     timeout = DEFAULT_TIMEOUT_MS,
     config = {},
     headers = {},
@@ -321,29 +372,115 @@ export async function webFetch(url, options = {}) {
   if (
     !Number.isSafeInteger(maxBytes) ||
     maxBytes <= 0 ||
+    !Number.isSafeInteger(maxChars) ||
+    maxChars <= 0 ||
+    !Number.isSafeInteger(offset) ||
+    offset < 0 ||
+    (snapshotId !== null && (typeof snapshotId !== "string" || !snapshotId)) ||
     !Number.isSafeInteger(timeout) ||
     timeout <= 0 ||
     timeout > 2_147_483_647 ||
     !Number.isSafeInteger(maxRedirects) ||
-    maxRedirects < 0
+    maxRedirects < 0 ||
+    !["truncate", "error"].includes(onOverflow)
   ) {
     return {
-      error: "invalid web_fetch size, timeout or redirect limit",
+      error: "invalid web_fetch size, output length, timeout or redirect limit",
       code: "ERR_FETCH_OPTIONS",
       retryable: false,
     };
   }
 
+  if (query !== null && (!snapshotId || typeof query !== "string" || !query)) {
+    return {
+      error:
+        "Download the URL first, then pass snapshotId and a non-empty query to search its saved text",
+      code: "ERR_FETCH_OPTIONS",
+      retryable: false,
+    };
+  }
+  if (format === "json" && (snapshotId || offset !== 0)) {
+    return {
+      error:
+        "JSON values cannot be paged. Use format=text to save and read a JSON document in chunks.",
+      code: "ERR_FETCH_OPTIONS",
+      retryable: false,
+    };
+  }
+  const snapshotIdentity = createHash("sha256")
+    .update(
+      JSON.stringify({
+        url: check.url.toString(),
+        format,
+        headers,
+        allowPrivateHosts: config.allowPrivateHosts === true,
+        allowedDomains: config.allowedDomains || ["*"],
+      }),
+    )
+    .digest("hex");
+  const readSnapshot = (id) =>
+    webFetchSnapshots.read(
+      id,
+      snapshotIdentity,
+      hostResourceBudget,
+      offset,
+      maxChars,
+    );
+  if (snapshotId) {
+    try {
+      const result = readSnapshot(snapshotId);
+      if (result.downloadTruncated && onOverflow === "error") {
+        return {
+          error:
+            "The saved download is incomplete. Fetch again without snapshotId and with a larger maxBytes.",
+          code: "ERR_RESPONSE_TOO_LARGE",
+          retryable: false,
+        };
+      }
+      if (query !== null && !result.error) {
+        const search = await webFetchSnapshots.search(
+          snapshotId,
+          snapshotIdentity,
+          hostResourceBudget,
+          {
+            pattern: query,
+            offset,
+            maxMatches,
+            contextChars,
+            caseSensitive,
+            url: check.url.toString(),
+          },
+        );
+        return search.error ? search : { ...search, cached: true };
+      }
+      return result.error ? result : { ...result, cached: true };
+    } catch {
+      return {
+        error:
+          "Unable to read the local webpage snapshot. Fetch the URL again without snapshotId.",
+        code: "ERR_FETCH_SNAPSHOT_READ",
+        retryable: false,
+      };
+    }
+  }
+
   const cacheKey = webFetchCacheKey(check.url, {
     format,
     maxBytes,
+    maxChars,
+    offset,
+    onOverflow,
     maxRedirects,
     headers,
   });
   if (cacheKey && hostResourceBudget?.getWebFetch) {
     try {
       const cached = hostResourceBudget.getWebFetch(cacheKey);
-      if (cached) return { ...cached, cached: true };
+      if (cached) {
+        if (!cached.snapshotId) return { ...cached, cached: true };
+        const page = readSnapshot(cached.snapshotId);
+        if (!page.error) return { ...page, cached: true };
+      }
     } catch (error) {
       return hostBudgetUnavailable("web_fetch", error);
     }
@@ -380,6 +517,8 @@ export async function webFetch(url, options = {}) {
         timeout: remaining,
         headers,
         allowPrivateHosts: config.allowPrivateHosts,
+        // An incomplete JSON document cannot be returned as a valid value.
+        truncateOnOverflow: onOverflow === "truncate" && format !== "json",
       });
       if (!response.redirect) break;
       if (++redirects > maxRedirects) {
@@ -436,7 +575,9 @@ export async function webFetch(url, options = {}) {
     if (format === "markdown") {
       output = /html/i.test(contentType) ? htmlToMarkdown(body) : body;
     } else if (format === "text") {
-      output = /html/i.test(contentType) ? stripTags(body) : body;
+      output = /html/i.test(contentType)
+        ? stripTags(stripHtmlNoise(body))
+        : body;
     } else if (format === "json") {
       try {
         output = JSON.parse(body);
@@ -451,15 +592,37 @@ export async function webFetch(url, options = {}) {
       }
     }
 
-    const result = {
+    // Download limits apply to the raw page, which can contain much more
+    // markup than the extracted text. Bound model context AFTER extraction;
+    // a short requested answer must not abort an otherwise readable page.
+    const totalChars =
+      format !== "json" && typeof output === "string" ? output.length : null;
+    const downloadTruncated = response.downloadTruncated === true;
+    let result = {
       url: parsed.toString(),
       statusCode,
       contentType,
       format: outputFormat,
-      bytes: Buffer.byteLength(body, "utf8"),
+      bytes: response.bytes,
       content: output,
+      ...(downloadTruncated ? { downloadTruncated: true, maxBytes } : {}),
+      ...(downloadTruncated
+        ? {
+            hint: `The raw response exceeded maxBytes=${maxBytes}. Only the downloaded prefix is included; totalChars measures that prefix after extraction, not the complete page. Increase maxBytes to fetch more, or request a focused page/API endpoint. Use maxChars to control returned text. Do not treat this as the complete page.`,
+          }
+        : {}),
     };
-    if (cacheKey && hostResourceBudget?.putWebFetch) {
+    if (totalChars !== null) {
+      // Save the extracted document once, then read only the requested range
+      // from disk. Subsequent snapshot reads never contact the origin server.
+      const id = webFetchSnapshots.save(
+        result,
+        snapshotIdentity,
+        hostResourceBudget,
+      );
+      result = readSnapshot(id);
+    }
+    if (!downloadTruncated && cacheKey && hostResourceBudget?.putWebFetch) {
       try {
         hostResourceBudget.putWebFetch(cacheKey, result);
       } catch {
@@ -472,6 +635,15 @@ export async function webFetch(url, options = {}) {
     return {
       error: `web_fetch failed: ${error.message}`,
       code,
+      ...(code === "ERR_RESPONSE_TOO_LARGE"
+        ? {
+            maxBytes,
+            receivedBytes: error.receivedBytes,
+            ...(maxBytes < DEFAULT_MAX_BYTES
+              ? { suggestedMaxBytes: DEFAULT_MAX_BYTES }
+              : {}),
+          }
+        : {}),
       retryable: [
         "ETIMEDOUT",
         "ECONNRESET",
@@ -480,7 +652,9 @@ export async function webFetch(url, options = {}) {
       ].includes(code),
       hint:
         code === "ERR_RESPONSE_TOO_LARGE"
-          ? "Request a smaller resource or a focused log excerpt. Do not repeatedly download the same full log."
+          ? maxBytes < DEFAULT_MAX_BYTES
+            ? `The raw response exceeded maxBytes=${maxBytes}, before text extraction. To limit returned text, use maxChars and omit maxBytes (default ${DEFAULT_MAX_BYTES}). Retry once with corrected limits, not the same small download limit.`
+            : "The raw response exceeded the download limit. Request a smaller resource or focused log excerpt, or explicitly raise maxBytes within the permitted resource budget. maxChars only limits the returned text."
           : "Use the error code to check connectivity, DNS or access. Retry a transient failure at most once, then change approach or report the blocker.",
     };
   } finally {

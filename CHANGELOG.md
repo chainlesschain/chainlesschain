@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility
+
+> `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with
+> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.
+> The `0.166.33` candidate was not published: its minimum-Node release tests
+> exposed a reverted SQLite fixture fix. Its immutable tag is retained.
+
+- Include the large-page local snapshots, chunk reading, keyword web search,
+  long-file search and CI-log recovery prepared in the 0.166.33 candidate.
+- Restore the shipped SQLite driver in Desktop cache composition tests so the
+  complete release suite runs on Node 22.12 without experimental flags; add a
+  release-contract regression that detects the reverted fixture.
+- Keep duplicate background-release frames alive long enough to assert exactly
+  one entry execution, and surface concurrent restore failure diagnostics.
+
+### Fixed - cc CLI 0.166.33: download large webpages once and read local chunks
+
+> `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with
+> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.
+
+- Raise the default raw webpage download budget to 10 MB and separate it from
+  the returned text budget (`maxChars`, default 20000).
+- Save extracted text as bounded local snapshots. Continue with `snapshotId`
+  and `offset` from `nextOffset`, without downloading the page again.
+- Return explicitly marked prefixes for oversized text pages, with guidance
+  to raise the download budget; preserve strict complete-response mode and JSON
+  integrity. Snapshot paging never claims an incomplete download is complete.
+- Bound snapshot storage and retention, isolate readers by host and URL/policy,
+  preserve Unicode across chunks, and remove snapshots on normal process exit.
+- Show concrete error codes and recovery guidance in IDE chat and preserve
+  those details when recovering from repeated remote-read failures.
+- Route keyword-based discovery through `web_search`; bound large search
+  responses independently of snippets and report verification challenges as errors.
+- Search saved webpages and stream long local files for keywords, return
+  precise positions/context and read cursors, and bound regex execution.
+- Update browser-vision edge-case tests to the governed multimodal ingress
+  contract, covering rejection before capture/provider calls and preventing
+  legacy cache entries from bypassing that boundary (Actions run 34127723046).
+
 ### Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery
 
 > `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`

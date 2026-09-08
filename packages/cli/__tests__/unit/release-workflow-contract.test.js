@@ -55,6 +55,31 @@ function occurrences(text, needle) {
 }
 
 describe("CLI release workflow contracts", () => {
+  it("keeps Desktop cache composition fixtures runnable on minimum Node without experimental SQLite", () => {
+    const source = fs.readFileSync(
+      path.join(
+        import.meta.dirname,
+        "agent-evolution-runtime-composition.test.js",
+      ),
+      "utf8",
+    );
+    expect(source).not.toMatch(/require\(["']node:sqlite["']\)/u);
+    expect(occurrences(source, 'require("better-sqlite3")')).toBe(2);
+    expect(source).toContain(
+      'new Database(path.join(f.root, "desktop-cache.sqlite"))',
+    );
+    expect(source).toContain(
+      'new Database(path.join(f.root, "concurrent-cache.sqlite"))',
+    );
+    const text = workflow("npm-publish.yml");
+    const testJob = text.slice(
+      text.indexOf("\n  test:"),
+      text.indexOf("\n  exact-sha-gate:"),
+    );
+    expect(testJob).toContain('node-version: "22.12.0"');
+    expect(testJob).not.toContain("--experimental-sqlite");
+  });
+
   it("verifies public child archives and clean registry dependency installation before publishing CLI", () => {
     const text = workflow("npm-publish.yml");
     const start = text.indexOf(

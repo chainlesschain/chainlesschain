@@ -3271,6 +3271,7 @@ describe("CheckpointRestoreSagaStore", () => {
     );
     expect(
       outputs.filter((output) => output.includes("RESULT:ok")),
+      outputs.join("\n"),
     ).toHaveLength(1);
     expect(
       outputs.filter((output) =>
@@ -3278,6 +3279,7 @@ describe("CheckpointRestoreSagaStore", () => {
           `RESULT:${CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CONFLICT}`,
         ),
       ),
+      outputs.join("\n"),
     ).toHaveLength(1);
     expect(testFixture.store.load(saga.operationId).seq).toBe(2);
   });

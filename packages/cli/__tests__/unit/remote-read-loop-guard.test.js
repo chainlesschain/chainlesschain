@@ -58,6 +58,89 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it("retains the saved cursor and accepts forward pages with identical text", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let offset = 0; offset < 100; offset += 10) {
+      guard.record(
+        "web_fetch",
+        {
+          content: "same line\n",
+          snapshotId: "saved-job",
+          offset,
+          nextOffset: offset + 10,
+          hasMore: true,
+          totalChars: 1000,
+        },
+        { url },
+      );
+      expect(guard.recoveryHint).toBeNull();
+    }
+    expect(guard.findingsHint).toContain('"nextOffset":100');
+    expect(guard.findingsHint).toContain('"snapshotId":"saved-job"');
+  });
+
+  it("still detects repeated saved pages and fresh downloads of identical text", () => {
+    for (const freshSnapshot of [false, true]) {
+      const guard = new RemoteReadLoopGuard();
+      for (let i = 0; i < 7; i++) {
+        guard.record(
+          "web_fetch",
+          {
+            content: "same line\n",
+            snapshotId: freshSnapshot ? `download-${i}` : "saved-job",
+            offset: 0,
+            nextOffset: 10,
+          },
+          { url },
+        );
+        if (i === 3) expect(guard.takeRecoveryTurn()).toEqual(["web_fetch"]);
+      }
+      expect(guard.stalled).toBe(true);
+    }
+  });
+
+  it("does not count bouncing between previously read pages as forward progress", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 8; i++) {
+      guard.record(
+        "web_fetch",
+        {
+          content: "same line\n",
+          snapshotId: "saved-job",
+          offset: i % 2 === 0 ? 20 : 0,
+          nextOffset: i % 2 === 0 ? 30 : 10,
+        },
+        { url },
+      );
+    }
+    expect(guard.recoveryHint).not.toBeNull();
+  });
+
+  it("retains size recovery guidance and clears failures after a corrected fetch", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 3; i++) {
+      guard.record(
+        "web_fetch",
+        {
+          error: "response exceeds maxBytes (20000)",
+          code: "ERR_RESPONSE_TOO_LARGE",
+          hint: "Use maxChars and omit maxBytes for the default 10 MB download budget.",
+        },
+        { url },
+      );
+    }
+    expect(guard.takeRecoveryTurn()).toEqual(["web_fetch"]);
+    expect(guard.findingsHint).toContain("ERR_RESPONSE_TOO_LARGE");
+    expect(guard.findingsHint).toContain("Use maxChars");
+    guard.record(
+      "web_fetch",
+      { content: "Page contents", truncated: true },
+      { url },
+    );
+    expect(guard.stalled).toBe(false);
+    expect(guard.recoveryHint).toBeNull();
+  });
+
   it("counts failures across transports despite wording, flags, planning and local reads", () => {
     const guard = new RemoteReadLoopGuard();
     for (let i = 0; i < 6; i++) {

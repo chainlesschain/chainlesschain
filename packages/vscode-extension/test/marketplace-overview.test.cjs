@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+const { resolve } = require("node:path");
 const test = require("node:test");
 
 function overview({
@@ -33,6 +35,17 @@ Artifact chainlesschain-ide-${extensionVersion}.vsix
 async function verifier() {
   return import("../scripts/verify-marketplace-overview.mjs");
 }
+
+test("keeps the checked-in Marketplace overview coherent with the release manifests", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const read = (path) => readFileSync(resolve(__dirname, path), "utf8");
+
+  verifyMarketplaceOverview({
+    extensionManifest: JSON.parse(read("../package.json")),
+    cliManifest: JSON.parse(read("../../cli/package.json")),
+    readme: read("../README.md"),
+  });
+});
 
 function manifests({ recommended = "0.166.10", source = "0.166.16" } = {}) {
   return {

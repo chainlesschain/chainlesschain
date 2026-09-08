@@ -30,7 +30,13 @@ function makeFakeLib(responder) {
       };
       req.destroy = () => {};
       req.end = () => {
-        const { statusCode, body } = responder({ ...opts, body: writtenBody });
+        const {
+          statusCode,
+          body,
+          headers = {},
+        } = responder({ ...opts, body: writtenBody });
+        res.statusCode = statusCode;
+        res.headers = headers;
         setImmediate(() => {
           cb(res);
           res.emit("data", Buffer.from(String(body), "utf8"));
@@ -70,8 +76,19 @@ const BOCHA_BODY = JSON.stringify({
 const QIANFAN_BODY = JSON.stringify({
   request_id: "r1",
   references: [
-    { id: 1, title: "千帆 Q1", url: "https://q.com/1", content: "qianfan 摘要一", web_anchor: "Q1" },
-    { id: 2, title: "千帆 Q2", url: "https://q.com/2", web_anchor: "qianfan 锚二" },
+    {
+      id: 1,
+      title: "千帆 Q1",
+      url: "https://q.com/1",
+      content: "qianfan 摘要一",
+      web_anchor: "Q1",
+    },
+    {
+      id: 2,
+      title: "千帆 Q2",
+      url: "https://q.com/2",
+      web_anchor: "qianfan 锚二",
+    },
   ],
 });
 const DDG_BODY = `
@@ -184,6 +201,64 @@ describe("web-search — webSearch() provider parsing", () => {
 
   it("rejects an empty query", async () => {
     expect((await webSearch("   ")).error).toMatch(/empty query/);
+  });
+
+  it("reports a DuckDuckGo verification challenge instead of zero results", async () => {
+    _deps.https = makeFakeLib(() => ({
+      statusCode: 202,
+      body: '<form id="challenge-form">captcha</form>',
+    }));
+    const r = await webSearch("hi", { provider: "duckduckgo" });
+    expect(r.code).toBe("ERR_SEARCH_CHALLENGE");
+    expect(r.count).toBeUndefined();
+    expect(r.hint).toContain("keyed search provider");
+  });
+
+  it("supports large raw search responses while bounding returned snippets", async () => {
+    _deps.https = makeFakeLib(() => ({
+      statusCode: 200,
+      body: JSON.stringify({
+        results: [
+          {
+            title: "source",
+            url: "https://example.com",
+            content: "text ".repeat(500000),
+          },
+        ],
+      }),
+    }));
+    const r = await webSearch("hi", {
+      provider: "tavily",
+      apiKey: "k",
+      maxSnippetChars: 100,
+    });
+    expect(r.error).toBeUndefined();
+    expect(r.results[0].snippet).toHaveLength(100);
+    expect(r.truncated).toBe(true);
+    expect(r.hint).toContain("snapshotId");
+    const tooSmall = await webSearch("hi", {
+      provider: "tavily",
+      apiKey: "k",
+      maxBytes: 1000,
+    });
+    expect(tooSmall.code).toBe("ERR_RESPONSE_TOO_LARGE");
+  });
+
+  it("returns structured rate-limit details and rejects invalid limits", async () => {
+    _deps.https = makeFakeLib(() => ({
+      statusCode: 429,
+      body: "rate limited",
+      headers: { "retry-after": "60" },
+    }));
+    const r = await webSearch("hi", { provider: "duckduckgo" });
+    expect(r).toMatchObject({
+      code: "ERR_HTTP_STATUS",
+      statusCode: 429,
+      retryAfter: "60",
+    });
+    expect((await webSearch("hi", { timeout: -1 })).code).toBe(
+      "ERR_SEARCH_OPTIONS",
+    );
   });
 
   it("rejects an unsupported provider", async () => {

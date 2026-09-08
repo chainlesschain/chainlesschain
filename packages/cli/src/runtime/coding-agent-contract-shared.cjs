@@ -388,13 +388,48 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     title: "Search Files",
     kind: "filesystem",
     tier: "mvp",
-    description: "Search for files by name pattern or content",
+    description:
+      "Search for files by name pattern or content. For a long text file, pass path and pattern: returns matching line/column positions, nearby context, and nextRead arguments for read_file. This streams the file instead of loading it into model context. Continue capped results with nextOffset as offset. Omit path for the existing directory search.",
     inputSchema: {
       type: "object",
       properties: {
         pattern: {
           type: "string",
           description: "Glob pattern or search string",
+        },
+        path: {
+          type: "string",
+          description:
+            "One text file to search by literal keyword (takes precedence over directory/content_search).",
+        },
+        regex: {
+          type: "boolean",
+          description:
+            "Single-file search only: evaluate a regular expression in overlapping 64K text windows (default false). Prefer literals for exact coverage across window boundaries.",
+        },
+        caseSensitive: {
+          type: "boolean",
+          description: "Single-file search only: match case (default false).",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          description:
+            "Single-file search: zero-based character offset to continue from nextOffset (default 0).",
+        },
+        maxMatches: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          description:
+            "Single-file search: maximum matching excerpts (default 20).",
+        },
+        contextChars: {
+          type: "integer",
+          minimum: 0,
+          maximum: 1000,
+          description:
+            "Single-file search: characters around each match (default 150).",
         },
         directory: {
           type: "string",
@@ -699,7 +734,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "network",
     tier: "extension",
     description:
-      "Fetch a web page or API endpoint over HTTP(S). Returns extracted markdown text by default. Honors allowlist from .chainlesschain/config.json:webFetch.",
+      "Download a web page over HTTP(S), save the extracted text locally, and return one chunk. Continue with the same URL/format and returned snapshotId + nextOffset as offset; subsequent chunks read the saved document without downloading again. Use maxChars to limit each chunk, not maxBytes. Snapshots expire after 30 minutes or cache eviction. GitHub Actions pages contain status/annotations; retrieve actual job logs using authenticated gh run view <run-id> --job <job-id> --log-failed --repo <owner/repo>. Honors allowlist from .chainlesschain/config.json:webFetch.",
     inputSchema: {
       type: "object",
       properties: {
@@ -714,7 +749,53 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         },
         maxBytes: {
           type: "number",
-          description: "Maximum response size in bytes (default: 2000000)",
+          description:
+            "Raw HTTP download limit BEFORE text extraction (default: 10000000 / 10 MB). Larger text pages return a marked incomplete prefix by default; raise this for more of the page. Do not lower this to shorten output; use maxChars instead.",
+        },
+        maxChars: {
+          type: "number",
+          description:
+            "Characters per saved-text chunk (default: 20000). Returns hasMore, nextOffset and snapshotId for continuation. Applies to markdown/text/html; JSON values remain intact.",
+        },
+        snapshotId: {
+          type: "string",
+          description:
+            "Returned snapshot ID. Reads the already downloaded document from local storage without any HTTP request. Keep the same URL and format.",
+        },
+        query: {
+          type: "string",
+          description:
+            "Search the saved webpage for a literal keyword without network access (requires snapshotId). Returns matching offsets/context and nextRead arguments. Omit query when reading the matched section.",
+        },
+        maxMatches: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          description:
+            "Saved-page keyword search: result limit (default 20); continue with nextOffset as offset.",
+        },
+        contextChars: {
+          type: "integer",
+          minimum: 0,
+          maximum: 1000,
+          description:
+            "Saved-page keyword search: context around each hit (default 150).",
+        },
+        caseSensitive: {
+          type: "boolean",
+          description:
+            "Saved-page keyword search: case-sensitive matching (default false).",
+        },
+        offset: {
+          type: "number",
+          description:
+            "Zero-based character position in extracted text (default: 0). For the next chunk, use the previous result's nextOffset with its snapshotId.",
+        },
+        onOverflow: {
+          type: "string",
+          enum: ["truncate", "error"],
+          description:
+            "When the raw download exceeds maxBytes: truncate (default) returns the available prefix with downloadTruncated=true and guidance to fetch more; error requires a complete response. JSON always requires a complete response.",
         },
         timeout: {
           type: "number",
@@ -739,7 +820,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "network",
     tier: "extension",
     description:
-      "Search the web for a query and return ranked results (title, url, snippet) plus an optional synthesized answer. Use this to discover URLs, then web_fetch to read a page. Backend is configured via .chainlesschain/config.json:webSearch (default provider: auto — uses whichever API key is set, else keyless DuckDuckGo).",
+      "Discover web sources from keywords when no URL is known. Return ranked results (title, url, snippet) plus an optional synthesized answer; cite source URLs. This is keyword search, not URL fetching. Use web_fetch only for sources that need full-text inspection, then search/read their saved snapshot locally. Backend is configured via .chainlesschain/config.json:webSearch (default provider: auto — uses whichever API key is set, else keyless DuckDuckGo). Verification challenges are errors, not empty search results.",
     inputSchema: {
       type: "object",
       properties: {
@@ -765,6 +846,19 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         maxResults: {
           type: "number",
           description: "Maximum number of results to return (default: 8)",
+        },
+        maxBytes: {
+          type: "integer",
+          minimum: 1,
+          description:
+            "Raw search response download limit (default 10000000). Do not lower this to shorten snippets.",
+        },
+        maxSnippetChars: {
+          type: "integer",
+          minimum: 1,
+          maximum: 10000,
+          description:
+            "Characters per search-result snippet (default 2000). Read the linked webpage for full text.",
         },
         timeout: {
           type: "number",

@@ -16,6 +16,58 @@ import {
 const map = (evt) => mapAgentEvent(evt, createTurnState());
 
 describe("chat-events — graceful ask_user_question degradation", () => {
+  it("shows the saved webpage character range in the tool trace", () => {
+    expect(
+      map({
+        type: "tool_use",
+        tool: "web_fetch",
+        args: {
+          url: "https://example.com",
+          snapshotId: "saved",
+          offset: 20000,
+          maxChars: 5000,
+        },
+      }),
+    ).toMatchObject({
+      kind: "tool",
+      summary: "https://example.com (chars 20000-24999, saved page)",
+    });
+  });
+
+  it("preserves download failure details and recovery guidance for the panel", () => {
+    const result = map({
+      type: "tool_result",
+      tool: "web_fetch",
+      is_error: true,
+      result: {
+        error: "web_fetch failed: response exceeds maxBytes (20000)",
+        code: "ERR_RESPONSE_TOO_LARGE",
+        hint: "Use maxChars to limit extracted text, not maxBytes.",
+        body: "Do not display the entire response body",
+      },
+    });
+    expect(result).toMatchObject({
+      kind: "tool_done",
+      isError: true,
+      error: "web_fetch failed: response exceeds maxBytes (20000)",
+      errorCode: "ERR_RESPONSE_TOO_LARGE",
+      hint: "Use maxChars to limit extracted text, not maxBytes.",
+    });
+    expect(result.body).toBeUndefined();
+  });
+
+  it("bounds error details and handles structured shell errors", () => {
+    const result = map({
+      type: "tool_result",
+      tool: "run_shell",
+      is_error: true,
+      error: { message: "shell error ".repeat(1000) },
+      result: { hint: "hint ".repeat(1000) },
+    });
+    expect(result.error).toHaveLength(1200);
+    expect(result.hint).toHaveLength(1200);
+  });
+
   it("user_not_reachable → non-error tool_done with a quiet note", () => {
     const r = map({
       type: "tool_result",
