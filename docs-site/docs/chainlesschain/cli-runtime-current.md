@@ -1,12 +1,18 @@
-# CLI Runtime 当前实现（0.166.30 生产推荐 / npm latest）
+# CLI Runtime 当前实现（0.166.34 生产推荐 / npm latest）
 
-> 更新时间：2026-09-07。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.30`，以不可变 tag `v-npm-0-166-30` 的精确 SHA [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.12`、Open VSX `0.37.87` 与 JetBrains Marketplace `0.4.113` 已公开。
+> 更新时间：2026-09-08。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.34`，以不可变 tag `v-npm-0-166-34` 的精确 SHA [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.12`、Open VSX `0.37.89` 与 JetBrains Marketplace `0.4.114` 已公开。
+
+## 2026-09-08 增量：网页快照与长文本检索
+
+`web_fetch` 将最多 10 MB 的原始下载预算与默认 20,000 字符的单轮返回预算分开。完整但过长的网页会保存为进程私有、有界本地快照；按返回的 `snapshotId` 和 `nextOffset` 继续读取即可，不需要再次下载。`web_search` 用于关键词发现；已保存网页与本地长文本可流式搜索，结果包含精确位置、有限上下文和续读游标。
+
+HTTP、DNS、全流程超时、响应超限、验证挑战和不完整下载都会返回结构化状态与恢复建议。`0.166.34` 同时恢复最低 Node.js `22.12.0` 的完整发布套件，并承接未单独发布候选 `0.166.31`、`0.166.33` 的全部修复。
 
 ## 2026-09-07 增量：模型连接与页面化工作台
 
 `cc llm configure` 现在通过有界 stdin JSON 原子保存 provider、model、base URL、vision model 与密钥，密钥不进入 argv；端点改变时不会复用旧密钥。`cc llm test` 使用 OpenAI-compatible、Anthropic、Gemini 与 Ollama 的原生协议探测，拒绝重定向并在 20 秒后超时。
 
-VS Code `0.37.87` 提供页面优先的 Workbench、可分页筛选的只读 Skill Library 与自定义模型连接；CLI 承接读取游标恢复、重复输出抑制、聚焦恢复和可靠 Stop。当前 `main@5db62db246` 的 Desktop 模型治理是源码能力，不属于 `0.166.30` npm tarball 或已公开 Desktop 安装包。
+VS Code `0.37.89` 已公开；JetBrains Marketplace 当前公开 `0.4.114` 并推荐 CLI `0.166.32`，源码/tag `0.4.115` 尚未通过市场回读。当前 `main@e05e613c8e` 内置 CLI `0.166.32`；Desktop 模型治理是源码能力，不等于已公开 Desktop 安装包。
 
 ## 2026-09-06 增量：长任务与治理恢复
 
@@ -24,20 +30,20 @@ VS Code `0.37.87` 提供页面优先的 Workbench、可分页筛选的只读 Ski
 
 | 用途                 | 版本                                                         | 说明                                                                                          |
 | -------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用  | `0.166.30`                                                   | `v-npm-0-166-30@87ddf8b126` 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`         | `0.166.30`                                                   | registry、tag、provenance、tarball 与 public-install workflow 已交叉回读                      |
+| 生产 / 日常稳定使用  | `0.166.34`                                                   | `v-npm-0-166-34@2f8f62d73e` 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`         | `0.166.34`                                                   | registry、tag、provenance、tarball 与 public-install workflow 已交叉回读                      |
 | Agent SDK / Protocol | TS `0.2.8` / Python `0.2.8` / Protocol `0.1.8`               | npm/PyPI 均已公开并完成安装回读                                                               |
-| IDE 工作台           | CLI `0.166.30` + VS Code `0.37.87` / JetBrains `0.4.113`     | Open VSX 与 JetBrains Marketplace 公共制品分别回读                                            |
-| Agent Platform       | CLI `0.166.30`                                               | 原子模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务恢复                       |
+| IDE 工作台           | CLI `0.166.34` + VS Code `0.37.89` / JetBrains `0.4.114`     | Open VSX 与 JetBrains Marketplace 公共制品分别回读                                            |
+| Agent Platform       | CLI `0.166.34`                                               | 有界网页快照、分块续读、长文本检索、结构化错误与最低 Node 兼容                                |
 | 独立发行边界         | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                             |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.166.30
+npm i -g chainlesschain@0.166.34
 ```
 
-已安装旧版的用户可固定升级到 `0.166.30`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.8`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.8`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.8`；三者与 CLI 独立安装和发版。
+已安装旧版的用户可固定升级到 `0.166.34`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.8`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.8`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.8`；三者与 CLI 独立安装和发版。
 
 ## 核心特性
 
@@ -360,7 +366,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.87`，JetBrains Marketplace 当前公开 `0.4.113`。生产建议搭配 CLI `0.166.30`：
+Open VSX 当前公开 VS Code `0.37.89`，JetBrains Marketplace 当前公开 `0.4.114`。生产建议搭配 CLI `0.166.34`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -370,7 +376,7 @@ Open VSX 当前公开 VS Code `0.37.87`，JetBrains Marketplace 当前公开 `0.
 - TeamMailbox 健康投影只显示计数、最旧消息年龄、dead-letter 数量和有界状态；subject/body/digest、consumer key、失败原因、凭据及 attempt binding 均被排除，malformed/oversize/duplicate 可选字段失败闭合。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.87` 与 JetBrains `0.4.113` 已公开消费 Schema 生成的 Agent event 类型，并延续 TeamMailbox 健康、durable workflow/Artifact recovery、Context/Side-effect/Automation Center、安全 Remote Control、跨会话消息、Focus View 与 browser evidence；VS Code 另提供页面化 Workbench、只读 Skill Library、自定义模型连接和默认关闭的固定 Thread/Turn App Server pilot。
+- VS Code `0.37.89` 与 JetBrains `0.4.114` 已公开消费 Schema 生成的 Agent event 类型，并延续 TeamMailbox 健康、durable workflow/Artifact recovery、Context/Side-effect/Automation Center、安全 Remote Control、跨会话消息、Focus View 与 browser evidence；VS Code 还保留结构化网络失败与恢复建议。JetBrains `0.4.115` 仍为源码/tag。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -484,7 +490,7 @@ npm run test:e2e
 
 ## 相关文档
 
-- [Agent Platform 0.166.30 发布、升级与证据边界](./agent-platform-release.md)
+- [Agent Platform 0.166.34 发布、升级与证据边界](./agent-platform-release.md)
 - [CLI 命令行工具](./cli.md)
 - [CC App Server 使用指南](./cli-app-server.md)
 - [Agent Kernel 使用与运维](./cli-agent-kernel.md)

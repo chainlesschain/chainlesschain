@@ -2,26 +2,26 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.30`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.34`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.30 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.34 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-07 当前发布 — **CLI 0.166.30 / VS Code 0.37.87：自定义模型连接与页面化工作台**
+## 2026-09-08 当前发布 — **CLI 0.166.34 / VS Code 0.37.89：大网页快照、长文本检索与 Node 22.12 兼容修复**
 
-> npm `latest` `0.166.30` 对应不可变 tag `v-npm-0-166-30` 与精确提交 [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589530)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589387)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725) 三平台门禁及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427) 均成功，官方 registry 已回读。
+> npm `latest` `0.166.34` 对应不可变 tag `v-npm-0-166-34` 与精确提交 [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280737)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280555)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34174768970) 三平台门禁及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34169291227) 均成功，官方 registry 已回读。
 >
-> `cc llm configure` 通过有界 stdin JSON 原子保存 provider、协议、Base URL、模型别名、视觉模型与密钥；密钥不进入 argv，切换目标地址时不会复用旧站点密钥。`cc llm test` 现按 OpenAI-compatible、Anthropic、Gemini、Ollama 原生协议探测，拒绝携带凭据的重定向并使用有界超时。
+> `web_fetch` 现在把最多 10 MB 的网页下载预算与默认 20,000 字符的单次返回预算分开；超长页面保存为有界本地快照，可用 `snapshotId`、`nextOffset` 分块续读而不重复下载。`web_search` 承担关键词发现，已保存网页和本地长文本可按关键词流式检索并返回位置、上下文与续读游标；超限、超时和不完整下载会给出结构化错误，不会伪装为完整结果。
 >
-> Evolution Workbench 改为状态总览与版本列表优先，Skill Library 提供可筛选、分页的只读目录；变更前仍核对 capability 与最新状态。长文档任务会保留跨压缩读取进度、抑制重复大段输出并在持续探索无交付时进入聚焦恢复；IDE 的 Stop 会先中断，超时后终止旧进程并忽略迟到输出。
+> 本版同时承接 `0.166.32` 的可靠 hostname fetch、全流程超时、CI 日志循环恢复和 Windows PID 复用修复，并恢复最低支持 Node.js `22.12.0` 下的完整发布测试。`0.166.31` 与 `0.166.33` 只保留不可变候选标签，未单独发布；其修复均由 `0.166.34` 承接。
 >
-> [Open VSX 0.37.87](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开并推荐 CLI `0.166.30`；[JetBrains Marketplace 0.4.113](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.29`。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
+> [Open VSX 0.37.89](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开并与 CLI `0.166.34` 配套；[JetBrains Marketplace 0.4.114](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.32`。JetBrains `0.4.115` 仅为源码/tag，尚未写作市场已上架。Session Core `0.3.12`、Core DB `0.1.5`、TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
 >
-> **源码边界**：当前 `main@5db62db246` 晚于上述发布 SHA。Desktop 源码已把 OpenAI/Anthropic/Gemini/Ollama、tool loop、多模态、embedding、reranker、项目/文档/RAG 等已识别入口统一接入受治理 Run 或在发送前失败闭合，并为 Ledger witness 增加 trust-epoch 验签缓存；这些变化尚不能写成 `0.166.30` npm 字节或已发布桌面安装包能力。详见[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[桌面模型治理用户指南](docs-site/docs/chainlesschain/desktop-model-governance.md)、[模块 112](docs/design/modules/112-governed-skill-evolution-design.md)与[模块 113 设计](docs/design/modules/113-governed-desktop-model-ingress-design.md)。
+> **源码边界**：GitHub/Gitee `main@e05e613c8e` 当前内置 CLI `0.166.32`；`0.166.34@2f8f62d73e` 位于已打发布标签的后继分支，尚未合入 `main`。Desktop 受治理模型入口属于 `main` 源码能力，但仍不等于公开 Desktop 安装包已经完成发布验收。详见[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[CLI Runtime 当前实现](docs/design/cli-runtime-current.md)与[模块 113 设计](docs/design/modules/113-governed-desktop-model-ingress-design.md)。
 
 ## 2026-09-01 历史发布快照 — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 

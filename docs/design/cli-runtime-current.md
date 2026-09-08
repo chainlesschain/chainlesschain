@@ -1,14 +1,30 @@
-# CLI Runtime 当前实现核对（Agent Platform 0.166.30）
+# CLI Runtime 当前实现核对（Agent Platform 0.166.34）
 
-> 更新时间：2026-09-07。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.30`，绑定不可变 tag `v-npm-0-166-30` 的精确 SHA `87ddf8b12625086e9666fedb054f0d67a7b8038d`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.12`、Open VSX `0.37.87` 与 JetBrains Marketplace `0.4.113` 已公开。
+> 更新时间：2026-09-08。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.34`，绑定不可变 tag `v-npm-0-166-34` 的精确 SHA `2f8f62d73eddcb2f834a3f125118a39b14febe2a`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK `0.2.8`、Agent Protocol `0.1.8`、Session Core `0.3.12`、Open VSX `0.37.89` 与 JetBrains Marketplace `0.4.114` 已公开；JetBrains `0.4.115` 仍是源码/tag。
 
-## 2026-09-07 增量：原子模型配置、页面化工作台与聚焦恢复
+## 2026-09-08 增量：有界网页快照与长文本检索
+
+`web_fetch` 将“允许下载多少原始响应”和“本轮返回给模型多少文本”拆成独立预算：默认最多返回 20,000 字符，原始网页下载上限为 10 MB。成功提取但无法在一轮完整返回的网页会写入进程私有、有界、带保留期的本地快照；调用方使用 `snapshotId` 与 `nextOffset` 顺序续读，不重新访问远端。快照按 host、URL 和策略隔离，按字符边界分页以保持 Unicode 完整，并在正常退出时清理。
+
+关键词发现由 `web_search` 负责；`text-file-search` 在 worker 中流式扫描快照或本地长文本，返回精确位置、有限上下文和续读游标。正则执行、结果数量、单项上下文、worker 数量与总输出均有界。下载不完整、响应超限、HTTP 错误、验证挑战或超时均返回结构化状态，不能生成“完整页面”声明。
+
+```text
+remote URL
+  └─ governed fetch: DNS/IP policy → redirects → timeout → raw-byte budget
+       ├─ complete short text → bounded inline result
+       ├─ complete long text  → private snapshot → offset paging / keyword search
+       └─ incomplete/error    → typed failure + recovery guidance
+```
+
+本版承接 `0.166.32` 的 Node 22 多地址 DNS 修复、全链路 fetch 超时、重复 CI 日志恢复与 Windows PID 复用回归，并在最低支持 Node.js `22.12.0` 下恢复完整发布套件。`0.166.31` 与 `0.166.33` 是未单独发布的不可变候选，由 `0.166.34` 完整承接。
+
+## 2026-09-07 基线：原子模型配置、页面化工作台与聚焦恢复
 
 `cc llm configure` 通过有界 stdin JSON 原子保存 provider、model、base URL、vision model 与密钥，密钥不进入 argv；端点改变时不会复用旧密钥，并可选择 `auto`、`keychain` 或 `file` 存储。OpenAI-compatible、Anthropic、Gemini 与 Ollama 使用原生协议探测，拒绝重定向并在 20 秒后超时。
 
 VS Code `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分页筛选的只读 Skill Library 与自定义连接入口；JetBrains `0.4.113` 已公开并内置推荐 CLI `0.166.29`。CLI 同时承接读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复和可靠 Stop。
 
-当前 `main@5db62db246` 还包含 Desktop 受治理模型入口及 trust-epoch witness 验签缓存。这是 `0.166.30` 之后的源码增量，不属于 npm tarball 或已公开 Desktop 安装包。
+GitHub/Gitee `main@e05e613c8e` 当前内置 CLI `0.166.32`，并包含 Desktop 受治理模型入口及 trust-epoch witness 验签缓存。已发布 `0.166.34@2f8f62d73e` 位于带发布标签的后继分支，尚未合入 `main`；Desktop 源码能力仍不等于已公开 Desktop 安装包。
 
 ## 2026-09-06 增量：长任务与治理恢复
 
@@ -20,7 +36,7 @@ VS Code `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分�
 
 ## 版本与证据边界
 
-- `0.166.30` 是当前生产推荐与 npm `latest`。`v-npm-0-166-30` 精确指向 `87ddf8b12625086e9666fedb054f0d67a7b8038d`；同一发布提交的三平台 CLI CI `34079589530`、CLI Strict Sandbox `34079589387`、npm Trusted Publishing/public-install `34079589427` 与 IDE Extensions `34085825725` 均成功。
+- `0.166.34` 是当前生产推荐与 npm `latest`。`v-npm-0-166-34` 精确指向 `2f8f62d73eddcb2f834a3f125118a39b14febe2a`；同一发布提交的三平台 CLI CI `34169280737`、CLI Strict Sandbox `34169280555`、npm Trusted Publishing/public-install `34169291227` 与 IDE Extensions `34174768970` 均成功。
 - `@chainlesschain/agent-sdk@0.2.8`、`chainlesschain-agent-sdk==0.2.8` 与 `@chainlesschain/agent-protocol@0.1.8` 已公开；SDK 与 Protocol 保持独立安装和发版边界。Session Core `0.3.12` 与 Context/Memory Kernel `0.1.0` 也已完成 npm 回读。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
 - `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
@@ -43,8 +59,8 @@ VS Code `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分�
 - `main@458b342f5f` 的瞬态审计读取重试、Windows formal quality Agent 独立 HOME/config/cache、CI 清理稳定性和最终 `1.65` 平台时延比上限晚于 `v-npm-0-166-15`。固定 SHA `db53dc2da4` 的 run `33411796790` 未变为成功，也没有最终 SHA 的三平台 aggregate success/OIDC attestation；发布负责人依据 Windows `1.6379980224 <= 1.65`、全部功能/安全指标通过及离线加权 aggregate `0.6008293973 < 1.5` 显式接受剩余证据风险并关闭 P2-3。该关闭不继承 `0.166.15` 发布授权，也不构成通用豁免先例。
 - `cc serve --app-server` 默认以 stdio JSON-RPC 暴露 initialize、thread start/read/resume/fork、turn start/interrupt、item/approval 通知；默认 JSONL rollout，SQLite 由运行时能力门控，有界队列在过载时失败闭合。`--app-server-websocket` 是强制 token、远程 TLS 与固定子协议的实验入口。
 - `cc team graph inspect|diff|eval` 从 append-only GraphRun 事件生成 Agent/Task/Artifact/Message/Effect/Timeline 投影、time travel、blocked root 与阈值报告；默认不输出 Message/HumanTask 内容。
-- IDE 当前公开版本为 Open VSX `0.37.87` 与 JetBrains Marketplace `0.4.113`；VS Code 提供页面化 Workbench、只读 Skill Library 与自定义模型连接，双端仍保持 CLI-authoritative 投影。微软 VS Code Marketplace 仍未发布。
-- CLI/SDK/Protocol 当前公开组合为 `0.166.30/0.2.8 TS + 0.2.8 Python/0.1.8`。Desktop 签名/Skill 资格、真实 UI replay、Codex compatibility 与当前 Desktop 模型入口源码都有各自证据边界，不能替代公共 native 分发、生产 relay 或真实 provider 验收。
+- IDE 当前公开版本为 Open VSX `0.37.89` 与 JetBrains Marketplace `0.4.114`；后者内置推荐 CLI `0.166.32`。源码/tag JetBrains `0.4.115` 尚未通过公开市场回读，双端仍保持 CLI-authoritative 投影。微软 VS Code Marketplace 仍未发布。
+- CLI/SDK/Protocol 当前公开组合为 `0.166.34/0.2.8 TS + 0.2.8 Python/0.1.8`。Desktop 签名/Skill 资格、真实 UI replay、Codex compatibility 与当前 Desktop 模型入口源码都有各自证据边界，不能替代公共 native 分发、生产 relay 或真实 provider 验收。
 
 ## 2026-09-04 受治理 Skill 与知识 evolution 公开基线
 
@@ -371,10 +387,10 @@ outcome-unknown dead letter
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 公开版 Open VSX `0.37.87` / JetBrains Marketplace `0.4.113` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE 公开版 Open VSX `0.37.89` / JetBrains Marketplace `0.4.114` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.87`；JetBrains Marketplace 当前公开 `0.4.113`。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影；VS Code 新增页面化 Workbench/Skill Library 与自定义模型连接。Microsoft VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.89`；JetBrains Marketplace 当前公开 `0.4.114`，源码/tag `0.4.115` 尚未市场回读。双端消费 Schema 生成 payload union 并保留未知未来事件，延续 Context Center、权限/副作用证据、Automation Center、durable workflow/Artifact recovery 与无正文协作投影。Microsoft VS Code Marketplace 仍未发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -402,6 +418,7 @@ outcome-unknown dead letter
 | CC App Server   | `packages/cli/src/lib/app-server/`、`commands/serve.js`、`packages/agent-sdk/src/app-server-client.ts`                                           |
 | Agent Kernel    | `packages/cli/src/runtime/{runtime-factory,agent-runtime,agent-core,headless-runner,headless-stream,output-backpressure}.js`                     |
 | Graph Kernel    | `packages/cli/src/lib/graph-kernel/`、`commands/graph.js`、`commands/team.js`                                                                    |
+| 网页快照与检索  | `packages/cli/src/lib/web-fetch.js`、`web-fetch-snapshots.js`、`web-search.js`、`text-file-search.js`、`text-file-search-worker.js`              |
 | Auto 安全分类   | `packages/cli/src/lib/auto-mode-safety-classifier.js`、`lib/auto-mode-safety-eval.js`、`commands/auto-mode.js`                                   |
 | OTLP 出口       | `packages/cli/src/lib/otlp-exporter.js`、`lib/observability/otlp-exporter.js`                                                                    |
 | 插件沙箱策略    | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
@@ -426,9 +443,9 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.166.30` 的精确正式发布提交为 [`87ddf8b12625086e9666fedb054f0d67a7b8038d`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d)。同一提交的 [Linux/Windows/macOS CLI CI run 34079589530](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589530)、[Strict Sandbox run 34079589387](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589387)、[Trusted Publishing/public-install run 34079589427](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427)和[IDE Extensions run 34085825725](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725)均成功。Agent Protocol `0.1.8`、TS/Python SDK `0.2.8`、Open VSX `0.37.87` 与 JetBrains `0.4.113` 均已公开回读。
+`0.166.34` 的精确正式发布提交为 [`2f8f62d73eddcb2f834a3f125118a39b14febe2a`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a)。同一提交的 [Linux/Windows/macOS CLI CI run 34169280737](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280737)、[Strict Sandbox run 34169280555](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280555)、[Trusted Publishing/public-install run 34169291227](https://github.com/chainlesschain/chainlesschain/actions/runs/34169291227)和[IDE Extensions run 34174768970](https://github.com/chainlesschain/chainlesschain/actions/runs/34174768970)均成功。Agent Protocol `0.1.8`、TS/Python SDK `0.2.8`、Open VSX `0.37.89` 与 JetBrains Marketplace `0.4.114` 均已公开回读。
 
-后续版本仍必须在各自 final exact SHA 上重新完成权威门；当前 `main` 与 `v-npm-0-166-21` 都指向本次 SHA，也不能让 npm tarball、Open VSX VSIX、JetBrains ZIP 与 Desktop/native 合并为同一制品身份，仍必须分别按公共回读证据处理。
+后续版本仍必须在各自 final exact SHA 上重新完成权威门。当前 `main@e05e613c8e` 与 `v-npm-0-166-34@2f8f62d73e` 不同；npm tarball、Open VSX VSIX、JetBrains ZIP 与 Desktop/native 仍必须分别按公共回读证据处理。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
 

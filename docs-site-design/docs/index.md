@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.30 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.8 万+下载"
+  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.34 | Agent SDK TS/Python 0.2.8 | IDE Bridge 3.8 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.30
-    details: 原子模型连接、页面化 Workbench/Skill Library、长任务聚焦恢复，以及 candidate/Eval/release 的持久治理语义
+    title: Agent Platform 0.166.34
+    details: 有界网页快照、分块续读、长文本检索、结构化网络失败与 Node 22.12 兼容，以及 candidate/Eval/release 的持久治理语义
     link: /modules/112-governed-skill-evolution-design
 
   - icon: 🛡️
@@ -61,7 +61,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-07 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.30@87ddf8b126`。`main@5db62db246` 的 Desktop 模型入口收口和 trust-epoch witness 缓存晚于该发布；缺少目标环境 KMS/PKI/witness/grader 或 trusted deployment host 时变更与旧直连均失败闭合。详见[模块 112](/modules/112-governed-skill-evolution-design)、[模块 113](/modules/113-governed-desktop-model-ingress-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
+> **2026-09-08 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.34@2f8f62d73e`；Open VSX 为 `0.37.89`，JetBrains Marketplace 为 `0.4.114`。`main@e05e613c8e` 当前内置 CLI `0.166.32`，发布提交尚未合入 main；缺少目标环境 authority 时治理变更仍失败闭合。详见[CLI Runtime](/cli-runtime-current)、[模块 113](/modules/113-governed-desktop-model-ingress-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
 
 > **生产边界**：仓库已从早期 source-only 快照前进到真实文件 Ledger/witness、CLI 三模式 ingress、Graph/WebSocket 接线缝和可恢复状态迁移。部署仍须提供独立 trust root、密钥与身份运营、最终用户审阅面、真实 target runner/grader 和跨主机灾备；这些条件不能由本地测试或 tag 自动推导。
 

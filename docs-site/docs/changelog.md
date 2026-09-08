@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.34 / VS Code 0.37.89 / JetBrains 0.4.114（2026-09-08）
+
+npm `latest` `0.166.34` 对应不可变 tag `v-npm-0-166-34` 与精确提交 [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280737)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280555)、[npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34169291227)和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34174768970) 均成功。
+
+- **网页只下载一次**：原始下载上限与模型返回字符预算分离；超长页面保存为有界本地快照，通过 `snapshotId`、`nextOffset` 分块续读。
+- **网页与长文本搜索**：关键词发现进入 `web_search`；快照和本地长文件可流式搜索并返回精确位置、有限上下文与续读游标。
+- **错误与恢复**：HTTP、DNS、超时、响应超限、验证挑战和不完整下载均结构化报告；IDE 聊天保留错误码和恢复建议，重复 CI 日志读取会转入有界恢复。
+- **兼容性**：完整发布套件恢复在最低 Node.js `22.12.0` 上运行；Windows 进程身份与并发恢复诊断进一步加固。
+- **候选承接**：`0.166.31` 与 `0.166.33` 未单独发布，其不可变 tag 保留，修复由 `0.166.34` 承接。
+- **IDE 渠道**：Open VSX `0.37.89` 已公开；JetBrains Marketplace 当前公开 `0.4.114` 并推荐 CLI `0.166.32`，源码/tag `0.4.115` 尚未通过市场回读。
+- **源码边界**：GitHub/Gitee `main@e05e613c8e` 当前内置 CLI `0.166.32`；`0.166.34` 发布提交位于带 tag 的后继分支，尚未合入 `main`。
+
 #### Released — CLI 0.166.30 / VS Code 0.37.87 / JetBrains 0.4.113（2026-09-07）
 
 npm `latest` `0.166.30` 对应不可变 tag `v-npm-0-166-30` 与精确提交 [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589530)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589387)、[npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427)和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725) 均成功。

@@ -2,26 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.30` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.34` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.30 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.34 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-07 current release — CLI 0.166.30 / VS Code 0.37.87: custom model connections and page-first workspaces
+## 2026-09-08 current release — CLI 0.166.34 / VS Code 0.37.89: bounded webpage snapshots, long-text search, and Node 22.12 compatibility
 
-> npm latest is `0.166.30`, tagged `v-npm-0-166-30` at [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d). The same commit passed the complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589530), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589387), and [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725) gates, followed by [npm publishing and public-install checks](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427).
+> npm latest is `0.166.34`, tagged `v-npm-0-166-34` at [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a). The same commit passed the complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280737), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280555), and [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34174768970) gates, followed by [npm publishing and public-install checks](https://github.com/chainlesschain/chainlesschain/actions/runs/34169291227).
 >
-> `cc llm configure` atomically saves provider/protocol, Base URL, model aliases, optional vision model, and credential from bounded stdin JSON. Secrets never enter argv, and a changed destination cannot reuse the old endpoint's key. `cc llm test` now probes OpenAI-compatible, Anthropic, Gemini, and Ollama endpoints with their native protocols, bounded timeouts, and no credential-bearing redirects.
+> `web_fetch` now separates a 10 MB webpage download budget from the default 20,000-character response budget. Oversized pages become bounded local snapshots that can be continued with `snapshotId` and `nextOffset` without another download. `web_search` handles keyword discovery, while saved webpages and long local text files can be searched with precise positions, context, and continuation cursors.
 >
-> Evolution Workbench now opens on a status overview and version list; Skill Library is a filterable, paginated, read-only catalog. Capability and fresh-state checks still precede decisions. Long-document tasks preserve progress through compaction, suppress repeated large output, and enter focused recovery after prolonged exploration without delivery. IDE Stop interrupts first, terminates an unresponsive old process, and ignores late output.
+> This release also carries the `0.166.32` hostname-fetch, end-to-end timeout, CI-log recovery, and Windows PID-reuse fixes, and restores the complete release suite on the minimum supported Node.js `22.12.0`. The immutable `0.166.31` and `0.166.33` candidate tags were not published separately; `0.166.34` includes their fixes.
 >
-> [Open VSX 0.37.87](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) is public and recommends CLI `0.166.30`; [JetBrains Marketplace 0.4.113](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) is public and recommends CLI `0.166.29`. Session Core `0.3.12` and Core DB `0.1.5` are public; both SDKs remain `0.2.8`, Protocol `0.1.8`.
+> [Open VSX 0.37.89](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) is public and paired with CLI `0.166.34`; [JetBrains Marketplace 0.4.114](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) is public and recommends CLI `0.166.32`. JetBrains `0.4.115` is currently source/tag only. Session Core `0.3.12`, Core DB `0.1.5`, both SDKs `0.2.8`, and Protocol `0.1.8` keep independent release identities.
 >
-> **Source boundary:** current `main@5db62db246` is newer than that release SHA. Desktop source now routes identified OpenAI/Anthropic/Gemini/Ollama, tool-loop, multimodal, embedding, reranker, project/document/RAG paths through a governed Run or fails closed before sending data, and adds trust-epoch witness verification caching. These changes are not the `0.166.30` npm bytes or a publicly released Desktop installer. See the [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [Desktop model-governance guide](docs-site/docs/chainlesschain/desktop-model-governance.md), [module 112](docs/design/modules/112-governed-skill-evolution-design.md), and [module 113 design](docs/design/modules/113-governed-desktop-model-ingress-design.md).
+> **Source boundary:** GitHub/Gitee `main@e05e613c8e` currently embeds CLI `0.166.32`; released `0.166.34@2f8f62d73e` is on a tagged descendant branch and has not yet merged into `main`. Desktop governed model ingress is a `main` source capability, but it is not proof of a publicly qualified Desktop installer. See the [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [current CLI runtime](docs/design/cli-runtime-current.md), and [module 113 design](docs/design/modules/113-governed-desktop-model-ingress-design.md).
 
 ## 2026-09-01 historical release snapshot — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7 (TS/Python) / Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 

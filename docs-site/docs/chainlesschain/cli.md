@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-09-07）：产品 v5.0.3.135 / Agent Platform CLI 0.166.30（生产推荐与 npm latest，精确发布 SHA `87ddf8b126`）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.12 | 175 命令 | Node.js ≥ 22.12.0。当前版新增原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务聚焦恢复；当前 Desktop 模型治理仍是 `main@5db62db246` 的源码能力。**
+> **当前版本边界（2026-09-08）：产品 v5.0.3.135 / Agent Platform CLI 0.166.34（生产推荐与 npm latest，精确发布 SHA `2f8f62d73e`）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.12 | 175 命令 | Node.js ≥ 22.12.0。当前版新增有界网页快照、分块续读、长文本检索与结构化网络错误；`main@e05e613c8e` 当前内置 CLI 0.166.32。**
 
 ## 概述
 
@@ -15,6 +15,7 @@ ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，�
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - 📨 **TeamMailbox v3**: 真实 `cc team --agent` 子进程可使用私有 `team_send|receive|ack|followup`，支持至少一次投递、幂等、稳定 consumer 和 dead-letter
 - 🧩 **产品集成协议**: `cc serve --app-server` 提供耐久 Thread/Turn/Item、结构化审批、背压与断线恢复
+- 🌐 **有界网页读取**: 大网页只下载一次并保存进程私有快照，使用 `snapshotId` / `nextOffset` 分块续读；长文本关键词检索返回位置、上下文和续读游标
 - 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供只读时间旅行、根因分析和 CI 阈值门；Task Graph、动态 Agent Tree 与 Artifact/Trace 投影保持不同语义
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
 - 🧪 **30,000+ 测试通过**: 跨桌面 / CLI / web-panel / core packages 共 6 层测试矩阵
@@ -141,7 +142,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.30
+npm install -g chainlesschain@0.166.34
 chainlesschain setup
 chainlesschain start
 ```
@@ -158,7 +159,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.30
+npm install -g chainlesschain@0.166.34
 ```
 
 安装后提供 3 个等价命令：

@@ -2,9 +2,9 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-07）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.30@87ddf8b126`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.12`、PDH 为 `0.4.59`；Open VSX 为 `0.37.87`，JetBrains Marketplace 为 `0.4.113`。
+> 当前文档快照（2026-09-08）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.34@2f8f62d73e`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript/Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.8`、Session Core 为 `0.3.12`、PDH 为 `0.4.59`；Open VSX 为 `0.37.89`，JetBrains Marketplace 为 `0.4.114`。
 
-> 新功能边界：`0.166.30` 已公开原子自定义模型连接、原生协议探测、页面化 Workbench/Skill Library 与长任务恢复。当前 `main@5db62db246` 的 Desktop 受治理模型入口属于源码能力，不属于 `0.166.30` npm 字节或已公开 Desktop 安装包。详见[模型治理用户指南](docs/chainlesschain/desktop-model-governance.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
+> 新功能边界：`0.166.34` 已公开有界网页快照、分块续读、长文本关键词检索、结构化错误与 Node.js `22.12.0` 兼容修复。`main@e05e613c8e` 当前仍内置 CLI `0.166.32`；Desktop 受治理模型入口属于源码能力，不等于公开 Desktop 安装包。详见[CLI Runtime](docs/chainlesschain/cli-runtime-current.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
 
 ## 📚 文档内容
 

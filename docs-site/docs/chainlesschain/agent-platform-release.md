@@ -1,14 +1,14 @@
-# Agent Platform 0.166.30 发布与升级指南
+# Agent Platform 0.166.34 发布与升级指南
 
-> 核对日期：2026-09-07。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
+> 核对日期：2026-09-08。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
 
 ## 概述
 
-Agent Platform `0.166.30` 是生产推荐版与 npm `latest`。不可变 tag `v-npm-0-166-30` 指向精确提交 [`87ddf8b126`](https://github.com/chainlesschain/chainlesschain/commit/87ddf8b12625086e9666fedb054f0d67a7b8038d)；该 SHA 的 Linux、Windows、macOS CLI CI、CLI Strict Sandbox、IDE Extensions、Trusted Publishing 与 npm 公共回读已完成。
+Agent Platform `0.166.34` 是生产推荐版与 npm `latest`。不可变 tag `v-npm-0-166-34` 指向精确提交 [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a)；该 SHA 的 Linux、Windows、macOS CLI CI、CLI Strict Sandbox、IDE Extensions、Trusted Publishing 与 npm 公共回读已完成。
 
-本版承接 `0.166.24` 的长任务与持久治理、`0.166.25–0.166.29` 的长文档读取/输出恢复和可靠 Stop，新增原子自定义模型连接、provider 原生协议探测、页面化 Evolution Workbench 与 Skill Library。当前安装应直接使用 `0.166.30`。
+本版承接 `0.166.30` 的原子模型连接与页面化工作台、`0.166.32` 的可靠网络访问与 CI 日志恢复，并新增大网页有界本地快照、分块续读、长文本关键词检索和最低 Node 版本兼容修复。当前安装应直接使用 `0.166.34`；`0.166.31`、`0.166.33` 未单独发布。
 
-当前 GitHub `main@5db62db246` 晚于发布 SHA。其 Desktop 模型入口收口与 trust-epoch witness 验签缓存属于源码状态，不是 `0.166.30` npm 字节，也不等于公开 Desktop 安装包已完成发布验收。
+GitHub/Gitee `main@e05e613c8e` 当前内置 CLI `0.166.32`。已发布 `0.166.34@2f8f62d73e` 位于带 tag 的后继分支，尚未合入 `main`；`main` 的 Desktop 模型入口收口仍属于源码状态，不等于公开 Desktop 安装包已完成发布验收。
 
 ## 核心特性
 
@@ -47,20 +47,25 @@ REPL / headless / stream / AgentRuntime
 
 | 组件                  | 公开版本   | 获取渠道              |
 | --------------------- | ---------- | --------------------- |
-| CLI                   | `0.166.30` | npm                   |
+| CLI                   | `0.166.34` | npm                   |
 | Core DB               | `0.1.5`    | npm                   |
 | Context/Memory Kernel | `0.1.0`    | npm                   |
 | Session Core          | `0.3.12`   | npm                   |
 | Agent Protocol        | `0.1.8`    | npm                   |
 | TypeScript Agent SDK  | `0.2.8`    | npm                   |
 | Python Agent SDK      | `0.2.8`    | PyPI                  |
-| VS Code IDE Bridge    | `0.37.87`  | Open VSX              |
-| JetBrains IDE Bridge  | `0.4.113`  | JetBrains Marketplace |
+| VS Code IDE Bridge    | `0.37.89`  | Open VSX              |
+| JetBrains IDE Bridge  | `0.4.114`  | JetBrains Marketplace |
 | Personal Data Hub     | `0.4.59`   | npm                   |
 
-Open VSX `0.37.87` 已公开并推荐 CLI `0.166.30`；JetBrains Marketplace `0.4.113` 已公开并推荐 CLI `0.166.29`。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
+Open VSX `0.37.89` 已公开并与 CLI `0.166.34` 配套；JetBrains Marketplace `0.4.114` 已公开并推荐 CLI `0.166.32`。JetBrains `0.4.115` 仍是源码/tag。Microsoft VS Code Marketplace 尚未公开该扩展，stock VS Code 用户应从 Open VSX 下载 VSIX。
 
 ## 本版新增与修复
+
+- **大网页只下载一次**：`web_fetch` 将 10 MB 原始下载预算与默认 20,000 字符返回预算分离；完整但过长的提取文本写入有界本地快照，可按 `snapshotId`、`nextOffset` 继续读取。
+- **长文本检索**：`web_search` 负责关键词发现；已保存网页和本地长文本由隔离 worker 流式搜索，返回位置、上下文和续读游标，正则、并发与输出均有上限。
+- **结构化失败**：HTTP、超时、响应超限、验证挑战和不完整下载明确标记，IDE 保留错误码与恢复建议，不把前缀或部分下载称为完整页面。
+- **最低 Node 兼容**：恢复 Node.js `22.12.0` 下使用项目自带 SQLite 驱动的完整发布套件，并保留并发恢复失败诊断。
 
 - **原子模型连接**：`cc llm configure` 同一把锁内绑定 provider、Base URL、模型与 credential，切换目标地址时不复用旧密钥；stdin 最大 32 KiB，远程 HTTP 需显式确认，URL 不接受内嵌凭据、query 或 fragment。
 - **原生协议探测**：`cc llm test` 对 OpenAI-compatible、Anthropic、Gemini、Ollama 构造各自协议请求，拒绝 redirect，20 秒超时且必须取得非空模型文本。
@@ -90,7 +95,7 @@ Open VSX `0.37.87` 已公开并推荐 CLI `0.166.30`；JetBrains Marketplace `0.
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.30 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.34 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -101,12 +106,12 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.30 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.34 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.30`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.34`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
@@ -118,9 +123,9 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 
 ### IDE
 
-- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.87`。
-- 官方 VS Code：下载 [0.37.87 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.87/file/chainlesschain.chainlesschain-ide-0.37.87.vsix)，运行 **Extensions: Install from VSIX...**。
-- JetBrains 2024.2+：在 Marketplace 搜索 **ChainlessChain IDE**，安装当前公开的 `0.4.113`。
+- Open VSX：安装 `chainlesschain.chainlesschain-ide@0.37.89`。
+- 官方 VS Code：下载 [0.37.89 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.89/file/chainlesschain.chainlesschain-ide-0.37.89.vsix)，运行 **Extensions: Install from VSIX...**。
+- JetBrains 2024.2+：在 Marketplace 搜索 **ChainlessChain IDE**，安装当前公开的 `0.4.114`。
 
 ## 配置参考
 
@@ -133,7 +138,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 | 知识冲突审核   | `cc evolution knowledge ...`         | 只返回删节投影；merge 由宿主复核                       |
 | Skill 检索     | `cc skill search ...`                | 命中不等于安装或晋升                                   |
 | Agent 能力     | `cc agent --capabilities`            | 显示能力不等于 production composition 已启用           |
-| IDE 安装       | Open VSX / JetBrains Marketplace     | VS Code `0.37.87`；JetBrains `0.4.113`                 |
+| IDE 安装       | Open VSX / JetBrains Marketplace     | VS Code `0.37.89`；JetBrains `0.4.114`                 |
 | 更新检查       | `npm view chainlesschain version`    | 应从官方 npm registry 回读                             |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
@@ -147,7 +152,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 
 ## 测试覆盖
 
-精确 SHA `87ddf8b12625086e9666fedb054f0d67a7b8038d` 的公共门：
+精确 SHA `2f8f62d73eddcb2f834a3f125118a39b14febe2a` 的公共门：
 
 | 门禁                                  | GitHub Actions run                                                                         | 状态 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ | ---- |
@@ -156,7 +161,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 | IDE Extensions                        | [`34085825725`](https://github.com/chainlesschain/chainlesschain/actions/runs/34085825725) | 成功 |
 | npm Trusted Publishing 与公共安装检查 | [`34079589427`](https://github.com/chainlesschain/chainlesschain/actions/runs/34079589427) | 成功 |
 
-Open VSX `0.37.87` 和 JetBrains Marketplace `0.4.113` 已分别完成公共 listing 回读。npm tarball、VSIX、JetBrains ZIP、Desktop native 仍是独立制品身份。Record & Replay 和前序 Desktop Signed Skill qualification 继续绑定它们各自的历史 exact SHA，不被本次 CLI 发布改写。
+Open VSX `0.37.89` 和 JetBrains Marketplace `0.4.114` 已分别完成公共 listing 回读。JetBrains `0.4.115` 尚未完成 Marketplace 公共回读。npm tarball、VSIX、JetBrains ZIP、Desktop native 仍是独立制品身份。
 
 ## 安全考虑
 
@@ -167,19 +172,19 @@ Open VSX `0.37.87` 和 JetBrains Marketplace `0.4.113` 已分别完成公共 lis
 
 ## 故障排查
 
-**`unknown command 'agent'`**：这通常是 `0.166.18` 公共安装与 Session Core 导出不匹配。升级到 `0.166.30`，再运行 `cc agent --capabilities`。
+**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.34`，再运行 `cc agent --capabilities`。
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.30 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.34 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.87` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.89` VSIX。
 
-**JetBrains 版本过旧**：刷新 Marketplace 元数据并确认当前公开版为 `0.4.113`。
+**JetBrains 版本过旧**：刷新 Marketplace 元数据并确认当前公开版为 `0.4.114`。
 
-**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.30`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.34`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **Workbench/Knowledge 提示 trusted deployment host required**：当前进程未接入部署治理宿主。保持失败闭合，由管理员配置 identity/policy/ledger/KMS authority；不要回退到本地直写。
 
