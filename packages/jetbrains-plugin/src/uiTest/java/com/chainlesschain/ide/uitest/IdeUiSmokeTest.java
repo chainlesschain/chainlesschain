@@ -72,6 +72,7 @@ final class IdeUiSmokeTest {
         try {
             ComponentFixture frame = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
+            restoreIdeWindow(frame);
             assertRequiredHostArchitecture(frame);
             assertRequiredHostVersion(frame);
             assertAutomaticCompletionContract(frame);
@@ -143,6 +144,13 @@ final class IdeUiSmokeTest {
         }
     }
 
+    private static void restoreIdeWindow(ComponentFixture frame) {
+        Object previousState = frame.callJs("component.getExtendedState();");
+        System.out.println("[ui-smoke] IDE frame state before foreground: " + previousState);
+        frame.runJs("component.setExtendedState(component.getExtendedState() & ~Packages.java.awt.Frame.ICONIFIED);"
+                + "component.setVisible(true); component.toFront(); component.requestFocus();", true);
+    }
+
     private static void saveProjectBeforeRestart(ComponentFixture frame) throws Exception {
         // The driver terminates the sandbox process tree between phases. Use
         // the IDE's normal Save All action first, so this verifies a saved
@@ -187,6 +195,8 @@ final class IdeUiSmokeTest {
     }
 
     private static ComponentFixture openModelForm(RemoteRobot robot) throws InterruptedException {
+        restoreIdeWindow(robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='IdeFrameImpl']"), FIND_BUDGET));
         clickButton(robot.find(ComponentFixture.class, Locators.byXpath(
                 "//div[@accessiblename='Configure language model' and @visible='true']"), FIND_BUDGET));
         ComponentFixture menu = robot.find(ComponentFixture.class,
