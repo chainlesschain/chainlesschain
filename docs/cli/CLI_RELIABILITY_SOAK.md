@@ -177,3 +177,51 @@ without restarting it on an observation timeout. These are exact report
 metrics, not production authority, physical-durability or 250,000-event
 capacity evidence. The earlier 1,612.04-second result measured a whole test
 group, so it is not directly comparable to this seed-only duration.
+
+### Segmented file-witness storage (0.166.35 candidate)
+
+The file witness still reads legacy v1 stores. The first successful append
+that would exceed 256 records moves complete 256-record prefixes into
+`<witness-file>.segments-v2/<sha256>.json` and publishes a v2 head containing
+the ordered segment digests and 1–256 tail records. Complete prefix files are
+never rewritten on subsequent appends. Each prefix is fsynced, published and
+read back before the head can reference it. A crash before head publication
+leaves the old head authoritative; a complete unreferenced prefix can be
+reused only after exact-byte comparison and another durability confirmation.
+
+Back up the head and its referenced sidecar directory together. Older CLI
+versions cannot open a v2 witness; deploy compatible readers and writers
+before allowing migration. There is no automatic downgrade. Corrupt orphans
+are not overwritten or treated as committed history. Temporary/orphan files
+are outside the committed-history size accounting and need separately
+managed storage retention.
+
+`maximumBytes` remains the per-file limit (default 64 MiB).
+`maximumHistoryBytes` limits the sum of the actual head and all referenced
+segment bytes and defaults to `maximumBytes`, preserving the prior aggregate
+limit. Reads charge the remaining budget before allocating a segment buffer.
+The file backend exposes the latter as `witnessMaximumHistoryBytes`; increasing
+it is an explicit deployment choice. The manifest also rejects more than
+262,144 records. These limits are rejection boundaries, not a measured
+250,000-event capacity guarantee.
+
+Every read reopens and rehashes every referenced prefix, including warm reads.
+An authenticated, stable verifier trust epoch permits reuse of validated
+segment summaries; changing the epoch revalidates historical signatures.
+Without that capability every signature is revalidated. The summary cache
+has a separate 16 MiB retained-text budget and at most 1,024 entries; this is
+not a whole-process RSS bound. Cross-segment ancestry and discarded-anchor
+fences remain authenticated. Authority methods and input snapshots are
+captured before callbacks execute.
+
+Regression cases cover legacy conversion, immutable prefixes, old-byte
+tampering, trust revocation, malformed manifests, four publication-failure
+windows, discard boundaries, silent write loss and aggregate capacity.
+The final four-file local regression passed 95/95 on Windows with Node
+22.22.2, including the aggregate-capacity checks; ESLint and formatting
+checks passed. The concurrent 1,000-event diagnostic started before the
+final readback/capacity changes and is not final-commit acceptance evidence.
+The implementation bounds tail rewriting and segment parsing, but each read
+still scans historical bytes. Production throughput, the full 250,000-event
+ledger workload, physical power-loss behavior and an independent witness
+failure domain remain open acceptance work.

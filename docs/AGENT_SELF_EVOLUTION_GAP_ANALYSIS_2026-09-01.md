@@ -784,6 +784,8 @@ JSON 批次验证：真实持久组合文件完整 **78/78 通过**（433.41s，
 
 优化后长测精确结果（2026-09-05）：同一 `--events 1000` 进程最终正常退出、status 为 passed，未因观察超时重启；seed PID 6376，冷重开 PID 10028。1,000 条逐条实际追加及 checkpoint 的 seed 为 **1,202.369 秒（约 20 分 2 秒）**，冷重开 **6.988 秒**，冷重开峰值 RSS **120,464 KiB（约 117.6 MiB）**；所有子进程 V8 heap 上限 256 MiB。首/中/末事件与 head 一致、旧 segment 和 witness 签名篡改均拒绝，冷重开的历史 domain-event 验签为 0、snapshot 验签为 1。seed 历史 witness 验签 **2,017,022** 次，冷重开 **4,012** 次，说明完整历史验证的增长成本仍然存在；不能把该结果外推为 250,000 条容量已达标，也不把 seed 单项计时与优化前整组 1,612.04 秒直接计算吞吐提升比例。本次 backend/witness/fixture 核心保持在已验证的编码缓存实现，期间独立 Wiki pruning 改动不改变该长测路径。
 
+2026-09-08 CLI 分段 witness 候选：超过 256 条记录的成功追加会把完整前缀写成内容寻址的不可变分段，完成 fsync、发布与字节回读后再原子发布 v2 head；之后只重写至多 256 条的尾部。旧 v1 可读，升级后旧 CLI 不能读取 v2，备份必须同时保留 head 和 sidecar 目录。默认仍按全部已引用历史字节执行原 64 MiB 总上限，并保留单文件限额；显式扩大历史预算不等于已验证大规模容量。每次读取仍重新扫描和哈希全部前缀字节，只有当前 authenticated trust epoch 一致时才复用有界认证摘要，撤销、跨分段 ancestry 和 discarded-anchor fence 继续校验。回归覆盖迁移、篡改、四个发布中断点、边界 discard、静默丢字节及容量拒绝；长期诊断与最终提交验收分别记录。运行与迁移边界见 [CLI reliability soak](cli/CLI_RELIABILITY_SOAK.md#segmented-file-witness-storage-016635-candidate)。本批不把 P0-5 升级为仓库闭环，250,000 条实际账本、全进程资源、目标故障域与断电验收仍须完成。
+
 ## 6. P1：建立统一演化控制面
 
 ### 6.1 EVO-P1-1：Canonical Raw/Wiki/Skill 架构

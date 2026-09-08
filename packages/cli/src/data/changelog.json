@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.35",
+      "cliVersions": ["0.166.34", "0.166.35"],
+      "date": "2026-09-08",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.35: bound file-witness history rewrites",
+          "body": "> `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate\n> awaiting the exact-commit release matrix.\n\n- Move authenticated file-witness prefixes into immutable 256-record segments\n  and rewrite only the bounded tail after migration from the legacy store.\n- Rehash every referenced segment on each read, preserve ancestry and discard\n  fences across segment boundaries, and invalidate verified summaries when\n  the authority trust epoch changes.\n- Preserve the existing aggregate byte limit by default; separately configure\n  larger history budgets without raising the per-file allocation limit.\n- Confirm published segment bytes by durable readback before advancing the\n  witness head, and retain recoverable publication ordering across crashes.\n- Capture authority methods and caller inputs before callbacks can replace\n  them. Document backup and runtime compatibility for the v2 storage format."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.34",
       "cliVersions": ["0.166.32", "0.166.34"],
       "date": "2026-09-08",

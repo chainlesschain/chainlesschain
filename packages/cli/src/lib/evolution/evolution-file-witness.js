@@ -1,9 +1,14 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { types } from "node:util";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import {
+  createEvolutionWitnessSegments,
+  EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
+} from "./evolution-witness-segments.js";
 import {
   EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
@@ -137,16 +142,27 @@ function nullableIdentifier(value, label) {
 }
 
 function capture(owner, name) {
-  if (typeof owner?.[name] !== "function")
-    throw new TypeError(`${name} port is required`);
-  return (...args) => Reflect.apply(owner[name], owner, args);
+  const method = captureOptional(owner, name);
+  if (method === null) throw new TypeError(`${name} port is required`);
+  return method;
 }
 
 function captureOptional(owner, name) {
-  if (owner?.[name] === undefined) return null;
-  if (typeof owner[name] !== "function")
-    throw new TypeError(`${name} port must be a function`);
-  return (...args) => Reflect.apply(owner[name], owner, args);
+  if (owner === null || owner === undefined) return null;
+  if (typeof owner !== "object" || types.isProxy(owner)) {
+    throw new TypeError(`${name} port owner must be an object without Proxy`);
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+  if (!descriptor) return null;
+  if (
+    !("value" in descriptor) ||
+    typeof descriptor.value !== "function" ||
+    types.isProxy(descriptor.value)
+  ) {
+    throw new TypeError(`${name} port must be an own data function`);
+  }
+  const method = descriptor.value;
+  return (...args) => Reflect.apply(method, owner, args);
 }
 
 function normalizeTrustEpoch(value) {
@@ -205,6 +221,7 @@ export function createEvolutionFileWitness({
   lock = withFileLock,
   random = () => crypto.randomBytes(16).toString("hex"),
   maximumBytes = DEFAULT_MAXIMUM_BYTES,
+  maximumHistoryBytes = maximumBytes,
 } = {}) {
   if (!IDENTIFIER.test(id || "")) throw new TypeError("witness id is invalid");
   const target = path.resolve(requiredString(filePath, "filePath"));
@@ -218,6 +235,14 @@ export function createEvolutionFileWitness({
   }
   if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 4096) {
     throw new TypeError("maximumBytes must be a safe integer of at least 4096");
+  }
+  if (
+    !Number.isSafeInteger(maximumHistoryBytes) ||
+    maximumHistoryBytes < 4096
+  ) {
+    throw new TypeError(
+      "maximumHistoryBytes must be a safe integer of at least 4096",
+    );
   }
   const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
   ensurePrivateDirectory(directory, secureOptions);
@@ -470,7 +495,7 @@ export function createEvolutionFileWitness({
     };
   };
 
-  const validateStore = (store, trustEpoch = null) => {
+  const validateStore = (store, trustEpoch = null, priorRecord = null) => {
     assertExactKeys(store, STORE_KEYS, "witness store");
     if (
       store.schema !== EVOLUTION_FILE_WITNESS_STORE_SCHEMA ||
@@ -482,23 +507,24 @@ export function createEvolutionFileWitness({
     }
     const genesis = store.history[0];
     if (
-      genesis.status !== "absent" ||
-      genesis.generation !== 0 ||
-      genesis.previousWitnessDigest !== null ||
-      genesis.discardAccumulatorDigest !== emptyDiscardDigest ||
-      [
-        genesis.anchorDigest,
-        genesis.epoch,
-        genesis.headDigest,
-        genesis.identityDigest,
-        genesis.ledgerId,
-        genesis.payloadDigest,
-        genesis.segmentDigest,
-        genesis.sequence,
-        genesis.storeMarkerDigest,
-        genesis.storeMarkerEntryDigest,
-        genesis.storeMarkerId,
-      ].some((entry) => entry !== null)
+      !priorRecord &&
+      (genesis.status !== "absent" ||
+        genesis.generation !== 0 ||
+        genesis.previousWitnessDigest !== null ||
+        genesis.discardAccumulatorDigest !== emptyDiscardDigest ||
+        [
+          genesis.anchorDigest,
+          genesis.epoch,
+          genesis.headDigest,
+          genesis.identityDigest,
+          genesis.ledgerId,
+          genesis.payloadDigest,
+          genesis.segmentDigest,
+          genesis.sequence,
+          genesis.storeMarkerDigest,
+          genesis.storeMarkerEntryDigest,
+          genesis.storeMarkerId,
+        ].some((entry) => entry !== null))
     ) {
       throw new Error("witness genesis is invalid");
     }
@@ -514,10 +540,13 @@ export function createEvolutionFileWitness({
       safeCounter(discard.sequence, "witness discard sequence");
     }
     let discardIndex = 0;
+    let previous = priorRecord;
     for (const [index, record] of store.history.entries()) {
       verifySigned(record, trustEpoch);
-      if (index === 0) continue;
-      const previous = store.history[index - 1];
+      if (index === 0 && !previous) {
+        previous = record;
+        continue;
+      }
       if (
         record.status !== "committed" ||
         record.previousWitnessDigest !== previous.witnessDigest ||
@@ -544,6 +573,7 @@ export function createEvolutionFileWitness({
           throw new Error("witness discard history is invalid");
         }
       }
+      previous = record;
     }
     if (
       discardIndex !== store.discardedAnchors.length ||
@@ -556,16 +586,16 @@ export function createEvolutionFileWitness({
     return store;
   };
 
-  const readStore = () => {
-    if (!fsImpl.existsSync(target)) return emptyStore();
-    ensurePrivateFile(target, secureOptions);
-    const stat = fsImpl.lstatSync(target);
+  const readBytes = (file, byteLimit = maximumBytes) => {
+    byteLimit = Math.min(maximumBytes, byteLimit);
+    ensurePrivateFile(file, secureOptions);
+    const stat = fsImpl.lstatSync(file);
     if (
       !stat.isFile() ||
       stat.isSymbolicLink() ||
       stat.nlink !== 1 ||
       stat.size < 2 ||
-      stat.size > maximumBytes
+      stat.size > byteLimit
     ) {
       throw new Error("witness store size is invalid");
     }
@@ -580,7 +610,7 @@ export function createEvolutionFileWitness({
       observed.ctimeMs === stat.ctimeMs;
     try {
       descriptor = fsImpl.openSync(
-        target,
+        file,
         fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
       );
       if (!sameFile(fsImpl.fstatSync(descriptor))) {
@@ -590,9 +620,9 @@ export function createEvolutionFileWitness({
         fsImpl,
         descriptor,
         stat.size,
-        maximumBytes,
+        byteLimit,
       );
-      const afterPath = fsImpl.lstatSync(target);
+      const afterPath = fsImpl.lstatSync(file);
       if (
         !sameFile(fsImpl.fstatSync(descriptor)) ||
         afterPath.isSymbolicLink() ||
@@ -600,28 +630,36 @@ export function createEvolutionFileWitness({
       ) {
         throw new Error("witness store changed while reading");
       }
-      const parsed = JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(bytes),
-      );
-      for (
-        let attempt = 0;
-        attempt < MAXIMUM_TRUST_EPOCH_RETRIES;
-        attempt += 1
-      ) {
-        const trustEpoch = currentTrustEpoch();
-        const store = validateStore(parsed, trustEpoch);
-        if (trustEpoch === currentTrustEpoch()) return store;
-      }
-      throw new Error("witness verifier trust epoch changed while reading");
+      return bytes;
     } finally {
       if (descriptor !== undefined) fsImpl.closeSync(descriptor);
     }
   };
 
-  const syncDirectory = () => {
+  const readStore = (options = {}) => {
+    if (!fsImpl.existsSync(target)) return emptyStore();
+    const bytes = readBytes(target, maximumHistoryBytes);
+    const parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+    );
+    for (let attempt = 0; attempt < MAXIMUM_TRUST_EPOCH_RETRIES; attempt += 1) {
+      const trustEpoch = currentTrustEpoch();
+      const store =
+        parsed.schema === EVOLUTION_SEGMENTED_WITNESS_SCHEMA
+          ? segments.load(parsed, trustEpoch, {
+              ...options,
+              headBytes: bytes.length,
+            })
+          : validateStore(parsed, trustEpoch);
+      if (trustEpoch === currentTrustEpoch()) return store;
+    }
+    throw new Error("witness verifier trust epoch changed while reading");
+  };
+
+  const syncDirectory = (directoryPath = directory) => {
     let descriptor;
     try {
-      descriptor = fsImpl.openSync(directory, "r");
+      descriptor = fsImpl.openSync(directoryPath, "r");
       fsImpl.fsyncSync(descriptor);
     } catch (error) {
       if (
@@ -634,12 +672,8 @@ export function createEvolutionFileWitness({
     }
   };
 
-  const publish = (store) => {
-    const temporary = `${target}.${requiredString(random(), "random token")}.tmp`;
-    // Preserve the canonical on-disk format without reserializing every
-    // unchanged historical record. Uncached records take the normal path.
-    const encoded = `{"current":${encodeRecord(store.current)},"discardedAnchors":${canonical(store.discardedAnchors)},"history":[${store.history.map(encodeRecord).join(",")}],"schema":${JSON.stringify(store.schema)}}`;
-    const bytes = Buffer.from(`${encoded}\n`, "utf8");
+  const writeBytes = (file, bytes) => {
+    const temporary = `${file}.${requiredString(random(), "random token")}.tmp`;
     if (bytes.length > maximumBytes) {
       throw new Error("witness store exceeds its configured maximum size");
     }
@@ -650,14 +684,16 @@ export function createEvolutionFileWitness({
       fsImpl.fsyncSync(descriptor);
       fsImpl.closeSync(descriptor);
       descriptor = undefined;
-      fsImpl.renameSync(temporary, target);
-      ensurePrivateFile(target, secureOptions);
-      descriptor = fsImpl.openSync(target, "r+");
+      fsImpl.renameSync(temporary, file);
+      ensurePrivateFile(file, secureOptions);
+      descriptor = fsImpl.openSync(file, "r+");
       fsImpl.fsyncSync(descriptor);
       fsImpl.closeSync(descriptor);
       descriptor = undefined;
-      syncDirectory();
-      return store.current;
+      syncDirectory(path.dirname(file));
+      if (!readBytes(file).equals(bytes)) {
+        throw new Error("witness published bytes failed durable readback");
+      }
     } finally {
       if (descriptor !== undefined) fsImpl.closeSync(descriptor);
       try {
@@ -668,9 +704,57 @@ export function createEvolutionFileWitness({
     }
   };
 
+  const segments = createEvolutionWitnessSegments({
+    filePath: target,
+    fsImpl,
+    readBytes,
+    writeBytes,
+    validateStore,
+    legacySchema: EVOLUTION_FILE_WITNESS_STORE_SCHEMA,
+    canonical,
+    hash,
+    encodeRecord,
+    maximumHistoryBytes,
+    confirmDurable(file, expectedBytes) {
+      let descriptor;
+      try {
+        descriptor = fsImpl.openSync(
+          file,
+          fsImpl.constants.O_RDWR | (fsImpl.constants.O_NOFOLLOW || 0),
+        );
+        const observed = fsImpl.fstatSync(descriptor);
+        if (!observed.isFile() || observed.nlink !== 1) {
+          throw new Error(
+            "witness segment identity changed before durability confirmation",
+          );
+        }
+        fsImpl.fsyncSync(descriptor);
+      } finally {
+        if (descriptor !== undefined) fsImpl.closeSync(descriptor);
+      }
+      syncDirectory(path.dirname(file));
+      if (!readBytes(file).equals(expectedBytes)) {
+        throw new Error(
+          "witness segment changed during durability confirmation",
+        );
+      }
+    },
+  });
+
+  const publish = (store) => {
+    if (segments.handles(store)) return segments.publish(store);
+    const encoded = `{"current":${encodeRecord(store.current)},"discardedAnchors":${canonical(store.discardedAnchors)},"history":[${store.history.map(encodeRecord).join(",")}],"schema":${JSON.stringify(store.schema)}}`;
+    const bytes = Buffer.from(`${encoded}\n`, "utf8");
+    if (bytes.length > maximumHistoryBytes)
+      throw new Error("witness history exceeds its configured maximum size");
+    writeBytes(target, bytes);
+    return store.current;
+  };
+
   const underLock = (operation) =>
     lock(target, operation, { failIfUnavailable: true, _fs: fsImpl });
   const discarded = (store, snapshot) =>
+    segments.isDiscarded(store, snapshot) ||
     store.discardedAnchors.some(
       (entry) =>
         entry.anchorDigest === snapshot.anchorDigest ||
@@ -681,8 +765,10 @@ export function createEvolutionFileWitness({
   const port = {
     id,
     read: () => readStore().current,
-    initialize: ({ expected, snapshot }) =>
-      underLock(() => {
+    initialize: ({ expected, snapshot }) => {
+      expected = clone(expected);
+      snapshot = clone(snapshot);
+      return underLock(() => {
         const store = readStore();
         if (store.current.witnessDigest !== expected.witnessDigest) {
           return store.current;
@@ -691,10 +777,14 @@ export function createEvolutionFileWitness({
         store.current = witnessRecord(snapshot, store.current);
         store.history.push(store.current);
         return publish(store);
-      }),
-    compareAndSwap: ({ discard = null, expected, next }) =>
-      underLock(() => {
-        const store = readStore();
+      });
+    },
+    compareAndSwap: ({ discard = null, expected, next }) => {
+      expected = clone(expected);
+      next = clone(next);
+      discard = clone(discard);
+      return underLock(() => {
+        const store = readStore({ discards: [next, discard] });
         if (store.current.witnessDigest !== expected.witnessDigest) {
           return store.current;
         }
@@ -715,9 +805,22 @@ export function createEvolutionFileWitness({
         store.current = witnessRecord(next, store.current, discard);
         store.history.push(store.current);
         return publish(store);
-      }),
+      });
+    },
     proveAncestry: ({ ancestor, descendant }) => {
-      const store = readStore();
+      ancestor = clone(ancestor);
+      descendant = clone(descendant);
+      const store = readStore({ records: [ancestor, descendant] });
+      if (segments.isSegmented(store)) {
+        const first = segments.lookup(store, ancestor);
+        const last = segments.lookup(store, descendant);
+        if (!first || !last || first.generation > last.generation) {
+          throw new Error(
+            "witness ancestry is absent or checkpoint is not exactly bound",
+          );
+        }
+        return ancestryProof(first, last);
+      }
       const first = store.history.findIndex(
         (entry) => entry.witnessDigest === ancestor.witnessDigest,
       );
@@ -744,27 +847,30 @@ export function createEvolutionFileWitness({
           throw new Error("witness ancestry is not contiguous");
         }
       }
-      const core = {
-        ...trust,
-        ancestorDigest: persistedAncestor.witnessDigest,
-        ancestorGeneration: persistedAncestor.generation,
-        authenticated: true,
-        descendantDigest: persistedDescendant.witnessDigest,
-        descendantGeneration: persistedDescendant.generation,
-        durable: true,
-        epoch: persistedAncestor.epoch,
-        included: true,
-        ledgerId: persistedAncestor.ledgerId,
-        schema: EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA,
-        witnessId: id,
-      };
-      return signed(
-        ANCESTRY_DOMAIN,
-        core,
-        "proofDigest",
-        "evolution-ledger-witness-ancestry",
-      );
+      return ancestryProof(persistedAncestor, persistedDescendant);
     },
+  };
+  const ancestryProof = (persistedAncestor, persistedDescendant) => {
+    const core = {
+      ...trust,
+      ancestorDigest: persistedAncestor.witnessDigest,
+      ancestorGeneration: persistedAncestor.generation,
+      authenticated: true,
+      descendantDigest: persistedDescendant.witnessDigest,
+      descendantGeneration: persistedDescendant.generation,
+      durable: true,
+      epoch: persistedAncestor.epoch,
+      included: true,
+      ledgerId: persistedAncestor.ledgerId,
+      schema: EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA,
+      witnessId: id,
+    };
+    return signed(
+      ANCESTRY_DOMAIN,
+      core,
+      "proofDigest",
+      "evolution-ledger-witness-ancestry",
+    );
   };
   return Object.freeze(port);
 }
