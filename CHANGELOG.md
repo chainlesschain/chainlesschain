@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - IDE model configuration: atomic writes and visible save confirmation
 
-> VS Code / VSCodium **0.37.91** and JetBrains **0.4.117** (2026-09-08),
+> VS Code / VSCodium **0.37.91** and JetBrains **0.4.118** (2026-09-08),
 > source candidates awaiting their exact-commit release checks.
 
 - Replace JetBrains' successive model prompts with a native connection form
@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whether configuration was saved.
 - Verify VS Code's post-save readback before reporting success or refreshing
   chat. Keep credentials out of form readback, output and command arguments.
+- Apply confirmed JetBrains saves across existing projects/tabs even when the
+  form closes during the write. Defer session replacement until submitted chat
+  and plan turns finish, and use the same CLI configuration root at chat startup.
+- Read back dedicated vision-model edits before reporting success or marking
+  existing sessions for reload.
 - Validate real CLI persistence in isolated storage: keep a same-endpoint key,
   clear the vision override, reject a keyless endpoint change without writing,
   and atomically bind a replacement endpoint/model/key across process restarts.

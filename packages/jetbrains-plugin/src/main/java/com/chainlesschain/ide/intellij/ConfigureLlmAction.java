@@ -17,15 +17,14 @@ import java.util.concurrent.Callable;
 /** One native form, with atomic CLI writes and explicit readback. */
 public final class ConfigureLlmAction extends AnAction {
     @Override public void actionPerformed(@NotNull AnActionEvent event) { runWizard(event.getProject()); }
-    public static boolean runWizard(Project project) {
+    public static void runWizard(Project project) {
         ConnectionDialog dialog = new ConnectionDialog(project);
         dialog.show();
-        return dialog.saved;
     }
 
     private static final class ConnectionDialog extends DialogWrapper {
         private final LlmConnectionPanel form = new LlmConnectionPanel(CcBundle::message);
-        private boolean closed, saved;
+        private boolean closed;
         ConnectionDialog(Project project) {
             super(project, true);
             setTitle(CcBundle.message("llm.dialogTitle"));
@@ -71,7 +70,7 @@ public final class ConfigureLlmAction extends AnAction {
                 LlmConfig.Connection confirmed = new LlmConfig.Connection(submitted.provider, submitted.model,
                         LlmConfig.normalizedBaseUrl(submitted.baseUrl), submitted.visionModel,
                         !"ollama".equals(submitted.provider));
-                return () -> { saved = true; form.load(confirmed); form.notice(CcBundle.message("llm.form.saved")); };
+                return () -> { form.load(confirmed); form.notice(CcBundle.message("llm.form.saved")); };
             });
         }
         private void test() {
@@ -84,7 +83,15 @@ public final class ConfigureLlmAction extends AnAction {
 
     public static void configureVisionModel(Project project) {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            final String current = LlmConfig.getConfiguredVisionModel();
+            final String current;
+            try { current = LlmConfig.readConnection().visionModel; }
+            catch (Exception error) {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (project == null || !project.isDisposed())
+                        Messages.showErrorDialog(project, CcBundle.message("llm.form.readFailed"), CcBundle.message("llm.dialogTitle"));
+                }, ModalityState.any());
+                return;
+            }
             ApplicationManager.getApplication().invokeLater(() -> {
                 if (project != null && project.isDisposed()) return;
                 String vision = Messages.showInputDialog(project, CcBundle.message("llm.prompt.vision"),

@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.118] - Apply confirmed model settings to existing chats (2026-09-08)
+
+- Track confirmed saves across projects and tabs, including key-only changes
+  and saves that finish after the configuration window closes. Existing chats
+  reload before their next request once pending turns have finished.
+- Preserve submitted chat and plan tasks during configuration changes, and
+  ignore callbacks from a replaced session.
+- Read chat startup settings from the same CLI snapshot as the form, honoring
+  configured storage roots. Verify dedicated vision-model edits by readback.
+
 ## [0.4.117] - One model connection form and verified atomic saves (2026-09-08)
 
 - Replace the successive input dialogs with one native form for provider,

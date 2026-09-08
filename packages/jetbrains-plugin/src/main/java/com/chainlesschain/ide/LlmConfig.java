@@ -106,6 +106,13 @@ public final class LlmConfig {
         CliResult run(List<String> ccArgs, String stdin);
     }
 
+    // Shared by every project/tab, independent of the lifetime of a settings dialog.
+    // Increment only after confirmed persistence, including credential-only changes.
+    private static final java.util.concurrent.atomic.AtomicLong configurationRevision =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    public static long configurationRevision() { return configurationRevision.get(); }
+
     /** Non-secret snapshot used by the connection form and save readback. */
     public static final class Connection {
         public final String provider, model, baseUrl, visionModel;
@@ -167,6 +174,7 @@ public final class LlmConfig {
         } catch (Exception e) {
             return "Configuration write could not be confirmed: could not read it back. Reload before trying again.";
         }
+        configurationRevision.incrementAndGet();
         return null;
     }
 
@@ -368,12 +376,24 @@ public final class LlmConfig {
      * @return null on success, otherwise a user-facing error message
      */
     public static String setVisionModel(String visionModel) {
+        return setVisionModel(visionModel, (args, stdin) -> runCli(args, stdin));
+    }
+
+    static String setVisionModel(String visionModel, CliRunner cli) {
         String v = visionModel == null ? "" : visionModel.trim();
         if (!v.isEmpty() && hasUnsafeShellChars(v)) {
             return "Value contains unsafe characters — remove spaces/quotes/& and retry";
         }
-        CliResult r = runCli(args("config", "set", "llm.visionModel", v));
-        return r.ok ? null : tail(r.output, 200);
+        CliResult r = cli.run(args("config", "set", "llm.visionModel", v), null);
+        if (!r.ok) return "Vision model write failed: " + tail(r.output, 200);
+        try {
+            if (!v.equals(readConnection(cli).visionModel))
+                return "Vision model write could not be confirmed: readback differs. Reload before trying again.";
+        } catch (Exception e) {
+            return "Vision model write could not be confirmed: could not read it back. Reload before trying again.";
+        }
+        configurationRevision.incrementAndGet();
+        return null;
     }
 
     /**
@@ -441,38 +461,15 @@ public final class LlmConfig {
      * CLI resolves it from the secure store for the matching provider.
      */
     public static String[] readConfiguredLlmBlock() {
-        // Read + parse config.json ONCE for all four fields. The old code called
-        // readLlmField 4× — 4 file reads + 4 MiniJson parses per spawn, and (when
-        // a field was absent) up to 4 sequential 60s `cc config get` fallbacks on
-        // the per-tab send worker before the first message. When the llm block is
-        // present (the common case) the file is authoritative for every field.
-        try {
-            java.nio.file.Path f = Paths.get(System.getProperty("user.home", ""),
-                    ".chainlesschain", "config.json");
-            if (Files.isRegularFile(f)) {
-                String raw = new String(Files.readAllBytes(f), StandardCharsets.UTF_8);
-                Map<String, Object> cfg = MiniJson.parseObject(raw);
-                Object llm = cfg == null ? null : cfg.get("llm");
-                if (llm instanceof Map) {
-                    Map<?, ?> m = (Map<?, ?>) llm;
-                    return new String[] {
-                        cleanConfigValue(m.get("provider")),
-                        cleanConfigValue(m.get("model")),
-                        cleanConfigValue(m.get("baseUrl")),
-                        null,
-                    };
-                }
-            }
-        } catch (Exception ignore) {
-            // fall through to the per-field path (CLI fallback for pre-llm configs)
-        }
-        // No file / no llm block → per-field read (each falls back to the CLI).
-        return new String[] {
-            readLlmField("provider"),
-            readLlmField("model"),
-            readLlmField("baseUrl"),
-            null,
-        };
+        return readConfiguredLlmBlock((args, stdin) -> runCli(args, stdin));
+    }
+
+    static String[] readConfiguredLlmBlock(CliRunner cli) {
+        // Use the same CLI snapshot as the form: CHAINLESSCHAIN_HOME and other
+        // supported config-root overrides must also apply to the spawned chat.
+        Connection saved = readConnection(cli);
+        return new String[] { cleanConfigValue(saved.provider), cleanConfigValue(saved.model),
+                cleanConfigValue(saved.baseUrl), null };
     }
 
     /** Pure parse of `cc config get` output (both `k = v` and bare-value). */

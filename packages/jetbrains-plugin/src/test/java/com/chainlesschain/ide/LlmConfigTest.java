@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,21 +125,77 @@ class LlmConfigTest {
 
     @Test
     void failedAtomicSaveDoesNotRunOtherWritesOrEchoTheKey() {
+        long revision = LlmConfig.configurationRevision();
         List<List<String>> calls = new ArrayList<>();
         String error = LlmConfig.saveConnection(new LlmConfig.Connection("openai", "custom", "https://relay.example/v1", "", false), "private-key", false,
                 (args, stdin) -> { calls.add(args); return new LlmConfig.CliResult(false, "write failed: private-key"); });
         assertEquals(1, calls.size());
         assertNotNull(error);
         assertFalse(error.contains("private-key"));
+        assertEquals(revision, LlmConfig.configurationRevision());
     }
 
     @Test
     void successfulExitWithoutMatchingReadbackIsNotReportedAsSaved() {
+        long revision = LlmConfig.configurationRevision();
         String error = LlmConfig.saveConnection(new LlmConfig.Connection("openai", "new-model", "https://relay.example/v1", "", false), "", false,
                 (args, stdin) -> new LlmConfig.CliResult(true, args.get(0).equals("llm") ? "{\"ok\":true}"
                         : "{\"llm\":{\"provider\":\"openai\",\"model\":\"old-model\",\"baseUrl\":\"https://relay.example/v1\",\"apiKey\":\"[REDACTED]\"}}"));
         assertNotNull(error);
         assertTrue(error.contains("readback differs"));
+        assertEquals(revision, LlmConfig.configurationRevision());
+    }
+
+    @Test
+    void credentialOnlySaveInvalidatesExistingSessionsAfterReadback() {
+        long revision = LlmConfig.configurationRevision();
+        String error = LlmConfig.saveConnection(new LlmConfig.Connection("openai", "model", "https://relay.example/v1", "", true), "replacement-key", false,
+                (args, stdin) -> {
+                    assertEquals(revision, LlmConfig.configurationRevision(), "No invalidation before readback completes");
+                    return new LlmConfig.CliResult(true, args.get(0).equals("llm") ? "{\"ok\":true}"
+                            : "{\"llm\":{\"provider\":\"openai\",\"model\":\"model\",\"baseUrl\":\"https://relay.example/v1\",\"apiKey\":\"[REDACTED]\"}}");
+                });
+        assertNull(error);
+        assertEquals(revision + 1, LlmConfig.configurationRevision());
+    }
+
+    @Test
+    void visionClearIsReadBackBeforeInvalidatingEverySession() {
+        long revision = LlmConfig.configurationRevision();
+        List<List<String>> calls = new ArrayList<>();
+        String error = LlmConfig.setVisionModel("", (args, stdin) -> {
+            calls.add(args);
+            assertEquals(revision, LlmConfig.configurationRevision());
+            return new LlmConfig.CliResult(true, args.get(1).equals("set") ? "saved"
+                    : "{\"llm\":{\"visionModel\":null}}");
+        });
+        assertNull(error);
+        assertEquals(List.of("config", "set", "llm.visionModel", ""), calls.get(0));
+        assertEquals(List.of("config", "list", "--json"), calls.get(1));
+        assertEquals(revision + 1, LlmConfig.configurationRevision());
+    }
+
+    @Test
+    void visionWriteFailureOrStaleReadbackDoesNotInvalidateSessions() {
+        long revision = LlmConfig.configurationRevision();
+        assertNotNull(LlmConfig.setVisionModel("new-vision", (args, stdin) -> new LlmConfig.CliResult(false, "")));
+        assertNotNull(LlmConfig.setVisionModel("new-vision", (args, stdin) -> new LlmConfig.CliResult(true,
+                args.get(1).equals("set") ? "saved" : "{\"llm\":{\"visionModel\":\"old-vision\"}}")));
+        assertEquals(revision, LlmConfig.configurationRevision());
+    }
+
+    @Test
+    void chatReadsTheSameSingleCliSnapshotAsTheFormWithoutForwardingKeys() {
+        List<List<String>> calls = new ArrayList<>();
+        String[] block = LlmConfig.readConfiguredLlmBlock((args, stdin) -> {
+            calls.add(args);
+            return new LlmConfig.CliResult(true,
+                    "{\"llm\":{\"provider\":\"openai\",\"model\":\"custom-home-model\",\"baseUrl\":\"https://custom-home.example/v1\",\"apiKey\":\"[REDACTED]\"}}");
+        });
+        assertEquals(List.of(List.of("config", "list", "--json")), calls);
+        assertArrayEquals(new String[]{"openai", "custom-home-model", "https://custom-home.example/v1", null}, block);
+        assertThrows(IllegalStateException.class,
+                () -> LlmConfig.readConfiguredLlmBlock((args, stdin) -> new LlmConfig.CliResult(false, "unavailable")));
     }
 
     @Test
