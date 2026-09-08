@@ -330,6 +330,90 @@ describe("JetBrains real-host journey driver", () => {
     expect(version.stdout.trim()).toBe("0.999.0-ui-journey");
   });
 
+  it("fixture serves config snapshots and keeps agent model selection pinned until restart", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-model-peer-"));
+    temporaryRoots.push(root);
+    const script = fileURLToPath(
+      new URL(
+        "../../../../tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+        import.meta.url,
+      ),
+    );
+    const environment = {
+      ...process.env,
+      CC_UI_FIXTURE_STATE: path.join(root, "state.json"),
+      CC_UI_FIXTURE_TRACE: path.join(root, "trace.jsonl"),
+    };
+    const invoke = (args, input) =>
+      spawnSync(process.execPath, [script, ...args], {
+        env: environment,
+        encoding: "utf8",
+        windowsHide: true,
+        input,
+      });
+    const snapshot = invoke(["config", "list", "--json"]);
+    expect(snapshot.status).toBe(0);
+    expect(JSON.parse(snapshot.stdout).llm.model).toBe(
+      "deterministic-host-peer",
+    );
+    const first = startFixture(script, environment);
+    let resumed;
+    try {
+      await waitForEvent(first.events, (event) => event.type === "system");
+      const saved = invoke(
+        ["llm", "configure"],
+        JSON.stringify({
+          provider: "ollama",
+          model: "ui-config-model",
+          baseUrl: "http://127.0.0.1:11434",
+          visionModel: "ui-config-vision",
+          apiKey: "",
+        }),
+      );
+      expect(saved.status, saved.stderr).toBe(0);
+      first.send({ type: "user", text: "journey:model" });
+      expect(
+        (await waitForEvent(first.events, (event) => event.type === "result"))
+          .result,
+      ).toContain("deterministic-host-peer");
+      expect(
+        JSON.parse(invoke(["config", "list", "--json"]).stdout).llm.model,
+      ).toBe("ui-config-model");
+      await first.close();
+      resumed = startFixture(script, environment);
+      const init = await waitForEvent(
+        resumed.events,
+        (event) => event.type === "system",
+      );
+      expect(init.model).toBe("ui-config-model");
+      resumed.send({ type: "user", text: "journey:model" });
+      expect(
+        (await waitForEvent(resumed.events, (event) => event.type === "result"))
+          .result,
+      ).toContain("vision=ui-config-vision");
+      expect(invoke(["llm", "test"]).status).toBe(0);
+      const secret = "fixture-key-must-not-be-recorded";
+      const rejected = invoke(
+        ["llm", "configure"],
+        JSON.stringify({
+          provider: "ollama",
+          model: "ignored",
+          apiKey: secret,
+        }),
+      );
+      expect(rejected.status).not.toBe(0);
+      expect(
+        fs.readFileSync(environment.CC_UI_FIXTURE_TRACE, "utf8"),
+      ).not.toContain(secret);
+      expect(
+        JSON.parse(invoke(["config", "list", "--json"]).stdout).llm.model,
+      ).toBe("ui-config-model");
+    } finally {
+      await first.close();
+      if (resumed) await resumed.close();
+    }
+  });
+
   it("fixture peer streams, settles controls, and advertises resume state", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-peer-"));
     temporaryRoots.push(root);
@@ -515,6 +599,7 @@ function startFixture(script, environment) {
       child.stdin.write(`${JSON.stringify(event)}\n`);
     },
     async close() {
+      if (child.exitCode !== null || child.signalCode !== null) return;
       child.stdin.end();
       await new Promise((resolve, reject) => {
         const timer = setTimeout(() => {

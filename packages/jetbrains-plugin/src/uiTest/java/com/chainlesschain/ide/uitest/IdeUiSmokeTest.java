@@ -79,17 +79,13 @@ final class IdeUiSmokeTest {
 
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
                 runSessionsWorkbenchJourney(robot, true);
+                runModelConfigurationJourney(robot, true);
                 return;
             }
 
-            ComponentFixture stripe = robot.find(ComponentFixture.class,
-                    Locators.byXpath(STRIPE_XPATH), FIND_BUDGET);
-            clickStripe(stripe);
-
+            ComponentFixture input = ensureChatInputVisible(robot);
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JBTabbedPane']"), FIND_BUDGET);
-            ComponentFixture input = robot.find(ComponentFixture.class,
-                    Locators.byXpath("//div[@class='JTextArea']"), FIND_BUDGET);
             ComponentFixture transcript = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JTextPane']"), FIND_BUDGET);
             ComponentFixture send = robot.find(ComponentFixture.class,
@@ -138,11 +134,101 @@ final class IdeUiSmokeTest {
                     4, "Summarize up to here");
             runRewindAction(robot, input, send, transcript,
                     5, "Branch from here");
+            runModelConfigurationJourney(robot, false);
             runSessionsWorkbenchJourney(robot, false);
         } catch (Throwable t) {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
+    }
+
+    private static ComponentFixture namedModelField(RemoteRobot robot, String name) {
+        return robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@name='" + name + "' and @visible='true']"), FIND_BUDGET);
+    }
+
+    private static ComponentFixture ensureChatInputVisible(RemoteRobot robot) {
+        String inputPath = "//div[@class='JTextArea' and @visible='true']";
+        try {
+            return robot.find(ComponentFixture.class, Locators.byXpath(inputPath), PANEL_VISIBILITY_PROBE_BUDGET);
+        } catch (RuntimeException notVisible) {
+            if (!notVisible.getClass().getName().endsWith("WaitForConditionTimeoutException")) throw notVisible;
+        }
+        clickStripe(robot.find(ComponentFixture.class, Locators.byXpath(STRIPE_XPATH), FIND_BUDGET));
+        return robot.find(ComponentFixture.class, Locators.byXpath(inputPath), FIND_BUDGET);
+    }
+
+    private static ComponentFixture openModelForm(RemoteRobot robot) throws InterruptedException {
+        clickButton(robot.find(ComponentFixture.class, Locators.byXpath(
+                "//div[@accessiblename='Configure language model' and @visible='true']"), FIND_BUDGET));
+        ComponentFixture menu = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JPopupMenu' and @visible='true']"), FIND_BUDGET);
+        menu.runJs("importClass(com.intellij.openapi.application.ApplicationManager);"
+                + "importClass(java.lang.Runnable);"
+                + "const item = component.getComponent(0);"
+                + "ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){item.doClick();}}));", true);
+        ComponentFixture form = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='LlmConnectionPanel']"), FIND_BUDGET);
+        waitUntilEnabled(namedModelField(robot, "llm.test"), "saved-model form", FIND_BUDGET);
+        return form;
+    }
+
+    private static void closeModelForm(RemoteRobot robot, ComponentFixture form) throws InterruptedException {
+        clickButton(robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[(@text='Close' or @text='关闭') and @visible='true']"), FIND_BUDGET));
+        waitUntilHidden(form, "model configuration form", FIND_BUDGET);
+    }
+
+    /** Real native form, CLI process readback, existing-tab restart and IDE reopen. */
+    private static void runModelConfigurationJourney(RemoteRobot robot, boolean afterRestart) throws Exception {
+        ComponentFixture input = ensureChatInputVisible(robot);
+        ComponentFixture transcript = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JTextPane' and @visible='true']"), FIND_BUDGET);
+        ComponentFixture send = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='Send' and @visible='true']"), FIND_BUDGET);
+        if (!afterRestart) {
+            send(input, send, "journey:model:initial-before");
+            waitForTranscript(transcript, "fixture model deterministic-host-peer; vision=none; probe=journey:model:initial-before", FIND_BUDGET);
+            ComponentFixture form = openModelForm(robot);
+            namedModelField(robot, "llm.model").runJs("component.setText('ui-config-model')", true);
+            namedModelField(robot, "llm.visionModel").runJs("component.setText('ui-config-vision')", true);
+            if (componentEnabled(namedModelField(robot, "llm.test")))
+                throw new AssertionError("Unsaved model changes were testable");
+            clickButton(namedModelField(robot, "llm.save"));
+            waitUntilEnabled(namedModelField(robot, "llm.test"), "saved-model test", FIND_BUDGET);
+            clickButton(namedModelField(robot, "llm.test"));
+            waitForComponentText(namedModelField(robot, "llm.connection.status"), "fixture saved connection accepted", FIND_BUDGET);
+            saveModelFormScreenshot(form, "model-config-saved");
+            closeModelForm(robot, form);
+
+            form = openModelForm(robot);
+            waitForComponentText(namedModelField(robot, "llm.model"), "ui-config-model", FIND_BUDGET);
+            namedModelField(robot, "llm.model").runJs("component.setText('unsaved-must-not-apply')", true);
+            closeModelForm(robot, form);
+        }
+        ComponentFixture form = openModelForm(robot);
+        waitForComponentText(namedModelField(robot, "llm.model"), "ui-config-model", FIND_BUDGET);
+        waitForComponentText(namedModelField(robot, "llm.visionModel"), "ui-config-vision", FIND_BUDGET);
+        if (intValue(namedModelField(robot, "llm.apiKey").callJs("component.getPassword().length")) != 0)
+            throw new AssertionError("Saved credentials were copied into the form");
+        if (afterRestart) saveModelFormScreenshot(form, "model-config-reopened");
+        closeModelForm(robot, form);
+        String probe = afterRestart ? "journey:model:restart" : "journey:model:initial-after";
+        send(input, send, probe);
+        waitForTranscript(transcript, "fixture model ui-config-model; vision=ui-config-vision; probe=" + probe, FIND_BUDGET);
+    }
+
+    private static void saveModelFormScreenshot(ComponentFixture form, String name) throws IOException {
+        // Capture the actual dialog window, keeping unrelated desktop content
+        // outside this model-settings evidence.
+        Object encoded = form.callJs("const window = Packages.javax.swing.SwingUtilities.getWindowAncestor(component);"
+                + "const bytes = new Packages.java.io.ByteArrayOutputStream();"
+                + "Packages.javax.imageio.ImageIO.write(new Packages.java.awt.Robot().createScreenCapture(window.getBounds()), 'png', bytes);"
+                + "Packages.java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());");
+        Path directory = Paths.get("build", "reports", "ui-smoke");
+        Files.createDirectories(directory);
+        Files.write(directory.resolve(name + "-" + System.currentTimeMillis() + ".png"),
+                java.util.Base64.getDecoder().decode(String.valueOf(encoded)));
     }
 
     private static void assertRequiredHostArchitecture(ComponentFixture frame) {

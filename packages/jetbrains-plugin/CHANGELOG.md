@@ -9,6 +9,9 @@
   ignore callbacks from a replaced session.
 - Read chat startup settings from the same CLI snapshot as the form, honoring
   configured storage roots. Verify dedicated vision-model edits by readback.
+- Exercise the native form and existing conversation across a full IDE restart
+  in the host journey. Synchronize release metadata and bind evidence to the
+  current version's archive when previous builds remain in the output directory.
 
 ## [0.4.117] - One model connection form and verified atomic saves (2026-09-08)
 

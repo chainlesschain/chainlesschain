@@ -6,6 +6,8 @@ import test from "node:test";
 
 import {
   isRobotStartupFailure,
+  findPluginArchive,
+  verifyModelConfigurationFixtureLedger,
   verifyWorkbenchVisibilityMetrics,
   WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
   WORKBENCH_NEEDS_INPUT_SLA_MS,
@@ -77,6 +79,24 @@ test("recognizes the UI test's Remote Robot startup timeout", () => {
   assert.equal(isRobotStartupFailure(error), true);
 });
 
+test("binds host evidence to the requested plugin archive even when old builds remain", (t) => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "cc-jb-archive-version-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const oldArchive = path.join(root, "chainlesschain-ide-bridge-0.4.117.zip");
+  const currentArchive = path.join(
+    root,
+    "chainlesschain-ide-bridge-0.4.118.zip",
+  );
+  writeFileSync(oldArchive, "old artifact");
+  assert.equal(findPluginArchive(root, "0.4.118"), null);
+  writeFileSync(currentArchive, "current artifact");
+  assert.equal(findPluginArchive(root, "0.4.118"), currentArchive);
+  assert.throws(
+    () => findPluginArchive(root, "../../0.4.118"),
+    /Invalid plugin archive version/,
+  );
+});
+
 test("recognizes the host driver's Remote Robot startup timeout", () => {
   assert.equal(
     isRobotStartupFailure(
@@ -102,6 +122,77 @@ test("does not retry a real journey assertion failure", () => {
     ),
     false,
   );
+});
+
+test("requires actual session replacement and restart after one confirmed model save", (t) => {
+  const entries = [
+    {
+      command: "model-probe",
+      probe: "journey:model:initial-before",
+      sessionId: "saved-chat",
+      processId: 100,
+      model: "deterministic-host-peer",
+    },
+    {
+      command: "llm-configure",
+      model: "ui-config-model",
+      visionModel: "ui-config-vision",
+    },
+    ...Array.from({ length: 3 }, () => ({
+      command: "config-list",
+      model: "ui-config-model",
+    })),
+    { command: "llm-test", model: "ui-config-model" },
+    {
+      command: "model-probe",
+      probe: "journey:model:initial-after",
+      sessionId: "saved-chat",
+      processId: 101,
+      model: "ui-config-model",
+      visionModel: "ui-config-vision",
+    },
+    {
+      command: "model-probe",
+      probe: "journey:model:restart",
+      sessionId: "saved-chat",
+      processId: 102,
+      model: "ui-config-model",
+      visionModel: "ui-config-vision",
+    },
+  ].map((entry) => ({ direction: "command", ...entry }));
+  const trace = writeMetrics(t, entries);
+  assert.equal(
+    verifyModelConfigurationFixtureLedger(trace).existingSessionReload,
+    true,
+  );
+  for (const mutate of [
+    (copy) => {
+      copy[6].processId = 100;
+    },
+    (copy) => {
+      copy[6].sessionId = "new-chat";
+    },
+    (copy) => {
+      copy[7].model = "unsaved-must-not-apply";
+    },
+    (copy) => {
+      copy[7].sessionId = "different-restored-chat";
+    },
+    (copy) => {
+      copy.push({ ...copy[1] });
+    },
+    (copy) => {
+      copy.splice(5, 1);
+    },
+  ]) {
+    const copy = structuredClone(entries);
+    mutate(copy);
+    writeFileSync(trace, copy.map((entry) => JSON.stringify(entry)).join("\n"));
+    assert.throws(
+      () => verifyModelConfigurationFixtureLedger(trace),
+      /Model configuration evidence/,
+    );
+  }
 });
 
 test("requires audited readiness and quiescence before 100 SLA samples", (t) => {
