@@ -51,11 +51,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no answer; the corrected request returned `finish_reason=stop` and `Hi`.
   CLI and IDE adapter regression tests also use an isolated local relay.
 
-### Fixed - cc CLI 0.166.35: restore governed storage on minimum-Node Windows hosts
+### Fixed - cc CLI 0.166.35: restore governed storage and bound witness rewrites
 
 > `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate
 > awaiting the exact-commit release matrix.
 
+- Move authenticated file-witness prefixes into immutable 256-record segments
+  and rewrite only the bounded tail after migration from the legacy store.
+- Rehash every referenced segment on each read, preserve ancestry and discard
+  fences across segment boundaries, and invalidate verified summaries when
+  the authority trust epoch changes.
+- Preserve the existing aggregate byte limit by default; separately configure
+  larger history budgets without raising the per-file allocation limit.
+- Confirm published segment bytes by durable readback before advancing the
+  witness head, and retain recoverable publication ordering across crashes.
+- Capture authority methods and caller inputs before callbacks can replace
+  them. Document backup and runtime compatibility for the v2 storage format.
 - Use the existing trusted-directory device check for affected Windows libuv
   path/handle stat projections across EvolutionLedger, file witness,
   ArtifactStore and Candidate/Release Registry storage.
