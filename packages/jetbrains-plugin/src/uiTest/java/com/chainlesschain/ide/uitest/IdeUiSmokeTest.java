@@ -135,11 +135,37 @@ final class IdeUiSmokeTest {
             runRewindAction(robot, input, send, transcript,
                     5, "Branch from here");
             runModelConfigurationJourney(robot, false);
+            saveProjectBeforeRestart(frame);
             runSessionsWorkbenchJourney(robot, false);
         } catch (Throwable t) {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
+    }
+
+    private static void saveProjectBeforeRestart(ComponentFixture frame) throws Exception {
+        // The driver terminates the sandbox process tree between phases. Use
+        // the IDE's normal Save All action first, so this verifies a saved
+        // project reopening instead of depending on an autosave timer.
+        String sessionIds = String.valueOf(frame.callJs(
+                "Packages.com.intellij.ide.util.PropertiesComponent.getInstance(component.getProject())"
+                        + ".getValue('chainlesschain.chat.sessionIds');"));
+        if (sessionIds.isBlank() || "null".equals(sessionIds))
+            throw new AssertionError("No conversation resume IDs available before project save");
+        String projectPath = String.valueOf(frame.callJs("component.getProject().getBasePath();"));
+        Path workspace = Paths.get(projectPath, ".idea", "workspace.xml");
+        frame.runJs("const manager = Packages.com.intellij.openapi.actionSystem.ActionManager.getInstance();"
+                + "manager.tryToExecute(manager.getAction('SaveAll'), null, component, null, true);", true);
+        long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
+        while (System.nanoTime() < deadline) {
+            if (Files.isRegularFile(workspace)
+                    && Files.readString(workspace).contains(sessionIds)) {
+                System.out.println("[ui-smoke] saved project conversation IDs before IDE restart");
+                return;
+            }
+            Thread.sleep(200);
+        }
+        throw new AssertionError("Save All did not persist conversation resume IDs before IDE restart");
     }
 
     private static ComponentFixture namedModelField(RemoteRobot robot, String name) {
