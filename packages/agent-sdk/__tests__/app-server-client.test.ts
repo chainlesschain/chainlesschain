@@ -72,6 +72,118 @@ async function initialize(value: ReturnType<typeof createClient>) {
 }
 
 describe("AppServerClient", () => {
+  it("settles initialization timeout even when stdin never drains", async () => {
+    vi.useFakeTimers();
+    try {
+      const value = createClient({ requestTimeoutMs: 25 });
+      vi.spyOn(value.child.stdin, "write").mockReturnValue(false);
+      const started = value.client.start();
+      const rejected = expect(started).rejects.toMatchObject({
+        code: -32010,
+        message: "App Server request timed out: initialize",
+      });
+      expect(value.child.stdin.listenerCount("drain")).toBe(1);
+      await vi.advanceTimersByTimeAsync(25);
+      await rejected;
+      expect(value.client.pendingRequestCount).toBe(0);
+      expect(value.child.stdin.listenerCount("drain")).toBe(0);
+      value.child.exitCode = 0;
+      await value.client.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("accepts a response while its write is backpressured and releases listeners", async () => {
+    const value = createClient();
+    await initialize(value);
+    vi.spyOn(value.child.stdin, "write").mockReturnValue(false);
+    const response = value.client.request("evolution/workbench/list", {});
+    value.push({ jsonrpc: "2.0", id: "2", result: { total: 3 } });
+    await expect(response).resolves.toEqual({ total: 3 });
+    expect(value.child.stdin.listenerCount("drain")).toBe(0);
+    expect(value.client.pendingRequestCount).toBe(0);
+  });
+
+  it.each(["process", "stdin", "protocol"])(
+    "rejects pending reads immediately after a %s failure",
+    async (source) => {
+      const value = createClient();
+      const errors = vi.fn();
+      value.client.on("error", errors);
+      await initialize(value);
+      vi.spyOn(value.child.stdin, "write").mockReturnValue(false);
+      const response = value.client.request("evolution/workbench/list", {});
+      const rejected = expect(response).rejects.toBeInstanceOf(Error);
+      if (source === "protocol") value.push({ broken: true });
+      else
+        (source === "stdin" ? value.child.stdin : value.child).emit(
+          "error",
+          new Error("broken transport"),
+        );
+      await rejected;
+      expect(errors).toHaveBeenCalledOnce();
+      expect(value.client.running).toBe(false);
+      await expect(
+        value.client.request("evolution/workbench/list", {}),
+      ).rejects.toThrow("not running");
+      expect(value.client.pendingRequestCount).toBe(0);
+      expect(value.child.stdin.listenerCount("drain")).toBe(0);
+    },
+  );
+
+  it("cleans up its shutdown timer and rejects blocked reads before process exit", async () => {
+    const value = createClient();
+    await initialize(value);
+    vi.useFakeTimers();
+    try {
+      const response = value.client.request("evolution/workbench/list", {});
+      const rejected = expect(response).rejects.toThrow("connection closed");
+      const closing = value.client.close();
+      await rejected;
+      value.child.exitCode = 0;
+      value.child.emit("exit", 0);
+      await closing;
+      expect(vi.getTimerCount()).toBe(0);
+      expect(value.child.listenerCount("exit")).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closing releases a blocked request and ignores late events from the old child", async () => {
+    const children = [new FakeChild(), new FakeChild()];
+    let childIndex = 0;
+    const client = new AppServerClient({
+      spawn: (() =>
+        children[childIndex++]) as unknown as AppServerClientOptions["spawn"],
+    });
+    const first = client.start();
+    children[0].stdout.emit(
+      "data",
+      Buffer.from('{"jsonrpc":"2.0","id":"1","result":{}}\n'),
+    );
+    await first;
+    vi.spyOn(children[0].stdin, "write").mockReturnValue(false);
+    const request = client.request("evolution/workbench/list", {});
+    const rejected = expect(request).rejects.toThrow("connection closed");
+    children[0].exitCode = 0;
+    await client.close();
+    await rejected;
+    expect(children[0].stdin.listenerCount("drain")).toBe(0);
+
+    const second = client.start();
+    children[0].emit("exit", 0);
+    children[0].stdout.emit("data", Buffer.from('{"broken":true}\n'));
+    children[0].emit("error", new Error("late error"));
+    children[1].stdout.emit(
+      "data",
+      Buffer.from('{"jsonrpc":"2.0","id":"3","result":{"replacement":true}}\n'),
+    );
+    await expect(second).resolves.toEqual({ replacement: true });
+    expect(client.running).toBe(true);
+  });
+
   it("spawns the canonical stdio server and multiplexes responses and notifications", async () => {
     const value = createClient();
     const notification = vi.fn();
@@ -106,6 +218,51 @@ describe("AppServerClient", () => {
     expect(notification).toHaveBeenCalledWith(
       expect.objectContaining({ method: "thread/updated" }),
     );
+  });
+
+  it("never sends an old server's delayed approval to a replacement connection", async () => {
+    const children = [new FakeChild(), new FakeChild()];
+    let childIndex = 0;
+    let approve!: (value: { kind: string }) => void;
+    const client = new AppServerClient({
+      spawn: (() =>
+        children[childIndex++]) as unknown as AppServerClientOptions["spawn"],
+      onServerRequest: () =>
+        new Promise((resolve) => {
+          approve = resolve;
+        }),
+    });
+    const first = client.start();
+    children[0].stdout.emit(
+      "data",
+      Buffer.from('{"jsonrpc":"2.0","id":"1","result":{}}\n'),
+    );
+    await first;
+    children[0].stdout.emit(
+      "data",
+      Buffer.from(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: "server:approval",
+          method: "approval/decide",
+          params: { request: { id: "old" } },
+        }) + "\n",
+      ),
+    );
+    children[0].exitCode = 0;
+    await client.close();
+    const second = client.start();
+    children[1].stdout.emit(
+      "data",
+      Buffer.from('{"jsonrpc":"2.0","id":"2","result":{}}\n'),
+    );
+    await second;
+    approve({ kind: "accept" });
+    await flush();
+    expect(children[1].stdin.written.map((line) => JSON.parse(line))).toEqual([
+      expect.objectContaining({ method: "initialize", id: "2" }),
+    ]);
+    expect(client.running).toBe(true);
   });
 
   it("selects the physical rollout adapter without changing the RPC client", async () => {

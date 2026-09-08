@@ -60,6 +60,7 @@ export class AppServerPilotClient extends EventEmitter {
   private startPromise: Promise<unknown> | null = null;
   private capabilities: unknown = null;
   private lastError: string | null = null;
+  private connectionRevision = 0;
 
   constructor(options: AppServerPilotClientOptions = {}) {
     super();
@@ -73,6 +74,7 @@ export class AppServerPilotClient extends EventEmitter {
     this.on("error", () => {});
     this.transport.on("error", (error: Error) => {
       this.lastError = error?.message || String(error);
+      this.capabilities = null;
       this.emit("error", error);
     });
     this.transport.on("stderr", (message: string) =>
@@ -81,7 +83,10 @@ export class AppServerPilotClient extends EventEmitter {
     this.transport.on("overloaded", (error: Error) =>
       this.emit("overloaded", error),
     );
-    this.transport.on("exit", (code: number | null) => this.emit("exit", code));
+    this.transport.on("exit", (code: number | null) => {
+      this.capabilities = null;
+      this.emit("exit", code);
+    });
     this.transport.on("notification", (notification: ServerNotification) => {
       this.emit("notification", notification);
       this.emit(notification.method, notification.params);
@@ -103,9 +108,12 @@ export class AppServerPilotClient extends EventEmitter {
       return this.capabilities;
     }
     if (this.startPromise) return this.startPromise;
+    const revision = this.connectionRevision;
     this.startPromise = this.transport
       .start()
       .then((capabilities) => {
+        if (revision !== this.connectionRevision || !this.transport.running)
+          throw new Error("App Server connection closed during initialization");
         this.capabilities = capabilities;
         this.lastError = null;
         this.emit("ready", capabilities);
@@ -124,8 +132,9 @@ export class AppServerPilotClient extends EventEmitter {
   }
 
   async close(): Promise<void> {
-    await this.transport.close();
+    this.connectionRevision++;
     this.capabilities = null;
+    await this.transport.close();
   }
 
   threadStart(params: JsonValue = {}): Promise<unknown> {

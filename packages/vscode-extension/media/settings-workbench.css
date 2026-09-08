@@ -572,3 +572,21 @@ code,
     flex-direction: column;
   }
 }
+.workbench-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.workbench-pagination[hidden] {
+  display: none;
+}
+.workbench-pagination button {
+  min-width: 0;
+  padding: 8px;
+}
+.workbench-pagination span {
+  text-align: center;
+  font-size: 12px;
+}

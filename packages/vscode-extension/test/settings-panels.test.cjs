@@ -46,6 +46,10 @@ function host(t) {
 function projection() {
   return {
     projectionDigest: d("a"),
+    total: 1,
+    offset: 0,
+    limit: 500,
+    hasMore: false,
     governance: {
       runStatus: "active",
       activeReleaseId: d("1"),
@@ -81,7 +85,7 @@ test("Workbench panel negotiates capabilities and rejects stale UI approval", as
   };
   openEvolutionWorkbenchPanel(h.vscode, { getPilot: async () => pilot });
   await h.send({ type: "ready" });
-  const snapshot = h.messages.find((m) => m.type === "snapshot");
+  const snapshot = h.messages.findLast((m) => m.type === "snapshot");
   assert.equal(snapshot.mode, "local-test");
   await h.send({
     type: "approve",
@@ -114,9 +118,172 @@ test("Workbench unavailable panel exposes configuration without Workbench calls"
   });
   await h.send({ type: "ready" });
   assert.equal(
-    h.messages.find((m) => m.type === "snapshot").mode,
+    h.messages.findLast((m) => m.type === "snapshot").mode,
     "unavailable",
   );
+});
+
+test("Workbench bounds startup, enables retry and ignores a late previous connection", async (t) => {
+  const h = host(t);
+  let release,
+    starts = 0,
+    attempts = 0;
+  const delayed = new Promise((resolve) => {
+    release = resolve;
+  });
+  const pilot = {
+    workbenchMode: "local-test",
+    start: async () => {
+      starts++;
+      return { evolutionWorkbench: { available: true, methods: ["list"] } };
+    },
+    evolutionWorkbenchList: async () => projection(),
+  };
+  openEvolutionWorkbenchPanel(h.vscode, {
+    getPilot: () => (++attempts === 1 ? delayed : Promise.resolve(pilot)),
+    readTimeoutMs: 10,
+  });
+  await h.send({ type: "ready" });
+  assert.match(h.messages.findLast((m) => m.type === "notice").text, /超时/);
+  assert.deepEqual(h.messages.at(-1), { type: "busy", value: false });
+  await h.send({ type: "refresh" });
+  assert.equal(
+    h.messages.findLast((m) => m.type === "snapshot").mode,
+    "local-test",
+  );
+  const count = h.messages.length;
+  release(pilot);
+  await new Promise(setImmediate);
+  assert.equal(starts, 1);
+  assert.equal(h.messages.length, count);
+});
+
+test("Workbench replays loading state to a reloaded webview and bounds a stalled list", async (t) => {
+  const h = host(t);
+  let lists = 0;
+  openEvolutionWorkbenchPanel(h.vscode, {
+    getPilot: async () => ({
+      start: async () => ({
+        evolutionWorkbench: { available: true, methods: ["list"] },
+      }),
+      evolutionWorkbenchList: () => {
+        lists++;
+        return new Promise(() => {});
+      },
+    }),
+    readTimeoutMs: 20,
+  });
+  const opening = h.send({ type: "ready" });
+  await new Promise(setImmediate);
+  await h.send({ type: "ready" });
+  assert.match(
+    h.messages.findLast((m) => m.type === "notice").text,
+    /正在读取候选/,
+  );
+  assert.equal(lists, 1);
+  await opening;
+  assert.equal(
+    h.messages.findLast((m) => m.type === "snapshot").mode,
+    "unavailable",
+  );
+  assert.deepEqual(h.messages.at(-1), { type: "busy", value: false });
+});
+
+test("Workbench reads and reviews candidates beyond the first CLI page", async (t) => {
+  const h = host(t),
+    pages = [],
+    reviews = [];
+  const state = projection();
+  const candidates = Array.from({ length: 501 }, (_, i) => ({
+    ...state.candidates[0],
+    candidateId: `candidate:${i}`,
+    packetDigest: "sha256:" + i.toString(16).padStart(64, "0"),
+  }));
+  openEvolutionWorkbenchPanel(h.vscode, {
+    getPilot: async () => ({
+      start: async () => ({
+        evolutionWorkbench: { available: true, methods: ["list", "review"] },
+      }),
+      evolutionWorkbenchList: async ({ offset, limit }) => {
+        pages.push(offset);
+        return {
+          ...state,
+          total: candidates.length,
+          offset,
+          limit,
+          hasMore: offset + limit < candidates.length,
+          candidates: candidates.slice(offset, offset + limit),
+        };
+      },
+      evolutionWorkbenchReview: async (input) => {
+        reviews.push(input);
+        return {};
+      },
+    }),
+  });
+  await h.send({ type: "ready" });
+  assert.deepEqual(pages, [0, 500]);
+  assert.equal(
+    h.messages.findLast((m) => m.type === "snapshot").projection.candidates
+      .length,
+    501,
+  );
+  await h.send({
+    type: "approve",
+    projectionDigest: state.projectionDigest,
+    packetDigest: candidates[500].packetDigest,
+    reason: "reviewed last page",
+  });
+  assert.equal(reviews.length, 1);
+  assert.deepEqual(reviews[0].packetDigests, [candidates[500].packetDigest]);
+});
+
+test("Workbench rejects missing, repeated or changing CLI pages before showing candidates", async (t) => {
+  const {
+    loadEvolutionWorkbenchSnapshot,
+  } = require("../src/ui/evolution-workbench-snapshot");
+  for (const problem of [
+    "missing",
+    "duplicate",
+    "digest",
+    "governance",
+    "count",
+    "oversized",
+  ]) {
+    await t.test(problem, async () => {
+      const state = projection();
+      const first = {
+        ...state,
+        total: 501,
+        hasMore: true,
+        candidates: Array.from({ length: 500 }, (_, i) => ({
+          ...state.candidates[0],
+          packetDigest: "sha256:" + i.toString(16).padStart(64, "0"),
+        })),
+      };
+      let calls = 0;
+      await assert.rejects(
+        loadEvolutionWorkbenchSnapshot({
+          evolutionWorkbenchList: async () => {
+            calls++;
+            if (problem === "missing") return { ...state, total: undefined };
+            if (problem === "oversized") return { ...first, total: 10001 };
+            if (calls === 1) return first;
+            const page = { ...state, total: 501, offset: 500 };
+            if (problem === "duplicate")
+              page.candidates = [first.candidates[0]];
+            if (problem === "digest") page.projectionDigest = d("f");
+            if (problem === "governance")
+              page.governance = { ...page.governance, conflictCount: 1 };
+            if (problem === "count") page.total = 500;
+            return page;
+          },
+        }),
+        /分页|重复|状态发生变化/,
+      );
+      assert.ok(calls <= 2);
+    });
+  }
 });
 test("custom relays require a scoped key, allow arbitrary model aliases, and reject malformed endpoints", () => {
   const current = {

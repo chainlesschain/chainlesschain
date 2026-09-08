@@ -84,6 +84,8 @@ export class AppServerClient extends EventEmitter {
   private pending = new Map<string, PendingRequest>();
   private nextRequestId = 0;
   private closing = false;
+  private failed = false;
+  private closePromise: Promise<void> | null = null;
 
   constructor(options: AppServerClientOptions = {}) {
     super();
@@ -91,7 +93,7 @@ export class AppServerClient extends EventEmitter {
   }
 
   get running(): boolean {
-    return this.child !== null && !this.closing;
+    return this.child !== null && !this.closing && !this.failed;
   }
 
   get pendingRequestCount(): number {
@@ -99,6 +101,8 @@ export class AppServerClient extends EventEmitter {
   }
 
   async start(): Promise<unknown> {
+    if (this.closePromise) await this.closePromise;
+    if (this.child && this.failed) await this.close();
     if (this.child) throw new Error("AppServerClient already started");
     const args = ["serve", "--app-server"];
     if (this.options.stateDirectory && this.options.statePath) {
@@ -132,25 +136,40 @@ export class AppServerClient extends EventEmitter {
       env,
       stdio: ["pipe", "pipe", "pipe"],
     };
-    this.child = (this.options.spawn ?? nodeSpawn)(
+    const child = (this.options.spawn ?? nodeSpawn)(
       command,
       fullArgs,
       spawnOptions,
     );
+    this.child = child;
     this.closing = false;
+    this.failed = false;
     const decode = createNdjsonDecoder<unknown>(
-      (message) => this.dispatch(message),
+      (message) => {
+        if (this.child === child) this.dispatch(message);
+      },
       {
         maxLineLength: this.options.maxLineLength,
-        onError: (error) => this.fail(error),
+        onError: (error) => {
+          if (this.child === child) this.fail(error);
+        },
       },
     );
-    this.child.stdout?.on("data", (chunk: Buffer) => decode(chunk));
-    this.child.stderr?.on("data", (chunk: Buffer) => {
-      this.emit("stderr", chunk.toString("utf8"));
+    child.stdout?.on("data", (chunk: Buffer) => {
+      if (this.child === child) decode(chunk);
     });
-    this.child.on("error", (error) => this.fail(error));
-    this.child.on("exit", (code) => {
+    child.stderr?.on("data", (chunk: Buffer) => {
+      if (this.child === child) this.emit("stderr", chunk.toString("utf8"));
+    });
+    const failCurrent = (error: Error) => {
+      if (this.child === child) this.fail(error);
+    };
+    child.on("error", failCurrent);
+    child.stdin?.on("error", failCurrent);
+    child.on("exit", (code) => {
+      // A delayed exit from a previously closed process must not clear the
+      // replacement connection or reject its in-flight requests.
+      if (this.child !== child) return;
       try {
         decode.flush();
       } catch (error) {
@@ -182,7 +201,7 @@ export class AppServerClient extends EventEmitter {
 
   async request(method: string, params: JsonValue = {}): Promise<unknown> {
     const child = this.child;
-    if (!child || this.closing || !child.stdin) {
+    if (!child || this.closing || this.failed || !child.stdin) {
       throw new Error("AppServerClient is not running");
     }
     const limit = Math.max(1, this.options.maxPendingRequests ?? 256);
@@ -196,6 +215,7 @@ export class AppServerClient extends EventEmitter {
       throw error;
     }
     const id = String(++this.nextRequestId);
+    const writeController = new AbortController();
     const response = new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(
         () => {
@@ -212,45 +232,71 @@ export class AppServerClient extends EventEmitter {
       timer.unref?.();
       this.pending.set(id, { resolve, reject, timer });
     });
-    try {
-      await this.write({ jsonrpc: "2.0", id, method, params });
-    } catch (error) {
+    // Observe the response immediately. Waiting for pipe drain first would
+    // strand the caller (and leave a rejected response unhandled) when the
+    // server stops consuming stdin. Response settlement cancels that wait.
+    void this.write(
+      { jsonrpc: "2.0", id, method, params },
+      child,
+      writeController.signal,
+    ).catch((error) => {
       const pending = this.pending.get(id);
       if (pending) {
         clearTimeout(pending.timer);
         this.pending.delete(id);
         pending.reject(error as Error);
       }
-    }
-    return response;
+    });
+    return response.finally(() => writeController.abort());
   }
 
   async close(): Promise<void> {
+    if (this.closePromise) return this.closePromise;
     const child = this.child;
-    if (!child || this.closing) return;
+    if (!child) return;
     this.closing = true;
-    child.stdin?.end();
-    if (child.exitCode == null && child.signalCode == null) {
-      await Promise.race([
-        once(child, "exit"),
-        new Promise((resolve) => setTimeout(resolve, 5_000)),
-      ]);
-    }
-    if (child.exitCode == null && child.signalCode == null) child.kill();
     this.rejectPending(new Error("App Server connection closed"));
-    this.child = null;
+    const closing = (async () => {
+      child.stdin?.end();
+      if (child.exitCode == null && child.signalCode == null) {
+        await new Promise<void>((resolve) => {
+          const finished = () => {
+            clearTimeout(timer);
+            child.removeListener("exit", finished);
+            resolve();
+          };
+          const timer = setTimeout(finished, 5_000);
+          child.once("exit", finished);
+        });
+      }
+      if (child.exitCode == null && child.signalCode == null) child.kill();
+      if (this.child === child) this.child = null;
+    })();
+    this.closePromise = closing;
+    try {
+      await closing;
+    } finally {
+      if (this.closePromise === closing) this.closePromise = null;
+    }
   }
 
-  private async write(message: RpcEnvelope): Promise<void> {
-    const stdin = this.child?.stdin;
+  private async write(
+    message: RpcEnvelope,
+    child = this.child,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const stdin = child?.stdin;
+    if (child !== this.child || this.closing || this.failed || signal?.aborted)
+      throw new Error("App Server connection closed");
     if (!stdin || stdin.destroyed)
       throw new Error("App Server stdin is closed");
     if (!stdin.write(encodeNdjson(message), "utf8")) {
-      await once(stdin, "drain");
+      await once(stdin, "drain", { signal });
     }
   }
 
   private dispatch(value: unknown): void {
+    if (this.failed || this.closing) return;
     try {
       assertProtocolMessage(value);
     } catch (error) {
@@ -278,6 +324,7 @@ export class AppServerClient extends EventEmitter {
   }
 
   private async answerServerRequest(request: ServerRequest): Promise<void> {
+    const child = this.child;
     let result: JsonValue;
     try {
       if (this.options.onServerRequest) {
@@ -289,21 +336,28 @@ export class AppServerClient extends EventEmitter {
         };
         result = decline;
       }
-      await this.write({ jsonrpc: "2.0", id: request.id, result });
+      await this.write({ jsonrpc: "2.0", id: request.id, result }, child);
     } catch (error) {
-      await this.write({
-        jsonrpc: "2.0",
-        id: request.id,
-        error: {
-          code: -32603,
-          message:
-            error instanceof Error ? error.message : "Client handler failed",
+      await this.write(
+        {
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32603,
+            message:
+              error instanceof Error ? error.message : "Client handler failed",
+          },
         },
-      }).catch((writeError) => this.fail(writeError as Error));
+        child,
+      ).catch((writeError) => {
+        if (this.child === child) this.fail(writeError as Error);
+      });
     }
   }
 
   private fail(error: Error): void {
+    this.failed = true;
+    this.rejectPending(error);
     this.emit("error", error);
   }
 

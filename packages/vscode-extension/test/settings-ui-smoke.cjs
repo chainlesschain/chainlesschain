@@ -29,6 +29,10 @@ const candidate = (id, hash, status, active) => ({
 });
 const state = {
   projectionDigest: digest("a"),
+  total: 3,
+  offset: 0,
+  limit: 500,
+  hasMore: false,
   governance: {
     runStatus: "active",
     activeReleaseId: "release-current",
@@ -89,7 +93,16 @@ const retrieval = {
 };
 
 async function main() {
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), "cc-settings-ui-"));
+  const output = process.env.CC_SETTINGS_UI_REPORT_DIRECTORY
+    ? path.resolve(process.env.CC_SETTINGS_UI_REPORT_DIRECTORY)
+    : fs.mkdtempSync(path.join(os.tmpdir(), "cc-settings-ui-"));
+  fs.mkdirSync(output, { recursive: true });
+  const reportPath = path.join(output, "result.json");
+  const sourceCommit = process.env.IDE_RELEASE_COMMIT || null;
+  fs.writeFileSync(
+    reportPath,
+    JSON.stringify({ ok: false, mode: "local-test", sourceCommit }),
+  );
   let html = "",
     origin;
   const server = http.createServer((req, res) => {
@@ -130,6 +143,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 1000 },
     });
+    context.setDefaultTimeout(30_000);
     async function open(factory, options) {
       const page = await context.newPage(),
         errors = [];
@@ -175,7 +189,11 @@ async function main() {
       html = panel.webview.html;
       await page.goto(origin);
       await page.waitForFunction(
-        () => !document.getElementById("notice").textContent.startsWith("正在"),
+        () =>
+          !document.getElementById("notice").textContent.startsWith("正在") &&
+          document.getElementById("mode")?.textContent !== "连接中",
+        null,
+        { timeout: 60_000 },
       );
       return {
         page,
@@ -205,6 +223,31 @@ async function main() {
     }
 
     let reviews = 0;
+    let stalled = true;
+    const reconnectPilot = {
+      workbenchMode: "local-test",
+      start: async () => ({
+        evolutionWorkbench: { available: true, methods: ["list"] },
+      }),
+      evolutionWorkbenchList: async () => state,
+    };
+    const reconnect = await open(openEvolutionWorkbenchPanel, {
+      getPilot: () =>
+        stalled ? new Promise(() => {}) : Promise.resolve(reconnectPilot),
+      readTimeoutMs: 150,
+    });
+    assert.match(await reconnect.page.locator("#notice").innerText(), /超时/);
+    assert.equal(await reconnect.page.locator("#total").innerText(), "—");
+    assert.equal(await reconnect.page.locator("#setup").isDisabled(), false);
+    await shot(reconnect.page, "evolution-connection-timeout");
+    stalled = false;
+    await reconnect.page.locator("#refresh").click();
+    await reconnect.page.waitForFunction(
+      () => document.getElementById("mode").textContent === "本地测试",
+    );
+    assert.equal(await reconnect.page.locator(".candidate").count(), 3);
+    await reconnect.close();
+
     const workbench = await open(openEvolutionWorkbenchPanel, {
       getPilot: async () => ({
         workbenchMode: "local-test",
@@ -242,6 +285,136 @@ async function main() {
     assert.equal(reviews, 1);
     await narrow(workbench.page, "evolution-narrow");
     await workbench.close();
+
+    const manyCandidates = Array.from({ length: 501 }, (_, i) => ({
+      ...state.candidates[0],
+      candidateId: `candidate-${i}`,
+      packetDigest: "sha256:" + i.toString(16).padStart(64, "0"),
+    }));
+    const large = await open(openEvolutionWorkbenchPanel, {
+      getPilot: async () => ({
+        ...reconnectPilot,
+        evolutionWorkbenchList: async ({ offset, limit }) => ({
+          ...state,
+          total: manyCandidates.length,
+          offset,
+          limit,
+          hasMore: offset + limit < manyCandidates.length,
+          candidates: manyCandidates.slice(offset, offset + limit),
+        }),
+      }),
+    });
+    assert.equal(await large.page.locator("#total").innerText(), "501");
+    assert.equal(await large.page.locator(".candidate").count(), 25);
+    await large.page.locator("#next-page").click();
+    assert.match(
+      await large.page.locator("#page-label").innerText(),
+      /2 \/ 21/,
+    );
+    await large.page.locator("#search").fill("candidate-500");
+    assert.equal(await large.page.locator(".candidate").count(), 1);
+    await large.page.locator(".candidate").click();
+    assert.equal(
+      await large.page.locator("#candidate-name").innerText(),
+      "candidate-500",
+    );
+    await narrow(large.page, "evolution-large-catalog");
+    await large.close();
+
+    let liveEvolution = false;
+    if (process.argv.includes("--live-evolution")) {
+      const { pathToFileURL } = require("node:url");
+      const { createLocalWorkbenchTest } = await import(
+        pathToFileURL(
+          path.resolve(
+            __dirname,
+            "../../cli/scripts/evolution-workbench-local-test.mjs",
+          ),
+        ).href
+      );
+      const {
+        createWorkbenchProfileManager,
+      } = require("../src/evolution-workbench-profile");
+      const created = await createLocalWorkbenchTest({
+        root: path.join(output, "local-deployment"),
+      });
+      const manager = createWorkbenchProfileManager();
+      let live;
+      try {
+        const pilot = await manager.get(created.profilePath);
+        const before = await pilot.evolutionWorkbenchList({ limit: 500 });
+        const pending = before.candidates.find(
+          (item) => item.status === "pending",
+        );
+        const previous = before.candidates.find(
+          (item) => item.status === "approved" && !item.actualUsage.active,
+        );
+        assert.ok(pending && previous);
+        live = await open(openEvolutionWorkbenchPanel, {
+          getPilot: () => manager.get(created.profilePath),
+        });
+        assert.equal(await live.page.locator("#mode").innerText(), "本地测试");
+        assert.equal(await live.page.locator("#total").innerText(), "3");
+        await live.page
+          .locator(".candidate .name")
+          .getByText(pending.candidateId, { exact: true })
+          .click();
+        await live.page
+          .locator("#reason")
+          .fill("本地浏览器旅程：核对测试候选证据并批准。");
+        await live.page.locator("#approve").click();
+        await live.page.waitForFunction(
+          () =>
+            document
+              .getElementById("notice")
+              .textContent.includes("审核决定已保存"),
+          null,
+          { timeout: 120_000 },
+        );
+        await live.page
+          .locator(".candidate .name")
+          .getByText(previous.candidateId, { exact: true })
+          .click();
+        await live.page
+          .locator("#reason")
+          .fill("本地浏览器旅程：回滚至已批准的测试基线。");
+        await live.page.locator("#rollback").click();
+        await live.page.waitForFunction(
+          () =>
+            document
+              .getElementById("notice")
+              .textContent.includes("回滚已完成"),
+          null,
+          { timeout: 120_000 },
+        );
+        await shot(live.page, "evolution-live-cli-rollback");
+        const after = await pilot.evolutionWorkbenchList({ limit: 500 });
+        assert.equal(
+          after.candidates.find(
+            (item) => item.packetDigest === pending.packetDigest,
+          ).status,
+          "approved",
+        );
+        assert.equal(
+          after.candidates.find(
+            (item) => item.packetDigest === previous.packetDigest,
+          ).actualUsage.active,
+          true,
+        );
+        await live.close();
+        live = null;
+        await manager.close();
+        const reopened = await manager.get(created.profilePath);
+        assert.deepEqual(
+          await reopened.evolutionWorkbenchList({ limit: 500 }),
+          after,
+        );
+        liveEvolution = true;
+      } finally {
+        await live?.close();
+        await manager.close();
+      }
+    }
 
     let saved = {
         provider: "openai",
@@ -330,7 +503,16 @@ async function main() {
     );
     await narrow(skills.page, "skills-narrow");
     await skills.close();
-    console.log(JSON.stringify({ ok: true, panels: 3, screenshots: output }));
+    const report = {
+      ok: true,
+      mode: "local-test",
+      sourceCommit,
+      panels: 3,
+      liveEvolution,
+      screenshots: output,
+    };
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n");
+    console.log(JSON.stringify(report));
   } finally {
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));
