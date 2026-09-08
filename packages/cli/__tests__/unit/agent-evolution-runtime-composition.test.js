@@ -958,6 +958,123 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
+  it.each([
+    "success",
+    "embedding-source-denied",
+    "embedding-response-denied",
+    "model-source-denied",
+    "model-response-denied",
+    "wrong-run",
+    "invalid-vector",
+  ])(
+    "governs actual resolver stages and queue outcomes (%s)",
+    async (mode) => {
+      const { createGovernedHubResolver } =
+        await import("../../src/lib/evolution/governed-hub-resolver.js");
+      const sdk = createRequire(import.meta.url)(
+        "../../../personal-data-hub/lib/entity-resolver/index.js",
+      );
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      let stage;
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          const prefix = stage === "hub-embedding" ? "embedding" : "model";
+          if (
+            (mode === `${prefix}-source-denied` &&
+              request.kind === "user-prompt") ||
+            (mode === `${prefix}-response-denied` &&
+              request.kind === "response-completed")
+          )
+            throw new Error("resolver evidence denied");
+          return issue(request);
+        },
+      );
+      const runs = [];
+      const factory = async ({ runId, mode: requestMode }) => {
+        stage = requestMode;
+        const composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed" : runId,
+        });
+        runs.push(composition);
+        return composition;
+      };
+      const people = ["a", "b"].map((id) => ({
+        id,
+        type: "person",
+        names: ["Shared name"],
+        identifiers: { email: `${id}@example.com` },
+      }));
+      const vault = {
+        _requireOpen: () => ({ prepare: () => ({ all: () => [{ id: "b" }] }) }),
+        claimResolveBatch: () => [{ id: "queue", person_id: "a" }],
+        getPerson: (id) => people.find((p) => p.id === id),
+        getResolveDecision: () => null,
+        queryEvents: () => [],
+        recordResolveDecision: vi.fn(),
+        mergePair: vi.fn(),
+        enqueueReview: vi.fn(),
+        completeResolve: vi.fn(),
+        errorResolve: vi.fn(),
+      };
+      const embed = vi
+        .fn()
+        .mockResolvedValueOnce(mode === "invalid-vector" ? [NaN] : [1, 0])
+        .mockResolvedValue([0.7, Math.sqrt(0.51)]);
+      const chat = vi.fn(async () => ({
+        text: '{"same":true,"confidence":0.9,"reason":"matched"}',
+      }));
+      const original = new sdk.EntityResolver({
+        vault,
+        embeddingStage: vi.fn(),
+        llmStage: vi.fn(),
+      });
+      const scoped = createGovernedHubResolver(
+        {
+          resolver: original,
+          llm: { name: "test", isLocal: true, chat },
+          embeddingStage: { _embed: embed },
+          EntityResolver: sdk.EntityResolver,
+          EmbeddingStage: sdk.EntityResolverEmbeddingStage,
+          LLMStage: sdk.EntityResolverLLMStage,
+        },
+        factory,
+      );
+      const result = await scoped.drain();
+      if (mode === "success") {
+        expect(vault.errorResolve.mock.calls).toEqual([]);
+        expect(result).toMatchObject({ processed: 1, same: 1, error: 0 });
+        expect(vault.mergePair).toHaveBeenCalledOnce();
+        expect(runs).toHaveLength(3);
+        for (const run of runs)
+          expect(run.loadRun().projection.status).toBe("completed");
+      } else {
+        expect(result).toMatchObject({ processed: 0, same: 0, error: 1 });
+        expect(vault.errorResolve).toHaveBeenCalledOnce();
+        expect(vault.mergePair).not.toHaveBeenCalled();
+        expect(vault.completeResolve).not.toHaveBeenCalled();
+        expect(runs.at(-1).loadRun().projection?.status).not.toBe("completed");
+      }
+      expect(JSON.stringify(embed.mock.calls)).not.toContain("@example.com");
+      expect(JSON.stringify(chat.mock.calls)).not.toContain("@example.com");
+      expect(embed).toHaveBeenCalledTimes(
+        ["embedding-source-denied", "wrong-run"].includes(mode)
+          ? 0
+          : ["embedding-response-denied", "invalid-vector"].includes(mode)
+            ? 1
+            : 2,
+      );
+      expect(chat).toHaveBeenCalledTimes(
+        ["success", "model-response-denied"].includes(mode) ? 1 : 0,
+      );
+      expect(original._embeddingStage).not.toHaveBeenCalled();
+      expect(original._llmStage).not.toHaveBeenCalled();
+    },
+    90_000,
+  );
+
   it("governs the actual interests skill prompt through strict projection", async () => {
     const { runGovernedHubSkill } =
       await import("../../src/lib/evolution/governed-hub-skill.js");

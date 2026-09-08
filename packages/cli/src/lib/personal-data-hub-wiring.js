@@ -467,6 +467,7 @@ async function initHub() {
 
   // Phase 8 — EntityResolver pipeline
   const entityResolver = new EntityResolver({ vault });
+  let resolverEmbeddingStage = null;
   // Plan A v0.1 — in-APK Android cc has no Ollama on localhost:11434.
   // Every embedding call would TCP-timeout (measured: ~60s extra per sync
   // on Xiaomi 24115RA8EC 2026-05-21). Detect Termux $PREFIX for our APK
@@ -504,6 +505,7 @@ async function initHub() {
         vault,
       });
       entityResolver._embeddingStage = embeddingStage.asStageFn();
+      resolverEmbeddingStage = embeddingStage;
     }
   } catch (_err) {
     // Fall back to rule-only — registry still works
@@ -1071,6 +1073,23 @@ async function initHub() {
     alipayAccountsPath,
     entityResolver,
     aichatAccountsStore,
+    async drainResolver(options = {}, factory = null) {
+      if (factory === null) return entityResolver.drain(options);
+      const { createGovernedHubResolver } =
+        await import("./evolution/governed-hub-resolver.js");
+      const scoped = createGovernedHubResolver(
+        {
+          resolver: entityResolver,
+          llm,
+          embeddingStage: resolverEmbeddingStage,
+          EntityResolver,
+          EmbeddingStage: EntityResolverEmbeddingStage,
+          LLMStage: EntityResolverLLMStage,
+        },
+        factory,
+      );
+      return scoped.drain(options);
+    },
     aiChatAdapter,
     aichatWizard,
     aichatHealthChecker,

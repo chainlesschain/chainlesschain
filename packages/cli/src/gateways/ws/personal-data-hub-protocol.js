@@ -610,9 +610,12 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       return hub.entityResolver.manualUnmerge(msg.personId);
     }),
 
-  "personal-data-hub.resolver-drain": async (msg) =>
+  "personal-data-hub.resolver-drain": async (msg, context = {}) =>
     withHub(async (hub) => {
       if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      const factory = context.server?.evolutionCompositionFactory;
+      if (factory != null)
+        return hub.drainResolver({ limit: msg.limit || 50 }, factory);
       return await hub.entityResolver.drain({ limit: msg.limit || 50 });
     }),
 

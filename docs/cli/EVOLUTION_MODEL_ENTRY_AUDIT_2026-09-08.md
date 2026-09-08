@@ -63,6 +63,16 @@ stream suites pass 70 tests.
 
 ## Validation
 
+- Governed WebSocket resolver draining creates fresh embedding and LLM stages,
+  preserving resolver thresholds without modifying the cached resolver. Embedding
+  requests use the projected profile (excluding chat-only provenance metadata),
+  validate finite nonempty vectors and retain evidence before similarity is used.
+  Seven real-composition tests drive the SDK resolver and its actual stages through
+  successful merging, embedding/model source and response rejection, wrong Run and
+  invalid vectors. Refusals record queue errors without completion or merging.
+  Sixteen protocol/wiring regressions pass. The LLM arbitration prompt now contains
+  a valid JSON example. This remains within prepared PDH 0.4.60.
+
 - CLI `hub run-skill` and WebSocket `personal-data-hub.run-skill` now use
   scoped governed model clients. A per-invocation failure latch surfaces model
   errors even when the SDK's optional commentary layer catches them. Five real
@@ -98,18 +108,16 @@ stream suites pass 70 tests.
 This covers direct streams, QuickAsk, intent routes and legacy chat sessions.
 It does not establish that every model entry in the repository has been audited;
 the repository-wide final-entry audit remains open.
-Hub entity resolution and other background model consumers, plus Desktop Hub
-overrides, still require separate tracing. The minimal Hub deliberately has a
+Other background model consumers and Desktop Hub overrides still require
+separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.
 The Desktop Hub adapters inspected here delegate to LLMManager.chat rather than
-calling a provider directly. EntityResolverLLMStage in the CLI full Hub still
-receives the shared original model; its local-only consent gate is not an
-evolution projection. Its prompt also contains a pseudo-JSON example that needs
-correction before connecting the strict projection boundary.
+calling a provider directly. The full Hub retains its original resolver for
+unconfigured operation; governed WebSocket drain requests use scoped stages.
 The concrete drain triggers are WebSocket `personal-data-hub.resolver-drain`
 and Desktop IPC `personal-data-hub:resolver-drain`; SDK workers can also invoke
-the resolver. Skill execution now uses the scoped wrapper; background resolver
-authority and embeddings remain independent unfinished paths.
+the resolver. WebSocket draining and skill execution now use scoped wrappers;
+Desktop IPC and independently started SDK workers are not covered by that wiring.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

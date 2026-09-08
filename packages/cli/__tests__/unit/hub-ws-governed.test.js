@@ -30,6 +30,23 @@ async function dispatch(factory, extra = {}) {
 }
 
 describe("Hub WebSocket governed analysis", () => {
+  it("passes host authority to scoped resolver draining", async () => {
+    const factory = vi.fn();
+    const drain = vi.fn();
+    const drainResolver = vi.fn(async () => ({ processed: 0, error: 1 }));
+    ports.getHub.mockResolvedValue({
+      entityResolver: { drain },
+      drainResolver,
+    });
+    const messages = await dispatch(factory, {
+      type: "personal-data-hub.resolver-drain",
+      limit: 4,
+      evolutionCompositionFactory: "client",
+    });
+    expect(drainResolver).toHaveBeenCalledWith({ limit: 4 }, factory);
+    expect(drain).not.toHaveBeenCalled();
+    expect(messages[0].result).toEqual({ processed: 0, error: 1 });
+  });
   it("routes skills through the scoped Hub and surfaces governance rejection", async () => {
     const factory = vi.fn();
     const runSkill = vi
