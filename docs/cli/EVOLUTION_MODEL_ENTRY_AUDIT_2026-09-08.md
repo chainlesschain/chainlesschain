@@ -63,6 +63,14 @@ stream suites pass 70 tests.
 
 ## Validation
 
+- Hub WebSocket `personal-data-hub.ask` now receives the host factory through
+  the real message dispatcher and selects an invocation-scoped analysis Hub.
+  Four dispatcher tests cover host authority versus client fields, explicit cloud
+  consent, initialization/model rejection without fallback, and unconfigured
+  operation. These tests mock Hub loading; the six real-composition AnalysisEngine
+  cases separately validate the model boundary. The existing protocol suite adds
+  nine passing regressions.
+
 - Real composition tests cover CLI text and NDJSON output, WebSocket streaming,
   and QuickAsk: redaction before transport, source/response evidence rejection,
   wrong-Run rejection, successful durable completion, and truncated streams.
@@ -86,6 +94,10 @@ calling a provider directly. EntityResolverLLMStage in the CLI full Hub still
 receives the shared original model; its local-only consent gate is not an
 evolution projection. Its prompt also contains a pseudo-JSON example that needs
 correction before connecting the strict projection boundary.
+The concrete drain triggers are WebSocket `personal-data-hub.resolver-drain`
+and Desktop IPC `personal-data-hub:resolver-drain`; SDK workers can also invoke
+the resolver. WebSocket `personal-data-hub.run-skill` and its underlying model
+consumers still require tracing independently of the ask handler.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

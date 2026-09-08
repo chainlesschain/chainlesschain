@@ -391,7 +391,9 @@ export function createWsMessageDispatcher(server) {
       // response envelope so renderer code is shell-agnostic.
       if (PERSONAL_DATA_HUB_HANDLERS[type]) {
         try {
-          const out = await PERSONAL_DATA_HUB_HANDLERS[type](message);
+          const out = await PERSONAL_DATA_HUB_HANDLERS[type](message, {
+            server,
+          });
           if (out && out.error) {
             server._send(ws, {
               id,
