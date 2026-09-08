@@ -217,10 +217,21 @@ captured before callbacks execute.
 Regression cases cover legacy conversion, immutable prefixes, old-byte
 tampering, trust revocation, malformed manifests, four publication-failure
 windows, discard boundaries, silent write loss and aggregate capacity.
-The final four-file local regression passed 95/95 on Windows with Node
-22.22.2, including the aggregate-capacity checks; ESLint and formatting
-checks passed. The concurrent 1,000-event diagnostic started before the
-final readback/capacity changes and is not final-commit acceptance evidence.
+The initial four-file local regression passed 95/95 on Windows with Node
+22.22.2. After integrating the Windows device-projection compatibility fix,
+the final six-file regression passed 101/101, including a segmented-witness
+reopen under the affected projection and the aggregate-capacity checks.
+ESLint and formatting checks passed.
+
+The concurrent 1,000-event diagnostic subsequently passed: seed PID 11784,
+reopen PID 10244, seed 1,646.861 seconds, cold reopen 10.745 seconds and
+peak cold RSS 123,940 KiB, with the 256 MiB child heap limit. Historical
+witness signature checks were 1,002 during seed and 1,002 during cold reopen;
+the cold path performed one snapshot verification and no historical
+domain-event verification. Old ledger-segment and witness tampering were
+rejected. This process started before the final readback/capacity changes
+and ran alongside other tests, so it is diagnostic evidence, not
+final-commit acceptance or an isolated performance comparison.
 The implementation bounds tail rewriting and segment parsing, but each read
 still scans historical bytes. Production throughput, the full 250,000-event
 ledger workload, physical power-loss behavior and an independent witness

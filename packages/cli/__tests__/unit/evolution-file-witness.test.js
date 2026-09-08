@@ -354,6 +354,47 @@ describe("createEvolutionFileWitness", () => {
     expect(fs.statSync(filePath).size).toBeLessThan(200_000);
   });
 
+  it.skipIf(process.platform !== "win32")(
+    "reopens segmented history with the affected Windows path-device projection",
+    () => {
+      const original = fs.lstatSync;
+      const uvDescriptor = Object.getOwnPropertyDescriptor(
+        process.versions,
+        "uv",
+      );
+      Object.defineProperty(process.versions, "uv", {
+        ...uvDescriptor,
+        value: "1.49.1",
+      });
+      vi.spyOn(fs, "lstatSync").mockImplementation((target, options) => {
+        const observed = original(target, options);
+        return String(target).startsWith(root)
+          ? Object.assign(Object.create(observed), {
+              dev: options?.bigint ? 0n : 0,
+            })
+          : observed;
+      });
+      try {
+        const { witness, head, history } = legacyHistory(300);
+        const next = witness.compareAndSwap({
+          expected: head,
+          next: snapshot(witnessId, 300),
+        });
+        expect(JSON.parse(fs.readFileSync(filePath, "utf8")).schema).toBe(
+          EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
+        );
+        const reopened = create();
+        expect(reopened.read()).toEqual(next);
+        expect(
+          reopened.proveAncestry({ ancestor: history[1], descendant: next })
+            .included,
+        ).toBe(true);
+      } finally {
+        Object.defineProperty(process.versions, "uv", uvDescriptor);
+      }
+    },
+  );
+
   it("charges the whole committed history to the byte budget after segmentation", () => {
     const { witness, head } = legacyHistory(300);
     const next = witness.compareAndSwap({

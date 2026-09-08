@@ -5,6 +5,7 @@ import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
@@ -2543,6 +2544,26 @@ function lstatOrNull(fsImpl, target) {
 }
 
 function readBoundedSingleLinkFile(fsImpl, filePath, maximum, code, label) {
+  return withEvolutionFileIdentity(fsImpl, filePath, (samePathHandle) =>
+    readBoundedSingleLinkFileWithIdentity(
+      fsImpl,
+      filePath,
+      maximum,
+      code,
+      label,
+      samePathHandle,
+    ),
+  );
+}
+
+function readBoundedSingleLinkFileWithIdentity(
+  fsImpl,
+  filePath,
+  maximum,
+  code,
+  label,
+  samePathHandle,
+) {
   let descriptor = null;
   try {
     const before = fsImpl.lstatSync(filePath);
@@ -2564,7 +2585,7 @@ function readBoundedSingleLinkFile(fsImpl, filePath, maximum, code, label) {
     if (
       !opened.isFile() ||
       Number(opened.nlink) !== 1 ||
-      identity(opened) !== identity(before) ||
+      !samePathHandle(before, opened) ||
       opened.size !== before.size
     ) {
       throw failure(code, `${label} changed while opening`);
@@ -2580,12 +2601,12 @@ function readBoundedSingleLinkFile(fsImpl, filePath, maximum, code, label) {
       !afterPath.isFile() ||
       afterPath.isSymbolicLink() ||
       Number(afterPath.nlink) !== 1 ||
-      identity(afterPath) !== identity(opened) ||
+      !samePathHandle(afterPath, after) ||
       !samePath(realpath(fsImpl, filePath), filePath)
     ) {
       throw failure(code, `${label} changed while reading`);
     }
-    return { bytes, identity: identity(opened) };
+    return { bytes, identity: identity(before) };
   } finally {
     if (descriptor !== null) fsImpl.closeSync(descriptor);
   }
@@ -2786,8 +2807,7 @@ export class SkillReleaseRegistry {
         readActive: SkillReleaseRegistry.prototype.readActive.bind(this),
         readState: SkillReleaseRegistry.prototype.readState.bind(this),
         readRelease: SkillReleaseRegistry.prototype.readRelease.bind(this),
-        readInventory:
-          SkillReleaseRegistry.prototype.readInventory.bind(this),
+        readInventory: SkillReleaseRegistry.prototype.readInventory.bind(this),
         matchesTransactionLedger: (value) => value === transactionLedger,
       }),
     );
@@ -2870,6 +2890,15 @@ export class SkillReleaseRegistry {
   }
 
   #initializeTenantMarker() {
+    return withEvolutionFileIdentity(
+      this.#fs,
+      this.#markerPath,
+      (_full, sameStable) =>
+        this.#initializeTenantMarkerWithIdentity(sameStable),
+    );
+  }
+
+  #initializeTenantMarkerWithIdentity(sameStable) {
     const existing = lstatOrNull(this.#fs, this.#markerPath);
     if (existing) {
       const verified = this.#readAndVerifyTenantMarker();
@@ -2905,7 +2934,6 @@ export class SkillReleaseRegistry {
           "release tenant marker temporary file is unsafe",
         );
       }
-      const writtenIdentity = identity(written);
       this.#fs.closeSync(descriptor);
       descriptor = null;
       if (this.#secure) {
@@ -2920,7 +2948,7 @@ export class SkillReleaseRegistry {
         staged.isSymbolicLink() ||
         Number(staged.nlink) !== 1 ||
         staged.size !== bytes.length ||
-        identity(staged) !== writtenIdentity ||
+        !sameStable(staged, written) ||
         !samePath(realpath(this.#fs, temporaryPath), temporaryPath)
       ) {
         throw failure(
@@ -2943,7 +2971,7 @@ export class SkillReleaseRegistry {
         !linked.isFile() ||
         linked.isSymbolicLink() ||
         Number(linked.nlink) !== 2 ||
-        identity(linked) !== writtenIdentity
+        identity(linked) !== identity(staged)
       ) {
         throw failure(
           "SKILL_RELEASE_STORE_UNSAFE",
@@ -3229,6 +3257,12 @@ export class SkillReleaseRegistry {
       throw failure("SKILL_RELEASE_STORE_UNSAFE", "temporary name is invalid");
     }
     const filePath = this.#path("staging", fileName);
+    return withEvolutionFileIdentity(this.#fs, filePath, (_full, sameStable) =>
+      this.#writeTemporaryWithIdentity(filePath, value, sameStable),
+    );
+  }
+
+  #writeTemporaryWithIdentity(filePath, value, sameStable) {
     const bytes = serialize(value);
     let descriptor = null;
     let writtenIdentity = null;
@@ -3248,7 +3282,7 @@ export class SkillReleaseRegistry {
           "temporary write was incomplete",
         );
       }
-      writtenIdentity = identity(written);
+      writtenIdentity = written;
     } finally {
       if (descriptor !== null) this.#fs.closeSync(descriptor);
     }
@@ -3263,7 +3297,7 @@ export class SkillReleaseRegistry {
       !staged.isFile() ||
       staged.isSymbolicLink() ||
       Number(staged.nlink) !== 1 ||
-      identity(staged) !== writtenIdentity ||
+      !sameStable(staged, writtenIdentity) ||
       staged.size !== bytes.length ||
       !samePath(realpath(this.#fs, filePath), filePath)
     ) {
@@ -4006,8 +4040,8 @@ export class SkillReleaseRegistry {
     }
     const afterReleases = this.#readInventoryNames("artifacts", releasePattern);
     const afterStates = this.#readInventoryNames("active", statePattern);
-    const afterStateDigests = afterStates.map((name) =>
-      this.readState(name.slice(0, -".json".length)).stateDigest,
+    const afterStateDigests = afterStates.map(
+      (name) => this.readState(name.slice(0, -".json".length)).stateDigest,
     );
     if (
       canonicalJson(beforeReleases) !== canonicalJson(afterReleases) ||

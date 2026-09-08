@@ -5,6 +5,7 @@ import { types } from "node:util";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   createEvolutionWitnessSegments,
   EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
@@ -586,8 +587,16 @@ export function createEvolutionFileWitness({
     return store;
   };
 
-  const readBytes = (file, byteLimit = maximumBytes) => {
-    byteLimit = Math.min(maximumBytes, byteLimit);
+  const readBytes = (file, byteLimit = maximumBytes) =>
+    withEvolutionFileIdentity(fsImpl, file, (samePathHandle) =>
+      readBytesWithIdentity(
+        file,
+        Math.min(maximumBytes, byteLimit),
+        samePathHandle,
+      ),
+    );
+
+  const readBytesWithIdentity = (file, byteLimit, samePathHandle) => {
     ensurePrivateFile(file, secureOptions);
     const stat = fsImpl.lstatSync(file);
     if (
@@ -613,7 +622,7 @@ export function createEvolutionFileWitness({
         file,
         fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
       );
-      if (!sameFile(fsImpl.fstatSync(descriptor))) {
+      if (!samePathHandle(stat, fsImpl.fstatSync(descriptor))) {
         throw new Error("witness store changed while opening");
       }
       const bytes = readBoundedDescriptor(
@@ -624,7 +633,7 @@ export function createEvolutionFileWitness({
       );
       const afterPath = fsImpl.lstatSync(file);
       if (
-        !sameFile(fsImpl.fstatSync(descriptor)) ||
+        !samePathHandle(stat, fsImpl.fstatSync(descriptor)) ||
         afterPath.isSymbolicLink() ||
         !sameFile(afterPath)
       ) {

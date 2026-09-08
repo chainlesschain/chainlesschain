@@ -4,6 +4,7 @@ import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   verifySkillDependencyLock,
   verifySkillRuntimeManifest,
@@ -1793,6 +1794,15 @@ export class SkillCandidateRegistry {
   }
 
   _initializeTenantMarker() {
+    return withEvolutionFileIdentity(
+      this._fs,
+      this._markerPath,
+      (_full, sameStable) =>
+        this.#initializeTenantMarkerWithIdentity(sameStable),
+    );
+  }
+
+  #initializeTenantMarkerWithIdentity(sameStable) {
     const existing = lstatOrNull(this._fs, this._markerPath);
     if (existing) {
       const verified = this._readAndVerifyTenantMarker();
@@ -1832,7 +1842,6 @@ export class SkillCandidateRegistry {
           "candidate tenant marker temporary file is unsafe",
         );
       }
-      const writtenIdentity = entryIdentity(written);
       this._fs.closeSync(descriptor);
       descriptor = null;
       if (this._secure) {
@@ -1847,7 +1856,7 @@ export class SkillCandidateRegistry {
         staged.isSymbolicLink() ||
         Number(staged.nlink) !== 1 ||
         staged.size !== bytes.length ||
-        entryIdentity(staged) !== writtenIdentity ||
+        !sameStable(staged, written) ||
         !samePath(realpath(this._fs, temporaryPath), temporaryPath)
       ) {
         throw registryError(
@@ -1870,7 +1879,7 @@ export class SkillCandidateRegistry {
         !linked.isFile() ||
         linked.isSymbolicLink() ||
         Number(linked.nlink) !== 2 ||
-        entryIdentity(linked) !== writtenIdentity
+        entryIdentity(linked) !== entryIdentity(staged)
       ) {
         throw registryError(
           "SKILL_CANDIDATE_STORE_UNSAFE",
@@ -1901,6 +1910,24 @@ export class SkillCandidateRegistry {
   }
 
   _readBoundedRegularFile(filePath, maximum, code, label) {
+    return withEvolutionFileIdentity(this._fs, filePath, (samePathHandle) =>
+      this.#readBoundedRegularFileWithIdentity(
+        filePath,
+        maximum,
+        code,
+        label,
+        samePathHandle,
+      ),
+    );
+  }
+
+  #readBoundedRegularFileWithIdentity(
+    filePath,
+    maximum,
+    code,
+    label,
+    samePathHandle,
+  ) {
     let descriptor = null;
     try {
       const before = this._fs.lstatSync(filePath);
@@ -1925,7 +1952,7 @@ export class SkillCandidateRegistry {
       if (
         !opened.isFile() ||
         Number(opened.nlink) !== 1 ||
-        entryIdentity(opened) !== entryIdentity(before) ||
+        !samePathHandle(before, opened) ||
         opened.size !== before.size
       ) {
         throw registryError(code, `${label} changed while it was opened`);
@@ -1941,12 +1968,12 @@ export class SkillCandidateRegistry {
         !afterPath.isFile() ||
         afterPath.isSymbolicLink() ||
         Number(afterPath.nlink) !== 1 ||
-        entryIdentity(afterPath) !== entryIdentity(opened) ||
+        !samePathHandle(afterPath, after) ||
         !samePath(realpath(this._fs, filePath), filePath)
       ) {
         throw registryError(code, `${label} changed while it was read`);
       }
-      return { bytes, identity: entryIdentity(opened) };
+      return { bytes, identity: entryIdentity(before) };
     } finally {
       if (descriptor !== null) this._fs.closeSync(descriptor);
     }
@@ -2637,6 +2664,14 @@ export class SkillCandidateRegistry {
         "candidate create accepts only input; admission context is registry-owned",
       );
     }
+    return withEvolutionFileIdentity(
+      this._fs,
+      this._markerPath,
+      (_full, sameStable) => this.#createWithIdentity(input, sameStable),
+    );
+  }
+
+  #createWithIdentity(input, sameStable) {
     this._assertNoMixedTenantArtifacts();
     const verificationContext = this._resolveAdmissionContext(input);
     const candidate = buildSkillCandidateDraft(input, verificationContext);
@@ -2684,7 +2719,6 @@ export class SkillCandidateRegistry {
           { candidateId: candidate.candidateId, commitState: "not-committed" },
         );
       }
-      const writtenIdentity = entryIdentity(written);
       this._fs.closeSync(descriptor);
       descriptor = null;
       if (this._secure) {
@@ -2699,7 +2733,7 @@ export class SkillCandidateRegistry {
         staged.isSymbolicLink() ||
         Number(staged.nlink) !== 1 ||
         staged.size !== bytes.length ||
-        entryIdentity(staged) !== writtenIdentity ||
+        !sameStable(staged, written) ||
         !samePath(realpath(this._fs, temporaryPath), temporaryPath)
       ) {
         throw registryError(
@@ -2742,7 +2776,7 @@ export class SkillCandidateRegistry {
         linked.isSymbolicLink() ||
         Number(linked.nlink) !== 2 ||
         linked.size !== bytes.length ||
-        entryIdentity(linked) !== writtenIdentity ||
+        entryIdentity(linked) !== entryIdentity(staged) ||
         !samePath(realpath(this._fs, filePath), filePath)
       ) {
         throw registryError(
@@ -2759,7 +2793,7 @@ export class SkillCandidateRegistry {
         finalized.isSymbolicLink() ||
         Number(finalized.nlink) !== 1 ||
         finalized.size !== bytes.length ||
-        entryIdentity(finalized) !== writtenIdentity
+        entryIdentity(finalized) !== entryIdentity(staged)
       ) {
         throw registryError(
           "SKILL_CANDIDATE_COMMIT_UNKNOWN",
@@ -2794,7 +2828,7 @@ export class SkillCandidateRegistry {
         );
       }
       if (
-        stored.identity !== writtenIdentity ||
+        stored.identity !== entryIdentity(staged) ||
         verified.tenantId !== this.tenantId ||
         verified.candidateId !== candidate.candidateId ||
         !stored.bytes.equals(bytes) ||
