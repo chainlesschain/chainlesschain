@@ -12,6 +12,9 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
+Source candidate `0.4.116` adds complete Evolution Workbench snapshots, bounded
+loading and serialized approvals/rollbacks. It awaits the IDE release gates.
+
 ### What's new in 0.4.115
 
 - **Search before reading.** The paired CLI supports keyword web discovery,

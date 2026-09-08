@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.116] - Complete Evolution Workbench reads and serialized decisions (2026-09-08)
+
+- Read and validate the complete version history, up to 10,000 candidates, before
+  comparison, review or rollback; reject mixed, missing and duplicate pages.
+- Update the modal Workbench while CLI requests complete, bound snapshot reads,
+  and ignore delayed callbacks after the window closes.
+- Allow one operation at a time, including confirmation dialogs; after a missing
+  mutation receipt, refresh current state and report an unconfirmed result without
+  automatically replaying the decision.
+
 ## [0.4.115] - Search and read downloaded webpages and long files (2026-09-08)
 
 - Recommend CLI `0.166.34` for keyword web discovery, large webpage snapshots,

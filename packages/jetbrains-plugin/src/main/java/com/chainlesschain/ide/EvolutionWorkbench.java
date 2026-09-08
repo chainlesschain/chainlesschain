@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -22,6 +24,7 @@ public final class EvolutionWorkbench {
     public static final String ROLLBACK_RECEIPT_SCHEMA =
             "chainlesschain.evolution-workbench-rollback-receipt/v1";
     public static final int MAX_CANDIDATES = 500;
+    public static final int MAX_TOTAL_CANDIDATES = 10_000;
     public static final int MAX_REASON_LENGTH = 2_048;
     public static final int MAX_JSON_LENGTH = 4 * 1024 * 1024;
 
@@ -76,14 +79,16 @@ public final class EvolutionWorkbench {
     public static final class Projection {
         public final String projectionDigest;
         public final long total;
+        public final long offset;
         public final boolean hasMore;
         public final Governance governance;
         public final List<Candidate> candidates;
 
-        private Projection(String projectionDigest, long total, boolean hasMore,
+        private Projection(String projectionDigest, long total, long offset, boolean hasMore,
                 Governance governance, List<Candidate> candidates) {
             this.projectionDigest = projectionDigest;
             this.total = total;
+            this.offset = offset;
             this.hasMore = hasMore;
             this.governance = governance;
             this.candidates = List.copyOf(candidates);
@@ -136,7 +141,12 @@ public final class EvolutionWorkbench {
     }
 
     public static Projection parseProjection(String json) {
+        return parseProjection(json, 0);
+    }
+
+    public static Projection parseProjection(String json, int expectedOffset) {
         if (json == null || json.isBlank() || json.length() > MAX_JSON_LENGTH) return null;
+        if (!validOffset(expectedOffset)) return null;
         try {
             Map<String, Object> root = MiniJson.parseObject(json);
             String projectionDigest = digest(root.get("projectionDigest"));
@@ -148,12 +158,12 @@ public final class EvolutionWorkbench {
             List<Object> rawCandidates = list(root.get("candidates"));
             if (projectionDigest == null || total == null || offset == null
                     || limit == null || limit != MAX_CANDIDATES
-                    || offset != 0 || !(hasMore instanceof Boolean) || governance == null
+                    || offset != expectedOffset || total > MAX_TOTAL_CANDIDATES
+                    || offset > total || !(hasMore instanceof Boolean) || governance == null
                     || rawCandidates == null || rawCandidates.size() > limit
                     || rawCandidates.size() > MAX_CANDIDATES
-                    || total < rawCandidates.size()
-                    || ((Boolean) hasMore && rawCandidates.size() != limit)
-                    || ((Boolean) hasMore) != (total > rawCandidates.size())) return null;
+                    || rawCandidates.size() != Math.min(limit, total - offset)
+                    || ((Boolean) hasMore) != (total > offset + rawCandidates.size())) return null;
 
             ArrayList<Candidate> candidates = new ArrayList<>();
             HashSet<String> packets = new HashSet<>();
@@ -162,7 +172,7 @@ public final class EvolutionWorkbench {
                 if (candidate == null || !packets.add(candidate.packetDigest)) return null;
                 candidates.add(candidate);
             }
-            return new Projection(projectionDigest, total, (Boolean) hasMore,
+            return new Projection(projectionDigest, total, offset, (Boolean) hasMore,
                     governance, candidates);
         } catch (RuntimeException ignored) {
             return null;
@@ -172,6 +182,62 @@ public final class EvolutionWorkbench {
     public static List<String> buildListArgs() {
         return List.of("evolution", "workbench", "list", "--limit",
                 String.valueOf(MAX_CANDIDATES));
+    }
+
+    public static List<String> buildListArgs(int offset) {
+        if (!validOffset(offset)) throw new IllegalArgumentException("invalid projection offset");
+        if (offset == 0) return buildListArgs();
+        return List.of("evolution", "workbench", "list", "--limit",
+                String.valueOf(MAX_CANDIDATES), "--offset", String.valueOf(offset));
+    }
+
+    /** Read one complete, bounded snapshot; never expose a mixed or partial history. */
+    public static Projection loadProjection(Function<List<String>, String> read) {
+        Objects.requireNonNull(read, "projection reader");
+        Projection first = null;
+        ArrayList<Candidate> candidates = new ArrayList<>();
+        HashSet<String> packets = new HashSet<>();
+        do {
+            if (Thread.currentThread().isInterrupted()) return null;
+            Projection page;
+            try {
+                page = parseProjection(read.apply(buildListArgs(candidates.size())), candidates.size());
+            } catch (RuntimeException unavailable) {
+                return null;
+            }
+            if (page == null || Thread.currentThread().isInterrupted()) return null;
+            if (first == null) {
+                first = page;
+            } else if (!first.projectionDigest.equals(page.projectionDigest)
+                    || first.total != page.total
+                    || !sameGovernance(first.governance, page.governance)) {
+                return null;
+            }
+            for (Candidate candidate : page.candidates) {
+                if (!packets.add(candidate.packetDigest)) return null;
+                candidates.add(candidate);
+            }
+            if (!page.hasMore) {
+                return new Projection(first.projectionDigest, first.total, 0, false,
+                        first.governance, candidates);
+            }
+        } while (candidates.size() < MAX_TOTAL_CANDIDATES);
+        return null;
+    }
+
+    private static boolean validOffset(int offset) {
+        return offset >= 0 && offset < MAX_TOTAL_CANDIDATES && offset % MAX_CANDIDATES == 0;
+    }
+
+    private static boolean sameGovernance(Governance left, Governance right) {
+        return left.runStatus.equals(right.runStatus)
+                && Objects.equals(left.activeReleaseId, right.activeReleaseId)
+                && Objects.equals(left.lastKnownGoodReleaseId, right.lastKnownGoodReleaseId)
+                && left.conflictCount == right.conflictCount
+                && Objects.equals(left.pilotStage, right.pilotStage)
+                && Objects.equals(left.pilotRevision, right.pilotRevision)
+                && left.killSwitch == right.killSwitch
+                && left.reconciliationRequired == right.reconciliationRequired;
     }
 
     public static List<String> buildCompareArgs(
@@ -367,7 +433,9 @@ public final class EvolutionWorkbench {
 
     private static void requireMember(
             Projection projection, Candidate candidate, String label) {
-        if (projection == null || candidate == null || !isDigest(candidate.packetDigest)
+        if (projection == null || projection.offset != 0 || projection.hasMore
+                || projection.candidates.size() != projection.total
+                || candidate == null || !isDigest(candidate.packetDigest)
                 || projection.findExact(candidate.packetDigest) != candidate) {
             throw new IllegalArgumentException(label + " packet is stale or untrusted");
         }

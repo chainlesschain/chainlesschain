@@ -1058,6 +1058,10 @@ best 更新要求两个 grader 均有可信证据、组合分数超过 baseline/
 
 本批 Windows / Node.js 22.22.2 验证：SDK 全套 9 文件 81/81（含真实 CLI 的会话、写文件审批与 resume）、Workbench 相关 41/41、SDK vendor 一致性 8/8，真实浏览器/CLI 持久旅程通过；SDK 双格式 TypeScript 构建、协议生成与 vendor freshness、JS ESLint 和 diff 检查通过。目标提交的三平台 CI 结果仍须单独核验，不据此升级全量任务完成状态。
 
+同日 JetBrains 补充：完整读取并校验最多 10,000 个版本，拒绝跨页 projection/governance 漂移、重复 packet、缺页和不完整投影上的操作；窗口内只允许一个加载/比较/审批/回滚操作，人工确认也占用该操作，关闭后旧回调失效。修复默认模态调度使后台结果延后到弹窗关闭的问题，纯 Swing 回调显式允许在 Workbench 弹窗内运行；整次快照读取最多 45 秒。缺失 mutation receipt 只表示结果未确认，随后只读刷新且保留提示，不自动重发决定。本地 JDK 21 定向验证包含 10,000 项边界、跨页活动版本、陈旧回调和并发操作；目标三系统真实 IDE 宿主验收仍须以 CI 结果为准。源码候选版本为 SDK `0.2.9`、VS Code `0.37.90`、JetBrains `0.4.116`，版本更新不表示已经发布或安装。
+
+JetBrains 本批 JDK 21 定向测试 14/14、纯逻辑 smoke 1334/1334 与 `buildPlugin` 通过，生成 `chainlesschain-ide-bridge-0.4.116.zip`。本地打包结果仍不是三系统宿主验收或发布许可。
+
 工作台应提供一条可解释时间线：
 
 `Raw/Recording evidence → Wiki pattern 或 direct replay derivation → Candidate diff → Eval receipt → Approval → Promotion/Rollback`

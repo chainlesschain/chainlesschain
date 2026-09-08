@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.90] - Recoverable Evolution Workbench and complete version history (2026-09-08)
+
+- Recover from stalled CLI pipes, disconnects and read timeouts; ignore responses
+  from replaced connections and allow refresh after failed initialization.
+- Verify all CLI pages before displaying counts, searching or reviewing versions,
+  with up to 10,000 candidates and 25 rows per displayed page.
+- Show unavailable counts and Pilot governance status accurately, and retain loading
+  state when a Webview reconnects.
+- Add a three-platform browser journey using a real signed local-test CLI deployment
+  for approval, rollback and restart persistence. Production deployment gates remain required.
+
 ## [0.37.89] - Downloaded webpage chunks and visible fetch errors (2026-09-08)
 
 - Recommend CLI `0.166.34` for large-page downloads and local snapshot paging.
