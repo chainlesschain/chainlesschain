@@ -100,6 +100,7 @@ final class IdeUiSmokeTest {
             waitForTranscript(transcript, "fixture stream complete #2", FIND_BUDGET);
 
             send(input, send, "journey:plan");
+            waitForTranscript(transcript, "opened plan review editor tab", FIND_BUDGET);
             ComponentFixture planApprove = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
             clickButton(planApprove);
