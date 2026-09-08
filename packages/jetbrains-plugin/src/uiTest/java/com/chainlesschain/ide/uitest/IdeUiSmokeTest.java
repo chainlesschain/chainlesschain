@@ -164,8 +164,15 @@ final class IdeUiSmokeTest {
         Object projectPathValue = frame.callJs("component.getProject().getBasePath();");
         String projectPath = String.valueOf(projectPathValue);
         Path workspace = Paths.get(projectPath, ".idea", "workspace.xml");
-        frame.runJs("const manager = Packages.com.intellij.openapi.actionSystem.ActionManager.getInstance();"
-                + "manager.tryToExecute(manager.getAction('SaveAll'), null, component, null, true);", true);
+        // Remote Robot's EDT dispatch does not acquire the write-intent lock
+        // required by 2025.2. Dispatch through the platform, as normal actions do.
+        frame.runJs("importClass(com.intellij.openapi.application.ApplicationManager);"
+                + "importClass(java.lang.Runnable);"
+                + "const target = component;"
+                + "ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){"
+                + "const manager = Packages.com.intellij.openapi.actionSystem.ActionManager.getInstance();"
+                + "manager.tryToExecute(manager.getAction('SaveAll'), null, target, null, true);"
+                + "}}));", true);
         long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
         while (System.nanoTime() < deadline) {
             if (Files.isRegularFile(workspace)

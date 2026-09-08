@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When `llm test --provider` selects another provider, use that provider's
   model, endpoint and credential defaults instead of mixing in saved values
   from the previous provider.
+- Derive each Canary heartbeat expiry from its single issuance timestamp.
+  Crossing a wall-clock millisecond while building the signed lease no longer
+  rejects an otherwise valid heartbeat.
 - Reproduced against the configured Ark `deepseek-v4-flash-260425`: the old
   request returned HTTP 200, `finish_reason=length`, 16 reasoning tokens and
   no answer; the corrected request returned `finish_reason=stop` and `Hi`.

@@ -43,6 +43,29 @@ function fixture() {
 }
 
 describe("progressive Canary watchdog Node PKI", () => {
+  it("issues a verifiable lease when the wall clock advances between reads", async () => {
+    const { plan, heartbeatKeys } = fixture();
+    let clock = 1_000;
+    const host = createNodeProgressiveCanaryHeartbeatAuthority({
+      plan,
+      privateKey: heartbeatKeys.privateKey,
+      publicKey: heartbeatKeys.publicKey,
+      now: () => clock++,
+    });
+    const watchdog = createNodeProgressiveCanaryHeartbeatAuthority({
+      plan,
+      publicKey: heartbeatKeys.publicKey,
+    });
+    const receipt = await host.issue({
+      sequence: 1,
+      stage: "active-probation",
+      activeStateDigest: D("candidate"),
+    });
+    expect(receipt.issuedAt).toBe(1_000);
+    expect(receipt.expiresAt).toBe(1_000 + plan.leaseDurationMs);
+    await expect(watchdog.verify(receipt)).resolves.toEqual(receipt);
+  });
+
   it("verifies a host-process heartbeat using only its plan-pinned public key", async () => {
     const { plan, heartbeatKeys } = fixture();
     const host = createNodeProgressiveCanaryHeartbeatAuthority({

@@ -26,9 +26,19 @@ function projected(stat, overrides) {
   return Object.assign(Object.create(stat), overrides);
 }
 
-function zeroPathDeviceFs() {
+function zeroPathDeviceFs(volumeDirectory) {
   return {
     ...fs,
+    openSync(target, ...args) {
+      // The simulated Windows runtime asks for a Windows volume root even
+      // on POSIX hosts. Anchor it to a real descriptor on the fixture's
+      // volume; keep real fstat device/inode checks for every descriptor.
+      const actual =
+        process.platform !== "win32" && target === "\\"
+          ? volumeDirectory
+          : target;
+      return fs.openSync(actual, ...args);
+    },
     lstatSync(target, options) {
       const observed = fs.lstatSync(target, options);
       return projected(observed, { dev: options?.bigint ? 0n : 0 });
@@ -38,8 +48,8 @@ function zeroPathDeviceFs() {
 
 describe("evolution path/handle identity", () => {
   it("accepts affected path-device projection only against the held volume", () => {
-    const { file } = fixture();
-    const runtimeFs = zeroPathDeviceFs();
+    const { root, file } = fixture();
+    const runtimeFs = zeroPathDeviceFs(root);
     withEvolutionFileIdentity(
       runtimeFs,
       file,
