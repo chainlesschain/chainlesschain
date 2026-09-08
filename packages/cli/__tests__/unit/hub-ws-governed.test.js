@@ -30,6 +30,25 @@ async function dispatch(factory, extra = {}) {
 }
 
 describe("Hub WebSocket governed analysis", () => {
+  it("routes skills through the scoped Hub and surfaces governance rejection", async () => {
+    const factory = vi.fn();
+    const runSkill = vi
+      .fn()
+      .mockRejectedValue(new Error("skill evidence denied"));
+    ports.getGovernedAnalysisHub.mockResolvedValue({ runSkill });
+    const messages = await dispatch(factory, {
+      type: "personal-data-hub.run-skill",
+      name: "analysis.overview",
+      options: { since: 42 },
+    });
+    expect(ports.getGovernedAnalysisHub).toHaveBeenCalledWith(factory);
+    expect(ports.getHub).not.toHaveBeenCalled();
+    expect(runSkill).toHaveBeenCalledWith("analysis.overview", { since: 42 });
+    expect(messages[0]).toMatchObject({
+      type: "error",
+      message: "skill evidence denied",
+    });
+  });
   it("uses host authority through the dispatcher and preserves cloud consent", async () => {
     const factory = vi.fn();
     const ask = vi.fn(async () => ({ answer: "governed" }));

@@ -634,8 +634,13 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.skills-list": async () =>
     withHub((hub) => hub.analysisSkillNames || []),
 
-  "personal-data-hub.run-skill": async (msg) =>
-    withHub(async (hub) => await hub.runSkill(msg.name, msg.options || {})),
+  "personal-data-hub.run-skill": async (msg, context = {}) => {
+    const factory = context.server?.evolutionCompositionFactory;
+    return withHub(
+      async (hub) => await hub.runSkill(msg.name, msg.options || {}),
+      factory == null ? getHub : () => getGovernedAnalysisHub(factory),
+    );
+  },
 
   // ─── Phase 10.3 — AIChat WebView 鉴权向导 (paste-mode on cc ui) ────────
 

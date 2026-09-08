@@ -958,16 +958,64 @@ describe("Agent evolution runtime production composition", () => {
     90_000,
   );
 
-  it.each([
-    "success",
-    "source-denied",
-    "response-denied",
-    "wrong-run",
-    "cloud-denied",
-    "provider-changed",
-  ])(
-    "governs Hub analysis with its existing consent gate (%s)",
-    async (mode) => {
+  it("governs the actual interests skill prompt through strict projection", async () => {
+    const { runGovernedHubSkill } =
+      await import("../../src/lib/evolution/governed-hub-skill.js");
+    const { InterestsSkill } = createRequire(import.meta.url)(
+      "../../../personal-data-hub/lib/analysis-skills/interests.js",
+    );
+    const f = modelFixture();
+    let composition;
+    const factory = async ({ runId }) => {
+      composition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      return composition;
+    };
+    const expected = [
+      { category: "reading", evidenceCount: 1, examples: ["book"] },
+    ];
+    const chat = vi.fn(async () => ({ text: JSON.stringify(expected) }));
+    const result = await runGovernedHubSkill(
+      { vault: {}, llm: { name: "test", isLocal: true, chat } },
+      factory,
+      async (deps) =>
+        new InterestsSkill(deps)._clusterInterests(
+          [{ name: "owner@example.com", eventCount: 1 }],
+          [],
+          [],
+          {},
+        ),
+      "analysis.interests",
+      {},
+    );
+    expect(result).toEqual(expected);
+    expect(composition.loadRun().projection.status).toBe("completed");
+    expect(JSON.stringify(chat.mock.calls[0][0])).not.toContain(
+      "owner@example.com",
+    );
+  }, 90_000);
+
+  it.each(
+    [
+      "success",
+      "source-denied",
+      "response-denied",
+      "wrong-run",
+      "cloud-denied",
+      "provider-changed",
+    ].flatMap((mode) =>
+      mode === "cloud-denied"
+        ? [[mode, "analysis"]]
+        : [
+            [mode, "analysis"],
+            [mode, "skill"],
+          ],
+    ),
+  )(
+    "governs Hub analysis with its existing consent gate (%s, %s)",
+    async (mode, entry) => {
       const { AnalysisEngine } = createRequire(import.meta.url)(
         "../../../personal-data-hub/lib/analysis.js",
       );
@@ -1031,9 +1079,36 @@ describe("Agent evolution runtime production composition", () => {
         audit: vi.fn(),
       };
       const engine = new AnalysisEngine({ vault, llm: wrapped });
-      const operation = engine.ask(`Summarize notes ${secret}`, {
-        useRag: false,
-      });
+      let operation;
+      if (entry === "skill") {
+        const { runGovernedHubSkill } =
+          await import("../../src/lib/evolution/governed-hub-skill.js");
+        const { AnalysisSkill } = createRequire(import.meta.url)(
+          "../../../personal-data-hub/lib/analysis-skills/base.js",
+        );
+        operation = runGovernedHubSkill(
+          { vault, llm: original },
+          factory,
+          async (deps) => {
+            const skill = new AnalysisSkill(deps);
+            return {
+              answer: await skill.callLlmCommentary(
+                [
+                  {
+                    role: "user",
+                    content: `Summarize owner@example.com ${secret}`,
+                  },
+                ],
+                { skipCache: true },
+              ),
+            };
+          },
+          "test",
+          {},
+        );
+      } else {
+        operation = engine.ask(`Summarize notes ${secret}`, { useRag: false });
+      }
       if (mode === "success") {
         await expect(operation).resolves.toMatchObject({
           answer: "safe answer",

@@ -16,6 +16,30 @@ afterEach(() => {
 });
 
 describe("governed Hub registration", () => {
+  it("routes run-skill through an invocation-scoped Hub", async () => {
+    const factory = vi.fn();
+    const runSkill = vi.fn(async () => ({ commentary: "safe" }));
+    ports.getGovernedAnalysisHub.mockResolvedValue({
+      analysisSkillNames: ["analysis.overview"],
+      runSkill,
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const program = new Command();
+    registerHubCommand(program, { evolutionCompositionFactory: factory });
+    await program.parseAsync([
+      "node",
+      "cc",
+      "hub",
+      "run-skill",
+      "analysis.overview",
+      "--since",
+      "42",
+      "--json",
+    ]);
+    expect(ports.getGovernedAnalysisHub).toHaveBeenCalledWith(factory);
+    expect(ports.getHub).not.toHaveBeenCalled();
+    expect(runSkill).toHaveBeenCalledWith("analysis.overview", { since: 42 });
+  });
   it("loads an invocation-scoped analysis hub and preserves explicit cloud consent", async () => {
     const factory = vi.fn();
     const ask = vi.fn(async () => ({ answer: "ok" }));

@@ -2104,7 +2104,21 @@ export async function getGovernedAnalysisHub(evolutionCompositionFactory) {
     maxQueryLimit: hub.engine.maxQueryLimit,
     systemPrompt: hub.engine.systemPrompt,
   });
-  return Object.freeze({ ...hub, llm, engine });
+  const { runGovernedHubSkill } =
+    await import("./evolution/governed-hub-skill.js");
+  return Object.freeze({
+    ...hub,
+    llm,
+    engine,
+    runSkill: (name, options = {}) =>
+      runGovernedHubSkill(
+        hub,
+        evolutionCompositionFactory,
+        runAnalysisSkill,
+        name,
+        options,
+      ),
+  });
 }
 
 // ─── Minimal hub bootstrap for read-only / LLM-free commands ────────────

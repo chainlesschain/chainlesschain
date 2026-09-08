@@ -63,6 +63,18 @@ stream suites pass 70 tests.
 
 ## Validation
 
+- CLI `hub run-skill` and WebSocket `personal-data-hub.run-skill` now use
+  scoped governed model clients. A per-invocation failure latch surfaces model
+  errors even when the SDK's optional commentary layer catches them. Five real
+  composition cases exercise success, source/response refusal, wrong Run and
+  model identity changes through the SDK commentary layer. Command/dispatcher
+  regression suites pass 33 tests. The SDK interests prompt uses a valid JSON
+  example so strict projection can process legitimate skill requests.
+  A separate real-composition test exercises InterestsSkill's actual prompt and
+  JSON response parsing, with redaction and durable completion. PDH 0.4.60 and
+  its CLI pin are prepared for child-first publishing after the exact-commit
+  release gates; USR_VERSION 82 invalidates the Android bundle cache on rebuild.
+
 - Hub WebSocket `personal-data-hub.ask` now receives the host factory through
   the real message dispatcher and selects an invocation-scoped analysis Hub.
   Four dispatcher tests cover host authority versus client fields, explicit cloud
@@ -96,8 +108,8 @@ evolution projection. Its prompt also contains a pseudo-JSON example that needs
 correction before connecting the strict projection boundary.
 The concrete drain triggers are WebSocket `personal-data-hub.resolver-drain`
 and Desktop IPC `personal-data-hub:resolver-drain`; SDK workers can also invoke
-the resolver. WebSocket `personal-data-hub.run-skill` and its underlying model
-consumers still require tracing independently of the ask handler.
+the resolver. Skill execution now uses the scoped wrapper; background resolver
+authority and embeddings remain independent unfinished paths.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

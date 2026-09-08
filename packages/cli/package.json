@@ -95,7 +95,7 @@
     "@chainlesschain/core-mtc": "0.2.3",
     "@chainlesschain/core-multisig": "0.1.4",
     "@chainlesschain/context-memory-kernel": "0.1.0",
-    "@chainlesschain/personal-data-hub": "0.4.59",
+    "@chainlesschain/personal-data-hub": "0.4.60",
     "@chainlesschain/session-core": "0.3.12",
     "@chainlesschain/shared-logger": "0.1.1",
     "@inquirer/prompts": "^7.2.0",

@@ -1553,7 +1553,7 @@ async function cmdRunSkill(name, options) {
     ? null
     : ora(`running analysis skill ${name}...`).start();
   try {
-    const hub = await getHub();
+    const hub = await (options._getHub || getHub)();
     if (!hub.analysisSkillNames.includes(name)) {
       throw new Error(
         `Unknown skill: ${name}. Available: ${hub.analysisSkillNames.join(", ")}`,
@@ -4056,7 +4056,7 @@ export function registerHubCommand(program, dependencies = {}) {
     .option("--since <ms>", "Start of time window")
     .option("--until <ms>", "End of time window")
     .option("--json", "Output JSON")
-    .action(cmdRunSkill);
+    .action((name, options) => cmdRunSkill(name, invocationOptions(options)));
 
   hub
     .command("salvage <dumpfile>")

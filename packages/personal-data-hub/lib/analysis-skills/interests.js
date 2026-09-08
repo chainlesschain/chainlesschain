@@ -201,7 +201,8 @@ ${topItems.slice(0, 10).map((i) => `- ${i.name} (${i.occurrences}次, ¥${i.tota
 ${events.slice(0, 20).map((e) => `- ${e.content?.title || "(无标题)"}`).join("\n")}
 
 请将以上抽 3-5 个兴趣类别（如"咖啡"、"科技阅读"、"户外旅行"），每个给出 1-2 个 evidence 引用。
-输出 JSON 数组：[{"category": "类别名", "evidenceCount": N, "examples": ["..."]}, ...]
+输出 JSON 数组，例如：[{"category": "类别名", "evidenceCount": 1, "examples": ["证据引用"]}]
+evidenceCount 必须是对应类别的实际证据数量；按需要添加更多类别对象。
 只输出 JSON，不要其它文字。`;
 
     const resp = await this.callLlmCommentary([
