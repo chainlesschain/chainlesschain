@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { ArtifactStore } from "../artifact-store.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -1106,6 +1107,16 @@ function inspectPhysicalDirectory(directory, label) {
 }
 
 function inspectPhysicalIndex(indexPath, rootRealPath) {
+  return withEvolutionFileIdentity(fs, indexPath, (samePathHandle) =>
+    inspectPhysicalIndexWithIdentity(indexPath, rootRealPath, samePathHandle),
+  );
+}
+
+function inspectPhysicalIndexWithIdentity(
+  indexPath,
+  rootRealPath,
+  samePathHandle,
+) {
   let pathStat;
   let realPath;
   let descriptor = null;
@@ -1128,7 +1139,7 @@ function inspectPhysicalIndex(indexPath, rootRealPath) {
     );
     const descriptorStat = fs.fstatSync(descriptor);
     assertRegularSingleLink(descriptorStat, "ArtifactStore index descriptor");
-    if (!sameFileIdentity(pathStat, descriptorStat)) {
+    if (!samePathHandle(pathStat, descriptorStat)) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
         "ArtifactStore index pathname and descriptor identities differ",
@@ -1375,6 +1386,12 @@ function parseTrustedIndexBytes(bytes) {
 }
 
 function readTrustedIndexSnapshot(layout) {
+  return withEvolutionFileIdentity(fs, layout.indexPath, (samePathHandle) =>
+    readTrustedIndexSnapshotWithIdentity(layout, samePathHandle),
+  );
+}
+
+function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
   attestStoreDirectories(layout);
   let beforePathStat;
   let beforeDescriptorStat;
@@ -1412,7 +1429,7 @@ function readTrustedIndexSnapshot(layout) {
       "ArtifactStore index descriptor",
     );
     if (
-      !sameFileIdentity(beforePathStat, beforeDescriptorStat) ||
+      !samePathHandle(beforePathStat, beforeDescriptorStat) ||
       beforeDescriptorStat.size > EVOLUTION_ARTIFACT_MAX_INDEX_BYTES
     ) {
       throw artifactError(
@@ -2311,6 +2328,26 @@ export class EvolutionArtifactPorts {
   }
 
   #readStoredBytes(entry, normalizedEntry, expectedDigest) {
+    const expectedPath = path.resolve(
+      this.#store.layout.filesDir,
+      normalizedEntry.file,
+    );
+    return withEvolutionFileIdentity(fs, expectedPath, (samePathHandle) =>
+      this.#readStoredBytesWithIdentity(
+        entry,
+        normalizedEntry,
+        expectedDigest,
+        samePathHandle,
+      ),
+    );
+  }
+
+  #readStoredBytesWithIdentity(
+    entry,
+    normalizedEntry,
+    expectedDigest,
+    samePathHandle,
+  ) {
     attestStoreDirectories(this.#store.layout);
     const expectedHex = expectedDigest.slice("sha256:".length);
     let storedPath;
@@ -2387,7 +2424,7 @@ export class EvolutionArtifactPorts {
         beforeDescriptorStat,
         "stored artifact descriptor",
       );
-      if (!sameFileIdentity(beforePathStat, beforeDescriptorStat)) {
+      if (!samePathHandle(beforePathStat, beforeDescriptorStat)) {
         throw artifactError(
           EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
           "stored artifact pathname and descriptor identities differ",

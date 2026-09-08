@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.35",
+      "cliVersions": ["0.166.34", "0.166.35"],
+      "date": "2026-09-08",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.35: restore governed storage on minimum-Node Windows hosts",
+          "body": "> `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate\n> awaiting the exact-commit release matrix.\n\n- Use the existing trusted-directory device check for affected Windows libuv\n  path/handle stat projections across EvolutionLedger, file witness,\n  ArtifactStore and Candidate/Release Registry storage.\n- Keep inode, mode, link-count, size and read-time metadata comparisons exact,\n  and preserve pathname identities across publication and authenticated caches.\n- Retain bounded local-test CLI startup errors in the Workbench browser\n  evidence job so process exit failures identify their underlying cause."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.34",
       "cliVersions": ["0.166.32", "0.166.34"],
       "date": "2026-09-08",

@@ -339,9 +339,16 @@ async function main() {
         root: path.join(output, "local-deployment"),
       });
       const manager = createWorkbenchProfileManager();
+      let cliStderr = "";
+      const captureStderr = (chunk) => {
+        // This process uses only the local test deployment. Keep a bounded
+        // failure diagnostic so a native/loader error is not reduced to exit 1.
+        cliStderr = (cliStderr + String(chunk)).slice(-16_384);
+      };
       let live;
       try {
         const pilot = await manager.get(created.profilePath);
+        pilot.on("stderr", captureStderr);
         const before = await pilot.evolutionWorkbenchList({ limit: 500 });
         const pending = before.candidates.find(
           (item) => item.status === "pending",
@@ -405,11 +412,15 @@ async function main() {
         live = null;
         await manager.close();
         const reopened = await manager.get(created.profilePath);
+        reopened.on("stderr", captureStderr);
         assert.deepEqual(
           await reopened.evolutionWorkbenchList({ limit: 500 }),
           after,
         );
         liveEvolution = true;
+      } catch (error) {
+        if (cliStderr) console.error("Local test CLI stderr:", cliStderr);
+        throw error;
       } finally {
         await live?.close();
         await manager.close();

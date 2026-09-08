@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.35: restore governed storage on minimum-Node Windows hosts
+
+> `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate
+> awaiting the exact-commit release matrix.
+
+- Use the existing trusted-directory device check for affected Windows libuv
+  path/handle stat projections across EvolutionLedger, file witness,
+  ArtifactStore and Candidate/Release Registry storage.
+- Keep inode, mode, link-count, size and read-time metadata comparisons exact,
+  and preserve pathname identities across publication and authenticated caches.
+- Retain bounded local-test CLI startup errors in the Workbench browser
+  evidence job so process exit failures identify their underlying cause.
+
 ### Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility
 
 > `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with

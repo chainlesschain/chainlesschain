@@ -4,6 +4,7 @@ import path from "node:path";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
@@ -558,6 +559,10 @@ export function createEvolutionFileWitness({
 
   const readStore = () => {
     if (!fsImpl.existsSync(target)) return emptyStore();
+    return withEvolutionFileIdentity(fsImpl, target, readExistingStore);
+  };
+
+  const readExistingStore = (samePathHandle) => {
     ensurePrivateFile(target, secureOptions);
     const stat = fsImpl.lstatSync(target);
     if (
@@ -583,7 +588,7 @@ export function createEvolutionFileWitness({
         target,
         fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
       );
-      if (!sameFile(fsImpl.fstatSync(descriptor))) {
+      if (!samePathHandle(stat, fsImpl.fstatSync(descriptor))) {
         throw new Error("witness store changed while opening");
       }
       const bytes = readBoundedDescriptor(
@@ -594,7 +599,7 @@ export function createEvolutionFileWitness({
       );
       const afterPath = fsImpl.lstatSync(target);
       if (
-        !sameFile(fsImpl.fstatSync(descriptor)) ||
+        !samePathHandle(stat, fsImpl.fstatSync(descriptor)) ||
         afterPath.isSymbolicLink() ||
         !sameFile(afterPath)
       ) {

@@ -1159,6 +1159,8 @@ JetBrains 本批 JDK 21 定向测试 14/14、纯逻辑 smoke 1334/1334 与 `buil
 
 初轮两项失败分别来自测试写错 nonce 事件类型，以及用旧父版本候选制造后续晋升；修正为实际 `skill.mutation.nonce` 事件并按 operationId 检查、先创建合法派生候选后，原 35 项通过，随后新增范围/验签漂移验证并以上述最终结果替换。没有扩大既有测试预算或放宽安全门。10 个本批 JS/MJS 文件 ESLint、14 文件 Prettier、原生 Node 控制工厂导入和 git diff check 通过；npm dry-run 确认 CLI 0.166.22 的 1,563 个发布文件包含新控制工厂，但不替代子包 payload 审计、子包先发和 exact release SHA 的 CLI CI/Strict Sandbox 三平台门禁。本批只提交本地 main，不推送或发布；提交命令临时禁用钩子以避免仓库内 post-commit 自动推送脚本，不修改持久 Git 配置。基础批次增加一项，路线项及生产部署未完成状态不变。
 
+2026-09-08 Windows 最低 Node 兼容修复：Workbench 浏览器 CI 暴露 ArtifactStore pathname 与 descriptor 设备号投影不一致。现在 EvolutionLedger、file witness、ArtifactStore 和 Candidate/Release Registry 统一复用已有的受限 Windows libuv 1.49/1.50 兼容校验：持有独立 parent/volume handle 绑定实际设备号，inode、mode、link count、大小及读取时元数据仍精确比对；写入发布与缓存保留 pathname API 的身份，拒绝不相关设备和文件替换。新增真实 Workbench fixture 在异常投影下完成写入和重开，相关三批本地检查为 **229 passed / 1 existing skip**。浏览器测试新增有界的本地测试 CLI stderr，便于定位 Linux 启动退出；跨平台 CI 未完成前不宣称发布门已通过。
+
 ### 7.3 EVO-P2-3：Skill Retrieval Router
 
 不要照搬 WikiSkill 的 full injection。建议采用：
