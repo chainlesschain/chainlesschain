@@ -3462,34 +3462,51 @@ describe("native installer transaction contracts", () => {
     90_000,
   );
 
-  it("both installer scripts parse on available local shells", () => {
-    const posixShells =
-      process.platform === "win32"
-        ? ["sh", "bash"]
-        : ["/bin/sh", "dash", "bash"];
-    for (const shell of posixShells) {
-      const parsed = spawnSync(shell, ["-n", shPath], { encoding: "utf8" });
-      if (!parsed.error || parsed.error.code !== "ENOENT") {
-        expect(parsed.status, `${shell}: ${parsed.stderr}`).toBe(0);
-      }
-    }
+  // Bound each shell separately: combined cold starts exceeded the former
+  // 15-second budget in CI. A hung parser must fail with its own diagnostics.
+  const parserTimeoutMs = 30_000;
+  const posixShells =
+    process.platform === "win32" ? ["sh", "bash"] : ["/bin/sh", "dash", "bash"];
+  it.each(posixShells)(
+    "installer script parses with %s",
+    (shell, context) => {
+      const parsed = spawnSync(shell, ["-n", shPath], {
+        encoding: "utf8",
+        timeout: parserTimeoutMs,
+        windowsHide: true,
+      });
+      if (parsed.error?.code === "ENOENT") context.skip();
+      expect(parsed.error, `${shell}: ${parsed.stderr}`).toBeUndefined();
+      expect(parsed.status, `${shell}: ${parsed.stderr}`).toBe(0);
+    },
+    parserTimeoutMs + 5_000,
+  );
 
-    const escapedPath = ps1Path.replaceAll("'", "''");
-    const parserCommand = [
-      "$errors = $null",
-      `[System.Management.Automation.Language.Parser]::ParseFile('${escapedPath}', [ref]$null, [ref]$errors) | Out-Null`,
-      "if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }",
-    ].join("; ");
-    const shellName = process.platform === "win32" ? "powershell.exe" : "pwsh";
-    const powershell = spawnSync(
-      shellName,
-      ["-NoProfile", "-NonInteractive", "-Command", parserCommand],
-      { encoding: "utf8" },
-    );
-    if (!powershell.error || powershell.error.code !== "ENOENT") {
-      expect(powershell.status, powershell.stderr).toBe(0);
-    }
-  }, 15_000);
+  it(
+    "installer script parses with PowerShell",
+    (context) => {
+      const escapedPath = ps1Path.replaceAll("'", "''");
+      const parserCommand = [
+        "$errors = $null",
+        `[System.Management.Automation.Language.Parser]::ParseFile('${escapedPath}', [ref]$null, [ref]$errors) | Out-Null`,
+        "if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }",
+      ].join("; ");
+      const shellName =
+        process.platform === "win32" ? "powershell.exe" : "pwsh";
+      const powershell = spawnSync(
+        shellName,
+        ["-NoProfile", "-NonInteractive", "-Command", parserCommand],
+        { encoding: "utf8", timeout: parserTimeoutMs, windowsHide: true },
+      );
+      if (powershell.error?.code === "ENOENT") context.skip();
+      expect(
+        powershell.error,
+        `${shellName}: ${powershell.stderr}`,
+      ).toBeUndefined();
+      expect(powershell.status, `${shellName}: ${powershell.stderr}`).toBe(0);
+    },
+    parserTimeoutMs + 5_000,
+  );
 
   it("packed CLI startup consumes detached native update results", () => {
     const source = fs.readFileSync(binPath, "utf8");
