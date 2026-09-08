@@ -147,12 +147,14 @@ final class IdeUiSmokeTest {
         // The driver terminates the sandbox process tree between phases. Use
         // the IDE's normal Save All action first, so this verifies a saved
         // project reopening instead of depending on an autosave timer.
-        String sessionIds = String.valueOf(frame.callJs(
+        Object sessionIdsValue = frame.callJs(
                 "Packages.com.intellij.ide.util.PropertiesComponent.getInstance(component.getProject())"
-                        + ".getValue('chainlesschain.chat.sessionIds');"));
+                        + ".getValue('chainlesschain.chat.sessionIds');");
+        String sessionIds = String.valueOf(sessionIdsValue);
         if (sessionIds.isBlank() || "null".equals(sessionIds))
             throw new AssertionError("No conversation resume IDs available before project save");
-        String projectPath = String.valueOf(frame.callJs("component.getProject().getBasePath();"));
+        Object projectPathValue = frame.callJs("component.getProject().getBasePath();");
+        String projectPath = String.valueOf(projectPathValue);
         Path workspace = Paths.get(projectPath, ".idea", "workspace.xml");
         frame.runJs("const manager = Packages.com.intellij.openapi.actionSystem.ActionManager.getInstance();"
                 + "manager.tryToExecute(manager.getAction('SaveAll'), null, component, null, true);", true);
