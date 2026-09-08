@@ -63,6 +63,13 @@ stream suites pass 70 tests.
 
 ## Validation
 
+- `cc ui` now loads authenticated deployment dependencies and passes its host
+  composition factory through command registration into the UI runtime. The
+  existing runtime then forwards it to the WebSocket server. Eighty-two loader,
+  registration and factory regressions pass; the UI server startup test also
+  checks the exact factory received by server construction. This closes a launch
+  path that previously omitted governance despite supporting it downstream.
+
 - Governed WebSocket resolver draining creates fresh embedding and LLM stages,
   preserving resolver thresholds without modifying the cached resolver. Embedding
   requests use the projected profile (excluding chat-only provenance metadata),
