@@ -2,6 +2,11 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.92] - Pair with CLI 0.166.37 (2026-09-09)
+
+- Recommend the published CLI `0.166.37`, including when npm version lookup is unavailable.
+- Preserve verified model-setting saves and connection-test behavior while adopting the latest CLI fixes.
+
 ## [0.37.91] - Verify model connection writes (2026-09-08)
 
 - Recommend CLI `0.166.36` and prompt older installations to upgrade, including

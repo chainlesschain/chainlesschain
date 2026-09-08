@@ -1,5 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.119] - Prepare plan review editors off the UI thread (2026-09-09)
+
+- Prepare plan-review editors off the UI thread so opening a review does not block the conversation interface.
+- Recommend the published CLI `0.166.37`, including when npm version lookup is unavailable.
+
 ## [0.4.118] - Apply confirmed model settings to existing chats (2026-09-08)
 
 - Recommend CLI `0.166.36` and prompt older installations to upgrade, including
