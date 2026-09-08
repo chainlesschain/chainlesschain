@@ -2,6 +2,8 @@
 
 ## [0.4.118] - Apply confirmed model settings to existing chats (2026-09-08)
 
+- Recommend CLI `0.166.36` and prompt older installations to upgrade, including
+  when npm lookup is unavailable. Publish this plugin after CLI registry verification.
 - Track confirmed saves across projects and tabs, including key-only changes
   and saves that finish after the configuration window closes. Existing chats
   reload before their next request once pending turns have finished.
