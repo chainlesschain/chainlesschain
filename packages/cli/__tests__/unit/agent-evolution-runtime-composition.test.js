@@ -83,6 +83,7 @@ import { registerChatCommand } from "../../src/commands/chat.js";
 import { registerAskCommand } from "../../src/commands/ask.js";
 import { registerStreamCommand } from "../../src/commands/stream.js";
 import { handleLlmChat } from "../../src/gateways/ws/llm-chat-protocol.js";
+import { handleSessionCreate } from "../../src/gateways/ws/session-protocol.js";
 import {
   handleChatIntentUnderstand,
   handleChatIntentUnderstandStream,
@@ -951,6 +952,127 @@ describe("Agent evolution runtime production composition", () => {
       } else {
         expect(output.join("")).toContain('"type":"compaction"');
         expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    90_000,
+  );
+
+  it.each([
+    "success",
+    "source-denied",
+    "response-denied",
+    "wrong-run",
+    "truncated",
+  ])(
+    "governs legacy chat sessions through session creation (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("session evidence denied");
+          return issue(request);
+        },
+      );
+      const compositions = [];
+      const factory = vi.fn(async ({ runId }) => {
+        const composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        compositions.push(composition);
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return new Response(
+          JSON.stringify({
+            message: { content: "safe answer" },
+            done: mode !== "truncated",
+          }) + "\n",
+        );
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const session = {
+        id: "governed-chat-session",
+        type: "chat",
+        provider: "ollama",
+        model: "test",
+        messages: [
+          { role: "system", content: "Answer briefly" },
+          { role: "user", content: "Prior owner@example.com" },
+        ],
+      };
+      const server = {
+        evolutionCompositionFactory: factory,
+        sessionHandlers: new Map(),
+        emit: vi.fn(),
+        _send: vi.fn(),
+        sessionManager: {
+          createSession: vi.fn(() => ({ sessionId: session.id })),
+          getSession: vi.fn(() => session),
+        },
+      };
+      const socket = { readyState: 1, OPEN: 1, send: vi.fn() };
+      await handleSessionCreate(server, "create", socket, {
+        sessionType: "chat",
+        provider: "ollama",
+        model: "test",
+      });
+      const handler = server.sessionHandlers.get(session.id);
+      expect(handler).toBeDefined();
+      const emitted = vi.spyOn(handler.interaction, "emit");
+      try {
+        const turns = mode === "success" ? 2 : 1;
+        for (let i = 0; i < turns; i++)
+          await handler.handleMessage(
+            `Review ${secret} turn ${i}`,
+            `request-${i}`,
+          );
+        expect(factory).toHaveBeenCalledTimes(turns);
+        expect(
+          new Set(factory.mock.calls.map(([context]) => context.runId)).size,
+        ).toBe(turns);
+        expect(f.transport).toHaveBeenCalledTimes(
+          ["source-denied", "wrong-run"].includes(mode) ? 0 : turns,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        const successes = emitted.mock.calls.filter(
+          ([type]) => type === "response-complete",
+        );
+        expect(successes).toHaveLength(mode === "success" ? turns : 0);
+        for (const composition of compositions) {
+          if (mode === "success")
+            expect(composition.loadRun().projection.status).toBe("completed");
+          else
+            expect(composition.loadRun().projection?.status).not.toBe(
+              "completed",
+            );
+        }
+        expect(
+          session.messages.filter((message) => message.role === "assistant"),
+        ).toHaveLength(mode === "success" ? turns : 0);
+        if (mode === "success")
+          expect(
+            f.seen[1].messages.some(
+              (message) =>
+                message.role === "assistant" &&
+                message.content === "safe answer",
+            ),
+          ).toBe(true);
+        else
+          expect(emitted.mock.calls.some(([type]) => type === "error")).toBe(
+            true,
+          );
+      } finally {
+        emitted.mockRestore();
       }
     },
     90_000,

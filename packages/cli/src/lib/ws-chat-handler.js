@@ -6,6 +6,7 @@
  */
 
 import { chatWithStreaming } from "./chat-core.js";
+import { prepareGovernedModelTurn } from "./evolution/governed-model-turn.js";
 
 export class WSChatHandler {
   /**
@@ -13,7 +14,14 @@ export class WSChatHandler {
    * @param {import("./ws-session-manager.js").Session} options.session
    * @param {import("./interaction-adapter.js").WebSocketInteractionAdapter} options.interaction
    */
-  constructor({ session, interaction }) {
+  constructor({ session, interaction, evolutionCompositionFactory = null }) {
+    if (
+      evolutionCompositionFactory !== null &&
+      typeof evolutionCompositionFactory !== "function"
+    ) {
+      throw new TypeError("evolutionCompositionFactory must be a function");
+    }
+    this._evolutionCompositionFactory = evolutionCompositionFactory;
     this.session = session;
     this.interaction = interaction;
     this._processing = false;
@@ -56,6 +64,13 @@ export class WSChatHandler {
       });
       runRecorded = true;
 
+      const turn = await prepareGovernedModelTurn(
+        this._evolutionCompositionFactory,
+        {
+          mode: "ws-chat-session",
+          messages: session.messages,
+        },
+      );
       const options = {
         provider: session.provider,
         model: session.model,
@@ -64,10 +79,11 @@ export class WSChatHandler {
         // Phase J — pipe WS session id so chat-core records token_usage
         // into the JSONL session store; visible via `cc session usage`.
         sessionId: session.sessionId || session.id,
+        requireCompletion: turn.governed,
       };
 
       const fullContent = await chatWithStreaming(
-        session.messages,
+        turn.messages,
         options,
         (event) => {
           if (event.type === "response-token") {
@@ -79,6 +95,7 @@ export class WSChatHandler {
         },
       );
 
+      await turn.complete(fullContent);
       session.messages.push({ role: "assistant", content: fullContent });
       this.interaction.emit("response-complete", {
         requestId,

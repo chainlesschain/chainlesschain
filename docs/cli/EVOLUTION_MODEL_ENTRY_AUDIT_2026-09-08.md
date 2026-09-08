@@ -12,6 +12,13 @@ Governed intent deadlines abort model transport and bound waits for authority;
 unconfigured intent calls retain their existing fallback behavior. The classifier
 prompt now uses valid JSON for its confidence example.
 
+Legacy WebSocket chat sessions now receive the same host factory through the
+actual session-create path. Each message creates a separate bound Run and
+projects the complete conversation history. Assistant history and successful
+completion events are added only after response evidence and Run completion.
+Five real-composition cases cover two-turn history, source/response refusal,
+wrong Run and truncated output; 61 session creation/routing regressions pass.
+
 This change connects cc stream, llm.chat, and stream.run to the existing
 branded composition and ingress. Each request receives a host-generated Run ID,
 checks Run and tenant binding, records the client input, and prepares the actual
@@ -48,10 +55,9 @@ does not record a completed Run.
 
 ## Remaining scope
 
-This covers the direct stream, QuickAsk and intent paths; it does not establish
-that every model entry in the repository has been audited. The legacy
-WSChatHandler instantiated by session-protocol for chat sessions is another
-confirmed direct call to chatWithStreaming and still requires governance wiring.
+This covers direct streams, QuickAsk, intent routes and legacy chat sessions.
+It does not establish that every model entry in the repository has been audited;
+the repository-wide final-entry audit remains open.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

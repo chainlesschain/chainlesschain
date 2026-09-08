@@ -592,6 +592,7 @@ async function ensureSessionHandler(
     handler = new WSChatHandler({
       session,
       interaction: session.interaction,
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
     });
   } else {
     const { WSAgentHandler } = await import("./ws-agent-handler.js");
