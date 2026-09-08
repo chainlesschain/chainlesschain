@@ -23,6 +23,7 @@ import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -1799,7 +1800,9 @@ final class ConversationView {
             if (handleApprovalGrantCommandEvent(event)) return;
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
-            SwingUtilities.invokeLater(() -> {
+            // Rendering plan events may update an open review document.
+            // Use the IDE write-safe event context, not a plain AWT callback.
+            ApplicationManager.getApplication().invokeLater(() -> {
                 if (!disposed && sessionGeneration == generation) render(ui);
             });
         };
@@ -2679,7 +2682,7 @@ final class ConversationView {
             if (!generated.equals(planReviewLastText)) {
                 Document doc = planReviewDocument();
                 if (doc != null) {
-                    ApplicationManager.getApplication().runWriteAction(() -> doc.setText(generated));
+                    WriteCommandAction.runWriteCommandAction(project, () -> doc.setText(generated));
                 }
                 planReviewLastText = generated;
             }
@@ -2712,7 +2715,7 @@ final class ConversationView {
                     }
                     try {
                         String latestText = planReviewLastText != null ? planReviewLastText : initialText;
-                        ApplicationManager.getApplication().runWriteAction(() -> document.setText(latestText));
+                        WriteCommandAction.runWriteCommandAction(project, () -> document.setText(latestText));
                         FileEditorManager.getInstance(project).openFile(virtualFile, true);
                         planReviewFile = prepared;
                         planReviewVirtualFile = virtualFile;
@@ -2752,7 +2755,7 @@ final class ConversationView {
             if (planReviewVirtualFile != null) {
                 Document doc = planReviewDocument();
                 if (doc != null) {
-                    ApplicationManager.getApplication().runWriteAction(() -> {
+                    WriteCommandAction.runWriteCommandAction(project, () -> {
                         if (!doc.getText().equals(text)) doc.setText(text);
                     });
                     return;

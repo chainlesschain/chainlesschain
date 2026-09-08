@@ -101,10 +101,25 @@ final class IdeUiSmokeTest {
 
             send(input, send, "journey:plan");
             waitForTranscript(transcript, "opened plan review editor tab", FIND_BUDGET);
+            transcript.runJs(
+                    "importClass(com.intellij.openapi.application.ApplicationManager);"
+                            + "importClass(com.intellij.openapi.command.WriteCommandAction);"
+                            + "importClass(com.intellij.openapi.project.ProjectManager);"
+                            + "importClass(com.intellij.openapi.fileEditor.FileEditorManager);"
+                            + "importClass(java.lang.Runnable);"
+                            + "ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){"
+                            + "var project=ProjectManager.getInstance().getOpenProjects()[0];"
+                            + "var editor=FileEditorManager.getInstance(project).getSelectedTextEditor();"
+                            + "var document=editor.getDocument();"
+                            + "WriteCommandAction.runWriteCommandAction(project,new Runnable({run:function(){"
+                            + "document.insertString(document.getTextLength(),'\\nReviewer fixture: preserve this note.\\n');"
+                            + "}}));}}));", true);
+            waitForPlanReviewerNote(transcript, false);
             ComponentFixture planApprove = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
             clickButton(planApprove);
             waitForTranscript(transcript, "fixture plan approve #3", FIND_BUDGET);
+            waitForPlanReviewerNote(transcript, true);
 
             send(input, send, "journey:permission");
             ComponentFixture toolApprove = robot.find(ComponentFixture.class,
@@ -925,6 +940,23 @@ final class IdeUiSmokeTest {
      * invokeLater is the Remote Robot project's documented Rhino-compatible
      * pattern for modal actions and remains independent of screen overlays.
      */
+    private static void waitForPlanReviewerNote(ComponentFixture component, boolean requireProgress) throws InterruptedException {
+        long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
+        while (System.nanoTime() < deadline) {
+            Boolean retained = component.callJs(
+                    "importClass(com.intellij.openapi.project.ProjectManager);"
+                            + "importClass(com.intellij.openapi.fileEditor.FileEditorManager);"
+                            + "var project=ProjectManager.getInstance().getOpenProjects()[0];"
+                            + "var editor=FileEditorManager.getInstance(project).getSelectedTextEditor();"
+                            + "editor != null && editor.getDocument().getText().contains('Reviewer fixture: preserve this note.')"
+                            + (requireProgress ? " && editor.getDocument().getText().contains('- status: completed')" : "") + ";",
+                    true);
+            if (Boolean.TRUE.equals(retained)) return;
+            Thread.sleep(100);
+        }
+        throw new AssertionError("Plan editor did not retain the reviewer note");
+    }
+
     private static void openInputDialog(ComponentFixture button) {
         button.runJs(
                 "importClass(com.intellij.openapi.application.ApplicationManager);"
