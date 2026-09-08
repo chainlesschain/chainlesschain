@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.37: govern model entry points and preserve failures
+
+> `chainlesschain` **0.166.36 -> 0.166.37** (2026-09-09), source candidate
+> awaiting the exact-commit release matrix and child-package publication.
+
+- Apply host-provided evolution governance to CLI streams, intent requests,
+  WebSocket chat, Hub analysis and skills, and Hub resolver model calls.
+- Reject incomplete provider streams and preserve governance failures through
+  optional skill commentary instead of reporting a successful fallback.
+- Forward deployment composition through UI startup and retain per-turn
+  evidence before reporting model completion.
+- Require personal-data-hub 0.4.60 with valid JSON model examples and preserved
+  governance errors. Repository-wide model entry coverage remains incomplete.
+
 ### Fixed - IDE model configuration: atomic writes and visible save confirmation
 
 > VS Code / VSCodium **0.37.91** and JetBrains **0.4.118** (2026-09-08),
