@@ -19,6 +19,15 @@ completion events are added only after response evidence and Run completion.
 Five real-composition cases cover two-turn history, source/response refusal,
 wrong Run and truncated output; 61 session creation/routing regressions pass.
 
+The CLI hub ask and hub repl commands accept a signed deployment factory and
+construct a scoped AnalysisEngine with a governed LLM wrapper. The cached full
+Hub and its original model client are not rebound. The wrapper preserves locality,
+model identity and skipCache options, projects the actual fact-containing
+messages, and retains response evidence before returning an answer. The existing
+AnalysisEngine cloud-consent gate runs first. Five real composition/AnalysisEngine
+cases and three command registration cases pass, together with 100 existing
+Hub command/client and deployment-loader checks.
+
 This change connects cc stream, llm.chat, and stream.run to the existing
 branded composition and ingress. Each request receives a host-generated Run ID,
 checks Run and tenant binding, records the client input, and prepares the actual
@@ -64,6 +73,9 @@ stream suites pass 70 tests.
 This covers direct streams, QuickAsk, intent routes and legacy chat sessions.
 It does not establish that every model entry in the repository has been audited;
 the repository-wide final-entry audit remains open.
+Hub entity resolution and other background model consumers, plus Desktop Hub
+overrides, still require separate tracing. The minimal Hub deliberately has a
+non-inference sentinel and does not need a model wrapper.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

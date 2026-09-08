@@ -139,6 +139,7 @@ describe("signed evolution deployment loader", () => {
     "chat",
     "compact",
     "complete",
+    "hub",
     "desktop",
     "cowork",
     "orchestrate",
@@ -563,6 +564,7 @@ describe("signed evolution deployment loader", () => {
     ["compact", "evolutionCompositionFactory", "registerCompactCommand"],
     ["complete", "evolutionCompositionFactory", "registerCompleteCommand"],
     ["stream", "evolutionCompositionFactory", "registerStreamCommand"],
+    ["hub", "evolutionCompositionFactory", "registerHubCommand"],
     ["marketplace", "marketplaceHost", "registerMarketplaceCommand"],
   ])(
     "passes %s deployment dependencies through the lazy registration boundary",

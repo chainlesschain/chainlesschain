@@ -2091,6 +2091,22 @@ export async function getHub() {
   return _initPromise;
 }
 
+export async function getGovernedAnalysisHub(evolutionCompositionFactory) {
+  const hub = await getHub();
+  const { createGovernedHubLlm } =
+    await import("./evolution/governed-hub-llm.js");
+  const llm = createGovernedHubLlm(hub.engine.llm, evolutionCompositionFactory);
+  const engine = new AnalysisEngine({
+    vault: hub.engine.vault,
+    llm,
+    ragRetriever: hub.engine.ragRetriever,
+    maxFacts: hub.engine.maxFacts,
+    maxQueryLimit: hub.engine.maxQueryLimit,
+    systemPrompt: hub.engine.systemPrompt,
+  });
+  return Object.freeze({ ...hub, llm, engine });
+}
+
 // ─── Minimal hub bootstrap for read-only / LLM-free commands ────────────
 //
 // 2026-05-27 — `cc hub retrieve-context` cold-start was 90s+ on Android

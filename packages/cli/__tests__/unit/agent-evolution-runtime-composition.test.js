@@ -84,6 +84,7 @@ import { registerAskCommand } from "../../src/commands/ask.js";
 import { registerStreamCommand } from "../../src/commands/stream.js";
 import { handleLlmChat } from "../../src/gateways/ws/llm-chat-protocol.js";
 import { handleSessionCreate } from "../../src/gateways/ws/session-protocol.js";
+import { createGovernedHubLlm } from "../../src/lib/evolution/governed-hub-llm.js";
 import {
   handleChatIntentUnderstand,
   handleChatIntentUnderstandStream,
@@ -953,6 +954,101 @@ describe("Agent evolution runtime production composition", () => {
         expect(output.join("")).toContain('"type":"compaction"');
         expect(f.composition.loadRun().projection.status).toBe("completed");
       }
+    },
+    90_000,
+  );
+
+  it.each([
+    "success",
+    "source-denied",
+    "response-denied",
+    "wrong-run",
+    "cloud-denied",
+  ])(
+    "governs Hub analysis with its existing consent gate (%s)",
+    async (mode) => {
+      const { AnalysisEngine } = createRequire(import.meta.url)(
+        "../../../personal-data-hub/lib/analysis.js",
+      );
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("hub evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const original = Object.freeze({
+        name: "test-hub",
+        isLocal: mode !== "cloud-denied",
+        chat: vi.fn(async () => ({ text: "safe answer", usage: {} })),
+      });
+      const wrapped = createGovernedHubLlm(original, factory);
+      const event = {
+        id: "event-hub",
+        type: "event",
+        subtype: "note",
+        occurredAt: Date.now(),
+        content: { title: "Account note", text: `owner@example.com ${secret}` },
+        source: {
+          adapter: "test",
+          adapterVersion: "1",
+          capturedAt: Date.now(),
+          capturedBy: "test",
+        },
+      };
+      const vault = {
+        queryEvents: () => [event],
+        queryPersons: () => [],
+        queryItems: () => [],
+        audit: vi.fn(),
+      };
+      const engine = new AnalysisEngine({ vault, llm: wrapped });
+      const operation = engine.ask(`Summarize notes ${secret}`, {
+        useRag: false,
+      });
+      if (mode === "success") {
+        await expect(operation).resolves.toMatchObject({
+          answer: "safe answer",
+        });
+        expect(composition.loadRun().projection.status).toBe("completed");
+        expect(original.chat.mock.calls[0][1]).toMatchObject({
+          skipCache: true,
+        });
+        expect(JSON.stringify(original.chat.mock.calls[0][0])).not.toContain(
+          secret,
+        );
+        expect(JSON.stringify(original.chat.mock.calls[0][0])).not.toContain(
+          "owner@example.com",
+        );
+      } else {
+        await expect(operation).rejects.toThrow();
+        if (composition)
+          expect(composition.loadRun().projection?.status).not.toBe(
+            "completed",
+          );
+      }
+      expect(original.chat).toHaveBeenCalledTimes(
+        ["success", "response-denied"].includes(mode) ? 1 : 0,
+      );
+      expect(factory).toHaveBeenCalledTimes(mode === "cloud-denied" ? 0 : 1);
+      expect(wrapped.isLocal).toBe(original.isLocal);
+      expect(engine.llm).toBe(wrapped);
     },
     90_000,
   );
