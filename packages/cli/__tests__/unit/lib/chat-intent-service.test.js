@@ -11,6 +11,7 @@ vi.mock("../../../src/lib/chat-core.js", () => ({
 // Import AFTER vi.mock so the mock is in place when the module evaluates.
 import {
   understandIntent,
+  understandIntentStream,
   classifyFollowupIntent,
   _internal,
 } from "../../../src/lib/chat-intent-service.js";
@@ -23,6 +24,39 @@ const validLlmOptions = {
 };
 
 describe("chat-intent-service", () => {
+  it.each(["understand", "stream", "classify"])(
+    "bounds a stalled governance factory (%s)",
+    async (mode) => {
+      const factory = vi.fn(() => new Promise(() => {}));
+      const options = {
+        userInput: "Review this context",
+        input: "Review this context",
+        llmOptions: { ...validLlmOptions, intentTimeoutMs: 25 },
+        evolutionCompositionFactory: factory,
+      };
+      if (mode === "classify") {
+        await expect(classifyFollowupIntent(options)).rejects.toThrow(
+          /timed out/,
+        );
+      } else if (mode === "understand") {
+        await expect(understandIntent(options)).resolves.toMatchObject({
+          success: false,
+          error: expect.stringMatching(/timed out/),
+        });
+      } else {
+        const events = [];
+        for await (const event of understandIntentStream(options))
+          events.push(event);
+        expect(events.at(-1)).toMatchObject({
+          success: false,
+          error: expect.stringMatching(/timed out/),
+        });
+      }
+      expect(factory).toHaveBeenCalledTimes(1);
+      expect(chatMock).not.toHaveBeenCalled();
+    },
+  );
+
   beforeEach(() => {
     chatMock.mockReset();
   });

@@ -4,6 +4,14 @@ The CLI stream command and the WebSocket QuickAsk/stream routes previously sent
 input directly to provider adapters even when a host configured an evolution
 composition factory. The deployment loader also excluded the stream command.
 
+The three chat.intent routes had the same omission. They now pass the host
+factory into intent understanding, streamed understanding and LLM-based followup
+classification. Governed classification failures propagate instead of being
+reported as rule fallback. Pure rule classification makes no model request.
+Governed intent deadlines abort model transport and bound waits for authority;
+unconfigured intent calls retain their existing fallback behavior. The classifier
+prompt now uses valid JSON for its confidence example.
+
 This change connects cc stream, llm.chat, and stream.run to the existing
 branded composition and ingress. Each request receives a host-generated Run ID,
 checks Run and tenant binding, records the client input, and prepares the actual
@@ -40,9 +48,10 @@ does not record a completed Run.
 
 ## Remaining scope
 
-This closes the three identified entry paths; it does not establish that every
-model entry in the repository has been audited. In particular, the WebSocket
-chat.intent routes and their service/provider calls still require tracing.
+This covers the direct stream, QuickAsk and intent paths; it does not establish
+that every model entry in the repository has been audited. The legacy
+WSChatHandler instantiated by session-protocol for chat sessions is another
+confirmed direct call to chatWithStreaming and still requires governance wiring.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

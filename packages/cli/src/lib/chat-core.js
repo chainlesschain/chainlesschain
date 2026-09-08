@@ -536,7 +536,15 @@ export async function* chatStream(messages, options) {
   let providerCall;
   if (provider === "ollama") {
     providerCall = () =>
-      streamOllama(messages, model, baseUrl, onToken, onUsage, options.onStall);
+      streamOllama(
+        messages,
+        model,
+        baseUrl,
+        onToken,
+        onUsage,
+        options.onStall,
+        options,
+      );
   } else if (provider === "anthropic") {
     const providerDef = BUILT_IN_PROVIDERS.anthropic;
     const url =
@@ -560,6 +568,7 @@ export async function* chatStream(messages, options) {
         onToken,
         onUsage,
         options.onStall,
+        options,
       );
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
@@ -584,6 +593,7 @@ export async function* chatStream(messages, options) {
         onToken,
         onUsage,
         options.onStall,
+        options,
       );
   }
 

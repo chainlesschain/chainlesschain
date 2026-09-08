@@ -83,6 +83,11 @@ import { registerChatCommand } from "../../src/commands/chat.js";
 import { registerAskCommand } from "../../src/commands/ask.js";
 import { registerStreamCommand } from "../../src/commands/stream.js";
 import { handleLlmChat } from "../../src/gateways/ws/llm-chat-protocol.js";
+import {
+  handleChatIntentUnderstand,
+  handleChatIntentUnderstandStream,
+  handleChatIntentClassifyFollowup,
+} from "../../src/gateways/ws/chat-intent-protocol.js";
 import { SESSION_CORE_STREAMING_HANDLERS } from "../../src/gateways/ws/session-core-protocol.js";
 import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
@@ -946,6 +951,103 @@ describe("Agent evolution runtime production composition", () => {
       } else {
         expect(output.join("")).toContain('"type":"compaction"');
         expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    90_000,
+  );
+
+  it.each(
+    ["understand", "stream", "classify"].flatMap((entry) =>
+      ["success", "source-denied", "response-denied", "truncated"].map(
+        (mode) => [entry, mode],
+      ),
+    ),
+  )(
+    "governs intent protocol %s (%s)",
+    async (entry, mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("intent evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return new Response(
+          JSON.stringify({
+            message: {
+              content: JSON.stringify({
+                correctedInput: "safe",
+                intent: "CLARIFICATION",
+                keyPoints: [],
+                confidence: 0.6,
+              }),
+            },
+            done: mode !== "truncated",
+          }) + "\n",
+        );
+      });
+      const frames = [];
+      const server = {
+        evolutionCompositionFactory: factory,
+        _send: (_ws, frame) => frames.push(frame),
+      };
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const input = `Review owner@example.com ${secret}`;
+      const handler =
+        entry === "understand"
+          ? handleChatIntentUnderstand
+          : entry === "stream"
+            ? handleChatIntentUnderstandStream
+            : handleChatIntentClassifyFollowup;
+      await handler(
+        server,
+        "request",
+        {},
+        {
+          userInput: input,
+          input,
+          history: [{ role: "user", content: input }],
+          context: { conversationHistory: [{ role: "user", content: input }] },
+          options: { provider: "ollama", model: "test" },
+        },
+      );
+      expect(factory).toHaveBeenCalledTimes(1);
+      expect(
+        f.transport,
+        frames.at(-1)?.message || frames.at(-1)?.error,
+      ).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+      expect(JSON.stringify(f.seen)).not.toContain(secret);
+      expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+      const final = frames.at(-1);
+      if (mode === "success") {
+        expect(composition.loadRun().projection.status).toBe("completed");
+        if (entry === "classify") expect(final.method).toBe("llm");
+        else expect(entry === "stream" ? final.ok : final.success).toBe(true);
+      } else {
+        expect(composition.loadRun().projection?.status).not.toBe("completed");
+        if (entry === "classify")
+          expect(final).toMatchObject({
+            type: "error",
+            code: "INTENT_CLASSIFY_FAILED",
+          });
+        else expect(entry === "stream" ? final.ok : final.success).toBe(false);
       }
     },
     90_000,
