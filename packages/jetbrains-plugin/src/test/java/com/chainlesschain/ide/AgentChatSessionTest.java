@@ -7,16 +7,88 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure static-logic coverage for {@link AgentChatSession}: the configured-cc-path
- * override (IDE Settings), plus the cc-vs-C-compiler resolution helpers. None of
- * these spawn a process — the override short-circuits before probing and the
- * chooseBinary probe is injected.
+ * Binary resolution coverage plus real JDK child/pipe checks for configuration
+ * reloads while chat and plan turns are queued. No installed CLI or model needed.
  */
 class AgentChatSessionTest {
+
+    /** Real pipe peer: keep user turns pending until the test releases them. */
+    public static final class QueuedAgent {
+        public static void main(String[] args) throws Exception {
+            java.io.BufferedReader input = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
+            for (String line; (line = input.readLine()) != null;) {
+                if (line.contains("\"type\":\"user\""))
+                    System.out.println("{\"type\":\"system\",\"subtype\":\"queued\"}");
+                else if (line.contains("\"type\":\"interrupt\""))
+                    System.out.println("{\"type\":\"result\",\"subtype\":\"interrupted\"}");
+                else if (line.contains("\"action\":\"approve\""))
+                    System.out.println("{\"type\":\"plan_update\",\"note\":\"nothing to approve\"}");
+                else if (line.contains("\"action\":\"revise\""))
+                    System.out.println("{\"type\":\"plan_update\",\"state\":\"planning\"}");
+                else System.out.println("{\"type\":\"slash_command_result\",\"ok\":true}");
+                System.out.flush();
+            }
+        }
+    }
+
+    @Test
+    void allTabsSeeNewConfigurationButQueuedTurnsFinishBeforeReload() throws Exception {
+        BlockingQueue<Map<String, Object>> events = new LinkedBlockingQueue<>();
+        AgentChatSession.Options options = new AgentChatSession.Options();
+        options.configurationRevision = 10;
+        options.baseCommandOverride = List.of(
+                java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("java.class.path"),
+                QueuedAgent.class.getName());
+        options.onEvent = events::add;
+        AgentChatSession first = new AgentChatSession(options);
+        AgentChatSession second = new AgentChatSession(options);
+        try {
+            first.start();
+            second.start();
+            assertFalse(first.shouldReloadConfiguration(10));
+            assertTrue(first.shouldReloadConfiguration(11));
+            assertTrue(second.shouldReloadConfiguration(11));
+            assertTrue(first.send("one"));
+            assertTrue(first.send("two"));
+            assertTrue(first.hasPendingTurns());
+            assertFalse(first.shouldReloadConfiguration(11));
+            assertEquals("system", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertEquals("system", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertTrue(first.sendEvent(Map.of("type", "slash_command")));
+            assertEquals("slash_command_result", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertFalse(first.shouldReloadConfiguration(11), "Control replies do not complete user turns");
+            assertTrue(first.interrupt());
+            assertEquals("result", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertFalse(first.shouldReloadConfiguration(11), "The second submitted turn is still pending");
+            assertTrue(second.shouldReloadConfiguration(11), "Another idle tab can use the saved config");
+            assertTrue(first.interrupt());
+            assertEquals("result", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertFalse(first.hasPendingTurns());
+            assertTrue(first.shouldReloadConfiguration(11));
+            assertTrue(first.isRunning(), "Saving config must not itself stop active processes");
+            assertTrue(first.sendEvent(Map.of("type", "plan", "action", "revise")));
+            assertEquals("plan_update", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertFalse(first.shouldReloadConfiguration(11), "Plan continuations also use the model");
+            assertTrue(first.interrupt());
+            assertEquals("result", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertTrue(first.shouldReloadConfiguration(11));
+            assertTrue(first.sendEvent(Map.of("type", "plan", "action", "approve")));
+            assertEquals("plan_update", events.poll(10, TimeUnit.SECONDS).get("type"));
+            assertTrue(first.shouldReloadConfiguration(11), "A rejected/no-op plan control does not leave a pending turn");
+        } finally {
+            first.stop();
+            second.stop();
+        }
+    }
 
     @AfterEach
     void clearOverride() {

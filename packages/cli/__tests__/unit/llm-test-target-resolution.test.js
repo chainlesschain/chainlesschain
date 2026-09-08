@@ -10,7 +10,11 @@ import { describe, it, expect } from "vitest";
 import { resolveLlmTestTarget } from "../../src/commands/llm.js";
 
 const BUILT_INS = {
-  ollama: { name: "ollama", displayName: "Ollama", baseUrl: "http://localhost:11434" },
+  ollama: {
+    name: "ollama",
+    displayName: "Ollama",
+    baseUrl: "http://localhost:11434",
+  },
   openai: {
     name: "openai",
     displayName: "OpenAI",
@@ -73,14 +77,19 @@ describe("resolveLlmTestTarget", () => {
     // The earlier fix: `--provider ollama` while configured for volcengine must
     // probe localhost, not the volcengine endpoint.
     const cfg = {
-      llm: { provider: "volcengine", baseUrl: "https://ark.cn-beijing.volces.com/api/v3" },
+      llm: {
+        provider: "volcengine",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      },
     };
     const t = resolveLlmTestTarget({ provider: "ollama" }, cfg, BUILT_INS, {});
     expect(t.baseUrl).toBe("http://localhost:11434");
   });
 
   it("inherits config baseUrl when the configured provider IS ollama", () => {
-    const cfg = { llm: { provider: "ollama", baseUrl: "http://192.168.1.9:11434" } };
+    const cfg = {
+      llm: { provider: "ollama", baseUrl: "http://192.168.1.9:11434" },
+    };
     const t = resolveLlmTestTarget({}, cfg, BUILT_INS, {});
     expect(t.baseUrl).toBe("http://192.168.1.9:11434");
   });
@@ -93,19 +102,70 @@ describe("resolveLlmTestTarget", () => {
     expect(t.apiKey).toBe("env-key");
   });
 
+  it("does not mix another provider's saved model, endpoint, or key into an override", () => {
+    const cfg = {
+      llm: {
+        provider: "volcengine",
+        model: "deepseek-v4-flash-260425",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+        apiKey: "saved-volcengine-key",
+      },
+    };
+    const t = resolveLlmTestTarget({ provider: "openai" }, cfg, BUILT_INS, {
+      OPENAI_API_KEY: "openai-env-key",
+    });
+    expect(t).toMatchObject({
+      provider: "openai",
+      model: "gpt-4o-mini",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "openai-env-key",
+    });
+    expect(
+      resolveLlmTestTarget({ provider: "openai" }, cfg, BUILT_INS, {}).apiKey,
+    ).toBeUndefined();
+    expect(
+      resolveLlmTestTarget({ provider: "ollama" }, cfg, BUILT_INS, {}),
+    ).toMatchObject({
+      model: "qwen2:7b",
+      baseUrl: "http://localhost:11434",
+      apiKey: undefined,
+    });
+  });
+
   it("explicit flags win over everything", () => {
-    const cfg = { llm: { provider: "volcengine", model: "m1", baseUrl: "b1", apiKey: "k1" } };
+    const cfg = {
+      llm: { provider: "volcengine", model: "m1", baseUrl: "b1", apiKey: "k1" },
+    };
     const t = resolveLlmTestTarget(
       { provider: "deepseek", model: "m2", baseUrl: "b2", apiKey: "k2" },
       cfg,
       BUILT_INS,
       {},
     );
-    expect(t).toMatchObject({ provider: "deepseek", model: "m2", baseUrl: "b2", apiKey: "k2" });
+    expect(t).toMatchObject({
+      provider: "deepseek",
+      model: "m2",
+      baseUrl: "b2",
+      apiKey: "k2",
+    });
   });
 
   it("uses provider label for a known built-in, raw id otherwise", () => {
-    expect(resolveLlmTestTarget({ provider: "volcengine", apiKey: "x" }, {}, BUILT_INS, {}).label).toContain("Volcengine");
-    expect(resolveLlmTestTarget({ provider: "customxyz", apiKey: "x" }, {}, BUILT_INS, {}).label).toBe("customxyz");
+    expect(
+      resolveLlmTestTarget(
+        { provider: "volcengine", apiKey: "x" },
+        {},
+        BUILT_INS,
+        {},
+      ).label,
+    ).toContain("Volcengine");
+    expect(
+      resolveLlmTestTarget(
+        { provider: "customxyz", apiKey: "x" },
+        {},
+        BUILT_INS,
+        {},
+      ).label,
+    ).toBe("customxyz");
   });
 });

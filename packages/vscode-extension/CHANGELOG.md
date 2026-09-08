@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.91] - Verify model connection writes (2026-09-08)
+
+- Compare the saved provider, address and models with the submitted form before
+  confirming a save or refreshing chat configuration. Report an unconfirmed write
+  when the CLI exits successfully but readback still contains different values.
+- Use CLI `0.166.36` for reasoning-model connection tests, with isolated CLI/IDE
+  regression coverage for key retention, vision clearing and endpoint replacement.
+
 ## [0.37.90] - Recoverable Evolution Workbench and complete version history (2026-09-08)
 
 - Recover from stalled CLI pipes, disconnects and read timeouts; ignore responses

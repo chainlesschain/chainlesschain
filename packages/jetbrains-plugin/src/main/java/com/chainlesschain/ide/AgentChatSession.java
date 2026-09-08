@@ -71,6 +71,8 @@ public final class AgentChatSession {
         public EventListener onEvent;
         public LineListener onStderr;
         public ExitListener onExit;
+        /** Confirmed model configuration at spawn; negative means unmanaged. */
+        public long configurationRevision = -1;
         /** Test seam: full base command overriding command+protocol args. */
         public List<String> baseCommandOverride;
     }
@@ -83,6 +85,8 @@ public final class AgentChatSession {
     // its own status line ("force-stopped …" / "next message applies"), so the
     // extra banner reads like an error after a normal action.
     private volatile boolean stopped;
+    private final java.util.concurrent.atomic.AtomicInteger pendingTurns =
+            new java.util.concurrent.atomic.AtomicInteger();
 
     public AgentChatSession(Options opts) {
         this.opts = opts == null ? new Options() : opts;
@@ -111,6 +115,14 @@ public final class AgentChatSession {
     public synchronized boolean isRunning() {
         return child != null && child.isAlive();
     }
+
+    /** Defer a settings reload until every already submitted turn has finished. */
+    public boolean shouldReloadConfiguration(long currentRevision) {
+        return opts.configurationRevision >= 0 && opts.configurationRevision != currentRevision
+                && !hasPendingTurns();
+    }
+
+    public boolean hasPendingTurns() { return pendingTurns.get() > 0; }
 
     /**
      * One-shot, best-effort {@code cc <args…>} → captured stdout, for short
@@ -377,6 +389,7 @@ public final class AgentChatSession {
     public synchronized void start() throws IOException {
         if (isRunning()) return;
         stopped = false; // fresh spawn — a natural exit should surface again
+        pendingTurns.set(0);
         ProcessBuilder pb = new ProcessBuilder(buildCommandLine());
         if (opts.cwd != null) pb.directory(opts.cwd);
         CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
@@ -442,6 +455,14 @@ public final class AgentChatSession {
     }
 
     private void emit(Map<String, Object> evt) {
+        if (stopped) return;
+        if (evt != null && (AgentStreamEventType.RESULT.getWireValue().equals(evt.get("type"))
+                // The CLI answers a plan continuation that cannot start with
+                // plan_update + note instead of a terminal result.
+                || (AgentStreamEventType.PLAN_UPDATE.getWireValue().equals(evt.get("type"))
+                    && evt.get("note") != null && !String.valueOf(evt.get("note")).isBlank()))) {
+            pendingTurns.updateAndGet(value -> Math.max(0, value - 1));
+        }
         if (opts.onEvent != null && evt != null) {
             try {
                 opts.onEvent.onEvent(evt);
@@ -476,6 +497,15 @@ public final class AgentChatSession {
     /** Send one raw NDJSON event (user turn / interrupt / approval / …). */
     public synchronized boolean sendEvent(Map<String, Object> event) {
         if (!isRunning() || stdin == null || event == null) return false;
+        // Account before flushing: a fast child can finish before the send
+        // callback reaches the EDT. Partial writes stay conservatively pending
+        // until a terminal result or process restart.
+        String type = String.valueOf(event.get("type"));
+        boolean planContinuation = "plan".equals(type)
+                && Arrays.asList("approve", "revise", "regenerate").contains(event.get("action"));
+        boolean correction = "feedback".equals(type) && "correction".equals(event.get("kind"));
+        if (AgentStreamEventType.USER.getWireValue().equals(type) || planContinuation || correction)
+            pendingTurns.incrementAndGet();
         try {
             stdin.write(MiniJson.stringify(event));
             stdin.write("\n");

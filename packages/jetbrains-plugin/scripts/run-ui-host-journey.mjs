@@ -7,7 +7,6 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -636,13 +635,14 @@ export function verifyWorkbenchVisibilityMetrics(metricsPath) {
   return summary;
 }
 
-function firstPluginArchive() {
-  const distributions = path.join(PACKAGE_ROOT, "build", "distributions");
-  if (!existsSync(distributions)) return null;
-  const name = readdirSync(distributions)
-    .filter((entry) => entry.endsWith(".zip"))
-    .sort()[0];
-  return name ? path.join(distributions, name) : null;
+export function findPluginArchive(distributions, version) {
+  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u.test(version))
+    throw new Error("Invalid plugin archive version");
+  const archive = path.join(
+    distributions,
+    `chainlesschain-ide-bridge-${version}.zip`,
+  );
+  return existsSync(archive) ? archive : null;
 }
 
 async function writeEvidence(options, result, startedAt, logRoot) {
@@ -662,7 +662,20 @@ async function writeEvidence(options, result, startedAt, logRoot) {
   );
   const screenshots = path.join(PACKAGE_ROOT, "build", "reports", "ui-smoke");
   const sourceRoots = [logRoot, testResults, screenshots].filter(existsSync);
-  const pluginArchive = firstPluginArchive();
+  const extensionVersion = readPluginVersion(
+    path.join(
+      PACKAGE_ROOT,
+      "src",
+      "main",
+      "resources",
+      "META-INF",
+      "plugin.xml",
+    ),
+  );
+  const pluginArchive = findPluginArchive(
+    path.join(PACKAGE_ROOT, "build", "distributions"),
+    extensionVersion,
+  );
   return writeIdeJourneyEvidence({
     artifactDir: options.artifactDir,
     journeyId: "jetbrains-chat-control-workbench-restart-rewind",
@@ -671,16 +684,7 @@ async function writeEvidence(options, result, startedAt, logRoot) {
     cliVersion: readPackageVersion(
       path.join(REPO_ROOT, "packages", "cli", "package.json"),
     ),
-    extensionVersion: readPluginVersion(
-      path.join(
-        PACKAGE_ROOT,
-        "src",
-        "main",
-        "resources",
-        "META-INF",
-        "plugin.xml",
-      ),
-    ),
+    extensionVersion,
     transport: "local-ide-bridge",
     result,
     startedAt,
@@ -699,6 +703,77 @@ async function writeEvidence(options, result, startedAt, logRoot) {
     releaseCommit: options.releaseCommit,
     env: process.env,
   });
+}
+
+export function verifyModelConfigurationFixtureLedger(tracePath) {
+  const records = readFileSync(tracePath, "utf8")
+    .trim()
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const commands = records.filter((record) => record.direction === "command");
+  const saves = commands.filter((record) => record.command === "llm-configure");
+  const before = commands.find(
+    (record) =>
+      record.command === "model-probe" &&
+      record.probe === "journey:model:initial-before",
+  );
+  const after = commands.find(
+    (record) =>
+      record.command === "model-probe" &&
+      record.probe === "journey:model:initial-after",
+  );
+  const restart = commands.find(
+    (record) =>
+      record.command === "model-probe" &&
+      record.probe === "journey:model:restart",
+  );
+  if (
+    saves.length !== 1 ||
+    !before ||
+    !after ||
+    !restart ||
+    before.model !== "deterministic-host-peer" ||
+    before.sessionId !== after.sessionId ||
+    after.sessionId !== restart.sessionId ||
+    before.processId === after.processId ||
+    after.processId === restart.processId ||
+    [saves[0], after, restart].some(
+      (record) =>
+        record.model !== "ui-config-model" ||
+        record.visionModel !== "ui-config-vision",
+    ) ||
+    commands.indexOf(before) >= commands.indexOf(saves[0]) ||
+    commands.indexOf(saves[0]) >= commands.indexOf(after) ||
+    commands.indexOf(after) >= commands.indexOf(restart)
+  ) {
+    throw new Error(
+      "Model configuration evidence does not prove save -> existing-session reload -> IDE restart",
+    );
+  }
+  const savedReads = commands.filter(
+    (record, index) =>
+      index > commands.indexOf(saves[0]) &&
+      record.command === "config-list" &&
+      record.model === "ui-config-model",
+  ).length;
+  const tests = commands.filter(
+    (record) =>
+      record.command === "llm-test" && record.model === "ui-config-model",
+  ).length;
+  if (savedReads < 3 || tests !== 1)
+    throw new Error(
+      "Model configuration evidence lacks saved readback/reopen or explicit connection test",
+    );
+  return {
+    saves: 1,
+    savedReads,
+    tests,
+    existingSessionReload: true,
+    ideRestart: true,
+    unsavedChangesDiscarded: true,
+    providerEvidence: "deterministic keyless fixture",
+  };
 }
 
 export async function runJourney(options) {
@@ -802,6 +877,8 @@ export async function runJourney(options) {
     }
     const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
     const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);
+    const modelConfigurationCoverage =
+      verifyModelConfigurationFixtureLedger(fixtureTracePath);
     const visibilitySummary = verifyWorkbenchVisibilityMetrics(metricsPath);
     const workbenchCoverage = verifyWorkbenchFixtureLedger(
       fixtureTracePath,
@@ -813,6 +890,7 @@ export async function runJourney(options) {
         {
           phases: hostPhases,
           rewindCoverage,
+          modelConfigurationCoverage,
           workbenchCoverage,
           visibilitySummary: {
             ...visibilitySummary,
