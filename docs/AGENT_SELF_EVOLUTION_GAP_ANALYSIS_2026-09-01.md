@@ -1062,6 +1062,10 @@ best 更新要求两个 grader 均有可信证据、组合分数超过 baseline/
 
 JetBrains 本批 JDK 21 定向测试 14/14、纯逻辑 smoke 1334/1334 与 `buildPlugin` 通过，生成 `chainlesschain-ide-bridge-0.4.116.zip`。本地打包结果仍不是三系统宿主验收或发布许可。
 
+同日模型配置补充（CLI/IDE 优先）：JetBrains 已改为同一原生表单管理服务、协议、地址、文本/视觉模型及密钥状态，保存通过一次 CLI 原子事务完成，并以脱敏读回确认结果；VS Code 同样在读回字段一致后才报告保存成功。已确认保存的 JetBrains 配置会在已有聊天的待处理任务结束后、下一次请求前生效并保留会话 ID，覆盖表单关闭后才完成的保存和专用视觉模型入口。CLI 连接测试从 16-token 提升到有界的 1,024-token，修复推理模型尚未产生最终答案就耗尽测试额度的误报。实际隔离 CLI 跨进程读回已验证保存、密钥保留、地址/密钥替换和视觉覆盖清除；JetBrains 47 项定向测试、1,384 项 smoke 与插件构建通过，VS Code 最终 187 项测试在最低 Node 22.12.0 通过。当前源码候选为 CLI `0.166.36`、VS Code `0.37.91`、JetBrains `0.4.118`，尚未据此发布或安装；操作及保存排查见 [IDE 页面说明](IDE_WORKSPACE_PANELS.md)。
+
+新增原生宿主验收覆盖表单保存/测试/重开、放弃未保存修改、旧聊天切换配置和整 IDE 重启。此前本地及 Linux ARM64 两阶段界面断言虽通过，最终会话 ID 审计仍因临时项目未落盘而拒绝验收，失败制品保留。测试现通过 IDE 原生 Save All 操作确认 workspace 内会话 ID 落盘；本地 `model-config-20260908-v5` 第一阶段及 100 次响应测量完成，但重启阶段因表单窗口定位超时未通过。测试补充恢复 IDE 窗口并记录前台状态后重新运行，完整结果及目标提交的三系统矩阵仍须核验。模型设置可用性、保存确认与整项受治理 Skill 自进化的完成状态分别记录，不提升生产 HOLD 或 §14 总体完成数。
+
 工作台应提供一条可解释时间线：
 
 `Raw/Recording evidence → Wiki pattern 或 direct replay derivation → Candidate diff → Eval receipt → Approval → Promotion/Rollback`
