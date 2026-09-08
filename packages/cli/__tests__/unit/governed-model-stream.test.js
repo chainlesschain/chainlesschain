@@ -21,6 +21,69 @@ const body = {
 };
 
 describe("governed stream transport completion", () => {
+  it.each(["ollama", "openai"])(
+    "reads the last %s line at EOF and releases its lock",
+    async (provider) => {
+      const response = new Response(body[provider].trimEnd());
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => response),
+      );
+      let text = "";
+      for await (const delta of buildProviderSource(provider, {
+        messages,
+        apiKey: "test",
+        requireCompletion: true,
+      }))
+        text += delta;
+      expect(text).toBe("ok");
+      expect(response.body.locked).toBe(false);
+    },
+  );
+
+  it.each(
+    ["ollama", "openai"].flatMap((provider) =>
+      ["terminal", "consumer-return", "malformed"].map((mode) => [
+        provider,
+        mode,
+      ]),
+    ),
+  )("releases the %s response reader (%s)", async (provider, mode) => {
+    const cancel = vi.fn();
+    const source = new ReadableStream({
+      start(controller) {
+        const data =
+          mode === "malformed"
+            ? provider === "ollama"
+              ? "{invalid\n"
+              : "data: {invalid\n"
+            : body[provider];
+        controller.enqueue(new TextEncoder().encode(data));
+      },
+      cancel,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(source)),
+    );
+    const stream = buildProviderSource(provider, {
+      messages,
+      apiKey: "test",
+      requireCompletion: true,
+    });
+    if (mode === "malformed") await expect(stream.next()).rejects.toThrow();
+    else if (mode === "consumer-return") {
+      expect((await stream.next()).value).toBe("ok");
+      await stream.return();
+    } else {
+      for await (const _delta of stream) {
+        /* consume terminal marker */
+      }
+    }
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(source.locked).toBe(false);
+  });
+
   it.each(
     ["ollama", "openai", "anthropic"].flatMap((provider) =>
       ["complete", "truncated", "cancelled", "error", "malformed"].map(

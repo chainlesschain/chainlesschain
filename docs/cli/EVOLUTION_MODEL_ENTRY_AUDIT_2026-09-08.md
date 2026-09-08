@@ -41,6 +41,12 @@ missing completion markers, malformed payloads, and explicit provider errors.
 QuickAsk socket closure aborts its provider request. Cancelling source iteration
 does not record a completed Run.
 
+The direct provider adapters cancel unfinished response bodies and release their
+reader locks on completion markers, consumer return and parse failure. EOF also
+flushes the final buffered line. Eight regression cases exercise these paths
+with actual ReadableStream objects; the combined governance/provider/session
+stream suites pass 70 tests.
+
 ## Validation
 
 - Real composition tests cover CLI text and NDJSON output, WebSocket streaming,

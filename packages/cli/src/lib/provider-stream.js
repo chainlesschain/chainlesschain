@@ -6,6 +6,39 @@
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 
+async function* responseLines(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let ended = false;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        ended = true;
+        buffer += decoder.decode();
+        if (buffer) yield buffer;
+        return;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      let newline;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        yield line;
+      }
+    }
+  } finally {
+    try {
+      if (!ended) await reader.cancel();
+    } catch {
+      // Preserve the original parser/transport failure during cleanup.
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}
+
 export async function* ollamaTokenStream({
   baseUrl,
   model,
@@ -27,29 +60,19 @@ export async function* ollamaTokenStream({
   if (!res.ok || !res.body) {
     throw new Error(`Ollama ${res.status} ${res.statusText}`);
   }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl;
-    while ((nl = buf.indexOf("\n")) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try {
-        const obj = JSON.parse(line);
-        if (requireCompletion && obj.error)
-          throw new Error("Ollama stream returned an error");
-        const delta = messages ? obj.message?.content : obj.response;
-        if (delta) yield delta;
-        if (obj.done) return;
-      } catch (error) {
-        if (requireCompletion) throw error;
-        /* skip malformed */
-      }
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (requireCompletion && obj.error)
+        throw new Error("Ollama stream returned an error");
+      const delta = messages ? obj.message?.content : obj.response;
+      if (delta) yield delta;
+      if (obj.done) return;
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip malformed */
     }
   }
   if (requireCompletion)
@@ -81,30 +104,20 @@ export async function* openAIStream({
   if (!res.ok || !res.body) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const raw of lines) {
-      const line = raw.trim();
-      if (!line || !line.startsWith("data:")) continue;
-      const payload = line.slice(5).trim();
-      if (payload === "[DONE]") return;
-      try {
-        const obj = JSON.parse(payload);
-        if (requireCompletion && obj.error)
-          throw new Error("OpenAI stream returned an error");
-        const delta = obj?.choices?.[0]?.delta?.content;
-        if (delta) yield delta;
-      } catch (error) {
-        if (requireCompletion) throw error;
-        /* skip */
-      }
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line || !line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (payload === "[DONE]") return;
+    try {
+      const obj = JSON.parse(payload);
+      if (requireCompletion && obj.error)
+        throw new Error("OpenAI stream returned an error");
+      const delta = obj?.choices?.[0]?.delta?.content;
+      if (delta) yield delta;
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip */
     }
   }
   if (requireCompletion)
