@@ -12,6 +12,8 @@
 - Exercise the native form and existing conversation across a full IDE restart
   in the host journey. Synchronize release metadata and bind evidence to the
   current version's archive when previous builds remain in the output directory.
+- Save the sandbox project through the native Save All action and verify its
+  resume IDs on disk before the host journey terminates and reopens the IDE.
 - Keep status-bar painting from waiting for the bridge startup/lockfile monitor;
   connection and credential access retain their synchronized lifecycle reads.
 
