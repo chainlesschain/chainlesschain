@@ -28,7 +28,7 @@ public final class IdeBridgeService implements Disposable {
     private final ActivityLog activity = new ActivityLog(200);
     private McpServer server;
     private IntellijEditorFacade facade;
-    private int port = -1;
+    private volatile int port = -1;
     private String token;
 
     public IdeBridgeService(Project project) {
@@ -108,6 +108,9 @@ public final class IdeBridgeService implements Disposable {
     }
 
     public synchronized int getPort() { return port; }
+
+    /** Status painting must not wait for lockfile cleanup or server startup. */
+    int getStatusPort() { return port; }
 
     public synchronized String getToken() { return token; }
 
