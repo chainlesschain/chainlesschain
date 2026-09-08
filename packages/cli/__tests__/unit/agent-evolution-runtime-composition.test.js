@@ -964,6 +964,7 @@ describe("Agent evolution runtime production composition", () => {
     "response-denied",
     "wrong-run",
     "cloud-denied",
+    "provider-changed",
   ])(
     "governs Hub analysis with its existing consent gate (%s)",
     async (mode) => {
@@ -992,10 +993,21 @@ describe("Agent evolution runtime production composition", () => {
         });
         return composition;
       });
+      let local = mode !== "cloud-denied";
+      if (mode === "provider-changed") {
+        const create = factory.getMockImplementation();
+        factory.mockImplementation(async (context) => {
+          const result = await create(context);
+          local = false;
+          return result;
+        });
+      }
       const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
       const original = Object.freeze({
         name: "test-hub",
-        isLocal: mode !== "cloud-denied",
+        get isLocal() {
+          return local;
+        },
         chat: vi.fn(async () => ({ text: "safe answer", usage: {} })),
       });
       const wrapped = createGovernedHubLlm(original, factory);
@@ -1047,7 +1059,9 @@ describe("Agent evolution runtime production composition", () => {
         ["success", "response-denied"].includes(mode) ? 1 : 0,
       );
       expect(factory).toHaveBeenCalledTimes(mode === "cloud-denied" ? 0 : 1);
-      expect(wrapped.isLocal).toBe(original.isLocal);
+      if (mode === "provider-changed")
+        expect(() => wrapped.isLocal).toThrow(/identity changed/);
+      else expect(wrapped.isLocal).toBe(original.isLocal);
       expect(engine.llm).toBe(wrapped);
     },
     90_000,

@@ -14,17 +14,38 @@ export function createGovernedHubLlm(llm, factory) {
   }
   if (typeof factory !== "function")
     throw new TypeError("A Hub evolution factory is required");
-  const chat = llm.chat.bind(llm);
+  const identity = { name: llm.name, isLocal: llm.isLocal, chat: llm.chat };
+  const assertIdentity = () => {
+    if (
+      llm.name !== identity.name ||
+      llm.isLocal !== identity.isLocal ||
+      llm.chat !== identity.chat
+    ) {
+      throw new Error(
+        "Hub model identity changed; reopen the analysis invocation",
+      );
+    }
+  };
+  const chat = identity.chat.bind(llm);
   return Object.freeze({
-    name: llm.name,
-    isLocal: llm.isLocal,
+    get name() {
+      assertIdentity();
+      return identity.name;
+    },
+    get isLocal() {
+      assertIdentity();
+      return identity.isLocal;
+    },
     async chat(messages, options = {}) {
+      assertIdentity();
       const turn = await prepareGovernedModelTurn(factory, {
         mode: "hub-analysis",
         messages,
         signal: options.signal,
       });
+      assertIdentity();
       const response = await chat(turn.messages, options);
+      assertIdentity();
       if (!response || typeof response.text !== "string") {
         throw new Error("Hub model response must contain text");
       }

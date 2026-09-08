@@ -27,6 +27,11 @@ messages, and retains response evidence before returning an answer. The existing
 AnalysisEngine cloud-consent gate runs first. Five real composition/AnalysisEngine
 cases and three command registration cases pass, together with 100 existing
 Hub command/client and deployment-loader checks.
+The scoped wrapper pins the exposed model name, locality and chat function.
+It rechecks them at metadata access and before/after asynchronous preparation
+and transport; changes require reopening the invocation. This prevents a
+Desktop adapter's dynamic provider switch from retaining a stale local label.
+Six real Hub cases and three identity-change cases pass.
 
 This change connects cc stream, llm.chat, and stream.run to the existing
 branded composition and ingress. Each request receives a host-generated Run ID,
@@ -76,6 +81,11 @@ the repository-wide final-entry audit remains open.
 Hub entity resolution and other background model consumers, plus Desktop Hub
 overrides, still require separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.
+The Desktop Hub adapters inspected here delegate to LLMManager.chat rather than
+calling a provider directly. EntityResolverLLMStage in the CLI full Hub still
+receives the shared original model; its local-only consent gate is not an
+evolution projection. Its prompt also contains a pseudo-JSON example that needs
+correction before connecting the strict projection boundary.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.
