@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.38: publish audited child package updates
+
+- Upgrade the CLI dependency to Context Memory Kernel `0.1.1`, including the
+  LLM selector in the writer inventory.
+- Release Agent Protocol `0.1.9` with knowledge revocation prepare/publish methods
+  in the schema and generated Kotlin/Swift bindings.
+- Include Agent Protocol checks and publication in the CLI release workflow,
+  before the CLI is published.
+- Pair the pending IDE releases with CLI `0.166.38` after npm verification.
+
 ### Fixed - cc CLI 0.166.37: govern model entry points and preserve failures
 
 > `chainlesschain` **0.166.36 -> 0.166.37** (2026-09-09), source candidate

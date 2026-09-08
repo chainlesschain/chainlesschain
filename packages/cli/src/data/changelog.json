@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.38",
+      "cliVersions": ["0.166.38"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.38: publish audited child package updates",
+          "body": "- Upgrade the CLI dependency to Context Memory Kernel `0.1.1`, including the\n  LLM selector in the writer inventory.\n- Release Agent Protocol `0.1.9` with knowledge revocation prepare/publish methods\n  in the schema and generated Kotlin/Swift bindings.\n- Include Agent Protocol checks and publication in the CLI release workflow,\n  before the CLI is published.\n- Pair the pending IDE releases with CLI `0.166.38` after npm verification."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.37",
       "cliVersions": ["0.166.36", "0.166.37"],
       "date": "2026-09-09",
