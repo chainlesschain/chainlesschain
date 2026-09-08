@@ -236,3 +236,29 @@ The implementation bounds tail rewriting and segment parsing, but each read
 still scans historical bytes. Production throughput, the full 250,000-event
 ledger workload, physical power-loss behavior and an independent witness
 failure domain remain open acceptance work.
+
+### 100-round process-exit campaign (2026-09-08)
+
+The Windows campaign completed on commit
+`3c80be47a5a84d6befdc32dea5d9421e59d56464` with Node.js 22.22.2:
+
+```text
+node packages/cli/scripts/evolution-ledger-reliability-soak.mjs --fault-rounds 100
+```
+
+All 100 rounds passed in 157.238 seconds. The four segment/anchor fault points
+ran 17 times each; `after-witness` and `after-head` ran 16 times each. Every
+round used separate seed, forced-exit, recovery and replay processes, checked
+the expected committed or uncommitted head, and verified that repeat recovery
+did not change the event count, head digest or witness digest. Native process
+exit was 0 with no termination signal. See the [captured report](evidence/ledger-fault-100-20260908.json).
+
+The first run also emitted a passing report, but its PowerShell wrapper returned
+1; that run is not the acceptance record. The recorded rerun captured the native
+Node exit directly. The tested ledger implementation, process fixture and runner
+are identical to main commit `8a0356b825dd869b6385f56bdc60646043f9e8fa`.
+
+This verifies the six repository process-exit recovery boundaries only. It does
+not verify physical power loss, disk-full behavior, evaluator/hook failures,
+production signing authority, independent witness infrastructure or the
+250,000-event capacity target. EVO-P0-5 remains partially complete.
