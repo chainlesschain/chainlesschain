@@ -237,8 +237,7 @@ final class ConversationView {
             javax.swing.JMenuItem full =
                     new javax.swing.JMenuItem(CcBundle.message("chat.menu.configureLlm"));
             full.addActionListener(a -> {
-                ConfigureLlmAction.runWizard(project);
-                reloadLlmConfig();
+                if (ConfigureLlmAction.runWizard(project)) reloadLlmConfig();
             });
             javax.swing.JMenuItem vision =
                     new javax.swing.JMenuItem(CcBundle.message("chat.menu.visionModel"));

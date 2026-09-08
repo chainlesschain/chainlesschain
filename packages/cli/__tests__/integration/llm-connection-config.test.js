@@ -96,7 +96,7 @@ it.each(["openai", "volcengine"])(
             : "relay/custom-model",
         baseUrl: `http://127.0.0.1:${server.address().port}/proxy/v1`,
         apiKey: "test-only-relay-key",
-        visionModel: "",
+        visionModel: "relay/vision-model",
       };
       const saved = await run(
         ["llm", "configure", "--storage", "file"],
@@ -153,6 +153,51 @@ it.each(["openai", "volcengine"])(
       );
       expect(failed.code).not.toBe(0);
       expect(fs.readFileSync(file, "utf8")).toBe(original);
+      const updated = {
+        ...draft,
+        model: `${draft.model}-updated`,
+        visionModel: "",
+        apiKey: "",
+      };
+      const preserved = await run(
+        ["llm", "configure", "--storage", "file"],
+        env,
+        workspace,
+        JSON.stringify(updated),
+      );
+      expect(preserved.code, preserved.stderr).toBe(0);
+      const reopened = await run(["config", "list", "--json"], env, workspace);
+      expect(reopened.code, reopened.stderr).toBe(0);
+      expect(JSON.parse(reopened.stdout).llm).toMatchObject({
+        provider,
+        model: updated.model,
+        baseUrl: draft.baseUrl,
+        visionModel: null,
+        apiKey: "[REDACTED]",
+      });
+      expect(reopened.stdout + reopened.stderr).not.toContain(draft.apiKey);
+      expect(JSON.parse(fs.readFileSync(file, "utf8")).llm.apiKey).toBe(
+        draft.apiKey,
+      );
+      const newEndpoint = {
+        ...updated,
+        baseUrl: draft.baseUrl.replace("/proxy/v1", "/another/v1"),
+        apiKey: "test-only-new-endpoint-key",
+      };
+      const replaced = await run(
+        ["llm", "configure", "--storage", "file"],
+        env,
+        workspace,
+        JSON.stringify(newEndpoint),
+      );
+      expect(replaced.code, replaced.stderr).toBe(0);
+      const newTest = await run(["llm", "test"], env, workspace);
+      expect(newTest.code, newTest.stderr).toBe(0);
+      expect(requests.at(-1)).toMatchObject({
+        path: "/another/v1/chat/completions",
+        auth: `Bearer ${newEndpoint.apiKey}`,
+        body: { model: updated.model },
+      });
     } finally {
       await new Promise((resolve) => server.close(resolve));
       fs.rmSync(root, { recursive: true, force: true });

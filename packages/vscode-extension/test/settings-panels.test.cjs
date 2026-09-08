@@ -331,15 +331,17 @@ test("custom relays require a scoped key, allow arbitrary model aliases, and rej
 test("LLM panel never returns an existing or newly submitted key to the webview", async (t) => {
   const h = host(t),
     calls = [];
+  let savedModel = "model";
   const api = {
     PROVIDER_PRESETS,
     getConfiguredProvider: async () => "openai",
-    getConfiguredModel: async () => "model",
+    getConfiguredModel: async () => savedModel,
     getConfiguredBaseUrl: async () => "https://relay.example/v1",
     getConfiguredVisionModel: async () => null,
     hasConfiguredApiKey: async () => true,
     applyLlmConnection: async (input) => {
       calls.push(input);
+      savedModel = input.answers.model;
       return { ok: true };
     },
   };
@@ -360,6 +362,44 @@ test("LLM panel never returns an existing or newly submitted key to the webview"
   assert.equal(
     h.messages.find((m) => m.type === "config").current.hasKey,
     true,
+  );
+});
+test("LLM panel reports unconfirmed writes when a successful CLI exit reads back old configuration", async (t) => {
+  const h = host(t);
+  let configured = 0;
+  const api = {
+    PROVIDER_PRESETS,
+    getConfiguredProvider: async () => "openai",
+    getConfiguredModel: async () => "old-model",
+    getConfiguredBaseUrl: async () => "https://relay.example/v1",
+    getConfiguredVisionModel: async () => null,
+    hasConfiguredApiKey: async () => true,
+    applyLlmConnection: async () => ({ ok: true }),
+  };
+  openLlmConfigPanel(h.vscode, {
+    api,
+    onConfigured: () => {
+      configured++;
+    },
+  });
+  await h.send({ type: "ready" });
+  await h.send({
+    type: "save",
+    answers: {
+      provider: "openai",
+      model: "new-model",
+      baseUrl: "https://relay.example/v1",
+      visionModel: "",
+      apiKey: "",
+    },
+  });
+  assert.equal(configured, 0);
+  assert.ok(
+    !h.messages.some((m) => m.type === "notice" && m.kind === "success"),
+  );
+  assert.match(
+    h.messages.filter((m) => m.type === "notice").at(-1).text,
+    /回读结果/,
   );
 });
 test("atomic LLM configuration travels over stdin, including script entrypoints", async () => {

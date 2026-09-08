@@ -9,12 +9,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
  * Guided LLM configuration — the plugin is only a thin wizard: all
- * writes/tests go through the CLI ({@code cc config set}, {@code cc llm test}),
+ * writes/tests go through the CLI ({@code cc llm configure}, {@code cc llm test}),
  * so there is exactly one source of truth (~/.chainlesschain/config.json,
  * shared with the CLI and the VS Code extension). DETECTION reads that file
  * directly (file-first, CLI fallback) so it stays correct when {@code cc} is
@@ -103,6 +106,108 @@ public final class LlmConfig {
         CliResult run(List<String> ccArgs, String stdin);
     }
 
+    /** Non-secret snapshot used by the connection form and save readback. */
+    public static final class Connection {
+        public final String provider, model, baseUrl, visionModel;
+        public final boolean hasKey;
+        public Connection(String provider, String model, String baseUrl, String visionModel, boolean hasKey) {
+            this.provider = provider == null ? "" : provider;
+            this.model = model == null ? "" : model;
+            this.baseUrl = baseUrl == null ? "" : baseUrl;
+            this.visionModel = visionModel == null ? "" : visionModel;
+            this.hasKey = hasKey;
+        }
+    }
+
+    public static Connection readConnection() {
+        return readConnection((args, stdin) -> runCli(args, stdin));
+    }
+
+    static Connection readConnection(CliRunner cli) {
+        CliResult result = cli.run(args("config", "list", "--json"), null);
+        if (!result.ok) throw new IllegalStateException("Could not read the saved CLI configuration");
+        Map<String, Object> document = MiniJson.parseObject(result.output.trim());
+        if (document == null || !(document.get("llm") instanceof Map))
+            throw new IllegalStateException("CLI returned an invalid configuration snapshot");
+        Map<?, ?> values = (Map<?, ?>) document.get("llm");
+        return new Connection(cleanConfigValue(values.get("provider")), cleanConfigValue(values.get("model")),
+                cleanConfigValue(values.get("baseUrl")), cleanConfigValue(values.get("visionModel")),
+                cleanConfigValue(values.get("apiKey")) != null);
+    }
+
+    /** One CLI transaction followed by a fresh, redacted readback. */
+    public static String saveConnection(Connection connection, String apiKey, boolean allowHttp) {
+        return saveConnection(connection, apiKey, allowHttp, (args, stdin) -> runCli(args, stdin));
+    }
+
+    static String saveConnection(Connection connection, String apiKey, boolean allowHttp, CliRunner cli) {
+        String validation = validateConnection(connection, allowHttp);
+        if (validation != null) return validation;
+        if (apiKey != null && apiKey.length() > 8192) return "API key is too long";
+        Map<String, Object> values = new LinkedHashMap<String, Object>();
+        values.put("provider", connection.provider.trim());
+        values.put("model", connection.model.trim());
+        values.put("baseUrl", connection.baseUrl.trim());
+        values.put("visionModel", connection.visionModel.trim());
+        values.put("apiKey", apiKey == null ? "" : apiKey.trim());
+        values.put("allowHttp", allowHttp);
+        CliResult result = cli.run(args("llm", "configure"), MiniJson.stringify(values));
+        if (!result.ok) {
+            String detail = result.output == null ? "" : result.output;
+            if (notBlank(apiKey)) detail = detail.replace(apiKey, "[REDACTED]").replace(apiKey.trim(), "[REDACTED]");
+            return tail(detail, 500).isEmpty() ? "Configuration write failed" : tail(detail, 500);
+        }
+        try {
+            Connection saved = readConnection(cli);
+            if (!saved.provider.equals(connection.provider.trim()) || !saved.model.equals(connection.model.trim())
+                    || !normalizedBaseUrl(saved.baseUrl).equals(normalizedBaseUrl(connection.baseUrl))
+                    || !saved.visionModel.equals(connection.visionModel.trim())
+                    || (!"ollama".equals(saved.provider) && !saved.hasKey))
+                return "Configuration write could not be confirmed: readback differs. Reload before trying again.";
+        } catch (Exception e) {
+            return "Configuration write could not be confirmed: could not read it back. Reload before trying again.";
+        }
+        return null;
+    }
+
+    public static String normalizedBaseUrl(String value) {
+        try {
+            URI uri = new URI(value.trim()).normalize();
+            String host = uri.getHost();
+            if (host == null) return value.trim().replaceAll("/+$", "");
+            int port = uri.getPort();
+            if (("https".equalsIgnoreCase(uri.getScheme()) && port == 443)
+                    || ("http".equalsIgnoreCase(uri.getScheme()) && port == 80)) port = -1;
+            return new URI(uri.getScheme().toLowerCase(java.util.Locale.ROOT), null,
+                    host.toLowerCase(java.util.Locale.ROOT), port, uri.getPath(), null, null)
+                    .toASCIIString().replaceAll("/+$", "");
+        } catch (Exception e) { return value.trim().replaceAll("/+$", ""); }
+    }
+
+    public static String validateConnection(Connection connection, boolean allowHttp) {
+        boolean supported = false;
+        for (Preset preset : PRESETS) if (preset.id.equals(connection.provider.trim())) supported = true;
+        if (!supported) return "Choose a supported provider or protocol";
+        if (connection.baseUrl.length() > 2048) return "Base URL is too long";
+        if (!notBlank(connection.model) || connection.model.length() > 2048 || connection.visionModel.length() > 2048
+                || (connection.model + connection.visionModel).matches("(?s).*[\\r\\n\\x00].*"))
+            return "Enter a valid model name";
+        try {
+            URI uri = new URI(connection.baseUrl.trim());
+            String scheme = uri.getScheme();
+            if (!("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) || uri.getHost() == null
+                    || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null)
+                return "Use an HTTP(S) base URL without credentials, query or fragment";
+            if (uri.getPath().matches(".*/(chat/completions|messages|responses|api/generate)/?"))
+                return "Enter the base URL, without a completion/messages endpoint";
+            String host = uri.getHost();
+            if ("http".equalsIgnoreCase(scheme) && !"localhost".equalsIgnoreCase(host)
+                    && !"127.0.0.1".equals(host) && !"[::1]".equals(host) && !allowHttp)
+                return "Confirm unencrypted HTTP before using a remote endpoint";
+        } catch (Exception e) { return "Enter a valid base URL"; }
+        return null;
+    }
+
     /** Run `cc <args…>` (via cmd /c on Windows — npm shims are .cmd files).
      *  PATH is augmented with the usual npm/node bin dirs and the binary name is
      *  resolved (cc/chainlesschain/…) so the wizard works even when the IDE was
@@ -123,31 +228,47 @@ public final class LlmConfig {
         // the C compiler) — its probes already run with the augmented PATH.
         cmd.add(AgentChatSession.resolveBinary());
         cmd.addAll(ccArgs);
+        Process p = null;
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             CliLauncher.augmentPath(pb);
             pb.redirectErrorStream(true);
-            Process p = pb.start();
-            if (stdin != null) {
-                try (OutputStream out = p.getOutputStream()) {
-                    out.write(stdin.getBytes(StandardCharsets.UTF_8));
-                }
+            p = pb.start();
+            final InputStream output = p.getInputStream();
+            CompletableFuture<String> reading = CompletableFuture.supplyAsync(() -> {
+                try { return readAll(output); }
+                catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
+            });
+            try (OutputStream out = p.getOutputStream()) {
+                if (stdin != null) out.write(stdin.getBytes(StandardCharsets.UTF_8));
             }
-            String out = readAll(p.getInputStream());
             boolean finished = p.waitFor(60, TimeUnit.SECONDS);
             if (!finished) {
-                p.destroyForcibly();
+                stopCliProcess(p);
                 return new CliResult(false, "cc timed out");
             }
+            String out = reading.get(5, TimeUnit.SECONDS);
             boolean ok = p.exitValue() == 0;
             if (!ok && CliLauncher.looksLikeMissingCli(out)) {
                 return new CliResult(false, CliLauncher.missingCliMessage());
             }
             return new CliResult(ok, out);
         } catch (Exception e) {
+            if (p != null && p.isAlive()) stopCliProcess(p);
             String msg = String.valueOf(e.getMessage());
             return new CliResult(false,
                     CliLauncher.looksLikeMissingCli(msg) ? CliLauncher.missingCliMessage() : msg);
+        }
+    }
+
+    private static void stopCliProcess(Process process) {
+        try {
+            process.descendants().forEach(child -> {
+                try { child.destroyForcibly(); } catch (RuntimeException ignored) { }
+            });
+        } finally {
+            process.destroyForcibly();
+            try { process.getInputStream().close(); } catch (Exception ignored) { }
         }
     }
 
@@ -367,7 +488,7 @@ public final class LlmConfig {
     }
 
     /**
-     * Apply the wizard's answers (sequential, fail-fast).
+     * Atomically apply the form's answers and verify redacted readback.
      * @return null on success, otherwise a user-facing error message
      */
     public static String applyConfig(String provider, String model, String apiKey, String baseUrl) {
@@ -387,24 +508,7 @@ public final class LlmConfig {
 
     static String applyConfig(String provider, String model, String apiKey,
                               String baseUrl, String visionModel, CliRunner cli) {
-        String[][] fields = {
-            {"provider", provider}, {"model", model},
-            {"baseUrl", baseUrl}, {"visionModel", visionModel},
-        };
-        for (String[] f : fields) {
-            if (notBlank(f[1]) && hasUnsafeShellChars(f[1])) {
-                return "Value contains unsafe characters (" + f[0] + ") — remove spaces/quotes/& and retry";
-            }
-        }
-        for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl, visionModel)) {
-            CliResult r = cli.run(set, null);
-            if (!r.ok) return tail(r.output, 200);
-        }
-        if (notBlank(apiKey)) {
-            CliResult r = cli.run(args("config", "set-secret", "llm.apiKey"), apiKey);
-            if (!r.ok) return tail(r.output, 200);
-        }
-        return null;
+        return saveConnection(new Connection(provider, model, baseUrl, visionModel, false), apiKey, false, cli);
     }
 
     /** Connectivity check via `cc llm test`; returns a short summary. */
@@ -440,7 +544,10 @@ public final class LlmConfig {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte[] chunk = new byte[4096];
         int n;
-        while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+        while ((n = in.read(chunk)) > 0) {
+            if (buf.size() + n > 1024 * 1024) throw new java.io.IOException("CLI output exceeded 1 MiB");
+            buf.write(chunk, 0, n);
+        }
         return new String(buf.toByteArray(), StandardCharsets.UTF_8);
     }
 }

@@ -96,7 +96,7 @@ class LlmConfigTest {
     }
 
     @Test
-    void apiKeyUsesSetSecretStdinAndNeverArgv() {
+    void connectionUsesOneAtomicStdinWriteAndRedactedReadback() {
         List<List<String>> calls = new ArrayList<List<String>>();
         List<String> inputs = new ArrayList<String>();
         String apiKey = "key with & shell characters";
@@ -107,14 +107,45 @@ class LlmConfigTest {
                 (args, stdin) -> {
                     calls.add(new ArrayList<String>(args));
                     inputs.add(stdin);
-                    return new LlmConfig.CliResult(true, "Set");
+                    return new LlmConfig.CliResult(true, args.get(0).equals("llm") ? "{\"ok\":true}"
+                            : "{\"llm\":{\"provider\":\"volcengine\",\"model\":\"deepseek-v4-flash-260425\",\"baseUrl\":\"https://ark.cn-beijing.volces.com/api/v3\",\"visionModel\":null,\"apiKey\":\"[REDACTED]\"}}");
                 });
 
         assertNull(error);
-        assertEquals(java.util.Arrays.asList("config", "set-secret", "llm.apiKey"),
-                calls.get(calls.size() - 1));
+        assertEquals(2, calls.size());
+        assertEquals(java.util.Arrays.asList("llm", "configure"), calls.get(0));
+        assertEquals(java.util.Arrays.asList("config", "list", "--json"), calls.get(1));
         for (List<String> args : calls) assertFalse(args.contains(apiKey));
-        assertEquals(apiKey, inputs.get(inputs.size() - 1));
+        assertEquals(apiKey, MiniJson.parseObject(inputs.get(0)).get("apiKey"));
+        assertEquals("", MiniJson.parseObject(inputs.get(0)).get("visionModel"));
+        assertNull(inputs.get(1));
+    }
+
+    @Test
+    void failedAtomicSaveDoesNotRunOtherWritesOrEchoTheKey() {
+        List<List<String>> calls = new ArrayList<>();
+        String error = LlmConfig.saveConnection(new LlmConfig.Connection("openai", "custom", "https://relay.example/v1", "", false), "private-key", false,
+                (args, stdin) -> { calls.add(args); return new LlmConfig.CliResult(false, "write failed: private-key"); });
+        assertEquals(1, calls.size());
+        assertNotNull(error);
+        assertFalse(error.contains("private-key"));
+    }
+
+    @Test
+    void successfulExitWithoutMatchingReadbackIsNotReportedAsSaved() {
+        String error = LlmConfig.saveConnection(new LlmConfig.Connection("openai", "new-model", "https://relay.example/v1", "", false), "", false,
+                (args, stdin) -> new LlmConfig.CliResult(true, args.get(0).equals("llm") ? "{\"ok\":true}"
+                        : "{\"llm\":{\"provider\":\"openai\",\"model\":\"old-model\",\"baseUrl\":\"https://relay.example/v1\",\"apiKey\":\"[REDACTED]\"}}"));
+        assertNotNull(error);
+        assertTrue(error.contains("readback differs"));
+    }
+
+    @Test
+    void remoteHttpAndSpecificOperationPathsAreRejectedBeforeWriting() {
+        assertNotNull(LlmConfig.validateConnection(new LlmConfig.Connection("openai", "m", "http://relay.example/v1", "", false), false));
+        assertNull(LlmConfig.validateConnection(new LlmConfig.Connection("openai", "m", "http://relay.example/v1", "", false), true));
+        assertNotNull(LlmConfig.validateConnection(new LlmConfig.Connection("openai", "m", "https://relay.example/v1/chat/completions", "", false), true));
+        assertNull(LlmConfig.validateConnection(new LlmConfig.Connection("ollama", "m", "http://localhost:11434", "", false), false));
     }
 
     @Test

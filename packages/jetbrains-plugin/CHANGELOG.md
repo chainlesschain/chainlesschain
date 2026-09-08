@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.117] - One model connection form and verified atomic saves (2026-09-08)
+
+- Replace the successive input dialogs with one native form for provider,
+  custom protocol, base URL, text/vision models and masked credential entry.
+- Save the whole connection with `llm configure` over stdin, then read back
+  the redacted configuration before reporting success. A blank vision model
+  clears the previous selection; a changed endpoint requires its own key.
+- Separate save, reload and connection-test actions, mark unsaved changes,
+  and keep requests off the UI thread with bounded CLI output and waits.
+- Use CLI `0.166.36` for reasoning-model connection tests. A failed test keeps
+  the saved settings and is reported separately from a write failure.
+
 ## [0.4.116] - Complete Evolution Workbench reads and serialized decisions (2026-09-08)
 
 - Read and validate the complete version history, up to 10,000 candidates, before
