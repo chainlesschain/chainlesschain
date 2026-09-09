@@ -161,6 +161,19 @@ async function stopChild(child) {
   });
 }
 
+async function waitForExit(child, timeoutMs = 5_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("approval service did not exit at capability expiry"));
+    }, timeoutMs);
+    child.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 afterEach(async () => {
   for (const child of children.splice(0)) await stopChild(child);
   for (const root of roots.splice(0)) {
@@ -169,6 +182,51 @@ afterEach(async () => {
 });
 
 describe("attestor trust isolated approval service", () => {
+  it("terminates the isolated signer when its capability expires", async () => {
+    const root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-attestor-approval-expiry-")),
+    );
+    roots.push(root);
+    const child = spawn(process.execPath, [servicePath], {
+      env:
+        process.platform === "win32"
+          ? {
+              SystemRoot: process.env.SystemRoot,
+              WINDIR: process.env.WINDIR,
+              TEMP: process.env.TEMP,
+              TMP: process.env.TMP,
+            }
+          : {},
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    children.push(child);
+    const operator = generateKeyPairSync("ed25519");
+    const issuedAt = new Date(Date.now() - 1_000).toISOString();
+    child.stdin.end(
+      `${JSON.stringify({
+        endpoint: endpoint(root),
+        capabilityToken: randomBytes(32).toString("base64url"),
+        capabilityIssuedAt: issuedAt,
+        capabilityExpiresAt: new Date(Date.now() + 1_000).toISOString(),
+        capabilityMaxUses: 1,
+        tenantId: "tenant:personal-ai",
+        operatorId: "operator:owner",
+        signerId: "signer:personal-ai-owner",
+        policyId: "policy:personal-ai",
+        revision: 1,
+        policyDigest: `sha256:${"a".repeat(64)}`,
+        privateKeyPem: operator.privateKey.export({
+          type: "pkcs8",
+          format: "pem",
+        }),
+      })}\n`,
+    );
+    await waitForLine(child.stdout);
+    await waitForExit(child);
+    expect(child.exitCode).toBe(0);
+  }, 15_000);
+
   it("signs both request families in another process and pins every response", async () => {
     const root = fs.realpathSync.native(
       fs.mkdtempSync(path.join(os.tmpdir(), "cc-attestor-approval-")),

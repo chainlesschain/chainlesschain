@@ -319,7 +319,12 @@ if (process.platform === "win32") {
 }
 const descriptor = Object.freeze({ ...descriptorCore, transportSecurity });
 
+let closing = false;
+let capabilityExpiryTimer = null;
 const close = () => {
+  if (closing) return;
+  closing = true;
+  if (capabilityExpiryTimer) clearTimeout(capabilityExpiryTimer);
   if (pipeHost) {
     pipeHost.close().finally(() => process.exit(0));
   } else {
@@ -330,3 +335,9 @@ const close = () => {
 process.once("SIGTERM", close);
 process.once("SIGINT", close);
 process.stdout.write(`${JSON.stringify({ ok: true, descriptor })}\n`);
+if (!closing) {
+  capabilityExpiryTimer = setTimeout(
+    close,
+    Math.max(1, Date.parse(capability.expiresAt) - Date.now()),
+  );
+}

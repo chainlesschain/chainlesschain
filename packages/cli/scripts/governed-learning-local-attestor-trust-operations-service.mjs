@@ -552,7 +552,12 @@ const serviceDescriptor = Object.freeze({
   transportSecurity,
 });
 
+let closing = false;
+let capabilityExpiryTimer = null;
 const close = () => {
+  if (closing) return;
+  closing = true;
+  if (capabilityExpiryTimer) clearTimeout(capabilityExpiryTimer);
   if (pipeHost) {
     pipeHost.close().finally(() => process.exit(0));
   } else {
@@ -565,3 +570,9 @@ process.once("SIGINT", close);
 process.stdout.write(
   `${JSON.stringify({ ok: true, descriptor: serviceDescriptor })}\n`,
 );
+if (!closing) {
+  capabilityExpiryTimer = setTimeout(
+    close,
+    Math.max(1, Date.parse(capability.expiresAt) - Date.now()),
+  );
+}

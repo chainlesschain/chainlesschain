@@ -2072,6 +2072,12 @@ PowerShell/.NET broker 的原生 helper 现在从 `TokenGroups` 查找 `SE_GROUP
 
 这进一步降低同机多会话下个人 capability 被误用的风险，但没有把本机软件隔离等同于生产身份边界：提升权限的同一会话进程、KMS/HSM、远程 signer/workload identity、Unix peer credential、集中撤销与独立故障域仍是 production `HOLD` 的剩余项。
 
+### 13.24 capability 到期进程终止与内存权能释放（2026-09-09）
+
+此前 capability 到期仅使 IPC handler 拒绝后续请求；承载 Ed25519 私钥的 signer 和承载 lifecycle writer 的 operations 服务仍会保留在内存中，直到外部编排器终止它们。本批把 capability 的 canonical `expiresAt` 直接接入两个独立服务生命周期：ready descriptor 写出后立即设置一次性到期计时器，到期或 `SIGTERM/SIGINT` 均走相同幂等关闭路径，关闭 Windows broker/Unix socket 后以成功状态退出。这样已过期的 capability 不只是逻辑拒绝，还会撤销相应进程对私钥或 durable writer 的驻留权能；新 policy revision 原有的 endpoint/token 重绑仍保持不变。
+
+专项子进程测试分别以一秒 capability 启动 signer 和 operations writer，断言二者在到期后退出码为 0；连同既有签名、重放、PID、logon-SID、单人审批和 quorum 回归共 **6/6** 通过。该改动是本机泄露窗口的收缩而非集中吊销：在到期前发现 capability 泄露仍应立即终止/重启服务并换发 endpoint/token；集中 revocation、告警审计与生产 KMS/HSM 仍属于 production `HOLD`。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

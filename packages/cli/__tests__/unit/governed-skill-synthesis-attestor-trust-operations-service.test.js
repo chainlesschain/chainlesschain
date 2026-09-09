@@ -161,6 +161,19 @@ async function stopChild(child) {
   });
 }
 
+async function waitForExit(child, timeoutMs = 5_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("operations service did not exit at capability expiry"));
+    }, timeoutMs);
+    child.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 afterEach(async () => {
   for (const child of children.splice(0)) {
     await stopChild(child);
@@ -171,6 +184,27 @@ afterEach(async () => {
 });
 
 describe("attestor trust operations local service", () => {
+  it("terminates the isolated writer when its capability expires", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-ops-expiry-"),
+    );
+    roots.push(root);
+    const capabilityToken = randomBytes(32).toString("base64url");
+    const started = await startService(
+      root,
+      generateKeyPairSync("ed25519"),
+      endpoint(root),
+      capabilityToken,
+      undefined,
+      {
+        capabilityIssuedAt: new Date(Date.now() - 1_000).toISOString(),
+        capabilityExpiresAt: new Date(Date.now() + 1_000).toISOString(),
+      },
+    );
+    await waitForExit(started.child);
+    expect(started.child.exitCode).toBe(0);
+  }, 15_000);
+
   it("keeps the writer in another process and accepts only signed IPC work", async () => {
     const root = fs.mkdtempSync(
       path.join(
