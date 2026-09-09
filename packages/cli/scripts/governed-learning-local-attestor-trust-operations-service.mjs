@@ -12,12 +12,13 @@ import {
 } from "../src/lib/evolution/evolution-artifact-ports.js";
 import { createEvolutionLedgerFileBackend } from "../src/lib/evolution/evolution-ledger-file-backend.js";
 import { createGovernedSkillSynthesisAttestorTrustLedger } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
+import { createGovernedSkillSynthesisAttestorTrustOperatorRegistry } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 import { createGovernedSkillSynthesisAttestorTrustOperations } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 
 const IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 const SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2";
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
@@ -151,6 +152,7 @@ if (
     "ledgerAuthorityRoot",
     "ledgerRoot",
     "operatorIdentities",
+    "operatorRegistryStreamId",
     "policyId",
     "requiredApprovals",
     "revision",
@@ -187,6 +189,14 @@ if (
   bootstrap.operatorIdentities.length > 16
 ) {
   throw new Error("attestor trust operations bootstrap schema is invalid");
+}
+if (
+  typeof bootstrap.operatorRegistryStreamId !== "string" ||
+  !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u.test(
+    bootstrap.operatorRegistryStreamId,
+  )
+) {
+  throw new Error("attestor trust operator registry stream is invalid");
 }
 for (const target of [
   bootstrap.artifactRoot,
@@ -305,18 +315,41 @@ const trustLedger = createGovernedSkillSynthesisAttestorTrustLedger({
   ledger: backend.ledger,
   ledgerArtifactResolver,
 });
+const operatorRegistry =
+  createGovernedSkillSynthesisAttestorTrustOperatorRegistry({
+    descriptor: {
+      ...bootstrap.trustDescriptor,
+      streamId: bootstrap.operatorRegistryStreamId,
+    },
+    artifactPorts,
+    ledger: backend.ledger,
+    ledgerArtifactResolver,
+  });
+const operatorRegistrySnapshot = await operatorRegistry.initialize({
+  operatorIdentities,
+  policyId: bootstrap.policyId,
+  revision: bootstrap.revision,
+  requiredApprovals: bootstrap.requiredApprovals,
+});
 const operations = createGovernedSkillSynthesisAttestorTrustOperations({
   tenantId: bootstrap.trustDescriptor.tenantId,
   authorizationStreamId: bootstrap.authorizationStreamId,
   policyId: bootstrap.policyId,
   revision: bootstrap.revision,
   requiredApprovals: bootstrap.requiredApprovals,
-  operatorIdentities,
+  operatorIdentities: operatorRegistrySnapshot.operatorIdentities,
   trustLedger,
   artifactPorts,
   ledger: backend.ledger,
   ledgerArtifactResolver,
 });
+if (
+  operations.descriptor.policyDigest !== operatorRegistrySnapshot.policyDigest
+) {
+  throw new Error(
+    "attestor trust operations policy differs from operator registry",
+  );
+}
 const serviceDescriptor = Object.freeze({
   schema: SERVICE_SCHEMA,
   tenantId: operations.descriptor.tenantId,
@@ -327,6 +360,9 @@ const serviceDescriptor = Object.freeze({
   operatorCount: operations.descriptor.operators.length,
   approvalMode: operations.descriptor.approvalMode,
   policyDigest: operations.descriptor.policyDigest,
+  operatorRegistryStreamId: operatorRegistry.descriptor.streamId,
+  operatorRegistryRecordDigest: operatorRegistrySnapshot.recordDigest,
+  operatorRegistryRecovered: operatorRegistrySnapshot.recovered,
 });
 
 if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {

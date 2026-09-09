@@ -1977,6 +1977,16 @@ IPC 采用两阶段协议：`prepare` 只把 register/rotate/revoke 输入交给
 
 这关闭了“没有正式 `cc evolution` 运维入口”和“plan/approval 只能在 Pilot 内存传递”的仓库缺口，但不代表生产控制平面已经完成。approval 仍需部署方的外部 signer 生成，operator registry 仍是服务 bootstrap 静态配置；尚无持久 operator identity 注册、轮换、撤销、双人复核策略变更、未消费 authorization reconciliation、Windows named-pipe 目标账户 ACL、Unix socket owner/mode 验收、OS service identity 或 KMS/HSM/workload identity。production auto-promotion 继续 `HOLD`；下一阶段进入 operator identity lifecycle 与 authorization reconciliation。
 
+### 13.17 operator registry 持久 genesis 与重启漂移拒绝（2026-09-09）
+
+本批新增品牌化 `GovernedSkillSynthesisAttestorTrustOperatorRegistry`，并把 attestor trust operations 服务的静态 operator 输入降级为仅用于首次 genesis 或后续重启核对的 bootstrap 声明。registry 将 tenant、policy ID/revision、required approvals、排序后的全部 operator ID、Ed25519 keyId/SPKI、operator count、policy digest 和 createdAt 组成不可变 record，写入新增的有限 ArtifactStore 类型 `governed-skill-synthesis-attestor-trust-operator-registry`，再以独立 correlation stream 提交唯一 genesis Ledger event。只有 artifact 持久、完整性 readback、Ledger CAS append、当前 authority 验证和按 event ref 重新解析全部成功，服务才继续构造 trust operations 并开放 IPC。
+
+首次启动返回 `operatorRegistryRecovered=false`；后续进程必须用相同 Ledger/artifact/witness authorities 重新解析 genesis，并逐项核对 tenant、policy、revision、门限、operator ID 和 key。输入顺序会先规范排序，不造成虚假漂移；替换公钥、复用 key、增删 operator、修改门限或策略 revision 均不能静默覆盖持久根，而是在 `server.listen()` 前失败。operations 仍从恢复后的 registry snapshot 构造，并再次断言其 policy digest 与 registry 完全一致。受限 service/client descriptor 升级至 v2，新增 registry stream、record digest 和 recovered 状态，但仍不暴露 operator 公钥或 writer；旧 v1 descriptor 会失败关闭，避免把缺少持久 registry 证明的服务误认为新控制面。
+
+真实子进程测试完成首次 genesis、原进程执行 attestor 注册、第二进程同账本恢复同一 record digest、第三进程替换 operator key 后启动失败；同时覆盖三 operator、`2-of-3` 多签策略。相关 ArtifactStore/CLI/deployment/attestor 回归为 6 个文件 `100 passed / 1 existing platform skip`。service/client v2 后的真实火山引擎 Pilot 再次通过：`deepseek-v4-flash-260425` 在 16.573 秒生成 `review-security-configuration`（982 bytes，digest `sha256:fc191cf38395b042c6d46ee8222d47e75dc3ea2e1118aad68276e0f5fbd88baf`），独立评分 `1.0`，registry record digest 为 `sha256:fec659072f96dcff21a1f67f01ec7587f0589cdd94d466cdd3d8a0b8b5ef240c`；authorization 因 registry genesis 占用第一条账本事件而按预期位于 sequence 2，`activeMutationCount=0`。
+
+该阶段关闭“每次启动可用任意 bootstrap operator key 重定义审批根”的风险，但还没有提供已治理的 operator 变更能力；当前 registry 故意只暴露 `initialize()`/`snapshot()`，不能通过 CLI 或 IPC 注册、轮换、撤销。下一阶段必须新增由当前 active operator quorum 签名的 registry-change request/approval/authorization 协议，持久化每次身份状态变更，保证个人 `1-of-1` 可由旧 key 批准轮换到新 key、团队变更不降低门限，并在变更后强制 service/client rebind。未消费 authorization reconciliation 与生产 IPC/OS/KMS 边界仍未完成，因此 production auto-promotion 继续 `HOLD`。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

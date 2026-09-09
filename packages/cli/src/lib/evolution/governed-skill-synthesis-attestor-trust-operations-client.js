@@ -4,7 +4,7 @@ import path from "node:path";
 import { types as utilTypes } from "node:util";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v2";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 
@@ -23,6 +23,9 @@ const DESCRIPTOR_KEYS = new Set([
   "approvalMode",
   "authorizationStreamId",
   "operatorCount",
+  "operatorRegistryRecordDigest",
+  "operatorRegistryRecovered",
+  "operatorRegistryStreamId",
   "policyDigest",
   "policyId",
   "requiredApprovals",
@@ -87,7 +90,7 @@ function normalizeDescriptor(value) {
   exact(value, DESCRIPTOR_KEYS, "operations service descriptor");
   if (
     value.schema !==
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v1" ||
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.policyDigest ?? "") ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 1 ||
@@ -96,7 +99,9 @@ function normalizeDescriptor(value) {
     !Number.isSafeInteger(value.operatorCount) ||
     value.operatorCount < value.requiredApprovals ||
     value.approvalMode !==
-      (value.requiredApprovals === 1 ? "single-operator" : "multi-operator")
+      (value.requiredApprovals === 1 ? "single-operator" : "multi-operator") ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value.operatorRegistryRecordDigest ?? "") ||
+    typeof value.operatorRegistryRecovered !== "boolean"
   ) {
     throw new TypeError("operations service descriptor is invalid");
   }
@@ -104,6 +109,7 @@ function normalizeDescriptor(value) {
     ["tenantId", 256],
     ["authorizationStreamId", 256],
     ["policyId", 256],
+    ["operatorRegistryStreamId", 256],
   ]) {
     text(value[field], `operations descriptor ${field}`, maximum);
   }

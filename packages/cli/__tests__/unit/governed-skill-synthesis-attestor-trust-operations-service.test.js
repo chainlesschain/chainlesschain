@@ -29,26 +29,55 @@ function endpoint(root) {
     : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
 }
 
-function waitForLine(stream, timeoutMs = 15_000) {
+function waitForLine(stream, timeoutMs = 15_000, closedMessage = () => "") {
   return new Promise((resolve, reject) => {
     let carry = "";
-    const timer = setTimeout(
-      () => reject(new Error("operations service did not become ready")),
-      timeoutMs,
-    );
-    stream.on("data", (chunk) => {
+    const cleanup = () => {
+      clearTimeout(timer);
+      stream.off("data", onData);
+      stream.off("error", onError);
+      stream.off("close", onClose);
+    };
+    const onData = (chunk) => {
       carry += chunk.toString("utf8");
       const newline = carry.indexOf("\n");
       if (newline === -1) return;
-      clearTimeout(timer);
+      cleanup();
       resolve(carry.slice(0, newline));
-    });
-    stream.once("error", reject);
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onClose = () => {
+      cleanup();
+      reject(
+        new Error(`operations service closed before ready: ${closedMessage()}`),
+      );
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("operations service did not become ready"));
+    }, timeoutMs);
+    stream.on("data", onData);
+    stream.once("error", onError);
+    stream.once("close", onClose);
   });
 }
 
-async function startService(root, operator, target, capabilityToken) {
-  fs.mkdirSync(path.join(root, "witness"));
+async function startService(
+  root,
+  operator,
+  target,
+  capabilityToken,
+  secrets = {
+    artifact: randomBytes(32).toString("base64url"),
+    ledger: randomBytes(32).toString("base64url"),
+    witness: randomBytes(32).toString("base64url"),
+  },
+  configuration = {},
+) {
+  fs.mkdirSync(path.join(root, "witness"), { recursive: true });
   const child = spawn(process.execPath, [servicePath], {
     env:
       process.platform === "win32"
@@ -76,24 +105,23 @@ async function startService(root, operator, target, capabilityToken) {
       endpoint: target,
       ledgerAuthorityRoot: path.join(root, "authority"),
       ledgerRoot: path.join(root, "events"),
-      operatorIdentities: [
-        {
+      operatorIdentities: (configuration.operators ?? [operator]).map(
+        (entry, index) => ({
           tenantId: "tenant:attestor-trust-ops-service-test",
-          operatorId: "operator:owner",
-          publicKeyPem: operator.publicKey.export({
+          operatorId:
+            configuration.operatorIds?.[index] ??
+            (index === 0 ? "operator:owner" : `operator:member-${index}`),
+          publicKeyPem: entry.publicKey.export({
             type: "spki",
             format: "pem",
           }),
-        },
-      ],
+        }),
+      ),
+      operatorRegistryStreamId: "attestor-trust-operator-registry",
       policyId: "policy:personal-ai",
-      requiredApprovals: 1,
+      requiredApprovals: configuration.requiredApprovals ?? 1,
       revision: 1,
-      secrets: {
-        artifact: randomBytes(32).toString("base64url"),
-        ledger: randomBytes(32).toString("base64url"),
-        witness: randomBytes(32).toString("base64url"),
-      },
+      secrets,
       trustDescriptor: {
         tenantId: "tenant:attestor-trust-ops-service-test",
         artifactTenantId: "tenant:attestor-trust-ops-service-test",
@@ -105,22 +133,27 @@ async function startService(root, operator, target, capabilityToken) {
       witnessId: "attestor-trust-ops-test-witness",
     })}\n`,
   );
-  const ready = JSON.parse(await waitForLine(child.stdout));
+  const readyLine = await waitForLine(child.stdout, 15_000, () => stderr);
+  const ready = JSON.parse(readyLine);
   if (ready.ok !== true) throw new Error(`service failed: ${stderr}`);
   return { child, descriptor: ready.descriptor };
 }
 
+async function stopChild(child) {
+  if (child.exitCode === null) child.kill("SIGTERM");
+  await new Promise((resolve) => {
+    if (child.exitCode !== null) return resolve();
+    const timer = setTimeout(resolve, 2_000);
+    child.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 afterEach(async () => {
   for (const child of children.splice(0)) {
-    if (child.exitCode === null) child.kill("SIGTERM");
-    await new Promise((resolve) => {
-      if (child.exitCode !== null) return resolve();
-      const timer = setTimeout(resolve, 2_000);
-      child.once("exit", () => {
-        clearTimeout(timer);
-        resolve();
-      });
-    });
+    await stopChild(child);
   }
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -140,7 +173,18 @@ describe("attestor trust operations local service", () => {
     const attestor = generateKeyPairSync("ed25519");
     const target = endpoint(root);
     const capabilityToken = randomBytes(32).toString("base64url");
-    const started = await startService(root, operator, target, capabilityToken);
+    const secrets = {
+      artifact: randomBytes(32).toString("base64url"),
+      ledger: randomBytes(32).toString("base64url"),
+      witness: randomBytes(32).toString("base64url"),
+    };
+    const started = await startService(
+      root,
+      operator,
+      target,
+      capabilityToken,
+      secrets,
+    );
     expect(started.child.pid).not.toBe(process.pid);
     expect(JSON.stringify(started.descriptor)).not.toContain("publicKeyPem");
     const client = createGovernedSkillSynthesisAttestorTrustOperationsClient({
@@ -159,6 +203,8 @@ describe("attestor trust operations local service", () => {
       service: {
         approvalMode: "single-operator",
         requiredApprovals: 1,
+        operatorRegistryRecovered: false,
+        operatorRegistryStreamId: "attestor-trust-operator-registry",
       },
     });
     const request = await client.prepare({
@@ -179,7 +225,7 @@ describe("attestor trust operations local service", () => {
         authenticated: true,
         durable: true,
         recovered: false,
-        eventSequence: 1,
+        eventSequence: 2,
       },
       lifecycle: {
         authenticated: true,
@@ -212,5 +258,63 @@ describe("attestor trust operations local service", () => {
     ).rejects.toMatchObject({
       code: "CC_ATTESTOR_TRUST_OPERATIONS_DENIED",
     });
+
+    await stopChild(started.child);
+    const restarted = await startService(
+      root,
+      operator,
+      endpoint(root),
+      randomBytes(32).toString("base64url"),
+      secrets,
+    );
+    expect(restarted.descriptor).toMatchObject({
+      policyDigest: started.descriptor.policyDigest,
+      operatorRegistryRecordDigest:
+        started.descriptor.operatorRegistryRecordDigest,
+      operatorRegistryRecovered: true,
+    });
+    await stopChild(restarted.child);
+    await expect(
+      startService(
+        root,
+        generateKeyPairSync("ed25519"),
+        endpoint(root),
+        randomBytes(32).toString("base64url"),
+        secrets,
+      ),
+    ).rejects.toThrow("bootstrap differs from its durable genesis");
   }, 60_000);
+
+  it("persists a sorted multi-operator quorum genesis", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-ops-quorum-"),
+    );
+    roots.push(root);
+    const operators = [
+      generateKeyPairSync("ed25519"),
+      generateKeyPairSync("ed25519"),
+      generateKeyPairSync("ed25519"),
+    ];
+    const started = await startService(
+      root,
+      operators[0],
+      endpoint(root),
+      randomBytes(32).toString("base64url"),
+      undefined,
+      {
+        operators,
+        operatorIds: ["operator:zeta", "operator:alpha", "operator:middle"],
+        requiredApprovals: 2,
+      },
+    );
+    expect(started.descriptor).toMatchObject({
+      approvalMode: "multi-operator",
+      operatorCount: 3,
+      requiredApprovals: 2,
+      operatorRegistryRecovered: false,
+    });
+    expect(started.descriptor.operatorRegistryRecordDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
+  }, 30_000);
 });

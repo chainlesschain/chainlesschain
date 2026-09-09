@@ -629,6 +629,7 @@ describe("EvolutionArtifactPorts", () => {
       "governed-knowledge-trust-record",
       "governed-skill-marketplace-state",
       "governed-skill-synthesis-attestor-trust-authorization",
+      "governed-skill-synthesis-attestor-trust-operator-registry",
       "governed-skill-synthesis-attestor-trust-record",
       "governed-skill-synthesis-evaluation",
       "structured-memory-authority-receipt",

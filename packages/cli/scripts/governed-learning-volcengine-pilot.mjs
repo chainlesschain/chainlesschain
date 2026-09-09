@@ -271,6 +271,7 @@ try {
           }),
         },
       ],
+      operatorRegistryStreamId: "learning-synthesis-attestor-trust-operators",
       policyId: "policy:local-personal-ai-attestor-trust",
       requiredApprovals: 1,
       revision: 1,
@@ -726,6 +727,11 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustOperations.descriptor.service.approvalMode !==
       "single-operator" ||
     attestorTrustOperations.descriptor.service.requiredApprovals !== 1 ||
+    attestorTrustOperations.descriptor.service.operatorRegistryRecovered !==
+      false ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      attestorTrustOperations.descriptor.service.operatorRegistryRecordDigest,
+    ) ||
     attestorTrustExecution.authorization?.requestDigest !==
       trustRegistrationRequest.requestDigest ||
     attestorTrustExecution.authorization?.policyDigest !==
@@ -862,6 +868,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           attestorTrustOperationsEndpointDigest:
             attestorTrustOperations.descriptor.endpointDigest,
           attestorTrustApprovalPolicy: "signed-configurable-quorum",
+          attestorTrustOperatorRegistryStreamId:
+            attestorTrustOperations.descriptor.service.operatorRegistryStreamId,
+          attestorTrustOperatorRegistryRecordDigest:
+            attestorTrustOperations.descriptor.service
+              .operatorRegistryRecordDigest,
+          attestorTrustOperatorRegistryRecovered:
+            attestorTrustOperations.descriptor.service
+              .operatorRegistryRecovered,
           platform: process.platform,
           nativeDirectoryDurability:
             process.platform === "win32" ? "unavailable" : "required",
@@ -874,6 +888,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
           "the learning deployment receives only a branded trust verifier; a separate local operations service process owns the lifecycle writer and registers the signer key before any CLI process starts",
           "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
+          "the operator policy genesis is durably pinned in ArtifactStore/EvolutionLedger and later service starts reject bootstrap identity or threshold drift; governed operator lifecycle mutations are not yet exposed",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator holds only the operator signing key and an operations IPC capability; the trust writer and authorization executor remain inside a separate service process",
           "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",

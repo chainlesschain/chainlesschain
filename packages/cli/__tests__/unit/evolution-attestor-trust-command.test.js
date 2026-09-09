@@ -66,7 +66,7 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
       : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
   const service = Object.freeze({
     schema:
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v1",
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2",
     tenantId: "tenant:personal-ai",
     authorizationStreamId: "attestor-trust-authorizations",
     policyId: "personal-ai-attestor-policy",
@@ -74,6 +74,9 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     policyDigest: digest("personal-ai-policy"),
     requiredApprovals: 1,
     operatorCount: 1,
+    operatorRegistryStreamId: "attestor-trust-operator-registry",
+    operatorRegistryRecordDigest: digest("operator-registry-record"),
+    operatorRegistryRecovered: true,
     approvalMode: "single-operator",
   });
   const calls = [];
