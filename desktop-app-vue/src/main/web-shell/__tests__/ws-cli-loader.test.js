@@ -105,6 +105,15 @@ describe("ws-cli-loader (Phase 1.1)", () => {
     expect(typeof handle.close).toBe("function");
   });
 
+  it("passes a main-process evolution capability to the CLI WebSocket server", async () => {
+    const evolutionCompositionFactory = async () => null;
+    handle = await startWsCliBackend({ evolutionCompositionFactory });
+
+    expect(handle.server.evolutionCompositionFactory).toBe(
+      evolutionCompositionFactory,
+    );
+  });
+
   it("answers the CLI-native `ping` with a pong (no token, no handlers)", async () => {
     handle = await startWsCliBackend({});
     const ws = await openWs(handle.url);

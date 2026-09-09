@@ -124,11 +124,17 @@ unconfigured operation; governed WebSocket drain requests use scoped stages.
 The concrete drain triggers are WebSocket `personal-data-hub.resolver-drain`
 and Desktop IPC `personal-data-hub:resolver-drain`; SDK workers can also invoke
 the resolver. WebSocket and Desktop IPC draining/skill execution now use
-per-invocation scoped wrappers. Desktop retains the signed deployment factory
-inside its opaque branded ingress host, so the renderer cannot obtain or
-replace model authority; a missing or invalid host fails closed. Independently
-started SDK workers are still outside this Desktop/WS wiring and require their
-own final-entry audit.
+per-invocation scoped wrappers. The embedded Desktop WebShell forwards a
+main-process-only capability to the CLI WebSocket server, so its Hub handlers
+also receive the signed composition factory. Desktop retains the deployment
+factory inside its opaque branded ingress host, so the renderer cannot obtain
+or replace model authority; a missing or invalid host fails closed.
+The bundled Agent SDK does not call the Hub/resolver itself: its executable
+surfaces spawn `cc agent` or `cc serve --app-server`, both of which are signed
+deployment-loader command names, while its background surface only attaches to
+an existing local transport. Application-defined independently started SDK
+workers are still outside this Desktop/WS wiring and require their own
+final-entry audit.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

@@ -111,6 +111,25 @@ describe("desktop evolution deployment", () => {
     expect(factory).not.toHaveBeenCalled();
   });
 
+  it("creates a frozen WebShell composition capability without exposing its factory", async () => {
+    const {
+      createDesktopModelIngressHost,
+      createDesktopEvolutionCompositionFactory,
+    } = require("../desktop-model-ingress");
+    const factory = vi.fn(async (context) => ({ context }));
+    const host = createDesktopModelIngressHost(factory);
+    const capability = createDesktopEvolutionCompositionFactory(host);
+    const context = Object.freeze({ mode: "ws-chat", runId: "run-1" });
+
+    await expect(capability(context)).resolves.toEqual({ context });
+    expect(capability).not.toBe(factory);
+    expect(Object.isFrozen(capability)).toBe(true);
+    expect(factory).toHaveBeenCalledWith(context);
+    expect(() => createDesktopEvolutionCompositionFactory({})).toThrow(
+      /branded Desktop model ingress host/,
+    );
+  });
+
   it("rejects accessor and Proxy model factories", async () => {
     const getter = vi.fn();
     await expect(

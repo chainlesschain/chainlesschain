@@ -82,6 +82,9 @@ const { createTerminalHandlers } = require("./handlers/terminal-handlers");
 const {
   createPolicyAwarePtyManager,
 } = require("../terminal/policy-aware-pty-manager");
+const {
+  createDesktopEvolutionCompositionFactory,
+} = require("../evolution/desktop-model-ingress");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -146,6 +149,9 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  *                                            project-root selector.
  * @property {Record<string, Function>} [extraHandlers]
  *                                            Extra WS topics to register up-front.
+ * @property {object|null} [desktopModelIngressHost] Opaque signed Desktop
+ *                                            evolution capability, retained in
+ *                                            the main process.
  */
 
 /**
@@ -409,12 +415,19 @@ async function startWebShell(options = {}) {
 
   let ws;
   try {
+    const evolutionCompositionFactory =
+      options.desktopModelIngressHost == null
+        ? null
+        : createDesktopEvolutionCompositionFactory(
+            options.desktopModelIngressHost,
+          );
     ws = await startWsCliBackend({
       host,
       port: typeof options.wsPort === "number" ? options.wsPort : 0,
       token: options.wsToken ?? null,
       handlers: wsHandlers,
       sessionManager: options.sessionManager,
+      evolutionCompositionFactory,
     });
   } catch (err) {
     if (ownsPtyManager) {

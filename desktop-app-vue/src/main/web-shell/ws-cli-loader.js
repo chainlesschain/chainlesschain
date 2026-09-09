@@ -134,6 +134,7 @@ async function startWsCliBackend(options = {}) {
     token: options.token ?? null,
     maxConnections: options.maxConnections,
     sessionManager,
+    evolutionCompositionFactory: options.evolutionCompositionFactory ?? null,
   });
 
   // ChainlessChainWSServer extends EventEmitter and emits "error" on bind

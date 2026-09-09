@@ -1132,6 +1132,10 @@ class ChainlessChainApp {
         // budget alert / cache / state-bus. Null until LLM init lands; the
         // handler throws llm_unavailable cleanly when called too early.
         llmManager: this.llmManager ?? null,
+        // The WebSocket server receives only an opaque forwarding capability;
+        // it must never receive the deployment's raw composition factory.
+        desktopModelIngressHost:
+          this.evolutionDeploymentDependencies.desktopModelIngressHost ?? null,
         // Phase 3c.4 — DatabaseManager for sync.webdav.* topic handlers
         // (cursor / tombstones / status). Null pre-init is safe; handlers
         // return error envelope.

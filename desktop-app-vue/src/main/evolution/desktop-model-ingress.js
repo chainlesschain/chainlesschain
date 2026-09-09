@@ -784,6 +784,19 @@ function isDesktopModelIngressHost(value) {
   return hosts.has(value);
 }
 
+/**
+ * Create a main-process-only capability for a trusted embedded CLI runtime.
+ * It deliberately delegates through the opaque host rather than returning
+ * the deployment's original factory, so the factory cannot be read, replaced
+ * or sent over an IPC/WS boundary by a caller.
+ */
+function createDesktopEvolutionCompositionFactory(host) {
+  const captured = hosts.get(host);
+  if (!captured)
+    throw new TypeError("A branded Desktop model ingress host is required");
+  return Object.freeze(async (context) => await captured.factory(context));
+}
+
 async function openDesktopModelRun(host, content) {
   const captured = hosts.get(host);
   if (!captured)
@@ -942,6 +955,7 @@ async function runDesktopGovernedHubSkill(
 module.exports = {
   createDesktopModelIngressHost,
   isDesktopModelIngressHost,
+  createDesktopEvolutionCompositionFactory,
   openDesktopModelRun,
   openDesktopMultimodalModelRun,
   runDesktopGovernedHubResolverDrain,
