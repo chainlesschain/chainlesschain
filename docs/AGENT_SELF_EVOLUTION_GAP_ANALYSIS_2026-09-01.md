@@ -104,6 +104,8 @@ shadow / canary / active / rollback
 
 容量门的时间盒复核同样不能被误读为通过：现有 `evolution-ledger-reliability-soak.mjs --events 10000` 在前 60 秒仅报告 `seeded 100/10000` 与 `seeded 200/10000`，为避免占用约 50 分钟以上的交互会话而由操作者主动中止，最终退出码为 1。该次未完成运行不产生任何成功 receipt，也不证明 10,000-event、更不证明 250,000-event 容量；它确认现有 test-only soak 不能替代可复现的容量/资源基准。EVO-P0-5 仍需专用的 250,000-event 计划、耗时/内存/磁盘曲线、磁盘写满和物理断电/独立 witness 演练。
 
+为先绕过上述外部环境门而不伪造生产结论，新增 `Evolution Ledger Reliability` GitHub Actions 工作流：PR 在 Linux/Windows/macOS 执行 100-event + 6-round smoke，手动或每周 formal profile 执行现有上限 10,000-event + 100-round；每个 JSON artifact 绑定完整 commit SHA、Node/OS、运行模式和显式 `testAuthority=true`/`qualifiesForProduction=false`，聚合器拒绝缺失或混入其他 SHA/平台/规模的证据。该工作流尚未在远端产生成功 artifact，必须以同一 SHA 的完整三平台运行结果为准；即使通过，也仍明确排除物理断电、真实磁盘写满语义、独立 witness 故障域与生产 KMS/HSM/PKI authority，不改变 EVO-P0-5 的“部分完成”。
+
 2026-09-02 已提交窄纵切 `881abf6090`：类型化 matrix receipt envelope 只携带有界 `receiptDigest`，`SkillPromotionController.promoteEvaluated()` 在消费 mutation authority、创建 release prepare 或改写 active state 之前，使用独立 verifier 校验完整 signed matrix receipt，并把 candidate content、dependency lock、runtime manifest、target matrix、active digest/revision 和 `accepted` decision 绑定到同一次晋级。既有 release intent 继续通过 `evalReceipt` digest 固定这份证据。
 
 同日提交 `1a70a880fa` 补齐 typed、digest-bound receipt-resolution 端口：evaluated promotion 不再接受调用者直传完整 matrix receipt，而是用授权 envelope 中的 tenant 与 `receiptDigest` 向声明为 trusted 的类型化 resolver 取回证据；resolver authority/revision/handler digest、tenant、receipt digest 和规范时间戳必须完全匹配，之后仍须由独立 verifier 对 receipt 做密码学认证。该批次只建立 fail-closed resolver 契约与连接点，不把 resolver 的自声明描述符等同于密码学 attestation，也不代表已有真实跨进程持久存储 adapter 或持久 child-receipt resolver。

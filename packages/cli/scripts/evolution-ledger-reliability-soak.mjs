@@ -5,6 +5,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runBackendProcess } from "../__tests__/helpers/evolution-ledger-process.js";
 
+export const EVOLUTION_LEDGER_RELIABILITY_EVIDENCE_SCHEMA =
+  "chainlesschain.evolution-ledger-reliability-evidence.v1";
+export const EVOLUTION_LEDGER_RELIABILITY_AGGREGATE_SCHEMA =
+  "chainlesschain.evolution-ledger-reliability-aggregate.v1";
+
+const REQUIRED_PLATFORMS = Object.freeze(["linux", "win32", "darwin"]);
+const UNVERIFIED_CONDITIONS = Object.freeze([
+  "physical-power-loss",
+  "disk-full-filesystem-semantics",
+  "independent-witness-fault-domain",
+  "production-kms-hsm-pki-authority",
+]);
+
 // Repository-only reliability exercise. Signing keys and artifact resolution
 // are test authorities; the ledger, witness files and OS processes are real.
 export async function runEvolutionLedgerReliabilitySoak({
@@ -198,6 +211,270 @@ export async function runEvolutionLedgerFaultCampaign({
   });
 }
 
+function assertCommitSha(value, label) {
+  if (typeof value !== "string" || !/^[0-9a-f]{40}$/iu.test(value))
+    throw new TypeError(`${label} must be a full 40-character commit SHA`);
+  return value.toLowerCase();
+}
+
+function assertPositiveInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 1)
+    throw new TypeError(`${label} must be a positive safe integer`);
+  return value;
+}
+
+function assertPassedReport(report, mode) {
+  if (!report || typeof report !== "object" || report.status !== "passed")
+    throw new TypeError("reliability evidence requires a passed report");
+  if (report.productionAuthority !== false)
+    throw new TypeError(
+      "reliability evidence cannot claim a production authority",
+    );
+  if (mode === "events") {
+    assertPositiveInteger(report.events, "report.events");
+    if (
+      report.segmentCorruptionRejected !== true ||
+      report.witnessCorruptionRejected !== true
+    )
+      throw new TypeError("event report is missing corruption-rejection proof");
+    return;
+  }
+  if (mode === "fault-campaign") {
+    assertPositiveInteger(report.rounds, "report.rounds");
+    if (report.falseSuccessReceipts !== 0 || report.powerLossVerified !== false)
+      throw new TypeError("fault report has an invalid fail-closed projection");
+    return;
+  }
+  throw new TypeError("evidence mode must be events or fault-campaign");
+}
+
+export function createEvolutionLedgerReliabilityEvidence({
+  mode,
+  report,
+  sourceRevision = null,
+  now = () => new Date().toISOString(),
+} = {}) {
+  assertPassedReport(report, mode);
+  if (sourceRevision !== null)
+    sourceRevision = assertCommitSha(sourceRevision, "sourceRevision");
+  const issuedAt = now();
+  if (typeof issuedAt !== "string" || Number.isNaN(Date.parse(issuedAt)))
+    throw new TypeError("now must return an ISO timestamp");
+  return Object.freeze({
+    schema: EVOLUTION_LEDGER_RELIABILITY_EVIDENCE_SCHEMA,
+    issuedAt,
+    mode,
+    runner: Object.freeze({
+      arch: process.arch,
+      nodeVersion: process.version,
+      platform: process.platform,
+    }),
+    sourceRevision,
+    testAuthority: true,
+    qualifiesForProduction: false,
+    unverifiedConditions: UNVERIFIED_CONDITIONS,
+    report: Object.freeze({ ...report }),
+  });
+}
+
+function writeJsonOutput(outputPath, value) {
+  if (typeof outputPath !== "string" || !outputPath.trim())
+    throw new TypeError("output path must be a non-empty string");
+  const target = path.resolve(outputPath);
+  const directory = path.dirname(target);
+  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const temporaryPath = path.join(
+    directory,
+    `.${path.basename(target)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  try {
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    fs.renameSync(temporaryPath, target);
+  } finally {
+    if (fs.existsSync(temporaryPath)) fs.rmSync(temporaryPath, { force: true });
+  }
+}
+
+function listJsonFiles(directory) {
+  const root = path.resolve(directory);
+  if (!fs.statSync(root).isDirectory())
+    throw new TypeError("evidence directory must be a directory");
+  const files = [];
+  const visit = (current) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const target = path.join(current, entry.name);
+      if (entry.isDirectory()) visit(target);
+      else if (entry.isFile() && entry.name.endsWith(".json"))
+        files.push(target);
+    }
+  };
+  visit(root);
+  return files.sort();
+}
+
+export function verifyEvolutionLedgerReliabilityEvidenceDirectory({
+  evidenceDir,
+  releaseCommit,
+  minimumEvents,
+  minimumFaultRounds,
+} = {}) {
+  releaseCommit = assertCommitSha(releaseCommit, "releaseCommit");
+  minimumEvents = assertPositiveInteger(minimumEvents, "minimumEvents");
+  minimumFaultRounds = assertPositiveInteger(
+    minimumFaultRounds,
+    "minimumFaultRounds",
+  );
+  const seen = new Map([
+    ["events", new Set()],
+    ["fault-campaign", new Set()],
+  ]);
+  const evidence = listJsonFiles(evidenceDir).map((file) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch (cause) {
+      throw new Error(`invalid evidence JSON: ${file}`, { cause });
+    }
+    if (
+      !parsed ||
+      parsed.schema !== EVOLUTION_LEDGER_RELIABILITY_EVIDENCE_SCHEMA ||
+      !seen.has(parsed.mode) ||
+      parsed.sourceRevision !== releaseCommit ||
+      parsed.testAuthority !== true ||
+      parsed.qualifiesForProduction !== false ||
+      !Array.isArray(parsed.unverifiedConditions) ||
+      UNVERIFIED_CONDITIONS.some(
+        (condition) => !parsed.unverifiedConditions.includes(condition),
+      ) ||
+      !parsed.runner ||
+      !REQUIRED_PLATFORMS.includes(parsed.runner.platform)
+    )
+      throw new Error(`invalid reliability evidence envelope: ${file}`);
+    assertPassedReport(parsed.report, parsed.mode);
+    if (parsed.mode === "events" && parsed.report.events < minimumEvents)
+      throw new Error(`event evidence is below its required scale: ${file}`);
+    if (
+      parsed.mode === "fault-campaign" &&
+      parsed.report.rounds < minimumFaultRounds
+    )
+      throw new Error(`fault evidence is below its required scale: ${file}`);
+    if (seen.get(parsed.mode).has(parsed.runner.platform))
+      throw new Error(
+        `duplicate ${parsed.mode} evidence for ${parsed.runner.platform}`,
+      );
+    seen.get(parsed.mode).add(parsed.runner.platform);
+    return Object.freeze({
+      file: path.basename(file),
+      mode: parsed.mode,
+      platform: parsed.runner.platform,
+      report: parsed.report,
+    });
+  });
+  for (const [mode, platforms] of seen) {
+    if (
+      platforms.size !== REQUIRED_PLATFORMS.length ||
+      REQUIRED_PLATFORMS.some((platform) => !platforms.has(platform))
+    )
+      throw new Error(`incomplete ${mode} platform matrix`);
+  }
+  return Object.freeze({
+    schema: EVOLUTION_LEDGER_RELIABILITY_AGGREGATE_SCHEMA,
+    status: "passed",
+    sourceRevision: releaseCommit,
+    minimumEvents,
+    minimumFaultRounds,
+    platforms: REQUIRED_PLATFORMS,
+    testAuthority: true,
+    qualifiesForProduction: false,
+    evidence,
+  });
+}
+
+function parseCliInteger(value, option) {
+  if (typeof value !== "string" || !/^[1-9]\d*$/u.test(value))
+    throw new Error(`${option} must be a positive integer`);
+  return Number(value);
+}
+
+function parseCliArguments(args) {
+  const parsed = {
+    events: null,
+    evidenceDir: null,
+    faultRounds: null,
+    minimumEvents: null,
+    minimumFaultRounds: null,
+    output: null,
+    releaseCommit: null,
+    sourceRevision: null,
+  };
+  const options = new Map([
+    ["--events", "events"],
+    ["--fault-rounds", "faultRounds"],
+    ["--output", "output"],
+    ["--source-revision", "sourceRevision"],
+    ["--verify-evidence-dir", "evidenceDir"],
+    ["--release-commit", "releaseCommit"],
+    ["--minimum-events", "minimumEvents"],
+    ["--minimum-fault-rounds", "minimumFaultRounds"],
+  ]);
+  for (let index = 0; index < args.length; index += 2) {
+    const key = options.get(args[index]);
+    const value = args[index + 1];
+    if (!key || value === undefined)
+      throw new Error("invalid evolution-ledger reliability command arguments");
+    if (parsed[key] !== null)
+      throw new Error(`duplicate option: ${args[index]}`);
+    parsed[key] = value;
+  }
+  if (parsed.evidenceDir !== null) {
+    if (
+      parsed.events !== null ||
+      parsed.faultRounds !== null ||
+      parsed.sourceRevision !== null ||
+      parsed.releaseCommit === null ||
+      parsed.minimumEvents === null ||
+      parsed.minimumFaultRounds === null
+    )
+      throw new Error(
+        "evidence verification requires only its release and scale options",
+      );
+    return {
+      kind: "verify",
+      evidenceDir: parsed.evidenceDir,
+      output: parsed.output,
+      releaseCommit: parsed.releaseCommit,
+      minimumEvents: parseCliInteger(parsed.minimumEvents, "--minimum-events"),
+      minimumFaultRounds: parseCliInteger(
+        parsed.minimumFaultRounds,
+        "--minimum-fault-rounds",
+      ),
+    };
+  }
+  if (parsed.events !== null && parsed.faultRounds !== null)
+    throw new Error("choose either --events or --fault-rounds");
+  if (parsed.minimumEvents !== null || parsed.minimumFaultRounds !== null)
+    throw new Error(
+      "minimum scale options only apply to evidence verification",
+    );
+  return {
+    kind: parsed.faultRounds === null ? "events" : "fault-campaign",
+    events:
+      parsed.events === null
+        ? 1000
+        : parseCliInteger(parsed.events, "--events"),
+    faultRounds:
+      parsed.faultRounds === null
+        ? null
+        : parseCliInteger(parsed.faultRounds, "--fault-rounds"),
+    output: parsed.output,
+    sourceRevision: parsed.sourceRevision,
+  };
+}
+
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
@@ -206,30 +483,41 @@ if (
   try {
     if (args.length === 1 && args[0] === "--help") {
       console.log(
-        "Usage: npm run test:evolution-ledger-reliability-soak -- [--events 1000 | --fault-rounds 100]\nTest-only authorities; real ledger/witness files and separate bounded-heap processes. Large runs may take tens of minutes. Forced process exit is not power-loss acceptance.",
+        "Usage: npm run test:evolution-ledger-reliability-soak -- [--events 1000 | --fault-rounds 100] [--source-revision <40-char SHA>] [--output <evidence.json>]\n       npm run test:evolution-ledger-reliability-soak -- --verify-evidence-dir <dir> --release-commit <40-char SHA> --minimum-events <n> --minimum-fault-rounds <n> [--output <aggregate.json>]\nTest-only authorities; real ledger/witness files and separate bounded-heap processes. Large runs may take tens of minutes. Forced process exit is not power-loss acceptance.",
       );
     } else {
-      if (
-        args.length !== 0 &&
-        (args.length !== 2 ||
-          !["--events", "--fault-rounds"].includes(args[0]) ||
-          !/^[1-9]\d*$/.test(args[1]))
-      )
-        throw new Error(
-          "expected --events <1..10000> or --fault-rounds <1..1000>",
-        );
+      const command = parseCliArguments(args);
       const onProgress = (message) => console.error(message);
-      const report =
-        args[0] === "--fault-rounds"
-          ? await runEvolutionLedgerFaultCampaign({
-              rounds: Number(args[1]),
-              onProgress,
-            })
-          : await runEvolutionLedgerReliabilitySoak({
-              events: args.length === 0 ? 1000 : Number(args[1]),
-              onProgress,
-            });
-      console.log(JSON.stringify(report, null, 2));
+      if (command.kind === "verify") {
+        const aggregate = verifyEvolutionLedgerReliabilityEvidenceDirectory({
+          evidenceDir: command.evidenceDir,
+          releaseCommit: command.releaseCommit,
+          minimumEvents: command.minimumEvents,
+          minimumFaultRounds: command.minimumFaultRounds,
+        });
+        if (command.output) writeJsonOutput(command.output, aggregate);
+        console.log(JSON.stringify(aggregate, null, 2));
+      } else {
+        const report =
+          command.kind === "fault-campaign"
+            ? await runEvolutionLedgerFaultCampaign({
+                rounds: command.faultRounds,
+                onProgress,
+              })
+            : await runEvolutionLedgerReliabilitySoak({
+                events: command.events,
+                onProgress,
+              });
+        if (command.output) {
+          const evidence = createEvolutionLedgerReliabilityEvidence({
+            mode: command.kind,
+            report,
+            sourceRevision: command.sourceRevision,
+          });
+          writeJsonOutput(command.output, evidence);
+        }
+        console.log(JSON.stringify(report, null, 2));
+      }
     }
   } catch (error) {
     console.error(error?.message ?? String(error));

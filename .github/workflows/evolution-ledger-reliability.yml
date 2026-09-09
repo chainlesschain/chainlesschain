@@ -1,0 +1,165 @@
+name: Evolution Ledger Reliability
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/evolution-ledger-reliability.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/scripts/evolution-ledger-reliability-soak.mjs"
+      - "packages/cli/__tests__/helpers/evolution-ledger-process.js"
+      - "packages/cli/__tests__/fixtures/evolution-ledger-file-backend-process.mjs"
+      - "packages/cli/__tests__/unit/evolution-ledger-reliability-soak.test.js"
+      - "packages/cli/src/lib/evolution/evolution-ledger*.js"
+      - "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js"
+  schedule:
+    - cron: "13 3 * * 6"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Smoke is for quick diagnostics; formal is the test-only 10k evidence run."
+        required: true
+        default: "formal"
+        type: choice
+        options: ["smoke", "formal"]
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  ledger-reliability:
+    name: "test-only ledger evidence (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    env:
+      CC_EVOLUTION_LEDGER_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact ledger reliability commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_EVOLUTION_LEDGER_EXPECTED_SHA }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CC_EVOLUTION_LEDGER_EXPECTED_SHA"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Select bounded test-only profile
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.profile }}" = "smoke" ]; then
+            echo "CC_EVOLUTION_LEDGER_EVENTS=100" >> "$GITHUB_ENV"
+            echo "CC_EVOLUTION_LEDGER_FAULT_ROUNDS=6" >> "$GITHUB_ENV"
+          else
+            echo "CC_EVOLUTION_LEDGER_EVENTS=10000" >> "$GITHUB_ENV"
+            echo "CC_EVOLUTION_LEDGER_FAULT_ROUNDS=100" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run bounded append/reopen/corruption evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/evolution-ledger-reliability-soak.mjs
+          --events "$CC_EVOLUTION_LEDGER_EVENTS"
+          --source-revision "$CC_EVOLUTION_LEDGER_EXPECTED_SHA"
+          --output "$RUNNER_TEMP/evolution-ledger-events-$RUNNER_OS.json"
+
+      - name: Run bounded process-kill recovery evidence
+        shell: bash
+        run: >-
+          node packages/cli/scripts/evolution-ledger-reliability-soak.mjs
+          --fault-rounds "$CC_EVOLUTION_LEDGER_FAULT_ROUNDS"
+          --source-revision "$CC_EVOLUTION_LEDGER_EXPECTED_SHA"
+          --output "$RUNNER_TEMP/evolution-ledger-faults-$RUNNER_OS.json"
+
+      - name: Upload exact-SHA test-only ledger evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: evolution-ledger-reliability-${{ runner.os }}-${{ env.CC_EVOLUTION_LEDGER_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/evolution-ledger-events-${{ runner.os }}.json
+            ${{ runner.temp }}/evolution-ledger-faults-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  ledger-reliability-aggregate:
+    name: Test-only Evolution Ledger three-OS aggregate
+    if: always()
+    needs: ledger-reliability
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_EVOLUTION_LEDGER_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete ledger platform matrix
+        if: needs.ledger-reliability.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one test-only ledger reliability platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact ledger reliability commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_EVOLUTION_LEDGER_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Select aggregate scale
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.profile }}" = "smoke" ]; then
+            echo "CC_EVOLUTION_LEDGER_EVENTS=100" >> "$GITHUB_ENV"
+            echo "CC_EVOLUTION_LEDGER_FAULT_ROUNDS=6" >> "$GITHUB_ENV"
+          else
+            echo "CC_EVOLUTION_LEDGER_EVENTS=10000" >> "$GITHUB_ENV"
+            echo "CC_EVOLUTION_LEDGER_FAULT_ROUNDS=100" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download exact-SHA ledger evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: evolution-ledger-reliability-*-${{ env.CC_EVOLUTION_LEDGER_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/evolution-ledger-evidence
+          merge-multiple: true
+
+      - name: Verify complete test-only evidence matrix
+        shell: bash
+        run: >-
+          node packages/cli/scripts/evolution-ledger-reliability-soak.mjs
+          --verify-evidence-dir "$RUNNER_TEMP/evolution-ledger-evidence"
+          --release-commit "$CC_EVOLUTION_LEDGER_EXPECTED_SHA"
+          --minimum-events "$CC_EVOLUTION_LEDGER_EVENTS"
+          --minimum-fault-rounds "$CC_EVOLUTION_LEDGER_FAULT_ROUNDS"
+          --output "$RUNNER_TEMP/evolution-ledger-reliability-aggregate.json"
+
+      - name: Upload immutable test-only aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: evolution-ledger-reliability-test-only-aggregate-${{ env.CC_EVOLUTION_LEDGER_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/evolution-ledger-reliability-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
