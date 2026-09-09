@@ -2,7 +2,6 @@
 
 import {
   createHash,
-  createHmac,
   generateKeyPairSync,
   randomBytes,
   sign,
@@ -14,22 +13,13 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { loadConfig } from "../src/lib/config-manager.js";
-import { ArtifactStore } from "../src/lib/artifact-store.js";
-import {
-  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
-  EvolutionArtifactPorts,
-} from "../src/lib/evolution/evolution-artifact-ports.js";
 import {
   computeEvolutionDeploymentDigest as digest,
   EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../src/lib/evolution/evolution-deployment-loader.js";
-import { createEvolutionLedgerFileBackend } from "../src/lib/evolution/evolution-ledger-file-backend.js";
-import { createGovernedSkillSynthesisAttestorTrustLedger } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
-import {
-  createGovernedSkillSynthesisAttestorTrustOperations,
-  createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer,
-} from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
+import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
+import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { firstBalancedJson } from "../src/lib/json-schema-output.js";
 
 const cliRoot = path.resolve(
@@ -45,6 +35,7 @@ const root = fs.mkdtempSync(
   ),
 );
 let externalAttestorProcess = null;
+let attestorTrustOperationsProcess = null;
 
 function runCli(args, env, cwd) {
   const result = spawnSync(process.execPath, [bin, ...args], {
@@ -71,169 +62,6 @@ function runCli(args, env, cwd) {
 
 function sha256(bytes) {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-}
-
-function canonical(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  return `{${Object.keys(value)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
-    .join(",")}}`;
-}
-
-function pilotSigningAuthority(label, secret) {
-  const trust = Object.freeze({
-    algorithm: "hmac-sha256",
-    keyId: `key://local-volcengine-pilot/${label}`,
-    trustPolicyDigest: sha256(`${label}-policy`),
-  });
-  const value = (message) =>
-    createHmac("sha256", secret).update(message).digest("base64url");
-  return {
-    trust,
-    signer: {
-      sign: ({ message }) => ({ ...trust, value: value(message) }),
-    },
-    verifier: {
-      verify: ({ message, signature }) =>
-        signature.algorithm === trust.algorithm &&
-        signature.keyId === trust.keyId &&
-        signature.trustPolicyDigest === trust.trustPolicyDigest &&
-        signature.value === value(message),
-    },
-  };
-}
-
-function pilotDurableFilesystem() {
-  if (process.platform !== "win32") return fs;
-  const directories = new Set();
-  let nextDescriptor = -70_000;
-  return {
-    ...fs,
-    constants: fs.constants,
-    realpathSync: fs.realpathSync,
-    closeSync(descriptor) {
-      if (directories.delete(descriptor)) return;
-      return fs.closeSync(descriptor);
-    },
-    fsyncSync(descriptor) {
-      if (directories.has(descriptor)) return;
-      try {
-        return fs.fsyncSync(descriptor);
-      } catch (error) {
-        if (
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.fstatSync(descriptor).isDirectory()
-        ) {
-          return;
-        }
-        throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          flags === "r" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.statSync(target).isDirectory()
-        ) {
-          const descriptor = nextDescriptor;
-          nextDescriptor -= 1;
-          directories.add(descriptor);
-          return descriptor;
-        }
-        throw error;
-      }
-    },
-  };
-}
-
-function openPilotControlResources({
-  artifactRoot,
-  ledgerRoot,
-  ledgerAuthorityRoot,
-  witnessFile,
-  secrets,
-}) {
-  const artifactAlgorithm = "hmac-sha256";
-  const artifactKeyId = "key://local-volcengine-pilot/artifact";
-  const artifactPolicyDigest = sha256("artifact-policy");
-  const mac = (message) =>
-    createHmac("sha256", secrets.artifact).update(message).digest("base64url");
-  const artifactPorts = new EvolutionArtifactPorts({
-    artifactStore: new ArtifactStore({ dir: artifactRoot }),
-    tenantId: "tenant:local-volcengine-pilot",
-    audience: "evolution-runtime",
-    envelopeSigner: {
-      sign: ({ message }) => ({
-        algorithm: artifactAlgorithm,
-        keyId: artifactKeyId,
-        value: mac(message),
-      }),
-    },
-    envelopeVerifier: {
-      verify: ({ message, signature }) =>
-        signature.algorithm === artifactAlgorithm &&
-        signature.keyId === artifactKeyId &&
-        signature.value === mac(message),
-    },
-    currentAuthorityResolver: {
-      resolve: (request) => {
-        const checkedAt = new Date().toISOString();
-        const core = {
-          action: request.action,
-          algorithm: artifactAlgorithm,
-          allowed: true,
-          audience: request.audience,
-          checkedAt,
-          decisionExpiresAt: new Date(
-            Date.parse(checkedAt) + 30_000,
-          ).toISOString(),
-          digest: request.digest,
-          issuedAt: request.issuedAt,
-          issuedPolicyDigest: request.issuedPolicyDigest,
-          issuedPolicyRevision: request.issuedPolicyRevision,
-          issuedPolicyTrusted: true,
-          keyId: request.keyId || artifactKeyId,
-          policyDigest: artifactPolicyDigest,
-          policyRevision: 1,
-          purpose: request.purpose,
-          requestedAt: request.requestedAt,
-          retention: request.retention,
-          revocationRevision: 1,
-          revoked: false,
-          schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
-          tenantId: request.tenantId,
-          type: request.type,
-        };
-        return {
-          ...core,
-          receiptDigest: sha256(
-            `chainlesschain.evolution-artifact-authority-decision/v1\0${canonical(core)}`,
-          ),
-        };
-      },
-    },
-  });
-  const ledgerArtifactResolver =
-    artifactPorts.createEvolutionLedgerArtifactResolver({
-      purpose: "evolution-ledger",
-    });
-  const backend = createEvolutionLedgerFileBackend({
-    rootDir: ledgerRoot,
-    authorityRootDir: ledgerAuthorityRoot,
-    witnessFilePath: witnessFile,
-    witnessId: "local-volcengine-pilot-evaluation-witness",
-    ledgerAuthority: pilotSigningAuthority("ledger", secrets.ledger),
-    witnessAuthority: pilotSigningAuthority("witness", secrets.witness),
-    artifactResolver: ledgerArtifactResolver,
-    fsImpl: pilotDurableFilesystem(),
-    secure: false,
-  });
-  return { artifactPorts, ledgerArtifactResolver, backend };
 }
 
 function parseCliJson(stdout) {
@@ -292,6 +120,38 @@ async function startLocalAttestorService(bootstrap) {
   return child;
 }
 
+async function startLocalAttestorTrustOperationsService(bootstrap) {
+  const servicePath = path.join(
+    cliRoot,
+    "scripts",
+    "governed-learning-local-attestor-trust-operations-service.mjs",
+  );
+  const child = spawn(process.execPath, [servicePath], {
+    env:
+      process.platform === "win32"
+        ? {
+            SystemRoot: process.env.SystemRoot,
+            WINDIR: process.env.WINDIR,
+            TEMP: process.env.TEMP,
+            TMP: process.env.TMP,
+          }
+        : {},
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString("utf8");
+  });
+  child.stdin.end(`${JSON.stringify(bootstrap)}\n`);
+  const ready = JSON.parse(await waitForLine(child.stdout));
+  if (ready.ok !== true || !ready.descriptor) {
+    child.kill("SIGTERM");
+    throw new Error(`local attestor trust operations failed: ${stderr}`);
+  }
+  return { child, descriptor: ready.descriptor };
+}
+
 async function stopChild(child) {
   if (!child || child.exitCode !== null) return;
   child.kill("SIGTERM");
@@ -341,6 +201,15 @@ try {
           root,
           `cc-evolution-attestor-${randomBytes(12).toString("hex")}.sock`,
         );
+  const attestorTrustOperationsCapability =
+    randomBytes(32).toString("base64url");
+  const attestorTrustOperationsEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}`
+      : path.join(
+          root,
+          `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
+        );
   fs.mkdirSync(workspace);
   fs.mkdirSync(activeRoot);
   fs.mkdirSync(witnessRoot);
@@ -383,45 +252,49 @@ try {
     format: "pem",
   });
   const trustOperatorKeys = generateKeyPairSync("ed25519");
-  const controlResources = openPilotControlResources({
-    artifactRoot,
-    ledgerRoot,
-    ledgerAuthorityRoot,
-    witnessFile,
-    secrets: localSecrets,
-  });
-  const attestorTrustControl = createGovernedSkillSynthesisAttestorTrustLedger({
-    descriptor: {
-      tenantId: "tenant:local-volcengine-pilot",
-      artifactTenantId: "tenant:local-volcengine-pilot",
-      streamId: "learning-synthesis-attestor-trust",
-      audience: "evolution-runtime",
-      purpose: "evolution-ledger",
-    },
-    artifactPorts: controlResources.artifactPorts,
-    ledger: controlResources.backend.ledger,
-    ledgerArtifactResolver: controlResources.ledgerArtifactResolver,
-  });
-  const attestorTrustOperations =
-    createGovernedSkillSynthesisAttestorTrustOperations({
-      tenantId: "tenant:local-volcengine-pilot",
+  const trustOperationsService = await startLocalAttestorTrustOperationsService(
+    {
+      artifactRoot,
+      authorityNamespace: "local-volcengine-pilot",
       authorizationStreamId: "learning-synthesis-attestor-trust-authorizations",
-      policyId: "policy:local-personal-ai-attestor-trust",
-      revision: 1,
-      requiredApprovals: 1,
+      capabilityToken: attestorTrustOperationsCapability,
+      endpoint: attestorTrustOperationsEndpoint,
+      ledgerAuthorityRoot,
+      ledgerRoot,
       operatorIdentities: [
         {
           tenantId: "tenant:local-volcengine-pilot",
           operatorId: "operator:local-owner",
-          publicKey: trustOperatorKeys.publicKey,
+          publicKeyPem: trustOperatorKeys.publicKey.export({
+            type: "spki",
+            format: "pem",
+          }),
         },
       ],
-      trustLedger: attestorTrustControl,
-      artifactPorts: controlResources.artifactPorts,
-      ledger: controlResources.backend.ledger,
-      ledgerArtifactResolver: controlResources.ledgerArtifactResolver,
+      policyId: "policy:local-personal-ai-attestor-trust",
+      requiredApprovals: 1,
+      revision: 1,
+      secrets: localSecrets,
+      trustDescriptor: {
+        tenantId: "tenant:local-volcengine-pilot",
+        artifactTenantId: "tenant:local-volcengine-pilot",
+        streamId: "learning-synthesis-attestor-trust",
+        audience: "evolution-runtime",
+        purpose: "evolution-ledger",
+      },
+      witnessFile,
+      witnessId: "local-volcengine-pilot-evaluation-witness",
+    },
+  );
+  attestorTrustOperationsProcess = trustOperationsService.child;
+  const attestorTrustOperations =
+    createGovernedSkillSynthesisAttestorTrustOperationsClient({
+      endpoint: attestorTrustOperationsEndpoint,
+      capabilityToken: attestorTrustOperationsCapability,
+      descriptor: trustOperationsService.descriptor,
+      timeoutMs: 15_000,
     });
-  const trustRegistrationRequest = attestorTrustOperations.prepare({
+  const trustRegistrationRequest = await attestorTrustOperations.prepare({
     operation: "register",
     serviceId: externalAttestorServiceId,
     publicKey: evaluationAttestorPublicKey,
@@ -850,12 +723,13 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustRegistration.operation !== "register" ||
     attestorTrustRegistration.recovered !== false ||
     !/^sha256:[a-f0-9]{64}$/u.test(attestorTrustRegistration.recordDigest) ||
-    attestorTrustOperations.descriptor.approvalMode !== "single-operator" ||
-    attestorTrustOperations.descriptor.requiredApprovals !== 1 ||
+    attestorTrustOperations.descriptor.service.approvalMode !==
+      "single-operator" ||
+    attestorTrustOperations.descriptor.service.requiredApprovals !== 1 ||
     attestorTrustExecution.authorization?.requestDigest !==
       trustRegistrationRequest.requestDigest ||
     attestorTrustExecution.authorization?.policyDigest !==
-      attestorTrustOperations.descriptor.policyDigest ||
+      attestorTrustOperations.descriptor.service.policyDigest ||
     attestorTrustExecution.authorization?.operatorIds?.length !== 1 ||
     attestorTrustExecution.authorization?.operatorIds?.[0] !==
       "operator:local-owner" ||
@@ -873,6 +747,10 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     ) ||
     attestorTrustRegistration.authorizationDigest !==
       attestorTrustExecution.authorization?.authorizationDigest ||
+    attestorTrustOperations.descriptor.isolation !== "external-service" ||
+    attestorTrustOperations.descriptor.transport !== "local-ipc-v1" ||
+    !Number.isSafeInteger(attestorTrustOperationsProcess?.pid) ||
+    attestorTrustOperationsProcess.pid === process.pid ||
     attestorTrustEvidence.verifier?.isolation !==
       "durable-ledger-key-lifecycle" ||
     attestorTrustEvidence.verifier?.serviceId !== externalAttestorServiceId
@@ -956,9 +834,9 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             attestorTrustAuthorizationRecovered:
               attestorTrustExecution.persistence.recovered,
             attestorTrustApprovalMode:
-              attestorTrustOperations.descriptor.approvalMode,
+              attestorTrustOperations.descriptor.service.approvalMode,
             attestorTrustRequiredApprovals:
-              attestorTrustOperations.descriptor.requiredApprovals,
+              attestorTrustOperations.descriptor.service.requiredApprovals,
             attestorTrustOperatorIds:
               attestorTrustExecution.authorization.operatorIds,
             attestorTrustVerifierIsolation:
@@ -977,7 +855,12 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           evaluationSignerTrust:
             "artifactstore-ledger-sequence-bound-key-lifecycle",
           attestorTrustWriterVisibleToCli: false,
-          attestorTrustControlBoundary: "pre-cli-orchestrator",
+          attestorTrustWriterVisibleToPilotOrchestrator: false,
+          attestorTrustControlBoundary: "separate-local-service-process",
+          attestorTrustOperationsTransport:
+            attestorTrustOperations.descriptor.transport,
+          attestorTrustOperationsEndpointDigest:
+            attestorTrustOperations.descriptor.endpointDigest,
           attestorTrustApprovalPolicy: "signed-configurable-quorum",
           platform: process.platform,
           nativeDirectoryDurability:
@@ -989,10 +872,11 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "grader still uses the same configured model, provider, credential source, and host as generation",
           "the authenticated CLI deployment has only an external signer endpoint, capability, and pinned public key; it contains no evaluation signing private key",
           "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
-          "the learning deployment receives only a branded trust verifier; the pilot orchestrator owns the lifecycle writer and registers the signer key before any CLI process starts",
+          "the learning deployment receives only a branded trust verifier; a separate local operations service process owns the lifecycle writer and registers the signer key before any CLI process starts",
           "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
-          "the pilot orchestrator bootstraps the signer private key into a separate same-host service process; this validates the handle boundary but is not production KMS/HSM or workload identity",
+          "the pilot orchestrator holds only the operator signing key and an operations IPC capability; the trust writer and authorization executor remain inside a separate service process",
+          "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",
           "Ledger and witness use separate keys but remain on the same host",
@@ -1010,5 +894,6 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   );
 } finally {
   await stopChild(externalAttestorProcess);
+  await stopChild(attestorTrustOperationsProcess);
   fs.rmSync(root, { recursive: true, force: true });
 }
