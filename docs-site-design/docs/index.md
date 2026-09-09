@@ -61,7 +61,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-09 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.38@de8ec4e5c8`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。本地 `main@22b23a0335`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`；本地后续提交另将 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 接入 main-process-only opaque authority，并确认 CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader。CLI/Hub 模型入口治理已随 npm 制品发布，但这些 Desktop 增量尚未进入远端 head 或公开 native 安装包；缺少目标环境 authority 时 Workbench 与治理变更仍失败闭合。详见[CLI Runtime](/cli-runtime-current)、[模块 113](/modules/113-governed-desktop-model-ingress-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
+> **2026-09-09 设计核对**：生产推荐 CLI 与 npm `latest` 为 `0.166.38@de8ec4e5c8`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。本地 `main@a238e6c245`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`；本地后续提交另将 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 接入 main-process-only opaque authority，确认后台/Coding Agent 入口重入 canonical loader，并关闭 Legacy ImageGen 内容入口。CLI/Hub 模型入口治理已随 npm 制品发布，但这些 Desktop 增量尚未进入远端 head 或公开 native 安装包；缺少目标环境 authority 时 Workbench 与治理变更仍失败闭合。详见[CLI Runtime](/cli-runtime-current)、[模块 113](/modules/113-governed-desktop-model-ingress-design)、[发布与证据边界](/modules/110-agent-platform-release-boundaries)和[Graph Kernel](/modules/m105-graph-kernel)。
 
 > **生产边界**：仓库已从早期 source-only 快照前进到真实文件 Ledger/witness、CLI 三模式 ingress、Graph/WebSocket 接线缝和可恢复状态迁移。部署仍须提供独立 trust root、密钥与身份运营、最终用户审阅面、真实 target runner/grader 和跨主机灾备；这些条件不能由本地测试或 tag 自动推导。
 

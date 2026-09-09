@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-09 当前生产推荐版与 npm `latest` 为 Agent Platform `0.166.38@de8ec4e5c8`；精确提交的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读已完成。本地 `main@22b23a0335` 在发布后又接通 Desktop Personal Data Hub 的受治理 resolver/Skill IPC 与内嵌 Web Shell，并确认 CLI-owned 后台 worker 和 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`，但尚未包含这些后续提交。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-09 当前生产推荐版与 npm `latest` 为 Agent Platform `0.166.38@de8ec4e5c8`；精确提交的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读已完成。本地 `main@a238e6c245` 在发布后又接通 Desktop Personal Data Hub 的受治理 resolver/Skill IPC 与内嵌 Web Shell，确认 CLI-owned 后台 worker 和 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader，并使遗留 ImageGen 内容入口在缓存/provider/fallback 前失败闭合；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`，但尚未包含这些后续提交。
 
 ## 当前重点
 

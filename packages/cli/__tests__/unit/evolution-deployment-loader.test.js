@@ -73,6 +73,9 @@ describe("signed evolution deployment loader", () => {
       loadEvolutionDeploymentCommandDependencies("marketplace", { env: {} }),
     ).resolves.toBeNull();
     await expect(
+      loadEvolutionDeploymentCommandDependencies("learning", { env: {} }),
+    ).resolves.toBeNull();
+    await expect(
       loadEvolutionDeploymentCommandDependencies("status", {
         env: {
           CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR: "ignored",
@@ -132,6 +135,32 @@ describe("signed evolution deployment loader", () => {
       expect(importModule).toHaveBeenCalledOnce();
     },
   );
+
+  it("exposes governed learning synthesis only to an authenticated learning deployment", async () => {
+    const fixture = deploymentFixture({ commands: ["learning"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("learning", {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({
+            commandName,
+            descriptor,
+            factories,
+          }) => ({
+            commandName,
+            revision: descriptor.revision,
+            synthesisHostFactoryAvailable:
+              typeof factories.createGovernedSkillSynthesisCliHost ===
+              "function",
+          }),
+        }),
+      }),
+    ).resolves.toEqual({
+      commandName: "learning",
+      revision: 7,
+      synthesisHostFactoryAvailable: true,
+    });
+  });
 
   it.each([
     "agent",

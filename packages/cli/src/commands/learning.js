@@ -7,6 +7,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { isGovernedSkillSynthesisCliHost } from "../lib/evolution/governed-skill-synthesis-cli-host.js";
 
 export function classifySynthesisResult(result) {
   if (result?.status === "unavailable") {
@@ -58,7 +59,34 @@ export function classifySynthesisResult(result) {
   };
 }
 
-export function registerLearningCommand(program) {
+export async function executeLearningSynthesis({
+  db,
+  trajectoryStore,
+  learningSynthesisHost = null,
+} = {}) {
+  if (learningSynthesisHost === null) {
+    return {
+      status: "unavailable",
+      code: "LEARNING_SYNTHESIS_UNAVAILABLE",
+      reason: "Synthesis unavailable: a trusted deployment host is required",
+      missingDependencies: ["trusted-deployment-host"],
+      blockers: [],
+      created: [],
+      skipped: [],
+    };
+  }
+  if (!isGovernedSkillSynthesisCliHost(learningSynthesisHost)) {
+    throw new Error(
+      "Learning synthesis is unavailable: a trusted deployment host is required",
+    );
+  }
+  return learningSynthesisHost.synthesize({ db, trajectoryStore });
+}
+
+export function registerLearningCommand(
+  program,
+  { learningSynthesisHost = null } = {},
+) {
   const learning = program
     .command("learning")
     .description(
@@ -330,13 +358,14 @@ export function registerLearningCommand(program) {
         const db = ctx.db.getDatabase();
         const { TrajectoryStore } =
           await import("../lib/learning/trajectory-store.js");
-        const { SkillSynthesizer } =
-          await import("../lib/learning/skill-synthesizer.js");
         const store = new TrajectoryStore(db);
-        const synthesizer = new SkillSynthesizer(db, null, store);
 
         const spinner = ora("Scanning for synthesizable patterns...").start();
-        const result = await synthesizer.synthesize();
+        const result = await executeLearningSynthesis({
+          db,
+          trajectoryStore: store,
+          learningSynthesisHost,
+        });
         const outcome = classifySynthesisResult(result);
 
         if (outcome.exitCode !== 0) {

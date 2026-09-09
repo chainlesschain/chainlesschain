@@ -1,12 +1,12 @@
 # Desktop 模型治理与失败闭合
 
-> 适用范围：本地 `main@22b23a0335`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
+> 适用范围：本地 `main@a238e6c245`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
 >
 > 发布边界：CLI/Hub 共享治理入口已随 `0.166.38@de8ec4e5c8` 发布；本页的 Desktop Electron 接线不是 npm CLI 字节，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
 
 ## 概述
 
-本地 `main@22b23a0335` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量晚于已核对的远端 head，且尚未进入公开 Desktop native 安装包。
+本地 `main@a238e6c245` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量晚于已核对的远端 head，且尚未进入公开 Desktop native 安装包。
 
 桌面端的模型请求不再只治理“聊天”入口。普通对话、流式输出、函数工具、多模态、记忆摘要等已接入同一受治理 Run；已识别但尚无可信桥接的旧 embedding、reranker、媒体、项目、文档和 RAG 直连会在发送数据前拒绝。
 

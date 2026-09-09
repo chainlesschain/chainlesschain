@@ -8,7 +8,7 @@ Agent Platform `0.166.38` 是生产推荐版与 npm `latest`。不可变 tag `v-
 
 本版承接 `0.166.34` 的有界网页快照与长文本检索、`0.166.36` 的推理模型连接测试修复和 `0.166.37` 的跨 CLI/Hub 模型治理，并发布 Agent Protocol `0.1.9` 与 Context Memory Kernel `0.1.1`。当前安装应直接使用 `0.166.38`；`0.166.35` 仅保留不可变候选标签，修复由后续正式版本承接。
 
-本地 `main@22b23a0335`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 当前均内置 CLI `0.166.38`。两个远端 head 已包含发布提交 `de8ec4e5c8`；本地 post-release 提交还将 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接到主进程持有的 opaque 治理 authority，并确认 CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader。CLI/Hub 受治理模型入口已进入 npm 制品；这些 Desktop 源码增量尚未进入已公开 native 安装包，也不等于其发布验收已完成。
+本地 `main@a238e6c245`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 当前均内置 CLI `0.166.38`。两个远端 head 已包含发布提交 `de8ec4e5c8`；本地 post-release 提交还将 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接到主进程持有的 opaque 治理 authority，确认 CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader，并关闭遗留 ImageGen 内容入口。CLI/Hub 受治理模型入口已进入 npm 制品；这些 Desktop 源码增量尚未进入已公开 native 安装包，也不等于其发布验收已完成。
 
 ## 核心特性
 
@@ -68,6 +68,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 - **模型入口治理**：direct stream、intent、legacy/canonical WebSocket 与 Hub 模型调用在 provider I/O 前绑定认证 Run、provider 和 model；终态与证据持久化完成后才报告成功。
 - **Desktop Hub IPC**：源码 `8c1772ba6c` 将 resolver drain 与分析 Skill 绑定到主进程 opaque host；每次调用创建 scoped wrapper，不向 renderer 暴露 composition factory，也不改写缓存 Hub 的全局模型 client。
 - **Desktop Web Shell 与后台入口**：源码 `1fd9e684f2` 把内嵌 Web Shell 的 WebSocket server 绑定到同一 main-process-only factory；`5e3ee29808` / `4f61109dcf` 完成并记录后台入口审计；`22b23a0335` 固定 Desktop Coding Agent bridge 对部署环境的继承测试。CLI-owned background、Agenda、Routine、detached worker 和该 `cc serve` bridge 均经 canonical CLI 入口，但不外推到第三方命令或自行直连 provider 的 SDK worker。
+- **Legacy ImageGen 入口**：源码 `a238e6c245` 使 15 个 Desktop ImageGen IPC 的内容调用在缓存、provider 选择和 fallback 前失败闭合；管理器、Stable Diffusion 与 DALL·E client 不会在拒绝后继续发起内容请求。
 - **失败不降级**：不完整 provider stream、模型身份变化和治理错误不会被 Skill commentary、intent fallback 或 Hub fallback 吞掉。
 - **witness 分段**：历史 witness 前缀固化为 256 条不可变 segment，只重写有界 tail；读取重验 segment hash，trust epoch 改变时清除已验证摘要。
 - **可靠模型配置**：IDE 原子提交连接并用脱敏 readback 比对 provider、endpoint 与 text/vision model；连接测试给 reasoning model 足够但有界的输出预算。

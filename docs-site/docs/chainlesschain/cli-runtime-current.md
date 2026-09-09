@@ -18,7 +18,7 @@ HTTP、DNS、全流程超时、响应超限、验证挑战和不完整下载都�
 
 `cc llm configure` 现在通过有界 stdin JSON 原子保存 provider、model、base URL、vision model 与密钥，密钥不进入 argv；端点改变时不会复用旧密钥。`cc llm test` 使用 OpenAI-compatible、Anthropic、Gemini 与 Ollama 的原生协议探测，拒绝重定向并在 20 秒后超时。
 
-Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0.166.38`。本地 `main@22b23a0335`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`；本地 post-release 提交还把 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 接到主进程 opaque authority，并确认 CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader，但尚未进入已核对的远端 head。Desktop 模型治理源码仍不等于已公开 Desktop 安装包。
+Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0.166.38`。本地 `main@a238e6c245`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均内置 CLI `0.166.38`；本地 post-release 提交还把 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 接到主进程 opaque authority，确认后台/Coding Agent 入口重入 canonical loader，并使 Legacy ImageGen 内容入口在缓存、provider 选择和 fallback 前失败闭合，但尚未进入已核对的远端 head。Desktop 模型治理源码仍不等于已公开 Desktop 安装包。
 
 ## 2026-09-06 增量：长任务与治理恢复
 

@@ -6,7 +6,7 @@
 
 CLI direct stream、意图识别、legacy/canonical WebSocket chat、Hub 分析、Hub Skill 说明和实体解析/embedding 选择现在都消费宿主注入的治理组合。一次调用只绑定一个受认证 Run；provider、model、tenant、task 与 ingress 身份在请求开始后不可由消息、fallback 或回调替换。UI 与 Hub 启动路径必须显式转交同一治理依赖，缺失或不匹配时在 provider 网络调用前失败闭合。
 
-发布后的本地 `main@22b23a0335` 又完成两段 Desktop 接线与后台入口审计：`8c1772ba6c` 把 Personal Data Hub 的 `personal-data-hub:resolver-drain` 与 `personal-data-hub:run-skill` IPC 接到同一签名 composition factory；`1fd9e684f2` 再把内嵌 Web Shell 的 WebSocket 后端接到由 opaque host 派生的 main-process-only factory；`5e3ee29808` / `4f61109dcf` 完成并记录后台与 Desktop 出站入口审计；`22b23a0335` 固定 Coding Agent bridge 对部署环境的继承测试。resolver 与 Skill 每次调用创建 scoped wrapper，不改写进程级 Hub singleton，也不把 authority 暴露给 renderer 或 WebSocket 消息。CLI-owned interactive background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` 子进程均经 canonical CLI loader 重放认证参数；任意第三方命令或自行直连 provider 的 SDK worker 不因此获得证明。该源码增量晚于已核对的 GitHub/Gitee remote head，且不属于 `0.166.38` npm tarball 或已公开 Desktop native 安装包。
+发布后的本地 `main@a238e6c245` 又完成两段 Desktop 接线与后台入口审计：`8c1772ba6c` 把 Personal Data Hub 的 `personal-data-hub:resolver-drain` 与 `personal-data-hub:run-skill` IPC 接到同一签名 composition factory；`1fd9e684f2` 再把内嵌 Web Shell 的 WebSocket 后端接到由 opaque host 派生的 main-process-only factory；`5e3ee29808` / `4f61109dcf` 完成并记录后台与 Desktop 出站入口审计；`22b23a0335` 固定 Coding Agent bridge 对部署环境的继承测试；`a238e6c245` 使遗留 ImageGen 内容入口在缓存读取、provider 选择与 fallback 前失败闭合。resolver 与 Skill 每次调用创建 scoped wrapper，不改写进程级 Hub singleton，也不把 authority 暴露给 renderer 或 WebSocket 消息。CLI-owned interactive background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` 子进程均经 canonical CLI loader 重放认证参数；任意第三方命令或自行直连 provider 的 SDK worker 不因此获得证明。该源码增量晚于已核对的 GitHub/Gitee remote head，且不属于 `0.166.38` npm tarball 或已公开 Desktop native 安装包。
 
 ```text
 CLI / WebSocket / Hub request
@@ -46,7 +46,7 @@ remote URL
 
 VS Code `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分页筛选的只读 Skill Library 与自定义连接入口；JetBrains `0.4.113` 已公开并内置推荐 CLI `0.166.29`。CLI 同时承接读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复和可靠 Stop。
 
-本地 `main@22b23a0335`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 当前均内置 CLI `0.166.38`。两个远端 head 已包含 Desktop 基础受治理模型入口及 trust-epoch witness 验签缓存；本地后续提交另接通 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell，并完成后台 worker 与 Desktop Coding Agent bridge 的入口审计。CLI/Hub 治理入口已进入公开 npm 制品；该本地 Desktop 源码能力仍不等于已公开 Desktop 安装包。
+本地 `main@a238e6c245`、GitHub `main@1895749692` 与 Gitee `main@3806866d80` 当前均内置 CLI `0.166.38`。两个远端 head 已包含 Desktop 基础受治理模型入口及 trust-epoch witness 验签缓存；本地后续提交另接通 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell，完成后台 worker 与 Desktop Coding Agent bridge 的入口审计，并关闭识别出的 legacy ImageGen 内容入口。CLI/Hub 治理入口已进入公开 npm 制品；该本地 Desktop 源码能力仍不等于已公开 Desktop 安装包。
 
 ## 2026-09-06 增量：长任务与治理恢复
 

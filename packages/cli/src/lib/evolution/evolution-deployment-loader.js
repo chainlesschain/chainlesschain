@@ -17,6 +17,7 @@ const SUPPORTED_COMMANDS = new Set([
   "desktop",
   "evolution",
   "hub",
+  "learning",
   "marketplace",
   "orchestrate",
   "serve",
@@ -126,6 +127,12 @@ function dependencies(value, commandName) {
 
 async function loadBuiltInFactories(commandName) {
   const factories = {};
+  if (commandName === "learning") {
+    const { createGovernedSkillSynthesisCliHost } =
+      await import("./governed-skill-synthesis-cli-host.js");
+    factories.createGovernedSkillSynthesisCliHost =
+      createGovernedSkillSynthesisCliHost;
+  }
   if (commandName === "marketplace" || commandName === "desktop") {
     const [
       { createGovernedSkillMarketplaceCliHost },
@@ -307,6 +314,7 @@ async function loadBuiltInFactories(commandName) {
 function bindFactoriesToModule(factories, moduleDigest) {
   const result = { ...factories };
   const providerFactories = [
+    "createGovernedSkillSynthesisCliHost",
     "createEvolutionWorkbenchReviewRuntime",
     "createEvolutionWorkbenchRollbackRuntime",
     "createEvolutionWorkbenchRegistrySource",

@@ -4,7 +4,7 @@
 
 > 当前文档快照（2026-09-09）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.38@de8ec4e5c8`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript Agent SDK 为 `0.2.9`、Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、PDH 为 `0.4.60`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。
 
-> 新功能边界：`0.166.38` 已公开 CLI/Hub 受治理模型入口、provider stream 完整性检查、模型身份固定、Evolution witness 分段存储，以及 IDE 模型配置原子保存与推理模型连接测试修复。本地 `main@22b23a0335` 又接通 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell，并确认 CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 均重新进入 canonical loader；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 尚未包含这些 post-release 增量。可信 Workbench 部署和 Desktop native 安装包仍需各自验收。详见[CLI Runtime](docs/chainlesschain/cli-runtime-current.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
+> 新功能边界：`0.166.38` 已公开 CLI/Hub 受治理模型入口、provider stream 完整性检查、模型身份固定、Evolution witness 分段存储，以及 IDE 模型配置原子保存与推理模型连接测试修复。本地 `main@a238e6c245` 又接通 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell，确认后台/Coding Agent 入口重入 canonical loader，并使 Legacy ImageGen 内容入口在缓存、provider 选择和 fallback 前失败闭合；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 尚未包含这些 post-release 增量。可信 Workbench 部署和 Desktop native 安装包仍需各自验收。详见[CLI Runtime](docs/chainlesschain/cli-runtime-current.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
 
 ## 📚 文档内容
 

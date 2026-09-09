@@ -2,7 +2,7 @@
 
 > 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 源码已落地；CLI/Hub 共享治理入口已随 `0.166.38` 发布，Desktop native 生产部署待验收
 >
-> 核对基线：本地 `main@22b23a0335`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
+> 核对基线：本地 `main@a238e6c245`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
 >
 > 发布边界：`chainlesschain@0.166.38` 已包含 CLI/Hub 受治理模型入口；这仍不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
 
@@ -37,6 +37,10 @@ Desktop 主进程现在将 `desktopModelIngressHost` 注入 Personal Data Hub IP
 实现不会修改缓存 Hub 或其原始模型 client，避免一次 IPC 的权限泄漏到后续请求。真实 Desktop 启动路径显式传入 branded host；无部署宿主的兼容调用仍保留 `null` 路径，不应被解释为生产治理资格。新增回归测试覆盖 host 仅停留在主进程闭包，以及无部署配置时不凭空生成 authority。
 
 内嵌 Web Shell 启动时从同一 opaque host 派生 main-process-only composition factory，并经 `ws-cli-loader` 传给 CLI WebSocket server；客户端消息不能提交或替换 factory。CLI-owned interactive background、Agenda、Routine、detached worker 以及 Desktop Coding Agent 的 `cc serve` bridge 均通过 canonical CLI loader 继承部署环境；`22b23a0335` 的回归测试固定 Coding Agent 环境继承且不序列化 raw factory。自行启动的 SDK worker、任意第三方命令或直接 provider client 仍不在该证明范围内。以上均是晚于 `0.166.38@de8ec4e5c8` 的源码增量，尚未进入已公开 Desktop native 制品。
+
+### 1.3 `a238e6c245` 的遗留 ImageGen 内容入口闭合
+
+ImageGen 的 15 个 Desktop IPC 覆盖文生图、图生图、变体与超分。状态读取、模型选择、进度与中断属于控制面；任何携带用户文本或图像的内容入口现在在读取缓存、选择 provider 或执行 fallback 前先验证受治理 ingress。缺失或拒绝时返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，不会调用 manager provider 或底层 `SDClient`/`DALLEClient` 的 `fetch`。这关闭的是已识别的遗留 Desktop IPC 绕过面，不扩大为所有未来第三方 SDK 或目标部署 authority 已验收的声明。
 
 ## 2. 架构
 
