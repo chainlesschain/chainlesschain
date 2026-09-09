@@ -72,6 +72,7 @@
     "scripts/governed-learning-local-attestor-service.mjs",
     "scripts/governed-learning-local-attestor-trust-approval-service.mjs",
     "scripts/governed-learning-local-attestor-trust-operations-service.mjs",
+    "scripts/governed-learning-windows-secure-pipe-broker.ps1",
     "README.md"
   ],
   "keywords": [

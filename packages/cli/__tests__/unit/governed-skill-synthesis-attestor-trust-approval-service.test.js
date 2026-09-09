@@ -235,6 +235,18 @@ describe("attestor trust isolated approval service", () => {
           issuedAt: capabilityIssuedAt,
           maxUses: 4,
         },
+        transportSecurity:
+          process.platform === "win32"
+            ? {
+                acl: "protected-current-user-dacl",
+                peerIdentity: "client-process-token-user-sid",
+                remoteClients: false,
+              }
+            : {
+                acl: "unix-owner-mode-0600",
+                peerIdentity: "capability-authenticated-client",
+                remoteClients: false,
+              },
       },
     });
     expect(JSON.stringify(ready)).not.toContain("PRIVATE KEY");
@@ -259,6 +271,7 @@ describe("attestor trust isolated approval service", () => {
       schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
       requestId: replayId,
       capabilityId: ready.descriptor.capability.id,
+      clientProcessId: process.pid,
       action: "approve",
       payload: trustRequest,
     };
@@ -268,6 +281,23 @@ describe("attestor trust isolated approval service", () => {
         token: capabilityToken,
       });
     expect(JSON.stringify(replayFrame)).not.toContain(capabilityToken);
+    if (process.platform === "win32") {
+      const spoofedFrame = {
+        ...replayFrame,
+        requestId: "2".repeat(32),
+        clientProcessId: process.pid + 1,
+      };
+      spoofedFrame.authorization =
+        createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+          ...spoofedFrame,
+          token: capabilityToken,
+        });
+      await expect(callRaw(target, spoofedFrame)).resolves.toMatchObject({
+        ok: false,
+        requestId: spoofedFrame.requestId,
+        code: "peer_identity_denied",
+      });
+    }
     await expect(callRaw(target, replayFrame)).resolves.toMatchObject({
       ok: true,
       requestId: replayId,
@@ -277,16 +307,18 @@ describe("attestor trust isolated approval service", () => {
       requestId: replayId,
       code: "request_denied",
     });
-    await expect(client.approve(trustRequest)).resolves.toMatchObject({
+    const registryRequest = operatorRequest("tenant:personal-ai", now);
+    const [trustResult, registryResult] = await Promise.all([
+      client.approve(trustRequest),
+      client.approveOperatorChange(registryRequest),
+    ]);
+    expect(trustResult).toMatchObject({
       tenantId: trustRequest.tenantId,
       operatorId: "operator:owner",
       requestDigest: trustRequest.requestDigest,
       attestation: { keyId: ready.descriptor.keyId },
     });
-    const registryRequest = operatorRequest("tenant:personal-ai", now);
-    await expect(
-      client.approveOperatorChange(registryRequest),
-    ).resolves.toMatchObject({
+    expect(registryResult).toMatchObject({
       tenantId: registryRequest.tenantId,
       operatorId: "operator:owner",
       requestDigest: registryRequest.requestDigest,

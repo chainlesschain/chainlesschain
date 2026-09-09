@@ -18,11 +18,12 @@ import {
   createGovernedSkillSynthesisAttestorTrustIpcCapability,
   verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization,
 } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
+import { createGovernedSkillSynthesisWindowsSecurePipeHost } from "../src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js";
 
 const IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v3";
 const SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v6";
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
@@ -360,7 +361,7 @@ if (
     "attestor trust operations policy differs from operator registry",
   );
 }
-const serviceDescriptor = Object.freeze({
+const serviceDescriptorCore = Object.freeze({
   schema: SERVICE_SCHEMA,
   tenantId: operations.descriptor.tenantId,
   authorizationStreamId: operations.descriptor.authorizationStreamId,
@@ -388,121 +389,179 @@ let requestCount = 0;
 const usedRequestIds = new Set();
 let queue = Promise.resolve();
 let rebindRequired = false;
-const server = net.createServer((socket) => {
-  let carry = "";
-  let handled = false;
-  socket.setTimeout(30_000, () => socket.destroy());
-  socket.on("data", (chunk) => {
-    if (handled) return;
-    carry += chunk.toString("utf8");
-    if (Buffer.byteLength(carry, "utf8") > MAX_FRAME_BYTES) {
-      handled = true;
-      response(socket, {
-        ok: false,
-        requestId: null,
-        code: "request_too_large",
-      });
-      return;
-    }
-    const frameEnd = carry.indexOf("\n");
-    if (frameEnd === -1) return;
-    handled = true;
-    let request;
-    try {
-      request = JSON.parse(carry.slice(0, frameEnd).replace(/\r$/u, ""));
-    } catch {
-      response(socket, { ok: false, requestId: null, code: "invalid_json" });
-      return;
-    }
-    if (
-      !exact(request, [
-        "action",
-        "authorization",
-        "capabilityId",
-        "payload",
-        "requestId",
-        "schema",
-      ]) ||
-      request.schema !== IPC_SCHEMA ||
-      carry.slice(frameEnd + 1).trim().length > 0 ||
-      !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
-      request.capabilityId !== capability.id ||
-      !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
-        authorization: request.authorization,
-        action: request.action,
-        capabilityId: request.capabilityId,
-        payload: request.payload,
-        requestId: request.requestId,
-        schema: request.schema,
-        token: bootstrap.capabilityToken,
-      }) ||
-      usedRequestIds.has(request.requestId) ||
-      !["prepare", "execute", "operator-prepare", "operator-execute"].includes(
-        request.action,
-      ) ||
-      requestCount >= capability.maxUses ||
-      Date.now() >= Date.parse(capability.expiresAt)
-    ) {
-      response(socket, {
-        ok: false,
-        requestId: request?.requestId ?? null,
-        code: "request_denied",
-      });
-      return;
-    }
-    usedRequestIds.add(request.requestId);
+let transportSecurity;
+
+function handleFrame(frame, peer = null) {
+  let request;
+  try {
+    request = JSON.parse(frame);
+  } catch {
+    return Promise.resolve({
+      ok: false,
+      requestId: null,
+      code: "invalid_json",
+    });
+  }
+  if (
+    !exact(request, [
+      "action",
+      "authorization",
+      "capabilityId",
+      "clientProcessId",
+      "payload",
+      "requestId",
+      "schema",
+    ]) ||
+    request.schema !== IPC_SCHEMA ||
+    !Number.isSafeInteger(request.clientProcessId) ||
+    request.clientProcessId < 1 ||
+    (process.platform === "win32" &&
+      (peer?.processId !== request.clientProcessId ||
+        peer?.principalDigest !== transportSecurity?.principalDigest)) ||
+    !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
+    request.capabilityId !== capability.id ||
+    !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+      authorization: request.authorization,
+      action: request.action,
+      capabilityId: request.capabilityId,
+      clientProcessId: request.clientProcessId,
+      payload: request.payload,
+      requestId: request.requestId,
+      schema: request.schema,
+      token: bootstrap.capabilityToken,
+    }) ||
+    usedRequestIds.has(request.requestId) ||
+    !["prepare", "execute", "operator-prepare", "operator-execute"].includes(
+      request.action,
+    ) ||
+    requestCount >= capability.maxUses ||
+    Date.now() >= Date.parse(capability.expiresAt)
+  ) {
+    return Promise.resolve({
+      ok: false,
+      requestId: request?.requestId ?? null,
+      code: "request_denied",
+    });
+  }
+  usedRequestIds.add(request.requestId);
+  if (rebindRequired && request.action !== "operator-execute") {
+    return Promise.resolve({
+      ok: false,
+      requestId: request.requestId,
+      code: "service_rebind_required",
+    });
+  }
+  requestCount += 1;
+  const work = queue.then(async () => {
     if (rebindRequired && request.action !== "operator-execute") {
-      response(socket, {
+      return {
         ok: false,
         requestId: request.requestId,
         code: "service_rebind_required",
-      });
-      return;
+      };
     }
-    requestCount += 1;
-    queue = queue
-      .then(async () => {
-        if (rebindRequired && request.action !== "operator-execute") {
-          response(socket, {
-            ok: false,
-            requestId: request.requestId,
-            code: "service_rebind_required",
-          });
-          return;
-        }
-        let result;
-        if (request.action === "prepare") {
-          result = operations.prepare(request.payload);
-        } else if (request.action === "execute") {
-          result = await operations.execute(request.payload);
-        } else if (request.action === "operator-prepare") {
-          result = await operatorRegistry.prepareChange(request.payload);
-        } else {
-          result = await operatorRegistry.executeChange(request.payload);
-          rebindRequired = true;
-        }
-        response(socket, { ok: true, requestId: request.requestId, result });
-      })
-      .catch(() => {
+    let result;
+    if (request.action === "prepare") {
+      result = operations.prepare(request.payload);
+    } else if (request.action === "execute") {
+      result = await operations.execute(request.payload);
+    } else if (request.action === "operator-prepare") {
+      result = await operatorRegistry.prepareChange(request.payload);
+    } else {
+      result = await operatorRegistry.executeChange(request.payload);
+      rebindRequired = true;
+    }
+    return { ok: true, requestId: request.requestId, result };
+  });
+  queue = work.then(
+    () => undefined,
+    () => undefined,
+  );
+  return work.catch(() => ({
+    ok: false,
+    requestId: request.requestId,
+    code: "operation_rejected",
+  }));
+}
+
+function createUnixServer() {
+  return net.createServer((socket) => {
+    let carry = "";
+    let handled = false;
+    socket.setTimeout(30_000, () => socket.destroy());
+    socket.on("data", (chunk) => {
+      if (handled) return;
+      carry += chunk.toString("utf8");
+      if (Buffer.byteLength(carry, "utf8") > MAX_FRAME_BYTES) {
+        handled = true;
         response(socket, {
           ok: false,
-          requestId: request.requestId,
-          code: "operation_rejected",
+          requestId: null,
+          code: "request_too_large",
         });
-      });
+        return;
+      }
+      const frameEnd = carry.indexOf("\n");
+      if (frameEnd === -1) return;
+      handled = true;
+      if (carry.slice(frameEnd + 1).trim().length > 0) {
+        response(socket, { ok: false, requestId: null, code: "invalid_frame" });
+        return;
+      }
+      handleFrame(carry.slice(0, frameEnd).replace(/\r$/u, "")).then((value) =>
+        response(socket, value),
+      );
+    });
+    socket.on("error", () => {});
   });
-  socket.on("error", () => {});
+}
+
+let server = null;
+let pipeHost = null;
+if (process.platform === "win32") {
+  pipeHost = await createGovernedSkillSynthesisWindowsSecurePipeHost({
+    endpoint: bootstrap.endpoint,
+    maxFrameBytes: MAX_FRAME_BYTES,
+    onRequest: ({ frame, peer }) => handleFrame(frame, peer),
+  });
+  transportSecurity = pipeHost.security;
+} else {
+  server = createUnixServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(bootstrap.endpoint, resolve);
+  });
+  fs.chmodSync(bootstrap.endpoint, 0o600);
+  const uid = process.getuid?.();
+  transportSecurity = Object.freeze({
+    acl: "unix-owner-mode-0600",
+    aclDigest: `sha256:${createHash("sha256")
+      .update(
+        "chainlesschain.unix-domain-socket-mode/v1\0owner=rw,group=,other=",
+      )
+      .digest("hex")}`,
+    peerIdentity: "capability-authenticated-client",
+    principalDigest: `sha256:${createHash("sha256")
+      .update(`uid:${String(uid)}`)
+      .digest("hex")}`,
+    remoteClients: false,
+  });
+}
+const serviceDescriptor = Object.freeze({
+  ...serviceDescriptorCore,
+  transportSecurity,
 });
 
 const close = () => {
-  server.close(() => process.exit(0));
+  if (pipeHost) {
+    pipeHost.close().finally(() => process.exit(0));
+  } else {
+    server.close(() => process.exit(0));
+  }
   setTimeout(() => process.exit(1), 2_000).unref();
 };
 process.once("SIGTERM", close);
 process.once("SIGINT", close);
-server.listen(bootstrap.endpoint, () => {
-  if (process.platform !== "win32") fs.chmodSync(bootstrap.endpoint, 0o600);
-  process.stdout.write(
-    `${JSON.stringify({ ok: true, descriptor: serviceDescriptor })}\n`,
-  );
-});
+process.stdout.write(
+  `${JSON.stringify({ ok: true, descriptor: serviceDescriptor })}\n`,
+);

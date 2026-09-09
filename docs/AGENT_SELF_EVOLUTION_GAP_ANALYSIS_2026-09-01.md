@@ -2052,6 +2052,18 @@ approval service/client 同步升级至 v2，bootstrap 与公开 descriptor 新�
 
 这一批降低的是 bearer 泄露与重放窗口，不等于 OS peer identity：token 仍通过受控 bootstrap stdin 进入本机服务内存；Windows named-pipe 尚未用显式当前用户 SID DACL 和客户端进程 token 双重约束，Unix 尚未校验 `SO_PEERCRED/getpeereid`，也没有 KMS/HSM、远程 workload identity、集中式 capability 吊销/泄露告警与 break-glass。production 继续 `HOLD`，剩余边界为上述 OS/硬件身份、独立主机部署，以及 Ledger/witness 独立故障域和灾备演练。
 
+### 13.22 Windows signer/operations 命名管道 ACL 与 peer identity（2026-09-09）
+
+本批关闭 §13.21 明确保留的 Windows 本机 IPC 身份缺口。Node/libuv 的普通 `net.createServer()` 命名管道没有提供可审计的显式 owner-only DACL 或普通连接的 peer PID/token API，因此 Windows 路径改由随 npm 包交付的 PowerShell/.NET broker 创建 `NamedPipeServerStream`：安全描述符禁止继承，只允许当前进程用户 SID，并对 `NetworkSid` 添加显式 deny；这一实现遵循 Microsoft 的[命名管道安全与访问权限](https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipe-security-and-access-rights)边界，而不是依赖默认 DACL。broker 不把 SID 或 SDDL 暴露给 CLI，只在 service descriptor 中发布 ACL、当前主体和实际 SDDL 的 SHA-256 摘要，以及 `remoteClients=false` 声明。Unix 路径继续在 ready 前执行 socket `0600`，并用不同的 `peerIdentity=capability-authenticated-client` 明确表示尚未完成原生 peer credential 校验，避免把两种平台的保证混写。
+
+每个 Windows 连接建立后，broker 通过 Microsoft 定义的 [`GetNamedPipeClientProcessId`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getnamedpipeclientprocessid) 取得内核报告的客户端 PID，再打开该进程 token、提取 user SID，并同时要求它等于服务当前用户 SID。approval/operations IPC 与共享 capability 协议升级到 v3/v2：client 把自身 PID 纳入请求，HMAC 现在覆盖 `schema + requestId + capabilityId + clientProcessId + action + payload`；broker 在把帧交给 Node signer/writer 前比较声明 PID 与内核 PID，Node 服务又比较 broker peer envelope、签名 PID 和公开 principal digest。因而即使调用者持有合法短时 capability，也不能把另一个 PID 写入已认证帧；PID、payload、action、requestId 任一变更都会使 broker 身份检查或 HMAC 检查失败。
+
+broker 仍保持单响应顺序，但每次接受连接后先创建同 ACL 的下一管道实例，允许后续本机请求在内核中等待，避免响应完成与下一实例建立之间出现 `ENOENT` 窗口；帧按总计 30 秒和 256 KiB 边界读取，UTF-8 非法、超时、超限、控制通道响应错绑均失败关闭。npm `files` 白名单已加入 broker 脚本，安装包不会缺失 Windows 安全 transport。
+
+Windows 专项真实子进程测试验证了：descriptor 为 protected current-user DACL、远程客户端关闭、正常 signer/writer 请求成功，以及“能力票据正确但声明 PID 伪造”在进入 signer 前返回 `peer_identity_denied`；approval、operations 与 CLI host 三个文件共 **12/12** 通过。真实本地火山引擎 Pilot 使用 `deepseek-v4-flash-260425` 在 **38.545 秒**完成，生成 candidate-only `service-security-configuration-review`（939 bytes，digest `sha256:779adccebdcbe927087519c5a611abd3d0e0f30548ebb768c7157565a7845423`），模型一次评分 `1.0`，operator rotation record/Ledger digest 分别为 `sha256:1c1165104efb15ef4829dd4171cbf9c311d4b94a0689334d3ca49730e42fdb79`、`sha256:ac1e982ab763b39c27443dcbab81ff7f99202bb9af78dcbe8514627b06647a5e`，revision 2 operations/approval 均为 `external-service/local-ipc-v3`，`activeMutationCount=0`。
+
+这使 Windows 上的个人 `1-of-1` 与团队 quorum reference service 同时具备短时 capability、重放防护、当前用户 DACL、远程网络 token 拒绝、客户端 PID 和 token SID 绑定；但它仍是同机软件身份，不是独立主机、服务账号、KMS/HSM 或不可导出密钥。production 继续 `HOLD`：尚需 Unix `SO_PEERCRED/getpeereid`、生产 KMS/HSM/远程签名 adapter、workload identity/mTLS、集中 capability 吊销与泄露告警、break-glass，以及 Ledger/witness 独立故障域和目标租户灾备演练。Windows 跨用户、远程 SMB 和不同完整性级别的目标环境矩阵也应作为发布验收，而不能只以同一开发机测试替代。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

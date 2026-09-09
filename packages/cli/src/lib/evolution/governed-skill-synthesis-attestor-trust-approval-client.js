@@ -19,11 +19,11 @@ import {
 } from "./governed-skill-synthesis-attestor-trust-ipc-capability.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v3";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v4";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-ipc/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-ipc/v3";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v3";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v4";
 
 const CLIENTS = new WeakSet();
 const WINDOWS_PIPE =
@@ -55,6 +55,14 @@ const DESCRIPTOR_KEYS = new Set([
   "schema",
   "signerId",
   "tenantId",
+  "transportSecurity",
+]);
+const TRANSPORT_SECURITY_KEYS = new Set([
+  "acl",
+  "aclDigest",
+  "peerIdentity",
+  "principalDigest",
+  "remoteClients",
 ]);
 const APPROVAL_KEYS = new Set([
   "approvedAt",
@@ -149,6 +157,28 @@ function normalizeDescriptor(value, capabilityToken, now) {
   ) {
     throw new TypeError("approval service descriptor is invalid");
   }
+  exact(
+    value.transportSecurity,
+    TRANSPORT_SECURITY_KEYS,
+    "approval transport security",
+  );
+  const expectedAcl =
+    process.platform === "win32"
+      ? "protected-current-user-dacl"
+      : "unix-owner-mode-0600";
+  const expectedPeerIdentity =
+    process.platform === "win32"
+      ? "client-process-token-user-sid"
+      : "capability-authenticated-client";
+  if (
+    value.transportSecurity.acl !== expectedAcl ||
+    value.transportSecurity.peerIdentity !== expectedPeerIdentity ||
+    value.transportSecurity.remoteClients !== false ||
+    !DIGEST.test(value.transportSecurity.aclDigest ?? "") ||
+    !DIGEST.test(value.transportSecurity.principalDigest ?? "")
+  ) {
+    throw new TypeError("approval transport security is invalid");
+  }
   let publicKey;
   try {
     const bytes = Buffer.from(value.publicKeySpki, "base64url");
@@ -171,6 +201,9 @@ function normalizeDescriptor(value, capabilityToken, now) {
   });
   const descriptor = structuredClone(value);
   descriptor.capability = capability;
+  descriptor.transportSecurity = Object.freeze({
+    ...descriptor.transportSecurity,
+  });
   return {
     descriptor: Object.freeze(descriptor),
     publicKey,
@@ -259,6 +292,7 @@ function callService({
       createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
         action,
         capabilityId: capability.id,
+        clientProcessId: process.pid,
         payload,
         requestId,
         schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
@@ -288,6 +322,7 @@ function callService({
           schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
           requestId,
           capabilityId: capability.id,
+          clientProcessId: process.pid,
           authorization,
           action,
           payload,
@@ -393,7 +428,7 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_CLIENT_SCHEMA,
     isolation: "external-service",
-    transport: "local-ipc-v2",
+    transport: "local-ipc-v3",
     endpointDigest: `sha256:${createHash("sha256")
       .update(target, "utf8")
       .digest("hex")}`,

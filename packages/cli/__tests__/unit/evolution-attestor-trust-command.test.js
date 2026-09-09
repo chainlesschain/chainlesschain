@@ -152,9 +152,22 @@ async function fixture({
     expiresAt: new Date(NOW + 10 * 60 * 1000).toISOString(),
     maxUses: 16,
   };
+  const transportSecurity = {
+    acl:
+      process.platform === "win32"
+        ? "protected-current-user-dacl"
+        : "unix-owner-mode-0600",
+    aclDigest: digest("test-transport-acl"),
+    peerIdentity:
+      process.platform === "win32"
+        ? "client-process-token-user-sid"
+        : "capability-authenticated-client",
+    principalDigest: digest("test-transport-principal"),
+    remoteClients: false,
+  };
   const service = Object.freeze({
     schema:
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5",
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v6",
     capability: {
       id: governedSkillSynthesisAttestorTrustIpcCapabilityId({
         service: "attestor-trust-operations",
@@ -174,6 +187,7 @@ async function fixture({
     operatorRegistryRecordDigest: digest("operator-registry-record"),
     operatorRegistryRecovered: true,
     approvalMode: "single-operator",
+    transportSecurity,
   });
   const calls = [];
   const server = net.createServer((socket) => {
@@ -262,7 +276,7 @@ async function fixture({
       capabilityToken: approvalCapabilityToken,
       descriptor: {
         schema:
-          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v3",
+          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v4",
         capability: {
           id: governedSkillSynthesisAttestorTrustIpcCapabilityId({
             service: "attestor-trust-approval",
@@ -278,6 +292,7 @@ async function fixture({
         revision: service.revision,
         policyDigest: service.policyDigest,
         publicKeySpki: operatorSpki.toString("base64url"),
+        transportSecurity,
         ...approvalPolicyOverrides,
       },
       timeoutMs: 5_000,

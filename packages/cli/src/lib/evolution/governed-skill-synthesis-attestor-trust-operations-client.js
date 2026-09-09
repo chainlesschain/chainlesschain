@@ -9,9 +9,9 @@ import {
 } from "./governed-skill-synthesis-attestor-trust-ipc-capability.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v5";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v6";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v3";
 
 const CLIENTS = new WeakSet();
 const WINDOWS_PIPE =
@@ -44,8 +44,16 @@ const DESCRIPTOR_KEYS = new Set([
   "revision",
   "schema",
   "tenantId",
+  "transportSecurity",
 ]);
 const OPERATOR_KEYS = new Set(["keyId", "operatorId"]);
+const TRANSPORT_SECURITY_KEYS = new Set([
+  "acl",
+  "aclDigest",
+  "peerIdentity",
+  "principalDigest",
+  "remoteClients",
+]);
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -112,7 +120,7 @@ function normalizeDescriptor(value, capabilityToken, now) {
   exact(value, DESCRIPTOR_KEYS, "operations service descriptor");
   if (
     value.schema !==
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5" ||
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v6" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.policyDigest ?? "") ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 1 ||
@@ -126,6 +134,30 @@ function normalizeDescriptor(value, capabilityToken, now) {
     typeof value.operatorRegistryRecovered !== "boolean"
   ) {
     throw new TypeError("operations service descriptor is invalid");
+  }
+  exact(
+    value.transportSecurity,
+    TRANSPORT_SECURITY_KEYS,
+    "operations transport security",
+  );
+  const expectedAcl =
+    process.platform === "win32"
+      ? "protected-current-user-dacl"
+      : "unix-owner-mode-0600";
+  const expectedPeerIdentity =
+    process.platform === "win32"
+      ? "client-process-token-user-sid"
+      : "capability-authenticated-client";
+  if (
+    value.transportSecurity.acl !== expectedAcl ||
+    value.transportSecurity.peerIdentity !== expectedPeerIdentity ||
+    value.transportSecurity.remoteClients !== false ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value.transportSecurity.aclDigest ?? "") ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      value.transportSecurity.principalDigest ?? "",
+    )
+  ) {
+    throw new TypeError("operations transport security is invalid");
   }
   for (const [field, maximum] of [
     ["tenantId", 256],
@@ -188,6 +220,7 @@ function normalizeDescriptor(value, capabilityToken, now) {
   for (const operator of cloned.operators) Object.freeze(operator);
   Object.freeze(cloned.operators);
   cloned.capability = capability;
+  cloned.transportSecurity = Object.freeze({ ...cloned.transportSecurity });
   return Object.freeze(cloned);
 }
 
@@ -217,6 +250,7 @@ function callService({
       createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
         action,
         capabilityId: capability.id,
+        clientProcessId: process.pid,
         payload,
         requestId,
         schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA,
@@ -246,6 +280,7 @@ function callService({
           schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA,
           requestId,
           capabilityId: capability.id,
+          clientProcessId: process.pid,
           authorization,
           action,
           payload,
@@ -350,7 +385,7 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsClient(
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA,
     isolation: "external-service",
-    transport: "local-ipc-v2",
+    transport: "local-ipc-v3",
     endpointDigest: `sha256:${createHash("sha256")
       .update(target, "utf8")
       .digest("hex")}`,

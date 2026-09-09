@@ -197,6 +197,19 @@ describe("attestor trust operations local service", () => {
     );
     expect(started.child.pid).not.toBe(process.pid);
     expect(JSON.stringify(started.descriptor)).not.toContain("publicKeyPem");
+    expect(started.descriptor.transportSecurity).toMatchObject(
+      process.platform === "win32"
+        ? {
+            acl: "protected-current-user-dacl",
+            peerIdentity: "client-process-token-user-sid",
+            remoteClients: false,
+          }
+        : {
+            acl: "unix-owner-mode-0600",
+            peerIdentity: "capability-authenticated-client",
+            remoteClients: false,
+          },
+    );
     const client = createGovernedSkillSynthesisAttestorTrustOperationsClient({
       endpoint: target,
       capabilityToken,
@@ -209,7 +222,7 @@ describe("attestor trust operations local service", () => {
     expect(client).not.toHaveProperty("registerKey");
     expect(client.descriptor).toMatchObject({
       isolation: "external-service",
-      transport: "local-ipc-v2",
+      transport: "local-ipc-v3",
       service: {
         approvalMode: "single-operator",
         requiredApprovals: 1,

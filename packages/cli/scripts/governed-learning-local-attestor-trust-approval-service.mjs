@@ -15,6 +15,7 @@ import {
 } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
+import { createGovernedSkillSynthesisWindowsSecurePipeHost } from "../src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js";
 
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}$/u;
@@ -155,7 +156,7 @@ const registryIssuer =
 if (trustIssuer.keyId !== keyId || registryIssuer.keyId !== keyId) {
   throw new Error("approval service issuer key binding failed");
 }
-const descriptor = Object.freeze({
+const descriptorCore = Object.freeze({
   schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
   tenantId: bootstrap.tenantId,
   operatorId: bootstrap.operatorId,
@@ -174,105 +175,158 @@ if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
 
 let requestCount = 0;
 const usedRequestIds = new Set();
-const server = net.createServer((socket) => {
-  let carry = "";
-  let handled = false;
-  socket.setTimeout(30_000, () => socket.destroy());
-  socket.on("data", (chunk) => {
-    if (handled) return;
-    carry += chunk.toString("utf8");
-    if (Buffer.byteLength(carry, "utf8") > MAX_FRAME_BYTES) {
-      handled = true;
-      response(socket, {
-        ok: false,
-        requestId: null,
-        code: "request_too_large",
-      });
-      return;
-    }
-    const frameEnd = carry.indexOf("\n");
-    if (frameEnd === -1) return;
-    handled = true;
-    let request;
-    try {
-      request = JSON.parse(carry.slice(0, frameEnd).replace(/\r$/u, ""));
-    } catch {
-      response(socket, { ok: false, requestId: null, code: "invalid_json" });
-      return;
-    }
+let transportSecurity;
+
+function handleFrame(frame, peer = null) {
+  let request;
+  try {
+    request = JSON.parse(frame);
+  } catch {
+    return { ok: false, requestId: null, code: "invalid_json" };
+  }
+  if (
+    !exact(
+      request,
+      new Set([
+        "action",
+        "authorization",
+        "capabilityId",
+        "clientProcessId",
+        "payload",
+        "requestId",
+        "schema",
+      ]),
+    ) ||
+    request.schema !==
+      GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA ||
+    !Number.isSafeInteger(request.clientProcessId) ||
+    request.clientProcessId < 1 ||
+    (process.platform === "win32" &&
+      (peer?.processId !== request.clientProcessId ||
+        peer?.principalDigest !== transportSecurity?.principalDigest)) ||
+    !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
+    request.capabilityId !== capability.id ||
+    !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+      authorization: request.authorization,
+      action: request.action,
+      capabilityId: request.capabilityId,
+      clientProcessId: request.clientProcessId,
+      payload: request.payload,
+      requestId: request.requestId,
+      schema: request.schema,
+      token: bootstrap.capabilityToken,
+    }) ||
+    usedRequestIds.has(request.requestId) ||
+    !["approve", "operator-approve"].includes(request.action) ||
+    requestCount >= capability.maxUses ||
+    Date.now() >= Date.parse(capability.expiresAt)
+  ) {
+    return {
+      ok: false,
+      requestId: request?.requestId ?? null,
+      code: "request_denied",
+    };
+  }
+  usedRequestIds.add(request.requestId);
+  requestCount += 1;
+  try {
     if (
-      !exact(
-        request,
-        new Set([
-          "action",
-          "authorization",
-          "capabilityId",
-          "payload",
-          "requestId",
-          "schema",
-        ]),
-      ) ||
-      request.schema !==
-        GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA ||
-      carry.slice(frameEnd + 1).trim().length > 0 ||
-      !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
-      request.capabilityId !== capability.id ||
-      !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
-        authorization: request.authorization,
-        action: request.action,
-        capabilityId: request.capabilityId,
-        payload: request.payload,
-        requestId: request.requestId,
-        schema: request.schema,
-        token: bootstrap.capabilityToken,
-      }) ||
-      usedRequestIds.has(request.requestId) ||
-      !["approve", "operator-approve"].includes(request.action) ||
-      requestCount >= capability.maxUses ||
-      Date.now() >= Date.parse(capability.expiresAt)
+      request.payload?.tenantId !== bootstrap.tenantId ||
+      request.payload?.policyDigest !== bootstrap.policyDigest ||
+      (request.action === "operator-approve" &&
+        (request.payload?.policyId !== bootstrap.policyId ||
+          request.payload?.revision !== bootstrap.revision))
     ) {
-      response(socket, {
-        ok: false,
-        requestId: request?.requestId ?? null,
-        code: "request_denied",
-      });
-      return;
+      throw new Error("approval request crossed its pinned policy");
     }
-    usedRequestIds.add(request.requestId);
-    requestCount += 1;
-    try {
-      if (
-        request.payload?.tenantId !== bootstrap.tenantId ||
-        request.payload?.policyDigest !== bootstrap.policyDigest ||
-        (request.action === "operator-approve" &&
-          (request.payload?.policyId !== bootstrap.policyId ||
-            request.payload?.revision !== bootstrap.revision))
-      ) {
-        throw new Error("approval request crossed its pinned policy");
+    const result =
+      request.action === "approve"
+        ? trustIssuer.issue(request.payload)
+        : registryIssuer.issue(request.payload);
+    return { ok: true, requestId: request.requestId, result };
+  } catch {
+    return {
+      ok: false,
+      requestId: request.requestId,
+      code: "approval_rejected",
+    };
+  }
+}
+
+function createUnixServer() {
+  return net.createServer((socket) => {
+    let carry = "";
+    let handled = false;
+    socket.setTimeout(30_000, () => socket.destroy());
+    socket.on("data", (chunk) => {
+      if (handled) return;
+      carry += chunk.toString("utf8");
+      if (Buffer.byteLength(carry, "utf8") > MAX_FRAME_BYTES) {
+        handled = true;
+        response(socket, {
+          ok: false,
+          requestId: null,
+          code: "request_too_large",
+        });
+        return;
       }
-      const result =
-        request.action === "approve"
-          ? trustIssuer.issue(request.payload)
-          : registryIssuer.issue(request.payload);
-      response(socket, { ok: true, requestId: request.requestId, result });
-    } catch {
-      response(socket, {
-        ok: false,
-        requestId: request.requestId,
-        code: "approval_rejected",
-      });
-    }
+      const frameEnd = carry.indexOf("\n");
+      if (frameEnd === -1) return;
+      handled = true;
+      if (carry.slice(frameEnd + 1).trim().length > 0) {
+        response(socket, { ok: false, requestId: null, code: "invalid_frame" });
+        return;
+      }
+      response(
+        socket,
+        handleFrame(carry.slice(0, frameEnd).replace(/\r$/u, "")),
+      );
+    });
+    socket.on("error", () => {});
   });
-  socket.on("error", () => {});
-});
+}
+
+let server = null;
+let pipeHost = null;
+if (process.platform === "win32") {
+  pipeHost = await createGovernedSkillSynthesisWindowsSecurePipeHost({
+    endpoint: bootstrap.endpoint,
+    maxFrameBytes: MAX_FRAME_BYTES,
+    onRequest: ({ frame, peer }) => handleFrame(frame, peer),
+  });
+  transportSecurity = pipeHost.security;
+} else {
+  server = createUnixServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(bootstrap.endpoint, resolve);
+  });
+  fs.chmodSync(bootstrap.endpoint, 0o600);
+  const uid = process.getuid?.();
+  transportSecurity = Object.freeze({
+    acl: "unix-owner-mode-0600",
+    aclDigest: `sha256:${createHash("sha256")
+      .update(
+        "chainlesschain.unix-domain-socket-mode/v1\0owner=rw,group=,other=",
+      )
+      .digest("hex")}`,
+    peerIdentity: "capability-authenticated-client",
+    principalDigest: `sha256:${createHash("sha256")
+      .update(`uid:${String(uid)}`)
+      .digest("hex")}`,
+    remoteClients: false,
+  });
+}
+const descriptor = Object.freeze({ ...descriptorCore, transportSecurity });
 
 const close = () => {
-  server.close(() => process.exit(0));
+  if (pipeHost) {
+    pipeHost.close().finally(() => process.exit(0));
+  } else {
+    server.close(() => process.exit(0));
+  }
   setTimeout(() => process.exit(1), 2_000).unref();
 };
 process.once("SIGTERM", close);
 process.once("SIGINT", close);
-server.listen(bootstrap.endpoint, () => {
-  if (process.platform !== "win32") fs.chmodSync(bootstrap.endpoint, 0o600);
-  process.stdout.write(`${JSON.stringify({ ok: true, descriptor })}\n`);
-});
+process.stdout.write(`${JSON.stringify({ ok: true, descriptor })}\n`);

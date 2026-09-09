@@ -942,11 +942,23 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustRegistration.authorizationDigest !==
       attestorTrustExecution.authorization?.authorizationDigest ||
     attestorTrustOperations.descriptor.isolation !== "external-service" ||
-    attestorTrustOperations.descriptor.transport !== "local-ipc-v2" ||
+    attestorTrustOperations.descriptor.transport !== "local-ipc-v3" ||
     !Number.isSafeInteger(attestorTrustOperationsProcess?.pid) ||
     attestorTrustOperationsProcess.pid === process.pid ||
     trustApprovalClient.descriptor.isolation !== "external-service" ||
-    trustApprovalClient.descriptor.transport !== "local-ipc-v2" ||
+    trustApprovalClient.descriptor.transport !== "local-ipc-v3" ||
+    attestorTrustOperations.descriptor.service.transportSecurity?.acl !==
+      (process.platform === "win32"
+        ? "protected-current-user-dacl"
+        : "unix-owner-mode-0600") ||
+    trustApprovalClient.descriptor.service.transportSecurity?.acl !==
+      (process.platform === "win32"
+        ? "protected-current-user-dacl"
+        : "unix-owner-mode-0600") ||
+    attestorTrustOperations.descriptor.service.transportSecurity
+      ?.remoteClients !== false ||
+    trustApprovalClient.descriptor.service.transportSecurity?.remoteClients !==
+      false ||
     trustApprovalClient.descriptor.service.operatorId !==
       "operator:local-owner" ||
     trustApprovalClient.descriptor.service.keyId !==
@@ -1148,9 +1160,10 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the operator policy genesis and signed register, rotate, and revoke mutations are durably pinned in ArtifactStore/EvolutionLedger; this pilot rotates its 1-of-1 personal-AI owner key and rebinds the service before attestor enrollment",
           "operator mutations require a new operations endpoint and capability binding; the old process refuses ordinary trust lifecycle work after a successful policy change",
           "operations and approval IPC use short-lived domain-separated HMAC capabilities with bounded uses and request-ID replay rejection; capability tokens are not sent in request frames or published in descriptors",
+          "Windows operations and approval pipes use a protected current-user DACL with an explicit Network SID deny; a broker verifies the kernel-reported client PID and process-token user SID, and the HMAC proof binds the claimed PID; Unix sockets are mode 0600 but still need native peer-credential verification",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator delivers each ephemeral operator key once to a separate local signer process, then uses only its pinned public descriptor and IPC capability for approvals; production must replace this bootstrap with KMS/HSM key ownership",
-          "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",
+          "the pilot orchestrator bootstraps both same-host services; this validates process and Windows local-IPC identity boundaries but is not an independent-host workload identity or KMS/HSM boundary",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",
           "Ledger and witness use separate keys but remain on the same host",

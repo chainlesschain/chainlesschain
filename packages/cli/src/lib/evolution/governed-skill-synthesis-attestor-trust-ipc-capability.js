@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_IPC_CAPABILITY_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-ipc-capability/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-ipc-capability/v2";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const AUTHORIZATION = /^[A-Za-z0-9_-]{43}$/u;
@@ -50,12 +50,13 @@ function safeEqual(left, right) {
 function capabilityMessage({
   action,
   capabilityId,
+  clientProcessId,
   payload,
   requestId,
   schema,
 }) {
   return `${GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_IPC_CAPABILITY_SCHEMA}\0${canonical(
-    { action, capabilityId, payload, requestId, schema },
+    { action, capabilityId, clientProcessId, payload, requestId, schema },
   )}`;
 }
 
@@ -78,17 +79,30 @@ export function governedSkillSynthesisAttestorTrustIpcCapabilityId({
 export function createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
   action,
   capabilityId,
+  clientProcessId,
   payload,
   requestId,
   schema,
   token,
 }) {
-  if (!DIGEST.test(capabilityId ?? "") || !validToken(token)) {
+  if (
+    !DIGEST.test(capabilityId ?? "") ||
+    !Number.isSafeInteger(clientProcessId) ||
+    clientProcessId < 1 ||
+    !validToken(token)
+  ) {
     throw new TypeError("attestor trust IPC capability is invalid");
   }
   return createHmac("sha256", token)
     .update(
-      capabilityMessage({ action, capabilityId, payload, requestId, schema }),
+      capabilityMessage({
+        action,
+        capabilityId,
+        clientProcessId,
+        payload,
+        requestId,
+        schema,
+      }),
     )
     .digest("base64url");
 }
