@@ -21,6 +21,18 @@ const { logger } = require("../utils/logger.js");
 const { SDClient } = require("./sd-client.js");
 const { DALLEClient, DALLEModel } = require("./dalle-client.js");
 
+// This legacy manager is reachable through its own Desktop IPC surface, but
+// does not receive the authenticated Desktop model-ingress capability. Keep
+// that surface fail-closed rather than allowing its cache or provider fallback
+// to become a second multimodal egress path.
+function assertGovernedMultimodalIngress() {
+  const error = new Error(
+    "External image generation requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * Image generation providers
  */
@@ -138,6 +150,7 @@ class ImageGenManager extends EventEmitter {
    * @returns {Promise<Object>} Generated image(s)
    */
   async generate(prompt, options = {}) {
+    assertGovernedMultimodalIngress();
     const provider = options.provider || this.config.defaultProvider;
     const selectedProvider =
       provider === ImageProvider.AUTO ? this._getPreferredProvider() : provider;
@@ -185,6 +198,10 @@ class ImageGenManager extends EventEmitter {
     } catch (error) {
       this.stats.errors++;
 
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
+
       // Try fallback if enabled
       if (this.config.fallbackEnabled && provider === ImageProvider.AUTO) {
         const fallbackProvider = this._getFallbackProvider(selectedProvider);
@@ -209,6 +226,7 @@ class ImageGenManager extends EventEmitter {
    * @returns {Promise<Object>} Generated image(s)
    */
   async img2img(prompt, initImage, options = {}) {
+    assertGovernedMultimodalIngress();
     const provider = options.provider || ImageProvider.SD_LOCAL;
 
     if (provider !== ImageProvider.SD_LOCAL) {
@@ -229,6 +247,7 @@ class ImageGenManager extends EventEmitter {
    * @returns {Promise<Object>} Upscaled image
    */
   async upscale(image, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.providerStatus[ImageProvider.SD_LOCAL]) {
       throw new Error("Upscaling requires Stable Diffusion");
     }
@@ -243,6 +262,7 @@ class ImageGenManager extends EventEmitter {
    * @returns {Promise<Object>} Variations
    */
   async createVariations(image, options = {}) {
+    assertGovernedMultimodalIngress();
     if (!this.providerStatus[ImageProvider.DALLE]) {
       throw new Error("DALL-E is not available");
     }

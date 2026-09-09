@@ -115,6 +115,20 @@ stream suites pass 70 tests.
 This covers direct streams, QuickAsk, intent routes and legacy chat sessions.
 It does not establish that every model entry in the repository has been audited;
 the repository-wide final-entry audit remains open.
+
+### Legacy image-generation IPC (2026-09-09 follow-up)
+
+`src/main/image-gen/image-gen-ipc.js` still exposes text generation,
+image-to-image, variation, and upscaling handlers. Its `ImageGenManager` is not
+supplied an authenticated Desktop model-ingress capability, so all four
+content-bearing public methods now fail closed before cache lookup, provider
+selection, or fallback. The exported `SDClient` (`txt2img`, `img2img`,
+`upscale`) and `DALLEClient` (`generate`, `createVariation`, `edit`) retain the
+same pre-`fetch` gate. Status, model selection, progress, and interruption are
+control-plane calls and do not carry user model content. This preserves the
+legacy surface for a future governed bridge without treating it as a usable
+direct model path today.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.
