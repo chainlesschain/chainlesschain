@@ -59,6 +59,15 @@ not live event append, batching, a concrete durable directory/head deployment,
 migration, or an assertion that its in-memory test directory/head store and
 file witness are independent production fault domains.
 
+`evolution-ledger-file-manifest-catalog.js` now supplies a concrete local
+directory backend for the catalog contract. It guards compare-and-append with
+the repository's strict cross-process file lock, writes a private staged file,
+fsyncs the file and directory where supported, atomically renames it, and
+compares exact bytes on readback. This closes the local catalog durability test
+gap but is deliberately marked `localOnly`: a private mutable filesystem is
+not external immutable retention authority and cannot qualify the fast path or
+the production capacity claim.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke

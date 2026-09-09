@@ -12,6 +12,7 @@ import {
   createImmutableLedgerSegmentStorePort,
 } from "../../src/lib/evolution/evolution-immutable-ledger-segment-store.js";
 import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
+import { createEvolutionLedgerFileManifestCatalogBackend } from "../../src/lib/evolution/evolution-ledger-file-manifest-catalog.js";
 import {
   EVOLUTION_LEDGER_MANIFEST_CATALOG_APPEND_RESULT_SCHEMA,
   createEvolutionLedgerManifestCatalog,
@@ -248,7 +249,7 @@ function witnessDescriptor(trust) {
   };
 }
 
-function fixture(root, { catalogPort, witnessPort } = {}) {
+function fixture(root, { catalogPort, fileCatalog = false, witnessPort } = {}) {
   const authority = manifestAuthority();
   const segments = segmentStore();
   const heads = headStore(authority);
@@ -278,7 +279,13 @@ function fixture(root, { catalogPort, witnessPort } = {}) {
     },
   };
   const catalog = createEvolutionLedgerManifestCatalog({
-    backend: catalogPort?.(manifests, defaultCatalogPort) ?? defaultCatalogPort,
+    backend:
+      catalogPort?.(manifests, defaultCatalogPort) ??
+      (fileCatalog
+        ? createEvolutionLedgerFileManifestCatalogBackend({
+            directoryPath: path.join(root, "manifest-catalog"),
+          })
+        : defaultCatalogPort),
     descriptor: descriptor(),
     manifestAuthority: authority,
   });
@@ -315,7 +322,7 @@ describe("Evolution Ledger v2 manifest backend", () => {
   it("publishes a segment only after CAS and witnessed durable readback", () => {
     const directory = root();
     try {
-      const value = fixture(directory);
+      const value = fixture(directory, { fileCatalog: true });
       const initial = value.backend.read();
       const receipt = value.backend.appendSegment({
         eventDigests: [digest("c"), digest("d")],
@@ -356,7 +363,7 @@ describe("Evolution Ledger v2 manifest backend", () => {
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
     }
-  });
+  }, 20000);
 
   it("returns a conflict before retaining a segment when the caller snapshot is stale", () => {
     const directory = root();
