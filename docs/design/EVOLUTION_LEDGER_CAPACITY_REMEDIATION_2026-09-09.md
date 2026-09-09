@@ -45,6 +45,18 @@ requires distinct manifest and witness key identities but does not itself
 provision an external witness fault domain, so production qualification and
 physical-fault evidence remain open.
 
+`evolution-ledger-v2-manifest-backend.js` now composes the four v2 durability
+contracts for sealed digest segments: immutable retain plus same-version
+readback, signed-head CAS plus readback, witness-digest CAS plus durable
+readback, and a final coherent head/witness read. It returns a normal segment
+receipt only after all four confirmations. A stale precondition returns an
+explicit conflict before retention; once head CAS begins, any failed or
+ambiguous witness/final-read phase is `COMMIT_UNKNOWN` and requires reopening
+instead of retrying. This is still a sealed-segment backend, not live event
+append, batching, a durable manifest catalogue, migration, or an assertion
+that its in-memory test head store and file witness are independent production
+fault domains.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke
@@ -119,8 +131,9 @@ silently use the fast path.
    Add adversarial tests for replacement, deletion, stale version, foreign
    tenant, proof replay, and cross-ledger substitution.
 2. Add a versioned manifest-chain ledger backend beside the current file
-   backend. Preserve v1 read/export and provide a journaled, resumable,
-   witness-bound migration; no in-place rewrite.
+   backend. The sealed-segment compose layer is implemented; preserve v1
+   read/export and provide a durable manifest catalogue plus a journaled,
+   resumable, witness-bound migration; no in-place rewrite.
 3. Define batch admission separately from normal append. A batch has one
    prepare/finalize authority and exposes per-event receipts only after the
    manifest and witness commit. Test all crash points and duplicate/idempotent
