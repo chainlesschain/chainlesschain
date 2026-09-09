@@ -1927,7 +1927,19 @@ attestor worker 和 credential resolver 均执行 single-link/realpath/长度/SH
 
 受影响的 12 个测试文件合计 **134 passed、1 个既有平台条件 skip**；定向覆盖 loader capability surface、只读 wrapper、完整外部 signer/evaluator/trust-ledger/CLI 链路及既有轮换撤销语义。ESLint、Prettier 和真实火山 Pilot 均通过。
 
-这一纵切关闭的是“默认 learning deployment 可以取得 attestor trust writer”以及“Pilot 由 CLI deployment 自行登记信任 key”的仓库缺口，不等于生产控制面已经部署。当前 Pilot orchestrator 与 CLI 仍在同一主机，持有本机临时 HMAC authority，并负责生成/bootstrap signer key 与 capability；尚无独立服务账户、operator identity、双人审批、真实 KMS/HSM/workload identity、认证撤销分发、管道 ACL、独立故障域和 Windows 原生目录 durability 验收。因此 production auto-promotion 继续 `HOLD`。下一阶段应交付独立签名运维 service/CLI，以 operator identity 和双人审批管理 lifecycle writer，以 workload identity 连接真实 KMS/HSM/远端 signer，再完成生产 PKI/witness、独立 grader/safety authority、hidden holdout、人工 review 与 shadow/canary。
+这一纵切关闭的是“默认 learning deployment 可以取得 attestor trust writer”以及“Pilot 由 CLI deployment 自行登记信任 key”的仓库缺口，不等于生产控制面已经部署。当时 Pilot orchestrator 与 CLI 仍在同一主机，且没有 operation-specific operator quorum；下一节继续补齐可配置单人/多人签名执行门。独立服务账户、durable authorization、真实 KMS/HSM/workload identity、认证撤销分发、管道 ACL、独立故障域和 Windows 原生目录 durability 等生产缺口仍然成立，因此 production auto-promotion 继续 `HOLD`。
+
+### 13.13 可配置单人/多人 attestor trust 运维审批（2026-09-09）
+
+本批新增 `GovernedSkillSynthesisAttestorTrustOperations` 受限运维端口和 Ed25519 operator approval issuer。端口只接受同租户、真实品牌化的 attestor trust lifecycle writer，本身只暴露 `prepare()` / `execute()`，不把 writer 或 register/rotate/revoke 方法交给调用者。每个 register、rotate、revoke 请求都固定 tenant、service、目标 key/SPKI、prior key、reason、policy digest、required approvals、签发/到期时间和 request digest；审批 receipt 固定 operator、非自动化标记、request/policy digest、审批/到期时间和 Ed25519 key ID/signature。策略 revision、操作员 ID/key 集合和 quorum 共同形成 policy digest，因此不能把 2-of-N 请求降为 1-of-N 后复用签名，也不能替换 service、key、prior key 或 reason。
+
+quorum 是显式部署策略而非硬编码双人：个人 AI 可配置 `requiredApprovals=1`，descriptor 标记 `single-operator`；团队/生产可配置 2-of-N 或更高并标记 `multi-operator`。多人执行要求审批数恰好等于策略 quorum，且 operator ID 和 Ed25519 key 都必须互异并存在于同租户静态 registry；未知、重复、伪签名、过期、跨租户 writer、请求篡改和策略降级全部失败关闭。单元测试实际覆盖 1-of-1 注册以及 2-of-3 注册，证明个人场景不会被强制双人审批，同时受管部署不会被单人策略降级。
+
+真实 Windows 火山 Pilot 已改为由 orchestrator 生成个人 operator 身份，通过 `policy:local-personal-ai-attestor-trust` 的 1-of-1 签名审批后才注册 evaluation attestor key；learning deployment 仍只取得只读 verifier。`deepseek-v4-flash-260425` 在 **15.665 秒**完成，生成 candidate-only `service-security-config-review`（941 bytes，摘要 `sha256:d319cc7628466d5cd6c550aefcfa850d3d71629b2b0a9fa752b6b1a7851181af`），grader 一次评分 1.0；evaluation receipt/persistence/Ledger event digest 分别为 `sha256:09992491ba950cae5b5fd236eea85c88fcf95a8ca20b5934e5d23b6579339797`、`sha256:e1aa99adfe33969bab916dbe32c610bb1757fa603935f9d2400ae5ceca9ad8d8`、`sha256:01e92da41696cd2daf4544abf9398e303b6e451b6d2f85bf6645087d4ccabafc`。trust record/authorization digest 分别为 `sha256:eb5e25782c88d1f287d74ec4ad5c89e385368382176466003d919e8d9d82a4db`、`sha256:88df2ae7845c12845e843b49f2c2ad029d13b89b1dfbe6291f03b5418c9d392b`，approval mode 为 `single-operator`，required approvals 为 1，operator 为 `operator:local-owner`，active mutation 为 0。
+
+定向 loader、trust lifecycle 与 operations 回归合计 **49/49 passed**；覆盖单人策略、不同操作员多人 quorum、重复审批、伪签名、过期、跨租户、请求替换与 policy downgrade。ESLint、Prettier 和真实火山 Pilot 均通过。
+
+这一阶段建立了可配置 operator quorum 的密码学执行门，但尚未声称独立生产运维面完成：authorization 当前随调用结果返回，尚未作为独立 ArtifactStore/EvolutionLedger record 持久化并与 lifecycle record 双向绑定；executor 仍运行在 Pilot 父级 orchestrator，而非独立 service/CLI；operator registry/key 也是本机静态临时值，未接组织身份、撤销、双人审批交互、KMS/HSM 或 workload identity。因此 production auto-promotion 继续 `HOLD`。下一批应先把 request、各 approval 和 authorization 形成可重开、可撤销验证的 durable Ledger 证据，并让 lifecycle event 引用 authorization digest；随后再把 executor/writer 搬入最小权限独立进程与正式运维 CLI。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 

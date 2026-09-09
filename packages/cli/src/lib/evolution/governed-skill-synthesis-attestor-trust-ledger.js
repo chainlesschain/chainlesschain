@@ -28,6 +28,7 @@ export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_CORRUPT_CODE =
   "CC_LEARNING_SYNTHESIS_ATTESTOR_TRUST_CORRUPT";
 
 const ARTIFACT_TYPE = "governed-skill-synthesis-attestor-trust-record";
+const TRUST_LEDGERS = new WeakSet();
 const VERIFIERS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
@@ -377,6 +378,7 @@ export class GovernedSkillSynthesisAttestorTrustLedger {
     }
     this._resolve = ledgerArtifactResolver;
     this._now = now;
+    TRUST_LEDGERS.add(this);
     Object.freeze(this);
   }
 
@@ -858,6 +860,10 @@ export class GovernedSkillSynthesisAttestorTrustLedger {
 
 export function createGovernedSkillSynthesisAttestorTrustLedger(options) {
   return new GovernedSkillSynthesisAttestorTrustLedger(options);
+}
+
+export function isGovernedSkillSynthesisAttestorTrustLedger(value) {
+  return TRUST_LEDGERS.has(value);
 }
 
 export function createGovernedSkillSynthesisAttestorTrustVerifier(

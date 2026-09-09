@@ -23,6 +23,11 @@ import {
   createGovernedSkillSynthesisAttestorTrustVerifier,
   isGovernedSkillSynthesisAttestorTrustVerifier,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
+import {
+  createGovernedSkillSynthesisAttestorTrustOperations,
+  createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer,
+  isGovernedSkillSynthesisAttestorTrustOperations,
+} from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { createGovernedSkillSynthesisCandidateEvaluator } from "../../src/lib/evolution/governed-skill-synthesis-candidate-evaluator.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_EVALUATION_CORRUPT_CODE,
@@ -364,6 +369,232 @@ afterEach(async () => {
 });
 
 describe("governed Skill synthesis attestor trust ledger", () => {
+  it("supports an explicit single-operator policy for personal AI", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-personal-"),
+    );
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "witness"));
+    const opened = resources(root);
+    const trustLedger = createGovernedSkillSynthesisAttestorTrustLedger({
+      descriptor: DESCRIPTOR,
+      artifactPorts: opened.artifactPorts,
+      ledger: opened.backend.ledger,
+      ledgerArtifactResolver: opened.resolver,
+    });
+    const operator = generateKeyPairSync("ed25519");
+    const attestor = generateKeyPairSync("ed25519");
+    expect(() =>
+      createGovernedSkillSynthesisAttestorTrustOperations({
+        tenantId: "tenant:other-personal-ai",
+        policyId: "policy:cross-tenant",
+        revision: 1,
+        requiredApprovals: 1,
+        operatorIdentities: [
+          {
+            tenantId: "tenant:other-personal-ai",
+            operatorId: "operator:owner",
+            publicKey: operator.publicKey,
+          },
+        ],
+        trustLedger,
+      }),
+    ).toThrow("crossed its tenant boundary");
+    const operations = createGovernedSkillSynthesisAttestorTrustOperations({
+      tenantId: DESCRIPTOR.tenantId,
+      policyId: "policy:personal-ai",
+      revision: 1,
+      requiredApprovals: 1,
+      operatorIdentities: [
+        {
+          tenantId: DESCRIPTOR.tenantId,
+          operatorId: "operator:owner",
+          publicKey: operator.publicKey,
+        },
+      ],
+      trustLedger,
+    });
+    expect(isGovernedSkillSynthesisAttestorTrustOperations(operations)).toBe(
+      true,
+    );
+    expect(operations.descriptor).toMatchObject({
+      approvalMode: "single-operator",
+      requiredApprovals: 1,
+    });
+    expect(operations).not.toHaveProperty("trustLedger");
+    expect(operations).not.toHaveProperty("registerKey");
+    const request = operations.prepare({
+      operation: "register",
+      serviceId: SERVICE_ID,
+      publicKey: attestor.publicKey,
+    });
+    const issuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: DESCRIPTOR.tenantId,
+        operatorId: "operator:owner",
+        privateKey: operator.privateKey,
+      });
+    const result = await operations.execute({
+      request,
+      approvals: [issuer.issue(request)],
+    });
+    expect(result.lifecycle).toMatchObject({
+      authenticated: true,
+      durable: true,
+      recovered: false,
+      operation: "register",
+    });
+    expect(result.authorization).toMatchObject({
+      requiredApprovals: 1,
+      operatorIds: ["operator:owner"],
+      policyDigest: operations.descriptor.policyDigest,
+      requestDigest: request.requestDigest,
+    });
+    expect(JSON.stringify(operations)).not.toContain("PRIVATE KEY");
+  });
+
+  it("enforces distinct signatures and prevents quorum downgrade", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-quorum-"),
+    );
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "witness"));
+    const opened = resources(root);
+    const trustLedger = createGovernedSkillSynthesisAttestorTrustLedger({
+      descriptor: DESCRIPTOR,
+      artifactPorts: opened.artifactPorts,
+      ledger: opened.backend.ledger,
+      ledgerArtifactResolver: opened.resolver,
+    });
+    const operatorA = generateKeyPairSync("ed25519");
+    const operatorB = generateKeyPairSync("ed25519");
+    const operatorC = generateKeyPairSync("ed25519");
+    const identities = [
+      ["operator:security", operatorA],
+      ["operator:platform", operatorB],
+      ["operator:reliability", operatorC],
+    ].map(([operatorId, keys]) => ({
+      tenantId: DESCRIPTOR.tenantId,
+      operatorId,
+      publicKey: keys.publicKey,
+    }));
+    const multi = createGovernedSkillSynthesisAttestorTrustOperations({
+      tenantId: DESCRIPTOR.tenantId,
+      policyId: "policy:production-two-person",
+      revision: 7,
+      requiredApprovals: 2,
+      operatorIdentities: identities,
+      trustLedger,
+    });
+    const single = createGovernedSkillSynthesisAttestorTrustOperations({
+      tenantId: DESCRIPTOR.tenantId,
+      policyId: "policy:personal-ai",
+      revision: 1,
+      requiredApprovals: 1,
+      operatorIdentities: identities,
+      trustLedger,
+    });
+    expect(multi.descriptor).toMatchObject({
+      approvalMode: "multi-operator",
+      requiredApprovals: 2,
+    });
+    const attestor = generateKeyPairSync("ed25519");
+    const request = multi.prepare({
+      operation: "register",
+      serviceId: SERVICE_ID,
+      publicKey: attestor.publicKey,
+    });
+    const issuerA =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: DESCRIPTOR.tenantId,
+        operatorId: "operator:security",
+        privateKey: operatorA.privateKey,
+      });
+    const issuerB =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: DESCRIPTOR.tenantId,
+        operatorId: "operator:platform",
+        privateKey: operatorB.privateKey,
+      });
+    const approvalA = issuerA.issue(request);
+    const approvalB = issuerB.issue(request);
+    await expect(
+      multi.execute({ request, approvals: [approvalA] }),
+    ).rejects.toThrow("requires exactly 2 approvals");
+    await expect(
+      multi.execute({ request, approvals: [approvalA, approvalA] }),
+    ).rejects.toThrow("distinct active operators");
+    const forgedApproval = structuredClone(approvalB);
+    forgedApproval.attestation.value = `${
+      forgedApproval.attestation.value.startsWith("A") ? "B" : "A"
+    }${forgedApproval.attestation.value.slice(1)}`;
+    await expect(
+      multi.execute({
+        request,
+        approvals: [approvalA, forgedApproval],
+      }),
+    ).rejects.toThrow("approval signature is invalid");
+    const downgradedRequest = single.prepare({
+      operation: "register",
+      serviceId: SERVICE_ID,
+      publicKey: attestor.publicKey,
+    });
+    await expect(
+      multi.execute({
+        request: downgradedRequest,
+        approvals: [issuerA.issue(downgradedRequest), approvalB],
+      }),
+    ).rejects.toThrow("request is not authorized");
+    const tampered = structuredClone(request);
+    tampered.serviceId = "kms.attestor-substituted.test";
+    await expect(
+      multi.execute({ request: tampered, approvals: [approvalA, approvalB] }),
+    ).rejects.toThrow("request is not authorized");
+    const result = await multi.execute({
+      request,
+      approvals: [approvalB, approvalA],
+    });
+    expect(result.lifecycle).toMatchObject({
+      operation: "register",
+      recovered: false,
+    });
+    expect(result.authorization.operatorIds).toEqual([
+      "operator:platform",
+      "operator:security",
+    ]);
+    expect(result.authorization.approvalReceiptDigests).toHaveLength(2);
+
+    let expiryClock = Date.now();
+    const expiring = createGovernedSkillSynthesisAttestorTrustOperations({
+      tenantId: DESCRIPTOR.tenantId,
+      policyId: "policy:expiring-personal-ai",
+      revision: 1,
+      requiredApprovals: 1,
+      operatorIdentities: [identities[0]],
+      trustLedger,
+      requestTtlMs: 1_000,
+      now: () => expiryClock,
+    });
+    const expiringIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: DESCRIPTOR.tenantId,
+        operatorId: "operator:security",
+        privateKey: operatorA.privateKey,
+        now: () => expiryClock,
+      });
+    const revoke = expiring.prepare({
+      operation: "revoke",
+      serviceId: SERVICE_ID,
+      keyId: result.lifecycle.keyId,
+      reason: "expiry boundary drill",
+    });
+    const revokeApproval = expiringIssuer.issue(revoke);
+    expiryClock += 1_000;
+    await expect(
+      expiring.execute({ request: revoke, approvals: [revokeApproval] }),
+    ).rejects.toThrow("request is not authorized");
+  });
+
   it("allows only one concurrent rotation from the same active key", async () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-race-"),

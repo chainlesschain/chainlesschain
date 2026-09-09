@@ -26,6 +26,10 @@ import {
 } from "../src/lib/evolution/evolution-deployment-loader.js";
 import { createEvolutionLedgerFileBackend } from "../src/lib/evolution/evolution-ledger-file-backend.js";
 import { createGovernedSkillSynthesisAttestorTrustLedger } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
+import {
+  createGovernedSkillSynthesisAttestorTrustOperations,
+  createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer,
+} from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { firstBalancedJson } from "../src/lib/json-schema-output.js";
 
 const cliRoot = path.resolve(
@@ -378,6 +382,7 @@ try {
     type: "spki",
     format: "pem",
   });
+  const trustOperatorKeys = generateKeyPairSync("ed25519");
   const controlResources = openPilotControlResources({
     artifactRoot,
     ledgerRoot,
@@ -397,10 +402,37 @@ try {
     ledger: controlResources.backend.ledger,
     ledgerArtifactResolver: controlResources.ledgerArtifactResolver,
   });
-  const attestorTrustRegistration = await attestorTrustControl.registerKey({
+  const attestorTrustOperations =
+    createGovernedSkillSynthesisAttestorTrustOperations({
+      tenantId: "tenant:local-volcengine-pilot",
+      policyId: "policy:local-personal-ai-attestor-trust",
+      revision: 1,
+      requiredApprovals: 1,
+      operatorIdentities: [
+        {
+          tenantId: "tenant:local-volcengine-pilot",
+          operatorId: "operator:local-owner",
+          publicKey: trustOperatorKeys.publicKey,
+        },
+      ],
+      trustLedger: attestorTrustControl,
+    });
+  const trustRegistrationRequest = attestorTrustOperations.prepare({
+    operation: "register",
     serviceId: externalAttestorServiceId,
     publicKey: evaluationAttestorPublicKey,
   });
+  const trustOperatorIssuer =
+    createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+      tenantId: "tenant:local-volcengine-pilot",
+      operatorId: "operator:local-owner",
+      privateKey: trustOperatorKeys.privateKey,
+    });
+  const attestorTrustExecution = await attestorTrustOperations.execute({
+    request: trustRegistrationRequest,
+    approvals: [trustOperatorIssuer.issue(trustRegistrationRequest)],
+  });
+  const attestorTrustRegistration = attestorTrustExecution.lifecycle;
   externalAttestorProcess = await startLocalAttestorService({
     endpoint: externalAttestorEndpoint,
     capabilityToken: externalAttestorCapability,
@@ -814,6 +846,18 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustRegistration.operation !== "register" ||
     attestorTrustRegistration.recovered !== false ||
     !/^sha256:[a-f0-9]{64}$/u.test(attestorTrustRegistration.recordDigest) ||
+    attestorTrustOperations.descriptor.approvalMode !== "single-operator" ||
+    attestorTrustOperations.descriptor.requiredApprovals !== 1 ||
+    attestorTrustExecution.authorization?.requestDigest !==
+      trustRegistrationRequest.requestDigest ||
+    attestorTrustExecution.authorization?.policyDigest !==
+      attestorTrustOperations.descriptor.policyDigest ||
+    attestorTrustExecution.authorization?.operatorIds?.length !== 1 ||
+    attestorTrustExecution.authorization?.operatorIds?.[0] !==
+      "operator:local-owner" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      attestorTrustExecution.authorization?.authorizationDigest,
+    ) ||
     attestorTrustEvidence.verifier?.isolation !==
       "durable-ledger-key-lifecycle" ||
     attestorTrustEvidence.verifier?.serviceId !== externalAttestorServiceId
@@ -886,6 +930,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             attestorTrustRecordDigest: attestorTrustRegistration.recordDigest,
             attestorTrustRegistrationRecovered:
               attestorTrustRegistration.recovered,
+            attestorTrustAuthorizationDigest:
+              attestorTrustExecution.authorization.authorizationDigest,
+            attestorTrustApprovalMode:
+              attestorTrustOperations.descriptor.approvalMode,
+            attestorTrustRequiredApprovals:
+              attestorTrustOperations.descriptor.requiredApprovals,
+            attestorTrustOperatorIds:
+              attestorTrustExecution.authorization.operatorIds,
             attestorTrustVerifierIsolation:
               attestorTrustEvidence.verifier.isolation,
             attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,
@@ -903,6 +955,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             "artifactstore-ledger-sequence-bound-key-lifecycle",
           attestorTrustWriterVisibleToCli: false,
           attestorTrustControlBoundary: "pre-cli-orchestrator",
+          attestorTrustApprovalPolicy: "signed-configurable-quorum",
           platform: process.platform,
           nativeDirectoryDurability:
             process.platform === "win32" ? "unavailable" : "required",
@@ -914,6 +967,8 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the authenticated CLI deployment has only an external signer endpoint, capability, and pinned public key; it contains no evaluation signing private key",
           "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
           "the learning deployment receives only a branded trust verifier; the pilot orchestrator owns the lifecycle writer and registers the signer key before any CLI process starts",
+          "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
+          "operator approval authorization is verified before mutation but is not yet persisted as its own ArtifactStore/Ledger record",
           "the pilot orchestrator bootstraps the signer private key into a separate same-host service process; this validates the handle boundary but is not production KMS/HSM or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",
