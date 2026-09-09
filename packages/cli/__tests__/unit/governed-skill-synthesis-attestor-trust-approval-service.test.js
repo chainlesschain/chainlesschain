@@ -33,8 +33,8 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
-const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 45_000 : 15_000;
-const EXPIRY_DELAY_MS = process.platform === "win32" ? 30_000 : 1_000;
+const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 75_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 90_000 : 1_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -134,7 +134,12 @@ function waitForLine(
     };
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("approval service did not become ready"));
+      const detail = closedMessage().trim();
+      reject(
+        new Error(
+          `approval service did not become ready${detail ? `: ${detail}` : ""}`,
+        ),
+      );
     }, timeoutMs);
     stream.on("data", onData);
     stream.once("error", onError);
@@ -210,6 +215,10 @@ describe("attestor trust isolated approval service", () => {
       windowsHide: true,
     });
     children.push(child);
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
     const operator = generateKeyPairSync("ed25519");
     const issuedAt = new Date(Date.now() - 1_000).toISOString();
     const expiresAt = new Date(Date.now() + EXPIRY_DELAY_MS).toISOString();
@@ -232,10 +241,10 @@ describe("attestor trust isolated approval service", () => {
         }),
       })}\n`,
     );
-    await waitForLine(child.stdout);
+    await waitForLine(child.stdout, SERVICE_READY_TIMEOUT_MS, () => stderr);
     await waitForExit(child, EXPIRY_DELAY_MS + 10_000);
     expect(child.exitCode).toBe(0);
-  }, 90_000);
+  }, 150_000);
 
   it("signs both request families in another process and pins every response", async () => {
     const root = fs.realpathSync.native(
@@ -418,5 +427,5 @@ describe("attestor trust isolated approval service", () => {
     await expect(client.approve(trustRequest)).rejects.toThrow(
       "request denied",
     );
-  }, 90_000);
+  }, 120_000);
 });

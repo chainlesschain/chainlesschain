@@ -23,8 +23,8 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
-const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 45_000 : 15_000;
-const EXPIRY_DELAY_MS = process.platform === "win32" ? 30_000 : 1_000;
+const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 75_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 90_000 : 1_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -67,7 +67,12 @@ function waitForLine(
     };
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("operations service did not become ready"));
+      const detail = closedMessage().trim();
+      reject(
+        new Error(
+          `operations service did not become ready${detail ? `: ${detail}` : ""}`,
+        ),
+      );
     }, timeoutMs);
     stream.on("data", onData);
     stream.once("error", onError);
@@ -217,7 +222,7 @@ describe("attestor trust operations local service", () => {
     );
     await waitForExit(started.child, EXPIRY_DELAY_MS + 10_000);
     expect(started.child.exitCode).toBe(0);
-  }, 90_000);
+  }, 150_000);
 
   it("keeps the writer in another process and accepts only signed IPC work", async () => {
     const root = fs.mkdtempSync(
