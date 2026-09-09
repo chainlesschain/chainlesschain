@@ -4,9 +4,13 @@ import { types as utilTypes } from "node:util";
 import { firstBalancedJson } from "../json-schema-output.js";
 import { isGovernedSkillSynthesisCandidateEvaluator } from "./governed-skill-synthesis-candidate-evaluator.js";
 import { isGovernedSkillSynthesisProviderChat } from "./governed-skill-synthesis-provider-chat.js";
+import {
+  GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA,
+  isGovernedSkillSynthesisEvaluationPersistencePort,
+  isGovernedSkillSynthesisEvaluationPersistenceReceipt,
+} from "./governed-skill-synthesis-evaluation-ledger-adapter.js";
 
-export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-evaluation-receipt/v1";
+export { GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA } from "./governed-skill-synthesis-evaluation-ledger-adapter.js";
 
 const MODEL_EVALUATORS = new WeakMap();
 const EVALUATION_RECEIPTS = new WeakSet();
@@ -36,6 +40,7 @@ const OPTION_KEYS = new Set([
   "graderChat",
   "maxAttempts",
   "minScore",
+  "receiptPersistence",
   "verifyAttestation",
 ]);
 
@@ -240,6 +245,16 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
     "learning synthesis receipt verifier",
   );
   if (
+    !isGovernedSkillSynthesisEvaluationPersistencePort(
+      options.receiptPersistence,
+    )
+  ) {
+    throw new TypeError(
+      "learning synthesis model evaluator requires a governed durable receipt persistence port",
+    );
+  }
+  const receiptPersistence = options.receiptPersistence;
+  if (
     !Number.isFinite(options.minScore) ||
     options.minScore < 0 ||
     options.minScore > 1
@@ -318,6 +333,10 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       revision: descriptor.revision,
       handlerArtifactDigest: descriptor.handlerArtifactDigest,
       candidateDigest: digest,
+      skillName: boundedString(
+        request.skillName,
+        "learning synthesis evaluation skillName",
+      ),
       trajectoryId: boundedString(
         request.trajectory.id,
         "learning synthesis evaluation trajectoryId",
@@ -357,6 +376,19 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       authenticated: true,
       durable: false,
     });
+    const persistence = await receiptPersistence(receipt);
+    if (
+      !isGovernedSkillSynthesisEvaluationPersistenceReceipt(persistence) ||
+      persistence.authenticated !== true ||
+      persistence.durable !== true ||
+      persistence.persisted !== true ||
+      persistence.receiptDigest !== receiptDigest ||
+      persistence.candidateDigest !== digest
+    ) {
+      throw new Error(
+        "learning synthesis evaluation persistence was not durably authenticated",
+      );
+    }
     EVALUATION_RECEIPTS.add(receipt);
     return Object.freeze({
       accepted,
@@ -364,6 +396,7 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
         ? "model-evaluation-passed"
         : `model-evaluation-rejected:${grade.reasons.join(",")}`,
       receipt,
+      persistence,
     });
   };
   Object.freeze(evaluator);

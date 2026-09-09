@@ -628,6 +628,7 @@ describe("EvolutionArtifactPorts", () => {
       "governed-knowledge-quarantine-release",
       "governed-knowledge-trust-record",
       "governed-skill-marketplace-state",
+      "governed-skill-synthesis-evaluation",
       "structured-memory-authority-receipt",
       "structured-memory-event",
       "structured-memory-snapshot",

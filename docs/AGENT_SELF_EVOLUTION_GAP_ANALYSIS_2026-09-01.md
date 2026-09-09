@@ -1851,7 +1851,7 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 模型评分器现在强制要求 branded receipt persistence port。确定性预检、模型评分和 attestation 均通过后仍不能直接返回接受结果，只有适配器返回与同一 candidate/receipt digest 精确绑定的 `authenticated=true`、`durable=true` persistence receipt 才能继续；结构相似的调用方自造对象不能通过品牌检查。`EVALUATION.json` 也改为保存带 schema 的 `{receipt, persistence}` 文档，明确区分评分 authority 的原始认证回执和 ArtifactStore/Ledger 的持久确认。Ledger 已提交但响应丢失时，同一回执由新 adapter 实例恢复为幂等成功，账本 sequence 保持 1，不会重复追加；模型评分失败或持久确认失败都不会创建 candidate，也不会修改 active Skill。
 
-真实文件测试贯穿 `ArtifactStore → EvolutionArtifactPorts → EvolutionLedger → 独立 file witness`，然后以全新 ports、Ledger 和 adapter 实例重开并恢复完全一致的评分回执；同时覆盖 append-response-loss 后重试恢复。相关 8 个测试文件共 151 passed、1 个既有平台条件 skip。
+真实文件测试贯穿 `ArtifactStore → EvolutionArtifactPorts → EvolutionLedger → 独立 file witness`，然后以全新 ports、Ledger 和 adapter 实例重开并恢复完全一致的评分回执；同时覆盖 append-response-loss 后重试恢复。相关 8 个测试文件共 153 passed、1 个既有平台条件 skip。
 
 本机再次运行真实火山双调用 Pilot，使用 `deepseek-v4-flash-260425`，15.217 秒完成；生成 `security-configuration-review`，候选内容 759 bytes，摘要 `sha256:8dac3d13d9f6151bd9002bad81d1618949eacff2109d2a1940ed99bc393b31cd`，grader score `1.0`、阈值 `0.7`、一次评分成功。评分回执摘要为 `sha256:b4460dc57d5aa618a03234668a65b1f8447d7cf8eee5b1dda58da64a1e76422d`，persistence digest 为 `sha256:1342fd678a9cf7041e9705903f9c2f7c12481ff87bc567a62a0e908141a77e47`，Ledger event digest 为 `sha256:6bfc50e81f4df446a67a09520c2eacadfcece8b000dff9484a36a986d301e6f7`；active mutation 仍为 0，临时目录及临时密钥随后清理。
 

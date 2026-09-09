@@ -16,16 +16,20 @@
  *   5. Persist the accepted candidate to an isolated candidate registry
  */
 
+import { createHash } from "node:crypto";
 import fs from "fs";
 import { firstBalancedJson } from "../json-schema-output.js";
 import path from "path";
 import { isGovernedSkillSynthesisEvaluationReceipt } from "../evolution/governed-skill-synthesis-model-evaluator.js";
+import { isGovernedSkillSynthesisEvaluationPersistenceReceipt } from "../evolution/governed-skill-synthesis-evaluation-ledger-adapter.js";
 
 // ── _deps for test injection ────────────────────────────
 
 const _deps = { fs, path };
 
 export const SYNTHESIS_UNAVAILABLE_CODE = "LEARNING_SYNTHESIS_UNAVAILABLE";
+export const SYNTHESIS_EVALUATION_DOCUMENT_SCHEMA =
+  "chainlesschain.learning-synthesis-evaluation-document/v1";
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -482,7 +486,42 @@ export class SkillSynthesizer {
       if (!isGovernedSkillSynthesisEvaluationReceipt(evaluation.receipt)) {
         throw new Error("candidate evaluation receipt is not governed");
       }
-      const serialized = JSON.stringify(evaluation.receipt, null, 2);
+      const contentDigest = `sha256:${createHash("sha256")
+        .update(content, "utf8")
+        .digest("hex")}`;
+      if (
+        evaluation.receipt.skillName !== skillName ||
+        evaluation.receipt.candidateDigest !== contentDigest
+      ) {
+        throw new Error(
+          "candidate evaluation receipt does not bind the persisted candidate",
+        );
+      }
+      if (
+        !isGovernedSkillSynthesisEvaluationPersistenceReceipt(
+          evaluation.persistence,
+        ) ||
+        evaluation.persistence.authenticated !== true ||
+        evaluation.persistence.durable !== true ||
+        evaluation.persistence.persisted !== true ||
+        evaluation.persistence.receiptDigest !==
+          evaluation.receipt.receiptDigest ||
+        evaluation.persistence.candidateDigest !==
+          evaluation.receipt.candidateDigest
+      ) {
+        throw new Error(
+          "candidate evaluation receipt is not durably persisted",
+        );
+      }
+      const serialized = JSON.stringify(
+        {
+          schema: SYNTHESIS_EVALUATION_DOCUMENT_SCHEMA,
+          receipt: evaluation.receipt,
+          persistence: evaluation.persistence,
+        },
+        null,
+        2,
+      );
       if (!serialized || Buffer.byteLength(serialized, "utf8") > 128 * 1024) {
         throw new Error("candidate evaluation receipt is invalid or oversized");
       }

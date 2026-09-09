@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import {
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  sign,
+} from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { loadConfig } from "../src/lib/config-manager.js";
 import {
@@ -80,10 +85,202 @@ try {
   const workspace = path.join(root, "workspace");
   const activeRoot = path.join(root, "active-skills");
   const candidateRoot = path.join(root, "candidate-skills");
+  const artifactRoot = path.join(root, "evaluation-artifacts");
+  const ledgerRoot = path.join(root, "evaluation-ledger-events");
+  const ledgerAuthorityRoot = path.join(root, "evaluation-ledger-authority");
+  const witnessRoot = path.join(root, "evaluation-witness");
+  const witnessFile = path.join(witnessRoot, "checkpoint.json");
   fs.mkdirSync(workspace);
   fs.mkdirSync(activeRoot);
+  fs.mkdirSync(witnessRoot);
 
-  const moduleSource = `export async function createChainlessChainCommandDependencies({ descriptor, factories }) {
+  const artifactStoreUrl = pathToFileURL(
+    path.join(cliRoot, "src", "lib", "artifact-store.js"),
+  ).href;
+  const artifactPortsUrl = pathToFileURL(
+    path.join(
+      cliRoot,
+      "src",
+      "lib",
+      "evolution",
+      "evolution-artifact-ports.js",
+    ),
+  ).href;
+  const ledgerBackendUrl = pathToFileURL(
+    path.join(
+      cliRoot,
+      "src",
+      "lib",
+      "evolution",
+      "evolution-ledger-file-backend.js",
+    ),
+  ).href;
+  const localSecrets = {
+    artifact: randomBytes(32).toString("base64url"),
+    ledger: randomBytes(32).toString("base64url"),
+    witness: randomBytes(32).toString("base64url"),
+    evaluator: randomBytes(32).toString("base64url"),
+  };
+
+  const moduleSource = `import { createHash, createHmac } from "node:crypto";
+import fs from "node:fs";
+import { ArtifactStore } from ${JSON.stringify(artifactStoreUrl)};
+import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA, EvolutionArtifactPorts } from ${JSON.stringify(artifactPortsUrl)};
+import { createEvolutionLedgerFileBackend } from ${JSON.stringify(ledgerBackendUrl)};
+
+const canonical = (value) => {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  return "{" + Object.keys(value).sort().map((key) => JSON.stringify(key) + ":" + canonical(value[key])).join(",") + "}";
+};
+const sha256 = (value) => "sha256:" + createHash("sha256").update(value).digest("hex");
+const mac = (secret, message) => createHmac("sha256", secret).update(message).digest("base64url");
+const signingAuthority = (label, secret) => {
+  const trust = Object.freeze({
+    algorithm: "hmac-sha256",
+    keyId: "key://local-volcengine-pilot/" + label,
+    trustPolicyDigest: sha256(label + "-policy")
+  });
+  return {
+    trust,
+    signer: { sign: ({ message }) => ({ ...trust, value: mac(secret, message) }) },
+    verifier: { verify: ({ message, signature }) =>
+      signature.algorithm === trust.algorithm &&
+      signature.keyId === trust.keyId &&
+      signature.trustPolicyDigest === trust.trustPolicyDigest &&
+      signature.value === mac(secret, message) }
+  };
+};
+const pilotFilesystem = (() => {
+  if (process.platform !== "win32") return fs;
+  const directories = new Set();
+  let nextDescriptor = -50000;
+  return {
+    ...fs,
+    constants: fs.constants,
+    realpathSync: fs.realpathSync,
+    closeSync(descriptor) {
+      if (directories.delete(descriptor)) return;
+      return fs.closeSync(descriptor);
+    },
+    fsyncSync(descriptor) {
+      if (directories.has(descriptor)) return;
+      try {
+        return fs.fsyncSync(descriptor);
+      } catch (error) {
+        if (["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) && fs.fstatSync(descriptor).isDirectory()) return;
+        throw error;
+      }
+    },
+    openSync(target, flags, mode) {
+      try {
+        return fs.openSync(target, flags, mode);
+      } catch (error) {
+        if (flags === "r" && ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) && fs.statSync(target).isDirectory()) {
+          const descriptor = nextDescriptor--;
+          directories.add(descriptor);
+          return descriptor;
+        }
+        throw error;
+      }
+    }
+  };
+})();
+
+export async function createChainlessChainCommandDependencies({ descriptor, factories }) {
+    const artifactSecret = ${JSON.stringify(localSecrets.artifact)};
+    const ledgerAuthority = signingAuthority("ledger", ${JSON.stringify(localSecrets.ledger)});
+    const witnessAuthority = signingAuthority("witness", ${JSON.stringify(localSecrets.witness)});
+    const evaluatorSecret = ${JSON.stringify(localSecrets.evaluator)};
+    const artifactAlgorithm = "hmac-sha256";
+    const artifactKeyId = "key://local-volcengine-pilot/artifact";
+    const artifactPolicyDigest = sha256("artifact-policy");
+    const artifactPorts = new EvolutionArtifactPorts({
+      artifactStore: new ArtifactStore({ dir: ${JSON.stringify(artifactRoot)} }),
+      tenantId: "tenant:local-volcengine-pilot",
+      audience: "evolution-runtime",
+      envelopeSigner: {
+        sign: ({ message }) => ({
+          algorithm: artifactAlgorithm,
+          keyId: artifactKeyId,
+          value: mac(artifactSecret, message)
+        })
+      },
+      envelopeVerifier: {
+        verify: ({ message, signature }) =>
+          signature.algorithm === artifactAlgorithm &&
+          signature.keyId === artifactKeyId &&
+          signature.value === mac(artifactSecret, message)
+      },
+      currentAuthorityResolver: {
+        resolve: (request) => {
+          const checkedAt = new Date().toISOString();
+          const core = {
+            action: request.action,
+            algorithm: artifactAlgorithm,
+            allowed: true,
+            audience: request.audience,
+            checkedAt,
+            decisionExpiresAt: new Date(Date.parse(checkedAt) + 30000).toISOString(),
+            digest: request.digest,
+            issuedAt: request.issuedAt,
+            issuedPolicyDigest: request.issuedPolicyDigest,
+            issuedPolicyRevision: request.issuedPolicyRevision,
+            issuedPolicyTrusted: true,
+            keyId: request.keyId || artifactKeyId,
+            policyDigest: artifactPolicyDigest,
+            policyRevision: 1,
+            purpose: request.purpose,
+            requestedAt: request.requestedAt,
+            retention: request.retention,
+            revocationRevision: 1,
+            revoked: false,
+            schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+            tenantId: request.tenantId,
+            type: request.type
+          };
+          return {
+            ...core,
+            receiptDigest: sha256("chainlesschain.evolution-artifact-authority-decision/v1\\0" + canonical(core))
+          };
+        }
+      }
+    });
+    const ledgerArtifactResolver = artifactPorts.createEvolutionLedgerArtifactResolver({
+      purpose: "evolution-ledger"
+    });
+    const backend = createEvolutionLedgerFileBackend({
+      rootDir: ${JSON.stringify(ledgerRoot)},
+      authorityRootDir: ${JSON.stringify(ledgerAuthorityRoot)},
+      witnessFilePath: ${JSON.stringify(witnessFile)},
+      witnessId: "local-volcengine-pilot-evaluation-witness",
+      ledgerAuthority,
+      witnessAuthority,
+      artifactResolver: ledgerArtifactResolver,
+      fsImpl: pilotFilesystem,
+      secure: false
+    });
+    const evaluationDescriptor = {
+      tenantId: "tenant:local-volcengine-pilot",
+      artifactTenantId: "tenant:local-volcengine-pilot",
+      streamId: "learning-synthesis",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+      authorityId: "authority:local-volcengine-pilot-grader",
+      revision: 1,
+      handlerArtifactDigest: descriptor.moduleDigest
+    };
+    const verifyEvaluationAttestation = async ({ receiptDigest, candidateDigest, attestation }) =>
+      attestation?.algorithm === "hmac-sha256" &&
+      attestation?.keyId === "key://local-volcengine-pilot/evaluator" &&
+      attestation?.value === mac(evaluatorSecret, receiptDigest + "\\0" + candidateDigest);
+    const evaluationLedger = factories.createGovernedSkillSynthesisEvaluationLedgerAdapter({
+      descriptor: evaluationDescriptor,
+      artifactPorts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver,
+      verifyAttestation: verifyEvaluationAttestation
+    });
     const generationChat = factories.createGovernedSkillSynthesisProviderChat({
       provider: "volcengine",
       model: ${JSON.stringify(model)},
@@ -105,18 +302,21 @@ try {
     });
     const evaluateCandidate = factories.createGovernedSkillSynthesisModelEvaluator({
       descriptor: {
-        authorityId: "authority:local-volcengine-pilot-grader",
-        revision: 1,
-        handlerArtifactDigest: descriptor.moduleDigest
+        authorityId: evaluationDescriptor.authorityId,
+        revision: evaluationDescriptor.revision,
+        handlerArtifactDigest: evaluationDescriptor.handlerArtifactDigest
       },
       deterministicEvaluator,
       graderChat,
       minScore: 0.7,
       maxAttempts: 2,
-      attestReceipt: async ({ receiptDigest, candidateDigest }) =>
-        "local-pilot:" + receiptDigest + ":" + candidateDigest,
-      verifyAttestation: async ({ receiptDigest, candidateDigest, attestation }) =>
-        attestation === "local-pilot:" + receiptDigest + ":" + candidateDigest
+      attestReceipt: async ({ receiptDigest, candidateDigest }) => ({
+        algorithm: "hmac-sha256",
+        keyId: "key://local-volcengine-pilot/evaluator",
+        value: mac(evaluatorSecret, receiptDigest + "\\0" + candidateDigest)
+      }),
+      verifyAttestation: verifyEvaluationAttestation,
+      receiptPersistence: evaluationLedger.createReceiptPersistencePort()
     });
     return {
       learningSynthesisHost: factories.createGovernedSkillSynthesisCliHost({
@@ -277,12 +477,14 @@ try {
           contentBytes: content.byteLength,
           deterministicPrecheck: "passed",
           modelEvaluation: {
-            authenticated: evaluation.authenticated,
-            durable: evaluation.durable,
-            score: evaluation.modelScore,
-            minScore: evaluation.minScore,
-            attempts: evaluation.attempts,
-            receiptDigest: evaluation.receiptDigest,
+            authenticated: evaluation.receipt.authenticated,
+            durable: evaluation.persistence.durable,
+            score: evaluation.receipt.modelScore,
+            minScore: evaluation.receipt.minScore,
+            attempts: evaluation.receipt.attempts,
+            receiptDigest: evaluation.receipt.receiptDigest,
+            persistenceDigest: evaluation.persistence.persistenceDigest,
+            ledgerEventDigest: evaluation.persistence.ledgerEventDigest,
           },
         },
         activeMutationCount: activeEntries.length,
@@ -290,12 +492,21 @@ try {
           descriptorSignature: "verified-by-cli-loader",
           trustRoot: "ephemeral-local-pilot",
           candidateRegistry: "isolated-temporary-directory",
+          platform: process.platform,
+          nativeDirectoryDurability:
+            process.platform === "win32" ? "unavailable" : "required",
         },
         limitations: [
           "no independently operated grader model or authority",
           "grader role is separate but uses the same configured model and provider",
-          "evaluation receipt is authenticated but not durably ledgered",
-          "no production PKI/KMS/witness authority",
+          "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
+          "local HMAC authorities are ephemeral and are not production PKI/KMS",
+          "Ledger and witness use separate keys but remain on the same host",
+          ...(process.platform === "win32"
+            ? [
+                "Windows pilot uses a test-only directory-fsync compatibility shim; it proves protocol and reopen behavior, not power-loss durability",
+              ]
+            : []),
           "no promotion or active deployment",
         ],
       },

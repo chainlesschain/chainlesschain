@@ -1,8 +1,15 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import {
+  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+  EvolutionArtifactPorts,
+} from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
 
 import {
   createGovernedSkillSynthesisCandidateEvaluator,
@@ -18,10 +25,158 @@ import {
   isGovernedSkillSynthesisEvaluationReceipt,
   isGovernedSkillSynthesisModelEvaluator,
 } from "../../src/lib/evolution/governed-skill-synthesis-model-evaluator.js";
+import {
+  GOVERNED_SKILL_SYNTHESIS_EVALUATION_LEDGER_EVENT,
+  GovernedSkillSynthesisEvaluationLedgerAdapter,
+} from "../../src/lib/evolution/governed-skill-synthesis-evaluation-ledger-adapter.js";
 import { SkillSynthesizer } from "../../src/lib/learning/skill-synthesizer.js";
+
+const roots = [];
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function sha256(value) {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function createEvaluationPersistence(descriptor, verifyAttestation) {
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-synthesis-eval-ledger-"),
+  );
+  roots.push(root);
+  const now = Date.parse("2026-09-09T00:00:00.000Z");
+  const secret = "test-only-synthesis-evaluation-artifact-key";
+  const algorithm = "hmac-sha256";
+  const keyId = "test:key/synthesis-evaluation-artifacts";
+  const policyDigest = sha256("synthesis-evaluation-policy");
+  const signature = (message) =>
+    createHmac("sha256", secret).update(message).digest("base64url");
+  const artifactPorts = new EvolutionArtifactPorts({
+    artifactStore: new ArtifactStore({
+      dir: path.join(root, "artifacts"),
+      now: () => now,
+    }),
+    audience: "evolution-runtime",
+    tenantId: "tenant-a",
+    now: () => now,
+    envelopeSigner: {
+      sign: ({ message }) => ({
+        algorithm,
+        keyId,
+        value: signature(message),
+      }),
+    },
+    envelopeVerifier: {
+      verify: ({ message, signature: value }) =>
+        value.algorithm === algorithm &&
+        value.keyId === keyId &&
+        value.value === signature(message),
+    },
+    currentAuthorityResolver: {
+      resolve: (request) => {
+        const core = {
+          action: request.action,
+          algorithm,
+          allowed: true,
+          audience: request.audience,
+          checkedAt: new Date(now).toISOString(),
+          decisionExpiresAt: new Date(now + 30_000).toISOString(),
+          digest: request.digest,
+          issuedAt: request.issuedAt,
+          issuedPolicyDigest: request.issuedPolicyDigest,
+          issuedPolicyRevision: request.issuedPolicyRevision,
+          issuedPolicyTrusted: true,
+          keyId: request.keyId || keyId,
+          policyDigest,
+          policyRevision: 1,
+          purpose: request.purpose,
+          requestedAt: request.requestedAt,
+          retention: request.retention,
+          revocationRevision: 1,
+          revoked: false,
+          schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+          tenantId: request.tenantId,
+          type: request.type,
+        };
+        return {
+          ...core,
+          receiptDigest: sha256(
+            `chainlesschain.evolution-artifact-authority-decision/v1\0${canonical(core)}`,
+          ),
+        };
+      },
+    },
+  });
+  const state = { events: [] };
+  const ledger = {
+    read: () => structuredClone(state.events),
+    verify: () => ({
+      epoch: "epoch-a",
+      ledgerId: "ledger-a",
+      sequence: state.events.length,
+      headDigest: state.events.at(-1)?.eventDigest ?? null,
+    }),
+    appendDomainEvent: (input, expected) => {
+      const previous = state.events.at(-1);
+      if (
+        expected.expectedSequence !== state.events.length ||
+        expected.expectedHeadDigest !== (previous?.eventDigest ?? null)
+      ) {
+        throw new Error("ledger head conflict");
+      }
+      const event = {
+        ...structuredClone(input),
+        schema: EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+        sequence: state.events.length + 1,
+        eventDigest: sha256(canonical(input)),
+      };
+      state.events.push(event);
+      return {
+        authenticated: true,
+        committed: true,
+        durable: true,
+        eventId: input.eventId,
+        receiptDigest: sha256(canonical(event)),
+      };
+    },
+  };
+  const adapter = new GovernedSkillSynthesisEvaluationLedgerAdapter({
+    descriptor: {
+      tenantId: "tenant-a",
+      artifactTenantId: "tenant-a",
+      streamId: "learning-synthesis",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
+      ...descriptor,
+    },
+    artifactPorts,
+    ledger,
+    ledgerArtifactResolver: artifactPorts.createEvolutionLedgerArtifactResolver(
+      {
+        purpose: "evolution-ledger",
+      },
+    ),
+    verifyAttestation,
+  });
+  return {
+    adapter,
+    receiptPersistence: adapter.createReceiptPersistencePort(),
+    state,
+  };
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 describe("governed learning synthesis provider chat", () => {
@@ -231,21 +386,55 @@ Confirm every finding identifies its configuration key
     });
     const deterministicEvaluator =
       createGovernedSkillSynthesisCandidateEvaluator();
+    const descriptor = {
+      authorityId: "authority:model-grader",
+      revision: 3,
+      handlerArtifactDigest: `sha256:${"a".repeat(64)}`,
+    };
+    const verifyAttestation = async ({ receiptDigest, attestation }) =>
+      attestation === `attested:${receiptDigest}`;
+    const persistence = createEvaluationPersistence(
+      descriptor,
+      verifyAttestation,
+    );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
-      descriptor: {
-        authorityId: "authority:model-grader",
-        revision: 3,
-        handlerArtifactDigest: `sha256:${"a".repeat(64)}`,
-      },
+      descriptor,
       deterministicEvaluator,
       graderChat,
       minScore: 0.8,
       attestReceipt: async ({ receiptDigest }) => `attested:${receiptDigest}`,
-      verifyAttestation: async ({ receiptDigest, attestation }) =>
-        attestation === `attested:${receiptDigest}`,
+      verifyAttestation,
+      receiptPersistence: persistence.receiptPersistence,
     });
-    return { evaluator, fetchMock, graderChat };
+    return { evaluator, fetchMock, graderChat, persistence };
   }
+
+  it("requires a branded durable receipt persistence port", () => {
+    expect(() =>
+      createGovernedSkillSynthesisModelEvaluator({
+        descriptor: {
+          authorityId: "authority:model-grader",
+          revision: 1,
+          handlerArtifactDigest: `sha256:${"e".repeat(64)}`,
+        },
+        deterministicEvaluator:
+          createGovernedSkillSynthesisCandidateEvaluator(),
+        graderChat: createGovernedSkillSynthesisProviderChat({
+          provider: "volcengine",
+          model: "doubao-test",
+          apiKey: "pilot-secret",
+        }),
+        minScore: 0.8,
+        attestReceipt: async () => "attested",
+        verifyAttestation: async () => true,
+        receiptPersistence: async () => ({
+          authenticated: true,
+          durable: true,
+          persisted: true,
+        }),
+      }),
+    ).toThrow("governed durable receipt persistence port");
+  });
 
   it("binds a separate model grade to the exact candidate digest", async () => {
     const { evaluator, graderChat } = evaluatorFixture();
@@ -269,10 +458,70 @@ Confirm every finding identifies its configuration key
         modelScore: 0.91,
         minScore: 0.8,
       },
+      persistence: {
+        authenticated: true,
+        durable: true,
+        persisted: true,
+      },
     });
     expect(isGovernedSkillSynthesisEvaluationReceipt(result.receipt)).toBe(
       true,
     );
+    expect(result.persistence.receiptDigest).toBe(result.receipt.receiptDigest);
+    expect(result.persistence.subjectRef.digest).toMatch(/^sha256:/u);
+    expect(result.persistence).not.toHaveProperty("ledgerReceiptDigest");
+    expect(result.persistence).toMatchObject({ recovered: false });
+  });
+
+  it("reloads the exact receipt and rejects a substituted ledger subject", async () => {
+    const { evaluator, persistence } = evaluatorFixture();
+    const result = await evaluator(request);
+    await expect(
+      persistence.adapter.load(result.receipt.receiptDigest),
+    ).resolves.toMatchObject({
+      receipt: { receiptDigest: result.receipt.receiptDigest },
+      persistence: { durable: true, recovered: true },
+    });
+    expect(persistence.state.events).toHaveLength(1);
+    expect(persistence.state.events[0].type).toBe(
+      GOVERNED_SKILL_SYNTHESIS_EVALUATION_LEDGER_EVENT,
+    );
+    persistence.state.events[0].subjectRef.digest = `sha256:${"0".repeat(64)}`;
+    await expect(
+      persistence.adapter.load(result.receipt.receiptDigest),
+    ).rejects.toMatchObject({
+      code: "CC_LEARNING_SYNTHESIS_EVALUATION_CORRUPT",
+    });
+  });
+
+  it("does not persist candidate bytes that differ from the ledgered digest", async () => {
+    const { evaluator } = evaluatorFixture();
+    const evaluation = await evaluator(request);
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-synthesis-candidate-binding-"),
+    );
+    roots.push(root);
+    const activeSkillsDir = path.join(root, "active");
+    fs.mkdirSync(activeSkillsDir);
+    const synthesizer = new SkillSynthesizer(
+      { prepare: vi.fn(() => ({ all: vi.fn(() => []) })) },
+      vi.fn(),
+      {},
+      {
+        candidateOutputDir: path.join(root, "candidates"),
+        activeSkillsDirs: [activeSkillsDir],
+        evaluateCandidate: evaluator,
+      },
+    );
+
+    await expect(
+      synthesizer._persistSkill(
+        request.skillName,
+        `${request.content}\nSubstituted content.\n`,
+        evaluation,
+      ),
+    ).rejects.toThrow("does not bind the persisted candidate");
+    expect(fs.readdirSync(activeSkillsDir)).toEqual([]);
   });
 
   it("treats safety reason codes as a hard rejection despite a high score", async () => {
@@ -328,12 +577,17 @@ Confirm every finding identifies its configuration key
         }),
       })),
     );
+    const descriptor = {
+      authorityId: "authority:model-grader",
+      revision: 1,
+      handlerArtifactDigest: `sha256:${"b".repeat(64)}`,
+    };
+    const persistence = createEvaluationPersistence(
+      descriptor,
+      async () => false,
+    );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
-      descriptor: {
-        authorityId: "authority:model-grader",
-        revision: 1,
-        handlerArtifactDigest: `sha256:${"b".repeat(64)}`,
-      },
+      descriptor,
       deterministicEvaluator: createGovernedSkillSynthesisCandidateEvaluator(),
       graderChat: createGovernedSkillSynthesisProviderChat({
         provider: "volcengine",
@@ -343,6 +597,7 @@ Confirm every finding identifies its configuration key
       minScore: 0.8,
       attestReceipt: async () => "invalid",
       verifyAttestation: async () => false,
+      receiptPersistence: persistence.receiptPersistence,
     });
 
     await expect(evaluator(request)).rejects.toThrow("attestation rejected");
@@ -386,19 +641,26 @@ Confirm every finding identifies its configuration key
         model: "doubao-test",
         apiKey: "pilot-secret",
       });
+      const descriptor = {
+        authorityId: "authority:model-grader",
+        revision: 1,
+        handlerArtifactDigest: `sha256:${"c".repeat(64)}`,
+      };
+      const verifyAttestation = async ({ receiptDigest, attestation }) =>
+        attestation === `attested:${receiptDigest}`;
+      const persistence = createEvaluationPersistence(
+        descriptor,
+        verifyAttestation,
+      );
       const evaluator = createGovernedSkillSynthesisModelEvaluator({
-        descriptor: {
-          authorityId: "authority:model-grader",
-          revision: 1,
-          handlerArtifactDigest: `sha256:${"c".repeat(64)}`,
-        },
+        descriptor,
         deterministicEvaluator:
           createGovernedSkillSynthesisCandidateEvaluator(),
         graderChat,
         minScore: 0.8,
         attestReceipt: async ({ receiptDigest }) => `attested:${receiptDigest}`,
-        verifyAttestation: async ({ receiptDigest, attestation }) =>
-          attestation === `attested:${receiptDigest}`,
+        verifyAttestation,
+        receiptPersistence: persistence.receiptPersistence,
       });
       const trajectory = {
         id: "trajectory-persisted-evaluation",
@@ -454,10 +716,18 @@ Confirm every finding identifies its configuration key
         fs.readFileSync(path.join(versionDir, "EVALUATION.json"), "utf8"),
       );
       expect(persisted).toMatchObject({
-        authenticated: true,
-        durable: false,
-        modelScore: 0.92,
-        accepted: true,
+        schema: "chainlesschain.learning-synthesis-evaluation-document/v1",
+        receipt: {
+          authenticated: true,
+          durable: false,
+          modelScore: 0.92,
+          accepted: true,
+        },
+        persistence: {
+          authenticated: true,
+          durable: true,
+          persisted: true,
+        },
       });
       expect(fs.existsSync(path.join(versionDir, "SKILL.md"))).toBe(true);
       expect(fs.readdirSync(activeSkillsDir)).toEqual([]);

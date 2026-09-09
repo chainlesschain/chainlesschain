@@ -161,6 +161,9 @@ describe("signed evolution deployment loader", () => {
             modelEvaluatorFactoryAvailable:
               typeof factories.createGovernedSkillSynthesisModelEvaluator ===
               "function",
+            evaluationLedgerFactoryAvailable:
+              typeof factories.createGovernedSkillSynthesisEvaluationLedgerAdapter ===
+              "function",
           }),
         }),
       }),
@@ -171,6 +174,7 @@ describe("signed evolution deployment loader", () => {
       providerChatFactoryAvailable: true,
       candidateEvaluatorFactoryAvailable: true,
       modelEvaluatorFactoryAvailable: true,
+      evaluationLedgerFactoryAvailable: true,
     });
   });
 
