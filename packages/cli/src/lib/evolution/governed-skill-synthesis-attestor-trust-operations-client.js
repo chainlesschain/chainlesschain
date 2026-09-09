@@ -4,7 +4,7 @@ import path from "node:path";
 import { types as utilTypes } from "node:util";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v3";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 
@@ -90,7 +90,7 @@ function normalizeDescriptor(value) {
   exact(value, DESCRIPTOR_KEYS, "operations service descriptor");
   if (
     value.schema !==
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2" ||
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.policyDigest ?? "") ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 1 ||
@@ -254,6 +254,24 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsClient(
         capabilityToken,
         timeoutMs,
         action: "execute",
+        payload: { request, approvals },
+      });
+    },
+    prepareOperatorChange(input) {
+      return callService({
+        target,
+        capabilityToken,
+        timeoutMs,
+        action: "operator-prepare",
+        payload: input,
+      });
+    },
+    executeOperatorChange({ request, approvals } = {}) {
+      return callService({
+        target,
+        capabilityToken,
+        timeoutMs,
+        action: "operator-execute",
         payload: { request, approvals },
       });
     },

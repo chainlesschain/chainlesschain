@@ -14,6 +14,10 @@ import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
   digestGovernedSkillSynthesisAttestorTrustOperationRequest,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
+import {
+  GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATOR_REGISTRY_CHANGE_REQUEST_SCHEMA,
+  digestGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest,
+} from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 const roots = [];
 const servers = [];
@@ -54,6 +58,35 @@ function requestFor(operation, descriptor) {
   };
 }
 
+function operatorRequestFor(operation, descriptor) {
+  const key = createPublicKey(operation.publicKey);
+  const spki = key.export({ type: "spki", format: "der" });
+  const core = {
+    schema:
+      GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATOR_REGISTRY_CHANGE_REQUEST_SCHEMA,
+    tenantId: descriptor.tenantId,
+    policyId: descriptor.policyId,
+    revision: descriptor.revision,
+    policyDigest: descriptor.policyDigest,
+    requiredApprovals: descriptor.requiredApprovals,
+    operation: operation.operation,
+    operatorId: operation.operatorId,
+    keyId: `key:ed25519:${createHash("sha256").update(spki).digest("hex")}`,
+    publicKeySpki: spki.toString("base64url"),
+    priorKeyId: null,
+    reason: null,
+    requestedAt: new Date(NOW).toISOString(),
+    expiresAt: new Date(NOW + 5 * 60 * 1000).toISOString(),
+  };
+  return {
+    ...core,
+    requestDigest:
+      digestGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest(
+        core,
+      ),
+  };
+}
+
 async function fixture({ transformPrepareResult = (value) => value } = {}) {
   const root = fs.realpathSync.native(
     fs.mkdtempSync(path.join(os.tmpdir(), "cc-attestor-trust-cli-")),
@@ -66,7 +99,7 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
       : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
   const service = Object.freeze({
     schema:
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2",
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3",
     tenantId: "tenant:personal-ai",
     authorizationStreamId: "attestor-trust-authorizations",
     policyId: "personal-ai-attestor-policy",
@@ -88,14 +121,26 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
       if (newline === -1) return;
       const message = JSON.parse(body.slice(0, newline));
       calls.push(message);
-      const result =
-        message.action === "prepare"
-          ? transformPrepareResult(requestFor(message.payload, service))
-          : {
-              executed: true,
-              requestDigest: message.payload.request.requestDigest,
-              approvalCount: message.payload.approvals.length,
-            };
+      let result;
+      if (message.action === "prepare") {
+        result = transformPrepareResult(requestFor(message.payload, service));
+      } else if (message.action === "operator-prepare") {
+        result = operatorRequestFor(message.payload, service);
+      } else if (message.action === "operator-execute") {
+        result = {
+          rebindRequired: true,
+          registry: {
+            revision: service.revision + 1,
+            requestDigest: message.payload.request.requestDigest,
+          },
+        };
+      } else {
+        result = {
+          executed: true,
+          requestDigest: message.payload.request.requestDigest,
+          approvalCount: message.payload.approvals.length,
+        };
+      }
       socket.end(
         `${JSON.stringify({ ok: true, requestId: message.requestId, result })}\n`,
       );
@@ -295,5 +340,60 @@ describe("evolution attestor-trust CLI", () => {
       h.host.prepare({ operationPath, outputPath: requestPath }),
     ).rejects.toThrow("substituted its operation");
     expect(fs.existsSync(requestPath)).toBe(false);
+  });
+
+  it("routes operator registry prepare and execute through secure files", async () => {
+    const h = await fixture();
+    const operationPath = path.join(h.root, "operator-register.json");
+    const requestPath = path.join(h.root, "operator-request.json");
+    const approvalPath = path.join(h.root, "operator-approval.json");
+    writeDocument(operationPath, {
+      operation: "register",
+      operatorId: "operator:backup",
+      publicKey: generateKeyPairSync("ed25519").publicKey.export({
+        type: "spki",
+        format: "pem",
+      }),
+    });
+    writeDocument(approvalPath, { externallySigned: true });
+    const root = new Command().exitOverride();
+    registerEvolutionAttestorTrustCommands(root.command("evolution"), {
+      attestorTrustOperationsHost: h.host,
+    });
+    const printed = vi.spyOn(console, "log").mockImplementation(() => {});
+    await root.parseAsync([
+      "node",
+      "cc",
+      "evolution",
+      "attestor-trust",
+      "operator-prepare",
+      operationPath,
+      "--out",
+      requestPath,
+    ]);
+    expect(JSON.parse(printed.mock.calls[0][0])).toMatchObject({
+      created: true,
+      operation: "register",
+      operatorId: "operator:backup",
+      requiredApprovals: 1,
+      revision: 1,
+    });
+    await root.parseAsync([
+      "node",
+      "cc",
+      "evolution",
+      "attestor-trust",
+      "operator-execute",
+      requestPath,
+      approvalPath,
+    ]);
+    expect(JSON.parse(printed.mock.calls[1][0])).toMatchObject({
+      rebindRequired: true,
+      registry: { revision: 2 },
+    });
+    expect(h.calls.map((entry) => entry.action)).toEqual([
+      "operator-prepare",
+      "operator-execute",
+    ]);
   });
 });

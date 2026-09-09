@@ -17,6 +17,7 @@ import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
   digestGovernedSkillSynthesisAttestorTrustOperationRequest,
 } from "./governed-skill-synthesis-attestor-trust-operations.js";
+import { validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest } from "./governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLI_HOST_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-cli-host/v1";
@@ -330,6 +331,88 @@ function normalizeOperation(value) {
   });
 }
 
+function normalizeOperatorChangeOperation(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !["register", "rotate", "revoke"].includes(value.operation) ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u.test(value.operatorId ?? "")
+  ) {
+    throw new TypeError("operator registry change operation is invalid");
+  }
+  if (value.operation === "register") {
+    exact(
+      value,
+      new Set(["operation", "operatorId", "publicKey"]),
+      "operator registration operation",
+    );
+    return Object.freeze({
+      input: value,
+      expected: {
+        operation: value.operation,
+        operatorId: value.operatorId,
+        priorKeyId: null,
+        reason: null,
+        ...publicKeyBinding(value.publicKey, "operator public key"),
+      },
+    });
+  }
+  if (value.operation === "rotate") {
+    exact(
+      value,
+      new Set(["operation", "operatorId", "priorKeyId", "publicKey", "reason"]),
+      "operator rotation operation",
+    );
+    const key = publicKeyBinding(value.publicKey, "operator public key");
+    if (
+      !KEY_ID.test(value.priorKeyId ?? "") ||
+      value.priorKeyId === key.keyId ||
+      typeof value.reason !== "string" ||
+      value.reason.trim() !== value.reason ||
+      value.reason.length < 1 ||
+      value.reason.length > 2048
+    ) {
+      throw new TypeError("operator rotation operation is invalid");
+    }
+    return Object.freeze({
+      input: value,
+      expected: {
+        operation: value.operation,
+        operatorId: value.operatorId,
+        priorKeyId: value.priorKeyId,
+        reason: value.reason,
+        ...key,
+      },
+    });
+  }
+  exact(
+    value,
+    new Set(["keyId", "operation", "operatorId", "reason"]),
+    "operator revocation operation",
+  );
+  if (
+    !KEY_ID.test(value.keyId ?? "") ||
+    typeof value.reason !== "string" ||
+    value.reason.trim() !== value.reason ||
+    value.reason.length < 1 ||
+    value.reason.length > 2048
+  ) {
+    throw new TypeError("operator revocation operation is invalid");
+  }
+  return Object.freeze({
+    input: value,
+    expected: {
+      operation: value.operation,
+      operatorId: value.operatorId,
+      keyId: value.keyId,
+      publicKeySpki: null,
+      priorKeyId: null,
+      reason: value.reason,
+    },
+  });
+}
+
 function validatePreparedRequest(value, service, currentTime) {
   if (!Number.isFinite(currentTime)) {
     throw new TypeError("attestor trust operations CLI clock is invalid");
@@ -419,6 +502,44 @@ function bindPreparedRequest(request, expected) {
   return request;
 }
 
+function bindPreparedOperatorChangeRequest(request, expected) {
+  for (const field of [
+    "operation",
+    "operatorId",
+    "keyId",
+    "publicKeySpki",
+    "priorKeyId",
+    "reason",
+  ]) {
+    if (request[field] !== expected[field]) {
+      throw new Error("prepared operator change substituted its operation");
+    }
+  }
+  return request;
+}
+
+function readApprovalFiles(approvalPaths, requiredApprovals) {
+  if (
+    !Array.isArray(approvalPaths) ||
+    approvalPaths.length !== requiredApprovals ||
+    approvalPaths.length > MAX_APPROVAL_FILES
+  ) {
+    throw new Error(
+      `exactly ${requiredApprovals} approval file(s) are required`,
+    );
+  }
+  const normalizedPaths = approvalPaths.map((entry) =>
+    filePath(entry, "approval file path"),
+  );
+  const comparablePaths = normalizedPaths.map((entry) =>
+    process.platform === "win32" ? entry.toLowerCase() : entry,
+  );
+  if (new Set(comparablePaths).size !== comparablePaths.length) {
+    throw new Error("approval file paths must be distinct");
+  }
+  return normalizedPaths.map((entry) => readSecureJson(entry, "approval file"));
+}
+
 export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
   client,
   now = Date.now,
@@ -433,6 +554,8 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
   }
   const prepareRemote = client.prepare.bind(client);
   const executeRemote = client.execute.bind(client);
+  const prepareOperatorChangeRemote = client.prepareOperatorChange.bind(client);
+  const executeOperatorChangeRemote = client.executeOperatorChange.bind(client);
   const service = client.descriptor.service;
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLI_HOST_SCHEMA,
@@ -483,33 +606,79 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
         new Set(["approvalPaths", "requestPath"]),
         "attestor trust execute CLI input",
       );
-      if (
-        !Array.isArray(input.approvalPaths) ||
-        input.approvalPaths.length !== service.requiredApprovals ||
-        input.approvalPaths.length > MAX_APPROVAL_FILES
-      ) {
-        throw new Error(
-          `exactly ${service.requiredApprovals} approval file(s) are required`,
-        );
-      }
-      const normalizedPaths = input.approvalPaths.map((entry) =>
-        filePath(entry, "approval file path"),
+      const approvals = readApprovalFiles(
+        input.approvalPaths,
+        service.requiredApprovals,
       );
-      const comparablePaths = normalizedPaths.map((entry) =>
-        process.platform === "win32" ? entry.toLowerCase() : entry,
-      );
-      if (new Set(comparablePaths).size !== comparablePaths.length) {
-        throw new Error("approval file paths must be distinct");
-      }
       const request = validatePreparedRequest(
         readSecureJson(input.requestPath, "request plan"),
         service,
         Number(now()),
       );
-      const approvals = normalizedPaths.map((entry) =>
-        readSecureJson(entry, "approval file"),
-      );
       return executeRemote({ request, approvals });
+    },
+    async prepareOperatorChange(input) {
+      exact(
+        input,
+        new Set(["operationPath", "outputPath"]),
+        "operator change prepare CLI input",
+      );
+      const operation = normalizeOperatorChangeOperation(
+        readSecureJson(input.operationPath, "operator change operation file"),
+      );
+      const request = bindPreparedOperatorChangeRequest(
+        validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest(
+          await prepareOperatorChangeRemote(operation.input),
+          {
+            tenantId: service.tenantId,
+            policyId: service.policyId,
+            revision: service.revision,
+            policyDigest: service.policyDigest,
+            requiredApprovals: service.requiredApprovals,
+          },
+          Number(now()),
+        ),
+        operation.expected,
+      );
+      const outputPath = writeExclusiveJson(
+        input.outputPath,
+        request,
+        "operator change request plan",
+      );
+      return Object.freeze({
+        created: true,
+        outputPath,
+        requestDigest: request.requestDigest,
+        operation: request.operation,
+        operatorId: request.operatorId,
+        requiredApprovals: request.requiredApprovals,
+        revision: request.revision,
+        expiresAt: request.expiresAt,
+      });
+    },
+    async executeOperatorChange(input) {
+      exact(
+        input,
+        new Set(["approvalPaths", "requestPath"]),
+        "operator change execute CLI input",
+      );
+      const approvals = readApprovalFiles(
+        input.approvalPaths,
+        service.requiredApprovals,
+      );
+      const request =
+        validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest(
+          readSecureJson(input.requestPath, "operator change request plan"),
+          {
+            tenantId: service.tenantId,
+            policyId: service.policyId,
+            revision: service.revision,
+            policyDigest: service.policyDigest,
+            requiredApprovals: service.requiredApprovals,
+          },
+          Number(now()),
+        );
+      return executeOperatorChangeRemote({ request, approvals });
     },
   });
   HOSTS.add(host);

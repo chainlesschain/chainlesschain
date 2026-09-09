@@ -12,6 +12,7 @@ import {
   isGovernedSkillSynthesisAttestorTrustOperationsClient,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
+import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 const servicePath = fileURLToPath(
   new URL(
@@ -120,7 +121,7 @@ async function startService(
       operatorRegistryStreamId: "attestor-trust-operator-registry",
       policyId: "policy:personal-ai",
       requiredApprovals: configuration.requiredApprovals ?? 1,
-      revision: 1,
+      revision: configuration.revision ?? 1,
       secrets,
       trustDescriptor: {
         tenantId: "tenant:attestor-trust-ops-service-test",
@@ -282,7 +283,7 @@ describe("attestor trust operations local service", () => {
         randomBytes(32).toString("base64url"),
         secrets,
       ),
-    ).rejects.toThrow("bootstrap differs from its durable genesis");
+    ).rejects.toThrow("bootstrap differs from its durable state");
   }, 60_000);
 
   it("persists a sorted multi-operator quorum genesis", async () => {
@@ -295,12 +296,19 @@ describe("attestor trust operations local service", () => {
       generateKeyPairSync("ed25519"),
       generateKeyPairSync("ed25519"),
     ];
+    const secrets = {
+      artifact: randomBytes(32).toString("base64url"),
+      ledger: randomBytes(32).toString("base64url"),
+      witness: randomBytes(32).toString("base64url"),
+    };
+    const target = endpoint(root);
+    const capabilityToken = randomBytes(32).toString("base64url");
     const started = await startService(
       root,
       operators[0],
-      endpoint(root),
-      randomBytes(32).toString("base64url"),
-      undefined,
+      target,
+      capabilityToken,
+      secrets,
       {
         operators,
         operatorIds: ["operator:zeta", "operator:alpha", "operator:middle"],
@@ -316,5 +324,267 @@ describe("attestor trust operations local service", () => {
     expect(started.descriptor.operatorRegistryRecordDigest).toMatch(
       /^sha256:[a-f0-9]{64}$/u,
     );
-  }, 30_000);
+    const client = createGovernedSkillSynthesisAttestorTrustOperationsClient({
+      endpoint: target,
+      capabilityToken,
+      descriptor: started.descriptor,
+      timeoutMs: 10_000,
+    });
+    const alphaIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:alpha",
+        privateKey: operators[1].privateKey,
+      });
+    const middleIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:middle",
+        privateKey: operators[2].privateKey,
+      });
+    const backup = generateKeyPairSync("ed25519");
+    const registerRequest = await client.prepareOperatorChange({
+      operation: "register",
+      operatorId: "operator:backup",
+      publicKey: backup.publicKey.export({ type: "spki", format: "pem" }),
+    });
+    await expect(
+      client.executeOperatorChange({
+        request: registerRequest,
+        approvals: [alphaIssuer.issue(registerRequest)],
+      }),
+    ).rejects.toThrow("operation_rejected");
+    const registered = await client.executeOperatorChange({
+      request: registerRequest,
+      approvals: [
+        alphaIssuer.issue(registerRequest),
+        middleIssuer.issue(registerRequest),
+      ],
+    });
+    expect(registered).toMatchObject({
+      rebindRequired: true,
+      registry: { revision: 2, operatorCount: 4, requiredApprovals: 2 },
+    });
+    await stopChild(started.child);
+
+    const expandedTarget = endpoint(root);
+    const expandedCapability = randomBytes(32).toString("base64url");
+    const expandedOperators = [...operators, backup];
+    const expanded = await startService(
+      root,
+      expandedOperators[0],
+      expandedTarget,
+      expandedCapability,
+      secrets,
+      {
+        operators: expandedOperators,
+        operatorIds: [
+          "operator:zeta",
+          "operator:alpha",
+          "operator:middle",
+          "operator:backup",
+        ],
+        requiredApprovals: 2,
+        revision: 2,
+      },
+    );
+    expect(expanded.descriptor).toMatchObject({
+      operatorCount: 4,
+      revision: 2,
+      operatorRegistryRecovered: true,
+      operatorRegistryRecordDigest: registered.registry.recordDigest,
+    });
+    const expandedClient =
+      createGovernedSkillSynthesisAttestorTrustOperationsClient({
+        endpoint: expandedTarget,
+        capabilityToken: expandedCapability,
+        descriptor: expanded.descriptor,
+        timeoutMs: 10_000,
+      });
+    const zetaIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:zeta",
+        privateKey: operators[0].privateKey,
+      });
+    const revokeRequest = await expandedClient.prepareOperatorChange({
+      operation: "revoke",
+      operatorId: "operator:zeta",
+      keyId: zetaIssuer.keyId,
+      reason: "remove the retired quorum operator",
+    });
+    const revoked = await expandedClient.executeOperatorChange({
+      request: revokeRequest,
+      approvals: [
+        alphaIssuer.issue(revokeRequest),
+        middleIssuer.issue(revokeRequest),
+      ],
+    });
+    expect(revoked).toMatchObject({
+      rebindRequired: true,
+      registry: { revision: 3, operatorCount: 3, requiredApprovals: 2 },
+    });
+    expect(
+      revoked.registry.operators.some(
+        (entry) => entry.operatorId === "operator:zeta",
+      ),
+    ).toBe(false);
+    await stopChild(expanded.child);
+
+    const final = await startService(
+      root,
+      operators[1],
+      endpoint(root),
+      randomBytes(32).toString("base64url"),
+      secrets,
+      {
+        operators: [operators[1], operators[2], backup],
+        operatorIds: ["operator:alpha", "operator:middle", "operator:backup"],
+        requiredApprovals: 2,
+        revision: 3,
+      },
+    );
+    expect(final.descriptor).toMatchObject({
+      revision: 3,
+      operatorCount: 3,
+      operatorRegistryRecordDigest: revoked.registry.recordDigest,
+      operatorRegistryRecovered: true,
+    });
+  }, 60_000);
+
+  it("rotates a personal operator with the old key and requires service rebind", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-attestor-ops-rotate-"),
+    );
+    roots.push(root);
+    const oldOperator = generateKeyPairSync("ed25519");
+    const newOperator = generateKeyPairSync("ed25519");
+    const secrets = {
+      artifact: randomBytes(32).toString("base64url"),
+      ledger: randomBytes(32).toString("base64url"),
+      witness: randomBytes(32).toString("base64url"),
+    };
+    const capabilityToken = randomBytes(32).toString("base64url");
+    const target = endpoint(root);
+    const started = await startService(
+      root,
+      oldOperator,
+      target,
+      capabilityToken,
+      secrets,
+    );
+    const client = createGovernedSkillSynthesisAttestorTrustOperationsClient({
+      endpoint: target,
+      capabilityToken,
+      descriptor: started.descriptor,
+      timeoutMs: 10_000,
+    });
+    const oldIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:owner",
+        privateKey: oldOperator.privateKey,
+      });
+    await expect(
+      client.prepareOperatorChange({
+        operation: "revoke",
+        operatorId: "operator:owner",
+        keyId: oldIssuer.keyId,
+        reason: "must not remove the last personal operator",
+      }),
+    ).rejects.toThrow("operation_rejected");
+    const request = await client.prepareOperatorChange({
+      operation: "rotate",
+      operatorId: "operator:owner",
+      priorKeyId: oldIssuer.keyId,
+      publicKey: newOperator.publicKey.export({ type: "spki", format: "pem" }),
+      reason: "rotate the personal owner key",
+    });
+    const approval = oldIssuer.issue(request);
+    const changed = await client.executeOperatorChange({
+      request,
+      approvals: [approval],
+    });
+    expect(changed).toMatchObject({
+      rebindRequired: true,
+      persistence: { authenticated: true, durable: true, recovered: false },
+      registry: {
+        revision: 2,
+        requiredApprovals: 1,
+        operatorCount: 1,
+        operators: [{ operatorId: "operator:owner" }],
+      },
+    });
+    expect(changed.registry.operators[0].keyId).not.toBe(oldIssuer.keyId);
+    await expect(
+      client.executeOperatorChange({ request, approvals: [approval] }),
+    ).resolves.toMatchObject({ persistence: { recovered: true } });
+    await expect(
+      client.prepare({
+        operation: "register",
+        serviceId: "kms.after-operator-rotation.test",
+        publicKey: generateKeyPairSync("ed25519").publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
+      }),
+    ).rejects.toThrow("service_rebind_required");
+
+    await stopChild(started.child);
+    const reboundTarget = endpoint(root);
+    const reboundCapability = randomBytes(32).toString("base64url");
+    const rebound = await startService(
+      root,
+      newOperator,
+      reboundTarget,
+      reboundCapability,
+      secrets,
+      { revision: 2 },
+    );
+    expect(rebound.descriptor).toMatchObject({
+      revision: 2,
+      policyDigest: changed.registry.policyDigest,
+      operatorRegistryRecordDigest: changed.registry.recordDigest,
+      operatorRegistryRecovered: true,
+    });
+    const reboundClient =
+      createGovernedSkillSynthesisAttestorTrustOperationsClient({
+        endpoint: reboundTarget,
+        capabilityToken: reboundCapability,
+        descriptor: rebound.descriptor,
+        timeoutMs: 10_000,
+      });
+    const attestor = generateKeyPairSync("ed25519");
+    const attestorRequest = await reboundClient.prepare({
+      operation: "register",
+      serviceId: "kms.rebound-attestor.test",
+      publicKey: attestor.publicKey.export({ type: "spki", format: "pem" }),
+    });
+    const staleIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:owner",
+        privateKey: oldOperator.privateKey,
+      });
+    await expect(
+      reboundClient.execute({
+        request: attestorRequest,
+        approvals: [staleIssuer.issue(attestorRequest)],
+      }),
+    ).rejects.toThrow("operation_rejected");
+    const activeIssuer =
+      createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+        tenantId: "tenant:attestor-trust-ops-service-test",
+        operatorId: "operator:owner",
+        privateKey: newOperator.privateKey,
+      });
+    await expect(
+      reboundClient.execute({
+        request: attestorRequest,
+        approvals: [activeIssuer.issue(attestorRequest)],
+      }),
+    ).resolves.toMatchObject({
+      lifecycle: { authenticated: true, durable: true, operation: "register" },
+    });
+  }, 60_000);
 });

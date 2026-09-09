@@ -20,6 +20,7 @@ import {
 } from "../src/lib/evolution/evolution-deployment-loader.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
+import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 import { firstBalancedJson } from "../src/lib/json-schema-output.js";
 
 const cliRoot = path.resolve(
@@ -201,9 +202,8 @@ try {
           root,
           `cc-evolution-attestor-${randomBytes(12).toString("hex")}.sock`,
         );
-  const attestorTrustOperationsCapability =
-    randomBytes(32).toString("base64url");
-  const attestorTrustOperationsEndpoint =
+  let attestorTrustOperationsCapability = randomBytes(32).toString("base64url");
+  let attestorTrustOperationsEndpoint =
     process.platform === "win32"
       ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}`
       : path.join(
@@ -251,41 +251,86 @@ try {
     type: "spki",
     format: "pem",
   });
-  const trustOperatorKeys = generateKeyPairSync("ed25519");
-  const trustOperationsService = await startLocalAttestorTrustOperationsService(
-    {
-      artifactRoot,
-      authorityNamespace: "local-volcengine-pilot",
-      authorizationStreamId: "learning-synthesis-attestor-trust-authorizations",
-      capabilityToken: attestorTrustOperationsCapability,
-      endpoint: attestorTrustOperationsEndpoint,
-      ledgerAuthorityRoot,
-      ledgerRoot,
-      operatorIdentities: [
-        {
-          tenantId: "tenant:local-volcengine-pilot",
-          operatorId: "operator:local-owner",
-          publicKeyPem: trustOperatorKeys.publicKey.export({
-            type: "spki",
-            format: "pem",
-          }),
-        },
-      ],
-      operatorRegistryStreamId: "learning-synthesis-attestor-trust-operators",
-      policyId: "policy:local-personal-ai-attestor-trust",
-      requiredApprovals: 1,
-      revision: 1,
-      secrets: localSecrets,
-      trustDescriptor: {
+  const initialTrustOperatorKeys = generateKeyPairSync("ed25519");
+  const rotatedTrustOperatorKeys = generateKeyPairSync("ed25519");
+  const trustOperationsBootstrap = (operatorKeys, revision) => ({
+    artifactRoot,
+    authorityNamespace: "local-volcengine-pilot",
+    authorizationStreamId: "learning-synthesis-attestor-trust-authorizations",
+    capabilityToken: attestorTrustOperationsCapability,
+    endpoint: attestorTrustOperationsEndpoint,
+    ledgerAuthorityRoot,
+    ledgerRoot,
+    operatorIdentities: [
+      {
         tenantId: "tenant:local-volcengine-pilot",
-        artifactTenantId: "tenant:local-volcengine-pilot",
-        streamId: "learning-synthesis-attestor-trust",
-        audience: "evolution-runtime",
-        purpose: "evolution-ledger",
+        operatorId: "operator:local-owner",
+        publicKeyPem: operatorKeys.publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
       },
-      witnessFile,
-      witnessId: "local-volcengine-pilot-evaluation-witness",
+    ],
+    operatorRegistryStreamId: "learning-synthesis-attestor-trust-operators",
+    policyId: "policy:local-personal-ai-attestor-trust",
+    requiredApprovals: 1,
+    revision,
+    secrets: localSecrets,
+    trustDescriptor: {
+      tenantId: "tenant:local-volcengine-pilot",
+      artifactTenantId: "tenant:local-volcengine-pilot",
+      streamId: "learning-synthesis-attestor-trust",
+      audience: "evolution-runtime",
+      purpose: "evolution-ledger",
     },
+    witnessFile,
+    witnessId: "local-volcengine-pilot-evaluation-witness",
+  });
+  let trustOperationsService = await startLocalAttestorTrustOperationsService(
+    trustOperationsBootstrap(initialTrustOperatorKeys, 1),
+  );
+  attestorTrustOperationsProcess = trustOperationsService.child;
+  const initialAttestorTrustOperations =
+    createGovernedSkillSynthesisAttestorTrustOperationsClient({
+      endpoint: attestorTrustOperationsEndpoint,
+      capabilityToken: attestorTrustOperationsCapability,
+      descriptor: trustOperationsService.descriptor,
+      timeoutMs: 15_000,
+    });
+  const operatorRegistryIssuer =
+    createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+      tenantId: "tenant:local-volcengine-pilot",
+      operatorId: "operator:local-owner",
+      privateKey: initialTrustOperatorKeys.privateKey,
+    });
+  const operatorRotationRequest =
+    await initialAttestorTrustOperations.prepareOperatorChange({
+      operation: "rotate",
+      operatorId: "operator:local-owner",
+      priorKeyId: operatorRegistryIssuer.keyId,
+      publicKey: rotatedTrustOperatorKeys.publicKey.export({
+        type: "spki",
+        format: "pem",
+      }),
+      reason: "rotate the personal AI owner key before attestor enrollment",
+    });
+  const operatorRotation =
+    await initialAttestorTrustOperations.executeOperatorChange({
+      request: operatorRotationRequest,
+      approvals: [operatorRegistryIssuer.issue(operatorRotationRequest)],
+    });
+  await stopChild(attestorTrustOperationsProcess);
+  attestorTrustOperationsProcess = null;
+  attestorTrustOperationsCapability = randomBytes(32).toString("base64url");
+  attestorTrustOperationsEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}`
+      : path.join(
+          root,
+          `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
+        );
+  trustOperationsService = await startLocalAttestorTrustOperationsService(
+    trustOperationsBootstrap(rotatedTrustOperatorKeys, 2),
   );
   attestorTrustOperationsProcess = trustOperationsService.child;
   const attestorTrustOperations =
@@ -304,7 +349,7 @@ try {
     createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
       tenantId: "tenant:local-volcengine-pilot",
       operatorId: "operator:local-owner",
-      privateKey: trustOperatorKeys.privateKey,
+      privateKey: rotatedTrustOperatorKeys.privateKey,
     });
   const attestorTrustExecution = await attestorTrustOperations.execute({
     request: trustRegistrationRequest,
@@ -719,6 +764,43 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     throw new Error("pilot evaluation attestor was not externally isolated");
   }
   if (
+    operatorRotation.rebindRequired !== true ||
+    operatorRotation.persistence?.authenticated !== true ||
+    operatorRotation.persistence?.durable !== true ||
+    operatorRotation.persistence?.recovered !== false ||
+    operatorRotation.registry?.revision !== 2 ||
+    operatorRotation.registry?.requiredApprovals !== 1 ||
+    operatorRotation.registry?.operatorCount !== 1 ||
+    operatorRotation.registry?.operators?.[0]?.operatorId !==
+      "operator:local-owner" ||
+    operatorRotation.registry?.operators?.[0]?.keyId !==
+      trustOperatorIssuer.keyId ||
+    operatorRotation.authorization?.requestDigest !==
+      operatorRotationRequest.requestDigest ||
+    operatorRotation.authorization?.operatorIds?.length !== 1 ||
+    operatorRotation.authorization?.operatorIds?.[0] !==
+      "operator:local-owner" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      operatorRotation.authorization?.authorizationDigest,
+    ) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      operatorRotation.persistence?.recordDigest,
+    ) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      operatorRotation.persistence?.ledgerEventDigest,
+    ) ||
+    operatorRegistryIssuer.keyId === trustOperatorIssuer.keyId ||
+    attestorTrustOperations.descriptor.service.revision !== 2 ||
+    attestorTrustOperations.descriptor.service.policyDigest !==
+      operatorRotation.registry.policyDigest ||
+    attestorTrustOperations.descriptor.service.operatorRegistryRecordDigest !==
+      operatorRotation.registry.recordDigest ||
+    attestorTrustOperations.descriptor.service.operatorRegistryRecovered !==
+      true
+  ) {
+    throw new Error("pilot personal operator rotation was not durably rebound");
+  }
+  if (
     attestorTrustRegistration.authenticated !== true ||
     attestorTrustRegistration.durable !== true ||
     attestorTrustRegistration.operation !== "register" ||
@@ -728,7 +810,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       "single-operator" ||
     attestorTrustOperations.descriptor.service.requiredApprovals !== 1 ||
     attestorTrustOperations.descriptor.service.operatorRegistryRecovered !==
-      false ||
+      true ||
     !/^sha256:[a-f0-9]{64}$/u.test(
       attestorTrustOperations.descriptor.service.operatorRegistryRecordDigest,
     ) ||
@@ -845,6 +927,18 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               attestorTrustOperations.descriptor.service.requiredApprovals,
             attestorTrustOperatorIds:
               attestorTrustExecution.authorization.operatorIds,
+            operatorRotationRequestDigest:
+              operatorRotationRequest.requestDigest,
+            operatorRotationAuthorizationDigest:
+              operatorRotation.authorization.authorizationDigest,
+            operatorRotationRecordDigest:
+              operatorRotation.persistence.recordDigest,
+            operatorRotationLedgerEventDigest:
+              operatorRotation.persistence.ledgerEventDigest,
+            operatorRegistryRevision: operatorRotation.registry.revision,
+            operatorRegistryRebindRequired: operatorRotation.rebindRequired,
+            operatorRegistryOldKeyId: operatorRegistryIssuer.keyId,
+            operatorRegistryActiveKeyId: trustOperatorIssuer.keyId,
             attestorTrustVerifierIsolation:
               attestorTrustEvidence.verifier.isolation,
             attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,
@@ -888,7 +982,8 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
           "the learning deployment receives only a branded trust verifier; a separate local operations service process owns the lifecycle writer and registers the signer key before any CLI process starts",
           "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
-          "the operator policy genesis is durably pinned in ArtifactStore/EvolutionLedger and later service starts reject bootstrap identity or threshold drift; governed operator lifecycle mutations are not yet exposed",
+          "the operator policy genesis and signed register, rotate, and revoke mutations are durably pinned in ArtifactStore/EvolutionLedger; this pilot rotates its 1-of-1 personal-AI owner key and rebinds the service before attestor enrollment",
+          "operator mutations require a new operations endpoint and capability binding; the old process refuses ordinary trust lifecycle work after a successful policy change",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator holds only the operator signing key and an operations IPC capability; the trust writer and authorization executor remain inside a separate service process",
           "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",

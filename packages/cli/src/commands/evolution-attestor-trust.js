@@ -48,4 +48,34 @@ export function registerEvolutionAttestorTrustCommands(
         }),
       );
     });
+
+  trust
+    .command("operator-prepare <operation-file>")
+    .description(
+      "Create a registry change request for current-operator approval",
+    )
+    .requiredOption(
+      "--out <request-file>",
+      "Exclusively create the operator change request",
+    )
+    .action(async (operationPath, options) => {
+      output(
+        await host(attestorTrustOperationsHost).prepareOperatorChange({
+          operationPath,
+          outputPath: options.out,
+        }),
+      );
+    });
+
+  trust
+    .command("operator-execute <request-file> <approval-files...>")
+    .description("Commit a quorum-approved operator registry change")
+    .action(async (requestPath, approvalPaths) => {
+      output(
+        await host(attestorTrustOperationsHost).executeOperatorChange({
+          requestPath,
+          approvalPaths,
+        }),
+      );
+    });
 }

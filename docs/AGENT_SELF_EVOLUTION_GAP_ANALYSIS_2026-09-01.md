@@ -1987,6 +1987,25 @@ IPC 采用两阶段协议：`prepare` 只把 register/rotate/revoke 输入交给
 
 该阶段关闭“每次启动可用任意 bootstrap operator key 重定义审批根”的风险，但还没有提供已治理的 operator 变更能力；当前 registry 故意只暴露 `initialize()`/`snapshot()`，不能通过 CLI 或 IPC 注册、轮换、撤销。下一阶段必须新增由当前 active operator quorum 签名的 registry-change request/approval/authorization 协议，持久化每次身份状态变更，保证个人 `1-of-1` 可由旧 key 批准轮换到新 key、团队变更不降低门限，并在变更后强制 service/client rebind。未消费 authorization reconciliation 与生产 IPC/OS/KMS 边界仍未完成，因此 production auto-promotion 继续 `HOLD`。
 
+### 13.18 operator registry 治理变更、个人单签轮换与强制重绑（2026-09-09）
+
+本批关闭 §13.17 所列的仓库内 operator lifecycle 缺口。`GovernedSkillSynthesisAttestorTrustOperatorRegistry` 现支持 `prepareChange()` / `executeChange()`，定义并严格校验 registry-change request、外部 Ed25519 approval、quorum authorization 与 change record v1。request 绑定 tenant、policy ID、当前 revision/policy digest、当前门限、操作、operator/key、请求时间与五分钟有效期；approval 绑定 request/policy digest，由变更前仍 active 的 operator key 签名，并按不同 operator ID 计数。执行端重新验证所有签名和当前快照后才生成 authorization，将 authorization 与变更结果一起写入不可变 ArtifactStore change record，再用 sourceRef 精确连接前一 registry record 写入同一 Ledger stream；重启时从 genesis 顺序重放全部 change event，重新验证每次签名、门限、lineage、revision 和 policy digest，而不是信任 bootstrap 提交的最终状态。
+
+变更规则现已 fail closed：`register` 禁止 operator ID 或历史 key 重用并限制最多 16 个 operator；`rotate` 必须声明当前 `priorKeyId`，且由包括旧 active key 在内的当前 quorum 批准后才能替换新 key；`revoke` 必须命中当前 active key，并禁止把 active operator 数降到 `requiredApprovals` 以下。每次成功变更 revision 只增加 1，返回脱敏后的 operator ID/keyId 快照、durable/authenticated persistence 与 `rebindRequired=true`。operations service 随之升级到 v3；成功变更后，原进程除同一 `operator-execute` 幂等恢复外拒绝普通 prepare/execute，部署方必须用新 revision、operator 集合、新 endpoint/capability 重新启动并重建 client，防止旧连接继续按过期审批根工作。
+
+CLI 已提供安全文件工作流：
+
+```text
+cc evolution attestor-trust operator-prepare <operation-file> --out <request-file>
+cc evolution attestor-trust operator-execute <request-file> <approval-files...>
+```
+
+`operator-prepare` 接受 register/rotate/revoke operation JSON，并以独占创建方式输出服务端绑定的 request；`operator-execute` 对 request 与 approval 文件执行既有的真实路径、非链接、常规文件、权限、大小、精确数量和 distinct operator 检查，再经 IPC 提交。私钥仍不进入主 CLI；approval 由品牌化的外部 issuer/API 产生，便于后续替换成 KMS/HSM 或独立签名工具。个人 AI 明确支持 `1-of-1`：测试证明不能撤销唯一 owner，但旧 owner key 可以批准轮换到新 key；变更后原进程拒绝普通 trust 操作，重启恢复 revision 2，旧 key 无法再批准 attestor 注册，而新 key 可以。团队测试覆盖 `2-of-3`：单份 approval 注册失败、两份不同 operator approval 注册第四人成功、重启恢复后再由两人撤销成员成功；失败路径不产生持久副作用。
+
+验证结果：相关六个 Vitest 文件为 `102 passed / 1 existing platform skip`，目标 ESLint 通过，command manifest/help index/completions 均保持一致。真实 Windows 火山引擎 Pilot 使用本地配置的 `deepseek-v4-flash-260425` 在 **18.157 秒**完成，模型一次评分 `1.0`；Pilot 先由个人 owner 旧 key 签署轮换，产生 request digest `sha256:0bf5be4833f36ea97391466d38547c811488e67e8f1413b6bf46713d7d4f5575`、authorization digest `sha256:238b3c0c2878b9fed7159a4bb4bdbd671daafbce085748b7df58bf016c4049d0`、change record digest `sha256:c3c222221047916c0919d59e1e87049a298a4997f33b093bac778f64047d997c` 和 Ledger event digest `sha256:1f7641bd88e52e01e1cbfbc1f366ca4167aa5154d40ee9f6827dd26329e487a7`；随后以新 endpoint/capability 和新 key 重绑，确认 revision 2、`operatorRegistryRecovered=true`，再完成 attestor 注册与 candidate-only 评估，`activeMutationCount=0`。
+
+因此“个人 AI 必须多人审批”的产品阻断已经消除：门限为 1 时可以由单一 owner 治理，但仍保留签名、时效、不可变账本、旧 key 批准轮换和强制重绑，不退化成无审批直写。生产结论仍为 `HOLD`：当前证明的是同机独立进程、临时 Ed25519/HMAC authority 和测试用 Windows directory-fsync 兼容层；还缺生产 KMS/HSM 或硬件/系统密钥托管、操作员/工作负载真实身份映射与撤权、IPC OS ACL/peer credential、防 capability 泄露、独立 Ledger/witness 故障域、未决授权/变更 reconciliation、密钥丢失与 break-glass 恢复演练，以及目标租户上的长期审计和灾备验收。这些属于 EVO-OPT-7 的目标部署工作，不应把本批仓库闭环误报为 WikiSkill 或自动 active promotion 已可无条件生产启用。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

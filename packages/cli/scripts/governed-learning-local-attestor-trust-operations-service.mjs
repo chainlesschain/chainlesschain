@@ -18,7 +18,7 @@ import { createGovernedSkillSynthesisAttestorTrustOperations } from "../src/lib/
 const IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 const SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3";
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
@@ -371,6 +371,7 @@ if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
 
 let requestCount = 0;
 let queue = Promise.resolve();
+let rebindRequired = false;
 const server = net.createServer((socket) => {
   let carry = "";
   let handled = false;
@@ -409,7 +410,9 @@ const server = net.createServer((socket) => {
       carry.slice(frameEnd + 1).trim().length > 0 ||
       !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
       !safeEqual(request.capabilityToken, bootstrap.capabilityToken) ||
-      !["prepare", "execute"].includes(request.action) ||
+      !["prepare", "execute", "operator-prepare", "operator-execute"].includes(
+        request.action,
+      ) ||
       requestCount >= MAX_REQUESTS
     ) {
       response(socket, {
@@ -419,13 +422,36 @@ const server = net.createServer((socket) => {
       });
       return;
     }
+    if (rebindRequired && request.action !== "operator-execute") {
+      response(socket, {
+        ok: false,
+        requestId: request.requestId,
+        code: "service_rebind_required",
+      });
+      return;
+    }
     requestCount += 1;
     queue = queue
       .then(async () => {
-        const result =
-          request.action === "prepare"
-            ? operations.prepare(request.payload)
-            : await operations.execute(request.payload);
+        if (rebindRequired && request.action !== "operator-execute") {
+          response(socket, {
+            ok: false,
+            requestId: request.requestId,
+            code: "service_rebind_required",
+          });
+          return;
+        }
+        let result;
+        if (request.action === "prepare") {
+          result = operations.prepare(request.payload);
+        } else if (request.action === "execute") {
+          result = await operations.execute(request.payload);
+        } else if (request.action === "operator-prepare") {
+          result = await operatorRegistry.prepareChange(request.payload);
+        } else {
+          result = await operatorRegistry.executeChange(request.payload);
+          rebindRequired = true;
+        }
         response(socket, { ok: true, requestId: request.requestId, result });
       })
       .catch(() => {
