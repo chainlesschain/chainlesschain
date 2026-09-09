@@ -153,6 +153,10 @@ try {
   const ledgerAuthorityRoot = path.join(root, "evaluation-ledger-authority");
   const witnessRoot = path.join(root, "evaluation-witness");
   const witnessFile = path.join(witnessRoot, "checkpoint.json");
+  const attestorTrustEvidenceFile = path.join(
+    root,
+    "attestor-trust-evidence.json",
+  );
   const externalAttestorServiceId = "kms.local-volcengine-pilot.attestor";
   const externalAttestorCapability = randomBytes(32).toString("base64url");
   const externalAttestorEndpoint =
@@ -357,6 +361,29 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       revision: 1,
       handlerArtifactDigest: descriptor.moduleDigest
     };
+    const attestorTrustLedger = factories.createGovernedSkillSynthesisAttestorTrustLedger({
+      descriptor: {
+        tenantId: evaluationDescriptor.tenantId,
+        artifactTenantId: evaluationDescriptor.artifactTenantId,
+        streamId: "learning-synthesis-attestor-trust",
+        audience: evaluationDescriptor.audience,
+        purpose: evaluationDescriptor.purpose
+      },
+      artifactPorts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver
+    });
+    const attestorTrustRegistration = await attestorTrustLedger.registerKey({
+      serviceId: ${JSON.stringify(externalAttestorServiceId)},
+      publicKey: ${JSON.stringify(evaluationAttestorPublicKey)}
+    });
+    const evaluationAttestationVerifier = attestorTrustLedger.createVerifier({
+      serviceId: ${JSON.stringify(externalAttestorServiceId)}
+    });
+    fs.writeFileSync(${JSON.stringify(attestorTrustEvidenceFile)}, JSON.stringify({
+      registration: attestorTrustRegistration,
+      verifier: evaluationAttestationVerifier.descriptor
+    }));
     const evaluationAttestationAuthority = factories.createGovernedSkillSynthesisExternalAttestationAuthority({
       endpoint: ${JSON.stringify(externalAttestorEndpoint)},
       capabilityToken: ${JSON.stringify(externalAttestorCapability)},
@@ -369,7 +396,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       artifactPorts,
       ledger: backend.ledger,
       ledgerArtifactResolver,
-      attestationAuthority: evaluationAttestationAuthority
+      attestationAuthority: evaluationAttestationVerifier
     });
     const generationChat = factories.createGovernedSkillSynthesisProviderChat({
       provider: "volcengine",
@@ -543,6 +570,9 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   );
   const content = fs.readFileSync(skillPath);
   const evaluation = JSON.parse(fs.readFileSync(evaluationPath, "utf8"));
+  const attestorTrustEvidence = JSON.parse(
+    fs.readFileSync(attestorTrustEvidenceFile, "utf8"),
+  );
   if (evaluation.receipt?.graderIsolation !== "process") {
     throw new Error("pilot grader was not process isolated");
   }
@@ -583,6 +613,19 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     !/^[a-f0-9]{32}$/u.test(evaluation.receipt.attestation?.requestId)
   ) {
     throw new Error("pilot evaluation attestor was not externally isolated");
+  }
+  if (
+    attestorTrustEvidence.registration?.authenticated !== true ||
+    attestorTrustEvidence.registration?.durable !== true ||
+    attestorTrustEvidence.registration?.operation !== "register" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      attestorTrustEvidence.registration?.recordDigest,
+    ) ||
+    attestorTrustEvidence.verifier?.isolation !==
+      "durable-ledger-key-lifecycle" ||
+    attestorTrustEvidence.verifier?.serviceId !== externalAttestorServiceId
+  ) {
+    throw new Error("pilot attestor key trust was not durably registered");
   }
   const activeEntries = fs.readdirSync(activeRoot);
   if (activeEntries.length !== 0) {
@@ -647,6 +690,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             attestorRequestTimeoutMs:
               evaluation.receipt.attestation.requestTimeoutMs,
             attestorRequestId: evaluation.receipt.attestation.requestId,
+            attestorTrustRecordDigest:
+              attestorTrustEvidence.registration.recordDigest,
+            attestorTrustRegistrationRecovered:
+              attestorTrustEvidence.registration.recovered,
+            attestorTrustVerifierIsolation:
+              attestorTrustEvidence.verifier.isolation,
+            attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,
+            attestorTrustLedgerEpoch: attestorTrustEvidence.verifier.epoch,
           },
         },
         activeMutationCount: activeEntries.length,
@@ -656,6 +707,8 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           candidateRegistry: "isolated-temporary-directory",
           evaluationSigningKeyVisibleToCli: false,
           evaluationSignerBoundary: "separate-local-service-process",
+          evaluationSignerTrust:
+            "artifactstore-ledger-sequence-bound-key-lifecycle",
           platform: process.platform,
           nativeDirectoryDurability:
             process.platform === "win32" ? "unavailable" : "required",
@@ -665,6 +718,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "grader launch requires a persistent process-audit admission record plus process-tree, resource-limit, and privilege-reduction sandbox guarantees",
           "grader still uses the same configured model, provider, credential source, and host as generation",
           "the authenticated CLI deployment has only an external signer endpoint, capability, and pinned public key; it contains no evaluation signing private key",
+          "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
           "the pilot orchestrator bootstraps the signer private key into a separate same-host service process; this validates the handle boundary but is not production KMS/HSM or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",

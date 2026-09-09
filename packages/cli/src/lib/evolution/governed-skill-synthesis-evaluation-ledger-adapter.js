@@ -9,6 +9,7 @@ import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
 } from "./evolution-ledger.js";
+import { isGovernedSkillSynthesisAttestorTrustVerifier } from "./governed-skill-synthesis-attestor-trust-ledger.js";
 import { isGovernedSkillSynthesisExternalAttestationAuthority } from "./governed-skill-synthesis-external-attestor.js";
 import { isGovernedSkillSynthesisProcessAttestationAuthority } from "./governed-skill-synthesis-process-attestor.js";
 
@@ -481,7 +482,10 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
       isGovernedSkillSynthesisProcessAttestationAuthority(
         attestationAuthority,
       ) ||
-      isGovernedSkillSynthesisExternalAttestationAuthority(attestationAuthority)
+      isGovernedSkillSynthesisExternalAttestationAuthority(
+        attestationAuthority,
+      ) ||
+      isGovernedSkillSynthesisAttestorTrustVerifier(attestationAuthority)
         ? attestationAuthority
         : null;
     if (attestationAuthority !== undefined && !governedAuthority) {
@@ -504,6 +508,8 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
         : (() => {
             throw new TypeError("verifyAttestation() is required");
           })());
+    this._attestationLedgerBound =
+      isGovernedSkillSynthesisAttestorTrustVerifier(governedAuthority);
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
       throw new TypeError(
         "a branded EvolutionArtifactPorts ledger resolver is required",
@@ -571,6 +577,7 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
     if (receipt.receiptDigest !== receiptDigest) {
       fail("learning synthesis evaluation ledger subject was substituted");
     }
+    const authority = this._verifyLedger();
     if (
       (await this._verifyAttestation({
         receiptDigest: receipt.receiptDigest,
@@ -581,6 +588,15 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
           handlerArtifactDigest: this.descriptor.handlerArtifactDigest,
         }),
         attestation: receipt.attestation,
+        ...(this._attestationLedgerBound
+          ? {
+              ledgerContext: Object.freeze({
+                epoch: authority.epoch,
+                ledgerId: authority.ledgerId,
+                sequence: events[0].sequence,
+              }),
+            }
+          : {}),
       })) !== true
     ) {
       fail("learning synthesis evaluation attestation was rejected on read");
@@ -593,6 +609,14 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
 
   async commit(receipt) {
     validateReceipt(receipt, this.descriptor);
+    const existing = await this.load(receipt.receiptDigest);
+    if (existing) {
+      if (canonical(existing.receipt) !== canonical(receipt)) {
+        fail("learning synthesis evaluation retry substituted its receipt");
+      }
+      return existing.persistence;
+    }
+    const head = this._verifyLedger();
     if (
       (await this._verifyAttestation({
         receiptDigest: receipt.receiptDigest,
@@ -603,16 +627,21 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
           handlerArtifactDigest: this.descriptor.handlerArtifactDigest,
         }),
         attestation: receipt.attestation,
+        ...(this._attestationLedgerBound
+          ? {
+              ledgerContext: Object.freeze({
+                epoch: head.epoch,
+                ledgerId: head.ledgerId,
+                sequence: head.sequence + 1,
+              }),
+            }
+          : {}),
       })) !== true
     ) {
       fail(
         "learning synthesis evaluation attestation was rejected before write",
       );
     }
-    const existing = await this.load(receipt.receiptDigest);
-    if (existing) return existing.persistence;
-
-    const head = this._verifyLedger();
     const published = this._put(ARTIFACT_TYPE, receipt, {
       audience: this.descriptor.audience,
       purpose: this.descriptor.purpose,

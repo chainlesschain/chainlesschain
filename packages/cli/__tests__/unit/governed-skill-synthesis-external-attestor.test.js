@@ -159,6 +159,14 @@ describe("governed Skill synthesis external attestor", () => {
         serviceId,
       }),
     ).toThrow("unexpected fields");
+    expect(() =>
+      createGovernedSkillSynthesisExternalAttestationAuthority({
+        endpoint: target,
+        capabilityToken,
+        publicKeyPem: service.privateKeyPem,
+        serviceId,
+      }),
+    ).toThrow("must not contain a private key");
     await expect(
       authority.verifyAttestation({ ...request, attestation }),
     ).resolves.toBe(true);

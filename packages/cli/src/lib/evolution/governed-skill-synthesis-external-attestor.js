@@ -26,6 +26,20 @@ const REQUEST_KEYS = new Set([
   "descriptor",
   "receiptDigest",
 ]);
+const ATTESTATION_KEYS = new Set([
+  "algorithm",
+  "attestorSchema",
+  "endpointDigest",
+  "isolation",
+  "keyId",
+  "publicKeyDigest",
+  "requestId",
+  "requestTimeoutMs",
+  "schema",
+  "serviceId",
+  "signature",
+  "transport",
+]);
 const MAX_FRAME_BYTES = 32 * 1024;
 
 function sha256(bytes) {
@@ -273,6 +287,121 @@ function verifyInput(value) {
   }
 }
 
+function attestationData(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    utilTypes.isProxy(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return null;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  if (
+    Reflect.ownKeys(descriptors).length !== ATTESTATION_KEYS.size ||
+    Reflect.ownKeys(descriptors).some(
+      (key) =>
+        typeof key !== "string" ||
+        !ATTESTATION_KEYS.has(key) ||
+        !("value" in descriptors[key]) ||
+        descriptors[key].enumerable !== true,
+    )
+  ) {
+    return null;
+  }
+  return Object.fromEntries(
+    Object.entries(descriptors).map(([key, entry]) => [key, entry.value]),
+  );
+}
+
+export function getGovernedSkillSynthesisExternalAttestationIdentity(value) {
+  const data = attestationData(value);
+  if (
+    !data ||
+    data.schema !== GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTATION_SCHEMA ||
+    data.attestorSchema !== GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTOR_SCHEMA ||
+    !/^key:ed25519:[a-f0-9]{64}$/u.test(data.keyId ?? "") ||
+    !SERVICE_ID.test(data.serviceId ?? "")
+  ) {
+    return null;
+  }
+  return Object.freeze({ keyId: data.keyId, serviceId: data.serviceId });
+}
+
+export function verifyGovernedSkillSynthesisExternalAttestation(
+  value,
+  { publicKey: publicKeyInput, expectedDescriptor = null } = {},
+) {
+  const input = verifyInput(value);
+  if (!input) return false;
+  const data = attestationData(input.attestation);
+  if (!data) return false;
+  let publicKey;
+  try {
+    if (
+      utilTypes.isKeyObject(publicKeyInput) &&
+      publicKeyInput.type !== "public"
+    ) {
+      return false;
+    }
+    publicKey = utilTypes.isKeyObject(publicKeyInput)
+      ? publicKeyInput
+      : createPublicKey(publicKeyInput);
+  } catch {
+    return false;
+  }
+  if (publicKey.asymmetricKeyType !== "ed25519") return false;
+  const publicDer = publicKey.export({ type: "spki", format: "der" });
+  const publicKeyDigest = sha256(publicDer);
+  const {
+    attestorSchema,
+    requestId,
+    signature,
+    schema: attestationSchema,
+    ...execution
+  } = data;
+  const attestor = { schema: attestorSchema, ...execution };
+  if (
+    attestationSchema !==
+      GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTATION_SCHEMA ||
+    attestorSchema !== GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTOR_SCHEMA ||
+    execution.algorithm !== "Ed25519" ||
+    execution.keyId !== `key:ed25519:${publicKeyDigest.slice(7)}` ||
+    execution.publicKeyDigest !== publicKeyDigest ||
+    execution.isolation !== "external-service" ||
+    !SERVICE_ID.test(execution.serviceId ?? "") ||
+    execution.transport !== "local-ipc-v1" ||
+    !DIGEST.test(execution.endpointDigest ?? "") ||
+    !Number.isSafeInteger(execution.requestTimeoutMs) ||
+    execution.requestTimeoutMs < 1_000 ||
+    execution.requestTimeoutMs > 30_000 ||
+    !/^[a-f0-9]{32}$/u.test(requestId ?? "") ||
+    typeof signature !== "string" ||
+    signature.length === 0 ||
+    signature.length > 1024 ||
+    (expectedDescriptor !== null &&
+      canonical(attestor) !== canonical(expectedDescriptor))
+  ) {
+    return false;
+  }
+  try {
+    const signatureBytes = Buffer.from(signature, "base64");
+    return (
+      signatureBytes.length === 64 &&
+      signatureBytes.toString("base64") === signature &&
+      verify(
+        null,
+        signingMessage(input.request, attestor, requestId),
+        publicKey,
+        signatureBytes,
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function createGovernedSkillSynthesisExternalAttestationAuthority(
   options = {},
 ) {
@@ -296,6 +425,11 @@ export function createGovernedSkillSynthesisExternalAttestationAuthority(
     16 * 1024,
     false,
   );
+  if (/PRIVATE KEY/u.test(publicKeyPem)) {
+    throw new TypeError(
+      "external attestor publicKeyPem must not contain a private key",
+    );
+  }
   const publicKey = createPublicKey(publicKeyPem);
   if (publicKey.asymmetricKeyType !== "ed25519") {
     throw new TypeError("external attestor public key must be Ed25519");
@@ -346,71 +480,10 @@ export function createGovernedSkillSynthesisExternalAttestationAuthority(
     });
   };
   const verifyAttestation = async (value) => {
-    const input = verifyInput(value);
-    if (!input) return false;
-    const attestation = input.attestation;
-    if (
-      !attestation ||
-      typeof attestation !== "object" ||
-      Array.isArray(attestation) ||
-      utilTypes.isProxy(attestation)
-    ) {
-      return false;
-    }
-    const data = Object.getOwnPropertyDescriptors(attestation);
-    const expected = new Set([
-      ...Object.keys(descriptor),
-      "attestorSchema",
-      "requestId",
-      "signature",
-    ]);
-    if (
-      Reflect.ownKeys(data).length !== expected.size ||
-      Reflect.ownKeys(data).some(
-        (key) =>
-          typeof key !== "string" ||
-          !expected.has(key) ||
-          !("value" in data[key]) ||
-          data[key].enumerable !== true,
-      )
-    ) {
-      return false;
-    }
-    const values = Object.fromEntries(
-      Object.entries(data).map(([key, entry]) => [key, entry.value]),
-    );
-    const {
-      attestorSchema,
-      requestId,
-      signature,
-      schema: attestationSchema,
-      ...execution
-    } = values;
-    const descriptorExecution = Object.fromEntries(
-      Object.entries(descriptor).filter(([key]) => key !== "schema"),
-    );
-    if (
-      attestationSchema !==
-        GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTATION_SCHEMA ||
-      attestorSchema !== descriptor.schema ||
-      canonical(execution) !== canonical(descriptorExecution) ||
-      !/^[a-f0-9]{32}$/u.test(requestId ?? "") ||
-      typeof signature !== "string" ||
-      signature.length === 0 ||
-      signature.length > 1024
-    ) {
-      return false;
-    }
-    try {
-      return verify(
-        null,
-        signingMessage(input.request, descriptor, requestId),
-        publicKey,
-        Buffer.from(signature, "base64"),
-      );
-    } catch {
-      return false;
-    }
+    return verifyGovernedSkillSynthesisExternalAttestation(value, {
+      publicKey,
+      expectedDescriptor: descriptor,
+    });
   };
   Object.freeze(attestReceipt);
   Object.freeze(verifyAttestation);
