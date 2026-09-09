@@ -617,8 +617,18 @@ function handleUser(event) {
       risk: "low",
       execution_lock: { revision: turn, locked: true },
       items: [
-        { title: "Inspect fixture", tool: "read_file", status: "pending" },
-        { title: "Run verification", tool: "run_command", status: "pending" },
+        {
+          id: "fixture-inspect",
+          title: "Inspect fixture",
+          tool: "read_file",
+          status: "pending",
+        },
+        {
+          id: "fixture-verify",
+          title: "Run verification",
+          tool: "run_command",
+          status: "pending",
+        },
       ],
     });
     return;
@@ -690,7 +700,20 @@ function handleControl(event) {
       state: action === "reject" ? "rejected" : "approved",
       plan_id: `fixture-plan-${planTurn}`,
       plan_version: 2,
-      items: [],
+      items: [
+        {
+          id: "fixture-inspect",
+          title: "Inspect fixture",
+          tool: "read_file",
+          status: action === "approve" ? "completed" : "pending",
+        },
+        {
+          id: "fixture-verify",
+          title: "Run verification",
+          tool: "run_command",
+          status: "pending",
+        },
+      ],
       note: `fixture plan ${action}`,
     });
     textDelta(`fixture plan ${action} #${planTurn}`);

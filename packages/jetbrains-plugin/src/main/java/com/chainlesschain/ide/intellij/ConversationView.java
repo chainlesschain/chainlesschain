@@ -23,6 +23,7 @@ import com.chainlesschain.ide.SlashCommands;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -131,6 +132,8 @@ final class ConversationView {
     private Map<String, Object> currentPlanUi;
     private File planReviewFile;
     private VirtualFile planReviewVirtualFile;
+    private Document planReviewEditorDocument;
+    private boolean planReviewOpening;
     private String planReviewLastText;
     private Map<String, Object> planReviewLastPlan;
     private Map<String, Object> planReviewRevisionBase;
@@ -1797,7 +1800,9 @@ final class ConversationView {
             if (handleApprovalGrantCommandEvent(event)) return;
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
-            SwingUtilities.invokeLater(() -> {
+            // Rendering plan events may update an open review document.
+            // Use the IDE write-safe event context, not a plain AWT callback.
+            ApplicationManager.getApplication().invokeLater(() -> {
                 if (!disposed && sessionGeneration == generation) render(ui);
             });
         };
@@ -2640,20 +2645,16 @@ final class ConversationView {
         try {
             if (planReviewVirtualFile == null) {
                 String text = planReviewLastText != null ? planReviewLastText : generated;
-                if (planReviewFile == null) {
-                    planReviewFile = Files.createTempFile(
-                            "chainlesschain-plan-" + conv.id + "-", ".md").toFile();
-                    planReviewFile.deleteOnExit();
-                }
-                Files.write(planReviewFile.toPath(), text.getBytes(StandardCharsets.UTF_8));
-                planReviewVirtualFile =
-                        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
-                if (planReviewVirtualFile != null) {
-                    FileEditorManager.getInstance(project).openFile(planReviewVirtualFile, true);
+                if (planReviewOpening) {
+                    // Progress can arrive while disk/VFS preparation is pending.
+                    // The eventual editor receives this newest snapshot.
+                    text = planReviewHasReviewerEdits ? PlanReview.mergeProgress(text, plan) : generated;
+                    if (planReviewHasReviewerEdits && planReviewRevisionBase != null)
+                        text = PlanReview.mergeRevisionDiff(text, planReviewRevisionBase, plan);
                 }
                 planReviewLastText = text;
                 planReviewLastPlan = plan;
-                append("opened plan review editor tab\n");
+                if (!planReviewOpening) openPlanReviewEditor(text);
                 return;
             }
 
@@ -2681,10 +2682,7 @@ final class ConversationView {
             if (!generated.equals(planReviewLastText)) {
                 Document doc = planReviewDocument();
                 if (doc != null) {
-                    ApplicationManager.getApplication().runWriteAction(() -> doc.setText(generated));
-                } else if (planReviewFile != null) {
-                    Files.write(planReviewFile.toPath(), generated.getBytes(StandardCharsets.UTF_8));
-                    LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
+                    WriteCommandAction.runWriteCommandAction(project, () -> doc.setText(generated));
                 }
                 planReviewLastText = generated;
             }
@@ -2694,20 +2692,74 @@ final class ConversationView {
         }
     }
 
+    private void openPlanReviewEditor(String initialText) {
+        planReviewOpening = true;
+        String prefix = "chainlesschain-plan-" + conv.id + "-";
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            File created = null;
+            try {
+                created = Files.createTempFile(prefix, ".md").toFile();
+                created.deleteOnExit();
+                Files.write(created.toPath(), initialText.getBytes(StandardCharsets.UTF_8));
+                VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(created);
+                if (virtualFile == null) throw new IOException("Plan review file is unavailable");
+                Document document = ApplicationManager.getApplication().runReadAction(
+                        (Computable<Document>) () -> FileDocumentManager.getInstance().getDocument(virtualFile));
+                if (document == null) throw new IOException("Plan review document is unavailable");
+                final File prepared = created;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    planReviewOpening = false;
+                    if (disposed || project.isDisposed()) {
+                        deletePlanReviewFile(prepared);
+                        return;
+                    }
+                    try {
+                        String latestText = planReviewLastText != null ? planReviewLastText : initialText;
+                        WriteCommandAction.runWriteCommandAction(project, () -> document.setText(latestText));
+                        FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                        planReviewFile = prepared;
+                        planReviewVirtualFile = virtualFile;
+                        planReviewEditorDocument = document;
+                        append("opened plan review editor tab\n");
+                    } catch (Exception error) {
+                        try {
+                            FileEditorManager.getInstance(project).closeFile(virtualFile);
+                        } finally {
+                            deletePlanReviewFile(prepared);
+                        }
+                        append("warning: could not open plan review editor: " + error.getMessage() + "\n");
+                    }
+                });
+            } catch (Exception error) {
+                if (created != null) deletePlanReviewFile(created);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    planReviewOpening = false;
+                    if (!disposed && !project.isDisposed())
+                        append("warning: could not open plan review editor: " + error.getMessage() + "\n");
+                });
+            }
+        });
+    }
+
+    private static void deletePlanReviewFile(File file) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try { Files.deleteIfExists(file.toPath()); }
+            catch (Exception ignored) { /* deleteOnExit remains the backstop. */ }
+        });
+    }
+
     private void replacePlanReviewText(String text) {
+        // Also retain terminal/progress updates arriving before the editor opens.
+        planReviewLastText = text;
         try {
             if (planReviewVirtualFile != null) {
                 Document doc = planReviewDocument();
                 if (doc != null) {
-                    ApplicationManager.getApplication().runWriteAction(() -> {
+                    WriteCommandAction.runWriteCommandAction(project, () -> {
                         if (!doc.getText().equals(text)) doc.setText(text);
                     });
                     return;
                 }
-            }
-            if (planReviewFile != null && planReviewFile.isFile()) {
-                Files.write(planReviewFile.toPath(), text.getBytes(StandardCharsets.UTF_8));
-                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(planReviewFile);
             }
         } catch (Exception e) {
             append("warning: could not update plan review progress: " + e.getMessage() + "\n");
@@ -2723,12 +2775,10 @@ final class ConversationView {
                             .runReadAction((Computable<String>) doc::getText);
                 }
             }
-            if (planReviewFile != null && planReviewFile.isFile()) {
-                return new String(Files.readAllBytes(planReviewFile.toPath()), StandardCharsets.UTF_8);
-            }
         } catch (Exception ignored) {
             // fall through to regenerated markdown
         }
+        if (planReviewLastText != null) return planReviewLastText;
         return PlanReview.markdown(
                 currentPlanUi != null ? currentPlanUi : planReviewLastPlan,
                 conv.title,
@@ -2737,11 +2787,8 @@ final class ConversationView {
     }
 
     private Document planReviewDocument() {
-        VirtualFile file = planReviewVirtualFile;
-        if (file == null) return null;
-        return ApplicationManager.getApplication().runReadAction(
-                (Computable<Document>) () ->
-                        FileDocumentManager.getInstance().getDocument(file));
+        // Loaded off the EDT before publication; this accessor never reads disk.
+        return planReviewEditorDocument;
     }
 
     private Object readPersistedPlanReviewStates() {
@@ -2986,12 +3033,10 @@ final class ConversationView {
         if (planReviewFile != null) {
             // deleteOnExit() alone leaked one plan-*.md per conversation for the
             // whole IDE lifetime — delete it now that the tab is gone.
-            try {
-                Files.deleteIfExists(planReviewFile.toPath());
-            } catch (Exception ignored) {
-                // deleteOnExit remains the backstop
-            }
+            deletePlanReviewFile(planReviewFile);
             planReviewFile = null;
         }
+        planReviewVirtualFile = null;
+        planReviewEditorDocument = null;
     }
 }

@@ -16,7 +16,9 @@ jobs:
   quick-check:
     name: Quick Check (Lint + Unit Tests)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Includes Detekt, unit tests, coverage and APK assembly. Run 34254450121
+    # exhausted 20 minutes during assembly while Gradle was still progressing.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -130,7 +132,9 @@ jobs:
   code-quality-check:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Full multi-module lint exceeded 15 minutes in both attempts of run
+    # 34254450121; retain the full analysis with a bounded execution budget.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code

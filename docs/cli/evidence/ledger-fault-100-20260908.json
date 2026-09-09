@@ -1,0 +1,23 @@
+{
+  "commit": "3c80be47a5a84d6befdc32dea5d9421e59d56464",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "startedAt": "2026-09-08T15:06:41.098Z",
+  "finishedAt": "2026-09-08T15:09:18.475Z",
+  "exitCode": 0,
+  "signal": null,
+  "status": "passed",
+  "rounds": 100,
+  "phaseCounts": {
+    "after-segment-link": 17,
+    "after-segment": 17,
+    "after-anchor-link": 17,
+    "after-anchor": 17,
+    "after-witness": 16,
+    "after-head": 16
+  },
+  "elapsedMs": 157237.7815,
+  "falseSuccessReceipts": 0,
+  "productionAuthority": false,
+  "powerLossVerified": false
+}
