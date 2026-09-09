@@ -9,6 +9,7 @@ import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
 } from "./evolution-ledger.js";
+import { isGovernedSkillSynthesisExternalAttestationAuthority } from "./governed-skill-synthesis-external-attestor.js";
 import { isGovernedSkillSynthesisProcessAttestationAuthority } from "./governed-skill-synthesis-process-attestor.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA =
@@ -476,27 +477,28 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
     this._read = capture(ledger, "read", "ledger");
     this._verifyLedger = capture(ledger, "verify", "ledger");
     this._append = capture(ledger, "appendDomainEvent", "ledger");
-    const processAuthority =
-      isGovernedSkillSynthesisProcessAttestationAuthority(attestationAuthority)
+    const governedAuthority =
+      isGovernedSkillSynthesisProcessAttestationAuthority(
+        attestationAuthority,
+      ) ||
+      isGovernedSkillSynthesisExternalAttestationAuthority(attestationAuthority)
         ? attestationAuthority
         : null;
-    if (attestationAuthority !== undefined && !processAuthority) {
+    if (attestationAuthority !== undefined && !governedAuthority) {
       throw new TypeError(
-        "a governed process attestation authority is required",
+        "a governed isolated attestation authority is required",
       );
     }
-    if (processAuthority && verifyAttestation !== undefined) {
+    if (governedAuthority && verifyAttestation !== undefined) {
       throw new TypeError(
-        "process attestation authority cannot be combined with a direct verifier",
+        "governed attestation authority cannot be combined with a direct verifier",
       );
     }
-    if (!processAuthority && allowSameProcessAttestationVerifier !== true) {
-      throw new TypeError(
-        "a process-isolated attestation verifier is required",
-      );
+    if (!governedAuthority && allowSameProcessAttestationVerifier !== true) {
+      throw new TypeError("an isolated attestation verifier is required");
     }
     this._verifyAttestation =
-      processAuthority?.verifyAttestation ??
+      governedAuthority?.verifyAttestation ??
       (typeof verifyAttestation === "function"
         ? verifyAttestation
         : (() => {

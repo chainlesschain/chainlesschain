@@ -1891,7 +1891,19 @@ attestor worker 和 credential resolver 均执行 single-link/realpath/长度/SH
 
 新增与受影响的 10 个测试文件合计 **164 passed、1 个既有平台条件 skip**；另有 Credential Agent/Broker **7/7** 沿用上一节结果。定向覆盖 Ed25519 key-pair mismatch、receipt/candidate replay、未品牌化 authority、同进程 attestor/verifier 默认拒绝、私钥不进入 argv/stdin、签名超时硬终止，以及持久 reopen 再验签。
 
-这关闭了“评分方可在同一调用栈伪造自己的 HMAC attestation”和“持久 adapter 默认接受任意 verifier”两个仓库缺口，但仍不等于独立信任域：Pilot 的 Ed25519 私钥 PEM 仍嵌入同一台主机的临时签名 deployment module，再由同一进程内 Credential Agent 发行 reference；没有生产 KMS/HSM key handle、key registry/revocation/rotation receipt、独立服务身份或独立故障域。生产继续 `HOLD`。下一阶段应把 factory 输入从 `privateKeyPem` 收窄为外部 signer handle/lease，让父进程永不接触私钥，并把公钥信任根、撤销与轮换接到持久 authority；同时完成 Windows 原生 Ledger durability。
+这关闭了“评分方可在同一调用栈伪造自己的 HMAC attestation”和“持久 adapter 默认接受任意 verifier”两个仓库缺口，但仍不等于独立信任域：该阶段 Pilot 的 Ed25519 私钥 PEM 仍嵌入同一台主机的临时签名 deployment module，再由同一进程内 Credential Agent 发行 reference；没有生产 KMS/HSM key handle、key registry/revocation/rotation receipt、独立服务身份或独立故障域。生产继续 `HOLD`。其中“factory 输入收窄为外部 signer handle、CLI 不接触私钥”的仓库纵切已由下一节完成；持久公钥 authority、撤销/轮换和 Windows 原生 Ledger durability 仍未关闭。
+
+### 13.10 外部 evaluation signer handle 与 CLI 私钥移除（2026-09-09）
+
+本批新增固定内置 `createGovernedSkillSynthesisExternalAttestationAuthority()`。认证 learning deployment 只能向该 factory 提供本机 IPC endpoint、随机 capability token、service ID、固定 Ed25519 公钥和超时，不存在 `privateKeyPem` 输入。authority descriptor 把 key ID/SPKI digest、`external-service` isolation、service ID、`local-ipc-v1` transport、endpoint digest 与 request timeout 纳入签名域；每次请求再生成 128-bit request ID，并把 receipt digest、candidate digest、evaluator authority/revision/handler digest 和完整 attestor descriptor 一并发给 signer。CLI 在返回 attestation 前先以固定公钥验证服务签名，Ledger reopen verifier 再以同一 canonical payload重验，因此替换 candidate、receipt、evaluator、endpoint/service/key 或 request ID 都不能复用签名。capability 和 endpoint 本身只保存在 closure 中，序列化 authority 不会输出。
+
+新增的 `governed-learning-local-attestor-service.mjs` 是测试/Pilot 用最小外部签名服务：私钥只通过独立服务进程 bootstrap stdin 进入该进程；服务只监听专用 Windows named pipe 或绝对 Unix socket，拒绝既有 Unix endpoint、未知字段、多帧/超限请求、错误 capability、service/key/endpoint descriptor 漂移和超过 32 次的请求，并使用 constant-time capability 比较。它只返回 request ID 和 Ed25519 signature，不返回私钥或派生凭据。模型 evaluator 与 Evaluation Ledger adapter 现在接受品牌化 process authority 或 external authority；裸 `attestReceipt` / verifier 仍必须显式开启 same-process compatibility，不能用伪造普通对象冒充。签名 deployment loader 只向已认证且命令白名单包含 `learning` 的模块暴露 external factory。
+
+真实 Windows 火山 Pilot 使用 `deepseek-v4-flash-260425` 在 **22.059 秒**完成：导入 2 条合成轨迹，生成 candidate-only `security-configuration-review`，内容为 933 bytes，摘要 `sha256:d4ced59f636a3b4070e9028bba2fbaee7b35b16711372efdaf7ffd4b96ad5690`，确定性预检通过，grader 一次评分 1.0。evaluation receipt/persistence/Ledger event digest 分别为 `sha256:ab2979e68a0103978c0457a815aa9b3f87f3683039099efba67fd90483b05d74`、`sha256:3270f9375b16509d0a17eff3d1fe13c032920a07c86a14131a4ce5cffb94998e`、`sha256:30c8bf2c173df9fb932884c3c27b7cdd489eff86c6c0db02f77ddae8330c8e15`，均为 authenticated/durable。attestor isolation/transport 为 `external-service` / `local-ipc-v1`，service ID 为 `kms.local-volcengine-pilot.attestor`，公钥摘要为 `sha256:4810d77eee9a67f70a3533b8c9066a65392d86bf18560c7eb094eeb4d2153326`，endpoint digest 为 `sha256:e29afa39c704d3ce1a418df7cb31be49db69b2f6acdddfc1e006f677ca763882`；认证 deployment 的私钥可见性断言为 false，active mutation 为 0。
+
+新增及受影响的 10 个测试文件合计 **90/90 passed**；定向覆盖真实 named pipe/socket 签名、错误 capability、endpoint substitution、candidate replay、authority 序列化无私钥、认证 loader factory 可见性、同进程兼容门和既有 process attestor/grader/CLI 旅程。相关 ESLint 与 Prettier 检查通过，真实模型 Pilot 另行通过。
+
+这一纵切关闭的是“认证 CLI deployment 持有 evaluation 签名私钥”的仓库缺口，不是生产 KMS 验收。当前 Pilot orchestrator 仍在同一主机生成私钥并 bootstrap 本地服务；CLI 持有的 capability 仍可在有界 schema 内请求签名，本机管道 ACL、workload identity、独立网络/故障域、KMS/HSM key handle、持久 key registry、撤销/轮换 receipt 和公钥信任根均未部署。grader 也仍与 generation 使用相同 provider/model，Windows Pilot 仍需 directory-fsync compatibility shim。故 production auto-promotion 继续 `HOLD`；下一阶段应实现真实 KMS/HSM/远端签名 adapter 与工作负载身份、持久 key lifecycle authority，并完成 Windows 原生 Ledger durability、独立 grader/safety authority、hidden holdout、人工 review 和 shadow/canary。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 

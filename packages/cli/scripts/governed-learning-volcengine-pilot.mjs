@@ -6,7 +6,7 @@ import {
   randomBytes,
   sign,
 } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -32,6 +32,7 @@ const root = fs.mkdtempSync(
     "cc-volcengine-learning-pilot-",
   ),
 );
+let externalAttestorProcess = null;
 
 function runCli(args, env, cwd) {
   const result = spawnSync(process.execPath, [bin, ...args], {
@@ -66,6 +67,68 @@ function parseCliJson(stdout) {
   throw new Error("CLI did not return a JSON result");
 }
 
+function waitForLine(stream, timeoutMs = 10_000) {
+  return new Promise((resolve, reject) => {
+    let carry = "";
+    const timer = setTimeout(
+      () => reject(new Error("local evaluation attestor did not become ready")),
+      timeoutMs,
+    );
+    stream.on("data", (chunk) => {
+      carry += chunk.toString("utf8");
+      const newline = carry.indexOf("\n");
+      if (newline === -1) return;
+      clearTimeout(timer);
+      resolve(carry.slice(0, newline));
+    });
+    stream.once("error", reject);
+  });
+}
+
+async function startLocalAttestorService(bootstrap) {
+  const servicePath = path.join(
+    cliRoot,
+    "scripts",
+    "governed-learning-local-attestor-service.mjs",
+  );
+  const child = spawn(process.execPath, [servicePath], {
+    env:
+      process.platform === "win32"
+        ? {
+            SystemRoot: process.env.SystemRoot,
+            WINDIR: process.env.WINDIR,
+            TEMP: process.env.TEMP,
+            TMP: process.env.TMP,
+          }
+        : {},
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString("utf8");
+  });
+  child.stdin.end(`${JSON.stringify(bootstrap)}\n`);
+  const ready = JSON.parse(await waitForLine(child.stdout));
+  if (ready.ok !== true || ready.serviceId !== bootstrap.serviceId) {
+    child.kill("SIGTERM");
+    throw new Error(`local evaluation attestor failed: ${stderr}`);
+  }
+  return child;
+}
+
+async function stopChild(child) {
+  if (!child || child.exitCode !== null) return;
+  child.kill("SIGTERM");
+  await new Promise((resolve) => {
+    const timer = setTimeout(resolve, 2_000);
+    child.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 try {
   const config = loadConfig({ failIfUnavailable: true });
   const configured = config?.llm || {};
@@ -90,6 +153,15 @@ try {
   const ledgerAuthorityRoot = path.join(root, "evaluation-ledger-authority");
   const witnessRoot = path.join(root, "evaluation-witness");
   const witnessFile = path.join(witnessRoot, "checkpoint.json");
+  const externalAttestorServiceId = "kms.local-volcengine-pilot.attestor";
+  const externalAttestorCapability = randomBytes(32).toString("base64url");
+  const externalAttestorEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-${randomBytes(12).toString("hex")}`
+      : path.join(
+          root,
+          `cc-evolution-attestor-${randomBytes(12).toString("hex")}.sock`,
+        );
   fs.mkdirSync(workspace);
   fs.mkdirSync(activeRoot);
   fs.mkdirSync(witnessRoot);
@@ -130,6 +202,12 @@ try {
   const evaluationAttestorPublicKey = evaluationAttestorKeys.publicKey.export({
     type: "spki",
     format: "pem",
+  });
+  externalAttestorProcess = await startLocalAttestorService({
+    endpoint: externalAttestorEndpoint,
+    capabilityToken: externalAttestorCapability,
+    serviceId: externalAttestorServiceId,
+    privateKeyPem: evaluationAttestorPrivateKey,
   });
 
   const moduleSource = `import { createHash, createHmac } from "node:crypto";
@@ -279,11 +357,12 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       revision: 1,
       handlerArtifactDigest: descriptor.moduleDigest
     };
-    const evaluationAttestationAuthority = factories.createGovernedSkillSynthesisProcessAttestationAuthority({
-      privateKeyPem: ${JSON.stringify(evaluationAttestorPrivateKey)},
+    const evaluationAttestationAuthority = factories.createGovernedSkillSynthesisExternalAttestationAuthority({
+      endpoint: ${JSON.stringify(externalAttestorEndpoint)},
+      capabilityToken: ${JSON.stringify(externalAttestorCapability)},
       publicKeyPem: ${JSON.stringify(evaluationAttestorPublicKey)},
-      timeoutMs: 10000,
-      memoryLimitMb: 64
+      serviceId: ${JSON.stringify(externalAttestorServiceId)},
+      timeoutMs: 10000
     });
     const evaluationLedger = factories.createGovernedSkillSynthesisEvaluationLedgerAdapter({
       descriptor: evaluationDescriptor,
@@ -339,6 +418,11 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       })
     };
   }\n`;
+  if (moduleSource.includes(evaluationAttestorPrivateKey)) {
+    throw new Error(
+      "authenticated CLI deployment must not contain attestor private key material",
+    );
+  }
   const modulePath = path.join(root, "learning-deployment.mjs");
   fs.writeFileSync(modulePath, moduleSource, { encoding: "utf8", flag: "wx" });
   const moduleDigest = digest(Buffer.from(moduleSource));
@@ -485,20 +569,20 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   }
   if (
     evaluation.receipt.attestation?.schema !==
-      "chainlesschain.skill-synthesis-evaluation-attestation/v1" ||
+      "chainlesschain.skill-synthesis-evaluation-external-attestation/v1" ||
+    evaluation.receipt.attestation?.attestorSchema !==
+      "chainlesschain.governed-skill-synthesis-external-attestor/v1" ||
     evaluation.receipt.attestation?.algorithm !== "Ed25519" ||
-    evaluation.receipt.attestation?.isolation !== "process" ||
-    evaluation.receipt.attestation?.credentialDelivery !==
-      "single-use-broker-reference" ||
-    evaluation.receipt.attestation?.credentialTarget !==
-      "governed-skill-attestor.local" ||
-    evaluation.receipt.attestation?.credentialMaxUses !== 1 ||
-    evaluation.receipt.attestation?.persistentProcessAuditRequired !== true ||
+    evaluation.receipt.attestation?.isolation !== "external-service" ||
+    evaluation.receipt.attestation?.serviceId !== externalAttestorServiceId ||
+    evaluation.receipt.attestation?.transport !== "local-ipc-v1" ||
+    evaluation.receipt.attestation?.requestTimeoutMs !== 10_000 ||
     !/^sha256:[a-f0-9]{64}$/u.test(
-      evaluation.receipt.attestation?.credentialResolverArtifactDigest,
-    )
+      evaluation.receipt.attestation?.endpointDigest,
+    ) ||
+    !/^[a-f0-9]{32}$/u.test(evaluation.receipt.attestation?.requestId)
   ) {
-    throw new Error("pilot evaluation attestor was not process isolated");
+    throw new Error("pilot evaluation attestor was not externally isolated");
   }
   const activeEntries = fs.readdirSync(activeRoot);
   if (activeEntries.length !== 0) {
@@ -556,20 +640,13 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             attestorKeyId: evaluation.receipt.attestation.keyId,
             attestorPublicKeyDigest:
               evaluation.receipt.attestation.publicKeyDigest,
-            attestorWorkerArtifactDigest:
-              evaluation.receipt.attestation.workerArtifactDigest,
-            attestorCredentialResolverArtifactDigest:
-              evaluation.receipt.attestation.credentialResolverArtifactDigest,
-            attestorCredentialDelivery:
-              evaluation.receipt.attestation.credentialDelivery,
-            attestorCredentialTarget:
-              evaluation.receipt.attestation.credentialTarget,
-            attestorCredentialMaxUses:
-              evaluation.receipt.attestation.credentialMaxUses,
-            attestorCredentialTtlMs:
-              evaluation.receipt.attestation.credentialTtlMs,
-            attestorPersistentProcessAuditRequired:
-              evaluation.receipt.attestation.persistentProcessAuditRequired,
+            attestorServiceId: evaluation.receipt.attestation.serviceId,
+            attestorTransport: evaluation.receipt.attestation.transport,
+            attestorEndpointDigest:
+              evaluation.receipt.attestation.endpointDigest,
+            attestorRequestTimeoutMs:
+              evaluation.receipt.attestation.requestTimeoutMs,
+            attestorRequestId: evaluation.receipt.attestation.requestId,
           },
         },
         activeMutationCount: activeEntries.length,
@@ -577,6 +654,8 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           descriptorSignature: "verified-by-cli-loader",
           trustRoot: "ephemeral-local-pilot",
           candidateRegistry: "isolated-temporary-directory",
+          evaluationSigningKeyVisibleToCli: false,
+          evaluationSignerBoundary: "separate-local-service-process",
           platform: process.platform,
           nativeDirectoryDurability:
             process.platform === "win32" ? "unavailable" : "required",
@@ -585,9 +664,10 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "grader model call runs in a separate killable PID without inherited user/provider environment; the broker may add trace context",
           "grader launch requires a persistent process-audit admission record plus process-tree, resource-limit, and privilege-reduction sandbox guarantees",
           "grader still uses the same configured model, provider, credential source, and host as generation",
-          "evaluation attestation is Ed25519-signed in a separate killable PID, but its private key is still sourced by the same host deployment",
+          "the authenticated CLI deployment has only an external signer endpoint, capability, and pinned public key; it contains no evaluation signing private key",
+          "the pilot orchestrator bootstraps the signer private key into a separate same-host service process; this validates the handle boundary but is not production KMS/HSM or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
-          "artifact, Ledger, and witness HMAC authorities are ephemeral and the Ed25519 attestor key is not production KMS/HSM-backed",
+          "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",
           "Ledger and witness use separate keys but remain on the same host",
           ...(process.platform === "win32"
             ? [
@@ -602,5 +682,6 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     )}\n`,
   );
 } finally {
+  await stopChild(externalAttestorProcess);
   fs.rmSync(root, { recursive: true, force: true });
 }

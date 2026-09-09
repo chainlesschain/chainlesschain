@@ -319,7 +319,7 @@ describe("GovernedSkillSynthesisEvaluationLedgerAdapter", () => {
     roots.push(root);
     fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });
     expect(() => openResources(root, undefined, false)).toThrow(
-      "process-isolated attestation verifier",
+      "isolated attestation verifier",
     );
   });
 

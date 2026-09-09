@@ -504,7 +504,7 @@ Confirm every finding identifies its configuration key
         verifyAttestation,
         receiptPersistence: persistence.receiptPersistence,
       }),
-    ).toThrow("process-isolated attestor");
+    ).toThrow("isolated attestor");
   });
 
   it("binds a separate model grade to the exact candidate digest", async () => {

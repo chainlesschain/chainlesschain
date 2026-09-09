@@ -4,6 +4,7 @@ import { types as utilTypes } from "node:util";
 import { firstBalancedJson } from "../json-schema-output.js";
 import { isGovernedSkillSynthesisCandidateEvaluator } from "./governed-skill-synthesis-candidate-evaluator.js";
 import { isGovernedSkillSynthesisProviderChat } from "./governed-skill-synthesis-provider-chat.js";
+import { isGovernedSkillSynthesisExternalAttestationAuthority } from "./governed-skill-synthesis-external-attestor.js";
 import {
   getGovernedSkillSynthesisProcessGraderDescriptor,
   isGovernedSkillSynthesisProcessGrader,
@@ -247,43 +248,47 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       "learning synthesis model evaluator requires a governed grader chat port",
     );
   }
-  const processAttestationAuthority =
+  const governedAttestationAuthority =
     isGovernedSkillSynthesisProcessAttestationAuthority(
+      options.attestationAuthority,
+    ) ||
+    isGovernedSkillSynthesisExternalAttestationAuthority(
       options.attestationAuthority,
     )
       ? options.attestationAuthority
       : null;
   if (
     options.attestationAuthority !== undefined &&
-    !processAttestationAuthority
+    !governedAttestationAuthority
   ) {
     throw new TypeError(
-      "learning synthesis model evaluator requires a governed process attestation authority",
+      "learning synthesis model evaluator requires a governed isolated attestation authority",
     );
   }
   if (
-    processAttestationAuthority &&
+    governedAttestationAuthority &&
     (options.attestReceipt !== undefined ||
       options.verifyAttestation !== undefined)
   ) {
     throw new TypeError(
-      "learning synthesis process attestation authority cannot be combined with direct attestation ports",
+      "learning synthesis governed attestation authority cannot be combined with direct attestation ports",
     );
   }
   if (
-    !processAttestationAuthority &&
+    !governedAttestationAuthority &&
     options.allowSameProcessAttestor !== true
   ) {
     throw new TypeError(
-      "learning synthesis model evaluator requires a process-isolated attestor",
+      "learning synthesis model evaluator requires an isolated attestor",
     );
   }
   const attestReceipt = callable(
-    processAttestationAuthority?.attestReceipt ?? options.attestReceipt,
+    governedAttestationAuthority?.attestReceipt ?? options.attestReceipt,
     "learning synthesis receipt attestor",
   );
   const verifyAttestation = callable(
-    processAttestationAuthority?.verifyAttestation ?? options.verifyAttestation,
+    governedAttestationAuthority?.verifyAttestation ??
+      options.verifyAttestation,
     "learning synthesis receipt verifier",
   );
   if (
