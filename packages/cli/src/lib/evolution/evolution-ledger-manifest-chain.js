@@ -56,6 +56,7 @@ const VERIFY_CONFIG_KEYS = new Set([
   "manifests",
   "segmentStore",
 ]);
+const VERIFY_HEAD_CONFIG_KEYS = new Set(["authority", "descriptor", "head"]);
 const PAYLOAD_KEYS = new Set([
   "eventDigests",
   "schema",
@@ -868,6 +869,17 @@ export function sealEvolutionLedgerManifestSegment(options = undefined) {
     manifest,
     segmentReceipt: receipt,
   });
+}
+
+export function verifyEvolutionLedgerManifestHead(options = undefined) {
+  const fields = exactRecord(
+    options,
+    VERIFY_HEAD_CONFIG_KEYS,
+    "manifest head verification configuration",
+  );
+  const descriptorValue = descriptor(data(fields, "descriptor"));
+  const authority = captureAuthority(data(fields, "authority"));
+  return normalizeHead(data(fields, "head"), descriptorValue, authority);
 }
 
 export function verifyEvolutionLedgerManifestChain(options = undefined) {

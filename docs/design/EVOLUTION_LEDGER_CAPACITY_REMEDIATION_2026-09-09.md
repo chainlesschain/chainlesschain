@@ -23,6 +23,16 @@ does not persist a manifest/head CAS, publish a witness checkpoint, write live
 events, or migrate v1 data; those remain required before this core can become a
 backend or be measured by the capacity gate.
 
+`evolution-ledger-manifest-head-store.js` now defines the next required CAS
+boundary. It accepts only branded manifest authorities and exact scoped heads;
+after a compare-and-set acknowledgement it rereads and re-verifies the signed
+head before reporting commit. A lost, malformed, substituted, asynchronous, or
+unreadable acknowledgement is `COMMIT_UNKNOWN`, requiring reopen rather than a
+blind retry. The combined contract tests now cover 22 cases. This remains an
+interface, not a durability claim: the v2 file/WORM head-store implementation,
+witness checkpoint publication, crash-point tests, and v1 migration are still
+required.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke

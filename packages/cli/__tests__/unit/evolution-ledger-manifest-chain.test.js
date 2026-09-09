@@ -16,6 +16,12 @@ import {
   sealEvolutionLedgerManifestSegment,
   verifyEvolutionLedgerManifestChain,
 } from "../../src/lib/evolution/evolution-ledger-manifest-chain.js";
+import {
+  EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
+  EVOLUTION_LEDGER_MANIFEST_HEAD_STORE_COMMIT_UNKNOWN_CODE,
+  captureEvolutionLedgerManifestHeadStore,
+  createEvolutionLedgerManifestHeadStore,
+} from "../../src/lib/evolution/evolution-ledger-manifest-head-store.js";
 
 const STORE_SECRET = "manifest-store-test-secret";
 const MANIFEST_SECRET = "manifest-signing-test-secret";
@@ -166,6 +172,42 @@ function expectCorrupt(operation, message) {
     expect(error.code).toBe(EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE);
     expect(error.message).toMatch(message);
   }
+}
+
+function memoryHeadStore({ manifestAuthority, current = null, compare } = {}) {
+  let stored = current;
+  const load = vi.fn(() => stored);
+  const compareAndSet = vi.fn((request) => {
+    if (compare)
+      return compare({ request, stored, set: (head) => (stored = head) });
+    if ((stored?.headDigest ?? null) !== request.expectedHeadDigest) {
+      return {
+        committed: false,
+        head: stored,
+        schema: EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
+      };
+    }
+    stored = request.nextHead;
+    return {
+      committed: true,
+      head: stored,
+      schema: EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
+    };
+  });
+  const store = createEvolutionLedgerManifestHeadStore({
+    authority: manifestAuthority,
+    compareAndSet,
+    descriptor: chainDescriptor(),
+    load,
+  });
+  return {
+    compareAndSet,
+    load,
+    set(head) {
+      stored = head;
+    },
+    store,
+  };
 }
 
 describe("Evolution Ledger v2 manifest chain", () => {
@@ -383,5 +425,140 @@ describe("Evolution Ledger v2 manifest chain", () => {
       /must not be a Proxy/u,
     );
     expect(trap).not.toHaveBeenCalled();
+  });
+});
+
+describe("Evolution Ledger v2 manifest head CAS store", () => {
+  it("commits signed heads with mandatory readback and prevents stale writers", () => {
+    const fixture = memorySegmentStore();
+    const manifestAuthority = authority();
+    const first = sealEvolutionLedgerManifestSegment({
+      authority: manifestAuthority,
+      descriptor: chainDescriptor(),
+      eventDigests: [eventDigest("c")],
+      minimumRetainedUntil: MINIMUM_RETENTION,
+      now: () => Date.parse("2026-09-09T00:00:00.000Z"),
+      previousHead: null,
+      segmentStore: fixture.store,
+    });
+    const heads = memoryHeadStore({ manifestAuthority });
+    const committedFirst = heads.store.commit({
+      expectedHeadDigest: null,
+      nextHead: first.head,
+    });
+    expect(committedFirst).toMatchObject({ committed: true, conflict: false });
+    expect(heads.store.read().headDigest).toBe(first.head.headDigest);
+    expect(captureEvolutionLedgerManifestHeadStore(heads.store)).toBe(
+      heads.store,
+    );
+
+    const second = sealEvolutionLedgerManifestSegment({
+      authority: manifestAuthority,
+      descriptor: chainDescriptor(),
+      eventDigests: [eventDigest("d")],
+      minimumRetainedUntil: MINIMUM_RETENTION,
+      now: () => Date.parse("2026-09-09T00:01:00.000Z"),
+      previousHead: first.head,
+      segmentStore: fixture.store,
+    });
+    const committedSecond = heads.store.commit({
+      expectedHeadDigest: first.head.headDigest,
+      nextHead: second.head,
+    });
+    expect(committedSecond.head.headDigest).toBe(second.head.headDigest);
+    const callsBeforeStaleRetry = heads.compareAndSet.mock.calls.length;
+    const stale = heads.store.commit({
+      expectedHeadDigest: first.head.headDigest,
+      nextHead: second.head,
+    });
+    expect(stale).toMatchObject({ committed: false, conflict: true });
+    expect(heads.compareAndSet).toHaveBeenCalledTimes(callsBeforeStaleRetry);
+  });
+
+  it("rejects unbranded stores and marks substituted or malformed acknowledgements unknown", () => {
+    expect(() => captureEvolutionLedgerManifestHeadStore({})).toThrow(
+      /branded Evolution Ledger manifest head store/u,
+    );
+    const fixture = memorySegmentStore();
+    const manifestAuthority = authority();
+    const first = sealEvolutionLedgerManifestSegment({
+      authority: manifestAuthority,
+      descriptor: chainDescriptor(),
+      eventDigests: [eventDigest("c")],
+      minimumRetainedUntil: MINIMUM_RETENTION,
+      now: () => Date.parse("2026-09-09T00:00:00.000Z"),
+      previousHead: null,
+      segmentStore: fixture.store,
+    });
+    const substituted = memoryHeadStore({
+      manifestAuthority,
+      compare: () => ({
+        committed: true,
+        head: { ...first.head, signature: "invalid" },
+        schema: EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
+      }),
+    });
+    try {
+      substituted.store.commit({
+        expectedHeadDigest: null,
+        nextHead: first.head,
+      });
+      throw new Error("expected substituted head response to fail");
+    } catch (error) {
+      expect(error.code).toBe(
+        EVOLUTION_LEDGER_MANIFEST_HEAD_STORE_COMMIT_UNKNOWN_CODE,
+      );
+    }
+
+    const malformed = memoryHeadStore({
+      manifestAuthority,
+      compare: () => ({ committed: true }),
+    });
+    try {
+      malformed.store.commit({
+        expectedHeadDigest: null,
+        nextHead: first.head,
+      });
+      throw new Error("expected malformed head response to fail");
+    } catch (error) {
+      expect(error.code).toBe(
+        EVOLUTION_LEDGER_MANIFEST_HEAD_STORE_COMMIT_UNKNOWN_CODE,
+      );
+    }
+  });
+
+  it("returns commit-unknown when the acknowledgement or post-commit readback is lost", () => {
+    const fixture = memorySegmentStore();
+    const manifestAuthority = authority();
+    const first = sealEvolutionLedgerManifestSegment({
+      authority: manifestAuthority,
+      descriptor: chainDescriptor(),
+      eventDigests: [eventDigest("c")],
+      minimumRetainedUntil: MINIMUM_RETENTION,
+      now: () => Date.parse("2026-09-09T00:00:00.000Z"),
+      previousHead: null,
+      segmentStore: fixture.store,
+    });
+    const lostAcknowledgement = memoryHeadStore({
+      manifestAuthority,
+      compare: ({ request, set }) => {
+        set(request.nextHead);
+        throw new Error("response lost after write");
+      },
+    });
+    try {
+      lostAcknowledgement.store.commit({
+        expectedHeadDigest: null,
+        nextHead: first.head,
+      });
+      throw new Error("expected commit state to be unknown");
+    } catch (error) {
+      expect(error.code).toBe(
+        EVOLUTION_LEDGER_MANIFEST_HEAD_STORE_COMMIT_UNKNOWN_CODE,
+      );
+    }
+    expect(lostAcknowledgement.store.read().headDigest).toBe(
+      first.head.headDigest,
+    );
   });
 });
