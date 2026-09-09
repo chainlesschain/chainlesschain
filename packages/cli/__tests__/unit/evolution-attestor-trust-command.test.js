@@ -155,12 +155,12 @@ async function fixture({
   const transportSecurity = {
     acl:
       process.platform === "win32"
-        ? "protected-current-user-dacl"
+        ? "protected-current-logon-dacl"
         : "unix-owner-mode-0600",
     aclDigest: digest("test-transport-acl"),
     peerIdentity:
       process.platform === "win32"
-        ? "client-process-token-user-sid"
+        ? "client-process-token-user-and-logon-sid"
         : "capability-authenticated-client",
     principalDigest: digest("test-transport-principal"),
     remoteClients: false,

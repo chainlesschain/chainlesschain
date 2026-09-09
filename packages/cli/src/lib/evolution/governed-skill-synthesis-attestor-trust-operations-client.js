@@ -142,11 +142,11 @@ function normalizeDescriptor(value, capabilityToken, now) {
   );
   const expectedAcl =
     process.platform === "win32"
-      ? "protected-current-user-dacl"
+      ? "protected-current-logon-dacl"
       : "unix-owner-mode-0600";
   const expectedPeerIdentity =
     process.platform === "win32"
-      ? "client-process-token-user-sid"
+      ? "client-process-token-user-and-logon-sid"
       : "capability-authenticated-client";
   if (
     value.transportSecurity.acl !== expectedAcl ||

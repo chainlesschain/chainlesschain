@@ -949,11 +949,11 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     trustApprovalClient.descriptor.transport !== "local-ipc-v3" ||
     attestorTrustOperations.descriptor.service.transportSecurity?.acl !==
       (process.platform === "win32"
-        ? "protected-current-user-dacl"
+        ? "protected-current-logon-dacl"
         : "unix-owner-mode-0600") ||
     trustApprovalClient.descriptor.service.transportSecurity?.acl !==
       (process.platform === "win32"
-        ? "protected-current-user-dacl"
+        ? "protected-current-logon-dacl"
         : "unix-owner-mode-0600") ||
     attestorTrustOperations.descriptor.service.transportSecurity
       ?.remoteClients !== false ||
@@ -1160,7 +1160,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the operator policy genesis and signed register, rotate, and revoke mutations are durably pinned in ArtifactStore/EvolutionLedger; this pilot rotates its 1-of-1 personal-AI owner key and rebinds the service before attestor enrollment",
           "operator mutations require a new operations endpoint and capability binding; the old process refuses ordinary trust lifecycle work after a successful policy change",
           "operations and approval IPC use short-lived domain-separated HMAC capabilities with bounded uses and request-ID replay rejection; capability tokens are not sent in request frames or published in descriptors",
-          "Windows operations and approval pipes use a protected current-user DACL with an explicit Network SID deny; a broker verifies the kernel-reported client PID and process-token user SID, and the HMAC proof binds the claimed PID; Unix sockets are mode 0600 but still need native peer-credential verification",
+          "Windows operations and approval pipes use a protected current-logon DACL with an explicit Network SID deny; a broker verifies the kernel-reported client PID plus process-token user and logon SID, and the HMAC proof binds the claimed PID; Unix sockets are mode 0600 but still need native peer-credential verification",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator delivers each ephemeral operator key once to a separate local signer process, then uses only its pinned public descriptor and IPC capability for approvals; production must replace this bootstrap with KMS/HSM key ownership",
           "the pilot orchestrator bootstraps both same-host services; this validates process and Windows local-IPC identity boundaries but is not an independent-host workload identity or KMS/HSM boundary",

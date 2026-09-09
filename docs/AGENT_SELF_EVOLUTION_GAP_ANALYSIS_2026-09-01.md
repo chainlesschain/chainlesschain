@@ -2064,6 +2064,14 @@ Windows 专项真实子进程测试验证了：descriptor 为 protected current-
 
 这使 Windows 上的个人 `1-of-1` 与团队 quorum reference service 同时具备短时 capability、重放防护、当前用户 DACL、远程网络 token 拒绝、客户端 PID 和 token SID 绑定；但它仍是同机软件身份，不是独立主机、服务账号、KMS/HSM 或不可导出密钥。production 继续 `HOLD`：尚需 Unix `SO_PEERCRED/getpeereid`、生产 KMS/HSM/远程签名 adapter、workload identity/mTLS、集中 capability 吊销与泄露告警、break-glass，以及 Ledger/witness 独立故障域和目标租户灾备演练。Windows 跨用户、远程 SMB 和不同完整性级别的目标环境矩阵也应作为发布验收，而不能只以同一开发机测试替代。
 
+### 13.23 Windows 当前 logon SID 隔离（2026-09-09）
+
+§13.22 的 protected current-user DACL 已经阻止其他用户和网络 token，但 Windows 用户 SID 本身可跨本机远程桌面/切换用户会话复用。根据 Microsoft 命名管道安全指南对 logon SID 的建议，本批将 allow ACE 从 user SID 收紧为当前 token 的 logon SID，同时保留受保护 DACL、owner=user SID 与 `NetworkSid` 显式 deny。这样同一 Windows 账号但不属于当前交互登录会话的 token 不能连接 personal-AI signer/operations 管道；服务自身和同一会话的 CLI 因均携带相同 logon SID 而维持 `1-of-1` 审批可用。
+
+PowerShell/.NET broker 的原生 helper 现在从 `TokenGroups` 查找 `SE_GROUP_LOGON_ID`，并在每个已连接客户端上同时比较内核报告 PID 对应 token 的 user SID 与 logon SID。公开 descriptor 以 `protected-current-logon-dacl`、`client-process-token-user-and-logon-sid` 以及两个 SID 的联合摘要表达该保证，不泄露原始身份值；approval/operations client 只接受与当前平台匹配的新声明，旧 current-user descriptor 在构造期失败。Windows broker 实测建立、回包和双 SID 摘要一致；approval、operations、CLI host 三个回归文件为 **12/12** 通过。真实 Windows 火山引擎 Pilot 使用 `deepseek-v4-flash-260425` 在 **28.619 秒**完成，生成 candidate-only `security-configuration-review`（917 bytes，digest `sha256:cbfa768e351598881a742ea27b52d3cb168f7183922f6851d13e9f81335f5689`），一次评分 `1.0`，operator rotation record/Ledger digest 分别为 `sha256:b73abafcb84707dbc1a8cc225e17a8edb897aa48b987b89162b0cd46a4be2a64`、`sha256:ac945f23e760daff5a747f419ea6893a82b8a4a5ddec3828cf96445f5efaffe9`，`activeMutationCount=0`。
+
+这进一步降低同机多会话下个人 capability 被误用的风险，但没有把本机软件隔离等同于生产身份边界：提升权限的同一会话进程、KMS/HSM、远程 signer/workload identity、Unix peer credential、集中撤销与独立故障域仍是 production `HOLD` 的剩余项。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

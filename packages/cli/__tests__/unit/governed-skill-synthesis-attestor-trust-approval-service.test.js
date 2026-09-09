@@ -238,8 +238,8 @@ describe("attestor trust isolated approval service", () => {
         transportSecurity:
           process.platform === "win32"
             ? {
-                acl: "protected-current-user-dacl",
-                peerIdentity: "client-process-token-user-sid",
+                acl: "protected-current-logon-dacl",
+                peerIdentity: "client-process-token-user-and-logon-sid",
                 remoteClients: false,
               }
             : {

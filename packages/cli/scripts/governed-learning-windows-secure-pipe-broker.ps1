@@ -24,6 +24,13 @@ using Microsoft.Win32.SafeHandles;
 
 public static class ChainlessChainNamedPipePeer
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SidAndAttributes
+    {
+        public IntPtr Sid;
+        public uint Attributes;
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetNamedPipeClientProcessId(
         SafePipeHandle pipe,
@@ -35,10 +42,20 @@ public static class ChainlessChainNamedPipePeer
         uint desiredAccess,
         out IntPtr tokenHandle);
 
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(
+        IntPtr tokenHandle,
+        int tokenInformationClass,
+        IntPtr tokenInformation,
+        int tokenInformationLength,
+        out int returnLength);
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr handle);
 
     private const uint TokenQuery = 0x0008;
+    private const int TokenGroups = 2;
+    private const uint SeGroupLogonId = 0xC0000000;
 
     public static uint GetClientProcessId(SafePipeHandle pipe)
     {
@@ -63,6 +80,62 @@ public static class ChainlessChainNamedPipePeer
                         throw new InvalidOperationException("client process has no user SID");
                     return identity.User.Value;
                 }
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+        }
+    }
+
+    private static string GetTokenLogonSid(IntPtr token)
+    {
+        int required;
+        GetTokenInformation(token, TokenGroups, IntPtr.Zero, 0, out required);
+        if (required < IntPtr.Size + Marshal.SizeOf(typeof(SidAndAttributes)))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        IntPtr buffer = Marshal.AllocHGlobal(required);
+        try
+        {
+            if (!GetTokenInformation(token, TokenGroups, buffer, required, out required))
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            int groupCount = Marshal.ReadInt32(buffer);
+            int offset = IntPtr.Size == 8 ? 8 : 4;
+            int itemSize = Marshal.SizeOf(typeof(SidAndAttributes));
+            for (int index = 0; index < groupCount; index++)
+            {
+                IntPtr item = IntPtr.Add(buffer, offset + index * itemSize);
+                SidAndAttributes group = (SidAndAttributes)Marshal.PtrToStructure(
+                    item, typeof(SidAndAttributes));
+                if ((group.Attributes & SeGroupLogonId) == SeGroupLogonId)
+                    return new SecurityIdentifier(group.Sid).Value;
+            }
+            throw new InvalidOperationException("process token has no logon SID");
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    public static string GetCurrentLogonSid()
+    {
+        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+        {
+            return GetTokenLogonSid(identity.Token);
+        }
+    }
+
+    public static string GetProcessLogonSid(uint processId)
+    {
+        using (Process process = Process.GetProcessById(checked((int)processId)))
+        {
+            IntPtr token;
+            if (!OpenProcessToken(process.Handle, TokenQuery, out token))
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            try
+            {
+                return GetTokenLogonSid(token);
             }
             finally
             {
@@ -167,6 +240,9 @@ function New-SecurePipeServer(
 
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $userSid = $identity.User
+$logonSid = New-Object System.Security.Principal.SecurityIdentifier(
+  [ChainlessChainNamedPipePeer]::GetCurrentLogonSid()
+)
 $networkSid = New-Object System.Security.Principal.SecurityIdentifier(
   [System.Security.Principal.WellKnownSidType]::NetworkSid,
   $null
@@ -180,7 +256,7 @@ $security.AddAccessRule((New-Object System.IO.Pipes.PipeAccessRule(
   [System.Security.AccessControl.AccessControlType]::Deny
 )))
 $security.AddAccessRule((New-Object System.IO.Pipes.PipeAccessRule(
-  $userSid,
+  $logonSid,
   [System.IO.Pipes.PipeAccessRights]::FullControl,
   [System.Security.AccessControl.AccessControlType]::Allow
 )))
@@ -190,10 +266,10 @@ $sddl = $security.GetSecurityDescriptorSddlForm(
   [System.Security.AccessControl.AccessControlSections]::Owner
 )
 $securityDescriptor = [ordered]@{
-  acl = "protected-current-user-dacl"
+  acl = "protected-current-logon-dacl"
   aclDigest = Get-Sha256 $sddl
-  peerIdentity = "client-process-token-user-sid"
-  principalDigest = Get-Sha256 $userSid.Value
+  peerIdentity = "client-process-token-user-and-logon-sid"
+  principalDigest = Get-Sha256 "$($userSid.Value)`0$($logonSid.Value)"
   remoteClients = $false
 }
 $server = New-SecurePipeServer $PipeName $security
@@ -217,7 +293,8 @@ while ($true) {
     try {
       $clientProcessId = [ChainlessChainNamedPipePeer]::GetClientProcessId($server.SafePipeHandle)
       $clientUserSid = [ChainlessChainNamedPipePeer]::GetProcessUserSid($clientProcessId)
-      if ($clientUserSid -ne $userSid.Value) {
+      $clientLogonSid = [ChainlessChainNamedPipePeer]::GetProcessLogonSid($clientProcessId)
+      if ($clientUserSid -ne $userSid.Value -or $clientLogonSid -ne $logonSid.Value) {
         Write-PipeJsonLine $writer ([ordered]@{
           ok = $false
           requestId = $null
@@ -264,7 +341,7 @@ while ($true) {
         schema = "chainlesschain.windows-secure-pipe-broker-request/v1"
         connectionId = $connectionId
         clientProcessId = [int64]$clientProcessId
-        clientPrincipalDigest = Get-Sha256 $clientUserSid
+        clientPrincipalDigest = Get-Sha256 "$clientUserSid`0$clientLogonSid"
         frame = $frame
       })
 

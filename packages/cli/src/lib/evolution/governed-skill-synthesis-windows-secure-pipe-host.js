@@ -34,8 +34,8 @@ function exact(value, keys) {
 function normalizeSecurity(value) {
   if (
     !exact(value, SECURITY_KEYS) ||
-    value.acl !== "protected-current-user-dacl" ||
-    value.peerIdentity !== "client-process-token-user-sid" ||
+    value.acl !== "protected-current-logon-dacl" ||
+    value.peerIdentity !== "client-process-token-user-and-logon-sid" ||
     value.remoteClients !== false ||
     !DIGEST.test(value.aclDigest ?? "") ||
     !DIGEST.test(value.principalDigest ?? "")
