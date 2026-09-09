@@ -276,6 +276,7 @@ function evaluator(resources) {
     })),
   );
   return createGovernedSkillSynthesisModelEvaluator({
+    allowSameProcessGrader: true,
     descriptor: {
       authorityId: DESCRIPTOR.authorityId,
       revision: DESCRIPTOR.revision,

@@ -289,13 +289,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       maxTokens: 1024,
       timeoutMs: 60000
     });
-    const graderChat = factories.createGovernedSkillSynthesisProviderChat({
+    const graderChat = factories.createGovernedSkillSynthesisProcessGrader({
       provider: "volcengine",
       model: ${JSON.stringify(model)},
       baseUrl: ${JSON.stringify(baseUrl)},
       apiKey: process.env.VOLCENGINE_API_KEY,
       maxTokens: 2048,
-      timeoutMs: 60000
+      timeoutMs: 60000,
+      memoryLimitMb: 128
     });
     const deterministicEvaluator = factories.createGovernedSkillSynthesisCandidateEvaluator({
       maxContentBytes: 131072
@@ -452,6 +453,21 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   );
   const content = fs.readFileSync(skillPath);
   const evaluation = JSON.parse(fs.readFileSync(evaluationPath, "utf8"));
+  if (evaluation.receipt?.graderIsolation !== "process") {
+    throw new Error("pilot grader was not process isolated");
+  }
+  if (
+    evaluation.receipt.graderSandboxProfile !== "network-only" ||
+    JSON.stringify(evaluation.receipt.graderRequiredSandboxBoundaries) !==
+      JSON.stringify([
+        "privilege-reduction",
+        "process-tree",
+        "resource-limits",
+      ]) ||
+    evaluation.receipt.graderPersistentProcessAuditRequired !== true
+  ) {
+    throw new Error("pilot grader sandbox contract was not receipt bound");
+  }
   const activeEntries = fs.readdirSync(activeRoot);
   if (activeEntries.length !== 0) {
     throw new Error("pilot mutated the active Skill root");
@@ -485,6 +501,18 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             receiptDigest: evaluation.receipt.receiptDigest,
             persistenceDigest: evaluation.persistence.persistenceDigest,
             ledgerEventDigest: evaluation.persistence.ledgerEventDigest,
+            graderIsolation: evaluation.receipt.graderIsolation,
+            graderWorkerArtifactDigest:
+              evaluation.receipt.graderWorkerArtifactDigest,
+            graderInheritedEnvironment:
+              evaluation.receipt.graderInheritedEnvironment,
+            graderCredentialDelivery:
+              evaluation.receipt.graderCredentialDelivery,
+            graderSandboxProfile: evaluation.receipt.graderSandboxProfile,
+            graderRequiredSandboxBoundaries:
+              evaluation.receipt.graderRequiredSandboxBoundaries,
+            graderPersistentProcessAuditRequired:
+              evaluation.receipt.graderPersistentProcessAuditRequired,
           },
         },
         activeMutationCount: activeEntries.length,
@@ -497,8 +525,9 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             process.platform === "win32" ? "unavailable" : "required",
         },
         limitations: [
-          "no independently operated grader model or authority",
-          "grader role is separate but uses the same configured model and provider",
+          "grader model call runs in a separate killable PID without inherited user/provider environment; the broker may add trace context",
+          "grader launch requires a persistent process-audit admission record plus process-tree, resource-limit, and privilege-reduction sandbox guarantees",
+          "grader still uses the same configured model, provider, credential source, and host as generation",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "local HMAC authorities are ephemeral and are not production PKI/KMS",
           "Ledger and witness use separate keys but remain on the same host",

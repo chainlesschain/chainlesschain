@@ -134,12 +134,14 @@ async function loadBuiltInFactories(commandName) {
       { createGovernedSkillSynthesisCandidateEvaluator },
       { createGovernedSkillSynthesisModelEvaluator },
       { createGovernedSkillSynthesisEvaluationLedgerAdapter },
+      { createGovernedSkillSynthesisProcessGrader },
     ] = await Promise.all([
       import("./governed-skill-synthesis-cli-host.js"),
       import("./governed-skill-synthesis-provider-chat.js"),
       import("./governed-skill-synthesis-candidate-evaluator.js"),
       import("./governed-skill-synthesis-model-evaluator.js"),
       import("./governed-skill-synthesis-evaluation-ledger-adapter.js"),
+      import("./governed-skill-synthesis-process-grader.js"),
     ]);
     factories.createGovernedSkillSynthesisCliHost =
       createGovernedSkillSynthesisCliHost;
@@ -151,6 +153,8 @@ async function loadBuiltInFactories(commandName) {
       createGovernedSkillSynthesisModelEvaluator;
     factories.createGovernedSkillSynthesisEvaluationLedgerAdapter =
       createGovernedSkillSynthesisEvaluationLedgerAdapter;
+    factories.createGovernedSkillSynthesisProcessGrader =
+      createGovernedSkillSynthesisProcessGrader;
   }
   if (commandName === "marketplace" || commandName === "desktop") {
     const [

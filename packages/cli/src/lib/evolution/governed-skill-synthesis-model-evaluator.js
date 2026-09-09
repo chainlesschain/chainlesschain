@@ -5,6 +5,10 @@ import { firstBalancedJson } from "../json-schema-output.js";
 import { isGovernedSkillSynthesisCandidateEvaluator } from "./governed-skill-synthesis-candidate-evaluator.js";
 import { isGovernedSkillSynthesisProviderChat } from "./governed-skill-synthesis-provider-chat.js";
 import {
+  getGovernedSkillSynthesisProcessGraderDescriptor,
+  isGovernedSkillSynthesisProcessGrader,
+} from "./governed-skill-synthesis-process-grader.js";
+import {
   GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA,
   isGovernedSkillSynthesisEvaluationPersistencePort,
   isGovernedSkillSynthesisEvaluationPersistenceReceipt,
@@ -34,6 +38,7 @@ const DENY_REASONS = new Set([
   "ungrounded-tool",
 ]);
 const OPTION_KEYS = new Set([
+  "allowSameProcessGrader",
   "attestReceipt",
   "descriptor",
   "deterministicEvaluator",
@@ -231,7 +236,10 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       "learning synthesis model evaluator requires a governed deterministic evaluator",
     );
   }
-  if (!isGovernedSkillSynthesisProviderChat(options.graderChat)) {
+  if (
+    !isGovernedSkillSynthesisProviderChat(options.graderChat) &&
+    !isGovernedSkillSynthesisProcessGrader(options.graderChat)
+  ) {
     throw new TypeError(
       "learning synthesis model evaluator requires a governed grader chat port",
     );
@@ -276,6 +284,13 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
   }
   const deterministicEvaluator = options.deterministicEvaluator;
   const graderChat = options.graderChat;
+  const processGraderDescriptor =
+    getGovernedSkillSynthesisProcessGraderDescriptor(graderChat);
+  if (!processGraderDescriptor && options.allowSameProcessGrader !== true) {
+    throw new TypeError(
+      "learning synthesis model evaluator requires a process-isolated grader",
+    );
+  }
 
   const evaluator = async (request) => {
     const deterministic = await deterministicEvaluator(request);
@@ -332,6 +347,23 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       authorityId: descriptor.authorityId,
       revision: descriptor.revision,
       handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      graderIsolation: processGraderDescriptor?.isolation ?? "same-process",
+      graderProvider: processGraderDescriptor?.provider ?? null,
+      graderModel: processGraderDescriptor?.model ?? null,
+      graderWorkerArtifactDigest:
+        processGraderDescriptor?.workerArtifactDigest ?? null,
+      graderInheritedEnvironment:
+        processGraderDescriptor?.inheritedEnvironment ?? null,
+      graderCredentialDelivery:
+        processGraderDescriptor?.credentialDelivery ?? "closure",
+      graderHardDeadlineEnforced:
+        processGraderDescriptor?.hardDeadlineEnforced ?? false,
+      graderSandboxProfile: processGraderDescriptor?.sandboxProfile ?? null,
+      graderRequiredSandboxBoundaries: Object.freeze(
+        processGraderDescriptor?.requiredSandboxBoundaries ?? [],
+      ),
+      graderPersistentProcessAuditRequired:
+        processGraderDescriptor?.persistentProcessAuditRequired ?? false,
       candidateDigest: digest,
       skillName: boundedString(
         request.skillName,
@@ -400,7 +432,13 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
     });
   };
   Object.freeze(evaluator);
-  MODEL_EVALUATORS.set(evaluator, graderChat);
+  MODEL_EVALUATORS.set(
+    evaluator,
+    Object.freeze({
+      graderChat,
+      isolation: processGraderDescriptor?.isolation ?? "same-process",
+    }),
+  );
   return evaluator;
 }
 
@@ -416,11 +454,15 @@ export function assertDistinctSkillSynthesisModelRoles(
   evaluator,
   generationChat,
 ) {
-  const graderChat = MODEL_EVALUATORS.get(evaluator);
-  if (graderChat && graderChat === generationChat) {
+  const binding = MODEL_EVALUATORS.get(evaluator);
+  if (binding && binding.graderChat === generationChat) {
     throw new TypeError(
       "learning synthesis generation and grader chat ports must be distinct",
     );
   }
   return true;
+}
+
+export function isGovernedSkillSynthesisModelEvaluatorProcessIsolated(value) {
+  return MODEL_EVALUATORS.get(value)?.isolation === "process";
 }

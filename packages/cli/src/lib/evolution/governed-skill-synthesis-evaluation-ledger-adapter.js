@@ -11,7 +11,7 @@ import {
 } from "./evolution-ledger.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-evaluation-receipt/v1";
+  "chainlesschain.governed-skill-synthesis-evaluation-receipt/v2";
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_PERSISTENCE_SCHEMA =
   "chainlesschain.governed-skill-synthesis-evaluation-persistence/v1";
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_LEDGER_EVENT =
@@ -50,6 +50,16 @@ const RECEIPT_KEYS = new Set([
   "deterministicPrecheck",
   "durable",
   "handlerArtifactDigest",
+  "graderCredentialDelivery",
+  "graderHardDeadlineEnforced",
+  "graderInheritedEnvironment",
+  "graderIsolation",
+  "graderModel",
+  "graderPersistentProcessAuditRequired",
+  "graderProvider",
+  "graderRequiredSandboxBoundaries",
+  "graderSandboxProfile",
+  "graderWorkerArtifactDigest",
   "minScore",
   "modelScore",
   "reasons",
@@ -231,6 +241,17 @@ function receiptCore(receipt) {
     authorityId: receipt.authorityId,
     revision: receipt.revision,
     handlerArtifactDigest: receipt.handlerArtifactDigest,
+    graderIsolation: receipt.graderIsolation,
+    graderProvider: receipt.graderProvider,
+    graderModel: receipt.graderModel,
+    graderWorkerArtifactDigest: receipt.graderWorkerArtifactDigest,
+    graderInheritedEnvironment: receipt.graderInheritedEnvironment,
+    graderCredentialDelivery: receipt.graderCredentialDelivery,
+    graderHardDeadlineEnforced: receipt.graderHardDeadlineEnforced,
+    graderSandboxProfile: receipt.graderSandboxProfile,
+    graderRequiredSandboxBoundaries: receipt.graderRequiredSandboxBoundaries,
+    graderPersistentProcessAuditRequired:
+      receipt.graderPersistentProcessAuditRequired,
     candidateDigest: receipt.candidateDigest,
     skillName: receipt.skillName,
     trajectoryId: receipt.trajectoryId,
@@ -250,6 +271,37 @@ function validateReceipt(receipt, descriptor) {
     receipt.authorityId !== descriptor.authorityId ||
     receipt.revision !== descriptor.revision ||
     receipt.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
+    !["process", "same-process"].includes(receipt.graderIsolation) ||
+    (receipt.graderIsolation === "process" &&
+      (!DIGEST.test(receipt.graderWorkerArtifactDigest ?? "") ||
+        typeof receipt.graderProvider !== "string" ||
+        receipt.graderProvider.length === 0 ||
+        typeof receipt.graderModel !== "string" ||
+        receipt.graderModel.length === 0 ||
+        receipt.graderInheritedEnvironment !== false ||
+        receipt.graderCredentialDelivery !== "bounded-stdin" ||
+        receipt.graderHardDeadlineEnforced !== true ||
+        receipt.graderSandboxProfile !== "network-only" ||
+        !Array.isArray(receipt.graderRequiredSandboxBoundaries) ||
+        utilTypes.isProxy(receipt.graderRequiredSandboxBoundaries) ||
+        canonical(receipt.graderRequiredSandboxBoundaries) !==
+          canonical([
+            "privilege-reduction",
+            "process-tree",
+            "resource-limits",
+          ]) ||
+        receipt.graderPersistentProcessAuditRequired !== true)) ||
+    (receipt.graderIsolation === "same-process" &&
+      (receipt.graderWorkerArtifactDigest !== null ||
+        receipt.graderProvider !== null ||
+        receipt.graderModel !== null ||
+        receipt.graderInheritedEnvironment !== null ||
+        receipt.graderCredentialDelivery !== "closure" ||
+        receipt.graderHardDeadlineEnforced !== false ||
+        receipt.graderSandboxProfile !== null ||
+        !Array.isArray(receipt.graderRequiredSandboxBoundaries) ||
+        receipt.graderRequiredSandboxBoundaries.length !== 0 ||
+        receipt.graderPersistentProcessAuditRequired !== false)) ||
     receipt.authenticated !== true ||
     receipt.durable !== false ||
     receipt.deterministicPrecheck !== "passed" ||

@@ -1,10 +1,13 @@
 import { createHash, createHmac } from "node:crypto";
+import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { PassThrough, Writable } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
@@ -24,7 +27,9 @@ import {
   createGovernedSkillSynthesisModelEvaluator,
   isGovernedSkillSynthesisEvaluationReceipt,
   isGovernedSkillSynthesisModelEvaluator,
+  isGovernedSkillSynthesisModelEvaluatorProcessIsolated,
 } from "../../src/lib/evolution/governed-skill-synthesis-model-evaluator.js";
+import { createGovernedSkillSynthesisProcessGrader } from "../../src/lib/evolution/governed-skill-synthesis-process-grader.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_EVALUATION_LEDGER_EVENT,
   GovernedSkillSynthesisEvaluationLedgerAdapter,
@@ -174,6 +179,7 @@ function createEvaluationPersistence(descriptor, verifyAttestation) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -398,6 +404,7 @@ Confirm every finding identifies its configuration key
       verifyAttestation,
     );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
+      allowSameProcessGrader: true,
       descriptor,
       deterministicEvaluator,
       graderChat,
@@ -412,6 +419,7 @@ Confirm every finding identifies its configuration key
   it("requires a branded durable receipt persistence port", () => {
     expect(() =>
       createGovernedSkillSynthesisModelEvaluator({
+        allowSameProcessGrader: true,
         descriptor: {
           authorityId: "authority:model-grader",
           revision: 1,
@@ -434,6 +442,35 @@ Confirm every finding identifies its configuration key
         }),
       }),
     ).toThrow("governed durable receipt persistence port");
+  });
+
+  it("rejects a same-process grader unless compatibility is explicit", () => {
+    const descriptor = {
+      authorityId: "authority:model-grader",
+      revision: 1,
+      handlerArtifactDigest: `sha256:${"9".repeat(64)}`,
+    };
+    const verifyAttestation = async () => true;
+    const persistence = createEvaluationPersistence(
+      descriptor,
+      verifyAttestation,
+    );
+    expect(() =>
+      createGovernedSkillSynthesisModelEvaluator({
+        descriptor,
+        deterministicEvaluator:
+          createGovernedSkillSynthesisCandidateEvaluator(),
+        graderChat: createGovernedSkillSynthesisProviderChat({
+          provider: "volcengine",
+          model: "doubao-test",
+          apiKey: "pilot-secret",
+        }),
+        minScore: 0.8,
+        attestReceipt: async () => "attested",
+        verifyAttestation,
+        receiptPersistence: persistence.receiptPersistence,
+      }),
+    ).toThrow("process-isolated grader");
   });
 
   it("binds a separate model grade to the exact candidate digest", async () => {
@@ -471,6 +508,93 @@ Confirm every finding identifies its configuration key
     expect(result.persistence.subjectRef.digest).toMatch(/^sha256:/u);
     expect(result.persistence).not.toHaveProperty("ledgerReceiptDigest");
     expect(result.persistence).toMatchObject({ recovered: false });
+  });
+
+  it("binds the fixed worker digest when grading occurs in a separate process", async () => {
+    vi.spyOn(executionBroker, "spawn").mockImplementation(() => {
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      let input = "";
+      child.stdin = new Writable({
+        write(chunk, _encoding, callback) {
+          input += chunk.toString("utf8");
+          callback();
+        },
+        final(callback) {
+          queueMicrotask(() => {
+            const processRequest = JSON.parse(input);
+            const match = processRequest.messages[1].content.match(
+              /Candidate digest: (sha256:[a-f0-9]{64})/u,
+            );
+            child.stdout.end(
+              `${JSON.stringify({
+                ok: true,
+                content: JSON.stringify({
+                  candidate_digest: match[1],
+                  score: 0.93,
+                  reasons: ["grounded-tools", "verifiable-outcome"],
+                }),
+              })}\n`,
+              () => child.emit("close", 0, null),
+            );
+          });
+          callback();
+        },
+      });
+      child.kill = vi.fn();
+      return child;
+    });
+    const descriptor = {
+      authorityId: "authority:process-grader",
+      revision: 1,
+      handlerArtifactDigest: `sha256:${"f".repeat(64)}`,
+    };
+    const verifyAttestation = async ({ receiptDigest, attestation }) =>
+      attestation === `attested:${receiptDigest}`;
+    const persistence = createEvaluationPersistence(
+      descriptor,
+      verifyAttestation,
+    );
+    const evaluator = createGovernedSkillSynthesisModelEvaluator({
+      descriptor,
+      deterministicEvaluator: createGovernedSkillSynthesisCandidateEvaluator(),
+      graderChat: createGovernedSkillSynthesisProcessGrader({
+        provider: "volcengine",
+        model: "doubao-test",
+        apiKey: "process-only-test-secret",
+        timeoutMs: 1_000,
+      }),
+      minScore: 0.8,
+      attestReceipt: async ({ receiptDigest }) => `attested:${receiptDigest}`,
+      verifyAttestation,
+      receiptPersistence: persistence.receiptPersistence,
+    });
+
+    expect(
+      isGovernedSkillSynthesisModelEvaluatorProcessIsolated(evaluator),
+    ).toBe(true);
+    await expect(evaluator(request)).resolves.toMatchObject({
+      accepted: true,
+      receipt: {
+        graderIsolation: "process",
+        graderProvider: "volcengine",
+        graderModel: "doubao-test",
+        graderWorkerArtifactDigest: expect.stringMatching(
+          /^sha256:[a-f0-9]{64}$/u,
+        ),
+        graderInheritedEnvironment: false,
+        graderCredentialDelivery: "bounded-stdin",
+        graderHardDeadlineEnforced: true,
+        graderSandboxProfile: "network-only",
+        graderRequiredSandboxBoundaries: [
+          "privilege-reduction",
+          "process-tree",
+          "resource-limits",
+        ],
+        graderPersistentProcessAuditRequired: true,
+      },
+    });
   });
 
   it("reloads the exact receipt and rejects a substituted ledger subject", async () => {
@@ -587,6 +711,7 @@ Confirm every finding identifies its configuration key
       async () => false,
     );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
+      allowSameProcessGrader: true,
       descriptor,
       deterministicEvaluator: createGovernedSkillSynthesisCandidateEvaluator(),
       graderChat: createGovernedSkillSynthesisProviderChat({
@@ -653,6 +778,7 @@ Confirm every finding identifies its configuration key
         verifyAttestation,
       );
       const evaluator = createGovernedSkillSynthesisModelEvaluator({
+        allowSameProcessGrader: true,
         descriptor,
         deterministicEvaluator:
           createGovernedSkillSynthesisCandidateEvaluator(),
