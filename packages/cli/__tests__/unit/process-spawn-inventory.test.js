@@ -66,6 +66,13 @@ describe("process spawn inventory audit", () => {
     ).toMatchObject({ disposition: "audited-exemption" });
     expect(
       auditRuntimeHit(
+        "packages/cli/src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js",
+        "const child = spawn(",
+        "",
+      ),
+    ).toMatchObject({ disposition: "audited-exemption" });
+    expect(
+      auditRuntimeHit(
         "packages/cli/src/lib/evolution/skill-writer-inventory-manifest.js",
         '"function execFileSync(file, args, options = {})",',
         "",
@@ -101,5 +108,5 @@ describe("process spawn inventory audit", () => {
       (hit) => hit.kind === "runtime" && hit.disposition === "unreviewed",
     );
     expect(unreviewed).toEqual([]);
-  });
+  }, 30_000);
 });

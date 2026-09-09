@@ -35,6 +35,15 @@
       "reviewedAt": "2026-08-22"
     },
     {
+      "id": "windows-secure-pipe-broker-host-boundary",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js",
+      "match": "const child = spawn\\(",
+      "reason": "The attestor host must launch its fixed Windows PowerShell secure-pipe broker below the ordinary ProcessExecutionBroker boundary; the executable and script are resolved from trusted installation roots, profiles and interactivity are disabled, the validated pipe name and bounded frame size are passed as literal argv, shell execution is disabled, and the hidden child is lifecycle-owned by the host.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-09-09"
+    },
+    {
       "id": "mcp-static-execution-context-builtin",
       "disposition": "audited-exemption",
       "path": "packages/cli/src/lib/mcp-stdio-package-materialization.js",
