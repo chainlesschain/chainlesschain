@@ -78,6 +78,7 @@ describe("CodingAgentBridge", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Object.assign(_deps, originalDeps);
   });
 
@@ -103,6 +104,30 @@ describe("CodingAgentBridge", () => {
     expect(startingEvents).toHaveLength(1);
     expect(readyEvents).toHaveLength(1);
     expect(bridge.connected).toBe(true);
+  });
+
+  it("preserves the trusted evolution deployment environment for its CLI child", async () => {
+    vi.stubEnv(
+      "CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR",
+      "C:/trusted/evolution-deployment.json",
+    );
+    vi.stubEnv(
+      "CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT",
+      "C:/trusted/evolution-trust-root.pem",
+    );
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+
+    await bridge.ensureReady();
+
+    // Coding Agent invokes `cc serve`; the child re-enters the canonical CLI
+    // deployment loader, so these public deployment locations must survive
+    // the Desktop process boundary. No raw composition factory is serialized.
+    expect(_deps.spawn.mock.calls[0][2].env).toMatchObject({
+      CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR:
+        "C:/trusted/evolution-deployment.json",
+      CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT:
+        "C:/trusted/evolution-trust-root.pem",
+    });
   });
 
   it("memoizes ensureReady and avoids restart when already connected", async () => {
