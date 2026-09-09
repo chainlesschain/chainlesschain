@@ -119,8 +119,18 @@ try {
     artifact: randomBytes(32).toString("base64url"),
     ledger: randomBytes(32).toString("base64url"),
     witness: randomBytes(32).toString("base64url"),
-    evaluator: randomBytes(32).toString("base64url"),
   };
+  const evaluationAttestorKeys = generateKeyPairSync("ed25519");
+  const evaluationAttestorPrivateKey = evaluationAttestorKeys.privateKey.export(
+    {
+      type: "pkcs8",
+      format: "pem",
+    },
+  );
+  const evaluationAttestorPublicKey = evaluationAttestorKeys.publicKey.export({
+    type: "spki",
+    format: "pem",
+  });
 
   const moduleSource = `import { createHash, createHmac } from "node:crypto";
 import fs from "node:fs";
@@ -191,7 +201,6 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     const artifactSecret = ${JSON.stringify(localSecrets.artifact)};
     const ledgerAuthority = signingAuthority("ledger", ${JSON.stringify(localSecrets.ledger)});
     const witnessAuthority = signingAuthority("witness", ${JSON.stringify(localSecrets.witness)});
-    const evaluatorSecret = ${JSON.stringify(localSecrets.evaluator)};
     const artifactAlgorithm = "hmac-sha256";
     const artifactKeyId = "key://local-volcengine-pilot/artifact";
     const artifactPolicyDigest = sha256("artifact-policy");
@@ -270,16 +279,18 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       revision: 1,
       handlerArtifactDigest: descriptor.moduleDigest
     };
-    const verifyEvaluationAttestation = async ({ receiptDigest, candidateDigest, attestation }) =>
-      attestation?.algorithm === "hmac-sha256" &&
-      attestation?.keyId === "key://local-volcengine-pilot/evaluator" &&
-      attestation?.value === mac(evaluatorSecret, receiptDigest + "\\0" + candidateDigest);
+    const evaluationAttestationAuthority = factories.createGovernedSkillSynthesisProcessAttestationAuthority({
+      privateKeyPem: ${JSON.stringify(evaluationAttestorPrivateKey)},
+      publicKeyPem: ${JSON.stringify(evaluationAttestorPublicKey)},
+      timeoutMs: 10000,
+      memoryLimitMb: 64
+    });
     const evaluationLedger = factories.createGovernedSkillSynthesisEvaluationLedgerAdapter({
       descriptor: evaluationDescriptor,
       artifactPorts,
       ledger: backend.ledger,
       ledgerArtifactResolver,
-      verifyAttestation: verifyEvaluationAttestation
+      attestationAuthority: evaluationAttestationAuthority
     });
     const generationChat = factories.createGovernedSkillSynthesisProviderChat({
       provider: "volcengine",
@@ -311,12 +322,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       graderChat,
       minScore: 0.7,
       maxAttempts: 2,
-      attestReceipt: async ({ receiptDigest, candidateDigest }) => ({
-        algorithm: "hmac-sha256",
-        keyId: "key://local-volcengine-pilot/evaluator",
-        value: mac(evaluatorSecret, receiptDigest + "\\0" + candidateDigest)
-      }),
-      verifyAttestation: verifyEvaluationAttestation,
+      attestationAuthority: evaluationAttestationAuthority,
       receiptPersistence: evaluationLedger.createReceiptPersistencePort()
     });
     return {
@@ -477,6 +483,23 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   ) {
     throw new Error("pilot grader sandbox contract was not receipt bound");
   }
+  if (
+    evaluation.receipt.attestation?.schema !==
+      "chainlesschain.skill-synthesis-evaluation-attestation/v1" ||
+    evaluation.receipt.attestation?.algorithm !== "Ed25519" ||
+    evaluation.receipt.attestation?.isolation !== "process" ||
+    evaluation.receipt.attestation?.credentialDelivery !==
+      "single-use-broker-reference" ||
+    evaluation.receipt.attestation?.credentialTarget !==
+      "governed-skill-attestor.local" ||
+    evaluation.receipt.attestation?.credentialMaxUses !== 1 ||
+    evaluation.receipt.attestation?.persistentProcessAuditRequired !== true ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      evaluation.receipt.attestation?.credentialResolverArtifactDigest,
+    )
+  ) {
+    throw new Error("pilot evaluation attestor was not process isolated");
+  }
   const activeEntries = fs.readdirSync(activeRoot);
   if (activeEntries.length !== 0) {
     throw new Error("pilot mutated the active Skill root");
@@ -528,6 +551,25 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               evaluation.receipt.graderRequiredSandboxBoundaries,
             graderPersistentProcessAuditRequired:
               evaluation.receipt.graderPersistentProcessAuditRequired,
+            attestorIsolation: evaluation.receipt.attestation.isolation,
+            attestorAlgorithm: evaluation.receipt.attestation.algorithm,
+            attestorKeyId: evaluation.receipt.attestation.keyId,
+            attestorPublicKeyDigest:
+              evaluation.receipt.attestation.publicKeyDigest,
+            attestorWorkerArtifactDigest:
+              evaluation.receipt.attestation.workerArtifactDigest,
+            attestorCredentialResolverArtifactDigest:
+              evaluation.receipt.attestation.credentialResolverArtifactDigest,
+            attestorCredentialDelivery:
+              evaluation.receipt.attestation.credentialDelivery,
+            attestorCredentialTarget:
+              evaluation.receipt.attestation.credentialTarget,
+            attestorCredentialMaxUses:
+              evaluation.receipt.attestation.credentialMaxUses,
+            attestorCredentialTtlMs:
+              evaluation.receipt.attestation.credentialTtlMs,
+            attestorPersistentProcessAuditRequired:
+              evaluation.receipt.attestation.persistentProcessAuditRequired,
           },
         },
         activeMutationCount: activeEntries.length,
@@ -543,8 +585,9 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "grader model call runs in a separate killable PID without inherited user/provider environment; the broker may add trace context",
           "grader launch requires a persistent process-audit admission record plus process-tree, resource-limit, and privilege-reduction sandbox guarantees",
           "grader still uses the same configured model, provider, credential source, and host as generation",
+          "evaluation attestation is Ed25519-signed in a separate killable PID, but its private key is still sourced by the same host deployment",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
-          "local HMAC authorities are ephemeral and are not production PKI/KMS",
+          "artifact, Ledger, and witness HMAC authorities are ephemeral and the Ed25519 attestor key is not production KMS/HSM-backed",
           "Ledger and witness use separate keys but remain on the same host",
           ...(process.platform === "win32"
             ? [

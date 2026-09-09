@@ -9,6 +9,7 @@ import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
 } from "./evolution-ledger.js";
+import { isGovernedSkillSynthesisProcessAttestationAuthority } from "./governed-skill-synthesis-process-attestor.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA =
   "chainlesschain.governed-skill-synthesis-evaluation-receipt/v3";
@@ -467,18 +468,40 @@ export class GovernedSkillSynthesisEvaluationLedgerAdapter {
     ledger,
     ledgerArtifactResolver,
     verifyAttestation,
+    attestationAuthority,
+    allowSameProcessAttestationVerifier = false,
   } = {}) {
     this.descriptor = normalizeDescriptor(input);
     this._put = capture(artifactPorts, "putCanonical", "artifactPorts");
     this._read = capture(ledger, "read", "ledger");
     this._verifyLedger = capture(ledger, "verify", "ledger");
     this._append = capture(ledger, "appendDomainEvent", "ledger");
+    const processAuthority =
+      isGovernedSkillSynthesisProcessAttestationAuthority(attestationAuthority)
+        ? attestationAuthority
+        : null;
+    if (attestationAuthority !== undefined && !processAuthority) {
+      throw new TypeError(
+        "a governed process attestation authority is required",
+      );
+    }
+    if (processAuthority && verifyAttestation !== undefined) {
+      throw new TypeError(
+        "process attestation authority cannot be combined with a direct verifier",
+      );
+    }
+    if (!processAuthority && allowSameProcessAttestationVerifier !== true) {
+      throw new TypeError(
+        "a process-isolated attestation verifier is required",
+      );
+    }
     this._verifyAttestation =
-      typeof verifyAttestation === "function"
+      processAuthority?.verifyAttestation ??
+      (typeof verifyAttestation === "function"
         ? verifyAttestation
         : (() => {
             throw new TypeError("verifyAttestation() is required");
-          })();
+          })());
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
       throw new TypeError(
         "a branded EvolutionArtifactPorts ledger resolver is required",

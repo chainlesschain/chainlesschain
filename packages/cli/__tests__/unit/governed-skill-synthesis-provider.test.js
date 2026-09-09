@@ -169,6 +169,7 @@ function createEvaluationPersistence(descriptor, verifyAttestation) {
       },
     ),
     verifyAttestation,
+    allowSameProcessAttestationVerifier: true,
   });
   return {
     adapter,
@@ -405,6 +406,7 @@ Confirm every finding identifies its configuration key
     );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
       allowSameProcessGrader: true,
+      allowSameProcessAttestor: true,
       descriptor,
       deterministicEvaluator,
       graderChat,
@@ -420,6 +422,7 @@ Confirm every finding identifies its configuration key
     expect(() =>
       createGovernedSkillSynthesisModelEvaluator({
         allowSameProcessGrader: true,
+        allowSameProcessAttestor: true,
         descriptor: {
           authorityId: "authority:model-grader",
           revision: 1,
@@ -457,6 +460,7 @@ Confirm every finding identifies its configuration key
     );
     expect(() =>
       createGovernedSkillSynthesisModelEvaluator({
+        allowSameProcessAttestor: true,
         descriptor,
         deterministicEvaluator:
           createGovernedSkillSynthesisCandidateEvaluator(),
@@ -471,6 +475,36 @@ Confirm every finding identifies its configuration key
         receiptPersistence: persistence.receiptPersistence,
       }),
     ).toThrow("process-isolated grader");
+  });
+
+  it("rejects direct attestation ports unless compatibility is explicit", () => {
+    const descriptor = {
+      authorityId: "authority:model-attestor",
+      revision: 1,
+      handlerArtifactDigest: `sha256:${"8".repeat(64)}`,
+    };
+    const verifyAttestation = async () => true;
+    const persistence = createEvaluationPersistence(
+      descriptor,
+      verifyAttestation,
+    );
+    expect(() =>
+      createGovernedSkillSynthesisModelEvaluator({
+        descriptor,
+        deterministicEvaluator:
+          createGovernedSkillSynthesisCandidateEvaluator(),
+        graderChat: createGovernedSkillSynthesisProcessGrader({
+          provider: "volcengine",
+          model: "doubao-test",
+          apiKey: "process-only-test-secret",
+          timeoutMs: 1_000,
+        }),
+        minScore: 0.8,
+        attestReceipt: async () => "attested",
+        verifyAttestation,
+        receiptPersistence: persistence.receiptPersistence,
+      }),
+    ).toThrow("process-isolated attestor");
   });
 
   it("binds a separate model grade to the exact candidate digest", async () => {
@@ -557,6 +591,7 @@ Confirm every finding identifies its configuration key
       verifyAttestation,
     );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
+      allowSameProcessAttestor: true,
       descriptor,
       deterministicEvaluator: createGovernedSkillSynthesisCandidateEvaluator(),
       graderChat: createGovernedSkillSynthesisProcessGrader({
@@ -718,6 +753,7 @@ Confirm every finding identifies its configuration key
     );
     const evaluator = createGovernedSkillSynthesisModelEvaluator({
       allowSameProcessGrader: true,
+      allowSameProcessAttestor: true,
       descriptor,
       deterministicEvaluator: createGovernedSkillSynthesisCandidateEvaluator(),
       graderChat: createGovernedSkillSynthesisProviderChat({
@@ -785,6 +821,7 @@ Confirm every finding identifies its configuration key
       );
       const evaluator = createGovernedSkillSynthesisModelEvaluator({
         allowSameProcessGrader: true,
+        allowSameProcessAttestor: true,
         descriptor,
         deterministicEvaluator:
           createGovernedSkillSynthesisCandidateEvaluator(),

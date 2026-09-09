@@ -8,6 +8,7 @@ import {
   getGovernedSkillSynthesisProcessGraderDescriptor,
   isGovernedSkillSynthesisProcessGrader,
 } from "./governed-skill-synthesis-process-grader.js";
+import { isGovernedSkillSynthesisProcessAttestationAuthority } from "./governed-skill-synthesis-process-attestor.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA,
   isGovernedSkillSynthesisEvaluationPersistencePort,
@@ -39,6 +40,8 @@ const DENY_REASONS = new Set([
 ]);
 const OPTION_KEYS = new Set([
   "allowSameProcessGrader",
+  "allowSameProcessAttestor",
+  "attestationAuthority",
   "attestReceipt",
   "descriptor",
   "deterministicEvaluator",
@@ -244,12 +247,43 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       "learning synthesis model evaluator requires a governed grader chat port",
     );
   }
+  const processAttestationAuthority =
+    isGovernedSkillSynthesisProcessAttestationAuthority(
+      options.attestationAuthority,
+    )
+      ? options.attestationAuthority
+      : null;
+  if (
+    options.attestationAuthority !== undefined &&
+    !processAttestationAuthority
+  ) {
+    throw new TypeError(
+      "learning synthesis model evaluator requires a governed process attestation authority",
+    );
+  }
+  if (
+    processAttestationAuthority &&
+    (options.attestReceipt !== undefined ||
+      options.verifyAttestation !== undefined)
+  ) {
+    throw new TypeError(
+      "learning synthesis process attestation authority cannot be combined with direct attestation ports",
+    );
+  }
+  if (
+    !processAttestationAuthority &&
+    options.allowSameProcessAttestor !== true
+  ) {
+    throw new TypeError(
+      "learning synthesis model evaluator requires a process-isolated attestor",
+    );
+  }
   const attestReceipt = callable(
-    options.attestReceipt,
+    processAttestationAuthority?.attestReceipt ?? options.attestReceipt,
     "learning synthesis receipt attestor",
   );
   const verifyAttestation = callable(
-    options.verifyAttestation,
+    processAttestationAuthority?.verifyAttestation ?? options.verifyAttestation,
     "learning synthesis receipt verifier",
   );
   if (

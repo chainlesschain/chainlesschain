@@ -1879,7 +1879,19 @@ credential resolver 不是未认证的运行时依赖：其 single-link regular 
 
 新增 v2 兼容读取用例后，相关 9 个测试文件合计 **159 passed、1 个既有平台条件 skip**，Credential Agent/Broker 既有回归另有 **7/7** 通过；其中一次性 reference、无密钥 stdin、descriptor/receipt 绑定、超时硬终止和 v2 durable receipt 读取均有定向覆盖。
 
-这一纵切证明的是“父→grader 明文 payload 已消除”和“单次、本机、目标绑定的凭据解析协议可真实调用模型”，不是外部 KMS 隔离：原始密钥仍由同一 deployment 配置加载到父进程并交给进程内 Credential Agent，capability transport、generation、grader 与 receipt attestor 仍位于同一主机故障域；Windows generic process sandbox 也尚无原子 code-snapshot guarantee，当前只能调用前后复核文件。生产继续 `HOLD`。下一阶段应让 deployment 只取得不含明文的 grader credential handle，由外部 Credential Agent/KMS 按 worker identity、model、endpoint、deadline 签发 lease；再将 receipt attestor/verifier 迁入独立身份/密钥域，并解决 Windows 原生目录 fsync durability。
+这一纵切证明的是“父→grader 明文 payload 已消除”和“单次、本机、目标绑定的凭据解析协议可真实调用模型”，不是外部 KMS 隔离：原始密钥仍由同一 deployment 配置加载到父进程并交给进程内 Credential Agent，capability transport、generation 与 grader 仍位于同一主机故障域；Windows generic process sandbox 也尚无原子 code-snapshot guarantee，当前只能调用前后复核文件。生产继续 `HOLD`。receipt attestor 的同进程 HMAC 缺口已由下一节继续关闭；外部 Credential Agent/KMS lease 与 Windows 原生目录 fsync durability 仍是发布门。
+
+### 13.9 Ed25519 receipt attestor 独立进程（2026-09-09）
+
+本批新增固定内置 `createGovernedSkillSynthesisProcessAttestationAuthority()` 与最小签名 worker。签名算法从 deployment 模块内同进程 HMAC 改为 Ed25519：attestor stdin 只接收 receipt digest、candidate digest、evaluator descriptor 和 attestor execution descriptor，不含私钥；Broker 把 `CC_EVOLUTION_ATTESTOR_PRIVATE_KEY` 替换成绑定 `node` 目标、`governed-skill-attestor.local` purpose target、TTL 与 `maxUses=1` 的 Credential Agent reference。worker 明确拒绝明文私钥环境项，解析一次 reference 后从私钥重新导出公钥，校验 key ID 与 SPKI digest，再对 domain-separated canonical payload 签名。父进程 verifier 与 Ledger adapter 只用公钥验证，签名同时绑定 receipt/candidate、evaluator authority/revision/handler digest，以及 attestor 算法、key identity、worker/resolver digest、进程隔离、credential delivery、deadline、sandbox 与 persistent-audit 合同。
+
+attestor worker 和 credential resolver 均执行 single-link/realpath/长度/SHA-256 构造时、调用前、调用后复核；子进程继续要求 persistent process-audit admission、父 deadline `SIGKILL`，以及 `privilege-reduction`、`process-tree`、`resource-limits` 三项平台保证。由于一次性凭据解析使用本机命名管道/Unix socket，当前仍采用 `network-only` profile；固定 worker 本身没有外部网络调用，但 Windows generic sandbox 尚不能证明“只允许本机 credential socket”。模型 evaluator 现在默认拒绝直接 `attestReceipt/verifyAttestation`，Evaluation Ledger adapter 也默认拒绝裸 verifier；旧单元/兼容路径只有显式设置 `allowSameProcessAttestor=true` / `allowSameProcessAttestationVerifier=true` 才可使用同进程端口。签名 deployment loader 已向认证 `learning` 模块提供新 factory，未认证模块仍不能取得。
+
+真实 Windows 双进程 Pilot 使用 `deepseek-v4-flash-260425` 在 15.113 秒完成：candidate-only `security-configuration-review` 为 819 bytes，摘要 `sha256:fd217d01fc96b8a1d6cd65f4f2d896fd8c78e5e75d485368f12c05863cbfc4e1`，grader 一次评分 1.0。evaluation receipt/persistence/Ledger event digest 分别为 `sha256:188b178670eb5498fbc1fe5871ff3f7466d88e7b531267e18d7aace9136c0428`、`sha256:87248e344833da00214b498556a2d5abff67bd6e35fd3be4c3233b25714ae912`、`sha256:b0f8ac5989ae2fbff86f72bb10dd1b8a3904258dccaea92a1a840fffaac50c29`。attestor isolation/algorithm 为 `process` / `Ed25519`，公钥摘要与 key ID 后缀均为 `aa24d97e6985cf1596aaa0389083061777ff34a9289ad36613712da311964c6c`；worker/resolver digest 为 `sha256:d7c7d2a0fbe8c9efc8c83d94a539efc05b93d48a5fa812660da4c820870ad357` / `sha256:6ff25dd126bfd9f263644e6b82f334d45a4cd948534d66846b32ffc6286dd74a`，credential target/maxUses/TTL 为 `governed-skill-attestor.local` / `1` / `15,000ms`；active mutation 为 0。
+
+新增与受影响的 10 个测试文件合计 **164 passed、1 个既有平台条件 skip**；另有 Credential Agent/Broker **7/7** 沿用上一节结果。定向覆盖 Ed25519 key-pair mismatch、receipt/candidate replay、未品牌化 authority、同进程 attestor/verifier 默认拒绝、私钥不进入 argv/stdin、签名超时硬终止，以及持久 reopen 再验签。
+
+这关闭了“评分方可在同一调用栈伪造自己的 HMAC attestation”和“持久 adapter 默认接受任意 verifier”两个仓库缺口，但仍不等于独立信任域：Pilot 的 Ed25519 私钥 PEM 仍嵌入同一台主机的临时签名 deployment module，再由同一进程内 Credential Agent 发行 reference；没有生产 KMS/HSM key handle、key registry/revocation/rotation receipt、独立服务身份或独立故障域。生产继续 `HOLD`。下一阶段应把 factory 输入从 `privateKeyPem` 收窄为外部 signer handle/lease，让父进程永不接触私钥，并把公钥信任根、撤销与轮换接到持久 authority；同时完成 Windows 原生 Ledger durability。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 

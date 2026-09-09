@@ -176,7 +176,11 @@ function artifactAuthority(now) {
   };
 }
 
-function openResources(root, ledgerOverride) {
+function openResources(
+  root,
+  ledgerOverride,
+  allowSameProcessAttestationVerifier = true,
+) {
   const now = Date.now;
   const artifactPorts = new EvolutionArtifactPorts({
     artifactStore: new ArtifactStore({
@@ -210,6 +214,7 @@ function openResources(root, ledgerOverride) {
     ledger: ledgerOverride?.(backend.ledger) ?? backend.ledger,
     ledgerArtifactResolver: resolver,
     verifyAttestation,
+    allowSameProcessAttestationVerifier,
   });
   return { adapter, backend, verifyAttestation };
 }
@@ -277,6 +282,7 @@ function evaluator(resources) {
   );
   return createGovernedSkillSynthesisModelEvaluator({
     allowSameProcessGrader: true,
+    allowSameProcessAttestor: true,
     descriptor: {
       authorityId: DESCRIPTOR.authorityId,
       revision: DESCRIPTOR.revision,
@@ -303,6 +309,20 @@ afterEach(() => {
 });
 
 describe("GovernedSkillSynthesisEvaluationLedgerAdapter", () => {
+  it("rejects a direct verifier unless compatibility is explicit", () => {
+    const root = fs.mkdtempSync(
+      path.join(
+        fs.realpathSync.native(os.tmpdir()),
+        "cc-learning-eval-verifier-",
+      ),
+    );
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });
+    expect(() => openResources(root, undefined, false)).toThrow(
+      "process-isolated attestation verifier",
+    );
+  });
+
   it("continues to verify v2 receipts that delivered the process credential through bounded stdin", async () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "cc-learning-eval-v2-"),
