@@ -69,6 +69,9 @@
     "scripts/macos-mcp-launcher-preinstall.sh",
     "scripts/macos-mcp-launcher-postinstall.sh",
     "scripts/command-lifecycle-report.mjs",
+    "scripts/governed-learning-local-attestor-service.mjs",
+    "scripts/governed-learning-local-attestor-trust-approval-service.mjs",
+    "scripts/governed-learning-local-attestor-trust-operations-service.mjs",
     "README.md"
   ],
   "keywords": [

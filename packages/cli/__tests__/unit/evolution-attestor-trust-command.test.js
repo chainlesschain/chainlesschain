@@ -8,14 +8,17 @@ import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { registerEvolutionAttestorTrustCommands } from "../../src/commands/evolution-attestor-trust.js";
+import { createGovernedSkillSynthesisAttestorTrustApprovalClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsCliHost } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-cli-host.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
+  createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer,
   digestGovernedSkillSynthesisAttestorTrustOperationRequest,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATOR_REGISTRY_CHANGE_REQUEST_SCHEMA,
+  createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer,
   digestGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 
@@ -97,6 +100,10 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     process.platform === "win32"
       ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${id}`
       : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
+  const approvalEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${id}`
+      : path.join(root, `cc-evolution-attestor-trust-approval-${id}.sock`);
   const service = Object.freeze({
     schema:
       "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3",
@@ -157,10 +164,67 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     descriptor: service,
     timeoutMs: 5_000,
   });
+  const operatorKeys = generateKeyPairSync("ed25519");
+  const trustIssuer =
+    createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
+      tenantId: service.tenantId,
+      operatorId: "operator:personal-owner",
+      privateKey: operatorKeys.privateKey,
+      now: () => NOW,
+    });
+  const registryIssuer =
+    createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
+      tenantId: service.tenantId,
+      operatorId: "operator:personal-owner",
+      privateKey: operatorKeys.privateKey,
+      now: () => NOW,
+    });
+  const approvalServer = net.createServer((socket) => {
+    let body = "";
+    socket.on("data", (chunk) => {
+      body += chunk.toString("utf8");
+      const newline = body.indexOf("\n");
+      if (newline === -1) return;
+      const message = JSON.parse(body.slice(0, newline));
+      const result =
+        message.action === "approve"
+          ? trustIssuer.issue(message.payload)
+          : registryIssuer.issue(message.payload);
+      socket.end(
+        `${JSON.stringify({ ok: true, requestId: message.requestId, result })}\n`,
+      );
+    });
+  });
+  servers.push(approvalServer);
+  await new Promise((resolve, reject) => {
+    approvalServer.once("error", reject);
+    approvalServer.listen(approvalEndpoint, resolve);
+  });
+  const publicKeySpki = operatorKeys.publicKey.export({
+    type: "spki",
+    format: "der",
+  });
+  const approvalClient =
+    createGovernedSkillSynthesisAttestorTrustApprovalClient({
+      endpoint: approvalEndpoint,
+      capabilityToken: "b".repeat(64),
+      descriptor: {
+        schema:
+          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v1",
+        tenantId: service.tenantId,
+        operatorId: trustIssuer.operatorId,
+        signerId: "signer:personal-owner",
+        keyId: trustIssuer.keyId,
+        publicKeySpki: publicKeySpki.toString("base64url"),
+      },
+      timeoutMs: 5_000,
+      now: () => NOW,
+    });
   return {
     root,
     calls,
     host: createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
+      approvalClient,
       client,
       now: () => NOW,
     }),
@@ -197,7 +261,6 @@ describe("evolution attestor-trust CLI", () => {
       }),
     };
     writeDocument(operationPath, operation);
-    writeDocument(approvalPath, { externallySigned: true });
 
     const root = new Command().exitOverride();
     registerEvolutionAttestorTrustCommands(root.command("evolution"), {
@@ -230,11 +293,27 @@ describe("evolution attestor-trust CLI", () => {
       "cc",
       "evolution",
       "attestor-trust",
+      "approve",
+      requestPath,
+      "--out",
+      approvalPath,
+    ]);
+    expect(JSON.parse(printed.mock.calls[1][0])).toMatchObject({
+      created: true,
+      operatorId: "operator:personal-owner",
+      requestDigest: request.requestDigest,
+    });
+
+    await root.parseAsync([
+      "node",
+      "cc",
+      "evolution",
+      "attestor-trust",
       "execute",
       requestPath,
       approvalPath,
     ]);
-    expect(JSON.parse(printed.mock.calls[1][0])).toEqual({
+    expect(JSON.parse(printed.mock.calls[2][0])).toEqual({
       executed: true,
       requestDigest: request.requestDigest,
       approvalCount: 1,
@@ -355,7 +434,6 @@ describe("evolution attestor-trust CLI", () => {
         format: "pem",
       }),
     });
-    writeDocument(approvalPath, { externallySigned: true });
     const root = new Command().exitOverride();
     registerEvolutionAttestorTrustCommands(root.command("evolution"), {
       attestorTrustOperationsHost: h.host,
@@ -383,11 +461,25 @@ describe("evolution attestor-trust CLI", () => {
       "cc",
       "evolution",
       "attestor-trust",
+      "operator-approve",
+      requestPath,
+      "--out",
+      approvalPath,
+    ]);
+    expect(JSON.parse(printed.mock.calls[1][0])).toMatchObject({
+      created: true,
+      operatorId: "operator:personal-owner",
+    });
+    await root.parseAsync([
+      "node",
+      "cc",
+      "evolution",
+      "attestor-trust",
       "operator-execute",
       requestPath,
       approvalPath,
     ]);
-    expect(JSON.parse(printed.mock.calls[1][0])).toMatchObject({
+    expect(JSON.parse(printed.mock.calls[2][0])).toMatchObject({
       rebindRequired: true,
       registry: { revision: 2 },
     });

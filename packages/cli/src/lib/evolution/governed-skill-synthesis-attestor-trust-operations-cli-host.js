@@ -9,6 +9,7 @@ import {
   withTrustedFileParentSync,
 } from "../secure-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import { isGovernedSkillSynthesisAttestorTrustApprovalClient } from "./governed-skill-synthesis-attestor-trust-approval-client.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA,
   isGovernedSkillSynthesisAttestorTrustOperationsClient,
@@ -20,7 +21,7 @@ import {
 import { validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest } from "./governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLI_HOST_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-cli-host/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-cli-host/v2";
 
 const HOSTS = new WeakSet();
 const MAX_DOCUMENT_BYTES = 256 * 1024;
@@ -541,6 +542,7 @@ function readApprovalFiles(approvalPaths, requiredApprovals) {
 }
 
 export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
+  approvalClient = null,
   client,
   now = Date.now,
 } = {}) {
@@ -552,11 +554,24 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
   if (typeof now !== "function" || utilTypes.isProxy(now)) {
     throw new TypeError("attestor trust operations CLI clock is invalid");
   }
+  if (
+    approvalClient !== null &&
+    !isGovernedSkillSynthesisAttestorTrustApprovalClient(approvalClient)
+  ) {
+    throw new TypeError("approvalClient must be a branded approval client");
+  }
   const prepareRemote = client.prepare.bind(client);
   const executeRemote = client.execute.bind(client);
   const prepareOperatorChangeRemote = client.prepareOperatorChange.bind(client);
   const executeOperatorChangeRemote = client.executeOperatorChange.bind(client);
   const service = client.descriptor.service;
+  const approvalService = approvalClient?.descriptor.service ?? null;
+  if (approvalService && approvalService.tenantId !== service.tenantId) {
+    throw new Error("approval signer crossed the operations tenant boundary");
+  }
+  const approveRemote = approvalClient?.approve.bind(approvalClient) ?? null;
+  const approveOperatorChangeRemote =
+    approvalClient?.approveOperatorChange.bind(approvalClient) ?? null;
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLI_HOST_SCHEMA,
     clientSchema:
@@ -564,6 +579,17 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
     isolation: client.descriptor.isolation,
     transport: client.descriptor.transport,
     endpointDigest: client.descriptor.endpointDigest,
+    approvalSigner:
+      approvalService === null
+        ? null
+        : Object.freeze({
+            isolation: approvalClient.descriptor.isolation,
+            transport: approvalClient.descriptor.transport,
+            endpointDigest: approvalClient.descriptor.endpointDigest,
+            signerId: approvalService.signerId,
+            operatorId: approvalService.operatorId,
+            keyId: approvalService.keyId,
+          }),
     service: Object.freeze(structuredClone(service)),
   });
   const host = Object.freeze({
@@ -616,6 +642,36 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
         Number(now()),
       );
       return executeRemote({ request, approvals });
+    },
+    async approve(input) {
+      exact(
+        input,
+        new Set(["outputPath", "requestPath"]),
+        "attestor trust approve CLI input",
+      );
+      if (!approveRemote) {
+        throw new Error("attestor trust approval signer is unavailable");
+      }
+      const request = validatePreparedRequest(
+        readSecureJson(input.requestPath, "request plan"),
+        service,
+        Number(now()),
+      );
+      const approval = await approveRemote(request);
+      const outputPath = writeExclusiveJson(
+        input.outputPath,
+        approval,
+        "approval receipt",
+      );
+      return Object.freeze({
+        created: true,
+        outputPath,
+        requestDigest: request.requestDigest,
+        receiptDigest: approval.receiptDigest,
+        operatorId: approval.operatorId,
+        keyId: approval.attestation.keyId,
+        expiresAt: approval.expiresAt,
+      });
     },
     async prepareOperatorChange(input) {
       exact(
@@ -679,6 +735,43 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
           Number(now()),
         );
       return executeOperatorChangeRemote({ request, approvals });
+    },
+    async approveOperatorChange(input) {
+      exact(
+        input,
+        new Set(["outputPath", "requestPath"]),
+        "operator change approve CLI input",
+      );
+      if (!approveOperatorChangeRemote) {
+        throw new Error("attestor trust approval signer is unavailable");
+      }
+      const request =
+        validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest(
+          readSecureJson(input.requestPath, "operator change request plan"),
+          {
+            tenantId: service.tenantId,
+            policyId: service.policyId,
+            revision: service.revision,
+            policyDigest: service.policyDigest,
+            requiredApprovals: service.requiredApprovals,
+          },
+          Number(now()),
+        );
+      const approval = await approveOperatorChangeRemote(request);
+      const outputPath = writeExclusiveJson(
+        input.outputPath,
+        approval,
+        "operator change approval receipt",
+      );
+      return Object.freeze({
+        created: true,
+        outputPath,
+        requestDigest: request.requestDigest,
+        receiptDigest: approval.receiptDigest,
+        operatorId: approval.operatorId,
+        keyId: approval.attestation.keyId,
+        expiresAt: approval.expiresAt,
+      });
     },
   });
   HOSTS.add(host);

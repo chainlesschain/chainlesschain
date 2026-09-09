@@ -253,6 +253,7 @@ describe("signed evolution deployment loader", () => {
         controlPortsAvailable:
           typeof factories.createEvolutionWorkbenchControlPorts === "function",
         attestorTrustOperationsFactoriesAvailable: [
+          "createGovernedSkillSynthesisAttestorTrustApprovalClient",
           "createGovernedSkillSynthesisAttestorTrustOperationsClient",
           "createGovernedSkillSynthesisAttestorTrustOperationsCliHost",
         ].every((name) => typeof factories[name] === "function"),

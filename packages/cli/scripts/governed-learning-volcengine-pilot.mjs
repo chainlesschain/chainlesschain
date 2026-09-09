@@ -18,9 +18,8 @@ import {
   EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../src/lib/evolution/evolution-deployment-loader.js";
+import { createGovernedSkillSynthesisAttestorTrustApprovalClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
-import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
-import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 import { firstBalancedJson } from "../src/lib/json-schema-output.js";
 
 const cliRoot = path.resolve(
@@ -36,6 +35,7 @@ const root = fs.mkdtempSync(
   ),
 );
 let externalAttestorProcess = null;
+let attestorTrustApprovalProcess = null;
 let attestorTrustOperationsProcess = null;
 
 function runCli(args, env, cwd) {
@@ -153,6 +153,38 @@ async function startLocalAttestorTrustOperationsService(bootstrap) {
   return { child, descriptor: ready.descriptor };
 }
 
+async function startLocalAttestorTrustApprovalService(bootstrap) {
+  const servicePath = path.join(
+    cliRoot,
+    "scripts",
+    "governed-learning-local-attestor-trust-approval-service.mjs",
+  );
+  const child = spawn(process.execPath, [servicePath], {
+    env:
+      process.platform === "win32"
+        ? {
+            SystemRoot: process.env.SystemRoot,
+            WINDIR: process.env.WINDIR,
+            TEMP: process.env.TEMP,
+            TMP: process.env.TMP,
+          }
+        : {},
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString("utf8");
+  });
+  child.stdin.end(`${JSON.stringify(bootstrap)}\n`);
+  const ready = JSON.parse(await waitForLine(child.stdout));
+  if (ready.ok !== true || !ready.descriptor) {
+    child.kill("SIGTERM");
+    throw new Error(`local attestor trust approval failed: ${stderr}`);
+  }
+  return { child, descriptor: ready.descriptor };
+}
+
 async function stopChild(child) {
   if (!child || child.exitCode !== null) return;
   child.kill("SIGTERM");
@@ -210,6 +242,14 @@ try {
           root,
           `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
         );
+  let attestorTrustApprovalCapability = randomBytes(32).toString("base64url");
+  let attestorTrustApprovalEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}`
+      : path.join(
+          root,
+          `cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}.sock`,
+        );
   fs.mkdirSync(workspace);
   fs.mkdirSync(activeRoot);
   fs.mkdirSync(witnessRoot);
@@ -253,6 +293,17 @@ try {
   });
   const initialTrustOperatorKeys = generateKeyPairSync("ed25519");
   const rotatedTrustOperatorKeys = generateKeyPairSync("ed25519");
+  const trustApprovalBootstrap = (operatorKeys) => ({
+    capabilityToken: attestorTrustApprovalCapability,
+    endpoint: attestorTrustApprovalEndpoint,
+    tenantId: "tenant:local-volcengine-pilot",
+    operatorId: "operator:local-owner",
+    signerId: "signer:local-personal-ai-owner",
+    privateKeyPem: operatorKeys.privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+  });
   const trustOperationsBootstrap = (operatorKeys, revision) => ({
     artifactRoot,
     authorityNamespace: "local-volcengine-pilot",
@@ -297,17 +348,24 @@ try {
       descriptor: trustOperationsService.descriptor,
       timeoutMs: 15_000,
     });
-  const operatorRegistryIssuer =
-    createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer({
-      tenantId: "tenant:local-volcengine-pilot",
-      operatorId: "operator:local-owner",
-      privateKey: initialTrustOperatorKeys.privateKey,
+  let trustApprovalService = await startLocalAttestorTrustApprovalService(
+    trustApprovalBootstrap(initialTrustOperatorKeys),
+  );
+  attestorTrustApprovalProcess = trustApprovalService.child;
+  let trustApprovalClient =
+    createGovernedSkillSynthesisAttestorTrustApprovalClient({
+      endpoint: attestorTrustApprovalEndpoint,
+      capabilityToken: attestorTrustApprovalCapability,
+      descriptor: trustApprovalService.descriptor,
+      timeoutMs: 15_000,
     });
+  const initialApprovalSignerKeyId =
+    trustApprovalClient.descriptor.service.keyId;
   const operatorRotationRequest =
     await initialAttestorTrustOperations.prepareOperatorChange({
       operation: "rotate",
       operatorId: "operator:local-owner",
-      priorKeyId: operatorRegistryIssuer.keyId,
+      priorKeyId: initialApprovalSignerKeyId,
       publicKey: rotatedTrustOperatorKeys.publicKey.export({
         type: "spki",
         format: "pem",
@@ -317,10 +375,16 @@ try {
   const operatorRotation =
     await initialAttestorTrustOperations.executeOperatorChange({
       request: operatorRotationRequest,
-      approvals: [operatorRegistryIssuer.issue(operatorRotationRequest)],
+      approvals: [
+        await trustApprovalClient.approveOperatorChange(
+          operatorRotationRequest,
+        ),
+      ],
     });
   await stopChild(attestorTrustOperationsProcess);
   attestorTrustOperationsProcess = null;
+  await stopChild(attestorTrustApprovalProcess);
+  attestorTrustApprovalProcess = null;
   attestorTrustOperationsCapability = randomBytes(32).toString("base64url");
   attestorTrustOperationsEndpoint =
     process.platform === "win32"
@@ -328,6 +392,14 @@ try {
       : path.join(
           root,
           `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
+        );
+  attestorTrustApprovalCapability = randomBytes(32).toString("base64url");
+  attestorTrustApprovalEndpoint =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}`
+      : path.join(
+          root,
+          `cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}.sock`,
         );
   trustOperationsService = await startLocalAttestorTrustOperationsService(
     trustOperationsBootstrap(rotatedTrustOperatorKeys, 2),
@@ -340,20 +412,29 @@ try {
       descriptor: trustOperationsService.descriptor,
       timeoutMs: 15_000,
     });
+  trustApprovalService = await startLocalAttestorTrustApprovalService(
+    trustApprovalBootstrap(rotatedTrustOperatorKeys),
+  );
+  attestorTrustApprovalProcess = trustApprovalService.child;
+  trustApprovalClient = createGovernedSkillSynthesisAttestorTrustApprovalClient(
+    {
+      endpoint: attestorTrustApprovalEndpoint,
+      capabilityToken: attestorTrustApprovalCapability,
+      descriptor: trustApprovalService.descriptor,
+      timeoutMs: 15_000,
+    },
+  );
   const trustRegistrationRequest = await attestorTrustOperations.prepare({
     operation: "register",
     serviceId: externalAttestorServiceId,
     publicKey: evaluationAttestorPublicKey,
   });
-  const trustOperatorIssuer =
-    createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
-      tenantId: "tenant:local-volcengine-pilot",
-      operatorId: "operator:local-owner",
-      privateKey: rotatedTrustOperatorKeys.privateKey,
-    });
+  const trustApproval = await trustApprovalClient.approve(
+    trustRegistrationRequest,
+  );
   const attestorTrustExecution = await attestorTrustOperations.execute({
     request: trustRegistrationRequest,
-    approvals: [trustOperatorIssuer.issue(trustRegistrationRequest)],
+    approvals: [trustApproval],
   });
   const attestorTrustRegistration = attestorTrustExecution.lifecycle;
   externalAttestorProcess = await startLocalAttestorService({
@@ -774,7 +855,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     operatorRotation.registry?.operators?.[0]?.operatorId !==
       "operator:local-owner" ||
     operatorRotation.registry?.operators?.[0]?.keyId !==
-      trustOperatorIssuer.keyId ||
+      trustApproval.attestation.keyId ||
     operatorRotation.authorization?.requestDigest !==
       operatorRotationRequest.requestDigest ||
     operatorRotation.authorization?.operatorIds?.length !== 1 ||
@@ -789,7 +870,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     !/^sha256:[a-f0-9]{64}$/u.test(
       operatorRotation.persistence?.ledgerEventDigest,
     ) ||
-    operatorRegistryIssuer.keyId === trustOperatorIssuer.keyId ||
+    initialApprovalSignerKeyId === trustApproval.attestation.keyId ||
     attestorTrustOperations.descriptor.service.revision !== 2 ||
     attestorTrustOperations.descriptor.service.policyDigest !==
       operatorRotation.registry.policyDigest ||
@@ -839,6 +920,15 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustOperations.descriptor.transport !== "local-ipc-v1" ||
     !Number.isSafeInteger(attestorTrustOperationsProcess?.pid) ||
     attestorTrustOperationsProcess.pid === process.pid ||
+    trustApprovalClient.descriptor.isolation !== "external-service" ||
+    trustApprovalClient.descriptor.transport !== "local-ipc-v1" ||
+    trustApprovalClient.descriptor.service.operatorId !==
+      "operator:local-owner" ||
+    trustApprovalClient.descriptor.service.keyId !==
+      trustApproval.attestation.keyId ||
+    !Number.isSafeInteger(attestorTrustApprovalProcess?.pid) ||
+    attestorTrustApprovalProcess.pid === process.pid ||
+    attestorTrustApprovalProcess.pid === attestorTrustOperationsProcess.pid ||
     attestorTrustEvidence.verifier?.isolation !==
       "durable-ledger-key-lifecycle" ||
     attestorTrustEvidence.verifier?.serviceId !== externalAttestorServiceId
@@ -937,8 +1027,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               operatorRotation.persistence.ledgerEventDigest,
             operatorRegistryRevision: operatorRotation.registry.revision,
             operatorRegistryRebindRequired: operatorRotation.rebindRequired,
-            operatorRegistryOldKeyId: operatorRegistryIssuer.keyId,
-            operatorRegistryActiveKeyId: trustOperatorIssuer.keyId,
+            operatorRegistryOldKeyId: initialApprovalSignerKeyId,
+            operatorRegistryActiveKeyId: trustApproval.attestation.keyId,
+            operatorApprovalSignerIsolation:
+              trustApprovalClient.descriptor.isolation,
+            operatorApprovalSignerTransport:
+              trustApprovalClient.descriptor.transport,
+            operatorApprovalSignerEndpointDigest:
+              trustApprovalClient.descriptor.endpointDigest,
             attestorTrustVerifierIsolation:
               attestorTrustEvidence.verifier.isolation,
             attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,
@@ -962,6 +1058,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           attestorTrustOperationsEndpointDigest:
             attestorTrustOperations.descriptor.endpointDigest,
           attestorTrustApprovalPolicy: "signed-configurable-quorum",
+          attestorTrustApprovalSignerBoundary: "separate-local-service-process",
           attestorTrustOperatorRegistryStreamId:
             attestorTrustOperations.descriptor.service.operatorRegistryStreamId,
           attestorTrustOperatorRegistryRecordDigest:
@@ -985,7 +1082,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the operator policy genesis and signed register, rotate, and revoke mutations are durably pinned in ArtifactStore/EvolutionLedger; this pilot rotates its 1-of-1 personal-AI owner key and rebinds the service before attestor enrollment",
           "operator mutations require a new operations endpoint and capability binding; the old process refuses ordinary trust lifecycle work after a successful policy change",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
-          "the pilot orchestrator holds only the operator signing key and an operations IPC capability; the trust writer and authorization executor remain inside a separate service process",
+          "the pilot orchestrator delivers each ephemeral operator key once to a separate local signer process, then uses only its pinned public descriptor and IPC capability for approvals; production must replace this bootstrap with KMS/HSM key ownership",
           "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",
@@ -1004,6 +1101,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   );
 } finally {
   await stopChild(externalAttestorProcess);
+  await stopChild(attestorTrustApprovalProcess);
   await stopChild(attestorTrustOperationsProcess);
   fs.rmSync(root, { recursive: true, force: true });
 }

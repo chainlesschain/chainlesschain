@@ -2006,6 +2006,28 @@ cc evolution attestor-trust operator-execute <request-file> <approval-files...>
 
 因此“个人 AI 必须多人审批”的产品阻断已经消除：门限为 1 时可以由单一 owner 治理，但仍保留签名、时效、不可变账本、旧 key 批准轮换和强制重绑，不退化成无审批直写。生产结论仍为 `HOLD`：当前证明的是同机独立进程、临时 Ed25519/HMAC authority 和测试用 Windows directory-fsync 兼容层；还缺生产 KMS/HSM 或硬件/系统密钥托管、操作员/工作负载真实身份映射与撤权、IPC OS ACL/peer credential、防 capability 泄露、独立 Ledger/witness 故障域、未决授权/变更 reconciliation、密钥丢失与 break-glass 恢复演练，以及目标租户上的长期审计和灾备验收。这些属于 EVO-OPT-7 的目标部署工作，不应把本批仓库闭环误报为 WikiSkill 或自动 active promotion 已可无条件生产启用。
 
+### 13.19 独立 operator signer 与可执行 CLI 单人审批（2026-09-09）
+
+§13.18 虽已支持 `1-of-1` 协议和外部 issuer API，但复核发现 CLI 只有 prepare/execute，个人用户仍需自行编程产生 approval 文件，不能算可直接执行的操作闭环。本批新增受公钥钉扎的 `GovernedSkillSynthesisAttestorTrustApprovalClient` 和独立本地 signer service。signer 是与 CLI、trust operations writer 不同的 Node 进程，通过专用 local IPC 接收 request；服务只返回 tenant/operator/signer ID、Ed25519 keyId/SPKI 描述，私钥不进入 descriptor、approval 文件、operations service 或认证 deployment module。client 对返回值重新计算 approval digest，以 descriptor 中的 SPKI 验证 Ed25519 签名，并复核 tenant、operator、request/policy digest、approved/expires 时间和 keyId；错误 capability、响应替换、过期或非 canonical 签名均失败关闭。
+
+CLI 新增两条独立签名命令，完整个人审批旅程现为：
+
+```text
+cc evolution attestor-trust prepare <operation-file> --out <request-file>
+cc evolution attestor-trust approve <request-file> --out <approval-file>
+cc evolution attestor-trust execute <request-file> <approval-file>
+
+cc evolution attestor-trust operator-prepare <operation-file> --out <request-file>
+cc evolution attestor-trust operator-approve <request-file> --out <approval-file>
+cc evolution attestor-trust operator-execute <request-file> <approval-file>
+```
+
+`approve` 和 `operator-approve` 仍使用 request/approval 文件的真实路径、单硬链接、常规文件、`0600`、有界读取和独占输出约束；CLI host 只接受 branded approval client，并在调用 signer 前按当前 operations descriptor 重新校验 request。部署 loader 已向签名 deployment module 暴露 approval client factory，因此个人部署可注入一个 owner signer，团队部署则由各 operator 的独立 signer 分别产生 approval 文件，不把多个私钥集中到 writer。Unix 下 attestor、operations 和 approval 三类 socket 在开放 ready 信号前统一收紧为 `0600`。npm `files` 白名单也已显式纳入这三个服务脚本；`npm pack --dry-run --json` 确认安装包同时包含 signer、operations 和 external-attestor reference service，避免只在源码仓库可用。
+
+真实 Windows 火山引擎 Pilot 已改为实际 signer 子进程，不再由编排流程直接调用内存 issuer：旧 signer 对 owner rotation request 签名，registry durable commit 后旧 signer 与旧 operations service 同时退出；新 key 启动新的 signer、新 endpoint/capability 和 revision 2 operations service，再由新 signer 批准 attestor 注册。`deepseek-v4-flash-260425` 在 **19.850 秒**完成并一次评分 `1.0`，operator rotation record/Ledger digest 分别为 `sha256:68ef063491c95293f65cf10884cca9d59db194f7d461e0749b67206287a764ae`、`sha256:5a2db567f423404d06eeaf7fee6fdc8e597a97f7ab68ae3cddade64f33e0875e`，新 signer 为 `external-service/local-ipc-v1`，registry revision 2 且 recovered，`activeMutationCount=0`。approval service、命令、deployment loader、operations、ArtifactStore/Ledger 和 external attestor 联合回归为 `103 passed / 1 existing platform skip`。
+
+这使“个人 AI 单人审批”在配置了 signer 的 CLI 部署中实际可操作，同时保持旧 key 批准轮换、私钥/写者分离和账本审计。production 仍为 `HOLD`：仓库提供的是本机软件密钥 signer reference，不是生产 KMS/HSM；Windows named-pipe 的显式用户 SID ACL/peer identity、Unix peer credential、signer 服务持久身份与防 capability 泄露、硬件密钥不可导出、远程/多机审批、break-glass、独立 Ledger/witness 故障域和目标租户灾备演练仍未完成。尤其不能把“独立 PID”表述成“独立主机或硬件信任域”。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

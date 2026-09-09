@@ -50,6 +50,22 @@ export function registerEvolutionAttestorTrustCommands(
     });
 
   trust
+    .command("approve <request-file>")
+    .description("Sign an attestor trust request with the isolated signer")
+    .requiredOption(
+      "--out <approval-file>",
+      "Exclusively create the approval receipt",
+    )
+    .action(async (requestPath, options) => {
+      output(
+        await host(attestorTrustOperationsHost).approve({
+          requestPath,
+          outputPath: options.out,
+        }),
+      );
+    });
+
+  trust
     .command("operator-prepare <operation-file>")
     .description(
       "Create a registry change request for current-operator approval",
@@ -75,6 +91,22 @@ export function registerEvolutionAttestorTrustCommands(
         await host(attestorTrustOperationsHost).executeOperatorChange({
           requestPath,
           approvalPaths,
+        }),
+      );
+    });
+
+  trust
+    .command("operator-approve <request-file>")
+    .description("Sign an operator change with the isolated signer")
+    .requiredOption(
+      "--out <approval-file>",
+      "Exclusively create the operator approval receipt",
+    )
+    .action(async (requestPath, options) => {
+      output(
+        await host(attestorTrustOperationsHost).approveOperatorChange({
+          requestPath,
+          outputPath: options.out,
         }),
       );
     });

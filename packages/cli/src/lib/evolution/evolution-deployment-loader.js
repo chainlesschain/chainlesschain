@@ -205,6 +205,7 @@ async function loadBuiltInFactories(commandName) {
       },
       { createWikiSkillBenchmarkLedgerAdapter },
       { createEvolutionEvalProcessSupervisor },
+      { createGovernedSkillSynthesisAttestorTrustApprovalClient },
       { createGovernedSkillSynthesisAttestorTrustOperationsClient },
       { createGovernedSkillSynthesisAttestorTrustOperationsCliHost },
     ] = await Promise.all([
@@ -220,6 +221,7 @@ async function loadBuiltInFactories(commandName) {
       import("./wikiskill-benchmark-execution-host.js"),
       import("./wikiskill-benchmark-ledger-adapter.js"),
       import("./evolution-eval-process-supervisor.js"),
+      import("./governed-skill-synthesis-attestor-trust-approval-client.js"),
       import("./governed-skill-synthesis-attestor-trust-operations-client.js"),
       import("./governed-skill-synthesis-attestor-trust-operations-cli-host.js"),
     ]);
@@ -250,6 +252,8 @@ async function loadBuiltInFactories(commandName) {
       createWikiSkillBenchmarkLedgerAdapter;
     factories.createEvolutionEvalProcessSupervisor =
       createEvolutionEvalProcessSupervisor;
+    factories.createGovernedSkillSynthesisAttestorTrustApprovalClient =
+      createGovernedSkillSynthesisAttestorTrustApprovalClient;
     factories.createGovernedSkillSynthesisAttestorTrustOperationsClient =
       createGovernedSkillSynthesisAttestorTrustOperationsClient;
     factories.createGovernedSkillSynthesisAttestorTrustOperationsCliHost =

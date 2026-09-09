@@ -217,6 +217,7 @@ const close = () => {
 process.once("SIGTERM", close);
 process.once("SIGINT", close);
 server.listen(bootstrap.endpoint, () => {
+  if (process.platform !== "win32") fs.chmodSync(bootstrap.endpoint, 0o600);
   process.stdout.write(
     `${JSON.stringify({ ok: true, serviceId: bootstrap.serviceId })}\n`,
   );
