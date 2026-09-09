@@ -19,6 +19,7 @@
 
 import {
   getHub,
+  getGovernedAnalysisHub,
   close as closeHub,
 } from "../../lib/personal-data-hub-wiring.js";
 import { importPdh } from "../../lib/pdh-load-error.js";
@@ -181,9 +182,9 @@ export async function _tryAdbAutoPullInputPath(hub, name, options) {
   }
 }
 
-async function withHub(fn) {
+async function withHub(fn, loadHub = getHub) {
   try {
-    const hub = await getHub();
+    const hub = await loadHub();
     const result = await fn(hub);
     return { result };
   } catch (err) {
@@ -192,11 +193,16 @@ async function withHub(fn) {
 }
 
 export const PERSONAL_DATA_HUB_HANDLERS = {
-  "personal-data-hub.ask": async (msg) =>
-    withHub(async (hub) => {
-      if (!hub.engine) throw new Error("Analysis engine unavailable");
-      return await hub.engine.ask(msg.question, msg.options || {});
-    }),
+  "personal-data-hub.ask": async (msg, context = {}) => {
+    const factory = context.server?.evolutionCompositionFactory;
+    return withHub(
+      async (hub) => {
+        if (!hub.engine) throw new Error("Analysis engine unavailable");
+        return await hub.engine.ask(msg.question, msg.options || {});
+      },
+      factory == null ? getHub : () => getGovernedAnalysisHub(factory),
+    );
+  },
 
   // Path Y: prompt context only, no LLM call. Lets web-shell / mobile host
   // its own inference (Volcengine Doubao, OpenRouter, etc.) while keeping
@@ -604,9 +610,12 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       return hub.entityResolver.manualUnmerge(msg.personId);
     }),
 
-  "personal-data-hub.resolver-drain": async (msg) =>
+  "personal-data-hub.resolver-drain": async (msg, context = {}) =>
     withHub(async (hub) => {
       if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      const factory = context.server?.evolutionCompositionFactory;
+      if (factory != null)
+        return hub.drainResolver({ limit: msg.limit || 50 }, factory);
       return await hub.entityResolver.drain({ limit: msg.limit || 50 });
     }),
 
@@ -628,8 +637,13 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.skills-list": async () =>
     withHub((hub) => hub.analysisSkillNames || []),
 
-  "personal-data-hub.run-skill": async (msg) =>
-    withHub(async (hub) => await hub.runSkill(msg.name, msg.options || {})),
+  "personal-data-hub.run-skill": async (msg, context = {}) => {
+    const factory = context.server?.evolutionCompositionFactory;
+    return withHub(
+      async (hub) => await hub.runSkill(msg.name, msg.options || {}),
+      factory == null ? getHub : () => getGovernedAnalysisHub(factory),
+    );
+  },
 
   // ─── Phase 10.3 — AIChat WebView 鉴权向导 (paste-mode on cc ui) ────────
 

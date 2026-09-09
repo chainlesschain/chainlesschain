@@ -13,8 +13,15 @@
 import { logger } from "../lib/logger.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { buildProviderSource } from "../lib/provider-stream.js";
+import {
+  readEvolutionCompositionFactory,
+  prepareGovernedModelTurn,
+  governModelTokenSource,
+} from "../lib/evolution/governed-model-turn.js";
 
-export function registerStreamCommand(program) {
+export function registerStreamCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    readEvolutionCompositionFactory(dependencies);
   program
     .command("stream")
     .description(
@@ -37,18 +44,31 @@ export function registerStreamCommand(program) {
         const { createStreamRouter } =
           await import("../lib/session-core-singletons.js");
         const router = createStreamRouter();
-        const source = buildProviderSource(provider, {
-          model,
-          baseUrl,
-          apiKey,
-          prompt,
-        });
+        const turn = await prepareGovernedModelTurn(
+          evolutionCompositionFactory,
+          {
+            mode: "stream",
+            messages: [{ role: "user", content: prompt }],
+          },
+        );
+        const source = governModelTokenSource(
+          buildProviderSource(provider, {
+            model,
+            baseUrl,
+            apiKey,
+            prompt,
+            messages: turn.governed ? turn.messages : undefined,
+            requireCompletion: turn.governed,
+          }),
+          turn,
+        );
 
         if (options.text) {
           const out = await router.collect(source);
           if (out.errored) {
             logger.error(`Stream errored: ${out.error?.message || out.error}`);
             process.exit(1);
+            return;
           }
           process.stdout.write(out.text);
           if (!out.text.endsWith("\n")) process.stdout.write("\n");
@@ -57,6 +77,7 @@ export function registerStreamCommand(program) {
 
         for await (const ev of router.stream(source)) {
           process.stdout.write(`${JSON.stringify(ev)}\n`);
+          if (ev.type === "error") process.exitCode = 1;
         }
       } catch (err) {
         const ev = {

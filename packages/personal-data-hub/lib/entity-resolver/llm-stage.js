@@ -20,7 +20,8 @@
 const SYSTEM_PROMPT = `你是一个数据消歧专家。我会给你两个 Person profile，请判断它们是否指代同一个现实人物。
 
 回答必须是 ONLY a valid JSON object，no markdown fences:
-{"same": true | false | null, "confidence": 0..1, "reason": "..."}
+{"same": null, "confidence": 0.5, "reason": "证据不足"}
+confidence 必须是 0 到 1 之间的数值；same 的允许值如下。
 
 - same: true  = 同一人（强证据：电话/邮箱/身份证完全相同，或多个独立特征对齐）
 - same: false = 不同人（强证据：identifier 全不同 + 角色/上下文矛盾）

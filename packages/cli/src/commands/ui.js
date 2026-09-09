@@ -1,7 +1,10 @@
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { readEvolutionCompositionFactory } from "../lib/evolution/governed-model-turn.js";
 
-export function registerUiCommand(program) {
+export function registerUiCommand(program, dependencies = {}) {
+  const evolutionCompositionFactory =
+    readEvolutionCompositionFactory(dependencies);
   program
     .command("ui")
     .description("Start a local web management UI (project or global mode)")
@@ -42,7 +45,12 @@ export function registerUiCommand(program) {
           opts.port && opts.port !== "18810" ? opts.port : portEnv || opts.port,
           10,
         );
-        const runtime = createAgentRuntimeFactory().createUiRuntime({
+        const runtime = createAgentRuntimeFactory({
+          deps:
+            evolutionCompositionFactory === null
+              ? {}
+              : { evolutionCompositionFactory },
+        }).createUiRuntime({
           port,
           wsPort: parseInt(opts.wsPort, 10),
           host,

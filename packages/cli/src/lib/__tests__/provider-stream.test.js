@@ -34,14 +34,12 @@ function mockFetch(
       ok,
       status,
       statusText,
-      body: {
-        getReader: () => ({
-          read: async () =>
-            i < chunks.length
-              ? { value: enc.encode(chunks[i++]), done: false }
-              : { value: undefined, done: true },
-        }),
-      },
+      body: new ReadableStream({
+        pull(controller) {
+          if (i < chunks.length) controller.enqueue(enc.encode(chunks[i++]));
+          else controller.close();
+        },
+      }),
     };
   });
 }

@@ -6,37 +6,77 @@
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 
-export async function* ollamaTokenStream({ baseUrl, model, prompt, signal }) {
-  const res = await fetch(`${baseUrl}/api/generate`, {
+async function* responseLines(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let ended = false;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        ended = true;
+        buffer += decoder.decode();
+        if (buffer) yield buffer;
+        return;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      let newline;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        yield line;
+      }
+    }
+  } finally {
+    try {
+      if (!ended) await reader.cancel();
+    } catch {
+      // Preserve the original parser/transport failure during cleanup.
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}
+
+export async function* ollamaTokenStream({
+  baseUrl,
+  model,
+  prompt,
+  messages,
+  signal,
+  requireCompletion = false,
+}) {
+  const res = await fetch(`${baseUrl}/api/${messages ? "chat" : "generate"}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, prompt, stream: true }),
+    body: JSON.stringify(
+      messages
+        ? { model, messages, stream: true }
+        : { model, prompt, stream: true },
+    ),
     signal,
   });
   if (!res.ok || !res.body) {
     throw new Error(`Ollama ${res.status} ${res.statusText}`);
   }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl;
-    while ((nl = buf.indexOf("\n")) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try {
-        const obj = JSON.parse(line);
-        if (obj.response) yield obj.response;
-        if (obj.done) return;
-      } catch {
-        /* skip malformed */
-      }
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (requireCompletion && obj.error)
+        throw new Error("Ollama stream returned an error");
+      const delta = messages ? obj.message?.content : obj.response;
+      if (delta) yield delta;
+      if (obj.done) return;
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip malformed */
     }
   }
+  if (requireCompletion)
+    throw new Error("Ollama stream ended before its completion marker");
 }
 
 export async function* openAIStream({
@@ -44,7 +84,9 @@ export async function* openAIStream({
   apiKey,
   model,
   prompt,
+  messages,
   signal,
+  requireCompletion = false,
 }) {
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -54,7 +96,7 @@ export async function* openAIStream({
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages: messages ?? [{ role: "user", content: prompt }],
       stream: true,
     }),
     signal,
@@ -62,29 +104,24 @@ export async function* openAIStream({
   if (!res.ok || !res.body) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const raw of lines) {
-      const line = raw.trim();
-      if (!line || !line.startsWith("data:")) continue;
-      const payload = line.slice(5).trim();
-      if (payload === "[DONE]") return;
-      try {
-        const obj = JSON.parse(payload);
-        const delta = obj?.choices?.[0]?.delta?.content;
-        if (delta) yield delta;
-      } catch {
-        /* skip */
-      }
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line || !line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (payload === "[DONE]") return;
+    try {
+      const obj = JSON.parse(payload);
+      if (requireCompletion && obj.error)
+        throw new Error("OpenAI stream returned an error");
+      const delta = obj?.choices?.[0]?.delta?.content;
+      if (delta) yield delta;
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip */
     }
   }
+  if (requireCompletion)
+    throw new Error("OpenAI stream ended before its completion marker");
 }
 
 /**
@@ -92,13 +129,23 @@ export async function* openAIStream({
  * Throws on unsupported provider / missing API key.
  */
 export function buildProviderSource(provider, opts = {}) {
-  const { model, baseUrl, apiKey, prompt, signal } = opts;
+  const {
+    model,
+    baseUrl,
+    apiKey,
+    prompt,
+    messages,
+    signal,
+    requireCompletion,
+  } = opts;
   if (provider === "ollama") {
     return ollamaTokenStream({
       baseUrl: baseUrl || "http://localhost:11434",
       model: model || "qwen2:7b",
       prompt,
+      messages,
       signal,
+      requireCompletion,
     });
   }
   const def = BUILT_IN_PROVIDERS[provider];
@@ -115,7 +162,9 @@ export function buildProviderSource(provider, opts = {}) {
     apiKey: finalKey,
     model: model || def.models[0],
     prompt,
+    messages,
     signal,
+    requireCompletion,
   });
 }
 

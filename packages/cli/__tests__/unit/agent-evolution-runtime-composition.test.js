@@ -81,6 +81,16 @@ import {
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
 import { registerChatCommand } from "../../src/commands/chat.js";
 import { registerAskCommand } from "../../src/commands/ask.js";
+import { registerStreamCommand } from "../../src/commands/stream.js";
+import { handleLlmChat } from "../../src/gateways/ws/llm-chat-protocol.js";
+import { handleSessionCreate } from "../../src/gateways/ws/session-protocol.js";
+import { createGovernedHubLlm } from "../../src/lib/evolution/governed-hub-llm.js";
+import {
+  handleChatIntentUnderstand,
+  handleChatIntentUnderstandStream,
+  handleChatIntentClassifyFollowup,
+} from "../../src/gateways/ws/chat-intent-protocol.js";
+import { SESSION_CORE_STREAMING_HANDLERS } from "../../src/gateways/ws/session-core-protocol.js";
 import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
 
@@ -943,6 +953,685 @@ describe("Agent evolution runtime production composition", () => {
       } else {
         expect(output.join("")).toContain('"type":"compaction"');
         expect(f.composition.loadRun().projection.status).toBe("completed");
+      }
+    },
+    90_000,
+  );
+
+  it.each([
+    "success",
+    "embedding-source-denied",
+    "embedding-response-denied",
+    "model-source-denied",
+    "model-response-denied",
+    "wrong-run",
+    "invalid-vector",
+  ])(
+    "governs actual resolver stages and queue outcomes (%s)",
+    async (mode) => {
+      const { createGovernedHubResolver } =
+        await import("../../src/lib/evolution/governed-hub-resolver.js");
+      const sdk = createRequire(import.meta.url)(
+        "../../../personal-data-hub/lib/entity-resolver/index.js",
+      );
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      let stage;
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          const prefix = stage === "hub-embedding" ? "embedding" : "model";
+          if (
+            (mode === `${prefix}-source-denied` &&
+              request.kind === "user-prompt") ||
+            (mode === `${prefix}-response-denied` &&
+              request.kind === "response-completed")
+          )
+            throw new Error("resolver evidence denied");
+          return issue(request);
+        },
+      );
+      const runs = [];
+      const factory = async ({ runId, mode: requestMode }) => {
+        stage = requestMode;
+        const composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed" : runId,
+        });
+        runs.push(composition);
+        return composition;
+      };
+      const people = ["a", "b"].map((id) => ({
+        id,
+        type: "person",
+        names: ["Shared name"],
+        identifiers: { email: `${id}@example.com` },
+      }));
+      const vault = {
+        _requireOpen: () => ({ prepare: () => ({ all: () => [{ id: "b" }] }) }),
+        claimResolveBatch: () => [{ id: "queue", person_id: "a" }],
+        getPerson: (id) => people.find((p) => p.id === id),
+        getResolveDecision: () => null,
+        queryEvents: () => [],
+        recordResolveDecision: vi.fn(),
+        mergePair: vi.fn(),
+        enqueueReview: vi.fn(),
+        completeResolve: vi.fn(),
+        errorResolve: vi.fn(),
+      };
+      const embed = vi
+        .fn()
+        .mockResolvedValueOnce(mode === "invalid-vector" ? [NaN] : [1, 0])
+        .mockResolvedValue([0.7, Math.sqrt(0.51)]);
+      const chat = vi.fn(async () => ({
+        text: '{"same":true,"confidence":0.9,"reason":"matched"}',
+      }));
+      const original = new sdk.EntityResolver({
+        vault,
+        embeddingStage: vi.fn(),
+        llmStage: vi.fn(),
+      });
+      const scoped = createGovernedHubResolver(
+        {
+          resolver: original,
+          llm: { name: "test", isLocal: true, chat },
+          embeddingStage: { _embed: embed },
+          EntityResolver: sdk.EntityResolver,
+          EmbeddingStage: sdk.EntityResolverEmbeddingStage,
+          LLMStage: sdk.EntityResolverLLMStage,
+        },
+        factory,
+      );
+      const result = await scoped.drain();
+      if (mode === "success") {
+        expect(vault.errorResolve.mock.calls).toEqual([]);
+        expect(result).toMatchObject({ processed: 1, same: 1, error: 0 });
+        expect(vault.mergePair).toHaveBeenCalledOnce();
+        expect(runs).toHaveLength(3);
+        for (const run of runs)
+          expect(run.loadRun().projection.status).toBe("completed");
+      } else {
+        expect(result).toMatchObject({ processed: 0, same: 0, error: 1 });
+        expect(vault.errorResolve).toHaveBeenCalledOnce();
+        expect(vault.mergePair).not.toHaveBeenCalled();
+        expect(vault.completeResolve).not.toHaveBeenCalled();
+        expect(runs.at(-1).loadRun().projection?.status).not.toBe("completed");
+      }
+      expect(JSON.stringify(embed.mock.calls)).not.toContain("@example.com");
+      expect(JSON.stringify(chat.mock.calls)).not.toContain("@example.com");
+      expect(embed).toHaveBeenCalledTimes(
+        ["embedding-source-denied", "wrong-run"].includes(mode)
+          ? 0
+          : ["embedding-response-denied", "invalid-vector"].includes(mode)
+            ? 1
+            : 2,
+      );
+      expect(chat).toHaveBeenCalledTimes(
+        ["success", "model-response-denied"].includes(mode) ? 1 : 0,
+      );
+      expect(original._embeddingStage).not.toHaveBeenCalled();
+      expect(original._llmStage).not.toHaveBeenCalled();
+    },
+    90_000,
+  );
+
+  it("governs the actual interests skill prompt through strict projection", async () => {
+    const { runGovernedHubSkill } =
+      await import("../../src/lib/evolution/governed-hub-skill.js");
+    const { InterestsSkill } = createRequire(import.meta.url)(
+      "../../../personal-data-hub/lib/analysis-skills/interests.js",
+    );
+    const f = modelFixture();
+    let composition;
+    const factory = async ({ runId }) => {
+      composition = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId,
+      });
+      return composition;
+    };
+    const expected = [
+      { category: "reading", evidenceCount: 1, examples: ["book"] },
+    ];
+    const chat = vi.fn(async () => ({ text: JSON.stringify(expected) }));
+    const result = await runGovernedHubSkill(
+      { vault: {}, llm: { name: "test", isLocal: true, chat } },
+      factory,
+      async (deps) =>
+        new InterestsSkill(deps)._clusterInterests(
+          [{ name: "owner@example.com", eventCount: 1 }],
+          [],
+          [],
+          {},
+        ),
+      "analysis.interests",
+      {},
+    );
+    expect(result).toEqual(expected);
+    expect(composition.loadRun().projection.status).toBe("completed");
+    expect(JSON.stringify(chat.mock.calls[0][0])).not.toContain(
+      "owner@example.com",
+    );
+  }, 90_000);
+
+  it.each(
+    [
+      "success",
+      "source-denied",
+      "response-denied",
+      "wrong-run",
+      "cloud-denied",
+      "provider-changed",
+    ].flatMap((mode) =>
+      mode === "cloud-denied"
+        ? [[mode, "analysis"]]
+        : [
+            [mode, "analysis"],
+            [mode, "skill"],
+          ],
+    ),
+  )(
+    "governs Hub analysis with its existing consent gate (%s, %s)",
+    async (mode, entry) => {
+      const { AnalysisEngine } = createRequire(import.meta.url)(
+        "../../../personal-data-hub/lib/analysis.js",
+      );
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("hub evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      let local = mode !== "cloud-denied";
+      if (mode === "provider-changed") {
+        const create = factory.getMockImplementation();
+        factory.mockImplementation(async (context) => {
+          const result = await create(context);
+          local = false;
+          return result;
+        });
+      }
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const original = Object.freeze({
+        name: "test-hub",
+        get isLocal() {
+          return local;
+        },
+        chat: vi.fn(async () => ({ text: "safe answer", usage: {} })),
+      });
+      const wrapped = createGovernedHubLlm(original, factory);
+      const event = {
+        id: "event-hub",
+        type: "event",
+        subtype: "note",
+        occurredAt: Date.now(),
+        content: { title: "Account note", text: `owner@example.com ${secret}` },
+        source: {
+          adapter: "test",
+          adapterVersion: "1",
+          capturedAt: Date.now(),
+          capturedBy: "test",
+        },
+      };
+      const vault = {
+        queryEvents: () => [event],
+        queryPersons: () => [],
+        queryItems: () => [],
+        audit: vi.fn(),
+      };
+      const engine = new AnalysisEngine({ vault, llm: wrapped });
+      let operation;
+      if (entry === "skill") {
+        const { runGovernedHubSkill } =
+          await import("../../src/lib/evolution/governed-hub-skill.js");
+        const { AnalysisSkill } = createRequire(import.meta.url)(
+          "../../../personal-data-hub/lib/analysis-skills/base.js",
+        );
+        operation = runGovernedHubSkill(
+          { vault, llm: original },
+          factory,
+          async (deps) => {
+            const skill = new AnalysisSkill(deps);
+            return {
+              answer: await skill.callLlmCommentary(
+                [
+                  {
+                    role: "user",
+                    content: `Summarize owner@example.com ${secret}`,
+                  },
+                ],
+                { skipCache: true },
+              ),
+            };
+          },
+          "test",
+          {},
+        );
+      } else {
+        operation = engine.ask(`Summarize notes ${secret}`, { useRag: false });
+      }
+      if (mode === "success") {
+        await expect(operation).resolves.toMatchObject({
+          answer: "safe answer",
+        });
+        expect(composition.loadRun().projection.status).toBe("completed");
+        expect(original.chat.mock.calls[0][1]).toMatchObject({
+          skipCache: true,
+        });
+        expect(JSON.stringify(original.chat.mock.calls[0][0])).not.toContain(
+          secret,
+        );
+        expect(JSON.stringify(original.chat.mock.calls[0][0])).not.toContain(
+          "owner@example.com",
+        );
+      } else {
+        await expect(operation).rejects.toThrow();
+        if (composition)
+          expect(composition.loadRun().projection?.status).not.toBe(
+            "completed",
+          );
+      }
+      expect(original.chat).toHaveBeenCalledTimes(
+        ["success", "response-denied"].includes(mode) ? 1 : 0,
+      );
+      expect(factory).toHaveBeenCalledTimes(mode === "cloud-denied" ? 0 : 1);
+      if (mode === "provider-changed")
+        expect(() => wrapped.isLocal).toThrow(/identity changed/);
+      else expect(wrapped.isLocal).toBe(original.isLocal);
+      expect(engine.llm).toBe(wrapped);
+    },
+    90_000,
+  );
+
+  it.each([
+    "success",
+    "source-denied",
+    "response-denied",
+    "wrong-run",
+    "truncated",
+  ])(
+    "governs legacy chat sessions through session creation (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("session evidence denied");
+          return issue(request);
+        },
+      );
+      const compositions = [];
+      const factory = vi.fn(async ({ runId }) => {
+        const composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        compositions.push(composition);
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return new Response(
+          JSON.stringify({
+            message: { content: "safe answer" },
+            done: mode !== "truncated",
+          }) + "\n",
+        );
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const session = {
+        id: "governed-chat-session",
+        type: "chat",
+        provider: "ollama",
+        model: "test",
+        messages: [
+          { role: "system", content: "Answer briefly" },
+          { role: "user", content: "Prior owner@example.com" },
+        ],
+      };
+      const server = {
+        evolutionCompositionFactory: factory,
+        sessionHandlers: new Map(),
+        emit: vi.fn(),
+        _send: vi.fn(),
+        sessionManager: {
+          createSession: vi.fn(() => ({ sessionId: session.id })),
+          getSession: vi.fn(() => session),
+        },
+      };
+      const socket = { readyState: 1, OPEN: 1, send: vi.fn() };
+      await handleSessionCreate(server, "create", socket, {
+        sessionType: "chat",
+        provider: "ollama",
+        model: "test",
+      });
+      const handler = server.sessionHandlers.get(session.id);
+      expect(handler).toBeDefined();
+      const emitted = vi.spyOn(handler.interaction, "emit");
+      try {
+        const turns = mode === "success" ? 2 : 1;
+        for (let i = 0; i < turns; i++)
+          await handler.handleMessage(
+            `Review ${secret} turn ${i}`,
+            `request-${i}`,
+          );
+        expect(factory).toHaveBeenCalledTimes(turns);
+        expect(
+          new Set(factory.mock.calls.map(([context]) => context.runId)).size,
+        ).toBe(turns);
+        expect(f.transport).toHaveBeenCalledTimes(
+          ["source-denied", "wrong-run"].includes(mode) ? 0 : turns,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        const successes = emitted.mock.calls.filter(
+          ([type]) => type === "response-complete",
+        );
+        expect(successes).toHaveLength(mode === "success" ? turns : 0);
+        for (const composition of compositions) {
+          if (mode === "success")
+            expect(composition.loadRun().projection.status).toBe("completed");
+          else
+            expect(composition.loadRun().projection?.status).not.toBe(
+              "completed",
+            );
+        }
+        expect(
+          session.messages.filter((message) => message.role === "assistant"),
+        ).toHaveLength(mode === "success" ? turns : 0);
+        if (mode === "success")
+          expect(
+            f.seen[1].messages.some(
+              (message) =>
+                message.role === "assistant" &&
+                message.content === "safe answer",
+            ),
+          ).toBe(true);
+        else
+          expect(emitted.mock.calls.some(([type]) => type === "error")).toBe(
+            true,
+          );
+      } finally {
+        emitted.mockRestore();
+      }
+    },
+    90_000,
+  );
+
+  it.each(
+    ["understand", "stream", "classify"].flatMap((entry) =>
+      ["success", "source-denied", "response-denied", "truncated"].map(
+        (mode) => [entry, mode],
+      ),
+    ),
+  )(
+    "governs intent protocol %s (%s)",
+    async (entry, mode) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          )
+            throw new Error("intent evidence denied");
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId,
+        });
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        return new Response(
+          JSON.stringify({
+            message: {
+              content: JSON.stringify({
+                correctedInput: "safe",
+                intent: "CLARIFICATION",
+                keyPoints: [],
+                confidence: 0.6,
+              }),
+            },
+            done: mode !== "truncated",
+          }) + "\n",
+        );
+      });
+      const frames = [];
+      const server = {
+        evolutionCompositionFactory: factory,
+        _send: (_ws, frame) => frames.push(frame),
+      };
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const input = `Review owner@example.com ${secret}`;
+      const handler =
+        entry === "understand"
+          ? handleChatIntentUnderstand
+          : entry === "stream"
+            ? handleChatIntentUnderstandStream
+            : handleChatIntentClassifyFollowup;
+      await handler(
+        server,
+        "request",
+        {},
+        {
+          userInput: input,
+          input,
+          history: [{ role: "user", content: input }],
+          context: { conversationHistory: [{ role: "user", content: input }] },
+          options: { provider: "ollama", model: "test" },
+        },
+      );
+      expect(factory).toHaveBeenCalledTimes(1);
+      expect(
+        f.transport,
+        frames.at(-1)?.message || frames.at(-1)?.error,
+      ).toHaveBeenCalledTimes(mode === "source-denied" ? 0 : 1);
+      expect(JSON.stringify(f.seen)).not.toContain(secret);
+      expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+      const final = frames.at(-1);
+      if (mode === "success") {
+        expect(composition.loadRun().projection.status).toBe("completed");
+        if (entry === "classify") expect(final.method).toBe("llm");
+        else expect(entry === "stream" ? final.ok : final.success).toBe(true);
+      } else {
+        expect(composition.loadRun().projection?.status).not.toBe("completed");
+        if (entry === "classify")
+          expect(final).toMatchObject({
+            type: "error",
+            code: "INTENT_CLASSIFY_FAILED",
+          });
+        else expect(entry === "stream" ? final.ok : final.success).toBe(false);
+      }
+    },
+    90_000,
+  );
+
+  it.each(
+    ["cli-text", "cli-ndjson", "ws-stream", "ws-chat"]
+      .flatMap((entry) =>
+        [
+          "success",
+          "source-denied",
+          "response-denied",
+          "wrong-run",
+          "truncated",
+        ].map((mode) => [entry, mode, "ollama"]),
+      )
+      .concat(
+        ["cli-text", "cli-ndjson", "ws-stream", "ws-chat"].flatMap((entry) =>
+          ["success", "source-denied", "truncated"].map((mode) => [
+            entry,
+            mode,
+            "openai",
+          ]),
+        ),
+        ["success", "source-denied", "truncated"].map((mode) => [
+          "ws-chat",
+          mode,
+          "anthropic",
+        ]),
+      ),
+  )(
+    "governs direct model stream %s (%s, %s)",
+    async (entry, mode, provider) => {
+      const f = modelFixture();
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        (request) => {
+          if (
+            (mode === "source-denied" && request.kind === "user-prompt") ||
+            (mode === "response-denied" &&
+              request.kind === "response-completed")
+          ) {
+            throw new Error("stream evidence denied");
+          }
+          return issue(request);
+        },
+      );
+      let composition;
+      const factory = vi.fn(async ({ runId }) => {
+        composition = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: mode === "wrong-run" ? "borrowed-run" : runId,
+        });
+        return composition;
+      });
+      f.transport.mockImplementation(async (_url, request) => {
+        f.seen.push(JSON.parse(request.body));
+        if (provider !== "ollama") {
+          const delta =
+            provider === "anthropic"
+              ? { type: "content_block_delta", delta: { text: "done" } }
+              : { choices: [{ delta: { content: "done" } }] };
+          const terminal =
+            provider === "anthropic" ? '{"type":"message_stop"}' : "[DONE]";
+          return new Response(
+            "data: " +
+              JSON.stringify(delta) +
+              "\n\n" +
+              (mode === "truncated" ? "" : "data: " + terminal + "\n\n"),
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            message: { content: "done" },
+            done: mode !== "truncated",
+          }) + "\n",
+          { headers: { "Content-Type": "application/x-ndjson" } },
+        );
+      });
+      const secret = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+      const prompt = `Contact owner@example.com with ${secret}`;
+      const frames = [];
+      const server = {
+        evolutionCompositionFactory: factory,
+        _send: (_ws, frame) => frames.push(frame),
+      };
+      const write = vi
+        .spyOn(process.stdout, "write")
+        .mockImplementation(() => true);
+      const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+      const previousExitCode = process.exitCode;
+      try {
+        if (entry.startsWith("cli")) {
+          const program = new Command();
+          registerStreamCommand(program, {
+            evolutionCompositionFactory: factory,
+          });
+          await program.parseAsync([
+            "node",
+            "cc",
+            "stream",
+            prompt,
+            "--provider",
+            provider,
+            "--api-key",
+            "test-key",
+            ...(entry === "cli-text" ? ["--text"] : []),
+          ]);
+        } else if (entry === "ws-chat") {
+          await handleLlmChat(
+            server,
+            "request",
+            {},
+            {
+              messages: [{ role: "user", content: prompt }],
+              options: { provider, model: "test", apiKey: "test-key" },
+            },
+          );
+        } else {
+          try {
+            frames.push(
+              await SESSION_CORE_STREAMING_HANDLERS["stream.run"](
+                { prompt, provider, apiKey: "test-key" },
+                (frame) => frames.push(frame),
+                new AbortController().signal,
+                { server },
+              ),
+            );
+          } catch (error) {
+            frames.push({ ok: false, error: error.message });
+          }
+        }
+        expect(factory).toHaveBeenCalledTimes(1);
+        expect(Object.isFrozen(factory.mock.calls[0][0])).toBe(true);
+        expect(f.transport).toHaveBeenCalledTimes(
+          ["source-denied", "wrong-run"].includes(mode) ? 0 : 1,
+        );
+        expect(JSON.stringify(f.seen)).not.toContain(secret);
+        expect(JSON.stringify(f.seen)).not.toContain("owner@example.com");
+        if (mode === "success") {
+          expect(composition.loadRun().projection.status).toBe("completed");
+          if (entry.startsWith("ws")) expect(frames.at(-1).ok).toBe(true);
+          else expect(exit).not.toHaveBeenCalled();
+        } else {
+          expect(composition.loadRun().projection?.status).not.toBe(
+            "completed",
+          );
+          if (entry.startsWith("ws")) expect(frames.at(-1).ok).toBe(false);
+          else if (
+            entry === "cli-text" ||
+            ["source-denied", "wrong-run"].includes(mode)
+          )
+            expect(exit).toHaveBeenCalledWith(1);
+          else expect(process.exitCode).toBe(1);
+        }
+      } finally {
+        write.mockRestore();
+        exit.mockRestore();
+        process.exitCode = previousExitCode;
       }
     },
     90_000,

@@ -166,6 +166,9 @@ class AnalysisSkill {
       const r = await this.llm.chat(messages, { temperature: 0.2, ...opts });
       return (r && r.text) || null;
     } catch (_e) {
+      // Desktop model governance failures must reach the IPC caller. Optional
+      // commentary may degrade for provider outages, never for denied evidence.
+      if (_e?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw _e;
       return null;
     }
   }

@@ -60,6 +60,7 @@ export async function handleChatIntentUnderstand(server, id, ws, message) {
       contextMode: message.contextMode || "global",
       history,
       llmOptions,
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
     });
     server._send(ws, {
       id,
@@ -117,6 +118,7 @@ export async function handleChatIntentUnderstandStream(
       contextMode: message.contextMode || "global",
       history,
       llmOptions,
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
     })) {
       if (event.type === "token") {
         server._send(ws, {
@@ -131,7 +133,7 @@ export async function handleChatIntentUnderstandStream(
     server._send(ws, {
       id,
       type: `${topic}.result`,
-      ok: final?.success !== false,
+      ok: final?.success === true,
       result: final || {
         success: false,
         correctedInput: message.userInput,
@@ -169,6 +171,7 @@ export async function handleChatIntentClassifyFollowup(
       input,
       context: message.context || {},
       llmOptions,
+      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
     });
     server._send(ws, {
       id,

@@ -19,8 +19,96 @@
 
 import { chatWithStreaming, chatStream } from "./chat-core.js";
 import { firstBalancedJson } from "./json-schema-output.js";
+import { prepareGovernedModelTurn } from "./evolution/governed-model-turn.js";
 
 const DEFAULT_INTENT_TIMEOUT_MS = 15000;
+
+async function waitForIntentOperation(operation, signal) {
+  if (signal.aborted) {
+    void Promise.resolve(operation).catch(() => {});
+    throw signal.reason;
+  }
+  let abort;
+  const cancelled = new Promise((_resolve, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener("abort", abort, { once: true });
+  });
+  try {
+    return await Promise.race([operation, cancelled]);
+  } finally {
+    signal.removeEventListener("abort", abort);
+  }
+}
+
+async function* intentModelStream(messages, options, factory, mode) {
+  if (factory === null) {
+    yield* chatStream(messages, options);
+    return;
+  }
+  const controller = new AbortController();
+  const timeoutMs = resolveIntentTimeout(options);
+  const timer =
+    timeoutMs > 0
+      ? setTimeout(
+          () =>
+            controller.abort(
+              new Error(`intent LLM call timed out after ${timeoutMs}ms`),
+            ),
+          timeoutMs,
+        )
+      : null;
+  timer?.unref?.();
+  let completed = false;
+  try {
+    const turn = await waitForIntentOperation(
+      prepareGovernedModelTurn(factory, {
+        mode,
+        messages,
+        signal: controller.signal,
+      }),
+      controller.signal,
+    );
+    let content = "";
+    for await (const event of chatStream(turn.messages, {
+      ...options,
+      signal: controller.signal,
+      requireCompletion: true,
+    })) {
+      controller.signal.throwIfAborted();
+      if (event.type === "response-token") {
+        content += event.token;
+        yield event;
+      } else if (event.type === "response-complete") {
+        content = event.content;
+      }
+    }
+    await waitForIntentOperation(turn.complete(content), controller.signal);
+    completed = true;
+    yield { type: "response-complete", content };
+  } finally {
+    clearTimeout(timer);
+    if (!completed) controller.abort(new Error("Intent stream cancelled"));
+  }
+}
+
+async function intentModelText(messages, options, factory, mode) {
+  if (factory === null) {
+    return withIntentTimeout(
+      chatWithStreaming(messages, options),
+      resolveIntentTimeout(options),
+    );
+  }
+  let content = "";
+  for await (const event of intentModelStream(
+    messages,
+    options,
+    factory,
+    mode,
+  )) {
+    if (event.type === "response-complete") content = event.content;
+  }
+  return content;
+}
 
 /**
  * Resolve the per-call intent-classification budget. `llmOptions.intentTimeoutMs`
@@ -40,8 +128,8 @@ function resolveIntentTimeout(llmOptions) {
  * trips it, so without this the declared 15s intent budget was never enforced
  * and classification could block for minutes. Racing the deadline makes it fail
  * fast into the caller's graceful rule/verbatim fallback. `ms <= 0` disables.
- * The losing background request is harmless (chat-core releases its own socket);
- * the timer is unref'd so it never holds the process open.
+ * This helper is used only for the unconfigured legacy path; governed requests
+ * use the abortable intentModelStream deadline. The timer is unref'd.
  */
 function withIntentTimeout(promise, ms) {
   if (!(Number(ms) > 0)) return promise;
@@ -134,6 +222,7 @@ export async function understandIntent({
   contextMode = "global",
   history,
   llmOptions,
+  evolutionCompositionFactory = null,
 }) {
   if (!userInput || !userInput.trim()) {
     throw new Error("userInput required");
@@ -157,20 +246,19 @@ export async function understandIntent({
   );
 
   try {
-    const fullContent = await withIntentTimeout(
-      chatWithStreaming(
-        [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        {
-          ...llmOptions,
-          // Lower temperature → more deterministic JSON output.
-          temperature: 0.3,
-          maxTokens: 500,
-        },
-      ),
-      resolveIntentTimeout(llmOptions),
+    const fullContent = await intentModelText(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      {
+        ...llmOptions,
+        // Lower temperature → more deterministic JSON output.
+        temperature: 0.3,
+        maxTokens: 500,
+      },
+      evolutionCompositionFactory,
+      "intent-understand",
     );
 
     const jsonText = extractJson(fullContent);
@@ -218,6 +306,7 @@ export async function* understandIntentStream({
   contextMode = "global",
   history,
   llmOptions,
+  evolutionCompositionFactory = null,
 }) {
   if (!userInput || !userInput.trim()) {
     throw new Error("userInput required");
@@ -241,17 +330,16 @@ export async function* understandIntentStream({
   );
   let buffer = "";
   try {
-    // Incremental token yielding makes a per-call deadline awkward to apply
-    // here; this streaming variant is instead bounded by chat-core's own
-    // silence-based stall guard (CC_CHAT_STALL_MS, default 180s). The awaited
-    // understandIntent / classifyFollowupIntent paths enforce the tighter
-    // intent budget (resolveIntentTimeout) directly.
-    for await (const event of chatStream(
+    // Governed streams use an abortable per-call intent deadline. The legacy
+    // unconfigured stream retains chat-core's silence-based stall guard.
+    for await (const event of intentModelStream(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       { ...llmOptions, temperature: 0.3, maxTokens: 500 },
+      evolutionCompositionFactory,
+      "intent-understand-stream",
     )) {
       if (event.type === "response-token") {
         buffer += event.token;
@@ -461,10 +549,10 @@ function buildFollowupPrompts(userInput, context = {}) {
    - 示例: "算了"、"不用了"、"停止"、"先不做了"
 
 # 输出格式
-严格返回 JSON 格式：
+严格返回 JSON 格式，confidence 为 0 到 1 之间的数值：
 {
   "intent": "CONTINUE_EXECUTION | MODIFY_REQUIREMENT | CLARIFICATION | CANCEL_TASK",
-  "confidence": 0.0-1.0,
+  "confidence": 0.8,
   "reason": "判断理由（1-2句话）",
   "extractedInfo": "如果是 MODIFY_REQUIREMENT 或 CLARIFICATION，提取关键信息"
 }`;
@@ -492,21 +580,25 @@ ${
   return { systemPrompt, userPrompt };
 }
 
-async function llmBasedClassify(userInput, context, llmOptions) {
+async function llmBasedClassify(
+  userInput,
+  context,
+  llmOptions,
+  evolutionCompositionFactory,
+) {
   const { systemPrompt, userPrompt } = buildFollowupPrompts(userInput, context);
-  const fullContent = await withIntentTimeout(
-    chatWithStreaming(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      {
-        ...llmOptions,
-        temperature: 0.1,
-        maxTokens: 300,
-      },
-    ),
-    resolveIntentTimeout(llmOptions),
+  const fullContent = await intentModelText(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    {
+      ...llmOptions,
+      temperature: 0.1,
+      maxTokens: 300,
+    },
+    evolutionCompositionFactory,
+    "intent-classify",
   );
   const jsonText = extractJson(fullContent);
   if (!jsonText) throw new Error("LLM response missing JSON");
@@ -535,6 +627,7 @@ export async function classifyFollowupIntent({
   input,
   context = {},
   llmOptions,
+  evolutionCompositionFactory = null,
 }) {
   const startTime = Date.now();
   const ruleResult = ruleBasedClassify(input);
@@ -556,13 +649,19 @@ export async function classifyFollowupIntent({
   }
 
   try {
-    const llmResult = await llmBasedClassify(input, context, llmOptions);
+    const llmResult = await llmBasedClassify(
+      input,
+      context,
+      llmOptions,
+      evolutionCompositionFactory,
+    );
     return {
       ...llmResult,
       method: "llm",
       latency: Date.now() - startTime,
     };
   } catch (_err) {
+    if (evolutionCompositionFactory !== null) throw _err;
     return ruleResult.confidence > 0
       ? {
           ...ruleResult,

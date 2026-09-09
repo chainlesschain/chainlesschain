@@ -16,9 +16,12 @@ const SUPPORTED_COMMANDS = new Set([
   "cowork",
   "desktop",
   "evolution",
+  "hub",
   "marketplace",
   "orchestrate",
   "serve",
+  "stream",
+  "ui",
 ]);
 
 function canonical(value) {
@@ -285,10 +288,13 @@ async function loadBuiltInFactories(commandName) {
     commandName === "chat" ||
     commandName === "compact" ||
     commandName === "complete" ||
+    commandName === "hub" ||
     commandName === "desktop" ||
     commandName === "cowork" ||
     commandName === "orchestrate" ||
-    commandName === "serve"
+    commandName === "serve" ||
+    commandName === "stream" ||
+    commandName === "ui"
   ) {
     const { createAgentEvolutionRuntimeComposition } =
       await import("./agent-evolution-runtime-composition.js");

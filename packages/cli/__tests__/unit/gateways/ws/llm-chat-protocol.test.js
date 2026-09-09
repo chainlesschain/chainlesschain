@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { EventEmitter } from "node:events";
 
 // Hoist mocks above the SUT import — chat-core's stream* are the seam we
 // stub so we can simulate token-by-token producers without real HTTP.
@@ -52,6 +53,33 @@ afterEach(() => {
 });
 
 describe("handleLlmChat — frame protocol", () => {
+  it("aborts a disconnected socket and removes its listener", async () => {
+    const socket = new EventEmitter();
+    const server = makeServer();
+    let signal;
+    streamOllama.mockImplementation(async (...args) => {
+      signal = args.at(-1).signal;
+      await new Promise((resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        });
+      });
+    });
+    const pending = handleLlmChat(server, "disconnect", socket, {
+      messages: [{ role: "user", content: "hello" }],
+      options: { provider: "ollama" },
+    });
+    await vi.waitFor(() => expect(signal).toBeDefined());
+    socket.emit("close");
+    await pending;
+    expect(signal.aborted).toBe(true);
+    expect(server._sent.at(-1)).toMatchObject({
+      ok: false,
+      error: "Chat connection closed",
+    });
+    expect(socket.listenerCount("close")).toBe(0);
+  });
+
   it("validation: empty messages → ok:false result frame", async () => {
     const server = makeServer();
     await handleLlmChat(server, "id-1", null, { id: "id-1", messages: [] });

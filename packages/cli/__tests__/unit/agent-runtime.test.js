@@ -455,6 +455,7 @@ describe("AgentRuntime MCP bootstrap", () => {
       disconnectAll: vi.fn().mockResolvedValue(undefined),
     };
     const createSessionManager = vi.fn(() => ({ kind: "ui-session-manager" }));
+    const evolutionCompositionFactory = vi.fn();
     const ptyManager = Object.assign(new EventEmitter(), {
       shutdown: vi.fn(),
     });
@@ -494,6 +495,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         })),
         createSessionManager,
         createPtyManager,
+        evolutionCompositionFactory,
         createServer: vi.fn(() => wsServer),
         createWebServer: vi.fn(() => httpServer),
         findProjectRoot: vi.fn(() => null),
@@ -520,6 +522,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         host: "127.0.0.1",
         token: "secret",
         sessionManager: { kind: "ui-session-manager" },
+        evolutionCompositionFactory,
         projectRoot: process.cwd(),
       }),
     );

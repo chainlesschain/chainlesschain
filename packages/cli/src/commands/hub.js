@@ -19,7 +19,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
-import { getHub, getHubMinimal } from "../lib/personal-data-hub-wiring.js";
+import {
+  getHub,
+  getHubMinimal,
+  getGovernedAnalysisHub,
+} from "../lib/personal-data-hub-wiring.js";
+import { readEvolutionCompositionFactory } from "../lib/evolution/governed-model-turn.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { isCloudHubConfigured } from "../lib/hub-llm-client.js";
 import { importPdh } from "../lib/pdh-load-error.js";
@@ -1548,7 +1553,7 @@ async function cmdRunSkill(name, options) {
     ? null
     : ora(`running analysis skill ${name}...`).start();
   try {
-    const hub = await getHub();
+    const hub = await (options._getHub || getHub)();
     if (!hub.analysisSkillNames.includes(name)) {
       throw new Error(
         `Unknown skill: ${name}. Available: ${hub.analysisSkillNames.join(", ")}`,
@@ -3441,7 +3446,15 @@ function _defaultKnownVendors() {
 
 // ─── Commander wire-up ───────────────────────────────────────────────
 
-export function registerHubCommand(program) {
+export function registerHubCommand(program, dependencies = {}) {
+  const factory = readEvolutionCompositionFactory(dependencies);
+  const invocationOptions = (options) =>
+    factory === null
+      ? options
+      : {
+          ...options,
+          _getHub: () => getGovernedAnalysisHub(factory),
+        };
   const hub = program
     .command("hub")
     .description(
@@ -3479,7 +3492,9 @@ export function registerHubCommand(program) {
         "  • Ephemeral: CC_HUB_LLM=config|<provider> cc hub ask … --accept-non-local\n" +
         "      (a one-off override still needs an explicit egress flag).",
     )
-    .action(cmdAsk);
+    .action((question, options) =>
+      cmdAsk(question, invocationOptions(options)),
+    );
 
   hub
     .command("repl")
@@ -3501,7 +3516,7 @@ export function registerHubCommand(program) {
       "\nSame per-question semantics + cloud-egress gate as `cc hub ask`, but the\n" +
         "~8s cold-start is paid ONCE. Type questions at the `hub>` prompt; .exit to quit.",
     )
-    .action(cmdRepl);
+    .action((options) => cmdRepl(invocationOptions(options)));
 
   hub
     .command("retrieve-context <question>")
@@ -4041,7 +4056,7 @@ export function registerHubCommand(program) {
     .option("--since <ms>", "Start of time window")
     .option("--until <ms>", "End of time window")
     .option("--json", "Output JSON")
-    .action(cmdRunSkill);
+    .action((name, options) => cmdRunSkill(name, invocationOptions(options)));
 
   hub
     .command("salvage <dumpfile>")
