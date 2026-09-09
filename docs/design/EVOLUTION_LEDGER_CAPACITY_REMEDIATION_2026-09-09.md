@@ -5,6 +5,15 @@
 Proposed after the 2026-09-09 GitHub Actions capacity result. This document is
 not evidence that the capacity gate has passed.
 
+The first contract-only delivery is now implemented in
+`evolution-immutable-ledger-segment-store.js`. It separates a branded external
+retention store from its branded proof verifier, binds every proof to the exact
+tenant/ledger/epoch/range/content/storage version, and requires authenticated
+same-version readback before returning an immutable receipt. Its 13 adversarial
+unit tests pass. It is intentionally not wired into the current ledger or file
+backend yet, so this checkpoint does not remediate or waive the observed
+capacity failure.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke
