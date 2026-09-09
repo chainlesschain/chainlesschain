@@ -13,6 +13,7 @@ import {
   createGovernedSkillSynthesisExternalAttestationAuthority,
   isGovernedSkillSynthesisExternalAttestationAuthority,
 } from "../../src/lib/evolution/governed-skill-synthesis-external-attestor.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 
 const servicePath = fileURLToPath(
   new URL(
@@ -25,9 +26,11 @@ const children = [];
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
-  return process.platform === "win32"
-    ? `\\\\.\\pipe\\cc-evolution-attestor-${id}`
-    : path.join(root, `cc-evolution-attestor-${id}.sock`);
+  return createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "external",
+    id,
+    temporaryDirectory: root,
+  });
 }
 
 function waitForLine(stream, timeoutMs = 10_000) {

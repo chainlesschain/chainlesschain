@@ -9,7 +9,8 @@ import {
 } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
-import path from "node:path";
+
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 
 const REQUEST_SCHEMA =
   "chainlesschain.skill-synthesis-external-attestor-request/v1";
@@ -19,8 +20,6 @@ const ATTESTOR_SCHEMA =
   "chainlesschain.governed-skill-synthesis-external-attestor/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SERVICE_ID = /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+){1,7}$/u;
-const WINDOWS_PIPE = /^\\\\\.\\pipe\\cc-evolution-attestor-[a-f0-9]{16,64}$/u;
-const SOCKET_NAME = /^cc-evolution-attestor-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 32 * 1024;
 const MAX_REQUESTS = 32;
 
@@ -75,10 +74,9 @@ if (
     "serviceId",
   ]) ||
   typeof bootstrap.endpoint !== "string" ||
-  (process.platform === "win32"
-    ? !WINDOWS_PIPE.test(bootstrap.endpoint)
-    : !path.isAbsolute(bootstrap.endpoint) ||
-      !SOCKET_NAME.test(path.basename(bootstrap.endpoint))) ||
+  !isGovernedSkillSynthesisAttestorIpcEndpoint(bootstrap.endpoint, {
+    kind: "external",
+  }) ||
   typeof bootstrap.capabilityToken !== "string" ||
   bootstrap.capabilityToken.length < 32 ||
   bootstrap.capabilityToken.length > 4096 ||

@@ -18,6 +18,7 @@ import {
   EvolutionArtifactPorts,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_KEY_REGISTERED_EVENT,
   createGovernedSkillSynthesisAttestorTrustLedger,
@@ -239,9 +240,11 @@ function operationPersistence(opened) {
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
-  return process.platform === "win32"
-    ? `\\\\.\\pipe\\cc-evolution-attestor-${id}`
-    : path.join(root, `cc-evolution-attestor-${id}.sock`);
+  return createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "external",
+    id,
+    temporaryDirectory: root,
+  });
 }
 
 function waitForLine(stream, timeoutMs = 10_000) {

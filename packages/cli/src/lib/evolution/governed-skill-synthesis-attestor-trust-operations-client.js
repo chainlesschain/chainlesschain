@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import net from "node:net";
-import path from "node:path";
 import { types as utilTypes } from "node:util";
+
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "./governed-skill-synthesis-attestor-ipc-endpoint.js";
 
 import {
   createGovernedSkillSynthesisAttestorTrustIpcAuthorization,
@@ -14,9 +15,6 @@ export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v3";
 
 const CLIENTS = new WeakSet();
-const WINDOWS_PIPE =
-  /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
-const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const KEY_ID = /^key:ed25519:[a-f0-9]{64}$/u;
@@ -104,10 +102,9 @@ function text(value, label, maximum = 4096) {
 function endpoint(value) {
   const normalized = text(value, "operations endpoint", 1024);
   if (
-    (process.platform === "win32" && !WINDOWS_PIPE.test(normalized)) ||
-    (process.platform !== "win32" &&
-      (!path.isAbsolute(normalized) ||
-        !SOCKET_NAME.test(path.basename(normalized))))
+    !isGovernedSkillSynthesisAttestorIpcEndpoint(normalized, {
+      kind: "trust-operations",
+    })
   ) {
     throw new TypeError(
       "operations endpoint is not a dedicated local IPC path",

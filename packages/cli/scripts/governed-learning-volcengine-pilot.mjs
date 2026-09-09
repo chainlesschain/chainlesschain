@@ -19,6 +19,7 @@ import {
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../src/lib/evolution/evolution-deployment-loader.js";
 import { createGovernedSkillSynthesisAttestorTrustApprovalClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
 import { firstBalancedJson } from "../src/lib/json-schema-output.js";
 
@@ -228,28 +229,25 @@ try {
   const externalAttestorServiceId = "kms.local-volcengine-pilot.attestor";
   const externalAttestorCapability = randomBytes(32).toString("base64url");
   const externalAttestorEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-${randomBytes(12).toString("hex")}`
-      : path.join(
-          root,
-          `cc-evolution-attestor-${randomBytes(12).toString("hex")}.sock`,
-        );
+    createGovernedSkillSynthesisAttestorIpcEndpoint({
+      kind: "external",
+      id: randomBytes(12).toString("hex"),
+      temporaryDirectory: root,
+    });
   let attestorTrustOperationsCapability = randomBytes(32).toString("base64url");
   let attestorTrustOperationsEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}`
-      : path.join(
-          root,
-          `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
-        );
+    createGovernedSkillSynthesisAttestorIpcEndpoint({
+      kind: "trust-operations",
+      id: randomBytes(12).toString("hex"),
+      temporaryDirectory: root,
+    });
   let attestorTrustApprovalCapability = randomBytes(32).toString("base64url");
   let attestorTrustApprovalEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}`
-      : path.join(
-          root,
-          `cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}.sock`,
-        );
+    createGovernedSkillSynthesisAttestorIpcEndpoint({
+      kind: "trust-approval",
+      id: randomBytes(12).toString("hex"),
+      temporaryDirectory: root,
+    });
   fs.mkdirSync(workspace);
   fs.mkdirSync(activeRoot);
   fs.mkdirSync(witnessRoot);
@@ -409,20 +407,18 @@ try {
   attestorTrustApprovalProcess = null;
   attestorTrustOperationsCapability = randomBytes(32).toString("base64url");
   attestorTrustOperationsEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}`
-      : path.join(
-          root,
-          `cc-evolution-attestor-trust-ops-${randomBytes(12).toString("hex")}.sock`,
-        );
+    createGovernedSkillSynthesisAttestorIpcEndpoint({
+      kind: "trust-operations",
+      id: randomBytes(12).toString("hex"),
+      temporaryDirectory: root,
+    });
   attestorTrustApprovalCapability = randomBytes(32).toString("base64url");
   attestorTrustApprovalEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}`
-      : path.join(
-          root,
-          `cc-evolution-attestor-trust-approval-${randomBytes(12).toString("hex")}.sock`,
-        );
+    createGovernedSkillSynthesisAttestorIpcEndpoint({
+      kind: "trust-approval",
+      id: randomBytes(12).toString("hex"),
+      temporaryDirectory: root,
+    });
   trustOperationsService = await startLocalAttestorTrustOperationsService(
     trustOperationsBootstrap(rotatedTrustOperatorKeys, 2),
   );

@@ -3,8 +3,8 @@
 import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
-import path from "node:path";
 
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
@@ -17,10 +17,6 @@ import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from 
 import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 import { createGovernedSkillSynthesisWindowsSecurePipeHost } from "../src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js";
 
-const WINDOWS_PIPE =
-  /^\\\\\.\\pipe\\cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}$/u;
-const SOCKET_NAME =
-  /^cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}\.sock$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_BOOTSTRAP_BYTES = 128 * 1024;
@@ -109,10 +105,9 @@ if (
   bootstrap.capabilityToken.length < 32 ||
   !validPrivateKey(bootstrap.privateKeyPem) ||
   !validText(bootstrap.endpoint, 1024) ||
-  (process.platform === "win32" && !WINDOWS_PIPE.test(bootstrap.endpoint)) ||
-  (process.platform !== "win32" &&
-    (!path.isAbsolute(bootstrap.endpoint) ||
-      !SOCKET_NAME.test(path.basename(bootstrap.endpoint))))
+  !isGovernedSkillSynthesisAttestorIpcEndpoint(bootstrap.endpoint, {
+    kind: "trust-approval",
+  })
 ) {
   throw new Error("approval service bootstrap is invalid");
 }

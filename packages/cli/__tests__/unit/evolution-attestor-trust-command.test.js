@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { registerEvolutionAttestorTrustCommands } from "../../src/commands/evolution-attestor-trust.js";
 import { createGovernedSkillSynthesisAttestorTrustApprovalClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsCliHost } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-cli-host.js";
 import { governedSkillSynthesisAttestorTrustIpcCapabilityId } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
@@ -117,14 +118,16 @@ async function fixture({
   );
   roots.push(root);
   const id = createHash("sha256").update(root).digest("hex").slice(0, 24);
-  const endpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${id}`
-      : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
-  const approvalEndpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${id}`
-      : path.join(root, `cc-evolution-attestor-trust-approval-${id}.sock`);
+  const endpoint = createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "trust-operations",
+    id,
+    temporaryDirectory: root,
+  });
+  const approvalEndpoint = createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "trust-approval",
+    id,
+    temporaryDirectory: root,
+  });
   const operatorKeys = generateKeyPairSync("ed25519");
   const operatorSpki = operatorKeys.publicKey.export({
     type: "spki",

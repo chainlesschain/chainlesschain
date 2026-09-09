@@ -5,6 +5,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import { ArtifactStore } from "../src/lib/artifact-store.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
@@ -24,9 +25,6 @@ const IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v3";
 const SERVICE_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v6";
-const WINDOWS_PIPE =
-  /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
-const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
 const MAX_REQUESTS = 64;
 const CAPABILITY_SERVICE = "attestor-trust-operations";
@@ -165,10 +163,9 @@ if (
     "witnessId",
   ]) ||
   typeof bootstrap.endpoint !== "string" ||
-  (process.platform === "win32"
-    ? !WINDOWS_PIPE.test(bootstrap.endpoint)
-    : !path.isAbsolute(bootstrap.endpoint) ||
-      !SOCKET_NAME.test(path.basename(bootstrap.endpoint))) ||
+  !isGovernedSkillSynthesisAttestorIpcEndpoint(bootstrap.endpoint, {
+    kind: "trust-operations",
+  }) ||
   typeof bootstrap.capabilityToken !== "string" ||
   bootstrap.capabilityToken.length < 32 ||
   bootstrap.capabilityToken.length > 4096 ||

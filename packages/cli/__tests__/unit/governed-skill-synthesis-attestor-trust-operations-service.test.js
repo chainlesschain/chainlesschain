@@ -11,6 +11,7 @@ import {
   createGovernedSkillSynthesisAttestorTrustOperationsClient,
   isGovernedSkillSynthesisAttestorTrustOperationsClient,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 
@@ -25,9 +26,11 @@ const children = [];
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
-  return process.platform === "win32"
-    ? `\\\\.\\pipe\\cc-evolution-attestor-trust-ops-${id}`
-    : path.join(root, `cc-evolution-attestor-trust-ops-${id}.sock`);
+  return createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "trust-operations",
+    id,
+    temporaryDirectory: root,
+  });
 }
 
 function waitForLine(stream, timeoutMs = 15_000, closedMessage = () => "") {

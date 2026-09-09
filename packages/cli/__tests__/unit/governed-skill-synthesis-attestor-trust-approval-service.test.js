@@ -14,6 +14,7 @@ import {
   createGovernedSkillSynthesisAttestorTrustApprovalClient,
   isGovernedSkillSynthesisAttestorTrustApprovalClient,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
+import { createGovernedSkillSynthesisAttestorIpcEndpoint } from "../../src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js";
 import { createGovernedSkillSynthesisAttestorTrustIpcAuthorization } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
@@ -35,9 +36,11 @@ const children = [];
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
-  return process.platform === "win32"
-    ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${id}`
-    : path.join(root, `cc-evolution-attestor-trust-approval-${id}.sock`);
+  return createGovernedSkillSynthesisAttestorIpcEndpoint({
+    kind: "trust-approval",
+    id,
+    temporaryDirectory: root,
+  });
 }
 
 function keyIdentity(publicKey) {

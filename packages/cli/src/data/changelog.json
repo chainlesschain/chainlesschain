@@ -10,7 +10,7 @@
       "sections": [
         {
           "heading": "Fixed - cc CLI 0.166.39: stop repeated log reads and stabilize CI",
-          "body": "- Detect repeated local CI-log searches even when each `findstr`, `grep`, `rg`,\n  or `Select-String` command changes its pattern, then recover and stop the agent\n  instead of reading the same downloaded log forever.\n- Treat search exit code 1 as \"no match\" rather than evidence of a new CI failure.\n- Coalesce repeated no-hook audit events so long-running duplex sessions retain\n  authenticated evidence without quadratic file rewrites or runaway RSS growth.\n- Keep the learning skill writer discoverable by the release inventory scanner."
+          "body": "- Detect repeated local CI-log searches even when each `findstr`, `grep`, `rg`,\n  or `Select-String` command changes its pattern, then recover and stop the agent\n  instead of reading the same downloaded log forever.\n- Treat search exit code 1 as \"no match\" rather than evidence of a new CI failure.\n- Coalesce repeated no-hook audit events so long-running duplex sessions retain\n  authenticated evidence without quadratic file rewrites or runaway RSS growth.\n- Keep the learning skill writer discoverable by the release inventory scanner.\n- Keep attestor Unix sockets below the macOS path limit, bind Windows secure\n  pipes to the current logon SID, and terminate services when capabilities\n  expire."
         }
       ]
     },

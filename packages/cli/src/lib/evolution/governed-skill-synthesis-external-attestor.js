@@ -1,7 +1,8 @@
 import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
 import net from "node:net";
-import path from "node:path";
 import { types as utilTypes } from "node:util";
+
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "./governed-skill-synthesis-attestor-ipc-endpoint.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTOR_SCHEMA =
   "chainlesschain.governed-skill-synthesis-external-attestor/v1";
@@ -13,7 +14,6 @@ export const GOVERNED_SKILL_SYNTHESIS_EXTERNAL_ATTESTOR_REQUEST_SCHEMA =
 const AUTHORITIES = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const SERVICE_ID = /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+){1,7}$/u;
-const WINDOWS_PIPE = /^\\\\\.\\pipe\\cc-evolution-attestor-[a-f0-9]{16,64}$/u;
 const OPTION_KEYS = new Set([
   "capabilityToken",
   "endpoint",
@@ -96,15 +96,13 @@ function text(value, label, maximum = 256, trim = true) {
 
 function normalizeEndpoint(value) {
   const endpoint = text(value, "external attestor endpoint", 1024);
-  if (process.platform === "win32") {
-    if (!WINDOWS_PIPE.test(endpoint)) {
-      throw new TypeError(
-        "external attestor endpoint must be a dedicated ChainlessChain named pipe",
-      );
-    }
-  } else if (!path.isAbsolute(endpoint)) {
+  if (
+    !isGovernedSkillSynthesisAttestorIpcEndpoint(endpoint, {
+      kind: "external",
+    })
+  ) {
     throw new TypeError(
-      "external attestor endpoint must be an absolute socket",
+      "external attestor endpoint must be a dedicated local IPC path",
     );
   }
   return endpoint;

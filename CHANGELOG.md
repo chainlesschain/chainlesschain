@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Coalesce repeated no-hook audit events so long-running duplex sessions retain
   authenticated evidence without quadratic file rewrites or runaway RSS growth.
 - Keep the learning skill writer discoverable by the release inventory scanner.
+- Keep attestor Unix sockets below the macOS path limit, bind Windows secure
+  pipes to the current logon SID, and terminate services when capabilities
+  expire.
 
 ### Fixed - cc CLI 0.166.38: publish audited child package updates
 

@@ -1,7 +1,8 @@
 import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
 import net from "node:net";
-import path from "node:path";
 import { types as utilTypes } from "node:util";
+
+import { isGovernedSkillSynthesisAttestorIpcEndpoint } from "./governed-skill-synthesis-attestor-ipc-endpoint.js";
 
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SCHEMA,
@@ -26,10 +27,6 @@ export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v4";
 
 const CLIENTS = new WeakSet();
-const WINDOWS_PIPE =
-  /^\\\\\.\\pipe\\cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}$/u;
-const SOCKET_NAME =
-  /^cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}\.sock$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const KEY_ID = /^key:ed25519:[a-f0-9]{64}$/u;
@@ -130,10 +127,9 @@ function timestamp(value, label) {
 function endpoint(value) {
   const normalized = text(value, "approval endpoint", 1024);
   if (
-    (process.platform === "win32" && !WINDOWS_PIPE.test(normalized)) ||
-    (process.platform !== "win32" &&
-      (!path.isAbsolute(normalized) ||
-        !SOCKET_NAME.test(path.basename(normalized))))
+    !isGovernedSkillSynthesisAttestorIpcEndpoint(normalized, {
+      kind: "trust-approval",
+    })
   ) {
     throw new TypeError("approval endpoint is not a dedicated local IPC path");
   }
