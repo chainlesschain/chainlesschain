@@ -33,6 +33,18 @@ interface, not a durability claim: the v2 file/WORM head-store implementation,
 witness checkpoint publication, crash-point tests, and v1 migration are still
 required.
 
+The v2 checkpoint bridge is now implemented in
+`evolution-ledger-manifest-witness-adapter.js`. It verifies the exact signed
+manifest/head pair, maps it to the existing durable `EvolutionFileWitness`
+snapshot, and performs witness-digest CAS followed by authenticated durable
+readback. It rejects mismatched manifest/head bindings and stale witness
+digests; any acknowledgement loss, malformed acknowledgement, substitution, or
+readback failure is `COMMIT_UNKNOWN`. The real file-witness composition and
+related ledger suite now pass 164 tests. The current adapter deliberately
+requires distinct manifest and witness key identities but does not itself
+provision an external witness fault domain, so production qualification and
+physical-fault evidence remain open.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke

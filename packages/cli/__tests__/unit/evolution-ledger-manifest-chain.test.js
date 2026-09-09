@@ -1,4 +1,7 @@
 import { createHmac } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -22,6 +25,12 @@ import {
   captureEvolutionLedgerManifestHeadStore,
   createEvolutionLedgerManifestHeadStore,
 } from "../../src/lib/evolution/evolution-ledger-manifest-head-store.js";
+import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
+import {
+  EVOLUTION_LEDGER_MANIFEST_WITNESS_COMMIT_UNKNOWN_CODE,
+  captureEvolutionLedgerManifestWitnessAdapter,
+  createEvolutionLedgerManifestWitnessAdapter,
+} from "../../src/lib/evolution/evolution-ledger-manifest-witness-adapter.js";
 
 const STORE_SECRET = "manifest-store-test-secret";
 const MANIFEST_SECRET = "manifest-signing-test-secret";
@@ -560,5 +569,177 @@ describe("Evolution Ledger v2 manifest head CAS store", () => {
     expect(lostAcknowledgement.store.read().headDigest).toBe(
       first.head.headDigest,
     );
+  });
+});
+
+describe("Evolution Ledger v2 manifest witness adapter", () => {
+  function createRealWitness(root) {
+    const trust = {
+      algorithm: "hmac-sha256",
+      keyId: "key://tests/v2-manifest-witness",
+      trustPolicyDigest: eventDigest("9"),
+    };
+    const sign = ({ message }) => ({
+      ...trust,
+      value: createHmac("sha256", "v2-witness-secret")
+        .update(message)
+        .digest("base64url"),
+    });
+    const verify = ({ message, signature, trust: requestTrust }) =>
+      requestTrust.algorithm === trust.algorithm &&
+      requestTrust.keyId === trust.keyId &&
+      requestTrust.trustPolicyDigest === trust.trustPolicyDigest &&
+      signature.algorithm === trust.algorithm &&
+      signature.keyId === trust.keyId &&
+      signature.trustPolicyDigest === trust.trustPolicyDigest &&
+      signature.value ===
+        createHmac("sha256", "v2-witness-secret")
+          .update(message)
+          .digest("base64url");
+    const directory = path.join(root, "witness-authority");
+    fs.mkdirSync(directory, { mode: 0o700 });
+    return {
+      trust,
+      witness: createEvolutionFileWitness({
+        filePath: path.join(directory, "witness.json"),
+        id: "v2-manifest-witness",
+        signer: { sign },
+        trust,
+        verifier: { verify },
+      }),
+    };
+  }
+
+  function witnessDescriptor(trust) {
+    return {
+      epoch: "epoch-1",
+      identityDigest: eventDigest("1"),
+      ledgerId: "ledger-1",
+      manifestTrustKeyId: "key://tests/manifest-authority",
+      maximumEventsPerSegment: 3,
+      storeMarkerDigest: eventDigest("2"),
+      storeMarkerEntryDigest: eventDigest("3"),
+      storeMarkerId: "v2-store-marker",
+      tenantId: "tenant-1",
+      witnessTrust: trust,
+    };
+  }
+
+  function sealedFixture() {
+    const segments = memorySegmentStore();
+    const manifestAuthority = authority();
+    const sealed = sealEvolutionLedgerManifestSegment({
+      authority: manifestAuthority,
+      descriptor: chainDescriptor(),
+      eventDigests: [eventDigest("c")],
+      minimumRetainedUntil: MINIMUM_RETENTION,
+      now: () => Date.parse("2026-09-09T00:00:00.000Z"),
+      previousHead: null,
+      segmentStore: segments.store,
+    });
+    return { manifestAuthority, ...sealed };
+  }
+
+  it("publishes and rereads a real independent EvolutionFileWitness checkpoint", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-v2-manifest-witness-"),
+    );
+    try {
+      const { trust, witness } = createRealWitness(root);
+      const sealed = sealedFixture();
+      const adapter = createEvolutionLedgerManifestWitnessAdapter({
+        descriptor: witnessDescriptor(trust),
+        manifestAuthority: sealed.manifestAuthority,
+        witness,
+      });
+      const genesis = witness.read();
+      const receipt = adapter.checkpoint({
+        expectedWitnessDigest: genesis.witnessDigest,
+        head: sealed.head,
+        manifest: sealed.manifest,
+      });
+      expect(receipt).toMatchObject({
+        checkpointed: true,
+        conflict: false,
+        headDigest: sealed.head.headDigest,
+        manifestDigest: sealed.manifest.manifestDigest,
+        sequence: 1,
+      });
+      expect(adapter.read().record.headDigest).toBe(sealed.head.headDigest);
+      expect(captureEvolutionLedgerManifestWitnessAdapter(adapter)).toBe(
+        adapter,
+      );
+      const stale = adapter.checkpoint({
+        expectedWitnessDigest: genesis.witnessDigest,
+        head: sealed.head,
+        manifest: sealed.manifest,
+      });
+      expect(stale).toMatchObject({ checkpointed: false, conflict: true });
+    } finally {
+      fs.rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects cross-bound manifest pairs before touching the witness", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-v2-manifest-witness-"),
+    );
+    try {
+      const { trust, witness } = createRealWitness(root);
+      const sealed = sealedFixture();
+      const adapter = createEvolutionLedgerManifestWitnessAdapter({
+        descriptor: witnessDescriptor(trust),
+        manifestAuthority: sealed.manifestAuthority,
+        witness,
+      });
+      expect(() =>
+        adapter.checkpoint({
+          expectedWitnessDigest: witness.read().witnessDigest,
+          head: { ...sealed.head, manifestDigest: eventDigest("f") },
+          manifest: sealed.manifest,
+        }),
+      ).toThrow(/manifest witness input is invalid/u);
+      expect(witness.read().status).toBe("absent");
+    } finally {
+      fs.rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  it("marks a lost witness acknowledgement commit-unknown", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-v2-manifest-witness-"),
+    );
+    try {
+      const { trust, witness } = createRealWitness(root);
+      const sealed = sealedFixture();
+      const lostAcknowledgementWitness = Object.freeze({
+        compareAndSwap() {
+          throw new Error("response lost after checkpoint");
+        },
+        id: witness.id,
+        read() {
+          return witness.read();
+        },
+      });
+      const adapter = createEvolutionLedgerManifestWitnessAdapter({
+        descriptor: witnessDescriptor(trust),
+        manifestAuthority: sealed.manifestAuthority,
+        witness: lostAcknowledgementWitness,
+      });
+      try {
+        adapter.checkpoint({
+          expectedWitnessDigest: witness.read().witnessDigest,
+          head: sealed.head,
+          manifest: sealed.manifest,
+        });
+        throw new Error("expected unknown witness commit state");
+      } catch (error) {
+        expect(error.code).toBe(
+          EVOLUTION_LEDGER_MANIFEST_WITNESS_COMMIT_UNKNOWN_CODE,
+        );
+      }
+    } finally {
+      fs.rmSync(root, { force: true, recursive: true });
+    }
   });
 });
