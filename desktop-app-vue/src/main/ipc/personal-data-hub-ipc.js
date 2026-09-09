@@ -29,9 +29,7 @@
 
 "use strict";
 
-const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
-const hubWiring = require("../personal-data-hub/wiring.js");
 const {
   runDedicatedBatchCollectors,
 } = require("../personal-data-hub/sync-result.js");
@@ -44,6 +42,7 @@ const {
 
 const NS = "personal-data-hub";
 let _registered = false;
+let _registeredIpcMain = null;
 
 function safe(fn) {
   return async (_evt, payload) => {
@@ -57,9 +56,18 @@ function safe(fn) {
   };
 }
 
-function register({ desktopModelIngressHost = null } = {}) {
+function register({
+  desktopModelIngressHost = null,
+  ipcMain = null,
+  hubWiring = null,
+} = {}) {
   if (_registered) {
     return;
+  }
+  ipcMain = ipcMain || require("electron").ipcMain;
+  hubWiring = hubWiring || require("../personal-data-hub/wiring.js");
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    throw new TypeError("Personal Data Hub IPC requires ipcMain.handle");
   }
 
   ipcMain.handle(
@@ -258,7 +266,7 @@ function register({ desktopModelIngressHost = null } = {}) {
               fs.unlinkSync(p);
               removed.push(p);
             }
-          } catch (_e) {
+          } catch {
             // best-effort
           }
         }
@@ -272,10 +280,14 @@ function register({ desktopModelIngressHost = null } = {}) {
               try {
                 fs.unlinkSync(path.join(keyDir, f));
                 removed.push(path.join(keyDir, f));
-              } catch (_e) {}
+              } catch {
+                // best-effort
+              }
             }
           }
-        } catch (_e) {}
+        } catch {
+          // best-effort
+        }
       }
 
       // Release the singleton so the next getHub() rebuilds from scratch.
@@ -605,12 +617,16 @@ function register({ desktopModelIngressHost = null } = {}) {
           if (progressChannel && wc && !wc.isDestroyed()) {
             try {
               wc.send(progressChannel, msg);
-            } catch (_e) {}
+            } catch {
+              // best-effort progress notification
+            }
           }
           if (typeof original === "function") {
             try {
               original(msg);
-            } catch (_e) {}
+            } catch {
+              // best-effort compatibility callback
+            }
           }
         };
         try {
@@ -635,12 +651,16 @@ function register({ desktopModelIngressHost = null } = {}) {
           if (progressChannel && wc && !wc.isDestroyed()) {
             try {
               wc.send(progressChannel, msg);
-            } catch (_e) {}
+            } catch {
+              // best-effort progress notification
+            }
           }
           if (typeof original === "function") {
             try {
               original(msg);
-            } catch (_e) {}
+            } catch {
+              // best-effort compatibility callback
+            }
           }
         };
         try {
@@ -672,6 +692,7 @@ function register({ desktopModelIngressHost = null } = {}) {
   );
 
   _registered = true;
+  _registeredIpcMain = ipcMain;
   logger.info("[PersonalDataHub IPC] handlers registered");
 }
 
@@ -679,6 +700,7 @@ function unregister() {
   if (!_registered) {
     return;
   }
+  const ipcMain = _registeredIpcMain;
   const channels = [
     "ask",
     "stats",
@@ -735,9 +757,12 @@ function unregister() {
   for (const c of channels) {
     try {
       ipcMain.removeHandler(`${NS}:${c}`);
-    } catch (_e) {}
+    } catch {
+      // unregister is idempotent and best-effort during shutdown
+    }
   }
   _registered = false;
+  _registeredIpcMain = null;
 }
 
 /**
@@ -830,7 +855,7 @@ async function openPdhWebWindow({ route, _deps } = {}) {
     try {
       await openExternal(targetUrl);
       return { ok: true, url: targetUrl, fallback: "external" };
-    } catch (_e) {
+    } catch {
       return {
         error: "open-failed",
         message: err && err.message ? err.message : String(err),

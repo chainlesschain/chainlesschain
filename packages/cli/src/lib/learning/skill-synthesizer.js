@@ -475,8 +475,6 @@ export class SkillSynthesizer {
     const skillDir = _deps.path.join(canonicalSkillNamespace, "1.0.0");
     const canonicalSkillDir = await this._ensurePrivateDirectory(skillDir);
     this._assertPathWithinCandidateRoot(candidateRoot, canonicalSkillDir);
-    const skillFile = _deps.path.join(canonicalSkillDir, "SKILL.md");
-
     let evaluationFile = null;
     if (
       evaluation &&
@@ -532,6 +530,7 @@ export class SkillSynthesizer {
       });
     }
 
+    const skillFile = _deps.path.join(canonicalSkillDir, "SKILL.md");
     await _deps.fs.promises.writeFile(skillFile, content, {
       encoding: "utf-8",
       flag: "wx",

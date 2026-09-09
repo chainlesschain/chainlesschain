@@ -48,6 +48,28 @@ function urlTarget(value) {
   };
 }
 
+function localCiLogTarget(command) {
+  if (
+    !/(?:^|[\s;&|])(?:findstr(?:\.exe)?|grep|rg|select-string)\b/iu.test(
+      command,
+    )
+  )
+    return null;
+  const matches = [
+    ...command.matchAll(
+      /[%$()A-Za-z0-9_:.\\/-]*(?:gh|github|action|ci)[A-Za-z0-9_.-]*\.(?:log|txt|xml)\b/giu,
+    ),
+  ];
+  const file = matches.at(-1)?.[0];
+  if (!file) return null;
+  const normalized = file.replaceAll("\\", "/").toLowerCase();
+  return {
+    key: `local-ci-log:${createHash("sha256").update(normalized).digest("hex")}`,
+    github: true,
+    localLog: true,
+  };
+}
+
 /** Classification only; never parse, rewrite, cache or authorize shell execution. */
 export function remoteReadTarget(tool, args = {}) {
   if (tool === "web_search")
@@ -97,7 +119,7 @@ export function remoteReadTarget(tool, args = {}) {
       );
     if (api) return githubTarget(api[1], api[2], api[3], api[4]);
   }
-  return null;
+  return localCiLogTarget(command);
 }
 
 function failedResult(result) {
@@ -107,7 +129,8 @@ function failedResult(result) {
     result.success === false ||
     result.isError === true ||
     result.statusCode >= 400 ||
-    (Number.isInteger(result.exitCode) && result.exitCode !== 0)
+    (Number.isInteger(result.exitCode) && result.exitCode !== 0) ||
+    (Number.isInteger(result.exit_code) && result.exit_code !== 0)
   );
 }
 
@@ -234,6 +257,7 @@ export class RemoteReadLoopGuard {
     return (
       "Remote-read loop recovery: repeated failures or unchanged GitHub Actions logs detected. " +
       "Stop repeating the same download, including switching between web_fetch, gh run view and gh api for the same run/job. " +
+      "Repeated findstr, grep, rg or Select-String misses against the same saved CI log are also one stalled read: exit code 1 means no match, not a new CI failure. " +
       "Use the retained evidence for the user's task. For implementation, inspect/fix the relevant local files; for research/review, synthesize the findings without making unsolicited edits. For a missing CI detail, use one authenticated gh run view <run-id> --job <job-id> --log-failed --repo <owner/repo>, save the result once and search that local log. " +
       "If the overall run is still active but the required job has completed, fetch that job's log directly with gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs; gh run view may withhold logs until the whole run finishes. " +
       "Check auth, rate limits or command errors before another attempt. If access remains unavailable, report the exact blocker and useful findings; the task is not complete. " +
@@ -262,9 +286,12 @@ export class RemoteReadLoopGuard {
           evidence,
           lastSuccess,
           page,
+          localLog,
         }) => ({
           source: github
-            ? "GitHub Actions logs"
+            ? localLog
+              ? "saved GitHub Actions log"
+              : "GitHub Actions logs"
             : tool === "web_search"
               ? "web_search"
               : "web_fetch",

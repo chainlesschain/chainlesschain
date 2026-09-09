@@ -35,7 +35,7 @@ function digestToken(value) {
 }
 
 function normalizeRecord(record = {}) {
-  return {
+  const normalized = {
     schema: HOOK_AUDIT_RECORD_SCHEMA,
     timestamp: safeToken(record.timestamp || new Date().toISOString(), 64),
     phase: safeToken(record.phase, 32),
@@ -58,12 +58,36 @@ function normalizeRecord(record = {}) {
       : null,
     errorCode: safeToken(record.errorCode, 96),
   };
+  if (record.phase === "no-hooks") {
+    normalized.firstTimestamp = safeToken(
+      record.firstTimestamp || normalized.timestamp,
+      64,
+    );
+    normalized.occurrences = Math.max(
+      1,
+      Math.min(
+        Number.MAX_SAFE_INTEGER,
+        Number.isSafeInteger(Number(record.occurrences))
+          ? Number(record.occurrences)
+          : 1,
+      ),
+    );
+    normalized.eventDigest = digestToken(record.eventDigest || record.eventId);
+  }
+  return normalized;
 }
 
 function hashRecord(prevHash, record) {
   return sha256(
     "chainlesschain.hook-audit-chain.v1",
     `${prevHash || "genesis"}\n${stableStringify(record)}`,
+  );
+}
+
+function extendNoHookEventDigest(current, eventId) {
+  return sha256(
+    "chainlesschain.hook-audit-no-hooks.v1",
+    `${current || "genesis"}\n${eventId || "unknown"}`,
   );
 }
 
@@ -103,13 +127,55 @@ export class HookAuditStore {
   }
 
   append(record) {
-    const normalized = normalizeRecord({
+    let normalized = normalizeRecord({
       ...record,
       timestamp: record?.timestamp || this.now(),
     });
+    if (normalized.phase === "no-hooks") {
+      normalized = {
+        ...normalized,
+        eventDigest: extendNoHookEventDigest(null, normalized.eventId),
+      };
+    }
     return mutateSecurityStore(this.filePath, "Hook runtime audit", (draft) => {
       const store = validateStore(draft);
       if (Object.keys(draft).length === 0) Object.assign(draft, store);
+      const last = draft.records.at(-1);
+      if (
+        normalized.phase === "no-hooks" &&
+        last?.record?.phase === "no-hooks" &&
+        last.record.event === normalized.event &&
+        last.record.status === normalized.status &&
+        last.record.decision === normalized.decision
+      ) {
+        const coalesced = {
+          ...normalized,
+          firstTimestamp:
+            last.record.firstTimestamp ||
+            last.record.timestamp ||
+            normalized.timestamp,
+          occurrences: Math.min(
+            Number.MAX_SAFE_INTEGER,
+            Math.max(1, Number(last.record.occurrences) || 1) + 1,
+          ),
+          eventDigest: extendNoHookEventDigest(
+            last.record.eventDigest,
+            normalized.eventId,
+          ),
+        };
+        const hash = hashRecord(last.prevHash || null, coalesced);
+        draft.records[draft.records.length - 1] = {
+          record: coalesced,
+          prevHash: last.prevHash || null,
+          hash,
+        };
+        draft.headHash = hash;
+        return Object.freeze({
+          ...coalesced,
+          prevHash: last.prevHash || null,
+          hash,
+        });
+      }
       const prevHash = draft.headHash || draft.anchorHash || null;
       const hash = hashRecord(prevHash, normalized);
       draft.records.push({ record: normalized, prevHash, hash });

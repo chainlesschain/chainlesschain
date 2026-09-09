@@ -55,9 +55,47 @@ describe("remote read target classification", () => {
   ])("leaves status monitoring and mutations out: %s", (value) => {
     expect(remoteReadTarget("run_shell", { command: value })).toBeNull();
   });
+
+  it("groups local CI-log searches by file instead of search wording", () => {
+    const first = remoteReadTarget("run_shell", {
+      command:
+        'cd c:\\code\\chainlesschain && findstr /n "Failed Tests" "%TEMP%\\gh-run-log.txt"',
+    });
+    const second = remoteReadTarget("run_shell", {
+      command:
+        'findstr /n "FAIL\\|AssertionError\\|Error:" "%TEMP%\\gh-run-log.txt"',
+    });
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({ github: true, localLog: true });
+    expect(first.key).toMatch(/^local-ci-log:/u);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: 'findstr /n "version" README.txt',
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("remote read loop recovery", () => {
+  it("stops changing findstr patterns from looping on one saved CI log", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 6; i++) {
+      guard.record(
+        "run_shell",
+        { exitCode: 1, error: `Command failed (exit 1), pattern ${i}` },
+        {
+          command: `findstr /n "missing-${i}" "%TEMP%\\gh-run-log.txt"`,
+        },
+      );
+      if (i === 2) {
+        expect(guard.recoveryHint).toContain("exit code 1 means no match");
+        expect(guard.takeRecoveryTurn()).toEqual(["run_shell"]);
+      }
+    }
+    expect(guard.findingsHint).toContain("saved GitHub Actions log");
+    expect(guard.stalled).toBe(true);
+  });
+
   it("retains the saved cursor and accepts forward pages with identical text", () => {
     const guard = new RemoteReadLoopGuard();
     for (let offset = 0; offset < 100; offset += 10) {

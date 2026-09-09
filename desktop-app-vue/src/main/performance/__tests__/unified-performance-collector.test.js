@@ -397,6 +397,9 @@ describe("UnifiedPerformanceCollector", () => {
 
       const series = collector.getTimeSeries("system.cpu", {
         granularity: "1m",
+        // Do not let a test starting in the first 300 ms of a minute exclude
+        // the synthetic +200/+300 ms samples via getTimeSeries' default `to`.
+        to: bucketStart + 59999,
       });
 
       // Should produce one bucket with average = (10+20+30)/3 = 20

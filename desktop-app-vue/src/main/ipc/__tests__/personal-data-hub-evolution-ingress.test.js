@@ -10,6 +10,7 @@ const hub = {
   drainResolver: vi.fn(),
   runSkill: vi.fn(),
 };
+const hubWiring = { getHub: vi.fn(async () => hub) };
 
 vi.mock("electron", () => ({ ipcMain }));
 vi.mock("../../utils/logger.js", () => ({
@@ -37,7 +38,7 @@ describe("Personal Data Hub evolution ingress", () => {
 
   it("keeps the branded Desktop host in main-process closures for resolver drains and skills", async () => {
     const desktopModelIngressHost = Object.freeze({});
-    register({ desktopModelIngressHost });
+    register({ desktopModelIngressHost, ipcMain, hubWiring });
 
     await handlers.get("personal-data-hub:resolver-drain")({}, { limit: 7 });
     await handlers.get("personal-data-hub:run-skill")(
@@ -57,7 +58,7 @@ describe("Personal Data Hub evolution ingress", () => {
   });
 
   it("preserves the legacy no-deployment path without inventing authority", async () => {
-    register();
+    register({ ipcMain, hubWiring });
 
     await handlers.get("personal-data-hub:resolver-drain")({}, {});
     await handlers.get("personal-data-hub:run-skill")(

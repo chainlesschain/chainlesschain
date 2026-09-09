@@ -260,6 +260,57 @@ describe("canonical Hook runtime convergence", () => {
     expect(store.verify()).toMatchObject({ ok: false, brokenAt: 0 });
   });
 
+  it("coalesces adjacent no-hook decisions without losing their count", () => {
+    const filePath = path.join(directory, "hook-audit-no-hooks.json");
+    const store = new HookAuditStore({ filePath, maxRecords: 100 });
+    for (let index = 0; index < 40; index += 1) {
+      store.append({
+        phase: "no-hooks",
+        event: "UserPromptExpansion",
+        eventId: `event-${index}`,
+        status: "success",
+        decision: "continue",
+      });
+    }
+
+    expect(store.list({ limit: 1000 })).toHaveLength(1);
+    expect(store.list({ limit: 1 })[0].record).toMatchObject({
+      phase: "no-hooks",
+      event: "UserPromptExpansion",
+      occurrences: 40,
+      eventDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(store.verify()).toMatchObject({ ok: true, length: 1 });
+    expect(fs.statSync(filePath).size).toBeLessThan(4096);
+  });
+
+  it("audits an empty decision gate once", async () => {
+    const appended = [];
+    const runtime = new HooksV2Runtime(directory, {
+      workspaceRoot: directory,
+      requireAudit: true,
+      auditStore: {
+        append: (record) => {
+          appended.push(record);
+          return record;
+        },
+      },
+    });
+
+    await expect(runtime.emitEvent("PreToolUse", {})).resolves.toMatchObject({
+      success: true,
+      blocked: false,
+      results: [],
+    });
+    expect(appended).toEqual([
+      expect.objectContaining({
+        phase: "no-hooks",
+        event: "PreToolUse",
+        decision: "continue",
+      }),
+    ]);
+  });
+
   it("fails closed at a decision gate when mandatory audit is unavailable", async () => {
     const failure = Object.assign(new Error("disk unavailable"), {
       code: "CC_HOOK_AUDIT_WRITE_FAILED",

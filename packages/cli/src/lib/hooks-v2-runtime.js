@@ -611,16 +611,6 @@ class HooksV2Runtime extends EventEmitter {
     const contract = validateHookEvent(eventName, context);
     const eventId = context.event_id || context.eventId || crypto.randomUUID();
     const auditRequired = options.auditRequired === true || this.requireAudit;
-    this._appendAudit(
-      {
-        phase: "dispatch",
-        event: eventName,
-        eventId,
-        status: "accepted",
-        decision: "continue",
-      },
-      { required: auditRequired && contract.decisionCapable },
-    );
     const suppliedHooks = Array.isArray(options.additionalHooks)
       ? options.additionalHooks.map((hook) => normalizeHookDefinition(hook))
       : [];
@@ -630,6 +620,56 @@ class HooksV2Runtime extends EventEmitter {
     ].filter(
       (hook) =>
         eventName !== "FileChanged" || fileChangedHookMatches(hook, context),
+    );
+    // Resolve and de-duplicate candidates before writing the audit boundary.
+    // A lifecycle event with no executable hook is still fail-closed audited
+    // at decision gates, but adjacent no-op events are represented by one
+    // authenticated aggregate in HookAuditStore instead of two ever-growing
+    // records per turn. This keeps repeated no-hook lifecycle events bounded
+    // in long-lived IDE/stream sessions without hiding an actual execution.
+    const uniqueHooks = [];
+    const seen = new Set();
+    for (const hook of hooks) {
+      if (seen.has(hook.id)) continue;
+      seen.add(hook.id);
+      uniqueHooks.push(hook);
+    }
+    uniqueHooks.sort(
+      (left, right) =>
+        normalizeHookPriority(left.priority) -
+          normalizeHookPriority(right.priority) ||
+        String(left.id).localeCompare(String(right.id)),
+    );
+    if (uniqueHooks.length === 0) {
+      this._appendAudit(
+        {
+          phase: "no-hooks",
+          event: eventName,
+          eventId,
+          status: "success",
+          decision: "continue",
+        },
+        { required: auditRequired && contract.decisionCapable },
+      );
+      return {
+        success: true,
+        results: [],
+        blocked: false,
+        requiresApproval: false,
+        decision: "continue",
+        blockingResult: null,
+        schemaVersion: HOOK_EVENT_SCHEMA_VERSION,
+      };
+    }
+    this._appendAudit(
+      {
+        phase: "dispatch",
+        event: eventName,
+        eventId,
+        status: "accepted",
+        decision: "continue",
+      },
+      { required: auditRequired && contract.decisionCapable },
     );
     // Reserve the durable record for the inline producer before executing any
     // hook. A process-level EventRuntimeHost may observe the same store, but it
@@ -682,22 +722,8 @@ class HooksV2Runtime extends EventEmitter {
         pending: true,
       };
     }
-    // Hooks are parallel by default. De-duplicate by id so a reload or layered
-    // config cannot execute the same handler twice. `parallel:false` remains a
-    // deterministic compatibility mode for callers that require ordering.
-    const uniqueHooks = [];
-    const seen = new Set();
-    for (const hook of hooks) {
-      if (seen.has(hook.id)) continue;
-      seen.add(hook.id);
-      uniqueHooks.push(hook);
-    }
-    uniqueHooks.sort(
-      (left, right) =>
-        normalizeHookPriority(left.priority) -
-          normalizeHookPriority(right.priority) ||
-        String(left.id).localeCompare(String(right.id)),
-    );
+    // Hooks are parallel by default. `parallel:false` remains a deterministic
+    // compatibility mode for callers that require ordering.
     const runOne = async (
       hook,
       { forceObserveOnly = false, dispatcher = null } = {},
