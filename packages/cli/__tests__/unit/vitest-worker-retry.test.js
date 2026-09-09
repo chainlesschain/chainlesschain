@@ -32,6 +32,10 @@ const cleanJson = JSON.stringify({
   numTodoTests: 1,
   success: true,
 });
+const cleanJsonWithWorkerFailure = JSON.stringify({
+  ...JSON.parse(cleanJson),
+  success: false,
+});
 const workerFailure = [
   "[vitest-pool]: Worker forks emitted error.",
   "Caused by: Error: Worker exited unexpectedly",
@@ -104,16 +108,23 @@ describe("Vitest worker infrastructure retry", () => {
 
   it("recognizes a complete zero-failure JSON report without hiding incomplete results", () => {
     expect(jsonHasTestsAndNoFailures(cleanJson)).toBe(true);
+    expect(jsonHasTestsAndNoFailures(cleanJsonWithWorkerFailure)).toBe(true);
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: workerFailure,
+        jsonReport: cleanJsonWithWorkerFailure,
+      }),
+    ).toBe(true);
     expect(
       isRetryableVitestWorkerFailure({
         exitCode: 1,
         output: "JSON report written",
         jsonReport: cleanJson,
       }),
-    ).toBe(true);
+    ).toBe(false);
     for (const candidate of [
       cleanJson.replace('"numFailedTests":0', '"numFailedTests":1'),
-      cleanJson.replace('"success":true', '"success":false'),
       cleanJson.replace('"numTotalTests":10', '"numTotalTests":11'),
       "not-json",
       null,
@@ -197,13 +208,17 @@ describe("Vitest worker infrastructure retry", () => {
   it("retries once when a complete JSON report is clean but Vitest exits non-zero", async () => {
     const runOnce = vi
       .fn()
-      .mockResolvedValueOnce({ exitCode: 1, output: "JSON report written" })
+      .mockResolvedValueOnce({ exitCode: 1, output: workerFailure })
       .mockResolvedValueOnce({ exitCode: 0, output: "passed" });
 
     await expect(
       runVitestWithWorkerRetry(
         ["run", "--reporter=json", "--outputFile=strict-result.json"],
-        { runOnce, readFile: () => cleanJson, warn: vi.fn() },
+        {
+          runOnce,
+          readFile: () => cleanJsonWithWorkerFailure,
+          warn: vi.fn(),
+        },
       ),
     ).resolves.toBe(0);
     expect(runOnce).toHaveBeenCalledTimes(2);

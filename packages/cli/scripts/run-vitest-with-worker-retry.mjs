@@ -101,7 +101,6 @@ export function jsonHasTestsAndNoFailures(jsonText) {
     return false;
   }
   return (
-    report.success === true &&
     report.numTotalTests > 0 &&
     report.numFailedTests === 0 &&
     report.numFailedTestSuites === 0 &&
@@ -129,7 +128,8 @@ export function isRetryableVitestWorkerFailure({
       normalizedOutput.includes(WORKER_EPIPE_ERROR));
   return (
     exitCode !== 0 &&
-    ((exactWorkerFailure && junitHasTestsAndNoFailures(junitXml)) ||
+    exactWorkerFailure &&
+    (junitHasTestsAndNoFailures(junitXml) ||
       jsonHasTestsAndNoFailures(jsonReport))
   );
 }
