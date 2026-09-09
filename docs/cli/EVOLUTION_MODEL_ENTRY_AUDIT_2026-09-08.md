@@ -140,6 +140,21 @@ uses a canary-bearing document and asserts that the injected `fetch` is never
 called. A future implementation must use a dedicated governed evidence-ingress
 bridge; it must not reuse the chat-only model capability.
 
+### Plugin network API is an explicit remaining boundary
+
+`src/main/plugins/plugin-api.js` routes the plugin `llm:query` and
+`llm:stream` permissions through the Desktop `LLMManager`; they therefore use
+the normal governed client when the Desktop host is configured. In contrast,
+the separately permission-checked `network:http` API permits a plugin to make
+an arbitrary HTTPS (or localhost) request. Its local API statistics record the
+permission and method invocation, but cannot prove whether its body is a model
+prompt or provide the source/response evidence required by an Evolution Run.
+Consequently, a plugin that calls an AI provider through `network:http` remains
+an application-defined third-party direct-provider path, not a governed model
+entry. Managed deployments must either supply a dedicated governed bridge for
+that plugin or deny its direct provider use; it is included in the final P0-4
+entry audit rather than silently exempted.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

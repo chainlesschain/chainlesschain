@@ -65,6 +65,29 @@ shadow / canary / active / rollback
 
 本节记录本报告转入实施后的当前状态。最初实施基线为提交 `4381aece2c`，最新代码复审基线为 `main@189574969281a833130ade85b5cda8788599cadd`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
 
+#### CLI、IDE Workbench 与 WikiSkill 可用性实测（2026-09-09）
+
+本次复核分别判断代码是否接入公开入口、当前审计主机是否能够实际启动，以及是否已有足以支持生产声明的目标部署和真实效果证据。
+
+| 表面 | 仓库与发布状态 | 当前实测 | 可用性结论 |
+| ---- | -------------- | -------- | ---------- |
+| CLI 受治理 Skill 自进化 | CLI `0.166.38` 已发布；Agent/stream/chat/Cowork/Hub 等已接入 authenticated Evolution composition，Release Train、Wiki Maintainer、Candidate/Eval/Review/Pilot/Promotion/rollback 原语和持久账本均已存在 | 无 descriptor/trust root 时，`cc evolution workbench list --limit 1` 以状态码 1 返回 `a trusted deployment host is required`；这是预期的失败关闭 | **治理运行时已在 CLI 使用，但默认公开安装没有开启生产演化 authority；不能称为开箱即用的自动 Skill 自进化** |
+| `cc learning synthesize` | 命令仍以 `new SkillSynthesizer(db, null, store)` 构造，未从签名部署获得 LLM、candidate output registry、candidate evaluator 与 active Skill roots；部署 command allowlist 也不包含 `learning` | 因必需依赖缺失返回 `LEARNING_SYNTHESIS_UNAVAILABLE`，不会写 active Skill | **这条旧学习命令仍缺产品接线；只配置模型 API Key 不能启用** |
+| VS Code/VSCodium Evolution Workbench | 扩展 `0.37.92` 已有 list、完整分页、compare、approve/reject、rollback、连接恢复及独立 App Server profile 调用链；IDE 只消费 CLI-owned 投影，不持有 writer 或审批身份 | 12 项 Workbench profile/view 单元测试通过。审计主机已安装 `chainlesschain.chainlesschain-ide@0.37.92`，但用户配置指向 `local-test` profile；该模式使用 fixture 密钥、模拟真人和模拟 Eval | **界面与协议真实可用，但当前配置只是测试工作台；没有生产 host 时页面只能显示 unavailable** |
+| WikiSkill 演化与 Benchmark | Wiki→单 Skill proposal→candidate→Release Train 已形成仓库纵切；`cc evolution benchmark run/show` 也已注册，要求 branded Dataset Provider、Target Runner、Grader、Report Attestor 和 Ledger Adapter | Benchmark 命令/执行宿主定向测试中 5 项通过；无可信 host 时命令明确 unavailable。没有本次可回读的、目标模型与五个真实数据集绑定的签名 `VERIFIED` 报告 | **协议、统计内核和持久报告入口已实现；真实 WikiSkill 效果与无人值守生产演化尚不可用，论文数字仍为 `external-paper-only / HOLD`** |
+
+审计主机还暴露了一个独立的本地开发环境故障：`packages/cli` 声明 `ajv ^8.20.0`，但当前 workspace 实际解析到根目录 AJV `6.15.0`，不存在 `ajv/dist/2020.js`。因此两个 CLI 测试套件在模块加载时失败，新的本地 Workbench 集成旅程也因 App Server 退出而失败。该结果证明当前源码 checkout 不能作为“工作台已经可运行”的验收环境；它首先需要按 lockfile 恢复正确的 standalone CLI 生产依赖拓扑。此依赖安装故障不等价于已发布 npm 包也缺 AJV，发布包仍须通过精确 release commit 的 Linux/Windows/macOS workflow matrix 单独判定。
+
+从“仓库闭环”提升到实际生产可用，至少还要关闭下列条件：
+
+1. 为 `learning synthesize` 增加签名 deployment loader 接线，或正式退役这条旁路并让候选生成只通过 canonical Release Train；不得从普通 CLI 参数直接注入 writer/authority。
+2. 部署真实 descriptor/trust root，以及 KMS/HSM、PKI、当前真人身份、审批与撤销 policy、持久 Candidate/Release/Artifact/Ledger、独立 witness、scheduler/transition authority 和生产 receipt source。
+3. 接入真实 WikiSkill Dataset Provider、目标模型 runner、独立 grader/safety/verifier、版本化 regression corpus、hidden holdout，以及 Linux/Windows/macOS 的进程或容器级 hard kill。
+4. 用至少一个低副作用、可确定判分的真实 Skill 完成 `Raw → Wiki → Candidate → Eval → Review → Shadow/Canary → Active/LKG → rollback → Wiki reconciliation` 全旅程，并保存可重放的签名证据。
+5. 完成真实 cohort/流量、质量置信区间、成本和 p95/p99 非劣门、独立 watchdog/kill switch，以及密钥轮换撤销、两机断网重启、响应丢失、磁盘写满、物理断电、备份灾备和删除传播验收。在这些条件关闭前，production auto-promotion 继续保持 `HOLD`。
+
+本次复核没有把本地测试 profile、预置候选、测试身份、模拟 Eval、通过的单元测试或 WikiSkill 论文分数计作生产证据。相关入口见 [`learning synthesize`](../packages/cli/src/commands/learning.js)、[Evolution deployment loader](../packages/cli/src/lib/evolution/evolution-deployment-loader.js)、[Workbench CLI](../packages/cli/src/commands/evolution-workbench.js)、[WikiSkill Benchmark CLI](../packages/cli/src/commands/evolution-benchmark.js) 与 [Workbench 启动合同](./EVOLUTION_WORKBENCH_STARTUP.md)。
+
 2026-09-09 发布与部署复核：主分支 `3806866d80168d44639c86bf1fc70ceed0a5e378` 已包含 CLI/IDE 发布提交 `de8ec4e5c8234087d1fb86a062371b7000931790`。公开 npm 已读取到 `chainlesschain@0.166.38`、`@chainlesschain/agent-protocol@0.1.9` 与 `@chainlesschain/context-memory-kernel@0.1.1`；Open VSX 已发布 `chainlesschain.chainlesschain-ide@0.37.92`，JetBrains 发布任务已完成 `0.4.119` 上传，后者仍取决于 JetBrains Marketplace 的外部审核/可见性。按发布决定，**未上传 VS Code 官方 Marketplace**。在无本地工作区依赖的临时 npm 安装中，清空 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 与 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT` 后，`cc evolution workbench list --limit 1` 返回 `Evolution Workbench is unavailable: a trusted deployment host is required` 并以状态码 1 失败，证明公开 CLI 在未配置目标部署时保持失败关闭；它不是 Workbench 已投入生产的证据。本机两个变量均未配置，GitHub 当前也没有关联该主分支提交的 Evolution Workbench 部署记录。因此 EVO-P2-2 继续为“仓库闭环”，而 EVO-OPT-7 的真实 descriptor/trust root、人审身份与 PKI、projection/transition/metrics authority、生产 receipt source、独立故障域及部署/灾备/权限验收仍未完成。
 
 2026-09-08～09 的模型入口增量审计继续缩小 EVO-P0-4 的仓库缺口。提交 `21d15a2fa6`、`65ace8b61f`、`69379fb697` 将 `cc stream`、WebSocket `llm.chat`/`stream.run`、QuickAsk、三类 intent 路由和 legacy WebSocket chat session 接到 invocation-scoped 的 authenticated EvolutionRun，要求 source projection、response evidence 与 durable Run completion 在成功终态前结算；显式 provider error、截断流、错误 Run、治理拒绝和取消不会伪装成成功。提交 `644301ed3d`、`e1d876f06b`、`b977993c18`、`8a023c34dc`、`ba3c4f1278` 将 Hub ask/repl、WebSocket analysis、skill commentary、resolver LLM/embedding 分别改为每次调用的受治理 wrapper，并固定模型身份、tenant、handler 与向量响应；提交 `b1875342c3` 又把同一 authenticated factory 传入 `cc ui` 启动链。`b86007144d` 保证 Desktop PDH skill 不吞掉 terminal governance failure。上述提交均已包含在 `de8ec4e5c8` 对应的 CLI `0.166.38` 发布历史中。它们仍不能证明全仓所有后台模型消费者和 Desktop IPC/独立 SDK worker 已审计完毕，故 EVO-P0-4 继续为“部分完成”。详细入口边界见 [`docs/cli/EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md`](./cli/EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md)。
@@ -74,6 +97,8 @@ shadow / canary / active / rollback
 同日对遗留 `image-gen` 模块补做了调用者级别复核：其 15 个 Desktop IPC 包含文生图、图生图、变体和超分入口。虽已导出的 `SDClient` 与 `DALLEClient` 会在任何携带用户文本或图像的 `fetch` 前失败关闭，`ImageGenManager` 原先仍可能先访问缓存并在失败后尝试 provider fallback。本批使四个内容入口在缓存、provider 选择和 fallback 前统一返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，并以定向回归验证管理器不会调用 provider、六个底层 content API 不会调用 `fetch`。状态/模型选择/进度/中断只是控制面。此处关闭该已识别遗留 IPC 的仓库内绕过面，但不改变 EVO-P0-4 的“部分完成”结论：未来受治理桥接、应用自定义 SDK worker 与真实部署 authority 仍须单独验收。
 
 同一轮清查还发现 `VolcengineToolsClient.setupKnowledgeBase()` 的 `/knowledge_base/{id}/documents` raw document upload 并不经过仅适用于 `/chat/completions` 的 Desktop model host。该路径携带用户文档，不是控制面，也不能错误复用 chat-only capability；现已在 transport 前失败关闭，并使用含 canary 的文档证明注入的 `fetch` 未被调用。未来若要恢复该云知识库上传，必须接入独立的证据投影、持久化和治理桥接。该修补再次缩小已识别直通面，但不能替代对应用自定义 SDK worker、目标环境 authority 或其他未知第三方出口的最终审计。
+
+最终出口清单还将内置 Plugin API 的边界显式列为未完成项：插件的 `llm:query`/`llm:stream` 权限复用 Desktop `LLMManager`，而 `network:http` 在已获用户权限后允许任意 HTTPS/localhost 请求。后者只记录本地 permission/method 统计，不能判定 body 是否为模型 prompt，也不能生成 EvolutionRun 所需 source/response evidence；经该 API 直连 provider 的插件属于应用定义的第三方模型出口，不能视为已治理入口。受管部署必须为这类插件提供专用受治理 bridge，或拒绝其 direct provider 使用。它与独立 SDK worker 一并保留为 EVO-P0-4 的最终审计/部署验收项，而非用仓库内的通用网络权限伪装关闭。
 
 同一增量还补强了 EVO-P0-5 与 EVO-P2-2 的可靠性证据：`365a9d7863` 将超过 256 条的 authenticated witness history 分段为不可变内容寻址前缀和有界尾部，`29dbb284f9` 修复受影响 Windows/libuv 运行时的文件句柄绑定；100 轮独立进程强退/恢复活动在六个 fault point 全部通过，但仍未覆盖 250,000-event 容量、物理断电、磁盘写满、生产签名 authority 或独立 witness 故障域，因此 EVO-P0-5 保持“部分完成”。Workbench/IDE 则完成连接恢复、完整版本分页验证、原生模型配置保存/读回和发布矩阵修复；这些结果支持 EVO-P2-2 维持“仓库闭环”，不提升为生产完成。
 
