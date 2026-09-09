@@ -8,6 +8,7 @@
 > OpenAI Codex 基线：Codex CLI `0.151.0`，2026-08-29<br>
 > 二次复审：2026-09-01，重点核对“可直接复用的本项目底座”、最新版本增量与论文结论边界<br>
 > 增量复审：2026-09-04，仓库 HEAD `8f704b5425929e5c65afb9868de26b5bc78e1294`、CLI `0.166.21`；重点核对演化四阶段、WikiSkill 数值摘要与生产闭环剩余任务<br>
+> 最新代码复审：2026-09-09，仓库 HEAD `189574969281a833130ade85b5cda8788599cadd`、根项目 `5.0.3.54`、CLI `0.166.38`、Desktop `5.0.3-alpha.135`；重点核对模型入口治理、Workbench/IDE 可靠性、分段 witness 与公开发布边界<br>
 > 参考章节格式：[`CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md`](./CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md)
 
 ## 1. 结论先行
@@ -28,13 +29,15 @@ shadow / canary / active / rollback
 
 其中，经验是证据，Wiki 是可维护的中间表示，Skill 是编译产物，Eval、权限和人工审阅是发布门。
 
-当前 ChainlessChain 已有 Trajectory、Outcome Feedback、Reflection、Skill Synthesizer、Skill Improver、Eval、Rollout、Record & Replay、Memory、Hooks 和 Desktop Phase 20 等零件，但还没有形成完整的：
+在 2026-09-01 原始基线中，ChainlessChain 已有 Trajectory、Outcome Feedback、Reflection、Skill Synthesizer、Skill Improver、Eval、Rollout、Record & Replay、Memory、Hooks 和 Desktop Phase 20 等零件，但还没有形成完整的：
 
 `Raw → persistent Wiki → candidate Skill → validation gate → promote / rollback`
 
-这里的“没有形成”是指**尚无覆盖 Synthesizer、Improver、普通 Skill、CLI/Desktop/Graph 的 canonical 闭环**，不是说仓库完全没有生命周期原语。Record & Replay 已实现 `draft→approved→validated→enabled→revoked` 的窄域纵切，Plugin runtime 也已有不可变版本、active pointer 与事务恢复；正确方向是推广和统一这些实现，而非从零开始。
+这里的“没有形成”描述的是 9 月 1 日基线：当时**尚无覆盖 Synthesizer、Improver、普通 Skill、CLI/Desktop/Graph 的 canonical 闭环**，不是说仓库完全没有生命周期原语。Record & Replay 已实现 `draft→approved→validated→enabled→revoked` 的窄域纵切，Plugin runtime 也已有不可变版本、active pointer 与事务恢复；正确方向是推广和统一这些实现，而非从零开始。
 
-二次复审后，最值得本项目借鉴的并不是再造新基础设施，而是复用现有底座补五个“连接件”：
+截至 2026-09-09 的 `main`，上述判断需要更新为：仓库内已经形成 `Raw → Wiki → Candidate → Eval/Review → Release/Pilot → Rollback/Pruning` 的受治理纵切，并接入 CLI、Desktop、Graph/App Server、Workbench、Skill Retrieval、结构化 Memory 与跨设备知识治理；已接线的受治理正式入口默认失败关闭，不能在缺少可信部署 host 时回落到测试密钥或未认证 writer。当前最大差距已从“缺少 canonical 闭环”转为**目标环境生产化**：真实 grader/runner、KMS/HSM、PKI/身份/policy、独立 witness/故障域、真实租户与流量、长账本容量和灾备演练仍未完成。因此“仓库闭环”不能写成“生产自主进化已上线”，automatic active promotion 继续保持 HOLD。
+
+二次复审归纳的五个“连接件”已成为后续实施主线；截至最新复审，多数已完成仓库实现或形成可部署端口，剩余工作集中在生产 authority 与目标环境验收：
 
 1. 在现有 [`CAPABILITY_MANIFEST`](../packages/cli/src/lib/capability-manifest.js#L32) 声明 evolution capability ID/静态 gate，再由 `cc agent --capabilities` 输出带 manifest digest 的运行时 status projection，如实公开 `implemented/wired/verified/defaultEnabled/mutationScope/lastEvidence`；不要另建第二套 capability 清单，也不要把易变证据写进静态 manifest digest。
 2. 把 Record & Replay 已有的 approval/replay/CAS 生命周期与 Plugin runtime 的不可变版本、active pointer、journal/recovery 抽成通用制品激活端口，不从零重写 Skill Registry 事务。
@@ -42,27 +45,31 @@ shadow / canary / active / rollback
 4. 修复现有 Desktop Skill metrics 接线，并结合 CLI name-level attribution 补 `SkillInvocationReceipt`，把 Skill digest、路由理由、模型/工具/环境/权限指纹和真实 outcome 连接起来；否则无法判断“用了哪个 Skill”是否真的改善结果。
 5. 把模型切换、工具结果进入模型前的投影、基础设施故障分类设为证据边界，防止混合模型归因、工具注入和瞬时 MCP/权限失败被错误编译成 Skill 规则。
 
-这五项的投入产出比高于先建设完整 Wiki UI 或新的“自进化”服务；其中第 1、2、5 项属于自动 mutation 开启前的 P0，第 3、4 项属于最小可用闭环的 P1。
+在 9 月 1 日路线设计中，这五项的投入产出比高于先建设完整 Wiki UI 或新的“自进化”服务；其中第 1、2、5 项属于自动 mutation 开启前的 P0，第 3、4 项属于最小可用闭环的 P1。当前仓库已经沿该顺序完成大部分控制面和接线，生产 mutation 是否可开启仍必须以第 9 节门槛和目标部署验收为准。
 
-源码审计显示，当前被“自进化”命名覆盖的实现实际分为三类：
+9 月 1 日原始源码审计显示，当时被“自进化”命名覆盖的实现实际分为三类：
 
 1. **指标或演示壳**：按公式递增 accuracy、返回固定预测或状态字符串，并没有训练模型或进化 Skill。
 2. **尚未接入生产主链的真实组件**：例如 `SkillImprover`，静态引用扫描只命中定义，没有找到生产调用点；历史 CLI learning hooks 已因相同问题且绕过认证 ingress 而退役。
-3. **接入后可能产生高风险副作用的 writer**：若 `SkillImprover.skillsDir` 指向当前运行时 Skill 树，它会在缺少 candidate/Eval/promotion 语义时原地覆盖 `<skillsDir>/<name>/SKILL.md>`。当前未找到生产构造点，且 CLI loader 在后续 materialize 时有 digest drift/再授权防线；这降低了静默执行风险，但没有补上 mutation-time gate。
+3. **接入后可能产生高风险副作用的 writer**：若 `SkillImprover.skillsDir` 指向当时的运行时 Skill 树，它会在缺少 candidate/Eval/promotion 语义时原地覆盖 `<skillsDir>/<name>/SKILL.md>`。原始审计未找到生产构造点，且 CLI loader 在后续 materialize 时有 digest drift/再授权防线；这降低了静默执行风险，但在 9 月 1 日基线中尚未补上 mutation-time gate。后续 candidate-only、mutation authority、evaluated promotion 与单写者治理的完成情况见 §1.1 和 §14。
 
-这里的优先级按“何时成为发布阻断”定义：当前高风险 writer 尚未接入主链，因此 P0 主要是**启用任何自主 active Skill mutation 之前必须关闭的门禁**；P1 是闭环主能力；P2 是闭环稳定后的产品化与规模化。建议顺序为：
+这里的优先级按“何时成为发布阻断”定义：当时高风险 writer 尚未接入主链，因此 P0 主要是**启用任何自主 active Skill mutation 之前必须关闭的门禁**；P1 是闭环主能力；P2 是闭环稳定后的产品化与规模化。建议顺序为：
 
 - **P0：先保证真实、安全、可恢复。** 冻结任何未经门禁的 active Skill 自动写入，消除幻影成功，建立 candidate、独立验证、原子晋级、回滚、可信审计和演化数据安全边界。
 - **P1：再建立统一演化内核。** 形成 canonical Raw/Wiki/Skill 三层控制面，统一 CLI、Desktop、Graph、Eval、Memory 与 Skill Registry，补齐模型与运行环境兼容矩阵。
 - **P2：最后扩展产品体验和规模。** 建立演化工作台、Skill 检索路由、跨设备团队知识、跨模型来源/目标适配和长时在线适应。
 
-在 P0 门禁关闭前，不应把当前 `learning synthesize`、`SkillImprover`、CLI/Desktop `self-evolving` 指标壳描述为生产级自主进化。
+在 P0 门禁关闭前，不应把历史或遗留的 `learning synthesize`、`SkillImprover`、CLI/Desktop `self-evolving` 指标壳描述为生产级自主进化。
 
-### 1.1 当前实施完成情况（截至 2026-09-04）
+### 1.1 当前实施完成情况（截至 2026-09-09）
 
-本节记录本报告转入实施后的当前状态，实施基线截至提交 `4381aece2c`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
+本节记录本报告转入实施后的当前状态。最初实施基线为提交 `4381aece2c`，最新代码复审基线为 `main@189574969281a833130ade85b5cda8788599cadd`。状态采用两层口径：**“已提交”只表示一个可独立审查、已验证的基础批次完成，不等于对应路线项已经达到第 9 节的生产验收标准**；只有剩余项全部关闭后，路线项才可标记为“完成”。
 
 2026-09-09 发布与部署复核：主分支 `3806866d80168d44639c86bf1fc70ceed0a5e378` 已包含 CLI/IDE 发布提交 `de8ec4e5c8234087d1fb86a062371b7000931790`。公开 npm 已读取到 `chainlesschain@0.166.38`、`@chainlesschain/agent-protocol@0.1.9` 与 `@chainlesschain/context-memory-kernel@0.1.1`；Open VSX 已发布 `chainlesschain.chainlesschain-ide@0.37.92`，JetBrains 发布任务已完成 `0.4.119` 上传，后者仍取决于 JetBrains Marketplace 的外部审核/可见性。按发布决定，**未上传 VS Code 官方 Marketplace**。在无本地工作区依赖的临时 npm 安装中，清空 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 与 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT` 后，`cc evolution workbench list --limit 1` 返回 `Evolution Workbench is unavailable: a trusted deployment host is required` 并以状态码 1 失败，证明公开 CLI 在未配置目标部署时保持失败关闭；它不是 Workbench 已投入生产的证据。本机两个变量均未配置，GitHub 当前也没有关联该主分支提交的 Evolution Workbench 部署记录。因此 EVO-P2-2 继续为“仓库闭环”，而 EVO-OPT-7 的真实 descriptor/trust root、人审身份与 PKI、projection/transition/metrics authority、生产 receipt source、独立故障域及部署/灾备/权限验收仍未完成。
+
+2026-09-08～09 的模型入口增量审计继续缩小 EVO-P0-4 的仓库缺口。提交 `21d15a2fa6`、`65ace8b61f`、`69379fb697` 将 `cc stream`、WebSocket `llm.chat`/`stream.run`、QuickAsk、三类 intent 路由和 legacy WebSocket chat session 接到 invocation-scoped 的 authenticated EvolutionRun，要求 source projection、response evidence 与 durable Run completion 在成功终态前结算；显式 provider error、截断流、错误 Run、治理拒绝和取消不会伪装成成功。提交 `644301ed3d`、`e1d876f06b`、`b977993c18`、`8a023c34dc`、`ba3c4f1278` 将 Hub ask/repl、WebSocket analysis、skill commentary、resolver LLM/embedding 分别改为每次调用的受治理 wrapper，并固定模型身份、tenant、handler 与向量响应；提交 `b1875342c3` 又把同一 authenticated factory 传入 `cc ui` 启动链。`b86007144d` 保证 Desktop PDH skill 不吞掉 terminal governance failure。上述提交均已包含在 `de8ec4e5c8` 对应的 CLI `0.166.38` 发布历史中。它们仍不能证明全仓所有后台模型消费者和 Desktop IPC/独立 SDK worker 已审计完毕，故 EVO-P0-4 继续为“部分完成”。详细入口边界见 [`docs/cli/EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md`](./cli/EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md)。
+
+同一增量还补强了 EVO-P0-5 与 EVO-P2-2 的可靠性证据：`365a9d7863` 将超过 256 条的 authenticated witness history 分段为不可变内容寻址前缀和有界尾部，`29dbb284f9` 修复受影响 Windows/libuv 运行时的文件句柄绑定；100 轮独立进程强退/恢复活动在六个 fault point 全部通过，但仍未覆盖 250,000-event 容量、物理断电、磁盘写满、生产签名 authority 或独立 witness 故障域，因此 EVO-P0-5 保持“部分完成”。Workbench/IDE 则完成连接恢复、完整版本分页验证、原生模型配置保存/读回和发布矩阵修复；这些结果支持 EVO-P2-2 维持“仓库闭环”，不提升为生产完成。
 
 2026-09-02 已提交窄纵切 `881abf6090`：类型化 matrix receipt envelope 只携带有界 `receiptDigest`，`SkillPromotionController.promoteEvaluated()` 在消费 mutation authority、创建 release prepare 或改写 active state 之前，使用独立 verifier 校验完整 signed matrix receipt，并把 candidate content、dependency lock、runtime manifest、target matrix、active digest/revision 和 `accepted` decision 绑定到同一次晋级。既有 release intent 继续通过 `evalReceipt` digest 固定这份证据。
 
@@ -1608,16 +1615,18 @@ Skill/Plugin 市场增加：签名、来源 commit、SBOM、依赖 lock、权限
 
 ## 12. 最终建议
 
-ChainlessChain 不缺“会记、会反思、会写 Skill”的功能点，真正缺的是把这些功能变成可信闭环的演化控制平面。
+截至 2026-09-09，ChainlessChain 已不再缺少仓库内的演化控制平面骨架和主要受控纵切；Raw/Wiki/Candidate/Eval/Review/Release/Pilot/Rollback/Pruning、结构化 Memory、Workbench、Retrieval 和跨设备知识治理都已有相应实现。真正缺的是关闭仍为部分完成的仓库路径，并把这些能力接到目标环境的独立 authority、真实数据与长期运营中，证明它们在容量、故障和攻击条件下仍然成立。
 
-建议把近期资源集中到两个阻断式 P0：
+建议把近期资源集中到四个发布阻断面：
 
-1. **所有自动变更 candidate-only，独立评测后才能由单写者原子晋级并可回滚。**
-2. **Raw→model-visible/trusted projection→Wiki→Skill 全链路建立不可信数据、权限、秘密、路径和审计边界。**
+1. **EVO-P0-3：接入真实跨平台 grader/runner 和隔离环境。** 用生产 PKI、撤销/轮换和资源攻击验收关闭 Eval Gate，不以 mock authority 或本机测试替代。
+2. **EVO-P0-4：完成仓库级最终模型入口审计。** 继续追踪 Desktop IPC、独立 SDK worker 和后台消费者，保持所有未覆盖模型/媒体入口在 provider、文件或网络访问前失败关闭。
+3. **EVO-P0-5：完成账本容量与物理故障验收。** 覆盖 250,000-event、磁盘写满、物理断电、长期资源曲线和独立 witness 故障域。
+4. **EVO-OPT-7：交付真实 deployment composition。** 配置签名 descriptor/trust root、KMS/HSM、身份/policy、projection/transition/metrics authority、生产 receipt source、灾备和权限审计，并保留无配置时的失败关闭。
 
-最短 P1 路径是：扩展已有 `CAPABILITY_MANIFEST` 并修复 metrics 接线 → 把 recorded Skill lifecycle 与 Plugin activation transaction 抽成通用 Registry 端口 → 用 `GoalConditionEngine + Eval + worktree/checkpoint` 跑通有界 candidate-only 改进循环 → 补 `SkillInvocationReceipt`、模型分段和失败分类 → 再接 Wiki Maintainer。这个顺序能先验证 ROI 和控制协议，也最大限度复用现有实现。
+上述发布门关闭后，最短产品验证路径不是继续增加控制协议，而是选择低风险真实租户运行有界 shadow/canary Pilot：预注册目标与退出门，观察质量、成本、时延、安全和回滚，使用现有 `SkillInvocationReceipt`、Workbench 与 outcome index 做独立归因，并据真实用户分布校准 Retrieval 和 Eval。
 
-完成这些前提后，再以现有 Rollout、Memory、Record & Replay、Skill Runtime 和 Desktop Phase 20 为 adapter 扩展到受控生产 Pilot，而不是继续新增平行的“自进化”模块。这样才能把 WikiSkill 的研究启发、Claude Code 的评测/扩展载体和 Codex 的安全/编排基础，转化为 ChainlessChain 可验证、可维护、可规模化的产品能力。
+因此下一阶段应以“部署、演练、观测、校准”为主，而不是新增平行的“自进化”模块或提前打开 automatic active promotion。只有目标环境证据满足第 9 节门槛，才能把当前的“仓库闭环”升级为生产完成。
 
 ## 13. 2026-09-04 增量复审：两份材料的取舍与追加任务
 
@@ -1761,11 +1770,17 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 2026-09-06 Desktop OpenAI-compatible 图片请求路由：`prepareDesktopModelRequest()` 现在识别最终 wire payload 中的 `messages[].content` block 数组，转入 `openDesktopMultimodalModelRun()`，而不将图片强转为文本；返回的 request 只能是 CLI Agent v3 `prepareModelRequest()` authenticated readback 后的 messages/tools，响应仍写入并 complete 同一 Run。无 branded/有效 composition 时在 provider 前以原 terminal code 失败。新增路由测试确认图片 block 必经 `desktop-multimodal-model` mode，连同部署与 LLM 治理回归 31/31 通过。尚无真实 Desktop deployment factory+provider 成功 E2E，且现有业务图片入口仍故意失败关闭，故 P0-4 继续为部分完成。
 
-## 14. 全量任务完成情况（截至 2026-09-06）
+## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
 
-总计 20 项：**6 项已完成、8 项仓库闭环、6 项部分完成、0 项待完成**。本统计直接对应下方 20 行最终状态；EVO-P1-6 已完成独立 `cc chat`、Desktop 默认 deployment loader 与既有 Agent/App Server/legacy WebSocket 入口的仓库闭环。其他部分完成项不未经核验批量升级。计入 Knowledge 直接/Wiki 来源真实回滚、原始发布顺序认证、重启恢复、candidate 持久阻断及组合处置、晋升/回滚/迁移的已知来源防复活、真实 Wiki 定点处置与同账本最终联合结算、后续 Wiki 写入和多级来源准入、既有多级 Wiki 派生 Skill 的实际处置与准入复核，以及显式有界跨 Wiki run 的实际目标清理，并补齐 Workbench 真实审核与回滚持久化/恢复、Registry 当前状态投影、完整宿主启动、部署失败隔离及真实文件资源打开/独立重开及同账本回滚控制端口，以及独立 candidate quarantine 与真实回滚的联合结算和跨进程恢复后共有 **179 个基础批次**。这两个计数维度不能混用：基础提交数量不代表路线项完成数量。
+总计 20 项：**6 项已完成、8 项仓库闭环、6 项部分完成、0 项待完成**。本统计直接对应下方 20 行最终状态；9 月 8～9 日新增的模型入口、Workbench/IDE、Windows 文件身份和 witness 恢复证据没有改变生产验收边界，因此不未经核验批量升级状态。EVO-P1-6 已完成独立 `cc chat`、Desktop 默认 deployment loader 与既有 Agent/App Server/legacy WebSocket 入口的仓库闭环；EVO-P0-4、EVO-P0-5 仍因全仓最终入口、目标环境 authority、容量/物理故障和独立故障域验收保持部分完成，EVO-P2-2 仍为仓库闭环。此前截至 9 月 6 日的逐批台账共记录 **179 个基础批次**；9 月 7～9 日增量以本节前述提交和 §1.1 的证据链为准，不把 merge/checkpoint/release commit 机械换算成新的“基础批次”总数。这两个计数维度不能混用：基础批次数量不代表路线项完成数量。
+
+最新增量对总表的映射如下：
+
+- **EVO-P0-4：状态不变，证据增强。** 新增 direct stream、QuickAsk、intent、legacy WebSocket chat、Hub ask/repl/skill/resolver 与 `cc ui` 的 authenticated per-invocation 接线；剩余是仓库级最终入口审计、Desktop IPC/独立 SDK worker 等未覆盖路径，以及生产 KMS/HSM/PKI/policy/witness 和真实流量校准。
+- **EVO-P0-5：状态不变，故障恢复证据增强。** 新增 segmented witness、Windows 句柄绑定与 100 轮六故障点进程恢复；250,000-event、物理断电/磁盘写满、生产签名 authority 和独立 witness 故障域仍是发布门。
+- **EVO-P2-2：维持仓库闭环。** Workbench 连接恢复、最多 10,000 项完整分页/投影校验、模型配置原子保存与原生宿主验证已经合入并随 CLI `0.166.38`、Open VSX `0.37.92`、JetBrains `0.4.119` 发布链交付；未配置可信 deployment descriptor/trust root 时公开 CLI 明确失败关闭，真实部署仍归 EVO-OPT-7。
 
 | 优先级 | 编号     | 任务                                          | 状态        | 已完成与验证证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 剩余工作                                                                                                                                                                                                                                                   |
 | ------ | -------- | --------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
