@@ -14,6 +14,15 @@ unit tests pass. It is intentionally not wired into the current ledger or file
 backend yet, so this checkpoint does not remediate or waive the observed
 capacity failure.
 
+The next v2 core delivery is implemented in `evolution-ledger-manifest-chain.js`.
+It creates fixed-size canonical digest payloads, retains and reads back each
+payload through the immutable-store contract, then signs a linked manifest and
+head. It verifies only the new segment when sealing and verifies every segment
+during an explicit audit. Its 19 combined contract tests pass. It intentionally
+does not persist a manifest/head CAS, publish a witness checkpoint, write live
+events, or migrate v1 data; those remain required before this core can become a
+backend or be measured by the capacity gate.
+
 ## Observed baseline
 
 At commit `1613df9fdad5bc9a7fc6c5c6ee0ec26b52588b11`, the three-platform smoke
