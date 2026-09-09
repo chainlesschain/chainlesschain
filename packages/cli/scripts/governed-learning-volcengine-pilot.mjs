@@ -1,0 +1,263 @@
+#!/usr/bin/env node
+
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { loadConfig } from "../src/lib/config-manager.js";
+import {
+  computeEvolutionDeploymentDigest as digest,
+  EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
+  serializeEvolutionDeploymentDescriptorPayload,
+} from "../src/lib/evolution/evolution-deployment-loader.js";
+import { firstBalancedJson } from "../src/lib/json-schema-output.js";
+
+const cliRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const bin = path.join(cliRoot, "bin", "chainlesschain.js");
+const startedAt = Date.now();
+const root = fs.mkdtempSync(
+  path.join(
+    fs.realpathSync.native(os.tmpdir()),
+    "cc-volcengine-learning-pilot-",
+  ),
+);
+
+function runCli(args, env, cwd) {
+  const result = spawnSync(process.execPath, [bin, ...args], {
+    cwd,
+    env,
+    encoding: "utf8",
+    timeout: 120_000,
+    maxBuffer: 2 * 1024 * 1024,
+    windowsHide: true,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(
+      `CLI ${args.join(" ")} failed (${result.status}): ${result.stderr.trim()}`,
+    );
+  }
+  return result.stdout;
+}
+
+function sha256(bytes) {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function parseCliJson(stdout) {
+  const json = firstBalancedJson(stdout, "{");
+  if (json) return JSON.parse(json);
+  throw new Error("CLI did not return a JSON result");
+}
+
+try {
+  const config = loadConfig({ failIfUnavailable: true });
+  const configured = config?.llm || {};
+  const provider = "volcengine";
+  const model = configured.model || process.env.LLM_MODEL;
+  const baseUrl =
+    configured.baseUrl || "https://ark.cn-beijing.volces.com/api/v3";
+  const apiKey = configured.apiKey || process.env.VOLCENGINE_API_KEY;
+  if (configured.provider && configured.provider !== provider) {
+    throw new Error(
+      `configured provider is ${configured.provider}; this pilot requires volcengine`,
+    );
+  }
+  if (!model) throw new Error("Volcengine model is not configured");
+  if (!apiKey) throw new Error("Volcengine API key is not configured");
+
+  const workspace = path.join(root, "workspace");
+  const activeRoot = path.join(root, "active-skills");
+  const candidateRoot = path.join(root, "candidate-skills");
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(activeRoot);
+
+  const moduleSource = `export async function createChainlessChainCommandDependencies({ descriptor, factories }) {
+    const llmChat = factories.createGovernedSkillSynthesisProviderChat({
+      provider: "volcengine",
+      model: ${JSON.stringify(model)},
+      baseUrl: ${JSON.stringify(baseUrl)},
+      apiKey: process.env.VOLCENGINE_API_KEY,
+      maxTokens: 1024,
+      timeoutMs: 60000
+    });
+    const evaluateCandidate = factories.createGovernedSkillSynthesisCandidateEvaluator({
+      maxContentBytes: 131072
+    });
+    return {
+      learningSynthesisHost: factories.createGovernedSkillSynthesisCliHost({
+        descriptor: {
+          tenantId: "tenant:local-volcengine-pilot",
+          handlerArtifactDigest: descriptor.moduleDigest
+        },
+        llmChat,
+        candidateOutputDir: ${JSON.stringify(candidateRoot)},
+        activeSkillsDirs: [${JSON.stringify(activeRoot)}],
+        evaluateCandidate,
+        synthesis: { minToolCount: 3, minScore: 0.8, minSimilar: 1 }
+      })
+    };
+  }\n`;
+  const modulePath = path.join(root, "learning-deployment.mjs");
+  fs.writeFileSync(modulePath, moduleSource, { encoding: "utf8", flag: "wx" });
+  const moduleDigest = digest(Buffer.from(moduleSource));
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const trustRoot = publicKey.export({ type: "spki", format: "pem" });
+  const descriptor = {
+    schema: EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
+    revision: 1,
+    modulePath,
+    moduleDigest,
+    trustRootDigest: digest(trustRoot),
+    commands: ["learning"],
+  };
+  descriptor.signature = sign(
+    null,
+    Buffer.from(serializeEvolutionDeploymentDescriptorPayload(descriptor)),
+    privateKey,
+  ).toString("base64");
+  const descriptorPath = path.join(root, "descriptor.json");
+  const trustRootPath = path.join(root, "trust-root.pem");
+  fs.writeFileSync(descriptorPath, JSON.stringify(descriptor), { flag: "wx" });
+  fs.writeFileSync(trustRootPath, trustRoot, { flag: "wx" });
+
+  const trajectories = [
+    {
+      id: "volcengine-pilot-primary",
+      session_id: "volcengine-pilot-session-primary",
+      user_intent:
+        "Review a service security configuration and report risky settings",
+      tool_chain: JSON.stringify([
+        {
+          tool: "read_config",
+          args: { fixture: "synthetic-a" },
+          status: "success",
+        },
+        {
+          tool: "analyze_policy",
+          args: { fixture: "synthetic-a" },
+          status: "success",
+        },
+        {
+          tool: "report_findings",
+          args: { fixture: "synthetic-a" },
+          status: "success",
+        },
+      ]),
+      tool_count: 3,
+      final_response:
+        "Synthetic configuration review completed with risky settings reported.",
+      outcome_score: 0.95,
+      complexity_level: "complex",
+      created_at: "2026-09-09 01:00:00",
+      completed_at: "2026-09-09 01:01:00",
+    },
+    {
+      id: "volcengine-pilot-similar",
+      session_id: "volcengine-pilot-session-similar",
+      user_intent: "Audit another service security configuration",
+      tool_chain: JSON.stringify([
+        {
+          tool: "read_config",
+          args: { fixture: "synthetic-b" },
+          status: "success",
+        },
+        {
+          tool: "analyze_policy",
+          args: { fixture: "synthetic-b" },
+          status: "success",
+        },
+        {
+          tool: "report_findings",
+          args: { fixture: "synthetic-b" },
+          status: "success",
+        },
+      ]),
+      tool_count: 3,
+      final_response: "Synthetic configuration audit completed.",
+      outcome_score: 0.9,
+      complexity_level: "complex",
+      created_at: "2026-09-09 00:00:00",
+      completed_at: "2026-09-09 00:01:00",
+    },
+  ];
+  const inputPath = path.join(root, "trajectories.json");
+  fs.writeFileSync(inputPath, JSON.stringify(trajectories), { flag: "wx" });
+  const env = {
+    ...process.env,
+    FORCE_COLOR: "0",
+    VOLCENGINE_API_KEY: apiKey,
+    CHAINLESSCHAIN_HOME: path.join(root, "cli-home"),
+    CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: path.join(root, "security-anchor"),
+    CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR: descriptorPath,
+    CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT: trustRootPath,
+  };
+
+  const imported = parseCliJson(
+    runCli(
+      ["learning", "import", "--input", inputPath, "--json"],
+      env,
+      workspace,
+    ),
+  );
+  const synthesis = parseCliJson(
+    runCli(["learning", "synthesize", "--json"], env, workspace),
+  );
+  if (synthesis.status !== "completed" || synthesis.created?.length !== 1) {
+    throw new Error(
+      `expected one accepted candidate, received ${JSON.stringify(synthesis)}`,
+    );
+  }
+  const skillName = synthesis.created[0];
+  const skillPath = path.join(candidateRoot, skillName, "1.0.0", "SKILL.md");
+  const content = fs.readFileSync(skillPath);
+  const activeEntries = fs.readdirSync(activeRoot);
+  if (activeEntries.length !== 0) {
+    throw new Error("pilot mutated the active Skill root");
+  }
+
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        schema: "chainlesschain.governed-learning-volcengine-pilot/v1",
+        ok: true,
+        provider,
+        model,
+        elapsedMs: Date.now() - startedAt,
+        imported: imported.imported,
+        synthesis: {
+          status: synthesis.status,
+          created: synthesis.created,
+          skippedCount: synthesis.skipped?.length || 0,
+        },
+        candidate: {
+          skillName,
+          contentDigest: sha256(content),
+          contentBytes: content.byteLength,
+          deterministicPrecheck: "passed",
+        },
+        activeMutationCount: activeEntries.length,
+        deployment: {
+          descriptorSignature: "verified-by-cli-loader",
+          trustRoot: "ephemeral-local-pilot",
+          candidateRegistry: "isolated-temporary-directory",
+        },
+        limitations: [
+          "no independent model grader",
+          "no production PKI/KMS/witness authority",
+          "no promotion or active deployment",
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+} finally {
+  fs.rmSync(root, { recursive: true, force: true });
+}

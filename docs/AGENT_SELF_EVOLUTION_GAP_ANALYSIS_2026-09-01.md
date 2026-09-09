@@ -69,12 +69,12 @@ shadow / canary / active / rollback
 
 本次复核分别判断代码是否接入公开入口、当前审计主机是否能够实际启动，以及是否已有足以支持生产声明的目标部署和真实效果证据。
 
-| 表面 | 仓库与发布状态 | 当前实测 | 可用性结论 |
-| ---- | -------------- | -------- | ---------- |
-| CLI 受治理 Skill 自进化 | CLI `0.166.38` 已发布；Agent/stream/chat/Cowork/Hub 等已接入 authenticated Evolution composition，Release Train、Wiki Maintainer、Candidate/Eval/Review/Pilot/Promotion/rollback 原语和持久账本均已存在 | 无 descriptor/trust root 时，`cc evolution workbench list --limit 1` 以状态码 1 返回 `a trusted deployment host is required`；这是预期的失败关闭 | **治理运行时已在 CLI 使用，但默认公开安装没有开启生产演化 authority；不能称为开箱即用的自动 Skill 自进化** |
-| `cc learning synthesize` | 源码已允许签名 descriptor 将 `learning` 加入 command allowlist，并只通过内置 branded `GovernedSkillSynthesisCliHost` 接收 LLM、隔离 candidate root、active roots 和 evaluator；普通 CLI 参数不能注入 writer/authority | 结构相似的伪 Host 被拒绝；真实签名 descriptor 已在独立 CLI 子进程中导入两条 trajectory、调用 Host、持久化 evaluated candidate，并验证 active Skill 树为空。无 Host 时返回 `LEARNING_SYNTHESIS_UNAVAILABLE`，不会写 active Skill；新增跨进程测试 1/1、相关 loader/Host/命令测试 56/56 通过 | **仓库接线已完成；仍需随下一 CLI 版本发布，并由目标部署提供真实模型、评测与存储 authority** |
-| VS Code/VSCodium Evolution Workbench | 扩展 `0.37.92` 已有 list、完整分页、compare、approve/reject、rollback、连接恢复及独立 App Server profile 调用链；IDE 只消费 CLI-owned 投影，不持有 writer 或审批身份 | 12 项 Workbench profile/view 单元测试通过；另有 15 项签名启动/CLI 子进程/审核/回滚/重启持久化测试通过。实际 Webview 点击旅程返回 `liveEvolution:true`，覆盖页面批准、回滚、CLI 重启回读、501 个版本分页和窄窗口布局。审计主机配置仍为 `local-test`，使用 fixture 密钥、模拟真人和模拟 Eval | **本地测试模式已经实际可用；没有生产 Host 时页面仍只能显示 unavailable，测试旅程不构成生产 authority 验收** |
-| WikiSkill 演化与 Benchmark | Wiki→单 Skill proposal→candidate→Release Train 已形成仓库纵切；`cc evolution benchmark run/show` 也已注册，要求 branded Dataset Provider、Target Runner、Grader、Report Attestor 和 Ledger Adapter | Benchmark 命令/执行宿主定向测试中 5 项通过；无可信 host 时命令明确 unavailable。没有本次可回读的、目标模型与五个真实数据集绑定的签名 `VERIFIED` 报告 | **协议、统计内核和持久报告入口已实现；真实 WikiSkill 效果与无人值守生产演化尚不可用，论文数字仍为 `external-paper-only / HOLD`** |
+| 表面                                 | 仓库与发布状态                                                                                                                                                                                                        | 当前实测                                                                                                                                                                                                                                                                                   | 可用性结论                                                                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 受治理 Skill 自进化              | CLI `0.166.38` 已发布；Agent/stream/chat/Cowork/Hub 等已接入 authenticated Evolution composition，Release Train、Wiki Maintainer、Candidate/Eval/Review/Pilot/Promotion/rollback 原语和持久账本均已存在               | 无 descriptor/trust root 时，`cc evolution workbench list --limit 1` 以状态码 1 返回 `a trusted deployment host is required`；这是预期的失败关闭                                                                                                                                           | **治理运行时已在 CLI 使用，但默认公开安装没有开启生产演化 authority；不能称为开箱即用的自动 Skill 自进化**                       |
+| `cc learning synthesize`             | 源码已允许签名 descriptor 将 `learning` 加入 command allowlist，并只通过内置 branded `GovernedSkillSynthesisCliHost` 接收 LLM、隔离 candidate root、active roots 和 evaluator；普通 CLI 参数不能注入 writer/authority | 结构相似的伪 Host 被拒绝；真实签名 descriptor 已在独立 CLI 子进程中导入两条 trajectory、调用 Host、持久化 evaluated candidate，并验证 active Skill 树为空。无 Host 时返回 `LEARNING_SYNTHESIS_UNAVAILABLE`，不会写 active Skill；新增跨进程测试 1/1、相关 loader/Host/命令测试 56/56 通过  | **仓库接线已完成；仍需随下一 CLI 版本发布，并由目标部署提供真实模型、评测与存储 authority**                                      |
+| VS Code/VSCodium Evolution Workbench | 扩展 `0.37.92` 已有 list、完整分页、compare、approve/reject、rollback、连接恢复及独立 App Server profile 调用链；IDE 只消费 CLI-owned 投影，不持有 writer 或审批身份                                                  | 12 项 Workbench profile/view 单元测试通过；另有 15 项签名启动/CLI 子进程/审核/回滚/重启持久化测试通过。实际 Webview 点击旅程返回 `liveEvolution:true`，覆盖页面批准、回滚、CLI 重启回读、501 个版本分页和窄窗口布局。审计主机配置仍为 `local-test`，使用 fixture 密钥、模拟真人和模拟 Eval | **本地测试模式已经实际可用；没有生产 Host 时页面仍只能显示 unavailable，测试旅程不构成生产 authority 验收**                      |
+| WikiSkill 演化与 Benchmark           | Wiki→单 Skill proposal→candidate→Release Train 已形成仓库纵切；`cc evolution benchmark run/show` 也已注册，要求 branded Dataset Provider、Target Runner、Grader、Report Attestor 和 Ledger Adapter                    | Benchmark 命令/执行宿主定向测试中 5 项通过；无可信 host 时命令明确 unavailable。没有本次可回读的、目标模型与五个真实数据集绑定的签名 `VERIFIED` 报告                                                                                                                                       | **协议、统计内核和持久报告入口已实现；真实 WikiSkill 效果与无人值守生产演化尚不可用，论文数字仍为 `external-paper-only / HOLD`** |
 
 审计主机最初暴露了一个独立的本地开发环境故障：`packages/cli` 声明 `ajv ^8.20.0`，但 workspace 当时解析到根目录 AJV `6.15.0`，不存在 `ajv/dist/2020.js`。现已使用仓库与发布 CI 相同的 `.github/scripts/ci-install-cli-production-deps.sh` 恢复 standalone CLI 生产依赖，重新解析为 AJV `8.20.0`；此前失败的 Workbench 与新增治理接线测试随后通过。该修复只改变本机未跟踪的 `packages/cli/node_modules`，没有修改 lockfile。已发布 npm 包仍须以精确 release commit 的 Linux/Windows/macOS workflow matrix 判定，不能由本机修复反推发布包状态。
 
@@ -1806,6 +1806,30 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 2026-09-06 Desktop Agent v3 多模态桥接基础：新增 `openDesktopMultimodalModelRun()`，只接受 branded Desktop host 与对象请求，创建独立 `desktop-multimodal-model-*` Run，验证 composition/ingress 的 run 与 tenant 绑定，并调用真实 CLI `evolutionIngress.prepareModelRequest()`；该路径是 CLI Agent v3 将图片块先以 digest/长度持久投影、readback 后才恢复 transport 的唯一准入点。非法请求在 factory 前拒绝，部署定向测试 10/10 通过。当前尚未让任何图片/音视频业务入口调用此原语，亦未完成真实 Desktop deployment factory 的多模态 composition/readback/provider E2E，因此现有失败关闭不变，P0-4 不升级。
 
 2026-09-06 Desktop OpenAI-compatible 图片请求路由：`prepareDesktopModelRequest()` 现在识别最终 wire payload 中的 `messages[].content` block 数组，转入 `openDesktopMultimodalModelRun()`，而不将图片强转为文本；返回的 request 只能是 CLI Agent v3 `prepareModelRequest()` authenticated readback 后的 messages/tools，响应仍写入并 complete 同一 Run。无 branded/有效 composition 时在 provider 前以原 terminal code 失败。新增路由测试确认图片 block 必经 `desktop-multimodal-model` mode，连同部署与 LLM 治理回归 31/31 通过。尚无真实 Desktop deployment factory+provider 成功 E2E，且现有业务图片入口仍故意失败关闭，故 P0-4 继续为部分完成。
+
+### 13.4 火山引擎真实模型 Pilot（2026-09-09）
+
+在前一批 `learning synthesize` 签名 Host 接线基础上，本批新增两个仅由认证 deployment module 取得的内置端口：
+
+- `createGovernedSkillSynthesisProviderChat()` 复用 CLI 统一 provider 路由，以闭包持有凭据，限制 cloud provider、HTTPS endpoint、消息数量、总提示词字节、最大输出 token 和调用 deadline；返回端口不暴露 API Key。
+- `createGovernedSkillSynthesisCandidateEvaluator()` 在落盘前执行确定性预检：Skill 名称、必要章节、pattern/trajectory 身份、工具来源约束、内容大小、secret/PII plaintext 与 prompt-injection 检查。它是第一层安全预检，不能冒充独立 Eval Gate 或模型 grader。
+
+本机当前有效 CLI 配置为 `provider=volcengine`、`model=deepseek-v4-flash-260425`；凭据仅检查“已配置”，未写入日志、仓库、descriptor 或报告。最小 `cc llm test` 实际连通成功，响应耗时约 1.5 秒。
+
+随后运行 `npm run test:governed-learning-volcengine-pilot`，真实路径为：
+
+```text
+临时 Ed25519 trust root + 签名 deployment descriptor
+  → CLI 导入 2 条纯合成 trajectory
+  → 火山引擎模型抽取可复用 pattern
+  → 确定性候选预检
+  → 隔离 candidate registry 持久化
+  → 校验 active Skill root 零变更
+```
+
+真实模型路径连续两次执行均为 `ok=true`。第一次耗时 9.350 秒，生成候选 `review-service-security-configuration`，`SKILL.md` 为 955 bytes，内容摘要 `sha256:a04029f7df3a1eb0a296dd86466e04c4d24947db201fa5ffcc9c37b290587c5b`；安全收紧后复跑耗时 7.512 秒，生成候选 `security-configuration-review`，`SKILL.md` 为 960 bytes，内容摘要 `sha256:be19589cc3bd3fde0552888a703f554abf55247102042719133c3dcbcf31cdd3`。两次确定性预检均通过且 `activeMutationCount=0`。同一输入产生了不同名称和内容摘要，也实证了生产 Eval 必须按不可变 candidate digest 判定，不能按名称或单次模型输出授权。临时 trust root、descriptor、trajectory DB 与候选目录均在各次报告输出后清理。相关聚焦回归为 5 个文件、61/61 通过，新增文件 ESLint 通过。
+
+因此状态可从“只有 mock LLM 的仓库接线”提升为“**单机真实火山模型的 candidate-only Pilot 已验证**”，但生产结论仍为 `HOLD`：本次使用临时本机信任根和合成轨迹，没有独立模型 grader/safety/verifier、生产 PKI/KMS/witness、持久 Candidate/Artifact/Ledger authority、真实用户数据集、hidden holdout、跨平台矩阵、人工 quorum、shadow/canary、promotion/active/LKG/rollback 全旅程。尤其不能把确定性预检等价为 WikiSkill 的真实效果验证，也不能开启 automatic active promotion。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 

@@ -19,6 +19,7 @@
     "test:watch": "vitest watch",
     "test:scheduler-reliability-soak": "node scripts/scheduler-reliability-soak.mjs",
     "test:evolution-ledger-reliability-soak": "node scripts/evolution-ledger-reliability-soak.mjs",
+    "test:governed-learning-volcengine-pilot": "node scripts/governed-learning-volcengine-pilot.mjs",
     "test:session-message-reliability-soak": "node scripts/session-message-reliability-soak.mjs",
     "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",

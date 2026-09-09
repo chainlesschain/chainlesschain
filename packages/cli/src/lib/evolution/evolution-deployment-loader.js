@@ -128,10 +128,21 @@ function dependencies(value, commandName) {
 async function loadBuiltInFactories(commandName) {
   const factories = {};
   if (commandName === "learning") {
-    const { createGovernedSkillSynthesisCliHost } =
-      await import("./governed-skill-synthesis-cli-host.js");
+    const [
+      { createGovernedSkillSynthesisCliHost },
+      { createGovernedSkillSynthesisProviderChat },
+      { createGovernedSkillSynthesisCandidateEvaluator },
+    ] = await Promise.all([
+      import("./governed-skill-synthesis-cli-host.js"),
+      import("./governed-skill-synthesis-provider-chat.js"),
+      import("./governed-skill-synthesis-candidate-evaluator.js"),
+    ]);
     factories.createGovernedSkillSynthesisCliHost =
       createGovernedSkillSynthesisCliHost;
+    factories.createGovernedSkillSynthesisProviderChat =
+      createGovernedSkillSynthesisProviderChat;
+    factories.createGovernedSkillSynthesisCandidateEvaluator =
+      createGovernedSkillSynthesisCandidateEvaluator;
   }
   if (commandName === "marketplace" || commandName === "desktop") {
     const [

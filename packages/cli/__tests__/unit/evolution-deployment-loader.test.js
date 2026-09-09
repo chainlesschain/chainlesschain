@@ -152,6 +152,12 @@ describe("signed evolution deployment loader", () => {
             synthesisHostFactoryAvailable:
               typeof factories.createGovernedSkillSynthesisCliHost ===
               "function",
+            providerChatFactoryAvailable:
+              typeof factories.createGovernedSkillSynthesisProviderChat ===
+              "function",
+            candidateEvaluatorFactoryAvailable:
+              typeof factories.createGovernedSkillSynthesisCandidateEvaluator ===
+              "function",
           }),
         }),
       }),
@@ -159,6 +165,8 @@ describe("signed evolution deployment loader", () => {
       commandName: "learning",
       revision: 7,
       synthesisHostFactoryAvailable: true,
+      providerChatFactoryAvailable: true,
+      candidateEvaluatorFactoryAvailable: true,
     });
   });
 

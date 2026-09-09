@@ -145,6 +145,7 @@ Output ONLY valid JSON with these fields:
   "verification": "How to confirm success",
   "tools": ["tool_name_1", "tool_name_2"]
 }
+Every value in "tools" MUST be copied exactly from a tool name present in the trajectory.
 If the trajectory is too specific or not reusable, respond with: {"not_applicable": true}`,
     },
     {
