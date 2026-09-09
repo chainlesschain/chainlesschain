@@ -11,6 +11,7 @@ import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { registerEvolutionWorkbenchCommands } from "./evolution-workbench.js";
+import { registerEvolutionAttestorTrustCommands } from "./evolution-attestor-trust.js";
 import { registerGovernedKnowledgeCommands } from "./evolution-knowledge.js";
 import { registerWikiSkillBenchmarkCommands } from "./evolution-benchmark.js";
 import {
@@ -52,6 +53,7 @@ export function registerEvolutionCommand(program, dependencies = {}) {
     );
 
   registerEvolutionWorkbenchCommands(evolution, dependencies);
+  registerEvolutionAttestorTrustCommands(evolution, dependencies);
   registerGovernedKnowledgeCommands(evolution, dependencies);
   registerWikiSkillBenchmarkCommands(evolution, dependencies);
 

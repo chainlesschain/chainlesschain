@@ -205,6 +205,8 @@ async function loadBuiltInFactories(commandName) {
       },
       { createWikiSkillBenchmarkLedgerAdapter },
       { createEvolutionEvalProcessSupervisor },
+      { createGovernedSkillSynthesisAttestorTrustOperationsClient },
+      { createGovernedSkillSynthesisAttestorTrustOperationsCliHost },
     ] = await Promise.all([
       import("./evolution-workbench-cli-host.js"),
       import("./evolution-workbench-review-ledger-adapter.js"),
@@ -218,6 +220,8 @@ async function loadBuiltInFactories(commandName) {
       import("./wikiskill-benchmark-execution-host.js"),
       import("./wikiskill-benchmark-ledger-adapter.js"),
       import("./evolution-eval-process-supervisor.js"),
+      import("./governed-skill-synthesis-attestor-trust-operations-client.js"),
+      import("./governed-skill-synthesis-attestor-trust-operations-cli-host.js"),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createEvolutionWorkbenchReviewRuntime =
@@ -246,6 +250,10 @@ async function loadBuiltInFactories(commandName) {
       createWikiSkillBenchmarkLedgerAdapter;
     factories.createEvolutionEvalProcessSupervisor =
       createEvolutionEvalProcessSupervisor;
+    factories.createGovernedSkillSynthesisAttestorTrustOperationsClient =
+      createGovernedSkillSynthesisAttestorTrustOperationsClient;
+    factories.createGovernedSkillSynthesisAttestorTrustOperationsCliHost =
+      createGovernedSkillSynthesisAttestorTrustOperationsCliHost;
     const [
       { SkillCandidateRegistry },
       { SkillReleaseRegistry },

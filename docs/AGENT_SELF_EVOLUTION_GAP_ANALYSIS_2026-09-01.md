@@ -1965,6 +1965,18 @@ IPC 采用两阶段协议：`prepare` 只把 register/rotate/revoke 输入交给
 
 该阶段关闭了“Pilot 父进程直接持有 trust writer/executor”的仓库缺口，但本地服务仍是目标架构的测试/Pilot 实现。父级 orchestrator 仍负责生成 operator key、capability、HMAC authority secrets 并 bootstrap 两个同主机服务；Windows named pipe 尚未设置目标账户 ACL，Unix socket 尚未做 owner/mode 验收，也没有 OS service identity、KMS/HSM/workload identity、远程故障域或凭据轮换。client 尚未接成正式 `cc evolution` 运维命令，operator registry 仍为 bootstrap 静态值，未消费 authorization 也没有 reconciliation 状态。因此 production auto-promotion 继续 `HOLD`。下一阶段应增加只读 plan 文件与签名 approval 文件驱动的正式运维 CLI，确保 CLI 自身只连接 client；随后实现持久 operator identity 注册/轮换/撤销与 authorization reconciliation。
 
+### 13.16 文件驱动的 attestor trust 正式运维 CLI（2026-09-09）
+
+本批新增 `cc evolution attestor-trust prepare <operation-file> --out <request-file>` 与 `cc evolution attestor-trust execute <request-file> <approval-files...>`。Commander 层只接受签名 deployment module 注入的品牌化 CLI host；该 host 又只接受品牌化受限 operations client，因此命令没有 trust writer、ArtifactStore/Ledger writer、operator 私钥或凭据工厂的引用。deployment loader 向已认证的单文件模块提供 client/host 两个内置 factory；未配置部署、伪造普通对象或绕过 loader 时均失败关闭。
+
+`prepare` 从操作 JSON 读取 `register`/`rotate`/`revoke` 参数，经独立 operations 服务生成绑定 tenant、policy digest、required approvals、有效期和 request digest 的 request；host 在落盘前重新核验 schema、策略字段、摘要、Ed25519 SPKI/keyId、时间窗及操作专属字段，并以 `wx`、`0600`、文件和目录 `fsync` 独占创建 request plan，已存在文件不会被覆盖。`execute` 重新安全读取同一 request，并且必须提供恰好等于策略门限的 approval 文件：个人 AI 的 `single-operator`/`requiredApprovals=1` 接受一个外部签名文件，团队策略按实际门限接受多个不同路径的签名文件。最终签名、operator 去重、active registry、authorization 持久化和 lifecycle mutation 仍由独立服务验证与执行。
+
+所有输入文件均限制为 256 KiB UTF-8 JSON object，拒绝符号链接、硬链接、非普通文件、读取期间身份/内容变化；POSIX 要求文件 `0600` 且父目录不可 group/world writable。CLI host 不暴露 client/capability/endpoint，只公开 endpoint digest 和服务策略摘要。定向测试覆盖真实 Commander prepare→plan→execute 路由、单人审批门限、独占输出防覆盖、unbranded host、错误审批数量、硬链接输入、服务返回的 operation 替换和签名部署 factory 可用性；与 deployment loader、真实 operations 子进程回归合计 51 项通过。
+
+同日真实火山引擎回归继续通过：`provider=volcengine`、`model=deepseek-v4-flash-260425`，28.199 秒生成 `audit-service-security-configuration`（901 bytes，content digest `sha256:3c72cbb9607635697d278921574e3c135f490e3f4fbd0b8101d2191764e7eb0b`），独立模型评分为 `1.0`，evaluation receipt digest 为 `sha256:bec35f1555f6d137fe0840860d546c819c0ea639046dad228055c1f01c6cbdc0`。trust authorization/lifecycle 使用 `single-operator`、`requiredApprovals=1`，CLI/Pilot orchestrator 均不可见 trust writer，`activeMutationCount=0`。该结果验证新增 deployment factory 和命令注册未破坏真实 candidate-only 纵切；它仍使用临时本机 trust root、同主机服务与 Windows 测试兼容 durability，不是生产 KMS/HSM 或断电持久性证明。
+
+这关闭了“没有正式 `cc evolution` 运维入口”和“plan/approval 只能在 Pilot 内存传递”的仓库缺口，但不代表生产控制平面已经完成。approval 仍需部署方的外部 signer 生成，operator registry 仍是服务 bootstrap 静态配置；尚无持久 operator identity 注册、轮换、撤销、双人复核策略变更、未消费 authorization reconciliation、Windows named-pipe 目标账户 ACL、Unix socket owner/mode 验收、OS service identity 或 KMS/HSM/workload identity。production auto-promotion 继续 `HOLD`；下一阶段进入 operator identity lifecycle 与 authorization reconciliation。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

@@ -252,6 +252,10 @@ describe("signed evolution deployment loader", () => {
           typeof factories.openEvolutionWorkbenchFileResources === "function",
         controlPortsAvailable:
           typeof factories.createEvolutionWorkbenchControlPorts === "function",
+        attestorTrustOperationsFactoriesAvailable: [
+          "createGovernedSkillSynthesisAttestorTrustOperationsClient",
+          "createGovernedSkillSynthesisAttestorTrustOperationsCliHost",
+        ].every((name) => typeof factories[name] === "function"),
         benchmarkFactoriesAvailable: [
           "createWikiSkillBenchmarkCliHost",
           "createWikiSkillBenchmarkDatasetProvider",
@@ -305,6 +309,7 @@ describe("signed evolution deployment loader", () => {
         runtimeAvailable: true,
         fileResourcesAvailable: true,
         controlPortsAvailable: true,
+        attestorTrustOperationsFactoriesAvailable: true,
         benchmarkFactoriesAvailable: true,
         revocationFactoriesAvailable: true,
       },
