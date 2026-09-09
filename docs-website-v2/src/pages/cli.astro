@@ -507,7 +507,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">显式轮次、费用和会话预算继续生效；无人值守任务保留默认上限。VS Code 0.37.89 支持 <code>chainlesschain.chat.maxTurns</code>；CLI 0.166.34 可将超长网页保存为有界快照并继续读取，无需重复下载。</p>
+      <p class="mt-4 text-sm text-muted">显式轮次、费用和会话预算继续生效；无人值守任务保留默认上限。VS Code 0.37.92 支持 <code>chainlesschain.chat.maxTurns</code>；CLI 0.166.38 还会固定模型身份、校验 provider stream 终态，并保留有界网页快照续读。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>
@@ -685,7 +685,7 @@ const packs = [
           CLI <code class="font-mono text-sm">{CLI_VERSION}</code> 延续真实 <code class="font-mono text-sm">cc team --agent</code> child 的 <code class="font-mono text-sm">team_send / team_receive / team_ack / team_followup</code>、TeamMailbox v3、custody handoff 与 state-backed SessionMessageFabric；37 类 Schema 生成事件已具备 payload discriminated union 和跨端 causal conformance，未知未来事件仍由 transport 无损保留。
         </p>
         <p class="mt-4 text-lg text-muted">
-          当前 CLI 搭载 PDH 0.4.59：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 已改为 optional，无 Python/编译器/native prebuild 时首次安装回退内置 sql.js WASM，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
+          当前 CLI 搭载 PDH 0.4.60：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；分析 Skill、实体解析与 embedding 选择会保留宿主模型治理失败。桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；native SQLite addon 为 optional，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读均成功；前序 `0.166.5` 的 1,800 秒 App Server overload/RSS soak 与 SDK npm/PyPI 安装回读继续提供对应专项证据。

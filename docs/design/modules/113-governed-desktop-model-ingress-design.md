@@ -1,8 +1,10 @@
 # 113 Desktop 受治理模型入口设计
 
-> 状态：源码已落地，生产部署待验收  
-> 核对基线：`main@5db62db246`（2026-09-07）  
-> 发布边界：该实现晚于 `chainlesschain@0.166.30` 的发布 SHA `87ddf8b126`，不得解释为 npm CLI 字节或已公开 Desktop 安装包已经包含本能力。
+> 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 源码已落地；CLI/Hub 共享治理入口已随 `0.166.38` 发布，Desktop native 生产部署待验收
+>
+> 核对基线：本地 `main@22b23a0335`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
+>
+> 发布边界：`chainlesschain@0.166.38` 已包含 CLI/Hub 受治理模型入口；这仍不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
 
 ## 1. 背景与目标
 
@@ -21,6 +23,20 @@ Desktop 历史上存在多条直接调用模型或 opaque AI backend 的路径�
 - 不把健康检查、模型列表、模型构建等无用户内容的控制面误记为推理。
 - 不在本模块中提供生产 KMS/HSM、PKI、身份、策略、witness 或 grader。
 - 不承诺所有失败的远程功能已有受治理替代；部分旧入口当前按设计直接拒绝。
+
+### 1.1 `0.166.38` 的跨表面扩展
+
+Desktop ingress 的“宿主拥有 authority、单次调用固定模型身份、终态先落账再报告成功”不变量现复用于 CLI direct stream、intent service、legacy/canonical WebSocket chat 与 Personal Data Hub。共享的 `governed-model-turn` 负责固定 provider/model/tenant/task/ingress，Hub 专用适配器分别覆盖 analysis、Skill commentary 和 resolver/embedding 选择；UI 启动必须显式转交认证后的 deployment composition。
+
+这些适配器不会把治理变成可选观测。未配置可信部署、Run 身份不匹配、provider stream 缺少合法终止、回调尝试更换模型，或证据/终态持久化失败时，调用在成功返回前关闭。可选 Skill 说明与 intent fallback 只能处理自身业务结果，不能吞掉治理错误。`0.166.38` 的 npm 制品包含这些 CLI/Hub 路径；Desktop Electron 的 native 分发、真实 provider、KMS/PKI 和目标环境 authority 仍按独立验收处理。
+
+### 1.2 `8c1772ba6c` / `1fd9e684f2` 的 Desktop Hub 与 Web Shell 接线
+
+Desktop 主进程现在将 `desktopModelIngressHost` 注入 Personal Data Hub IPC 注册闭包。`personal-data-hub:resolver-drain` 通过 `runDesktopGovernedHubResolverDrain()` 创建新的 resolver、embedding 与 LLM stage；`personal-data-hub:run-skill` 通过 `runDesktopGovernedHubSkill()` 为单次 Skill 调用创建 governed LLM。两者复用 opaque host 背后的签名 composition factory，但 renderer 只能发出业务参数，不能读取、替换或转发 factory authority。
+
+实现不会修改缓存 Hub 或其原始模型 client，避免一次 IPC 的权限泄漏到后续请求。真实 Desktop 启动路径显式传入 branded host；无部署宿主的兼容调用仍保留 `null` 路径，不应被解释为生产治理资格。新增回归测试覆盖 host 仅停留在主进程闭包，以及无部署配置时不凭空生成 authority。
+
+内嵌 Web Shell 启动时从同一 opaque host 派生 main-process-only composition factory，并经 `ws-cli-loader` 传给 CLI WebSocket server；客户端消息不能提交或替换 factory。CLI-owned interactive background、Agenda、Routine、detached worker 以及 Desktop Coding Agent 的 `cc serve` bridge 均通过 canonical CLI loader 继承部署环境；`22b23a0335` 的回归测试固定 Coding Agent 环境继承且不序列化 raw factory。自行启动的 SDK worker、任意第三方命令或直接 provider client 仍不在该证明范围内。以上均是晚于 `0.166.38@de8ec4e5c8` 的源码增量，尚未进入已公开 Desktop native 制品。
 
 ## 2. 架构
 
@@ -82,12 +98,12 @@ Legacy media / embedding / reranker / project / document / RAG
 
 ## 4. Provider 协议适配
 
-| Provider | 投影与终态要求 |
-| --- | --- |
-| OpenAI-compatible | 投影 `messages`/`tools`，SSE 必须收到终态，完整记录 assistant/tool calls |
-| Anthropic | 来源说明合并到 `system`，保留投影后的 message 顺序与完整终态 |
-| Gemini | `systemInstruction` 与 `contents.parts` 仅接受 text part；流结束必须带 `finishReason` |
-| Ollama | 拒绝 opaque `context` token，要求显式 conversation messages；NDJSON 必须出现 `done: true` |
+| Provider          | 投影与终态要求                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| OpenAI-compatible | 投影 `messages`/`tools`，SSE 必须收到终态，完整记录 assistant/tool calls                  |
+| Anthropic         | 来源说明合并到 `system`，保留投影后的 message 顺序与完整终态                              |
+| Gemini            | `systemInstruction` 与 `contents.parts` 仅接受 text part；流结束必须带 `finishReason`     |
+| Ollama            | 拒绝 opaque `context` token，要求显式 conversation messages；NDJSON 必须出现 `done: true` |
 
 切换 provider 时先 staging 新 client，再替换活动引用；budget listener 与并发 Run 隔离。IPC reconfiguration 不得丢失已建立的 model authority。
 
@@ -105,16 +121,16 @@ Legacy media / embedding / reranker / project / document / RAG
 
 ## 6. 旧入口处置矩阵
 
-| 类别 | 当前处置 | 用户可见结果 |
-| --- | --- | --- |
-| LLMManager 对话、query、stream、工具循环 | 接入受治理 Run | 正常执行；治理/证据失败则明确终止 |
-| OpenAI / Anthropic / Gemini / Ollama | provider 原生协议桥接 | 请求投影与终态统一入账 |
-| embedding / reranker | 已识别直连路径发送前拒绝 | RAG 不会把治理拒绝伪装成普通降级 |
-| 图像 / 语音 / 视频 | 有多模态桥的请求接入；其余直连拒绝 | 不会静默把媒体发往旧 provider |
-| 项目 AI / create stream | opaque backend 发送前拒绝 | 本地受治理路径或确定性 fallback 可继续 |
-| Task Planner / Word / PPT / PDF / Excel / Document | 旧 `/api/chat/stream` 发送前拒绝 | 保留规则/默认结构等本地 fallback |
-| legacy RAG index/query/update | HTTP client 前拒绝 | 本地 `ProjectRAGManager` 不受影响 |
-| Volcengine health check | 不再发模型调用 | 仅检查本地配置完整性；不产生 token/费用 |
+| 类别                                               | 当前处置                           | 用户可见结果                            |
+| -------------------------------------------------- | ---------------------------------- | --------------------------------------- |
+| LLMManager 对话、query、stream、工具循环           | 接入受治理 Run                     | 正常执行；治理/证据失败则明确终止       |
+| OpenAI / Anthropic / Gemini / Ollama               | provider 原生协议桥接              | 请求投影与终态统一入账                  |
+| embedding / reranker                               | 已识别直连路径发送前拒绝           | RAG 不会把治理拒绝伪装成普通降级        |
+| 图像 / 语音 / 视频                                 | 有多模态桥的请求接入；其余直连拒绝 | 不会静默把媒体发往旧 provider           |
+| 项目 AI / create stream                            | opaque backend 发送前拒绝          | 本地受治理路径或确定性 fallback 可继续  |
+| Task Planner / Word / PPT / PDF / Excel / Document | 旧 `/api/chat/stream` 发送前拒绝   | 保留规则/默认结构等本地 fallback        |
+| legacy RAG index/query/update                      | HTTP client 前拒绝                 | 本地 `ProjectRAGManager` 不受影响       |
+| Volcengine health check                            | 不再发模型调用                     | 仅检查本地配置完整性；不产生 token/费用 |
 
 ## 7. Ledger witness 的 trust epoch
 

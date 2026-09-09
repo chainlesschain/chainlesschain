@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-09-08）：v5.0.3.135 | Agent Platform CLI 0.166.34（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.8 | Agent Protocol 0.1.8 | Session Core 0.3.12 | PDH 0.4.59（92 个采集契约 / 18 类来源）| Open VSX 0.37.89 | JetBrains Marketplace 0.4.114 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-09-09）：v5.0.3.135 | Agent Platform CLI 0.166.38（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.9/0.2.8 | Agent Protocol 0.1.9 | Context Memory Kernel 0.1.1 | Session Core 0.3.12 | PDH 0.4.60（92 个采集契约 / 18 类来源）| Open VSX 0.37.92 | JetBrains Marketplace 0.4.119 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：`0.166.34@2f8f62d73e` 已公开有界网页快照、分块续读、长文本关键词检索、结构化 fetch 错误与 Node.js `22.12.0` 兼容修复。`main@e05e613c8e` 当前内置 CLI `0.166.32`；Desktop 模型治理仍是源码能力，不等于已公开 Desktop 安装包。详见[CLI Runtime](/chainlesschain/cli-runtime-current)与[发布边界](/chainlesschain/agent-platform-release)。
+> **当前能力与发布边界**：`0.166.38@de8ec4e5c8` 已公开 CLI/Hub 模型入口治理、provider stream 完整性检查、witness 分段存储及 IDE 模型配置/连接测试修复。GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均已包含该发布；Desktop 模型治理仍不等于已公开 Desktop 安装包，Workbench 仍需目标环境可信 authority。详见[CLI Runtime](/chainlesschain/cli-runtime-current)与[发布边界](/chainlesschain/agent-platform-release)。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

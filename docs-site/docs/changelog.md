@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+- **Desktop Hub 与 Web Shell 治理接线**（`8c1772ba6c`、`1fd9e684f2`、`5e3ee29808`、`4f61109dcf`、`22b23a0335`）：resolver/Skill IPC 与内嵌 Web Shell 通过主进程持有的 opaque host 创建 scoped governed wrapper；renderer/WS 消息不获得原始 composition factory，缓存 Hub client 不被跨请求改写。CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 经 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在证明范围。这些源码增量尚未进入已核对的 GitHub/Gitee head 或公开 Desktop native 制品。
+
+#### Released — CLI 0.166.38 / VS Code 0.37.92 / JetBrains 0.4.119（2026-09-09）
+
+npm `latest` `0.166.38` 对应不可变 tag `v-npm-0-166-38` 与精确提交 [`de8ec4e5c8`](https://github.com/chainlesschain/chainlesschain/commit/de8ec4e5c8234087d1fb86a062371b7000931790)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34290643410)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34290648161)、[npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34295661756)和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34300419533) 均成功。
+
+- **模型入口治理**：CLI direct stream、intent、legacy/canonical WebSocket 与 Hub 分析/Skill/实体解析共享宿主注入的受认证 Run；provider/model 身份固定到单次调用。
+- **失败闭合**：不完整 provider stream、模型身份漂移和治理持久化错误不能被可选说明、intent fallback 或 Hub fallback 改写为成功。
+- **witness 分段**：Evolution 文件 witness 使用不可变 256 条 segment 与有界 tail；读取重验段摘要，authority trust epoch 改变时 verified summary 失效。
+- **模型配置**：VS Code/JetBrains 原子保存模型连接并以脱敏 readback 确认；推理模型连接测试使用有界 1,024-token 输出预算并区分耗尽与空响应。
+- **协调版本**：Agent Protocol `0.1.9`、Context Memory Kernel `0.1.1`、TypeScript Agent SDK `0.2.9`、Python Agent SDK `0.2.8`、Session Core `0.3.12`、PDH `0.4.60`。
+- **IDE 渠道**：Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0.166.38`；Microsoft VS Code Marketplace 仍未发布。
+- **源码与部署边界**：GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均包含发布提交；Workbench 的可信 descriptor/trust root、生产身份/审批/PKI/KMS/witness/grader 与 Desktop native 制品仍需独立验收。
+
 #### Released — CLI 0.166.34 / VS Code 0.37.89 / JetBrains 0.4.114（2026-09-08）
 
 npm `latest` `0.166.34` 对应不可变 tag `v-npm-0-166-34` 与精确提交 [`2f8f62d73e`](https://github.com/chainlesschain/chainlesschain/commit/2f8f62d73eddcb2f834a3f125118a39b14febe2a)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280737)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34169280555)、[npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34169291227)和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34174768970) 均成功。
