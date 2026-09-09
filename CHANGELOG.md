@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.39: stop repeated log reads and stabilize CI
+
+- Detect repeated local CI-log searches even when each `findstr`, `grep`, `rg`,
+  or `Select-String` command changes its pattern, then recover and stop the agent
+  instead of reading the same downloaded log forever.
+- Treat search exit code 1 as "no match" rather than evidence of a new CI failure.
+- Coalesce repeated no-hook audit events so long-running duplex sessions retain
+  authenticated evidence without quadratic file rewrites or runaway RSS growth.
+- Keep the learning skill writer discoverable by the release inventory scanner.
+
 ### Fixed - cc CLI 0.166.38: publish audited child package updates
 
 - Upgrade the CLI dependency to Context Memory Kernel `0.1.1`, including the
