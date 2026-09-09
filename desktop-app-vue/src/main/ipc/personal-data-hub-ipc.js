@@ -57,7 +57,7 @@ function safe(fn) {
   };
 }
 
-function register() {
+function register({ desktopModelIngressHost = null } = {}) {
   if (_registered) {
     return;
   }
@@ -490,7 +490,10 @@ function register() {
       if (!hub.entityResolver) {
         return { error: "EntityResolver not wired" };
       }
-      return await hub.entityResolver.drain({ limit: limit || 50 });
+      return await hub.drainResolver(
+        { limit: limit || 50 },
+        desktopModelIngressHost,
+      );
     }),
   );
 
@@ -520,7 +523,7 @@ function register() {
     `${NS}:run-skill`,
     safe(async ({ name, options }) => {
       const hub = await hubWiring.getHub();
-      return await hub.runSkill(name, options || {});
+      return await hub.runSkill(name, options || {}, desktopModelIngressHost);
     }),
   );
 
@@ -705,6 +708,13 @@ function unregister() {
     "unregister-alipay",
     "list-alipay-accounts",
     "import-alipay-bill",
+    "review-decision",
+    "manual-merge",
+    "manual-unmerge",
+    "resolver-drain",
+    "resolver-stats",
+    "skills-list",
+    "run-skill",
     // Phase 12.6.8 — WeChat account management
     "wechat-env-probe",
     "register-wechat",

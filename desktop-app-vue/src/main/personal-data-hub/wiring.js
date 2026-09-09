@@ -309,6 +309,7 @@ async function initHub() {
   // Stages are lazy: embedding/llm only fire when adapter ingest produces
   // "uncertain" pairs or when the user manually drains the queue.
   const entityResolver = new EntityResolver({ vault });
+  let resolverEmbeddingStage = null;
   // Wire embedding + LLM stages with the existing LLM + Ollama URL.
   try {
     if (llm) {
@@ -318,12 +319,12 @@ async function initHub() {
       });
       entityResolver._llmStage = llmStage.asStageFn();
     }
-    const embeddingStage = new EntityResolverEmbeddingStage({
+    resolverEmbeddingStage = new EntityResolverEmbeddingStage({
       ollamaUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
       model: process.env.CC_HUB_OLLAMA_EMBED_MODEL || "nomic-embed-text",
       vault,
     });
-    entityResolver._embeddingStage = embeddingStage.asStageFn();
+    entityResolver._embeddingStage = resolverEmbeddingStage.asStageFn();
     logger.info(
       "[PersonalDataHub] EntityResolver wired: rule + embedding + llm stages",
     );
@@ -1099,8 +1100,40 @@ async function initHub() {
     },
 
     /** Phase 11 — run a named internal analysis skill */
-    async runSkill(name, options = {}) {
-      return await runAnalysisSkill({ vault, llm }, name, options);
+    async drainResolver(options = {}, desktopModelIngressHost = null) {
+      if (desktopModelIngressHost === null) {
+        return await entityResolver.drain(options);
+      }
+      const {
+        runDesktopGovernedHubResolverDrain,
+      } = require("../evolution/desktop-model-ingress.js");
+      return await runDesktopGovernedHubResolverDrain(
+        desktopModelIngressHost,
+        {
+          resolver: entityResolver,
+          llm,
+          embeddingStage: resolverEmbeddingStage,
+          EntityResolver,
+          EmbeddingStage: EntityResolverEmbeddingStage,
+          LLMStage: EntityResolverLLMStage,
+        },
+        options,
+      );
+    },
+    async runSkill(name, options = {}, desktopModelIngressHost = null) {
+      if (desktopModelIngressHost === null) {
+        return await runAnalysisSkill({ vault, llm }, name, options);
+      }
+      const {
+        runDesktopGovernedHubSkill,
+      } = require("../evolution/desktop-model-ingress.js");
+      return await runDesktopGovernedHubSkill(
+        desktopModelIngressHost,
+        { vault, llm },
+        runAnalysisSkill,
+        name,
+        options,
+      );
     },
     // Convenience: register the mock adapter for smoke / dev. Won't be
     // pre-registered by default (lazy on first call).

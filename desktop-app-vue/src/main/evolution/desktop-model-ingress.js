@@ -879,11 +879,73 @@ async function openDesktopMultimodalModelRun(host, request) {
   }
 }
 
+/**
+ * Run the Hub's resolver through the same signed composition factory used by
+ * Desktop model calls.  The factory stays in this module's private WeakMap:
+ * callers receive only an opaque host, never authority they could forward to
+ * a renderer or replace at runtime.
+ */
+async function runDesktopGovernedHubResolverDrain(host, ports, options = {}) {
+  const captured = hosts.get(host);
+  if (!captured)
+    throw new TypeError("A branded Desktop model ingress host is required");
+  try {
+    const { createGovernedHubResolver } = await import(
+      new URL("./governed-hub-resolver.js", captured.moduleUrl).href
+    );
+    const scoped = createGovernedHubResolver(ports, captured.factory);
+    return await scoped.drain(options);
+  } catch (cause) {
+    const error = new Error("Desktop Hub resolver evolution admission failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
+/**
+ * Execute an analysis skill with a per-invocation governed Hub LLM.  Do not
+ * mutate the process-wide Hub singleton: a request's authority must not leak
+ * into a later IPC request.
+ */
+async function runDesktopGovernedHubSkill(
+  host,
+  hub,
+  runSkill,
+  name,
+  options = {},
+) {
+  const captured = hosts.get(host);
+  if (!captured)
+    throw new TypeError("A branded Desktop model ingress host is required");
+  try {
+    const { runGovernedHubSkill } = await import(
+      new URL("./governed-hub-skill.js", captured.moduleUrl).href
+    );
+    return await runGovernedHubSkill(
+      hub,
+      captured.factory,
+      runSkill,
+      name,
+      options,
+    );
+  } catch (cause) {
+    const error = new Error("Desktop Hub skill evolution admission failed", {
+      cause,
+    });
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
 module.exports = {
   createDesktopModelIngressHost,
   isDesktopModelIngressHost,
   openDesktopModelRun,
   openDesktopMultimodalModelRun,
+  runDesktopGovernedHubResolverDrain,
+  runDesktopGovernedHubSkill,
   bindDesktopModelIngressClient,
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,

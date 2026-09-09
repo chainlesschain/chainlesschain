@@ -123,8 +123,12 @@ calling a provider directly. The full Hub retains its original resolver for
 unconfigured operation; governed WebSocket drain requests use scoped stages.
 The concrete drain triggers are WebSocket `personal-data-hub.resolver-drain`
 and Desktop IPC `personal-data-hub:resolver-drain`; SDK workers can also invoke
-the resolver. WebSocket draining and skill execution now use scoped wrappers;
-Desktop IPC and independently started SDK workers are not covered by that wiring.
+the resolver. WebSocket and Desktop IPC draining/skill execution now use
+per-invocation scoped wrappers. Desktop retains the signed deployment factory
+inside its opaque branded ingress host, so the renderer cannot obtain or
+replace model authority; a missing or invalid host fails closed. Independently
+started SDK workers are still outside this Desktop/WS wiring and require their
+own final-entry audit.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.

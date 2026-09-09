@@ -788,7 +788,11 @@ class ChainlessChainApp {
       // lazily on the first ask/sync/etc invocation, so startup cost is zero.
       try {
         const personalDataHubIpc = require("./ipc/personal-data-hub-ipc");
-        personalDataHubIpc.register();
+        personalDataHubIpc.register({
+          desktopModelIngressHost:
+            this.evolutionDeploymentDependencies.desktopModelIngressHost ??
+            null,
+        });
       } catch (hubErr) {
         logger.warn(
           "[Main] Personal Data Hub IPC registration skipped:",
