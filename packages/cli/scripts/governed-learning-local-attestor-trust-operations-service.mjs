@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -14,16 +14,21 @@ import { createEvolutionLedgerFileBackend } from "../src/lib/evolution/evolution
 import { createGovernedSkillSynthesisAttestorTrustLedger } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorRegistry } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 import { createGovernedSkillSynthesisAttestorTrustOperations } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
+import {
+  createGovernedSkillSynthesisAttestorTrustIpcCapability,
+  verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization,
+} from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 
 const IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v2";
 const SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5";
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
 const MAX_REQUESTS = 64;
+const CAPABILITY_SERVICE = "attestor-trust-operations";
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -45,12 +50,6 @@ function exact(value, keys) {
     !Array.isArray(value) &&
     Object.keys(value).sort().join(",") === [...keys].sort().join(",")
   );
-}
-
-function safeEqual(left, right) {
-  const a = Buffer.from(String(left ?? ""));
-  const b = Buffer.from(String(right ?? ""));
-  return a.length > 0 && a.length === b.length && timingSafeEqual(a, b);
 }
 
 function signingAuthority(namespace, label, secret) {
@@ -147,6 +146,9 @@ if (
     "artifactRoot",
     "authorityNamespace",
     "authorizationStreamId",
+    "capabilityExpiresAt",
+    "capabilityIssuedAt",
+    "capabilityMaxUses",
     "capabilityToken",
     "endpoint",
     "ledgerAuthorityRoot",
@@ -190,6 +192,14 @@ if (
 ) {
   throw new Error("attestor trust operations bootstrap schema is invalid");
 }
+const capability = createGovernedSkillSynthesisAttestorTrustIpcCapability({
+  token: bootstrap.capabilityToken,
+  service: CAPABILITY_SERVICE,
+  issuedAt: bootstrap.capabilityIssuedAt,
+  expiresAt: bootstrap.capabilityExpiresAt,
+  maxUses: bootstrap.capabilityMaxUses,
+  maxUsesLimit: MAX_REQUESTS,
+});
 if (
   typeof bootstrap.operatorRegistryStreamId !== "string" ||
   !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u.test(
@@ -367,6 +377,7 @@ const serviceDescriptor = Object.freeze({
   operatorRegistryStreamId: operatorRegistry.descriptor.streamId,
   operatorRegistryRecordDigest: operatorRegistrySnapshot.recordDigest,
   operatorRegistryRecovered: operatorRegistrySnapshot.recovered,
+  capability,
 });
 
 if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
@@ -374,6 +385,7 @@ if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
 }
 
 let requestCount = 0;
+const usedRequestIds = new Set();
 let queue = Promise.resolve();
 let rebindRequired = false;
 const server = net.createServer((socket) => {
@@ -405,7 +417,8 @@ const server = net.createServer((socket) => {
     if (
       !exact(request, [
         "action",
-        "capabilityToken",
+        "authorization",
+        "capabilityId",
         "payload",
         "requestId",
         "schema",
@@ -413,11 +426,22 @@ const server = net.createServer((socket) => {
       request.schema !== IPC_SCHEMA ||
       carry.slice(frameEnd + 1).trim().length > 0 ||
       !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
-      !safeEqual(request.capabilityToken, bootstrap.capabilityToken) ||
+      request.capabilityId !== capability.id ||
+      !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+        authorization: request.authorization,
+        action: request.action,
+        capabilityId: request.capabilityId,
+        payload: request.payload,
+        requestId: request.requestId,
+        schema: request.schema,
+        token: bootstrap.capabilityToken,
+      }) ||
+      usedRequestIds.has(request.requestId) ||
       !["prepare", "execute", "operator-prepare", "operator-execute"].includes(
         request.action,
       ) ||
-      requestCount >= MAX_REQUESTS
+      requestCount >= capability.maxUses ||
+      Date.now() >= Date.parse(capability.expiresAt)
     ) {
       response(socket, {
         ok: false,
@@ -426,6 +450,7 @@ const server = net.createServer((socket) => {
       });
       return;
     }
+    usedRequestIds.add(request.requestId);
     if (rebindRequired && request.action !== "operator-execute") {
       response(socket, {
         ok: false,

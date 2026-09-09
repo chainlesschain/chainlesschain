@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerEvolutionAttestorTrustCommands } from "../../src/commands/evolution-attestor-trust.js";
 import { createGovernedSkillSynthesisAttestorTrustApprovalClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsCliHost } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-cli-host.js";
+import { governedSkillSynthesisAttestorTrustIpcCapabilityId } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import { createGovernedSkillSynthesisAttestorTrustOperationsClient } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
@@ -144,9 +145,23 @@ async function fixture({
     requiredApprovals: 1,
     operators,
   };
+  const operationsCapabilityToken = "a".repeat(64);
+  const approvalCapabilityToken = "b".repeat(64);
+  const capabilityWindow = {
+    issuedAt: new Date(NOW - 1_000).toISOString(),
+    expiresAt: new Date(NOW + 10 * 60 * 1000).toISOString(),
+    maxUses: 16,
+  };
   const service = Object.freeze({
     schema:
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4",
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5",
+    capability: {
+      id: governedSkillSynthesisAttestorTrustIpcCapabilityId({
+        service: "attestor-trust-operations",
+        token: operationsCapabilityToken,
+      }),
+      ...capabilityWindow,
+    },
     tenantId: policy.tenantId,
     authorizationStreamId: "attestor-trust-authorizations",
     policyId: policy.policyId,
@@ -201,9 +216,10 @@ async function fixture({
   });
   const client = createGovernedSkillSynthesisAttestorTrustOperationsClient({
     endpoint,
-    capabilityToken: "a".repeat(64),
+    capabilityToken: operationsCapabilityToken,
     descriptor: service,
     timeoutMs: 5_000,
+    now: () => NOW,
   });
   const trustIssuer =
     createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
@@ -243,10 +259,17 @@ async function fixture({
   const approvalClient =
     createGovernedSkillSynthesisAttestorTrustApprovalClient({
       endpoint: approvalEndpoint,
-      capabilityToken: "b".repeat(64),
+      capabilityToken: approvalCapabilityToken,
       descriptor: {
         schema:
-          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v2",
+          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v3",
+        capability: {
+          id: governedSkillSynthesisAttestorTrustIpcCapabilityId({
+            service: "attestor-trust-approval",
+            token: approvalCapabilityToken,
+          }),
+          ...capabilityWindow,
+        },
         tenantId: service.tenantId,
         operatorId: trustIssuer.operatorId,
         signerId: "signer:personal-owner",
@@ -362,6 +385,14 @@ describe("evolution attestor-trust CLI", () => {
       "prepare",
       "execute",
     ]);
+    expect(
+      h.calls.every(
+        (entry) =>
+          !Object.hasOwn(entry, "capabilityToken") &&
+          /^sha256:[a-f0-9]{64}$/u.test(entry.capabilityId) &&
+          /^[A-Za-z0-9_-]{43}$/u.test(entry.authorization),
+      ),
+    ).toBe(true);
   });
 
   it("does not overwrite an existing plan", async () => {

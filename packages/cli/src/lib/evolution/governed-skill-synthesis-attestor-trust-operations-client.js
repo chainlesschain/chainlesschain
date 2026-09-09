@@ -3,10 +3,15 @@ import net from "node:net";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
 
+import {
+  createGovernedSkillSynthesisAttestorTrustIpcAuthorization,
+  normalizeGovernedSkillSynthesisAttestorTrustIpcCapability,
+} from "./governed-skill-synthesis-attestor-trust-ipc-capability.js";
+
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v4";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v5";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v2";
 
 const CLIENTS = new WeakSet();
 const WINDOWS_PIPE =
@@ -15,15 +20,19 @@ const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const KEY_ID = /^key:ed25519:[a-f0-9]{64}$/u;
+const MAX_REQUESTS = 64;
+const CAPABILITY_SERVICE = "attestor-trust-operations";
 const OPTION_KEYS = new Set([
   "capabilityToken",
   "descriptor",
   "endpoint",
+  "now",
   "timeoutMs",
 ]);
 const DESCRIPTOR_KEYS = new Set([
   "approvalMode",
   "authorizationStreamId",
+  "capability",
   "operatorCount",
   "operators",
   "operatorRegistryRecordDigest",
@@ -99,11 +108,11 @@ function endpoint(value) {
   return normalized;
 }
 
-function normalizeDescriptor(value) {
+function normalizeDescriptor(value, capabilityToken, now) {
   exact(value, DESCRIPTOR_KEYS, "operations service descriptor");
   if (
     value.schema !==
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4" ||
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v5" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.policyDigest ?? "") ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 1 ||
@@ -168,16 +177,51 @@ function normalizeDescriptor(value) {
   if (value.policyDigest !== expectedPolicyDigest) {
     throw new TypeError("operations descriptor policy digest is invalid");
   }
+  const capability = normalizeGovernedSkillSynthesisAttestorTrustIpcCapability({
+    capability: value.capability,
+    maxUsesLimit: MAX_REQUESTS,
+    now,
+    service: CAPABILITY_SERVICE,
+    token: capabilityToken,
+  });
   const cloned = structuredClone(value);
   for (const operator of cloned.operators) Object.freeze(operator);
   Object.freeze(cloned.operators);
+  cloned.capability = capability;
   return Object.freeze(cloned);
 }
 
-function callService({ target, capabilityToken, timeoutMs, action, payload }) {
+function callService({
+  target,
+  capability,
+  capabilityToken,
+  timeoutMs,
+  action,
+  payload,
+  now,
+}) {
   return new Promise((resolve, reject) => {
+    const currentTime = Number(now());
+    if (
+      !Number.isFinite(currentTime) ||
+      currentTime >= Date.parse(capability.expiresAt)
+    ) {
+      const error = new Error("attestor trust operations capability expired");
+      error.code = "CC_ATTESTOR_TRUST_OPERATIONS_CAPABILITY_EXPIRED";
+      reject(error);
+      return;
+    }
     const socket = net.connect(target);
     const requestId = randomBytes(16).toString("hex");
+    const authorization =
+      createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+        action,
+        capabilityId: capability.id,
+        payload,
+        requestId,
+        schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA,
+        token: capabilityToken,
+      });
     let carry = "";
     let settled = false;
     const finish = (error, value) => {
@@ -201,7 +245,8 @@ function callService({ target, capabilityToken, timeoutMs, action, payload }) {
         `${JSON.stringify({
           schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA,
           requestId,
-          capabilityToken,
+          capabilityId: capability.id,
+          authorization,
           action,
           payload,
         })}\n`,
@@ -267,17 +312,34 @@ function callService({ target, capabilityToken, timeoutMs, action, payload }) {
 export function createGovernedSkillSynthesisAttestorTrustOperationsClient(
   options = {},
 ) {
-  exact(options, OPTION_KEYS, "operations client options");
-  const target = endpoint(options.endpoint);
+  const normalizedOptions = Object.hasOwn(options, "now")
+    ? options
+    : { ...options, now: Date.now };
+  exact(normalizedOptions, OPTION_KEYS, "operations client options");
+  const target = endpoint(normalizedOptions.endpoint);
   const capabilityToken = text(
-    options.capabilityToken,
+    normalizedOptions.capabilityToken,
     "operations capabilityToken",
   );
   if (capabilityToken.length < 32) {
     throw new TypeError("operations capabilityToken is invalid");
   }
-  const serviceDescriptor = normalizeDescriptor(options.descriptor);
-  const timeoutMs = Number(options.timeoutMs);
+  if (
+    typeof normalizedOptions.now !== "function" ||
+    utilTypes.isProxy(normalizedOptions.now)
+  ) {
+    throw new TypeError("operations client clock is invalid");
+  }
+  const currentTime = Number(normalizedOptions.now());
+  if (!Number.isFinite(currentTime)) {
+    throw new TypeError("operations client clock is invalid");
+  }
+  const serviceDescriptor = normalizeDescriptor(
+    normalizedOptions.descriptor,
+    capabilityToken,
+    currentTime,
+  );
+  const timeoutMs = Number(normalizedOptions.timeoutMs);
   if (
     !Number.isSafeInteger(timeoutMs) ||
     timeoutMs < 1_000 ||
@@ -288,7 +350,7 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsClient(
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA,
     isolation: "external-service",
-    transport: "local-ipc-v1",
+    transport: "local-ipc-v2",
     endpointDigest: `sha256:${createHash("sha256")
       .update(target, "utf8")
       .digest("hex")}`,
@@ -300,37 +362,45 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsClient(
     prepare(input) {
       return callService({
         target,
+        capability: serviceDescriptor.capability,
         capabilityToken,
         timeoutMs,
         action: "prepare",
         payload: input,
+        now: normalizedOptions.now,
       });
     },
     execute({ request, approvals } = {}) {
       return callService({
         target,
+        capability: serviceDescriptor.capability,
         capabilityToken,
         timeoutMs,
         action: "execute",
         payload: { request, approvals },
+        now: normalizedOptions.now,
       });
     },
     prepareOperatorChange(input) {
       return callService({
         target,
+        capability: serviceDescriptor.capability,
         capabilityToken,
         timeoutMs,
         action: "operator-prepare",
         payload: input,
+        now: normalizedOptions.now,
       });
     },
     executeOperatorChange({ request, approvals } = {}) {
       return callService({
         target,
+        capability: serviceDescriptor.capability,
         capabilityToken,
         timeoutMs,
         action: "operator-execute",
         payload: { request, approvals },
+        now: normalizedOptions.now,
       });
     },
   });

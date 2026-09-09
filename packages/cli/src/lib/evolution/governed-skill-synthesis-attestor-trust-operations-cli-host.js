@@ -21,7 +21,7 @@ import {
 import { validateGovernedSkillSynthesisAttestorTrustOperatorRegistryChangeRequest } from "./governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLI_HOST_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-cli-host/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-cli-host/v3";
 
 const HOSTS = new WeakSet();
 const MAX_DOCUMENT_BYTES = 256 * 1024;

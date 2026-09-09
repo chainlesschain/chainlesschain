@@ -293,8 +293,17 @@ try {
   });
   const initialTrustOperatorKeys = generateKeyPairSync("ed25519");
   const rotatedTrustOperatorKeys = generateKeyPairSync("ed25519");
+  const capabilityWindow = (maxUses) => {
+    const issuedAt = Date.now() - 1_000;
+    return {
+      capabilityIssuedAt: new Date(issuedAt).toISOString(),
+      capabilityExpiresAt: new Date(issuedAt + 10 * 60 * 1000).toISOString(),
+      capabilityMaxUses: maxUses,
+    };
+  };
   const trustApprovalBootstrap = (operatorKeys, operationsDescriptor) => ({
     capabilityToken: attestorTrustApprovalCapability,
+    ...capabilityWindow(16),
     endpoint: attestorTrustApprovalEndpoint,
     tenantId: "tenant:local-volcengine-pilot",
     operatorId: "operator:local-owner",
@@ -312,6 +321,7 @@ try {
     authorityNamespace: "local-volcengine-pilot",
     authorizationStreamId: "learning-synthesis-attestor-trust-authorizations",
     capabilityToken: attestorTrustOperationsCapability,
+    ...capabilityWindow(32),
     endpoint: attestorTrustOperationsEndpoint,
     ledgerAuthorityRoot,
     ledgerRoot,
@@ -369,6 +379,10 @@ try {
     trustApprovalClient.descriptor.service.keyId;
   const initialApprovalSignerPolicyDigest =
     trustApprovalClient.descriptor.service.policyDigest;
+  const initialApprovalCapabilityId =
+    trustApprovalClient.descriptor.service.capability.id;
+  const initialOperationsCapabilityId =
+    initialAttestorTrustOperations.descriptor.service.capability.id;
   const operatorRotationRequest =
     await initialAttestorTrustOperations.prepareOperatorChange({
       operation: "rotate",
@@ -928,11 +942,11 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     attestorTrustRegistration.authorizationDigest !==
       attestorTrustExecution.authorization?.authorizationDigest ||
     attestorTrustOperations.descriptor.isolation !== "external-service" ||
-    attestorTrustOperations.descriptor.transport !== "local-ipc-v1" ||
+    attestorTrustOperations.descriptor.transport !== "local-ipc-v2" ||
     !Number.isSafeInteger(attestorTrustOperationsProcess?.pid) ||
     attestorTrustOperationsProcess.pid === process.pid ||
     trustApprovalClient.descriptor.isolation !== "external-service" ||
-    trustApprovalClient.descriptor.transport !== "local-ipc-v1" ||
+    trustApprovalClient.descriptor.transport !== "local-ipc-v2" ||
     trustApprovalClient.descriptor.service.operatorId !==
       "operator:local-owner" ||
     trustApprovalClient.descriptor.service.keyId !==
@@ -944,6 +958,24 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       attestorTrustOperations.descriptor.service.policyDigest ||
     trustApprovalClient.descriptor.service.policyDigest ===
       initialApprovalSignerPolicyDigest ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      attestorTrustOperations.descriptor.service.capability.id,
+    ) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      trustApprovalClient.descriptor.service.capability.id,
+    ) ||
+    attestorTrustOperations.descriptor.service.capability.id ===
+      initialOperationsCapabilityId ||
+    trustApprovalClient.descriptor.service.capability.id ===
+      initialApprovalCapabilityId ||
+    attestorTrustOperations.descriptor.service.capability.maxUses !== 32 ||
+    trustApprovalClient.descriptor.service.capability.maxUses !== 16 ||
+    JSON.stringify(attestorTrustOperations.descriptor).includes(
+      attestorTrustOperationsCapability,
+    ) ||
+    JSON.stringify(trustApprovalClient.descriptor).includes(
+      attestorTrustApprovalCapability,
+    ) ||
     !Number.isSafeInteger(attestorTrustApprovalProcess?.pid) ||
     attestorTrustApprovalProcess.pid === process.pid ||
     attestorTrustApprovalProcess.pid === attestorTrustOperationsProcess.pid ||
@@ -1057,6 +1089,18 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               trustApprovalClient.descriptor.service.policyDigest,
             operatorApprovalSignerRevision:
               trustApprovalClient.descriptor.service.revision,
+            attestorTrustOperationsCapabilityId:
+              attestorTrustOperations.descriptor.service.capability.id,
+            attestorTrustOperationsCapabilityExpiresAt:
+              attestorTrustOperations.descriptor.service.capability.expiresAt,
+            attestorTrustOperationsCapabilityMaxUses:
+              attestorTrustOperations.descriptor.service.capability.maxUses,
+            operatorApprovalSignerCapabilityId:
+              trustApprovalClient.descriptor.service.capability.id,
+            operatorApprovalSignerCapabilityExpiresAt:
+              trustApprovalClient.descriptor.service.capability.expiresAt,
+            operatorApprovalSignerCapabilityMaxUses:
+              trustApprovalClient.descriptor.service.capability.maxUses,
             attestorTrustVerifierIsolation:
               attestorTrustEvidence.verifier.isolation,
             attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,
@@ -1103,6 +1147,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
           "the operator policy genesis and signed register, rotate, and revoke mutations are durably pinned in ArtifactStore/EvolutionLedger; this pilot rotates its 1-of-1 personal-AI owner key and rebinds the service before attestor enrollment",
           "operator mutations require a new operations endpoint and capability binding; the old process refuses ordinary trust lifecycle work after a successful policy change",
+          "operations and approval IPC use short-lived domain-separated HMAC capabilities with bounded uses and request-ID replay rejection; capability tokens are not sent in request frames or published in descriptors",
           "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator delivers each ephemeral operator key once to a separate local signer process, then uses only its pinned public descriptor and IPC capability for approvals; production must replace this bootstrap with KMS/HSM key ownership",
           "the pilot orchestrator bootstraps both same-host services; this validates process boundaries but is not production service identity, IPC ACL, KMS/HSM, or workload identity",

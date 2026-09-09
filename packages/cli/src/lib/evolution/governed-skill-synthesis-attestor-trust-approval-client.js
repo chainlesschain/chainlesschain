@@ -13,13 +13,17 @@ import {
   digestGovernedSkillSynthesisAttestorTrustOperatorRegistryApproval,
   governedSkillSynthesisAttestorTrustOperatorRegistryApprovalMessage,
 } from "./governed-skill-synthesis-attestor-trust-operator-registry.js";
+import {
+  createGovernedSkillSynthesisAttestorTrustIpcAuthorization,
+  normalizeGovernedSkillSynthesisAttestorTrustIpcCapability,
+} from "./governed-skill-synthesis-attestor-trust-ipc-capability.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v3";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-ipc/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-ipc/v2";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v2";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v3";
 
 const CLIENTS = new WeakSet();
 const WINDOWS_PIPE =
@@ -31,6 +35,8 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const KEY_ID = /^key:ed25519:[a-f0-9]{64}$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
 const FUTURE_SKEW_MS = 30 * 1000;
+const MAX_REQUESTS = 256;
+const CAPABILITY_SERVICE = "attestor-trust-approval";
 const OPTION_KEYS = new Set([
   "capabilityToken",
   "descriptor",
@@ -39,6 +45,7 @@ const OPTION_KEYS = new Set([
   "timeoutMs",
 ]);
 const DESCRIPTOR_KEYS = new Set([
+  "capability",
   "keyId",
   "operatorId",
   "policyDigest",
@@ -125,7 +132,7 @@ function endpoint(value) {
   return normalized;
 }
 
-function normalizeDescriptor(value) {
+function normalizeDescriptor(value, capabilityToken, now) {
   exact(value, DESCRIPTOR_KEYS, "approval service descriptor");
   if (
     value.schema !==
@@ -155,8 +162,17 @@ function normalizeDescriptor(value) {
   } catch {
     throw new TypeError("approval service public key is invalid");
   }
+  const capability = normalizeGovernedSkillSynthesisAttestorTrustIpcCapability({
+    capability: value.capability,
+    maxUsesLimit: MAX_REQUESTS,
+    now,
+    service: CAPABILITY_SERVICE,
+    token: capabilityToken,
+  });
+  const descriptor = structuredClone(value);
+  descriptor.capability = capability;
   return {
-    descriptor: Object.freeze(structuredClone(value)),
+    descriptor: Object.freeze(descriptor),
     publicKey,
   };
 }
@@ -217,10 +233,37 @@ function validateApproval({
   return Object.freeze(structuredClone(value));
 }
 
-function callService({ target, capabilityToken, timeoutMs, action, payload }) {
+function callService({
+  target,
+  capability,
+  capabilityToken,
+  timeoutMs,
+  action,
+  payload,
+  now,
+}) {
   return new Promise((resolve, reject) => {
+    const currentTime = Number(now());
+    if (
+      !Number.isFinite(currentTime) ||
+      currentTime >= Date.parse(capability.expiresAt)
+    ) {
+      const error = new Error("attestor trust approval capability expired");
+      error.code = "CC_ATTESTOR_TRUST_APPROVAL_CAPABILITY_EXPIRED";
+      reject(error);
+      return;
+    }
     const socket = net.connect(target);
     const requestId = randomBytes(16).toString("hex");
+    const authorization =
+      createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+        action,
+        capabilityId: capability.id,
+        payload,
+        requestId,
+        schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
+        token: capabilityToken,
+      });
     let carry = "";
     let settled = false;
     const finish = (error, value) => {
@@ -244,7 +287,8 @@ function callService({ target, capabilityToken, timeoutMs, action, payload }) {
         `${JSON.stringify({
           schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
           requestId,
-          capabilityToken,
+          capabilityId: capability.id,
+          authorization,
           action,
           payload,
         })}\n`,
@@ -323,7 +367,21 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
   if (capabilityToken.length < 32) {
     throw new TypeError("approval capabilityToken is invalid");
   }
-  const normalized = normalizeDescriptor(normalizedOptions.descriptor);
+  if (
+    typeof normalizedOptions.now !== "function" ||
+    utilTypes.isProxy(normalizedOptions.now)
+  ) {
+    throw new TypeError("approval client clock is invalid");
+  }
+  const currentTime = Number(normalizedOptions.now());
+  if (!Number.isFinite(currentTime)) {
+    throw new TypeError("approval client clock is invalid");
+  }
+  const normalized = normalizeDescriptor(
+    normalizedOptions.descriptor,
+    capabilityToken,
+    currentTime,
+  );
   const timeoutMs = Number(normalizedOptions.timeoutMs);
   if (
     !Number.isSafeInteger(timeoutMs) ||
@@ -332,16 +390,10 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
   ) {
     throw new TypeError("approval client timeoutMs is invalid");
   }
-  if (
-    typeof normalizedOptions.now !== "function" ||
-    utilTypes.isProxy(normalizedOptions.now)
-  ) {
-    throw new TypeError("approval client clock is invalid");
-  }
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_CLIENT_SCHEMA,
     isolation: "external-service",
-    transport: "local-ipc-v1",
+    transport: "local-ipc-v2",
     endpointDigest: `sha256:${createHash("sha256")
       .update(target, "utf8")
       .digest("hex")}`,
@@ -352,9 +404,11 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
     const result = await callService({
       target,
       capabilityToken,
+      capability: normalized.descriptor.capability,
       timeoutMs,
       action,
       payload: request,
+      now: normalizedOptions.now,
     });
     const currentTime = Number(normalizedOptions.now());
     if (!Number.isFinite(currentTime)) {

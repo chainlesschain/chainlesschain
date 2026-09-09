@@ -1,6 +1,7 @@
 import { createHash, generateKeyPairSync, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,10 +9,12 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
   createGovernedSkillSynthesisAttestorTrustApprovalClient,
   isGovernedSkillSynthesisAttestorTrustApprovalClient,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
+import { createGovernedSkillSynthesisAttestorTrustIpcAuthorization } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA,
   digestGovernedSkillSynthesisAttestorTrustOperationRequest,
@@ -130,6 +133,22 @@ function waitForLine(stream, timeoutMs = 15_000, closedMessage = () => "") {
   });
 }
 
+function callRaw(target, request) {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect(target);
+    let body = "";
+    socket.once("connect", () => socket.write(`${JSON.stringify(request)}\n`));
+    socket.on("data", (chunk) => {
+      body += chunk.toString("utf8");
+      const newline = body.indexOf("\n");
+      if (newline === -1) return;
+      socket.destroy();
+      resolve(JSON.parse(body.slice(0, newline)));
+    });
+    socket.once("error", reject);
+  });
+}
+
 async function stopChild(child) {
   if (child.exitCode === null) child.kill("SIGTERM");
   await new Promise((resolve) => {
@@ -157,6 +176,10 @@ describe("attestor trust isolated approval service", () => {
     roots.push(root);
     const target = endpoint(root);
     const capabilityToken = randomBytes(32).toString("base64url");
+    const capabilityIssuedAt = new Date(Date.now() - 1_000).toISOString();
+    const capabilityExpiresAt = new Date(
+      Date.parse(capabilityIssuedAt) + 10 * 60 * 1000,
+    ).toISOString();
     const operator = generateKeyPairSync("ed25519");
     const child = spawn(process.execPath, [servicePath], {
       env:
@@ -180,6 +203,9 @@ describe("attestor trust isolated approval service", () => {
       `${JSON.stringify({
         endpoint: target,
         capabilityToken,
+        capabilityIssuedAt,
+        capabilityExpiresAt,
+        capabilityMaxUses: 4,
         tenantId: "tenant:personal-ai",
         operatorId: "operator:owner",
         signerId: "signer:personal-ai-owner",
@@ -204,6 +230,11 @@ describe("attestor trust isolated approval service", () => {
         policyId: "policy:personal-ai",
         revision: 1,
         policyDigest: `sha256:${"a".repeat(64)}`,
+        capability: {
+          expiresAt: capabilityExpiresAt,
+          issuedAt: capabilityIssuedAt,
+          maxUses: 4,
+        },
       },
     });
     expect(JSON.stringify(ready)).not.toContain("PRIVATE KEY");
@@ -223,6 +254,29 @@ describe("attestor trust isolated approval service", () => {
     );
     const now = Date.now();
     const trustRequest = normalRequest("tenant:personal-ai", now);
+    const replayId = "1".repeat(32);
+    const replayFrame = {
+      schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
+      requestId: replayId,
+      capabilityId: ready.descriptor.capability.id,
+      action: "approve",
+      payload: trustRequest,
+    };
+    replayFrame.authorization =
+      createGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+        ...replayFrame,
+        token: capabilityToken,
+      });
+    expect(JSON.stringify(replayFrame)).not.toContain(capabilityToken);
+    await expect(callRaw(target, replayFrame)).resolves.toMatchObject({
+      ok: true,
+      requestId: replayId,
+    });
+    await expect(callRaw(target, replayFrame)).resolves.toMatchObject({
+      ok: false,
+      requestId: replayId,
+      code: "request_denied",
+    });
     await expect(client.approve(trustRequest)).resolves.toMatchObject({
       tenantId: trustRequest.tenantId,
       operatorId: "operator:owner",
@@ -239,16 +293,14 @@ describe("attestor trust isolated approval service", () => {
       attestation: { keyId: ready.descriptor.keyId },
     });
 
-    const unauthorized =
+    expect(() =>
       createGovernedSkillSynthesisAttestorTrustApprovalClient({
         endpoint: target,
         capabilityToken: randomBytes(32).toString("base64url"),
         descriptor: ready.descriptor,
         timeoutMs: 10_000,
-      });
-    await expect(unauthorized.approve(trustRequest)).rejects.toThrow(
-      "request denied",
-    );
+      }),
+    ).toThrow("capability is invalid");
     const wrongPolicyCore = {
       ...trustRequest,
       policyDigest: `sha256:${"b".repeat(64)}`,
@@ -263,5 +315,8 @@ describe("attestor trust isolated approval service", () => {
           ),
       }),
     ).rejects.toThrow("request denied");
+    await expect(client.approve(trustRequest)).rejects.toThrow(
+      "request denied",
+    );
   }, 30_000);
 });

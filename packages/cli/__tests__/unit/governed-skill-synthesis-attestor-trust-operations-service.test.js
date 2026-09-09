@@ -78,6 +78,12 @@ async function startService(
   },
   configuration = {},
 ) {
+  const capabilityIssuedAt =
+    configuration.capabilityIssuedAt ??
+    new Date(Date.now() - 1_000).toISOString();
+  const capabilityExpiresAt =
+    configuration.capabilityExpiresAt ??
+    new Date(Date.parse(capabilityIssuedAt) + 10 * 60 * 1000).toISOString();
   fs.mkdirSync(path.join(root, "witness"), { recursive: true });
   const child = spawn(process.execPath, [servicePath], {
     env:
@@ -103,6 +109,9 @@ async function startService(
       authorityNamespace: "attestor-trust-ops-test",
       authorizationStreamId: "attestor-trust-authorizations",
       capabilityToken,
+      capabilityIssuedAt,
+      capabilityExpiresAt,
+      capabilityMaxUses: configuration.capabilityMaxUses ?? 64,
       endpoint: target,
       ledgerAuthorityRoot: path.join(root, "authority"),
       ledgerRoot: path.join(root, "events"),
@@ -200,7 +209,7 @@ describe("attestor trust operations local service", () => {
     expect(client).not.toHaveProperty("registerKey");
     expect(client.descriptor).toMatchObject({
       isolation: "external-service",
-      transport: "local-ipc-v1",
+      transport: "local-ipc-v2",
       service: {
         approvalMode: "single-operator",
         requiredApprovals: 1,
@@ -247,23 +256,14 @@ describe("attestor trust operations local service", () => {
       lifecycle: { recovered: true },
     });
 
-    const unauthorized =
+    expect(() =>
       createGovernedSkillSynthesisAttestorTrustOperationsClient({
         endpoint: target,
         capabilityToken: randomBytes(32).toString("base64url"),
         descriptor: started.descriptor,
         timeoutMs: 10_000,
-      });
-    await expect(
-      unauthorized.prepare({
-        operation: "revoke",
-        serviceId: "kms.attestor-ops-service.test",
-        keyId: result.lifecycle.keyId,
-        reason: "must not reach the writer",
       }),
-    ).rejects.toMatchObject({
-      code: "CC_ATTESTOR_TRUST_OPERATIONS_DENIED",
-    });
+    ).toThrow("capability is invalid");
 
     await stopChild(started.child);
     const restarted = await startService(

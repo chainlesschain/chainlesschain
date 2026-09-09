@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
-import {
-  createHash,
-  createPrivateKey,
-  createPublicKey,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -14,6 +9,10 @@ import {
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA,
   GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
 } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js";
+import {
+  createGovernedSkillSynthesisAttestorTrustIpcCapability,
+  verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization,
+} from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js";
 import { createGovernedSkillSynthesisAttestorTrustOperatorRegistryApprovalIssuer } from "../src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js";
 
@@ -26,7 +25,11 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_BOOTSTRAP_BYTES = 128 * 1024;
 const MAX_FRAME_BYTES = 256 * 1024;
 const MAX_REQUESTS = 256;
+const CAPABILITY_SERVICE = "attestor-trust-approval";
 const BOOTSTRAP_KEYS = new Set([
+  "capabilityExpiresAt",
+  "capabilityIssuedAt",
+  "capabilityMaxUses",
   "capabilityToken",
   "endpoint",
   "operatorId",
@@ -71,12 +74,6 @@ function validPrivateKey(value) {
   );
 }
 
-function safeEqual(left, right) {
-  const a = Buffer.from(String(left ?? ""));
-  const b = Buffer.from(String(right ?? ""));
-  return a.length > 0 && a.length === b.length && timingSafeEqual(a, b);
-}
-
 async function readBootstrap() {
   process.stdin.setEncoding("utf8");
   let body = "";
@@ -118,6 +115,14 @@ if (
 ) {
   throw new Error("approval service bootstrap is invalid");
 }
+const capability = createGovernedSkillSynthesisAttestorTrustIpcCapability({
+  token: bootstrap.capabilityToken,
+  service: CAPABILITY_SERVICE,
+  issuedAt: bootstrap.capabilityIssuedAt,
+  expiresAt: bootstrap.capabilityExpiresAt,
+  maxUses: bootstrap.capabilityMaxUses,
+  maxUsesLimit: MAX_REQUESTS,
+});
 
 let privateKey;
 try {
@@ -160,6 +165,7 @@ const descriptor = Object.freeze({
   signerId: bootstrap.signerId,
   keyId,
   publicKeySpki: publicKeyBytes.toString("base64url"),
+  capability,
 });
 
 if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
@@ -167,6 +173,7 @@ if (process.platform !== "win32" && fs.existsSync(bootstrap.endpoint)) {
 }
 
 let requestCount = 0;
+const usedRequestIds = new Set();
 const server = net.createServer((socket) => {
   let carry = "";
   let handled = false;
@@ -198,7 +205,8 @@ const server = net.createServer((socket) => {
         request,
         new Set([
           "action",
-          "capabilityToken",
+          "authorization",
+          "capabilityId",
           "payload",
           "requestId",
           "schema",
@@ -208,9 +216,20 @@ const server = net.createServer((socket) => {
         GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA ||
       carry.slice(frameEnd + 1).trim().length > 0 ||
       !/^[a-f0-9]{32}$/u.test(request.requestId ?? "") ||
-      !safeEqual(request.capabilityToken, bootstrap.capabilityToken) ||
+      request.capabilityId !== capability.id ||
+      !verifyGovernedSkillSynthesisAttestorTrustIpcAuthorization({
+        authorization: request.authorization,
+        action: request.action,
+        capabilityId: request.capabilityId,
+        payload: request.payload,
+        requestId: request.requestId,
+        schema: request.schema,
+        token: bootstrap.capabilityToken,
+      }) ||
+      usedRequestIds.has(request.requestId) ||
       !["approve", "operator-approve"].includes(request.action) ||
-      requestCount >= MAX_REQUESTS
+      requestCount >= capability.maxUses ||
+      Date.now() >= Date.parse(capability.expiresAt)
     ) {
       response(socket, {
         ok: false,
@@ -219,6 +238,7 @@ const server = net.createServer((socket) => {
       });
       return;
     }
+    usedRequestIds.add(request.requestId);
     requestCount += 1;
     try {
       if (

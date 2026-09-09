@@ -2040,6 +2040,18 @@ approval service/client 同步升级至 v2，bootstrap 与公开 descriptor 新�
 
 这一批解决的是治理身份绑定，不是 OS 或硬件身份。production `HOLD` 的剩余边界进一步收窄为：KMS/HSM 不可导出 key 与远程签名 adapter、Windows named-pipe 显式 SID ACL/客户端 token 校验、Unix peer credential、signer/operations 的 workload identity 与独立主机部署、capability 生命周期与泄露响应、break-glass，以及 Ledger/witness 独立故障域和灾备演练。
 
+### 13.21 signer/operations IPC capability 生命周期与防重放（2026-09-09）
+
+本批关闭 §13.20 中本机 signer/operations 把 bearer token 随每次请求直接发送、token 无显式有效期、固定进程级请求上限不属于 capability 本身、相同授权帧可重复提交的缺口。新增共享 `attestor-trust-ipc-capability/v1` 协议：bootstrap 必须为每个 capability 指定 canonical `issuedAt/expiresAt/maxUses`，TTL 最长 15 分钟；service descriptor 只公开域分离的 capability ID、有效期和使用上限，不公开 token。approval service/client 升级到 v3、operations service/client 升级到 v5，两类 IPC 均升级到 v2，transport 明确为 `local-ipc-v2`。
+
+每次请求现在以 capability token 为 HMAC-SHA256 key，对 `schema + requestId + capabilityId + action + payload` 的 canonical、域分离消息签名；请求帧只携带 capability ID 和 authorization，不再携带原 token。client 构造期重新计算 capability ID 并拒绝错误 token、过期窗口、未来签发时间、超长 TTL 或越界 maxUses，发送前再次检查时钟；service 使用 timing-safe proof 比较，按 capability 自身的 maxUses 计数并记录已认证 requestId，重复 requestId、篡改 action/payload、过期或超额请求全部在进入私钥 issuer/writer 前失败关闭。operator policy 轮换后的既有强制 rebind 同时生成新 endpoint、token 和 capability ID，因此旧 capability 不能跨 revision 沿用。
+
+`1-of-1` 个人 AI 审批语义保持不变：owner 仍可独立完成 prepare→approve→execute，只是本地控制 capability 变为短时、有限次且不可直接从 IPC 帧获取；团队 quorum 使用相同控制面，但审批门限仍由 operator registry 独立执行。专项真实子进程测试覆盖错误 token 构造期拒绝、同一已认证帧首次成功而重放失败、maxUses 耗尽、帧内不存在 token，以及 HMAC capability 下原有单人和 `2-of-3` 操作员流程；相关七个回归文件保持 `105 passed / 1 existing platform skip`。
+
+真实 Windows 火山引擎 Pilot 使用 `deepseek-v4-flash-260425` 在 **22.621 秒**完成，生成 candidate-only `security-configuration-review`（987 bytes，digest `sha256:51a095a007db2cf6e43a2865330234f383e633aadc4734cf73328b64095252a4`），模型一次评分 `0.95`。operator rotation record/Ledger digest 分别为 `sha256:f4826f63f7f694e17e05d576b30641b06435e542a4e91860b22c21369f22e04e`、`sha256:da5a42737d7ac6c480c534715e5834e2e1d06ef9f6217ead6e0eaa681b0953c9`；revision 2 operations/approval capability ID 分别为 `sha256:308b57c055d95ef80df1a33e91a0e44022b074214ea89fa27e00a34daca79e6b`、`sha256:6ddb6241c247da7373cc763c55f08850f038c5cd08582f43ae37820b772bd471`，maxUses 为 32/16，descriptor 中均无原 token，`activeMutationCount=0`。
+
+这一批降低的是 bearer 泄露与重放窗口，不等于 OS peer identity：token 仍通过受控 bootstrap stdin 进入本机服务内存；Windows named-pipe 尚未用显式当前用户 SID DACL 和客户端进程 token 双重约束，Unix 尚未校验 `SO_PEERCRED/getpeereid`，也没有 KMS/HSM、远程 workload identity、集中式 capability 吊销/泄露告警与 break-glass。production 继续 `HOLD`，剩余边界为上述 OS/硬件身份、独立主机部署，以及 Ledger/witness 独立故障域和灾备演练。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
