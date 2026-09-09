@@ -73,6 +73,8 @@ shadow / canary / active / rollback
 
 同日对遗留 `image-gen` 模块补做了调用者级别复核：其 15 个 Desktop IPC 包含文生图、图生图、变体和超分入口。虽已导出的 `SDClient` 与 `DALLEClient` 会在任何携带用户文本或图像的 `fetch` 前失败关闭，`ImageGenManager` 原先仍可能先访问缓存并在失败后尝试 provider fallback。本批使四个内容入口在缓存、provider 选择和 fallback 前统一返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，并以定向回归验证管理器不会调用 provider、六个底层 content API 不会调用 `fetch`。状态/模型选择/进度/中断只是控制面。此处关闭该已识别遗留 IPC 的仓库内绕过面，但不改变 EVO-P0-4 的“部分完成”结论：未来受治理桥接、应用自定义 SDK worker 与真实部署 authority 仍须单独验收。
 
+同一轮清查还发现 `VolcengineToolsClient.setupKnowledgeBase()` 的 `/knowledge_base/{id}/documents` raw document upload 并不经过仅适用于 `/chat/completions` 的 Desktop model host。该路径携带用户文档，不是控制面，也不能错误复用 chat-only capability；现已在 transport 前失败关闭，并使用含 canary 的文档证明注入的 `fetch` 未被调用。未来若要恢复该云知识库上传，必须接入独立的证据投影、持久化和治理桥接。该修补再次缩小已识别直通面，但不能替代对应用自定义 SDK worker、目标环境 authority 或其他未知第三方出口的最终审计。
+
 同一增量还补强了 EVO-P0-5 与 EVO-P2-2 的可靠性证据：`365a9d7863` 将超过 256 条的 authenticated witness history 分段为不可变内容寻址前缀和有界尾部，`29dbb284f9` 修复受影响 Windows/libuv 运行时的文件句柄绑定；100 轮独立进程强退/恢复活动在六个 fault point 全部通过，但仍未覆盖 250,000-event 容量、物理断电、磁盘写满、生产签名 authority 或独立 witness 故障域，因此 EVO-P0-5 保持“部分完成”。Workbench/IDE 则完成连接恢复、完整版本分页验证、原生模型配置保存/读回和发布矩阵修复；这些结果支持 EVO-P2-2 维持“仓库闭环”，不提升为生产完成。
 
 2026-09-02 已提交窄纵切 `881abf6090`：类型化 matrix receipt envelope 只携带有界 `receiptDigest`，`SkillPromotionController.promoteEvaluated()` 在消费 mutation authority、创建 release prepare 或改写 active state 之前，使用独立 verifier 校验完整 signed matrix receipt，并把 candidate content、dependency lock、runtime manifest、target matrix、active digest/revision 和 `accepted` decision 绑定到同一次晋级。既有 release intent 继续通过 `evalReceipt` digest 固定这份证据。

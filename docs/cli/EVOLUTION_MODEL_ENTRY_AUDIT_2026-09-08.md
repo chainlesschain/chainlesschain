@@ -129,6 +129,17 @@ control-plane calls and do not carry user model content. This preserves the
 legacy surface for a future governed bridge without treating it as a usable
 direct model path today.
 
+### Volcengine private knowledge-base upload (2026-09-09 follow-up)
+
+`VolcengineToolsClient` correctly projects `/chat/completions` when it is bound
+to the Desktop model host, but `setupKnowledgeBase()` is a separate raw-document
+upload to `/knowledge_base/{id}/documents`, not a model request. The model host
+cannot attest that upload's source/evidence lineage, so the method now returns
+`CC_AGENT_EVOLUTION_INGRESS_FAILED` before it reaches transport. Its regression
+uses a canary-bearing document and asserts that the injected `fetch` is never
+called. A future implementation must use a dedicated governed evidence-ingress
+bridge; it must not reuse the chat-only model capability.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

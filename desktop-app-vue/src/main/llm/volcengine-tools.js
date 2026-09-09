@@ -13,6 +13,18 @@ const { logger } = require("../utils/logger.js");
 const fetch = require("node-fetch");
 const { getModelSelector } = require("./volcengine-models");
 
+const _deps = {
+  fetch: (...args) => fetch(...args),
+};
+
+function assertGovernedKnowledgeBaseIngress() {
+  const error = new Error(
+    "External knowledge-base document upload requires a governed evidence ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * 工具类型枚举
  */
@@ -51,7 +63,7 @@ class VolcengineToolsClient {
         endpoint === "/chat/completions"
           ? await prepareDesktopModelRequest(this, body)
           : null;
-      const response = await fetch(url, {
+      const response = await _deps.fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +111,7 @@ class VolcengineToolsClient {
         ...body,
         stream: true,
       });
-      const response = await fetch(url, {
+      const response = await _deps.fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -283,6 +295,10 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} 上传结果
    */
   async setupKnowledgeBase(knowledgeBaseId, documents) {
+    // The Desktop model capability only governs model requests. It cannot
+    // attest arbitrary raw document uploads, so this legacy cloud-KB endpoint
+    // must remain unavailable until an evidence-ingress bridge is supplied.
+    assertGovernedKnowledgeBaseIngress();
     logger.info("[VolcengineTools] 上传文档到知识库:", knowledgeBaseId);
 
     return await this._callAPI(`/knowledge_base/${knowledgeBaseId}/documents`, {
@@ -669,4 +685,5 @@ class VolcengineToolsClient {
 module.exports = {
   VolcengineToolsClient,
   ToolTypes,
+  _deps,
 };
