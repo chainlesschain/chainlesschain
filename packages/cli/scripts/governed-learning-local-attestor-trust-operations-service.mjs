@@ -18,7 +18,7 @@ import { createGovernedSkillSynthesisAttestorTrustOperations } from "../src/lib/
 const IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 const SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4";
 const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
@@ -358,6 +358,10 @@ const serviceDescriptor = Object.freeze({
   revision: operations.descriptor.revision,
   requiredApprovals: operations.descriptor.requiredApprovals,
   operatorCount: operations.descriptor.operators.length,
+  operators: operations.descriptor.operators.map((operator) => ({
+    operatorId: operator.operatorId,
+    keyId: operator.keyId,
+  })),
   approvalMode: operations.descriptor.approvalMode,
   policyDigest: operations.descriptor.policyDigest,
   operatorRegistryStreamId: operatorRegistry.descriptor.streamId,

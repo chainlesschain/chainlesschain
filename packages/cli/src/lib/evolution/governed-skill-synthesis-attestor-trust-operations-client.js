@@ -4,7 +4,7 @@ import path from "node:path";
 import { types as utilTypes } from "node:util";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v3";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-operations-client/v4";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations-ipc/v1";
 
@@ -13,6 +13,8 @@ const WINDOWS_PIPE =
   /^\\\\\.\\pipe\\cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}$/u;
 const SOCKET_NAME = /^cc-evolution-attestor-trust-ops-[a-f0-9]{16,64}\.sock$/u;
 const MAX_FRAME_BYTES = 256 * 1024;
+const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
+const KEY_ID = /^key:ed25519:[a-f0-9]{64}$/u;
 const OPTION_KEYS = new Set([
   "capabilityToken",
   "descriptor",
@@ -23,6 +25,7 @@ const DESCRIPTOR_KEYS = new Set([
   "approvalMode",
   "authorizationStreamId",
   "operatorCount",
+  "operators",
   "operatorRegistryRecordDigest",
   "operatorRegistryRecovered",
   "operatorRegistryStreamId",
@@ -33,6 +36,16 @@ const DESCRIPTOR_KEYS = new Set([
   "schema",
   "tenantId",
 ]);
+const OPERATOR_KEYS = new Set(["keyId", "operatorId"]);
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
 
 function exact(value, keys, label) {
   if (
@@ -90,7 +103,7 @@ function normalizeDescriptor(value) {
   exact(value, DESCRIPTOR_KEYS, "operations service descriptor");
   if (
     value.schema !==
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3" ||
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.policyDigest ?? "") ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 1 ||
@@ -113,7 +126,52 @@ function normalizeDescriptor(value) {
   ]) {
     text(value[field], `operations descriptor ${field}`, maximum);
   }
-  return Object.freeze(structuredClone(value));
+  if (
+    !Array.isArray(value.operators) ||
+    utilTypes.isProxy(value.operators) ||
+    Object.getPrototypeOf(value.operators) !== Array.prototype ||
+    value.operators.length !== value.operatorCount ||
+    Reflect.ownKeys(value.operators).length !== value.operators.length + 1
+  ) {
+    throw new TypeError("operations descriptor operators are invalid");
+  }
+  const operatorIds = new Set();
+  const keyIds = new Set();
+  let previous = null;
+  for (const operator of value.operators) {
+    exact(operator, OPERATOR_KEYS, "operations descriptor operator");
+    if (
+      !ID.test(operator.operatorId ?? "") ||
+      !KEY_ID.test(operator.keyId ?? "") ||
+      operatorIds.has(operator.operatorId) ||
+      keyIds.has(operator.keyId) ||
+      (previous !== null && previous.localeCompare(operator.operatorId) >= 0)
+    ) {
+      throw new TypeError("operations descriptor operators are invalid");
+    }
+    operatorIds.add(operator.operatorId);
+    keyIds.add(operator.keyId);
+    previous = operator.operatorId;
+  }
+  const policyCore = {
+    tenantId: value.tenantId,
+    policyId: value.policyId,
+    revision: value.revision,
+    requiredApprovals: value.requiredApprovals,
+    operators: value.operators,
+  };
+  const expectedPolicyDigest = `sha256:${createHash("sha256")
+    .update("chainlesschain.attestor-trust-operations-policy/v1")
+    .update("\0")
+    .update(canonical(policyCore))
+    .digest("hex")}`;
+  if (value.policyDigest !== expectedPolicyDigest) {
+    throw new TypeError("operations descriptor policy digest is invalid");
+  }
+  const cloned = structuredClone(value);
+  for (const operator of cloned.operators) Object.freeze(operator);
+  Object.freeze(cloned.operators);
+  return Object.freeze(cloned);
 }
 
 function callService({ target, capabilityToken, timeoutMs, action, payload }) {

@@ -293,12 +293,15 @@ try {
   });
   const initialTrustOperatorKeys = generateKeyPairSync("ed25519");
   const rotatedTrustOperatorKeys = generateKeyPairSync("ed25519");
-  const trustApprovalBootstrap = (operatorKeys) => ({
+  const trustApprovalBootstrap = (operatorKeys, operationsDescriptor) => ({
     capabilityToken: attestorTrustApprovalCapability,
     endpoint: attestorTrustApprovalEndpoint,
     tenantId: "tenant:local-volcengine-pilot",
     operatorId: "operator:local-owner",
     signerId: "signer:local-personal-ai-owner",
+    policyId: operationsDescriptor.policyId,
+    revision: operationsDescriptor.revision,
+    policyDigest: operationsDescriptor.policyDigest,
     privateKeyPem: operatorKeys.privateKey.export({
       type: "pkcs8",
       format: "pem",
@@ -349,7 +352,10 @@ try {
       timeoutMs: 15_000,
     });
   let trustApprovalService = await startLocalAttestorTrustApprovalService(
-    trustApprovalBootstrap(initialTrustOperatorKeys),
+    trustApprovalBootstrap(
+      initialTrustOperatorKeys,
+      trustOperationsService.descriptor,
+    ),
   );
   attestorTrustApprovalProcess = trustApprovalService.child;
   let trustApprovalClient =
@@ -361,6 +367,8 @@ try {
     });
   const initialApprovalSignerKeyId =
     trustApprovalClient.descriptor.service.keyId;
+  const initialApprovalSignerPolicyDigest =
+    trustApprovalClient.descriptor.service.policyDigest;
   const operatorRotationRequest =
     await initialAttestorTrustOperations.prepareOperatorChange({
       operation: "rotate",
@@ -413,7 +421,10 @@ try {
       timeoutMs: 15_000,
     });
   trustApprovalService = await startLocalAttestorTrustApprovalService(
-    trustApprovalBootstrap(rotatedTrustOperatorKeys),
+    trustApprovalBootstrap(
+      rotatedTrustOperatorKeys,
+      trustOperationsService.descriptor,
+    ),
   );
   attestorTrustApprovalProcess = trustApprovalService.child;
   trustApprovalClient = createGovernedSkillSynthesisAttestorTrustApprovalClient(
@@ -926,6 +937,13 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
       "operator:local-owner" ||
     trustApprovalClient.descriptor.service.keyId !==
       trustApproval.attestation.keyId ||
+    trustApprovalClient.descriptor.service.policyId !==
+      attestorTrustOperations.descriptor.service.policyId ||
+    trustApprovalClient.descriptor.service.revision !== 2 ||
+    trustApprovalClient.descriptor.service.policyDigest !==
+      attestorTrustOperations.descriptor.service.policyDigest ||
+    trustApprovalClient.descriptor.service.policyDigest ===
+      initialApprovalSignerPolicyDigest ||
     !Number.isSafeInteger(attestorTrustApprovalProcess?.pid) ||
     attestorTrustApprovalProcess.pid === process.pid ||
     attestorTrustApprovalProcess.pid === attestorTrustOperationsProcess.pid ||
@@ -1035,6 +1053,10 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               trustApprovalClient.descriptor.transport,
             operatorApprovalSignerEndpointDigest:
               trustApprovalClient.descriptor.endpointDigest,
+            operatorApprovalSignerPolicyDigest:
+              trustApprovalClient.descriptor.service.policyDigest,
+            operatorApprovalSignerRevision:
+              trustApprovalClient.descriptor.service.revision,
             attestorTrustVerifierIsolation:
               attestorTrustEvidence.verifier.isolation,
             attestorTrustLedgerId: attestorTrustEvidence.verifier.ledgerId,

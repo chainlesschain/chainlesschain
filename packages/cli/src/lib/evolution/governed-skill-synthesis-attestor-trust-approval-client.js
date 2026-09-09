@@ -15,11 +15,11 @@ import {
 } from "./governed-skill-synthesis-attestor-trust-operator-registry.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_CLIENT_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-client/v2";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_IPC_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-approval-ipc/v1";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v1";
+  "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v2";
 
 const CLIENTS = new WeakSet();
 const WINDOWS_PIPE =
@@ -41,7 +41,10 @@ const OPTION_KEYS = new Set([
 const DESCRIPTOR_KEYS = new Set([
   "keyId",
   "operatorId",
+  "policyDigest",
+  "policyId",
   "publicKeySpki",
+  "revision",
   "schema",
   "signerId",
   "tenantId",
@@ -129,8 +132,12 @@ function normalizeDescriptor(value) {
       GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA ||
     !ID.test(value.tenantId ?? "") ||
     !ID.test(value.operatorId ?? "") ||
+    !ID.test(value.policyId ?? "") ||
     !ID.test(value.signerId ?? "") ||
     !KEY_ID.test(value.keyId ?? "") ||
+    !DIGEST.test(value.policyDigest ?? "") ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 1 ||
     typeof value.publicKeySpki !== "string"
   ) {
     throw new TypeError("approval service descriptor is invalid");
@@ -163,6 +170,7 @@ function validateApproval({
   schema,
   digestApproval,
   approvalMessage,
+  policyFieldsRequired,
 }) {
   exact(value, APPROVAL_KEYS, "approval service result");
   const attestation = exact(
@@ -177,10 +185,14 @@ function validateApproval({
     value.tenantId !== service.tenantId ||
     value.tenantId !== request?.tenantId ||
     value.operatorId !== service.operatorId ||
+    value.policyDigest !== service.policyDigest ||
     value.automated !== false ||
     !DIGEST.test(value.requestDigest ?? "") ||
     value.requestDigest !== request?.requestDigest ||
     value.policyDigest !== request?.policyDigest ||
+    (policyFieldsRequired &&
+      (request?.policyId !== service.policyId ||
+        request?.revision !== service.revision)) ||
     approvedAt <
       timestamp(request?.requestedAt, "request requestedAt") - FUTURE_SKEW_MS ||
     approvedAt > currentTime + FUTURE_SKEW_MS ||
@@ -364,6 +376,7 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
         schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SCHEMA,
         digestApproval: digestGovernedSkillSynthesisAttestorTrustApproval,
         approvalMessage: governedSkillSynthesisAttestorTrustApprovalMessage,
+        policyFieldsRequired: false,
       });
     },
     approveOperatorChange(request) {
@@ -374,6 +387,7 @@ export function createGovernedSkillSynthesisAttestorTrustApprovalClient(
           digestGovernedSkillSynthesisAttestorTrustOperatorRegistryApproval,
         approvalMessage:
           governedSkillSynthesisAttestorTrustOperatorRegistryApprovalMessage,
+        policyFieldsRequired: true,
       });
     },
   });

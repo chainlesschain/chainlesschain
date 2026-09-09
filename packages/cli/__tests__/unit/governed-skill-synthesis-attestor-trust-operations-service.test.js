@@ -204,10 +204,15 @@ describe("attestor trust operations local service", () => {
       service: {
         approvalMode: "single-operator",
         requiredApprovals: 1,
+        operators: [
+          { operatorId: "operator:owner", keyId: expect.any(String) },
+        ],
         operatorRegistryRecovered: false,
         operatorRegistryStreamId: "attestor-trust-operator-registry",
       },
     });
+    expect(Object.isFrozen(client.descriptor.service.operators)).toBe(true);
+    expect(Object.isFrozen(client.descriptor.service.operators[0])).toBe(true);
     const request = await client.prepare({
       operation: "register",
       serviceId: "kms.attestor-ops-service.test",

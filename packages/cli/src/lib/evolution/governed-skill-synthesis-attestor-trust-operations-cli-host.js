@@ -566,8 +566,24 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
   const executeOperatorChangeRemote = client.executeOperatorChange.bind(client);
   const service = client.descriptor.service;
   const approvalService = approvalClient?.descriptor.service ?? null;
-  if (approvalService && approvalService.tenantId !== service.tenantId) {
-    throw new Error("approval signer crossed the operations tenant boundary");
+  if (
+    approvalService &&
+    (approvalService.tenantId !== service.tenantId ||
+      approvalService.policyId !== service.policyId ||
+      approvalService.revision !== service.revision ||
+      approvalService.policyDigest !== service.policyDigest)
+  ) {
+    throw new Error("approval signer crossed the operations policy boundary");
+  }
+  if (
+    approvalService &&
+    !service.operators.some(
+      (operator) =>
+        operator.operatorId === approvalService.operatorId &&
+        operator.keyId === approvalService.keyId,
+    )
+  ) {
+    throw new Error("approval signer is not an active registry operator");
   }
   const approveRemote = approvalClient?.approve.bind(approvalClient) ?? null;
   const approveOperatorChangeRemote =
@@ -589,8 +605,11 @@ export function createGovernedSkillSynthesisAttestorTrustOperationsCliHost({
             signerId: approvalService.signerId,
             operatorId: approvalService.operatorId,
             keyId: approvalService.keyId,
+            policyId: approvalService.policyId,
+            revision: approvalService.revision,
+            policyDigest: approvalService.policyDigest,
           }),
-    service: Object.freeze(structuredClone(service)),
+    service,
   });
   const host = Object.freeze({
     descriptor,

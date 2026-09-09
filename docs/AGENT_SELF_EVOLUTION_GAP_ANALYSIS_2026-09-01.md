@@ -2028,6 +2028,18 @@ cc evolution attestor-trust operator-execute <request-file> <approval-file>
 
 这使“个人 AI 单人审批”在配置了 signer 的 CLI 部署中实际可操作，同时保持旧 key 批准轮换、私钥/写者分离和账本审计。production 仍为 `HOLD`：仓库提供的是本机软件密钥 signer reference，不是生产 KMS/HSM；Windows named-pipe 的显式用户 SID ACL/peer identity、Unix peer credential、signer 服务持久身份与防 capability 泄露、硬件密钥不可导出、远程/多机审批、break-glass、独立 Ledger/witness 故障域和目标租户灾备演练仍未完成。尤其不能把“独立 PID”表述成“独立主机或硬件信任域”。
 
+### 13.20 signer 的 active-operator 与 policy revision 绑定（2026-09-09）
+
+本批关闭 §13.19 后仍存在的“signer 只绑定 tenant、错误 signer 到 execute 才失败”配置窗口。attestor trust operations service/client 升级至 v4，service descriptor 除 operator count 外新增排序、去重且只含 `operatorId/keyId` 的 active operator 快照；client 重新计算完整 `tenantId + policyId + revision + requiredApprovals + operators` policy digest，拒绝数量、排序、重复 ID/key、额外字段或 digest 不一致，并对嵌套 operator 数组和条目深冻结。该快照不包含 SPKI 或 writer，但足以把签名端与当前 registry 状态精确关联。
+
+approval service/client 同步升级至 v2，bootstrap 与公开 descriptor 新增 policy ID、revision 和 policy digest。signer 在调用私钥 issuer 前先拒绝跨 tenant/policy digest 的普通 trust request；registry change 还必须精确匹配 policy ID 和 revision。approval client 在复核签名时再次验证相同约束。CLI host 构造期要求 signer 与 operations descriptor 的 tenant、policy ID、revision、policy digest 完全相同，并要求 signer 的 `(operatorId,keyId)` 正好存在于 active operator 快照；旧 revision signer、已轮换旧 key、已撤销 operator 或同租户错误 policy 在读取/输出 approval 前即失败，不再产生“密码学有效但治理上必然无效”的文件。
+
+个人 `1-of-1` 行为保持不变：变更前只能由 revision 1 的旧 active owner signer 批准 rotation；变更提交并强制重绑后，必须使用 revision 2 policy digest 和新 active key 重建 signer/client，旧 signer 无法被新 CLI host 接纳。团队 quorum 同理，每个 approval 文件的 signer 都必须属于同一当前 policy snapshot，最终仍由 operations executor 对 distinct operator 和门限做权威验证。
+
+真实 Windows 火山引擎 Pilot 已使用两套 policy-bound signer 完成上述轮换，`deepseek-v4-flash-260425` 在 **19.652 秒**完成，模型一次评分 `0.95`；revision 2 registry record digest 为 `sha256:ea8fab2a29a6f06816112cfc22fc930f107667e1883e636055945a86ba9286b1`，rotation Ledger event digest 为 `sha256:31f04fc8400fadefe759a87cff9c498011097dcf9cc134d074ca7e75b6216962`，新 signer policy digest `sha256:a85172bd7f0e57b319a4586597243ffe3b0ebc97a5ff1ac1c67702257d0423cd` 与 rebound operations 完全一致，`activeMutationCount=0`。专项测试已覆盖 stale revision signer 和非 active operator 构造期拒绝、signer 内部错误 policy 请求拒绝及 descriptor 深冻结；七个相关回归文件为 `105 passed / 1 existing platform skip`。
+
+这一批解决的是治理身份绑定，不是 OS 或硬件身份。production `HOLD` 的剩余边界进一步收窄为：KMS/HSM 不可导出 key 与远程签名 adapter、Windows named-pipe 显式 SID ACL/客户端 token 校验、Unix peer credential、signer/operations 的 workload identity 与独立主机部署、capability 生命周期与泄露响应、break-glass，以及 Ledger/witness 独立故障域和灾备演练。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

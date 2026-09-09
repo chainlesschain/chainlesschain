@@ -183,6 +183,9 @@ describe("attestor trust isolated approval service", () => {
         tenantId: "tenant:personal-ai",
         operatorId: "operator:owner",
         signerId: "signer:personal-ai-owner",
+        policyId: "policy:personal-ai",
+        revision: 1,
+        policyDigest: `sha256:${"a".repeat(64)}`,
         privateKeyPem: operator.privateKey.export({
           type: "pkcs8",
           format: "pem",
@@ -198,6 +201,9 @@ describe("attestor trust isolated approval service", () => {
         schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
         tenantId: "tenant:personal-ai",
         operatorId: "operator:owner",
+        policyId: "policy:personal-ai",
+        revision: 1,
+        policyDigest: `sha256:${"a".repeat(64)}`,
       },
     });
     expect(JSON.stringify(ready)).not.toContain("PRIVATE KEY");
@@ -243,5 +249,19 @@ describe("attestor trust isolated approval service", () => {
     await expect(unauthorized.approve(trustRequest)).rejects.toThrow(
       "request denied",
     );
+    const wrongPolicyCore = {
+      ...trustRequest,
+      policyDigest: `sha256:${"b".repeat(64)}`,
+    };
+    delete wrongPolicyCore.requestDigest;
+    await expect(
+      client.approve({
+        ...wrongPolicyCore,
+        requestDigest:
+          digestGovernedSkillSynthesisAttestorTrustOperationRequest(
+            wrongPolicyCore,
+          ),
+      }),
+    ).rejects.toThrow("request denied");
   }, 30_000);
 });

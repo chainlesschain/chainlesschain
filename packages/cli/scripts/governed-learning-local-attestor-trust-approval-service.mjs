@@ -22,6 +22,7 @@ const WINDOWS_PIPE =
 const SOCKET_NAME =
   /^cc-evolution-attestor-trust-approval-[a-f0-9]{16,64}\.sock$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
+const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_BOOTSTRAP_BYTES = 128 * 1024;
 const MAX_FRAME_BYTES = 256 * 1024;
 const MAX_REQUESTS = 256;
@@ -29,7 +30,10 @@ const BOOTSTRAP_KEYS = new Set([
   "capabilityToken",
   "endpoint",
   "operatorId",
+  "policyDigest",
+  "policyId",
   "privateKeyPem",
+  "revision",
   "signerId",
   "tenantId",
 ]);
@@ -98,7 +102,11 @@ if (
   !exact(bootstrap, BOOTSTRAP_KEYS) ||
   !ID.test(bootstrap.tenantId ?? "") ||
   !ID.test(bootstrap.operatorId ?? "") ||
+  !ID.test(bootstrap.policyId ?? "") ||
   !ID.test(bootstrap.signerId ?? "") ||
+  !DIGEST.test(bootstrap.policyDigest ?? "") ||
+  !Number.isSafeInteger(bootstrap.revision) ||
+  bootstrap.revision < 1 ||
   !validText(bootstrap.capabilityToken) ||
   bootstrap.capabilityToken.length < 32 ||
   !validPrivateKey(bootstrap.privateKeyPem) ||
@@ -146,6 +154,9 @@ const descriptor = Object.freeze({
   schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_APPROVAL_SERVICE_SCHEMA,
   tenantId: bootstrap.tenantId,
   operatorId: bootstrap.operatorId,
+  policyId: bootstrap.policyId,
+  revision: bootstrap.revision,
+  policyDigest: bootstrap.policyDigest,
   signerId: bootstrap.signerId,
   keyId,
   publicKeySpki: publicKeyBytes.toString("base64url"),
@@ -210,6 +221,15 @@ const server = net.createServer((socket) => {
     }
     requestCount += 1;
     try {
+      if (
+        request.payload?.tenantId !== bootstrap.tenantId ||
+        request.payload?.policyDigest !== bootstrap.policyDigest ||
+        (request.action === "operator-approve" &&
+          (request.payload?.policyId !== bootstrap.policyId ||
+            request.payload?.revision !== bootstrap.revision))
+      ) {
+        throw new Error("approval request crossed its pinned policy");
+      }
       const result =
         request.action === "approve"
           ? trustIssuer.issue(request.payload)

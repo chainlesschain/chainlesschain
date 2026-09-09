@@ -30,6 +30,23 @@ function digest(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function policyDigest(value) {
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.attestor-trust-operations-policy/v1")
+    .update("\0")
+    .update(canonical(value))
+    .digest("hex")}`;
+}
+
 function writeDocument(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, {
     encoding: "utf8",
@@ -90,7 +107,10 @@ function operatorRequestFor(operation, descriptor) {
   };
 }
 
-async function fixture({ transformPrepareResult = (value) => value } = {}) {
+async function fixture({
+  approvalPolicyOverrides = {},
+  transformPrepareResult = (value) => value,
+} = {}) {
   const root = fs.realpathSync.native(
     fs.mkdtempSync(path.join(os.tmpdir(), "cc-attestor-trust-cli-")),
   );
@@ -104,16 +124,37 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     process.platform === "win32"
       ? `\\\\.\\pipe\\cc-evolution-attestor-trust-approval-${id}`
       : path.join(root, `cc-evolution-attestor-trust-approval-${id}.sock`);
-  const service = Object.freeze({
-    schema:
-      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v3",
+  const operatorKeys = generateKeyPairSync("ed25519");
+  const operatorSpki = operatorKeys.publicKey.export({
+    type: "spki",
+    format: "der",
+  });
+  const operators = [
+    {
+      operatorId: "operator:personal-owner",
+      keyId: `key:ed25519:${createHash("sha256")
+        .update(operatorSpki)
+        .digest("hex")}`,
+    },
+  ];
+  const policy = {
     tenantId: "tenant:personal-ai",
-    authorizationStreamId: "attestor-trust-authorizations",
     policyId: "personal-ai-attestor-policy",
     revision: 1,
-    policyDigest: digest("personal-ai-policy"),
     requiredApprovals: 1,
+    operators,
+  };
+  const service = Object.freeze({
+    schema:
+      "chainlesschain.governed-skill-synthesis-attestor-trust-operations-service/v4",
+    tenantId: policy.tenantId,
+    authorizationStreamId: "attestor-trust-authorizations",
+    policyId: policy.policyId,
+    revision: policy.revision,
+    policyDigest: policyDigest(policy),
+    requiredApprovals: policy.requiredApprovals,
     operatorCount: 1,
+    operators,
     operatorRegistryStreamId: "attestor-trust-operator-registry",
     operatorRegistryRecordDigest: digest("operator-registry-record"),
     operatorRegistryRecovered: true,
@@ -164,7 +205,6 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     descriptor: service,
     timeoutMs: 5_000,
   });
-  const operatorKeys = generateKeyPairSync("ed25519");
   const trustIssuer =
     createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer({
       tenantId: service.tenantId,
@@ -200,22 +240,22 @@ async function fixture({ transformPrepareResult = (value) => value } = {}) {
     approvalServer.once("error", reject);
     approvalServer.listen(approvalEndpoint, resolve);
   });
-  const publicKeySpki = operatorKeys.publicKey.export({
-    type: "spki",
-    format: "der",
-  });
   const approvalClient =
     createGovernedSkillSynthesisAttestorTrustApprovalClient({
       endpoint: approvalEndpoint,
       capabilityToken: "b".repeat(64),
       descriptor: {
         schema:
-          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v1",
+          "chainlesschain.governed-skill-synthesis-attestor-trust-approval-service/v2",
         tenantId: service.tenantId,
         operatorId: trustIssuer.operatorId,
         signerId: "signer:personal-owner",
         keyId: trustIssuer.keyId,
-        publicKeySpki: publicKeySpki.toString("base64url"),
+        policyId: service.policyId,
+        revision: service.revision,
+        policyDigest: service.policyDigest,
+        publicKeySpki: operatorSpki.toString("base64url"),
+        ...approvalPolicyOverrides,
       },
       timeoutMs: 5_000,
       now: () => NOW,
@@ -371,6 +411,20 @@ describe("evolution attestor-trust CLI", () => {
         approvalPaths: ["same.json", "same.json"],
       }),
     ).rejects.toThrow("exactly 1 approval file");
+  });
+
+  it("rejects an approval signer pinned to a stale policy revision", async () => {
+    await expect(
+      fixture({ approvalPolicyOverrides: { revision: 2 } }),
+    ).rejects.toThrow("operations policy boundary");
+  });
+
+  it("rejects a signer that is not an active registry operator", async () => {
+    await expect(
+      fixture({
+        approvalPolicyOverrides: { operatorId: "operator:former-owner" },
+      }),
+    ).rejects.toThrow("not an active registry operator");
   });
 
   it("rejects linked operation files before contacting the service", async () => {
