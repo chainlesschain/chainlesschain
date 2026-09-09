@@ -135,6 +135,14 @@ deployment-loader command names, while its background surface only attaches to
 an existing local transport. Application-defined independently started SDK
 workers are still outside this Desktop/WS wiring and require their own
 final-entry audit.
+
+CLI-owned background paths preserve this same boundary: interactive background
+dispatch, Agenda, and Routine each launch the `agent` command; the detached
+background worker replays the authenticated Agent argv through the canonical
+CLI entrypoint and inherits the deployment environment. Generic background
+shell tasks are not model consumers themselves; if they invoke `cc`, that
+child re-enters the normal command loader. This does not certify arbitrary
+third-party commands or SDK code that calls a provider directly.
 The EVO-P0-4 roadmap status remains partial. Production authority provisioning,
 KMS/PKI, independent witness deployment, privacy/deletion drills, and
 distribution-level calibration remain separate acceptance requirements.
