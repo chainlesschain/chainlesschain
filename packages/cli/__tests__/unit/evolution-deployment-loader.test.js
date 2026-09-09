@@ -173,9 +173,12 @@ describe("signed evolution deployment loader", () => {
             externalAttestorFactoryAvailable:
               typeof factories.createGovernedSkillSynthesisExternalAttestationAuthority ===
               "function",
-            attestorTrustLedgerFactoryAvailable:
-              typeof factories.createGovernedSkillSynthesisAttestorTrustLedger ===
+            attestorTrustVerifierFactoryAvailable:
+              typeof factories.createGovernedSkillSynthesisAttestorTrustVerifier ===
               "function",
+            attestorTrustWriterFactoryUnavailable:
+              factories.createGovernedSkillSynthesisAttestorTrustLedger ===
+              undefined,
           }),
         }),
       }),
@@ -190,7 +193,8 @@ describe("signed evolution deployment loader", () => {
       processGraderFactoryAvailable: true,
       processAttestorFactoryAvailable: true,
       externalAttestorFactoryAvailable: true,
-      attestorTrustLedgerFactoryAvailable: true,
+      attestorTrustVerifierFactoryAvailable: true,
+      attestorTrustWriterFactoryUnavailable: true,
     });
   });
 

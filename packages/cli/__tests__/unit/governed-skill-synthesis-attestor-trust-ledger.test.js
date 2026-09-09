@@ -20,6 +20,7 @@ import {
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import {
   createGovernedSkillSynthesisAttestorTrustLedger,
+  createGovernedSkillSynthesisAttestorTrustVerifier,
   isGovernedSkillSynthesisAttestorTrustVerifier,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
 import { createGovernedSkillSynthesisCandidateEvaluator } from "../../src/lib/evolution/governed-skill-synthesis-candidate-evaluator.js";
@@ -535,9 +536,16 @@ describe("governed Skill synthesis attestor trust ledger", () => {
       ledger: reopened.backend.ledger,
       ledgerArtifactResolver: reopened.resolver,
     });
-    const reopenedVerifier = reopenedTrust.createVerifier({
+    const reopenedVerifier = createGovernedSkillSynthesisAttestorTrustVerifier({
+      descriptor: DESCRIPTOR,
+      artifactPorts: reopened.artifactPorts,
+      ledger: reopened.backend.ledger,
+      ledgerArtifactResolver: reopened.resolver,
       serviceId: SERVICE_ID,
     });
+    expect(reopenedVerifier).not.toHaveProperty("registerKey");
+    expect(reopenedVerifier).not.toHaveProperty("rotateKey");
+    expect(reopenedVerifier).not.toHaveProperty("revokeKey");
     const reopenedEvaluationLedger =
       createGovernedSkillSynthesisEvaluationLedgerAdapter({
         descriptor: DESCRIPTOR,

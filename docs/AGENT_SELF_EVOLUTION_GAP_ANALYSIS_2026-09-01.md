@@ -1915,7 +1915,19 @@ attestor worker 和 credential resolver 均执行 single-link/realpath/长度/SH
 
 新增及受影响的 12 个测试文件合计 **134 passed、1 个既有平台条件 skip**；覆盖真实外部 signer + model evaluator + ArtifactStore/Ledger 联合写入、跨 adapter 重开、轮换前历史 receipt 保留、轮换后旧 key 新签名拒绝、追溯撤销、错误 prior key、已撤销 key reuse、幂等 register/rotate/revoke，以及同一 active key 的并发轮换单赢家。ESLint、Prettier 和真实火山 Pilot 均通过。
 
-该阶段关闭了“evaluation attestor 公钥只有 deployment 内固定值、没有持久轮换/撤销历史”的仓库缺口，但没有完成生产密钥控制面：Pilot 中 lifecycle writer 仍由同一认证 deployment 构造，Artifact/Ledger/witness authority 使用本机临时 HMAC，未接 operator identity、双人审批、独立撤销分发或 KMS/HSM key handle；本机 signer capability、管道 ACL、独立故障域和 Windows 原生目录 durability 也没有完成目标部署验收。因此 production auto-promotion 继续 `HOLD`。下一阶段应把 lifecycle writer 移到独立运维控制面，以工作负载身份连接真实 KMS/HSM/远端 signer，并完成生产 PKI/witness、Windows durability、独立 grader/safety authority、hidden holdout、人工 review 与 shadow/canary。
+该阶段关闭了“evaluation attestor 公钥只有 deployment 内固定值、没有持久轮换/撤销历史”的仓库缺口。当时 Pilot 中 lifecycle writer 仍由同一认证 deployment 构造；默认 learning factory surface 与 Pilot 编排中的 writer 分权由下一节继续关闭。Artifact/Ledger/witness authority 使用本机临时 HMAC、未接 operator identity、双人审批、独立撤销分发或 KMS/HSM key handle，以及本机 signer capability、管道 ACL、独立故障域和 Windows 原生目录 durability 等生产部署缺口仍然成立，因此 production auto-promotion 继续 `HOLD`。
+
+### 13.12 attestor trust writer 与 learning runtime 分权（2026-09-09）
+
+本批把 attestor trust lifecycle writer 从认证 learning deployment 的默认能力面移除。`evolution-deployment-loader` 现在只向 `learning` 白名单模块暴露 `createGovernedSkillSynthesisAttestorTrustVerifier()`；原有 writer factory 仍保留为受信运维控制代码可直接导入的内部 API，但不再出现在 deployment factory 集合中。新的 verifier wrapper 只接受 Artifact ports、descriptor、Ledger、Ledger artifact resolver 和 service ID，并返回品牌化只读 verifier；返回对象不含 register、rotate 或 revoke 方法。loader 单测同时断言 verifier 可见、writer 不可见，防止后续把密钥生命周期写权限意外重新授予模型运行面。
+
+真实 Pilot 的父级 orchestrator 现在在启动 signer、执行任何 CLI 子进程之前，直接打开与 CLI 相同的 ArtifactStore/EvolutionLedger，以控制面 writer 完成 attestor 公钥注册；随后 `learning import` 和 `learning synthesize` 两个 CLI 进程只能通过认证 deployment 重开只读 verifier。Pilot 还对 deployment 源码执行失败关闭断言：既不能出现 signer 私钥，也不能引用 `createGovernedSkillSynthesisAttestorTrustLedger`。这把“谁能变更信任状态”和“谁能消费已登记信任状态”在仓库默认接线与进程时序上分开，同时保留了同 Ledger 序列、CAS 和历史 key validity 语义。
+
+真实 Windows 火山运行使用 `deepseek-v4-flash-260425` 在 **14.472 秒**完成，生成 candidate-only `security-configuration-review`（1,015 bytes，摘要 `sha256:4fd6f267f625bc8c7115f5dc16498dbc3d819d8a8a047699c42b570bc019572e`），grader 一次评分 1.0；evaluation receipt/persistence/Ledger event digest 分别为 `sha256:d18065cf12d8e8dd8ca587477b082c03a8252979a6a42aba0070a7ff6bd53323`、`sha256:3dbc8955a5679b6b74dd2fc6c0316e9a91edb16a1dbc670d98faeaf1477cad70`、`sha256:019186160b8508384116b1355ef9f0077ba5f6c247262dafad2f056b04b1be67`。attestor trust record digest 为 `sha256:59f45c91c282ddcf98e5c7af0f8821f0ae33ea7b45d34036213f48ce97e41bcf`，key digest 为 `sha256:7a5fb9cf79f585ad17e441cee47ea53f4372271cbf05c538405a64acb48d1cc1`，endpoint digest 为 `sha256:741e2605a64b30833883015a0f9e2565722b0ef086128118afcd15ccd1192c59`；注册为 authenticated/durable 且非恢复响应，CLI writer visibility 为 false，control boundary 为 `pre-cli-orchestrator`，active mutation 为 0。
+
+受影响的 12 个测试文件合计 **134 passed、1 个既有平台条件 skip**；定向覆盖 loader capability surface、只读 wrapper、完整外部 signer/evaluator/trust-ledger/CLI 链路及既有轮换撤销语义。ESLint、Prettier 和真实火山 Pilot 均通过。
+
+这一纵切关闭的是“默认 learning deployment 可以取得 attestor trust writer”以及“Pilot 由 CLI deployment 自行登记信任 key”的仓库缺口，不等于生产控制面已经部署。当前 Pilot orchestrator 与 CLI 仍在同一主机，持有本机临时 HMAC authority，并负责生成/bootstrap signer key 与 capability；尚无独立服务账户、operator identity、双人审批、真实 KMS/HSM/workload identity、认证撤销分发、管道 ACL、独立故障域和 Windows 原生目录 durability 验收。因此 production auto-promotion 继续 `HOLD`。下一阶段应交付独立签名运维 service/CLI，以 operator identity 和双人审批管理 lifecycle writer，以 workload identity 连接真实 KMS/HSM/远端 signer，再完成生产 PKI/witness、独立 grader/safety authority、hidden holdout、人工 review 与 shadow/canary。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 

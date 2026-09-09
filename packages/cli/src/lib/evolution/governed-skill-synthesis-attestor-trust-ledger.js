@@ -860,6 +860,29 @@ export function createGovernedSkillSynthesisAttestorTrustLedger(options) {
   return new GovernedSkillSynthesisAttestorTrustLedger(options);
 }
 
+export function createGovernedSkillSynthesisAttestorTrustVerifier(
+  options = {},
+) {
+  exact(
+    options,
+    new Set([
+      "artifactPorts",
+      "descriptor",
+      "ledger",
+      "ledgerArtifactResolver",
+      "serviceId",
+    ]),
+    "attestor trust verifier options",
+  );
+  const data = Object.getOwnPropertyDescriptors(options);
+  return new GovernedSkillSynthesisAttestorTrustLedger({
+    descriptor: data.descriptor.value,
+    artifactPorts: data.artifactPorts.value,
+    ledger: data.ledger.value,
+    ledgerArtifactResolver: data.ledgerArtifactResolver.value,
+  }).createVerifier({ serviceId: data.serviceId.value });
+}
+
 export function isGovernedSkillSynthesisAttestorTrustVerifier(value) {
   return VERIFIERS.has(value);
 }
