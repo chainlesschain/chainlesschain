@@ -352,6 +352,13 @@ export function createGovernedSkillSynthesisModelEvaluator(options = {}) {
       graderModel: processGraderDescriptor?.model ?? null,
       graderWorkerArtifactDigest:
         processGraderDescriptor?.workerArtifactDigest ?? null,
+      graderCredentialResolverArtifactDigest:
+        processGraderDescriptor?.credentialResolverArtifactDigest ?? null,
+      graderCredentialTargetHost:
+        processGraderDescriptor?.credentialTargetHost ?? null,
+      graderCredentialMaxUses:
+        processGraderDescriptor?.credentialMaxUses ?? null,
+      graderCredentialTtlMs: processGraderDescriptor?.credentialTtlMs ?? null,
       graderInheritedEnvironment:
         processGraderDescriptor?.inheritedEnvironment ?? null,
       graderCredentialDelivery:

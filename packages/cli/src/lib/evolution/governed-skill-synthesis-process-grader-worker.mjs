@@ -1,3 +1,5 @@
+import { resolveCredentialEnvironmentValue } from "../process-execution-broker/credential-transport.js";
+
 const MAX_INPUT_BYTES = 96 * 1024;
 const MAX_MESSAGES = 8;
 const MAX_PROMPT_BYTES = 64 * 1024;
@@ -51,20 +53,19 @@ if (
   typeof request !== "object" ||
   Array.isArray(request) ||
   Object.keys(request).sort().join(",") !==
-    "apiKey,baseUrl,maxTokens,messages,model,provider,schema,timeoutMs"
+    "baseUrl,maxTokens,messages,model,provider,schema,timeoutMs"
 ) {
   fail("grader input schema is invalid");
 }
 if (
   request.schema !==
-    "chainlesschain.skill-synthesis-process-grader-request/v1" ||
+    "chainlesschain.skill-synthesis-process-grader-request/v2" ||
   request.provider !== "volcengine" ||
   request.baseUrl.replace(/\/$/u, "") !== ENDPOINT
 ) {
   fail("grader provider boundary is invalid");
 }
 const model = boundedString(request.model, "grader model", 256);
-const apiKey = boundedString(request.apiKey, "grader credential", 16 * 1024);
 if (
   !Number.isSafeInteger(request.maxTokens) ||
   request.maxTokens < 128 ||
@@ -104,6 +105,16 @@ const controller = new AbortController();
 const timer = setTimeout(() => controller.abort(), request.timeoutMs);
 timer.unref?.();
 try {
+  if (Object.hasOwn(process.env, "VOLCENGINE_API_KEY")) {
+    fail("grader refuses plaintext environment credentials");
+  }
+  const apiKey = boundedString(
+    await resolveCredentialEnvironmentValue("VOLCENGINE_API_KEY", {
+      env: process.env,
+    }),
+    "grader credential",
+    16 * 1024,
+  );
   const response = await fetch(`${ENDPOINT}/chat/completions`, {
     method: "POST",
     headers: {

@@ -303,6 +303,63 @@ afterEach(() => {
 });
 
 describe("GovernedSkillSynthesisEvaluationLedgerAdapter", () => {
+  it("continues to verify v2 receipts that delivered the process credential through bounded stdin", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-learning-eval-v2-"),
+    );
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });
+    const resources = openResources(root);
+    const current = (await evaluator(resources)(request())).receipt;
+    const currentCore = structuredClone(current);
+    for (const key of [
+      "attestation",
+      "authenticated",
+      "durable",
+      "graderCredentialMaxUses",
+      "graderCredentialResolverArtifactDigest",
+      "graderCredentialTargetHost",
+      "graderCredentialTtlMs",
+      "receiptDigest",
+    ]) {
+      delete currentCore[key];
+    }
+    const core = {
+      ...currentCore,
+      schema: "chainlesschain.governed-skill-synthesis-evaluation-receipt/v2",
+      graderIsolation: "process",
+      graderProvider: "volcengine",
+      graderModel: "doubao-test",
+      graderWorkerArtifactDigest: `sha256:${"e".repeat(64)}`,
+      graderInheritedEnvironment: false,
+      graderCredentialDelivery: "bounded-stdin",
+      graderHardDeadlineEnforced: true,
+      graderSandboxProfile: "network-only",
+      graderRequiredSandboxBoundaries: [
+        "privilege-reduction",
+        "process-tree",
+        "resource-limits",
+      ],
+      graderPersistentProcessAuditRequired: true,
+    };
+    const receiptDigest = digest(`${core.schema}\0${canonical(core)}`);
+    const receipt = {
+      ...core,
+      receiptDigest,
+      attestation: `attested:${receiptDigest}`,
+      authenticated: true,
+      durable: false,
+    };
+
+    await expect(
+      resources.adapter.createReceiptPersistencePort()(receipt),
+    ).resolves.toMatchObject({
+      receiptDigest,
+      durable: true,
+      persisted: true,
+    });
+  });
+
   it("reopens an authenticated receipt through real ArtifactStore, Ledger, and witness files", async () => {
     const root = fs.mkdtempSync(
       path.join(

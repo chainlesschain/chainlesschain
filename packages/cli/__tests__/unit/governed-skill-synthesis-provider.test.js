@@ -583,8 +583,14 @@ Confirm every finding identifies its configuration key
         graderWorkerArtifactDigest: expect.stringMatching(
           /^sha256:[a-f0-9]{64}$/u,
         ),
+        graderCredentialResolverArtifactDigest: expect.stringMatching(
+          /^sha256:[a-f0-9]{64}$/u,
+        ),
         graderInheritedEnvironment: false,
-        graderCredentialDelivery: "bounded-stdin",
+        graderCredentialDelivery: "single-use-broker-reference",
+        graderCredentialTargetHost: "ark.cn-beijing.volces.com",
+        graderCredentialMaxUses: 1,
+        graderCredentialTtlMs: 6_000,
         graderHardDeadlineEnforced: true,
         graderSandboxProfile: "network-only",
         graderRequiredSandboxBoundaries: [

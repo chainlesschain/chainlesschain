@@ -39,7 +39,7 @@ afterEach(() => {
 });
 
 describe("governed Skill synthesis process grader", () => {
-  it("uses a fixed worker, empty inherited environment, and bounded stdin credential delivery", async () => {
+  it("uses fixed artifacts and delegates a single-use credential reference to the broker", async () => {
     let request;
     let launch;
     vi.spyOn(executionBroker, "spawn").mockImplementation(
@@ -81,8 +81,14 @@ describe("governed Skill synthesis process grader", () => {
       provider: "volcengine",
       model: "doubao-test",
       workerArtifactDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      credentialResolverArtifactDigest: expect.stringMatching(
+        /^sha256:[a-f0-9]{64}$/u,
+      ),
       inheritedEnvironment: false,
-      credentialDelivery: "bounded-stdin",
+      credentialDelivery: "single-use-broker-reference",
+      credentialTargetHost: "ark.cn-beijing.volces.com",
+      credentialMaxUses: 1,
+      credentialTtlMs: 6_000,
       hardDeadlineEnforced: true,
       sandboxProfile: "network-only",
       requiredSandboxBoundaries: [
@@ -95,6 +101,9 @@ describe("governed Skill synthesis process grader", () => {
     expect(launch.command).toBe(process.execPath);
     expect(launch.options).toMatchObject({
       requirePersistentAudit: true,
+      credentialTargetHost: "ark.cn-beijing.volces.com",
+      credentialTtlMs: 6_000,
+      credentialMaxUses: 1,
       sandboxPolicy: {
         profile: "network-only",
         requiredBoundaries: [
@@ -107,25 +116,17 @@ describe("governed Skill synthesis process grader", () => {
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    expect(Object.keys(launch.options.env)).toEqual(
-      process.platform === "win32"
-        ? expect.arrayContaining([
-            expect.stringMatching(/^(SystemRoot|WINDIR)$/u),
-          ])
-        : [],
-    );
-    expect(Object.keys(launch.options.env)).toEqual(
-      expect.not.arrayContaining([
-        "VOLCENGINE_API_KEY",
-        "LLM_API_KEY",
-        "ARK_API_KEY",
-      ]),
-    );
-    expect(launch.args.join(" ")).not.toContain("process-only-test-secret");
-    expect(JSON.stringify(launch.options)).not.toContain(
+    expect(launch.options.env.VOLCENGINE_API_KEY).toBe(
       "process-only-test-secret",
     );
-    expect(request.apiKey).toBe("process-only-test-secret");
+    expect(launch.options.env.LLM_API_KEY).toBeUndefined();
+    expect(launch.options.env.ARK_API_KEY).toBeUndefined();
+    expect(launch.args.join(" ")).not.toContain("process-only-test-secret");
+    expect(JSON.stringify(request)).not.toContain("process-only-test-secret");
+    expect(request).not.toHaveProperty("apiKey");
+    expect(request.schema).toBe(
+      "chainlesschain.skill-synthesis-process-grader-request/v2",
+    );
     expect(request.messages).toEqual([
       { role: "system", content: "Return only JSON." },
       { role: "user", content: "Grade this candidate.\n" },

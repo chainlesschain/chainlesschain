@@ -10,11 +10,17 @@ import executionBroker, {
 import { BUILT_IN_PROVIDERS } from "../llm-providers.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_PROCESS_GRADER_SCHEMA =
-  "chainlesschain.governed-skill-synthesis-process-grader/v1";
+  "chainlesschain.governed-skill-synthesis-process-grader/v2";
 
 const WORKER = fileURLToPath(
   new URL(
     "./governed-skill-synthesis-process-grader-worker.mjs",
+    import.meta.url,
+  ),
+);
+const CREDENTIAL_RESOLVER = fileURLToPath(
+  new URL(
+    "../process-execution-broker/credential-transport.js",
     import.meta.url,
   ),
 );
@@ -156,21 +162,41 @@ function normalizeMessages(value) {
   return result;
 }
 
-function workerSnapshot() {
-  const stat = fs.lstatSync(WORKER);
+function artifactSnapshot(target, label, maximumBytes) {
+  const stat = fs.lstatSync(target);
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
-    throw new Error("process grader worker is not a single-link regular file");
+    throw new Error(`${label} is not a single-link regular file`);
   }
-  const physical = fs.realpathSync.native(WORKER);
+  const physical = fs.realpathSync.native(target);
   const bytes = fs.readFileSync(physical);
-  if (bytes.length === 0 || bytes.length > 128 * 1024) {
-    throw new Error("process grader worker size is invalid");
+  if (bytes.length === 0 || bytes.length > maximumBytes) {
+    throw new Error(`${label} size is invalid`);
   }
   return Object.freeze({
     physical,
     digest: sha256(bytes),
     size: bytes.length,
   });
+}
+
+function executionSnapshot() {
+  return Object.freeze({
+    worker: artifactSnapshot(WORKER, "process grader worker", 128 * 1024),
+    credentialResolver: artifactSnapshot(
+      CREDENTIAL_RESOLVER,
+      "process grader credential resolver",
+      128 * 1024,
+    ),
+  });
+}
+
+function executionSnapshotMatches(left, right) {
+  return ["worker", "credentialResolver"].every(
+    (name) =>
+      left[name].physical === right[name].physical &&
+      left[name].digest === right[name].digest &&
+      left[name].size === right[name].size,
+  );
 }
 
 function minimalProcessEnvironment() {
@@ -193,7 +219,14 @@ function minimalProcessEnvironment() {
   return Object.freeze(environment);
 }
 
-function runProcess({ input, snapshot, timeoutMs, memoryLimitMb }) {
+function runProcess({
+  apiKey,
+  baseUrl,
+  input,
+  snapshot,
+  timeoutMs,
+  memoryLimitMb,
+}) {
   return new Promise((resolve, reject) => {
     const child = executionBroker.spawn(
       process.execPath,
@@ -203,13 +236,20 @@ function runProcess({ input, snapshot, timeoutMs, memoryLimitMb }) {
           ? []
           : [
               "--experimental-permission",
-              `--allow-fs-read=${snapshot.physical}`,
+              `--allow-fs-read=${snapshot.worker.physical}`,
+              `--allow-fs-read=${snapshot.credentialResolver.physical}`,
             ]),
-        snapshot.physical,
+        snapshot.worker.physical,
       ],
       {
-        cwd: path.dirname(snapshot.physical),
-        env: minimalProcessEnvironment(),
+        cwd: path.dirname(snapshot.worker.physical),
+        env: {
+          ...minimalProcessEnvironment(),
+          VOLCENGINE_API_KEY: apiKey,
+        },
+        credentialTargetHost: new URL(baseUrl).hostname,
+        credentialTtlMs: Math.min(timeoutMs + 5_000, 125_000),
+        credentialMaxUses: 1,
         policy: "allow",
         requirePersistentAudit: true,
         sandboxPolicy: {
@@ -338,50 +378,54 @@ export function createGovernedSkillSynthesisProcessGrader(options = {}) {
     32,
     512,
   );
-  const snapshot = workerSnapshot();
+  const credentialTargetHost = new URL(baseUrl).hostname;
+  const credentialTtlMs = Math.min(timeoutMs + 5_000, 125_000);
+  const snapshot = executionSnapshot();
   const descriptor = Object.freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_PROCESS_GRADER_SCHEMA,
     isolation: "process",
     provider,
     model,
-    workerArtifactDigest: snapshot.digest,
+    workerArtifactDigest: snapshot.worker.digest,
+    credentialResolverArtifactDigest: snapshot.credentialResolver.digest,
     inheritedEnvironment: false,
-    credentialDelivery: "bounded-stdin",
+    credentialDelivery: "single-use-broker-reference",
+    credentialTargetHost,
+    credentialMaxUses: 1,
+    credentialTtlMs,
     hardDeadlineEnforced: true,
     sandboxProfile: "network-only",
     requiredSandboxBoundaries: REQUIRED_SANDBOX_BOUNDARIES,
     persistentProcessAuditRequired: true,
   });
   const port = async (messages) => {
-    const current = workerSnapshot();
-    if (
-      current.physical !== snapshot.physical ||
-      current.digest !== snapshot.digest ||
-      current.size !== snapshot.size
-    ) {
-      throw new Error("process grader worker changed after construction");
+    const current = executionSnapshot();
+    if (!executionSnapshotMatches(current, snapshot)) {
+      throw new Error(
+        "process grader worker or credential resolver changed after construction",
+      );
     }
     const content = await runProcess({
       snapshot,
       timeoutMs,
       memoryLimitMb,
+      apiKey,
+      baseUrl,
       input: {
-        schema: "chainlesschain.skill-synthesis-process-grader-request/v1",
+        schema: "chainlesschain.skill-synthesis-process-grader-request/v2",
         provider,
         model,
         baseUrl,
-        apiKey,
         maxTokens,
         timeoutMs,
         messages: normalizeMessages(messages),
       },
     });
-    const after = workerSnapshot();
-    if (
-      after.digest !== snapshot.digest ||
-      after.physical !== snapshot.physical
-    ) {
-      throw new Error("process grader worker changed during execution");
+    const after = executionSnapshot();
+    if (!executionSnapshotMatches(after, snapshot)) {
+      throw new Error(
+        "process grader worker or credential resolver changed during execution",
+      );
     }
     return content;
   };

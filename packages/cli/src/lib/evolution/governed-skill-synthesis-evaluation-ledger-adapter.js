@@ -11,6 +11,8 @@ import {
 } from "./evolution-ledger.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA =
+  "chainlesschain.governed-skill-synthesis-evaluation-receipt/v3";
+const LEGACY_PROCESS_STDIN_RECEIPT_SCHEMA =
   "chainlesschain.governed-skill-synthesis-evaluation-receipt/v2";
 export const GOVERNED_SKILL_SYNTHESIS_EVALUATION_PERSISTENCE_SCHEMA =
   "chainlesschain.governed-skill-synthesis-evaluation-persistence/v1";
@@ -51,6 +53,10 @@ const RECEIPT_KEYS = new Set([
   "durable",
   "handlerArtifactDigest",
   "graderCredentialDelivery",
+  "graderCredentialMaxUses",
+  "graderCredentialResolverArtifactDigest",
+  "graderCredentialTargetHost",
+  "graderCredentialTtlMs",
   "graderHardDeadlineEnforced",
   "graderInheritedEnvironment",
   "graderIsolation",
@@ -69,6 +75,17 @@ const RECEIPT_KEYS = new Set([
   "skillName",
   "trajectoryId",
 ]);
+const LEGACY_PROCESS_STDIN_RECEIPT_KEYS = new Set(
+  [...RECEIPT_KEYS].filter(
+    (key) =>
+      ![
+        "graderCredentialMaxUses",
+        "graderCredentialResolverArtifactDigest",
+        "graderCredentialTargetHost",
+        "graderCredentialTtlMs",
+      ].includes(key),
+  ),
+);
 const PERSISTENCE_PORTS = new WeakSet();
 const PERSISTENCE_RECEIPTS = new WeakSet();
 
@@ -245,6 +262,15 @@ function receiptCore(receipt) {
     graderProvider: receipt.graderProvider,
     graderModel: receipt.graderModel,
     graderWorkerArtifactDigest: receipt.graderWorkerArtifactDigest,
+    ...(receipt.schema === GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA
+      ? {
+          graderCredentialResolverArtifactDigest:
+            receipt.graderCredentialResolverArtifactDigest,
+          graderCredentialTargetHost: receipt.graderCredentialTargetHost,
+          graderCredentialMaxUses: receipt.graderCredentialMaxUses,
+          graderCredentialTtlMs: receipt.graderCredentialTtlMs,
+        }
+      : {}),
     graderInheritedEnvironment: receipt.graderInheritedEnvironment,
     graderCredentialDelivery: receipt.graderCredentialDelivery,
     graderHardDeadlineEnforced: receipt.graderHardDeadlineEnforced,
@@ -265,21 +291,49 @@ function receiptCore(receipt) {
 }
 
 function validateReceipt(receipt, descriptor) {
-  exactRecord(receipt, RECEIPT_KEYS, "learning synthesis evaluation receipt");
+  const schemaDescriptor =
+    receipt &&
+    typeof receipt === "object" &&
+    !Array.isArray(receipt) &&
+    !utilTypes.isProxy(receipt)
+      ? Object.getOwnPropertyDescriptor(receipt, "schema")
+      : null;
+  const legacyProcessStdin =
+    schemaDescriptor?.enumerable === true &&
+    Object.prototype.hasOwnProperty.call(schemaDescriptor, "value") &&
+    schemaDescriptor.value === LEGACY_PROCESS_STDIN_RECEIPT_SCHEMA;
+  exactRecord(
+    receipt,
+    legacyProcessStdin ? LEGACY_PROCESS_STDIN_RECEIPT_KEYS : RECEIPT_KEYS,
+    "learning synthesis evaluation receipt",
+  );
   if (
-    receipt.schema !== GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA ||
+    (!legacyProcessStdin &&
+      receipt.schema !== GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA) ||
     receipt.authorityId !== descriptor.authorityId ||
     receipt.revision !== descriptor.revision ||
     receipt.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
     !["process", "same-process"].includes(receipt.graderIsolation) ||
     (receipt.graderIsolation === "process" &&
       (!DIGEST.test(receipt.graderWorkerArtifactDigest ?? "") ||
+        (!legacyProcessStdin &&
+          !DIGEST.test(receipt.graderCredentialResolverArtifactDigest ?? "")) ||
+        (!legacyProcessStdin &&
+          receipt.graderCredentialTargetHost !== "ark.cn-beijing.volces.com") ||
+        (!legacyProcessStdin && receipt.graderCredentialMaxUses !== 1) ||
+        (!legacyProcessStdin &&
+          (!Number.isSafeInteger(receipt.graderCredentialTtlMs) ||
+            receipt.graderCredentialTtlMs < 6_000 ||
+            receipt.graderCredentialTtlMs > 125_000)) ||
         typeof receipt.graderProvider !== "string" ||
         receipt.graderProvider.length === 0 ||
         typeof receipt.graderModel !== "string" ||
         receipt.graderModel.length === 0 ||
         receipt.graderInheritedEnvironment !== false ||
-        receipt.graderCredentialDelivery !== "bounded-stdin" ||
+        receipt.graderCredentialDelivery !==
+          (legacyProcessStdin
+            ? "bounded-stdin"
+            : "single-use-broker-reference") ||
         receipt.graderHardDeadlineEnforced !== true ||
         receipt.graderSandboxProfile !== "network-only" ||
         !Array.isArray(receipt.graderRequiredSandboxBoundaries) ||
@@ -293,6 +347,11 @@ function validateReceipt(receipt, descriptor) {
         receipt.graderPersistentProcessAuditRequired !== true)) ||
     (receipt.graderIsolation === "same-process" &&
       (receipt.graderWorkerArtifactDigest !== null ||
+        (!legacyProcessStdin &&
+          receipt.graderCredentialResolverArtifactDigest !== null) ||
+        (!legacyProcessStdin && receipt.graderCredentialTargetHost !== null) ||
+        (!legacyProcessStdin && receipt.graderCredentialMaxUses !== null) ||
+        (!legacyProcessStdin && receipt.graderCredentialTtlMs !== null) ||
         receipt.graderProvider !== null ||
         receipt.graderModel !== null ||
         receipt.graderInheritedEnvironment !== null ||
@@ -331,11 +390,7 @@ function validateReceipt(receipt, descriptor) {
       (receipt.modelScore >= receipt.minScore &&
         receipt.reasons.every((reason) => !DENY_REASONS.has(reason))) ||
     !DIGEST.test(receipt.receiptDigest ?? "") ||
-    receipt.receiptDigest !==
-      hash(
-        GOVERNED_SKILL_SYNTHESIS_EVALUATION_RECEIPT_SCHEMA,
-        receiptCore(receipt),
-      )
+    receipt.receiptDigest !== hash(receipt.schema, receiptCore(receipt))
   ) {
     fail("learning synthesis evaluation receipt binding is invalid");
   }

@@ -458,6 +458,15 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
   }
   if (
     evaluation.receipt.graderSandboxProfile !== "network-only" ||
+    evaluation.receipt.graderCredentialDelivery !==
+      "single-use-broker-reference" ||
+    evaluation.receipt.graderCredentialTargetHost !==
+      "ark.cn-beijing.volces.com" ||
+    evaluation.receipt.graderCredentialMaxUses !== 1 ||
+    !Number.isSafeInteger(evaluation.receipt.graderCredentialTtlMs) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      evaluation.receipt.graderCredentialResolverArtifactDigest,
+    ) ||
     JSON.stringify(evaluation.receipt.graderRequiredSandboxBoundaries) !==
       JSON.stringify([
         "privilege-reduction",
@@ -504,10 +513,16 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
             graderIsolation: evaluation.receipt.graderIsolation,
             graderWorkerArtifactDigest:
               evaluation.receipt.graderWorkerArtifactDigest,
+            graderCredentialResolverArtifactDigest:
+              evaluation.receipt.graderCredentialResolverArtifactDigest,
             graderInheritedEnvironment:
               evaluation.receipt.graderInheritedEnvironment,
             graderCredentialDelivery:
               evaluation.receipt.graderCredentialDelivery,
+            graderCredentialTargetHost:
+              evaluation.receipt.graderCredentialTargetHost,
+            graderCredentialMaxUses: evaluation.receipt.graderCredentialMaxUses,
+            graderCredentialTtlMs: evaluation.receipt.graderCredentialTtlMs,
             graderSandboxProfile: evaluation.receipt.graderSandboxProfile,
             graderRequiredSandboxBoundaries:
               evaluation.receipt.graderRequiredSandboxBoundaries,
