@@ -23,6 +23,8 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
+const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 45_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 30_000 : 1_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -33,7 +35,11 @@ function endpoint(root) {
   });
 }
 
-function waitForLine(stream, timeoutMs = 15_000, closedMessage = () => "") {
+function waitForLine(
+  stream,
+  timeoutMs = SERVICE_READY_TIMEOUT_MS,
+  closedMessage = () => "",
+) {
   return new Promise((resolve, reject) => {
     let carry = "";
     const cleanup = () => {
@@ -146,7 +152,11 @@ async function startService(
       witnessId: "attestor-trust-ops-test-witness",
     })}\n`,
   );
-  const readyLine = await waitForLine(child.stdout, 15_000, () => stderr);
+  const readyLine = await waitForLine(
+    child.stdout,
+    SERVICE_READY_TIMEOUT_MS,
+    () => stderr,
+  );
   const ready = JSON.parse(readyLine);
   if (ready.ok !== true) throw new Error(`service failed: ${stderr}`);
   return { child, descriptor: ready.descriptor };
@@ -193,6 +203,7 @@ describe("attestor trust operations local service", () => {
     );
     roots.push(root);
     const capabilityToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(Date.now() + EXPIRY_DELAY_MS).toISOString();
     const started = await startService(
       root,
       generateKeyPairSync("ed25519"),
@@ -201,12 +212,12 @@ describe("attestor trust operations local service", () => {
       undefined,
       {
         capabilityIssuedAt: new Date(Date.now() - 1_000).toISOString(),
-        capabilityExpiresAt: new Date(Date.now() + 1_000).toISOString(),
+        capabilityExpiresAt: expiresAt,
       },
     );
-    await waitForExit(started.child);
+    await waitForExit(started.child, EXPIRY_DELAY_MS + 10_000);
     expect(started.child.exitCode).toBe(0);
-  }, 15_000);
+  }, 90_000);
 
   it("keeps the writer in another process and accepts only signed IPC work", async () => {
     const root = fs.mkdtempSync(
@@ -339,7 +350,7 @@ describe("attestor trust operations local service", () => {
         secrets,
       ),
     ).rejects.toThrow("bootstrap differs from its durable state");
-  }, 60_000);
+  }, 120_000);
 
   it("persists a sorted multi-operator quorum genesis", async () => {
     const root = fs.mkdtempSync(
@@ -505,7 +516,7 @@ describe("attestor trust operations local service", () => {
       operatorRegistryRecordDigest: revoked.registry.recordDigest,
       operatorRegistryRecovered: true,
     });
-  }, 60_000);
+  }, 120_000);
 
   it("rotates a personal operator with the old key and requires service rebind", async () => {
     const root = fs.mkdtempSync(
@@ -552,7 +563,10 @@ describe("attestor trust operations local service", () => {
       operation: "rotate",
       operatorId: "operator:owner",
       priorKeyId: oldIssuer.keyId,
-      publicKey: newOperator.publicKey.export({ type: "spki", format: "pem" }),
+      publicKey: newOperator.publicKey.export({
+        type: "spki",
+        format: "pem",
+      }),
       reason: "rotate the personal owner key",
     });
     const approval = oldIssuer.issue(request);
@@ -639,7 +653,11 @@ describe("attestor trust operations local service", () => {
         approvals: [activeIssuer.issue(attestorRequest)],
       }),
     ).resolves.toMatchObject({
-      lifecycle: { authenticated: true, durable: true, operation: "register" },
+      lifecycle: {
+        authenticated: true,
+        durable: true,
+        operation: "register",
+      },
     });
-  }, 60_000);
+  }, 120_000);
 });

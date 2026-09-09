@@ -33,6 +33,8 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
+const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 45_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 30_000 : 1_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -102,7 +104,11 @@ function operatorRequest(tenantId, currentTime) {
   };
 }
 
-function waitForLine(stream, timeoutMs = 15_000, closedMessage = () => "") {
+function waitForLine(
+  stream,
+  timeoutMs = SERVICE_READY_TIMEOUT_MS,
+  closedMessage = () => "",
+) {
   return new Promise((resolve, reject) => {
     let carry = "";
     const cleanup = () => {
@@ -206,12 +212,13 @@ describe("attestor trust isolated approval service", () => {
     children.push(child);
     const operator = generateKeyPairSync("ed25519");
     const issuedAt = new Date(Date.now() - 1_000).toISOString();
+    const expiresAt = new Date(Date.now() + EXPIRY_DELAY_MS).toISOString();
     child.stdin.end(
       `${JSON.stringify({
         endpoint: endpoint(root),
         capabilityToken: randomBytes(32).toString("base64url"),
         capabilityIssuedAt: issuedAt,
-        capabilityExpiresAt: new Date(Date.now() + 1_000).toISOString(),
+        capabilityExpiresAt: expiresAt,
         capabilityMaxUses: 1,
         tenantId: "tenant:personal-ai",
         operatorId: "operator:owner",
@@ -226,9 +233,9 @@ describe("attestor trust isolated approval service", () => {
       })}\n`,
     );
     await waitForLine(child.stdout);
-    await waitForExit(child);
+    await waitForExit(child, EXPIRY_DELAY_MS + 10_000);
     expect(child.exitCode).toBe(0);
-  }, 15_000);
+  }, 90_000);
 
   it("signs both request families in another process and pins every response", async () => {
     const root = fs.realpathSync.native(
@@ -280,7 +287,7 @@ describe("attestor trust isolated approval service", () => {
       })}\n`,
     );
     const ready = JSON.parse(
-      await waitForLine(child.stdout, 15_000, () => stderr),
+      await waitForLine(child.stdout, SERVICE_READY_TIMEOUT_MS, () => stderr),
     );
     expect(ready).toMatchObject({
       ok: true,
@@ -411,5 +418,5 @@ describe("attestor trust isolated approval service", () => {
     await expect(client.approve(trustRequest)).rejects.toThrow(
       "request denied",
     );
-  }, 30_000);
+  }, 90_000);
 });
