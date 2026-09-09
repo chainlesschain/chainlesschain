@@ -54,6 +54,12 @@ jobs:
           echo "=== core-mtc tests ==="
           npm test --workspace=packages/core-mtc
 
+      - name: Run Agent Protocol checks
+        working-directory: packages/agent-protocol
+        run: |
+          npm run check
+          npm test
+
       - name: Run Agent SDK tests
         working-directory: packages/agent-sdk
         run: |
@@ -318,6 +324,17 @@ jobs:
       # 3. core-db (-> core-env, core-config)
       # 4. core-infra (-> shared-logger)
       # 5. cli (-> all above)
+
+      - name: "Publish @chainlesschain/agent-protocol"
+        working-directory: packages/agent-protocol
+        run: |
+          set -euo pipefail
+          PKG_VER=$(node -p "require('./package.json').version")
+          if npm view "@chainlesschain/agent-protocol@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
 
       - name: "Publish @chainlesschain/core-env"
         working-directory: packages/core-env
@@ -814,6 +831,7 @@ jobs:
           V_CONTEXT=$(node -p "require('./packages/context-memory-kernel/package.json').version")
           V_AGENT=$(node -p "require('./packages/agent-sdk/package.json').version")
           V_PDH=$(node -p "require('./packages/personal-data-hub/package.json').version")
+          V_PROTOCOL=$(node -p "require('./packages/agent-protocol/package.json').version")
           {
             echo "## Publish Summary"
             echo ""
@@ -823,6 +841,7 @@ jobs:
             echo ""
             echo "| Package | Version |"
             echo "|---------|---------|"
+            echo "| @chainlesschain/agent-protocol | $V_PROTOCOL |"
             echo "| @chainlesschain/core-env | $V_ENV |"
             echo "| @chainlesschain/core-mtc | $V_MTC |"
             echo "| @chainlesschain/core-multisig | $V_MULTISIG |"
@@ -866,6 +885,7 @@ jobs:
             "@chainlesschain/context-memory-kernel"
             "@chainlesschain/agent-sdk"
             "@chainlesschain/personal-data-hub"
+            "@chainlesschain/agent-protocol"
             "chainlesschain"
           )
           {
