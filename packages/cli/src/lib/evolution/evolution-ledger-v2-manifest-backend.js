@@ -7,6 +7,7 @@ import {
   verifyEvolutionLedgerManifestChain,
 } from "./evolution-ledger-manifest-chain.js";
 import { captureEvolutionLedgerManifestHeadStore } from "./evolution-ledger-manifest-head-store.js";
+import { captureEvolutionLedgerManifestCatalog } from "./evolution-ledger-manifest-catalog.js";
 import { captureEvolutionLedgerManifestWitnessAdapter } from "./evolution-ledger-manifest-witness-adapter.js";
 
 export const EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA =
@@ -27,6 +28,7 @@ export const EVOLUTION_LEDGER_V2_MANIFEST_COMMIT_UNKNOWN_CODE =
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const CONFIG_KEYS = new Set([
   "descriptor",
+  "catalog",
   "headStore",
   "manifestAuthority",
   "now",
@@ -45,7 +47,7 @@ const APPEND_KEYS = new Set([
   "expectedWitnessDigest",
   "minimumRetainedUntil",
 ]);
-const VERIFY_KEYS = new Set(["manifests"]);
+const VERIFY_KEYS = new Set();
 const BACKENDS = new WeakSet();
 
 export class EvolutionLedgerV2ManifestBackendError extends Error {
@@ -180,10 +182,12 @@ function own(record, name, code = EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE) {
   return field.value;
 }
 
-function coherentSnapshot(headStore, witnessAdapter) {
+function coherentSnapshot(catalog, headStore, witnessAdapter) {
   let head;
+  let manifest;
   let witness;
   try {
+    manifest = catalog.readLatest();
     head = headStore.read();
     witness = witnessAdapter.read();
   } catch (cause) {
@@ -195,18 +199,24 @@ function coherentSnapshot(headStore, witnessAdapter) {
     );
   }
   if (head === null) {
-    if (witness.status !== "absent") {
+    if (manifest !== null || witness.status !== "absent") {
       throw failure(
         EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
-        "v2 manifest witness exists without a manifest head",
+        "v2 manifest catalog or witness exists without a manifest head",
       );
     }
-    return Object.freeze({ head: null, witness });
+    return Object.freeze({ head: null, manifest: null, witness });
   }
   if (witness.status !== "committed") {
     throw failure(
       EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
       "v2 manifest head has no committed witness",
+    );
+  }
+  if (manifest?.manifestDigest !== head.manifestDigest) {
+    throw failure(
+      EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
+      "v2 manifest catalog latest does not bind the manifest head",
     );
   }
   const bindings = {
@@ -222,7 +232,7 @@ function coherentSnapshot(headStore, witnessAdapter) {
       );
     }
   }
-  return Object.freeze({ head, witness });
+  return Object.freeze({ head, manifest, witness });
 }
 
 function conflict(snapshot) {
@@ -256,6 +266,10 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
   });
   const manifestAuthority = captureEvolutionLedgerManifestAuthority(
     data(fields, "manifestAuthority"),
+  );
+  const catalog = captureEvolutionLedgerManifestCatalog(
+    data(fields, "catalog"),
+    scope,
   );
   const segmentStore = captureImmutableLedgerSegmentStorePort(
     data(fields, "segmentStore"),
@@ -293,7 +307,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
       schema: EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA,
     }),
     read() {
-      return coherentSnapshot(headStore, witnessAdapter);
+      return coherentSnapshot(catalog, headStore, witnessAdapter);
     },
     appendSegment(input) {
       const request = exactRecord(
@@ -309,7 +323,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         data(request, "expectedWitnessDigest"),
         "expectedWitnessDigest",
       );
-      const current = coherentSnapshot(headStore, witnessAdapter);
+      const current = coherentSnapshot(catalog, headStore, witnessAdapter);
       if (
         (current.head?.headDigest ?? null) !== expectedHeadDigest ||
         current.witness.witnessDigest !== expectedWitnessDigest
@@ -325,6 +339,23 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         previousHead: current.head,
         segmentStore,
       });
+      let catalogResult;
+      try {
+        catalogResult = catalog.append({
+          expectedManifestDigest: current.manifest?.manifestDigest ?? null,
+          manifest: sealed.manifest,
+        });
+      } catch (cause) {
+        throw unknown(
+          "v2 manifest catalog may be committed; reopen before retrying",
+          cause,
+        );
+      }
+      if (catalogResult.appended !== true) {
+        throw unknown(
+          "v2 manifest catalog conflicted after segment retention; reopen before retrying",
+        );
+      }
       let headResult;
       try {
         headResult = headStore.commit({
@@ -337,8 +368,11 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
           cause,
         );
       }
-      if (headResult.committed !== true)
-        return conflict(coherentSnapshot(headStore, witnessAdapter));
+      if (headResult.committed !== true) {
+        throw unknown(
+          "v2 manifest catalog is committed but head CAS conflicted; reopen before retrying",
+        );
+      }
       let witnessResult;
       try {
         witnessResult = witnessAdapter.checkpoint({
@@ -359,7 +393,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
       }
       let final;
       try {
-        final = coherentSnapshot(headStore, witnessAdapter);
+        final = coherentSnapshot(catalog, headStore, witnessAdapter);
       } catch (cause) {
         throw unknown(
           "v2 manifest commit readback is unavailable; reopen before retrying",
@@ -390,13 +424,9 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         witnessDigest: final.witness.witnessDigest,
       });
     },
-    verify(input) {
-      const request = exactRecord(
-        input,
-        VERIFY_KEYS,
-        "v2 manifest verification request",
-      );
-      const snapshot = coherentSnapshot(headStore, witnessAdapter);
+    verify(input = {}) {
+      exactRecord(input, VERIFY_KEYS, "v2 manifest verification request");
+      const snapshot = coherentSnapshot(catalog, headStore, witnessAdapter);
       if (snapshot.head === null) {
         throw failure(
           EVOLUTION_LEDGER_V2_MANIFEST_INVALID_CODE,
@@ -407,7 +437,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         authority: manifestAuthority,
         descriptor: normalizedDescriptor,
         head: snapshot.head,
-        manifests: data(request, "manifests"),
+        manifests: catalog.list(),
         segmentStore,
       });
     },

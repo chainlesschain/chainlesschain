@@ -12,6 +12,10 @@ import {
   createImmutableLedgerSegmentStorePort,
 } from "../../src/lib/evolution/evolution-immutable-ledger-segment-store.js";
 import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
+import {
+  EVOLUTION_LEDGER_MANIFEST_CATALOG_APPEND_RESULT_SCHEMA,
+  createEvolutionLedgerManifestCatalog,
+} from "../../src/lib/evolution/evolution-ledger-manifest-catalog.js";
 import { createEvolutionLedgerManifestAuthority } from "../../src/lib/evolution/evolution-ledger-manifest-chain.js";
 import {
   EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
@@ -244,10 +248,40 @@ function witnessDescriptor(trust) {
   };
 }
 
-function fixture(root, { witnessPort } = {}) {
+function fixture(root, { catalogPort, witnessPort } = {}) {
   const authority = manifestAuthority();
   const segments = segmentStore();
   const heads = headStore(authority);
+  const manifests = [];
+  const defaultCatalogPort = {
+    compareAndAppend(request) {
+      const latest = manifests.at(-1) ?? null;
+      if ((latest?.manifestDigest ?? null) !== request.expectedManifestDigest) {
+        return {
+          appended: false,
+          latest,
+          schema: EVOLUTION_LEDGER_MANIFEST_CATALOG_APPEND_RESULT_SCHEMA,
+        };
+      }
+      manifests.push(request.manifest);
+      return {
+        appended: true,
+        latest: request.manifest,
+        schema: EVOLUTION_LEDGER_MANIFEST_CATALOG_APPEND_RESULT_SCHEMA,
+      };
+    },
+    list() {
+      return [...manifests];
+    },
+    loadLatest() {
+      return manifests.at(-1) ?? null;
+    },
+  };
+  const catalog = createEvolutionLedgerManifestCatalog({
+    backend: catalogPort?.(manifests, defaultCatalogPort) ?? defaultCatalogPort,
+    descriptor: descriptor(),
+    manifestAuthority: authority,
+  });
   const { trust, witness } = realWitness(root);
   const witnessAdapter = createEvolutionLedgerManifestWitnessAdapter({
     descriptor: witnessDescriptor(trust),
@@ -256,6 +290,7 @@ function fixture(root, { witnessPort } = {}) {
   });
   return {
     backend: createEvolutionLedgerV2ManifestBackend({
+      catalog,
       descriptor: descriptor(),
       headStore: heads.store,
       manifestAuthority: authority,
@@ -264,6 +299,7 @@ function fixture(root, { witnessPort } = {}) {
       witnessAdapter,
     }),
     heads,
+    manifests,
     segments,
     witness,
   };
@@ -312,6 +348,11 @@ describe("Evolution Ledger v2 manifest backend", () => {
       expect(second).toMatchObject({ sequenceEnd: 3, sequenceStart: 3 });
       expect(value.segments.backend.resolve).toHaveBeenCalledTimes(2);
       expect(value.backend.read().head.headDigest).toBe(second.headDigest);
+      expect(value.backend.verify()).toMatchObject({
+        authenticated: true,
+        manifestCount: 2,
+        sequence: 3,
+      });
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
     }
@@ -371,6 +412,42 @@ describe("Evolution Ledger v2 manifest backend", () => {
         );
       }
       expect(value.heads.store.read()).not.toBeNull();
+      expect(value.witness.read().status).toBe("absent");
+    } finally {
+      fs.rmSync(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("does not publish a head when manifest catalog acknowledgement is lost", () => {
+    const directory = root();
+    try {
+      const value = fixture(directory, {
+        catalogPort(manifests, fallback) {
+          return {
+            ...fallback,
+            compareAndAppend(request) {
+              manifests.push(request.manifest);
+              throw new Error("catalog response lost after append");
+            },
+          };
+        },
+      });
+      const initial = value.backend.read();
+      try {
+        value.backend.appendSegment({
+          eventDigests: [digest("c")],
+          expectedHeadDigest: null,
+          expectedWitnessDigest: initial.witness.witnessDigest,
+          minimumRetainedUntil: MINIMUM_RETENTION,
+        });
+        throw new Error("expected unknown commit state");
+      } catch (error) {
+        expect(error.code).toBe(
+          EVOLUTION_LEDGER_V2_MANIFEST_COMMIT_UNKNOWN_CODE,
+        );
+      }
+      expect(value.manifests).toHaveLength(1);
+      expect(value.heads.store.read()).toBeNull();
       expect(value.witness.read().status).toBe("absent");
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
