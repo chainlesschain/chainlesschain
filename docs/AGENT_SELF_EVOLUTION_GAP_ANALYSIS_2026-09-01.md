@@ -98,7 +98,7 @@ shadow / canary / active / rollback
 
 同一轮清查还发现 `VolcengineToolsClient.setupKnowledgeBase()` 的 `/knowledge_base/{id}/documents` raw document upload 并不经过仅适用于 `/chat/completions` 的 Desktop model host。该路径携带用户文档，不是控制面，也不能错误复用 chat-only capability；现已在 transport 前失败关闭，并使用含 canary 的文档证明注入的 `fetch` 未被调用。未来若要恢复该云知识库上传，必须接入独立的证据投影、持久化和治理桥接。该修补再次缩小已识别直通面，但不能替代对应用自定义 SDK worker、目标环境 authority 或其他未知第三方出口的最终审计。
 
-最终出口清单还将内置 Plugin API 的边界显式列为未完成项：插件的 `llm:query`/`llm:stream` 权限复用 Desktop `LLMManager`，而 `network:http` 在已获用户权限后允许任意 HTTPS/localhost 请求。后者只记录本地 permission/method 统计，不能判定 body 是否为模型 prompt，也不能生成 EvolutionRun 所需 source/response evidence；经该 API 直连 provider 的插件属于应用定义的第三方模型出口，不能视为已治理入口。受管部署必须为这类插件提供专用受治理 bridge，或拒绝其 direct provider 使用。它与独立 SDK worker 一并保留为 EVO-P0-4 的最终审计/部署验收项，而非用仓库内的通用网络权限伪装关闭。
+最终出口清单还将内置 Plugin API 的边界显式列为未完成项：插件的 `llm:query`/`llm:stream` 权限复用 Desktop `LLMManager`，而 `network:http` 在已获用户权限后允许一般 HTTPS/localhost 请求。现已在 `fetch` 前拒绝已知 OpenAI、Anthropic、Gemini、Mistral、Volcengine generation 与本机 Ollama 模型端点，插件必须转用 `plugin.llm`；同时将文件 API 的 Electron 读取延迟到实际文件操作，使该网络边界可在非 Electron 进程独立回归。通用 API 的本地 permission/method 统计仍不能判定 custom provider body 是否为模型 prompt，也不能生成 EvolutionRun 所需 source/response evidence；经未知 endpoint 直连 provider 的插件仍属应用定义的第三方模型出口。受管部署必须为这类插件提供专用受治理 bridge，或拒绝其 direct provider 使用。它与独立 SDK worker 一并保留为 EVO-P0-4 的最终审计/部署验收项，而非用仓库内的通用网络权限伪装关闭。
 
 同一增量还补强了 EVO-P0-5 与 EVO-P2-2 的可靠性证据：`365a9d7863` 将超过 256 条的 authenticated witness history 分段为不可变内容寻址前缀和有界尾部，`29dbb284f9` 修复受影响 Windows/libuv 运行时的文件句柄绑定；100 轮独立进程强退/恢复活动在六个 fault point 全部通过，但仍未覆盖 250,000-event 容量、物理断电、磁盘写满、生产签名 authority 或独立 witness 故障域，因此 EVO-P0-5 保持“部分完成”。Workbench/IDE 则完成连接恢复、完整版本分页验证、原生模型配置保存/读回和发布矩阵修复；这些结果支持 EVO-P2-2 维持“仓库闭环”，不提升为生产完成。
 

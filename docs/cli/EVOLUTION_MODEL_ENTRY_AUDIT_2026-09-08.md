@@ -146,14 +146,16 @@ bridge; it must not reuse the chat-only model capability.
 `llm:stream` permissions through the Desktop `LLMManager`; they therefore use
 the normal governed client when the Desktop host is configured. In contrast,
 the separately permission-checked `network:http` API permits a plugin to make
-an arbitrary HTTPS (or localhost) request. Its local API statistics record the
-permission and method invocation, but cannot prove whether its body is a model
-prompt or provide the source/response evidence required by an Evolution Run.
-Consequently, a plugin that calls an AI provider through `network:http` remains
-an application-defined third-party direct-provider path, not a governed model
-entry. Managed deployments must either supply a dedicated governed bridge for
-that plugin or deny its direct provider use; it is included in the final P0-4
-entry audit rather than silently exempted.
+an arbitrary HTTPS (or localhost) request. The API now rejects the known
+OpenAI, Anthropic, Gemini, Mistral, Volcengine generation, and local Ollama
+model endpoint families before `fetch`, directing plugin authors to `plugin.llm`.
+Its local API statistics still cannot classify a custom provider's request body
+or provide the source/response evidence required by an Evolution Run. A plugin
+that calls an unknown provider through `network:http` therefore remains an
+application-defined third-party direct-provider path, not a governed model
+entry. Managed deployments must supply a dedicated governed bridge or deny that
+plugin's direct provider use; it remains in the final P0-4 audit rather than
+being silently exempted.
 
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a

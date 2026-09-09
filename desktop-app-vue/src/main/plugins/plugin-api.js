@@ -1,6 +1,39 @@
 const { logger } = require("../utils/logger.js");
 const { isWithinDir } = require("../utils/path-boundary.js");
 
+function isKnownDirectModelProviderEndpoint(url) {
+  const parsed = new URL(url);
+  const hostname = parsed.hostname.toLowerCase();
+  const pathname = parsed.pathname;
+
+  if (hostname === "api.openai.com") return pathname.startsWith("/v1/");
+  if (hostname === "api.anthropic.com") return pathname === "/v1/messages";
+  if (hostname === "api.mistral.ai") return pathname.startsWith("/v1/");
+  if (hostname === "generativelanguage.googleapis.com") return true;
+  if (hostname === "ark.cn-beijing.volces.com") {
+    return (
+      pathname.startsWith("/api/v3/chat/") ||
+      pathname.startsWith("/api/v3/contents/generations/")
+    );
+  }
+  return (
+    (hostname === "localhost" || hostname === "127.0.0.1") &&
+    parsed.port === "11434" &&
+    ["/api/chat", "/api/generate", "/api/embed", "/api/embeddings"].includes(
+      pathname,
+    )
+  );
+}
+
+function assertNoDirectPluginModelEgress(url) {
+  if (!isKnownDirectModelProviderEndpoint(url)) return;
+  const error = new Error(
+    "Plugins must use the governed llm API instead of direct model provider network requests",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * PluginAPI - 插件API接口层
  *
@@ -309,19 +342,15 @@ class PluginAPI {
   buildFileAPI() {
     const fs = require("fs").promises;
     const path = require("path");
-
-    // 插件数据目录（隔离的）
-    const { app } = require("electron");
-    const pluginDataDir = path.join(
-      app.getPath("userData"),
-      "plugin-data",
-      this.pluginId,
-    );
+    const getPluginDataDir = () => {
+      const { app } = require("electron");
+      return path.join(app.getPath("userData"), "plugin-data", this.pluginId);
+    };
 
     return {
       // 读取文件（限制在插件目录内）
       read: this.createSecureMethod("file:read", async (filePath) => {
-        const safePath = this.getSafePath(pluginDataDir, filePath);
+        const safePath = this.getSafePath(getPluginDataDir(), filePath);
         return fs.readFile(safePath, "utf-8");
       }),
 
@@ -329,7 +358,7 @@ class PluginAPI {
       write: this.createSecureMethod(
         "file:write",
         async (filePath, content) => {
-          const safePath = this.getSafePath(pluginDataDir, filePath);
+          const safePath = this.getSafePath(getPluginDataDir(), filePath);
 
           // 确保目录存在
           await fs.mkdir(path.dirname(safePath), { recursive: true });
@@ -340,13 +369,13 @@ class PluginAPI {
 
       // 删除文件
       delete: this.createSecureMethod("file:delete", async (filePath) => {
-        const safePath = this.getSafePath(pluginDataDir, filePath);
+        const safePath = this.getSafePath(getPluginDataDir(), filePath);
         return fs.unlink(safePath);
       }),
 
       // 列出目录
       list: this.createSecureMethod("file:list", async (dirPath = "") => {
-        const safePath = this.getSafePath(pluginDataDir, dirPath);
+        const safePath = this.getSafePath(getPluginDataDir(), dirPath);
         return fs.readdir(safePath);
       }),
     };
@@ -361,8 +390,6 @@ class PluginAPI {
       fetch: this.createSecureMethod(
         "network:http",
         async (url, options = {}) => {
-          const fetch = require("node-fetch");
-
           // 限制只能访问HTTPS
           if (
             !url.startsWith("https://") &&
@@ -371,8 +398,15 @@ class PluginAPI {
             throw new Error("只允许HTTPS请求（或localhost）");
           }
 
+          // Plugins can use their governed llm API for model work. Do not let
+          // the generic network permission become an alternate provider path.
+          assertNoDirectPluginModelEgress(url);
+
           // 设置超时
           const timeout = Math.min(options.timeout || 30000, 60000);
+
+          const fetch =
+            this.context.pluginNetworkFetch || require("node-fetch");
 
           return fetch(url, {
             ...options,
