@@ -1831,6 +1831,16 @@ Gemini 最终版本的 native composition+实际客户端方法+Axios post 替�
 
 因此状态可从“只有 mock LLM 的仓库接线”提升为“**单机真实火山模型的 candidate-only Pilot 已验证**”，但生产结论仍为 `HOLD`：本次使用临时本机信任根和合成轨迹，没有独立模型 grader/safety/verifier、生产 PKI/KMS/witness、持久 Candidate/Artifact/Ledger authority、真实用户数据集、hidden holdout、跨平台矩阵、人工 quorum、shadow/canary、promotion/active/LKG/rollback 全旅程。尤其不能把确定性预检等价为 WikiSkill 的真实效果验证，也不能开启 automatic active promotion。
 
+### 13.5 生成者/评分者分离与摘要绑定（2026-09-09）
+
+在 13.4 的单模型生成 Pilot 之后，本批继续增加 `createGovernedSkillSynthesisModelEvaluator()`：生成 chat 与 grader chat 必须是两个不同的受治理端口；确定性 secret/PII、injection、schema 和工具来源预检必须先通过，grader 才能看到完整候选。grader 输出只接受固定 JSON schema、精确 candidate SHA-256、`0..1` score 和封闭 reason-code 枚举；安全否决码即使伴随高分也强制拒绝。评分 receipt 绑定 evaluator authority/revision/module digest、candidate digest、trajectory id、阈值、实际尝试次数和排序后的 reasons，并且必须通过 deployment 提供的 attestor/verifier 后才可接受。结构相似的伪 receipt 不能写入候选目录；生成和评分复用同一 chat 端口也在 Host 构造期拒绝。
+
+真实火山 grader 首次运行暴露了两种实际 provider 输出偏差：一次没有 JSON，一次 reason 不在允许集合。系统按预期返回 `status=error`，没有创建 candidate，也没有修改 active。随后增加最多 2 次的有界结构化重试，并把 reason 收紧为固定枚举；它不会接纳或规范化模型的自由文本，也不会在重试耗尽后降级通过。
+
+修复后的真实双调用 Pilot 使用同一已配置火山 provider/model、但分离的 generation/grader 端口，12.113 秒完成；生成 `security-configuration-review`，候选摘要 `sha256:096599cf25d0a75dee7a64352713373e68399d89fdd30b1e242495e31a6543a0`，grader score `1.0`、阈值 `0.7`、一次评分成功，receipt digest 为 `sha256:34670b34729141ff9d9b8b2652e52b153985d68e831bdd08d1015b9f8c39c704`。`EVALUATION.json` 在 `SKILL.md` 提交前写入同一隔离候选版本目录并完成回读，active mutation 仍为 0；临时目录随后清理。包含 governed receipt 实际落盘和 Synthesizer 全量定向测试的回归为 6 文件 106/106 通过。
+
+该阶段关闭了“候选由同一次生成调用自评”“评分不绑定候选字节”和“provider 非结构化输出直接接纳”三类仓库缺口，但仍不是生产独立 Eval：generation 与 grader 目前使用相同模型和 provider；本机 attestor/verifier 位于同一临时签名 deployment module，receipt 标记为 `durable=false`，没有写入 ArtifactStore/EvolutionLedger，也没有进程隔离 grader、hidden holdout、独立安全 verifier 或生产 PKI。因此下一阶段应把此 receipt 接到现有 ArtifactStore + Ledger adapter，并让 grader/safety authority 由独立进程和独立凭据提供；在此之前 production auto-promotion 继续 `HOLD`。
+
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。

@@ -2,6 +2,7 @@ import { isAbsolute } from "node:path";
 import { types as utilTypes } from "node:util";
 
 import { SkillSynthesizer } from "../learning/skill-synthesizer.js";
+import { assertDistinctSkillSynthesisModelRoles } from "./governed-skill-synthesis-model-evaluator.js";
 
 const HOSTS = new WeakSet();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -52,6 +53,7 @@ export function createGovernedSkillSynthesisCliHost({
     evaluateCandidateInput,
     "learning synthesis evaluator",
   );
+  assertDistinctSkillSynthesisModelRoles(evaluateCandidate, llmChat);
   const candidateOutputDir = absolutePath(
     candidateOutputDirInput,
     "learning synthesis candidateOutputDir",

@@ -19,6 +19,7 @@
 import fs from "fs";
 import { firstBalancedJson } from "../json-schema-output.js";
 import path from "path";
+import { isGovernedSkillSynthesisEvaluationReceipt } from "../evolution/governed-skill-synthesis-model-evaluator.js";
 
 // ── _deps for test injection ────────────────────────────
 
@@ -363,7 +364,7 @@ export class SkillSynthesizer {
           continue;
         }
 
-        await this._persistSkill(skillName, content);
+        await this._persistSkill(skillName, content, evaluation);
 
         // Only durable, evaluated candidates count as synthesized.
         this.trajectoryStore.markSynthesized(traj.id, skillName);
@@ -437,9 +438,10 @@ export class SkillSynthesizer {
    * Write SKILL.md to the isolated candidate output registry.
    * @param {string} skillName
    * @param {string} content
-   * @returns {Promise<{skillDir:string, skillFile:string}>}
+   * @param {object|boolean} evaluation
+   * @returns {Promise<{skillDir:string, skillFile:string,evaluationFile:string|null}>}
    */
-  async _persistSkill(skillName, content) {
+  async _persistSkill(skillName, content, evaluation = null) {
     if (!this.candidateOutputDir) {
       throw new Error("candidate output registry is unavailable");
     }
@@ -471,12 +473,32 @@ export class SkillSynthesizer {
     this._assertPathWithinCandidateRoot(candidateRoot, canonicalSkillDir);
     const skillFile = _deps.path.join(canonicalSkillDir, "SKILL.md");
 
+    let evaluationFile = null;
+    if (
+      evaluation &&
+      typeof evaluation === "object" &&
+      evaluation.receipt !== undefined
+    ) {
+      if (!isGovernedSkillSynthesisEvaluationReceipt(evaluation.receipt)) {
+        throw new Error("candidate evaluation receipt is not governed");
+      }
+      const serialized = JSON.stringify(evaluation.receipt, null, 2);
+      if (!serialized || Buffer.byteLength(serialized, "utf8") > 128 * 1024) {
+        throw new Error("candidate evaluation receipt is invalid or oversized");
+      }
+      evaluationFile = _deps.path.join(canonicalSkillDir, "EVALUATION.json");
+      await _deps.fs.promises.writeFile(evaluationFile, `${serialized}\n`, {
+        encoding: "utf-8",
+        flag: "wx",
+      });
+    }
+
     await _deps.fs.promises.writeFile(skillFile, content, {
       encoding: "utf-8",
       flag: "wx",
     });
 
-    return { skillDir: canonicalSkillDir, skillFile };
+    return { skillDir: canonicalSkillDir, skillFile, evaluationFile };
   }
 
   _assertCandidateFilesystemSupport() {

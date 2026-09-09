@@ -55,6 +55,18 @@ function boundedString(value, label, maximum) {
   return value;
 }
 
+function boundedContent(value, label, maximum) {
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0 ||
+    value.length > maximum ||
+    value.includes("\0")
+  ) {
+    throw new TypeError(`${label} must be non-empty bounded text`);
+  }
+  return value;
+}
+
 function boundedInteger(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
     throw new TypeError(
@@ -118,7 +130,7 @@ function normalizeMessages(messages) {
         `learning synthesis message ${index} role is invalid`,
       );
     }
-    const content = boundedString(
+    const content = boundedContent(
       message.content,
       `learning synthesis message ${index} content`,
       MAX_PROMPT_BYTES,

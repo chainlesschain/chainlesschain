@@ -40,7 +40,12 @@ function runCli(args, env, cwd) {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(
-      `CLI ${args.join(" ")} failed (${result.status}): ${result.stderr.trim()}`,
+      `CLI ${args.join(" ")} failed (${result.status}): ${[
+        result.stderr.trim(),
+        result.stdout.trim(),
+      ]
+        .filter(Boolean)
+        .join(" | ")}`,
     );
   }
   return result.stdout;
@@ -79,7 +84,7 @@ try {
   fs.mkdirSync(activeRoot);
 
   const moduleSource = `export async function createChainlessChainCommandDependencies({ descriptor, factories }) {
-    const llmChat = factories.createGovernedSkillSynthesisProviderChat({
+    const generationChat = factories.createGovernedSkillSynthesisProviderChat({
       provider: "volcengine",
       model: ${JSON.stringify(model)},
       baseUrl: ${JSON.stringify(baseUrl)},
@@ -87,8 +92,31 @@ try {
       maxTokens: 1024,
       timeoutMs: 60000
     });
-    const evaluateCandidate = factories.createGovernedSkillSynthesisCandidateEvaluator({
+    const graderChat = factories.createGovernedSkillSynthesisProviderChat({
+      provider: "volcengine",
+      model: ${JSON.stringify(model)},
+      baseUrl: ${JSON.stringify(baseUrl)},
+      apiKey: process.env.VOLCENGINE_API_KEY,
+      maxTokens: 2048,
+      timeoutMs: 60000
+    });
+    const deterministicEvaluator = factories.createGovernedSkillSynthesisCandidateEvaluator({
       maxContentBytes: 131072
+    });
+    const evaluateCandidate = factories.createGovernedSkillSynthesisModelEvaluator({
+      descriptor: {
+        authorityId: "authority:local-volcengine-pilot-grader",
+        revision: 1,
+        handlerArtifactDigest: descriptor.moduleDigest
+      },
+      deterministicEvaluator,
+      graderChat,
+      minScore: 0.7,
+      maxAttempts: 2,
+      attestReceipt: async ({ receiptDigest, candidateDigest }) =>
+        "local-pilot:" + receiptDigest + ":" + candidateDigest,
+      verifyAttestation: async ({ receiptDigest, candidateDigest, attestation }) =>
+        attestation === "local-pilot:" + receiptDigest + ":" + candidateDigest
     });
     return {
       learningSynthesisHost: factories.createGovernedSkillSynthesisCliHost({
@@ -96,7 +124,7 @@ try {
           tenantId: "tenant:local-volcengine-pilot",
           handlerArtifactDigest: descriptor.moduleDigest
         },
-        llmChat,
+        llmChat: generationChat,
         candidateOutputDir: ${JSON.stringify(candidateRoot)},
         activeSkillsDirs: [${JSON.stringify(activeRoot)}],
         evaluateCandidate,
@@ -216,7 +244,14 @@ try {
   }
   const skillName = synthesis.created[0];
   const skillPath = path.join(candidateRoot, skillName, "1.0.0", "SKILL.md");
+  const evaluationPath = path.join(
+    candidateRoot,
+    skillName,
+    "1.0.0",
+    "EVALUATION.json",
+  );
   const content = fs.readFileSync(skillPath);
+  const evaluation = JSON.parse(fs.readFileSync(evaluationPath, "utf8"));
   const activeEntries = fs.readdirSync(activeRoot);
   if (activeEntries.length !== 0) {
     throw new Error("pilot mutated the active Skill root");
@@ -241,6 +276,14 @@ try {
           contentDigest: sha256(content),
           contentBytes: content.byteLength,
           deterministicPrecheck: "passed",
+          modelEvaluation: {
+            authenticated: evaluation.authenticated,
+            durable: evaluation.durable,
+            score: evaluation.modelScore,
+            minScore: evaluation.minScore,
+            attempts: evaluation.attempts,
+            receiptDigest: evaluation.receiptDigest,
+          },
         },
         activeMutationCount: activeEntries.length,
         deployment: {
@@ -249,7 +292,9 @@ try {
           candidateRegistry: "isolated-temporary-directory",
         },
         limitations: [
-          "no independent model grader",
+          "no independently operated grader model or authority",
+          "grader role is separate but uses the same configured model and provider",
+          "evaluation receipt is authenticated but not durably ledgered",
           "no production PKI/KMS/witness authority",
           "no promotion or active deployment",
         ],
