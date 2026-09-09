@@ -94,6 +94,7 @@ export const EVOLUTION_ARTIFACT_LEDGER_RETENTION_TYPES = Object.freeze([
   "governed-knowledge-quarantine-release",
   "governed-knowledge-trust-record",
   "governed-skill-marketplace-state",
+  "governed-skill-synthesis-attestor-trust-authorization",
   "governed-skill-synthesis-attestor-trust-record",
   "governed-skill-synthesis-evaluation",
   "structured-memory-authority-receipt",
@@ -148,6 +149,7 @@ export const EVOLUTION_ARTIFACT_TYPES = Object.freeze([
   "governed-knowledge-quarantine-release",
   "governed-knowledge-trust-record",
   "governed-skill-marketplace-state",
+  "governed-skill-synthesis-attestor-trust-authorization",
   "governed-skill-synthesis-attestor-trust-record",
   "governed-skill-synthesis-evaluation",
   "evidence",
@@ -398,6 +400,10 @@ const LEDGER_RETENTION_PURPOSES_BY_TYPE = new Map([
   ["governed-knowledge-quarantine-release", new Set(["evolution-ledger"])],
   ["governed-knowledge-trust-record", new Set(["evolution-ledger"])],
   ["governed-skill-marketplace-state", new Set(["evolution-ledger"])],
+  [
+    "governed-skill-synthesis-attestor-trust-authorization",
+    new Set(["evolution-ledger"]),
+  ],
   [
     "governed-skill-synthesis-attestor-trust-record",
     new Set(["evolution-ledger"]),

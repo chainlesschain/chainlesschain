@@ -7,6 +7,14 @@ import {
 } from "node:crypto";
 import { types as utilTypes } from "node:util";
 
+import {
+  EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
+  isEvolutionLedgerArtifactResolver,
+} from "./evolution-artifact-ports.js";
+import {
+  EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
+  EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+} from "./evolution-ledger.js";
 import { isGovernedSkillSynthesisAttestorTrustLedger } from "./governed-skill-synthesis-attestor-trust-ledger.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATION_REQUEST_SCHEMA =
@@ -17,7 +25,14 @@ export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-authorization/v1";
 export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_SCHEMA =
   "chainlesschain.governed-skill-synthesis-attestor-trust-operations/v1";
+export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_RECORD_SCHEMA =
+  "chainlesschain.governed-skill-synthesis-attestor-trust-authorization-record/v1";
+export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_LINK_SCHEMA =
+  "chainlesschain.governed-skill-synthesis-attestor-trust-authorization-link/v1";
+export const GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT =
+  "learning.skill-synthesis-attestor-trust.authorization.committed";
 
+const ARTIFACT_TYPE = "governed-skill-synthesis-attestor-trust-authorization";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const SERVICE_ID = /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+){1,7}$/u;
@@ -55,6 +70,25 @@ const APPROVAL_KEYS = new Set([
   "tenantId",
 ]);
 const ATTESTATION_KEYS = new Set(["algorithm", "keyId", "value"]);
+const AUTHORIZATION_KEYS = new Set([
+  "approvalReceiptDigests",
+  "authorizationDigest",
+  "authorizedAt",
+  "operatorIds",
+  "policyDigest",
+  "requestDigest",
+  "requiredApprovals",
+  "schema",
+  "tenantId",
+]);
+const AUTHORIZATION_RECORD_KEYS = new Set([
+  "approvals",
+  "authorization",
+  "recordDigest",
+  "request",
+  "schema",
+  "tenantId",
+]);
 
 function canonical(value, seen = new Set()) {
   if (value === null || typeof value === "boolean") {
@@ -214,6 +248,152 @@ function freeze(value) {
     Object.freeze(value);
   }
   return value;
+}
+
+function capture(owner, method, label) {
+  if (
+    !owner ||
+    typeof owner !== "object" ||
+    utilTypes.isProxy(owner) ||
+    typeof owner[method] !== "function"
+  ) {
+    throw new TypeError(`${label}.${method}() is required`);
+  }
+  return (...args) => Reflect.apply(owner[method], owner, args);
+}
+
+function same(left, right) {
+  return canonical(left) === canonical(right);
+}
+
+function buildAuthorization(request, approvals) {
+  const accepted = [...approvals].sort((left, right) =>
+    left.operatorId.localeCompare(right.operatorId),
+  );
+  const authorizationCore = {
+    schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_SCHEMA,
+    tenantId: request.tenantId,
+    requestDigest: request.requestDigest,
+    policyDigest: request.policyDigest,
+    requiredApprovals: request.requiredApprovals,
+    operatorIds: accepted.map((receipt) => receipt.operatorId),
+    approvalReceiptDigests: accepted.map((receipt) => receipt.receiptDigest),
+    authorizedAt: accepted
+      .map((receipt) => receipt.approvedAt)
+      .sort()
+      .at(-1),
+  };
+  return freeze({
+    ...authorizationCore,
+    authorizationDigest: hash(
+      GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_SCHEMA,
+      authorizationCore,
+    ),
+  });
+}
+
+function authorizationRecordCore(value) {
+  const core = structuredClone(value);
+  delete core.recordDigest;
+  return core;
+}
+
+export function digestGovernedSkillSynthesisAttestorTrustAuthorizationRecord(
+  value,
+) {
+  return hash(
+    GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_RECORD_SCHEMA,
+    authorizationRecordCore(value),
+  );
+}
+
+function validateAuthorizationRecord(record, descriptor, operators) {
+  exact(
+    record,
+    AUTHORIZATION_RECORD_KEYS,
+    "attestor trust authorization record",
+  );
+  exact(
+    record.authorization,
+    AUTHORIZATION_KEYS,
+    "attestor trust authorization",
+  );
+  const authorizedAt = timestamp(
+    record.authorization.authorizedAt,
+    "authorization authorizedAt",
+  );
+  validateRequest(record.request, descriptor, authorizedAt);
+  dense(
+    record.approvals,
+    "attestor trust authorization approvals",
+    operators.size,
+  );
+  if (
+    record.schema !==
+      GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_RECORD_SCHEMA ||
+    record.tenantId !== descriptor.tenantId ||
+    record.approvals.length !== descriptor.requiredApprovals ||
+    record.recordDigest !==
+      digestGovernedSkillSynthesisAttestorTrustAuthorizationRecord(record)
+  ) {
+    throw new Error("attestor trust authorization record is invalid");
+  }
+  const seenOperators = new Set();
+  const seenKeys = new Set();
+  for (const receipt of record.approvals) {
+    const operatorId = receipt?.operatorId;
+    const operator = operators.get(operatorId);
+    if (
+      !operator ||
+      seenOperators.has(operatorId) ||
+      seenKeys.has(operator.keyId)
+    ) {
+      throw new Error("stored attestor trust approvals are not independent");
+    }
+    normalizeApproval(
+      receipt,
+      record.request,
+      { ...operator, operatorId },
+      authorizedAt,
+    );
+    seenOperators.add(operatorId);
+    seenKeys.add(operator.keyId);
+  }
+  const expected = buildAuthorization(record.request, record.approvals);
+  if (!same(expected, record.authorization)) {
+    throw new Error("stored attestor trust authorization is not exactly bound");
+  }
+  return freeze(structuredClone(record));
+}
+
+function parseAuthorizationArtifact(resolution, descriptor, operators) {
+  if (
+    resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+    resolution.authenticated !== true ||
+    resolution.found !== true ||
+    !DIGEST.test(resolution.digest ?? "") ||
+    !DIGEST.test(resolution.receiptDigest ?? "") ||
+    !Buffer.isBuffer(resolution.bytes)
+  ) {
+    throw new Error("attestor trust authorization artifact is incomplete");
+  }
+  let artifact;
+  try {
+    artifact = JSON.parse(resolution.bytes.toString("utf8"));
+  } catch {
+    throw new Error("attestor trust authorization artifact is not JSON");
+  }
+  if (
+    artifact?.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+    artifact.tenantId !== descriptor.artifactTenantId ||
+    artifact.audience !== descriptor.audience ||
+    artifact.purpose !== descriptor.purpose ||
+    artifact.retention !== "ledger" ||
+    artifact.type !== ARTIFACT_TYPE
+  ) {
+    throw new Error("attestor trust authorization artifact binding is invalid");
+  }
+  return validateAuthorizationRecord(artifact.value, descriptor, operators);
 }
 
 function requestCore(value) {
@@ -558,15 +738,23 @@ export function isGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer(
 
 export function createGovernedSkillSynthesisAttestorTrustOperations({
   tenantId: tenantIdInput,
+  authorizationStreamId: authorizationStreamIdInput,
   policyId: policyIdInput,
   revision: revisionInput,
   requiredApprovals: requiredApprovalsInput,
   operatorIdentities,
   trustLedger,
+  artifactPorts,
+  ledger,
+  ledgerArtifactResolver,
   requestTtlMs: requestTtlMsInput = 5 * 60 * 1000,
   now = Date.now,
 } = {}) {
   const tenantId = identifier(tenantIdInput, "tenantId");
+  const authorizationStreamId = identifier(
+    authorizationStreamIdInput,
+    "authorizationStreamId",
+  );
   const policyId = identifier(policyIdInput, "policyId");
   const revision = Number(revisionInput);
   const requiredApprovals = Number(requiredApprovalsInput);
@@ -594,6 +782,15 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
       "attestor trust lifecycle writer crossed its tenant boundary",
     );
   }
+  const put = capture(artifactPorts, "putCanonical", "artifactPorts");
+  const readLedger = capture(ledger, "read", "ledger");
+  const verifyLedger = capture(ledger, "verify", "ledger");
+  const appendLedger = capture(ledger, "appendDomainEvent", "ledger");
+  if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
+    throw new TypeError(
+      "a branded EvolutionArtifactPorts ledger resolver is required",
+    );
+  }
   const operators = normalizeOperators(operatorIdentities, tenantId);
   if (
     !Number.isSafeInteger(requiredApprovals) ||
@@ -616,6 +813,10 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
   };
   const descriptor = freeze({
     schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_OPERATIONS_SCHEMA,
+    artifactTenantId: trustLedger.descriptor.artifactTenantId,
+    audience: trustLedger.descriptor.audience,
+    purpose: trustLedger.descriptor.purpose,
+    authorizationStreamId,
     ...policyCore,
     policyDigest: hash(
       "chainlesschain.attestor-trust-operations-policy/v1",
@@ -625,6 +826,145 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
     approvalMode:
       requiredApprovals === 1 ? "single-operator" : "multi-operator",
   });
+
+  const authorizationEvents = () => {
+    const events = readLedger();
+    if (!Array.isArray(events)) {
+      throw new Error("EvolutionLedger returned no authorization events");
+    }
+    return events.filter(
+      (event) =>
+        event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
+        event.tenantId === tenantId &&
+        event.correlationId === authorizationStreamId &&
+        event.type ===
+          GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT,
+    );
+  };
+
+  const resolveAuthorizationEvent = async (event) => {
+    const authority = verifyLedger();
+    const resolution = await ledgerArtifactResolver({
+      epoch: authority.epoch,
+      ledgerId: authority.ledgerId,
+      ref: event.subjectRef,
+      tenantId: descriptor.artifactTenantId,
+    });
+    if (
+      resolution?.ref !== event.subjectRef.ref ||
+      resolution?.digest !== event.subjectRef.digest
+    ) {
+      throw new Error("authorization ledger resolved a substituted artifact");
+    }
+    const record = parseAuthorizationArtifact(
+      resolution,
+      descriptor,
+      operators,
+    );
+    if (
+      event.eventId !==
+        `${GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT}.${record.request.requestDigest.slice(7)}` ||
+      event.decision !== "accepted" ||
+      event.timestamp !== record.authorization.authorizedAt ||
+      event.sourceRefs.length !== 0 ||
+      !Number.isSafeInteger(event.sequence) ||
+      event.sequence < 1
+    ) {
+      throw new Error("attestor trust authorization event binding is invalid");
+    }
+    return { event, record };
+  };
+
+  const authorizationEntry = async (eventId) => {
+    const matches = authorizationEvents().filter(
+      (event) => event.eventId === eventId,
+    );
+    if (matches.length > 1) {
+      throw new Error("attestor trust authorization event is ambiguous");
+    }
+    return matches.length === 0 ? null : resolveAuthorizationEvent(matches[0]);
+  };
+
+  const persistAuthorization = async (record) => {
+    const eventId = `${GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT}.${record.request.requestDigest.slice(7)}`;
+    const existing = await authorizationEntry(eventId);
+    if (existing) {
+      if (!same(existing.record, record)) {
+        throw new Error(
+          "attestor trust request already has a different durable authorization",
+        );
+      }
+      return freeze({
+        authenticated: true,
+        durable: true,
+        recovered: true,
+        recordDigest: record.recordDigest,
+        authorizationDigest: record.authorization.authorizationDigest,
+        artifactRef: structuredClone(existing.event.subjectRef),
+        eventSequence: existing.event.sequence,
+        ledgerEventDigest: existing.event.eventDigest,
+      });
+    }
+    const head = verifyLedger();
+    const published = put(ARTIFACT_TYPE, record, {
+      audience: descriptor.audience,
+      purpose: descriptor.purpose,
+      retention: "ledger",
+    });
+    if (
+      !published?.ref ||
+      published.receipt?.persisted !== true ||
+      published.receipt?.readbackVerified !== true ||
+      published.receipt?.integrityVerified !== true ||
+      published.receipt?.retention !== "ledger"
+    ) {
+      throw new Error("attestor trust authorization was not durably read back");
+    }
+    let recovered = false;
+    try {
+      const receipt = appendLedger(
+        {
+          artifactTenantId: descriptor.artifactTenantId,
+          correlationId: authorizationStreamId,
+          decision: "accepted",
+          eventId,
+          reason: `attestor trust ${record.request.operation} authorized by ${requiredApprovals} operator(s)`,
+          skillName: null,
+          sourceRefs: [],
+          subjectRef: published.ref,
+          tenantId,
+          timestamp: record.authorization.authorizedAt,
+          type: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT,
+        },
+        {
+          expectedHeadDigest: head.headDigest,
+          expectedSequence: head.sequence,
+        },
+      );
+      if (receipt?.authenticated !== true || receipt.durable !== true) {
+        throw new Error("attestor trust authorization append was not durable");
+      }
+    } catch (error) {
+      const found = await authorizationEntry(eventId);
+      if (!found || !same(found.record, record)) throw error;
+      recovered = true;
+    }
+    const stored = await authorizationEntry(eventId);
+    if (!stored || !same(stored.record, record)) {
+      throw new Error("attestor trust authorization readback differs");
+    }
+    return freeze({
+      authenticated: true,
+      durable: true,
+      recovered,
+      recordDigest: record.recordDigest,
+      authorizationDigest: record.authorization.authorizationDigest,
+      artifactRef: structuredClone(stored.event.subjectRef),
+      eventSequence: stored.event.sequence,
+      ledgerEventDigest: stored.event.eventDigest,
+    });
+  };
+
   const operations = Object.freeze({
     descriptor,
     prepare(input) {
@@ -667,25 +1007,34 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
       accepted.sort((left, right) =>
         left.operatorId.localeCompare(right.operatorId),
       );
-      const authorizationCore = {
-        schema: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_SCHEMA,
+      const authorization = buildAuthorization(request, accepted);
+      const authorizationRecordCore = {
+        schema:
+          GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_RECORD_SCHEMA,
         tenantId,
-        requestDigest: request.requestDigest,
-        policyDigest: descriptor.policyDigest,
-        requiredApprovals,
-        operatorIds: accepted.map((receipt) => receipt.operatorId),
-        approvalReceiptDigests: accepted.map(
-          (receipt) => receipt.receiptDigest,
-        ),
-        authorizedAt: new Date(currentTime).toISOString(),
+        request: structuredClone(request),
+        approvals: structuredClone(accepted),
+        authorization: structuredClone(authorization),
       };
-      const authorization = freeze({
-        ...authorizationCore,
-        authorizationDigest: hash(
-          GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_SCHEMA,
-          authorizationCore,
-        ),
+      const authorizationRecord = freeze({
+        ...authorizationRecordCore,
+        recordDigest:
+          digestGovernedSkillSynthesisAttestorTrustAuthorizationRecord(
+            authorizationRecordCore,
+          ),
       });
+      validateAuthorizationRecord(authorizationRecord, descriptor, operators);
+      const persistence = await persistAuthorization(authorizationRecord);
+      const authorizationLink = freeze({
+        schema:
+          GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_LINK_SCHEMA,
+        authorizationDigest: authorization.authorizationDigest,
+        authorizationStreamId,
+        recordDigest: authorizationRecord.recordDigest,
+        artifactRef: structuredClone(persistence.artifactRef),
+        eventSequence: persistence.eventSequence,
+      });
+      validateRequest(request, descriptor, clock(now, "operations"));
       let lifecycle;
       if (request.operation === "register") {
         lifecycle = await trustLedger.registerKey({
@@ -695,6 +1044,7 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
             request.keyId,
             "attestor",
           ),
+          authorization: authorizationLink,
         });
       } else if (request.operation === "rotate") {
         lifecycle = await trustLedger.rotateKey({
@@ -706,15 +1056,21 @@ export function createGovernedSkillSynthesisAttestorTrustOperations({
             "attestor",
           ),
           reason: request.reason,
+          authorization: authorizationLink,
         });
       } else {
         lifecycle = await trustLedger.revokeKey({
           serviceId: request.serviceId,
           keyId: request.keyId,
           reason: request.reason,
+          authorization: authorizationLink,
         });
       }
-      return freeze({ authorization, lifecycle: structuredClone(lifecycle) });
+      return freeze({
+        authorization,
+        persistence: structuredClone(persistence),
+        lifecycle: structuredClone(lifecycle),
+      });
     },
   });
   OPERATIONS.add(operations);

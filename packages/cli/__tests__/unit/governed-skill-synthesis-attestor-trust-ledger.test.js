@@ -19,11 +19,13 @@ import {
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import {
+  GOVERNED_SKILL_SYNTHESIS_ATTESTOR_KEY_REGISTERED_EVENT,
   createGovernedSkillSynthesisAttestorTrustLedger,
   createGovernedSkillSynthesisAttestorTrustVerifier,
   isGovernedSkillSynthesisAttestorTrustVerifier,
 } from "../../src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js";
 import {
+  GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT,
   createGovernedSkillSynthesisAttestorTrustOperations,
   createGovernedSkillSynthesisAttestorTrustOperatorApprovalIssuer,
   isGovernedSkillSynthesisAttestorTrustOperations,
@@ -226,6 +228,15 @@ function resources(root) {
   return { artifactPorts, resolver, backend };
 }
 
+function operationPersistence(opened) {
+  return {
+    authorizationStreamId: "learning-synthesis-attestor-authorizations",
+    artifactPorts: opened.artifactPorts,
+    ledger: opened.backend.ledger,
+    ledgerArtifactResolver: opened.resolver,
+  };
+}
+
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
   return process.platform === "win32"
@@ -386,6 +397,7 @@ describe("governed Skill synthesis attestor trust ledger", () => {
     const attestor = generateKeyPairSync("ed25519");
     expect(() =>
       createGovernedSkillSynthesisAttestorTrustOperations({
+        ...operationPersistence(opened),
         tenantId: "tenant:other-personal-ai",
         policyId: "policy:cross-tenant",
         revision: 1,
@@ -401,6 +413,7 @@ describe("governed Skill synthesis attestor trust ledger", () => {
       }),
     ).toThrow("crossed its tenant boundary");
     const operations = createGovernedSkillSynthesisAttestorTrustOperations({
+      ...operationPersistence(opened),
       tenantId: DESCRIPTOR.tenantId,
       policyId: "policy:personal-ai",
       revision: 1,
@@ -434,9 +447,10 @@ describe("governed Skill synthesis attestor trust ledger", () => {
         operatorId: "operator:owner",
         privateKey: operator.privateKey,
       });
+    const approval = issuer.issue(request);
     const result = await operations.execute({
       request,
-      approvals: [issuer.issue(request)],
+      approvals: [approval],
     });
     expect(result.lifecycle).toMatchObject({
       authenticated: true,
@@ -449,6 +463,61 @@ describe("governed Skill synthesis attestor trust ledger", () => {
       operatorIds: ["operator:owner"],
       policyDigest: operations.descriptor.policyDigest,
       requestDigest: request.requestDigest,
+    });
+    expect(result.persistence).toMatchObject({
+      authenticated: true,
+      durable: true,
+      recovered: false,
+      authorizationDigest: result.authorization.authorizationDigest,
+    });
+    expect(result.persistence.eventSequence).toBe(1);
+    expect(result.persistence.ledgerEventDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
+    expect(result.lifecycle.authorizationDigest).toBe(
+      result.authorization.authorizationDigest,
+    );
+    const [authorizationEvent, lifecycleEvent] = opened.backend.ledger.read();
+    expect(authorizationEvent).toMatchObject({
+      sequence: result.persistence.eventSequence,
+      type: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_TRUST_AUTHORIZATION_COMMITTED_EVENT,
+      subjectRef: result.persistence.artifactRef,
+    });
+    expect(lifecycleEvent).toMatchObject({
+      type: GOVERNED_SKILL_SYNTHESIS_ATTESTOR_KEY_REGISTERED_EVENT,
+      sourceRefs: [result.persistence.artifactRef],
+    });
+    const reopened = resources(root);
+    const reopenedTrust = createGovernedSkillSynthesisAttestorTrustLedger({
+      descriptor: DESCRIPTOR,
+      artifactPorts: reopened.artifactPorts,
+      ledger: reopened.backend.ledger,
+      ledgerArtifactResolver: reopened.resolver,
+    });
+    const reopenedOperations =
+      createGovernedSkillSynthesisAttestorTrustOperations({
+        ...operationPersistence(reopened),
+        tenantId: DESCRIPTOR.tenantId,
+        policyId: "policy:personal-ai",
+        revision: 1,
+        requiredApprovals: 1,
+        operatorIdentities: [
+          {
+            tenantId: DESCRIPTOR.tenantId,
+            operatorId: "operator:owner",
+            publicKey: operator.publicKey,
+          },
+        ],
+        trustLedger: reopenedTrust,
+      });
+    await expect(
+      reopenedOperations.execute({
+        request,
+        approvals: [approval],
+      }),
+    ).resolves.toMatchObject({
+      persistence: { recovered: true },
+      lifecycle: { recovered: true },
     });
     expect(JSON.stringify(operations)).not.toContain("PRIVATE KEY");
   });
@@ -479,6 +548,7 @@ describe("governed Skill synthesis attestor trust ledger", () => {
       publicKey: keys.publicKey,
     }));
     const multi = createGovernedSkillSynthesisAttestorTrustOperations({
+      ...operationPersistence(opened),
       tenantId: DESCRIPTOR.tenantId,
       policyId: "policy:production-two-person",
       revision: 7,
@@ -487,6 +557,7 @@ describe("governed Skill synthesis attestor trust ledger", () => {
       trustLedger,
     });
     const single = createGovernedSkillSynthesisAttestorTrustOperations({
+      ...operationPersistence(opened),
       tenantId: DESCRIPTOR.tenantId,
       policyId: "policy:personal-ai",
       revision: 1,
@@ -566,6 +637,7 @@ describe("governed Skill synthesis attestor trust ledger", () => {
 
     let expiryClock = Date.now();
     const expiring = createGovernedSkillSynthesisAttestorTrustOperations({
+      ...operationPersistence(opened),
       tenantId: DESCRIPTOR.tenantId,
       policyId: "policy:expiring-personal-ai",
       revision: 1,

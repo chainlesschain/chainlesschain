@@ -405,6 +405,7 @@ try {
   const attestorTrustOperations =
     createGovernedSkillSynthesisAttestorTrustOperations({
       tenantId: "tenant:local-volcengine-pilot",
+      authorizationStreamId: "learning-synthesis-attestor-trust-authorizations",
       policyId: "policy:local-personal-ai-attestor-trust",
       revision: 1,
       requiredApprovals: 1,
@@ -416,6 +417,9 @@ try {
         },
       ],
       trustLedger: attestorTrustControl,
+      artifactPorts: controlResources.artifactPorts,
+      ledger: controlResources.backend.ledger,
+      ledgerArtifactResolver: controlResources.ledgerArtifactResolver,
     });
   const trustRegistrationRequest = attestorTrustOperations.prepare({
     operation: "register",
@@ -858,6 +862,17 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
     !/^sha256:[a-f0-9]{64}$/u.test(
       attestorTrustExecution.authorization?.authorizationDigest,
     ) ||
+    attestorTrustExecution.persistence?.authenticated !== true ||
+    attestorTrustExecution.persistence?.durable !== true ||
+    attestorTrustExecution.persistence?.recovered !== false ||
+    attestorTrustExecution.persistence?.authorizationDigest !==
+      attestorTrustExecution.authorization?.authorizationDigest ||
+    !Number.isSafeInteger(attestorTrustExecution.persistence?.eventSequence) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(
+      attestorTrustExecution.persistence?.ledgerEventDigest,
+    ) ||
+    attestorTrustRegistration.authorizationDigest !==
+      attestorTrustExecution.authorization?.authorizationDigest ||
     attestorTrustEvidence.verifier?.isolation !==
       "durable-ledger-key-lifecycle" ||
     attestorTrustEvidence.verifier?.serviceId !== externalAttestorServiceId
@@ -932,6 +947,14 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
               attestorTrustRegistration.recovered,
             attestorTrustAuthorizationDigest:
               attestorTrustExecution.authorization.authorizationDigest,
+            attestorTrustAuthorizationRecordDigest:
+              attestorTrustExecution.persistence.recordDigest,
+            attestorTrustAuthorizationLedgerEventDigest:
+              attestorTrustExecution.persistence.ledgerEventDigest,
+            attestorTrustAuthorizationSequence:
+              attestorTrustExecution.persistence.eventSequence,
+            attestorTrustAuthorizationRecovered:
+              attestorTrustExecution.persistence.recovered,
             attestorTrustApprovalMode:
               attestorTrustOperations.descriptor.approvalMode,
             attestorTrustRequiredApprovals:
@@ -968,7 +991,7 @@ export async function createChainlessChainCommandDependencies({ descriptor, fact
           "the signer public key is registered in the same durable ArtifactStore/EvolutionLedger sequence as evaluation receipts; rotation preserves only pre-rotation receipts and explicit revocation invalidates historical receipts",
           "the learning deployment receives only a branded trust verifier; the pilot orchestrator owns the lifecycle writer and registers the signer key before any CLI process starts",
           "the pilot uses a signed 1-of-1 personal-AI operator policy; the same control port supports a policy-bound distinct-operator quorum for managed deployments",
-          "operator approval authorization is verified before mutation but is not yet persisted as its own ArtifactStore/Ledger record",
+          "operator approval authorization is persisted before mutation as its own ArtifactStore/Ledger record and is linked from the lifecycle event sourceRefs",
           "the pilot orchestrator bootstraps the signer private key into a separate same-host service process; this validates the handle boundary but is not production KMS/HSM or workload identity",
           "evaluation receipt uses ArtifactStore plus a file Ledger and witness",
           "artifact, Ledger, and witness HMAC authorities are ephemeral and the external Ed25519 signer service is not production KMS/HSM-backed",

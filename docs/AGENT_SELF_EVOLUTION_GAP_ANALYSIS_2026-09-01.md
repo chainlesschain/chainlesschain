@@ -1939,7 +1939,19 @@ quorum 是显式部署策略而非硬编码双人：个人 AI 可配置 `require
 
 定向 loader、trust lifecycle 与 operations 回归合计 **49/49 passed**；覆盖单人策略、不同操作员多人 quorum、重复审批、伪签名、过期、跨租户、请求替换与 policy downgrade。ESLint、Prettier 和真实火山 Pilot 均通过。
 
-这一阶段建立了可配置 operator quorum 的密码学执行门，但尚未声称独立生产运维面完成：authorization 当前随调用结果返回，尚未作为独立 ArtifactStore/EvolutionLedger record 持久化并与 lifecycle record 双向绑定；executor 仍运行在 Pilot 父级 orchestrator，而非独立 service/CLI；operator registry/key 也是本机静态临时值，未接组织身份、撤销、双人审批交互、KMS/HSM 或 workload identity。因此 production auto-promotion 继续 `HOLD`。下一批应先把 request、各 approval 和 authorization 形成可重开、可撤销验证的 durable Ledger 证据，并让 lifecycle event 引用 authorization digest；随后再把 executor/writer 搬入最小权限独立进程与正式运维 CLI。
+这一阶段建立了可配置 operator quorum 的密码学执行门，但当时 authorization 仅随调用结果返回；下一节继续把 request、各 approval 和 authorization 持久化，并让 lifecycle event 引用该证据。executor 仍运行在 Pilot 父级 orchestrator，operator registry/key 仍为本机静态临时值，独立 service/CLI、组织身份与撤销、KMS/HSM 和 workload identity 等生产缺口仍然成立，因此 production auto-promotion 继续 `HOLD`。
+
+### 13.14 durable operator authorization 与 lifecycle lineage（2026-09-09）
+
+本批把已验证的 operator quorum 从瞬时返回值升级为同一 ArtifactStore/EvolutionLedger 中的持久授权证据。有限产品白名单新增 `governed-skill-synthesis-attestor-trust-authorization`，只允许 `evolution-ledger` retention；record 保存 exact request、按 operator ID 排序的完整 approval receipts、聚合 authorization 及独立 record digest。authorization event 以 request digest 形成稳定 identity，在 append 前执行 artifact readback 和 Ledger head CAS，append 响应丢失时可从新实例恢复完全相同的 record；相同 request 若换用不同审批集合不会被误判为幂等成功。`authorizedAt` 固定为已接受审批中的最大时间，使同一审批集合在重试和重启后得到相同 authorization/record digest。
+
+attestor trust record 新增向后兼容的 authorized v2：旧受信内部调用仍可读取/生成 v1，新 operations 只能生成带 authorization link 的 v2。link 固定 authorization digest、authorization record digest、Artifact ref、authorization stream ID 和 Ledger sequence；lifecycle event 的 `sourceRefs` 必须精确等于该 ref。每次状态扫描和进程重开都会确认 authorization event 在 lifecycle event 之前、tenant/stream/type/decision/sequence 正确，重新解析认证 artifact，复算 record/authorization digest，并逐字段确认 request 的 service、operation、key/SPKI、prior key 和 reason 与 lifecycle record 相同。替换授权制品、引用另一请求或让 lifecycle 先于授权都会失败关闭。
+
+单人个人 AI 用例实际完成 sequence 1 authorization、sequence 2 key registration，并以全新的 ArtifactStore、Ledger、trust writer 和 operations 实例恢复同一 authorization 与 lifecycle，二者均返回 recovered。定向 artifact ports、deployment loader、trust lifecycle 与 operations 回归合计 **91 passed、1 个既有平台条件 skip**，覆盖有限 artifact 类型、1-of-1、2-of-3、签名/过期/跨租户/降级拒绝、sourceRefs 顺序绑定和跨实例恢复。
+
+真实 Windows 火山 Pilot 使用 `deepseek-v4-flash-260425` 在 **16.124 秒**完成，生成 candidate-only `security-configuration-review`（727 bytes，摘要 `sha256:c2c3a6950d0e317078031be8e865e29f643948bbdbb8b6957eb64250c8f22425`），grader 一次评分 1.0；evaluation receipt/persistence/Ledger event digest 分别为 `sha256:694fa60039eb890831737f336334f21977c4920917be80fa3b1872ffc2257601`、`sha256:9c36141b9807623cc6771d996f0dec5de2a3d6107a571d8bc85b3a4d0fd5052c`、`sha256:4ff01e0abfbca2023e07f37b64c82632708a33e6c0f28a225b701f44da1a1fbf`。trust authorization/record/Ledger event digest 分别为 `sha256:50c6071590ff5b1b6d8ff6f5a94d9934dad87a83f2aa52f0a21d9b1d9da87955`、`sha256:0e68004830de2ef8d6c192347a449722cc6b122ae62e5e12f1481d161189149f`、`sha256:efe1ba3cb5225b61de2f4f56673879973fb164356bdfc36eda87619cfdbc78a6`，authorization sequence 为 1、recovered 为 false；trust lifecycle record digest 为 `sha256:96dd1f8b27f4d3b37661c187db535e30e15db227d89e46b92428de03ee912f71`，approval mode 为 `single-operator`，active mutation 为 0。ESLint、Prettier 和真实 Pilot 均通过。
+
+该纵切关闭了“审批只在内存中验证，Ledger 上的 key lifecycle 无法反查审批证据”的仓库缺口，但仍不是生产运维控制面。authorization 与 lifecycle 是有序的两个 CAS event：授权成功而 lifecycle 因业务冲突失败时会留下安全但未消费的 authorization，不承诺跨制品原子事务；learning verifier 重开会验证 durable lineage 和摘要，但 operator 签名的当前信任/撤销仍由 operations 实例的静态 registry 验证，尚无独立持久 operator PKI/revocation ledger。executor/writer 仍位于 Pilot 父进程，也没有正式运维 CLI、服务账户、IPC ACL、KMS/HSM/workload identity 或独立故障域。因此 production auto-promotion 继续 `HOLD`。下一阶段应先把 writer/executor 搬入最小权限独立进程并提供仅传 request/approval 的运维 client，再补 operator identity 生命周期和未消费 authorization reconciliation。
 
 ## 14. 全量任务完成情况（截至 2026-09-09）
 
