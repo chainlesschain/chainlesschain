@@ -238,11 +238,13 @@ describe("SessionMessageFabric ordering, recovery and bounds", () => {
     ).toEqual(["delivered", "delivered"]);
   });
 
-  it("returns full for the 101st pending message and accepts after drain", () => {
-    const fabric = fixture();
+  it("returns full at the pending limit and accepts after drain", () => {
+    expect(SESSION_MESSAGE_FABRIC_LIMITS.maxPendingPerRecipient).toBe(100);
+    const testPendingLimit = 3;
+    const fabric = fixture({ maxPendingPerRecipient: testPendingLimit });
     fabric.register({ sessionId: "sender", name: "sender" });
     fabric.register({ sessionId: "target", name: "target" });
-    for (let index = 1; index <= 100; index += 1) {
+    for (let index = 1; index <= testPendingLimit; index += 1) {
       expect(
         fabric.send({
           from: "sender",
@@ -256,22 +258,24 @@ describe("SessionMessageFabric ordering, recovery and bounds", () => {
       fabric.send({
         from: "sender",
         to: "target",
-        body: 101,
-        messageId: "message-101",
+        body: testPendingLimit + 1,
+        messageId: "message-over-capacity",
       }),
     ).toMatchObject({ status: "full", reason: "queue_capacity" });
 
-    expect(fabric.inbox("target", { acknowledge: true })).toHaveLength(100);
+    expect(fabric.inbox("target", { acknowledge: true })).toHaveLength(
+      testPendingLimit,
+    );
     expect(
       fabric.send({
         from: "sender",
         to: "target",
         body: "retry",
-        messageId: "message-101-retry",
-        sequence: 101,
+        messageId: "message-after-drain",
+        sequence: testPendingLimit + 1,
       }).status,
     ).toBe("delivered");
-  }, 10_000);
+  });
 
   it("persists a bounded per-sender rate window without breaking idempotent retry", () => {
     let now = 1_000;
