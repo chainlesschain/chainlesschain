@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 状态：2026-09-07 核对，`0.166.30` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval，以及受治理知识同步、审核与可恢复合并；`main@5db62db246` 继续收口 Desktop 模型入口并优化 witness 验签缓存，目标环境 authority 和自动 active promotion 保持 HOLD
+> 状态：2026-09-10 核对，`0.166.43@7528bfb81d` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval、受治理知识同步，以及签名部署配置；VS Code `0.37.93`、JetBrains `0.4.120` 和 `cc ui` 共用该配置面，目标环境 authority 和自动 active promotion 保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
@@ -56,6 +56,7 @@
 | Memory      | `StructuredMemory*` adapters                                    | episodic/semantic/procedural/policy 四层权力分离                      |
 | Migration   | candidate/release/state migration adapters                      | 计划、journal、故障恢复和 legacy 文件退休                             |
 | Composition | `createAgentEvolutionRuntimeComposition()`                      | 显式注入 KMS/PKI/policy/witness 的 branded 生产根                     |
+| Deployment  | signed descriptor / owner-only profile / exact-byte loader      | 验签后持久选择部署宿主；环境变量可覆盖；自动晋升固定为 HOLD            |
 
 ## 4. 系统架构
 
@@ -176,7 +177,9 @@ API 不允许“日志写失败但 mutation 成功”或“候选未落盘但报
 
 可信宿主至少要配置：tenant root/marker authority、candidate/release durable adapter、ledger/PKI authority、target/grader/safety callable descriptor、全 run deadline、资源上限、permission/policy digest、active/LKG store 和 kill switch。
 
-这些配置尚未冻结为公共最终用户 schema。`0.166.24` 可通过签名 deployment descriptor 与 trust-root 的绝对路径加载固定模块；模块使用 loader 提供的工厂创建 branded root。环境变量仅选择已认证部署，不赋予调用者 authority。Workbench 与 Knowledge 命令虽已公开注册，但缺少可信 host 时必须明确 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。
+`0.166.43` 将部署选择冻结为两个版本化 schema：`chainlesschain.evolution-deployment-descriptor/v1` 描述签名模块，`chainlesschain.evolution-deployment-profile/v1` 只保存启用状态与 descriptor/trust-root 的绝对路径。`configure` 必须先验证严格字段集、单调 revision、命令白名单、Ed25519 签名、trust-root 摘要、模块摘要和 4 MiB 模块上限，随后以 owner-only 临时文件和原子 rename 写入 profile。loader 执行的是已验摘要的精确模块字节，而不是再次按路径 import，避免验签后路径替换窗口。
+
+环境变量仅选择已认证部署，不赋予调用者 authority；当环境变量与 profile 同时存在时环境变量优先，且 descriptor/trust-root 必须成对提供。损坏或过期的持久 profile 不会启动治理能力，但仍允许 `status`、`configure` 和 `disable` 进入恢复路径。Workbench 与 Knowledge 命令虽已公开注册，缺少可信 host 时仍明确 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。`cc ui` 的配置 topic 只接受 loopback 或 token 保护的控制面，并限制为有界单行路径与布尔开关。
 
 ## 13. 性能与容量
 
@@ -297,6 +300,32 @@ Wiki pruning 的计划、授权 checkpoint、维护结果、检索投影和 wiki
 
 详细入口、协议适配、旧路径处置矩阵与生产缺口见[模块 113：Desktop 受治理模型入口](./113-governed-desktop-model-ingress-design.md)。
 
+## 18.8 2026-09-10 发布核对：签名部署配置与多端控制面
+
+`0.166.43@7528bfb81d` 把原先依赖进程环境变量的部署选择补成可审计、可暂停、可恢复的持久配置。CLI 暴露 `cc evolution deployment status/configure/enable/disable`；VS Code `0.37.93`、JetBrains `0.4.120` 与 `cc ui` 只调用同一 CLI-owned 配置接口，不自行验签、不保存治理私钥，也不获得 review、promotion 或 release authority。
+
+```text
+CLI / IDE / cc ui
+        │ bounded configure/status/toggle
+        ▼
+deployment-profile/v1 (owner-only, atomic replace)
+        │ environment override has precedence
+        ▼
+descriptor/v1 + Ed25519 trust root
+        │ strict schema + signature + trust/module digest
+        ▼
+authenticated single-file ESM bytes
+        │ command allowlist + digest-bound built-in factories
+        ▼
+deployment-owned branded dependencies
+        │
+        └── automatic active promotion = HOLD
+```
+
+状态投影固定公开 `source`、`effectiveEnabled`、`profileEnabled`、`verified`、路径、revision、module digest、命令白名单、错误与 `autoPromotion: "hold"`。`disable` 只停用持久 profile；显式环境覆盖仍优先，因此运维系统需要先移除环境覆盖才能用本机开关停机。`enable` 不跳过重新验签，配置文件或其引用制品失效后能力继续失败闭合。
+
+发布证据绑定同一 SHA：CLI CI `34476406749`、CLI Strict Sandbox `34476405180`、IDE Extensions `34476405124` 和 npm Trusted Publishing/公共回读 `34479754264` 均成功；npm `0.166.43`、Open VSX `0.37.93` 与 JetBrains Marketplace `0.4.120` 已公开。后续普通 push matrix 曾因 Windows 依赖安装失败产生一次红灯，不改写上述精确 release gate 的成功事实；相关锁竞争测试已继续加固，部署文案不把单次环境故障描述为功能退化。
+
 ## 19. 关键文件
 
 - `packages/cli/src/lib/evolution/skill-candidate-registry.js`
@@ -308,6 +337,11 @@ Wiki pruning 的计划、授权 checkpoint、维护结果、检索投影和 wiki
 - `packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js`
 - `packages/cli/src/lib/evolution/agent-evolution-ingress.js`
 - `packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js`
+- `packages/cli/src/lib/evolution/evolution-deployment-config.js`
+- `packages/cli/src/lib/evolution/evolution-deployment-profile.js`
+- `packages/cli/src/lib/evolution/evolution-deployment-loader.js`
+- `packages/cli/src/commands/evolution-deployment.js`
+- `packages/cli/src/gateways/ws/evolution-deployment-topic-handlers.js`
 - `packages/cli/src/lib/evolution/evidence-backed-wiki-maintainer.js`
 - `packages/cli/src/lib/evolution/wiki-maintainer-ledger-adapter.js`
 - `packages/cli/src/lib/evolution/structured-memory-agent-control-plane.js`

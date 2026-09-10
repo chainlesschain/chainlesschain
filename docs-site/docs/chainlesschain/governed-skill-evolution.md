@@ -4,6 +4,8 @@
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
+> 发布状态：npm `chainlesschain@0.166.43`、Open VSX `0.37.93` 与 JetBrains Marketplace `0.4.120` 已公开，均对应 `7528bfb81d`。安装或升级 CLI：`npm i -g chainlesschain@0.166.43`。
+
 ## 概述
 
 受治理的 Skill 自进化把学习结果先变成隔离候选，再通过评测、证据和发布事务决定是否可以进入 active。它解决旧路径中“生成成功”和“已经安装”容易混淆的问题：候选生成、内容改进、跨设备导入都不再直接覆盖正在运行的 Skill。

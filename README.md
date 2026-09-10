@@ -2,30 +2,30 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.38`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.43`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.38 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.43 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-09 当前发布 — **CLI 0.166.38 / VS Code 0.37.92 / JetBrains 0.4.119：模型入口治理与可靠配置**
+## 2026-09-10 当前发布 — **CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120：受治理的 Skill 演进部署配置**
 
-> npm `latest` `0.166.38` 对应不可变 tag `v-npm-0-166-38` 与精确提交 [`de8ec4e5c8`](https://github.com/chainlesschain/chainlesschain/commit/de8ec4e5c8234087d1fb86a062371b7000931790)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34290643410)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34290648161)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34300419533) 三平台门禁及 [npm 发布与公共安装检查](https://github.com/chainlesschain/chainlesschain/actions/runs/34295661756) 均成功，官方 registry 已回读。
+> npm `latest` `0.166.43` 对应不可变 tag `v-npm-0-166-43` 与精确提交 [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) 三平台门禁及 [npm Trusted Publishing 与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264) 均成功。
 >
-> CLI 的直接流、意图识别、WebSocket 对话、Hub 分析/Skill/实体解析现统一进入宿主提供的 Evolution 治理链；不完整 provider stream、模型身份漂移和治理失败会失败闭合，不再被可选说明或 fallback 伪装为成功。Evolution 文件 witness 改为不可变 256 条分段并在 trust epoch 变化时失效缓存，避免长期历史反复整文件重写。
+> 管理员现在可用 `cc evolution deployment status/configure/enable/disable` 验签、保存和切换受治理演进部署。配置先校验 Ed25519 descriptor、trust-root 与模块摘要，再原子写入 owner-only profile；环境变量仍可用于集中管理且优先级更高。配置只装载部署方 authority，automatic active promotion 始终为 `HOLD`，不会因打开开关而自动改写 active Skill。
 >
-> VS Code 与 JetBrains 的模型连接表单会原子保存并重新读取已脱敏配置后再确认；连接测试为推理模型提供有界 1,024-token 输出预算，区分“推理耗尽”与空响应。`0.166.38` 还发布 Agent Protocol `0.1.9` 和 Context Memory Kernel `0.1.1`；TypeScript Agent SDK 为 `0.2.9`，Python SDK 保持 `0.2.8`。
+> VS Code、JetBrains 与 `cc ui` 共用同一 CLI-owned 配置面：IDE 不保存治理私钥，也不获得审核或发布权限。`0.166.39`～`0.166.42` 同时收敛重复日志、GitHub/PR 调查与显式 PR 关闭请求，保留压缩前证据并把停滞调查导向实际操作；Windows secure pipe、消息容量和锁竞争验证也已加固。
 >
-> [Open VSX 0.37.92](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains Marketplace 0.4.119](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.38`。Session Core `0.3.12`、Core DB `0.1.5` 与 PDH `0.4.60` 保持独立版本；微软 VS Code Marketplace 仍未发布该扩展。
+> [Open VSX 0.37.93](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains Marketplace 0.4.120](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.43`。Agent SDK `0.2.9`、Agent Protocol `0.1.9`、Session Core `0.3.12`、Core DB `0.1.5`、Context Memory Kernel `0.1.1` 与 PDH `0.4.60` 保持独立版本；微软 VS Code Marketplace 仍未发布该扩展。
 >
-> **源码与部署边界**：本地 `main@a238e6c245` 内置 CLI `0.166.38`，并在发布后继续把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入仅由主进程持有的 opaque 治理 authority，同时确认 CLI-owned 后台 worker 与 Desktop Coding Agent 的 `cc serve` bridge 均重新进入 canonical loader；遗留 ImageGen 的 15 个 Desktop IPC 内容入口也在缓存、provider 选择和 fallback 前失败闭合。已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 均已包含发布提交 `de8ec4e5c8`，但尚未包含这些 Desktop 后续提交。CLI/Hub 的治理接线已进入公开 npm 制品，但 Evolution Workbench 仍需目标环境提供可信 descriptor、trust root、身份、审批、PKI/KMS、witness 与 grader；Desktop native 安装包仍按独立制品验收。详见[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)、[CLI Runtime 当前实现](docs/design/cli-runtime-current.md)与[模块 113 设计](docs/design/modules/113-governed-desktop-model-ingress-design.md)。
+> **源码与部署边界**：本地与 GitHub `main@7528bfb81d` 均对应已发布 CLI/IDE 源码；公共 npm、Open VSX 与 JetBrains 制品已分别回读。受治理配置不会生成生产密钥、身份、grader、KMS/PKI 或 witness，目标环境仍需提供这些 authority 并独立验收 Desktop native 安装包。详见[受治理 Skill 演进用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)、[CLI Runtime 当前实现](docs/design/cli-runtime-current.md)、[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)与[模块 113 设计](docs/design/modules/113-governed-desktop-model-ingress-design.md)。
 
 ## 2026-09-01 历史发布快照 — **v5.0.3.135 / CLI 0.166.15 / Agent SDK 0.2.7（TS/Python）/ Agent Protocol 0.1.7 / Session Core 0.3.8 / PDH 0.4.59**
 
-> **当时的发布口径**：`chainlesschain@0.166.15` 是该历史快照的完整门禁生产推荐版与 npm `latest`；其余证据只描述当时状态，现行安装版本见上方 `0.166.30`。
+> **当时的发布口径**：`chainlesschain@0.166.15` 是该历史快照的完整门禁生产推荐版与 npm `latest`；其余证据只描述当时状态，现行安装版本见上方 `0.166.43`。
 >
 > **Agent Platform 0.166.15**：完整承接 `0.166.14` 的 canonical Context/Memory Kernel、耐久 rollout store、Hooks v2、P0 执行安全与 Windows Docker-optional 启动，并对正式 Graph 质量评测的 hermetic 文件工具上限做热修复。control 与 candidate 共用冻结的 read/list/search/write/edit 契约，shell、网络、Git、MCP、插件、IDE 与子 Agent 工具仍不可用，写入继续限制到任务精确文件。
 >
