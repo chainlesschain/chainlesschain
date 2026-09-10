@@ -33,8 +33,19 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
-const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 75_000 : 15_000;
-const EXPIRY_DELAY_MS = process.platform === "win32" ? 90_000 : 1_000;
+// Hosted Windows runners compile the secure-pipe broker's C# peer-identity
+// helper while another Vitest fork is active. Cold starts have exceeded 75s
+// without emitting stderr even though the same real service starts in ~10s
+// when isolated. Keep this bounded, but leave enough headroom for that
+// runner-level contention; none of the production ACL or identity checks are
+// relaxed.
+const SERVICE_READY_TIMEOUT_MS =
+  process.platform === "win32" ? 120_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 150_000 : 1_000;
+const SERVICE_TEST_TIMEOUT_MS =
+  process.platform === "win32" ? 240_000 : 120_000;
+const EXPIRY_TEST_TIMEOUT_MS =
+  process.platform === "win32" ? 240_000 : 150_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -244,7 +255,7 @@ describe("attestor trust isolated approval service", () => {
     await waitForLine(child.stdout, SERVICE_READY_TIMEOUT_MS, () => stderr);
     await waitForExit(child, EXPIRY_DELAY_MS + 10_000);
     expect(child.exitCode).toBe(0);
-  }, 150_000);
+  }, EXPIRY_TEST_TIMEOUT_MS);
 
   it("signs both request families in another process and pins every response", async () => {
     const root = fs.realpathSync.native(
@@ -427,5 +438,5 @@ describe("attestor trust isolated approval service", () => {
     await expect(client.approve(trustRequest)).rejects.toThrow(
       "request denied",
     );
-  }, 120_000);
+  }, SERVICE_TEST_TIMEOUT_MS);
 });

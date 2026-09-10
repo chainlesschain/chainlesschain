@@ -23,8 +23,19 @@ const servicePath = fileURLToPath(
 );
 const roots = [];
 const children = [];
-const SERVICE_READY_TIMEOUT_MS = process.platform === "win32" ? 75_000 : 15_000;
-const EXPIRY_DELAY_MS = process.platform === "win32" ? 90_000 : 1_000;
+// Hosted Windows runners compile the secure-pipe broker's C# peer-identity
+// helper while another Vitest fork is active. Cold starts have exceeded 75s
+// without emitting stderr even though the same real service starts in ~10s
+// when isolated. Keep this bounded, but leave enough headroom for that
+// runner-level contention; none of the production ACL or identity checks are
+// relaxed.
+const SERVICE_READY_TIMEOUT_MS =
+  process.platform === "win32" ? 120_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 150_000 : 1_000;
+const SERVICE_TEST_TIMEOUT_MS =
+  process.platform === "win32" ? 240_000 : 120_000;
+const EXPIRY_TEST_TIMEOUT_MS =
+  process.platform === "win32" ? 240_000 : 150_000;
 
 function endpoint(root) {
   const id = randomBytes(12).toString("hex");
@@ -222,7 +233,7 @@ describe("attestor trust operations local service", () => {
     );
     await waitForExit(started.child, EXPIRY_DELAY_MS + 10_000);
     expect(started.child.exitCode).toBe(0);
-  }, 150_000);
+  }, EXPIRY_TEST_TIMEOUT_MS);
 
   it("keeps the writer in another process and accepts only signed IPC work", async () => {
     const root = fs.mkdtempSync(
@@ -355,7 +366,7 @@ describe("attestor trust operations local service", () => {
         secrets,
       ),
     ).rejects.toThrow("bootstrap differs from its durable state");
-  }, 120_000);
+  }, SERVICE_TEST_TIMEOUT_MS);
 
   it("persists a sorted multi-operator quorum genesis", async () => {
     const root = fs.mkdtempSync(
@@ -521,7 +532,7 @@ describe("attestor trust operations local service", () => {
       operatorRegistryRecordDigest: revoked.registry.recordDigest,
       operatorRegistryRecovered: true,
     });
-  }, 120_000);
+  }, SERVICE_TEST_TIMEOUT_MS);
 
   it("rotates a personal operator with the old key and requires service rebind", async () => {
     const root = fs.mkdtempSync(
@@ -664,5 +675,5 @@ describe("attestor trust operations local service", () => {
         operation: "register",
       },
     });
-  }, 120_000);
+  }, SERVICE_TEST_TIMEOUT_MS);
 });
