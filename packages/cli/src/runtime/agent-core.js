@@ -23,6 +23,10 @@ import {
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
+  findExplicitPrCloseIntent,
+  prCloseActionDirective,
+} from "../lib/pr-close-intent.js";
+import {
   TaskProgressTracker,
   TASK_RECOVERY_TOOLS,
 } from "../lib/task-progress-tracker.js";
@@ -13412,6 +13416,75 @@ function extractInitialPromptText(messages) {
   return "";
 }
 
+function isPrClosureReadCommand(name, args) {
+  if (name !== "run_shell" || typeof args?.command !== "string") return false;
+  const command = args.command;
+  if (/(?:^|[\s;&|])gh(?:\.exe)?\s+pr\s+(?:list|view|diff)\b/iu.test(command))
+    return true;
+  return (
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+api\b/iu.test(command) &&
+    /(?:\/|\b)repos\/[\w.-]+\/[\w.-]+\/(?:pulls(?:\/|\?|\s|$)|compare\/|releases(?:\?|\s|$))/iu.test(
+      command,
+    )
+  );
+}
+
+function isPrCloseCommand(name, args) {
+  return (
+    name === "run_shell" &&
+    typeof args?.command === "string" &&
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+pr\s+close\b/iu.test(args.command)
+  );
+}
+
+function didSucceed(result) {
+  return !(
+    !result ||
+    result.error ||
+    result.success === false ||
+    result.isError === true ||
+    (Number.isInteger(result.exitCode) && result.exitCode !== 0) ||
+    (Number.isInteger(result.exit_code) && result.exit_code !== 0) ||
+    result.status === "running"
+  );
+}
+
+class ExplicitPrCloseActionGuard {
+  constructor(enabled) {
+    this.enabled = enabled;
+    this.readsBeforeClose = 0;
+    this.closeSucceeded = false;
+  }
+
+  admission(name, args) {
+    if (
+      !this.enabled ||
+      this.closeSucceeded ||
+      !isPrClosureReadCommand(name, args)
+    )
+      return null;
+    // One list plus one focused state lookup can establish a candidate and
+    // current state. More comparison/release archaeology is not a prerequisite
+    // for the user's explicit close instruction.
+    if (this.readsBeforeClose++ < 2) return null;
+    return {
+      error:
+        "[PR closure action required] The user explicitly requested closure, but repeated PR reads are continuing before any successful gh pr close. This read was not run.",
+      code: "CC_PR_CLOSE_ACTION_REQUIRED",
+      hint: "Use gh pr close <number> --repo <owner/repo> for an already-established target, then verify state with gh pr view <number> --repo <owner/repo> --json number,state,closedAt. Do not resume gh api compare/release investigation.",
+      policy: {
+        decision: "blocked",
+        via: "explicit-pr-close-action-guard",
+      },
+    };
+  }
+
+  record(name, args, result) {
+    if (isPrCloseCommand(name, args) && didSucceed(result))
+      this.closeSucceeded = true;
+  }
+}
+
 /**
  * Stable id for a permission GATE decision, so a denied/gated tool span can be
  * correlated with the decision that blocked it. Only gated results carry a
@@ -13863,6 +13936,15 @@ export async function* agentLoop(messages, options) {
   let emptyThinkingReprompted = false;
   const readFileLoopGuard = new ReadFileLoopGuard();
   const remoteReadLoopGuard = new RemoteReadLoopGuard();
+  // Keep an explicit user-requested PR close action alive even if the
+  // conversation is compacted down to tool evidence. It is guidance only;
+  // the ordinary execution approval remains mandatory for every close.
+  const prCloseDirective = prCloseActionDirective(
+    findExplicitPrCloseIntent(messages),
+  );
+  const explicitPrCloseActionGuard = new ExplicitPrCloseActionGuard(
+    Boolean(prCloseDirective),
+  );
   toolContext.readFileLoopGuard = readFileLoopGuard;
   let lastTaskProgressIntervention = null;
 
@@ -14558,6 +14640,13 @@ export async function* agentLoop(messages, options) {
               ? ` One-turn recovery: ${remoteRecoveryTools.join(", ")} omitted for this request only; availability resumes on the next turn.`
               : ""),
         },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
+    if (prCloseDirective) {
+      callMessages = [
+        ...callMessages,
+        { role: "system", content: prCloseDirective },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
@@ -15273,11 +15362,9 @@ export async function* agentLoop(messages, options) {
       // Capability and exact-path authority must settle before any checkpoint,
       // hook, or observationally stronger `tool-executing` event. The same
       // preflight runs again inside executeTool to prevent call-site drift.
-      const earlyAuthorityDenial = preflightToolExecutionAuthority(
-        toolName,
-        toolArgs,
-        toolContext,
-      );
+      const earlyAuthorityDenial =
+        explicitPrCloseActionGuard.admission(toolName, toolArgs) ||
+        preflightToolExecutionAuthority(toolName, toolArgs, toolContext);
       if (earlyAuthorityDenial) {
         const resultStr = capToolResultString(
           safeStringifyToolResult(earlyAuthorityDenial),
@@ -15623,6 +15710,7 @@ export async function* agentLoop(messages, options) {
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
         remoteReadLoopGuard.record(toolName, toolResult, toolArgs);
+        explicitPrCloseActionGuard.record(toolName, toolArgs, toolResult);
         readFileLoopGuard.record(
           toolName,
           toolResult,

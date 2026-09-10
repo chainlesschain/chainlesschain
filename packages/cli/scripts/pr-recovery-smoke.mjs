@@ -143,7 +143,6 @@ try {
   const commands = [
     "gh pr list --repo fixture/repo --json number,title,state",
     "gh pr view 340 --repo fixture/repo --json number,title,state,headRefOid,baseRefOid",
-    "gh api repos/fixture/repo/compare/base...head",
     "gh pr close 340 --repo fixture/repo",
     "gh pr view 340 --repo fixture/repo --json number,title,state",
   ];
@@ -156,7 +155,7 @@ try {
         context.some(
           (message) =>
             message.role === "system" &&
-            message.content?.includes("already authorized closing handled PRs"),
+            message.content?.includes("User-authorized PR closure"),
         ),
       );
     if (calls <= commands.length) return tool(commands[calls - 1], calls);
@@ -167,7 +166,7 @@ try {
         content: "PR 340 handled; closed state verified.",
       },
     };
-  }, "Review the PRs and close already-handled changes, then verify their state.");
+  }, "Close PR #340, then verify its state.");
   if (completed.error) {
     console.error(
       JSON.stringify(
@@ -224,7 +223,7 @@ try {
       {
         runtime: root,
         passed: [
-          "authorized PR close and state verification",
+          "explicitly authorized PR close and state verification",
           "unchanged PR loop exits after recovery",
           "changing git arguments cannot repeat the same policy rejection",
         ],
