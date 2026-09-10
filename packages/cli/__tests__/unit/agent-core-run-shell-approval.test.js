@@ -7,6 +7,43 @@ import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
 // pipeline end-to-end via agent-core.executeTool.
 
 describe("agent-core run_shell + ApprovalGate", () => {
+  it("gives an actionable git tool reroute without executing or asking to relax policy", async () => {
+    const res = await executeTool(
+      "run_shell",
+      {
+        command: "git diff origin/main...feature 2>&1",
+      },
+      {
+        approvalGate: new ApprovalGate({
+          defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+        }),
+      },
+    );
+    expect(res.shellCommandPolicy?.decision).toBe("reroute");
+    expect(res.error).toContain('"command":"diff <base>...<head>"');
+    expect(res.error).toContain("omit the leading git");
+    expect(res.error).toContain("not a request to relax permissions");
+    expect(res.stdout).toBeUndefined();
+  });
+
+  it("explains a missing git repository without conflating gh --repo with cwd", async () => {
+    const { mkdtempSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const cwd = mkdtempSync(join(tmpdir(), "cc-pr-cwd-"));
+    try {
+      const res = await executeTool(
+        "git",
+        { command: "remote -v", cwd },
+        { cwd },
+      );
+      expect(res.error).toMatch(/not a git repository/i);
+      expect(res.hint).toContain("gh --repo");
+      expect(res.hint).toContain("rev-parse --show-toplevel");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
   it("AUTOPILOT gate lets WARN commands through (policy via)", async () => {
     const gate = new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.AUTOPILOT });
     const res = await executeTool(

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.40",
+      "cliVersions": ["0.166.40"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.40: recover IDE pull-request investigations",
+          "body": "- Detect repeated PR lists, details and diffs across web, GitHub CLI and API\n  reads, including alternating errors and already-seen results.\n- Retain evidence for multiple PRs and local repository errors across context\n  compaction; guide the agent toward a focused comparison, an already-authorized\n  action, or a concrete blocker.\n- Explain Git tool reroutes, missing local remotes, unsupported PR command\n  arguments and Windows shell quoting without relaxing execution policy.\n- Stop repeated policy rejections even when command arguments change, while\n  preserving forward pagination, fresh evidence and lightweight status polling.\n- Read actual shell stdout when measuring progress and retaining verification\n  results. Validate PR close/state verification and loop exits with an offline\n  asynchronous runtime smoke test on the release matrix."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.39",
       "cliVersions": ["0.166.39"],
       "date": null,

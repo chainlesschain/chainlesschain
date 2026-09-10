@@ -6911,6 +6911,13 @@ async function executeToolInner(
           exitCode: res.status,
           command: normalizedCommand,
           readOnly,
+          ...(/does not appear to be a git repository|not a git repository|No such remote/i.test(
+            stderr,
+          )
+            ? {
+                hint: "Verify the repository cwd with git tool command rev-parse --show-toplevel, then inspect remote -v. A gh --repo argument does not select the local git repository. Use the matching checkout, or query the explicitly named repository with gh api for the missing PR/commit comparison; do not repeat fetch against an unavailable origin.",
+              }
+            : {}),
         });
       }
       return attachDescriptor({
@@ -7690,7 +7697,10 @@ async function executeToolInner(
             code: "ERR_CREDENTIAL_FILE",
           });
         const { searchTextFile } = await import("../lib/text-file-search.js");
-        const result = await searchTextFile(file, { ...args, hostResourceBudget });
+        const result = await searchTextFile(file, {
+          ...args,
+          hostResourceBudget,
+        });
         return attachDescriptor({
           ...result,
           path: file,
@@ -13865,7 +13875,7 @@ export async function* agentLoop(messages, options) {
       );
       yield* _drainSubAgentUsage(subAgentUsageSink);
       const error = new Error(
-        "Repeated remote fetch failures or unchanged GitHub Actions logs continued after recovery guidance. Stopped the retry loop; the task is not complete. Use the retained findings, check authentication/connectivity, or fetch a specific missing log section before retrying.",
+        "Repeated tool-policy rejections, remote fetch failures or unchanged GitHub PR/Actions evidence continued after recovery guidance. Stopped the retry loop; the task is not complete. Use the retained findings, correct the reported command or access error, and identify the specific missing PR fact or log section before retrying.",
       );
       error.code = "CC_AGENT_REPEATED_REMOTE_READ";
       throw error;
@@ -14451,7 +14461,7 @@ export async function* agentLoop(messages, options) {
       yield {
         type: "iteration-warning",
         message:
-          "Repeated web/log requests made no progress. Use retained evidence; the repeating tool is paused for one model turn.",
+          "Repeated web/log, PR or policy-rejected requests made no progress. Use retained evidence; the repeating tool is paused for one model turn.",
       };
     }
     const progressIntervention = taskProgressTracker.intervention;
@@ -14536,13 +14546,14 @@ export async function* agentLoop(messages, options) {
       }
     }
     const contextMemoryTrustedSystemIndexes = [];
-    if (remoteReadLoopGuard.recoveryHint) {
+    if (remoteReadLoopGuard.recoveryHint || remoteReadLoopGuard.workflowHint) {
       callMessages = [
         ...callMessages,
         {
           role: "system",
           content:
-            remoteReadLoopGuard.recoveryHint +
+            (remoteReadLoopGuard.recoveryHint ||
+              remoteReadLoopGuard.workflowHint) +
             (remoteRecoveryTools.length
               ? ` One-turn recovery: ${remoteRecoveryTools.join(", ")} omitted for this request only; availability resumes on the next turn.`
               : ""),

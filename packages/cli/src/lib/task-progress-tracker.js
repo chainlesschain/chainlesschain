@@ -87,7 +87,8 @@ export class TaskProgressTracker {
       !!result.error ||
       result.success === false ||
       result.isError === true ||
-      (Number.isInteger(result.exitCode) && result.exitCode !== 0);
+      (Number.isInteger(result.exitCode) && result.exitCode !== 0) ||
+      (Number.isInteger(result.exit_code) && result.exit_code !== 0);
     const noChange =
       result?.alreadyApplied === true ||
       result?.changed === false ||
@@ -111,11 +112,13 @@ export class TaskProgressTracker {
       );
     }
 
-    let exploration = EXPLORATION_TOOLS.has(tool);
+    let exploration =
+      EXPLORATION_TOOLS.has(tool) ||
+      (tool === "git" && result?.readOnly === true);
     if (tool === "run_code" || tool === "run_shell") {
       // Repeated short dumps must not evade the large-output loop guard. These
       // fingerprints affect guidance only: every authorized command still runs.
-      const output = typeof result?.output === "string" ? result.output : "";
+      const output = boundedText(result?.output ?? result?.stdout, 30000);
       const digest = createHash("sha256").update(output).digest("hex");
       exploration =
         !!remoteReadTarget(tool, args) ||
@@ -140,7 +143,7 @@ export class TaskProgressTracker {
       owner,
       tool,
       path: boundedText(result.path || args.path, 320),
-      output: boundedText(result.output, 400),
+      output: boundedText(result.output ?? result.stdout, 400),
     });
     const ownedActions = this.lastActions
       .filter((entry) => entry.owner === owner)

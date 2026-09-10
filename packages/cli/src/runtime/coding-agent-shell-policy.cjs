@@ -17,15 +17,9 @@ const BLOCKED_SHELL_RULES = Object.freeze([
     // token with the Unix forms, so they must be listed explicitly. (`rm`/`del`
     // already cover PowerShell's `rm`/`del` aliases; `rd` covers `rmdir`.)
     test: ({ firstToken }) =>
-      [
-        "rm",
-        "del",
-        "erase",
-        "rmdir",
-        "rd",
-        "remove-item",
-        "ri",
-      ].includes(firstToken),
+      ["rm", "del", "erase", "rmdir", "rd", "remove-item", "ri"].includes(
+        firstToken,
+      ),
     reason:
       "Destructive delete commands are blocked by the coding-agent shell policy.",
   },
@@ -40,7 +34,8 @@ const BLOCKED_SHELL_RULES = Object.freeze([
     id: "disk-destruction",
     decision: SHELL_POLICY_DECISIONS.DENY,
     test: ({ firstToken, normalized }) => {
-      if (firstToken === "format" || firstToken === "format-volume") return true;
+      if (firstToken === "format" || firstToken === "format-volume")
+        return true;
       if (firstToken === "mkfs" || firstToken.startsWith("mkfs.")) return true;
       if (["wipefs", "shred", "diskpart"].includes(firstToken)) return true;
       if (firstToken === "dd") {
@@ -80,15 +75,14 @@ const BLOCKED_SHELL_RULES = Object.freeze([
     decision: SHELL_POLICY_DECISIONS.DENY,
     test: ({ firstToken, secondToken }) =>
       firstToken === "git" && secondToken === "clean",
-    reason:
-      "git clean is blocked by the coding-agent shell policy.",
+    reason: "git clean is blocked by the coding-agent shell policy.",
   },
   {
     id: "git-tool-reroute",
     decision: SHELL_POLICY_DECISIONS.REROUTE,
     test: ({ firstToken }) => firstToken === "git",
     reason:
-      "Use the dedicated git tool instead of run_shell for repository operations.",
+      'Use the dedicated git tool instead of run_shell for repository operations. Pass git arguments only, for example {"command":"diff <base>...<head>","cwd":"<repository>"}; omit the leading git and shell syntax such as pipes or 2>&1. This is a tool reroute, not a request to relax permissions; the git tool still enforces its own authorization.',
   },
   {
     // Infrastructure-as-Code teardown: `terraform destroy`, `pulumi destroy`,
@@ -163,7 +157,8 @@ const ALLOWLISTED_SHELL_RULES = Object.freeze([
     id: "playwright-single-file",
     test: ({ normalized }) =>
       /^npx\s+playwright\s+test\s+\S+(?:\s|$)/i.test(normalized),
-    reason: "Single-file Playwright runs are allowlisted verification commands.",
+    reason:
+      "Single-file Playwright runs are allowlisted verification commands.",
   },
   {
     id: "ripgrep-search",
@@ -223,9 +218,7 @@ function splitCommandSegments(command) {
   });
   // Separators: && || | ; & and any newline.
   const parts = s.split(/(?:\|\||&&|[|;&]|[\r\n]+)/).concat(extracted);
-  return parts
-    .map((segment) => stripSegmentPrefix(segment))
-    .filter(Boolean);
+  return parts.map((segment) => stripSegmentPrefix(segment)).filter(Boolean);
 }
 
 function tokenizeShellCommand(command) {

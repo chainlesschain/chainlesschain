@@ -121,6 +121,8 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify asynchronous PR recovery without GitHub writes
+        run: node packages/cli/scripts/pr-recovery-smoke.mjs
       # These independently published dependencies must pass on the same
       # three platforms and exact SHA as the CLI, before any npm publication.
       - name: Test Core DB release payload source

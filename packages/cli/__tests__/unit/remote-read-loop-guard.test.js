@@ -10,6 +10,67 @@ const command =
   "gh run view 34087984148 --job 101635686798 --log --repo chainlesschain/chainlesschain";
 
 describe("remote read target classification", () => {
+  it("groups PR pages, gh pr reads and read-only API requests by repository and PR", () => {
+    const expected = remoteReadTarget("web_fetch", {
+      url: "https://github.com/Owner/Repo/pull/340#discussion",
+    });
+    expect(expected).toMatchObject({ pullRequest: true });
+    for (const command of [
+      "gh pr view 340 --repo Owner/Repo --json number,title,state,mergedAt",
+      'gh.exe pr view --repo="owner/repo" 340 --json=body,commits 2>&1',
+      "gh pr diff 340 -R owner/repo",
+      "gh pr view https://github.com/owner/repo/pull/340",
+      "gh api --method GET repos/owner/repo/pulls/340",
+      "gh api repos/owner/repo/pulls/340/files?per_page=100",
+      "gh api /repos/owner/repo/pulls/340/reviews",
+    ])
+      expect(remoteReadTarget("run_shell", { command })).toEqual(expected);
+    for (const url of [
+      "https://github.com/owner/repo/pull/340/files",
+      "https://github.com/owner/repo/pull/340.diff",
+      "https://api.github.com/repos/owner/repo/pulls/340/commits",
+    ])
+      expect(remoteReadTarget("web_fetch", { url })).toEqual(expected);
+    const list = remoteReadTarget("web_fetch", {
+      url: "https://github.com/owner/repo/pulls",
+    });
+    expect(
+      remoteReadTarget("run_shell", {
+        command:
+          "gh pr list --repo owner/repo --state open --json number,title,merged 2>&1",
+      }),
+    ).toEqual(list);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh api repos/owner/repo/pulls?state=open",
+      }),
+    ).toEqual(list);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh pr view 339 --repo owner/repo",
+      }),
+    ).not.toEqual(expected);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh pr view 340 --repo other/repo",
+      }),
+    ).not.toEqual(expected);
+  });
+
+  it.each([
+    "gh pr checks 340 --repo owner/repo --watch",
+    "gh pr view 340 --repo owner/repo --json state,statusCheckRollup",
+    "gh pr view 340 --repo owner/repo --json=state,mergedAt",
+    "gh pr close 340 --repo owner/repo",
+    "gh pr merge 340 --repo owner/repo",
+    "gh api -X PATCH repos/owner/repo/pulls/340",
+    "gh api -XDELETE repos/owner/repo/pulls/340",
+    "gh api repos/owner/repo/pulls/340 -f state=closed",
+    "gh api repos/owner/repo/pulls/340 -fstate=closed",
+    "gh api repos/owner/repo/pulls/340 --input body.json",
+  ])("excludes PR monitoring and mutations: %s", (command) => {
+    expect(remoteReadTarget("run_shell", { command })).toBeNull();
+  });
   it("identifies a GitHub job across web pages, log flags and API routes", () => {
     const expected = remoteReadTarget("web_fetch", { url });
     for (const value of [
@@ -77,6 +138,97 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it("groups repeated git policy reroutes across changing commits and recovers on the dedicated tool", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 6; i++) {
+      guard.record(
+        "run_shell",
+        {
+          error: "Use the dedicated git tool",
+          shellCommandPolicy: {
+            decision: "reroute",
+            ruleId: "git-tool-reroute",
+          },
+        },
+        { command: `git branch -r --contains commit-${i} 2>&1` },
+      );
+      if (i === 2) expect(guard.takeRecoveryTurn()).toEqual(["run_shell"]);
+    }
+    expect(guard.stalled).toBe(true);
+    expect(guard.recoveryHint).toContain("Tool-policy loop recovery");
+    expect(guard.findingsHint).toContain("shell policy rejection");
+    guard.record("git", { error: "not a git repository" });
+    expect(guard.stalled).toBe(false);
+    expect(guard.findingsHint).toContain("not a git repository");
+    guard.record("git", { stdout: "origin/main", readOnly: true });
+    expect(guard.stalled).toBe(false);
+    expect(guard.recoveryHint).toBeNull();
+  });
+  it("bounds alternating PR web/CLI/API responses and errors without losing all four candidates", () => {
+    const guard = new RemoteReadLoopGuard();
+    const numbers = [340, 339, 332, 331];
+    for (let round = 0; round < 9; round++) {
+      for (const number of numbers) {
+        const shell = round % 3 !== 0;
+        guard.record(
+          shell ? "run_shell" : "web_fetch",
+          shell
+            ? round % 3 === 1
+              ? { stdout: `PR ${number} metadata` }
+              : { error: "Unknown JSON field: merged" }
+            : { content: `PR ${number} webpage` },
+          shell
+            ? {
+                command: `gh pr view ${number} --repo owner/repo --json title,merged`,
+              }
+            : { url: `https://github.com/owner/repo/pull/${number}` },
+        );
+        guard.takeRecoveryTurn();
+      }
+    }
+    expect(guard.stalled).toBe(true);
+    expect(guard.recoveryHint).toContain("state and mergedAt");
+    expect(guard.recoveryHint).toContain("not complete");
+    for (const number of numbers)
+      expect(guard.findingsHint).toContain(`PR ${number}`);
+    expect(guard.findingsHint).toContain("Unknown JSON field");
+    expect(guard.workflowHint).toContain("origin");
+    expect(guard.workflowHint).toContain("already authorized");
+  });
+
+  it("accepts new PR facts and forward pages, even after a recovery turn", () => {
+    const guard = new RemoteReadLoopGuard();
+    const args = { url: "https://github.com/owner/repo/pull/340" };
+    for (let i = 0; i < 4; i++)
+      guard.record("web_fetch", { content: "PR title" }, args);
+    expect(guard.takeRecoveryTurn()).toEqual(["web_fetch"]);
+    guard.record("web_fetch", { content: "PR diff" }, args);
+    expect(guard.recoveryHint).toBeNull();
+    for (let i = 0; i < 10; i++) {
+      guard.record(
+        "web_fetch",
+        { content: "same line\n", snapshotId: "pr", offset: i * 10 },
+        args,
+      );
+      expect(guard.stalled).toBe(false);
+      expect(guard.recoveryHint).toBeNull();
+    }
+  });
+
+  it("retains bounded PR evidence as source data rather than system guidance", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 100; i++)
+      guard.record(
+        "web_fetch",
+        { content: "UNTRUSTED".repeat(2000) },
+        { url: `https://github.com/owner/repo/pull/${i}` },
+      );
+    expect(guard.targets.size).toBe(32);
+    expect(JSON.parse(guard.findingsHint.split("\n")[1])).toHaveLength(8);
+    expect(guard.findingsHint.length).toBeLessThan(12000);
+    expect(guard.workflowHint).not.toContain("UNTRUSTED");
+    expect(guard.recoveryHint).toBeNull();
+  });
   it("stops changing findstr patterns from looping on one saved CI log", () => {
     const guard = new RemoteReadLoopGuard();
     for (let i = 0; i < 6; i++) {

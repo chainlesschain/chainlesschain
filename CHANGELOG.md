@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.40: recover IDE pull-request investigations
+
+- Detect repeated PR lists, details and diffs across web, GitHub CLI and API
+  reads, including alternating errors and already-seen results.
+- Retain evidence for multiple PRs and local repository errors across context
+  compaction; guide the agent toward a focused comparison, an already-authorized
+  action, or a concrete blocker.
+- Explain Git tool reroutes, missing local remotes, unsupported PR command
+  arguments and Windows shell quoting without relaxing execution policy.
+- Stop repeated policy rejections even when command arguments change, while
+  preserving forward pagination, fresh evidence and lightweight status polling.
+- Read actual shell stdout when measuring progress and retaining verification
+  results. Validate PR close/state verification and loop exits with an offline
+  asynchronous runtime smoke test on the release matrix.
+
 ### Fixed - cc CLI 0.166.39: stop repeated log reads and stabilize CI
 
 - Detect repeated local CI-log searches even when each `findstr`, `grep`, `rg`,

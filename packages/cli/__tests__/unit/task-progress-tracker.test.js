@@ -10,6 +10,49 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("counts PR discovery and read-only git without treating them as completed actions", () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 12; i++) {
+      expect(
+        tracker.record(
+          "run_shell",
+          { stdout: `PR ${i}` },
+          {
+            command: `gh pr view ${i} --repo owner/repo --json title,body`,
+          },
+        ),
+      ).toBe(false);
+      expect(
+        tracker.record("git", { readOnly: true, stdout: `diff ${i}` }),
+      ).toBe(false);
+    }
+    expect(tracker.explorationCalls).toBe(24);
+    expect(tracker.intervention.recovery).toBe(true);
+    expect(
+      tracker.record(
+        "run_shell",
+        { stdout: "test suite passed" },
+        { command: "npm test" },
+      ),
+    ).toBe(true);
+    expect(tracker.checkpointFor()).toContain("test suite passed");
+  });
+
+  it("uses actual shell stdout for duplicate detection and alternate exit codes for failures", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record("run_shell", { stdout: "first verification" });
+    expect(tracker.record("run_shell", { stdout: "second verification" })).toBe(
+      true,
+    );
+    observe(tracker, 12);
+    expect(tracker.record("run_shell", { stdout: "second verification" })).toBe(
+      false,
+    );
+    expect(
+      tracker.record("run_shell", { stdout: "failed", exit_code: 1 }),
+    ).toBe(false);
+    expect(tracker.explorationCalls).toBe(14);
+  });
   it("counts even changing short GitHub log excerpts as exploration", () => {
     const tracker = new TaskProgressTracker();
     for (let i = 0; i < 12; i++) {
