@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> CLI version: `chainlesschain@0.166.32`. The immutable release tag is `v-npm-0-166-32`; publication requires passing CLI CI and Strict Sandbox on Linux, Windows and macOS for that exact commit.
+> Current release: `chainlesschain@0.166.43`, immutable tag `v-npm-0-166-43`, exact commit [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c). The exact SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180), and [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) on the configured platforms before [Trusted Publishing and public registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264).
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.32
+npm install -g chainlesschain@0.166.43
 chainlesschain setup
 ```
 
@@ -31,10 +31,10 @@ cc
 git diff | cc
 ```
 
-## Long-running tasks (0.166.26)
+## Long-running tasks and bounded recovery (0.166.43)
 
-Version 0.166.26 automatically continues repeated large-file requests from an
-unread region, including after context compaction. Actual character coverage
+Since version 0.166.26, the CLI automatically continues repeated large-file
+requests from an unread region, including after context compaction. Actual character coverage
 prevents a read of the tail from being mistaken for a complete scan. A changed
 file resets coverage; explicit small-range reviews remain available for editing.
 
@@ -50,7 +50,7 @@ still fails explicitly rather than claiming the task is complete.
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended
 runs retain the default cap; use `cc agent -p "your task" --max-turns 100` to
-set an explicit limit. VS Code extension 0.37.84 adds
+set an explicit limit. VS Code extension 0.37.93 provides
 `chainlesschain.chat.maxTurns`: 0 follows the interactive default, and a
 positive integer limits each message while preserving session history.
 
@@ -58,6 +58,12 @@ Large-file reads return exact byte/line continuation cursors, retain the latest
 cursor through compaction, reuse unchanged pages and invalidate after edits.
 Slow foreground commands keep persistent IDE streams and lease heartbeats
 responsive. This does not remove approval, sandbox or budget boundaries.
+
+Versions 0.166.39 through 0.166.42 also treat repeated CI-log, GitHub, and
+pull-request reads as one bounded investigation. Evidence survives compaction,
+while recovery directs the agent toward a concrete mutation, verification, or
+blocker. Explicit requests to close a targeted pull request remain explicit;
+normal execution approval and one-time state verification still apply.
 
 ## Requirements
 
@@ -90,7 +96,7 @@ source (npm root -g)/chainlesschain/completions/cc.fish
 
 > **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.
 
-### Governed evolution and Skill retrieval (`0.166.21`)
+### Governed evolution, deployment configuration, and Skill retrieval (`0.166.43`)
 
 The public command graph now includes digest-bound Evolution Workbench review,
 encrypted governed-knowledge conflict review, and canonical Skill retrieval:
@@ -118,7 +124,29 @@ evidence; missing or ambiguous evidence cannot be promoted into an authority
 claim.
 
 An installed CLI can receive those dependencies from a target deployment
-without modifying the npm package. Administrators set both absolute paths:
+without modifying the npm package. The preferred setup verifies and persists
+both absolute paths in an owner-only profile:
+
+```bash
+cc evolution deployment configure \
+  --descriptor /managed/chainlesschain/evolution-deployment.json \
+  --trust-root /managed/chainlesschain/evolution-deployment-ed25519-public.pem
+cc evolution deployment status
+
+# Pause or resume the saved profile. Neither command enables auto-promotion.
+cc evolution deployment disable
+cc evolution deployment enable
+```
+
+The profile is written atomically to
+`$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json` (normally
+`~/.chainlesschain/evolution/deployment-profile.json`). VS Code 0.37.93,
+JetBrains 0.4.120, and `cc ui` use the same CLI-owned status/configure/toggle
+surface. IDEs do not store governance private keys or gain review, promotion,
+or release authority. Non-loopback `cc ui` configuration requires a token.
+
+For centrally managed installations, administrators can instead set both
+environment overrides. They take precedence over the saved profile:
 
 ```bash
 CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR=/managed/chainlesschain/evolution-deployment.json
@@ -129,9 +157,11 @@ The descriptor schema is
 `chainlesschain.evolution-deployment-descriptor/v1`. It binds a monotonically
 managed revision, an absolute single-file ESM deployment-module path, the
 module SHA-256, trust-root SHA-256, and an allowlist containing any of
-`agent`, `evolution`, `serve`, `marketplace`, and `desktop`; its canonical payload must carry an Ed25519
-signature. The authenticated module exports
-`createChainlessChainCommandDependencies({ commandName, descriptor })` and
+`agent`, `ask`, `chat`, `compact`, `complete`, `cowork`, `desktop`,
+`evolution`, `hub`, `learning`, `marketplace`, `orchestrate`, `serve`,
+`stream`, and `ui`; its canonical payload must carry an Ed25519 signature.
+The authenticated module exports
+`createChainlessChainCommandDependencies({ commandName, descriptor, factories })` and
 returns the command-specific branded hosts/factories. The invocation also
 receives narrow built-in factory functions for the Workbench host, governed
 knowledge review host, and Agent evolution composition as applicable, so the
@@ -141,6 +171,11 @@ verified module bytes directly, so replacing the pathname after verification
 cannot change the loaded code. Partial configuration, signature/digest drift,
 missing exports, or absent production authorities keeps Workbench unavailable;
 there is no test-key or in-memory fallback.
+
+Deployment configuration selects and verifies a host; it is not an automatic
+evolution switch. `status` always reports automatic promotion as `HOLD`.
+Candidate activation still requires deployment-owned identity, policy,
+evaluation, review, Pilot/Canary, CAS, ledger, and release authority.
 
 ### Durable governance and marketplace candidates (0.166.24)
 
@@ -626,7 +661,7 @@ These receipts prove removal of the managed directory entries only. They do not
 claim secure erasure of external hardlinks, downloads, backups, snapshots, or
 viewer caches; the local JSONL ledgers are not WORM or an off-box transparency
 log. These commands are included in the current exact-gated
-`chainlesschain@0.166.21` release, but a local receipt still does not prove
+`chainlesschain@0.166.43` release, but a local receipt still does not prove
 off-box retention or secure erasure outside the managed store.
 
 Durable budget recovery stores a canonical local receipt for each operator
@@ -1342,8 +1377,8 @@ chainlesschain sandbox destroy <id>                    # Destroy sandbox
 ### `chainlesschain evolution <action>` (metrics plus trusted-host governance; not model training)
 
 The legacy subcommands provide capability assessment, formula-metric records,
-and diagnostics; they do not train model weights or mutate active Skills. In
-`0.166.21`, the `workbench` and `knowledge` namespaces can submit exact human
+and diagnostics; they do not train model weights or mutate active Skills.
+Since `0.166.21`, the `workbench` and `knowledge` namespaces can submit exact human
 review, rollback, and knowledge-merge decisions only through an injected,
 branded deployment host. They never fall back to client-owned authority.
 
@@ -1353,6 +1388,9 @@ chainlesschain evolution record-model-metrics model-1 --data '[]' # Formula esti
 chainlesschain evolution record-training-metrics-v2 \
   --strategy replay --data-size 10 --loss-before .5 --loss-after .4
 chainlesschain evolution stats                                    # Recorded metrics
+chainlesschain evolution deployment status                        # Effective profile and signature status
+chainlesschain evolution deployment configure \
+  --descriptor /absolute/deployment.json --trust-root /absolute/public.pem
 chainlesschain evolution workbench list --status pending          # Trusted host required
 chainlesschain evolution knowledge conflicts --limit 20           # Redacted summaries
 ```
