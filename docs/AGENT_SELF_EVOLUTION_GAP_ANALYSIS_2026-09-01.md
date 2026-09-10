@@ -2108,9 +2108,11 @@ cc evolution deployment enable
 
 同一最终工作树的本地 Windows test-only 10,000-event 运行随后完整通过：seed `2,007,299.922 ms`（约 33.45 分钟，低于 60 分钟门）、全新 PID reopen `29,910.799 ms`（低于 60 秒门）、`maxRSS=359,356 KiB`（低于 512 MiB 门），首/中/尾读取正确，最早 segment 追加破坏与 witness 签名破坏均拒绝。配套 100 轮真实子进程强退/恢复在六个 fault point 分别覆盖 16～17 次，`elapsedMs=145,245.105`、`falseSuccessReceipts=0`。这些结果只证明本机测试 authority；正式结论仍必须由 exact commit 的 Linux/Windows/macOS formal artifact aggregate 给出。
 
+该远端门现已满足其 test-only 范围：GitHub Actions formal run [`34534369747`](https://github.com/chainlesschain/chainlesschain/actions/runs/34534369747) 在精确提交 `a44514b712045acd82e425e2e96f5907113575e2` 上完成。Linux、Windows 和 macOS 均通过 10,000-event append/reopen/corruption 证据及 100-round process-kill recovery，随后 `Test-only Evolution Ledger three-OS aggregate` 成功；聚合器验证三个 artifact 的 commit SHA、平台、formal 规模与显式 `testAuthority=true` / `qualifiesForProduction=false` 声明一致。它关闭的是原先缺失的同 SHA 三平台 10k formal aggregate，不能将 mutable local filesystem、测试 HMAC/witness 或 CI runner 解释为生产 durability/签名 authority。
+
 v2 侧新增 concrete local manifest-head backend，使用严格跨进程锁、expected-head CAS、owner-only `wx` staging、文件/目录 fsync、atomic rename、exact durable readback，并拒绝 hard-link、symlink 和畸形状态；descriptor 固定 `localOnly=true`，不冒充生产 WORM。manifest backend 同时修复原有“返回 `COMMIT_UNKNOWN` 后重开仍只能看到不一致 catalog/head/witness”的缺口：已签名 append-only catalog manifest 作为 durable prepare，重开先完整验证 immutable segment chain，再确定性派生缺失 head 并续做 head CAS/witness checkpoint。专项覆盖 catalog/head 应答丢失及暂时 witness conflict，均可恢复为一致 checkpoint。
 
-因此 EVO-P0-5 仍保持“部分完成”：仓库内 10k Windows 诊断和 100-round campaign 已通过，但 GitHub 三平台 exact-SHA formal 尚未产生；v2 尚缺真实 event payload live append、单次 manifest/witness finalize 的批处理、v1→v2 journaled migration；250,000-event、磁盘/耗时/checkpoint 曲线、真实磁盘写满/物理断电、独立 witness 故障域和生产 KMS/HSM/PKI 仍是发布门。详见 [`EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md`](./design/EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md)。
+因此 EVO-P0-5 仍保持“部分完成”：仓库内 10k Windows 诊断、100-round campaign 和精确 SHA 三平台 formal aggregate 已通过；v2 尚缺真实 event payload live append、单次 manifest/witness finalize 的批处理、v1→v2 journaled migration；250,000-event、磁盘/耗时/checkpoint 曲线、真实磁盘写满/物理断电、独立 witness 故障域和生产 KMS/HSM/PKI 仍是发布门。详见 [`EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md`](./design/EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md)。
 
 ## 14. 全量任务完成情况（截至 2026-09-11）
 
@@ -2121,7 +2123,7 @@ v2 侧新增 concrete local manifest-head backend，使用严格跨进程锁、e
 最新增量对总表的映射如下：
 
 - **EVO-P0-4：状态不变，证据增强。** 新增 direct stream、QuickAsk、intent、legacy WebSocket chat、Hub ask/repl/skill/resolver 与 `cc ui` 的 authenticated per-invocation 接线；剩余是仓库级最终入口审计、Desktop IPC/独立 SDK worker 等未覆盖路径，以及生产 KMS/HSM/PKI/policy/witness 和真实流量校准。
-- **EVO-P0-5：状态不变，仓库内容量与恢复证据增强。** 新增 bounded append batch、共享目录身份的 exact snapshot 冷重开、local manifest-head CAS 与 v2 catalog→head→witness 自动恢复；本地 Windows 10,000-event 和 100 轮六故障点均通过。exact-SHA 三平台 formal aggregate、250,000-event、物理断电/磁盘写满、生产签名 authority 和独立 witness 故障域仍是发布门。
+- **EVO-P0-5：状态不变，仓库内容量与恢复证据增强。** 新增 bounded append batch、共享目录身份的 exact snapshot 冷重开、local manifest-head CAS 与 v2 catalog→head→witness 自动恢复；本地 Windows 10,000-event 和 100 轮六故障点均通过，提交 `a44514b712045acd82e425e2e96f5907113575e2` 的三平台 formal aggregate 也已通过。250,000-event、物理断电/磁盘写满、生产签名 authority 和独立 witness 故障域仍是发布门。
 - **EVO-P1-6：维持仓库闭环，部署入口增强。** 签名 deployment descriptor/trust root 现在可在验证后原子持久化、查询和启停，环境覆盖优先；CLI `0.166.43` 已交付该配置面，但生产 authority、独立 witness 和目标环境运维仍归 EVO-OPT-7。
 - **EVO-P2-2：维持仓库闭环。** Workbench 连接恢复、最多 10,000 项完整分页/投影校验、模型配置原子保存、原生宿主验证与 CLI/`cc ui`/VS Code/JetBrains 共享部署配置已经合入，并随 CLI `0.166.43`、Open VSX `0.37.93`、JetBrains `0.4.120` 发布链交付；未配置可信 deployment descriptor/trust root 时公开 CLI 明确失败关闭，真实部署仍归 EVO-OPT-7。
 

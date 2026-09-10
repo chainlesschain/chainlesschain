@@ -201,7 +201,14 @@ silently use the fast path.
   immutable-store authority is part of the tested configuration.
 
 The local Windows run satisfies the implementation-side timing regression, and
-the 100-round local campaign is green. The final criterion remains open until
-GitHub Actions produces a complete exact-commit three-platform formal aggregate;
-250,000 events, disk-full/power-loss, independent witness fault domains, and
-production KMS/HSM/PKI remain separate target-environment gates.
+the 100-round local campaign is green. GitHub Actions formal run
+[`34534369747`](https://github.com/chainlesschain/chainlesschain/actions/runs/34534369747)
+then completed the exact-commit `a44514b712045acd82e425e2e96f5907113575e2`
+Linux/Windows/macOS 10,000-event matrix and its `Test-only Evolution Ledger
+three-OS aggregate`: every platform passed append/reopen/corruption and
+100-round process-kill recovery, and the aggregate verified the matching SHA,
+platform, formal profile, and test-authority declarations. This closes the
+three-platform 10k test-only acceptance criterion; it does not authenticate the
+mutable local backend as a production immutable store. 250,000 events,
+disk-full/power-loss, independent witness fault domains, and production
+KMS/HSM/PKI remain separate target-environment gates.
