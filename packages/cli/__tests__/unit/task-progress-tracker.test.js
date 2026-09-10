@@ -21,6 +21,9 @@ describe("long-running task progress", () => {
     "gh auth status",
     "gh api repos/owner/repo/actions/runs/123/jobs",
     "gh api -X GET repos/owner/repo/actions/jobs/456",
+    "gh api repos/owner/repo/compare/main...feature",
+    "gh api repos/owner/repo/releases/latest",
+    "gh api repos/owner/repo/commits/abc/check-runs",
     "gh api --method=GET /repos/owner/repo/actions/runs/123",
   ])("does not clear recovery with changing remote status: %s", (command) => {
     const tracker = new TaskProgressTracker();

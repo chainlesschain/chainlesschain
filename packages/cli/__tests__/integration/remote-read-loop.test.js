@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { agentLoop } from "../../src/runtime/agent-core.js";
 import { webFetch } from "../../src/lib/web-fetch.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
+import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
 import {
   mockToolCallMessage,
   mockTextMessage,
@@ -23,6 +24,27 @@ const tool = (name, args, id) => ({
   message: mockToolCallMessage(name, args, `call-${id}`),
 });
 const done = () => ({ message: mockTextMessage("Finished the local change") });
+
+function mockGhInspections() {
+  let executions = 0;
+  const inspect = () =>
+    `Observation ${++executions}: failed unit check; local checkout unavailable`;
+  const originalExec = broker.execSync;
+  const originalSpawn = broker.spawnSync;
+  vi.spyOn(broker, "execSync").mockImplementation(function (command, ...args) {
+    return command.includes("gh ")
+      ? inspect()
+      : originalExec.call(this, command, ...args);
+  });
+  vi.spyOn(broker, "spawnSync").mockImplementation(
+    function (file, args, options) {
+      return args.some((value) => value.includes("gh "))
+        ? { status: 0, stdout: inspect(), stderr: "" }
+        : originalSpawn.call(this, file, args, options);
+    },
+  );
+  return () => executions;
+}
 
 async function drain(iterator, events = []) {
   for await (const event of iterator) events.push(event);
@@ -65,6 +87,180 @@ describe("remote read recovery in the agent runtime", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it.each([false, true])(
+    "bounds changing PR API/web inspections with one final synthesis (ignores exit=%s)",
+    async (ignoresExit) => {
+      const executions = mockGhInspections();
+      webFetch.mockImplementation(async (url) => ({
+        content: `Evidence from ${url}`,
+      }));
+      let calls = 0;
+      const events = [];
+      const run = drain(
+        agentLoop(
+          [
+            {
+              role: "user",
+              content: "处理下这个pr https://github.com/owner/repo/pull/343",
+            },
+          ],
+          {
+            ...base,
+            chatFn: async (messages, options) => {
+              expect(++calls).toBeLessThanOrEqual(37);
+              if (calls === 37) {
+                expect(options.disabledTools).toContain("run_shell");
+                expect(JSON.stringify(messages)).toContain(
+                  "final synthesis turn",
+                );
+                expect(JSON.stringify(messages)).toContain(
+                  "local checkout unavailable",
+                );
+                return ignoresExit
+                  ? tool(
+                      "run_shell",
+                      {
+                        command:
+                          "gh api repos/owner/repo/compare/main...branch",
+                      },
+                      calls,
+                    )
+                  : {
+                      message: mockTextMessage(
+                        "The unit check failed; no local checkout is available. No PR was closed or merged.",
+                      ),
+                    };
+              }
+              if (calls % 3 === 1)
+                return tool(
+                  "web_fetch",
+                  {
+                    url: `https://github.com/owner/repo/pull/343/checks?view=${calls}`,
+                  },
+                  calls,
+                );
+              return tool(
+                "run_shell",
+                {
+                  command:
+                    calls % 3 === 2
+                      ? "gh pr view 343 --repo owner/repo --json state,statusCheckRollup"
+                      : "gh api repos/owner/repo/compare/main...branch",
+                },
+                calls,
+              );
+            },
+          },
+        ),
+        events,
+      );
+      if (ignoresExit)
+        await expect(run).rejects.toMatchObject({
+          code: "CC_AGENT_PR_INVESTIGATION_STALLED",
+        });
+      else {
+        await run;
+        expect(events.at(-1)).toMatchObject({
+          type: "run-ended",
+          reason: "pr-investigation-stalled",
+        });
+        expect(
+          events.find((event) => event.type === "response-complete").content,
+        ).toContain("without completing");
+      }
+      expect(calls).toBe(37);
+      expect(executions()).toBe(24);
+      expect(webFetch).toHaveBeenCalledTimes(8);
+      expect(
+        events.filter(
+          (event) => event.result?.code === "CC_TOOL_RECOVERY_PAUSED",
+        ),
+      ).toHaveLength(4);
+      expect(events.some((event) => event.type === "compaction")).toBe(true);
+    },
+  );
+
+  it("enforces paused reads in a parallel batch and still allows a justified edit", async () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 24; i++)
+      tracker.record("search_files", { matches: [] });
+    writeFileSync(join(cwd, "fix.js"), "export const fixed = false;");
+    let calls = 0;
+    const events = await drain(
+      agentLoop([{ role: "user", content: "Fix PR 343 in fix.js" }], {
+        ...base,
+        taskProgressTracker: tracker,
+        chatFn: async (_messages, options) => {
+          expect(++calls).toBeLessThanOrEqual(3);
+          if (calls === 1)
+            return {
+              message: {
+                role: "assistant",
+                tool_calls: [1, 2].map(
+                  (id) =>
+                    mockToolCallMessage(
+                      "read_file",
+                      { path: "fix.js" },
+                      `read-${id}`,
+                    ).tool_calls[0],
+                ),
+              },
+            };
+          if (calls === 2)
+            return tool(
+              "write_file",
+              { path: "fix.js", content: "export const fixed = true;" },
+              calls,
+            );
+          expect(options.disabledTools || []).not.toContain("read_file");
+          return done();
+        },
+      }),
+    );
+    expect(
+      events.filter(
+        (event) => event.result?.code === "CC_TOOL_RECOVERY_PAUSED",
+      ),
+    ).toHaveLength(2);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "tool-executing" && event.tool === "read_file",
+      ),
+    ).toBe(false);
+    expect(readFileSync(join(cwd, "fix.js"), "utf8")).toContain("fixed = true");
+  });
+
+  it("does not cut off explicitly requested status monitoring", async () => {
+    const executions = mockGhInspections();
+    let calls = 0;
+    const events = await drain(
+      agentLoop(
+        [{ role: "user", content: "Monitor PR 343 until checks finish" }],
+        {
+          ...base,
+          chatFn: async () =>
+            ++calls <= 40
+              ? tool(
+                  "run_shell",
+                  { command: "gh pr checks 343 --repo owner/repo" },
+                  calls,
+                )
+              : {
+                  message: mockTextMessage(
+                    "Checks finished with a failed unit check.",
+                  ),
+                },
+        },
+      ),
+    );
+    expect(executions()).toBe(40);
+    expect(events.at(-1)).toMatchObject({
+      type: "run-ended",
+      reason: "complete",
+    });
   });
 
   it("keeps recovery through web/file/status switching and command failures until a real change", async () => {
@@ -345,11 +541,15 @@ describe("remote read recovery in the agent runtime", () => {
       ),
     ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
     expect(calls).toBe(7);
-    expect(executions).toBe(7);
+    expect(executions).toBe(4);
     expect(
       results
         .filter((event) => event.type === "tool-result")
-        .every((event) => event.result.stdout === "FAIL macOS path assertion"),
+        .every(
+          (event) =>
+            event.result.stdout === "FAIL macOS path assertion" ||
+            event.result.code === "CC_TOOL_RECOVERY_PAUSED",
+        ),
     ).toBe(true);
   });
 
@@ -461,7 +661,7 @@ describe("remote read recovery in the agent runtime", () => {
         ),
       ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
       expect(calls).toBe(7);
-      expect(webFetch).toHaveBeenCalledTimes(28);
+      expect(webFetch).toHaveBeenCalledTimes(16);
       const results = events.filter((event) => event.type === "tool-result");
       expect(results).toHaveLength(28);
       expect(new Set(results.map((event) => event.tool_use_id)).size).toBe(28);

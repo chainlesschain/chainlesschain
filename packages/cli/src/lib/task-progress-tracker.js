@@ -49,7 +49,7 @@ function isRemoteInspectionCommand(command) {
     return true;
   return (
     /(?:^|[\s;&|])gh(?:\.exe)?\s+api\s/i.test(command) &&
-    /(?:https:\/\/api\.github\.com\/)?\/?repos\/[\w.-]+\/[\w.-]+\/(?:actions|pulls)\b/i.test(
+    /(?:https:\/\/api\.github\.com\/)?\/?repos\/[\w.-]+\/[\w.-]+\/(?:actions|pulls|compare|releases|commits|check-runs|check-suites)\b/i.test(
       command,
     ) &&
     !/(?:^|\s)(?:--method|-X)(?:=|\s*)["']?(?!GET\b)\w+/i.test(command) &&

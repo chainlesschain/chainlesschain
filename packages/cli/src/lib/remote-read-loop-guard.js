@@ -67,7 +67,7 @@ function urlTarget(value) {
   }
   if (url.hostname === "github.com") {
     const pr =
-      /^\/([^/]+\/[^/]+)\/(?:pulls\/?|pull\/(\d+)(?:\/(?:files|commits))?\/?|pull\/(\d+)\.(?:diff|patch))$/.exec(
+      /^\/([^/]+\/[^/]+)\/(?:pulls\/?|pull\/(\d+)(?:\/(?:files|commits|checks))?\/?|pull\/(\d+)\.(?:diff|patch))$/.exec(
         url.pathname,
       );
     if (pr) return pullRequestTarget(pr[1], pr[2] || pr[3]);
@@ -221,6 +221,19 @@ export class RemoteReadLoopGuard {
   }
 
   record(tool, result, args = {}) {
+    if (result?.code === "CC_TOOL_RECOVERY_PAUSED") {
+      // A provider can ignore omitted tool definitions. Count that attempt
+      // without replacing the actual failure/evidence with our own denial.
+      const key = remoteReadTarget(tool, args)?.key || this.activeKey;
+      const entry = this.targets.get(key);
+      if (entry?.tool === tool && entry.repeats >= RECOVERY_AFTER) {
+        entry.repeats++;
+        entry.recoveryOffered = true;
+        this.activeKey = key;
+        this.revision++;
+      }
+      return;
+    }
     const failed = failedResult(result);
     const policy = result?.shellCommandPolicy;
     const gitRepositoryKey = `git-repository:${createHash("sha256")
@@ -302,15 +315,37 @@ export class RemoteReadLoopGuard {
             highWater: result.offset + content.length,
           }
         : null;
-    const sameSnapshot = page && page.snapshotId === previous?.page?.snapshotId;
-    const advanced = sameSnapshot && page.highWater > previous.page.highWater;
-    if (sameSnapshot)
-      page.highWater = Math.max(page.highWater, previous.page.highWater);
+    // Keep coverage per snapshot: rotating PR details/files/checks or changing
+    // an already-read window's length does not produce new evidence. Intervals
+    // (not just a high-water mark) still allow reading previously skipped gaps.
+    const snapshots = previous?.snapshots || new Map();
+    const ranges = page ? snapshots.get(page.snapshotId) : null;
+    const covered =
+      page &&
+      ranges?.some(
+        ([start, end]) => start <= page.offset && end >= page.highWater,
+      );
+    const advanced = page && ranges && !covered;
+    if (page) {
+      const merged = [];
+      for (const range of [
+        ...(ranges || []),
+        [page.offset, page.highWater],
+      ].sort((a, b) => a[0] - b[0])) {
+        const last = merged.at(-1);
+        if (last && last[1] >= range[0]) last[1] = Math.max(last[1], range[1]);
+        else merged.push([...range]);
+      }
+      snapshots.delete(page.snapshotId);
+      snapshots.set(page.snapshotId, merged.slice(-32));
+      while (snapshots.size > 16)
+        snapshots.delete(snapshots.keys().next().value);
+    }
     // Changed error wording or switching web/gh must not buy another retry
     // budget for the same failed target. Successful fresh evidence resets it.
     const repeats = failed
       ? (previous?.repeats || 0) + 1
-      : target.github && digests.has(digest) && !advanced
+      : target.github && (covered || (digests.has(digest) && !advanced))
         ? previous.repeats + 1
         : 0;
     if (!failed) {
@@ -325,6 +360,7 @@ export class RemoteReadLoopGuard {
       repeats,
       digest,
       digests,
+      snapshots,
       page,
       recoveryOffered: repeats > 0 && previous?.recoveryOffered === true,
       evidence: excerpt(
