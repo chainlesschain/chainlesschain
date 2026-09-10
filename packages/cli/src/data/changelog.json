@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.42",
+      "cliVersions": ["0.166.42"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.42: converge stalled investigations",
+          "body": "- Treat repeated web searches, fetches and read-only GitHub inspection as one\n  bounded investigation, retaining remote evidence across compaction without\n  letting cosmetic query changes reset convergence.\n- Keep recovery active until the agent takes a concrete mutation or verification\n  step, and direct cancelled Actions investigations toward actionable reruns or\n  fixes without weakening release gates.\n- Prevent cancellation propagation from being rewritten as a new aggregate gate\n  failure while preserving fail-closed aggregation for completed matrix failures.\n- Stabilize Windows release evidence under hosted-runner load with bounded,\n  commit-safe retries and test-only startup/capacity budgets; production lock,\n  access-control and message-capacity limits remain unchanged."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.41",
       "cliVersions": ["0.166.41"],
       "date": null,
