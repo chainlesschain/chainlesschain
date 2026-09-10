@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.43",
+      "cliVersions": ["0.166.43"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.43: configure governed Skill evolution",
+          "body": "- Add a persistent, fail-closed deployment profile for signed governed-evolution\n  descriptors and Ed25519 trust roots. Environment overrides remain available\n  for centrally managed installations.\n- Add `cc evolution deployment status/configure/enable/disable` so administrators\n  can verify and control the deployment without maintaining process environment\n  variables.\n- Expose the same bounded configuration through authenticated App Server topics\n  for `cc ui`; automatic promotion remains `HOLD` and review/release authority\n  stays in the signed deployment host.\n- Document defaults, triggers, review flow, storage locations, and the visual\n  configuration entry points used by both IDE plugins and `cc ui`."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.42",
       "cliVersions": ["0.166.42"],
       "date": null,
