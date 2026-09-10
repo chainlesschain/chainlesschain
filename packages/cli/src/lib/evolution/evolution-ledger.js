@@ -3,7 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
-import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import {
+  withEvolutionDirectoryFileIdentity,
+  withEvolutionFileIdentity,
+} from "./evolution-file-identity.js";
 import { sameFileStatIdentity } from "../secure-file-identity.js";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
@@ -24,6 +27,8 @@ export const EVOLUTION_LEDGER_ANCHOR_SCHEMA =
   "chainlesschain.evolution-ledger-head-anchor/v1";
 export const EVOLUTION_LEDGER_RECEIPT_SCHEMA =
   "chainlesschain.evolution-ledger-receipt/v2";
+export const EVOLUTION_LEDGER_BATCH_RECEIPT_SCHEMA =
+  "chainlesschain.evolution-ledger-batch-receipt/v1";
 export const EVOLUTION_LEDGER_VERIFICATION_SCHEMA =
   "chainlesschain.evolution-ledger-verification/v2";
 export const EVOLUTION_LEDGER_QUERY_SCHEMA =
@@ -97,6 +102,7 @@ const HEAD_STAGE_FILE_PATTERN =
 const MAX_SOURCE_REFS = 256;
 const MAX_AUDIT_ARTIFACT_RECORDS = 1_000_000;
 const MAX_LEDGER_BATCH_QUERIES = 10_000;
+const MAX_LEDGER_APPEND_BATCH = 1024;
 const MAX_STATE_SNAPSHOT_BYTES = 256 * 1024 * 1024;
 const STATE_QUERY_INDEXES = new WeakMap();
 const TYPED_ARRAY_PROTOTYPE = Object.getPrototypeOf(Uint8Array.prototype);
@@ -136,6 +142,7 @@ const DECISIONS = new Set([
 const REVOCATION_STATES = new Set(["not-revoked", "revoked", "tombstoned"]);
 const DURABILITY_MECHANISMS = new Set([
   "authenticated-witness-cas",
+  "authenticated-witness-batch-cas",
   "directory-fsync",
   "verified-existing",
 ]);
@@ -2787,8 +2794,12 @@ export class EvolutionLedger {
     label,
     allowMissing,
     samePathHandle,
+    { expectedBytes = null, trustedParentPath = null } = {},
   ) {
-    this.#assertBoundaries();
+    const heldParent =
+      trustedParentPath !== null &&
+      samePath(path.dirname(filePath), trustedParentPath);
+    if (!heldParent) this.#assertBoundaries();
     let before;
     try {
       before = this.#fs.lstatSync(filePath);
@@ -2808,7 +2819,7 @@ export class EvolutionLedger {
       before.nlink !== 1 ||
       before.size < 2 ||
       before.size > maximum ||
-      !samePath(realpath(this.#fs, filePath), filePath)
+      (!heldParent && !samePath(realpath(this.#fs, filePath), filePath))
     ) {
       throw ledgerError(
         "CC_EVOLUTION_LEDGER_CORRUPT",
@@ -2860,6 +2871,20 @@ export class EvolutionLedger {
           `${label} changed while it was read`,
         );
       }
+      if (expectedBytes !== null) {
+        if (!Buffer.isBuffer(expectedBytes) || !bytes.equals(expectedBytes)) {
+          throw ledgerError(
+            "CC_EVOLUTION_LEDGER_CORRUPT",
+            `${label} differs from its signed snapshot bytes`,
+          );
+        }
+        return {
+          bytes,
+          contentDigest: sha256(bytes),
+          fingerprint: fileFingerprint(before),
+          record: null,
+        };
+      }
       let text;
       try {
         text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -2902,7 +2927,7 @@ export class EvolutionLedger {
       };
     } finally {
       if (descriptor !== null) this.#fs.closeSync(descriptor);
-      this.#assertBoundaries();
+      if (!heldParent) this.#assertBoundaries();
     }
   }
 
@@ -3620,60 +3645,82 @@ export class EvolutionLedger {
     );
     const anchorFingerprints = {};
     const segmentFingerprints = {};
-    for (let index = 0; index < anchorFiles.length; index += 1) {
-      const entry = anchorFiles[index];
-      const snapshotRecordDigest = sha256(
-        Buffer.from(`${canonicalJson(anchorRecords[index])}\n`, "utf8"),
-      );
-      if (entry.contentDigest !== snapshotRecordDigest) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `state snapshot anchor bytes are not bound at index ${index}`,
-        );
-      }
-      const file = this.#readCanonicalFile(
-        path.join(this.#paths.anchorDir, entry.name),
-        64 * 1024,
-        `state snapshot anchor file ${entry.name}`,
-      );
-      if (file.contentDigest !== entry.contentDigest) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `state snapshot anchor file changed: ${entry.name}`,
-        );
-      }
-      anchorFingerprints[entry.name] = Object.freeze({
-        contentDigest: file.contentDigest,
-        fingerprint: file.fingerprint,
-      });
-    }
-    for (let index = 0; index < segmentFiles.length; index += 1) {
-      const entry = segmentFiles[index];
-      const snapshotRecordDigest = sha256(
-        Buffer.from(`${canonicalJson(eventRecords[index])}\n`, "utf8"),
-      );
-      if (entry.contentDigest !== snapshotRecordDigest) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `state snapshot event bytes are not bound at index ${index}`,
-        );
-      }
-      const file = this.#readCanonicalFile(
-        path.join(this.#paths.segmentDir, entry.name),
-        EVOLUTION_LEDGER_MAX_EVENT_BYTES,
-        `state snapshot segment file ${entry.name}`,
-      );
-      if (file.contentDigest !== entry.contentDigest) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `state snapshot segment file changed: ${entry.name}`,
-        );
-      }
-      segmentFingerprints[entry.name] = Object.freeze({
-        contentDigest: file.contentDigest,
-        fingerprint: file.fingerprint,
-      });
-    }
+    withEvolutionDirectoryFileIdentity(
+      this.#fs,
+      this.#paths.anchorDir,
+      (samePathHandle, _sameStableHandle, { parentPath }) => {
+        for (let index = 0; index < anchorFiles.length; index += 1) {
+          const entry = anchorFiles[index];
+          const expectedBytes = Buffer.from(
+            `${canonicalJson(anchorRecords[index])}\n`,
+            "utf8",
+          );
+          const snapshotRecordDigest = sha256(expectedBytes);
+          if (entry.contentDigest !== snapshotRecordDigest) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_CORRUPT",
+              `state snapshot anchor bytes are not bound at index ${index}`,
+            );
+          }
+          const file = this.#readCanonicalFileWithIdentity(
+            path.join(this.#paths.anchorDir, entry.name),
+            64 * 1024,
+            `state snapshot anchor file ${entry.name}`,
+            false,
+            samePathHandle,
+            { expectedBytes, trustedParentPath: parentPath },
+          );
+          if (file.contentDigest !== entry.contentDigest) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_CORRUPT",
+              `state snapshot anchor file changed: ${entry.name}`,
+            );
+          }
+          anchorFingerprints[entry.name] = Object.freeze({
+            contentDigest: file.contentDigest,
+            fingerprint: file.fingerprint,
+          });
+        }
+      },
+    );
+    withEvolutionDirectoryFileIdentity(
+      this.#fs,
+      this.#paths.segmentDir,
+      (samePathHandle, _sameStableHandle, { parentPath }) => {
+        for (let index = 0; index < segmentFiles.length; index += 1) {
+          const entry = segmentFiles[index];
+          const expectedBytes = Buffer.from(
+            `${canonicalJson(eventRecords[index])}\n`,
+            "utf8",
+          );
+          const snapshotRecordDigest = sha256(expectedBytes);
+          if (entry.contentDigest !== snapshotRecordDigest) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_CORRUPT",
+              `state snapshot event bytes are not bound at index ${index}`,
+            );
+          }
+          const file = this.#readCanonicalFileWithIdentity(
+            path.join(this.#paths.segmentDir, entry.name),
+            EVOLUTION_LEDGER_MAX_EVENT_BYTES,
+            `state snapshot segment file ${entry.name}`,
+            false,
+            samePathHandle,
+            { expectedBytes, trustedParentPath: parentPath },
+          );
+          if (file.contentDigest !== entry.contentDigest) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_CORRUPT",
+              `state snapshot segment file changed: ${entry.name}`,
+            );
+          }
+          segmentFingerprints[entry.name] = Object.freeze({
+            contentDigest: file.contentDigest,
+            fingerprint: file.fingerprint,
+          });
+        }
+      },
+    );
 
     const maximumAnchor = anchors.at(-1);
     const maximumEvent = events.at(-1) || null;
@@ -4426,11 +4473,36 @@ export class EvolutionLedger {
     return this.#appendEvent(input, options, true);
   }
 
+  appendBatch(inputs, options = {}) {
+    return this.#appendEvents(inputs, options, false, true);
+  }
+
+  appendDomainEventBatch(inputs, options = {}) {
+    return this.#appendEvents(inputs, options, true, true);
+  }
+
   #appendEvent(input, options, domainEvent) {
+    return this.#appendEvents([input], options, domainEvent, false);
+  }
+
+  #appendEvents(inputs, options, domainEvent, batch) {
+    const safeInputs = readDenseDataArray(
+      inputs,
+      batch ? "append batch" : "append input",
+      batch ? MAX_LEDGER_APPEND_BATCH : 1,
+    );
+    if (safeInputs.length === 0) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
+        "append batch must contain at least one event",
+      );
+    }
     const safeOptions = normalizeAppendOptions(options);
     const state = {
       event: null,
+      events: [],
       receipt: null,
+      receipts: [],
       witnessAttempted: false,
       witnessPublished: false,
     };
@@ -4467,179 +4539,239 @@ export class EvolutionLedger {
             },
           );
         }
-        const generatedTimestamp = clockTimestamp(this.#clock);
-        const normalized = domainEvent
-          ? normalizeDomainAppendInput(input, generatedTimestamp)
-          : normalizeAppendInput(input, generatedTimestamp);
         if (
-          current.events.some((event) => event.eventId === normalized.eventId)
+          current.events.length + safeInputs.length >
+          EVOLUTION_LEDGER_MAX_EVENTS
         ) {
-          throw ledgerError(
-            "CC_EVOLUTION_LEDGER_EVENT_CONFLICT",
-            `eventId already exists: ${normalized.eventId}`,
-          );
-        }
-        if (current.events.length >= EVOLUTION_LEDGER_MAX_EVENTS) {
           throw ledgerError(
             "CC_EVOLUTION_LEDGER_CAPACITY_EXCEEDED",
             "evolution ledger capacity is exhausted",
           );
         }
-        // Mandatory Wiki admission is inside the genuine Ledger write lock,
-        // after current-state authentication and before any event is signed or
-        // persisted. Raw domain append callers and adapters share this fence.
-        if (domainEvent && normalized.type === "wiki.revision.committed") {
-          try {
-            assertKnowledgeWikiSourceAdmission({
-              input: normalized,
-              events: current.events,
-              resolveSubject: (entry) => {
-                const evidence = this.#resolveArtifactEvidence(
-                  { ...entry, sourceRefs: [] },
-                  current.identity,
-                  { includeBytes: true },
-                );
-                const subject = evidence.artifacts.find(
-                  (artifact) =>
-                    artifact.artifactRef.ref === entry.subjectRef.ref &&
-                    artifact.artifactRef.digest === entry.subjectRef.digest,
-                );
-                if (!subject)
-                  throw ledgerError(
-                    WIKI_SOURCE_ADMISSION_INVALID_CODE,
-                    "Wiki admission subject was not resolved",
-                  );
-                return Buffer.from(subject.bytesBase64, "base64");
-              },
-            });
-          } catch (cause) {
-            if (cause instanceof EvolutionLedgerError) throw cause;
+
+        // Normalize the complete batch before any filesystem mutation. This
+        // prevents a malformed later item from leaving a valid earlier prefix.
+        const normalizedInputs = safeInputs.map((input) => {
+          const generatedTimestamp = clockTimestamp(this.#clock);
+          return domainEvent
+            ? normalizeDomainAppendInput(input, generatedTimestamp)
+            : normalizeAppendInput(input, generatedTimestamp);
+        });
+        const eventIds = new Set(current.events.map((event) => event.eventId));
+        for (const normalized of normalizedInputs) {
+          if (eventIds.has(normalized.eventId)) {
             throw ledgerError(
-              cause?.code === WIKI_SOURCE_REVOKED_CODE
-                ? WIKI_SOURCE_REVOKED_CODE
-                : WIKI_SOURCE_ADMISSION_INVALID_CODE,
-              "Wiki source admission rejected the proposed revision",
-              { cause },
+              "CC_EVOLUTION_LEDGER_EVENT_CONFLICT",
+              `eventId already exists: ${normalized.eventId}`,
             );
           }
+          eventIds.add(normalized.eventId);
         }
-        const artifactValidationDigest = this.#resolveArtifacts(
-          normalized,
-          current.identity,
-        );
-        const event = domainEvent
-          ? this.#buildDomainEvent(
-              normalized,
-              previous,
-              current.identity,
-              artifactValidationDigest,
-            )
-          : this.#buildEvent(
-              normalized,
-              previous,
-              current.identity,
-              artifactValidationDigest,
-            );
-        state.event = event;
-        const segmentDigest = domainDigest(SEGMENT_DOMAIN, event);
-        const segmentPath = path.join(
-          this.#paths.segmentDir,
-          segmentFileName(event.sequence, segmentDigest),
-        );
-        const eventBytes = serializeRecord(
-          event,
-          EVOLUTION_LEDGER_MAX_EVENT_BYTES,
-          "event segment",
-        );
-        this.#writeImmutable(
-          segmentPath,
-          eventBytes,
-          "event segment",
-          (temporaryPath) => {
-            this.#invokeCrashHook("after-segment-link", {
-              eventDigest: event.eventDigest,
-              temporaryPath: path.basename(temporaryPath),
-            });
-          },
-        );
-        this.#invokeCrashHook("after-segment", {
-          eventDigest: event.eventDigest,
-          segmentDigest,
-        });
 
-        const anchor = this.#buildAnchor(
-          current.identity,
-          current.anchors.at(-1),
-          event,
-          segmentDigest,
-        );
-        const anchorPath = path.join(
-          this.#paths.anchorDir,
-          anchorFileName(anchor.sequence, anchor.anchorDigest),
-        );
-        const anchorBytes = serializeRecord(anchor, 64 * 1024, "head anchor");
-        this.#writeImmutable(
-          anchorPath,
-          anchorBytes,
-          "head anchor",
-          (temporaryPath) => {
-            this.#invokeCrashHook("after-anchor-link", {
-              anchorDigest: anchor.anchorDigest,
-              temporaryPath: path.basename(temporaryPath),
-            });
-          },
-        );
-        this.#invokeCrashHook("after-anchor", {
-          anchorDigest: anchor.anchorDigest,
-          eventDigest: event.eventDigest,
-        });
-        this.#requireDirectoryDurability([
-          this.#paths.segmentDir,
-          this.#paths.anchorDir,
-        ]);
-        state.witnessAttempted = true;
-        const witnessed = this.#advanceWitness(
-          current.witness,
-          current.identity,
-          current.storeMarker,
-          anchor,
-          event,
-        );
-        state.witnessPublished = true;
-        this.#invokeCrashHook("after-witness", {
-          anchorDigest: anchor.anchorDigest,
-          eventDigest: event.eventDigest,
-          witnessDigest: witnessed.witnessDigest,
-        });
-        this.#replaceHead(anchorBytes);
-        this.#invokeCrashHook("after-head", {
-          anchorDigest: anchor.anchorDigest,
-          eventDigest: event.eventDigest,
-        });
+        // Resolve artifacts, apply Wiki admission, and sign the complete plan
+        // before the first segment is linked. Later authority failures cannot
+        // turn a validation error into a partially committed batch.
+        const planned = [];
+        const knownEvents = [...current.events];
+        let previousEvent = previous;
+        let previousAnchor = current.anchors.at(-1);
+        for (const normalized of normalizedInputs) {
+          if (domainEvent && normalized.type === "wiki.revision.committed") {
+            try {
+              assertKnowledgeWikiSourceAdmission({
+                input: normalized,
+                events: knownEvents,
+                resolveSubject: (entry) => {
+                  const evidence = this.#resolveArtifactEvidence(
+                    { ...entry, sourceRefs: [] },
+                    current.identity,
+                    { includeBytes: true },
+                  );
+                  const subject = evidence.artifacts.find(
+                    (artifact) =>
+                      artifact.artifactRef.ref === entry.subjectRef.ref &&
+                      artifact.artifactRef.digest === entry.subjectRef.digest,
+                  );
+                  if (!subject)
+                    throw ledgerError(
+                      WIKI_SOURCE_ADMISSION_INVALID_CODE,
+                      "Wiki admission subject was not resolved",
+                    );
+                  return Buffer.from(subject.bytesBase64, "base64");
+                },
+              });
+            } catch (cause) {
+              if (cause instanceof EvolutionLedgerError) throw cause;
+              throw ledgerError(
+                cause?.code === WIKI_SOURCE_REVOKED_CODE
+                  ? WIKI_SOURCE_REVOKED_CODE
+                  : WIKI_SOURCE_ADMISSION_INVALID_CODE,
+                "Wiki source admission rejected the proposed revision",
+                { cause },
+              );
+            }
+          }
+          const artifactValidationDigest = this.#resolveArtifacts(
+            normalized,
+            current.identity,
+          );
+          const event = domainEvent
+            ? this.#buildDomainEvent(
+                normalized,
+                previousEvent,
+                current.identity,
+                artifactValidationDigest,
+              )
+            : this.#buildEvent(
+                normalized,
+                previousEvent,
+                current.identity,
+                artifactValidationDigest,
+              );
+          const segmentDigest = domainDigest(SEGMENT_DOMAIN, event);
+          const anchor = this.#buildAnchor(
+            current.identity,
+            previousAnchor,
+            event,
+            segmentDigest,
+          );
+          const eventBytes = serializeRecord(
+            event,
+            EVOLUTION_LEDGER_MAX_EVENT_BYTES,
+            "event segment",
+          );
+          const anchorBytes = serializeRecord(anchor, 64 * 1024, "head anchor");
+          planned.push({
+            anchor,
+            anchorBytes,
+            event,
+            eventBytes,
+            segmentDigest,
+          });
+          knownEvents.push(event);
+          previousEvent = event;
+          previousAnchor = anchor;
+        }
+
+        state.events = planned.map((entry) => entry.event);
+        state.event = state.events.at(-1);
+        const witnessedStates = [];
+        let currentWitness = current.witness;
+        for (const entry of planned) {
+          const { anchor, anchorBytes, event, eventBytes, segmentDigest } = entry;
+          const segmentPath = path.join(
+            this.#paths.segmentDir,
+            segmentFileName(event.sequence, segmentDigest),
+          );
+          this.#writeImmutable(
+            segmentPath,
+            eventBytes,
+            "event segment",
+            (temporaryPath) => {
+              this.#invokeCrashHook("after-segment-link", {
+                eventDigest: event.eventDigest,
+                temporaryPath: path.basename(temporaryPath),
+              });
+            },
+          );
+          this.#invokeCrashHook("after-segment", {
+            eventDigest: event.eventDigest,
+            segmentDigest,
+          });
+          const anchorPath = path.join(
+            this.#paths.anchorDir,
+            anchorFileName(anchor.sequence, anchor.anchorDigest),
+          );
+          this.#writeImmutable(
+            anchorPath,
+            anchorBytes,
+            "head anchor",
+            (temporaryPath) => {
+              this.#invokeCrashHook("after-anchor-link", {
+                anchorDigest: anchor.anchorDigest,
+                temporaryPath: path.basename(temporaryPath),
+              });
+            },
+          );
+          this.#invokeCrashHook("after-anchor", {
+            anchorDigest: anchor.anchorDigest,
+            eventDigest: event.eventDigest,
+          });
+          this.#requireDirectoryDurability([
+            this.#paths.segmentDir,
+            this.#paths.anchorDir,
+          ]);
+          state.witnessAttempted = true;
+          currentWitness = this.#advanceWitness(
+            currentWitness,
+            current.identity,
+            current.storeMarker,
+            anchor,
+            event,
+          );
+          witnessedStates.push(currentWitness);
+          state.witnessPublished = true;
+          this.#invokeCrashHook("after-witness", {
+            anchorDigest: anchor.anchorDigest,
+            eventDigest: event.eventDigest,
+            witnessDigest: currentWitness.witnessDigest,
+          });
+          this.#replaceHead(anchorBytes);
+          this.#invokeCrashHook("after-head", {
+            anchorDigest: anchor.anchorDigest,
+            eventDigest: event.eventDigest,
+          });
+        }
 
         const persisted = this.#loadState({
           allowInitialize: false,
           incremental: true,
         });
-        const persistedEvent = persisted.events.at(-1);
-        const persistedAnchor = persisted.anchors.at(-1);
+        const sequenceStart = state.events[0].sequence;
+        const persistedEvents = persisted.events.slice(sequenceStart - 1);
+        const finalAnchor = planned.at(-1).anchor;
         if (
-          persistedEvent?.eventDigest !== event.eventDigest ||
-          persistedAnchor?.anchorDigest !== anchor.anchorDigest ||
-          persisted.head.anchorDigest !== anchor.anchorDigest
+          persistedEvents.length !== state.events.length ||
+          persistedEvents.some(
+            (event, index) =>
+              event.eventDigest !== state.events[index].eventDigest,
+          ) ||
+          persisted.head.anchorDigest !== finalAnchor.anchorDigest
         ) {
           throw ledgerError(
             "CC_EVOLUTION_LEDGER_WRITE_FAILED",
-            "event was not recovered under the authenticated HEAD",
+            "event batch was not recovered under the authenticated HEAD",
           );
         }
-        state.receipt = this.#issueReceipt(
-          persisted,
-          persistedEvent,
-          persistedAnchor,
-          "authenticated-witness-cas",
+        state.receipts = persistedEvents.map((event, index) =>
+          this.#issueReceipt(
+            { ...persisted, witness: witnessedStates[index] },
+            event,
+            planned[index].anchor,
+            batch
+              ? "authenticated-witness-batch-cas"
+              : "authenticated-witness-cas",
+          ),
         );
-        return state.receipt;
+        state.receipt = state.receipts.at(-1);
+        if (!batch) return state.receipt;
+        return deepFreeze({
+          anchorDigest: finalAnchor.anchorDigest,
+          authenticated: true,
+          committed: true,
+          durable: true,
+          eventCount: state.events.length,
+          eventDigests: state.events.map((event) => event.eventDigest),
+          eventIds: state.events.map((event) => event.eventId),
+          eventReceipts: state.receipts,
+          headDigest: state.event.eventDigest,
+          readbackVerified: true,
+          schema: EVOLUTION_LEDGER_BATCH_RECEIPT_SCHEMA,
+          sequenceEnd: state.event.sequence,
+          sequenceStart,
+          witnessed: true,
+          witnessDigest: currentWitness.witnessDigest,
+        });
       });
     } catch (cause) {
       if (state.witnessAttempted || state.receipt) {
@@ -4650,7 +4782,16 @@ export class EvolutionLedger {
             cause,
             commitState: "unknown",
             eventDigest: state.event?.eventDigest || null,
-            eventId: state.event?.eventId || safeOwnDataValue(input, "eventId"),
+            eventId:
+              state.event?.eventId ||
+              safeOwnDataValue(safeInputs.at(-1), "eventId"),
+            ...(batch
+              ? {
+                  eventIds: safeInputs.map((entry) =>
+                    safeOwnDataValue(entry, "eventId"),
+                  ),
+                }
+              : {}),
             witnessPublished: state.witnessPublished,
           },
         );
@@ -4665,7 +4806,9 @@ export class EvolutionLedger {
         {
           cause,
           commitState: "not-committed",
-          eventId: safeOwnDataValue(input, "eventId"),
+          eventId: batch
+            ? safeInputs.map((entry) => safeOwnDataValue(entry, "eventId"))[0]
+            : safeOwnDataValue(safeInputs[0], "eventId"),
         },
       );
     }

@@ -106,6 +106,7 @@ export async function runEvolutionLedgerReliabilitySoak({
       seedPid: seeded.result.pid,
       reopenPid: reopened.result.pid,
       seedMs: seeded.result.elapsedMs,
+      seedBatchSize: seeded.result.seedBatchSize,
       seedVerificationCounts: seeded.result.verificationCounts,
       reopenMs: reopened.result.elapsedMs,
       reopenVerificationCounts: reopened.result.verificationCounts,

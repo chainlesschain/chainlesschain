@@ -3,6 +3,7 @@ import { types as utilTypes } from "node:util";
 import { captureImmutableLedgerSegmentStorePort } from "./evolution-immutable-ledger-segment-store.js";
 import {
   captureEvolutionLedgerManifestAuthority,
+  deriveEvolutionLedgerManifestHead,
   sealEvolutionLedgerManifestSegment,
   verifyEvolutionLedgerManifestChain,
 } from "./evolution-ledger-manifest-chain.js";
@@ -182,7 +183,7 @@ function own(record, name, code = EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE) {
   return field.value;
 }
 
-function coherentSnapshot(catalog, headStore, witnessAdapter) {
+function checkpointParts(catalog, headStore, witnessAdapter) {
   let head;
   let manifest;
   let witness;
@@ -198,6 +199,20 @@ function coherentSnapshot(catalog, headStore, witnessAdapter) {
       { cause },
     );
   }
+  return { head, manifest, witness };
+}
+
+function witnessMatchesHead(witness, head) {
+  if (head === null) return witness.status === "absent";
+  if (witness.status !== "committed") return false;
+  return (
+    own(witness.record, "anchorDigest") === head.manifestDigest &&
+    own(witness.record, "headDigest") === head.headDigest &&
+    own(witness.record, "sequence") === head.sequence
+  );
+}
+
+function coherentCheckpoint({ head, manifest, witness }) {
   if (head === null) {
     if (manifest !== null || witness.status !== "absent") {
       throw failure(
@@ -207,10 +222,10 @@ function coherentSnapshot(catalog, headStore, witnessAdapter) {
     }
     return Object.freeze({ head: null, manifest: null, witness });
   }
-  if (witness.status !== "committed") {
+  if (!witnessMatchesHead(witness, head)) {
     throw failure(
       EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
-      "v2 manifest head has no committed witness",
+      "v2 manifest head has no matching committed witness",
     );
   }
   if (manifest?.manifestDigest !== head.manifestDigest) {
@@ -219,20 +234,11 @@ function coherentSnapshot(catalog, headStore, witnessAdapter) {
       "v2 manifest catalog latest does not bind the manifest head",
     );
   }
-  const bindings = {
-    anchorDigest: head.manifestDigest,
-    headDigest: head.headDigest,
-    sequence: head.sequence,
-  };
-  for (const [field, expected] of Object.entries(bindings)) {
-    if (own(witness.record, field) !== expected) {
-      throw failure(
-        EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
-        `v2 manifest witness ${field} binding differs`,
-      );
-    }
-  }
   return Object.freeze({ head, manifest, witness });
+}
+
+function coherentSnapshot(catalog, headStore, witnessAdapter) {
+  return coherentCheckpoint(checkpointParts(catalog, headStore, witnessAdapter));
 }
 
 function conflict(snapshot) {
@@ -301,13 +307,120 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
     );
   }
 
+  const verifyPreparedChain = (head) =>
+    verifyEvolutionLedgerManifestChain({
+      authority: manifestAuthority,
+      descriptor: normalizedDescriptor,
+      head,
+      manifests: catalog.list(),
+      segmentStore,
+    });
+
+  const recoverCheckpoint = () => {
+    let parts = checkpointParts(catalog, headStore, witnessAdapter);
+    try {
+      return coherentCheckpoint(parts);
+    } catch (initialFailure) {
+      if (parts.manifest === null) throw initialFailure;
+    }
+
+    let proposedHead = parts.head;
+    if (parts.head?.manifestDigest !== parts.manifest.manifestDigest) {
+      const previousManifestDigest = parts.head?.manifestDigest ?? null;
+      const previousManifestSequence = parts.head?.manifestSequence ?? 0;
+      const previousSequence = parts.head?.sequence ?? 0;
+      if (
+        parts.manifest.previousManifestDigest !== previousManifestDigest ||
+        parts.manifest.manifestSequence !== previousManifestSequence + 1 ||
+        parts.manifest.sequenceStart !== previousSequence + 1 ||
+        !witnessMatchesHead(parts.witness, parts.head)
+      ) {
+        throw failure(
+          EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
+          "v2 manifest partial checkpoint is not a recoverable next segment",
+        );
+      }
+      proposedHead = deriveEvolutionLedgerManifestHead({
+        authority: manifestAuthority,
+        descriptor: normalizedDescriptor,
+        manifest: parts.manifest,
+        previousHead: parts.head,
+      });
+      verifyPreparedChain(proposedHead);
+      let committed;
+      try {
+        committed = headStore.commit({
+          expectedHeadDigest: parts.head?.headDigest ?? null,
+          nextHead: proposedHead,
+        });
+      } catch (cause) {
+        throw unknown(
+          "v2 manifest head recovery may be committed; reopen before retrying",
+          cause,
+        );
+      }
+      if (committed.committed !== true) {
+        const observed = headStore.read();
+        if (observed?.headDigest !== proposedHead.headDigest) {
+          throw unknown(
+            "v2 manifest head recovery conflicted; reopen before retrying",
+          );
+        }
+      }
+      parts = checkpointParts(catalog, headStore, witnessAdapter);
+    }
+
+    if (!witnessMatchesHead(parts.witness, proposedHead)) {
+      const witnessIsPrevious =
+        (parts.witness.status === "absent" &&
+          proposedHead.previousHeadDigest === null &&
+          parts.manifest.sequenceStart === 1) ||
+        (parts.witness.status === "committed" &&
+          own(parts.witness.record, "headDigest") ===
+            proposedHead.previousHeadDigest &&
+          own(parts.witness.record, "anchorDigest") ===
+            parts.manifest.previousManifestDigest &&
+          own(parts.witness.record, "sequence") ===
+            parts.manifest.sequenceStart - 1);
+      if (!witnessIsPrevious) {
+        throw failure(
+          EVOLUTION_LEDGER_V2_MANIFEST_CORRUPT_CODE,
+          "v2 manifest witness is not at the recoverable previous checkpoint",
+        );
+      }
+      verifyPreparedChain(proposedHead);
+      let checkpointed;
+      try {
+        checkpointed = witnessAdapter.checkpoint({
+          expectedWitnessDigest: parts.witness.witnessDigest,
+          head: proposedHead,
+          manifest: parts.manifest,
+        });
+      } catch (cause) {
+        throw unknown(
+          "v2 manifest witness recovery may be committed; reopen before retrying",
+          cause,
+        );
+      }
+      if (checkpointed.checkpointed !== true) {
+        const observed = witnessAdapter.read();
+        if (!witnessMatchesHead(observed, proposedHead)) {
+          throw unknown(
+            "v2 manifest witness recovery conflicted; reopen before retrying",
+          );
+        }
+      }
+    }
+    return coherentSnapshot(catalog, headStore, witnessAdapter);
+  };
+
   const backend = Object.freeze({
     descriptor: Object.freeze({
       ...normalizedDescriptor,
       schema: EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA,
     }),
     read() {
-      return coherentSnapshot(catalog, headStore, witnessAdapter);
+      return recoverCheckpoint();
     },
     appendSegment(input) {
       const request = exactRecord(
@@ -323,7 +436,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         data(request, "expectedWitnessDigest"),
         "expectedWitnessDigest",
       );
-      const current = coherentSnapshot(catalog, headStore, witnessAdapter);
+      const current = recoverCheckpoint();
       if (
         (current.head?.headDigest ?? null) !== expectedHeadDigest ||
         current.witness.witnessDigest !== expectedWitnessDigest
@@ -393,7 +506,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
       }
       let final;
       try {
-        final = coherentSnapshot(catalog, headStore, witnessAdapter);
+        final = recoverCheckpoint();
       } catch (cause) {
         throw unknown(
           "v2 manifest commit readback is unavailable; reopen before retrying",
@@ -426,7 +539,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
     },
     verify(input = {}) {
       exactRecord(input, VERIFY_KEYS, "v2 manifest verification request");
-      const snapshot = coherentSnapshot(catalog, headStore, witnessAdapter);
+      const snapshot = recoverCheckpoint();
       if (snapshot.head === null) {
         throw failure(
           EVOLUTION_LEDGER_V2_MANIFEST_INVALID_CODE,

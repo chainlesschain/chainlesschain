@@ -2,7 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { withEvolutionFileIdentity } from "../../src/lib/evolution/evolution-file-identity.js";
+import {
+  withEvolutionDirectoryFileIdentity,
+  withEvolutionFileIdentity,
+} from "../../src/lib/evolution/evolution-file-identity.js";
 import { openWorkbenchRollbackStore } from "../fixtures/evolution-workbench-rollback.js";
 
 const AFFECTED = { platform: "win32", uvVersion: "1.49.1" };
@@ -83,6 +86,38 @@ describe("evolution path/handle identity", () => {
       },
       AFFECTED,
     );
+  });
+
+  it("shares one held parent authority across multiple child checks", () => {
+    const { root, file } = fixture();
+    const second = path.join(root, "second.json");
+    fs.writeFileSync(second, "{}\n", { mode: 0o600 });
+    const runtimeFs = zeroPathDeviceFs(root);
+    const open = vi.spyOn(runtimeFs, "openSync");
+
+    withEvolutionDirectoryFileIdentity(
+      runtimeFs,
+      root,
+      (samePathHandle) => {
+        for (const target of [file, second]) {
+          const before = runtimeFs.lstatSync(target, { bigint: true });
+          const descriptor = fs.openSync(target, "r");
+          try {
+            expect(
+              samePathHandle(
+                before,
+                fs.fstatSync(descriptor, { bigint: true }),
+              ),
+            ).toBe(true);
+          } finally {
+            fs.closeSync(descriptor);
+          }
+        }
+      },
+      AFFECTED,
+    );
+
+    expect(open).toHaveBeenCalledTimes(2);
   });
 
   it.each([

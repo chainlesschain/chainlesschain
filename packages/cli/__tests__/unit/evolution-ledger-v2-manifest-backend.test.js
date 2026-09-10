@@ -12,6 +12,7 @@ import {
   createImmutableLedgerSegmentStorePort,
 } from "../../src/lib/evolution/evolution-immutable-ledger-segment-store.js";
 import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
+import { createEvolutionLedgerFileManifestHeadBackend } from "../../src/lib/evolution/evolution-ledger-file-manifest-head-store.js";
 import { createEvolutionLedgerFileManifestCatalogBackend } from "../../src/lib/evolution/evolution-ledger-file-manifest-catalog.js";
 import {
   EVOLUTION_LEDGER_MANIFEST_CATALOG_APPEND_RESULT_SCHEMA,
@@ -249,10 +250,34 @@ function witnessDescriptor(trust) {
   };
 }
 
-function fixture(root, { catalogPort, fileCatalog = false, witnessPort } = {}) {
+function fixture(
+  root,
+  {
+    catalogPort,
+    fileCatalog = false,
+    fileHead = false,
+    headOptions,
+    witnessPort,
+  } = {},
+) {
   const authority = manifestAuthority();
   const segments = segmentStore();
-  const heads = headStore(authority);
+  const fileHeadBackend = fileHead
+    ? createEvolutionLedgerFileManifestHeadBackend({
+        directoryPath: path.join(root, "manifest-head"),
+      })
+    : null;
+  const heads = fileHeadBackend
+    ? {
+        backend: fileHeadBackend,
+        store: createEvolutionLedgerManifestHeadStore({
+          authority,
+          compareAndSet: fileHeadBackend.compareAndSet,
+          descriptor: descriptor(),
+          load: fileHeadBackend.load,
+        }),
+      }
+    : headStore(authority, headOptions);
   const manifests = [];
   const defaultCatalogPort = {
     compareAndAppend(request) {
@@ -322,7 +347,7 @@ describe("Evolution Ledger v2 manifest backend", () => {
   it("publishes a segment only after CAS and witnessed durable readback", () => {
     const directory = root();
     try {
-      const value = fixture(directory, { fileCatalog: true });
+      const value = fixture(directory, { fileCatalog: true, fileHead: true });
       const initial = value.backend.read();
       const receipt = value.backend.appendSegment({
         eventDigests: [digest("c"), digest("d")],
@@ -341,6 +366,7 @@ describe("Evolution Ledger v2 manifest backend", () => {
         witnessed: true,
       });
       expect(value.backend.read().head.headDigest).toBe(receipt.headDigest);
+      expect(value.heads.backend.descriptor.localOnly).toBe(true);
       expect(value.backend.read().witness.record.headDigest).toBe(
         receipt.headDigest,
       );
@@ -388,14 +414,19 @@ describe("Evolution Ledger v2 manifest backend", () => {
     }
   });
 
-  it("reports commit unknown when the head is committed but the witness conflicts", () => {
+  it("recovers a transient witness conflict after the head was committed", () => {
     const directory = root();
     try {
+      let rejectOnce = true;
       const value = fixture(directory, {
         witnessPort(witness) {
           return Object.freeze({
-            compareAndSwap() {
-              return witness.read();
+            compareAndSwap(request) {
+              if (rejectOnce) {
+                rejectOnce = false;
+                return witness.read();
+              }
+              return witness.compareAndSwap(request);
             },
             id: witness.id,
             read() {
@@ -420,12 +451,17 @@ describe("Evolution Ledger v2 manifest backend", () => {
       }
       expect(value.heads.store.read()).not.toBeNull();
       expect(value.witness.read().status).toBe("absent");
+      const recovered = value.backend.read();
+      expect(recovered.witness.status).toBe("committed");
+      expect(recovered.witness.record.headDigest).toBe(
+        recovered.head.headDigest,
+      );
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
     }
   });
 
-  it("does not publish a head when manifest catalog acknowledgement is lost", () => {
+  it("recovers a catalog commit after its acknowledgement is lost", () => {
     const directory = root();
     try {
       const value = fixture(directory, {
@@ -456,6 +492,57 @@ describe("Evolution Ledger v2 manifest backend", () => {
       expect(value.manifests).toHaveLength(1);
       expect(value.heads.store.read()).toBeNull();
       expect(value.witness.read().status).toBe("absent");
+      const recovered = value.backend.read();
+      expect(recovered.head.manifestDigest).toBe(
+        value.manifests[0].manifestDigest,
+      );
+      expect(recovered.witness.record.headDigest).toBe(
+        recovered.head.headDigest,
+      );
+    } finally {
+      fs.rmSync(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("recovers after the head CAS commits but loses its acknowledgement", () => {
+    const directory = root();
+    try {
+      let loseOnce = true;
+      const value = fixture(directory, {
+        headOptions: {
+          compare({ request, set }) {
+            set(request.nextHead);
+            if (loseOnce) {
+              loseOnce = false;
+              throw new Error("head response lost after commit");
+            }
+            return {
+              committed: true,
+              head: request.nextHead,
+              schema: EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA,
+            };
+          },
+        },
+      });
+      const initial = value.backend.read();
+      expect(() =>
+        value.backend.appendSegment({
+          eventDigests: [digest("c")],
+          expectedHeadDigest: null,
+          expectedWitnessDigest: initial.witness.witnessDigest,
+          minimumRetainedUntil: MINIMUM_RETENTION,
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: EVOLUTION_LEDGER_V2_MANIFEST_COMMIT_UNKNOWN_CODE,
+        }),
+      );
+      expect(value.heads.store.read()).not.toBeNull();
+      expect(value.witness.read().status).toBe("absent");
+      const recovered = value.backend.read();
+      expect(recovered.witness.record.headDigest).toBe(
+        recovered.head.headDigest,
+      );
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
     }

@@ -49,6 +49,12 @@ const SEAL_CONFIG_KEYS = new Set([
   "previousHead",
   "segmentStore",
 ]);
+const DERIVE_HEAD_CONFIG_KEYS = new Set([
+  "authority",
+  "descriptor",
+  "manifest",
+  "previousHead",
+]);
 const VERIFY_CONFIG_KEYS = new Set([
   "authority",
   "descriptor",
@@ -711,6 +717,44 @@ function previousHead(value, descriptorValue, authority) {
     : normalizeHead(value, descriptorValue, authority);
 }
 
+function manifestHeadFromManifest(
+  authority,
+  descriptorValue,
+  manifest,
+  previous,
+) {
+  if (
+    manifest.manifestSequence !== (previous?.manifestSequence || 0) + 1 ||
+    manifest.previousManifestDigest !== (previous?.manifestDigest || null) ||
+    manifest.sequenceStart !== (previous?.sequence || 0) + 1
+  ) {
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+      "manifest cannot derive the next contiguous head",
+    );
+  }
+  return sign(
+    authority,
+    "ledger-manifest-head",
+    Object.freeze({
+      authorityAlgorithm: authority.descriptor.algorithm,
+      authorityId: authority.descriptor.authorityId,
+      authorityRevision: authority.descriptor.revision,
+      epoch: descriptorValue.epoch,
+      eventDigest: manifest.eventDigests.at(-1),
+      issuedAt: manifest.issuedAt,
+      ledgerId: descriptorValue.ledgerId,
+      manifestDigest: manifest.manifestDigest,
+      manifestSequence: manifest.manifestSequence,
+      previousHeadDigest: previous?.headDigest || null,
+      schema: EVOLUTION_LEDGER_MANIFEST_HEAD_SCHEMA,
+      sequence: manifest.sequenceEnd,
+      tenantId: descriptorValue.tenantId,
+    }),
+    "headDigest",
+  );
+}
+
 function storeFailure(cause, action) {
   if (cause instanceof EvolutionLedgerManifestError) throw cause;
   const code =
@@ -849,31 +893,43 @@ export function sealEvolutionLedgerManifestSegment(options = undefined) {
     }),
     "manifestDigest",
   );
-  const head = sign(
+  const head = manifestHeadFromManifest(
     authority,
-    "ledger-manifest-head",
-    Object.freeze({
-      authorityAlgorithm: authority.descriptor.algorithm,
-      authorityId: authority.descriptor.authorityId,
-      authorityRevision: authority.descriptor.revision,
-      epoch: descriptorValue.epoch,
-      eventDigest: eventDigests.at(-1),
-      issuedAt,
-      ledgerId: descriptorValue.ledgerId,
-      manifestDigest: manifest.manifestDigest,
-      manifestSequence: manifest.manifestSequence,
-      previousHeadDigest: previous?.headDigest || null,
-      schema: EVOLUTION_LEDGER_MANIFEST_HEAD_SCHEMA,
-      sequence: segmentPayload.sequenceEnd,
-      tenantId: descriptorValue.tenantId,
-    }),
-    "headDigest",
+    descriptorValue,
+    manifest,
+    previous,
   );
   return Object.freeze({
     head,
     manifest,
     segmentReceipt: receipt,
   });
+}
+
+export function deriveEvolutionLedgerManifestHead(options = undefined) {
+  const fields = exactRecord(
+    options,
+    DERIVE_HEAD_CONFIG_KEYS,
+    "manifest head derivation configuration",
+  );
+  const descriptorValue = descriptor(data(fields, "descriptor"));
+  const authority = captureAuthority(data(fields, "authority"));
+  const manifest = normalizeManifest(
+    data(fields, "manifest"),
+    descriptorValue,
+    authority,
+  );
+  const previous = previousHead(
+    data(fields, "previousHead"),
+    descriptorValue,
+    authority,
+  );
+  return manifestHeadFromManifest(
+    authority,
+    descriptorValue,
+    manifest,
+    previous,
+  );
 }
 
 export function verifyEvolutionLedgerManifestHead(options = undefined) {

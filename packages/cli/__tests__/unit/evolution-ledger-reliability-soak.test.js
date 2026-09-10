@@ -27,6 +27,7 @@ describe("EvolutionLedger reliability soak driver", () => {
       status: "passed",
       events: 3,
       childHeapLimitMiB: 256,
+      seedBatchSize: 256,
       segmentCorruptionRejected: true,
       witnessCorruptionRejected: true,
       productionAuthority: false,

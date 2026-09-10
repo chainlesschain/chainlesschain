@@ -10,6 +10,7 @@ import {
   EVOLUTION_LEDGER_AUDIT_EXPORT_SCHEMA,
   EVOLUTION_LEDGER_AUDIT_VERIFICATION_SCHEMA,
   EVOLUTION_LEDGER_ANCHOR_SCHEMA,
+  EVOLUTION_LEDGER_BATCH_RECEIPT_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
   EVOLUTION_LEDGER_EVENT_SCHEMA,
   EVOLUTION_LEDGER_IDENTITY_SCHEMA,
@@ -1327,6 +1328,95 @@ describe("EvolutionLedger v2", () => {
         path.join(ledger.segmentDir, regularFiles(ledger.segmentDir)[0]),
       ).nlink,
     ).toBe(1);
+  });
+
+  it("commits a validated batch and withholds every event receipt until final readback", () => {
+    const ledger = createLedger();
+    const receipt = ledger.appendBatch([
+      eventInput(1, artifacts),
+      eventInput(2, artifacts),
+      eventInput(3, artifacts),
+    ]);
+
+    expect(receipt).toMatchObject({
+      authenticated: true,
+      committed: true,
+      durable: true,
+      eventCount: 3,
+      eventIds: ["event-1", "event-2", "event-3"],
+      readbackVerified: true,
+      schema: EVOLUTION_LEDGER_BATCH_RECEIPT_SCHEMA,
+      sequenceEnd: 3,
+      sequenceStart: 1,
+      witnessed: true,
+    });
+    expect(receipt.eventReceipts).toHaveLength(3);
+    expect(
+      receipt.eventReceipts.map((entry) => [
+        entry.sequence,
+        entry.eventId,
+        entry.durabilityMechanism,
+      ]),
+    ).toEqual([
+      [1, "event-1", "authenticated-witness-batch-cas"],
+      [2, "event-2", "authenticated-witness-batch-cas"],
+      [3, "event-3", "authenticated-witness-batch-cas"],
+    ]);
+    expect(ledger.verify()).toMatchObject({ eventCount: 3, sequence: 3 });
+    expect(ledger.read().map((entry) => entry.eventId)).toEqual([
+      "event-1",
+      "event-2",
+      "event-3",
+    ]);
+    expect(Object.isFrozen(receipt)).toBe(true);
+    expect(Object.isFrozen(receipt.eventReceipts)).toBe(true);
+  });
+
+  it("rejects an invalid later batch item before persisting the first", () => {
+    const ledger = createLedger();
+    const duplicate = eventInput(2, artifacts, { eventId: "event-1" });
+    expect(
+      capturedError(() =>
+        ledger.appendBatch([eventInput(1, artifacts), duplicate]),
+      ),
+    ).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_EVENT_CONFLICT",
+      commitState: "not-committed",
+    });
+    expect(ledger.verify()).toMatchObject({ eventCount: 0, sequence: 0 });
+    expect(regularFiles(ledger.segmentDir)).toEqual([]);
+  });
+
+  it("recovers only the witnessed prefix when a batch crashes on a later item", () => {
+    let segmentCount = 0;
+    const ledger = createLedger({
+      crashHook(phase) {
+        if (phase === "after-segment" && ++segmentCount === 2) {
+          throw new Error("forced second batch segment failure");
+        }
+      },
+    });
+    const failure = capturedError(() =>
+      ledger.appendDomainEventBatch([
+        domainEventInput(1, artifacts),
+        domainEventInput(2, artifacts),
+        domainEventInput(3, artifacts),
+      ]),
+    );
+    expect(failure).toMatchObject({
+      code: "CC_EVOLUTION_LEDGER_COMMIT_UNKNOWN",
+      commitState: "unknown",
+      eventIds: ["domain-event-1", "domain-event-2", "domain-event-3"],
+      witnessPublished: true,
+    });
+
+    const reopened = createLedger();
+    expect(reopened.verify()).toMatchObject({ eventCount: 1, sequence: 1 });
+    expect(reopened.read().map((entry) => entry.eventId)).toEqual([
+      "domain-event-1",
+    ]);
+    expect(regularFiles(reopened.segmentDir)).toHaveLength(1);
+    expect(regularFiles(reopened.anchorDir)).toHaveLength(2);
   });
 
   it("chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant", () => {

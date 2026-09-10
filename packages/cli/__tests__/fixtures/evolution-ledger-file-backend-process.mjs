@@ -8,6 +8,7 @@ import {
 } from "../../src/lib/evolution/evolution-ledger.js";
 
 const verificationCounts = {};
+const SEED_BATCH_SIZE = 256;
 
 function digest(value) {
   return `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
@@ -179,9 +180,23 @@ try {
   if (mode === "seed") {
     if (backend.ledger.verify().sequence !== 0)
       throw new Error("seed requires an empty ledger");
-    for (let index = 1; index <= count; index += 1) {
-      append(index);
-      if (index % 100 === 0) process.stderr.write(`seeded ${index}/${count}\n`);
+    for (let start = 1; start <= count; start += SEED_BATCH_SIZE) {
+      const end = Math.min(count, start + SEED_BATCH_SIZE - 1);
+      backend.ledger.appendDomainEventBatch(
+        Array.from({ length: end - start + 1 }, (_, offset) => ({
+          artifactTenantId: "artifact-long-ledger-test",
+          correlationId: null,
+          decision: "rejected",
+          eventId: `long-event-${start + offset}`,
+          reason: "CC_SKILL_MUTATION_REQUEST_INVALID",
+          skillName: null,
+          sourceRefs: [],
+          subjectRef,
+          tenantId: null,
+          type: "skill.mutation.audit",
+        })),
+      );
+      process.stderr.write(`seeded ${end}/${count}\n`);
     }
     backend.ledger.checkpointState();
   }
@@ -201,6 +216,7 @@ try {
       verification,
       witness: backend.witness.read(),
       samples,
+      seedBatchSize: mode === "seed" ? SEED_BATCH_SIZE : null,
       verificationCounts,
       elapsedMs: performance.now() - startedAt,
       maxRssKiB: process.resourceUsage().maxRSS,
