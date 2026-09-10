@@ -14550,8 +14550,9 @@ export async function* agentLoop(messages, options) {
     const newProgressIntervention =
       progressIntervention &&
       progressIntervention.key !== lastTaskProgressIntervention;
-    const taskRecoveryTurn =
-      newProgressIntervention && progressIntervention.recovery;
+    // Warnings are deduplicated, recovery is not. A search or failed command
+    // must not restore broad discovery on the very next model request.
+    const taskRecoveryTurn = progressIntervention?.recovery === true;
     if (newProgressIntervention) {
       lastTaskProgressIntervention = progressIntervention.key;
       // Reuse the existing warning event so CLI, REPL and IDE clients all show
@@ -14561,7 +14562,7 @@ export async function* agentLoop(messages, options) {
         message:
           progressIntervention.message +
           (taskRecoveryTurn
-            ? " Broad reading and new delegation are paused for one model turn."
+            ? " Broad reading, web discovery and new delegation remain paused until an actionable tool outcome."
             : ""),
       };
     }
@@ -14658,7 +14659,7 @@ export async function* agentLoop(messages, options) {
           content:
             progressIntervention.guidance +
             (taskRecoveryTurn
-              ? " One-turn recovery: read_file, list_dir, todo_write, spawn_sub_agent and tool_search are omitted for this request only."
+              ? ` Recovery remains active: ${TASK_RECOVERY_TOOLS.join(", ")} are omitted until an actionable tool outcome. Focused search, authorized changes and verification remain available.`
               : ""),
         },
       ];

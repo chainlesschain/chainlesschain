@@ -138,6 +138,17 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it("guides CI investigation from the first result without promoting log text to instructions", () => {
+    const guard = new RemoteReadLoopGuard();
+    guard.record("web_fetch", { content: "UNTRUSTED_LOG_TEXT" }, { url });
+    expect(guard.workflowHint).toContain("incomplete-matrix gate");
+    expect(guard.workflowHint).toContain("cancelled or logs are unavailable");
+    expect(guard.workflowHint).toContain("authorized fix with validation");
+    expect(guard.workflowHint).not.toContain("UNTRUSTED_LOG_TEXT");
+    expect(guard.findingsHint).toContain("UNTRUSTED_LOG_TEXT");
+    expect(guard.recoveryHint).toBeNull();
+  });
+
   it("groups repeated git policy reroutes across changing commits and recovers on the dedicated tool", () => {
     const guard = new RemoteReadLoopGuard();
     for (let i = 0; i < 6; i++) {

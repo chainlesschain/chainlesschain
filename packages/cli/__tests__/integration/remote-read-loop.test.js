@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentLoop } from "../../src/runtime/agent-core.js";
@@ -65,6 +65,154 @@ describe("remote read recovery in the agent runtime", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it("keeps recovery through web/file/status switching and command failures until a real change", async () => {
+    for (let i = 0; i < 8; i++)
+      writeFileSync(join(cwd, `part-${i}.js`), `export const part = ${i};`);
+    webFetch.mockResolvedValue({ content: "Sign in to view detailed logs" });
+    let inspections = 0;
+    const inspect = (command) => {
+      if (command.includes("--log")) {
+        const error = new Error("Logs unavailable for cancelled job");
+        error.status = 1;
+        error.stderr = "Logs unavailable for cancelled job";
+        throw error;
+      }
+      return `Run ${++inspections}: matrix jobs cancelled`;
+    };
+    const originalExec = broker.execSync;
+    const originalSpawn = broker.spawnSync;
+    vi.spyOn(broker, "execSync").mockImplementation(function (value, ...args) {
+      if (value.includes("gh run view")) return inspect(value);
+      return originalExec.call(this, value, ...args);
+    });
+    vi.spyOn(broker, "spawnSync").mockImplementation(
+      function (file, args, options) {
+        const command = args.find((value) => value.includes("gh run view"));
+        if (!command) return originalSpawn.call(this, file, args, options);
+        try {
+          return { status: 0, stdout: inspect(command), stderr: "" };
+        } catch (error) {
+          return { status: 1, stdout: "", stderr: error.stderr };
+        }
+      },
+    );
+    let calls = 0;
+    const events = await drain(
+      agentLoop(
+        [{ role: "user", content: "Fix the CI failure in result.js" }],
+        {
+          ...base,
+          chatFn: async (messages, options) => {
+            expect(++calls).toBeLessThanOrEqual(30);
+            if (calls <= 24) {
+              const index = Math.floor((calls - 1) / 3);
+              if (calls % 3 === 1)
+                return tool("read_file", { path: `part-${index}.js` }, calls);
+              if (calls % 3 === 2)
+                return tool("web_fetch", { url: `${url}${index}` }, calls);
+              return tool(
+                "run_shell",
+                {
+                  command: "gh run view 123 --repo owner/repo",
+                },
+                calls,
+              );
+            }
+            if (calls <= 28) {
+              expect(JSON.stringify(messages)).toContain(
+                "matrix jobs cancelled",
+              );
+              if (calls >= 27)
+                expect(JSON.stringify(messages)).toContain(
+                  "Logs unavailable for cancelled job",
+                );
+              expect(options.disabledTools).toEqual(
+                expect.arrayContaining([
+                  "read_file",
+                  "list_dir",
+                  "web_fetch",
+                  "web_search",
+                  "todo_write",
+                  "spawn_sub_agent",
+                  "tool_search",
+                ]),
+              );
+              for (const name of [
+                "search_files",
+                "write_file",
+                "edit_file",
+                "run_shell",
+              ])
+                expect(options.disabledTools).not.toContain(name);
+              expect(
+                messages.some(
+                  (message) =>
+                    message.role === "system" &&
+                    message.content.includes("Recovery remains active"),
+                ),
+              ).toBe(true);
+              if (calls === 25)
+                return tool(
+                  "search_files",
+                  { path: ".", pattern: "part" },
+                  calls,
+                );
+              if (calls === 26) return tool("run_shell", { command }, calls);
+              if (calls === 27)
+                return tool(
+                  "run_shell",
+                  {
+                    command: "gh run view 123 --repo owner/repo --json jobs",
+                  },
+                  calls,
+                );
+              return tool(
+                "write_file",
+                {
+                  path: "result.js",
+                  content: "export const fixed = true;",
+                },
+                calls,
+              );
+            }
+            expect(options.disabledTools || []).not.toContain("read_file");
+            expect(options.disabledTools || []).not.toContain("web_fetch");
+            if (calls === 29)
+              return tool("read_file", { path: "result.js" }, calls);
+            return done();
+          },
+        },
+      ),
+    );
+    expect(inspections).toBe(9);
+    expect(events.some((event) => event.type === "compaction")).toBe(true);
+    expect(
+      events.filter(
+        (event) =>
+          event.type === "iteration-warning" &&
+          event.message.startsWith("Task progress:"),
+      ),
+    ).toHaveLength(2);
+    expect(
+      events.find(
+        (event) =>
+          event.type === "tool-result" &&
+          event.tool === "run_shell" &&
+          event.result.error,
+      ),
+    ).toBeTruthy();
+    expect(
+      events
+        .filter(
+          (event) => event.type === "tool-result" && event.tool === "read_file",
+        )
+        .at(-1).result.content,
+    ).toContain("fixed = true");
+    expect(readFileSync(join(cwd, "result.js"), "utf8")).toBe(
+      "export const fixed = true;",
+    );
   });
 
   it("stops failed downloads despite planning and repeated history compaction", async () => {

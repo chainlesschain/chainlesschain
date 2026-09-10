@@ -162,7 +162,8 @@ describe("IDE roadmap formal safety gate", () => {
     expect(workflow).toContain('IDE_ROADMAP_SAFETY_RUNS: "100"');
     expect(workflow).toContain("ref: ${{ env.IDE_ROADMAP_SAFETY_COMMIT }}");
     expect(workflow).toContain("--verify-evidence-dir");
-    expect(workflow).toContain("if: always()");
+    expect(workflow).toContain("if: ${{ always() && !cancelled() }}");
+    expect(workflow).toContain("needs.safety-matrix.result != 'success'");
     expect(workflow).toContain("if-no-files-found: error");
   });
 });

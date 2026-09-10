@@ -213,7 +213,11 @@ jobs:
 
   aggregate:
     name: P0-S formal safety gate
-    if: always()
+    # Preserve fail-closed aggregation for completed platform failures, but do
+    # not turn an operator/workflow cancellation into a new red gate. This is
+    # the same cancellation boundary used by the repository's other aggregate
+    # workflows.
+    if: ${{ always() && !cancelled() }}
     needs: safety-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -398,6 +398,16 @@ export class RemoteReadLoopGuard {
 
   get workflowHint() {
     const active = this.targets.get(this.activeKey);
+    if (active?.github && !active.pullRequest) {
+      return (
+        "GitHub Actions investigation: use the retained run/job facts to identify the first failed step and its relevant local implementation. " +
+        "An aggregate or incomplete-matrix gate can be a downstream symptom; inspect the dependency jobs' conclusions before assuming that the gate itself is wrong. " +
+        "When a job is cancelled or logs are unavailable, record that fact and the command error; do not cycle through the same web page and log downloads. " +
+        "Use one focused run/job metadata query to resolve the missing status or cancellation reason, then inspect the relevant workflow and make the justified, authorized fix with validation. " +
+        "If available evidence cannot establish a fix, report the specific missing evidence and what was verified. Do not disable a release or safety gate just to make CI pass. " +
+        "For a research/review request, synthesize the findings without unsolicited edits; for monitoring, use status queries instead of repeated logs."
+      );
+    }
     if (
       !active?.pullRequest &&
       !(
