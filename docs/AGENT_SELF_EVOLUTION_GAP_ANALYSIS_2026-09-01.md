@@ -2100,16 +2100,28 @@ cc evolution deployment enable
 
 该批次增强 EVO-P1-6 的统一部署接线和 EVO-P2-2 的 Workbench 可配置性，但不改变路线状态：仓库仍不生成生产 descriptor、信任根、KMS/HSM 密钥、真人身份、grader、release writer 或 witness，也没有完成真实租户、独立故障域和灾备验收。新增 profile 也未持久化“历史最高 revision”或 descriptor/trust-root 撤销状态；当前只要求 revision 为正整数，因此有本机配置权限的管理员仍可重新选择一份旧但签名有效的 descriptor。生产部署若要求 anti-rollback，仍须由集中策略或后续 high-water mark/CAS + revocation 机制拒绝降级。可配置不等于已配置，可验证宿主不等于生产 authority，`autoPromotion` 继续 `HOLD`。
 
-## 14. 全量任务完成情况（截至 2026-09-10）
+### 13.26 Evolution Ledger 10k 容量、冷重开与 v2 恢复闭环（2026-09-11）
+
+提交 `df93a5aa17b0455cdab5578cd454909707ab3ddc` 针对 §1.1 已由三平台 formal run `34310624758` 复现的约 6,200 条/60 分钟 seed 失败继续修复，而不是提高 deadline。现有文件账本新增最大 1,024 条的 `appendBatch()` / `appendDomainEventBatch()`：在首次文件变更前完成整批 schema、重复 ID、Wiki admission、artifact evidence、事件/anchor 签名准备；持久化阶段继续逐事件执行 witness CAS→HEAD replacement，保持既有“最多一个未 witness tail”恢复不变量；只有最终重新认证整批 HEAD、事件和 witness 后才返回全部 event receipt。后续条目无效时首条不会落盘，第二条 segment 后故障时调用返回 `COMMIT_UNKNOWN`，新实例只恢复已 witness 的前缀且清理孤儿。reliability seed 采用 256 条批次，把完整前缀认证从每事件一次摊薄到每批一次，但明确没有把普通可变文件系统标成 immutable authority。
+
+第一次本地 10k 复跑已完成全部 seed，却在全新进程 snapshot 认证阶段超过原定 60 秒 verify 门，因此未记为通过。根因是冷重开虽不重复验证 10,000 个 domain-event 签名，仍对 10,001 个 anchor 和 10,000 个 segment 分别重复目录边界与 canonical JSON 工作。最终实现为整段扫描持有一次受信父目录身份，逐文件继续执行 lstat/open/fstat、single-link/non-symlink、长度、读取前后身份与 exact signed canonical bytes 校验；这不是跳过历史完整性检查。1,000 条对照将 fresh-process reopen 从 6,552 ms 降至 3,303 ms，旧 segment 和 witness 篡改仍失败关闭。
+
+同一最终工作树的本地 Windows test-only 10,000-event 运行随后完整通过：seed `2,007,299.922 ms`（约 33.45 分钟，低于 60 分钟门）、全新 PID reopen `29,910.799 ms`（低于 60 秒门）、`maxRSS=359,356 KiB`（低于 512 MiB 门），首/中/尾读取正确，最早 segment 追加破坏与 witness 签名破坏均拒绝。配套 100 轮真实子进程强退/恢复在六个 fault point 分别覆盖 16～17 次，`elapsedMs=145,245.105`、`falseSuccessReceipts=0`。这些结果只证明本机测试 authority；正式结论仍必须由 exact commit 的 Linux/Windows/macOS formal artifact aggregate 给出。
+
+v2 侧新增 concrete local manifest-head backend，使用严格跨进程锁、expected-head CAS、owner-only `wx` staging、文件/目录 fsync、atomic rename、exact durable readback，并拒绝 hard-link、symlink 和畸形状态；descriptor 固定 `localOnly=true`，不冒充生产 WORM。manifest backend 同时修复原有“返回 `COMMIT_UNKNOWN` 后重开仍只能看到不一致 catalog/head/witness”的缺口：已签名 append-only catalog manifest 作为 durable prepare，重开先完整验证 immutable segment chain，再确定性派生缺失 head 并续做 head CAS/witness checkpoint。专项覆盖 catalog/head 应答丢失及暂时 witness conflict，均可恢复为一致 checkpoint。
+
+因此 EVO-P0-5 仍保持“部分完成”：仓库内 10k Windows 诊断和 100-round campaign 已通过，但 GitHub 三平台 exact-SHA formal 尚未产生；v2 尚缺真实 event payload live append、单次 manifest/witness finalize 的批处理、v1→v2 journaled migration；250,000-event、磁盘/耗时/checkpoint 曲线、真实磁盘写满/物理断电、独立 witness 故障域和生产 KMS/HSM/PKI 仍是发布门。详见 [`EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md`](./design/EVOLUTION_LEDGER_CAPACITY_REMEDIATION_2026-09-09.md)。
+
+## 14. 全量任务完成情况（截至 2026-09-11）
 
 状态口径：`✅ 已完成` 表示该编号自己的代码、确定性验证及应有生产发布边界已经全部关闭；`🟢 仓库闭环` 表示仓库实现、接线、确定性验证和可在仓库内完成的边界已经关闭，外部 authority、目标环境部署、真实流量或独立故障域验收仍单独保留；`🟡 部分完成` 表示仍有未闭合或未验证的仓库实现、接线或恢复路径，不能仅因存在外部阻碍便升级；`⏳ 待完成` 表示目前主要只有依赖、设计或已有系统能力可复用，关键目标尚未形成可验收纵切。该口径落实用户“外部阻碍可先做到仓库闭环”的要求；仓库闭环不等于生产完成，测试 authority 不等于生产凭据。
 
-总计 20 项：**6 项已完成、8 项仓库闭环、6 项部分完成、0 项待完成**。本统计直接对应下方 20 行最终状态；9 月 8～10 日新增的模型入口、Workbench/IDE、Windows 文件身份、witness 恢复与 deployment profile 证据没有改变生产验收边界，因此不未经核验批量升级状态。EVO-P1-6 已完成独立 `cc chat`、Desktop 默认 deployment loader、既有 Agent/App Server/legacy WebSocket 入口及持久受治理配置面的仓库闭环；EVO-P0-4、EVO-P0-5 仍因全仓最终入口、目标环境 authority、容量/物理故障和独立故障域验收保持部分完成，EVO-P2-2 仍为仓库闭环。此前截至 9 月 6 日的逐批台账共记录 **179 个基础批次**；9 月 7～10 日增量以本节前述提交和 §1.1 的证据链为准，不把 merge/checkpoint/release commit 机械换算成新的“基础批次”总数。这两个计数维度不能混用：基础批次数量不代表路线项完成数量。
+总计 20 项：**6 项已完成、8 项仓库闭环、6 项部分完成、0 项待完成**。本统计直接对应下方 20 行最终状态；9 月 8～11 日新增的模型入口、Workbench/IDE、Windows 文件身份、witness/v2 恢复、deployment profile 与本地 10k 证据没有改变生产验收边界，因此不未经核验批量升级状态。EVO-P1-6 已完成独立 `cc chat`、Desktop 默认 deployment loader、既有 Agent/App Server/legacy WebSocket 入口及持久受治理配置面的仓库闭环；EVO-P0-4、EVO-P0-5 仍因全仓最终入口、目标环境 authority、三平台/250k 容量、物理故障和独立故障域验收保持部分完成，EVO-P2-2 仍为仓库闭环。此前截至 9 月 6 日的逐批台账共记录 **179 个基础批次**；9 月 7～11 日增量以本节前述提交和 §1.1 的证据链为准，不把 merge/checkpoint/release commit 机械换算成新的“基础批次”总数。这两个计数维度不能混用：基础批次数量不代表路线项完成数量。
 
 最新增量对总表的映射如下：
 
 - **EVO-P0-4：状态不变，证据增强。** 新增 direct stream、QuickAsk、intent、legacy WebSocket chat、Hub ask/repl/skill/resolver 与 `cc ui` 的 authenticated per-invocation 接线；剩余是仓库级最终入口审计、Desktop IPC/独立 SDK worker 等未覆盖路径，以及生产 KMS/HSM/PKI/policy/witness 和真实流量校准。
-- **EVO-P0-5：状态不变，故障恢复证据增强。** 新增 segmented witness、Windows 句柄绑定与 100 轮六故障点进程恢复；250,000-event、物理断电/磁盘写满、生产签名 authority 和独立 witness 故障域仍是发布门。
+- **EVO-P0-5：状态不变，仓库内容量与恢复证据增强。** 新增 bounded append batch、共享目录身份的 exact snapshot 冷重开、local manifest-head CAS 与 v2 catalog→head→witness 自动恢复；本地 Windows 10,000-event 和 100 轮六故障点均通过。exact-SHA 三平台 formal aggregate、250,000-event、物理断电/磁盘写满、生产签名 authority 和独立 witness 故障域仍是发布门。
 - **EVO-P1-6：维持仓库闭环，部署入口增强。** 签名 deployment descriptor/trust root 现在可在验证后原子持久化、查询和启停，环境覆盖优先；CLI `0.166.43` 已交付该配置面，但生产 authority、独立 witness 和目标环境运维仍归 EVO-OPT-7。
 - **EVO-P2-2：维持仓库闭环。** Workbench 连接恢复、最多 10,000 项完整分页/投影校验、模型配置原子保存、原生宿主验证与 CLI/`cc ui`/VS Code/JetBrains 共享部署配置已经合入，并随 CLI `0.166.43`、Open VSX `0.37.93`、JetBrains `0.4.120` 发布链交付；未配置可信 deployment descriptor/trust root 时公开 CLI 明确失败关闭，真实部署仍归 EVO-OPT-7。
 

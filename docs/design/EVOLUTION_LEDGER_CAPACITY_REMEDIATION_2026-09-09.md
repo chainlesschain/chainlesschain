@@ -28,10 +28,12 @@ boundary. It accepts only branded manifest authorities and exact scoped heads;
 after a compare-and-set acknowledgement it rereads and re-verifies the signed
 head before reporting commit. A lost, malformed, substituted, asynchronous, or
 unreadable acknowledgement is `COMMIT_UNKNOWN`, requiring reopen rather than a
-blind retry. The combined contract tests now cover 22 cases. This remains an
-interface, not a durability claim: the v2 file/WORM head-store implementation,
-witness checkpoint publication, crash-point tests, and v1 migration are still
-required.
+blind retry. `evolution-ledger-file-manifest-head-store.js` now supplies the
+concrete local implementation: strict cross-process locking, expected-head CAS,
+owner-only staging, file and directory fsync, atomic rename, exact durable
+readback, hard-link/symlink rejection, and explicit before/after-rename fault
+tests. It is marked `localOnly`; the production WORM/object-lock head authority
+and v1 migration are still required.
 
 The v2 checkpoint bridge is now implemented in
 `evolution-ledger-manifest-witness-adapter.js`. It verifies the exact signed
@@ -54,10 +56,14 @@ its explicit `list()` operation validates full manifest linkage for audit. It
 returns a normal segment receipt only after all confirmations. A stale
 precondition returns an explicit conflict before retention; after a directory
 CAS begins, any failed or ambiguous later phase is `COMMIT_UNKNOWN` and
-requires reopening instead of retrying. This is still a sealed-segment backend,
-not live event append, batching, a concrete durable directory/head deployment,
-migration, or an assertion that its in-memory test directory/head store and
-file witness are independent production fault domains.
+requires reopening instead of retrying. Reopen now treats the authenticated,
+append-only catalog manifest as a durable prepare record: it verifies the full
+immutable segment chain, deterministically derives the missing signed head, and
+resumes head CAS and witness checkpoint. Tests cover lost catalog and head
+acknowledgements plus a transient witness conflict. This is still a sealed-
+digest-segment backend, not live v2 event storage, v1 migration, or an assertion
+that its local file catalog/head and file witness are independent production
+fault domains.
 
 `evolution-ledger-file-manifest-catalog.js` now supplies a concrete local
 directory backend for the catalog contract. It guards compare-and-append with
@@ -67,6 +73,28 @@ compares exact bytes on readback. This closes the local catalog durability test
 gap but is deliberately marked `localOnly`: a private mutable filesystem is
 not external immutable retention authority and cannot qualify the fast path or
 the production capacity claim.
+
+The current v1 file ledger now also exposes bounded `appendBatch()` and
+`appendDomainEventBatch()` entry points with a maximum of 1,024 events. The
+complete input, Wiki admission, artifact evidence, event signatures, anchors,
+and duplicate set are prepared before the first filesystem mutation. Each
+event retains the existing witness-before-HEAD recovery invariant; no per-event
+receipt is released until the final authenticated batch readback succeeds. A
+later crash returns `COMMIT_UNKNOWN`, and reopen retains only the witnessed
+prefix. The reliability worker uses 256-event batches, reducing full-prefix
+authentication from once per event to once per batch without claiming that the
+mutable local backend is an immutable store.
+
+Cold snapshot verification still reads and hashes every mutable local anchor
+and segment. It now holds one authenticated directory identity for the complete
+scan and compares file bytes directly with the signed canonical snapshot bytes,
+instead of repeating all boundary and JSON parsing work per file. This preserves
+old-segment corruption detection. On 2026-09-11, a local Windows test-only run
+completed 10,000-event seed in 2,007,300 ms, reopened in a fresh PID in 29,911
+ms with 359,356 KiB peak RSS, and rejected both earliest-segment and witness
+corruption. The associated 100-round six-phase process-exit campaign passed in
+145,245 ms with zero false-success receipts. These are local diagnostics, not
+the required exact-SHA Linux/Windows/macOS aggregate.
 
 ## Observed baseline
 
@@ -78,11 +106,12 @@ one-hour seed deadline before the reopen, corruption, fault-campaign, or
 aggregate phases. Ubuntu reached 6,200 events and showed increasing time per
 100-event interval.
 
-The present file backend deliberately lists, opens, hashes, and authenticates
-the complete immutable anchor and segment prefix before and after each append.
-It therefore provides prompt detection of an out-of-band mutation, but its
-per-append work grows with ledger length. Raising the deadline would hide this
-property and is not an acceptable remediation.
+Single-event append on the present mutable file backend still deliberately
+lists, opens, hashes, and authenticates the complete anchor and segment prefix.
+The bounded batch path amortizes that authentication while withholding receipts
+until final readback; snapshot reopen still reads and hashes every historical
+file. Raising either deadline remains an unacceptable substitute for these
+measured changes.
 
 ## Invariants that must not regress
 
@@ -148,8 +177,9 @@ silently use the fast path.
    no in-place rewrite.
 3. Define batch admission separately from normal append. A batch has one
    prepare/finalize authority and exposes per-event receipts only after the
-   manifest and witness commit. Test all crash points and duplicate/idempotent
-   re-entry.
+   manifest and witness commit. The v1 compatibility batch and its crash/
+   duplicate tests are implemented; the single-finalize v2 event batch and
+   idempotent migration re-entry remain.
 4. Add capacity evidence that records elapsed time, peak RSS, disk bytes,
    checkpoint latency, and event counts even on failure. Run 10,000 first, then
    250,000 only on a provisioned target with explicit resource bounds.
@@ -169,3 +199,9 @@ silently use the fast path.
 - The 10,000-event matrix completes under a predeclared bound with a complete
   three-platform aggregate. Its result is still test-only unless the deployed
   immutable-store authority is part of the tested configuration.
+
+The local Windows run satisfies the implementation-side timing regression, and
+the 100-round local campaign is green. The final criterion remains open until
+GitHub Actions produces a complete exact-commit three-platform formal aggregate;
+250,000 events, disk-full/power-loss, independent witness fault domains, and
+production KMS/HSM/PKI remain separate target-environment gates.

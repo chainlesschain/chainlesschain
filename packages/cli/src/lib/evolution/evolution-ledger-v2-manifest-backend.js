@@ -238,7 +238,9 @@ function coherentCheckpoint({ head, manifest, witness }) {
 }
 
 function coherentSnapshot(catalog, headStore, witnessAdapter) {
-  return coherentCheckpoint(checkpointParts(catalog, headStore, witnessAdapter));
+  return coherentCheckpoint(
+    checkpointParts(catalog, headStore, witnessAdapter),
+  );
 }
 
 function conflict(snapshot) {

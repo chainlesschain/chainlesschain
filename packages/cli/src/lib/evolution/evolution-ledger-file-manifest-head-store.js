@@ -64,11 +64,7 @@ function syncDirectory(fsImpl, directory) {
 function headDigest(value) {
   if (value === null) return null;
   const field = Object.getOwnPropertyDescriptor(value, "headDigest");
-  if (
-    !field ||
-    !("value" in field) ||
-    typeof field.value !== "string"
-  ) {
+  if (!field || !("value" in field) || typeof field.value !== "string") {
     throw new Error("manifest head record has no own headDigest");
   }
   return field.value;

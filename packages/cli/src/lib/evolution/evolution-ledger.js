@@ -4658,7 +4658,8 @@ export class EvolutionLedger {
         const witnessedStates = [];
         let currentWitness = current.witness;
         for (const entry of planned) {
-          const { anchor, anchorBytes, event, eventBytes, segmentDigest } = entry;
+          const { anchor, anchorBytes, event, eventBytes, segmentDigest } =
+            entry;
           const segmentPath = path.join(
             this.#paths.segmentDir,
             segmentFileName(event.sequence, segmentDigest),
