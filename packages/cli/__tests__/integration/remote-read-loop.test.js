@@ -399,6 +399,130 @@ describe("remote read recovery in the agent runtime", () => {
     expect(webFetch).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps an explicit PR-close request through compaction and executes closure instead of re-reviewing", async () => {
+    const originalExec = broker.execSync;
+    const originalSpawn = broker.spawnSync;
+    const close = "gh pr close 331 --repo owner/repo";
+    const state =
+      "gh pr view 331 --repo owner/repo --json number,state,closedAt";
+    const executed = [];
+    const resultFor = (value) => {
+      executed.push(value);
+      if (value === close) return "✓ Closed pull request owner/repo#331";
+      if (value === state)
+        return '{"number":331,"state":"CLOSED","closedAt":"2026-09-10T00:00:00Z"}';
+      return null;
+    };
+    vi.spyOn(broker, "execSync").mockImplementation(function (value, ...args) {
+      const result = resultFor(value);
+      return result ?? originalExec.call(this, value, ...args);
+    });
+    vi.spyOn(broker, "spawnSync").mockImplementation(
+      function (file, args, options) {
+        const value = args.find((arg) => arg === close || arg === state);
+        const result = value && resultFor(value);
+        return result == null
+          ? originalSpawn.call(this, file, args, options)
+          : { status: 0, stdout: result, stderr: "" };
+      },
+    );
+    let calls = 0;
+    const events = await drain(
+      agentLoop(
+        [
+          {
+            role: "user",
+            content: "请关闭这些 PR，候选列表是 #331；不要再评审是否应该关闭。",
+          },
+        ],
+        {
+          ...base,
+          chatFn: async (context) => {
+            calls++;
+            expect(
+              context.some(
+                (message) =>
+                  message.role === "system" &&
+                  message.content?.includes("User-authorized PR closure"),
+              ),
+            ).toBe(true);
+            if (calls === 1)
+              return tool("run_shell", { command: close }, calls);
+            if (calls === 2) {
+              // The test compactor removes old tool context; the directive is
+              // injected again from the original user authorization.
+              expect(JSON.stringify(context)).toContain(
+                "do not keep gathering diffs",
+              );
+              return tool("run_shell", { command: state }, calls);
+            }
+            expect(calls).toBe(3);
+            expect(JSON.stringify(context)).toContain("CLOSED");
+            return { message: mockTextMessage("PR #331 is closed.") };
+          },
+        },
+      ),
+    );
+    expect(executed).toEqual([close, state]);
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toContain("closed");
+  });
+
+  it("blocks PR comparison loops until an explicitly requested close is attempted", async () => {
+    const originalExec = broker.execSync;
+    const originalSpawn = broker.spawnSync;
+    const compare = "gh api repos/owner/repo/compare/main...feature";
+    const close = "gh pr close 331 --repo owner/repo";
+    const state =
+      "gh pr view 331 --repo owner/repo --json number,state,closedAt";
+    const executed = [];
+    const resultFor = (value) => {
+      executed.push(value);
+      if (value === compare) return '{"ahead_by":1}';
+      if (value === close) return "✓ Closed pull request owner/repo#331";
+      if (value === state) return '{"number":331,"state":"CLOSED"}';
+      return null;
+    };
+    vi.spyOn(broker, "execSync").mockImplementation(function (value, ...args) {
+      const result = resultFor(value);
+      return result ?? originalExec.call(this, value, ...args);
+    });
+    vi.spyOn(broker, "spawnSync").mockImplementation(
+      function (file, args, options) {
+        const value = args.find((arg) => [compare, close, state].includes(arg));
+        const result = value && resultFor(value);
+        return result == null
+          ? originalSpawn.call(this, file, args, options)
+          : { status: 0, stdout: result, stderr: "" };
+      },
+    );
+    let calls = 0;
+    const events = await drain(
+      agentLoop([{ role: "user", content: "关闭 PR #331，不要再评审。" }], {
+        ...base,
+        chatFn: async (context) => {
+          calls++;
+          if (calls <= 3) return tool("run_shell", { command: compare }, calls);
+          if (calls === 4) {
+            expect(JSON.stringify(context)).toContain(
+              "CC_PR_CLOSE_ACTION_REQUIRED",
+            );
+            return tool("run_shell", { command: close }, calls);
+          }
+          if (calls === 5) return tool("run_shell", { command: state }, calls);
+          return { message: mockTextMessage("PR #331 is closed.") };
+        },
+      }),
+    );
+    expect(executed.filter((command) => command === compare)).toHaveLength(2);
+    expect(executed).toContain(close);
+    expect(executed).toContain(state);
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toContain("closed");
+  });
+
   it("bounds repeated policy rejections even when each attempt uses a different commit", async () => {
     let calls = 0;
     const events = [];

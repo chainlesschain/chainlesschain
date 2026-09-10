@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.41",
+      "cliVersions": ["0.166.41"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.41: execute explicit IDE PR-close requests",
+          "body": "- Preserve a user's explicit request to close targeted pull requests across\n  compaction and loop-recovery prompts; do not silently downgrade it to a\n  recommendation or merits review.\n- Use cmd-compatible direct `gh pr close` commands and a one-time `CLOSED`\n  state verification, while retaining the normal execution approval gate.\n- Block repeated `gh pr` and GitHub API pull/compare/release reads after two\n  prerequisite checks until the requested close is attempted, preventing\n  branch and release archaeology from becoming another IDE loop.\n- Add offline runtime and CI smoke coverage for an explicit close surviving\n  compaction and for compare-API loops being redirected to the close action."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.40",
       "cliVersions": ["0.166.40"],
       "date": null,

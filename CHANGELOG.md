@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.41: execute explicit IDE PR-close requests
+
+- Preserve a user's explicit request to close targeted pull requests across
+  compaction and loop-recovery prompts; do not silently downgrade it to a
+  recommendation or merits review.
+- Use cmd-compatible direct `gh pr close` commands and a one-time `CLOSED`
+  state verification, while retaining the normal execution approval gate.
+- Block repeated `gh pr` and GitHub API pull/compare/release reads after two
+  prerequisite checks until the requested close is attempted, preventing
+  branch and release archaeology from becoming another IDE loop.
+- Add offline runtime and CI smoke coverage for an explicit close surviving
+  compaction and for compare-API loops being redirected to the close action.
+
 ### Fixed - cc CLI 0.166.40: recover IDE pull-request investigations
 
 - Detect repeated PR lists, details and diffs across web, GitHub CLI and API

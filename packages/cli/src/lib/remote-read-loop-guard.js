@@ -409,7 +409,7 @@ export class RemoteReadLoopGuard {
     return (
       "PR investigation: retain a per-PR decision using number, state, head/base commit, evidence and next action. " +
       "After listing candidates, inspect only the missing facts for each; do not restart the full list after a tool error. " +
-      "If the user already authorized closing handled PRs, carry that authorization forward and close only those supported by evidence, then verify their state. " +
+      "If the user explicitly instructed you to close named or already-established candidate PRs, carry that already authorized action forward: resolve only target/state ambiguity, then close and verify them instead of substituting a merits review. Otherwise, when closing only handled PRs was authorized, use evidence to determine that narrower subset. " +
       "An old branch, draft flag or newer package version alone does not prove the change was merged or handled. " +
       "Use gh pr view <number> --repo <owner/repo> --json number,title,state,mergedAt,headRefOid,baseRefOid and a focused diff/commit comparison. " +
       "gh pr diff does not accept git-style -- <path> filtering; use gh api repos/<owner>/<repo>/pulls/<number>/files for per-file patches. " +
