@@ -1,6 +1,6 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.30`；更新：2026-09-07
+> 适用版本：Agent Platform CLI `0.166.43`；更新：2026-09-10
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
@@ -11,6 +11,230 @@
 `0.166.21` 在既有 candidate、目标矩阵 Eval、证据投影、可检测篡改的 append-only 账本、mutation authority、promotion/release、持久 `EvolutionRun`、Wiki/Memory 和 registry transition 之上，公开了 Evolution Workbench、摘要绑定的 Skill Retrieval，以及受治理的加密知识冲突审核与合并入口。候选比较、人工批准/拒绝、回滚请求、冲突分页和合并计划现在都有 CLI/App Server 投影。
 
 这些入口不把客户端变成 authority。Workbench 和知识审核需要部署方注入受信治理宿主；未接线时 CLI 明确失败闭合。批准只提交与确切 revision、digest 和 dependency lock 绑定的决定，发布仍由 mutation authority、CAS、账本和策略共同裁决。生产 KMS/PKI、identity、policy、witness、scheduler 与真实 grader 仍由目标部署提供，当前版本不宣称会无人值守地升级 active Skill。
+
+## 如何开启：没有一个“自动进化总开关”
+
+**CLI 默认不开启受治理的 Skill 自进化。** 安装包只默认注册命令入口；没有受信宿主时，候选生成、Workbench、知识合并和发布能力保持 unavailable。普通用户不能只在设置页打开一个开关就获得候选生成、审核和发布权限。请先区分下面三件事：
+
+| 能力                  | 如何开启                                                                                | 开启后会发生什么                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 学习数据与 Skill 检索 | 安装 CLI 后直接使用 `cc learning stats`、`cc learning trajectories`、`cc skill search`  | 读取已有学习记录或 Skill 索引；不会创建或激活 Skill                                                                                      |
+| CLI 治理链            | 管理员同时配置签名 deployment descriptor 和 Ed25519 trust root                          | CLI 可加载部署方提供的 candidate、Eval、Review、Wiki、Memory、release 等 authority；实际可用范围由 descriptor 的命令白名单和宿主实现决定 |
+| Desktop 演化工作台    | 在 CLI 治理链已配置的基础上，启动 Desktop 前设置 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` | 只打开 Desktop 到 `cc serve --app-server` 的固定能力通道；它本身不授予审核身份或 active 写权限                                           |
+
+因此，`CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 是 **Desktop 通道开关**，不是 **Skill 自动进化开关**。只设置这个变量时，Desktop 中可以看到“演化工作台”入口，但服务端仍会报告 `Evolution Workbench is not configured` 或 `a trusted deployment host is required`。反过来，只配置治理宿主而不打开 Desktop pilot，CLI 可以使用，Desktop 页面不能连接该能力。
+
+当前没有生产用的“自动晋升 active”开关。automatic active promotion 继续保持 `HOLD`；候选通过 Eval 和人工批准后，仍要经过部署方的 mutation authority、Pilot/Canary 策略、CAS 和 release transaction 才可能进入 active。
+
+### 管理员开启 CLI 治理链
+
+仓库和公开 npm 包不会生成生产密钥、审核身份或 grader。管理员需要先部署一个导出 `createChainlessChainCommandDependencies()` 的单文件 ESM 宿主模块，再生成并签名 `chainlesschain.evolution-deployment-descriptor/v1` 描述文件。描述文件必须绑定模块绝对路径及 SHA-256、trust-root SHA-256、单调 revision，并按需要允许 `learning`、`evolution`、`agent`、`ask`、`chat`、`compact`、`complete`、`cowork`、`hub`、`marketplace`、`orchestrate`、`serve`、`stream`、`ui`、`desktop` 等命令。
+
+拿到管理员提供的签名描述符和 Ed25519 公钥后，推荐使用持久化配置，不必每次设置环境变量：
+
+```bash
+cc evolution deployment configure \
+  --descriptor /managed/chainlesschain/evolution-deployment.json \
+  --trust-root /managed/chainlesschain/evolution-deployment-ed25519-public.pem
+cc evolution deployment status
+```
+
+`configure` 会先校验 descriptor schema、签名、信任根摘要、模块摘要和绝对路径，全部通过才原子写入 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json`（默认 `~/.chainlesschain/evolution/deployment-profile.json`，owner-only）。之后所有 `cc` 命令自动读取该配置。可用 `cc evolution deployment disable` 暂停、`enable` 恢复；这两个命令只控制本机部署宿主，不会开启自动晋升。若同时设置环境变量，环境变量优先于持久配置。
+
+也可以从图形界面完成同一操作：
+
+- VS Code/VSCodium：命令面板运行 **ChainlessChain: Configure Skill Evolution**。
+- JetBrains：**Settings → Tools → ChainlessChain IDE → Governed Skill evolution**，或 **Tools → ChainlessChain: Configure Skill Evolution**。
+- `cc ui`：左侧 **配置 → Skill 自进化**。浏览器不能替服务器选择文件，需要填写运行 `cc ui` 那台机器上的绝对路径；非回环监听必须给 `cc ui` 配置 `--token` 才允许修改。
+
+如需由系统服务或集中配置强制覆盖本机 profile，可在启动 CLI 或 Desktop 的同一个进程环境中同时设置下面两个绝对路径。只设置其中一个会失败关闭。
+
+Linux/macOS：
+
+```bash
+export CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR=/managed/chainlesschain/evolution-deployment.json
+export CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT=/managed/chainlesschain/evolution-deployment-ed25519-public.pem
+
+cc evolution workbench list --limit 1
+```
+
+Windows PowerShell：
+
+```powershell
+$env:CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR = "C:\ProgramData\ChainlessChain\evolution-deployment.json"
+$env:CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT = "C:\ProgramData\ChainlessChain\evolution-deployment-ed25519-public.pem"
+
+cc evolution workbench list --limit 1
+```
+
+命令返回一个有效投影（即使候选列表为空）表示 Workbench 宿主已加载。出现 `a trusted deployment host is required` 表示宿主没有加载；出现 signature、digest、revision、authority 或 ledger 错误时不要绕过校验，应由管理员修复部署。
+
+### 开启 Desktop 页面
+
+Desktop 还需要在应用启动前显式打开 App Server pilot，并从设置这些变量的同一个终端启动应用：
+
+```powershell
+$env:CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR = "C:\ProgramData\ChainlessChain\evolution-deployment.json"
+$env:CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT = "C:\ProgramData\ChainlessChain\evolution-deployment-ed25519-public.pem"
+$env:CHAINLESSCHAIN_CC_APP_SERVER_PILOT = "1"
+npm run dev:desktop-vue
+```
+
+进入“AI 对话”，打开 Agent 模式后，工具栏会显示“演化工作台”“知识冲突”和“知识撤销”。Desktop 启动后再修改环境变量不会生效，需要完全退出并重新启动。生产 descriptor 若要同时支持 Desktop 自身和它启动的 App Server 子进程，命令白名单至少应包含部署实际使用的 `desktop` 与 `serve`。
+
+当前 Desktop 设置页没有等价的生产开关；不要把测试 profile、fixture 密钥或本地 Workbench 演示脚本当作生产开启方式。
+
+## IDE 插件如何使用 Skill 自进化
+
+IDE 插件是 Workbench 的审阅客户端和 Skill Retrieval 的展示客户端，不是候选生成器或发布 authority。安装插件后不会自动开始学习、修改 Skill 或晋升 active。标准使用顺序是：先由 CLI/Agent/调度器产生受治理候选，再在 IDE Workbench 中查看和审核，最后由部署宿主执行 Pilot/Promotion。
+
+### VS Code / VSCodium
+
+VS Code 扩展提供两种互斥的 Workbench 连接方式。
+
+首次使用先从命令面板运行 **ChainlessChain: Configure Skill Evolution**，选择管理员提供的 descriptor 与 trust root，然后点击“校验、保存并启用”。面板显示“签名校验：已通过”后，这份配置会由 CLI 持久化并与终端、JetBrains 和 `cc ui` 共享；无需让 VS Code 进程继承两个环境变量。下面的独立 Workbench profile 仍适合需要隔离 state directory、身份或环境的生产审阅席位。
+
+#### 方式一：独立 governed Workbench profile（推荐）
+
+由管理员提供一个 `chainlesschain.evolution-workbench-profile/v1` JSON，并在 VS Code 设置中把 `chainlesschain.evolution.workbench.profile` 指向该文件的绝对路径。也可以先运行命令面板中的 **ChainlessChain: Evolution Workbench**，在“宿主未配置”的提示中选择“配置演化工作台”，再选择该 JSON。
+
+```json
+{
+  "schema": "chainlesschain.evolution-workbench-profile/v1",
+  "mode": "governed",
+  "cliPath": "C:\\Users\\example\\AppData\\Roaming\\npm\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+  "cwd": "C:\\work\\project",
+  "stateDirectory": "C:\\ProgramData\\ChainlessChain\\app-server-state",
+  "env": {
+    "CHAINLESSCHAIN_HOME": "C:\\ProgramData\\ChainlessChain\\cli-home",
+    "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME": "C:\\ProgramData\\ChainlessChain\\security-anchor",
+    "CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR": "C:\\ProgramData\\ChainlessChain\\evolution-deployment.json",
+    "CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT": "C:\\ProgramData\\ChainlessChain\\evolution-deployment-ed25519-public.pem"
+  }
+}
+```
+
+profile 中所有路径都必须是绝对路径。该模式为 Workbench 启动独立的 `cc serve --app-server` 进程，profile 内的部署环境不会注入普通 Chat、集成终端或其他 App Server 功能。`mode: "local-test"` 只用于源码测试，页面会持续显示测试标识，不能用于生产审核。
+
+全局 npm 安装的 CLI 入口可在 PowerShell 中用 `(Join-Path (npm root -g) "chainlesschain\bin\chainlesschain.js")` 定位；应把计算后的真实绝对路径写入 profile，不能把这段命令文本直接写进 JSON。
+
+#### 方式二：复用扩展的 App Server pilot
+
+不设置 Workbench profile，改为在 VS Code 设置 JSON 中启用：
+
+```json
+{
+  "chainlesschain.appServer.pilot.enabled": true
+}
+```
+
+随后确保启动 VS Code 的进程环境已经包含 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，完全退出并重启编辑器。这个设置只打开 App Server 通道；如果 `serve` 不在 descriptor 白名单中，或宿主没有提供 `evolutionWorkbenchHost`，Workbench 仍会显示不可用。
+
+#### VS Code 中的审核操作
+
+1. 先打开一个工作区，再从命令面板运行 **ChainlessChain: Evolution Workbench**。
+2. 首页查看连接模式、运行状态、候选数、当前 active、LKG、Pilot 和 reconciliation 状态。
+3. 选择候选查看 evidence、diff、目标运行时和实际 outcome；选择两个版本进行比较。
+4. `pending` 候选在宿主声明 `review` 方法时显示 Approve/Reject；填写原因并通过原生确认框。
+5. 已批准、非 active 的历史版本在宿主声明 `rollback` 且存在当前 active 时显示回滚操作。
+6. 操作后等待页面重新读取状态；响应超时不等于失败，不要在未刷新确认前重复提交。
+
+运行 **ChainlessChain: Skill Library (Browse & Search)** 可以查看 Skill 来源、版本、摘要及 Retrieval 证据。它只调用 `skill list/search`，不会创建候选、执行 Skill 或授予权限。
+
+### JetBrains IDE
+
+JetBrains 插件直接在当前项目目录执行固定的 `cc evolution workbench ... --json` 命令，并提供共享配置入口。打开 **Settings → Tools → ChainlessChain IDE**，点击 **Governed Skill evolution**，选择 descriptor 与 trust root，再点击“校验、保存并启用”；也可直接使用 **Tools → ChainlessChain: Configure Skill Evolution**。保存成功后不必重启 IDE。
+
+1. 在配置窗口确认 effective 为 enabled、signature 为 verified，并确保 descriptor 允许 `evolution`。
+2. 在 IDE 集成终端先运行 `cc evolution workbench list --limit 1`。返回有效投影后再打开图形界面；若这里失败，插件也不会绕过 CLI 校验。
+3. 从 **Tools → ChainlessChain：演化工作台** 打开候选表格。使用 Refresh、Evidence / Diff、Compare selected、Approve、Reject 和 Rollback to selected；变更操作都会再次要求原因和确认。
+4. 从 **Tools → ChainlessChain：检索技能** 打开 Skill Retrieval。该入口只展示 digest-bound 搜索结果，不执行或安装 Skill。
+
+JetBrains 没有 VS Code 的 `chainlesschain.appServer.pilot.enabled` 要求，因为 Workbench 当前走固定 CLI 子命令，而不是插件 App Server pilot。可视化配置只保存 descriptor 与公钥路径，不保存治理私钥、审核身份或 authority。
+
+### 从 IDE 产生一个待审核候选
+
+两个 IDE 的 Workbench 都不会主动运行合成器。需要在具备 `learning` authority 的环境中显式执行：
+
+```bash
+cc learning trajectories --limit 20
+cc learning synthesize --json
+```
+
+然后回到 Workbench 刷新。VS Code 如果只配置了独立 Workbench profile，其 profile 环境与集成终端隔离；此时应由管理员的学习作业产生候选，或在集成终端另行配置同一受信 descriptor/trust root。不要把 profile 中的测试身份或密钥复制到普通 Chat/终端。
+
+### IDE 常见状态
+
+| 提示或现象                                  | 含义                                            | 处理                                                                   |
+| ------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `requires the CC App Server pilot`          | VS Code 未配置独立 profile，且通用 pilot 关闭   | 配置 governed profile，或启用 `chainlesschain.appServer.pilot.enabled` |
+| `deployment has no governed Workbench host` | 通道已启动，但 CLI 部署没有 Workbench authority | 管理员检查 descriptor 白名单、签名和宿主导出                           |
+| 页面只有列表，没有批准/回滚按钮             | 宿主只声明了 `list`，或候选状态不允许该动作     | 以服务端 capability 为准，不要尝试绕过                                 |
+| `LOCAL TEST`                                | 当前使用测试 profile、测试身份和测试数据        | 仅用于开发验证，不作生产审核                                           |
+| `no candidate versions` / 空列表            | 宿主可用，但当前投影没有候选                    | 先通过受治理学习/同步/Release Train 产生候选，再刷新                   |
+| JetBrains 显示 unavailable 或 timed out     | 固定 CLI 命令失败、超时或投影在读取期间变化     | 在集成终端运行同一 `cc evolution workbench list` 诊断，修复后刷新      |
+
+## 什么时候会触发 Skill 自进化
+
+“触发”分为证据采集、候选生成和晋升三个不同阶段，不能把其中一个阶段的成功当成整条链已经完成：
+
+1. **证据采集**：受信 evolution composition 已注入时，Agent/Chat/Cowork/Graph 的真实运行可在模型调用、工具调用和最终结果边界写入 Raw、`EvolutionRun`、结构化 Memory 和 outcome receipt。未注入宿主时不会偷偷启用这条生产证据链。
+2. **Wiki 维护**：经过认证的 Agent 完成事件或 `SchedulerStore` 成功 occurrence 可以生成 Wiki maintenance trigger。失败、取消、来源不明或缺少 trigger authority 的运行不会成为可信 Wiki 更新。
+3. **候选生成**：普通 CLI 的明确入口是 `cc learning synthesize`；Desktop Skill Creator、Skill Sync、市场安装或部署方 Release Train 也可以显式提出候选。默认学习合成器只扫描“已完成、尚未合成、工具调用数不少于 5、outcome score 不低于 0.7”的 trajectory，并要求至少 2 条工具集合相似度不低于 0.5 的相似轨迹；部署宿主可以收紧或调整这些阈值。LLM、隔离 candidate store、独立 evaluator 或 active roots 任一缺失时返回 `LEARNING_SYNTHESIS_UNAVAILABLE`。
+4. **Eval 与 Review**：候选创建后才会进入目标矩阵 Eval 和人工审核；缺 cell、receipt、grader、安全检查或当前 revision 时停在 `needs-more-evidence`、`rejected` 或 `pending`。
+5. **Pilot 与晋升**：批准不等于激活。只有部署方显式执行并通过 shadow/canary、mutation authority、CAS、release 和结算后，状态才可能变成 `active`；当前公开安装不会无人值守自动执行这一步。
+
+最常见的手动触发方式是：
+
+```bash
+cc learning trajectories --limit 20
+cc learning reflect
+cc learning synthesize --json
+cc evolution workbench list --status pending --limit 20
+```
+
+成功结果中的 `created` 只表示隔离候选已经评测并持久化，不表示它已安装或启用。
+
+## 如何审核候选
+
+审核时建议按“内容与来源 → 运行边界 → Eval → 实际效果 → 决策”的顺序检查：
+
+1. 用 `workbench list` 找到 `pending` 项，记录 `packetDigest`、`candidateContentDigest` 和当前 active/LKG。
+2. 用 `workbench compare` 查看候选与 active/LKG 的精确 diff；同时核对来源 trajectory/Wiki revision、dependency lock、runtime、permission/capability 和目标矩阵。
+3. 核对所有必需 Eval cell、grader/safety/verifier receipt，以及真实 outcome 中的成功率、失败/阻断、成本和延迟。模型自评不能代替确定性测试。
+4. 证据完整时提交 `approve`；证据不足或权限扩大不可接受时提交 `reject`。必须填写具体原因，决定只对当前 packet digest 和 revision 有效。
+5. 批准后继续观察 Pilot/Canary；发生回归时，只能回滚到 Workbench 允许且受信 Registry 仍确认的 LKG/已批准版本。
+
+```bash
+cc evolution workbench compare <active-packet-digest> <candidate-packet-digest>
+cc evolution workbench review approve <candidate-packet-digest> --reason "已核对来源、权限、目标矩阵和回归结果"
+# 或
+cc evolution workbench review reject <candidate-packet-digest> --reason "缺少 Windows cell 和安全回归证据"
+```
+
+Desktop 中的“演化工作台”提供相同的列表、证据/Diff、比较、批准、拒绝和回滚动作；按钮只是向 CLI 权威提交摘要绑定的请求，Desktop 不持有 active writer。
+
+## 生成的 Skill、Wiki 和证据存放在哪里
+
+生产部署没有一个可由普通用户随意指定的统一 `wiki/` 或 `skills/` 目录。真实路径由受信部署宿主固定，并与 tenant、文件身份、账本和 witness 绑定；Workbench 默认只暴露 digest 和受限 artifact reference，不暴露可被客户端改写的任意路径。
+
+| 数据                              | 默认或典型位置                                                                                                                            | 说明                                                                                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 可执行的 active Skill         | `cc skill sources --json` 返回的各层；通常是 `$CHAINLESSCHAIN_HOME/skills`（managed）和 `<项目>/.chainlesschain/skills`（workspace）      | 这是运行时 Skill 搜索层，不是演化候选区。默认 `CHAINLESSCHAIN_HOME` 为用户目录下 `.chainlesschain`                                              |
+| 内容寻址 Skill candidate          | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/candidates/tenants/<tenant-key>/`，文件名为候选 SHA-256 的 JSON；生产宿主可覆盖根目录 | candidate JSON 包含规范化 Skill 内容和绑定信息；不能把该目录加入 active 搜索路径                                                                |
+| `cc learning synthesize` 文件候选 | 部署宿主指定的 `candidateOutputDir/<skill-name>/1.0.0/SKILL.md`，并可包含 `EVALUATION.json`                                               | `candidateOutputDir` 是宿主必填项，公共 CLI 没有固定默认值，也没有面向普通用户的覆盖开关                                                        |
+| Release、active 与 LKG            | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/releases/tenants/<tenant-key>/`；生产 Workbench 使用宿主指定的 `releaseRootDir`       | release 内容、active 指针、journal 分开保存，并通过 CAS/ledger 结算                                                                             |
+| Wiki revision                     | 宿主指定的 ArtifactStore 与 EvolutionLedger 中                                                                                            | Wiki 是带 schema、revision、来源和 tombstone 的治理制品，不保证对应一个可直接编辑的 Markdown 文件                                               |
+| Raw、投影与账本                   | 典型运行布局为 `<stateRootDir>/<tenant>/<run>/raw`、`artifacts`、`ledger-events`、`ledger-authority` 和 `witness/checkpoint.json`         | `stateRootDir` 由生产 composition 指定；Raw 与 model-visible/trusted projection 分层保存                                                        |
+| Desktop 普通 managed Skill        | Electron `app.getPath("userData")/skills`                                                                                                 | 这是 Desktop 的现有 Skill 层。Skill Creator 返回 `candidateOnly: true` 或 Skill Sync 返回 `candidate-staged` 时，不代表内容已写入或激活到该目录 |
+
+定位 active Skill 时可以运行：
+
+```bash
+cc skill sources --json
+```
+
+定位治理数据时，应查看目标部署模块传给 `openEvolutionWorkbenchFileResources()` 和 Agent evolution composition 的 `artifactDir`、`ledgerRootDir`、`ledgerAuthorityRootDir`、`witnessFilePath`、`releaseRootDir`、`stateRootDir` 与 `candidateOutputDir`。不要直接修改这些文件；任何脱离 ledger、receipt 和 CAS 的手工复制都不会构成合法晋升，并可能导致后续验证失败。
 
 ## 0.166.23–0.166.24：恢复、撤销与候选安装
 

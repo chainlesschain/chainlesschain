@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.120] - Configure governed Skill evolution (2026-09-10)
+
+- Add a native Swing configuration dialog with descriptor and trust-root file
+  pickers, signature verification, persisted enable/disable controls, and an
+  explicit effective deployment status.
+- Make the dialog available from both **Tools** and **Settings > Tools >
+  ChainlessChain IDE**, while keeping automatic active promotion on `HOLD`.
+- Delegate verification and owner-only profile writes to CLI `0.166.43`; the
+  plugin stores no governance keys and receives no release authority.
+
 ## [0.4.119] - Prepare plan review editors off the UI thread (2026-09-09)
 
 - Prepare plan-review editors off the UI thread so opening a review does not block the conversation interface.

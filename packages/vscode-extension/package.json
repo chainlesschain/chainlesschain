@@ -2,9 +2,9 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "ChainlessChain agent workspace for VS Code-compatible editors with streaming chat, inline assistance, governed review, sessions, automation, and a localhost MCP bridge.",
-  "version": "0.37.92",
+  "version": "0.37.93",
   "chainlesschain": {
-    "recommendedCliVersion": "0.166.38"
+    "recommendedCliVersion": "0.166.43"
   },
   "publisher": "chainlesschain",
   "license": "MIT",
@@ -112,6 +112,11 @@
         "command": "chainlesschain.evolution.workbench",
         "title": "%cmd.evolution.workbench.title%",
         "icon": "$(history)"
+      },
+      {
+        "command": "chainlesschain.evolution.configure",
+        "title": "%cmd.evolution.configure.title%",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "chainlesschain.skills.retrieve",

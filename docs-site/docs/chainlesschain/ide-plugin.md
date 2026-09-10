@@ -76,6 +76,26 @@ cc ide doctor       # 发现失败时解释原因
 
 装好后插件自动起桥接 server、写发现 lockfile、给新开的集成终端注入连接信息——之后不管是 Chat 面板还是终端里的 `cc agent`，都自动带上编辑器感知。
 
+### 5. 使用 Skill 自进化工作台
+
+IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提供的受治理投影。完整的开启方式、profile 示例、候选触发、审核步骤和存储说明见[受治理的 Skill 自进化：IDE 插件如何使用](/chainlesschain/governed-skill-evolution#ide-插件如何使用-skill-自进化)。
+
+最便捷的开启方式是使用插件内置配置页：
+
+- VS Code/VSCodium：命令面板运行 **ChainlessChain: Configure Skill Evolution**，选择签名 descriptor 和 Ed25519 trust-root 公钥，点击“校验、保存并启用”。
+- JetBrains：打开 **Settings → Tools → ChainlessChain IDE**，点击 **Governed Skill evolution**；也可从 Tools 菜单直接打开同名配置窗口。
+
+两端调用同一个 CLI 校验与 owner-only profile，不在 IDE 设置中保存私钥。配置窗口可刷新签名状态、启用或停用；“启用”不会自动批准或发布候选，active promotion 始终保持 `HOLD`。
+
+**VS Code / VSCodium** 有两种连接方式：
+
+- 推荐由管理员提供 governed Workbench profile，并把机器级设置 `chainlesschain.evolution.workbench.profile` 指向该 JSON 的绝对路径。运行 **ChainlessChain: Evolution Workbench** 时也可从“配置演化工作台”选择 profile。
+- 不配置 profile 时，可开启 `chainlesschain.appServer.pilot.enabled=true`，但还必须让 VS Code 进程继承签名 deployment descriptor 和 trust root。该设置只开启传输，不授予审核或发布权限。
+
+**JetBrains** 无需 App Server pilot：插件直接运行 `cc evolution workbench ... --json`。在上述配置窗口保存后，从 **Tools → ChainlessChain：演化工作台** 进入即可。
+
+候选仍由受治理 CLI/Agent/调度器产生。需要手动合成时，在具有 `learning` authority 的集成终端运行 `cc learning synthesize --json`，然后回 Workbench 刷新。Workbench 中先看 Evidence/Diff 和版本比较，再对 `pending` 候选填写理由并 Approve/Reject；批准不等于 active，Pilot/Promotion 仍由 CLI 宿主裁决。
+
 ## 核心特性
 
 ### 1. Chat 面板（编辑器内对话）

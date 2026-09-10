@@ -8,6 +8,7 @@ import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import java.awt.Font;
 import javax.swing.JComponent;
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
@@ -35,6 +36,7 @@ public final class CcConfigurable implements Configurable {
     private JSpinner automaticCacheTtlSpinner;
     private JSpinner automaticMaxCharsSpinner;
     private JSpinner automaticMaxLinesSpinner;
+    private JButton evolutionConfigButton;
     private JPanel panel;
 
     @Override
@@ -56,6 +58,9 @@ public final class CcConfigurable implements Configurable {
         automaticCacheTtlSpinner = spinner(30_000, 1000, 300_000);
         automaticMaxCharsSpinner = spinner(800, 32, 2000);
         automaticMaxLinesSpinner = spinner(12, 1, 100);
+        evolutionConfigButton = new JButton(CcBundle.message("evolution.config.open"));
+        evolutionConfigButton.addActionListener(
+                event -> ConfigureEvolutionDeploymentAction.open(null));
 
         JBLabel hint = new JBLabel(CcBundle.message("settings.ccPath.hint"));
         hint.setForeground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
@@ -88,6 +93,9 @@ public final class CcConfigurable implements Configurable {
                         CcBundle.message("settings.completion.maxLines.label"),
                         automaticMaxLinesSpinner)
                 .addComponent(new JBLabel(CcBundle.message("settings.completion.slo.label")), 1)
+                .addLabeledComponent(
+                        CcBundle.message("evolution.config.settingsLabel"),
+                        evolutionConfigButton)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
         return panel;
@@ -156,6 +164,7 @@ public final class CcConfigurable implements Configurable {
         automaticCacheTtlSpinner = null;
         automaticMaxCharsSpinner = null;
         automaticMaxLinesSpinner = null;
+        evolutionConfigButton = null;
     }
 
     private static JSpinner spinner(int value, int min, int max) {

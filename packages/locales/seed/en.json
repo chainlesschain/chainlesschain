@@ -3124,6 +3124,7 @@
       "providers": "LLM config",
       "mcp": "MCP tools",
       "projectSettings": "Project storage",
+      "evolutionSettings": "Skill evolution",
       "speechSettings": "Speech",
       "notificationSettings": "Notifications",
       "syncSettings": "Sync",
@@ -3660,7 +3661,11 @@
       "languages": "Languages"
     },
     "templatesCard": "Scaffold templates",
-    "tabs": { "generations": "Generations", "reviews": "Reviews", "scaffolds": "Scaffolds" },
+    "tabs": {
+      "generations": "Generations",
+      "reviews": "Reviews",
+      "scaffolds": "Scaffolds"
+    },
     "filter": {
       "languagePlaceholder": "Filter by language...",
       "frameworkPlaceholder": "Filter by framework...",

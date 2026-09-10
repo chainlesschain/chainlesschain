@@ -14,6 +14,7 @@ import { registerEvolutionWorkbenchCommands } from "./evolution-workbench.js";
 import { registerEvolutionAttestorTrustCommands } from "./evolution-attestor-trust.js";
 import { registerGovernedKnowledgeCommands } from "./evolution-knowledge.js";
 import { registerWikiSkillBenchmarkCommands } from "./evolution-benchmark.js";
+import { registerEvolutionDeploymentCommands } from "./evolution-deployment.js";
 import {
   assessCapability,
   recordIncrementalModelMetrics,
@@ -56,6 +57,7 @@ export function registerEvolutionCommand(program, dependencies = {}) {
   registerEvolutionAttestorTrustCommands(evolution, dependencies);
   registerGovernedKnowledgeCommands(evolution, dependencies);
   registerWikiSkillBenchmarkCommands(evolution, dependencies);
+  registerEvolutionDeploymentCommands(evolution);
 
   // evolution assess <name> <score>
   evolution

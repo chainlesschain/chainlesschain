@@ -27,7 +27,7 @@ import {
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 68 child routes under root', async () => {
+  it('has exactly 69 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
@@ -45,7 +45,7 @@ describe('Router registration', () => {
     //  RemoteSession added 2026-07-03 for Remote Session Phase 3 第三片 web client;
     //  BackgroundAgents added 2026-07-09 for the bg-* session-transport panel;
     //  Artifacts added 2026-07-10 for the artifact-* deliverable-store panel.)
-    expect(rootRoute.children.length).toBe(68)
+    expect(rootRoute.children.length).toBe(69)
   })
 
   it('contains all expected route names', async () => {
@@ -68,10 +68,20 @@ describe('Router registration', () => {
       'FamilyGuardDashboard',
       'BackgroundAgents',
       'Artifacts',
+      'EvolutionSettings',
     ]
     for (const name of expected) {
       expect(names).toContain(name)
     }
+  })
+
+  it('maps EvolutionSettings to /evolution-settings path', async () => {
+    const routerModule = await import('../../src/router/index.js')
+    const router = routerModule.default
+    const rootRoute = router.options.routes[0]
+    const evolutionRoute = rootRoute.children.find(r => r.name === 'EvolutionSettings')
+    expect(evolutionRoute).toBeDefined()
+    expect(evolutionRoute.path).toBe('evolution-settings')
   })
 
   it('maps FamilyGuardDashboard to /family-guard path', async () => {

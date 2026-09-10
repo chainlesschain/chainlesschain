@@ -15,6 +15,7 @@
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
   "cmd.evolution.workbench.title": "ChainlessChain: Evolution Workbench",
+  "cmd.evolution.configure.title": "ChainlessChain: Configure Skill Evolution",
   "cmd.skills.retrieve.title": "ChainlessChain: Skill Library (Browse & Search)",
   "cmd.automation.center.title": "ChainlessChain: Automation Center",
   "cmd.remote.control.title": "ChainlessChain: Remote Control",

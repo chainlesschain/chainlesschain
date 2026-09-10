@@ -989,6 +989,19 @@ async function activate(context) {
       },
     ),
     vscode.commands.registerCommand(
+      "chainlesschain.evolution.configure",
+      () => {
+        const {
+          openEvolutionDeploymentConfigPanel,
+        } = require("./ui/evolution-deployment-config-panel.js");
+        const { getResolvedCli } = require("./cli-binary.js");
+        return openEvolutionDeploymentConfigPanel(vscode, {
+          getCommand: getResolvedCli,
+          getCwd: () => vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+        });
+      },
+    ),
+    vscode.commands.registerCommand(
       "chainlesschain.skills.retrieve",
       async () => {
         const {

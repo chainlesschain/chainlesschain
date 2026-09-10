@@ -2,6 +2,7 @@ import { createHash, createPublicKey, verify } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { types as utilTypes } from "node:util";
+import { readEvolutionDeploymentProfile } from "./evolution-deployment-profile.js";
 
 export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
@@ -223,7 +224,9 @@ async function loadBuiltInFactories(commandName) {
       import("./evolution-eval-process-supervisor.js"),
       import("./governed-skill-synthesis-attestor-trust-approval-client.js"),
       import("./governed-skill-synthesis-attestor-trust-operations-client.js"),
-      import("./governed-skill-synthesis-attestor-trust-operations-cli-host.js"),
+      import(
+        "./governed-skill-synthesis-attestor-trust-operations-cli-host.js"
+      ),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createEvolutionWorkbenchReviewRuntime =
@@ -350,8 +353,9 @@ async function loadBuiltInFactories(commandName) {
     commandName === "stream" ||
     commandName === "ui"
   ) {
-    const { createAgentEvolutionRuntimeComposition } =
-      await import("./agent-evolution-runtime-composition.js");
+    const { createAgentEvolutionRuntimeComposition } = await import(
+      "./agent-evolution-runtime-composition.js"
+    );
     factories.createAgentEvolutionRuntimeComposition =
       createAgentEvolutionRuntimeComposition;
   }
@@ -414,20 +418,14 @@ function bindFactoriesToModule(factories, moduleDigest) {
   return Object.freeze(result);
 }
 
-export async function loadEvolutionDeploymentCommandDependencies(
-  commandName,
+export async function verifyEvolutionDeployment(
+  { descriptorPath, trustRootPath },
   {
-    env = process.env,
     read = readFile,
     resolveRealPath = realpath,
-    importModule = (url) => import(url),
-    additionalFactories = {},
+    includeModuleBytes = false,
   } = {},
 ) {
-  if (!SUPPORTED_COMMANDS.has(commandName)) return null;
-  const descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
-  const trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
-  if (!descriptorPath && !trustRootPath) return null;
   if (!descriptorPath || !trustRootPath)
     throw new Error(
       "evolution deployment requires both descriptor and trust root",
@@ -458,7 +456,6 @@ export async function loadEvolutionDeploymentCommandDependencies(
     )
   )
     throw new Error("evolution deployment descriptor signature rejected");
-  if (!descriptor.commands.includes(commandName)) return null;
 
   const modulePath = await resolveRealPath(descriptor.modulePath);
   const moduleBytes = await read(modulePath);
@@ -466,6 +463,58 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw new Error("evolution deployment module size is invalid");
   if (sha256(moduleBytes) !== descriptor.moduleDigest)
     throw new Error("evolution deployment module digest mismatch");
+  return Object.freeze({
+    descriptor,
+    descriptorPath: await resolveRealPath(descriptorPath),
+    trustRootPath: await resolveRealPath(trustRootPath),
+    modulePath,
+    ...(includeModuleBytes ? { moduleBytes } : {}),
+  });
+}
+
+export async function loadEvolutionDeploymentCommandDependencies(
+  commandName,
+  {
+    env = process.env,
+    read = readFile,
+    resolveRealPath = realpath,
+    importModule = (url) => import(url),
+    additionalFactories = {},
+  } = {},
+) {
+  if (!SUPPORTED_COMMANDS.has(commandName)) return null;
+  let descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
+  let trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
+  let fromSavedProfile = false;
+  if (!descriptorPath && !trustRootPath) {
+    const saved = await readEvolutionDeploymentProfile({ env });
+    if (!saved.error && saved.profile?.enabled) {
+      descriptorPath = saved.profile.descriptorPath;
+      trustRootPath = saved.profile.trustRootPath;
+      fromSavedProfile = true;
+    }
+  }
+  if (!descriptorPath && !trustRootPath) return null;
+  if (!descriptorPath || !trustRootPath)
+    throw new Error(
+      "evolution deployment requires both descriptor and trust root",
+    );
+  let verified;
+  try {
+    verified = await verifyEvolutionDeployment(
+      { descriptorPath, trustRootPath },
+      { read, resolveRealPath, includeModuleBytes: true },
+    );
+  } catch (error) {
+    // A saved profile may become stale after files are moved or rotated. Keep
+    // governed capabilities fail-closed while allowing `deployment status`,
+    // `configure`, and `disable` to start so the operator can recover. Explicit
+    // environment overrides remain strict and surface the error immediately.
+    if (fromSavedProfile) return null;
+    throw error;
+  }
+  const { descriptor, moduleBytes } = verified;
+  if (!descriptor.commands.includes(commandName)) return null;
   // Import the exact bytes that were authenticated. Importing modulePath here
   // would reopen a pathname-replacement window between hashing and execution.
   // Deployment entrypoints are therefore single-file ESM bundles; any external

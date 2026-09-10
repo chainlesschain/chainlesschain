@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.43: configure governed Skill evolution
+
+- Add a persistent, fail-closed deployment profile for signed governed-evolution
+  descriptors and Ed25519 trust roots. Environment overrides remain available
+  for centrally managed installations.
+- Add `cc evolution deployment status/configure/enable/disable` so administrators
+  can verify and control the deployment without maintaining process environment
+  variables.
+- Expose the same bounded configuration through authenticated App Server topics
+  for `cc ui`; automatic promotion remains `HOLD` and review/release authority
+  stays in the signed deployment host.
+- Document defaults, triggers, review flow, storage locations, and the visual
+  configuration entry points used by both IDE plugins and `cc ui`.
+
 ### Fixed - cc CLI 0.166.42: converge stalled investigations
 
 - Treat repeated web searches, fetches and read-only GitHub inspection as one

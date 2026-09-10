@@ -17,6 +17,7 @@ import { ChainlessChainWSServer } from "../gateways/ws/ws-server.js";
 import { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
 import { attachTopicHandlers } from "../gateways/ws/topic-handler-attachment.js";
 import { createMcpTopicHandlers } from "../gateways/ws/mcp-topic-handlers.js";
+import { createEvolutionDeploymentTopicHandlers } from "../gateways/ws/evolution-deployment-topic-handlers.js";
 import { PtyManager } from "../gateways/terminal/PtyManager.js";
 import { createTerminalHandlers } from "../gateways/terminal/terminal-handlers.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
@@ -807,6 +808,7 @@ export class AgentRuntime {
           configStore: mcpConfigStore,
           cwd: workspacePolicyCwd,
         }),
+        ...createEvolutionDeploymentTopicHandlers(),
       },
     });
     wsBroadcastRef.current = attached.broadcast;

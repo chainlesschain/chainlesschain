@@ -58,6 +58,7 @@
           <a-sub-menu key="g-config">
             <template #title><span class="group-label">{{ $t('appLayout.groups.config') }}</span></template>
             <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>{{ $t('appLayout.items.skills') }}</a-menu-item>
+            <a-menu-item key="evolution-settings"><template #icon><BranchesOutlined /></template>{{ $t('appLayout.items.evolutionSettings') }}</a-menu-item>
             <a-menu-item key="providers"><template #icon><ApiOutlined /></template>{{ $t('appLayout.items.providers') }}</a-menu-item>
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>{{ $t('appLayout.items.mcp') }}</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>{{ $t('appLayout.items.projectSettings') }}</a-menu-item>
@@ -156,6 +157,7 @@
           <a-menu-item key="logs"><template #icon><FileTextOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template></a-menu-item>
+          <a-menu-item key="evolution-settings"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="providers"><template #icon><ApiOutlined /></template></a-menu-item>
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
           <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>

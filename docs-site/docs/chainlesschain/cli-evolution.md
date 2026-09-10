@@ -16,6 +16,17 @@
 - 🔐 **知识冲突审核**: 分页查看删节冲突并提交认证的 canonical merge plan
 - 🔎 **Skill Retrieval**: `cc skill search` 按 canonical digest、索引见证和 verified outcome evidence 排序
 
+> **如何开启**：这里没有一个普通用户可打开的“自动进化总开关”。拿到管理员签发的 deployment descriptor 与 trust root 后，运行 `cc evolution deployment configure --descriptor <绝对路径> --trust-root <绝对路径>` 即可校验、保存并启用；也可在 IDE 插件或 `cc ui` 中可视化配置。CLI 默认仍为关闭，Desktop 的 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 也只打开通道，不授予审核或发布权限。完整说明见[受治理的 Skill 自进化：如何开启](/chainlesschain/governed-skill-evolution#如何开启没有一个自动进化总开关)。
+
+常用配置命令：
+
+```bash
+cc evolution deployment status
+cc evolution deployment configure --descriptor <absolute-json-path> --trust-root <absolute-public-key-path>
+cc evolution deployment disable
+cc evolution deployment enable
+```
+
 ## 概述
 
 ChainlessChain CLI evolution 表面记录能力评分、模型指标、诊断和维护动作。通过 `assess` 命令持续追踪各项能力的外部评分变化，系统按记录计算趋势——连续三次以上提升判定为 improving，连续三次以上下降判定为 declining。这些结果是指标投影，不是独立 Eval，也不是系统已经自我进化的证据。

@@ -15,6 +15,7 @@
   "cmd.background.agents.title": "ChainlessChain：后台 Agent 面板",
   "cmd.sessions.workbench.title": "ChainlessChain：会话工作台（跨端会话入口）",
   "cmd.evolution.workbench.title": "ChainlessChain：演化工作台",
+  "cmd.evolution.configure.title": "ChainlessChain：配置 Skill 自进化",
   "cmd.skills.retrieve.title": "ChainlessChain：技能库（浏览与检索）",
   "cmd.automation.center.title": "ChainlessChain：自动化中心",
   "cmd.remote.control.title": "ChainlessChain：远程控制",

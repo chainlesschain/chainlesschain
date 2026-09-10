@@ -15,6 +15,7 @@ const routes = [
       { path: 'logs',       name: 'Logs',        component: () => import('../views/Logs.vue') },
       { path: 'terminal',   name: 'Terminal',    component: () => import('../views/Terminal.vue') },
       { path: 'skills',     name: 'Skills',      component: () => import('../views/Skills.vue') },
+      { path: 'evolution-settings', name: 'EvolutionSettings', component: () => import('../views/EvolutionSettings.vue') },
       { path: 'providers',  name: 'Providers',   component: () => import('../views/Providers.vue') },
       { path: 'mcp',        name: 'McpTools',    component: () => import('../views/McpTools.vue') },
       { path: 'project-settings', name: 'ProjectSettings', component: () => import('../views/ProjectSettings.vue') },

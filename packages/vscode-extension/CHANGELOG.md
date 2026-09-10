@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.93] - Configure governed Skill evolution (2026-09-10)
+
+- Add **ChainlessChain: Configure Skill Evolution**, with native descriptor and
+  trust-root file pickers, signature verification, persisted enable/disable
+  controls, and an explicit effective deployment status.
+- Keep automatic active promotion on `HOLD`; the extension delegates all
+  verification and profile writes to CLI `0.166.43` and never stores governance
+  keys or grants release authority.
+- Recommend CLI `0.166.43` and share its owner-only deployment profile with the
+  terminal, JetBrains plugin, and `cc ui`.
+
 ## [0.37.92] - Pair with CLI 0.166.38 (2026-09-09)
 
 - Recommend CLI `0.166.38` after its npm publication, including when npm version lookup is unavailable.
