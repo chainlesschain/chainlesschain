@@ -27,6 +27,7 @@ describe("remote read target classification", () => {
       expect(remoteReadTarget("run_shell", { command })).toEqual(expected);
     for (const url of [
       "https://github.com/owner/repo/pull/340/files",
+      "https://github.com/owner/repo/pull/340/checks",
       "https://github.com/owner/repo/pull/340.diff",
       "https://api.github.com/repos/owner/repo/pulls/340/commits",
     ])
@@ -138,6 +139,17 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it("guides CI investigation from the first result without promoting log text to instructions", () => {
+    const guard = new RemoteReadLoopGuard();
+    guard.record("web_fetch", { content: "UNTRUSTED_LOG_TEXT" }, { url });
+    expect(guard.workflowHint).toContain("incomplete-matrix gate");
+    expect(guard.workflowHint).toContain("cancelled or logs are unavailable");
+    expect(guard.workflowHint).toContain("authorized fix with validation");
+    expect(guard.workflowHint).not.toContain("UNTRUSTED_LOG_TEXT");
+    expect(guard.findingsHint).toContain("UNTRUSTED_LOG_TEXT");
+    expect(guard.recoveryHint).toBeNull();
+  });
+
   it("groups repeated git policy reroutes across changing commits and recovers on the dedicated tool", () => {
     const guard = new RemoteReadLoopGuard();
     for (let i = 0; i < 6; i++) {
@@ -213,6 +225,59 @@ describe("remote read loop recovery", () => {
       expect(guard.stalled).toBe(false);
       expect(guard.recoveryHint).toBeNull();
     }
+  });
+
+  it("counts overlapping windows across PR details, files and checks as repeats", () => {
+    const guard = new RemoteReadLoopGuard();
+    const pages = ["", "/files", "/checks"];
+    const record = (page, offset, length) =>
+      guard.record(
+        "web_fetch",
+        {
+          content: page.padEnd(100, "x").slice(offset, offset + length),
+          snapshotId: `snapshot-${page}`,
+          offset,
+        },
+        { url: `https://github.com/owner/repo/pull/340${page}` },
+      );
+    for (const page of pages) record(page, 0, 100);
+    for (let i = 0; i < 6; i++) {
+      record(pages[i % 3], i + 1, 20 + i);
+      guard.takeRecoveryTurn();
+    }
+    expect(guard.targets.size).toBe(1);
+    expect(guard.stalled).toBe(true);
+    record("/files", 100, 10);
+    expect(guard.stalled).toBe(true);
+    // An empty tail is not new evidence; a genuinely unread gap is.
+    const gap = new RemoteReadLoopGuard();
+    for (const offset of [20, 0, 10]) {
+      gap.record(
+        "web_fetch",
+        { content: "same text!", snapshotId: "gap", offset },
+        { url: "https://github.com/owner/repo/pull/340/files" },
+      );
+      expect(gap.targets.values().next().value.repeats).toBe(0);
+    }
+  });
+
+  it("preserves the real error when a paused tool is requested again", () => {
+    const guard = new RemoteReadLoopGuard();
+    for (let i = 0; i < 3; i++)
+      guard.record(
+        "web_fetch",
+        { error: "HTTP 403: missing repository access" },
+        { url },
+      );
+    guard.takeRecoveryTurn();
+    for (let i = 0; i < 3; i++)
+      guard.record(
+        "web_fetch",
+        { code: "CC_TOOL_RECOVERY_PAUSED", error: "paused" },
+        { url },
+      );
+    expect(guard.stalled).toBe(true);
+    expect(guard.findingsHint).toContain("missing repository access");
   });
 
   it("retains bounded PR evidence as source data rather than system guidance", () => {

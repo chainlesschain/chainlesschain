@@ -10,6 +10,58 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it.each([
+    "gh run view 34431657410 --repo owner/repo 2>&1",
+    "gh.exe run view --job 102728250679 -R owner/repo",
+    "gh run view 123 --json status,conclusion",
+    "gh run list --repo owner/repo",
+    "gh run watch 123",
+    "gh pr view 123 --json state,statusCheckRollup",
+    "gh pr checks 123 --watch",
+    "gh auth status",
+    "gh api repos/owner/repo/actions/runs/123/jobs",
+    "gh api -X GET repos/owner/repo/actions/jobs/456",
+    "gh api repos/owner/repo/compare/main...feature",
+    "gh api repos/owner/repo/releases/latest",
+    "gh api repos/owner/repo/commits/abc/check-runs",
+    "gh api --method=GET /repos/owner/repo/actions/runs/123",
+  ])("does not clear recovery with changing remote status: %s", (command) => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    const key = tracker.intervention.key;
+    for (let i = 0; i < 3; i++) {
+      expect(
+        tracker.record("run_shell", { stdout: `status ${i}` }, { command }),
+      ).toBe(false);
+      expect(tracker.intervention).toMatchObject({ key, recovery: true });
+    }
+    expect(tracker.explorationCalls).toBe(27);
+    expect(tracker.checkpointFor()).toContain("status 2");
+    expect(
+      JSON.parse(tracker.checkpointFor().split("\n")[1]).recentToolOutcomes,
+    ).toHaveLength(0);
+    tracker.record("edit_file", { success: true, path: "workflow.yml" });
+    expect(tracker.intervention).toBeNull();
+  });
+
+  it.each([
+    "gh run rerun 123 --failed",
+    "gh pr close 123",
+    "gh api -X POST repos/owner/repo/actions/runs/123/rerun",
+    "gh api -XPOST repos/owner/repo/actions/runs/123/rerun",
+    "gh api --method=DELETE repos/owner/repo/actions/runs/123/logs",
+    "gh api repos/owner/repo/pulls/123 -f state=closed",
+    "gh api repos/owner/repo/pulls/123 --input body.json",
+    "npm test",
+  ])("still recognizes successful actions and validation: %s", (command) => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    expect(
+      tracker.record("run_shell", { stdout: "success" }, { command }),
+    ).toBe(true);
+    expect(tracker.intervention).toBeNull();
+  });
+
   it("counts PR discovery and read-only git without treating them as completed actions", () => {
     const tracker = new TaskProgressTracker();
     for (let i = 0; i < 12; i++) {
@@ -238,12 +290,49 @@ describe("long-running task progress", () => {
       { summary: "sibling-private finding" },
       "parent",
     );
+    tracker.record(
+      "run_shell",
+      { stdout: "parent-private CI status" },
+      { command: "gh run view 123" },
+      "parent",
+    );
     observe(tracker, 24);
     expect(tracker.intervention.recovery).toBe(true);
     expect(tracker.checkpointFor("child")).toBe(null);
     expect(tracker.checkpointFor("parent")).toContain("parent-private.js");
     expect(tracker.checkpointFor("parent")).toContain(
+      "parent-private CI status",
+    );
+    expect(tracker.checkpointFor("parent")).toContain(
       "sibling-private finding",
     );
+  });
+
+  it("bounds status evidence per owner and retains errors without counting them as actions", () => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    for (let i = 0; i < 40; i++) {
+      for (let j = 0; j < 8; j++) {
+        tracker.record(
+          "run_shell",
+          {
+            stdout: `Run ${j}: ${"cancelled ".repeat(200)}`,
+            stderr: "logs unavailable".repeat(100),
+            exitCode: 1,
+          },
+          { command: "gh run view 123 --log" },
+          `owner-${i}`,
+        );
+      }
+    }
+    expect(tracker.remoteInspections).toHaveLength(132);
+    const checkpoint = tracker.checkpointFor("owner-39");
+    expect(checkpoint.length).toBeLessThan(6200);
+    expect(checkpoint).toContain("Run 7");
+    expect(checkpoint).toContain("logs unavailable");
+    expect(JSON.parse(checkpoint.split("\n")[1]).recentToolOutcomes).toEqual(
+      [],
+    );
+    expect(tracker.intervention.recovery).toBe(true);
   });
 });

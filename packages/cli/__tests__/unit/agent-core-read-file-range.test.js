@@ -89,6 +89,7 @@ describe("read_file offset/limit line ranges", () => {
     let calls = 0;
     let readIndex = 0;
     let recovery = false;
+    let recoverySearches = 0;
     let wrote = false;
     let compactions = 0;
     const warnings = [];
@@ -159,6 +160,10 @@ describe("read_file offset/limit line ranges", () => {
                   m.content?.includes("smallest justified, authorized change"),
               ),
             ).toBe(true);
+            // A focused search must not buy another broad-reading turn,
+            // including when compaction discarded the preceding warning.
+            if (recoverySearches++ < 3)
+              return tool("search_files", { path: ".", pattern: "part" });
             return tool("write_file", {
               path: "result.js",
               content: "export const fixed = true;",
@@ -176,6 +181,7 @@ describe("read_file offset/limit line ranges", () => {
       }
     }
     expect(recovery).toBe(true);
+    expect(recoverySearches).toBe(4);
     expect(readIndex).toBe(23);
     expect(compactions).toBeGreaterThan(2);
     expect(warnings.filter((m) => m.startsWith("Task progress:"))).toHaveLength(
@@ -719,7 +725,14 @@ describe("read_file offset/limit line ranges", () => {
       const results = events.filter((e) => e.type === "tool-result");
       expect(results).toHaveLength(parallel ? 14 : 7);
       expect(results.filter((e) => e.result.content)).toHaveLength(1);
-      expect(results.every((e) => !e.result.error)).toBe(true);
+      expect(
+        results.every(
+          (e) => !e.result.error || e.result.code === "CC_TOOL_RECOVERY_PAUSED",
+        ),
+      ).toBe(true);
+      expect(
+        results.some((e) => e.result.code === "CC_TOOL_RECOVERY_PAUSED"),
+      ).toBe(true);
       const toolMessages = messages.filter((m) => m.role === "tool");
       expect(toolMessages.map((m) => m.tool_call_id)).toEqual(
         results.map((e) => e.tool_use_id),

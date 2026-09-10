@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.42: converge stalled investigations
+
+- Treat repeated web searches, fetches and read-only GitHub inspection as one
+  bounded investigation, retaining remote evidence across compaction without
+  letting cosmetic query changes reset convergence.
+- Keep recovery active until the agent takes a concrete mutation or verification
+  step, and direct cancelled Actions investigations toward actionable reruns or
+  fixes without weakening release gates.
+- Prevent cancellation propagation from being rewritten as a new aggregate gate
+  failure while preserving fail-closed aggregation for completed matrix failures.
+- Stabilize Windows release evidence under hosted-runner load with bounded,
+  commit-safe retries and test-only startup/capacity budgets; production lock,
+  access-control and message-capacity limits remain unchanged.
+
 ### Fixed - cc CLI 0.166.41: execute explicit IDE PR-close requests
 
 - Preserve a user's explicit request to close targeted pull requests across

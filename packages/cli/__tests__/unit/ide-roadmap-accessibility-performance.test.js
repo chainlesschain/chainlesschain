@@ -581,7 +581,7 @@ describe("P2-4 accessibility/performance matrix", () => {
     );
     expect(workflow).toContain("node ../../node_modules/vitest/vitest.mjs run");
     expect(workflow).toContain("--config vitest.config.js");
-    expect(workflow).toContain("if: always()");
+    expect(workflow).toContain("if: ${{ always() && !cancelled() }}");
     expect(workflow).toContain("needs.accessibility-performance.result");
     expect(workflow).toContain("ax-transcript-audit-fragment.mjs");
     expect(workflow).toContain("session-ux-audit-fragment.mjs");

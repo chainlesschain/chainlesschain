@@ -137,7 +137,7 @@ describe("context/permission Actions matrix", () => {
         provenance: host.provenance,
       }),
     ).toMatchObject({ operatingSystem: process.platform });
-  }, 120_000);
+  }, process.platform === "win32" ? 240_000 : 180_000);
 
   it("retries only lock contention proven not to have committed", async () => {
     const waits = [];
@@ -206,8 +206,10 @@ describe("context/permission Actions matrix", () => {
         },
       ),
     ).rejects.toBe(exhausted);
-    expect(calls).toBe(7);
-    expect(waits).toEqual([25, 50, 100, 200, 200, 200]);
+    expect(calls).toBe(13);
+    expect(waits).toEqual([
+      25, 50, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200,
+    ]);
   });
 
   it("bounds and redacts worker diagnostics while retaining safe classifiers", () => {

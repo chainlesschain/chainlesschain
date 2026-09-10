@@ -23,6 +23,12 @@ import {
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
+  isPrActionRequest,
+  PR_ACTION_GUIDANCE,
+  PR_INVESTIGATION_LIMIT,
+  PR_INVESTIGATION_EXIT_GUIDANCE,
+} from "../lib/pr-investigation-policy.js";
+import {
   findExplicitPrCloseIntent,
   prCloseActionDirective,
 } from "../lib/pr-close-intent.js";
@@ -13936,6 +13942,7 @@ export async function* agentLoop(messages, options) {
   let emptyThinkingReprompted = false;
   const readFileLoopGuard = new ReadFileLoopGuard();
   const remoteReadLoopGuard = new RemoteReadLoopGuard();
+  const prActionTask = isPrActionRequest(messages);
   // Keep an explicit user-requested PR close action alive even if the
   // conversation is compacted down to tool evidence. It is guidance only;
   // the ordinary execution approval remains mandatory for every close.
@@ -14550,8 +14557,15 @@ export async function* agentLoop(messages, options) {
     const newProgressIntervention =
       progressIntervention &&
       progressIntervention.key !== lastTaskProgressIntervention;
-    const taskRecoveryTurn =
-      newProgressIntervention && progressIntervention.recovery;
+    // Warnings are deduplicated, recovery is not. A search or failed command
+    // must not restore broad discovery on the very next model request.
+    const taskRecoveryTurn = progressIntervention?.recovery === true;
+    const prInvestigationExhausted =
+      prActionTask &&
+      taskProgressTracker.explorationCalls >= PR_INVESTIGATION_LIMIT;
+    const taskRecoveryTools = TASK_RECOVERY_TOOLS.filter(
+      (tool) => tool !== "read_file" || !readFileLoopGuard.hasUnreadPages,
+    );
     if (newProgressIntervention) {
       lastTaskProgressIntervention = progressIntervention.key;
       // Reuse the existing warning event so CLI, REPL and IDE clients all show
@@ -14561,24 +14575,31 @@ export async function* agentLoop(messages, options) {
         message:
           progressIntervention.message +
           (taskRecoveryTurn
-            ? " Broad reading and new delegation are paused for one model turn."
+            ? " Broad reading, web discovery and new delegation remain paused until an actionable tool outcome."
             : ""),
       };
     }
-    const iterationToolOptions =
-      readRecoveryTurn || taskRecoveryTurn || remoteRecoveryTools.length
-        ? {
-            ...effectiveToolOptions,
-            disabledTools: [
-              ...new Set([
-                ...(effectiveToolOptions.disabledTools || []),
-                ...(readRecoveryTurn ? ["read_file"] : []),
-                ...(taskRecoveryTurn ? TASK_RECOVERY_TOOLS : []),
-                ...remoteRecoveryTools,
-              ]),
-            ],
-          }
-        : effectiveToolOptions;
+    const pausedTools = new Set([
+      ...(readRecoveryTurn ? ["read_file"] : []),
+      ...(taskRecoveryTurn ? taskRecoveryTools : []),
+      ...remoteRecoveryTools,
+      ...(prInvestigationExhausted
+        ? getEffectiveToolDefinitions(effectiveToolOptions).map(
+            (tool) => tool.function.name,
+          )
+        : []),
+    ]);
+    const iterationToolOptions = pausedTools.size
+      ? {
+          ...effectiveToolOptions,
+          disabledTools: [
+            ...new Set([
+              ...(effectiveToolOptions.disabledTools || []),
+              ...pausedTools,
+            ]),
+          ],
+        }
+      : effectiveToolOptions;
     const readContext = [
       readFileLoopGuard.findingsHint,
       readFileLoopGuard.progressHint,
@@ -14628,7 +14649,20 @@ export async function* agentLoop(messages, options) {
       }
     }
     const contextMemoryTrustedSystemIndexes = [];
-    if (remoteReadLoopGuard.recoveryHint || remoteReadLoopGuard.workflowHint) {
+    if (prActionTask && !prInvestigationExhausted) {
+      callMessages = [
+        ...callMessages,
+        {
+          role: "system",
+          content: PR_ACTION_GUIDANCE,
+        },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
+    if (
+      !prInvestigationExhausted &&
+      (remoteReadLoopGuard.recoveryHint || remoteReadLoopGuard.workflowHint)
+    ) {
       callMessages = [
         ...callMessages,
         {
@@ -14643,14 +14677,14 @@ export async function* agentLoop(messages, options) {
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
-    if (prCloseDirective) {
+    if (prCloseDirective && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
         { role: "system", content: prCloseDirective },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
-    if (progressIntervention) {
+    if (progressIntervention && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
         {
@@ -14658,13 +14692,13 @@ export async function* agentLoop(messages, options) {
           content:
             progressIntervention.guidance +
             (taskRecoveryTurn
-              ? " One-turn recovery: read_file, list_dir, todo_write, spawn_sub_agent and tool_search are omitted for this request only."
+              ? ` Recovery remains active: ${taskRecoveryTools.join(", ")} are omitted until an actionable tool outcome. Only unfinished, already-started file scans may continue; new whole-file discovery is paused. Focused search, authorized changes and verification remain available.`
               : ""),
         },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
-    if (readRecoveryTurn) {
+    if (readRecoveryTurn && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
         {
@@ -14675,7 +14709,7 @@ export async function* agentLoop(messages, options) {
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
-    if (readFileLoopGuard.recoveryHint) {
+    if (readFileLoopGuard.recoveryHint && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
         { role: "system", content: readFileLoopGuard.recoveryHint },
@@ -14703,6 +14737,14 @@ export async function* agentLoop(messages, options) {
       } catch (_e) {
         // prepareCall failures are non-critical — proceed with original messages
       }
+    }
+
+    if (prInvestigationExhausted) {
+      callMessages = [
+        ...callMessages,
+        { role: "system", content: PR_INVESTIGATION_EXIT_GUIDANCE },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
 
     // Per-span unified ids (P2 observability): the run-level default attributes
@@ -14930,6 +14972,38 @@ export async function* agentLoop(messages, options) {
     }
 
     const toolCalls = msg.tool_calls;
+    if (prInvestigationExhausted) {
+      // Exactly one synthesis request, even if the provider ignores the empty
+      // tool set or a Stop hook normally asks to continue. Settle usage first;
+      // do not insert unexecuted calls or turn a safety stop into completion.
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      yield* _drainSubAgentUsage(subAgentUsageSink);
+      if (toolCalls?.length) {
+        const error = new Error(
+          "PR investigation stopped after repeated exploration without an actionable outcome; the task is incomplete. " +
+            "The model requested more tools after the final synthesis instruction. Retained evidence: " +
+            (
+              taskProgressTracker.checkpointFor(runId) ||
+              remoteReadLoopGuard.findingsHint ||
+              "No verified findings."
+            ).slice(0, 2000),
+        );
+        error.code = "CC_AGENT_PR_INVESTIGATION_STALLED";
+        throw error;
+      }
+      yield {
+        type: "response-complete",
+        content:
+          "PR investigation stopped without completing the task.\n\n" +
+          (msg.content ||
+            "No actionable outcome was produced; use the retained findings to identify the missing prerequisite."),
+      };
+      yield { type: "run-ended", runId, reason: "pr-investigation-stalled" };
+      return;
+    }
     if (Array.isArray(toolCalls) && toolCalls.length > 0) {
       // Allocate missing provider IDs once, before transcript insertion and
       // any evidence or execution boundary. This is only local correlation,
@@ -15132,11 +15206,13 @@ export async function* agentLoop(messages, options) {
     // falls through to the strictly sequential loop below.
     const parallelReads =
       options.parallelReadOnlyTools !== false &&
+      !taskRecoveryTurn &&
       toolCalls.length > 1 &&
       !toolContext.permissionConfirm &&
       toolCalls.every(
         (c) =>
           typeof c?.function?.name === "string" &&
+          !pausedTools.has(c.function.name) &&
           _CHECKPOINT_READ_ONLY.has(c.function.name),
       );
     if (parallelReads) {
@@ -15363,9 +15439,36 @@ export async function* agentLoop(messages, options) {
       // hook, or observationally stronger `tool-executing` event. The same
       // preflight runs again inside executeTool to prevent call-site drift.
       const earlyAuthorityDenial =
+        (pausedTools.has(toolName) ||
+        (taskRecoveryTurn &&
+          toolName === "read_file" &&
+          !(
+            typeof toolArgs?.path === "string" &&
+            readFileLoopGuard.canContinue(
+              path.resolve(toolContext.cwd || process.cwd(), toolArgs.path),
+              toolArgs,
+            )
+          ))
+          ? {
+              success: false,
+              code: "CC_TOOL_RECOVERY_PAUSED",
+              error: `${toolName} is paused for loop recovery and was not executed. Use retained findings for an authorized action or report the specific blocker; do not repeat or disguise this call.`,
+            }
+          : null) ||
         explicitPrCloseActionGuard.admission(toolName, toolArgs) ||
         preflightToolExecutionAuthority(toolName, toolArgs, toolContext);
       if (earlyAuthorityDenial) {
+        remoteReadLoopGuard.record(toolName, earlyAuthorityDenial, toolArgs);
+        readFileLoopGuard.record(
+          toolName,
+          earlyAuthorityDenial,
+          taskProgressTracker.record(
+            toolName,
+            earlyAuthorityDenial,
+            toolArgs,
+            runId,
+          ),
+        );
         const resultStr = capToolResultString(
           safeStringifyToolResult(earlyAuthorityDenial),
         );

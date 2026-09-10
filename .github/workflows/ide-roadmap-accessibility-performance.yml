@@ -357,7 +357,10 @@ jobs:
   trusted-accessibility-performance-aggregate:
     name: Trusted Accessibility/Performance three-OS aggregate
     needs: [accessibility-performance]
-    if: always()
+    # A cancelled workflow has no complete evidence set to aggregate. Skip the
+    # gate in that case while retaining the fail-closed result for platform
+    # jobs that actually finish with a failure.
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

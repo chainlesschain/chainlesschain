@@ -143,6 +143,14 @@ export class ReadFileLoopGuard {
 
   record(tool, result, actionable = true) {
     if (
+      this.batch &&
+      tool === "read_file" &&
+      result?.code === "CC_TOOL_RECOVERY_PAUSED"
+    ) {
+      this.batch.duplicates++;
+      return;
+    }
+    if (
       !this.batch ||
       result?.error ||
       result?.success === false ||
@@ -191,6 +199,18 @@ export class ReadFileLoopGuard {
     } else if (this.batch.duplicates) this.repeatedBatches++;
     // A search-only batch must not reset a read loop.
     this.batch = null;
+  }
+
+  get hasUnreadPages() {
+    return [...this.progress.values()].some(
+      (entry) => entry.summary?.reachedEnd === false,
+    );
+  }
+
+  canContinue(filePath, args = {}) {
+    return (
+      this.progress.get(keyFor(filePath, args))?.summary?.reachedEnd === false
+    );
   }
 
   get recoveryHint() {

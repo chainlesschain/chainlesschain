@@ -24,6 +24,8 @@ export const TASK_RECOVERY_TOOLS = [
   "todo_write",
   "spawn_sub_agent",
   "tool_search",
+  "web_fetch",
+  "web_search",
 ];
 
 // The runtime admits at most 32 spawned agents plus the root. Keep bounded
@@ -32,6 +34,27 @@ const MAX_CHECKPOINT_OWNERS = 33;
 
 function boundedText(value, limit) {
   return typeof value === "string" ? value.slice(0, limit) : "";
+}
+
+// Status queries remain executable (including intentional monitoring), but
+// fetching a different status page is not an implementation or verification.
+// Classification affects progress guidance only, never command authorization.
+function isRemoteInspectionCommand(command) {
+  if (typeof command !== "string") return false;
+  if (
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+(?:run\s+(?:view|list|watch)|pr\s+(?:view|list|diff|checks)|auth\s+status)\b/i.test(
+      command,
+    )
+  )
+    return true;
+  return (
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+api\s/i.test(command) &&
+    /(?:https:\/\/api\.github\.com\/)?\/?repos\/[\w.-]+\/[\w.-]+\/(?:actions|pulls|compare|releases|commits|check-runs|check-suites)\b/i.test(
+      command,
+    ) &&
+    !/(?:^|\s)(?:--method|-X)(?:=|\s*)["']?(?!GET\b)\w+/i.test(command) &&
+    !/(?:^|\s)(?:(?:--field|--raw-field|--input)(?:=|\s)|-[fF])/.test(command)
+  );
 }
 
 function remember(map, key, value, limit) {
@@ -44,7 +67,7 @@ function remember(map, key, value, limit) {
  * Run-tree exploration accounting, separate from file coverage and permissions.
  * This object is shared by parent/child loops, not serialized into model input.
  * New file pages advance coverage but do not reset the exploration counter.
- * Interventions are advisory / one-request tool narrowing, never completion
+ * Interventions are advisory / progress-scoped tool narrowing, never completion
  * verdicts or a hard deadline for legitimate research and monitoring tasks.
  */
 export class TaskProgressTracker {
@@ -57,6 +80,7 @@ export class TaskProgressTracker {
     this.plans = new Map();
     this.childFindings = new Map();
     this.lastActions = [];
+    this.remoteInspections = [];
   }
 
   retainChildResult(id, result, owner = "root") {
@@ -120,8 +144,29 @@ export class TaskProgressTracker {
       // fingerprints affect guidance only: every authorized command still runs.
       const output = boundedText(result?.output ?? result?.stdout, 30000);
       const digest = createHash("sha256").update(output).digest("hex");
+      const remoteInspection =
+        tool === "run_shell" && isRemoteInspectionCommand(args.command);
+      if (remoteInspection) {
+        // A status observation is still useful evidence after compaction. Keep
+        // it apart from actions so remembering it never resets recovery.
+        const owned = [
+          ...this.remoteInspections.filter((entry) => entry.owner === owner),
+          {
+            owner,
+            command: boundedText(args.command, 320),
+            output: boundedText(output, 1200),
+            error: boundedText(result?.error || result?.stderr, 400),
+            failed,
+          },
+        ].slice(-4);
+        this.remoteInspections = [
+          ...this.remoteInspections.filter((entry) => entry.owner !== owner),
+          ...owned,
+        ].slice(-MAX_CHECKPOINT_OWNERS * 4);
+      }
       exploration =
         !!remoteReadTarget(tool, args) ||
+        remoteInspection ||
         output.length >= 8000 ||
         this.commandOutputs.has(digest);
       if (!failed) remember(this.commandOutputs, digest, true, 64);
@@ -183,7 +228,9 @@ export class TaskProgressTracker {
         "If evidence is insufficient, name the exact missing fact and use a focused search or bounded computation. " +
         "Do not restart general investigation, rewrite the plan, or delegate the same research. " +
         "A child exhausting its budget is not task completion. Preserve useful partial findings and continue the original task. " +
-        "Normal tool availability resumes on the next model turn. Never claim completion without satisfying the user's request.",
+        "During recovery, broad discovery stays paused until an actionable tool outcome; a focused search, another status query or a failed command does not end recovery. " +
+        "Use search_files for an exact missing local fact or run a bounded computation/verification, then act on the result. " +
+        "Never claim completion without satisfying the user's request.",
     };
   }
 
@@ -191,7 +238,8 @@ export class TaskProgressTracker {
     if (
       !this.plans.size &&
       !this.childFindings.size &&
-      !this.lastActions.length
+      !this.lastActions.length &&
+      !this.remoteInspections.length
     )
       return null;
     const checkpoint = {
@@ -199,6 +247,14 @@ export class TaskProgressTracker {
       recentToolOutcomes: this.lastActions
         .filter((entry) => entry.owner === owner)
         .map(({ tool, path, output }) => ({ tool, path, output })),
+      recentRemoteInspections: this.remoteInspections
+        .filter((entry) => entry.owner === owner)
+        .map(({ command, output, error, failed }) => ({
+          command,
+          output,
+          error,
+          failed,
+        })),
       reportedPlans: this.plans.has(owner)
         ? [{ todos: this.plans.get(owner) }]
         : [],
@@ -210,6 +266,7 @@ export class TaskProgressTracker {
     // material belongs to the loop that observed it or received the child result.
     if (
       !checkpoint.recentToolOutcomes.length &&
+      !checkpoint.recentRemoteInspections.length &&
       !checkpoint.reportedPlans.length &&
       !checkpoint.childFindings.length
     )
@@ -218,6 +275,8 @@ export class TaskProgressTracker {
       if (checkpoint.reportedPlans.length > 1) checkpoint.reportedPlans.pop();
       else if (checkpoint.childFindings.length)
         checkpoint.childFindings.shift();
+      else if (checkpoint.recentRemoteInspections.length)
+        checkpoint.recentRemoteInspections.shift();
       else if (checkpoint.recentToolOutcomes.length)
         checkpoint.recentToolOutcomes.shift();
       else checkpoint.reportedPlans.pop();
