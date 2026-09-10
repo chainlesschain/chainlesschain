@@ -10,6 +10,25 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("retains bounded local evidence across compaction without counting reads as actions", () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 8; i++) {
+      tracker.record(
+        "search_files",
+        { matches: [`test.js:${i}: ready timeout ${i}`] },
+        { path: "test.js", pattern: "ready" },
+        "parent",
+      );
+    }
+    const checkpoint = tracker.checkpointFor("parent");
+    expect(checkpoint).toContain("ready timeout 7");
+    expect(checkpoint).not.toContain("ready timeout 0");
+    expect(tracker.checkpointFor("child")).toBeNull();
+    expect(tracker.explorationCalls).toBe(8);
+    expect(JSON.parse(checkpoint.split("\n")[1]).recentToolOutcomes).toEqual(
+      [],
+    );
+  });
   it.each([
     "gh run view 34431657410 --repo owner/repo 2>&1",
     "gh.exe run view --job 102728250679 -R owner/repo",

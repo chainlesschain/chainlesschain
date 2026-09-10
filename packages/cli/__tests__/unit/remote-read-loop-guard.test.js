@@ -306,7 +306,7 @@ describe("remote read loop recovery", () => {
       );
       if (i === 2) {
         expect(guard.recoveryHint).toContain("exit code 1 means no match");
-        expect(guard.takeRecoveryTurn()).toEqual(["run_shell"]);
+        expect(guard.takeRecoveryTurn()).toEqual([]);
       }
     }
     expect(guard.findingsHint).toContain("saved GitHub Actions log");
@@ -426,7 +426,9 @@ describe("remote read loop recovery", () => {
         { stdout: "FAIL macOS path assertion", durationMs: i },
         { command },
       );
-    expect(guard.takeRecoveryTurn()).toEqual(["run_shell"]);
+    expect(guard.takeRecoveryTurn()).toEqual([]);
+    expect(guard.shouldPause("run_shell", { command })).toBe(true);
+    expect(guard.shouldPause("run_shell", { command: "npm test" })).toBe(false);
     expect(guard.findingsHint).toContain("FAIL macOS path assertion");
     guard.record(
       "run_shell",

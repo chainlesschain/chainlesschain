@@ -19,6 +19,24 @@ afterEach(() => {
 });
 
 describe("long text file keyword search", () => {
+  it("explains literal alternation misses without silently changing search semantics", async () => {
+    const { file } = fixture(
+      "const startService = () => {};\nconst waitForLine = () => {};",
+    );
+    const literal = await searchTextFile(file, {
+      pattern: "startService|waitForLine",
+    });
+    expect(literal.matches).toHaveLength(0);
+    expect(literal.hint).toContain("regex: true");
+    const regex = await searchTextFile(file, {
+      pattern: "startService|waitForLine",
+      regex: true,
+    });
+    expect(regex.matches).toHaveLength(2);
+    const exact = await searchTextFile(file, { pattern: "startService" });
+    expect(exact.matches).toHaveLength(1);
+    expect(exact.hint || "").not.toContain("No literal matches");
+  });
   it("respects host concurrency admission and releases its worker lease", async () => {
     const { file } = fixture("needle");
     const release = vi.fn();

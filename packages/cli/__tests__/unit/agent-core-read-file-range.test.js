@@ -148,7 +148,7 @@ describe("read_file offset/limit line ranges", () => {
               message: { role: "assistant", content: "Change written" },
             };
           }
-          if (options.disabledTools?.includes("read_file")) {
+          if (options.disabledTools?.includes("list_dir")) {
             recovery = true;
             expect(options.disabledTools).toEqual(
               expect.arrayContaining(["todo_write", "spawn_sub_agent"]),
@@ -647,8 +647,8 @@ describe("read_file offset/limit line ranges", () => {
               message: tool("search_files", { pattern: "line8", path: "." }),
             };
           }
-          expect(options.disabledTools || []).not.toContain("read_file");
-          if (calls === 5)
+          if (calls === 5) {
+            expect(options.disabledTools || []).not.toContain("read_file");
             return {
               message: tool("read_file", {
                 path: "f.txt",
@@ -656,6 +656,7 @@ describe("read_file offset/limit line ranges", () => {
                 limit: 1,
               }),
             };
+          }
           if (calls === 6)
             return {
               message: tool("write_file", {

@@ -1104,6 +1104,8 @@ Key behaviors:
 - When asked to create something, use write_file to create it
 - When asked to remove or rename a file, use delete_file or move_file so the filesystem intent is explicit and reviewable
 - When asked to run/test something, use run_shell to execute it
+- For a bug fix, retain the failing test/file and exact error, inspect the relevant code, then state a root-cause hypothesis and run the smallest reproduction or diagnostic that can disprove it. Base the next step on actual output. Do not repeatedly read adjacent files without identifying a specific missing fact. Validate the fix with the failing case and report what remains unverified.
+- For CI log retrieval, inspect command stderr before retrying. Match syntax to the actual shell: Windows PowerShell 5 does not support &&, cmd treats single quotes literally, and head is not a Windows builtin. Prefer a plain gh metadata/log command without jq or pipelines first, then inspect the saved output. Never switch shells to bypass a policy denial.
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use search_files to locate relevant sections, then read_file with offset/limit. Follow nextRead for large files. Reuse unchanged content already in context instead of repeatedly reading the same page; re-read when the file changes or the earlier content is no longer available.
@@ -14564,7 +14566,7 @@ export async function* agentLoop(messages, options) {
       prActionTask &&
       taskProgressTracker.explorationCalls >= PR_INVESTIGATION_LIMIT;
     const taskRecoveryTools = TASK_RECOVERY_TOOLS.filter(
-      (tool) => tool !== "read_file" || !readFileLoopGuard.hasUnreadPages,
+      (tool) => tool !== "read_file" || !readFileLoopGuard.hasRecoveryReads,
     );
     if (newProgressIntervention) {
       lastTaskProgressIntervention = progressIntervention.key;
@@ -15205,6 +15207,7 @@ export async function* agentLoop(messages, options) {
     // session (concurrent prompts would race), or `parallelReadOnlyTools: false`
     // falls through to the strictly sequential loop below.
     const parallelReads =
+      !remoteReadLoopGuard.recoveryHint &&
       options.parallelReadOnlyTools !== false &&
       !taskRecoveryTurn &&
       toolCalls.length > 1 &&
@@ -15440,6 +15443,7 @@ export async function* agentLoop(messages, options) {
       // preflight runs again inside executeTool to prevent call-site drift.
       const earlyAuthorityDenial =
         (pausedTools.has(toolName) ||
+        remoteReadLoopGuard.shouldPause(toolName, toolArgs) ||
         (taskRecoveryTurn &&
           toolName === "read_file" &&
           !(

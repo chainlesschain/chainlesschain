@@ -429,7 +429,20 @@ export class RemoteReadLoopGuard {
     this.offeredRevision = this.revision;
     const entry = this.targets.get(this.activeKey);
     entry.recoveryOffered = true;
+    // Keep the shell available for local reproduction and validation. Only
+    // repeated reads of the stalled remote target are narrowed below.
+    if (entry.tool === "run_shell" && entry.github) return [];
     return [entry.tool];
+  }
+
+  shouldPause(tool, args = {}) {
+    const target = remoteReadTarget(tool, args);
+    const entry = target && this.targets.get(target.key);
+    return !!(
+      entry?.github &&
+      entry.recoveryOffered &&
+      entry.repeats >= RECOVERY_AFTER
+    );
   }
 
   get workflowHint() {

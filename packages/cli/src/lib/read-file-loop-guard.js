@@ -75,7 +75,7 @@ export class ReadFileLoopGuard {
       if (
         targeted &&
         !entry.rereads.has(fingerprint) &&
-        entry.rereads.size < 128
+        entry.rereads.size < 3
       ) {
         entry.rereads.add(fingerprint);
         page.readRecovery = { action: "targeted-review" };
@@ -161,8 +161,6 @@ export class ReadFileLoopGuard {
       return;
     if (tool === "read_file") {
       if (result?.readProgress?.newContent === true) this.batch.advanced = true;
-      if (result?.readRecovery?.action === "targeted-review")
-        this.batch.advanced = true;
       if (result?.readProgress?.newContent === false) this.batch.duplicates++;
     } else if (
       (tool === "run_code" || tool === "run_shell") &&
@@ -207,9 +205,24 @@ export class ReadFileLoopGuard {
     );
   }
 
-  canContinue(filePath, args = {}) {
+  get hasRecoveryReads() {
     return (
-      this.progress.get(keyFor(filePath, args))?.summary?.reachedEnd === false
+      this.hasUnreadPages ||
+      [...this.progress.values()].some((entry) => entry.rereads.size < 3)
+    );
+  }
+
+  canContinue(filePath, args = {}) {
+    const entry = this.progress.get(keyFor(filePath, args));
+    return (
+      entry?.summary?.reachedEnd === false ||
+      (!!entry &&
+        entry.rereads.size < 3 &&
+        Number.isSafeInteger(args.offset) &&
+        args.offset > 0 &&
+        Number.isSafeInteger(args.limit) &&
+        args.limit > 0 &&
+        args.limit <= 80)
     );
   }
 

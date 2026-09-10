@@ -326,7 +326,6 @@ describe("remote read recovery in the agent runtime", () => {
                 );
               expect(options.disabledTools).toEqual(
                 expect.arrayContaining([
-                  "read_file",
                   "list_dir",
                   "web_fetch",
                   "web_search",
@@ -336,6 +335,7 @@ describe("remote read recovery in the agent runtime", () => {
                 ]),
               );
               for (const name of [
+                "read_file",
                 "search_files",
                 "write_file",
                 "edit_file",
@@ -351,8 +351,8 @@ describe("remote read recovery in the agent runtime", () => {
               ).toBe(true);
               if (calls === 25)
                 return tool(
-                  "search_files",
-                  { path: ".", pattern: "part" },
+                  "read_file",
+                  { path: "part-0.js", offset: 1, limit: 1 },
                   calls,
                 );
               if (calls === 26) return tool("run_shell", { command }, calls);
@@ -437,7 +437,7 @@ describe("remote read recovery in the agent runtime", () => {
       ),
     ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
     expect(calls).toBe(11);
-    expect(webFetch).toHaveBeenCalledTimes(6);
+    expect(webFetch).toHaveBeenCalledTimes(3);
     expect(events.some((event) => event.type === "compaction")).toBe(true);
     expect(
       events.some(

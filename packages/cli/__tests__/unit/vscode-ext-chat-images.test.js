@@ -162,6 +162,49 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     provider.dispose();
     for (const f of files) expect(fs.existsSync(f)).toBe(false);
   });
+
+  it("keeps a queued screenshot until its own turn finishes", () => {
+    const { provider } = makeSendableProvider();
+    provider._handleMessage({ type: "send", text: "investigate" });
+    provider._handleMessage({
+      type: "send",
+      text: "evidence",
+      images: [{ data: PNG_URL }],
+    });
+    const id = provider._convs.activeId();
+    const [file] = provider._imgTemps.get(id);
+    try {
+      provider._makeOnEvent(id)({ type: "result", result: "first turn" });
+      expect(fs.existsSync(file)).toBe(true);
+      provider._makeOnEvent(id)({ type: "result", result: "image turn" });
+      expect(fs.existsSync(file)).toBe(false);
+    } finally {
+      provider.dispose();
+    }
+  });
+
+  it("a failed send does not delete earlier queued attachments", () => {
+    const { provider, spawns } = makeSendableProvider();
+    provider._handleMessage({
+      type: "send",
+      text: "first",
+      images: [{ data: PNG_URL }],
+    });
+    const id = provider._convs.activeId();
+    const [file] = provider._imgTemps.get(id);
+    try {
+      spawns[0].sendEvent = () => false;
+      provider._handleMessage({
+        type: "send",
+        text: "second",
+        images: [{ data: PNG_URL }],
+      });
+      expect(provider._imgTemps.get(id)).toEqual([file]);
+      expect(fs.existsSync(file)).toBe(true);
+    } finally {
+      provider.dispose();
+    }
+  });
 });
 
 describe("API key stays in the CLI secure store", () => {

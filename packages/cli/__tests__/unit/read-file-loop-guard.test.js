@@ -41,6 +41,28 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("admits a small missing detail during task recovery but bounds the allowance", () => {
+    const { guard, batch } = fixture();
+    const content = "one\ntwo\nthree\nfour";
+    batch({}, content);
+    const file = "/work/report.md";
+    expect(guard.hasRecoveryReads).toBe(true);
+    expect(guard.canContinue(file, { offset: 1, limit: 2 })).toBe(true);
+    expect(guard.canContinue(file, {})).toBe(false);
+    expect(guard.canContinue(file, { offset: 1, limit: 200 })).toBe(false);
+    for (let limit = 1; limit <= 3; limit++)
+      batch({ offset: 1, limit }, content);
+    expect(guard.canContinue(file, { offset: 2, limit: 1 })).toBe(false);
+  });
+  it("varying a covered range does not reset duplicate recovery", () => {
+    const { guard, batch } = fixture();
+    const content = "one\ntwo\nthree\nfour\nfive";
+    batch({}, content);
+    for (let limit = 1; limit <= 4; limit++)
+      batch({ offset: 1, limit }, content);
+    expect(guard.repeatedBatches).toBe(4);
+    expect(guard.takeRecoveryTurn()).toBe(true);
+  });
   it.each(["todo_write", "spawn_sub_agent", "notify", "tool_search"])(
     "%s cannot erase repeated reads or reopen targeted reread allowances",
     (tool) => {

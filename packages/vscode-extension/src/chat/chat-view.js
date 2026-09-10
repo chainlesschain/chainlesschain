@@ -793,10 +793,12 @@ class ChatViewProvider {
         if (this._convs.clearApproval(convId)) this._postTabs();
         conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
-        // The turn is done — the CLI inlined any pasted images at turn start,
-        // so their temp files are consumed and can be deleted now (they would
-        // otherwise pile up in os.tmpdir() forever).
-        this._cleanupImageTemps(convId);
+        // Only this message's images were consumed. Later messages may still
+        // be queued in the CLI while their temporary files await reading.
+        const imageTurns = this._imgTurns?.get(convId);
+        const consumedImages = imageTurns?.shift() || [];
+        this._cleanupImageTemps(convId, consumedImages);
+        if (imageTurns?.length === 0) this._imgTurns.delete(convId);
         // Refresh the persistent context-window indicator for the active tab
         // (best-effort; reuses the CLI's authoritative window math).
         if (this._convs.activeId() === convId)
@@ -1942,20 +1944,30 @@ class ChatViewProvider {
    * when convId is omitted, e.g. on dispose). Best-effort — a file the CLI
    * still holds open on Windows just stays until the next cleanup.
    */
-  _cleanupImageTemps(convId) {
+  _cleanupImageTemps(convId, files) {
     const map = this._imgTemps;
     if (!map || map.size === 0) return;
     const fs = require("fs");
     const keys = convId != null ? [convId] : [...map.keys()];
     for (const k of keys) {
-      for (const file of map.get(k) || []) {
+      const tracked = map.get(k) || [];
+      const selected = files
+        ? tracked.filter((file) => files.includes(file))
+        : tracked;
+      for (const file of selected) {
         try {
           fs.unlinkSync(file);
         } catch {
           /* already gone / still locked — best-effort */
         }
       }
-      map.delete(k);
+      const remaining = tracked.filter((file) => !selected.includes(file));
+      if (remaining.length) map.set(k, remaining);
+      else map.delete(k);
+    }
+    if (files === undefined) {
+      if (convId == null) this._imgTurns?.clear();
+      else this._imgTurns?.delete(convId);
     }
   }
 
@@ -3321,7 +3333,14 @@ class ChatViewProvider {
             images,
           })
         : session.send(m.text);
-      if (ok === true) this._activeConv().turnActive = true;
+      if (ok === true) {
+        this._activeConv().turnActive = true;
+        if (!this._imgTurns) this._imgTurns = new Map();
+        const id = this._convs.activeId();
+        const turns = this._imgTurns.get(id) || [];
+        turns.push(images);
+        this._imgTurns.set(id, turns);
+      }
       if (!ok) {
         this._post({
           kind: "error",
@@ -3333,7 +3352,8 @@ class ChatViewProvider {
         // The send failed, so no `result` event will ever fire to clean up the
         // temp pngs we tracked above — unlink them now, or they leak in tmp for
         // the panel's lifetime (one set per failed send).
-        if (images.length) this._cleanupImageTemps(this._convs.activeId());
+        if (images.length)
+          this._cleanupImageTemps(this._convs.activeId(), images);
       }
     } else if (m.type === "plan") {
       // Plan controls ride the same stdin protocol; entering plan mode may

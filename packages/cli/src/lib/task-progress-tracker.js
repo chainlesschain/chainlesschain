@@ -81,6 +81,7 @@ export class TaskProgressTracker {
     this.childFindings = new Map();
     this.lastActions = [];
     this.remoteInspections = [];
+    this.localFindings = [];
   }
 
   retainChildResult(id, result, owner = "root") {
@@ -119,6 +120,32 @@ export class TaskProgressTracker {
       (tool === "edit_file" &&
         typeof args.old_string === "string" &&
         args.old_string === args.new_string);
+
+    if (!failed && (tool === "search_files" || tool === "read_file")) {
+      const evidence = result.content ?? result.matches ?? result.output;
+      const excerpt = boundedText(
+        typeof evidence === "string" ? evidence : JSON.stringify(evidence),
+        1000,
+      );
+      if (excerpt) {
+        const entry = {
+          owner,
+          tool,
+          path: boundedText(args.path || result.path, 320),
+          query: boundedText(args.pattern, 200),
+          range: result.range,
+          excerpt,
+        };
+        const owned = [
+          ...this.localFindings.filter((item) => item.owner === owner),
+          entry,
+        ].slice(-4);
+        this.localFindings = [
+          ...this.localFindings.filter((item) => item.owner !== owner),
+          ...owned,
+        ].slice(-MAX_CHECKPOINT_OWNERS * 4);
+      }
+    }
 
     if (tool === "spawn_sub_agent")
       this.retainChildResult(result?.subAgentId, result, owner);
@@ -224,6 +251,7 @@ export class TaskProgressTracker {
       guidance:
         message +
         " For an implementation task, make the smallest justified, authorized change and validate it. " +
+        "For a bug fix, state the observed failure, your leading root-cause hypothesis and the smallest test that can disprove it. Run that focused reproduction or diagnostic next; use its actual output to choose the next step. Do not keep reading adjacent files without naming the specific missing fact. A timeout alone does not establish that increasing the timeout is the fix. " +
         "For research/review, synthesize evidence-backed findings; do not write files merely to clear this warning. " +
         "If evidence is insufficient, name the exact missing fact and use a focused search or bounded computation. " +
         "Do not restart general investigation, rewrite the plan, or delegate the same research. " +
@@ -239,11 +267,15 @@ export class TaskProgressTracker {
       !this.plans.size &&
       !this.childFindings.size &&
       !this.lastActions.length &&
-      !this.remoteInspections.length
+      !this.remoteInspections.length &&
+      !this.localFindings.length
     )
       return null;
     const checkpoint = {
       bounded: true,
+      recentLocalFindings: this.localFindings
+        .filter((entry) => entry.owner === owner)
+        .map(({ owner: _owner, ...entry }) => entry),
       recentToolOutcomes: this.lastActions
         .filter((entry) => entry.owner === owner)
         .map(({ tool, path, output }) => ({ tool, path, output })),
@@ -265,6 +297,7 @@ export class TaskProgressTracker {
     // Only counters are inherited across isolated child contracts. Source
     // material belongs to the loop that observed it or received the child result.
     if (
+      !checkpoint.recentLocalFindings.length &&
       !checkpoint.recentToolOutcomes.length &&
       !checkpoint.recentRemoteInspections.length &&
       !checkpoint.reportedPlans.length &&
@@ -275,6 +308,8 @@ export class TaskProgressTracker {
       if (checkpoint.reportedPlans.length > 1) checkpoint.reportedPlans.pop();
       else if (checkpoint.childFindings.length)
         checkpoint.childFindings.shift();
+      else if (checkpoint.recentLocalFindings.length)
+        checkpoint.recentLocalFindings.shift();
       else if (checkpoint.recentRemoteInspections.length)
         checkpoint.recentRemoteInspections.shift();
       else if (checkpoint.recentToolOutcomes.length)

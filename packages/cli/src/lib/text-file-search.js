@@ -54,6 +54,17 @@ export function searchTextFile(file, options = {}) {
     const finish = (result) => {
       if (settled) return;
       settled = true;
+      if (
+        !result.error &&
+        !regex &&
+        result.matches?.length === 0 &&
+        /[|^$]|\\[bdsw]|\.\*/i.test(pattern)
+      ) {
+        result = {
+          ...result,
+          hint: "No literal matches. This pattern contains regex syntax, but this search used literal matching. If alternation or regex was intended, set regex: true; otherwise search one exact symbol. Do not infer that the symbols are absent from this result.",
+        };
+      }
       clearTimeout(timer);
       Promise.resolve(worker?.terminate())
         .catch(() => {})
