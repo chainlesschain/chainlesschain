@@ -2457,11 +2457,20 @@ describe("agentLoop", () => {
     expect(lastEvent.content).toContain("Iteration budget exhausted");
     expect(events[events.length - 1].type).toBe("run-ended");
 
-    // Should have DEFAULT_BUDGET (50) iterations * 2 events (executing + result) + 1 final
+    // The model still receives the full DEFAULT_BUDGET (50) turns. Repeated
+    // discovery is intentionally paused before then, so denied calls do not
+    // emit tool-executing or pretend that work happened.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(50);
     const executingCount = events.filter(
       (e) => e.type === "tool-executing",
     ).length;
-    expect(executingCount).toBe(50);
+    expect(executingCount).toBeGreaterThan(0);
+    expect(executingCount).toBeLessThan(50);
+    expect(
+      events.some(
+        (event) => event.result?.code === "CC_TOOL_RECOVERY_PAUSED",
+      ),
+    ).toBe(true);
   });
 
   it("yields slot-filling events when slotFiller detects missing slots", async () => {
