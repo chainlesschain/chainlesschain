@@ -34,11 +34,11 @@ const REQUIRED_FILES = Object.freeze([
   "outcome-observations.json",
 ]);
 // Each child performs five mutations through the production 2s strict lock.
-// Twelve shared retries leave room for the Windows 20-worker campaign to drain
-// under a loaded hosted runner. A single mutation can consume at most thirteen
-// lock windows (26s plus <2.5s backoff), below the 60s child deadline. Retrying
-// remains restricted to mutations proven not to have committed.
-const SAFE_CONTENTION_RETRIES_PER_WORKER = 12;
+// Twenty shared retries leave room for the Windows 20-worker campaign to drain
+// under a loaded hosted runner. A worker can consume at most twenty lock-retry
+// windows (40s plus <4s backoff), below the 60s child deadline. Retrying remains
+// restricted to mutations proven not to have committed.
+const SAFE_CONTENTION_RETRIES_PER_WORKER = 20;
 const MAX_DIAGNOSTIC_BYTES = 16 * 1024;
 
 function delay(ms) {
