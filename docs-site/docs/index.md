@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.38 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge 3.9 万+下载"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.44 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.38
-    details: CLI/Hub 模型入口统一治理、Desktop Hub resolver/Skill 的主进程 authority 接线、provider stream 完整性校验、witness 分段存储，以及 IDE 模型配置原子保存。
+    title: Agent Platform 0.166.44
+    details: 新建 Volcengine 文本配置默认采用 DeepSeek V4 Flash GA；CLI/Hub 模型入口保持统一治理，已保存的模型配置不被改写。
     link: /chainlesschain/agent-platform-release
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -42,7 +42,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 3.9 万下载
-    details: Open VSX 0.37.92 与 JetBrains Marketplace 0.4.119 已公开回读；两端均推荐 CLI 0.166.38，并提供已验证的模型配置保存。
+    details: VS Code 0.37.94 与 JetBrains 0.4.122 与 CLI 0.166.44 对齐；模型配置原子保存和脱敏回读保持不变。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -52,10 +52,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.38@de8ec4e5c8 的三平台 CLI/Strict/IDE 门、Trusted Publishing 与 npm 回读已闭环；Open VSX、JetBrains 与 Desktop 仍保持独立制品身份。
+    details: npm latest 为 CLI 0.166.44@0651cbcb7d；IDE 与 Desktop 继续作为独立制品验收，目标环境 authority 不由安装包自动生成。
 ---
 
-> **2026-09-09 部署快照**：npm `latest` 与生产推荐 CLI 为 `0.166.38@de8ec4e5c8`，三平台 CLI CI、Strict Sandbox、IDE Extensions、Trusted Publishing 与 npm 公共回读完成；Session Core 为 `0.3.12`，Agent SDK TS/Python 为 `0.2.9/0.2.8`，Protocol 为 `0.1.9`，Context Memory Kernel 为 `0.1.1`，Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。本版把 CLI direct stream、intent、WebSocket 与 Hub 模型调用接入同一治理链，并改进模型配置与连接测试。本地 `main@a238e6c245` 又接通 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell，确认后台/Coding Agent 入口重入 canonical loader，并使 Legacy ImageGen 内容入口在缓存、provider 与 fallback 前失败闭合；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 已包含发布提交，但尚未包含这些 post-release 增量。详细入口：[发布指南](/chainlesschain/agent-platform-release)、[CLI Runtime](/chainlesschain/cli-runtime-current)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
+> **2026-09-11 发布快照**：npm `latest` 为 `chainlesschain@0.166.44`，不可变标签为 `v-npm-0-166-44@0651cbcb7d`；产品版本为 `v5.0.3.137`。新建 Volcengine 文本配置默认使用 `deepseek-v4-flash-ga-260731`（DeepSeek V4 Flash GA），既有保存配置不迁移。同期源码强化了 EvolutionLedger 的整批预校验/签名、增量前缀重验和 v2 manifest head CAS；这些可靠性增强不等于目标环境已配置 KMS/PKI/witness/grader，也不改变 automatic promotion `HOLD`。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[模块 112](/design/modules/112-governed-skill-evolution-design)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 
 > **Agent/Skill evolution 当前边界**：公开 `0.166.38` 继承页面化 Workbench、Retrieval、knowledge review/merge 和 trust ledger，并覆盖 CLI/Hub 模型入口。仓库闭环仍不等于目标环境已配置 KMS/PKI/witness/grader；Workbench/knowledge 命令缺 trusted deployment host 时失败闭合。
 

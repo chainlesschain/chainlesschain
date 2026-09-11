@@ -2,16 +2,26 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.43`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.44`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.43 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.44 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-10 当前发布 — **CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120：受治理的 Skill 演进部署配置**
+## 2026-09-11 当前发布 — **v5.0.3.137 / CLI 0.166.44：DeepSeek V4 Flash GA 默认模型**
+
+> npm `latest` 为 `0.166.44`，对应不可变标签 [`v-npm-0-166-44`](https://github.com/chainlesschain/chainlesschain/releases/tag/v-npm-0-166-44) 与精确提交 [`0651cbcb7d`](https://github.com/chainlesschain/chainlesschain/commit/0651cbcb7de4fd00769f606b4a247e14973480b6)。产品版本 `v5.0.3.137` 已同步 CLI、Desktop、Android、iOS 与 IDE 的版本元数据；安装 CLI 请使用 `npm i -g chainlesschain@0.166.44`。
+
+> 新建的 Volcengine 文本模型配置现在默认选择 `deepseek-v4-flash-ga-260731`。已有配置不会被迁移或覆盖，仍可显式使用 `deepseek-v4-flash-260425` 或其他已配置模型。模型选择仍受既有 provider、凭据、预算和受治理入口校验约束。
+
+> 同轮源码还增强了 `EvolutionLedger`：批量追加会先完整校验并签名计划再写入；增量读取会重验缓存前缀；v2 manifest 链新增本地 owner-only head CAS 后端及 readback/fault-recovery 校验。这些是源码与测试层面的可靠性增强，不代表目标环境已具备 KMS/PKI、独立 witness 或自动 active Skill 晋升。
+
+> 详见[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)、[模块 113 设计](docs/design/modules/113-governed-desktop-model-ingress-design.md)、[受治理 Skill 演进用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)与[更新日志](CHANGELOG.md)。
+
+## 2026-09-10 历史发布 — **CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120：受治理的 Skill 演进部署配置**
 
 > npm `latest` `0.166.43` 对应不可变 tag `v-npm-0-166-43` 与精确提交 [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c)。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) 三平台门禁及 [npm Trusted Publishing 与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264) 均成功。
 >

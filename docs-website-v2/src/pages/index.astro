@@ -147,10 +147,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：Agent Platform <code class="font-mono">{CLI_VERSION}</code> 同时是生产推荐版与 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>）。不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 的 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code> 已通过三平台 CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读。本版新增签名的受治理 Skill 演进部署配置：CLI、VS Code、JetBrains 与 Web Panel 共用同一验签、持久化和启停控制面，automatic active promotion 继续保持 HOLD。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>/<code class="font-mono">{PYTHON_AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
+          发布说明：Agent Platform <code class="font-mono">{CLI_VERSION}</code> 是 npm <code class="font-mono">latest</code>（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>），对应不可变 tag <code class="font-mono">{CLI_RELEASE_TAG}</code> 与 exact SHA <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。新建 Volcengine 文本配置默认采用 DeepSeek V4 Flash GA，已有模型配置保持不变。受治理 Skill 演进仍使用 CLI-owned 验签、持久化和启停控制面，automatic active promotion 保持 HOLD；每次新制品发布仍以该提交的 GitHub Actions 跨平台矩阵为准。TypeScript/Python Agent SDK 为 <code class="font-mono">{AGENT_SDK_VERSION}</code>/<code class="font-mono">{PYTHON_AGENT_SDK_VERSION}</code>，Agent Protocol 为 <code class="font-mono">{AGENT_PROTOCOL_VERSION}</code>。
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains Marketplace {JETBRAINS_VERSION} 已公开并推荐 CLI {CLI_VERSION}。发布提交 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code> 与当前 GitHub main <code class="font-mono">{SOURCE_HEAD_COMMIT}</code> 一致；部署 profile 只选择已认证的宿主模块，不生成治理私钥、不授予审核或发布权限。目标环境的 KMS/PKI、身份、policy、witness、grader 与 Desktop native 安装包仍按独立部署/制品验收。
+          IDE 源码版本为 VS Code {VSCODE_VERSION} 与 JetBrains {JETBRAINS_VERSION}，推荐 CLI {CLI_VERSION}。npm 发布提交为 <code class="font-mono">{SOURCE_CANDIDATE_COMMIT}</code>，当前源码为 <code class="font-mono">{SOURCE_HEAD_COMMIT}</code>；二者不是同一制品身份。部署 profile 只选择已认证的宿主模块，不生成治理私钥、不授予审核或发布权限。目标环境的 KMS/PKI、身份、policy、witness、grader 与 Desktop native 安装包仍按独立部署/制品验收。
         </p>
 
         <!-- Trust badges -->

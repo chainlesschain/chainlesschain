@@ -1,10 +1,10 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.43`；更新：2026-09-10
+> 适用版本：Agent Platform CLI `0.166.44`；更新：2026-09-11
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.43`、Open VSX `0.37.93` 与 JetBrains Marketplace `0.4.120` 已公开，均对应 `7528bfb81d`。安装或升级 CLI：`npm i -g chainlesschain@0.166.43`。
+> 发布状态：npm `chainlesschain@0.166.44` 是当前 `latest`，对应不可变标签 `v-npm-0-166-44` 与提交 `0651cbcb7d`。安装或升级 CLI：`npm i -g chainlesschain@0.166.44`。
 
 ## 概述
 
@@ -13,6 +13,8 @@
 `0.166.21` 在既有 candidate、目标矩阵 Eval、证据投影、可检测篡改的 append-only 账本、mutation authority、promotion/release、持久 `EvolutionRun`、Wiki/Memory 和 registry transition 之上，公开了 Evolution Workbench、摘要绑定的 Skill Retrieval，以及受治理的加密知识冲突审核与合并入口。候选比较、人工批准/拒绝、回滚请求、冲突分页和合并计划现在都有 CLI/App Server 投影。
 
 这些入口不把客户端变成 authority。Workbench 和知识审核需要部署方注入受信治理宿主；未接线时 CLI 明确失败闭合。批准只提交与确切 revision、digest 和 dependency lock 绑定的决定，发布仍由 mutation authority、CAS、账本和策略共同裁决。生产 KMS/PKI、identity、policy、witness、scheduler 与真实 grader 仍由目标部署提供，当前版本不宣称会无人值守地升级 active Skill。
+
+`0.166.44` 将新建 Volcengine 文本配置的默认模型更新为 DeepSeek V4 Flash GA（`deepseek-v4-flash-ga-260731`）。此项更新不会修改已保存的模型设置，也不会改变本页的候选、审核、发布或 automatic promotion `HOLD` 边界。
 
 ## 如何开启：没有一个“自动进化总开关”
 

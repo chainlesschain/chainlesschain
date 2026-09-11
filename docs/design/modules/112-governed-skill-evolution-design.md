@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 状态：2026-09-10 核对，`0.166.43@7528bfb81d` 已公开 candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval、受治理知识同步，以及签名部署配置；VS Code `0.37.93`、JetBrains `0.4.120` 和 `cc ui` 共用该配置面，目标环境 authority 和自动 active promotion 保持 HOLD
+> 状态：2026-09-11 核对，公开 npm CLI 为 `0.166.44@0651cbcb7d`；candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval、受治理知识同步及签名部署配置仍保持原有 authority 边界。源码另加入 EvolutionLedger 批量写入、增量前缀重验与 v2 manifest head 持久 CAS；目标环境 authority 和 automatic active promotion 继续保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
@@ -326,6 +326,16 @@ deployment-owned branded dependencies
 
 发布证据绑定同一 SHA：CLI CI `34476406749`、CLI Strict Sandbox `34476405180`、IDE Extensions `34476405124` 和 npm Trusted Publishing/公共回读 `34479754264` 均成功；npm `0.166.43`、Open VSX `0.37.93` 与 JetBrains Marketplace `0.4.120` 已公开。后续普通 push matrix 曾因 Windows 依赖安装失败产生一次红灯，不改写上述精确 release gate 的成功事实；相关锁竞争测试已继续加固，部署文案不把单次环境故障描述为功能退化。
 
+## 18.9 2026-09-11 源码核对：账本可靠性与 v2 manifest checkpoint
+
+`df93a5aa17` 将账本的容量整改从“只可离线验证的 manifest 链”继续推进到可恢复的 v2 checkpoint 组合，但没有把 v2 静默切换成现有 v1 生产后端。`EvolutionLedger.appendBatch()` 与 `appendDomainEventBatch()` 最多接受 1,024 条事件：先对整批输入执行 schema、重复 ID、artifact、Wiki admission 与签名规划，再开始落盘，避免后续条目校验失败时留下“看似成功”的前缀。每条记录仍经历 segment、anchor、directory durability、witness、HEAD 与重新加载验证；返回的 batch receipt 明确记录 sequence 范围、每条 receipt、最终 head 和 witness digest。
+
+热路径现在可以复用已认证的前缀索引，但不会盲目信任缓存：目录、文件身份、内容摘要和同长度原地篡改均会在读取前重新核验，发现变化即按 `CC_EVOLUTION_LEDGER_CORRUPT` 失败闭合。这个改动改善重复读取与追加的成本边界，不构成 10,000 或 250,000 event 容量门已通过的声明。
+
+v2 manifest backend 新增 `createEvolutionLedgerFileManifestHeadBackend()`。它把 `manifest-head.json` 置于 owner-only 目录，以跨进程文件锁执行 compare-and-set，并在临时文件 fsync、rename、目录 fsync 后重新读取；符号链接、硬链接、超限、文件身份漂移、无效 UTF-8/JSON 与 readback 不一致都会拒绝。backend 继续要求 manifest catalog、head 与 witness checkpoint 三者相互绑定，出现部分提交或 CAS 冲突时要求 reopen/recovery，不能把未知提交当作成功。
+
+该实现仍是本地文件后端与测试组合的一部分：生产 KMS/HSM、独立 witness fault domain、真实事件导入、v1→v2 journaled migration、断电/磁盘写满演练和容量门仍需由部署及后续验收完成。
+
 ## 19. 关键文件
 
 - `packages/cli/src/lib/evolution/skill-candidate-registry.js`
@@ -334,6 +344,8 @@ deployment-owned branded dependencies
 - `packages/cli/src/lib/evolution/skill-target-matrix-eval.js`
 - `packages/cli/src/lib/evolution/evolution-evidence-projector.js`
 - `packages/cli/src/lib/evolution/evolution-ledger.js`
+- `packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js`
+- `packages/cli/src/lib/evolution/evolution-ledger-v2-manifest-backend.js`
 - `packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js`
 - `packages/cli/src/lib/evolution/agent-evolution-ingress.js`
 - `packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js`

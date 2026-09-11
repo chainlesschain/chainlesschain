@@ -1,6 +1,6 @@
 # 113 Desktop 受治理模型入口设计
 
-> 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 源码已落地；CLI/Hub 共享治理入口已随 `0.166.38` 发布，Desktop native 生产部署待验收
+> 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 源码已落地；CLI/Hub 共享治理入口基线为 `0.166.38`，当前公开 CLI `0.166.44` 将新 Volcengine 文本配置默认更新为 DeepSeek V4 Flash GA；Desktop native 生产部署仍待独立验收
 >
 > 核对基线：本地 `main@a238e6c245`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
 >
@@ -29,6 +29,10 @@ Desktop 历史上存在多条直接调用模型或 opaque AI backend 的路径�
 Desktop ingress 的“宿主拥有 authority、单次调用固定模型身份、终态先落账再报告成功”不变量现复用于 CLI direct stream、intent service、legacy/canonical WebSocket chat 与 Personal Data Hub。共享的 `governed-model-turn` 负责固定 provider/model/tenant/task/ingress，Hub 专用适配器分别覆盖 analysis、Skill commentary 和 resolver/embedding 选择；UI 启动必须显式转交认证后的 deployment composition。
 
 这些适配器不会把治理变成可选观测。未配置可信部署、Run 身份不匹配、provider stream 缺少合法终止、回调尝试更换模型，或证据/终态持久化失败时，调用在成功返回前关闭。可选 Skill 说明与 intent fallback 只能处理自身业务结果，不能吞掉治理错误。`0.166.38` 的 npm 制品包含这些 CLI/Hub 路径；Desktop Electron 的 native 分发、真实 provider、KMS/PKI 和目标环境 authority 仍按独立验收处理。
+
+### 1.1.1 `0.166.44` 的默认模型更新
+
+新建 Volcengine 文本配置的默认值从 `deepseek-v4-flash-260425` 更新为 `deepseek-v4-flash-ga-260731`（DeepSeek V4 Flash GA）。这是默认选择变化，不是对保存配置的迁移：已有 provider/model 组合保持原样，用户和部署方仍可显式选择旧模型或其他允许模型。无论默认值为何，governed turn 在网络发送前固定实际 provider/model；回调、fallback 或 renderer 都不能在已建立的 Run 中替换它。
 
 ### 1.2 `8c1772ba6c` / `1fd9e684f2` 的 Desktop Hub 与 Web Shell 接线
 
