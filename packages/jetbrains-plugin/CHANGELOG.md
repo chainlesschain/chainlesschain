@@ -6,6 +6,8 @@
   the native connection dialog.
 - Preserve the previous model for existing saved settings and explicit model
   selections.
+- Recommend the exact-gated `chainlesschain@0.166.44` CLI release that carries
+  the same default for terminal and bundled runtimes.
 
 ## [0.4.120] - Configure governed Skill evolution (2026-09-10)
 

@@ -8,6 +8,8 @@ All notable changes to this extension are documented here.
   the connection wizard.
 - Keep the previous `deepseek-v4-flash-260425` model available for existing
   installations and explicit configurations.
+- Recommend the exact-gated `chainlesschain@0.166.44` CLI release that carries
+  the same default for terminal and bundled runtimes.
 
 ## [0.37.93] - Configure governed Skill evolution (2026-09-10)
 

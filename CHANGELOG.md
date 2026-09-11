@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.136] - 2026-09-11 — DeepSeek V4 Flash GA 默认模型与全端同步发行
+
+> 本版将火山引擎新配置的默认文本模型统一为 DeepSeek V4 Flash GA，并同步发行 CLI、IDE 插件、桌面端与移动端产物；既有已保存模型配置保持不变。
+
+### Changed - cc CLI 0.166.44: use DeepSeek V4 Flash GA by default
+
+- Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for
+  new CLI, agent and task-model configurations.
+- Keep `deepseek-v4-flash-260425` available for existing saved settings and
+  explicit model selection.
+- Pair VS Code `0.37.94` and JetBrains `0.4.121` with the same exact-gated CLI,
+  and embed it in the `v5.0.3.136` desktop and mobile release artifacts.
+
+### Version sync
+
+- productVersion `v5.0.3.135` → `v5.0.3.136`
+- desktop-app-vue `5.0.3-alpha.135` → `5.0.3-alpha.136`
+- Android `versionCode 503135` → `503136` / `versionName 5.0.3.135` → `5.0.3.136`
+- iOS `CFBundleVersion 135` → `136`
+- CLI `0.166.43` → `0.166.44`
+- VS Code `0.37.93` → `0.37.94` / JetBrains `0.4.120` → `0.4.121`
+
 ### Added - cc CLI 0.166.43: configure governed Skill evolution
 
 - Add a persistent, fail-closed deployment profile for signed governed-evolution

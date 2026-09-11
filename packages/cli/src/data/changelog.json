@@ -2,994 +2,420 @@
   "source": "CHANGELOG.md",
   "releases": [
     {
-      "productVersion": null,
-      "cliVersion": "0.166.43",
-      "cliVersions": ["0.166.43"],
-      "date": null,
-      "title": "",
+      "productVersion": "v5.0.3.136",
+      "cliVersion": "0.166.44",
+      "cliVersions": [
+        "0.1.1",
+        "0.1.2",
+        "0.1.4",
+        "0.1.5",
+        "0.1.6",
+        "0.1.8",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2",
+        "0.2.3",
+        "0.2.4",
+        "0.2.5",
+        "0.2.8",
+        "0.3.6",
+        "0.3.8",
+        "0.3.9",
+        "0.3.10",
+        "0.3.11",
+        "0.3.12",
+        "0.4.74",
+        "0.4.75",
+        "0.4.104",
+        "0.37.35",
+        "0.37.36",
+        "0.37.73",
+        "0.162.178",
+        "0.162.179",
+        "0.162.180",
+        "0.162.181",
+        "0.162.182",
+        "0.162.183",
+        "0.162.184",
+        "0.162.185",
+        "0.162.186",
+        "0.162.187",
+        "0.162.188",
+        "0.162.189",
+        "0.162.197",
+        "0.162.198",
+        "0.162.199",
+        "0.162.200",
+        "0.163.0",
+        "0.163.1",
+        "0.163.2",
+        "0.163.3",
+        "0.163.4",
+        "0.163.5",
+        "0.163.6",
+        "0.163.7",
+        "0.163.8",
+        "0.164.0",
+        "0.165.1",
+        "0.165.2",
+        "0.165.3",
+        "0.165.4",
+        "0.165.5",
+        "0.165.6",
+        "0.165.7",
+        "0.165.8",
+        "0.165.9",
+        "0.165.10",
+        "0.166.0",
+        "0.166.1",
+        "0.166.2",
+        "0.166.3",
+        "0.166.4",
+        "0.166.5",
+        "0.166.6",
+        "0.166.7",
+        "0.166.8",
+        "0.166.9",
+        "0.166.10",
+        "0.166.12",
+        "0.166.13",
+        "0.166.14",
+        "0.166.15",
+        "0.166.16",
+        "0.166.17",
+        "0.166.18",
+        "0.166.20",
+        "0.166.21",
+        "0.166.22",
+        "0.166.23",
+        "0.166.24",
+        "0.166.25",
+        "0.166.26",
+        "0.166.28",
+        "0.166.29",
+        "0.166.30",
+        "0.166.31",
+        "0.166.32",
+        "0.166.33",
+        "0.166.34",
+        "0.166.35",
+        "0.166.36",
+        "0.166.37",
+        "0.166.38",
+        "0.166.39",
+        "0.166.40",
+        "0.166.41",
+        "0.166.42",
+        "0.166.43",
+        "0.166.44"
+      ],
+      "date": "2026-09-11",
+      "title": "DeepSeek V4 Flash GA 默认模型与全端同步发行",
       "sections": [
+        {
+          "heading": "Changed - cc CLI 0.166.44: use DeepSeek V4 Flash GA by default",
+          "body": "- Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for\n  new CLI, agent and task-model configurations.\n- Keep `deepseek-v4-flash-260425` available for existing saved settings and\n  explicit model selection.\n- Pair VS Code `0.37.94` and JetBrains `0.4.121` with the same exact-gated CLI,\n  and embed it in the `v5.0.3.136` desktop and mobile release artifacts."
+        },
         {
           "heading": "Added - cc CLI 0.166.43: configure governed Skill evolution",
           "body": "- Add a persistent, fail-closed deployment profile for signed governed-evolution\n  descriptors and Ed25519 trust roots. Environment overrides remain available\n  for centrally managed installations.\n- Add `cc evolution deployment status/configure/enable/disable` so administrators\n  can verify and control the deployment without maintaining process environment\n  variables.\n- Expose the same bounded configuration through authenticated App Server topics\n  for `cc ui`; automatic promotion remains `HOLD` and review/release authority\n  stays in the signed deployment host.\n- Document defaults, triggers, review flow, storage locations, and the visual\n  configuration entry points used by both IDE plugins and `cc ui`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.42",
-      "cliVersions": ["0.166.42"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.42: converge stalled investigations",
           "body": "- Treat repeated web searches, fetches and read-only GitHub inspection as one\n  bounded investigation, retaining remote evidence across compaction without\n  letting cosmetic query changes reset convergence.\n- Keep recovery active until the agent takes a concrete mutation or verification\n  step, and direct cancelled Actions investigations toward actionable reruns or\n  fixes without weakening release gates.\n- Prevent cancellation propagation from being rewritten as a new aggregate gate\n  failure while preserving fail-closed aggregation for completed matrix failures.\n- Stabilize Windows release evidence under hosted-runner load with bounded,\n  commit-safe retries and test-only startup/capacity budgets; production lock,\n  access-control and message-capacity limits remain unchanged."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.41",
-      "cliVersions": ["0.166.41"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.41: execute explicit IDE PR-close requests",
           "body": "- Preserve a user's explicit request to close targeted pull requests across\n  compaction and loop-recovery prompts; do not silently downgrade it to a\n  recommendation or merits review.\n- Use cmd-compatible direct `gh pr close` commands and a one-time `CLOSED`\n  state verification, while retaining the normal execution approval gate.\n- Block repeated `gh pr` and GitHub API pull/compare/release reads after two\n  prerequisite checks until the requested close is attempted, preventing\n  branch and release archaeology from becoming another IDE loop.\n- Add offline runtime and CI smoke coverage for an explicit close surviving\n  compaction and for compare-API loops being redirected to the close action."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.40",
-      "cliVersions": ["0.166.40"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.40: recover IDE pull-request investigations",
           "body": "- Detect repeated PR lists, details and diffs across web, GitHub CLI and API\n  reads, including alternating errors and already-seen results.\n- Retain evidence for multiple PRs and local repository errors across context\n  compaction; guide the agent toward a focused comparison, an already-authorized\n  action, or a concrete blocker.\n- Explain Git tool reroutes, missing local remotes, unsupported PR command\n  arguments and Windows shell quoting without relaxing execution policy.\n- Stop repeated policy rejections even when command arguments change, while\n  preserving forward pagination, fresh evidence and lightweight status polling.\n- Read actual shell stdout when measuring progress and retaining verification\n  results. Validate PR close/state verification and loop exits with an offline\n  asynchronous runtime smoke test on the release matrix."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.39",
-      "cliVersions": ["0.166.39"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.39: stop repeated log reads and stabilize CI",
           "body": "- Detect repeated local CI-log searches even when each `findstr`, `grep`, `rg`,\n  or `Select-String` command changes its pattern, then recover and stop the agent\n  instead of reading the same downloaded log forever.\n- Treat search exit code 1 as \"no match\" rather than evidence of a new CI failure.\n- Coalesce repeated no-hook audit events so long-running duplex sessions retain\n  authenticated evidence without quadratic file rewrites or runaway RSS growth.\n- Keep the learning skill writer discoverable by the release inventory scanner.\n- Keep attestor Unix sockets below the macOS path limit, bind Windows secure\n  pipes to the current logon SID, and terminate services when capabilities\n  expire."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.38",
-      "cliVersions": ["0.166.38"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.38: publish audited child package updates",
           "body": "- Upgrade the CLI dependency to Context Memory Kernel `0.1.1`, including the\n  LLM selector in the writer inventory.\n- Release Agent Protocol `0.1.9` with knowledge revocation prepare/publish methods\n  in the schema and generated Kotlin/Swift bindings.\n- Include Agent Protocol checks and publication in the CLI release workflow,\n  before the CLI is published.\n- Pair the pending IDE releases with CLI `0.166.38` after npm verification."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.37",
-      "cliVersions": ["0.166.36", "0.166.37"],
-      "date": "2026-09-09",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.37: govern model entry points and preserve failures",
           "body": "> `chainlesschain` **0.166.36 -> 0.166.37** (2026-09-09), source candidate\n> awaiting the exact-commit release matrix and child-package publication.\n\n- Apply host-provided evolution governance to CLI streams, intent requests,\n  WebSocket chat, Hub analysis and skills, and Hub resolver model calls.\n- Reject incomplete provider streams and preserve governance failures through\n  optional skill commentary instead of reporting a successful fallback.\n- Forward deployment composition through UI startup and retain per-turn\n  evidence before reporting model completion.\n- Require personal-data-hub 0.4.60 with valid JSON model examples and preserved\n  governance errors. Repository-wide model entry coverage remains incomplete."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.36",
-      "cliVersions": ["0.166.35", "0.166.36"],
-      "date": "2026-09-08",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.36: test reasoning model connections without false failures",
           "body": "> `chainlesschain` **0.166.35 -> 0.166.36** (2026-09-08), source candidate\n> awaiting the exact-commit release matrix.\n\n- Give CLI and IDE connection tests a bounded 1,024-token output allowance.\n  The previous 16-token request could exhaust a reasoning model's budget\n  before its final answer and incorrectly suggest invalid connection settings.\n- Distinguish output exhaustion from an empty or malformed response, and keep\n  Gemini thought parts out of the displayed answer. Preserve the configured\n  model's reasoning behavior and the request timeout; do not retry the probe.\n- When `llm test --provider` selects another provider, use that provider's\n  model, endpoint and credential defaults instead of mixing in saved values\n  from the previous provider.\n- Derive each Canary heartbeat expiry from its single issuance timestamp.\n  Crossing a wall-clock millisecond while building the signed lease no longer\n  rejects an otherwise valid heartbeat.\n- Reproduced against the configured Ark `deepseek-v4-flash-260425`: the old\n  request returned HTTP 200, `finish_reason=length`, 16 reasoning tokens and\n  no answer; the corrected request returned `finish_reason=stop` and `Hi`.\n  CLI and IDE adapter regression tests also use an isolated local relay."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.35",
-      "cliVersions": ["0.166.34", "0.166.35"],
-      "date": "2026-09-08",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.35: restore governed storage and bound witness rewrites",
           "body": "> `chainlesschain` **0.166.34 -> 0.166.35** (2026-09-08), source candidate\n> awaiting the exact-commit release matrix.\n\n- Move authenticated file-witness prefixes into immutable 256-record segments\n  and rewrite only the bounded tail after migration from the legacy store.\n- Rehash every referenced segment on each read, preserve ancestry and discard\n  fences across segment boundaries, and invalidate verified summaries when\n  the authority trust epoch changes.\n- Preserve the existing aggregate byte limit by default; separately configure\n  larger history budgets without raising the per-file allocation limit.\n- Confirm published segment bytes by durable readback before advancing the\n  witness head, and retain recoverable publication ordering across crashes.\n- Capture authority methods and caller inputs before callbacks can replace\n  them. Document backup and runtime compatibility for the v2 storage format.\n- Use the existing trusted-directory device check for affected Windows libuv\n  path/handle stat projections across EvolutionLedger, file witness,\n  ArtifactStore and Candidate/Release Registry storage.\n- Keep inode, mode, link-count, size and read-time metadata comparisons exact,\n  and preserve pathname identities across publication and authenticated caches.\n- Retain bounded local-test CLI startup errors in the Workbench browser\n  evidence job so process exit failures identify their underlying cause."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.34",
-      "cliVersions": ["0.166.32", "0.166.34"],
-      "date": "2026-09-08",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.34: retain minimum-Node release compatibility",
           "body": "> `chainlesschain` **0.166.32 -> 0.166.34** (2026-09-08), paired with\n> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.\n> The `0.166.33` candidate was not published: its minimum-Node release tests\n> exposed a reverted SQLite fixture fix. Its immutable tag is retained.\n\n- Include the large-page local snapshots, chunk reading, keyword web search,\n  long-file search and CI-log recovery prepared in the 0.166.33 candidate.\n- Restore the shipped SQLite driver in Desktop cache composition tests so the\n  complete release suite runs on Node 22.12 without experimental flags; add a\n  release-contract regression that detects the reverted fixture.\n- Keep duplicate background-release frames alive long enough to assert exactly\n  one entry execution, and surface concurrent restore failure diagnostics."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.33",
-      "cliVersions": ["0.166.32", "0.166.33"],
-      "date": "2026-09-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.33: download large webpages once and read local chunks",
           "body": "> `chainlesschain` **0.166.32 -> 0.166.33** (2026-09-07), paired with\n> VS Code / VSCodium extension **0.37.89** and JetBrains plugin **0.4.115**.\n\n- Raise the default raw webpage download budget to 10 MB and separate it from\n  the returned text budget (`maxChars`, default 20000).\n- Save extracted text as bounded local snapshots. Continue with `snapshotId`\n  and `offset` from `nextOffset`, without downloading the page again.\n- Return explicitly marked prefixes for oversized text pages, with guidance\n  to raise the download budget; preserve strict complete-response mode and JSON\n  integrity. Snapshot paging never claims an incomplete download is complete.\n- Bound snapshot storage and retention, isolate readers by host and URL/policy,\n  preserve Unicode across chunks, and remove snapshots on normal process exit.\n- Show concrete error codes and recovery guidance in IDE chat and preserve\n  those details when recovering from repeated remote-read failures.\n- Route keyword-based discovery through `web_search`; bound large search\n  responses independently of snippets and report verification challenges as errors.\n- Search saved webpages and stream long local files for keywords, return\n  precise positions/context and read cursors, and bound regex execution.\n- Update browser-vision edge-case tests to the governed multimodal ingress\n  contract, covering rejection before capture/provider calls and preventing\n  legacy cache entries from bypassing that boundary (Actions run 34127723046)."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.32",
-      "cliVersions": ["0.166.30", "0.166.32"],
-      "date": "2026-09-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.32: release-compatible web fetch and CI log recovery",
           "body": "> `chainlesschain` **0.166.30 -> 0.166.32** (2026-09-07). The `0.166.31`\n> candidate was not published because two existing cache tests required the\n> flag-gated `node:sqlite` API on Node 22.12. Its immutable tag is retained.\n\n- Include the hostname-fetch repair, bounded request duration, structured errors\n  and repeated GitHub Actions log recovery prepared in the 0.166.31 candidate.\n- Exercise Desktop cache isolation and encrypted replay with the shipped SQLite\n  driver on the minimum supported Node 22.12, without skipping assertions.\n- Give Windows crash-recovery fixtures enough time to reach their intended\n  checkpoints before lease expiry, while preserving real expiry, stale-fence,\n  single-effect and rollback recovery checks.\n- Verify fresh Wiki-recovery worker instances with child-generated identities\n  bound to the spawned child, since Windows can reuse exited process IDs.\n- Require the complete CLI CI and CLI Strict Sandbox matrices for the new exact\n  release commit before npm publication."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.31",
-      "cliVersions": ["0.166.30", "0.166.31"],
-      "date": "2026-09-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.31: reliable web fetch and bounded CI log recovery",
           "body": "> `chainlesschain` **0.166.30 -> 0.166.31** (2026-09-07). Publication requires\n> successful CLI CI and CLI Strict Sandbox matrices for the exact release commit.\n\n- Fix Node 22 multi-address DNS callbacks that caused hostname fetches to fail\n  with `Invalid IP address: undefined`, while preserving private-address checks.\n- Bound the full fetch duration, including redirects and streaming responses;\n  return structured HTTP, timeout and response-size errors with retry guidance.\n- Recognize repeated failed fetches and unchanged GitHub Actions logs across\n  web pages, `gh run view` and `gh api`; retain bounded evidence through context\n  compaction and offer a recovery turn before stopping persistent retry loops.\n- Preserve status monitoring, new job/log evidence and real local edits as\n  recovery paths, and never skip shell execution based on cached stdout.\n- Validate with 158 focused unit/integration tests covering network failures,\n  resource budgets, compaction, recovery and existing agent-loop behavior."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.30",
-      "cliVersions": ["0.166.29", "0.166.30"],
-      "date": "2026-09-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.30: custom LLM connections and page-first IDE workspaces",
           "body": "> `chainlesschain` **0.166.29 -> 0.166.30** (2026-09-07), paired with\n> VS Code / VSCodium extension **0.37.87**. Publication requires the exact\n> release commit's complete CLI CI, CLI Strict Sandbox and IDE release gates.\n\n- Save custom relay URLs, protocol selections, model aliases and credentials\n  atomically with `llm configure`; accept secrets only through bounded JSON\n  stdin, never argv. Changing destinations requires a destination-specific key.\n- Test OpenAI-compatible, Anthropic, Gemini and Ollama endpoints using their\n  native protocols, bounded request timeouts and no credential-bearing redirects.\n- Open Evolution Workbench on a status overview with a version list, optional\n  filtering, evidence inspection and confirmed, capability-gated decisions.\n- Open the IDE Skill Library on a paginated catalog; task retrieval is optional\n  and preserves canonical digest/conflict/authority validation without execution.\n- Add an isolated source-checkout local Workbench test profile. Test identities\n  remain explicitly marked; this does not provision real identity or approval\n  services or enable mutation in an unconfigured production deployment."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.29",
-      "cliVersions": ["0.166.26", "0.166.29"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.29: recover long-running agent tasks",
           "body": "> `chainlesschain` **0.166.26 -> 0.166.29** (2026-09-06). VS Code and\n> JetBrains plugin updates will follow after this CLI version is publicly\n> installable and verified.\n\n- Track task progress separately from file coverage. Reading new files, updating\n  a TODO plan, or dispatching a sub-agent no longer counts as implementing the\n  user's task.\n- Share bounded exploration accounting between the main agent and sub-agents;\n  preserve the current plan, observed work, and delivered child findings across\n  compaction without widening a child agent's source-data access.\n- Prompt the agent to consolidate findings after sustained exploration, then\n  offer a one-turn recovery mode that removes broad-read and re-delegation\n  tools while keeping focused search, edits, and validation available.\n- Keep the repeated-read backstop for ignored recovery guidance, including when\n  planning calls are interleaved with the same EOF read.\n- Make IDE Stop reliable when chat state drifts: request interruption first,\n  terminate an unresponsive process after five seconds, and terminate\n  immediately on a second Stop. Late output from the old process is ignored.\n- Validate task recovery, parent/child accounting, compaction, Stop escalation,\n  and existing CLI/IDE contracts with 180 focused tests. Publication still\n  requires successful exact-commit CLI CI and CLI Strict Sandbox matrices."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.28",
-      "cliVersions": ["0.166.26", "0.166.28"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.28: reduce repeated long-document output",
           "body": "> `chainlesschain` **0.166.26 -> 0.166.28** (2026-09-06; incorporates the\n> unpublished 0.166.27 candidate), paired with\n> VS Code **0.37.85** and JetBrains **0.4.112**.\n\n- Direct task-count/status questions to current summary sections and local\n  aggregation, returning relevant rows, totals and source line numbers.\n- Budget script output after JSON escaping and explicitly report truncation\n  with guidance to retrieve missing sections instead of printing the file again.\n- Reference identical large command output while the original remains visible;\n  restore content after compaction. Every authorized command still executes.\n- Detect repeated large code/shell dumps across compaction and tool changes,\n  retaining recovery guidance and the incomplete-task backstop.\n- Validate with 80 focused regression tests; publication requires successful\n  CLI CI and CLI Strict Sandbox matrices for the exact release commit.\n- Regenerate the bundled changelog index so its entries match the canonical\n  release notes and package version before CI tests and packaging."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.26",
-      "cliVersions": ["0.166.25", "0.166.26"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.26: recover repeated file reads and continue the task",
           "body": "> `chainlesschain` **0.166.25 -> 0.166.26** (2026-09-06).\n\n- Automatically continue repeated broad reads at an unread character position,\n  including explicit restarts and concurrent reads. Versioned interval coverage\n  survives compaction, handles long Unicode lines, and never treats skipped\n  sections as read. Permission checks precede recovery and cached content.\n- Return a bounded heading/task-marker index and a small initial preview for\n  large Markdown/text documents. Retain that index as source data across\n  compaction; targeted small-range rereads remain available for editing.\n- At EOF, return a lightweight use-findings response. Repeated no-progress\n  batches receive a model turn without read_file in its available tools so the\n  task can move to search or implementation. Restore reading on the next turn.\n  Discovery calls cannot clear a read loop; six ignored recovery batches remain\n  an explicit incomplete-task backstop.\n- Regression coverage includes the reported gap-analysis document, deliberately\n  repeated first-page requests through compaction followed by a successful\n  write, serial/parallel EOF loops, targeted reviews, edits, and denied reads.\n- Publish only after all Linux, Windows and macOS jobs in CLI CI and CLI Strict\n  Sandbox pass for this exact release commit."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.25",
-      "cliVersions": ["0.166.24", "0.166.25"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.25: preserve large-file reading progress",
           "body": "> `chainlesschain` **0.166.24 -> 0.166.25** (2026-09-06).\n\n- **Forward progress after compaction**: keep bounded, version-aware file cursors\n  outside the message history and include them in each model request. Reading an\n  older page cannot move the cursor backwards; changes on disk reset it.\n- **Repeated-read recovery**: detect unchanged pages across sequential and parallel\n  tool batches, including after context compaction. Give the model a recovery\n  opportunity, then fail explicitly after three batches with no new reading\n  progress instead of consuming tokens indefinitely or claiming completion.\n- **Normal reading remains available**: new pages, changed files, different\n  rendering modes and other tool work clear the repeated-read streak. New runs\n  can intentionally revisit a file.\n- **Validation**: cover a large document traversed to EOF through repeated\n  compaction, exact-page loops, parallel reads, changed-file reads and cursor\n  preservation. CLI publication requires the complete exact-commit operating\n  system matrices in `CLI CI` and `CLI Strict Sandbox`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.24",
-      "cliVersions": ["0.166.22", "0.166.24"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.24: durable long-running IDE tasks",
           "body": "> `chainlesschain` **0.166.22 -> 0.166.24** (published 2026-09-06;\n> incorporates the unpublished 0.166.23 candidate).\n> Immutable tag `v-npm-0-166-24` resolves to\n> `9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436`: the complete\n> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348566)\n> and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34006348459)\n> matrices passed, followed by\n> [npm publishing and public-install verification](https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162).\n> npm latest, Session Core `0.3.12` and Core DB `0.1.5` were read back on 2026-09-06.\n\n- **Long-running interactive turns**: remove the implicit 50-model-call ceiling\n  from interactive streamed Agent sessions. Explicit `--max-turns`, environment,\n  cost, and session budgets remain authoritative, while unattended runs retain\n  the conservative default ceiling.\n- **Bounded large-file traversal**: page reads by exact byte and line cursors,\n  including oversized Unicode and escaped single lines, and return an explicit\n  continuation cursor without claiming unread ranges.\n- **No redundant file reinjection**: cache a bounded set of unchanged read\n  pages per Agent loop, invalidate entries when the file version changes, and\n  reference an already-visible page instead of injecting the same content into\n  the model again.\n- **Compaction-safe progress**: retain the newest file-read cursor through both\n  micro-compaction and full context compression so a long task resumes from the\n  correct page rather than restarting a large file.\n- **Regression coverage**: exercise an 80-page task using more than 50 model\n  calls with repeated shadow and canonical compactions, proving completion with\n  every page read exactly once.\n- **Release-runtime compatibility**: invoke the isolated evolution evaluator\n  with the permission-system flag supported by the Node 22.12 release baseline,\n  preventing the publish gate from failing before child-package publication.\n- **Release boundary**: no child npm package version changes are required. This\n  exact commit must pass every configured Linux, Windows, and macOS job in\n  `CLI CI` and `CLI Strict Sandbox` before the immutable npm tag is created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.23",
-      "cliVersions": ["0.1.5", "0.3.12", "0.166.22", "0.166.23"],
-      "date": "2026-09-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.23: durable governed evolution and Workbench controls",
           "body": "> `chainlesschain` **0.166.22 -> 0.166.23**,\n> `@chainlesschain/core-db` **0.1.4 -> 0.1.5**, and\n> `@chainlesschain/session-core` **0.3.11 -> 0.3.12** (release candidates,\n> 2026-09-06; CLI 0.166.23 was not published separately and is superseded by\n> 0.166.24. The two child packages were published before 0.166.24).\n\n- **Public-install dependency closure**: ship Session Core's missing\n  `./evolvable-artifact` export and structured evolution memory updates, plus\n  Core DB's unprefixed named-parameter normalization. Publish these two child\n  packages before the exactly pinned CLI; the other 11 audited related package\n  payloads match their existing public releases and do not need a version bump.\n- **Governed knowledge rollback**: persist real Skill rollback, candidate\n  rejection, revocation admission fences, and targeted Wiki tombstones;\n  authenticate multi-hop Wiki provenance and recover interrupted settlement\n  without duplicate effects or reactivation of revoked sources.\n- **Durable Wiki and model boundaries**: authenticate pruning checkpoints and\n  retrieval projections, recover maintenance effects, and enforce bounded,\n  redacted durable projections at the model ingress boundary.\n- **Trusted Workbench assembly**: provide authenticated current-state\n  projections, durable review/rollback adapters, file-backed resources, and\n  one-use-bound control ports for signed CLI/App Server deployment modules.\n  Review batch completion uses the v2 receipt contract supported by the updated\n  JetBrains source; installed IDE extensions do not update automatically.\n- **Atomic watchdog reservations**: serialize first acquisition and expired\n  takeover across processes, publish only fully written records, and preserve\n  prior reservations when staging fails.\n- **Windows sandbox identity publication**: flush and close the helper's\n  identity record before a non-overwriting atomic move exposes it to the\n  broker. Late helper errors cannot overwrite an already-published identity;\n  post-spawn failures retain their original cause and remain fail-closed.\n- **Release and deployment boundary**: require the exact candidate SHA to pass\n  both complete three-platform CLI gates, including independent Core DB and\n  Session Core tests. Workbench remains unavailable without a real trusted\n  deployment, identity, and policy configuration; this release does not enable\n  unattended promotion or claim that the entire evolution roadmap is complete."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.22",
-      "cliVersions": ["0.166.21", "0.166.22"],
-      "date": "2026-09-05",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.22: keep IDE Agent streams alive during slow commands",
           "body": "> `chainlesschain` **0.166.21 -> 0.166.22** (release candidate,\n> 2026-09-05).\n\n- **Responsive persistent IDE streams**: execute foreground shell commands\n  asynchronously for `stream-json` hosts, so a slow networked command such as\n  `git push` no longer blocks the Agent protocol pump or session-lease\n  heartbeat.\n- **Safe late heartbeat recovery**: let the exact live local lease owner renew\n  after an event-loop stall. A revocation or successor still changes the\n  durable authority tuple and fences the old host before any guarded write.\n- **Regression coverage**: verify event-loop responsiveness, late renewal, and\n  the IDE stream's non-blocking shell option while retaining the existing\n  takeover, revocation, and delegated-writer fences.\n- **Release inventory coherence**: align the Skill-writer inventory with the\n  current candidate-only sync and inactive marketplace-plugin staging paths,\n  removing stale evidence for legacy active hot-loading.\n- **Release boundary**: publication requires this exact release commit to pass\n  every configured Linux, Windows, and macOS job in `CLI CI` and\n  `CLI Strict Sandbox`; no Session Core, Agent SDK/Protocol, Personal Data Hub,\n  or other npm workspace version changes are required for this CLI-only fix."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.21",
-      "cliVersions": ["0.1.8", "0.2.8", "0.3.11", "0.166.20", "0.166.21"],
-      "date": "2026-09-04",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.21: governed evolution knowledge and IDE review",
           "body": "> `chainlesschain` **0.166.20 -> 0.166.21**,\n> `@chainlesschain/session-core` **0.3.10 -> 0.3.11**,\n> `@chainlesschain/agent-protocol` **0.1.7 -> 0.1.8**,\n> `@chainlesschain/agent-sdk` **0.2.7 -> 0.2.8**, and\n> `chainlesschain-agent-sdk` **0.2.7 -> 0.2.8** (release candidates,\n> 2026-09-04).\n\n- **Governed knowledge synchronization**: add tenant-scoped encrypted sharing,\n  durable conflict review, human-approved merge publication, revocation\n  dependency settlement, reviewer key lifecycle, and response-loss recovery.\n- **Evolution Workbench and Skill Retrieval**: expose bounded, digest-verified\n  review and evidence-ranked search through CLI, App Server, Desktop, VS Code,\n  and JetBrains surfaces without moving mutation authority into IDE clients.\n- **Coordinated runtime contracts**: ship durable Skill-invocation receipts in\n  Session Core, refreshed Kotlin and Swift protocol projections, and the latest\n  App Server pilot client behavior in both TypeScript and Python SDKs. Personal\n  Data Hub remains `0.4.59` because its published source has not changed.\n- **Release boundary**: publication requires this exact release commit to pass\n  every configured Linux, Windows, and macOS job in `CLI CI` and\n  `CLI Strict Sandbox`, plus the affected protocol and SDK gates. Publish the\n  dependency packages before the pinned CLI, followed by registry and IDE\n  marketplace readback."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.20",
-      "cliVersions": ["0.3.10", "0.166.18", "0.166.20"],
-      "date": "2026-09-03",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.20 and Session Core 0.3.10: public-install agent startup",
           "body": "> `chainlesschain` **0.166.18 -> 0.166.20** and\n> `@chainlesschain/session-core` **0.3.9 -> 0.3.10** (release candidate,\n> 2026-09-03).\n\n- **Restore `cc` and `cc agent` startup from public npm installs**: publish the\n  Session Core `./structured-evolution-memory` export consumed by the CLI's\n  Agent command graph. Version `0.166.18` referenced this source export while\n  the immutable public `session-core@0.3.9` bytes predated it, so lazy command\n  registration fell back and reported the misleading `unknown command 'agent'`.\n- **Preserve fast help/version paths** while requiring executable Agent\n  capability checks against installed package bytes before release.\n- **Release boundary**: publish Session Core `0.3.10` before the pinned CLI\n  `0.166.20`, then verify the public registry installation can execute\n  `cc agent --capabilities`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.18",
-      "cliVersions": ["0.3.9", "0.166.17", "0.166.18"],
-      "date": "2026-09-03",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.18 and Session Core 0.3.9: governed Skill evolution",
           "body": "> `chainlesschain` **0.166.17 -> 0.166.18** and\n> `@chainlesschain/session-core` **0.3.8 -> 0.3.9** (release candidate,\n> 2026-09-03).\n\n- **Evaluated promotion**: Skill candidates must carry target-matrix evidence,\n  current-revision bindings, durable promotion receipts, and revocation-aware\n  attestations before an active revision can change.\n- **Crash-safe lifecycle**: tenant-scoped candidate and release registries,\n  lease/CAS promotion, last-known-good tracking, and rollback keep concurrent\n  or interrupted mutations fail closed.\n- **Bounded improvement pilot**: the CLI can propose constrained Skill\n  improvements and wiki-informed candidates without directly rewriting or\n  activating installed Skills.\n- **Cross-runtime evidence**: CLI, Desktop, and Graph adapters share the new\n  Session Core `EvolutionRun` and Skill-invocation receipt contracts, keeping\n  evidence identity consistent across runtimes.\n- **Deterministic async hooks**: tool execution now skips `async:true`\n  `PostToolUse` hooks when no supervisor/dispatcher is available, preventing a\n  hidden background command and a Windows timing race.\n- **Release boundary**: publication requires this exact candidate commit to\n  pass every configured Linux, Windows, and macOS job in `CLI CI` and\n  `CLI Strict Sandbox`; a local test result or an older green run is not\n  release authorization."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.16",
-      "cliVersions": ["0.166.15", "0.166.16"],
-      "date": "2026-09-01",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.16: harden evidence and release gates",
           "body": "> `chainlesschain` **0.166.15 -> 0.166.16** (release candidate,\n> 2026-09-01).\n\n- **Authenticated evidence consumption**: protected qualification and Graph\n  production consumers bind artifacts to the selected repository, workflow\n  run, and exact commit, reject stale or unsigned producer runs, and keep\n  GitHub API response bodies bounded.\n- **Cross-platform CI stability**: CLI and evidence matrices use the same\n  pinned Node.js `22.22.2` runtime, the workflow lint gate uses a pinned\n  `actionlint`, and the Windows P1 helper allows a wider outer cold-start\n  budget without weakening the verifier's exact inner timeout contract.\n- **Exact RC runtime contract**: the release-candidate audit now requires the\n  same Node.js `v22.22.2` runtime used by the workflows, and a unit assertion\n  pins that value so future workflow/verifier drift fails closed.\n- **Large-team scheduling throughput**: priority inheritance stays cached\n  across lease-only state transitions and is invalidated when priority or\n  cancellation semantics change, so the 10,000-task / 64-worker qualification\n  completes within the cross-platform budget without weakening donation or\n  dependency ordering.\n- **Audited JetBrains steady-state qualification**: the real-host gate retains\n  40–75 readiness lifecycle samples and a stable quiescence proof before the\n  governed 100-sample distribution. The `needs_input` P95 threshold remains\n  strictly below 2 seconds, and both readiness and measured cycles remain bound\n  to the exact fixture ledger.\n- **Canonical registry roots across host path aliases**: candidate and release\n  registries canonicalize an existing ancestor alias while binding the created\n  non-link leaf by filesystem identity. Leaf links and parent escapes remain\n  rejected, and marketplace upgrade tests still prohibit candidate artifact\n  fetches on every fail-closed validation path.\n- **Release and evidence boundary**: this candidate is not yet published;\n  publication still requires the exact release commit to pass the configured\n  Linux, Windows, and macOS release workflows. External P1 production rollout,\n  protected-run, and trust-root evidence remains open and is not claimed by\n  this source release."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.15",
-      "cliVersions": ["0.166.14", "0.166.15"],
-      "date": "2026-08-31",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.15: align the formal quality file-tool ceiling",
           "body": "> `chainlesschain` **0.166.14 -> 0.166.15**, published 2026-08-31 from exact\n> commit `22db04f55974d2e5823772c4bae5e87171fa51db` under immutable tag\n> `v-npm-0-166-15`.\n\n- **Formal quality startup restored**: the exact hermetic file-tool ceiling now\n  admits the same read, list, search, write, and edit tools exposed by the\n  protected single-Agent and Graph candidate harness, so all platforms can\n  advance past preflight into the real-model evaluation.\n- **One canonical tool contract**: the headless runtime and formal quality\n  producer consume one frozen tool list, while the agent-loop regression proves\n  the complete list remains inside the fail-closed exact mutation boundary.\n- **No shell or network widening**: `run_shell`, `run_code`, Git, MCP, plugin,\n  IDE, and sub-agent tools remain unavailable; writes are still limited to the\n  task's exact allowed files.\n- **Release and quality boundary**: the exact release commit passed CLI CI and\n  CLI Strict Sandbox on Linux, Windows, and macOS, then completed npm OIDC\n  publication and independent registry/provenance readback. The post-release\n  quality decision below does not change those artifact bytes or their evidence\n  identity.\n- **Post-release Windows evidence**: `main@458b342f5f` freezes the Windows\n  candidate latency-ratio ceiling at `1.65`; Linux, macOS, and the aggregate\n  remain at `1.5`. Exact run `33411796790`, pinned to `db53dc2da4`, passed\n  Linux, macOS, and all three platforms' functional/security metrics, but its\n  Windows ratio was `1.6379980224` against the then-current `1.6` ceiling, so\n  the run, workflow aggregate, and OIDC attestation did not succeed. The\n  offline weighted three-platform aggregate was `0.6008293973 < 1.5`.\n- **P2-3 accepted-risk closure**: after final threshold commit `917d18b055`,\n  the release owner explicitly accepted the residual risk of no rerun and no\n  final-SHA aggregate/OIDC evidence and closed P2-3. This does not rewrite the\n  failed run as successful, is not part of the `0.166.15` artifact, and is not\n  a general precedent for release gates."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.14",
-      "cliVersions": ["0.166.13", "0.166.14"],
-      "date": "2026-08-30",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.14: restore Docker-optional startup on Windows",
           "body": "> `chainlesschain` **0.166.13 -> 0.166.14**, published 2026-08-30 from exact\n> commit `ee88125256b5de8281be0a8e57157811bb80c105` under immutable tag\n> `v-npm-0-166-14`.\n\n- **Docker remains opt-in**: a normal agent session no longer probes or\n  requires Docker unless the CLI flag, settings, or managed policy explicitly\n  selects container isolation.\n- **Windows executable lookup**: bare commands resolve through `PATHEXT`\n  before launch, so Docker Desktop's POSIX `docker` script cannot shadow\n  `docker.exe` and trigger `CreateProcessAsUser` error 193.\n- **Explicit isolation stays fail-closed**: `workspace-write`, `strict`, and\n  managed sandbox requirements still reject unavailable engines instead of\n  silently degrading.\n- **Release validation**: the exact release commit passed every configured\n  Linux, Windows, and macOS job in `CLI CI` and `CLI Strict Sandbox`, then\n  completed npm Trusted Publishing and public-registry readback. This was the\n  public CLI baseline and is now superseded by `0.166.15`; later source-only\n  Graph/Team quality evidence retains its own exact-commit boundary."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.13",
-      "cliVersions": ["0.3.8", "0.166.12", "0.166.13"],
-      "date": "2026-08-30",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.13 and Session Core 0.3.8: fail-closed P0 security closure",
           "body": "> `chainlesschain` **0.166.12 -> 0.166.13** and Session Core\n> **0.3.7 -> 0.3.8**, published 2026-08-30; the CLI release commit is\n> `d44374e576e5426eb419537bef15ae83385daf05` under immutable tag\n> `v-npm-0-166-13` and is superseded by public CLI `0.166.14`.\n\n- **Fixed renderer IPC capabilities**: remove the environment-controlled\n  generic bridge bypass and generate an exact renderer/main capability\n  manifest that fails the Desktop build when it drifts.\n- **Default sandbox and approval boundary**: restore workspace-write with\n  network disabled as the CLI default, deny shell execution when the approval\n  gate is unavailable, and fail closed when approval policy loading or\n  persistence fails.\n- **Durable process audit**: require a persistent, redacted admission record\n  before high-risk process creation and retain bounded actor, session,\n  authorization, policy, sandbox, and result context.\n- **Release boundary**: these versions closed the P0 execution-security fixes;\n  CLI `0.166.14` retains the same boundary while adding the Windows\n  Docker-optional startup repair."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.12",
-      "cliVersions": ["0.166.10", "0.166.12"],
-      "date": "2026-08-30",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.12: durable rollout storage and converged Hooks v2",
           "body": "> `chainlesschain` **0.166.10 -> 0.166.12** (2026-08-30 capability baseline,\n> now included in public `0.166.14`). The immutable `0.166.11` candidate was withheld after its npm\n> workflow could not bootstrap the new scoped runtime dependency; its tag is\n> not reused. Coordinated candidates are Context/Memory Kernel `0.1.0`,\n> Session Core `0.3.7`, Agent Protocol `0.1.7`, TypeScript Agent SDK `0.2.7`,\n> Python Agent SDK `0.2.7`, VS Code `0.37.75`, and JetBrains `0.4.105`.\n\n- **Canonical context planning**: ship deterministic budget allocation,\n  compaction, memory reducers, inventory validation, and cross-surface\n  conformance through `@chainlesschain/context-memory-kernel`.\n- **Durable memory cutover**: route CLI context, compaction, hierarchical\n  memory, App Server, WebSocket, REPL, and session flows through fail-closed\n  authority stages with crash-safe persistence and privacy purge receipts;\n  Session Core `0.3.7` exposes the write guard used to fence legacy writers.\n- **Protocol and SDK projections**: add bounded Context/Memory messages and App\n  Server pilot clients to the generated Agent Protocol, TypeScript SDK, Python\n  SDK, VS Code extension, and JetBrains plugin without granting IDE surfaces\n  independent write authority.\n- **Durable rollout stores**: converge App Server, WebSocket, and CLI entry\n  points on bounded memory, JSON, or SQLite rollout stores with explicit\n  selection, migration, recovery, and corruption handling.\n- **Hooks v2 convergence**: route CLI, REPL, headless, settings, plugins, and\n  App Server through one trust-aware event runtime with deterministic ordering,\n  audit replay, timeout supervision, and fail-closed decision semantics.\n- **Release integrity**: publish the new fixed CLI runtime dependency before\n  the immutable CLI tarball, then verify its registry bytes and npm provenance\n  against the exact release tag and commit."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.10",
-      "cliVersions": ["0.166.9", "0.166.10"],
-      "date": "2026-08-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.10: governed Graph Kernel production cutover evidence",
           "body": "> `chainlesschain` **0.166.9 -> 0.166.10** (release candidate,\n> 2026-08-29).\n\n- **Production evidence aggregate**: `graph:production-evidence` verifies the\n  complete staged Graph Kernel cutover evidence set against the exact protected\n  source commit, producer run, inventory, rollout ledger, and qualification\n  artifacts before it can emit a passing receipt.\n- **Fail-closed coverage**: the verifier requires all 20 durable entries, nine\n  projection classes, three rollback modes, every retired writer and mutation,\n  and all three explicitly disabled Browser/Remote entries; missing, duplicate,\n  stale, cross-run, or digest-mismatched evidence is rejected.\n- **Protected consumption**: the production cutover workflow is bound to\n  reviewed GitHub Environments, downloads artifacts from the selected protected\n  producer run, and publishes a content-free receipt only after recomputing the\n  complete aggregate locally.\n- **Honest rollout boundary**: this release ships the verifier and protected\n  consumer, but does not claim that a production rollout occurred; P1-12 closes\n  only after the real environment supplies a valid staged-rollout artifact for\n  the same exact SHA."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.9",
-      "cliVersions": ["0.166.8", "0.166.9"],
-      "date": "2026-08-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.9: governed UI replay and Codex compatibility gates",
           "body": "> `chainlesschain` **0.166.8 -> 0.166.9**, published 2026-08-29 from exact\n> commit `222396f6a8429d4b862292a2572067a5cacb1003`. Agent Protocol `0.1.6`,\n> TypeScript Agent SDK `0.2.5`, and Python Agent SDK `0.2.6` are public. The\n> immutable Python `0.2.5` candidate was withheld from PyPI because its\n> release metadata named a CLI that was not yet public.\n\n- **Real UI driver**: reviewed Record & Replay drafts can execute the bounded\n  `observe/click/type/select/assert` vocabulary in an ephemeral Playwright\n  Chromium context instead of relying on a fake executor.\n- **Fail-closed isolation**: the driver denies filesystem, HTTP(S), and\n  WebSocket requests, requires exact reviewed capabilities and selectors, and\n  rejects ambiguous targets, environment drift, network attempts, or missing\n  terminal evidence.\n- **Content-free receipts**: selectors, typed values, page text, URLs, and\n  screenshots never enter reports; only domain-separated state, page,\n  screenshot, target, and receipt digests plus bounded structural metadata are\n  retained.\n- **Cross-platform authority**: a dedicated exact-SHA GitHub Actions matrix\n  runs the positive journey and an active network-escape probe in real Chromium\n  on Linux, Windows, and macOS, then refuses partial evidence in its aggregate.\n- **Exact Codex admission**: the optional experimental App Server adapter now\n  admits only explicitly listed upstream patch versions; prereleases and\n  unverified future patches fail closed to the stable `codex exec --json`\n  fallback before turn admission.\n- **Version-bound App Server evidence**: a second exact-SHA Actions matrix\n  generates each upstream version's own schema and exercises the documented\n  `initialize -> initialized -> thread/list` stdio lifecycle on Linux,\n  Windows, and macOS without making a model request.\n- **Removal readiness**: every compatibility job proves that production CLI\n  source has no dependency on the optional adapter and that the stable Codex\n  JSONL fallback still executes and projects terminal output independently.\n- **Windows strict-sandbox cleanup**: target-identity cleanup remains bound to\n  the stable file object while tolerating size and timestamp metadata settling\n  after the native helper closes its writer; same-path replacement is still\n  rejected.\n- **JetBrains real-host gate**: plan-review document access now runs inside\n  explicit IntelliJ read/write actions, and the UI journey targets the current\n  one-time permission label on every supported host/version pair.\n- **Python release metadata**: the `0.2.6` patch keeps the `0.2.5` runtime API\n  and generated protocol bindings while pointing install guidance at the latest\n  CLI that is actually available from the public npm registry.\n- **Release validation**: immutable tag `v-npm-0-166-9` resolves to the exact\n  commit above. Its Linux/Windows/macOS CLI CI and Strict Sandbox matrices,\n  npm Trusted Publishing/provenance/readback, Record & Replay real-browser\n  matrix, Codex App Server compatibility matrix, Desktop signed-Skill\n  qualification, and IDE release gate completed successfully. Open VSX\n  `0.37.73` is public; JetBrains source/tag `0.4.104` remains distinct from the\n  Marketplace-public `0.4.103` artifact."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.8",
-      "cliVersions": [
-        "0.1.6",
-        "0.2.5",
-        "0.4.104",
-        "0.37.73",
-        "0.166.7",
-        "0.166.8"
-      ],
-      "date": "2026-08-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.8 + Agent Platform and IDE patches: durable Graph review and recovery",
           "body": "> `chainlesschain` **0.166.7 -> 0.166.8** (source candidate fully carried into\n> public `0.166.9`; it was not published as a separate npm version),\n> `@chainlesschain/agent-protocol` **0.1.5 -> 0.1.6**,\n> `@chainlesschain/agent-sdk` **0.2.4 -> 0.2.5**, and\n> `chainlesschain-agent-sdk` **0.2.4 -> 0.2.5** (withheld Python candidate,\n> superseded by public `0.2.6`, 2026-08-29).\n> VS Code **0.37.72 -> 0.37.73** and JetBrains\n> **0.4.103 -> 0.4.104** carry the paired governed review surfaces.\n\n- **Durable Graph history**: fixed App Server/SDK clients expose bounded,\n  metadata-only event and snapshot history for blocked-root, revision-diff,\n  and time-travel debugging across CLI, Desktop, and VS Code.\n- **Recoverable HumanTask quorum**: Graph human nodes persist exact\n  revision/attempt/operation bindings, release Agent capacity while waiting,\n  and enforce single-winner cancel/decision CAS, quorum, and separation of\n  duties through the Desktop product surface.\n- **IDE review parity**: VS Code adds bounded Graph history/diff projection;\n  both IDEs enforce revision-bound approval grants and single-winner\n  settlement without accepting UI-derived authority.\n- **Migration and retirement evidence**: N-1 definition backups, rollback\n  digests, replay validation, replacement reachability, historical reads, and\n  zero-success legacy-writer observations are bound to durable exact-SHA\n  evidence rather than prose-only rollout claims.\n- **Reliability gates**: temporal message custody, dependency/scope fairness,\n  cross-process DAG recovery, effect idempotency, and worktree cleanup have\n  explicit bounded artifacts and fail-closed aggregate checks.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, the Graph real-journey matrix, immutable package\n  checks, and public-registry provenance readback."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.7",
-      "cliVersions": ["0.166.6", "0.166.7"],
-      "date": "2026-08-28",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.7: authoritative Graph Kernel cutover",
           "body": "> `chainlesschain` **0.166.6 -> 0.166.7**, published 2026-08-28 from exact\n> commit `19834a18457c1b763b5a7a2cfada713340e7c273`.\n\n- **Canonical execution authority**: CLI graph, Team, distributed-team,\n  Cowork, Scheduler, and App Server entry points now resolve through the\n  Graph Kernel cutover ledger instead of silently retaining parallel mutation\n  paths.\n- **Durable fencing and recovery**: graph writers, leases, receipts, takeover,\n  migration, and crash/resume flows are bound to persisted authority and\n  checked-out source evidence so stale owners cannot resume mutations.\n- **Legacy containment**: retired runtimes retain explicitly read-only history\n  access while unclassified or mutating legacy routes fail closed and report\n  their canonical replacement targets.\n- **Release validation**: the exact SHA passed Linux/Windows/macOS `CLI CI`\n  and `CLI Strict Sandbox`; immutable package, Trusted Publishing, npm\n  provenance, public-registry readback, Open VSX `0.37.72`, and JetBrains\n  Marketplace `0.4.103` were verified independently."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.6",
-      "cliVersions": ["0.166.5", "0.166.6"],
-      "date": "2026-08-27",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.166.6: bounded Agent IPC transport",
           "body": "> `chainlesschain` **0.166.5 -> 0.166.6** (release candidate,\n> 2026-08-27).\n\n- **Finite Agent IPC admission**: registered and starting child agents share\n  one cap, while pending interactions and outbound requests have global and\n  per-agent limits with structured `OVERLOADED` retry guidance.\n- **Bounded stdio transport**: stdout JSONL frames, stderr diagnostics, stdin\n  frames, queued messages, and queued bytes are capped. Backpressure drains a\n  finite queue; overflow, early stream failure, and initialization failure\n  terminate and clean up the affected child deterministically.\n- **Lifecycle fencing**: response ownership, disconnect cleanup, late\n  initialization, pre-initialize exit, stream errors, and all request, init,\n  and heartbeat timers are bounded and covered by regression tests.\n- **Release validation**: publication requires this exact candidate to pass\n  Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox`, followed by registry\n  byte, provenance, clean-install, and signature readback."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.5",
-      "cliVersions": ["0.1.5", "0.2.4", "0.166.4", "0.166.5"],
-      "date": "2026-08-26",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.5 + Agent Protocol 0.1.5 + Agent SDKs 0.2.4: generated stream payload unions",
           "body": "> `chainlesschain` **0.166.4 -> 0.166.5**,\n> `@chainlesschain/agent-protocol` **0.1.4 -> 0.1.5**,\n> `@chainlesschain/agent-sdk` **0.2.3 -> 0.2.4**, and\n> `chainlesschain-agent-sdk` **0.2.3 -> 0.2.4** (release candidate,\n> 2026-08-26).\n\n- **Payload-level source of truth**: the canonical schema now defines a\n  discriminator-specific payload for all 37 known Agent stream event types,\n  including their required fields, bounded values, and nested JSON payloads.\n- **Generated unions in every client language**: TypeScript and Python expose\n  `AgentStreamEventPayload` and strict canonical-event validators; Kotlin\n  generates a sealed payload interface; Swift generates a Codable associated\n  value enum. Generator drift fails when the payload and discriminator\n  inventories differ in membership or order.\n- **No SDK mirror union**: the TypeScript SDK's public known-event alias now\n  points directly at the generated canonical union. Python keeps its ergonomic\n  dataclasses as an open runtime hierarchy and derives the handler inventory\n  automatically instead of repeating a 24-class wire union.\n- **Strict validation without transport breakage**: hosts can opt into the\n  full `CanonicalAgentStreamEvent` validator for known events while existing\n  lossless envelope guards continue to retain unknown future event types.\n- **Real IDE consumption**: VS Code's production chat mapper admits known\n  events from the vendored generated inventory instead of a duplicate local\n  list. JetBrains compiles the generated payload union alongside its existing\n  generated production routing.\n- **Shared conformance corpus**: protocol, TypeScript SDK, and Python SDK tests\n  validate every canonical discriminator and reject known payloads missing\n  required fields or using an unknown discriminator. A second shared fixture\n  runs two legal parallel-tool interleavings through CLI, Desktop, VS Code,\n  JetBrains, and Python, requiring the same causal partial order, exact\n  approval binding, terminal projection, and declared concurrency classes.\n- **Desktop/IDE App Server pilot**: the SDK now exports a fixed-capability\n  `AppServerPilotClient` with no arbitrary request surface. VS Code exposes an\n  off-by-default command pilot, while Desktop exposes off-by-default fixed IPC\n  methods and routes the shared client through its audited process broker.\n  Both products vendor byte-identical CJS output; approval requests remain\n  fail-closed until a reviewed product UI is attached.\n- **Experimental authenticated App Server WebSocket**: the canonical server\n  now has a fixed-subprotocol `/app-server` transport with bounded input and\n  output queues, overload retry guidance, payload/connection caps, and a slow\n  consumer breaker. Every binding requires a strong token; non-loopback\n  binding additionally fails closed without explicit opt-in and validated TLS\n  certificate/key files. A SHA-bound 30-minute Actions soak freezes queue and\n  post-warm-up RSS limits before this P1 slice can close.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the complete IDE and mobile consumer matrices."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.4",
-      "cliVersions": ["0.1.4", "0.2.3", "0.166.3", "0.166.4"],
-      "date": "2026-08-26",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.4 + Agent Protocol 0.1.4 + Agent SDKs 0.2.3: canonical stream event inventory",
           "body": "> `chainlesschain` **0.166.3 -> 0.166.4**,\n> `@chainlesschain/agent-protocol` **0.1.3 -> 0.1.4**,\n> `@chainlesschain/agent-sdk` **0.2.2 -> 0.2.3**, and\n> `chainlesschain-agent-sdk` **0.2.2 -> 0.2.3** (release candidate,\n> 2026-08-26).\n\n- **One event discriminator inventory**: the canonical JSON Schema now owns\n  all currently emitted Agent stdout event types, including Hook, subagent,\n  recovery, budget, structured-result, and interaction rejection events.\n- **Generated cross-language contract**: TypeScript and Python receive the\n  event literal inventory, envelope type, and validator; Kotlin and Swift\n  receive generated event enums and typed envelopes from the same definition.\n- **Forward compatibility retained**: SDK transports continue to preserve\n  unknown future events. The new known-event guard is opt-in and does not turn\n  additive provider/runtime events into transport failures.\n- **Shared conformance**: legal and illegal event envelopes run through the\n  protocol, TypeScript SDK, and Python SDK validators; generated-output drift,\n  invalid metadata, and explicit non-JSON values fail the release gate.\n- **Release validation**: publication requires this exact candidate to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the IDE extension matrix before immutable OIDC\n  release tags are created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.3",
-      "cliVersions": ["0.1.2", "0.2.2", "0.166.2", "0.166.3"],
-      "date": "2026-08-25",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.3 + Agent Protocol 0.1.2 + Agent SDKs 0.2.2: scoped approvals and durable team authority",
           "body": "> `chainlesschain` **0.166.2 -> 0.166.3**,\n> `@chainlesschain/agent-protocol` **0.1.1 -> 0.1.2**,\n> `@chainlesschain/agent-sdk` **0.2.1 -> 0.2.2**, and\n> `chainlesschain-agent-sdk` **0.2.1 -> 0.2.2** (release candidate,\n> 2026-08-25).\n\n- **Canonical approval contract**: the protocol package exports schema-derived\n  JavaScript validators and deterministic TypeScript/Python bindings for\n  `acceptOnce`, `acceptForTurn`, `acceptForSession`, `decline`, and `cancel`.\n  Shared valid/invalid fixtures keep the protocol, both SDKs, and CLI App\n  Server on one wire contract.\n- **Fail-closed, exactly scoped grants**: approval responses bind the request,\n  requested permission, tool, arguments, working directory, and policy digest.\n  Turn grants stay in memory; session grants become effective only after a\n  tamper-evident authority event is persisted and verified. Expired, corrupt,\n  mismatched, widened, or persistence-failed grants never silently authorize a\n  call.\n- **N-1 SDK compatibility**: boolean callbacks normalize to one-shot canonical\n  decisions with the request binding, while direct boolean responses retain\n  the legacy wire for older callers. Invalid or throwing callbacks decline\n  safely in both TypeScript and Python.\n- **Durable Team messaging and custody**: state-backed Team runs now use the\n  `SessionMessageFabric` authority for bounded cross-process delivery,\n  offline/reconnect, receipts, fencing, dead letters, rate limits, and legacy\n  mailbox migration. Idle follow-up turns and offer/accept/commit handoffs keep\n  stable message identity while transferring attempt/lease custody explicitly.\n- **Release validation**: publication requires the exact release commit to pass\n  Agent Protocol and Python SDK conformance, Linux/Windows/macOS `CLI CI` and\n  `CLI Strict Sandbox`, and the desktop E2E matrix before immutable OIDC tags\n  are created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.2",
-      "cliVersions": ["0.166.1", "0.166.2"],
-      "date": "2026-08-25",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.2: lease-bound real-time team messaging",
           "body": "> `chainlesschain` **0.166.1 -> 0.166.2** (CLI-only release candidate,\n> 2026-08-25). `@chainlesschain/agent-protocol` remains **0.1.1**,\n> `@chainlesschain/agent-sdk` remains **0.2.1**, and\n> `chainlesschain-agent-sdk` remains **0.2.1**.\n\n- **Live teammate tools**: real `cc team --agent` children receive host-owned\n  `team_send`, `team_receive`, `team_ack`, and `team_followup` tools over a\n  private local bridge instead of relying only on a startup inbox snapshot.\n- **Retry-safe delivery**: the bounded mailbox persists at-least-once delivery\n  receipts, stable-consumer ACKs, idempotent message keys, payload digests,\n  causation/correlation metadata, processed/dead-letter states, and monotonic\n  cursors across team-state restore.\n- **Attempt-scoped authority**: every bridge operation revalidates the current\n  holder, task, attempt, lease, and fencing token; stale attempts fail closed,\n  bridge credentials never enter the prompt, and nested subagents cannot\n  inherit the parent-bound tools.\n- **Honest durability and wake semantics**: `--state` checkpoints every bridge\n  mutation, runs without state declare process-local delivery, and follow-up\n  results distinguish an active target from a request queued for a future turn.\n- **Release validation**: publication requires this candidate's exact commit\n  to pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before an immutable npm tag is created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.1",
-      "cliVersions": ["0.1.1", "0.2.1", "0.166.0", "0.166.1"],
-      "date": "2026-08-24",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.1 + Agent Protocol 0.1.1 + Agent SDKs 0.2.1: structured Graph execution",
           "body": "> `chainlesschain` **0.166.0 -> 0.166.1**,\n> `@chainlesschain/agent-protocol` **0.1.0 -> 0.1.1**,\n> `@chainlesschain/agent-sdk` **0.2.0 -> 0.2.1**, and\n> `chainlesschain-agent-sdk` **0.2.0 -> 0.2.1** (release candidate,\n> 2026-08-24).\n\n- **Typed subgraphs with budget isolation**: subgraph calls now validate\n  parent/child input and output mappings before effects, reserve durable\n  per-call budget slices, prevent parallel oversubscription, and settle only\n  the child run's actual usage across completion, cancellation, and recovery.\n- **Effectful bounded loops**: loop effects receive deterministic\n  iteration-scoped idempotency keys and receipts. Compensation executes once\n  per committed iteration in reverse dependency/iteration order and resumes\n  safely after interruption or budget exhaustion.\n- **Graph migration and rollback**: the compiler includes a built-in v0-to-v1\n  upcaster, frozen minimal and typed N/N-1 corpora, immutable pre-migration\n  backups, domain-separated rollback digests, and tamper-evident restore.\n- **Cross-language delivery**: the canonical schema and generated TypeScript,\n  Python, Kotlin, and Swift bindings expose the new subgraph budget/mapping and\n  effect iteration lineage fields without adding SDK runtime dependencies.\n- **Release validation**: publication requires this exact release commit to\n  pass the complete Linux, Windows, and macOS `CLI CI`, `CLI Strict Sandbox`,\n  and Agent Protocol matrices plus Python 3.10/3.12/3.13 SDK conformance."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.166.0",
-      "cliVersions": ["0.2.0", "0.165.10", "0.166.0"],
-      "date": "2026-08-24",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.166.0 + Agent SDKs 0.2.0: canonical App Server and Graph kernels",
           "body": "> `chainlesschain` **0.165.10 -> 0.166.0**,\n> `@chainlesschain/agent-sdk` **0.1.7 -> 0.2.0**, and\n> `chainlesschain-agent-sdk` **0.1.0 -> 0.2.0** (release candidate,\n> 2026-08-24). `@chainlesschain/agent-protocol` remains a private build-time\n> source of truth and is not a runtime dependency or public package.\n\n- **Canonical cross-language protocol**: one private schema and deterministic\n  generator now produce the TypeScript and Python App Server contracts,\n  including Python 3.10-compatible reserved-field and optional-key handling.\n- **Durable App Server**: JSON-RPC request/notification streaming, thread\n  lifecycle, subscriptions, checkpoints, compaction, replay, and forking share\n  JSONL, memory, and capability-gated SQLite rollout stores.\n- **Graph execution kernel**: durable DAG execution adds checkpointed state,\n  interrupt/resume, record/replay, event projections, evaluation hooks, and\n  observable execution evidence.\n- **Secure integrations**: signed webhook delivery rejects stale or replayed\n  requests, the Codex App adapter consumes the canonical protocol, and the\n  governed `cc exec` path is exposed without duplicating authority.\n- **Release validation**: publication requires this exact release commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices, plus Python 3.10/3.12/3.13 SDK conformance,\n  before the immutable npm and PyPI tags are created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.10",
-      "cliVersions": ["0.3.6", "0.165.9", "0.165.10"],
-      "date": "2026-08-24",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.165.10: restore Docker-optional startup",
           "body": "> `chainlesschain` **0.165.9 -> 0.165.10** and\n> `@chainlesschain/session-core` **0.3.5 -> 0.3.6** (hotfix candidate,\n> 2026-08-24). `@chainlesschain/personal-data-hub` remains **0.4.59** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Windows startup regression**: starting `cc` without an explicit container\n  sandbox no longer requires Docker or exits with configuration code 6 when\n  Docker is unavailable. Explicit `--sandbox`,\n  `--sandbox-mode workspace-write|strict`, and managed sandbox policy remain\n  fail-closed.\n- **Session contract delivery**: publish the `runtime-claims` export added\n  after `session-core@0.3.5`, and pin the CLI to `session-core@0.3.6`, so npm\n  installs receive the same runtime contract used by the release source.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices before the immutable npm tag is created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.9",
-      "cliVersions": ["0.165.8", "0.165.9"],
-      "date": "2026-08-24",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.165.9: fail-closed execution and secret migration",
           "body": "> `chainlesschain` **0.165.8 -> 0.165.9** (source candidate; not yet\n> published, 2026-08-24).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Fail-closed command admission**: shell execution now denies when its\n  ApprovalGate is unavailable, and an unspecified agent sandbox resolves to\n  `workspace-write` with network access disabled instead of silently running\n  without a technical boundary.\n- **Agent Network secret storage**: DID private keys move to the OS-backed\n  SecretStore and the ordinary database retains only key references. Auth\n  sessions persist bearer-token hashes rather than reusable bearer values.\n- **IPFS data-key separation**: encrypted CLI IPFS content stores its DEK in\n  SecretStore and only a key reference beside the ciphertext. Legacy plaintext\n  keys support dry-run inspection and transactional, fail-closed migration.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and\n  `CLI Strict Sandbox` matrices. Tag, provenance, registry readback, and\n  publication evidence must be recorded only after those exact-SHA gates\n  succeed."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.8",
-      "cliVersions": ["0.165.7", "0.165.8"],
-      "date": "2026-08-23",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.165.8: release-gate home isolation",
           "body": "> `chainlesschain` **0.165.7 -> 0.165.8** (source candidate; not yet\n> published, 2026-08-23).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Agent SDK release-gate isolation**: the real-CLI SDK test now keeps its\n  simulated operating-system home separate from `CHAINLESSCHAIN_HOME`, while\n  retaining separate workspace and rollback-resistant security-anchor roots.\n  This exercises the production fail-closed layout without asking the CLI to\n  repair owner-only permissions on a broad user-home directory.\n- **Candidate continuity**: exact SHA `350fb4ce71` passed the complete Linux,\n  Windows, and macOS `CLI CI` (`32612516841`) and `CLI Strict Sandbox`\n  (`32612516696`) matrices. Its immutable `v-npm-0-165-7` release run\n  (`32613795671`) stopped in the Agent SDK test before package, dry-run, or npm\n  publish jobs; `0.165.7` was therefore never published and the fix advances\n  to a new immutable version/tag rather than moving the existing tag.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`\n  matrices. Tag, provenance, registry readback, and publication evidence must\n  be recorded only after those exact-SHA gates succeed."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.7",
-      "cliVersions": ["0.165.6", "0.165.7"],
-      "date": "2026-08-23",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.165.7: merged-session and evidence stability",
           "body": "> `chainlesschain` **0.165.6 -> 0.165.7** (unpublished immutable-tag candidate,\n> 2026-08-23; superseded by `0.165.8` after a pre-package release-gate failure).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Durable session stability**: bound headless event backlogs, scoped session\n  sidecars, routed Claude project storage through canonical path authority,\n  and prevented Windows append-writer starvation under concurrent session\n  activity.\n- **Execution-location convergence**: local and remote replicas now bootstrap\n  isolated target state, preserve replica identity and witnesses, forward\n  staged input through the target supervisor, and retain CPU-limit evidence.\n- **Browser evidence reliability**: two-origin browser evidence installs its\n  complete driver and aggregate dependency closure, preserves detached\n  baselines, stabilizes Windows tabs, and retries bounded profile cleanup.\n- **Merged test-contract repair**: real-spawn fixtures keep workspace and\n  application data as siblings, while path-module mocks inherit the production\n  API before overriding isolated test roots. The bundled offline changelog is\n  regenerated from this canonical record.\n- **Release status**: publication requires this candidate's exact commit to\n  pass the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox`\n  matrices. Tag, provenance, registry readback, and publication evidence must\n  be recorded only after those exact-SHA gates succeed."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.6",
-      "cliVersions": ["0.165.5", "0.165.6"],
-      "date": "2026-08-21",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.165.6: safer remote sessions and governed plugin sources",
           "body": "> `chainlesschain` **0.165.5 -> 0.165.6** (published from exact SHA\n> `ef4324349f272f5ec6af9a6ab80110e814122dae`, 2026-08-21).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Remote Control safe defaults**: direct sessions bind to loopback by\n  default. Trusted-LAN exposure requires explicit command authority, preserves\n  the selected bind address, fails closed on relay/direct fallback, and keeps\n  IDE pairing surfaces from presenting loopback endpoints as phone-ready QR\n  links.\n- **Governed plugin source identity**: managed Marketplace policy now evaluates\n  canonical Git, registry, file, alias, ref, path, host, port, principal, and\n  registry-resolution identities before target I/O or process spawn. Clone\n  execution is isolated from ambient Git/SSH configuration, and cache\n  provenance remains bound to the approved source and registry document.\n- **Digest-pinned Marketplace archives**: registry install and update can\n  materialize same-origin, catalog-bound `tgz`/`tar.gz` sources only after\n  candidate preflight. SHA-256 verification and bounded extraction reject\n  traversal, links, special entries, case collisions, and expansion bombs;\n  archive and extracted-payload digest authority are revalidated for offline\n  cache replay. Dynamic command and headers-helper sources remain disabled by\n  product policy.\n- **Cross-platform policy enforcement**: Windows runner temporary roots are\n  canonicalized without probing caller-controlled targets. Other existing 8.3\n  spellings resolve to their long-path authority, while unresolved or forged\n  aliases remain rejected. Linux, Windows, and macOS Marketplace campaigns\n  exercise air-gapped cache, proxy, PAC, and private-registry boundaries.\n- **Durable session and MCP lifecycle**: cross-session messaging, bounded\n  long-running live state, MCP reconnect subscription recovery, lifecycle\n  compatibility, and structured headless observability now share explicit\n  identity, cleanup, and backpressure contracts.\n- **Focused terminal ergonomics**: the `concise` output style and persisted\n  `classic`/`readline` keybinding flavor extend interactive use without\n  changing existing default behavior.\n- **Published release evidence**: immutable tag `v-npm-0-165-6`, three-OS\n  `CLI CI` (`32483224738`), `CLI Strict Sandbox` (`32483224517`), npm release\n  (`32486454203`), and independent registry/provenance readback\n  (`32488130856`) all bind exact SHA `ef4324349f`. npm reports\n  `latest=0.165.6`; the public tarball SHA-1 is\n  `d0dc65bdf34d0afe8e8db4492a1ddc72d63ee260`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.5",
-      "cliVersions": ["0.165.4", "0.165.5"],
-      "date": "2026-08-21",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added - cc CLI 0.165.5: governed recovery and native add-on policy",
           "body": "> `chainlesschain` **0.165.4 -> 0.165.5** (published from exact SHA\n> `11aef634aa3ab88994698eca0ce2f5cfa65faf48`, 2026-08-21).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.59**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Recoverable Artifact workflows**: inspect and settle orphaned Artifact\n  writes through a bounded CLI-owned recovery projection, retain exact\n  access/deletion evidence, and surface workbench state without letting IDE\n  clients derive storage mutations.\n- **Durable workflow recovery**: plan and resume interrupted workflow stages\n  through persisted authority and checkpoint evidence, with tighter session\n  and execution-location projections for CLI, WebSocket, and IDE consumers.\n- **Native MCP add-on policy**: admit only supported native loader shapes and\n  validated executable/package identities. Unsupported or ambiguous native\n  add-ons now return typed fail-closed rejections instead of crossing the\n  strict process boundary.\n- **Release gates**: add cross-host Marketplace, accessibility,\n  execution-location, context/permission, and live-provider campaigns while\n  keeping CI dependency installation clean and deterministic.\n- **Published release evidence**: immutable tag `v-npm-0-165-5`, three-OS\n  `CLI CI` (`32413582642`), `CLI Strict Sandbox` (`32413582490`), npm release\n  (`32428314006`), and independent registry/provenance readback\n  (`32429710720`) all bind exact SHA `11aef634aa`. npm reports\n  `latest=0.165.5`; the public tarball SHA-1 is\n  `c2cc7fb18ea572749d747de02355c6a0a5aef357`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.4",
-      "cliVersions": ["0.165.3", "0.165.4"],
-      "date": "2026-08-20",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed - cc CLI 0.165.4: first install without a native build toolchain",
           "body": "> `chainlesschain` **0.165.3 -> 0.165.4** (published from exact SHA\n> `86abb5f65e39f0dd553040fbfce07277336dfeeb`, 2026-08-20).\n> CLI release includes `@chainlesschain/personal-data-hub` **0.4.59**;\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Portable first install**: Personal Data Hub now declares\n  `better-sqlite3-multiple-ciphers` as an optional dependency. If a prebuilt\n  binary cannot be downloaded, npm may skip the failed `node-gyp` fallback\n  instead of aborting `npm install -g chainlesschain`; the CLI remains usable\n  through its bundled `sql.js` WASM fallback.\n- **No-toolchain install gate**: the Windows and Linux global-install smoke\n  deliberately disables native prebuilds and points node-gyp at a nonexistent\n  Python executable. The packed candidate must still install and both `cc` and\n  `chainlesschain` must start without `--ignore-scripts`.\n- **Published release evidence**: immutable tag `v-npm-0-165-4`, three-OS\n  `CLI CI` (`32375466808`), `CLI Strict Sandbox` (`32375466552`), npm release\n  (`32375466545`), and independent registry readback (`32377326843`) all bind\n  exact SHA `86abb5f65e`. npm reports `latest=0.165.4`; the public tarball\n  SHA-1 is `69ad469872d4e51d1cc2af7223d81eb6fed1dc50`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.3",
-      "cliVersions": ["0.165.2", "0.165.3"],
-      "date": "2026-08-19",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.165.3: durable background keeper retirement",
           "body": "> `chainlesschain` **0.165.2 -> 0.165.3** (published from exact SHA\n> `7d3eb9ea8046330e2b264bf2309337ebbbbcbacc`, 2026-08-19).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.58**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Durable keeper retirement evidence**: a Worker accepts a lost keeper\n  response only when the persisted retirement record matches the exact worker\n  generation, turn attempt, process identities, start anchors, and cleanup\n  confirmation. Ambiguous or partial records continue to fail closed.\n- **Bounded keeper health probes**: Windows process-identity checks are delayed\n  until the application heartbeat is actually silent, avoiding synchronized\n  helper-process storms while preserving an exact-identity backstop before\n  cleanup.\n- **Recoverable lock publication**: a lock owned by a provably dead process can\n  be reclaimed even when that owner published its release marker but crashed\n  before removing its private staging path. Active or identity-mismatched\n  owners remain fenced.\n- **Idempotent bootstrap release**: a matching bootstrap release can be replayed\n  after READY, and the Worker retransmits it when READY is repeated. Nonce,\n  generation, attempt, wrapper PID, and runtime PID mismatches remain rejected.\n- **Release status**: immutable tag `v-npm-0-165-3` and the public npm package\n  bind exact SHA `7d3eb9ea80`. Its push `CLI CI` (`32212502595`),\n  `CLI Strict Sandbox` (`32212502463`), and npm release (`32212502480`) passed;\n  it is now superseded by the fully read-back `0.165.4` production baseline."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.2",
-      "cliVersions": ["0.165.1", "0.165.2"],
-      "date": "2026-08-18",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.165.2: governed plugins and keeper handoff reliability",
           "body": "> `chainlesschain` **0.165.1 → 0.165.2** (published from exact SHA\n> `775d5667bc7bdcf8fed3f834d3ba2eda43526128`, 2026-08-18).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.58**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Governed plugin transactions and provenance**: marketplace payload,\n  activation, install, update, transaction recovery, and provenance decisions\n  bind immutable source identities and digests. Registry cache entries are\n  content-addressed, while corrupt, stale, or mismatched recovery evidence\n  continues to fail closed.\n- **Strict plugin execution boundaries**: the remaining live plugin fixtures\n  now execute in the strict Linux sandbox, MCP security soak provisions its\n  required Bubblewrap boundary explicitly, and release fixtures exercise the\n  production activation path instead of accepting inactive coverage.\n- **Durable workflow authority**: provider requests and settlements, nested and\n  parallel tool effects, child and descendant calls, and timeout outcomes gain\n  durable identity-bound receipts so retries cannot silently reuse ambiguous\n  execution authority.\n- **Background keeper lock handoff**: an owner that durably publishes its exact\n  release marker treats the marker as the logical handoff even when another\n  contender wins physical cleanup. Wrong, corrupt, or active foreign claimants\n  remain rejected, and POSIX/Windows process identity and cleanup races retain\n  bounded fail-closed handling.\n- **Scheduler campaign continuity**: scheduled long-soak dispatches use a pinned\n  campaign identity, refuse overlapping segments, and can auto-finalize only\n  after the required cross-platform evidence window is complete.\n- **Cross-platform release stability**: generated command help stays in sync;\n  POSIX fsync-failure fixtures match the actual read mode; registry cache tests\n  follow immutable URL-plus-digest semantics; and macOS marketplace replay uses\n  isolated local scope instead of leaking state through the runner user home.\n- **Release status**: immutable tag `v-npm-0-165-2` and the public npm package\n  bind exact SHA `775d5667bc`. Its `CLI CI` (`32110231013`),\n  `CLI Strict Sandbox` (`32110230842`), and npm release (`32114134884`) passed.\n  Later releases supersede it; the 72-hour scheduler campaign and signed native\n  distribution remain separate evidence boundaries."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.165.1",
-      "cliVersions": ["0.164.0", "0.165.1"],
-      "date": "2026-08-17",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.165.1: runtime admission, remote authority, and background containment",
           "body": "> `chainlesschain` **0.164.0 → 0.165.1** (published from exact SHA\n> `1a10ed7c8fd14d12f7760e948ff8efe36c766602`, 2026-08-17).\n> CLI release includes `@chainlesschain/personal-data-hub` **0.4.58**;\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Dynamic workflow run admission**: Cowork workflow execution revalidates the\n  immutable definition digest, execution-authority session, permissions,\n  sandbox, scale, and cost gates when a run starts instead of treating an\n  earlier preflight as continuing authority.\n- **Durable remote authority**: CLI-hosted approval, relay membership, and\n  reconnect reconciliation bind responses and commits to durable membership\n  epochs. Stale, revoked, mismatched, or unavailable authority fails closed.\n- **Canonical execution boundaries**: background `run_shell`, plugin-bin, and\n  delivery paths validate canonical workspace and configured repository\n  authority before executing or pushing. Linux child descriptors not declared\n  by the execution contract are closed before launch.\n- **Background keeper containment**: supervisor state locks publish ownership\n  atomically, distinguish zombies and reused PIDs, preserve POSIX process-group\n  cleanup, contain released turns after Worker loss, and require durable cleanup\n  evidence before retiring worktrees. POSIX socket namespaces and Windows exit\n  settlement are bounded for hosted and local environments.\n- **Cross-platform release evidence**: CLI workflows install the candidate's\n  dependency closure, bind reusable jobs to the exact source SHA, keep each\n  platform's evidence isolated, and retain bounded diagnostics for transient\n  process-identity and cleanup races.\n- **Dependency security closure**: the CLI requires the patched `js-yaml`\n  3.15.1 line, while Personal Data Hub 0.4.58 advances its bounded ZIP adapter\n  to `adm-zip` 0.6.0 so a crafted archive cannot trigger the disclosed 4 GB\n  allocation path before adapter-level entry validation.\n- **Release boundary**: the separate plugin marketplace payload/activation\n  hardening later passed its own exact-head gates at `89c498cc46` and merged\n  through PR #215 (`089336992d`). It remains intentionally excluded from this\n  immutable tarball and is tracked as a post-`0.165.1` source increment.\n- **Release packaging recovery**: immutable tag `v-npm-0-165-0` stopped before\n  any registry write because its SBOM resolver tried to fetch the coordinated\n  PDH 0.4.58 candidate before that package could be published. The 0.165.1\n  workflow resolves the SBOM from exact-SHA internal package tarballs instead.\n- **Published release evidence**: immutable tag `v-npm-0-165-1` resolves to\n  exact source commit `1a10ed7c8fd14d12f7760e948ff8efe36c766602`.\n  Its Linux, Windows, and macOS `CLI CI` (`32038591204`) and\n  `CLI Strict Sandbox` (`32038590960`) matrices passed; the dedicated npm\n  release (`32038590940`) and independent public readback (`32039659372`)\n  succeeded. npm reports `latest=0.165.1`; the public tarball SHA-1 is\n  `51ce645bebbe63ae168386cb8b6122a67c7d0813` and SHA-256 is\n  `5806d34b6659dcc632dad31db3acdc2f4fa07fb924b7d93de1d22637a3186241`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.164.0",
-      "cliVersions": ["0.163.8", "0.164.0"],
-      "date": "2026-08-16",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.164.0: governed marketplace, execution authority, and native isolation hardening",
           "body": "> `chainlesschain` **0.163.8 → 0.164.0** (published from exact SHA\n> `313dec85cffa09dbb183be17d2b6597e303bed5f`, 2026-08-16).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Native clipboard images**: `/paste-image` can attach bounded PNG, JPEG,\n  GIF, and WebP clipboard payloads to the next vision turn. Windows, macOS,\n  Wayland, and X11 host adapters use literal arguments, private temporary\n  files, signature checks, byte/count limits, and the Process Broker boundary.\n- **Scoped execution and context authority**: runtime permissions now expose\n  exact side-effect explanations and scoped decisions, while session execution\n  locations, IDE context-center evidence, prompt interactions, and durable\n  workflow definitions carry versioned identities instead of ambient context.\n- **Governed plugin marketplace**: catalog, multi-registry candidate selection,\n  install authority, update-impact review, artifact byte readback, and remote\n  artifact verification bind publisher, digest, signature, source, policy, and\n  approval evidence before plugin installation or update.\n- **Background keeper containment**: an independent keeper records Worker and\n  descendant PIDs, retires interrupted turns under bounded Windows identity and\n  cleanup budgets, and emits strict formal/smoke evidence contracts. The local\n  real-spawn regression is green; the three-platform formal keeper aggregate is\n  still required before P1-2 can be marked complete.\n- **MCP capsule boundary evidence**: materialized capsules bind the exact Node\n  builtin capability set and OS execution-context requirements. Formal evidence\n  now hashes and reparses each live result and schedules three independent\n  fresh-isolate probes per platform across a two-hour span; smoke evidence is\n  explicitly non-qualifying.\n- **Session and remote-approval hardening**: canonical session persistence gains\n  additional crash and anti-rollback checks. Client-hosted remote approval uses\n  durable same-machine membership epochs and fails closed on stale, revoked, or\n  unavailable authority. Signed coordinator/host lease modules are included as\n  a foundation only; they are not yet wired as a complete cross-host dispatch\n  fence and do not claim distributed consensus or revoke closure.\n- **Linux dynamic-native isolation candidate**: strict Linux native execution\n  recursively attests the ELF startup graph, snapshots caller-owned runtime and\n  plugin bytes, exposes only a read-only descriptor-bound namespace, and blocks\n  loader-input acquisition and nested mount namespaces with a dynamic-only\n  seccomp profile. The typed claim is limited to pathname-visible loader input;\n  broad `sharedLibraryClosure` remains false, JIT/custom loaders are excluded,\n  and packed Linux runtimes fail closed until separately supported.\n- **macOS signed launcher candidate**: a fixed signed/root helper contract can\n  copy and hash runtime and entry descriptors into root-protected snapshots,\n  gate entry until the runtime pathname is removed, supervise the target, and\n  fail closed when ownership, receipt, protocol, or signing evidence differs.\n  It remains disabled until the protected x64/arm64 workflow proves Developer\n  ID signing, notarization, root package installation, and the full live race\n  matrix; it does not claim shared-library closure.\n- **Compatibility and reliability boundary**: reaching the documented\n  `0.164.0` removal floor does not replace representative telemetry. All 25\n  compatibility aliases remain retained because approved cohort export,\n  three-platform reporting coverage, accepted points, and per-command usage are\n  still absent. The scheduler campaign remains incomplete, and the uncommitted\n  remote `run_shell` lease-consumption vertical is excluded after its expanded\n  parallel matrix did not finish fully green.\n- **Release authority hardening**: manual npm workflow runs are dry-run only;\n  production packaging and publishing require an immutable `v-npm-*` tag-push\n  event. Operator-controlled version text is no longer interpolated into shell\n  scripts, release Actions are commit-pinned, and independent readback validates\n  a canonical numeric SemVer before resolving the tag and attested artifact.\n- **Published release evidence**: immutable tag `v-npm-0-164-0` resolves to\n  exact source commit `313dec85cffa09dbb183be17d2b6597e303bed5f`. Its\n  Linux, Windows, and macOS `CLI CI` (`31912844177`) and\n  `CLI Strict Sandbox` (`31912844034`) matrices passed; the dedicated npm\n  release (`31912844032`) and independent public readback (`31913903124`)\n  succeeded. npm reports `latest=0.164.0`; the public tarball SHA-1 is\n  `2d13836305c6841b7fe5bcd059bc8ef25127fc3d` and SHA-256 is\n  `4d7f36f11bd2bfc1b85eee87392b74bd948e7cc33698cd35c87bff72fb3b4c16`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.8",
-      "cliVersions": ["0.163.7", "0.163.8"],
-      "date": "2026-08-14",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.8: governed recovery, merge review, and MCP resource templates",
           "body": "> `chainlesschain` **0.163.7 → 0.163.8** (published from exact SHA\n> `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`, 2026-08-14).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Crash-safe scheduler source persistence**: Agenda and Cowork authoritative\n  stores now reject unreadable, malformed, and non-object records instead of\n  treating them as empty state. Generation replacement uses private exclusive\n  temporary files, complete short-write loops, file fsync, atomic rename, and\n  POSIX directory fsync, while distinguishing pre-rename `not-committed`\n  failures from post-rename durability-unknown outcomes.\n- **Deterministic scheduler disk-fault closure**: fault injection covers ENOSPC,\n  partial writes, file and directory fsync failures, rename failures, corrupted\n  source stores, native SQLite `SQLITE_FULL` transaction rollback, Automation\n  source rollback atomicity, database truncation, and clean reopen behavior.\n  Routine and Loop retain their existing durable-store and append/CAS\n  protections.\n- **Governed Automation runtime recovery**: scheduler-backed Automation work can\n  expose exact-fence, control-revision, capability-bound pause and resume safe\n  points. Revisioned incidents support bounded retry or cancellation; retry\n  revalidates the exact dead-letter occurrence, run identity, fence, and error\n  evidence, while manual incidents are not silently replayed.\n- **Governed multi-agent merge review**: `cc team merge-review` subcommands\n  `preview|show|apply|rollback` provide stable file and hunk selection,\n  digest-bound decisions, durable conflict evidence, guarded cross-branch batch\n  publication, and retained-history rollback. Git hooks, repository-local\n  configuration, inherited environment, stale revisions, oversized selections,\n  and changed branch identities fail closed.\n- **Read-only MCP resource templates**: templates-only MCP servers can now\n  register the existing resource surface. The new\n  `list_mcp_resource_templates {server?}` tool reads the bounded discovery\n  cache, supports explicit server filtering, and lets the model instantiate a\n  concrete URI before using the existing `read_mcp_resource` boundary. It does\n  not add an implicit network request, subscription, or automatic URI\n  expansion.\n- **Explicit optional-protocol decisions**: resource templates enter the\n  production read-only surface; resource subscriptions, peer-controlled\n  logging, and completion remain deferred pending bounded consumers and\n  cancellation/recovery UX. MCP sampling remains undeclared and server\n  `createMessage` requests continue to return JSON-RPC `-32601`.\n- **Transaction-time scheduler fencing**: claim, renewal, and settlement paths\n  now read their lease clock inside the write transaction, preventing queue\n  wait time from turning a pre-transaction timestamp into a stale lease or\n  settlement decision.\n- **Formal scheduler soak evidence gate**: Linux, Windows, and macOS workflows\n  now exercise two-worker contention, lease/fence recovery, heartbeat renewal,\n  stale settlement rejection, outcome-unknown no-replay, DST/backlog behavior,\n  SQLite integrity, descendant cleanup, and bounded resource trends. The\n  campaign verifier requires at least four identity-bound formal segments whose\n  authoritative starts span at least 72 natural hours, with no gap above\n  30 hours.\n- **Release boundary**: the scheduler soak implementation and smoke matrices are\n  present, but the required 72-hour formal campaign has not completed; P2-4\n  therefore remains partially complete. Signed native distribution,\n  representative alias-removal telemetry, and the later P2-2 native\n  clipboard-image host work remain outside this immutable release.\n- **Published release evidence**: immutable tag `v-npm-0-163-8` resolves to\n  exact source commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`. Its\n  three-OS `CLI CI` (`31804468633`) and `CLI Strict Sandbox` (`31804468464`)\n  matrices passed; the dedicated npm release (`31806101423`) and independent\n  public readback (`31807574517`) succeeded. npm reports `latest=0.163.8`;\n  tarball SHA-1 is `655557b5c5b897b23a29975708abbf8d5cd31e88` and SHA-256\n  is `862a0f450da013740a1c21d084233b002982b4b816f156e4949b6110eda80e12`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.7",
-      "cliVersions": ["0.163.6", "0.163.7"],
-      "date": "2026-08-14",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.7: governed scheduler migration and causal observability",
           "body": "> `chainlesschain` **0.163.6 → 0.163.7** (published from exact SHA\n> `3e997168621c53708a1682868c6cc4edc9baf15b`, 2026-08-14).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Five-domain migration journal**: Agenda, Cowork Cron, Routine, Automation,\n  and Loop migrations use the scheduler store schema-v5 journal with\n  domain-typed source locators, immutable source/target digest bindings,\n  idempotent recovery, and fail-closed rejection of conflicting or ambiguous\n  legacy entries.\n- **Governed rollback controls**: the new scheduler migration `list`, `show`,\n  and `rollback` commands expose redacted migration status and blockers.\n  Rollback requires the latest evidence digest, an interactive TTY, and the\n  exact typed challenge before reopening any legacy source.\n- **Target-first recovery and CAS fencing**: rollback stops or restores the\n  scheduler target before restoring the legacy source, validates target\n  revision, definition and execution evidence, and makes terminal source\n  restoration retry-safe across process crashes. This is not a claim of one\n  atomic transaction across independent stores or filesystems.\n- **Fail-closed source identity**: Windows drive and UNC paths are canonicalized\n  while relative, incomplete and device-namespace paths are rejected.\n  Automation migration requires an existing native SQLite database and refuses\n  the non-durable sql.js fallback; Loop restoration remains bound to its durable\n  retirement fence, marker and original source digest.\n- **Windows persistence hardening**: team adjudication atomic replacement\n  retries only transient Windows `EACCES`, `EBUSY`, and `EPERM` sharing\n  failures with bounded backoff and authority-path revalidation. Exhausted,\n  non-transient, and non-Windows replacement failures continue to fail closed.\n- **Cross-platform CI hardening**: migration fixtures verify retirement fences\n  and canonical source identities consistently across operating systems, while\n  distributed-queue and authority test workers use bounded lifetimes and attach\n  result observers before short-lived children can exit. Terminal Skill\n  authority fixtures now use an explicit parent acknowledgement before clean\n  exit, removing Windows IPC exit-before-message ordering ambiguity without\n  weakening concurrent revocation assertions.\n- **Verified causal delivery reports**: scoped sessions can be bound by exact\n  transcript head and event count to digest-protected delivery states. The new\n  session observability commands export a redacted session-to-delivery graph\n  spanning diffs, gates, artifacts, pull requests, and merges, with exact\n  workspace, team, and policy filters.\n- **Fail-closed call-ledger budgets**: `call-ledger@1` brackets model, retry,\n  compaction, subagent, isolated-skill, and tool calls with known or unknown\n  settlements. Strict budget mode rejects exceeded and unevaluable results\n  instead of treating missing token, cost, retry, or tool-latency evidence as\n  zero.\n- **Background recovery authority hardening**: verified transcript CAS,\n  delegated recovery leases, IPC sender/nonce binding, bootstrap guards, exact\n  process-group termination checks, and terminal cleanup prevent uncertain or\n  still-live descendants from authorizing recovery or worktree deletion.\n- **Causal evidence boundary**: report bindings prove exact verified revisions,\n  not that a model call semantically caused a source hunk. Scope labels are not\n  identity or membership proofs, digests are not signatures, anti-rollback is\n  machine-local, and incomplete or legacy ledgers remain partial or unknown.\n- **Published release evidence**: immutable tag `v-npm-0-163-7` resolves to\n  exact source commit `3e997168621c53708a1682868c6cc4edc9baf15b`. Its\n  three-OS `CLI CI` (`31745391661`, attempt 2) and `CLI Strict Sandbox`\n  (`31745391321`) matrices passed; the dedicated npm release (`31748153519`)\n  completed exact-SHA gating, immutable artifact, CycloneDX SBOM, Trusted\n  Publishing, signed provenance, registry byte verification, and npmmirror\n  synchronization. Independent readback (`31749404980`) verified the public\n  tarball byte-for-byte against the immutable artifact. npm reports\n  `latest=0.163.7`; tarball SHA-1 is\n  `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff` and SHA-256 is\n  `d7ca295e6cdb4e442ee7ad6bb9cc0b9d923f40de4eae395974d91b4dfab83a9d`.\n- **Release boundary**: deterministic scheduler disk-fault closure landed\n  after this immutable release and must not be attributed to its tarball. The\n  three-OS long-soak exit campaign, signed native distribution, and\n  representative alias-removal telemetry remain open."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.6",
-      "cliVersions": ["0.163.5", "0.163.6"],
-      "date": "2026-08-12",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.6: unified scheduler authority and automation control",
           "body": "> `chainlesschain` **0.163.5 → 0.163.6** (published from exact SHA\n> `85c3577c887003fea98d0a159603cd359506f09b`, 2026-08-12).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Complete scheduler adapter migration**: Agenda monitors, Loop iterations,\n  Automation cron flows, Routine GitHub polling, channel automation events,\n  and the standalone daemon now execute through the shared scheduler service\n  with durable claims, definition snapshots, recovery fences, and bounded\n  retry/dead-letter behavior.\n- **Timezone and missed-run consistency**: Agenda and Cowork cron definitions\n  persist canonical IANA timezones, handle DST gaps and repeated civil times,\n  and collapse downtime to one latest due occurrence without replay storms.\n- **Shared scheduler permission and budget authority**: Agenda, Routine,\n  Cowork, Automation, and Loop bind exact capability policies to durable\n  revisions and use one transactional reservation/settlement path. Missing,\n  stale, disabled, exhausted, or inconsistent policy state fails closed;\n  retries reuse the original reservation instead of charging twice.\n- **Layered Automation enforcement**: the shared scheduler authority composes\n  with Automation's creator identity, connector permissions, live revocation,\n  and per-flow run/action budgets. Domain evidence and the scheduler policy\n  revision remain independently validated.\n- **Governed management surfaces**: scheduler policy inspection/update commands\n  require exact capabilities and revision CAS, while the Automation Center\n  exposes governed flow and Routine controls without bypassing backend\n  permission or budget checks.\n- **Known residuals**: durable outcome-unknown adjudication, complete mixed-\n  version migration/rollback, scheduler disk-fault closure, and the three-OS\n  long-soak matrix remain open. Signed native distribution and representative\n  alias-removal telemetry also remain outside this release.\n- **Published release evidence**: immutable tag `v-npm-0-163-6` resolves to\n  exact source commit `85c3577c887003fea98d0a159603cd359506f09b`. Its Linux,\n  Windows, and macOS `CLI CI` (`31595865423`) and `CLI Strict Sandbox`\n  (`31595865206`) matrices passed; the dedicated npm release (`31595865181`)\n  completed its exact-SHA gate, immutable package, Trusted Publishing, and\n  signed provenance, and the independent public readback (`31597577056`)\n  succeeded. npm reports `latest=0.163.6`; the public tarball SHA-1 is\n  `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.5",
-      "cliVersions": ["0.163.4", "0.163.5"],
-      "date": "2026-08-11",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.5: durable scheduler runtime and recovery",
           "body": "> `chainlesschain` **0.163.4 → 0.163.5** (published from exact SHA\n> `095087c1e859a8451ce01ed58c59af3fede756fd`, 2026-08-11).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Unified scheduler runtime**: the versioned scheduler store now has a shared\n  runtime with adapter registration, snapshot-bound authorization, durable\n  owner/fence claims, lease renewal, bounded retry, dead-letter settlement,\n  history, and adapter-kind isolation.\n- **Routine scheduling migration**: manual triggers and `routine run` cron/once\n  executions use canonical logical occurrences, revision-CAS job snapshots,\n  deterministic run evidence, dual-driver fencing, and crash recovery that\n  settles terminal evidence without replaying the agent.\n- **Agenda wakeup/cron migration**: production Agenda wakeup and cron entries\n  preserve their full permission/worktree/turn/token/cost/time run policy while\n  executing through the shared kernel. New and legacy drivers coordinate with\n  durable leases; known failures retry, while start-only outcomes fail closed.\n- **Cowork Cron migration**: production `cowork cron run` uses definition-only\n  snapshots, workspace-scoped recovery claims, cross-version JSONL delivery\n  fences, terminal-evidence recovery, and automatic one-second polling for\n  six-field cron expressions.\n- **Durable compaction recovery**: micro-compaction strips transient runtime\n  markers before persistence, records checkpoint state durably, restores it in\n  REPL/agent flows, and preserves trace propagation across Process Broker\n  execution boundaries.\n- **Honest execution boundary**: durable terminal evidence prevents duplicate\n  automatic replay after a scheduler process crash. Start-only evidence or a\n  post-side-effect persistence failure remains outcome-unknown and requires\n  explicit handling; this release does not claim global exactly-once behavior.\n- **Known residuals**: Agenda monitor, Automation, Loop, Routine GitHub,\n  standalone scheduler daemon/liveness, shared permission/budget resolution,\n  IANA timezone/DST/missed-run semantics, migration/rollback, disk-fault and\n  long-soak closure remain outside this release. Signed native distribution and\n  representative alias-removal telemetry also remain open.\n- **Published release evidence**: immutable tag `v-npm-0-163-5` resolves to\n  exact source commit `095087c1e859a8451ce01ed58c59af3fede756fd`. Its Linux,\n  Windows, and macOS `CLI CI` (`31509337185`) and `CLI Strict Sandbox`\n  (`31509336854`) matrices passed; the dedicated npm release (`31509336832`)\n  completed its exact-SHA gate, immutable package, Trusted Publishing and\n  signed provenance, and the independent public readback (`31514940240`)\n  succeeded. npm reports `latest=0.163.5`; the public tarball SHA-1 is\n  `5dc6677dee6d1d73b708e6a50e3808007a314894`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.4",
-      "cliVersions": ["0.163.3", "0.163.4"],
-      "date": "2026-08-11",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.4: immutable MCP capsules and durable scheduler storage",
           "body": "> `chainlesschain` **0.163.3 → 0.163.4** (published from exact SHA\n> `27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`, 2026-08-11).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Immutable MCP capsule build inputs**: the capsule builder now executes in a\n  bounded worker against an in-memory WASM virtual filesystem populated from\n  verified bytes. Package sources and native builder assets are canonicalized,\n  identity-bound, and no longer reopened from mutable host paths during the\n  build.\n- **Platform-bound live capsule evidence**: materialized stdio MCP capsules are\n  exercised through the production Process Broker and child contract on Linux,\n  Windows, and macOS. Framed reports, exact asset identity, deferred host-path\n  resolution, and shared CJS/ESM trace context prevent warning or path-alias\n  drift from weakening the evidence chain.\n- **Bounded failure behavior**: worker memory, output, timeout, and cleanup are\n  bounded; partial or malformed child evidence, post-verification replacement,\n  unapproved effects, and unsupported strict boundaries fail closed.\n- **Command lifecycle evidence and alias decision**: report v2 binds exact\n  coverage, approval, scope, and repository evidence and summarizes command\n  telemetry without silently accepting zero-data input. All 25 deprecated\n  aliases remain retained until representative opt-in telemetry exists and the\n  documented `0.164.0` removal floor is reached.\n- **Scheduler kernel storage foundation**: a versioned SQLite store adds strict\n  schema verification, expected-revision CAS, logical-occurrence deduplication,\n  durable claims, and two-handle race coverage. This is the first P2-4 storage\n  milestone, not completion of the scheduling kernel or orchestration runtime.\n- **Delivery and recovery hardening**: production delivery adapters, durable\n  provider-backed compaction, MCP recovery admission, session ownership fences,\n  and exact Windows write checks close additional internal consistency gaps.\n- **Native release readback hardening**: release evidence now verifies public\n  bytes, checksums, manifests, signatures, and provenance contracts more\n  strictly. Signed native distribution is still blocked until real signed\n  artifacts and public package-manager readback are available.\n- **Known residuals**: full P2-4 scheduling orchestration, signed native\n  distribution, representative alias telemetry, and the remaining documented\n  long-soak/host-boundary follow-ups are not claimed by this release.\n- **Published release evidence**: immutable tag `v-npm-0-163-4` resolves to\n  exact source commit `27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`. `CLI CI`\n  (`31421782916`), `CLI Strict Sandbox` (`31421782072`), the npm release\n  (`31424056034`), and independent public readback (`31425519966`) succeeded."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.3",
-      "cliVersions": ["0.163.2", "0.163.3"],
-      "date": "2026-08-10",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.163.3: isolated background agents and policy-bound runtimes",
           "body": "> `chainlesschain` **0.163.2 → 0.163.3** (published from exact SHA\n> `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758`, 2026-08-10).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Git background isolation by default**: `cc agent --bg` runs started from a\n  clean Git checkout and not using `--input-format stream-json` now create a\n  worktree at committed `HEAD`; `--worktree` requests the same path and only\n  `--no-worktree` opts into the shared checkout. Foreground runs, runs using\n  `--input-format stream-json`, and non-Git runs retain their prior behavior,\n  while a dirty Git source is rejected instead of silently omitting uncommitted\n  changes.\n- **Generation- and token-fenced ownership**: locked atomic state, immutable\n  worktree/profile identity, worker-generation claims, terminal-absorbing\n  updates, durable turn intents, and stop/cleanup fences prevent stale\n  cooperative workers from reviving or deleting live work. Versioned,\n  secret-free launch profiles preserve compatible resume settings.\n- **Grammar-safe detached arguments**: new background launches preserve option\n  values and `--` literals, pass prompts as one `--print=<text>` token,\n  canonicalize resume/continue/fork to one session, and remap repository\n  `--add-dir` roots into the worktree. Canonical external roots remain shared\n  and produce a warning.\n- **Policy-bearing stdio MCP sources**: explicit `--mcp-config`, managed and\n  registered local/project/user sources, trusted project configuration, Skill,\n  and Cowork definitions propagate normalized `filesystem`/`network`\n  requirements plus separately validated working-directory/workspace authority\n  to the Process Broker. Unprovable requirements fail closed, and invalid named\n  higher-precedence entries do not fall through to a weaker source.\n- **Sealed Linux plugin file sets**: strict direct Plugin Node and supported\n  narrow native ELF launches snapshot every pinned regular plugin file into\n  sealed anonymous data-bind mounts. Dynamic native evidence covers only\n  `PT_INTERP` and direct `DT_NEEDED`; tree attestation remains per-file rather\n  than one atomic filesystem snapshot.\n- **Contained Windows adapter artifacts**: helper, cache, and test artifacts use\n  an attested non-reparse local temporary root, identity/content rechecks,\n  randomized materialization, and bounded retirement. Unknown or unverifiable\n  leftovers are preserved and make cleanup fail closed.\n- **Fail-closed CI routing**: the generic selector routes the defined Windows\n  helper-support paths to their CLI contract tests, supports multi-suite\n  execution, and cannot turn selected-test or primary-run failure into a\n  fallback/diagnostic pass. Full-suite workflows provision their required\n  dependencies explicitly; this routing does not replace the exact-SHA release\n  matrices.\n- **Known residuals**: non-Git, `--input-format stream-json`, `--no-worktree`,\n  and external `add-dir` roots are not worktree-isolated. Spawn-to-PID\n  hard-crash recovery and long-soak closure remain open; Linux native\n  dependency evidence is non-transitive and has no `dlopen` closure; Windows\n  path operations are\n  re-attested but not handle-atomic. macOS atomic runtime execution, arbitrary\n  shared-library closure, remote revocation, signed native distribution, and\n  alias telemetry/removal remain out of scope, so this release does not claim\n  complete P1-2 closure.\n- **Published release evidence**: immutable tag `v-npm-0-163-3` resolves to\n  exact source commit `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758`.\n  Its Linux, Windows, and macOS `CLI CI` (`31329476135`) and `CLI Strict\nSandbox` (`31329476020`) matrices passed; the formal two-hour\n  reliability/malicious-MCP soak (`31329539092`) completed 7/7 jobs with 300\n  host cycles, 900 unapproved effects, 100 Linux races, 100 macOS fail-closed\n  probes, and zero escapes. The npm release (`31335579227`) and independent\n  public readback (`31336362525`) completed the exact-SHA gate, immutable\n  tarball/CycloneDX SBOM, Trusted Publishing, SLSA/Sigstore provenance,\n  registry byte comparison, and npmmirror synchronization. The public tarball\n  SHA-256 is\n  `68396c418029fc314403c9882c92fb9bef5ec6e9a61bb186333209884d410a92`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.2",
-      "cliVersions": ["0.163.1", "0.163.2"],
-      "date": "2026-08-09",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.163.2: fail-closed MCP capsule sandbox composition",
           "body": "> `chainlesschain` **0.163.1 → 0.163.2** (published from exact SHA\n> `2d6f19aea243ed4f054b585d4bc709d4209ff80d`, 2026-08-09). CLI-only release;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Explicit MCP runtime identity**: stdio MCP configuration now supports\n  `--runtime-kind` for `native`, `node`, `python`, `posix-shell`, `powershell`,\n  `java`, and `dotnet`. Recognized runtimes cannot be relabeled, while renamed\n  or custom runtime executables must declare their semantics before trust is\n  granted. The declaration persists through local, project, managed, Skill, and\n  Cowork configuration sources.\n- **Descriptor-bound Linux MCP capsules**: fixed npm/Node MCP servers now keep\n  the verified Node runtime and entry source bound through launch. The direct\n  inherited-FD path and the `bwrap` filesystem/network/process-tree path both\n  validate the exact runtime, entry, and passthrough arguments; ambiguous\n  separators, path traversal, mixed evidence families, and pathname replacement\n  fail closed.\n- **One-launch Windows MCP authority**: restricted-token and AppContainer plans\n  are issued only by the production adapter and admitted only by the built-in\n  Broker. The private capability binds the original contract, helper payload,\n  environment, stdio handles, and post-spawn closure; validation and post-spawn\n  authority are delete-before-use, cleanup revokes abandoned plans, and replay\n  or injected-adapter plans are rejected before native spawn.\n- **Honest macOS boundary**: public Darwin exec/spawn APIs cannot atomically bind\n  the verified runtime descriptor to the launched image, so strict MCP capsule\n  startup now returns a typed fail-closed result instead of claiming a\n  pathname-based code snapshot. A root-owned/signed broker or equivalent atomic\n  exec design remains a separate roadmap requirement.\n- **Malicious-host evidence v4**: repeated Linux descriptor-bound\n  pathname-replacement probes, explicit macOS fail-closed evidence, and the\n  separately enforced Windows strict gate now use distinct evidence contracts.\n  Formal soak workflows bind their inputs and aggregate artifacts to an exact\n  source SHA.\n- **Accurate native release status**: the unsigned six-target native build/run\n  validation is no longer reported as missing. Native publication remains\n  fail-closed pending Linux signing, Windows Authenticode, macOS\n  signing/notarization, signed install/upgrade/rollback validation,\n  package-manager publication, and public artifact readback.\n- **Scope remains narrow**: this patch does not claim arbitrary native/shared\n  library closure, remote distributed revocation, permissioned or unrestricted\n  Node-builtin modes, the complete malicious Skill matrix, or signed native\n  distribution. All 25 deprecated command aliases remain retained; the\n  `0.164.0` removal floor and representative opt-in telemetry are still unmet.\n- **Published release evidence**: immutable tag `v-npm-0-163-2` resolves to\n  exact source commit `2d6f19aea243ed4f054b585d4bc709d4209ff80d`.\n  Its Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices,\n  formal two-hour reliability/malicious MCP soak, and dedicated npm release all\n  succeeded. The release workflow completed its exact-SHA gate, immutable\n  tarball/CycloneDX SBOM, Trusted Publishing, SLSA provenance, registry\n  readback, and npmmirror synchronization; the independent public readback\n  proved the registry tarball byte-identical to the workflow artifact. The\n  public tarball SHA-256 is\n  `394a755d52fca98e7527228859a78e1c57eae69abfdcaf77cc56e9b665b13fe1`."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.1",
-      "cliVersions": ["0.163.0", "0.163.1"],
-      "date": "2026-08-08",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates",
           "body": "> `chainlesschain` **0.163.0 → 0.163.1** (published from exact SHA\n> `e3f56b11e27ae1bd5d19ad8638434843c244aa68`, 2026-08-08). CLI-only release;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Bounded long-session compaction**: prior durable conversation summaries and\n  compacted tool records are folded into the next summary instead of remaining\n  as permanently accumulated system messages. A 2,000-turn regression keeps\n  compaction state bounded while preserving checkpoint and other trusted host\n  provenance.\n- **Race-safe live session tails**: transcript deletion or restoration between\n  the path check and asynchronous `stat`/`open` is reclassified through the\n  durable session witness. Followers now fail closed with the governed deleted\n  or unverified-transcript error instead of leaking a platform-dependent raw\n  `ENOENT`.\n- **Atomic Windows MCP runtime launch**: the strict sandbox holds verified\n  runtime and entry identities through suspended process image creation, then\n  re-attests before resume. A real pathname-replacement race fails closed\n  before untrusted entry code executes.\n- **Real cross-platform reliability probes**: the formal matrix now includes\n  persisted EROFS/ENOSPC sessions, bounded pipe consumers, native TTY\n  screen-reader mode with multilingual keyboard input, Windows/macOS Unicode\n  clipboard round trips, localhost SSH disconnects, oversized MCP output,\n  concurrent agents, and two-hour resource accounting. Disk mounts are retired\n  from their actual `sessions` targets during cleanup.\n- **Deterministic two-hour workload**: the required 1,000 duplex turns are\n  paced across the complete soak window instead of becoming a platform-speed\n  stress loop with millions of extra turns. The RSS/FD/handle thresholds remain\n  unchanged, and the screen-reader probe waits for the real REPL prompt before\n  injecting multilingual keyboard input.\n- **Native release credentials fail closed**: the six-target native workflow\n  refuses to build a release until Linux signing, Windows Authenticode, macOS\n  signing/notarization, and updater keys are all configured. This npm release\n  does not claim the separate native distribution chain is complete.\n- **Reproducible embedded Web Panel**: the CLI pack path now builds from a clean,\n  lockfile-driven Web Panel dependency graph, pins the Vite/Rollup/Intlify runtime\n  chain, bounds Rollup file concurrency, and keeps Node 22 standalone bases\n  deterministic across Linux, Windows, macOS, x64, and ARM64 validation hosts.\n- **Release status**: immutable tag `v-npm-0-163-1` resolves to exact source\n  commit `e3f56b11e27ae1bd5d19ad8638434843c244aa68`. That SHA passed the complete\n  Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices, the\n  unsigned six-target native validation, and the three-OS two-hour reliability\n  gate. The dedicated npm release completed its exact-SHA gate, immutable\n  tarball/CycloneDX SBOM, Trusted Publishing, SLSA provenance, registry readback,\n  and npmmirror synchronization. The public registry tarball is byte-identical\n  to the workflow artifact (SHA-256\n  `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`)."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.163.0",
-      "cliVersions": ["0.162.200", "0.163.0"],
-      "date": "2026-08-08",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation",
           "body": "> `chainlesschain` **0.162.200 → 0.163.0** (published from exact SHA\n> `aed0a3ae5327917ce0490a5decbddd777f66f33b`, 2026-08-08). CLI-only release;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **macOS PTY installation repair**: `node-pty@1.1.0` publishes its macOS\n  `spawn-helper` prebuilds without executable bits, which made fresh ARM64 and\n  Intel installs fail with `posix_spawnp failed`. The CLI postinstall now\n  repairs and verifies that narrowly resolved regular file, rejects symlinked\n  helpers, and the reliability workflow fails early if the executable bit is\n  missing before running a real PTY scenario.\n- **Real native target hosts**: the standalone native release matrix now maps\n  Linux, Windows, and macOS x64/ARM64 targets to six matching GitHub-hosted\n  runners and requires each artifact to execute on its own architecture. The\n  previous cross-target smoke-test skip is removed. This improves native\n  evidence readiness but does not claim signing, notarization, or public native\n  distribution is complete.\n- **Second command-observation cycle starts**: `0.163.0` begins the second minor\n  release cycle for lifecycle telemetry. All 25 deprecated compatibility\n  aliases remain retained because representative opt-in collector coverage,\n  per-command sample floors, and the `0.164.0` removal floor are not yet met.\n- **Release evidence**: tag `v-npm-0-163-0` resolves to exact SHA\n  `aed0a3ae5327917ce0490a5decbddd777f66f33b`. Its\n  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874),\n  and [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410)\n  completed the three-OS matrices, immutable tarball/SBOM, provenance, registry\n  readback, and npmmirror synchronization before `0.163.1` superseded it."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.200",
-      "cliVersions": ["0.162.198", "0.162.200"],
-      "date": "2026-08-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.200: release-gate isolation and carried reliability fixes",
           "body": "> `chainlesschain` **0.162.198 → 0.162.200** (published,\n> 2026-08-07 from exact SHA `dbb06e16fef0`.\n> `0.162.199` failed before npm upload and its tag remains\n> immutable). CLI-only release metadata; `@chainlesschain/personal-data-hub`\n> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Carries the complete 0.162.199 candidate**: command lifecycle telemetry and\n  alias observation policy, canonical session authority, fixed MCP package\n  capsules, native update recovery, and portable reliability gates are all\n  included because `0.162.199` never reached npm.\n- **Release-gate isolation**: the Agent SDK real-CLI E2E now places its\n  rollback-resistant security anchor beside, rather than inside,\n  `CHAINLESSCHAIN_HOME`. The fixture therefore matches the production\n  fail-closed layout after redirecting `HOME` and no longer hides the `agent`\n  command behind compatibility registration.\n- **Pre-release evidence**: implementation SHA `bf6924013d1c` passed the full\n  [npm release dry-run](https://github.com/chainlesschain/chainlesschain/actions/runs/31189959290),\n  including core packages, Agent SDK real-CLI E2E, Personal Data Hub, Web Panel,\n  the complete CLI suite, and credential-free npm package validation. The final\n  `0.162.200` version commit must pass the exact-SHA CLI CI and CLI Strict\n  Sandbox matrices before tag `v-npm-0-162-200` is created."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.199",
-      "cliVersions": ["0.162.198", "0.162.199"],
-      "date": "2026-08-07",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.199: session authority, MCP capsules, and recovery reliability",
           "body": "> `chainlesschain` **0.162.198 → 0.162.199** (not published, 2026-08-07;\n> the release workflow failed before package creation or npm upload and tag\n> `v-npm-0-162-199` remains immutable). CLI-only release metadata;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Command lifecycle telemetry**: manifest-driven lifecycle metadata now\n  records legacy and replacement routes, aggregates usage without changing\n  aliases automatically, and keeps compatibility entries until their stated\n  observation window and release-cycle requirements are satisfied.\n- **Canonical session authority**: host leases, transcript witnesses,\n  anti-rollback anchors, compare-and-swap persistence, bounded cleanup, and\n  descendant retirement harden concurrent resume and long-running session\n  behavior across the covered CLI, background, and remote-host paths.\n- **Fixed MCP package execution**: approved JavaScript launchers are resolved\n  to exact npm versions and complete transitive closures, then bundled into a\n  guarded, content-addressed Node capsule. Runtime execution no longer depends\n  on a live dynamic package launcher or mutable `node_modules` entrypoint.\n- **Native update recovery**: Windows and POSIX installer/OTA generations can\n  recover interrupted activation, rollback, and rescue state while preserving\n  exact lineage, owner-private locks, and Windows path/handle identity under\n  Node 22.12 device projection.\n- **Portable reliability gates**: disk/pipe failure injection, process-tree\n  cleanup, resource accounting, session stress, and platform path aliases are\n  covered by the release matrices. Real hardware, terminal, SSH, and extended\n  soak observations remain ongoing evidence rather than compatibility claims.\n- **Candidate evidence**: implementation SHA `7e7ce9182746` passed\n  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31181229942),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31181328955),\n  [CLI Background Interaction E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258842),\n  and [CLI Session Host Consistency](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258424)\n  on Ubuntu, Windows, and macOS. Final SHA `23bd2e6e5758` also passed the\n  exact-SHA release gates, but the\n  [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31187599603)\n  stopped before package creation because its Agent SDK fixture placed the\n  security anchor inside the redirected CLI home."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.198",
-      "cliVersions": ["0.162.197", "0.162.198"],
-      "date": "2026-08-06",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.198: interactive streaming and release portability",
           "body": "> `chainlesschain` **0.162.197 → 0.162.198** (published, 2026-08-06).\n> CLI-only release metadata; `@chainlesschain/personal-data-hub` remains\n> **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Interactive output backpressure**: REPL, headless streaming, provider\n  pacing, and TTY writers now wait for saturated output streams to drain and\n  clean up pending listeners across completion, interruption, and session\n  transitions instead of allowing unbounded interactive writes.\n- **Canonical session controls**: the CLI-owned session projection and bounded\n  reply routes now support the completed VS Code and JetBrains workbench and\n  rewind journeys while preserving CLI authority over persisted mutations.\n- **Portable release gates**: Windows path-alias fixtures, state-path mocks,\n  Skill metadata fixtures, POSIX executable-bit setup, and the deprecated\n  agent-core shim are aligned with the three-platform CLI CI and Strict\n  Sandbox contracts.\n- **Release readback hardening**: public npm verification remains independent\n  of undeclared runtime dependencies, retries bounded registry propagation,\n  and binds provenance and registry bytes to the immutable publish artifact.\n- **Exact release evidence**: tag `v-npm-0-162-198` points to final release SHA\n  [`3c0f62fa17242cfa3123ab502a9bf5d1cbed8481`](https://github.com/chainlesschain/chainlesschain/commit/3c0f62fa17242cfa3123ab502a9bf5d1cbed8481).\n  The same SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499968)\n  and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499270)\n  on Ubuntu, Windows, and macOS. The\n  [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31081337370)\n  completed the exact-SHA gate, immutable tarball, CycloneDX SBOM, Trusted\n  Publishing, signed provenance, registry readback, and npmmirror sync; the\n  [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544)\n  re-downloaded the package and matched registry bytes and publishing identity."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.197",
-      "cliVersions": ["0.162.189", "0.162.197"],
-      "date": "2026-08-05",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety",
           "body": "> `chainlesschain` **0.162.189 → 0.162.197** (published,\n> 2026-08-05; `0.162.190`, `0.162.191`, and `0.162.192` were never published;\n> `0.162.193` was published outside the authoritative CLI release workflow;\n> `0.162.194`, `0.162.195`, and `0.162.196` failed before npm upload and their\n> tags remain immutable).\n> CLI-only release metadata;\n> `@chainlesschain/personal-data-hub`\n> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Safer configuration defaults**: for CLI config writes, schema-declared\n  secrets are refused by `config set` and must use `config set-secret` through\n  hidden TTY/stdin and OS-store or owner-only fallback paths. Explicit\n  `workspace-write` / `strict` isolation and managed-required sandbox policies\n  fail closed when unavailable. `mcp add` now defaults to local scope; both\n  human and JSON `status` use bounded quick probes, while full Docker Compose\n  detail requires `--deep`.\n- **MCP transports and uncertain-outcome recovery**: scoped WebSocket MCP,\n  trusted dynamic headers, timeout notifications, and durable recovery records\n  cover REPL, stream, Cowork/host, and WebSocket paths through shared verified\n  recovery authority. Ambiguous MCP outcomes require verification or\n  adjudication instead of blind replay.\n- **Canonical sessions and resource budgets**: covered REPL, stream,\n  WebSocket, and headless paths use verified transcript projections,\n  transactional summary/compaction state, and reject stale or corrupt resume\n  authority. A persistent session-budget foundation plus background/Team\n  adapters adds fenced token/USD/wall-clock accounting and cleanup; it is not\n  yet a universal cross-host budget authority.\n- **Agent workflow controls**: durable plan/todo state with revision and\n  authority ceilings, controlled skill subagents, background launch profiles,\n  semantic handoff, ephemeral side questions, manifest-driven help, and\n  deterministic shell completions improve Claude Code-style daily workflows.\n  CLI-owned canonical session/checkpoint/delivery projections are consumed by\n  VS Code and JetBrains while mutations stay CLI-authoritative; this CLI-only\n  metadata bump does not bump either IDE package.\n- **Signed native update recovery**: immutable release identity, signed updater\n  rollback chains, atomic download replacement, and portable recovery/cleanup\n  paths add fail-closed activation, rollback, and recovery fences for stale,\n  replaced, or partial payloads.\n- **Checkpoint restore durability**: canonical workspace prestate binding,\n  lifetime locks, immutable Git/copy target identity, copy tombstones and\n  owner-private safety arms feed a hash-chained CAS restore saga shared by\n  direct and timeline restores. A real Git/copy kill/restart matrix covers\n  both the post-completion, pre-lock-release window and mutation-phase partial\n  rollback recovery.\n- **Conservative recovery CLI**: `cc checkpoint recovery`\n  `list/show/abort/resume/rollback/release` derives mutation authority from the\n  current live owner digest or verified owner absence plus exact seq/head\n  fences. `resume` remains limited to a verified already-completed settlement;\n  `rollback --yes` only accepts a verified partial-mutation rollback cycle and\n  dispatches the persisted Git/copy engine rather than re-detecting it.\n- **Verified partial restore rollback**: production Git and copy adapters,\n  crash-safe rollback v2 phase boundaries, and the transaction-fenced\n  `checkpoint_restore_recovery_resolution` event bind workspace and session\n  settlement in both directions. Checkpoint delete, clear, and prune now retain\n  active original/safety authority with expected-identity transactions,\n  no-replace copy publication, and root-bound maintenance locks. This is a\n  narrow partial-restore recovery path, not general multi-resource atomicity,\n  power-loss proof, or checkpoint recovery GA.\n- **Release retry identity**: tags `v-npm-0-162-190`,\n  `v-npm-0-162-191`, `v-npm-0-162-192`, `v-npm-0-162-194`, and\n  `v-npm-0-162-195` / `v-npm-0-162-196` remain immutable records of\n  pre-publication failures.\n  Run `30790359741` exposed an Agent SDK E2E fixture that used its owner-private\n  `CHAINLESSCHAIN_HOME` as the active workspace; the fixture now uses sibling\n  control-state and workspace roots while production path safety remains fail\n  closed. Run `30793513643` passed all tests but exposed root-monorepo\n  `npm sbom` contamination from unrelated desktop/mobile peer graphs; SBOM\n  generation now resolves an ignore-scripts lock from the immutable CLI\n  tarball and validates its CycloneDX package/version identity. Run\n  `30799974832` exposed that the exact-SHA gate queried jobs with\n  `filter=all`, so an earlier failed CLI CI attempt overrode the successful\n  rerun; it now verifies only GitHub's latest attempt. The first `0.162.193`\n  candidate then exposed a recurring macOS two-process CAS race in run\n  `30800530258`: a cooperating owner could remove its lock between the\n  unlocked safety inspection steps, and the loser reported `LOCK_FAILED`\n  instead of reaching the serialized stale-head `CONFLICT`. Unlocked\n  pre/postflight inspection now retries that exact disappearance, while\n  owner-required critical-section checks still fail closed. Deterministic\n  directory/owner disappearance regressions, the full 105-test checkpoint\n  saga suite, and five repeated real-process CAS runs pass locally.\n  Run `30966796114` passed its exact-SHA gate but failed before package creation\n  when the Agent SDK build assumed a package-local `node_modules/.bin/tsc`.\n  The build now resolves the TypeScript compiler module through Node, supporting\n  both independent installs and npm workspace hoisting; the consumed\n  `v-npm-0-162-194` identity is not moved or reused.\n  Run `30973665834` then passed the exact-SHA gate and all tests, but its\n  immutable package job passed the complete `npm pack --json` result as one\n  command-line argument; the 959-file metadata exceeded Linux `ARG_MAX` before\n  release-manifest creation. Pack metadata now flows through a temporary file,\n  and the consumed `v-npm-0-162-195` identity is also not moved or reused.\n  Run `30976924860` passed all tests, immutable tarball creation, SBOM validation,\n  and artifact upload, but `npm publish` interpreted the bare relative\n  `release-artifacts/...tgz` argument as a GitHub `owner/repo` package spec and\n  failed before upload. The publish step now discovers the tarball through the\n  absolute `$GITHUB_WORKSPACE` path; `v-npm-0-162-196` is not moved or reused.\n- **Release authority containment**: a later generic workspace publisher\n  replaced the dedicated CLI workflow at the same `npm-publish.yml` path.\n  Manually dispatched run `30820089779` therefore auto-selected and published\n  `chainlesschain@0.162.193` from `e8e7ba274b487ed491c04ec3359841a0e545debb`\n  while that SHA's `CLI CI` was still running and eventually failed. The\n  package has npm provenance but no `v-npm-0-162-193` tag, exact-SHA gate\n  attestation, verified immutable tarball/SBOM handoff, or successful complete\n  CLI matrix. The authoritative workflow is restored; the generic publisher\n  is moved to a distinct workflow/tag namespace, while the live CLI path now\n  requires the event ref to exactly match `v-npm-<package-version>` and its\n  checked-out `GITHUB_SHA`. The generic publisher excludes `packages/cli`\n  and package name `chainlesschain` both during detection and immediately\n  before publish. Numeric product releases no longer contain a CLI publisher:\n  they require an already-published `v-npm-*` tag, matching registry `gitHead`,\n  and successful exact-SHA gates before finalizing. The two local generic\n  publisher scripts also exclude and reject the CLI.\n- **Inline-chat release blocker**: the `0.162.193` source registered the six\n  VS Code inline-chat commands twice, invoked non-existent methods in the\n  second registration, and referenced an undefined `outputLog` during\n  activation. The extension now constructs one decorator with the existing\n  chat provider and module logger, registers each contributed command exactly\n  once, and publishes the same six commands through the canonical IDE\n  capability manifest. The activation fake now exercises the decorator path,\n  so constructor or registration regressions fail the CLI matrix.\n- **Production REPL prompt interactions**: each real REPL session now owns a\n  prompt interaction controller and slash-command registry for `/paste-image`,\n  `/editor`, `/stash`, `/suggestions`, and `/recap`. Guarded keypress dispatch\n  consumes configured interaction keys before readline, live assistant/session\n  context feeds manual and automatic suggestions, and local clipboard data\n  images join the existing multimodal vision-provider path while remote image\n  chips fail closed. The focused REPL, prompt, keybinding, image, and provider\n  matrix passes 200/200 locally; the exact-SHA three-platform release gates\n  listed below also passed.\n- **Second command-surface migration batch**: eight explicitly legacy or\n  in-memory governance commands (`bm25`, `ccron`, `compt`, `consol`, `fflag`,\n  `pdfp`, `sganal`, and `vcheck`) now have canonical `cc lab ...` spellings.\n  Their original top-level forms remain compatible through at least `0.164.0`\n  and warn only on stderr. The registered graph remains 175 commands with zero\n  net growth, while the recommended surface drops from 174 to 166; manifest,\n  README, namespace help, and four shell completions share the same lifecycle\n  source. Native manifest generation also now uses the real pure `/doctor`\n  status exports instead of a nonexistent registry import.\n- **Third command-surface migration batch**: fifteen explicitly in-memory V2\n  governance overlays (`execbe`, `itbudget`, `mcpscaf`, `meminj`, `orchgov`,\n  `promcomp`, `seshhook`, `seshsearch`, `seshtail`, `seshu`, `slotfill`,\n  `svccont`, `tms`, `topiccls`, and `uprof`) now use canonical `cc lab ...`\n  spellings. Product-facing `todo`, `subagent`, `webfetch`, and `planmode`\n  remain active top-level commands instead of being migrated by keyword alone.\n  Legacy spellings remain compatible through at least `0.164.0` and warn only\n  on stderr. The registered graph remains 175 commands with zero net growth;\n  the recommended surface drops from 166 to 151, with manifest, README,\n  namespace help, and four shell completions generated from one lifecycle\n  policy.\n- **Published release evidence**: `0.162.193` remains an unauthorized historical\n  registry record and is superseded by `0.162.197`; `0.162.194`, `0.162.195`,\n  and `0.162.196` are not published and their failed tags remain immutable.\n  Tag `v-npm-0-162-197` points to exact commit\n  `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`. Its\n  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251),\n  and [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206)\n  passed across Ubuntu, Windows, and macOS, including exact-SHA, immutable\n  tarball/SBOM, and provenance checks. A subsequent\n  [registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627)\n  verified package bytes, signed provenance, and workflow identity. Local,\n  older-SHA, and partial results remain supplementary only."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.189",
-      "cliVersions": ["0.162.188", "0.162.189"],
-      "date": "2026-07-31",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure",
           "body": "> `chainlesschain` **0.162.188 → 0.162.189** (2026-07-31).\n> CLI-only release metadata; `@chainlesschain/personal-data-hub` remains\n> **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Managed workspace rollback**: Process Broker-managed workspace write paths\n  record durable recovery evidence, establish checkpoints at accepted\n  boundaries, and apply fenced rollback after failure, cancellation, or\n  timeout. `full`, `partial`, and `none` coverage outcomes remain explicit,\n  while unsupported external side effects stay outside the rollback guarantee.\n- **Distributed Agent Teams authority**: local schema v6 is the current state\n  authority, with v5 accepted only through CLI-owned resume migration. The\n  separate distributed queue schema v1 uses queue authority digests, leases,\n  and compare-and-swap fences for supported shared-filesystem coordination; it\n  is not a consensus or network-partition-tolerant queue.\n- **Wall-clock lifecycle fence**: linearized `startedAt` and `observedAt`\n  checks surround executor activity, active managed shell and agent work is\n  aborted when the wall-clock budget expires, and commit/checkpoint publication\n  is fenced so late results cannot become completed tasks. Accepted committed\n  evidence instead enters explicit adjudication.\n- **CLI-owned IDE controls**: VS Code and JetBrains surfaces observe the raw\n  local v6 or distributed queue v1 JSON as read-only state and route takeover,\n  recovery, and adjudication through CLI-owned authority, digest, lease, and\n  evidence fences.\n- **Validated implementation candidate**: candidate\n  `7df6feced4670ac71d19548752d18ac4cc225025` completed the\n  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289),\n  [short distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307),\n  and [long distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)\n  gates successfully.\n- **Published release evidence**: exact release commit\n  [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)\n  passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019),\n  the [long Agent Team soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629),\n  and [npm publication](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291).\n  `chainlesschain@0.162.189` is public on npm; candidate and local results remain\n  supplementary and do not replace these exact-release-SHA gates."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.188",
-      "cliVersions": ["0.162.187", "0.162.188"],
-      "date": "2026-07-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.188: Auto mode safety classifier release gate",
           "body": "> `chainlesschain` **0.162.187 → 0.162.188** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Deterministic safety classification**: Auto mode can classify workspace\n  scope escapes, secret egress, production deployment, force pushes,\n  unreviewed merges, unisolated third-party agents, and related destructive\n  shell intents without executing commands or performing file/network I/O.\n- **Fail-closed offline release gate**: a strict, immutable 145-case corpus\n  requires 100% dangerous, critical, and per-category recall with zero false\n  positives, hard-deny bypasses, unsafe allows, or unknown classifications.\n- **Adversarial coverage**: quoted and escaped shell forms, wrapper shells,\n  structured tool calls, platform-specific paths, credential expansions,\n  remote execution pipelines, GitHub API options, and benign counterexamples\n  are covered across Linux, macOS, and Windows.\n- **Auditable CLI workflow**: `cc auto-mode eval [--dataset <file>] [--json]`\n  emits a log-safe report and exits nonzero when the corpus, classifier\n  contract, or immutable thresholds fail.\n- **Explicit boundary**: this finite syntax/provider classifier supplements\n  existing managed denies, credential guards, shell hard-denies, and OS\n  sandboxes; it is not a full shell AST or arbitrary-source analyzer.\n- **Release validation gate**: publication requires the exact merged release\n  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform\n  `CLI Background Interaction E2E` workflow; local tests remain supplementary."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.187",
-      "cliVersions": ["0.162.186", "0.162.187"],
-      "date": "2026-07-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.187: large Agent Teams safety foundation",
           "body": "> `chainlesschain` **0.162.186 → 0.162.187** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Scale-ready scheduling**: indexed leases and dependency bookkeeping support\n  10,000-task graphs with up to 64 local workers, while bounded mailboxes apply\n  explicit backpressure instead of allowing unbounded coordination queues.\n- **Fenced execution authority**: per-task contracts, scope ownership,\n  cross-process run locks, lease fencing, and append-only collaboration\n  governance prevent stale workers or generic state updates from mutating\n  settled work.\n- **Fail-closed budgets and recovery**: claim-time token/USD reservations,\n  restored active wall time, required usage attribution, and explicit\n  unpriced-usage state stop budgeted remote work when cost evidence is missing.\n  After a crash, only dry runs or tasks marked `retrySafe` are reclaimed\n  automatically; ambiguous real side effects require adjudication.\n- **Durable worktree settlement**: recovery snapshots bind the original base\n  branch and commit, pin task output to immutable commit OIDs, recheck refs\n  around preview/merge/cleanup, and use prepare→persist→remove→persist cleanup\n  without discarding dirty, moved, or unmerged worktrees.\n- **Honest completion boundary**: this release is the P2-16 safety and scale\n  foundation, not the completed production-scale Agent Teams program. IDE\n  human takeover, distributed queues, long-running soak coverage, interactive\n  side-effect adjudication, and dependency-branch baseline propagation remain.\n- **Release validation gate**: publication requires the exact merged release\n  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform\n  `CLI Background Interaction E2E` workflow; local tests remain supplementary."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.186",
-      "cliVersions": ["0.162.185", "0.162.186"],
-      "date": "2026-07-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.186: standard OpenTelemetry Collector export",
           "body": "> `chainlesschain` **0.162.185 → 0.162.186** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Standard Collector protocols**: traces and metrics export over OTLP/HTTP\n  JSON, OTLP/HTTP protobuf, or OTLP/gRPC, with standard global and per-signal\n  endpoint, protocol, header, timeout, compression, service, and resource\n  environment variables.\n- **Enterprise transport**: HTTPS and HTTP/2 gRPC support custom CA trust plus\n  client certificate/key mTLS without allowing custom headers to override\n  protocol framing.\n- **Bounded delivery**: batching, queue-pressure reporting, `Retry-After` and\n  exponential retries, permanent-failure/drop counters, and atomic per-process\n  crash spools provide bounded recovery without stealing a live process queue.\n- **Real runtime wiring**: agent, eval, and team recorders feed the Collector;\n  team runs add task, token, USD cost, failure, and completion aggregates with\n  workflow dimensions. Normal and gated exits perform a final flush.\n- **Private by default**: prompt, response, and tool-argument content stays\n  local unless explicitly enabled; all exported string attributes and events\n  continue through secret redaction.\n- **Release validation gate**: publication requires this exact release commit\n  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,\n  Windows, and macOS runners; local tests remain supplementary."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.185",
-      "cliVersions": ["0.162.184", "0.162.185"],
-      "date": "2026-07-29",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.185: sandbox authority and Hook runtime hardening",
           "body": "> `chainlesschain` **0.162.184 → 0.162.185** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Complete strong execution routes**: policy-bearing Plugin bins now retain\n  pinned identity through async/background launches, while generic background,\n  CLI PTY, and Desktop project PTY enter the same fail-closed Linux\n  filesystem/network boundary.\n- **Authority and teardown integrity**: every actual bind source requires\n  private mount propagation, parent-side pinned descriptors close after spawn,\n  raw PTY masters invalidate on close/error, and attached sessions terminate\n  their POSIX process group or Windows process tree.\n- **Trusted project and Hook roots**: Desktop V8 migrations quarantine\n  unattested project roots and prevent remote metadata from acquiring local PTY\n  authority. Hooks v2 binds canonical host roots to generation-aware opaque\n  durable identities across headless, stream, REPL, and WebSocket turns.\n- **Hook process reliability**: completed Hook subprocesses preserve their\n  status-0 output and status-2 block protocol when Node reports a late stdin\n  `EPIPE`; missing exit status and unrelated spawn errors still fail closed.\n- **Single Broker runtime graph**: Hooks v2 now registers its default runtime\n  as the Broker event sink without a reverse ESM load, preventing a duplicate\n  CredentialTransport Worker, Unix listener, and steady-state file descriptors.\n- **Release validation gate**: publication requires this exact release commit\n  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,\n  Windows, and macOS runners; local tests remain supplementary."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.184",
-      "cliVersions": ["0.4.75", "0.37.36", "0.162.183", "0.162.184"],
-      "date": "2026-07-28",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.184 + IDE retry, collaboration, and recovery governance",
           "body": "> `chainlesschain` **0.162.183 → 0.162.184**, VS Code\n> **0.37.35 → 0.37.36**, and JetBrains **0.4.74 → 0.4.75** (2026-07-28).\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Measured retry and tool attribution**: compact transcripts now record\n  bounded tool durations, observed same-turn retries, and secret-free streaming\n  LLM retry reasons with actual provider/model identity. CLI and both IDE usage\n  reports consume the same authoritative aggregates.\n- **Durable team/batch governance**: collaboration runs persist bounded\n  owner/session, permission mode, resource budget, lifecycle, and side-effect\n  counts without prompts, argv, tool arguments, output, or credentials. IDE\n  worktree views project these records as managed tasks without exposing\n  background attach/stop controls.\n- **Transactional plugin upgrades**: staged installs revalidate manifests and\n  signed SBOMs before atomic activation. Failed copies, load checks,\n  post-install handling, or declined capability widening restore the prior\n  active version; forced same-version reinstalls restore the exact old bytes.\n- **IDE activation feedback**: VS Code and JetBrains parse controlled\n  `activated / rolled_back / unchanged` results, reload live sessions only\n  after activation, and require explicit user approval before retrying with a\n  widened capability grant.\n- **Process-boundary hardening**: plugin hooks, MCP/LSP servers, monitors, and\n  native bins retain sandbox policy through the centralized execution broker;\n  Linux bubblewrap setup fails closed with bounded diagnostics.\n- **Release validation**: publication requires this exact release commit to\n  pass CLI CI and CLI Strict Sandbox on Linux, Windows, and macOS plus the\n  packaged VSIX and JetBrains unit/build/Remote Robot gates."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.183",
-      "cliVersions": ["0.4.74", "0.37.35", "0.162.182", "0.162.183"],
-      "date": "2026-07-27",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.183 + IDE quality, plugin, and worktree governance",
           "body": "> `chainlesschain` **0.162.182 → 0.162.183**, VS Code\n> **0.37.34 → 0.37.35**, and JetBrains **0.4.73 → 0.4.74** (2026-07-27).\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **IDE-native quality context**: both IDE bridges negotiate bounded\n  `cc-ide-quality/v1` test-result, coverage, and debugger snapshots with\n  Context v2 freshness metadata; VS Code notebook execution now carries its\n  real notebook context.\n- **Installation Doctor depth**: VS Code and JetBrains report Node/Java\n  availability plus managed-CLI and plugin-registry offline recovery state,\n  without probing executables from an untrusted workspace directory.\n- **Plugin lifecycle and supply-chain UI**: scoped enable/disable, source-aware\n  upgrades, live-session reload, signature/SBOM summaries, managed-policy\n  provenance, and sanitized registry/Git/local source metadata stay governed\n  by the CLI runtime.\n- **Plugin usage attribution**: compact transcripts and usage reports now\n  attribute plugin-bin and plugin-provided MCP calls by plugin/version without\n  persisting tool arguments.\n- **Supervised worktree tasks**: IDE-created isolated tasks run as background\n  worktree agents and display canonical lifecycle, owner/session, permission\n  mode, resource budget, and bounded side-effect counts. Team and batch rows\n  remain explicitly unmanaged until they expose equivalent durable state.\n- **Release validation**: publication remains gated on the exact release\n  commit passing CLI CI, CLI Strict Sandbox, background reconnect E2E, packaged\n  VSIX Extension Host gates, JetBrains unit/build/Remote Robot gates, and\n  public marketplace readback."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.182",
-      "cliVersions": ["0.162.181", "0.162.182"],
-      "date": "2026-07-27",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.182: attested native plugin sandbox closure",
           "body": "> `chainlesschain` **0.162.181 → 0.162.182** (2026-07-27).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **One-shot native plugin execution contracts**: policy-bearing native plugin\n  bins must preserve the resolver-issued target, literal argv, plugin root, and\n  executable identity through the process broker. Replayed, copied, stale, or\n  asynchronous contracts fail closed before a target process is started.\n- **Linux strong boundary completion**: strict native launches accept only\n  attested static ELF executables for the current architecture, reject dynamic\n  loaders and malformed program headers, pin the plugin tree through file\n  descriptors, and enter the fixed bubblewrap filesystem/network policy\n  without exposing a mutable host path.\n- **Cross-platform identity hardening**: Windows AppContainer launches retain\n  attested target handles, while platform adapters revalidate executable and\n  plugin identities across probe, spawn, IPC, and detached launch boundaries.\n- **Release validation gate**: the exact release commit must pass `CLI CI` and\n  `CLI Strict Sandbox` on their configured Ubuntu, Windows, and macOS runners;\n  local tests are supplementary and cannot authorize publication."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.181",
-      "cliVersions": ["0.162.181"],
-      "date": "2026-07-26",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.181 + PDH 0.4.57 + Agent SDK 0.1.7: sandbox contracts and complete collection",
           "body": "> `chainlesschain` **0.162.181** bundles\n> `@chainlesschain/personal-data-hub` **0.4.57** and co-releases\n> `@chainlesschain/agent-sdk` **0.1.7** (2026-07-26).\n\n- **Enforced process boundaries**: the CLI process broker preserves native\n  sandbox identity across foreground, detached, IPC, plugin hook, MCP, monitor,\n  and LSP launches. Plugin manifests can require explicit sandbox boundaries,\n  and Linux launches attest the primitives actually applied.\n- **Runtime and protocol convergence**: restore compatibility-shim exports,\n  keep permission-decision fields stable in golden transcripts, and carry the\n  current background-session and event-recovery contract through the Agent SDK.\n- **Complete resumable collection**: PDH adapters use explicit cursors and\n  bounded page budgets across local databases, desktop clients, mobile APIs,\n  maps, social, messaging, education, music, health, shopping, and travel\n  sources. Partial or unreadable SQLite results now fail closed instead of\n  silently advancing checkpoints.\n- **Release validation**: PDH 282 files / 4,528 tests, Agent SDK build plus\n  50 tests, CLI sandbox/plugin focused regression, Web Panel build, and\n  isolated Git-worktree/WebSocket regressions passed before publication."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.180",
-      "cliVersions": ["0.162.180"],
-      "date": "2026-07-26",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.180 + PDH 0.4.56: transactional multi-source ingest",
           "body": "> `chainlesschain` **0.162.180** bundles\n> `@chainlesschain/personal-data-hub` **0.4.56** (2026-07-26).\n\n- **Transactional identity resolution**: adapters can persist source aliases,\n  raw observations, and field-level conflict decisions in one transaction;\n  entity resolution, KG, and RAG sinks now consume the exact persisted IDs and\n  rewritten references.\n- **QQ NT evidence convergence**: direct database reads and Python sidecar\n  decoding share canonical message identities while retaining both raw\n  observations. Rich decoded text and mutable read state merge without losing\n  older evidence, and pre-upgrade rows are rekeyed instead of duplicated.\n- **Reliable bounded sync**: harden cancellation, checkpoint, lookback, and\n  resume boundaries for long-running sidecars plus Android and Windows\n  incremental collectors.\n- **Release validation**: 253 PDH test files / 4215 tests, the focused\n  multi-source ingest suite, and 110 Python bridge tests passed before release."
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.179",
-      "cliVersions": ["0.162.179"],
-      "date": "2026-07-25",
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Added — cc CLI 0.162.179 + PDH 0.4.55：跨端实时采集与输入安全收口",
           "body": "> `chainlesschain` **0.162.179** 搭载\n> `@chainlesschain/personal-data-hub` **0.4.55**（2026-07-25）。\n\n- **跨端实时采集**：CLI、桌面端与 Web Panel 统一暴露实时采集控制和流式结果，\n  支持有界 cookie 运行时采集、临时 OAuth 输入及 Android ADB 数据桥接。\n- **可达性与失败闭合**：readiness 只报告当前可达的输入路径；缺失或无效的\n  cookie 来源页、采集输入和 WhatsApp 备份不再被误报为成功。\n- **采集可靠性**：支持带密钥的 WhatsApp ADB 同步，WeRead 源错误时保留游标，\n  并恢复 Bilibili Android 采集客户端。\n- **发布链安全**：npm 发布工作流启用 Trusted Publishing/OIDC 与 provenance，\n  同时保留 `NPM_TOKEN` 作为当前发布的备用通道。"
-        }
-      ]
-    },
-    {
-      "productVersion": null,
-      "cliVersion": "0.162.178",
-      "cliVersions": ["0.162.178"],
-      "date": null,
-      "title": "",
-      "sections": [
+        },
         {
           "heading": "Fixed — cc CLI 0.162.178 + IDE provider 403 diagnosis hotfix",
           "body": "- Preserve structured provider error codes/messages for failed LLM requests and\n  `cc llm test`, with credential-shaped text redacted before display.\n- Do not classify every HTTP 403 as an invalid API key: overdue accounts,\n  billing failures, and model-access denials now retain their real corrective\n  action in CLI, VS Code, and JetBrains.\n- Release VS Code 0.37.33 and JetBrains 0.4.71 with corrected setup guidance;\n  JetBrains 0.4.70 was deleted during Marketplace review and superseded after\n  clearing the IntelliJ 2026.2 internal-API warning.\n- Prepare JetBrains 0.4.72 so `/status` and the other live-session slash\n  commands use the same routing, output, aliases, arguments, and help text as\n  the VS Code panel, including `/expand` reasoning-block toggling."
