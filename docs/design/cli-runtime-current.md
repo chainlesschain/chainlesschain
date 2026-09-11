@@ -97,6 +97,23 @@ VS Code `0.37.87` 提供页面优先的 Workbench 总览/版本列表、可分�
 
 仓库闭环仍不等于目标环境已配置生产 KMS/PKI/identity/policy/witness/scheduler/transition authority，也不等于真实跨平台 grader、最终用户 review/promote/rollback UI 或 unattended active promotion 已开放。
 
+### Evolution 持久化布局与写入边界
+
+Agent evolution composition 要求 deployment host 显式提供 `stateRootDir`；没有公共默认目录，也不能从普通 CLI 的用户数据目录推断某个 Evolution 实例已经启用。每个 tenant/run 的典型布局为：
+
+```text
+<stateRootDir>/<url-encoded tenantId>/<url-encoded runId>/
+  raw/                       # ArtifactStore；仅外部 encryptor 生成的密文 Raw
+  artifacts/                 # Wiki revision、model/trusted projection 及受治理制品
+  ledger-events/             # EvolutionLedger 的认证领域事件
+  ledger-authority/          # ledger authority 的持久状态
+  witness/checkpoint.json    # 独立 witness checkpoint
+```
+
+`raw/` 不是可由模型或普通用户读取的明文目录；Raw plaintext 只交给 deployment-owned encryptor，ArtifactStore 仅保留密文、摘要和无敏感内容的 lineage。Wiki revision 是 `artifacts/` 中的不可变 `wiki-revision` 制品，并由 `ledger-events/` 的 `wiki.revision.committed` 事件和 witness 绑定；它不位于 `raw/`，也不保证是可直接编辑的 Markdown 文件。
+
+Candidate 与正式 Skill 不使用上述路径猜测规则：`SkillCandidateRegistry` 的库默认根是 `$CHAINLESSCHAIN_HOME/evolution/registry/candidates/tenants/<tenantKey>/`，但可信 host 可覆盖；`cc learning synthesize` 的 `candidateOutputDir` 以及正式 `activeSkillsDirs` 都必须由可信 host 提供绝对路径，且候选根不得与 Active roots 重叠。candidate 绝不会因文件存在而变为 Active；发布仍需 Eval、人工审核、Pilot/Canary、CAS、Ledger 和 release authority。普通 `$CHAINLESSCHAIN_HOME/skills/` 与 `<projectRoot>/.chainlesschain/skills/` 是常规 Skill loader 层，不是 Raw/Wiki 证据库，也不代表治理后的 Active release。
+
 ## 当前边界
 
 CLI 运行时由命令分发、会话生命周期、受控执行与回滚、Agent Team authority、扩展运行时、事件总线和可观测出口共同组成。

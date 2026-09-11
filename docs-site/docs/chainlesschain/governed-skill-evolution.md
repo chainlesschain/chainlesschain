@@ -227,7 +227,8 @@ Desktop 中的“演化工作台”提供相同的列表、证据/Diff、比较�
 | `cc learning synthesize` 文件候选 | 部署宿主指定的 `candidateOutputDir/<skill-name>/1.0.0/SKILL.md`，并可包含 `EVALUATION.json`                                               | `candidateOutputDir` 是宿主必填项，公共 CLI 没有固定默认值，也没有面向普通用户的覆盖开关                                                        |
 | Release、active 与 LKG            | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/releases/tenants/<tenant-key>/`；生产 Workbench 使用宿主指定的 `releaseRootDir`       | release 内容、active 指针、journal 分开保存，并通过 CAS/ledger 结算                                                                             |
 | Wiki revision                     | 宿主指定的 ArtifactStore 与 EvolutionLedger 中                                                                                            | Wiki 是带 schema、revision、来源和 tombstone 的治理制品，不保证对应一个可直接编辑的 Markdown 文件                                               |
-| Raw、投影与账本                   | 典型运行布局为 `<stateRootDir>/<tenant>/<run>/raw`、`artifacts`、`ledger-events`、`ledger-authority` 和 `witness/checkpoint.json`         | `stateRootDir` 由生产 composition 指定；Raw 与 model-visible/trusted projection 分层保存                                                        |
+| Raw、投影与账本                   | 典型运行布局为 `<stateRootDir>/<url-encoded tenantId>/<url-encoded runId>/raw`、`artifacts`、`ledger-events`、`ledger-authority` 和 `witness/checkpoint.json` | `stateRootDir` 由生产 composition 指定，没有公共默认值；`raw/` 是仅存外部 encryptor 生成的密文的 ArtifactStore，明文 Raw 不落盘。model-visible/trusted projection 与 Wiki revision 位于 `artifacts/`，但不等于 Raw 副本 |
+| 正式 Active governed Skill        | 部署宿主提供的一个或多个绝对 `activeSkillsDirs`                                                                                              | 没有固定默认目录；candidate 不会自动复制到 Active root。必须先完成 Eval、人工审核、Pilot/Canary、CAS 和 release authority 才能写入。普通 managed/workspace Skill 目录不能据此视作治理 Active release |
 | Desktop 普通 managed Skill        | Electron `app.getPath("userData")/skills`                                                                                                 | 这是 Desktop 的现有 Skill 层。Skill Creator 返回 `candidateOnly: true` 或 Skill Sync 返回 `candidate-staged` 时，不代表内容已写入或激活到该目录 |
 
 定位 active Skill 时可以运行：
@@ -236,7 +237,7 @@ Desktop 中的“演化工作台”提供相同的列表、证据/Diff、比较�
 cc skill sources --json
 ```
 
-定位治理数据时，应查看目标部署模块传给 `openEvolutionWorkbenchFileResources()` 和 Agent evolution composition 的 `artifactDir`、`ledgerRootDir`、`ledgerAuthorityRootDir`、`witnessFilePath`、`releaseRootDir`、`stateRootDir` 与 `candidateOutputDir`。不要直接修改这些文件；任何脱离 ledger、receipt 和 CAS 的手工复制都不会构成合法晋升，并可能导致后续验证失败。
+定位治理数据时，应查看目标部署模块传给 `openEvolutionWorkbenchFileResources()` 和 Agent evolution composition 的 `artifactDir`、`ledgerRootDir`、`ledgerAuthorityRootDir`、`witnessFilePath`、`releaseRootDir`、`stateRootDir`、`candidateOutputDir` 与 `activeSkillsDirs`。没有签名 deployment descriptor/trust root 或 status 显示 unavailable 时，机器上不存在可据此推断的 Evolution Raw/Wiki/Active 运行目录；不要把 `~/.chainlesschain/artifacts` 当作已启用的 Raw/Wiki 库。不要直接修改这些文件；任何脱离 ledger、receipt 和 CAS 的手工复制都不会构成合法晋升，并可能导致后续验证失败。
 
 ## 0.166.23–0.166.24：恢复、撤销与候选安装
 
