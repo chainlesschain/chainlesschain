@@ -177,6 +177,29 @@ evolution switch. `status` always reports automatic promotion as `HOLD`.
 Candidate activation still requires deployment-owned identity, policy,
 evaluation, review, Pilot/Canary, CAS, ledger, and release authority.
 
+### Evolution 数据与 Skill 存放位置
+
+不要把普通 CLI/项目 Skill 目录和受治理 Evolution 的不可变证据混在一起。除非
+可信 deployment host 已配置并启用，否则不会创建或使用 Evolution 的 Raw、Wiki、
+候选或 Active 目录；当前 `cc evolution deployment status` 是确认是否已配置的唯一
+用户入口。
+
+| 内容 | 实际路径 / 选择方式 | 说明 |
+| --- | --- | --- |
+| deployment profile | `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json`（通常为 `~/.chainlesschain/evolution/deployment-profile.json`） | 仅保存已验证的 descriptor/trust-root 路径；不是 Raw、Wiki 或 Skill 内容。 |
+| 不可变 Raw evidence | `<stateRootDir>/<url-encoded tenantId>/<url-encoded runId>/raw/` | `stateRootDir` 必须由已认证 deployment host 传入，**没有默认目录**。目录是 `ArtifactStore`（`index.jsonl` 和 `files/`）；其中只允许外部 encryptor 产生的密文，Raw 明文不能落盘。 |
+| Wiki revision | 同一 scope 的 `artifacts/`，即 `<stateRootDir>/<url-encoded tenantId>/<url-encoded runId>/artifacts/` | 每个 Wiki revision 是不可变 artifact；其提交由同 scope 的 `ledger-events/` 中 `wiki.revision.committed` 事件和 `witness/checkpoint.json` 绑定。Wiki 不在 `raw/` 中。 |
+| Candidate registry（受治理候选制品） | 默认 `$CHAINLESSCHAIN_HOME/evolution/registry/candidates/tenants/<tenantKey>/`；可信 host 可显式替换 registry root | `<tenantKey>` 是 tenant ID 的 domain-separated SHA-256，不是可猜测的 tenant 名。候选文件按 content digest 保存，不能直接作为 Active Skill 加载。 |
+| `cc learning synthesize` 候选输出 | 已认证 host 必须提供绝对 `candidateOutputDir`；目录结构为 `<candidateOutputDir>/<skill-name>/1.0.0/` | **没有默认目录**，且必须与所有 Active roots 不重叠。未提供该目录、evaluator 或 Active roots 时命令失败关闭，不写入候选。 |
+| 正式/Active governed Skill | 已认证 host 必须提供一个或多个绝对 `activeSkillsDirs` | **没有固定默认目录，也不会从 candidate 自动复制。** 只有通过评测、审核、Pilot/Canary、CAS 和 release authority 后，部署方才可写入其 Active root。 |
+| 普通用户/项目 Skill（非自动晋级产物） | 用户层通常为 `$CHAINLESSCHAIN_HOME/skills/`；项目层为 `<projectRoot>/.chainlesschain/skills/` | 这是 Skill loader 的常规加载层。它们不是 Raw/Wiki 证据库，也不因文件存在就获得受治理 Active release 身份。 |
+
+在 Windows，未覆盖 `CHAINLESSCHAIN_HOME` 时，用户层通常展开为
+`C:\Users\<用户名>\.chainlesschain\...`；项目层则在当前项目的
+`.chainlesschain\skills\`。管理员应把 production `stateRootDir`、候选根和
+Active roots 放在 owner-only、备份受控且不位于工作区的目录，并把它们记录在受签名
+deployment module 中，而不是通过普通 CLI 参数或环境变量临时指定。
+
 ### Durable governance and marketplace candidates (0.166.24)
 
 Signed deployments can use `openEvolutionWorkbenchFileResources`,
