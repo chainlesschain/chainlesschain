@@ -207,7 +207,7 @@ describe("Task Model Selector", () => {
 
     it("should return correct volcengine models for all task types", () => {
       expect(selectModelForTask("volcengine", TaskType.CHAT)).toBe(
-        "deepseek-v4-flash-260425",
+        "deepseek-v4-flash-ga-260731",
       );
       expect(selectModelForTask("volcengine", TaskType.CODE)).toBe(
         "doubao-seed-2-1-pro-260628",

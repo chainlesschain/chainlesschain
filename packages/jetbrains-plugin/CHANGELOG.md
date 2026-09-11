@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.121] - Use the DeepSeek V4 Flash GA default (2026-09-11)
+
+- Use `deepseek-v4-flash-ga-260731` as the Volcengine text-model default in
+  the native connection dialog.
+- Preserve the previous model for existing saved settings and explicit model
+  selections.
+
 ## [0.4.120] - Configure governed Skill evolution (2026-09-10)
 
 - Add a native Swing configuration dialog with descriptor and trust-root file
