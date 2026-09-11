@@ -114,7 +114,7 @@
       "sections": [
         {
           "heading": "Changed - cc CLI 0.166.44: use DeepSeek V4 Flash GA by default",
-          "body": "- Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for\n  new CLI, agent and task-model configurations.\n- Keep `deepseek-v4-flash-260425` available for existing saved settings and\n  explicit model selection.\n- Pair VS Code `0.37.94` and JetBrains `0.4.121` with the same exact-gated CLI,\n  and embed it in the `v5.0.3.136` desktop and mobile release artifacts."
+          "body": "- Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for\n  new CLI, agent and task-model configurations.\n- Keep `deepseek-v4-flash-260425` available for existing saved settings and\n  explicit model selection.\n- Pair VS Code `0.37.94` and JetBrains `0.4.122` with the same exact-gated CLI,\n  and embed it in the `v5.0.3.136` desktop and mobile release artifacts."
         },
         {
           "heading": "Added - cc CLI 0.166.43: configure governed Skill evolution",

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   new CLI, agent and task-model configurations.
 - Keep `deepseek-v4-flash-260425` available for existing saved settings and
   explicit model selection.
-- Pair VS Code `0.37.94` and JetBrains `0.4.121` with the same exact-gated CLI,
+- Pair VS Code `0.37.94` and JetBrains `0.4.122` with the same exact-gated CLI,
   and embed it in the `v5.0.3.136` desktop and mobile release artifacts.
 
 ### Version sync
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Android `versionCode 503135` → `503136` / `versionName 5.0.3.135` → `5.0.3.136`
 - iOS `CFBundleVersion 135` → `136`
 - CLI `0.166.43` → `0.166.44`
-- VS Code `0.37.93` → `0.37.94` / JetBrains `0.4.120` → `0.4.121`
+- VS Code `0.37.93` → `0.37.94` / JetBrains `0.4.120` → `0.4.122`
 
 ### Added - cc CLI 0.166.43: configure governed Skill evolution
 

@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.121] - Use the DeepSeek V4 Flash GA default (2026-09-11)
+## [0.4.122] - Use the DeepSeek V4 Flash GA default (2026-09-11)
 
 - Use `deepseek-v4-flash-ga-260731` as the Volcengine text-model default in
   the native connection dialog.
