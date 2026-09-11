@@ -38,6 +38,7 @@ class AnthropicClient: LLMClient {
     }
 
     func chat(messages: [LLMMessage], options: ChatOptions) async throws -> LLMResponse {
+        throw LLMError.evolutionIngressRequired
         guard let url = URL(string: "\(baseURL)/messages") else {
             throw LLMError.networkError("Invalid URL")
         }
@@ -105,6 +106,7 @@ class AnthropicClient: LLMClient {
         options: ChatOptions,
         onChunk: @escaping (String) -> Void
     ) async throws -> LLMResponse {
+        throw LLMError.evolutionIngressRequired
         guard let url = URL(string: "\(baseURL)/messages") else {
             throw LLMError.networkError("Invalid URL")
         }

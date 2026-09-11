@@ -16,6 +16,14 @@ const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const os = require("os");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class OCRWorkerPool extends EventEmitter {
   constructor(options = {}) {
     super();
@@ -122,6 +130,8 @@ class OCRWorkerPool extends EventEmitter {
    * @returns {Promise<Object>} OCR结果
    */
   async recognize(image, options = {}) {
+    assertGovernedOcrIngress();
+
     if (!this.isInitialized) {
       throw new Error("Worker池未初始化，请先调用initialize()");
     }
@@ -154,6 +164,8 @@ class OCRWorkerPool extends EventEmitter {
    * @returns {Promise<Array<Object>>} OCR结果列表
    */
   async recognizeBatch(images, options = {}) {
+    assertGovernedOcrIngress();
+
     if (!this.isInitialized) {
       throw new Error("Worker池未初始化，请先调用initialize()");
     }

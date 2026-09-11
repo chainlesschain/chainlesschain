@@ -13,6 +13,8 @@
 /**
  * OCR服务类
  */
+import { rejectLegacyModelEgress } from '../llm/model-egress-guard.js'
+
 class OCRService {
   constructor(config = {}) {
     this.config = {
@@ -205,6 +207,8 @@ class OCRService {
    * @returns {Promise<Object>}
    */
   async recognize(imagePath, options = {}) {
+    rejectLegacyModelEgress()
+
     if (!this.isInitialized) {
       await this.initialize()
     }
@@ -265,6 +269,8 @@ class OCRService {
    * @private
    */
   async recognizeWithTesseract(imagePath, options) {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     if (!this.tesseractWorker) {
       throw new Error('Tesseract Worker未初始化')
@@ -302,6 +308,8 @@ class OCRService {
    * @private
    */
   async recognizeWithAPI(imagePath, options) {
+    rejectLegacyModelEgress()
+
     // 读取图像文件
     const base64 = await this.imageToBase64(imagePath)
 
@@ -338,6 +346,8 @@ class OCRService {
    * @private
    */
   async recognizeWithBaidu(imagePath, options) {
+    rejectLegacyModelEgress()
+
     // 获取Access Token
     const accessToken = await this.getBaiduAccessToken()
 
@@ -394,6 +404,8 @@ class OCRService {
    * @private
    */
   async recognizeWithTencent(imagePath, options) {
+    rejectLegacyModelEgress()
+
     // TODO: 实现腾讯OCR
     throw new Error('腾讯OCR暂未实现')
   }

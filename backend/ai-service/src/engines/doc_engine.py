@@ -19,7 +19,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import io
 import ollama
 from openai import AsyncOpenAI
-from src.llm.llm_client import get_llm_client, _run_blocking
+from src.llm.llm_client import ModelEgressGovernanceError, _run_blocking
 from src.utils.text_utils import strip_code_fences
 
 # 配置日志
@@ -37,19 +37,8 @@ class DocumentEngine:
 
         self.client = None
         self.llm_client = None
-        self._ready = True
-
-        if self.llm_provider == "openai":
-            if self.openai_api_key:
-                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-            else:
-                self._ready = False
-        elif self.llm_provider != "ollama":
-            try:
-                self.llm_client = get_llm_client()
-            except Exception as e:
-                logger.error(f"[DocumentEngine] LLM client initialization error: {e}")
-                self._ready = False
+        # A governed bridge, not this legacy engine, owns provider SDK setup.
+        self._ready = False
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -76,6 +65,8 @@ class DocumentEngine:
                 "metadata": {...}
             }
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("Document engine not ready")
 

@@ -8,6 +8,14 @@
 
 const { logger } = require("../../utils/logger");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * Supported languages
  */
@@ -83,6 +91,8 @@ class OCREngine {
    * @returns {Promise<Object>} Recognition result
    */
   async recognize(image, options = {}) {
+    assertGovernedOcrIngress();
+
     await this.initialize();
 
     const {
@@ -180,6 +190,8 @@ class OCREngine {
    * @returns {Promise<Object>} Recognition result
    */
   async recognizeFromPage(page, options = {}) {
+    assertGovernedOcrIngress();
+
     const { element, fullPage = false, ...ocrOptions } = options;
 
     try {

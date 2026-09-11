@@ -40,7 +40,13 @@ export async function resolveChatCommandEvolutionComposition(
   evolutionCompositionFactory,
   { agent = false } = {},
 ) {
-  if (evolutionCompositionFactory === null) return null;
+  if (evolutionCompositionFactory === null) {
+    const error = new Error(
+      "Chat model egress requires an authenticated evolution composition factory",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   const mode = agent ? "chat-agent" : "chat";
   const runId = `${mode}-${randomUUID()}`;
   const composition = captureAgentEvolutionRuntimeComposition(
@@ -94,10 +100,7 @@ export function registerChatCommand(program, dependencies = {}) {
         evolutionCompositionFactory,
         { agent: Boolean(options.agent) },
       );
-      const factory =
-        evolutionComposition === null
-          ? createRuntimeFactory()
-          : createRuntimeFactory({ evolutionComposition });
+      const factory = createRuntimeFactory({ evolutionComposition });
       const runtimeOptions = {
         model: options.model,
         provider: options.provider,

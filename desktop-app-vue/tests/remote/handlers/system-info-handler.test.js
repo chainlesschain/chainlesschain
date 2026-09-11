@@ -35,6 +35,7 @@ vi.mock("util", async (importOriginal) => {
 
 const {
   SystemInfoHandler,
+  _deps: systemInfoHandlerDeps,
 } = require("../../../src/main/remote/handlers/system-info-handler");
 
 describe("SystemInfoHandler", () => {
@@ -43,6 +44,10 @@ describe("SystemInfoHandler", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    systemInfoHandlerDeps.execAsync = vi.fn().mockResolvedValue({
+      stdout: "{}",
+      stderr: "",
+    });
     handler = new SystemInfoHandler();
   });
 

@@ -31,6 +31,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../../model-egress-guard");
+
 const CATEGORIES = Object.freeze({
   BILL_BANK: "bill_bank",
   BILL_CREDIT: "bill_credit",
@@ -365,6 +367,8 @@ async function classifyLayer2(email, opts = {}) {
   const bodyChars = Number.isFinite(opts.bodyChars) && opts.bodyChars > 0 ? opts.bodyChars : 500;
 
   const userMsg = buildLayer2UserMessage(email, bodyChars);
+  rejectLegacyModelEgress();
+
   let llmResp;
   try {
     llmResp = await llm.chat([

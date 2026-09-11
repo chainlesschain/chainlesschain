@@ -18,12 +18,13 @@ import database from './database'
 import { llm } from './llm'
 import { aiService } from './ai'
 import RAGManager from './rag/rag-manager.js'
+import { rejectLegacyModelEgress } from './llm/model-egress-guard.js'
 
 // 后端AI服务配置
 const AI_SERVICE_BASE_URL = process.env.VUE_APP_AI_SERVICE_URL || 'http://localhost:8001'
 
-class KnowledgeRAGService {
-  constructor() {
+export class KnowledgeRAGService {
+  constructor({ autoInitialize = true } = {}) {
     this.indexCache = null // 知识索引缓存
     this.lastIndexUpdate = null
     this.backendAvailable = false // 后端服务可用性
@@ -41,7 +42,9 @@ class KnowledgeRAGService {
     this.ragInitialized = false
 
     // 启动时初始化
-    this._initialize()
+    if (autoInitialize) {
+      this._initialize()
+    }
   }
 
   /**
@@ -98,6 +101,8 @@ class KnowledgeRAGService {
    * @param {Object} knowledge - 知识条目
    */
   async syncKnowledgeToBackend(knowledge) {
+    rejectLegacyModelEgress()
+
     try {
       const available = await this._checkBackendAvailability()
       if (!available) {
@@ -256,6 +261,8 @@ class KnowledgeRAGService {
    * @private
    */
   async _retrieveFromBackend(query, options) {
+    rejectLegacyModelEgress()
+
     const {
       limit = 5,
       minScore = 0.3,

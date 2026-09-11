@@ -246,7 +246,13 @@ export async function resolveAgentCommandEvolutionComposition(
   factory,
   { mode, sessionId = null, cwd = process.cwd() } = {},
 ) {
-  if (factory == null) return null;
+  if (factory == null) {
+    const error = new Error(
+      "Agent model egress requires an authenticated evolution composition factory",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   if (typeof factory !== "function") {
     throw new TypeError(
       "Agent evolution composition factory must be a function",

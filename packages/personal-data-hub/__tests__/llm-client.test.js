@@ -3,6 +3,8 @@
 import { describe, it, expect } from "vitest";
 
 const { MockLLMClient, OllamaClient } = require("../lib/llm-client");
+const { MODEL_EGRESS_INGRESS_FAILED } = require("../lib/model-egress-guard");
+const { ollamaEmbed } = require("../lib/entity-resolver/embedding-stage");
 
 // ─── MockLLMClient ────────────────────────────────────────────────────────
 
@@ -62,47 +64,37 @@ describe("OllamaClient", () => {
     expect(c.model).toContain("qwen2.5");
   });
 
-  it("posts to /api/chat with the configured model + messages", async () => {
-    let captured = null;
-    const fakeFetch = async (url, init) => {
-      captured = { url, body: JSON.parse(init.body) };
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: { role: "assistant", content: "hi" },
-          prompt_eval_count: 12,
-          eval_count: 7,
-        }),
-      };
-    };
-    const c = new OllamaClient({ fetch: fakeFetch, model: "llama3:8b" });
-    const r = await c.chat([{ role: "user", content: "ping" }]);
-    expect(captured.url).toBe("http://localhost:11434/api/chat");
-    expect(captured.body.model).toBe("llama3:8b");
-    expect(captured.body.stream).toBe(false);
-    expect(captured.body.messages[0].content).toBe("ping");
-    expect(r.text).toBe("hi");
-    expect(r.usage.promptTokens).toBe(12);
-    expect(r.usage.completionTokens).toBe(7);
-    expect(r.usage.totalTokens).toBe(19);
-  });
-
-  it("wraps fetch errors with cause preserved", async () => {
-    const fakeFetch = async () => { throw new Error("ECONNREFUSED"); };
-    const c = new OllamaClient({ fetch: fakeFetch });
-    await expect(c.chat([{ role: "user", content: "x" }])).rejects.toThrow(/request failed/);
-  });
-
-  it("throws on non-OK status with body excerpt", async () => {
-    const fakeFetch = async () => ({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      text: async () => "internal model crashed",
+  it("rejects model content before calling the configured transport", async () => {
+    let calls = 0;
+    const c = new OllamaClient({
+      fetch: async () => {
+        calls += 1;
+        throw new Error("transport must not run");
+      },
+      model: "llama3:8b",
     });
-    const c = new OllamaClient({ fetch: fakeFetch });
-    await expect(c.chat([{ role: "user", content: "x" }])).rejects.toThrow(/500/);
+
+    await expect(c.chat([{ role: "user", content: "canary" }])).rejects.toMatchObject({
+      code: MODEL_EGRESS_INGRESS_FAILED,
+    });
+    expect(calls).toBe(0);
+  });
+
+  it("rejects default embedding before it can call global fetch", async () => {
+    const priorFetch = global.fetch;
+    let calls = 0;
+    global.fetch = async () => {
+      calls += 1;
+      throw new Error("transport must not run");
+    };
+
+    try {
+      await expect(ollamaEmbed("http://localhost:11434", "nomic-embed-text", "canary"))
+        .rejects.toMatchObject({ code: MODEL_EGRESS_INGRESS_FAILED });
+      expect(calls).toBe(0);
+    } finally {
+      global.fetch = priorFetch;
+    }
   });
 
   it("health() returns ok when /api/tags responds 200", async () => {

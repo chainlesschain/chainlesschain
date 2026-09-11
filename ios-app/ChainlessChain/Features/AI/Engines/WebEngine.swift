@@ -149,6 +149,8 @@ public class WebEngine: BaseAIEngine {
 
     /// 发送HTTP请求
     private func httpRequest(parameters: [String: Any]) async throws -> [String: Any] {
+        throw LLMError.evolutionIngressRequired
+
         guard let urlString = parameters["url"] as? String,
               let url = URL(string: urlString) else {
             throw AIEngineError.invalidParameters("无效的URL")

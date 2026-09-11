@@ -48,9 +48,24 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device: {DEVICE}")
 logger.info(f"Default model: {DEFAULT_MODEL}")
 
+MODEL_EGRESS_ERROR_CODE = "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+
+
+def reject_legacy_model_egress() -> None:
+    """Fail closed until audio inference is wired to an Evolution ingress."""
+    raise HTTPException(
+        status_code=503,
+        detail={
+            "code": MODEL_EGRESS_ERROR_CODE,
+            "message": "Whisper model egress requires an authenticated Evolution ingress",
+        },
+    )
+
 
 def load_model(model_name: str = DEFAULT_MODEL):
     """Load Whisper model with caching"""
+    reject_legacy_model_egress()
+
     if model_name not in MODEL_CACHE:
         logger.info(f"Loading Whisper model: {model_name}")
         start_time = time.time()
@@ -124,6 +139,9 @@ async def transcribe_audio(
 
     Compatible with OpenAI Whisper API format
     """
+    # This must precede file persistence as well as model construction: neither
+    # user audio nor its derived content may reach a legacy inference path.
+    reject_legacy_model_egress()
     temp_file = None
 
     try:

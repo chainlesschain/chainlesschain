@@ -117,6 +117,7 @@ describe("NetworkHandler", () => {
     // dnsResolve in the forks pool, so inject a deterministic resolver via the
     // handler's _deps seam — keeps the DNS test offline-safe and hermetic.
     networkHandlerDeps.dnsResolve = vi.fn(async () => ["93.184.216.34"]);
+    networkHandlerDeps.execAsync = mockExecAsync;
     handler = new NetworkHandler();
   });
 

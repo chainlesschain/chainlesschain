@@ -8,6 +8,20 @@ from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 
 
+MODEL_EGRESS_ERROR_CODE = "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+
+
+class ModelEgressGovernanceError(RuntimeError):
+    """Raised before a legacy backend client can send model-bearing content."""
+
+    code = MODEL_EGRESS_ERROR_CODE
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Backend model egress requires an authenticated Evolution ingress"
+        )
+
+
 async def _run_blocking(func, *args, **kwargs):
     """在默认线程池里执行同步阻塞的 SDK 调用，避免卡住 asyncio 事件循环。
 
@@ -21,6 +35,28 @@ async def _run_blocking(func, *args, **kwargs):
 
 class BaseLLMClient(ABC):
     """LLM客户端基类"""
+
+    _MODEL_EGRESS_METHODS = frozenset({
+        "chat",
+        "chat_with_tools",
+        "chat_stream",
+        "generate",
+    })
+
+    def __getattribute__(self, name):
+        """Deny every legacy provider method before it can reach its SDK.
+
+        A future backend bridge must use a separately branded implementation
+        that performs authenticated projection and evidence retention. It must
+        not re-enable these raw adapters through an environment switch.
+        """
+        attribute = super().__getattribute__(name)
+        if name in BaseLLMClient._MODEL_EGRESS_METHODS and callable(attribute):
+            def reject_legacy_egress(*args, **kwargs):
+                raise ModelEgressGovernanceError()
+
+            return reject_legacy_egress
+        return attribute
 
     @property
     def supports_function_calling(self) -> bool:
@@ -636,6 +672,13 @@ class LLMClientFactory:
         Returns:
             LLM客户端实例
         """
+        # This service predates the authenticated Evolution ingress protocol.
+        # Its provider clients accept raw messages and API credentials, so merely
+        # selecting a provider would create a direct model egress path. Refuse
+        # before importing or constructing any SDK until a signed, per-request
+        # bridge can perform source projection and response evidence retention.
+        raise ModelEgressGovernanceError()
+
         provider = provider.lower()
 
         if provider == "ollama":

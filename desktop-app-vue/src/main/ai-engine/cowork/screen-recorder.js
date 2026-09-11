@@ -13,6 +13,14 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -323,6 +331,8 @@ class ScreenRecorder extends EventEmitter {
   // ============================================================
 
   async _performOCR(imageBuffer) {
+    assertGovernedOcrIngress();
+
     try {
       const Tesseract = require("tesseract.js");
       const {

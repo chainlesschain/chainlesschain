@@ -17,7 +17,7 @@
  * JSON-output prompt as V5.
  */
 
-import { chatWithStreaming, chatStream } from "./chat-core.js";
+import { chatStream } from "./chat-core.js";
 import { firstBalancedJson } from "./json-schema-output.js";
 import { prepareGovernedModelTurn } from "./evolution/governed-model-turn.js";
 
@@ -41,10 +41,6 @@ async function waitForIntentOperation(operation, signal) {
 }
 
 async function* intentModelStream(messages, options, factory, mode) {
-  if (factory === null) {
-    yield* chatStream(messages, options);
-    return;
-  }
   const controller = new AbortController();
   const timeoutMs = resolveIntentTimeout(options);
   const timer =
@@ -92,12 +88,6 @@ async function* intentModelStream(messages, options, factory, mode) {
 }
 
 async function intentModelText(messages, options, factory, mode) {
-  if (factory === null) {
-    return withIntentTimeout(
-      chatWithStreaming(messages, options),
-      resolveIntentTimeout(options),
-    );
-  }
   let content = "";
   for await (const event of intentModelStream(
     messages,
@@ -330,8 +320,8 @@ export async function* understandIntentStream({
   );
   let buffer = "";
   try {
-    // Governed streams use an abortable per-call intent deadline. The legacy
-    // unconfigured stream retains chat-core's silence-based stall guard.
+    // Every model-backed intent stream uses an abortable per-call deadline and
+    // authenticated composition; the rule-only path above stays local.
     for await (const event of intentModelStream(
       [
         { role: "system", content: systemPrompt },

@@ -8,6 +8,18 @@ const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
 
+// A generic crawler can be pointed at arbitrary endpoints and carries caller
+// supplied URL/query/header material. It has no authenticated model-input
+// projection or response-evidence lifecycle, so network egress remains closed
+// until it is replaced with a governed bridge.
+function assertNoDirectModelEgress() {
+  const error = new Error(
+    "Generic HTTP requests require a governed Evolution ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class ExtendedTools4 {
   /**
    * 注册所有第四批扩展工具
@@ -401,6 +413,8 @@ class ExtendedTools4 {
     functionCaller.registerTool(
       "web_crawler",
       async (params) => {
+        assertNoDirectModelEgress();
+
         try {
           const {
             url,

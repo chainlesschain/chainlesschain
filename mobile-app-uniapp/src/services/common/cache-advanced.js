@@ -482,15 +482,15 @@ class QueryOptimizedCache {
    */
   calculateOptimalTTL(query, options) {
     // 基于查询历史和访问模式计算
-    const baseT TL = options.ttl || 5 * 60 * 1000
+    const baseTTL = options.ttl || 5 * 60 * 1000
 
     // 如果是高频查询，延长TTL
     const queryPattern = this.getQueryPattern(query)
     if (queryPattern && queryPattern.frequency > 10) {
-      return baseT TL * 2
+      return baseTTL * 2
     }
 
-    return baseT TL
+    return baseTTL
   }
 
   /**

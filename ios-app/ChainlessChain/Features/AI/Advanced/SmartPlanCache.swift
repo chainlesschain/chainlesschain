@@ -291,6 +291,8 @@ class SmartPlanCache: ObservableObject {
             do {
                 let embedding = try await manager.generateEmbedding(text)
                 return embedding
+            } catch LLMError.evolutionIngressRequired {
+                throw LLMError.evolutionIngressRequired
             } catch {
                 logger.debug("[SmartPlanCache] LLM embedding failed: \(error.localizedDescription)")
             }

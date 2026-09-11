@@ -386,8 +386,18 @@ function bindDesktopModelIngressClient(client, host) {
   return client;
 }
 
+function getBoundDesktopModelIngressHost(client) {
+  const host = clients.get(client);
+  if (host) return host;
+  const error = new Error(
+    "Desktop model egress requires a bound governed model ingress host",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
-  if (!clients.has(client)) return null;
+  getBoundDesktopModelIngressHost(client);
   try {
     // Ollama context tokens are opaque prior model input. Callers must provide
     // explicit conversation messages so every input can be projected.
@@ -485,8 +495,7 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
 }
 
 async function prepareDesktopModelRequest(client, body, protocol = "openai") {
-  const host = clients.get(client);
-  if (!host) return null;
+  const host = getBoundDesktopModelIngressHost(client);
   try {
     // Capture the final wire payload, after client-specific tool filtering.
     const captured = JSON.parse(JSON.stringify(body));

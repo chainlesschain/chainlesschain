@@ -32,6 +32,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../../../model-egress-guard");
+
 const {
   extractAmounts,
   extractDates,
@@ -153,6 +155,8 @@ async function extractBill(email, opts = {}) {
     const coverage = confidenceFor(buildBillFields(regexValues));
     const body = textParts.map((t) => t.body).join("\n").slice(0, 1500);
     if (coverage < 0.6 && body.trim().length > 0) {
+      rejectLegacyModelEgress();
+
       try {
         const resp = await opts.llm.chat([
           { role: "system", content: BILL_FILL_SYSTEM_PROMPT },

@@ -62,6 +62,7 @@ class OpenAIAdapter(
         temperature: Float,
         maxTokens: Int
     ): Flow<StreamChunk> = flow {
+        rejectLegacyModelEgress()
         try {
             val requestBody = OpenAIChatRequest(
                 model = model,
@@ -117,6 +118,8 @@ class OpenAIAdapter(
                     }
                 }
             }
+        } catch (e: ModelEgressGovernanceException) {
+            throw e
         } catch (e: Exception) {
             emit(StreamChunk("", isDone = true, error = e.message ?: "未知错误"))
         }
@@ -128,6 +131,7 @@ class OpenAIAdapter(
         temperature: Float,
         maxTokens: Int
     ): String = withContext(Dispatchers.IO) {
+        rejectLegacyModelEgress()
         val requestBody = OpenAIChatRequest(
             model = model,
             messages = messages.map { msg -> msg.toOpenAIMessage() },
@@ -163,6 +167,7 @@ class OpenAIAdapter(
         temperature: Float,
         maxTokens: Int
     ): ChatWithToolsResponse = withContext(Dispatchers.IO) {
+        rejectLegacyModelEgress()
         val toolsJson: List<JsonElement>? = tools.takeIf { it.isNotEmpty() }
             ?.map { wrapAsOpenAITool(it) }
 

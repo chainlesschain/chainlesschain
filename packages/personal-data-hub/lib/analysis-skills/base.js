@@ -27,6 +27,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../model-egress-guard");
+
 class AnalysisSkill {
   constructor(opts) {
     if (!opts || typeof opts !== "object") {
@@ -162,6 +164,8 @@ class AnalysisSkill {
     if (this.llm.isLocal === false && !opts.acceptNonLocal) {
       return null;
     }
+    rejectLegacyModelEgress();
+
     try {
       const r = await this.llm.chat(messages, { temperature: 0.2, ...opts });
       return (r && r.text) || null;

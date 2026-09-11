@@ -570,12 +570,11 @@ describe("screenshot-ipc", () => {
           path: p,
           lang: "eng",
         });
-        expect(result.success).toBe(true);
-        expect(result.text).toBe("hello world");
-        expect(result.confidence).toBe(92.5);
-        expect(result.engine).toBe("tesseract");
-        expect(stubRecognize).toHaveBeenCalledWith(expect.any(Buffer), "eng");
-        expect(stubRecognize.mock.calls[0][0]).toEqual(Buffer.from([0]));
+        expect(result).toMatchObject({
+          success: false,
+          error: expect.stringContaining("governed multimodal ingress"),
+        });
+        expect(stubRecognize).not.toHaveBeenCalled();
         expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
       } finally {
         if (fs.existsSync(p)) {
@@ -634,6 +633,15 @@ describe("screenshot-ipc", () => {
       });
     }
 
+    function expectIngressDenied(result) {
+      expect(result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("governed multimodal ingress"),
+      });
+      expect(stubRecognize).not.toHaveBeenCalled();
+      expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
+    }
+
     beforeEach(() => {
       fs.writeFileSync(tmpFile, Buffer.from([0]));
     });
@@ -644,75 +652,61 @@ describe("screenshot-ipc", () => {
       }
     });
 
-    it("engine='tesseract' forces tesseract path even with volcengine llmManager", async () => {
+    it("rejects tesseract selection before it reaches a local worker", async () => {
       setup({ provider: "volcengine" });
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "tesseract",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("tesseract");
-      expect(stubRecognize).toHaveBeenCalledOnce();
-      expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
+      expectIngressDenied(result);
     });
 
-    it("engine='llm' uses LLM path when volcengine configured", async () => {
+    it("rejects visual LLM selection before it reaches a provider", async () => {
       setup({ provider: "volcengine" });
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "llm",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("llm");
-      expect(result.model).toBe("doubao-test");
-      expect(stubRecognizeWithLLM).toHaveBeenCalledOnce();
-      expect(stubRecognize).not.toHaveBeenCalled();
+      expectIngressDenied(result);
     });
 
-    it("engine='llm' returns success:false when no llmManager", async () => {
+    it("rejects visual LLM selection before provider availability checks", async () => {
       setup(null);
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "llm",
       });
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/LLM manager not available/);
+      expectIngressDenied(result);
     });
 
-    it("engine='llm' returns success:false when provider is not vision-capable", async () => {
+    it("rejects non-vision provider selection before routing", async () => {
       setup({ provider: "ollama" });
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "llm",
       });
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/仅支持火山引擎/);
+      expectIngressDenied(result);
     });
 
-    it("engine='auto' picks LLM when volcengine configured", async () => {
+    it("rejects automatic selection before it picks an LLM", async () => {
       setup({ provider: "volcengine" });
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "auto",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("llm");
-      expect(stubRecognizeWithLLM).toHaveBeenCalledOnce();
-      expect(stubRecognize).not.toHaveBeenCalled();
+      expectIngressDenied(result);
     });
 
-    it("engine='auto' falls back to tesseract when no llmManager", async () => {
+    it("rejects automatic selection before it falls back to Tesseract", async () => {
       setup(null);
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "auto",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("tesseract");
-      expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
+      expectIngressDenied(result);
     });
 
-    it("engine='auto' falls back to tesseract when LLM throws and tags fallbackFrom", async () => {
+    it("rejects automatic selection instead of invoking a fallback chain", async () => {
       setup({ provider: "volcengine" });
       stubRecognizeWithLLM.mockRejectedValueOnce(
         new Error("API quota exceeded"),
@@ -721,29 +715,22 @@ describe("screenshot-ipc", () => {
         path: tmpFile,
         engine: "auto",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("tesseract");
-      expect(result.fallbackFrom).toBe("llm");
-      expect(result.fallbackReason).toBe("API quota exceeded");
-      expect(stubRecognizeWithLLM).toHaveBeenCalledOnce();
-      expect(stubRecognize).toHaveBeenCalledOnce();
+      expectIngressDenied(result);
     });
 
-    it("engine omitted defaults to auto", async () => {
+    it("rejects an omitted engine before default routing", async () => {
       setup({ provider: "volcengine" });
       const result = await ipcMain.invoke("screenshot:ocr", { path: tmpFile });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("llm");
+      expectIngressDenied(result);
     });
 
-    it("engine='garbage' is coerced to auto (defensive)", async () => {
+    it("rejects an unrecognized engine before coercing it to a provider route", async () => {
       setup({ provider: "volcengine" });
       const result = await ipcMain.invoke("screenshot:ocr", {
         path: tmpFile,
         engine: "drop-tables",
       });
-      expect(result.success).toBe(true);
-      expect(result.engine).toBe("llm"); // auto picked LLM
+      expectIngressDenied(result);
     });
   });
 
@@ -758,21 +745,23 @@ describe("screenshot-ipc", () => {
       }
     });
 
-    it("returns engine 'llm' on auto+volcengine success", async () => {
+    it("rejects dispatch before routing screenshot bytes to an OCR provider", async () => {
       const tesseractImpl = vi.fn();
       const llmImpl = vi.fn(async () => ({
         text: "llm",
         engine: "llm",
         model: "x",
       }));
-      const result = await _internal.recognizeDispatch(Buffer.from([0]), {
-        engine: "auto",
-        llmManager: { provider: "volcengine", chatWithImageProcess: vi.fn() },
-        tesseractImpl,
-        llmImpl,
-      });
-      expect(result.engine).toBe("llm");
+      await expect(
+        _internal.recognizeDispatch(Buffer.from([0]), {
+          engine: "auto",
+          llmManager: { provider: "volcengine", chatWithImageProcess: vi.fn() },
+          tesseractImpl,
+          llmImpl,
+        }),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
       expect(tesseractImpl).not.toHaveBeenCalled();
+      expect(llmImpl).not.toHaveBeenCalled();
     });
   });
 });

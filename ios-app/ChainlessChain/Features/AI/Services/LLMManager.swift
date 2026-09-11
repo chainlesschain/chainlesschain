@@ -311,6 +311,10 @@ class LLMManager: ObservableObject {
     /// - Parameter text: Text to embed
     /// - Returns: Embedding vector (array of floats)
     func generateEmbedding(_ text: String) async throws -> [Float] {
+        throw LLMError.evolutionIngressRequired
+        // An EmbeddingCapable client may be an arbitrary provider. Do not
+        // hand it user text until an authenticated Evolution ingress exists.
+
         guard isInitialized, let client = client else {
             throw LLMError.notInitialized
         }
@@ -331,6 +335,7 @@ class LLMManager: ObservableObject {
 
     /// Generate embedding using Ollama's embedding endpoint
     private func generateOllamaEmbedding(_ text: String) async throws -> [Float] {
+        throw LLMError.evolutionIngressRequired
         guard let url = URL(string: "\(config.baseURL)/api/embeddings") else {
             throw LLMError.invalidConfiguration("Invalid embeddings URL")
         }
@@ -439,6 +444,7 @@ enum LLMError: LocalizedError {
     case invalidConfiguration(String)
     case timeout
     case embeddingsNotSupported
+    case evolutionIngressRequired
 
     var errorDescription: String? {
         switch self {
@@ -456,6 +462,8 @@ enum LLMError: LocalizedError {
             return "Request timeout"
         case .embeddingsNotSupported:
             return "Embeddings not supported by current provider"
+        case .evolutionIngressRequired:
+            return "CC_AGENT_EVOLUTION_INGRESS_FAILED: iOS model egress requires an authenticated Evolution ingress"
         }
     }
 }

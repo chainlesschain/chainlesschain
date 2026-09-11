@@ -1,3 +1,5 @@
+import { rejectLegacyModelEgress } from './llm/model-egress-guard.js'
+
 /**
  * 后端AI服务封装
  *
@@ -30,6 +32,7 @@ class AIBackendService {
    * @returns {Promise<Object>} - { content, model, usage }
    */
   async chat(messages, options = {}) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       uni.request({
         url: `${this.baseURL}/api/chat`,
@@ -137,6 +140,7 @@ class AIBackendService {
    * @returns {Promise<Object>} - { results: [...], total }
    */
   async ragQuery(query, options = {}) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       uni.request({
         url: `${this.baseURL}/api/rag/query`,
@@ -175,6 +179,7 @@ class AIBackendService {
    * @returns {Promise<Object>}
    */
   async ragQueryEnhanced(query, options = {}) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       uni.request({
         url: `${this.baseURL}/api/rag/query/enhanced`,

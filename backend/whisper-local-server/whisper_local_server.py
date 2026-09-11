@@ -58,11 +58,26 @@ SUPPORTED_MODELS = ["tiny", "base", "small", "medium", "large"]
 # 支持的音频格式
 SUPPORTED_FORMATS = [".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm"]
 
+MODEL_EGRESS_ERROR_CODE = "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+
+
+def reject_legacy_model_egress() -> None:
+    """Fail closed until audio inference is wired to an Evolution ingress."""
+    raise HTTPException(
+        status_code=503,
+        detail={
+            "code": MODEL_EGRESS_ERROR_CODE,
+            "message": "Whisper model egress requires an authenticated Evolution ingress",
+        },
+    )
+
 
 def load_model(model_size: str = "base"):
     """
     加载 Whisper 模型（带缓存）
     """
+    reject_legacy_model_egress()
+
     if model_size not in SUPPORTED_MODELS:
         raise ValueError(f"不支持的模型大小: {model_size}。支持的模型: {SUPPORTED_MODELS}")
 
@@ -150,6 +165,8 @@ async def transcribe_audio(
     - temperature: 温度参数 (0-1)
     - task: 任务类型 (transcribe/translate)
     """
+    # Refuse before reading/persisting user audio or loading the local model.
+    reject_legacy_model_egress()
     temp_file = None
 
     try:

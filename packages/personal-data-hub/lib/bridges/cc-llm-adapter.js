@@ -33,6 +33,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../model-egress-guard");
+
 const LOCAL_PROVIDERS = new Set([
   "ollama",
   "llama-cpp",
@@ -134,6 +136,11 @@ class CcLLMAdapter {
   }
 
   async chat(messages, opts = {}) {
+    // A caller-supplied function is not an authenticated Evolution ingress.
+    // Do not serialize personal-data-hub prompts into it until the bridge has
+    // a verifiable, governed capability.
+    rejectLegacyModelEgress();
+
     if (!Array.isArray(messages)) {
       throw new Error("CcLLMAdapter.chat: messages must be an array");
     }

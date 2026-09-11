@@ -143,6 +143,8 @@ class KotlinLlamaCppEngine @Inject constructor(
         messages: List<LlmInferenceEngine.ChatMessage>,
         opts: LlmInferenceEngine.ChatOptions,
     ): LlmInferenceEngine.ChatResponse = withContext(Dispatchers.IO) {
+        rejectLegacyModelEgress()
+
         if (!isNativeLoaded) {
             throw LlmInferenceException(
                 "native lib 未加载 — kotlinllamacpp .so 缺失 (v0.2 真机接通；Win 编译 OK 但 runtime fail-fast)",

@@ -114,6 +114,7 @@ class ClaudeAdapter(
         temperature: Float,
         maxTokens: Int
     ): Flow<StreamChunk> = flow {
+        rejectLegacyModelEgress()
         try {
             // Claude要求system消息独立
             val systemMessage = messages.firstOrNull { it.role == MessageRole.SYSTEM }?.content
@@ -179,6 +180,8 @@ class ClaudeAdapter(
                     }
                 }
             }
+        } catch (e: ModelEgressGovernanceException) {
+            throw e
         } catch (e: Exception) {
             emit(StreamChunk("", isDone = true, error = e.message ?: "Claude连接失败"))
         }
@@ -190,6 +193,7 @@ class ClaudeAdapter(
         temperature: Float,
         maxTokens: Int
     ): String {
+        rejectLegacyModelEgress()
         val systemMessage = messages.firstOrNull { it.role == MessageRole.SYSTEM }?.content
         val userMessages = messages.filter { it.role != MessageRole.SYSTEM }
 
@@ -235,6 +239,7 @@ class ClaudeAdapter(
         temperature: Float,
         maxTokens: Int
     ): ChatWithToolsResponse = withContext(Dispatchers.IO) {
+        rejectLegacyModelEgress()
         val systemMessage = messages.firstOrNull { it.role == MessageRole.SYSTEM }?.content
         val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
         val claudeMessages = nonSystemMessages.map { msg -> toClaudeMessage(msg) }

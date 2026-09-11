@@ -1074,7 +1074,13 @@ async function initHub() {
     entityResolver,
     aichatAccountsStore,
     async drainResolver(options = {}, factory = null) {
-      if (factory === null) return entityResolver.drain(options);
+      if (typeof factory !== "function") {
+        const error = new Error(
+          "Personal Data Hub resolver egress requires an authenticated evolution composition factory",
+        );
+        error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw error;
+      }
       const { createGovernedHubResolver } =
         await import("./evolution/governed-hub-resolver.js");
       const scoped = createGovernedHubResolver(

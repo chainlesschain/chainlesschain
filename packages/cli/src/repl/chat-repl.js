@@ -100,13 +100,17 @@ export async function startChatRepl(options = {}) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  if (evolutionIngress === null) {
+    const error = new Error(
+      "Chat REPL model egress requires an authenticated evolution ingress",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   const admittedSessionId = options.sessionId
     ? assertChatSessionUsageAdmission(options.sessionId)
     : null;
-  const evolutionSession =
-    evolutionIngress === null
-      ? null
-      : createAgentEvolutionSessionLifecycle(evolutionIngress);
+  const evolutionSession = createAgentEvolutionSessionLifecycle(evolutionIngress);
   let model = options.model || "qwen2:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";

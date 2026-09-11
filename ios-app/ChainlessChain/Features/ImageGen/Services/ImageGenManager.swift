@@ -115,6 +115,8 @@ class ImageGenManager: ObservableObject {
 
     /// Generate images from prompt
     func generate(_ request: ImageGenRequest) async throws -> ImageGenResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[ImageGenManager] Starting generation: \(request.prompt.prefix(50))...")
 
         // Check API key
@@ -339,6 +341,8 @@ class ImageGenManager: ObservableObject {
 
     /// Generate variations of an image
     func generateVariations(_ variationRequest: ImageVariationRequest) async throws -> ImageGenResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[ImageGenManager] Generating \(variationRequest.numberOfVariations) variations")
 
         guard apiKeys[configuration.provider] != nil else {
@@ -366,6 +370,8 @@ class ImageGenManager: ObservableObject {
 
     /// Edit image with mask
     func editImage(image: Data, mask: Data, prompt: String) async throws -> ImageGenResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[ImageGenManager] Editing image: \(prompt.prefix(50))...")
 
         let request = ImageGenRequest(
@@ -541,6 +547,8 @@ class OpenAIImageClient {
     }
 
     func generate(_ request: ImageGenRequest) async throws -> [GeneratedImage] {
+        throw LLMError.evolutionIngressRequired
+
         let url = URL(string: "\(baseURL)/images/generations")!
 
         var urlRequest = URLRequest(url: url)
@@ -599,6 +607,8 @@ class OpenAIImageClient {
     }
 
     func generateVariations(_ request: ImageVariationRequest) async throws -> ImageGenResult {
+        throw LLMError.evolutionIngressRequired
+
         let url = URL(string: "\(baseURL)/images/variations")!
 
         var urlRequest = URLRequest(url: url)
@@ -701,6 +711,8 @@ class StabilityAIClient {
     }
 
     func generate(_ request: ImageGenRequest) async throws -> [GeneratedImage] {
+        throw LLMError.evolutionIngressRequired
+
         let engineId = mapModelToEngine(request.model)
         let url = URL(string: "\(baseURL)/generation/\(engineId)/text-to-image")!
 
@@ -777,6 +789,8 @@ class ReplicateClient {
     }
 
     func generate(_ request: ImageGenRequest) async throws -> [GeneratedImage] {
+        throw LLMError.evolutionIngressRequired
+
         // Start prediction
         let url = URL(string: "\(baseURL)/predictions")!
 

@@ -479,6 +479,10 @@ async def chat_stream(request: ChatStreamRequest):
     Returns:
         Server-Sent Events流式响应
     """
+    from src.llm.llm_client import ModelEgressGovernanceError
+
+    raise ModelEgressGovernanceError()
+
     from src.utils.stream_utils import (
         stream_ollama_chat,
         stream_openai_chat,

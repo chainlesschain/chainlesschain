@@ -8,9 +8,10 @@ The three chat.intent routes had the same omission. They now pass the host
 factory into intent understanding, streamed understanding and LLM-based followup
 classification. Governed classification failures propagate instead of being
 reported as rule fallback. Pure rule classification makes no model request.
-Governed intent deadlines abort model transport and bound waits for authority;
-unconfigured intent calls retain their existing fallback behavior. The classifier
-prompt now uses valid JSON for its confidence example.
+Governed intent deadlines abort model transport and bound waits for authority.
+An unconfigured intent invocation now keeps only its pure-rule local fallback;
+it never invokes a provider adapter. The classifier prompt now uses valid JSON
+for its confidence example.
 
 Legacy WebSocket chat sessions now receive the same host factory through the
 actual session-create path. Each message creates a separate bound Run and
@@ -44,9 +45,10 @@ exposes the existing composition factory to that module. Both lazy and eager
 command registration already forward loaded dependencies.
 
 Ollama governed streaming uses /api/chat to preserve projected message roles
-and content. Unconfigured CLI/provider streaming keeps its existing
-/api/generate behavior. OpenAI messages retain the projected structure;
-Anthropic QuickAsk retains its existing system-message conversion.
+and content. CLI model-bearing calls without an authenticated composition fail
+closed with `CC_AGENT_EVOLUTION_INGRESS_FAILED` before selecting or invoking a
+provider. OpenAI messages retain the projected structure; Anthropic QuickAsk
+retains its existing system-message conversion.
 
 Response evidence and durable Run completion precede a successful terminal
 result. Token deltas may already have reached the client when response evidence
@@ -116,6 +118,64 @@ This covers direct streams, QuickAsk, intent routes and legacy chat sessions.
 It does not establish that every model entry in the repository has been audited;
 the repository-wide final-entry audit remains open.
 
+### CLI default-deny follow-up (2026-09-11)
+
+The shared CLI model-turn seam now rejects an absent authenticated composition
+factory before request preparation or transport. The same pre-transport reject
+is enforced for `cc ask`, chat intent model analysis, Agent/Cowork runtime
+model calls, Chat REPL startup, CLI Hub ask/repl/run-skill, WebSocket Personal
+Data Hub ask/run-skill, and resolver draining. Rule-only intent classification
+remains available locally; it is not a model fallback. Focused regression suites
+assert that an injected `fetch` is never called on these rejection paths.
+
+`AgentRouter.dispatch()` now also requires an authenticated ingress before
+backend selection. With one, opaque external CLI backends are removed from the
+candidate set; without one, dispatch fails before a pool or provider is
+started. The legacy `backend/ai-service` LLM factory and every public method
+on its provider-client base class now likewise raise
+`CC_AGENT_EVOLUTION_INGRESS_FAILED` before an SDK is constructed or invoked;
+there are no other in-repository constructors for those clients. UniApp now
+uses the same terminal guard before standard LLM manager, legacy provider,
+backend facade, multimodal, or streaming transport; its five focused
+zero-transport regressions pass. iOS OpenAI/Ollama/Anthropic chat/stream and
+Ollama embedding are likewise static default-deny, pending Xcode verification.
+This does not close the repository-wide audit: native Android and iOS release
+validation, other backend model services, and application-defined SDK workers
+remain outside this CLI/Desktop/backend closure until their actual model egress
+is either connected to a governed ingress or denied before transport. Plugin
+`network:http` is no longer an exception: generic plugin network requests now
+default-deny before `fetch` and model work must use the governed `plugin.llm`
+bridge.
+
+### Desktop registered-egress inventory and default deny (2026-09-11 follow-up)
+
+The Desktop main process now has an executable inventory at
+`src/main/evolution/__tests__/model-egress-inventory.test.js`. It registers the
+known content-bearing built-in provider, multimodal, image, speech, video, RAG,
+project-AI, document-engine, Cowork, and plugin entry files. Each entry must
+retain an explicit governed ingress function or an explicit
+`CC_AGENT_EVOLUTION_INGRESS_FAILED` fail-closed guard; deleting either causes
+the focused test to fail.
+
+The two common low-level text paths are now also default-deny. An unbound
+client passed to `prepareDesktopModelRequest()` or
+`runDesktopOllamaRequest()` receives `CC_AGENT_EVOLUTION_INGRESS_FAILED` before
+provider transport. The normal `LLMManager` boot path binds its branded Desktop
+ingress host before creating a provider client; a raw client instantiated
+outside that path can no longer silently fall back to direct egress. Focused
+validation is:
+
+```powershell
+cd desktop-app-vue
+..\node_modules\.bin\vitest.cmd run src\main\evolution\__tests__\model-egress-inventory.test.js src\main\evolution\__tests__\desktop-evolution-deployment.test.js
+..\node_modules\.bin\vitest.cmd run tests\unit\llm\llm-ipc-governance.test.js
+```
+
+This is a repository guard for registered built-in Desktop paths, not proof of
+governance for application-defined plugins using arbitrary custom endpoints,
+independently started SDK workers, or an externally provisioned production
+authority. Those remain final-entry and deployment acceptance work.
+
 ### Legacy image-generation IPC (2026-09-09 follow-up)
 
 `src/main/image-gen/image-gen-ipc.js` still exposes text generation,
@@ -140,22 +200,34 @@ uses a canary-bearing document and asserts that the injected `fetch` is never
 called. A future implementation must use a dedicated governed evidence-ingress
 bridge; it must not reuse the chat-only model capability.
 
-### Plugin network API is an explicit remaining boundary
+### Plugin network API is default-denied
 
 `src/main/plugins/plugin-api.js` routes the plugin `llm:query` and
 `llm:stream` permissions through the Desktop `LLMManager`; they therefore use
-the normal governed client when the Desktop host is configured. In contrast,
-the separately permission-checked `network:http` API permits a plugin to make
-an arbitrary HTTPS (or localhost) request. The API now rejects the known
-OpenAI, Anthropic, Gemini, Mistral, Volcengine generation, and local Ollama
-model endpoint families before `fetch`, directing plugin authors to `plugin.llm`.
-Its local API statistics still cannot classify a custom provider's request body
-or provide the source/response evidence required by an Evolution Run. A plugin
-that calls an unknown provider through `network:http` therefore remains an
-application-defined third-party direct-provider path, not a governed model
-entry. Managed deployments must supply a dedicated governed bridge or deny that
-plugin's direct provider use; it remains in the final P0-4 audit rather than
-being silently exempted.
+the normal governed client when the Desktop host is configured. The separately
+permission-checked `network:http` API now rejects every request before `fetch`:
+known OpenAI, Anthropic, Gemini, Mistral, Volcengine, and local Ollama families
+are identified explicitly, and unknown HTTPS/localhost endpoints are rejected
+by the same terminal guard. Generic request bodies cannot be classified or given
+an EvolutionRun evidence projection, so the repository intentionally exposes no
+direct plugin network egress until a dedicated authenticated,
+evidence-producing bridge exists. Plugins must use `plugin.llm` for model work;
+an unknown provider is no longer a repository-side direct-provider escape hatch.
+
+### Legacy FunctionCaller HTTP tools are default-denied (2026-09-12 follow-up)
+
+`FunctionCaller` registers three older general-purpose network tools by
+default: `http_client`, `api_requester`, and `web_crawler`. The first two
+accepted arbitrary URLs, headers, and request bodies; the crawler accepted an
+arbitrary URL and headers. None has a branded model-input projection or an
+EvolutionRun response-evidence lifecycle, so each could be pointed at an
+unknown provider outside the `plugin.llm` and Desktop `LLMManager` bridges.
+All three now throw `CC_AGENT_EVOLUTION_INGRESS_FAILED` before `http.request`
+or `fetch`. The Desktop egress inventory registers their three source files,
+and focused regressions assert arbitrary model-shaped URLs/bodies cause zero
+network calls. This intentionally retires these legacy direct-network surfaces
+pending a dedicated governed bridge; it does not restrict the separately
+capability-bound Cowork network broker.
 
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a

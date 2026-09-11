@@ -23,6 +23,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let httpGetExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         guard let urlString = input.getString("url"),
               let url = URL(string: urlString) else {
             return .failure(error: "无效的URL")
@@ -99,6 +101,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let httpPostExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         guard let urlString = input.getString("url"),
               let url = URL(string: urlString) else {
             return .failure(error: "无效的URL")
@@ -180,6 +184,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let downloadFileExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         guard let urlString = input.getString("url"),
               let url = URL(string: urlString),
               let outputPath = input.getString("outputPath") else {
@@ -247,6 +253,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let checkUrlExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         guard let urlString = input.getString("url"),
               let url = URL(string: urlString) else {
             return .failure(error: "无效的URL")
@@ -315,6 +323,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let pingExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         // iOS不支持直接发送ICMP包，需要使用SimplePing等第三方库
         // 这里使用HTTP HEAD请求作为替代
         guard let host = input.getString("host") else {

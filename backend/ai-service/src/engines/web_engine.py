@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, AsyncGenerator
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import ollama
 from openai import AsyncOpenAI
-from src.llm.llm_client import get_llm_client, _run_blocking
+from src.llm.llm_client import ModelEgressGovernanceError, _run_blocking
 from src.utils.text_utils import strip_code_fences
 from src.templates.web_templates import get_template, has_template
 from src.utils.stream_utils import (
@@ -39,19 +39,8 @@ class WebEngine:
 
         self.client = None
         self.llm_client = None
-        self._ready = True
-
-        if self.llm_provider == "openai":
-            if self.openai_api_key:
-                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-            else:
-                self._ready = False
-        elif self.llm_provider != "ollama":
-            try:
-                self.llm_client = get_llm_client()
-            except Exception as e:
-                print(f"LLM client initialization error: {e}")
-                self._ready = False
+        # A governed bridge, not this legacy engine, owns provider SDK setup.
+        self._ready = False
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -79,6 +68,8 @@ class WebEngine:
                 "metadata": {...}
             }
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("Web engine not ready")
 
@@ -579,6 +570,8 @@ document.addEventListener('DOMContentLoaded', () => {
         Yields:
             流式生成的进度和内容
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             yield {"type": "error", "error": "Web engine not ready"}
             return

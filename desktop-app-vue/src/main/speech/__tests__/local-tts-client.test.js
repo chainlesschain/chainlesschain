@@ -85,6 +85,23 @@ afterEach(() => {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("LocalTTSClient", () => {
+  describe("synthesize() governance", () => {
+    it("rejects before checking Piper or spawning a local model process", async () => {
+      const execFileProcess = vi.fn();
+      const spawnProcess = vi.fn();
+      const client = new LocalTTSClient(
+        { piperPath: "/tmp/piper" },
+        { execFileProcess, spawnProcess },
+      );
+
+      await expect(client.synthesize("private text")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(execFileProcess).not.toHaveBeenCalled();
+      expect(spawnProcess).not.toHaveBeenCalled();
+    });
+  });
+
   describe("PIPER_MODELS", () => {
     it("contains known models", () => {
       expect(PIPER_MODELS["en_US-lessac-medium"]).toBeTruthy();

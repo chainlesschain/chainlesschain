@@ -11,6 +11,7 @@
  */
 
 import { getStreamManager } from './stream-manager.js'
+import { rejectLegacyModelEgress } from './model-egress-guard.js'
 
 /**
  * LLM管理器类
@@ -215,6 +216,7 @@ class LLMManager {
    * @returns {Promise<Object>}
    */
   async chat(messages, options = {}) {
+    rejectLegacyModelEgress()
     if (!this.isInitialized) {
       await this.initialize()
     }
@@ -272,6 +274,7 @@ class LLMManager {
    * @private
    */
   async chatWithWebLLM(messages, options) {
+    rejectLegacyModelEgress()
     // #ifdef H5
     if (!this.webllmEngine) {
       throw new Error('Web LLM引擎未初始化')
@@ -304,6 +307,7 @@ class LLMManager {
    * @private
    */
   async chatWithAPI(messages, options) {
+    rejectLegacyModelEgress()
     const response = await uni.request({
       url: this.config.apiEndpoint,
       method: 'POST',
@@ -337,6 +341,7 @@ class LLMManager {
    * @private
    */
   async chatWithOpenAI(messages, options) {
+    rejectLegacyModelEgress()
     const response = await uni.request({
       url: `${this.config.openaiBaseURL}/chat/completions`,
       method: 'POST',
@@ -375,6 +380,7 @@ class LLMManager {
    * @private
    */
   async chatWithAnthropic(messages, options) {
+    rejectLegacyModelEgress()
     // 转换消息格式（Anthropic API格式不同）
     const systemMessage = messages.find(m => m.role === 'system')
     const chatMessages = messages.filter(m => m.role !== 'system')
@@ -422,6 +428,7 @@ class LLMManager {
    * @returns {Promise<Object>}
    */
   async chatStream(messages, options = {}) {
+    rejectLegacyModelEgress()
     if (!this.isInitialized) {
       await this.initialize()
     }
@@ -496,6 +503,7 @@ class LLMManager {
    * @private
    */
   async chatStreamWithAPI(messages, options) {
+    rejectLegacyModelEgress()
     // 使用WebSocket流式传输
     return await this.streamManager.streamWithWebSocket(messages, {
       ...options,

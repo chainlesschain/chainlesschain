@@ -163,6 +163,8 @@ class MediaPipeLlmEngine @Inject constructor(
         messages: List<LlmInferenceEngine.ChatMessage>,
         opts: LlmInferenceEngine.ChatOptions,
     ): LlmInferenceEngine.ChatResponse = withContext(Dispatchers.IO) {
+        rejectLegacyModelEgress()
+
         if (!nativeReady) {
             throw LlmInferenceException(
                 "MediaPipe tasks-genai 未加载 — Win 编译 OK 但 runtime fail-fast (probably running in JVM unit test)",

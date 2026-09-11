@@ -25,6 +25,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("./model-egress-guard");
+
 // ─── MockLLMClient ───────────────────────────────────────────────────────
 
 /**
@@ -106,6 +108,8 @@ class OllamaClient {
   }
 
   async chat(messages, opts = {}) {
+    rejectLegacyModelEgress();
+
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), this.timeoutMs);
 

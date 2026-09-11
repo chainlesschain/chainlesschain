@@ -34,14 +34,13 @@ export async function prepareGovernedModelTurn(
   { mode, messages, signal },
 ) {
   signal?.throwIfAborted();
-  if (factory === null)
-    return {
-      governed: false,
-      messages,
-      complete: async () => {
-        signal?.throwIfAborted();
-      },
-    };
+  if (factory === null) {
+    const error = new Error(
+      "Model egress requires an authenticated evolution composition factory",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   if (typeof factory !== "function")
     throw new TypeError("Invalid evolution composition factory");
   const runId = `${mode}-${randomUUID()}`;

@@ -212,10 +212,37 @@ describe("OCRService - OCR文字识别服务", () => {
     });
   });
 
+  describe("Governed OCR ingress boundary", () => {
+    it("rejects direct recognition before dispatching to Tesseract", async () => {
+      await expect(ocrService.recognize("/path/to/image.png")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(mockTesseract.createWorker).not.toHaveBeenCalled();
+    });
+
+    it("rejects direct batch recognition before dispatching to Tesseract", async () => {
+      await expect(
+        ocrService.recognizeBatch(["/path/to/image.png"]),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(mockTesseract.createWorker).not.toHaveBeenCalled();
+    });
+
+    it("rejects direct text-region detection before dispatching to Tesseract", async () => {
+      await expect(
+        ocrService.detectTextRegions("/path/to/image.png"),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(mockTesseract.createWorker).not.toHaveBeenCalled();
+    });
+  });
+
   // ============================================
   // 2. 图片识别测试
   // ============================================
-  describe("Image Recognition - 图片识别", () => {
+  // Direct Tesseract dispatch was deliberately retired from this public
+  // service.  Its former behavior tests remain below as historical coverage,
+  // but cannot be a passing contract until a branded model ingress supplies
+  // the audited execution path.
+  describe.skip("Retired raw image recognition behavior", () => {
     beforeEach(async () => {
       await ocrService.initialize();
     });
@@ -324,7 +351,7 @@ describe("OCRService - OCR文字识别服务", () => {
   // ============================================
   // 3. 批量识别测试
   // ============================================
-  describe("Batch Recognition - 批量识别", () => {
+  describe.skip("Retired raw batch recognition behavior", () => {
     beforeEach(async () => {
       await ocrService.initialize();
     });
@@ -433,7 +460,7 @@ describe("OCRService - OCR文字识别服务", () => {
   // ============================================
   // 4. 文字区域检测测试
   // ============================================
-  describe("Text Region Detection - 文字区域检测", () => {
+  describe.skip("Retired raw text-region detection behavior", () => {
     beforeEach(async () => {
       await ocrService.initialize();
     });

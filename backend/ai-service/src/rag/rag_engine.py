@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 import uuid
 
 from .crossencoder_reranker import get_reranker
-from src.llm.llm_client import _run_blocking
+from src.llm.llm_client import ModelEgressGovernanceError, _run_blocking
 
 logger = logging.getLogger(__name__)
 
@@ -29,31 +29,13 @@ class RAGEngine:
         self.embedding_model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-zh-v1.5")
         self.collection_name = "chainlesschain_knowledge"
 
-        try:
-            # 初始化Qdrant客户端
-            self.client = QdrantClient(host=self.qdrant_host, port=self.qdrant_port)
-
-            # 初始化Embedding模型
-            self.embedding_model = SentenceTransformer(self.embedding_model_name)
-            self.vector_size = self.embedding_model.get_sentence_embedding_dimension()
-
-            # 创建或获取collection
-            self._ensure_collection()
-
-            self._ready = True
-            logger.info(
-                "RAG engine ready: qdrant=%s:%d, embedding=%s, vector_size=%d",
-                self.qdrant_host, self.qdrant_port, self.embedding_model_name,
-                self.vector_size,
-            )
-        except Exception as e:
-            # Don't silently swallow with print(); log with stack trace so
-            # operators see WHY the engine is unavailable on startup.
-            logger.exception(
-                "RAG engine initialization failed (qdrant=%s:%d, embedding=%s): %s",
-                self.qdrant_host, self.qdrant_port, self.embedding_model_name, e,
-            )
-            self._ready = False
+        # A future authenticated ingress owns both embedding construction and
+        # vector transport. This legacy standalone engine must not load a
+        # model or persist user text on startup.
+        self.client = None
+        self.embedding_model = None
+        self.vector_size = 0
+        self._ready = False
 
     def _ensure_collection(self):
         """确保collection存在"""
@@ -96,6 +78,8 @@ class RAGEngine:
         Returns:
             知识ID
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("RAG engine not ready")
 
@@ -151,6 +135,8 @@ class RAGEngine:
         Returns:
             检索结果列表
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("RAG engine not ready")
 
@@ -268,6 +254,8 @@ class RAGEngine:
         Returns:
             增强检索结果
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("RAG engine not ready")
 

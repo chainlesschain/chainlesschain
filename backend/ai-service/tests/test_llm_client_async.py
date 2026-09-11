@@ -14,6 +14,8 @@ import os
 import sys
 import time
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import src.llm.llm_client as mod  # noqa: E402
@@ -43,7 +45,19 @@ class _BlockingOllama:
         return {"message": {"content": f"reply-{model}"}}
 
 
-def test_ollama_chat_runs_concurrently_not_blocking_event_loop():
+def test_direct_ollama_client_refuses_egress_before_calling_its_sdk():
+    client = mod.OllamaClient(model="m")
+    fake = _BlockingOllama(delay=0.3)
+    client.client = fake
+
+    with pytest.raises(mod.ModelEgressGovernanceError) as error:
+        client.chat([{"role": "user", "content": "a"}])
+
+    assert error.value.code == mod.MODEL_EGRESS_ERROR_CODE
+    assert fake.calls == 0
+
+
+def _legacy_ollama_chat_runs_concurrently_not_blocking_event_loop():
     client = mod.OllamaClient(model="m")  # __init__ 仅 import ollama（本环境已装）
     fake = _BlockingOllama(delay=0.3)
     client.client = fake  # 把真实同步 SDK 换成会阻塞的假实现

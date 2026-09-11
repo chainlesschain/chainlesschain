@@ -79,7 +79,11 @@ describe("StorageHandler", () => {
     });
     mockFsAccess.mockResolvedValue(undefined);
     mockFsUnlink.mockResolvedValue(undefined);
-    handler = new StorageHandler();
+    // This CommonJS handler deliberately reads the host filesystem. Keep
+    // cleanup tests hermetic: an empty, explicit temp-dir allowlist proves
+    // dry-run/default behavior without scanning the developer's Temp or the
+    // Windows system Temp directory during a unit test.
+    handler = new StorageHandler({ tempDirs: [] });
   });
 
   afterEach(async () => {

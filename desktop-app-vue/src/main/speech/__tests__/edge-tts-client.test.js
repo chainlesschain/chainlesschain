@@ -15,6 +15,19 @@ function createProcess() {
 }
 
 describe("EdgeTTSClient process execution", () => {
+  it("rejects synthesis before probing or spawning the remote TTS process", async () => {
+    const spawnProcess = vi.fn();
+    const client = new EdgeTTSClient({}, { spawnProcess });
+
+    await expect(client.synthesize("private text")).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    await expect(
+      client.synthesizeToFile("private text", "/tmp/output.mp3"),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(spawnProcess).not.toHaveBeenCalled();
+  });
+
   it("routes edge-tts through the desktop process broker boundary", async () => {
     const process = createProcess();
     const spawnProcess = vi.fn(() => process);

@@ -121,6 +121,13 @@ export function createChatFn(options = {}) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  if (evolutionIngress === null) {
+    const error = new Error(
+      "Cowork model egress requires an authenticated evolution ingress",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   // Fill provider/model/baseUrl/apiKey from config.llm only when the caller
   // gave no explicit provider AND no LLM_PROVIDER env override (both still win).
   // Fail-open: a config read must never break chat construction.
@@ -157,10 +164,8 @@ export function createChatFn(options = {}) {
     // Every invocation (including concurrent reviewers) gets fresh durable
     // admission; the original conversation is never replaced in place.
     const prepareMessages = async () =>
-      evolutionIngress === null
-        ? messages
-        : (await evolutionIngress.prepareModelRequest({ messages, tools: [] }))
-            .messages;
+      (await evolutionIngress.prepareModelRequest({ messages, tools: [] }))
+        .messages;
 
     if (provider === "ollama") {
       const envelope = await invokeChatCall(

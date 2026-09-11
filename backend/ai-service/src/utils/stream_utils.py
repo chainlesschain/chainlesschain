@@ -5,6 +5,7 @@
 import json
 import asyncio
 from typing import AsyncGenerator, Dict, Any, Optional
+from src.llm.llm_client import ModelEgressGovernanceError
 
 
 def format_sse(data: Dict[str, Any], event: Optional[str] = None) -> str:
@@ -41,6 +42,8 @@ async def stream_ollama_chat(
     Yields:
         流式生成的数据块
     """
+    raise ModelEgressGovernanceError()
+
     import ollama
 
     try:
@@ -96,6 +99,8 @@ async def stream_openai_chat(
     Yields:
         流式生成的数据块
     """
+    raise ModelEgressGovernanceError()
+
     try:
         stream = await client.chat.completions.create(
             model=model,
@@ -145,6 +150,8 @@ async def stream_custom_llm_chat(
     Yields:
         流式生成的数据块
     """
+    raise ModelEgressGovernanceError()
+
     try:
         # 检查客户端是否支持流式生成
         if hasattr(llm_client, 'chat_stream'):

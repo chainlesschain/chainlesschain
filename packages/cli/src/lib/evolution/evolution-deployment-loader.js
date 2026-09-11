@@ -2,7 +2,12 @@ import { createHash, createPublicKey, verify } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { types as utilTypes } from "node:util";
-import { readEvolutionDeploymentProfile } from "./evolution-deployment-profile.js";
+import {
+  assertEvolutionDeploymentActiveTrustRoot,
+  assertEvolutionDeploymentDescriptorNotRevoked,
+  assertEvolutionDeploymentRevisionFloor,
+  readEvolutionDeploymentProfile,
+} from "./evolution-deployment-profile.js";
 
 export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
@@ -486,8 +491,9 @@ export async function loadEvolutionDeploymentCommandDependencies(
   let descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
   let trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
   let fromSavedProfile = false;
+  let saved = null;
   if (!descriptorPath && !trustRootPath) {
-    const saved = await readEvolutionDeploymentProfile({ env });
+    saved = await readEvolutionDeploymentProfile({ env });
     if (!saved.error && saved.profile?.enabled) {
       descriptorPath = saved.profile.descriptorPath;
       trustRootPath = saved.profile.trustRootPath;
@@ -505,6 +511,21 @@ export async function loadEvolutionDeploymentCommandDependencies(
       { descriptorPath, trustRootPath },
       { read, resolveRealPath, includeModuleBytes: true },
     );
+    if (fromSavedProfile)
+      assertEvolutionDeploymentActiveTrustRoot(
+        saved.profile,
+        verified.descriptor,
+      );
+    if (fromSavedProfile)
+      assertEvolutionDeploymentDescriptorNotRevoked(
+        saved.profile,
+        verified.descriptor,
+      );
+    if (fromSavedProfile)
+      assertEvolutionDeploymentRevisionFloor(
+        saved.profile,
+        verified.descriptor,
+      );
   } catch (error) {
     // A saved profile may become stale after files are moved or rotated. Keep
     // governed capabilities fail-closed while allowing `deployment status`,

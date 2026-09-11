@@ -22,6 +22,7 @@ const os = require("os");
 const { logger } = require("../../utils/logger");
 
 const execAsync = promisify(exec);
+const _deps = { execAsync };
 
 // 平台检测
 const isWindows = process.platform === "win32";
@@ -165,7 +166,7 @@ class SystemInfoHandler {
 
   async _getWindowsCPUDetails() {
     try {
-      const { stdout } = await execAsync(
+      const { stdout } = await _deps.execAsync(
         'powershell -command "Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed, L2CacheSize, L3CacheSize | ConvertTo-Json"',
       );
       const data = JSON.parse(stdout || "{}");
@@ -183,7 +184,7 @@ class SystemInfoHandler {
 
   async _getMacCPUDetails() {
     try {
-      const { stdout } = await execAsync(
+      const { stdout } = await _deps.execAsync(
         "sysctl -n machdep.cpu.brand_string hw.physicalcpu hw.logicalcpu",
       );
       const lines = stdout.trim().split("\n");
@@ -199,7 +200,7 @@ class SystemInfoHandler {
 
   async _getLinuxCPUDetails() {
     try {
-      const { stdout } = await execAsync(
+      const { stdout } = await _deps.execAsync(
         "cat /proc/cpuinfo | grep -E '^(model name|cpu cores|cache size)' | head -6",
       );
       const lines = stdout.trim().split("\n");
@@ -964,4 +965,4 @@ class SystemInfoHandler {
   }
 }
 
-module.exports = { SystemInfoHandler };
+module.exports = { SystemInfoHandler, _deps };

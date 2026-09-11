@@ -1,3 +1,5 @@
+import { rejectLegacyModelEgress } from './model-egress-guard.js'
+
 /**
  * 多模态管理器 (移动端版本)
  *
@@ -131,6 +133,7 @@ class MultimodalManager {
    * @returns {Promise<Object>}
    */
   async chat(messages, options = {}) {
+    rejectLegacyModelEgress()
     if (!this.isInitialized) {
       await this.initialize()
     }
@@ -357,6 +360,7 @@ class MultimodalManager {
    * @private
    */
   async chatWithOpenAI(messages, model, options) {
+    rejectLegacyModelEgress()
     // 构建OpenAI格式的消息
     const openaiMessages = messages.map(msg => {
       if (msg.images && msg.images.length > 0) {
@@ -423,6 +427,7 @@ class MultimodalManager {
    * @private
    */
   async chatWithAnthropic(messages, model, options) {
+    rejectLegacyModelEgress()
     // 构建Anthropic格式的消息
     const anthropicMessages = messages.map(msg => {
       if (msg.images && msg.images.length > 0) {
@@ -503,6 +508,7 @@ class MultimodalManager {
    * @private
    */
   async chatWithDashScope(messages, model, options) {
+    rejectLegacyModelEgress()
     // 构建DashScope格式的消息
     const dashscopeMessages = messages.map(msg => {
       if (msg.images && msg.images.length > 0) {

@@ -31,7 +31,7 @@ const dnsResolve = promisify(dns.resolve);
 // intercept require() for built-ins in the inlined-CJS forks pool (see
 // .claude/rules/testing.md). Route the DNS resolve through _deps so tests can
 // substitute a deterministic resolver instead of hitting the real network.
-const _deps = { dnsResolve };
+const _deps = { dnsResolve, execAsync };
 
 /**
  * 可取消的命令执行
@@ -527,7 +527,7 @@ class NetworkHandler {
 
   async _getWindowsBandwidth() {
     try {
-      const { stdout } = await execAsync(
+      const { stdout } = await _deps.execAsync(
         'powershell -command "Get-NetAdapterStatistics | Select-Object Name, ReceivedBytes, SentBytes | ConvertTo-Json"',
       );
 
@@ -560,7 +560,7 @@ class NetworkHandler {
 
   async _getLinuxBandwidth() {
     try {
-      const { stdout } = await execAsync("cat /proc/net/dev");
+      const { stdout } = await _deps.execAsync("cat /proc/net/dev");
       const lines = stdout.trim().split("\n").slice(2);
 
       let totalRx = 0;
@@ -595,7 +595,7 @@ class NetworkHandler {
 
   async _getMacBandwidth() {
     try {
-      const { stdout } = await execAsync("netstat -ib");
+      const { stdout } = await _deps.execAsync("netstat -ib");
       const lines = stdout.trim().split("\n").slice(1);
 
       let totalRx = 0;

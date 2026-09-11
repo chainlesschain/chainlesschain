@@ -134,7 +134,26 @@ describe("OllamaClient", () => {
     });
   });
 
-  describe("generate", () => {
+  describe("governed model ingress boundary", () => {
+    it("rejects raw generate, streaming, and chat dispatch without a branded host", async () => {
+      client.client.post = vi.fn();
+      await expect(client.generate("Hello")).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      await expect(client.generateStream("Hello", vi.fn())).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      await expect(client.chat([{ role: "user", content: "Hello" }])).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      await expect(
+        client.chatStream([{ role: "user", content: "Hello" }], vi.fn()),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(client.client.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.skip("Retired raw generate behavior", () => {
     it("should generate text successfully", async () => {
       client.client.post = vi.fn().mockResolvedValue({
         data: {
@@ -217,7 +236,7 @@ describe("OllamaClient", () => {
     });
   });
 
-  describe("generateStream", () => {
+  describe.skip("Retired raw generate-stream behavior", () => {
     it("should stream generate text", async () => {
       // 创建 mock stream
       const mockStream = {
@@ -326,7 +345,7 @@ describe("OllamaClient", () => {
     });
   });
 
-  describe("chat", () => {
+  describe.skip("Retired raw chat behavior", () => {
     it("should chat successfully", async () => {
       client.client.post = vi.fn().mockResolvedValue({
         data: {
@@ -415,7 +434,7 @@ describe("OllamaClient", () => {
     });
   });
 
-  describe("chatStream", () => {
+  describe.skip("Retired raw chat-stream behavior", () => {
     it("should stream chat messages", async () => {
       const mockStream = {
         on: vi.fn((event, callback) => {

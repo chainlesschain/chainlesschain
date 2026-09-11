@@ -76,7 +76,19 @@ interface LlmInferenceEngine {
     )
 }
 
-class LlmInferenceException(message: String, cause: Throwable? = null) : Exception(message, cause)
+const val MODEL_EGRESS_INGRESS_FAILED = "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+
+open class LlmInferenceException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+class ModelEgressGovernanceException : LlmInferenceException(
+    "$MODEL_EGRESS_INGRESS_FAILED: local model inference requires an authenticated Evolution ingress",
+) {
+    val code: String = MODEL_EGRESS_INGRESS_FAILED
+}
+
+internal fun rejectLegacyModelEgress(): Nothing {
+    throw ModelEgressGovernanceException()
+}
 
 /**
  * Default fallback. Reports `ready=false` and refuses chat calls with a

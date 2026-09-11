@@ -19,11 +19,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import src.llm.llm_client as mod  # noqa: E402
 
 
-def _make_fake(tag):
+def _make_fake(tag, constructed=None):
     class _Fake:
         def __init__(self, **kwargs):
             self.tag = tag
             self.kwargs = kwargs
+            if constructed is not None:
+                constructed.append((tag, kwargs))
 
     return _Fake
 
@@ -45,52 +47,30 @@ _CLIENT_ATTRS = {
 
 @pytest.fixture(autouse=True)
 def stub_clients(monkeypatch):
+    constructed = []
     """把所有 client 类替换成带标签 fake，路由测试只看标签不碰 SDK。"""
     for tag, attr in _CLIENT_ATTRS.items():
-        monkeypatch.setattr(mod, attr, _make_fake(tag))
-    yield
-
+        monkeypatch.setattr(mod, attr, _make_fake(tag, constructed))
+    return constructed
 
 # --------------------------------------------------------------------------- #
 # create_client — 路由 + 别名
 # --------------------------------------------------------------------------- #
-class TestCreateClientRouting:
-    def test_ollama_uses_env_host_no_key_needed(self, monkeypatch):
-        monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local:9999")
-        c = mod.LLMClientFactory.create_client("ollama", "qwen2:7b")
-        assert c.tag == "ollama"
-        assert c.kwargs["host"] == "http://ollama.local:9999"
-        assert c.kwargs["model"] == "qwen2:7b"
-
-    def test_provider_is_case_insensitive(self):
-        c = mod.LLMClientFactory.create_client("OpenAI", "gpt-4o", api_key="k")
-        assert c.tag == "openai"
-
-    @pytest.mark.parametrize("provider,expected", [
-        ("doubao", "volcengine"),
-        ("baidu", "qianfan"),
-        ("tencent", "hunyuan"),
-        ("xfyun", "spark"),
+class TestCreateClientDefaultDeny:
+    @pytest.mark.parametrize("provider", [
+        "ollama", "OpenAI", "dashscope", "zhipu", "doubao", "baidu",
+        "tencent", "xfyun", "minimax", "deepseek", "unknown-provider",
     ])
-    def test_aliases_map_to_canonical_client(self, provider, expected):
-        c = mod.LLMClientFactory.create_client(provider, "m", api_key="k")
-        assert c.tag == expected
+    def test_refuses_every_legacy_provider_before_constructing_an_sdk(
+        self, provider, stub_clients
+    ):
+        with pytest.raises(mod.ModelEgressGovernanceError) as error:
+            mod.LLMClientFactory.create_client(
+                provider, "model", api_key="secret", base_url="http://provider"
+            )
 
-    def test_keyed_provider_passes_api_key_and_model(self):
-        c = mod.LLMClientFactory.create_client("deepseek", "deepseek-chat", api_key="sk-x")
-        assert c.tag == "deepseek"
-        assert c.kwargs["api_key"] == "sk-x"
-        assert c.kwargs["model"] == "deepseek-chat"
-
-    def test_openai_defaults_base_url_when_absent(self):
-        c = mod.LLMClientFactory.create_client("openai", "gpt-4o", api_key="k")
-        assert c.kwargs["base_url"] == "https://api.openai.com/v1"
-
-    def test_openai_keeps_explicit_base_url(self):
-        c = mod.LLMClientFactory.create_client(
-            "openai", "gpt-4o", api_key="k", base_url="http://proxy/v1"
-        )
-        assert c.kwargs["base_url"] == "http://proxy/v1"
+        assert error.value.code == mod.MODEL_EGRESS_ERROR_CODE
+        assert stub_clients == []
 
 
 class TestCreateClientErrors:
@@ -99,12 +79,18 @@ class TestCreateClientErrors:
         "hunyuan", "spark", "minimax", "deepseek",
     ])
     def test_missing_api_key_raises(self, provider):
-        with pytest.raises(ValueError):
+        with pytest.raises(mod.ModelEgressGovernanceError) as error:
             mod.LLMClientFactory.create_client(provider, "m", api_key=None)
+        assert error.value.code == mod.MODEL_EGRESS_ERROR_CODE
 
-    def test_unknown_provider_raises(self):
+    def _legacy_unknown_provider_error(self):
         with pytest.raises(ValueError, match="不支持的LLM提供商"):
             mod.LLMClientFactory.create_client("nope-llm", "m", api_key="k")
+
+    def test_unknown_provider_raises(self):
+        with pytest.raises(mod.ModelEgressGovernanceError) as error:
+            mod.LLMClientFactory.create_client("nope-llm", "m", api_key="k")
+        assert error.value.code == mod.MODEL_EGRESS_ERROR_CODE
 
 
 # --------------------------------------------------------------------------- #

@@ -43,6 +43,7 @@ class OllamaAdapter(
         temperature: Float,
         maxTokens: Int
     ): Flow<StreamChunk> = flow {
+        rejectLegacyModelEgress()
         try {
             val requestBody = OllamaChatRequest(
                 model = model,
@@ -96,6 +97,8 @@ class OllamaAdapter(
                     }
                 }
             }
+        } catch (e: ModelEgressGovernanceException) {
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "Error in streamChat")
             emit(StreamChunk("", isDone = true, error = e.message ?: "Ollama连接失败"))
@@ -108,6 +111,7 @@ class OllamaAdapter(
         temperature: Float,
         maxTokens: Int
     ): String {
+        rejectLegacyModelEgress()
         val requestBody = OllamaChatRequest(
             model = model,
             messages = messages.map { msg ->

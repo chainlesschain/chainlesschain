@@ -106,17 +106,22 @@ export async function queryLLM(
   options = {},
   evolutionIngress = null,
 ) {
+  if (evolutionIngress === null) {
+    const error = new Error(
+      "Model egress requires an authenticated evolution ingress",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   const provider = options.provider || "ollama";
   const model = options.model || "qwen2:7b";
   const messages = [{ role: "user", content: question }];
-  const providerMessages =
-    evolutionIngress === null
-      ? messages
-      : (
-          await captureAgentEvolutionIngress(
-            evolutionIngress,
-          ).prepareModelRequest({ messages, tools: [] })
-        ).messages;
+  const providerMessages = (
+    await captureAgentEvolutionIngress(evolutionIngress).prepareModelRequest({
+      messages,
+      tools: [],
+    })
+  ).messages;
 
   // Claude-Code 2.1.183 parity: warn (stderr only, so --json/stdout stays
   // clean) if the requested model is a provider-retired snapshot. Suppressed

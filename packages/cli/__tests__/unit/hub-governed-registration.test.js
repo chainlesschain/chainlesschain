@@ -79,22 +79,24 @@ describe("governed Hub registration", () => {
     expect(exit).toHaveBeenCalledWith(1);
   });
 
-  it("retains normal hub loading without a deployment factory", async () => {
+  it("rejects model operation without a deployment factory", async () => {
     ports.getHub.mockResolvedValue({
       engine: { ask: vi.fn(async () => ({ answer: "ok" })) },
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
     const program = new Command();
     registerHubCommand(program);
-    await program.parseAsync([
-      "node",
-      "cc",
-      "hub",
-      "ask",
-      "question",
-      "--json",
-    ]);
-    expect(ports.getHub).toHaveBeenCalledTimes(1);
+    await expect(
+      program.parseAsync([
+        "node",
+        "cc",
+        "hub",
+        "ask",
+        "question",
+        "--json",
+      ]),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(ports.getHub).not.toHaveBeenCalled();
     expect(ports.getGovernedAnalysisHub).not.toHaveBeenCalled();
   });
 });

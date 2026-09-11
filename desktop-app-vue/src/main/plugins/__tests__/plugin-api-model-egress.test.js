@@ -31,15 +31,15 @@ describe("PluginAPI model egress boundary", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("keeps the separately permitted generic HTTPS API available", async () => {
-    const response = { ok: true };
-    const { api, fetch } = createPluginApi(vi.fn().mockResolvedValue(response));
+  it("rejects unknown provider-like HTTPS requests before fetch", async () => {
+    const { api, fetch } = createPluginApi();
 
-    await expect(api.network.fetch("https://example.test/resource")).resolves.toBe(
-      response,
-    );
-    expect(fetch).toHaveBeenCalledWith("https://example.test/resource", {
-      timeout: 30000,
-    });
+    await expect(
+      api.network.fetch("https://example.test/v1/inference", {
+        body: "canary-model-prompt",
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

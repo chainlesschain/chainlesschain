@@ -22,6 +22,18 @@ const {
 const _deps = { fs, https: null, http: null, fsSync: null };
 
 /**
+ * Legacy Piper execution has no authenticated Evolution ingress context.
+ * Text must not be handed to a local model process until that boundary exists.
+ */
+function assertGovernedTtsIngress() {
+  const error = new Error(
+    "Local text-to-speech requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
+/**
  * Piper voice models
  */
 const PIPER_MODELS = {
@@ -180,9 +192,11 @@ class LocalTTSClient extends EventEmitter {
    * Synthesize text to speech
    * @param {string} text - Text to synthesize
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Audio data
-   */
+  * @returns {Promise<Object>} Audio data
+  */
   async synthesize(text, options = {}) {
+    assertGovernedTtsIngress();
+
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {

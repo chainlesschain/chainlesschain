@@ -8,6 +8,14 @@ const fs = require("fs").promises;
 const path = require("path");
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
+function assertGovernedModelTrainingIngress() {
+  const error = new Error(
+    "Model training requires a governed Evolution ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class DataScienceToolsHandler {
   constructor({ fsPromises = fs, spawnProcess = spawnWithDesktopBroker } = {}) {
     this.name = "DataScienceToolsHandler";
@@ -295,6 +303,8 @@ print(json.dumps({
    * 机器学习模型训练器（简化版本）
    */
   async tool_ml_model_trainer(params) {
+    assertGovernedModelTrainingIngress();
+
     const {
       dataPath,
       targetColumn,

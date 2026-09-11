@@ -17,6 +17,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../model-egress-guard");
+
 const SYSTEM_PROMPT = `你是一个数据消歧专家。我会给你两个 Person profile，请判断它们是否指代同一个现实人物。
 
 回答必须是 ONLY a valid JSON object，no markdown fences:
@@ -69,6 +71,8 @@ class LLMStage {
     const profileB = clipString(this._buildProfile(b), this._maxProfileChars);
 
     const userMsg = buildUserPrompt(profileA, profileB);
+    rejectLegacyModelEgress();
+
     let resp;
     try {
       resp = await this._llm.chat([
@@ -76,6 +80,7 @@ class LLMStage {
         { role: "user", content: userMsg },
       ], this._chatOpts);
     } catch (err) {
+      if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
       // Throwing here returns control to EntityResolver.drain which
       // counts as "error" and re-pends.
       throw new Error(`LLMStage chat failed: ${err && err.message ? err.message : err}`);

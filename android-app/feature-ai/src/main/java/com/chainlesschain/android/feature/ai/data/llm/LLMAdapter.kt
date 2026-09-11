@@ -4,6 +4,18 @@ import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
 import kotlinx.coroutines.flow.Flow
 
+const val MODEL_EGRESS_INGRESS_FAILED = "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+
+class ModelEgressGovernanceException : IllegalStateException(
+    "Android model egress requires an authenticated Evolution ingress",
+) {
+    val code: String = MODEL_EGRESS_INGRESS_FAILED
+}
+
+internal fun rejectLegacyModelEgress(): Nothing {
+    throw ModelEgressGovernanceException()
+}
+
 /**
  * LLM适配器接口
  *

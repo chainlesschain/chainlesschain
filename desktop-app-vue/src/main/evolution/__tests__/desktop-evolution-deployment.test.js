@@ -32,6 +32,25 @@ function runtimeConfig(revision) {
 }
 
 describe("desktop evolution deployment", () => {
+  it("rejects unbound model clients before a direct egress can be opened", async () => {
+    const {
+      prepareDesktopModelRequest,
+      runDesktopOllamaRequest,
+    } = require("../desktop-model-ingress");
+    const post = vi.fn();
+    const client = { model: "test", client: { post } };
+
+    await expect(
+      prepareDesktopModelRequest(client, {
+        messages: [{ role: "user", content: "hello" }],
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    await expect(
+      runDesktopOllamaRequest(client, "hello", {}, null, false),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it("rejects bound tool execution outside its workflow and unresolved iteration limits", async () => {
     const {
       createDesktopModelIngressHost,

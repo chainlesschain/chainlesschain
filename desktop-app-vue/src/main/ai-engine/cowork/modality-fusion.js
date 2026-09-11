@@ -14,6 +14,14 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
   if (raw == null || raw === "") return fallback;
@@ -321,6 +329,8 @@ class ModalityFusion extends EventEmitter {
   }
 
   async _processImage(input) {
+    assertGovernedOcrIngress();
+
     // OCR via Tesseract.js — attempt to extract text from image
     try {
       const imageData = input.data;

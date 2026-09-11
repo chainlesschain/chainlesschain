@@ -8,6 +8,27 @@ vi.mock("../../utils/logger.js", () => ({
 const DataScienceToolsHandler = require("../extended-tools-datascience.js");
 
 describe("DataScienceToolsHandler process execution", () => {
+  it("rejects ML training before writing or starting a model process", async () => {
+    const spawnProcess = vi.fn();
+    const fsPromises = {
+      writeFile: vi.fn(),
+      unlink: vi.fn(),
+    };
+    const handler = new DataScienceToolsHandler({ fsPromises, spawnProcess });
+
+    await expect(
+      handler.tool_ml_model_trainer({
+        dataPath: "/tmp/private-data.csv",
+        targetColumn: "label",
+        modelType: "random_forest",
+        taskType: "classification",
+        modelOutputPath: "/tmp/model.joblib",
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(fsPromises.writeFile).not.toHaveBeenCalled();
+    expect(spawnProcess).not.toHaveBeenCalled();
+  });
+
   it("routes Python scripts through the desktop process broker boundary", async () => {
     const process = new EventEmitter();
     process.stdout = new EventEmitter();

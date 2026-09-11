@@ -10,6 +10,18 @@ const crypto = require("crypto");
 const dns = require("dns").promises;
 const os = require("os");
 
+// A generic HTTP tool has no way to establish model-input provenance or retain
+// the required EvolutionRun evidence.  In particular, an arbitrary body can be
+// sent to an unrecognised model provider, so it must not become a side door
+// around the governed LLM bridge.
+function assertNoDirectModelEgress() {
+  const error = new Error(
+    "Generic HTTP requests require a governed Evolution ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class ExtendedTools3 {
   /**
    * 注册所有第三批扩展工具
@@ -375,6 +387,8 @@ class ExtendedTools3 {
     functionCaller.registerTool(
       "api_requester",
       async (params) => {
+        assertNoDirectModelEgress();
+
         try {
           const { url, method, headers = {}, body, timeout = 30000 } = params;
 

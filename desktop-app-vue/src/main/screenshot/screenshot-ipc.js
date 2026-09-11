@@ -24,6 +24,14 @@ const os = require("os");
 const path = require("path");
 const { logger } = require("../utils/logger.js");
 
+function assertGovernedScreenshotOcrIngress() {
+  const error = new Error(
+    "Screenshot OCR requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 const DEFAULT_LANG = "eng+chi_sim";
 const TMP_PREFIX = "cc-screenshot-";
 const TMP_NAME_PATTERN = /^cc-screenshot-[A-Za-z0-9_-]+\.png$/;
@@ -353,6 +361,8 @@ async function captureScreenshot(screenIndex = 0) {
 }
 
 async function recognize(imageBuffer, lang = DEFAULT_LANG) {
+  assertGovernedScreenshotOcrIngress();
+
   if (!Buffer.isBuffer(imageBuffer)) {
     throw new Error("Screenshot image buffer is required");
   }
@@ -390,6 +400,8 @@ async function recognize(imageBuffer, lang = DEFAULT_LANG) {
  * @returns {Promise<{text:string, confidence:null, language:'auto', engine:'llm', model:string}>}
  */
 async function recognizeWithLLM(imageBuffer, llmManager) {
+  assertGovernedScreenshotOcrIngress();
+
   // 注：可用性 / provider 校验在 recognizeDispatch 里集中做。这里只做
   // I/O 和 API 调用，方便测试侧用任意 stub 替换 llmImpl。
   if (!Buffer.isBuffer(imageBuffer)) {
@@ -431,6 +443,8 @@ async function recognizeWithLLM(imageBuffer, llmManager) {
  * 复用，所以单独抽出来 + 走 _internal 暴露便于注入测试。
  */
 async function recognizeDispatch(imageBuffer, opts = {}) {
+  assertGovernedScreenshotOcrIngress();
+
   const {
     engine = "auto",
     lang = DEFAULT_LANG,
@@ -573,6 +587,7 @@ module.exports = {
     recognize,
     recognizeWithLLM,
     recognizeDispatch,
+    assertGovernedScreenshotOcrIngress,
     readScreenshotFile,
     removeScreenshotFile,
     writeScreenshotFile,

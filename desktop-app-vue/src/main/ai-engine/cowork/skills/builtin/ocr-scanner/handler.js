@@ -12,6 +12,14 @@ const {
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 // ── Constants ───────────────────────────────────────
 
 const DEFAULT_LANG = "eng+chi_sim";
@@ -80,6 +88,8 @@ function isImageFile(filePath) {
 // ── OCR Engine ──────────────────────────────────────
 
 async function recognizeImage(filePath, lang) {
+  assertGovernedOcrIngress();
+
   const Tesseract = require("tesseract.js");
   const worker = await Tesseract.createWorker();
 
@@ -103,6 +113,8 @@ async function recognizeImage(filePath, lang) {
 }
 
 async function recognizeBatch(dirPath, lang) {
+  assertGovernedOcrIngress();
+
   const files = fs
     .readdirSync(dirPath)
     .filter((f) => isImageFile(f))
@@ -309,6 +321,9 @@ module.exports = {
         message: `## OCR Result: ${path.basename(filePath)}\n\n| Property | Value |\n|----------|-------|\n| File | ${path.basename(filePath)} |\n| Size | ${formatBytes(stat.size)} |\n| Language | ${result.language} |\n| Confidence | ${result.confidence}% |\n| Paragraphs | ${result.blocks} |\n| Characters | ${result.text.length} |\n\n### Extracted Text\n\n\`\`\`\n${result.text.substring(0, 3000)}${result.text.length > 3000 ? "\n... (truncated)" : ""}\n\`\`\``,
       };
     } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       logger.error(`[ocr-scanner] Error: ${error.message}`);
       return {
         success: false,
@@ -317,6 +332,7 @@ module.exports = {
       };
     }
   },
+  _internal: { recognizeImage, recognizeBatch },
 };
 
 module.exports = withBundledSkillFilesystem("ocr-scanner", module.exports);

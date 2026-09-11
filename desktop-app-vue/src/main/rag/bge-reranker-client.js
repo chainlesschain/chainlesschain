@@ -12,6 +12,14 @@ const { logger } = require('../utils/logger.js');
 const axios = require('axios');
 const { EventEmitter } = require('events');
 
+function assertGovernedBgeRerankerIngress() {
+  const error = new Error(
+    'BGE reranking requires a governed model ingress',
+  );
+  error.code = 'CC_AGENT_EVOLUTION_INGRESS_FAILED';
+  throw error;
+}
+
 /**
  * 默认配置
  */
@@ -28,7 +36,7 @@ const DEFAULT_CONFIG = {
  * BGE Reranker 客户端类
  */
 class BGERerankerClient extends EventEmitter {
-  constructor(config = {}) {
+  constructor(config = {}, { createClient = axios.create } = {}) {
     super();
 
     this.config = {
@@ -36,7 +44,7 @@ class BGERerankerClient extends EventEmitter {
       ...config,
     };
 
-    this.client = axios.create({
+    this.client = createClient({
       baseURL: this.config.serverUrl.replace('/rerank', ''),
       timeout: this.config.timeout,
       headers: {
@@ -90,6 +98,8 @@ class BGERerankerClient extends EventEmitter {
    * @returns {Promise<Array>} 重排序后的文档列表
    */
   async rerank(query, documents, options = {}) {
+    assertGovernedBgeRerankerIngress();
+
     const startTime = Date.now();
     const topK = options.topK || documents.length;
 

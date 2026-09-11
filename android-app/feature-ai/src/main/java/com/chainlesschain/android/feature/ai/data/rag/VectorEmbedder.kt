@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.ai.data.rag
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import com.chainlesschain.android.feature.ai.data.llm.rejectLegacyModelEgress
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -220,6 +221,10 @@ class SentenceTransformerEmbedder @Inject constructor(
     }
 
     override suspend fun embed(text: String): FloatArray {
+        // Do not download/load the ONNX model or tokenize private text until
+        // this local-model path is represented by an authenticated ingress.
+        rejectLegacyModelEgress()
+
         if (!ensureInitialized()) {
             // Fallback: deterministic hash-based vector when model unavailable
             return hashBasedFallback(text)

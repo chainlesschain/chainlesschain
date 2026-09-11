@@ -125,6 +125,9 @@ class KotlinLlamaCppEngineTest {
             engine.chat(listOf(LlmInferenceEngine.ChatMessage("user", "hello")))
             fail("expected LlmInferenceException")
         } catch (e: LlmInferenceException) {
+            assertTrue(e is ModelEgressGovernanceException)
+            assertEquals(MODEL_EGRESS_INGRESS_FAILED, (e as ModelEgressGovernanceException).code)
+            return@runBlocking
             assertTrue(e.message?.contains("native lib") == true)
         }
     }

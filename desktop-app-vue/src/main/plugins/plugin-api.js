@@ -34,6 +34,14 @@ function assertNoDirectPluginModelEgress(url) {
   throw error;
 }
 
+function rejectUngovernedPluginNetworkEgress() {
+  const error = new Error(
+    "Plugin network requests require a governed bridge; use the plugin llm API for model work",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * PluginAPI - 插件API接口层
  *
@@ -401,6 +409,11 @@ class PluginAPI {
           // Plugins can use their governed llm API for model work. Do not let
           // the generic network permission become an alternate provider path.
           assertNoDirectPluginModelEgress(url);
+
+          // Unknown endpoints cannot be classified from a generic request body
+          // or given an EvolutionRun evidence projection. Fail closed until a
+          // dedicated authenticated plugin network bridge exists.
+          rejectUngovernedPluginNetworkEgress();
 
           // 设置超时
           const timeout = Math.min(options.timeout || 30000, 60000);

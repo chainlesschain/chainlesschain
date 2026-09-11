@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 const { AnalysisSkill } = require("../lib/analysis-skills/base");
+const { MODEL_EGRESS_INGRESS_FAILED } = require("../lib/model-egress-guard");
 
 describe("analysis skill model failures", () => {
-  it.each([true, false])("preserves Desktop governance rejection (governed=%s)", async (governed) => {
-    const error = new Error("model request failed");
-    if (governed) error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    const skill = new AnalysisSkill({ vault: {}, llm: { isLocal: true, chat: async () => { throw error; } } });
-    const result = skill.callLlmCommentary([{ role: "user", content: "Summarize" }]);
-    if (governed) await expect(result).rejects.toBe(error);
-    else await expect(result).resolves.toBeNull();
+  it("rejects before an injected model receives commentary input", async () => {
+    let calls = 0;
+    const skill = new AnalysisSkill({
+      vault: {},
+      llm: {
+        isLocal: true,
+        chat: async () => {
+          calls += 1;
+          return { text: "commentary" };
+        },
+      },
+    });
+
+    await expect(skill.callLlmCommentary([{ role: "user", content: "Summarize private data" }]))
+      .rejects.toMatchObject({ code: MODEL_EGRESS_INGRESS_FAILED });
+    expect(calls).toBe(0);
   });
 });

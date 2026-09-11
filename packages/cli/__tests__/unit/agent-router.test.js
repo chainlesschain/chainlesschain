@@ -130,22 +130,6 @@ describe("AgentRouter.summary()", () => {
 // ─── Round-robin strategy ─────────────────────────────────────────
 
 describe("AgentRouter round-robin strategy", () => {
-  it("distributes tasks across backends", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
-    const router = makeRouter([b1, b2], "round-robin");
-
-    const tasks = [
-      { id: "t1", description: "task 1" },
-      { id: "t2", description: "task 2" },
-      { id: "t3", description: "task 3" },
-    ];
-
-    const results = await router.dispatch(tasks, { cwd: "/tmp" });
-    expect(results).toHaveLength(3);
-    expect(results.every((r) => r.success)).toBe(true);
-  });
-
   it("uses weighted round-robin based on backend weight", async () => {
     const heavy = makeCliBackend(BACKEND_TYPE.CLAUDE);
     heavy.weight = 3;
@@ -166,178 +150,52 @@ describe("AgentRouter round-robin strategy", () => {
     );
   });
 
-  it("serializes shared writes but permits statically disjoint scopes", async () => {
-    let active = 0;
-    let maxObserved = 0;
-    const backend = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    backend._pool.dispatch = vi.fn(async (tasks) => {
-      active += 1;
-      maxObserved = Math.max(maxObserved, active);
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      active -= 1;
-      return tasks.map((task) => ({ taskId: task.id, success: true }));
-    });
-    const router = makeRouter([backend], "round-robin");
-    const baseTasks = ["a", "b", "c"].map((id) => ({
-      id,
-      description: id,
-    }));
-
-    await router.dispatch(baseTasks, { cwd: "/tmp" });
-    expect(maxObserved).toBe(1);
-
-    maxObserved = 0;
-    await router.dispatch(
-      baseTasks.map((task) => ({ ...task, scopePaths: [`src/${task.id}`] })),
-      { cwd: "/tmp" },
-    );
-    expect(maxObserved).toBeGreaterThan(1);
-  });
 });
 
 // ─── Primary strategy ─────────────────────────────────────────────
 
-describe("AgentRouter primary strategy", () => {
-  it.each([
-    { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
-    { runtimeLedgerPersistence: true },
-    { workflowEffectOutcomeUnknown: true },
-    { code: "CC_SESSION_BUDGET_EXCEEDED" },
-    { name: "AbortError" },
-  ])(
-    "does not dispatch a fallback after terminal admission failure %j",
-    async (fields) => {
-      const failure = new Error("provider wrapper", {
-        cause: Object.assign(new Error("denied"), fields),
-      });
-      const fallback = makeCliBackend();
-      const router = makeRouter(
-        [makeApiBackend("ollama"), fallback],
-        "primary",
-      );
-      vi.useFakeTimers();
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(failure));
+describe("AgentRouter default-deny dispatch", () => {
+  it.each(["round-robin", "primary", "by-type", "parallel-all"])(
+    "rejects ungoverned %s dispatch before starting a backend",
+    async (strategy) => {
+      const cli = makeCliBackend(BACKEND_TYPE.CLAUDE);
+      const router = makeRouter([cli, makeApiBackend()], strategy);
+      const fetch = vi.fn();
+      vi.stubGlobal("fetch", fetch);
       try {
         await expect(
-          router.dispatch([{ id: "t1", description: "task" }]),
-        ).rejects.toBe(failure);
-        expect(fallback._pool.dispatch).not.toHaveBeenCalled();
-        expect(vi.getTimerCount()).toBe(0);
+          router.dispatch([{ id: "t1", description: "task" }], {
+            cwd: "/tmp",
+          }),
+        ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+        expect(cli._pool.dispatch).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
       } finally {
         vi.unstubAllGlobals();
-        vi.useRealTimers();
       }
     },
   );
 
-  it("dispatches all tasks to first backend", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
-    const router = makeRouter([b1, b2], "primary");
+  it("refuses a direct internal CLI execution attempt without starting its pool", async () => {
+    const cli = makeCliBackend(BACKEND_TYPE.CLAUDE);
+    const router = makeRouter([cli]);
 
-    await router.dispatch([{ id: "t1", description: "task" }], { cwd: "/tmp" });
-
-    expect(b1._pool.dispatch).toHaveBeenCalledTimes(1);
-    expect(b2._pool.dispatch).not.toHaveBeenCalled();
-  });
-
-  it("falls back to second backend on failure", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    b1._pool.dispatch = vi.fn(async (tasks) =>
-      tasks.map((t) => ({
-        taskId: t.id,
-        success: false,
-        output: "",
-        exitCode: 1,
-        duration: 100,
-      })),
-    );
-    const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
-    const router = makeRouter([b1, b2], "primary");
-
-    const results = await router.dispatch([{ id: "t1", description: "task" }], {
-      cwd: "/tmp",
+    await expect(
+      router._runSingleTask(
+        { id: "t1", description: "task" },
+        cli,
+        { cwd: "/tmp", evolutionIngress: null },
+      ),
+    ).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
     });
-    expect(b2._pool.dispatch).toHaveBeenCalledTimes(1);
-    expect(results[0].success).toBe(true);
+    expect(cli._pool.dispatch).not.toHaveBeenCalled();
   });
 });
 
 // ─── by-type strategy ─────────────────────────────────────────────
 
-describe("AgentRouter by-type strategy", () => {
-  it("routes code-generation tasks to claude backend", async () => {
-    const claudeBackend = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    const geminiBackend = makeApiBackend(BACKEND_TYPE.GEMINI);
-    geminiBackend._pool = mockPool();
-    const router = makeRouter([claudeBackend, geminiBackend], "by-type");
-    // Patch _findBackend to return claude for code-generation
-    const origFind = router._findBackend.bind(router);
-    router._findBackend = (type) => {
-      if (type === BACKEND_TYPE.CLAUDE) return claudeBackend;
-      return origFind(type);
-    };
-
-    await router.dispatch(
-      [
-        {
-          id: "t1",
-          description: "implement new feature",
-          type: "code-generation",
-        },
-      ],
-      { cwd: "/tmp" },
-    );
-    expect(claudeBackend._pool.dispatch).toHaveBeenCalledTimes(1);
-  });
-});
-
 // ─── parallel-all strategy ────────────────────────────────────────
-
-describe("AgentRouter parallel-all strategy", () => {
-  it("rejects multi-backend candidate writes without worktree isolation", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    const b2 = makeCliBackend(BACKEND_TYPE.CODEX);
-    b2._pool.dispatch = vi.fn(async (tasks) =>
-      tasks.map((t) => ({
-        taskId: t.id,
-        success: false,
-        output: "failed",
-        exitCode: 1,
-        duration: 50,
-      })),
-    );
-    const router = makeRouter([b1, b2], "parallel-all");
-
-    await expect(
-      router.dispatch([{ id: "t1", description: "task" }], {
-        cwd: "/tmp",
-      }),
-    ).rejects.toMatchObject({
-      code: "AGENT_ROUTER_WRITE_ISOLATION_REQUIRED",
-    });
-    expect(b1._pool.dispatch).not.toHaveBeenCalled();
-    expect(b2._pool.dispatch).not.toHaveBeenCalled();
-  });
-
-  it("returns first result even if all fail", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    b1._pool.dispatch = vi.fn(async (tasks) =>
-      tasks.map((t) => ({
-        taskId: t.id,
-        success: false,
-        exitCode: 1,
-        output: "",
-        duration: 50,
-      })),
-    );
-    const router = makeRouter([b1], "parallel-all");
-    const results = await router.dispatch([{ id: "t1", description: "task" }], {
-      cwd: "/tmp",
-    });
-    expect(results[0].success).toBe(false);
-  });
-});
 
 // ─── Error cases ──────────────────────────────────────────────────
 
@@ -349,19 +207,6 @@ describe("AgentRouter edge cases", () => {
     ).rejects.toThrow("No agent backends available");
   });
 
-  it("emits agent:start and agent:complete events", async () => {
-    const b1 = makeCliBackend(BACKEND_TYPE.CLAUDE);
-    const router = makeRouter([b1], "round-robin");
-    const startFn = vi.fn();
-    const completeFn = vi.fn();
-    router.on("agent:start", startFn);
-    router.on("agent:complete", completeFn);
-
-    await router.dispatch([{ id: "t1", description: "task" }], { cwd: "/tmp" });
-    expect(startFn).toHaveBeenCalledTimes(1);
-    expect(completeFn).toHaveBeenCalledTimes(1);
-    expect(completeFn.mock.calls[0][0].backendType).toBe(BACKEND_TYPE.CLAUDE);
-  });
 });
 
 // ===== V2 Tests: Agent Router governance overlay =====

@@ -10,6 +10,8 @@
 /**
  * Reranker类
  */
+import { rejectLegacyModelEgress } from '../llm/model-egress-guard.js'
+
 class Reranker {
   constructor(config = {}) {
     this.config = {
@@ -84,6 +86,9 @@ class Reranker {
       return result
     } catch (error) {
       console.error('[Reranker] 重排序失败:', error)
+      if (error?.code === 'CC_AGENT_EVOLUTION_INGRESS_FAILED') {
+        throw error
+      }
       return documents.slice(0, this.config.topK)
     }
   }
@@ -155,6 +160,8 @@ class Reranker {
    * 基于LLM的重排序（云端API）
    */
   async rerankByLLM(query, documents) {
+    rejectLegacyModelEgress()
+
     if (!this.config.llmEndpoint) {
       console.warn('[Reranker] LLM端点未配置，降级到keyword')
       return this.rerankByKeyword(query, documents)

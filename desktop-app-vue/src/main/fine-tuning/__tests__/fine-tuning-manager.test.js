@@ -301,7 +301,7 @@ describe('FineTuningManager', () => {
         .rejects.toThrow('baseModel, adapterName, and dataPath are required');
     });
 
-    it('creates a job record in the database', async () => {
+    it.skip('creates a job record in the database', async () => {
       // Mock getStatus to return the created job
       const getStmt = makePrepStmt({
         get: vi.fn(() => ({
@@ -341,7 +341,7 @@ describe('FineTuningManager', () => {
       expect(insertStmt.run).toHaveBeenCalled();
     });
 
-    it('starts llama-cpp backend with child process', async () => {
+    it.skip('starts llama-cpp backend with child process', async () => {
       const getStmt = makePrepStmt({
         get: vi.fn(() => ({
           id: 'test-job-uuid',
@@ -385,7 +385,7 @@ describe('FineTuningManager', () => {
       );
     });
 
-    it('applies default config values', async () => {
+    it.skip('applies default config values', async () => {
       const insertStmt = makePrepStmt();
       const getStmt = makePrepStmt({
         get: vi.fn(() => ({
@@ -431,6 +431,19 @@ describe('FineTuningManager', () => {
       expect(parsed.learningRate).toBe(0.0002);
       expect(parsed.loraRank).toBe(16);
       expect(parsed.loraAlpha).toBe(32);
+    });
+
+    it('rejects before persisting a job or starting a model backend', async () => {
+      await expect(
+        manager.startTraining({
+          baseModel: 'llama2',
+          adapterName: 'private-adapter',
+          dataPath: '/tmp/private-training-data.jsonl',
+          backend: 'llama-cpp',
+        }),
+      ).rejects.toMatchObject({ code: 'CC_AGENT_EVOLUTION_INGRESS_FAILED' });
+      expect(mockDb.prepare).not.toHaveBeenCalled();
+      expect(childProcess.spawn).not.toHaveBeenCalled();
     });
   });
 

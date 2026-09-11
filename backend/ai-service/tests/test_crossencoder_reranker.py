@@ -25,6 +25,7 @@ if "sentence_transformers" not in sys.modules:
 
 import src.rag.crossencoder_reranker as mod  # noqa: E402
 from src.rag.crossencoder_reranker import CrossEncoderReranker  # noqa: E402
+from src.llm.llm_client import MODEL_EGRESS_ERROR_CODE, ModelEgressGovernanceError  # noqa: E402
 
 
 class _FakeModel:
@@ -52,6 +53,7 @@ def _ready_reranker(fake):
 # --------------------------------------------------------------------------- #
 # is_ready / get_model_info
 # --------------------------------------------------------------------------- #
+@pytest.mark.skip(reason="legacy reranker execution is default-denied pending a governed ingress")
 class TestReadyAndInfo:
     def test_not_ready_before_init(self):
         r = CrossEncoderReranker()
@@ -79,6 +81,7 @@ class TestReadyAndInfo:
 # --------------------------------------------------------------------------- #
 # rerank — 排序 / 截断 / 默认值
 # --------------------------------------------------------------------------- #
+@pytest.mark.skip(reason="legacy reranker execution is default-denied pending a governed ingress")
 class TestRerank:
     def test_empty_documents_returns_empty(self):
         r = _ready_reranker(_FakeModel())
@@ -141,6 +144,7 @@ class TestRerank:
 # --------------------------------------------------------------------------- #
 # rerank — 失败回退到原始顺序
 # --------------------------------------------------------------------------- #
+@pytest.mark.skip(reason="legacy reranker execution is default-denied pending a governed ingress")
 class TestRerankFailureFallback:
     def test_predict_error_returns_original_order_with_default_score(self):
         r = _ready_reranker(_FakeModel(raise_exc=RuntimeError("predict boom")))
@@ -161,6 +165,7 @@ class TestRerankFailureFallback:
 # --------------------------------------------------------------------------- #
 # rerank_async / get_reranker 单例
 # --------------------------------------------------------------------------- #
+@pytest.mark.skip(reason="legacy reranker execution is default-denied pending a governed ingress")
 class TestAsyncAndSingleton:
     @pytest.mark.asyncio
     async def test_rerank_async_delegates_to_rerank(self):
@@ -178,3 +183,32 @@ class TestAsyncAndSingleton:
         monkeypatch.setattr(mod, "_reranker_instance", None)
         inst = mod.get_reranker("BAAI/bge-reranker-base")
         assert inst.model_name == "BAAI/bge-reranker-base"
+
+
+class TestModelEgressGovernance:
+    def test_initialize_and_rerank_reject_before_constructing_or_using_a_model(self):
+        reranker = CrossEncoderReranker()
+
+        with pytest.raises(ModelEgressGovernanceError) as initialized:
+            reranker.initialize()
+        self._assert_terminal_error(initialized.value)
+        assert reranker.model is None
+        assert reranker._initialized is False
+
+        with pytest.raises(ModelEgressGovernanceError) as reranked:
+            reranker.rerank("canary", [{"id": "doc", "text": "canary"}])
+        self._assert_terminal_error(reranked.value)
+        assert reranker.model is None
+
+    @pytest.mark.asyncio
+    async def test_async_rerank_rejects_before_dispatching_work(self):
+        reranker = CrossEncoderReranker()
+
+        with pytest.raises(ModelEgressGovernanceError) as raised:
+            await reranker.rerank_async("canary", [{"id": "doc", "text": "canary"}])
+        self._assert_terminal_error(raised.value)
+        assert reranker.model is None
+
+    @staticmethod
+    def _assert_terminal_error(error):
+        assert error.code == MODEL_EGRESS_ERROR_CODE

@@ -25,6 +25,14 @@ const { AdapterRegistry } = require("./adapter-registry.js");
 // Ollama default base URL
 const OLLAMA_DEFAULT_URL = "http://localhost:11434";
 
+function assertGovernedFineTuningIngress() {
+  const error = new Error(
+    "Fine-tuning requires a governed model ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class FineTuningManager extends EventEmitter {
   /**
    * @param {Object} options
@@ -217,6 +225,11 @@ class FineTuningManager extends EventEmitter {
     if (!baseModel || !adapterName || !dataPath) {
       throw new Error("baseModel, adapterName, and dataPath are required");
     }
+
+    // A training backend consumes the caller's dataset even though it does
+    // not produce a chat completion. Do not persist or dispatch it without
+    // an authenticated Evolution ingress.
+    assertGovernedFineTuningIngress();
 
     const jobId = uuidv4();
     const now = Date.now();

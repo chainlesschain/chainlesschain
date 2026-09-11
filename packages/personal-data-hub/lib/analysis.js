@@ -21,6 +21,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("./model-egress-guard");
+
 const {
   parseQuery,
   extractEntityTerm,
@@ -285,6 +287,8 @@ class AnalysisEngine {
     // freshness-over-latency tradeoff makes the cache strictly counter-
     // productive at this layer. The cache for OTHER LLM uses (chat /
     // skill orchestration / autonomous-agent) is unaffected.
+    rejectLegacyModelEgress();
+
     let llmResp;
     try {
       llmResp = await this.llm.chat(messages, {
@@ -293,6 +297,7 @@ class AnalysisEngine {
         skipCache: true,
       });
     } catch (err) {
+      if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
       const e = toError(err, "llm.chat");
       try {
         this.vault.audit("analysis.llm_failed", question, { error: e.message });

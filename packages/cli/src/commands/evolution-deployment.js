@@ -3,6 +3,7 @@ import { logger } from "../lib/logger.js";
 import {
   configureEvolutionDeployment,
   getEvolutionDeploymentStatus,
+  revokeEvolutionDeploymentDescriptorRevisions,
   setEvolutionDeploymentEnabled,
 } from "../lib/evolution/evolution-deployment-config.js";
 
@@ -21,6 +22,10 @@ function printStatus(status) {
     logger.log(`  Descriptor:      ${status.descriptorPath}`);
   if (status.trustRootPath)
     logger.log(`  Trust root:      ${status.trustRootPath}`);
+  if (status.activeTrustRootDigest)
+    logger.log(`  Active root:     ${status.activeTrustRootDigest}`);
+  if (status.revisionFloor)
+    logger.log(`  Revision floor:  ${status.revisionFloor}`);
   if (status.commands?.length)
     logger.log(`  Commands:        ${status.commands.join(", ")}`);
   if (status.error) logger.log(chalk.red(`  Error:           ${status.error}`));
@@ -60,6 +65,14 @@ export function registerEvolutionDeploymentCommands(parent) {
     .description("Verify, save, and enable a signed deployment")
     .requiredOption("--descriptor <path>", "Absolute signed descriptor path")
     .requiredOption("--trust-root <path>", "Absolute Ed25519 public key path")
+    .option(
+      "--root-rotation <path>",
+      "Certificate signed by the current root when changing trust roots",
+    )
+    .option(
+      "--descriptor-revocations <path>",
+      "Signed descriptor-revocation record for this trust root",
+    )
     .option("--disabled", "Save without enabling")
     .option("--json", "Output as JSON")
     .action(async (options) => {
@@ -68,6 +81,8 @@ export function registerEvolutionDeploymentCommands(parent) {
           await configureEvolutionDeployment({
             descriptorPath: options.descriptor,
             trustRootPath: options.trustRoot,
+            rootRotationPath: options.rootRotation || null,
+            revocationPath: options.descriptorRevocations || null,
             enabled: options.disabled !== true,
           }),
           options.json,
@@ -92,4 +107,25 @@ export function registerEvolutionDeploymentCommands(parent) {
         }
       });
   }
+
+  deployment
+    .command("revoke")
+    .description("Record signed descriptor revocations and disable the profile")
+    .requiredOption(
+      "--descriptor-revocations <path>",
+      "Signed descriptor-revocation record for the active trust root",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        output(
+          await revokeEvolutionDeploymentDescriptorRevisions({
+            revocationPath: options.descriptorRevocations,
+          }),
+          options.json,
+        );
+      } catch (error) {
+        fail(error, options.json);
+      }
+    });
 }

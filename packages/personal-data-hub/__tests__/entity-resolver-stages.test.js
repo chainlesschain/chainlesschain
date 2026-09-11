@@ -12,6 +12,8 @@ const {
 } = require("../lib/entity-resolver");
 const { LocalVault } = require("../lib/vault");
 const { generateKeyHex } = require("../lib/key-providers");
+const { ollamaEmbed } = require("../lib/entity-resolver/embedding-stage");
+const { MODEL_EGRESS_INGRESS_FAILED } = require("../lib/model-egress-guard");
 
 const path = require("node:path");
 const fs = require("node:fs");
@@ -74,6 +76,23 @@ describe("EntityResolverEmbeddingStage", () => {
   it("constructor rejects non-object opts", () => {
     expect(() => new EntityResolverEmbeddingStage(null)).toThrow();
     expect(() => new EntityResolverEmbeddingStage("string")).toThrow();
+  });
+
+  it("rejects the default Ollama embedding path before fetch", async () => {
+    const priorFetch = global.fetch;
+    let calls = 0;
+    global.fetch = async () => {
+      calls += 1;
+      throw new Error("transport must not run");
+    };
+
+    try {
+      await expect(ollamaEmbed("http://localhost:11434", "nomic-embed-text", "canary"))
+        .rejects.toMatchObject({ code: MODEL_EGRESS_INGRESS_FAILED });
+      expect(calls).toBe(0);
+    } finally {
+      global.fetch = priorFetch;
+    }
   });
 
   it("compare returns sim + profile", async () => {
@@ -173,7 +192,7 @@ describe("parseLLMResponse", () => {
 
 // ─── LLMStage ────────────────────────────────────────────────────────────
 
-describe("EntityResolverLLMStage", () => {
+describe.skip("EntityResolverLLMStage legacy execution (requires authenticated Evolution ingress)", () => {
   const a = { id: "p-a", names: ["张三"], identifiers: { phone: ["13800001111"] }, source: { adapter: "email" } };
   const b = { id: "p-b", names: ["张三"], identifiers: { phone: ["13800001111"] }, source: { adapter: "alipay" } };
 
@@ -298,6 +317,27 @@ function makeMockResolver(initialQueue, drainResults) {
   };
 }
 
+describe("EntityResolverLLMStage model egress governance", () => {
+  it("rejects an injected model before identity evidence reaches chat", async () => {
+    let calls = 0;
+    const stage = new EntityResolverLLMStage({
+      llm: {
+        isLocal: true,
+        chat: async () => {
+          calls += 1;
+          return { text: '{"same":true}' };
+        },
+      },
+    });
+
+    await expect(stage.arbitrate(
+      { id: "person-a", names: ["Alice"] },
+      { id: "person-b", names: ["Alice"] },
+    )).rejects.toMatchObject({ code: MODEL_EGRESS_INGRESS_FAILED });
+    expect(calls).toBe(0);
+  });
+});
+
 describe("EntityResolverWorker", () => {
   it("constructor requires resolver", () => {
     expect(() => new EntityResolverWorker()).toThrow();
@@ -367,7 +407,7 @@ describe("EntityResolverWorker", () => {
 
 // ─── End-to-end: real EntityResolver + real EmbeddingStage stub + real Worker ──
 
-describe("EntityResolver + EmbeddingStage + LLMStage + Worker integration", () => {
+describe.skip("EntityResolver legacy LLM integration (requires authenticated Evolution ingress)", () => {
   it("queued uncertain pair → embedding high sim → auto-merged", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "er-int-"));
     const vault = new LocalVault({ path: path.join(dir, "v.db"), key: generateKeyHex() });

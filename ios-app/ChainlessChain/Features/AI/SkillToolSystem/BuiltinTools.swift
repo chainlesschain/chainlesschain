@@ -398,6 +398,8 @@ public enum BuiltinTools {
     )
 
     private static let httpRequestExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: generic HTTP tool requires a governed bridge")
+
         guard let urlString = input.getString("url"),
               let url = URL(string: urlString) else {
             return .failure(error: "无效的URL")

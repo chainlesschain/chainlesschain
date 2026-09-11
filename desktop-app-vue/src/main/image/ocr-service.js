@@ -8,6 +8,14 @@ const { logger } = require("../utils/logger.js");
 const defaultTesseract = require("tesseract.js");
 const { EventEmitter } = require("events");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 /**
  * OCR 配置
  */
@@ -100,6 +108,8 @@ class OCRService extends EventEmitter {
    * @returns {Promise<Object>} 识别结果
    */
   async recognize(image, options = {}) {
+    assertGovernedOcrIngress();
+
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -177,6 +187,8 @@ class OCRService extends EventEmitter {
    * @returns {Promise<Array>} 识别结果列表
    */
   async recognizeBatch(images, options = {}) {
+    assertGovernedOcrIngress();
+
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -221,6 +233,8 @@ class OCRService extends EventEmitter {
    * @returns {Promise<Array>} 文字区域列表
    */
   async detectTextRegions(image) {
+    assertGovernedOcrIngress();
+
     if (!this.isInitialized) {
       await this.initialize();
     }

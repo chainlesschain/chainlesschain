@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 
 const { CcLLMAdapter, LOCAL_PROVIDERS } = require("../lib/bridges/cc-llm-adapter");
 const { AnalysisEngine } = require("../lib/analysis");
+const { MODEL_EGRESS_INGRESS_FAILED } = require("../lib/model-egress-guard");
 
 describe("CcLLMAdapter construction", () => {
   it("requires chat function", () => {
@@ -92,7 +93,7 @@ describe("CcLLMAdapter.name", () => {
   });
 });
 
-describe("CcLLMAdapter.chat response normalization", () => {
+describe.skip("CcLLMAdapter legacy chat execution (requires authenticated Evolution ingress)", () => {
   it("extracts text from .content (cc llm-manager shape)", async () => {
     const a = new CcLLMAdapter({
       chat: async () => ({ content: "hi from cc", model: "qwen", usage: { promptTokens: 5, completionTokens: 3 } }),
@@ -157,6 +158,22 @@ describe("CcLLMAdapter.chat response normalization", () => {
   it("validates messages is an array", async () => {
     const a = new CcLLMAdapter({ chat: async () => ({}) });
     await expect(a.chat("not an array")).rejects.toThrow(/array/);
+  });
+});
+
+describe("CcLLMAdapter model egress governance", () => {
+  it("rejects an injected desktop delegate before it receives a prompt", async () => {
+    let calls = 0;
+    const adapter = new CcLLMAdapter({
+      chat: async () => {
+        calls += 1;
+        return { content: "should not be reached" };
+      },
+    });
+
+    await expect(adapter.chat([{ role: "user", content: "private prompt" }]))
+      .rejects.toMatchObject({ code: MODEL_EGRESS_INGRESS_FAILED });
+    expect(calls).toBe(0);
   });
 });
 

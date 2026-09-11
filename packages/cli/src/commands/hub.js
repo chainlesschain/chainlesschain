@@ -3448,13 +3448,19 @@ function _defaultKnownVendors() {
 
 export function registerHubCommand(program, dependencies = {}) {
   const factory = readEvolutionCompositionFactory(dependencies);
-  const invocationOptions = (options) =>
-    factory === null
-      ? options
-      : {
-          ...options,
-          _getHub: () => getGovernedAnalysisHub(factory),
-        };
+  const invocationOptions = (options) => {
+    if (factory === null) {
+      const error = new Error(
+        "Hub model egress requires an authenticated evolution composition factory",
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+    return {
+      ...options,
+      _getHub: () => getGovernedAnalysisHub(factory),
+    };
+  };
   const hub = program
     .command("hub")
     .description(

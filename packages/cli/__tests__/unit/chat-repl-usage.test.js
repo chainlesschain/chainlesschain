@@ -6,10 +6,34 @@ import { Writable } from "node:stream";
 
 let tmpHome;
 const originalFetch = globalThis.fetch;
+let evolutionIngress;
 
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cli-chat-repl-"));
+  evolutionIngress = {
+    runId: "chat-repl-test",
+    tenantId: "test-tenant",
+    ingestUserPrompt: vi.fn(async () => {}),
+    prepareModelRequest: vi.fn(async ({ messages }) => ({ messages })),
+    ingestAgentEvent: vi.fn(async () => {}),
+    complete: vi.fn(async () => {}),
+  };
   vi.resetModules();
+  vi.doMock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+    captureAgentEvolutionIngress: (value) => value,
+  }));
+  vi.doMock(
+    "../../src/lib/evolution/agent-evolution-session-lifecycle.js",
+    () => ({
+      createAgentEvolutionSessionLifecycle: () => ({
+        handle: Object.freeze({ schema: "agent-evolution-session/v1" }),
+        close: async (error) => {
+          if (error) throw error;
+          await evolutionIngress.complete();
+        },
+      }),
+    }),
+  );
   vi.doMock("../../src/lib/paths.js", async (importOriginal) => ({
     ...(await importOriginal()),
     getHomeDir: () => tmpHome,
@@ -30,6 +54,8 @@ afterEach(() => {
   fs.rmSync(tmpHome, { recursive: true, force: true });
   globalThis.fetch = originalFetch;
   vi.doUnmock("../../src/lib/paths.js");
+  vi.doUnmock("../../src/lib/evolution/agent-evolution-ingress.js");
+  vi.doUnmock("../../src/lib/evolution/agent-evolution-session-lifecycle.js");
 });
 
 function stream(chunks) {
@@ -70,6 +96,7 @@ describe("chat-repl — session autorecord", () => {
     await expect(
       startChatRepl({
         sessionId,
+        evolutionIngress,
         stdout: outputSink(),
         stderr: outputSink(),
       }),
@@ -128,6 +155,7 @@ describe("chat-repl — session autorecord", () => {
       provider: "ollama",
       model: "qwen2:7b",
       baseUrl: "http://localhost:11434",
+      evolutionIngress,
       stdout,
       stderr,
     });

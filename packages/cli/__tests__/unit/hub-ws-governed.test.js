@@ -112,7 +112,7 @@ describe("Hub WebSocket governed analysis", () => {
     },
   );
 
-  it("keeps unconfigured operation and ignores client-supplied authority", async () => {
+  it("rejects unconfigured model operation and ignores client-supplied authority", async () => {
     ports.getHub.mockResolvedValue({
       engine: { ask: vi.fn(async () => ({ answer: "normal" })) },
     });
@@ -120,7 +120,15 @@ describe("Hub WebSocket governed analysis", () => {
       evolutionCompositionFactory: "untrusted",
     });
     expect(ports.getGovernedAnalysisHub).not.toHaveBeenCalled();
-    expect(ports.getHub).toHaveBeenCalledOnce();
-    expect(messages[0].result).toEqual({ answer: "normal" });
+    expect(ports.getHub).not.toHaveBeenCalled();
+    expect(messages).toEqual([
+      {
+        id: "ask-1",
+        type: "error",
+        code: "PERSONAL_DATA_HUB_ERROR",
+        message:
+          "Personal Data Hub model egress requires an authenticated evolution composition factory",
+      },
+    ]);
   });
 });

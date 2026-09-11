@@ -1,3 +1,5 @@
+import { rejectLegacyModelEgress } from './llm/model-egress-guard.js'
+
 /**
  * ChainlessChain Mobile - LLM 云端 API 服务
  * 支持国内外主流大模型提供商
@@ -162,6 +164,7 @@ class LLMService {
    * @returns {Promise<Object>} 响应结果
    */
   async query(message, history = [], options = {}) {
+    rejectLegacyModelEgress()
     const providerConfig = this.config[this.provider];
 
     // 构建消息数组
@@ -200,6 +203,7 @@ class LLMService {
    * 查询 OpenAI 兼容 API
    */
   async queryOpenAICompatible(messages, config, options) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       uni.request({
         url: `${config.baseURL}/chat/completions`,
@@ -248,6 +252,7 @@ class LLMService {
    * 查询 Ollama API
    */
   async queryOllama(messages, config, options) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       uni.request({
         url: `${config.baseURL}/api/chat`,
@@ -292,6 +297,7 @@ class LLMService {
    * @returns {Promise<Object>} 完整响应结果
    */
   async queryStream(message, history = [], onChunk, options = {}) {
+    rejectLegacyModelEgress()
     const providerConfig = this.config[this.provider];
 
     // 构建消息数组
@@ -336,6 +342,7 @@ class LLMService {
    * @private
    */
   async _streamOpenAICompatible(messages, config, onChunk, options) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       let fullContent = "";
       let totalTokens = 0;
@@ -461,6 +468,7 @@ class LLMService {
    * @private
    */
   async _streamOllama(messages, config, onChunk, options) {
+    rejectLegacyModelEgress()
     return new Promise((resolve, reject) => {
       let fullContent = "";
       let totalTokens = 0;
@@ -568,6 +576,7 @@ class LLMService {
    * @private
    */
   async _streamWithFetch(url, data, headers, onChunk, format = "openai") {
+    rejectLegacyModelEgress()
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -649,6 +658,7 @@ class LLMService {
    * @private
    */
   _streamWithPlus(url, data, headers, onChunk, format = "openai") {
+    rejectLegacyModelEgress()
     // #ifdef APP-PLUS
     const xhr = new plus.net.XMLHttpRequest();
     let lastIndex = 0;
@@ -720,6 +730,7 @@ class LLMService {
    * @private
    */
   _streamWithWx(url, data, headers, onChunk, format = "openai") {
+    rejectLegacyModelEgress()
     // #ifdef MP-WEIXIN
     const requestTask = wx.request({
       url: url,

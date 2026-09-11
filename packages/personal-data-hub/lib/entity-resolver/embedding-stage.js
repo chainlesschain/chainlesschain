@@ -21,6 +21,8 @@
 
 "use strict";
 
+const { rejectLegacyModelEgress } = require("../model-egress-guard");
+
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "nomic-embed-text";
 
@@ -169,6 +171,8 @@ function cosineSimilarity(a, b) {
  * (EntityResolver.drain → errorResolve) handles retry-vs-fatal.
  */
 async function ollamaEmbed(baseUrl, model, text) {
+  rejectLegacyModelEgress();
+
   const url = `${baseUrl.replace(/\/$/, "")}/api/embeddings`;
   let resp;
   try {

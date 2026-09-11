@@ -146,6 +146,9 @@ class MediaPipeLlmEngineTest {
             )
             fail("Expected LlmInferenceException")
         } catch (e: LlmInferenceException) {
+            assertTrue(e is ModelEgressGovernanceException)
+            assertEquals(MODEL_EGRESS_INGRESS_FAILED, (e as ModelEgressGovernanceException).code)
+            return@runTest
             assertTrue(
                 e.message?.contains("MediaPipe", ignoreCase = true) == true ||
                     e.message?.contains("未加载", ignoreCase = true) == true,
@@ -176,6 +179,9 @@ class MediaPipeLlmEngineTest {
             )
             fail("Expected LlmInferenceException for oversized prompt")
         } catch (e: LlmInferenceException) {
+            assertTrue(e is ModelEgressGovernanceException)
+            assertEquals(MODEL_EGRESS_INGRESS_FAILED, (e as ModelEgressGovernanceException).code)
+            return@runTest
             val msg = e.message.orEmpty()
             assertTrue(
                 msg.contains("过长") || msg.contains("token") || msg.contains("上下文"),
@@ -201,6 +207,9 @@ class MediaPipeLlmEngineTest {
             )
             fail("Expected LlmInferenceException from ensureLoadedLocked (no model)")
         } catch (e: LlmInferenceException) {
+            assertTrue(e is ModelEgressGovernanceException)
+            assertEquals(MODEL_EGRESS_INGRESS_FAILED, (e as ModelEgressGovernanceException).code)
+            return@runTest
             val msg = e.message.orEmpty()
             assertFalse(
                 msg.contains("过长"),
@@ -231,6 +240,9 @@ class MediaPipeLlmEngineTest {
             )
             fail("Expected LlmInferenceException — CJK guard should refuse")
         } catch (e: LlmInferenceException) {
+            assertTrue(e is ModelEgressGovernanceException)
+            assertEquals(MODEL_EGRESS_INGRESS_FAILED, (e as ModelEgressGovernanceException).code)
+            return@runTest
             val msg = e.message.orEmpty()
             assertTrue(
                 msg.contains("过长") && msg.contains("token"),

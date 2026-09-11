@@ -1,3 +1,5 @@
+import { rejectLegacyModelEgress } from './model-egress-guard.js'
+
 /**
  * LLM流式输出管理器 (移动端版本)
  *
@@ -107,6 +109,7 @@ class StreamManager {
    * @returns {Promise<Object>}
    */
   async streamWithWebSocket(messages, options = {}) {
+    rejectLegacyModelEgress()
     if (!this.config.enableWebSocket) {
       throw new Error('WebSocket未启用')
     }
@@ -256,6 +259,7 @@ class StreamManager {
    * @returns {Promise<Object>}
    */
   async streamWithOpenAI(messages, options = {}) {
+    rejectLegacyModelEgress()
     const sessionId = this.createSession({ mode: 'openai' })
 
     return new Promise((resolve, reject) => {
@@ -334,6 +338,7 @@ class StreamManager {
    * @returns {Promise<Object>}
    */
   async streamWithAnthropic(messages, options = {}) {
+    rejectLegacyModelEgress()
     const sessionId = this.createSession({ mode: 'anthropic' })
 
     return new Promise((resolve, reject) => {

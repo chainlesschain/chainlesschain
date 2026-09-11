@@ -170,7 +170,7 @@ describe("chat-intent-service", () => {
       expect(chatMock).not.toHaveBeenCalled();
     });
 
-    it("parses fenced JSON LLM response into success=true", async () => {
+    it("does not invoke an LLM without an authenticated composition", async () => {
       chatMock.mockResolvedValueOnce(
         '```json\n{"correctedInput":"fix login","intent":"修复登录","keyPoints":["登录","bug"]}\n```',
       );
@@ -179,14 +179,13 @@ describe("chat-intent-service", () => {
         contextMode: "project",
         llmOptions: validLlmOptions,
       });
-      expect(result.success).toBe(true);
-      expect(result.correctedInput).toBe("fix login");
-      expect(result.intent).toBe("修复登录");
-      expect(result.keyPoints).toEqual(["登录", "bug"]);
-      expect(chatMock).toHaveBeenCalledTimes(1);
-      // Verify temperature is conservative (V5 parity).
-      const opts = chatMock.mock.calls[0][1];
-      expect(opts.temperature).toBeLessThanOrEqual(0.3);
+      expect(result).toMatchObject({
+        success: false,
+        correctedInput: "fxi loign bug",
+        intent: "general",
+        error: expect.stringMatching(/authenticated evolution composition/),
+      });
+      expect(chatMock).not.toHaveBeenCalled();
     });
 
     it("falls back gracefully when LLM returns malformed content", async () => {
@@ -200,14 +199,15 @@ describe("chat-intent-service", () => {
       expect(result.intent).toBe("general");
     });
 
-    it("falls back when chatWithStreaming throws", async () => {
+    it("reports an ingress refusal instead of trying an ungoverned LLM", async () => {
       chatMock.mockRejectedValueOnce(new Error("network"));
       const result = await understandIntent({
         userInput: "x",
         llmOptions: validLlmOptions,
       });
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/network/);
+      expect(result.error).toMatch(/authenticated evolution composition/);
+      expect(chatMock).not.toHaveBeenCalled();
     });
   });
 
@@ -228,7 +228,7 @@ describe("chat-intent-service", () => {
       expect(chatMock).not.toHaveBeenCalled();
     });
 
-    it("invokes LLM for ambiguous input when llmOptions provided", async () => {
+    it("uses the local rule fallback for ambiguous input without composition", async () => {
       chatMock.mockResolvedValueOnce(
         '```json\n{"intent":"CLARIFICATION","confidence":0.7,"reason":"detail","extractedInfo":"red"}\n```',
       );
@@ -236,10 +236,8 @@ describe("chat-intent-service", () => {
         input: "嗯哼",
         llmOptions: validLlmOptions,
       });
-      expect(r.method).toBe("llm");
-      expect(r.intent).toBe("CLARIFICATION");
-      expect(r.confidence).toBe(0.7);
-      expect(r.extractedInfo).toBe("red");
+      expect(r.method).toBe("rule_fallback");
+      expect(chatMock).not.toHaveBeenCalled();
     });
 
     it("falls back to rule result when LLM throws on ambiguous input", async () => {
@@ -312,7 +310,7 @@ describe("chat-intent-service", () => {
   });
 
   describe("understandIntent enforces the intent timeout", () => {
-    it("falls back gracefully when the LLM call exceeds the budget", async () => {
+    it("refuses an ungoverned LLM before an intent timeout is needed", async () => {
       // chatWithStreaming hangs well past the (tiny) per-call budget.
       chatMock.mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 1000, "{}")),
@@ -324,7 +322,8 @@ describe("chat-intent-service", () => {
       expect(r.success).toBe(false);
       expect(r.intent).toBe("general");
       expect(r.correctedInput).toBe("build me a dashboard"); // verbatim passthrough
-      expect(r.error).toMatch(/timed out/);
+      expect(r.error).toMatch(/authenticated evolution composition/);
+      expect(chatMock).not.toHaveBeenCalled();
     });
   });
 

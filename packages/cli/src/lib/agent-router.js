@@ -22,7 +22,10 @@
  *     ],
  *     strategy: "round-robin",
  *   });
- *   const results = await router.dispatch(subtasks, { cwd: "/my/project" });
+ *   const results = await router.dispatch(subtasks, {
+ *     cwd: "/my/project",
+ *     evolutionIngress,
+ *   });
  */
 
 import { EventEmitter } from "events";
@@ -253,24 +256,30 @@ export class AgentRouter extends EventEmitter {
    * @param {Array<{id, description, context?, type?}>} subtasks
    * @param {object} options
    * @param {string} options.cwd
+   * @param {object} options.evolutionIngress authenticated model ingress
    * @returns {Promise<Array<{taskId, agentId, backendType, success, output, duration}>>}
    */
   async dispatch(subtasks, options = {}) {
     const { cwd = process.cwd() } = options;
-    const evolutionIngress =
-      options.evolutionIngress == null
-        ? null
-        : captureAgentEvolutionIngress(options.evolutionIngress);
-    const backends =
-      evolutionIngress === null
-        ? this._backends
-        : this._backends.filter((backend) => !backend.isCLI);
-
     if (this._backends.length === 0) {
       throw new Error(
         "No agent backends available. Install Claude Code: npm i -g @anthropic-ai/claude-code",
       );
     }
+    const evolutionIngress =
+      options.evolutionIngress == null
+        ? null
+        : captureAgentEvolutionIngress(options.evolutionIngress);
+    if (evolutionIngress === null) {
+      const error = new Error(
+        "AgentRouter model dispatch requires an authenticated evolution composition",
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+    const backends =
+      this._backends.filter((backend) => !backend.isCLI);
+
     if (backends.length === 0) {
       const error = new Error(
         "No backend can attest per-request evolution ingress; external agent CLIs are opaque",
@@ -422,20 +431,13 @@ export class AgentRouter extends EventEmitter {
       // tool, or model calls crossed this Run's durable ingress. Until an
       // authenticated child protocol can bind every such call and return
       // evidence, admitting the black box would create an unobservable model
-      // bypass. Keep unmanaged legacy dispatch available, but fail closed for
-      // governed evolution Runs before the process can be spawned.
-      if (evolutionIngress !== null) {
-        const error = new Error(
-          `External ${backend.type} CLI does not attest per-request evolution ingress`,
-        );
-        error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
-        throw error;
-      }
-
-      // Use ClaudeCodePool for unmanaged CLI-based backends.
-      const pool = backend._pool;
-      const [r] = await pool.dispatch([task], { cwd });
-      result = r;
+      // bypass. This is deliberately unconditional so a future internal caller
+      // cannot bypass dispatch()'s candidate filter by calling this helper.
+      const error = new Error(
+        `External ${backend.type} CLI does not attest per-request evolution ingress`,
+      );
+      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;
+      throw error;
     } else {
       // Use LLM API for API-based backends
       result = await executeViaAPI(task, {

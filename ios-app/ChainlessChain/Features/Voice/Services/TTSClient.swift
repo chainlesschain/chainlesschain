@@ -190,6 +190,8 @@ class TTSClient: NSObject, ObservableObject {
     // MARK: - OpenAI TTS
 
     private func synthesizeWithOpenAI(_ request: TTSRequest) async throws -> TTSResult {
+        throw LLMError.evolutionIngressRequired
+
         guard let apiKey = openAIAPIKey else {
             throw VoiceError.configurationError("OpenAI API key not configured")
         }
@@ -244,6 +246,8 @@ class TTSClient: NSObject, ObservableObject {
     // MARK: - ElevenLabs TTS
 
     private func synthesizeWithElevenLabs(_ request: TTSRequest) async throws -> TTSResult {
+        throw LLMError.evolutionIngressRequired
+
         guard let apiKey = elevenLabsAPIKey else {
             throw VoiceError.configurationError("ElevenLabs API key not configured")
         }

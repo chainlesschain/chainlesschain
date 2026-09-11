@@ -948,7 +948,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "ocr-scanner": Object.freeze([
-    "ac375bd7a4de46380c13ea12048b24b951a543d9903ebe2d290671650b3daa6a",
+    "5141cc341c694028fbb3e283e5e6827bda4112ba9f7db98e072c187e86045662",
     Object.freeze([
       "data:result",
       "data:task",
@@ -993,7 +993,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "pdf-toolkit": Object.freeze([
-    "6dda6a9078ed9a1aa4fd339c0a16a00aca70a992ee6a3ad9bc2434dd933b99a0",
+    "8b664506c03b4504b55c1ce7d9cae5731f79fad88df8020d7cee61c49cb25dd0",
     Object.freeze([
       "data:result",
       "data:task",

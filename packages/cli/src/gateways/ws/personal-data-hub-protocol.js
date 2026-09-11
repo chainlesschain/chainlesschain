@@ -192,6 +192,15 @@ async function withHub(fn, loadHub = getHub) {
   }
 }
 
+function governedHubLoader(factory) {
+  if (typeof factory === "function") return () => getGovernedAnalysisHub(factory);
+  const error = new Error(
+    "Personal Data Hub model egress requires an authenticated evolution composition factory",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.ask": async (msg, context = {}) => {
     const factory = context.server?.evolutionCompositionFactory;
@@ -200,7 +209,7 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
         if (!hub.engine) throw new Error("Analysis engine unavailable");
         return await hub.engine.ask(msg.question, msg.options || {});
       },
-      factory == null ? getHub : () => getGovernedAnalysisHub(factory),
+      governedHubLoader(factory),
     );
   },
 
@@ -614,9 +623,7 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     withHub(async (hub) => {
       if (!hub.entityResolver) throw new Error("EntityResolver not wired");
       const factory = context.server?.evolutionCompositionFactory;
-      if (factory != null)
-        return hub.drainResolver({ limit: msg.limit || 50 }, factory);
-      return await hub.entityResolver.drain({ limit: msg.limit || 50 });
+      return await hub.drainResolver({ limit: msg.limit || 50 }, factory);
     }),
 
   "personal-data-hub.resolver-stats": async () =>
@@ -641,7 +648,7 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     const factory = context.server?.evolutionCompositionFactory;
     return withHub(
       async (hub) => await hub.runSkill(msg.name, msg.options || {}),
-      factory == null ? getHub : () => getGovernedAnalysisHub(factory),
+      governedHubLoader(factory),
     );
   },
 

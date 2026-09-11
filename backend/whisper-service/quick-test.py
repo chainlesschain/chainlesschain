@@ -47,7 +47,9 @@ print("3. 测试 Whisper 模型...")
 try:
     print("   正在加载 tiny 模型（用于快速测试）...")
     start = time.time()
-    model = whisper.load_model("tiny")
+    raise RuntimeError(
+        "CC_AGENT_EVOLUTION_INGRESS_FAILED: direct quick-test model loading requires a governed bridge"
+    )
     duration = time.time() - start
     print(f"   ✓ 模型加载成功 ({duration:.2f}秒)")
 except Exception as e:

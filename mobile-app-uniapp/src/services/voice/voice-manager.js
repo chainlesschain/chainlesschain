@@ -16,6 +16,7 @@
 
 import { getLLMManager } from '../llm/llm-manager.js'
 import { getAdvancedCache } from '../common/cache-advanced.js'
+import { rejectLegacyModelEgress } from '../llm/model-egress-guard.js'
 
 /**
  * 语音识别管理器 (ASR)
@@ -186,6 +187,8 @@ class SpeechRecognitionManager {
    * 识别音频文件
    */
   async recognizeAudioFile(filePath, options = {}) {
+    rejectLegacyModelEgress()
+
     const startTime = Date.now()
 
     // 检查缓存
@@ -262,6 +265,8 @@ class SpeechRecognitionManager {
    * 调用ASR服务
    */
   async callASRService(audioData, options = {}) {
+    rejectLegacyModelEgress()
+
     const provider = options.provider || this.config.provider
 
     switch (provider) {
@@ -287,6 +292,8 @@ class SpeechRecognitionManager {
    * 讯飞语音识别
    */
   async recognizeWithIflytek(audioData, options) {
+    rejectLegacyModelEgress()
+
     // 实际实现需要调用讯飞API
     // 这里提供接口框架
 
@@ -328,6 +335,8 @@ class SpeechRecognitionManager {
    * 百度语音识别
    */
   async recognizeWithBaidu(audioData, options) {
+    rejectLegacyModelEgress()
+
     // 百度ASR API实现
     const requestData = {
       format: 'mp3',
@@ -367,6 +376,8 @@ class SpeechRecognitionManager {
    * 阿里云语音识别
    */
   async recognizeWithAliyun(audioData, options) {
+    rejectLegacyModelEgress()
+
     // 阿里云ASR API实现
     console.log('[ASR] 调用阿里云识别（未实现）')
     return await this.mockRecognize(audioData, options)
@@ -376,6 +387,8 @@ class SpeechRecognitionManager {
    * 腾讯云语音识别
    */
   async recognizeWithTencent(audioData, options) {
+    rejectLegacyModelEgress()
+
     // 腾讯云ASR API实现
     console.log('[ASR] 调用腾讯云识别（未实现）')
     return await this.mockRecognize(audioData, options)
@@ -536,6 +549,8 @@ class TextToSpeechManager {
    * 文字转语音并播放
    */
   async speak(text, options = {}) {
+    rejectLegacyModelEgress()
+
     if (!text) {
       return { success: false, message: '文本为空' }
     }
@@ -587,6 +602,8 @@ class TextToSpeechManager {
    * 调用TTS服务
    */
   async callTTSService(text, options = {}) {
+    rejectLegacyModelEgress()
+
     const provider = options.provider || this.config.provider
 
     this.stats.syntheses++
@@ -615,6 +632,8 @@ class TextToSpeechManager {
    * 讯飞语音合成
    */
   async synthesizeWithIflytek(text, options) {
+    rejectLegacyModelEgress()
+
     const requestData = {
       text,
       voice: options.voice || this.config.voice,
@@ -661,6 +680,8 @@ class TextToSpeechManager {
    * 百度语音合成
    */
   async synthesizeWithBaidu(text, options) {
+    rejectLegacyModelEgress()
+
     // 百度TTS API实现
     console.log('[TTS] 调用百度合成（未实现）')
     return await this.synthesizeWithUniapp(text, options)
@@ -670,6 +691,8 @@ class TextToSpeechManager {
    * 阿里云语音合成
    */
   async synthesizeWithAliyun(text, options) {
+    rejectLegacyModelEgress()
+
     // 阿里云TTS API实现
     console.log('[TTS] 调用阿里云合成（未实现）')
     return await this.synthesizeWithUniapp(text, options)
@@ -679,6 +702,8 @@ class TextToSpeechManager {
    * 腾讯云语音合成
    */
   async synthesizeWithTencent(text, options) {
+    rejectLegacyModelEgress()
+
     // 腾讯云TTS API实现
     console.log('[TTS] 调用腾讯云合成（未实现）')
     return await this.synthesizeWithUniapp(text, options)

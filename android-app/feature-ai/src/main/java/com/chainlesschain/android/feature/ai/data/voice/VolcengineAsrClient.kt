@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.ai.data.voice
 
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
+import com.chainlesschain.android.feature.ai.data.llm.rejectLegacyModelEgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -54,8 +55,12 @@ class VolcengineAsrClient @Inject constructor(
      */
     override suspend fun transcribe(audioFile: File): String = transcribe(audioFile, maxPollSeconds = 30)
 
-    suspend fun transcribe(audioFile: File, maxPollSeconds: Int): String =
-        withContext(Dispatchers.IO) {
+    suspend fun transcribe(audioFile: File, maxPollSeconds: Int): String {
+        // This must precede config lookup and audioFile.readBytes(): the
+        // ungoverned client must not acquire user audio or create a request.
+        rejectLegacyModelEgress()
+
+        return withContext(Dispatchers.IO) {
             configManager.load()
             val cfg = configManager.getConfig().asrVolcengine
             if (cfg.apiKey.isBlank()) {
@@ -85,6 +90,7 @@ class VolcengineAsrClient @Inject constructor(
             submit(cfg, reqId, submitBody)
             return@withContext pollUntilDone(cfg, reqId, maxPollSeconds)
         }
+    }
 
     private fun submit(
         cfg: com.chainlesschain.android.feature.ai.data.config.VolcengineAsrConfig,

@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 import matplotlib
 matplotlib.use('Agg')  # 无GUI后端
 import matplotlib.font_manager as fm
-from src.llm.llm_client import get_llm_client, _run_blocking
+from src.llm.llm_client import ModelEgressGovernanceError, _run_blocking
 from src.utils.text_utils import strip_code_fences
 
 # 清除matplotlib字体缓存并重新加载
@@ -38,19 +38,8 @@ class DataEngine:
 
         self.client = None
         self.llm_client = None
-        self._ready = True
-
-        if self.llm_provider == "openai":
-            if self.openai_api_key:
-                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-            else:
-                self._ready = False
-        elif self.llm_provider != "ollama":
-            try:
-                self.llm_client = get_llm_client()
-            except Exception as e:
-                print(f"LLM client initialization error: {e}")
-                self._ready = False
+        # A governed bridge, not this legacy engine, owns provider SDK setup.
+        self._ready = False
 
         # 设置中文字体（用于matplotlib）
         # 使用文泉驿字体（在Docker容器中已安装）
@@ -100,6 +89,8 @@ class DataEngine:
                 "metadata": {...}
             }
         """
+        raise ModelEgressGovernanceError()
+
         if not self._ready:
             raise Exception("Data engine not ready")
 

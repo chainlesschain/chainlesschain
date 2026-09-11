@@ -16,6 +16,18 @@ const { logger } = require("../utils/logger.js");
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 /**
+ * The edge-tts subprocess forwards text to a remote model service. It cannot
+ * receive user content until an authenticated Evolution ingress exists.
+ */
+function assertGovernedTtsIngress() {
+  const error = new Error(
+    "Edge text-to-speech requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
+/**
  * Available Edge TTS voices (commonly used)
  */
 const EDGE_VOICES = {
@@ -135,9 +147,11 @@ class EdgeTTSClient extends EventEmitter {
    * Synthesize text to speech
    * @param {string} text - Text to synthesize
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Audio data
-   */
+  * @returns {Promise<Object>} Audio data
+  */
   async synthesize(text, options = {}) {
+    assertGovernedTtsIngress();
+
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {
@@ -235,9 +249,11 @@ class EdgeTTSClient extends EventEmitter {
    * @param {string} text - Text to synthesize
    * @param {string} outputPath - Output file path
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Result
-   */
+  * @returns {Promise<Object>} Result
+  */
   async synthesizeToFile(text, outputPath, options = {}) {
+    assertGovernedTtsIngress();
+
     if (!this.available) {
       throw new Error("Edge TTS is not available");
     }

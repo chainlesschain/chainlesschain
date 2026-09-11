@@ -1,3 +1,8 @@
+import {
+  MODEL_EGRESS_INGRESS_FAILED,
+  rejectLegacyModelEgress,
+} from '../llm/model-egress-guard.js'
+
 /**
  * 嵌入向量服务 (移动端版本)
  *
@@ -93,6 +98,10 @@ class EmbeddingsService {
       console.error('[EmbeddingsService] ❌ 初始化失败:', error)
 
       // 降级到TF-IDF
+      if (error?.code === MODEL_EGRESS_INGRESS_FAILED) {
+        throw error
+      }
+
       if (this.currentMode !== 'tfidf') {
         console.log('[EmbeddingsService] 降级到TF-IDF模式')
         this.currentMode = 'tfidf'
@@ -122,6 +131,8 @@ class EmbeddingsService {
 
     // 尝试API模式
     try {
+      rejectLegacyModelEgress()
+
       const response = await uni.request({
         url: this.config.apiEndpoint,
         method: 'POST',
@@ -177,6 +188,8 @@ class EmbeddingsService {
    * 测试API连接
    */
   async testAPIConnection() {
+    rejectLegacyModelEgress()
+
     console.log('[EmbeddingsService] 测试API连接...')
 
     const response = await uni.request({
@@ -211,6 +224,10 @@ class EmbeddingsService {
   async generateEmbedding(text, options = {}) {
     if (!text || !text.trim()) {
       throw new Error('文本内容不能为空')
+    }
+
+    if (this.currentMode === 'api' || this.currentMode === 'transformers') {
+      rejectLegacyModelEgress()
     }
 
     // 检查缓存
@@ -256,6 +273,10 @@ class EmbeddingsService {
       console.error('[EmbeddingsService] 生成向量失败:', error)
 
       // 降级到TF-IDF
+      if (error?.code === MODEL_EGRESS_INGRESS_FAILED) {
+        throw error
+      }
+
       if (this.currentMode !== 'tfidf') {
         console.log('[EmbeddingsService] 降级到TF-IDF')
         return this.generateWithTFIDF(text)
@@ -269,6 +290,8 @@ class EmbeddingsService {
    * 使用transformers.js生成向量
    */
   async generateWithTransformers(text) {
+    rejectLegacyModelEgress()
+
     if (!this.transformer) {
       throw new Error('transformers.js未初始化')
     }
@@ -290,6 +313,8 @@ class EmbeddingsService {
    * 使用API生成向量
    */
   async generateWithAPI(text) {
+    rejectLegacyModelEgress()
+
     const response = await uni.request({
       url: this.config.apiEndpoint,
       method: 'POST',

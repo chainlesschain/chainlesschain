@@ -195,6 +195,18 @@ describe("governed stream transport completion", () => {
     ).rejects.toThrow(/branded/);
   });
 
+  it("rejects a missing composition before any provider transport", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      prepareGovernedModelTurn(null, {
+        mode: "stream",
+        messages,
+      }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("does not complete a turn when the consumer cancels iteration", async () => {
     const complete = vi.fn();
     async function* source() {

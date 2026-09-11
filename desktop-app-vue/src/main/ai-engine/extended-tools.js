@@ -9,6 +9,17 @@ const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 const { URL } = require("url");
 
+// This legacy generic HTTP tool accepts an arbitrary endpoint and request
+// body. It cannot prove that a model request was projected or retain its
+// EvolutionRun evidence, so direct egress is intentionally unavailable.
+function assertNoDirectModelEgress() {
+  const error = new Error(
+    "Generic HTTP requests require a governed Evolution ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 class ExtendedTools {
   /**
    * 注册所有扩展工具到 FunctionCaller
@@ -428,6 +439,8 @@ class ExtendedTools {
     functionCaller.registerTool(
       "http_client",
       async (params) => {
+        assertNoDirectModelEgress();
+
         try {
           const {
             url,

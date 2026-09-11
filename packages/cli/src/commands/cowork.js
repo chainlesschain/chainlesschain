@@ -44,7 +44,13 @@ async function startCoworkCommandEvolution(
   evolutionCompositionFactory,
   { mode, content, source },
 ) {
-  if (evolutionCompositionFactory === null) return null;
+  if (evolutionCompositionFactory === null) {
+    const error = new Error(
+      "Cowork model egress requires an authenticated evolution composition factory",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
   try {
     const runId = `cowork-${mode}-${randomUUID()}`;
     const composition = captureAgentEvolutionRuntimeComposition(

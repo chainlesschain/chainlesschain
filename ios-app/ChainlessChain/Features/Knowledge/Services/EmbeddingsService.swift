@@ -80,6 +80,8 @@ class EmbeddingsService: ObservableObject {
             cacheEmbedding(embedding, forKey: cacheKey)
 
             return embedding
+        } catch LLMError.evolutionIngressRequired {
+            throw LLMError.evolutionIngressRequired
         } catch {
             logger.error("[EmbeddingsService] Failed to generate embedding, using fallback: \(error)")
             // Fallback to simple embedding
@@ -95,6 +97,8 @@ class EmbeddingsService: ObservableObject {
             do {
                 let embedding = try await generateEmbedding(text, skipCache: skipCache)
                 embeddings.append(embedding)
+            } catch LLMError.evolutionIngressRequired {
+                throw LLMError.evolutionIngressRequired
             } catch {
                 logger.error("[EmbeddingsService] Failed to generate embedding for text: \(error)")
                 embeddings.append(generateSimpleEmbedding(text))
@@ -248,4 +252,3 @@ enum EmbeddingsError: LocalizedError {
         }
     }
 }
-

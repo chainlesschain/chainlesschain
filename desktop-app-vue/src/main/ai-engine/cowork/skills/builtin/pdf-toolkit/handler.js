@@ -12,6 +12,14 @@ const {
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
+function assertGovernedOcrIngress() {
+  const error = new Error(
+    "OCR recognition requires a governed multimodal ingress",
+  );
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  throw error;
+}
+
 // ── Helpers ─────────────────────────────────────────
 
 function resolvePath(input, projectRoot) {
@@ -105,6 +113,8 @@ async function getInfo(filePath) {
 }
 
 async function ocrFile(filePath) {
+  assertGovernedOcrIngress();
+
   try {
     const { createWorker } = require("tesseract.js");
     const worker = await createWorker("eng+chi_sim");
@@ -293,6 +303,9 @@ module.exports = {
           };
       }
     } catch (error) {
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       logger.error(`[pdf-toolkit] Error: ${error.message}`);
       return {
         success: false,
@@ -301,6 +314,7 @@ module.exports = {
       };
     }
   },
+  _internal: { ocrFile },
 };
 
 module.exports = withBundledSkillFilesystem("pdf-toolkit", module.exports);

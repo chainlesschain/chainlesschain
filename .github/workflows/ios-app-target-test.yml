@@ -25,6 +25,18 @@ on:
       - "packages/cli/__tests__/unit/ide-roadmap-ios-recovery.test.js"
       - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
       - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/OpenAIClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/OllamaClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/AnthropicClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/LLMManager.swift"
+      - "ios-app/ChainlessChain/Features/AI/Advanced/SmartPlanCache.swift"
+      - "ios-app/ChainlessChain/Features/AI/Engines/WebEngine.swift"
+      - "ios-app/ChainlessChain/Features/AI/SkillToolSystem/BuiltinTools.swift"
+      - "ios-app/ChainlessChain/Features/AI/SkillToolSystem/NetworkDatabaseTools.swift"
+      - "ios-app/ChainlessChain/Features/ImageGen/Services/ImageGenManager.swift"
+      - "ios-app/ChainlessChain/Features/Knowledge/Services/EmbeddingsService.swift"
+      - "ios-app/ChainlessChain/Features/Voice/Services/TTSClient.swift"
+      - "tests/unit/evolution-ios-model-egress-static.test.cjs"
   push:
     branches: [main]
     paths:
@@ -40,6 +52,18 @@ on:
       - "packages/cli/__tests__/unit/ide-roadmap-ios-recovery.test.js"
       - "ios-app/ChainlessChain/Features/Pairing/PairingDependencies.swift"
       - "ios-app/ChainlessChain/Features/Pairing/Views/PairingHomeView.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/OpenAIClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/OllamaClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/AnthropicClient.swift"
+      - "ios-app/ChainlessChain/Features/AI/Services/LLMManager.swift"
+      - "ios-app/ChainlessChain/Features/AI/Advanced/SmartPlanCache.swift"
+      - "ios-app/ChainlessChain/Features/AI/Engines/WebEngine.swift"
+      - "ios-app/ChainlessChain/Features/AI/SkillToolSystem/BuiltinTools.swift"
+      - "ios-app/ChainlessChain/Features/AI/SkillToolSystem/NetworkDatabaseTools.swift"
+      - "ios-app/ChainlessChain/Features/ImageGen/Services/ImageGenManager.swift"
+      - "ios-app/ChainlessChain/Features/Knowledge/Services/EmbeddingsService.swift"
+      - "ios-app/ChainlessChain/Features/Voice/Services/TTSClient.swift"
+      - "tests/unit/evolution-ios-model-egress-static.test.cjs"
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -82,6 +106,13 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
+
+      - name: Verify Evolution model-egress default-deny guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --test tests/unit/evolution-ios-model-egress-static.test.cjs
 
       - name: Resolve Swift Package dependencies
         working-directory: ios-app
