@@ -30,7 +30,7 @@ export const LLM_PROVIDERS = {
   volcengine: {
     name: "Volcengine (火山引擎/豆包)",
     defaultBaseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultModel: "deepseek-v4-flash-260425",
+    defaultModel: "deepseek-v4-flash-ga-260731",
     requiresApiKey: true,
   },
   openai: {
@@ -144,7 +144,7 @@ export const DEFAULT_CONFIG = {
     provider: "volcengine",
     apiKey: null,
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "deepseek-v4-flash-260425",
+    model: "deepseek-v4-flash-ga-260731",
     // When true, `cc ask` (provider=ollama only) overrides baseUrl to point at
     // the Android LocalLlmServer (127.0.0.1:18484). User opt-in toggle:
     //   cc config set llm.preferAndroidLocal true

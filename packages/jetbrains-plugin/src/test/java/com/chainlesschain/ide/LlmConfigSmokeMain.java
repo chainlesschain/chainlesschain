@@ -40,7 +40,7 @@ public final class LlmConfigSmokeMain {
         // blank apiKey is OMITTED so the stored key is kept (the "更新后又要重配
         // key" fix): model/baseUrl still update, llm.apiKey is never re-written.
         List<List<String>> keepKey = LlmConfig.buildConfigSetArgs(
-                "volcengine", "deepseek-v4-flash-260425", "",
+                "volcengine", "deepseek-v4-flash-ga-260731", "",
                 "https://ark.cn-beijing.volces.com/api/v3", null);
         boolean noKeyWrite = true;
         for (List<String> s : keepKey) if (s.contains("llm.apiKey")) noKeyWrite = false;

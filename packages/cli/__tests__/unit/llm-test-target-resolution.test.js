@@ -106,7 +106,7 @@ describe("resolveLlmTestTarget", () => {
     const cfg = {
       llm: {
         provider: "volcengine",
-        model: "deepseek-v4-flash-260425",
+        model: "deepseek-v4-flash-ga-260731",
         baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
         apiKey: "saved-volcengine-key",
       },

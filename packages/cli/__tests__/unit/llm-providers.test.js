@@ -303,7 +303,7 @@ describe("LLM Providers", () => {
         "https://ark.cn-beijing.volces.com/api/v3",
       );
       expect(LLM_PROVIDERS.volcengine.defaultModel).toBe(
-        "deepseek-v4-flash-260425",
+        "deepseek-v4-flash-ga-260731",
       );
       expect(DEFAULT_CONFIG.llm.model).toBe(
         LLM_PROVIDERS.volcengine.defaultModel,

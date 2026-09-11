@@ -92,7 +92,7 @@ it.each(["openai", "volcengine"])(
         provider,
         model:
           provider === "volcengine"
-            ? "deepseek-v4-flash-260425"
+            ? "deepseek-v4-flash-ga-260731"
             : "relay/custom-model",
         baseUrl: `http://127.0.0.1:${server.address().port}/proxy/v1`,
         apiKey: "test-only-relay-key",

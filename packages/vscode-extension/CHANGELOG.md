@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.94] - Use the DeepSeek V4 Flash GA default (2026-09-11)
+
+- Use `deepseek-v4-flash-ga-260731` as the Volcengine text-model default in
+  the connection wizard.
+- Keep the previous `deepseek-v4-flash-260425` model available for existing
+  installations and explicit configurations.
+
 ## [0.37.93] - Configure governed Skill evolution (2026-09-10)
 
 - Add **ChainlessChain: Configure Skill Evolution**, with native descriptor and

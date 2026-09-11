@@ -70,7 +70,7 @@ class LlmConfigTest {
     void volcenginePresetUsesRequestedDefaultModel() {
         for (LlmConfig.Preset preset : LlmConfig.PRESETS) {
             if ("volcengine".equals(preset.id)) {
-                assertEquals("deepseek-v4-flash-260425", preset.defaultModel);
+                assertEquals("deepseek-v4-flash-ga-260731", preset.defaultModel);
                 return;
             }
         }
@@ -104,13 +104,13 @@ class LlmConfigTest {
         String apiKey = "key with & shell characters";
 
         String error = LlmConfig.applyConfig(
-                "volcengine", "deepseek-v4-flash-260425", apiKey,
+                "volcengine", "deepseek-v4-flash-ga-260731", apiKey,
                 "https://ark.cn-beijing.volces.com/api/v3", null,
                 (args, stdin) -> {
                     calls.add(new ArrayList<String>(args));
                     inputs.add(stdin);
                     return new LlmConfig.CliResult(true, args.get(0).equals("llm") ? "{\"ok\":true}"
-                            : "{\"llm\":{\"provider\":\"volcengine\",\"model\":\"deepseek-v4-flash-260425\",\"baseUrl\":\"https://ark.cn-beijing.volces.com/api/v3\",\"visionModel\":null,\"apiKey\":\"[REDACTED]\"}}");
+                            : "{\"llm\":{\"provider\":\"volcengine\",\"model\":\"deepseek-v4-flash-ga-260731\",\"baseUrl\":\"https://ark.cn-beijing.volces.com/api/v3\",\"visionModel\":null,\"apiKey\":\"[REDACTED]\"}}");
                 });
 
         assertNull(error);

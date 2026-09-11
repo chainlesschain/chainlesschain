@@ -109,7 +109,7 @@ describe("llm-pricing — lookupRate", () => {
 
   it("prices the DeepSeek V4 models used by protected quality evals", () => {
     expect(
-      lookupRate("volcengine", "deepseek-v4-flash-260425"),
+      lookupRate("volcengine", "deepseek-v4-flash-ga-260731"),
     ).toMatchObject({
       pattern: "deepseek-v4-flash",
       in: 0.14,

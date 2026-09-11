@@ -11285,7 +11285,7 @@ export async function chatWithTools(rawMessages, options) {
     dashscope: "qwen-turbo",
     mistral: "mistral-large-latest",
     gemini: "gemini-2.0-flash",
-    volcengine: "deepseek-v4-flash-260425",
+    volcengine: "deepseek-v4-flash-ga-260731",
   };
 
   // Real token streaming (--include-partial-messages) for every OpenAI-compatible

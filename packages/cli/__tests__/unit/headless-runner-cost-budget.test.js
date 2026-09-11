@@ -165,7 +165,7 @@ describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
       yield {
         type: "token-usage",
         provider: "volcengine",
-        model: "deepseek-v4-flash-260425",
+        model: "deepseek-v4-flash-ga-260731",
         usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
       };
       yield { type: "response-complete", content: "ok" };
