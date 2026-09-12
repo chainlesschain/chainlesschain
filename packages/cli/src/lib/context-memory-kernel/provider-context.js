@@ -1,6 +1,7 @@
 import {
   canonicalDigest,
   canonicalJson,
+  isProtected,
   normalizeContextItem,
 } from "@chainlesschain/context-memory-kernel";
 import { getContextWindow } from "../model-context-window.js";
@@ -145,9 +146,19 @@ export async function prepareCanonicalProviderContext(
   );
   const inputBudget =
     modelWindowTokens - reservedOutputTokens - safetyMarginTokens;
-  const recoveryReserveTokens = Math.min(
+  const desiredRecoveryReserveTokens = Math.min(
     Math.max(32, Math.floor(inputBudget * 0.05)),
     Math.max(0, inputBudget - 1),
+  );
+  // The recovery reserve is a soft allocation. It must yield to protected
+  // current-turn state, which is already part of this provider request.
+  const protectedTokens = items.reduce(
+    (total, item) => total + (isProtected(item) ? item.tokenEstimate : 0),
+    0,
+  );
+  const recoveryReserveTokens = Math.min(
+    desiredRecoveryReserveTokens,
+    Math.max(0, inputBudget - protectedTokens),
   );
   const sessionHead =
     options.contextMemorySessionHead ||
@@ -171,8 +182,13 @@ export async function prepareCanonicalProviderContext(
       "tool-evidence": inputBudget,
       "memory-and-rules": Math.max(1, Math.floor(inputBudget * 0.12)),
     },
-    policyVersion: String(options.contextMemoryPolicyVersion || "cli-provider-v1"),
-    modelProfile: `${provider}:${String(options.model || "default")}`.slice(0, 256),
+    policyVersion: String(
+      options.contextMemoryPolicyVersion || "cli-provider-v1",
+    ),
+    modelProfile: `${provider}:${String(options.model || "default")}`.slice(
+      0,
+      256,
+    ),
     sessionHead,
     memoryRevision: recall.memoryRevision,
   });

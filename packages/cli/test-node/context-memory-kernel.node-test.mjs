@@ -476,6 +476,36 @@ test("every canonical provider request binds recalled memory to a ContextPlan", 
   }
 });
 
+test("canonical provider planning lets protected current-turn state consume recovery reserve", async () => {
+  const directory = mkdtempSync(
+    join(tmpdir(), "cc-provider-protected-budget-"),
+  );
+  try {
+    const prepared = await prepareCanonicalProviderContext(
+      [{ role: "user", content: "x".repeat(2600) }],
+      {
+        contextMemoryEnv: {
+          CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+        },
+        contextMemoryFilePath: join(directory, "kernel-v1.json"),
+        sessionId: "provider-protected-budget",
+        provider: "local",
+        model: "test-model",
+        contextMemoryModelWindowTokens: 1024,
+        maxOutputTokens: 256,
+      },
+    );
+
+    assert.equal(
+      prepared.plan.selected.some((item) => item.kind === "task-state"),
+      true,
+    );
+    assert.ok(prepared.plan.partitions["recovery-reserve"].used < 35);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("canonical CLI memory migrates legacy rows once and becomes the only writer", async () => {
   const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-migrate-"));
   const filePath = join(directory, "kernel-v1.json");
