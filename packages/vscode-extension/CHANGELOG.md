@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.95] - Governed context and chat usability (2026-09-12)
+
+- Keep protected context within the CLI compaction budget instead of failing an
+  oversized IDE conversation before compacting it.
+- Put the chat message field on its own row and group controls beneath it.
+- Allow sufficient Windows cold-start time for the owner-only bridge lockfile
+  publisher without adding an insecure permission fallback.
+- Recommend the exact-gated `chainlesschain@0.166.45` CLI release.
+
 ## [0.37.94] - Use the DeepSeek V4 Flash GA default (2026-09-11)
 
 - Use `deepseek-v4-flash-ga-260731` as the Volcengine text-model default in

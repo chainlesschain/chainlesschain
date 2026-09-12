@@ -404,7 +404,7 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     ),
     "utf8",
   );
-  assert.match(vscodeSmokeDriver, /EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000/u);
+  assert.match(vscodeSmokeDriver, /EXTENSION_ACTIVATION_TIMEOUT_MS = 90_000/u);
   assert.equal(
     vscodeSmokeDriver.match(/EXTENSION_ACTIVATION_TIMEOUT_MS/gu)?.length,
     3,
