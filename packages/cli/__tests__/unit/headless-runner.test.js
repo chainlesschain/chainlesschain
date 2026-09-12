@@ -2,8 +2,32 @@ import { describe, it, expect, vi } from "vitest";
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
+  Object.freeze({
+    tenantId: "test-headless-runner",
+    start: async () => undefined,
+    ingestUserPrompt: async () => undefined,
+    ingestAgentEvent: async () => undefined,
+    complete: async () => undefined,
+    prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  }),
+);
+
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (value) => {
+    if (value !== TEST_EVOLUTION_INGRESS) {
+      throw new TypeError("a branded Agent evolution ingress is required");
+    }
+    return value;
+  },
+}));
+
+vi.mock("../../src/runtime/fallback-model.js", () => ({
+  captureCanonicalFallbackChatFn: (value) => value,
+}));
+
 import {
-  runAgentHeadless,
+  runAgentHeadless as runAgentHeadlessWithIngress,
   normalizePermissionMode,
   resolvePermissionMode,
   resolveEnabledTools,
@@ -17,6 +41,12 @@ import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+
+const runAgentHeadless = (options = {}, deps = {}) =>
+  runAgentHeadlessWithIngress(
+    { evolutionIngress: TEST_EVOLUTION_INGRESS, ...options },
+    deps,
+  );
 
 // installPipeSafety moved to pipe-safety.js (canonical tests in
 // pipe-safety.test.js); headless-runner re-exports it for back-compat.

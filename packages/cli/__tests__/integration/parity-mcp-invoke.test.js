@@ -19,13 +19,40 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+
+const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
+  Object.freeze({
+    tenantId: "test-parity-mcp",
+    prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  }),
+);
+
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (value) => {
+    if (value !== TEST_EVOLUTION_INGRESS) {
+      throw new TypeError("a branded Agent evolution ingress is required");
+    }
+    return value;
+  },
+}));
+
+vi.mock("../../src/runtime/fallback-model.js", () => ({
+  captureCanonicalFallbackChatFn: (value) => value,
+}));
+
+import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
 import {
   createMockLLMProvider,
   mockToolCallMessage,
   mockTextMessage,
 } from "../../src/harness/mock-llm-provider.js";
+
+const agentLoop = (messages, options = {}) =>
+  coreAgentLoop(messages, {
+    evolutionIngress: TEST_EVOLUTION_INGRESS,
+    ...options,
+  });
 
 async function drain(iterable) {
   const out = [];

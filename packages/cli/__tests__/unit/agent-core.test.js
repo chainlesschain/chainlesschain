@@ -20,6 +20,29 @@ import {
   SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } from "../../src/lib/session-message-provenance.js";
 
+// agent-core accepts only an ingress minted by the production composition
+// root. These unit tests isolate tool-loop behavior, so provide a minimal
+// branded boundary double; production authentication is covered separately.
+const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
+  Object.freeze({
+    tenantId: "test-agent-core",
+    prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  }),
+);
+
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (value) => {
+    if (value !== TEST_EVOLUTION_INGRESS) {
+      throw new TypeError("a branded Agent evolution ingress is required");
+    }
+    return value;
+  },
+}));
+
+vi.mock("../../src/runtime/fallback-model.js", () => ({
+  captureCanonicalFallbackChatFn: (value) => value,
+}));
+
 // Mock plan-mode, skill-loader, Hooks v2, and project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
@@ -98,13 +121,19 @@ const {
   formatToolArgs,
   executeTool,
   chatWithTools,
-  agentLoop,
+  agentLoop: coreAgentLoop,
   MAX_SUB_AGENT_DEPTH,
   MAX_SUB_AGENTS_PER_RUN,
   buildSubAgentHandoffContext,
   tokenizeShellWords,
   _gitProcessDeps,
 } = await import("../../src/lib/agent-core.js");
+
+const agentLoop = (messages, options = {}) =>
+  coreAgentLoop(messages, {
+    evolutionIngress: TEST_EVOLUTION_INGRESS,
+    ...options,
+  });
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 const { executeHooksV2Event } =
