@@ -120,7 +120,7 @@ const {
   buildSystemPrompt,
   formatToolArgs,
   executeTool,
-  chatWithTools,
+  chatWithTools: coreChatWithTools,
   agentLoop: coreAgentLoop,
   MAX_SUB_AGENT_DEPTH,
   MAX_SUB_AGENTS_PER_RUN,
@@ -128,6 +128,12 @@ const {
   tokenizeShellWords,
   _gitProcessDeps,
 } = await import("../../src/lib/agent-core.js");
+
+const chatWithTools = (messages, options = {}) =>
+  coreChatWithTools(messages, {
+    evolutionIngress: TEST_EVOLUTION_INGRESS,
+    ...options,
+  });
 
 const agentLoop = (messages, options = {}) =>
   coreAgentLoop(messages, {
