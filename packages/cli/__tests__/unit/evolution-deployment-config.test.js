@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  assessEvolutionDeploymentReadiness,
   configureEvolutionDeployment,
   getEvolutionDeploymentStatus,
   revokeEvolutionDeploymentDescriptorRevisions,
@@ -103,6 +104,34 @@ async function replaceDescriptor(value, revision) {
 }
 
 describe("persistent evolution deployment configuration", () => {
+  it("distinguishes configured provider readiness from a verified model ingress", () => {
+    expect(
+      assessEvolutionDeploymentReadiness({
+        effectiveEnabled: false,
+        verified: false,
+      }),
+    ).toMatchObject({
+      ready: false,
+      detail: "no enabled signed Evolution model ingress",
+    });
+    expect(
+      assessEvolutionDeploymentReadiness({
+        effectiveEnabled: true,
+        verified: false,
+        error: "evolution deployment descriptor signature rejected",
+      }),
+    ).toMatchObject({
+      ready: false,
+      detail: expect.stringContaining("not verified"),
+    });
+    expect(
+      assessEvolutionDeploymentReadiness({
+        effectiveEnabled: true,
+        verified: true,
+      }),
+    ).toMatchObject({ ready: true, remediation: null });
+  });
+
   it("verifies before saving and becomes the loader fallback", async () => {
     const value = await fixture();
     const status = await configureEvolutionDeployment(

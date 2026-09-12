@@ -387,6 +387,43 @@ async function providerSection(_opts, _deps2) {
   return { id: "provider", title: "Provider auth", checks };
 }
 
+// ── governed model execution ───────────────────────────────────────────────
+async function evolutionDeploymentSection(opts) {
+  const checks = [];
+  try {
+    const { getEvolutionDeploymentStatus, assessEvolutionDeploymentReadiness } =
+      await import("./evolution/evolution-deployment-config.js");
+    const readiness = assessEvolutionDeploymentReadiness(
+      await getEvolutionDeploymentStatus(opts.evolutionDeploymentOptions),
+    );
+    checks.push(
+      check(
+        "evolution-model-ingress",
+        "Governed model execution",
+        readiness.ready ? CHECK_LEVELS.OK : CHECK_LEVELS.ERR,
+        readiness.detail,
+        readiness.ready
+          ? null
+          : {
+              id: "configure-evolution-model-ingress",
+              safe: false,
+              description: readiness.remediation,
+              command: "cc evolution deployment status --json",
+            },
+      ),
+    );
+  } catch (err) {
+    checks.push(
+      failedCheck("evolution-model-ingress", "Governed model execution", err),
+    );
+  }
+  return {
+    id: "evolution-deployment",
+    title: "Governed model execution",
+    checks,
+  };
+}
+
 // ── MCP config ─────────────────────────────────────────────────────────────
 async function mcpSection(opts, deps) {
   const checks = [];
@@ -1274,6 +1311,7 @@ export async function collectCheckupSections(opts = {}) {
   const builders = [
     configSection,
     providerSection,
+    evolutionDeploymentSection,
     mcpSection,
     ideSection,
     pluginSection,

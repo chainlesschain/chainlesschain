@@ -26,6 +26,10 @@ import {
   askPassword,
 } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
+import {
+  assessEvolutionDeploymentReadiness,
+  getEvolutionDeploymentStatus,
+} from "../lib/evolution/evolution-deployment-config.js";
 
 export function registerSetupCommand(program) {
   program
@@ -180,6 +184,19 @@ async function runSetup(options) {
   }
   logger.success("Configuration saved");
 
+  // Saving a provider setting does not itself authorize a content-bearing
+  // request. Surface the same readiness contract as `cc doctor` before
+  // claiming setup is executable.
+  const modelReadiness = assessEvolutionDeploymentReadiness(
+    await getEvolutionDeploymentStatus(),
+  );
+  if (modelReadiness.ready) {
+    logger.success("Governed model execution ready");
+  } else {
+    logger.warn(`Model execution remains blocked: ${modelReadiness.detail}`);
+    logger.info(`To enable it: ${modelReadiness.remediation}`);
+  }
+
   // Step 8: Docker services
   if (!options.skipServices && dockerOk && composeOk) {
     logger.newline();
@@ -207,7 +224,11 @@ async function runSetup(options) {
 
   // Done
   logger.newline();
-  logger.log(chalk.bold.green("  Setup complete!\n"));
+  logger.log(
+    modelReadiness.ready
+      ? chalk.bold.green("  Setup complete!\n")
+      : chalk.bold.yellow("  Setup saved; model execution is not ready yet.\n"),
+  );
   logger.log("  Next steps:");
   logger.log(
     `    ${chalk.cyan("chainlesschain start")}      Launch the desktop app`,

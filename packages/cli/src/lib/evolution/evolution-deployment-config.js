@@ -17,6 +17,35 @@ function environmentSelection(env) {
   return { descriptorPath, trustRootPath };
 }
 
+/**
+ * Reduce deployment status to the single question that setup, doctor and IDE
+ * onboarding must answer consistently: can a content-bearing model turn run?
+ * A configured provider alone is insufficient because the canonical runtime
+ * requires a verified, enabled Evolution ingress before it may create a
+ * provider client or acquire user content.
+ */
+export function assessEvolutionDeploymentReadiness(status) {
+  if (status?.effectiveEnabled && status?.verified) {
+    return Object.freeze({
+      ready: true,
+      detail: "signed Evolution model ingress is enabled and verified",
+      remediation: null,
+    });
+  }
+  if (status?.effectiveEnabled) {
+    return Object.freeze({
+      ready: false,
+      detail: `configured Evolution model ingress is not verified${status.error ? `: ${status.error}` : ""}`,
+      remediation: "repair the signed descriptor or trust root, then run cc evolution deployment status --json",
+    });
+  }
+  return Object.freeze({
+    ready: false,
+    detail: "no enabled signed Evolution model ingress",
+    remediation: "configure a signed descriptor and trust root with cc evolution deployment configure --descriptor <path> --trust-root <path>",
+  });
+}
+
 export async function getEvolutionDeploymentStatus(options = {}) {
   const env = options.env || process.env;
   const saved = await readEvolutionDeploymentProfile(options);

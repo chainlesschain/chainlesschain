@@ -315,6 +315,22 @@ asserts every public entry places the terminal guard before its first content
 or batch-work statement. This keeps the legacy feature source available for a
 future governed bridge without allowing it to become a direct model-input path.
 
+### CLI executable-readiness closure (2026-09-12 follow-up)
+
+Saving an LLM provider in `cc setup` is not sufficient to make a model turn
+executable: the canonical runtime also requires an enabled, verified signed
+Evolution deployment before it can acquire user content or create a provider
+client. Setup and `cc doctor` now reduce the existing deployment status to the
+same three states: ready only when the signed ingress is both enabled and
+verified; blocked when it is configured but fails verification; and blocked
+when no signed ingress is enabled. The blocked states name the precise
+`cc evolution deployment` remediation instead of reporting setup as complete.
+
+The CLI test contract covers all three states and the doctor section order.
+IDE configuration panels already query `cc evolution deployment status --json`,
+but their onboarding/readiness rendering is separate follow-up work and is not
+represented as complete here.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

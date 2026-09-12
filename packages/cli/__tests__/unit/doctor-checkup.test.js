@@ -43,6 +43,7 @@ describe("doctor-checkup", () => {
     expect(ids).toEqual([
       "config",
       "provider",
+      "evolution-deployment",
       "mcp",
       "ide",
       "plugins",
