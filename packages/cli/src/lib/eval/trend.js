@@ -1,13 +1,14 @@
 /**
  * Eval trend analysis (Phase 7) — turn a history of `cc eval` runs into a
- * release-gate signal: is the task-success rate trending down, and did any task
+ * diagnostic signal: is the task-success rate trending down, and did any task
  * that used to pass start failing (a regression)?
  *
  * The eval RUNS themselves need a real model (a dry-run is always 0%), but the
  * REPORTING is pure: given the recorded per-run summaries (pass-rate + which
  * tasks passed), computing the delta, per-task regressions, and the gate verdict
  * is deterministic and unit-testable with fixtures — which is what a release
- * pipeline actually wires up. This module is that consumer.
+ * pipeline can consume. Formal completeness/comparability is checked separately
+ * by evaluateStrictEvalGate in evidence.js; this module preserves legacy history.
  *
  * A run record is the JSON `cc eval --json` emits, optionally tagged with
  * `ranAt` / `label` (version or commit). `perTask` is derived from `results`.
@@ -200,7 +201,7 @@ export function formatTrend(trend) {
   lines.push(
     trend.regressed
       ? "  RESULT: REGRESSED (gate fails)"
-      : "  RESULT: ok (no regression)",
+      : "  RESULT: ok (no regression; diagnostic only, use --strict for a comparison gate)",
   );
   return lines.join("\n");
 }

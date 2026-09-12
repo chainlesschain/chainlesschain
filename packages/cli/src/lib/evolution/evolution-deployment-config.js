@@ -18,31 +18,98 @@ function environmentSelection(env) {
 }
 
 /**
- * Reduce deployment status to the single question that setup, doctor and IDE
- * onboarding must answer consistently: can a content-bearing model turn run?
- * A configured provider alone is insufficient because the canonical runtime
- * requires a verified, enabled Evolution ingress before it may create a
- * provider client or acquire user content.
+ * Project verified deployment prerequisites without importing the host module.
+ * `ready` describes deployment admission only, never a successful model probe:
+ * the command must still load and validate its composition at execution time.
  */
-export function assessEvolutionDeploymentReadiness(status) {
-  if (status?.effectiveEnabled && status?.verified) {
-    return Object.freeze({
-      ready: true,
-      detail: "signed Evolution model ingress is enabled and verified",
-      remediation: null,
-    });
+export function assessEvolutionDeploymentReadiness(
+  status,
+  { requiredCommands = ["ask", "agent"] } = {},
+) {
+  if (
+    !Array.isArray(requiredCommands) ||
+    requiredCommands.length === 0 ||
+    requiredCommands.some(
+      (command) =>
+        typeof command !== "string" || !/^[a-z][a-z-]*$/.test(command),
+    )
+  ) {
+    throw new TypeError("deployment readiness requires explicit command names");
   }
-  if (status?.effectiveEnabled) {
+  const commands = Object.freeze([...new Set(requiredCommands)]);
+  const allowed = Array.isArray(status?.commands) ? status.commands : [];
+  const missingCommands = Object.freeze(
+    commands.filter((command) => !allowed.includes(command)),
+  );
+  const result = (state, code, detail, remediation) => {
+    const ready = state === "admitted";
     return Object.freeze({
-      ready: false,
-      detail: `configured Evolution model ingress is not verified${status.error ? `: ${status.error}` : ""}`,
-      remediation: "repair the signed descriptor or trust root, then run cc evolution deployment status --json",
+      scope: "deployment-admission",
+      state,
+      code,
+      ready,
+      requiredCommands: commands,
+      missingCommands,
+      runtimeVerification: "not_checked",
+      taskReady: ready ? null : false,
+      detail,
+      remediation,
     });
+  };
+  if (
+    status?.error ||
+    (status?.effectiveEnabled === true && status?.verified !== true)
+  ) {
+    return result(
+      "invalid",
+      "EVOLUTION_DEPLOYMENT_NOT_VERIFIED",
+      `configured Evolution deployment is not verified${status?.error ? `: ${status.error}` : ""}`,
+      "repair the signed descriptor or trust root, then run cc evolution deployment status --json",
+    );
   }
+  if (status?.effectiveEnabled !== true) {
+    const disabled =
+      status?.profileEnabled === false && Boolean(status?.descriptorPath);
+    return result(
+      disabled ? "disabled" : "not_configured",
+      disabled
+        ? "EVOLUTION_DEPLOYMENT_DISABLED"
+        : "EVOLUTION_DEPLOYMENT_NOT_CONFIGURED",
+      disabled
+        ? "signed Evolution deployment is disabled"
+        : "no enabled signed Evolution deployment",
+      disabled
+        ? "review the saved signed deployment, then run cc evolution deployment enable"
+        : "configure a signed descriptor and trust root with cc evolution deployment configure --descriptor <path> --trust-root <path>",
+    );
+  }
+  if (missingCommands.length > 0) {
+    return result(
+      "command_not_allowed",
+      "EVOLUTION_DEPLOYMENT_COMMAND_NOT_ALLOWED",
+      `signed Evolution deployment does not admit commands: ${missingCommands.join(", ")}`,
+      `request a signed deployment that admits ${missingCommands.join(", ")}; do not edit the signed descriptor in place`,
+    );
+  }
+  return result(
+    "admitted",
+    "EVOLUTION_DEPLOYMENT_ADMITTED",
+    `signed Evolution deployment admits ${commands.join(", ")}; runtime composition and model execution are not checked`,
+    null,
+  );
+}
+
+function withDeploymentReadiness(status) {
   return Object.freeze({
-    ready: false,
-    detail: "no enabled signed Evolution model ingress",
-    remediation: "configure a signed descriptor and trust root with cc evolution deployment configure --descriptor <path> --trust-root <path>",
+    ...status,
+    readiness: Object.freeze({
+      ask: assessEvolutionDeploymentReadiness(status, {
+        requiredCommands: ["ask"],
+      }),
+      agent: assessEvolutionDeploymentReadiness(status, {
+        requiredCommands: ["agent"],
+      }),
+    }),
   });
 }
 
@@ -71,7 +138,7 @@ export async function getEvolutionDeploymentStatus(options = {}) {
     error: saved.error,
     autoPromotion: "hold",
   };
-  if (!selected || saved.error) return Object.freeze(base);
+  if (!selected || saved.error) return withDeploymentReadiness(base);
   try {
     const verified = await verifyEvolutionDeployment(selected, options);
     if (source === "profile")
@@ -89,7 +156,7 @@ export async function getEvolutionDeploymentStatus(options = {}) {
         saved.profile,
         verified.descriptor,
       );
-    return Object.freeze({
+    return withDeploymentReadiness({
       ...base,
       verified: true,
       error: null,
@@ -102,7 +169,7 @@ export async function getEvolutionDeploymentStatus(options = {}) {
       commands: verified.descriptor.commands,
     });
   } catch (error) {
-    return Object.freeze({
+    return withDeploymentReadiness({
       ...base,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -202,8 +269,7 @@ export function revokeEvolutionDeploymentDescriptorRevisions(
       expectedTrustRootDigest: current.activeTrustRootDigest,
     });
     const prior =
-      current.revokedDescriptorRevisions?.[current.activeTrustRootDigest] ||
-      [];
+      current.revokedDescriptorRevisions?.[current.activeTrustRootDigest] || [];
     return {
       ...current,
       // Disabling is conservative: the current descriptor may be one of the

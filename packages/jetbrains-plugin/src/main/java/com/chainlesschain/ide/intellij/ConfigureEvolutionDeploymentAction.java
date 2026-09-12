@@ -58,7 +58,7 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
             status.setEditable(false);
             status.setLineWrap(true);
             status.setWrapStyleWord(true);
-            status.setRows(7);
+            status.setRows(12);
             init();
             reload.addActionListener(e -> load());
             save.addActionListener(e -> save());
@@ -81,7 +81,7 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
                     .addComponent(status)
                     .addComponent(buttons)
                     .getPanel();
-            panel.setPreferredSize(new Dimension(720, 330));
+            panel.setPreferredSize(new Dimension(720, 430));
             return panel;
         }
 
@@ -153,6 +153,14 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
                     value.profilePath() == null ? "—" : value.profilePath(),
                     value.commands().isEmpty() ? "—" : String.join(", ", value.commands()),
                     value.error() == null ? "—" : value.error()));
+            status.append("\n\n" + CcBundle.message("evolution.config.admission.scope"));
+            for (String command : List.of("ask", "agent")) {
+                EvolutionDeploymentConfig.Admission admission = value.readiness().get(command);
+                String key = !admission.known() ? "unknown" : admission.admitted() ? "admitted" : "blocked";
+                status.append("\n" + command + ": " + CcBundle.message("evolution.config.admission." + key));
+                if (admission.detail() != null) status.append("\n" + admission.detail());
+                if (admission.remediation() != null) status.append("\n" + admission.remediation());
+            }
         }
     }
 }

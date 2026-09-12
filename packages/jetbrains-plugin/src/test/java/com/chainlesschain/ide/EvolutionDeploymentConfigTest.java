@@ -41,5 +41,37 @@ final class EvolutionDeploymentConfigTest {
         EvolutionDeploymentConfig.Status disabled = EvolutionDeploymentConfig.parseStatus(
                 "{\"source\":\"none\",\"effectiveEnabled\":false,\"profileEnabled\":false,\"verified\":false}");
         assertFalse(disabled.effectiveEnabled());
+        assertFalse(disabled.readiness().get("ask").known());
+        assertFalse(status.readiness().get("agent").known());
+    }
+
+    @Test
+    void displaysCommandAdmissionWithoutClaimingTaskReadiness() {
+        EvolutionDeploymentConfig.Status status = EvolutionDeploymentConfig.parseStatus("""
+                {"readiness":{
+                  "ask":{"scope":"deployment-admission","state":"admitted","ready":true,
+                    "requiredCommands":["ask"],"runtimeVerification":"not_checked","taskReady":null,
+                    "detail":"<script>plain text</script>","remediation":null},
+                  "agent":{"scope":"deployment-admission","state":"command_not_allowed","ready":false,
+                    "requiredCommands":["agent"],"runtimeVerification":"not_checked","taskReady":false,
+                    "detail":"agent is not admitted","remediation":"ask the deployment owner"}}}
+                """);
+        assertTrue(status.readiness().get("ask").admitted());
+        assertEquals("<script>plain text</script>", status.readiness().get("ask").detail());
+        assertTrue(status.readiness().get("agent").known());
+        assertFalse(status.readiness().get("agent").admitted());
+        assertEquals("ask the deployment owner", status.readiness().get("agent").remediation());
+        assertFalse(EvolutionDeploymentConfig.parseStatus("{}").readiness().get("ask").known());
+    }
+
+    @Test
+    void rejectsUnrecognizedOrMismatchedAdmissionClaims() {
+        for (String projection : List.of(
+                "{\"scope\":\"runtime\",\"state\":\"admitted\",\"ready\":true}",
+                "{\"scope\":\"deployment-admission\",\"state\":\"admitted\",\"ready\":true,\"runtimeVerification\":\"not_checked\",\"taskReady\":true,\"requiredCommands\":[\"ask\"]}",
+                "{\"scope\":\"deployment-admission\",\"state\":\"admitted\",\"ready\":true,\"runtimeVerification\":\"not_checked\",\"taskReady\":null,\"requiredCommands\":[\"agent\"]}")) {
+            assertFalse(EvolutionDeploymentConfig.parseStatus("{\"readiness\":{\"ask\":" + projection + "}}")
+                    .readiness().get("ask").known());
+        }
     }
 }

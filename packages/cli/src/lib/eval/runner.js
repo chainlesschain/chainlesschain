@@ -104,6 +104,10 @@ export async function runEvalSuite(tasks, opts = {}) {
       id: task?.id || "(unnamed)",
       description: task?.description || "",
       pass: false,
+      artifactCheckPassed: false,
+      executionSucceeded: false,
+      agentOk: false,
+      executionEvidence: null,
       ms: 0,
       detail: "",
       error: null,
@@ -142,7 +146,12 @@ export async function runEvalSuite(tasks, opts = {}) {
         // and still run check() (the workspace may be partially done).
         rec.error = `agent error: ${agentErr.message}`;
       }
-      rec.agentOk = agentResult ? agentResult.ok !== false : false;
+      rec.executionSucceeded = agentResult?.ok === true && !rec.error;
+      rec.agentOk = rec.executionSucceeded;
+      rec.executionEvidence = agentResult?.executionEvidence || null;
+      if (!rec.executionSucceeded && !rec.error) {
+        rec.error = `agent error: ${agentResult?.error || "execution did not report success"}`;
+      }
       // Edit locality — snapshot NOW, before check() (some checks write to the
       // workspace themselves). `unrelatedChanges` = files touched outside the
       // task's declared legitimate surface; null when the task doesn't declare
@@ -158,7 +167,10 @@ export async function runEvalSuite(tasks, opts = {}) {
         rec.unrelatedChanges = null; // not measured
       }
       const verdict = await task.check(dir, agentResult);
-      rec.pass = verdict?.pass === true;
+      rec.artifactCheckPassed = verdict?.pass === true;
+      // A useful artifact survives a provider/transport failure, but it is not
+      // evidence that the Agent completed the task successfully.
+      rec.pass = rec.artifactCheckPassed && rec.executionSucceeded;
       rec.detail = verdict?.detail || "";
     } catch (err) {
       // A harness-level error (bad task def / setup threw) — mark failed.
@@ -216,6 +228,8 @@ export async function runEvalSuite(tasks, opts = {}) {
     failed: total - passed,
     total,
     passRate: total > 0 ? passed / total : 0,
+    artifactChecksPassed: results.filter((r) => r.artifactCheckPassed).length,
+    executionsSucceeded: results.filter((r) => r.executionSucceeded).length,
     tasksWithUnrelatedChanges,
     unrelatedChangeRate: measured.length
       ? tasksWithUnrelatedChanges / measured.length

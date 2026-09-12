@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { generateKeyPairSync, sign as signBytes } from "node:crypto";
+import * as deploymentConfig from "../../src/lib/evolution/evolution-deployment-config.js";
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -37,6 +38,73 @@ function fakeDeps(overrides = {}) {
 const t = it.runIf(process.platform !== "win32");
 
 describe("doctor-checkup", () => {
+  it.each([
+    {
+      status: { effectiveEnabled: false, verified: false },
+      level: CHECK_LEVELS.ERR,
+      detail: "no enabled signed",
+    },
+    {
+      status: { effectiveEnabled: true, verified: false, error: "revoked" },
+      level: CHECK_LEVELS.ERR,
+      detail: "not verified",
+    },
+    {
+      status: {
+        effectiveEnabled: true,
+        verified: true,
+        commands: ["evolution"],
+      },
+      level: CHECK_LEVELS.ERR,
+      detail: "does not admit commands: ask, agent",
+    },
+    {
+      status: { effectiveEnabled: true, verified: true, commands: ["ask"] },
+      level: CHECK_LEVELS.ERR,
+      detail: "does not admit commands: agent",
+    },
+    {
+      status: {
+        effectiveEnabled: true,
+        verified: true,
+        commands: ["ask", "agent"],
+      },
+      level: CHECK_LEVELS.OK,
+      detail: "runtime composition and model execution are not checked",
+    },
+  ])(
+    "reports command-specific deployment prerequisites ($detail)",
+    async ({ status, level, detail }) => {
+      const getStatus = vi
+        .spyOn(deploymentConfig, "getEvolutionDeploymentStatus")
+        .mockResolvedValue(status);
+      try {
+        const sections = await collectCheckupSections({ deps: fakeDeps() });
+        const section = sections.find(
+          (entry) => entry.id === "evolution-deployment",
+        );
+        expect(section.title).toContain("not an execution probe");
+        const finding = section.checks.find(
+          (entry) => entry.id === "evolution-model-ingress",
+        );
+        expect(finding).toMatchObject({
+          level,
+          name: "Model deployment admission (ask, agent)",
+        });
+        expect(finding.detail).toContain(detail);
+        if (level === CHECK_LEVELS.OK) expect(finding.fix).toBeUndefined();
+        else
+          expect(finding.fix).toMatchObject({
+            safe: false,
+            command: "cc evolution deployment status --json",
+          });
+        expect(getStatus).toHaveBeenCalledOnce();
+      } finally {
+        getStatus.mockRestore();
+      }
+    },
+  );
+
   it("collects all layered sections without throwing", async () => {
     const sections = await collectCheckupSections({ deps: fakeDeps() });
     const ids = sections.map((s) => s.id);

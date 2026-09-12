@@ -19,12 +19,23 @@ import {
   formatTelemetry,
 } from "../lib/telemetry/span-recorder.js";
 import { computeTrend, formatTrend } from "../lib/eval/trend.js";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  evalDigest,
+  evaluateStrictEvalGate,
+  EVAL_EXECUTION_PROTOCOL,
+  readComparisonContext,
+  readEvalHistory,
+} from "../lib/eval/evidence.js";
 
 export const _deps = {
   platform: process.platform,
   kill: process.kill.bind(process),
   spawn: executionBroker.spawn.bind(executionBroker),
   spawnSync: executionBroker.spawnSync.bind(executionBroker),
+  runEvalSuite,
+  getSuite,
 };
 
 /** Append a run summary as one JSONL line to the history file. */
@@ -32,25 +43,20 @@ function appendHistory(file, record) {
   fs.appendFileSync(file, JSON.stringify(record) + "\n", "utf8");
 }
 
-/** Read a JSONL eval-history file into an array of run records (skips bad lines). */
-function readHistory(file) {
-  if (!fs.existsSync(file)) return [];
-  const out = [];
-  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
-    const t = line.trim();
-    if (!t) continue;
-    try {
-      out.push(JSON.parse(t));
-    } catch {
-      /* skip a corrupt history line rather than abort the report */
-    }
-  }
-  return out;
-}
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This file is src/commands/eval.js → the CLI entry is bin/chainlesschain.js.
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
+
+function verifyAgentTerminal(output) {
+  try {
+    const events = output.split(/\r?\n/u).filter((line) => line.trim()).map((line) => JSON.parse(line));
+    const results = events.filter((event) => event?.type === "result");
+    const terminal = results[0];
+    return results.length === 1 && events.at(-1) === terminal &&
+      terminal.subtype === "success" && terminal.is_error !== true &&
+      !events.some((event) => event?.type === "error");
+  } catch { return false; }
+}
 
 /**
  * Kill an agent child AND its tool grandchildren. A bare child.kill("SIGTERM")
@@ -111,7 +117,7 @@ function makeHeadlessRunAgent(opts = {}) {
           "--permission-mode",
           "acceptEdits",
           "--output-format",
-          "text",
+          "stream-json",
         ];
         if (opts.model) args.push("--model", opts.model);
         if (opts.provider) args.push("--provider", opts.provider);
@@ -136,7 +142,15 @@ function makeHeadlessRunAgent(opts = {}) {
         if (settled) return;
         settled = true;
         clearTimeout(graceTimer);
-        resolve(result);
+        resolve({
+          ...result,
+          executionEvidence: {
+            protocol: EVAL_EXECUTION_PROTOCOL,
+            exitCode: result.exitCode ?? null,
+            signal: result.signal ?? null,
+            terminalVerified: result.terminalVerified === true,
+          },
+        });
       };
       const timer = setTimeout(() => {
         // Kill the WHOLE tree, then settle on `close` — resolving immediately
@@ -162,17 +176,27 @@ function makeHeadlessRunAgent(opts = {}) {
         clearTimeout(timer);
         done({ ok: false, output: out, error: e.message });
       });
-      child.on("close", (code) => {
+      child.on("close", (code, signal) => {
         clearTimeout(timer);
         if (timedOut) {
           done({
             ok: false,
             output: out,
+            exitCode: code,
+            signal: signal || null,
             error: `timed out after ${timeoutMs || 120000}ms`,
           });
           return;
         }
-        done({ ok: code === 0, output: out, error: code === 0 ? null : err });
+        const terminalVerified = !opts._argv && verifyAgentTerminal(out);
+        const ok = code === 0 && !signal && (opts._argv || terminalVerified);
+        done({
+          ok: Boolean(ok), output: out, exitCode: code, signal: signal || null,
+          terminalVerified,
+          error: ok ? null : code === 0 && !signal
+            ? "agent stream lacks a valid success terminal"
+            : err || `agent process exited with ${signal || code}`,
+        });
       });
     });
   };
@@ -211,14 +235,22 @@ export function registerEvalCommand(program, { logger } = {}) {
     )
     .option(
       "--trend",
-      "Report the pass-rate trend from --history instead of running (CI gate)",
+      "Report the diagnostic pass-rate trend from --history instead of running",
     )
+    .option("--strict", "With --trend: require complete, comparable recent evidence; legacy history cannot pass")
+    .option("--max-age-hours <hours>", "With --strict: maximum age of both compared runs", "168")
+    .option("--comparison-context <file>", "Bind explicit provider/model to operator-declared modelRevision and environment/permission/inference digests (not production attestation)")
     .option(
       "--regression-threshold <pct>",
       "With --trend: pass-rate drop (in points) that fails the gate on its own",
       "0",
     )
     .action(async (options) => {
+      if (options.strict && !options.trend) {
+        (log.error || console.error)("--strict requires --trend --history <file>");
+        process.exitCode = 1;
+        return;
+      }
       // Trend mode: don't run the suite — read the recorded history and report
       // the pass-rate trend + per-task regressions. This is the release-pipeline
       // consumer (the runs themselves need a real model; the report is pure).
@@ -228,19 +260,50 @@ export function registerEvalCommand(program, { logger } = {}) {
           process.exitCode = 1;
           return;
         }
-        const runs = readHistory(options.history);
-        const threshold =
-          Math.max(0, Number(options.regressionThreshold) || 0) / 100;
-        const trend = computeTrend(runs, { regressionThreshold: threshold });
+        let history;
+        try { history = readEvalHistory(options.history); }
+        catch {
+          history = { runs: [], issues: [{ code: "history_unreadable" }] };
+        }
+        const threshold = Number(options.regressionThreshold) / 100;
+        if (options.strict) {
+          const gate = evaluateStrictEvalGate(history, {
+            maxAgeMs: Number(options.maxAgeHours) * 60 * 60 * 1000,
+            regressionThreshold: threshold,
+          });
+          if (options.json) console.log(JSON.stringify(gate, null, 2));
+          else (log.log || console.log)(
+            `Eval comparison: ${gate.status}\n` +
+            `  Scope: local configuration comparison; operator declarations are not production attestation.\n` +
+            (gate.reasons.length ? `  ${gate.reasons.join(", ")}` : "  Comparable executions and candidate checks passed."),
+          );
+          if (!gate.passed) process.exitCode = 1;
+          return;
+        }
+        const trend = computeTrend(history.runs, { regressionThreshold: Math.max(0, threshold || 0) });
+        if (history.issues.length) trend.historyIssues = history.issues;
         if (options.json) console.log(JSON.stringify(trend, null, 2));
-        else (log.log || console.log)(formatTrend(trend));
+        else {
+          (log.log || console.log)(formatTrend(trend));
+          if (history.issues.length) (log.error || console.error)("History contains invalid or unreadable records; this diagnostic is not release evidence.");
+        }
         if (trend.regressed) process.exitCode = 1;
         return;
       }
 
       let tasks;
+      let comparison;
       try {
-        tasks = getSuite(options.suite);
+        tasks = _deps.getSuite(options.suite);
+        comparison = createEvalComparison({
+          suite: options.suite,
+          corpusDigest: evalDigest(fs.readFileSync(new URL("../lib/eval/tasks.js", import.meta.url))),
+          provider: options.provider,
+          model: options.model,
+          context: options.comparisonContext
+            ? readComparisonContext(options.comparisonContext, { provider: options.provider, model: options.model })
+            : null,
+        });
       } catch (err) {
         log.error ? log.error(err.message) : console.error(err.message);
         process.exitCode = 1;
@@ -256,7 +319,7 @@ export function registerEvalCommand(program, { logger } = {}) {
       // OTel-shaped telemetry for the run (per-task span + failure class).
       const recorder = new TelemetryRecorder({ serviceName: "cc-eval" });
 
-      const summary = await runEvalSuite(tasks, {
+      const summary = await _deps.runEvalSuite(tasks, {
         runAgent,
         recorder,
         keepWorkspaces: options.keep === true,
@@ -271,6 +334,11 @@ export function registerEvalCommand(program, { logger } = {}) {
                       ? ` — ${r.detail}`
                       : ""),
               ),
+      });
+      const record = createEvalHistoryRecord(summary, {
+        comparison,
+        dryRun: options.dryRun === true,
+        label: options.label || null,
       });
 
       if (options.otlp) {
@@ -296,28 +364,15 @@ export function registerEvalCommand(program, { logger } = {}) {
       // pass/fail + a timestamp/label — so `cc eval --trend` can chart it).
       if (options.history) {
         try {
-          appendHistory(options.history, {
-            ranAt: new Date().toISOString(),
-            label: options.label || null,
-            // Tagged so --trend can exclude it: a dry-run is always 0% and
-            // would otherwise report every passing task as a regression.
-            ...(options.dryRun ? { dryRun: true } : {}),
-            passed: summary.passed,
-            total: summary.total,
-            passRate: summary.passRate,
-            unrelatedChangeRate: summary.unrelatedChangeRate,
-            results: (summary.results || []).map((r) => ({
-              id: r.id,
-              pass: r.pass,
-            })),
-          });
+          appendHistory(options.history, record);
         } catch (e) {
           (log.error || console.error)(`  history write failed: ${e.message}`);
+          process.exitCode = 1;
         }
       }
 
       if (options.json) {
-        console.log(JSON.stringify(summary, null, 2));
+        console.log(JSON.stringify({ ...summary, ...record }, null, 2));
       } else {
         // Per-task lines already streamed via onResult; print the summary +
         // the telemetry metrics (durations / failure classification).
@@ -336,7 +391,7 @@ export function registerEvalCommand(program, { logger } = {}) {
         }
       }
       // Non-zero exit when not every task passed — usable as a CI gate.
-      if (summary.passed < summary.total) process.exitCode = 1;
+      if (summary.total === 0 || summary.passed < summary.total) process.exitCode = 1;
     });
   return program;
 }

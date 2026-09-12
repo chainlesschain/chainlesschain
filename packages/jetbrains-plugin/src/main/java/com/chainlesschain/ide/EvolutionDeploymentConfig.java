@@ -9,10 +9,16 @@ import java.util.Map;
 public final class EvolutionDeploymentConfig {
     private EvolutionDeploymentConfig() {}
 
+    /** Display-only admission; no runtime authority is inferred from this value. */
+    public record Admission(String state, String detail, String remediation) {
+        public boolean known() { return !"unknown".equals(state); }
+        public boolean admitted() { return "admitted".equals(state); }
+    }
+
     public record Status(boolean effectiveEnabled, boolean profileEnabled,
                          boolean verified, String source, String descriptorPath,
                          String trustRootPath, String profilePath, String error,
-                         List<String> commands) {}
+                         List<String> commands, Map<String, Admission> readiness) {}
 
     public static List<String> statusArgs() {
         return List.of("evolution", "deployment", "status", "--json");
@@ -45,7 +51,25 @@ public final class EvolutionDeploymentConfig {
                 Boolean.TRUE.equals(value.get("profileEnabled")),
                 Boolean.TRUE.equals(value.get("verified")), text(value.get("source")),
                 text(value.get("descriptorPath")), text(value.get("trustRootPath")),
-                text(value.get("profilePath")), text(value.get("error")), List.copyOf(commands));
+                text(value.get("profilePath")), text(value.get("error")), List.copyOf(commands),
+                Map.of("ask", parseAdmission(value.get("readiness"), "ask"),
+                        "agent", parseAdmission(value.get("readiness"), "agent")));
+    }
+
+    private static Admission parseAdmission(Object raw, String command) {
+        Admission unknown = new Admission("unknown", null, null);
+        if (!(raw instanceof Map<?, ?> entries) || !(entries.get(command) instanceof Map<?, ?> value))
+            return unknown;
+        String state = text(value.get("state"));
+        boolean admitted = "admitted".equals(state);
+        boolean known = "deployment-admission".equals(value.get("scope"))
+                && "not_checked".equals(value.get("runtimeVerification"))
+                && value.get("requiredCommands") instanceof List<?> required && required.contains(command)
+                && (admitted
+                    ? Boolean.TRUE.equals(value.get("ready")) && value.containsKey("taskReady") && value.get("taskReady") == null
+                    : state != null && List.of("not_configured", "disabled", "invalid", "command_not_allowed").contains(state)
+                        && Boolean.FALSE.equals(value.get("ready")) && Boolean.FALSE.equals(value.get("taskReady")));
+        return known ? new Admission(state, text(value.get("detail")), text(value.get("remediation"))) : unknown;
     }
 
     public static Status run(List<String> args, File cwd, long timeoutMs) {

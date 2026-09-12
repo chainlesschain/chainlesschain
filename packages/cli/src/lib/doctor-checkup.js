@@ -399,7 +399,7 @@ async function evolutionDeploymentSection(opts) {
     checks.push(
       check(
         "evolution-model-ingress",
-        "Governed model execution",
+        "Model deployment admission (ask, agent)",
         readiness.ready ? CHECK_LEVELS.OK : CHECK_LEVELS.ERR,
         readiness.detail,
         readiness.ready
@@ -414,12 +414,16 @@ async function evolutionDeploymentSection(opts) {
     );
   } catch (err) {
     checks.push(
-      failedCheck("evolution-model-ingress", "Governed model execution", err),
+      failedCheck(
+        "evolution-model-ingress",
+        "Model deployment admission (ask, agent)",
+        err,
+      ),
     );
   }
   return {
     id: "evolution-deployment",
-    title: "Governed model execution",
+    title: "Model deployment prerequisites (not an execution probe)",
     checks,
   };
 }

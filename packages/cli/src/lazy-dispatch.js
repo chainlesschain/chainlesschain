@@ -688,6 +688,24 @@ async function defaultLoadCommandDependencies(commandName) {
   return loadEvolutionDeploymentCommandDependencies(commandName);
 }
 
+function isEvolutionDeploymentInvocation(argv, entry) {
+  if (entry.name !== "evolution") return false;
+  const location = findCommandTokenLocation(argv);
+  if (!location) return false;
+  for (let index = location.index + 1; index < argv.length;) {
+    const option = consumeGlobalOption(argv, index);
+    if (option) {
+      index = option.nextIndex;
+      continue;
+    }
+    const token = argv[index++];
+    if (token === "--") return argv[index] === "deployment";
+    if (token.startsWith("-")) continue;
+    return token === "deployment";
+  }
+  return false;
+}
+
 /**
  * Load/register may fall back to the compatibility program. parseAsync is
  * intentionally outside that catch: once an action begins, any failure must
@@ -706,21 +724,39 @@ export async function dispatchManifestEntry(
   } = {},
 ) {
   let program;
-  let allowCompatibilityFallback = true;
+  // Deployment inspection and repair must remain usable even when the signed
+  // host throws during import or dependency construction. Register only this
+  // configuration subtree, without executing the host or importing the eager
+  // program (which assembles every command's deployment dependencies).
+  const deploymentConfigurationOnly = isEvolutionDeploymentInvocation(
+    argv,
+    entry,
+  );
+  const registrationEntry = deploymentConfigurationOnly
+    ? {
+        ...entry,
+        module: "./commands/evolution-deployment.js",
+        register: "registerEvolutionDeploymentCommand",
+      }
+    : entry;
+  let allowCompatibilityFallback = !deploymentConfigurationOnly;
   try {
     program = await createBaseProgram();
-    const mod = await loadCommandModule(entry);
-    const registerFn = mod[entry.register];
+    const mod = await loadCommandModule(registrationEntry);
+    const registerFn = mod[registrationEntry.register];
     if (typeof registerFn !== "function") {
       throw new Error(
-        `Register function '${entry.register}' not found in ${entry.module}`,
+        `Register function '${registrationEntry.register}' not found in ${registrationEntry.module}`,
       );
     }
     // Governed deployment loading may reconcile durable state. Do not hide a
     // failed trust check or retry that assembly through the eager program.
     allowCompatibilityFallback = false;
-    const dependencies = await loadCommandDependencies(entry.name);
-    allowCompatibilityFallback = dependencies == null;
+    const dependencies = deploymentConfigurationOnly
+      ? null
+      : await loadCommandDependencies(entry.name);
+    allowCompatibilityFallback =
+      !deploymentConfigurationOnly && dependencies == null;
     registerFn(program, dependencies ?? undefined);
   } catch (error) {
     if (!allowCompatibilityFallback) throw error;

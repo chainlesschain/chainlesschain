@@ -185,15 +185,20 @@ async function runSetup(options) {
   logger.success("Configuration saved");
 
   // Saving a provider setting does not itself authorize a content-bearing
-  // request. Surface the same readiness contract as `cc doctor` before
-  // claiming setup is executable.
+  // request. Check command-specific deployment admission without executing the
+  // host module; a successful preflight is not a model execution probe.
   const modelReadiness = assessEvolutionDeploymentReadiness(
     await getEvolutionDeploymentStatus(),
   );
   if (modelReadiness.ready) {
-    logger.success("Governed model execution ready");
+    logger.success("Signed deployment admits ask and agent");
+    logger.info(
+      "Runtime composition and model execution will be checked when you run a task.",
+    );
   } else {
-    logger.warn(`Model execution remains blocked: ${modelReadiness.detail}`);
+    logger.warn(
+      `Model deployment prerequisites not met: ${modelReadiness.detail}`,
+    );
     logger.info(`To enable it: ${modelReadiness.remediation}`);
   }
 
@@ -226,8 +231,12 @@ async function runSetup(options) {
   logger.newline();
   logger.log(
     modelReadiness.ready
-      ? chalk.bold.green("  Setup complete!\n")
-      : chalk.bold.yellow("  Setup saved; model execution is not ready yet.\n"),
+      ? chalk.bold.green(
+          "  Setup saved; deployment prerequisites checked (model execution not tested).\n",
+        )
+      : chalk.bold.yellow(
+          "  Setup saved; ask/agent deployment prerequisites remain incomplete.\n",
+        ),
   );
   logger.log("  Next steps:");
   logger.log(

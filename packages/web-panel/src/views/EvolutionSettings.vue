@@ -86,6 +86,19 @@
               }}</span></a-descriptions-item
             >
           </a-descriptions>
+          <section class="admission-status" aria-live="polite">
+            <h3>模型命令部署准入</h3>
+            <p>这里只检查部署准入，实际任务运行尚未验证。</p>
+            <div
+              v-for="row in readinessRows"
+              :key="row.command"
+              :data-admission-command="row.command"
+            >
+              <strong>{{ row.command }}：{{ row.summary }}</strong>
+              <p class="mono">{{ row.detail }}</p>
+              <p v-if="row.remediation" class="mono">{{ row.remediation }}</p>
+            </div>
+          </section>
           <a-alert
             v-if="status.error"
             :message="status.error"
@@ -104,6 +117,10 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ReloadOutlined } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
 import { useWsStore } from "../stores/ws.js";
+import {
+  deploymentReadinessRows,
+  replaceDeploymentStatus,
+} from "../utils/evolution-deployment-readiness.js";
 
 const ws = useWsStore();
 const loading = ref(false);
@@ -119,9 +136,10 @@ const status = reactive({
   commands: [],
 });
 const busy = computed(() => loading.value || saving.value || toggling.value);
+const readinessRows = computed(() => deploymentReadinessRows(status));
 
 function apply(value) {
-  Object.assign(status, value || {});
+  replaceDeploymentStatus(status, value);
   descriptorPath.value = status.descriptorPath || "";
   trustRootPath.value = status.trustRootPath || "";
 }

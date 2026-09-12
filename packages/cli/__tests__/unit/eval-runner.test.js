@@ -169,6 +169,25 @@ describe("eval task process checks", () => {
 });
 
 describe("runEvalSuite", () => {
+  it.each(["nonzero", "timeout", "throw", "missing-success"])(
+    "preserves a correct artifact but fails an execution with %s",
+    async (kind) => {
+      const summary = await runEvalSuite([BUILTIN_TASKS[0]], {
+        runAgent: async ({ cwd }) => {
+          fs.writeFileSync(path.join(cwd, "greeting.txt"), "Hello, ChainlessChain!", "utf8");
+          if (kind === "throw") throw new Error("provider disconnected");
+          if (kind === "missing-success") return {};
+          return { ok: false, error: kind === "timeout" ? "timed out" : "provider failed" };
+        },
+      });
+      expect(summary).toMatchObject({ passed: 0, failed: 1, artifactChecksPassed: 1, executionsSucceeded: 0 });
+      expect(summary.results[0]).toMatchObject({
+        pass: false, artifactCheckPassed: true, executionSucceeded: false, agentOk: false,
+        changedFiles: ["greeting.txt"], error: expect.stringContaining("agent error:"),
+      });
+    },
+  );
+
   it("scores 100% when a perfect agent solves every built-in task", async () => {
     const summary = await runEvalSuite(BUILTIN_TASKS, {
       runAgent: perfectAgent,

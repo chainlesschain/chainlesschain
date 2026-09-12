@@ -35,7 +35,7 @@ afterEach(async () => {
   );
 });
 
-async function fixture() {
+async function fixture({ commands = ["evolution"], moduleSource } = {}) {
   const root = await mkdtemp(join(tmpdir(), "cc-evolution-profile-"));
   temporaryRoots.push(root);
   const home = join(root, "home");
@@ -43,7 +43,8 @@ async function fixture() {
   const trustRootPath = join(root, "public.pem");
   const modulePath = join(root, "host.mjs");
   const moduleBytes = Buffer.from(
-    "export async function createChainlessChainCommandDependencies({commandName}) { return {commandName}; }\n",
+    moduleSource ??
+      "export async function createChainlessChainCommandDependencies({commandName}) { return {commandName}; }\n",
   );
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const trustRootBytes = publicKey.export({ type: "spki", format: "pem" });
@@ -53,7 +54,7 @@ async function fixture() {
     modulePath,
     moduleDigest: computeEvolutionDeploymentDigest(moduleBytes),
     trustRootDigest: computeEvolutionDeploymentDigest(trustRootBytes),
-    commands: ["evolution"],
+    commands,
   };
   const descriptor = signedDescriptor(unsigned, privateKey);
   await Promise.all([
@@ -104,7 +105,7 @@ async function replaceDescriptor(value, revision) {
 }
 
 describe("persistent evolution deployment configuration", () => {
-  it("distinguishes configured provider readiness from a verified model ingress", () => {
+  it("distinguishes provider configuration from command-specific deployment admission", () => {
     expect(
       assessEvolutionDeploymentReadiness({
         effectiveEnabled: false,
@@ -112,7 +113,9 @@ describe("persistent evolution deployment configuration", () => {
       }),
     ).toMatchObject({
       ready: false,
-      detail: "no enabled signed Evolution model ingress",
+      state: "not_configured",
+      code: "EVOLUTION_DEPLOYMENT_NOT_CONFIGURED",
+      taskReady: false,
     });
     expect(
       assessEvolutionDeploymentReadiness({
@@ -128,8 +131,171 @@ describe("persistent evolution deployment configuration", () => {
       assessEvolutionDeploymentReadiness({
         effectiveEnabled: true,
         verified: true,
+        commands: ["ask", "agent"],
       }),
-    ).toMatchObject({ ready: true, remediation: null });
+    ).toMatchObject({
+      ready: true,
+      state: "admitted",
+      scope: "deployment-admission",
+      runtimeVerification: "not_checked",
+      taskReady: null,
+      remediation: null,
+    });
+  });
+
+  it.each(
+    [undefined, [], ["evolution"], ["ask"]].map((commands) => [commands]),
+  )(
+    "does not admit ordinary model commands from an incomplete allowlist: %j",
+    (commands) => {
+      const result = assessEvolutionDeploymentReadiness({
+        effectiveEnabled: true,
+        verified: true,
+        commands,
+      });
+      expect(result).toMatchObject({
+        ready: false,
+        state: "command_not_allowed",
+        code: "EVOLUTION_DEPLOYMENT_COMMAND_NOT_ALLOWED",
+        taskReady: false,
+      });
+      expect(result.missingCommands).toContain("agent");
+      expect(result.remediation).toContain("signed deployment");
+    },
+  );
+
+  it("assesses each command independently and freezes the diagnostic projection", () => {
+    const status = {
+      effectiveEnabled: true,
+      verified: true,
+      commands: ["ask"],
+    };
+    const ask = assessEvolutionDeploymentReadiness(status, {
+      requiredCommands: ["ask"],
+    });
+    const agent = assessEvolutionDeploymentReadiness(status, {
+      requiredCommands: ["agent"],
+    });
+    expect(ask).toMatchObject({
+      ready: true,
+      taskReady: null,
+      missingCommands: [],
+    });
+    expect(agent).toMatchObject({
+      ready: false,
+      taskReady: false,
+      missingCommands: ["agent"],
+    });
+    expect(Object.isFrozen(ask)).toBe(true);
+    expect(Object.isFrozen(ask.requiredCommands)).toBe(true);
+    expect(Object.isFrozen(ask.missingCommands)).toBe(true);
+    status.commands.push("agent");
+    expect(agent.ready).toBe(false);
+  });
+
+  it("distinguishes disabled configuration from an invalid saved profile", () => {
+    const status = {
+      effectiveEnabled: false,
+      profileEnabled: false,
+      descriptorPath: "saved-deployment.json",
+    };
+    expect(assessEvolutionDeploymentReadiness(status)).toMatchObject({
+      state: "disabled",
+      code: "EVOLUTION_DEPLOYMENT_DISABLED",
+      ready: false,
+    });
+    expect(
+      assessEvolutionDeploymentReadiness({
+        ...status,
+        error: "corrupt profile",
+      }),
+    ).toMatchObject({
+      state: "invalid",
+      code: "EVOLUTION_DEPLOYMENT_NOT_VERIFIED",
+      ready: false,
+    });
+  });
+
+  it.each([false, undefined, "true", 1])(
+    "requires boolean verification, not %j",
+    (verified) => {
+      expect(
+        assessEvolutionDeploymentReadiness({
+          effectiveEnabled: true,
+          verified,
+          commands: ["ask", "agent"],
+        }),
+      ).toMatchObject({ ready: false, state: "invalid", taskReady: false });
+    },
+  );
+
+  it.each([[], [""], [" ask"], [null], "ask"].map((commands) => [commands]))(
+    "rejects an invalid readiness target instead of vacuously admitting it: %j",
+    (requiredCommands) => {
+      expect(() =>
+        assessEvolutionDeploymentReadiness(
+          {
+            effectiveEnabled: true,
+            verified: true,
+            commands: ["ask", "agent"],
+          },
+          { requiredCommands },
+        ),
+      ).toThrow("explicit command names");
+    },
+  );
+
+  it("publishes separate ask/agent admission without executing a signed module", async () => {
+    const value = await fixture({
+      commands: ["ask"],
+      // Signature verification may inspect these bytes but must not execute them.
+      moduleSource:
+        "throw new Error('status must not execute the deployment module');\n",
+    });
+    const importModule = vi.fn(() => {
+      throw new Error("unexpected import");
+    });
+    const status = await configureEvolutionDeployment(
+      {
+        descriptorPath: value.descriptorPath,
+        trustRootPath: value.trustRootPath,
+      },
+      { ...value.options, importModule },
+    );
+    expect(status).toMatchObject({
+      verified: true,
+      autoPromotion: "hold",
+      readiness: {
+        ask: {
+          ready: true,
+          runtimeVerification: "not_checked",
+          taskReady: null,
+        },
+        agent: { ready: false, state: "command_not_allowed", taskReady: false },
+      },
+    });
+    expect(importModule).not.toHaveBeenCalled();
+    expect(Object.isFrozen(status.readiness)).toBe(true);
+    const disabled = await setEvolutionDeploymentEnabled(false, value.options);
+    expect(disabled.readiness.ask).toMatchObject({
+      state: "disabled",
+      ready: false,
+      taskReady: false,
+    });
+    expect(disabled.readiness.agent.ready).toBe(false);
+  });
+
+  it("publishes blocked admission for an absent deployment", async () => {
+    const value = await fixture();
+    const status = await getEvolutionDeploymentStatus(value.options);
+    expect(status.readiness.ask).toMatchObject({
+      state: "not_configured",
+      ready: false,
+    });
+    expect(status.readiness.agent).toMatchObject({
+      state: "not_configured",
+      ready: false,
+    });
   });
 
   it("verifies before saving and becomes the loader fallback", async () => {
@@ -284,9 +450,8 @@ describe("persistent evolution deployment configuration", () => {
       type: "spki",
       format: "pem",
     });
-    const nextTrustRootDigest = computeEvolutionDeploymentDigest(
-      nextTrustRootBytes,
-    );
+    const nextTrustRootDigest =
+      computeEvolutionDeploymentDigest(nextTrustRootBytes);
     const moduleBytes = await readFile(value.modulePath);
     const nextUnsigned = {
       schema: EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,

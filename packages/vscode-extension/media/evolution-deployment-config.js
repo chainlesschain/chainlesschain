@@ -42,6 +42,17 @@
       el("commands").textContent = (current.commands || []).join(", ") || "—";
       el("toggle").textContent = current.profileEnabled ? "停用" : "启用";
       el("toggle").disabled = !current.descriptorPath;
+      for (const command of ["ask", "agent"]) {
+        const row = data.readinessRows?.find(
+          (item) => item.command === command,
+        );
+        el(`readiness-${command}`).textContent =
+          `${command}：${row?.summary || "未提供准入诊断"}`;
+        el(`readiness-${command}-detail`).textContent =
+          row?.detail || "当前 CLI 未提供部署准入诊断，请更新 CLI。";
+        el(`readiness-${command}-remediation`).textContent =
+          row?.remediation || "";
+      }
       if (current.error) {
         el("notice").textContent = current.error;
         el("notice").className = "notice error";

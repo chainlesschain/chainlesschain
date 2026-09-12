@@ -28,6 +28,18 @@ function printStatus(status) {
     logger.log(`  Revision floor:  ${status.revisionFloor}`);
   if (status.commands?.length)
     logger.log(`  Commands:        ${status.commands.join(", ")}`);
+  if (status.readiness) {
+    for (const command of ["ask", "agent"]) {
+      const admission = status.readiness[command];
+      if (admission)
+        logger.log(
+          `  ${command} admission: ${admission.state} — ${admission.detail}`,
+        );
+    }
+    logger.log(
+      "  Runtime:         not checked (host composition and model execution)",
+    );
+  }
   if (status.error) logger.log(chalk.red(`  Error:           ${status.error}`));
 }
 
@@ -41,6 +53,16 @@ function fail(error, json) {
   if (json) console.log(JSON.stringify({ ok: false, error: message }, null, 2));
   else logger.error(`Failed: ${message}`);
   process.exitCode = 1;
+}
+
+/** Standalone configuration route: never assemble the configured host. */
+export function registerEvolutionDeploymentCommand(program) {
+  const evolution = program
+    .command("evolution")
+    .description(
+      "Evolution metrics and governance records — not model training or active Skill promotion",
+    );
+  registerEvolutionDeploymentCommands(evolution);
 }
 
 export function registerEvolutionDeploymentCommands(parent) {

@@ -14,6 +14,118 @@ const {
   parseSkillCatalog,
 } = require("../src/ui/skill-catalog-panel");
 const d = (c) => "sha256:" + c.repeat(64);
+const {
+  deploymentReadinessRows,
+} = require("../src/evolution-deployment-config.js");
+
+function admissionProjection(command, state = "admitted") {
+  return {
+    scope: "deployment-admission",
+    state,
+    ready: state === "admitted",
+    requiredCommands: [command],
+    runtimeVerification: "not_checked",
+    taskReady: state === "admitted" ? null : false,
+    detail: "<script>plain diagnostic</script>",
+    remediation: "copy-only instruction",
+  };
+}
+
+test("deployment admission remains distinct from runtime verification and old CLI output", () => {
+  const rows = deploymentReadinessRows({
+    readiness: {
+      ask: admissionProjection("ask"),
+      agent: admissionProjection("agent", "command_not_allowed"),
+    },
+  });
+  assert.equal(rows[0].summary, "部署准入通过");
+  assert.equal(rows[1].summary, "部署准入被阻断");
+  assert.equal(rows[0].detail, "<script>plain diagnostic</script>");
+  for (const state of [
+    "not_configured",
+    "disabled",
+    "invalid",
+    "command_not_allowed",
+  ]) {
+    assert.equal(
+      deploymentReadinessRows({
+        readiness: { ask: admissionProjection("ask", state) },
+      })[0].state,
+      state,
+    );
+  }
+  for (const status of [
+    { verified: true, commands: ["ask", "agent"] },
+    { readiness: { ask: { ...admissionProjection("ask"), taskReady: true } } },
+    { readiness: { ask: admissionProjection("agent") } },
+  ]) {
+    assert.equal(deploymentReadinessRows(status)[0].state, "unknown");
+  }
+});
+
+test("deployment webview renders literal diagnostics and clears readiness on an older response", () => {
+  const elements = new Map();
+  const messages = [];
+  let receive;
+  const element = (id) => {
+    if (!elements.has(id))
+      elements.set(id, {
+        textContent: "",
+        value: "",
+        disabled: false,
+        set innerHTML(_value) {
+          throw new Error("diagnostics must render as text");
+        },
+      });
+    return elements.get(id);
+  };
+  require("node:vm").runInNewContext(
+    require("node:fs").readFileSync(
+      require("node:path").join(
+        __dirname,
+        "../media/evolution-deployment-config.js",
+      ),
+      "utf8",
+    ),
+    {
+      acquireVsCodeApi: () => ({
+        postMessage: (message) => messages.push(message),
+      }),
+      document: { getElementById: element, querySelectorAll: () => [] },
+      window: {
+        addEventListener: (_name, handler) => {
+          receive = handler;
+        },
+      },
+    },
+  );
+  const status = {
+    readiness: {
+      ask: admissionProjection("ask"),
+      agent: admissionProjection("agent"),
+    },
+  };
+  receive({
+    data: {
+      type: "status",
+      status,
+      readinessRows: deploymentReadinessRows(status),
+    },
+  });
+  assert.match(element("readiness-ask").textContent, /部署准入通过/);
+  assert.equal(
+    element("readiness-ask-detail").textContent,
+    "<script>plain diagnostic</script>",
+  );
+  receive({ data: { type: "status", status: { verified: true } } });
+  assert.match(element("readiness-ask").textContent, /未提供准入诊断/);
+  assert.equal(element("readiness-ask-remediation").textContent, "");
+  assert.deepEqual(
+    messages.map((message) => message.type),
+    ["ready"],
+  );
+});
+
 function host(t) {
   let handler, dispose;
   const messages = [];
@@ -68,6 +180,51 @@ function projection() {
     ],
   };
 }
+test("deployment panel forwards admission and refreshes older CLI responses without invoking remediation", async (t) => {
+  const h = host(t);
+  const api = require("../src/evolution-deployment-config.js");
+  const open =
+    require("../src/ui/evolution-deployment-config-panel.js").openEvolutionDeploymentConfigPanel;
+  const results = [
+    {
+      readiness: {
+        ask: admissionProjection("ask"),
+        agent: admissionProjection("agent", "disabled"),
+      },
+    },
+    { verified: true },
+  ];
+  const statusCall = t.mock.method(
+    api,
+    "getEvolutionDeploymentStatus",
+    async () => results.shift(),
+  );
+  const configureCall = t.mock.method(
+    api,
+    "configureEvolutionDeployment",
+    async () => {
+      throw new Error("read-only refresh");
+    },
+  );
+  open(h.vscode, { getCommand: () => "cc", getCwd: () => "/project" });
+  await h.send({ type: "ready" });
+  assert.equal(
+    h.messages.findLast((item) => item.type === "status").readinessRows[0]
+      .state,
+    "admitted",
+  );
+  await h.send({ type: "reload" });
+  assert.equal(
+    h.messages.findLast((item) => item.type === "status").readinessRows[0]
+      .state,
+    "unknown",
+  );
+  assert.equal(statusCall.mock.callCount(), 2);
+  assert.equal(configureCall.mock.callCount(), 0);
+  assert.match(h.panel.webview.html, /实际任务运行尚未验证/);
+  assert.match(h.panel.webview.html, /HOLD/);
+});
+
 test("Workbench panel negotiates capabilities and rejects stale UI approval", async (t) => {
   const h = host(t),
     calls = [],
