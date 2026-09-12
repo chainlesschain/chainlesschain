@@ -73,7 +73,9 @@ function runAgent() {
     let stderr = "";
     child.stdout.on("data", (chunk) => (stdout += chunk.toString("utf8")));
     child.stderr.on("data", (chunk) => (stderr += chunk.toString("utf8")));
-    const timer = setTimeout(() => child.kill(), 30_000);
+    // The signed evolution ingress projects and attests the turn before the
+    // provider call; cold Windows workers can exceed the former 30s ceiling.
+    const timer = setTimeout(() => child.kill(), 120_000);
     child.on("close", (status) => {
       clearTimeout(timer);
       resolve({ status, stdout, stderr });
@@ -100,5 +102,5 @@ describe("cc agent stream-json stdout purity", () => {
     expect(stdout).not.toContain("[DatabaseManager]");
     expect(stderr).toContain("[AppConfig]");
     expect(stderr).toContain("[DatabaseManager] Database initialized");
-  }, 60_000);
+  }, 180_000);
 });

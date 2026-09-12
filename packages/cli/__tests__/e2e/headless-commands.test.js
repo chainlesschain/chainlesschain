@@ -1,11 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { afterAll, describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { testHome } from "./_helpers/cli-e2e.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
 const bin = join(cliRoot, "bin", "chainlesschain.js");
+const t = testHome("headless-commands");
+
+afterAll(() => t.cleanup());
 
 function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
@@ -14,6 +18,13 @@ function run(args, options = {}) {
     stdio: "pipe",
     ...options,
   });
+}
+
+function validationEnv() {
+  const env = t.env();
+  delete env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
+  delete env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
+  return env;
 }
 
 /**
@@ -109,18 +120,20 @@ describe("E2E: headless CLI commands", () => {
     it("rejects an invalid --output-format with a non-zero exit", () => {
       const r = runFail(
         'agent -p "hi" --sandbox-mode off --output-format yaml',
+        { cwd: t.workspace, env: validationEnv() },
       );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --output-format");
-    });
+    }, 180_000);
 
     it("rejects an invalid --permission-mode with a non-zero exit", () => {
       const r = runFail(
         'agent -p "hi" --sandbox-mode off --permission-mode yolo',
+        { cwd: t.workspace, env: validationEnv() },
       );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --permission-mode");
-    });
+    }, 180_000);
   });
 
   describe("skill commands (no external deps)", () => {

@@ -15,6 +15,30 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 
+const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
+  Object.freeze({
+    tenantId: "test-resume-role-alternation",
+    start: async () => undefined,
+    ingestUserPrompt: async () => undefined,
+    ingestAgentEvent: async () => undefined,
+    complete: async () => undefined,
+    prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  }),
+);
+
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (value) => {
+    if (value !== TEST_EVOLUTION_INGRESS) {
+      throw new TypeError("a branded Agent evolution ingress is required");
+    }
+    return value;
+  },
+}));
+
+vi.mock("../../src/runtime/fallback-model.js", () => ({
+  captureCanonicalFallbackChatFn: (value) => value,
+}));
+
 vi.mock("../../src/lib/plan-mode.js", () => {
   const planModeManager = {
     isActive: () => false,
@@ -30,8 +54,14 @@ vi.mock("../../src/lib/skill-loader.js", () => ({
   }),
 }));
 
-const { runAgentHeadless } =
+const { runAgentHeadless: runAgentHeadlessWithIngress } =
   await import("../../src/runtime/headless-runner.js");
+
+const runAgentHeadless = (options = {}, deps = {}) =>
+  runAgentHeadlessWithIngress(
+    { evolutionIngress: TEST_EVOLUTION_INGRESS, ...options },
+    deps,
+  );
 
 function fakeGate() {
   return {

@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
+import { createSignedAgentEvolutionDeployment } from "../../fixtures/agent-evolution-test-deployment.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -54,6 +55,7 @@ export function testHome(label = "e2e") {
   mkdirSync(userHome, { recursive: true });
   mkdirSync(securityAnchorHome, { recursive: true });
   mkdirSync(workspace, { recursive: true });
+  const evolutionDeployment = createSignedAgentEvolutionDeployment(root);
   return {
     // Keep `home` as the config-home compatibility alias used by older tests.
     // The process cwd must use `workspace`: production deliberately rejects a
@@ -72,6 +74,7 @@ export function testHome(label = "e2e") {
       CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: securityAnchorHome,
       HOME: userHome,
       USERPROFILE: userHome,
+      ...evolutionDeployment,
       ...extra,
     }),
     // A throwaway .js script, run as `node <path>`. Use instead of inline

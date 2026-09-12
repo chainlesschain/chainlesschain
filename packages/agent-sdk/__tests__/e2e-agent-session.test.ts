@@ -27,11 +27,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentSession } from "../src/agent-session.js";
 import type { ResultEvent, SystemInitEvent } from "../src/protocol.js";
+import { createSignedAgentEvolutionDeployment } from "../../cli/__tests__/fixtures/agent-evolution-test-deployment.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLI_BIN = join(__dirname, "..", "..", "cli", "bin", "chainlesschain.js");
 
 const sandboxRoot = mkdtempSync(join(tmpdir(), "cc-sdk-e2e-"));
+const evolutionDeployment = createSignedAgentEvolutionDeployment(sandboxRoot);
 const home = join(sandboxRoot, "home");
 const userHome = join(sandboxRoot, "user-home");
 const securityAnchorHome = join(sandboxRoot, "security-anchor");
@@ -154,6 +156,7 @@ function newSession(
       HOME: userHome,
       USERPROFILE: userHome,
       CC_DEBUG: "1",
+      ...evolutionDeployment,
     },
     extraArgs: [
       "--no-ide",

@@ -12,7 +12,34 @@
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { chatWithTools } from "../../src/runtime/agent-core.js";
+
+const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
+  Object.freeze({
+    tenantId: "test-headless-disallowed-tools",
+    prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  }),
+);
+
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (value) => {
+    if (value !== TEST_EVOLUTION_INGRESS) {
+      throw new TypeError("a branded Agent evolution ingress is required");
+    }
+    return value;
+  },
+}));
+
+vi.mock("../../src/runtime/fallback-model.js", () => ({
+  captureCanonicalFallbackChatFn: (value) => value,
+}));
+
+import { chatWithTools as coreChatWithTools } from "../../src/runtime/agent-core.js";
+
+const chatWithTools = (messages, options = {}) =>
+  coreChatWithTools(messages, {
+    evolutionIngress: TEST_EVOLUTION_INGRESS,
+    ...options,
+  });
 
 describe("headless deny-list reaches chatWithTools tool definitions", () => {
   let capturedBody;

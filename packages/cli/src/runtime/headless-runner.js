@@ -234,6 +234,22 @@ export function normalizePermissionMode(mode = "default") {
 }
 
 /**
+ * Validate command-line-only headless options before acquiring model egress.
+ * This deliberately has no side effects: malformed invocations must report
+ * their own input error even when an authenticated evolution deployment is
+ * unavailable.
+ */
+export function validateHeadlessInvocationOptions(options = {}) {
+  const outputFormat = options.outputFormat || "text";
+  if (!VALID_OUTPUT_FORMATS.includes(outputFormat)) {
+    throw new Error(
+      `Invalid --output-format "${outputFormat}". Expected one of: ${VALID_OUTPUT_FORMATS.join(", ")}`,
+    );
+  }
+  normalizePermissionMode(options.permissionMode);
+}
+
+/**
  * Resolve a --permission-mode string into the session-policy tier + a
  * non-interactive confirmer + whether to clamp tools to the read-only set.
  *

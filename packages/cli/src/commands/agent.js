@@ -1507,10 +1507,15 @@ export function registerAgentCommand(program, dependencies = {}) {
       if (options.inputFormat === "stream-json") {
         const { runAgentHeadlessStream } =
           await import("../runtime/headless-stream.js");
-        const { parseToolList } = await import("../runtime/headless-runner.js");
+        const { parseToolList, validateHeadlessInvocationOptions } =
+          await import("../runtime/headless-runner.js");
         const cwd = process.cwd();
         let outcome;
         try {
+          validateHeadlessInvocationOptions({
+            outputFormat: options.outputFormat,
+            permissionMode: options.permissionMode,
+          });
           const evolutionComposition =
             await resolveAgentCommandEvolutionComposition(
               evolutionCompositionFactory,
@@ -1794,6 +1799,12 @@ export function registerAgentCommand(program, dependencies = {}) {
           : null;
         let evolutionComposition;
         try {
+          const { validateHeadlessInvocationOptions } =
+            await import("../runtime/headless-runner.js");
+          validateHeadlessInvocationOptions({
+            outputFormat: options.outputFormat,
+            permissionMode: options.permissionMode,
+          });
           evolutionComposition = await resolveAgentCommandEvolutionComposition(
             evolutionCompositionFactory,
             {
