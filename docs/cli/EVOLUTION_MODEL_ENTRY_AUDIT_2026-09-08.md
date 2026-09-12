@@ -1,5 +1,10 @@
 # Direct model entry governance audit (2026-09-08)
 
+The current requirement-by-requirement closure status and the limits of earlier
+test counts are tracked in the [2026-09-12 repository closure checklist](EVOLUTION_P0_4_REPOSITORY_CLOSURE_2026-09-12.md).
+The checklist currently remains incomplete; this historical entry audit alone
+does not certify the final commit or an end-to-end adversarial learning corpus.
+
 The CLI stream command and the WebSocket QuickAsk/stream routes previously sent
 input directly to provider adapters even when a host configured an evolution
 composition factory. The deployment loader also excluded the stream command.
