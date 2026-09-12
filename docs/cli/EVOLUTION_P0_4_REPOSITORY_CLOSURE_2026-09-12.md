@@ -69,6 +69,16 @@
 - 最终源 `pr-recovery-smoke.mjs` **exit 0**（约 4 分钟）：原三种场景、原停止调用次数和拒绝命令零执行断言保留；另验证真实 canonical kernel 已提交压缩、消息减少且节省 token。实际 **18 次本地 provider 请求、0 次摘要请求、0 次 GitHub 请求**；压缩正控是确定性压缩，不声称执行了模型摘要。
 - 三个相关源/测试文件的 ESLint、Prettier、差异检查通过。该证据仅针对源脚本，未将其解释为已安装 payload 或最终三系统 Actions 通过。
 
+## 实际安装后的治理运行时门禁
+
+补充核验发现，原 `CLI Global Install Smoke` 仅在 Linux/Windows 执行真实 tarball 全局安装和 `--version`，PR checkout 仍是 merge ref；它不能证明新模型入口在安装后的私有模块身份下可运行。该既有 job 现扩到三系统，并固定、验证完整 PR head SHA；保留真实 postinstall、无 Python/强制 native 源构建的可选依赖测试和原 20 分钟上限，不使用源码依赖安装或忽略脚本来替代全局安装。
+
+全局安装后先从 `npm root -g` 定位 CLI，检查 CLI evolution/runtime/harness、Hub/恢复 guard 与从该 CLI **实际解析**的 SDK 三个治理模块逐文件身份，再将同一个安装目录交给真实认证入口的 PR 恢复冒烟。检查拒绝源码目录、软/硬链接、同版本字节漂移以及被全局同级新 SDK 掩盖的旧嵌套 SDK。其范围是这些治理运行时，不声称验证所有发布资源或生成完整 SBOM。
+
+身份检查器的纯 Node 正反例直接进入上述三系统 job；工作流契约还要求身份检查先成功，再执行带安装目录参数的冒烟，不能无参数回退源码。当前仅有本地检查器/工作流验证，真实三系统 tarball 安装与目标运行仍须取得最终 SHA 的 Actions 结果。
+
+独立复核还真实复现了检查器自身的解析原点遗漏：根目录 SDK 正确，但 `src/lib/node_modules` 中的旧 SDK 被实际 Hub 消费者选中，初版检查仍通过。已改为从实际 `governed-hub-llm.js` 路径解析，新增该反例和正常全局同级 SDK 正控。最终身份检查 **12 项**与 CI 契约 **45 项**同次 **57/57、零跳过**通过（5.35 秒），不是 57 项实际安装旅程；该工作流 YAML/actionlint 及相关代码格式、ESLint 检查通过。
+
 ## 最终源码身份与 CI 结果门
 
 Android Tests 新增指定 `commit_sha` 的手动入口，并将 workflow 自身路径加入 push/PR 触发。五个实际 checkout job 都从同一个 `SOURCE_SHA` 取源码，在构建前校验完整 SHA 与 `git rev-parse HEAD` 一致；可控输入通过环境变量传入 shell，不直接拼入命令。既有测试矩阵和任务不减少。
@@ -79,13 +89,13 @@ Android Tests 新增指定 `commit_sha` 的手动入口，并将 workflow 自身
 
 最终验收需要逐项检查下表，不只看分支保护的既有 required contexts：
 
-| 工作流                          | 必须取得的结果与身份                                                                                        |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| CLI CI                          | 三系统 52 个 unit/integration/e2e shards、三系统 verify-cli、两个 PR dry-run；精确 head SHA                 |
-| CLI Strict Sandbox              | Linux、macOS、Windows 三个实际内核边界任务；精确 head SHA                                                   |
-| CI Tests                        | Backend 真实启动/拒绝、Desktop Unit Tests 三系统及 Linux UniApp；精确 head SHA                              |
-| Android Tests                   | 保留全部既有单元、API 28/30 instrumentation、coverage、lint、汇总门；同一源码 SHA，12 项实际治理 JUnit 齐全 |
-| iOS App Remote Session Recovery | 实际 SwiftPM 源码测试、静态契约、unsigned simulator build 和产物检查；精确 `commit_sha`                     |
+| 工作流                          | 必须取得的结果与身份                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| CLI CI                          | 三系统 52 个 unit/integration/e2e shards、三系统 verify-cli、两个 PR dry-run；精确 head SHA                               |
+| CLI Strict Sandbox              | Linux、macOS、Windows 三个实际内核边界任务；精确 head SHA                                                                 |
+| CI Tests                        | Backend 真实启动/拒绝、Desktop Unit Tests 三系统及 Linux UniApp、三系统 CLI 实际全局安装/治理身份/认证冒烟；精确 head SHA |
+| Android Tests                   | 保留全部既有单元、API 28/30 instrumentation、coverage、lint、汇总门；同一源码 SHA，12 项实际治理 JUnit 齐全               |
+| iOS App Remote Session Recovery | 实际 SwiftPM 源码测试、静态契约、unsigned simulator build 和产物检查；精确 `commit_sha`                                   |
 
 PDH 两系统及 Full Test Automation 两系统仍提供补充回归；其既有 PR checkout 为 merge ref，不冒称精确 head SHA。本次 Android workflow 改动会自行触发 PR 验证；iOS 不在本次源码 diff 内，需获授权后用既有手动入口测试最终 SHA。手动触发的默认分支要求见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。未修改分支保护，也未执行 push、PR 创建或 workflow dispatch。
 

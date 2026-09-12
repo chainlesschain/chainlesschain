@@ -1897,6 +1897,76 @@ test("standalone CLI dependency install vendors exact checkout packages", () => 
   );
 });
 
+test("global CLI install smoke verifies the exact three-OS installed runtime", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test.yml"),
+    "utf8",
+  );
+  const job = workflow.slice(
+    workflow.indexOf("  cli-install-smoke:"),
+    workflow.indexOf("  database-tests:"),
+  );
+  assert.match(job, /os: \[ubuntu-latest, windows-latest, macos-latest\]/);
+  assert.match(job, /timeout-minutes: 20\b/);
+  assert.match(job, /fail-fast: false/);
+  assert.ok(
+    job.includes(
+      "SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+    ),
+  );
+  assert.ok(job.includes("ref: ${{ env.SOURCE_SHA }}"));
+  assert.ok(job.includes('[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]'));
+  assert.ok(job.includes('test "$(git rev-parse HEAD)" = "$SOURCE_SHA"'));
+  assert.ok(job.includes('echo "Tested source SHA: $SOURCE_SHA"'));
+  assert.ok(
+    job.indexOf("Verify exact installed CLI source commit") <
+      job.indexOf("Setup Node.js"),
+  );
+  assert.match(
+    job,
+    /run: node --test scripts\/__tests__\/installed-evolution-runtime\.test\.mjs/,
+  );
+  assert.match(job, /npm_config_build_from_source: "true"/);
+  assert.match(job, /NODE_GYP_FORCE_PYTHON:/);
+  assert.match(
+    job,
+    /npm install -g "\$RUNNER_TEMP\/cli-global-install-candidates\/"\*\.tgz/,
+  );
+  assert.match(job, /cc --version/);
+  assert.match(job, /chainlesschain --version/);
+  assert.doesNotMatch(
+    job,
+    /--ignore-scripts|continue-on-error|setup-node-deps/,
+  );
+
+  const smokeStep = job.slice(
+    job.indexOf(
+      "      - name: Verify installed evolution runtime and PR recovery smoke",
+    ),
+  );
+  const target = 'CLI_INSTALLED_ROOT="$(npm root -g)/chainlesschain"';
+  const identity =
+    'node packages/cli/scripts/verify-installed-evolution-runtime.mjs "$CLI_INSTALLED_ROOT"';
+  const smoke =
+    'node packages/cli/scripts/pr-recovery-smoke.mjs "$CLI_INSTALLED_ROOT"';
+  assert.ok(smokeStep.includes("shell: bash"));
+  assert.ok(smokeStep.includes("set -euo pipefail"));
+  assert.ok(smokeStep.includes(target));
+  assert.ok(smokeStep.includes(identity));
+  assert.ok(smokeStep.includes(smoke));
+  assert.ok(smokeStep.indexOf(target) < smokeStep.indexOf(identity));
+  assert.ok(smokeStep.indexOf(identity) < smokeStep.indexOf(smoke));
+  assert.ok(
+    job.indexOf("Global install from tarball (exercises postinstall)") <
+      job.indexOf("Verify installed evolution runtime and PR recovery smoke"),
+  );
+  assert.equal(
+    (job.match(/node packages\/cli\/scripts\/pr-recovery-smoke\.mjs/g) || [])
+      .length,
+    1,
+  );
+});
+
 test("workflow uses step outcomes and a final non-zero verdict", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "test-automation-full.yml"),
