@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.46: restore Agent chat before Evolution deployment
+
+- Restore ordinary Agent and IDE stream chat for installations with no
+  Evolution deployment configured.
+- Continue authenticating configured deployments and reject invalid, disabled,
+  or unauthorized Agent deployments without falling back to ordinary chat.
+- Refresh public npm metadata during release verification retries.
+
 ## [v5.0.3.137] - 2026-09-11 — DeepSeek V4 Flash GA 默认模型与全端同步发行
 
 > 本版将火山引擎新配置的默认文本模型统一为 DeepSeek V4 Flash GA，并同步发行 CLI、IDE 插件、桌面端与移动端产物；既有已保存模型配置保持不变。

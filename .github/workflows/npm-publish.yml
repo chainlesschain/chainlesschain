@@ -746,7 +746,8 @@ jobs:
             if [ ! -f "$AUDIT_ROOT/node_modules/chainlesschain/package.json" ]; then
               if ! (
                 cd "$AUDIT_ROOT"
-                npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION" \
+                npm install --ignore-scripts --no-audit --no-fund --prefer-online \
+                  --registry=https://registry.npmjs.org "chainlesschain@$VERSION" \
                   2> "$INSTALL_ERROR"
               ); then
                 if [ "$ATTEMPT" -eq 30 ]; then
