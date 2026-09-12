@@ -68,6 +68,8 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ${{ matrix.os }}
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     # A fail-closed Windows fallback currently needs about 50 minutes including
     # checkout, install, type-check, and the complete unit roots.
     timeout-minutes: 75
@@ -89,6 +91,15 @@ jobs:
           # The selector diffs origin/<base>...HEAD. A depth-1 checkout plus a
           # depth-1 base fetch contains both tips but no common ancestor.
           fetch-depth: 0
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Desktop and UniApp source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5

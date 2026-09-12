@@ -12,6 +12,16 @@ on:
     paths:
       - "android-app/**"
       - "packages/agent-protocol/**"
+      - ".github/workflows/android-tests.yml"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+env:
+  SOURCE_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 # 2026-05-24: parallel session 每 ~10 min push 一次 → 8+ queued runs 堆积
 # (see CI run 26349686684 stuck in 5th queue position 30+ min)，每个 run
@@ -19,7 +29,7 @@ on:
 # 后续 push 直接 cancel 还在 queued / in_progress 的旧 run，只保留最新一个。
 # PR 用 head_ref 防 fork → upstream 冲撞自己 (push 走 ref 区分分支即可)。
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,6 +45,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Android source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -124,19 +144,50 @@ jobs:
             :wear-app:testDebugUnitTest \
             --parallel --max-workers=4 --no-daemon
 
+      - name: Verify actual model-egress JUnit results
+        if: always()
+        working-directory: android-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          expected = (
+              ("feature-file-browser", "com.chainlesschain.android.feature.filebrowser.ml.ModelEgressGovernanceTest", 8),
+              ("feature-ai", "com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceTest", 3),
+              ("app", "com.chainlesschain.android.pdh.llm.ModelEgressGovernanceTest", 1),
+          )
+          for module, suite_name, minimum in expected:
+              report = Path(module) / "build/test-results/testDebugUnitTest" / f"TEST-{suite_name}.xml"
+              if not report.is_file():
+                  raise SystemExit(f"Missing real model-egress report: {report}")
+              suite = ET.parse(report).getroot()
+              cases = suite.findall("testcase")
+              if (suite.tag != "testsuite" or suite.get("name") != suite_name
+                      or len(cases) < minimum or int(suite.get("tests", "-1")) != len(cases)
+                      or any(int(suite.get(key, "-1")) != 0 for key in ("failures", "errors", "skipped"))
+                      or any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped"))):
+                  raise SystemExit(f"Incomplete or failed model-egress results: {report}")
+              print(f"{os.environ['SOURCE_SHA']}: {suite_name}: {len(cases)} passed, zero skipped")
+          PY
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: unit-test-results
+          name: unit-test-results-${{ env.SOURCE_SHA }}
           path: android-app/**/build/test-results/testDebugUnitTest/
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: unit-test-reports
+          name: unit-test-reports-${{ env.SOURCE_SHA }}
           path: android-app/**/build/reports/tests/testDebugUnitTest/
           retention-days: 7
 
@@ -155,6 +206,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Android source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -251,6 +312,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Android source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -358,6 +429,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Android source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -397,6 +478,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact Android source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Run Dependency Check
         working-directory: android-app

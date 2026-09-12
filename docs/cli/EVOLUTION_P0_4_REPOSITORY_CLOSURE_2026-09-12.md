@@ -69,6 +69,26 @@
 - 最终源 `pr-recovery-smoke.mjs` **exit 0**（约 4 分钟）：原三种场景、原停止调用次数和拒绝命令零执行断言保留；另验证真实 canonical kernel 已提交压缩、消息减少且节省 token。实际 **18 次本地 provider 请求、0 次摘要请求、0 次 GitHub 请求**；压缩正控是确定性压缩，不声称执行了模型摘要。
 - 三个相关源/测试文件的 ESLint、Prettier、差异检查通过。该证据仅针对源脚本，未将其解释为已安装 payload 或最终三系统 Actions 通过。
 
+## 最终源码身份与 CI 结果门
+
+Android Tests 新增指定 `commit_sha` 的手动入口，并将 workflow 自身路径加入 push/PR 触发。五个实际 checkout job 都从同一个 `SOURCE_SHA` 取源码，在构建前校验完整 SHA 与 `git rev-parse HEAD` 一致；可控输入通过环境变量传入 shell，不直接拼入命令。既有测试矩阵和任务不减少。
+
+新增 JUnit 结果门读取实际 Gradle XML，要求 file-browser 的 8 项、feature-ai 的 3 项、app PDH 的 1 项已有治理测试全部执行、零失败且零跳过；缺文件、空报告或不完整结果均失败，不能以 `NO-SOURCE` 代替原生测试。上传的单元报告名绑定源码 SHA。CI Tests 的 Desktop 三系统 Unit Tests（含 Linux UniApp）也固定并校验 PR head SHA；Backend 已有相同约束，无需重复改写。
+
+三个 workflow/契约文件的最终本地验证为 **44/44、零跳过**（9.44 秒），包含实际执行 Python XML 判定器的 8 种正反例；YAML、actionlint、ESLint、Prettier、差异检查通过。这是门禁实现的验证，不是新的 Android 构建或 Actions 运行结果。
+
+最终验收需要逐项检查下表，不只看分支保护的既有 required contexts：
+
+| 工作流                          | 必须取得的结果与身份                                                                                        |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| CLI CI                          | 三系统 52 个 unit/integration/e2e shards、三系统 verify-cli、两个 PR dry-run；精确 head SHA                 |
+| CLI Strict Sandbox              | Linux、macOS、Windows 三个实际内核边界任务；精确 head SHA                                                   |
+| CI Tests                        | Backend 真实启动/拒绝、Desktop Unit Tests 三系统及 Linux UniApp；精确 head SHA                              |
+| Android Tests                   | 保留全部既有单元、API 28/30 instrumentation、coverage、lint、汇总门；同一源码 SHA，12 项实际治理 JUnit 齐全 |
+| iOS App Remote Session Recovery | 实际 SwiftPM 源码测试、静态契约、unsigned simulator build 和产物检查；精确 `commit_sha`                     |
+
+PDH 两系统及 Full Test Automation 两系统仍提供补充回归；其既有 PR checkout 为 merge ref，不冒称精确 head SHA。本次 Android workflow 改动会自行触发 PR 验证；iOS 不在本次源码 diff 内，需获授权后用既有手动入口测试最终 SHA。手动触发的默认分支要求见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。未修改分支保护，也未执行 push、PR 创建或 workflow dispatch。
+
 ## 远端身份快照
 
 2026-09-12 17:56（上海）查询时，本地 `af2ec8bed3a033ae5b87ee50185ad96e732a3af8` 和 iOS 变更提交 `e9077296c84f7690fadc6361689627fb945b5c7b` 均无 Actions run。GitHub `main` 为 `13fe45afd66e3538e4c33c8e5309c253e3d1e3de`。

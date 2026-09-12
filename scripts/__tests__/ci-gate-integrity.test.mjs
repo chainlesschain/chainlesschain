@@ -81,13 +81,206 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("Desktop and UniApp CI test the exact PR source without changing the matrix", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github/workflows/test.yml"),
+    "utf8",
+  );
+  const job = workflow.slice(
+    workflow.indexOf("  unit-tests:"),
+    workflow.indexOf("  lint:"),
+  );
+  assert.ok(
+    job.includes(
+      "SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+    ),
+  );
+  assert.ok(job.includes("ref: ${{ env.SOURCE_SHA }}"));
+  assert.match(job, /fetch-depth: 0/);
+  assert.ok(job.includes('[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]'));
+  assert.ok(job.includes('test "$(git rev-parse HEAD)" = "$SOURCE_SHA"'));
+  assert.ok(job.includes('echo "Tested source SHA: $SOURCE_SHA"'));
+  assert.ok(
+    job.indexOf("Verify exact Desktop and UniApp source commit") <
+      job.indexOf("Setup Node.js"),
+  );
+  assert.match(job, /os: \[ubuntu-latest, windows-latest, macos-latest\]/);
+});
+
+test("Android exact-commit dispatch binds every checkout and retains native model tests", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github/workflows/android-tests.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /workflow_dispatch:\s+inputs:\s+commit_sha:/);
+  for (const event of ["push", "pull_request"]) {
+    const eventBlock = workflow.match(
+      new RegExp(`  ${event}:\\r?\\n([\\s\\S]*?)(?=^  [a-z_]+:)`, "m"),
+    )?.[1];
+    assert.ok(
+      eventBlock?.includes('".github/workflows/android-tests.yml"'),
+      `${event} must test workflow-only changes`,
+    );
+  }
+  assert.ok(
+    workflow.includes(
+      "SOURCE_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}",
+    ),
+  );
+  assert.equal((workflow.match(/uses: actions\/checkout@/g) || []).length, 5);
+  const jobs = workflow.split(/^ {2}(?=[a-z][a-z-]+:\r?$)/m);
+  for (const name of [
+    "unit-tests",
+    "instrumented-tests",
+    "code-coverage",
+    "lint-and-detekt",
+    "security-scan",
+  ]) {
+    const job = jobs.find((part) => part.startsWith(`${name}:`));
+    assert.ok(job, `missing Android job ${name}`);
+    assert.ok(job.includes("ref: ${{ env.SOURCE_SHA }}"), name);
+    assert.ok(job.includes('[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]'), name);
+    assert.ok(
+      job.includes('test "$(git rev-parse HEAD)" = "$SOURCE_SHA"'),
+      name,
+    );
+    assert.ok(job.includes('echo "Tested source SHA: $SOURCE_SHA"'), name);
+    const verification = job.slice(
+      job.indexOf("- name: Verify exact Android source commit"),
+      job.indexOf(
+        "\n      - name:",
+        job.indexOf("- name: Verify exact Android source commit") + 1,
+      ),
+    );
+    assert.doesNotMatch(verification, /\$\{\{|continue-on-error|\|\|\s*true/);
+  }
+  const unit = jobs.find((part) => part.startsWith("unit-tests:"));
+  for (const module of ["app", "feature-ai", "feature-file-browser"])
+    assert.ok(unit.includes(`:${module}:testDebugUnitTest`));
+  assert.match(workflow, /api-level: \[28, 30\]/);
+  assert.ok(unit.includes("name: unit-test-results-${{ env.SOURCE_SHA }}"));
+  assert.ok(unit.includes("if-no-files-found: error"));
+  assert.ok(
+    unit.indexOf("Verify actual model-egress JUnit results") >
+      unit.indexOf("Run Remaining Module Tests and Generate Report"),
+  );
+});
+
+test("Android JUnit gate rejects missing, skipped, failed and incomplete real suites", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github/workflows/android-tests.yml"),
+    "utf8",
+  );
+  const step = workflow.match(
+    /- name: Verify actual model-egress JUnit results\r?\n([\s\S]*?)(?=\r?\n {6}- name:)/,
+  )?.[1];
+  assert.ok(step);
+  assert.match(step, /if: always\(\)/);
+  assert.doesNotMatch(step, /continue-on-error|\|\|\s*true/);
+  const script = step
+    .match(/python3 - <<'PY'\r?\n([\s\S]*?)\r?\n {10}PY/)?.[1]
+    .split(/\r?\n/)
+    .map((line) => line.slice(10))
+    .join("\n");
+  assert.ok(script, "actual Python JUnit verdict must be exercised");
+  const suites = [
+    [
+      "feature-file-browser",
+      "com.chainlesschain.android.feature.filebrowser.ml.ModelEgressGovernanceTest",
+      8,
+    ],
+    [
+      "feature-ai",
+      "com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceTest",
+      3,
+    ],
+    ["app", "com.chainlesschain.android.pdh.llm.ModelEgressGovernanceTest", 1],
+  ];
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-model-junit-"));
+  const report = (suite) =>
+    path.join(
+      root,
+      suite[0],
+      "build/test-results/testDebugUnitTest",
+      `TEST-${suite[1]}.xml`,
+    );
+  function writeSuite(
+    suite,
+    {
+      missing = false,
+      skipped = 0,
+      failures = 0,
+      errors = 0,
+      count = suite[2],
+      declared = count,
+      caseFailure = false,
+    } = {},
+  ) {
+    if (missing) return;
+    fs.mkdirSync(path.dirname(report(suite)), { recursive: true });
+    const cases = Array.from(
+      { length: count },
+      (_, index) =>
+        `<testcase name="case-${index}" classname="${suite[1]}">${caseFailure && index === 0 ? '<failure message="denial failed"/>' : ""}</testcase>`,
+    ).join("");
+    fs.writeFileSync(
+      report(suite),
+      `<testsuite name="${suite[1]}" tests="${declared}" failures="${failures}" errors="${errors}" skipped="${skipped}">${cases}</testsuite>`,
+    );
+  }
+  try {
+    for (const [label, changed] of [
+      ["complete", {}],
+      ["missing", { missing: true }],
+      ["skip", { skipped: 1 }],
+      ["failure", { failures: 1 }],
+      ["error", { errors: 1 }],
+      ["missing-cases", { count: 7 }],
+      ["count-mismatch", { declared: 9 }],
+      ["hidden-case-failure", { caseFailure: true }],
+    ]) {
+      for (const suite of suites) {
+        fs.rmSync(report(suite), { force: true });
+        writeSuite(suite, suite === suites[0] ? changed : {});
+      }
+      const result = spawnSync(
+        process.platform === "win32" ? "python" : "python3",
+        ["-c", script],
+        {
+          cwd: root,
+          encoding: "utf8",
+          timeout: 10_000,
+          env: { ...process.env, SOURCE_SHA: "a".repeat(40) },
+        },
+      );
+      assert.equal(
+        result.error,
+        undefined,
+        `Python 3 is required to verify the actual CI verdict: ${result.error}`,
+      );
+      if (label === "complete") {
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.stdout.split("zero skipped").length - 1, 3);
+        assert.ok(result.stdout.includes("a".repeat(40)));
+      } else
+        assert.notEqual(
+          result.status,
+          0,
+          `${label} must fail the actual CI verdict`,
+        );
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("model-egress CI executes both UniApp guards without allowing failure", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "test.yml"),
     "utf8",
   );
   const step = workflow.match(
-    /^      - name: Verify UniApp model-egress default deny\r?\n([\s\S]*?)(?=^      - name:)/m,
+    /^ {6}- name: Verify UniApp model-egress default deny\r?\n([\s\S]*?)(?=^ {6}- name:)/m,
   )?.[1];
   assert.ok(step, "missing UniApp model-egress CI step");
   assert.match(step, /if: runner\.os == 'Linux'/);
@@ -112,7 +305,7 @@ test("model-egress CI runs real backend startup and guards as a required job", (
     "utf8",
   );
   const job = workflow.match(
-    /^  backend-model-egress:\r?\n([\s\S]*?)(?=^  unit-tests:)/m,
+    /^ {2}backend-model-egress:\r?\n([\s\S]*?)(?=^ {2}unit-tests:)/m,
   )?.[1];
   assert.ok(job, "missing required backend model-egress job");
   assert.match(job, /runs-on: ubuntu-latest/);
@@ -278,7 +471,7 @@ test("actionlint ShellCheck baseline is limited to exact legacy paths and rules"
   const pathsConfig = config.slice(pathsMarker.index + pathsMarker[0].length);
   for (const line of pathsConfig.split(/\r?\n/u)) {
     if (line.trim() === "" || line.startsWith("  #")) continue;
-    const pathEntry = line.match(/^  (\S.*):$/u);
+    const pathEntry = line.match(/^ {2}(\S.*):$/u);
     if (pathEntry) {
       const rawPath = pathEntry[1].trim();
       const workflowPath =
@@ -305,7 +498,7 @@ test("actionlint ShellCheck baseline is limited to exact legacy paths and rules"
       continue;
     }
     const ignoreEntry = line.match(
-      /^      - ["']\^shellcheck reported issue in this script: (SC\d{4}):["']$/u,
+      /^ {6}- ["']\^shellcheck reported issue in this script: (SC\d{4}):["']$/u,
     );
     assert.ok(
       ignoreEntry,
