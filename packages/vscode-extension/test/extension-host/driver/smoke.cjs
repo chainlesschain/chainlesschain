@@ -18,7 +18,10 @@ const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 // Cold ARM64 macOS hosts can spend more than 30 seconds activating the first
 // installed VSIX while the stable Workbench initializes its extension graph.
 // Keep this bounded, but leave enough room for the exact activation to finish.
-const EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000;
+// Activation includes the fail-closed Windows lockfile publisher. Its cold
+// PowerShell/ACL path has a 60s internal deadline, so this outer guard must not
+// expire first and hide the publisher's actionable diagnostic.
+const EXTENSION_ACTIVATION_TIMEOUT_MS = 90_000;
 const REQUIRED_COMMANDS = [
   "chainlesschain.ide.showStatus",
   "chainlesschain.complete.trigger",
@@ -678,7 +681,8 @@ async function run() {
   // discovery artifact and then prove the advertised localhost port is live.
   // Windows may need a cold PowerShell start to apply and independently verify
   // the owner-only bridge-token ACL. The production publisher is asynchronous
-  // and fail-closed with its own 30s deadline; leave enough outer-test margin
+  // and fail-closed with its own 60s deadline; activation waits for publication
+  // before this polling phase, so leave a separate discovery margin
   // to capture that diagnostic instead of terminating the Extension Host first.
   const lock = await waitForBridgeLock(profileHome, workspaceFolders, 45_000);
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");

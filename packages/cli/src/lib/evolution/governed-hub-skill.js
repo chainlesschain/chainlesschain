@@ -9,25 +9,12 @@ export async function runGovernedHubSkill(
   name,
   options,
 ) {
-  const model = createGovernedHubLlm(hub.llm, factory);
   let failure;
   let failed = false;
-  const llm = Object.freeze({
-    get name() {
-      return model.name;
-    },
-    get isLocal() {
-      return model.isLocal;
-    },
-    async chat(messages, chatOptions) {
-      if (failed) throw failure;
-      try {
-        return await model.chat(messages, chatOptions);
-      } catch (error) {
-        failure = error;
-        failed = true;
-        throw error;
-      }
+  const llm = createGovernedHubLlm(hub.llm, factory, {
+    onFailure(error) {
+      failure = error;
+      failed = true;
     },
   });
   const result = await runSkill({ vault: hub.vault, llm }, name, options);

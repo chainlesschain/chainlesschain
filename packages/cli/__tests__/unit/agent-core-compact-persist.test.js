@@ -13,7 +13,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { projectCanonicalResumeMessages } from "../../src/lib/session-message-provenance.js";
 
-vi.mock("../../src/harness/jsonl-session-store.js", () => ({
+vi.mock("../../src/harness/jsonl-session-store.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   sessionExists: vi.fn(() => true),
   appendCompactEventIfMessagesMatch: vi.fn(),
 }));

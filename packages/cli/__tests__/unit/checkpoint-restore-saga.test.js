@@ -3166,7 +3166,11 @@ describe("CheckpointRestoreSagaStore", () => {
   });
 
   it("serializes a real two-process CAS so exactly one contender wins", async () => {
-    const testFixture = fixture();
+    // Hosted macOS can spend several seconds flushing the winner's durable
+    // event under shard load. Keep the contender waiting long enough to
+    // observe the committed head and report CONFLICT, rather than mistaking
+    // transient lock contention for a lock failure.
+    const testFixture = fixture({ lockTimeoutMs: 30_000 });
     const saga = testFixture.store.create({ operationId: "cas_processes" });
     const gate = path.join(testFixture.root, "cas-gate");
     const moduleUrl = new URL(
@@ -3189,6 +3193,7 @@ describe("CheckpointRestoreSagaStore", () => {
       const store = new CheckpointRestoreSagaStore({
         workspaceRoot: payload.workspaceRoot,
         stateDir: payload.stateDir,
+        lockTimeoutMs: payload.lockTimeoutMs,
         secureDirectory,
         secureAuthorityPaths,
       });
@@ -3216,6 +3221,7 @@ describe("CheckpointRestoreSagaStore", () => {
       operationId: saga.operationId,
       expectedSeq: saga.seq,
       expectedHash: saga.headHash,
+      lockTimeoutMs: 30_000,
     };
 
     const contenders = [0, 1].map(() => {

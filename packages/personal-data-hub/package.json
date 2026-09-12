@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/personal-data-hub",
-  "version": "0.4.60",
+  "version": "0.4.61",
   "description": "Personal Data Hub — UnifiedSchema + validators + KG ingest helpers for the data-back-to-the-individual middleware",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -27,6 +27,7 @@
     "./query-parser": "./lib/query-parser.js",
     "./prompt-builder": "./lib/prompt-builder.js",
     "./llm-client": "./lib/llm-client.js",
+    "./model-egress-guard": "./lib/model-egress-guard.js",
     "./analysis": "./lib/analysis.js",
     "./bridges": "./lib/bridges/index.js",
     "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",

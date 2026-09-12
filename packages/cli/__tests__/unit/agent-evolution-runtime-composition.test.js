@@ -6473,7 +6473,7 @@ describe("Agent evolution runtime production composition", () => {
       resolveAgentCommandEvolutionComposition(null, {
         mode: "interactive",
       }),
-    ).resolves.toBeNull();
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
     await expect(
       resolveAgentCommandEvolutionComposition(() => ({}), {
         mode: "interactive",

@@ -371,7 +371,12 @@ try {
 }
 `;
 
-const WINDOWS_PUBLISH_TIMEOUT_MS = 30000;
+// Match the allowance already used by the CLI's Windows ACL release gate.
+// A hosted Windows runner can spend more than 30 seconds cold-starting
+// Windows PowerShell and the access-control types under load. Publication
+// remains fail-closed: this only gives the owner-only mutation + independent
+// readback enough time to finish before the token and bridge are discarded.
+const WINDOWS_PUBLISH_TIMEOUT_MS = 60000;
 const WINDOWS_PUBLISH_OUTPUT_LIMIT = 64 * 1024;
 // Windows PowerShell 5.1 cold starts can exceed 10 seconds on contended CI
 // runners. Production publication is asynchronous; this larger bound applies

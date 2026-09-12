@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
+vi.mock("../../src/lib/goal-assess.js", () => ({
+  assessGoalProgress: vi.fn(),
+}));
+
+const { assessGoalProgress } = await import("../../src/lib/goal-assess.js");
+
 /** Capturing fake of the persistent ApprovalGate singleton. */
 function fakeGate() {
   return {
@@ -146,13 +152,13 @@ describe("headless goal binding (cc goal Phase 1)", () => {
     // Inject store + assessment seams so nothing touches the real goal store.
     deps.getGoal = () => GOAL;
     let assessArgs = null;
-    deps.assessGoalProgress = async (args) => {
+    assessGoalProgress.mockImplementationOnce(async (args) => {
       assessArgs = args;
       return {
         assessment: { advanced: true, progress: 35, note: "moved forward" },
         goal: GOAL,
       };
-    };
+    });
     await runAgentHeadless(
       {
         prompt: "do it",
@@ -180,16 +186,12 @@ describe("headless goal binding (cc goal Phase 1)", () => {
   it("does NOT assess when --goal-assess is omitted", async () => {
     const { deps, out } = makeDeps({ goal: { fn: () => GOAL } });
     deps.getGoal = () => GOAL;
-    let called = false;
-    deps.assessGoalProgress = async () => {
-      called = true;
-      return { assessment: null, goal: GOAL };
-    };
+    assessGoalProgress.mockClear();
     await runAgentHeadless(
       { prompt: "x", outputFormat: "stream-json", goal: "goal-x" }, // no goalAssess
       deps,
     );
-    expect(called).toBe(false);
+    expect(assessGoalProgress).not.toHaveBeenCalled();
     const lines = out
       .join("")
       .trim()

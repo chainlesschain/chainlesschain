@@ -117,6 +117,8 @@ vi.mock("../../src/runtime/agent-core.js", async (importOriginal) => {
       actual.agentLoop(messages, withTestIngress(options)),
     chatWithTools: (messages, options = {}) =>
       actual.chatWithTools(messages, withTestIngress(options)),
+    executeTool: (name, args, context = {}) =>
+      actual.executeTool(name, args, withTestIngress(context)),
   };
 });
 

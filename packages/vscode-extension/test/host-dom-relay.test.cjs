@@ -88,6 +88,22 @@ test("chat HTML keeps the relay inert without a valid launch token", () => {
   }
 });
 
+test("chat composer gives the input and controls separate responsive rows", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+
+  assert.match(html, /#bar \{ display:flex; flex-direction:column;/u);
+  assert.match(html, /#input \{ box-sizing:border-box; width:100%;/u);
+  assert.match(html, /#composer-actions \{ display:flex; gap:4px; flex-wrap:wrap;/u);
+  assert.match(
+    html,
+    /<textarea id="input"[\s\S]*?<\/textarea>\s*<div id="composer-actions" role="group" aria-label="Chat controls">[\s\S]*?<button id="send">Send<\/button>[\s\S]*?<button id="plan-toggle"[\s\S]*?<button id="stop"[\s\S]*?<button id="new"[\s\S]*?<\/div>\s*<\/div>/u,
+  );
+});
+
 test("chat HTML accepts agent activity before routing every known event", () => {
   const html = buildChatHtml({
     cspSource: "vscode-webview:",

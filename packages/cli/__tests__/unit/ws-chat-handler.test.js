@@ -92,6 +92,13 @@ describe("WSChatHandler", () => {
 
       const p1 = handler.handleMessage("first", "req-1");
 
+      // The governed turn preparation is asynchronous. Wait until the first
+      // request has reached its deliberately blocked provider call before
+      // asserting the concurrent-request contract.
+      await vi.waitFor(() => {
+        expect(chatWithStreaming).toHaveBeenCalledTimes(1);
+      });
+
       // Try second message while first is processing
       await handler.handleMessage("second", "req-2");
 

@@ -21,7 +21,9 @@
 
 "use strict";
 
-const { rejectLegacyModelEgress } = require("./model-egress-guard");
+const {
+  assertAuthenticatedEvolutionModelEgress,
+} = require("./model-egress-guard");
 
 const {
   parseQuery,
@@ -51,7 +53,11 @@ const LATEST_INTENT_FACT_LIMIT = 3;
 // Inventory-snapshot extra.kind values — synthetic collection-time events that
 // would otherwise distort ASC time ordering (intent=first). Mirrors the
 // timeline skill's exclusion list.
-const SNAPSHOT_KINDS = ["app-snapshot", "contact-snapshot", "app-usage-profile"];
+const SNAPSHOT_KINDS = [
+  "app-snapshot",
+  "contact-snapshot",
+  "app-usage-profile",
+];
 
 // intent=count illustrative-sample cap. The TOTALS block (vault.stats per-table
 // counts) is the authoritative count and Rule 6 tells the LLM to quote it, NOT
@@ -112,19 +118,26 @@ class AnalysisEngine {
    * @param {string} [opts.systemPrompt]
    */
   constructor(opts) {
-    if (!opts || typeof opts !== "object") throw new Error("AnalysisEngine: opts required");
+    if (!opts || typeof opts !== "object")
+      throw new Error("AnalysisEngine: opts required");
     if (!opts.vault) throw new Error("AnalysisEngine: opts.vault required");
     if (!opts.llm || typeof opts.llm.chat !== "function") {
       throw new Error("AnalysisEngine: opts.llm with .chat() required");
     }
     if (typeof opts.llm.isLocal !== "boolean") {
-      throw new Error("AnalysisEngine: opts.llm.isLocal must be declared (true/false)");
+      throw new Error(
+        "AnalysisEngine: opts.llm.isLocal must be declared (true/false)",
+      );
     }
 
     this.vault = opts.vault;
     this.llm = opts.llm;
-    this.ragRetriever = typeof opts.ragRetriever === "function" ? opts.ragRetriever : null;
-    this.maxFacts = Number.isInteger(opts.maxFacts) && opts.maxFacts > 0 ? opts.maxFacts : DEFAULT_MAX_FACTS;
+    this.ragRetriever =
+      typeof opts.ragRetriever === "function" ? opts.ragRetriever : null;
+    this.maxFacts =
+      Number.isInteger(opts.maxFacts) && opts.maxFacts > 0
+        ? opts.maxFacts
+        : DEFAULT_MAX_FACTS;
     this.maxQueryLimit =
       Number.isInteger(opts.maxQueryLimit) && opts.maxQueryLimit > 0
         ? opts.maxQueryLimit
@@ -157,12 +170,14 @@ class AnalysisEngine {
    */
   async ask(question, options = {}) {
     if (typeof question !== "string" || question.length === 0) {
-      throw new Error("AnalysisEngine.ask: question must be a non-empty string");
+      throw new Error(
+        "AnalysisEngine.ask: question must be a non-empty string",
+      );
     }
     if (!this.llm.isLocal && !options.acceptNonLocal) {
       throw new Error(
         "AnalysisEngine.ask: LLM declared non-local; pass acceptNonLocal: true to opt in. " +
-          "(Personal Data Hub default policy: all inference stays on-device.)"
+          "(Personal Data Hub default policy: all inference stays on-device.)",
       );
     }
 
@@ -182,7 +197,10 @@ class AnalysisEngine {
         : this.maxQueryLimit;
 
     // Gather facts from the vault.
-    const facts = this._gatherFacts(parsed, { maxFacts: effMaxFacts, maxQueryLimit: effMaxQueryLimit });
+    const facts = this._gatherFacts(parsed, {
+      maxFacts: effMaxFacts,
+      maxQueryLimit: effMaxQueryLimit,
+    });
 
     // Telemetry: prove the budget is reaching the engine. Goes to stderr so
     // the Android side's stderrBuilder + logcat can surface it.
@@ -194,9 +212,11 @@ class AnalysisEngine {
           `persons=${facts.filter((f) => f.type === "person").length} ` +
           `items=${facts.filter((f) => f.type === "item").length}) ` +
           `adapter=${(parsed.filters && parsed.filters.adapter) || "*"} ` +
-          `intent=${parsed.intent || "*"}\n`
+          `intent=${parsed.intent || "*"}\n`,
       );
-    } catch (_e) { /* stderr write failures are non-fatal */ }
+    } catch (_e) {
+      /* stderr write failures are non-fatal */
+    }
 
     // Optional RAG augmentation.
     let ragContext = [];
@@ -219,7 +239,9 @@ class AnalysisEngine {
         // RAG failure shouldn't abort Q&A — log and continue with direct facts.
         const e = toError(err, "ragRetriever");
         try {
-          this.vault.audit("analysis.rag_failed", question, { error: e.message });
+          this.vault.audit("analysis.rag_failed", question, {
+            error: e.message,
+          });
         } catch (_e) {}
       }
     }
@@ -255,26 +277,40 @@ class AnalysisEngine {
       maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
       amountSummary:
-        parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
-      rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
+        parsed.intent === "sum-amount"
+          ? this._gatherAmountSummary(parsed)
+          : undefined,
+      rankSummary:
+        parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
       distinctCount:
-        parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
+        parsed.intent === "distinct-count"
+          ? this._gatherDistinctCount(parsed)
+          : undefined,
       spendingRank:
-        parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
+        parsed.intent === "amount-rank"
+          ? this._gatherSpendingRank(parsed)
+          : undefined,
       timeHistogram:
-        parsed.intent === "time-histogram" ? this._gatherTimeHistogram(parsed) : undefined,
+        parsed.intent === "time-histogram"
+          ? this._gatherTimeHistogram(parsed)
+          : undefined,
       crossAppOverview,
     });
 
     // Telemetry: post-cap prompt size + truncation count. If `truncated` > 0
     // the LLM is seeing fewer facts than _gatherFacts found.
     try {
-      const promptChars = messages.reduce((s, m) => s + (m.content || "").length, 0);
+      const promptChars = messages.reduce(
+        (s, m) => s + (m.content || "").length,
+        0,
+      );
       process.stderr.write(
         `[PDH-ASK] prompt factCount=${factCount} truncated=${truncated} ` +
-          `messages=${messages.length} promptChars=${promptChars}\n`
+          `messages=${messages.length} promptChars=${promptChars}\n`,
       );
-    } catch (_e) { /* non-fatal */ }
+    } catch (_e) {
+      /* non-fatal */
+    }
 
     // Call LLM. **skipCache: true** is critical: PDH answers depend on
     // current vault state (new contacts / events / items ingested between
@@ -287,7 +323,7 @@ class AnalysisEngine {
     // freshness-over-latency tradeoff makes the cache strictly counter-
     // productive at this layer. The cache for OTHER LLM uses (chat /
     // skill orchestration / autonomous-agent) is unaffected.
-    rejectLegacyModelEgress();
+    assertAuthenticatedEvolutionModelEgress(this.llm);
 
     let llmResp;
     try {
@@ -305,7 +341,8 @@ class AnalysisEngine {
       throw e;
     }
 
-    const answer = (llmResp && typeof llmResp.text === "string") ? llmResp.text : "";
+    const answer =
+      llmResp && typeof llmResp.text === "string" ? llmResp.text : "";
 
     // Parse + validate citations.
     const cited = parseCitations(answer);
@@ -383,7 +420,9 @@ class AnalysisEngine {
    */
   async retrieveContext(question, options = {}) {
     if (typeof question !== "string" || question.length === 0) {
-      throw new Error("AnalysisEngine.retrieveContext: question must be a non-empty string");
+      throw new Error(
+        "AnalysisEngine.retrieveContext: question must be a non-empty string",
+      );
     }
 
     const startedAt = Date.now();
@@ -398,7 +437,10 @@ class AnalysisEngine {
         ? options.maxQueryLimit
         : this.maxQueryLimit;
 
-    const facts = this._gatherFacts(parsed, { maxFacts: effMaxFacts, maxQueryLimit: effMaxQueryLimit });
+    const facts = this._gatherFacts(parsed, {
+      maxFacts: effMaxFacts,
+      maxQueryLimit: effMaxQueryLimit,
+    });
 
     const ragContextIds = [];
     if (this.ragRetriever) {
@@ -417,8 +459,12 @@ class AnalysisEngine {
       } catch (err) {
         const e = toError(err, "ragRetriever");
         try {
-          this.vault.audit("analysis.rag_failed", question, { error: e.message });
-        } catch (_e) { /* audit failures are non-fatal */ }
+          this.vault.audit("analysis.rag_failed", question, {
+            error: e.message,
+          });
+        } catch (_e) {
+          /* audit failures are non-fatal */
+        }
       }
     }
 
@@ -431,14 +477,23 @@ class AnalysisEngine {
       maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
       amountSummary:
-        parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
-      rankSummary: parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
+        parsed.intent === "sum-amount"
+          ? this._gatherAmountSummary(parsed)
+          : undefined,
+      rankSummary:
+        parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
       distinctCount:
-        parsed.intent === "distinct-count" ? this._gatherDistinctCount(parsed) : undefined,
+        parsed.intent === "distinct-count"
+          ? this._gatherDistinctCount(parsed)
+          : undefined,
       spendingRank:
-        parsed.intent === "amount-rank" ? this._gatherSpendingRank(parsed) : undefined,
+        parsed.intent === "amount-rank"
+          ? this._gatherSpendingRank(parsed)
+          : undefined,
       timeHistogram:
-        parsed.intent === "time-histogram" ? this._gatherTimeHistogram(parsed) : undefined,
+        parsed.intent === "time-histogram"
+          ? this._gatherTimeHistogram(parsed)
+          : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -451,7 +506,9 @@ class AnalysisEngine {
           ragContextIds: ragContextIds.length,
           durationMs,
         });
-      } catch (_e) { /* audit failures are non-fatal */ }
+      } catch (_e) {
+        /* audit failures are non-fatal */
+      }
     }
 
     return {
@@ -583,8 +640,13 @@ class AnalysisEngine {
       const nameCandidate = extractPersonNameCandidate(parsed.raw);
       if (nameCandidate && typeof this.vault.searchPersons === "function") {
         try {
-          persons = this.vault.searchPersons({ q: nameCandidate, limit: personLimit });
-        } catch (_e) { /* tolerate — try ingest-ordered fallback */ }
+          persons = this.vault.searchPersons({
+            q: nameCandidate,
+            limit: personLimit,
+          });
+        } catch (_e) {
+          /* tolerate — try ingest-ordered fallback */
+        }
       }
       if (persons.length === 0) {
         try {
@@ -596,19 +658,24 @@ class AnalysisEngine {
       if (persons.length > 0) {
         const eventHeadroom = Math.max(
           0,
-          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO)
+          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO),
         );
         let events = [];
         if (eventHeadroom > 0) {
           const eq = { limit: eventHeadroom };
-          if (parsed.filters && parsed.filters.adapter) eq.adapter = parsed.filters.adapter;
+          if (parsed.filters && parsed.filters.adapter)
+            eq.adapter = parsed.filters.adapter;
           if (parsed.timeWindow) {
-            if (Number.isFinite(parsed.timeWindow.since)) eq.since = parsed.timeWindow.since;
-            if (Number.isFinite(parsed.timeWindow.until)) eq.until = parsed.timeWindow.until;
+            if (Number.isFinite(parsed.timeWindow.since))
+              eq.since = parsed.timeWindow.since;
+            if (Number.isFinite(parsed.timeWindow.until))
+              eq.until = parsed.timeWindow.until;
           }
           try {
             events = this.vault.queryEvents(eq);
-          } catch (_e) { /* tolerate */ }
+          } catch (_e) {
+            /* tolerate */
+          }
         }
         // persons-first ordering so the LLM reads the contact rows before
         // the (sparse) event tail.
@@ -626,19 +693,24 @@ class AnalysisEngine {
       let items = [];
       try {
         items = this.vault.queryItems({ limit: itemLimit });
-      } catch (_e) { /* legacy */ }
+      } catch (_e) {
+        /* legacy */
+      }
       if (items.length > 0) {
         const eventHeadroom = Math.max(
           0,
-          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO)
+          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO),
         );
         let events = [];
         if (eventHeadroom > 0) {
           const eq = { limit: eventHeadroom };
-          if (parsed.filters && parsed.filters.adapter) eq.adapter = parsed.filters.adapter;
+          if (parsed.filters && parsed.filters.adapter)
+            eq.adapter = parsed.filters.adapter;
           try {
             events = this.vault.queryEvents(eq);
-          } catch (_e) { /* tolerate */ }
+          } catch (_e) {
+            /* tolerate */
+          }
         }
         return [...items, ...events].slice(0, effMaxFacts);
       }
@@ -661,10 +733,13 @@ class AnalysisEngine {
     // latest branch.
     if (parsed.intent === "count") {
       const countQ = { limit: Math.min(COUNT_INTENT_FACT_LIMIT, effMaxFacts) };
-      if (parsed.filters && parsed.filters.adapter) countQ.adapter = parsed.filters.adapter;
+      if (parsed.filters && parsed.filters.adapter)
+        countQ.adapter = parsed.filters.adapter;
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) countQ.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) countQ.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          countQ.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          countQ.until = parsed.timeWindow.until;
       }
       const countEvents = this.vault.queryEvents(countQ);
       if (countEvents.length > 0) return countEvents;
@@ -695,7 +770,7 @@ class AnalysisEngine {
     if (parsed.intent === "sum-amount") {
       const perSubtype = Math.max(
         SUM_AMOUNT_MIN_PER_SUBTYPE,
-        Math.floor(effMaxQueryLimit / SUM_AMOUNT_SUBTYPES.length)
+        Math.floor(effMaxQueryLimit / SUM_AMOUNT_SUBTYPES.length),
       );
       const seen = new Set();
       const amountEvents = [];
@@ -705,8 +780,10 @@ class AnalysisEngine {
           subQ.adapter = parsed.filters.adapter;
         }
         if (parsed.timeWindow) {
-          if (Number.isFinite(parsed.timeWindow.since)) subQ.since = parsed.timeWindow.since;
-          if (Number.isFinite(parsed.timeWindow.until)) subQ.until = parsed.timeWindow.until;
+          if (Number.isFinite(parsed.timeWindow.since))
+            subQ.since = parsed.timeWindow.since;
+          if (Number.isFinite(parsed.timeWindow.until))
+            subQ.until = parsed.timeWindow.until;
         }
         const rows = this.vault.queryEvents(subQ);
         for (const e of rows) {
@@ -732,10 +809,13 @@ class AnalysisEngine {
     const q = {
       limit: effMaxQueryLimit,
     };
-    if (parsed.filters && parsed.filters.adapter) q.adapter = parsed.filters.adapter;
+    if (parsed.filters && parsed.filters.adapter)
+      q.adapter = parsed.filters.adapter;
     if (parsed.timeWindow) {
-      if (Number.isFinite(parsed.timeWindow.since)) q.since = parsed.timeWindow.since;
-      if (Number.isFinite(parsed.timeWindow.until)) q.until = parsed.timeWindow.until;
+      if (Number.isFinite(parsed.timeWindow.since))
+        q.since = parsed.timeWindow.since;
+      if (Number.isFinite(parsed.timeWindow.until))
+        q.until = parsed.timeWindow.until;
     }
     const events = this.vault.queryEvents(q);
 
@@ -771,8 +851,10 @@ class AnalysisEngine {
               ftsQ.adapter = parsed.filters.adapter;
             }
             if (parsed.timeWindow) {
-              if (Number.isFinite(parsed.timeWindow.since)) ftsQ.since = parsed.timeWindow.since;
-              if (Number.isFinite(parsed.timeWindow.until)) ftsQ.until = parsed.timeWindow.until;
+              if (Number.isFinite(parsed.timeWindow.since))
+                ftsQ.since = parsed.timeWindow.since;
+              if (Number.isFinite(parsed.timeWindow.until))
+                ftsQ.until = parsed.timeWindow.until;
             }
             const ftsResult = this.vault.searchEvents(ftsQ);
             if (ftsResult && Array.isArray(ftsResult.rows)) {
@@ -815,10 +897,16 @@ class AnalysisEngine {
     let personBudget;
     let itemBudget;
     if (events.length >= effMaxFacts) {
-      const personReserve = Math.max(1, Math.floor(effMaxFacts * DEFAULT_PERSON_BUDGET_RATIO));
+      const personReserve = Math.max(
+        1,
+        Math.floor(effMaxFacts * DEFAULT_PERSON_BUDGET_RATIO),
+      );
       const itemReserve = Math.max(
         1,
-        Math.floor(effMaxFacts * (1 - DEFAULT_EVENT_BUDGET_RATIO - DEFAULT_PERSON_BUDGET_RATIO))
+        Math.floor(
+          effMaxFacts *
+            (1 - DEFAULT_EVENT_BUDGET_RATIO - DEFAULT_PERSON_BUDGET_RATIO),
+        ),
       );
       const eventCap = Math.max(1, effMaxFacts - personReserve - itemReserve);
       cappedEvents = events.slice(0, eventCap);
@@ -892,10 +980,13 @@ class AnalysisEngine {
     if (typeof this.vault.sumEventAmount !== "function") return undefined;
     try {
       const f = {};
-      if (parsed.filters && parsed.filters.adapter) f.adapter = parsed.filters.adapter;
+      if (parsed.filters && parsed.filters.adapter)
+        f.adapter = parsed.filters.adapter;
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          f.until = parsed.timeWindow.until;
       }
       const r = this.vault.sumEventAmount(f);
       if (!r || !r.count) return undefined;
@@ -911,25 +1002,33 @@ class AnalysisEngine {
   // through (no subtype — same fragile-classifier reason as _gatherFacts).
   _gatherRankSummary(parsed) {
     const dimension = parsed.rankDimension === "topic" ? "topic" : "actor";
-    const fn = dimension === "topic" ? this.vault.topTopics : this.vault.topActors;
+    const fn =
+      dimension === "topic" ? this.vault.topTopics : this.vault.topActors;
     if (typeof fn !== "function") return undefined;
     try {
       const f = { limit: 10 };
       if (dimension === "actor") f.excludeSelf = true; // self-exclusion is actor-only
       // App-scope: "谁发QQ最多" / "哪个QQ群最活跃" → rank within QQ's adapters only.
       // Prefer the plural filters.adapters (app→adapter list); fall back to single.
-      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+      if (
+        parsed.filters &&
+        Array.isArray(parsed.filters.adapters) &&
+        parsed.filters.adapters.length
+      ) {
         f.adapters = parsed.filters.adapters;
       } else if (parsed.filters && parsed.filters.adapter) {
         f.adapter = parsed.filters.adapter;
       }
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          f.until = parsed.timeWindow.until;
       }
       const r = fn.call(this.vault, f);
       const entries = r && (dimension === "topic" ? r.topics : r.actors);
-      if (!r || !Array.isArray(entries) || entries.length === 0) return undefined;
+      if (!r || !Array.isArray(entries) || entries.length === 0)
+        return undefined;
       return r;
     } catch (_e) {
       return undefined;
@@ -941,17 +1040,24 @@ class AnalysisEngine {
     try {
       const f = { bucket: parsed.timeBucket || "hour" };
       // app-scope ("我微信几点最活跃") + time window apply.
-      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+      if (
+        parsed.filters &&
+        Array.isArray(parsed.filters.adapters) &&
+        parsed.filters.adapters.length
+      ) {
         f.adapters = parsed.filters.adapters;
       } else if (parsed.filters && parsed.filters.adapter) {
         f.adapter = parsed.filters.adapter;
       }
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          f.until = parsed.timeWindow.until;
       }
       const r = this.vault.eventHistogram(f);
-      if (!r || !r.peak || !Array.isArray(r.buckets) || r.total <= 0) return undefined;
+      if (!r || !r.peak || !Array.isArray(r.buckets) || r.total <= 0)
+        return undefined;
       return r;
     } catch (_e) {
       return undefined;
@@ -965,11 +1071,14 @@ class AnalysisEngine {
       // time window applies ("这个月钱主要花在哪"); we rank ALL adapters, so no
       // single-adapter filter here (the dimension we group by).
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          f.until = parsed.timeWindow.until;
       }
       const r = this.vault.topSpendingByAdapter(f);
-      if (!r || !Array.isArray(r.adapters) || r.adapters.length === 0) return undefined;
+      if (!r || !Array.isArray(r.adapters) || r.adapters.length === 0)
+        return undefined;
       return r;
     } catch (_e) {
       return undefined;
@@ -981,17 +1090,24 @@ class AnalysisEngine {
     try {
       const f = { excludeSelf: true };
       // app-scope ("我在QQ上跟多少人聊过") + time window, same as rank.
-      if (parsed.filters && Array.isArray(parsed.filters.adapters) && parsed.filters.adapters.length) {
+      if (
+        parsed.filters &&
+        Array.isArray(parsed.filters.adapters) &&
+        parsed.filters.adapters.length
+      ) {
         f.adapters = parsed.filters.adapters;
       } else if (parsed.filters && parsed.filters.adapter) {
         f.adapter = parsed.filters.adapter;
       }
       if (parsed.timeWindow) {
-        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
-        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+        if (Number.isFinite(parsed.timeWindow.since))
+          f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until))
+          f.until = parsed.timeWindow.until;
       }
       const r = this.vault.distinctActorCount(f);
-      if (!r || !Number.isFinite(r.distinct) || r.distinct <= 0) return undefined;
+      if (!r || !Number.isFinite(r.distinct) || r.distinct <= 0)
+        return undefined;
       return r;
     } catch (_e) {
       return undefined;
@@ -1024,14 +1140,23 @@ class AnalysisEngine {
 function formatCrossAppOverview(ov) {
   if (!ov || !ov.summary) return null;
   const top = (arr, k, v) =>
-    (arr || []).slice(0, 5).map((x) => `${x[k]}(${x[v]})`).join(", ") || "无";
+    (arr || [])
+      .slice(0, 5)
+      .map((x) => `${x[k]}(${x[v]})`)
+      .join(", ") || "无";
   const lines = [
     `共 ${ov.summary.totalEvents} 事件，跨 ${ov.summary.appsActive} 个 app`,
     `活跃 app(Top): ${top(ov.byApp, "app", "count")}`,
     `事件类型(Top): ${top(ov.byType, "type", "count")}`,
   ];
-  if (ov.spending && Number.isFinite(ov.spending.total) && ov.spending.total !== 0) {
-    lines.push(`跨 app 消费合计: ${ov.spending.total} ${ov.spending.currency || ""}`.trim());
+  if (
+    ov.spending &&
+    Number.isFinite(ov.spending.total) &&
+    ov.spending.total !== 0
+  ) {
+    lines.push(
+      `跨 app 消费合计: ${ov.spending.total} ${ov.spending.currency || ""}`.trim(),
+    );
   }
   if (Array.isArray(ov.topContacts) && ov.topContacts.length > 0) {
     const c = ov.topContacts

@@ -17,7 +17,9 @@
 
 "use strict";
 
-const { rejectLegacyModelEgress } = require("../model-egress-guard");
+const {
+  assertAuthenticatedEvolutionModelEgress,
+} = require("../model-egress-guard");
 
 const SYSTEM_PROMPT = `你是一个数据消歧专家。我会给你两个 Person profile，请判断它们是否指代同一个现实人物。
 
@@ -44,12 +46,15 @@ class LLMStage {
     this._acceptNonLocal = !!opts.acceptNonLocal;
     // Profile builder — usually reused from EmbeddingStage so prompt
     // wording matches what got embedded
-    this._buildProfile = typeof opts.buildProfile === "function"
-      ? opts.buildProfile
-      : defaultBuildProfile;
+    this._buildProfile =
+      typeof opts.buildProfile === "function"
+        ? opts.buildProfile
+        : defaultBuildProfile;
     // Max prompt size guard (profile may pull recent events — cap to keep
     // 8B Ollama latency < 3s)
-    this._maxProfileChars = Number.isFinite(opts.maxProfileChars) ? opts.maxProfileChars : 600;
+    this._maxProfileChars = Number.isFinite(opts.maxProfileChars)
+      ? opts.maxProfileChars
+      : 600;
     this._chatOpts = opts.chatOpts || { temperature: 0.1 };
   }
 
@@ -63,7 +68,8 @@ class LLMStage {
       return {
         verdict: "maybe",
         confidence: 0,
-        reason: "non-local LLM blocked by privacy policy (acceptNonLocal:false)",
+        reason:
+          "non-local LLM blocked by privacy policy (acceptNonLocal:false)",
       };
     }
 
@@ -71,19 +77,24 @@ class LLMStage {
     const profileB = clipString(this._buildProfile(b), this._maxProfileChars);
 
     const userMsg = buildUserPrompt(profileA, profileB);
-    rejectLegacyModelEgress();
+    assertAuthenticatedEvolutionModelEgress(this._llm);
 
     let resp;
     try {
-      resp = await this._llm.chat([
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMsg },
-      ], this._chatOpts);
+      resp = await this._llm.chat(
+        [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMsg },
+        ],
+        this._chatOpts,
+      );
     } catch (err) {
       if (err?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw err;
       // Throwing here returns control to EntityResolver.drain which
       // counts as "error" and re-pends.
-      throw new Error(`LLMStage chat failed: ${err && err.message ? err.message : err}`);
+      throw new Error(
+        `LLMStage chat failed: ${err && err.message ? err.message : err}`,
+      );
     }
 
     const raw = (resp && resp.text) || "";
@@ -97,12 +108,24 @@ class LLMStage {
     }
     // Map JSON { same: true|false|null, confidence } → resolver verdict
     if (parsed.same === true) {
-      return { verdict: "yes", confidence: numOrZero(parsed.confidence), reason: parsed.reason || "" };
+      return {
+        verdict: "yes",
+        confidence: numOrZero(parsed.confidence),
+        reason: parsed.reason || "",
+      };
     }
     if (parsed.same === false) {
-      return { verdict: "no", confidence: numOrZero(parsed.confidence), reason: parsed.reason || "" };
+      return {
+        verdict: "no",
+        confidence: numOrZero(parsed.confidence),
+        reason: parsed.reason || "",
+      };
     }
-    return { verdict: "maybe", confidence: numOrZero(parsed.confidence), reason: parsed.reason || "" };
+    return {
+      verdict: "maybe",
+      confidence: numOrZero(parsed.confidence),
+      reason: parsed.reason || "",
+    };
   }
 
   asStageFn() {
@@ -165,7 +188,7 @@ function parseLLMResponse(text) {
   // Strict: whole string is JSON
   try {
     const obj = JSON.parse(text.trim());
-    if (obj && typeof obj === "object" && ("same" in obj)) return obj;
+    if (obj && typeof obj === "object" && "same" in obj) return obj;
   } catch (_e) {}
 
   // Fenced ```json ... ```
@@ -173,7 +196,7 @@ function parseLLMResponse(text) {
   if (fence) {
     try {
       const obj = JSON.parse(fence[1].trim());
-      if (obj && typeof obj === "object" && ("same" in obj)) return obj;
+      if (obj && typeof obj === "object" && "same" in obj) return obj;
     } catch (_e) {}
   }
 
@@ -182,7 +205,7 @@ function parseLLMResponse(text) {
   if (objMatch) {
     try {
       const obj = JSON.parse(objMatch[0]);
-      if (obj && typeof obj === "object" && ("same" in obj)) return obj;
+      if (obj && typeof obj === "object" && "same" in obj) return obj;
     } catch (_e) {}
   }
 

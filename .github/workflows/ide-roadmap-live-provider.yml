@@ -15,6 +15,7 @@ on:
       - "packages/cli/src/harness/structured-handoff.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/__tests__/fixtures/live-provider-trajectory-openai-server.mjs"
+      - "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js"
       - "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js"
   push:
     branches: [main]
@@ -31,6 +32,7 @@ on:
       - "packages/cli/src/harness/structured-handoff.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/__tests__/fixtures/live-provider-trajectory-openai-server.mjs"
+      - "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js"
       - "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js"
   schedule:
     - cron: "43 3 * * 2"

@@ -1,4 +1,5 @@
-import "../helpers/test-model-egress.js";
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
+import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 /**
  * Integration tests: Orchestrator full pipeline
  *
@@ -35,6 +36,57 @@ function makeChildProcess(stdout = "", exitCode = 0) {
 
 const AGENT_SUCCESS_OUTPUT =
   JSON.stringify({ type: "result", result: "Fixed!" }) + "\n";
+const { RUNTIME_MODE, TERMINAL_EVIDENCE_KIND, createRuntimeClaims } =
+  runtimeClaimsContract;
+const TEST_AGENT_RUNTIME_CLAIMS = createRuntimeClaims({
+  mode: RUNTIME_MODE.REAL_EXECUTION,
+});
+const TEST_AGENT_TERMINAL_EVIDENCE = Object.freeze([
+  Object.freeze({
+    kind: TERMINAL_EVIDENCE_KIND.RUNTIME_EVENT,
+    outcome: "completed",
+    source: "orchestrator-test-router",
+  }),
+  Object.freeze({
+    kind: TERMINAL_EVIDENCE_KIND.TEST_RECEIPT,
+    digest: `sha256:${"a".repeat(64)}`,
+  }),
+]);
+
+/**
+ * Keep the integration fake behind the same task-scoped evolution authority
+ * used by production. The call wrapper replaces only the external provider;
+ * createChatFn still captures the authenticated ingress before invoking it.
+ */
+function configureTestModelEgress(orch) {
+  orch._evolutionCompositionFactory = createTestEvolutionCompositionFactory();
+  orch._llmOptions = {
+    ...orch._llmOptions,
+    provider: "ollama",
+    callWrapper: async () => ({ content: await orch._chat() }),
+  };
+  orch._router.dispatch = vi.fn(async (subtasks, { cwd }) =>
+    subtasks.map((subtask, index) => {
+      const prompt = subtask.context
+        ? `${subtask.description}\n\n${subtask.context}`
+        : subtask.description;
+      bridgeDeps.spawn("claude", ["-p", prompt], { cwd });
+      return {
+        taskId: subtask.id,
+        agentId: `test-agent-${index}`,
+        backendType: "test",
+        success: true,
+        status: "completed",
+        output: "Fixed!",
+        exitCode: 0,
+        duration: 0,
+        runtimeClaims: TEST_AGENT_RUNTIME_CLAIMS,
+        terminalEvidence: TEST_AGENT_TERMINAL_EVIDENCE,
+      };
+    }),
+  );
+  return orch;
+}
 
 /** Build an Orchestrator with LLM + CI + spawn all mocked. */
 function buildOrchestrator({
@@ -66,13 +118,15 @@ function buildOrchestrator({
     return "All tests passed";
   });
 
-  const orch = new Orchestrator({
-    cwd: "/tmp/test-project",
-    maxParallel: 2,
-    maxRetries: 1,
-    ciCommand: "npm test",
-    verbose: false,
-  });
+  const orch = configureTestModelEgress(
+    new Orchestrator({
+      cwd: "/tmp/test-project",
+      maxParallel: 2,
+      maxRetries: 1,
+      ciCommand: "npm test",
+      verbose: false,
+    }),
+  );
 
   // Mock LLM chat for decomposition
   orch._chat = vi.fn(async () => JSON.stringify(decomposeTo));
@@ -169,12 +223,9 @@ describe("Orchestrator: task lifecycle", () => {
         }),
       };
       // Isolate completion ordering from the separately tested projection transport.
-      const dispatch = orch._dispatch.bind(orch);
-      orch._dispatch = (task) => dispatch(task);
-      const decompose = orch._decompose.bind(orch);
-      orch._decompose = (task) => decompose(task);
-      const orchestrate = orch._orchestrate.bind(orch);
-      orch._orchestrate = (task) => orchestrate(task, ingress);
+      const completeTask = orch._completeTask.bind(orch);
+      orch._completeTask = (task, _evolutionIngress, ciResult) =>
+        completeTask(task, ingress, ciResult);
       const completed = vi.fn();
       orch.on("task:complete", completed);
       const pending = orch.addTask("task", { runCI });
@@ -198,12 +249,9 @@ describe("Orchestrator: task lifecycle", () => {
       const ingress = {
         complete: vi.fn().mockRejectedValue(new Error("witness unavailable")),
       };
-      const dispatch = orch._dispatch.bind(orch);
-      orch._dispatch = (task) => dispatch(task);
-      const decompose = orch._decompose.bind(orch);
-      orch._decompose = (task) => decompose(task);
-      const orchestrate = orch._orchestrate.bind(orch);
-      orch._orchestrate = (task) => orchestrate(task, ingress);
+      const completeTask = orch._completeTask.bind(orch);
+      orch._completeTask = (task, _evolutionIngress, ciResult) =>
+        completeTask(task, ingress, ciResult);
       const completed = vi.fn();
       const failed = vi.fn();
       orch.on("task:complete", completed);
@@ -357,12 +405,14 @@ describe("Orchestrator: CI failure and retry", () => {
       throw new Error("no codex");
     });
 
-    const orch = new Orchestrator({
-      cwd: "/tmp",
-      maxParallel: 1,
-      maxRetries: 2,
-      ciCommand: "npm test",
-    });
+    const orch = configureTestModelEgress(
+      new Orchestrator({
+        cwd: "/tmp",
+        maxParallel: 1,
+        maxRetries: 2,
+        ciCommand: "npm test",
+      }),
+    );
     orch._chat = vi.fn(async () =>
       JSON.stringify([{ id: "s1", description: "fix" }]),
     );
@@ -387,12 +437,14 @@ describe("Orchestrator: CI failure and retry", () => {
       throw new Error("no codex");
     });
 
-    const orch = new Orchestrator({
-      cwd: "/tmp",
-      maxParallel: 1,
-      maxRetries: 1,
-      ciCommand: "npm test",
-    });
+    const orch = configureTestModelEgress(
+      new Orchestrator({
+        cwd: "/tmp",
+        maxParallel: 1,
+        maxRetries: 1,
+        ciCommand: "npm test",
+      }),
+    );
     orch._chat = vi.fn(async () =>
       JSON.stringify([{ id: "s1", description: "fix" }]),
     );
@@ -421,12 +473,14 @@ describe("Orchestrator: CI failure and retry", () => {
       throw new Error("no codex");
     });
 
-    const orch = new Orchestrator({
-      cwd: "/tmp",
-      maxParallel: 1,
-      maxRetries: 3,
-      ciCommand: "npm test",
-    });
+    const orch = configureTestModelEgress(
+      new Orchestrator({
+        cwd: "/tmp",
+        maxParallel: 1,
+        maxRetries: 3,
+        ciCommand: "npm test",
+      }),
+    );
     orch._chat = vi.fn(async () =>
       JSON.stringify([{ id: "s1", description: "fix" }]),
     );
@@ -466,12 +520,14 @@ describe("Orchestrator: CI failure and retry", () => {
       throw new Error("no codex");
     });
 
-    const orch = new Orchestrator({
-      cwd: "/tmp",
-      maxParallel: 1,
-      maxRetries: 2,
-      ciCommand: "npm test",
-    });
+    const orch = configureTestModelEgress(
+      new Orchestrator({
+        cwd: "/tmp",
+        maxParallel: 1,
+        maxRetries: 2,
+        ciCommand: "npm test",
+      }),
+    );
     orch._chat = vi.fn(async () =>
       JSON.stringify([{ id: "s1", description: "fix bug" }]),
     );

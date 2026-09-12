@@ -8,8 +8,10 @@ import {
   STRUCTURED_HANDOFF_FIELDS,
   parseStructuredHandoff,
 } from "../src/harness/structured-handoff.js";
+import { createAgentEvolutionRuntimeComposition } from "../src/lib/evolution/agent-evolution-runtime-composition.js";
 import { IterationBudget } from "../src/lib/iteration-budget.js";
 import { agentLoop } from "../src/runtime/agent-core.js";
+import { createTestAgentEvolutionComposition } from "../__tests__/fixtures/agent-evolution-test-deployment.js";
 import {
   IDE_ROADMAP_MANIFEST_VERSION,
   IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA,
@@ -859,9 +861,16 @@ function ensureCycleOutcome({
 
 async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
   const startedAt = new Date().toISOString();
+  const runId = `${LIVE_PROVIDER_TRAJECTORY_CASE}-${profile.mode}-${platformName()}-${randomUUID()}`;
   const workspace = fs.mkdtempSync(
     path.join(os.tmpdir(), "cc-live-trajectory-"),
   );
+  const evolutionComposition = createTestAgentEvolutionComposition(
+    createAgentEvolutionRuntimeComposition,
+    { runId },
+    path.join(workspace, ".evolution"),
+  );
+  const evolutionIngress = evolutionComposition.evolutionIngress;
   fs.writeFileSync(
     path.join(workspace, fixture.cycles[0].tool.path),
     fixture.cycles[0].tool.content,
@@ -891,6 +900,8 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
     compactionMaxOutputTokens: 2048,
     maxOutputTokens: 2048,
     signal: controller.signal,
+    runId,
+    evolutionIngress,
     onUsageBoundary(boundary) {
       if (boundary?.source !== "semantic-compaction" || !currentEventOrder) {
         fail(
@@ -903,6 +914,7 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
   };
 
   try {
+    await evolutionIngress.start();
     for (const [cycleIndex, cycle] of fixture.cycles.entries()) {
       appendCycleMessages(messages, fixture, cycleIndex);
       const events = [];
@@ -954,12 +966,14 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
       }
       currentEventOrder = null;
     }
+    await evolutionIngress.complete();
   } finally {
     clearTimeout(timer);
     fs.rmSync(workspace, { recursive: true, force: true });
   }
 
   return {
+    runId,
     runIndex,
     startedAt,
     finishedAt: new Date().toISOString(),
@@ -1045,7 +1059,7 @@ function buildRun({
     );
   }
   return {
-    runId: `${LIVE_PROVIDER_TRAJECTORY_CASE}-${profile.mode}-${platformName()}-${randomUUID()}`,
+    runId: execution.runId,
     caseId: LIVE_PROVIDER_TRAJECTORY_CASE,
     manifestVersion: IDE_ROADMAP_MANIFEST_VERSION,
     releaseCommit,

@@ -2,6 +2,7 @@
 import {
   agentLoop as productionAgentLoop,
   chatWithTools as productionChatWithTools,
+  executeTool as productionExecuteTool,
 } from "../../src/runtime/agent-core.js";
 import { runAgentHeadless as productionRunAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { createChatFn as productionCreateChatFn } from "../../src/lib/cowork-adapter.js";
@@ -49,6 +50,14 @@ export function agentLoop(messages, options = {}) {
 
 export function chatWithTools(messages, options = {}) {
   return productionChatWithTools(messages, withTestEvolutionIngress(options));
+}
+
+export function executeTool(name, args, context = {}) {
+  return productionExecuteTool(
+    name,
+    args,
+    withTestEvolutionIngress(context),
+  );
 }
 
 export function runAgentHeadless(options = {}, deps = {}) {

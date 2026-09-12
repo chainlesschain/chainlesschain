@@ -27,7 +27,9 @@
 
 "use strict";
 
-const { rejectLegacyModelEgress } = require("../model-egress-guard");
+const {
+  assertAuthenticatedEvolutionModelEgress,
+} = require("../model-egress-guard");
 
 class AnalysisSkill {
   constructor(opts) {
@@ -99,13 +101,15 @@ class AnalysisSkill {
     const ids = new Set(["person-self"]);
     try {
       const db =
-        typeof this.vault._requireOpen === "function" ? this.vault._requireOpen() : null;
+        typeof this.vault._requireOpen === "function"
+          ? this.vault._requireOpen()
+          : null;
       if (db) {
         const rows = db
           .prepare(
             "SELECT DISTINCT actor AS id FROM events WHERE actor IS NOT NULL AND " +
               "(actor = 'person-self' OR actor LIKE 'person-%-self' OR " +
-              "json_extract(extra, '$.isSend') = 1)"
+              "json_extract(extra, '$.isSend') = 1)",
           )
           .all();
         for (const r of rows) if (r.id) ids.add(r.id);
@@ -133,10 +137,12 @@ class AnalysisSkill {
    */
   _isPersonContact(personId) {
     if (typeof personId !== "string" || personId.length === 0) return false;
-    if (personId.startsWith("group-") || personId.startsWith("topic-")) return false;
+    if (personId.startsWith("group-") || personId.startsWith("topic-"))
+      return false;
     // Some collections keyed group conversations as `person-wechat-<id>@chatroom`
     // (group marker leaked into a person id) — those are rooms, not people.
-    if (personId.includes("@chatroom") || personId.endsWith("@im.group")) return false;
+    if (personId.includes("@chatroom") || personId.endsWith("@im.group"))
+      return false;
     return !this._isSelf(personId);
   }
 
@@ -164,7 +170,7 @@ class AnalysisSkill {
     if (this.llm.isLocal === false && !opts.acceptNonLocal) {
       return null;
     }
-    rejectLegacyModelEgress();
+    assertAuthenticatedEvolutionModelEgress(this.llm);
 
     try {
       const r = await this.llm.chat(messages, { temperature: 0.2, ...opts });

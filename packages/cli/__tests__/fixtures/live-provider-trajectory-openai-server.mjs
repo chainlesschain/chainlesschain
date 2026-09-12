@@ -53,6 +53,7 @@ function sendJson(response, status, value) {
   response.writeHead(status, {
     "content-type": "application/json",
     "content-length": Buffer.byteLength(body),
+    connection: "close",
   });
   response.end(body);
 }
@@ -109,14 +110,22 @@ const server = http.createServer((request, response) => {
     requestCount += 1;
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const tools = Array.isArray(body.tools) ? body.tools : [];
+    const conversationalMessages = messages.filter(
+      (message) =>
+        message?.role !== "system" && message?.role !== "developer",
+    );
     // Ephemeral runtime instructions (including read-file progress) may follow
     // a tool result. They do not start a new conversational turn.
-    const last = messages.findLast(
-      (message) => message?.role !== "system" && message?.role !== "developer",
-    );
+    const last = conversationalMessages.at(-1);
 
     if (tools.length === 0) {
-      const prompt = messages.length === 1 ? messages[0]?.content : null;
+      // Authenticated evolution ingress prepends a provenance-only system
+      // projection. The semantic-compaction request itself must still contain
+      // exactly one non-instruction message.
+      const prompt =
+        conversationalMessages.length === 1
+          ? conversationalMessages[0]?.content
+          : null;
       if (
         typeof prompt !== "string" ||
         !prompt.startsWith("Create a durable conversation handoff")

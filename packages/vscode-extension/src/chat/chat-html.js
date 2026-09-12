@@ -242,10 +242,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   .elicitation-multi { display:flex; flex-direction:column; gap:3px; }
   .elicitation-error { color:var(--vscode-errorForeground); font-size:.88em; }
   .elicitation-error[hidden] { display:none; }
-  #bar { display:flex; gap:4px; padding:6px; border-top:1px solid var(--vscode-panel-border); }
-  #input { flex:1; resize:none; min-height:34px; max-height:120px;
+  #bar { display:flex; flex-direction:column; gap:4px; padding:6px;
+         border-top:1px solid var(--vscode-panel-border); }
+  #input { box-sizing:border-box; width:100%; resize:none; min-height:34px; max-height:120px;
            background: var(--vscode-input-background); color: var(--vscode-input-foreground);
            border:1px solid var(--vscode-input-border, transparent); border-radius:3px; padding:6px; }
+  #composer-actions { display:flex; gap:4px; flex-wrap:wrap; }
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; border-radius:3px; padding:4px 10px; cursor:pointer; }
   button.secondary { background: var(--vscode-button-secondaryBackground);
@@ -317,10 +319,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     <textarea id="input" aria-label="Message the agent" aria-controls="suggest"
               aria-autocomplete="list" aria-expanded="false"
               placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
-    <button id="send">Send</button>
-    <button id="plan-toggle" class="secondary" title="Plan first: write tools blocked until you approve">Plan</button>
-    <button id="stop" class="secondary" title="Interrupt the current turn (conversation keeps going; Esc works too)">Stop</button>
-    <button id="new" class="secondary" title="Start a fresh conversation (kills the agent process)">New</button>
+    <div id="composer-actions" role="group" aria-label="Chat controls">
+      <button id="send">Send</button>
+      <button id="plan-toggle" class="secondary" title="Plan first: write tools blocked until you approve">Plan</button>
+      <button id="stop" class="secondary" title="Interrupt the current turn (conversation keeps going; Esc works too)">Stop</button>
+      <button id="new" class="secondary" title="Start a fresh conversation (kills the agent process)">New</button>
+    </div>
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
