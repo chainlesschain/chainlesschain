@@ -49,6 +49,7 @@ function setup() {
       principalEnvelope: authority.principalEnvelope,
       schemaPolicies,
       readAuthorities: authority.readAuthorities,
+      commitCoordinator: authority.commitCoordinator,
       maintainer: {
         maintainerModel: "schema-rule-maintainer",
         rulesDigest: digest("composed-wiki-rules"),
@@ -140,6 +141,24 @@ describe("explicit production Wiki composition", () => {
       expect(fs.readdirSync(root)).toEqual([]);
     },
   );
+
+  it("requires an explicit synchronous evidence commit coordinator", () => {
+    const { options, root } = setup();
+    delete options.wikiMaintenance.commitCoordinator;
+    expect(() => createAgentEvolutionRuntimeComposition(options)).toThrow(
+      "wikiMaintenance",
+    );
+    expect(fs.readdirSync(root)).toEqual([]);
+    options.wikiMaintenance.commitCoordinator = {
+      async acquireCurrentEvidence() {
+        throw new Error("not a synchronous lease");
+      },
+    };
+    expect(() => createAgentEvolutionRuntimeComposition(options)).toThrow(
+      "synchronous",
+    );
+    expect(fs.readdirSync(root)).toEqual([]);
+  });
 
   it("rejects caller-provided trust/maintainer ports and absent reader identities", () => {
     const { options } = setup();

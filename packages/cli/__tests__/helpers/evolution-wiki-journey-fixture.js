@@ -19,6 +19,11 @@ import { EvolutionRunLedgerAdapter } from "../../src/lib/evolution/evolution-run
 import { createEvolutionRunWikiEvidenceResolver } from "../../src/lib/evolution/evolution-run-wiki-evidence-resolver.js";
 import { WikiMaintainerLedgerAdapter } from "../../src/lib/evolution/wiki-maintainer-ledger-adapter.js";
 import { EvidenceBackedWikiMaintainer } from "../../src/lib/evolution/evidence-backed-wiki-maintainer.js";
+import {
+  createWikiEvidenceCommitGuard,
+  WIKI_EVIDENCE_COMMIT_REQUEST_SCHEMA,
+  WIKI_EVIDENCE_COMMIT_LEASE_SCHEMA,
+} from "../../src/lib/evolution/wiki-evidence-commit-guard.js";
 
 export const NOW = "2026-09-12T00:00:00.000Z";
 const RETENTION = "2027-09-12T00:00:00.000Z";
@@ -145,6 +150,17 @@ export function createJourneyAuthorities(tenantId) {
   const rawKey = crypto.randomBytes(32);
   const attestationKeys = crypto.generateKeyPairSync("ed25519");
   const evidenceStates = new Map();
+  const retainedBundles = new Map();
+  let heldCommitLease = null;
+  const assertAuthorityWritable = () => {
+    if (heldCommitLease !== null) {
+      const error = new Error(
+        "Wiki evidence authority is locked; retry after release",
+      );
+      error.code = "JOURNEY_AUTHORITY_LEASE_HELD";
+      throw error;
+    }
+  };
   const sourcePrincipals = new Set(["tool-a", "tool-b", "model-a", "user-a"]);
   const lease = (request, ttl = 30_000) => ({
     requestNonce: request.requestNonce,
@@ -484,12 +500,117 @@ export function createJourneyAuthorities(tenantId) {
       },
     },
   };
+  // Honest in-process host coordinator. The same closure owns state, principal,
+  // ACL and clock mutation, so a held lease serializes all of them with publish.
+  // A deployed authority must supply its own cross-process lock/irrevocable grant.
+  const commitCoordinator = {
+    acquireCurrentEvidence(request) {
+      assertAuthorityWritable();
+      const principal = principalEnvelopes.verify(request.principalEnvelope);
+      const { requestDigest, ...core } = request;
+      if (
+        request.schema !== WIKI_EVIDENCE_COMMIT_REQUEST_SCHEMA ||
+        request.tenantId !== tenantId ||
+        typeof request.runId !== "string" ||
+        requestDigest !== digest(canonical(core)) ||
+        request.evidenceBindingDigest !==
+          digest(
+            canonical({
+              domain: "chainlesschain.wiki-evidence-bindings/v1",
+              tenantId,
+              runId: request.runId,
+              evidenceBindings: request.evidenceBindings,
+            }),
+          ) ||
+        principal.tenantId !== tenantId ||
+        principal.principalId !== "service-wiki" ||
+        Date.parse(principal.expiresAt) <= now() ||
+        !accessAllowed
+      )
+        throw new Error("Wiki batch principal, ACL or scope denied");
+      for (const item of request.evidenceBindings) {
+        const state = evidenceStates.get(item.ref);
+        const retained = retainedBundles.get(item.ref);
+        if (!state || !retained || state.status !== "active")
+          throw new Error("Wiki batch contains revoked or unknown evidence");
+        const { bundle, publication } = retained;
+        const raw = bundle.rawRecord;
+        const trusted = bundle.trustedProjection;
+        if (
+          !publication ||
+          publication.runId !== request.runId ||
+          !raw.acl.includes(principal.principalId) ||
+          Date.parse(raw.retention.expiresAt) <= now() ||
+          state.rawRecordDigest !== raw.rawRecordDigest ||
+          state.projectionReceiptDigest !== bundle.receipt.receiptDigest ||
+          state.attestationDigest !== bundle.attestation.attestationDigest
+        )
+          throw new Error("Wiki batch retention or evidence identity denied");
+        const expected = {
+          schema: "chainlesschain.evolution-wiki-evidence/v1",
+          tenantId,
+          ref: bundle.receipt.evidenceId,
+          sourceDigest: digest(
+            canonical({
+              domain: "chainlesschain.wiki-source-commitment/v1",
+              tenantId,
+              sourceCommitment: raw.sourceCommitment,
+            }),
+          ),
+          projectionDigest: trusted.projectionDigest,
+          artifactRef: publication.artifactRef,
+          trustedProjection: true,
+          trustDomain: `evolution-principal:${tenantId}:${raw.principalId}`,
+          kind:
+            raw.sourceKind === "verified-outcome"
+              ? "grader-receipt"
+              : "tool-observation",
+          status: "active",
+          observedAt: bundle.receipt.createdAt,
+          expiresAt: raw.retention.expiresAt,
+          data: {
+            ...trusted.content,
+            rawRecordDigest: raw.rawRecordDigest,
+            manifestDigest: publication.manifestDigest,
+            projectionReceiptDigest: bundle.receipt.receiptDigest,
+            schemaDigest: raw.schemaDigest,
+          },
+        };
+        if (canonical(item) !== canonical(expected))
+          throw new Error(
+            "Wiki batch trusted evidence binding differs from retained source",
+          );
+      }
+      const leaseId = crypto.randomUUID();
+      heldCommitLease = leaseId;
+      return Object.freeze({
+        schema: WIKI_EVIDENCE_COMMIT_LEASE_SCHEMA,
+        tenantId,
+        runId: request.runId,
+        requestDigest,
+        evidenceBindingDigest: request.evidenceBindingDigest,
+        leaseId,
+        assertCurrent() {
+          if (heldCommitLease !== leaseId)
+            throw new Error("Wiki lease is no longer held");
+          return true;
+        },
+        release() {
+          if (heldCommitLease !== leaseId)
+            throw new Error("Wiki lease was already released");
+          heldCommitLease = null;
+        },
+      });
+    },
+  };
   return {
     now,
     setAccessAllowed(value) {
+      assertAuthorityWritable();
       accessAllowed = value === true;
     },
     advance: (milliseconds) => {
+      assertAuthorityWritable();
       clock += milliseconds;
     },
     artifact,
@@ -502,6 +623,7 @@ export function createJourneyAuthorities(tenantId) {
     ledger: signingAuthority("ledger"),
     witness: signingAuthority("witness"),
     readAuthorities,
+    commitCoordinator,
     principalEnvelope: principalEnvelopes.issue({
       tenantId,
       principalId: "service-wiki",
@@ -531,7 +653,8 @@ export function createJourneyAuthorities(tenantId) {
         ),
       });
     },
-    retain(bundle) {
+    retain(bundle, publication = null) {
+      assertAuthorityWritable();
       const existing = evidenceStates.get(bundle.receipt.evidenceId);
       if (existing) {
         if (
@@ -541,6 +664,15 @@ export function createJourneyAuthorities(tenantId) {
           existing.attestationDigest !== bundle.attestation.attestationDigest
         ) {
           throw new Error("retained evidence identity cannot be replaced");
+        }
+        if (publication) {
+          const retained = retainedBundles.get(bundle.receipt.evidenceId);
+          if (
+            retained.publication &&
+            canonical(retained.publication) !== canonical(publication)
+          )
+            throw new Error("retained evidence publication cannot be replaced");
+          retained.publication ??= structuredClone(publication);
         }
         // A readback/retry is not permission to resurrect a revoked source.
         return;
@@ -555,8 +687,13 @@ export function createJourneyAuthorities(tenantId) {
         status: "active",
         tombstoneReceiptDigest: null,
       });
+      retainedBundles.set(bundle.receipt.evidenceId, {
+        bundle: structuredClone(bundle),
+        publication: structuredClone(publication),
+      });
     },
     revoke(evidenceId, status = "revoked") {
+      assertAuthorityWritable();
       const current = evidenceStates.get(evidenceId);
       if (!current) throw new Error("unknown evidence to revoke");
       evidenceStates.set(evidenceId, {
@@ -595,12 +732,13 @@ export async function retainCompositionEvidence(composition, authorities) {
   for (const entry of artifactStore.list()) {
     const envelope = entry.lineage?.envelope;
     if (!envelope || JSON.parse(envelope).core.type !== "evidence") continue;
-    const manifest = ports.resolve(envelope, {
+    const resolvedManifest = ports.resolve(envelope, {
       tenantId,
       purpose: "evidence-projection",
       expectedType: "evidence",
       expectedDigest: JSON.parse(envelope).core.digest,
-    }).value;
+    });
+    const manifest = resolvedManifest.value;
     const bundle = { attestation: manifest.attestation };
     for (const field of [
       "rawRecord",
@@ -617,7 +755,11 @@ export async function retainCompositionEvidence(composition, authorities) {
       }).value;
     }
     await verifier.verify(bundle);
-    authorities.retain(bundle);
+    authorities.retain(bundle, {
+      artifactRef: resolvedManifest.ref.ref,
+      manifestDigest: JSON.parse(envelope).core.digest,
+      runId: composition.runId,
+    });
     refs.push(bundle.receipt.evidenceId);
   }
   return refs;
@@ -721,6 +863,20 @@ export function createJourneyFixture(
     ledger: backend.ledger,
     ledgerArtifactResolver,
   });
+  const wikiCommit = createWikiEvidenceCommitGuard({
+    wikiAdapter,
+    commitCoordinator: authorities.commitCoordinator,
+    principalEnvelope: authorities.principalEnvelope,
+    clock: authorities.now,
+  });
+  const maintainerPorts = ({
+    resolveEvidence = resolver.resolveEvidence,
+    derive,
+  }) =>
+    Object.freeze({
+      ...wikiAdapter.maintainerPorts({ resolveEvidence, derive }),
+      commitRevision: wikiCommit.commitRevision,
+    });
   let sequence = runAdapter.load().events.length;
   const append = (type, subjectId, input = {}) =>
     runAdapter.appendEvent({
@@ -752,6 +908,7 @@ export function createJourneyFixture(
     resolver,
     resolverOptions,
     wikiAdapter,
+    maintainerPorts,
     append,
     async project(payload, source = {}) {
       const result = await evidenceAdapter.projectAndPersist({
@@ -759,7 +916,11 @@ export function createJourneyFixture(
         payload,
       });
       const resolved = await evidenceAdapter.resolve(result);
-      authorities.retain(resolved.bundle);
+      authorities.retain(resolved.bundle, {
+        artifactRef: result.manifest.ref.ref,
+        manifestDigest: result.manifest.digest,
+        runId,
+      });
       return { result, ...resolved };
     },
     reference(result) {
@@ -790,7 +951,7 @@ export function createJourneyFixture(
           network: false,
           secretRead: false,
         },
-        ports: wikiAdapter.maintainerPorts({
+        ports: maintainerPorts({
           resolveEvidence: resolver.resolveEvidence,
           derive,
         }),

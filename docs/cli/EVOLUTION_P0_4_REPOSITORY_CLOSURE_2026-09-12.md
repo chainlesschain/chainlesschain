@@ -40,15 +40,32 @@
 - 相关 projector/Wiki adapter/Proposer 三文件 **113/113** 通过；加入明文 guard 后 Maintainer/Wiki adapter/Proposer **47/47** 阶段性通过。上述有重叠，不相加为独立用例总数。
 - 最新删除/撤销两个跨进程文件 **2/2** 通过（103.95 秒），四个恢复窗口为 **20,782 / 7,584 / 12,468 / 12,594ms**，仍保持 60 秒上限。
 
-**尚有已复现的整组授权缺口**：复读 A 成功后、等待复读 B 时撤销 A，仍可提交旧 A。Reader 的短期 read decision 不是不可撤销的 commit lease；现有同账本 Knowledge admission fence 也不覆盖外部 evidenceState/ACL。串行重读不能声称原子提交授权。下一批需宿主整组当前授权 lease/fence 覆盖实际发布窗口，再跑全部正式接线回归。
+基础批次还真实复现了整组授权缺口：复读 A 成功后、等待复读 B 时撤销 A，仍可提交旧 A。Reader 的短期 read decision 不是不可撤销的 commit lease；现有同账本 Knowledge admission fence 也不覆盖外部 evidenceState/ACL。下一节记录对此缺口的独立修复，不把串行重读解释为原子提交授权。
 
 完整 1,000 旅程测试正在实现，使用真实签名 Raw/Run/Reader/Wiki/Candidate、既存 active 文件及真实 Review/Controller/Registry 拒绝边界。50 样本长账本 pilot 已实测超线性成本，改为 **100×10，总量不变**；试跑与未完成长测均不计作 1,000 验收通过。既存 active 的测试 bootstrap 不代表真实外部人工批准或候选效果 Eval。
+
+## 整组证据提交保护（独立批次）
+
+`wikiMaintenance` 现在还必须显式提供 `commitCoordinator.acquireCurrentEvidence(request)`。缺失或异步 coordinator 在创建存储之前拒绝；默认关闭行为不变。`wiki-evidence-commit-guard.js` 将完整待发布 revision、tenant/Run/principal、前态和输出证据绑定交给同步 coordinator。授权方只收到数据，不获得 publish 回调或 Wiki 写入能力。
+
+租约必须覆盖状态、principal、ACL/policy 的整组锁，或覆盖实际写入窗口的不可撤销授权；普通 read receipt/过期时间不能冒充该契约。guard 检查不可变、一次性、完全匹配的租约，随后同步执行 `assertCurrent → 真实 Wiki commit → finally release`。绑定覆盖所有非终态输出 pattern 的正反证据（包括旧 state 被重新使用的依赖），加上本次读取的 active 证据；超过 256 项直接拒绝，不截断。终态清理不重新暴露旧证据，可以继续执行。
+
+- 边界单元 `wiki-evidence-commit-guard.test.js` **24/24** 通过（93.80 秒）：拒绝时真实文件逐字节不变、跨 guard 重放拒绝、真实 CAS 冲突释放，以及同步提交一次。提交后 release 抛错或返回 Promise 时明确报告 `committed: true`，不谎称已撤销落盘。
+- 最终 lint 等价整理后，边界 24 项和真实存储旅程 3 项两文件 **27/27** 再验通过（174.68 秒）。真实旅程验证 A 在 B 复读期间撤销时零 Wiki 写入、持锁跨实际落盘后再允许撤销，以及旧 state 的 A 被新请求复用时拒绝但仍可提交终态清理。
+- 最终 coordinator 前置捕获接线的 composition **9/9** 通过（101.26 秒）；冻结 fixture 的 resolver 与 current-evidence 两文件 **23/23** 通过（367.50 秒），包含原单证据撤销/删除/过期/ACL、重复内容和派生 secret 回归。
+- 测试 fixture 使用拥有同一状态的进程内 authority，锁内 revoke/ACL/时钟修改要求释放后重试。这不等同部署了跨进程锁服务；生产 host coordinator 的跨进程语义仍属于部署验收。
+
+新 guard 接入的 **10 条完整对抗试跑**通过（单批 354.49 秒，总 362.36 秒）；16 个攻击族、1,000 个不同 ID/payload 与 8 个真实 CI 测试入口的 catalog 断言单独通过。真实 release guard 专项 **1/1** 再验通过（27.51 秒）。这些试跑仍不是 1,000 条执行结果，相关测试代码将待全量验证后独立提交；此批次不包含全量验收，也不意味着最终 CI 已通过。
+
+本提交保护批次按最终用例去重为 **59 项分组通过**（27 + 9 + 23），不是整个 CLI suite 或多系统 CI 全绿。六个相关代码/测试文件的原生 import、ESLint、Prettier 和差异检查通过。
 
 ## 远端身份快照
 
 2026-09-12 17:56（上海）查询时，本地 `af2ec8bed3a033ae5b87ee50185ad96e732a3af8` 和 iOS 变更提交 `e9077296c84f7690fadc6361689627fb945b5c7b` 均无 Actions run。GitHub `main` 为 `13fe45afd66e3538e4c33c8e5309c253e3d1e3de`。
 
 旧 SHA 的 Strict Sandbox、Android 和 iOS 已成功，CLI CI 与 CI Tests 当时仍在运行。这些结果不能继承给后续提交；后续提交/推送后须重新按实际 source SHA 查询完整结果，不发布 npm 或用旧绿灯标记仓库闭环。
+
+22:36（上海）复核：GitHub `main` 已为 `3bd3101657c66e799ce3ab98092ef1b1bf8b5044`，与本地 `3d16e8ec2c3a3a6f9feaa0db23e5955653017df3` 分叉；远端独有修改是 command help index。后者仍无 Actions run。远端 CLI CI `34697066837` 的单元/集成/E2E shard 均成功，但三个系统的 `verify-cli` 失败；已取得 Ubuntu 直接错误：`pr-recovery-smoke.mjs` 调用 Agent loop 未提供认证 evolution ingress。该旧 SHA 的结果既不是最终全绿，也不能继承给本地新增提交。本地提交不等于推送或创建 PR。
 
 ## 与部署验收分开
 

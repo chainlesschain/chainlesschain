@@ -22,6 +22,7 @@ import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { createEvolutionRunWikiEvidenceResolver } from "./evolution-run-wiki-evidence-resolver.js";
 import { WikiMaintainerLedgerAdapter } from "./wiki-maintainer-ledger-adapter.js";
 import { EvidenceBackedWikiMaintainer } from "./evidence-backed-wiki-maintainer.js";
+import { createWikiEvidenceCommitGuard } from "./wiki-evidence-commit-guard.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "./evolution-release-train-ledger-adapter.js";
 import { WikiSkillProposalLedgerAdapter } from "./wiki-skill-proposal-ledger-adapter.js";
@@ -70,6 +71,7 @@ const WIKI_MAINTENANCE_KEYS = new Set([
   "principalEnvelope",
   "schemaPolicies",
   "readAuthorities",
+  "commitCoordinator",
   "maintainer",
 ]);
 const WIKI_READ_AUTHORITY_KEYS = new Set([
@@ -77,6 +79,7 @@ const WIKI_READ_AUTHORITY_KEYS = new Set([
   "principalResolver",
   "accessPolicy",
 ]);
+const WIKI_COMMIT_COORDINATOR_KEYS = new Set(["acquireCurrentEvidence"]);
 const WIKI_MAINTAINER_KEYS = new Set([
   "maintainerModel",
   "rulesDigest",
@@ -268,6 +271,24 @@ export function createAgentEvolutionRuntimeComposition({
       WIKI_MAINTAINER_KEYS,
       "wikiMaintenance.maintainer",
     );
+    const coordinator = exactRecord(
+      input.commitCoordinator,
+      WIKI_COMMIT_COORDINATOR_KEYS,
+      "wikiMaintenance.commitCoordinator",
+    );
+    if (
+      utilTypes.isAsyncFunction(coordinator.acquireCurrentEvidence) ||
+      utilTypes.isGeneratorFunction(coordinator.acquireCurrentEvidence)
+    ) {
+      throw new TypeError("Wiki commit coordinator must be synchronous");
+    }
+    const commitCoordinator = Object.freeze({
+      acquireCurrentEvidence: capture(
+        coordinator,
+        "acquireCurrentEvidence",
+        "Wiki commit coordinator",
+      ),
+    });
     if (
       !Number.isSafeInteger(maintainer.minCorroboratingSources) ||
       maintainer.minCorroboratingSources < 2 ||
@@ -280,6 +301,7 @@ export function createAgentEvolutionRuntimeComposition({
     wikiConfiguration = Object.freeze({
       principalEnvelope: input.principalEnvelope,
       schemaPolicies: input.schemaPolicies,
+      commitCoordinator,
       descriptor: Object.freeze({
         tenantId,
         evolutionRunId: runId,
@@ -500,6 +522,12 @@ export function createAgentEvolutionRuntimeComposition({
       ledger: backend.ledger,
       ledgerArtifactResolver,
     });
+    const wikiCommit = createWikiEvidenceCommitGuard({
+      wikiAdapter,
+      commitCoordinator: wikiConfiguration.commitCoordinator,
+      principalEnvelope: wikiConfiguration.principalEnvelope,
+      clock,
+    });
     wikiMaintainer = new EvidenceBackedWikiMaintainer({
       descriptor: wikiConfiguration.descriptor,
       policy: {
@@ -510,10 +538,13 @@ export function createAgentEvolutionRuntimeComposition({
         network: false,
         secretRead: false,
       },
-      ports: wikiAdapter.maintainerPorts({
-        resolveEvidence: wikiEvidence.resolveEvidence,
-        derive: wikiConfiguration.derive,
-      }),
+      ports: {
+        ...wikiAdapter.maintainerPorts({
+          resolveEvidence: wikiEvidence.resolveEvidence,
+          derive: wikiConfiguration.derive,
+        }),
+        commitRevision: wikiCommit.commitRevision,
+      },
     });
     // The host receives only scoped maintenance and authenticated Wiki reads,
     // never a Raw store, caller-supplied bundle, or write/approval capability.
