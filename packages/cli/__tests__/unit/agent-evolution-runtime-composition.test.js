@@ -2614,6 +2614,7 @@ describe("Agent evolution runtime production composition", () => {
     } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
     const {
       ResponseCache,
+      calculateCacheKey,
     } = require("../../../../desktop-app-vue/src/main/llm/response-cache.js");
     const {
       bindDesktopModelIngressClient,
@@ -2905,12 +2906,33 @@ describe("Agent evolution runtime production composition", () => {
         text: "beta-answer",
       });
       expect(wire).toHaveBeenCalledTimes(2);
+      // The two calls deliberately overlap, so the order in which their
+      // Desktop Runs are registered is not a request identity. Pin the
+      // tamper fixture to the same cache-index key the production workflow
+      // derives instead of assuming compositions[0] is alpha.
+      const requestKeyFor = (messages) =>
+        calculateCacheKey(
+          manager.provider,
+          manager.config.model || client.model || "unknown",
+          messages,
+          {
+            tenantId: f.config.tenantId,
+            connection: client.baseURL || client.host || null,
+            options: {},
+          },
+        );
+      const cacheIndexKeyFor = (messages) =>
+        calculateCacheKey("evolution-receipt", "v1", [], {
+          requestKey: requestKeyFor(messages),
+        });
       const alphaRow = rows.find(
-        (row) =>
-          JSON.parse(row.response_content).receipt.runId ===
-          compositions[0].runId,
+        (row) => row.cache_key === cacheIndexKeyFor(alpha),
       );
-      const betaRow = rows.find((row) => row !== alphaRow);
+      const betaRow = rows.find(
+        (row) => row.cache_key === cacheIndexKeyFor(beta),
+      );
+      expect(alphaRow).toBeDefined();
+      expect(betaRow).toBeDefined();
       db.prepare(
         "UPDATE llm_cache SET response_content = ? WHERE cache_key = ?",
       ).run(betaRow.response_content, alphaRow.cache_key);
