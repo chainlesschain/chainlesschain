@@ -113,6 +113,10 @@ public class ImageEngine: BaseAIEngine {
     // MARK: - 任务执行
 
     public override func execute(task: String, parameters: [String: Any]) async throws -> Any {
+        if ["ocr", "object_detection", "face_detection", "classify", "describe"].contains(task) {
+            throw LLMError.evolutionIngressRequired
+        }
+
         guard status != .initializing else {
             throw AIEngineError.notInitialized
         }

@@ -132,6 +132,8 @@ class VisionToolsHandler: ObservableObject {
         languages: [String]? = nil,
         recognitionLevel: VNRequestTextRecognitionLevel = .accurate
     ) async throws -> OCRResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[VisionTools] Recognizing text in: \(imagePath)")
 
         guard let image = loadImage(from: imagePath),
@@ -203,6 +205,8 @@ class VisionToolsHandler: ObservableObject {
     /// - Parameter imagePath: Path to image file
     /// - Returns: Classification results
     func classifyImage(imagePath: String) async throws -> [ClassificationResult] {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[VisionTools] Classifying image: \(imagePath)")
 
         guard let image = loadImage(from: imagePath),
@@ -247,6 +251,8 @@ class VisionToolsHandler: ObservableObject {
     ///   - detectLandmarks: Whether to detect facial landmarks
     /// - Returns: Face detection result
     func detectFaces(imagePath: String, detectLandmarks: Bool = false) async throws -> FaceDetectionResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[VisionTools] Detecting faces in: \(imagePath)")
 
         guard let image = loadImage(from: imagePath),
@@ -296,6 +302,8 @@ class VisionToolsHandler: ObservableObject {
     /// - Parameter imagePath: Path to image file
     /// - Returns: Barcode detection result
     func detectBarcodes(imagePath: String) async throws -> BarcodeResult {
+        throw LLMError.evolutionIngressRequired
+
         logger.info("[VisionTools] Detecting barcodes in: \(imagePath)")
 
         guard let image = loadImage(from: imagePath),

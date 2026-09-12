@@ -140,6 +140,8 @@ class VoiceManager: NSObject, ObservableObject {
 
     /// Start listening for speech
     func startListening() async throws {
+        throw LLMError.evolutionIngressRequired
+
         guard isAuthorized else {
             try await requestAuthorization()
         }

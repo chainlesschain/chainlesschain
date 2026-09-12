@@ -82,6 +82,10 @@ public class DocumentEngine: BaseAIEngine {
     // MARK: - 任务执行
 
     public override func execute(task: String, parameters: [String: Any]) async throws -> Any {
+        if ["parse_structure", "ocr", "summarize", "translate"].contains(task) {
+            throw LLMError.evolutionIngressRequired
+        }
+
         guard status != .initializing else {
             throw AIEngineError.notInitialized
         }

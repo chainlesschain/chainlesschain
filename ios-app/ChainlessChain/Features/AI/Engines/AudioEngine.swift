@@ -127,6 +127,10 @@ public class AudioEngine: BaseAIEngine {
     // MARK: - 任务执行
 
     public override func execute(task: String, parameters: [String: Any]) async throws -> Any {
+        if ["speech_to_text", "text_to_speech", "transcribe_summarize"].contains(task) {
+            throw LLMError.evolutionIngressRequired
+        }
+
         guard status != .initializing else {
             throw AIEngineError.notInitialized
         }

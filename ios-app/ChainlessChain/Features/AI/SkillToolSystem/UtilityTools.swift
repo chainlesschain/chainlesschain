@@ -87,6 +87,8 @@ public class UtilityTools {
     )
 
     private static let qrScanExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: system Vision tool requires a governed bridge")
+
         guard let imagePath = input.getString("imagePath") else {
             return .failure(error: "缺少图片路径")
         }
@@ -212,6 +214,8 @@ public class UtilityTools {
     )
 
     private static let barcodeScanExecutor: ToolExecutor = { input in
+        return .failure(error: "CC_AGENT_EVOLUTION_INGRESS_FAILED: system Vision tool requires a governed bridge")
+
         guard let imagePath = input.getString("imagePath") else {
             return .failure(error: "缺少图片路径")
         }

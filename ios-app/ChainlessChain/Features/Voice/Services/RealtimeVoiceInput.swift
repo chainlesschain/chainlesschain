@@ -110,6 +110,8 @@ class RealtimeVoiceInput: NSObject, ObservableObject {
 
     /// Start listening
     func startListening() async throws {
+        throw LLMError.evolutionIngressRequired
+
         guard !isListening else {
             logger.warning("[RealtimeVoiceInput] Already listening")
             return

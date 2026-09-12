@@ -270,6 +270,33 @@ health methods place the terminal guard as their first executable statement.
 This closes the identified UniApp default-model-entry gaps, but does not replace
 clean CI, device integration, or an authenticated production Evolution ingress.
 
+### iOS system Vision and Speech closure (2026-09-12 follow-up)
+
+The iOS provider audit initially covered LLM, embedding, image-generation,
+generic HTTP, and TTS exits. A subsequent framework-level scan found separate
+system-model paths through `Vision` and `SFSpeechRecognizer`: the Audio,
+Document, and Image engines; the direct Vision tool handler; QR/barcode skill
+tools; and the two live voice input services. System frameworks may select
+on-device or service-backed implementations, but neither form supplies the
+required Evolution projection/evidence lifecycle. They therefore cannot be
+treated as an implicit local, governed ingress.
+
+Audio/document/image engine dispatch now rejects only model-bearing tasks
+(transcription/TTS/summarization; OCR/structure/translation; OCR/detection/
+classification/description) before task dispatch. The direct Vision OCR,
+classification, face, and barcode methods reject before reading an image; the
+QR/barcode `ToolExecutor`s return the terminal code before loading a file; and
+both live voice `startListening()` paths reject before authorization, microphone
+setup, or creation of a speech-recognition task. Pure image transforms, pixel
+analysis, local file operations, audio formatting, and playback remain outside
+this closure.
+
+`tests/unit/evolution-ios-model-egress-static.test.cjs` now passes **4/4**. Its
+new contract asserts the engine task fences, every direct Vision/Speech entry,
+and the two scanner executors place `CC_AGENT_EVOLUTION_INGRESS_FAILED` before
+media loading or framework execution. This is source-level proof only until the
+macOS target workflow compiles and tests the changed sources.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

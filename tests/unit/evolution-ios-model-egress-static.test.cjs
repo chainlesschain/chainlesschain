@@ -142,6 +142,54 @@ test("iOS ImageGen exits fail before provider selection or URLSession", () => {
   );
 });
 
+test("iOS system Vision and Speech model exits fail before reading user media", () => {
+  const engineAssertions = [
+    ["AudioEngine.swift", ["speech_to_text", "text_to_speech", "transcribe_summarize"]],
+    ["DocumentEngine.swift", ["parse_structure", "ocr", "summarize", "translate"]],
+    ["ImageEngine.swift", ["ocr", "object_detection", "face_detection", "classify", "describe"]],
+  ];
+  for (const [filename, tasks] of engineAssertions) {
+    const text = source("Features", "AI", "Engines", filename);
+    const taskSet = tasks.map((task) => `\"${task}\"`).join(", ");
+    assert.match(
+      text,
+      new RegExp(
+        `public override func execute\\(task: String, parameters: \\[String: Any\\]\\) async throws -> Any \\{\\s*if \\[${taskSet}\\]\\.contains\\(task\\) \\{\\s*${guard}`,
+      ),
+      `${filename} must reject every system-model task before dispatch`,
+    );
+  }
+
+  const visionTools = source("Features", "AI", "ExtendedTools", "VisionTools.swift");
+  for (const [signature, label] of [
+    ["func recognizeText(", "Vision OCR"],
+    ["func classifyImage(imagePath: String)", "Vision classification"],
+    ["func detectFaces(imagePath: String, detectLandmarks: Bool = false)", "Vision face detection"],
+    ["func detectBarcodes(imagePath: String)", "Vision barcode detection"],
+  ]) {
+    assertGuardIsFirst(visionTools, signature, label);
+  }
+
+  const utilityTools = source("Features", "AI", "SkillToolSystem", "UtilityTools.swift");
+  for (const [signature, label] of [
+    ["private static let qrScanExecutor: ToolExecutor =", "QR scanner"],
+    ["private static let barcodeScanExecutor: ToolExecutor =", "barcode scanner"],
+  ]) {
+    assertTerminalToolGuard(utilityTools, signature, `UtilityTools ${label}`);
+  }
+
+  for (const [filename, signature, label] of [
+    ["VoiceManager.swift", "func startListening() async throws", "VoiceManager recognition"],
+    ["RealtimeVoiceInput.swift", "func startListening() async throws", "RealtimeVoiceInput recognition"],
+  ]) {
+    assertGuardIsFirst(
+      source("Features", "Voice", "Services", filename),
+      signature,
+      label,
+    );
+  }
+});
+
 test("shipped iOS LLM sources remain in the Xcode compile phase", () => {
   const project = fs.readFileSync(
     path.join(root, "ios-app", "ChainlessChain.xcodeproj", "project.pbxproj"),
