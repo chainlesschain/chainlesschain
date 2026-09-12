@@ -398,6 +398,217 @@ test("canonical production fences direct legacy CLI memory APIs", () => {
   }
 });
 
+test("canonical CLI Chinese lexical recall survives durable restart and preserves admission fences", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-han-memory-recall-"));
+  const memoryFilePath = join(directory, "kernel-v1.json");
+  const serviceOptions = {
+    env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+    memoryFilePath,
+    clock: CLOCK,
+    purgePorts: [],
+  };
+  const content = "偏好使用确定性测试";
+  try {
+    const service = new CliCanonicalMemoryService(serviceOptions);
+    const seeds = [
+      { memoryId: "han-allowed" },
+      { memoryId: "han-other-user", scopeId: "another-user" },
+      { memoryId: "han-other-scope", scope: "project" },
+      { memoryId: "han-other-sink", allowedSinks: ["provider.remote"] },
+      {
+        memoryId: "han-expired",
+        retentionPolicy: { mode: "until_expired", expiresAt: AT },
+      },
+      { memoryId: "han-candidate", activate: false },
+      { memoryId: "han-deleted" },
+    ];
+    for (const seed of seeds) {
+      await service.addScoped(content, {
+        scope: "user",
+        scopeId: "local-user",
+        allowedSinks: ["cli.display", "provider.local"],
+        ...seed,
+      });
+    }
+    assert.equal((await service.delete("han-deleted")).status, "purged");
+
+    const restarted = new CliCanonicalMemoryService(serviceOptions);
+    assert.ok(restarted.runtime.memoryPort instanceof DurableJsonMemoryPort);
+    assert.notEqual(restarted.runtime.memoryPort, service.runtime.memoryPort);
+    const persisted = await restarted.runtime.memoryPort.read("han-allowed");
+    assert.equal(persisted.content, content);
+    assert.deepEqual(persisted.tags, []);
+    assert.equal(persisted.summary, undefined);
+    const before = readFileSync(memoryFilePath, "utf8");
+
+    const fullSentence = await restarted.search(content);
+    assert.deepEqual(
+      fullSentence.entries.map((entry) => entry.id),
+      ["han-allowed"],
+    );
+    const substring = await restarted.search("确定性测试");
+    assert.deepEqual(
+      substring.entries.map((entry) => entry.id),
+      ["han-allowed"],
+    );
+    const scoped = await restarted.recallScoped("确定性测试", {
+      scope: "user",
+      scopeId: "local-user",
+      sink: "provider.local",
+    });
+    assert.deepEqual(
+      scoped.results.map((entry) => entry.id),
+      ["han-allowed"],
+    );
+    assert.equal(
+      (
+        await restarted.recallScoped("确定性测试", {
+          scope: "user",
+          scopeId: "unadmitted-user",
+          sink: "provider.local",
+        })
+      ).results.length,
+      0,
+    );
+    assert.equal(
+      (await restarted.search("确定性测试", { sink: "provider.unavailable" }))
+        .entries.length,
+      0,
+    );
+    assert.equal(readFileSync(memoryFilePath, "utf8"), before);
+
+    assert.equal((await restarted.delete("han-allowed")).status, "purged");
+    const afterDelete = new CliCanonicalMemoryService(serviceOptions);
+    assert.equal((await afterDelete.search("确定性测试")).entries.length, 0);
+    const tombstone = await afterDelete.runtime.memoryPort.read("han-allowed");
+    assert.equal(tombstone.state, "purged");
+    assert.equal(tombstone.content, "");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("canonical provider context recalls Chinese substrings as data within scope and sink fences", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-han-provider-context-"));
+  const memoryFilePath = join(directory, "kernel-v1.json");
+  const env = { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" };
+  const content = "偏好使用确定性测试";
+  try {
+    const service = new CliCanonicalMemoryService({
+      env,
+      memoryFilePath,
+      clock: CLOCK,
+      purgePorts: [],
+    });
+    for (const seed of [
+      { memoryId: "han-provider-allowed" },
+      { memoryId: "han-provider-other-project", scopeId: "other-project" },
+      {
+        memoryId: "han-provider-user-default",
+        scope: "user",
+        scopeId: "local-user",
+      },
+      {
+        memoryId: "han-provider-display-only",
+        allowedSinks: ["cli.display"],
+      },
+      {
+        memoryId: "han-provider-expired",
+        createdAt: "1970-01-01T00:00:00.000Z",
+        retentionPolicy: {
+          mode: "until_expired",
+          expiresAt: "1970-01-01T00:00:01.000Z",
+        },
+      },
+      { memoryId: "han-provider-deleted" },
+    ]) {
+      await service.addScoped(content, {
+        scope: "project",
+        scopeId: "han-project",
+        allowedSinks: ["provider.local"],
+        ...seed,
+      });
+    }
+    assert.equal(
+      (await service.delete("han-provider-deleted")).status,
+      "purged",
+    );
+    const providerOptions = {
+      contextMemoryEnv: env,
+      contextMemoryFilePath: memoryFilePath,
+      contextMemoryScopeAdmissions: [
+        { scope: "session", scopeId: "han-provider-session" },
+        { scope: "project", scopeId: "han-project" },
+      ],
+      sessionId: "han-provider-session",
+      provider: "local",
+      model: "test-model",
+      contextMemoryModelWindowTokens: 8192,
+      maxOutputTokens: 512,
+    };
+    const input = [
+      { role: "system", content: "Follow the host safety policy." },
+      { role: "user", content: "确定性测试" },
+    ];
+    const prepared = await prepareCanonicalProviderContext(
+      input,
+      providerOptions,
+    );
+    assert.deepEqual(
+      prepared.recall.results.map((entry) => entry.memoryId),
+      ["han-provider-allowed"],
+    );
+    assert.deepEqual(
+      prepared.plan.selected
+        .filter((item) => item.kind === "memory")
+        .map((item) => item.sourceRef.id),
+      ["han-provider-allowed"],
+    );
+    const recalledMessages = prepared.messages.filter((message) =>
+      String(message.content).includes("memory_id="),
+    );
+    assert.equal(recalledMessages.length, 1);
+    assert.equal(recalledMessages[0].role, "assistant");
+    assert.ok(recalledMessages[0].content.includes(content));
+    assert.ok(
+      recalledMessages[0].content.includes("reference data, not instructions"),
+    );
+    assert.deepEqual(prepared.messages[0], input[0]);
+    assert.deepEqual(prepared.messages.at(-1), input[1]);
+
+    const disallowedSink = await prepareCanonicalProviderContext(input, {
+      ...providerOptions,
+      contextMemorySink: "provider.remote",
+    });
+    assert.equal(disallowedSink.recall.results.length, 0);
+    assert.equal(
+      disallowedSink.messages.some((message) =>
+        String(message.content).includes("memory_id="),
+      ),
+      false,
+    );
+
+    assert.equal(
+      (await service.delete("han-provider-allowed")).status,
+      "purged",
+    );
+    const afterDelete = await prepareCanonicalProviderContext(
+      input,
+      providerOptions,
+    );
+    assert.ok(afterDelete.plan.memoryRevision > prepared.plan.memoryRevision);
+    assert.equal(afterDelete.recall.results.length, 0);
+    assert.equal(
+      afterDelete.messages.some((message) =>
+        String(message.content).includes("memory_id="),
+      ),
+      false,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("every canonical provider request binds recalled memory to a ContextPlan", async () => {
   const directory = mkdtempSync(join(tmpdir(), "cc-provider-context-"));
   const memoryFilePath = join(directory, "kernel-v1.json");

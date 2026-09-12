@@ -309,25 +309,140 @@ function mergeReplicaRecord(localInput, incomingInput) {
 }
 
 function tokenize(value) {
-  return new Set(
-    String(value || "")
-      .toLowerCase()
-      .split(/[^\p{L}\p{N}_-]+/u)
-      .filter(Boolean)
-      .slice(0, 2048),
-  );
+  const tokens = new Set();
+  const separator = /[^\p{L}\p{N}_-]/gu;
+  const text = String(value || "").toLowerCase();
+  let match;
+  let count = 0;
+  let start = 0;
+  // Count occurrences, not unique values, to retain the original first-2048
+  // token boundary without allocating an unbounded split array first. Search
+  // for individual separators: quantified Unicode word runs can overflow the
+  // RegExp stack on a valid record with millions of uninterrupted characters.
+  while (count < 2048 && (match = separator.exec(text)) !== null) {
+    if (match.index > start) {
+      tokens.add(text.slice(start, match.index));
+      count += 1;
+    }
+    start = separator.lastIndex;
+  }
+  if (count < 2048 && start < text.length) tokens.add(text.slice(start));
+  return tokens;
 }
 
-function lexicalRelevance(query, record) {
-  if (query === "*") return 1;
-  const queryTokens = tokenize(query);
-  if (queryTokens.size === 0) return 0;
+function* scriptSegments(token) {
+  // No dictionary, locale, ICU segmentation, or persistent search projection.
+  // Non-Han letters, digits, underscores and hyphens keep their word boundary.
+  const han = /\p{Script=Han}/gu;
+  const nonHan = /[^\p{Script=Han}]/gu;
+  let inHanRun = /^\p{Script=Han}/u.test(token);
+  let start = 0;
+  while (start < token.length) {
+    // Find the next script boundary without a quantified property expression
+    // or an array containing every character of a potentially large record.
+    const boundary = inHanRun ? nonHan : han;
+    boundary.lastIndex = start;
+    const match = boundary.exec(token);
+    const end = match === null ? token.length : match.index;
+    yield token.slice(start, end);
+    start = end;
+    inHanRun = !inHanRun;
+  }
+}
+
+function compileLexicalQuery(query) {
+  if (query === "*") return { wildcard: true, units: [] };
+  return {
+    wildcard: false,
+    units: [...tokenize(query)].map((token) => ({
+      token,
+      parts: [...new Set(scriptSegments(token))],
+    })),
+  };
+}
+
+function scoreLexicalQuery(compiled, record) {
+  if (compiled.wildcard) return 1;
+  if (compiled.units.length === 0) return 0;
   const memoryTokens = tokenize(
     `${record.category} ${record.tags.join(" ")} ${record.summary || ""} ${record.content}`,
   );
-  let matches = 0;
-  for (const token of queryTokens) if (memoryTokens.has(token)) matches += 1;
-  return matches / queryTokens.size;
+  const remaining = compiled.units.filter(
+    (unit) => !memoryTokens.has(unit.token),
+  );
+  const exactMatches = compiled.units.length - remaining.length;
+  if (remaining.length === 0) return 1;
+
+  const wanted = new Set(remaining.flatMap((unit) => unit.parts));
+  const matched = new Set();
+  for (const part of wanted) {
+    if (memoryTokens.has(part)) {
+      matched.add(part);
+      wanted.delete(part);
+    }
+  }
+  const hanSubstrings = new Set(
+    [...wanted].filter(
+      (part) =>
+        /^\p{Script=Han}/u.test(part) &&
+        // A supplementary-plane Han character occupies two UTF-16 code units,
+        // but is still a single character: never broaden a one-character query.
+        part.length > (part.codePointAt(0) > 0xffff ? 2 : 1),
+    ),
+  );
+  const shortestHanQuery = [...hanSubstrings].reduce(
+    (minimum, part) => Math.min(minimum, part.length),
+    Infinity,
+  );
+  const inspectedSegments = new Set();
+  const recentSegments = [];
+  let oldestSegment = 0;
+  for (const token of memoryTokens) {
+    if (wanted.size === 0) break;
+    if (!/\p{Script=Han}/u.test(token)) continue;
+    for (const segment of scriptSegments(token)) {
+      if (inspectedSegments.has(segment)) continue;
+      // Reuse completed comparisons for repeated script runs in a bounded
+      // FIFO cache. A full cache never excludes a segment from the search or
+      // prevents later high-frequency runs from receiving the same reuse.
+      if (recentSegments.length < 2048) {
+        recentSegments.push(segment);
+      } else {
+        inspectedSegments.delete(recentSegments[oldestSegment]);
+        recentSegments[oldestSegment] = segment;
+        oldestSegment = (oldestSegment + 1) % 2048;
+      }
+      inspectedSegments.add(segment);
+      if (wanted.has(segment)) {
+        matched.add(segment);
+        wanted.delete(segment);
+        hanSubstrings.delete(segment);
+      }
+      if (
+        segment.length >= shortestHanQuery &&
+        /^\p{Script=Han}/u.test(segment)
+      ) {
+        for (const part of hanSubstrings) {
+          if (segment.includes(part)) {
+            matched.add(part);
+            wanted.delete(part);
+            hanSubstrings.delete(part);
+          }
+        }
+      }
+      if (wanted.size === 0) break;
+    }
+  }
+  // Each original query token contributes at most one point. Mixed tokens
+  // require every component: Vue开发 must not match Vue部署 or Python开发.
+  const expandedMatches = remaining.filter((unit) =>
+    unit.parts.every((part) => matched.has(part)),
+  ).length;
+  return (exactMatches + expandedMatches) / compiled.units.length;
+}
+
+function lexicalRelevance(query, record) {
+  return scoreLexicalQuery(compileLexicalQuery(query), record);
 }
 
 const RECALL_FIELDS = new Set([
@@ -355,6 +470,7 @@ function rankMemoryRecords(records, requestInput = {}) {
   const admissions = request.scopeAdmissions.map((entry, index) =>
     assertScope(entry.scope, entry.scopeId, `scopeAdmissions[${index}].scope`),
   );
+  const compiledQuery = compileLexicalQuery(query);
   const scored = records
     .map(normalizeMemoryRecord)
     .filter((record) => ["active", "reinforced"].includes(record.state))
@@ -368,7 +484,7 @@ function rankMemoryRecords(records, requestInput = {}) {
     )
     .filter((record) => record.allowedSinks.includes("*") || record.allowedSinks.includes(sink))
     .map((record) => {
-      const lexical = lexicalRelevance(query, record);
+      const lexical = scoreLexicalQuery(compiledQuery, record);
       const relevance = Math.min(
         1,
         lexical * 0.65 + record.confidence * 0.2 + record.importance * 0.15,

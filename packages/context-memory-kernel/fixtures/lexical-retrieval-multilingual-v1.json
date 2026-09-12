@@ -1,0 +1,227 @@
+{
+  "schema": "chainlesschain.lexical-retrieval-fixture/v1",
+  "fixtureId": "synthetic-multilingual-keywords-v1",
+  "description": "Synthetic keyword and mixed-identifier lexical checks, not a semantic retrieval benchmark or production SLA.",
+  "seed": 20260912,
+  "now": "2026-09-12T00:00:00.000Z",
+  "scopeId": "lexical-fixture-project",
+  "sink": "provider.local",
+  "k": [1, 3, 5],
+  "records": [
+    { "memoryId": "zh-deterministic", "content": "偏好使用确定性测试" },
+    {
+      "memoryId": "en-tests",
+      "content": "Prefer deterministic tests and stable fixtures."
+    },
+    {
+      "memoryId": "zh-database",
+      "content": "数据库备份应每晚执行并校验恢复结果"
+    },
+    { "memoryId": "zh-auth", "content": "认证令牌必须定期轮换并保持审计记录" },
+    {
+      "memoryId": "mixed-http",
+      "content": "遇到HTTP_TIMEOUT时应检查连接池并降低重试频率"
+    },
+    { "memoryId": "mixed-user", "content": "使用getUserById查询用户资料" },
+    {
+      "memoryId": "mixed-run",
+      "content": "调用run-tests后检查exit_code并记录结果"
+    },
+    {
+      "memoryId": "en-router",
+      "content": "The router dispatches API routes to handlers."
+    },
+    {
+      "memoryId": "en-config",
+      "content": "Use load_config and retry-count for local settings."
+    },
+    { "memoryId": "mixed-vue", "content": "Vue组件通过emit更新状态" },
+    { "memoryId": "zh-tests", "content": "测试环境必须清理临时目录" },
+    { "memoryId": "zh-single", "content": "仅保留独立字 账 作为账本标识" },
+    { "memoryId": "mixed-vue-dev", "content": "用Vue开发工具完成界面工作" },
+    { "memoryId": "mixed-vue-deploy", "content": "用Vue部署工具发布界面" },
+    { "memoryId": "mixed-python-dev", "content": "用Python开发工具处理数据" },
+    {
+      "memoryId": "blocked-scope",
+      "content": "隔离权限标记",
+      "guard": "other_scope"
+    },
+    {
+      "memoryId": "blocked-sink",
+      "content": "隔离权限标记",
+      "guard": "other_sink"
+    },
+    {
+      "memoryId": "blocked-ttl",
+      "content": "隔离权限标记",
+      "guard": "expired_ttl"
+    },
+    {
+      "memoryId": "blocked-archive",
+      "content": "隔离权限标记",
+      "guard": "archived"
+    },
+    {
+      "memoryId": "blocked-candidate",
+      "content": "隔离权限标记",
+      "guard": "candidate"
+    },
+    {
+      "memoryId": "blocked-delete",
+      "content": "隔离权限标记",
+      "guard": "deleted"
+    }
+  ],
+  "queries": [
+    {
+      "id": "original-full-phrase",
+      "group": "han",
+      "query": "偏好使用确定性测试",
+      "relevantIds": ["zh-deterministic"]
+    },
+    {
+      "id": "original-substring-counterexample",
+      "group": "han",
+      "query": "确定性测试",
+      "relevantIds": ["zh-deterministic"]
+    },
+    {
+      "id": "han-database",
+      "group": "han",
+      "query": "数据库",
+      "relevantIds": ["zh-database"]
+    },
+    {
+      "id": "han-token",
+      "group": "han",
+      "query": "令牌",
+      "relevantIds": ["zh-auth"]
+    },
+    {
+      "id": "han-two-relevant",
+      "group": "han",
+      "query": "测试",
+      "relevantIds": ["zh-deterministic", "zh-tests"]
+    },
+    {
+      "id": "english-case",
+      "group": "english",
+      "query": "DETERMINISTIC",
+      "relevantIds": ["en-tests"]
+    },
+    {
+      "id": "english-whole-word",
+      "group": "english",
+      "query": "router",
+      "relevantIds": ["en-router"]
+    },
+    {
+      "id": "identifier-underscore",
+      "group": "english",
+      "query": "load_config",
+      "relevantIds": ["en-config"]
+    },
+    {
+      "id": "identifier-hyphen",
+      "group": "english",
+      "query": "retry-count",
+      "relevantIds": ["en-config"]
+    },
+    {
+      "id": "mixed-http-identifier",
+      "group": "mixed",
+      "query": "HTTP_TIMEOUT",
+      "relevantIds": ["mixed-http"]
+    },
+    {
+      "id": "mixed-case-identifier",
+      "group": "mixed",
+      "query": "getuserbyid",
+      "relevantIds": ["mixed-user"]
+    },
+    {
+      "id": "mixed-exit-identifier",
+      "group": "mixed",
+      "query": "exit_code",
+      "relevantIds": ["mixed-run"]
+    },
+    {
+      "id": "mixed-two-query-units",
+      "group": "mixed",
+      "query": "用户 getUserById",
+      "relevantIds": ["mixed-user"]
+    },
+    {
+      "id": "mixed-emit-query",
+      "group": "mixed",
+      "query": "组件 emit",
+      "relevantIds": ["mixed-vue"]
+    },
+    {
+      "id": "single-han-exact",
+      "group": "han",
+      "query": "账",
+      "relevantIds": ["zh-single"]
+    },
+    {
+      "id": "mixed-all-parts",
+      "group": "mixed",
+      "query": "Vue开发",
+      "relevantIds": ["mixed-vue-dev"]
+    },
+    {
+      "id": "mixed-han-contiguous",
+      "group": "mixed",
+      "query": "Vue开发工具",
+      "relevantIds": ["mixed-vue-dev"]
+    },
+    {
+      "id": "english-no-stemming",
+      "group": "negative",
+      "query": "route",
+      "relevantIds": []
+    },
+    {
+      "id": "identifier-no-prefix",
+      "group": "negative",
+      "query": "load",
+      "relevantIds": []
+    },
+    {
+      "id": "identifier-no-hyphen-prefix",
+      "group": "negative",
+      "query": "retry",
+      "relevantIds": []
+    },
+    {
+      "id": "single-han-noise",
+      "group": "negative",
+      "query": "测",
+      "relevantIds": []
+    },
+    {
+      "id": "shared-bigram-not-relevant",
+      "group": "negative",
+      "query": "性能测试",
+      "relevantIds": []
+    },
+    {
+      "id": "unrelated-han",
+      "group": "negative",
+      "query": "星际传送",
+      "relevantIds": []
+    },
+    {
+      "id": "governance-blocked",
+      "group": "governance",
+      "query": "隔离权限标记",
+      "relevantIds": []
+    },
+    {
+      "id": "mixed-missing-non-han-part",
+      "group": "negative",
+      "query": "React开发",
+      "relevantIds": []
+    }
+  ]
+}
