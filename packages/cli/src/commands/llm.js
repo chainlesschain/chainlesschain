@@ -1,6 +1,6 @@
 /**
  * LLM management commands
- * chainlesschain llm models|test|providers|add-provider|switch
+ * chainlesschain llm models|test|capabilities|providers|add-provider|switch
  */
 
 import ora from "ora";
@@ -48,6 +48,7 @@ import {
   saveLlmConnection,
 } from "../lib/llm-connection-config.js";
 import { probeLlmConnection } from "../lib/llm-connection-probe.js";
+import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
 
 /**
  * Resolve the effective `cc llm test` target from CLI flags + persisted config.
@@ -111,8 +112,106 @@ export function resolveLlmTestTarget(
   };
 }
 
+/** Resolve a static profile without reading credentials or provider key envs. */
+export function resolveLlmCapabilities(
+  options = {},
+  config = {},
+  builtIns = BUILT_IN_PROVIDERS,
+) {
+  if (options.baseUrl !== undefined) {
+    try {
+      const endpoint = new URL(options.baseUrl);
+      if (!["http:", "https:"].includes(endpoint.protocol)) throw new Error();
+    } catch {
+      throw new TypeError("--base-url must be an absolute HTTP(S) URL");
+    }
+  }
+  const llm = config.llm || {};
+  const { provider, model, baseUrl } = resolveLlmTestTarget(
+    {
+      provider: options.provider,
+      model: options.model,
+      baseUrl: options.baseUrl,
+    },
+    {
+      llm: { provider: llm.provider, model: llm.model, baseUrl: llm.baseUrl },
+    },
+    builtIns,
+    {},
+  );
+  return resolveModelCapabilityProfile({
+    provider,
+    model,
+    baseUrl,
+    contextMemoryModelWindowTokens: options.contextWindow,
+    maxOutputTokens: options.maxOutputTokens,
+  });
+}
+
+export function formatLlmCapabilities(profile) {
+  return [
+    "LLM capability profile (static; runtime not verified)",
+    `Provider: ${profile.provider}`,
+    `Model: ${profile.model}`,
+    `Context window: ${profile.contextWindowTokens} tokens (${profile.windowSource}; ${profile.windowAssumed ? "assumed/operator-declared, not runtime verified" : "static metadata, not runtime verified"})`,
+    `Runtime protocol: ${profile.runtimeProtocol}; Responses is not integrated`,
+    `Request output cap: ${profile.requestMaxOutputTokens ?? "not explicitly set"}`,
+    `Planned output reserve: ${profile.plannedOutputReserveTokens} tokens (${profile.outputReserveSource}); planning reserve is not an enforced request cap`,
+    `Advertised maximum output: ${profile.advertisedMaxOutputTokens ?? "unknown"}`,
+    "Fallback values are estimates, not a readiness or execution guarantee.",
+    ...profile.limitations.map((limitation) => `Note: ${limitation}`),
+    `Profile digest: ${profile.digest}`,
+  ].join("\n");
+}
+
 export function registerLlmCommand(program) {
   const llm = program.command("llm").description("LLM provider management");
+
+  llm
+    .command("capabilities")
+    .description(
+      "Inspect a static model capability profile without network or runtime verification",
+    )
+    .option("--provider <provider>", "LLM provider (default: configured)")
+    .option("--model <model>", "Model (default: configured/provider)")
+    .option(
+      "--base-url <url>",
+      "API base URL for static profile selection only",
+    )
+    .option(
+      "--context-window <tokens>",
+      "Operator-declared context window, not runtime verified",
+    )
+    .option(
+      "--max-output-tokens <tokens>",
+      "Explicit request output cap for this diagnostic profile",
+    )
+    .option("--json", "Output the static capability profile as JSON")
+    .action((options) => {
+      let config;
+      try {
+        // Do not resolve OS secrets or create .corrupted backups on a read-only
+        // diagnostic. Also avoid echoing JSON parser errors containing secrets.
+        config = loadConfig({ resolveSecrets: false, failIfUnavailable: true });
+      } catch {
+        logger.error(
+          "Could not read LLM configuration; repair the configuration before inspecting capabilities.",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      try {
+        const profile = resolveLlmCapabilities(options, config);
+        if (options.json) {
+          console.log(JSON.stringify(profile, null, 2));
+        } else {
+          logger.log(formatLlmCapabilities(profile));
+        }
+      } catch (error) {
+        logger.error(error.message);
+        process.exitCode = 1;
+      }
+    });
 
   llm
     .command("configure")

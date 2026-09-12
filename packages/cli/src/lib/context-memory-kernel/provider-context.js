@@ -4,7 +4,7 @@ import {
   isProtected,
   normalizeContextItem,
 } from "@chainlesschain/context-memory-kernel";
-import { getContextWindow } from "../model-context-window.js";
+import { resolveModelCapabilityProfile } from "../model-capabilities.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
 import {
   contextItemsToMessages,
@@ -19,9 +19,10 @@ function defaultAdmissions(sessionId, options) {
     { scope: "user", scopeId: options.userId || "local-user" },
   ];
   const configured = options.contextMemoryScopeAdmissions;
-  const admissions = Array.isArray(configured) && configured.length > 0
-    ? configured
-    : candidates;
+  const admissions =
+    Array.isArray(configured) && configured.length > 0
+      ? configured
+      : candidates;
   const seen = new Set();
   return admissions.filter((entry) => {
     const key = `${entry.scope}\0${entry.scopeId || ""}`;
@@ -83,6 +84,34 @@ export async function prepareCanonicalProviderContext(
 ) {
   const messages = Array.isArray(messagesInput) ? messagesInput : [];
   const sessionId = String(options.sessionId || "ephemeral-cli-session");
+  const planningRequested = options.contextMemorySkipPlanning !== true;
+  const provider = String(options.provider || "local");
+  const modelCapabilities = planningRequested
+    ? resolveModelCapabilityProfile({
+        provider,
+        model: options.model,
+        baseUrl: options.baseUrl,
+        contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
+        maxOutputTokens: options.maxOutputTokens,
+      })
+    : null;
+
+  // A request cap at or above the complete model window leaves no valid input
+  // allocation. Reject it before creating the memory runtime so an impossible
+  // request cannot write state or reach the provider.
+  if (
+    modelCapabilities !== null &&
+    modelCapabilities.requestMaxOutputTokens !== null &&
+    modelCapabilities.requestMaxOutputTokens >=
+      modelCapabilities.contextWindowTokens
+  ) {
+    const error = new RangeError(
+      "The configured output-token cap must be smaller than the model context window",
+    );
+    error.code = "CC_MODEL_OUTPUT_BUDGET_EXCEEDS_WINDOW";
+    throw error;
+  }
+
   const runtime = createCliContextMemoryRuntime({
     env: options.contextMemoryEnv || process.env,
     sessionId,
@@ -91,11 +120,16 @@ export async function prepareCanonicalProviderContext(
       ? { memoryFilePath: options.contextMemoryFilePath }
       : {}),
   });
-  if (!runtime.decision.canonical || options.contextMemorySkipPlanning === true) {
-    return { messages, plan: null, recall: null, decision: runtime.decision };
+  if (!runtime.decision.canonical || !planningRequested) {
+    return {
+      messages,
+      plan: null,
+      recall: null,
+      decision: runtime.decision,
+      modelCapabilities: null,
+    };
   }
 
-  const provider = String(options.provider || "local");
   const sink = String(options.contextMemorySink || `provider.${provider}`);
   const scopeAdmissions = defaultAdmissions(sessionId, options);
   const lastUser = [...messages]
@@ -109,7 +143,10 @@ export async function prepareCanonicalProviderContext(
     query,
     sink,
     scopeAdmissions,
-    limit: Math.max(1, Math.min(32, Number(options.contextMemoryRecallLimit) || 12)),
+    limit: Math.max(
+      1,
+      Math.min(32, Number(options.contextMemoryRecallLimit) || 12),
+    ),
     tokenBudget: Math.max(
       1,
       Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
@@ -130,15 +167,10 @@ export async function prepareCanonicalProviderContext(
     { sessionId, sink },
   );
   const items = [...messageItems, ...memoryItems, ...toolItems];
-  const modelWindowTokens = Math.max(
-    1024,
-    Number(options.contextMemoryModelWindowTokens) ||
-      getContextWindow(options.model, provider) ||
-      128 * 1024,
-  );
+  const modelWindowTokens = modelCapabilities.contextWindowTokens;
   const reservedOutputTokens = Math.min(
     modelWindowTokens - 1,
-    Math.max(256, Number(options.maxOutputTokens) || 4096),
+    Math.max(256, modelCapabilities.plannedOutputReserveTokens),
   );
   const safetyMarginTokens = Math.min(
     modelWindowTokens - reservedOutputTokens - 1,
@@ -185,10 +217,11 @@ export async function prepareCanonicalProviderContext(
     policyVersion: String(
       options.contextMemoryPolicyVersion || "cli-provider-v1",
     ),
-    modelProfile: `${provider}:${String(options.model || "default")}`.slice(
-      0,
-      256,
-    ),
+    modelProfile:
+      `${modelCapabilities.profileId}:${modelCapabilities.digest}`.slice(
+        0,
+        256,
+      ),
     sessionHead,
     memoryRevision: recall.memoryRevision,
   });
@@ -202,6 +235,7 @@ export async function prepareCanonicalProviderContext(
     plan,
     recall,
     decision: runtime.decision,
+    modelCapabilities,
   };
 }
 

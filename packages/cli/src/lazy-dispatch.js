@@ -814,7 +814,14 @@ export function isFastReadOnlyInvocation(argv, env = process.env) {
     commandLocation?.token === "session" &&
     argv[commandLocation.index + 1] === "show" &&
     !explicitOtlp;
-  return quickStatus || sessionShow;
+  // Capability inspection is a deliberately static, read-only diagnostic.
+  // Keep it ahead of observability initialization even when an OTLP endpoint
+  // is configured; otherwise merely inspecting a profile creates a queue and
+  // contradicts the command's no-network/no-write contract.
+  const llmCapabilities =
+    commandLocation?.token === "llm" &&
+    argv[commandLocation.index + 1] === "capabilities";
+  return quickStatus || sessionShow || llmCapabilities;
 }
 
 let processHandlersInstalled = false;

@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -184,6 +184,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 **已有能力限定。** canonical planner 已支持内部参数 `contextMemoryModelWindowTokens` 覆盖静态窗口，不能把“第一次支持显式覆盖”列为新增需求；本次未确认该参数在全部用户配置入口可见。
 
 **建议交付。** 用同一版本化 profile 描述 endpoint、工具调用、reasoning、窗口、最大输出、token 估算、vision 和缓存能力；复用现有窗口覆盖，统一配置来源并展示“确认值/估算值”。为支持的 OpenAI 模型接入 Responses，保留其他 provider 的兼容路径；新协议必须继续经过现有治理 ingress、usage 和取消机制。
+
+**后续实施进展（2026-09-13）。** [G03 基础层实施](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md) 已加入版本化 profile、provider 隔离的窗口来源、只读 `cc llm capabilities`、规划与 Anthropic 实际输出 cap 绑定，以及请求前的非法预算拒绝。诊断不读取凭据、不联网、不写配置，并始终标记未经过运行验证。OpenAI 主链仍未接入原生 Responses，真实 reasoning/tool/stream/usage 旅程也未验收；因此该项只能标记为基础层完成，不能整体关闭。
 
 **验收。** 实际支持模型分别完成 reasoning+tool 往返、流式取消、压缩后继续、模型切换和 usage/cached-token 归账；中文、代码、大工具 schema 的预算误差有测量结果。未经这些验证，不承诺“支持所有最新模型”。
 

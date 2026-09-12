@@ -50,7 +50,7 @@ import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.js";
-import { mergeProviderOptions } from "../lib/provider-options.js";
+import { resolveAgentOutputBudget } from "../lib/model-capabilities.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
 import {
   commitShellApprovalSideEffects,
@@ -11119,21 +11119,20 @@ export async function chatWithTools(rawMessages, options) {
       };
     }
 
-    // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192) via
-    // provider-options. We read ONLY maxTokens: the module's `temperature`
-    // default is never forwarded (400s on Opus 4.7/4.8).
+    // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192).
+    // The shared budget resolver reads only provider maxTokens; its unrelated
+    // temperature default is never forwarded (400s on Opus 4.7/4.8).
     // Fallback to the CURRENT Sonnet, not a retired snapshot:
     // claude-sonnet-4-20250514 was retired 2026-06-15 and would 404 here.
     const effModel = model || "claude-sonnet-4-6";
-    const { maxTokens: anthropicMaxTokens } = mergeProviderOptions(
-      "anthropic",
-      effModel,
-    );
+    const anthropicOutputBudget = resolveAgentOutputBudget({
+      provider: "anthropic",
+      model: effModel,
+      maxOutputTokens: options.maxOutputTokens,
+    });
     const body = {
       model: effModel,
-      max_tokens: options.maxOutputTokens
-        ? Math.min(anthropicMaxTokens || 8192, options.maxOutputTokens)
-        : anthropicMaxTokens || 8192,
+      max_tokens: anthropicOutputBudget.requestMaxOutputTokens,
       // Convert cc's internal OpenAI-shaped history (role:"tool" results,
       // assistant tool_calls[]) into Anthropic content blocks. Without this,
       // multi-turn tool use 400s on turn 2 (Anthropic rejects role:"tool" and
