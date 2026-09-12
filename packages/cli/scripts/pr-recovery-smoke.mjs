@@ -117,6 +117,10 @@ function tool(command, turn) {
 async function startSmokeModel(chatFn) {
   let fixtureError = null;
   const server = createServer((request, response) => {
+    // Avoid reusing an idle loopback socket between model turns. Node's server
+    // can retire a keep-alive socket while the ingress persists a tool result,
+    // whereas Undici may otherwise attempt the next turn on that stale socket.
+    response.setHeader("Connection", "close");
     const chunks = [];
     request.on("data", (chunk) => chunks.push(chunk));
     request.on("end", async () => {
