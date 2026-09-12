@@ -862,8 +862,15 @@ function ensureCycleOutcome({
 async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
   const startedAt = new Date().toISOString();
   const runId = `${LIVE_PROVIDER_TRAJECTORY_CASE}-${profile.mode}-${platformName()}-${randomUUID()}`;
+  // ArtifactStore attests every path component and rejects junction/symlink
+  // ancestors. Windows hosted runners can expose os.tmpdir() through a
+  // junction, so create the workspace from its physical path just as the
+  // signed evolution deployment fixture does.
+  const physicalTemporaryRoot = (fs.realpathSync.native || fs.realpathSync)(
+    path.resolve(os.tmpdir()),
+  );
   const workspace = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-live-trajectory-"),
+    path.join(physicalTemporaryRoot, "cc-live-trajectory-"),
   );
   const evolutionComposition = createTestAgentEvolutionComposition(
     createAgentEvolutionRuntimeComposition,
