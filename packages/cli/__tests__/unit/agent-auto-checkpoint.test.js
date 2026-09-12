@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 import { listCheckpoints } from "../../src/lib/checkpoint-store.js";
 
 function git(repo, ...args) {

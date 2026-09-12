@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 import {
   collectFileReadProgress,
   FILE_READ_PROGRESS_PREFIX,

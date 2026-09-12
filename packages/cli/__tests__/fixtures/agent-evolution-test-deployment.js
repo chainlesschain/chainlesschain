@@ -406,7 +406,14 @@ export function createTestAgentEvolutionComposition(
 
 /** Create an ephemeral signed deployment and return its two required env vars. */
 export function createSignedAgentEvolutionDeployment(root) {
-  const stateRoot = path.join(root, "agent-evolution-state");
+  // ArtifactStore rejects symlinked path components so its evidence paths are
+  // physically auditable.  macOS commonly exposes its temp directory through
+  // /var (a symlink to /private/var), therefore resolve the test home once
+  // before emitting any deployment path.
+  const physicalRoot = (fs.realpathSync.native || fs.realpathSync)(
+    path.resolve(root),
+  );
+  const stateRoot = path.join(physicalRoot, "agent-evolution-state");
   const source = `
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
@@ -424,7 +431,10 @@ export async function createChainlessChainCommandDependencies({ commandName, fac
   };
 }
 `;
-  const modulePath = path.join(root, "agent-evolution-test-deployment.mjs");
+  const modulePath = path.join(
+    physicalRoot,
+    "agent-evolution-test-deployment.mjs",
+  );
   fs.writeFileSync(modulePath, source, { flag: "wx" });
   const moduleDigest = computeEvolutionDeploymentDigest(Buffer.from(source));
   const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
@@ -444,8 +454,11 @@ export async function createChainlessChainCommandDependencies({ commandName, fac
       privateKey,
     )
     .toString("base64");
-  const descriptorPath = path.join(root, "agent-evolution-descriptor.json");
-  const trustRootPath = path.join(root, "agent-evolution-public.pem");
+  const descriptorPath = path.join(
+    physicalRoot,
+    "agent-evolution-descriptor.json",
+  );
+  const trustRootPath = path.join(physicalRoot, "agent-evolution-public.pem");
   fs.writeFileSync(descriptorPath, JSON.stringify(descriptor), { flag: "wx" });
   fs.writeFileSync(trustRootPath, trustRoot, { flag: "wx" });
   return Object.freeze({

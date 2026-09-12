@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 import { TelemetryRecorder } from "../../src/lib/telemetry/span-recorder.js";
 
 let tmp;

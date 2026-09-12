@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import os from "os";
-import { chatWithTools } from "../../src/runtime/agent-core.js";
+import { chatWithTools } from "../helpers/test-model-egress.js";
 
 // Capture the JSON body of the (single) Anthropic request and return a minimal
 // valid Messages response so chatWithTools finalizes cleanly.

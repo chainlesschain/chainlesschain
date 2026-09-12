@@ -132,7 +132,7 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 }));
 
 const { agentLoop, executeTool } =
-  await import("../../src/runtime/agent-core.js");
+  await import("../helpers/test-model-egress.js");
 
 describe("run_skill controlled execution boundary", () => {
   let tempDir;

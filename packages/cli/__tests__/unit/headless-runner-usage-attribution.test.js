@@ -15,7 +15,7 @@
  * store write is captured via the deps store seam — no disk, no LLM.
  */
 import { describe, it, expect } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 const ATTR = {

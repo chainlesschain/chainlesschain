@@ -8,7 +8,7 @@
  * is mocked; no real provider or network is involved.
  */
 import { describe, it, expect, vi } from "vitest";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 
 /** A chatFn that immediately returns a final (tool-free) assistant message. */
 function finalReplyChatFn() {

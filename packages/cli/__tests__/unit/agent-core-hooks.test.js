@@ -15,7 +15,7 @@ import {
   agentLoop,
   emitToolHookLifecycle,
   emitToolBatchHookLifecycle,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 
 let tmp, file;
 

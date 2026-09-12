@@ -36,7 +36,7 @@ vi.mock("../../src/lib/managed-tool-checkpoint.js", async (importOriginal) => ({
   settleManagedToolCheckpoint: checkpointMocks.settle,
 }));
 
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 
 function scriptedWrite(content) {
   let turn = 0;

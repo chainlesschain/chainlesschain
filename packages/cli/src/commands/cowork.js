@@ -997,14 +997,17 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--model <name>", "LLM model to use")
     .action(async (prompt, options) => {
       try {
-        const evolution = await startCoworkCommandEvolution(
-          evolutionCompositionFactory,
-          {
-            mode: "workflow-draft",
-            content: prompt,
-            source: "cowork:workflow-draft",
-          },
-        );
+        // An injected draft seam is a deterministic test/host boundary and
+        // never emits a provider request. Do not require model-evolution
+        // admission for it; live drafts still establish a Run before loading
+        // the provider transport below.
+        const evolution = Object.hasOwn(commandDeps, "workflowDraftChat")
+          ? null
+          : await startCoworkCommandEvolution(evolutionCompositionFactory, {
+              mode: "workflow-draft",
+              content: prompt,
+              source: "cowork:workflow-draft",
+            });
         let chat;
         let provider;
         let model;

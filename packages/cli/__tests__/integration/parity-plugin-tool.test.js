@@ -53,7 +53,7 @@ vi.mock("../../src/runtime/fallback-model.js", () => ({
   captureCanonicalFallbackChatFn: (value) => value,
 }));
 
-import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop as coreAgentLoop } from "../helpers/test-model-egress.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
 import {
   createMockLLMProvider,

@@ -24,8 +24,8 @@ import {
   collectIdeDiagnostics,
   formatIdeDiagnostics,
 } from "../../src/lib/ide-context.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import { executeTool } from "../helpers/test-model-egress.js";
 
 const txt = (data) => ({
   content: [{ type: "text", text: JSON.stringify(data) }],

@@ -29,7 +29,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync, readFileSync } from "fs";
 import { tmpdir, platform } from "os";
 import { join } from "path";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
 import {
   startSession,

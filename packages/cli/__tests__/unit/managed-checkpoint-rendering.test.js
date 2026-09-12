@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { agentLoop as runReplLoop } from "../../src/repl/agent-repl.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 const SECRET = "managed-rendering-secret-that-must-not-be-printed";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import { executeTool } from "../helpers/test-model-egress.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
 const HEAD_0 = "0".repeat(64);

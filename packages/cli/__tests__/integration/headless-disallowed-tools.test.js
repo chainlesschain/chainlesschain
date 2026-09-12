@@ -33,7 +33,7 @@ vi.mock("../../src/runtime/fallback-model.js", () => ({
   captureCanonicalFallbackChatFn: (value) => value,
 }));
 
-import { chatWithTools as coreChatWithTools } from "../../src/runtime/agent-core.js";
+import { chatWithTools as coreChatWithTools } from "../helpers/test-model-egress.js";
 
 const chatWithTools = (messages, options = {}) =>
   coreChatWithTools(messages, {

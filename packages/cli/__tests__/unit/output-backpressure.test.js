@@ -7,7 +7,7 @@ import {
   installOutputBackpressure,
   installWritableBackpressureGate,
 } from "../../src/runtime/output-backpressure.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 
 class ManualWritable extends Writable {

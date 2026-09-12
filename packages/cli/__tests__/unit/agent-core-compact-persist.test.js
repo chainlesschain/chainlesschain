@@ -19,7 +19,7 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
 }));
 
 const store = await import("../../src/harness/jsonl-session-store.js");
-const { agentLoop } = await import("../../src/runtime/agent-core.js");
+const { agentLoop } = await import("../helpers/test-model-egress.js");
 
 function finalReplyChatFn() {
   return async () => ({

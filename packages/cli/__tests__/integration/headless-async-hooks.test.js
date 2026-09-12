@@ -6,7 +6,7 @@
  * via `node -e` so the whole fire-and-forget path is exercised.
  */
 import { describe, it, expect } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 const NODE = process.execPath.replace(/\\/g, "/");
 

@@ -5,7 +5,7 @@
  * CC_ALLOW_TAMPERED_RESUME=1 escape hatch resumes with a stderr warning.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 function baseDeps(overrides = {}) {
   const calls = { agentLoopRuns: 0, out: [], err: [] };

@@ -36,7 +36,7 @@ import {
   isHeadlessConfigCommand,
   runConfigDirective,
 } from "../../src/lib/headless-config-command.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 describe("isHeadlessConfigCommand", () => {
   it("matches a leading /config slash command only", () => {

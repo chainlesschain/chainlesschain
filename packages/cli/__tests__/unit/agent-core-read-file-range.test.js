@@ -69,7 +69,7 @@ const {
   agentLoop,
   _toAnthropicMessages,
   _agentToolProcessDeps,
-} = await import("../../src/runtime/agent-core.js");
+} = await import("../helpers/test-model-egress.js");
 
 describe("read_file offset/limit line ranges", () => {
   let dir;

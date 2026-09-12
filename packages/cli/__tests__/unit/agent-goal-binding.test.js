@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 /** Capturing fake of the persistent ApprovalGate singleton. */
 function fakeGate() {

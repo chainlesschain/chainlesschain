@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { TurnBindingLog, TURN_COVERAGE } from "../../src/lib/turn-binding.js";
 

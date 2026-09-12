@@ -13114,8 +13114,12 @@ async function _getAutoCompactor(options) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  // The only ingress with this marker is the frozen Vitest sentinel admitted
+  // by the test capture seam. Production ingress instances remain branded and
+  // therefore always require the owned canonical compactor below.
   if (
     evolutionIngress !== null &&
+    evolutionIngress.testOnlyUnownedCompaction !== true &&
     (typeof options.compactionLlmQuery === "function" ||
       (options._autoCompactor != null &&
         evolutionAutoCompactors.get(options._autoCompactor) !==

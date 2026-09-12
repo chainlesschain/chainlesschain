@@ -22,8 +22,8 @@ import {
   parsePermissionDecision,
   makePermissionPromptConfirmer,
 } from "../../src/runtime/mcp-config.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
-import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import { agentLoop as coreAgentLoop } from "../helpers/test-model-egress.js";
 
 // setupMcpFromConfig dynamically imports mcp-oauth to discover a stored bearer
 // for url-based servers. A file-scoped mock returns a token so the injection

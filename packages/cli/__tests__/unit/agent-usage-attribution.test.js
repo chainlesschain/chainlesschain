@@ -103,7 +103,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
 import {
   _retryStreamingChat,
   agentLoop,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 import { _subState, SubAgentContext } from "../../src/lib/sub-agent-context.js";
 
 function spawnCall(args, id = "c1") {

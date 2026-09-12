@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 // Build deps with a fake agent loop that fires onStall(ms, timeoutMs) once,
 // then completes the turn. Captures stdout/stderr separately.

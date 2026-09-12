@@ -21,7 +21,7 @@ import {
   _iterateStreamWithStall,
   _isRetryableStreamError,
   chatWithTools,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 
 // A reader whose Nth read() resolves after `gaps[N]` ms (0 = immediate), then
 // reports done. Mirrors the ReadableStreamDefaultReader contract cc consumes.

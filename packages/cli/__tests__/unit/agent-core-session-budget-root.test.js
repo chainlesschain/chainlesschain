@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
-import { agentLoop, executeTool } from "../../src/runtime/agent-core.js";
+import { agentLoop, executeTool } from "../helpers/test-model-egress.js";
 
 async function drain(iterable) {
   const events = [];

@@ -18,7 +18,7 @@ import {
   setupMcpFromConfig,
   registerMcpResourceTools,
 } from "../../src/runtime/mcp-config.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
   parseMcpPromptCommand,

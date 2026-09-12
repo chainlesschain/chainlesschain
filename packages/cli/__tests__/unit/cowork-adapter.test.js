@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createChatFn, coworkLogger } from "../../src/lib/cowork-adapter.js";
+import { createChatFn, coworkLogger } from "../helpers/test-model-egress.js";
 
 describe("cowork-adapter", () => {
   // ─── createChatFn ─────────────────────────────────────

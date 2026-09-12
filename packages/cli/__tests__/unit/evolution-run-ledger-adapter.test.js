@@ -23,7 +23,7 @@ import {
   EvolutionRunLedgerAdapter,
 } from "../../src/lib/evolution/evolution-run-ledger-adapter.js";
 import { agentLoop } from "../../src/repl/agent-repl.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { AgentRuntime } from "../../src/runtime/agent-runtime.js";
 

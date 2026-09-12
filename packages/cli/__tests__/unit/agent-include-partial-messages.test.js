@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { _accumulateOllamaStream } from "../../src/runtime/agent-core.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { _accumulateOllamaStream } from "../helpers/test-model-egress.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 
 const parseLines = (chunks) =>

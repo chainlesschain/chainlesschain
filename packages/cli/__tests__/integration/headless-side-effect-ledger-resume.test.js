@@ -9,7 +9,7 @@
  * "Recovery notice" system message + emit a stderr warning.
  */
 import { describe, it, expect, vi } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import {
   SideEffectLedger,
   countDuplicateCommittedEffects,

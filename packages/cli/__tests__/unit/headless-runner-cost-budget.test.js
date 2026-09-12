@@ -5,7 +5,7 @@
  * subtype:error_max_budget. Bootstrap / approval gate / MCP are injected.
  */
 import { describe, it, expect } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 function makeDeps(agentLoop) {
   const out = [];

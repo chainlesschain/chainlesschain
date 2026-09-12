@@ -72,7 +72,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   return { SubAgentContext: { create }, _subState: state };
 });
 
-import { agentLoop, executeTool } from "../../src/runtime/agent-core.js";
+import { agentLoop, executeTool } from "../helpers/test-model-egress.js";
 import { _subState } from "../../src/lib/sub-agent-context.js";
 
 const RESULT = {

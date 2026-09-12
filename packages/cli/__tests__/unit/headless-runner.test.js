@@ -36,7 +36,7 @@ import {
   parseToolList,
   READ_ONLY_TOOLS,
   _goalProcessDeps,
-} from "../../src/runtime/headless-runner.js";
+} from "../helpers/test-model-egress.js";
 import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";

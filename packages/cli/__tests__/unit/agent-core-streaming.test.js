@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import {
   _accumulateAnthropicStream,
   _accumulateOpenAIStream,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 
 const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}`);
 

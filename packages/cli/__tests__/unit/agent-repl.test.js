@@ -1757,7 +1757,7 @@ describe("agent-repl MCP host runtime manager", () => {
   it("keeps a non-persistent REPL on the guarded ledger after outcome unknown", async () => {
     const { createReplMcpHostRuntimeManager } =
       await import("../../src/repl/agent-repl.js");
-    const { executeTool } = await import("../../src/runtime/agent-core.js");
+    const { executeTool } = await import("../helpers/test-model-egress.js");
     const callTool = vi
       .fn()
       .mockRejectedValueOnce(new Error("transport outcome unknown"))

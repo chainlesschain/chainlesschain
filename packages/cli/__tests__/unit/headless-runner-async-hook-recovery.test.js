@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 
 const require = createRequire(import.meta.url);
 const queueStore = require("../../src/lib/async-hook-queue.cjs");

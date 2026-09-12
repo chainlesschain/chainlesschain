@@ -15,7 +15,7 @@ import path from "path";
 import {
   runAgentHeadless,
   resolveHeadlessSession,
-} from "../../src/runtime/headless-runner.js";
+} from "../helpers/test-model-egress.js";
 import {
   STREAM_PROTOCOL_VERSION,
   computePolicyDigest,

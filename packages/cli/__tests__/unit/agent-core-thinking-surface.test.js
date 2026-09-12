@@ -3,7 +3,7 @@
  * response-complete event (non-streaming path) so the REPL can render it.
  */
 import { describe, it, expect, vi } from "vitest";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 
 async function drain(gen) {
   const events = [];

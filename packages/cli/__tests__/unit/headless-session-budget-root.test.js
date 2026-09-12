@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { SessionBudgetSidecarStore } from "../../src/lib/session-budget-runtime.js";
 import { readProductionSessionBudget } from "../../src/lib/session-budget-production-root.js";
 

@@ -4,7 +4,7 @@ import { ContextSourceLedger } from "../../../src/lib/context-source-ledger.js";
 import { AgentIPCBus } from "../../../src/lib/agent-ipc-bus.js";
 import { EventRuntimeStore } from "../../../src/lib/event-runtime-store.js";
 import { emitHooksV2Event } from "../../../src/lib/hooks-v2-producers.js";
-import { agentLoop } from "../../../src/runtime/agent-core.js";
+import { agentLoop } from "../../helpers/test-model-egress.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

@@ -22,7 +22,7 @@ vi.mock("../../src/lib/hooks-v2-runtime.js", () => ({
 }));
 
 import { emitHooksV2Event } from "../../src/lib/hooks-v2-producers.js";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { loadMcpConfig } from "../../src/runtime/mcp-config.js";
 

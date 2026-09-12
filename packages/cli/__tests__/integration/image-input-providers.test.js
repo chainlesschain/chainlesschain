@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { chatWithTools } from "../../src/runtime/agent-core.js";
+import { chatWithTools } from "../helpers/test-model-egress.js";
 
 const IMG_URL = "data:image/png;base64,AAAA";
 const multimodalUser = () => ({

@@ -3,7 +3,7 @@ import {
   buildPermissionDecision,
   PERMISSION_DECISION_VERSION,
 } from "../../src/lib/permission-decision.js";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 
 describe("PermissionDecision", () => {
   it("normalizes an approval chain into a stable protocol record", () => {

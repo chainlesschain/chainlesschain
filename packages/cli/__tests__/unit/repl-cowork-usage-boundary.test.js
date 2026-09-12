@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createChatFn } from "../../src/lib/cowork-adapter.js";
+import { createChatFn } from "../helpers/test-model-egress.js";
 import { startDebate } from "../../src/lib/cowork/debate-review-cli.js";
 import { compare } from "../../src/lib/cowork/ab-comparator-cli.js";
 import { runReplMeteredModelCallWithLedger } from "../../src/repl/agent-repl.js";

@@ -3,7 +3,7 @@ import { resolveAgentObservabilityScope } from "../../src/commands/agent.js";
 import {
   resolveHeadlessSession,
   runAgentHeadless,
-} from "../../src/runtime/headless-runner.js";
+} from "../helpers/test-model-egress.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import {
   prepareReplStartupResume,

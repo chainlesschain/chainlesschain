@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { executeTool } from "../helpers/test-model-egress.js";
 import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 

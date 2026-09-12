@@ -3,7 +3,7 @@ import {
   _retryStreamingChat,
   agentLoop,
   chatWithTools,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 
 async function nextEvent(generator, type) {
   for (;;) {

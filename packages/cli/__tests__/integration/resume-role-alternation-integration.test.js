@@ -55,7 +55,7 @@ vi.mock("../../src/lib/skill-loader.js", () => ({
 }));
 
 const { runAgentHeadless: runAgentHeadlessWithIngress } =
-  await import("../../src/runtime/headless-runner.js");
+  await import("../helpers/test-model-egress.js");
 
 const runAgentHeadless = (options = {}, deps = {}) =>
   runAgentHeadlessWithIngress(

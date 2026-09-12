@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
-import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import { agentLoop as coreAgentLoop } from "../helpers/test-model-egress.js";
 
 const bigSchema = () => {
   const properties = {};

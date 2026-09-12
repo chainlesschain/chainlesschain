@@ -21,7 +21,7 @@ import {
   _retryStreamingChat,
   formatProviderHttpError,
   chatWithTools,
-} from "../../src/runtime/agent-core.js";
+} from "../helpers/test-model-egress.js";
 
 describe("formatProviderHttpError (actionable auth errors)", () => {
   it("names the provider and points at the key fix on 401", () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop } from "../helpers/test-model-egress.js";
 import { webFetch } from "../../src/lib/web-fetch.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
