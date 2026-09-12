@@ -28,26 +28,137 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 describe("eval process Broker contract", () => {
   it.each([
-    ["success", [{ type: "result", subtype: "success", is_error: false }], 0, null, true],
-    ["error result", [{ type: "result", subtype: "success", is_error: true }], 0, null, false],
+    [
+      "success",
+      [{ type: "result", subtype: "success", is_error: false }],
+      0,
+      null,
+      true,
+    ],
+    [
+      "error result",
+      [{ type: "result", subtype: "success", is_error: true }],
+      0,
+      null,
+      false,
+    ],
+    [
+      "missing is_error",
+      [{ type: "result", subtype: "success" }],
+      0,
+      null,
+      false,
+    ],
+    [
+      "mistyped is_error",
+      [{ type: "result", subtype: "success", is_error: "false" }],
+      0,
+      null,
+      false,
+    ],
     ["missing result", [{ type: "system", subtype: "init" }], 0, null, false],
-    ["duplicate result", [{ type: "result", subtype: "success" }, { type: "result", subtype: "success" }], 0, null, false],
+    [
+      "duplicate result",
+      [
+        { type: "result", subtype: "success" },
+        { type: "result", subtype: "success" },
+      ],
+      0,
+      null,
+      false,
+    ],
     ["nonzero", [{ type: "result", subtype: "success" }], 1, null, false],
-    ["signal", [{ type: "result", subtype: "success" }], null, "SIGTERM", false],
-    ["provider error", [{ type: "error" }, { type: "result", subtype: "success" }], 0, null, false],
-    ["data after terminal", [{ type: "result", subtype: "success" }, { type: "assistant" }], 0, null, false],
-  ])("requires both a clean exit and a valid terminal: %s", async (_label, events, code, signal, ok) => {
+    [
+      "signal",
+      [{ type: "result", subtype: "success" }],
+      null,
+      "SIGTERM",
+      false,
+    ],
+    [
+      "provider error",
+      [{ type: "error" }, { type: "result", subtype: "success" }],
+      0,
+      null,
+      false,
+    ],
+    [
+      "data after terminal",
+      [{ type: "result", subtype: "success" }, { type: "assistant" }],
+      0,
+      null,
+      false,
+    ],
+  ])(
+    "requires both a clean exit and a valid terminal: %s",
+    async (_label, events, code, signal, ok) => {
+      const child = new EventEmitter();
+      child.pid = 42;
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.kill = vi.fn();
+      _deps.spawn = vi.fn(() => child);
+      const pending = makeHeadlessRunAgent({
+        model: "test-model",
+        provider: "openai",
+      })({ prompt: "x", cwd: dir });
+      child.stdout.emit(
+        "data",
+        Buffer.from(
+          events
+            .map((event) =>
+              JSON.stringify(
+                event.type === "result" &&
+                  !["missing is_error", "mistyped is_error"].includes(_label)
+                  ? { is_error: false, ...event }
+                  : event,
+              ),
+            )
+            .join("\n"),
+        ),
+      );
+      child.emit("close", code, signal);
+      expect(await pending).toMatchObject({
+        ok,
+        executionEvidence: {
+          protocol: "cc-agent-stream-json/v1",
+          exitCode: code,
+          signal,
+        },
+      });
+      expect(_deps.spawn.mock.calls[0][1]).toContain("stream-json");
+    },
+  );
+
+  it("retains successful fallback execution but records its changed model provenance", async () => {
     const child = new EventEmitter();
     child.pid = 42;
     child.stdout = new EventEmitter();
     child.stderr = new EventEmitter();
     child.kill = vi.fn();
     _deps.spawn = vi.fn(() => child);
-    const pending = makeHeadlessRunAgent({ model: "test-model", provider: "openai" })({ prompt: "x", cwd: dir });
-    child.stdout.emit("data", Buffer.from(events.map((event) => JSON.stringify(event)).join("\n")));
-    child.emit("close", code, signal);
-    expect(await pending).toMatchObject({ ok, executionEvidence: { protocol: "cc-agent-stream-json/v1", exitCode: code, signal } });
-    expect(_deps.spawn.mock.calls[0][1]).toContain("stream-json");
+    const pending = makeHeadlessRunAgent()({ prompt: "x", cwd: dir });
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        [
+          {
+            type: "raw",
+            subtype: "provider_fallback",
+            from: "openai",
+            to: "ollama",
+          },
+          { type: "result", subtype: "success", is_error: false },
+        ]
+          .map((event) => JSON.stringify(event))
+          .join("\n"),
+      ),
+    );
+    child.emit("close", 0);
+    expect(await pending).toMatchObject({
+      ok: true,
+      executionEvidence: { terminalVerified: true, observedFallback: true },
+    });
   });
 
   it("runs the headless agent with literal argv and eval provenance", async () => {

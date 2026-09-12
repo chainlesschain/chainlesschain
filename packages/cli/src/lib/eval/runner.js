@@ -8,8 +8,9 @@
  * runEvalSuite gives each task a fresh temp workspace, runs `setup` to lay down
  * the starting files, hands `prompt` to the agent (via an injected `runAgent` so
  * the harness is testable without a live LLM), then runs `check` to decide
- * pass/fail deterministically. The score is the fraction of tasks whose check
- * passed — a verifiable success-rate metric, per the plan's north star.
+ * artifacts deterministically. Task success requires both a passing artifact
+ * check and an explicitly successful execution; failed runs can retain useful
+ * artifact-check results without inflating the reliability score.
  *
  * The real `cc eval` command wires `runAgent` to a headless `cc agent -p` run;
  * unit tests inject a fake runAgent to exercise scoring/report logic offline.
@@ -146,7 +147,10 @@ export async function runEvalSuite(tasks, opts = {}) {
         // and still run check() (the workspace may be partially done).
         rec.error = `agent error: ${agentErr.message}`;
       }
-      rec.executionSucceeded = agentResult?.ok === true && !rec.error;
+      rec.executionSucceeded =
+        agentResult?.ok === true &&
+        !rec.error &&
+        (agentResult.error == null || agentResult.error === "");
       rec.agentOk = rec.executionSucceeded;
       rec.executionEvidence = agentResult?.executionEvidence || null;
       if (!rec.executionSucceeded && !rec.error) {

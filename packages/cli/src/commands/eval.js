@@ -4,7 +4,8 @@
  *
  * Each task gets a fresh temp workspace; the agent is invoked headlessly
  * (`cc agent -p` in that cwd with acceptEdits so it can write files) and the
- * task's objective check() decides pass/fail. `--dry-run` swaps in a no-op agent
+ * task's objective check() and successful Agent completion decide pass/fail.
+ * `--dry-run` swaps in a no-op agent
  * so the harness + report can be exercised without a model.
  */
 
@@ -49,13 +50,26 @@ const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
 
 function verifyAgentTerminal(output) {
   try {
-    const events = output.split(/\r?\n/u).filter((line) => line.trim()).map((line) => JSON.parse(line));
+    const events = output
+      .split(/\r?\n/u)
+      .filter((line) => line.trim())
+      .map((line) => JSON.parse(line));
     const results = events.filter((event) => event?.type === "result");
     const terminal = results[0];
-    return results.length === 1 && events.at(-1) === terminal &&
-      terminal.subtype === "success" && terminal.is_error !== true &&
-      !events.some((event) => event?.type === "error");
-  } catch { return false; }
+    return {
+      terminalVerified:
+        results.length === 1 &&
+        events.at(-1) === terminal &&
+        terminal.subtype === "success" &&
+        terminal.is_error === false &&
+        !events.some((event) => event?.type === "error"),
+      observedFallback: events.some((event) =>
+        ["provider_fallback", "model_fallback"].includes(event?.subtype),
+      ),
+    };
+  } catch {
+    return { terminalVerified: false, observedFallback: null };
+  }
 }
 
 /**
@@ -149,6 +163,7 @@ function makeHeadlessRunAgent(opts = {}) {
             exitCode: result.exitCode ?? null,
             signal: result.signal ?? null,
             terminalVerified: result.terminalVerified === true,
+            observedFallback: result.observedFallback ?? null,
           },
         });
       };
@@ -188,14 +203,22 @@ function makeHeadlessRunAgent(opts = {}) {
           });
           return;
         }
-        const terminalVerified = !opts._argv && verifyAgentTerminal(out);
+        const { terminalVerified, observedFallback } = opts._argv
+          ? { terminalVerified: false, observedFallback: null }
+          : verifyAgentTerminal(out);
         const ok = code === 0 && !signal && (opts._argv || terminalVerified);
         done({
-          ok: Boolean(ok), output: out, exitCode: code, signal: signal || null,
+          ok: Boolean(ok),
+          output: out,
+          exitCode: code,
+          signal: signal || null,
           terminalVerified,
-          error: ok ? null : code === 0 && !signal
-            ? "agent stream lacks a valid success terminal"
-            : err || `agent process exited with ${signal || code}`,
+          observedFallback,
+          error: ok
+            ? null
+            : code === 0 && !signal
+              ? "agent stream lacks a valid success terminal"
+              : err || `agent process exited with ${signal || code}`,
         });
       });
     });
@@ -237,9 +260,19 @@ export function registerEvalCommand(program, { logger } = {}) {
       "--trend",
       "Report the diagnostic pass-rate trend from --history instead of running",
     )
-    .option("--strict", "With --trend: require complete, comparable recent evidence; legacy history cannot pass")
-    .option("--max-age-hours <hours>", "With --strict: maximum age of both compared runs", "168")
-    .option("--comparison-context <file>", "Bind explicit provider/model to operator-declared modelRevision and environment/permission/inference digests (not production attestation)")
+    .option(
+      "--strict",
+      "With --trend: require complete, comparable recent evidence; legacy history cannot pass",
+    )
+    .option(
+      "--max-age-hours <hours>",
+      "With --strict: maximum age of both compared runs",
+      "168",
+    )
+    .option(
+      "--comparison-context <file>",
+      "Bind explicit provider/model to operator-declared modelRevision and environment/permission/inference digests (not production attestation)",
+    )
     .option(
       "--regression-threshold <pct>",
       "With --trend: pass-rate drop (in points) that fails the gate on its own",
@@ -247,7 +280,16 @@ export function registerEvalCommand(program, { logger } = {}) {
     )
     .action(async (options) => {
       if (options.strict && !options.trend) {
-        (log.error || console.error)("--strict requires --trend --history <file>");
+        (log.error || console.error)(
+          "--strict requires --trend --history <file>",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      if (options.strict && options.dryRun) {
+        (log.error || console.error)(
+          "--dry-run cannot be combined with --strict",
+        );
         process.exitCode = 1;
         return;
       }
@@ -261,8 +303,9 @@ export function registerEvalCommand(program, { logger } = {}) {
           return;
         }
         let history;
-        try { history = readEvalHistory(options.history); }
-        catch {
+        try {
+          history = readEvalHistory(options.history);
+        } catch {
           history = { runs: [], issues: [{ code: "history_unreadable" }] };
         }
         const threshold = Number(options.regressionThreshold) / 100;
@@ -272,20 +315,28 @@ export function registerEvalCommand(program, { logger } = {}) {
             regressionThreshold: threshold,
           });
           if (options.json) console.log(JSON.stringify(gate, null, 2));
-          else (log.log || console.log)(
-            `Eval comparison: ${gate.status}\n` +
-            `  Scope: local configuration comparison; operator declarations are not production attestation.\n` +
-            (gate.reasons.length ? `  ${gate.reasons.join(", ")}` : "  Comparable executions and candidate checks passed."),
-          );
+          else
+            (log.log || console.log)(
+              `Eval comparison: ${gate.status}\n` +
+                `  Scope: local configuration comparison; operator declarations are not production attestation.\n` +
+                (gate.reasons.length
+                  ? `  ${gate.reasons.join(", ")}`
+                  : "  Comparable executions and candidate checks passed."),
+            );
           if (!gate.passed) process.exitCode = 1;
           return;
         }
-        const trend = computeTrend(history.runs, { regressionThreshold: Math.max(0, threshold || 0) });
+        const trend = computeTrend(history.runs, {
+          regressionThreshold: Math.max(0, threshold || 0),
+        });
         if (history.issues.length) trend.historyIssues = history.issues;
         if (options.json) console.log(JSON.stringify(trend, null, 2));
         else {
           (log.log || console.log)(formatTrend(trend));
-          if (history.issues.length) (log.error || console.error)("History contains invalid or unreadable records; this diagnostic is not release evidence.");
+          if (history.issues.length)
+            (log.error || console.error)(
+              "History contains invalid or unreadable records; this diagnostic is not release evidence.",
+            );
         }
         if (trend.regressed) process.exitCode = 1;
         return;
@@ -297,11 +348,16 @@ export function registerEvalCommand(program, { logger } = {}) {
         tasks = _deps.getSuite(options.suite);
         comparison = createEvalComparison({
           suite: options.suite,
-          corpusDigest: evalDigest(fs.readFileSync(new URL("../lib/eval/tasks.js", import.meta.url))),
+          corpusDigest: evalDigest(
+            fs.readFileSync(new URL("../lib/eval/tasks.js", import.meta.url)),
+          ),
           provider: options.provider,
           model: options.model,
           context: options.comparisonContext
-            ? readComparisonContext(options.comparisonContext, { provider: options.provider, model: options.model })
+            ? readComparisonContext(options.comparisonContext, {
+                provider: options.provider,
+                model: options.model,
+              })
             : null,
         });
       } catch (err) {
@@ -391,7 +447,8 @@ export function registerEvalCommand(program, { logger } = {}) {
         }
       }
       // Non-zero exit when not every task passed — usable as a CI gate.
-      if (summary.total === 0 || summary.passed < summary.total) process.exitCode = 1;
+      if (summary.total === 0 || summary.passed < summary.total)
+        process.exitCode = 1;
     });
   return program;
 }

@@ -169,21 +169,45 @@ describe("eval task process checks", () => {
 });
 
 describe("runEvalSuite", () => {
-  it.each(["nonzero", "timeout", "throw", "missing-success"])(
+  it.each([
+    "nonzero",
+    "timeout",
+    "throw",
+    "missing-success",
+    "contradictory-success",
+  ])(
     "preserves a correct artifact but fails an execution with %s",
     async (kind) => {
       const summary = await runEvalSuite([BUILTIN_TASKS[0]], {
         runAgent: async ({ cwd }) => {
-          fs.writeFileSync(path.join(cwd, "greeting.txt"), "Hello, ChainlessChain!", "utf8");
+          fs.writeFileSync(
+            path.join(cwd, "greeting.txt"),
+            "Hello, ChainlessChain!",
+            "utf8",
+          );
           if (kind === "throw") throw new Error("provider disconnected");
           if (kind === "missing-success") return {};
-          return { ok: false, error: kind === "timeout" ? "timed out" : "provider failed" };
+          if (kind === "contradictory-success")
+            return { ok: true, error: "provider failed" };
+          return {
+            ok: false,
+            error: kind === "timeout" ? "timed out" : "provider failed",
+          };
         },
       });
-      expect(summary).toMatchObject({ passed: 0, failed: 1, artifactChecksPassed: 1, executionsSucceeded: 0 });
+      expect(summary).toMatchObject({
+        passed: 0,
+        failed: 1,
+        artifactChecksPassed: 1,
+        executionsSucceeded: 0,
+      });
       expect(summary.results[0]).toMatchObject({
-        pass: false, artifactCheckPassed: true, executionSucceeded: false, agentOk: false,
-        changedFiles: ["greeting.txt"], error: expect.stringContaining("agent error:"),
+        pass: false,
+        artifactCheckPassed: true,
+        executionSucceeded: false,
+        agentOk: false,
+        changedFiles: ["greeting.txt"],
+        error: expect.stringContaining("agent error:"),
       });
     },
   );
