@@ -17,6 +17,8 @@ let remoteSessionRecoveryTests = Target.testTarget(
 
 let packageTestTargets: [Target] = ProcessInfo.processInfo.environment["CC_IOS_REMOTE_SESSION_TESTS_ONLY"] == "1"
     ? [remoteSessionRecoveryTests]
+    : ProcessInfo.processInfo.environment["CC_IOS_MODEL_EGRESS_TESTS_ONLY"] == "1"
+    ? []
     : [
         .testTarget(
             name: "CoreCommonTests",
@@ -45,6 +47,29 @@ let packageTestTargets: [Target] = ProcessInfo.processInfo.environment["CC_IOS_R
         ),
         coreP2PTests,
     ]
+
+// Compile the exact sources shipped in the Xcode app target. These host tests
+// exercise transport denial; the separate simulator build validates iOS wiring.
+let modelEgressTestTargets: [Target] = ProcessInfo.processInfo.environment["CC_IOS_MODEL_EGRESS_TESTS_ONLY"] == "1"
+    ? [
+        .target(
+            name: "EvolutionModelEgress",
+            dependencies: ["CoreCommon"],
+            path: "ChainlessChain/Features/AI/Services",
+            sources: [
+                "LLMManager.swift",
+                "OpenAIClient.swift",
+                "OllamaClient.swift",
+                "AnthropicClient.swift"
+            ]
+        ),
+        .testTarget(
+            name: "EvolutionModelEgressTests",
+            dependencies: ["EvolutionModelEgress"],
+            path: "Tests/EvolutionModelEgressTests"
+        )
+    ]
+    : []
 
 let package = Package(
     name: "ChainlessChain",
@@ -188,5 +213,5 @@ let package = Package(
             ],
             path: "Modules/CoreP2P"
         ),
-    ] + packageTestTargets
+    ] + packageTestTargets + modelEgressTestTargets
 )

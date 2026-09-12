@@ -81,7 +81,7 @@ public class VisionAction: VisionActionProtocol {
         let ocrText = await performLocalOCR(base64: base64)
 
         // LLM multimodal analysis
-        let analysisResult = await performLLMAnalysis(
+        let analysisResult = try await performLLMAnalysis(
             base64: base64,
             prompt: analysisPrompt,
             ocrContext: ocrText
@@ -133,7 +133,7 @@ public class VisionAction: VisionActionProtocol {
         If the element is not found, return: {"x": 0, "y": 0, "confidence": 0, "description": "not found"}
         """
 
-        let llmResult = await performLLMAnalysis(base64: base64, prompt: prompt, ocrContext: nil)
+        let llmResult = try await performLLMAnalysis(base64: base64, prompt: prompt, ocrContext: nil)
         let duration = Date().timeIntervalSince(start) * 1000
 
         guard let responseStr = llmResult else {
@@ -237,7 +237,7 @@ public class VisionAction: VisionActionProtocol {
     /// Perform LLM analysis using query API
     /// Note: LLMManager.query() is text-only. We include OCR context for richer analysis.
     /// For true multimodal (image+text), a vision-capable provider must be configured.
-    private func performLLMAnalysis(base64: String, prompt: String, ocrContext: String?) async -> String? {
+    private func performLLMAnalysis(base64: String, prompt: String, ocrContext: String?) async throws -> String? {
         // Build context with OCR if available
         var fullPrompt = prompt
         if let ocr = ocrContext, !ocr.isEmpty {
@@ -256,6 +256,10 @@ public class VisionAction: VisionActionProtocol {
                 systemPrompt: "You are a web page analysis assistant. Analyze the page based on OCR text and any visual context provided. Return structured analysis."
             )
             return response.text
+        } catch LLMError.evolutionIngressRequired {
+            // Governance denial is terminal; it must not become a successful
+            // OCR fallback or be cached as a completed vision analysis.
+            throw LLMError.evolutionIngressRequired
         } catch {
             Logger.shared.warning("[VisionAction] LLM analysis failed: \(error.localizedDescription)")
             return nil

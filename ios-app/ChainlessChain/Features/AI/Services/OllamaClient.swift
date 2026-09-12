@@ -7,7 +7,7 @@ class OllamaClient: LLMClient {
     private let timeout: TimeInterval
     private let session: URLSession
 
-    init(config: LLMManager.LLMConfig) {
+    init(config: LLMManager.LLMConfig, session: URLSession? = nil) {
         self.baseURL = config.baseURL
         self.model = config.model
         self.timeout = config.timeout
@@ -15,7 +15,7 @@ class OllamaClient: LLMClient {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = timeout
-        self.session = URLSession(configuration: configuration)
+        self.session = session ?? URLSession(configuration: configuration)
     }
 
     func checkStatus() async throws -> ServiceStatus {

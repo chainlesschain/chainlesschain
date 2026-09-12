@@ -10,7 +10,7 @@ class AnthropicClient: LLMClient {
     private let maxTokens: Int
     private let session: URLSession
 
-    init(config: LLMManager.LLMConfig) {
+    init(config: LLMManager.LLMConfig, session: URLSession? = nil) {
         self.apiKey = config.apiKey
         self.baseURL = config.baseURL == "http://localhost:11434" ? "https://api.anthropic.com/v1" : config.baseURL
         self.model = config.model == "qwen2:7b" ? "claude-3-5-sonnet-20241022" : config.model
@@ -21,7 +21,7 @@ class AnthropicClient: LLMClient {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = timeout
-        self.session = URLSession(configuration: configuration)
+        self.session = session ?? URLSession(configuration: configuration)
     }
 
     func checkStatus() async throws -> ServiceStatus {

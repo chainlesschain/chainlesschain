@@ -7,8 +7,10 @@ const root = path.resolve(__dirname, "..", "..");
 const ios = (...parts) =>
   path.join(root, "ios-app", "ChainlessChain", ...parts);
 const guard = "throw LLMError.evolutionIngressRequired";
+const auditedSources = new Set();
 
 function source(...parts) {
+  auditedSources.add(`ios-app/ChainlessChain/${parts.join("/")}`);
   return fs.readFileSync(ios(...parts), "utf8");
 }
 
@@ -190,17 +192,81 @@ test("iOS system Vision and Speech model exits fail before reading user media", 
   }
 });
 
-test("shipped iOS LLM sources remain in the Xcode compile phase", () => {
+test("iOS Computer Use preserves terminal denial instead of successful fallback", () => {
+  const text = source("Features", "ComputerUse", "Services", "VisionAction.swift");
+  assert.match(
+    text,
+    /catch LLMError\.evolutionIngressRequired \{[\s\S]*?throw LLMError\.evolutionIngressRequired\s*\} catch \{/,
+  );
+  assert.equal(
+    [...text.matchAll(/= try await performLLMAnalysis\(/g)].length,
+    2,
+    "analyze and locateElement must propagate the denial before any success fallback",
+  );
+});
+
+test("shipped iOS LLM sources remain linked to the actual app Sources phase", (t) => {
   const project = fs.readFileSync(
     path.join(root, "ios-app", "ChainlessChain.xcodeproj", "project.pbxproj"),
     "utf8",
   );
+  const appTarget = project.match(
+    /\b[A-F0-9]{24} \/\* ChainlessChain \*\/ = \{\s*isa = PBXNativeTarget;([\s\S]*?)\n\t\t\};/,
+  );
+  assert.ok(appTarget, "missing ChainlessChain app target");
+  const phaseId = appTarget[1].match(/\b([A-F0-9]{24}) \/\* Sources \*\//)?.[1];
+  assert.ok(phaseId, "app target has no Sources phase");
+  const phase = project.match(
+    new RegExp(`${phaseId} /\\* Sources \\*/ = \\{\\s*isa = PBXSourcesBuildPhase;([\\s\\S]*?)\\n\\t\\t\\};`),
+  )?.[1];
+  assert.ok(phase, "missing referenced app Sources phase");
   for (const filename of [
     "OpenAIClient.swift",
     "OllamaClient.swift",
     "AnthropicClient.swift",
     "LLMManager.swift",
   ]) {
-    assert.match(project, new RegExp(`${filename} in Sources`));
+    const escapedName = filename.replaceAll(".", "\\.");
+    const buildFile = project.match(
+      new RegExp(`([A-F0-9]{24}) /\\* ${escapedName} in Sources \\*/ = \\{isa = PBXBuildFile; fileRef = ([A-F0-9]{24})`),
+    );
+    assert.ok(buildFile, `${filename} missing build file`);
+    assert.ok(phase.includes(buildFile[1]), `${filename} must be linked in the app Sources phase`);
+    assert.match(
+      project,
+      new RegExp(`${buildFile[2]} /\\* ${escapedName} \\*/ = \\{isa = PBXFileReference;[^\\n]*path = \\./ChainlessChain/Features/AI/Services/${escapedName};`),
+      `${filename} must refer to the guarded production source, not a copy`,
+    );
+  }
+
+  const sourceOnly = [...auditedSources].filter(
+    (relativePath) => !phase.includes(`${path.basename(relativePath)} in Sources`),
+  );
+  t.diagnostic(`Guarded sources outside the app compile phase (source evidence only): ${sourceOnly.join(", ")}`);
+});
+
+test("iOS exact-commit workflow covers every audited source and executes real Swift guards", () => {
+  const workflow = fs.readFileSync(path.join(root, ".github/workflows/ios-app-target-test.yml"), "utf8");
+  for (const event of ["pull_request", "push"]) {
+    const block = workflow.match(new RegExp(`^  ${event}:\\r?\\n([\\s\\S]*?)(?=^  [a-z_]+:)`, "m"))?.[1];
+    assert.ok(block, `${event} trigger missing`);
+    const patterns = [...block.matchAll(/^      - "([^"]+)"/gm)].map((match) => match[1]);
+    for (const relativePath of [
+      ...auditedSources,
+      "ios-app/Tests/EvolutionModelEgressTests/EvolutionModelEgressTests.swift",
+    ]) {
+      assert.ok(
+        patterns.some((pattern) => pattern === relativePath || (pattern.endsWith("/**") && relativePath.startsWith(pattern.slice(0, -2)))),
+        `${event} must trigger for ${relativePath}`,
+      );
+    }
+  }
+  assert.ok(workflow.includes("CC_IOS_MODEL_EGRESS_TESTS_ONLY=1 swift test --filter EvolutionModelEgressTests"));
+  assert.ok(workflow.includes("ios-app/build-model-egress-test.log"));
+  assert.ok(workflow.includes("generic/platform=iOS Simulator"));
+  const manifest = fs.readFileSync(path.join(root, "ios-app/Package.swift"), "utf8");
+  assert.match(manifest, /name: "EvolutionModelEgress",\s*dependencies: \["CoreCommon"\],\s*path: "ChainlessChain\/Features\/AI\/Services",/);
+  for (const filename of ["LLMManager.swift", "OpenAIClient.swift", "OllamaClient.swift", "AnthropicClient.swift"]) {
+    assert.ok(manifest.includes(`"${filename}"`), `${filename} must be compiled in the behavioral test target`);
   }
 });

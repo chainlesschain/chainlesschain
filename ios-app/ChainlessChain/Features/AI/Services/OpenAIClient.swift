@@ -8,7 +8,7 @@ class OpenAIClient: LLMClient {
     private let timeout: TimeInterval
     private let session: URLSession
 
-    init(config: LLMManager.LLMConfig) {
+    init(config: LLMManager.LLMConfig, session: URLSession? = nil) {
         self.apiKey = config.apiKey
         self.baseURL = config.baseURL
         self.model = config.model
@@ -17,7 +17,7 @@ class OpenAIClient: LLMClient {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = timeout
-        self.session = URLSession(configuration: configuration)
+        self.session = session ?? URLSession(configuration: configuration)
     }
 
     func checkStatus() async throws -> ServiceStatus {
@@ -239,7 +239,7 @@ class OpenAIClient: LLMClient {
 
 /// DeepSeek Client (uses OpenAI-compatible API)
 class DeepSeekClient: OpenAIClient {
-    override init(config: LLMManager.LLMConfig) {
+    override init(config: LLMManager.LLMConfig, session: URLSession? = nil) {
         var deepseekConfig = config
         if deepseekConfig.baseURL == "http://localhost:11434" {
             deepseekConfig.baseURL = "https://api.deepseek.com/v1"
@@ -247,13 +247,13 @@ class DeepSeekClient: OpenAIClient {
         if deepseekConfig.model == "qwen2:7b" {
             deepseekConfig.model = "deepseek-chat"
         }
-        super.init(config: deepseekConfig)
+        super.init(config: deepseekConfig, session: session)
     }
 }
 
 /// Volcengine Client (uses OpenAI-compatible API)
 class VolcengineClient: OpenAIClient {
-    override init(config: LLMManager.LLMConfig) {
+    override init(config: LLMManager.LLMConfig, session: URLSession? = nil) {
         var volcengineConfig = config
         if volcengineConfig.baseURL == "http://localhost:11434" {
             volcengineConfig.baseURL = "https://ark.cn-beijing.volces.com/api/v3"
@@ -261,7 +261,7 @@ class VolcengineClient: OpenAIClient {
         if volcengineConfig.model == "qwen2:7b" {
             volcengineConfig.model = "doubao-pro-32k"
         }
-        super.init(config: volcengineConfig)
+        super.init(config: volcengineConfig, session: session)
     }
 }
 
