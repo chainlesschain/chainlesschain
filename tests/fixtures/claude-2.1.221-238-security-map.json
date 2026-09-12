@@ -88,7 +88,7 @@
       "testId": "a settings deny blocks with [Permission] and the hook never runs",
       "producer": {
         "path": "packages/cli/__tests__/unit/agent-core-hooks.test.js",
-        "sha256": "sha256:6e31179771232ccd9cdaa6fa951fd89a4ef6f96ec56fa674996ed91efe57e5fe"
+        "sha256": "sha256:2c4b689c9e40343be030b3ea9c494359091f64a65a91ae56baa405318f170a1d"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
@@ -160,7 +160,7 @@
       "testId": "rejects bypassPermissions when managed policy disables it",
       "producer": {
         "path": "packages/cli/__tests__/unit/headless-runner.test.js",
-        "sha256": "sha256:8a251c17441112737ff530b85f762edacc0f2bec34650c8e5f6256741eeb5f0e"
+        "sha256": "sha256:c3d01f0f0a65aac70292e1e2ac1274c8162f73e317c51c5d4f5967f1a7458481"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
