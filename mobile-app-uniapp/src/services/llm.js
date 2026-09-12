@@ -810,6 +810,8 @@ class LLMService {
    * 检查服务状态
    */
   async checkStatus() {
+    rejectLegacyModelEgress()
+
     try {
       const providerConfig = this.config[this.provider];
 
@@ -859,6 +861,8 @@ class LLMService {
    * 获取可用模型列表
    */
   async getModels() {
+    rejectLegacyModelEgress()
+
     if (this.provider === "ollama") {
       const providerConfig = this.config[this.provider];
 

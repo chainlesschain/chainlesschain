@@ -43,7 +43,16 @@ export class KnowledgeRAGService {
 
     // 启动时初始化
     if (autoInitialize) {
-      this._initialize()
+      void this._initialize().catch((error) => {
+        // Module-load bootstrap has no caller to receive the terminal error.
+        // Keep the service unavailable rather than allowing an unhandled
+        // rejection or treating a failed probe as a usable fallback.
+        this.ragInitialized = false
+        this.backendAvailable = false
+        if (error?.code !== 'CC_AGENT_EVOLUTION_INGRESS_FAILED') {
+          console.error('[KnowledgeRAG] 初始化失败:', error)
+        }
+      })
     }
   }
 
@@ -52,6 +61,8 @@ export class KnowledgeRAGService {
    * @private
    */
   async _initialize() {
+    rejectLegacyModelEgress()
+
     // 初始化本地RAG Manager
     try {
       const result = await this.ragManager.initialize()
@@ -71,6 +82,8 @@ export class KnowledgeRAGService {
    * @private
    */
   async _checkBackendAvailability() {
+    rejectLegacyModelEgress()
+
     // 避免频繁检查
     if (this.lastBackendCheck && Date.now() - this.lastBackendCheck < this.checkInterval) {
       return this.backendAvailable

@@ -61,6 +61,12 @@ class EmbeddingsService {
    * 初始化服务
    */
   async initialize() {
+    // TF-IDF is deterministic local scoring. Every other mode can select a
+    // model runtime or provider, so it requires the authenticated ingress.
+    if (this.config.mode !== 'tfidf') {
+      rejectLegacyModelEgress()
+    }
+
     console.log('[EmbeddingsService] 初始化嵌入向量服务...')
 
     try {
@@ -118,6 +124,8 @@ class EmbeddingsService {
    * 检测最佳模式
    */
   async detectBestMode() {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     // H5环境优先尝试transformers.js
     try {
@@ -155,6 +163,8 @@ class EmbeddingsService {
    * 初始化transformers.js
    */
   async initializeTransformers() {
+    rejectLegacyModelEgress()
+
     console.log('[EmbeddingsService] 加载transformers.js模型...')
 
     // #ifdef H5

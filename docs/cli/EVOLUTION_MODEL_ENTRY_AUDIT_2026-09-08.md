@@ -240,6 +240,36 @@ files and 449 tests passed** in 1060.60 seconds. The focused legacy HTTP
 closure and Desktop egress-inventory tests also pass. This is local execution
 evidence only; a clean commit's CI matrix remains the release authority.
 
+### UniApp bootstrap and health-probe closure (2026-09-12 follow-up)
+
+The first UniApp pass protected content-bearing chat, OCR, ASR/TTS, embedding,
+and RAG request helpers, but a repository-wide scan found several independently
+callable bootstrap and probe methods that could still select a runtime, start a
+local model worker, or open a direct model-related HTTP connection. `LLMManager`
+now rejects initialization, mode discovery, and WebLLM engine loading before a
+backend health probe or `CreateMLCEngine`; the legacy `LLMService` rejects its
+Ollama health/model-list calls; and `AIBackendService` rejects its health probe.
+
+`OCRService` now rejects initialization, auto discovery, Tesseract worker
+creation, Baidu token acquisition, and batch recognition before a worker,
+filesystem read, or request. `EmbeddingsService` preserves its deterministic
+TF-IDF-only initialization but rejects every other initialization, discovery,
+and transformers runtime load before a model can be selected or downloaded.
+`KnowledgeRAGService` rejects module bootstrap and backend health probing; its
+default background bootstrap consumes that expected terminal denial and leaves
+the service explicitly unavailable rather than creating an unhandled promise
+rejection or reporting a fallback as usable.
+
+`mobile-app-uniapp/tests/unit/model-egress-guard.test.js` now exercises these
+paths with request/fetch and runtime-worker spies: **15 tests pass**, including
+zero `uni.request`, zero `fetch`, zero Tesseract `createWorker`, and zero WebLLM
+`CreateMLCEngine` calls. The Knowledge RAG assertion is source-contract based
+because the current root test environment lacks the UniApp-only `crypto-js`
+dependency needed to import its database module; it verifies both bootstrap and
+health methods place the terminal guard as their first executable statement.
+This closes the identified UniApp default-model-entry gaps, but does not replace
+clean CI, device integration, or an authenticated production Evolution ingress.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

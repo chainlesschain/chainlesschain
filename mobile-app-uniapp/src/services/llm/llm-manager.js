@@ -74,6 +74,8 @@ class LLMManager {
    * @returns {Promise<Object>}
    */
   async initialize() {
+    rejectLegacyModelEgress()
+
     if (this.isInitialized) {
       return { success: true, mode: this.currentMode }
     }
@@ -123,6 +125,8 @@ class LLMManager {
    * @private
    */
   async detectBestMode() {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     // H5环境检测WebGPU支持
     try {
@@ -175,6 +179,8 @@ class LLMManager {
    * @private
    */
   async initializeWebLLM() {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     try {
       console.log('[LLMManager] 初始化Web LLM引擎...')

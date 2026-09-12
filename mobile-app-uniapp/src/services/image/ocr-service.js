@@ -63,6 +63,8 @@ class OCRService {
    * @returns {Promise<Object>}
    */
   async initialize() {
+    rejectLegacyModelEgress()
+
     if (this.isInitialized) {
       return { success: true, mode: this.currentMode }
     }
@@ -112,6 +114,8 @@ class OCRService {
    * @private
    */
   async detectBestMode() {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     // H5环境优先使用Tesseract.js
     try {
@@ -164,6 +168,8 @@ class OCRService {
    * @private
    */
   async initializeTesseract() {
+    rejectLegacyModelEgress()
+
     // #ifdef H5
     try {
       console.log('[OCRService] 初始化Tesseract Worker...')
@@ -416,6 +422,8 @@ class OCRService {
    * @private
    */
   async getBaiduAccessToken() {
+    rejectLegacyModelEgress()
+
     const response = await uni.request({
       url: 'https://aip.baidubce.com/oauth/2.0/token',
       method: 'POST',
@@ -461,6 +469,8 @@ class OCRService {
    * @returns {Promise<Array>}
    */
   async recognizeBatch(images, options = {}) {
+    rejectLegacyModelEgress()
+
     console.log('[OCRService] 批量识别:', images.length, '个图像')
 
     const results = []

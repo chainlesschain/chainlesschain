@@ -218,6 +218,8 @@ class AIBackendService {
    * @returns {Promise<boolean>}
    */
   async checkStatus() {
+    rejectLegacyModelEgress()
+
     return new Promise((resolve) => {
       uni.request({
         url: `${this.baseURL}/health`,
