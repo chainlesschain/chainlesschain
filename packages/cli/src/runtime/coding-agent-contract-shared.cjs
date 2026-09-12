@@ -966,7 +966,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "interaction",
     tier: "extension",
     description:
-      "Pause the agent and ask the user a structured question. In non-interactive contexts (headless, WS gateway), returns an error so the agent can proceed autonomously.",
+      "Ask the user a structured question. blocking (default) waits for a decision; deferred returns a pending receipt so independent work can continue and is restricted to non-authoritative preference/information collection. Deferred answers never grant permission or approve a branch.",
     inputSchema: {
       type: "object",
       properties: {
@@ -983,6 +983,18 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         multiSelect: {
           type: "boolean",
           description: "Allow multiple selections (default: false)",
+        },
+        mode: {
+          type: "string",
+          enum: ["blocking", "deferred"],
+          description:
+            "blocking waits for the answer (default). deferred immediately returns a pending receipt and may only be used for independent preference/information collection",
+        },
+        purpose: {
+          type: "string",
+          enum: ["decision", "authorization", "preference", "information"],
+          description:
+            "Why the answer is needed. decision/authorization questions are always blocking; deferred requires preference or information",
         },
         timeoutMs: {
           type: "number",

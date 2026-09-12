@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[第八批 G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -110,19 +110,19 @@ Auto-review 可减少跨权限边界时的人工打断，但官方明确它会�
 
 P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须关闭的问题；P1 指主要能力和一致性差距；P2 指规模与获取成本优化。条件性 P0 不代表当前默认配置已经造成事故。
 
-| ID  | 优先级                    | 当前不足                                       | 优先交付结果                              | 证据性质                       |
-| --- | ------------------------- | ---------------------------------------------- | ----------------------------------------- | ------------------------------ |
-| G01 | P0                        | 组件就绪与模型任务就绪未形成统一指引           | 独立 readiness 状态及可执行部署指引       | 源码与正常 CLI 入口复现        |
-| G02 | P1；作正式 gate 前 P0     | 通用 Eval 可比性不足，执行失败与产物通过未分层 | 复用正式门，保留执行/产物/证据独立状态    | 本次复现                       |
-| G03 | P1                        | OpenAI 协议、模型目录和上下文预算不统一        | 版本化 provider profile 与 Responses 适配 | 已审计源码                     |
-| G04 | P2；接入该实验适配器前 P0 | 未接线适配器存在不明提交回退与终态投影问题     | 先关闭协议反例，再验证当前版本            | fake client 复现；非生产路径   |
-| G05 | P1                        | 插件作者没有一键效果对照入口                   | 插件 Eval、双臂报告、CI 退出码            | 已审计源码                     |
-| G06 | P1                        | 默认 canonical 中文句内关键词召回不足          | 治理约束内的多语言混合检索                | 本次复现                       |
-| G07 | P1                        | 严格沙箱的联网/OS/后台组合受限                 | 可执行能力矩阵及重点组合补齐              | 已审计源码                     |
-| G08 | P2；体验优化              | 已有异步传输，同一调用 loop 的非阻塞澄清待完善 | 在现有协议上区分可选澄清与阻断授权        | 异步反证通过；调度需跨入口验收 |
-| G09 | P1；自动晋升前 P0         | 测试宿主/live provider 与真实部署验收有间隔    | 正式产物完整旅程及单 Skill 生产试点       | 待目标环境验证                 |
-| G10 | P2；规模承诺前升级        | 持久 Memory、后台列表和演化账本容量边界不同    | 实际存储路径容量曲线与索引/迁移           | 已审计源码与基准定义           |
-| G11 | P2                        | 远控配置与 IDE 分发渠道仍有使用摩擦            | 连通性向导、渠道说明、安装回读            | 已审计源码与工作流             |
+| ID  | 优先级                    | 当前不足                                                       | 优先交付结果                              | 证据性质                     |
+| --- | ------------------------- | -------------------------------------------------------------- | ----------------------------------------- | ---------------------------- |
+| G01 | P0                        | 组件就绪与模型任务就绪未形成统一指引                           | 独立 readiness 状态及可执行部署指引       | 源码与正常 CLI 入口复现      |
+| G02 | P1；作正式 gate 前 P0     | 通用 Eval 可比性不足，执行失败与产物通过未分层                 | 复用正式门，保留执行/产物/证据独立状态    | 本次复现                     |
+| G03 | P1                        | OpenAI 协议、模型目录和上下文预算不统一                        | 版本化 provider profile 与 Responses 适配 | 已审计源码                   |
+| G04 | P2；接入该实验适配器前 P0 | 未接线适配器存在不明提交回退与终态投影问题                     | 先关闭协议反例，再验证当前版本            | fake client 复现；非生产路径 |
+| G05 | P1                        | 插件作者没有一键效果对照入口                                   | 插件 Eval、双臂报告、CI 退出码            | 已审计源码                   |
+| G06 | P1                        | 默认 canonical 中文句内关键词召回不足                          | 治理约束内的多语言混合检索                | 本次复现                     |
+| G07 | P1                        | 严格沙箱的联网/OS/后台组合受限                                 | 可执行能力矩阵及重点组合补齐              | 已审计源码                   |
+| G08 | P2；体验优化              | 非阻塞语义与主要宿主已接线；断线恢复、统一 revision 失效待完善 | 可选澄清继续独立工作，阻断授权保持隔离    | 本地合同通过；真实矩阵待验收 |
+| G09 | P1；自动晋升前 P0         | 测试宿主/live provider 与真实部署验收有间隔                    | 正式产物完整旅程及单 Skill 生产试点       | 待目标环境验证               |
+| G10 | P2；规模承诺前升级        | 持久 Memory、后台列表和演化账本容量边界不同                    | 实际存储路径容量曲线与索引/迁移           | 已审计源码与基准定义         |
+| G11 | P2                        | 远控配置与 IDE 分发渠道仍有使用摩擦                            | 连通性向导、渠道说明、安装回读            | 已审计源码与工作流           |
 
 建议先完成 G01、G02，再并行推进 G03 与 G05/G06。G04 保持实验隔离，只有计划接线时才提升为前置 P0；G08 是现有能力上的体验增强。G09 的完整旅程应贯穿各批次，不放到所有功能完成后才开始。
 
@@ -265,6 +265,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 **建议交付。** 复用现有问题 ID、binding、解决状态及回答来源，补充非阻塞语义、任务依赖和需要的 revision 失效规则。偏好或补充信息可在独立任务继续时收集；需要授权或决定方案分支的问题仍阻断相应动作。用户的新回答应能使过期计划和批准失效。
 
 **验收。** 新增目标是用户未回答配色时，同一工作流可继续独立读取项目；等待发布授权时仍不能发布。已有“两个问题并行挂起且乱序不串答”作为回归保持项；另外覆盖断线恢复、超时和预选项不产生授权，以及 CLI、IDE、App Server 终态一致性。
+
+**后续实施进展（2026-09-13）。** [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md) 已为 `ask_user_question` 增加默认 `blocking` 与受限 `deferred` 模式；后者只允许 preference/information，立即返回绑定 pending receipt，并将答案一次性按 `role=user` 回注，固定不携带授权。Headless、WebSocket、App Server、VS Code 与 Desktop 合同已接线；App Server 只有在客户端协商 `deferred_questions` 后才开启新通道，旧 feature 集不会收到未知请求。错 binding、跨 revision、无宿主、未协商客户端和授权误用反例有本地测试。问题和未消费答案仍是进程内状态，断线/重启恢复、计划 revision 自动失效及精确 SHA 三平台真实旅程尚未交付，因此本批不把 G08 整体标为完成。
 
 ### 6.7 G09：将真实模型测试推进到真实部署完整旅程
 
@@ -419,16 +421,17 @@ node --test test/app-server-pilot.test.cjs test/remote-control-host.test.cjs tes
 
 ### 11.4 二次复审证据与结论修订
 
-| 检查                                            | 结果与范围                                             | 对报告的修订                                                          |
-| ----------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- |
-| 正常 CLI 的部署状态、保存模型配置后 `ask/agent` | 未配受信宿主时阻断；网络尝试均为 0                     | G01 增加完整入口证据；不声称已跑 setup/IDE 全旅程                     |
-| 未提交 readiness helper                         | `commands:["evolution"]` 也可 `ready:true`             | 记录修复已开始、命令级就绪仍待闭合；不覆盖他人源码                    |
-| Eval 真实内置 checker + 虚拟文件系统            | 正确产物配 `ok:false`、抛错、超时失败均可 `pass:true`  | G02 补执行与产物分层，并承认已有 Graph 严格门                         |
-| 实验 Codex adapter：服务端先接受、再丢响应      | `upstreamAccepted:1, fallbackCalls:1`                  | 撤回“准入后失败均不会重跑”；接线前必须关闭                            |
-| 实验 Codex adapter：官方失败事件形状            | `turn.status:failed` 被投影成 `terminal:completed`     | 补具体协议错误；不推断默认产品已发生事故                              |
-| WebSocket 两问题同时挂起、逆序答复              | pending 从 2 到 0，答案归属正确                        | G08 收窄为同一调用 loop 的体验建议，降为 P2                           |
-| `eval-runner.test.js`                           | 1 文件、26 passed、exit 0，208.87 秒                   | 原有 no-op/防篡改测试通过，不覆盖新增失败终态反例                     |
-| 既有源码反证                                    | 有窗口覆盖、legacy 中文子串、签名 CLI 窄试点及远程诊断 | G03/G06/G09/G11 不再重复建议已有功能；G10 区分 audit event 与记忆数量 |
+| 检查                                            | 结果与范围                                                 | 对报告的修订                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| 正常 CLI 的部署状态、保存模型配置后 `ask/agent` | 未配受信宿主时阻断；网络尝试均为 0                         | G01 增加完整入口证据；不声称已跑 setup/IDE 全旅程                     |
+| 未提交 readiness helper                         | `commands:["evolution"]` 也可 `ready:true`                 | 记录修复已开始、命令级就绪仍待闭合；不覆盖他人源码                    |
+| Eval 真实内置 checker + 虚拟文件系统            | 正确产物配 `ok:false`、抛错、超时失败均可 `pass:true`      | G02 补执行与产物分层，并承认已有 Graph 严格门                         |
+| 实验 Codex adapter：服务端先接受、再丢响应      | `upstreamAccepted:1, fallbackCalls:1`                      | 撤回“准入后失败均不会重跑”；接线前必须关闭                            |
+| 实验 Codex adapter：官方失败事件形状            | `turn.status:failed` 被投影成 `terminal:completed`         | 补具体协议错误；不推断默认产品已发生事故                              |
+| WebSocket 两问题同时挂起、逆序答复              | pending 从 2 到 0，答案归属正确                            | G08 收窄为同一调用 loop 的体验建议，降为 P2                           |
+| G08 deferred 问题与 App Server binding 本地回归 | CLI 235、Protocol 19、SDK 15、VS Code 5、Desktop 11 passed | 非阻塞/非授权基础已接线；断线持久恢复与真实三平台仍待验收             |
+| `eval-runner.test.js`                           | 1 文件、26 passed、exit 0，208.87 秒                       | 原有 no-op/防篡改测试通过，不覆盖新增失败终态反例                     |
+| 既有源码反证                                    | 有窗口覆盖、legacy 中文子串、签名 CLI 窄试点及远程诊断     | G03/G06/G09/G11 不再重复建议已有功能；G10 区分 audit event 与记忆数量 |
 
 二次复审补跑命令：
 

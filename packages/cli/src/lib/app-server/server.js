@@ -10,6 +10,7 @@ import { AppServerGraphRuntime } from "./graph-runtime.js";
 import { captureAgentSkillOutcomeIndex } from "../evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../skill-vector-authority.js";
 import { captureSkillRetrievalRevocationReader } from "../evolution/skill-retrieval-revocation-authority.js";
+import { sameInteractionBinding } from "../interaction-binding.js";
 import { compileGraphDefinition } from "../graph-kernel/compiler.js";
 import { createCliContextMemoryRuntime } from "../context-memory-kernel/runtime.js";
 import { isEvolutionWorkbenchCliHost } from "../evolution/evolution-workbench-cli-host.js";
@@ -882,6 +883,10 @@ export class CcAppServer {
         turnOptions.skillRetrievalRevocationReader =
           skillRetrievalRevocationReader;
       }
+      if (this.negotiated) {
+        turnOptions.interactiveQuestions =
+          this.negotiated.features.includes("deferred_questions");
+      }
       const result = await this.kernel.startTurn({
         threadId,
         turnId: attempt.id,
@@ -896,6 +901,7 @@ export class CcAppServer {
             event,
           }),
         requestApproval: (event) => this._requestApproval(turn, event),
+        requestQuestion: (event) => this._requestQuestion(turn, event),
       });
       const failed = result?.is_error === true || result?.subtype === "error";
       const output = typeof result?.result === "string" ? result.result : "";
@@ -1137,6 +1143,8 @@ export class CcAppServer {
         turnOptions.skillRetrievalRevocationReader =
           this.skillRetrievalRevocationReader;
       }
+      turnOptions.interactiveQuestions =
+        this.negotiated?.features.includes("deferred_questions") === true;
       const result = await this.kernel.startTurn({
         threadId: turn.threadId,
         turnId: turn.id,
@@ -1144,6 +1152,7 @@ export class CcAppServer {
         options: turnOptions,
         emit: (event) => this._emitKernelEvent(turn, event),
         requestApproval: (event) => this._requestApproval(turn, event),
+        requestQuestion: (event) => this._requestQuestion(turn, event),
       });
       if (turn.interruptRequested) {
         await this._completeTurn(turn, "interrupted", result);
@@ -1321,6 +1330,48 @@ export class CcAppServer {
       );
       return;
     }
+    if (event?.type === "question_request") {
+      if (!this.negotiated?.features.includes("deferred_questions")) return;
+      const blocking = event.blocking !== false && event.mode !== "deferred";
+      if (blocking) turn.status = "waiting_input";
+      turn.revision += 1;
+      await this._notify(
+        "question/requested",
+        { request: this._questionRequest(turn, event) },
+        {
+          threadId: turn.threadId,
+          turnId: turn.id,
+          itemId: `${turn.id}:question:${safeId(event.id, "question")}`,
+          traceId,
+          idempotencyKey: `question-requested:${turn.id}:${event.id}`,
+        },
+      );
+      return;
+    }
+    if (event?.type === "question_resolved") {
+      if (!this.negotiated?.features.includes("deferred_questions")) return;
+      if (event.blocking !== false && event.mode !== "deferred") {
+        turn.status = "running";
+      }
+      turn.revision += 1;
+      await this._notify(
+        "question/resolved",
+        {
+          threadId: turn.threadId,
+          turnId: turn.id,
+          questionId: safeId(event.id, `${turn.id}:question`),
+          mode: event.mode === "deferred" ? "deferred" : "blocking",
+          via: event.via || "unknown",
+        },
+        {
+          threadId: turn.threadId,
+          turnId: turn.id,
+          traceId,
+          idempotencyKey: `question-resolved:${turn.id}:${event.id}:${event.via}`,
+        },
+      );
+      return;
+    }
     if (event?.type === "plan_update") {
       await this._notify(
         "item/completed",
@@ -1392,6 +1443,48 @@ export class CcAppServer {
       );
     }
     return result;
+  }
+
+  _questionRequest(turn, event) {
+    const id = safeId(event.id, `${turn.id}:question`);
+    return {
+      id,
+      threadId: turn.threadId,
+      turnId: turn.id,
+      binding: event.binding || null,
+      question: String(event.question || "").slice(0, 16_384),
+      options: Array.isArray(event.options)
+        ? event.options.slice(0, 128)
+        : null,
+      multiSelect: event.multiSelect === true,
+      mode: event.mode === "deferred" ? "deferred" : "blocking",
+      blocking: event.blocking !== false && event.mode !== "deferred",
+      purpose: event.purpose || "decision",
+      contextRevision: Number.isSafeInteger(event.context_revision)
+        ? event.context_revision
+        : null,
+      expiresAt: new Date(this.now() + this.requestTimeoutMs).toISOString(),
+    };
+  }
+
+  async _requestQuestion(turn, event) {
+    if (!this.negotiated?.features.includes("deferred_questions")) return null;
+    const request = this._questionRequest(turn, event);
+    const result = requireObject(
+      await this._requestClient("question/answer", { request }),
+      "question answer",
+    );
+    if (
+      result.questionId !== request.id ||
+      !request.binding ||
+      !sameInteractionBinding(request.binding, result.binding)
+    ) {
+      throw new JsonRpcError(
+        JSON_RPC_ERROR.INVALID_PARAMS,
+        "client returned an invalid or stale question answer",
+      );
+    }
+    return Object.hasOwn(result, "answer") ? result.answer : null;
   }
 
   async _requestHumanTask({ task }) {

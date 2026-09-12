@@ -20,6 +20,7 @@ import {
   normalizeInteractionBinding,
   sameInteractionBinding,
 } from "./interaction-binding.js";
+import { DeferredQuestionContext } from "./deferred-question-context.js";
 import { createEnvelope } from "@chainlesschain/session-core";
 
 // Phase 5: parallel service-envelope emission. Map WS agent-handler event
@@ -133,6 +134,10 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // global default tracker.
     this._sequenceTracker = new CodingAgentSequenceTracker();
     this._questionSequence = 0;
+    this._contextRevision = 0;
+    this._deferredQuestionContext = new DeferredQuestionContext({
+      sessionId: this.sessionId,
+    });
     // Phase 5: parallel service-envelope emission. Opt-in (default off) so
     // legacy callers that count ws.send invocations stay green.
     this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
@@ -206,6 +211,10 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         binding: options.binding || null,
         bindingType: options.bindingType || null,
         requireBinding: options.requireBinding === true,
+      });
+      options.onRegistered?.({
+        requestId,
+        binding: options.binding || null,
       });
 
       if (approvalRequest) {
@@ -337,7 +346,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * elicitation, while exposing the stream protocol's `question_request`
    * shape so capable UIs can render options natively.
    */
-  async askUser({
+  askUser({
     question,
     options = null,
     multiSelect = false,
@@ -348,6 +357,9 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     turnId,
     toolUseId,
     metadata = null,
+    mode = "blocking",
+    purpose = "decision",
+    onRegistered = null,
   } = {}) {
     const normalizedTurnId =
       turnId === undefined || turnId === null ? null : String(turnId);
@@ -380,6 +392,9 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         question: typeof question === "string" ? question : "",
         options: Array.isArray(options) ? options : null,
         multiSelect: multiSelect === true,
+        mode,
+        blocking: mode !== "deferred",
+        purpose,
         ...(defaultValue !== undefined ? { defaultValue } : {}),
         ...(onTimeout ? { onTimeout } : {}),
         ...(onReject ? { onReject } : {}),
@@ -401,8 +416,62 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         binding,
         bindingType: "interaction",
         ...(Number(timeoutMs) > 0 ? { timeoutMs: Number(timeoutMs) } : {}),
+        ...(typeof onRegistered === "function" ? { onRegistered } : {}),
       },
     );
+  }
+
+  /**
+   * Register an informational question without blocking the current agent loop.
+   * Its answer is retained as one-shot, user-authority context for prepareCall.
+   */
+  deferUserQuestion(request = {}) {
+    let registration = null;
+    const requestedRevision = this._contextRevision;
+    const answer = this.askUser({
+      ...request,
+      mode: "deferred",
+      onRegistered: (value) => {
+        registration = value;
+      },
+    });
+    answer
+      .then((value) => {
+        this._deferredQuestionContext.record({
+          questionId: registration?.requestId,
+          question: request.question,
+          answer: value,
+          binding: registration?.binding || null,
+          requestedRevision,
+          resolvedRevision: this._contextRevision,
+        });
+      })
+      .catch(() => {
+        // Timeout/disconnect simply leaves no asynchronous user context.
+      });
+    return Object.freeze({
+      questionId: registration?.requestId,
+      status: "pending",
+      mode: "deferred",
+      purpose: request.purpose || "information",
+      authorization: false,
+      binding: registration?.binding || null,
+      contextRevision: requestedRevision,
+    });
+  }
+
+  beginContextRevision(revision = null) {
+    this._contextRevision = Number.isSafeInteger(revision)
+      ? revision
+      : this._contextRevision + 1;
+    return this._contextRevision;
+  }
+
+  createDeferredPrepareCall() {
+    return () =>
+      this._deferredQuestionContext.prepareCall({
+        currentRevision: this._contextRevision,
+      });
   }
 
   /**
@@ -502,6 +571,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       }
       pending.reject(error);
     }
+    this._deferredQuestionContext.clear();
   }
 
   emit(eventType, data) {

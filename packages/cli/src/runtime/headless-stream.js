@@ -32,6 +32,8 @@ import {
   normalizeInteractionBinding,
   sameInteractionBinding,
 } from "../lib/interaction-binding.js";
+import { DeferredQuestionContext } from "../lib/deferred-question-context.js";
+import { composePrepareCall } from "../lib/goal-context.js";
 import {
   addHooksV2EventObserver,
   emitHooksV2Event,
@@ -2468,6 +2470,7 @@ async function runAgentHeadlessStreamInWorkspace(
     options.interactiveQuestions === true ||
     process.env.CC_INTERACTIVE_QUESTIONS === "1";
   const pendingQuestions = new Map();
+  const deferredQuestionContext = new DeferredQuestionContext({ sessionId });
   let questionSeq = 0;
   const questionTimeoutMs =
     Number(process.env.CC_QUESTION_TIMEOUT_MS) > 0
@@ -2478,7 +2481,25 @@ async function runAgentHeadlessStreamInWorkspace(
     if (!p) return;
     pendingQuestions.delete(id);
     clearTimeout(p.timer);
-    emit({ type: "question_resolved", id, via, session_id: sessionId });
+    emit({
+      type: "question_resolved",
+      id,
+      via,
+      mode: p.mode,
+      blocking: p.mode === "blocking",
+      session_id: sessionId,
+    });
+    if (p.mode === "deferred") {
+      deferredQuestionContext.record({
+        questionId: id,
+        question: p.question,
+        answer,
+        binding: p.binding,
+        requestedRevision: p.contextRevision,
+        resolvedRevision: turns,
+      });
+      return;
+    }
     p.resolve(answer);
   };
   const failQuestion = (id, via) => {
@@ -2486,7 +2507,15 @@ async function runAgentHeadlessStreamInWorkspace(
     if (!p) return;
     pendingQuestions.delete(id);
     clearTimeout(p.timer);
-    emit({ type: "question_resolved", id, via, session_id: sessionId });
+    emit({
+      type: "question_resolved",
+      id,
+      via,
+      mode: p.mode,
+      blocking: p.mode === "blocking",
+      session_id: sessionId,
+    });
+    if (p.mode === "deferred") return;
     const e = new Error(`ask_user_question ${via}`);
     e.code = "USER_TIMEOUT"; // handler → user_timeout (model proceeds, not a failure)
     p.reject(e);
@@ -2517,50 +2546,100 @@ async function runAgentHeadlessStreamInWorkspace(
       pendingQuestions.delete(id);
       clearTimeout(pending.timer);
       try {
-        emit({ type: "question_resolved", id, via, session_id: sessionId });
+        emit({
+          type: "question_resolved",
+          id,
+          via,
+          mode: pending.mode,
+          blocking: pending.mode === "blocking",
+          session_id: sessionId,
+        });
       } catch {
         // Best-effort cleanup notification.
       }
-      const error = new Error(`ask_user_question ${via}`);
-      error.code = "USER_TIMEOUT";
-      pending.reject(error);
+      if (pending.mode === "blocking") {
+        const error = new Error(`ask_user_question ${via}`);
+        error.code = "USER_TIMEOUT";
+        pending.reject(error);
+      }
     }
+    deferredQuestionContext.clear();
   });
-  const interactionAskUser = ({
-    question,
-    options: qOptions,
-    multiSelect,
-    timeoutMs,
-    metadata,
-    sessionId: requestedSessionId,
-    turnId,
-    toolUseId,
-  } = {}) =>
-    new Promise((resolve, reject) => {
-      const id = `q-${++questionSeq}`;
-      const binding = normalizeInteractionBinding({
-        sessionId: requestedSessionId ?? sessionId,
-        turnId,
-        toolUseId,
-        sequence: questionSeq,
-      });
-      const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
-      const timer = setTimeout(() => failQuestion(id, "timeout"), ms);
-      timer.unref?.();
-      pendingQuestions.set(id, { resolve, reject, timer, binding });
-      emit({
-        type: "question_request",
-        id,
-        session_id: sessionId,
-        binding,
-        ...(binding.turnId ? { turn_id: binding.turnId } : {}),
-        ...(binding.toolUseId ? { tool_use_id: binding.toolUseId } : {}),
-        question: typeof question === "string" ? question : "",
-        options: Array.isArray(qOptions) ? qOptions : null,
-        multiSelect: multiSelect === true,
-        ...(metadata && typeof metadata === "object" ? { metadata } : {}),
-      });
+  const registerInteractiveQuestion = (
+    {
+      question,
+      options: qOptions,
+      multiSelect,
+      timeoutMs,
+      metadata,
+      purpose = "decision",
+      sessionId: requestedSessionId,
+      turnId,
+      toolUseId,
+    } = {},
+    mode = "blocking",
+  ) => {
+    let resolve = null;
+    let reject = null;
+    const promise =
+      mode === "blocking"
+        ? new Promise((resolvePromise, rejectPromise) => {
+            resolve = resolvePromise;
+            reject = rejectPromise;
+          })
+        : null;
+    const id = `q-${++questionSeq}`;
+    const binding = normalizeInteractionBinding({
+      sessionId: requestedSessionId ?? sessionId,
+      turnId,
+      toolUseId,
+      sequence: questionSeq,
     });
+    const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
+    const timer = setTimeout(() => failQuestion(id, "timeout"), ms);
+    timer.unref?.();
+    pendingQuestions.set(id, {
+      resolve,
+      reject,
+      timer,
+      binding,
+      mode,
+      purpose,
+      question: typeof question === "string" ? question : "",
+      contextRevision: turns,
+    });
+    emit({
+      type: "question_request",
+      id,
+      session_id: sessionId,
+      binding,
+      ...(binding.turnId ? { turn_id: binding.turnId } : {}),
+      ...(binding.toolUseId ? { tool_use_id: binding.toolUseId } : {}),
+      mode,
+      blocking: mode === "blocking",
+      purpose,
+      context_revision: turns,
+      question: typeof question === "string" ? question : "",
+      options: Array.isArray(qOptions) ? qOptions : null,
+      multiSelect: multiSelect === true,
+      ...(metadata && typeof metadata === "object" ? { metadata } : {}),
+    });
+    return mode === "blocking"
+      ? promise
+      : Object.freeze({
+          questionId: id,
+          status: "pending",
+          mode: "deferred",
+          purpose,
+          authorization: false,
+          binding,
+          contextRevision: turns,
+        });
+  };
+  const interactionAskUser = (request = {}) =>
+    registerInteractiveQuestion(request, "blocking");
+  const interactionDeferUserQuestion = (request = {}) =>
+    registerInteractiveQuestion(request, "deferred");
 
   // --output-style (or settings.json `outputStyle`) persona, appended.
   let outputStyleBody = null;
@@ -3173,7 +3252,10 @@ async function runAgentHeadlessStreamInWorkspace(
   }
 
   const streamInteraction = {};
-  if (interactiveQuestions) streamInteraction.askUser = interactionAskUser;
+  if (interactiveQuestions) {
+    streamInteraction.askUser = interactionAskUser;
+    streamInteraction.deferUserQuestion = interactionDeferUserQuestion;
+  }
   if (options.includeHookEvents === true) {
     streamInteraction.emit = (kind, payload = {}) => {
       const subAgentId =
@@ -3294,7 +3376,10 @@ async function runAgentHeadlessStreamInWorkspace(
     // Absent → agent-core returns user_not_reachable (graceful proceed).
     interaction:
       Object.keys(streamInteraction).length > 0 ? streamInteraction : undefined,
-    prepareCall: goalPrepareCallFn,
+    prepareCall: composePrepareCall([
+      goalPrepareCallFn,
+      () => deferredQuestionContext.prepareCall({ currentRevision: turns }),
+    ]),
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
     mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
@@ -3587,8 +3672,10 @@ async function runAgentHeadlessStreamInWorkspace(
           continue;
         }
         if (parsed.answer) {
-          // Answers settle a BLOCKED ask_user_question — never queued. A null
-          // value (user cancelled the QuickPick) → user_timeout (model proceeds).
+          // Answers settle their bound ask_user_question out of band and are
+          // never queued as a new turn. A null value (user cancelled the UI)
+          // resolves as user_timeout for blocking questions and as no context
+          // for deferred questions.
           const pending = pendingQuestions.get(parsed.answer.id);
           if (
             !pending ||

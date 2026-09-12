@@ -92,6 +92,7 @@ class FakeClient extends EventEmitter {
 
 test("VS Code pilot uses the shared fixed-capability client lazily", async () => {
   const reviewApproval = async () => ({ kind: "acceptOnce" });
+  const answerQuestion = async () => "blue";
   const pilot = new IdeAppServerPilot({
     ClientClass: FakeClient,
     getCliPath: () => "C:/bin/cc.cmd",
@@ -100,6 +101,7 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
     storageBackend: "sqlite",
     statePath: "C:/state/rollouts.sqlite",
     reviewApproval,
+    answerQuestion,
   });
 
   assert.equal(pilot.status.running, false);
@@ -120,6 +122,19 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
       params: { request: { id: "approval-1" } },
     }),
     { kind: "acceptOnce" },
+  );
+  const binding = {
+    sessionId: "thread-1",
+    turnId: "turn-1",
+    toolUseId: "tool-1",
+    sequence: 1,
+  };
+  assert.deepEqual(
+    await FakeClient.options.onServerRequest({
+      method: "question/answer",
+      params: { request: { id: "q-1", binding, question: "Color?" } },
+    }),
+    { questionId: "q-1", binding, answer: "blue" },
   );
 
   assert.deepEqual(await pilot.threadStart({ title: "Pilot" }), {
@@ -178,6 +193,19 @@ test("VS Code pilot uses the shared fixed-capability client lazily", async () =>
 test("VS Code pilot fails closed when no reviewed request handler exists", async () => {
   const pilot = new IdeAppServerPilot({ ClientClass: FakeClient });
   await pilot.start();
+  assert.deepEqual(
+    await FakeClient.options.onServerRequest({
+      method: "question/answer",
+      params: {
+        request: { id: "q-1", binding: { sessionId: "s", sequence: 1 } },
+      },
+    }),
+    {
+      questionId: "q-1",
+      binding: { sessionId: "s", sequence: 1 },
+      answer: null,
+    },
+  );
   assert.deepEqual(
     await FakeClient.options.onServerRequest({
       method: "approval/decide",

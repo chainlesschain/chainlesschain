@@ -63,25 +63,34 @@ export function goalPrepareCall(goal) {
 
 /**
  * Compose several `prepareCall` functions into one. Each is invoked per turn
- * and their non-empty `systemSuffix` strings are concatenated. A failing
- * member is skipped, never fatal.
+ * and their non-empty transient system/user contexts are concatenated without
+ * changing authority: `systemSuffix` stays system, `userContext` stays user.
+ * A failing member is skipped, never fatal.
  * @param {Array<Function|null|undefined>} fns
  * @returns {(ctx:object) => Promise<{systemSuffix:string}|null>}
  */
 export function composePrepareCall(fns) {
   const list = (fns || []).filter((f) => typeof f === "function");
   return async (ctx) => {
-    const parts = [];
+    const systemParts = [];
+    const userParts = [];
     for (const fn of list) {
       try {
         const r = await fn(ctx);
         if (r && typeof r.systemSuffix === "string" && r.systemSuffix.trim()) {
-          parts.push(r.systemSuffix);
+          systemParts.push(r.systemSuffix);
+        }
+        if (r && typeof r.userContext === "string" && r.userContext.trim()) {
+          userParts.push(r.userContext);
         }
       } catch {
         /* a failing member must not break the turn */
       }
     }
-    return parts.length ? { systemSuffix: parts.join("\n\n") } : null;
+    if (systemParts.length === 0 && userParts.length === 0) return null;
+    return {
+      ...(systemParts.length ? { systemSuffix: systemParts.join("\n\n") } : {}),
+      ...(userParts.length ? { userContext: userParts.join("\n\n") } : {}),
+    };
   };
 }

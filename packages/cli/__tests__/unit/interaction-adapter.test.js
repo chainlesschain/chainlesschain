@@ -204,6 +204,56 @@ describe("WebSocketInteractionAdapter", () => {
     expect(adapter._pending.size).toBe(0);
   });
 
+  it("defers an informational question and injects its answer once as user context", async () => {
+    adapter.beginContextRevision(4);
+    const receipt = adapter.deferUserQuestion({
+      question: "Which color?",
+      purpose: "preference",
+      turnId: "turn-4",
+      toolUseId: "tool-4",
+      timeoutMs: 30_000,
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+
+    expect(receipt).toMatchObject({
+      questionId: sent.requestId,
+      status: "pending",
+      mode: "deferred",
+      authorization: false,
+      contextRevision: 4,
+    });
+    expect(sent).toMatchObject({
+      mode: "deferred",
+      blocking: false,
+      purpose: "preference",
+    });
+
+    adapter.resolveAnswer(sent.requestId, "blue", sent.binding);
+    await Promise.resolve();
+    const prepareCall = adapter.createDeferredPrepareCall();
+    const context = prepareCall();
+    expect(context.systemSuffix).toContain("never grant permission");
+    expect(context.userContext).toContain('"answer":"blue"');
+    expect(prepareCall()).toBeNull();
+  });
+
+  it("marks a deferred answer stale after the host context revision advances", async () => {
+    adapter.beginContextRevision(2);
+    adapter.deferUserQuestion({
+      question: "Preferred label?",
+      purpose: "information",
+      timeoutMs: 30_000,
+    });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    adapter.beginContextRevision(3);
+    adapter.resolveAnswer(sent.requestId, "next", sent.binding);
+    await Promise.resolve();
+
+    expect(adapter.createDeferredPrepareCall()().userContext).toContain(
+      '"stale":true',
+    );
+  });
+
   it("keeps a bound question pending after a cross-turn answer", async () => {
     const promise = adapter.askUser({
       question: "Continue?",

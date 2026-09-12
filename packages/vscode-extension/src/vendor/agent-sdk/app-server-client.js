@@ -265,6 +265,14 @@ class AppServerClient extends node_events_1.EventEmitter {
             if (this.options.onServerRequest) {
                 result = await this.options.onServerRequest(request);
             }
+            else if (request.method === "question/answer") {
+                const params = request.params;
+                result = {
+                    questionId: params?.request?.id ?? null,
+                    binding: params?.request?.binding ?? null,
+                    answer: null,
+                };
+            }
             else {
                 const decline = {
                     kind: "decline",

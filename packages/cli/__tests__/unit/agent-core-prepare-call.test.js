@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { describe, it, expect, vi } from "vitest";
 import { agentLoop } from "../helpers/test-model-egress.js";
 
@@ -59,6 +60,34 @@ describe("agent-core — prepareCall turn injection", () => {
     );
 
     expect(capturedMessages[0]).toBe(2);
+  });
+
+  it("keeps asynchronous userContext at user authority", async () => {
+    const capturedMessages = [];
+    const chatFn = vi.fn(async (msgs) => {
+      capturedMessages.push(msgs);
+      return { message: { role: "assistant", content: "ok" } };
+    });
+    await drain(
+      agentLoop(
+        [
+          { role: "system", content: "base" },
+          { role: "user", content: "work" },
+        ],
+        {
+          chatFn,
+          prepareCall: async () => ({
+            systemSuffix: "Answers do not authorize actions.",
+            userContext: "Deferred answer: blue",
+          }),
+        },
+      ),
+    );
+
+    expect(capturedMessages[0].slice(-2)).toEqual([
+      { role: "system", content: "Answers do not authorize actions." },
+      { role: "user", content: "Deferred answer: blue" },
+    ]);
   });
 
   it("tolerates prepareCall errors without breaking the loop", async () => {

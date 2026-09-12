@@ -19,12 +19,15 @@ function request(id, method, params = {}) {
   return { jsonrpc: "2.0", id, method, params };
 }
 
-function initialize(id = 1) {
+function initialize(
+  id = 1,
+  features = ["thread_turn_item", "structured_approval"],
+) {
   return request(id, "initialize", {
     protocolVersion: APP_SERVER_PROTOCOL_VERSION,
     minimumProtocolVersion: 1,
     client: { name: "test-client", version: "1.0.0" },
-    features: ["thread_turn_item", "structured_approval"],
+    features,
   });
 }
 
@@ -763,6 +766,251 @@ describe("CC App Server", () => {
     expect(
       messages.find((message) => message.method === "approval/resolved").params,
     ).toMatchObject({ approved: true, via: "user" });
+    await server.close();
+  });
+
+  it("round-trips a bound deferred question without converting it to approval", async () => {
+    const messages = [];
+    let server;
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "thread-question",
+      turnId: "turn-question",
+      toolUseId: "tool-question",
+      sequence: 1,
+    };
+    const kernel = {
+      cwd: process.cwd(),
+      async startTurn({ emit, requestQuestion }) {
+        const event = {
+          type: "question_request",
+          id: "q-1",
+          binding,
+          question: "Which optional color?",
+          options: ["blue", "red"],
+          multiSelect: false,
+          mode: "deferred",
+          blocking: false,
+          purpose: "preference",
+          context_revision: 1,
+        };
+        await emit(event);
+        const answerPromise = requestQuestion(event);
+        await waitFor(() =>
+          messages.some((message) => message.method === "question/answer"),
+        );
+        const prompt = messages.find(
+          (message) => message.method === "question/answer",
+        );
+        expect(prompt.params.request).toMatchObject({
+          id: "q-1",
+          binding,
+          mode: "deferred",
+          blocking: false,
+          purpose: "preference",
+          contextRevision: 1,
+        });
+        await server.receive({
+          jsonrpc: "2.0",
+          id: prompt.id,
+          result: { questionId: "q-1", binding, answer: "blue" },
+        });
+        const answer = await answerPromise;
+        await emit({
+          type: "question_resolved",
+          id: "q-1",
+          mode: "deferred",
+          blocking: false,
+          via: "user-answer",
+        });
+        return {
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          result: answer,
+        };
+      },
+      close: vi.fn(),
+    };
+    server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel,
+      send: async (message) => messages.push(message),
+    });
+    await server.receive(
+      initialize(1, [
+        "thread_turn_item",
+        "structured_approval",
+        "deferred_questions",
+      ]),
+    );
+    await server.receive(
+      request(2, "thread/start", { threadId: "thread-question" }),
+    );
+    await server.receive(
+      request(3, "turn/start", {
+        threadId: "thread-question",
+        turnId: "turn-question",
+        input: "continue while asking",
+      }),
+    );
+    await waitFor(() =>
+      messages.some((message) => message.method === "turn/completed"),
+    );
+
+    expect(
+      messages.find((message) => message.method === "question/requested").params
+        .request,
+    ).toMatchObject({ id: "q-1", blocking: false });
+    expect(
+      messages.find((message) => message.method === "question/resolved").params,
+    ).toMatchObject({ questionId: "q-1", mode: "deferred" });
+    expect(
+      messages.find((message) => message.method === "turn/completed").params
+        .turn,
+    ).toMatchObject({ status: "completed" });
+    expect(
+      messages.some((message) => message.method === "approval/decide"),
+    ).toBe(false);
+    for (const message of messages) {
+      expect(validateAppServerMessage(message).ok).toBe(true);
+    }
+    await server.close();
+  });
+
+  it("rejects a stale question binding instead of accepting the answer", async () => {
+    const messages = [];
+    let server;
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "thread-stale-question",
+      turnId: "turn-stale-question",
+      toolUseId: "tool-stale-question",
+      sequence: 1,
+    };
+    const kernel = {
+      cwd: process.cwd(),
+      async startTurn({ requestQuestion }) {
+        const answerPromise = requestQuestion({
+          id: "q-stale",
+          binding,
+          question: "Informational value?",
+          mode: "blocking",
+        });
+        await waitFor(() =>
+          messages.some((message) => message.method === "question/answer"),
+        );
+        const prompt = messages.find(
+          (message) => message.method === "question/answer",
+        );
+        await server.receive({
+          jsonrpc: "2.0",
+          id: prompt.id,
+          result: {
+            questionId: "q-stale",
+            binding: { ...binding, turnId: "other-turn" },
+            answer: "unsafe",
+          },
+        });
+        await answerPromise;
+        return { type: "result", subtype: "success", is_error: false };
+      },
+      close: vi.fn(),
+    };
+    server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel,
+      send: async (message) => messages.push(message),
+    });
+    await server.receive(
+      initialize(1, [
+        "thread_turn_item",
+        "structured_approval",
+        "deferred_questions",
+      ]),
+    );
+    await server.receive(
+      request(2, "thread/start", { threadId: "thread-stale-question" }),
+    );
+    await server.receive(
+      request(3, "turn/start", {
+        threadId: "thread-stale-question",
+        turnId: "turn-stale-question",
+        input: "ask safely",
+      }),
+    );
+    await waitFor(() =>
+      messages.some((message) => message.method === "turn/completed"),
+    );
+    expect(
+      messages.find((message) => message.method === "turn/completed").params
+        .turn,
+    ).toMatchObject({ status: "failed" });
+    await server.close();
+  });
+
+  it("keeps the question channel disabled when the client did not negotiate it", async () => {
+    const messages = [];
+    let capturedOptions = null;
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "thread-old-client",
+      turnId: "turn-old-client",
+      toolUseId: "tool-old-client",
+      sequence: 1,
+    };
+    const server = new CcAppServer({
+      store: new MemoryRolloutStore(),
+      kernel: {
+        async startTurn({ options, emit, requestQuestion }) {
+          capturedOptions = options;
+          await emit({
+            type: "question_request",
+            id: "q-unsupported",
+            binding,
+            question: "Optional detail?",
+            mode: "deferred",
+            blocking: false,
+            purpose: "information",
+          });
+          expect(
+            await requestQuestion({
+              id: "q-unsupported",
+              binding,
+              question: "Optional detail?",
+              mode: "deferred",
+            }),
+          ).toBeNull();
+          return { type: "result", subtype: "success", is_error: false };
+        },
+        close: vi.fn(),
+      },
+      send: async (message) => messages.push(message),
+    });
+
+    await server.receive(initialize());
+    await server.receive(
+      request(2, "thread/start", { threadId: "thread-old-client" }),
+    );
+    await server.receive(
+      request(3, "turn/start", {
+        threadId: "thread-old-client",
+        turnId: "turn-old-client",
+        input: "continue compatibly",
+      }),
+    );
+    await waitFor(() =>
+      messages.some((message) => message.method === "turn/completed"),
+    );
+
+    expect(capturedOptions.interactiveQuestions).toBe(false);
+    expect(
+      messages.some((message) =>
+        ["question/answer", "question/requested", "question/resolved"].includes(
+          message.method,
+        ),
+      ),
+    ).toBe(false);
     await server.close();
   });
 

@@ -71,6 +71,18 @@ describe("composePrepareCall", () => {
     expect(r.systemSuffix).toBe("FROM-A\n\nFROM-B");
   });
 
+  it("composes user context without promoting it to system authority", async () => {
+    const r = await composePrepareCall([
+      () => ({ systemSuffix: "SYSTEM" }),
+      () => ({ userContext: "USER-A" }),
+      () => ({ userContext: "USER-B" }),
+    ])({});
+    expect(r).toEqual({
+      systemSuffix: "SYSTEM",
+      userContext: "USER-A\n\nUSER-B",
+    });
+  });
+
   it("skips null/empty members and failing members", async () => {
     const a = () => ({ systemSuffix: "FROM-A" });
     const nul = () => null;

@@ -329,6 +329,15 @@ export class AppServerClient extends EventEmitter {
     try {
       if (this.options.onServerRequest) {
         result = await this.options.onServerRequest(request);
+      } else if (request.method === "question/answer") {
+        const params = request.params as {
+          request?: { id?: string; binding?: JsonValue };
+        };
+        result = {
+          questionId: params?.request?.id ?? null,
+          binding: params?.request?.binding ?? null,
+          answer: null,
+        };
       } else {
         const decline: ApprovalDecision = {
           kind: "decline",

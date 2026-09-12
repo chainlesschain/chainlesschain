@@ -755,34 +755,47 @@ class ChatViewProvider {
         const changed = this._convs.clearApproval(convId, ui.id);
         this._indexConversation(
           conv,
-          this._convs.pendingInteractions(convId).length
+          this._convs
+            .pendingInteractions(convId)
+            .some(
+              (entry) =>
+                entry?.kind === "approval" || entry?.blocking !== false,
+            )
             ? "waiting_approval"
             : "running",
         );
         if (changed) this._postTabs();
       } else if (ui?.kind === "question") {
-        // The agent called ask_user_question and is BLOCKED on the user. The
-        // question renders as an IN-PANEL card (chat-html) with clickable options
+        // The question renders as an IN-PANEL card (chat-html) with clickable options
         // / a text input — reliable + visible, unlike a native QuickPick which
         // can fail to surface when the webview has focus. The card was already
         // posted to the webview by _postFrom above IF this is the active tab; the
         // answer returns as a {type:"answer"} message (handled below).
         //
         // Retain active and background questions alike. Active questions need
-        // rehydration if VS Code recreates the Webview while the CLI is blocked;
-        // background questions additionally get a tab dot and notification.
+        // rehydration if VS Code recreates the Webview; blocking background
+        // questions additionally get a tab dot and notification.
         this._convs.setPendingApproval(convId, ui);
-        if (this._convs.markNeedsApproval(convId)) {
-          this._postTabs();
-          this._notifyApprovalPending(conv);
+        if (ui.blocking !== false) {
+          if (this._convs.markNeedsApproval(convId)) {
+            this._postTabs();
+            this._notifyApprovalPending(conv);
+          }
+          this._indexConversation(conv, "waiting_approval");
+        } else {
+          this._indexConversation(conv, "running");
         }
-        this._indexConversation(conv, "waiting_approval");
       }
       if (evt?.type === "question_resolved" && evt.id) {
         const changed = this._convs.clearApproval(convId, evt.id);
         this._indexConversation(
           conv,
-          this._convs.pendingInteractions(convId).length
+          this._convs
+            .pendingInteractions(convId)
+            .some(
+              (entry) =>
+                entry?.kind === "approval" || entry?.blocking !== false,
+            )
             ? "waiting_approval"
             : "running",
         );
@@ -790,7 +803,7 @@ class ChatViewProvider {
       }
       if (evt?.type === "result") {
         this._clearInterruptTimer(conv);
-        if (this._convs.clearApproval(convId)) this._postTabs();
+        if (this._convs.clearBlockingInteractions(convId)) this._postTabs();
         conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
         // Only this message's images were consumed. Later messages may still

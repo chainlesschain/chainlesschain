@@ -116,6 +116,9 @@ async function ensureAppServerPilot() {
     const {
       reviewAppServerApproval,
     } = require("./app-server-approval-review.js");
+    const {
+      answerAppServerQuestion,
+    } = require("./app-server-question-review.js");
     const { getResolvedCli } = require("./cli-binary.js");
     const contextMemoryAuthority =
       configuredVscodeContextMemoryAuthority(vscode);
@@ -125,6 +128,7 @@ async function ensureAppServerPilot() {
       clientVersion: require("../package.json").version,
       env: contextMemoryAuthority.cliEnvironment,
       reviewApproval: (request) => reviewAppServerApproval(vscode, request),
+      answerQuestion: (request) => answerAppServerQuestion(vscode, request),
     });
     _appServerPilot.on("stderr", (message) =>
       log(`App Server emitted stderr (${String(message).length} chars)`),

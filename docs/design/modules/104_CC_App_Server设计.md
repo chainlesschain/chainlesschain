@@ -1,10 +1,10 @@
 # 104. CC App Server 设计
 
-> 状态：stdio MVP 首次随 `chainlesschain@0.166.0` 发布；固定能力 Desktop/VS Code pilot 与实验 WebSocket 随 `chainlesschain@0.166.5` / Agent SDK `0.2.4` 完成发布闭环（2026-08-27）｜协议版本：v1｜默认传输：stdio｜网络传输：experimental
+> 状态：stdio MVP 首次随 `chainlesschain@0.166.0` 发布；固定能力 Desktop/VS Code pilot 与实验 WebSocket 随 `chainlesschain@0.166.5` / Agent SDK `0.2.4` 完成发布闭环（2026-08-27）；`deferred_questions` 为 2026-09-13 源码增量，尚未形成精确 SHA 三平台发布证据｜协议版本：v1｜默认传输：stdio｜网络传输：experimental
 
 ## 1. 定位
 
-CC App Server 是 ChainlessChain 面向桌面端、IDE、CI 与自定义宿主的统一产品集成边界。它把原本散落在 CLI 参数、NDJSON 流和各端私有状态里的会话语义收敛为 Thread / Turn / Item / Approval 模型，并通过版本化 JSON-RPC 协议提供能力协商、恢复、分支、背压与确定性终态证据。
+CC App Server 是 ChainlessChain 面向桌面端、IDE、CI 与自定义宿主的统一产品集成边界。它把原本散落在 CLI 参数、NDJSON 流和各端私有状态里的会话语义收敛为 Thread / Turn / Item / Approval / Question 模型，并通过版本化 JSON-RPC 协议提供能力协商、恢复、分支、背压与确定性终态证据。
 
 它不替代：
 
@@ -19,7 +19,7 @@ App Server 负责把宿主接入 Agent Kernel，并把权威生命周期持久�
 
 ### 2.1 目标
 
-- 用单一协议描述 initialize、Thread、Turn、Item、Tool、Approval 与终态；
+- 用单一协议描述 initialize、Thread、Turn、Item、Tool、Approval、Question 与终态；
 - 允许宿主在进程重启后 read/resume/fork，不依赖内存中的客户端对象；
 - 输入、输出、服务端请求和客户端 pending request 全部有界；
 - 未初始化、过载、冲突、超时和未知结果使用稳定错误码；
@@ -41,7 +41,8 @@ Host application
   └─ @chainlesschain/agent-sdk AppServerClient / AppServerPilotClient
        ├─ bounded pending requests
        ├─ generated protocol validation
-       └─ approval/decide handler (default decline)
+       ├─ approval/decide handler (default decline)
+       └─ question/answer handler (default cancel)
              │
              ├─ stdio · one JSON-RPC object per line
              │    └─ 1 MiB line cap + bounded output queue
@@ -125,7 +126,7 @@ VS Code pilot 默认关闭，通过 `chainlesschain.appServer.pilot.enabled` 开
 
 Server 选择双方版本区间的最高交集，只返回双方都支持的 feature，并用 `downgraded` 指示降级。版本区间无交集时返回 `-32602`；initialize 前的其他请求返回 `-32002`；同一连接重复 initialize 返回 `-32009`。
 
-v1 feature：`thread_turn_item`、`structured_approval`、`typed_graph`、`causal_messages`、`durable_human_task`、`bounded_transport`、`graph_effect_receipts`、`deterministic_trace`。
+v1 feature：`thread_turn_item`、`structured_approval`、`typed_graph`、`causal_messages`、`durable_human_task`、`bounded_transport`、`graph_effect_receipts`、`deterministic_trace`、`deferred_questions`。App Server 只有在客户端明确协商 `deferred_questions` 后才开启问题通道；旧 feature 集不会收到新的 Server Request 或通知。
 
 ## 6. 请求、通知与服务端请求
 
@@ -144,7 +145,7 @@ v1 feature：`thread_turn_item`、`structured_approval`、`typed_graph`、`causa
 
 ### 6.2 Server 通知
 
-生命周期通知包括 `thread/updated`、`turn/started`、`turn/completed`、`item/started`、`item/delta`、`item/completed`、`tool/requested`、`tool/result`、`approval/requested` 与 `approval/resolved`。
+生命周期通知包括 `thread/updated`、`turn/started`、`turn/completed`、`item/started`、`item/delta`、`item/completed`、`tool/requested`、`tool/result`、`approval/requested`、`approval/resolved`、`question/requested` 与 `question/resolved`。
 
 通知同时写入 rollout；终态通知只有在 terminal event 与 evidence 已落账后才发送。客户端断线后可以用 `thread/read` 或 `thread/resume` 从 `afterEventSeq` 补读，而不是相信内存中最后一帧。
 
@@ -160,6 +161,8 @@ v1 feature：`thread_turn_item`、`structured_approval`、`typed_graph`、`causa
 
 缺少 handler、handler 抛错、响应超时、binding 过期或 decision 非法均失败闭合。
 
+协商 `deferred_questions` 后，结构化问题使用 `question/answer` Server Request。客户端必须回显相同 `questionId` 与完整 interaction binding；缺少处理器或用户取消返回 `answer:null`。`blocking` 问题继续阻断依赖答案的 Agent 工具，`deferred` 只允许 preference/information，立即返回 pending receipt，并且答案只能作为用户上下文，不能成为审批或授权。未协商该 feature 时 Agent Kernel 不暴露交互问题通道，服务端也不发送相关通知。
+
 ## 7. 状态机
 
 ### 7.1 Thread
@@ -174,7 +177,7 @@ active ── archive ──► archived
 ### 7.2 Turn
 
 ```text
-queued → running ⇄ waiting_approval
+queued → running ⇄ waiting_approval / waiting_input
              │
              ├─ completed
              ├─ failed

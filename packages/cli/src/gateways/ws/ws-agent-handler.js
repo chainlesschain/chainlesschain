@@ -84,6 +84,7 @@ import {
 } from "../../lib/session-budget-usage.js";
 import { HostResourceBudget } from "../../lib/host-resource-budget.js";
 import { captureAgentEvolutionRuntimeComposition } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
+import { composePrepareCall } from "../../lib/goal-context.js";
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
@@ -1373,6 +1374,7 @@ export class WSAgentHandler {
     }
 
     this._processing = true;
+    this.interaction.beginContextRevision?.();
     const abortController = new AbortController();
     const turnSignal = this._turnSignal(abortController.signal);
     this._abortController = abortController;
@@ -1539,6 +1541,9 @@ export class WSAgentHandler {
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,
+        prepareCall: composePrepareCall([
+          this.interaction.createDeferredPrepareCall?.(),
+        ]),
         ...(this._skillOutcomeIndex === null
           ? {}
           : { skillOutcomeIndex: this._skillOutcomeIndex }),

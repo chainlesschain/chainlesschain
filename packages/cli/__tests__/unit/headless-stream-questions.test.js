@@ -346,6 +346,61 @@ describe("interactive questions round-trip", () => {
     );
   });
 
+  it("continues independent work while a deferred preference is pending", async () => {
+    let continuedBeforeAnswer = false;
+    let answerSent = false;
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "ASK without blocking" }) +
+          "\n";
+        await sleep(80);
+        answerSent = true;
+        yield JSON.stringify({
+          type: "answer",
+          id: "q-1",
+          answer: "Blue",
+          binding: questionBinding(),
+        }) + "\n";
+      },
+      agentLoop: async function* (_messages, opts) {
+        const receipt = opts.interaction.deferUserQuestion({
+          question: "Pick an optional accent color",
+          options: ["Blue", "Red"],
+          purpose: "preference",
+        });
+        continuedBeforeAnswer = answerSent === false;
+        await sleep(120);
+        const injected = await opts.prepareCall({ iteration: 2 });
+        yield {
+          type: "response-complete",
+          content: JSON.stringify({ receipt, injected }),
+        };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+
+    await h.run();
+    const requested = h.events().find((e) => e.type === "question_request");
+    expect(continuedBeforeAnswer).toBe(true);
+    expect(requested).toMatchObject({
+      id: "q-1",
+      mode: "deferred",
+      blocking: false,
+      purpose: "preference",
+      context_revision: 1,
+    });
+    const output = JSON.parse(
+      h.events().find((e) => e.type === "result").result,
+    );
+    expect(output.receipt).toMatchObject({
+      status: "pending",
+      mode: "deferred",
+      authorization: false,
+    });
+    expect(output.injected.systemSuffix).toContain("never grant permission");
+    expect(output.injected.userContext).toContain('"answer":"Blue"');
+  });
+
   it("rejects a cross-turn answer and keeps waiting for the bound response", async () => {
     const h = harness({
       inputGen: async function* () {

@@ -299,15 +299,27 @@ function mapAgentEvent(evt, state) {
         via: evt.via || null,
       };
     case "question_request": {
-      // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
-      // BLOCKED waiting for the user. chat-view shows a native QuickPick and
-      // replies {type:"answer",...}; the webview renders the question inline.
+      // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS). Blocking
+      // questions pause the tool; deferred preference/information questions
+      // remain answerable while the agent continues independent work.
       const question = {
         kind: "question",
         id: evt.id,
         question: evt.question || "",
         options: Array.isArray(evt.options) ? evt.options : null,
         multiSelect: evt.multiSelect === true,
+        ...(evt.mode === "deferred" || evt.mode === "blocking"
+          ? { mode: evt.mode }
+          : {}),
+        ...(typeof evt.blocking === "boolean"
+          ? { blocking: evt.blocking }
+          : {}),
+        ...(typeof evt.purpose === "string" && evt.purpose
+          ? { purpose: evt.purpose }
+          : {}),
+        ...(Number.isSafeInteger(evt.context_revision)
+          ? { contextRevision: evt.context_revision }
+          : {}),
         ...(evt.binding && typeof evt.binding === "object"
           ? { binding: evt.binding }
           : {}),

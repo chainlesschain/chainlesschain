@@ -239,8 +239,25 @@ class ConversationManager {
         : changed;
     c.pendingApproval = c.pendingInteractions[0] || null;
     c.needsApproval =
-      c.id !== this._activeId && c.pendingInteractions.length > 0;
+      c.id !== this._activeId &&
+      c.pendingInteractions.some(
+        (entry) => entry?.kind === "approval" || entry?.blocking !== false,
+      );
     return had ? c : null;
+  }
+
+  /** Clear turn-blocking interactions while keeping optional deferred cards. */
+  clearBlockingInteractions(id) {
+    const c = this.get(id);
+    if (!c) return null;
+    if (!Array.isArray(c.pendingInteractions)) c.pendingInteractions = [];
+    const before = c.pendingInteractions.length;
+    c.pendingInteractions = c.pendingInteractions.filter(
+      (entry) => entry?.kind === "question" && entry?.blocking === false,
+    );
+    c.pendingApproval = c.pendingInteractions[0] || null;
+    c.needsApproval = false;
+    return before !== c.pendingInteractions.length ? c : null;
   }
 
   /**

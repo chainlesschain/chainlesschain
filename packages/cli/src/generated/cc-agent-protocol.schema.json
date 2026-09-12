@@ -18,6 +18,7 @@
       "agent_stream_events",
       "agent_stream_payloads",
       "unified_policy_decision",
+      "deferred_questions",
       "context_memory_kernel"
     ],
     "contextMemory": {
@@ -3832,6 +3833,7 @@
         "method": {
           "enum": [
             "approval/decide",
+            "question/answer",
             "humanTask/decide"
           ]
         },
@@ -3862,6 +3864,8 @@
             "item/completed",
             "approval/requested",
             "approval/resolved",
+            "question/requested",
+            "question/resolved",
             "tool/requested",
             "tool/result",
             "subagent/started",

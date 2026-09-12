@@ -85,6 +85,30 @@ describe("DesktopAppServerPilot", () => {
     });
   });
 
+  it("returns a bound informational question answer without approval authority", async () => {
+    const answerQuestion = vi.fn(async () => "blue");
+    new DesktopAppServerPilot({
+      ClientClass: FakePilotClient,
+      answerQuestion,
+    });
+    const binding = {
+      sessionId: "thread-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    const result = await FakePilotClient.options.onServerRequest({
+      method: "question/answer",
+      params: {
+        request: { id: "q-1", binding, question: "Optional color?" },
+      },
+    });
+    expect(result).toEqual({ questionId: "q-1", binding, answer: "blue" });
+    expect(answerQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "q-1", binding }),
+    );
+  });
+
   it("consumes the shared quorum and separation-of-duties product scenarios", async () => {
     const fixture = JSON.parse(
       readFileSync(

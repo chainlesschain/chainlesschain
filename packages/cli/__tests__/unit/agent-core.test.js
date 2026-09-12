@@ -1309,6 +1309,59 @@ describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
     expect(result.answer).toBe("yes");
   });
 
+  it("ask_user_question can defer non-authoritative preferences without awaiting askUser", async () => {
+    const askUser = vi.fn(async () => "late");
+    const deferUserQuestion = vi.fn(() => ({
+      questionId: "q-later",
+      binding: { sessionId: "session-1", turnId: "turn-1", sequence: 1 },
+    }));
+    const result = await executeTool(
+      "ask_user_question",
+      {
+        question: "Which accent color do you prefer?",
+        mode: "deferred",
+        purpose: "preference",
+      },
+      {
+        interaction: { askUser, deferUserQuestion },
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolCallId: "tool-call-1",
+      },
+    );
+
+    expect(askUser).not.toHaveBeenCalled();
+    expect(deferUserQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        purpose: "preference",
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolUseId: "tool-call-1",
+      }),
+    );
+    expect(result).toMatchObject({
+      questionId: "q-later",
+      status: "pending",
+      mode: "deferred",
+      authorization: false,
+    });
+  });
+
+  it("ask_user_question refuses to defer authorization or branch decisions", async () => {
+    const deferUserQuestion = vi.fn();
+    for (const purpose of ["authorization", "decision"]) {
+      const result = await executeTool(
+        "ask_user_question",
+        { question: "Publish now?", mode: "deferred", purpose },
+        { interaction: { deferUserQuestion } },
+      );
+      expect(result.error).toBe(
+        "deferred_question_requires_non_authoritative_purpose",
+      );
+    }
+    expect(deferUserQuestion).not.toHaveBeenCalled();
+  });
+
   it("ask_user_question maps USER_TIMEOUT to user_timeout error", async () => {
     const err = new Error("timed out");
     err.code = "USER_TIMEOUT";
@@ -2503,9 +2556,7 @@ describe("agentLoop", () => {
     expect(executingCount).toBeGreaterThan(0);
     expect(executingCount).toBeLessThan(50);
     expect(
-      events.some(
-        (event) => event.result?.code === "CC_TOOL_RECOVERY_PAUSED",
-      ),
+      events.some((event) => event.result?.code === "CC_TOOL_RECOVERY_PAUSED"),
     ).toBe(true);
   });
 

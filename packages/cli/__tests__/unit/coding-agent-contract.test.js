@@ -158,6 +158,22 @@ describe("coding-agent contract", () => {
     });
   });
 
+  it("declares blocking and deferred question semantics", () => {
+    const [definition] = getCodingAgentFunctionToolDefinitions({
+      names: ["ask_user_question"],
+    });
+    expect(definition.function.parameters.properties.mode.enum).toEqual([
+      "blocking",
+      "deferred",
+    ]);
+    expect(definition.function.parameters.properties.purpose.enum).toEqual([
+      "decision",
+      "authorization",
+      "preference",
+      "information",
+    ]);
+  });
+
   it("maps tool definitions into registry descriptors using the contract", () => {
     expect(mapCodingAgentToolDefinition(CODING_AGENT_TOOLS[0])).toEqual(
       expect.objectContaining({

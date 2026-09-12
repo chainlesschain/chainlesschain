@@ -168,6 +168,26 @@ export class CliAgentKernelAdapter {
             binding: event.binding,
           });
         }
+        if (event.type === "question_request") {
+          const answerQuestion = async () => {
+            let answer = null;
+            try {
+              answer = await current.requestQuestion(event);
+            } catch {
+              // A missing/rejecting host is cancellation, never implicit consent.
+            }
+            writeLine(input, {
+              type: "answer",
+              id: event.id,
+              answer,
+              binding: event.binding,
+            });
+          };
+          // The Headless runtime owns blocking semantics and its timeout. Keep
+          // the transport event chain free so a timed-out question can emit
+          // question_resolved/result even while a slow host request is pending.
+          void answerQuestion().catch(() => {});
+        }
         if (event.type === "result") {
           session.current = null;
           current.resolve(event);
@@ -196,6 +216,7 @@ export class CliAgentKernelAdapter {
         permissionMode,
         sandbox,
         interactiveApprovals: true,
+        interactiveQuestions: turnOptions.interactiveQuestions === true,
         includePartialMessages: true,
         ephemeral: false,
         evolutionIngress:
@@ -265,6 +286,7 @@ export class CliAgentKernelAdapter {
     options = {},
     emit,
     requestApproval,
+    requestQuestion,
   }) {
     const session = await this._session(threadId, options);
     if (session.current) {
@@ -285,6 +307,10 @@ export class CliAgentKernelAdapter {
         turnId,
         emit,
         requestApproval,
+        requestQuestion:
+          typeof requestQuestion === "function"
+            ? requestQuestion
+            : async () => null,
         resolve,
         reject,
       };

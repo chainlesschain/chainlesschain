@@ -74,6 +74,30 @@ class IdeAppServerPilot extends EventEmitter {
   }
 
   async _handleServerRequest(request) {
+    if (request?.method === "question/answer") {
+      const question = request.params?.request || {};
+      if (typeof this.options.answerQuestion !== "function") {
+        return {
+          questionId: question.id,
+          binding: question.binding,
+          answer: null,
+        };
+      }
+      try {
+        const answer = await this.options.answerQuestion(question);
+        return {
+          questionId: question.id,
+          binding: question.binding,
+          answer: answer ?? null,
+        };
+      } catch {
+        return {
+          questionId: question.id,
+          binding: question.binding,
+          answer: null,
+        };
+      }
+    }
     if (request?.method !== "approval/decide") {
       return {
         kind: "decline",

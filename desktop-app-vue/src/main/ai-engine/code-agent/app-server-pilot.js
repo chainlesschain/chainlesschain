@@ -53,6 +53,10 @@ class DesktopAppServerPilot extends EventEmitter {
     );
     this.pendingHumanTasks = new Map();
     this.pendingApprovals = new Map();
+    this.answerQuestion =
+      typeof options.answerQuestion === "function"
+        ? options.answerQuestion
+        : null;
     this.contextMemoryProjection = {
       lastPlan: null,
       lastCompactionReceipt: null,
@@ -160,6 +164,18 @@ class DesktopAppServerPilot extends EventEmitter {
   }
 
   _handleServerRequest(request) {
+    if (request?.method === "question/answer") {
+      const question = normalizeParams(request.params?.request);
+      const answer =
+        typeof this.answerQuestion === "function"
+          ? this.answerQuestion(question)
+          : null;
+      return Promise.resolve(answer).then((value) => ({
+        questionId: question.id,
+        binding: question.binding,
+        answer: value ?? null,
+      }));
+    }
     if (request?.method === "approval/decide") {
       return this._requestApproval(request.params?.request);
     }

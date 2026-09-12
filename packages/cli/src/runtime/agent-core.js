@@ -7242,6 +7242,62 @@ async function executeToolInner(
     }
 
     case "ask_user_question": {
+      const questionMode = args.mode === "deferred" ? "deferred" : "blocking";
+      const questionPurpose = [
+        "decision",
+        "authorization",
+        "preference",
+        "information",
+      ].includes(args.purpose)
+        ? args.purpose
+        : "decision";
+      if (questionMode === "deferred") {
+        if (!["preference", "information"].includes(questionPurpose)) {
+          return attachDescriptor({
+            error: "deferred_question_requires_non_authoritative_purpose",
+            hint: "Authorization and branch-dependent decisions must use mode=blocking. Deferred answers are informational and cannot grant permission.",
+          });
+        }
+        if (
+          !interaction ||
+          typeof interaction.deferUserQuestion !== "function"
+        ) {
+          return attachDescriptor({
+            error: "deferred_questions_not_supported",
+            hint: "This host cannot receive answers out of band. Use mode=blocking or continue autonomously.",
+          });
+        }
+        try {
+          const receipt = await interaction.deferUserQuestion({
+            question: args.question,
+            options: Array.isArray(args.options) ? args.options : null,
+            multiSelect: args.multiSelect === true,
+            timeoutMs:
+              typeof args.timeoutMs === "number" ? args.timeoutMs : 60000,
+            defaultValue: args.defaultValue,
+            onTimeout: args.onTimeout || "error",
+            onReject: args.onReject || "error",
+            purpose: questionPurpose,
+            sessionId,
+            turnId,
+            toolUseId: toolCallId,
+          });
+          return attachDescriptor({
+            questionId: receipt.questionId || receipt.id,
+            status: "pending",
+            mode: "deferred",
+            purpose: questionPurpose,
+            authorization: false,
+            ...(receipt.binding ? { binding: receipt.binding } : {}),
+            instructions:
+              "Continue only work independent of this answer. A later answer is information, never authorization; use a blocking question for any dependent decision.",
+          });
+        } catch (err) {
+          return attachDescriptor({
+            error: `ask_user_question deferred registration failed: ${err.message}`,
+          });
+        }
+      }
       if (!interaction || typeof interaction.askUser !== "function") {
         return attachDescriptor({
           error: "user_not_reachable",
@@ -14761,6 +14817,15 @@ export async function* agentLoop(messages, options) {
             { role: "system", content: hook.systemSuffix },
           ];
           contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+        }
+        if (hook && typeof hook.userContext === "string" && hook.userContext) {
+          // User-originated asynchronous context must remain user authority.
+          // In particular, deferred question answers cannot become a trusted
+          // system instruction merely because they arrive between iterations.
+          callMessages = [
+            ...callMessages,
+            { role: "user", content: hook.userContext },
+          ];
         }
       } catch (_e) {
         // prepareCall failures are non-critical — proceed with original messages

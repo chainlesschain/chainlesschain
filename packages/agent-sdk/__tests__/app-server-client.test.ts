@@ -312,6 +312,29 @@ describe("AppServerClient", () => {
     });
   });
 
+  it("cancels a bound question without a handler instead of forging approval", async () => {
+    const value = createClient();
+    await initialize(value);
+    const binding = {
+      sessionId: "thread-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    value.push({
+      jsonrpc: "2.0",
+      id: "server:question-1",
+      method: "question/answer",
+      params: { request: { id: "q-1", binding } },
+    });
+    await flush();
+    expect(value.written().at(-1)).toEqual({
+      jsonrpc: "2.0",
+      id: "server:question-1",
+      result: { questionId: "q-1", binding, answer: null },
+    });
+  });
+
   it("bounds pending requests and propagates structured RPC errors", async () => {
     const value = createClient({ maxPendingRequests: 1 });
     await initialize(value);
