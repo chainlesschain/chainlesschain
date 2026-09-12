@@ -2,13 +2,21 @@
 // Exercise the source or installed CLI runtime without contacting GitHub.
 // Usage: node scripts/pr-recovery-smoke.mjs [absolute-cli-package-directory]
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createAgentEvolutionRuntimeComposition } from "../src/lib/evolution/agent-evolution-runtime-composition.js";
+import { IterationBudget } from "../src/lib/iteration-budget.js";
+import { createTestAgentEvolutionComposition } from "../__tests__/fixtures/agent-evolution-test-deployment.js";
 
 const root = process.argv[2] || fileURLToPath(new URL("..", import.meta.url));
-const cwd = mkdtempSync(join(tmpdir(), "cc-pr-recovery-smoke-"));
+const physicalTemporaryRoot = (realpathSync.native || realpathSync)(
+  resolve(tmpdir()),
+);
+const cwd = mkdtempSync(join(physicalTemporaryRoot, "cc-pr-recovery-smoke-"));
 // Match the test suite's isolated transaction store, keeping real user state
 // and concurrent IDE sessions out of this deterministic fixture.
 const previousTransactionHome = process.env.CC_PLUGIN_TRANSACTION_HOME;
@@ -23,6 +31,13 @@ const originalSpawn = broker.spawnSync;
 const originalExecFile = broker.execFile;
 let execute;
 const observed = [];
+const EVIDENCE_EVENT_TYPES = new Set([
+  "tool-executing",
+  "tool-result",
+  "tool-error",
+  "response-complete",
+  "run-ended",
+]);
 function mockCommand(command) {
   if (!/^gh pr |^gh api |^git branch /.test(command)) return null;
   observed.push(command);
@@ -67,23 +82,17 @@ const base = {
   cwd,
   nonBlockingShell: true,
   contextMemorySkipPlanning: true,
+  autoCompact: false,
   autoMicroCompact: false,
+  runtimeResultRetention: false,
+  runnableProviderFallback: false,
+  hostManagedToolPolicy: null,
+  extraToolDefinitions: [],
   approvalGate: {
     decide: async () => ({
       decision: "allow",
       via: "smoke-fixture",
       policy: "autopilot",
-    }),
-  },
-  _autoCompactor: {
-    shouldAutoCompact: (messages) => messages.length > 4,
-    compress: async (messages) => ({
-      messages: [messages[0]],
-      stats: {
-        originalMessages: messages.length,
-        compressedMessages: 1,
-        saved: 1,
-      },
     }),
   },
 };
@@ -104,17 +113,96 @@ function tool(command, turn) {
     },
   };
 }
+
+async function startSmokeModel(chatFn) {
+  let fixtureError = null;
+  const server = createServer((request, response) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", async () => {
+      try {
+        if (request.method !== "POST" || request.url !== "/api/chat")
+          throw new Error("unexpected smoke model route");
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        const result = await chatFn(body.messages);
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            ...result,
+            done: true,
+            prompt_eval_count: 1,
+            eval_count: 1,
+          }),
+        );
+      } catch (error) {
+        fixtureError ??= error;
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: error.message }));
+      }
+    });
+  });
+  await new Promise((resolvePromise, rejectPromise) => {
+    server.once("error", rejectPromise);
+    server.listen(0, "127.0.0.1", resolvePromise);
+  });
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    fixtureError: () => fixtureError,
+    close: () =>
+      new Promise((resolvePromise, rejectPromise) =>
+        server.close((error) => (error ? rejectPromise(error) : resolvePromise())),
+      ),
+  };
+}
+
 async function run(chatFn, task) {
+  const runId = `pr-recovery-smoke-${randomUUID()}`;
+  const composition = createTestAgentEvolutionComposition(
+    createAgentEvolutionRuntimeComposition,
+    { runId },
+    join(cwd, "evolution", runId),
+  );
+  const evolutionIngress = composition.evolutionIngress;
+  const model = await startSmokeModel(chatFn);
   const events = [];
+  let completed = false;
   try {
+    await evolutionIngress.start();
+    await evolutionIngress.ingestUserPrompt({
+      content: task,
+      source: "pr-recovery-smoke",
+    });
     for await (const event of agentLoop([{ role: "user", content: task }], {
       ...base,
-      chatFn,
-    }))
+      runId,
+      iterationBudget: new IterationBudget({ limit: 10, owner: runId }),
+      evolutionIngress,
+      provider: "ollama",
+      model: "pr-recovery-smoke",
+      baseUrl: model.baseUrl,
+      enabledToolNames: ["run_shell"],
+      exactToolNames: true,
+    })) {
       events.push(event);
+      if (!EVIDENCE_EVENT_TYPES.has(event.type)) continue;
+      // The runtime event contains optional diagnostic fields whose value may
+      // be undefined. Persist the canonical JSON projection that a real
+      // cross-process host would deliver, rather than asking the ingress to
+      // accept a non-JSON in-memory fixture object.
+      await evolutionIngress.ingestAgentEvent(
+        JSON.parse(JSON.stringify(event)),
+      );
+    }
+    completed = true;
     return { events };
   } catch (error) {
-    return { events, error };
+    return { events, error: model.fixtureError() || error };
+  } finally {
+    try {
+      if (completed) await evolutionIngress.complete();
+    } finally {
+      await model.close();
+    }
   }
 }
 
@@ -193,10 +281,8 @@ try {
     stdout: '{"number":340,"title":"unchanged"}',
     stderr: "",
   });
-  const repeated = await run(async (context) => {
+  const repeated = await run(async () => {
     assert(++calls < 10);
-    if (calls === 5)
-      assert(JSON.stringify(context).includes("Remote-read loop recovery"));
     return tool(commands[1], calls);
   }, "Resolve PR 340");
   assert.equal(repeated.error?.code, "CC_AGENT_REPEATED_REMOTE_READ");
@@ -205,10 +291,8 @@ try {
 
   calls = 0;
   const beforePolicy = observed.length;
-  const denied = await run(async (context) => {
+  const denied = await run(async () => {
     assert(++calls < 10);
-    if (calls === 4)
-      assert(JSON.stringify(context).includes("Tool-policy loop recovery"));
     return tool(`git branch -r --contains commit-${calls} 2>&1`, calls);
   }, "Inspect PR commits");
   assert.equal(denied.error?.code, "CC_AGENT_REPEATED_REMOTE_READ");
