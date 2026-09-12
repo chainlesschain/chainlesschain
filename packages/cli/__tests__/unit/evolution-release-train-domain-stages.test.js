@@ -148,6 +148,7 @@ describe("Evolution release train domain stages", () => {
     const proposalDigest = digest("proposal");
     const proposer = {
       createCandidateFromDraft: vi.fn(async () => ({
+        candidateId: digest("candidate-id"),
         contentDigest: digest("substituted-candidate"),
       })),
     };

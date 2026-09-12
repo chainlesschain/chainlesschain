@@ -11,7 +11,7 @@
 | Wiki 只消费 trusted projection，隔离不可信来源并区分观察、陈述和推断                 | `evidence-backed-wiki-maintainer.test.js`、`evolution-run-wiki-maintenance-source.test.js`                                          | 已有分层测试，不等同 1,000 条完整学习旅程                                                                                                           |
 | Candidate schema/name/path/symlink/size/明文控制                                     | `skill-candidate-registry.test.js`                                                                                                  | 已有实际存储边界测试，包含跨租户、路径与秘密明文拒绝                                                                                                |
 | Promotion 显示 capability/permission diff，独立验证和真人 quorum，禁止 proposer 自批 | `skill-promotion-review.test.js`、promotion/controller/ledger 测试                                                                  | 已有实现和分层测试；独立审批不能用测试中的恒真 verifier 替代验收                                                                                    |
-| 1,000 条对抗轨迹：零未经审查 active 修改、零 secret 进入 Wiki/Skill 明文             | 当前 projector 的两个 1,000 样本循环                                                                                                | **证据不足**：一个仅调用 injection detector，另一个仅投影并检查 quarantine；未运行完整 Wiki→Candidate→active 链。须补带合法正控、实际存储读回的旅程 |
+| 1,000 条对抗轨迹：零未经审查 active 修改、零 secret 进入 Wiki/Skill 明文             | 八个 `evolution-adversarial-wiki-journey-shard-*` 入口，真实 Wiki→Candidate→active 边界及存储读回                                       | **尚未通过全量验收**：首轮第 58 批暴露合法摘要误报；修复后原批次 10 条通过，完整 1,000 条重新运行中，不拼接旧批次，也不以 detector 循环替代旅程 |
 | 删除/撤销后定位并处置全部派生 pattern/candidate；默认 60 秒窗口                      | `evolution-raw-deletion-cross-process.test.js`、`skill-revocation-cross-process.test.js`、candidate admission/quarantine 跨进程测试 | 已有实际跨进程恢复用例；Raw crypto-shred 单例不能单独证明全部派生对象传播。最终提交需取得相关组的完整结果                                           |
 | 所有实际运行入口及自动门禁有最终源码身份对应的结果                                   | CLI CI、CLI Strict Sandbox、CI Tests、Android Tests、iOS App Remote Session Recovery                                                | **未取得最终提交完整 CI**；本机没有 Swift/Xcode，iOS 静态断言不等同编译/行为测试                                                                    |
 
@@ -58,6 +58,26 @@
 新 guard 接入的 **10 条完整对抗试跑**通过（单批 354.49 秒，总 362.36 秒）；16 个攻击族、1,000 个不同 ID/payload 与 8 个真实 CI 测试入口的 catalog 断言单独通过。真实 release guard 专项 **1/1** 再验通过（27.51 秒）。这些试跑仍不是 1,000 条执行结果，相关测试代码将待全量验证后独立提交；此批次不包含全量验收，也不意味着最终 CI 已通过。
 
 本提交保护批次按最终用例去重为 **59 项分组通过**（27 + 9 + 23），不是整个 CLI suite 或多系统 CI 全绿。六个相关代码/测试文件的原生 import、ESLint、Prettier 和差异检查通过。
+
+## 完整旅程暴露的 Candidate 摘要误报（2026-09-13）
+
+首轮完整 1,000 条运行实际失败，不能计为验收通过。第 58 批在合法正控的 Candidate 创建前报 `SKILL_CANDIDATE_SECRET_LEAK`：真实 pattern 的证据摘要 `sha256:032ffbec8d945b6de7babb263fce8438d4f0e92c73e14229029435cd894531a4` 被重复序列化到候选正文，数字片段 `14229029435` 命中手机号规则。使用原批次、原输入单独重跑也失败（94.08 秒），排除只在全量负载下出现的猜测；不是攻击进入了 Wiki。
+
+确认缺陷后停止原运行以避免修复前后源码混用。终止时有 **45 批 / 450 条**完成全部 final phase，第 58 批完成 0 条；原 session `97872` 最终 exit 1，主进程和两个所属 worker 均确认退出。原输出及终止摘要分别保留在临时目录的 `cc-adversarial-wiki-1000-20260912-terminated.log`、`cc-adversarial-wiki-1000-20260912-termination.json`；原 Vitest 完整 JSON 未生成，没有补造通过报告。原失败现场和独立复现现场均保留。
+
+修复仅调整 Proposer 的候选正文表示：使用独立 `chainlesschain.wiki-informed-skill-candidate-content/v1` schema，移除根 `sourceEvidenceRefs` 的重复副本。完整证据列表仍由候选顶层元数据及 candidateId 绑定；原完整 proposal 和 proposalDigest 不变。PURPOSE 引用、machineDiff 和其余正文全部保留；没有修改 Registry 或共享秘密检测规则，也没有因 schema 名称、摘要外观或自算 hash 添加豁免。
+
+proposalDigest 与 contentDigest 现在分别表示完整提案与候选正文，不能再假设两者相等。历史已保存候选继续按原字节验证读取；旧 pending plan 的 candidateId/contentDigest 若与新格式不同则拒绝，需重新生成计划并重新评估、审批，不能静默改绑旧凭据。引用 URI、wikiRevision 和生成器提供的 machineDiff 摘要仍接受原扫描，本修复不声称消除了所有可能的摘要误报。
+
+提案 / 提案账本 / Wiki 协调三文件 **28/28** 通过（10.46 秒）；原 Candidate Registry / release-train domain stages 两文件 **35/35** 通过（19.87 秒）。后者补齐摘要拒绝用例的正确 candidateId，确保实际覆盖 contentDigest 不匹配分支。
+
+使用未修改语料重跑原第 58 批，session `70326` 最终 **exit 0**：**1 个批次 / 10 条攻击轨迹**及全部 final phase 通过，单例 143.25 秒、总 149.69 秒；12 个其他用例因显式批次诊断过滤未执行。正控 Wiki、真实 Candidate 创建、负向 Reader/Maintainer、未审批发布拒绝和最终账本/Wiki 读回均实际完成。这不是完整 1,000 条验收；修复后将从头执行全部 8 个 wrapper，不将已通过的旧批次拼接为新全量成功。
+
+新增独立 `wiki-skill-candidate-content.test.js` **14/14** 通过（8.80 秒）：固化原 batch 58 的真实 pattern preimage 并重算精确摘要，使用真实 Registry 写入、新实例打开和磁盘读回；同时确认旧完整正文仍复现误报、正文与 machineDiff 中的相同数字仍拒绝、调用方伪造新 schema 不获得豁免、完整外层证据变化仍改变 candidateId。测试也实际保留旧候选字节并运行 Candidate stage，拒绝旧计划与新正文身份不匹配；不将测试用 typed evidence/admission 端口称为外部认证部署。
+
+最终将上述六个相关文件同次运行，session `55597` **exit 0，77/77、零跳过**（39.71 秒）；四个变更代码/测试文件的 ESLint、Prettier 与差异检查通过。该组结果包含前述分组回归，不重复相加；不等同完整 CLI suite、1,000 条旅程或多系统 Actions。
+
+编码能力边界另有真实存储诊断：字面反斜杠 `\u...` 形式的手机号与 secret 文本可以保存并原样读回，解码后的对应明文则被拒绝。新回归中的 JSON 解码、转义引号及全角数字用例不等于任意编码 secret 检测；本次没有新增共享 guard 的解码能力。独立诊断结果及现场保留于临时目录 `cc-candidate-escaped-diagnostic-96c900684ec04f808571a15f586730a9`，不计为安全拒绝通过用例。
 
 ## CLI CI 的真实恢复冒烟修复
 
