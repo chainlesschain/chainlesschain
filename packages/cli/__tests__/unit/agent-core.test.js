@@ -128,7 +128,7 @@ const {
   buildSubAgentHandoffContext,
   tokenizeShellWords,
   _gitProcessDeps,
-} = await import("../../src/lib/agent-core.js");
+} = await import("../../src/runtime/agent-core.js");
 
 const chatWithTools = (messages, options = {}) =>
   coreChatWithTools(messages, {

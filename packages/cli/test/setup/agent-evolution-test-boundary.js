@@ -57,6 +57,9 @@ function createTestIngress(runId) {
 const compositionFactoryKey = Symbol.for(
   "chainlesschain.test.evolution-composition-factory",
 );
+const canonicalAgentCoreKey = Symbol.for(
+  "chainlesschain.test.canonical-agent-core",
+);
 globalThis[compositionFactoryKey] = async ({ runId }) => {
   const evolutionIngress = createTestIngress(runId);
   const composition = Object.freeze({
@@ -111,6 +114,7 @@ vi.mock("../../src/runtime/fallback-model.js", async (importOriginal) => {
 
 vi.mock("../../src/runtime/agent-core.js", async (importOriginal) => {
   const actual = await importOriginal();
+  globalThis[canonicalAgentCoreKey] = actual;
   return {
     ...actual,
     agentLoop: (messages, options = {}) =>
@@ -123,7 +127,11 @@ vi.mock("../../src/runtime/agent-core.js", async (importOriginal) => {
 // The deprecated compatibility surface is still used by sub-agent and WS
 // internals. Keep its test adapter equivalent to the canonical runtime path.
 vi.mock("../../src/lib/agent-core.js", async (importOriginal) => {
-  const actual = await importOriginal();
+  // Resolve the original shim first: it causes Vitest to initialize the
+  // canonical mock above. Reading the pre-mock namespace avoids a circular
+  // mock-factory import while retaining every export from the real facade.
+  const shim = await importOriginal();
+  const actual = globalThis[canonicalAgentCoreKey] || shim;
   return {
     ...actual,
     agentLoop: (messages, options = {}) =>
