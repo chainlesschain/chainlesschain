@@ -21,6 +21,9 @@
  * Providers we consider local (no network egress on chat): ollama, llama-cpp,
  * vllm-local, lm-studio. Everything else is non-local — AnalysisEngine will
  * refuse to call unless caller explicitly opts in via acceptNonLocal: true.
+ * This provider label is only a declaration: governed hosts must additionally
+ * verify the selected client's actual endpoint via getActiveClient. A remote
+ * Ollama URL must not inherit local consent from the provider name.
  *
  * Response normalization: cc's llm-manager returns slightly different
  * shapes per provider. We coerce to the hub's { text, model, usage }
@@ -71,11 +74,13 @@ function extractUsage(result) {
   // hub contract: camelCase
   return {
     promptTokens: u.promptTokens ?? u.prompt_tokens ?? u.input_tokens ?? 0,
-    completionTokens: u.completionTokens ?? u.completion_tokens ?? u.output_tokens ?? 0,
+    completionTokens:
+      u.completionTokens ?? u.completion_tokens ?? u.output_tokens ?? 0,
     totalTokens:
       u.totalTokens ??
       u.total_tokens ??
-      (u.promptTokens ?? u.prompt_tokens ?? 0) + (u.completionTokens ?? u.completion_tokens ?? 0),
+      (u.promptTokens ?? u.prompt_tokens ?? 0) +
+        (u.completionTokens ?? u.completion_tokens ?? 0),
   };
 }
 
@@ -85,6 +90,7 @@ class CcLLMAdapter {
    * @param {(messages: Array, opts?: object) => Promise<object>} deps.chat
    * @param {() => string} [deps.getActiveProvider]
    * @param {() => string} [deps.getActiveModel]
+   * @param {() => object} [deps.getActiveClient] main-owned selected network client; governed bridges use its endpoint and identity, never caller chat options
    * @param {Set<string>|string[]} [deps.localProviders]   override the default local-provider whitelist
    * @param {string} [deps.name]                            override the .name surface
    */
@@ -96,8 +102,14 @@ class CcLLMAdapter {
       throw new Error("CcLLMAdapter: deps.chat(messages, opts) required");
     }
     this._chat = deps.chat;
-    this._getActiveProvider = typeof deps.getActiveProvider === "function" ? deps.getActiveProvider : null;
-    this._getActiveModel = typeof deps.getActiveModel === "function" ? deps.getActiveModel : null;
+    this._getActiveProvider =
+      typeof deps.getActiveProvider === "function"
+        ? deps.getActiveProvider
+        : null;
+    this._getActiveModel =
+      typeof deps.getActiveModel === "function" ? deps.getActiveModel : null;
+    this._getActiveClient =
+      typeof deps.getActiveClient === "function" ? deps.getActiveClient : null;
     this._localProviders =
       deps.localProviders instanceof Set
         ? deps.localProviders
@@ -109,7 +121,9 @@ class CcLLMAdapter {
 
   get name() {
     if (this._name) return this._name;
-    const model = this._getActiveModel ? this._tryCall(this._getActiveModel, "model") : null;
+    const model = this._getActiveModel
+      ? this._tryCall(this._getActiveModel, "model")
+      : null;
     const provider = this._getActiveProvider
       ? this._tryCall(this._getActiveProvider, "provider")
       : null;
@@ -149,14 +163,16 @@ class CcLLMAdapter {
       result = await this._chat(messages, opts);
     } catch (err) {
       const wrapped = new Error(
-        `CcLLMAdapter.chat: underlying client failed — ${err && err.message ? err.message : err}`
+        `CcLLMAdapter.chat: underlying client failed — ${err && err.message ? err.message : err}`,
       );
       wrapped.cause = err;
       throw wrapped;
     }
     return {
       text: extractText(result),
-      model: this._getActiveModel ? this._tryCall(this._getActiveModel, "model") : result && result.model,
+      model: this._getActiveModel
+        ? this._tryCall(this._getActiveModel, "model")
+        : result && result.model,
       usage: extractUsage(result),
       raw: result,
     };

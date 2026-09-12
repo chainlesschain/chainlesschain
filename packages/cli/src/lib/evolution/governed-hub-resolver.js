@@ -1,7 +1,79 @@
 import { prepareGovernedModelTurn } from "./governed-model-turn.js";
-import { createGovernedHubLlm } from "./governed-hub-llm.js";
+import {
+  captureGovernedHubSdkPorts,
+  createGovernedHubLlm,
+} from "./governed-hub-llm.js";
 
-export function createGovernedHubResolver(ports, factory) {
+function captureEmbeddingTransport(stage, sdk) {
+  const {
+    _embed: embed,
+    _embedFn: embedFn,
+    _ollamaUrl: baseUrl,
+    _model: model,
+  } = stage;
+  const defaultOllama =
+    stage instanceof sdk.EntityResolverEmbeddingStage &&
+    embed === sdk.EntityResolverEmbeddingStage.prototype._embed &&
+    !embedFn;
+  if (defaultOllama) {
+    const endpoint = new URL(baseUrl);
+    if (
+      !["http:", "https:"].includes(endpoint.protocol) ||
+      !(
+        endpoint.hostname === "localhost" ||
+        endpoint.hostname === "[::1]" ||
+        /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname)
+      )
+    ) {
+      // Resolver drain has no explicit remote-embedding consent contract.
+      // Restoring the local backend must not silently authorize remote input.
+      const error = new Error(
+        "Default Hub embeddings require a loopback endpoint; remote embedding consent is not supported",
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+  }
+  const fetchImpl = defaultOllama ? globalThis.fetch : null;
+  return {
+    assertIdentity() {
+      if (
+        stage._embed !== embed ||
+        stage._embedFn !== embedFn ||
+        stage._ollamaUrl !== baseUrl ||
+        stage._model !== model
+      )
+        throw new Error(
+          "Hub embedding identity changed; reopen the resolver invocation",
+        );
+    },
+    async embed(profile) {
+      if (!defaultOllama) return await embed.call(stage, profile);
+      // The raw SDK ollamaEmbed remains closed. This private transport is only
+      // invoked below, after the scoped Run projected the profile.
+      const response = await fetchImpl(
+        `${baseUrl.replace(/\/$/, "")}/api/embeddings`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          redirect: "error",
+          signal: AbortSignal.timeout(60_000),
+          body: JSON.stringify({ model, prompt: profile }),
+        },
+      );
+      if (!response.ok)
+        throw new Error(
+          `Hub embedding request failed: HTTP ${response.status}`,
+        );
+      const data = await response.json();
+      if (data?.error)
+        throw new Error("Hub embedding provider returned an error");
+      return data?.embedding;
+    },
+  };
+}
+
+export function createGovernedHubResolver(ports, factory, sdkPorts) {
   if (typeof factory !== "function")
     throw new TypeError("A resolver evolution factory is required");
   const {
@@ -12,6 +84,9 @@ export function createGovernedHubResolver(ports, factory) {
     EmbeddingStage,
     LLMStage,
   } = ports;
+  const sdk = captureGovernedHubSdkPorts(sdkPorts);
+  const transport =
+    embeddingStage && captureEmbeddingTransport(embeddingStage, sdk);
   // Rebuild stages for each drain. Neither the shared resolver nor its embedding
   // cache may acquire the authority of an individual WebSocket request.
   const embedding =
@@ -19,6 +94,7 @@ export function createGovernedHubResolver(ports, factory) {
     new EmbeddingStage({
       vault: resolver.vault,
       embedFn: async (profile) => {
+        transport.assertIdentity();
         const turn = await prepareGovernedModelTurn(factory, {
           mode: "hub-embedding",
           messages: [{ role: "user", content: profile }],
@@ -35,7 +111,9 @@ export function createGovernedHubResolver(ports, factory) {
           throw new Error(
             "Projected embedding input must contain one text message",
           );
-        const vector = await embeddingStage._embed(profileMessage.content);
+        transport.assertIdentity();
+        const vector = await transport.embed(profileMessage.content);
+        transport.assertIdentity();
         if (
           (!Array.isArray(vector) && !(vector instanceof Float32Array)) ||
           vector.length === 0 ||
@@ -51,7 +129,7 @@ export function createGovernedHubResolver(ports, factory) {
   const model =
     resolver._llmStage &&
     new LLMStage({
-      llm: createGovernedHubLlm(llm, factory),
+      llm: createGovernedHubLlm(llm, factory, {}, sdk),
       acceptNonLocal: false,
     });
   return new EntityResolver({

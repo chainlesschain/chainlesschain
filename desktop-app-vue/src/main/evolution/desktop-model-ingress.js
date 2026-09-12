@@ -901,6 +901,35 @@ async function openDesktopMultimodalModelRun(host, request) {
   }
 }
 
+let desktopHubSdkPorts;
+
+function getDesktopHubSdkPorts() {
+  if (!desktopHubSdkPorts) {
+    // Resolve from the main process's physical SDK copy. The embedded CLI
+    // ships a separate dependency tree, whose WeakSet brand cannot admit
+    // clients to this copy's AnalysisSkill/LLMStage consumers.
+    const {
+      createAuthenticatedEvolutionModelClient,
+    } = require("@chainlesschain/personal-data-hub/model-egress-guard");
+    const {
+      OllamaClient,
+    } = require("@chainlesschain/personal-data-hub/llm-client");
+    const {
+      CcLLMAdapter,
+    } = require("@chainlesschain/personal-data-hub/bridges/cc-llm-adapter");
+    const {
+      EntityResolverEmbeddingStage,
+    } = require("@chainlesschain/personal-data-hub/entity-resolver");
+    desktopHubSdkPorts = Object.freeze({
+      createAuthenticatedEvolutionModelClient,
+      OllamaClient,
+      CcLLMAdapter,
+      EntityResolverEmbeddingStage,
+    });
+  }
+  return desktopHubSdkPorts;
+}
+
 /**
  * Run the Hub's resolver through the same signed composition factory used by
  * Desktop model calls.  The factory stays in this module's private WeakMap:
@@ -915,7 +944,11 @@ async function runDesktopGovernedHubResolverDrain(host, ports, options = {}) {
     const { createGovernedHubResolver } = await import(
       new URL("./governed-hub-resolver.js", captured.moduleUrl).href
     );
-    const scoped = createGovernedHubResolver(ports, captured.factory);
+    const scoped = createGovernedHubResolver(
+      ports,
+      captured.factory,
+      getDesktopHubSdkPorts(),
+    );
     return await scoped.drain(options);
   } catch (cause) {
     const error = new Error("Desktop Hub resolver evolution admission failed", {
@@ -951,6 +984,7 @@ async function runDesktopGovernedHubSkill(
       runSkill,
       name,
       options,
+      getDesktopHubSdkPorts(),
     );
   } catch (cause) {
     const error = new Error("Desktop Hub skill evolution admission failed", {

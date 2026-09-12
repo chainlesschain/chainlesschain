@@ -8,15 +8,21 @@ export async function runGovernedHubSkill(
   runSkill,
   name,
   options,
+  sdkPorts,
 ) {
   let failure;
   let failed = false;
-  const llm = createGovernedHubLlm(hub.llm, factory, {
-    onFailure(error) {
-      failure = error;
-      failed = true;
+  const llm = createGovernedHubLlm(
+    hub.llm,
+    factory,
+    {
+      onFailure(error) {
+        failure = error;
+        failed = true;
+      },
     },
-  });
+    sdkPorts,
+  );
   const result = await runSkill({ vault: hub.vault, llm }, name, options);
   if (failed) throw failure;
   return result;

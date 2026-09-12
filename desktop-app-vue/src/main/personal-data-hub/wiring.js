@@ -256,6 +256,10 @@ async function initHub() {
       getActiveProvider: () => mgr.provider,
       // model name lives on the active client; fall back to provider string
       getActiveModel: () => (mgr.client && mgr.client.model) || mgr.provider,
+      // Provider names alone cannot prove locality: Ollama may be remote.
+      // The governed wrapper snapshots this main-owned client's actual URL
+      // and identity, then rechecks them before sending projected messages.
+      getActiveClient: () => mgr.client,
       name: undefined,
       // The cc LLMProviders enum uses uppercase keys (OLLAMA, VOLCENGINE, ...).
       // The active provider field stores the lowercase value, so the default

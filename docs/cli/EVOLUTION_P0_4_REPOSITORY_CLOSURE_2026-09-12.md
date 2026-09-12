@@ -25,8 +25,9 @@
 - iOS `e9077296c8`：实际 LLM 源文件接入条件 SwiftPM 测试目标；注入 URLSession 验证零请求，保留 `/models` 健康控制面；VisionAction 不再吞治理拒绝。Node 静态 **6/6**、既有 workflow 契约 **2/2** 通过；新增 Swift XCTest 尚未执行。另 13 个 legacy Vision/Speech 等源文件不在 app Sources phase，只能标为 source-only。
 - Backend `15b1cd0b82`：已复现并修复 `import main` 在模块级代码助手构造处失败。真实 main/ASGI 生命周期、非模型路由、七个代码路由和流式拒绝、应用网络零连接及 Whisper 组合 **65 passed、4 subtests passed**（Python 3.12）。模型入口仍明确返回 `503 / CC_AGENT_EVOLUTION_INGRESS_FAILED`，不宣称已提供受治理推理能力。
 - CI `15b1cd0b82`：`CI Tests` 新增 UniApp 两文件与独立 backend job；后者 checkout/校验 source SHA 并以同 SHA 上传 JUnit。UniApp **16/16**、完整 CI 契约 **41/41** 通过（含新增 2 条，不重复计数）。workflow 写入不代表 Actions 已执行。
-- Hub 工作区：实际默认 SDK adapter 的同副本组合 **33/33** 通过（322.52 秒），包括来源/响应拒绝、身份变更、远端同意与 resolver 队列；SDK 公开原始入口仍拒绝。正式打包将 PDH 分别复制到 app 与 vendored CLI，两份模块的私有 WeakSet/类身份不同；同副本测试不能证明该路径可用，正补同宿主 SDK ports 接线与双物理副本回归。
+- Hub 默认 adapter 与双物理副本接线：最终三个文件 **60/60** 通过（254.56 秒），包括原 33 项、9 项双 SDK copy 和 18 项 Desktop 客户端实际地址/身份用例。默认 chat/embedding 仅在认证 Run 投影后使用私有 transport；SDK 公开原始入口仍拒绝。Desktop 使用宿主私有 SDK ports 保留各副本 WeakSet，不共享全局品牌；远端 Ollama 不再因 provider 名称绕过同意，resolver 默认远端 embedding 仍拒绝。SDK `bridges-cc-llm` 独立回归 **14 通过、8 既有跳过**。双副本测试使用真实复制的 SDK 文件和 Desktop 入口，但不等同完整安装包验收或最终 SHA 的 CI。首轮 60 项曾有测试断言范围错误、共享未提交模块导入错误及超时，修正后才取得上述完整全绿结果。
 - 删除/撤销复验：Raw crypto-shred 与 Skill revocation 两个跨进程文件 **2/2** 通过（87.53 秒）；四个故障恢复窗口分别为 release pointer **15,542ms**、Wiki commit **3,874ms**、dependencies **13,976ms**、checkpoint **10,162ms**，均小于 60 秒。这不是整个 suite 必须小于 60 秒，也不替代 candidate 专项或目标部署演练。
+- Candidate admission/quarantine 跨进程组合首轮 **8 通过、1 失败**；失败为 `after-dependency-prepare (wiki)` 子进程 `ETIMEDOUT`，该次运行记录有约三小时墙钟跳变。保留原超时设置定向重跑该例 **1/1** 通过（65.76 秒）；按用例去重为 **9 项分批通过**，不是同一次组合全绿，也不能用整例耗时推定撤销传播窗口。
 
 截至本次复核，`EvolutionEvidenceReader.readTrusted()` 已有当前权限/撤销/保留期与 quarantine 校验，但尚无生产调用方；Run→Wiki source 只输出 evidence IDs，release-train fixture 手工构造 Wiki evidence。完整 1,000 旅程因此还依赖正式的认证 manifest 重读→trusted reader→typed Wiki evidence 桥接，不能用 test-only `trustedProjection: true` 补齐。此桥接正在实施，尚不计为完成。
 
