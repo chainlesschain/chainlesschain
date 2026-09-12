@@ -3,6 +3,7 @@ import {
   RemoteReadLoopGuard,
   remoteReadTarget,
 } from "../../src/lib/remote-read-loop-guard.js";
+import { inspectEvolutionContentInjectionRisks } from "../../src/lib/evolution/evolution-evidence-projector.js";
 
 const url =
   "https://github.com/chainlesschain/chainlesschain/actions/runs/34087984148/job/101635686798";
@@ -139,6 +140,49 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it.each(["pull-request", "shell-policy"])(
+    "keeps %s recovery guidance safe for the real projection without weakening authorization",
+    (kind) => {
+      const guard = new RemoteReadLoopGuard();
+      for (let index = 0; index < 4; index++) {
+        if (kind === "pull-request") {
+          guard.record(
+            "run_shell",
+            { stdout: "unchanged PR details" },
+            {
+              command:
+                "gh pr view 340 --repo fixture/repo --json number,title,state",
+            },
+          );
+        } else {
+          guard.record(
+            "run_shell",
+            {
+              error: "Use the dedicated git tool",
+              shellCommandPolicy: {
+                decision: "reroute",
+                ruleId: "git-tool-reroute",
+              },
+            },
+            { command: `git branch -r --contains commit-${index} 2>&1` },
+          );
+        }
+      }
+      expect(guard.recoveryHint).toContain("Respect the execution policy");
+      expect(guard.recoveryHint).toContain(
+        "stop and report the blocked action",
+      );
+      expect(guard.recoveryHint).toContain(
+        kind === "pull-request"
+          ? "only already-authorized PR actions"
+          : "Keep execution permissions unchanged",
+      );
+      expect(inspectEvolutionContentInjectionRisks(guard.recoveryHint)).toEqual(
+        [],
+      );
+    },
+  );
+
   it("guides CI investigation from the first result without promoting log text to instructions", () => {
     const guard = new RemoteReadLoopGuard();
     guard.record("web_fetch", { content: "UNTRUSTED_LOG_TEXT" }, { url });

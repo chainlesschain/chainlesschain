@@ -59,6 +59,16 @@
 
 本提交保护批次按最终用例去重为 **59 项分组通过**（27 + 9 + 23），不是整个 CLI suite 或多系统 CI 全绿。六个相关代码/测试文件的原生 import、ESLint、Prettier 和差异检查通过。
 
+## CLI CI 的真实恢复冒烟修复
+
+远端 `verify-cli` 的原冒烟脚本直接注入 `chatFn` 与未绑定的 `_autoCompactor`，不再符合正式模型入口的认证要求。现脚本从目标 runtime 加载真实 composition 和 Agent core，由仓库 fixture 提供明确的测试 authority；每种场景有独立 Run，实际请求通过认证投影发送到本机 Ollama 协议服务。没有增加生产绕过或测试专用 ingress 标志，用户配置、安全锚点和临时状态均隔离。
+
+真实接线另外复现出宿主提示文案误判：两种恢复提示中的“bypass policy”即使处在否定告诫中，仍被现有注入检测规则隔离，使模型收不到恢复提示。仅将这两句改成正向的遵守权限、拒绝时停止并报告阻塞的说明；不放宽投影规则、不豁免 system 文本、不降低恢复断言。
+
+- `remote-read-loop-guard.test.js` **43/43** 通过（3.29 秒），新增两种真实提示的注入风险检查及权限限制语义断言。
+- 最终源 `pr-recovery-smoke.mjs` **exit 0**（约 4 分钟）：原三种场景、原停止调用次数和拒绝命令零执行断言保留；另验证真实 canonical kernel 已提交压缩、消息减少且节省 token。实际 **18 次本地 provider 请求、0 次摘要请求、0 次 GitHub 请求**；压缩正控是确定性压缩，不声称执行了模型摘要。
+- 三个相关源/测试文件的 ESLint、Prettier、差异检查通过。该证据仅针对源脚本，未将其解释为已安装 payload 或最终三系统 Actions 通过。
+
 ## 远端身份快照
 
 2026-09-12 17:56（上海）查询时，本地 `af2ec8bed3a033ae5b87ee50185ad96e732a3af8` 和 iOS 变更提交 `e9077296c84f7690fadc6361689627fb945b5c7b` 均无 Actions run。GitHub `main` 为 `13fe45afd66e3538e4c33c8e5309c253e3d1e3de`。

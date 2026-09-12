@@ -387,7 +387,7 @@ export class RemoteReadLoopGuard {
         "For git-tool-reroute, call the dedicated git tool with git arguments and the repository cwd, without the leading git, pipes or 2>&1. " +
         "If the dedicated tool fails, inspect its actual stderr and verify cwd/remotes before continuing. " +
         "For a policy denial with no authorized route, report the exact blocker and completed findings; the task is not complete. " +
-        "Do not relax permissions or reroute through run_code to bypass policy."
+        "Keep execution permissions unchanged and use only authorized tool routes. Respect the execution policy; when it denies the command, stop and report the blocked action."
       );
     }
     if (this.targets.get(this.activeKey)?.gitRepository) {
@@ -406,7 +406,7 @@ export class RemoteReadLoopGuard {
         "Inspect stdout/stderr for command errors first. gh pr --json uses state and mergedAt, not merged; " +
         "use gh pr list --help or gh pr view --help to check supported fields. " +
         "If metadata is missing, request gh pr view <number> --repo <owner/repo> --json number,title,state,mergedAt,headRefOid,baseRefOid once. " +
-        "For a shell-policy git reroute, use the dedicated git tool with command arguments only (no leading git, pipes, or 2>&1); do not retry the shell command or bypass policy. " +
+        "For a shell-policy git reroute, use the dedicated git tool with command arguments only (no leading git, pipes, or 2>&1). Respect the execution policy; when it denies the command, stop and report the blocked action. " +
         "Compare the specific PR diff/commits with the target branch to decide the requested fix or disposition. " +
         "For review, synthesize evidence-backed findings; do not create edits merely to reset the loop. " +
         "Perform only already-authorized PR actions. If a required fact or authorization remains unavailable, report the concrete blocker and useful findings. " +
