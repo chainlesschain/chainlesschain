@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 export const WIKI_SKILL_PROPOSAL_SCHEMA =
   "chainlesschain.wiki-informed-skill-proposal/v2";
+export const WIKI_SKILL_CANDIDATE_CONTENT_SCHEMA =
+  "chainlesschain.wiki-informed-skill-candidate-content/v1";
 export const WIKI_PROPOSAL_STATUS = Object.freeze({
   PROPOSAL: "proposal",
   NO_PROPOSAL: "no-proposal",
@@ -40,6 +42,16 @@ function hash(value) {
 
 export function computeWikiSkillProposalDigest(proposal) {
   return hash(proposal);
+}
+
+function candidateContent(proposal) {
+  // Evidence digests belong to the candidate's ID-bound metadata, not its
+  // plaintext body. Keep the full proposal (and its independent digest) intact.
+  // This is a representation change, not a schema-based secret-scan exemption:
+  // PURPOSE references, machineDiff and all other body fields remain scanned.
+  const body = { ...proposal, schema: WIKI_SKILL_CANDIDATE_CONTENT_SCHEMA };
+  delete body.sourceEvidenceRefs;
+  return canonical(body);
 }
 
 function deepFreeze(value) {
@@ -408,7 +420,7 @@ export class WikiInformedSkillProposer {
       proposerModel: proposal.proposerModel,
       requestedCapabilities: proposal.requestedCapabilities,
       sourceEvidenceRefs: proposal.sourceEvidenceRefs,
-      content: canonical(proposal),
+      content: candidateContent(proposal),
     });
     const created = await this._ports.createCandidate(candidateInput);
     const candidate = created?.candidate;

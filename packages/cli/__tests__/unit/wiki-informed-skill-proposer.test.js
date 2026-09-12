@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   WIKI_PROPOSAL_STATUS,
+  WIKI_SKILL_CANDIDATE_CONTENT_SCHEMA,
   WikiInformedSkillProposer,
+  computeWikiSkillProposalDigest,
 } from "../../src/lib/evolution/wiki-informed-skill-proposer.js";
 
 function canonical(value) {
@@ -182,6 +184,20 @@ describe("WikiInformedSkillProposer", () => {
         version: "2026-09-05",
       },
     });
+    const candidateInput = p.createCandidate.mock.calls[0][0];
+    const expectedBody = {
+      ...result.proposal,
+      schema: WIKI_SKILL_CANDIDATE_CONTENT_SCHEMA,
+    };
+    delete expectedBody.sourceEvidenceRefs;
+    expect(candidateInput.content).toBe(canonical(expectedBody));
+    expect(candidateInput.sourceEvidenceRefs).toEqual(
+      result.proposal.sourceEvidenceRefs,
+    );
+    expect(result.proposal.sourceEvidenceRefs).toHaveLength(4);
+    expect(result.proposalDigest).toBe(
+      computeWikiSkillProposalDigest(result.proposal),
+    );
   });
 
   it("abstains before generation when evidence is contradictory", async () => {
@@ -357,4 +373,30 @@ describe("WikiInformedSkillProposer", () => {
       }).propose(),
     ).rejects.toMatchObject({ code: "WIKI_PROPOSAL_CANDIDATE_UNCONFIRMED" });
   });
+
+  it.each(["missing", "substituted"])(
+    "rejects %s evidence metadata even when the sink returns the exact body",
+    async (mode) => {
+      const p = ports();
+      const original = p.createCandidate;
+      p.createCandidate = vi.fn(async (input) => {
+        const result = await original(input);
+        result.candidate.sourceEvidenceRefs =
+          mode === "missing"
+            ? []
+            : input.sourceEvidenceRefs.map((entry) => ({
+                ...entry,
+                digest: `sha256:${"a".repeat(64)}`,
+              }));
+        return result;
+      });
+      await expect(
+        new WikiInformedSkillProposer({
+          descriptor: descriptor(),
+          policy,
+          ports: p,
+        }).propose(),
+      ).rejects.toMatchObject({ code: "WIKI_PROPOSAL_CANDIDATE_UNCONFIRMED" });
+    },
+  );
 });
