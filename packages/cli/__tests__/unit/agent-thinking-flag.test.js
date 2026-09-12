@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * `--thinking-budget <n>` resolution.
  *

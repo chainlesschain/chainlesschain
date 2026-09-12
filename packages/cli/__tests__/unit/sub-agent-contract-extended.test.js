@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Extended sub-agent contract (gap-analysis 2026-07-11 P1 "完整 Subagent 契约"):
  * disallowedTools / maxTurns / isolation reach the spawned child — via spawn

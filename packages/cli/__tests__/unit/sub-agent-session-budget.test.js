@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/lib/agent-core.js", () => ({

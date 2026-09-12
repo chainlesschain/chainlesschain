@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Guards the seam that spawn_sub_agent's model-override relies on: a delegated
  * subagent (cc agents `model:` frontmatter) reaches the LLM by passing

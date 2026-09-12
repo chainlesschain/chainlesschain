@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   executeTool as executeToolWithoutGate,

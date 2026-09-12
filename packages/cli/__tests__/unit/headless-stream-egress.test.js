@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode PDH egress reporting (design module 101 §3.5.18 — 出境台账).
  *

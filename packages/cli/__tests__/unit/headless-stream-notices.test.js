@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-driver notices the IDE chat panel renders:
  *  - Layer 2: a cross-vendor provider fallback is surfaced as a visible `raw`

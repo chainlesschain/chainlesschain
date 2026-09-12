@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

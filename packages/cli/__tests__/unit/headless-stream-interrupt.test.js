@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode turn interrupt (chat-panel Stop / Claude-Code Esc parity) —
  * stdin is pumped CONCURRENTLY with turn execution, so

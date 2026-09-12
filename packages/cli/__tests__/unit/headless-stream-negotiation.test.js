@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Capability handshake wiring in the stream-json headless runner
  * (agent-sdk docs/PROTOCOL.md §1.3):

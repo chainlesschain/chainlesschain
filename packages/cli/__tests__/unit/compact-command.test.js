@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Unit tests for `cc compact <session-id>` (src/commands/compact.js).
  *

@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Unit tests for the REPL's agentLoop() wrapper — its translation of
  * agent-core events into REPL state. Uses the `_coreLoop` injection seam so no

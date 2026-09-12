@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * §3.5.10 接线6 — per-turn LLM override (PDH privacy-tier switch, design module
  * 101). The personal-data chat may attach

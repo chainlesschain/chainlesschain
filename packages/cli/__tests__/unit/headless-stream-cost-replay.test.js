@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * --replay-user-messages (echo stdin user events) and --max-budget-usd
  * (session-wide spend cap) in the streaming-input headless runner.

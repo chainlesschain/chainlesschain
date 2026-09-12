@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Integration tests: Orchestrator full pipeline
  *

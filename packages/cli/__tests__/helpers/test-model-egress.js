@@ -11,6 +11,28 @@ export * from "../../src/runtime/headless-runner.js";
 export * from "../../src/lib/cowork-adapter.js";
 
 const ingressKey = Symbol.for("chainlesschain.test.agent-evolution-ingress");
+const enableKey = Symbol.for("chainlesschain.test.model-egress-enabled");
+const compositionFactoryKey = Symbol.for(
+  "chainlesschain.test.evolution-composition-factory",
+);
+
+/** Opt this test module into the setup's test-only model-egress adapters. */
+export function enableTestModelEgress() {
+  globalThis[enableKey] = true;
+}
+
+export function createTestEvolutionCompositionFactory() {
+  const factory = globalThis[compositionFactoryKey];
+  if (typeof factory !== "function") {
+    throw new Error("Agent evolution test boundary setup was not loaded");
+  }
+  return factory;
+}
+
+// Importing this helper is the test file's explicit opt-in. The test boundary
+// resets the flag after each file, so this cannot leak into a neighbouring
+// fail-closed contract suite.
+enableTestModelEgress();
 
 function withTestEvolutionIngress(options = {}) {
   if (Object.hasOwn(options, "evolutionIngress")) return options;

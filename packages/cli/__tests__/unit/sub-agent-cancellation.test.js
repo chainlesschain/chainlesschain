@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Sub-agent completion-path correctness: when the run loop force-completes
  * (abort signal / token budget exceeded), the post-loop summary path must NOT

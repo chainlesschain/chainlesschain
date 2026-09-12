@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Interactive approvals (--interactive-approvals; chat-panel Approve/Deny) —
  * confirm-tier decisions become an approval_request / {"type":"approval"}

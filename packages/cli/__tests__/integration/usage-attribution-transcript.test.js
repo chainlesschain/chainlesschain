@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Integration: 用量归因 end-to-end through the REAL JSONL store on a temp
  * home dir.

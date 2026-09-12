@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock chat-core

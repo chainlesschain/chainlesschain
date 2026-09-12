@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode session persistence + resume (chat-panel "session resume").
  * An explicit session id opts into JSONL persistence: prior history is

@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Integration tests: Proxy / relay site (中转站) base-url override
  *

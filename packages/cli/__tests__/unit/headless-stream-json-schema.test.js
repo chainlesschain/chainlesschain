@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * `--input-format stream-json` × `--json-schema` (P2 §"JSON Schema 与流式结构化
  * 结果"): the stream-INPUT runner now reaches parity with single-prompt

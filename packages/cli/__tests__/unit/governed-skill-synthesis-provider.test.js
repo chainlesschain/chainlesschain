@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { createHash, createHmac } from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";

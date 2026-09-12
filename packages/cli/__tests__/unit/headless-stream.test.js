@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Unit tests for the streaming-input headless runner (--input-format stream-json).
  * The agent loop, bootstrap, approval gate, and stdin are all injected, so the

@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode vision input (chat-panel image paste parity with `--image`):
  * {"type":"user","text":…,"images":["/abs/img.png"]} — paths resolve through

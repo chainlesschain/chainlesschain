@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode custom slash-command frontmatter scoping (parity with `cc command
  * run` / headless -p). When a `/name` from .claude/commands matches in the

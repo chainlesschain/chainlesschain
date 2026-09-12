@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * cc review --multi — fan out one finder agent per dimension, then dedupe/rank
  * their JSON findings into a structured report. Drives runMultiFinderReview with

@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode plan controls (chat-panel plan UI) — stdin
  * {"type":"plan","action":…} mirrors the REPL's /plan verbs:

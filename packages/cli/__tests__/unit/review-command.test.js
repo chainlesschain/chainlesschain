@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Unit tests for `cc review` (src/commands/review.js).
  *

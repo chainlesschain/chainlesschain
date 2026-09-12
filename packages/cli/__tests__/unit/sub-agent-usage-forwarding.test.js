@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * REAL SubAgentContext usage-boundary coverage. The child loop is driven with
  * an injected chatFn, so these tests exercise the generator's actual ordering

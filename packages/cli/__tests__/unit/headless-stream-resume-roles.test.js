@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode resume role sanitation (Claude Code 2.1.187 parity).
  *

@@ -1,4 +1,6 @@
+import "../helpers/test-model-egress.js";
 import { describe, expect, it, vi } from "vitest";
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
 import { Command } from "commander";
 import { registerChatCommand } from "../../src/commands/chat.js";
 import {
@@ -84,11 +86,18 @@ describe("interactive chat session usage admission", () => {
     const program = new Command();
     registerChatCommand(program, {
       createAgentRuntimeFactory: createRuntimeFactory,
+      evolutionCompositionFactory: createTestEvolutionCompositionFactory(),
     });
 
     await program.parseAsync(["node", "cc", "chat", "--model", "local"]);
 
-    expect(createRuntimeFactory).toHaveBeenCalledWith();
+    expect(createRuntimeFactory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evolutionComposition: expect.objectContaining({
+          tenantId: "tenant-test-agent-egress",
+        }),
+      }),
+    );
     expect(createChatRuntime).toHaveBeenCalledWith(
       expect.objectContaining({ model: "local" }),
     );

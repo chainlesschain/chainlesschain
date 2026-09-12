@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Stream-mode PDH chat controls (Personal-Data IDE / PDH Bridge, design module
  * 101) — the cc-side consumption of the two events the Android chat emits:

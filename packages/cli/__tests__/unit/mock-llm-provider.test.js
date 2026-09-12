@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Unit tests for the Phase 7 parity-harness mock LLM provider.
  * Covers the provider in isolation (no agent-core involvement).

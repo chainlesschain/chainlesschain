@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 import { describe, expect, it, vi } from "vitest";
 import {
   parseInputEvent,

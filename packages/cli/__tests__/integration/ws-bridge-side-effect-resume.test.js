@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Integration (P0-2, IDE/Bridge path): WSAgentHandler records an irreversible
  * tool as in-flight; on a bridge resume (handleSessionResume) the interrupted

@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Interactive questions (CC_INTERACTIVE_QUESTIONS / interactiveQuestions; chat-
  * panel ask_user_question round-trip). When opted in, the model's

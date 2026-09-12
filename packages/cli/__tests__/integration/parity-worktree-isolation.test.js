@@ -1,3 +1,4 @@
+import "../helpers/test-model-egress.js";
 /**
  * Parity Harness — Sub-agent + worktree isolation boundary
  *
