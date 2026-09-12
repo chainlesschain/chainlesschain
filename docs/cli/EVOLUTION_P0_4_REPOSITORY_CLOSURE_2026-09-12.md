@@ -29,7 +29,20 @@
 - 删除/撤销复验：Raw crypto-shred 与 Skill revocation 两个跨进程文件 **2/2** 通过（87.53 秒）；四个故障恢复窗口分别为 release pointer **15,542ms**、Wiki commit **3,874ms**、dependencies **13,976ms**、checkpoint **10,162ms**，均小于 60 秒。这不是整个 suite 必须小于 60 秒，也不替代 candidate 专项或目标部署演练。
 - Candidate admission/quarantine 跨进程组合首轮 **8 通过、1 失败**；失败为 `after-dependency-prepare (wiki)` 子进程 `ETIMEDOUT`，该次运行记录有约三小时墙钟跳变。保留原超时设置定向重跑该例 **1/1** 通过（65.76 秒）；按用例去重为 **9 项分批通过**，不是同一次组合全绿，也不能用整例耗时推定撤销传播窗口。
 
-截至本次复核，`EvolutionEvidenceReader.readTrusted()` 已有当前权限/撤销/保留期与 quarantine 校验，但尚无生产调用方；Run→Wiki source 只输出 evidence IDs，release-train fixture 手工构造 Wiki evidence。完整 1,000 旅程因此还依赖正式的认证 manifest 重读→trusted reader→typed Wiki evidence 桥接，不能用 test-only `trustedProjection: true` 补齐。此桥接正在实施，尚不计为完成。
+## Run→Wiki 正式接线基础批次（仍非闭环）
+
+正式 `wikiMaintenance` opt-in composition 已连接真实 Run membership→认证 manifest 重读→`EvolutionEvidenceReader.readTrusted()`→typed Wiki evidence→持久化 Wiki revision。默认仍为 `null`；宿主必须提供当前 evidence state、principal、access policy 和固定 schema allowlist，不接受调用方手工 `trustedProjection: true` 或替换 resolver。宿主获得维护/读 Wiki 的窄接口，不获得 Raw 或 active 写权限。
+
+- Resolver、composition、旧 Run adapter 三文件冻结后 **35/35** 通过（306.87 秒）：包含 17 项桥接、8 项正式接线、10 项兼容回归。另有旧 composition **4/4** 定向通过，其余 222 项未执行。原生 Node import、格式与差异检查通过。
+- 修复 Run checkpoint 将 `verify().verifiedAt` 观察时间误当账本变化的问题；仅时间前进可以继续，真实 head/witness/身份变化仍拒绝。来源摘要采用稳定 source commitment，不能用新 Raw nonce 制造独立来源。
+- 已真实复现并修复：推导期间单条证据撤销仍可落 Wiki，以及相同内容换 principal 被误算独立佐证。Maintainer 提交前重读证据；corroboration 按内容摘要与 trust domain 的最大匹配计数，不是分别计两个集合大小。单个真实 grader receipt 的既有语义不变。
+- 推导输出另有秘密明文缺口：7 项先行反例均曾错误写入。现完整 outgoing Wiki state 复用 Raw/Skill plaintext guard，覆盖 pattern、index、理由、log 与 metadata 值；只在对应元数据字段豁免精确协议 digest/revision ID，不豁免相同形式的正文。最新 Maintainer 单元 **30/30** 与真实存储 **6/6** 分批通过；后者含提交期间 revoke/delete/TTL/ACL、重复签名、derive 新增 secret 时零 artifact/ledger 写入。
+- 相关 projector/Wiki adapter/Proposer 三文件 **113/113** 通过；加入明文 guard 后 Maintainer/Wiki adapter/Proposer **47/47** 阶段性通过。上述有重叠，不相加为独立用例总数。
+- 最新删除/撤销两个跨进程文件 **2/2** 通过（103.95 秒），四个恢复窗口为 **20,782 / 7,584 / 12,468 / 12,594ms**，仍保持 60 秒上限。
+
+**尚有已复现的整组授权缺口**：复读 A 成功后、等待复读 B 时撤销 A，仍可提交旧 A。Reader 的短期 read decision 不是不可撤销的 commit lease；现有同账本 Knowledge admission fence 也不覆盖外部 evidenceState/ACL。串行重读不能声称原子提交授权。下一批需宿主整组当前授权 lease/fence 覆盖实际发布窗口，再跑全部正式接线回归。
+
+完整 1,000 旅程测试正在实现，使用真实签名 Raw/Run/Reader/Wiki/Candidate、既存 active 文件及真实 Review/Controller/Registry 拒绝边界。50 样本长账本 pilot 已实测超线性成本，改为 **100×10，总量不变**；试跑与未完成长测均不计作 1,000 验收通过。既存 active 的测试 bootstrap 不代表真实外部人工批准或候选效果 Eval。
 
 ## 远端身份快照
 

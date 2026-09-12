@@ -108,7 +108,7 @@ function ports({ state, evidenceByRef, operations = [], overrides = {} } = {}) {
 async function maintain(options = {}) {
   const p = options.ports ?? ports(options);
   const maintainer = new EvidenceBackedWikiMaintainer({
-    descriptor: descriptor(),
+    descriptor: descriptor(options.descriptor),
     policy,
     ports: p,
   });
@@ -121,6 +121,180 @@ async function maintain(options = {}) {
 }
 
 describe("EvidenceBackedWikiMaintainer", () => {
+  it("does not mistake typed digest bytes for PII or exempt identical prose", async () => {
+    const value = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const { result } = await maintain({
+      evidenceByRef: { "ev-1": evidence("ev-1", { sourceDigest: value }) },
+    });
+    expect(result.state.evidence["ev-1"].sourceDigest).toBe(value);
+    const p = ports({
+      operations: [{ type: "upsert", pattern: pattern({ summary: value }) }],
+    });
+    await expect(maintain({ ports: p })).rejects.toMatchObject({
+      code: "WIKI_MAINTAINER_SECRET_LEAK",
+    });
+    expect(p.commitRevision).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "summary",
+    "rootCause",
+    "procedure",
+    "appliesWhen",
+    "doesNotApplyWhen",
+    "skillNames",
+  ])(
+    "rejects secret plaintext introduced by derived pattern %s",
+    async (field) => {
+      const canary = "sk-wiki-canary-abcdefghijklmnopqrstuvwxyz0123456789";
+      const value = ["appliesWhen", "doesNotApplyWhen", "skillNames"].includes(
+        field,
+      )
+        ? [canary]
+        : canary;
+      const p = ports({
+        operations: [{ type: "upsert", pattern: pattern({ [field]: value }) }],
+      });
+      await expect(maintain({ ports: p })).rejects.toMatchObject({
+        code: "WIKI_MAINTAINER_SECRET_LEAK",
+      });
+      expect(p.commitRevision).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects secret plaintext in disposition reasons and trusted metadata values", async () => {
+    const canary = "Bearer wiki-canary-abcdefghijklmnopqrstuvwxyz0123456789";
+    for (const p of [
+      ports({
+        operations: [
+          { type: "upsert", pattern: pattern() },
+          {
+            type: "quarantine",
+            patternId: "pat-safe-refactor",
+            reason: canary,
+          },
+        ],
+      }),
+      ports({
+        evidenceByRef: {
+          "ev-1": evidence("ev-1", { data: { observation: canary } }),
+        },
+      }),
+    ]) {
+      await expect(maintain({ ports: p })).rejects.toMatchObject({
+        code: "WIKI_MAINTAINER_SECRET_LEAK",
+      });
+      expect(p.commitRevision).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each([
+    {
+      label: "repeated content signed by different domains",
+      pairs: [
+        ["a", "same"],
+        ["b", "same"],
+      ],
+      minimum: 2,
+      status: "hypothesis",
+    },
+    {
+      label: "distinct content from one domain",
+      pairs: [
+        ["a", "one"],
+        ["a", "two"],
+      ],
+      minimum: 2,
+      status: "hypothesis",
+    },
+    {
+      label: "three domains and three contents with only two independent pairs",
+      pairs: [
+        ["a", "one"],
+        ["a", "two"],
+        ["a", "three"],
+        ["b", "one"],
+        ["c", "one"],
+      ],
+      minimum: 3,
+      status: "hypothesis",
+    },
+    {
+      label: "three independent pairs that require rematching",
+      pairs: [
+        ["a", "one"],
+        ["a", "two"],
+        ["b", "one"],
+        ["c", "three"],
+      ],
+      minimum: 3,
+      status: "corroborated",
+    },
+  ])("counts $label correctly", async ({ pairs, minimum, status }) => {
+    const evidenceByRef = Object.fromEntries(
+      pairs.map(([domain, content], index) => {
+        const ref = `ev-${index + 1}`;
+        return [
+          ref,
+          evidence(ref, { trustDomain: domain, sourceDigest: hash(content) }),
+        ];
+      }),
+    );
+    const refs = Object.keys(evidenceByRef);
+    const { result } = await maintain({
+      descriptor: { minCorroboratingSources: minimum },
+      evidenceRefs: refs,
+      evidenceByRef,
+      operations: [
+        { type: "upsert", pattern: pattern({ positiveEvidence: refs }) },
+      ],
+    });
+    expect(result.state.patterns["pat-safe-refactor"].status).toBe(status);
+    expect(result.state.patterns["pat-safe-refactor"].actionable).toBe(
+      status === "corroborated",
+    );
+  });
+
+  it("rejects evidence changed while derive was awaiting before committing", async () => {
+    let derived = false;
+    const p = ports({
+      overrides: {
+        resolveEvidence: vi.fn(async (ref) =>
+          evidence(ref, { status: derived ? "revoked" : "active" }),
+        ),
+        derive: vi.fn(async () => {
+          derived = true;
+          return { operations: [] };
+        }),
+      },
+    });
+    await expect(maintain({ ports: p })).rejects.toMatchObject({
+      code: "WIKI_MAINTAINER_EVIDENCE_CHANGED",
+    });
+    expect(p.derive).toHaveBeenCalledTimes(1);
+    expect(p.commitRevision).not.toHaveBeenCalled();
+  });
+
+  it("propagates current read denial after derive without committing", async () => {
+    let derived = false;
+    const denial = new Error("current evidence access revoked");
+    const p = ports({
+      overrides: {
+        resolveEvidence: vi.fn(async (ref) => {
+          if (derived) throw denial;
+          return evidence(ref);
+        }),
+        derive: vi.fn(async () => {
+          derived = true;
+          return { operations: [] };
+        }),
+      },
+    });
+    await expect(maintain({ ports: p })).rejects.toBe(denial);
+    expect(p.derive).toHaveBeenCalledTimes(1);
+    expect(p.commitRevision).not.toHaveBeenCalled();
+  });
+
   it("commits a durable maintenance request exactly once across retries", async () => {
     let state = createEmptyWikiState("tenant-a");
     const requestDigest = hash("session-end-trigger");

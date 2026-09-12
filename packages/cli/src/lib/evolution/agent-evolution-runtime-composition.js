@@ -11,6 +11,7 @@ import {
 import {
   EvolutionEvidenceBundleVerifier,
   EvolutionEvidenceProjector,
+  EvolutionEvidenceReader,
 } from "./evolution-evidence-projector.js";
 import { EvolutionArtifactPorts } from "./evolution-artifact-ports.js";
 import {
@@ -18,6 +19,9 @@ import {
   createEvolutionLedgerFileBackend,
 } from "./evolution-ledger-file-backend.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
+import { createEvolutionRunWikiEvidenceResolver } from "./evolution-run-wiki-evidence-resolver.js";
+import { WikiMaintainerLedgerAdapter } from "./wiki-maintainer-ledger-adapter.js";
+import { EvidenceBackedWikiMaintainer } from "./evidence-backed-wiki-maintainer.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "./evolution-release-train-ledger-adapter.js";
 import { WikiSkillProposalLedgerAdapter } from "./wiki-skill-proposal-ledger-adapter.js";
@@ -62,6 +66,34 @@ const SKILL_OUTCOME_CATALOG_ENTRY_KEYS = new Set(["runId", "skillNames"]);
 const MAX_SKILL_OUTCOME_SOURCES = 128;
 const RELEASE_TRAIN_STAGE_KEYS = new Set(["plan", "stages"]);
 const RELEASE_TRAIN_DOMAIN_KEYS = new Set(["plan", "domain"]);
+const WIKI_MAINTENANCE_KEYS = new Set([
+  "principalEnvelope",
+  "schemaPolicies",
+  "readAuthorities",
+  "maintainer",
+]);
+const WIKI_READ_AUTHORITY_KEYS = new Set([
+  "evidenceState",
+  "principalResolver",
+  "accessPolicy",
+]);
+const WIKI_MAINTAINER_KEYS = new Set([
+  "maintainerModel",
+  "rulesDigest",
+  "minCorroboratingSources",
+  "derive",
+]);
+const WIKI_STAGE_KEYS = new Set(["request", "usage"]);
+const DOMAIN_STAGE_KEYS = new Set([
+  "wiki-maintain",
+  "propose",
+  "candidate",
+  "eval",
+  "review",
+  "pilot",
+  "promotion",
+  "wiki-impact",
+]);
 
 function exactRecord(value, keys, label) {
   if (
@@ -191,6 +223,7 @@ export function createAgentEvolutionRuntimeComposition({
   evidenceIdGenerator,
   ingressIdGenerator,
   wikiMaintenanceProducer = null,
+  wikiMaintenance: wikiMaintenanceInput = null,
   releaseTrain: releaseTrainInput = null,
   completionTriggerKind,
   secure = true,
@@ -218,6 +251,60 @@ export function createAgentEvolutionRuntimeComposition({
     "authorities.artifact",
   );
   const clock = normalizeClock(clockInput);
+  let wikiConfiguration = null;
+  if (wikiMaintenanceInput !== null) {
+    const input = exactRecord(
+      wikiMaintenanceInput,
+      WIKI_MAINTENANCE_KEYS,
+      "wikiMaintenance",
+    );
+    const readers = exactRecord(
+      input.readAuthorities,
+      WIKI_READ_AUTHORITY_KEYS,
+      "wikiMaintenance.readAuthorities",
+    );
+    const maintainer = exactRecord(
+      input.maintainer,
+      WIKI_MAINTAINER_KEYS,
+      "wikiMaintenance.maintainer",
+    );
+    if (
+      !Number.isSafeInteger(maintainer.minCorroboratingSources) ||
+      maintainer.minCorroboratingSources < 2 ||
+      maintainer.minCorroboratingSources > 128
+    ) {
+      throw new TypeError(
+        "Wiki corroboration threshold must be between 2 and 128",
+      );
+    }
+    wikiConfiguration = Object.freeze({
+      principalEnvelope: input.principalEnvelope,
+      schemaPolicies: input.schemaPolicies,
+      descriptor: Object.freeze({
+        tenantId,
+        evolutionRunId: runId,
+        maintainerModel: maintainer.maintainerModel,
+        rulesDigest: maintainer.rulesDigest,
+        minCorroboratingSources: maintainer.minCorroboratingSources,
+      }),
+      derive: capture(maintainer, "derive", "Wiki maintainer"),
+      evidenceState: captureAuthority(
+        readers.evidenceState,
+        "resolve",
+        "Wiki evidence state",
+      ),
+      principalResolver: captureAuthority(
+        readers.principalResolver,
+        "resolve",
+        "Wiki principal resolver",
+      ),
+      accessPolicy: captureAuthority(
+        readers.accessPolicy,
+        "authorize",
+        "Wiki access policy",
+      ),
+    });
+  }
   if (
     typeof evidenceIdGenerator !== "function" ||
     utilTypes.isProxy(evidenceIdGenerator)
@@ -384,6 +471,57 @@ export function createAgentEvolutionRuntimeComposition({
     ledgerArtifactResolver,
     now: clock,
   });
+  let wikiMaintenance = null;
+  let wikiMaintainer = null;
+  if (wikiConfiguration !== null) {
+    const evidenceReader = new EvolutionEvidenceReader({
+      attestationVerifier: ports.attestationVerifier,
+      evidenceState: wikiConfiguration.evidenceState,
+      principalResolver: wikiConfiguration.principalResolver,
+      accessPolicy: wikiConfiguration.accessPolicy,
+      now: () => new Date(clock()),
+    });
+    const wikiEvidence = createEvolutionRunWikiEvidenceResolver({
+      runAdapter,
+      evidenceAdapter,
+      evidenceReader,
+      principalEnvelope: wikiConfiguration.principalEnvelope,
+      schemaPolicies: wikiConfiguration.schemaPolicies,
+    });
+    const wikiAdapter = new WikiMaintainerLedgerAdapter({
+      descriptor: {
+        tenantId,
+        artifactTenantId: tenantId,
+        evolutionRunId: runId,
+        audience,
+        purpose: "evolution-ledger",
+      },
+      artifactPorts,
+      ledger: backend.ledger,
+      ledgerArtifactResolver,
+    });
+    wikiMaintainer = new EvidenceBackedWikiMaintainer({
+      descriptor: wikiConfiguration.descriptor,
+      policy: {
+        trustedProjectionRead: true,
+        rawEvidenceRead: false,
+        activeSkillWrite: false,
+        shell: false,
+        network: false,
+        secretRead: false,
+      },
+      ports: wikiAdapter.maintainerPorts({
+        resolveEvidence: wikiEvidence.resolveEvidence,
+        derive: wikiConfiguration.derive,
+      }),
+    });
+    // The host receives only scoped maintenance and authenticated Wiki reads,
+    // never a Raw store, caller-supplied bundle, or write/approval capability.
+    wikiMaintenance = Object.freeze({
+      maintain: Object.freeze(wikiMaintainer.maintain.bind(wikiMaintainer)),
+      loadWiki: Object.freeze(() => wikiAdapter.loadWiki()),
+    });
+  }
   const skillOutcomeReaders = new Map();
   const createSkillOutcomeReader = Object.freeze((skillNameInput) => {
     const skillName = identifier(skillNameInput, "skillName");
@@ -415,6 +553,14 @@ export function createAgentEvolutionRuntimeComposition({
       releaseTrainKeys,
       "releaseTrain",
     );
+    if (
+      wikiMaintainer !== null &&
+      !Object.hasOwn(releaseTrainConfig, "domain")
+    ) {
+      throw new TypeError(
+        "authorized Wiki maintenance requires production release train domain stages",
+      );
+    }
     if (
       releaseTrainConfig.plan?.tenantId !== tenantId ||
       typeof releaseTrainConfig.plan?.skillId !== "string"
@@ -463,8 +609,21 @@ export function createAgentEvolutionRuntimeComposition({
         ledger: backend.ledger,
         ledgerArtifactResolver,
       });
+      let domain = releaseTrainConfig.domain;
+      if (wikiMaintainer !== null) {
+        exactRecord(domain, DOMAIN_STAGE_KEYS, "releaseTrain.domain");
+        const wikiStage = exactRecord(
+          domain["wiki-maintain"],
+          WIKI_STAGE_KEYS,
+          "authorized wiki-maintain stage",
+        );
+        domain = {
+          ...domain,
+          "wiki-maintain": { ...wikiStage, maintainer: wikiMaintainer },
+        };
+      }
       stages = createEvolutionReleaseTrainDomainStages({
-        domain: releaseTrainConfig.domain,
+        domain,
         proposalLedger,
         outputLedger,
       });
@@ -553,6 +712,7 @@ export function createAgentEvolutionRuntimeComposition({
     runId,
     evolutionIngress,
     createSkillOutcomeReader,
+    wikiMaintenance,
     loadRun: Object.freeze(() => runAdapter.load()),
     ledgerDescriptor: backend.descriptor,
     storage,

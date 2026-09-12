@@ -19,6 +19,7 @@ export const EVOLUTION_RUN_LEDGER_CORRUPT_CODE =
 
 const ARTIFACT_TYPE = "evolution-run-event";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const EVIDENCE_READERS = new WeakMap();
 const EVENT_KEYS = new Set([
   "schema",
   "tenantId",
@@ -69,6 +70,14 @@ function canonical(value) {
 
 function clone(value) {
   return JSON.parse(canonical(value));
+}
+
+function freeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.values(value).forEach(freeze);
+    Object.freeze(value);
+  }
+  return value;
 }
 
 function same(left, right) {
@@ -169,6 +178,82 @@ export class EvolutionRunLedgerAdapter {
       throw new TypeError("now must be a function");
     this._resolve = ledgerArtifactResolver;
     this._now = now;
+    const load = this.load.bind(this);
+    const verify = this._verify;
+    const checkpoints = new WeakSet();
+    const frontier = () => {
+      // verifiedAt describes this observation, not a ledger mutation.
+      const { verifiedAt: _observedAt, ...identity } = clone(verify());
+      return identity;
+    };
+    const snapshot = () => {
+      const before = frontier();
+      const loaded = load();
+      const after = frontier();
+      if (!same(before, after)) {
+        fail(
+          EVOLUTION_RUN_LEDGER_CONFLICT_CODE,
+          "Run changed during evidence lookup",
+        );
+      }
+      if (loaded.projection?.status !== "completed") {
+        fail(
+          EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
+          "Wiki evidence requires a completed Run",
+        );
+      }
+      return { loaded, ledgerHead: after };
+    };
+    // Preserve the legacy subclass API, but only the exact implementation may
+    // mint the new evidence membership capability. A subclass can override
+    // load/_entries and must never turn those overrides into signed membership.
+    if (Object.getPrototypeOf(this) === EvolutionRunLedgerAdapter.prototype)
+      EVIDENCE_READERS.set(
+        this,
+        Object.freeze({
+          descriptor: this.descriptor,
+          readEvidence(evidenceId) {
+            requiredString(evidenceId, "evidenceId");
+            const { loaded, ledgerHead } = snapshot();
+            const matches = loaded.events.filter(
+              (event) =>
+                event.type === EVENT_TYPES.RAW_EVENT_REFERENCED &&
+                event.subjectId === evidenceId,
+            );
+            if (matches.length !== 1) {
+              fail(
+                EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
+                "Run evidence is missing or ambiguous",
+              );
+            }
+            const checkpoint = freeze({
+              event: clone(matches[0]),
+              ledgerHead,
+              projectionDigest: loaded.projection.projectionDigest,
+            });
+            checkpoints.add(checkpoint);
+            return checkpoint;
+          },
+          assertCurrent(expected) {
+            if (!checkpoints.has(expected)) {
+              fail(
+                EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
+                "Run evidence checkpoint is not authentic",
+              );
+            }
+            const { loaded, ledgerHead } = snapshot();
+            if (
+              !same(ledgerHead, expected.ledgerHead) ||
+              loaded.projection.projectionDigest !== expected.projectionDigest
+            ) {
+              fail(
+                EVOLUTION_RUN_LEDGER_CONFLICT_CODE,
+                "Run evidence frontier changed before release",
+              );
+            }
+          },
+        }),
+      );
     Object.freeze(this);
   }
 
@@ -406,4 +491,12 @@ export class EvolutionRunLedgerAdapter {
       projection: after.projection,
     });
   }
+}
+
+/** Read-only capability registered only by the real Run adapter constructor. */
+export function captureEvolutionRunEvidenceReader(adapter) {
+  const reader = EVIDENCE_READERS.get(adapter);
+  if (!reader)
+    throw new TypeError("a real EvolutionRunLedgerAdapter is required");
+  return reader;
 }

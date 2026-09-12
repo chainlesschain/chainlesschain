@@ -12,9 +12,11 @@ import { types as utilTypes } from "node:util";
 import { ArtifactStore } from "../artifact-store.js";
 import {
   EvolutionArtifactPorts,
+  EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   EVOLUTION_ARTIFACT_DEFAULT_TTL_MS,
   EVOLUTION_ARTIFACT_MAX_TTL_MS,
 } from "./evolution-artifact-ports.js";
+import { EVOLUTION_ARTIFACT_REF_SCHEMA } from "./evolution-ledger.js";
 import {
   EVOLUTION_RAW_STORAGE_RECEIPT_SCHEMA,
   EvolutionEvidenceBundleVerifier,
@@ -340,6 +342,7 @@ export class EvolutionEvidenceArtifactAdapter {
   #projectAgentModel;
   #verify;
   #ports;
+  #resolveManifestRef;
 
   constructor({
     tenantId,
@@ -384,6 +387,10 @@ export class EvolutionEvidenceArtifactAdapter {
     );
     this.#verify = captureMethod(bundleVerifier, "verify", "bundleVerifier");
     this.#ports = artifactPorts;
+    this.#resolveManifestRef =
+      artifactPorts.createEvolutionLedgerArtifactResolver({
+        purpose: this.#purpose,
+      });
     Object.freeze(this);
   }
 
@@ -468,11 +475,60 @@ export class EvolutionEvidenceArtifactAdapter {
       purpose: this.#purpose,
       tenantId: this.#tenantId,
     });
-    const manifest = manifestResolved.value;
+    return this.#resolveManifest(manifestResolved.value, result.evidenceId);
+  }
+
+  /**
+   * Authenticate retained bytes at a Run's manifest locator. This is NOT Run
+   * membership or caller read authorization: the Wiki resolver obtains the
+   * event from its captured Run capability and separately calls readTrusted.
+   */
+  async resolveRunEvidence({ event, ledgerId, epoch } = {}) {
+    if (
+      event?.type !== "raw-event-referenced" ||
+      event.tenantId !== this.#tenantId ||
+      event.data?.derivationManifestDigest !== event.payloadDigest
+    ) {
+      throw new TypeError("Run evidence manifest binding is invalid");
+    }
+    const evidenceId = normalizeId(event.subjectId, "Run evidenceId");
+    const resolved = this.#resolveManifestRef({
+      tenantId: this.#tenantId,
+      ledgerId,
+      epoch,
+      ref: {
+        schema: EVOLUTION_ARTIFACT_REF_SCHEMA,
+        ref: event.artifactRef,
+        digest: event.payloadDigest,
+      },
+    });
+    if (
+      resolved.authenticated !== true ||
+      resolved.found !== true ||
+      resolved.digest !== event.payloadDigest ||
+      resolved.ref !== event.artifactRef ||
+      !Buffer.isBuffer(resolved.bytes)
+    ) {
+      throw new Error("Run evidence manifest resolution is unbound");
+    }
+    const record = JSON.parse(resolved.bytes.toString("utf8"));
+    if (
+      record.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+      record.tenantId !== this.#tenantId ||
+      record.audience !== this.#audience ||
+      record.purpose !== this.#purpose ||
+      record.type !== "evidence"
+    ) {
+      throw new Error("Run evidence manifest record is unbound");
+    }
+    return this.#resolveManifest(record.value, evidenceId);
+  }
+
+  async #resolveManifest(manifest, evidenceId) {
     if (
       manifest.schema !== EVOLUTION_EVIDENCE_DERIVATION_MANIFEST_SCHEMA ||
       manifest.tenantId !== this.#tenantId ||
-      manifest.evidenceId !== result.evidenceId
+      manifest.evidenceId !== evidenceId
     ) {
       throw new Error("evidence derivation manifest is invalid");
     }

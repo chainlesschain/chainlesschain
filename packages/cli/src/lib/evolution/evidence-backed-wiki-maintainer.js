@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { assertEvolutionContentContainsNoKnownSecrets } from "./evolution-evidence-projector.js";
 
 export const WIKI_STATE_SCHEMA = "chainlesschain.evolution-wiki-state/v1";
 export const WIKI_EVIDENCE_SCHEMA = "chainlesschain.evolution-wiki-evidence/v1";
@@ -123,6 +124,41 @@ function assertMetadataOnly(value, path = "data") {
       throw error;
     }
     assertMetadataOnly(child, `${path}.${key}`);
+  }
+}
+
+function assertWikiPlaintextSafe(value) {
+  const inspect = (item) => {
+    if (typeof item === "string") {
+      assertEvolutionContentContainsNoKnownSecrets(item);
+    } else if (Array.isArray(item)) {
+      item.forEach(inspect);
+    } else if (item && typeof item === "object") {
+      for (const [key, child] of Object.entries(item)) {
+        assertEvolutionContentContainsNoKnownSecrets(key);
+        // Typed protocol digests/derived revision IDs are not natural-language
+        // text. Their random hex can contain phone-like digit runs. Only exempt
+        // the exact namespace in its metadata field, never arbitrary prose.
+        if (
+          (key.endsWith("Digest") && DIGEST.test(child ?? "")) ||
+          (key === "revisionId" && REVISION_ID.test(child ?? "")) ||
+          (key === "requestId" && MAINTENANCE_REQUEST_ID.test(child ?? ""))
+        )
+          continue;
+        if (["string", "number"].includes(typeof child))
+          assertEvolutionContentContainsNoKnownSecrets(`${key}=${child}`);
+        inspect(child);
+      }
+    }
+  };
+  try {
+    inspect(value);
+  } catch (cause) {
+    const error = new Error("Wiki revision contains secret or PII plaintext", {
+      cause,
+    });
+    error.code = "WIKI_MAINTAINER_SECRET_LEAK";
+    throw error;
   }
 }
 
@@ -301,6 +337,36 @@ function evidenceUsable(item, effectiveAt) {
   );
 }
 
+// Corroboration needs distinct content AND distinct trust domains. Counting
+// either set alone lets the same observation be repeated under new identities.
+// A bounded bipartite matching also handles policies requiring >2 sources,
+// where min(unique contents, unique domains) can still overcount independence.
+function independentSourceCount(evidence) {
+  const domains = new Map();
+  for (const item of evidence) {
+    if (!domains.has(item.trustDomain))
+      domains.set(item.trustDomain, new Set());
+    domains.get(item.trustDomain).add(item.sourceDigest);
+  }
+  const matchedSources = new Map();
+  const match = (domain, visited) => {
+    for (const source of domains.get(domain)) {
+      if (visited.has(source)) continue;
+      visited.add(source);
+      if (
+        !matchedSources.has(source) ||
+        match(matchedSources.get(source), visited)
+      ) {
+        matchedSources.set(source, domain);
+        return true;
+      }
+    }
+    return false;
+  };
+  for (const domain of domains.keys()) match(domain, new Set());
+  return matchedSources.size;
+}
+
 function rebuildDerivedState(state, effectiveAt, descriptor) {
   const dependents = {};
   for (const pattern of Object.values(state.patterns)) {
@@ -352,7 +418,10 @@ function rebuildDerivedState(state, effectiveAt, descriptor) {
       pattern.status = WIKI_PATTERN_STATUS.STALE;
     } else if (negative.length > 0 || pattern.contradicts.length > 0)
       pattern.status = WIKI_PATTERN_STATUS.CONTRADICTED;
-    else if (hasGrader || domains.length >= descriptor.minCorroboratingSources)
+    else if (
+      hasGrader ||
+      independentSourceCount(positive) >= descriptor.minCorroboratingSources
+    )
       pattern.status = WIKI_PATTERN_STATUS.CORROBORATED;
     else pattern.status = WIKI_PATTERN_STATUS.HYPOTHESIS;
     pattern.trustDomains = domains;
@@ -735,6 +804,10 @@ export class EvidenceBackedWikiMaintainer {
         revisionId: state.revisionId,
       };
     }
+    // Trusted inputs do not make a model's derived output safe to persist.
+    // Inspect the complete outgoing state, including reasons, index and log,
+    // before publishing any revision artifact. Share the Raw/Skill policy.
+    assertWikiPlaintextSafe(state);
     const stateDigest = hash(state);
     const revision = freeze({
       ...revisionPayload,
@@ -742,6 +815,22 @@ export class EvidenceBackedWikiMaintainer {
       stateDigest,
       state: freeze(clone(state)),
     });
+    // Derivation may await a model or another worker. Re-resolve through the
+    // trusted evidence boundary immediately before writing: prior read success
+    // is not permission to publish after revocation, deletion, or expiry. A
+    // changed but valid envelope requires fresh derivation, never a silent swap.
+    for (const ref of refs) {
+      const current = verifyEvidence(
+        await this._ports.resolveEvidence(ref),
+        this.descriptor.tenantId,
+        ref,
+      );
+      if (current.envelopeDigest !== evidenceByRef.get(ref).envelopeDigest) {
+        const error = new Error("Wiki evidence changed during derivation");
+        error.code = "WIKI_MAINTAINER_EVIDENCE_CHANGED";
+        throw error;
+      }
+    }
     const committed = await this._ports.commitRevision(
       freeze({ expectedStateDigest: priorStateDigest, revision }),
     );
