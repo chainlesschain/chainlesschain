@@ -153,6 +153,9 @@ export async function runEvalSuite(tasks, opts = {}) {
         (agentResult.error == null || agentResult.error === "");
       rec.agentOk = rec.executionSucceeded;
       rec.executionEvidence = agentResult?.executionEvidence || null;
+      if (agentResult?.evaluationMetrics !== undefined) {
+        rec.evaluationMetrics = agentResult.evaluationMetrics;
+      }
       if (!rec.executionSucceeded && !rec.error) {
         rec.error = `agent error: ${agentResult?.error || "execution did not report success"}`;
       }

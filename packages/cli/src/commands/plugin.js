@@ -1,10 +1,11 @@
 /**
  * Plugin management commands
- * chainlesschain plugin list|install|remove|enable|disable|update|info|search|registry|summary
+ * chainlesschain plugin list|install|remove|enable|disable|update|info|search|registry|summary|eval
  */
 
 import chalk from "chalk";
 import fs from "node:fs";
+import path from "node:path";
 import { logger } from "../lib/logger.js";
 import {
   enforcePluginPolicy,
@@ -1435,6 +1436,134 @@ export function registerPluginCommand(program) {
   // component it contributes (skills/agents/hooks/mcp/lsp/monitors/bin/settings),
   // plus path-traversal / schema problems. Optional signature/hash verification
   // reuses the real crypto in plugin-security. No DB, no install — pure inspection.
+  plugin
+    .command("eval <dir>")
+    .description(
+      "Run a local control/candidate effectiveness eval for a plugin",
+    )
+    .option(
+      "--suite <file>",
+      "Suite JSON inside the plugin root (default: evals/suite.json)",
+    )
+    .option("--provider <provider>", "Fixed provider for both eval arms")
+    .option("--model <model>", "Fixed model for both eval arms")
+    .option(
+      "--min-pass-rate-delta <pct>",
+      "Override the suite's minimum candidate gain in percentage points",
+    )
+    .option("--json", "Output the bound report as JSON")
+    .option("--html <file>", "Write a local HTML report")
+    .option("--keep", "Keep per-task temporary workspaces")
+    .option(
+      "--dry-run",
+      "Validate and exercise both arms without a model (never passes the evidence gate)",
+    )
+    .action(async (dir, options) => {
+      try {
+        if (!options.dryRun && (!options.provider || !options.model)) {
+          throw new Error(
+            "plugin eval requires explicit --provider and --model for comparable real runs",
+          );
+        }
+        let minPassRateDelta;
+        if (options.minPassRateDelta !== undefined) {
+          const percentage = Number(options.minPassRateDelta);
+          if (
+            !Number.isFinite(percentage) ||
+            percentage < -100 ||
+            percentage > 100
+          ) {
+            throw new Error(
+              "--min-pass-rate-delta must be between -100 and 100",
+            );
+          }
+          minPassRateDelta = percentage / 100;
+        }
+        const {
+          loadPluginEvalDefinition,
+          renderPluginEvalHtml,
+          runPluginEval,
+        } = await import("../lib/eval/plugin-suite.js");
+        const { makeHeadlessRunAgent } = await import("./eval.js");
+        const definition = loadPluginEvalDefinition(dir, {
+          suiteFile: options.suite,
+        });
+        const dryRunAgent = async () => ({
+          ok: true,
+          output: `${JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            result: "(dry-run: no agent)",
+            tool_calls: [],
+            usage: {},
+            total_cost_usd: 0,
+            num_turns: 0,
+          })}\n`,
+        });
+        const shared = {
+          provider: options.provider,
+          model: options.model,
+          ephemeral: true,
+        };
+        const controlRunAgent = options.dryRun
+          ? dryRunAgent
+          : makeHeadlessRunAgent({
+              ...shared,
+              env: { CC_PLUGINS: "0", CC_PLUGIN_SCOPES: "" },
+            });
+        const candidateRunAgent = options.dryRun
+          ? dryRunAgent
+          : makeHeadlessRunAgent({
+              ...shared,
+              env: { CC_PLUGINS: "1", CC_PLUGIN_SCOPES: "project" },
+            });
+        const report = await runPluginEval(definition, {
+          controlRunAgent,
+          candidateRunAgent,
+          provider: options.provider || null,
+          model: options.model || null,
+          dryRun: options.dryRun === true,
+          keepWorkspaces: options.keep === true,
+          ...(minPassRateDelta === undefined ? {} : { minPassRateDelta }),
+          onResult: options.json
+            ? undefined
+            : ({ arm, result }) =>
+                logger.info(
+                  `  ${arm.padEnd(9)} ${result.pass ? "✔" : "✗"} ${result.id} (${result.ms}ms)`,
+                ),
+        });
+        if (options.html) {
+          fs.writeFileSync(
+            path.resolve(options.html),
+            renderPluginEvalHtml(report),
+            "utf8",
+          );
+        }
+        if (options.json) {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          logger.log(
+            `\nPlugin eval: ${report.status} (${report.comparison.outcome}, delta ${(report.comparison.passRateDelta * 100).toFixed(1)} points)`,
+          );
+          logger.log(
+            `  Control: ${report.arms.control.effectivePassed}/${report.arms.control.total}; Candidate: ${report.arms.candidate.effectivePassed}/${report.arms.candidate.total}`,
+          );
+          logger.log(`  Payload: ${report.plugin.payloadDigest}`);
+          logger.log(`  Suite:   ${report.suite.digest}`);
+          if (report.reasons.length) {
+            logger.warn(`  Reasons: ${report.reasons.join(", ")}`);
+          }
+          if (options.html)
+            logger.info(`  HTML: ${path.resolve(options.html)}`);
+        }
+        if (!report.passed) process.exitCode = 1;
+      } catch (error) {
+        logger.error(`Plugin eval failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   plugin
     .command("validate <dir>")
     .description("Validate a plugin manifest and list its components")

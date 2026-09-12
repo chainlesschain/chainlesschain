@@ -226,7 +226,13 @@ export function discoverPlugins(opts = {}) {
   ) {
     return [];
   }
-  const requestedScopes = new Set(opts.scopes || SCOPES);
+  const envScopes = String((opts.env || process.env).CC_PLUGIN_SCOPES || "")
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+  const requestedScopes = new Set(
+    opts.scopes || (envScopes.length > 0 ? envScopes : SCOPES),
+  );
   for (const requested of requestedScopes) {
     if (!SCOPES.includes(requested)) {
       throw new Error(`unknown plugin scope: ${requested}`);

@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -217,6 +217,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 **建议交付。** 在现有 runner 上增加插件 suite 加载和版本/digest 绑定，形成“作者生成用例 → 候选运行 → 与关闭插件、基线插件比较 → 审阅报告”的流程。建议入口可采用 `cc plugin eval <path>`，这是拟新增命令，不是当前可执行功能。
 
 报告同时包含正确性、触发率、无关改动、token/成本、耗时和失败轨迹；支持本地 JSON/HTML。默认使用低副作用 fixture，模型 grader 与任务执行成本可见；将评测通过和安全审查分别展示。
+
+**后续实施进展（2026-09-13）。** [G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md) 已交付 `cc plugin eval <dir>`、绑定 manifest/payload/suite digest 的声明式任务、关闭全部插件的 control 与仅加载候选快照的 candidate，以及 JSON/HTML 双臂报告。报告分开保留执行、产物、触发、无关改动、usage/成本和增益阈值，dry-run 不能得到正式 PASS。当前没有付费真实模型结果、重复采样或独立 holdout，因此产品入口已实现，效果验收仍未完成。
 
 **验收。** 在同模型、同 fixture 和同预算下验证候选增益；换模型或插件升级后重跑。至少覆盖“应触发”“不应触发”“插件无增益”“插件降低结果质量”。复用 G02 的严格 gate，不能用 dry-run 宣称效果提升。
 

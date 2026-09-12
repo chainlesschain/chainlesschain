@@ -135,10 +135,11 @@ function makeHeadlessRunAgent(opts = {}) {
         ];
         if (opts.model) args.push("--model", opts.model);
         if (opts.provider) args.push("--provider", opts.provider);
+        if (opts.ephemeral === true) args.push("--ephemeral");
       }
       const child = _deps.spawn(process.execPath, args, {
         cwd,
-        env: { ...process.env, CLAUDECODE: "1" },
+        env: { ...process.env, ...(opts.env || {}), CLAUDECODE: "1" },
         windowsHide: true,
         // Own process group on POSIX so a timeout can reap the whole tree.
         detached: _deps.platform !== "win32",

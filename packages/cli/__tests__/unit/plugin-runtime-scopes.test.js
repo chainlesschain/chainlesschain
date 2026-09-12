@@ -175,6 +175,20 @@ describe("version directories", () => {
 });
 
 describe("discoverPlugins", () => {
+  it("honors an environment scope restriction without reversing precedence", () => {
+    writePlugin("project", "project-only", "1.0.0");
+    writePlugin("local", "local-only", "1.0.0");
+
+    const project = discoverPlugins({
+      cwd,
+      env: { CC_PLUGIN_SCOPES: "project" },
+    });
+    expect(project.map((plugin) => plugin.name)).toEqual(["project-only"]);
+    expect(() =>
+      discoverPlugins({ cwd, env: { CC_PLUGIN_SCOPES: "bogus" } }),
+    ).toThrow(/unknown plugin scope/u);
+  });
+
   it("returns active versions across scopes", () => {
     writePlugin("project", "alpha", "1.0.0");
     writePlugin("local", "beta", "0.3.0");
