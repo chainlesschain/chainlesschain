@@ -2164,6 +2164,7 @@ describe("headless-runner — goal-condition outer-turn re-drive", () => {
         prompt: "do",
         outputFormat: "stream-json",
         goalCondition: "model:the work is finished",
+        evolutionIngress: null,
       },
       deps,
     );

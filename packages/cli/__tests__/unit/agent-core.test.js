@@ -2802,7 +2802,12 @@ describe("spawn_sub_agent nesting caps", () => {
     await executeTool(
       "spawn_sub_agent",
       { role: "x", task: "y" },
-      { cwd: "/tmp", parentMessages: [], subAgentBudget: budget },
+      {
+        cwd: "/tmp",
+        parentMessages: [],
+        subAgentBudget: budget,
+        llmOptions: { evolutionIngress: TEST_EVOLUTION_INGRESS },
+      },
     );
     expect(budget.spawned).toBe(1);
   });
@@ -2926,7 +2931,11 @@ describe("spawn_sub_agent auto-condensation", () => {
     const result = await executeTool(
       "spawn_sub_agent",
       { role: "code-review", task: "Review the code changes" },
-      { cwd: "/tmp", parentMessages },
+      {
+        cwd: "/tmp",
+        parentMessages,
+        llmOptions: { evolutionIngress: TEST_EVOLUTION_INGRESS },
+      },
     );
 
     // Should succeed or at least have a subAgentId (LLM mock returns simple response)
@@ -2956,6 +2965,7 @@ describe("spawn_sub_agent auto-condensation", () => {
       },
       {
         cwd: "/tmp",
+        llmOptions: { evolutionIngress: TEST_EVOLUTION_INGRESS },
         parentMessages: [
           { role: "assistant", content: "This should NOT be used" },
         ],
