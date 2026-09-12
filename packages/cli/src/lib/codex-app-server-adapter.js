@@ -66,18 +66,40 @@ function projectNotification(notification) {
     };
   }
   if (method === "turn/completed" || method === "turn/failed") {
-    const failed = method === "turn/failed";
+    const turn = params.turn || {};
+    const reportedStatus =
+      method === "turn/failed" ? "failed" : String(turn.status || "");
+    const terminalStatus = ["completed", "failed", "interrupted"].includes(
+      reportedStatus,
+    )
+      ? reportedStatus
+      : "failed";
+    const protocolError =
+      terminalStatus === "failed" && reportedStatus !== "failed"
+        ? {
+            code: "CC_CODEX_APP_SERVER_INVALID_TERMINAL_STATUS",
+            message:
+              "Codex App Server emitted turn/completed without a supported terminal status",
+          }
+        : null;
+    const terminalError =
+      terminalStatus === "failed"
+        ? turn.error ||
+          params.error ||
+          protocolError ||
+          "Codex App Server turn failed"
+        : turn.error || params.error || null;
     return {
       method: "turn/completed",
       params: {
         turn: {
-          ...params.turn,
-          status: failed ? "failed" : "completed",
+          ...turn,
+          status: terminalStatus,
         },
       },
-      terminal: failed ? "failed" : "completed",
-      error: failed ? params.error || "Codex App Server turn failed" : null,
-      usage: params.usage || null,
+      terminal: terminalStatus,
+      error: terminalError,
+      usage: params.usage || turn.usage || null,
     };
   }
   return { unknownMethod: String(method || "<missing>") };
@@ -138,6 +160,10 @@ export class CodexAppServerAdapter extends EventEmitter {
     const notifications = [];
     const unknownMethods = new Set();
     let output = "";
+    let activeThreadId = threadId;
+    let submissionStarted = false;
+    let admissionObserved = false;
+    let observedTerminal = null;
     let terminalResolve;
     let terminalReject;
     const terminal = new Promise((resolve, reject) => {
@@ -162,16 +188,38 @@ export class CodexAppServerAdapter extends EventEmitter {
         notifications.push(projected);
         this.emit("notification", projected);
       }
+      if (
+        submissionStarted &&
+        (projected.method === "turn/started" ||
+          projected.method?.startsWith("item/") ||
+          Boolean(projected.terminal))
+      ) {
+        admissionObserved = true;
+      }
       if (projected.output) output = projected.output;
-      if (projected.terminal) terminalResolve(projected);
+      if (projected.terminal) {
+        observedTerminal = projected;
+        terminalResolve(projected);
+      }
     };
     this.client.on?.("notification", onNotification);
-    let admitted = false;
+    const buildResult = (terminalEvent) =>
+      Object.freeze({
+        protocol: CODEX_APP_SERVER_PROTOCOL,
+        threadId: activeThreadId,
+        terminal: terminalEvent.terminal,
+        output,
+        error: terminalEvent.error || null,
+        usage: terminalEvent.usage || null,
+        notifications: Object.freeze(notifications),
+        unknownMethods: Object.freeze([...unknownMethods].sort()),
+        fallback: false,
+        authoritative: false,
+      });
     try {
       if (!this.client.running && typeof this.client.start === "function") {
         await this.client.start();
       }
-      let activeThreadId = threadId;
       if (!activeThreadId) {
         const started = await this.client.request("thread/start", {
           ephemeral: false,
@@ -185,30 +233,36 @@ export class CodexAppServerAdapter extends EventEmitter {
           "Codex App Server did not return a thread identity",
         );
       }
+      // Once turn/start begins, a rejected client promise cannot prove that
+      // the server did not accept the input. Never launch a second execution
+      // path from that ambiguous state.
+      submissionStarted = true;
       const started = await this.client.request("turn/start", {
         threadId: activeThreadId,
         input: [{ type: "text", text: String(prompt || "") }],
       });
-      admitted = true;
-      const terminalEvent =
-        started?.turn?.status === "completed"
-          ? { terminal: "completed", usage: started.turn.usage || null }
-          : await terminal;
-      return Object.freeze({
-        protocol: CODEX_APP_SERVER_PROTOCOL,
-        threadId: activeThreadId,
-        terminal: terminalEvent.terminal,
-        output,
-        error: terminalEvent.error || null,
-        usage: terminalEvent.usage || null,
-        notifications: Object.freeze(notifications),
-        unknownMethods: Object.freeze([...unknownMethods].sort()),
-        fallback: false,
-        authoritative: false,
-      });
+      admissionObserved = true;
+      const initialStatus = String(started?.turn?.status || "");
+      const terminalEvent = ["completed", "failed", "interrupted"].includes(
+        initialStatus,
+      )
+        ? projectNotification({
+            method: "turn/completed",
+            params: { turn: started.turn, usage: started.turn.usage || null },
+          })
+        : await terminal;
+      return buildResult(terminalEvent);
     } catch (error) {
-      if (!admitted) {
+      if (!submissionStarted) {
         return this._fallback(prompt, options, error?.code || "startup_failed");
+      }
+      if (observedTerminal) return buildResult(observedTerminal);
+      if (!admissionObserved) {
+        throw adapterError(
+          "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN",
+          "Codex App Server turn submission outcome is unknown; fallback was suppressed to prevent duplicate effects",
+          { cause: error },
+        );
       }
       throw adapterError(
         "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",

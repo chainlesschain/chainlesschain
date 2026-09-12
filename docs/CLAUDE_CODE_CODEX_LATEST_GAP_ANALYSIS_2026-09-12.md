@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -205,6 +205,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 第一个问题来自 [admitted 标志](../packages/cli/src/lib/codex-app-server-adapter.js#L188) 在 `turn/start` 成功响应之后才置真，以及 [catch fallback](../packages/cli/src/lib/codex-app-server-adapter.js#L211)；已有保护只能覆盖“已收到成功响应”，不能覆盖“服务端接受但响应丢失”。第二个问题来自 [终态投影](../packages/cli/src/lib/codex-app-server-adapter.js#L68) 仅按方法名 `turn/failed` 判断失败。官方合同明确 `turn/completed` 也用于失败或中断，需读取 `turn.status`，并保留失败的 error。[App Server 生命周期](https://learn.chatgpt.com/docs/app-server)
 
 **建议交付。** 保留未接线状态；按官方 `turn.status/error` 投影终态，对提交结果不明执行状态核对或幂等处理，不能将连接错误直接等同于未提交。复用 [兼容检查脚本](../packages/cli/scripts/codex-app-server-compatibility.mjs#L25)，加入上述故障注入，以及 `0.154.0` 的 schema、初始化、消息类型、取消与恢复测试；外部事件不能冒充用户授权。通过后再扩展矩阵，并单独审阅产品接线。
+
+**后续实施进展（2026-09-13）。** [G04 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md) 已按 `turn.status/error` 保留 failed/interrupted 终态，并在 `turn/start` 提交结果未知或已观察到接收时禁止启动第二条 fallback；对应 fault-injection 合同已通过。适配器仍无产品调用方，`0.154.0` 仍未加入 fail-closed 矩阵，也没有同一候选 SHA 的三平台真实 App Server 证据，因此只关闭代码反例，不关闭版本兼容与接线验收。
 
 **验收。** 失败、中断、成功终态不能互相覆写；模拟“已接受 + 响应丢失”时不触发未经核对的第二次执行；确认未提交才可按策略回退。Linux/Windows/macOS 对同一候选 SHA 和指定上游版本生成报告。fake 探针不替代真实 Codex 集成测试，也不改变上游实验性质。
 

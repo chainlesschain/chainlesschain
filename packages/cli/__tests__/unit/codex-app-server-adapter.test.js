@@ -114,4 +114,173 @@ describe("optional Codex App Server adapter", () => {
     );
     expect(fallback).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [
+      "failed",
+      { message: "provider rejected the turn", codexErrorInfo: "BadRequest" },
+    ],
+    ["interrupted", null],
+  ])(
+    "projects turn/completed status=%s without rewriting it as success",
+    async (status, expectedError) => {
+      class TerminalClient extends FakeClient {
+        async request(method) {
+          if (method === "thread/start") {
+            return { thread: { id: "codex-thread-terminal" } };
+          }
+          if (method === "turn/start") {
+            queueMicrotask(() => {
+              this.emit("notification", {
+                method: "turn/completed",
+                params: {
+                  turn: {
+                    id: "codex-turn-terminal",
+                    status,
+                    ...(expectedError ? { error: expectedError } : {}),
+                  },
+                  usage: { input_tokens: 3, output_tokens: 1 },
+                },
+              });
+            });
+            return {
+              turn: { id: "codex-turn-terminal", status: "inProgress" },
+            };
+          }
+          throw new Error(`unexpected method: ${method}`);
+        }
+      }
+
+      const fallback = vi.fn();
+      const result = await new CodexAppServerAdapter({
+        client: new TerminalClient(),
+        fallback,
+        upstreamVersion: "0.150.1",
+        compatibilityMatrix: matrix,
+        enabled: true,
+      }).execute({ prompt: "terminal status" });
+
+      expect(result).toMatchObject({
+        terminal: status,
+        error: expectedError,
+        fallback: false,
+        usage: { input_tokens: 3, output_tokens: 1 },
+      });
+      expect(result.notifications.at(-1)).toMatchObject({
+        method: "turn/completed",
+        params: { turn: { status } },
+      });
+      expect(fallback).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails closed when turn/completed omits a supported terminal status", async () => {
+    class InvalidTerminalClient extends FakeClient {
+      async request(method) {
+        if (method === "thread/start") {
+          return { thread: { id: "codex-thread-invalid" } };
+        }
+        if (method === "turn/start") {
+          queueMicrotask(() => {
+            this.emit("notification", {
+              method: "turn/completed",
+              params: {
+                turn: { id: "codex-turn-invalid", status: "inProgress" },
+              },
+            });
+          });
+          return { turn: { id: "codex-turn-invalid", status: "inProgress" } };
+        }
+        throw new Error(`unexpected method: ${method}`);
+      }
+    }
+
+    const result = await new CodexAppServerAdapter({
+      client: new InvalidTerminalClient(),
+      fallback: vi.fn(),
+      upstreamVersion: "0.150.1",
+      compatibilityMatrix: matrix,
+      enabled: true,
+    }).execute({ prompt: "invalid terminal" });
+
+    expect(result).toMatchObject({
+      terminal: "failed",
+      error: {
+        code: "CC_CODEX_APP_SERVER_INVALID_TERMINAL_STATUS",
+      },
+      fallback: false,
+    });
+  });
+
+  it("suppresses fallback when turn/start reports admission before its response is lost", async () => {
+    class AcceptedThenDisconnectedClient extends FakeClient {
+      async request(method) {
+        if (method === "thread/start") {
+          return { thread: { id: "codex-thread-accepted" } };
+        }
+        if (method === "turn/start") {
+          this.emit("notification", {
+            method: "turn/started",
+            params: {
+              turn: {
+                id: "codex-turn-accepted",
+                threadId: "codex-thread-accepted",
+                status: "inProgress",
+              },
+            },
+          });
+          const error = new Error("connection reset after acceptance");
+          error.code = "ECONNRESET";
+          throw error;
+        }
+        throw new Error(`unexpected method: ${method}`);
+      }
+    }
+
+    const fallback = vi.fn();
+    const adapter = new CodexAppServerAdapter({
+      client: new AcceptedThenDisconnectedClient(),
+      fallback,
+      upstreamVersion: "0.150.1",
+      compatibilityMatrix: matrix,
+      enabled: true,
+    });
+
+    await expect(
+      adapter.execute({ prompt: "accepted once" }),
+    ).rejects.toMatchObject({
+      code: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+    });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it("treats a rejected turn/start with no receipt as unknown, not unsubmitted", async () => {
+    class AmbiguousSubmissionClient extends FakeClient {
+      async request(method) {
+        if (method === "thread/start") {
+          return { thread: { id: "codex-thread-ambiguous" } };
+        }
+        if (method === "turn/start") {
+          const error = new Error("connection reset without a receipt");
+          error.code = "ECONNRESET";
+          throw error;
+        }
+        throw new Error(`unexpected method: ${method}`);
+      }
+    }
+
+    const fallback = vi.fn();
+    const adapter = new CodexAppServerAdapter({
+      client: new AmbiguousSubmissionClient(),
+      fallback,
+      upstreamVersion: "0.150.1",
+      compatibilityMatrix: matrix,
+      enabled: true,
+    });
+
+    await expect(
+      adapter.execute({ prompt: "ambiguous" }),
+    ).rejects.toMatchObject({ code: "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN" });
+    expect(fallback).not.toHaveBeenCalled();
+  });
 });
