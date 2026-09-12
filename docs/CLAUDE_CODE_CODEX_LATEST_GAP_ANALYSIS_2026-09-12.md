@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -251,6 +251,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 | Windows 后台落盘           | [平台后端](../packages/cli/src/lib/process-execution-broker/platform-sandbox.js#L4343) 不支持部分 `detached + 数字文件描述符 stdio` 组合                                                          | 使用受控宿主转发日志，验证进程树取消及强退回收                         |
 
 这是“某些策略组合无法执行”的可用性边界。项目已经有真实平台隔离和失败关闭，不能笼统评价为“没有沙箱”或“不安全”。代理环境变量也不能替代域名强制约束。
+
+**后续实施进展（2026-09-13）。** [G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md) 已交付 `cc sandbox capabilities` 与 `chainlesschain.agent-sandbox-capabilities/v1` 报告，分开输出 requested、enforceable、applied、unsupported，以及当前 OS release、架构、后端和 availability probe。Agent CLI/App Server 在会话启动前拒绝不支持组合，`run_shell` 仅在子进程真正经 Docker/bubblewrap 启动后填充 applied。域名级不可绕过 egress、macOS 新系统与 Windows 特殊 stdio 组合仍未交付/实机验收，因此本批解决能力可见性和提前失败，不把 G07 整体标为完成。
 
 **验收。** 展示 requested/applied/unsupported；受控联网覆盖域名、IP 直连、DNS、重定向、清空代理环境与子进程；平台报告写明 OS 版本、架构和后端。已有三平台通过记录只能证明对应矩阵，不能外推到未测系统。
 

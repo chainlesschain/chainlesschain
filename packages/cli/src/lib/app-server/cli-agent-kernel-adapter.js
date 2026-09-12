@@ -2,6 +2,7 @@ import { PassThrough } from "node:stream";
 import { randomUUID } from "node:crypto";
 import {
   assertSandboxAvailable,
+  assertSandboxCapabilities,
   normalizeAgentSandboxMode,
 } from "../agent-sandbox.js";
 
@@ -127,6 +128,7 @@ export class CliAgentKernelAdapter {
         },
       },
     );
+    assertSandboxCapabilities(sandbox);
     assertSandboxAvailable(sandbox);
 
     const input = new PassThrough();

@@ -6652,6 +6652,7 @@ async function executeToolInner(
         }
         const common = {
           sandbox: sandboxSummary(shellSandbox),
+          sandboxCapabilities: result.sandboxCapabilities || null,
           shellCommandPolicy: shellPolicy,
           approval: approvalOutcome,
           policyTrace: ["shell-policy", "approval", "sandbox"],

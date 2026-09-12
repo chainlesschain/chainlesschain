@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_SANDBOX_IMAGE,
   _deps,
+  assessAgentSandboxCapabilities,
   assertSandboxAvailable,
+  assertSandboxCapabilities,
   enforceSandboxFailClosed,
   executeSandboxedShell,
   isolationLevel,
@@ -16,8 +18,10 @@ import { executeTool } from "../../src/runtime/agent-core.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
 const originalSpawnSync = _deps.spawnSync;
+const originalHost = _deps.host;
 afterEach(() => {
   _deps.spawnSync = originalSpawnSync;
+  _deps.host = originalHost;
 });
 
 describe("agent sandbox", () => {
@@ -219,6 +223,111 @@ describe("agent sandbox", () => {
     });
   });
 
+  it("separates requested, enforceable, and applied capabilities", () => {
+    const sandbox = normalizeAgentSandbox(true);
+    const preflight = assessAgentSandboxCapabilities(sandbox, {
+      host: { platform: "linux", release: "6.8.0", arch: "x64" },
+      availability: { available: true, reason: null },
+    });
+    expect(preflight).toMatchObject({
+      schema: "chainlesschain.agent-sandbox-capabilities/v1",
+      host: { platform: "linux", release: "6.8.0", arch: "x64" },
+      backend: {
+        engine: "docker",
+        isolationLevel: "container",
+        availabilityChecked: true,
+        available: true,
+      },
+      status: "ready",
+      execution: { observed: false, attempted: false, started: false },
+      unsupported: [],
+      applied: [],
+    });
+    expect(preflight.requested.map(({ id }) => id)).toEqual([
+      "isolation.container",
+      "filesystem.workspace-read-write",
+      "network.none",
+    ]);
+    expect(preflight.enforceable.map(({ id }) => id)).toEqual([
+      "isolation.container",
+      "filesystem.workspace-read-write",
+      "network.none",
+    ]);
+
+    _deps.spawnSync = vi.fn(() => ({
+      status: 7,
+      stdout: "",
+      stderr: "task failed",
+      signal: null,
+    }));
+    const executed = executeSandboxedShell("exit 7", sandbox);
+    expect(executed.exitCode).toBe(7);
+    expect(executed.sandboxCapabilities).toMatchObject({
+      status: "applied",
+      execution: { observed: true, attempted: true, started: true },
+      backend: { available: true },
+    });
+    expect(executed.sandboxCapabilities.applied.map(({ id }) => id)).toEqual([
+      "isolation.container",
+      "filesystem.workspace-read-write",
+      "network.none",
+    ]);
+  });
+
+  it("reports unsupported policy combinations before spawning", () => {
+    const docker = normalizeAgentSandbox(true, {
+      settings: { filesystem: { denyRead: [".secrets"] } },
+    });
+    const dockerReport = assessAgentSandboxCapabilities(docker, {
+      host: { platform: "linux", release: "6.8.0", arch: "x64" },
+    });
+    expect(dockerReport.status).toBe("unsupported");
+    expect(dockerReport.unsupported).toEqual([
+      expect.objectContaining({
+        id: "filesystem.deny-read",
+        reason: "docker_fine_grained_filesystem_unsupported",
+      }),
+    ]);
+    expect(() => assertSandboxCapabilities(docker)).toThrow(
+      /filesystem\.deny-read/,
+    );
+
+    const restrictedNetwork = normalizeAgentSandbox(true, {
+      network: true,
+      settings: { network: { allowedDomains: ["registry.npmjs.org"] } },
+    });
+    expect(
+      assessAgentSandboxCapabilities(restrictedNetwork).unsupported,
+    ).toEqual([
+      expect.objectContaining({
+        id: "network.domain-policy",
+        reason: "domain_policy_has_no_non_bypassable_backend",
+      }),
+    ]);
+    _deps.spawnSync = vi.fn();
+    const result = executeSandboxedShell("npm view chalk", restrictedNetwork);
+    expect(result.failedToStart).toBe(true);
+    expect(result.sandboxCapabilities.applied).toEqual([]);
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("reports host/backend mismatches without extrapolating support", () => {
+    const bubblewrap = normalizeAgentSandbox(true, {
+      settings: { engine: "bubblewrap" },
+    });
+    const report = assessAgentSandboxCapabilities(bubblewrap, {
+      host: { platform: "win32", release: "10.0.26100", arch: "x64" },
+    });
+    expect(report.status).toBe("unsupported");
+    expect(report.enforceable).toEqual([]);
+    expect(report.unsupported).toEqual([
+      expect.objectContaining({
+        id: "backend.platform",
+        reason: "bubblewrap_requires_linux",
+      }),
+    ]);
+  });
+
   it("fails closed instead of pretending domain filtering is active", () => {
     const result = executeSandboxedShell(
       "npm view chalk version",
@@ -247,6 +356,7 @@ describe("agent sandbox", () => {
 
   it("does not mistake bubblewrap proxy env for domain enforcement", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
+    _deps.host = () => ({ platform: "linux", release: "test", arch: "x64" });
     const sandbox = normalizeAgentSandbox(true, {
       cwd: process.cwd(),
       network: true,
@@ -265,6 +375,7 @@ describe("agent sandbox", () => {
 
   it("builds a bubblewrap invocation with a read-only host and writable workspace", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
+    _deps.host = () => ({ platform: "linux", release: "test", arch: "x64" });
     const sandbox = normalizeAgentSandbox(true, {
       cwd: process.cwd(),
       settings: { engine: "bubblewrap" },
@@ -297,6 +408,7 @@ describe("agent sandbox", () => {
       stdout: "",
       stderr: "",
     }));
+    _deps.host = () => ({ platform: "linux", release: "test", arch: "x64" });
     const result = executeSandboxedShell(
       "echo unsafe",
       normalizeAgentSandbox(true, { settings: { engine: "bubblewrap" } }),

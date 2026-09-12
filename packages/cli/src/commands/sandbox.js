@@ -4,10 +4,15 @@
  */
 
 import chalk from "chalk";
-import { intArg, floatArg } from "../lib/cli-arg.js";
+import { intArg } from "../lib/cli-arg.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import {
+  assessAgentSandboxCapabilities,
+  normalizeAgentSandboxMode,
+  probeSandboxAvailability,
+} from "../lib/agent-sandbox.js";
 import {
   createSandbox,
   acquireSandbox,
@@ -38,10 +43,124 @@ import {
   getSandboxStatsV2,
 } from "../lib/sandbox-v2.js";
 
-export function registerSandboxCommand(program) {
+function csvList(value) {
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function printCapabilityEntries(label, entries) {
+  logger.log(`${chalk.bold(label)} (${entries.length})`);
+  if (entries.length === 0) {
+    logger.log("  none");
+    return;
+  }
+  for (const entry of entries) {
+    const suffix = entry.message
+      ? ` — ${entry.message}`
+      : entry.enforcement
+        ? ` — ${entry.enforcement}`
+        : entry.entries
+          ? ` — ${entry.entries} rule(s)`
+          : "";
+    logger.log(`  ${entry.id}${suffix}`);
+  }
+}
+
+export function registerSandboxCommand(program, dependencies = {}) {
   const sandbox = program
     .command("sandbox")
     .description("Security sandbox v2 — isolated agent execution environments");
+
+  // sandbox capabilities — read-only agent-shell backend preflight
+  sandbox
+    .command("capabilities")
+    .description(
+      "Report requested, enforceable, applied, and unsupported agent-shell sandbox capabilities",
+    )
+    .option(
+      "--engine <engine>",
+      "Agent shell backend (docker|bubblewrap)",
+      "docker",
+    )
+    .option(
+      "--mode <mode>",
+      "Agent sandbox posture (off|workspace-write|strict)",
+      "workspace-write",
+    )
+    .option("--network", "Request unrestricted network access")
+    .option("--allow-read <paths>", "Comma-separated additional read paths")
+    .option("--deny-read <paths>", "Comma-separated denied read paths")
+    .option("--allow-write <paths>", "Comma-separated additional write paths")
+    .option("--deny-write <paths>", "Comma-separated denied write paths")
+    .option("--allowed-domains <domains>", "Comma-separated allowed domains")
+    .option("--denied-domains <domains>", "Comma-separated denied domains")
+    .option("--no-probe", "Do not probe backend availability")
+    .option("--json", "Output the versioned report as JSON")
+    .action((options) => {
+      try {
+        const sandboxConfig = normalizeAgentSandboxMode(
+          options.mode,
+          options.mode === "off" ? false : true,
+          {
+            cwd: process.cwd(),
+            network: options.network === true,
+            settings: {
+              engine: options.engine,
+              filesystem: {
+                allowRead: csvList(options.allowRead),
+                denyRead: csvList(options.denyRead),
+                allowWrite: csvList(options.allowWrite),
+                denyWrite: csvList(options.denyWrite),
+              },
+              network: {
+                allowedDomains: csvList(options.allowedDomains),
+                deniedDomains: csvList(options.deniedDomains),
+              },
+            },
+          },
+        );
+        const availability =
+          sandboxConfig && options.probe !== false
+            ? (
+                dependencies.probeSandboxAvailability ||
+                probeSandboxAvailability
+              )(sandboxConfig)
+            : null;
+        const report = assessAgentSandboxCapabilities(sandboxConfig, {
+          availability,
+          host: dependencies.host,
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          logger.log(chalk.bold("Agent Shell Sandbox Capabilities"));
+          logger.log(
+            `  Host:    ${report.host.platform} ${report.host.release} (${report.host.arch})`,
+          );
+          logger.log(
+            `  Backend: ${report.backend.engine || "none"} (${report.backend.availabilityChecked ? (report.backend.available ? "available" : "unavailable") : "not probed"})`,
+          );
+          logger.log(`  Status:  ${report.status}`);
+          logger.log(
+            `  Execution observed: ${report.execution.observed ? "yes" : "no"}`,
+          );
+          printCapabilityEntries("Requested", report.requested);
+          printCapabilityEntries("Enforceable", report.enforceable);
+          printCapabilityEntries("Applied", report.applied);
+          printCapabilityEntries("Unsupported", report.unsupported);
+        }
+
+        if (["unsupported", "unavailable"].includes(report.status)) {
+          process.exitCode = 2;
+        }
+      } catch (error) {
+        logger.error(`Failed: ${error.message}`);
+        process.exitCode = 2;
+      }
+    });
 
   // sandbox create <agent-id>
   sandbox

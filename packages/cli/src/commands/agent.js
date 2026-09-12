@@ -24,6 +24,7 @@ import {
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
 import {
+  assertSandboxCapabilities,
   normalizeAgentSandboxMode,
   assertSandboxAvailable,
   enforceSandboxFailClosed,
@@ -1276,6 +1277,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             options.permissionMode === "auto" ? "auto" : "safe",
           );
         }
+        assertSandboxCapabilities(resolvedAgentSandbox);
         assertSandboxAvailable(resolvedAgentSandbox);
         if (options.sandboxMode === "off") {
           // The formal quality harness runs in an isolated temporary home and

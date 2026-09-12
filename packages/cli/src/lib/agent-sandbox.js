@@ -1,5 +1,6 @@
 /** OS-isolated shell execution for the coding agent. */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { proxyEnv } from "./sandbox-egress-proxy.js";
 import executionBroker from "./process-execution-broker/index.js";
@@ -10,8 +11,15 @@ export const AGENT_SANDBOX_MODES = Object.freeze([
   "workspace-write",
   "strict",
 ]);
+export const AGENT_SANDBOX_CAPABILITY_SCHEMA =
+  "chainlesschain.agent-sandbox-capabilities/v1";
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  host: () => ({
+    platform: process.platform,
+    release: os.release(),
+    arch: process.arch,
+  }),
 };
 
 function stringList(value) {
@@ -322,45 +330,297 @@ export function enforceSandboxFailClosed(sandbox, reason = "safe") {
   };
 }
 
+function capability(id, details = {}) {
+  return { id, ...details };
+}
+
+function addUniqueCapability(target, entry) {
+  if (!target.some((candidate) => candidate.id === entry.id)) {
+    target.push(entry);
+  }
+}
+
+/**
+ * Describe the exact legacy agent-shell sandbox request without claiming that
+ * a command has run. `enforceable` is backend capability; `applied` is only
+ * populated after a child was successfully started through that backend.
+ */
+export function assessAgentSandboxCapabilities(sandbox, options = {}) {
+  const host = options.host || {
+    platform: process.platform,
+    release: os.release(),
+    arch: process.arch,
+  };
+  const execution = options.execution || null;
+  const availability = options.availability || null;
+  const requested = [];
+  const enforceable = [];
+  const unsupported = [];
+
+  if (!sandbox) {
+    return {
+      schema: AGENT_SANDBOX_CAPABILITY_SCHEMA,
+      host: {
+        platform: String(host.platform),
+        release: String(host.release),
+        arch: String(host.arch),
+      },
+      backend: {
+        engine: null,
+        isolationLevel: "policy-only",
+        availabilityChecked: false,
+        available: null,
+        reason: null,
+      },
+      status: "disabled",
+      execution: {
+        observed: false,
+        attempted: false,
+        started: false,
+      },
+      requested,
+      enforceable,
+      applied: [],
+      unsupported,
+    };
+  }
+
+  const engine = String(sandbox.engine || "");
+  const policy = sandbox.policy || normalizeSandboxPolicy({}, sandbox.cwd);
+  const supportedEngine = engine === "docker" || engine === "bubblewrap";
+  const supportedPlatform =
+    engine !== "bubblewrap" || host.platform === "linux";
+  const isolationCapability =
+    engine === "docker"
+      ? "isolation.container"
+      : engine === "bubblewrap"
+        ? "isolation.linux-namespace"
+        : "isolation.unknown";
+  const networkCapability = sandbox.network
+    ? "network.unrestricted"
+    : "network.none";
+
+  addUniqueCapability(requested, capability(isolationCapability));
+  addUniqueCapability(requested, capability("filesystem.workspace-read-write"));
+  addUniqueCapability(requested, capability(networkCapability));
+
+  const filesystemRequests = [
+    ["filesystem.additional-read", policy.allowRead],
+    ["filesystem.deny-read", policy.denyRead],
+    ["filesystem.additional-write", policy.allowWrite],
+    ["filesystem.deny-write", policy.denyWrite],
+  ];
+  for (const [id, values] of filesystemRequests) {
+    if (values?.length) {
+      addUniqueCapability(
+        requested,
+        capability(id, { entries: values.length }),
+      );
+    }
+  }
+  const domainRuleCount =
+    (policy.allowedDomains?.length || 0) + (policy.deniedDomains?.length || 0);
+  if (domainRuleCount > 0) {
+    addUniqueCapability(
+      requested,
+      capability("network.domain-policy", { entries: domainRuleCount }),
+    );
+  }
+
+  if (!supportedEngine) {
+    unsupported.push(
+      capability("backend.engine", {
+        reason: "unsupported_engine",
+        message: `Unsupported agent sandbox engine: ${engine || "<empty>"}`,
+        remediation: "Use engine=docker or engine=bubblewrap.",
+      }),
+    );
+  } else if (!supportedPlatform) {
+    unsupported.push(
+      capability("backend.platform", {
+        reason: "bubblewrap_requires_linux",
+        message: `bubblewrap is only supported on Linux; host platform is ${host.platform}`,
+        remediation: "Use Docker on this host or run bubblewrap on Linux.",
+      }),
+    );
+  } else {
+    addUniqueCapability(
+      enforceable,
+      capability(isolationCapability, {
+        enforcement:
+          engine === "docker" ? "docker-container" : "bubblewrap-namespaces",
+      }),
+    );
+    addUniqueCapability(
+      enforceable,
+      capability("filesystem.workspace-read-write", {
+        enforcement:
+          engine === "docker" ? "docker-bind-mount" : "bubblewrap-bind-mount",
+      }),
+    );
+    addUniqueCapability(
+      enforceable,
+      capability(networkCapability, {
+        enforcement:
+          engine === "docker"
+            ? sandbox.network
+              ? "docker-default-network"
+              : "docker-network-none"
+            : sandbox.network
+              ? "bubblewrap-share-net"
+              : "bubblewrap-unshared-network-namespace",
+      }),
+    );
+
+    for (const [id, values] of filesystemRequests) {
+      if (!values?.length) continue;
+      if (engine === "docker") {
+        unsupported.push(
+          capability(id, {
+            reason: "docker_fine_grained_filesystem_unsupported",
+            message:
+              "The Docker sandbox backend cannot enforce fine-grained filesystem policy; use engine=bubblewrap",
+            remediation:
+              "Use engine=bubblewrap on Linux or remove the fine-grained rule.",
+          }),
+        );
+      } else if (id === "filesystem.additional-read") {
+        unsupported.push(
+          capability(id, {
+            reason: "bubblewrap_additional_read_not_isolated",
+            message:
+              "The bubblewrap agent-shell backend exposes the host root read-only and cannot make allowRead an exclusive read boundary",
+            remediation:
+              "Remove allowRead or use the attested ProcessExecutionBroker sandbox for a supported execution contract.",
+          }),
+        );
+      } else {
+        addUniqueCapability(
+          enforceable,
+          capability(id, {
+            entries: values.length,
+            enforcement: `bubblewrap-${id.replace("filesystem.", "")}-mount`,
+          }),
+        );
+      }
+    }
+
+    if (domainRuleCount > 0) {
+      unsupported.push(
+        capability("network.domain-policy", {
+          reason: "domain_policy_has_no_non_bypassable_backend",
+          message:
+            "Domain-restricted sandbox networking has no non-bypassable backend enforcement; refusing unrestricted network access",
+          remediation:
+            "Disable sandbox networking or use a separately attested dependency-fetch service.",
+        }),
+      );
+    }
+  }
+
+  const executionObserved = execution !== null;
+  const executionAttempted = execution?.attempted === true;
+  const executionStarted = execution?.started === true;
+  const availabilityChecked = availability !== null || executionStarted;
+  const available = executionStarted
+    ? true
+    : availability === null
+      ? null
+      : availability.available === true;
+  const availabilityReason = executionStarted
+    ? null
+    : availability?.reason || null;
+  let status = "ready";
+  if (unsupported.length > 0) status = "unsupported";
+  else if (executionStarted) status = "applied";
+  else if (executionAttempted) status = "failed-to-start";
+  else if (availabilityChecked && !available) status = "unavailable";
+
+  return {
+    schema: AGENT_SANDBOX_CAPABILITY_SCHEMA,
+    host: {
+      platform: String(host.platform),
+      release: String(host.release),
+      arch: String(host.arch),
+    },
+    backend: {
+      engine,
+      isolationLevel: isolationLevel(sandbox),
+      availabilityChecked,
+      available,
+      reason: availabilityReason,
+    },
+    status,
+    execution: {
+      observed: executionObserved,
+      attempted: executionAttempted,
+      started: executionStarted,
+    },
+    requested,
+    enforceable,
+    applied: executionStarted ? enforceable.map((entry) => ({ ...entry })) : [],
+    unsupported,
+  };
+}
+
+export function assertSandboxCapabilities(sandbox, options = {}) {
+  const report = assessAgentSandboxCapabilities(sandbox, options);
+  if (report.unsupported.length === 0) return report;
+  const error = new Error(
+    `Unsupported sandbox capability request: ${report.unsupported
+      .map((entry) => `${entry.id} (${entry.message})`)
+      .join("; ")}`,
+  );
+  error.code = "CONFIG_SANDBOX_CAPABILITY_UNSUPPORTED";
+  error.capabilityReport = report;
+  throw error;
+}
+
+function attachSandboxCapabilityReport(
+  result,
+  sandbox,
+  execution,
+  availability,
+  host,
+) {
+  return {
+    ...result,
+    sandboxCapabilities: assessAgentSandboxCapabilities(sandbox, {
+      execution,
+      availability,
+      host,
+    }),
+  };
+}
+
 export function executeSandboxedShell(command, sandbox, options = {}) {
   if (!sandbox || !["docker", "bubblewrap"].includes(sandbox.engine)) {
     throw new Error("A supported agent sandbox configuration is required");
   }
   const hostCwd = path.resolve(options.cwd || sandbox.cwd);
   const policy = sandbox.policy || normalizeSandboxPolicy({}, hostCwd);
+  const capabilityHost = _deps.host();
+  const capabilityReport = assessAgentSandboxCapabilities(sandbox, {
+    host: capabilityHost,
+  });
+  if (capabilityReport.unsupported.length > 0) {
+    return {
+      stdout: "",
+      stderr: capabilityReport.unsupported
+        .map((entry) => entry.message)
+        .join("; "),
+      exitCode: 1,
+      failedToStart: true,
+      sandboxCapabilities: capabilityReport,
+    };
+  }
   // Proxy environment variables are advisory: a child can clear them or open a
   // raw socket. Until a backend can enforce egress below the process layer,
   // domain-restricted networking must fail closed instead of granting the
   // sandbox an unrestricted network namespace.
   const egress = options.egressProxy || null;
-  if (
-    (policy.allowedDomains.length || policy.deniedDomains.length) &&
-    sandbox.network
-  ) {
-    return {
-      stdout: "",
-      stderr:
-        "Domain-restricted sandbox networking has no non-bypassable backend enforcement; refusing unrestricted network access",
-      exitCode: 1,
-      failedToStart: true,
-    };
-  }
   if (sandbox.engine === "bubblewrap") {
     return executeBubblewrapShell(command, sandbox, options, hostCwd, policy);
-  }
-  if (
-    policy.allowRead.length ||
-    policy.denyRead.length ||
-    policy.allowWrite.length ||
-    policy.denyWrite.length
-  ) {
-    return {
-      stdout: "",
-      stderr:
-        "The Docker sandbox backend cannot enforce fine-grained filesystem policy; use engine=bubblewrap",
-      exitCode: 1,
-      failedToStart: true,
-    };
   }
   const args = ["run", "--rm", "--init"];
   if (!sandbox.network) args.push("--network", "none");
@@ -397,22 +657,34 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
     auditContext: options.auditContext,
   });
   if (result.error) {
-    return {
-      stdout: result.stdout || "",
-      stderr:
-        result.error.code === "ENOENT"
-          ? "Docker is not installed"
-          : result.error.message,
-      exitCode: typeof result.status === "number" ? result.status : 1,
-      failedToStart: true,
-    };
+    return attachSandboxCapabilityReport(
+      {
+        stdout: result.stdout || "",
+        stderr:
+          result.error.code === "ENOENT"
+            ? "Docker is not installed"
+            : result.error.message,
+        exitCode: typeof result.status === "number" ? result.status : 1,
+        failedToStart: true,
+      },
+      sandbox,
+      { attempted: true, started: false },
+      { available: false, reason: result.error.message },
+      capabilityHost,
+    );
   }
-  return {
-    stdout: result.stdout || "",
-    stderr: result.stderr || "",
-    exitCode: typeof result.status === "number" ? result.status : 1,
-    signal: result.signal || null,
-  };
+  return attachSandboxCapabilityReport(
+    {
+      stdout: result.stdout || "",
+      stderr: result.stderr || "",
+      exitCode: typeof result.status === "number" ? result.status : 1,
+      signal: result.signal || null,
+    },
+    sandbox,
+    { attempted: true, started: true },
+    { available: true, reason: null },
+    capabilityHost,
+  );
 }
 
 function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
@@ -469,22 +741,34 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
     auditContext: options.auditContext,
   });
   if (result.error) {
-    return {
-      stdout: result.stdout || "",
-      stderr:
-        result.error.code === "ENOENT"
-          ? "bubblewrap is not installed"
-          : result.error.message,
-      exitCode: typeof result.status === "number" ? result.status : 1,
-      failedToStart: true,
-    };
+    return attachSandboxCapabilityReport(
+      {
+        stdout: result.stdout || "",
+        stderr:
+          result.error.code === "ENOENT"
+            ? "bubblewrap is not installed"
+            : result.error.message,
+        exitCode: typeof result.status === "number" ? result.status : 1,
+        failedToStart: true,
+      },
+      sandbox,
+      { attempted: true, started: false },
+      { available: false, reason: result.error.message },
+      _deps.host(),
+    );
   }
-  return {
-    stdout: result.stdout || "",
-    stderr: result.stderr || "",
-    exitCode: typeof result.status === "number" ? result.status : 1,
-    signal: result.signal || null,
-  };
+  return attachSandboxCapabilityReport(
+    {
+      stdout: result.stdout || "",
+      stderr: result.stderr || "",
+      exitCode: typeof result.status === "number" ? result.status : 1,
+      signal: result.signal || null,
+    },
+    sandbox,
+    { attempted: true, started: true },
+    { available: true, reason: null },
+    _deps.host(),
+  );
 }
 
 /**
