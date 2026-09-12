@@ -229,6 +229,17 @@ network calls. This intentionally retires these legacy direct-network surfaces
 pending a dedicated governed bridge; it does not restrict the separately
 capability-bound Cowork network broker.
 
+### Desktop regression execution note (2026-09-12)
+
+The complete Desktop Vitest command can overcommit this Windows host when it
+starts the real libp2p, CLI-server and temporary-database journeys alongside
+the rest of the suite. One parallel run consequently reported timeouts and
+loopback `ECONNREFUSED` in eleven unrelated files. Re-running that exact
+failure set with one worker and file parallelism disabled completed with **11
+files and 449 tests passed** in 1060.60 seconds. The focused legacy HTTP
+closure and Desktop egress-inventory tests also pass. This is local execution
+evidence only; a clean commit's CI matrix remains the release authority.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.
