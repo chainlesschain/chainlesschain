@@ -2785,7 +2785,7 @@ describe("Agent evolution runtime production composition", () => {
     }
   }, 120000);
 
-  it("isolates concurrent Desktop cache Runs and pins the selected client", async () => {
+  async function createDesktopCacheRunFixture({ summarize = false } = {}) {
     const require = createRequire(import.meta.url);
     const native =
       await require("../helpers/native-evolution-composition.cjs")();
@@ -2797,6 +2797,7 @@ describe("Agent evolution runtime production composition", () => {
     } = require("../../../../desktop-app-vue/src/main/llm/openai-client.js");
     const {
       ResponseCache,
+      calculateCacheKey,
     } = require("../../../../desktop-app-vue/src/main/llm/response-cache.js");
     const {
       bindDesktopModelIngressClient,
@@ -2824,6 +2825,36 @@ describe("Agent evolution runtime production composition", () => {
       new OpenAIClient({ apiKey: "header-only", model: "test-model" }),
       host,
     );
+    const manager = new LLMManager(
+      {
+        provider: "openai",
+        model: "test-model",
+        enableManusOptimizations: false,
+        enableStateBus: false,
+      },
+      host,
+    );
+    manager.client = client;
+    manager.isInitialized = true;
+    manager.responseCache = new ResponseCache(db, { enableAutoCleanup: false });
+    if (summarize) {
+      const {
+        PromptCompressor,
+      } = require("../../../../desktop-app-vue/src/main/llm/prompt-compressor.js");
+      manager.promptCompressor = new PromptCompressor({
+        enableDeduplication: false,
+        enableTruncation: false,
+        enableSummarization: true,
+        maxTotalTokens: 1,
+        llmManager: manager,
+      });
+    }
+    return { f, db, compositions, client, manager, calculateCacheKey };
+  }
+
+  it("isolates concurrent Desktop cache Runs and pins the selected client", async () => {
+    const { f, db, compositions, client, manager, calculateCacheKey } =
+      await createDesktopCacheRunFixture();
     const releases = new Map();
     let arrived;
     const arrivals = new Promise((resolve) => {
@@ -2854,18 +2885,6 @@ describe("Agent evolution runtime production composition", () => {
         throw new Error("replacement client must not run");
       }),
     };
-    const manager = new LLMManager(
-      {
-        provider: "openai",
-        model: "test-model",
-        enableManusOptimizations: false,
-        enableStateBus: false,
-      },
-      host,
-    );
-    manager.client = client;
-    manager.isInitialized = true;
-    manager.responseCache = new ResponseCache(db, { enableAutoCleanup: false });
     const completed = [];
     manager.on("chat-completed", (event) =>
       completed.push(event.result.message.content),
@@ -2941,16 +2960,20 @@ describe("Agent evolution runtime production composition", () => {
       });
       expect(wire).toHaveBeenCalledTimes(2);
       expect(completed).toHaveLength(2);
-      const {
-        PromptCompressor,
-      } = require("../../../../desktop-app-vue/src/main/llm/prompt-compressor.js");
-      manager.promptCompressor = new PromptCompressor({
-        enableDeduplication: false,
-        enableTruncation: false,
-        enableSummarization: true,
-        maxTotalTokens: 1,
-        llmManager: manager,
-      });
+    } finally {
+      for (const release of releases.values()) release();
+      await Promise.allSettled([a, b]);
+      manager.responseCache.destroy();
+      db.close();
+    }
+  }, 120000);
+
+  it("keeps Desktop prompt summarization and its chat in the same Run", async () => {
+    const { db, compositions, client, manager } =
+      await createDesktopCacheRunFixture({ summarize: true });
+    const wire = vi.fn();
+    client.client.post = wire;
+    try {
       const summaryBodies = [];
       wire.mockImplementation(async (_url, body) => {
         summaryBodies.push(body);
@@ -3005,7 +3028,22 @@ describe("Agent evolution runtime production composition", () => {
         "model-response-cache",
       ]);
       expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
+    } finally {
+      manager.responseCache.destroy();
+      db.close();
+    }
+  }, 120000);
 
+  it("keeps Desktop prompt summarization and its streamed chat in the same Run", async () => {
+    const { db, compositions, client, manager } =
+      await createDesktopCacheRunFixture({ summarize: true });
+    const wire = vi.fn();
+    client.client.post = wire;
+    try {
+      const conversation = Array.from({ length: 8 }, (_, index) => ({
+        role: index % 2 ? "assistant" : "user",
+        content: `History item ${index}`,
+      }));
       const streamBodies = [];
       wire.mockImplementation(async (_url, body, config) => {
         streamBodies.push(body);
@@ -3063,8 +3101,6 @@ describe("Agent evolution runtime production composition", () => {
       ]);
       expect(compositions.at(-1).loadRun().projection.status).toBe("completed");
     } finally {
-      for (const release of releases.values()) release();
-      await Promise.allSettled([a, b]);
       manager.responseCache.destroy();
       db.close();
     }
