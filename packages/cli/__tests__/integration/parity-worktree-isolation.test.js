@@ -1,4 +1,4 @@
-import "../helpers/test-model-egress.js";
+import { withTestEvolutionIngress } from "../helpers/test-model-egress.js";
 /**
  * Parity Harness — Sub-agent + worktree isolation boundary
  *
@@ -71,7 +71,11 @@ describe("Phase 7 parity: sub-agent + worktree isolation", () => {
       task: "say hi",
       cwd: workDir,
       useWorktree: false,
-      llmOptions: { provider: "mock", model: "mock-1", chatFn: mock.chatFn },
+      llmOptions: withTestEvolutionIngress({
+        provider: "mock",
+        model: "mock-1",
+        chatFn: mock.chatFn,
+      }),
     });
 
     const result = await sub.run("please greet");
@@ -104,7 +108,11 @@ describe("Phase 7 parity: sub-agent + worktree isolation", () => {
       // Parent condensed context goes through this field, NOT by
       // sharing the messages array.
       inheritedContext: "parent context summary",
-      llmOptions: { provider: "mock", model: "mock-1", chatFn: mock.chatFn },
+      llmOptions: withTestEvolutionIngress({
+        provider: "mock",
+        model: "mock-1",
+        chatFn: mock.chatFn,
+      }),
     });
 
     // Sub-agent has its own messages starting with a system prompt
@@ -165,7 +173,11 @@ describe("Phase 7 parity: sub-agent + worktree isolation", () => {
       task: "once-only",
       cwd: workDir,
       useWorktree: false,
-      llmOptions: { provider: "mock", model: "mock-1", chatFn: mock.chatFn },
+      llmOptions: withTestEvolutionIngress({
+        provider: "mock",
+        model: "mock-1",
+        chatFn: mock.chatFn,
+      }),
     });
 
     await sub.run("first");
@@ -206,7 +218,11 @@ describe("Phase 7 parity: sub-agent + worktree isolation", () => {
       cwd: workDir,
       useWorktree: true,
       allowedTools: ["read_file"],
-      llmOptions: { provider: "mock", model: "mock-1", chatFn: mock.chatFn },
+      llmOptions: withTestEvolutionIngress({
+        provider: "mock",
+        model: "mock-1",
+        chatFn: mock.chatFn,
+      }),
     });
 
     const result = await sub.run("read the marker");

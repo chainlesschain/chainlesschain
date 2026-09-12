@@ -34,7 +34,7 @@ export function createTestEvolutionCompositionFactory() {
 // fail-closed contract suite.
 enableTestModelEgress();
 
-function withTestEvolutionIngress(options = {}) {
+export function withTestEvolutionIngress(options = {}) {
   if (Object.hasOwn(options, "evolutionIngress")) return options;
   const evolutionIngress = globalThis[ingressKey];
   if (!evolutionIngress) {

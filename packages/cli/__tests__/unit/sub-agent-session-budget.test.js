@@ -1,13 +1,13 @@
 import "../helpers/test-model-egress.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/lib/agent-core.js", () => ({
+vi.mock("../../src/runtime/agent-core.js", () => ({
   buildSystemPrompt: () => "SYSTEM",
   AGENT_TOOLS: [],
   agentLoop: vi.fn(),
 }));
 
-import { agentLoop } from "../../src/lib/agent-core.js";
+import { agentLoop } from "../../src/runtime/agent-core.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
 

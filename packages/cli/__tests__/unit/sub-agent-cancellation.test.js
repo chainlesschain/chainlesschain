@@ -11,14 +11,14 @@ import "../helpers/test-model-egress.js";
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../../src/lib/agent-core.js", () => ({
+vi.mock("../../src/runtime/agent-core.js", () => ({
   buildSystemPrompt: () => "SYSTEM",
   AGENT_TOOLS: [],
   agentLoop: vi.fn(),
 }));
 
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
-import { agentLoop } from "../../src/lib/agent-core.js";
+import { agentLoop } from "../../src/runtime/agent-core.js";
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
 
 function makeLoop(events) {

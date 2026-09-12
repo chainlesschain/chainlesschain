@@ -1,4 +1,4 @@
-import "../helpers/test-model-egress.js";
+import { withTestEvolutionIngress } from "../helpers/test-model-egress.js";
 /**
  * REAL SubAgentContext usage-boundary coverage. The child loop is driven with
  * an injected chatFn, so these tests exercise the generator's actual ordering
@@ -8,12 +8,12 @@ import { describe, it, expect, vi } from "vitest";
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
 import { createMcpCallLedger } from "../../src/lib/mcp-call-ledger.js";
 
-const RUN_OPTIONS = {
+const RUN_OPTIONS = withTestEvolutionIngress({
   provider: "anthropic",
   model: "claude-haiku-4-5",
   autoCompact: false,
   runnableProviderFallback: false,
-};
+});
 
 function createContext(options = {}) {
   return SubAgentContext.create({

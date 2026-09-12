@@ -10,7 +10,11 @@
 
 import crypto from "crypto";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
-import { agentLoop, buildSystemPrompt, AGENT_TOOLS } from "./agent-core.js";
+import {
+  agentLoop,
+  buildSystemPrompt,
+  AGENT_TOOLS,
+} from "../runtime/agent-core.js";
 import { feature } from "./feature-flags.js";
 import { isEvolutionIngressFailure } from "./model-failure-policy.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
