@@ -11,6 +11,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  backend-model-egress:
+    name: Backend model-egress and real startup regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MODEL_EGRESS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.MODEL_EGRESS_COMMIT }}
+
+      - name: Verify exact model-egress source commit
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$MODEL_EGRESS_COMMIT"
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install tested service-import dependencies
+        # Match the tested real-main import environment without installing
+        # unused vector stores, model weights, GPU runtimes, or cloud SDKs.
+        run: >-
+          python -m pip install
+          fastapi==0.128.0 httpx==0.27.2 python-dotenv==1.2.1
+          ollama==0.6.1 openai==2.15.0 jinja2==3.1.6
+          python-docx==1.2.0 reportlab==4.4.9 pandas==2.3.3
+          matplotlib==3.10.8 seaborn==0.13.2 openpyxl==3.1.5
+          GitPython==3.1.46 pytest==9.0.2 pytest-asyncio==1.3.0
+
+      - name: Verify backend model denial and real FastAPI startup
+        working-directory: ./backend/ai-service
+        run: >-
+          python -m pytest -q
+          tests/test_code_generator.py
+          tests/test_service_startup.py
+          tests/test_code_reviewer.py
+          tests/test_code_refactorer.py
+          tests/test_legacy_model_egress_guard.py
+          ../tests/test_whisper_model_egress_guard.py
+          --junitxml=test-results/model-egress.xml
+
+      - name: Upload backend model-egress results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-model-egress-${{ env.MODEL_EGRESS_COMMIT }}
+          path: backend/ai-service/test-results/model-egress.xml
+          if-no-files-found: error
+          retention-days: 7
+
   # 快速单元测试（排除不稳定测试）
   unit-tests:
     name: Unit Tests
@@ -58,6 +111,17 @@ jobs:
         working-directory: ./packages/cli
         shell: bash
         run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
+
+      - name: Verify UniApp model-egress default deny
+        if: runner.os == 'Linux'
+        working-directory: ./mobile-app-uniapp
+        # These service tests use the existing root-locked Vitest and UniApp
+        # API setup, not a browser or the mobile application build toolchain.
+        run: >-
+          node ../node_modules/vitest/vitest.mjs run
+          --environment=node --maxWorkers=1
+          tests/unit/model-egress-guard.test.js
+          tests/unit/knowledge-rag-model-egress-static.test.js
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue

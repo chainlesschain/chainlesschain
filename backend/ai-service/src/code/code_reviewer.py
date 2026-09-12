@@ -4,7 +4,7 @@
 """
 import logging
 from typing import Dict, Any, List, Optional
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import ModelEgressGovernanceError
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,8 @@ class CodeReviewer:
 
     def __init__(self):
         """初始化代码审查器"""
-        self.llm_client = get_llm_client()
+        # Service startup must not construct a legacy provider client.
+        self.llm_client = None
 
     async def review(
         self,
@@ -33,6 +34,8 @@ class CodeReviewer:
         Returns:
             包含审查结果的字典
         """
+        raise ModelEgressGovernanceError()
+
         try:
             # 构建提示词
             prompt = self._build_review_prompt(code, language, focus_areas)

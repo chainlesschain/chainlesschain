@@ -81,6 +81,74 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("model-egress CI executes both UniApp guards without allowing failure", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test.yml"),
+    "utf8",
+  );
+  const step = workflow.match(
+    /^      - name: Verify UniApp model-egress default deny\r?\n([\s\S]*?)(?=^      - name:)/m,
+  )?.[1];
+  assert.ok(step, "missing UniApp model-egress CI step");
+  assert.match(step, /if: runner\.os == 'Linux'/);
+  assert.match(step, /working-directory: \.\/mobile-app-uniapp/);
+  assert.match(step, /node \.\.\/node_modules\/vitest\/vitest\.mjs run/);
+  assert.match(step, /--environment=node --maxWorkers=1/);
+  for (const testFile of [
+    "tests/unit/model-egress-guard.test.js",
+    "tests/unit/knowledge-rag-model-egress-static.test.js",
+  ]) {
+    assert.ok(step.includes(testFile), `${testFile} must execute in CI`);
+    assert.ok(
+      fs.existsSync(path.join(repoRoot, "mobile-app-uniapp", testFile)),
+    );
+  }
+  assert.doesNotMatch(step, /continue-on-error|\|\|\s*true|--passWithNoTests/);
+});
+
+test("model-egress CI runs real backend startup and guards as a required job", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test.yml"),
+    "utf8",
+  );
+  const job = workflow.match(
+    /^  backend-model-egress:\r?\n([\s\S]*?)(?=^  unit-tests:)/m,
+  )?.[1];
+  assert.ok(job, "missing required backend model-egress job");
+  assert.match(job, /runs-on: ubuntu-latest/);
+  assert.ok(
+    job.includes(
+      "MODEL_EGRESS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}",
+    ),
+  );
+  assert.ok(job.includes("ref: ${{ env.MODEL_EGRESS_COMMIT }}"));
+  assert.ok(
+    job.includes('run: test "$(git rev-parse HEAD)" = "$MODEL_EGRESS_COMMIT"'),
+  );
+  assert.ok(
+    job.includes("name: backend-model-egress-${{ env.MODEL_EGRESS_COMMIT }}"),
+  );
+  assert.match(job, /python-version: "3\.12"/);
+  assert.match(job, /working-directory: \.\/backend\/ai-service/);
+  assert.match(job, /python -m pytest -q/);
+  for (const testFile of [
+    "tests/test_code_generator.py",
+    "tests/test_service_startup.py",
+    "tests/test_code_reviewer.py",
+    "tests/test_code_refactorer.py",
+    "tests/test_legacy_model_egress_guard.py",
+    "../tests/test_whisper_model_egress_guard.py",
+  ]) {
+    assert.ok(job.includes(testFile), `${testFile} must execute in CI`);
+    assert.ok(
+      fs.existsSync(path.join(repoRoot, "backend", "ai-service", testFile)),
+    );
+  }
+  assert.match(job, /--junitxml=test-results\/model-egress\.xml/);
+  assert.match(job, /if-no-files-found: error/);
+  assert.doesNotMatch(job, /continue-on-error|\|\|\s*true|--collect-only/);
+});
+
 test("aggregate quality gate preserves workflow cancellation", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "code-quality.yml"),

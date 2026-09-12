@@ -4,7 +4,7 @@
 """
 import logging
 from typing import Dict, Any, Optional
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import ModelEgressGovernanceError
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,8 @@ class CodeRefactorer:
 
     def __init__(self):
         """初始化代码重构器"""
-        self.llm_client = get_llm_client()
+        # Service startup must not construct a legacy provider client.
+        self.llm_client = None
 
     async def refactor(
         self,
@@ -42,6 +43,8 @@ class CodeRefactorer:
         Returns:
             包含重构后代码的字典
         """
+        raise ModelEgressGovernanceError()
+
         try:
             # 构建提示词
             prompt = self._build_refactor_prompt(
@@ -203,6 +206,8 @@ class CodeRefactorer:
         Returns:
             代码解释
         """
+        raise ModelEgressGovernanceError()
+
         try:
             prompt = f"""请详细解释以下{language}代码的功能和工作原理：
 
@@ -241,6 +246,8 @@ class CodeRefactorer:
         Returns:
             优化结果
         """
+        raise ModelEgressGovernanceError()
+
         return await self.refactor(code, language, refactor_type="optimize")
 
     async def fix_bug(self, code: str, language: str, bug_description: Optional[str] = None) -> Dict[str, Any]:
@@ -255,6 +262,8 @@ class CodeRefactorer:
         Returns:
             修复后的代码
         """
+        raise ModelEgressGovernanceError()
+
         try:
             bug_info = f"\nBug描述：{bug_description}" if bug_description else ""
 

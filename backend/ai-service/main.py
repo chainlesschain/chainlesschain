@@ -36,13 +36,13 @@ from src.git.git_manager import GitManager
 from src.git.commit_message_generator import generate_commit_message
 from src.git.conflict_resolver import ConflictResolver
 
-# 导入索引器
-from src.indexing.file_indexer import FileIndexer
+# Indexing is disabled below; do not import its optional RAG/model stack at startup.
 
 # 导入代码助手
 from src.code.code_generator import CodeGenerator
 from src.code.code_reviewer import CodeReviewer
 from src.code.code_refactorer import CodeRefactorer
+from src.llm.llm_client import ModelEgressGovernanceError
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -59,6 +59,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(ModelEgressGovernanceError)
+async def model_egress_exception_handler(request: Request, exc: ModelEgressGovernanceError):
+    """Expose terminal governance denial without presenting model output."""
+    return JSONResponse(
+        status_code=503,
+        content={"detail": {"code": exc.code, "message": str(exc)}},
+    )
+
 
 # 添加验证异常处理器，记录详细的422错误
 @app.exception_handler(RequestValidationError)
@@ -1011,6 +1021,8 @@ async def generate_code(request: CodeGenerateRequest):
             request.context
         )
         return result
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1025,6 +1037,8 @@ async def review_code(request: CodeReviewRequest):
             request.focus_areas
         )
         return result
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1040,6 +1054,8 @@ async def refactor_code(request: CodeRefactorRequest):
             request.target
         )
         return result
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1053,6 +1069,8 @@ async def explain_code(request: CodeExplainRequest):
             request.language
         )
         return {"explanation": explanation}
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1067,6 +1085,8 @@ async def fix_bug(request: BugFixRequest):
             request.bug_description
         )
         return result
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1083,6 +1103,8 @@ async def generate_tests(request: TestGenerateRequest):
             context=request.code
         )
         return {"tests": result.get("tests", result.get("code"))}
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1096,6 +1118,8 @@ async def optimize_code(request: CodeOptimizeRequest):
             request.language
         )
         return result
+    except ModelEgressGovernanceError:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

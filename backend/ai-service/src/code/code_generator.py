@@ -4,7 +4,7 @@
 """
 import logging
 from typing import Dict, Any, Optional
-from src.llm.llm_client import get_llm_client
+from src.llm.llm_client import ModelEgressGovernanceError
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,8 @@ class CodeGenerator:
 
     def __init__(self):
         """初始化代码生成器"""
-        self.llm_client = get_llm_client()
+        # Service startup must not construct a legacy provider client.
+        self.llm_client = None
 
     async def generate(
         self,
@@ -39,6 +40,8 @@ class CodeGenerator:
         Returns:
             包含生成代码的字典
         """
+        raise ModelEgressGovernanceError()
+
         try:
             # 构建提示词
             prompt = self._build_prompt(
@@ -140,6 +143,8 @@ class CodeGenerator:
 
     async def _generate_tests(self, code: str, language: str) -> str:
         """生成测试代码"""
+        raise ModelEgressGovernanceError()
+
         try:
             test_prompt = f"""为以下{language}代码生成完整的单元测试：
 
