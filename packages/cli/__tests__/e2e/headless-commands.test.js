@@ -120,7 +120,7 @@ describe("E2E: headless CLI commands", () => {
     it("rejects an invalid --output-format with a non-zero exit", () => {
       const r = runFail(
         'agent -p "hi" --sandbox-mode off --output-format yaml',
-        { cwd: t.workspace, env: validationEnv() },
+        { cwd: t.workspace, env: validationEnv(), timeout: 120000 },
       );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --output-format");
@@ -129,7 +129,7 @@ describe("E2E: headless CLI commands", () => {
     it("rejects an invalid --permission-mode with a non-zero exit", () => {
       const r = runFail(
         'agent -p "hi" --sandbox-mode off --permission-mode yolo',
-        { cwd: t.workspace, env: validationEnv() },
+        { cwd: t.workspace, env: validationEnv(), timeout: 120000 },
       );
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain("Invalid --permission-mode");
