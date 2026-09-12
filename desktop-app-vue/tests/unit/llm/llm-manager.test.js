@@ -191,12 +191,21 @@ describe("LLMManager", () => {
           role: index % 2 ? "assistant" : "user",
           content: `Conversation history entry ${index}`,
         }));
+        // Exercise error propagation inside admitted work. The public entry
+        // now rejects an unbound client before it can reach the compressor;
+        // desktop-workflow-admission.test.js covers that outer boundary.
         await expect(
           stream
-            ? llmManager.chatWithMessagesStream(messages, () => {}, {
+            ? llmManager._chatWithMessagesStream(messages, () => {}, {
                 skipCache: true,
               })
-            : llmManager.chatWithMessages(messages, { skipCache: true }),
+            : llmManager._chatWithMessages(
+                messages,
+                { skipCache: true },
+                true,
+                () => {},
+                llmManager.client,
+              ),
         ).rejects.toBe(refusal);
         expect(summaryQuery).toHaveBeenCalledOnce();
         expect(call).not.toHaveBeenCalled();
@@ -234,10 +243,18 @@ describe("LLMManager", () => {
         );
         const messages = [{ role: "user", content: "hi" }];
         const options = { model: "override", skipCache: true };
+        // Isolate the admitted worker's terminal-error handling from the
+        // public workflow's independent host admission.
         await expect(
           stream
-            ? llmManager.chatWithMessagesStream(messages, () => {}, options)
-            : llmManager.chatWithMessages(messages, options),
+            ? llmManager._chatWithMessagesStream(messages, () => {}, options)
+            : llmManager._chatWithMessages(
+                messages,
+                options,
+                true,
+                () => {},
+                llmManager.client,
+              ),
         ).rejects.toBe(refusal);
         expect(call).toHaveBeenCalledOnce();
         expect(cacheWrite).not.toHaveBeenCalled();

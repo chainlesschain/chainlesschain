@@ -939,21 +939,8 @@ class LLMManager extends EventEmitter {
       throw new Error("LLM service is unavailable or paused");
     }
     const selectedClient = this.client;
-    if (modelIngressHosts.has(this)) {
-      return runDesktopModelWorkflow(selectedClient, { messages }, () =>
-        this._chatWithMessagesStream(
-          messages,
-          onChunk,
-          options,
-          selectedClient,
-        ),
-      );
-    }
-    return this._chatWithMessagesStream(
-      messages,
-      onChunk,
-      options,
-      selectedClient,
+    return runDesktopModelWorkflow(selectedClient, { messages }, () =>
+      this._chatWithMessagesStream(messages, onChunk, options, selectedClient),
     );
   }
 

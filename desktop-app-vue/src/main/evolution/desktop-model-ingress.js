@@ -22,8 +22,9 @@ function desktopChatResult(result) {
 }
 
 async function runDesktopCachedModelWorkflow(client, request, cache, work) {
-  const host = clients.get(client);
-  if (!host) return work(false, request);
+  // A legacy cache hit can bypass the provider entirely. Admission therefore
+  // precedes cache access and compression, not just the final HTTP request.
+  const host = getBoundDesktopModelIngressHost(client);
   try {
     const {
       calculateCacheKey,
@@ -225,8 +226,7 @@ async function consumeDesktopToolStream(prepared, response, onChunk) {
 }
 
 async function runDesktopModelWorkflow(client, input, work) {
-  const host = clients.get(client);
-  if (!host) return work();
+  const host = getBoundDesktopModelIngressHost(client);
   const ingress = await openDesktopModelRun(host, JSON.stringify(input));
   return workflows.run({ client, ingress }, async () => {
     const result = await work();
@@ -236,7 +236,7 @@ async function runDesktopModelWorkflow(client, input, work) {
 }
 
 async function runDesktopToolExecution(client, toolCall, execute) {
-  if (!clients.has(client)) return execute();
+  getBoundDesktopModelIngressHost(client);
   const scope = workflows.getStore();
   if (!scope || scope.client !== client) {
     const error = new Error(
