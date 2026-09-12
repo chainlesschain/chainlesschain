@@ -3620,6 +3620,10 @@ export async function executeTool(name, args, context = {}) {
       // never actually reached executeToolInner (sub-agents silently fell
       // back to config defaults and their usage was mis-attributed).
       llmOptions: context.llmOptions || null,
+      // A spawned child is part of the same governed model run. Preserve the
+      // already-captured ingress through the tool dispatcher so the child
+      // cannot fall through to an unauthenticated provider boundary.
+      evolutionIngress: context.evolutionIngress ?? null,
       // 用量归因: shared per-run sink for child-loop (sub-agent / isolated
       // skill) token usage, drained by agentLoop as attributed events.
       subAgentUsageSink: context.subAgentUsageSink || null,
@@ -5181,6 +5185,7 @@ async function executeToolInner(
     permanentMemory = null,
     subAgentContract = null,
     llmOptions,
+    evolutionIngress = null,
     shellPolicyOverrides,
     classifyAllShell = false,
     approvalGate,
@@ -7029,6 +7034,7 @@ async function executeToolInner(
           interaction,
           sessionId,
           llmOptions,
+          evolutionIngress,
           workflowEffectId,
           workflowChildEffectId,
           workflowChildSequence,
@@ -10206,6 +10212,9 @@ async function _executeSpawnSubAgent(args, ctx) {
   const parentLlm = ctx.llmOptions || {};
   const subLlmOptions = {
     ...parentLlm,
+    ...(ctx.evolutionIngress != null
+      ? { evolutionIngress: ctx.evolutionIngress }
+      : {}),
     model: mdModel || parentLlm.model || undefined,
     // Preserve the host's optional event channel across every nesting level.
     // It is observational only: child hooks/tools must never depend on a
@@ -13683,6 +13692,7 @@ export async function* agentLoop(messages, options) {
       options.contextEngine?.permanentMemory ?? options.permanentMemory ?? null,
     // Parent LLM config — forwarded to spawn_sub_agent so a delegated subagent
     // inherits the provider/key and can override just the model (cc agents `model:`).
+    evolutionIngress,
     llmOptions: {
       ...(evolutionIngress === null ? {} : { evolutionIngress }),
       provider: options.provider || null,

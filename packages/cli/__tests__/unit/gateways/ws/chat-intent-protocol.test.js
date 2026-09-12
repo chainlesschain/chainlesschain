@@ -1,10 +1,17 @@
+import "../../../helpers/test-model-egress.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock chat-core.js so the protocol doesn't actually hit any LLM. Use
-// vi.hoisted so the fn exists when the vi.mock factory runs.
+// vi.hoisted so the fn exists when the vi.mock factory runs. The production
+// service consumes the canonical async-event stream rather than the removed
+// chatWithStreaming facade.
 const { chatMock } = vi.hoisted(() => ({ chatMock: vi.fn() }));
 vi.mock("../../../../src/lib/chat-core.js", () => ({
-  chatWithStreaming: chatMock,
+  chatStream: (...args) =>
+    (async function* () {
+      const content = await chatMock(...args);
+      yield { type: "response-complete", content };
+    })(),
 }));
 
 import {

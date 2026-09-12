@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 本版将火山引擎新配置的默认文本模型统一为 DeepSeek V4 Flash GA，并同步发行 CLI、IDE 插件、桌面端与移动端产物；既有已保存模型配置保持不变。
 
-### Changed - cc CLI 0.166.44: use DeepSeek V4 Flash GA by default
+### Changed - cc CLI 0.166.45: use DeepSeek V4 Flash GA by default
 
 - Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for
   new CLI, agent and task-model configurations.

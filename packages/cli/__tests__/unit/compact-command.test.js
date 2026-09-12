@@ -1,4 +1,3 @@
-import "../helpers/test-model-egress.js";
 /**
  * Unit tests for `cc compact <session-id>` (src/commands/compact.js).
  *
@@ -43,6 +42,7 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => {
     appendEventIfHead: vi.fn((_sessionId, _type, _data, expectedHead) => ({
       hash: `${expectedHead}-next`,
     })),
+    appendAuthorityEvent: vi.fn(() => ({ hash: "head-2" })),
     appendAuthorityEventIfHead: vi.fn(() => ({ hash: "head-2" })),
   };
 });

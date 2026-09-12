@@ -844,12 +844,16 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
     );
   });
 
-  it("ambiguous email triggers Layer 2 when LLM is provided", async () => {
-    const { MockLLMClient } = require("../../lib/llm-client");
-    const llm = new MockLLMClient({
-      reply:
-        '{"category":"register","confidence":0.85,"reason":"verification code"}',
-    });
+  it("rejects legacy Layer 2 egress and degrades classification safely", async () => {
+    let llmCalls = 0;
+    const llm = {
+      chat: async () => {
+        llmCalls += 1;
+        return {
+          text: '{"category":"register","confidence":0.85,"reason":"verification code"}',
+        };
+      },
+    };
     const { factory } = makeMockSession({
       mailboxes: {
         INBOX: {
@@ -879,10 +883,15 @@ describe("EmailAdapter — classification (Phase 5.3)", () => {
     });
     const raws = [];
     for await (const r of a.sync()) raws.push(r);
-    // Layer 1 likely returned 'register' at ~0.75 (welcome rule) — falls to Layer 2
-    expect(raws[0].payload.classification.category).toBe("register");
-    // Either L2 fired (if L1 conf < 0.85) or L1 stuck.
-    expect(["L1", "L2"]).toContain(raws[0].payload.classification.layer);
+    expect(raws[0].payload.classification).toMatchObject({
+      category: "other",
+      confidence: 0,
+      layer: "error",
+    });
+    expect(raws[0].payload.classification.error).toContain(
+      "authenticated Evolution ingress",
+    );
+    expect(llmCalls).toBe(0);
   });
 
   it("classifier error inside sync degrades to OTHER (doesn't abort sync)", async () => {

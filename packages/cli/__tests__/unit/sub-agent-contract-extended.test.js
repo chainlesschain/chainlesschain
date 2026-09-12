@@ -1,4 +1,4 @@
-import "../helpers/test-model-egress.js";
+import { withTestEvolutionIngress } from "../helpers/test-model-egress.js";
 /**
  * Extended sub-agent contract (gap-analysis 2026-07-11 P1 "完整 Subagent 契约"):
  * disallowedTools / maxTurns / isolation reach the spawned child — via spawn
@@ -29,7 +29,7 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool } = await import("../../src/lib/agent-core.js");
+const { executeTool } = await import("../helpers/test-model-egress.js");
 const { SubAgentContext } = await import("../../src/lib/sub-agent-context.js");
 
 /** Capture the tool names sent to the (mocked) LLM by the child loop. */
@@ -58,14 +58,14 @@ afterEach(() => {
 
 // The child inherits the parent's LLM options; without them the sub-agent
 // loop fails "Unsupported provider" before any fetch.
-const CTX = {
+const CTX = withTestEvolutionIngress({
   cwd: process.cwd(),
   llmOptions: {
     provider: "ollama",
     model: "test-model",
     baseUrl: "http://localhost:11434",
   },
-};
+});
 
 describe("spawn_sub_agent — disallowedTools deny-list", () => {
   it("removes denied tools from the child's LLM tool surface", async () => {

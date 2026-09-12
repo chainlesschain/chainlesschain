@@ -3,7 +3,7 @@
   "releases": [
     {
       "productVersion": "v5.0.3.137",
-      "cliVersion": "0.166.44",
+      "cliVersion": "0.166.45",
       "cliVersions": [
         "0.1.1",
         "0.1.2",
@@ -107,13 +107,13 @@
         "0.166.41",
         "0.166.42",
         "0.166.43",
-        "0.166.44"
+        "0.166.45"
       ],
       "date": "2026-09-11",
       "title": "DeepSeek V4 Flash GA 默认模型与全端同步发行",
       "sections": [
         {
-          "heading": "Changed - cc CLI 0.166.44: use DeepSeek V4 Flash GA by default",
+          "heading": "Changed - cc CLI 0.166.45: use DeepSeek V4 Flash GA by default",
           "body": "- Use `deepseek-v4-flash-ga-260731` as the default Volcengine text model for\n  new CLI, agent and task-model configurations.\n- Keep `deepseek-v4-flash-260425` available for existing saved settings and\n  explicit model selection.\n- Pair VS Code `0.37.94` and JetBrains `0.4.122` with the same exact-gated CLI,\n  and embed it in the `v5.0.3.137` desktop and mobile release artifacts."
         },
         {

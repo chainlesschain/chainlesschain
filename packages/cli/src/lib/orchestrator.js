@@ -153,7 +153,9 @@ export class Orchestrator extends EventEmitter {
     this.notifier =
       options.notifier || NotificationManager.fromEnv(options.notify || {});
 
-    this._chat = createChatFn(this._llmOptions);
+    // The task-scoped evolution composition is created in addTask(), so no
+    // provider adapter may be constructed here before its ingress exists.
+    this._chat = null;
     this._cronTimer = null;
 
     // Forward router events
@@ -374,13 +376,17 @@ export class Orchestrator extends EventEmitter {
       (task.context ? `\nAdditional context:\n${task.context}` : "");
 
     try {
-      const chat =
-        evolutionIngress === null
-          ? this._chat
-          : createChatFn({
-              ...this._llmOptions,
-              evolutionIngress,
-            });
+      if (evolutionIngress === null) {
+        const error = new Error(
+          "Orchestrator model egress requires an authenticated evolution ingress",
+        );
+        error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+        throw error;
+      }
+      const chat = createChatFn({
+        ...this._llmOptions,
+        evolutionIngress,
+      });
       const raw = await chat(
         [
           { role: "system", content: systemPrompt },
