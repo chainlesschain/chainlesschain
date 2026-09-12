@@ -9,6 +9,7 @@ import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceException
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.ImageLabeler
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -35,7 +36,15 @@ import kotlin.coroutines.resume
  * @see <a href="https://developers.google.com/ml-kit/vision/image-labeling">ML Kit Image Labeling</a>
  */
 @Singleton
-class FileClassifier @Inject constructor() {
+class FileClassifier internal constructor(createImageLabeler: () -> ImageLabeler) {
+
+    @Inject
+    constructor() : this({
+        val options = ImageLabelerOptions.Builder()
+            .setConfidenceThreshold(DEFAULT_CONFIDENCE_THRESHOLD)
+            .build()
+        ImageLabeling.getClient(options)
+    })
 
     companion object {
         // Confidence threshold for ML Kit predictions
@@ -61,12 +70,8 @@ class FileClassifier @Inject constructor() {
     }
 
     // ML Kit image labeler
-    private val imageLabeler by lazy {
-        val options = ImageLabelerOptions.Builder()
-            .setConfidenceThreshold(DEFAULT_CONFIDENCE_THRESHOLD)
-            .build()
-        ImageLabeling.getClient(options)
-    }
+    private val imageLabelerDelegate = lazy(createImageLabeler)
+    private val imageLabeler by imageLabelerDelegate
 
     /**
      * Classification result
@@ -398,6 +403,9 @@ class FileClassifier @Inject constructor() {
      * Release resources
      */
     fun close() {
+        // Closing an unused or denied classifier must not initialize ML Kit.
+        if (!imageLabelerDelegate.isInitialized()) return
+
         try {
             imageLabeler.close()
         } catch (e: Exception) {

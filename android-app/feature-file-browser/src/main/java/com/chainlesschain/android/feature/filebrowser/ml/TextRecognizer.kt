@@ -9,6 +9,7 @@ import timber.log.Timber
 import com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceException
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer as MlKitTextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -40,7 +41,10 @@ import kotlin.coroutines.resume
  * @see <a href="https://developers.google.com/ml-kit/vision/text-recognition">ML Kit Text Recognition</a>
  */
 @Singleton
-class TextRecognizer @Inject constructor() {
+class TextRecognizer internal constructor(createRecognizer: () -> MlKitTextRecognizer) {
+
+    @Inject
+    constructor() : this({ TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) })
 
     companion object {
         // Maximum image dimension for processing (to avoid OOM)
@@ -48,9 +52,8 @@ class TextRecognizer @Inject constructor() {
     }
 
     // ML Kit text recognizer
-    private val recognizer by lazy {
-        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    }
+    private val recognizerDelegate = lazy(createRecognizer)
+    private val recognizer by recognizerDelegate
 
     /**
      * Recognition result
@@ -430,6 +433,10 @@ class TextRecognizer @Inject constructor() {
      * Release resources
      */
     fun close() {
+        // A denied request never initializes ML Kit. Cleanup must not create a
+        // client (which may start model downloads or service connections).
+        if (!recognizerDelegate.isInitialized()) return
+
         try {
             recognizer.close()
         } catch (e: Exception) {
