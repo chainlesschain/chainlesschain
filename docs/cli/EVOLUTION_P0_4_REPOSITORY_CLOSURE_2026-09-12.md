@@ -42,7 +42,7 @@
 
 基础批次还真实复现了整组授权缺口：复读 A 成功后、等待复读 B 时撤销 A，仍可提交旧 A。Reader 的短期 read decision 不是不可撤销的 commit lease；现有同账本 Knowledge admission fence 也不覆盖外部 evidenceState/ACL。下一节记录对此缺口的独立修复，不把串行重读解释为原子提交授权。
 
-完整 1,000 旅程测试正在实现，使用真实签名 Raw/Run/Reader/Wiki/Candidate、既存 active 文件及真实 Review/Controller/Registry 拒绝边界。50 样本长账本 pilot 已实测超线性成本，改为 **100×10，总量不变**；试跑与未完成长测均不计作 1,000 验收通过。既存 active 的测试 bootstrap 不代表真实外部人工批准或候选效果 Eval。
+完整 1,000 旅程测试已在工作区实现并开始全量验证，使用真实签名 Raw/Run/Reader/Wiki/Candidate、既存 active 文件及真实 Review/Controller/Registry 拒绝边界。50 样本长账本 pilot 已实测超线性成本，改为 **100×10，总量不变**；试跑与未完成长测均不计作 1,000 验收通过。既存 active 的测试 bootstrap 不代表真实外部人工批准或候选效果 Eval。
 
 ## 整组证据提交保护（独立批次）
 
@@ -95,9 +95,20 @@ proposalDigest 与 contentDigest 现在分别表示完整提案与候选正文�
 
 全局安装后先从 `npm root -g` 定位 CLI，检查 CLI evolution/runtime/harness、Hub/恢复 guard 与从该 CLI **实际解析**的 SDK 三个治理模块逐文件身份，再将同一个安装目录交给真实认证入口的 PR 恢复冒烟。检查拒绝源码目录、软/硬链接、同版本字节漂移以及被全局同级新 SDK 掩盖的旧嵌套 SDK。其范围是这些治理运行时，不声称验证所有发布资源或生成完整 SBOM。
 
-身份检查器的纯 Node 正反例直接进入上述三系统 job；工作流契约还要求身份检查先成功，再执行带安装目录参数的冒烟，不能无参数回退源码。当前仅有本地检查器/工作流验证，真实三系统 tarball 安装与目标运行仍须取得最终 SHA 的 Actions 结果。
+身份检查器的纯 Node 正反例直接进入上述三系统 job；工作流契约还要求身份检查先成功，再执行带安装目录参数的冒烟，不能无参数回退源码。当前另已取得下述 Windows 实际安装证据，但真实三系统 tarball 安装与目标运行仍须取得最终 SHA 的 Actions 结果。
 
 独立复核还真实复现了检查器自身的解析原点遗漏：根目录 SDK 正确，但 `src/lib/node_modules` 中的旧 SDK 被实际 Hub 消费者选中，初版检查仍通过。已改为从实际 `governed-hub-llm.js` 路径解析，新增该反例和正常全局同级 SDK 正控。最终身份检查 **12 项**与 CI 契约 **45 项**同次 **57/57、零跳过**通过（5.35 秒），不是 57 项实际安装旅程；该工作流 YAML/actionlint 及相关代码格式、ESLint 检查通过。
+
+### Windows 真实 tarball 安装复验
+
+受测源为干净隔离分支的 **`9a1d747c761775565ea0d9201c52fc64f92769e9`**，Node **22.22.2**；已整合远端 help index，并保留本地完整认证/压缩恢复脚本。验证前后 HEAD 与干净状态一致，未在源码目录安装依赖。
+
+- CLI 与十个精确内部依赖共 **11 个真实 tarball** 打包成功（66.92 秒）；临时全局 prefix 的真实安装 **exit 0**（163.20 秒，446 个依赖），未使用 `--ignore-scripts`。保留强制 native 源构建和无效 Python 路径，可选原生模块确实尝试构建并失败，但不阻断便携 CLI。
+- 身份检查 **exit 0**（11.27 秒）：CLI **242 个**相关文件与实际解析到的 SDK **3 个**治理模块均匹配受测源；SDK 是实际临时全局同级物理目录，不是工作区链接。
+- 显式安装目录的认证恢复冒烟 **exit 0**（185.48 秒），原三种 PR/拒绝恢复场景及真实 canonical compaction 正控全部通过。实际 **18 次本地 provider 请求、0 次模型摘要请求、0 次 GitHub 请求**；不是外部模型或真实 GitHub PR 操作。
+- 临时 prefix 的 `cc`、`chainlesschain` 两个真实 shim 都返回 **0.166.45**。真实 postinstall 在隔离 APPDATA 下产生 **9 个技能包、18 个非空文件**并读回；npm 配置/cache、应用 home、anchor 和 transaction 目录全部隔离，未改用户全局安装。
+
+同一执行 session `93105` 最终 **exit 0**。完整报告和日志保留于临时证据目录 `cc-evo-installed-probe-c085969a52794995a57a34d3f8546274` 的 `report-escalated.json`、`probe-escalated.log`；日志 SHA-256 为 `ec387077f4d2b4cbfafc21fb3739d8130525790240bf61d2aee863f3476b67d8`，CLI tarball SHA-256 为 `0a35c25c23cc15795fd10c9caec5722972911236ba6739ed6a944f957b1885bf`。首次执行在打包前被沙盒目录权限拒绝，保留失败记录；按权限流程授权后才得到上述完整终态。该结果仅证明本地 Windows 的精确受测提交，不替代最终提交的 Linux/macOS/Windows Actions，也未发布 npm。
 
 ## 最终源码身份与 CI 结果门
 
