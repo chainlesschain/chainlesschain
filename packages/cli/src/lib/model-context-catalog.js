@@ -45,7 +45,7 @@ export const CONTEXT_WINDOWS = Object.freeze({
   }),
 });
 
-export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-09-12";
+export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-09-13";
 
 // Explicit ownership prevents a model name served by an unrelated provider
 // from silently inheriting another provider's catalog window.

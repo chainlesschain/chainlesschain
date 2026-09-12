@@ -188,12 +188,13 @@ export function resolveModelCapabilityProfile({
       ? "ollama-chat"
       : selectedProvider === "anthropic"
         ? "anthropic-messages"
-        : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)
-          ? "chat-completions"
-          : "unsupported";
+        : selectedProvider === "openai" && documented?.requiresResponsesForTools
+          ? "openai-responses"
+          : CHAT_COMPLETIONS_PROVIDERS.has(selectedProvider) || Boolean(baseUrl)
+            ? "chat-completions"
+            : "unsupported";
   const limitations = [
     "Runtime execution, endpoint access and account entitlement have not been verified.",
-    "Native Responses transport is not implemented by the current agent.",
   ];
   if (windowSource === "explicit-override") {
     limitations.push("The context window is operator-declared and unverified.");
@@ -224,7 +225,7 @@ export function resolveModelCapabilityProfile({
   }
   if (documented?.requiresResponsesForTools) {
     limitations.push(
-      "This model requires Responses for tool calling; the current agent uses Chat Completions and has no native Responses tool transport.",
+      "Responses selection is based on the versioned catalog and has not been verified against this account at runtime.",
     );
   }
   if (runtimeProtocol === "unsupported") {

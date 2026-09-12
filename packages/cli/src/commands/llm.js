@@ -149,12 +149,16 @@ export function resolveLlmCapabilities(
 }
 
 export function formatLlmCapabilities(profile) {
+  const protocolNote =
+    profile.runtimeProtocol === "openai-responses"
+      ? "native Responses adapter selected from the static profile; runtime not verified"
+      : "transport selection is static; runtime not verified";
   return [
     "LLM capability profile (static; runtime not verified)",
     `Provider: ${profile.provider}`,
     `Model: ${profile.model}`,
     `Context window: ${profile.contextWindowTokens} tokens (${profile.windowSource}; ${profile.windowAssumed ? "assumed/operator-declared, not runtime verified" : "static metadata, not runtime verified"})`,
-    `Runtime protocol: ${profile.runtimeProtocol}; Responses is not integrated`,
+    `Runtime protocol: ${profile.runtimeProtocol}; ${protocolNote}`,
     `Request output cap: ${profile.requestMaxOutputTokens ?? "not explicitly set"}`,
     `Planned output reserve: ${profile.plannedOutputReserveTokens} tokens (${profile.outputReserveSource}); planning reserve is not an enforced request cap`,
     `Advertised maximum output: ${profile.advertisedMaxOutputTokens ?? "unknown"}`,

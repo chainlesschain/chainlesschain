@@ -113,6 +113,51 @@ describe("Agent model projection protocol boundary", () => {
     );
   });
 
+  it("restores only digest-bound OpenAI reasoning continuity items", () => {
+    const original = {
+      messages: [
+        {
+          role: "assistant",
+          content: "",
+          _openaiReasoningItems: [
+            {
+              type: "reasoning",
+              id: "rs_1",
+              encrypted_content: "opaque-provider-continuity",
+              status: "completed",
+              summary: [{ type: "summary_text", text: "Inspect safely." }],
+            },
+          ],
+          _openaiReasoningSummary: "Inspect safely.",
+        },
+      ],
+      tools: [],
+    };
+    const safe = structuredClone(original);
+    safe.messages[0]._openaiReasoningItems[0] =
+      projectAgentOpaqueTransportBlock(
+        original.messages[0]._openaiReasoningItems[0],
+        "messages.0._openaiReasoningItems.0",
+      );
+    safe.messages[0]._openaiReasoningSummary = "Inspect [REDACTED].";
+
+    expect(() => snapshotAgentModelRequest(safe)).toThrow(/unsupported/u);
+    const output = buildAgentModelRequest(original, projection(safe));
+    expect(output.messages[1]._openaiReasoningItems).toEqual(
+      original.messages[0]._openaiReasoningItems,
+    );
+    expect(output.messages[1]._openaiReasoningSummary).toBe(
+      "Inspect [REDACTED].",
+    );
+
+    const tampered = structuredClone(original);
+    tampered.messages[0]._openaiReasoningItems[0].encrypted_content =
+      "different-provider-continuity";
+    expect(() => buildAgentModelRequest(tampered, projection(safe))).toThrow(
+      /commitment/u,
+    );
+  });
+
   it("rejects unsigned thinking and non-canonical or remote image blocks", () => {
     for (const content of [
       [{ type: "image_url", image_url: { url: "https://example.test/a.png" } }],

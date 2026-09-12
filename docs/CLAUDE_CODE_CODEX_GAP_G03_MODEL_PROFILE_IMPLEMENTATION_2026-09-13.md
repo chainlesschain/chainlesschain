@@ -4,6 +4,7 @@
 > 对应审计：[最新版本差距报告](./CLAUDE_CODE_CODEX_LATEST_GAP_ANALYSIS_2026-09-12.md)<br>
 > 前置批次：[G01/G02 实施记录](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)<br>
 > 范围：G03 的版本化能力 profile、只读诊断和上下文预算绑定。**不包含原生 OpenAI Responses 传输，也不构成最新模型运行认证。**
+> 后续实施：[G03 OpenAI Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)。本文件保留基础层交付时点边界。
 
 ## 1. 本批结果
 

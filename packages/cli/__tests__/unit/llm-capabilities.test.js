@@ -172,7 +172,7 @@ describe("cc llm capabilities", () => {
     expect(profile.plannedOutputReserveTokens).toBeGreaterThan(0);
     expect(profile.limitations.join(" ")).toMatch(/not|unverified|assum/i);
     expect(profile.limitations.join(" ")).toContain(
-      "Responses transport is not implemented",
+      "Runtime execution, endpoint access and account entitlement have not been verified",
     );
     expect(errors).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
@@ -184,11 +184,27 @@ describe("cc llm capabilities", () => {
     expect(text).toContain("runtime not verified");
     expect(text).toContain("Fallback values are estimates");
     expect(text).toContain("planning reserve is not an enforced request cap");
-    expect(text).toContain("Responses is not integrated");
+    expect(text).toContain("transport selection is static");
     expect(text).not.toMatch(/\bready\b|✔|Connected/);
     expect(
       formatLlmCapabilities(resolveLlmCapabilities({ contextWindow: "8192" })),
     ).toContain("8192");
+  });
+
+  it("shows native Responses as selected but not runtime verified", async () => {
+    await invoke([
+      "--provider",
+      "openai",
+      "--model",
+      "gpt-6-astra",
+      "--base-url",
+      "https://api.openai.com/v1",
+    ]);
+    const text = output.mock.calls.flat().join(" ");
+    expect(text).toContain("Runtime protocol: openai-responses");
+    expect(text).toContain("native Responses adapter selected");
+    expect(text).toContain("runtime not verified");
+    expect(text).not.toMatch(/\bready\b|Connected/);
   });
 
   it.each([

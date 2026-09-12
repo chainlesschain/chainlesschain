@@ -22,7 +22,7 @@ describe("versioned model capability profiles", () => {
     });
     expect(profile).toMatchObject({
       schema: "chainlesschain.model-capability-profile/v1",
-      catalogVersion: "2026-09-12",
+      catalogVersion: "2026-09-13",
       provider: "openai",
       model: "gpt-4o",
       contextWindowTokens: 128000,
@@ -39,7 +39,7 @@ describe("versioned model capability profiles", () => {
     expect(profile.limitations.join(" ")).toMatch(/not an output cap/);
   });
 
-  it("exposes the native Responses tool gap without selecting another transport", () => {
+  it("selects native Responses for the documented official tool target", () => {
     const profile = resolveModelCapabilityProfile({
       provider: "openai",
       model: "gpt-6-astra",
@@ -47,11 +47,10 @@ describe("versioned model capability profiles", () => {
     });
     expect(profile.contextWindowTokens).toBe(1050000);
     expect(profile.advertisedMaxOutputTokens).toBe(128000);
-    expect(profile.runtimeProtocol).toBe("chat-completions");
+    expect(profile.runtimeProtocol).toBe("openai-responses");
     expect(profile.runtimeVerified).toBe(false);
-    expect(profile.limitations.join(" ")).toMatch(
-      /requires Responses for tool calling/,
-    );
+    expect(profile.limitations.join(" ")).toMatch(/has not been verified/);
+    expect(profile.limitations.join(" ")).not.toMatch(/not implemented/);
     expect(profile.sources).toContain(
       "https://developers.openai.com/api/docs/guides/migrate-to-responses",
     );

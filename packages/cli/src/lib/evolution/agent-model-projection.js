@@ -11,6 +11,8 @@ const MESSAGE_KEYS = new Set([
   "tool_call_id",
   "name",
   "_thinkingBlocks",
+  "_openaiReasoningItems",
+  "_openaiReasoningSummary",
 ]);
 const OPAQUE_BLOCK_SCHEMA =
   "chainlesschain.evolution-agent-opaque-transport-block/v1";
@@ -124,6 +126,9 @@ function opaqueKind(value, path) {
   if (/^messages\.\d+\._thinkingBlocks\.\d+$/u.test(path)) {
     return thinkingBlock(value) ? value.type : null;
   }
+  if (/^messages\.\d+\._openaiReasoningItems\.\d+$/u.test(path)) {
+    return openAIReasoningItem(value) ? "openai_reasoning" : null;
+  }
   return null;
 }
 
@@ -142,11 +147,68 @@ function isOpaqueBlock(value) {
   return (
     exactKeys(value, OPAQUE_BLOCK_KEYS) &&
     value.schema === OPAQUE_BLOCK_SCHEMA &&
-    ["image", "thinking", "redacted_thinking"].includes(value.kind) &&
+    ["image", "thinking", "redacted_thinking", "openai_reasoning"].includes(
+      value.kind,
+    ) &&
     /^sha256:[a-f0-9]{64}$/u.test(value.digest) &&
     Number.isSafeInteger(value.byteLength) &&
     value.byteLength > 0
   );
+}
+
+function openAIReasoningItem(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+    value.type !== "reasoning" ||
+    Object.keys(value).some(
+      (key) =>
+        !["type", "id", "encrypted_content", "summary", "status"].includes(key),
+    )
+  ) {
+    return null;
+  }
+  if (
+    Object.hasOwn(value, "id") &&
+    (typeof value.id !== "string" ||
+      !/^[A-Za-z0-9._:-]{1,256}$/u.test(value.id))
+  ) {
+    return null;
+  }
+  if (
+    Object.hasOwn(value, "encrypted_content") &&
+    (typeof value.encrypted_content !== "string" ||
+      value.encrypted_content.length < 1 ||
+      value.encrypted_content.length > 256 * 1024 ||
+      !/^[\x21-\x7e]+$/u.test(value.encrypted_content))
+  ) {
+    return null;
+  }
+  if (Object.hasOwn(value, "summary")) {
+    if (
+      !Array.isArray(value.summary) ||
+      value.summary.length < 1 ||
+      value.summary.length > 16 ||
+      value.summary.some(
+        (part) =>
+          !exactKeys(part, new Set(["type", "text"])) ||
+          part.type !== "summary_text" ||
+          typeof part.text !== "string" ||
+          part.text.length > 8192,
+      )
+    ) {
+      return null;
+    }
+  }
+  if (
+    Object.hasOwn(value, "status") &&
+    !["completed", "in_progress", "incomplete"].includes(value.status)
+  ) {
+    return null;
+  }
+  return Object.keys(value).length > 1 ? value : null;
 }
 
 function assertContentBlock(value, path, allowOpaqueTransportBlocks) {
@@ -213,6 +275,36 @@ function assertMessageShape(message, index, allowOpaqueTransportBlocks) {
         );
       }
     });
+  }
+  if (Object.hasOwn(message, "_openaiReasoningItems")) {
+    if (
+      message.role !== "assistant" ||
+      !Array.isArray(message._openaiReasoningItems) ||
+      !message._openaiReasoningItems.length ||
+      message._openaiReasoningItems.length > 16
+    ) {
+      throw new TypeError(
+        "OpenAI reasoning replay requires bounded assistant items",
+      );
+    }
+    message._openaiReasoningItems.forEach((item, itemIndex) => {
+      if (
+        !(allowOpaqueTransportBlocks && isOpaqueBlock(item)) &&
+        !openAIReasoningItem(item)
+      ) {
+        throw new TypeError(
+          `OpenAI reasoning item at messages.${index}._openaiReasoningItems.${itemIndex} is unsupported`,
+        );
+      }
+    });
+  }
+  if (
+    Object.hasOwn(message, "_openaiReasoningSummary") &&
+    (message.role !== "assistant" ||
+      typeof message._openaiReasoningSummary !== "string" ||
+      message._openaiReasoningSummary.length > 8192)
+  ) {
+    throw new TypeError("OpenAI reasoning summary is unsupported");
   }
 }
 
@@ -326,6 +418,10 @@ function textPath(path, allowStructuredArgumentText = true) {
     /^messages\.\d+\._thinkingBlocks\.\d+\.(?:thinking|signature|data)$/u.test(
       path,
     ) ||
+    /^messages\.\d+\._openaiReasoningItems\.\d+\.(?:encrypted_content|summary\.\d+\.text)$/u.test(
+      path,
+    ) ||
+    /^messages\.\d+\._openaiReasoningSummary$/u.test(path) ||
     (allowStructuredArgumentText
       ? /^messages\.\d+\.tool_calls\.\d+\.function\.arguments(?:\.|$)/u.test(
           path,

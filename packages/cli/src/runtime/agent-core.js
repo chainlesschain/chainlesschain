@@ -50,7 +50,17 @@ import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.js";
-import { resolveAgentOutputBudget } from "../lib/model-capabilities.js";
+import {
+  resolveAgentOutputBudget,
+  resolveModelCapabilityProfile,
+} from "../lib/model-capabilities.js";
+import {
+  createOpenAIResponsesBody,
+  createOpenAIResponsesStreamState,
+  finalizeOpenAIResponsesStream,
+  normalizeOpenAIResponsesResponse,
+  reduceOpenAIResponsesStreamLine,
+} from "../lib/openai-responses.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
 import {
   commitShellApprovalSideEffects,
@@ -11357,6 +11367,85 @@ export async function chatWithTools(rawMessages, options) {
     gemini: "gemini-2.0-flash",
     volcengine: "deepseek-v4-flash-ga-260731",
   };
+  const effectiveModel = model || defaultModels[provider] || "gpt-4o-mini";
+  const modelProfile = resolveModelCapabilityProfile({
+    provider,
+    model: effectiveModel,
+    baseUrl: url,
+    maxOutputTokens: options.maxOutputTokens,
+  });
+  const useOpenAIResponses =
+    provider === "openai" &&
+    modelProfile.runtimeProtocol === "openai-responses";
+
+  if (useOpenAIResponses) {
+    const responseBody = createOpenAIResponsesBody({
+      model: effectiveModel,
+      messages,
+      tools,
+      maxOutputTokens: options.maxOutputTokens,
+      reasoning: _openAIResponsesReasoningParams(options),
+      stream: typeof options.onToken === "function",
+    });
+    if (typeof options.onToken === "function") {
+      return await _retryStreamingChat(
+        (attempt = 0) =>
+          _chatOpenAIResponsesStreaming(
+            `${url}/responses`,
+            responseBody,
+            key,
+            options.onToken,
+            signal,
+            options.onThinking,
+            options.onStall,
+            options.streamStallMs,
+            options.streamStallTimeoutMs,
+            supportsOpenAIRequestIdentity
+              ? _physicalProviderRequestId(providerRequestId, attempt)
+              : null,
+          ),
+        {
+          signal,
+          retries: options.workflowEffectId ? 0 : undefined,
+          strictRetryObserver: options.strictUsageTelemetry === true,
+          ...(typeof options.onStreamRetry === "function"
+            ? {
+                onRetry: (attempt, error, telemetry) =>
+                  options.onStreamRetry(attempt, error, {
+                    ...telemetry,
+                    provider,
+                    model: effectiveModel,
+                  }),
+              }
+            : {}),
+        },
+      );
+    }
+
+    const response = await fetch(`${url}/responses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        ...(supportsOpenAIRequestIdentity && providerRequestId
+          ? { "X-Client-Request-Id": providerRequestId }
+          : {}),
+      },
+      signal,
+      body: JSON.stringify(responseBody),
+    });
+    if (!response.ok) {
+      throw new Error(await formatProviderResponseError(provider, response));
+    }
+    const data = await response.json();
+    const out = normalizeOpenAIResponsesResponse(data);
+    delete out.responseId;
+    const providerReceipt = supportsOpenAIRequestIdentity
+      ? _openAIProviderRequestReceipt(response, data, providerRequestId)
+      : null;
+    if (providerReceipt) out.providerReceipt = providerReceipt;
+    return out;
+  }
 
   // Real token streaming (--include-partial-messages) for every OpenAI-compatible
   // provider (openai / deepseek / dashscope / mistral / gemini / volcengine):
@@ -11368,7 +11457,7 @@ export async function chatWithTools(rawMessages, options) {
         _chatOpenAIStreaming(
           `${url}/chat/completions`,
           {
-            model: model || defaultModels[provider] || "gpt-4o-mini",
+            model: effectiveModel,
             messages,
             tools,
             stream: true,
@@ -11398,7 +11487,7 @@ export async function chatWithTools(rawMessages, options) {
                 options.onStreamRetry(attempt, error, {
                   ...telemetry,
                   provider,
-                  model: model || defaultModels[provider] || "gpt-4o-mini",
+                  model: effectiveModel,
                 }),
             }
           : {}),
@@ -11417,7 +11506,7 @@ export async function chatWithTools(rawMessages, options) {
     },
     signal,
     body: JSON.stringify({
-      model: model || defaultModels[provider] || "gpt-4o-mini",
+      model: effectiveModel,
       messages,
       tools,
       ...(options.maxOutputTokens
@@ -12332,6 +12421,83 @@ async function _chatOpenAIStreaming(
   return out;
 }
 
+async function _chatOpenAIResponsesStreaming(
+  apiUrl,
+  body,
+  apiKey,
+  onToken,
+  signal,
+  onThinking,
+  onStall,
+  stallMs,
+  stallTimeoutMs,
+  providerRequestId = null,
+) {
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      ...(providerRequestId
+        ? { "X-Client-Request-Id": providerRequestId }
+        : {}),
+    },
+    signal,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(await formatProviderResponseError("openai", response));
+  }
+  const state = createOpenAIResponsesStreamState();
+  const ui = _streamUiCallbacks(onToken, onThinking);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  try {
+    for await (const value of _iterateStreamWithStall(reader, {
+      onStall,
+      stallMs,
+      stallTimeoutMs,
+    })) {
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
+      for (const line of lines) {
+        reduceOpenAIResponsesStreamLine(state, line, ui.onToken, ui.onThinking);
+        await ui.settle();
+      }
+    }
+    if (buf.trim()) {
+      reduceOpenAIResponsesStreamLine(state, buf, ui.onToken, ui.onThinking);
+      await ui.settle();
+    }
+  } catch (error) {
+    if (_streamErrorDisposition(error, signal, state.text) === "rethrow") {
+      throw error;
+    }
+    const out = _finalizeTruncatedStream(finalizeOpenAIResponsesStream, state);
+    const responseId = out.responseId || state.responseId;
+    delete out.responseId;
+    const providerReceipt = _openAIProviderRequestReceipt(
+      response,
+      { id: responseId },
+      providerRequestId,
+    );
+    if (providerReceipt) out.providerReceipt = providerReceipt;
+    return out;
+  }
+  const out = finalizeOpenAIResponsesStream(state);
+  const responseId = out.responseId || state.responseId;
+  delete out.responseId;
+  const providerReceipt = _openAIProviderRequestReceipt(
+    response,
+    { id: responseId },
+    providerRequestId,
+  );
+  if (providerReceipt) out.providerReceipt = providerReceipt;
+  return out;
+}
+
 /**
  * Convert cc's internal OpenAI-shaped messages into Anthropic content-block
  * messages. Internal shape: {role:"user"|"assistant"|"tool", content,
@@ -12430,6 +12596,31 @@ function _intensityToEffort(want) {
     default:
       return "high"; // bare `true` → a sensible default for intelligence work
   }
+}
+
+/** Build an opt-in Responses reasoning request without changing default cost. */
+export function _openAIResponsesReasoningParams(options = {}) {
+  const want = options?.thinking;
+  if (!want || want === "off" || want === "none") return null;
+  const allowed = new Set([
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+  ]);
+  const requested =
+    typeof options.thinkingEffort === "string"
+      ? options.thinkingEffort.toLowerCase()
+      : null;
+  return {
+    effort:
+      requested && allowed.has(requested)
+        ? requested
+        : _intensityToEffort(want),
+    summary: "auto",
+  };
 }
 
 /**
@@ -15177,7 +15368,9 @@ export async function* agentLoop(messages, options) {
             .map((b) => b.thinking || "")
             .join("")
             .trim()
-        : "";
+        : typeof msg._openaiReasoningSummary === "string"
+          ? msg._openaiReasoningSummary.trim()
+          : "";
       // Claude Code 2.1.183 parity: a turn that produced ONLY extended-thinking
       // (no visible text, no tool calls) would otherwise complete silently with
       // an empty answer — the user sees nothing. Re-prompt the model ONCE to
@@ -15274,11 +15467,17 @@ export async function* agentLoop(messages, options) {
     // before it chose these tool calls. Streaming consumers already get it live
     // via onThinking, so only surface it as an event for non-streaming consumers
     // (the REPL) — keeps it out of the --include-partial-messages stream.
-    if (!options.onThinking && Array.isArray(msg._thinkingBlocks)) {
-      const _stepThinking = msg._thinkingBlocks
-        .map((b) => b.thinking || "")
-        .join("")
-        .trim();
+    if (
+      !options.onThinking &&
+      (Array.isArray(msg._thinkingBlocks) ||
+        typeof msg._openaiReasoningSummary === "string")
+    ) {
+      const _stepThinking = Array.isArray(msg._thinkingBlocks)
+        ? msg._thinkingBlocks
+            .map((b) => b.thinking || "")
+            .join("")
+            .trim()
+        : msg._openaiReasoningSummary.trim();
       if (_stepThinking) yield { type: "thinking", text: _stepThinking };
     }
 
