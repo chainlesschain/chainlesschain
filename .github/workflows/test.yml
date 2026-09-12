@@ -277,27 +277,42 @@ jobs:
             desktop-app-vue/dist/
           retention-days: 7
 
-  # CLI 全局安装冒烟（验证 postinstall 在 Windows/Linux 都不炸）
+  # CLI 全局安装冒烟（验证三系统 postinstall 和实际安装后的治理运行时）
   cli-install-smoke:
     name: CLI Global Install Smoke
     runs-on: ${{ matrix.os }}
     # Windows global installs can spend several minutes resolving native
     # dependencies. Keep enough headroom for hosted-runner/network variance.
     timeout-minutes: 20
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify exact installed CLI source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A full source SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          echo "Tested source SHA: $SOURCE_SHA"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
+
+      - name: Verify installed runtime identity guard contracts
+        run: node --test scripts/__tests__/installed-evolution-runtime.test.mjs
 
       - name: Pack CLI and exact internal dependency candidates
         shell: bash
@@ -320,6 +335,14 @@ jobs:
         run: |
           cc --version
           chainlesschain --version
+
+      - name: Verify installed evolution runtime and PR recovery smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          CLI_INSTALLED_ROOT="$(npm root -g)/chainlesschain"
+          node packages/cli/scripts/verify-installed-evolution-runtime.mjs "$CLI_INSTALLED_ROOT"
+          node packages/cli/scripts/pr-recovery-smoke.mjs "$CLI_INSTALLED_ROOT"
 
   # 数据库测试（仅 Linux，需要 SQLite）
   database-tests:
