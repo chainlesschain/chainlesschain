@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceException
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
@@ -97,6 +98,11 @@ class FileClassifier @Inject constructor() {
         currentCategory: FileCategory,
         mimeType: String?
     ): ClassificationResult = withContext(Dispatchers.IO) {
+        // Image labeling may select an on-device or service-backed ML Kit
+        // model. This direct path has no Evolution projection or evidence
+        // lifecycle, so it must fail before inspecting user files.
+        throw ModelEgressGovernanceException()
+
         try {
             when (currentCategory) {
                 FileCategory.IMAGE -> classifyImage(contentResolver, uri)
@@ -380,6 +386,9 @@ class FileClassifier @Inject constructor() {
         contentResolver: ContentResolver,
         files: List<Triple<String, FileCategory, String?>>
     ): Map<String, ClassificationResult> = withContext(Dispatchers.IO) {
+        // Keep the batch surface fail-closed independently of classifyFile().
+        throw ModelEgressGovernanceException()
+
         files.associate { (uri, category, mimeType) ->
             uri to classifyFile(contentResolver, uri, category, mimeType)
         }

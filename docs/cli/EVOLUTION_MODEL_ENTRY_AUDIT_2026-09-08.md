@@ -297,6 +297,24 @@ and the two scanner executors place `CC_AGENT_EVOLUTION_INGRESS_FAILED` before
 media loading or framework execution. This is source-level proof only until the
 macOS target workflow compiles and tests the changed sources.
 
+### Android file-browser ML Kit closure (2026-09-12 follow-up)
+
+The Android file-browser module also contained two direct ML Kit consumers not
+owned by `feature-ai`: `TextRecognizer` reads a caller-selected image before
+sending it to the text recognizer, and `FileClassifier` can read an image and
+send it to the image-labeling client. On-device execution does not provide an
+authenticated Evolution projection or response-evidence lifecycle; a
+service-backed implementation has the same missing boundary.
+
+Both their single-item and batch public entry points now throw
+`CC_AGENT_EVOLUTION_INGRESS_FAILED` before URI enumeration, image loading, or
+ML Kit client use. The `feature-file-browser` unit contract invokes the two
+single-item APIs with a mocked `ContentResolver` and asserts the terminal code
+plus zero `openInputStream` calls; the repository-level static contract also
+asserts every public entry places the terminal guard before its first content
+or batch-work statement. This keeps the legacy feature source available for a
+future governed bridge without allowing it to become a direct model-input path.
+
 Other background model consumers and Desktop Hub overrides still require
 separate tracing. The minimal Hub deliberately has a
 non-inference sentinel and does not need a model wrapper.

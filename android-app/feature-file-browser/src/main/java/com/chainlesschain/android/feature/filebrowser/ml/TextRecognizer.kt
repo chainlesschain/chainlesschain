@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
 import timber.log.Timber
+import com.chainlesschain.android.feature.ai.data.llm.ModelEgressGovernanceException
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -157,6 +158,11 @@ class TextRecognizer @Inject constructor() {
         contentResolver: ContentResolver,
         uri: String
     ): RecognitionResult = withContext(Dispatchers.IO) {
+        // ML Kit may execute an on-device or service-backed model. This legacy
+        // file-browser path has no authenticated Evolution ingress/evidence
+        // lifecycle, so reject it before reading the caller's image.
+        throw ModelEgressGovernanceException()
+
         try {
             // Load and prepare image
             val bitmap = loadAndScaleImage(contentResolver, uri)
@@ -373,6 +379,10 @@ class TextRecognizer @Inject constructor() {
         contentResolver: ContentResolver,
         uris: List<String>
     ): Map<String, RecognitionResult> = withContext(Dispatchers.IO) {
+        // Do not even enumerate user-supplied image URIs outside a governed
+        // model ingress. Individual recognition calls are guarded as well.
+        throw ModelEgressGovernanceException()
+
         uris.associate { uri ->
             uri to recognizeText(contentResolver, uri)
         }
