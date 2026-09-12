@@ -1,0 +1,82 @@
+name: CLI Persistent Capacity
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact 40-character commit SHA to measure
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-persistent-capacity-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate-input:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate exact SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit_sha must be an exact lowercase 40-character SHA" >&2
+            exit 1
+          fi
+
+  measure:
+    needs: validate-input
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+
+      - name: Verify checkout identity
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Measure durable Memory and background-agent paths
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          OUTPUT_PATH: ${{ runner.temp }}/cli-persistent-capacity.json
+        run: |
+          node packages/cli/scripts/persistent-capacity-benchmark.mjs \
+            --profile formal \
+            --candidate-sha "$EXPECTED_SHA" \
+            --output "$OUTPUT_PATH"
+
+      - name: Upload host-bound measurement
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-persistent-capacity-${{ matrix.os }}-${{ inputs.commit_sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-persistent-capacity.json
+          if-no-files-found: error
+          retention-days: 30

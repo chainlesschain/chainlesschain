@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -305,6 +305,8 @@ IDE 本身也已有真宿主门，不应重建。[VS Code App Server pilot](../p
 **容量单位纠正。** [持久端口默认限制](../packages/cli/src/lib/context-memory-kernel/durable-memory-port.js#L24) 为 64 MiB 文件和 100,000 条 **audit events**，不是已承诺支持 100,000 条记忆；[事件上限](../packages/cli/src/lib/context-memory-kernel/durable-memory-port.js#L247) 到达后拒绝提交，更新、删除也消耗事件。表中 1k/10k/100k 是拟测量档位，需记录实际可达范围、配置与拒绝阈值；不能直接用内存算法结果承诺持久容量。
 
 这些源码说明潜在的规模瓶颈，不证明当前用户已经发生卡顿。先提供基线曲线，再决定索引、分段、SQLite 等方案，避免因规模假设更换整个存储系统。
+
+**后续实施进展（2026-09-13）。** [G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md) 已交付 `chainlesschain.persistent-capacity-measurement/v1` harness：直接测量 DurableJsonMemoryPort 的首次/重复全文件读取、列表排序、跨进程并发读写删除、锁获取 p50/p95/p99 与 RSS，并测量后台任务目录的首次/重复全量枚举排序。smoke 为 100/1k，formal 固定保留 Memory 1k/10k/100k 与后台 1k/10k；手动 workflow 可对精确 SHA 跑三平台。报告固定 `performanceGate:false / productionQualified:false`，并明确后台 index/pagination 尚未应用。本机 dirty smoke 仅证明 harness 走通，尚未取得精确 SHA 三平台 formal 曲线，不能据此选型或宣称 G10 容量优化完成。
 
 [账本 soak](../packages/cli/scripts/evolution-ledger-reliability-soak.mjs#L274) 明确 `testAuthority:true`、`qualifiesForProduction:false`；既有 10k 测试成果应保留，旧路线中的 250,000-event 目标、磁盘写满、断电和跨故障域 witness 应分别验证。项目也已提供 [appendBatch](../packages/cli/src/lib/evolution/evolution-ledger.js#L4476)，不再把“首次增加 batch API”列为待办。
 

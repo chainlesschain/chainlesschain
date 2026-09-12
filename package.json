@@ -34,6 +34,8 @@
     "build:cli": "cd packages/cli && npm run build",
     "test:coding-agent:parity": "cd desktop-app-vue && npm run test:coding-agent:parity",
     "test:cli-session-scale": "node packages/cli/scripts/session-scale-gate.mjs",
+    "benchmark:cli-persistent-capacity": "node packages/cli/scripts/persistent-capacity-benchmark.mjs --profile smoke",
+    "benchmark:cli-persistent-capacity:formal": "node packages/cli/scripts/persistent-capacity-benchmark.mjs --profile formal",
     "test:cli-session-runtime": "node --expose-gc packages/cli/scripts/verify-session-runtime-retention.mjs",
     "test:cli-session-host-consistency": "node packages/cli/scripts/session-host-consistency-gate.mjs",
     "test:cli-team-soak": "node packages/cli/scripts/team-distributed-soak.mjs",

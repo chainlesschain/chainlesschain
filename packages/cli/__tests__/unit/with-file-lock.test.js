@@ -89,6 +89,8 @@ describe("withFileLock", () => {
       "/state.json",
       (ctx) => {
         expect(ctx.locked).toBe(true);
+        expect(ctx.waitMs).toBeGreaterThanOrEqual(0);
+        expect(ctx.attempts).toBe(1);
         expect(_fs.dirs.has("/state.json.lock")).toBe(true); // held during fn
         return "ok";
       },

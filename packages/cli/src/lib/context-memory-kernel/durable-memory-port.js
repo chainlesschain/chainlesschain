@@ -170,11 +170,14 @@ export class DurableJsonMemoryPort {
     filePath = join(getHomeDir(), "context-memory", "kernel-v1.json"),
     maxStoreBytes = DEFAULT_MAX_STORE_BYTES,
     maxEvents = DEFAULT_MAX_EVENTS,
+    lockObserver = null,
   } = {}) {
     this.name = "cli-context-memory-authority";
     this.filePath = filePath;
     this.maxStoreBytes = maxStoreBytes;
     this.maxEvents = maxEvents;
+    this.lockObserver =
+      typeof lockObserver === "function" ? lockObserver : null;
   }
 
   _readUnlocked() {
@@ -182,7 +185,10 @@ export class DurableJsonMemoryPort {
     if (!existsSync(this.filePath)) return initializeState();
     const bytes = readFileSync(this.filePath);
     if (bytes.length > this.maxStoreBytes) {
-      throw corruptStore(this.filePath, "store exceeds its configured byte limit");
+      throw corruptStore(
+        this.filePath,
+        "store exceeds its configured byte limit",
+      );
     }
     try {
       return normalizeState(JSON.parse(bytes.toString("utf8")), this.filePath);
@@ -194,13 +200,30 @@ export class DurableJsonMemoryPort {
 
   _locked(operation) {
     mkdirSync(dirname(this.filePath), { recursive: true, mode: 0o700 });
-    return withFileLock(this.filePath, operation, {
-      failIfUnavailable: true,
-      timeoutMs: 30_000,
-      retryMs: 2,
-      maxRetryMs: 32,
-      retryJitterMs: 8,
-    });
+    return withFileLock(
+      this.filePath,
+      (context) => {
+        if (this.lockObserver) {
+          try {
+            this.lockObserver({
+              locked: context.locked,
+              waitMs: context.waitMs,
+              attempts: context.attempts,
+            });
+          } catch {
+            // Diagnostics must not alter the authority operation.
+          }
+        }
+        return operation(context);
+      },
+      {
+        failIfUnavailable: true,
+        timeoutMs: 30_000,
+        retryMs: 2,
+        maxRetryMs: 32,
+        retryJitterMs: 8,
+      },
+    );
   }
 
   async read(memoryId) {

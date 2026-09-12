@@ -22,7 +22,7 @@
  * lock convoys.
  *
  * @param {string} targetPath  the file being guarded (lock is `${targetPath}.lock`)
- * @param {(ctx:{locked:boolean,publishReleaseAfterPathRemoved:(pendingPath:string)=>boolean})=>T} fn
+ * @param {(ctx:{locked:boolean,waitMs:number,attempts:number,publishReleaseAfterPathRemoved:(pendingPath:string)=>boolean})=>T} fn
  *   critical section; `publishReleaseAfterPathRemoved` lets a transaction
  *   publish an exact, contender-completable handoff before its final atomic
  *   rename removes a uniquely named staging path
@@ -188,6 +188,8 @@ export function withFileLock(targetPath, fn, opts = {}) {
   try {
     result = fn({
       locked: held,
+      waitMs: Math.max(0, _now() - owner.startedAt),
+      attempts: retryAttempt + 1,
       publishReleaseAfterPathRemoved(pendingPath) {
         if (!held || typeof pendingPath !== "string" || !pendingPath) {
           return false;

@@ -23,6 +23,8 @@
     "test:session-message-reliability-soak": "node scripts/session-message-reliability-soak.mjs",
     "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",
     "test:app-server-overload-soak": "node --expose-gc scripts/app-server-overload-soak.mjs",
+    "benchmark:persistent-capacity:smoke": "node scripts/persistent-capacity-benchmark.mjs --profile smoke",
+    "benchmark:persistent-capacity:formal": "node scripts/persistent-capacity-benchmark.mjs --profile formal",
     "test:context-memory-kernel": "node --test test-node/context-memory-kernel.node-test.mjs",
     "graph:store-evidence": "node scripts/graph-store-cutover-evidence.mjs",
     "graph:production-evidence": "node scripts/graph-production-cutover-evidence.mjs",
