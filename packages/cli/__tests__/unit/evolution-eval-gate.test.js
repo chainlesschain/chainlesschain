@@ -618,7 +618,13 @@ function makeDeadlineSupervisor({
         worker.once("message", resolve);
         worker.once("error", reject);
         worker.once("exit", (code) => {
-          if (code !== 0) reject(new Error("isolated target was terminated"));
+          reject(
+            new Error(
+              code === 0
+                ? "isolated target exited without a result"
+                : "isolated target was terminated",
+            ),
+          );
         });
       }).finally(() => active.delete(request.capabilityDigest));
     } else {
