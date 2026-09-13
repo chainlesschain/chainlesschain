@@ -78,7 +78,10 @@ export function junitHasTestsAndNoFailures(junitXml) {
   return tests !== null && tests > 0 && failures === 0 && errors === 0;
 }
 
-export function jsonHasTestsAndNoFailures(jsonText) {
+export function jsonHasTestsAndNoFailures(
+  jsonText,
+  { allowInterrupted = false } = {},
+) {
   if (typeof jsonText !== "string") return false;
   let report;
   try {
@@ -104,8 +107,12 @@ export function jsonHasTestsAndNoFailures(jsonText) {
     report.numTotalTests > 0 &&
     report.numFailedTests === 0 &&
     report.numFailedTestSuites === 0 &&
-    report.numPassedTests + report.numPendingTests + report.numTodoTests ===
-      report.numTotalTests &&
+    (report.numPassedTests + report.numPendingTests + report.numTodoTests ===
+      report.numTotalTests ||
+      (allowInterrupted &&
+        report.numPassedTests > 0 &&
+        report.numPassedTests + report.numPendingTests + report.numTodoTests <
+          report.numTotalTests)) &&
     report.numPassedTestSuites +
       report.numFailedTestSuites +
       report.numPendingTestSuites ===
@@ -130,7 +137,7 @@ export function isRetryableVitestWorkerFailure({
     exitCode !== 0 &&
     exactWorkerFailure &&
     (junitHasTestsAndNoFailures(junitXml) ||
-      jsonHasTestsAndNoFailures(jsonReport))
+      jsonHasTestsAndNoFailures(jsonReport, { allowInterrupted: true }))
   );
 }
 
@@ -217,9 +224,25 @@ export async function runVitestWithWorkerRetry(
   }
 
   warn(
-    "::warning title=Vitest infrastructure failure::All recorded assertions passed, but Vitest exited non-zero; retrying this suite once without file parallelism.",
+    "::warning title=Vitest worker failure::No assertion failures were recorded, but the worker exited abnormally and tests may be incomplete; rerunning the entire suite once without file parallelism.",
   );
   const second = await runOnce(singleWorkerRetryArgs(args));
+  if (second.exitCode === 0 && jsonReportPath) {
+    try {
+      const retryReport = readFile(path.resolve(process.cwd(), jsonReportPath));
+      if (
+        jsonHasTestsAndNoFailures(retryReport) &&
+        JSON.parse(retryReport).success === true
+      )
+        return 0;
+    } catch {
+      // A successful retry must still produce a complete report.
+    }
+    warn(
+      "::error::Vitest retry did not produce a complete zero-failure JSON report.",
+    );
+    return 1;
+  }
   return second.exitCode;
 }
 

@@ -36,6 +36,20 @@ const cleanJsonWithWorkerFailure = JSON.stringify({
   ...JSON.parse(cleanJson),
   success: false,
 });
+// Strict Sandbox run 34705834967: one test was interrupted by a worker exit.
+const interruptedJson = JSON.stringify({
+  numTotalTestSuites: 380,
+  numPassedTestSuites: 378,
+  numFailedTestSuites: 0,
+  numPendingTestSuites: 2,
+  numTotalTests: 2510,
+  numPassedTests: 2489,
+  numFailedTests: 0,
+  numPendingTests: 20,
+  numTodoTests: 0,
+  // Vitest can still mark the report successful after a worker dies.
+  success: true,
+});
 const workerFailure = [
   "[vitest-pool]: Worker forks emitted error.",
   "Caused by: Error: Worker exited unexpectedly",
@@ -153,6 +167,77 @@ describe("Vitest worker infrastructure retry", () => {
     expect(jsonOutputPath(["run", "--outputFile=result.json"])).toBeNull();
   });
 
+  it("only retries interrupted JSON results alongside an exact worker failure", () => {
+    expect(jsonHasTestsAndNoFailures(interruptedJson)).toBe(false);
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: workerFailure,
+        jsonReport: interruptedJson,
+      }),
+    ).toBe(true);
+    for (const jsonReport of [
+      interruptedJson.replace('"numFailedTests":0', '"numFailedTests":1'),
+      interruptedJson.replace(
+        '"numFailedTestSuites":0',
+        '"numFailedTestSuites":1',
+      ),
+      interruptedJson.replace('"numTotalTests":2510', '"numTotalTests":2480'),
+    ]) {
+      expect(
+        isRetryableVitestWorkerFailure({
+          exitCode: 1,
+          output: workerFailure,
+          jsonReport,
+        }),
+      ).toBe(false);
+    }
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: "AssertionError",
+        jsonReport: interruptedJson,
+      }),
+    ).toBe(false);
+  });
+
+  it("reruns every selected file after interruption and requires a complete successful report", async () => {
+    const args = [
+      "run",
+      "first.test.js",
+      "second.test.js",
+      "--reporter=json",
+      "--outputFile=result.json",
+    ];
+    for (const retryReport of [
+      cleanJson,
+      interruptedJson,
+      cleanJsonWithWorkerFailure,
+      "invalid",
+    ]) {
+      const runOnce = vi
+        .fn()
+        .mockResolvedValueOnce({ exitCode: 1, output: workerFailure })
+        .mockResolvedValueOnce({ exitCode: 0, output: "done" });
+      const readFile = vi
+        .fn()
+        .mockReturnValueOnce(interruptedJson)
+        .mockReturnValueOnce(retryReport);
+      await expect(
+        runVitestWithWorkerRetry(args, {
+          runOnce,
+          readFile,
+          warn: vi.fn(),
+        }),
+      ).resolves.toBe(retryReport === cleanJson ? 0 : 1);
+      expect(runOnce).toHaveBeenCalledTimes(2);
+      expect(runOnce.mock.calls[1][0]).toEqual([
+        ...args,
+        "--no-file-parallelism",
+      ]);
+    }
+  });
+
   it("launches the installed Vitest CLI through Node without a platform shell", async () => {
     const child = new EventEmitter();
     child.stdout = new EventEmitter();
@@ -216,7 +301,10 @@ describe("Vitest worker infrastructure retry", () => {
         ["run", "--reporter=json", "--outputFile=strict-result.json"],
         {
           runOnce,
-          readFile: () => cleanJsonWithWorkerFailure,
+          readFile: vi
+            .fn()
+            .mockReturnValueOnce(cleanJsonWithWorkerFailure)
+            .mockReturnValueOnce(cleanJson),
           warn: vi.fn(),
         },
       ),
