@@ -97,7 +97,10 @@ test("chat composer gives the input and controls separate responsive rows", () =
 
   assert.match(html, /#bar \{ display:flex; flex-direction:column;/u);
   assert.match(html, /#input \{ box-sizing:border-box; width:100%;/u);
-  assert.match(html, /#composer-actions \{ display:flex; gap:4px; flex-wrap:wrap;/u);
+  assert.match(
+    html,
+    /#composer-actions \{ display:flex; gap:4px; flex-wrap:wrap; margin-top:8px;/u,
+  );
   assert.match(
     html,
     /<textarea id="input"[\s\S]*?<\/textarea>\s*<div id="composer-actions" role="group" aria-label="Chat controls">[\s\S]*?<button id="send">Send<\/button>[\s\S]*?<button id="plan-toggle"[\s\S]*?<button id="stop"[\s\S]*?<button id="new"[\s\S]*?<\/div>\s*<\/div>/u,

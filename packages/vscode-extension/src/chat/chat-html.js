@@ -247,7 +247,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   #input { box-sizing:border-box; width:100%; resize:none; min-height:34px; max-height:120px;
            background: var(--vscode-input-background); color: var(--vscode-input-foreground);
            border:1px solid var(--vscode-input-border, transparent); border-radius:3px; padding:6px; }
-  #composer-actions { display:flex; gap:4px; flex-wrap:wrap; }
+  #composer-actions { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; border-radius:3px; padding:4px 10px; cursor:pointer; }
   button.secondary { background: var(--vscode-button-secondaryBackground);
