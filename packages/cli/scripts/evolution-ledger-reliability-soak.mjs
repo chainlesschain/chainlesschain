@@ -75,8 +75,14 @@ export async function runEvolutionLedgerReliabilitySoak({
     assert.equal(finalResourceSample.phase, "checkpoint");
     assert.equal(finalResourceSample.eventCount, events);
     assert.equal(finalResourceSample.checkpointMs, seeded.result.checkpointMs);
-    assert.ok(finalResourceSample.disk.bytes > 0, "disk bytes were not measured");
-    assert.ok(finalResourceSample.disk.files > 0, "disk files were not measured");
+    assert.ok(
+      finalResourceSample.disk.bytes > 0,
+      "disk bytes were not measured",
+    );
+    assert.ok(
+      finalResourceSample.disk.files > 0,
+      "disk files were not measured",
+    );
     onProgress("checking fresh-process snapshot readback");
     const reopened = await runBackendProcess(root, { count: events });
     assert.equal(reopened.code, 0, JSON.stringify(reopened));
@@ -305,13 +311,33 @@ function assertEventResourceMetrics(report) {
   let previousEventCount = 0;
   for (const [index, sample] of report.seedResourceSamples.entries()) {
     if (!sample || typeof sample !== "object")
-      throw new TypeError("report.seedResourceSamples contains an invalid sample");
-    assertPositiveInteger(sample.eventCount, `resource sample ${index}.eventCount`);
-    assertNonNegativeNumber(sample.elapsedMs, `resource sample ${index}.elapsedMs`);
-    assertPositiveInteger(sample.maxRssKiB, `resource sample ${index}.maxRssKiB`);
-    assertPositiveInteger(sample.disk?.bytes, `resource sample ${index}.disk.bytes`);
-    assertPositiveInteger(sample.disk?.files, `resource sample ${index}.disk.files`);
-    if (sample.eventCount < previousEventCount || sample.eventCount > report.events)
+      throw new TypeError(
+        "report.seedResourceSamples contains an invalid sample",
+      );
+    assertPositiveInteger(
+      sample.eventCount,
+      `resource sample ${index}.eventCount`,
+    );
+    assertNonNegativeNumber(
+      sample.elapsedMs,
+      `resource sample ${index}.elapsedMs`,
+    );
+    assertPositiveInteger(
+      sample.maxRssKiB,
+      `resource sample ${index}.maxRssKiB`,
+    );
+    assertPositiveInteger(
+      sample.disk?.bytes,
+      `resource sample ${index}.disk.bytes`,
+    );
+    assertPositiveInteger(
+      sample.disk?.files,
+      `resource sample ${index}.disk.files`,
+    );
+    if (
+      sample.eventCount < previousEventCount ||
+      sample.eventCount > report.events
+    )
       throw new TypeError("resource sample event counts are not monotonic");
     previousEventCount = sample.eventCount;
   }
@@ -323,7 +349,9 @@ function assertEventResourceMetrics(report) {
     final.disk.bytes !== report.seedDiskBytes ||
     final.disk.files !== report.seedDiskFileCount
   ) {
-    throw new TypeError("event report is not bound to its final resource sample");
+    throw new TypeError(
+      "event report is not bound to its final resource sample",
+    );
   }
 }
 

@@ -15,8 +15,7 @@ function resourceSampleInterval(count) {
   const maximumAppendSamples = RESOURCE_SAMPLE_MAXIMUM - 1;
   return Math.max(
     1024,
-    Math.ceil(count / maximumAppendSamples / SEED_BATCH_SIZE) *
-      SEED_BATCH_SIZE,
+    Math.ceil(count / maximumAppendSamples / SEED_BATCH_SIZE) * SEED_BATCH_SIZE,
   );
 }
 
