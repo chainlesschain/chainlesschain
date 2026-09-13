@@ -120,12 +120,14 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
       );
     });
 
-    it("sets Anthropic max_tokens with an 8192 baseline", () => {
+    it("routes Anthropic max_tokens through the model-aware output budget", () => {
       coreContent = coreContent || readFileSync(agentCorePath, "utf8");
-      // The model-aware branch may cap an explicit maxOutputTokens value, but
-      // both branches must retain 8192 as the fallback baseline.
-      expect(coreContent.match(/anthropicMaxTokens \|\| 8192/g)).toHaveLength(
-        2,
+      // The budget resolver owns the tested 8192 fallback and the
+      // model-specific caps; this assertion protects the Anthropic transport
+      // wiring without coupling the E2E suite to a particular fallback syntax.
+      expect(coreContent).toContain("resolveAgentOutputBudget({");
+      expect(coreContent).toContain(
+        "max_tokens: anthropicOutputBudget.requestMaxOutputTokens",
       );
     });
   });
