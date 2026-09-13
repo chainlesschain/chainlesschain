@@ -195,7 +195,9 @@ export function normalizeOpenAIResponsesUsage(usage) {
   const output = nonNegativeInteger(usage.output_tokens);
   if (input === null || output === null) return null;
   const details = usage.input_tokens_details;
+  const outputDetails = usage.output_tokens_details;
   let cached = 0;
+  let reasoning = null;
   if (details != null) {
     if (typeof details !== "object" || Array.isArray(details)) return null;
     if (Object.hasOwn(details, "cached_tokens")) {
@@ -203,10 +205,23 @@ export function normalizeOpenAIResponsesUsage(usage) {
       if (cached === null || cached > input) return null;
     }
   }
+  if (outputDetails != null) {
+    if (typeof outputDetails !== "object" || Array.isArray(outputDetails)) {
+      return null;
+    }
+    if (Object.hasOwn(outputDetails, "reasoning_tokens")) {
+      reasoning = nonNegativeInteger(outputDetails.reasoning_tokens);
+      // OpenAI reports reasoning tokens as a subset of output tokens. Keep the
+      // dimension independently, but reject impossible usage rather than
+      // allowing it to inflate or contradict the billable output total.
+      if (reasoning === null || reasoning > output) return null;
+    }
+  }
   return {
     input_tokens: input - cached,
     output_tokens: output,
     cache_read_input_tokens: cached,
+    ...(reasoning !== null ? { reasoning_tokens: reasoning } : {}),
   };
 }
 

@@ -134,10 +134,35 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     // global default tracker.
     this._sequenceTracker = new CodingAgentSequenceTracker();
     this._questionSequence = 0;
-    this._contextRevision = 0;
+    const deferredState =
+      options.deferredState && typeof options.deferredState === "object"
+        ? options.deferredState
+        : {};
+    this._contextRevision = Number.isSafeInteger(deferredState.contextRevision)
+      ? deferredState.contextRevision
+      : 0;
+    this.onDeferredQuestionChange =
+      typeof options.onDeferredQuestionChange === "function"
+        ? options.onDeferredQuestionChange
+        : null;
     this._deferredQuestionContext = new DeferredQuestionContext({
       sessionId: this.sessionId,
+      initialAnswers: Array.isArray(deferredState.deferredAnswers)
+        ? deferredState.deferredAnswers.map((answer) => ({
+            ...answer,
+            questionId: answer.questionId || answer.requestId,
+          }))
+        : [],
+      onConsumed: (questionIds) =>
+        this._notifyDeferredQuestion("question.deferred.consumed", {
+          questionIds,
+        }),
     });
+    for (const pending of Array.isArray(deferredState.deferredQuestions)
+      ? deferredState.deferredQuestions
+      : []) {
+      this._restoreDeferredQuestion(pending);
+    }
     // Phase 5: parallel service-envelope emission. Opt-in (default off) so
     // legacy callers that count ws.send invocations stay green.
     this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
@@ -158,6 +183,54 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     } catch (_err) {
       // Interaction transport remains usable if optional persistence fails.
     }
+  }
+
+  _notifyDeferredQuestion(type, payload) {
+    if (!this.onDeferredQuestionChange) return;
+    try {
+      this.onDeferredQuestionChange({ type, payload });
+    } catch {
+      // The live interaction remains available; the host journal owns retry.
+    }
+  }
+
+  _restoreDeferredQuestion(record) {
+    const requestId = String(record?.requestId || "").trim();
+    const binding = normalizeInteractionBinding(record?.binding);
+    if (!requestId || binding.sessionId !== String(this.sessionId)) return;
+    this._questionSequence = Math.max(
+      this._questionSequence,
+      Number.isSafeInteger(binding.sequence) ? binding.sequence : 0,
+    );
+    this._pending.set(requestId, {
+      resolve: (answer) => {
+        const resolvedRevision = this._contextRevision;
+        this._deferredQuestionContext.record({
+          questionId: requestId,
+          question: record.question,
+          answer,
+          binding,
+          requestedRevision: record.contextRevision,
+          resolvedRevision,
+        });
+        this._notifyDeferredQuestion("question.deferred.resolved", {
+          requestId,
+          question: record.question,
+          answer,
+          binding,
+          requestedRevision: record.contextRevision,
+          resolvedRevision,
+        });
+      },
+      reject: () => {},
+      timeoutId: null,
+      kind: "question",
+      approvalRequest: false,
+      binding,
+      bindingType: "interaction",
+      requireBinding: true,
+      deferred: true,
+    });
   }
 
   /** Generate a unique request id */
@@ -435,10 +508,27 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         registration = value;
       },
     });
+    this._notifyDeferredQuestion("question.deferred.requested", {
+      requestId: registration?.requestId,
+      question: request.question,
+      options: request.options,
+      multiSelect: request.multiSelect === true,
+      purpose: request.purpose || "information",
+      binding: registration?.binding || null,
+      contextRevision: requestedRevision,
+    });
     answer
       .then((value) => {
         this._deferredQuestionContext.record({
           questionId: registration?.requestId,
+          question: request.question,
+          answer: value,
+          binding: registration?.binding || null,
+          requestedRevision,
+          resolvedRevision: this._contextRevision,
+        });
+        this._notifyDeferredQuestion("question.deferred.resolved", {
+          requestId: registration?.requestId,
           question: request.question,
           answer: value,
           binding: registration?.binding || null,
@@ -464,6 +554,9 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     this._contextRevision = Number.isSafeInteger(revision)
       ? revision
       : this._contextRevision + 1;
+    this._notifyDeferredQuestion("question.context.revision", {
+      contextRevision: this._contextRevision,
+    });
     return this._contextRevision;
   }
 
@@ -571,7 +664,9 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       }
       pending.reject(error);
     }
-    this._deferredQuestionContext.clear();
+    // Deferred questions and already-resolved answers are durable host state;
+    // a transport disconnect must not erase them. Blocking questions and
+    // approvals above are still rejected fail-closed.
   }
 
   emit(eventType, data) {

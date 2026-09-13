@@ -46,4 +46,35 @@ describe("DeferredQuestionContext", () => {
     expect(prepared.userContext).toContain('"answer":""');
     expect(context.size).toBe(0);
   });
+
+  it("hydrates durable answers, de-duplicates them, and reports one-shot consumption", () => {
+    const consumed = [];
+    const context = new DeferredQuestionContext({
+      sessionId: "s-1",
+      initialAnswers: [
+        {
+          questionId: "q-restored",
+          question: "Old question",
+          answer: "old",
+          requestedRevision: 2,
+          resolvedRevision: 2,
+        },
+      ],
+      onConsumed: (ids) => consumed.push(ids),
+    });
+    context.record({
+      questionId: "q-restored",
+      question: "Updated question",
+      answer: "new",
+      requestedRevision: 2,
+      resolvedRevision: 3,
+    });
+
+    expect(context.snapshot()).toHaveLength(1);
+    const prepared = context.prepareCall({ currentRevision: 3 });
+    expect(prepared.userContext).toContain('"answer":"new"');
+    expect(prepared.userContext).toContain('"stale":true');
+    expect(consumed).toEqual([["q-restored"]]);
+    expect(context.size).toBe(0);
+  });
 });

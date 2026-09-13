@@ -175,4 +175,79 @@ describe("WebSocket session state journal", () => {
       legacyPlan,
     );
   });
+
+  it("durably moves a bound deferred question through answer and consumption", () => {
+    const binding = {
+      sessionId: "sess-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    const journal = createWsSessionState();
+    appendWsSessionStateEvent(journal, "question.context.revision", {
+      contextRevision: 4,
+    });
+    appendWsSessionStateEvent(journal, "question.deferred.requested", {
+      requestId: "q-1",
+      question: "Which color?",
+      purpose: "preference",
+      binding,
+      contextRevision: 4,
+    });
+
+    let restored = hydrateWsSessionState(serializeWsSessionState(journal));
+    expect(getWsSessionStateSnapshot(restored)).toMatchObject({
+      contextRevision: 4,
+      deferredQuestions: [{ requestId: "q-1", binding }],
+      deferredAnswers: [],
+    });
+
+    appendWsSessionStateEvent(restored, "question.deferred.resolved", {
+      requestId: "q-1",
+      question: "Which color?",
+      answer: "blue",
+      binding,
+      requestedRevision: 4,
+      resolvedRevision: 5,
+    });
+    expect(getWsSessionStateSnapshot(restored)).toMatchObject({
+      deferredQuestions: [],
+      deferredAnswers: [
+        { requestId: "q-1", answer: "blue", requestedRevision: 4 },
+      ],
+    });
+
+    appendWsSessionStateEvent(restored, "question.deferred.consumed", {
+      questionIds: ["q-1"],
+    });
+    expect(getWsSessionStateSnapshot(restored).deferredAnswers).toEqual([]);
+  });
+
+  it("rejects a resolved answer whose durable binding differs", () => {
+    const journal = createWsSessionState();
+    const binding = {
+      sessionId: "sess-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 1,
+    };
+    appendWsSessionStateEvent(journal, "question.deferred.requested", {
+      requestId: "q-1",
+      question: "Optional detail?",
+      binding,
+      contextRevision: 1,
+    });
+    appendWsSessionStateEvent(journal, "question.deferred.resolved", {
+      requestId: "q-1",
+      question: "Optional detail?",
+      answer: "tampered",
+      binding: { ...binding, toolUseId: "other-tool" },
+      requestedRevision: 1,
+      resolvedRevision: 1,
+    });
+
+    const state = getWsSessionStateSnapshot(journal);
+    expect(state.deferredQuestions).toHaveLength(1);
+    expect(state.deferredAnswers).toEqual([]);
+  });
 });

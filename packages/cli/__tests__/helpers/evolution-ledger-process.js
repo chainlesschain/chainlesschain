@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { performance } from "node:perf_hooks";
 
 const fixture = fileURLToPath(
   new URL(
@@ -13,6 +14,7 @@ export function runBackendProcess(
   { mode = "verify", count = 0, onProgress = () => {} } = {},
 ) {
   return new Promise((resolve, reject) => {
+    const startedAt = performance.now();
     const child = spawn(
       process.execPath,
       ["--max-old-space-size=256", fixture, root, mode, String(count)],
@@ -64,6 +66,28 @@ export function runBackendProcess(
     child.once("close", (code, signal) => {
       clearTimeout(timer);
       if (failure) {
+        const resourceSamples = stderr
+          .split(/\r?\n/u)
+          .filter((line) => line.startsWith("resource-sample "))
+          .map((line) => {
+            try {
+              return JSON.parse(line.slice("resource-sample ".length));
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+        const completedEvents = [...stderr.matchAll(/seeded (\d+)\/\d+/gu)]
+          .map((match) => Number(match[1]))
+          .at(-1);
+        failure.backendDiagnostics = Object.freeze({
+          completedEvents: completedEvents ?? 0,
+          elapsedMs: performance.now() - startedAt,
+          mode,
+          requestedEvents: count,
+          resourceSamples: Object.freeze(resourceSamples),
+          signal,
+        });
         reject(failure);
         return;
       }

@@ -1569,7 +1569,7 @@ async function activate(context) {
     // or outdated CLI on the remote host, a stopped/unreachable bridge port —
     // each with a copyable fix.
     vscode.commands.registerCommand("chainlesschain.remote.doctor", () =>
-      runRemoteDoctor(vscode).catch((e) =>
+      runRemoteDoctor(vscode, context).catch((e) =>
         log("remote doctor failed: " + (e?.message || e)),
       ),
     ),
@@ -1650,7 +1650,7 @@ function _probePort(port, timeoutMs = 600) {
 }
 
 /** Gather real environment signals and show the Remote/WSL Doctor report. */
-async function runRemoteDoctor(vscode) {
+async function runRemoteDoctor(vscode, context) {
   const { analyzeRemoteEnv } = require("./remote-doctor.js");
   const { MIN_CLI_VERSION } = require("./version-check");
   const remoteName = vscode.env?.remoteName || null; // 'wsl' | 'ssh-remote' | …
@@ -1662,6 +1662,14 @@ async function runRemoteDoctor(vscode) {
     : null;
   const port = _port || 0;
   const portProbe = await _probePort(port);
+  const extensionPackage = context?.extension?.packageJSON || {};
+  const extensionMode = context?.extensionMode;
+  const installMode =
+    extensionMode === vscode.ExtensionMode?.Development
+      ? "development"
+      : extensionMode === vscode.ExtensionMode?.Test
+        ? "test"
+        : "production";
   const report = analyzeRemoteEnv({
     platform: process.platform,
     isWsl: remoteName === "wsl",
@@ -1672,6 +1680,17 @@ async function runRemoteDoctor(vscode) {
     minCliVersion: MIN_CLI_VERSION,
     bridgePort: port,
     portProbe,
+    extensionMetadata: {
+      id:
+        extensionPackage.publisher && extensionPackage.name
+          ? `${extensionPackage.publisher}.${extensionPackage.name}`
+          : context?.extension?.id,
+      version: extensionPackage.version,
+      recommendedCliVersion:
+        extensionPackage.chainlesschain?.recommendedCliVersion,
+      appName: vscode.env?.appName,
+      installMode,
+    },
   });
   _output.appendLine("\n" + report.summary);
   const { classifyFixes } = require("./remote-doctor-fixes.js");

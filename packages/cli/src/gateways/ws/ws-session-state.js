@@ -16,6 +16,7 @@ export const DEFAULT_WS_SESSION_STATE_MAX_EVENTS = 64;
 
 const RUN_STATUSES = new Set(["idle", "running", "interrupted"]);
 const APPROVAL_STATUSES = new Set(["pending", "interrupted"]);
+const MAX_DEFERRED_QUESTIONS = 32;
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
@@ -112,12 +113,87 @@ function normalizeRun(value) {
   };
 }
 
+function normalizeDeferredRecord(value, resolved = false) {
+  if (!value || typeof value !== "object") return null;
+  const requestId =
+    typeof value.requestId === "string" && value.requestId.length > 0
+      ? value.requestId
+      : null;
+  if (!requestId || !value.binding || typeof value.binding !== "object") {
+    return null;
+  }
+  const binding = cloneJson(value.binding);
+  if (
+    binding.sessionId == null ||
+    !Number.isSafeInteger(binding.sequence) ||
+    binding.sequence <= 0
+  ) {
+    return null;
+  }
+  let answer = "";
+  if (resolved) {
+    if (typeof value.answer === "string") answer = value.answer;
+    else {
+      try {
+        answer = JSON.stringify(value.answer);
+      } catch {
+        answer = String(value.answer ?? "");
+      }
+    }
+    if (typeof answer !== "string") answer = String(value.answer ?? "");
+    answer = answer.slice(0, 16384);
+  }
+  return {
+    requestId,
+    question:
+      typeof value.question === "string" ? value.question.slice(0, 2048) : "",
+    binding,
+    requestedRevision: nonNegativeRevision(
+      value.requestedRevision ?? value.contextRevision,
+    ),
+    ...(resolved
+      ? {
+          answer,
+          resolvedRevision: nonNegativeRevision(value.resolvedRevision),
+        }
+      : {
+          options: Array.isArray(value.options)
+            ? cloneJson(value.options.slice(0, 32), [])
+            : null,
+          multiSelect: value.multiSelect === true,
+          purpose:
+            value.purpose === "preference" ? "preference" : "information",
+          contextRevision: nonNegativeRevision(value.contextRevision),
+        }),
+  };
+}
+
+function upsertBounded(list, record) {
+  if (!record) return list;
+  const next = list.filter((item) => item.requestId !== record.requestId);
+  next.push(record);
+  return next.slice(-MAX_DEFERRED_QUESTIONS);
+}
+
 function normalizeSnapshot(value = {}, options = {}) {
   const source = value && typeof value === "object" ? value : {};
   const snapshot = {
     revision: nonNegativeRevision(source.revision),
     todo: normalizeTodoSnapshot(source.todo),
     pendingApproval: normalizePendingApproval(source.pendingApproval),
+    contextRevision: nonNegativeRevision(source.contextRevision),
+    deferredQuestions: Array.isArray(source.deferredQuestions)
+      ? source.deferredQuestions
+          .map((value) => normalizeDeferredRecord(value, false))
+          .filter(Boolean)
+          .slice(-MAX_DEFERRED_QUESTIONS)
+      : [],
+    deferredAnswers: Array.isArray(source.deferredAnswers)
+      ? source.deferredAnswers
+          .map((value) => normalizeDeferredRecord(value, true))
+          .filter(Boolean)
+          .slice(-MAX_DEFERRED_QUESTIONS)
+      : [],
     run: normalizeRun(source.run),
   };
 
@@ -182,6 +258,58 @@ function applyEvent(snapshot, event) {
         });
       }
       break;
+
+    case "question.context.revision":
+      next.contextRevision = Math.max(
+        next.contextRevision,
+        nonNegativeRevision(payload.contextRevision),
+      );
+      break;
+
+    case "question.deferred.requested": {
+      const question = normalizeDeferredRecord(payload, false);
+      if (
+        question &&
+        question.binding.sessionId === payload.binding?.sessionId
+      ) {
+        next.deferredQuestions = upsertBounded(
+          next.deferredQuestions,
+          question,
+        );
+      }
+      break;
+    }
+
+    case "question.deferred.resolved": {
+      const answer = normalizeDeferredRecord(payload, true);
+      if (answer) {
+        const pending = next.deferredQuestions.find(
+          (item) => item.requestId === answer.requestId,
+        );
+        if (
+          pending &&
+          JSON.stringify(pending.binding) === JSON.stringify(answer.binding)
+        ) {
+          next.deferredQuestions = next.deferredQuestions.filter(
+            (item) => item.requestId !== answer.requestId,
+          );
+          next.deferredAnswers = upsertBounded(next.deferredAnswers, answer);
+        }
+      }
+      break;
+    }
+
+    case "question.deferred.consumed": {
+      const ids = new Set(
+        Array.isArray(payload.questionIds)
+          ? payload.questionIds.filter((id) => typeof id === "string")
+          : [],
+      );
+      next.deferredAnswers = next.deferredAnswers.filter(
+        (item) => !ids.has(item.requestId),
+      );
+      break;
+    }
 
     case "run.started":
       next.run = normalizeRun({
@@ -302,6 +430,9 @@ export function createWsSessionState(options = {}) {
         revision: 0,
         todo: normalizeTodoSnapshot(options.todo),
         pendingApproval: null,
+        contextRevision: 0,
+        deferredQuestions: [],
+        deferredAnswers: [],
         run: normalizeRun(),
         ...(hasPlanSnapshot
           ? { planSnapshot: cloneJson(options.planSnapshot) }

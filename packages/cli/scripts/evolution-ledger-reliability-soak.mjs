@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 import { runBackendProcess } from "../__tests__/helpers/evolution-ledger-process.js";
 
 export const EVOLUTION_LEDGER_RELIABILITY_EVIDENCE_SCHEMA =
-  "chainlesschain.evolution-ledger-reliability-evidence.v1";
+  "chainlesschain.evolution-ledger-reliability-evidence.v2";
 export const EVOLUTION_LEDGER_RELIABILITY_AGGREGATE_SCHEMA =
-  "chainlesschain.evolution-ledger-reliability-aggregate.v1";
+  "chainlesschain.evolution-ledger-reliability-aggregate.v2";
 
 const REQUIRED_PLATFORMS = Object.freeze(["linux", "win32", "darwin"]);
 const UNVERIFIED_CONDITIONS = Object.freeze([
@@ -17,6 +17,24 @@ const UNVERIFIED_CONDITIONS = Object.freeze([
   "independent-witness-fault-domain",
   "production-kms-hsm-pki-authority",
 ]);
+
+function measureStorage(root) {
+  let bytes = 0;
+  let files = 0;
+  const pending = [root];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const target = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(target);
+      else if (entry.isFile()) {
+        bytes += fs.statSync(target).size;
+        files += 1;
+      }
+    }
+  }
+  return Object.freeze({ bytes, files });
+}
 
 // Repository-only reliability exercise. Signing keys and artifact resolution
 // are test authorities; the ledger, witness files and OS processes are real.
@@ -33,9 +51,10 @@ export async function runEvolutionLedgerReliabilitySoak({
   const root = fs.mkdtempSync(
     path.join(temporaryRoot, "cc-ledger-reliability-soak-"),
   );
+  let seeded = null;
   try {
     fs.mkdirSync(path.join(root, "witness"), { mode: 0o700 });
-    const seeded = await runBackendProcess(root, {
+    seeded = await runBackendProcess(root, {
       mode: "seed",
       count: events,
       onProgress,
@@ -45,6 +64,19 @@ export async function runEvolutionLedgerReliabilitySoak({
     assert.equal(seeded.result.ok, true);
     assert.equal(seeded.result.verification.sequence, events);
     assert.equal(seeded.result.verification.eventCount, events);
+    assert.ok(seeded.result.maxRssKiB > 0, "seed RSS was not measured");
+    assert.ok(seeded.result.checkpointMs >= 0, "checkpoint was not measured");
+    assert.ok(
+      Array.isArray(seeded.result.seedResourceSamples) &&
+        seeded.result.seedResourceSamples.length >= 2,
+      "seed resource samples were not recorded",
+    );
+    const finalResourceSample = seeded.result.seedResourceSamples.at(-1);
+    assert.equal(finalResourceSample.phase, "checkpoint");
+    assert.equal(finalResourceSample.eventCount, events);
+    assert.equal(finalResourceSample.checkpointMs, seeded.result.checkpointMs);
+    assert.ok(finalResourceSample.disk.bytes > 0, "disk bytes were not measured");
+    assert.ok(finalResourceSample.disk.files > 0, "disk files were not measured");
     onProgress("checking fresh-process snapshot readback");
     const reopened = await runBackendProcess(root, { count: events });
     assert.equal(reopened.code, 0, JSON.stringify(reopened));
@@ -107,6 +139,11 @@ export async function runEvolutionLedgerReliabilitySoak({
       reopenPid: reopened.result.pid,
       seedMs: seeded.result.elapsedMs,
       seedBatchSize: seeded.result.seedBatchSize,
+      seedCheckpointMs: seeded.result.checkpointMs,
+      seedDiskBytes: finalResourceSample.disk.bytes,
+      seedDiskFileCount: finalResourceSample.disk.files,
+      seedMaxRssKiB: seeded.result.maxRssKiB,
+      seedResourceSamples: seeded.result.seedResourceSamples,
       seedVerificationCounts: seeded.result.verificationCounts,
       reopenMs: reopened.result.elapsedMs,
       reopenVerificationCounts: reopened.result.verificationCounts,
@@ -116,6 +153,26 @@ export async function runEvolutionLedgerReliabilitySoak({
       witnessCorruptionRejected: true,
       productionAuthority: false,
     });
+  } catch (cause) {
+    const diagnostic = cause?.backendDiagnostics;
+    const samples =
+      seeded?.result?.seedResourceSamples ?? diagnostic?.resourceSamples ?? [];
+    const disk = measureStorage(root);
+    const error = cause instanceof Error ? cause : new Error(String(cause));
+    error.reliabilityReport = Object.freeze({
+      completedEvents:
+        samples.at(-1)?.eventCount ?? diagnostic?.completedEvents ?? 0,
+      elapsedMs: diagnostic?.elapsedMs ?? null,
+      events,
+      failureCode: error.code ?? null,
+      failureMessage: error.message,
+      productionAuthority: false,
+      seedDiskBytesAtFailure: disk.bytes,
+      seedDiskFileCountAtFailure: disk.files,
+      seedResourceSamples: Object.freeze([...samples]),
+      status: "failed",
+    });
+    throw error;
   } finally {
     // Only the newly created test directory can be cleaned up.
     assert.equal(path.dirname(path.resolve(root)), temporaryRoot);
@@ -224,6 +281,52 @@ function assertPositiveInteger(value, label) {
   return value;
 }
 
+function assertNonNegativeNumber(value, label) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
+    throw new TypeError(`${label} must be a non-negative finite number`);
+  return value;
+}
+
+function assertEventResourceMetrics(report) {
+  assertNonNegativeNumber(report.seedMs, "report.seedMs");
+  assertNonNegativeNumber(report.seedCheckpointMs, "report.seedCheckpointMs");
+  assertPositiveInteger(report.seedDiskBytes, "report.seedDiskBytes");
+  assertPositiveInteger(report.seedDiskFileCount, "report.seedDiskFileCount");
+  assertPositiveInteger(report.seedMaxRssKiB, "report.seedMaxRssKiB");
+  assertNonNegativeNumber(report.reopenMs, "report.reopenMs");
+  assertPositiveInteger(report.reopenMaxRssKiB, "report.reopenMaxRssKiB");
+  if (
+    !Array.isArray(report.seedResourceSamples) ||
+    report.seedResourceSamples.length < 2 ||
+    report.seedResourceSamples.length > 16
+  ) {
+    throw new TypeError("report.seedResourceSamples must be bounded");
+  }
+  let previousEventCount = 0;
+  for (const [index, sample] of report.seedResourceSamples.entries()) {
+    if (!sample || typeof sample !== "object")
+      throw new TypeError("report.seedResourceSamples contains an invalid sample");
+    assertPositiveInteger(sample.eventCount, `resource sample ${index}.eventCount`);
+    assertNonNegativeNumber(sample.elapsedMs, `resource sample ${index}.elapsedMs`);
+    assertPositiveInteger(sample.maxRssKiB, `resource sample ${index}.maxRssKiB`);
+    assertPositiveInteger(sample.disk?.bytes, `resource sample ${index}.disk.bytes`);
+    assertPositiveInteger(sample.disk?.files, `resource sample ${index}.disk.files`);
+    if (sample.eventCount < previousEventCount || sample.eventCount > report.events)
+      throw new TypeError("resource sample event counts are not monotonic");
+    previousEventCount = sample.eventCount;
+  }
+  const final = report.seedResourceSamples.at(-1);
+  if (
+    final.phase !== "checkpoint" ||
+    final.eventCount !== report.events ||
+    final.checkpointMs !== report.seedCheckpointMs ||
+    final.disk.bytes !== report.seedDiskBytes ||
+    final.disk.files !== report.seedDiskFileCount
+  ) {
+    throw new TypeError("event report is not bound to its final resource sample");
+  }
+}
+
 function assertPassedReport(report, mode) {
   if (!report || typeof report !== "object" || report.status !== "passed")
     throw new TypeError("reliability evidence requires a passed report");
@@ -238,6 +341,7 @@ function assertPassedReport(report, mode) {
       report.witnessCorruptionRejected !== true
     )
       throw new TypeError("event report is missing corruption-rejection proof");
+    assertEventResourceMetrics(report);
     return;
   }
   if (mode === "fault-campaign") {
@@ -256,6 +360,42 @@ export function createEvolutionLedgerReliabilityEvidence({
   now = () => new Date().toISOString(),
 } = {}) {
   assertPassedReport(report, mode);
+  if (sourceRevision !== null)
+    sourceRevision = assertCommitSha(sourceRevision, "sourceRevision");
+  const issuedAt = now();
+  if (typeof issuedAt !== "string" || Number.isNaN(Date.parse(issuedAt)))
+    throw new TypeError("now must return an ISO timestamp");
+  return Object.freeze({
+    schema: EVOLUTION_LEDGER_RELIABILITY_EVIDENCE_SCHEMA,
+    issuedAt,
+    mode,
+    runner: Object.freeze({
+      arch: process.arch,
+      nodeVersion: process.version,
+      platform: process.platform,
+    }),
+    sourceRevision,
+    testAuthority: true,
+    qualifiesForProduction: false,
+    unverifiedConditions: UNVERIFIED_CONDITIONS,
+    report: Object.freeze({ ...report }),
+  });
+}
+
+export function createEvolutionLedgerReliabilityFailureEvidence({
+  mode,
+  report,
+  sourceRevision = null,
+  now = () => new Date().toISOString(),
+} = {}) {
+  if (
+    mode !== "events" ||
+    !report ||
+    report.status !== "failed" ||
+    report.productionAuthority !== false
+  ) {
+    throw new TypeError("failure evidence requires a failed event report");
+  }
   if (sourceRevision !== null)
     sourceRevision = assertCommitSha(sourceRevision, "sourceRevision");
   const issuedAt = now();
@@ -481,13 +621,14 @@ if (
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const args = process.argv.slice(2);
+  let command = null;
   try {
     if (args.length === 1 && args[0] === "--help") {
       console.log(
         "Usage: npm run test:evolution-ledger-reliability-soak -- [--events 1000 | --fault-rounds 100] [--source-revision <40-char SHA>] [--output <evidence.json>]\n       npm run test:evolution-ledger-reliability-soak -- --verify-evidence-dir <dir> --release-commit <40-char SHA> --minimum-events <n> --minimum-fault-rounds <n> [--output <aggregate.json>]\nTest-only authorities; real ledger/witness files and separate bounded-heap processes. Large runs may take tens of minutes. Forced process exit is not power-loss acceptance.",
       );
     } else {
-      const command = parseCliArguments(args);
+      command = parseCliArguments(args);
       const onProgress = (message) => console.error(message);
       if (command.kind === "verify") {
         const aggregate = verifyEvolutionLedgerReliabilityEvidenceDirectory({
@@ -521,6 +662,22 @@ if (
       }
     }
   } catch (error) {
+    if (command?.output && error?.reliabilityReport) {
+      try {
+        writeJsonOutput(
+          command.output,
+          createEvolutionLedgerReliabilityFailureEvidence({
+            mode: command.kind,
+            report: error.reliabilityReport,
+            sourceRevision: command.sourceRevision,
+          }),
+        );
+      } catch (diagnosticError) {
+        console.error(
+          `failed to persist reliability diagnostics: ${diagnosticError?.message ?? String(diagnosticError)}`,
+        );
+      }
+    }
     console.error(error?.message ?? String(error));
     process.exitCode = 1;
   }

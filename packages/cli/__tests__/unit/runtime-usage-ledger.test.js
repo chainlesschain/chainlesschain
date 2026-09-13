@@ -16,6 +16,8 @@ describe("runtime usage ledger projection", () => {
         usage: {
           prompt_tokens: 5,
           completion_tokens: 2,
+          reasoning_tokens: 1,
+          total_tokens: 7,
           secret: "must not persist",
         },
       }),
@@ -28,6 +30,7 @@ describe("runtime usage ledger projection", () => {
         output_tokens: 2,
         cache_read_input_tokens: 0,
         cache_creation_input_tokens: 0,
+        reasoning_tokens: 1,
       },
     });
   });
@@ -70,6 +73,16 @@ describe("runtime usage ledger projection", () => {
         usage: { input_tokens: 1, output_tokens: 2, total_tokens: 2 },
       }),
     ).toThrow(/total conflicts/);
+    expect(() =>
+      projectRuntimeTokenUsage({
+        usage: { input_tokens: 1, output_tokens: 2, reasoning_tokens: 3 },
+      }),
+    ).toThrow(/reasoning token usage exceeds output tokens/);
+    expect(() =>
+      projectRuntimeTokenUsage({
+        usage: { input_tokens: 1, output_tokens: 2, reasoning_tokens: 0.5 },
+      }),
+    ).toThrow(/safe integers/);
     expect(() =>
       projectRuntimeUsageBoundary(
         { callId: "x".repeat(129), source: "model" },

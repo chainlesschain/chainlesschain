@@ -114,6 +114,85 @@ describe("WebSocketInteractionAdapter", () => {
     expect(adapter._pending.size).toBe(0);
   });
 
+  it("restores a deferred question and preserves binding and stale revision semantics", () => {
+    const changes = [];
+    const binding = {
+      sessionId: "session-123",
+      turnId: "turn-2",
+      toolUseId: "tool-2",
+      sequence: 7,
+    };
+    const restored = new WebSocketInteractionAdapter(ws, "session-123", {
+      deferredState: {
+        contextRevision: 3,
+        deferredQuestions: [
+          {
+            requestId: "q-restored",
+            question: "Which color?",
+            binding,
+            contextRevision: 2,
+          },
+        ],
+      },
+      onDeferredQuestionChange: (event) => changes.push(event),
+    });
+
+    expect(
+      restored.resolveAnswer("q-restored", "blue", {
+        ...binding,
+        toolUseId: "wrong",
+      }),
+    ).toMatchObject({ settled: false, reason: "binding_mismatch" });
+    expect(restored.resolveAnswer("q-restored", "blue", binding)).toMatchObject(
+      {
+        settled: true,
+      },
+    );
+    const prepared = restored.createDeferredPrepareCall()();
+    expect(prepared.userContext).toContain('"answer":"blue"');
+    expect(prepared.userContext).toContain('"stale":true');
+    expect(changes.map((event) => event.type)).toEqual([
+      "question.deferred.resolved",
+      "question.deferred.consumed",
+    ]);
+  });
+
+  it("hydrates an unconsumed deferred answer and consumes it only once", () => {
+    const changes = [];
+    const restored = new WebSocketInteractionAdapter(ws, "session-123", {
+      deferredState: {
+        contextRevision: 5,
+        deferredAnswers: [
+          {
+            requestId: "q-answered",
+            question: "Optional note?",
+            answer: "remember me",
+            binding: {
+              sessionId: "session-123",
+              turnId: "turn-4",
+              toolUseId: "tool-4",
+              sequence: 4,
+            },
+            requestedRevision: 4,
+            resolvedRevision: 4,
+          },
+        ],
+      },
+      onDeferredQuestionChange: (event) => changes.push(event),
+    });
+
+    expect(restored.createDeferredPrepareCall()().userContext).toContain(
+      "remember me",
+    );
+    expect(restored.createDeferredPrepareCall()()).toBeNull();
+    expect(changes).toEqual([
+      {
+        type: "question.deferred.consumed",
+        payload: { questionIds: ["q-answered"] },
+      },
+    ]);
+  });
+
   it("askInput sends question message and waits for answer", async () => {
     const promise = adapter.askInput("Your name?", { default: "Bob" });
 

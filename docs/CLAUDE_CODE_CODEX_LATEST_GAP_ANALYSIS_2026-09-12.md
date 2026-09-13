@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[第八批 G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[第九批 G03 OpenAI Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[第八批 G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[第九批 G03 OpenAI Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)、[第十批 G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)、[第十一批 G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -33,6 +33,26 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 | 本次复现       | 本次执行了对应局部检查，记录输入和结果                            |
 | 待目标环境验证 | 有实现或测试机制，但本次没有核验所需真实部署、模型、OS 或发布产物 |
 | 建议新增       | 本报告建议的工作，尚未因编写文档而实现                            |
+
+### 1.2 任务完成情况（更新至 2026-09-13）
+
+下表按本文顶部链接的后续实施记录汇总。状态中的“已完成”仅表示对应工程交付或阶段目标已有实现和本地证据，不等同于生产发布、真实账号/模型验证或精确候选 SHA 的全平台验收。
+
+| ID  | 实现状态                 | 已完成内容                                                                 | 待完成/验收边界                                                               | 实施记录 |
+| --- | ------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------- |
+| G01 | 阶段完成，待目标环境验证 | 已区分部署准入、命令级准入和实际任务就绪；setup、doctor、CLI 与 IDE 已接线 | 真实身份、公开安装产物及指定 OS/IDE 到真实模型任务的完整旅程                  | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md) |
+| G02 | 核心实现完成，待正式实测 | 已实现严格比较门，并分离执行成功、产物检查与证据完整性                     | 真实 provider 对照、Windows 同等并行负载稳定性及精确 release commit 的 CI 矩阵 | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md) |
+| G03 | 三阶段完成，待生产验收   | 已交付版本化模型能力 Profile、OpenAI Responses 主链，以及独立 `reasoning_tokens` 归账 | 真实账号/模型认证、预算误差和精确 SHA 三平台旅程                               | [Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md) |
+| G04 | 安全反例已关闭，接线未完成 | 已修复失败/中断终态误投影，以及提交结果不明时重复 fallback 的风险          | `0.154.0` fail-closed 兼容矩阵、真实 App Server 旅程及是否接入产品的独立决策   | [G04 安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md) |
+| G05 | 作者入口完成，待效果验收 | 已交付 `cc plugin eval`、声明式 suite、control/candidate 双臂及 JSON/HTML 报告 | 固定真实模型的付费对照、重复采样、独立 holdout/grader 和发布提交验证          | [G05 插件 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md) |
+| G06 | 词法阶段完成，待生产验收 | 已关闭 canonical 中文句内关键词召回盲点，并保留 scope、sink、撤销等治理过滤 | 语义检索、真实用户语料、跨语言/冲突记忆效果、容量及三平台目标环境验收        | [G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md) |
+| G07 | 能力合同完成，能力补齐中 | 已交付沙箱能力报告、配置前失败关闭及运行后 `applied` 证据                  | 不可绕过的域名级 egress，以及 macOS/Windows/特殊 stdio 组合的实机矩阵         | [G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md) |
+| G08 | 恢复能力完成，待多宿主验收 | 已持久化 WS/App Server deferred 问题、未消费答案与 revision，并保留严格 binding/权限隔离 | standalone Headless 进程恢复及精确 SHA 三平台真实旅程                         | [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md) |
+| G09 | 验收工具完成，真实旅程待执行 | 已交付 fail-closed 生产旅程验证器、受保护手动 attestation workflow 与回执合同 | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察及 rollback 演练 | [G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md) |
+| G10 | 测量工具完成，优化未完成 | 已交付真实持久路径容量 harness、锁等待/分位数/RSS 报告及手动三平台 workflow | 精确 SHA 三平台 formal 曲线、性能 SLO，以及后台索引/分页/归档等实际优化       | [G10 持久容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md) |
+| G11 | 安装就绪诊断完成，真实旅程待执行 | 已扩展 Remote Doctor，输出扩展/宿主/渠道的版本化安装就绪证据，并 fail-visible 展示未知状态 | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销及成功率/耗时测量 | [G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md) |
+
+汇总：11 项均已有阶段性工程交付；所有项仍保留目标环境、真实模型、正式产物或规模验收边界，因此当前不将任何一项标记为生产完全完成。
 
 旧报告中“尚未统一演化/Memory 内核”“没有自动压缩”“没有 IDE E2E”等历史判断，不能直接作为本次待办。本文只对当前基线仍有依据的差距提出建议。
 

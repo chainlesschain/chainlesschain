@@ -41,8 +41,10 @@ function compareVersions(a, b) {
  *   minCliVersion?: string,
  *   bridgePort?: number,       // 0 = stopped
  *   portProbe?: string,        // 'listening' | 'stopped' | 'unknown'
+ *   extensionMetadata?: {id?:string, version?:string,
+ *     recommendedCliVersion?:string, appName?:string, installMode?:string},
  * }} signals
- * @returns {{ level:string, checks:Array, summary:string }}
+ * @returns {{ level:string, checks:Array, summary:string, installation?:Object }}
  */
 function analyzeRemoteEnv(signals = {}) {
   const s = signals;
@@ -90,7 +92,12 @@ function analyzeRemoteEnv(signals = {}) {
         "npm install -g chainlesschain@latest",
       );
     } else {
-      add("ok", "cli-ok", "cc CLI present and compatible", `Found ${s.cliVersion}.`);
+      add(
+        "ok",
+        "cli-ok",
+        "cc CLI present and compatible",
+        `Found ${s.cliVersion}.`,
+      );
     }
   }
 
@@ -124,22 +131,129 @@ function analyzeRemoteEnv(signals = {}) {
       "Bridge reachability unverified",
       "The bridge is up but a loopback probe didn't confirm reachability — a " +
         "host firewall or WSL NAT can still block 127.0.0.1 across the boundary.",
-      "netsh advfirewall firewall add rule name=\"cc-ide\" dir=in action=allow " +
+      'netsh advfirewall firewall add rule name="cc-ide" dir=in action=allow ' +
         `protocol=TCP localport=${s.bridgePort}`,
     );
   }
+
+  // A running extension can verify local activation and execution scope, but
+  // cannot prove which store supplied it or what version a store serves now.
+  const installation = s.extensionMetadata
+    ? analyzeInstallationChannel(s.extensionMetadata, remote)
+    : null;
+  if (installation) checks.push(...installation.checks);
 
   const level = checks.some((c) => c.level === "error")
     ? "error"
     : checks.some((c) => c.level === "warn")
       ? "warn"
       : "ok";
-  return { level, checks, summary: summarizeRemoteDoctor({ level, checks }, remote) };
+  return {
+    level,
+    checks,
+    summary: summarizeRemoteDoctor({ level, checks }, remote),
+    ...(installation ? { installation: installation.evidence } : {}),
+  };
+}
+
+/** Build reproducible local distribution evidence without a network request. */
+function analyzeInstallationChannel(metadata = {}, remote = false) {
+  const id = String(metadata.id || "").trim();
+  const version = String(metadata.version || "").trim();
+  const recommendedCliVersion = String(
+    metadata.recommendedCliVersion || "",
+  ).trim();
+  const appName = String(
+    metadata.appName || "Unknown VS Code-compatible host",
+  ).trim();
+  const installMode = String(metadata.installMode || "production").trim();
+  const validId = /^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*$/i.test(id);
+  const validVersion = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version);
+  const app = appName.toLowerCase();
+  const channel = app.includes("vscodium")
+    ? {
+        id: "open-vsx",
+        label: "Open VSX Registry",
+        url: `https://open-vsx.org/extension/${id.replace(".", "/")}`,
+        updateMode: "host-managed",
+      }
+    : app.includes("visual studio code")
+      ? {
+          id: "visual-studio-marketplace",
+          label: "Visual Studio Marketplace",
+          url: `https://marketplace.visualstudio.com/items?itemName=${id}`,
+          updateMode: "host-managed",
+        }
+      : {
+          id: "unresolved",
+          label: "host-specific marketplace or signed VSIX",
+          url: null,
+          updateMode: "host-specific",
+        };
+
+  const checks = [];
+  if (validId && validVersion) {
+    checks.push({
+      level: "ok",
+      id: "extension-activated",
+      title: "IDE extension is activated on this execution host",
+      detail:
+        `${id} ${version} is running in ${appName}` +
+        (remote
+          ? " on the remote workspace host."
+          : " on the local workspace host.") +
+        " This verifies local activation, not store availability.",
+    });
+  } else {
+    checks.push({
+      level: "warn",
+      id: "extension-metadata",
+      title: "IDE extension installation metadata is incomplete",
+      detail:
+        "The active package did not expose a valid extension id and semantic version, so its local installation cannot be recorded as verifiable evidence.",
+    });
+  }
+
+  checks.push({
+    level: channel.id === "unresolved" ? "warn" : "info",
+    id: "extension-channel",
+    title: "IDE extension update channel",
+    detail:
+      `${appName} normally uses ${channel.label}; update mode: ${channel.updateMode}. ` +
+      (channel.url
+        ? `Listing: ${channel.url}. `
+        : "Consult the host's extension manager. ") +
+      "Install provenance is not exposed by the VS Code extension API, so this is a recommendation rather than a provenance claim.",
+  });
+  checks.push({
+    level: "info",
+    id: "extension-store-readback",
+    title: "Public store readback not performed",
+    detail:
+      "This local diagnostic does not query a marketplace. Listing visibility, published version, signature review, and update propagation remain externally unverified.",
+  });
+
+  return {
+    checks,
+    evidence: {
+      schemaVersion: "chainlesschain.ide-installation-readiness/v1",
+      localActivation: validId && validVersion ? "verified" : "unverified",
+      executionHost: remote ? "remote" : "local",
+      extension: { id: id || null, version: version || null },
+      recommendedCliVersion: recommendedCliVersion || null,
+      ideHost: appName,
+      installMode,
+      recommendedChannel: channel,
+      installProvenance: "unavailable-from-host-api",
+      storeReadback: "not-performed",
+      productionQualified: false,
+    },
+  };
 }
 
 /** Render the checks as a copy-pasteable plain-text report. */
 function summarizeRemoteDoctor(result, remote) {
-  const icon = { ok: "✓", warn: "⚠", error: "✗" };
+  const icon = { ok: "✓", info: "ℹ", warn: "⚠", error: "✗" };
   const lines = [
     remote
       ? "Remote / WSL Doctor — remote or WSL session detected"
@@ -156,4 +270,9 @@ function summarizeRemoteDoctor(result, remote) {
   return lines.join("\n");
 }
 
-module.exports = { analyzeRemoteEnv, compareVersions, summarizeRemoteDoctor };
+module.exports = {
+  analyzeRemoteEnv,
+  analyzeInstallationChannel,
+  compareVersions,
+  summarizeRemoteDoctor,
+};

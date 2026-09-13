@@ -24,10 +24,19 @@ function boundedText(value, maxChars) {
  * into the conversation by this helper and never carry approval authority.
  */
 export class DeferredQuestionContext {
-  constructor({ sessionId = null, maxPendingAnswers = 32 } = {}) {
+  constructor({
+    sessionId = null,
+    maxPendingAnswers = 32,
+    initialAnswers = [],
+    onConsumed = null,
+  } = {}) {
     this.sessionId = sessionId == null ? null : String(sessionId);
     this.maxPendingAnswers = Math.max(1, Number(maxPendingAnswers) || 32);
     this._answers = [];
+    this._onConsumed = typeof onConsumed === "function" ? onConsumed : null;
+    for (const answer of Array.isArray(initialAnswers) ? initialAnswers : []) {
+      this.record(answer);
+    }
   }
 
   record({
@@ -40,6 +49,10 @@ export class DeferredQuestionContext {
   }) {
     const id = String(questionId || "").trim();
     if (!id) return false;
+    const existing = this._answers.findIndex(
+      (entry) => entry.questionId === id,
+    );
+    if (existing >= 0) this._answers.splice(existing, 1);
     this._answers.push(
       Object.freeze({
         questionId: id,
@@ -63,6 +76,14 @@ export class DeferredQuestionContext {
   prepareCall({ currentRevision = null } = {}) {
     if (this._answers.length === 0) return null;
     const answers = this._answers.splice(0, MAX_DEFERRED_ANSWERS_PER_CALL);
+    if (this._onConsumed) {
+      try {
+        this._onConsumed(answers.map((entry) => entry.questionId));
+      } catch {
+        // Context delivery is authoritative for this process. A persistence
+        // callback failure must not duplicate user context in the same run.
+      }
+    }
     const revision = Number.isSafeInteger(currentRevision)
       ? currentRevision
       : null;
@@ -89,6 +110,10 @@ export class DeferredQuestionContext {
 
   clear() {
     this._answers.length = 0;
+  }
+
+  snapshot() {
+    return this._answers.map((entry) => ({ ...entry }));
   }
 
   get size() {

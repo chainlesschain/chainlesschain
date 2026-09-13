@@ -45,6 +45,7 @@ describe("OpenAI Responses adapter", () => {
         input_tokens: 120,
         input_tokens_details: { cached_tokens: 20 },
         output_tokens: 30,
+        output_tokens_details: { reasoning_tokens: 12 },
       },
     });
     expect(normalized.message.tool_calls).toEqual([
@@ -64,6 +65,7 @@ describe("OpenAI Responses adapter", () => {
       input_tokens: 100,
       output_tokens: 30,
       cache_read_input_tokens: 20,
+      reasoning_tokens: 12,
     });
 
     const input = toOpenAIResponsesInput([
@@ -116,6 +118,7 @@ describe("OpenAI Responses adapter", () => {
         input_tokens: 10,
         input_tokens_details: { cached_tokens: 4 },
         output_tokens: 7,
+        output_tokens_details: { reasoning_tokens: 5 },
       },
     };
     const lines = [
@@ -142,7 +145,26 @@ describe("OpenAI Responses adapter", () => {
       input_tokens: 6,
       output_tokens: 7,
       cache_read_input_tokens: 4,
+      reasoning_tokens: 5,
     });
+  });
+
+  it("fails closed on malformed or impossible reasoning token usage", () => {
+    const response = (reasoningTokens) =>
+      normalizeOpenAIResponsesResponse({
+        id: "resp_usage",
+        status: "completed",
+        output: [],
+        usage: {
+          input_tokens: 4,
+          output_tokens: 3,
+          output_tokens_details: { reasoning_tokens: reasoningTokens },
+        },
+      });
+
+    expect(response(-1).usage).toBeUndefined();
+    expect(response(4).usage).toBeUndefined();
+    expect(response(1.5).usage).toBeUndefined();
   });
 
   it("drops incomplete tool calls and marks partial output truncated", () => {

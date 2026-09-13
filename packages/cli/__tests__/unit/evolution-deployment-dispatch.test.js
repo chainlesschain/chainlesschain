@@ -78,7 +78,7 @@ describe("deployment configuration dispatch boundary", () => {
     },
   );
 
-  it.each(["ask", "agent", "evolution"])(
+  it.each(["ask", "agent", "evolution", "skill"])(
     "still assembles authenticated dependencies for %s business commands",
     async (command) => {
       const options = dispatchOptions();

@@ -1,0 +1,174 @@
+name: G09 Production Journey Attestation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/g09-production-journey-attestation.yml"
+      - "packages/cli/scripts/verify-g09-production-journey.mjs"
+      - "packages/cli/__tests__/unit/verify-g09-production-journey.test.js"
+      - "docs/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/g09-production-journey-attestation.yml"
+      - "packages/cli/scripts/verify-g09-production-journey.mjs"
+      - "packages/cli/__tests__/unit/verify-g09-production-journey.test.js"
+      - "docs/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact protected-main commit represented by the target evidence
+        required: true
+        type: string
+      producer_run_id:
+        description: Successful approved target-environment producer run ID
+        required: true
+        type: string
+      producer_run_attempt:
+        description: Exact producer run attempt
+        required: true
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g09-production-journey-${{ github.event_name == 'workflow_dispatch' && 'authoritative' || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Validate the secretless G09 evidence contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Run focused verifier tests
+        run: npx vitest run packages/cli/__tests__/unit/verify-g09-production-journey.test.js
+
+  attest:
+    name: Verify and attest approved target-environment evidence
+    if: github.event_name == 'workflow_dispatch'
+    needs: contract
+    runs-on: ubuntu-latest
+    environment: g09-production-journey
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Require exact protected live main before environment access
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+          PRODUCER_RUN_ID: ${{ inputs.producer_run_id }}
+          PRODUCER_RUN_ATTEMPT: ${{ inputs.producer_run_attempt }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$EXPECTED_SHA" = "$SOURCE_SHA"
+          test "$SOURCE_REF" = refs/heads/main
+          test "$REF_PROTECTED" = true
+          [[ "$PRODUCER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$PRODUCER_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Validate configured producer identity and exact successful attempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          PRODUCER_RUN_ID: ${{ inputs.producer_run_id }}
+          PRODUCER_RUN_ATTEMPT: ${{ inputs.producer_run_attempt }}
+          TRUSTED_PRODUCER_WORKFLOW: ${{ vars.G09_TARGET_PRODUCER_WORKFLOW }}
+        run: |
+          set -euo pipefail
+          [[ "$TRUSTED_PRODUCER_WORKFLOW" =~ ^\.github/workflows/[a-zA-Z0-9._-]+\.yml$ ]] || {
+            echo "G09_TARGET_PRODUCER_WORKFLOW is not configured safely" >&2
+            exit 1
+          }
+          run_file="$RUNNER_TEMP/g09-producer-run.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/attempts/${PRODUCER_RUN_ATTEMPT}" > "$run_file"
+          test "$(jq -r .head_sha "$run_file")" = "$EXPECTED_SHA"
+          test "$(jq -r .head_branch "$run_file")" = main
+          test "$(jq -r .event "$run_file")" = workflow_dispatch
+          test "$(jq -r .status "$run_file")" = completed
+          test "$(jq -r .conclusion "$run_file")" = success
+          test "$(jq -r .run_attempt "$run_file")" = "$PRODUCER_RUN_ATTEMPT"
+          test "$(jq -r .path "$run_file")" = "$TRUSTED_PRODUCER_WORKFLOW"
+
+      - name: Download the exact producer-attempt evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          PRODUCER_RUN_ID: ${{ inputs.producer_run_id }}
+          PRODUCER_RUN_ATTEMPT: ${{ inputs.producer_run_attempt }}
+        run: |
+          set -euo pipefail
+          name="g09-production-journey-evidence-${PRODUCER_RUN_ATTEMPT}-${EXPECTED_SHA}"
+          gh run download "$PRODUCER_RUN_ID" --name "$name" --dir "$RUNNER_TEMP/g09-input"
+          mapfile -t files < <(find "$RUNNER_TEMP/g09-input" -type f -name '*.json' -print)
+          test "${#files[@]}" -eq 1
+          test ! -L "${files[0]}"
+          echo "G09_EVIDENCE_FILE=${files[0]}" >> "$GITHUB_ENV"
+
+      - name: Verify producer attestation and evidence contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+          TRUSTED_PRODUCER_WORKFLOW: ${{ vars.G09_TARGET_PRODUCER_WORKFLOW }}
+        run: |
+          set -euo pipefail
+          signer="${GITHUB_SERVER_URL#*://}/${GITHUB_REPOSITORY}/${TRUSTED_PRODUCER_WORKFLOW}"
+          gh attestation verify "$G09_EVIDENCE_FILE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$signer" \
+            --signer-digest "$EXPECTED_SHA" \
+            --source-ref refs/heads/main \
+            --source-digest "$EXPECTED_SHA" \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --deny-self-hosted-runners
+          node packages/cli/scripts/verify-g09-production-journey.mjs \
+            --input "$G09_EVIDENCE_FILE" \
+            --expected-commit "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/g09-production-journey-verification.json"
+
+      - name: Revalidate live main before publishing verified evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)
+          test "$main_sha" = "$EXPECTED_SHA"
+
+      - name: Upload verified G09 receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: g09-production-journey-verification-${{ inputs.commit_sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/g09-production-journey-verification.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attest the verified receipt to this consumer workflow
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/g09-production-journey-verification.json

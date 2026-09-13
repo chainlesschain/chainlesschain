@@ -159,14 +159,16 @@ managed revision, an absolute single-file ESM deployment-module path, the
 module SHA-256, trust-root SHA-256, and an allowlist containing any of
 `agent`, `ask`, `chat`, `compact`, `complete`, `cowork`, `desktop`,
 `evolution`, `hub`, `learning`, `marketplace`, `orchestrate`, `serve`,
-`stream`, and `ui`; its canonical payload must carry an Ed25519 signature.
+`skill`, `stream`, and `ui`; its canonical payload must carry an Ed25519
+signature.
 The authenticated module exports
 `createChainlessChainCommandDependencies({ commandName, descriptor, factories })` and
 returns the command-specific branded hosts/factories. The invocation also
 receives narrow built-in factory functions for the Workbench host, governed
-knowledge review host, and Agent evolution composition as applicable, so the
-deployment bundle can construct objects carrying the CLI's unforgeable brands
-without importing mutable package files. The CLI executes the
+knowledge review host, Agent evolution composition, and authenticated Skill
+outcome/vector retrieval authorities as applicable, so the deployment bundle
+can construct objects carrying the CLI's unforgeable brands without importing
+mutable package files. The CLI executes the
 verified module bytes directly, so replacing the pathname after verification
 cannot change the loaded code. Partial configuration, signature/digest drift,
 missing exports, or absent production authorities keeps Workbench unavailable;

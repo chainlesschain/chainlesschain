@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   analyzeRemoteEnv,
+  analyzeInstallationChannel,
   compareVersions,
   summarizeRemoteDoctor,
 } from "../../../vscode-extension/src/remote-doctor.js";
@@ -114,6 +115,77 @@ describe("analyzeRemoteEnv", () => {
     expect(summarizeRemoteDoctor({ level: "ok", checks: [] }, false)).toContain(
       "All checks passed",
     );
+  });
+});
+
+describe("IDE installation-channel readiness", () => {
+  it("records local activation and recommends the VS Code Marketplace without claiming readback", () => {
+    const r = analyzeRemoteEnv({
+      cliFound: true,
+      cliVersion: "0.166.46",
+      minCliVersion: "0.166.46",
+      bridgePort: 51234,
+      portProbe: "listening",
+      extensionMetadata: {
+        id: "chainlesschain.chainlesschain-ide",
+        version: "0.37.96",
+        recommendedCliVersion: "0.166.46",
+        appName: "Visual Studio Code",
+        installMode: "production",
+      },
+    });
+
+    expect(byId(r, "extension-activated").level).toBe("ok");
+    expect(byId(r, "extension-channel").detail).toContain(
+      "Visual Studio Marketplace",
+    );
+    expect(byId(r, "extension-store-readback").level).toBe("info");
+    expect(r.installation).toMatchObject({
+      schemaVersion: "chainlesschain.ide-installation-readiness/v1",
+      localActivation: "verified",
+      executionHost: "local",
+      storeReadback: "not-performed",
+      productionQualified: false,
+      recommendedChannel: { id: "visual-studio-marketplace" },
+    });
+  });
+
+  it("identifies Open VSX for VSCodium and records remote-host activation", () => {
+    const result = analyzeInstallationChannel(
+      {
+        id: "chainlesschain.chainlesschain-ide",
+        version: "0.37.96",
+        appName: "VSCodium",
+      },
+      true,
+    );
+
+    expect(result.evidence.executionHost).toBe("remote");
+    expect(result.evidence.recommendedChannel).toMatchObject({
+      id: "open-vsx",
+      updateMode: "host-managed",
+    });
+    expect(result.evidence.recommendedChannel.url).toContain(
+      "open-vsx.org/extension/chainlesschain/chainlesschain-ide",
+    );
+    expect(result.checks[0].detail).toContain("remote workspace host");
+  });
+
+  it("fails visibly for invalid metadata and does not guess an unknown host channel", () => {
+    const result = analyzeInstallationChannel({
+      id: "not-an-extension-id",
+      version: "dev",
+      appName: "Cursor",
+    });
+
+    expect(result.evidence.localActivation).toBe("unverified");
+    expect(result.evidence.recommendedChannel.id).toBe("unresolved");
+    expect(result.evidence.installProvenance).toBe("unavailable-from-host-api");
+    expect(result.checks.map((c) => [c.id, c.level])).toEqual([
+      ["extension-metadata", "warn"],
+      ["extension-channel", "warn"],
+      ["extension-store-readback", "info"],
+    ]);
   });
 });
 
@@ -305,6 +377,8 @@ describe("remote doctor fix glue wiring", () => {
     expect(extSrc).toContain("classifyFixes(report.checks)");
     expect(extSrc).toContain("buildFirewallFixScript");
     expect(extSrc).toContain("buildWslConfigPatch");
+    expect(extSrc).toContain("extensionMetadata:");
+    expect(extSrc).toContain("context?.extension?.packageJSON");
     // Safe fixes require one explicit confirm before anything runs.
     expect(extSrc).toContain("Apply ${autos.length} safe fix(es)?");
     expect(extSrc).toContain("showSaveDialog");

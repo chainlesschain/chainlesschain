@@ -535,9 +535,21 @@ async function ensureSessionHandler(
   const { WebSocketInteractionAdapter } =
     await import("../../lib/interaction-adapter.js");
   const enablePhase5Envelopes = await _isPhase5EnvelopesEnabled();
+  const stateSnapshot =
+    typeof server.sessionManager.getSessionStateSnapshot === "function"
+      ? server.sessionManager.getSessionStateSnapshot(session.id)
+      : null;
   session.interaction = new WebSocketInteractionAdapter(ws, session.id, {
     enablePhase5Envelopes,
     envelopeBus: server.envelopeBus || null,
+    deferredState: stateSnapshot,
+    onDeferredQuestionChange: ({ type, payload }) => {
+      server.sessionManager?.recordSessionStateEvent?.(
+        session.id,
+        type,
+        payload,
+      );
+    },
     onPendingApprovalChange: ({ type, payload }) => {
       if (
         server.sessionManager &&

@@ -209,6 +209,7 @@ describe("signed evolution deployment loader", () => {
     "cowork",
     "orchestrate",
     "serve",
+    "skill",
     "stream",
     "ui",
   ])(
@@ -234,6 +235,58 @@ describe("signed evolution deployment loader", () => {
       });
     },
   );
+
+  it("exposes governed retrieval factories only to an authenticated skill deployment", async () => {
+    const fixture = deploymentFixture({ commands: ["skill"] });
+    const skillVectorAuthority = Object.freeze({ branded: "vector" });
+    const skillOutcomeIndex = Object.freeze({ branded: "outcome" });
+    const importModule = vi.fn(async () => ({
+      createChainlessChainCommandDependencies: async ({
+        commandName,
+        factories,
+      }) => ({
+        commandName,
+        skillVectorAuthority,
+        skillOutcomeIndex,
+        compositionFactoryAvailable:
+          typeof factories.createAgentEvolutionRuntimeComposition ===
+          "function",
+        catalogAuthorityFactoryAvailable:
+          typeof factories.createSkillOutcomeSourceCatalogAuthority ===
+          "function",
+        catalogAssemblerAvailable:
+          typeof factories.assembleAgentSkillOutcomeIndexFromCatalog ===
+          "function",
+        vectorProcessFactoryAvailable:
+          typeof factories.createSkillVectorProcessAuthority === "function",
+      }),
+    }));
+
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("skill", {
+        ...fixture,
+        importModule,
+      }),
+    ).resolves.toEqual({
+      commandName: "skill",
+      skillVectorAuthority,
+      skillOutcomeIndex,
+      compositionFactoryAvailable: true,
+      catalogAuthorityFactoryAvailable: true,
+      catalogAssemblerAvailable: true,
+      vectorProcessFactoryAvailable: true,
+    });
+    expect(importModule).toHaveBeenCalledOnce();
+
+    const excluded = deploymentFixture({ commands: ["agent"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("skill", {
+        ...excluded,
+        importModule,
+      }),
+    ).resolves.toBeNull();
+    expect(importModule).toHaveBeenCalledOnce();
+  });
 
   it("loads exact-digest deployment dependencies after Ed25519 verification", async () => {
     const fixture = deploymentFixture();

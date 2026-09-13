@@ -122,6 +122,22 @@ export function projectRuntimeTokenUsage(event = {}) {
       required: index < 2,
     });
   }
+  if (
+    Object.hasOwn(event.usage, "reasoning_tokens") ||
+    Object.hasOwn(event.usage, "reasoningTokens")
+  ) {
+    const reasoningTokens = tokenCount(
+      event.usage,
+      "reasoning_tokens",
+      "reasoningTokens",
+    );
+    if (reasoningTokens > usage.output_tokens) {
+      throw new TypeError(
+        "runtime reasoning token usage exceeds output tokens",
+      );
+    }
+    usage.reasoning_tokens = reasoningTokens;
+  }
   if (Object.hasOwn(event.usage, "total_tokens")) {
     const total = event.usage.total_tokens;
     if (

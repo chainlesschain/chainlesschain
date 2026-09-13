@@ -27,6 +27,7 @@ const SUPPORTED_COMMANDS = new Set([
   "marketplace",
   "orchestrate",
   "serve",
+  "skill",
   "stream",
   "ui",
 ]);
@@ -424,13 +425,31 @@ async function loadBuiltInFactories(commandName) {
     commandName === "cowork" ||
     commandName === "orchestrate" ||
     commandName === "serve" ||
+    commandName === "skill" ||
     commandName === "stream" ||
     commandName === "ui"
   ) {
-    const { createAgentEvolutionRuntimeComposition } =
-      await import("./agent-evolution-runtime-composition.js");
+    const {
+      assembleAgentSkillOutcomeIndexFromCatalog,
+      createAgentEvolutionRuntimeComposition,
+    } = await import("./agent-evolution-runtime-composition.js");
     factories.createAgentEvolutionRuntimeComposition =
       createAgentEvolutionRuntimeComposition;
+    if (commandName === "skill") {
+      const [
+        { createSkillOutcomeSourceCatalogAuthority },
+        { createSkillVectorProcessAuthority },
+      ] = await Promise.all([
+        import("./skill-outcome-source-catalog-authority.js"),
+        import("../skill-vector-process-authority.js"),
+      ]);
+      factories.assembleAgentSkillOutcomeIndexFromCatalog =
+        assembleAgentSkillOutcomeIndexFromCatalog;
+      factories.createSkillOutcomeSourceCatalogAuthority =
+        createSkillOutcomeSourceCatalogAuthority;
+      factories.createSkillVectorProcessAuthority =
+        createSkillVectorProcessAuthority;
+    }
   }
   return Object.freeze(factories);
 }
