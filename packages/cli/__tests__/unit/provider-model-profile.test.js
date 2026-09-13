@@ -256,11 +256,11 @@ describe("canonical provider model-profile budget integration", () => {
     },
   );
 
-  it("still rejects missing authenticated ingress before any provider fetch", async () => {
+  it("still rejects an unauthenticated ingress before any provider fetch", async () => {
     const captured = captureProviderFetch("anthropic");
     await expect(
-      chatWithTools(MESSAGES, callOptions({ evolutionIngress: null })),
-    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      chatWithTools(MESSAGES, callOptions({ evolutionIngress: {} })),
+    ).rejects.toThrow("a branded Agent evolution ingress is required");
     expect(captured.fetch).not.toHaveBeenCalled();
   });
 });
