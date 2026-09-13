@@ -334,19 +334,40 @@ describe("git tool — shell-free (no command injection)", () => {
   it("does not execute an injected command via `;`/`&&` (runs via argv)", async () => {
     // With a shell, `git status; echo PWNED_MARKER` would run echo. Via argv,
     // git just sees "status;" as an unknown subcommand and errors — no shell.
-    const res = await executeTool("git", {
-      command: "status; echo PWNED_MARKER",
-    });
-    const blob = `${res.stdout || ""}${res.error || ""}${res.stderr || ""}`;
-    // git rejected the bad subcommand …
-    expect(res.error || res.stderr).toBeTruthy();
-    // … and the injected echo never produced its marker as stdout
-    expect(res.stdout || "").not.toContain("PWNED_MARKER");
-    // (the marker only appears, if at all, inside git's "not a git command"
-    // error text — never as executed output)
-    expect(/not a git command|is not a git|unknown|invalid/i.test(blob)).toBe(
-      true,
-    );
+    const originalRunner = _gitProcessDeps.run;
+    const run = vi.fn(() => ({
+      status: 1,
+      stdout: "",
+      stderr: "git: 'status;' is not a git command\n",
+    }));
+    _gitProcessDeps.run = run;
+
+    try {
+      const res = await executeTool("git", {
+        command: "status; echo PWNED_MARKER",
+      });
+      const blob = `${res.stdout || ""}${res.error || ""}${res.stderr || ""}`;
+      expect(run).toHaveBeenCalledWith(
+        "git",
+        ["status;", "echo", "PWNED_MARKER"],
+        expect.objectContaining({
+          origin: "agent-core:git-command",
+          policy: "allow",
+          scope: "agent-core",
+        }),
+      );
+      // git rejected the bad subcommand …
+      expect(res.error || res.stderr).toBeTruthy();
+      // … and the injected echo never produced its marker as stdout
+      expect(res.stdout || "").not.toContain("PWNED_MARKER");
+      // (the marker only appears, if at all, inside git's "not a git command"
+      // error text — never as executed output)
+      expect(/not a git command|is not a git|unknown|invalid/i.test(blob)).toBe(
+        true,
+      );
+    } finally {
+      _gitProcessDeps.run = originalRunner;
+    }
   });
 
   it("runs a legitimate git command via argv", async () => {
