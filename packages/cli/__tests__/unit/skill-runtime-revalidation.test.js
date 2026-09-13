@@ -45,8 +45,10 @@ afterEach(() => {
 });
 
 async function fixture() {
+  // Keep the fixture root in the same physical path spelling that ArtifactStore
+  // validates, avoiding a Windows 8.3 alias mismatch in the fail-closed check.
   const root = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "cc-runtime-revalidation-"),
+    path.join(fs.realpathSync.native(os.tmpdir()), "cc-runtime-revalidation-"),
   );
   roots.push(root);
   const storeRoot = path.join(root, "store");
