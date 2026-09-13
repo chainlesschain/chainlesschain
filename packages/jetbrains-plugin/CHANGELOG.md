@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.123] - Pair with CLI 0.166.47 (2026-09-13)
+
+- Recommend the publicly verified `chainlesschain@0.166.47` release after its
+  npm publication and exact-SHA CLI and sandbox gates.
+- Carry the CLI's governed Evolution/wiki revalidation, native Responses
+  transport, plugin evaluation/deferred-question flow, and paginated
+  background-session access into the IDE pairing without granting the plugin
+  approval, publication, or command-construction authority.
+- Keep long-running background agents reliable through the CLI's nonblocking
+  keeper/worker heartbeat coordination and explicit `shell: false` command
+  execution boundary.
+
 ## [0.4.122] - Use the DeepSeek V4 Flash GA default (2026-09-11)
 
 - Use `deepseek-v4-flash-ga-260731` as the Volcengine text-model default in

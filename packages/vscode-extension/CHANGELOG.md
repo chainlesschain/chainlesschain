@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.97] - Pair with CLI 0.166.47 (2026-09-13)
+
+- Recommend the publicly verified `chainlesschain@0.166.47` release after its
+  npm publication and exact-SHA CLI and sandbox gates.
+- Surface the paired CLI's governed Evolution/wiki revalidation, native
+  Responses transport, plugin evaluation/deferred-question flow, and paginated
+  background-session access without adding editor-owned authority.
+- Retain the bounded CLI bridge while pairing with reliable background
+  keeper/worker heartbeat coordination and explicit `shell: false` command
+  execution.
+
 ## [0.37.96] - Separate chat composer controls (2026-09-13)
 
 - Add a clear vertical gap between the chat message input and its Send, Plan,
