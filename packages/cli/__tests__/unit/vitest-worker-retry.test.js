@@ -381,12 +381,13 @@ describe("Vitest worker infrastructure retry", () => {
     expect(unitStep).toContain(
       "--shard=${{ matrix.shard }}/${{ inputs.unit-shards }}",
     );
-    expect(workflow).toContain("inputs.unit-shards == 8");
+    expect(workflow).toContain("inputs.unit-shards == 16");
+    expect(workflow).toContain("[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]");
     const windowsCaller = cliWorkflow.slice(
       cliWorkflow.indexOf("test-windows:"),
       cliWorkflow.indexOf("test-macos:"),
     );
-    expect(windowsCaller).toContain("unit-shards: 8");
+    expect(windowsCaller).toContain("unit-shards: 16");
     expect(unitStep).toContain("--reporter=default --reporter=junit");
     expect(unitStep).toContain(
       "--outputFile.junit=test-results/unit-${{ matrix.shard }}.xml",

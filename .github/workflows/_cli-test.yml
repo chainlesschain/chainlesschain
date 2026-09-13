@@ -30,7 +30,7 @@ name: _CLI Test (reusable)
 #   commit_sha — exact caller commit to checkout and verify
 #   runs-on    — runner OS (default ubuntu-latest)
 #   shards      — number of E2E shards (default 4; must match its matrix below)
-#   unit-shards — number of unit shards (4 or 8; Windows CI uses 8)
+#   unit-shards — number of unit shards (4, 8 or 16; Windows CI uses 16)
 #   include-e2e — set false to skip the e2e suite (e.g. for fast PR feedback)
 
 on:
@@ -51,7 +51,7 @@ on:
         type: number
         default: 4
       unit-shards:
-        description: "Number of unit shards (supported values: 4 or 8)"
+        description: "Number of unit shards (supported values: 4, 8 or 16)"
         required: false
         type: number
         default: 4
@@ -71,9 +71,10 @@ jobs:
         # Four Windows shards can keep a two-fork Vitest worker alive for more
         # than 17 minutes. On hosted Windows runners that has repeatedly ended
         # with a teardown EPIPE before JUnit is flushed, leaving no safe proof
-        # for the bounded infrastructure retry. Eight shards shorten the IPC
-        # lifetime without weakening assertion or report requirements.
-        shard: ${{ inputs.unit-shards == 8 && fromJSON('[1,2,3,4,5,6,7,8]') || fromJSON('[1,2,3,4]') }}
+        # for the bounded infrastructure retry. Windows uses sixteen shards to
+        # halve a fork's lifecycle again without weakening assertion or report
+        # requirements; other callers retain the smaller supported matrices.
+        shard: ${{ inputs.unit-shards == 16 && fromJSON('[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]') || inputs.unit-shards == 8 && fromJSON('[1,2,3,4,5,6,7,8]') || fromJSON('[1,2,3,4]') }}
     steps:
       - uses: actions/checkout@v5
         with:

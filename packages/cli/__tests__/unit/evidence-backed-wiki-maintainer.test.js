@@ -588,7 +588,7 @@ describe("EvidenceBackedWikiMaintainer", () => {
     expect(second.result.state.revision).toBe(2);
   });
 
-  it("treats a canonical candidate digest as protocol metadata, not prose", async () => {
+  it("treats a bound proposal-decision digest chain as protocol metadata, not prose", async () => {
     const first = await maintain({
       evidenceByRef: {
         "ev-1": evidence("ev-1", { trustDomain: "a" }),
@@ -597,6 +597,8 @@ describe("EvidenceBackedWikiMaintainer", () => {
       operations: [{ type: "upsert", pattern: pattern() }],
     });
     const candidateId = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const releaseDigest = `sha256:${"c".repeat(20)}13800138000${"d".repeat(33)}`;
+    const receiptRef = `decision:${candidateId}`;
     const decisionCore = {
       candidateId,
       skillName: "safe-refactor",
@@ -604,21 +606,22 @@ describe("EvidenceBackedWikiMaintainer", () => {
       patternRefs: ["pat-safe-refactor"],
       reason: "review accepted the bounded candidate",
     };
-    const receipt = evidence("decision-candidate-digest", {
+    const receipt = evidence(receiptRef, {
       kind: "proposal-decision",
       trustDomain: "review-board",
-      data: { decisionDigest: hash(decisionCore) },
+      artifactRef: `artifact://tenant-a/trusted/${releaseDigest.slice(7)}`,
+      data: { decisionDigest: hash(decisionCore), releaseDigest },
     });
     const second = await maintain({
       state: first.result.state,
-      evidenceRefs: ["decision-candidate-digest"],
-      evidenceByRef: { "decision-candidate-digest": receipt },
+      evidenceRefs: [receiptRef],
+      evidenceByRef: { [receiptRef]: receipt },
       operations: [
         {
           type: "proposal-impact",
           decision: {
             ...decisionCore,
-            receiptRef: "decision-candidate-digest",
+            receiptRef,
           },
         },
       ],
@@ -627,6 +630,74 @@ describe("EvidenceBackedWikiMaintainer", () => {
       accepted: 1,
       rejected: 0,
     });
+  });
+
+  it("rejects unbound proposal-decision digest lookalikes instead of bypassing plaintext safety", async () => {
+    const unsafeCandidateId = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const candidateId = `sha256:${"e".repeat(64)}`;
+    const receiptRef = `decision:${unsafeCandidateId}`;
+    const releaseDigest = `sha256:${"c".repeat(20)}13800138000${"d".repeat(33)}`;
+    const cases = [
+      {
+        label: "mismatched evidence map key",
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          evidence: {
+            [receiptRef]: {
+              kind: "proposal-decision",
+              ref: `decision:${candidateId}`,
+            },
+          },
+        },
+      },
+      {
+        label: "artifact reference detached from its release digest",
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          evidence: {
+            [receiptRef]: {
+              kind: "proposal-decision",
+              ref: receiptRef,
+              tenantId: "tenant-a",
+              artifactRef: `artifact://tenant-a/trusted/${releaseDigest.slice(7)}-other`,
+              data: { releaseDigest },
+            },
+          },
+        },
+      },
+      {
+        label: "receipt reference detached from its candidate digest",
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          skillImpact: {
+            "safe-refactor": {
+              accepted: 1,
+              rejected: 0,
+              decisions: [
+                {
+                  candidateId,
+                  receiptRef,
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        label: "same digest placed in untrusted projection data",
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          evidence: { "ev-retained": { data: { note: receiptRef } } },
+        },
+      },
+    ];
+    for (const { label, state } of cases) {
+      const p = ports({ state });
+      await expect(maintain({ ports: p }), label).rejects.toMatchObject({
+        code: "WIKI_MAINTAINER_SECRET_LEAK",
+      });
+      expect(p.commitRevision).not.toHaveBeenCalled();
+    }
   });
 
   it("rejects proposal-impact field substitution against its authenticated receipt", async () => {

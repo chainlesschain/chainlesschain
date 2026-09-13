@@ -128,6 +128,10 @@ function assertMetadataOnly(value, path = "data") {
 }
 
 function assertWikiPlaintextSafe(value) {
+  const isDecisionDigestRef = (candidate) =>
+    typeof candidate === "string" &&
+    candidate.startsWith("decision:") &&
+    DIGEST.test(candidate.slice("decision:".length));
   const isBoundMaintenanceRequestMapKey = (path, key, child) =>
     path.length === 1 &&
     path[0] === "maintenanceRequests" &&
@@ -137,10 +141,53 @@ function assertWikiPlaintextSafe(value) {
     !Array.isArray(child) &&
     DIGEST.test(child.requestDigest ?? "") &&
     key === `wiki-maintenance:${child.requestDigest.slice("sha256:".length)}`;
-  const isProposalImpactCandidateSubject = (item, key, child) =>
+  const isBoundProposalDecisionEvidence = (path, key, child) =>
+    path.length === 1 &&
+    path[0] === "evidence" &&
+    isDecisionDigestRef(key) &&
+    child &&
+    typeof child === "object" &&
+    !Array.isArray(child) &&
+    child.kind === "proposal-decision" &&
+    child.ref === key;
+  const isProposalDecisionEvidenceRecord = (path, item) =>
+    path.length === 2 &&
+    path[0] === "evidence" &&
+    isDecisionDigestRef(path[1]) &&
+    item?.kind === "proposal-decision" &&
+    item.ref === path[1];
+  const isBoundProposalDecisionArtifactRef = (path, item, key, child) =>
+    key === "artifactRef" &&
+    isProposalDecisionEvidenceRecord(path, item) &&
+    DIGEST.test(item.data?.releaseDigest ?? "") &&
+    child ===
+      `artifact://${item.tenantId}/trusted/${item.data.releaseDigest.slice("sha256:".length)}`;
+  const isBoundProposalDecisionReceiptRef = (path, item, key, child) =>
+    path.length === 4 &&
+    path[0] === "skillImpact" &&
+    path[2] === "decisions" &&
+    path[3] === "[]" &&
+    key === "receiptRef" &&
+    DIGEST.test(item.candidateId ?? "") &&
+    child === `decision:${item.candidateId}`;
+  const isProposalImpactCandidateSubject = (path, item, key, child) =>
+    path.length === 2 &&
+    path[0] === "evolutionLog" &&
+    path[1] === "[]" &&
     key === "subjectId" &&
     item.type === "proposal-impact-recorded" &&
     DIGEST.test(child ?? "");
+  const isBoundProtocolValue = (path, item, key, child) =>
+    (key.endsWith("Digest") && DIGEST.test(child ?? "")) ||
+    (key === "candidateId" && DIGEST.test(child ?? "")) ||
+    isProposalImpactCandidateSubject(path, item, key, child) ||
+    isBoundProposalDecisionReceiptRef(path, item, key, child) ||
+    isBoundProposalDecisionArtifactRef(path, item, key, child) ||
+    (isProposalDecisionEvidenceRecord(path, item) &&
+      key === "ref" &&
+      child === path[1]) ||
+    (key === "revisionId" && REVISION_ID.test(child ?? "")) ||
+    (key === "requestId" && MAINTENANCE_REQUEST_ID.test(child ?? ""));
   const inspect = (item, path = []) => {
     if (typeof item === "string") {
       assertEvolutionContentContainsNoKnownSecrets(item);
@@ -153,19 +200,15 @@ function assertWikiPlaintextSafe(value) {
         // inspecting random hash bytes as prose can falsely match PII patterns.
         // Restrict the exemption to the state map and inspect its complete
         // record so an untrusted lookalike key cannot bypass this boundary.
-        if (!isBoundMaintenanceRequestMapKey(path, key, child))
-          assertEvolutionContentContainsNoKnownSecrets(key);
-        // Typed protocol digests/derived revision IDs are not natural-language
-        // text. Their random hex can contain phone-like digit runs. Only exempt
-        // the exact namespace in its metadata field, never arbitrary prose.
         if (
-          (key.endsWith("Digest") && DIGEST.test(child ?? "")) ||
-          (key === "candidateId" && DIGEST.test(child ?? "")) ||
-          isProposalImpactCandidateSubject(item, key, child) ||
-          (key === "revisionId" && REVISION_ID.test(child ?? "")) ||
-          (key === "requestId" && MAINTENANCE_REQUEST_ID.test(child ?? ""))
+          !isBoundMaintenanceRequestMapKey(path, key, child) &&
+          !isBoundProposalDecisionEvidence(path, key, child)
         )
-          continue;
+          assertEvolutionContentContainsNoKnownSecrets(key);
+        // Protocol metadata can carry random hash bytes that accidentally match
+        // a PII detector. Every exemption is bound to its state path, schema and
+        // sibling fields; prose and lookalikes still go through the detector.
+        if (isBoundProtocolValue(path, item, key, child)) continue;
         if (["string", "number"].includes(typeof child))
           assertEvolutionContentContainsNoKnownSecrets(`${key}=${child}`);
         inspect(child, [...path, key]);
