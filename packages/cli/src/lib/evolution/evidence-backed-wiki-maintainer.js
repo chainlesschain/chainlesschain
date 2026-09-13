@@ -137,6 +137,10 @@ function assertWikiPlaintextSafe(value) {
     !Array.isArray(child) &&
     DIGEST.test(child.requestDigest ?? "") &&
     key === `wiki-maintenance:${child.requestDigest.slice("sha256:".length)}`;
+  const isProposalImpactCandidateSubject = (item, key, child) =>
+    key === "subjectId" &&
+    item.type === "proposal-impact-recorded" &&
+    DIGEST.test(child ?? "");
   const inspect = (item, path = []) => {
     if (typeof item === "string") {
       assertEvolutionContentContainsNoKnownSecrets(item);
@@ -156,6 +160,8 @@ function assertWikiPlaintextSafe(value) {
         // the exact namespace in its metadata field, never arbitrary prose.
         if (
           (key.endsWith("Digest") && DIGEST.test(child ?? "")) ||
+          (key === "candidateId" && DIGEST.test(child ?? "")) ||
+          isProposalImpactCandidateSubject(item, key, child) ||
           (key === "revisionId" && REVISION_ID.test(child ?? "")) ||
           (key === "requestId" && MAINTENANCE_REQUEST_ID.test(child ?? ""))
         )

@@ -588,6 +588,47 @@ describe("EvidenceBackedWikiMaintainer", () => {
     expect(second.result.state.revision).toBe(2);
   });
 
+  it("treats a canonical candidate digest as protocol metadata, not prose", async () => {
+    const first = await maintain({
+      evidenceByRef: {
+        "ev-1": evidence("ev-1", { trustDomain: "a" }),
+        "ev-2": evidence("ev-2", { trustDomain: "b" }),
+      },
+      operations: [{ type: "upsert", pattern: pattern() }],
+    });
+    const candidateId = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const decisionCore = {
+      candidateId,
+      skillName: "safe-refactor",
+      outcome: "accepted",
+      patternRefs: ["pat-safe-refactor"],
+      reason: "review accepted the bounded candidate",
+    };
+    const receipt = evidence("decision-candidate-digest", {
+      kind: "proposal-decision",
+      trustDomain: "review-board",
+      data: { decisionDigest: hash(decisionCore) },
+    });
+    const second = await maintain({
+      state: first.result.state,
+      evidenceRefs: ["decision-candidate-digest"],
+      evidenceByRef: { "decision-candidate-digest": receipt },
+      operations: [
+        {
+          type: "proposal-impact",
+          decision: {
+            ...decisionCore,
+            receiptRef: "decision-candidate-digest",
+          },
+        },
+      ],
+    });
+    expect(second.result.state.skillImpact["safe-refactor"]).toMatchObject({
+      accepted: 1,
+      rejected: 0,
+    });
+  });
+
   it("rejects proposal-impact field substitution against its authenticated receipt", async () => {
     const first = await maintain({
       evidenceByRef: {
