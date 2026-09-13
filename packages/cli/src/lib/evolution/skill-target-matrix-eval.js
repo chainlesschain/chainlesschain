@@ -4,8 +4,8 @@ import { types as utilTypes } from "node:util";
 
 import {
   EVOLUTION_EVAL_AUTHORITY_DESCRIPTOR_SCHEMA,
-  EvolutionEvalGate,
-  EvolutionEvalReceiptVerifier,
+  isEvolutionEvalGate,
+  isEvolutionEvalReceiptVerifier,
   computeEvolutionEvalContextDigest,
   runEvolutionEvalGate,
   verifyEvolutionEvalReceipt,
@@ -1707,13 +1707,13 @@ function captureCellRuntimes(value) {
     const receiptVerifier = ownData(rawConfig, "receiptVerifier", label);
     rejectProxy(gate, `${label}.gate`);
     rejectProxy(receiptVerifier, `${label}.receiptVerifier`);
-    if (!(gate instanceof EvolutionEvalGate)) {
+    if (!isEvolutionEvalGate(gate)) {
       throw matrixError(
         SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
         `${label}.gate must be a branded EvolutionEvalGate`,
       );
     }
-    if (!(receiptVerifier instanceof EvolutionEvalReceiptVerifier)) {
+    if (!isEvolutionEvalReceiptVerifier(receiptVerifier)) {
       throw matrixError(
         SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
         `${label}.receiptVerifier must be a branded EvolutionEvalReceiptVerifier`,

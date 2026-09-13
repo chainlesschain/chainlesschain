@@ -29,6 +29,7 @@ import { WikiSkillProposalLedgerAdapter } from "./wiki-skill-proposal-ledger-ada
 import { EvolutionReleaseTrainStageOutputLedgerAdapter } from "./evolution-release-train-stage-output-ledger-adapter.js";
 import { createEvolutionReleaseTrainDomainStages } from "./evolution-release-train-domain-stages.js";
 import { createEvolutionReleaseTrain } from "./evolution-release-train.js";
+import { createEvolutionEvalRuntimeStageConfiguration } from "./evolution-eval-runtime-composition.js";
 import { captureSkillOutcomeSourceCatalogAuthority } from "./skill-outcome-source-catalog-authority.js";
 import {
   captureAgentEvolutionIngress,
@@ -641,6 +642,20 @@ export function createAgentEvolutionRuntimeComposition({
         ledgerArtifactResolver,
       });
       let domain = releaseTrainConfig.domain;
+      exactRecord(domain, DOMAIN_STAGE_KEYS, "releaseTrain.domain");
+      domain = {
+        ...domain,
+        eval: createEvolutionEvalRuntimeStageConfiguration({
+          configuration: domain.eval,
+          tenantId,
+          runId,
+          artifactPorts,
+          ledger: backend.ledger,
+          ledgerArtifactResolver,
+          audience,
+          now: clock,
+        }),
+      };
       if (wikiMaintainer !== null) {
         exactRecord(domain, DOMAIN_STAGE_KEYS, "releaseTrain.domain");
         const wikiStage = exactRecord(

@@ -6437,6 +6437,14 @@ export class EvolutionEvalReceiptVerifier {
 Object.freeze(EvolutionEvalGate.prototype);
 Object.freeze(EvolutionEvalReceiptVerifier.prototype);
 
+export function isEvolutionEvalGate(value) {
+  return GATE_INSTANCES.has(value);
+}
+
+export function isEvolutionEvalReceiptVerifier(value) {
+  return RECEIPT_VERIFIER_INSTANCES.has(value);
+}
+
 export async function runEvolutionEvalGate(gate, request) {
   if (!GATE_INSTANCES.has(gate)) {
     throw evalError(

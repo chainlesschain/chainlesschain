@@ -86,11 +86,15 @@ function durableFilesystem() {
 // files; directory-fsync compatibility is not a physical power-loss proof.
 export function evolutionDurableStoreConfiguration(
   root,
-  { tenantId = "tenant-pruning", streamId = "pruning" } = {},
+  {
+    tenantId = "tenant-pruning",
+    artifactTenantId = "pruning-artifacts",
+    streamId = "pruning",
+  } = {},
 ) {
   const descriptor = Object.freeze({
     tenantId,
-    artifactTenantId: "pruning-artifacts",
+    artifactTenantId,
     streamId,
     audience: "evolution-runtime",
     purpose: "evolution-ledger",

@@ -6155,7 +6155,7 @@ describe("Agent evolution runtime production composition", () => {
     expect(f.transport).not.toHaveBeenCalled();
   }, 60_000);
 
-  it("constructs all eight default domain adapters with root-owned durable ledgers", () => {
+  it("rejects production domain Eval placeholders before admitting the release train", () => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "cc-agent-domain-train-"),
     );
@@ -6199,72 +6199,74 @@ describe("Agent evolution runtime production composition", () => {
       snapshot: () => ({}),
       view: () => ({}),
     };
-    const composition = createAgentEvolutionRuntimeComposition({
-      ...options(root),
-      releaseTrain: {
-        plan,
-        domain: {
-          "wiki-maintain": {
-            maintainer: { maintain: async () => ({}) },
-            request: {},
-            usage,
-          },
-          propose: {
-            proposer,
-            effectiveAt: NOW,
-            usage,
-          },
-          candidate: { proposer, usage },
-          eval: {
-            aggregator: {},
-            receiptVerifier: {},
-            planRef: {
-              ref: "matrix-plan:one",
-              digest: plan.matrixEvalPlanDigest,
+    expect(() =>
+      createAgentEvolutionRuntimeComposition({
+        ...options(root),
+        releaseTrain: {
+          plan,
+          domain: {
+            "wiki-maintain": {
+              maintainer: { maintain: async () => ({}) },
+              request: {},
+              usage,
             },
-            expectedReceipt: {},
-            durability: { retain: async () => ({}) },
-            usage,
-          },
-          review: {
-            reviewLedger: {
-              submitPacket: async () => ({}),
-              listReviews: async () => [],
+            propose: {
+              proposer,
+              effectiveAt: NOW,
+              usage,
             },
-            packetInput: {},
-            usage,
-          },
-          pilot: {
-            pilot,
-            startRequest: {},
-            approvalInput: {},
-            nextAdvanceInput: async () => null,
-            effectiveAt: NOW,
-            usage,
-          },
-          promotion: {
-            controller: { promoteEvaluated: async () => ({}) },
-            releaseRegistry: {
-              readState: () => ({}),
-              readRelease: () => ({}),
+            candidate: { proposer, usage },
+            eval: {
+              aggregator: {},
+              receiptVerifier: {},
+              planRef: {
+                ref: "matrix-plan:one",
+                digest: plan.matrixEvalPlanDigest,
+              },
+              expectedReceipt: {},
+              durability: { retain: async () => ({}) },
+              usage,
             },
-            promotionInput: {},
-            effectiveAt: NOW,
-            usage,
-          },
-          "wiki-impact": {
-            reconciler: {
-              source: { list: async () => [] },
-              reconcile: async () => ({}),
+            review: {
+              reviewLedger: {
+                submitPacket: async () => ({}),
+                listReviews: async () => [],
+              },
+              packetInput: {},
+              usage,
             },
-            effectiveAt: NOW,
-            usage,
+            pilot: {
+              pilot,
+              startRequest: {},
+              approvalInput: {},
+              nextAdvanceInput: async () => null,
+              effectiveAt: NOW,
+              usage,
+            },
+            promotion: {
+              controller: { promoteEvaluated: async () => ({}) },
+              releaseRegistry: {
+                readState: () => ({}),
+                readRelease: () => ({}),
+              },
+              promotionInput: {},
+              effectiveAt: NOW,
+              usage,
+            },
+            "wiki-impact": {
+              reconciler: {
+                source: { list: async () => [] },
+                reconcile: async () => ({}),
+              },
+              effectiveAt: NOW,
+              usage,
+            },
           },
         },
-      },
-    });
-
-    expect(composition.releaseTrain.planDigest).toBe(plan.planDigest);
+      }),
+    ).toThrow(
+      /releaseTrain.domain.eval must contain exactly the required ports/u,
+    );
   });
 
   it("mounts the fixed eight-stage train on the production ArtifactStore and Ledger", async () => {

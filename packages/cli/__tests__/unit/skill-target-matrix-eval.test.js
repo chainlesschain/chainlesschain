@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -49,6 +51,13 @@ import {
   runEvolutionEvalGate,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
+import {
+  EVOLUTION_EVAL_COMPOSITION_UNAVAILABLE_CODE,
+  captureEvolutionEvalRuntimeComposition,
+  createEvolutionEvalRuntimeComposition,
+  createEvolutionEvalRuntimeStageConfiguration,
+} from "../../src/lib/evolution/evolution-eval-runtime-composition.js";
+import { openEvalCompositionTestStore } from "../fixtures/evolution-eval-composition.js";
 import { buildSkillCandidateDraft } from "../../src/lib/evolution/skill-candidate-registry.js";
 import {
   buildSkillDependencyLock,
@@ -2149,6 +2158,7 @@ function makeMatrixComposition({
   tenantId = TENANT_ID,
   skillName = "skill-pilot",
   childReceiptStoreAttack = null,
+  childReceiptStoreInput = null,
 }) {
   const secrets = new Map();
   const makeTrust = (role) => {
@@ -2364,42 +2374,49 @@ function makeMatrixComposition({
     }),
   ]);
   const childReceiptRecords = new Map();
-  const childReceiptStoreDescriptor = Object.freeze({
-    tenantId,
-    streamId: `matrix-child-receipts:${fixtureId}`,
-    authorityId: "authority:matrix-child-receipts",
-    revision: 1,
-    handlerArtifactDigest: matrixDigest(
-      "matrix-child-receipt-store",
-      fixtureId,
-    ),
-  });
-  const childReceiptStore = createEvolutionEvalChildEvidenceStorePort({
-    descriptor: childReceiptStoreDescriptor,
-    retain: async (request) => {
-      childReceiptRecords.set(request.receiptDigest, structuredClone(request));
-      return {
-        authenticated: true,
-        durable: childReceiptStoreAttack !== "non-durable",
-        kind: request.kind,
-        receiptDigest: request.receiptDigest,
-      };
-    },
-    resolve: async (request) => {
-      const retained = childReceiptRecords.get(request.receiptDigest);
-      const evidence = structuredClone(retained.evidence);
-      if (childReceiptStoreAttack === "substitute")
-        evidence.runId = "substituted-run";
-      return {
-        authenticated: true,
-        durable: true,
-        ...childReceiptStoreDescriptor,
-        kind: request.kind,
-        receiptDigest: request.receiptDigest,
-        evidence,
-      };
-    },
-  });
+  const childReceiptStoreDescriptor =
+    childReceiptStoreInput?.descriptor ??
+    Object.freeze({
+      tenantId,
+      streamId: `matrix-child-receipts:${fixtureId}`,
+      authorityId: "authority:matrix-child-receipts",
+      revision: 1,
+      handlerArtifactDigest: matrixDigest(
+        "matrix-child-receipt-store",
+        fixtureId,
+      ),
+    });
+  const childReceiptStore =
+    childReceiptStoreInput ??
+    createEvolutionEvalChildEvidenceStorePort({
+      descriptor: childReceiptStoreDescriptor,
+      retain: async (request) => {
+        childReceiptRecords.set(
+          request.receiptDigest,
+          structuredClone(request),
+        );
+        return {
+          authenticated: true,
+          durable: childReceiptStoreAttack !== "non-durable",
+          kind: request.kind,
+          receiptDigest: request.receiptDigest,
+        };
+      },
+      resolve: async (request) => {
+        const retained = childReceiptRecords.get(request.receiptDigest);
+        const evidence = structuredClone(retained.evidence);
+        if (childReceiptStoreAttack === "substitute")
+          evidence.runId = "substituted-run";
+        return {
+          authenticated: true,
+          durable: true,
+          ...childReceiptStoreDescriptor,
+          kind: request.kind,
+          receiptDigest: request.receiptDigest,
+          evidence,
+        };
+      },
+    });
   const matrixAuthorityRoot = computeSkillTargetMatrixEvalAuthorityRoot({
     planResolverDescriptor: descriptors.planResolver,
     evidenceVerifierDescriptor: descriptors.evidenceVerifier,
@@ -2891,7 +2908,12 @@ describe("Skill target matrix evaluation foundation", () => {
     expect(getterReads).toBe(0);
   });
 
-  it("executes the ReleaseTrain Eval adapter through two real Gate cells and the matrix verifier", async () => {
+  it("constructs production Eval ports, authenticates durability, and reopens exact evidence in a fresh process", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-eval-composition-"),
+    );
+    promotionRoots.push(root);
+    const store = openEvalCompositionTestStore(root);
     const firstHarness = makeHarness();
     const secondHarness = makeHarness();
     const calibration = await runEvolutionEvalGate(
@@ -2909,6 +2931,7 @@ describe("Skill target matrix evaluation foundation", () => {
       baselineReleaseDigest,
       useCanonicalCandidate: true,
       fixtureId: "release-train-adapter",
+      childReceiptStoreInput: store.childReceiptStore,
     });
     const plan = createEvolutionPlan({
       tenantId: fixture.plan.tenantId,
@@ -2935,35 +2958,132 @@ describe("Skill target matrix evaluation foundation", () => {
       expiresAt: "2030-01-01T00:00:00.000Z",
       triggerDigest: matrixDigest("release-train-trigger", "v1"),
     });
-    let stored = null;
-    const outputLedger = {
-      load: vi.fn(() => stored),
-      commit: vi.fn((input) => {
-        stored = {
-          ...structuredClone(input),
-          valueDigest: matrixDigest("release-train-stage-value", input.value),
-        };
-        return { committed: true };
-      }),
+    const compositionOptions = {
+      descriptor: store.descriptor,
+      aggregatorOptions: fixture.aggregatorOptions,
+      verificationLimits: {
+        maximumReceiptTtlMs: 60_000,
+        maximumVerificationMs: 30_000,
+      },
+      durabilityOptions: store.durabilityOptions,
     };
-    const durability = {
-      retain: vi.fn(async (receipt) => ({
-        durable: true,
-        receiptDigest: receipt.receiptDigest,
-      })),
-    };
-    const stage = createEvolutionEvalStage({
-      aggregator: new SkillTargetMatrixEvalAggregator(
-        fixture.aggregatorOptions,
-      ),
-      receiptVerifier: new SkillTargetMatrixEvalReceiptVerifier(
-        fixture.verifierOptions,
-      ),
+    // Construction must not advertise availability with any authority absent.
+    for (const key of [
+      "planResolver",
+      "evidenceVerifier",
+      "reservationAuthority",
+      "matrixSupervisor",
+      "matrixReceiptSigner",
+      "matrixReceiptVerifier",
+      "clock",
+      "childReceiptStore",
+    ]) {
+      const options = { ...fixture.aggregatorOptions };
+      delete options[key];
+      expect(() =>
+        createEvolutionEvalRuntimeComposition({
+          ...compositionOptions,
+          aggregatorOptions: options,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: EVOLUTION_EVAL_COMPOSITION_UNAVAILABLE_CODE,
+        }),
+      );
+    }
+    for (const key of ["retain", "resolve", "verifyAttestation"]) {
+      const authority = { ...store.durabilityOptions.authority };
+      delete authority[key];
+      expect(() =>
+        createEvolutionEvalRuntimeComposition({
+          ...compositionOptions,
+          durabilityOptions: { ...store.durabilityOptions, authority },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: EVOLUTION_EVAL_COMPOSITION_UNAVAILABLE_CODE,
+        }),
+      );
+    }
+    for (const [key, prototype] of [
+      ["gate", EvolutionEvalGate.prototype],
+      ["receiptVerifier", EvolutionEvalReceiptVerifier.prototype],
+    ]) {
+      const cellRuntimes = new Map(fixture.aggregatorOptions.cellRuntimes);
+      const [cellId, cell] = cellRuntimes.entries().next().value;
+      cellRuntimes.set(cellId, { ...cell, [key]: Object.create(prototype) });
+      expect(() =>
+        createEvolutionEvalRuntimeComposition({
+          ...compositionOptions,
+          aggregatorOptions: { ...fixture.aggregatorOptions, cellRuntimes },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: EVOLUTION_EVAL_COMPOSITION_UNAVAILABLE_CODE,
+        }),
+      );
+    }
+    let composition;
+    const configuration = {
+      descriptor: {
+        authorityId: store.descriptor.authorityId,
+        revision: store.descriptor.revision,
+        handlerArtifactDigest: store.descriptor.handlerArtifactDigest,
+      },
+      createComposition: ({ descriptor, childReceiptStore }) => {
+        composition = createEvolutionEvalRuntimeComposition({
+          ...compositionOptions,
+          descriptor,
+          aggregatorOptions: {
+            ...fixture.aggregatorOptions,
+            childReceiptStore,
+          },
+        });
+        return composition;
+      },
       planRef: fixture.planRef,
       expectedReceipt: fixture.expected,
-      durability,
-      outputLedger,
       usage: { tokens: 1, cost: 0, timeMs: 1, turns: 1 },
+    };
+    const runtimeOptions = {
+      configuration,
+      tenantId: store.descriptor.tenantId,
+      runId: store.descriptor.runId,
+      ...store.resources,
+    };
+    const configured =
+      createEvolutionEvalRuntimeStageConfiguration(runtimeOptions);
+    expect(() =>
+      captureEvolutionEvalRuntimeComposition({ ...composition }),
+    ).toThrow(/branded/);
+    expect(() =>
+      captureEvolutionEvalRuntimeComposition(Object.create(composition)),
+    ).toThrow(/branded/);
+    expect(() =>
+      captureEvolutionEvalRuntimeComposition(new Proxy(composition, {})),
+    ).toThrow(/branded/);
+    expect(() =>
+      createEvolutionEvalRuntimeStageConfiguration({
+        ...runtimeOptions,
+        configuration: {
+          ...configuration,
+          createComposition: () => composition,
+        },
+      }),
+    ).toThrow(/runtime child evidence store/);
+    expect(() =>
+      createEvolutionEvalRuntimeStageConfiguration({
+        ...runtimeOptions,
+        runId: "another-run",
+        configuration: {
+          ...configuration,
+          createComposition: () => composition,
+        },
+      }),
+    ).toThrow(/runtime runId/);
+    const stage = createEvolutionEvalStage({
+      ...configured,
+      outputLedger: store.outputLedger,
     });
     const context = Object.freeze({
       plan,
@@ -2978,14 +3098,86 @@ describe("Skill target matrix evaluation foundation", () => {
       outputDigest: expect.stringMatching(/^sha256:/u),
       durable: true,
     });
+    const stored = store.outputLedger.load({
+      planDigest: plan.planDigest,
+      stage: "eval",
+    });
     expect(stored.value).toMatchObject({
       decision: "accepted",
       cellCount: 2,
       targetMatrixRoot: plan.targetMatrixDigest,
     });
-    expect(durability.retain).toHaveBeenCalledTimes(1);
-    expect(outputLedger.commit).toHaveBeenCalledTimes(1);
-  }, 30_000);
+    // Recovery verifies the signature again; booleans cannot authorize a stage.
+    store.state.invalidAttestation = true;
+    await expect(stage(context)).rejects.toThrow(/attestation/);
+    store.state.invalidAttestation = false;
+    await expect(stage(context)).resolves.toMatchObject({
+      outputDigest: stored.value.receiptDigest,
+    });
+
+    fs.writeFileSync(
+      path.join(root, "reopen-request.json"),
+      JSON.stringify({
+        tenantId: fixture.plan.tenantId,
+        planDigest: plan.planDigest,
+        receiptDigest: stored.value.receiptDigest,
+      }),
+    );
+    const childFile = fileURLToPath(
+      new URL(
+        "../integration/helpers/evolution-eval-composition-reopen.mjs",
+        import.meta.url,
+      ),
+    );
+    const reopen = () =>
+      spawnSync(process.execPath, [childFile, root], {
+        encoding: "utf8",
+        timeout: 30_000,
+        maxBuffer: 16 * 1024 * 1024,
+        windowsHide: true,
+      });
+    const child = reopen();
+    expect(child.error).toBeUndefined();
+    expect(child.status, child.stderr).toBe(0);
+    const recovered = JSON.parse(child.stdout);
+    expect(recovered.pid).not.toBe(process.pid);
+    expect(recovered.matrixReceipt).toEqual(stored.value);
+    expect(recovered.stageOutput).toEqual(stored);
+    expect(recovered.evidence).toHaveLength(2);
+    for (const [index, entry] of recovered.evidence.entries()) {
+      const cell = stored.value.cellResults[index];
+      const local = await store.childReceiptStore.resolve({
+        tenantId: fixture.plan.tenantId,
+        kind: "gate-receipt",
+        receiptDigest: cell.childReceiptDigest,
+      });
+      expect(entry).toEqual({
+        authenticated: true,
+        durable: true,
+        receiptDigest: cell.childReceiptDigest,
+        evidence: local.evidence,
+      });
+    }
+    // Corrupt an on-disk child artifact; a fresh process must not return success.
+    const event = store.backend.ledger
+      .read()
+      .find((entry) => entry.type === "evolution.eval-child-evidence.retained");
+    const artifactFiles = fs.readdirSync(path.join(root, "artifacts"), {
+      recursive: true,
+    });
+    const evidenceFile = artifactFiles
+      .map((entry) => path.join(root, "artifacts", entry))
+      .find(
+        (entry) =>
+          fs.statSync(entry).isFile() &&
+          fs.readFileSync(entry, "utf8").includes(event.subjectRef.digest),
+      );
+    expect(evidenceFile).toBeDefined();
+    fs.writeFileSync(evidenceFile, "tampered-test-evidence");
+    const corrupted = reopen();
+    expect(corrupted.status).not.toBe(0);
+    expect(corrupted.stdout).toBe("");
+  }, 60_000);
 
   it.runIf(Boolean(process.env.CC_RELEASE_TRAIN_MATRIX_ROOT))(
     "materializes a real matrix Eval stage for the cross-process ReleaseTrain",
