@@ -156,10 +156,14 @@ describe("CLI release workflow contracts", () => {
       text.indexOf("- name: Verify published CLI npm provenance"),
       text.indexOf("- name: Upload public npm readback evidence"),
     );
-    expect(provenanceStep.indexOf("for ATTEMPT in {1..30}")).toBeLessThan(
-      provenanceStep.indexOf(
-        'npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"',
-      ),
+    const normalizedProvenanceStep = provenanceStep
+      .replace(/\\\r?\n\s*/g, " ")
+      .replace(/\s+/g, " ");
+    const installCommand =
+      'npm install --ignore-scripts --no-audit --no-fund --prefer-online --registry=https://registry.npmjs.org "chainlesschain@$VERSION"';
+    expect(normalizedProvenanceStep).toContain(installCommand);
+    expect(normalizedProvenanceStep.indexOf("for ATTEMPT in {1..30}")).toBeLessThan(
+      normalizedProvenanceStep.indexOf(installCommand),
     );
     expect(provenanceStep).toContain(
       "Published chainlesschain@$VERSION is not installable yet",
