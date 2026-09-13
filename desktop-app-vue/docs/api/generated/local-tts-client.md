@@ -30,6 +30,17 @@ const _deps =
 
 ---
 
+## function assertGovernedTtsIngress()
+
+```javascript
+function assertGovernedTtsIngress()
+```
+
+* Legacy Piper execution has no authenticated Evolution ingress context.
+ * Text must not be handed to a local model process until that boundary exists.
+
+---
+
 ## const PIPER_MODELS =
 
 ```javascript
@@ -91,7 +102,7 @@ async synthesize(text, options =
 * Synthesize text to speech
    * @param {string} text - Text to synthesize
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Audio data
+  * @returns {Promise<Object>} Audio data
 
 ---
 
