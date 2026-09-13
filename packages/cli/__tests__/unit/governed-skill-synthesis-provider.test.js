@@ -1,4 +1,4 @@
-import "../helpers/test-model-egress.js";
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
 import { createHash, createHmac } from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
@@ -203,11 +203,16 @@ describe("governed learning synthesis provider chat", () => {
       };
     });
     vi.stubGlobal("fetch", fetchMock);
+    const compositionFactory = createTestEvolutionCompositionFactory();
+    const composition = await compositionFactory({
+      runId: "learning-provider-explicit-ingress",
+    });
     const chat = createGovernedSkillSynthesisProviderChat({
       provider: "volcengine",
       model: "doubao-test",
       apiKey: "pilot-secret",
       maxTokens: 256,
+      evolutionIngress: composition.evolutionIngress,
       timeoutMs: 1_000,
     });
 

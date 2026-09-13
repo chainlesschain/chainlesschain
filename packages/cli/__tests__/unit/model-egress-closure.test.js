@@ -5,6 +5,7 @@ import {
   governModelTokenSource,
   prepareGovernedModelTurn,
 } from "../../src/lib/evolution/governed-model-turn.js";
+import { createGovernedSkillSynthesisProviderChat } from "../../src/lib/evolution/governed-skill-synthesis-provider-chat.js";
 import { chatWithTools } from "../../src/runtime/agent-core.js";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -58,5 +59,22 @@ describe("CLI model egress closure", () => {
       message: { role: "assistant", content: "online" },
     });
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("keeps learning synthesis provider egress unavailable without a branded ingress", () => {
+    const options = {
+      provider: "volcengine",
+      model: "doubao-test",
+      apiKey: "test-secret",
+    };
+    expect(() => createGovernedSkillSynthesisProviderChat(options)).toThrow(
+      /authenticated evolution ingress/i,
+    );
+    expect(() =>
+      createGovernedSkillSynthesisProviderChat({
+        ...options,
+        evolutionIngress: {},
+      }),
+    ).toThrow(/evolution ingress/i);
   });
 });

@@ -7,6 +7,7 @@ const PORTS = new WeakSet();
 const OPTION_KEYS = new Set([
   "apiKey",
   "baseUrl",
+  "evolutionIngress",
   "maxTokens",
   "model",
   "provider",
@@ -185,7 +186,15 @@ export function createGovernedSkillSynthesisProviderChat(options = {}) {
     128,
     4_096,
   );
-  const chat = createChatFn({ provider, model, baseUrl, apiKey });
+  const chat = createChatFn({
+    provider,
+    model,
+    baseUrl,
+    apiKey,
+    ...(options.evolutionIngress == null
+      ? {}
+      : { evolutionIngress: options.evolutionIngress }),
+  });
 
   const port = async (messages) => {
     const controller = new AbortController();
