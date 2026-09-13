@@ -65,6 +65,49 @@ function deploymentFixture({
 }
 
 describe("signed evolution deployment loader", () => {
+  it.each(["agent", "skill", "chat", "serve"])(
+    "makes runtime revalidation factories available and omission fail closed for %s",
+    async (commandName) => {
+      const fixture = deploymentFixture({ commands: [commandName] });
+      const required = [
+        "createSkillRuntimeRevalidationAuthority",
+        "createSkillRuntimeRevalidationLedgerAdapter",
+        "createSkillReleaseRegistry",
+        "createEvolutionLedgerPorts",
+        "createEvolutionArtifactPorts",
+        "createEvolutionLedgerFileBackend",
+        "createArtifactStore",
+        "buildSkillRuntimeManifest",
+        "buildSkillDependencyLock",
+      ];
+      const result = await loadEvolutionDeploymentCommandDependencies(
+        commandName,
+        {
+          ...fixture,
+          importModule: async () => ({
+            createChainlessChainCommandDependencies: async ({ factories }) => ({
+              evolutionCompositionFactory: async () => {},
+              exposed: required.filter(
+                (key) => typeof factories[key] === "function",
+              ),
+              skillRuntimeAdmissionRequired: false,
+            }),
+          }),
+        },
+      );
+      expect(result.exposed).toEqual(required);
+      expect(result.skillRuntimeAdmissionRequired).toBe(true);
+      const { assertSkillRuntimeAdmission } =
+        await import("../../src/lib/evolution/skill-runtime-revalidation.js");
+      expect(() =>
+        assertSkillRuntimeAdmission({
+          skill: { id: "active-release-without-descriptor-marker" },
+          loader: {},
+          required: result.skillRuntimeAdmissionRequired,
+        }),
+      ).toThrow(/missing its runtime admission/);
+    },
+  );
   it("keeps supported commands unconfigured when no deployment is selected", async () => {
     await expect(
       loadEvolutionDeploymentCommandDependencies("evolution", { env: {} }),
@@ -200,6 +243,7 @@ describe("signed evolution deployment loader", () => {
 
   it.each([
     "agent",
+    "learning",
     "ask",
     "chat",
     "compact",
@@ -226,15 +270,49 @@ describe("signed evolution deployment loader", () => {
               compositionFactoryAvailable:
                 typeof factories.createAgentEvolutionRuntimeComposition ===
                 "function",
+              evalFactoryNames: [
+                "createEvolutionEvalRuntimeComposition",
+                "createEvolutionEvalGate",
+                "createEvolutionEvalReceiptVerifier",
+                "createEvolutionEvalProcessSupervisor",
+              ].filter((name) => typeof factories[name] === "function"),
             }),
           }),
         }),
       ).resolves.toEqual({
         compositionFactoryAvailable: true,
+        ...(["agent", "skill", "chat", "serve"].includes(commandName)
+          ? { skillRuntimeAdmissionRequired: true }
+          : {}),
         evolutionCompositionFactory,
+        evalFactoryNames: [
+          "createEvolutionEvalRuntimeComposition",
+          "createEvolutionEvalGate",
+          "createEvolutionEvalReceiptVerifier",
+          "createEvolutionEvalProcessSupervisor",
+        ],
       });
     },
   );
+
+  it("pins the Eval composition factory to the signed agent deployment module", async () => {
+    const fixture = deploymentFixture({ commands: ["agent"] });
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("agent", {
+        ...fixture,
+        importModule: async () => ({
+          createChainlessChainCommandDependencies: async ({ factories }) => {
+            factories.createEvolutionEvalRuntimeComposition({
+              descriptor: { handlerArtifactDigest: `sha256:${"0".repeat(64)}` },
+            });
+            return {};
+          },
+        }),
+      }),
+    ).rejects.toThrow(
+      /handlerArtifactDigest must equal the authenticated deployment module digest/,
+    );
+  });
 
   it("exposes governed retrieval factories only to an authenticated skill deployment", async () => {
     const fixture = deploymentFixture({ commands: ["skill"] });
@@ -269,6 +347,7 @@ describe("signed evolution deployment loader", () => {
       }),
     ).resolves.toEqual({
       commandName: "skill",
+      skillRuntimeAdmissionRequired: true,
       skillVectorAuthority,
       skillOutcomeIndex,
       compositionFactoryAvailable: true,
@@ -635,7 +714,11 @@ describe("signed evolution deployment loader", () => {
 
     await expect(
       loadEvolutionDeploymentCommandDependencies("serve", fixture),
-    ).resolves.toEqual({ loadedFor: "serve", hasWorkbenchFactory: true });
+    ).resolves.toEqual({
+      loadedFor: "serve",
+      hasWorkbenchFactory: true,
+      skillRuntimeAdmissionRequired: true,
+    });
   });
 
   it("does not import a module for a command outside the signed allowlist", async () => {
@@ -691,6 +774,9 @@ describe("signed evolution deployment loader", () => {
 
   it.each([
     ["evolution", "workbenchHost", "registerEvolutionCommand"],
+    ["agent", "skillRuntimeAdmission", "registerAgentCommand"],
+    ["skill", "skillRuntimeAdmission", "registerSkillCommand"],
+    ["serve", "skillRuntimeAdmission", "registerServeCommand"],
     ["compact", "evolutionCompositionFactory", "registerCompactCommand"],
     ["complete", "evolutionCompositionFactory", "registerCompleteCommand"],
     ["stream", "evolutionCompositionFactory", "registerStreamCommand"],
@@ -701,7 +787,10 @@ describe("signed evolution deployment loader", () => {
     "passes %s deployment dependencies through the lazy registration boundary",
     async (commandName, hostName, registerName) => {
       const parseAsync = vi.fn(async () => {});
-      const dependency = Object.freeze({ [hostName]: {} });
+      const dependency = Object.freeze({
+        [hostName]: {},
+        skillRuntimeAdmissionRequired: true,
+      });
       const register = vi.fn();
       await dispatchManifestEntry(
         ["node", "cc", commandName],

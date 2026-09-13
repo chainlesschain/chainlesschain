@@ -41,6 +41,7 @@ import {
 } from "../lib/evolution/agent-evolution-session-lifecycle.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 
 const {
@@ -77,6 +78,10 @@ export class AgentRuntime {
       deps.evolutionIngress == null
         ? null
         : captureAgentEvolutionIngress(deps.evolutionIngress);
+    this.runtimeAdmissionDependencies = captureSkillRuntimeDependencies(
+      deps,
+      this.evolutionIngress?.tenantId,
+    );
     this.skillOutcomeIndex =
       deps.skillOutcomeIndex == null
         ? null
@@ -343,6 +348,7 @@ export class AgentRuntime {
     });
     const result = await this.deps.startAgentRepl({
       ...this.policy,
+      ...this.runtimeAdmissionDependencies,
       ...(this.memoryPolicyReceiptWriter === null
         ? {}
         : { memoryPolicyReceiptWriter: this.memoryPolicyReceiptWriter }),
@@ -551,6 +557,7 @@ export class AgentRuntime {
     }
 
     const server = this.deps.createServer({
+      ...this.runtimeAdmissionDependencies,
       port,
       host,
       token,

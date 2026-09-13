@@ -62,6 +62,10 @@ import { registerRecordReplayCommands } from "./record-replay.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
 import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
 import {
+  assertSkillRuntimeAdmission,
+  captureSkillRuntimeDependencies,
+} from "../lib/evolution/skill-runtime-revalidation.js";
+import {
   captureSkillVectorAuthority,
   unavailableSkillVectorEvidence,
 } from "../lib/skill-vector-authority.js";
@@ -277,6 +281,8 @@ export async function runControlledSkill(options = {}) {
     loader,
     executeTool = null,
     llmOptions = null,
+    skillRuntimeAdmission = null,
+    skillRuntimeAdmissionRequired = false,
     signal = null,
   } = options;
   throwIfAborted(signal, "Skill command interrupted before discovery");
@@ -299,8 +305,24 @@ export async function runControlledSkill(options = {}) {
   }
   const executionLease = loader.acquireSkillExecution?.(skill, { signal });
   const executionSignal = executionLease?.signal || signal;
+  const selectedSkillName = skill.id || skill.dirName;
+  const runtimeAdmissionContext = {
+    llmOptions,
+    effectiveAllowedToolNames: ["read_file", "search_files", "list_dir"],
+  };
+  const assertRuntime = () =>
+    assertSkillRuntimeAdmission({
+      skill,
+      loader,
+      admission: skillRuntimeAdmission,
+      required: skillRuntimeAdmissionRequired,
+      expectedSkillName: selectedSkillName,
+      context: runtimeAdmissionContext,
+    });
   try {
+    assertRuntime();
     const executionContext = {
+      ...runtimeAdmissionContext,
       loadedBecause: "run_skill",
       bodyIncluded: false,
       signal: executionSignal,
@@ -315,6 +337,7 @@ export async function runControlledSkill(options = {}) {
       skill = loader.materializeSkill(skill, executionContext);
     }
     executionLease?.assertActive?.();
+    assertRuntime();
     if (skill.isolation !== true) {
       return {
         error:
@@ -343,6 +366,8 @@ export async function runControlledSkill(options = {}) {
         {
           cwd,
           skillLoader: loader,
+          skillRuntimeAdmission,
+          skillRuntimeAdmissionRequired,
           ...(executionSignal ? { signal: executionSignal } : {}),
           ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
         },
@@ -369,6 +394,8 @@ export async function runControlledSkill(options = {}) {
 }
 
 export function registerSkillCommand(program, dependencies = {}) {
+  const runtimeAdmissionDependencies =
+    captureSkillRuntimeDependencies(dependencies);
   const skillVectorAuthority =
     dependencies.skillVectorAuthority == null
       ? null
@@ -641,6 +668,7 @@ export function registerSkillCommand(program, dependencies = {}) {
     .option("-y, --yes", "Authorize the current isolated skill digest")
     .action(async (name, inputParts, options) => {
       const runLoader = new CLISkillLoader({
+        ...runtimeAdmissionDependencies,
         reauthorizeSkill: createCliSkillReauthorizer({
           assumeYes: options.yes === true,
         }),
@@ -654,6 +682,7 @@ export function registerSkillCommand(program, dependencies = {}) {
           cwd: process.cwd(),
           loader: runLoader,
           llmOptions,
+          ...runtimeAdmissionDependencies,
         });
       } catch (error) {
         result = {

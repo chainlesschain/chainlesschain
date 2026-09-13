@@ -663,6 +663,7 @@ async function ensureSessionHandler(
         evolutionCompositionFactory: server.evolutionCompositionFactory,
         skillOutcomeIndex: server.skillOutcomeIndex,
         skillVectorAuthority: server.skillVectorAuthority,
+        ...server.runtimeAdmissionDependencies,
       });
       sessionHostLease = null;
       sessionBudgetRoot = null;

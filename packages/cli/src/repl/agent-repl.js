@@ -25,6 +25,7 @@ import path from "path";
 import { createHash, randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
@@ -4076,7 +4077,9 @@ async function startAgentReplInWorkspaceOwned(
   let _loadedReplInstructions = null;
   let _loadedReplPersonaSkills = [];
   let _replSkillCacheLedger = null;
-  const _replSkillLoader = options.skillLoader || new CLISkillLoader();
+  const _replSkillLoader =
+    options.skillLoader ||
+    new CLISkillLoader(captureSkillRuntimeDependencies(options));
   const _buildReplBaseSystem = () =>
     composeSystemPrompt(
       buildSystemPrompt(process.cwd(), {
@@ -9612,6 +9615,7 @@ async function startAgentReplInWorkspaceOwned(
         usageEvents,
         thinking: reasoning,
       } = await agentLoop(messages, {
+        ...captureSkillRuntimeDependencies(options),
         ...liveOpts,
         waitForOutput: _replOutputFlow.wait,
         mergeRoles: _mergeRolesThisTurn,

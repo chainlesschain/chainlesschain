@@ -129,7 +129,12 @@ function dependencies(value, commandName) {
     throw new TypeError(
       `evolution deployment returned invalid dependencies for ${commandName}`,
     );
-  return Object.freeze({ ...value });
+  return Object.freeze({
+    ...value,
+    ...(["agent", "skill", "chat", "serve"].includes(commandName)
+      ? { skillRuntimeAdmissionRequired: true }
+      : {}),
+  });
 }
 
 function deniedAgentDependencies(commandName, code, message, source = null) {
@@ -205,6 +210,48 @@ function authenticatedDependencies(value, commandName) {
 
 async function loadBuiltInFactories(commandName) {
   const factories = {};
+  if (
+    ["agent", "skill", "chat", "serve", "evolution", "learning"].includes(
+      commandName,
+    )
+  ) {
+    const [
+      runtime,
+      adapter,
+      registry,
+      ledgerPorts,
+      artifactPorts,
+      ledgerBackend,
+      artifactStore,
+      manifest,
+    ] = await Promise.all([
+      import("./skill-runtime-revalidation.js"),
+      import("./skill-runtime-revalidation-ledger-adapter.js"),
+      import("./skill-release-registry.js"),
+      import("./evolution-ledger-ports.js"),
+      import("./evolution-artifact-ports.js"),
+      import("./evolution-ledger-file-backend.js"),
+      import("../artifact-store.js"),
+      import("./skill-execution-manifest.js"),
+    ]);
+    Object.assign(factories, {
+      createSkillRuntimeRevalidationAuthority:
+        runtime.createSkillRuntimeRevalidationAuthority,
+      createSkillRuntimeRevalidationLedgerAdapter: (options) =>
+        new adapter.SkillRuntimeRevalidationLedgerAdapter(options),
+      createSkillReleaseRegistry: (options) =>
+        new registry.SkillReleaseRegistry(options),
+      createEvolutionLedgerPorts: ledgerPorts.createEvolutionLedgerPorts,
+      createEvolutionArtifactPorts: (options) =>
+        new artifactPorts.EvolutionArtifactPorts(options),
+      createEvolutionLedgerFileBackend:
+        ledgerBackend.createEvolutionLedgerFileBackend,
+      createArtifactStore: (options) =>
+        new artifactStore.ArtifactStore(options),
+      buildSkillRuntimeManifest: manifest.buildSkillRuntimeManifest,
+      buildSkillDependencyLock: manifest.buildSkillDependencyLock,
+    });
+  }
   if (commandName === "learning") {
     const [
       { createGovernedSkillSynthesisCliHost },
@@ -416,6 +463,7 @@ async function loadBuiltInFactories(commandName) {
   }
   if (
     commandName === "agent" ||
+    commandName === "learning" ||
     commandName === "ask" ||
     commandName === "chat" ||
     commandName === "compact" ||
@@ -435,6 +483,22 @@ async function loadBuiltInFactories(commandName) {
     } = await import("./agent-evolution-runtime-composition.js");
     factories.createAgentEvolutionRuntimeComposition =
       createAgentEvolutionRuntimeComposition;
+    const [
+      { createEvolutionEvalRuntimeComposition },
+      { EvolutionEvalGate, EvolutionEvalReceiptVerifier },
+      { createEvolutionEvalProcessSupervisor },
+    ] = await Promise.all([
+      import("./evolution-eval-runtime-composition.js"),
+      import("./evolution-eval-gate.js"),
+      import("./evolution-eval-process-supervisor.js"),
+    ]);
+    Object.assign(factories, {
+      createEvolutionEvalRuntimeComposition,
+      createEvolutionEvalGate: (options) => new EvolutionEvalGate(options),
+      createEvolutionEvalReceiptVerifier: (options) =>
+        new EvolutionEvalReceiptVerifier(options),
+      createEvolutionEvalProcessSupervisor,
+    });
     if (commandName === "skill") {
       const [
         { createSkillOutcomeSourceCatalogAuthority },
@@ -469,6 +533,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createWikiSkillBenchmarkGrader",
     "createWikiSkillBenchmarkReportAttestor",
     "createWikiSkillBenchmarkRunner",
+    "createEvolutionEvalRuntimeComposition",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

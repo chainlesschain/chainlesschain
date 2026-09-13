@@ -17,6 +17,7 @@ import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
 import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../../lib/evolution/skill-runtime-revalidation.js";
 import {
   createEnvelope,
   envelopeFromStreamEvent,
@@ -332,6 +333,8 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
     this.evolutionCompositionFactory =
       options.evolutionCompositionFactory || null;
+    this.runtimeAdmissionDependencies =
+      captureSkillRuntimeDependencies(options);
     this.skillOutcomeIndex =
       options.skillOutcomeIndex == null
         ? null

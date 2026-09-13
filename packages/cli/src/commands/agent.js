@@ -15,6 +15,7 @@ import {
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
@@ -270,6 +271,8 @@ export async function resolveAgentCommandEvolutionComposition(
 }
 
 export function registerAgentCommand(program, dependencies = {}) {
+  const runtimeAdmissionDependencies =
+    captureSkillRuntimeDependencies(dependencies);
   const evolutionCompositionFactory =
     dependencies.evolutionCompositionFactory ?? null;
   const skillOutcomeIndex =
@@ -1590,6 +1593,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             jsonSchema: options.jsonSchema || null,
             claudeStorageLaunchEnv,
             ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+            ...runtimeAdmissionDependencies,
             ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
             ...(skillRetrievalRevocationReader === null
               ? {}
@@ -1941,6 +1945,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           chatFn: fallbackChatFn,
           claudeStorageLaunchEnv,
           ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+          ...runtimeAdmissionDependencies,
           ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
           ...(skillRetrievalRevocationReader === null
             ? {}
@@ -2056,6 +2061,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         return;
       }
       const runtime = createAgentRuntimeFactory({
+        ...runtimeAdmissionDependencies,
         evolutionComposition,
         skillOutcomeIndex,
         skillVectorAuthority,

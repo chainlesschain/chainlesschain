@@ -123,6 +123,7 @@ import { withQuietStdout } from "./quiet-stdout.js";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import { estimateTokens } from "../harness/prompt-compressor.js";
@@ -1777,7 +1778,8 @@ async function runAgentHeadlessInWorkspace(
   let _skillCacheLedger = null;
   const _runtimeSkillLoader = hermeticExecution
     ? HERMETIC_SKILL_LOADER
-    : options.skillLoader || new CLISkillLoader();
+    : options.skillLoader ||
+      new CLISkillLoader(captureSkillRuntimeDependencies(options));
   const systemContent = hermeticExecution
     ? composeSystemPrompt(
         "You are a hermetic code fixer. The exposed file tools are the complete tool surface. Inspect and mutate only the exact paths authorized in the user request, then return a concise completion message.",
@@ -2511,6 +2513,7 @@ async function runAgentHeadlessInWorkspace(
     apiKey,
     cwd,
     skillLoader: _runtimeSkillLoader,
+    ...captureSkillRuntimeDependencies(options, evolutionIngress?.tenantId),
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
     ...(skillRetrievalRevocationReader === null

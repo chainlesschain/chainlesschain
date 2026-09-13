@@ -33,6 +33,10 @@ import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 import contextSourceLedger from "./context-source-ledger.js";
 import {
+  bindSkillRuntimeAdmission,
+  assertSkillRuntimeAdmission,
+} from "./evolution/skill-runtime-revalidation.js";
+import {
   createAbortError,
   isAbortError,
   raceWithAbort,
@@ -375,6 +379,8 @@ export class CLISkillLoader {
     contextLedger = contextSourceLedger,
     reauthorizeSkill = null,
     executionAuthority = null,
+    skillRuntimeAdmission = null,
+    skillRuntimeAdmissionRequired = false,
     limits = {},
     // Only package-owned, immutable-at-install sources are trusted by
     // default. The historical "managed" layer is actually the user-writable
@@ -386,6 +392,9 @@ export class CLISkillLoader {
       throw new TypeError("reauthorizeSkill must be a function or null");
     }
     this._cache = null;
+    bindSkillRuntimeAdmission(this, skillRuntimeAdmission, {
+      required: skillRuntimeAdmissionRequired,
+    });
     this._bodyCache = new Map();
     this._contextLedger = contextLedger;
     this._reauthorizeSkill = reauthorizeSkill;
@@ -653,6 +662,7 @@ export class CLISkillLoader {
   }
 
   async materializeSkillForExecution(skill, context = {}) {
+    assertSkillRuntimeAdmission({ skill, loader: this, context });
     const executionLease = this.acquireSkillExecution(skill, {
       signal: context.signal,
     });
@@ -918,6 +928,7 @@ export class CLISkillLoader {
    * size/mtime metadata, and provenance records never include source content.
    */
   materializeSkill(skill, context = {}) {
+    assertSkillRuntimeAdmission({ skill, loader: this, context });
     throwIfAborted(
       context.signal,
       "Skill execution materialization was interrupted",
@@ -1118,6 +1129,7 @@ export class CLISkillLoader {
     } catch {
       // Context observability must never make a valid skill unloadable.
     }
+    assertSkillRuntimeAdmission({ skill, loader: this, context });
     return skill;
   }
 

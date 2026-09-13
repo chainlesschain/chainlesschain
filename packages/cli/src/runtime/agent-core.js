@@ -42,6 +42,10 @@ import { createHash, randomUUID } from "node:crypto";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import {
+  assertSkillRuntimeAdmission,
+  captureSkillRuntimeDependencies,
+} from "../lib/evolution/skill-runtime-revalidation.js";
 import { isEvolutionIngressFailure } from "../lib/model-failure-policy.js";
 
 const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
@@ -1271,7 +1275,9 @@ export function buildSystemPrompt(cwd, opts = {}) {
 
   // Append auto-activated persona skills
   try {
-    const loader = opts.skillLoader || new CLISkillLoader();
+    const loader =
+      opts.skillLoader ||
+      new CLISkillLoader(captureSkillRuntimeDependencies(opts));
     const personaSkills = loader.getAutoActivatedPersonas({
       sessionId: opts.sessionId,
       turnId: opts.turnId,
@@ -2614,7 +2620,11 @@ export async function executeTool(name, args, context = {}) {
     }
   }
   const hookDb = context.hookDb || null;
-  const skillLoader = context.skillLoader || _defaultSkillLoader;
+  const skillLoader =
+    context.skillLoader ||
+    (context.skillRuntimeAdmission || context.skillRuntimeAdmissionRequired
+      ? new CLISkillLoader(captureSkillRuntimeDependencies(context))
+      : _defaultSkillLoader);
   // Keep the authority-bearing workspace root distinct from the command's
   // requested cwd. A command may run in a nested directory, but Plugin policy
   // discovery and strong-sandbox issuance must remain anchored to the host
@@ -3614,6 +3624,8 @@ export async function executeTool(name, args, context = {}) {
       skillAllowlist: context.skillAllowlist ?? null,
       skillOutcomeIndex: context.skillOutcomeIndex,
       skillVectorAuthority: context.skillVectorAuthority,
+      skillRuntimeAdmission: context.skillRuntimeAdmission,
+      skillRuntimeAdmissionRequired: context.skillRuntimeAdmissionRequired,
       skillRetrievalRevocationReader: context.skillRetrievalRevocationReader,
       cwd,
       parentMessages: context.parentMessages,
@@ -5167,6 +5179,8 @@ async function executeToolInner(
     skillAllowlist = null,
     skillOutcomeIndex,
     skillVectorAuthority,
+    skillRuntimeAdmission,
+    skillRuntimeAdmissionRequired = false,
     skillRetrievalRevocationReader,
     cwd,
     parentMessages,
@@ -7046,6 +7060,8 @@ async function executeToolInner(
           sessionId,
           llmOptions,
           evolutionIngress,
+          skillRuntimeAdmission,
+          skillRuntimeAdmissionRequired,
           workflowEffectId,
           workflowChildEffectId,
           workflowChildSequence,
@@ -8051,11 +8067,36 @@ async function executeToolInner(
         signal,
       });
       const skillExecutionSignal = skillExecutionLease?.signal || signal;
+      const selectedSkillName = match.id || match.dirName;
+      const runtimeAdmissionContext = {
+        llmOptions,
+        effectiveAllowedToolNames: [
+          "read_file",
+          "search_files",
+          "list_dir",
+        ].filter(
+          (tool) =>
+            !Array.isArray(effectiveAllowedToolNames) ||
+            effectiveAllowedToolNames.includes(tool),
+        ),
+      };
+      const assertRuntime = () =>
+        assertSkillRuntimeAdmission({
+          skill: match,
+          loader: skillLoader,
+          admission: skillRuntimeAdmission,
+          required: skillRuntimeAdmissionRequired,
+          expectedSkillName: selectedSkillName,
+          context: runtimeAdmissionContext,
+        });
+      let runtimeEligibility;
       try {
         skillExecutionLease?.assertActive?.();
+        runtimeEligibility = assertRuntime();
         if (typeof skillLoader.materializeSkillForExecution === "function") {
           match = await raceWithAbort(
             skillLoader.materializeSkillForExecution(match, {
+              ...runtimeAdmissionContext,
               sessionId,
               turnId,
               loadedBecause: "run_skill",
@@ -8067,6 +8108,7 @@ async function executeToolInner(
           );
         } else if (typeof skillLoader.materializeSkill === "function") {
           match = skillLoader.materializeSkill(match, {
+            ...runtimeAdmissionContext,
             sessionId,
             turnId,
             loadedBecause: "run_skill",
@@ -8075,6 +8117,7 @@ async function executeToolInner(
           });
         }
         skillExecutionLease?.assertActive?.();
+        runtimeEligibility = assertRuntime();
         throwIfAborted(
           skillExecutionSignal,
           "run_skill interrupted during materialization",
@@ -8263,6 +8306,7 @@ async function executeToolInner(
         let subCtx;
         try {
           skillExecutionLease?.assertActive?.();
+          runtimeEligibility = assertRuntime();
           subCtx = SubAgentContext.create({
             role: `skill-${args.skill_name}`,
             task:
@@ -8335,11 +8379,13 @@ async function executeToolInner(
         }
         skillSubRef = subCtx;
         try {
+          runtimeEligibility = assertRuntime();
           const result = await raceWithAbort(
             subCtx.run(args.input),
             skillExecutionSignal,
             "run_skill interrupted while the isolated child was running",
           );
+          runtimeEligibility = assertRuntime();
           skillExecutionLease?.assertActive?.();
           throwIfAborted(
             skillExecutionSignal,
@@ -8369,6 +8415,7 @@ async function executeToolInner(
             success: true,
             isolated: true,
             skill: args.skill_name,
+            runtimeEligibility,
             invocationReceipt: settleInvocation("completed", result),
             summary: result.summary,
             toolsUsed: result.toolsUsed,
@@ -10279,6 +10326,13 @@ async function _executeSpawnSubAgent(args, ctx) {
   const parentLlm = ctx.llmOptions || {};
   const subLlmOptions = {
     ...parentLlm,
+    ...(ctx.skillRuntimeAdmission
+      ? { skillRuntimeAdmission: ctx.skillRuntimeAdmission }
+      : {}),
+    ...(ctx.skillRuntimeAdmissionRequired
+      ? { skillRuntimeAdmissionRequired: true }
+      : {}),
+    ...(ctx.skillLoader ? { skillLoader: ctx.skillLoader } : {}),
     ...(ctx.evolutionIngress != null
       ? { evolutionIngress: ctx.evolutionIngress }
       : {}),
@@ -13855,9 +13909,15 @@ export async function* agentLoop(messages, options) {
   const toolContext = {
     readFileCache: new Map(),
     hookDb: hermeticExecution ? null : options.hookDb || null,
-    skillLoader: options.skillLoader || _defaultSkillLoader,
+    skillLoader:
+      options.skillLoader ||
+      (options.skillRuntimeAdmission || options.skillRuntimeAdmissionRequired
+        ? new CLISkillLoader(captureSkillRuntimeDependencies(options))
+        : _defaultSkillLoader),
     skillOutcomeIndex: options.skillOutcomeIndex,
     skillVectorAuthority: options.skillVectorAuthority,
+    skillRuntimeAdmission: options.skillRuntimeAdmission,
+    skillRuntimeAdmissionRequired: options.skillRuntimeAdmissionRequired,
     skillRetrievalRevocationReader: options.skillRetrievalRevocationReader,
     // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
     // fired during this run carries trace_id = this run's id; a spawned child

@@ -76,6 +76,7 @@ import {
 import { sessionBudgetAdmissionError } from "../../lib/session-budget-production-root.js";
 import { captureAgentSkillOutcomeIndex } from "../../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../../lib/evolution/skill-runtime-revalidation.js";
 import {
   beginSessionBudgetUsage,
   markSessionBudgetUsageUnknown,
@@ -183,8 +184,14 @@ export class WSAgentHandler {
     evolutionCompositionFactory = null,
     skillOutcomeIndex = null,
     skillVectorAuthority = null,
+    skillRuntimeAdmission = null,
+    skillRuntimeAdmissionRequired = false,
   }) {
     this.session = session;
+    this._runtimeAdmissionDependencies = captureSkillRuntimeDependencies({
+      skillRuntimeAdmission,
+      skillRuntimeAdmissionRequired,
+    });
     this.interaction = interaction;
     this.db = db || null;
     this._processing = false;
@@ -372,6 +379,10 @@ export class WSAgentHandler {
           "WebSocket evolution composition and Skill vector authority must share one tenant",
         );
       }
+      captureSkillRuntimeDependencies(
+        this._runtimeAdmissionDependencies,
+        composition.tenantId,
+      );
       await composition.evolutionIngress.start();
       return composition;
     } catch (cause) {
@@ -1547,6 +1558,7 @@ export class WSAgentHandler {
         ...(this._skillOutcomeIndex === null
           ? {}
           : { skillOutcomeIndex: this._skillOutcomeIndex }),
+        ...this._runtimeAdmissionDependencies,
         ...(this._skillVectorAuthority === null
           ? {}
           : { skillVectorAuthority: this._skillVectorAuthority }),

@@ -84,6 +84,7 @@ import {
 } from "../lib/evolution/agent-evolution-ingress.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import {
   resolveAgentMcp,
@@ -3339,6 +3340,7 @@ async function runAgentHeadlessStreamInWorkspace(
     cwd,
     additionalDirectories,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
+    ...captureSkillRuntimeDependencies(options, evolutionIngress?.tenantId),
     ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
     ...(skillRetrievalRevocationReader === null
       ? {}

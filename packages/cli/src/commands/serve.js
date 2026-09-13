@@ -5,6 +5,7 @@
 
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureAgentSkillOutcomeIndex } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
@@ -184,7 +185,11 @@ export function registerServeCommand(program, dependencies = {}) {
               tlsKeyPath: opts.appServerTlsKey,
               maxConnections: parseInt(opts.maxConnections, 10),
               store,
-              kernelFactory: () => new CliAgentKernelAdapter({ cwd }),
+              kernelFactory: () =>
+                new CliAgentKernelAdapter({
+                  cwd,
+                  sessionOptions: captureSkillRuntimeDependencies(dependencies),
+                }),
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
@@ -218,7 +223,10 @@ export function registerServeCommand(program, dependencies = {}) {
           try {
             await runStdioAppServer({
               store,
-              kernel: new CliAgentKernelAdapter({ cwd }),
+              kernel: new CliAgentKernelAdapter({
+                cwd,
+                sessionOptions: captureSkillRuntimeDependencies(dependencies),
+              }),
               evolutionCompositionFactory,
               skillOutcomeIndex,
               skillVectorAuthority,
@@ -232,6 +240,7 @@ export function registerServeCommand(program, dependencies = {}) {
           return;
         }
         const runtime = createAgentRuntimeFactory({
+          ...captureSkillRuntimeDependencies(dependencies),
           deps:
             evolutionCompositionFactory === null
               ? {}

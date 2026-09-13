@@ -5,6 +5,7 @@ import {
   captureAgentSkillOutcomeIndex,
 } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { captureSkillVectorAuthority } from "../lib/skill-vector-authority.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { captureSkillRetrievalRevocationReader } from "../lib/evolution/skill-retrieval-revocation-authority.js";
 import {
   resolveAgentPolicy,
@@ -18,6 +19,8 @@ export function createAgentRuntimeFactory({
   evolutionComposition = null,
   skillOutcomeIndex = null,
   skillVectorAuthority = null,
+  skillRuntimeAdmission = null,
+  skillRuntimeAdmissionRequired = false,
   skillRetrievalRevocationReader = null,
 } = {}) {
   const composition =
@@ -58,6 +61,23 @@ export function createAgentRuntimeFactory({
   const retrievalTenant =
     composition?.tenantId ?? outcomeIndex?.tenantId ?? null;
   if (
+    skillRuntimeAdmission &&
+    deps.skillRuntimeAdmission &&
+    skillRuntimeAdmission !== deps.skillRuntimeAdmission
+  )
+    throw new TypeError(
+      "Skill runtime admission cannot be overridden through deps",
+    );
+  const runtimeAdmissionDependencies = captureSkillRuntimeDependencies(
+    {
+      skillRuntimeAdmission:
+        skillRuntimeAdmission ?? deps.skillRuntimeAdmission,
+      skillRuntimeAdmissionRequired:
+        skillRuntimeAdmissionRequired || deps.skillRuntimeAdmissionRequired,
+    },
+    retrievalTenant,
+  );
+  if (
     retrievalTenant !== null &&
     vectorAuthority !== null &&
     retrievalTenant !== vectorAuthority.tenantId
@@ -95,10 +115,12 @@ export function createAgentRuntimeFactory({
     composition === null &&
     outcomeIndex === null &&
     vectorAuthority === null &&
-    revocationReader === null
+    revocationReader === null &&
+    Object.keys(runtimeAdmissionDependencies).length === 0
       ? deps
       : Object.freeze({
           ...deps,
+          ...runtimeAdmissionDependencies,
           ...(composition === null
             ? {}
             : { evolutionIngress: composition.evolutionIngress }),
@@ -113,10 +135,12 @@ export function createAgentRuntimeFactory({
   const serverDeps =
     outcomeIndex === null &&
     vectorAuthority === null &&
-    revocationReader === null
+    revocationReader === null &&
+    Object.keys(runtimeAdmissionDependencies).length === 0
       ? deps
       : Object.freeze({
           ...deps,
+          ...runtimeAdmissionDependencies,
           ...(outcomeIndex === null ? {} : { skillOutcomeIndex: outcomeIndex }),
           ...(vectorAuthority === null
             ? {}

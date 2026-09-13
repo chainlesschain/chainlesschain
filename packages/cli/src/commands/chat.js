@@ -4,6 +4,7 @@
  */
 
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { captureSkillRuntimeDependencies } from "../lib/evolution/skill-runtime-revalidation.js";
 import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
 import { randomUUID } from "node:crypto";
 import { types as utilTypes } from "node:util";
@@ -100,7 +101,10 @@ export function registerChatCommand(program, dependencies = {}) {
         evolutionCompositionFactory,
         { agent: Boolean(options.agent) },
       );
-      const factory = createRuntimeFactory({ evolutionComposition });
+      const factory = createRuntimeFactory({
+        evolutionComposition,
+        ...captureSkillRuntimeDependencies(dependencies),
+      });
       const runtimeOptions = {
         model: options.model,
         provider: options.provider,
