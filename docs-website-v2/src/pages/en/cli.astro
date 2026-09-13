@@ -468,7 +468,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, from tag <code class="font-mono">{CLI_RELEASE_TAG}</code> and source <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. New Volcengine text configurations default to DeepSeek V4 Flash GA without migrating saved model settings; the signed governed-evolution deployment profile shared by the CLI, VS Code, JetBrains, and Web Panel remains unchanged. The TypeScript Agent SDK is {AGENT_SDK_VERSION}.
+          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. Ordinary Agent chat works without an evolution deployment; configured governance still validates authenticated ingress and never downgrades on failure. Automatic promotion remains HOLD. TypeScript Agent SDK: {AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -503,7 +503,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Explicit turn, cost and session budgets still apply; unattended runs retain their default cap. CLI 0.166.44 selects DeepSeek V4 Flash GA for new Volcengine text configurations, fixes model identity, validates provider-stream termination, and retains bounded webpage paging and investigation convergence.</p>
+      <p class="mt-4 text-sm text-muted">Latest main-branch source adds static model profiles, catalog-selected native Responses routing, deferred questions, governed Chinese memory recall and sandbox reports. These development changes are not included in the public CLI 0.166.46 artifact. Static profiles retain runtimeVerified:false.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
     </div>
   </section>

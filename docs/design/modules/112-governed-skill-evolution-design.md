@@ -1,5 +1,7 @@
 # 112 受治理的 Skill 自进化设计
 
+> 2026-09-13 增量：公开 CLI 为 `0.166.46@b15104ebbe`。普通 Agent 在未配置演进部署时可以聊天；受治理配置一旦生效仍执行认证入口校验，失败不降级。Run/Wiki 证据绑定、候选摘要隔离与最新保留边界见 [Agent 运行时增量设计](../agent-runtime-update-2026-09-13.md)。下方 2026-09-11 状态为历史记录。
+
 > 状态：2026-09-11 核对，公开 npm CLI 为 `0.166.44@0651cbcb7d`；candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval、受治理知识同步及签名部署配置仍保持原有 authority 边界。源码另加入 EvolutionLedger 批量写入、增量前缀重验与 v2 manifest head 持久 CAS；目标环境 authority 和 automatic active promotion 继续保持 HOLD
 >
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求

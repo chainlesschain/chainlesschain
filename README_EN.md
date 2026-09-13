@@ -2,16 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.43` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.46` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.43 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.46 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-10 current release — CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120: governed Skill-evolution deployment configuration
+## 2026-09-13 current release — CLI 0.166.46
+
+> Release boundary: the model profiles, Responses, deferred questions, Chinese recall, plugin evaluations, sandbox diagnostics and capacity benchmarks below are latest-main additions, not part of the published npm `0.166.46` artifact. Their new commands require a build of that source.
+
+npm latest is `0.166.46` at tag `v-npm-0-166-46`, commit `b15104ebbe`. Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34728599936) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34728599741) passed the configured Linux, Windows and macOS jobs.
+
+Ordinary Agent chat works without an evolution deployment again, and cache-identifier binding no longer triggers false privacy failures. Recent code adds versioned model profiles and native Responses routing for explicitly catalogued official targets, optional deferred questions, governed Chinese lexical memory recall, plugin control/candidate evaluations, sandbox capability reports and persistent capacity benchmarks. Static model profiles retain `runtimeVerified:false`; automatic active Skill promotion remains HOLD.
+
+This documentation tracks source `a1db1f98aa`. VS Code source is `0.37.96`, paired with CLI `0.166.46`; source changes do not imply a new marketplace or native desktop release. See the [runtime design update](docs/design/agent-runtime-update-2026-09-13.md) and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+
+## 2026-09-10 historical release — CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120: governed Skill-evolution deployment configuration
 
 > npm latest is `0.166.43`, tagged `v-npm-0-166-43` at [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c). The same commit passed the complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180), and [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) gates, followed by [npm Trusted Publishing and public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264).
 >

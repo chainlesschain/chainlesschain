@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.44 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.46 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.44
-    details: 新建 Volcengine 文本配置默认采用 DeepSeek V4 Flash GA；CLI/Hub 模型入口保持统一治理，已保存的模型配置不被改写。
+    title: Agent Platform 0.166.46
+    details: 公开 CLI 恢复无需演进部署的普通聊天；最新源码另含模型能力诊断、延后回答、中文记忆召回与沙箱报告。自动晋升仍为 HOLD。
     link: /chainlesschain/agent-platform-release
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成

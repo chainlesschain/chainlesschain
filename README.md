@@ -2,16 +2,26 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.44`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.46`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.44 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.46 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-11 当前发布 — **v5.0.3.137 / CLI 0.166.44：DeepSeek V4 Flash GA 默认模型**
+## 2026-09-13 当前发布 — CLI 0.166.46
+
+> 发布边界：下述模型能力、Responses、延后回答、中文召回、插件评测、沙箱诊断与容量测量属于最新主分支增量，尚未进入公开 npm `0.166.46`；相关新命令需使用该源码构建。
+
+npm `latest` 为 `0.166.46`，标签 `v-npm-0-166-46` 对应提交 `b15104ebbe`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34728599936) 与 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34728599741) 已通过 Linux、Windows、macOS 配置任务。
+
+本版恢复未配置演进部署时的普通 Agent 聊天，修复缓存标识绑定的隐私误报。最近源码同时加入版本化模型能力与精确官方目标的 Responses 传输、可延后回答的偏好问题、受治理中文记忆召回、插件对照评测、沙箱能力报告和持久路径容量测量。模型静态能力继续标记 `runtimeVerified:false`，automatic active Skill promotion 保持 HOLD。
+
+文档按源码 `a1db1f98aa` 核对；VS Code 源码为 `0.37.96`，推荐配合 CLI `0.166.46`。源码更新不表示 IDE 商店或 Desktop 安装包已同步发布。详见[运行时增量设计](docs/design/agent-runtime-update-2026-09-13.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+
+## 2026-09-11 历史发布 — **v5.0.3.137 / CLI 0.166.44：DeepSeek V4 Flash GA 默认模型**
 
 > npm `latest` 为 `0.166.44`，对应不可变标签 [`v-npm-0-166-44`](https://github.com/chainlesschain/chainlesschain/releases/tag/v-npm-0-166-44) 与精确提交 [`0651cbcb7d`](https://github.com/chainlesschain/chainlesschain/commit/0651cbcb7de4fd00769f606b4a247e14973480b6)。产品版本 `v5.0.3.137` 已同步 CLI、Desktop、Android、iOS 与 IDE 的版本元数据；安装 CLI 请使用 `npm i -g chainlesschain@0.166.44`。
 

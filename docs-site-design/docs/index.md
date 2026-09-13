@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | Agent Platform CLI 0.166.38 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge 3.9 万+下载"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.46 | Agent SDK TS 0.2.9 / Python 0.2.8 | IDE Bridge 3.9 万+下载"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.38
-    details: CLI/Hub 模型入口共享治理 Run、Desktop Hub resolver/Skill 的 opaque authority 接线、provider stream 完整性检查与 witness 分段存储
+    title: Agent Platform 0.166.46
+    details: 公开 CLI 恢复无需演进部署的普通聊天；最新源码另含模型能力诊断、延后回答、中文记忆召回与沙箱报告。自动晋升仍为 HOLD。
     link: /modules/112-governed-skill-evolution-design
 
   - icon: 🛡️

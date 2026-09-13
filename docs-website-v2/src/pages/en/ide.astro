@@ -49,7 +49,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
       <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Inside your editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          ['Continuity', 'Bounded reads and governed streams', 'VS Code 0.37.93 with CLI 0.166.43 preserves structured network errors and recovery guidance, fixes provider/model identity, validates stream termination, and continues large webpages from local snapshots.'],
+          ['Continuity', 'Bounded reads and governed streams', 'VS Code 0.37.93 with CLI 0.166.46 preserves structured network errors and recovery guidance, fixes provider/model identity, validates stream termination, and continues large webpages from local snapshots.'],
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
           ['Self-fix', 'Diagnostics fed back', 'After the agent edits a file, language-server errors/warnings flow back into the tool result — it sees and fixes its own breakage within the same loop.'],
           ['Review', 'Native diff approval', 'File-edit confirmation upgrades to the editor’s side-by-side diff: edit the right side, Accept replaces execution, hunk-level "Pick hunks…" partial accept, "Request changes…" inline notes that the agent revises against; a cross-file change can go through openMultiDiff for one batched multi-file review. Reject never writes.'],
@@ -73,7 +73,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           ['Context', 'Context Center', 'VS Code 0.37.93 and JetBrains 0.4.120 surface execution location, workspace authority, session, workflow, and recovery identity across local, Remote-SSH, container, and remote-collaboration contexts.'],
           ['Effects', 'Side-effect Center', 'Both IDEs summarize permission activity plus scoped grant and revoke entry points. Every change still executes through CLI commands and exact context; the IDE never bypasses authoritative storage.'],
           ['Inline', 'Ask and edit beside a selection', 'VS Code 0.37.93 provides isolated inline sessions, streaming replies, code-block actions, and interaction recovery while retaining the stable/minimum × Linux/Windows/macOS ARM64 multi-window isolation gate. Explain / Refactor / Fix / Docs / Tests are public on Open VSX.'],
-          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Production and npm latest are fully gated npm i -g chainlesschain@0.166.43; exact SHA 7528bfb81d passed the three-OS gates and public-install readback.'],
+          ['Sync', 'CLI version pairing', 'npm latest is chainlesschain@0.166.46, commit b15104ebbe, with completed CLI CI and Strict Sandbox three-platform gates. VS Code source 0.37.96 recommends this CLI; source pairing is separate from marketplace publication.'],
           ['Complete', 'Governed automatic ghost text', 'Manual Alt+\\ completion is unchanged. The default-off automatic path adds cancellable 650 ms debounce, exact-context dedupe/cache, separate hourly request and context budgets, bounded output, and quality fallback. Results slower than five seconds or below quality fail quiet.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

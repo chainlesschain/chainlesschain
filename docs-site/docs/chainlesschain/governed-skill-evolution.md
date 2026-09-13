@@ -1,10 +1,12 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.44`；更新：2026-09-11
+> 适用版本：Agent Platform CLI `0.166.46`；更新：2026-09-13
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.44` 是当前 `latest`，对应不可变标签 `v-npm-0-166-44` 与提交 `0651cbcb7d`。安装或升级 CLI：`npm i -g chainlesschain@0.166.44`。
+> 发布状态：npm `chainlesschain@0.166.46` 是当前 `latest`，对应标签 `v-npm-0-166-46` 与提交 `b15104ebbe`。安装或升级 CLI：`npm i -g chainlesschain@0.166.46`。
+
+> `0.166.46` 恢复未配置 evolution deployment 时的普通 Agent 聊天，并修复缓存标识绑定的隐私误报。无需为普通对话部署治理宿主；candidate、Eval、Workbench、知识合并和发布仍需要受信配置。已配置治理链的错误不会降级为普通请求，automatic active promotion 仍为 HOLD。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 
