@@ -19,6 +19,7 @@ import {
   SESSION_MESSAGE_PROVENANCE_FIELD,
   SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } from "../../src/lib/session-message-provenance.js";
+import { resolveAgentOutputBudget } from "../../src/lib/model-capabilities.js";
 
 describe("REPL compact persistence fencing", () => {
   it("keeps the REPL terminal after a compaction ledger persistence failure", async () => {
@@ -1281,14 +1282,27 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     expect(content).toMatch(/case "run_shell"[\s\S]*?substring\(0,\s*30000\)/);
   });
 
-  it("Anthropic max_tokens keeps the 8192 fallback under an output cap", () => {
+  it("Anthropic max_tokens consumes the centralized model-aware output budget", () => {
     const content = readFileSync(agentCorePath, "utf8");
-    // The host cap may narrow a model-aware limit, but the provider fallback
-    // remains 8192 both with and without that cap.
     expect(content).toMatch(
-      /Math\.min\(\s*anthropicMaxTokens \|\| 8192,\s*options\.maxOutputTokens\s*\)/,
+      /const anthropicOutputBudget = resolveAgentOutputBudget\(\{[\s\S]*?provider: "anthropic",[\s\S]*?model: effModel,[\s\S]*?maxOutputTokens: options\.maxOutputTokens,[\s\S]*?\}\);/,
     );
-    expect(content).toMatch(/:\s*anthropicMaxTokens \|\| 8192/);
+    expect(content).toContain(
+      "max_tokens: anthropicOutputBudget.requestMaxOutputTokens",
+    );
+    expect(
+      resolveAgentOutputBudget({
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      }).requestMaxOutputTokens,
+    ).toBe(8192);
+    expect(
+      resolveAgentOutputBudget({
+        provider: "anthropic",
+        model: "claude-opus-4-6",
+        maxOutputTokens: 30000,
+      }).requestMaxOutputTokens,
+    ).toBe(16384);
   });
 
   it("default ollama model should be qwen2.5:7b", () => {
