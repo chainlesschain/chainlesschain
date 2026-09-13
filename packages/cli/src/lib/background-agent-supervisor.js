@@ -63,6 +63,8 @@ import {
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
+export const DEFAULT_BACKGROUND_AGENT_PAGE_LIMIT = 50;
+export const MAX_BACKGROUND_AGENT_PAGE_LIMIT = 200;
 
 /**
  * Pid identity tolerance (Gap 1: OS pid reuse). A pid alone does not identify
@@ -2038,7 +2040,21 @@ export function effectiveBackgroundAgentState(state, options = {}) {
   return next;
 }
 
-export function listBackgroundAgents(options = {}) {
+function backgroundAgentStartedAt(state) {
+  const startedAt = Number(state?.startedAt);
+  return Number.isFinite(startedAt) && startedAt >= 0 ? startedAt : 0;
+}
+
+function compareBackgroundAgentListEntries(a, b) {
+  const newestFirst = backgroundAgentStartedAt(b) - backgroundAgentStartedAt(a);
+  if (newestFirst !== 0) return newestFirst;
+  return String(a.id).localeCompare(String(b.id));
+}
+
+function listBackgroundAgentEntries(
+  options = {},
+  { stableTieBreak = false } = {},
+) {
   return (
     readdirSync(backgroundAgentsDir())
       .filter((name) => name.endsWith(".json") && !name.includes(".job."))
@@ -2046,12 +2062,128 @@ export function listBackgroundAgents(options = {}) {
       .filter(Boolean)
       .map((state) => effectiveBackgroundAgentState(state, options))
       .filter((state) => options.all || state.status === "running")
-      .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0))
+      .sort(
+        stableTieBreak
+          ? compareBackgroundAgentListEntries
+          : (a, b) => (b.startedAt || 0) - (a.startedAt || 0),
+      )
       // Display-only enrichment: attach the canonical unified lifecycle state.
       // This is a list feed (never written back to disk), so the derived field
       // cannot leak into the on-disk schema the way it would in the mutate paths.
       .map(withLifecycleState)
   );
+}
+
+function normalizeBackgroundAgentPageLimit(value) {
+  if (value === undefined || value === null) {
+    return DEFAULT_BACKGROUND_AGENT_PAGE_LIMIT;
+  }
+  const limit =
+    typeof value === "string" && /^\d+$/u.test(value) ? Number(value) : value;
+  if (
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > MAX_BACKGROUND_AGENT_PAGE_LIMIT
+  ) {
+    throw new TypeError(
+      `background agent page limit must be an integer from 1 to ${MAX_BACKGROUND_AGENT_PAGE_LIMIT}`,
+    );
+  }
+  return limit;
+}
+
+function encodeBackgroundAgentPageCursor(state, all) {
+  const payload = JSON.stringify({
+    version: 1,
+    all: all === true,
+    startedAt: backgroundAgentStartedAt(state),
+    id: safeId(state?.id),
+  });
+  return `bg1.${Buffer.from(payload).toString("base64url")}`;
+}
+
+function decodeBackgroundAgentPageCursor(value) {
+  if (value === undefined || value === null) return null;
+  if (
+    typeof value !== "string" ||
+    value.length > 768 ||
+    !/^bg1\.[A-Za-z0-9_-]+$/u.test(value)
+  ) {
+    throw new TypeError("background agent page cursor is invalid");
+  }
+  let payload;
+  try {
+    const encoded = value.slice(4);
+    const decoded = Buffer.from(encoded, "base64url");
+    if (decoded.toString("base64url") !== encoded) {
+      throw new Error("cursor encoding is not canonical");
+    }
+    payload = JSON.parse(decoded.toString("utf8"));
+  } catch {
+    throw new TypeError("background agent page cursor is invalid");
+  }
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    Object.keys(payload).length !== 4 ||
+    payload.version !== 1 ||
+    typeof payload.all !== "boolean" ||
+    !Number.isSafeInteger(payload.startedAt) ||
+    payload.startedAt < 0
+  ) {
+    throw new TypeError("background agent page cursor is invalid");
+  }
+  let id;
+  try {
+    id = safeId(payload.id);
+  } catch {
+    throw new TypeError("background agent page cursor is invalid");
+  }
+  return { all: payload.all, startedAt: payload.startedAt, id };
+}
+
+function isBackgroundAgentAfterCursor(state, cursor) {
+  const startedAt = backgroundAgentStartedAt(state);
+  if (startedAt !== cursor.startedAt) return startedAt < cursor.startedAt;
+  return String(state.id).localeCompare(cursor.id) > 0;
+}
+
+/**
+ * Return one stable, bounded page from the newest-first background session
+ * feed. The cursor is an opaque ordering fence, not an authority token.
+ *
+ * State files are still read to preserve the current authoritative lifecycle
+ * reconciliation. A future read-only index may reduce that I/O, but this API
+ * immediately bounds the object graph and protocol response retained by a
+ * caller.
+ */
+export function listBackgroundAgentsPage(options = {}) {
+  const limit = normalizeBackgroundAgentPageLimit(options.limit);
+  const cursor = decodeBackgroundAgentPageCursor(options.cursor);
+  if (cursor && cursor.all !== (options.all === true)) {
+    throw new TypeError(
+      "background agent page cursor does not match the requested filter",
+    );
+  }
+  const eligible = cursor
+    ? listBackgroundAgentEntries(options, { stableTieBreak: true }).filter(
+        (state) => isBackgroundAgentAfterCursor(state, cursor),
+      )
+    : listBackgroundAgentEntries(options, { stableTieBreak: true });
+  const sessions = eligible.slice(0, limit);
+  const nextCursor =
+    eligible.length > sessions.length
+      ? encodeBackgroundAgentPageCursor(sessions.at(-1), options.all)
+      : null;
+  return Object.freeze({
+    sessions: Object.freeze(sessions),
+    nextCursor,
+  });
+}
+
+export function listBackgroundAgents(options = {}) {
+  return listBackgroundAgentEntries(options);
 }
 
 function sleepSyncMs(ms) {

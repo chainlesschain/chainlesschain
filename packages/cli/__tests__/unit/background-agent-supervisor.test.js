@@ -29,6 +29,7 @@ import {
   insertArgumentsBeforeOptionTerminator,
   launchBackgroundAgent,
   listBackgroundAgents,
+  listBackgroundAgentsPage,
   logPath,
   mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
@@ -1696,6 +1697,81 @@ describe("background agent supervisor", () => {
       "bg-new-def",
       "bg-old-abc",
     ]);
+  });
+
+  it("returns stable bounded pages without repeating equal-timestamp sessions", () => {
+    writeBackgroundAgentState({
+      id: "bg-page-new",
+      status: "completed",
+      startedAt: 4,
+      endedAt: 5,
+    });
+    writeBackgroundAgentState({
+      id: "bg-page-tie-a",
+      status: "completed",
+      startedAt: 3,
+      endedAt: 4,
+    });
+    writeBackgroundAgentState({
+      id: "bg-page-tie-b",
+      status: "completed",
+      startedAt: 3,
+      endedAt: 4,
+    });
+    writeBackgroundAgentState({
+      id: "bg-page-old",
+      status: "completed",
+      startedAt: 2,
+      endedAt: 3,
+    });
+
+    const first = listBackgroundAgentsPage({ all: true, limit: 2 });
+    expect(first.sessions.map((state) => state.id)).toEqual([
+      "bg-page-new",
+      "bg-page-tie-a",
+    ]);
+    expect(first.nextCursor).toMatch(/^bg1\./u);
+    expect(() =>
+      listBackgroundAgentsPage({ limit: 2, cursor: first.nextCursor }),
+    ).toThrow(/does not match/u);
+
+    const second = listBackgroundAgentsPage({
+      all: true,
+      limit: 2,
+      cursor: first.nextCursor,
+    });
+    expect(second.sessions.map((state) => state.id)).toEqual([
+      "bg-page-tie-b",
+      "bg-page-old",
+    ]);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("keeps the running-only default and rejects malformed page inputs", () => {
+    writeBackgroundAgentState({
+      id: "bg-page-running",
+      status: "running",
+      pid: process.pid,
+      startedAt: 3,
+    });
+    writeBackgroundAgentState({
+      id: "bg-page-terminal",
+      status: "completed",
+      startedAt: 4,
+      endedAt: 5,
+    });
+
+    expect(listBackgroundAgentsPage({ limit: "1" }).sessions).toHaveLength(1);
+    expect(listBackgroundAgentsPage({ limit: "1" }).sessions[0].id).toBe(
+      "bg-page-running",
+    );
+    expect(() => listBackgroundAgentsPage({ limit: 0 })).toThrow(/page limit/u);
+    expect(() => listBackgroundAgentsPage({ limit: 201 })).toThrow(
+      /page limit/u,
+    );
+    expect(() =>
+      listBackgroundAgentsPage({ cursor: "bg1.not-a-valid-json" }),
+    ).toThrow(/page cursor/u);
   });
 
   it("attaches the canonical unified lifecycleState to the list feed", () => {

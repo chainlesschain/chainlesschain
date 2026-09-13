@@ -1022,12 +1022,32 @@ export function registerBackgroundSessionCommands(program) {
     .command("status")
     .description("Show background agent supervisor status")
     .option("--all", "Include completed, failed, stopped and lost sessions")
+    .option(
+      "--limit <n>",
+      "Return at most n sessions (1-200) and include a cursor when more remain",
+    )
+    .option(
+      "--cursor <cursor>",
+      "Continue a prior paged status result with its opaque cursor",
+    )
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { backgroundAgentsDir, listBackgroundAgents } =
-          await loadSupervisor();
-        const sessions = listBackgroundAgents({ all: options.all === true });
+        const {
+          backgroundAgentsDir,
+          listBackgroundAgents,
+          listBackgroundAgentsPage,
+        } = await loadSupervisor();
+        const paged =
+          options.limit !== undefined || options.cursor !== undefined;
+        const page = paged
+          ? listBackgroundAgentsPage({
+              all: options.all === true,
+              limit: options.limit,
+              cursor: options.cursor,
+            })
+          : { sessions: listBackgroundAgents({ all: options.all === true }) };
+        const sessions = page.sessions;
         const running = sessions.filter((s) => s.status === "running").length;
         if (options.json) {
           console.log(
@@ -1038,6 +1058,7 @@ export function registerBackgroundSessionCommands(program) {
                 running,
                 total: sessions.length,
                 sessions,
+                ...(paged ? { nextCursor: page.nextCursor } : {}),
               },
               null,
               2,
@@ -1050,6 +1071,13 @@ export function registerBackgroundSessionCommands(program) {
         );
         logger.log(chalk.gray(`  dir ${backgroundAgentsDir()}`));
         printBackgroundAgents(sessions);
+        if (paged && page.nextCursor) {
+          logger.log(
+            chalk.gray(
+              `  next: cc daemon status${options.all ? " --all" : ""} --limit ${options.limit || 50} --cursor ${page.nextCursor}`,
+            ),
+          );
+        }
       } catch (error) {
         logger.error(chalk.red(error.message));
         process.exitCode = 1;

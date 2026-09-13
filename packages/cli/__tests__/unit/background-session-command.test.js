@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Command } from "commander";
 import {
   LOG_TRUNCATION_NOTICE,
   MAX_BACKGROUND_LOG_DELTA_BYTES,
@@ -9,12 +10,28 @@ import {
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
   readLogFromOffset,
+  registerBackgroundSessionCommands,
   replyBackgroundAgent,
   retryBackgroundNeedsInputNotification,
   summarizeSideEffects,
 } from "../../src/commands/background-session.js";
 
 describe("background-session command helpers", () => {
+  it("registers bounded cursor pagination for daemon status", () => {
+    const program = new Command();
+    registerBackgroundSessionCommands(program);
+    const daemon = program.commands.find(
+      (command) => command.name() === "daemon",
+    );
+    const status = daemon?.commands.find(
+      (command) => command.name() === "status",
+    );
+
+    expect(status?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--limit", "--cursor"]),
+    );
+  });
+
   it.each(["--help", "--no-worktree", "--dangerously-skip-permissions"])(
     "keeps option-looking dashboard prompt %s inside --print",
     (prompt) => {
