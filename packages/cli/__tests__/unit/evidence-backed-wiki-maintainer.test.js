@@ -136,6 +136,54 @@ describe("EvidenceBackedWikiMaintainer", () => {
     expect(p.commitRevision).not.toHaveBeenCalled();
   });
 
+  it("does not mistake a digest-bound maintenance request map key for PII", async () => {
+    const requestDigest = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const maintenanceRequest = {
+      schema: WIKI_MAINTENANCE_REQUEST_SCHEMA,
+      tenantId: "tenant-a",
+      requestId: `wiki-maintenance:${requestDigest.slice(7)}`,
+      requestDigest,
+    };
+    const { result } = await maintain({ maintenanceRequest });
+
+    expect(result.state.maintenanceRequests).toHaveProperty(
+      maintenanceRequest.requestId,
+    );
+  });
+
+  it("does not exempt a maintenance-shaped key outside the bound request map", async () => {
+    const requestDigest = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const requestId = `wiki-maintenance:${requestDigest.slice(7)}`;
+    const p = ports({
+      evidenceByRef: {
+        "ev-1": evidence("ev-1", { data: { [requestId]: "verified" } }),
+      },
+    });
+
+    await expect(maintain({ ports: p })).rejects.toMatchObject({
+      code: "WIKI_MAINTAINER_SECRET_LEAK",
+    });
+    expect(p.commitRevision).not.toHaveBeenCalled();
+  });
+
+  it("does not exempt a request-map key with a mismatched request digest", async () => {
+    const requestDigest = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const state = {
+      ...createEmptyWikiState("tenant-a"),
+      maintenanceRequests: {
+        [`wiki-maintenance:${requestDigest.slice(7)}`]: {
+          requestDigest: `sha256:${"c".repeat(64)}`,
+        },
+      },
+    };
+    const p = ports({ state });
+
+    await expect(maintain({ ports: p })).rejects.toMatchObject({
+      code: "WIKI_MAINTAINER_SECRET_LEAK",
+    });
+    expect(p.commitRevision).not.toHaveBeenCalled();
+  });
+
   it.each([
     "summary",
     "rootCause",

@@ -128,14 +128,29 @@ function assertMetadataOnly(value, path = "data") {
 }
 
 function assertWikiPlaintextSafe(value) {
-  const inspect = (item) => {
+  const isBoundMaintenanceRequestMapKey = (path, key, child) =>
+    path.length === 1 &&
+    path[0] === "maintenanceRequests" &&
+    MAINTENANCE_REQUEST_ID.test(key) &&
+    child &&
+    typeof child === "object" &&
+    !Array.isArray(child) &&
+    DIGEST.test(child.requestDigest ?? "") &&
+    key === `wiki-maintenance:${child.requestDigest.slice("sha256:".length)}`;
+  const inspect = (item, path = []) => {
     if (typeof item === "string") {
       assertEvolutionContentContainsNoKnownSecrets(item);
     } else if (Array.isArray(item)) {
-      item.forEach(inspect);
+      item.forEach((child) => inspect(child, [...path, "[]"]));
     } else if (item && typeof item === "object") {
       for (const [key, child] of Object.entries(item)) {
-        assertEvolutionContentContainsNoKnownSecrets(key);
+        // Maintenance requests are stored under their validated, digest-bound
+        // request ID. The map key is opaque protocol metadata, not model text;
+        // inspecting random hash bytes as prose can falsely match PII patterns.
+        // Restrict the exemption to the state map and inspect its complete
+        // record so an untrusted lookalike key cannot bypass this boundary.
+        if (!isBoundMaintenanceRequestMapKey(path, key, child))
+          assertEvolutionContentContainsNoKnownSecrets(key);
         // Typed protocol digests/derived revision IDs are not natural-language
         // text. Their random hex can contain phone-like digit runs. Only exempt
         // the exact namespace in its metadata field, never arbitrary prose.
@@ -147,7 +162,7 @@ function assertWikiPlaintextSafe(value) {
           continue;
         if (["string", "number"].includes(typeof child))
           assertEvolutionContentContainsNoKnownSecrets(`${key}=${child}`);
-        inspect(child);
+        inspect(child, [...path, key]);
       }
     }
   };
