@@ -23,6 +23,14 @@ export const AGENT_EVOLUTION_INGRESS_SCHEMA =
 export const AGENT_EVOLUTION_INGRESS_FAILED_CODE =
   "CC_AGENT_EVOLUTION_INGRESS_FAILED";
 
+const RESPONSE_CACHE_RECORD_SCHEMA =
+  "chainlesschain.model-response-cache/v2";
+const LEGACY_RESPONSE_CACHE_RECORD_SCHEMA =
+  "chainlesschain.model-response-cache/v1";
+const RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA =
+  "chainlesschain.model-response-cache-identifier-binding/v1";
+const HEX_ALPHA = "abcdefghijklmnop";
+
 const INGRESSES = new WeakSet();
 const CORE_EVENT_KINDS = new Map([
   ["tool-executing", "tool-requested"],
@@ -99,6 +107,22 @@ function clone(value) {
 
 function digest(value) {
   return `sha256:${crypto.createHash("sha256").update(canonical(value)).digest("hex")}`;
+}
+
+function cacheIdentifierBinding(kind, value) {
+  const input = requiredString(value, `Cache ${kind}`);
+  const bytes = crypto
+    .createHash("sha256")
+    .update(
+      `${RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA}\0${kind}\0${input}`,
+      "utf8",
+    )
+    .digest();
+  let encoded = "";
+  for (const byte of bytes) {
+    encoded += HEX_ALPHA[byte >>> 4] + HEX_ALPHA[byte & 0x0f];
+  }
+  return encoded;
 }
 
 function timestamp(value, label) {
@@ -263,10 +287,21 @@ export function createAgentEvolutionIngress({
           throw new Error("Cache receipt requires a recorded model response");
         const payload = cacheRecord
           ? {
-              schema: "chainlesschain.model-response-cache/v1",
-              requestKey: evidence.requestKey,
-              sourceRunId: descriptor.runId,
-              sourceEventId: lastModelResponse.eventId,
+              schema: RESPONSE_CACHE_RECORD_SCHEMA,
+              identifierBindingSchema:
+                RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA,
+              requestKeyBinding: cacheIdentifierBinding(
+                "request key",
+                evidence.requestKey,
+              ),
+              sourceRunIdBinding: cacheIdentifierBinding(
+                "source Run ID",
+                descriptor.runId,
+              ),
+              sourceEventIdBinding: cacheIdentifierBinding(
+                "source event ID",
+                lastModelResponse.eventId,
+              ),
               responseEvent: clone(lastModelResponse.event),
             }
           : (modelRequest ?? clone(evidence));
@@ -433,6 +468,18 @@ export function createAgentEvolutionIngress({
             );
           const projection = resolved.bundle.modelProjection;
           const record = projection.content;
+          const legacyRecord =
+            record?.schema === LEGACY_RESPONSE_CACHE_RECORD_SCHEMA;
+          const currentRecord =
+            record?.schema === RESPONSE_CACHE_RECORD_SCHEMA &&
+            record.identifierBindingSchema ===
+              RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA &&
+            record.requestKeyBinding ===
+              cacheIdentifierBinding("request key", requestKey) &&
+            record.sourceRunIdBinding ===
+              cacheIdentifierBinding("source Run ID", receipt.runId) &&
+            typeof record.sourceEventIdBinding === "string" &&
+            /^[a-p]{64}$/u.test(record.sourceEventIdBinding);
           if (
             resolved.verification.verified !== true ||
             resolved.verification.tenantId !== descriptor.tenantId ||
@@ -440,16 +487,21 @@ export function createAgentEvolutionIngress({
             projection.visibility !== "model-visible" ||
             projection.truncated ||
             projection.injectionFindings.length !== 0 ||
-            record?.schema !== "chainlesschain.model-response-cache/v1" ||
-            record.requestKey !== requestKey ||
-            record.sourceRunId !== receipt.runId ||
+            (!currentRecord &&
+              (!legacyRecord ||
+                record.requestKey !== requestKey ||
+                record.sourceRunId !== receipt.runId)) ||
             record.responseEvent?.type !== "response-complete"
           )
             throw new Error(
               "Cache response projection is not safe or request-bound",
             );
           const responseEvent = loaded.events.find(
-            (item) => item.eventId === record.sourceEventId,
+            (item) =>
+              legacyRecord
+                ? item.eventId === record.sourceEventId
+                : cacheIdentifierBinding("source event ID", item.eventId) ===
+                  record.sourceEventIdBinding,
           );
           if (
             responseEvent?.data?.evidenceKind !== "response-completed" ||
