@@ -102,6 +102,9 @@ try {
   let providerRequests = 0;
   let summaryRequests = 0;
   providerServer = createServer(async (request, response) => {
+    // Do not let Undici reuse a loopback socket after the server retires an
+    // idle connection while durable ingress work is being persisted.
+    response.setHeader("Connection", "close");
     try {
       assert.equal(request.method, "POST");
       assert.equal(request.url, "/api/chat");
