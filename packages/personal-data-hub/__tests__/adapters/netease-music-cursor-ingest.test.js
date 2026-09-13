@@ -142,7 +142,9 @@ describe("NetEase Music explicit cursor", () => {
     expect(reports.map((report) => report.status)).toEqual(["ok", "ok", "ok"]);
     expect(reports.map((report) => report.rawCount)).toEqual([1, 1, 1]);
     expect(reports[0].scope).toMatch(/^account:netease-music:[0-9a-f]{32}$/u);
-    expect(reports[0].scope).not.toContain(`:${ACCOUNT_ID}`);
+    // A digest can legitimately contain "42" anywhere, so only reject the
+    // complete raw scope shape rather than a random digest substring.
+    expect(reports[0].scope).not.toBe(`account:netease-music:${ACCOUNT_ID}`);
     expect(new Set(reports.map((report) => report.scope)).size).toBe(1);
     expect(parseCursor(reports[2].watermark).cursor).toEqual({
       v: 1,
