@@ -90,13 +90,14 @@ export function evolutionDurableStoreConfiguration(
     tenantId = "tenant-pruning",
     artifactTenantId = "pruning-artifacts",
     streamId = "pruning",
+    audience = "evolution-runtime",
   } = {},
 ) {
   const descriptor = Object.freeze({
     tenantId,
     artifactTenantId,
     streamId,
-    audience: "evolution-runtime",
+    audience,
     purpose: "evolution-ledger",
   });
   const algorithm = "hmac-sha256";
@@ -187,6 +188,20 @@ export function openEvolutionDurableStore(root, options = {}) {
     ledgerAuthority: config.ledgerAuthority,
     witnessAuthority: config.witnessAuthority,
     artifactResolver: resolver,
+    ...(options.createManifestBackend
+      ? {
+          manifestV2: {
+            createBackend: options.createManifestBackend,
+            artifactPorts,
+            descriptor: {
+              tenantId: descriptor.tenantId,
+              artifactTenantId: descriptor.artifactTenantId,
+              audience: descriptor.audience,
+            },
+            minimumRetainedUntil: "2036-09-09T00:00:00.000Z",
+          },
+        }
+      : {}),
     crashHook: options.crashHook ?? null,
     secure: false,
     fsImpl,

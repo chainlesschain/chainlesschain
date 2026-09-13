@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createEvolutionFileWitness } from "./evolution-file-witness.js";
-import { EvolutionLedger } from "./evolution-ledger.js";
+import {
+  EvolutionLedger,
+  captureEvolutionLedgerMigrationSource,
+} from "./evolution-ledger.js";
+import { createEvolutionLedgerV2JournalFromFactory } from "./evolution-ledger-v2-journal.js";
 
 export const EVOLUTION_LEDGER_FILE_BACKEND_SCHEMA =
   "chainlesschain.evolution-ledger-file-backend/v1";
@@ -110,6 +114,7 @@ export function createEvolutionLedgerFileBackend({
   crashHook = null,
   witnessMaximumBytes,
   witnessMaximumHistoryBytes,
+  manifestV2 = null,
 } = {}) {
   if (typeof artifactResolver !== "function") {
     throw new TypeError("artifactResolver port is required");
@@ -151,7 +156,7 @@ export function createEvolutionLedgerFileBackend({
       : { maximumHistoryBytes: witnessMaximumHistoryBytes }),
   };
   const witness = createEvolutionFileWitness(witnessOptions);
-  const ledger = new EvolutionLedger({
+  const sourceLedger = new EvolutionLedger({
     rootDir: paths.eventRoot,
     authorityRootDir: paths.authorityRoot,
     secure,
@@ -170,6 +175,22 @@ export function createEvolutionLedgerFileBackend({
     ...(lockTimeoutMs === undefined ? {} : { lockTimeoutMs }),
     crashHook,
   });
+  if (
+    manifestV2 === null &&
+    captureEvolutionLedgerMigrationSource(sourceLedger).requiresV2()
+  ) {
+    throw Object.assign(
+      new Error("migrated ledger requires its authenticated v2 composition"),
+      { code: "CC_EVOLUTION_LEDGER_V2_REQUIRED" },
+    );
+  }
+  const ledger =
+    manifestV2 === null
+      ? sourceLedger
+      : createEvolutionLedgerV2JournalFromFactory(sourceLedger, manifestV2, {
+          ...(lock === undefined ? {} : { lock }),
+          ...(lockTimeoutMs === undefined ? {} : { lockTimeoutMs }),
+        });
   const backend = Object.freeze({
     schema: EVOLUTION_LEDGER_FILE_BACKEND_SCHEMA,
     descriptor: Object.freeze({

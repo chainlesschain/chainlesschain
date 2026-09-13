@@ -236,7 +236,18 @@ export function createAgentEvolutionRuntimeComposition({
   random,
   lockTimeoutMs,
   witnessMaximumBytes,
+  ledgerV2: ledgerV2Input = null,
 } = {}) {
+  const ledgerV2 =
+    ledgerV2Input === null
+      ? null
+      : Object.freeze({
+          ...exactRecord(
+            ledgerV2Input,
+            new Set(["createBackend", "minimumRetainedUntil"]),
+            "ledger v2 production composition",
+          ),
+        });
   const tenantId = identifier(tenantIdInput, "tenantId");
   const runId = identifier(runIdInput, "runId");
   const audience = identifier(audienceInput, "audience");
@@ -452,6 +463,15 @@ export function createAgentEvolutionRuntimeComposition({
     ledgerAuthority: authorities.ledger,
     witnessAuthority: authorities.witness,
     artifactResolver: ledgerArtifactResolver,
+    ...(ledgerV2 === null
+      ? {}
+      : {
+          manifestV2: {
+            ...ledgerV2,
+            artifactPorts,
+            descriptor: { tenantId, artifactTenantId: tenantId, audience },
+          },
+        }),
     secure,
     clock,
     ...(fsImpl === undefined ? {} : { fsImpl }),
@@ -718,6 +738,15 @@ export function createAgentEvolutionRuntimeComposition({
         ledgerAuthority: cacheSourceAuthorities.ledger,
         witnessAuthority: cacheSourceAuthorities.witness,
         artifactResolver: sourceResolver,
+        ...(ledgerV2 === null
+          ? {}
+          : {
+              manifestV2: {
+                ...ledgerV2,
+                artifactPorts: sourcePorts,
+                descriptor: { tenantId, artifactTenantId: tenantId, audience },
+              },
+            }),
         secure,
         clock,
         ...(fsImpl === undefined ? {} : { fsImpl }),

@@ -386,6 +386,7 @@ describe("Evolution Ledger v2 manifest backend", () => {
         manifestCount: 2,
         sequence: 3,
       });
+      expect(() => value.backend.readEvents()).toThrow(/digest-only/u);
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });
     }
@@ -408,6 +409,31 @@ describe("Evolution Ledger v2 manifest backend", () => {
         currentWitnessDigest: initial.witness.witnessDigest,
         schema: EVOLUTION_LEDGER_V2_MANIFEST_CONFLICT_SCHEMA,
       });
+      expect(value.segments.backend.retain).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects an event payload accessor without invoking it or retaining bytes", () => {
+    const directory = root();
+    try {
+      const value = fixture(directory);
+      const getter = vi.fn(() => "untrusted payload");
+      const event = Object.defineProperty({}, "reason", {
+        enumerable: true,
+        get: getter,
+      });
+      const initial = value.backend.read();
+      expect(() =>
+        value.backend.appendSegment({
+          events: [event],
+          expectedHeadDigest: null,
+          expectedWitnessDigest: initial.witness.witnessDigest,
+          minimumRetainedUntil: MINIMUM_RETENTION,
+        }),
+      ).toThrow(/own data/u);
+      expect(getter).not.toHaveBeenCalled();
       expect(value.segments.backend.retain).not.toHaveBeenCalled();
     } finally {
       fs.rmSync(directory, { force: true, recursive: true });

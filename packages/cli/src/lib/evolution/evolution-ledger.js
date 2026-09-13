@@ -54,6 +54,11 @@ export const EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA =
 export const EVOLUTION_LEDGER_MAX_EVENT_BYTES = 1024 * 1024;
 export const EVOLUTION_LEDGER_MAX_ARTIFACT_BYTES = 16 * 1024 * 1024;
 export const EVOLUTION_LEDGER_MAX_EVENTS = 250_000;
+export const EVOLUTION_LEDGER_V2_MIGRATION_INTENT =
+  "evolution.ledger-v2.migration-intent";
+export const EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED =
+  "evolution.ledger-v2.cutover-completed";
+const MIGRATION_SOURCES = new WeakMap();
 
 const IDENTITY_DOMAIN = "chainlesschain.evolution-ledger-identity/v1\0";
 const EVENT_DOMAIN = "chainlesschain.evolution-event/v2\0";
@@ -2011,6 +2016,29 @@ export class EvolutionLedger {
       );
     }
 
+    MIGRATION_SOURCES.set(
+      this,
+      Object.freeze({
+        ledger: this,
+        requiresV2: () =>
+          this.#withLock(() =>
+            this.#loadState({
+              allowInitialize: false,
+              incremental: true,
+            }).events.some(
+              (event) => event.type === EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
+            ),
+          ),
+        append: (input, options = {}) =>
+          this.#appendEvents([input], options, false, false, true),
+        appendBatch: (inputs, options = {}) =>
+          this.#appendEvents(inputs, options, false, true, true),
+        appendDomainEvent: (input, options = {}) =>
+          this.#appendEvents([input], options, true, false, true),
+        appendDomainEventBatch: (inputs, options = {}) =>
+          this.#appendEvents(inputs, options, true, true, true),
+      }),
+    );
     Object.freeze(this);
   }
 
@@ -4485,7 +4513,7 @@ export class EvolutionLedger {
     return this.#appendEvents([input], options, domainEvent, false);
   }
 
-  #appendEvents(inputs, options, domainEvent, batch) {
+  #appendEvents(inputs, options, domainEvent, batch, migrationWrite = false) {
     const safeInputs = readDenseDataArray(
       inputs,
       batch ? "append batch" : "append input",
@@ -4557,6 +4585,23 @@ export class EvolutionLedger {
             ? normalizeDomainAppendInput(input, generatedTimestamp)
             : normalizeAppendInput(input, generatedTimestamp);
         });
+        if (
+          !migrationWrite &&
+          (current.events.some(
+            (event) => event.type === EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
+          ) ||
+            normalizedInputs.some((event) =>
+              [
+                EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
+                EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED,
+              ].includes(event.type),
+            ))
+        ) {
+          throw ledgerError(
+            "CC_EVOLUTION_LEDGER_V2_REQUIRED",
+            "ledger writes require the authenticated v2 cutover composition",
+          );
+        }
         const eventIds = new Set(current.events.map((event) => event.eventId));
         for (const normalized of normalizedInputs) {
           if (eventIds.has(normalized.eventId)) {
@@ -5207,6 +5252,17 @@ export class EvolutionLedger {
   getAuthority() {
     return this.verify();
   }
+}
+
+// Trusted composition port; consumers receive the journal wrapper, never this
+// capability. WeakMap identity excludes structural or prototype impersonation.
+export function captureEvolutionLedgerMigrationSource(ledger) {
+  const source = MIGRATION_SOURCES.get(ledger);
+  if (!source)
+    throw new TypeError(
+      "a constructed EvolutionLedger migration source is required",
+    );
+  return source;
 }
 
 function artifactRefsForAudit(input) {

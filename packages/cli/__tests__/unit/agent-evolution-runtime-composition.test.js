@@ -8,6 +8,10 @@ import { Writable, Readable } from "node:stream";
 import { Command } from "commander";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  createLedgerV2FixtureBackend,
+  V2_FIXTURE_RETENTION,
+} from "../fixtures/evolution-ledger-v2-store.js";
 
 import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import {
@@ -611,6 +615,44 @@ function options(root) {
 }
 
 describe("Agent evolution runtime production composition", () => {
+  it("publishes Run events through the production v2 manifest journal and refuses a v1-only reopen", async () => {
+    const directory = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-agent-v2-journal-"),
+    );
+    roots.push(directory);
+    const config = options(directory);
+    let manifest;
+    const ledgerV2 = {
+      minimumRetainedUntil: V2_FIXTURE_RETENTION,
+      createBackend(request) {
+        manifest = createLedgerV2FixtureBackend(directory, request);
+        return manifest.backend;
+      },
+    };
+    const composition = createAgentEvolutionRuntimeComposition({
+      ...config,
+      ledgerV2,
+    });
+    await composition.evolutionIngress.start();
+    const run = composition.loadRun();
+    expect(run.events).toHaveLength(1);
+    expect(run.projection.status).toBe("running");
+    const events = manifest.backend.readEvents();
+    expect(events).toHaveLength(3);
+    expect(events.at(-1).type).toBe("evolution.run.event.committed");
+    const priorWitness = manifest.backend.read().witness.witnessDigest;
+    const reopened = createAgentEvolutionRuntimeComposition({
+      ...config,
+      ledgerV2,
+    });
+    expect(reopened.loadRun()).toEqual(run);
+    expect(manifest.counts.retain).toBe(0);
+    expect(manifest.backend.read().witness.witnessDigest).toBe(priorWitness);
+    expect(() => createAgentEvolutionRuntimeComposition(config)).toThrowError(
+      expect.objectContaining({ code: "CC_EVOLUTION_LEDGER_V2_REQUIRED" }),
+    );
+  });
+
   const auxiliarySummary = JSON.stringify({
     objective: "Continue inspecting the workspace",
     constraints: ["Keep credentials private"],

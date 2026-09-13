@@ -11,6 +11,8 @@ export const EVOLUTION_LEDGER_MANIFEST_CHAIN_SCHEMA =
   "chainlesschain.evolution-ledger-manifest-chain/v2";
 export const EVOLUTION_LEDGER_SEGMENT_PAYLOAD_SCHEMA =
   "chainlesschain.evolution-ledger-segment-payload/v2";
+export const EVOLUTION_LEDGER_EVENT_PAYLOAD_SCHEMA =
+  "chainlesschain.evolution-ledger-event-payload/v2";
 export const EVOLUTION_LEDGER_SEGMENT_MANIFEST_SCHEMA =
   "chainlesschain.evolution-ledger-segment-manifest/v2";
 export const EVOLUTION_LEDGER_MANIFEST_HEAD_SCHEMA =
@@ -336,8 +338,163 @@ function payload(sequenceStart, eventDigests) {
   });
 }
 
+// Snapshot only bounded canonical JSON. Do not invoke getters, toJSON or Proxy
+// traps while capturing signed event bytes supplied to the storage boundary.
+function snapshotEvent(
+  value,
+  depth = 0,
+  seen = new Set(),
+  budget = { bytes: 64 * 1024 * 1024, nodes: 1_000_000 },
+) {
+  rejectProxy(value, "event payload");
+  budget.bytes -=
+    typeof value === "string" ? Buffer.byteLength(value, "utf8") : 8;
+  if (--budget.nodes < 0 || budget.bytes < 0)
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload exceeds bounded capacity",
+    );
+  if (depth > 32 || seen.has(value))
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload is cyclic or too deep",
+    );
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (
+    !value ||
+    typeof value !== "object" ||
+    ![Array.isArray(value) ? Array.prototype : Object.prototype, null].includes(
+      Object.getPrototypeOf(value),
+    )
+  )
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload must be JSON data",
+    );
+  seen.add(value);
+  const array = Array.isArray(value);
+  const result = array ? [] : Object.create(null);
+  const keys = Reflect.ownKeys(value).filter(
+    (key) => !(array && key === "length"),
+  );
+  if (array && keys.length !== value.length)
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload array must be dense",
+    );
+  for (const key of keys) {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      typeof key !== "string" ||
+      !property.enumerable ||
+      !("value" in property) ||
+      (array &&
+        (!/^(0|[1-9][0-9]*)$/u.test(key) || Number(key) >= value.length))
+    )
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+        "event payload must contain own data properties",
+      );
+    budget.bytes -= Buffer.byteLength(key, "utf8");
+    result[key] = snapshotEvent(property.value, depth + 1, seen, budget);
+  }
+  seen.delete(value);
+  return Object.freeze(result);
+}
+
+function eventPayload(sequenceStart, input, expected = {}) {
+  rejectProxy(input, "event payload");
+  if (
+    !Array.isArray(input) ||
+    input.length < 1 ||
+    input.length > MAX_EVENTS_PER_SEGMENT
+  )
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload count is invalid",
+    );
+  const events = snapshotEvent(input);
+  if (
+    !Array.isArray(events) ||
+    events.length < 1 ||
+    events.length > MAX_EVENTS_PER_SEGMENT
+  )
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event payload count is invalid",
+    );
+  let previous = expected.previousDigest;
+  for (const [index, event] of events.entries()) {
+    if (
+      !event ||
+      ![
+        "chainlesschain.evolution-event/v2",
+        "chainlesschain.evolution-domain-event/v1",
+      ].includes(event.schema)
+    )
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+        "event payload schema is invalid",
+      );
+    const { eventDigest, signature, ...core } = event;
+    const signatureFields = exactRecord(
+      signature,
+      new Set(["algorithm", "keyId", "trustPolicyDigest", "value"]),
+      "event payload signature",
+      EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+    );
+    if (
+      ["algorithm", "keyId", "trustPolicyDigest"].some(
+        (field) => data(signatureFields, field) !== event[field],
+      ) ||
+      typeof signature.value !== "string" ||
+      signature.value.length < 1 ||
+      signature.value.length > 16_384
+    )
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+        "event signature binding differs",
+      );
+    if (
+      !signature ||
+      event.sequence !== sequenceStart + index ||
+      eventDigest !==
+        sha256(Buffer.from(`${event.schema}\0${canonical(core)}`, "utf8")) ||
+      (previous !== undefined && event.prevDigest !== previous) ||
+      (expected.epoch !== undefined && event.epoch !== expected.epoch) ||
+      (expected.ledgerId !== undefined &&
+        event.ledgerId !== expected.ledgerId) ||
+      (expected.tenantId !== undefined && event.tenantId !== expected.tenantId)
+    )
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+        "event payload digest, sequence or scope is invalid",
+      );
+    if (Buffer.byteLength(canonical(event), "utf8") > 1024 * 1024)
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+        "event payload exceeds the event byte limit",
+      );
+    previous = eventDigest;
+  }
+  return Object.freeze({
+    events,
+    schema: EVOLUTION_LEDGER_EVENT_PAYLOAD_SCHEMA,
+    sequenceStart,
+    sequenceEnd: sequenceStart + events.length - 1,
+  });
+}
+
 function payloadBytes(value) {
-  return Buffer.from(canonical(value), "utf8");
+  const bytes = Buffer.from(canonical(value), "utf8");
+  if (bytes.length > 64 * 1024 * 1024)
+    throw failure(
+      EVOLUTION_LEDGER_MANIFEST_INVALID_CODE,
+      "event segment exceeds byte capacity",
+    );
+  return bytes;
 }
 
 function parsePayload(bytes, expected) {
@@ -355,6 +512,28 @@ function parsePayload(bytes, expected) {
       EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
       "manifest segment payload is not JSON",
     );
+  }
+  if (raw.schema === EVOLUTION_LEDGER_EVENT_PAYLOAD_SCHEMA) {
+    exactRecord(
+      raw,
+      new Set(["events", "schema", "sequenceStart", "sequenceEnd"]),
+      "event segment payload",
+    );
+    const parsed = eventPayload(expected.sequenceStart, raw.events, expected);
+    if (
+      !payloadBytes(parsed).equals(bytes) ||
+      raw.sequenceEnd !== expected.sequenceEnd
+    )
+      throw failure(
+        EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+        "event segment payload range differs",
+      );
+    return Object.freeze({
+      ...parsed,
+      eventDigests: Object.freeze(
+        parsed.events.map((event) => event.eventDigest),
+      ),
+    });
   }
   const fields = exactRecord(
     raw,
@@ -798,9 +977,17 @@ export function captureEvolutionLedgerManifestAuthority(value) {
 }
 
 export function sealEvolutionLedgerManifestSegment(options = undefined) {
+  const fullEvents =
+    options && !utilTypes.isProxy(options) && Object.hasOwn(options, "events");
   const fields = exactRecord(
     options,
-    SEAL_CONFIG_KEYS,
+    fullEvents
+      ? new Set(
+          [...SEAL_CONFIG_KEYS]
+            .filter((key) => key !== "eventDigests")
+            .concat("events"),
+        )
+      : SEAL_CONFIG_KEYS,
     "manifest segment seal configuration",
   );
   const descriptorValue = descriptor(data(fields, "descriptor"));
@@ -818,8 +1005,17 @@ export function sealEvolutionLedgerManifestSegment(options = undefined) {
     descriptorValue,
     authority,
   );
+  const sequenceStart = (previous?.sequence || 0) + 1;
+  const fullPayload = fullEvents
+    ? eventPayload(sequenceStart, data(fields, "events"), {
+        ...descriptorValue,
+        previousDigest: previous?.eventDigest ?? null,
+      })
+    : null;
   const eventDigests = normalizeDigests(
-    data(fields, "eventDigests"),
+    fullPayload
+      ? fullPayload.events.map((event) => event.eventDigest)
+      : data(fields, "eventDigests"),
     "eventDigests",
     descriptorValue.maximumEventsPerSegment,
   );
@@ -841,8 +1037,7 @@ export function sealEvolutionLedgerManifestSegment(options = undefined) {
     new Date(nowMs).toISOString(),
     "manifest issuedAt",
   ).value;
-  const sequenceStart = (previous?.sequence || 0) + 1;
-  const segmentPayload = payload(sequenceStart, eventDigests);
+  const segmentPayload = fullPayload ?? payload(sequenceStart, eventDigests);
   let receipt;
   try {
     receipt = store.retain({
@@ -958,7 +1153,7 @@ export function verifyEvolutionLedgerSegmentManifest(options = undefined) {
   );
 }
 
-export function verifyEvolutionLedgerManifestChain(options = undefined) {
+function verifyChain(options, includeEvents) {
   const fields = exactRecord(
     options,
     VERIFY_CONFIG_KEYS,
@@ -987,6 +1182,7 @@ export function verifyEvolutionLedgerManifestChain(options = undefined) {
     );
   }
   let previous = null;
+  const events = [];
   for (const rawManifest of manifests) {
     const manifest = normalizeManifest(rawManifest, descriptorValue, authority);
     if (
@@ -1023,7 +1219,18 @@ export function verifyEvolutionLedgerManifestChain(options = undefined) {
         "manifest segment resolution is not authenticated immutable storage",
       );
     }
-    const parsed = parsePayload(resolution.bytes, manifest);
+    const parsed = parsePayload(resolution.bytes, {
+      ...manifest,
+      previousDigest: previous?.eventDigests.at(-1) ?? null,
+    });
+    if (includeEvents) {
+      if (!parsed.events)
+        throw failure(
+          EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
+          "digest-only segments cannot recover event payloads",
+        );
+      events.push(...parsed.events);
+    }
     if (canonical(parsed.eventDigests) !== canonical(manifest.eventDigests)) {
       throw failure(
         EVOLUTION_LEDGER_MANIFEST_CORRUPT_CODE,
@@ -1049,5 +1256,14 @@ export function verifyEvolutionLedgerManifestChain(options = undefined) {
     head,
     manifestCount: manifests.length,
     sequence: head.sequence,
+    ...(includeEvents ? { events: Object.freeze(events) } : {}),
   });
+}
+
+export function verifyEvolutionLedgerManifestChain(options = undefined) {
+  return verifyChain(options, false);
+}
+
+export function readEvolutionLedgerManifestEvents(options = undefined) {
+  return verifyChain(options, true);
 }

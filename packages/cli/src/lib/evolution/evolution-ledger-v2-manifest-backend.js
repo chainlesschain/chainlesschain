@@ -1,4 +1,5 @@
 import { types as utilTypes } from "node:util";
+import { createHash } from "node:crypto";
 
 import { captureImmutableLedgerSegmentStorePort } from "./evolution-immutable-ledger-segment-store.js";
 import {
@@ -6,6 +7,7 @@ import {
   deriveEvolutionLedgerManifestHead,
   sealEvolutionLedgerManifestSegment,
   verifyEvolutionLedgerManifestChain,
+  readEvolutionLedgerManifestEvents,
 } from "./evolution-ledger-manifest-chain.js";
 import { captureEvolutionLedgerManifestHeadStore } from "./evolution-ledger-manifest-head-store.js";
 import { captureEvolutionLedgerManifestCatalog } from "./evolution-ledger-manifest-catalog.js";
@@ -61,6 +63,15 @@ export class EvolutionLedgerV2ManifestBackendError extends Error {
 
 function failure(code, message, options = undefined) {
   return new EvolutionLedgerV2ManifestBackendError(code, message, options);
+}
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
 }
 
 function rejectProxy(
@@ -419,15 +430,32 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
   const backend = Object.freeze({
     descriptor: Object.freeze({
       ...normalizedDescriptor,
+      authorityRootDigest: `sha256:${createHash("sha256")
+        .update(
+          canonical({
+            manifestAuthority: manifestAuthority.descriptor,
+            segmentStore: segmentStore.descriptor,
+            witnessAdapter: witnessAdapter.descriptor,
+          }),
+        )
+        .digest("hex")}`,
       schema: EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA,
     }),
     read() {
       return recoverCheckpoint();
     },
     appendSegment(input) {
+      const fullEvents =
+        input && !utilTypes.isProxy(input) && Object.hasOwn(input, "events");
       const request = exactRecord(
         input,
-        APPEND_KEYS,
+        fullEvents
+          ? new Set(
+              [...APPEND_KEYS]
+                .filter((key) => key !== "eventDigests")
+                .concat("events"),
+            )
+          : APPEND_KEYS,
         "v2 manifest append request",
       );
       const expectedHeadDigest = nullableDigest(
@@ -448,7 +476,9 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
       const sealed = sealEvolutionLedgerManifestSegment({
         authority: manifestAuthority,
         descriptor: normalizedDescriptor,
-        eventDigests: data(request, "eventDigests"),
+        ...(fullEvents
+          ? { events: data(request, "events") }
+          : { eventDigests: data(request, "eventDigests") }),
         minimumRetainedUntil: data(request, "minimumRetainedUntil"),
         now,
         previousHead: current.head,
@@ -528,7 +558,9 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         durable: true,
         headDigest: sealed.head.headDigest,
         immutable: true,
+        head: sealed.head,
         manifestDigest: sealed.manifest.manifestDigest,
+        manifest: sealed.manifest,
         manifestSequence: sealed.manifest.manifestSequence,
         readbackVerified: true,
         schema: EVOLUTION_LEDGER_V2_MANIFEST_APPEND_RECEIPT_SCHEMA,
@@ -536,6 +568,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         sequenceEnd: sealed.manifest.sequenceEnd,
         sequenceStart: sealed.manifest.sequenceStart,
         witnessed: true,
+        witness: final.witness.record,
         witnessDigest: final.witness.witnessDigest,
       });
     },
@@ -555,6 +588,17 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
         manifests: catalog.list(),
         segmentStore,
       });
+    },
+    readEvents() {
+      const snapshot = recoverCheckpoint();
+      if (snapshot.head === null) return Object.freeze([]);
+      return readEvolutionLedgerManifestEvents({
+        authority: manifestAuthority,
+        descriptor: normalizedDescriptor,
+        head: snapshot.head,
+        manifests: catalog.list(),
+        segmentStore,
+      }).events;
     },
   });
   BACKENDS.add(backend);
