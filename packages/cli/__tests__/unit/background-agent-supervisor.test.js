@@ -479,6 +479,47 @@ describe("background agent supervisor", () => {
     });
   });
 
+  it("uses a nonblocking heartbeat lock without probing or reclaiming its owner", () => {
+    const id = "bg-heartbeat-bounded-lock";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: process.pid,
+      workerPid: process.pid,
+      workerGeneration: "generation-heartbeat",
+    });
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: Date.now(),
+        token: "heartbeat-bounded-lock-owner-0001",
+      }),
+    );
+    _deps.readProcessStartTimeMs = vi.fn(() => Date.now());
+
+    expect(() =>
+      claimBackgroundAgentHeartbeat(
+        id,
+        {
+          pid: process.pid,
+          workerPid: process.pid,
+          workerGeneration: "generation-heartbeat",
+        },
+        { timeoutMs: 0, probeLockOwner: false },
+      ),
+    ).toThrow(expect.objectContaining({ code: "STATE_LOCK_UNAVAILABLE" }));
+    expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      workerPid: process.pid,
+      workerGeneration: "generation-heartbeat",
+      title: "before",
+    });
+  });
+
   it("rejects ephemeral initial and follow-up argv before worker spawn", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     expect(() =>

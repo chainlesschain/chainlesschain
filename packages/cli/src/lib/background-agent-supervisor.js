@@ -1372,7 +1372,14 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
       // A live numeric pid can belong to a later process after the lock owner
       // was killed. Use the lock acquisition timestamp as a one-sided identity
       // fence so only an owner which existed before acquisition still blocks.
-      _isOwnerAlive: isBackgroundAgentStateLockOwnerAlive,
+      // Periodic telemetry may request a strict try-lock. In that mode an
+      // incumbent is deliberately retained without a Windows PID/start-time
+      // probe: a heartbeat must never synchronously stall a control channel
+      // merely to determine whether it could reclaim a lock.
+      _isOwnerAlive:
+        options.probeLockOwner === false
+          ? () => true
+          : isBackgroundAgentStateLockOwnerAlive,
     },
   );
 }
@@ -1460,57 +1467,65 @@ export async function deliverBackgroundNeedsInputNotification(
  * the only authority to start or continue a turn: a terminal, deleted,
  * corrupt, differently-generated or already-owned record is never revived.
  */
-export function claimBackgroundAgentHeartbeat(id, heartbeat = {}) {
+export function claimBackgroundAgentHeartbeat(
+  id,
+  heartbeat = {},
+  options = {},
+) {
   const workerPid = Number(heartbeat.workerPid ?? heartbeat.pid);
   const workerGeneration = heartbeat.workerGeneration;
   if (!Number.isInteger(workerPid) || workerPid <= 0) {
     throw new Error(`Invalid background worker pid: ${heartbeat.workerPid}`);
   }
-  return mutateBackgroundAgentState(id, (current) => {
-    if (!current || current.status !== "running") return null;
-    if (current.stopRequestedAt) return null;
-    if (
-      current.workerGeneration &&
-      current.workerGeneration !== workerGeneration
-    ) {
-      return null;
-    }
-    const claimedWorkerPid = Number(current.workerClaimedPid);
-    if (
-      current.workerClaimedPid != null &&
-      Number.isInteger(claimedWorkerPid) &&
-      claimedWorkerPid > 0 &&
-      claimedWorkerPid !== workerPid
-    ) {
-      return null;
-    }
-    const currentWorkerPid = Number(current.workerPid ?? current.pid);
-    if (
-      !current.workerGeneration &&
-      Number.isInteger(currentWorkerPid) &&
-      currentWorkerPid > 0 &&
-      currentWorkerPid !== workerPid &&
-      current.launchFinalizationUncertain !== true
-    ) {
-      return null;
-    }
-    return {
-      ...current,
-      ...heartbeat,
-      id,
-      pid: workerPid,
-      workerPid,
-      workerClaimedPid:
+  return mutateBackgroundAgentState(
+    id,
+    (current) => {
+      if (!current || current.status !== "running") return null;
+      if (current.stopRequestedAt) return null;
+      if (
+        current.workerGeneration &&
+        current.workerGeneration !== workerGeneration
+      ) {
+        return null;
+      }
+      const claimedWorkerPid = Number(current.workerClaimedPid);
+      if (
         current.workerClaimedPid != null &&
         Number.isInteger(claimedWorkerPid) &&
-        claimedWorkerPid > 0
-          ? claimedWorkerPid
-          : workerPid,
-      workerClaimedAt: current.workerClaimedAt || Date.now(),
-      status: "running",
-      heartbeatAt: heartbeat.heartbeatAt ?? Date.now(),
-    };
-  });
+        claimedWorkerPid > 0 &&
+        claimedWorkerPid !== workerPid
+      ) {
+        return null;
+      }
+      const currentWorkerPid = Number(current.workerPid ?? current.pid);
+      if (
+        !current.workerGeneration &&
+        Number.isInteger(currentWorkerPid) &&
+        currentWorkerPid > 0 &&
+        currentWorkerPid !== workerPid &&
+        current.launchFinalizationUncertain !== true
+      ) {
+        return null;
+      }
+      return {
+        ...current,
+        ...heartbeat,
+        id,
+        pid: workerPid,
+        workerPid,
+        workerClaimedPid:
+          current.workerClaimedPid != null &&
+          Number.isInteger(claimedWorkerPid) &&
+          claimedWorkerPid > 0
+            ? claimedWorkerPid
+            : workerPid,
+        workerClaimedAt: current.workerClaimedAt || Date.now(),
+        status: "running",
+        heartbeatAt: heartbeat.heartbeatAt ?? Date.now(),
+      };
+    },
+    options,
+  );
 }
 
 function deleteBackgroundAgentState(id, predicate = () => true) {

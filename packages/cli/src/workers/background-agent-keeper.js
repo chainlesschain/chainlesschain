@@ -183,7 +183,13 @@ export function runBackgroundAgentKeeperHeartbeat({
     return false;
   }
   try {
-    persistKeeper({ keeperHeartbeatAt: currentTime });
+    // A heartbeat is advisory liveness telemetry. Keep ownership strict but
+    // never wait behind another state writer or invoke the synchronous Windows
+    // owner probe; the next one-second heartbeat retries if the lock is busy.
+    persistKeeper(
+      { keeperHeartbeatAt: currentTime },
+      { timeoutMs: 0, probeLockOwner: false },
+    );
     return true;
   } catch (error) {
     try {
@@ -455,18 +461,22 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     finishResolve = resolvePromise;
   });
 
-  const persistKeeper = (patch) =>
-    mutateBackgroundAgentState(job.id, (current) => {
-      if (
-        !current ||
-        current.workerGeneration !== job.workerGeneration ||
-        current.keeperGeneration !== job.keeperGeneration ||
-        Number(current.keeperPid) !== process.pid
-      ) {
-        return null;
-      }
-      return { ...current, ...patch };
-    });
+  const persistKeeper = (patch, options = {}) =>
+    mutateBackgroundAgentState(
+      job.id,
+      (current) => {
+        if (
+          !current ||
+          current.workerGeneration !== job.workerGeneration ||
+          current.keeperGeneration !== job.keeperGeneration ||
+          Number(current.keeperPid) !== process.pid
+        ) {
+          return null;
+        }
+        return { ...current, ...patch };
+      },
+      options,
+    );
 
   const finishForWorkerDisconnect = () => {
     if (finishing) return false;

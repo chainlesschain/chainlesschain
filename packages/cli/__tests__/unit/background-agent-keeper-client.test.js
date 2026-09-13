@@ -41,7 +41,11 @@ function fixtureIdentity() {
   };
 }
 
-async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
+async function startFixtureKeeper({
+  armDelayMs = 0,
+  retireDelayMs = 0,
+  replyToRetire = true,
+}) {
   const identity = fixtureIdentity();
   const pipePath = backgroundAgentKeeperPipePath(
     identity.id,
@@ -73,14 +77,17 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
           return;
         }
         if (message.type === BACKGROUND_AGENT_KEEPER_ARM) {
-          socket.write(
-            `${JSON.stringify(
-              createBackgroundAgentKeeperMessage(
-                BACKGROUND_AGENT_KEEPER_ARMED,
-                responsePayload(message),
-              ),
-            )}\n`,
-          );
+          setTimeout(() => {
+            if (socket.destroyed) return;
+            socket.write(
+              `${JSON.stringify(
+                createBackgroundAgentKeeperMessage(
+                  BACKGROUND_AGENT_KEEPER_ARMED,
+                  responsePayload(message),
+                ),
+              )}\n`,
+            );
+          }, armDelayMs);
           return;
         }
         if (message.type === BACKGROUND_AGENT_KEEPER_RETIRE && replyToRetire) {
@@ -145,6 +152,22 @@ afterEach(async () => {
 });
 
 describe("background agent keeper client deadlines", () => {
+  it("uses the independent ARM timeout after a shorter generic deadline", async () => {
+    const { identity, pipePath, resource } = await startFixtureKeeper({
+      armDelayMs: 80,
+    });
+    const client = await connectBackgroundAgentKeeper({
+      ...identity,
+      pipePath,
+      requestTimeoutMs: 20,
+    });
+    resource.clients.push(client);
+    const turn = turnFor(identity);
+
+    await expect(client.arm(turn)).resolves.toEqual(turn);
+    expect(client.activeTurn()).toEqual(turn);
+  });
+
   it("emits authenticated worker heartbeats on the keeper channel", async () => {
     const { identity, pipePath, resource } = await startFixtureKeeper({});
     const client = await connectBackgroundAgentKeeper({

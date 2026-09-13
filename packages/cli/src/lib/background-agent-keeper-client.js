@@ -4,6 +4,7 @@ import { createNdjsonReader } from "./background-session-transport.js";
 import {
   BACKGROUND_AGENT_KEEPER_ARM,
   BACKGROUND_AGENT_KEEPER_ARMED,
+  BACKGROUND_AGENT_KEEPER_ARM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS,
@@ -244,6 +245,7 @@ export async function connectBackgroundAgentKeeper(options = {}) {
         BACKGROUND_AGENT_KEEPER_ARM,
         BACKGROUND_AGENT_KEEPER_ARMED,
         normalized,
+        BACKGROUND_AGENT_KEEPER_ARM_TIMEOUT_MS,
       );
       activeTurn = normalized;
       return normalized;

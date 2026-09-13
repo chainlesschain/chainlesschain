@@ -50,6 +50,13 @@ export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS =
 export const BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS = 5_000;
 export const BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS =
   3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS;
+// ARM durably binds a newly spawned turn. It can contend with a strict state
+// lock and, on Windows, an incumbent identity probe. Keep this deadline
+// independent from short HELLO requests and long destructive RETIRE cleanup.
+export const BACKGROUND_AGENT_KEEPER_ARM_TIMEOUT_MS =
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS +
+  BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS +
+  10_000;
 // A 20-Agent macOS formal run can leave successfully SIGKILLed process groups
 // observable for several seconds while launchd reaps their orphaned leaders.
 // Two seconds made that bounded kernel/reaper delay look like an escaped tree.

@@ -75,6 +75,11 @@ const TURN_BOOTSTRAP_MODULE_URL = new URL(
   import.meta.url,
 ).href;
 const TURN_BOOTSTRAP_IMPORT_ARGUMENT = `--import=${TURN_BOOTSTRAP_MODULE_URL}`;
+// A periodic heartbeat is telemetry, not a turn-ownership transition. On a
+// busy Windows runner it must never block the worker's IPC loop long enough to
+// starve a keeper ARM/RETIRE reply; startup and terminal claims keep the
+// supervisor's full strict-lock deadline.
+const PERIODIC_HEARTBEAT_STATE_LOCK_TIMEOUT_MS = 0;
 
 const jobFile = process.argv[2];
 let job;
@@ -534,18 +539,22 @@ function mergeState(patch) {
   })).state;
 }
 
-function writeHeartbeat() {
-  const mutation = claimBackgroundAgentHeartbeat(job.id, {
-    workerGeneration: job.workerGeneration,
-    pid: process.pid,
-    workerPid: process.pid,
-    ...(child?.pid ? { agentPid: child.pid } : {}),
-    ...(turnLaunchUncertainty || {}),
-    heartbeatAt: Date.now(),
-    // Re-assert the transport endpoint so a launcher write racing the
-    // worker's initial merge self-heals within one heartbeat.
-    ...(transportState ? { transport: transportState } : {}),
-  });
+function writeHeartbeat(options = {}) {
+  const mutation = claimBackgroundAgentHeartbeat(
+    job.id,
+    {
+      workerGeneration: job.workerGeneration,
+      pid: process.pid,
+      workerPid: process.pid,
+      ...(child?.pid ? { agentPid: child.pid } : {}),
+      ...(turnLaunchUncertainty || {}),
+      heartbeatAt: Date.now(),
+      // Re-assert the transport endpoint so a launcher write racing the
+      // worker's initial merge self-heals within one heartbeat.
+      ...(transportState ? { transport: transportState } : {}),
+    },
+    options,
+  );
   const applied =
     mutation.applied &&
     mutation.state?.status === "running" &&
@@ -1798,7 +1807,12 @@ async function main() {
   }
   heartbeat = setInterval(() => {
     try {
-      if (!writeHeartbeat()) {
+      if (
+        !writeHeartbeat({
+          timeoutMs: PERIODIC_HEARTBEAT_STATE_LOCK_TIMEOUT_MS,
+          probeLockOwner: false,
+        })
+      ) {
         if (turnLaunchSettlement) {
           // The owned tree is already in explicit settlement. Keep the worker
           // alive until confirmed termination evidence is durably recorded;

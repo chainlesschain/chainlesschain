@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  BACKGROUND_AGENT_KEEPER_ARM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
@@ -40,6 +41,13 @@ const turn = {
 };
 
 describe("background agent keeper protocol", () => {
+  it("gives durable ARM enough time for strict lock contention", () => {
+    expect(BACKGROUND_AGENT_KEEPER_ARM_TIMEOUT_MS).toBeGreaterThan(
+      BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS +
+        BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+    );
+  });
+
   it("binds the post-lock launch claim to the exact keeper generation", () => {
     const claim = createBackgroundAgentKeeperLaunchClaim({
       id: turn.id,
@@ -268,7 +276,10 @@ describe("background agent keeper protocol", () => {
     expect(workerIdentityAlive).toHaveBeenCalledWith(2468, 1_234_567);
     expect(finishForWorkerDisconnect).not.toHaveBeenCalled();
     expect(workerSocket.destroy).not.toHaveBeenCalled();
-    expect(persistKeeper).toHaveBeenCalledWith({ keeperHeartbeatAt: 38_391 });
+    expect(persistKeeper).toHaveBeenCalledWith(
+      { keeperHeartbeatAt: 38_391 },
+      { timeoutMs: 0, probeLockOwner: false },
+    );
   });
 
   it("does not probe worker identity while application heartbeats are fresh", () => {
@@ -314,7 +325,10 @@ describe("background agent keeper protocol", () => {
         reportPersistenceFailure,
       }),
     ).toBe(false);
-    expect(persistKeeper).toHaveBeenCalledWith({ keeperHeartbeatAt: 1_234 });
+    expect(persistKeeper).toHaveBeenCalledWith(
+      { keeperHeartbeatAt: 1_234 },
+      { timeoutMs: 0, probeLockOwner: false },
+    );
     expect(reportPersistenceFailure).toHaveBeenCalledWith(
       "heartbeat",
       persistenceError,
