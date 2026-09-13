@@ -133,7 +133,8 @@ it("real CLI emits configured static JSON without network, secret resolution, de
   expect(profile.schema).toBeTruthy();
   expect(profile.digest).toMatch(/^sha256:/u);
   expect(profile.limitations.length).toBeGreaterThan(0);
-  expect(profile.limitations.join(" ")).toContain(
+  expect(profile.limitations.join(" ")).toContain("Runtime execution");
+  expect(profile.limitations.join(" ")).not.toContain(
     "Responses transport is not implemented",
   );
   expect(result.stdout + result.stderr).not.toContain(
@@ -214,7 +215,8 @@ it("real CLI reports unknown models as assumptions instead of readiness or conne
   expect(text.stdout).toContain(
     "planning reserve is not an enforced request cap",
   );
-  expect(text.stdout).toContain("Responses is not integrated");
+  expect(text.stdout).toContain("Note: Runtime execution");
+  expect(text.stdout).not.toContain("Responses is not integrated");
   expect(text.stdout).not.toMatch(/\bready\b|✔|Connected/);
   expectNoForbiddenIo(text, before);
 });
