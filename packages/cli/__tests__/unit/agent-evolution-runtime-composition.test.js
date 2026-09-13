@@ -2498,8 +2498,21 @@ describe("Agent evolution runtime production composition", () => {
 
   it("reopens authenticated response cache evidence and rejects substitutions", async () => {
     const f = modelFixture();
-    const ingress = f.composition.evolutionIngress;
-    const requestKey = "a".repeat(64);
+    // Cache identifiers are authenticated structure, not model text. Exercise
+    // values that the ordinary PII scanner correctly treats as PII-like so a
+    // random UUID or request digest cannot make a valid cache proof flaky.
+    const sourceRunId = "cache-run-4111-1111-1111-1111";
+    let ingressId = 0;
+    const config = {
+      ...f.config,
+      runId: sourceRunId,
+      taskId: sourceRunId,
+      ingressIdGenerator: () =>
+        `cache-event-4111-1111-1111-1111-${++ingressId}`,
+    };
+    const source = createAgentEvolutionRuntimeComposition(config);
+    const ingress = source.evolutionIngress;
+    const requestKey = "14111111111" + "a".repeat(53);
     await ingress.prepareModelRequest({
       messages: [{ role: "user", content: "Contact" }],
       tools: [],
@@ -2512,7 +2525,7 @@ describe("Agent evolution runtime production composition", () => {
     await ingress.complete();
     const reopen = (id) =>
       createAgentEvolutionRuntimeComposition({
-        ...f.config,
+        ...config,
         runId: id,
         taskId: id,
       });
@@ -6531,7 +6544,7 @@ describe("Agent evolution runtime production composition", () => {
       resolveAgentCommandEvolutionComposition(null, {
         mode: "interactive",
       }),
-    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    ).resolves.toBeNull();
     await expect(
       resolveAgentCommandEvolutionComposition(() => ({}), {
         mode: "interactive",

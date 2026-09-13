@@ -5,12 +5,12 @@ import {
   governModelTokenSource,
   prepareGovernedModelTurn,
 } from "../../src/lib/evolution/governed-model-turn.js";
-import { agentLoop, chatWithTools } from "../../src/runtime/agent-core.js";
+import { chatWithTools } from "../../src/runtime/agent-core.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("CLI model egress closure", () => {
-  it("rejects every shared content-bearing entry before provider transport without ingress", async () => {
+  it("rejects governed-only content-bearing entries before provider transport without ingress", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const messages = [{ role: "user", content: "canary prompt" }];
@@ -21,15 +21,9 @@ describe("CLI model egress closure", () => {
     await expect(queryLLM("canary prompt")).rejects.toMatchObject({
       code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
     });
-    await expect(
-      chatWithTools(messages, { provider: "ollama", model: "test" }),
-    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
     expect(() => createChatFn({ provider: "ollama" })).toThrow(
       /authenticated evolution ingress/,
     );
-    await expect(
-      agentLoop(messages, { provider: "ollama", model: "test" }).next(),
-    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -42,5 +36,27 @@ describe("CLI model egress closure", () => {
     expect((await stream.next()).value).toBe("partial");
     await stream.return();
     expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("keeps the legacy agent transport available before deployment configuration", async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        message: { role: "assistant", content: "online" },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      chatWithTools([{ role: "user", content: "hello" }], {
+        provider: "ollama",
+        model: "test",
+        baseUrl: "http://127.0.0.1:11434",
+        contextMemorySkipPlanning: true,
+      }),
+    ).resolves.toMatchObject({
+      message: { role: "assistant", content: "online" },
+    });
+    expect(fetch).toHaveBeenCalledOnce();
   });
 });

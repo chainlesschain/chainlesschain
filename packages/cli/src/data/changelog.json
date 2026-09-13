@@ -2,6 +2,19 @@
   "source": "CHANGELOG.md",
   "releases": [
     {
+      "productVersion": null,
+      "cliVersion": "0.166.46",
+      "cliVersions": ["0.166.46"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.46: restore Agent chat before Evolution deployment",
+          "body": "- Restore ordinary Agent and IDE stream chat for installations with no\n  Evolution deployment configured.\n- Continue authenticating configured deployments and reject invalid, disabled,\n  or unauthorized Agent deployments without falling back to ordinary chat.\n- Refresh public npm metadata during release verification retries."
+        }
+      ]
+    },
+    {
       "productVersion": "v5.0.3.137",
       "cliVersion": "0.166.45",
       "cliVersions": [

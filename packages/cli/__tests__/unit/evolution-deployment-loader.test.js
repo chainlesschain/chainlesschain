@@ -215,18 +215,23 @@ describe("signed evolution deployment loader", () => {
     "exposes the Agent runtime composition only to an authenticated %s deployment",
     async (commandName) => {
       const fixture = deploymentFixture({ commands: [commandName] });
+      const evolutionCompositionFactory = vi.fn();
       await expect(
         loadEvolutionDeploymentCommandDependencies(commandName, {
           ...fixture,
           importModule: async () => ({
             createChainlessChainCommandDependencies: async ({ factories }) => ({
+              evolutionCompositionFactory,
               compositionFactoryAvailable:
                 typeof factories.createAgentEvolutionRuntimeComposition ===
                 "function",
             }),
           }),
         }),
-      ).resolves.toEqual({ compositionFactoryAvailable: true });
+      ).resolves.toEqual({
+        compositionFactoryAvailable: true,
+        evolutionCompositionFactory,
+      });
     },
   );
 

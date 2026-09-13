@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.96] - Separate chat composer controls (2026-09-13)
+
+- Add a clear vertical gap between the chat message input and its Send, Plan,
+  Stop, and New control row.
+- Continue recommending the published `chainlesschain@0.166.46` CLI release.
+
 ## [0.37.95] - Governed context and chat usability (2026-09-12)
 
 - Keep protected context within the CLI compaction budget instead of failing an

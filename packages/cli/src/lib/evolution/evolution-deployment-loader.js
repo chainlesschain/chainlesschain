@@ -131,6 +131,77 @@ function dependencies(value, commandName) {
   return Object.freeze({ ...value });
 }
 
+function deniedAgentDependencies(commandName, code, message, source = null) {
+  if (commandName !== "agent") return null;
+  const evolutionCompositionFactory = Object.freeze(async () => {
+    const error = new Error(message);
+    error.code = code;
+    throw error;
+  });
+  if (
+    source === null ||
+    typeof source !== "object" ||
+    Array.isArray(source) ||
+    utilTypes.isProxy(source)
+  ) {
+    return Object.freeze({ evolutionCompositionFactory });
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(source);
+  const result = {};
+  for (const [name, descriptor] of Object.entries(descriptors)) {
+    if (name === "evolutionCompositionFactory" || !("value" in descriptor)) {
+      continue;
+    }
+    Object.defineProperty(result, name, {
+      value: descriptor.value,
+      enumerable: descriptor.enumerable,
+      configurable: false,
+      writable: false,
+    });
+  }
+  Object.defineProperty(result, "evolutionCompositionFactory", {
+    value: evolutionCompositionFactory,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  });
+  return Object.freeze(result);
+}
+
+function authenticatedDependencies(value, commandName) {
+  if (commandName !== "agent") return dependencies(value, commandName);
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    utilTypes.isProxy(value)
+  ) {
+    return deniedAgentDependencies(
+      commandName,
+      "EVOLUTION_DEPLOYMENT_INVALID_DEPENDENCIES",
+      "Authenticated agent deployment returned invalid dependencies",
+    );
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(
+    value,
+    "evolutionCompositionFactory",
+  );
+  if (
+    !descriptor ||
+    !("value" in descriptor) ||
+    typeof descriptor.value !== "function" ||
+    descriptor.enumerable !== true
+  ) {
+    return deniedAgentDependencies(
+      commandName,
+      "EVOLUTION_DEPLOYMENT_INVALID_DEPENDENCIES",
+      "Authenticated agent deployment did not provide an evolution composition factory",
+      value,
+    );
+  }
+  return dependencies(value, commandName);
+}
+
 async function loadBuiltInFactories(commandName) {
   const factories = {};
   if (commandName === "learning") {
@@ -229,9 +300,7 @@ async function loadBuiltInFactories(commandName) {
       import("./evolution-eval-process-supervisor.js"),
       import("./governed-skill-synthesis-attestor-trust-approval-client.js"),
       import("./governed-skill-synthesis-attestor-trust-operations-client.js"),
-      import(
-        "./governed-skill-synthesis-attestor-trust-operations-cli-host.js"
-      ),
+      import("./governed-skill-synthesis-attestor-trust-operations-cli-host.js"),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createEvolutionWorkbenchReviewRuntime =
@@ -358,9 +427,8 @@ async function loadBuiltInFactories(commandName) {
     commandName === "stream" ||
     commandName === "ui"
   ) {
-    const { createAgentEvolutionRuntimeComposition } = await import(
-      "./agent-evolution-runtime-composition.js"
-    );
+    const { createAgentEvolutionRuntimeComposition } =
+      await import("./agent-evolution-runtime-composition.js");
     factories.createAgentEvolutionRuntimeComposition =
       createAgentEvolutionRuntimeComposition;
   }
@@ -494,6 +562,20 @@ export async function loadEvolutionDeploymentCommandDependencies(
   let saved = null;
   if (!descriptorPath && !trustRootPath) {
     saved = await readEvolutionDeploymentProfile({ env });
+    if (saved.error) {
+      return deniedAgentDependencies(
+        commandName,
+        "EVOLUTION_DEPLOYMENT_PROFILE_INVALID",
+        "Saved evolution deployment profile is invalid",
+      );
+    }
+    if (saved.profile && !saved.profile.enabled) {
+      return deniedAgentDependencies(
+        commandName,
+        "EVOLUTION_DEPLOYMENT_DISABLED",
+        "Saved evolution deployment profile is disabled",
+      );
+    }
     if (!saved.error && saved.profile?.enabled) {
       descriptorPath = saved.profile.descriptorPath;
       trustRootPath = saved.profile.trustRootPath;
@@ -531,11 +613,23 @@ export async function loadEvolutionDeploymentCommandDependencies(
     // governed capabilities fail-closed while allowing `deployment status`,
     // `configure`, and `disable` to start so the operator can recover. Explicit
     // environment overrides remain strict and surface the error immediately.
-    if (fromSavedProfile) return null;
+    if (fromSavedProfile) {
+      return deniedAgentDependencies(
+        commandName,
+        error?.code || "EVOLUTION_DEPLOYMENT_NOT_VERIFIED",
+        `Saved evolution deployment could not be verified: ${error?.message || String(error)}`,
+      );
+    }
     throw error;
   }
   const { descriptor, moduleBytes } = verified;
-  if (!descriptor.commands.includes(commandName)) return null;
+  if (!descriptor.commands.includes(commandName)) {
+    return deniedAgentDependencies(
+      commandName,
+      "EVOLUTION_DEPLOYMENT_COMMAND_NOT_ALLOWED",
+      `Signed evolution deployment does not admit command: ${commandName}`,
+    );
+  }
   // Import the exact bytes that were authenticated. Importing modulePath here
   // would reopen a pathname-replacement window between hashing and execution.
   // Deployment entrypoints are therefore single-file ESM bundles; any external
@@ -578,7 +672,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
       "additional evolution deployment factories are invalid",
     );
   }
-  return dependencies(
+  return authenticatedDependencies(
     await loaded.createChainlessChainCommandDependencies(
       Object.freeze({
         commandName,

@@ -11010,13 +11010,6 @@ export async function chatWithTools(rawMessages, options) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
-  if (evolutionIngress === null) {
-    const error = new Error(
-      "Agent model egress requires an authenticated evolution ingress",
-    );
-    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    throw error;
-  }
   const {
     provider,
     model,
@@ -11065,12 +11058,14 @@ export async function chatWithTools(rawMessages, options) {
         })
       : providerMessages;
 
-  const projected = await evolutionIngress.prepareModelRequest({
-    messages,
-    tools,
-  });
-  messages = projected.messages;
-  tools = projected.tools;
+  if (evolutionIngress !== null) {
+    const projected = await evolutionIngress.prepareModelRequest({
+      messages,
+      tools,
+    });
+    messages = projected.messages;
+    tools = projected.tools;
+  }
 
   throwIfAborted(signal);
 
@@ -13781,15 +13776,8 @@ export async function* agentLoop(messages, options) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
-  if (evolutionIngress === null) {
-    const error = new Error(
-      "Agent loop requires an authenticated evolution ingress",
-    );
-    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    throw error;
-  }
   let llmCall = configuredChatFn || chatWithTools;
-  if (configuredChatFn) {
+  if (evolutionIngress !== null && configuredChatFn) {
     const { captureCanonicalFallbackChatFn } =
       await import("./fallback-model.js");
     llmCall = captureCanonicalFallbackChatFn(

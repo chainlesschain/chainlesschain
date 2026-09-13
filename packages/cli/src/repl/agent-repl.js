@@ -2954,7 +2954,7 @@ export async function startAgentRepl(options = {}) {
   const sessionBudgetRootScope = { root: null };
   const runtimeOptions = {
     ...options,
-    evolutionIngress,
+    ...(evolutionIngress === null ? {} : { evolutionIngress }),
     ...(structuredMemoryControlPlane === null
       ? {}
       : {
