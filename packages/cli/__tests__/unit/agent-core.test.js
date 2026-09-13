@@ -309,9 +309,11 @@ describe("git tool — shell-free (no command injection)", () => {
         expect.objectContaining({
           origin: "agent-core:git-command",
           policy: "allow",
+          shell: false,
           scope: "agent-core",
         }),
       );
+      expect(run).toHaveBeenCalledOnce();
     } finally {
       _gitProcessDeps.run = originalRunner;
     }
@@ -353,9 +355,15 @@ describe("git tool — shell-free (no command injection)", () => {
         expect.objectContaining({
           origin: "agent-core:git-command",
           policy: "allow",
+          shell: false,
           scope: "agent-core",
         }),
       );
+      expect(run).toHaveBeenCalledOnce();
+      expect(res).toMatchObject({
+        exitCode: 1,
+        stderr: "git: 'status;' is not a git command\n",
+      });
       // git rejected the bad subcommand …
       expect(res.error || res.stderr).toBeTruthy();
       // … and the injected echo never produced its marker as stdout

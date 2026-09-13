@@ -6932,6 +6932,7 @@ async function executeToolInner(
         encoding: "utf8",
         timeout: 60000,
         maxBuffer: 1024 * 1024,
+        shell: false,
         windowsHide: true,
         origin: "agent-core:git-command",
         policy: "allow",
