@@ -612,6 +612,8 @@ describe("EvolutionArtifactPorts", () => {
       "skill-registry-transition-request",
       "skill-registry-transition-settlement",
       "skill-retrieval-revocation-state",
+      "skill-runtime-revalidation-state",
+      "evolution-ledger-v2-journal",
       "evolution-run-event",
       "evolution-eval-child-evidence",
       "evolution-raw-deletion-receipt",

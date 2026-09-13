@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.47: govern Evolution runtime and scale background sessions
+
+- Add the durable Evolution ledger v2, evidence-bound Wiki maintenance, and
+  runtime revalidation so governed learning and deployment decisions retain
+  verifiable state across restarts.
+- Add native OpenAI Responses transport together with versioned model
+  capability profiles, explicit model-egress inventory, and bounded runtime
+  capability reporting.
+- Add bound plugin-evaluation and deferred-question flows for Agent sessions,
+  while keeping deployment and evidence admission fail-closed.
+- Paginate `cc background session list` so installations with large background
+  session histories can navigate results without loading the entire list.
+
 ### Fixed - cc CLI 0.166.46: restore Agent chat before Evolution deployment
 
 - Restore ordinary Agent and IDE stream chat for installations with no

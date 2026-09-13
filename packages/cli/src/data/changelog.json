@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.47",
+      "cliVersions": ["0.166.47"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.47: govern Evolution runtime and scale background sessions",
+          "body": "- Add the durable Evolution ledger v2, evidence-bound Wiki maintenance, and\n  runtime revalidation so governed learning and deployment decisions retain\n  verifiable state across restarts.\n- Add native OpenAI Responses transport together with versioned model\n  capability profiles, explicit model-egress inventory, and bounded runtime\n  capability reporting.\n- Add bound plugin-evaluation and deferred-question flows for Agent sessions,\n  while keeping deployment and evidence admission fail-closed.\n- Paginate `cc background session list` so installations with large background\n  session histories can navigate results without loading the entire list."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.46",
       "cliVersions": ["0.166.46"],
       "date": null,
