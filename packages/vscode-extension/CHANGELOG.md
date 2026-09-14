@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.98] - Pair with CLI 0.166.48 (2026-09-14)
+
+- Recommend the publicly verified `chainlesschain@0.166.48` OIDC release.
+- Pair with repeated balanced plugin evaluation samples, confidence intervals,
+  and reviewer-owned holdout suites in the CLI.
+- Carry the CLI's restart-safe Headless deferred questions with binding checks
+  and one-time answer consumption, plus indexed paged background-session status.
+- Pair with host-supplied semantic recall candidates bound to revision/digest,
+  lifecycle, scope, expiry, and sink enforcement in Context Memory Kernel 0.1.3.
+- Synchronize the vendored Agent SDK 0.2.10 Context/Memory protocol projection.
+  Runtime authority remains with the CLI; no new editor controls are implied
+  for CLI-only evaluation options or Headless workflows.
+
 ## [0.37.97] - Pair with CLI 0.166.47 (2026-09-13)
 
 - Recommend the publicly verified `chainlesschain@0.166.47` release after its
