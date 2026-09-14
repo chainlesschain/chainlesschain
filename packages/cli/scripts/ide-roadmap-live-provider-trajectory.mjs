@@ -904,6 +904,10 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
     autoMicroCompact: false,
     runnableProviderFallback: false,
     strictUsageTelemetry: true,
+    // This fixture deliberately exercises semantic compaction on every cycle.
+    // Pin its synthetic provider to a bounded window instead of inheriting the
+    // OpenAI provider default, which represents an unknown custom endpoint.
+    contextMemoryModelWindowTokens: 32768,
     compactionMaxOutputTokens: 2048,
     maxOutputTokens: 2048,
     signal: controller.signal,
