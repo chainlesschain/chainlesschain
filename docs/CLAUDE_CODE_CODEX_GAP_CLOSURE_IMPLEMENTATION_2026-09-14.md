@@ -8,13 +8,13 @@
 
 本轮继续推进原差距报告中仍可在仓库内闭合的 G04、G05、G06、G08、G10。其余未完成项依赖真实账号、生产身份/KMS、目标 OS、商店或双设备，保留为外部验收门。
 
-| ID  | 本轮关闭的工程缺口                                                                                                           | 仍未关闭的验收门                                                                        |
-| --- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| G04 | 将 Codex App Server `0.154.0` 加入 fail-closed 适配器和 Linux/Windows/macOS CI 矩阵；本机真实 schema 与 stdio 初始化探针通过 | 干净精确 SHA 的三平台矩阵、真实 turn/cancel/resume 旅程，以及是否接入产品主链的独立决策 |
-| G05 | 增加 1–20 次重复采样、确定性平衡双臂顺序、Wilson/Newcombe 95% 区间、reviewer-owned holdout 与 CLI 参数                       | 固定付费模型实跑、独立模型 grader、发布提交上的正式门禁                                 |
-| G06 | 增加由宿主提供、按 memory revision/digest 绑定的受治理语义候选与轻量 hybrid rerank；词法默认行为不变                         | embedding/index 宿主适配器、真实中英语料与冲突记忆评测、容量和三平台目标环境            |
-| G08 | standalone Headless 的 deferred request/resolved/consumed/expired 权威事件、私有恢复投影、重连重放和一次性消费确认           | 独立子进程/真实客户端旅程、CLI/IDE/App Server 精确 SHA 三平台一致性                     |
-| G10 | 为后台 Agent 分页增加内容无关、文件身份绑定的只读索引；缓存失效、损坏或竞态时回退权威全扫                                    | 精确 SHA 三平台 formal 容量曲线、SLO 决策、持久 Memory 索引及归档策略                   |
+| ID  | 本轮关闭的工程缺口                                                                                                                       | 仍未关闭的验收门                                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| G04 | 将 Codex App Server `0.154.0` 加入 fail-closed 适配器和 Linux/Windows/macOS CI 矩阵；本机真实 schema 与 stdio 初始化探针通过             | 干净精确 SHA 的三平台矩阵、真实 turn/cancel/resume 旅程，以及是否接入产品主链的独立决策 |
+| G05 | 增加 1–20 次重复采样、确定性平衡双臂顺序、Wilson/Newcombe 95% 区间、reviewer-owned holdout 与 CLI 参数                                   | 固定付费模型实跑、独立模型 grader、发布提交上的正式门禁                                 |
+| G06 | 增加由宿主提供、按 memory revision/digest 绑定的受治理语义候选与轻量 hybrid rerank；词法默认行为不变                                     | embedding/index 宿主适配器、真实中英语料与冲突记忆评测、容量和三平台目标环境            |
+| G08 | standalone Headless 的 deferred request/resolved/consumed/expired 权威事件、私有恢复投影、重连重放、一次性消费确认及真实 Node 子进程恢复 | 真实 CLI/IDE/App Server 客户端旅程、精确 SHA 三平台一致性                               |
+| G10 | 为后台 Agent 分页增加内容无关、文件身份绑定的只读索引；缓存失效、损坏或竞态时回退权威全扫                                                | 精确 SHA 三平台 formal 容量曲线、SLO 决策、持久 Memory 索引及归档策略                   |
 
 ## 2. G04：Codex App Server 0.154.0
 
@@ -61,7 +61,7 @@ Kernel 先对 canonical records 执行 lifecycle、expiry、scope 与 allowed-si
 - 进程/管道关闭不把未答问题误记为 expired，支持后续恢复；真实 timeout/cancel 才尝试写 expired。
 - 具备交互能力的重连会重新发出 `restored:true` 的原问题；关闭交互或旧 pipe 不接收未知事件，权威 pending 状态保持不动。
 
-当前自动化以两次独立 host 调用和注入的持久投影模拟重启边界，尚不是两个真实 OS 子进程与真实客户端的端到端证据。
+除两次独立 host 调用与注入持久投影的合同回归外，新增的真实 Node 子进程测试还经默认 JSONL 会话存储完成“首次提问 → 进程退出 → 重连恢复 → 回答持久化 → 一次性注入”。它没有真实 CLI、IDE 或 App Server 客户端参与，精确 SHA 三平台旅程仍待验收。
 
 ## 6. G10：后台 Agent 分页只读索引
 
@@ -79,6 +79,7 @@ Kernel 先对 canonical records 执行 lifecycle、expiry、scope 与 allowed-si
 - Context/Memory Kernel 全包：97 tests；
 - CLI G04/G05/G08 合并回归：7 files、61 tests（含 App Server/fallback、插件 Eval unit/CLI、Headless questions/resume）；
 - session-host 私有 deferred 投影：1 passed，6 skipped（定向）；
+- Headless deferred 真实 Node 子进程恢复：1 test；
 - 后台 Agent 只读索引与分页/cursor：4 tests（定向）。
 
 另完成 Codex CLI `0.154.0` 的真实 Windows schema 与 stdio 握手探针。多文件 Headless 合并执行曾出现 Vitest 进程不退出，因此最终证据采用各文件/定向隔离执行；单独的 Headless questions 全组正常退出。
