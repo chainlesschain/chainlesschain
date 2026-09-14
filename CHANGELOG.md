@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.48: make evaluation, recovery, and governed recall durable
+
+- Add repeated balanced sampling, confidence intervals, and reviewer-owned
+  holdout suites to `cc plugin eval` through `--samples`, `--arm-order`, and
+  `--holdout`.
+- Persist standalone Headless deferred questions across process restarts, with
+  binding checks and one-time answer consumption.
+- Add a file-identity-bound read-only index for paged background Agent status
+  queries, with authoritative full-scan fallback on cache misses or races.
+- Add host-supplied, revision/digest-bound semantic recall candidates while
+  preserving canonical lifecycle, scope, expiry, and sink enforcement.
+- Publish Context Memory Kernel `0.1.3` before the CLI so public installs
+  resolve the new governed semantic-recall contract.
+
 ### Added - cc CLI 0.166.47: govern Evolution runtime and scale background sessions
 
 - Add the durable Evolution ledger v2, evidence-bound Wiki maintenance, and

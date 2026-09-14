@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.48",
+      "cliVersions": ["0.166.48"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.48: make evaluation, recovery, and governed recall durable",
+          "body": "- Add repeated balanced sampling, confidence intervals, and reviewer-owned\n  holdout suites to `cc plugin eval` through `--samples`, `--arm-order`, and\n  `--holdout`.\n- Persist standalone Headless deferred questions across process restarts, with\n  binding checks and one-time answer consumption.\n- Add a file-identity-bound read-only index for paged background Agent status\n  queries, with authoritative full-scan fallback on cache misses or races.\n- Add host-supplied, revision/digest-bound semantic recall candidates while\n  preserving canonical lifecycle, scope, expiry, and sink enforcement.\n- Publish Context Memory Kernel `0.1.3` before the CLI so public installs\n  resolve the new governed semantic-recall contract."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.47",
       "cliVersions": ["0.166.47"],
       "date": null,
