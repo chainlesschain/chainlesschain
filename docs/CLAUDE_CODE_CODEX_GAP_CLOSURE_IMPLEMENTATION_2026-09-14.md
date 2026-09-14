@@ -84,7 +84,7 @@ Kernel 先对 canonical records 执行 lifecycle、expiry、scope 与 allowed-si
 - Headless deferred 真实 Node 子进程恢复：1 test；
 - 后台 Agent 只读索引与分页/cursor：4 tests（定向）。
 
-另完成 Codex CLI `0.154.0` 的真实 Windows schema 与 stdio 握手探针。多文件 Headless 合并执行曾出现 Vitest 进程不退出，因此最终证据采用各文件/定向隔离执行；单独的 Headless questions 全组正常退出。
+另完成 Codex CLI `0.154.0` 的真实 Windows schema 与 stdio 握手探针。当前干净 SHA `c58cbf5bd3a886f277e36957a1f3a8896101b1e9` 的 Windows 持久路径 smoke 为 `status=measured`，Memory 100/1k 均可达；1k query/list/read p95 分别为 147.701/130.442/115.368 ms，后台 1k 全量扫描 p95 为 311.655 ms。该 receipt 仍固定为 `measurement-only-no-approved-slo`，未签入机器相关产物。多文件 Headless 合并执行曾出现 Vitest 进程不退出，因此最终证据采用各文件/定向隔离执行；单独的 Headless questions 全组正常退出。
 
 ## 8. 不能由本轮本地工作树替代的任务
 

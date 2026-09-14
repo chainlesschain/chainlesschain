@@ -398,6 +398,8 @@ IDE 本身也已有真宿主门，不应重建。[VS Code App Server pilot](../p
 
 **后续实施进展（2026-09-14，后台只读索引）。** [第十三批实施记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 为分页路径增加 `.background-agent-list-index-v1` 内容无关索引，只保存 `id`、`startedAt` 和 `status`，并以状态文件名称、大小、纳秒级 mtime/ctime、device 与 inode 绑定 inventory digest。首次读取或缓存损坏时从权威 JSON 重建；替换、增删、写入竞态或索引异常均失败关闭到原有全量权威扫描。命中时只读取组成 `limit + 1` 结果所需的权威状态，未改变非分页列表合同。该优化已经减少重复分页的 JSON 解析，但仍需精确 SHA 三平台 formal 曲线决定 SLO；持久 Memory 的全文件读取、索引和归档仍是独立待办。
 
+**本机干净 smoke（2026-09-14）。** 在 Windows `10.0.19045`、Node `v22.22.2` 对干净 SHA `c58cbf5bd3a886f277e36957a1f3a8896101b1e9` 运行默认 `persistent-capacity` smoke：Memory 100/1k 均 `reachable:true`，1k query/list/read p95 为 147.701/130.442/115.368 ms；后台 100/1k 完整枚举均成功，1k full-scan p95 为 311.655 ms。该 harness 仍对非分页 `listBackgroundAgents` 测量，故 `indexApplied:false / paginationApplied:false`；它只用于建立改造前全扫基线。receipt 固定 `performanceGate:false / productionQualified:false`，单一 Windows smoke 不能替代精确 SHA 的 Linux/Windows/macOS formal 曲线或批准后的 SLO。
+
 [账本 soak](../packages/cli/scripts/evolution-ledger-reliability-soak.mjs#L274) 明确 `testAuthority:true`、`qualifiesForProduction:false`；既有 10k 测试成果应保留，旧路线中的 250,000-event 目标、磁盘写满、断电和跨故障域 witness 应分别验证。项目也已提供 [appendBatch](../packages/cli/src/lib/evolution/evolution-ledger.js#L4476)，不再把“首次增加 batch API”列为待办。
 
 ### 7.2 G11：降低跨设备使用与 IDE 获取成本
