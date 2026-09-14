@@ -371,6 +371,7 @@ describe("automatic semantic-compaction usage boundaries", () => {
         agentLoop(largeHistory(), {
           ...loopOptions(mainChat),
           provider: "openai",
+          contextMemoryModelWindowTokens: 32768,
           workflowEffectId,
           autoCompact: true,
           autoMicroCompact: false,
@@ -486,6 +487,7 @@ describe("automatic semantic-compaction usage boundaries", () => {
         agentLoop(largeHistory(), {
           ...loopOptions(mainChat),
           provider: "openai",
+          contextMemoryModelWindowTokens: 32768,
           workflowEffectId: `sha256:${"8".repeat(64)}`,
           autoCompact: true,
           autoMicroCompact: false,

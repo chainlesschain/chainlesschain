@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.49: report the active model context accurately
+### Fixed - cc CLI 0.166.50: report the active model context accurately
 
 - Resolve the context window from the exact provider, endpoint, and explicit
   override used for a request, so the planner, auto-compactor, session report,
@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the primary context indicator.
 - Label transcript-derived context figures as estimates and retain cache-read
   and cache-write usage in the completed chat status.
+- Keep semantic-compaction boundary fixtures explicit about their bounded
+  synthetic request window, so they continue to verify compaction settlement
+  rather than inheriting a provider default.
 
 ### Added - cc CLI 0.166.48: make evaluation, recovery, and governed recall durable
 
