@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.49: report the active model context accurately
+
+- Resolve the context window from the exact provider, endpoint, and explicit
+  override used for a request, so the planner, auto-compactor, session report,
+  REPL, and IDE panel share one capacity value.
+- Keep large-window conversations under a token budget rather than compacting
+  solely after 50 short messages; retain the count guard for smaller windows.
+- Carry the main model request's context window and cache counters through the
+  stream and session ledger, excluding sub-agent and compaction requests from
+  the primary context indicator.
+- Label transcript-derived context figures as estimates and retain cache-read
+  and cache-write usage in the completed chat status.
+
 ### Added - cc CLI 0.166.48: make evaluation, recovery, and governed recall durable
 
 - Add repeated balanced sampling, confidence intervals, and reviewer-owned

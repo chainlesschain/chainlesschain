@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.99] - Accurate chat context usage (2026-09-14)
+
+- Pair with `chainlesschain@0.166.49`, which reports the actual request context
+  window for custom endpoints and configured overrides.
+- Show the primary model request's context use in the chat panel, excluding
+  sub-agent and semantic-compaction calls; transcript estimates remain labeled.
+- Retain cache-read and cache-write totals after a chat turn completes.
+
 ## [0.37.98] - Pair with CLI 0.166.48 (2026-09-14)
 
 - Recommend the publicly verified `chainlesschain@0.166.48` OIDC release.
