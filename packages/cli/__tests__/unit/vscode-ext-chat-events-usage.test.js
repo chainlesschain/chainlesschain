@@ -83,6 +83,12 @@ describe("chat webview — live usage tally wiring", () => {
   });
 
   it("resets the tally at send time and at turn_end (no cross-turn bleed)", () => {
+    const finalStatus = html.slice(
+      html.indexOf("updateStatus(m.usage"),
+      html.indexOf('case "usage"'),
+    );
+    expect(finalStatus).toContain("m.usage.cache_read_input_tokens");
+    expect(finalStatus).toContain("m.usage.cache_creation_input_tokens");
     const resets = html.match(/turnTokens = null/g) || [];
     // declaration-adjacent reset in send() + turn_end reset
     expect(resets.length).toBeGreaterThanOrEqual(2);

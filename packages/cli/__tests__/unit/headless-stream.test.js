@@ -743,6 +743,7 @@ describe("runAgentHeadlessStream", () => {
       const known = {
         type: "token-usage",
         callId: "stream-child-known-1",
+        contextWindow: 128000,
         provider: "openai",
         model: "gpt-4o-mini",
         source: "subagent",
@@ -804,6 +805,12 @@ describe("runAgentHeadlessStream", () => {
     expect(
       parseEmitted(deps._lines).filter((event) => event.type === "token_usage"),
     ).toHaveLength(1);
+    expect(
+      parseEmitted(deps._lines).find((event) => event.type === "token_usage"),
+    ).toMatchObject({
+      contextWindow: 128000,
+      attribution: { origin: "subagent", subagentId: "sub-stream-1" },
+    });
   });
 
   it("threads autoCheckpoint into the loop options, keyed by sessionId", async () => {

@@ -1140,6 +1140,10 @@ async function runTurn(
           provider: event.provider,
           model: event.model,
           usage: event.usage,
+          ...(event.contextWindow
+            ? { contextWindow: event.contextWindow }
+            : {}),
+          ...(event.attribution ? { attribution: event.attribution } : {}),
           ...(event.source ? { source: event.source } : {}),
         });
         if (costBudget) {
@@ -4252,7 +4256,11 @@ async function runAgentHeadlessStreamInWorkspace(
           event,
           "headless semantic compaction usage settlement",
         );
-        emit({ type: "token_usage", ...usageEvent });
+        emit({
+          type: "token_usage",
+          ...usageEvent,
+          source: "semantic-compaction",
+        });
         if (costBudget) {
           costBudget.add(usageEvent);
           costExceeded = costBudget.exceeded();

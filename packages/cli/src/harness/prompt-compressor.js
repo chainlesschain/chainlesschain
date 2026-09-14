@@ -315,7 +315,11 @@ export class PromptCompressor {
       !options.maxMessages &&
       !options.maxTokens
     ) {
-      const ctxWindow = getContextWindow(options.model, options.provider);
+      const ctxWindow = getContextWindow(
+        options.model,
+        options.provider,
+        options,
+      );
       const adaptive = adaptiveThresholds(ctxWindow);
       this.maxMessages = adaptive.maxMessages;
       this.maxTokens = adaptive.maxTokens;
@@ -337,8 +341,8 @@ export class PromptCompressor {
     );
   }
 
-  adaptToModel(model, provider) {
-    const ctxWindow = getContextWindow(model, provider);
+  adaptToModel(model, provider, options = {}) {
+    const ctxWindow = getContextWindow(model, provider, options);
     const adaptive = adaptiveThresholds(ctxWindow);
     this.maxMessages = adaptive.maxMessages;
     this.maxTokens = adaptive.maxTokens;
@@ -483,8 +487,12 @@ export class PromptCompressor {
   }
 
   shouldAutoCompact(messages) {
+    // Large adaptive windows use token pressure, not an arbitrary 50-message
+    // trigger. Small local models and explicit fixed limits retain their
+    // count-based policy; maxMessages remains a compaction target in all modes.
     return (
-      messages.length > this.maxMessages ||
+      ((!this._adaptive || this._contextWindow < 128000) &&
+        messages.length > this.maxMessages) ||
       estimateMessagesTokens(messages) > this.maxTokens
     );
   }

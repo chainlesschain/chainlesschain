@@ -1428,7 +1428,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           );
         }
         updateStatus(m.usage
-          ? "ready · " + tokfmt(m.usage.input_tokens||0) + "→" + tokfmt(m.usage.output_tokens||0) + " tokens"
+          ? "ready · " + tokfmt(m.usage.input_tokens||0) + "→" + tokfmt(m.usage.output_tokens||0) + " tokens" +
+            " (cache read " + tokfmt(m.usage.cache_read_input_tokens||0) +
+            ", cache write " + tokfmt(m.usage.cache_creation_input_tokens||0) + ")"
           : "ready");
         turnTokens = null;
         break;
@@ -1457,6 +1459,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           "⊟ context " + kfmt(m.total) + " / " + kfmt(m.window) +
           " (" + m.pct + "%)" + (m.overflow ? " — over, compaction needed" : "");
         ctxbar.className = m.overflow ? "warn" : "";
+        if (m.source === "estimate") ctxbar.textContent += " · estimated";
+        ctxbar.title = m.source === "estimate"
+          ? "Estimated from stored messages; tool schemas may be excluded."
+          : "Last model request: uncached input + cache read + cache write + output. Not cumulative spend.";
         break;
       }
       case "error":

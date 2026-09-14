@@ -5579,6 +5579,7 @@ async function startAgentReplInWorkspaceOwned(
   let _customStatus = false; // true when a settings.json command is configured
   let _curModel = model; // tracks the per-turn active model for the readout
   let _ctxUsedTokens = 0;
+  let _ctxRequestWindow = null;
   let _turnCount = 0;
   const _costStore = newCostStore(); // running token spend for `/cost`
   let _renderStatus = null;
@@ -5598,7 +5599,8 @@ async function startAgentReplInWorkspaceOwned(
           provider,
           cwd: process.cwd(),
           usedTokens: _ctxUsedTokens,
-          contextWindow: getContextWindow(_curModel, provider),
+          contextWindow:
+            _ctxRequestWindow ?? getContextWindow(_curModel, provider, options),
           turn: _turnCount,
         });
         // Custom command wins; otherwise the built-in context-usage render.
@@ -7190,7 +7192,9 @@ async function startAgentReplInWorkspaceOwned(
           messages,
           estimateTokens,
         );
-        const window = getContextWindow(model, provider) || 0;
+        const window =
+          _ctxRequestWindow ??
+          (getContextWindow(model, provider, options) || 0);
         logger.log(chalk.bold("\nContext usage (live session):"));
         const rows = [
           ["system", buckets.system, counts.system],
@@ -9756,8 +9760,19 @@ async function startAgentReplInWorkspaceOwned(
       _curModel = activeModel;
       _turnCount += 1;
       if (usageEvents?.length) {
-        const last = usageEvents[usageEvents.length - 1]?.usage || {};
-        const used = (last.input_tokens || 0) + (last.output_tokens || 0);
+        const lastCall = [...usageEvents]
+          .reverse()
+          .find(
+            (event) =>
+              !event.attribution && (!event.source || event.source === "model"),
+          );
+        _ctxRequestWindow = lastCall?.contextWindow ?? null;
+        const last = lastCall?.usage || {};
+        const used =
+          (last.input_tokens || 0) +
+          (last.output_tokens || 0) +
+          (last.cache_read_input_tokens || 0) +
+          (last.cache_creation_input_tokens || 0);
         if (used > 0) _ctxUsedTokens = used;
       }
 

@@ -134,6 +134,63 @@ function makeProvider({ runCliText, config = {} } = {}) {
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
+describe("request context accounting", () => {
+  it("uses first-call usage even when the initial probe estimates differently", async () => {
+    const { provider, posted } = makeProvider({
+      runCliText: async () =>
+        JSON.stringify({ contextWindow: 32768, totalTokens: 15000 }),
+    });
+    provider._handleMessage({ type: "ready" });
+    const onEvent = provider._makeOnEvent(provider._convs.activeId());
+    onEvent({ type: "system", subtype: "init", session_id: "s" });
+    onEvent({
+      type: "token_usage",
+      usage: {
+        input_tokens: 714,
+        output_tokens: 268,
+        cache_read_input_tokens: 10000,
+      },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(posted.filter((p) => p.kind === "ctxStatus").at(-1)).toMatchObject({
+      total: 10982,
+      source: "provider",
+    });
+  });
+
+  it("uses the request window and ignores child and compaction usage", async () => {
+    const runCliText = vi.fn();
+    const { provider, posted } = makeProvider({ runCliText });
+    provider._handleMessage({ type: "ready" });
+    const onEvent = provider._makeOnEvent(provider._convs.activeId());
+    onEvent({ type: "system", subtype: "init", session_id: "s" });
+    onEvent({
+      type: "token_usage",
+      contextWindow: 1000000,
+      usage: { input_tokens: 100, output_tokens: 5 },
+    });
+    onEvent({
+      type: "token_usage",
+      attribution: { agentId: "child" },
+      usage: { input_tokens: 9000 },
+    });
+    onEvent({
+      type: "token_usage",
+      source: "semantic-compaction",
+      usage: { input_tokens: 2000 },
+    });
+    onEvent({ type: "result", is_error: false });
+    await tick();
+    expect(runCliText).not.toHaveBeenCalled();
+    expect(posted.filter((p) => p.kind === "ctxStatus").at(-1)).toMatchObject({
+      total: 105,
+      window: 1000000,
+      source: "provider",
+    });
+  });
+});
+
 describe("ChatViewProvider — context indicator refresh", () => {
   it("posts ctxStatus after a result, querying cc context --json for the session", async () => {
     const runCliText = vi.fn(async () =>

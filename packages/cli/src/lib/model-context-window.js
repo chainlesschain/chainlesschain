@@ -2,6 +2,7 @@ import { resolveModelCapabilityProfile } from "./model-capabilities.js";
 
 export { CONTEXT_WINDOWS } from "./model-context-catalog.js";
 
-export function getContextWindow(model, provider) {
-  return resolveModelCapabilityProfile({ model, provider }).contextWindowTokens;
+export function getContextWindow(model, provider, options = {}) {
+  return resolveModelCapabilityProfile({ ...options, model, provider })
+    .contextWindowTokens;
 }

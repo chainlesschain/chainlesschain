@@ -162,6 +162,11 @@ export function projectRuntimeTokenUsage(event = {}) {
     ...(projectedOperationId ? { operationId: projectedOperationId } : {}),
     ...(event.source ? { source: source(event.source) } : {}),
     ...(attribution ? { attribution } : {}),
+    ...(Number.isSafeInteger(event.contextWindow) &&
+    event.contextWindow >= 1024 &&
+    event.contextWindow <= 16777216
+      ? { contextWindow: event.contextWindow }
+      : {}),
   };
 }
 

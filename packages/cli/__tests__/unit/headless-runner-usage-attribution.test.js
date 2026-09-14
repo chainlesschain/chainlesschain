@@ -90,6 +90,7 @@ function fakeLoop() {
       type: "token-usage",
       provider: "anthropic",
       model: "claude-opus-4-8",
+      contextWindow: 1000000,
       usage: { input_tokens: 100, output_tokens: 20 },
     };
     yield { type: "response-complete", content: "done" };
@@ -177,6 +178,7 @@ describe("headless runner usage attribution", () => {
     expect(writes.tokenUsage[1].u).toEqual({
       provider: "anthropic",
       model: "claude-opus-4-8",
+      contextWindow: 1000000,
       usage: {
         input_tokens: 100,
         output_tokens: 20,
@@ -227,6 +229,8 @@ describe("headless runner usage attribution", () => {
       .map((l) => JSON.parse(l));
     const usageLines = lines.filter((l) => l.type === "token_usage");
     expect(usageLines).toHaveLength(2);
+    expect(usageLines[0].attribution).toEqual(ATTR);
+    expect(usageLines[1].contextWindow).toBe(1000000);
     // both events carry the standard {type, usage} shape
     expect(usageLines[0].usage).toEqual({
       input_tokens: 40,

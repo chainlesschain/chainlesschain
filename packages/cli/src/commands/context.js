@@ -101,22 +101,42 @@ export function registerContextCommand(program) {
       let recordedModel = "";
       let recordedProvider = "";
       let recordedContextSources = null;
+      let recordedWindow = null;
       try {
         const sessionEvents = readEvents(sessionId) || [];
-        const start = sessionEvents.find(
-          (e) => e.type === "session_start",
-        );
+        const start = sessionEvents.find((e) => e.type === "session_start");
         recordedModel = start?.data?.model || "";
         recordedProvider = start?.data?.provider || "";
-        recordedContextSources = [...sessionEvents]
+        const lastUsage = [...sessionEvents]
           .reverse()
-          .find((e) => e.type === "context_sources")?.data || null;
+          .find(
+            (event) =>
+              event.type === "token_usage" &&
+              !event.data?.attribution &&
+              (!event.data?.source || event.data.source === "model"),
+          );
+        if (lastUsage) {
+          recordedModel = lastUsage.data.model || recordedModel;
+          recordedProvider = lastUsage.data.provider || recordedProvider;
+          if (
+            Number.isSafeInteger(lastUsage.data.contextWindow) &&
+            lastUsage.data.contextWindow >= 1024 &&
+            lastUsage.data.contextWindow <= 16777216 &&
+            (!options.model || options.model === recordedModel) &&
+            (!options.provider || options.provider === recordedProvider)
+          ) {
+            recordedWindow = lastUsage.data.contextWindow;
+          }
+        }
+        recordedContextSources =
+          [...sessionEvents].reverse().find((e) => e.type === "context_sources")
+            ?.data || null;
       } catch {
         // header optional — fall through to flags/defaults
       }
       const model = options.model || recordedModel || null;
       const provider = options.provider || recordedProvider || "ollama";
-      const window = getContextWindow(model, provider);
+      const window = recordedWindow ?? getContextWindow(model, provider);
 
       let canonicalReport = null;
       try {
@@ -196,8 +216,7 @@ export function registerContextCommand(program) {
             breakdownSkillCache,
             buildContextOptimizations,
             rankContextSources,
-          } =
-            await import("../lib/context-breakdown.js");
+          } = await import("../lib/context-breakdown.js");
           const cwd = process.cwd();
           let instructionExcludes;
           try {
@@ -451,15 +470,16 @@ export function registerContextCommand(program) {
           }
           if (activeBodies.length > 8) {
             logger.log(
-              chalk.gray(`    ... ${activeBodies.length - 8} more active bodies`),
+              chalk.gray(
+                `    ... ${activeBodies.length - 8} more active bodies`,
+              ),
             );
           }
           const usedDescriptors = [...skillDescriptors.entries]
             .filter((entry) => entry.contextLoads > 0)
             .sort(
               (a, b) =>
-                b.contextTokens - a.contextTokens ||
-                a.id.localeCompare(b.id),
+                b.contextTokens - a.contextTokens || a.id.localeCompare(b.id),
             );
           for (const entry of usedDescriptors.slice(0, 8)) {
             logger.log(

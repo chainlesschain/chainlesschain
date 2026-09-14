@@ -13497,6 +13497,8 @@ async function _getAutoCompactor(options) {
       compressor = new PromptCompressor({
         model: options.model,
         provider: options.provider,
+        baseUrl: options.baseUrl,
+        contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
         llmQuery,
         summaryInputMaxChars: options.compactionInputMaxChars,
       });
@@ -15154,6 +15156,16 @@ export async function* agentLoop(messages, options) {
           }
         : {}),
     };
+    // Resolve before dispatch, including compatibility/skip-planning runs.
+    // The panel and persisted transcript use this same request configuration.
+    const requestContextWindow =
+      canonicalProviderContext?.modelCapabilities?.contextWindowTokens ??
+      resolveModelCapabilityProfile({
+        provider: options.provider || "ollama",
+        model: options.model,
+        baseUrl: options.baseUrl,
+        contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
+      }).contextWindowTokens;
     // The consumer receives this boundary before `.next()` resumes into the
     // provider call, so a durable append failure can prevent spend.
     yield modelUsageCall;
@@ -15281,6 +15293,7 @@ export async function* agentLoop(messages, options) {
         provider: modelUsageCall.provider,
         model: modelUsageCall.model,
         usage: result.usage,
+        contextWindow: requestContextWindow,
       };
     } else {
       yield {

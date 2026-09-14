@@ -706,10 +706,15 @@ class ChatViewProvider {
       // events, so by refresh time this is the turn's final call.
       if (
         evt?.type === "token_usage" &&
+        !evt.attribution &&
+        (!evt.source || evt.source === "model") &&
         evt.usage &&
         typeof evt.usage === "object"
       ) {
-        this._lastCallUsage.set(convId, evt.usage);
+        this._lastCallUsage.set(convId, {
+          ...evt.usage,
+          contextWindow: evt.contextWindow,
+        });
       }
       if (
         evt?.type === "result" &&
@@ -2569,13 +2574,29 @@ class ChatViewProvider {
     const provider = this._safeLlmSetting("provider", chatCfg.get("provider"));
     const cacheKey = `${provider}::${model}`;
     const usage = this._lastCallUsage.get(convId);
+    const requestStatus = introspect.contextStatusFromUsage(
+      usage,
+      usage?.contextWindow,
+    );
+    if (requestStatus) {
+      this._postFrom(
+        convId,
+        { kind: "ctxStatus", ...requestStatus, source: "provider" },
+        asyncToken,
+      );
+      return;
+    }
     if (usage && this._ctxWindowCache?.key === cacheKey) {
       const status = introspect.contextStatusFromUsage(
         usage,
         this._ctxWindowCache.window,
       );
       if (status) {
-        this._postFrom(convId, { kind: "ctxStatus", ...status }, asyncToken);
+        this._postFrom(
+          convId,
+          { kind: "ctxStatus", ...status, source: "provider" },
+          asyncToken,
+        );
         return;
       }
     }
@@ -2610,7 +2631,19 @@ class ChatViewProvider {
         if (this._convs.get(convId)?._asyncToken !== asyncToken) return;
         // Remember the window so later turns derive the status locally.
         this._ctxWindowCache = { key: cacheKey, window: status.window };
-        this._postFrom(convId, { kind: "ctxStatus", ...status }, asyncToken);
+        const live = introspect.contextStatusFromUsage(
+          this._lastCallUsage.get(convId),
+          status.window,
+        );
+        this._postFrom(
+          convId,
+          {
+            kind: "ctxStatus",
+            ...(live || status),
+            source: live ? "provider" : "estimate",
+          },
+          asyncToken,
+        );
       },
       () => {},
     );

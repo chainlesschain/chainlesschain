@@ -7,6 +7,18 @@ import {
 } from "../../src/lib/runtime-usage-ledger.js";
 
 describe("runtime usage ledger projection", () => {
+  it("persists only a bounded numeric request window", () => {
+    const event = { usage: { input_tokens: 1, output_tokens: 2 } };
+    expect(
+      projectRuntimeTokenUsage({ ...event, contextWindow: 1000000 })
+        .contextWindow,
+    ).toBe(1000000);
+    for (const contextWindow of [0, -1, Infinity, "1000000", 16777217]) {
+      expect(
+        projectRuntimeTokenUsage({ ...event, contextWindow }),
+      ).not.toHaveProperty("contextWindow");
+    }
+  });
   it("persists only canonical bounded usage fields", () => {
     expect(
       projectRuntimeTokenUsage({

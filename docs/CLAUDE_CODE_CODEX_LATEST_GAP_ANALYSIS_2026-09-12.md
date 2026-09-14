@@ -10,6 +10,7 @@
 > Codex CLI 官方最新稳定发布记录：`0.154.0`，2026-09-09；配套 Python SDK `0.154.0` 的记录日期为 2026-09-10<br>
 > 参考格式：[自进化差距分析](./AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md)，沿用“结论 → 外部能力 → 项目底座 → 优先级 → 路线图 → 验收与限制”结构<br>
 > 证据口径：官方文档在线复核 + 当前源码审计 + 有限本地验证；源码版本不等同于已公开发布版本，工作流定义不等同于本次提交的 CI 通过证明。
+> 发布状态更新：截至 2026-09-14，CLI `0.166.48`、Agent SDK `0.2.10` 及其 npm 子包已完成公开发布，VS Code / Open VSX 插件 `0.37.98` 已完成精确标签发布与公开回读；详见 1.2.4。
 
 ## 1. 结论先行
 
@@ -88,19 +89,19 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 
 | ID  | 实现状态                            | 已完成内容                                                                                                             | 待完成/验收边界                                                                | 实施记录                                                                                                                                                                                                                                                                   |
 | --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G01 | 阶段完成，待目标环境验证            | 已区分部署准入、命令级准入和实际任务就绪；setup、doctor、CLI 与 IDE 已接线                                             | 真实身份、公开安装产物及指定 OS/IDE 到真实模型任务的完整旅程                   | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
-| G02 | 核心实现完成，待正式实测            | 已实现严格比较门，并分离执行成功、产物检查与证据完整性                                                                 | 真实 provider 对照、Windows 同等并行负载稳定性及精确 release commit 的 CI 矩阵 | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
+| G01 | 阶段完成，待目标环境验证            | 已区分部署准入、命令级准入和实际任务就绪；setup、doctor、CLI 与 IDE 已接线；CLI `0.166.48` 与 VS Code `0.37.98` 已形成公开安装产物 | 真实身份及指定 OS/IDE 到真实模型任务的完整旅程                                 | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
+| G02 | 核心实现及发布矩阵完成，待正式实测  | 已实现严格比较门，并分离执行成功、产物检查与证据完整性；`43c6bba51a` 的 `CLI CI` 与 `CLI Strict Sandbox` 三平台矩阵均通过 | 真实 provider 对照及 Windows 同等并行负载稳定性                                | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
 | G03 | 三阶段完成，待生产验收              | 已交付版本化模型能力 Profile、OpenAI Responses 主链，以及独立 `reasoning_tokens` 归账                                  | 真实账号/模型认证、预算误差和精确 SHA 三平台旅程                               | [Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)                                                                                      |
 | G04 | `0.154.0` 矩阵已接入，待正式旅程    | 已关闭终态/fallback 反例，将 `0.154.0` 加入 fail-closed 适配器与三平台 CI 定义，并完成 Windows 真实协议探针            | 干净精确 SHA 三平台 App Server 旅程及是否接入产品的独立决策                    | [G04 安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                       |
-| G05 | 统计/留出集完成，待真实效果验收     | 已交付双臂报告、1–20 次重复采样、平衡顺序、95% 区间及 payload 外 reviewer holdout                                      | 固定付费模型对照、独立模型 grader 与发布提交验证                               | [G05 插件 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                            |
+| G05 | 统计/留出集及发布验证完成，待真实效果验收 | 已交付双臂报告、1–20 次重复采样、平衡顺序、95% 区间及 payload 外 reviewer holdout；对应 CLI 精确提交已通过发布门并公开发布 | 固定付费模型对照及独立模型 grader                                               | [G05 插件 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                            |
 | G06 | 混合召回接口完成，待真实效果验收    | 已保留中文词法基线，并增加 revision/digest 绑定、治理先行的宿主语义候选、模型请求候选源接线与 hybrid rerank            | 内置 embedding/index 来源、真实语料、跨语言/冲突记忆效果、容量及三平台验收     | [G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                                     |
 | G07 | 能力合同完成，能力补齐中            | 已交付沙箱能力报告、配置前失败关闭及运行后 `applied` 证据                                                              | 不可绕过的域名级 egress，以及 macOS/Windows/特殊 stdio 组合的实机矩阵          | [G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                          |
 | G08 | standalone 恢复合同完成，待真实旅程 | 已为 Headless 持久化 deferred 生命周期，提供私有恢复投影、重连重放、严格 binding、一次性消费确认与真实 Node 子进程恢复 | 真实 CLI/IDE/App Server 客户端恢复及精确 SHA 三平台多宿主旅程                  | [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                    |
 | G09 | 验收工具完成，真实旅程待执行        | 已交付 fail-closed 生产旅程验证器、受保护手动 attestation workflow 与回执合同                                          | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察及 rollback 演练 | [G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                            |
 | G10 | 分页/只读索引完成，容量验收待执行   | 已交付容量 harness、稳定游标分页，以及内容无关、文件身份绑定的后台 Agent 只读索引与权威全扫回退                        | 精确 SHA 三平台 formal 曲线、性能 SLO、持久 Memory 索引及归档策略              | [G10 容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) |
-| G11 | 安装就绪诊断完成，真实旅程待执行    | 已扩展 Remote Doctor，输出扩展/宿主/渠道的版本化安装就绪证据，并 fail-visible 展示未知状态                             | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销及成功率/耗时测量        | [G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                      |
+| G11 | 安装就绪诊断与主渠道回读完成，真实旅程待执行 | 已扩展 Remote Doctor；Open VSX `0.37.98` 与 JetBrains Marketplace `0.4.123` 已完成发布回读，并 fail-visible 展示未知状态 | Microsoft VS Code Marketplace 可选回填、双设备连接/断网重连/撤销及成功率/耗时测量 | [G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                      |
 
-汇总：11 项均已有阶段性工程交付；本轮进一步关闭 G04/G05/G06/G08/G10 的本地工程缺口。所有项仍保留目标环境、真实模型、正式产物或规模验收边界，因此当前不将任何一项标记为生产完全完成。
+汇总：11 项均已有阶段性工程交付；本轮进一步关闭 G04/G05/G06/G08/G10 的本地工程缺口，并由 CLI `0.166.48`、Open VSX `0.37.98` 的精确提交发布证据关闭 G01/G02/G05/G11 的部分发布验收边界。各项仍保留真实身份/模型、目标环境完整旅程或规模验收边界，因此当前不将任何一项标记为生产完全完成。
 
 ### 1.2.3 未完成任务继续推进（2026-09-14）
 
@@ -109,6 +110,19 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 该批没有使用付费模型、生产身份/KMS、远端候选 SHA、商店或双真机；因此只更新工程状态，不关闭相应外部验收门。上方 1.2.1 是较早的干净基线复核快照，其中“无新增”与旧状态应按审计时点阅读。
 
 旧报告中“尚未统一演化/Memory 内核”“没有自动压缩”“没有 IDE E2E”等历史判断，不能直接作为本次待办。本文只对当前基线仍有依据的差距提出建议。
+
+### 1.2.4 CLI `0.166.48` 与 VS Code `0.37.98` 发布更新（2026-09-14）
+
+本轮发布已全部成功，且顺序满足“npm 子包先于 CLI、CLI 成功后再发布 IDE 插件”的约束：
+
+| 发布任务 | 状态 | 已完成证据 |
+| --- | --- | --- |
+| CLI 精确提交门禁 | 已完成 | `v-npm-0-166-48` 指向 `43c6bba51a643c1a0d6e5a05da5cb97177fe1f86`；该提交的 `CLI CI`（`34836323064`）和 `CLI Strict Sandbox`（`34836322816`）均在 Linux、Windows、macOS 配置矩阵通过。 |
+| npm 子包发布 | 已完成 | npm OIDC 工作流先核验全部 13 个子包；新增发布 `@chainlesschain/agent-protocol@0.1.10`、`@chainlesschain/context-memory-kernel@0.1.3`、`@chainlesschain/agent-sdk@0.2.10`，其余十个未变版本确认已公开后跳过重复发布。 |
+| CLI npm 发布 | 已完成 | npm 工作流 `34842104210` 成功；`chainlesschain@0.166.48` 已公开并成为 `latest`。首次 Agent SDK 回读遇到 npm 索引传播延迟，按同一不可变标签仅重跑失败任务后通过，未重复发布或改变候选提交。 |
+| VS Code / Open VSX 发布 | 已完成 | `ide-vscode-v0.37.98` 指向 `7168d2f02b94baddfbb10f1a5deb3c525ddfa49d`，推荐 CLI `0.166.48` 并包含 Agent SDK `0.2.10` 投影及本轮 G05/G06/G08/G10 更新说明；工作流 `34851317943` 的不可变候选、三系统浏览器证据、Windows/macOS/Linux 宿主门禁、Remote-SSH 真容器、上传和公开回读全部成功，Open VSX `0.37.98` 已标记为 `latest`。 |
+
+该发布证明公开安装产物、精确发布提交矩阵和 Open VSX/JetBrains 主渠道回读已完成；它不替代固定付费模型对照、生产身份/KMS、真实双设备恢复、App Server 产品接线或规模 SLO 验收。Microsoft VS Code Marketplace 属于显式凭据驱动的可选回填渠道，本次标签主发布未将其作为 Open VSX 成功的前置条件。
 
 ## 2. 外部方案实际提供了什么
 
@@ -119,7 +133,7 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 | Claude Code      | `2.1.269`，2026-09-11   | 以官方更新日志和功能文档为准；账号、provider、组织配置仍可能影响可用性 |
 | Codex CLI        | `0.154.0`，2026-09-09   | CLI、IDE、桌面和云端能力分别判断；实验功能不视为生产承诺               |
 | Codex Python SDK | `0.154.0`，2026-09-10   | SDK 记录日期与 CLI 日期不同，不用 SDK 更新日期代替 CLI 发布日期        |
-| ChainlessChain   | 本文头部 SHA 与源码版本 | 本次没有核验 npm、Open VSX、JetBrains Marketplace 的最新线上版本       |
+| ChainlessChain   | 审计 SHA；发布更新见 1.2.4 | 已在线核验 npm CLI `0.166.48`、Agent SDK `0.2.10`、Open VSX `0.37.98` 与 JetBrains Marketplace `0.4.123`；Microsoft VS Code Marketplace 未纳入本次主发布结论 |
 
 版本来自实际打开的 [Claude Code 更新日志](https://code.claude.com/docs/en/changelog) 与 [ChatGPT / Codex 更新日志](https://learn.chatgpt.com/docs/changelog)。搜索摘要曾返回较旧版本，本报告以打开后的当前页面为准；未将预发布、构建输入归档或桌面更新混作稳定 CLI 版本。
 

@@ -3406,6 +3406,10 @@ async function runAgentHeadlessInWorkspace(
               provider: event.provider,
               model: event.model,
               usage: event.usage,
+              ...(event.contextWindow
+                ? { contextWindow: event.contextWindow }
+                : {}),
+              ...(event.attribution ? { attribution: event.attribution } : {}),
               ...(event.source ? { source: event.source } : {}),
             });
             if (costBudget) {

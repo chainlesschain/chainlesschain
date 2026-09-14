@@ -70,7 +70,10 @@ describe("agentLoop model usage boundaries", () => {
     }));
     const generator = agentLoop(
       [{ role: "user", content: "hello" }],
-      loopOptions(chatFn, { runId: "user-secret-run-id" }),
+      loopOptions(chatFn, {
+        runId: "user-secret-run-id",
+        contextMemoryModelWindowTokens: 1000000,
+      }),
     );
 
     const started = await nextEvent(generator, "model-usage-started");
@@ -90,6 +93,7 @@ describe("agentLoop model usage boundaries", () => {
       callId: started.callId,
       provider: "ollama",
       model: "unit-model",
+      contextWindow: 1000000,
       usage: { input_tokens: 3, output_tokens: 2 },
     });
     await drain(generator);
