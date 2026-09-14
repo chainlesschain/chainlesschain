@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  attachPluginEvalHoldout,
   loadPluginEvalDefinition,
   parsePluginEvalRuntimeMetrics,
   PLUGIN_EVAL_REPORT_SCHEMA,
+  PLUGIN_EVAL_HOLDOUT_SCHEMA,
   PLUGIN_EVAL_SUITE_SCHEMA,
   renderPluginEvalHtml,
   runPluginEval,
@@ -137,6 +139,77 @@ describe("plugin eval suite contract", () => {
     expect(loadPluginEvalDefinition(root).payload.digest).not.toBe(
       first.payload.digest,
     );
+  });
+
+  it("binds reviewer holdout tasks outside the plugin payload", async () => {
+    writePlugin({ minPassRateDelta: 1 });
+    const holdoutFile = path.join(
+      root,
+      "..",
+      `${path.basename(root)}-holdout.json`,
+    );
+    fs.writeFileSync(
+      holdoutFile,
+      JSON.stringify({
+        schema: PLUGIN_EVAL_HOLDOUT_SCHEMA,
+        plugin: { name: "eval-helper", version: "1.2.3" },
+        tasks: [
+          {
+            id: "reviewer-hidden-case",
+            prompt: "Create result.txt with candidate.",
+            expectation: "should_trigger",
+            assertions: [
+              { type: "file_equals", path: "result.txt", value: "candidate" },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+    try {
+      const original = loadPluginEvalDefinition(root);
+      const definition = attachPluginEvalHoldout(original, holdoutFile);
+      expect(definition.payload.digest).toBe(original.payload.digest);
+      expect(definition.tasks.map((task) => task.source)).toEqual([
+        "author",
+        "holdout",
+      ]);
+      expect(definition.holdout).toMatchObject({
+        schema: PLUGIN_EVAL_HOLDOUT_SCHEMA,
+        tasks: 1,
+        independentFromPayload: true,
+      });
+
+      const agent = fakeAgent();
+      const report = await runPluginEval(definition, {
+        controlRunAgent: agent,
+        candidateRunAgent: agent,
+      });
+      expect(report.status).toBe("PASS");
+      expect(report.holdout.digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+      expect(report.arms.candidate.results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "reviewer-hidden-case",
+            source: "holdout",
+            effectivePass: true,
+          }),
+        ]),
+      );
+    } finally {
+      fs.rmSync(holdoutFile, { force: true });
+    }
+  });
+
+  it("refuses to call a plugin-controlled suite an independent holdout", () => {
+    writePlugin();
+    const definition = loadPluginEvalDefinition(root);
+    expect(() =>
+      attachPluginEvalHoldout(
+        definition,
+        path.join(root, "evals", "suite.json"),
+      ),
+    ).toThrow(/outside the plugin payload root/u);
   });
 
   it("rejects a suite for another plugin version", () => {
@@ -271,6 +344,85 @@ describe("plugin eval suite contract", () => {
       outcome: "regression",
     });
     expect(report.reasons).toContain("candidate_tasks_failed");
+  });
+
+  it("repeats both arms in a deterministic balanced order and reports confidence", async () => {
+    writePlugin({ minPassRateDelta: 1 });
+    const definition = loadPluginEvalDefinition(root);
+    const calls = [];
+    const agent = async (input) => {
+      const candidate = fs.existsSync(
+        path.join(
+          input.cwd,
+          ".chainlesschain",
+          "plugins",
+          "eval-helper",
+          "1.2.3",
+          "plugin.json",
+        ),
+      );
+      calls.push(candidate ? "candidate" : "control");
+      if (candidate) {
+        fs.writeFileSync(
+          path.join(input.cwd, "result.txt"),
+          "candidate",
+          "utf8",
+        );
+      }
+      return {
+        ok: true,
+        output: resultStream({ triggered: candidate }),
+      };
+    };
+
+    const report = await runPluginEval(definition, {
+      controlRunAgent: agent,
+      candidateRunAgent: agent,
+      sampleRuns: 4,
+      armOrder: "balanced",
+    });
+
+    expect(report.status).toBe("PASS");
+    expect(report.selection).toMatchObject({
+      sampleRuns: 4,
+      armOrder: "balanced",
+    });
+    expect(report.sampling.sequence).toHaveLength(4);
+    expect(report.sampling.sequence[0]).not.toEqual(
+      report.sampling.sequence[1],
+    );
+    expect(calls).toEqual(report.sampling.sequence.flat());
+    expect(report.arms.control).toMatchObject({ total: 4, sampleRuns: 4 });
+    expect(report.arms.candidate).toMatchObject({ total: 4, sampleRuns: 4 });
+    expect(
+      report.arms.candidate.results.map((result) => result.sample),
+    ).toEqual([1, 2, 3, 4]);
+    expect(report.statistics.confidence95).toMatchObject({
+      method: "wilson-95-newcombe-difference",
+      control: { lower: 0 },
+      candidate: { upper: 1 },
+    });
+  });
+
+  it("rejects unbounded sampling and unknown arm orders before running an arm", async () => {
+    writePlugin();
+    const definition = loadPluginEvalDefinition(root);
+    const agent = vi.fn(fakeAgent());
+    await expect(
+      runPluginEval(definition, {
+        controlRunAgent: agent,
+        candidateRunAgent: agent,
+        sampleRuns: 21,
+      }),
+    ).rejects.toThrow(/between 1 and 20/u);
+    await expect(
+      runPluginEval(definition, {
+        controlRunAgent: agent,
+        candidateRunAgent: agent,
+        armOrder: "random",
+      }),
+    ).rejects.toThrow(/balanced/u);
+    expect(agent).not.toHaveBeenCalled();
   });
 
   it("requires evidence for should_trigger and accepts should_not_trigger", async () => {

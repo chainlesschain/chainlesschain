@@ -1,7 +1,7 @@
 # ChainlessChain 对照 Claude Code 与 Codex 最新版本的差距与优化建议
 
 > 审计日期：2026-09-12（Asia/Shanghai）<br>
-> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[第八批 G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[第九批 G03 OpenAI Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)、[第十批 G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)、[第十一批 G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)、[第十二批 G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
+> 后续实施：[第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)、[第二批 G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[第三批 G03 模型能力 Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[第四批 G04 App Server 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[第五批 G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[第六批 G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)、[第七批 G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[第八批 G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[第九批 G03 OpenAI Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)、[第十批 G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)、[第十一批 G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)、[第十二批 G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md)、[第十三批 G04/G05/G06/G08/G10 未完成项推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)。下文保留审计时点结论，不将后续代码修改追溯为当时已有能力。<br>
 > 二次复审：2026-09-12；增加完整入口追踪、失败事件探针和反证核对，修订 G01–G04、G06、G08–G11 的范围与优先级；本次仅更新文档，不修复生产代码。<br>
 > ChainlessChain 仓库基线：`0f55ec9050c26f90c96a42bc736a124ed78d259c`<br>
 > 复审工作树截点：2026-09-12 16:45（Asia/Shanghai），HEAD 已前进至 `f2d7376265e7f96fa95af595625b0b13c105732a`（Android 模型出站修复）；另有他人未提交的 setup/doctor/readiness 修改，单列于 G01，未纳入已完成结论。<br>
@@ -36,32 +36,34 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 
 ### 1.2 任务完成情况（更新至 2026-09-14）
 
-### 1.2.1 复核分析结果（2026-09-14）
+### 1.2.1 此前复核分析结果（2026-09-14，`e9c514a1be`）
 
 **核验基线**：git HEAD `e9c514a1be`（2026-09-13 23:36）；工作树干净；表格最后落库提交 `5ebe18f1bd`（2026-09-13 12:53，G10 后台游标分页随附）。
 
-| 检查维度 | 结果 | 依据 |
-| --- | --- | --- |
-| 新 GAP 实施记录 | 无新增 | 12:53 之后的提交均为 CLI 0.166.47 发布准备、wiki/keeper/git 加固、IDE 插件配对，无新的 GAP 任务提交 |
-| 表内记录匹配 | 11 行 ↔ 12 份记录，一一对应 | G03、G10 各两份实施记录，其余任务各一份 |
-| 未提交修改 | 无 | `git status --short` 为空 |
-| 状态/边界漂移 | 无 | 各任务状态仍与其实施记录正文一致 |
+> 本节保留当时的干净基线快照；当前工程状态以 1.2.3 和其上方汇总表为准。
+
+| 检查维度        | 结果                        | 依据                                                                                                |
+| --------------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| 新 GAP 实施记录 | 无新增                      | 12:53 之后的提交均为 CLI 0.166.47 发布准备、wiki/keeper/git 加固、IDE 插件配对，无新的 GAP 任务提交 |
+| 表内记录匹配    | 11 行 ↔ 12 份记录，一一对应 | G03、G10 各两份实施记录，其余任务各一份                                                             |
+| 未提交修改      | 无                          | `git status --short` 为空                                                                           |
+| 状态/边界漂移   | 无                          | 各任务状态仍与其实施记录正文一致                                                                    |
 
 **G01–G11 逐项复核**：
 
-| ID | 实现状态（维持） | 复核后新证据 | 待验收边界（保留） |
-| --- | --- | --- | --- |
-| G01 | 阶段完成，待目标环境验证 | 无 | 真实身份、公开安装产物、指定 OS/IDE 到真实模型任务完整旅程 |
-| G02 | 核心实现完成，待正式实测 | 无 | 真实 provider 对照、Windows 同等并行负载、精确 release commit CI 矩阵 |
-| G03 | 三阶段完成，待生产验收 | 无 | 真实账号/模型认证、预算误差、精确 SHA 三平台旅程 |
-| G04 | 安全反例已关闭，接线未完成 | 无 | `0.154.0` fail-closed 兼容矩阵、真实 App Server 旅程、接入产品的独立决策 |
-| G05 | 作者入口完成，待效果验收 | 无 | 固定真实模型付费对照、重复采样、独立 holdout/grader、发布提交验证 |
-| G06 | 词法阶段完成，待生产验收 | 无 | 语义检索、真实用户语料、跨语言/冲突记忆效果、容量及三平台目标环境验收 |
-| G07 | 能力合同完成，能力补齐中 | 无 | 不可绕过的域名级 egress、macOS/Windows/特殊 stdio 组合实机矩阵 |
-| G08 | 恢复能力完成，待多宿主验收 | 无 | standalone Headless 进程恢复、精确 SHA 三平台真实旅程 |
-| G09 | 验收工具完成，真实旅程待执行 | 无 | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察、rollback 演练 |
-| G10 | 分页完成，索引/容量验收待执行 | 无（状态更新已于 09-13 12:53 随 G10 分页提交落库） | 精确 SHA 三平台 formal 曲线、性能 SLO、只读索引与归档等实际优化 |
-| G11 | 安装就绪诊断完成，真实旅程待执行 | 无 | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销、成功率/耗时测量 |
+| ID  | 实现状态（维持）                 | 复核后新证据                                       | 待验收边界（保留）                                                            |
+| --- | -------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| G01 | 阶段完成，待目标环境验证         | 无                                                 | 真实身份、公开安装产物、指定 OS/IDE 到真实模型任务完整旅程                    |
+| G02 | 核心实现完成，待正式实测         | 无                                                 | 真实 provider 对照、Windows 同等并行负载、精确 release commit CI 矩阵         |
+| G03 | 三阶段完成，待生产验收           | 无                                                 | 真实账号/模型认证、预算误差、精确 SHA 三平台旅程                              |
+| G04 | 安全反例已关闭，接线未完成       | 无                                                 | `0.154.0` fail-closed 兼容矩阵、真实 App Server 旅程、接入产品的独立决策      |
+| G05 | 作者入口完成，待效果验收         | 无                                                 | 固定真实模型付费对照、重复采样、独立 holdout/grader、发布提交验证             |
+| G06 | 词法阶段完成，待生产验收         | 无                                                 | 语义检索、真实用户语料、跨语言/冲突记忆效果、容量及三平台目标环境验收         |
+| G07 | 能力合同完成，能力补齐中         | 无                                                 | 不可绕过的域名级 egress、macOS/Windows/特殊 stdio 组合实机矩阵                |
+| G08 | 恢复能力完成，待多宿主验收       | 无                                                 | standalone Headless 进程恢复、精确 SHA 三平台真实旅程                         |
+| G09 | 验收工具完成，真实旅程待执行     | 无                                                 | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察、rollback 演练 |
+| G10 | 分页完成，索引/容量验收待执行    | 无（状态更新已于 09-13 12:53 随 G10 分页提交落库） | 精确 SHA 三平台 formal 曲线、性能 SLO、只读索引与归档等实际优化               |
+| G11 | 安装就绪诊断完成，真实旅程待执行 | 无                                                 | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销、成功率/耗时测量       |
 
 **结论**：下表 11 行状态及保留边界均无需变更；此后的 CLI 0.166.47 发布准备、wiki/keeper/git 加固与 IDE 插件配对提交均不属于 G01–G11 差距任务。
 
@@ -70,12 +72,12 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 本次发布链路已完成。发布验证使用不可变标签和对应提交；G01–G11 的状态与
 待目标环境验收边界不因软件包发布而自动关闭。
 
-| 发布任务 | 状态 | 已完成证据 |
-| --- | --- | --- |
-| CLI `0.166.47` 测试与修复 | 已完成 | 修复 PDH Windows 游标隐私测试中“散列随机包含 `:42`”的偶发误报；最终提交 `3138626213` 的 `CLI CI`、`CLI Strict Sandbox` 三平台和 `CI Tests` 均成功。 |
-| npm 发布 | 已完成 | `v-npm-0-166-47` 指向 `3138626213`；发布前 dry-run 与正式发布工作流均成功；`chainlesschain@0.166.47` 已在 npm 公开并作为 `latest`。 |
-| JetBrains 插件 | 已完成 | `0.4.123` 将推荐 CLI 更新为 `0.166.47`，并记录治理 Evolution/wiki、Responses、插件评测/延迟问题、后台会话分页及后台 Agent 可靠性更新；`ide-jetbrains-v0.4.123` 发布和 Marketplace 回读成功。 |
-| VS Code / Open VSX 插件 | 已完成 | `0.37.97` 将推荐 CLI 更新为 `0.166.47` 并同步上述更新说明；`ide-vscode-v0.37.97` 的三系统宿主门禁、Open VSX 上传与公开回读均成功，版本已标记为 `latest`。 |
+| 发布任务                  | 状态   | 已完成证据                                                                                                                                                                                   |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI `0.166.47` 测试与修复 | 已完成 | 修复 PDH Windows 游标隐私测试中“散列随机包含 `:42`”的偶发误报；最终提交 `3138626213` 的 `CLI CI`、`CLI Strict Sandbox` 三平台和 `CI Tests` 均成功。                                          |
+| npm 发布                  | 已完成 | `v-npm-0-166-47` 指向 `3138626213`；发布前 dry-run 与正式发布工作流均成功；`chainlesschain@0.166.47` 已在 npm 公开并作为 `latest`。                                                          |
+| JetBrains 插件            | 已完成 | `0.4.123` 将推荐 CLI 更新为 `0.166.47`，并记录治理 Evolution/wiki、Responses、插件评测/延迟问题、后台会话分页及后台 Agent 可靠性更新；`ide-jetbrains-v0.4.123` 发布和 Marketplace 回读成功。 |
+| VS Code / Open VSX 插件   | 已完成 | `0.37.97` 将推荐 CLI 更新为 `0.166.47` 并同步上述更新说明；`ide-vscode-v0.37.97` 的三系统宿主门禁、Open VSX 上传与公开回读均成功，版本已标记为 `latest`。                                    |
 
 发布记录：npm 工作流 `34762956650`、JetBrains 工作流 `34766112823`、Open VSX
 工作流 `34766112838` 均为成功状态。JetBrains 本机定向 Gradle 测试因缺少 JDK 21
@@ -84,21 +86,27 @@ Claude Code 值得优先借鉴的是插件作者评测流程，以及配置、�
 
 下表按本文顶部链接的后续实施记录汇总。状态中的“已完成”仅表示对应工程交付或阶段目标已有实现和本地证据，不等同于生产发布、真实账号/模型验证或精确候选 SHA 的全平台验收。
 
-| ID  | 实现状态                         | 已完成内容                                                                                 | 待完成/验收边界                                                                | 实施记录                                                                                                                                                                                         |
-| --- | -------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| G01 | 阶段完成，待目标环境验证         | 已区分部署准入、命令级准入和实际任务就绪；setup、doctor、CLI 与 IDE 已接线                 | 真实身份、公开安装产物及指定 OS/IDE 到真实模型任务的完整旅程                   | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                           |
-| G02 | 核心实现完成，待正式实测         | 已实现严格比较门，并分离执行成功、产物检查与证据完整性                                     | 真实 provider 对照、Windows 同等并行负载稳定性及精确 release commit 的 CI 矩阵 | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                           |
-| G03 | 三阶段完成，待生产验收           | 已交付版本化模型能力 Profile、OpenAI Responses 主链，以及独立 `reasoning_tokens` 归账      | 真实账号/模型认证、预算误差和精确 SHA 三平台旅程                               | [Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)            |
-| G04 | 安全反例已关闭，接线未完成       | 已修复失败/中断终态误投影，以及提交结果不明时重复 fallback 的风险                          | `0.154.0` fail-closed 兼容矩阵、真实 App Server 旅程及是否接入产品的独立决策   | [G04 安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)                                                                                                       |
-| G05 | 作者入口完成，待效果验收         | 已交付 `cc plugin eval`、声明式 suite、control/candidate 双臂及 JSON/HTML 报告             | 固定真实模型的付费对照、重复采样、独立 holdout/grader 和发布提交验证           | [G05 插件 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)                                                                                                            |
-| G06 | 词法阶段完成，待生产验收         | 已关闭 canonical 中文句内关键词召回盲点，并保留 scope、sink、撤销等治理过滤                | 语义检索、真实用户语料、跨语言/冲突记忆效果、容量及三平台目标环境验收          | [G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)                                                                                                                     |
-| G07 | 能力合同完成，能力补齐中         | 已交付沙箱能力报告、配置前失败关闭及运行后 `applied` 证据                                  | 不可绕过的域名级 egress，以及 macOS/Windows/特殊 stdio 组合的实机矩阵          | [G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)                                                                                                |
-| G08 | 恢复能力完成，待多宿主验收       | 已持久化 WS/App Server deferred 问题、未消费答案与 revision，并保留严格 binding/权限隔离   | standalone Headless 进程恢复及精确 SHA 三平台真实旅程                          | [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)                                                                                                    |
-| G09 | 验收工具完成，真实旅程待执行     | 已交付 fail-closed 生产旅程验证器、受保护手动 attestation workflow 与回执合同              | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察及 rollback 演练 | [G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)                                                                                                  |
-| G10 | 分页完成，索引/容量验收待执行    | 已交付容量 harness，并为后台 Agent 列表提供稳定游标分页与 CLI 入口                         | 精确 SHA 三平台 formal 曲线、性能 SLO、只读索引与归档等实际优化                | [G10 容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md) |
-| G11 | 安装就绪诊断完成，真实旅程待执行 | 已扩展 Remote Doctor，输出扩展/宿主/渠道的版本化安装就绪证据，并 fail-visible 展示未知状态 | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销及成功率/耗时测量        | [G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)                                                                                            |
+| ID  | 实现状态                            | 已完成内容                                                                                                  | 待完成/验收边界                                                                | 实施记录                                                                                                                                                                                                                                                                   |
+| --- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G01 | 阶段完成，待目标环境验证            | 已区分部署准入、命令级准入和实际任务就绪；setup、doctor、CLI 与 IDE 已接线                                  | 真实身份、公开安装产物及指定 OS/IDE 到真实模型任务的完整旅程                   | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
+| G02 | 核心实现完成，待正式实测            | 已实现严格比较门，并分离执行成功、产物检查与证据完整性                                                      | 真实 provider 对照、Windows 同等并行负载稳定性及精确 release commit 的 CI 矩阵 | [第一批 G01/G02](./CLAUDE_CODE_CODEX_GAP_IMPLEMENTATION_2026-09-12.md)                                                                                                                                                                                                     |
+| G03 | 三阶段完成，待生产验收              | 已交付版本化模型能力 Profile、OpenAI Responses 主链，以及独立 `reasoning_tokens` 归账                       | 真实账号/模型认证、预算误差和精确 SHA 三平台旅程                               | [Profile 基础层](./CLAUDE_CODE_CODEX_GAP_G03_MODEL_PROFILE_IMPLEMENTATION_2026-09-13.md)、[Responses 主链](./CLAUDE_CODE_CODEX_GAP_G03_OPENAI_RESPONSES_IMPLEMENTATION_2026-09-13.md)                                                                                      |
+| G04 | `0.154.0` 矩阵已接入，待正式旅程    | 已关闭终态/fallback 反例，将 `0.154.0` 加入 fail-closed 适配器与三平台 CI 定义，并完成 Windows 真实协议探针 | 干净精确 SHA 三平台 App Server 旅程及是否接入产品的独立决策                    | [G04 安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                       |
+| G05 | 统计/留出集完成，待真实效果验收     | 已交付双臂报告、1–20 次重复采样、平衡顺序、95% 区间及 payload 外 reviewer holdout                           | 固定付费模型对照、独立模型 grader 与发布提交验证                               | [G05 插件 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                            |
+| G06 | 混合召回接口完成，待真实效果验收    | 已保留中文词法基线，并增加 revision/digest 绑定、治理先行的宿主语义候选与 hybrid rerank                     | embedding/index 适配器、真实语料、跨语言/冲突记忆效果、容量及三平台验收        | [G06 中文词法召回](./CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                                     |
+| G07 | 能力合同完成，能力补齐中            | 已交付沙箱能力报告、配置前失败关闭及运行后 `applied` 证据                                                   | 不可绕过的域名级 egress，以及 macOS/Windows/特殊 stdio 组合的实机矩阵          | [G07 沙箱能力矩阵](./CLAUDE_CODE_CODEX_GAP_G07_SANDBOX_CAPABILITIES_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                          |
+| G08 | standalone 恢复合同完成，待真实旅程 | 已为 Headless 持久化 deferred 生命周期，提供私有恢复投影、重连重放、严格 binding 与一次性消费确认           | 独立 OS 子进程/真实客户端恢复及精确 SHA 三平台多宿主旅程                       | [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)                                                                                                    |
+| G09 | 验收工具完成，真实旅程待执行        | 已交付 fail-closed 生产旅程验证器、受保护手动 attestation workflow 与回执合同                               | 受信生产身份、真实 provider/KMS/witness、人工审批、cohort 观察及 rollback 演练 | [G09 生产旅程验证](./CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                            |
+| G10 | 分页/只读索引完成，容量验收待执行   | 已交付容量 harness、稳定游标分页，以及内容无关、文件身份绑定的后台 Agent 只读索引与权威全扫回退             | 精确 SHA 三平台 formal 曲线、性能 SLO、持久 Memory 索引及归档策略              | [G10 容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md)、[G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md)、[本轮推进](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) |
+| G11 | 安装就绪诊断完成，真实旅程待执行    | 已扩展 Remote Doctor，输出扩展/宿主/渠道的版本化安装就绪证据，并 fail-visible 展示未知状态                  | 商店回读、JetBrains 渠道接线、双设备连接/断网重连/撤销及成功率/耗时测量        | [G11 远控安装就绪](./CLAUDE_CODE_CODEX_GAP_G11_REMOTE_INSTALL_READINESS_IMPLEMENTATION_2026-09-13.md)                                                                                                                                                                      |
 
-汇总：11 项均已有阶段性工程交付；所有项仍保留目标环境、真实模型、正式产物或规模验收边界，因此当前不将任何一项标记为生产完全完成。
+汇总：11 项均已有阶段性工程交付；本轮进一步关闭 G04/G05/G06/G08/G10 的本地工程缺口。所有项仍保留目标环境、真实模型、正式产物或规模验收边界，因此当前不将任何一项标记为生产完全完成。
+
+### 1.2.3 未完成任务继续推进（2026-09-14）
+
+基于 `e1397ca6046b35c97d170b1768f5462642ba4818` 的当前工作树，本轮完成五项可本地闭环工作：G04 的 `0.154.0` 精确兼容矩阵与 Windows 真实协议探针、G05 的重复采样/95% 区间/reviewer holdout、G06 的 digest 绑定受治理语义候选接口、G08 的 standalone Headless deferred 权威事件与私有恢复投影，以及 G10 的内容无关、文件身份绑定后台 Agent 分页只读索引。代码、边界与定向验证详见[第十三批实施记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md)。
+
+该批没有使用付费模型、生产身份/KMS、远端候选 SHA、商店或双真机；因此只更新工程状态，不关闭相应外部验收门。上方 1.2.1 是较早的干净基线复核快照，其中“无新增”与旧状态应按审计时点阅读。
 
 旧报告中“尚未统一演化/Memory 内核”“没有自动压缩”“没有 IDE E2E”等历史判断，不能直接作为本次待办。本文只对当前基线仍有依据的差距提出建议。
 
@@ -276,6 +284,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 
 **后续实施进展（2026-09-13）。** [G04 接线前安全修复](./CLAUDE_CODE_CODEX_GAP_G04_APP_SERVER_SAFETY_IMPLEMENTATION_2026-09-13.md) 已按 `turn.status/error` 保留 failed/interrupted 终态，并在 `turn/start` 提交结果未知或已观察到接收时禁止启动第二条 fallback；对应 fault-injection 合同已通过。适配器仍无产品调用方，`0.154.0` 仍未加入 fail-closed 矩阵，也没有同一候选 SHA 的三平台真实 App Server 证据，因此只关闭代码反例，不关闭版本兼容与接线验收。
 
+**第三阶段实施进展（2026-09-14）。** [本轮推进记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 已将精确 `0.154.0` 加入适配器和三平台 workflow 定义，`0.154.1` 继续 fail-closed。本机已使用真实 Codex CLI `0.154.0` 生成 305 个 schema 文件并完成 `initialize → initialized → thread/list` stdio 握手。当前工作树尚未合入，兼容脚本要求的干净精确 SHA 三平台聚合回执也未产生，产品接线仍需独立决策。
+
 **验收。** 失败、中断、成功终态不能互相覆写；模拟“已接受 + 响应丢失”时不触发未经核对的第二次执行；确认未提交才可按策略回退。Linux/Windows/macOS 对同一候选 SHA 和指定上游版本生成报告。fake 探针不替代真实 Codex 集成测试，也不改变上游实验性质。
 
 ### 6.3 G05：将通用 Eval 整理成插件作者可用的产品入口
@@ -287,6 +297,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 报告同时包含正确性、触发率、无关改动、token/成本、耗时和失败轨迹；支持本地 JSON/HTML。默认使用低副作用 fixture，模型 grader 与任务执行成本可见；将评测通过和安全审查分别展示。
 
 **后续实施进展（2026-09-13）。** [G05 插件作者 Eval](./CLAUDE_CODE_CODEX_GAP_G05_PLUGIN_EVAL_IMPLEMENTATION_2026-09-13.md) 已交付 `cc plugin eval <dir>`、绑定 manifest/payload/suite digest 的声明式任务、关闭全部插件的 control 与仅加载候选快照的 candidate，以及 JSON/HTML 双臂报告。报告分开保留执行、产物、触发、无关改动、usage/成本和增益阈值，dry-run 不能得到正式 PASS。当前没有付费真实模型结果、重复采样或独立 holdout，因此产品入口已实现，效果验收仍未完成。
+
+**第二阶段实施进展（2026-09-14）。** [本轮推进记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 已加入 1–20 次重复采样、由 suite digest 决定并交替的平衡双臂顺序、Wilson/Newcombe 95% 区间，以及插件 payload 外独立绑定的 reviewer holdout。CLI 提供 `--samples`、`--arm-order`、`--holdout`，报告不泄露 reviewer 的绝对路径。固定付费模型结果、组织上独立的模型 grader 和发布提交门仍待执行。
 
 **验收。** 在同模型、同 fixture 和同预算下验证候选增益；换模型或插件升级后重跑。至少覆盖“应触发”“不应触发”“插件无增益”“插件降低结果质量”。复用 G02 的严格 gate，不能用 dry-run 宣称效果提升。
 
@@ -304,6 +316,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 | `确定性测试`         |      0 |
 
 **建议交付。** 先加入可解释的中文分词或 ngram，建立可靠的词法基线；再根据真实评测增加受治理向量候选与轻量 rerank。所有候选仍经过 scope、sink、tombstone、revision 和敏感级别过滤；新索引不能成为绕过撤销的第二份权威记忆。
+
+**后续实施进展（2026-09-14）。** [本轮推进记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 在保留纯词法默认行为的基础上，加入宿主提供的 `semanticCandidates`：每个分数绑定 `memoryId/revision/recordDigest`，Kernel 先执行 lifecycle、expiry、scope 与 sink 过滤，陈旧证据失败关闭，再以词法/语义较强者参与轻量 rerank。该交付只建立不绕过治理的纯 Kernel 接口；embedding/index 适配器、删除同步、真实语料效果与容量仍待完成。
 
 **验收。** 建立中英混合检索集，报告 Recall@k/MRR、冲突与过期记忆误召回、删除后再召回、p95 和成本。分别比较词法改进与语义检索的增益，避免为简单查询引入不必要模型调用。
 
@@ -335,6 +349,8 @@ P0 指阻碍基础使用，或在作为正式发布/自动晋升依据前必须�
 **验收。** 新增目标是用户未回答配色时，同一工作流可继续独立读取项目；等待发布授权时仍不能发布。已有“两个问题并行挂起且乱序不串答”作为回归保持项；另外覆盖断线恢复、超时和预选项不产生授权，以及 CLI、IDE、App Server 终态一致性。
 
 **后续实施进展（2026-09-13）。** [G08 非阻塞澄清](./CLAUDE_CODE_CODEX_GAP_G08_DEFERRED_QUESTIONS_IMPLEMENTATION_2026-09-13.md) 已为 `ask_user_question` 增加默认 `blocking` 与受限 `deferred` 模式；后者只允许 preference/information，立即返回绑定 pending receipt，并将答案一次性按 `role=user` 回注，固定不携带授权。Headless、WebSocket、App Server、VS Code 与 Desktop 合同已接线；App Server 只有在客户端协商 `deferred_questions` 后才开启新通道，旧 feature 集不会收到未知请求。错 binding、跨 revision、无宿主、未协商客户端和授权误用反例有本地测试。问题和未消费答案仍是进程内状态，断线/重启恢复、计划 revision 自动失效及精确 SHA 三平台真实旅程尚未交付，因此本批不把 G08 整体标为完成。
+
+**恢复阶段实施进展（2026-09-14）。** [本轮推进记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 为 standalone Headless 增加 requested/resolved/consumed/expired 权威事件、只在私有 resume state 暴露的 reducer 投影、带原 binding 的重连重放，以及“持久化 resolved 后接收、持久化 consumed 后一次性注入”的顺序。关闭交互的旧 pipe 不接收恢复事件，未答问题在进程/管道关闭时保持可恢复。当前合同测试模拟两次 host 调用，独立 OS 子进程、真实客户端和精确 SHA 三平台旅程仍待验收。
 
 ### 6.7 G09：将真实模型测试推进到真实部署完整旅程
 
@@ -379,6 +395,8 @@ IDE 本身也已有真宿主门，不应重建。[VS Code App Server pilot](../p
 **后续实施进展（2026-09-13）。** [G10 持久路径容量测量](./CLAUDE_CODE_CODEX_GAP_G10_PERSISTENT_CAPACITY_IMPLEMENTATION_2026-09-13.md) 已交付 `chainlesschain.persistent-capacity-measurement/v1` harness：直接测量 DurableJsonMemoryPort 的首次/重复全文件读取、列表排序、跨进程并发读写删除、锁获取 p50/p95/p99 与 RSS，并测量后台任务目录的首次/重复全量枚举排序。smoke 为 100/1k，formal 固定保留 Memory 1k/10k/100k 与后台 1k/10k；手动 workflow 可对精确 SHA 跑三平台。报告固定 `performanceGate:false / productionQualified:false`，并明确后台 index/pagination 尚未应用。本机 dirty smoke 仅证明 harness 走通，尚未取得精确 SHA 三平台 formal 曲线，不能据此选型或宣称 G10 容量优化完成。
 
 **后续实施进展（2026-09-13，后台分页）。** [G10 后台游标分页](./CLAUDE_CODE_CODEX_GAP_G10_BACKGROUND_PAGINATION_IMPLEMENTATION_2026-09-13.md) 已交付稳定的 `listBackgroundAgentsPage` 及 `cc daemon status --limit/--cursor` 入口。游标绑定排序边界和 `--all` 过滤条件，非法或跨过滤条件复用时失败关闭；未指定分页参数时保持既有全量 CLI 合同。该批只限制调用端保留与输出的会话数，仍读取、投影和排序全部 JSON 权威状态，因而不把它表述为索引、磁盘 I/O 或容量优化完成。
+
+**后续实施进展（2026-09-14，后台只读索引）。** [第十三批实施记录](./CLAUDE_CODE_CODEX_GAP_CLOSURE_IMPLEMENTATION_2026-09-14.md) 为分页路径增加 `.background-agent-list-index-v1` 内容无关索引，只保存 `id`、`startedAt` 和 `status`，并以状态文件名称、大小、纳秒级 mtime/ctime、device 与 inode 绑定 inventory digest。首次读取或缓存损坏时从权威 JSON 重建；替换、增删、写入竞态或索引异常均失败关闭到原有全量权威扫描。命中时只读取组成 `limit + 1` 结果所需的权威状态，未改变非分页列表合同。该优化已经减少重复分页的 JSON 解析，但仍需精确 SHA 三平台 formal 曲线决定 SLO；持久 Memory 的全文件读取、索引和归档仍是独立待办。
 
 [账本 soak](../packages/cli/scripts/evolution-ledger-reliability-soak.mjs#L274) 明确 `testAuthority:true`、`qualifiesForProduction:false`；既有 10k 测试成果应保留，旧路线中的 250,000-event 目标、磁盘写满、断电和跨故障域 witness 应分别验证。项目也已提供 [appendBatch](../packages/cli/src/lib/evolution/evolution-ledger.js#L4476)，不再把“首次增加 batch API”列为待办。
 

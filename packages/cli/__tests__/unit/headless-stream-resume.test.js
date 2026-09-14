@@ -6,7 +6,7 @@ import "../helpers/test-model-egress.js";
  * appended, and the init event reports `resumed_messages`. Anonymous runs
  * stay persistence-free. All store functions are injected — no disk.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -45,6 +45,7 @@ function harness({ over = {}, options = {} } = {}) {
     users: [],
     assistants: [],
     rebuilt: 0,
+    authorityEvents: [],
   };
   const seenTurns = [];
   const agentLoop = async function* (messages) {
@@ -67,7 +68,10 @@ function harness({ over = {}, options = {} } = {}) {
     appendUserMessage: (id, c) => calls.users.push(c),
     appendAssistantMessage: (id, c) => calls.assistants.push(c),
     appendEvent: () => true,
-    appendAuthorityEvent: () => true,
+    appendAuthorityEvent: (id, type, data) => {
+      calls.authorityEvents.push({ id, type, data });
+      return true;
+    },
     readEvents: () => [],
     readVerifiedEvents: () => [],
     rebuildMessages: () => {
@@ -156,6 +160,137 @@ describe("stream persistence + resume", () => {
     // ...but new turns still persist
     expect(h.calls.users).toEqual(["hello there"]);
     expect(h.calls.assistants).toEqual(["ok-reply"]);
+  });
+
+  it("restores a standalone deferred question and consumes its answer once", async () => {
+    const first = harness({
+      options: {
+        sessionId: "chat-deferred",
+        interactiveQuestions: true,
+      },
+      over: {
+        input: (async function* () {
+          yield `${JSON.stringify({ type: "user", text: "start" })}\n`;
+        })(),
+        agentLoop: async function* (_messages, opts) {
+          const receipt = opts.interaction.deferUserQuestion({
+            question: "Pick a color",
+            options: ["Blue", "Red"],
+            purpose: "preference",
+          });
+          yield { type: "response-complete", content: JSON.stringify(receipt) };
+          yield { type: "run-ended", reason: "complete" };
+        },
+      },
+    });
+    await first.run();
+    const requested = first.calls.authorityEvents.find(
+      (event) => event.type === "deferred_question_requested",
+    );
+    expect(requested?.data).toMatchObject({
+      questionId: "q-1",
+      question: "Pick a color",
+      purpose: "preference",
+    });
+
+    const second = harness({
+      options: {
+        sessionId: "chat-deferred",
+        interactiveQuestions: true,
+      },
+      over: {
+        sessionExists: () => true,
+        readSessionHostResumeState: () => ({
+          ...verifiedResume([], "chat-deferred"),
+          deferredQuestions: [requested.data],
+          deferredAnswers: [],
+          deferredQuestionSequence: 1,
+        }),
+        input: (async function* () {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          yield `${JSON.stringify({
+            type: "answer",
+            id: "q-1",
+            answer: "Blue",
+            binding: requested.data.binding,
+          })}\n`;
+          yield `${JSON.stringify({ type: "user", text: "continue" })}\n`;
+        })(),
+        agentLoop: async function* (_messages, opts) {
+          const injected = await opts.prepareCall({ iteration: 1 });
+          yield {
+            type: "response-complete",
+            content: injected?.userContext || "missing",
+          };
+          yield { type: "run-ended", reason: "complete" };
+        },
+      },
+    });
+    await second.run();
+
+    expect(second.events()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "question_request",
+          id: "q-1",
+          restored: true,
+        }),
+        expect.objectContaining({
+          type: "question_resolved",
+          id: "q-1",
+          via: "user-answer",
+        }),
+      ]),
+    );
+    expect(
+      second.events().find((event) => event.type === "result")?.result,
+    ).toContain('"answer":"Blue"');
+    expect(
+      second.calls.authorityEvents
+        .map((event) => event.type)
+        .filter((type) => type.startsWith("deferred_question_")),
+    ).toEqual(["deferred_question_resolved", "deferred_question_consumed"]);
+  });
+
+  it("keeps a durable question pending when the reconnect opts out of interaction", async () => {
+    const pending = {
+      questionId: "q-3",
+      question: "Private preference?",
+      options: null,
+      multiSelect: false,
+      purpose: "preference",
+      binding: {
+        backgroundAgentId: null,
+        sessionId: "chat-legacy",
+        turnId: null,
+        toolUseId: null,
+        sequence: 3,
+      },
+      requestedRevision: 1,
+    };
+    const h = harness({
+      options: { sessionId: "chat-legacy", interactiveQuestions: false },
+      over: {
+        sessionExists: () => true,
+        readSessionHostResumeState: () => ({
+          ...verifiedResume([], "chat-legacy"),
+          deferredQuestions: [pending],
+          deferredAnswers: [],
+          deferredQuestionSequence: 3,
+        }),
+      },
+    });
+
+    await h.run();
+
+    expect(
+      h.events().filter((event) => event.type === "question_request"),
+    ).toEqual([]);
+    expect(
+      h.calls.authorityEvents.filter((event) =>
+        event.type.startsWith("deferred_question_"),
+      ),
+    ).toEqual([]);
   });
 
   it("a broken resume store refuses the stream before the model", async () => {

@@ -6,6 +6,7 @@ export const CODEX_APP_SERVER_COMPATIBILITY_MATRIX = Object.freeze([
   Object.freeze({ version: "0.149.0" }),
   Object.freeze({ version: "0.150.0" }),
   Object.freeze({ version: "0.150.1" }),
+  Object.freeze({ version: "0.154.0" }),
 ]);
 
 function adapterError(code, message, details = {}) {

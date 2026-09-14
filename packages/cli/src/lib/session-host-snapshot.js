@@ -28,6 +28,10 @@ import {
 } from "./session-message-provenance.js";
 import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
 import { normalizeSessionBudgetRootConfig } from "./session-budget-production-root.js";
+import {
+  createDeferredQuestionEventReducer,
+  reduceDeferredQuestionEvents,
+} from "./deferred-question-context.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
   "chainlesschain.session-host-snapshot/v1";
@@ -292,6 +296,7 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     sessionId,
     verified: true,
   });
+  const deferred = reduceDeferredQuestionEvents(safeEvents, { sessionId });
   return Object.freeze({
     snapshot: projectSessionHostObservation({
       sessionId,
@@ -301,6 +306,9 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     }),
     messages,
     recovery,
+    deferredQuestions: deferred.pendingQuestions,
+    deferredAnswers: deferred.answers,
+    deferredQuestionSequence: deferred.maxSequence,
     sessionBudgetRoot: sessionBudgetRootFromEvents(safeEvents),
   });
 }
@@ -315,6 +323,9 @@ function createStreamingSessionHostProjection(sessionId) {
   const mcpReducer = createMcpLedgerEventReducer({
     sessionId,
     verified: true,
+  });
+  const deferredQuestionReducer = createDeferredQuestionEventReducer({
+    sessionId,
   });
 
   return {
@@ -337,6 +348,7 @@ function createStreamingSessionHostProjection(sessionId) {
       lastEventType =
         typeof safeEvent.type === "string" ? safeEvent.type : null;
       mcpReducer.accept(safeEvent);
+      deferredQuestionReducer.accept(safeEvent);
     },
     finish({ headHash, eventCount, readMessages }) {
       structure.finish();
@@ -351,6 +363,7 @@ function createStreamingSessionHostProjection(sessionId) {
         projectCanonicalResumeMessages(recoveredMessages, { strict: true }),
       );
       const recovery = mcpReducer.finish();
+      const deferred = deferredQuestionReducer.finish();
       return Object.freeze({
         snapshot: projectSessionHostProjection({
           sessionId,
@@ -363,6 +376,9 @@ function createStreamingSessionHostProjection(sessionId) {
         }),
         messages,
         recovery,
+        deferredQuestions: deferred.pendingQuestions,
+        deferredAnswers: deferred.answers,
+        deferredQuestionSequence: deferred.maxSequence,
         sessionBudgetRoot,
       });
     },

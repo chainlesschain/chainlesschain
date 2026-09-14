@@ -131,7 +131,9 @@
         "taskState": { "enum": ["pending", "running", "waiting", "terminal"] },
         "toolCallId": { "$ref": "#/$defs/Identifier" },
         "toolRole": { "enum": ["call", "result"] },
-        "toolOutcome": { "enum": ["pending", "succeeded", "failed", "unknown"] },
+        "toolOutcome": {
+          "enum": ["pending", "succeeded", "failed", "unknown"]
+        },
         "approvalId": { "$ref": "#/$defs/Identifier" },
         "questionId": { "$ref": "#/$defs/Identifier" },
         "humanTaskId": { "$ref": "#/$defs/Identifier" },
@@ -190,7 +192,11 @@
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1, "maxLength": 128 }
         },
-        "tokenEstimate": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "tokenEstimate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
         "priority": { "type": "integer", "minimum": 0, "maximum": 1000000 },
         "pinned": { "type": "boolean" },
         "createdAt": { "$ref": "#/$defs/Timestamp" },
@@ -207,7 +213,13 @@
       "required": ["mode"],
       "properties": {
         "mode": {
-          "enum": ["ephemeral", "session", "durable", "until_expired", "legal_hold"]
+          "enum": [
+            "ephemeral",
+            "session",
+            "durable",
+            "until_expired",
+            "legal_hold"
+          ]
         },
         "expiresAt": { "$ref": "#/$defs/Timestamp" },
         "maxAgeDays": { "type": "integer", "minimum": 1, "maximum": 365000 },
@@ -322,10 +334,26 @@
         "memoryRevision"
       ],
       "properties": {
-        "modelWindowTokens": { "type": "integer", "minimum": 1, "maximum": 16777216 },
-        "reservedOutputTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
-        "safetyMarginTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
-        "recoveryReserveTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+        "modelWindowTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "reservedOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "safetyMarginTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "recoveryReserveTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
         "items": {
           "type": "array",
           "maxItems": 100000,
@@ -427,10 +455,26 @@
       "properties": {
         "operationId": { "$ref": "#/$defs/Identifier" },
         "sessionId": { "$ref": "#/$defs/Identifier" },
-        "modelWindowTokens": { "type": "integer", "minimum": 1, "maximum": 16777216 },
-        "reservedOutputTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
-        "safetyMarginTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
-        "recoveryReserveTokens": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+        "modelWindowTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "reservedOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "safetyMarginTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "recoveryReserveTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
         "sink": { "type": "string", "minLength": 1, "maxLength": 128 },
         "scopeAdmissions": {
           "type": "array",
@@ -479,7 +523,11 @@
           "maxItems": 100000,
           "items": { "$ref": "#/$defs/Identifier" }
         },
-        "lifecycle": { "type": "array", "maxItems": 32, "items": { "type": "object" } },
+        "lifecycle": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "type": "object" }
+        },
         "digest": { "$ref": "#/$defs/Digest" }
       }
     },
@@ -496,9 +544,25 @@
           "maxItems": 128,
           "items": { "$ref": "#/$defs/ContextScopeAdmission" }
         },
+        "semanticCandidates": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/MemorySemanticCandidate" }
+        },
         "limit": { "type": "integer", "minimum": 1, "maximum": 1000 },
         "tokenBudget": { "type": "integer", "minimum": 1, "maximum": 1048576 },
         "now": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "MemorySemanticCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memoryId", "revision", "recordDigest", "score"],
+      "properties": {
+        "memoryId": { "$ref": "#/$defs/Identifier" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "recordDigest": { "$ref": "#/$defs/Digest" },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "MemoryRecallResult": {
@@ -519,7 +583,13 @@
         "tokenBudget": { "type": "integer", "minimum": 1 },
         "usedTokens": { "type": "integer", "minimum": 0 },
         "totalCandidates": { "type": "integer", "minimum": 0 },
-        "results": { "type": "array", "maxItems": 1000, "items": { "type": "object" } },
+        "retrievalMode": { "enum": ["governed_hybrid"] },
+        "semanticEvidenceCount": { "type": "integer", "minimum": 0 },
+        "results": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "type": "object" }
+        },
         "digest": { "$ref": "#/$defs/Digest" },
         "memoryRevision": { "type": "integer", "minimum": 0 }
       }
@@ -556,13 +626,26 @@
         },
         "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
         "importance": { "type": "number", "minimum": 0, "maximum": 1 },
-        "tags": { "type": "array", "maxItems": 128, "items": { "type": "string", "maxLength": 128 } },
+        "tags": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "type": "string", "maxLength": 128 }
+        },
         "sensitivity": { "$ref": "#/$defs/ContextMemorySensitivity" },
-        "allowedSinks": { "type": "array", "minItems": 1, "maxItems": 128, "items": { "type": "string", "maxLength": 128 } },
+        "allowedSinks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "type": "string", "maxLength": 128 }
+        },
         "retentionPolicy": { "$ref": "#/$defs/ContextMemoryRetentionPolicy" },
         "activate": { "type": "boolean" },
         "createdAt": { "$ref": "#/$defs/Timestamp" },
-        "supersedes": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/Identifier" } }
+        "supersedes": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/Identifier" }
+        }
       }
     },
     "MemoryDecisionRequest": {
@@ -571,12 +654,22 @@
       "required": ["memoryId", "type", "expectedRevision"],
       "properties": {
         "memoryId": { "$ref": "#/$defs/Identifier" },
-        "type": { "enum": ["activate", "reinforce", "supersede", "archive", "expire"] },
+        "type": {
+          "enum": ["activate", "reinforce", "supersede", "archive", "expire"]
+        },
         "expectedRevision": { "type": "integer", "minimum": 1 },
         "confidenceDelta": { "type": "number", "minimum": 0, "maximum": 1 },
         "importance": { "type": "number", "minimum": 0, "maximum": 1 },
-        "evidenceRefs": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/ContextMemorySourceRef" } },
-        "tags": { "type": "array", "maxItems": 128, "items": { "type": "string", "maxLength": 128 } },
+        "evidenceRefs": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/ContextMemorySourceRef" }
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "type": "string", "maxLength": 128 }
+        },
         "summary": { "type": "string", "minLength": 1, "maxLength": 16384 },
         "successorMemoryId": { "$ref": "#/$defs/Identifier" },
         "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
@@ -663,7 +756,11 @@
         "revision": { "type": "integer", "minimum": 1 },
         "recordState": { "enum": ["deleted", "purged"] },
         "recordDigest": { "$ref": "#/$defs/Digest" },
-        "stores": { "type": "array", "maxItems": 129, "items": { "type": "object" } },
+        "stores": {
+          "type": "array",
+          "maxItems": 129,
+          "items": { "type": "object" }
+        },
         "startedAt": { "$ref": "#/$defs/Timestamp" },
         "completedAt": { "$ref": "#/$defs/Timestamp" },
         "digest": { "$ref": "#/$defs/Digest" }

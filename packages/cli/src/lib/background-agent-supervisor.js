@@ -60,6 +60,7 @@ import {
   cleanupBackgroundAgentKeeperPipeDirectory,
   prepareBackgroundAgentKeeperPipePath,
 } from "./background-agent-keeper-protocol.js";
+import { loadBackgroundAgentListIndex } from "./background-agent-list-index.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -2180,6 +2181,43 @@ export function listBackgroundAgentsPage(options = {}) {
     throw new TypeError(
       "background agent page cursor does not match the requested filter",
     );
+  }
+  let indexed = null;
+  try {
+    indexed = loadBackgroundAgentListIndex({
+      directory: backgroundAgentsDir(),
+      readState: readBackgroundAgentState,
+    });
+  } catch {
+    // The index is a disposable, content-free projection. Authority races,
+    // corruption, or an unwritable cache must retain the full-scan behavior.
+  }
+  if (indexed) {
+    const projected = [];
+    const summaries = [...indexed.entries]
+      .filter((state) => options.all || state.status === "running")
+      .sort(compareBackgroundAgentListEntries);
+    for (const summary of summaries) {
+      if (cursor && !isBackgroundAgentAfterCursor(summary, cursor)) continue;
+      const state = readBackgroundAgentState(summary.id);
+      if (!state) continue;
+      const effective = effectiveBackgroundAgentState(state, options);
+      if (!effective || (!options.all && effective.status !== "running")) {
+        continue;
+      }
+      if (cursor && !isBackgroundAgentAfterCursor(effective, cursor)) continue;
+      projected.push(withLifecycleState(effective));
+      if (projected.length > limit) break;
+    }
+    const sessions = projected.slice(0, limit);
+    const nextCursor =
+      projected.length > sessions.length
+        ? encodeBackgroundAgentPageCursor(sessions.at(-1), options.all)
+        : null;
+    return Object.freeze({
+      sessions: Object.freeze(sessions),
+      nextCursor,
+    });
   }
   const eligible = cursor
     ? listBackgroundAgentEntries(options, { stableTieBreak: true }).filter(

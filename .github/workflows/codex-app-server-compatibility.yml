@@ -73,6 +73,7 @@ jobs:
           - "0.149.0"
           - "0.150.0"
           - "0.150.1"
+          - "0.154.0"
         include:
           - platform: linux
             runner: ubuntu-latest

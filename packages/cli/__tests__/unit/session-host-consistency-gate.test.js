@@ -179,6 +179,55 @@ describe("session host snapshot", () => {
     expect(state.sessionBudgetRoot).toEqual(sessionBudgetRoot);
     expect(state.snapshot).not.toHaveProperty("sessionBudgetRoot");
   });
+
+  it("projects deferred question recovery only in the private resume state", () => {
+    const binding = {
+      sessionId: "deferred-session",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 2,
+    };
+    const state = projectVerifiedSessionHostSnapshot(
+      "deferred-session",
+      chainedEvents([
+        {
+          type: "session_start",
+          timestamp: 1,
+          data: { title: "Deferred" },
+        },
+        {
+          type: "deferred_question_requested",
+          timestamp: 2,
+          data: {
+            questionId: "q-2",
+            question: "Private question",
+            binding,
+            requestedRevision: 1,
+          },
+        },
+        {
+          type: "deferred_question_resolved",
+          timestamp: 3,
+          data: {
+            questionId: "q-2",
+            question: "Private question",
+            answer: "Private answer",
+            binding,
+            requestedRevision: 1,
+            resolvedRevision: 2,
+          },
+        },
+      ]),
+    );
+
+    expect(state.deferredQuestions).toEqual([]);
+    expect(state.deferredAnswers).toEqual([
+      expect.objectContaining({ questionId: "q-2", answer: "Private answer" }),
+    ]);
+    expect(state.deferredQuestionSequence).toBe(2);
+    expect(JSON.stringify(state.snapshot)).not.toContain("Private question");
+    expect(JSON.stringify(state.snapshot)).not.toContain("Private answer");
+  });
 });
 
 describe("cli session-host consistency gate", () => {

@@ -299,3 +299,92 @@ test("token budgets skip whole records and preserve category diversity", () => {
     ["a", "b", "d"],
   );
 });
+
+test("digest-bound semantic candidates recover lexical misses after governance", () => {
+  const synonym = memory("semantic", {
+    content: "偏好采用可复现的检查流程",
+  });
+  const denied = memory("denied", {
+    content: "偏好采用可复现的检查流程",
+    scopeId: "project-2",
+  });
+  const wrongSink = memory("semantic-wrong-sink", {
+    content: "偏好采用可复现的检查流程",
+    allowedSinks: ["provider.external"],
+  });
+  const expired = memory("semantic-expired", {
+    content: "偏好采用可复现的检查流程",
+    retentionPolicy: { mode: "until_expired", expiresAt: AT },
+  });
+  const inactive = memory("semantic-inactive", {
+    content: "偏好采用可复现的检查流程",
+    activate: false,
+  });
+  const deletedSource = memory("semantic-deleted", {
+    content: "偏好采用可复现的检查流程",
+  });
+  const deleted = applyMemoryCommand(
+    deletedSource,
+    {
+      type: "delete",
+      expectedRevision: deletedSource.revision,
+      deletionFence: "semantic-fence",
+    },
+    { clock: CLOCK },
+  ).record;
+  const records = [synonym, denied, wrongSink, expired, inactive, deleted];
+  const result = recall(records, {
+    semanticCandidates: records.map((record) => ({
+      memoryId: record.memoryId,
+      revision: record.revision,
+      recordDigest: record.digest,
+      score: 0.9,
+    })),
+  });
+
+  assert.deepEqual(
+    result.results.map((entry) => entry.memoryId),
+    ["semantic"],
+  );
+  assert.equal(result.retrievalMode, "governed_hybrid");
+  assert.equal(result.semanticEvidenceCount, 1);
+  assert.equal(result.results[0].lexicalRelevance, 0);
+  assert.equal(result.results[0].semanticRelevance, 0.9);
+});
+
+test("semantic evidence fails closed when its revision or digest is stale", () => {
+  const record = memory("stale");
+  assert.throws(
+    () =>
+      recall([record], {
+        semanticCandidates: [
+          {
+            memoryId: record.memoryId,
+            revision: record.revision + 1,
+            recordDigest: record.digest,
+            score: 1,
+          },
+        ],
+      }),
+    (error) => error.code === "revision_conflict",
+  );
+});
+
+test("semantic candidate validation is bounded and rejects ambiguous IDs", () => {
+  const record = memory("duplicate");
+  const candidate = {
+    memoryId: record.memoryId,
+    revision: record.revision,
+    recordDigest: record.digest,
+    score: 0.5,
+  };
+  assert.throws(
+    () => recall([record], { semanticCandidates: [candidate, candidate] }),
+    /duplicate memoryId/u,
+  );
+  assert.throws(
+    () =>
+      recall([record], { semanticCandidates: [{ ...candidate, score: 2 }] }),
+    /finite number/u,
+  );
+});

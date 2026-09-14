@@ -17,7 +17,35 @@ test("published schema has executable contract entry points and immutable defini
   assert.equal(Object.isFrozen(CONTEXT_MEMORY_SCHEMA.$defs), true);
   assert.equal(Object.isFrozen(CONTEXT_MEMORY_SCHEMA.$defs.ContextItem), true);
   assert.equal(validateContextMemorySchema(contextItem()).ok, true);
-  assert.equal(validateContextMemorySchema(createMemoryCandidate(proposal())).ok, true);
+  assert.equal(
+    validateContextMemorySchema(createMemoryCandidate(proposal())).ok,
+    true,
+  );
+  assert.ok(
+    CONTEXT_MEMORY_SCHEMA.$defs.MemoryRecallRequest.properties
+      .semanticCandidates,
+  );
+  assert.equal(
+    CONTEXT_MEMORY_SCHEMA.$defs.ContextPlanRequest.properties
+      .semanticCandidates,
+    undefined,
+  );
+  assert.deepEqual(
+    validateContextMemoryDefinition("MemoryRecallRequest", {
+      query: "可复现检查",
+      sink: "provider.local",
+      scopeAdmissions: [{ scope: "project", scopeId: "project-1" }],
+      semanticCandidates: [
+        {
+          memoryId: "memory-1",
+          revision: 1,
+          recordDigest: `sha256:${"a".repeat(64)}`,
+          score: 0.75,
+        },
+      ],
+    }),
+    { ok: true, errors: [] },
+  );
 });
 
 test("definition validator and runtime invariants reject drift and invalid digests", () => {
@@ -26,7 +54,13 @@ test("definition validator and runtime invariants reject drift and invalid diges
     ok: true,
     errors: [],
   });
-  assert.equal(validateContextMemoryDefinition("ContextItem", { ...item, unexpected: true }).ok, false);
+  assert.equal(
+    validateContextMemoryDefinition("ContextItem", {
+      ...item,
+      unexpected: true,
+    }).ok,
+    false,
+  );
   assert.equal(
     validateContextMemoryDefinition("ContextItem", {
       ...item,
@@ -34,7 +68,17 @@ test("definition validator and runtime invariants reject drift and invalid diges
     }).ok,
     false,
   );
-  assert.equal(validateContextMemoryDefinition("MissingDefinition", {}).ok, false);
+  assert.equal(
+    validateContextMemoryDefinition("MissingDefinition", {}).ok,
+    false,
+  );
   assert.doesNotThrow(() => assertContextMemoryDefinition("ContextItem", item));
-  assert.throws(() => assertContextMemoryDefinition("ContextItem", { ...item, content: undefined }), /Invalid ContextItem/u);
+  assert.throws(
+    () =>
+      assertContextMemoryDefinition("ContextItem", {
+        ...item,
+        content: undefined,
+      }),
+    /Invalid ContextItem/u,
+  );
 });

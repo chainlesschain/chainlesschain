@@ -29,7 +29,9 @@ Recall preserves exact-word matching for non-Han text and adds contiguous multi-
 | `Vue开发`     | `使用Vue开发工具`         | Yes                                                  |
 | `Vue开发`     | `Vue部署`                 | No                                                   |
 
-This is keyword retrieval, not dictionary segmentation, synonym search, or semantic retrieval. It adds no embedding calls, persistent index, or record migration. Scope, allowed sinks, lifecycle/expiry filtering, revision/tombstone authority, ranking weights, and whole-record token budgets remain unchanged. Existing record digests remain valid; recall-result digests can change when the selected results or scores change. The existing first-2048-token-occurrence search boundary remains in place.
+The default remains keyword retrieval, not dictionary segmentation or synonym search. Hosts may optionally pass bounded `semanticCandidates` produced by an embedding/index port. Every score is bound to `memoryId`, `revision`, and the canonical record digest; stale evidence fails closed. The kernel applies lifecycle, expiry, scope, and allowed-sink gates before a semantic score can affect recall, so an external index cannot bypass memory governance. The kernel itself still performs no embedding calls, persistent indexing, or record migration.
+
+Hybrid ranking uses the stronger of lexical and semantic relevance as the existing 65% retrieval component. This preserves lexical-only ranking exactly while allowing a governed semantic candidate to recover a lexical miss. Existing record digests remain valid; recall-result digests can change when selected results or scores change. The existing first-2048-token-occurrence lexical boundary remains in place.
 
 From a **repository checkout root**, run the small synthetic comparison (stdout JSON) and its contracts:
 

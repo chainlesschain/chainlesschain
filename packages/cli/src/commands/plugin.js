@@ -1445,11 +1445,23 @@ export function registerPluginCommand(program) {
       "--suite <file>",
       "Suite JSON inside the plugin root (default: evals/suite.json)",
     )
+    .option(
+      "--holdout <file>",
+      "Reviewer-owned holdout suite outside the plugin payload",
+    )
     .option("--provider <provider>", "Fixed provider for both eval arms")
     .option("--model <model>", "Fixed model for both eval arms")
     .option(
       "--min-pass-rate-delta <pct>",
       "Override the suite's minimum candidate gain in percentage points",
+    )
+    .option(
+      "--samples <n>",
+      "Run each control/candidate task 1-20 times (default: suite or 1)",
+    )
+    .option(
+      "--arm-order <order>",
+      "balanced, control-first, or candidate-first (default: balanced)",
     )
     .option("--json", "Output the bound report as JSON")
     .option("--html <file>", "Write a local HTML report")
@@ -1479,15 +1491,30 @@ export function registerPluginCommand(program) {
           }
           minPassRateDelta = percentage / 100;
         }
+        let sampleRuns;
+        if (options.samples !== undefined) {
+          sampleRuns = Number(options.samples);
+          if (
+            !Number.isSafeInteger(sampleRuns) ||
+            sampleRuns < 1 ||
+            sampleRuns > 20
+          ) {
+            throw new Error("--samples must be an integer between 1 and 20");
+          }
+        }
         const {
+          attachPluginEvalHoldout,
           loadPluginEvalDefinition,
           renderPluginEvalHtml,
           runPluginEval,
         } = await import("../lib/eval/plugin-suite.js");
         const { makeHeadlessRunAgent } = await import("./eval.js");
-        const definition = loadPluginEvalDefinition(dir, {
-          suiteFile: options.suite,
-        });
+        const definition = attachPluginEvalHoldout(
+          loadPluginEvalDefinition(dir, {
+            suiteFile: options.suite,
+          }),
+          options.holdout,
+        );
         const dryRunAgent = async () => ({
           ok: true,
           output: `${JSON.stringify({
@@ -1526,11 +1553,15 @@ export function registerPluginCommand(program) {
           dryRun: options.dryRun === true,
           keepWorkspaces: options.keep === true,
           ...(minPassRateDelta === undefined ? {} : { minPassRateDelta }),
+          ...(sampleRuns === undefined ? {} : { sampleRuns }),
+          ...(options.armOrder === undefined
+            ? {}
+            : { armOrder: options.armOrder }),
           onResult: options.json
             ? undefined
-            : ({ arm, result }) =>
+            : ({ arm, sample, result }) =>
                 logger.info(
-                  `  ${arm.padEnd(9)} ${result.pass ? "✔" : "✗"} ${result.id} (${result.ms}ms)`,
+                  `  ${arm.padEnd(9)} #${sample} ${result.pass ? "✔" : "✗"} ${result.id} (${result.ms}ms)`,
                 ),
         });
         if (options.html) {

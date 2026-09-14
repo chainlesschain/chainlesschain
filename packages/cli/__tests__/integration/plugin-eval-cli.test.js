@@ -4,7 +4,10 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { PLUGIN_EVAL_SUITE_SCHEMA } from "../../src/lib/eval/plugin-suite.js";
+import {
+  PLUGIN_EVAL_HOLDOUT_SCHEMA,
+  PLUGIN_EVAL_SUITE_SCHEMA,
+} from "../../src/lib/eval/plugin-suite.js";
 
 const bin = fileURLToPath(
   new URL("../../bin/chainlesschain.js", import.meta.url),
@@ -121,4 +124,54 @@ it("requires an explicit provider/model pair before any real execution", async (
   expect(result.stdout + result.stderr).not.toContain(
     "PLUGIN_EVAL_FORBIDDEN_NETWORK",
   );
+});
+
+it("accepts an external holdout and repeated deterministic arm order", async () => {
+  const holdout = path.join(directory, "reviewer-holdout.json");
+  fs.writeFileSync(
+    holdout,
+    JSON.stringify({
+      schema: PLUGIN_EVAL_HOLDOUT_SCHEMA,
+      plugin: { name: "cli-eval-plugin", version: "1.0.0" },
+      tasks: [
+        {
+          id: "reviewer-contract",
+          prompt: "Do not create forbidden.txt.",
+          expectation: "optional",
+          assertions: [{ type: "file_absent", path: "forbidden.txt" }],
+        },
+      ],
+    }),
+    "utf8",
+  );
+
+  const result = await run([
+    "--dry-run",
+    "--json",
+    "--holdout",
+    holdout,
+    "--samples",
+    "2",
+    "--arm-order",
+    "candidate-first",
+  ]);
+
+  expect(result.code, result.stderr).toBe(1);
+  const report = JSON.parse(result.stdout);
+  expect(report.selection).toMatchObject({
+    sampleRuns: 2,
+    armOrder: "candidate-first",
+  });
+  expect(report.sampling.sequence).toEqual([
+    ["candidate", "control"],
+    ["candidate", "control"],
+  ]);
+  expect(report.holdout).toMatchObject({
+    path: "reviewer-holdout.json",
+    tasks: 1,
+    independentFromPayload: true,
+  });
+  expect(report.holdout.path).not.toContain(directory);
+  expect(report.arms.control.total).toBe(4);
+  expect(report.arms.candidate.total).toBe(4);
 });

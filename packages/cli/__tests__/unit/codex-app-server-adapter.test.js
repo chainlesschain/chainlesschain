@@ -51,7 +51,11 @@ describe("optional Codex App Server adapter", () => {
     expect(isCodexAppServerVersionCompatible("codex-cli 0.150.1", matrix)).toBe(
       true,
     );
+    expect(isCodexAppServerVersionCompatible("codex-cli 0.154.0", matrix)).toBe(
+      true,
+    );
     expect(isCodexAppServerVersionCompatible("0.150.2", matrix)).toBe(false);
+    expect(isCodexAppServerVersionCompatible("0.154.1", matrix)).toBe(false);
     expect(isCodexAppServerVersionCompatible("0.150.1-beta.1", matrix)).toBe(
       false,
     );

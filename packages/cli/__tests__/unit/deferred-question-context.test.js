@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DeferredQuestionContext } from "../../src/lib/deferred-question-context.js";
+import {
+  DEFERRED_QUESTION_EVENTS,
+  DeferredQuestionContext,
+  reduceDeferredQuestionEvents,
+} from "../../src/lib/deferred-question-context.js";
 
 describe("DeferredQuestionContext", () => {
   it("bounds answer content and consumes records once", () => {
@@ -76,5 +80,123 @@ describe("DeferredQuestionContext", () => {
     expect(prepared.userContext).toContain('"stale":true');
     expect(consumed).toEqual([["q-restored"]]);
     expect(context.size).toBe(0);
+  });
+
+  it("retains an answer until durable consumption acknowledges it", () => {
+    let acknowledged = false;
+    const context = new DeferredQuestionContext({
+      initialAnswers: [{ questionId: "q-1", answer: "blue" }],
+      onConsumed: () => acknowledged,
+    });
+
+    expect(context.prepareCall()).toBeNull();
+    expect(context.size).toBe(1);
+    acknowledged = true;
+    expect(context.prepareCall().userContext).toContain('"answer":"blue"');
+    expect(context.size).toBe(0);
+  });
+
+  it("reduces bound durable question events without resurrecting consumed answers", () => {
+    const binding = {
+      backgroundAgentId: null,
+      sessionId: "s-1",
+      turnId: "turn-1",
+      toolUseId: "tool-1",
+      sequence: 4,
+    };
+    const events = [
+      {
+        type: DEFERRED_QUESTION_EVENTS.REQUESTED,
+        data: {
+          questionId: "q-4",
+          question: "Color?",
+          purpose: "preference",
+          binding,
+          requestedRevision: 2,
+        },
+      },
+      {
+        type: DEFERRED_QUESTION_EVENTS.RESOLVED,
+        data: {
+          questionId: "q-4",
+          question: "Color?",
+          answer: "blue",
+          purpose: "preference",
+          binding,
+          requestedRevision: 2,
+          resolvedRevision: 3,
+        },
+      },
+    ];
+
+    expect(
+      reduceDeferredQuestionEvents(events, { sessionId: "s-1" }),
+    ).toMatchObject({
+      pendingQuestions: [],
+      answers: [{ questionId: "q-4", answer: "blue" }],
+      maxSequence: 4,
+    });
+    events.push({
+      type: DEFERRED_QUESTION_EVENTS.CONSUMED,
+      data: { questionIds: ["q-4"] },
+    });
+    expect(
+      reduceDeferredQuestionEvents(events, { sessionId: "s-1" }),
+    ).toMatchObject({
+      pendingQuestions: [],
+      answers: [],
+      maxSequence: 4,
+    });
+  });
+
+  it("ignores answers whose persisted binding does not match the request", () => {
+    const requestBinding = { sessionId: "s-1", sequence: 1 };
+    const state = reduceDeferredQuestionEvents(
+      [
+        {
+          type: DEFERRED_QUESTION_EVENTS.REQUESTED,
+          data: { questionId: "q-1", binding: requestBinding },
+        },
+        {
+          type: DEFERRED_QUESTION_EVENTS.RESOLVED,
+          data: {
+            questionId: "q-1",
+            answer: "forged",
+            binding: { sessionId: "s-1", sequence: 2 },
+          },
+        },
+      ],
+      { sessionId: "s-1" },
+    );
+    expect(state.pendingQuestions).toHaveLength(1);
+    expect(state.answers).toEqual([]);
+  });
+
+  it("does not reopen a consumed question from a replayed request", () => {
+    const binding = { sessionId: "s-1", sequence: 1 };
+    const state = reduceDeferredQuestionEvents(
+      [
+        {
+          type: DEFERRED_QUESTION_EVENTS.REQUESTED,
+          data: { questionId: "q-1", binding },
+        },
+        {
+          type: DEFERRED_QUESTION_EVENTS.RESOLVED,
+          data: { questionId: "q-1", answer: "blue", binding },
+        },
+        {
+          type: DEFERRED_QUESTION_EVENTS.CONSUMED,
+          data: { questionId: "q-1" },
+        },
+        {
+          type: DEFERRED_QUESTION_EVENTS.REQUESTED,
+          data: { questionId: "q-1", binding },
+        },
+      ],
+      { sessionId: "s-1" },
+    );
+    expect(state.pendingQuestions).toEqual([]);
+    expect(state.answers).toEqual([]);
+    expect(state.maxSequence).toBe(1);
   });
 });

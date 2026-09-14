@@ -32,7 +32,12 @@ import {
   normalizeInteractionBinding,
   sameInteractionBinding,
 } from "../lib/interaction-binding.js";
-import { DeferredQuestionContext } from "../lib/deferred-question-context.js";
+import {
+  DEFERRED_QUESTION_EVENTS,
+  DeferredQuestionContext,
+  normalizeDeferredQuestionAnswer,
+  normalizeDeferredQuestionRequest,
+} from "../lib/deferred-question-context.js";
 import { composePrepareCall } from "../lib/goal-context.js";
 import {
   addHooksV2EventObserver,
@@ -1684,6 +1689,9 @@ async function runAgentHeadlessStreamInWorkspace(
   let canonicalResume = null;
   let canonicalResumeMessages = null;
   let canonicalMcpCallRecovery = null;
+  let canonicalDeferredQuestions = [];
+  let canonicalDeferredAnswers = [];
+  let canonicalDeferredQuestionSequence = 0;
   if (persist) {
     const readResumeState =
       deps.readSessionHostResumeState || readSessionHostResumeState;
@@ -1786,6 +1794,21 @@ async function runAgentHeadlessStreamInWorkspace(
           );
         }
         canonicalResumeMessages = [...canonicalResume.messages];
+        canonicalDeferredQuestions = Array.isArray(
+          canonicalResume.deferredQuestions,
+        )
+          ? [...canonicalResume.deferredQuestions]
+          : [];
+        canonicalDeferredAnswers = Array.isArray(
+          canonicalResume.deferredAnswers,
+        )
+          ? [...canonicalResume.deferredAnswers]
+          : [];
+        canonicalDeferredQuestionSequence = Number.isSafeInteger(
+          canonicalResume.deferredQuestionSequence,
+        )
+          ? canonicalResume.deferredQuestionSequence
+          : 0;
         const notice = formatMcpLedgerRecoveryNotice(canonicalResume.recovery);
         if (notice) {
           canonicalMcpCallRecovery = {
@@ -2471,8 +2494,23 @@ async function runAgentHeadlessStreamInWorkspace(
     options.interactiveQuestions === true ||
     process.env.CC_INTERACTIVE_QUESTIONS === "1";
   const pendingQuestions = new Map();
-  const deferredQuestionContext = new DeferredQuestionContext({ sessionId });
-  let questionSeq = 0;
+  const persistDeferredQuestionEvent = (type, data) => {
+    if (!persist) return true;
+    requireSynchronousRecoveryResult(
+      store.appendAuthorityEvent(sessionId, type, data),
+      type,
+    );
+    return true;
+  };
+  const deferredQuestionContext = new DeferredQuestionContext({
+    sessionId,
+    initialAnswers: canonicalDeferredAnswers,
+    onConsumed: (questionIds) =>
+      persistDeferredQuestionEvent(DEFERRED_QUESTION_EVENTS.CONSUMED, {
+        questionIds,
+      }),
+  });
+  let questionSeq = canonicalDeferredQuestionSequence;
   const questionTimeoutMs =
     Number(process.env.CC_QUESTION_TIMEOUT_MS) > 0
       ? Number(process.env.CC_QUESTION_TIMEOUT_MS)
@@ -2480,6 +2518,38 @@ async function runAgentHeadlessStreamInWorkspace(
   const settleQuestion = (id, answer, via) => {
     const p = pendingQuestions.get(id);
     if (!p) return;
+    let durableAnswer = null;
+    if (p.mode === "deferred") {
+      durableAnswer = normalizeDeferredQuestionAnswer(
+        {
+          questionId: id,
+          question: p.question,
+          answer,
+          options: p.options,
+          multiSelect: p.multiSelect,
+          purpose: p.purpose,
+          binding: p.binding,
+          requestedRevision: p.contextRevision,
+          resolvedRevision: turns,
+        },
+        sessionId,
+      );
+      try {
+        if (!durableAnswer) throw new Error("invalid deferred answer binding");
+        persistDeferredQuestionEvent(
+          DEFERRED_QUESTION_EVENTS.RESOLVED,
+          durableAnswer,
+        );
+      } catch {
+        emit({
+          type: "question_response_rejected",
+          id,
+          reason: "persistence_failed",
+          session_id: sessionId,
+        });
+        return;
+      }
+    }
     pendingQuestions.delete(id);
     clearTimeout(p.timer);
     emit({
@@ -2491,14 +2561,7 @@ async function runAgentHeadlessStreamInWorkspace(
       session_id: sessionId,
     });
     if (p.mode === "deferred") {
-      deferredQuestionContext.record({
-        questionId: id,
-        question: p.question,
-        answer,
-        binding: p.binding,
-        requestedRevision: p.contextRevision,
-        resolvedRevision: turns,
-      });
+      deferredQuestionContext.record(durableAnswer);
       return;
     }
     p.resolve(answer);
@@ -2508,6 +2571,19 @@ async function runAgentHeadlessStreamInWorkspace(
     if (!p) return;
     pendingQuestions.delete(id);
     clearTimeout(p.timer);
+    if (
+      p.mode === "deferred" &&
+      !["pipe-closed", "session-closed", "stdin-closed"].includes(via)
+    ) {
+      try {
+        persistDeferredQuestionEvent(DEFERRED_QUESTION_EVENTS.EXPIRED, {
+          questionId: id,
+        });
+      } catch {
+        // The unresolved request remains in the durable transcript and can be
+        // surfaced again after the persistence boundary recovers.
+      }
+    }
     emit({
       type: "question_resolved",
       id,
@@ -2566,6 +2642,50 @@ async function runAgentHeadlessStreamInWorkspace(
     }
     deferredQuestionContext.clear();
   });
+  const restoredQuestionEvents = [];
+  // An opted-out/legacy pipe must not receive a newly introduced interactive
+  // event. Keep its durable request untouched so a capable reconnect can
+  // surface it later; already-resolved answers can still be consumed as data.
+  for (const value of interactiveQuestions ? canonicalDeferredQuestions : []) {
+    const restored = normalizeDeferredQuestionRequest(value, sessionId);
+    if (!restored) continue;
+    questionSeq = Math.max(questionSeq, restored.binding.sequence);
+    const timer = setTimeout(
+      () => failQuestion(restored.questionId, "timeout"),
+      questionTimeoutMs,
+    );
+    timer.unref?.();
+    pendingQuestions.set(restored.questionId, {
+      resolve: null,
+      reject: null,
+      timer,
+      binding: restored.binding,
+      mode: "deferred",
+      purpose: restored.purpose,
+      question: restored.question,
+      options: restored.options,
+      multiSelect: restored.multiSelect,
+      contextRevision: restored.requestedRevision,
+    });
+    restoredQuestionEvents.push({
+      type: "question_request",
+      id: restored.questionId,
+      session_id: sessionId,
+      binding: restored.binding,
+      ...(restored.binding.turnId ? { turn_id: restored.binding.turnId } : {}),
+      ...(restored.binding.toolUseId
+        ? { tool_use_id: restored.binding.toolUseId }
+        : {}),
+      mode: "deferred",
+      blocking: false,
+      purpose: restored.purpose,
+      context_revision: restored.requestedRevision,
+      question: restored.question,
+      options: restored.options,
+      multiSelect: restored.multiSelect,
+      restored: true,
+    });
+  }
   const registerInteractiveQuestion = (
     {
       question,
@@ -2599,7 +2719,7 @@ async function runAgentHeadlessStreamInWorkspace(
     const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
     const timer = setTimeout(() => failQuestion(id, "timeout"), ms);
     timer.unref?.();
-    pendingQuestions.set(id, {
+    const pending = {
       resolve,
       reject,
       timer,
@@ -2607,8 +2727,36 @@ async function runAgentHeadlessStreamInWorkspace(
       mode,
       purpose,
       question: typeof question === "string" ? question : "",
+      options: Array.isArray(qOptions) ? qOptions : null,
+      multiSelect: multiSelect === true,
       contextRevision: turns,
-    });
+    };
+    if (mode === "deferred") {
+      const durableRequest = normalizeDeferredQuestionRequest(
+        {
+          questionId: id,
+          question: pending.question,
+          options: pending.options,
+          multiSelect: pending.multiSelect,
+          purpose,
+          binding,
+          requestedRevision: turns,
+        },
+        sessionId,
+      );
+      try {
+        if (!durableRequest)
+          throw new Error("invalid deferred question binding");
+        persistDeferredQuestionEvent(
+          DEFERRED_QUESTION_EVENTS.REQUESTED,
+          durableRequest,
+        );
+      } catch (error) {
+        clearTimeout(timer);
+        throw error;
+      }
+    }
+    pendingQuestions.set(id, pending);
     emit({
       type: "question_request",
       id,
@@ -2932,6 +3080,7 @@ async function runAgentHeadlessStreamInWorkspace(
     additional_directories: additionalDirectories,
     resumed_messages: resumedMessages,
   });
+  for (const event of restoredQuestionEvents) emit(event);
 
   // P0-2 visible recovery notice: same `raw` info-line contract as
   // provider_fallback / version_skew (the shipped IDE panels map `raw` → an

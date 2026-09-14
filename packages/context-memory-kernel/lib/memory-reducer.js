@@ -1,10 +1,14 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
-const { MEMORY_RECEIPT_SCHEMA, CONTEXT_ERROR_CODES } = require("./constants.js");
+const {
+  MEMORY_RECEIPT_SCHEMA,
+  CONTEXT_ERROR_CODES,
+} = require("./constants.js");
 const { canonicalDigest } = require("./canonical.js");
 const {
   normalizeMemoryRecord,
+  digestValue,
   normalizeSourceRef,
   normalizeProvenance,
   normalizeRetentionPolicy,
@@ -23,8 +27,20 @@ const { invalidArgument, kernelError } = require("./errors.js");
 
 const TRANSITIONS = Object.freeze({
   candidate: new Set(["active", "deleted"]),
-  active: new Set(["reinforced", "superseded", "archived", "expired", "deleted"]),
-  reinforced: new Set(["reinforced", "superseded", "archived", "expired", "deleted"]),
+  active: new Set([
+    "reinforced",
+    "superseded",
+    "archived",
+    "expired",
+    "deleted",
+  ]),
+  reinforced: new Set([
+    "reinforced",
+    "superseded",
+    "archived",
+    "expired",
+    "deleted",
+  ]),
   superseded: new Set(["archived", "expired", "deleted"]),
   archived: new Set(["active", "expired", "deleted"]),
   expired: new Set(["archived", "active", "deleted"]),
@@ -55,37 +71,62 @@ const PROPOSAL_FIELDS = new Set([
 
 function isoNow(clock) {
   const epoch = typeof clock === "function" ? Number(clock()) : Date.now();
-  if (!Number.isFinite(epoch)) throw invalidArgument("clock returned an invalid timestamp");
+  if (!Number.isFinite(epoch))
+    throw invalidArgument("clock returned an invalid timestamp");
   return new Date(epoch).toISOString();
 }
 
 function createMemoryCandidate(input, options = {}) {
   const value = objectValue(input, "MemoryProposal");
   assertKnownFields(value, PROPOSAL_FIELDS, "MemoryProposal");
-  const now = value.createdAt === undefined ? isoNow(options.clock) : timestamp(value.createdAt, "createdAt");
-  const memoryId = value.memoryId || `mem-${(options.randomUUID || randomUUID)()}`;
+  const now =
+    value.createdAt === undefined
+      ? isoNow(options.clock)
+      : timestamp(value.createdAt, "createdAt");
+  const memoryId =
+    value.memoryId || `mem-${(options.randomUUID || randomUUID)()}`;
   return normalizeMemoryRecord({
     schemaVersion: 1,
     memoryId,
     ...assertScope(value.scope, value.scopeId),
     category: identifier(value.category, "category"),
-    content: boundedString(value.content, "content", { min: 1, max: 4 * 1024 * 1024 }),
+    content: boundedString(value.content, "content", {
+      min: 1,
+      max: 4 * 1024 * 1024,
+    }),
     ...(value.contentRef === undefined ? {} : { contentRef: value.contentRef }),
     ...(value.summary === undefined
       ? {}
-      : { summary: boundedString(value.summary, "summary", { min: 1, max: 16 * 1024 }) }),
+      : {
+          summary: boundedString(value.summary, "summary", {
+            min: 1,
+            max: 16 * 1024,
+          }),
+        }),
     provenance: normalizeProvenance(value.provenance),
     evidenceRefs: (() => {
-      if (!Array.isArray(value.evidenceRefs) || value.evidenceRefs.length === 0 || value.evidenceRefs.length > 128) {
-        throw invalidArgument("evidenceRefs must contain 1-128 entries", { field: "evidenceRefs" });
+      if (
+        !Array.isArray(value.evidenceRefs) ||
+        value.evidenceRefs.length === 0 ||
+        value.evidenceRefs.length > 128
+      ) {
+        throw invalidArgument("evidenceRefs must contain 1-128 entries", {
+          field: "evidenceRefs",
+        });
       }
-      return value.evidenceRefs.map((entry, index) => normalizeSourceRef(entry, `evidenceRefs[${index}]`));
+      return value.evidenceRefs.map((entry, index) =>
+        normalizeSourceRef(entry, `evidenceRefs[${index}]`),
+      );
     })(),
     confidence: boundedNumber(value.confidence, "confidence"),
     importance: boundedNumber(value.importance, "importance"),
     tags: stringSet(value.tags || [], "tags", { maxItems: 128, itemMax: 128 }),
     sensitivity: value.sensitivity,
-    allowedSinks: stringSet(value.allowedSinks || [], "allowedSinks", { minItems: 1, maxItems: 128, itemMax: 128 }),
+    allowedSinks: stringSet(value.allowedSinks || [], "allowedSinks", {
+      minItems: 1,
+      maxItems: 128,
+      itemMax: 128,
+    }),
     state:
       value.activate === undefined
         ? "candidate"
@@ -130,13 +171,21 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
   const current = normalizeMemoryRecord(recordInput);
   const command = objectValue(commandInput, "MemoryCommand");
   assertKnownFields(command, COMMAND_FIELDS, "MemoryCommand");
-  const expectedRevision = boundedInteger(command.expectedRevision, "expectedRevision", { min: 1 });
+  const expectedRevision = boundedInteger(
+    command.expectedRevision,
+    "expectedRevision",
+    { min: 1 },
+  );
   if (expectedRevision !== current.revision) {
-    throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "memory revision does not match", {
-      memoryId: current.memoryId,
-      expectedRevision,
-      actualRevision: current.revision,
-    });
+    throw kernelError(
+      CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+      "memory revision does not match",
+      {
+        memoryId: current.memoryId,
+        expectedRevision,
+        actualRevision: current.revision,
+      },
+    );
   }
   const type = boundedString(command.type, "type", { min: 1, max: 64 });
   const target = {
@@ -148,41 +197,77 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
     delete: "deleted",
     purge: "purged",
   }[type];
-  if (!target) throw invalidArgument("unsupported MemoryCommand type", { type });
+  if (!target)
+    throw invalidArgument("unsupported MemoryCommand type", { type });
   assertTransition(current.state, target);
-  const at = command.at === undefined ? isoNow(options.clock) : timestamp(command.at, "at");
-  const next = { ...current, state: target, updatedAt: at, revision: current.revision + 1 };
+  const at =
+    command.at === undefined
+      ? isoNow(options.clock)
+      : timestamp(command.at, "at");
+  const next = {
+    ...current,
+    state: target,
+    updatedAt: at,
+    revision: current.revision + 1,
+  };
 
   if (type === "reinforce") {
-    const delta = boundedNumber(command.confidenceDelta ?? 0.05, "confidenceDelta", { min: 0, max: 1 });
+    const delta = boundedNumber(
+      command.confidenceDelta ?? 0.05,
+      "confidenceDelta",
+      { min: 0, max: 1 },
+    );
     next.confidence = Math.min(1, current.confidence + delta);
-    if (command.importance !== undefined) next.importance = boundedNumber(command.importance, "importance");
+    if (command.importance !== undefined)
+      next.importance = boundedNumber(command.importance, "importance");
     if (command.summary !== undefined) {
-      next.summary = boundedString(command.summary, "summary", { min: 1, max: 16 * 1024 });
+      next.summary = boundedString(command.summary, "summary", {
+        min: 1,
+        max: 16 * 1024,
+      });
     }
     if (command.tags !== undefined) {
-      const additional = stringSet(command.tags, "tags", { maxItems: 128, itemMax: 128 });
-      next.tags = stringSet([...new Set([...current.tags, ...additional])], "tags", {
+      const additional = stringSet(command.tags, "tags", {
         maxItems: 128,
         itemMax: 128,
       });
+      next.tags = stringSet(
+        [...new Set([...current.tags, ...additional])],
+        "tags",
+        {
+          maxItems: 128,
+          itemMax: 128,
+        },
+      );
     }
     if (command.evidenceRefs !== undefined) {
-      if (!Array.isArray(command.evidenceRefs) || command.evidenceRefs.length > 128) {
-        throw invalidArgument("evidenceRefs must be a bounded array", { field: "evidenceRefs" });
+      if (
+        !Array.isArray(command.evidenceRefs) ||
+        command.evidenceRefs.length > 128
+      ) {
+        throw invalidArgument("evidenceRefs must be a bounded array", {
+          field: "evidenceRefs",
+        });
       }
       const combined = [
         ...current.evidenceRefs,
-        ...command.evidenceRefs.map((entry, index) => normalizeSourceRef(entry, `evidenceRefs[${index}]`)),
+        ...command.evidenceRefs.map((entry, index) =>
+          normalizeSourceRef(entry, `evidenceRefs[${index}]`),
+        ),
       ];
       const unique = new Map(
-        combined.map((entry) => [canonicalDigest(entry, "chainlesschain.source-ref/v1"), entry]),
+        combined.map((entry) => [
+          canonicalDigest(entry, "chainlesschain.source-ref/v1"),
+          entry,
+        ]),
       );
-      if (unique.size > 128) throw invalidArgument("combined evidenceRefs exceeds 128 entries");
+      if (unique.size > 128)
+        throw invalidArgument("combined evidenceRefs exceeds 128 entries");
       next.evidenceRefs = [...unique.values()];
     }
   }
-  if (type === "supersede") identifier(command.successorMemoryId, "successorMemoryId");
+  if (type === "supersede")
+    identifier(command.successorMemoryId, "successorMemoryId");
   if (type === "delete") {
     next.deletionFence = identifier(command.deletionFence, "deletionFence");
     // Retain only the minimum anti-resurrection tombstone. Source identifiers
@@ -213,10 +298,17 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
     delete next.supersedes;
   }
   if (type === "purge") {
-    if (identifier(command.deletionFence, "deletionFence") !== current.deletionFence) {
-      throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "purge fence does not match deletion tombstone", {
-        memoryId: current.memoryId,
-      });
+    if (
+      identifier(command.deletionFence, "deletionFence") !==
+      current.deletionFence
+    ) {
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "purge fence does not match deletion tombstone",
+        {
+          memoryId: current.memoryId,
+        },
+      );
     }
     next.content = "";
     delete next.summary;
@@ -238,11 +330,23 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
     at,
     ...(command.reason === undefined
       ? {}
-      : { reason: boundedString(command.reason, "reason", { min: 1, max: 2048 }) }),
-    ...(command.authority === undefined ? {} : { authority: identifier(command.authority, "authority") }),
+      : {
+          reason: boundedString(command.reason, "reason", {
+            min: 1,
+            max: 2048,
+          }),
+        }),
+    ...(command.authority === undefined
+      ? {}
+      : { authority: identifier(command.authority, "authority") }),
     ...(command.successorMemoryId === undefined
       ? {}
-      : { successorMemoryId: identifier(command.successorMemoryId, "successorMemoryId") }),
+      : {
+          successorMemoryId: identifier(
+            command.successorMemoryId,
+            "successorMemoryId",
+          ),
+        }),
   };
   event.digest = canonicalDigest(event, "chainlesschain.memory-event/v1");
   const receipt = {
@@ -263,37 +367,68 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
 function mergeReplicaRecord(localInput, incomingInput) {
   const local = normalizeMemoryRecord(localInput);
   const incoming = normalizeMemoryRecord(incomingInput);
-  if (local.memoryId !== incoming.memoryId) throw invalidArgument("replica records must have the same memoryId");
+  if (local.memoryId !== incoming.memoryId)
+    throw invalidArgument("replica records must have the same memoryId");
   if (local.scope !== incoming.scope || local.scopeId !== incoming.scopeId) {
-    throw kernelError(CONTEXT_ERROR_CODES.SCOPE_DENIED, "replica merge cannot change memory scope", {
-      memoryId: local.memoryId,
-    });
+    throw kernelError(
+      CONTEXT_ERROR_CODES.SCOPE_DENIED,
+      "replica merge cannot change memory scope",
+      {
+        memoryId: local.memoryId,
+      },
+    );
   }
   if (local.state === "purged") {
-    if (incoming.state === "purged" && incoming.deletionFence === local.deletionFence) return local;
-    throw kernelError(CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED, "purged memory cannot be restored by a replica", {
-      memoryId: local.memoryId,
-      deletionFence: local.deletionFence,
-    });
+    if (
+      incoming.state === "purged" &&
+      incoming.deletionFence === local.deletionFence
+    )
+      return local;
+    throw kernelError(
+      CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED,
+      "purged memory cannot be restored by a replica",
+      {
+        memoryId: local.memoryId,
+        deletionFence: local.deletionFence,
+      },
+    );
   }
-  if (local.state === "deleted" && !["deleted", "purged"].includes(incoming.state)) {
-    throw kernelError(CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED, "deleted memory cannot be restored by a replica", {
-      memoryId: local.memoryId,
-      deletionFence: local.deletionFence,
-    });
+  if (
+    local.state === "deleted" &&
+    !["deleted", "purged"].includes(incoming.state)
+  ) {
+    throw kernelError(
+      CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED,
+      "deleted memory cannot be restored by a replica",
+      {
+        memoryId: local.memoryId,
+        deletionFence: local.deletionFence,
+      },
+    );
   }
-  if (["deleted", "purged"].includes(local.state) && incoming.deletionFence !== local.deletionFence) {
-    throw kernelError(CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED, "replica deletion fence does not match authority", {
-      memoryId: local.memoryId,
-    });
+  if (
+    ["deleted", "purged"].includes(local.state) &&
+    incoming.deletionFence !== local.deletionFence
+  ) {
+    throw kernelError(
+      CONTEXT_ERROR_CODES.REPLICA_TOMBSTONE_FENCED,
+      "replica deletion fence does not match authority",
+      {
+        memoryId: local.memoryId,
+      },
+    );
   }
   if (incoming.revision < local.revision) return local;
   if (incoming.revision === local.revision) {
     if (incoming.digest !== local.digest) {
-      throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "equal replica revisions have different digests", {
-        memoryId: local.memoryId,
-        revision: local.revision,
-      });
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "equal replica revisions have different digests",
+        {
+          memoryId: local.memoryId,
+          revision: local.revision,
+        },
+      );
     }
     return local;
   }
@@ -301,9 +436,13 @@ function mergeReplicaRecord(localInput, incomingInput) {
     incoming.sensitivity !== local.sensitivity ||
     JSON.stringify(incoming.allowedSinks) !== JSON.stringify(local.allowedSinks)
   ) {
-    throw kernelError(CONTEXT_ERROR_CODES.SCOPE_DENIED, "replica merge cannot weaken data policy", {
-      memoryId: local.memoryId,
-    });
+    throw kernelError(
+      CONTEXT_ERROR_CODES.SCOPE_DENIED,
+      "replica merge cannot weaken data policy",
+      {
+        memoryId: local.memoryId,
+      },
+    );
   }
   return incoming;
 }
@@ -449,22 +588,88 @@ const RECALL_FIELDS = new Set([
   "query",
   "sink",
   "scopeAdmissions",
+  "semanticCandidates",
   "limit",
   "tokenBudget",
   "now",
 ]);
+
+const SEMANTIC_CANDIDATE_FIELDS = new Set([
+  "memoryId",
+  "revision",
+  "recordDigest",
+  "score",
+]);
+
+function normalizeSemanticCandidates(input) {
+  if (input === undefined) return null;
+  if (!Array.isArray(input) || input.length > 1000) {
+    throw invalidArgument("semanticCandidates must contain 0-1000 entries", {
+      field: "semanticCandidates",
+    });
+  }
+  const candidates = new Map();
+  for (const [index, candidateInput] of input.entries()) {
+    const field = `semanticCandidates[${index}]`;
+    const candidate = objectValue(candidateInput, field);
+    assertKnownFields(candidate, SEMANTIC_CANDIDATE_FIELDS, field);
+    const memoryId = identifier(candidate.memoryId, `${field}.memoryId`);
+    if (candidates.has(memoryId)) {
+      throw invalidArgument(
+        "semanticCandidates must not contain duplicate memoryId values",
+        {
+          field,
+          memoryId,
+        },
+      );
+    }
+    candidates.set(memoryId, {
+      memoryId,
+      revision: boundedInteger(candidate.revision, `${field}.revision`, {
+        min: 1,
+      }),
+      recordDigest: digestValue(
+        candidate.recordDigest,
+        `${field}.recordDigest`,
+      ),
+      score: boundedNumber(candidate.score, `${field}.score`),
+    });
+  }
+  return candidates;
+}
+
 function rankMemoryRecords(records, requestInput = {}) {
   const request = objectValue(requestInput, "MemoryRecallRequest");
   assertKnownFields(request, RECALL_FIELDS, "MemoryRecallRequest");
-  const query = boundedString(request.query, "query", { min: 1, max: 32 * 1024 });
-  const sink = boundedString(request.sink, "sink", { min: 1, max: 128 });
-  const limit = boundedInteger(request.limit ?? 10, "limit", { min: 1, max: 1000 });
-  const tokenBudget = boundedInteger(request.tokenBudget ?? 4096, "tokenBudget", {
+  const query = boundedString(request.query, "query", {
     min: 1,
-    max: 1_048_576,
+    max: 32 * 1024,
   });
-  const now = request.now === undefined ? new Date().toISOString() : timestamp(request.now, "now");
-  if (!Array.isArray(request.scopeAdmissions) || request.scopeAdmissions.length === 0 || request.scopeAdmissions.length > 128) {
+  const sink = boundedString(request.sink, "sink", { min: 1, max: 128 });
+  const limit = boundedInteger(request.limit ?? 10, "limit", {
+    min: 1,
+    max: 1000,
+  });
+  const tokenBudget = boundedInteger(
+    request.tokenBudget ?? 4096,
+    "tokenBudget",
+    {
+      min: 1,
+      max: 1_048_576,
+    },
+  );
+  const now =
+    request.now === undefined
+      ? new Date().toISOString()
+      : timestamp(request.now, "now");
+  const semanticCandidates = normalizeSemanticCandidates(
+    request.semanticCandidates,
+  );
+  if (
+    !Array.isArray(request.scopeAdmissions) ||
+    request.scopeAdmissions.length === 0 ||
+    request.scopeAdmissions.length > 128
+  ) {
     throw invalidArgument("scopeAdmissions must contain 1-128 entries");
   }
   const admissions = request.scopeAdmissions.map((entry, index) =>
@@ -480,18 +685,42 @@ function rankMemoryRecords(records, requestInput = {}) {
         Date.parse(record.retentionPolicy.expiresAt) > Date.parse(now),
     )
     .filter((record) =>
-      admissions.some((entry) => entry.scope === record.scope && entry.scopeId === record.scopeId),
+      admissions.some(
+        (entry) =>
+          entry.scope === record.scope && entry.scopeId === record.scopeId,
+      ),
     )
-    .filter((record) => record.allowedSinks.includes("*") || record.allowedSinks.includes(sink))
+    .filter(
+      (record) =>
+        record.allowedSinks.includes("*") || record.allowedSinks.includes(sink),
+    )
     .map((record) => {
       const lexical = scoreLexicalQuery(compiledQuery, record);
+      const semanticCandidate = semanticCandidates?.get(record.memoryId);
+      if (
+        semanticCandidate &&
+        (semanticCandidate.revision !== record.revision ||
+          semanticCandidate.recordDigest !== record.digest)
+      ) {
+        throw kernelError(
+          CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+          "semantic candidate is stale or bound to different record content",
+          { memoryId: record.memoryId },
+        );
+      }
+      const semantic = semanticCandidate?.score ?? 0;
+      // A host-provided semantic score may expand recall, but it never selects
+      // a record until the canonical lifecycle, scope, expiry and sink gates
+      // above have admitted that record. Exact lexical behavior is preserved
+      // by letting semantic relevance substitute for, rather than dilute, it.
+      const retrieval = Math.max(lexical, semantic);
       const relevance = Math.min(
         1,
-        lexical * 0.65 + record.confidence * 0.2 + record.importance * 0.15,
+        retrieval * 0.65 + record.confidence * 0.2 + record.importance * 0.15,
       );
-      return { record, relevance, lexical };
+      return { record, relevance, lexical, semantic, semanticCandidate };
     })
-    .filter((entry) => entry.lexical > 0)
+    .filter((entry) => entry.lexical > 0 || entry.semantic > 0)
     .sort(
       (left, right) =>
         right.relevance - left.relevance ||
@@ -504,7 +733,10 @@ function rankMemoryRecords(records, requestInput = {}) {
   const categories = new Map();
   for (const entry of scored) {
     if (results.length >= limit) break;
-    const estimatedTokens = Math.max(1, Math.ceil(Buffer.byteLength(entry.record.content, "utf8") / 4));
+    const estimatedTokens = Math.max(
+      1,
+      Math.ceil(Buffer.byteLength(entry.record.content, "utf8") / 4),
+    );
     if (usedTokens + estimatedTokens > tokenBudget) continue;
     const categoryCount = categories.get(entry.record.category) || 0;
     if (
@@ -513,7 +745,7 @@ function rankMemoryRecords(records, requestInput = {}) {
     ) {
       continue;
     }
-    results.push({
+    const result = {
       memoryId: entry.record.memoryId,
       scope: entry.record.scope,
       ...(entry.record.scopeId ? { scopeId: entry.record.scopeId } : {}),
@@ -524,7 +756,12 @@ function rankMemoryRecords(records, requestInput = {}) {
       estimatedTokens,
       truncated: false,
       record: entry.record,
-    });
+    };
+    if (semanticCandidates) {
+      result.lexicalRelevance = Number(entry.lexical.toFixed(6));
+      result.semanticRelevance = Number(entry.semantic.toFixed(6));
+    }
+    results.push(result);
     usedTokens += estimatedTokens;
     categories.set(entry.record.category, categoryCount + 1);
   }
@@ -536,6 +773,12 @@ function rankMemoryRecords(records, requestInput = {}) {
     totalCandidates: scored.length,
     results,
   };
+  if (semanticCandidates) {
+    output.retrievalMode = "governed_hybrid";
+    output.semanticEvidenceCount = scored.filter(
+      (entry) => entry.semanticCandidate,
+    ).length;
+  }
   output.digest = canonicalDigest(output, "chainlesschain.memory-recall/v1");
   return output;
 }

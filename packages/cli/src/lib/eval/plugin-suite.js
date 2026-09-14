@@ -7,6 +7,8 @@ import { encodeName } from "../plugin-runtime/scopes.js";
 
 export const PLUGIN_EVAL_SUITE_SCHEMA = "chainlesschain.plugin-eval-suite/v1";
 export const PLUGIN_EVAL_REPORT_SCHEMA = "chainlesschain.plugin-eval-report/v1";
+export const PLUGIN_EVAL_HOLDOUT_SCHEMA =
+  "chainlesschain.plugin-eval-holdout/v1";
 
 const DEFAULT_SUITE_PATH = "evals/suite.json";
 const MAX_SUITE_BYTES = 1024 * 1024;
@@ -22,6 +24,7 @@ const MAX_ASSERTION_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_RUNTIME_OUTPUT_BYTES = 16 * 1024 * 1024;
 const MAX_RUNTIME_TOOL_CALLS = 10_000;
 const MAX_TRIGGER_SIGNALS = 256;
+const MAX_SAMPLE_RUNS = 20;
 const TASK_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u;
 const EXPECTATIONS = new Set([
   "should_trigger",
@@ -35,6 +38,7 @@ const ASSERTION_TYPES = new Set([
   "file_contains",
   "json_equals",
 ]);
+const ARM_ORDERS = new Set(["balanced", "control-first", "candidate-first"]);
 
 function digest(bytes, domain) {
   return `sha256:${crypto
@@ -120,6 +124,25 @@ function suiteRelativePath(root, suiteFile) {
     );
   }
   return relation.split(path.sep).join("/");
+}
+
+function readBoundedJsonFile(file, label) {
+  const target = path.resolve(file);
+  const stat = fs.lstatSync(target);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new TypeError(`${label} must be a regular file, not a symlink`);
+  }
+  if (stat.size === 0 || stat.size > MAX_SUITE_BYTES) {
+    throw new RangeError(`${label} must be under ${MAX_SUITE_BYTES} bytes`);
+  }
+  const bytes = fs.readFileSync(target);
+  let value;
+  try {
+    value = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new TypeError(`${label} is not valid JSON`);
+  }
+  return { target, bytes, value: plainObject(value, label) };
 }
 
 function collectPluginSnapshot(root) {
@@ -210,6 +233,24 @@ function parseThreshold(value, label, { min = 0, max = 1 } = {}) {
     value > max
   ) {
     throw new RangeError(`${label} must be a number between ${min} and ${max}`);
+  }
+  return value;
+}
+
+function parseSampleRuns(value, label = "sampling.runs") {
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_SAMPLE_RUNS) {
+    throw new RangeError(
+      `${label} must be an integer between 1 and ${MAX_SAMPLE_RUNS}`,
+    );
+  }
+  return value;
+}
+
+function parseArmOrder(value, label = "sampling.armOrder") {
+  if (!ARM_ORDERS.has(value)) {
+    throw new TypeError(
+      `${label} must be balanced, control-first, or candidate-first`,
+    );
   }
   return value;
 }
@@ -414,6 +455,8 @@ export function loadPluginEvalDefinition(pluginRoot, { suiteFile } = {}) {
   }
   const thresholds = raw.thresholds || {};
   plainObject(thresholds, "plugin eval suite.thresholds");
+  const sampling = raw.sampling || {};
+  plainObject(sampling, "plugin eval suite.sampling");
   const maxCandidateCostUsd = parseThreshold(
     thresholds.maxCandidateCostUsd,
     "thresholds.maxCandidateCostUsd",
@@ -421,6 +464,7 @@ export function loadPluginEvalDefinition(pluginRoot, { suiteFile } = {}) {
   );
   return {
     schema: PLUGIN_EVAL_SUITE_SCHEMA,
+    pluginRoot: fs.realpathSync(root),
     identity: {
       name: manifest.metadata.name,
       version: manifest.metadata.version,
@@ -433,6 +477,10 @@ export function loadPluginEvalDefinition(pluginRoot, { suiteFile } = {}) {
     ),
     payload: snapshot,
     tasks,
+    sampling: {
+      runs: parseSampleRuns(sampling.runs ?? 1),
+      armOrder: parseArmOrder(sampling.armOrder || "balanced"),
+    },
     thresholds: {
       minPassRateDelta:
         parseThreshold(
@@ -446,6 +494,87 @@ export function loadPluginEvalDefinition(pluginRoot, { suiteFile } = {}) {
           "thresholds.maxUnrelatedChangeRate",
         ) ?? 1,
       maxCandidateCostUsd,
+    },
+  };
+}
+
+/**
+ * Attach reviewer-owned tasks from a file outside the plugin payload. The
+ * digest is reported separately so an author-controlled payload cannot mutate
+ * or silently absorb the holdout corpus.
+ */
+export function attachPluginEvalHoldout(definition, holdoutFile) {
+  if (!holdoutFile) return definition;
+  const { target, bytes, value } = readBoundedJsonFile(
+    holdoutFile,
+    "plugin eval holdout",
+  );
+  const holdoutReal = fs.realpathSync(target);
+  const relation = path.relative(definition.pluginRoot, holdoutReal);
+  if (
+    relation === "" ||
+    (!relation.startsWith(`..${path.sep}`) &&
+      relation !== ".." &&
+      !path.isAbsolute(relation))
+  ) {
+    throw new TypeError(
+      "plugin eval holdout must be outside the plugin payload root",
+    );
+  }
+  if (value.schema !== PLUGIN_EVAL_HOLDOUT_SCHEMA) {
+    throw new TypeError(
+      `plugin eval holdout must use ${PLUGIN_EVAL_HOLDOUT_SCHEMA}`,
+    );
+  }
+  const identity = plainObject(value.plugin, "plugin eval holdout.plugin");
+  if (
+    identity.name !== definition.identity.name ||
+    identity.version !== definition.identity.version
+  ) {
+    throw new TypeError(
+      "plugin eval holdout identity must match the parsed plugin manifest",
+    );
+  }
+  if (
+    !Array.isArray(value.tasks) ||
+    value.tasks.length === 0 ||
+    value.tasks.length > MAX_TASKS
+  ) {
+    throw new RangeError(`plugin eval holdout requires 1-${MAX_TASKS} tasks`);
+  }
+  const holdoutTasks = value.tasks.map((task, index) => ({
+    ...normalizeTask(task, index),
+    source: "holdout",
+  }));
+  if (definition.tasks.length + holdoutTasks.length > MAX_TASKS) {
+    throw new RangeError(
+      `plugin eval author and holdout tasks may not exceed ${MAX_TASKS}`,
+    );
+  }
+  const ids = new Set(definition.tasks.map((task) => task.id));
+  for (const task of holdoutTasks) {
+    if (ids.has(task.id)) {
+      throw new TypeError(`duplicate plugin eval task id: ${task.id}`);
+    }
+    ids.add(task.id);
+  }
+  return {
+    ...definition,
+    tasks: [
+      ...definition.tasks.map((task) => ({
+        ...task,
+        source: task.source || "author",
+      })),
+      ...holdoutTasks,
+    ],
+    holdout: {
+      schema: PLUGIN_EVAL_HOLDOUT_SCHEMA,
+      // Reports may be shared as CI artifacts; do not disclose the reviewer's
+      // absolute workstation path. The digest is the authoritative binding.
+      path: path.basename(target),
+      digest: digest(bytes, "chainlesschain.plugin-eval-holdout-bytes/v1"),
+      tasks: holdoutTasks.length,
+      independentFromPayload: true,
     },
   };
 }
@@ -555,6 +684,7 @@ function buildTasks(definition, { candidate }) {
   return definition.tasks.map((task) => ({
     id: task.id,
     description: task.description,
+    source: task.source || "author",
     prompt: task.prompt,
     expectedFiles: task.expectedFiles,
     ...(task.timeoutMs === undefined ? {} : { timeoutMs: task.timeoutMs }),
@@ -708,6 +838,7 @@ function projectArm(summary, definition, { candidate }) {
           metrics.pluginTriggered === false));
     return {
       ...result,
+      source: task.source || "author",
       expectation,
       pluginTriggered: metrics.pluginTriggered,
       activationEvidenceAvailable: metrics.available === true,
@@ -753,8 +884,108 @@ function reportArm(arm) {
     usage: arm.usage,
     totalCostUsd: arm.totalCostUsd,
     ms: arm.ms,
+    sampleRuns: arm.sampleRuns,
     results: arm.results,
   };
+}
+
+function aggregateArms(arms) {
+  const results = arms.flatMap((arm, sampleIndex) =>
+    arm.results.map((result) => ({ ...result, sample: sampleIndex + 1 })),
+  );
+  const total = results.length;
+  const measured = results.filter((result) =>
+    Array.isArray(result.unrelatedChanges),
+  );
+  const tasksWithUnrelatedChanges = measured.filter(
+    (result) => result.unrelatedChanges.length > 0,
+  ).length;
+  const passed = results.filter((result) => result.pass).length;
+  const effectivePassed = results.filter(
+    (result) => result.effectivePass,
+  ).length;
+  const triggered = results.filter(
+    (result) => result.pluginTriggered === true,
+  ).length;
+  return {
+    results,
+    passed,
+    failed: total - passed,
+    total,
+    passRate: total > 0 ? passed / total : 0,
+    effectivePassed,
+    effectiveFailed: total - effectivePassed,
+    effectivePassRate: total > 0 ? effectivePassed / total : 0,
+    artifactChecksPassed: results.filter((result) => result.artifactCheckPassed)
+      .length,
+    executionsSucceeded: results.filter((result) => result.executionSucceeded)
+      .length,
+    tasksWithUnrelatedChanges,
+    unrelatedChangeRate: measured.length
+      ? tasksWithUnrelatedChanges / measured.length
+      : 0,
+    triggerRate: total > 0 ? triggered / total : 0,
+    activationEvidenceComplete: results.every(
+      (result) => result.activationEvidenceAvailable,
+    ),
+    ...sumUsage(results),
+    ms: arms.reduce((totalMs, arm) => totalMs + arm.ms, 0),
+    sampleRuns: arms.length,
+  };
+}
+
+// Wilson score intervals stay well behaved for the small and extreme samples
+// common in plugin author evals (unlike p +/- z*sqrt(p(1-p)/n)).
+function wilson95(successes, total) {
+  if (!Number.isSafeInteger(total) || total <= 0) return null;
+  const z = 1.959963984540054;
+  const z2 = z * z;
+  const p = successes / total;
+  const denominator = 1 + z2 / total;
+  const center = (p + z2 / (2 * total)) / denominator;
+  const radius =
+    (z * Math.sqrt((p * (1 - p) + z2 / (4 * total)) / total)) / denominator;
+  return {
+    lower: Math.max(0, center - radius),
+    upper: Math.min(1, center + radius),
+  };
+}
+
+function confidenceComparison(control, candidate) {
+  const controlInterval = wilson95(control.effectivePassed, control.total);
+  const candidateInterval = wilson95(
+    candidate.effectivePassed,
+    candidate.total,
+  );
+  if (!controlInterval || !candidateInterval) return null;
+  return {
+    method: "wilson-95-newcombe-difference",
+    control: controlInterval,
+    candidate: candidateInterval,
+    passRateDelta: {
+      lower: candidateInterval.lower - controlInterval.upper,
+      upper: candidateInterval.upper - controlInterval.lower,
+    },
+  };
+}
+
+function sampleArmSequence(sampleRuns, armOrder, suiteDigest) {
+  if (armOrder === "control-first") {
+    return Array.from({ length: sampleRuns }, () => ["control", "candidate"]);
+  }
+  if (armOrder === "candidate-first") {
+    return Array.from({ length: sampleRuns }, () => ["candidate", "control"]);
+  }
+  // Bind the first arm to the suite digest, then alternate. This balances
+  // provider drift without introducing an unrecorded random source.
+  const startsWithCandidate =
+    Number.parseInt(String(suiteDigest).slice(-2), 16) % 2 === 1;
+  return Array.from({ length: sampleRuns }, (_, index) => {
+    const candidateFirst = startsWithCandidate
+      ? index % 2 === 0
+      : index % 2 === 1;
+    return candidateFirst ? ["candidate", "control"] : ["control", "candidate"];
+  });
 }
 
 export async function runPluginEval(
@@ -768,6 +999,8 @@ export async function runPluginEval(
     model = null,
     dryRun = false,
     minPassRateDelta,
+    sampleRuns,
+    armOrder,
     onResult,
   } = {},
 ) {
@@ -777,30 +1010,49 @@ export async function runPluginEval(
   ) {
     throw new TypeError("controlRunAgent and candidateRunAgent are required");
   }
-  const runArm = async (arm, tasks, runAgent) =>
-    runSuite(tasks, {
-      runAgent: instrumentRunAgent(runAgent, definition.identity),
-      keepWorkspaces,
-      onResult: onResult ? (result) => onResult({ arm, result }) : undefined,
-    });
-  const control = projectArm(
-    await runArm(
-      "control",
-      buildTasks(definition, { candidate: false }),
-      controlRunAgent,
-    ),
-    definition,
-    { candidate: false },
+  const resolvedSampleRuns = parseSampleRuns(
+    sampleRuns === undefined ? definition.sampling?.runs || 1 : sampleRuns,
+    "sampleRuns",
   );
-  const candidate = projectArm(
-    await runArm(
-      "candidate",
-      buildTasks(definition, { candidate: true }),
-      candidateRunAgent,
-    ),
-    definition,
-    { candidate: true },
+  const resolvedArmOrder = parseArmOrder(
+    armOrder === undefined
+      ? definition.sampling?.armOrder || "balanced"
+      : armOrder,
+    "armOrder",
   );
+  const runArm = async (arm, tasks, runAgent, sample) =>
+    projectArm(
+      await runSuite(tasks, {
+        runAgent: instrumentRunAgent(runAgent, definition.identity),
+        keepWorkspaces,
+        onResult: onResult
+          ? (result) => onResult({ arm, sample, result })
+          : undefined,
+      }),
+      definition,
+      { candidate: arm === "candidate" },
+    );
+  const armRuns = { control: [], candidate: [] };
+  const sequence = sampleArmSequence(
+    resolvedSampleRuns,
+    resolvedArmOrder,
+    definition.suiteDigest,
+  );
+  for (const [sampleIndex, orderedArms] of sequence.entries()) {
+    for (const arm of orderedArms) {
+      const candidate = arm === "candidate";
+      armRuns[arm].push(
+        await runArm(
+          arm,
+          buildTasks(definition, { candidate }),
+          candidate ? candidateRunAgent : controlRunAgent,
+          sampleIndex + 1,
+        ),
+      );
+    }
+  }
+  const control = aggregateArms(armRuns.control);
+  const candidate = aggregateArms(armRuns.candidate);
   const requiredDelta =
     minPassRateDelta === undefined
       ? definition.thresholds.minPassRateDelta
@@ -859,10 +1111,19 @@ export async function runPluginEval(
       digest: definition.suiteDigest,
       tasks: definition.tasks.length,
     },
+    holdout: definition.holdout || null,
     selection: {
       provider,
       model,
       dryRun: dryRun === true,
+      sampleRuns: resolvedSampleRuns,
+      armOrder: resolvedArmOrder,
+    },
+    sampling: {
+      runs: resolvedSampleRuns,
+      armOrder: resolvedArmOrder,
+      sequence,
+      deterministic: true,
     },
     thresholds: {
       ...definition.thresholds,
@@ -876,6 +1137,9 @@ export async function runPluginEval(
           : passRateDelta < 0
             ? "regression"
             : "neutral",
+    },
+    statistics: {
+      confidence95: confidenceComparison(control, candidate),
     },
     arms: {
       control: reportArm(control),

@@ -123,6 +123,23 @@ export interface MemoryRecord {
   deletionFence?: string;
 }
 
+export interface MemorySemanticCandidate {
+  memoryId: string;
+  revision: number;
+  recordDigest: string;
+  score: number;
+}
+
+export interface MemoryRecallRequest {
+  query: string;
+  sink: string;
+  scopeAdmissions: Array<{ scope: ContextScope; scopeId?: string }>;
+  semanticCandidates?: MemorySemanticCandidate[];
+  limit?: number;
+  tokenBudget?: number;
+  now?: string;
+}
+
 export interface ContextPlan {
   schema: "chainlesschain.context-plan/v1";
   schemaVersion: 1;
@@ -214,6 +231,11 @@ export function mergeReplicaRecord(
   local: MemoryRecord,
   incoming: MemoryRecord,
 ): MemoryRecord;
+export function lexicalRelevance(query: string, record: MemoryRecord): number;
+export function rankMemoryRecords(
+  records: MemoryRecord[],
+  request: MemoryRecallRequest,
+): Readonly<Record<string, unknown>>;
 
 export class ContextMemoryKernel {
   constructor(options?: Record<string, unknown>);
