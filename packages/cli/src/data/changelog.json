@@ -3,13 +3,13 @@
   "releases": [
     {
       "productVersion": null,
-      "cliVersion": "0.166.50",
-      "cliVersions": ["0.166.50"],
+      "cliVersion": "0.166.51",
+      "cliVersions": ["0.166.51"],
       "date": null,
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.50: report the active model context accurately",
+          "heading": "Fixed - cc CLI 0.166.51: report the active model context accurately",
           "body": "- Resolve the context window from the exact provider, endpoint, and explicit\n  override used for a request, so the planner, auto-compactor, session report,\n  REPL, and IDE panel share one capacity value.\n- Keep large-window conversations under a token budget rather than compacting\n  solely after 50 short messages; retain the count guard for smaller windows.\n- Carry the main model request's context window and cache counters through the\n  stream and session ledger, excluding sub-agent and compaction requests from\n  the primary context indicator.\n- Label transcript-derived context figures as estimates and retain cache-read\n  and cache-write usage in the completed chat status.\n- Keep semantic-compaction boundary fixtures explicit about their bounded\n  synthetic request window, so they continue to verify compaction settlement\n  rather than inheriting a provider default."
         }
       ]

@@ -2,10 +2,10 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.100] - Pair with CLI 0.166.50 (2026-09-15)
+## [0.37.101] - Pair with CLI 0.166.51 (2026-09-15)
 
-- Supersede the unavailable CLI `0.166.49` source candidate with the exact-gated
-  `chainlesschain@0.166.50` pairing after its release verification completes.
+- Supersede unavailable CLI source candidates with the exact-gated
+  `chainlesschain@0.166.51` pairing after its release verification completes.
 
 ## [0.37.99] - Accurate chat context usage (2026-09-14)
 

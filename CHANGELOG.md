@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.50: report the active model context accurately
+### Fixed - cc CLI 0.166.51: report the active model context accurately
 
 - Resolve the context window from the exact provider, endpoint, and explicit
   override used for a request, so the planner, auto-compactor, session report,
