@@ -24,7 +24,7 @@
     "contextMemory": {
       "schemaId": "https://chainlesschain.com/schemas/context-memory-kernel/v1",
       "schemaVersion": 1,
-      "sourceDigest": "sha256:9dabfbccf4315d511bb09d13decc743e1b43b90ad81eaa5da62df44ba55934cb",
+      "sourceDigest": "sha256:6599168b8fa9ace2d1697c44c2ac10141aa20bd7e9be29e9ea814ff032f87d68",
       "methods": {
         "context/plan": {
           "request": "ContextPlanRequest",
@@ -4808,6 +4808,13 @@
             "$ref": "#/$defs/ContextScopeAdmission"
           }
         },
+        "semanticCandidates": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/MemorySemanticCandidate"
+          }
+        },
         "limit": {
           "type": "integer",
           "minimum": 1,
@@ -4851,6 +4858,15 @@
           "minimum": 0
         },
         "totalCandidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retrievalMode": {
+          "enum": [
+            "governed_hybrid"
+          ]
+        },
+        "semanticEvidenceCount": {
           "type": "integer",
           "minimum": 0
         },
@@ -5766,6 +5782,33 @@
         },
         "result": {
           "$ref": "#/$defs/MemoryRecallResult"
+        }
+      }
+    },
+    "MemorySemanticCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memoryId",
+        "revision",
+        "recordDigest",
+        "score"
+      ],
+      "properties": {
+        "memoryId": {
+          "$ref": "#/$defs/ContextMemoryIdentifier"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recordDigest": {
+          "$ref": "#/$defs/ContextMemoryDigest"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

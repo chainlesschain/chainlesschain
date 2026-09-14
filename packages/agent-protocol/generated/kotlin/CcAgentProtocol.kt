@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:3fb0808a48c70e46ec2c128bd0dd61c184005b99c94b5377ea6defe9dc408868"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:3e0edf1f430dc0ce4a1d9b9ac242923ee4dff090c24af296f60f7085a5dd24b5"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -1035,6 +1035,7 @@ data class MemoryRecallRequest(
     val query: String,
     val sink: String,
     val scopeAdmissions: List<ContextScopeAdmission>,
+    val semanticCandidates: List<MemorySemanticCandidate>? = null,
     val limit: Long? = null,
     val tokenBudget: Long? = null,
     val now: String? = null
@@ -1046,6 +1047,8 @@ data class MemoryRecallResult(
     val tokenBudget: Long,
     val usedTokens: Long,
     val totalCandidates: Long,
+    val retrievalMode: String? = null,
+    val semanticEvidenceCount: Long? = null,
     val results: List<JSONValue>,
     val digest: String,
     val memoryRevision: Long
@@ -1295,6 +1298,13 @@ data class AgentMemoryRecalledStreamEvent(
     val reason_code: String? = null,
     val result: MemoryRecallResult
 ) : AgentStreamEventPayload
+
+data class MemorySemanticCandidate(
+    val memoryId: String,
+    val revision: Long,
+    val recordDigest: String,
+    val score: Double
+)
 
 sealed interface ApprovalDecision {
     data object AcceptOnce : ApprovalDecision

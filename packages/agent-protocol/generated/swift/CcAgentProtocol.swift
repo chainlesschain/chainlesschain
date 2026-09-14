@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:3fb0808a48c70e46ec2c128bd0dd61c184005b99c94b5377ea6defe9dc408868"
+public let ccAgentProtocolSchemaDigest = "sha256:3e0edf1f430dc0ce4a1d9b9ac242923ee4dff090c24af296f60f7085a5dd24b5"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -2725,6 +2725,7 @@ public struct MemoryRecallRequest: Codable, Sendable {
     public let query: String
     public let sink: String
     public let scopeAdmissions: [ContextScopeAdmission]
+    public let semanticCandidates: [MemorySemanticCandidate]?
     public let limit: Int?
     public let tokenBudget: Int?
     public let now: String?
@@ -2733,6 +2734,7 @@ public struct MemoryRecallRequest: Codable, Sendable {
         query: String,
         sink: String,
         scopeAdmissions: [ContextScopeAdmission],
+        semanticCandidates: [MemorySemanticCandidate]? = nil,
         limit: Int? = nil,
         tokenBudget: Int? = nil,
         now: String? = nil
@@ -2740,6 +2742,7 @@ public struct MemoryRecallRequest: Codable, Sendable {
         self.query = query
         self.sink = sink
         self.scopeAdmissions = scopeAdmissions
+        self.semanticCandidates = semanticCandidates
         self.limit = limit
         self.tokenBudget = tokenBudget
         self.now = now
@@ -2752,6 +2755,8 @@ public struct MemoryRecallResult: Codable, Sendable {
     public let tokenBudget: Int
     public let usedTokens: Int
     public let totalCandidates: Int
+    public let retrievalMode: String?
+    public let semanticEvidenceCount: Int?
     public let results: [JSONValue]
     public let digest: String
     public let memoryRevision: Int
@@ -2762,6 +2767,8 @@ public struct MemoryRecallResult: Codable, Sendable {
         tokenBudget: Int,
         usedTokens: Int,
         totalCandidates: Int,
+        retrievalMode: String? = nil,
+        semanticEvidenceCount: Int? = nil,
         results: [JSONValue],
         digest: String,
         memoryRevision: Int
@@ -2771,6 +2778,8 @@ public struct MemoryRecallResult: Codable, Sendable {
         self.tokenBudget = tokenBudget
         self.usedTokens = usedTokens
         self.totalCandidates = totalCandidates
+        self.retrievalMode = retrievalMode
+        self.semanticEvidenceCount = semanticEvidenceCount
         self.results = results
         self.digest = digest
         self.memoryRevision = memoryRevision
@@ -3469,6 +3478,25 @@ public struct AgentMemoryRecalledStreamEvent: Codable, Sendable {
         self.record_digest = record_digest
         self.reason_code = reason_code
         self.result = result
+    }
+}
+
+public struct MemorySemanticCandidate: Codable, Sendable {
+    public let memoryId: String
+    public let revision: Int
+    public let recordDigest: String
+    public let score: Double
+
+    public init(
+        memoryId: String,
+        revision: Int,
+        recordDigest: String,
+        score: Double
+    ) {
+        self.memoryId = memoryId
+        self.revision = revision
+        self.recordDigest = recordDigest
+        self.score = score
     }
 }
 
