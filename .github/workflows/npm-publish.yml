@@ -258,10 +258,9 @@ jobs:
         working-directory: packages/cli
         run: npm publish --dry-run
 
-  # Publish all packages in dependency order.
-  # NODE_AUTH_TOKEN is intentionally retained during the OIDC rollout. npm
-  # prefers Trusted Publishing and falls back to this token if OIDC is not yet
-  # configured for this workflow.
+  # Publish all packages in dependency order using npm Trusted Publishing.
+  # No npm token is supplied: npm obtains a short-lived OIDC credential from
+  # GitHub Actions, bound to this workflow's id-token permission.
   publish:
     needs: [test, exact-sha-gate, package-cli]
     if: ${{ github.event_name == 'push' && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
@@ -278,7 +277,6 @@ jobs:
         with:
           # npm Trusted Publishing requires Node.js 22.14.0 or newer.
           node-version: "22.14.0"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Enable npm Trusted Publishing support
         run: |
@@ -346,8 +344,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # core-mtc has no internal deps — safe anywhere before cli
       - name: "Publish @chainlesschain/core-mtc"
@@ -360,8 +356,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # core-multisig -> core-mtc (published just above), @noble/*, canonicalize.
       # Idempotent: skips when npm version already matches package.json.
@@ -375,8 +369,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # core-settlement -> core-mtc (published above), canonicalize. (devDep
       # core-multisig is dev-only, not needed by consumers.) Idempotent.
@@ -390,8 +382,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/shared-logger"
         working-directory: packages/shared-logger
@@ -403,8 +393,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-config"
         working-directory: packages/core-config
@@ -416,8 +404,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-db"
         working-directory: packages/core-db
@@ -434,8 +420,6 @@ jobs:
           else
             npm publish "$CHILD_TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-infra"
         working-directory: packages/core-infra
@@ -447,8 +431,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/session-core"
         working-directory: packages/session-core
@@ -465,8 +447,6 @@ jobs:
           else
             npm publish "$CHILD_TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # The CLI imports this package at runtime and pins its exact version.
       # Publish and read it back before the immutable CLI tarball so a fresh
@@ -484,8 +464,6 @@ jobs:
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
             echo "published=true" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify published Context Memory Kernel registry bytes and npm provenance
         if: steps.context-memory-kernel-publish.outputs.published == 'true'
@@ -567,8 +545,6 @@ jobs:
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
             echo "published=true" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify published Agent SDK registry bytes and npm provenance
         if: steps.agent-sdk-publish.outputs.published == 'true'
@@ -645,8 +621,6 @@ jobs:
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify public child bytes and registry-only dependencies before CLI publish
         shell: bash
@@ -721,9 +695,6 @@ jobs:
           done
           test -n "$REGISTRY_TARBALL"
           node packages/cli/scripts/npm-release-artifact.mjs verify "$REGISTRY_TARBALL" "$MANIFEST"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Verify published CLI npm provenance
         shell: bash
         run: |
