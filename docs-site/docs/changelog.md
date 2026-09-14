@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.47 / Open VSX 0.37.97 / JetBrains 0.4.123（2026-09-14）
+
+- **受治理运行时**：交付 Evolution ledger v2、证据绑定 Wiki 维护与运行时重验；candidate/evidence/release 摘要不一致时失败闭合，automatic active promotion 继续为 `HOLD`。
+- **模型与交互**：加入原生 OpenAI Responses、版本化模型能力与出口清单、插件 control/candidate 评测和可延后回答的问题；静态 profile 不冒充真实账号验证。
+- **后台可靠性**：`cc background session list` 支持有界分页；keeper/worker 心跳改为非阻塞锁协调，Git 子进程固定 `shell: false`。
+- **发布证据**：`v-npm-0-166-47@3138626213` 的三平台 CLI CI、Strict Sandbox 与 npm 公共回读成功；Open VSX `0.37.97`、JetBrains `0.4.123` 均已公开并推荐 CLI `0.166.47`。
+
 - **Desktop Hub 与 Web Shell 治理接线**（`8c1772ba6c`、`1fd9e684f2`、`5e3ee29808`、`4f61109dcf`、`22b23a0335`）：resolver/Skill IPC 与内嵌 Web Shell 通过主进程持有的 opaque host 创建 scoped governed wrapper；renderer/WS 消息不获得原始 composition factory，缓存 Hub client 不被跨请求改写。CLI-owned 后台 worker 与 Desktop Coding Agent `cc serve` bridge 经 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在证明范围。这些源码增量尚未进入已核对的 GitHub/Gitee head 或公开 Desktop native 制品。
 
 - **Legacy ImageGen 内容入口闭合**（`a238e6c245`）：15 个 Desktop ImageGen IPC 的文生图、图生图、变体和超分内容入口在缓存读取、provider 选择及 fallback 前验证 ingress；拒绝时返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，不会调用 manager provider 或底层 Stable Diffusion / DALL·E `fetch`。状态、模型选择、进度和中断仍是非推理控制面。

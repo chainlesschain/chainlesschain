@@ -1,6 +1,12 @@
-# CLI Runtime 当前实现（0.166.38 生产推荐 / npm latest）
+# CLI Runtime 当前实现（0.166.47 生产推荐 / npm latest）
 
-> 更新时间：2026-09-09。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.38`，以不可变 tag `v-npm-0-166-38` 的精确 SHA [`de8ec4e5c8`](https://github.com/chainlesschain/chainlesschain/commit/de8ec4e5c8234087d1fb86a062371b7000931790) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、IDE、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.9/0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.92`、JetBrains Marketplace 为 `0.4.119`。
+> 更新时间：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.47`，以不可变 tag `v-npm-0-166-47` 的精确 SHA [`3138626213`](https://github.com/chainlesschain/chainlesschain/commit/3138626213d636623be3ee794af9a106e1e1b13b) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.9/0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.97`、JetBrains Marketplace 为 `0.4.123`。
+
+## 2026-09-14 增量：Evolution 重验、Responses 与后台可靠性
+
+Evolution ledger v2、证据绑定 Wiki 维护与运行时 revalidation 已进入公开 CLI；candidate、evidence 与 release 摘要不一致时失败闭合，automatic active promotion 继续为 `HOLD`。模型层公开原生 OpenAI Responses、版本化 capability profile、模型出口清单、插件 control/candidate 评测和可延后回答的问题；静态 `runtimeVerified:false` 不代表真实账号验证。
+
+`cc background session list` 使用 `--limit` / `--offset` 有界分页。Keeper、worker 与 supervisor 的周期心跳采用非阻塞 owner-lock 协调，锁忙时保留健康状态并在下轮重试；Git 子进程固定参数数组与 `shell: false`。Open VSX `0.37.97` 和 JetBrains `0.4.123` 已公开并推荐 CLI `0.166.47`，但 IDE 仍不获得审核、发布或命令构造 authority。
 
 ## 2026-09-09 增量：模型入口治理、witness 分段与可靠配置
 
