@@ -12,7 +12,7 @@
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | G04 | 将 Codex App Server `0.154.0` 加入 fail-closed 适配器和 Linux/Windows/macOS CI 矩阵；本机真实 schema 与 stdio 初始化探针通过             | 干净精确 SHA 的三平台矩阵、真实 turn/cancel/resume 旅程，以及是否接入产品主链的独立决策 |
 | G05 | 增加 1–20 次重复采样、确定性平衡双臂顺序、Wilson/Newcombe 95% 区间、reviewer-owned holdout 与 CLI 参数                                   | 固定付费模型实跑、独立模型 grader、发布提交上的正式门禁                                 |
-| G06 | 增加由宿主提供、按 memory revision/digest 绑定的受治理语义候选与轻量 hybrid rerank；词法默认行为不变                                     | embedding/index 宿主适配器、真实中英语料与冲突记忆评测、容量和三平台目标环境            |
+| G06 | 增加由宿主提供、按 memory revision/digest 绑定的受治理语义候选、模型请求候选源接线与轻量 hybrid rerank；词法默认行为不变                 | 内置 embedding/index 来源、删除同步、真实中英语料与冲突记忆评测、容量和三平台目标环境   |
 | G08 | standalone Headless 的 deferred request/resolved/consumed/expired 权威事件、私有恢复投影、重连重放、一次性消费确认及真实 Node 子进程恢复 | 真实 CLI/IDE/App Server 客户端旅程、精确 SHA 三平台一致性                               |
 | G10 | 为后台 Agent 分页增加内容无关、文件身份绑定的只读索引；缓存失效、损坏或竞态时回退权威全扫                                                | 精确 SHA 三平台 formal 容量曲线、SLO 决策、持久 Memory 索引及归档策略                   |
 
@@ -51,7 +51,9 @@ Context/Memory Kernel 仍不执行 provider、embedding、文件或网络 I/O。
 
 Kernel 先对 canonical records 执行 lifecycle、expiry、scope 与 allowed-sink 过滤，再允许语义分数参与排序。语义证据必须绑定当前 revision 和 record digest；已准入记录的证据陈旧时返回 `revision_conflict`。未提供语义候选时，原词法筛选、权重、结果形状与排序保持不变；提供后以词法/语义较强者作为原 65% retrieval 分量。
 
-这关闭的是安全的宿主接线缝，不是完整向量检索交付。真实 embedding/index、索引删除同步、用户语料和容量曲线仍需单独实现及验收。
+模型请求路径通过 `contextMemorySemanticCandidateProvider` 调用宿主候选源。它只传递 schema、query、session、scope admissions、sink、召回 limit 与 1000 条候选上限，不传递 canonical memory 内容；候选源只能返回上述绑定字段。非数组结果失败关闭，且 canonical 规划关闭时不会调用该源。
+
+这关闭的是安全的 Kernel 与模型请求宿主接线缝，不是完整向量检索交付。内置 embedding/index、索引删除同步、用户语料和容量曲线仍需单独实现及验收。
 
 ## 5. G08：standalone Headless deferred 恢复
 

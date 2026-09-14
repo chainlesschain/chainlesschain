@@ -12,6 +12,9 @@ import {
   messagesToContextItems,
 } from "./message-adapter.js";
 
+export const SEMANTIC_CANDIDATE_REQUEST_SCHEMA =
+  "chainlesschain.context-memory-semantic-candidate-request/v1";
+
 function defaultAdmissions(sessionId, options) {
   const candidates = [
     { scope: "session", scopeId: sessionId },
@@ -30,6 +33,57 @@ function defaultAdmissions(sessionId, options) {
     seen.add(key);
     return true;
   });
+}
+
+function semanticCandidateProvider(options) {
+  const provider = options.contextMemorySemanticCandidateProvider;
+  if (provider == null) return null;
+  if (typeof provider !== "function") {
+    throw new TypeError(
+      "contextMemorySemanticCandidateProvider must be a function",
+    );
+  }
+  return provider;
+}
+
+/**
+ * Ask a host-owned semantic index for opaque record identifiers. The host sees
+ * the query and admission boundary but never receives canonical record content;
+ * the kernel later validates every returned revision/digest and applies its
+ * lifecycle, scope, expiry, and sink filters before ranking.
+ */
+async function resolveSemanticCandidates({
+  provider,
+  sessionId,
+  query,
+  sink,
+  scopeAdmissions,
+  limit,
+}) {
+  if (!provider) return undefined;
+  const candidates = await provider(
+    Object.freeze({
+      schema: SEMANTIC_CANDIDATE_REQUEST_SCHEMA,
+      sessionId,
+      query,
+      sink,
+      scopeAdmissions: Object.freeze(
+        scopeAdmissions.map((entry) => Object.freeze({ ...entry })),
+      ),
+      limit,
+      maxCandidates: 1000,
+    }),
+  );
+  if (!Array.isArray(candidates)) {
+    throw new TypeError(
+      "contextMemorySemanticCandidateProvider must resolve to an array",
+    );
+  }
+  return candidates.map((candidate) =>
+    candidate && typeof candidate === "object" && !Array.isArray(candidate)
+      ? Object.freeze({ ...candidate })
+      : candidate,
+  );
 }
 
 function toolDefinitionsToContextItems(definitionsInput, { sessionId, sink }) {
@@ -130,6 +184,7 @@ export async function prepareCanonicalProviderContext(
     };
   }
 
+  const candidateProvider = semanticCandidateProvider(options);
   const sink = String(options.contextMemorySink || `provider.${provider}`);
   const scopeAdmissions = defaultAdmissions(sessionId, options);
   const lastUser = [...messages]
@@ -139,18 +194,28 @@ export async function prepareCanonicalProviderContext(
     typeof lastUser?.content === "string" && lastUser.content.trim()
       ? lastUser.content.trim().slice(0, 32 * 1024)
       : "*";
+  const recallLimit = Math.max(
+    1,
+    Math.min(32, Number(options.contextMemoryRecallLimit) || 12),
+  );
+  const semanticCandidates = await resolveSemanticCandidates({
+    provider: candidateProvider,
+    sessionId,
+    query,
+    sink,
+    scopeAdmissions,
+    limit: recallLimit,
+  });
   const recall = await runtime.kernel.recallMemory({
     query,
     sink,
     scopeAdmissions,
-    limit: Math.max(
-      1,
-      Math.min(32, Number(options.contextMemoryRecallLimit) || 12),
-    ),
+    limit: recallLimit,
     tokenBudget: Math.max(
       1,
       Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
     ),
+    ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
   });
   const messageItems = messagesToContextItems(messages, {
     sessionId,

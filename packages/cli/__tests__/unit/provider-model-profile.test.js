@@ -3,8 +3,12 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chatWithTools } from "../helpers/test-model-egress.js";
-import { prepareCanonicalProviderContext } from "../../src/lib/context-memory-kernel/provider-context.js";
+import {
+  prepareCanonicalProviderContext,
+  SEMANTIC_CANDIDATE_REQUEST_SCHEMA,
+} from "../../src/lib/context-memory-kernel/provider-context.js";
 import * as contextRuntime from "../../src/lib/context-memory-kernel/runtime.js";
+import { createCliContextMemoryRuntime } from "../../src/lib/context-memory-kernel/runtime.js";
 
 const MESSAGES = [{ role: "user", content: "Say hello." }];
 const WINDOW = 65_536;
@@ -78,6 +82,37 @@ function expectBoundPlan(prepared, reserve, window = WINDOW) {
     Math.max(64, Math.floor(window * 0.05)),
   );
   expect(prepared.plan.inputBudget).toBe(window - reserve - margin);
+}
+
+async function seedSemanticMemory(options) {
+  const runtime = createCliContextMemoryRuntime({
+    env: options.contextMemoryEnv,
+    sessionId: options.sessionId,
+    scopeKey: `cli:provider:${options.sessionId}`,
+    memoryFilePath: options.contextMemoryFilePath,
+  });
+  const proposal = await runtime.kernel.proposeMemory({
+    memoryId: "semantic-memory",
+    scope: "user",
+    scopeId: "local-user",
+    category: "preference",
+    content: "Use a blue interface theme",
+    provenance: {
+      source: "test",
+      actor: "test-user",
+      observedAt: "2026-09-14T00:00:00.000Z",
+    },
+    evidenceRefs: [{ store: "test", id: "semantic-memory" }],
+    confidence: 0.9,
+    importance: 0.8,
+    tags: [],
+    sensitivity: "internal",
+    allowedSinks: ["provider.anthropic"],
+    retentionPolicy: { mode: "durable" },
+    activate: true,
+    createdAt: "2026-09-14T00:00:00.000Z",
+  });
+  return proposal.record;
 }
 
 describe("canonical provider model-profile budget integration", () => {
@@ -237,6 +272,78 @@ describe("canonical provider model-profile budget integration", () => {
       );
       expect(changed.plan.modelProfile).not.toBe(base.plan.modelProfile);
     }
+  });
+
+  it("uses a host semantic candidate source without exposing memory content", async () => {
+    const options = callOptions({
+      contextMemoryRecallLimit: 7,
+    });
+    const record = await seedSemanticMemory(options);
+    const candidateProvider = vi.fn(async (request) => {
+      expect(request).toEqual({
+        schema: SEMANTIC_CANDIDATE_REQUEST_SCHEMA,
+        sessionId: options.sessionId,
+        query: "Which palette should I use?",
+        sink: "provider.anthropic",
+        scopeAdmissions: [
+          { scope: "session", scopeId: options.sessionId },
+          { scope: "agent", scopeId: options.sessionId },
+          { scope: "user", scopeId: "local-user" },
+        ],
+        limit: 7,
+        maxCandidates: 1000,
+      });
+      expect(request).not.toHaveProperty("records");
+      return [
+        {
+          memoryId: record.memoryId,
+          revision: record.revision,
+          recordDigest: record.digest,
+          score: 0.95,
+        },
+      ];
+    });
+
+    const prepared = await prepareCanonicalProviderContext(
+      [{ role: "user", content: "Which palette should I use?" }],
+      { ...options, contextMemorySemanticCandidateProvider: candidateProvider },
+    );
+
+    expect(candidateProvider).toHaveBeenCalledTimes(1);
+    expect(prepared.recall).toMatchObject({
+      retrievalMode: "governed_hybrid",
+    });
+    expect(prepared.recall.results).toEqual([
+      expect.objectContaining({
+        record: expect.objectContaining({ memoryId: record.memoryId }),
+        semanticRelevance: 0.95,
+      }),
+    ]);
+  });
+
+  it("fails closed when the semantic candidate source is invalid", async () => {
+    const options = callOptions({
+      contextMemorySemanticCandidateProvider: async () => ({ candidates: [] }),
+    });
+    await expect(
+      prepareCanonicalProviderContext(MESSAGES, options),
+    ).rejects.toThrow(
+      "contextMemorySemanticCandidateProvider must resolve to an array",
+    );
+    expect(existsSync(options.contextMemoryFilePath)).toBe(false);
+  });
+
+  it("does not resolve a semantic candidate source outside canonical planning", async () => {
+    const candidateProvider = vi.fn(async () => []);
+    const prepared = await prepareCanonicalProviderContext(
+      MESSAGES,
+      callOptions({
+        contextMemorySkipPlanning: true,
+        contextMemorySemanticCandidateProvider: candidateProvider,
+      }),
+    );
+    expect(candidateProvider).not.toHaveBeenCalled();
+    expect(prepared).toMatchObject({ plan: null, recall: null });
   });
 
   it.each([
