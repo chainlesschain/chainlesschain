@@ -1,21 +1,18 @@
 name: Documentation Generation
 
+# Manual trigger ONLY. Auto-trigger on push / pull_request was disabled on
+# 2026-09: the auto-generated docs PR (#348 etc.) had zero checks and stayed
+# permanently BLOCKED under branch protection (no DOCS_APP_ID / DOCS_PR_TOKEN
+# secrets → cpr fell back to GITHUB_TOKEN, which GitHub intentionally does not
+# run checks for), and every push to main refreshed the same PR. Docs are now
+# generated locally:
+#
+#     cd desktop-app-vue && npm run docs:generate   # then commit + push normally
+#
+# workflow_dispatch remains as an on-demand preview/validation run (results are
+# uploaded as an artifact, NOT proposed as a PR).
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "desktop-app-vue/src/**/*.js"
-      - "desktop-app-vue/src/**/*.vue"
-      - "desktop-app-vue/scripts/cowork-doc-generator.js"
-      - ".github/workflows/documentation.yml"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "desktop-app-vue/src/**/*.js"
-      - "desktop-app-vue/src/**/*.vue"
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
     inputs:
       doc_type:
         description: "Documentation type to generate"
@@ -31,10 +28,9 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,27 +40,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      # Mint a short-lived GitHub App installation token (preferred actor for
-      # opening the auto-docs PR — see the TOKEN note on the create-pull-request
-      # step below). continue-on-error keeps this soft: if DOCS_APP_ID /
-      # DOCS_APP_PRIVATE_KEY are unset (App not installed yet) the step fails
-      # but the run proceeds, and steps.app-token.outputs.token is empty, so the
-      # `|| secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN` chain below takes over.
-      # Precedence: App token → PAT → GITHUB_TOKEN.
-      - name: Mint GitHub App installation token
-        id: app-token
-        continue-on-error: true
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ secrets.DOCS_APP_ID }}
-          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
-          # defaults to an installation token scoped to this repo
-
       - name: Checkout code
         uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Full history for changelog
-          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -82,34 +61,11 @@ jobs:
         # desktop-app-vue dependencies deterministically.
         run: npm ci --legacy-peer-deps --ignore-scripts
 
-      - name: Preview documentation changes
-        working-directory: ./desktop-app-vue
-        run: |
-          echo "📚 Previewing documentation generation..."
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            node scripts/cowork-doc-generator.js --type api --dry-run
-            node scripts/cowork-doc-generator.js --type user-guide --dry-run
-            node scripts/cowork-doc-generator.js --type architecture --dry-run
-          else
-            node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }} --dry-run
-          fi
-
       - name: Generate documentation
         working-directory: ./desktop-app-vue
         run: |
-          echo "📖 Generating documentation..."
-          # On push events: skip changelog (gitRange "v0.26.0..HEAD" grows by
-          # one line per push, which would otherwise trigger an auto-commit on
-          # every push regardless of source changes — pure noise). Changelog
-          # regenerates on workflow_dispatch (default 'all') or when explicitly
-          # requested via doc_type input.
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            node scripts/cowork-doc-generator.js --type api
-            node scripts/cowork-doc-generator.js --type user-guide
-            node scripts/cowork-doc-generator.js --type architecture
-          else
-            node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }}
-          fi
+          echo "📖 Generating documentation (manual dispatch)..."
+          node scripts/cowork-doc-generator.js --type ${{ github.event.inputs.doc_type || 'all' }}
 
       - name: Check for documentation changes
         id: check-changes
@@ -124,107 +80,10 @@ jobs:
             git diff --stat docs/ CHANGELOG.md
           fi
 
-      # Open a PR instead of pushing straight to `main`. `main` is a protected
-      # branch, so the previous `git push` step always failed with
-      # `GH006: Protected branch update failed` (the github-actions[bot] is not
-      # on the push allowlist). Proposing the regenerated docs via a PR keeps
-      # branch protection intact and makes the auto-docs reviewable/auto-mergeable.
-      #
-      # `add-paths` is scoped to the generated docs so the dirty root
-      # package-lock.json is excluded from the generated-docs PR. The action reuses one branch
-      # (`chore/auto-docs`) and updates the existing PR on subsequent runs.
-      #
-      # NOTE: requires the repo setting "Allow GitHub Actions to create and
-      # approve pull requests" (Settings → Actions → General) to be enabled;
-      # otherwise the action errors with "GitHub Actions is not permitted to
-      # create or approve pull requests".
-      #
-      # TOKEN: must be a NON-GITHUB_TOKEN actor for the required status checks to
-      # run on the PR. GitHub deliberately does NOT trigger new workflow runs
-      # from events (e.g. pull_request) raised by GITHUB_TOKEN, to prevent
-      # recursive runs. With GITHUB_TOKEN the auto-docs PR gets zero checks and
-      # sits permanently BLOCKED under branch protection (had to be admin-merged
-      # — PR #46 and earlier). See peter-evans/create-pull-request docs
-      # "Triggering further workflow runs".
-      #
-      # Precedence (first non-empty wins):
-      #   1. steps.app-token.outputs.token — GitHub App installation token
-      #      (preferred: dedicated bot identity, App never expires, ephemeral
-      #      per-run token, minimal scope). Requires secrets DOCS_APP_ID +
-      #      DOCS_APP_PRIVATE_KEY and the App installed on this repo.
-      #   2. secrets.DOCS_PR_TOKEN — fine-grained PAT (contents:write +
-      #      pull-requests:write). Simpler to set up but expires.
-      #   3. secrets.GITHUB_TOKEN — always present, but leaves the PR BLOCKED
-      #      (no checks). Last-resort so the run still opens the PR rather than
-      #      failing; then admin-merge as before.
-      - name: Open PR with documentation updates (main branch only)
-        id: cpr
-        if: |
-          steps.check-changes.outputs.has_changes == 'true' &&
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/main'
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ steps.app-token.outputs.token || secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN }}
-          base: main
-          branch: chore/auto-docs
-          delete-branch: true
-          add-paths: |
-            desktop-app-vue/docs/**
-            desktop-app-vue/CHANGELOG.md
-          commit-message: |
-            docs: auto-generate documentation from latest changes
-
-            Generated by Cowork Documentation Generator
-
-            - API reference updated
-            - User guide updated
-            - Architecture docs updated
-            - Changelog updated
-
-            Co-Authored-By: Cowork Documentation Team <noreply@chainlesschain.com>
-          author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-          committer: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-          title: "docs: auto-generated documentation updates"
-          body: |
-            Automated documentation regeneration from the Cowork Documentation Generator.
-
-            Triggered by push to `main` (${{ github.sha }}). Branch protection blocks the
-            workflow from committing directly to `main`, so the regenerated docs are
-            proposed via this PR instead.
-
-            - API reference
-            - User guide
-            - Architecture docs
-            - Changelog
-
-            _Auto-generated — squash auto-merge is enabled; it merges once the
-            required checks pass (needs a non-GITHUB_TOKEN actor — see workflow)._
-          labels: |
-            documentation
-            automated
-
-      # Turn on squash auto-merge so the PR merges itself once the required
-      # status checks pass — no manual admin-merge. This only actually completes
-      # when the PR was opened by a non-GITHUB_TOKEN actor (App token or
-      # DOCS_PR_TOKEN PAT) so the checks run; with the GITHUB_TOKEN fallback the
-      # auto-merge is enabled but simply waits (harmless) until a real token is
-      # configured. Requires repo setting "Allow auto-merge" (enabled via API).
-      # continue-on-error keeps a transient GraphQL hiccup from failing the run.
-      - name: Enable auto-merge on the docs PR
-        if: |
-          steps.check-changes.outputs.has_changes == 'true' &&
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/main' &&
-          steps.cpr.outputs.pull-request-number
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.DOCS_PR_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          pr='${{ steps.cpr.outputs.pull-request-number }}'
-          echo "Enabling squash auto-merge on PR #$pr"
-          gh pr merge "$pr" --repo "${{ github.repository }}" --auto --squash --delete-branch
-
+      # NOTE: No create-pull-request step anymore. The old flow opened
+      # chore/auto-docs PRs with a GITHUB_TOKEN fallback, which produced PRs
+      # with zero checks → blocked forever by branch protection. Generated docs
+      # are committed and pushed locally (see header comment).
       - name: Upload documentation artifacts
         if: steps.check-changes.outputs.has_changes == 'true'
         uses: actions/upload-artifact@v6
@@ -237,37 +96,17 @@ jobs:
             desktop-app-vue/CHANGELOG.md
           retention-days: 30
 
-      - name: Generate documentation summary
-        if: github.event_name == 'pull_request'
+      - name: Documentation generation summary
+        if: always()
         working-directory: ./desktop-app-vue
         run: |
-          echo "## 📚 Documentation Changes" >> $GITHUB_STEP_SUMMARY
+          echo "## 📚 Documentation Generation (manual)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Documentation has been generated for this PR." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ -d "docs/api/generated" ]; then
-            api_count=$(find docs/api/generated -name "*.md" 2>/dev/null | wc -l)
-            echo "- **API Documentation**: $api_count files" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ -f "docs/user-guide/COMPONENT_REFERENCE.md" ]; then
-            echo "- **User Guide**: Component reference updated" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ -f "docs/architecture/ARCHITECTURE_OVERVIEW.md" ]; then
-            echo "- **Architecture**: Overview updated" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ -f "CHANGELOG.md" ]; then
-            echo "- **Changelog**: Updated from git history" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Changes Summary" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          git diff --stat docs/ CHANGELOG.md 2>/dev/null || echo "No changes"
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "Regenerated docs can be downloaded from the **generated-docs** artifact." >> $GITHUB_STEP_SUMMARY
+          echo "To commit them locally instead, run:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "cd desktop-app-vue && npm run docs:generate" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   validate-docs:
     name: Validate Documentation Quality
