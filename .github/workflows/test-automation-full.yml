@@ -69,6 +69,16 @@ jobs:
           cache: npm
           cache-dependency-path: desktop-app-vue/package-lock.json
 
+      # The CI gate integrity suite spawns Python to verify the real CI verdict
+      # (ci-gate-integrity.test.mjs). On windows-latest, bare `python` resolves
+      # to the Microsoft Store alias stub which hangs on non-interactive spawn
+      # (spawnSync python ETIMEDOUT), aborting the job before the test suite
+      # ever runs. setup-python puts a real CPython on PATH for both legs.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Install dependencies
         working-directory: ./desktop-app-vue
         shell: bash
