@@ -7,16 +7,14 @@ import {
 } from "node:crypto";
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
   renameSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import {
-  configureEvolutionDeployment,
-  getEvolutionDeploymentStatus,
-} from "./evolution-deployment-config.js";
+import { configureEvolutionDeployment } from "./evolution-deployment-config.js";
 import {
   EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
   computeEvolutionDeploymentDigest,
@@ -155,11 +153,23 @@ function assertSigningPair(privateKeyBytes, trustRootBytes) {
   return privateKey;
 }
 
-function freshTestRoot(profilePath) {
+function claimFreshTestRoot(profilePath) {
   const parent = dirname(profilePath);
   const preferred = join(parent, "test-deployment");
-  if (!existsSync(preferred)) return preferred;
-  return join(parent, `test-deployment-${randomUUID()}`);
+  ensurePrivateDirectory(parent);
+  for (const candidate of [
+    preferred,
+    join(parent, `test-deployment-${randomUUID()}`),
+  ]) {
+    try {
+      mkdirSync(candidate, { mode: 0o700 });
+      ensurePrivateDirectory(candidate);
+      return candidate;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+    }
+  }
+  throw new Error("could not allocate a private test deployment directory");
 }
 
 function testReadme({ modulePath, descriptorPath, trustRootPath }) {
@@ -226,7 +236,7 @@ export async function initializeEvolutionTestDeployment(
 
   const testRoot = saved.profile
     ? dirname(saved.profile.descriptorPath)
-    : freshTestRoot(
+    : claimFreshTestRoot(
         options.filePath || getEvolutionDeploymentProfilePath(options),
       );
   ensurePrivateDirectory(testRoot);
@@ -314,11 +324,6 @@ export async function replaceEvolutionTestDeployment(
     error.code = "EVOLUTION_TEST_DEPLOYMENT_NOT_ACTIVE";
     throw error;
   }
-  const currentStatus = await getEvolutionDeploymentStatus(options);
-  if (!currentStatus.verified)
-    throw new Error(
-      `the generated test deployment must verify before replacement${currentStatus.error ? `: ${currentStatus.error}` : ""}`,
-    );
   const destination = await verifyEvolutionDeployment(
     { descriptorPath, trustRootPath },
     options,
@@ -328,6 +333,14 @@ export async function replaceEvolutionTestDeployment(
   const privateKeyBytes = readFileSync(saved.profile.testPrivateKeyPath);
   const fromTrustRootBytes = readFileSync(saved.profile.trustRootPath);
   const privateKey = assertSigningPair(privateKeyBytes, fromTrustRootBytes);
+  if (
+    computeEvolutionDeploymentDigest(fromTrustRootBytes) !==
+    saved.profile.activeTrustRootDigest
+  ) {
+    throw new Error(
+      "generated test trust root does not match the active profile",
+    );
+  }
   const rotation = {
     schema: EVOLUTION_DEPLOYMENT_ROOT_ROTATION_SCHEMA,
     fromTrustRootDigest: saved.profile.activeTrustRootDigest,

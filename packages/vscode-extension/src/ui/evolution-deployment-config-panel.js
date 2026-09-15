@@ -110,9 +110,11 @@ function openEvolutionDeploymentConfigPanel(vscode, options = {}) {
         kind: status?.error ? "error" : "success",
         text:
           status?.error ||
-          (status?.deploymentMode === "test"
-            ? "测试开发环境已启用；该凭据禁止用于生产，自动发布仍保持 HOLD。"
-            : "配置状态已更新；实际任务运行尚未验证，自动发布仍保持 HOLD。"),
+          (status?.replacedTestDeployment
+            ? "测试根已安全轮换为正式受管证书；请重启 IDE、cc ui 或 Desktop 长驻进程后做正式验证。"
+            : status?.deploymentMode === "test"
+              ? "测试开发环境已启用；该凭据禁止用于生产，自动发布仍保持 HOLD。"
+              : "配置状态已更新；实际任务运行尚未验证，自动发布仍保持 HOLD。"),
       });
     } catch (error) {
       post({ type: "notice", kind: "error", text: error.message });

@@ -87,6 +87,7 @@ describe("deployment admission display", () => {
       "a-form-item",
       "a-input",
       "a-space",
+      "a-divider",
       "a-descriptions",
       "a-descriptions-item",
       "a-tag",

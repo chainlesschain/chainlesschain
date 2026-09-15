@@ -80,7 +80,7 @@ export function assessEvolutionDeploymentReadiness(
         : "no enabled signed Evolution deployment",
       disabled
         ? "review the saved signed deployment, then run cc evolution deployment enable"
-        : "configure a signed descriptor and trust root with cc evolution deployment configure --descriptor <path> --trust-root <path>",
+        : "before production, run cc evolution deployment init-test --module <absolute-path>; otherwise configure a signed descriptor and trust root",
     );
   }
   if (missingCommands.length > 0) {

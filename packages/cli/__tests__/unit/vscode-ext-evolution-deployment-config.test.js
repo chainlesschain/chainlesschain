@@ -51,9 +51,11 @@ describe("VS Code evolution deployment configuration", () => {
     );
     expect(calls).toHaveLength(2);
     expect(calls[0].args.some((arg) => arg.includes("init-test"))).toBe(true);
-    expect(calls[1].args.some((arg) => arg.includes("replace-test"))).toBe(true);
-    expect(
-      calls.every(({ args }) => args.at(-1).includes("--json")),
-    ).toBe(true);
+    expect(calls[1].args.some((arg) => arg.includes("replace-test"))).toBe(
+      true,
+    );
+    expect(calls.every(({ args }) => args.at(-1).includes("--json"))).toBe(
+      true,
+    );
   });
 });

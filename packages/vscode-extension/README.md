@@ -53,12 +53,16 @@ CLI option.
   choices remain unchanged.
 
 - **Configure governed Skill evolution visually.** Run **ChainlessChain:
-  Configure Skill Evolution** from the Command Palette, choose the administrator
-  supplied descriptor and trust root, then verify, save, enable, disable, or
-  inspect the effective status without maintaining environment variables.
+  Configure Skill Evolution** from the Command Palette. Before production,
+  choose the single-file development host and use **One-click generate/refresh
+  TEST environment**; once the administrator-supplied descriptor and trust root
+  arrive, select them and use **Replace TEST certificate with managed
+  certificate**. The same page can verify, save, enable, disable, or inspect the
+  effective status without maintaining environment variables.
 - **Keep governance boundaries visible.** The extension delegates signature and
-  digest verification to CLI `0.166.52`, stores no private key, and displays that
-  automatic active promotion remains `HOLD` pending review and release authority.
+  digest verification and generated TEST-key custody to CLI `0.166.52`; the
+  extension stores no key itself and prominently marks TEST mode. Automatic
+  active promotion remains `HOLD` pending review and release authority.
 - **Confirm that model settings were saved.** A fresh redacted readback must
   match the submitted connection before the form reports success. A failed
   connection test remains separate from a failed or unconfirmed write.

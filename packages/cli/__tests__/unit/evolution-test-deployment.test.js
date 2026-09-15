@@ -1,7 +1,7 @@
 import { generateKeyPairSync, sign as signBytes } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -10,7 +10,10 @@ import {
   serializeEvolutionDeploymentDescriptorPayload,
 } from "../../src/lib/evolution/evolution-deployment-loader.js";
 import { configureEvolutionDeployment } from "../../src/lib/evolution/evolution-deployment-config.js";
-import { readEvolutionDeploymentProfile } from "../../src/lib/evolution/evolution-deployment-profile.js";
+import {
+  getEvolutionDeploymentProfilePath,
+  readEvolutionDeploymentProfile,
+} from "../../src/lib/evolution/evolution-deployment-profile.js";
 import {
   initializeEvolutionTestDeployment,
   replaceEvolutionTestDeployment,
@@ -65,6 +68,33 @@ async function managedDeployment(root, modulePath) {
 }
 
 describe("one-click Evolution test deployment", () => {
+  it("migrates an existing v4 profile to managed mode without a test key", async () => {
+    const value = await setup();
+    const managed = await managedDeployment(value.root, value.modulePath);
+    const trustRootBytes = await readFile(managed.trustRootPath);
+    const profilePath = getEvolutionDeploymentProfilePath(value.options);
+    await mkdir(dirname(profilePath), { recursive: true });
+    await writeFile(
+      profilePath,
+      `${JSON.stringify({
+        schema: "chainlesschain.evolution-deployment-profile/v4",
+        enabled: true,
+        descriptorPath: managed.descriptorPath,
+        trustRootPath: managed.trustRootPath,
+        revisionFloors: {
+          [computeEvolutionDeploymentDigest(trustRootBytes)]: 1,
+        },
+        activeTrustRootDigest: computeEvolutionDeploymentDigest(trustRootBytes),
+        revokedDescriptorRevisions: {},
+      })}\n`,
+    );
+    await expect(
+      readEvolutionDeploymentProfile(value.options),
+    ).resolves.toMatchObject({
+      profile: { deploymentMode: "managed", testPrivateKeyPath: null },
+    });
+  });
+
   it("generates a signed TEST profile and refreshes it after host changes", async () => {
     const value = await setup();
     const created = await initializeEvolutionTestDeployment(
@@ -107,7 +137,7 @@ describe("one-click Evolution test deployment", () => {
   it("uses the generated test root to rotate to a managed deployment", async () => {
     const value = await setup();
     await initializeEvolutionTestDeployment(
-      { modulePath: value.modulePath },
+      { modulePath: value.modulePath, enabled: false },
       value.options,
     );
     const managed = await managedDeployment(value.root, value.modulePath);

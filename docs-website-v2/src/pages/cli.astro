@@ -529,7 +529,7 @@ const packs = [
         <article class="card"><h3 class="text-xl">可恢复发布</h3><p class="mt-3 text-sm text-muted">市场安装写入可核验的真实候选；每步试运行、晋升与撤销均需当前状态和独立回执。</p></article>
         <article class="card"><h3 class="text-xl">签名部署配置</h3><p class="mt-3 text-sm text-muted"><code class="font-mono">cc evolution deployment</code> 验签后原子保存 owner-only profile；环境覆盖优先，自动晋升保持 HOLD。</p></article>
       </div>
-      <p class="mt-8 text-sm text-muted"><code class="font-mono">cc evolution deployment status/configure/enable/disable</code>、Workbench、knowledge 与 Skill search 已进入公开 CLI。配置只选择受信部署宿主，不授予审核或发布权限；生产 KMS/PKI/witness/grader 仍由部署方提供。<a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html">查看命令示例与限制 →</a></p>
+      <p class="mt-8 text-sm text-muted"><code class="font-mono">cc evolution deployment init-test/replace-test/status/configure/enable/disable</code>、Workbench、knowledge 与 Skill search 已进入公开 CLI。正式部署前可一键生成明确标记的本机 TEST 签名凭据，正式 descriptor/trust root 到位后安全轮换；测试入口不授予审核或发布权限，生产 KMS/PKI/witness/grader 仍由部署方提供。<a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html">查看命令示例与限制 →</a></p>
     </div>
   </section>
 

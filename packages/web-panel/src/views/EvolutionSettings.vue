@@ -281,7 +281,9 @@ async function replaceTest() {
         60000,
       ),
     );
-    message.success("测试根已安全轮换为正式受管证书");
+    message.success(
+      "测试根已安全轮换为正式受管证书；请重启 cc ui、IDE 或 Desktop 长驻进程后做正式验证",
+    );
   } catch (error) {
     message.error("替换失败：" + error.message);
   } finally {

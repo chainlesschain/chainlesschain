@@ -56,6 +56,10 @@ verified fresh public CLI installation.
 
 - **Evolution Workbench** presents CLI-owned candidate history, evidence and
   diffs, and sends only exact, explicitly confirmed review or rollback argv.
+- **Pre-production Evolution setup** lets an operator select a single-file
+  development host and ask the CLI to generate/refresh clearly marked local
+  TEST credentials. The same dialog rotates that TEST root to the managed
+  descriptor/trust root when issued; the plugin never stores either private key.
 - **Skill Retrieval** displays the canonical CLI search result with witnessed
   outcome/vector evidence and preserves a visible abstain state for ambiguous
   matches.

@@ -53,7 +53,7 @@ Linux/macOS 使用相同命令，只需把 `--module` 改为对应的绝对路�
 - JetBrains：打开 **Tools → ChainlessChain: Configure Skill Evolution**，选择测试部署宿主模块，点击 **一键生成/刷新 TEST 测试环境**。
 - `cc ui`：进入 **配置 → Skill 自进化**，填写运行 `cc ui` 那台服务器上的宿主模块绝对路径，点击 **一键生成/刷新测试环境**。
 
-状态中的 `deploymentMode: test` 和红色 TEST 提示必须一直可见。测试密钥只解决正式根尚未到位时的启动和联调问题，不会把测试宿主变成生产 KMS/HSM、PKI、witness、grader 或审核身份，也不会解除人工审核；automatic active promotion 仍为 `HOLD`。如果本机已有正式受管 profile，`init-test` 会拒绝覆盖。两项 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` 环境变量存在时也会拒绝创建，避免界面修改了 profile、实际进程却仍被环境变量覆盖。
+状态中的 `deploymentMode: test` 和醒目的 TEST 提示必须一直可见。测试密钥只解决正式根尚未到位时的启动和联调问题，不会把测试宿主变成生产 KMS/HSM、PKI、witness、grader 或审核身份，也不会解除人工审核；automatic active promotion 仍为 `HOLD`。如果本机已有正式受管 profile，`init-test` 会拒绝覆盖。两项 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` 环境变量存在时也会拒绝创建，避免界面修改了 profile、实际进程却仍被环境变量覆盖。
 
 正式 descriptor 与 trust root 到位后，可在上述三个界面中选择正式文件并点击 **替换测试证书并转正式**，或执行：
 
@@ -65,7 +65,7 @@ cc evolution deployment replace-test `
 cc evolution deployment status
 ```
 
-`replace-test` 会先分别验证当前测试部署和新的正式 descriptor，再使用当前测试私钥生成一次受约束的 root-rotation 证明，最后原子切换 profile。成功后 `deploymentMode` 必须为 `managed` 且 `verified` 必须为 `true`。测试私钥不会成为正式私钥，也不会签发正式 descriptor；正式私钥始终留在部署方的正式签发系统。确认切换和实际任务验证完成前，不要手工覆盖或删除测试目录中的文件。
+`replace-test` 会先验证新的正式 descriptor，再验证当前测试根与测试私钥的绑定，使用当前测试私钥生成一次受约束的 root-rotation 证明，最后原子切换 profile。成功后 `deploymentMode` 必须为 `managed` 且 `verified` 必须为 `true`。测试私钥不会成为正式私钥，也不会签发正式 descriptor；正式私钥始终留在部署方的正式签发系统。新启动的 CLI 命令会直接读取正式 profile；已经运行的 `cc ui`、IDE App Server 或 Desktop 长驻进程应重启后再做正式验证。确认切换和实际任务验证完成前，不要手工覆盖或删除测试目录中的文件。
 
 仓库和公开 npm 包不会生成生产密钥、审核身份或 grader。管理员需要先部署一个导出 `createChainlessChainCommandDependencies()` 的单文件 ESM 宿主模块，再生成并签名 `chainlesschain.evolution-deployment-descriptor/v1` 描述文件。描述文件必须绑定模块绝对路径及 SHA-256、trust-root SHA-256、单调 revision，并按需要允许 `learning`、`evolution`、`agent`、`ask`、`chat`、`compact`、`complete`、`cowork`、`hub`、`marketplace`、`orchestrate`、`serve`、`stream`、`ui`、`desktop` 等命令。
 

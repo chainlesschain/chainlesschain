@@ -128,6 +128,16 @@ without modifying the npm package. The preferred setup verifies and persists
 both absolute paths in an owner-only profile:
 
 ```bash
+# Before the managed root is issued, generate local TEST credentials for an
+# existing single-file development host. Re-run after changing the host module.
+cc evolution deployment init-test --module /absolute/evolution-host.mjs
+
+# When the managed files arrive, replace TEST through an authenticated rotation.
+cc evolution deployment replace-test \
+  --descriptor /managed/chainlesschain/evolution-deployment.json \
+  --trust-root /managed/chainlesschain/evolution-deployment-ed25519-public.pem
+
+# A machine that never used TEST can configure the managed deployment directly.
 cc evolution deployment configure \
   --descriptor /managed/chainlesschain/evolution-deployment.json \
   --trust-root /managed/chainlesschain/evolution-deployment-ed25519-public.pem
@@ -137,6 +147,15 @@ cc evolution deployment status
 cc evolution deployment disable
 cc evolution deployment enable
 ```
+
+`init-test` uses Node's built-in Ed25519 implementation and requires no OpenSSL.
+It refuses to overwrite an existing managed profile or act while deployment
+environment overrides are present. Its `deploymentMode: test` status is a hard
+visual warning, not production KMS/PKI, witness, grader, or review authority;
+automatic active promotion remains `HOLD`.
+After `replace-test`, restart long-lived `cc ui`, IDE App Server, or Desktop
+processes before managed-environment validation; newly started CLI commands read
+the managed profile immediately.
 
 The profile is written atomically to
 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json` (normally
@@ -1414,6 +1433,9 @@ chainlesschain evolution record-training-metrics-v2 \
   --strategy replay --data-size 10 --loss-before .5 --loss-after .4
 chainlesschain evolution stats                                    # Recorded metrics
 chainlesschain evolution deployment status                        # Effective profile and signature status
+chainlesschain evolution deployment init-test --module /absolute/evolution-host.mjs
+chainlesschain evolution deployment replace-test \
+  --descriptor /absolute/managed-deployment.json --trust-root /absolute/managed-public.pem
 chainlesschain evolution deployment configure \
   --descriptor /absolute/deployment.json --trust-root /absolute/public.pem
 chainlesschain evolution workbench list --status pending          # Trusted host required
