@@ -1,0 +1,54 @@
+{
+  "schema": "chainlesschain.outcome-pilot-summary/v1",
+  "recordedAt": "2026-09-15T13:12:00.000Z",
+  "scope": "windows-cli-builtin-eval-local-operator-declarations",
+  "productionAttested": false,
+  "source": {
+    "commitSha": "2dc0aac62b2d9dcee0e8b473357a8aa5a452ea98",
+    "dirty": true,
+    "environmentDigest": "sha256:44bf58131762e824797afefd176379141e6474d139b2e240130948d1c44ab249",
+    "comparisonDigest": "sha256:2dc4ddeac676059003436a3f57bcefba3757d8ab6983570165294ae8cd04e480"
+  },
+  "target": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "permissionMode": "acceptEdits"
+  },
+  "task": {
+    "runs": 2,
+    "planned": 20,
+    "observed": 20,
+    "succeeded": 20,
+    "successRate": 1,
+    "unrelatedChanges": 0,
+    "unrelatedChangeRate": 0,
+    "totalMs": 672965,
+    "p50Ms": 29798,
+    "p95Ms": 68692,
+    "currency": "USD",
+    "totalCost": 0.0672595,
+    "costPerSuccess": 0.003362975,
+    "usage": {
+      "inputTokens": 329775,
+      "outputTokens": 22205,
+      "cacheReadInputTokens": 1062400
+    }
+  },
+  "strictGate": {
+    "status": "PASS",
+    "scope": "local-eval-comparison",
+    "baselineRunId": "6dbca5a2-4efc-4fa5-92b6-b0cda54f4bf4",
+    "candidateRunId": "b17031ab-c066-4885-a564-fd57c2b7ce09"
+  },
+  "firstRun": {
+    "status": "INSUFFICIENT_EVIDENCE",
+    "reason": "no clean public-install journey was executed"
+  },
+  "maintenance": {
+    "status": "INSUFFICIENT_EVIDENCE",
+    "reason": "no fixed-window product maintenance time ledger was supplied"
+  }
+}

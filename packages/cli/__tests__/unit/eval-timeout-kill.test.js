@@ -161,6 +161,43 @@ describe("eval process Broker contract", () => {
     });
   });
 
+  it("captures terminal usage and cost for outcome reporting", async () => {
+    const child = new EventEmitter();
+    child.pid = 42;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+    _deps.spawn = vi.fn(() => child);
+    const pending = makeHeadlessRunAgent()({ prompt: "x", cwd: dir });
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        JSON.stringify({
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 20,
+            cache_read_input_tokens: 5,
+            cache_creation_input_tokens: 3,
+          },
+          total_cost_usd: 0.012,
+        }),
+      ),
+    );
+    child.emit("close", 0);
+    await expect(pending).resolves.toMatchObject({
+      usage: {
+        inputTokens: 100,
+        outputTokens: 20,
+        cacheReadInputTokens: 5,
+        cacheCreationInputTokens: 3,
+      },
+      totalCostUsd: 0.012,
+    });
+  });
+
   it("runs the headless agent with literal argv and eval provenance", async () => {
     const child = new EventEmitter();
     child.pid = 42;

@@ -42,6 +42,13 @@ const summary = () => ({
         terminalVerified: true,
         observedFallback: false,
       },
+      usage: {
+        inputTokens: 100,
+        outputTokens: 20,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: 0,
+      },
+      totalCostUsd: 0.01,
       error: null,
       detail: "checked",
       changedFiles: [],
@@ -180,6 +187,7 @@ describe("Eval command strict evidence", () => {
       artifactCheckPassed: true,
       executionSucceeded: false,
       error: "timed out",
+      totalCostUsd: 0.01,
     });
     expect(process.exitCode).toBe(1);
   });

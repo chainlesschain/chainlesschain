@@ -146,6 +146,10 @@ export function createEvalHistoryRecord(
       executionSucceeded: result.executionSucceeded,
       agentOk: result.agentOk,
       executionEvidence: result.executionEvidence,
+      usage: result.usage ?? null,
+      totalCostUsd: Number.isFinite(result.totalCostUsd)
+        ? result.totalCostUsd
+        : null,
       error:
         result.error == null
           ? null
@@ -209,7 +213,19 @@ function validateComparison(value) {
   }
 }
 
-function recordIssues(record, now, maxAgeMs) {
+export function evalExecutionSucceeded(result) {
+  const execution = result?.executionEvidence;
+  return (
+    result?.executionSucceeded === true &&
+    result.error === null &&
+    execution?.protocol === EVAL_EXECUTION_PROTOCOL &&
+    execution.exitCode === 0 &&
+    execution.signal === null &&
+    execution.terminalVerified === true
+  );
+}
+
+export function evalHistoryRecordIssues(record, now, maxAgeMs) {
   if (!record || typeof record !== "object" || Array.isArray(record))
     return ["invalid_history_record"];
   const issues = [];
@@ -247,14 +263,7 @@ function recordIssues(record, now, maxAgeMs) {
       result.pass !== (result.artifactCheckPassed && result.executionSucceeded)
     )
       issues.push("inconsistent_task_verdict");
-    if (
-      !result.executionSucceeded ||
-      result.error !== null ||
-      execution?.protocol !== EVAL_EXECUTION_PROTOCOL ||
-      execution.exitCode !== 0 ||
-      execution.signal !== null ||
-      execution.terminalVerified !== true
-    )
+    if (!evalExecutionSucceeded(result))
       issues.push("execution_not_successful");
     if (execution?.observedFallback !== false)
       issues.push("fallback_or_missing_model_continuity");
@@ -296,7 +305,7 @@ export function evaluateStrictEvalGate(
   if (!Array.isArray(runs) || runs.length < 2) reasons.push("missing_baseline");
   const pair = Array.isArray(runs) ? runs.slice(-2) : [];
   for (const record of pair)
-    reasons.push(...recordIssues(record, now, maxAgeMs));
+    reasons.push(...evalHistoryRecordIssues(record, now, maxAgeMs));
   if (pair.length === 2) {
     const [baseline, candidate] = pair;
     if (

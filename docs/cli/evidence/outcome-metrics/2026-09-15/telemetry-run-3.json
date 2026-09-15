@@ -1,0 +1,285 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "cc-eval"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "chainlesschain.cli"
+          },
+          "spans": [
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000001",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477596893000000",
+              "endTimeUnixNano": "1789477620683000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "create-file"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000002",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477620685000000",
+              "endTimeUnixNano": "1789477643181000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "fix-syntax-error"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000003",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477643182000000",
+              "endTimeUnixNano": "1789477664941000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "add-function"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000004",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477664942000000",
+              "endTimeUnixNano": "1789477691571000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "fix-failing-test"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000005",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477691573000000",
+              "endTimeUnixNano": "1789477726982000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "refactor-rename"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000006",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477726984000000",
+              "endTimeUnixNano": "1789477800846000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "write-test"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000007",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477800848000000",
+              "endTimeUnixNano": "1789477828736000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "migrate-signature"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000008",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477828737000000",
+              "endTimeUnixNano": "1789477861483000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "secure-path"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "0000000000000009",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477861485000000",
+              "endTimeUnixNano": "1789477889880000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "fix-build"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            },
+            {
+              "traceId": "01a0a52d2ed000006f44000000000001",
+              "spanId": "000000000000000a",
+              "parentSpanId": "",
+              "name": "eval.task",
+              "startTimeUnixNano": "1789477889882000000",
+              "endTimeUnixNano": "1789477919680000000",
+              "status": {
+                "code": 1
+              },
+              "attributes": [
+                {
+                  "key": "task.id",
+                  "value": {
+                    "stringValue": "upgrade-dependency"
+                  }
+                },
+                {
+                  "key": "pass",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "events": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

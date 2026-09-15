@@ -9,6 +9,7 @@ import {
   applyAgentModelDefaults,
   applyConfigLlmDefaults,
   reconcileConfigLlmProvider,
+  inheritedModelCompatible,
 } from "../../src/lib/llm-config-defaults.js";
 
 const CFG = {
@@ -100,6 +101,34 @@ describe("applyAgentModelDefaults", () => {
     expect(settings.model).toBe("settings-model");
 
     expect(applyAgentModelDefaults({}, CFG).model).toBe(CFG.model);
+  });
+
+  it("does not pair an inherited Claude model with Volcengine", () => {
+    const fromSettings = applyAgentModelDefaults(
+      { model: "claude-fable-5[1m]" },
+      { ...CFG, model: "deepseek-v4-flash-ga-260731" },
+      { settingsModel: "claude-fable-5[1m]" },
+    );
+    expect(fromSettings).toMatchObject({
+      provider: "volcengine",
+      model: "deepseek-v4-flash-ga-260731",
+    });
+    expect(inheritedModelCompatible("volcengine", "claude-fable-5[1m]")).toBe(
+      false,
+    );
+  });
+
+  it("keeps an explicit settings-file model even when its family looks foreign", () => {
+    expect(
+      applyAgentModelDefaults(
+        { model: "claude-alias-on-private-endpoint" },
+        CFG,
+        {
+          settingsModel: "claude-alias-on-private-endpoint",
+          allowForeignInheritedModel: true,
+        },
+      ).model,
+    ).toBe("claude-alias-on-private-endpoint");
   });
 
   it("uses ANTHROPIC_DEFAULT_MODEL only for a new session with no higher default", () => {

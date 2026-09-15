@@ -55,6 +55,7 @@ export async function reconcileConfigLlmProvider(cfgLlm = {}) {
 }
 
 import { resolveApiKeyFromHelper } from "./api-key-helper.js";
+import { modelForeignToProvider } from "./runnable-provider.js";
 
 /**
  * Key backfill order: config llm.apiKey (plaintext, legacy) first, then
@@ -112,11 +113,26 @@ function optionalModel(value) {
 }
 
 /**
+ * Claude settings and ANTHROPIC_MODEL carry a model name but no provider.
+ * Do not pair an unmistakably provider-specific inherited model with another
+ * configured provider. Explicit CLI/--settings choices may opt out because
+ * they provide the user's intent for this invocation.
+ */
+export function inheritedModelCompatible(provider, model) {
+  const candidate = optionalModel(model);
+  return (
+    !candidate || !provider || !modelForeignToProvider(provider, candidate)
+  );
+}
+
+/**
  * Resolve the model precedence used by `cc agent` without allowing a default
  * from one source to silently outrank an explicit choice from another:
  *
- *   CLI --model > ANTHROPIC_MODEL > settings.model > config/organization model
- *   > ANTHROPIC_DEFAULT_MODEL (new sessions only) > runtime provider default.
+ *   CLI --model > provider-compatible ANTHROPIC_MODEL/settings.model >
+ *   config/organization model > ANTHROPIC_DEFAULT_MODEL (new sessions only)
+ *   > runtime provider default. An explicit --settings file or managed setting
+ *   may authorize a foreign-looking alias for a custom provider endpoint.
  *
  * Environment values are supplied by the caller from the process startup
  * environment, before settings-file `env` entries are merged. That prevents a
@@ -128,18 +144,25 @@ export function applyAgentModelDefaults(options = {}, cfgLlm = {}, opts = {}) {
   const settingsModel = optionalModel(opts.settingsModel);
   const defaultModel = optionalModel(opts.anthropicDefaultModel);
 
-  if (!explicitModel) {
-    if (environmentModel) {
-      options.model = environmentModel;
-    } else if (settingsModel) {
-      options.model = settingsModel;
-    }
+  let inheritedModel = environmentModel || settingsModel;
+  const targetProvider = options.provider || cfgLlm.provider;
+  if (
+    inheritedModel &&
+    opts.allowForeignInheritedModel !== true &&
+    !inheritedModelCompatible(targetProvider, inheritedModel)
+  ) {
+    if (options.model === inheritedModel) delete options.model;
+    inheritedModel = null;
+  }
+
+  if (!explicitModel && inheritedModel) {
+    options.model = inheritedModel;
   }
 
   applyConfigLlmDefaults(options, cfgLlm, {
     // Reuse the existing config/provider wiring, but do not let its configured
     // model overwrite one selected by a higher-priority source above.
-    explicitModel: explicitModel || environmentModel || settingsModel,
+    explicitModel: explicitModel || inheritedModel,
   });
 
   if (!options.model && opts.isNewSession !== false && defaultModel) {

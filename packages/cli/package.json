@@ -17,6 +17,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.js __tests__/e2e/",
     "test:all": "vitest run && vitest run --config vitest.e2e.config.js __tests__/e2e/",
     "test:watch": "vitest watch",
+    "eval:outcomes": "node scripts/task-outcome-report.mjs",
     "test:scheduler-reliability-soak": "node scripts/scheduler-reliability-soak.mjs",
     "test:evolution-ledger-reliability-soak": "node scripts/evolution-ledger-reliability-soak.mjs",
     "test:governed-learning-volcengine-pilot": "node scripts/governed-learning-volcengine-pilot.mjs",

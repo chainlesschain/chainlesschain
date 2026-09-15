@@ -34,6 +34,7 @@ import {
   inspectPrivatePaths,
   repairPrivatePaths,
 } from "../lib/secure-fs.js";
+import { inheritedModelCompatible } from "../lib/llm-config-defaults.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -326,20 +327,28 @@ export async function resolveEffectiveConfig(options = {}) {
     };
     if (loaded.model) {
       const previous = provenance["llm.model"]?.source;
-      setNested(config, "llm.model", loaded.model);
       const modelSource =
         loaded.modelSource || loaded.files.at(-1) || "settings";
-      provenance["llm.model"] = {
+      const managedModel = Boolean(
+        loaded.managedFile && modelSource === loaded.managedFile,
+      );
+      const compatible =
+        managedModel ||
+        inheritedModelCompatible(config?.llm?.provider, loaded.model);
+      settingsLayer.model = {
         source: modelSource,
-        layer:
-          loaded.managedFile && modelSource === loaded.managedFile
-            ? "managed"
-            : "settings",
-        overridden: previous ? [previous] : [],
-        locked: Boolean(
-          loaded.managedFile && modelSource === loaded.managedFile,
-        ),
+        applied: compatible,
+        reason: compatible ? null : "provider_mismatch",
       };
+      if (compatible) {
+        setNested(config, "llm.model", loaded.model);
+        provenance["llm.model"] = {
+          source: modelSource,
+          layer: managedModel ? "managed" : "settings",
+          overridden: previous ? [previous] : [],
+          locked: managedModel,
+        };
+      }
     }
   } catch (error) {
     provenance.$settings = {

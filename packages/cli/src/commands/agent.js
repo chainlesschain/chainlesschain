@@ -1211,6 +1211,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       const startupAnthropicModel = process.env.ANTHROPIC_MODEL;
       const startupAnthropicDefaultModel = process.env.ANTHROPIC_DEFAULT_MODEL;
       let settingsModel = null;
+      let settingsModelAuthoritative = false;
 
       // --settings native config overrides: a .claude/settings.json-shaped file
       // (and the discovered .claude settings) may set `model` + `env` for this
@@ -1243,6 +1244,9 @@ export function registerAgentCommand(program, dependencies = {}) {
         if (!options.model && sc.model) {
           options.model = sc.model;
           settingsModel = sc.model;
+          settingsModelAuthoritative =
+            Boolean(options.settings) ||
+            Boolean(sc.managedFile && sc.modelSource === sc.managedFile);
         }
         settingsSandbox = sc.sandbox || null;
         managedSettingsSandbox = sc.managedSandbox || null;
@@ -1391,6 +1395,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           anthropicModel: startupAnthropicModel,
           anthropicDefaultModel: startupAnthropicDefaultModel,
           settingsModel,
+          allowForeignInheritedModel: settingsModelAuthoritative,
           // ANTHROPIC_DEFAULT_MODEL is deliberately a new-session fallback;
           // a resume/continue keeps its recorded model unless a higher source
           // explicitly replaces it.

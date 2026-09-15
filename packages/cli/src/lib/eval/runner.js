@@ -109,6 +109,8 @@ export async function runEvalSuite(tasks, opts = {}) {
       executionSucceeded: false,
       agentOk: false,
       executionEvidence: null,
+      usage: null,
+      totalCostUsd: null,
       ms: 0,
       detail: "",
       error: null,
@@ -153,6 +155,10 @@ export async function runEvalSuite(tasks, opts = {}) {
         (agentResult.error == null || agentResult.error === "");
       rec.agentOk = rec.executionSucceeded;
       rec.executionEvidence = agentResult?.executionEvidence || null;
+      rec.usage = agentResult?.usage || null;
+      rec.totalCostUsd = Number.isFinite(agentResult?.totalCostUsd)
+        ? agentResult.totalCostUsd
+        : null;
       if (agentResult?.evaluationMetrics !== undefined) {
         rec.evaluationMetrics = agentResult.evaluationMetrics;
       }

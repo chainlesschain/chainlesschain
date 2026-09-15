@@ -1,0 +1,9 @@
+{
+  "schema": "chainlesschain.eval-comparison-context/v1",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+  "environmentDigest": "sha256:44bf58131762e824797afefd176379141e6474d139b2e240130948d1c44ab249",
+  "permissionDigest": "sha256:b47f2f2f2c34d84b0316cd4a2e1858e97d53d7e1a9919c2472e211842c14eedc",
+  "inferenceDigest": "sha256:95f8daae62b400a11ddef5095c88d5c61d76d34b7ae50e10e5f40bf15aaa9aa8"
+}
