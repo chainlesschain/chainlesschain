@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.57",
+      "cliVersions": ["0.166.57"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Release - cc CLI 0.166.57: outcome metrics baseline evidence",
+          "body": "- Ship the normalized eval outcome-metrics baseline: `task-outcome-report`\n  script with the `eval:outcomes` entry point, outcome classification and\n  evidence writing under `src/lib/eval/`, and the evaluation timeout-kill path\n  with per-command tests.\n- Add the 2026-09-15 evidence bundle under\n  `docs/cli/evidence/outcome-metrics/` capturing telemetry runs, summary,\n  history, and comparison context for the eval baseline.\n- Align `llm-config-defaults` with the unified config manager so eval and\n  config commands read the same defaults."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.56",
       "cliVersions": ["0.166.56"],
       "date": null,

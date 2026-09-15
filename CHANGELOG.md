@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Release - cc CLI 0.166.57: outcome metrics baseline evidence
+
+- Ship the normalized eval outcome-metrics baseline: `task-outcome-report`
+  script with the `eval:outcomes` entry point, outcome classification and
+  evidence writing under `src/lib/eval/`, and the evaluation timeout-kill path
+  with per-command tests.
+- Add the 2026-09-15 evidence bundle under
+  `docs/cli/evidence/outcome-metrics/` capturing telemetry runs, summary,
+  history, and comparison context for the eval baseline.
+- Align `llm-config-defaults` with the unified config manager so eval and
+  config commands read the same defaults.
+
 ### Fixed - cc CLI 0.166.56: stabilize the OIDC release gates
 
 - Keep the root lockfile's CLI package version aligned with the publishable CLI
