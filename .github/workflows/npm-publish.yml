@@ -130,7 +130,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CC_RELEASE_GATE_OUTPUT: cli-release-gate.json
-          CC_RELEASE_GATE_WAIT_MS: "2700000"
+          # CLI CI fans out to 60+ hosted jobs across three OSes.  Forty-five
+          # minutes is shorter than normal queue + completion time under load,
+          # which makes a healthy exact-SHA matrix look like a release failure.
+          CC_RELEASE_GATE_WAIT_MS: "10800000"
           CC_RELEASE_GATE_POLL_MS: "30000"
 
       - name: Upload exact-SHA gate attestation

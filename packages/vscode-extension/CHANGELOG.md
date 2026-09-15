@@ -2,10 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.102] - Pair with CLI 0.166.52 (2026-09-15)
+
+- Pair with `chainlesschain@0.166.52`, whose npm release gate waits for the
+  authoritative exact-SHA matrix rather than failing while hosted runners queue.
+
 ## [0.37.101] - Pair with CLI 0.166.51 (2026-09-15)
 
-- Supersede unavailable CLI source candidates with the exact-gated
-  `chainlesschain@0.166.51` pairing after its release verification completes.
+- Superseded by the 0.37.102 / CLI 0.166.52 release pairing.
 
 ## [0.37.99] - Accurate chat context usage (2026-09-14)
 

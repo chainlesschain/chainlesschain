@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.52",
+      "cliVersions": ["0.166.52"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.52: wait for authoritative release gates",
+          "body": "- Give the exact-SHA npm release gate enough time for the full Linux, Windows,\n  and macOS CLI matrix to finish when hosted runners are queued.\n- Prevent IDE release tags from scheduling a redundant CLI CI matrix for the\n  same commit, preserving runner capacity for the authoritative release gate."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.51",
       "cliVersions": ["0.166.51"],
       "date": null,

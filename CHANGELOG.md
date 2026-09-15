@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.52: wait for authoritative release gates
+
+- Give the exact-SHA npm release gate enough time for the full Linux, Windows,
+  and macOS CLI matrix to finish when hosted runners are queued.
+- Prevent IDE release tags from scheduling a redundant CLI CI matrix for the
+  same commit, preserving runner capacity for the authoritative release gate.
+
 ### Fixed - cc CLI 0.166.51: report the active model context accurately
 
 - Resolve the context window from the exact provider, endpoint, and explicit

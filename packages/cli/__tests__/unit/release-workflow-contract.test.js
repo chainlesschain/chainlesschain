@@ -268,12 +268,24 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("chainlesschain-npm-readback-${{ github.sha }}");
   });
 
-  it("runs both authoritative workflows for npm and native release tags", () => {
-    for (const name of ["cli-ci.yml", "cli-strict-sandbox.yml"]) {
-      const text = workflow(name);
-      expect(text).toContain('- "v*"');
-      expect(text).toContain('- "cli-v*"');
-    }
+  it("runs authoritative release gates without duplicating the CLI matrix for IDE tags", () => {
+    const cliCi = workflow("cli-ci.yml");
+    expect(cliCi).toContain('- "v-npm-*"');
+    expect(cliCi).toContain('- "cli-v*"');
+    expect(cliCi).not.toContain('- "v*"');
+    expect(cliCi).toContain(
+      "group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+
+    const strict = workflow("cli-strict-sandbox.yml");
+    expect(strict).toContain('- "v*"');
+    expect(strict).toContain('- "cli-v*"');
+  });
+
+  it("allows enough time for the full exact-SHA CI matrix before publishing", () => {
+    expect(workflow("npm-publish.yml")).toContain(
+      'CC_RELEASE_GATE_WAIT_MS: "10800000"',
+    );
   });
 
   it("checks out and verifies the exact event commit in both CLI release gates", () => {

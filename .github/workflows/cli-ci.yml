@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*"
+      # The release gate only consumes CLI and native-release tags.  Broad
+      # `v*` also matched IDE tags, scheduling a duplicate 60+ job matrix on
+      # the same SHA and starving the npm release gate behind runner queues.
+      - "v-npm-*"
       - "cli-v*"
     paths:
       - "packages/cli/**"
@@ -72,7 +75,10 @@ on:
 # Cancel older runs of this workflow on the same branch/PR when a newer push
 # arrives. The 36+ matrix jobs make stacking expensive.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A main push followed by its immutable release tag has the same SHA.
+  # Keep one authoritative matrix for that source revision rather than
+  # spending runner capacity on an identical second matrix.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
