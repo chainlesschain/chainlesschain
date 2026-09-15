@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.54",
+      "cliVersions": ["0.166.54"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.54: canonicalize TEST deployment paths on macOS",
+          "body": "- Resolve generated credential directories and saved credential files to their\n  physical paths so macOS `/var` and `/private/var` aliases do not break TEST\n  deployment refresh or formal-certificate replacement.\n- Keep deployment profile path assertions portable while preserving real-path\n  verification before any private key is reused."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.53",
       "cliVersions": ["0.166.53"],
       "date": null,

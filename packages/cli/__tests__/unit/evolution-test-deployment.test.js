@@ -1,5 +1,12 @@
 import { generateKeyPairSync, sign as signBytes } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -153,11 +160,15 @@ describe("one-click Evolution test deployment", () => {
     });
     expect(replaced.rootRotationPath).toMatch(/managed-root-rotation\.json$/u);
     const profile = await readEvolutionDeploymentProfile(value.options);
+    const [descriptorPath, trustRootPath] = await Promise.all([
+      realpath(managed.descriptorPath),
+      realpath(managed.trustRootPath),
+    ]);
     expect(profile.profile).toMatchObject({
       deploymentMode: "managed",
       testPrivateKeyPath: null,
-      descriptorPath: managed.descriptorPath,
-      trustRootPath: managed.trustRootPath,
+      descriptorPath,
+      trustRootPath,
     });
   });
 

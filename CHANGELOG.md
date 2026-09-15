@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.54: canonicalize TEST deployment paths on macOS
+
+- Resolve generated credential directories and saved credential files to their
+  physical paths so macOS `/var` and `/private/var` aliases do not break TEST
+  deployment refresh or formal-certificate replacement.
+- Keep deployment profile path assertions portable while preserving real-path
+  verification before any private key is reused.
+
 ### Added - cc CLI 0.166.53: one-click TEST deployment for governed Skill evolution
 
 - Add `cc evolution deployment init-test` to generate a local Ed25519 test key,

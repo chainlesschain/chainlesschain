@@ -205,6 +205,12 @@ export async function initializeEvolutionTestDeployment(
   options = {},
 ) {
   const env = options.env || process.env;
+  const resolveRealPath =
+    options.resolveRealPath ||
+    (async (value) => {
+      const { realpath } = await import("node:fs/promises");
+      return realpath(value);
+    });
   assertNoEnvironmentOverride(env);
   if (typeof modulePath !== "string" || !modulePath.trim())
     throw new TypeError(
@@ -213,13 +219,7 @@ export async function initializeEvolutionTestDeployment(
   const requestedModulePath = modulePath.trim();
   if (!isAbsolute(requestedModulePath))
     throw new TypeError("test deployment host module path must be absolute");
-  const realModulePath = await (
-    options.resolveRealPath ||
-    (async (value) => {
-      const { realpath } = await import("node:fs/promises");
-      return realpath(value);
-    })
-  )(requestedModulePath);
+  const realModulePath = await resolveRealPath(requestedModulePath);
   const moduleBytes = readFileSync(realModulePath);
   if (moduleBytes.byteLength === 0 || moduleBytes.byteLength > MAX_MODULE_BYTES)
     throw new Error("test deployment host module size is invalid");
@@ -234,12 +234,16 @@ export async function initializeEvolutionTestDeployment(
     throw error;
   }
 
-  const testRoot = saved.profile
+  const requestedTestRoot = saved.profile
     ? dirname(saved.profile.descriptorPath)
     : claimFreshTestRoot(
         options.filePath || getEvolutionDeploymentProfilePath(options),
       );
-  ensurePrivateDirectory(testRoot);
+  ensurePrivateDirectory(requestedTestRoot);
+  // macOS exposes /var through the /private/var real path. Persist and compare
+  // the physical path so a refresh does not mistake those aliases for two
+  // different credential directories.
+  const testRoot = await resolveRealPath(requestedTestRoot);
   const privateKeyPath = join(testRoot, TEST_PRIVATE_KEY_FILE);
   const trustRootPath = join(testRoot, TEST_TRUST_ROOT_FILE);
   const descriptorPath = join(testRoot, TEST_DESCRIPTOR_FILE);
@@ -247,10 +251,16 @@ export async function initializeEvolutionTestDeployment(
   let trustRootBytes;
   let generated = false;
   if (saved.profile) {
+    const [savedDescriptorPath, savedTrustRootPath, savedPrivateKeyPath] =
+      await Promise.all([
+        resolveRealPath(saved.profile.descriptorPath),
+        resolveRealPath(saved.profile.trustRootPath),
+        resolveRealPath(saved.profile.testPrivateKeyPath),
+      ]);
     if (
-      resolve(saved.profile.descriptorPath) !== resolve(descriptorPath) ||
-      resolve(saved.profile.trustRootPath) !== resolve(trustRootPath) ||
-      resolve(saved.profile.testPrivateKeyPath) !== resolve(privateKeyPath)
+      resolve(savedDescriptorPath) !== resolve(descriptorPath) ||
+      resolve(savedTrustRootPath) !== resolve(trustRootPath) ||
+      resolve(savedPrivateKeyPath) !== resolve(privateKeyPath)
     ) {
       throw new Error("saved test deployment paths are inconsistent");
     }
