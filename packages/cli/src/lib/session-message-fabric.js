@@ -31,6 +31,31 @@ export const SESSION_MESSAGE_POLICIES = Object.freeze([
   "refuse",
 ]);
 
+// Windows can briefly retain a handle on a just-written state file while an
+// antivirus scanner, indexer, or another process observes it. Retrying the
+// atomic write is safe while this process still owns the state lock: no
+// business mutation is re-run, and no error after the final rename is retried.
+// Keep this deliberately short so genuine filesystem failures remain
+// fail-closed.
+const TRANSIENT_ATOMIC_WRITE_ERROR_CODES = new Set([
+  "EACCES",
+  "EBUSY",
+  "EPERM",
+]);
+const MAX_ATOMIC_WRITE_ATTEMPTS = 5;
+
+function waitForAtomicWriteRetry(attempt) {
+  const delayMs = Math.min(100, 5 * 2 ** attempt);
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
+  } catch {
+    const deadline = Date.now() + delayMs;
+    while (Date.now() < deadline) {
+      // SharedArrayBuffer is unavailable only in constrained runtimes.
+    }
+  }
+}
+
 export const SESSION_MESSAGE_RECEIPT_STATUSES = Object.freeze([
   "delivered",
   "held",
@@ -756,50 +781,62 @@ export class SessionMessageFabric {
 
   _writeState(state) {
     const directory = path.dirname(this.statePath);
-    const temporary = path.join(
-      directory,
-      `.${path.basename(this.statePath)}.${process.pid}.${this._createId()}.tmp`,
-    );
-    let descriptor = null;
-    try {
-      descriptor = fs.openSync(temporary, "wx", 0o600);
-      fs.writeFileSync(
-        descriptor,
-        `${JSON.stringify(state, null, 2)}\n`,
-        "utf8",
+    const serialized = `${JSON.stringify(state, null, 2)}\n`;
+    let lastCause;
+    for (let attempt = 0; attempt < MAX_ATOMIC_WRITE_ATTEMPTS; attempt += 1) {
+      const temporary = path.join(
+        directory,
+        `.${path.basename(this.statePath)}.${process.pid}.${this._createId()}.tmp`,
       );
-      fs.fsyncSync(descriptor);
-      fs.closeSync(descriptor);
-      descriptor = null;
-      fs.renameSync(temporary, this.statePath);
-      if (process.platform !== "win32") {
-        const directoryDescriptor = fs.openSync(directory, "r");
-        try {
-          fs.fsyncSync(directoryDescriptor);
-        } finally {
-          fs.closeSync(directoryDescriptor);
-        }
-      }
-    } catch (cause) {
-      if (descriptor != null) {
-        try {
-          fs.closeSync(descriptor);
-        } catch {
-          // Preserve the original write failure.
-        }
-      }
+      let descriptor = null;
+      let renamed = false;
       try {
-        fs.unlinkSync(temporary);
-      } catch {
-        // The rename may already have committed, or no temporary was created.
+        descriptor = fs.openSync(temporary, "wx", 0o600);
+        fs.writeFileSync(descriptor, serialized, "utf8");
+        fs.fsyncSync(descriptor);
+        fs.closeSync(descriptor);
+        descriptor = null;
+        fs.renameSync(temporary, this.statePath);
+        renamed = true;
+        if (process.platform !== "win32") {
+          const directoryDescriptor = fs.openSync(directory, "r");
+          try {
+            fs.fsyncSync(directoryDescriptor);
+          } finally {
+            fs.closeSync(directoryDescriptor);
+          }
+        }
+        return;
+      } catch (cause) {
+        lastCause = cause;
+        if (descriptor != null) {
+          try {
+            fs.closeSync(descriptor);
+          } catch {
+            // Preserve the original write failure.
+          }
+        }
+        try {
+          fs.unlinkSync(temporary);
+        } catch {
+          // The rename may already have committed, or no temporary was created.
+        }
+        if (
+          renamed ||
+          !TRANSIENT_ATOMIC_WRITE_ERROR_CODES.has(cause?.code) ||
+          attempt + 1 >= MAX_ATOMIC_WRITE_ATTEMPTS
+        ) {
+          break;
+        }
+        waitForAtomicWriteRetry(attempt);
       }
-      throw fabricError(
-        SESSION_MESSAGE_FABRIC_ERROR_CODES.STATE_UNAVAILABLE,
-        "Could not atomically persist session message state",
-        {},
-        cause,
-      );
     }
+    throw fabricError(
+      SESSION_MESSAGE_FABRIC_ERROR_CODES.STATE_UNAVAILABLE,
+      "Could not atomically persist session message state",
+      {},
+      lastCause,
+    );
   }
 
   _transaction(mutator, { expectedRevision = null } = {}) {

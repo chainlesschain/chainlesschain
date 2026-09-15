@@ -10,7 +10,7 @@
       "sections": [
         {
           "heading": "Fixed - cc CLI 0.166.58: recover IDE diagnostics and release safety gates",
-          "body": "- Recover IDE-driven repair tasks from stale hash-edit snapshots and completed\n  tool batches without discarding the active diagnostic context.\n- Preserve paged foreground and background command diagnostics, including\n  remote CI artifacts, so a later repair step receives the actual error rather\n  than a truncated or conflated summary.\n- Stabilize the Windows strict-sandbox Vitest retry path and block commits when\n  a digest-bound Claude security test changes without its reviewed coverage map\n  being updated."
+          "body": "- Recover IDE-driven repair tasks from stale hash-edit snapshots and completed\n  tool batches without discarding the active diagnostic context.\n- Preserve paged foreground and background command diagnostics, including\n  remote CI artifacts, so a later repair step receives the actual error rather\n  than a truncated or conflated summary.\n- Stabilize the Windows strict-sandbox Vitest retry path and block commits when\n  a digest-bound Claude security test changes without its reviewed coverage map\n  being updated.\n- Retry short-lived Windows file-sharing conflicts while an owned session\n  message-fabric state lock is held, without replaying the underlying message\n  mutation or weakening the 32-process delivery contract."
         }
       ]
     },

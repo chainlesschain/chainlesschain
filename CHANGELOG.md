@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stabilize the Windows strict-sandbox Vitest retry path and block commits when
   a digest-bound Claude security test changes without its reviewed coverage map
   being updated.
+- Retry short-lived Windows file-sharing conflicts while an owned session
+  message-fabric state lock is held, without replaying the underlying message
+  mutation or weakening the 32-process delivery contract.
 
 ### Release - cc CLI 0.166.57: outcome metrics baseline evidence
 

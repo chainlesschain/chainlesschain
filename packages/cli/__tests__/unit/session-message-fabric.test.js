@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SESSION_MESSAGE_FABRIC_ERROR_CODES,
   SESSION_MESSAGE_FABRIC_LIMITS,
@@ -29,6 +29,37 @@ afterEach(() => {
 });
 
 describe("SessionMessageFabric authority and policy", () => {
+  it("retries a transient atomic state rename without replaying a mutation", () => {
+    const fabric = fixture();
+    fabric.register({ sessionId: "sender", name: "sender" });
+    const originalRename = fs.renameSync;
+    let injectedFailures = 0;
+    const rename = vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (to === fabric.statePath && injectedFailures === 0) {
+        injectedFailures += 1;
+        const error = new Error("temporary sharing violation");
+        error.code = "EPERM";
+        throw error;
+      }
+      return originalRename.call(fs, from, to);
+    });
+
+    try {
+      expect(
+        fabric.register({ sessionId: "target", name: "target" }),
+      ).toMatchObject({ name: "target" });
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(injectedFailures).toBe(1);
+    expect(
+      new SessionMessageFabric({ statePath: fabric.statePath })
+        .projection()
+        .endpoints.map((endpoint) => endpoint.name),
+    ).toEqual(["sender", "target"]);
+  });
+
   it("assigns unique canonical names and creates a fresh epoch after reuse", () => {
     const fabric = fixture();
     const first = fabric.register({
