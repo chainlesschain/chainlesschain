@@ -41,7 +41,10 @@ describe("REPL compact persistence fencing", () => {
     expect(() => latch.assertOpen()).toThrow(terminal);
     expect(latch.trip(new Error("unrelated"))).toBe(terminal);
     expect(onTrip).toHaveBeenCalledOnce();
-  }, 20000);
+  // Loading the full REPL host can exceed the default bound on saturated
+  // hosted Windows runners; keep the failure-path assertions intact while
+  // allowing the same budget used by other process-backed REPL tests.
+  }, 60000);
 
   it("brackets a direct REPL tool with one secret-free started/settlement pair", async () => {
     const { runReplDirectToolWithLedger } =

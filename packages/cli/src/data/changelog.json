@@ -3,14 +3,14 @@
   "releases": [
     {
       "productVersion": null,
-      "cliVersion": "0.166.55",
-      "cliVersions": ["0.166.55"],
+      "cliVersion": "0.166.56",
+      "cliVersions": ["0.166.56"],
       "date": null,
       "title": "",
       "sections": [
         {
-          "heading": "Release - cc CLI 0.166.55: OIDC publication retry",
-          "body": "- Publish the verified governed-Skill TEST deployment workflow through the\n  immutable-tag GitHub Actions path, using npm Trusted Publishing with a\n  short-lived GitHub OIDC identity after the exact-SHA gates pass."
+          "heading": "Fixed - cc CLI 0.166.56: stabilize the OIDC release gates",
+          "body": "- Keep the root lockfile's CLI package version aligned with the publishable CLI\n  package so the cross-platform release contract remains valid.\n- Allow the REPL host's module-isolation failure test enough time on saturated\n  hosted runners without relaxing any failure-path assertion."
         }
       ]
     },

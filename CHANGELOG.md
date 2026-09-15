@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Release - cc CLI 0.166.55: OIDC publication retry
+### Fixed - cc CLI 0.166.56: stabilize the OIDC release gates
 
-- Publish the verified governed-Skill TEST deployment workflow through the
-  immutable-tag GitHub Actions path, using npm Trusted Publishing with a
-  short-lived GitHub OIDC identity after the exact-SHA gates pass.
+- Keep the root lockfile's CLI package version aligned with the publishable CLI
+  package so the cross-platform release contract remains valid.
+- Allow the REPL host's module-isolation failure test enough time on saturated
+  hosted runners without relaxing any failure-path assertion.
 
 ### Fixed - cc CLI 0.166.54: canonicalize TEST deployment paths on macOS
 
