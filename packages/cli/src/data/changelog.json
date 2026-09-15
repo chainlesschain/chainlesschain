@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.53",
+      "cliVersions": ["0.166.53"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.53: one-click TEST deployment for governed Skill evolution",
+          "body": "- Add `cc evolution deployment init-test` to generate a local Ed25519 test key,\n  sign the deployment descriptor, and enable it through the normal descriptor\n  verification and profile write path, without OpenSSL or bypassing governance.\n- Add `cc evolution deployment replace-test` to rotate a test deployment into the\n  formal descriptor and trust root using a constrained root-rotation proof.\n- Keep `deploymentMode: test` and the red TEST badge visible in status and UI;\n  `init-test` refuses to overwrite an existing managed profile or to run while\n  `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` environment overrides are present.\n- Surface the same one-click generate/refresh and replace flows in the VS Code\n  and JetBrains Configure Skill Evolution views and in `cc ui` settings."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.52",
       "cliVersions": ["0.166.52"],
       "date": null,
