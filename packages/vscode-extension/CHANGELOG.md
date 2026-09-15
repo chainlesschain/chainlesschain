@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.103] - One-click TEST deployment for Skill evolution (2026-09-15)
+
+- Pair with the publicly verified `chainlesschain@0.166.56` release.
+- Provide the Configure Skill Evolution entry point for generating or refreshing
+  a local TEST credential before a formal certificate exists, then replacing it
+  with the formal certificate through the same governed deployment flow.
+
 ## [0.37.102] - Pair with CLI 0.166.52 (2026-09-15)
 
 - Pair with `chainlesschain@0.166.52`, whose npm release gate waits for the

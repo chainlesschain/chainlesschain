@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow the REPL host's module-isolation failure test enough time on saturated
   hosted runners without relaxing any failure-path assertion.
 
+### Added - IDE test-deployment entry points
+
+- Pair VS Code `0.37.103` and JetBrains `0.4.124` with the verified CLI
+  `0.166.56` release.
+- Make TEST credential creation/refresh and formal-certificate replacement
+  discoverable from each IDE's Skill Evolution configuration surface.
+
 ### Fixed - cc CLI 0.166.54: canonicalize TEST deployment paths on macOS
 
 - Resolve generated credential directories and saved credential files to their

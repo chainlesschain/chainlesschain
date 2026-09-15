@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.124] - One-click TEST deployment for Skill evolution (2026-09-15)
+
+- Pair with the publicly verified `chainlesschain@0.166.56` release.
+- Add the Configure Skill Evolution path for generating or refreshing a local
+  TEST credential before formal certificates are issued, with a governed
+  replacement path for the later formal certificate.
+
 ## [0.4.123] - Pair with CLI 0.166.47 (2026-09-13)
 
 - Recommend the publicly verified `chainlesschain@0.166.47` release after its
