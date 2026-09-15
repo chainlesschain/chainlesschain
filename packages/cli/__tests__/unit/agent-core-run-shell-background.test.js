@@ -9,6 +9,7 @@ import {
   _backgroundProcessDeps,
   _runBackgroundTaskkill,
   _resolveShellTimeout,
+  toolResultForModel,
 } from "../../src/runtime/agent-core.js";
 
 const ALLOWING_APPROVAL_GATE = Object.freeze({
@@ -78,7 +79,7 @@ async function pollUntilDone(taskId, { tries = 150, intervalMs = 20 } = {}) {
     last = await executeTool("check_shell", { task_id: taskId }, {});
     stdout += last.stdout || "";
     stderr += last.stderr || "";
-    if (last.status !== "running") break;
+    if (last.status !== "running" && !last.has_more_output) break;
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   return { ...last, stdout, stderr };
@@ -105,6 +106,40 @@ describe("agent-core run_shell background + check_shell", () => {
     await drainAllTasks();
   });
 
+  it("drains a completed process without losing output beyond the first page", async () => {
+    const start = await executeTool("run_shell", {
+      command: `"${NODE}" -e "process.stdout.write('x'.repeat(70000)+'LATE_STDOUT_STACK');process.stderr.write('y'.repeat(70000)+'LATE_STDERR_STACK');process.exitCode=1"`,
+      run_in_background: true,
+    });
+    expect(start.task_id).toBeTruthy();
+    for (let i = 0; i < 250; i++) {
+      if (
+        listBackgroundShellTasks().find((task) => task.id === start.task_id)
+          ?.status !== "running"
+      )
+        break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    const first = await executeTool("check_shell", { task_id: start.task_id });
+    // The model-facing cap must not discard text consumed by the cursor.
+    const visible = JSON.parse(toolResultForModel("check_shell", first, []));
+    expect(visible.stdout).toBe(first.stdout);
+    expect(visible.stderr).toBe(first.stderr);
+    expect(visible.has_more_output).toBe(true);
+    expect(first.status).toBe("failed");
+    expect(first.has_more_output).toBe(true);
+    expect(first.next_check).toEqual({ task_id: start.task_id });
+    const rest = await pollUntilDone(start.task_id);
+    expect(first.stdout + rest.stdout).toBe(
+      "x".repeat(70000) + "LATE_STDOUT_STACK",
+    );
+    expect(first.stderr + rest.stderr).toBe(
+      "y".repeat(70000) + "LATE_STDERR_STACK",
+    );
+    expect(rest.has_more_output).toBe(false);
+    expect(rest.exitCode).toBe(1);
+  }, 15000);
+
   it("run_in_background returns a task_id immediately without blocking", async () => {
     const res = await executeTool(
       "run_shell",
@@ -119,6 +154,20 @@ describe("agent-core run_shell background + check_shell", () => {
     expect(res.task_id).toMatch(/^bg_/);
     expect(res.status).toBe("running");
     expect(res.error).toBeUndefined();
+  });
+
+  it("preserves late foreground error context with an explicit truncation flag", async () => {
+    const result = await executeTool(
+      "run_shell",
+      {
+        command: `"${NODE}" -e "process.stdout.write('x'.repeat(50000));process.stderr.write('y'.repeat(10000)+'\\nError: runner failed\\n    at worker.js:42:1');process.exitCode=1"`,
+      },
+      { nonBlockingShell: true },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout_truncated).toBe(true);
+    expect(result.stderr_truncated).toBe(true);
+    expect(result.stderr_diagnostics).toContain("worker.js:42:1");
   });
 
   it("check_shell streams stdout and reports exit code 0 on completion", async () => {

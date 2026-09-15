@@ -22,6 +22,8 @@ import {
 } from "../lib/read-file-page.js";
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import { gitToolInputError } from "../lib/git-tool-input.js";
+import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
+import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -451,10 +453,10 @@ function _appendBgStream(stream, text) {
   }
 }
 
-// Read everything produced since the last read and advance the cursor. When the
-// cursor points into a region already dropped from the retained tail, the gap
-// is reported so the caller knows output was lost to the buffer cap.
-function _readBgStream(stream) {
+// Read one bounded page and advance only past returned text. When the cursor
+// points into a region already dropped from the retained tail, report that gap
+// separately; unread retained text remains available on the next poll.
+function _readBgStream(stream, budget) {
   const bufStart = stream.total - stream.buf.length;
   let from = stream.cursor;
   let droppedGap = 0;
@@ -462,9 +464,9 @@ function _readBgStream(stream) {
     droppedGap = bufStart - from;
     from = bufStart;
   }
-  const text = stream.buf.slice(from - bufStart);
-  stream.cursor = stream.total;
-  return { text, droppedGap };
+  const page = shellOutputPage(stream.buf.slice(from - bufStart), budget);
+  stream.cursor = from + page.text.length;
+  return { ...page, droppedGap };
 }
 
 /**
@@ -1120,7 +1122,7 @@ Key behaviors:
 - When asked to create something, use write_file to create it
 - When asked to remove or rename a file, use delete_file or move_file so the filesystem intent is explicit and reviewable
 - When asked to run/test something, use run_shell to execute it
-- For a bug fix, retain the failing test/file and exact error, inspect the relevant code, then state a root-cause hypothesis and run the smallest reproduction or diagnostic that can disprove it. Base the next step on actual output. Do not repeatedly read adjacent files without identifying a specific missing fact. Validate the fix with the failing case and report what remains unverified.
+- ${DIAGNOSTIC_WORKFLOW_GUIDANCE}
 - For CI log retrieval, inspect command stderr before retrying. Match syntax to the actual shell: Windows PowerShell 5 does not support &&, cmd treats single quotes literally, and head is not a Windows builtin. Prefer a plain gh metadata/log command without jq or pipelines first, then inspect the saved output. Never switch shells to bypass a policy denial.
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
@@ -6710,8 +6712,8 @@ async function executeToolInner(
                 result.stderr ||
                 `Sandbox command exited with code ${result.exitCode}`
               ).substring(0, 2000),
-              stdout: result.stdout.substring(0, 30000),
-              stderr: result.stderr.substring(0, 2000),
+              ...shellOutputPreview(result.stdout, "stdout", 16000),
+              ...shellOutputPreview(result.stderr, "stderr", 4000),
               exitCode: result.exitCode,
               ...common,
             },
@@ -6719,7 +6721,11 @@ async function executeToolInner(
           );
         }
         return attachDescriptor(
-          { stdout: result.stdout.substring(0, 30000), ...common },
+          {
+            exitCode: 0,
+            ...shellOutputPreview(result.stdout, "stdout", 24000),
+            ...common,
+          },
           override || runtimeDescriptor,
         );
       }
@@ -6851,7 +6857,8 @@ async function executeToolInner(
         }
         return attachDescriptor(
           {
-            stdout: output.substring(0, 30000),
+            ...shellOutputPreview(output, "stdout", 24000),
+            exitCode: 0,
             ...shellMeta,
             ...pluginBinResult,
             shellCommandPolicy: shellPolicy,
@@ -6869,9 +6876,9 @@ async function executeToolInner(
             // actual failure. Only attach it when there IS output (a timeout with
             // no output keeps the field absent), mirroring the success path.
             ...(err.stdout
-              ? { stdout: String(err.stdout).substring(0, 30000) }
+              ? shellOutputPreview(err.stdout, "stdout", 16000)
               : {}),
-            stderr: (err.stderr || "").substring(0, 2000),
+            ...shellOutputPreview(err.stderr, "stderr", 4000),
             exitCode: err.status,
             ...(typeof err.code === "string" && err.code
               ? {
@@ -6898,6 +6905,7 @@ async function executeToolInner(
       if (!taskId) {
         return attachDescriptor({
           tasks: listBackgroundShellTasks(),
+          hint: "This is a task list, not process output. Call check_shell with the task_id to read stdout, stderr and exitCode; continue while has_more_output is true even after the process exits.",
         });
       }
       const task = _backgroundShellTasks.get(taskId);
@@ -6913,8 +6921,17 @@ async function executeToolInner(
         // handler flips status. Best-effort.
         killed = _killTask(task);
       }
-      const out = _readBgStream(task.out);
-      const err = _readBgStream(task.err);
+      const outputBudget = Math.min(
+        16000,
+        Math.floor((MAX_TOOL_RESULT_CHARS - 8192) / 2),
+      );
+      if (outputBudget < 64)
+        return attachDescriptor({
+          error:
+            "Tool output limit is too small to return a background output page. Output was not consumed.",
+        });
+      const out = _readBgStream(task.out, outputBudget);
+      const err = _readBgStream(task.err, outputBudget);
       return attachDescriptor({
         task_id: task.id,
         status: task.status,
@@ -6923,8 +6940,15 @@ async function executeToolInner(
         exitCode: task.exitCode,
         signal: task.signal,
         ...(task.error ? { error: task.error } : {}),
-        stdout: out.text.substring(0, 30000),
-        stderr: err.text.substring(0, 30000),
+        stdout: out.text,
+        stderr: err.text,
+        has_more_output: out.remaining > 0 || err.remaining > 0,
+        ...(out.remaining || err.remaining
+          ? {
+              next_check: { task_id: task.id },
+              hint: "More retained output is unread. Call check_shell with next_check even if status is exited or failed; process exit does not mean all output has been read.",
+            }
+          : {}),
         ...(out.droppedGap ? { stdout_dropped_bytes: out.droppedGap } : {}),
         ...(err.droppedGap ? { stderr_dropped_bytes: err.droppedGap } : {}),
         ...(killed ? { killed: true } : {}),

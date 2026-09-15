@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { diagnosticExcerpt } from "./diagnostic-excerpt.js";
+import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "./diagnostic-workflow.js";
 
 const MAX_TARGETS = 32;
 const RECOVERY_AFTER = 3;
@@ -196,19 +198,7 @@ function failedResult(result) {
 }
 
 function excerpt(value) {
-  const text = typeof value === "string" ? value : JSON.stringify(value ?? "");
-  if (text.length <= 1600) return text;
-  // Retain failure lines from full CI logs as well as the opening context.
-  const failures = text
-    .split("\n")
-    .filter((line) => /FAIL|Error:|AssertionError|error TS|×|✕/.test(line))
-    .slice(0, 12)
-    .join("\n");
-  return (
-    text.slice(0, 400) +
-    "\n[excerpt]\n" +
-    (failures || text.slice(-1100)).slice(0, 1100)
-  );
+  return diagnosticExcerpt(value);
 }
 
 /** Per agentLoop, independent of history compaction and other agents' evidence. */
@@ -290,13 +280,19 @@ export class RemoteReadLoopGuard {
     this.activeKey = target.key;
     const previous = this.targets.get(target.key);
     const digests = previous?.digests || new Set();
-    const content =
+    const primaryContent =
       result?.output ??
       result?.stdout ??
       result?.content ??
       result?.matches ??
       result?.body ??
       "";
+    const content =
+      result?.stdout_diagnostics || result?.stderr_diagnostics
+        ? [result.stdout_diagnostics, result.stderr_diagnostics, primaryContent]
+            .filter(Boolean)
+            .join("\n")
+        : primaryContent;
     const digest = createHash("sha256")
       .update(typeof content === "string" ? content : JSON.stringify(content))
       .digest("hex");
@@ -453,6 +449,8 @@ export class RemoteReadLoopGuard {
         "An aggregate or incomplete-matrix gate can be a downstream symptom; inspect the dependency jobs' conclusions before assuming that the gate itself is wrong. " +
         "When a job is cancelled or logs are unavailable, record that fact and the command error; do not cycle through the same web page and log downloads. " +
         "Use one focused run/job metadata query to resolve the missing status or cancellation reason, then inspect the relevant workflow and make the justified, authorized fix with validation. " +
+        DIAGNOSTIC_WORKFLOW_GUIDANCE +
+        " " +
         "If available evidence cannot establish a fix, report the specific missing evidence and what was verified. Do not disable a release or safety gate just to make CI pass. " +
         "For a research/review request, synthesize the findings without unsolicited edits; for monitoring, use status queries instead of repeated logs."
       );

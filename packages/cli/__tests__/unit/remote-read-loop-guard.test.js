@@ -473,6 +473,19 @@ describe("remote read loop recovery", () => {
     expect(guard.takeRecoveryTurn()).toEqual([]);
     expect(guard.shouldPause("run_shell", { command })).toBe(true);
     expect(guard.shouldPause("run_shell", { command: "npm test" })).toBe(false);
+    expect(
+      guard.shouldPause("run_shell", {
+        command:
+          "gh run view 34976296391 --repo owner/repo --json headSha,jobs",
+      }),
+    ).toBe(false);
+    expect(
+      guard.shouldPause("run_shell", {
+        command:
+          "node scripts/run-vitest-with-worker-retry.mjs -- run subset.test.js",
+      }),
+    ).toBe(false);
+    expect(guard.shouldPause("check_shell", { task_id: "bg_1" })).toBe(false);
     expect(guard.findingsHint).toContain("FAIL macOS path assertion");
     guard.record(
       "run_shell",
@@ -495,6 +508,27 @@ describe("remote read loop recovery", () => {
     expect(evidence).toContain("HTTP 403");
     expect(guard.takeRecoveryTurn()).toEqual(["web_fetch"]);
     expect(guard.findingsHint).toBe(evidence);
+  });
+
+  it("retains diagnostics omitted from the stdout prefix without declaring a cause", () => {
+    const guard = new RemoteReadLoopGuard();
+    guard.record(
+      "run_shell",
+      {
+        stdout: "test setup\n".repeat(4000),
+        stdout_truncated: true,
+        stdout_diagnostics:
+          "[vitest-pool]: Worker forks emitted error\nError: Worker exited unexpectedly\n at runner.js:99:3",
+      },
+      { command },
+    );
+    expect(guard.findingsHint).toContain("runner.js:99:3");
+    expect(guard.workflowHint).toContain(
+      "different error is a separate finding",
+    );
+    expect(guard.workflowHint).toContain(
+      "green report alone does not override",
+    );
   });
 
   it("requires recovery guidance before stopping a large parallel batch", () => {

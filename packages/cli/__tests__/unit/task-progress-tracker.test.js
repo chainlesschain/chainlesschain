@@ -10,6 +10,106 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("marks truncated commands and lost output instead of implying a complete reproduction", () => {
+    const tracker = new TaskProgressTracker({ now: () => 123 });
+    tracker.record(
+      "run_shell",
+      { background: true, task_id: "bg_2" },
+      { command: "test ".repeat(400) },
+    );
+    tracker.record(
+      "check_shell",
+      {
+        task_id: "bg_2",
+        status: "exited",
+        exitCode: 0,
+        stdout: "all passed",
+        stdout_dropped_bytes: 128,
+      },
+      { task_id: "bg_2" },
+    );
+    tracker.record(
+      "check_shell",
+      {
+        task_id: "bg_2",
+        status: "exited",
+        exitCode: 0,
+        stdout: "",
+        has_more_output: false,
+      },
+      { task_id: "bg_2" },
+    );
+    const evidence = JSON.parse(tracker.checkpointFor().split("\n")[1])
+      .recentDiagnostics[0];
+    expect(evidence).toMatchObject({
+      observedAt: 123,
+      invocationTruncated: true,
+      outputLost: true,
+      outputIncomplete: true,
+      exitCode: 0,
+    });
+    expect(evidence.invocation.length).toBeLessThanOrEqual(1000);
+  });
+  it("keeps local reproduction failures distinct from remote evidence after compaction", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record(
+      "run_shell",
+      { stdout: "CI artifact: success=true; process exit=1", exitCode: 0 },
+      {
+        command:
+          "gh run view 34976296391 --job 104404747888 --log-failed --repo owner/repo",
+      },
+    );
+    tracker.record(
+      "run_shell",
+      { background: true, task_id: "bg_1", status: "running" },
+      {
+        command:
+          "node scripts/run-vitest-with-worker-retry.mjs -- run subset.test.js",
+      },
+    );
+    tracker.record(
+      "check_shell",
+      {
+        task_id: "bg_1",
+        status: "failed",
+        exitCode: 1,
+        stdout:
+          "Error: Cannot find package '@chainlesschain/session-core'\n at local-test.js:7:1",
+        has_more_output: true,
+      },
+      { task_id: "bg_1" },
+    );
+    tracker.record(
+      "check_shell",
+      {
+        task_id: "bg_1",
+        status: "failed",
+        exitCode: 1,
+        stdout: "",
+        has_more_output: false,
+      },
+      { task_id: "bg_1" },
+    );
+    const checkpoint = JSON.parse(tracker.checkpointFor().split("\n")[1]);
+    expect(checkpoint.recentDiagnostics).toHaveLength(2);
+    expect(checkpoint.recentDiagnostics[0].source).toBe("remote-inspection");
+    expect(checkpoint.recentDiagnostics[1]).toMatchObject({
+      source: "local-execution",
+      taskId: "bg_1",
+      exitCode: 1,
+      outputIncomplete: false,
+    });
+    expect(checkpoint.recentDiagnostics[1].output).toContain(
+      "local-test.js:7:1",
+    );
+    expect(tracker.checkpointFor("another-agent")).toBeNull();
+    expect(
+      checkpoint.recentToolOutcomes.some(
+        (entry) => entry.tool === "check_shell",
+      ),
+    ).toBe(false);
+  });
   it("retains bounded local evidence across compaction without counting reads as actions", () => {
     const tracker = new TaskProgressTracker();
     for (let i = 0; i < 8; i++) {

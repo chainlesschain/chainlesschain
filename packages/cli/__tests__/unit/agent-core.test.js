@@ -333,50 +333,35 @@ describe("git tool — shell-free (no command injection)", () => {
     ]);
   });
 
-  it("does not execute an injected command via `;`/`&&` (runs via argv)", async () => {
-    // With a shell, `git status; echo PWNED_MARKER` would run echo. Via argv,
-    // git just sees "status;" as an unknown subcommand and errors — no shell.
-    const originalRunner = _gitProcessDeps.run;
-    const run = vi.fn(() => ({
-      status: 1,
-      stdout: "",
-      stderr: "git: 'status;' is not a git command\n",
-    }));
-    _gitProcessDeps.run = run;
-
-    try {
-      const res = await executeTool("git", {
-        command: "status; echo PWNED_MARKER",
-      });
-      const blob = `${res.stdout || ""}${res.error || ""}${res.stderr || ""}`;
-      expect(run).toHaveBeenCalledWith(
-        "git",
-        ["status;", "echo", "PWNED_MARKER"],
-        expect.objectContaining({
-          origin: "agent-core:git-command",
-          policy: "allow",
-          shell: false,
-          scope: "agent-core",
-        }),
-      );
-      expect(run).toHaveBeenCalledOnce();
-      expect(res).toMatchObject({
-        exitCode: 1,
+  it.each(["status; echo PWNED_MARKER", "status && echo PWNED_MARKER"])(
+    "rejects injected shell syntax before Git dispatch: %s",
+    async (command) => {
+      // Diagnose malformed tool input before dispatch; neither Git nor a second
+      // shell command may run.
+      const originalRunner = _gitProcessDeps.run;
+      const run = vi.fn(() => ({
+        status: 1,
+        stdout: "",
         stderr: "git: 'status;' is not a git command\n",
-      });
-      // git rejected the bad subcommand …
-      expect(res.error || res.stderr).toBeTruthy();
-      // … and the injected echo never produced its marker as stdout
-      expect(res.stdout || "").not.toContain("PWNED_MARKER");
-      // (the marker only appears, if at all, inside git's "not a git command"
-      // error text — never as executed output)
-      expect(/not a git command|is not a git|unknown|invalid/i.test(blob)).toBe(
-        true,
-      );
-    } finally {
-      _gitProcessDeps.run = originalRunner;
-    }
-  });
+      }));
+      _gitProcessDeps.run = run;
+
+      try {
+        const res = await executeTool("git", {
+          command,
+        });
+        expect(run).not.toHaveBeenCalled();
+        expect(res).toMatchObject({
+          success: false,
+          code: "CC_GIT_SHELL_SYNTAX",
+        });
+        expect(res.error).toContain("Git arguments only");
+        expect(res.stdout || "").not.toContain("PWNED_MARKER");
+      } finally {
+        _gitProcessDeps.run = originalRunner;
+      }
+    },
+  );
 
   it("runs a legitimate git command via argv", async () => {
     const res = await executeTool("git", { command: "--version" });

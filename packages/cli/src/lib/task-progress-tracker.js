@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { remoteReadTarget } from "./remote-read-loop-guard.js";
+import { diagnosticExcerpt } from "./diagnostic-excerpt.js";
+import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "./diagnostic-workflow.js";
 
 // Discovery and bookkeeping are useful, but are not evidence that the task
 // advanced. In particular, dispatching a child must not buy a fresh budget.
@@ -82,6 +84,7 @@ export class TaskProgressTracker {
     this.lastActions = [];
     this.remoteInspections = [];
     this.localFindings = [];
+    this.diagnostics = [];
   }
 
   retainChildResult(id, result, owner = "root") {
@@ -120,6 +123,82 @@ export class TaskProgressTracker {
       (tool === "edit_file" &&
         typeof args.old_string === "string" &&
         args.old_string === args.new_string);
+
+    // Preserve observed reproduction results through compaction, including
+    // failed runs and completed background tasks. They do not establish that
+    // the original CI failure was reproduced or fixed.
+    if (
+      ["run_shell", "run_code", "check_shell"].includes(tool) &&
+      result?.code !== "CC_TOOL_RECOVERY_PAUSED" &&
+      !(tool === "check_shell" && !args.task_id)
+    ) {
+      const taskId = result?.task_id || args.task_id || null;
+      const previous =
+        taskId &&
+        this.diagnostics.find(
+          (entry) => entry.owner === owner && entry.taskId === taskId,
+        );
+      const output = [
+        result?.stdout_diagnostics,
+        result?.stderr_diagnostics,
+        result?.error,
+        result?.output,
+        result?.stdout,
+        result?.stderr,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      if (output || taskId || Number.isInteger(result?.exitCode)) {
+        const command = args.command || result?.command || args.code || "";
+        const remoteTarget = remoteReadTarget(tool, args);
+        const entry = {
+          owner,
+          tool,
+          taskId,
+          observedAt: this.now(),
+          remoteTarget: remoteTarget?.key || previous?.remoteTarget || null,
+          source:
+            previous?.source ||
+            (remoteTarget?.github || isRemoteInspectionCommand(command)
+              ? "remote-inspection"
+              : "local-execution"),
+          invocation: boundedText(command || previous?.invocation, 1000),
+          invocationTruncated: command
+            ? command.length > 1000
+            : previous?.invocationTruncated || false,
+          exitCode: result?.exitCode ?? result?.exit_code ?? null,
+          status:
+            result?.status ||
+            (result?.background ? "running" : failed ? "failed" : "completed"),
+          outputLost:
+            previous?.outputLost === true ||
+            !!result?.stdout_dropped_bytes ||
+            !!result?.stderr_dropped_bytes,
+          outputIncomplete:
+            previous?.outputLost === true ||
+            result?.has_more_output === true ||
+            result?.stdout_truncated === true ||
+            result?.stderr_truncated === true ||
+            result?.truncated === true ||
+            !!result?.stdout_dropped_bytes ||
+            !!result?.stderr_dropped_bytes,
+          output: diagnosticExcerpt(
+            [previous?.output, output].filter(Boolean).join("\n"),
+            1200,
+          ),
+        };
+        const owned = [
+          ...this.diagnostics.filter(
+            (item) => item.owner === owner && item !== previous,
+          ),
+          entry,
+        ].slice(-4);
+        this.diagnostics = [
+          ...this.diagnostics.filter((item) => item.owner !== owner),
+          ...owned,
+        ].slice(-MAX_CHECKPOINT_OWNERS * 4);
+      }
+    }
 
     if (!failed && (tool === "search_files" || tool === "read_file")) {
       const evidence = result.content ?? result.matches ?? result.output;
@@ -252,6 +331,8 @@ export class TaskProgressTracker {
         message +
         " For an implementation task, make the smallest justified, authorized change and validate it. " +
         "For a bug fix, state the observed failure, your leading root-cause hypothesis and the smallest test that can disprove it. Run that focused reproduction or diagnostic next; use its actual output to choose the next step. Do not keep reading adjacent files without naming the specific missing fact. A timeout alone does not establish that increasing the timeout is the fix. " +
+        DIAGNOSTIC_WORKFLOW_GUIDANCE +
+        " " +
         "For research/review, synthesize evidence-backed findings; do not write files merely to clear this warning. " +
         "If evidence is insufficient, name the exact missing fact and use a focused search or bounded computation. " +
         "Do not restart general investigation, rewrite the plan, or delegate the same research. " +
@@ -268,11 +349,15 @@ export class TaskProgressTracker {
       !this.childFindings.size &&
       !this.lastActions.length &&
       !this.remoteInspections.length &&
+      !this.diagnostics.length &&
       !this.localFindings.length
     )
       return null;
     const checkpoint = {
       bounded: true,
+      recentDiagnostics: this.diagnostics
+        .filter((entry) => entry.owner === owner)
+        .map(({ owner: _owner, ...entry }) => entry),
       recentLocalFindings: this.localFindings
         .filter((entry) => entry.owner === owner)
         .map(({ owner: _owner, ...entry }) => entry),
@@ -300,6 +385,7 @@ export class TaskProgressTracker {
       !checkpoint.recentLocalFindings.length &&
       !checkpoint.recentToolOutcomes.length &&
       !checkpoint.recentRemoteInspections.length &&
+      !checkpoint.recentDiagnostics.length &&
       !checkpoint.reportedPlans.length &&
       !checkpoint.childFindings.length
     )
@@ -312,6 +398,8 @@ export class TaskProgressTracker {
         checkpoint.recentLocalFindings.shift();
       else if (checkpoint.recentRemoteInspections.length)
         checkpoint.recentRemoteInspections.shift();
+      else if (checkpoint.recentDiagnostics.length)
+        checkpoint.recentDiagnostics.shift();
       else if (checkpoint.recentToolOutcomes.length)
         checkpoint.recentToolOutcomes.shift();
       else checkpoint.reportedPlans.pop();
