@@ -430,8 +430,9 @@ jobs:
         working-directory: packages/cli
         # Hosted Windows can occasionally write a complete zero-failure JSON
         # report and still exit 1 during Vitest teardown. Retry once without
-        # file parallelism only when the report proves every recorded assertion
-        # completed successfully.
+        # file parallelism only after a clean partial report, then accept a
+        # teardown-only worker exit only when the retry report accounts for
+        # every selected file and test with zero failures.
         run: >-
           node scripts/run-vitest-with-worker-retry.mjs -- run
           --reporter=default --reporter=json --silent=passed-only

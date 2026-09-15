@@ -227,21 +227,35 @@ export async function runVitestWithWorkerRetry(
     "::warning title=Vitest worker failure::No assertion failures were recorded, but the worker exited abnormally and tests may be incomplete; rerunning the entire suite once without file parallelism.",
   );
   const second = await runOnce(singleWorkerRetryArgs(args));
-  if (second.exitCode === 0 && jsonReportPath) {
+  if (jsonReportPath) {
     try {
       const retryReport = readFile(path.resolve(process.cwd(), jsonReportPath));
-      if (
-        jsonHasTestsAndNoFailures(retryReport) &&
-        JSON.parse(retryReport).success === true
-      )
+      const completeWithoutFailures = jsonHasTestsAndNoFailures(retryReport);
+      if (second.exitCode === 0) {
+        if (completeWithoutFailures && JSON.parse(retryReport).success === true)
+          return 0;
+      } else if (
+        completeWithoutFailures &&
+        isRetryableVitestWorkerFailure({
+          exitCode: second.exitCode,
+          output: second.output,
+          jsonReport: retryReport,
+        })
+      ) {
+        warn(
+          "::warning title=Vitest worker teardown failure::The serialized retry accounted for every selected test with zero failures before the worker exited abnormally; accepting the complete JSON report.",
+        );
         return 0;
+      }
     } catch {
-      // A successful retry must still produce a complete report.
+      // A retry can be accepted only when it produces a complete report.
     }
-    warn(
-      "::error::Vitest retry did not produce a complete zero-failure JSON report.",
-    );
-    return 1;
+    if (second.exitCode === 0) {
+      warn(
+        "::error::Vitest retry did not produce a complete zero-failure JSON report.",
+      );
+      return 1;
+    }
   }
   return second.exitCode;
 }

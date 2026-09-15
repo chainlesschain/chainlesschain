@@ -312,6 +312,41 @@ describe("Vitest worker infrastructure retry", () => {
     expect(runOnce).toHaveBeenCalledTimes(2);
   });
 
+  it("accepts an exact worker teardown failure only after the serialized retry completes every test", async () => {
+    for (const [retryResult, retryReport, expected] of [
+      [{ exitCode: 1, output: workerFailure }, cleanJsonWithWorkerFailure, 0],
+      [{ exitCode: 1, output: workerFailure }, interruptedJson, 1],
+      [{ exitCode: 1, output: "AssertionError" }, cleanJson, 1],
+      [
+        { exitCode: 1, output: workerFailure },
+        cleanJson.replace('"numFailedTests":0', '"numFailedTests":1'),
+        1,
+      ],
+    ]) {
+      const runOnce = vi
+        .fn()
+        .mockResolvedValueOnce({ exitCode: 1, output: workerFailure })
+        .mockResolvedValueOnce(retryResult);
+      const warn = vi.fn();
+
+      await expect(
+        runVitestWithWorkerRetry(
+          ["run", "--reporter=json", "--outputFile=result.json"],
+          {
+            runOnce,
+            readFile: vi
+              .fn()
+              .mockReturnValueOnce(interruptedJson)
+              .mockReturnValueOnce(retryReport),
+            warn,
+          },
+        ),
+      ).resolves.toBe(expected);
+      expect(runOnce).toHaveBeenCalledTimes(2);
+      expect(runOnce.mock.calls[1][0]).toContain("--no-file-parallelism");
+    }
+  });
+
   it("does not retry assertion failures, missing reports, or a second failure", async () => {
     const assertionFailure = vi.fn().mockResolvedValue({
       exitCode: 1,
