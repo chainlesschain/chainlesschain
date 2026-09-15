@@ -267,7 +267,7 @@ export async function initializeEvolutionTestDeployment(
   );
   writePrivateAtomic(
     join(testRoot, TEST_README_FILE),
-    testReadme({ realModulePath, modulePath: realModulePath, descriptorPath, trustRootPath }),
+    testReadme({ modulePath: realModulePath, descriptorPath, trustRootPath }),
   );
 
   const status = await configureEvolutionDeployment(
@@ -300,7 +300,7 @@ export async function replaceEvolutionTestDeployment(
   if (saved.error) throw new Error(saved.error);
   if (saved.profile?.deploymentMode !== "test") {
     const error = new Error(
-      "the saved Evolution deployment is not an generated test deployment",
+      "the saved Evolution deployment is not a generated test deployment",
     );
     error.code = "EVOLUTION_TEST_DEPLOYMENT_NOT_ACTIVE";
     throw error;

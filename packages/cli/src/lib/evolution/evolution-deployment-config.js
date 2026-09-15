@@ -187,8 +187,8 @@ export async function configureEvolutionDeployment(
     rootRotationPath = null,
     revocationPath = null,
     enabled = true,
-    deploymentMode = "managed",
-    testPrivateKeyPath = null,
+    deploymentMode,
+    testPrivateKeyPath,
   },
   options = {},
 ) {
@@ -245,6 +245,11 @@ export async function configureEvolutionDeployment(
         verified.descriptor.revision,
       ),
     };
+    const preserveTestMode =
+      deploymentMode === undefined &&
+      current?.deploymentMode === "test" &&
+      current.descriptorPath === verified.descriptorPath &&
+      current.trustRootPath === verified.trustRootPath;
     return {
       enabled: enabled === true,
       descriptorPath: verified.descriptorPath,
@@ -252,8 +257,12 @@ export async function configureEvolutionDeployment(
       revisionFloors,
       activeTrustRootDigest: verified.descriptor.trustRootDigest,
       revokedDescriptorRevisions,
-      deploymentMode,
-      testPrivateKeyPath,
+      deploymentMode: preserveTestMode
+        ? "test"
+        : deploymentMode || "managed",
+      testPrivateKeyPath: preserveTestMode
+        ? current.testPrivateKeyPath
+        : testPrivateKeyPath || null,
     };
   }, options);
   return getEvolutionDeploymentStatus(options);
