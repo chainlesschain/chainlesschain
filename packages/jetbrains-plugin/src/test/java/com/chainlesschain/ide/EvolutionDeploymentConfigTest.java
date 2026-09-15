@@ -21,8 +21,15 @@ final class EvolutionDeploymentConfigTest {
                         "C:\\managed\\deployment.json", "C:\\managed\\public.pem"));
         assertEquals("enable", EvolutionDeploymentConfig.toggleArgs(true).get(2));
         assertEquals("disable", EvolutionDeploymentConfig.toggleArgs(false).get(2));
+        assertEquals(List.of("evolution", "deployment", "init-test", "--module",
+                        "C:\\dev\\host.mjs", "--json"),
+                EvolutionDeploymentConfig.initTestArgs("C:\\dev\\host.mjs"));
+        assertEquals("replace-test", EvolutionDeploymentConfig.replaceTestArgs(
+                "C:\\managed\\deployment.json", "C:\\managed\\public.pem").get(2));
         assertThrows(IllegalArgumentException.class,
                 () -> EvolutionDeploymentConfig.configureArgs("", "key.pem"));
+        assertThrows(IllegalArgumentException.class,
+                () -> EvolutionDeploymentConfig.initTestArgs(""));
     }
 
     @Test
@@ -31,11 +38,14 @@ final class EvolutionDeploymentConfigTest {
                 {"source":"profile","effectiveEnabled":true,"profileEnabled":true,
                  "verified":true,"descriptorPath":"C:/deployment.json",
                  "trustRootPath":"C:/public.pem","profilePath":"C:/profile.json",
+                 "deploymentMode":"test","modulePath":"C:/host.mjs",
                  "autoPromotion":"hold","commands":["evolution","learning"],"error":null}
                 """);
         assertTrue(status.effectiveEnabled());
         assertTrue(status.profileEnabled());
         assertTrue(status.verified());
+        assertEquals("test", status.deploymentMode());
+        assertEquals("C:/host.mjs", status.modulePath());
         assertEquals(List.of("evolution", "learning"), status.commands());
 
         EvolutionDeploymentConfig.Status disabled = EvolutionDeploymentConfig.parseStatus(
