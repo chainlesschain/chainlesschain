@@ -14,6 +14,77 @@ import {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+describe("queued user steering", () => {
+  it("hands off at a tool boundary without aborting the running tool or losing context", async () => {
+    const lines = [];
+    let announceStarted;
+    const started = new Promise((resolve) => {
+      announceStarted = resolve;
+    });
+    let secondHistory;
+    async function* input() {
+      yield JSON.stringify({ type: "user", text: "Prepare release" }) + "\n";
+      await started;
+      yield JSON.stringify({
+        type: "user",
+        text: "Delete the merged feature branch first",
+      }) + "\n";
+    }
+    const agentLoop = async function* (messages, opts) {
+      const users = messages.filter((m) => m.role === "user");
+      if (users.length === 1) {
+        announceStarted();
+        for (let i = 0; i < 100 && !opts.shouldYieldToUser(); i++)
+          await sleep(5);
+        expect(opts.shouldYieldToUser()).toBe(true);
+        expect(opts.signal.aborted).toBe(false);
+        messages.push({
+          role: "assistant",
+          content: "Release preparation is pending.",
+        });
+        yield { type: "run-ended", reason: "user-input-pending" };
+      } else {
+        secondHistory = messages.map((m) => ({ ...m }));
+        yield {
+          type: "response-complete",
+          content: "Handled the new instruction",
+        };
+        yield { type: "run-ended", reason: "complete" };
+      }
+    };
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false, interactiveApprovals: true },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: (s) => lines.push(s),
+        writeErr: () => {},
+        agentLoop,
+        input: input(),
+      },
+    );
+    const results = lines
+      .join("")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+      .filter((event) => event.type === "result");
+    expect(results[0]).toMatchObject({
+      subtype: "interrupted",
+      reason: "user-input-pending",
+      is_error: false,
+    });
+    expect(results[1].subtype).toBe("success");
+    expect(secondHistory.some((m) => m.content === "Prepare release")).toBe(
+      true,
+    );
+    expect(secondHistory.at(-1).content).toContain(
+      "Delete the merged feature branch first",
+    );
+    expect(outcome.exitCode).toBe(0);
+  }, 20000);
+});
+
 describe("parseInputEvent — interrupt", () => {
   it("parses the interrupt control", () => {
     expect(parseInputEvent('{"type":"interrupt"}')).toEqual({

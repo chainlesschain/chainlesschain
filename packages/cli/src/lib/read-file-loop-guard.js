@@ -30,6 +30,46 @@ export class ReadFileLoopGuard {
     this.recoveryOfferedAt = 0;
     this.batch = null;
     this.largeOutputs = new Set();
+    this.editRecoveryReads = new Map();
+  }
+
+  recordEditRecovery(result) {
+    if (result?.success === true && result.path) {
+      this.editRecoveryReads.delete(keyFor(result.path, { hashed: true }));
+      return;
+    }
+    const request = result?.recoveryRead;
+    if (
+      !request ||
+      !["hash_mismatch", "content_mismatch"].includes(result.error)
+    )
+      return;
+    const key = keyFor(request.path, { hashed: true });
+    // One refresh per file until an edit succeeds. Repeating the failed edit
+    // must not mint an unlimited read allowance.
+    if (
+      !this.editRecoveryReads.has(key) &&
+      this.editRecoveryReads.size < MAX_FILES
+    ) {
+      this.editRecoveryReads.set(key, { ...request, used: false });
+    }
+  }
+
+  get hasEditRecoveryReads() {
+    return [...this.editRecoveryReads.values()].some((entry) => !entry.used);
+  }
+
+  canRecoverEdit(filePath, args = {}) {
+    const entry = this.editRecoveryReads.get(keyFor(filePath, args));
+    return !!(
+      entry &&
+      !entry.used &&
+      args.hashed === true &&
+      args.raw !== true &&
+      args.column == null &&
+      args.offset === entry.offset &&
+      args.limit === entry.limit
+    );
   }
 
   startBatch() {
@@ -51,6 +91,16 @@ export class ReadFileLoopGuard {
     }
     let page = readPage(args);
     if (page.error || !page.readSpan) return page;
+    if (this.canRecoverEdit(filePath, args)) {
+      this.editRecoveryReads.get(key).used = true;
+      // The authorized read implementation has already refreshed stat/content.
+      // Return the requested anchors even if ordinary coverage is exhausted.
+      return {
+        ...page,
+        readRecovery: { action: "edit-anchor-refresh" },
+        readProgress: { newContent: false },
+      };
+    }
     const span = page.readSpan;
     const covered = entry.spans.some(
       ([start, end]) => start <= span.start && end >= span.end,
@@ -160,6 +210,8 @@ export class ReadFileLoopGuard {
     )
       return;
     if (tool === "read_file") {
+      if (result?.readRecovery?.action === "edit-anchor-refresh")
+        this.batch.advanced = true;
       if (result?.readProgress?.newContent === true) this.batch.advanced = true;
       if (result?.readProgress?.newContent === false) this.batch.duplicates++;
     } else if (
@@ -207,12 +259,14 @@ export class ReadFileLoopGuard {
 
   get hasRecoveryReads() {
     return (
+      this.hasEditRecoveryReads ||
       this.hasUnreadPages ||
       [...this.progress.values()].some((entry) => entry.rereads.size < 3)
     );
   }
 
   canContinue(filePath, args = {}) {
+    if (this.canRecoverEdit(filePath, args)) return true;
     const entry = this.progress.get(keyFor(filePath, args));
     return (
       entry?.summary?.reachedEnd === false ||

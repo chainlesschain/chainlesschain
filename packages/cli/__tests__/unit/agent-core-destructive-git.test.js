@@ -44,6 +44,20 @@ afterEach(() => {
 });
 
 describe("destructive-git guard", () => {
+  it("rejects shell syntax before creating a tag or executing any partial command", async () => {
+    const result = await executeTool(
+      "git",
+      { command: "tag should-not-exist | head -8" },
+      { cwd: tmp },
+    );
+    expect(result.code).toBe("CC_GIT_SHELL_SYNTAX");
+    expect(
+      execFileSync("git", ["tag", "--list", "should-not-exist"], {
+        cwd: tmp,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+  });
   it("fails closed for a destructive git command with no confirmer (headless)", async () => {
     const res = await executeTool(
       "git",

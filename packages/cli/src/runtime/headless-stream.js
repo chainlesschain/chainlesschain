@@ -4873,6 +4873,18 @@ async function runAgentHeadlessStreamInWorkspace(
           // Keep the session heartbeat and protocol pumps live while a
           // foreground command such as a networked git push is still running.
           nonBlockingShell: true,
+          // Interactive user input is delivered after the active tool batch,
+          // without aborting in-flight writes. Noninteractive streams retain
+          // their sequential request/response behavior.
+          shouldYieldToUser: () =>
+            (options.interactiveApprovals === true ||
+              options.interactiveQuestions === true) &&
+            queue.some(
+              ({ parsed: event }) =>
+                typeof event.text === "string" &&
+                event.text.trim().length > 0 &&
+                !event.text.trimStart().startsWith("/"),
+            ),
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
@@ -5021,6 +5033,19 @@ async function runAgentHeadlessStreamInWorkspace(
       break;
     }
     currentAbort = null;
+
+    if (outcome.endReason === "user-input-pending") {
+      emit({
+        type: "result",
+        subtype: "interrupted",
+        is_error: false,
+        interrupted: true,
+        reason: "user-input-pending",
+        session_id: sessionId,
+        turn: turns,
+      });
+      continue;
+    }
 
     if (outcome.endReason === "compaction-usage-unknown") {
       sawError = true;
