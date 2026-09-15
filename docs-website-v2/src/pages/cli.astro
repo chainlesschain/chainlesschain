@@ -9,7 +9,7 @@ const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
 const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
-const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const SOURCE_HEAD_COMMIT = releaseStatus.sourceHeadCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
@@ -507,7 +507,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI 0.166.48 已包含重复平衡插件评测、重启安全的延后问题、后台会话只读索引、受治理语义召回，以及此前的静态模型能力、原生 Responses 与沙箱报告。源码候选 0.166.49 再统一实际请求窗口、主请求 token/cache 用量与大窗口压缩阈值；它尚未作为 npm latest。静态 profile 保留 runtimeVerified:false，automatic promotion 保持 HOLD。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI 0.166.56 已包含重复平衡插件评测、重启安全的延后问题、后台会话只读索引、受治理语义召回，并正式统一实际请求窗口、主请求 token/cache 用量与大窗口压缩阈值。子 Agent 和语义压缩不污染主指示，transcript 回退明确标记 estimated。静态 profile 保留 runtimeVerified:false，automatic promotion 保持 HOLD。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>
@@ -692,7 +692,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读均成功；前序 `0.166.5` 的 1,800 秒 App Server overload/RSS soak 与 SDK npm/PyPI 安装回读继续提供对应专项证据。
         </p>
         <p class="mt-4 text-lg text-muted">
-          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。CLI authoritative entry 已在 {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT} 完成切换；Desktop/VS Code 固定能力 App Server 仍是独立迁移面。同一 exact SHA {DESKTOP_SOURCE_COMMIT} 的 Desktop qualification 只证明候选资格；更晚源码 {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} 不自动获得新的 CLI 发布授权。
+          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。CLI authoritative entry 已在 {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT} 完成切换；Desktop/VS Code 固定能力 App Server 仍是独立迁移面。Desktop qualification {DESKTOP_SOURCE_COMMIT} 只证明候选资格；当前仓库 HEAD {SOURCE_HEAD_COMMIT} 仍内置 {SOURCE_CLI_VERSION}，不会因此取得新的 CLI 发布授权。
         </p>
       </div>
     </div>

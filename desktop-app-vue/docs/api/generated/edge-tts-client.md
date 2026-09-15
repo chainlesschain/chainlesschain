@@ -20,6 +20,17 @@ const EventEmitter = require("events");
 
 ---
 
+## function assertGovernedTtsIngress()
+
+```javascript
+function assertGovernedTtsIngress()
+```
+
+* The edge-tts subprocess forwards text to a remote model service. It cannot
+ * receive user content until an authenticated Evolution ingress exists.
+
+---
+
 ## const EDGE_VOICES =
 
 ```javascript
@@ -81,7 +92,7 @@ async synthesize(text, options =
 * Synthesize text to speech
    * @param {string} text - Text to synthesize
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Audio data
+  * @returns {Promise<Object>} Audio data
 
 ---
 
@@ -95,7 +106,7 @@ async synthesizeToFile(text, outputPath, options =
    * @param {string} text - Text to synthesize
    * @param {string} outputPath - Output file path
    * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Result
+  * @returns {Promise<Object>} Result
 
 ---
 

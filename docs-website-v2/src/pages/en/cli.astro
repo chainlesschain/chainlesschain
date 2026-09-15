@@ -9,7 +9,7 @@ const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
 const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
-const SOURCE_CANDIDATE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const SOURCE_HEAD_COMMIT = releaseStatus.sourceHeadCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
@@ -503,7 +503,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Public CLI 0.166.48 adds repeated balanced plugin evaluation, restart-safe deferred questions, a read-only background-session index, and governed semantic recall alongside static model profiles, native Responses, and sandbox reports. Source candidate 0.166.49 unifies the actual request window, primary-request token/cache usage, and large-window compaction thresholds; it is not npm latest yet. Static profiles retain runtimeVerified:false; automatic promotion remains on HOLD.</p>
+      <p class="mt-4 text-sm text-muted">Public CLI 0.166.56 includes repeated balanced plugin evaluation, restart-safe deferred questions, a read-only background-session index, and governed semantic recall, and now ships a unified actual request window, primary-request token/cache usage, and large-window compaction thresholds. Child-agent and semantic-compaction attribution cannot overwrite the primary indicator; transcript fallback is labeled estimated. Static profiles retain runtimeVerified:false; automatic promotion remains on HOLD.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
     </div>
   </section>
@@ -689,7 +689,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, real-Team-child messaging, and Agent SDK {AGENT_SDK_VERSION}. Exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry/provenance readback; the preceding `0.166.5` 1,800-second App Server overload/RSS soak and npm/PyPI SDK install readback remain the corresponding focused evidence.
         </p>
         <p class="mt-4 text-lg text-muted">
-          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. Desktop qualification at the same exact SHA {DESKTOP_SOURCE_COMMIT} proves candidate eligibility only; later source {SOURCE_CLI_VERSION}@{SOURCE_CANDIDATE_COMMIT} does not automatically receive new CLI release authorization.
+          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. Desktop qualification {DESKTOP_SOURCE_COMMIT} proves candidate eligibility only; current repository HEAD {SOURCE_HEAD_COMMIT} still embeds {SOURCE_CLI_VERSION} and does not receive new CLI release authorization merely because it is newer.
         </p>
       </div>
     </div>

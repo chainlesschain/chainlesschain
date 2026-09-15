@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.56 / Open VSX 0.37.103 / JetBrains 0.4.124（2026-09-15）
+
+- **请求级上下文**：按实际 provider/model/endpoint/显式覆盖解析窗口，planner、自动压缩、REPL、`cc context --json`、会话账本与 IDE 共用同一容量；子 Agent/语义压缩不覆盖主请求用量，回退估算明确标记。
+- **Evolution TEST 部署**：`cc evolution deployment init-test` 生成本机 Ed25519 TEST 凭据并经正常验签/profile 写入；`replace-test` 以受限 root-rotation proof 轮换为正式 descriptor/trust root。TEST 身份不具有审核或发布权限，automatic active promotion 仍为 `HOLD`。
+- **跨平台路径加固**：凭据目录和文件使用实体路径，macOS `/var`/`/private/var` 别名不再破坏 TEST 刷新或正式替换。
+- **IDE 入口**：VS Code 和 JetBrains 的 Skill Evolution 配置面已提供一键生成/刷新 TEST 环境与替换正式证书入口，权威写入仍由 CLI 持有。
+- **发布证据**：`v-npm-0-166-56@d55de4810e` 的三平台 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431736)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431550) 与 [npm OIDC 发布/回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431525) 成功；Open VSX `0.37.103` 与 JetBrains `0.4.124` 已公开回读并推荐 CLI `0.166.56`。
+
 #### Released — CLI 0.166.47 / Open VSX 0.37.97 / JetBrains 0.4.123（2026-09-14）
 
 - **受治理运行时**：交付 Evolution ledger v2、证据绑定 Wiki 维护与运行时重验；candidate/evidence/release 摘要不一致时失败闭合，automatic active promotion 继续为 `HOLD`。

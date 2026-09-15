@@ -1,12 +1,12 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.47`；更新：2026-09-14
+> 适用版本：Agent Platform CLI `0.166.56`；更新：2026-09-15
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.47` 是当前 `latest`，对应标签 `v-npm-0-166-47` 与提交 `3138626213`。安装或升级 CLI：`npm i -g chainlesschain@0.166.47`。
+> 发布状态：npm `chainlesschain@0.166.56` 是当前 `latest`，对应标签 `v-npm-0-166-56` 与提交 `d55de4810e`。安装或升级 CLI：`npm i -g chainlesschain@0.166.56`。Open VSX `0.37.103` 与 JetBrains `0.4.124` 已公开并推荐该 CLI。
 
-> `0.166.47` 交付 Evolution ledger v2、证据绑定 Wiki 维护和运行时重验；candidate/evidence/release 摘要不一致时失败闭合。无需为普通对话部署治理宿主；candidate、Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> `0.166.56` 承接 Evolution ledger v2、证据绑定 Wiki 维护和运行时重验，并新增可见的 `deploymentMode: test`、`init-test/replace-test` 与 macOS 实体路径绑定；candidate/evidence/release 摘要不一致时仍失败闭合。无需为普通对话部署治理宿主；candidate、Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 

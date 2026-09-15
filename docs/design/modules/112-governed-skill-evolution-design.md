@@ -1,5 +1,7 @@
 # 112 受治理的 Skill 自进化设计
 
+> 2026-09-15 增量：公开 CLI 已升至 `0.166.56@d55de4810e`，Open VSX `0.37.103` 与 JetBrains `0.4.124` 均已公开并推荐该 CLI。部署 profile v5 新增明确的 `managed/test` 模式和受约束的测试私钥路径；`init-test` 通过正常验签/原子写入链创建本机 TEST 环境，`replace-test` 以 root-rotation proof 轮换到正式 descriptor/trust root。TEST 身份不获得审核或发布权限，automatic active promotion 继续 `HOLD`。
+
 > 2026-09-13 增量：公开 CLI 为 `0.166.46@b15104ebbe`。普通 Agent 在未配置演进部署时可以聊天；受治理配置一旦生效仍执行认证入口校验，失败不降级。Run/Wiki 证据绑定、候选摘要隔离与最新保留边界见 [Agent 运行时增量设计](../agent-runtime-update-2026-09-13.md)。下方 2026-09-11 状态为历史记录。
 
 > 状态：2026-09-11 核对，公开 npm CLI 为 `0.166.44@0651cbcb7d`；candidate/Eval/evidence/ledger/promotion/release、持久化 `EvolutionRun`、Wiki/Memory、页面化 Evolution Workbench、Skill Retrieval、受治理知识同步及签名部署配置仍保持原有 authority 边界。源码另加入 EvolutionLedger 批量写入、增量前缀重验与 v2 manifest head 持久 CAS；目标环境 authority 和 automatic active promotion 继续保持 HOLD
@@ -180,6 +182,8 @@ API 不允许“日志写失败但 mutation 成功”或“候选未落盘但报
 可信宿主至少要配置：tenant root/marker authority、candidate/release durable adapter、ledger/PKI authority、target/grader/safety callable descriptor、全 run deadline、资源上限、permission/policy digest、active/LKG store 和 kill switch。
 
 `0.166.43` 将部署选择冻结为两个版本化 schema：`chainlesschain.evolution-deployment-descriptor/v1` 描述签名模块，`chainlesschain.evolution-deployment-profile/v1` 只保存启用状态与 descriptor/trust-root 的绝对路径。`configure` 必须先验证严格字段集、单调 revision、命令白名单、Ed25519 签名、trust-root 摘要、模块摘要和 4 MiB 模块上限，随后以 owner-only 临时文件和原子 rename 写入 profile。loader 执行的是已验摘要的精确模块字节，而不是再次按路径 import，避免验签后路径替换窗口。
+
+`0.166.53` 的 profile v5 在上述权威链上增加 `deploymentMode: managed|test` 和 `testPrivateKeyPath`。`init-test` 仅使用 Node 内置 Ed25519 生成 owner-only 的本机测试材料，仍须通过 descriptor schema、模块摘要、trust-root 和签名验证；已有 managed profile 或 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` 环境覆盖时必须拒绝。`replace-test` 验证当前测试根/私钥绑定和新的正式 descriptor，用受限 root-rotation proof 保证切换来源，成功后 profile 必须是 `managed + verified`。`0.166.54` 进一步将凭据目录/文件解析为实体路径，阻断 macOS `/var` 与 `/private/var` 别名造成的路径身份漂移。CLI、`cc ui`、VS Code 和 JetBrains 必须持续显示 TEST 标记，不得将测试密钥解释为生产 KMS/PKI、reviewer、publisher、witness 或 grader authority。
 
 环境变量仅选择已认证部署，不赋予调用者 authority；当环境变量与 profile 同时存在时环境变量优先，且 descriptor/trust-root 必须成对提供。损坏或过期的持久 profile 不会启动治理能力，但仍允许 `status`、`configure` 和 `disable` 进入恢复路径。Workbench 与 Knowledge 命令虽已公开注册，缺少可信 host 时仍明确 unavailable，不能回退到测试密钥、内存 authority 或未认证目录。`cc ui` 的配置 topic 只接受 loopback 或 token 保护的控制面，并限制为有界单行路径与布尔开关。
 

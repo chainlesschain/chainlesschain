@@ -16,6 +16,10 @@ const path = require("path");
 const { execSync } = require("child_process");
 const glob = require("glob");
 
+function toPosixPath(filePath) {
+  return filePath.split(path.sep).join("/");
+}
+
 console.log("📚 Cowork Documentation Generator\n");
 console.log("=".repeat(60));
 
@@ -59,7 +63,7 @@ const docConfig = {
   },
   changelog: {
     enabled: true,
-    gitRange: "v0.26.0..HEAD",
+    gitRange: null,
     outputPath: "CHANGELOG.md",
     groupByType: true, // Group by feat/fix/docs/etc
   },
@@ -157,7 +161,7 @@ function extractJSDoc(filePath) {
       matches.push({
         comment: comment.trim(),
         declaration,
-        file: path.relative(process.cwd(), filePath),
+        file: toPosixPath(path.relative(process.cwd(), filePath)),
       });
     }
 
@@ -200,7 +204,7 @@ function extractVueDoc(filePath) {
 
     return {
       name: componentName,
-      file: path.relative(process.cwd(), filePath),
+      file: toPosixPath(path.relative(process.cwd(), filePath)),
       description,
       props,
       emits,
@@ -256,6 +260,26 @@ function getGitCommits(range) {
   } catch (error) {
     console.error("   ❌ Error getting git commits:", error.message);
     return [];
+  }
+}
+
+/**
+ * Resolve the changelog baseline from the newest product release tag.
+ * CLI/IDE tags intentionally use different prefixes and must not replace the
+ * desktop product baseline.
+ */
+function resolveChangelogRange() {
+  try {
+    const tag = execSync(
+      'git describe --tags --abbrev=0 --match "v[0-9]*" HEAD',
+      { encoding: "utf-8", cwd: process.cwd() },
+    ).trim();
+    return tag ? `${tag}..HEAD` : "HEAD";
+  } catch {
+    console.warn(
+      "   ⚠️  No product release tag found; generating from HEAD history",
+    );
+    return "HEAD";
   }
 }
 
@@ -438,7 +462,8 @@ function generateUserGuide() {
 function generateChangelog() {
   console.log("\n📝 Generating Changelog...");
 
-  const commits = getGitCommits(docConfig.changelog.gitRange);
+  const gitRange = docConfig.changelog.gitRange || resolveChangelogRange();
+  const commits = getGitCommits(gitRange);
   console.log(`   Found ${commits.length} commits`);
 
   if (commits.length === 0) {
@@ -451,7 +476,7 @@ function generateChangelog() {
   const outputPath = path.join(process.cwd(), docConfig.changelog.outputPath);
 
   let content = `# Changelog\n\n`;
-  content += `**Range**: ${docConfig.changelog.gitRange}\n\n`;
+  content += `**Range**: ${gitRange}\n\n`;
   content += `---\n\n`;
 
   const typeLabels = {
@@ -556,7 +581,7 @@ function generateArchitectureDocs() {
     content += `**Top 10 Largest Files**:\n\n`;
     sorted.forEach((item, idx) => {
       const sizeKB = (item.size / 1024).toFixed(1);
-      const relPath = path.relative(process.cwd(), item.file);
+      const relPath = toPosixPath(path.relative(process.cwd(), item.file));
       content += `${idx + 1}. \`${relPath}\` - ${sizeKB} KB\n`;
     });
 

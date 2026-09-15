@@ -94,6 +94,14 @@
 
 ---
 
+### SSOLoginPage
+
+**File**: `src/renderer/pages/SSOLoginPage.vue`
+
+**Description**: Header
+
+---
+
 ### SkillManager
 
 **File**: `src/renderer/pages/SkillManager.vue`
@@ -137,14 +145,6 @@
 **File**: `src/renderer/pages/SessionManagerPage.vue`
 
 **Description**: 页面头部
-
----
-
-### SSOLoginPage
-
-**File**: `src/renderer/pages/SSOLoginPage.vue`
-
-**Description**: Header
 
 ---
 
@@ -342,14 +342,6 @@
 
 ---
 
-### LivestreamPage
-
-**File**: `src/renderer/pages/LivestreamPage.vue`
-
-**Description**: Main content area
-
----
-
 ### LLMTestChatPage
 
 **File**: `src/renderer/pages/LLMTestChatPage.vue`
@@ -361,6 +353,14 @@
 **File**: `src/renderer/pages/LLMPerformancePage.vue`
 
 **Description**: Budget Alert Banner
+
+---
+
+### LivestreamPage
+
+**File**: `src/renderer/pages/LivestreamPage.vue`
+
+**Description**: Main content area
 
 ---
 
@@ -540,14 +540,6 @@
 
 ---
 
-### AgentTemplateEditorPage
-
-**File**: `src/renderer/pages/AgentTemplateEditorPage.vue`
-
-**Description**: 页面头部
-
----
-
 ### AIPromptsPage
 
 **File**: `src/renderer/pages/AIPromptsPage.vue`
@@ -559,6 +551,14 @@
 **File**: `src/renderer/pages/AIChatPage.vue`
 
 **Description**: 右侧：主内容区
+
+---
+
+### AgentTemplateEditorPage
+
+**File**: `src/renderer/pages/AgentTemplateEditorPage.vue`
+
+**Description**: 页面头部
 
 ---
 
@@ -644,15 +644,15 @@
 
 ---
 
-### ActivityPubBridgePage
-
-**File**: `src/renderer/pages/social/ActivityPubBridgePage.vue`
-
----
-
 ### AISocialEnhancementPage
 
 **File**: `src/renderer/pages/social/AISocialEnhancementPage.vue`
+
+---
+
+### ActivityPubBridgePage
+
+**File**: `src/renderer/pages/social/ActivityPubBridgePage.vue`
 
 ---
 
@@ -1168,15 +1168,15 @@
 
 ---
 
-### SkillMarketplacePage
-
-**File**: `src/renderer/pages/ai/SkillMarketplacePage.vue`
-
----
-
 ### SLAManagerPage
 
 **File**: `src/renderer/pages/ai/SLAManagerPage.vue`
+
+---
+
+### SkillMarketplacePage
+
+**File**: `src/renderer/pages/ai/SkillMarketplacePage.vue`
 
 ---
 
@@ -1448,6 +1448,14 @@
 
 ---
 
+### MCPSettings
+
+**File**: `src/renderer/components/MCPSettings.vue`
+
+**Description**: 概览统计
+
+---
+
 ### MarkdownEditor
 
 **File**: `src/renderer/components/MarkdownEditor.vue`
@@ -1464,20 +1472,6 @@
 
 ---
 
-### MCPSettings
-
-**File**: `src/renderer/components/MCPSettings.vue`
-
-**Description**: 概览统计
-
----
-
-### LanguageSwitcher
-
-**File**: `src/renderer/components/LanguageSwitcher.vue`
-
----
-
 ### LLMStatus
 
 **File**: `src/renderer/components/LLMStatus.vue`
@@ -1491,6 +1485,12 @@
 **File**: `src/renderer/components/LLMSettings.vue`
 
 **Description**: 提供商选择
+
+---
+
+### LanguageSwitcher
+
+**File**: `src/renderer/components/LanguageSwitcher.vue`
 
 ---
 
@@ -1598,6 +1598,14 @@
 
 ---
 
+### DIDInvitationNotifier
+
+**File**: `src/renderer/components/DIDInvitationNotifier.vue`
+
+**Description**: 邀请通知徽章
+
+---
+
 ### DatabasePerformanceMonitor
 
 **File**: `src/renderer/components/DatabasePerformanceMonitor.vue`
@@ -1623,14 +1631,6 @@
 ### DatabaseEncryptionStatus
 
 **File**: `src/renderer/components/DatabaseEncryptionStatus.vue`
-
----
-
-### DIDInvitationNotifier
-
-**File**: `src/renderer/components/DIDInvitationNotifier.vue`
-
-**Description**: 邀请通知徽章
 
 ---
 
@@ -2856,6 +2856,14 @@
 
 ---
 
+### PPTEditor
+
+**File**: `src/renderer/components/projects/PPTEditor.vue`
+
+**Description**: 🔥 二进制.pptx文件提示
+
+---
+
 ### PlanningView
 
 **File**: `src/renderer/components/projects/PlanningView.vue`
@@ -2869,14 +2877,6 @@
 **File**: `src/renderer/components/projects/PerformanceMonitor.vue`
 
 **Description**: Real-time Stats
-
----
-
-### PPTEditor
-
-**File**: `src/renderer/components/projects/PPTEditor.vue`
-
-**Description**: 🔥 二进制.pptx文件提示
 
 ---
 
@@ -4054,19 +4054,19 @@
 
 ## src/renderer/components/collaboration
 
-### CollaborativeEditor
-
-**File**: `src/renderer/components/collaboration/CollaborativeEditor.vue`
-
-**Description**: Toolbar with active users
-
----
-
 ### CollabRichEditor
 
 **File**: `src/renderer/components/collaboration/CollabRichEditor.vue`
 
 **Description**: Toolbar
+
+---
+
+### CollaborativeEditor
+
+**File**: `src/renderer/components/collaboration/CollaborativeEditor.vue`
+
+**Description**: Toolbar with active users
 
 ---
 
