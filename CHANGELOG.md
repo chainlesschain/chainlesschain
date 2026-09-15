@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.58: recover IDE diagnostics and release safety gates
+
+- Recover IDE-driven repair tasks from stale hash-edit snapshots and completed
+  tool batches without discarding the active diagnostic context.
+- Preserve paged foreground and background command diagnostics, including
+  remote CI artifacts, so a later repair step receives the actual error rather
+  than a truncated or conflated summary.
+- Stabilize the Windows strict-sandbox Vitest retry path and block commits when
+  a digest-bound Claude security test changes without its reviewed coverage map
+  being updated.
+
 ### Release - cc CLI 0.166.57: outcome metrics baseline evidence
 
 - Ship the normalized eval outcome-metrics baseline: `task-outcome-report`
