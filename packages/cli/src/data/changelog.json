@@ -16,6 +16,19 @@
     },
     {
       "productVersion": null,
+      "cliVersion": "0.166.58",
+      "cliVersions": ["0.166.58"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Release - IDE extensions paired with CLI 0.166.58",
+          "body": "- Prepare VS Code/Open VSX `0.37.104` and JetBrains `0.4.125` with\n  `chainlesschain@0.166.58` as the offline-safe recommended CLI version.\n- Surface the CLI release's IDE task recovery, preserved diagnostic evidence,\n  normalized outcome metrics, and retry-safe Windows session-state writes in\n  both extension changelogs."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.57",
       "cliVersions": ["0.166.57"],
       "date": "2026-09-15",
