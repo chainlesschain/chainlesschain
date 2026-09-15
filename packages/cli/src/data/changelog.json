@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.55",
+      "cliVersions": ["0.166.55"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Release - cc CLI 0.166.55: OIDC publication retry",
+          "body": "- Publish the verified governed-Skill TEST deployment workflow through the\n  immutable-tag GitHub Actions path, using npm Trusted Publishing with a\n  short-lived GitHub OIDC identity after the exact-SHA gates pass."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.54",
       "cliVersions": ["0.166.54"],
       "date": null,

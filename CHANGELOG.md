@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Release - cc CLI 0.166.55: OIDC publication retry
+
+- Publish the verified governed-Skill TEST deployment workflow through the
+  immutable-tag GitHub Actions path, using npm Trusted Publishing with a
+  short-lived GitHub OIDC identity after the exact-SHA gates pass.
+
 ### Fixed - cc CLI 0.166.54: canonicalize TEST deployment paths on macOS
 
 - Resolve generated credential directories and saved credential files to their
