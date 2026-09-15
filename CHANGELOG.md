@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.53: one-click TEST deployment for governed Skill evolution
+
+- Add `cc evolution deployment init-test` to generate a local Ed25519 test key,
+  sign the deployment descriptor, and enable it through the normal descriptor
+  verification and profile write path, without OpenSSL or bypassing governance.
+- Add `cc evolution deployment replace-test` to rotate a test deployment into the
+  formal descriptor and trust root using a constrained root-rotation proof.
+- Keep `deploymentMode: test` and the red TEST badge visible in status and UI;
+  `init-test` refuses to overwrite an existing managed profile or to run while
+  `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` environment overrides are present.
+- Surface the same one-click generate/refresh and replace flows in the VS Code
+  and JetBrains Configure Skill Evolution views and in `cc ui` settings.
+
 ### Fixed - cc CLI 0.166.52: wait for authoritative release gates
 
 - Give the exact-SHA npm release gate enough time for the full Linux, Windows,
