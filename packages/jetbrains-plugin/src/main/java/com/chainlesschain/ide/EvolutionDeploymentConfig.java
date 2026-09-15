@@ -18,6 +18,7 @@ public final class EvolutionDeploymentConfig {
     public record Status(boolean effectiveEnabled, boolean profileEnabled,
                          boolean verified, String source, String descriptorPath,
                          String trustRootPath, String profilePath, String error,
+                         String deploymentMode, String modulePath,
                          List<String> commands, Map<String, Admission> readiness) {}
 
     public static List<String> statusArgs() {
@@ -30,6 +31,23 @@ public final class EvolutionDeploymentConfig {
             throw new IllegalArgumentException("Descriptor and trust-root paths are required");
         }
         return List.of("evolution", "deployment", "configure", "--descriptor",
+                descriptorPath.trim(), "--trust-root", trustRootPath.trim(), "--json");
+    }
+
+    public static List<String> initTestArgs(String modulePath) {
+        if (modulePath == null || modulePath.isBlank()) {
+            throw new IllegalArgumentException("Development deployment host module path is required");
+        }
+        return List.of("evolution", "deployment", "init-test", "--module",
+                modulePath.trim(), "--json");
+    }
+
+    public static List<String> replaceTestArgs(String descriptorPath, String trustRootPath) {
+        if (descriptorPath == null || descriptorPath.isBlank()
+                || trustRootPath == null || trustRootPath.isBlank()) {
+            throw new IllegalArgumentException("Managed descriptor and trust-root paths are required");
+        }
+        return List.of("evolution", "deployment", "replace-test", "--descriptor",
                 descriptorPath.trim(), "--trust-root", trustRootPath.trim(), "--json");
     }
 
@@ -51,7 +69,8 @@ public final class EvolutionDeploymentConfig {
                 Boolean.TRUE.equals(value.get("profileEnabled")),
                 Boolean.TRUE.equals(value.get("verified")), text(value.get("source")),
                 text(value.get("descriptorPath")), text(value.get("trustRootPath")),
-                text(value.get("profilePath")), text(value.get("error")), List.copyOf(commands),
+                text(value.get("profilePath")), text(value.get("error")),
+                text(value.get("deploymentMode")), text(value.get("modulePath")), List.copyOf(commands),
                 Map.of("ask", parseAdmission(value.get("readiness"), "ask"),
                         "agent", parseAdmission(value.get("readiness"), "agent")));
     }

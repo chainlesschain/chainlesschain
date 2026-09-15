@@ -18,10 +18,36 @@
       class="notice"
     />
 
+    <a-alert
+      v-if="status.deploymentMode === 'test'"
+      message="当前为 TEST 测试开发环境"
+      description="本机自动生成的测试密钥不能用于生产。正式 descriptor 和 trust root 到位后，请使用下方“一键替换测试证书并转正式”。"
+      type="error"
+      show-icon
+      class="notice"
+    />
+
     <a-row :gutter="16">
       <a-col :xs="24" :xl="15">
-        <a-card title="签名部署" class="panel-card">
+        <a-card title="上线前测试与正式部署" class="panel-card">
           <a-form layout="vertical">
+            <a-form-item label="测试部署宿主模块">
+              <a-input
+                v-model:value="modulePath"
+                :disabled="busy"
+                placeholder="运行 cc ui 的机器上 deployment host .mjs/.js 的绝对路径"
+              />
+              <template #extra
+                >首次填写后点击一次即可生成 Ed25519 测试密钥、签名描述符并启用；宿主模块修改后再次点击可刷新。</template
+              >
+            </a-form-item>
+            <a-button
+              type="primary"
+              :loading="initializingTest"
+              @click="initTest"
+              >一键生成/刷新测试环境</a-button
+            >
+            <a-divider />
             <a-form-item label="签名部署描述符">
               <a-input
                 v-model:value="descriptorPath"
@@ -52,6 +78,12 @@
               >
                 {{ status.profileEnabled ? "停用" : "启用" }}
               </a-button>
+              <a-button
+                v-if="status.deploymentMode === 'test'"
+                :loading="replacingTest"
+                @click="replaceTest"
+                >一键替换测试证书并转正式</a-button
+              >
             </a-space>
           </a-form>
         </a-card>
@@ -59,6 +91,16 @@
       <a-col :xs="24" :xl="9">
         <a-card title="治理状态" class="panel-card status-card">
           <a-descriptions :column="1" size="small">
+            <a-descriptions-item label="部署模式"
+              ><a-tag
+                :color="status.deploymentMode === 'test' ? 'red' : 'blue'"
+                >{{
+                  status.deploymentMode === "test"
+                    ? "TEST（仅限上线前联调）"
+                    : status.deploymentMode || "none"
+                }}</a-tag
+              ></a-descriptions-item
+            >
             <a-descriptions-item label="生效状态"
               ><a-tag :color="status.effectiveEnabled ? 'green' : 'default'">{{
                 status.effectiveEnabled ? "已启用" : "未启用"
@@ -126,6 +168,9 @@ const ws = useWsStore();
 const loading = ref(false);
 const saving = ref(false);
 const toggling = ref(false);
+const initializingTest = ref(false);
+const replacingTest = ref(false);
+const modulePath = ref("");
 const descriptorPath = ref("");
 const trustRootPath = ref("");
 const status = reactive({
@@ -135,13 +180,21 @@ const status = reactive({
   verified: false,
   commands: [],
 });
-const busy = computed(() => loading.value || saving.value || toggling.value);
+const busy = computed(
+  () =>
+    loading.value ||
+    saving.value ||
+    toggling.value ||
+    initializingTest.value ||
+    replacingTest.value,
+);
 const readinessRows = computed(() => deploymentReadinessRows(status));
 
 function apply(value) {
   replaceDeploymentStatus(status, value);
   descriptorPath.value = status.descriptorPath || "";
   trustRootPath.value = status.trustRootPath || "";
+  modulePath.value = status.modulePath || modulePath.value || "";
 }
 
 async function request(frame, timeout = 30000) {
@@ -183,6 +236,55 @@ async function save() {
     message.error("配置失败：" + error.message);
   } finally {
     saving.value = false;
+  }
+}
+
+async function initTest() {
+  if (!modulePath.value.trim()) {
+    message.warning("请填写测试部署宿主模块的服务器绝对路径");
+    return;
+  }
+  initializingTest.value = true;
+  try {
+    apply(
+      await request(
+        {
+          type: "evolution.deployment.init-test",
+          modulePath: modulePath.value.trim(),
+        },
+        60000,
+      ),
+    );
+    message.success("TEST 测试开发环境已生成并启用；禁止用于生产");
+  } catch (error) {
+    message.error("生成测试环境失败：" + error.message);
+  } finally {
+    initializingTest.value = false;
+  }
+}
+
+async function replaceTest() {
+  if (!descriptorPath.value.trim() || !trustRootPath.value.trim()) {
+    message.warning("请填写正式描述符和正式信任根公钥的绝对路径");
+    return;
+  }
+  replacingTest.value = true;
+  try {
+    apply(
+      await request(
+        {
+          type: "evolution.deployment.replace-test",
+          descriptorPath: descriptorPath.value.trim(),
+          trustRootPath: trustRootPath.value.trim(),
+        },
+        60000,
+      ),
+    );
+    message.success("测试根已安全轮换为正式受管证书");
+  } catch (error) {
+    message.error("替换失败：" + error.message);
+  } finally {
+    replacingTest.value = false;
   }
 }
 

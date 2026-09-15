@@ -41,10 +41,13 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
         private final File cwd;
         private final JBTextField descriptor = new JBTextField();
         private final JBTextField trustRoot = new JBTextField();
+        private final JBTextField modulePath = new JBTextField();
         private final JBTextArea status = new JBTextArea();
         private final JButton reload = new JButton(CcBundle.message("evolution.config.reload"));
         private final JButton save = new JButton(CcBundle.message("evolution.config.save"));
         private final JButton toggle = new JButton(CcBundle.message("evolution.config.enable"));
+        private final JButton initTest = new JButton(CcBundle.message("evolution.config.initTest"));
+        private final JButton replaceTest = new JButton(CcBundle.message("evolution.config.replaceTest"));
         private EvolutionDeploymentConfig.Status current;
         private boolean disposed;
 
@@ -63,25 +66,31 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
             reload.addActionListener(e -> load());
             save.addActionListener(e -> save());
             toggle.addActionListener(e -> toggle());
+            initTest.addActionListener(e -> initTest());
+            replaceTest.addActionListener(e -> replaceTest());
             load();
         }
 
         @Override protected JComponent createCenterPanel() {
             JButton descriptorBrowse = new JButton(CcBundle.message("evolution.config.browse"));
             JButton trustBrowse = new JButton(CcBundle.message("evolution.config.browse"));
+            JButton moduleBrowse = new JButton(CcBundle.message("evolution.config.browse"));
             descriptorBrowse.addActionListener(e -> choose(descriptor));
             trustBrowse.addActionListener(e -> choose(trustRoot));
+            moduleBrowse.addActionListener(e -> choose(modulePath));
             JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-            buttons.add(reload); buttons.add(toggle); buttons.add(save);
+            buttons.add(reload); buttons.add(toggle); buttons.add(replaceTest); buttons.add(save);
             JPanel panel = FormBuilder.createFormBuilder()
                     .addComponent(new JBLabel(CcBundle.message("evolution.config.intro")))
+                    .addLabeledComponent(CcBundle.message("evolution.config.module"), row(modulePath, moduleBrowse))
+                    .addComponent(initTest)
                     .addLabeledComponent(CcBundle.message("evolution.config.descriptor"), row(descriptor, descriptorBrowse))
                     .addLabeledComponent(CcBundle.message("evolution.config.trustRoot"), row(trustRoot, trustBrowse))
                     .addComponent(new JBLabel(CcBundle.message("evolution.config.hold")))
                     .addComponent(status)
                     .addComponent(buttons)
                     .getPanel();
-            panel.setPreferredSize(new Dimension(720, 430));
+            panel.setPreferredSize(new Dimension(760, 500));
             return panel;
         }
 
@@ -104,6 +113,8 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
         private void busy(boolean value) {
             reload.setEnabled(!value); save.setEnabled(!value);
             toggle.setEnabled(!value && current != null && current.descriptorPath() != null);
+            initTest.setEnabled(!value);
+            replaceTest.setEnabled(!value && current != null && "test".equals(current.deploymentMode()));
         }
 
         private void background(Callable<EvolutionDeploymentConfig.Status> operation) {
@@ -134,6 +145,20 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
             background(() -> EvolutionDeploymentConfig.run(args, cwd, 60_000));
         }
 
+        private void initTest() {
+            List<String> args;
+            try { args = EvolutionDeploymentConfig.initTestArgs(modulePath.getText()); }
+            catch (Exception error) { status.setText(error.getMessage()); return; }
+            background(() -> EvolutionDeploymentConfig.run(args, cwd, 60_000));
+        }
+
+        private void replaceTest() {
+            List<String> args;
+            try { args = EvolutionDeploymentConfig.replaceTestArgs(descriptor.getText(), trustRoot.getText()); }
+            catch (Exception error) { status.setText(error.getMessage()); return; }
+            background(() -> EvolutionDeploymentConfig.run(args, cwd, 60_000));
+        }
+
         private void toggle() {
             if (current == null) return;
             background(() -> EvolutionDeploymentConfig.run(
@@ -144,9 +169,11 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
             current = value;
             if (value.descriptorPath() != null) descriptor.setText(value.descriptorPath());
             if (value.trustRootPath() != null) trustRoot.setText(value.trustRootPath());
+            if (value.modulePath() != null) modulePath.setText(value.modulePath());
             toggle.setText(CcBundle.message(value.profileEnabled()
                     ? "evolution.config.disable" : "evolution.config.enable"));
             status.setText(CcBundle.message("evolution.config.status",
+                    "test".equals(value.deploymentMode()) ? "TEST ONLY" : value.deploymentMode() == null ? "none" : value.deploymentMode(),
                     value.effectiveEnabled() ? "enabled" : "disabled",
                     value.source() == null ? "none" : value.source(),
                     value.verified() ? "verified" : "not verified",
