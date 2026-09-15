@@ -107,6 +107,18 @@ fi
 
 echo "✅ ESLint 和代码格式化通过"
 
+# 1.25 Claude security-map integrity: mapped security tests are digest-bound.
+# Read the Git index, rather than the worktree, so partial staging is checked
+# against the exact commit that will be pushed to CI.
+echo "🔐 检查暂存的 Claude 安全映射完整性..."
+node scripts/check-staged-claude-security-map.mjs
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Claude 安全映射与暂存测试不一致；请审核后同步 fixture 中的 sha256。"
+  exit 1
+fi
+echo "✅ Claude 安全映射完整"
+
 # 1.5 post-lint-staged sweep 受害者检测（trap #10）
 # lint-staged 跑完后，比对 unstaged-tracked 文件 SHA。若变了 = lint-staged
 # 改了用户没 stage 的文件 → 对方 session 的改动被 silent 改格式。

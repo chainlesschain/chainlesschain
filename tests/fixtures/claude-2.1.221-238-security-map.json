@@ -74,7 +74,7 @@
       "testId": "requires live confirmation for destructive Git in the primary checkout despite a settings allow",
       "producer": {
         "path": "packages/cli/__tests__/unit/agent-core-destructive-git.test.js",
-        "sha256": "sha256:ea583c30344bd59fc190df6bc05f21de4e1085bbcafef1ad67e6d4f173da9403"
+        "sha256": "sha256:bcefce30ef500f41f94527ee16bbeeec63d72a3c41af2df11f3dafaa94c1550d"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
