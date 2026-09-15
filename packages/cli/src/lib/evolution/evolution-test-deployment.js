@@ -110,7 +110,9 @@ function normalizeCommands(commands) {
           ? [...commands]
           : null;
   if (!value || value.length === 0 || new Set(value).size !== value.length)
-    throw new TypeError("test deployment commands must be a non-empty unique list");
+    throw new TypeError(
+      "test deployment commands must be a non-empty unique list",
+    );
   return value.sort();
 }
 
@@ -147,7 +149,9 @@ function assertSigningPair(privateKeyBytes, trustRootBytes) {
     throw new Error("test deployment signing key pair is invalid");
   }
   if (!Buffer.from(actualPublic).equals(Buffer.from(expectedPublic)))
-    throw new Error("test deployment signing key does not match its trust root");
+    throw new Error(
+      "test deployment signing key does not match its trust root",
+    );
   return privateKey;
 }
 
@@ -193,14 +197,19 @@ export async function initializeEvolutionTestDeployment(
   const env = options.env || process.env;
   assertNoEnvironmentOverride(env);
   if (typeof modulePath !== "string" || !modulePath.trim())
-    throw new TypeError("an absolute test deployment host module path is required");
+    throw new TypeError(
+      "an absolute test deployment host module path is required",
+    );
   const requestedModulePath = modulePath.trim();
   if (!isAbsolute(requestedModulePath))
     throw new TypeError("test deployment host module path must be absolute");
-  const realModulePath = await (options.resolveRealPath || (async (value) => {
-    const { realpath } = await import("node:fs/promises");
-    return realpath(value);
-  }))(requestedModulePath);
+  const realModulePath = await (
+    options.resolveRealPath ||
+    (async (value) => {
+      const { realpath } = await import("node:fs/promises");
+      return realpath(value);
+    })
+  )(requestedModulePath);
   const moduleBytes = readFileSync(realModulePath);
   if (moduleBytes.byteLength === 0 || moduleBytes.byteLength > MAX_MODULE_BYTES)
     throw new Error("test deployment host module size is invalid");

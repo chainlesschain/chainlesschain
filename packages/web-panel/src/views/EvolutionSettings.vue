@@ -38,7 +38,8 @@
                 placeholder="运行 cc ui 的机器上 deployment host .mjs/.js 的绝对路径"
               />
               <template #extra
-                >首次填写后点击一次即可生成 Ed25519 测试密钥、签名描述符并启用；宿主模块修改后再次点击可刷新。</template
+                >首次填写后点击一次即可生成 Ed25519
+                测试密钥、签名描述符并启用；宿主模块修改后再次点击可刷新。</template
               >
             </a-form-item>
             <a-button

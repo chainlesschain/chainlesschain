@@ -23,7 +23,9 @@ function printStatus(status) {
   );
   logger.log(`  Mode:            ${status.deploymentMode || "none"}`);
   if (status.deploymentMode === "test")
-    logger.log(chalk.yellow("  Warning:         TEST ONLY — not production credentials"));
+    logger.log(
+      chalk.yellow("  Warning:         TEST ONLY — not production credentials"),
+    );
   logger.log(`  Auto promotion:  HOLD (manual review required)`);
   logger.log(`  Profile:         ${status.profilePath}`);
   if (status.descriptorPath)

@@ -54,8 +54,14 @@ describe("cc ui evolution deployment topics", () => {
   });
 
   it("exposes bounded one-click test setup and managed replacement", async () => {
-    const initTest = vi.fn(async (value) => ({ ...value, deploymentMode: "test" }));
-    const replaceTest = vi.fn(async (value) => ({ ...value, deploymentMode: "managed" }));
+    const initTest = vi.fn(async (value) => ({
+      ...value,
+      deploymentMode: "test",
+    }));
+    const replaceTest = vi.fn(async (value) => ({
+      ...value,
+      deploymentMode: "managed",
+    }));
     const handlers = createEvolutionDeploymentTopicHandlers({
       initTest,
       replaceTest,

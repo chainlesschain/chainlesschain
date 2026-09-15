@@ -257,9 +257,7 @@ export async function configureEvolutionDeployment(
       revisionFloors,
       activeTrustRootDigest: verified.descriptor.trustRootDigest,
       revokedDescriptorRevisions,
-      deploymentMode: preserveTestMode
-        ? "test"
-        : deploymentMode || "managed",
+      deploymentMode: preserveTestMode ? "test" : deploymentMode || "managed",
       testPrivateKeyPath: preserveTestMode
         ? current.testPrivateKeyPath
         : testPrivateKeyPath || null,

@@ -1,11 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import {
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { resolveConfigDataRoot } from "../paths.js";
 import {
@@ -62,36 +57,36 @@ function normalizeProfile(value) {
             "schema",
             "trustRootPath",
           ]
-      : value.schema === PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
-        ? [
-            "activeTrustRootDigest",
-            "descriptorPath",
-            "enabled",
-            "revisionFloors",
-            "schema",
-            "trustRootPath",
-          ]
-        : value.schema === LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
+        : value.schema === PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
           ? [
-            "activeTrustRootDigest",
-            "descriptorPath",
-            "enabled",
-            "revisionFloors",
-            "revokedDescriptorRevisions",
-            "schema",
-            "trustRootPath",
-          ]
-          : [
               "activeTrustRootDigest",
-              "deploymentMode",
               "descriptorPath",
               "enabled",
               "revisionFloors",
-              "revokedDescriptorRevisions",
               "schema",
-              "testPrivateKeyPath",
               "trustRootPath",
-            ];
+            ]
+          : value.schema === LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
+            ? [
+                "activeTrustRootDigest",
+                "descriptorPath",
+                "enabled",
+                "revisionFloors",
+                "revokedDescriptorRevisions",
+                "schema",
+                "trustRootPath",
+              ]
+            : [
+                "activeTrustRootDigest",
+                "deploymentMode",
+                "descriptorPath",
+                "enabled",
+                "revisionFloors",
+                "revokedDescriptorRevisions",
+                "schema",
+                "testPrivateKeyPath",
+                "trustRootPath",
+              ];
   if (JSON.stringify(keys) !== JSON.stringify(expected.sort()))
     throw new TypeError("evolution deployment profile has unexpected fields");
   if (
@@ -120,14 +115,15 @@ function normalizeProfile(value) {
   const activeTrustRootDigest = legacy
     ? null
     : normalizeTrustRootDigest(value.activeTrustRootDigest);
-  const revokedDescriptorRevisions =
-    [
-      EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
-      LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
-    ].includes(value.schema)
-      ? normalizeRevokedDescriptorRevisions(value.revokedDescriptorRevisions)
-      : {};
-  const deploymentMode = beforeDeploymentMode ? "managed" : value.deploymentMode;
+  const revokedDescriptorRevisions = [
+    EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
+    LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
+  ].includes(value.schema)
+    ? normalizeRevokedDescriptorRevisions(value.revokedDescriptorRevisions)
+    : {};
+  const deploymentMode = beforeDeploymentMode
+    ? "managed"
+    : value.deploymentMode;
   if (!["managed", "test"].includes(deploymentMode))
     throw new TypeError("evolution deployment profile mode is invalid");
   const testPrivateKeyPath = beforeDeploymentMode
@@ -194,12 +190,16 @@ function normalizeTrustRootDigest(value) {
 
 function normalizeRevisionFloors(value) {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new TypeError("evolution deployment profile revisionFloors is invalid");
+    throw new TypeError(
+      "evolution deployment profile revisionFloors is invalid",
+    );
   const entries = Object.entries(value).sort(([left], [right]) =>
     left.localeCompare(right),
   );
   if (entries.length > MAX_TRUST_ROOT_REVISION_FLOORS)
-    throw new TypeError("evolution deployment profile revisionFloors is too large");
+    throw new TypeError(
+      "evolution deployment profile revisionFloors is too large",
+    );
   for (const [trustRootDigest, revision] of entries) {
     if (!DIGEST.test(trustRootDigest))
       throw new TypeError(
@@ -291,31 +291,34 @@ export async function readEvolutionDeploymentProfile(options = {}) {
 
 export async function writeEvolutionDeploymentProfile(input, options = {}) {
   const proposed = profileFromInput(input);
-  return updateEvolutionDeploymentProfile((current) => ({
-    ...proposed,
-    // This lower-level writer cannot authenticate a descriptor, so it never
-    // lowers or erases a floor established by configureEvolutionDeployment().
-    revisionFloors: Object.fromEntries(
-      Object.keys({
-        ...(current?.revisionFloors || {}),
-        ...proposed.revisionFloors,
-      }).map((trustRootDigest) => [
-        trustRootDigest,
-        Math.max(
-          current?.revisionFloors?.[trustRootDigest] || 0,
-          proposed.revisionFloors[trustRootDigest] || 0,
-        ),
-      ]),
-    ),
-    activeTrustRootDigest:
-      proposed.activeTrustRootDigest || current?.activeTrustRootDigest,
-    revokedDescriptorRevisions: {
-      ...(current?.revokedDescriptorRevisions || {}),
-      ...(proposed.revokedDescriptorRevisions || {}),
-    },
-    deploymentMode: proposed.deploymentMode,
-    testPrivateKeyPath: proposed.testPrivateKeyPath,
-  }), options);
+  return updateEvolutionDeploymentProfile(
+    (current) => ({
+      ...proposed,
+      // This lower-level writer cannot authenticate a descriptor, so it never
+      // lowers or erases a floor established by configureEvolutionDeployment().
+      revisionFloors: Object.fromEntries(
+        Object.keys({
+          ...(current?.revisionFloors || {}),
+          ...proposed.revisionFloors,
+        }).map((trustRootDigest) => [
+          trustRootDigest,
+          Math.max(
+            current?.revisionFloors?.[trustRootDigest] || 0,
+            proposed.revisionFloors[trustRootDigest] || 0,
+          ),
+        ]),
+      ),
+      activeTrustRootDigest:
+        proposed.activeTrustRootDigest || current?.activeTrustRootDigest,
+      revokedDescriptorRevisions: {
+        ...(current?.revokedDescriptorRevisions || {}),
+        ...(proposed.revokedDescriptorRevisions || {}),
+      },
+      deploymentMode: proposed.deploymentMode,
+      testPrivateKeyPath: proposed.testPrivateKeyPath,
+    }),
+    options,
+  );
 }
 
 /**
@@ -377,9 +380,8 @@ export function assertEvolutionDeploymentDescriptorNotRevoked(
   profile,
   descriptor,
 ) {
-  const revoked = profile?.revokedDescriptorRevisions?.[
-    descriptor?.trustRootDigest
-  ];
+  const revoked =
+    profile?.revokedDescriptorRevisions?.[descriptor?.trustRootDigest];
   if (!revoked?.includes(descriptor?.revision)) return;
   const error = new Error(
     `evolution deployment descriptor revision ${descriptor.revision} is revoked`,

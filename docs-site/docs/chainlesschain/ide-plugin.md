@@ -78,7 +78,7 @@ cc ide doctor       # 发现失败时解释原因
 
 ### 5. 使用 Skill 自进化工作台
 
-IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提供的受治理投影。完整的开启方式、profile 示例、候选触发、审核步骤和存储说明见[受治理的 Skill 自进化：IDE 插件如何使用](/chainlesschain/governed-skill-evolution#ide-插件如何使用-skill-自进化)。
+IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提供的受治理投影。正式证书签发前，VS Code/VSCodium 与 JetBrains 的 **Configure Skill Evolution** 页面可选择测试部署宿主模块并一键生成/刷新明确标记的 TEST 环境；正式 descriptor 与 trust root 到位后，可从同一页面一键安全轮换为正式受管配置。该入口不会生成生产密钥，也不会解除 automatic promotion `HOLD`。完整的开启方式、替换步骤、profile 示例、候选触发、审核步骤和存储说明见[受治理的 Skill 自进化：IDE 插件如何使用](/chainlesschain/governed-skill-evolution#ide-插件如何使用-skill-自进化)。
 
 最便捷的开启方式是使用插件内置配置页：
 

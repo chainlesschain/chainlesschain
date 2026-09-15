@@ -34,6 +34,39 @@
 
 ### 管理员开启 CLI 治理链
 
+#### 正式部署前：一键创建 TEST 测试开发环境
+
+如果部署宿主模块已经完成，但正式 Ed25519 根证书尚未签发，可以先使用测试开发入口。它调用 Node.js 内置密码库生成本机 Ed25519 测试密钥，签名同一套 deployment descriptor，并通过正常的 descriptor 验签与 profile 写入流程启用，不依赖 OpenSSL，也不会绕过治理校验。
+
+```powershell
+cc evolution deployment init-test `
+  --module "C:\dev\chainlesschain\evolution-host.mjs"
+
+cc evolution deployment status
+```
+
+Linux/macOS 使用相同命令，只需把 `--module` 改为对应的绝对路径。默认允许测试 `agent`、`evolution`、`serve`、`desktop`、`ui`、`skill`、`learning` 等公开入口；如需最小白名单，可增加 `--commands agent,evolution,serve`。生成文件默认位于 `$CHAINLESSCHAIN_HOME/evolution/test-deployment/`，其中私钥与 profile 都采用 owner-only 权限。宿主模块内容变化后，再执行一次 `init-test` 即可提升 descriptor revision、刷新模块摘要和签名；第一次会返回 `generated: true`，后续刷新返回 `generated: false`。
+
+也可以从界面完成同一操作：
+
+- VS Code/VSCodium：打开 **ChainlessChain: Configure Skill Evolution**，选择“测试部署宿主模块”，点击 **一键生成/刷新测试环境**。
+- JetBrains：打开 **Tools → ChainlessChain: Configure Skill Evolution**，选择测试部署宿主模块，点击 **一键生成/刷新 TEST 测试环境**。
+- `cc ui`：进入 **配置 → Skill 自进化**，填写运行 `cc ui` 那台服务器上的宿主模块绝对路径，点击 **一键生成/刷新测试环境**。
+
+状态中的 `deploymentMode: test` 和红色 TEST 提示必须一直可见。测试密钥只解决正式根尚未到位时的启动和联调问题，不会把测试宿主变成生产 KMS/HSM、PKI、witness、grader 或审核身份，也不会解除人工审核；automatic active promotion 仍为 `HOLD`。如果本机已有正式受管 profile，`init-test` 会拒绝覆盖。两项 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_*` 环境变量存在时也会拒绝创建，避免界面修改了 profile、实际进程却仍被环境变量覆盖。
+
+正式 descriptor 与 trust root 到位后，可在上述三个界面中选择正式文件并点击 **替换测试证书并转正式**，或执行：
+
+```powershell
+cc evolution deployment replace-test `
+  --descriptor "C:\ProgramData\ChainlessChain\evolution-deployment.json" `
+  --trust-root "C:\ProgramData\ChainlessChain\evolution-deployment-ed25519-public.pem"
+
+cc evolution deployment status
+```
+
+`replace-test` 会先分别验证当前测试部署和新的正式 descriptor，再使用当前测试私钥生成一次受约束的 root-rotation 证明，最后原子切换 profile。成功后 `deploymentMode` 必须为 `managed` 且 `verified` 必须为 `true`。测试私钥不会成为正式私钥，也不会签发正式 descriptor；正式私钥始终留在部署方的正式签发系统。确认切换和实际任务验证完成前，不要手工覆盖或删除测试目录中的文件。
+
 仓库和公开 npm 包不会生成生产密钥、审核身份或 grader。管理员需要先部署一个导出 `createChainlessChainCommandDependencies()` 的单文件 ESM 宿主模块，再生成并签名 `chainlesschain.evolution-deployment-descriptor/v1` 描述文件。描述文件必须绑定模块绝对路径及 SHA-256、trust-root SHA-256、单调 revision，并按需要允许 `learning`、`evolution`、`agent`、`ask`、`chat`、`compact`、`complete`、`cowork`、`hub`、`marketplace`、`orchestrate`、`serve`、`stream`、`ui`、`desktop` 等命令。
 
 拿到管理员提供的签名描述符和 Ed25519 公钥后，推荐使用持久化配置，不必每次设置环境变量：
@@ -224,16 +257,16 @@ Desktop 中的“演化工作台”提供相同的列表、证据/Diff、比较�
 
 生产部署没有一个可由普通用户随意指定的统一 `wiki/` 或 `skills/` 目录。真实路径由受信部署宿主固定，并与 tenant、文件身份、账本和 witness 绑定；Workbench 默认只暴露 digest 和受限 artifact reference，不暴露可被客户端改写的任意路径。
 
-| 数据                              | 默认或典型位置                                                                                                                            | 说明                                                                                                                                            |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI 可执行的 active Skill         | `cc skill sources --json` 返回的各层；通常是 `$CHAINLESSCHAIN_HOME/skills`（managed）和 `<项目>/.chainlesschain/skills`（workspace）      | 这是运行时 Skill 搜索层，不是演化候选区。默认 `CHAINLESSCHAIN_HOME` 为用户目录下 `.chainlesschain`                                              |
-| 内容寻址 Skill candidate          | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/candidates/tenants/<tenant-key>/`，文件名为候选 SHA-256 的 JSON；生产宿主可覆盖根目录 | candidate JSON 包含规范化 Skill 内容和绑定信息；不能把该目录加入 active 搜索路径                                                                |
-| `cc learning synthesize` 文件候选 | 部署宿主指定的 `candidateOutputDir/<skill-name>/1.0.0/SKILL.md`，并可包含 `EVALUATION.json`                                               | `candidateOutputDir` 是宿主必填项，公共 CLI 没有固定默认值，也没有面向普通用户的覆盖开关                                                        |
-| Release、active 与 LKG            | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/releases/tenants/<tenant-key>/`；生产 Workbench 使用宿主指定的 `releaseRootDir`       | release 内容、active 指针、journal 分开保存，并通过 CAS/ledger 结算                                                                             |
-| Wiki revision                     | 宿主指定的 ArtifactStore 与 EvolutionLedger 中                                                                                            | Wiki 是带 schema、revision、来源和 tombstone 的治理制品，不保证对应一个可直接编辑的 Markdown 文件                                               |
+| 数据                              | 默认或典型位置                                                                                                                                                | 说明                                                                                                                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 可执行的 active Skill         | `cc skill sources --json` 返回的各层；通常是 `$CHAINLESSCHAIN_HOME/skills`（managed）和 `<项目>/.chainlesschain/skills`（workspace）                          | 这是运行时 Skill 搜索层，不是演化候选区。默认 `CHAINLESSCHAIN_HOME` 为用户目录下 `.chainlesschain`                                                                                                                      |
+| 内容寻址 Skill candidate          | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/candidates/tenants/<tenant-key>/`，文件名为候选 SHA-256 的 JSON；生产宿主可覆盖根目录                     | candidate JSON 包含规范化 Skill 内容和绑定信息；不能把该目录加入 active 搜索路径                                                                                                                                        |
+| `cc learning synthesize` 文件候选 | 部署宿主指定的 `candidateOutputDir/<skill-name>/1.0.0/SKILL.md`，并可包含 `EVALUATION.json`                                                                   | `candidateOutputDir` 是宿主必填项，公共 CLI 没有固定默认值，也没有面向普通用户的覆盖开关                                                                                                                                |
+| Release、active 与 LKG            | 库默认根为 `$CHAINLESSCHAIN_HOME/evolution/registry/releases/tenants/<tenant-key>/`；生产 Workbench 使用宿主指定的 `releaseRootDir`                           | release 内容、active 指针、journal 分开保存，并通过 CAS/ledger 结算                                                                                                                                                     |
+| Wiki revision                     | 宿主指定的 ArtifactStore 与 EvolutionLedger 中                                                                                                                | Wiki 是带 schema、revision、来源和 tombstone 的治理制品，不保证对应一个可直接编辑的 Markdown 文件                                                                                                                       |
 | Raw、投影与账本                   | 典型运行布局为 `<stateRootDir>/<url-encoded tenantId>/<url-encoded runId>/raw`、`artifacts`、`ledger-events`、`ledger-authority` 和 `witness/checkpoint.json` | `stateRootDir` 由生产 composition 指定，没有公共默认值；`raw/` 是仅存外部 encryptor 生成的密文的 ArtifactStore，明文 Raw 不落盘。model-visible/trusted projection 与 Wiki revision 位于 `artifacts/`，但不等于 Raw 副本 |
-| 正式 Active governed Skill        | 部署宿主提供的一个或多个绝对 `activeSkillsDirs`                                                                                              | 没有固定默认目录；candidate 不会自动复制到 Active root。必须先完成 Eval、人工审核、Pilot/Canary、CAS 和 release authority 才能写入。普通 managed/workspace Skill 目录不能据此视作治理 Active release |
-| Desktop 普通 managed Skill        | Electron `app.getPath("userData")/skills`                                                                                                 | 这是 Desktop 的现有 Skill 层。Skill Creator 返回 `candidateOnly: true` 或 Skill Sync 返回 `candidate-staged` 时，不代表内容已写入或激活到该目录 |
+| 正式 Active governed Skill        | 部署宿主提供的一个或多个绝对 `activeSkillsDirs`                                                                                                               | 没有固定默认目录；candidate 不会自动复制到 Active root。必须先完成 Eval、人工审核、Pilot/Canary、CAS 和 release authority 才能写入。普通 managed/workspace Skill 目录不能据此视作治理 Active release                    |
+| Desktop 普通 managed Skill        | Electron `app.getPath("userData")/skills`                                                                                                                     | 这是 Desktop 的现有 Skill 层。Skill Creator 返回 `candidateOnly: true` 或 Skill Sync 返回 `candidate-staged` 时，不代表内容已写入或激活到该目录                                                                         |
 
 定位 active Skill 时可以运行：
 

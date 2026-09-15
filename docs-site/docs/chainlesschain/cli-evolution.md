@@ -16,7 +16,7 @@
 - 🔐 **知识冲突审核**: 分页查看删节冲突并提交认证的 canonical merge plan
 - 🔎 **Skill Retrieval**: `cc skill search` 按 canonical digest、索引见证和 verified outcome evidence 排序
 
-> **如何开启**：这里没有一个普通用户可打开的“自动进化总开关”。拿到管理员签发的 deployment descriptor 与 trust root 后，运行 `cc evolution deployment configure --descriptor <绝对路径> --trust-root <绝对路径>` 即可校验、保存并启用；也可在 IDE 插件或 `cc ui` 中可视化配置。CLI 默认仍为关闭，Desktop 的 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 也只打开通道，不授予审核或发布权限。完整说明见[受治理的 Skill 自进化：如何开启](/chainlesschain/governed-skill-evolution#如何开启没有一个自动进化总开关)。
+> **如何开启**：这里没有一个普通用户可打开的“自动进化总开关”。正式 descriptor 与 trust root 尚未到位时，可用 `cc evolution deployment init-test --module <宿主模块绝对路径>` 创建明确标记的上线前 TEST 环境；CLI、VS Code/VSCodium、JetBrains 和 `cc ui` 都提供同一入口。正式文件到位后用 `cc evolution deployment replace-test --descriptor <绝对路径> --trust-root <绝对路径>` 安全轮换。生产部署也可直接运行 `configure`。CLI 默认仍为关闭，Desktop 的 `CHAINLESSCHAIN_CC_APP_SERVER_PILOT=1` 也只打开通道，不授予审核或发布权限。完整说明见[受治理的 Skill 自进化：如何开启](/chainlesschain/governed-skill-evolution#如何开启没有一个自动进化总开关)。
 
 常用配置命令：
 

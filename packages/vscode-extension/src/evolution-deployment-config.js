@@ -90,8 +90,7 @@ function configureEvolutionDeployment(
 }
 
 function initializeEvolutionTestDeployment({ modulePath }, options = {}) {
-  if (!modulePath)
-    throw new Error("请选择用于联调的 Skill 自进化部署宿主模块");
+  if (!modulePath) throw new Error("请选择用于联调的 Skill 自进化部署宿主模块");
   return run(options.command, ["init-test", "--module", modulePath], options);
 }
 
