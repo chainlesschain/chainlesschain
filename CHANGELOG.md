@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   message-fabric state lock is held, without replaying the underlying message
   mutation or weakening the 32-process delivery contract.
 
+### Release - IDE extensions paired with CLI 0.166.58
+
+- Prepare VS Code/Open VSX `0.37.104` and JetBrains `0.4.125` with
+  `chainlesschain@0.166.58` as the offline-safe recommended CLI version.
+- Surface the CLI release's IDE task recovery, preserved diagnostic evidence,
+  normalized outcome metrics, and retry-safe Windows session-state writes in
+  both extension changelogs.
+
 ### Release - cc CLI 0.166.57: outcome metrics baseline evidence
 
 - Ship the normalized eval outcome-metrics baseline: `task-outcome-report`

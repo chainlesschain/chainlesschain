@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.104] - Recover IDE repair tasks with CLI 0.166.58 (2026-09-16)
+
+- Pair with the publicly verified `chainlesschain@0.166.58` release.
+- Recover IDE-driven repair tasks from stale hash-edit snapshots and completed
+  tool batches without discarding the active diagnostic context.
+- Preserve bounded foreground, background, and remote CI diagnostics across
+  paging and compaction so follow-up repairs receive the actual failure evidence.
+- Carry the CLI's normalized eval outcome metrics and bounded retry for transient
+  Windows session-state sharing conflicts without replaying message mutations.
+
 ## [0.37.103] - One-click TEST deployment for Skill evolution (2026-09-15)
 
 - Pair with the publicly verified `chainlesschain@0.166.56` release.
