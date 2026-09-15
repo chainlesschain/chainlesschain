@@ -3,6 +3,10 @@ import {
   getEvolutionDeploymentStatus,
   setEvolutionDeploymentEnabled,
 } from "../../lib/evolution/evolution-deployment-config.js";
+import {
+  initializeEvolutionTestDeployment,
+  replaceEvolutionTestDeployment,
+} from "../../lib/evolution/evolution-test-deployment.js";
 
 function assertSecureControl(context) {
   const server = context?.server;
@@ -30,6 +34,8 @@ export function createEvolutionDeploymentTopicHandlers(options = {}) {
   const getStatus = options.getStatus || getEvolutionDeploymentStatus;
   const configure = options.configure || configureEvolutionDeployment;
   const setEnabled = options.setEnabled || setEvolutionDeploymentEnabled;
+  const initTest = options.initTest || initializeEvolutionTestDeployment;
+  const replaceTest = options.replaceTest || replaceEvolutionTestDeployment;
   return {
     "evolution.deployment.status": async (_frame, context) => {
       assertSecureControl(context);
@@ -41,6 +47,20 @@ export function createEvolutionDeploymentTopicHandlers(options = {}) {
         descriptorPath: requiredPath(frame?.descriptorPath, "descriptorPath"),
         trustRootPath: requiredPath(frame?.trustRootPath, "trustRootPath"),
         enabled: true,
+      });
+    },
+    "evolution.deployment.init-test": async (frame, context) => {
+      assertSecureControl(context);
+      return initTest({
+        modulePath: requiredPath(frame?.modulePath, "modulePath"),
+        enabled: true,
+      });
+    },
+    "evolution.deployment.replace-test": async (frame, context) => {
+      assertSecureControl(context);
+      return replaceTest({
+        descriptorPath: requiredPath(frame?.descriptorPath, "descriptorPath"),
+        trustRootPath: requiredPath(frame?.trustRootPath, "trustRootPath"),
       });
     },
     "evolution.deployment.set-enabled": async (frame, context) => {

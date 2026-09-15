@@ -1,12 +1,18 @@
-# CLI Runtime 当前实现（0.166.47 生产推荐 / npm latest）
+# CLI Runtime 当前实现（0.166.48 生产推荐 / 0.166.49 源码候选）
 
-> 更新时间：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.47`，以不可变 tag `v-npm-0-166-47` 的精确 SHA [`3138626213`](https://github.com/chainlesschain/chainlesschain/commit/3138626213d636623be3ee794af9a106e1e1b13b) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.9/0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.97`、JetBrains Marketplace 为 `0.4.123`。
+> 更新时间：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
+
+## 2026-09-14 源码候选：准确的请求上下文窗口
+
+`main@25fbc7d241` 已准备 CLI `0.166.49` / VS Code `0.37.99`。它按每次主模型请求实际使用的 provider、model、endpoint 与显式覆盖解析上下文窗口，并让 planner、自动压缩器、会话账本、REPL、`cc context --json` 与 IDE 指示条复用同一容量。子 Agent 和 semantic compaction 调用不会覆盖主窗口；provider 用量可用时展示 input/output/cache read/cache write，只能从 transcript 回退时明确标记 `estimated`。
+
+这些版本尚未公开，安装仍使用下方 `0.166.48/0.37.98`。大窗口会话从该候选开始主要按 token 压力压缩，不再仅因 50 条短消息触发；小窗口仍保留消息数保护。
 
 ## 2026-09-14 增量：Evolution 重验、Responses 与后台可靠性
 
 Evolution ledger v2、证据绑定 Wiki 维护与运行时 revalidation 已进入公开 CLI；candidate、evidence 与 release 摘要不一致时失败闭合，automatic active promotion 继续为 `HOLD`。模型层公开原生 OpenAI Responses、版本化 capability profile、模型出口清单、插件 control/candidate 评测和可延后回答的问题；静态 `runtimeVerified:false` 不代表真实账号验证。
 
-`cc background session list` 使用 `--limit` / `--offset` 有界分页。Keeper、worker 与 supervisor 的周期心跳采用非阻塞 owner-lock 协调，锁忙时保留健康状态并在下轮重试；Git 子进程固定参数数组与 `shell: false`。Open VSX `0.37.97` 和 JetBrains `0.4.123` 已公开并推荐 CLI `0.166.47`，但 IDE 仍不获得审核、发布或命令构造 authority。
+`cc background session list` 使用 `--limit` / `--offset` 有界分页。Keeper、worker 与 supervisor 的周期心跳采用非阻塞 owner-lock 协调，锁忙时保留健康状态并在下轮重试；Git 子进程固定参数数组与 `shell: false`。Open VSX `0.37.98` 已公开并推荐 CLI `0.166.48`；JetBrains `0.4.123` 仍推荐 `0.166.47`。IDE 均不获得审核、发布或命令构造 authority。
 
 ## 2026-09-09 增量：模型入口治理、witness 分段与可靠配置
 
@@ -40,22 +46,23 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 
 ## 安装版本怎么选
 
-| 用途                 | 版本                                                         | 说明                                                                                          |
-| -------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用  | `0.166.38`                                                   | `v-npm-0-166-38@de8ec4e5c8` 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`         | `0.166.38`                                                   | registry、tag、provenance、tarball 与 public-install workflow 已交叉回读                      |
-| Agent SDK / Protocol | TS `0.2.9` / Python `0.2.8` / Protocol `0.1.9`               | npm/PyPI 均已公开并完成安装回读                                                               |
-| IDE 工作台           | CLI `0.166.38` + VS Code `0.37.92` / JetBrains `0.4.119`     | Open VSX 与 JetBrains Marketplace 公共制品分别回读                                            |
-| Agent Platform       | CLI `0.166.38`                                               | 模型入口治理、stream 完整性、witness 分段与可靠模型配置                                       |
-| 独立发行边界         | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                             |
+| 用途                 | 版本                                                                     | 说明                                                                                          |
+| -------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用  | `0.166.48`                                                               | `v-npm-0-166-48@43c6bba51a` 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`         | `0.166.48`                                                               | registry、tag、provenance、tarball 与 public-install workflow 已交叉回读                      |
+| Agent SDK / Protocol | TS `0.2.10` / Python `0.2.8` / Protocol `0.1.10`                         | npm/PyPI 均已公开并完成安装回读                                                               |
+| IDE 工作台           | CLI `0.166.48` + VS Code `0.37.98`；JetBrains `0.4.123` + CLI `0.166.47` | Open VSX 与 JetBrains Marketplace 公共制品分别回读                                            |
+| 源码候选             | CLI `0.166.49` + VS Code `0.37.99`                                       | 请求级上下文窗口与 cache 用量投影；尚未作为公开安装版本                                       |
+| Agent Platform       | CLI `0.166.48`                                                           | 受治理评测/召回、deferred 恢复、后台只读索引及此前模型治理能力                                |
+| 独立发行边界         | Desktop/iOS 源码、signed native、产品 cutover、长期 campaign             | 不因 npm/SDK/IDE 上传而自动成为对应产品已发行能力                                             |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.166.38
+npm i -g chainlesschain@0.166.48
 ```
 
-已安装旧版的用户可固定升级到 `0.166.38`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.9`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.8`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.9`；三者与 CLI 独立安装和发版。
+已安装旧版的用户可固定升级到 `0.166.48`。TypeScript SDK 固定 `@chainlesschain/agent-sdk@0.2.10`，Python SDK 固定 `chainlesschain-agent-sdk==0.2.8`，Agent Protocol 固定 `@chainlesschain/agent-protocol@0.1.10`；三者与 CLI 独立安装和发版。
 
 ## 核心特性
 

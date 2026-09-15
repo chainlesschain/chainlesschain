@@ -89,6 +89,31 @@ function configureEvolutionDeployment(
   );
 }
 
+function initializeEvolutionTestDeployment({ modulePath }, options = {}) {
+  if (!modulePath)
+    throw new Error("请选择用于联调的 Skill 自进化部署宿主模块");
+  return run(options.command, ["init-test", "--module", modulePath], options);
+}
+
+function replaceEvolutionTestDeployment(
+  { descriptorPath, trustRootPath },
+  options = {},
+) {
+  if (!descriptorPath || !trustRootPath)
+    throw new Error("请选择正式签名描述符和 Ed25519 信任根公钥");
+  return run(
+    options.command,
+    [
+      "replace-test",
+      "--descriptor",
+      descriptorPath,
+      "--trust-root",
+      trustRootPath,
+    ],
+    options,
+  );
+}
+
 function setEvolutionDeploymentEnabled(enabled, options = {}) {
   return run(options.command, [enabled ? "enable" : "disable"], options);
 }
@@ -98,5 +123,7 @@ module.exports = {
   parseStatus,
   getEvolutionDeploymentStatus,
   configureEvolutionDeployment,
+  initializeEvolutionTestDeployment,
+  replaceEvolutionTestDeployment,
   setEvolutionDeploymentEnabled,
 };

@@ -2,24 +2,24 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.47` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.48` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.47 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.48 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-14 current release — CLI 0.166.47 / Open VSX 0.37.97 / JetBrains 0.4.123
+## 2026-09-14 current release — CLI 0.166.48 / Open VSX 0.37.98 / JetBrains 0.4.123
 
 > Release boundary: the CLI, VSIX, and JetBrains ZIP are independent artifacts. This section covers only versions that passed exact-commit gates and were read back from their public registries. Desktop native installers, production KMS/PKI, independent witnesses/graders, and automatic active Skill promotion are outside this release.
 
-npm latest is `0.166.47` at tag `v-npm-0-166-47`, commit `3138626213`. Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34757711724) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34757714241) passed the configured Linux, Windows, and macOS jobs; [npm publication and public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/34762956650) succeeded.
+npm latest is `0.166.48` at tag `v-npm-0-166-48`, commit `43c6bba51a`. Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34836323064) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34836322816) passed the configured Linux, Windows, and macOS jobs; [npm OIDC publication and public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/34842104210) succeeded after all 13 child packages were verified. New public child versions include Agent Protocol `0.1.10`, Context Memory Kernel `0.1.3`, and Agent SDK `0.2.10`.
 
-This release delivers durable Evolution ledger v2, evidence-bound Wiki maintenance and runtime revalidation; native OpenAI Responses transport, versioned model capabilities, model-egress inventory, plugin control/candidate evaluation, deferred questions, and paginated background-session listing. Keeper/worker heartbeats now coordinate without blocking on the owner lock, and Git subprocesses explicitly use `shell: false`. Static model profiles retain `runtimeVerified:false`; automatic active Skill promotion remains `HOLD`.
+Building on `0.166.47`, this release adds repeatable balanced plugin evaluations with reviewer holdouts, restart-safe Headless deferred questions, a file-identity-bound read-only background-session index, and governed semantic-recall candidates bound to revisions and digests. Static model profiles retain `runtimeVerified:false`; automatic active Skill promotion remains `HOLD`.
 
-This documentation tracks `main@e9c514a1be`. [Open VSX 0.37.97](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) and [JetBrains Marketplace 0.4.123](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) are public and recommend CLI `0.166.47`; both remain bounded clients of CLI-owned projections and receive no review, publication, or command-construction authority. See the [runtime design update](docs/design/agent-runtime-update-2026-09-13.md) and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+This documentation tracks `main@25fbc7d241`. [Open VSX 0.37.98](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) is public and recommends CLI `0.166.48`; [JetBrains Marketplace 0.4.123](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) remains public and recommends CLI `0.166.47`. Source candidates CLI `0.166.49` / VS Code `0.37.99` resolve the request context window from the actual provider, endpoint, and explicit override: primary-request usage now flows through the REPL, `cc context --json`, session ledger, and IDE indicator; sub-agent/semantic-compaction calls are excluded, fallbacks are labeled as estimates, and completed status retains cache read/write totals. These candidates are not presented as published npm/Open VSX versions. See the [runtime design update](docs/design/agent-runtime-update-2026-09-13.md) and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
 
 ## 2026-09-10 historical release — CLI 0.166.43 / VS Code 0.37.93 / JetBrains 0.4.120: governed Skill-evolution deployment configuration
 

@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-09-14）：CLI `0.166.47` + VS Code 扩展 `0.37.97`（Open VSX）+ JetBrains 插件 `0.4.123`（Marketplace）。两端呈现 CLI 的 Evolution/Wiki 重验、Responses、插件评测、延后问题和后台会话分页能力，并保持 CLI authority；npm tarball、VSIX 与 JetBrains ZIP 是独立制品身份。**
+> **当前公开组合（2026-09-14）：CLI `0.166.48` + VS Code 扩展 `0.37.98`（Open VSX）；JetBrains 插件 `0.4.123`（Marketplace）仍推荐 CLI `0.166.47`。主线的 CLI `0.166.49` + VS Code `0.37.99` 是请求级上下文窗口候选，尚未公开。npm tarball、VSIX 与 JetBrains ZIP 是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.97` 与 JetBrains Marketplace `0.4.123` 已公开。npm `latest` CLI `0.166.47@3138626213` 已完成三平台 CLI CI、Strict Sandbox、Trusted Publishing 与公共安装回读。微软 VS Code Marketplace 尚未公开该扩展。
+> **发布提示**：Open VSX `0.37.98` 与 JetBrains Marketplace `0.4.123` 已公开。npm `latest` CLI `0.166.48@43c6bba51a` 已完成三平台 CLI CI、Strict Sandbox、OIDC 发布与公共安装回读。微软 VS Code Marketplace 尚未公开该扩展。
 
 ## 概述
 
@@ -36,7 +36,7 @@ VS Code / VSCodium 扩展 `0.37.93` 支持 `chainlesschain.chat.maxTurns`。默�
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.47 # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.166.48 # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -46,7 +46,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.97 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.97/file/chainlesschain.chainlesschain-ide-0.37.97.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.98 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.98/file/chainlesschain.chainlesschain-ide-0.37.98.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -58,7 +58,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.97` 已从 Open VSX 公开回读，JetBrains `0.4.123` 已完成 Marketplace 公共回读，两者均推荐 CLI `0.166.47`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚和 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.98` 已从 Open VSX 公开回读并推荐 CLI `0.166.48`；JetBrains `0.4.123` 已完成 Marketplace 公共回读并仍推荐 `0.166.47`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚和 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -109,7 +109,7 @@ IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提�
 - **`@` 提及**：文件（排序下拉）、`@folder/`（递归目录树）、**类 / 方法符号**（按符号名找文件）、`@terminal`、`@selection` / `@diagnostics`；支持 `@file#L5-10` 行区间引用。
 - **审批卡与提问卡**：危险动作（危险 shell、settings `ask` 规则）弹 Approve/Deny 卡片阻塞等裁决（默认 120s 超时回落拒绝）；agent 拿不准时经 `ask_user_question` 弹单选 / 多选 / 自由文本卡而不是瞎猜。
 - **结构化授权（VS Code 0.37.93）**：单次批准仍是快速路径；展开后可选当前回合、当前会话、拒绝或取消。回合/会话 grant 只采用 CLI 请求中的 exact capability/scope/binding，Webview 不能扩权。
-- **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。
+- **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。CLI `0.166.49` / VS Code `0.37.99` 源码候选进一步使用实际请求窗口和主模型调用用量，排除子 Agent/语义压缩归因；回退值显示 `estimated`，完成状态保留 cache read/write。
 - **后台 tab 信号**：非活动标签回合完成亮绿点、等待审批亮蓝点 + "Show" 提示，不抢焦点。
 - **Context Center（VS Code 0.37.54+ / JetBrains 0.4.90+）**：只读展示 CLI-owned context envelope、included source、scope、freshness、token allocation、symbol/file evidence、Git diff、项目记忆、bounded diagnostics 与 metadata-only MCP resource evidence。未知、超限、跨版本或不可用来源显式失败闭合，不把 MCP payload 或凭据值复制进 IDE 投影。
 - **权限与 Side-effect Center（VS Code 0.37.54+ / JetBrains 0.4.90+）**：解释 workspace-scoped authority、实际 filesystem/network/process/runtime/credential-name 资源、irreversibility、decision source、call chain、recovery coverage 与 unresolved resource。IDE 创建/撤销临时规则时只执行 CLI 提供、绑定 authority generation/rule revision 的 exact argv，不直接编辑 authority store。

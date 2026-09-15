@@ -2,24 +2,24 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.47`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.48`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.47 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.48 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-14 当前发布 — CLI 0.166.47 / Open VSX 0.37.97 / JetBrains 0.4.123
+## 2026-09-14 当前发布 — CLI 0.166.48 / Open VSX 0.37.98 / JetBrains 0.4.123
 
 > 发布边界：CLI、VSIX 与 JetBrains ZIP 是三个独立制品；本节只描述已经完成精确提交门禁并从公开渠道回读的版本。Desktop 原生安装包、生产 KMS/PKI、独立 witness/grader 与自动 active Skill 晋升不在本次发布范围内。
 
-npm `latest` 为 `0.166.47`，标签 `v-npm-0-166-47` 对应提交 `3138626213`。该精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34757711724) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34757714241) 已通过 Linux、Windows、macOS 配置任务，[npm 发布与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34762956650)成功。
+npm `latest` 为 `0.166.48`，标签 `v-npm-0-166-48` 对应提交 `43c6bba51a`。该精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34836323064) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34836322816) 已通过 Linux、Windows、macOS 配置任务；[npm OIDC 发布与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34842104210)在确认全部 13 个子包后成功。新增公开子包包括 Agent Protocol `0.1.10`、Context Memory Kernel `0.1.3` 与 Agent SDK `0.2.10`。
 
-本版正式交付耐久 Evolution ledger v2、证据绑定 Wiki 维护与运行时重验；加入原生 OpenAI Responses 传输、版本化模型能力、模型出口清单、插件对照评测、可延后回答的问题和后台会话分页。Keeper/worker 心跳改为非阻塞协调，避免锁饥饿；Git 子进程固定 `shell: false`。模型静态能力继续标记 `runtimeVerified:false`，automatic active Skill promotion 保持 `HOLD`。
+本版在 `0.166.47` 基线上继续交付可重复的平衡插件评测与 reviewer holdout、重启安全的 Headless 延后问题、文件身份绑定的后台会话只读索引，以及 revision/digest 绑定的受治理语义召回候选。模型静态能力继续标记 `runtimeVerified:false`，automatic active Skill promotion 保持 `HOLD`。
 
-文档按 `main@e9c514a1be` 核对。[Open VSX 0.37.97](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains Marketplace 0.4.123](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.47`；两端只消费 CLI-owned 投影，不获得审核、发布或命令构造 authority。详见[运行时增量设计](docs/design/agent-runtime-update-2026-09-13.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+文档按 `main@25fbc7d241` 核对。[Open VSX 0.37.98](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开并推荐 CLI `0.166.48`；[JetBrains Marketplace 0.4.123](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 仍是已公开版本并推荐 CLI `0.166.47`。源码候选 CLI `0.166.49` / VS Code `0.37.99` 新增按实际 provider、endpoint 与显式覆盖解析的请求上下文窗口：主模型请求用量贯穿 REPL、`cc context --json`、会话账本和 IDE 指示条，子 Agent/语义压缩调用不污染主窗口，回退估算会明确标注，完成状态保留 cache read/write。候选版本尚未冒充 npm/Open VSX 已发布版本。详见[运行时增量设计](docs/design/agent-runtime-update-2026-09-13.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
 
 ## 2026-09-11 历史发布 — **v5.0.3.137 / CLI 0.166.44：DeepSeek V4 Flash GA 默认模型**
 

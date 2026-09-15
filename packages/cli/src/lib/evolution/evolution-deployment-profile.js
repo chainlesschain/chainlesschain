@@ -16,7 +16,7 @@ import {
 import { withFileLock } from "../with-file-lock.js";
 
 export const EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA =
-  "chainlesschain.evolution-deployment-profile/v4";
+  "chainlesschain.evolution-deployment-profile/v5";
 
 const LEGACY_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA =
   "chainlesschain.evolution-deployment-profile/v1";
@@ -24,6 +24,8 @@ const PREVIOUS_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA =
   "chainlesschain.evolution-deployment-profile/v2";
 const PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA =
   "chainlesschain.evolution-deployment-profile/v3";
+const LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA =
+  "chainlesschain.evolution-deployment-profile/v4";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_TRUST_ROOT_REVISION_FLOORS = 64;
 
@@ -47,6 +49,8 @@ function normalizeProfile(value) {
     PREVIOUS_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
     PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
   ].includes(value.schema);
+  const beforeDeploymentMode =
+    legacy || value.schema === LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA;
   const expected =
     value.schema === LEGACY_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
       ? ["descriptorPath", "enabled", "schema", "trustRootPath"]
@@ -67,7 +71,8 @@ function normalizeProfile(value) {
             "schema",
             "trustRootPath",
           ]
-        : [
+        : value.schema === LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
+          ? [
             "activeTrustRootDigest",
             "descriptorPath",
             "enabled",
@@ -75,14 +80,26 @@ function normalizeProfile(value) {
             "revokedDescriptorRevisions",
             "schema",
             "trustRootPath",
-          ];
+          ]
+          : [
+              "activeTrustRootDigest",
+              "deploymentMode",
+              "descriptorPath",
+              "enabled",
+              "revisionFloors",
+              "revokedDescriptorRevisions",
+              "schema",
+              "testPrivateKeyPath",
+              "trustRootPath",
+            ];
   if (JSON.stringify(keys) !== JSON.stringify(expected.sort()))
     throw new TypeError("evolution deployment profile has unexpected fields");
   if (
     value.schema !== EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA &&
     value.schema !== LEGACY_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA &&
     value.schema !== PREVIOUS_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA &&
-    value.schema !== PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
+    value.schema !== PRIOR_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA &&
+    value.schema !== LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
   )
     throw new TypeError("evolution deployment profile schema is invalid");
   if (typeof value.enabled !== "boolean")
@@ -104,9 +121,28 @@ function normalizeProfile(value) {
     ? null
     : normalizeTrustRootDigest(value.activeTrustRootDigest);
   const revokedDescriptorRevisions =
-    value.schema === EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA
+    [
+      EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
+      LAST_EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
+    ].includes(value.schema)
       ? normalizeRevokedDescriptorRevisions(value.revokedDescriptorRevisions)
       : {};
+  const deploymentMode = beforeDeploymentMode ? "managed" : value.deploymentMode;
+  if (!["managed", "test"].includes(deploymentMode))
+    throw new TypeError("evolution deployment profile mode is invalid");
+  const testPrivateKeyPath = beforeDeploymentMode
+    ? null
+    : value.testPrivateKeyPath;
+  if (
+    (deploymentMode === "test" &&
+      (typeof testPrivateKeyPath !== "string" ||
+        !isAbsolute(testPrivateKeyPath))) ||
+    (deploymentMode === "managed" && testPrivateKeyPath !== null)
+  ) {
+    throw new TypeError(
+      "evolution deployment profile test private key path is invalid",
+    );
+  }
   return Object.freeze({
     schema: EVOLUTION_DEPLOYMENT_PROFILE_SCHEMA,
     enabled: value.enabled,
@@ -115,6 +151,8 @@ function normalizeProfile(value) {
     revisionFloors,
     activeTrustRootDigest,
     revokedDescriptorRevisions,
+    deploymentMode,
+    testPrivateKeyPath,
   });
 }
 
@@ -228,6 +266,8 @@ function profileFromInput(input) {
     revisionFloors: input?.revisionFloors || {},
     activeTrustRootDigest: input?.activeTrustRootDigest,
     revokedDescriptorRevisions: input?.revokedDescriptorRevisions || {},
+    deploymentMode: input?.deploymentMode || "managed",
+    testPrivateKeyPath: input?.testPrivateKeyPath || null,
   });
 }
 
@@ -273,6 +313,8 @@ export async function writeEvolutionDeploymentProfile(input, options = {}) {
       ...(current?.revokedDescriptorRevisions || {}),
       ...(proposed.revokedDescriptorRevisions || {}),
     },
+    deploymentMode: proposed.deploymentMode,
+    testPrivateKeyPath: proposed.testPrivateKeyPath,
   }), options);
 }
 

@@ -126,6 +126,10 @@ export async function getEvolutionDeploymentStatus(options = {}) {
     fromEnvironment || (saved.profile?.enabled ? saved.profile : null);
   const base = {
     source,
+    deploymentMode:
+      source === "environment"
+        ? "external"
+        : saved.profile?.deploymentMode || "none",
     effectiveEnabled: source !== "none",
     profileEnabled: saved.profile?.enabled === true,
     profilePath: saved.filePath,
@@ -183,6 +187,8 @@ export async function configureEvolutionDeployment(
     rootRotationPath = null,
     revocationPath = null,
     enabled = true,
+    deploymentMode = "managed",
+    testPrivateKeyPath = null,
   },
   options = {},
 ) {
@@ -246,6 +252,8 @@ export async function configureEvolutionDeployment(
       revisionFloors,
       activeTrustRootDigest: verified.descriptor.trustRootDigest,
       revokedDescriptorRevisions,
+      deploymentMode,
+      testPrivateKeyPath,
     };
   }, options);
   return getEvolutionDeploymentStatus(options);

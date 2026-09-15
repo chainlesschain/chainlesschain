@@ -1,6 +1,28 @@
 # Agent 运行时增量设计（2026-09-13）
 
-本次更新按 `main@e9c514a1be7f7f8507cd182fa89d0c63e158bb1f` 核对。公开 CLI `0.166.47` 的标签 `v-npm-0-166-47` 指向 `3138626213d636623be3ee794af9a106e1e1b13b`；Open VSX `0.37.97` 与 JetBrains Marketplace `0.4.123` 对应 IDE 配对提交 `e9c514a1be`。CLI、VSIX、JetBrains ZIP、Desktop 原生安装包和 SDK 始终是独立制品。
+本次更新按 `main@25fbc7d24104a97c1532334de3d3fe0c05c358f9` 核对。公开 CLI `0.166.48` 的标签 `v-npm-0-166-48` 指向 `43c6bba51a643c1a0d6e5a05da5cb97177fe1f86`；Open VSX `0.37.98` 对应提交 `7168d2f02b`，JetBrains Marketplace `0.4.123` 仍对应 `e9c514a1be`。主线已准备 CLI `0.166.49` / VS Code `0.37.99` 源码候选，但它们尚未继承公开制品证据。CLI、VSIX、JetBrains ZIP、Desktop 原生安装包和 SDK 始终是独立制品。
+
+## 0.166.49 源码候选：请求级上下文窗口权威
+
+`bdee42358d` 不再让 planner、自动压缩器、会话报表、REPL 与 IDE 各自只按静态模型目录推导窗口。每次主模型请求在发起前以实际 `provider`、`model`、`baseUrl` 和 `contextMemoryModelWindowTokens` 解析唯一 `requestContextWindow`；目录选择的 canonical provider profile 优先，其他路径通过同一 `resolveModelCapabilityProfile()` 合同解析。该值随 `token_usage` 事件进入 headless stream 和会话 ledger，只有 `1024..16777216` 范围内的安全整数可以持久化。
+
+```text
+request config / canonical provider profile
+  -> requestContextWindow
+     -> planner + PromptCompressor
+     -> primary token_usage event
+        -> runtime usage ledger
+        -> REPL / cc context --json
+        -> VS Code context indicator
+```
+
+消费端只选最后一个无 `attribution` 且 `source` 为空或为 `model` 的主请求用量；子 Agent 和 semantic-compaction 调用不能覆盖主窗口指示。`cc context` 在没有显式 `--model` / `--provider` 冲突时优先使用 ledger 记录的窗口，消息分桶 token 仍是启发式估算。VS Code 有 provider 用量时展示该请求的 uncached input、cache read、cache write 与 output；只能从 transcript 回退时明确标注 `estimated`，并说明 tool schema 可能未计入。
+
+大窗口会话的自动压缩改为以 token 压力为主，不再仅因 50 条短消息触发；小窗口仍保留消息数保护。以上实现已由 `25fbc7d241` 准备为 CLI `0.166.49` / VS Code `0.37.99`，但当前公开安装仍应使用 CLI `0.166.48` / Open VSX `0.37.98`，直到新候选完成自身精确提交门禁和公共回读。
+
+## 0.166.48 发布收口
+
+`0.166.48` 在下述 `0.166.47` 基线上加入可重复平衡插件评测、95% 区间与 reviewer holdout，持久化 Headless deferred question 恢复，文件身份绑定的后台会话只读索引，以及 revision/digest 绑定、受生命周期/作用域/到期和 sink 治理的语义候选。Agent Protocol `0.1.10`、Context Memory Kernel `0.1.3` 与 Agent SDK `0.2.10` 先于 CLI 公开；VS Code `0.37.98` 同步消费这些 CLI-owned 投影。
 
 ## 0.166.47 设计收口
 
@@ -47,7 +69,7 @@ Agent shell 的 Docker/bubblewrap 当前不能兑现域名级 allow/deny；Docke
 
 ## 发布与验证证据
 
-2026-09-14 npm 官方 registry 回读 `latest=0.166.47`。精确发布提交 `3138626213` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34757711724) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34757714241) 已通过 Linux、Windows、macOS 配置任务；[npm 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/34762956650)成功。IDE 配对提交 `e9c514a1be` 的 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/34766112838)与 [JetBrains Marketplace 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/34766112823)均完成公共回读。后续源码不能继承这些精确提交证据。
+2026-09-14 npm 官方 registry 回读 `latest=0.166.48`。精确发布提交 `43c6bba51a` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34836323064) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34836322816) 已通过 Linux、Windows、macOS 配置任务；[npm OIDC 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/34842104210)在核验全部 13 个子包后成功。IDE 配对提交 `7168d2f02b` 的 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/34851317943)完成三系统浏览器、三系统宿主、Remote-SSH 真容器和公共制品回读；JetBrains Marketplace `0.4.123` 的[既有发布](https://github.com/chainlesschain/chainlesschain/actions/runs/34766112823)继续有效。后续源码候选不能继承这些精确提交证据。
 
 本页记录源码行为与已有验证，不声称执行了真实付费模型、生产治理部署或全部平台 UI 验收。
 

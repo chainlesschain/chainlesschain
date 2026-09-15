@@ -6,6 +6,11 @@ import {
   revokeEvolutionDeploymentDescriptorRevisions,
   setEvolutionDeploymentEnabled,
 } from "../lib/evolution/evolution-deployment-config.js";
+import {
+  EVOLUTION_TEST_DEPLOYMENT_COMMANDS,
+  initializeEvolutionTestDeployment,
+  replaceEvolutionTestDeployment,
+} from "../lib/evolution/evolution-test-deployment.js";
 
 function printStatus(status) {
   logger.log(chalk.bold("Governed Skill evolution deployment"));
@@ -16,6 +21,9 @@ function printStatus(status) {
   logger.log(
     `  Signature:       ${status.verified ? "verified" : "not verified"}`,
   );
+  logger.log(`  Mode:            ${status.deploymentMode || "none"}`);
+  if (status.deploymentMode === "test")
+    logger.log(chalk.yellow("  Warning:         TEST ONLY — not production credentials"));
   logger.log(`  Auto promotion:  HOLD (manual review required)`);
   logger.log(`  Profile:         ${status.profilePath}`);
   if (status.descriptorPath)
@@ -41,6 +49,10 @@ function printStatus(status) {
     );
   }
   if (status.error) logger.log(chalk.red(`  Error:           ${status.error}`));
+  if (status.testRootPath)
+    logger.log(`  Test directory:  ${status.testRootPath}`);
+  if (status.rootRotationPath)
+    logger.log(`  Root rotation:   ${status.rootRotationPath}`);
 }
 
 function output(status, json) {
@@ -77,6 +89,62 @@ export function registerEvolutionDeploymentCommands(parent) {
     .action(async (options) => {
       try {
         output(await getEvolutionDeploymentStatus(), options.json);
+      } catch (error) {
+        fail(error, options.json);
+      }
+    });
+
+  deployment
+    .command("init-test")
+    .description(
+      "Generate local TEST credentials for a development deployment host",
+    )
+    .requiredOption(
+      "--module <path>",
+      "Absolute path to the development deployment host ESM module",
+    )
+    .option(
+      "--commands <list>",
+      "Comma-separated command allowlist",
+      EVOLUTION_TEST_DEPLOYMENT_COMMANDS.join(","),
+    )
+    .option("--disabled", "Generate and save without enabling")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        output(
+          await initializeEvolutionTestDeployment({
+            modulePath: options.module,
+            commands: options.commands,
+            enabled: options.disabled !== true,
+          }),
+          options.json,
+        );
+      } catch (error) {
+        fail(error, options.json);
+      }
+    });
+
+  deployment
+    .command("replace-test")
+    .description(
+      "Replace the generated TEST root with a managed signed deployment",
+    )
+    .requiredOption("--descriptor <path>", "Absolute managed descriptor path")
+    .requiredOption(
+      "--trust-root <path>",
+      "Absolute managed Ed25519 public key path",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        output(
+          await replaceEvolutionTestDeployment({
+            descriptorPath: options.descriptor,
+            trustRootPath: options.trustRoot,
+          }),
+          options.json,
+        );
       } catch (error) {
         fail(error, options.json);
       }
