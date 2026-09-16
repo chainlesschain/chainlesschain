@@ -13,6 +13,7 @@ Public operations:
 - `decideMemory(command)`
 - `deleteMemory(request)`
 - `reconcile(operationId)`
+- `checkpointTaskProgress(request)` — synchronous session-port revision/CAS settlement for bounded task progress; host Markdown files are rebuildable projections, not memory authority.
 
 See `schema/context-memory-kernel.schema.json` for the wire contract and `inventory/writers.v1.json` for migration ownership.
 

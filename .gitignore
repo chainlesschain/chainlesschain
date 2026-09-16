@@ -211,6 +211,7 @@ tmp-pack/
 .chainlesschain/logs/
 .chainlesschain/cache/
 .chainlesschain/checkpoints/
+.chainlesschain/sessions/
 .chainlesschain/tasks/
 .chainlesschain/config.json
 **/.chainlesschain/

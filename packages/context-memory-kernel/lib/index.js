@@ -14,4 +14,5 @@ module.exports = {
   ...require("./inventory.js"),
   ...require("./conformance.js"),
   ...require("./runtime.js"),
+  ...require("./task-checkpoint.js"),
 };

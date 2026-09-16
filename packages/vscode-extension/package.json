@@ -237,6 +237,10 @@
         "title": "%cmd.chat.reopenClosedSession.title%"
       },
       {
+        "command": "chainlesschain.chat.continueWithHistory",
+        "title": "%cmd.chat.continueWithHistory.title%"
+      },
+      {
         "command": "chainlesschain.plan.approve",
         "title": "%cmd.plan.approve.title%",
         "icon": "$(check)"

@@ -72,6 +72,79 @@ function makeProvider() {
 
 const postedKinds = (posted) => posted.map((m) => m && m.kind);
 
+describe("chat tabs — saved task history handoff", () => {
+  it("waits for matching save acknowledgement, stops the old run and creates a fresh context", () => {
+    const { provider, factory } = makeProvider();
+    provider._handleMessage({ type: "send", text: "Fix a bug" });
+    const old = factory.sessions[0];
+    old.emit({
+      type: "system",
+      subtype: "init",
+      session_id: "original",
+      task_worklog: { version: 1 },
+    });
+    provider.continueInNewConversation();
+    const request = old.sent.at(-1);
+    expect(request.type).toBe("worklog");
+    expect(old.stopped).not.toBe(true);
+    expect(provider._convs.count()).toBe(1);
+    old.emit({
+      type: "worklog_saved",
+      request_id: "wrong",
+      ok: true,
+      session_id: "original",
+    });
+    expect(provider._convs.count()).toBe(1);
+    old.emit({
+      type: "worklog_saved",
+      request_id: request.request_id,
+      ok: true,
+      session_id: "original",
+    });
+    expect(old.stopped).toBe(true);
+    expect(provider._convs.count()).toBe(2);
+    expect(provider._activeConv().sessionId).toBeNull();
+    provider._handleMessage({ type: "send", text: "Continue" });
+    expect(factory.sessions[1].sent.at(-1)).toMatchObject({
+      type: "user",
+      text: "Continue",
+      worklog_session_id: "original",
+    });
+    expect(provider._activeConv().sessionId).not.toBe("original");
+    factory.sessions[1].emit({
+      type: "worklog_loaded",
+      source_session_id: "original",
+    });
+    expect(provider._activeConv().worklogSource).toBeNull();
+    provider.dispose();
+  });
+
+  it("keeps the original conversation on save failure and blocks unsupported CLIs", () => {
+    const { provider, factory, posted } = makeProvider();
+    provider._handleMessage({ type: "send", text: "task" });
+    provider.continueInNewConversation();
+    expect(posted.at(-1).kind).toBe("error");
+    const old = factory.sessions[0];
+    old.emit({
+      type: "system",
+      subtype: "init",
+      session_id: "original",
+      task_worklog: { version: 1 },
+    });
+    provider.continueInNewConversation();
+    old.emit({
+      type: "worklog_saved",
+      request_id: old.sent.at(-1).request_id,
+      ok: false,
+      error: "disk full",
+    });
+    expect(provider._convs.count()).toBe(1);
+    expect(old.stopped).not.toBe(true);
+    expect(posted.at(-1).text).toContain("disk full");
+    provider.dispose();
+  });
+});
+
 describe("chat tabs — bootstrap + spawn", () => {
   it("the first send bootstraps one conversation and spawns its child", () => {
     const { provider, factory } = makeProvider();

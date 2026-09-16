@@ -137,6 +137,17 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             JButton addBtn = new JButton("+ New chat");
             addBtn.addActionListener(e -> newConversation());
             north.add(addBtn);
+            JButton handoffBtn = new JButton("Continue in new chat");
+            handoffBtn.setToolTipText("Save task notes and continue with a fresh context");
+            handoffBtn.addActionListener(e -> {
+                ConversationView source = activeView();
+                if (source != null) source.handoffToNewConversation(sourceSessionId -> {
+                    newConversation();
+                    ConversationView target = activeView();
+                    if (target != null) target.seedWorklog(sourceSessionId);
+                });
+            });
+            north.add(handoffBtn);
             root.add(north, BorderLayout.NORTH);
             root.add(tabs, BorderLayout.CENTER);
 

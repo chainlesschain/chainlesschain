@@ -1497,6 +1497,10 @@ async function activate(context) {
       chatProvider.newConversation(),
     ),
     vscode.commands.registerCommand(
+      "chainlesschain.chat.continueWithHistory",
+      () => chatProvider.continueInNewConversation(),
+    ),
+    vscode.commands.registerCommand(
       "chainlesschain.chat.reopenClosedSession",
       () => chatProvider.reopenClosedSession(),
     ),

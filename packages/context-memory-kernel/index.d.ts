@@ -239,6 +239,11 @@ export function rankMemoryRecords(
 
 export class ContextMemoryKernel {
   constructor(options?: Record<string, unknown>);
+  checkpointTaskProgress(request: TaskCheckpointRequest): {
+    ok: true;
+    checkpoint: TaskCheckpoint;
+    head?: string;
+  };
   planContext(request: Record<string, unknown>): Promise<ContextPlan>;
   compactContext(
     request: Record<string, unknown>,
@@ -258,6 +263,36 @@ export class ContextMemoryKernel {
   reconcile(operationId: string): Promise<Record<string, unknown>>;
   close(): Promise<void>;
 }
+
+export const TASK_CHECKPOINT_SCHEMA: string;
+export interface TaskCheckpointRequest {
+  sessionId: string;
+  expectedRevision?: number;
+  state: {
+    version: 1;
+    sessionId: string;
+    workspace: string;
+    events: Array<Record<string, unknown>>;
+    requests: string[];
+    [key: string]: unknown;
+  };
+}
+export interface TaskCheckpoint {
+  schema: "chainlesschain.task-checkpoint/v1";
+  sessionId: string;
+  revision: number;
+  scope: "session";
+  trust: "untrusted";
+  state: TaskCheckpointRequest["state"];
+  digest: string;
+}
+export function createTaskCheckpoint(
+  request: TaskCheckpointRequest,
+): TaskCheckpoint;
+export function verifyTaskCheckpoint(
+  checkpoint: unknown,
+  sessionId: string,
+): TaskCheckpoint;
 
 export class ContextMemoryAuthorityRegistry {
   constructor(options?: Record<string, unknown>);

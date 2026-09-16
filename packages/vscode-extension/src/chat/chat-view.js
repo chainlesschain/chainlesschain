@@ -175,6 +175,8 @@ class ChatViewProvider {
       });
       if (t.mode) this._convs.setMode(conv.id, String(t.mode));
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
+      conv.worklogSource =
+        typeof t.worklogSource === "string" ? t.worklogSource : null;
       if (t.goalCondition)
         this._convs.setGoalCondition(conv.id, String(t.goalCondition));
       this._restorePlanReviewState(conv);
@@ -200,6 +202,7 @@ class ChatViewProvider {
         mode: c.mode || "default",
         thinking: c.thinking || "off",
         goalCondition: c.goalCondition || "",
+        ...(c.worklogSource ? { worklogSource: c.worklogSource } : {}),
       };
     });
     const activeIndex = Math.max(
@@ -578,10 +581,16 @@ class ChatViewProvider {
    */
   _stopSession(conv) {
     if (!conv) return false;
+    if (conv.worklogHandoff) {
+      clearTimeout(conv.worklogHandoff.timer);
+      conv.worklogHandoff = null;
+    }
     this._clearInterruptTimer(conv);
     const session = conv.session;
     const pendingInteractions = this._convs.pendingInteractions(conv.id);
     conv._sessionToken = null;
+    conv.worklogSupported = false;
+    conv.worklogSourceSent = false;
     conv.sessionSlashCommands = null;
     conv.unconfirmedSessionSlashCommands = [];
     conv.turnActive = false;
@@ -640,12 +649,46 @@ class ChatViewProvider {
       const conv = this._convs.get(convId);
       if (!conv) return;
       if (sessionToken && conv._sessionToken !== sessionToken) return;
+      if (evt?.type === "worklog_saved") {
+        const pending = conv.worklogHandoff;
+        if (!pending || pending.requestId !== evt.request_id) return;
+        clearTimeout(pending.timer);
+        conv.worklogHandoff = null;
+        if (!evt.ok || evt.session_id !== conv.sessionId) {
+          this._postFrom(convId, {
+            kind: "error",
+            text: `History was not saved: ${evt.error || "session mismatch"}`,
+          });
+          return;
+        }
+        this._stopLoop(convId);
+        this._stopSession(conv);
+        this._openNewTab();
+        const next = this._activeConv();
+        next.worklogSource = evt.session_id;
+        this._persistTabs();
+        this._post({
+          kind: "info",
+          text: "Fresh session ready. Historical task notes will be loaded with your next message.",
+        });
+        this.seedInput(
+          "Read the historical task worklog, verify the current files, and continue the unfinished task from its next step.",
+        );
+        return;
+      }
+      if (evt?.type === "worklog_loaded") {
+        conv.worklogSource = null;
+        conv.worklogSourceSent = false;
+        this._persistTabs();
+      }
+      if (evt?.subtype === "error_worklog") conv.worklogSourceSent = false;
       // Turn flags can drift after plan acknowledgements or rejected sends.
       // Actual activity from the current process is stronger evidence.
       if (["stream_event", "tool_use"].includes(evt?.type)) {
         conv.turnActive = true;
       }
       if (evt?.type === "system" && evt.subtype === "init") {
+        conv.worklogSupported = evt.task_worklog?.version === 1;
         conv.sessionSlashCommands = Array.isArray(evt.slash_commands)
           ? evt.slash_commands.map((name) => String(name))
           : [];
@@ -1469,6 +1512,7 @@ class ChatViewProvider {
         ...bridgeEnv,
         ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
         CC_INTERACTIVE_QUESTIONS: "1",
+        CC_TASK_WORKLOG: "1",
         CC_TOOL_ADMISSION: JSON.stringify(
           buildIdeToolAdmission("vscode-extension"),
         ),
@@ -1907,6 +1951,38 @@ class ChatViewProvider {
     this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
     if (this._webviewReady && this.view) this._openNewTab();
     else this._pendingNewTab = true;
+  }
+
+  /** Save at a completed tool boundary before opening a fresh task context. */
+  continueInNewConversation() {
+    const conv = this._activeConv();
+    if (conv.worklogHandoff) return;
+    if (!conv.session?.running || !conv.worklogSupported) {
+      this._post({
+        kind: "error",
+        text: "Continue with history needs a running session and a CLI supporting task worklogs. Send a message with the updated CLI first.",
+      });
+      return;
+    }
+    const requestId = `worklog-${crypto.randomUUID()}`;
+    const timer = setTimeout(() => {
+      if (conv.worklogHandoff?.requestId !== requestId) return;
+      conv.worklogHandoff = null;
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: "Still waiting for the current tool/approval and saved task notes. Resolve the pending action, then retry the handoff.",
+      });
+    }, 60000);
+    timer.unref?.();
+    conv.worklogHandoff = { requestId, timer };
+    if (!conv.session.sendEvent({ type: "worklog", request_id: requestId })) {
+      clearTimeout(timer);
+      conv.worklogHandoff = null;
+      this._post({
+        kind: "error",
+        text: "Could not request saved task notes. The original conversation is retained.",
+      });
+    }
   }
 
   /** Cmd/Ctrl+Shift+T — reveal the panel and reopen the most recently closed
@@ -3372,14 +3448,22 @@ class ChatViewProvider {
         const id = this._convs.activeId();
         this._imgTemps.set(id, (this._imgTemps.get(id) || []).concat(images));
       }
-      const ok = images.length
-        ? session.sendEvent({
-            type: "user",
-            text: String(m.text || ""),
-            images,
-          })
-        : session.send(m.text);
+      const sendingConv = this._activeConv();
+      const history =
+        sendingConv.worklogSource && !sendingConv.worklogSourceSent
+          ? sendingConv.worklogSource
+          : null;
+      const ok =
+        images.length || history
+          ? session.sendEvent({
+              type: "user",
+              text: String(m.text || ""),
+              images,
+              ...(history ? { worklog_session_id: history } : {}),
+            })
+          : session.send(m.text);
       if (ok === true) {
+        if (history) sendingConv.worklogSourceSent = true;
         this._activeConv().turnActive = true;
         if (!this._imgTurns) this._imgTurns = new Map();
         const id = this._convs.activeId();
@@ -3616,6 +3700,8 @@ class ChatViewProvider {
       this._postTabs(); // refresh the tab bar with the reset title (also persists)
       this._fileCache = null; // pick up files created since the last scan
       this._post({ kind: "reset" });
+    } else if (m.type === "continueWithHistory") {
+      this.continueInNewConversation();
     } else if (m.type === "newTab") {
       // Open a fresh conversation tab (becomes active). Its child spawns on
       // the first message. `tabs` tells the webview to swap to the new

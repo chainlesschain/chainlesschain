@@ -16,6 +16,7 @@
     ]
   },
   "anyOf": [
+    { "$ref": "#/$defs/TaskCheckpoint" },
     { "$ref": "#/$defs/ContextItem" },
     { "$ref": "#/$defs/MemoryRecord" },
     { "$ref": "#/$defs/ContextPlanRequest" },
@@ -32,6 +33,47 @@
     { "$ref": "#/$defs/MemoryDeletionReceipt" }
   ],
   "$defs": {
+    "TaskCheckpoint": {
+      "type": "object",
+      "required": [
+        "schema",
+        "sessionId",
+        "revision",
+        "scope",
+        "trust",
+        "state",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "chainlesschain.task-checkpoint/v1" },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$"
+        },
+        "revision": { "type": "integer", "minimum": 1 },
+        "scope": { "const": "session" },
+        "trust": { "const": "untrusted" },
+        "state": {
+          "type": "object",
+          "required": [
+            "version",
+            "sessionId",
+            "workspace",
+            "events",
+            "requests"
+          ],
+          "properties": {
+            "version": { "const": 1 },
+            "sessionId": { "type": "string" },
+            "workspace": { "type": "string" },
+            "events": { "type": "array", "maxItems": 24 },
+            "requests": { "type": "array", "maxItems": 4 }
+          }
+        },
+        "digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
     "Identifier": {
       "type": "string",
       "minLength": 1,

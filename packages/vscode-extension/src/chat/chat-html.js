@@ -548,6 +548,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     plus.setAttribute("aria-label", "New conversation");
     plus.addEventListener("click", () => vscode.postMessage({ type: "newTab" }));
     tabsEl.appendChild(plus);
+    const handoff = document.createElement("button");
+    handoff.className = "newtab";
+    handoff.textContent = "↗";
+    handoff.title = "Continue in a new conversation with saved task notes";
+    handoff.setAttribute("aria-label", handoff.title);
+    handoff.addEventListener("click", () => vscode.postMessage({ type: "continueWithHistory" }));
+    tabsEl.appendChild(handoff);
     if (restoreTabFocus) {
       const escapedTabId = CSS.escape(String(previouslyFocusedTabId || ""));
       const target =

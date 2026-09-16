@@ -14,6 +14,7 @@ import com.chainlesschain.ide.ElicitationSchema;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.IdeSessionIndex;
 import com.chainlesschain.ide.LlmConfig;
+import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.PlanReview;
 import com.chainlesschain.ide.RemoteHandoff;
 import com.chainlesschain.ide.RewindCommands;
@@ -110,6 +111,12 @@ final class ConversationView {
     private final ConversationManager.Conversation conv;
     private final SessionIdSink sessionIdSink;
     private ContainerActions containerActions;
+    private volatile boolean worklogSupported;
+    private volatile String worklogSource;
+    private volatile boolean worklogSourceSent;
+    private String worklogRequestId;
+    private java.util.function.Consumer<String> worklogTarget;
+    private javax.swing.Timer worklogTimer;
 
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
     // Transcript rendering (styles + markdown snap + memory cap) — see ChatTranscript.
@@ -582,6 +589,71 @@ final class ConversationView {
         return conv.session instanceof AgentChatSession ? (AgentChatSession) conv.session : null;
     }
 
+    void seedWorklog(String sourceSessionId) {
+        worklogSource = sourceSessionId;
+        // Allocate the new identity now so pending history survives IDE restart.
+        if (conv.sessionId == null) conv.sessionId = "jb-" + java.util.UUID.randomUUID();
+        PropertiesComponent.getInstance(project).setValue("chainlesschain.worklog." + conv.sessionId, sourceSessionId);
+        if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, conv.sessionId);
+        seedInput("Read the historical task worklog, verify the current files, and continue the unfinished task from its next step.");
+    }
+
+    void handoffToNewConversation(java.util.function.Consumer<String> target) {
+        AgentChatSession session = liveSession();
+        if (worklogRequestId != null) return;
+        if (session == null || !worklogSupported) {
+            append("⚠ Task notes require a running conversation with an updated CLI. Send a message first.\n");
+            return;
+        }
+        String requestId = "worklog-" + java.util.UUID.randomUUID();
+        worklogRequestId = requestId;
+        worklogTarget = target;
+        worklogTimer = new javax.swing.Timer(60000, e -> {
+            cancelWorklogHandoff();
+            append("⚠ Still waiting for the current tool/approval and saved task notes. Resolve it, then retry.\n");
+        });
+        worklogTimer.setRepeats(false);
+        worklogTimer.start();
+        Map<String, Object> request = MiniJson.obj();
+        request.put("type", "worklog");
+        request.put("request_id", requestId);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!session.sendEvent(request)) SwingUtilities.invokeLater(() -> {
+                if (requestId.equals(worklogRequestId)) {
+                    cancelWorklogHandoff();
+                    append("⚠ Could not request task notes; the original conversation is retained.\n");
+                }
+            });
+        });
+    }
+
+    private void cancelWorklogHandoff() {
+        if (worklogTimer != null) worklogTimer.stop();
+        worklogTimer = null;
+        worklogRequestId = null;
+        worklogTarget = null;
+    }
+
+    private void acceptWorklogHandoff(Map<String, Object> event, Object generation) {
+        if (disposed || sessionGeneration != generation || worklogRequestId == null
+                || !worklogRequestId.equals(event.get("request_id"))) return;
+        java.util.function.Consumer<String> target = worklogTarget;
+        cancelWorklogHandoff();
+        if (!Boolean.TRUE.equals(event.get("ok")) || !conv.sessionId.equals(event.get("session_id"))) {
+            append("⚠ Task notes were not saved: " + event.get("error") + "\n");
+            return;
+        }
+        if (loopTask != null) loopTask.cancel(false);
+        loopTask = null;
+        AgentChatSession old = liveSession();
+        conv.session = null;
+        sessionGeneration = null;
+        turnActive = false;
+        if (old != null) ApplicationManager.getApplication().executeOnPooledThread(old::end);
+        append("ℹ Task notes saved. Continued in a fresh conversation.\n");
+        if (target != null) target.accept(conv.sessionId);
+    }
+
     private void sendCurrentInput() {
         if (sendInFlight) return;
         final String text = input.getText().trim();
@@ -602,7 +674,10 @@ final class ConversationView {
             try {
                 ensureSession();
                 AgentChatSession s = liveSession();
-                sent = s != null && s.send(text, imgs);
+                String history = worklogSourceSent ? null : worklogSource;
+                sent = s != null && (history == null ? s.send(text, imgs)
+                        : s.sendWithWorklog(text, imgs, history));
+                if (sent && history != null) worklogSourceSent = true;
             } catch (IOException ex) {
                 spawnError = ex.getMessage();
             } finally {
@@ -1654,6 +1729,8 @@ final class ConversationView {
 
         final Object generation = new Object();
         sessionGeneration = generation;
+        worklogSupported = false;
+        worklogSourceSent = false;
         if (reload) {
             conv.session = null;
             existing.stop();
@@ -1723,6 +1800,8 @@ final class ConversationView {
         // Opt into the ask_user_question round-trip: the agent's questions pop a
         // dialog here (an old `cc` ignores the env var → graceful degrade).
         o.extraEnv.put("CC_INTERACTIVE_QUESTIONS", "1");
+        o.extraEnv.put("CC_TASK_WORKLOG", "1");
+        worklogSource = PropertiesComponent.getInstance(project).getValue("chainlesschain.worklog." + conv.sessionId);
         o.extraEnv.put("CC_TOOL_ADMISSION",
                 com.chainlesschain.ide.IdeToolAdmission.environmentJson());
         // Lean chat context (Settings → ChainlessChain IDE, default on): inject
@@ -1741,10 +1820,23 @@ final class ConversationView {
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
             if (disposed || sessionGeneration != generation) return;
+            if (event != null && "worklog_saved".equals(event.get("type"))) {
+                SwingUtilities.invokeLater(() -> acceptWorklogHandoff(event, generation));
+                return;
+            }
+            if (event != null && "worklog_loaded".equals(event.get("type"))) {
+                worklogSource = null;
+                worklogSourceSent = false;
+                PropertiesComponent.getInstance(project).unsetValue("chainlesschain.worklog." + conv.sessionId);
+            }
+            if (event != null && "error_worklog".equals(event.get("subtype"))) worklogSourceSent = false;
             contextMemoryProjection.accept(event);
             if (event != null
                     && AgentStreamEventType.SYSTEM.getWireValue().equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {
+                Object worklog = event.get("task_worklog");
+                Object worklogVersion = worklog instanceof Map ? ((Map<?, ?>) worklog).get("version") : null;
+                worklogSupported = worklogVersion instanceof Number && ((Number) worklogVersion).intValue() == 1;
                 java.util.Set<String> advertised = new java.util.LinkedHashSet<>();
                 Object rawCommands = event.get("slash_commands");
                 if (rawCommands instanceof List) {
@@ -2993,6 +3085,7 @@ final class ConversationView {
     }
 
     void dispose() {
+        cancelWorklogHandoff();
         disposed = true; // gates ensureSession + every queued task body
         pendingApprovalGrantCommands.clear();
         invalidateApprovalCards();

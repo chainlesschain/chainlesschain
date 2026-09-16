@@ -25,7 +25,9 @@ class AgentChatSessionTest {
         public static void main(String[] args) throws Exception {
             java.io.BufferedReader input = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
             for (String line; (line = input.readLine()) != null;) {
-                if (line.contains("\"type\":\"user\""))
+                if (line.contains("\"worklog_session_id\""))
+                    System.out.println(line);
+                else if (line.contains("\"type\":\"user\""))
                     System.out.println("{\"type\":\"system\",\"subtype\":\"queued\"}");
                 else if (line.contains("\"type\":\"interrupt\""))
                     System.out.println("{\"type\":\"result\",\"subtype\":\"interrupted\"}");
@@ -36,6 +38,32 @@ class AgentChatSessionTest {
                 else System.out.println("{\"type\":\"slash_command_result\",\"ok\":true}");
                 System.out.flush();
             }
+        }
+    }
+
+    @Test
+    void sendsHistoricalReferenceWithoutResumingOldSession() throws Exception {
+        BlockingQueue<Map<String, Object>> events = new LinkedBlockingQueue<>();
+        AgentChatSession.Options options = new AgentChatSession.Options();
+        options.baseCommandOverride = List.of(
+                java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("java.class.path"), QueuedAgent.class.getName());
+        options.onEvent = events::add;
+        AgentChatSession session = new AgentChatSession(options);
+        try {
+            session.start();
+            assertFalse(session.sendWithWorklog("Continue", null, "../outside"));
+            assertFalse(session.hasPendingTurns());
+            assertTrue(session.sendWithWorklog("Only diagnose", List.of("image.png"), "old-session"));
+            Map<String, Object> event = events.poll(10, TimeUnit.SECONDS);
+            assertEquals("user", event.get("type"));
+            assertEquals("Only diagnose", event.get("text"));
+            assertEquals("old-session", event.get("worklog_session_id"));
+            assertEquals(List.of("image.png"), event.get("images"));
+            assertFalse(event.containsKey("resume"));
+            assertTrue(session.hasPendingTurns());
+        } finally {
+            session.stop();
         }
     }
 

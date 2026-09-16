@@ -9,6 +9,7 @@ const {
 const { canonicalDigest, cloneCanonical } = require("./canonical.js");
 const { planContext } = require("./planner.js");
 const { compactContextWithPorts } = require("./compaction.js");
+const { createTaskCheckpoint } = require("./task-checkpoint.js");
 const {
   createMemoryCandidate,
   applyMemoryCommand,
@@ -26,7 +27,8 @@ const { invalidArgument, kernelError } = require("./errors.js");
 
 function nowIso(clock) {
   const epoch = Number(clock());
-  if (!Number.isFinite(epoch)) throw invalidArgument("clock returned an invalid timestamp");
+  if (!Number.isFinite(epoch))
+    throw invalidArgument("clock returned an invalid timestamp");
   return new Date(epoch).toISOString();
 }
 
@@ -49,7 +51,11 @@ class ContextMemoryKernel {
     if (!Array.isArray(purgePorts) || purgePorts.length > 128) {
       throw invalidArgument("purgePorts must be a bounded array");
     }
-    this.ports = { session: sessionPort, memory: memoryPort, content: contentPort };
+    this.ports = {
+      session: sessionPort,
+      memory: memoryPort,
+      content: contentPort,
+    };
     this.purgePorts = purgePorts;
     this.reconciliationPort =
       reconciliationPort ||
@@ -74,7 +80,10 @@ class ContextMemoryKernel {
       );
     }
     if (this.authorityRegistry) {
-      if (!this.writer) throw invalidArgument("writer identity is required when authorityRegistry is configured");
+      if (!this.writer)
+        throw invalidArgument(
+          "writer identity is required when authorityRegistry is configured",
+        );
       this.authorityRegistry.assertWriter(this.writer);
     }
   }
@@ -87,13 +96,16 @@ class ContextMemoryKernel {
       typeof this.ports.memory.commit !== "function" ||
       typeof this.ports.memory.getRevision !== "function"
     ) {
-      throw invalidArgument("MemoryPort must provide read, query, commit, and getRevision");
+      throw invalidArgument(
+        "MemoryPort must provide read, query, commit, and getRevision",
+      );
     }
     return this.ports.memory;
   }
 
   async _getReconciliation(requestId) {
-    if (this.reconciliationPort) return this.reconciliationPort.getReconciliation(requestId);
+    if (this.reconciliationPort)
+      return this.reconciliationPort.getReconciliation(requestId);
     return cloneCanonical(this.pendingReconciliation.get(requestId) || null);
   }
 
@@ -102,11 +114,36 @@ class ContextMemoryKernel {
       await this.reconciliationPort.putReconciliation(operation);
       return;
     }
-    this.pendingReconciliation.set(operation.requestId, cloneCanonical(operation));
+    this.pendingReconciliation.set(
+      operation.requestId,
+      cloneCanonical(operation),
+    );
   }
 
   async planContext(request) {
     return planContext(request);
+  }
+
+  // Synchronous host settlement keeps task evidence durable before dispatching
+  // the next tool. A session port must implement atomic revision comparison.
+  checkpointTaskProgress(request) {
+    this._assertMutationAuthority();
+    const checkpoint = createTaskCheckpoint(request);
+    const port = this.ports.session;
+    if (typeof port?.commitTaskCheckpoint !== "function")
+      throw invalidArgument(
+        "SessionContextPort must provide commitTaskCheckpoint",
+      );
+    const result = port.commitTaskCheckpoint(
+      checkpoint,
+      request.expectedRevision || 0,
+    );
+    if (result?.then || result?.ok !== true)
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "Task checkpoint was not synchronously committed",
+      );
+    return { ...result, checkpoint };
   }
 
   async compactContext(request) {
@@ -135,7 +172,10 @@ class ContextMemoryKernel {
     const event = {
       schema: "chainlesschain.memory-event/v1",
       eventId: `memory-event-${this.randomUUID()}`,
-      type: record.state === "active" ? "memory.activated" : "memory.candidate.created",
+      type:
+        record.state === "active"
+          ? "memory.activated"
+          : "memory.candidate.created",
       memoryId: record.memoryId,
       fromState: null,
       toState: record.state,
@@ -147,10 +187,14 @@ class ContextMemoryKernel {
     event.digest = canonicalDigest(event, "chainlesschain.memory-event/v1");
     const committed = await port.commit({ record, event }, 0);
     if (!committed?.ok) {
-      throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "memory ID already exists", {
-        memoryId: record.memoryId,
-        currentRevision: committed?.currentRevision,
-      });
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "memory ID already exists",
+        {
+          memoryId: record.memoryId,
+          currentRevision: committed?.currentRevision,
+        },
+      );
     }
     const receipt = {
       schema: MEMORY_RECEIPT_SCHEMA,
@@ -164,7 +208,10 @@ class ContextMemoryKernel {
       eventDigest: event.digest,
       at,
     };
-    receipt.digest = canonicalDigest(receipt, "chainlesschain.memory-receipt/v1");
+    receipt.digest = canonicalDigest(
+      receipt,
+      "chainlesschain.memory-receipt/v1",
+    );
     return { record, event, receipt };
   }
 
@@ -176,7 +223,8 @@ class ContextMemoryKernel {
     delete command.memoryId;
     const port = this._requireMemoryPort();
     const current = await port.read(memoryId);
-    if (!current) throw invalidArgument("memory record does not exist", { memoryId });
+    if (!current)
+      throw invalidArgument("memory record does not exist", { memoryId });
     const mutation = applyMemoryCommand(current, command, {
       clock: this.clock,
       randomUUID: this.randomUUID,
@@ -186,15 +234,22 @@ class ContextMemoryKernel {
       current.revision,
     );
     if (!committed?.ok) {
-      throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "memory changed before command commit", {
-        memoryId,
-        expectedRevision: current.revision,
-        currentRevision: committed?.currentRevision,
-      });
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "memory changed before command commit",
+        {
+          memoryId,
+          expectedRevision: current.revision,
+          currentRevision: committed?.currentRevision,
+        },
+      );
     }
     mutation.receipt.storeRevision = committed.storeRevision;
     delete mutation.receipt.digest;
-    mutation.receipt.digest = canonicalDigest(mutation.receipt, "chainlesschain.memory-receipt/v1");
+    mutation.receipt.digest = canonicalDigest(
+      mutation.receipt,
+      "chainlesschain.memory-receipt/v1",
+    );
     return mutation;
   }
 
@@ -204,10 +259,18 @@ class ContextMemoryKernel {
       targets.push({
         store: operation.contentRef.store,
         run: () => {
-          if (!this.ports.content || typeof this.ports.content.purge !== "function") {
-            throw invalidArgument("ContentPort is required to purge memory contentRef");
+          if (
+            !this.ports.content ||
+            typeof this.ports.content.purge !== "function"
+          ) {
+            throw invalidArgument(
+              "ContentPort is required to purge memory contentRef",
+            );
           }
-          return this.ports.content.purge(operation.contentRef, operation.fence);
+          return this.ports.content.purge(
+            operation.contentRef,
+            operation.fence,
+          );
         },
       });
     }
@@ -229,7 +292,9 @@ class ContextMemoryKernel {
           }),
       });
     }
-    const settled = await Promise.allSettled(targets.map((target) => target.run()));
+    const settled = await Promise.allSettled(
+      targets.map((target) => target.run()),
+    );
     return settled.map((result, index) => {
       if (result.status === "fulfilled" && result.value?.status === "purged") {
         return {
@@ -290,7 +355,10 @@ class ContextMemoryKernel {
       startedAt: operation.startedAt,
       completedAt: nowIso(this.clock),
     };
-    receipt.digest = canonicalDigest(receipt, "chainlesschain.memory-deletion-receipt/v1");
+    receipt.digest = canonicalDigest(
+      receipt,
+      "chainlesschain.memory-deletion-receipt/v1",
+    );
     return receipt;
   }
 
@@ -316,13 +384,22 @@ class ContextMemoryKernel {
     const memoryId = identifier(request.memoryId, "memoryId");
     const requestId = identifier(request.requestId, "requestId");
     const subject = identifier(request.subject, "subject");
-    const selector = boundedString(request.selector, "selector", { min: 1, max: 512 });
+    const selector = boundedString(request.selector, "selector", {
+      min: 1,
+      max: 512,
+    });
     if (selector !== `memory:${memoryId}`) {
-      throw invalidArgument("deletion selector must exactly bind the target memory ID");
+      throw invalidArgument(
+        "deletion selector must exactly bind the target memory ID",
+      );
     }
     const requestedScope = assertScope(request.scope, request.scopeId);
     const fence = identifier(request.fence, "fence");
-    const expectedRevision = boundedInteger(request.expectedRevision, "expectedRevision", { min: 1 });
+    const expectedRevision = boundedInteger(
+      request.expectedRevision,
+      "expectedRevision",
+      { min: 1 },
+    );
     const authority = identifier(request.authority, "authority");
     const port = this._requireMemoryPort();
     const existingOperation = await this._getReconciliation(requestId);
@@ -340,21 +417,34 @@ class ContextMemoryKernel {
           { requestId },
         );
       }
-      if (existingOperation.receipt) return cloneCanonical(existingOperation.receipt);
+      if (existingOperation.receipt)
+        return cloneCanonical(existingOperation.receipt);
       return this.reconcile(requestId);
     }
     const current = await port.read(memoryId);
-    if (!current) throw invalidArgument("memory record does not exist", { memoryId });
-    if (current.scope !== requestedScope.scope || current.scopeId !== requestedScope.scopeId) {
-      throw kernelError(CONTEXT_ERROR_CODES.SCOPE_DENIED, "deletion scope does not match memory authority", {
-        memoryId,
-      });
+    if (!current)
+      throw invalidArgument("memory record does not exist", { memoryId });
+    if (
+      current.scope !== requestedScope.scope ||
+      current.scopeId !== requestedScope.scopeId
+    ) {
+      throw kernelError(
+        CONTEXT_ERROR_CODES.SCOPE_DENIED,
+        "deletion scope does not match memory authority",
+        {
+          memoryId,
+        },
+      );
     }
     if (current.retentionPolicy.mode === "legal_hold") {
-      throw kernelError(CONTEXT_ERROR_CODES.SCOPE_DENIED, "memory is under legal hold", {
-        memoryId,
-        legalHoldId: current.retentionPolicy.legalHoldId,
-      });
+      throw kernelError(
+        CONTEXT_ERROR_CODES.SCOPE_DENIED,
+        "memory is under legal hold",
+        {
+          memoryId,
+          legalHoldId: current.retentionPolicy.legalHoldId,
+        },
+      );
     }
     const operation = {
       requestId,
@@ -392,11 +482,15 @@ class ContextMemoryKernel {
       current.revision,
     );
     if (!tombstoneCommit?.ok) {
-      throw kernelError(CONTEXT_ERROR_CODES.REVISION_CONFLICT, "memory changed before deletion tombstone commit", {
-        memoryId,
-        expectedRevision: current.revision,
-        currentRevision: tombstoneCommit?.currentRevision,
-      });
+      throw kernelError(
+        CONTEXT_ERROR_CODES.REVISION_CONFLICT,
+        "memory changed before deletion tombstone commit",
+        {
+          memoryId,
+          expectedRevision: current.revision,
+          currentRevision: tombstoneCommit?.currentRevision,
+        },
+      );
     }
     operation.state = "tombstoned";
     operation.tombstoneRevision = deletion.record.revision;
@@ -406,7 +500,12 @@ class ContextMemoryKernel {
     if (stores.some((entry) => entry.status !== "purged")) {
       operation.state = "purge_pending";
       await this._putReconciliation(operation);
-      return this._deletionReceipt(operation, "partial", deletion.record, stores);
+      return this._deletionReceipt(
+        operation,
+        "partial",
+        deletion.record,
+        stores,
+      );
     }
     const purged = applyMemoryCommand(
       deletion.record,
@@ -436,8 +535,15 @@ class ContextMemoryKernel {
         stores,
       );
     }
-    const receipt = this._deletionReceipt(operation, "purged", purged.record, stores);
-    await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
+    const receipt = this._deletionReceipt(
+      operation,
+      "purged",
+      purged.record,
+      stores,
+    );
+    await this._putReconciliation(
+      this._sealDeletionOperation(operation, receipt),
+    );
     return receipt;
   }
 
@@ -445,7 +551,8 @@ class ContextMemoryKernel {
     this._assertMutationAuthority();
     const requestId = identifier(operationId, "operationId");
     if (typeof this.ports.session?.readCompactionOperation === "function") {
-      const compaction = await this.ports.session.readCompactionOperation(requestId);
+      const compaction =
+        await this.ports.session.readCompactionOperation(requestId);
       if (compaction) return compaction;
     }
     const operation = await this._getReconciliation(requestId);
@@ -454,14 +561,28 @@ class ContextMemoryKernel {
     const port = this._requireMemoryPort();
     let current = await port.read(operation.memoryId);
     if (!current) {
-      return { operationId: requestId, status: "reconciliation_required", reason: "tombstone_missing" };
+      return {
+        operationId: requestId,
+        status: "reconciliation_required",
+        reason: "tombstone_missing",
+      };
     }
     if (current.state === "purged") {
-      const receipt = this._deletionReceipt(operation, "purged", current, operation.stores || []);
-      await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
+      const receipt = this._deletionReceipt(
+        operation,
+        "purged",
+        current,
+        operation.stores || [],
+      );
+      await this._putReconciliation(
+        this._sealDeletionOperation(operation, receipt),
+      );
       return receipt;
     }
-    if (current.state !== "deleted" && current.revision === operation.expectedRevision) {
+    if (
+      current.state !== "deleted" &&
+      current.revision === operation.expectedRevision
+    ) {
       const deletion = applyMemoryCommand(
         current,
         {
@@ -490,7 +611,10 @@ class ContextMemoryKernel {
       }
       current = deletion.record;
     }
-    if (current.state !== "deleted" || current.deletionFence !== operation.fence) {
+    if (
+      current.state !== "deleted" ||
+      current.deletionFence !== operation.fence
+    ) {
       return {
         operationId: requestId,
         status: "reconciliation_required",
@@ -525,10 +649,22 @@ class ContextMemoryKernel {
     if (!committed?.ok) {
       operation.state = "commit_pending";
       await this._putReconciliation(operation);
-      return this._deletionReceipt(operation, "reconciliation_required", current, stores);
+      return this._deletionReceipt(
+        operation,
+        "reconciliation_required",
+        current,
+        stores,
+      );
     }
-    const receipt = this._deletionReceipt(operation, "purged", purged.record, stores);
-    await this._putReconciliation(this._sealDeletionOperation(operation, receipt));
+    const receipt = this._deletionReceipt(
+      operation,
+      "purged",
+      purged.record,
+      stores,
+    );
+    await this._putReconciliation(
+      this._sealDeletionOperation(operation, receipt),
+    );
     return receipt;
   }
 

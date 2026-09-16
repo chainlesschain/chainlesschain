@@ -4,6 +4,8 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+Development feature: [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and the `↗` action. Requires the matching updated CLI and Context/Memory Kernel; not part of the published versions listed below.
+
 ## Current release
 
 > Extension release `0.37.104` pairs with `chainlesschain@0.166.58`. It restores

@@ -14490,6 +14490,7 @@ export async function* agentLoop(messages, options) {
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
+          options.onBeforeCompaction?.();
           compactionUsageState = _autoCompactionUsageState(options);
           compactionUsageState.calls = [];
           compactionUsageState.callSequence = budget.consumed;
@@ -14990,6 +14991,7 @@ export async function* agentLoop(messages, options) {
         }
       : effectiveToolOptions;
     const readContext = [
+      options.getTaskWorklogContext?.(),
       readFileLoopGuard.findingsHint,
       readFileLoopGuard.progressHint,
       remoteReadLoopGuard.findingsHint,

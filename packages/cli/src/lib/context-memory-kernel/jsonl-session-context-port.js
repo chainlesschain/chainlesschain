@@ -1,6 +1,7 @@
 import {
   canonicalDigest,
   cloneCanonical,
+  verifyTaskCheckpoint,
 } from "@chainlesschain/context-memory-kernel";
 import {
   appendAuthorityEventIfHead,
@@ -13,6 +14,7 @@ import {
 
 const COMPACTION_EVENT_TYPE = "compact";
 const RECONCILIATION_EVENT_TYPE = "context_memory_reconciliation";
+const TASK_CHECKPOINT_EVENT_TYPE = "context_memory_task_checkpoint";
 
 function receiptFromCompactionEvent(event) {
   const canonical = event?.data?.canonical;
@@ -67,6 +69,37 @@ export class JsonlSessionContextPort {
         `SessionContextPort is bound to ${this.sessionId}, not ${sessionId}`,
       );
     }
+  }
+
+  readTaskCheckpoint() {
+    return readVerifiedProjection(this.sessionId, () => {
+      let checkpoint = null;
+      return {
+        accept: (event) => {
+          if (event.type === TASK_CHECKPOINT_EVENT_TYPE)
+            checkpoint = verifyTaskCheckpoint(event.data, this.sessionId);
+        },
+        finish: (authority) => ({ checkpoint, head: authority.headHash }),
+      };
+    });
+  }
+
+  commitTaskCheckpoint(checkpoint, expectedRevision) {
+    this._assertSession(checkpoint.sessionId);
+    verifyTaskCheckpoint(checkpoint, this.sessionId);
+    const current = this.readTaskCheckpoint();
+    if (
+      checkpoint.revision !== expectedRevision + 1 ||
+      (current.checkpoint?.revision || 0) !== expectedRevision
+    )
+      return { ok: false };
+    const appended = appendAuthorityEventIfHead(
+      this.sessionId,
+      TASK_CHECKPOINT_EVENT_TYPE,
+      checkpoint,
+      current.head,
+    );
+    return { ok: true, head: appended.hash };
   }
 
   async readSnapshot(sessionId) {

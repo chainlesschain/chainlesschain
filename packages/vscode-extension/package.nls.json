@@ -41,6 +41,7 @@
   "cmd.chat.explainSelection.title": "ChainlessChain: Explain Selection",
   "cmd.chat.refactorSelection.title": "ChainlessChain: Refactor Selection",
   "cmd.chat.newConversation.title": "ChainlessChain: New Chat Conversation",
+  "cmd.chat.continueWithHistory.title": "ChainlessChain: Continue in New Conversation with Task Notes",
   "cmd.chat.reopenClosedSession.title": "ChainlessChain: Reopen Closed Chat",
   "cmd.plan.approve.title": "ChainlessChain: Approve Plan Review",
   "cmd.plan.requestChanges.title": "ChainlessChain: Request Plan Changes",

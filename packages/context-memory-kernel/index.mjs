@@ -70,4 +70,7 @@ export const {
   InMemoryContentPort,
   InMemoryProjectionPurgePort,
   ContextMemoryKernel,
+  TASK_CHECKPOINT_SCHEMA,
+  createTaskCheckpoint,
+  verifyTaskCheckpoint,
 } = kernel;

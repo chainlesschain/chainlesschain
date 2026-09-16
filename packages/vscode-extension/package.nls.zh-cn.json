@@ -41,6 +41,7 @@
   "cmd.chat.explainSelection.title": "ChainlessChain：解释选中代码",
   "cmd.chat.refactorSelection.title": "ChainlessChain：重构选中代码",
   "cmd.chat.newConversation.title": "ChainlessChain：新建对话",
+  "cmd.chat.continueWithHistory.title": "ChainlessChain：携带任务记录在新对话中继续",
   "cmd.chat.reopenClosedSession.title": "ChainlessChain：重开已关闭的对话",
   "cmd.plan.approve.title": "ChainlessChain：批准计划评审",
   "cmd.plan.requestChanges.title": "ChainlessChain：要求修改计划",

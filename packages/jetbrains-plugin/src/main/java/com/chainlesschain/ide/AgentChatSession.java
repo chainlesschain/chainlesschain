@@ -532,6 +532,15 @@ public final class AgentChatSession {
         return evt != null && sendEvent(evt);
     }
 
+    public boolean sendWithWorklog(String text, java.util.List<String> images, String sourceSessionId) {
+        Map<String, Object> evt = userEvent(text, images);
+        if (evt == null) return false;
+        if (sourceSessionId == null || !sourceSessionId.matches("[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}"))
+            return false;
+        evt.put("worklog_session_id", sourceSessionId);
+        return sendEvent(evt);
+    }
+
     /** Build a {@code user} turn event (text + optional image paths), or null
      *  when there's nothing to send. Pure — exported for tests. */
     public static Map<String, Object> userEvent(String text, java.util.List<String> images) {

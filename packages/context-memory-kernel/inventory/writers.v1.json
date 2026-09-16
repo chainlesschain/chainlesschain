@@ -46,6 +46,7 @@
       "targetAuthority": "context_memory_kernel",
       "files": [
         "packages/context-memory-kernel/lib/runtime.js",
+        "packages/context-memory-kernel/lib/task-checkpoint.js",
         "packages/context-memory-kernel/lib/planner.js",
         "packages/context-memory-kernel/lib/compaction.js",
         "packages/context-memory-kernel/lib/memory-reducer.js",
@@ -55,12 +56,18 @@
       ],
       "mutationFunctions": [
         "ContextMemoryKernel.compactContext",
+        "ContextMemoryKernel.checkpointTaskProgress",
         "ContextMemoryKernel.proposeMemory",
         "ContextMemoryKernel.decideMemory",
         "ContextMemoryKernel.deleteMemory",
         "ContextMemoryKernel.reconcile"
       ],
-      "stores": ["SessionContextPort", "MemoryPort", "ContentPort", "ReconciliationPort"],
+      "stores": [
+        "SessionContextPort",
+        "MemoryPort",
+        "ContentPort",
+        "ReconciliationPort"
+      ],
       "recoveryEntrypoints": ["ContextMemoryKernel.reconcile"],
       "disposition": "migrate"
     },
@@ -77,7 +84,11 @@
         "packages/session-core/lib/memory-consolidator.js",
         "packages/session-core/lib/memory-store.js"
       ],
-      "mutationFunctions": ["MemoryStore.add", "MemoryStore.remove", "MemoryConsolidator.consolidate"],
+      "mutationFunctions": [
+        "MemoryStore.add",
+        "MemoryStore.remove",
+        "MemoryConsolidator.consolidate"
+      ],
       "stores": ["MemoryStore", "FileMemoryAdapter"],
       "recoveryEntrypoints": ["FileMemoryAdapter.load"],
       "disposition": "compatibility_adapter"
@@ -122,6 +133,7 @@
         "packages/cli/src/lib/context-memory-kernel/provider-context.js",
         "packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js",
         "packages/cli/src/lib/context-memory-kernel/runtime.js",
+        "packages/cli/src/lib/context-memory-kernel/task-worklog-port.js",
         "packages/cli/src/lib/model-context-window.js",
         "packages/cli/src/repl/agent-repl.js",
         "packages/cli/src/repl/chat-repl.js",
@@ -222,8 +234,16 @@
         "MemGPTCore.addMemory",
         "MemorySyncService.sync"
       ],
-      "stores": ["permanent_memories", "hierarchical_memory", "MemGPTCore", "MemorySyncService"],
-      "recoveryEntrypoints": ["SessionManager.restore", "MemorySyncService.sync"],
+      "stores": [
+        "permanent_memories",
+        "hierarchical_memory",
+        "MemGPTCore",
+        "MemorySyncService"
+      ],
+      "recoveryEntrypoints": [
+        "SessionManager.restore",
+        "MemorySyncService.sync"
+      ],
       "disposition": "migrate"
     },
     {
