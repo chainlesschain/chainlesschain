@@ -82,6 +82,7 @@ const VSCODE_COMMANDS = [
   "chainlesschain.chat.explainSelection",
   "chainlesschain.chat.refactorSelection",
   "chainlesschain.chat.newConversation",
+  "chainlesschain.chat.continueWithHistory",
   "chainlesschain.chat.reopenClosedSession",
   "chainlesschain.inlineChat.open",
   "chainlesschain.inlineChat.explain",
