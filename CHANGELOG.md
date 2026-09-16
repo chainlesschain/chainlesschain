@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.59: durable IDE task worklogs and fresh-session handoff
+
+- Add Context/Memory Kernel `0.1.4` session checkpoints for bounded task goals,
+  file evidence, failures, changes, plans, and compaction boundaries without
+  promoting process notes into trusted long-term memory.
+- Project verified checkpoints into workspace-local `WORKLOG.md` files, rebuild
+  missing or altered projections from the signed JSONL session authority, and
+  redact credentials while rejecting path traversal and linked-file redirects.
+- Let VS Code `0.37.105` and JetBrains `0.4.126` save the active worklog at a
+  completed tool boundary and continue it in a new independent conversation.
+- Preserve the current user request as authoritative, inject inherited notes as
+  bounded untrusted history, and fail visibly before model execution when
+  history cannot be verified.
+
 ### Fixed - cc CLI 0.166.58: recover IDE diagnostics and release safety gates
 
 - Recover IDE-driven repair tasks from stale hash-edit snapshots and completed

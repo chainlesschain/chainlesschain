@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.126] - Continue long tasks with durable notes (2026-09-16)
+
+- Pair with `chainlesschain@0.166.59` and Context/Memory Kernel `0.1.4`.
+- Save bounded task goals, file evidence, failures, changes, and next steps to a
+  workspace-local Markdown projection throughout long IDE conversations.
+- Add **Continue in new chat** so a completed tool boundary can hand verified
+  notes to a fresh conversation without copying the full prior transcript or
+  inheriting temporary permissions.
+- Rebuild missing or altered Markdown from canonical session checkpoints and
+  surface save/load failures without silently starting the task from scratch.
+
 ## [0.4.125] - Recover IDE repair tasks with CLI 0.166.58 (2026-09-16)
 
 - Pair with the publicly verified `chainlesschain@0.166.58` release.

@@ -71,7 +71,7 @@ Kernel 保持无文件 IO；shadow 模式不写检查点，插件默认 canonica
 - 本地已通过 9 个 CLI/IDE 回归文件共 77 条测试，覆盖工作记录、真实 JSONL 检查点、流式交接、VS Code 标签页及图片消息、自动压缩/持久化和中断；Context Memory Kernel 全部 99 条测试及 writer inventory 校验通过。
 - 使用 IntelliJ 随附的 Java 21 完成 JetBrains `compileJava` 和 `AgentChatSessionTest`：13 条测试通过，包含历史引用、附件与非法来源 ID 校验；语法、格式和 `git diff --check` 检查通过。
 - 运行记录没有单独的模型总结调用，但读取摘要仍占用上下文；尚未量化 token 节省比例，也未完成超长会话的持久化 IO 基准测试。
-- 本次不运行真实模型或完整 IDE UI 端到端测试，不自动提交、安装或发布；发布仍需对应提交的完整 CI 门禁。
+- 本方案实现阶段不运行真实模型或完整 IDE UI 端到端测试，也不以本地结果绕过发布门禁；正式发布必须使用对应提交的完整 CI 和精确 SHA 发布流程。
 
 用户指南：[IDE 任务记录与新会话接力](../features/ide-task-worklog-user-guide.md)。
 
