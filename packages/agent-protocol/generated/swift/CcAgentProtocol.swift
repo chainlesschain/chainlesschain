@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:3e0edf1f430dc0ce4a1d9b9ac242923ee4dff090c24af296f60f7085a5dd24b5"
+public let ccAgentProtocolSchemaDigest = "sha256:ff1860d17b798060c95cce217ff27bef2f99e209dcb369cf2d70514a4d6f08d7"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -3497,6 +3497,34 @@ public struct MemorySemanticCandidate: Codable, Sendable {
         self.revision = revision
         self.recordDigest = recordDigest
         self.score = score
+    }
+}
+
+public struct TaskCheckpoint: Codable, Sendable {
+    public let schema: String
+    public let sessionId: String
+    public let revision: Int
+    public let scope: String
+    public let trust: String
+    public let state: JSONValue
+    public let digest: String
+
+    public init(
+        schema: String,
+        sessionId: String,
+        revision: Int,
+        scope: String,
+        trust: String,
+        state: JSONValue,
+        digest: String
+    ) {
+        self.schema = schema
+        self.sessionId = sessionId
+        self.revision = revision
+        self.scope = scope
+        self.trust = trust
+        self.state = state
+        self.digest = digest
     }
 }
 

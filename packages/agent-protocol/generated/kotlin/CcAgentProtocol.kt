@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:3e0edf1f430dc0ce4a1d9b9ac242923ee4dff090c24af296f60f7085a5dd24b5"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:ff1860d17b798060c95cce217ff27bef2f99e209dcb369cf2d70514a4d6f08d7"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -1304,6 +1304,16 @@ data class MemorySemanticCandidate(
     val revision: Long,
     val recordDigest: String,
     val score: Double
+)
+
+data class TaskCheckpoint(
+    val schema: String,
+    val sessionId: String,
+    val revision: Long,
+    val scope: String,
+    val trust: String,
+    val state: JSONValue,
+    val digest: String
 )
 
 sealed interface ApprovalDecision {

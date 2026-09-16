@@ -24,7 +24,7 @@
     "contextMemory": {
       "schemaId": "https://chainlesschain.com/schemas/context-memory-kernel/v1",
       "schemaVersion": 1,
-      "sourceDigest": "sha256:6599168b8fa9ace2d1697c44c2ac10141aa20bd7e9be29e9ea814ff032f87d68",
+      "sourceDigest": "sha256:e438a7d88b64a1cd08bb3d498e879622660a22ebbbeaddedb6bbc55973bf05f7",
       "methods": {
         "context/plan": {
           "request": "ContextPlanRequest",
@@ -5809,6 +5809,70 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "TaskCheckpoint": {
+      "type": "object",
+      "required": [
+        "schema",
+        "sessionId",
+        "revision",
+        "scope",
+        "trust",
+        "state",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "chainlesschain.task-checkpoint/v1"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scope": {
+          "const": "session"
+        },
+        "trust": {
+          "const": "untrusted"
+        },
+        "state": {
+          "type": "object",
+          "required": [
+            "version",
+            "sessionId",
+            "workspace",
+            "events",
+            "requests"
+          ],
+          "properties": {
+            "version": {
+              "const": 1
+            },
+            "sessionId": {
+              "type": "string"
+            },
+            "workspace": {
+              "type": "string"
+            },
+            "events": {
+              "type": "array",
+              "maxItems": 24
+            },
+            "requests": {
+              "type": "array",
+              "maxItems": 4
+            }
+          }
+        },
+        "digest": {
+          "$ref": "#/$defs/ContextMemoryDigest"
         }
       }
     }
