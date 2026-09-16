@@ -255,11 +255,18 @@ describe("CLI release workflow contracts", () => {
       "Verify published Agent SDK registry bytes and npm provenance",
     );
     expect(text).toContain(
+      "Verify Agent Protocol registry bytes and npm provenance",
+    );
+    expect(text).not.toContain(
       "if: steps.agent-sdk-publish.outputs.published == 'true'",
+    );
+    expect(text).not.toContain(
+      "if: steps.context-memory-kernel-publish.outputs.published == 'true'",
     );
     expect(text).toContain(
       '"$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"',
     );
+    expect(text).toContain("agent-protocol-npm-provenance.json");
     expect(text).toContain("agent-sdk-npm-provenance.json");
     expect(text).toContain(
       "npm audit signatures --include-attestations --json",

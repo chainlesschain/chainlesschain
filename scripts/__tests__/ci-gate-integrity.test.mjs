@@ -81,6 +81,48 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("npm release publishes and re-verifies changed child packages before CLI", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "npm-publish.yml"),
+    "utf8",
+  );
+  const markers = [
+    '- name: "Publish @chainlesschain/agent-protocol"',
+    "- name: Verify Agent Protocol registry bytes and npm provenance",
+    '- name: "Publish @chainlesschain/context-memory-kernel"',
+    "- name: Verify published Context Memory Kernel registry bytes and npm provenance",
+    '- name: "Publish @chainlesschain/agent-sdk"',
+    "- name: Verify published Agent SDK registry bytes and npm provenance",
+    "- name: Verify public child bytes and registry-only dependencies before CLI publish",
+    '- name: "Publish chainlesschain (CLI)"',
+  ];
+  const positions = markers.map((marker) => {
+    const position = workflow.indexOf(marker);
+    assert.notEqual(position, -1, `missing npm release step: ${marker}`);
+    return position;
+  });
+  assert.deepEqual(
+    positions,
+    [...positions].sort((left, right) => left - right),
+    "child publish/readback steps must precede CLI publication",
+  );
+
+  for (const marker of [markers[1], markers[3], markers[5]]) {
+    const start = workflow.indexOf(marker);
+    const next = workflow.indexOf("      - name:", start + marker.length);
+    const step = workflow.slice(start, next === -1 ? undefined : next);
+    assert.doesNotMatch(
+      step,
+      /^\s*if:/mu,
+      `${marker} must also run when an idempotent publish is retried`,
+    );
+  }
+  assert.match(
+    workflow,
+    /release-artifacts\/agent-protocol-npm-provenance\.json/u,
+  );
+});
+
 test("Desktop and UniApp CI test the exact PR source without changing the matrix", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github/workflows/test.yml"),

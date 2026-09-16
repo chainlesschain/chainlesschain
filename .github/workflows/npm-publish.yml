@@ -319,23 +319,83 @@ jobs:
           echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
           echo "Mode: LIVE PUBLISH"
 
-      # Publish order respects dependency chain:
-      # 1. core-env (no deps)
-      # 2. shared-logger (-> core-env) + core-config (-> core-env)
-      # 3. core-db (-> core-env, core-config)
-      # 4. core-infra (-> shared-logger)
-      # 5. cli (-> all above)
+      # Publish order respects dependency chain and public protocol projections:
+      # 1. agent-protocol + independent core packages
+      # 2. context-memory-kernel and agent-sdk, with registry/provenance readback
+      # 3. all remaining exact CLI dependencies
+      # 4. cli, only after a registry-only child install succeeds
 
       - name: "Publish @chainlesschain/agent-protocol"
         working-directory: packages/agent-protocol
         run: |
           set -euo pipefail
           PKG_VER=$(node -p "require('./package.json').version")
+          echo "target: @chainlesschain/agent-protocol@$PKG_VER"
           if npm view "@chainlesschain/agent-protocol@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
+
+      - name: Verify Agent Protocol registry bytes and npm provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="@chainlesschain/agent-protocol"
+          PACKAGE_VERSION=$(node -p "require('./packages/agent-protocol/package.json').version")
+          CLI_VERSION="${{ steps.version.outputs.VERSION }}"
+          EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          READBACK_ROOT=$(mktemp -d)
+          trap 'rm -rf "$READBACK_ROOT"' EXIT
+
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \
+              >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then
+              REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-agent-protocol-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+              cat "$READBACK_ROOT/npm-pack.err" >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
+          PACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+
+          AUDIT_ROOT="$READBACK_ROOT/audit"
+          mkdir -p "$AUDIT_ROOT"
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"
+          )
+          VERIFIED=false
+          for ATTEMPT in {1..30}; do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/agent-protocol-npm-provenance.json \
+              node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+              VERIFIED=true
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
 
       - name: "Publish @chainlesschain/core-env"
         working-directory: packages/core-env
@@ -469,7 +529,6 @@ jobs:
           fi
 
       - name: Verify published Context Memory Kernel registry bytes and npm provenance
-        if: steps.context-memory-kernel-publish.outputs.published == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -550,7 +609,6 @@ jobs:
           fi
 
       - name: Verify published Agent SDK registry bytes and npm provenance
-        if: steps.agent-sdk-publish.outputs.published == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -784,6 +842,7 @@ jobs:
           path: |
             release-artifacts/chainlesschain-release.json
             release-artifacts/chainlesschain-npm-provenance.json
+            release-artifacts/agent-protocol-npm-provenance.json
             release-artifacts/agent-sdk-npm-provenance.json
             release-artifacts/context-memory-kernel-npm-provenance.json
             release-artifacts/cli-public-child-install.json

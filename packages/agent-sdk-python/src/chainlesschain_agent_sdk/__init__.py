@@ -166,4 +166,4 @@ __all__ = [
     "validate_memory_record",
 ]
 
-__version__ = "0.2.8"
+__version__ = "0.2.9"

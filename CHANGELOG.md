@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.59: durable IDE task worklogs and fresh-session handoff
+### Added - cc CLI 0.166.59 + Agent Protocol 0.1.11 + Agent SDKs 0.2.11/0.2.9: durable IDE task worklogs and fresh-session handoff
 
 - Add Context/Memory Kernel `0.1.4` session checkpoints for bounded task goals,
   file evidence, failures, changes, plans, and compaction boundaries without
   promoting process notes into trusted long-term memory.
+- Publish the additive `TaskCheckpoint` contract through Agent Protocol
+  `0.1.11`, TypeScript Agent SDK `0.2.11`, and Python Agent SDK `0.2.9` so
+  every generated public projection matches the canonical Kernel schema.
 - Project verified checkpoints into workspace-local `WORKLOG.md` files, rebuild
   missing or altered projections from the signed JSONL session authority, and
   redact credentials while rejecting path traversal and linked-file redirects.
