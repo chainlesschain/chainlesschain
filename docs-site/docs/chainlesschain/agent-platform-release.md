@@ -1,18 +1,26 @@
-# Agent Platform 0.166.56 发布与升级指南
+# Agent Platform 0.166.59 发布与升级指南
 
-> 核对日期：2026-09-15。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
+> 核对日期：2026-09-16。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
 
 ## 概述
 
-npm 官方 registry 的 `latest` 为 `0.166.56`，标签 `v-npm-0-166-56` 对应提交 `d55de4810e35f9ef686ec108c71d311c9b3d2b10`。它承接 `0.166.48` 的平衡插件评测、重启安全的 Headless 延后问题、后台会话只读索引和受治理语义召回，并正式交付请求级上下文窗口/token/cache 投影、Evolution TEST 一键部署与正式证书轮换。
+npm 官方 registry 的 `latest` 为 `0.166.59`，标签 `v-npm-0-166-59` 对应提交 `a148ec7a575858cfd78f0325c728d80e6524b13c`。本版在既有请求级上下文窗口/token/cache 投影、Evolution TEST 部署与受治理语义召回基础上，正式交付耐久 IDE 任务检查点、可重建 `WORKLOG.md` 和独立新会话接力。
 
 普通聊天只需要有效模型配置。candidate、Eval、Workbench、知识合并和 Skill 发布仍需管理员配置受信治理宿主；已配置治理链发生验证错误时不会降级。automatic active promotion 继续保持 HOLD。
 
-精确发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431736) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431550) 已通过 Linux、Windows、macOS 全部配置任务，[npm OIDC 精确 SHA 发布与回读](https://github.com/chainlesschain/chainlesschain/actions/runs/34940431525)成功；2026-09-15 回读公共 registry 为 `0.166.56`。Agent Protocol `0.1.10`、Context Memory Kernel `0.1.3`、Agent SDK TS/Python `0.2.10/0.2.8` 与 Session Core `0.3.12` 保持独立发布边界。
+精确发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646611) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646344) 已通过 Linux、Windows、macOS 全部配置任务，[npm OIDC 精确 SHA 发布与回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646385)成功；2026-09-16 回读公共 registry 为 `0.166.59`。Agent Protocol `0.1.11`、Context Memory Kernel `0.1.4`、Agent SDK TS/Python `0.2.11/0.2.9` 与 Session Core `0.3.12` 保持独立发布边界。
 
-本文按 `main@ac0e61b3cd` 核对。Open VSX `0.37.103` 与 JetBrains Marketplace `0.4.124` 已公开并推荐 CLI `0.166.56`；同一 IDE 提交的 [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/34948682154) 与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/34948681939) 成功。微软 VS Code Marketplace 与 Desktop 原生安装包不在本次发布证明范围。
+本文按 `main@a148ec7a57` 核对。Open VSX `0.37.105` 与 JetBrains Marketplace `0.4.126` 已公开并推荐 CLI `0.166.59`；同一精确提交的 [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35095569167) 与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35097287263) 成功。微软 VS Code Marketplace 与 Desktop 原生安装包不在本次发布证明范围。
 
-## 0.166.51–0.166.56 本次增量
+## 0.166.59 本次增量
+
+Context/Memory Kernel 将任务目标、文件证据、失败、修改、计划和压缩边界写入带 session、revision 与 digest 的权威检查点。CLI 将已验证状态投影为 `.chainlesschain/sessions/<session-id>/WORKLOG.md`；Markdown 缺失或被修改时可以重建，不能通过手工编辑获得权限或覆盖权威状态。
+
+VS Code 标签栏 `↗` / 命令 **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先等待完整工具边界并保存记录，再打开独立会话。接力只传递已校验记录引用，不复制完整聊天、不继承临时权限或未完成工具；加载失败时不调用模型。使用步骤见[IDE 任务记录与新会话接力](/chainlesschain/ide-task-worklog)。
+
+`TaskCheckpoint` 已同步到 Agent Protocol `0.1.11`、TypeScript Agent SDK `0.2.11`、Python Agent SDK `0.2.9` 及生成的 Kotlin/Swift 投影。
+
+## 0.166.51–0.166.56 历史增量
 
 请求级容量按实际 provider、model、endpoint 与 `contextMemoryModelWindowTokens` 覆盖解析，并让 planner、自动压缩器、会话 ledger、REPL、`cc context --json` 与 IDE 指示条复用同一上下文窗口。主指示只消费主模型调用；子 Agent 或语义压缩调用不会覆盖它。IDE 有真实请求用量时显示 input/output/cache read/cache write，没有时明确标记 transcript `estimated`。大窗口主要按 token 压力压缩，小窗口仍保留消息数保护。
 
@@ -21,7 +29,7 @@ Evolution 部署新增 `init-test` 和 `replace-test`，可在正式 PKI/KMS 未
 升级或固定安装：
 
 ```bash
-npm i -g chainlesschain@0.166.56 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.59 --registry https://registry.npmjs.org
 cc --version
 cc evolution deployment status --json
 ```
@@ -41,7 +49,7 @@ cc evolution deployment status --json
 
 新建 Volcengine 文本配置延续 DeepSeek V4 Flash GA 默认值；已有配置不迁移。Responses 使用 `store:false`，不完整工具调用不会进入执行器，加密 reasoning item 仅用于协议连续性。
 
-普通聊天报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 时先确认已升级 `0.166.56`；若配置了治理部署，应检查描述符、trust root、摘要及授权范围。不要为普通聊天部署测试 authority。Agent shell 的 Docker/bubblewrap 不支持域名级 allow/deny；Docker 也不支持细粒度文件规则，不支持组合在启动前拒绝。
+普通聊天报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 时先确认已升级 `0.166.59`；若配置了治理部署，应检查描述符、trust root、摘要及授权范围。不要为普通聊天部署测试 authority。Agent shell 的 Docker/bubblewrap 不支持域名级 allow/deny；Docker 也不支持细粒度文件规则，不支持组合在启动前拒绝。
 
 完整源码边界见[运行时增量设计](/design/agent-runtime-update-2026-09-13)。
 
@@ -83,7 +91,7 @@ REPL / headless / stream / AgentRuntime
 
 ## 历史公开组合（2026-09-09）
 
-下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.56，IDE 与其他组件的商店版本需按各自发布渠道核对。
+下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.59，IDE 与其他组件的商店版本需按各自发布渠道核对。
 
 | 组件                  | 公开版本   | 获取渠道              |
 | --------------------- | ---------- | --------------------- |
@@ -144,7 +152,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.56 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.59 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -155,19 +163,19 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.56 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.59 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.56`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.59`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
 ```bash
-npm install @chainlesschain/agent-sdk@0.2.9
-npm install @chainlesschain/agent-protocol@0.1.9
-python -m pip install chainlesschain-agent-sdk==0.2.8
+npm install @chainlesschain/agent-sdk@0.2.11
+npm install @chainlesschain/agent-protocol@0.1.11
+python -m pip install chainlesschain-agent-sdk==0.2.9
 ```
 
 ### IDE
@@ -187,7 +195,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 | 知识冲突审核   | `cc evolution knowledge ...`         | 只返回删节投影；merge 由宿主复核                                            |
 | Skill 检索     | `cc skill search ...`                | 命中不等于安装或晋升                                                        |
 | Agent 能力     | `cc agent --capabilities`            | 显示能力不等于 production composition 已启用                                |
-| IDE 安装       | Open VSX / JetBrains Marketplace     | Open VSX `0.37.103`、JetBrains `0.4.124` 均推荐 CLI `0.166.56`             |
+| IDE 安装       | Open VSX / JetBrains Marketplace     | Open VSX `0.37.105`、JetBrains `0.4.126` 均推荐 CLI `0.166.59`             |
 | 更新检查       | `npm view chainlesschain version`    | 应从官方 npm registry 回读                                                  |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
@@ -201,7 +209,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.8
 
 ## 测试覆盖
 
-当前 `0.166.56` 的精确提交与三平台门见本页概述。下表保留历史 `0.166.38`、SHA `de8ec4e5c8234087d1fb86a062371b7000931790` 的公共门，不能代替当前或下一版发布验收：
+当前 `0.166.59` 的精确提交与三平台门见本页概述。下表保留历史 `0.166.38`、SHA `de8ec4e5c8234087d1fb86a062371b7000931790` 的公共门，不能代替当前或下一版发布验收：
 
 | 门禁                                  | GitHub Actions run                                                                         | 状态 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ | ---- |
@@ -221,19 +229,19 @@ Open VSX `0.37.92` 和 JetBrains Marketplace `0.4.119` 已分别完成公共 lis
 
 ## 故障排查
 
-**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.56`，再运行 `cc agent --capabilities`。
+**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.59`，再运行 `cc agent --capabilities`。
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.56 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.59 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.103` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.105` VSIX。
 
-**JetBrains 版本过旧**：刷新 Marketplace 元数据并确认当前公开版为 `0.4.124`。
+**JetBrains 版本过旧**：刷新 Marketplace 元数据并确认当前公开版为 `0.4.126`。
 
-**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.56`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.59`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **Workbench/Knowledge 提示 trusted deployment host required**：当前进程未接入部署治理宿主。保持失败闭合，由管理员配置 identity/policy/ledger/KMS authority；不要回退到本地直写。
 
@@ -256,6 +264,7 @@ npm install --global chainlesschain@0.166.56 --registry https://registry.npmjs.o
 - [自进化 CLI 命令](/chainlesschain/cli-evolution)
 - [Context/Memory Kernel](/chainlesschain/context-memory)
 - [IDE 插件完整指南](/chainlesschain/ide-plugin)
+- [IDE 任务记录与新会话接力](/chainlesschain/ide-task-worklog)
 - [Desktop 模型治理与失败闭合](/chainlesschain/desktop-model-governance)
 - [设计文档：受治理的 Skill 自进化](/design/modules/112-governed-skill-evolution-design)
 - [设计文档：Agent Platform 发布与运行时边界](/design/modules/110-agent-platform-release-boundaries)

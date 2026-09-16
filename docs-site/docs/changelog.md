@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.59 / Open VSX 0.37.105 / JetBrains 0.4.126（2026-09-16）
+
+- **耐久任务记录**：Context/Memory Kernel `0.1.4` 将目标、文件证据、失败、修改、计划和压缩边界保存为有界会话检查点；CLI 将已校验状态投影为项目内 `.chainlesschain/sessions/<session-id>/WORKLOG.md`，投影缺失或被修改时可从权威日志重建。
+- **独立新会话接力**：VS Code 和 JetBrains 可在完整工具边界保存当前记录并打开独立对话。新会话不复制完整旧聊天、不继承临时权限；历史来源、工作区或摘要校验失败时在模型执行前显式停止。
+- **协议与 SDK 对齐**：Agent Protocol `0.1.11`、TypeScript Agent SDK `0.2.11` 与 Python Agent SDK `0.2.9` 同步加法 `TaskCheckpoint` 契约及 Kotlin/Swift/Python/TypeScript 生成投影。
+- **发布证据**：`v-npm-0-166-59@a148ec7a57` 的三平台 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646611)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646344) 与 [npm OIDC 发布/回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35057646385) 成功；[VS Code](https://github.com/chainlesschain/chainlesschain/actions/runs/35095569167) 与 [JetBrains](https://github.com/chainlesschain/chainlesschain/actions/runs/35097287263) 标签门成功，Open VSX 与 JetBrains Marketplace 已公开回读。
+
 #### Released — CLI 0.166.56 / Open VSX 0.37.103 / JetBrains 0.4.124（2026-09-15）
 
 - **请求级上下文**：按实际 provider/model/endpoint/显式覆盖解析窗口，planner、自动压缩、REPL、`cc context --json`、会话账本与 IDE 共用同一容量；子 Agent/语义压缩不覆盖主请求用量，回退估算明确标记。

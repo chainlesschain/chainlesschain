@@ -2,6 +2,15 @@
 
 本功能从 CLI `0.166.59`、Context/Memory Kernel `0.1.4`、VS Code 插件 `0.37.105` 和 JetBrains 插件 `0.4.126` 开始提供；`0.166.58` 及更早的 CLI 不包含本功能。
 
+安装或升级 CLI：
+
+```bash
+npm install --global chainlesschain@0.166.59 --registry https://registry.npmjs.org
+cc --version
+```
+
+VSCodium、Cursor 等 Open VSX 客户端可直接安装 `0.37.105`；官方 VS Code 需从 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 下载对应 VSIX 后选择 **Extensions: Install from VSIX...**。JetBrains 2024.2+ 在 Marketplace 安装 `0.4.126`。CLI 与插件应成对升级，旧插件没有接力入口，旧 CLI 会被插件明确识别为不支持。
+
 ## 它解决什么问题
 
 长任务经过压缩或重新打开后，助手可能忘记已经检查的文件、失败的测试和下一步。启用本功能的 IDE 会话会自动保存任务记录，在新会话中继续时读取这些记录。
@@ -69,3 +78,5 @@ Markdown 最大 32 KiB，较旧的明细会被裁剪，并保留裁剪计数。�
 本版支持显式点击接力，没有启用按 token 阈值自动迁移，也不会根据普通消息自行判断并切换任务。新任务请主动新建对话。这样可以控制交接次数，避免不断创建新会话延续同一循环。
 
 插件默认启用任务记录，遵循 Context/Memory 的既有模式；shadow 模式只观察、不写任务检查点。常见凭据会在记录中被遮盖，但记录仍可能包含项目代码与错误信息，分享前应检查。仓库已忽略该运行目录；其他项目可自行将 `.chainlesschain/sessions/` 加入 `.gitignore`。
+
+设计与协议边界见[《IDE 任务过程持久化与新会话交接方案》](../design/ide-task-worklog-handoff.md)。

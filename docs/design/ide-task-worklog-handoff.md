@@ -2,6 +2,8 @@
 
 日期：2026-09-16
 
+发布基线：CLI `0.166.59`、Context/Memory Kernel `0.1.4`、Agent Protocol `0.1.11`、Agent SDK TypeScript/Python `0.2.11/0.2.9`、VS Code `0.37.105`、JetBrains `0.4.126`。上述制品均由精确提交 `a148ec7a575858cfd78f0325c728d80e6524b13c` 构建并已从公开渠道回读。
+
 ## 目标
 
 1. 自动将任务过程保存为 Markdown，压缩、暂停、重启后可以找回目标、证据、失败尝试和下一步。
@@ -66,12 +68,13 @@ Kernel 保持无文件 IO；shadow 模式不写检查点，插件默认 canonica
 ## 实际行为与限制
 
 - Context Memory Kernel 的 session checkpoint 是权威状态；`WORKLOG.md` 是可读、可重建的有界投影，手工修改不会提升权限或覆盖权威状态。
+- `TaskCheckpoint` 已作为加法协议类型同步到 Agent Protocol、TypeScript SDK、Python SDK 以及 Kotlin/Swift 生成投影，避免不同宿主使用各自定义的工作记录结构。
 - IDE 显式启用工作记录。历史交接要求旧会话仍在运行且 CLI 宣告支持 v1 协议；保存确认前不会停止旧会话，等待超过 60 秒会保留原会话并提示重试。
 - 新会话只继承指定工作记录，不继承旧对话、临时授权或执行中的工具调用；首次发送失败时可以重试加载。
 - 本地已通过 9 个 CLI/IDE 回归文件共 77 条测试，覆盖工作记录、真实 JSONL 检查点、流式交接、VS Code 标签页及图片消息、自动压缩/持久化和中断；Context Memory Kernel 全部 99 条测试及 writer inventory 校验通过。
 - 使用 IntelliJ 随附的 Java 21 完成 JetBrains `compileJava` 和 `AgentChatSessionTest`：13 条测试通过，包含历史引用、附件与非法来源 ID 校验；语法、格式和 `git diff --check` 检查通过。
 - 运行记录没有单独的模型总结调用，但读取摘要仍占用上下文；尚未量化 token 节省比例，也未完成超长会话的持久化 IO 基准测试。
-- 本方案实现阶段不运行真实模型或完整 IDE UI 端到端测试，也不以本地结果绕过发布门禁；正式发布必须使用对应提交的完整 CI 和精确 SHA 发布流程。
+- 发布提交的三平台 CLI CI、Strict Sandbox、npm OIDC 发布、Context Memory Kernel CI 与 IDE 标签工作流均已通过；公开 npm、Open VSX、JetBrains Marketplace 和 PyPI 回读成功。Desktop 原生安装包仍是独立制品，不继承这些发布证据。
 
 用户指南：[IDE 任务记录与新会话接力](../features/ide-task-worklog-user-guide.md)。
 
@@ -82,4 +85,5 @@ Kernel 保持无文件 IO；shadow 模式不写检查点，插件默认 canonica
 - 新会话 ID 与旧会话不同；交接只加载指定历史记录，不恢复整份旧对话。
 - 文件变化后允许针对性复查，失败尝试不会被记作成功。
 - 保存或加载失败、非法路径、超大记录不会导致静默丢失或无界上下文膨胀。
-- 本地针对性测试通过；发布仍遵循仓库既有 CI 门禁，本次不自动发布。
+- 本地针对性测试与精确提交发布门均通过，公开制品已完成回读。
+- 精确发布提交、公开版本和文档站点保持一致；任一渠道升级失败时仍保留原会话与工作记录。

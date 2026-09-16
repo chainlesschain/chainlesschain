@@ -507,7 +507,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI 0.166.56 已包含重复平衡插件评测、重启安全的延后问题、后台会话只读索引、受治理语义召回，并正式统一实际请求窗口、主请求 token/cache 用量与大窗口压缩阈值。子 Agent 和语义压缩不污染主指示，transcript 回退明确标记 estimated。静态 profile 保留 runtimeVerified:false，automatic promotion 保持 HOLD。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI 0.166.59 新增耐久 IDE 任务检查点、可重建 WORKLOG.md 与独立新会话接力，并延续请求级上下文/token/cache 投影、后台会话索引和受治理语义召回。历史校验失败时在模型执行前停止；automatic promotion 保持 HOLD。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>

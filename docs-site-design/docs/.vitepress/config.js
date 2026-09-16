@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI / npm latest 0.166.16 · Agent SDK TS/Python 0.2.7 · Protocol 0.1.7 · Open VSX 0.37.78 · JetBrains 0.4.107｜Governed Skill Evolution · Context/Memory · Graph";
+        "v5.0.3.137 · CLI 0.166.59 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.105 · JetBrains 0.4.126｜耐久任务记录 · 新会话接力 · Context/Memory";
     }
   },
 
@@ -170,6 +170,7 @@ export default defineConfig({
           { text: "安全机制设计", link: "/security-design" },
           { text: "数据同步方案", link: "/data-sync-design" },
           { text: "AI模型部署", link: "/ai-model-deploy" },
+          { text: "IDE 任务记录与新会话交接", link: "/ide-task-worklog-handoff" },
           { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
           {
             text: "Minimal Coding Agent 实施计划",
@@ -195,6 +196,10 @@ export default defineConfig({
             { text: "安全机制设计", link: "/security-design" },
             { text: "数据同步方案", link: "/data-sync-design" },
             { text: "AI模型部署方案", link: "/ai-model-deploy" },
+            {
+              text: "IDE 任务记录与新会话交接 ⭐NEW",
+              link: "/ide-task-worklog-handoff",
+            },
             { text: "实施总结与附录", link: "/implementation-summary" },
           ],
         },

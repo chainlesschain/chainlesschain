@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.166.38 推荐 / npm latest · Agent SDK TS/Python 0.2.9/0.2.8 · Protocol 0.1.9 · Open VSX 0.37.92 · JetBrains 0.4.119｜模型入口治理 · 可靠模型配置 · Context/Memory · Graph";
+        "v5.0.3.137 · CLI 0.166.59 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.105 · JetBrains 0.4.126｜耐久任务记录 · 新会话接力 · Context/Memory";
     }
   },
 
@@ -75,6 +75,7 @@ export default defineConfig({
           { text: "社交协议生态", link: "/guide/social-protocols" },
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
           { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
+          { text: "IDE 任务记录与新会话接力", link: "/guide/ide-task-worklog" },
           {
             text: "远程终端 (Android↔桌面 PTY)",
             link: "/guide/remote-terminal",
@@ -107,6 +108,15 @@ export default defineConfig({
             { text: "桌面版安装指南", link: "/guide/installation" },
             { text: "系统架构", link: "/guide/architecture" },
             { text: "技术栈", link: "/guide/tech-stack" },
+          ],
+        },
+        {
+          text: "IDE 长任务协作 ⭐NEW",
+          items: [
+            {
+              text: "任务记录与新会话接力",
+              link: "/guide/ide-task-worklog",
+            },
           ],
         },
         {
@@ -177,11 +187,11 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.38（推荐）",
+          text: "🧩 Agent Platform 0.166.59（推荐）",
           collapsed: false,
           items: [
             {
-              text: "0.166.38 发布、升级与证据边界 ⭐NEW",
+              text: "0.166.59 发布、升级与证据边界 ⭐NEW",
               link: "/chainlesschain/agent-platform-release",
             },
             {
@@ -387,6 +397,10 @@ export default defineConfig({
             {
               text: "远程 MCP 授权 (cc mcp OAuth) ⭐NEW",
               link: "/chainlesschain/mcp-oauth",
+            },
+            {
+              text: "IDE 任务记录与新会话接力 ⭐NEW",
+              link: "/chainlesschain/ide-task-worklog",
             },
             {
               text: "IDE 插件使用指南 (VS Code / JetBrains) ⭐NEW",
