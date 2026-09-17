@@ -802,6 +802,35 @@ describe("owner-only filesystem helpers", () => {
     expect(spawnSync).toHaveBeenCalledOnce();
   });
 
+  it("retries a transient Windows ACL repair timeout exactly once", () => {
+    const fs = fakeFs(0, true);
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce({
+        error: Object.assign(new Error("PowerShell timed out"), {
+          code: "ETIMEDOUT",
+        }),
+        status: null,
+        stderr: "",
+        stdout: "",
+      })
+      .mockReturnValue({
+        status: 0,
+        stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
+        stderr: "",
+      });
+
+    expect(
+      ensurePrivateDirectory("C:\\private-existing", {
+        platform: "win32",
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe("C:\\private-existing");
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+  });
+
   it("refuses to secure storage through a symbolic link", () => {
     const fs = {
       existsSync: () => true,
@@ -1190,6 +1219,94 @@ describe("owner-only filesystem helpers", () => {
     ).toBe(target);
     expect(events).toEqual(["preflight", "mkdir"]);
     expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("retries a transient Windows preflight timeout before creating a directory", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const missing = "C:\\Users\\owner";
+    const events = [];
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === missing) {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      existsSync: () => false,
+      mkdirSync: () => events.push("mkdir"),
+    };
+    const spawnSync = vi
+      .fn((_file, _args, options) => {
+        events.push("preflight");
+        const request = JSON.parse(options.input);
+        return {
+          status: 0,
+          stdout: JSON.stringify(
+            request.targets.map((candidate) => ({
+              target: candidate,
+              exists: false,
+              ok: true,
+            })),
+          ),
+          stderr: "",
+        };
+      })
+      .mockReturnValueOnce({
+        error: Object.assign(new Error("PowerShell timed out"), {
+          code: "ETIMEDOUT",
+        }),
+        status: null,
+        stderr: "",
+        stdout: "",
+      });
+
+    expect(
+      ensurePrivateDirectory(target, {
+        platform: "win32",
+        applyWindowsAcl: false,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe(target);
+    expect(events).toEqual(["preflight", "mkdir"]);
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed after a second Windows preflight timeout", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const missing = "C:\\Users\\owner";
+    const mkdirSync = vi.fn();
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === missing) {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      existsSync: () => false,
+      mkdirSync,
+    };
+    const spawnSync = vi.fn(() => ({
+      error: Object.assign(new Error("PowerShell timed out"), {
+        code: "ETIMEDOUT",
+      }),
+      status: null,
+      stderr: "",
+      stdout: "",
+    }));
+
+    expect(() =>
+      ensurePrivateDirectory(target, {
+        platform: "win32",
+        applyWindowsAcl: false,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Could not verify Windows path ancestors.*PowerShell timed out/);
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+    expect(mkdirSync).not.toHaveBeenCalled();
   });
 
   it("fails closed when parent directory entries cannot classify an ENOENT", () => {

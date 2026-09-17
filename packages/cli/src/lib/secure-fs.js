@@ -608,6 +608,7 @@ const securedWindowsPaths = new Set();
 const WINDOWS_ACL_BATCH_SIZE = 500;
 const WINDOWS_ACL_TIMEOUT_ENV = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
 const MAX_WINDOWS_ACL_TIMEOUT_MS = 5 * 60_000;
+const WINDOWS_ACL_TIMEOUT_RETRY_LIMIT = 1;
 
 export function _windowsAclWorkingDirectory(
   environment = process.env,
@@ -641,6 +642,23 @@ export function _resolveWindowsAclTimeout(
   );
 }
 
+// A timed-out spawn has already been terminated by Node. Retrying that one
+// transient runner-startup failure is safe: preflight is read-only and ACL
+// repair is idempotent. Every other failure remains fail-closed so this never
+// treats a script, parse, or permission failure as a transient condition.
+function runWindowsAclCommand(deps, args, options) {
+  let result = deps.spawnSync("powershell.exe", args, options);
+  for (
+    let attempt = 0;
+    result?.error?.code === "ETIMEDOUT" &&
+    attempt < WINDOWS_ACL_TIMEOUT_RETRY_LIMIT;
+    attempt += 1
+  ) {
+    result = deps.spawnSync("powershell.exe", args, options);
+  }
+  return result;
+}
+
 function repairWindowsAclOnce(target, deps, options) {
   const cacheable = !options.deps;
   if (cacheable && securedWindowsPaths.has(target)) {
@@ -653,8 +671,8 @@ function repairWindowsAclOnce(target, deps, options) {
 
 function windowsAcl(target, operation, deps) {
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
-  const result = deps.spawnSync(
-    "powershell.exe",
+  const result = runWindowsAclCommand(
+    deps,
     [
       "-NoLogo",
       "-NoProfile",
@@ -698,8 +716,8 @@ function windowsAcl(target, operation, deps) {
 function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (targets.length === 0) return [];
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
-  const result = deps.spawnSync(
-    "powershell.exe",
+  const result = runWindowsAclCommand(
+    deps,
     [
       "-NoLogo",
       "-NoProfile",
