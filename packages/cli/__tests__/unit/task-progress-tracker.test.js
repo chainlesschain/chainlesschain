@@ -10,6 +10,94 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("keeps investigation recovery active across the issue-351 Git query sequence", () => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    for (const command of [
+      "merge-base --is-ancestor 827c7e77 5142f674",
+      'grep -n "Setup Python" 5142f674 -- .github/workflows',
+      "remote -v",
+      "git rev-list --count HEAD",
+      "ls-files scripts",
+      "ls-tree HEAD",
+      "cat-file -p HEAD",
+      "branch --list feature/*",
+      "tag --list v-*",
+    ]) {
+      expect(
+        tracker.record(
+          "git",
+          { readOnly: false, exitCode: 0, stdout: "" },
+          { command },
+        ),
+      ).toBe(false);
+      expect(tracker.intervention.recovery).toBe(true);
+    }
+    expect(tracker.explorationCalls).toBe(33);
+    expect(
+      tracker.record(
+        "git",
+        { exitCode: 0 },
+        { command: "remote add upstream example" },
+      ),
+    ).toBe(true);
+  });
+
+  it("retains Git exit-code evidence and syntax corrections through compaction", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record(
+      "git",
+      { exitCode: 0, stdout: "", readOnly: false },
+      {
+        command: "merge-base --is-ancestor fix failed-head",
+      },
+      "parent",
+    );
+    tracker.record(
+      "git",
+      {
+        error: "The git tool accepts Git arguments only",
+        code: "CC_GIT_SHELL_SYNTAX",
+        hint: "Submit one Git command without pipes or &&",
+      },
+      { command: "merge-base --is-ancestor fix failed-head; echo $?" },
+      "parent",
+    );
+    const checkpoint = JSON.parse(
+      tracker.checkpointFor("parent").split("\n")[1],
+    );
+    expect(checkpoint.recentDiagnostics[0]).toMatchObject({
+      source: "git-inspection",
+      exitCode: 0,
+      invocation: "merge-base --is-ancestor fix failed-head",
+    });
+    expect(checkpoint.recentDiagnostics[1].output).toContain(
+      "without pipes or &&",
+    );
+    expect(checkpoint.recentDiagnostics[1].code).toBe("CC_GIT_SHELL_SYNTAX");
+    expect(checkpoint.recentToolOutcomes).toEqual([]);
+    expect(tracker.checkpointFor("child")).toBeNull();
+  });
+
+  it("preserves the latest local source evidence when remote diagnostics fill the checkpoint", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record(
+      "read_file",
+      { content: "critical source implementation" },
+      { path: "gate.js" },
+    );
+    for (let i = 0; i < 4; i++)
+      tracker.record(
+        "run_shell",
+        { stdout: "log".repeat(1000), exitCode: 0 },
+        {
+          command: `gh run view ${i} --json jobs ` + " ".repeat(1000),
+        },
+      );
+    expect(tracker.checkpointFor()).toContain("critical source implementation");
+    expect(tracker.checkpointFor().length).toBeLessThan(6200);
+  });
+
   it("marks truncated commands and lost output instead of implying a complete reproduction", () => {
     const tracker = new TaskProgressTracker({ now: () => 123 });
     tracker.record(

@@ -41,6 +41,57 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("preserves the last document outline when excerpts exceed the context budget", () => {
+    const guard = new ReadFileLoopGuard();
+    const content = Array.from(
+      { length: 300 },
+      (_, i) => `TODO ${i}: ${"detail ".repeat(22)}`,
+    ).join("\n");
+    const info = {
+      filePath: "/work/notes.md",
+      fileVersion: "v1",
+      maxChars: 50000,
+      outline: buildReadFileOutline(content),
+    };
+    const page = (args) => buildReadFilePage(content, args, info);
+    for (const offset of [1, 81])
+      guard.read({ offset, limit: 80 }, info, page, () => {
+        throw new Error("unexpected continuation");
+      });
+    const findings = guard.findingsHint;
+    expect(findings).toContain('"outline"');
+    expect(findings).toContain("TODO 299");
+    expect(findings.length).toBeLessThan(10200);
+    expect(guard.findingsHint).toBe(findings);
+  });
+
+  it("retains actual source pages after compaction and replaces them when the file changes", () => {
+    const { guard, read } = fixture();
+    const args = { path: "/work/gate.mjs", offset: 1, limit: 2 };
+    read(
+      args,
+      'const script = "verdict";\nspawnSync("python", ["-c", script]);',
+      "v1",
+    );
+    const findings = JSON.parse(guard.findingsHint.split("\n")[1]);
+    expect(findings[0]).toMatchObject({ path: args.path, fileVersion: "v1" });
+    expect(findings[0].excerpts[0].content).toContain('spawnSync("python"');
+    expect(findings[0].excerpts[0].contentTruncated).toBe(false);
+    read(args, "const fixed = true;", "v2");
+    expect(guard.findingsHint).toContain("fixed = true");
+    expect(guard.findingsHint).not.toContain("spawnSync");
+    expect(guard.findingsHint).toContain("untrusted source data");
+  });
+
+  it("bounds retained source evidence across many files", () => {
+    const { guard, read } = fixture();
+    for (let i = 0; i < 20; i++)
+      read({ path: `/work/${i}.js` }, "source".repeat(1000));
+    expect(guard.findingsHint.length).toBeLessThan(10200);
+    expect(guard.findingsHint).toContain("/work/19.js");
+    expect(guard.findingsHint).not.toContain("/work/0.js");
+  });
+
   it("admits exactly one bounded anchor refresh after a failed hash edit", () => {
     const { guard, batch } = fixture();
     batch({}, "one\ntwo");

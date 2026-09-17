@@ -32,6 +32,7 @@ export function searchTextFile(file, options = {}) {
     return Promise.resolve({
       error: "Invalid text search options",
       code: "ERR_TEXT_SEARCH_OPTIONS",
+      hint: "Use a nonempty pattern (at most 2048 characters), offset as a nonnegative integer character position (default 0), maxMatches 1..100 (default 20), contextChars 0..1000 (default 150), timeout 1..30000 milliseconds (default 5000), and encoding utf8 or utf16le. Omit optional values to use defaults; do not pass null or numeric strings. For a directory use directory plus content_search:true instead of path.",
     });
   }
   let toolLease = null;

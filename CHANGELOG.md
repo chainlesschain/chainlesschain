@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pair the VS Code/Open VSX and JetBrains plugins with the verified CLI release
   while preserving CLI-owned execution, grading, recovery, and promotion
   authority; marketplace tags remain blocked until npm registry readback.
+- Stop IDE repair sessions from restarting the same file, Git, CI-log, or search
+  investigation after compaction: retain bounded source excerpts and Git
+  outcomes, keep read-only Git inspection inside the exploration budget, and
+  distinguish incomplete/filename-only searches from a real content miss.
+- Harden the Windows CI integrity gate from issue #351 by launching the exact
+  `actions/setup-python` interpreter instead of a PATH/Store alias, retaining a
+  fail-closed hosted-runner deadline, and naming the failed verdict fixture and
+  executable in diagnostics.
 
 ### Added - cc CLI 0.166.59 + Agent Protocol 0.1.11 + Agent SDKs 0.2.11/0.2.9: durable IDE task worklogs and fresh-session handoff
 

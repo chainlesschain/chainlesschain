@@ -3,7 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { searchTextFile } from "../../src/lib/text-file-search.js";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import {
+  executeTool,
+  _agentToolProcessDeps,
+} from "../../src/runtime/agent-core.js";
 
 const dirs = [];
 function fixture(content, name = "long.txt") {
@@ -19,6 +22,87 @@ afterEach(() => {
 });
 
 describe("long text file keyword search", () => {
+  it("does not report a timed-out directory search as no matches", async () => {
+    const { dir } = fixture("needle");
+    const spy = vi
+      .spyOn(_agentToolProcessDeps, "runSearch")
+      .mockImplementation(() => {
+        throw Object.assign(new Error("timed out"), {
+          code: "ETIMEDOUT",
+          status: null,
+        });
+      });
+    try {
+      const result = await executeTool(
+        "search_files",
+        { directory: dir, pattern: "needle", content_search: true },
+        { cwd: dir },
+      );
+      expect(result).toMatchObject({
+        code: "ERR_SEARCH_INCOMPLETE",
+        truncated: true,
+        matches: [],
+      });
+      expect(result.failures[0].code).toBe("ETIMEDOUT");
+      expect(result.message).not.toBe("No matches found");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("distinguishes a filename miss from a content search", async () => {
+    const { dir } = fixture("needle");
+    const spy = vi
+      .spyOn(_agentToolProcessDeps, "runSearch")
+      .mockImplementation(() => {
+        throw Object.assign(new Error("no matches"), { status: 1 });
+      });
+    try {
+      const result = await executeTool(
+        "search_files",
+        { directory: dir, pattern: "needle" },
+        { cwd: dir },
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.hint).toContain("filenames only");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("provides a concrete content-search correction for a directory passed as path", async () => {
+    const { dir } = fixture("Verify CI gate integrity contracts");
+    const result = await executeTool(
+      "search_files",
+      {
+        path: dir,
+        pattern: "Verify CI gate integrity",
+      },
+      { cwd: dir },
+    );
+    expect(result).toMatchObject({
+      code: "ERR_TEXT_SEARCH_DIRECTORY",
+      suggestedArguments: {
+        directory: dir,
+        pattern: "Verify CI gate integrity",
+        content_search: true,
+      },
+    });
+    expect(result.hint).toContain("filenames only");
+  });
+
+  it("explains how to correct invalid text-search options", async () => {
+    const { file } = fixture("needle");
+    const result = await searchTextFile(file, {
+      pattern: "needle",
+      maxMatches: null,
+    });
+    expect(result.code).toBe("ERR_TEXT_SEARCH_OPTIONS");
+    expect(result.hint).toContain("maxMatches 1..100");
+    expect(result.hint).toContain("do not pass null");
+    expect((await searchTextFile(file, { pattern: "needle" })).count).toBe(1);
+  });
+
   it("explains literal alternation misses without silently changing search semantics", async () => {
     const { file } = fixture(
       "const startService = () => {};\nconst waitForLine = () => {};",

@@ -38,6 +38,23 @@ function boundedText(value, limit) {
   return typeof value === "string" ? value.slice(0, limit) : "";
 }
 
+// Progress classification is deliberately separate from permission policy.
+// The conservative permission allowlist omits useful inspections (merge-base,
+// grep, remote -v). Their successful exit must not buy a new discovery budget.
+function isGitInspection(result, args) {
+  if (result?.readOnly === true) return true;
+  const command = String(args.command || result?.command || "")
+    .trim()
+    .replace(/^git\s+/i, "");
+  return (
+    /^(?:merge-base|grep|rev-list|ls-files|ls-tree|ls-remote|cat-file|describe|name-rev)\b/i.test(
+      command,
+    ) ||
+    /^remote\s*(?:-v|--verbose)?\s*$/i.test(command) ||
+    /^(?:branch|tag)\s+(?:--list|-l)(?:\s|$)/i.test(command)
+  );
+}
+
 // Status queries remain executable (including intentional monitoring), but
 // fetching a different status page is not an implementation or verification.
 // Classification affects progress guidance only, never command authorization.
@@ -128,7 +145,7 @@ export class TaskProgressTracker {
     // failed runs and completed background tasks. They do not establish that
     // the original CI failure was reproduced or fixed.
     if (
-      ["run_shell", "run_code", "check_shell"].includes(tool) &&
+      ["run_shell", "run_code", "check_shell", "git"].includes(tool) &&
       result?.code !== "CC_TOOL_RECOVERY_PAUSED" &&
       !(tool === "check_shell" && !args.task_id)
     ) {
@@ -159,14 +176,17 @@ export class TaskProgressTracker {
           remoteTarget: remoteTarget?.key || previous?.remoteTarget || null,
           source:
             previous?.source ||
-            (remoteTarget?.github || isRemoteInspectionCommand(command)
-              ? "remote-inspection"
-              : "local-execution"),
+            (tool === "git" && isGitInspection(result, args)
+              ? "git-inspection"
+              : remoteTarget?.github || isRemoteInspectionCommand(command)
+                ? "remote-inspection"
+                : "local-execution"),
           invocation: boundedText(command || previous?.invocation, 1000),
           invocationTruncated: command
             ? command.length > 1000
             : previous?.invocationTruncated || false,
           exitCode: result?.exitCode ?? result?.exit_code ?? null,
+          ...(result?.code ? { code: boundedText(result.code, 120) } : {}),
           status:
             result?.status ||
             (result?.background ? "running" : failed ? "failed" : "completed"),
@@ -183,7 +203,7 @@ export class TaskProgressTracker {
             !!result?.stdout_dropped_bytes ||
             !!result?.stderr_dropped_bytes,
           output: diagnosticExcerpt(
-            [previous?.output, output].filter(Boolean).join("\n"),
+            [previous?.output, output, result?.hint].filter(Boolean).join("\n"),
             1200,
           ),
         };
@@ -244,7 +264,7 @@ export class TaskProgressTracker {
 
     let exploration =
       EXPLORATION_TOOLS.has(tool) ||
-      (tool === "git" && result?.readOnly === true);
+      (tool === "git" && isGitInspection(result, args));
     if (tool === "run_code" || tool === "run_shell") {
       // Repeated short dumps must not evade the large-output loop guard. These
       // fingerprints affect guidance only: every authorized command still runs.
@@ -394,7 +414,7 @@ export class TaskProgressTracker {
       if (checkpoint.reportedPlans.length > 1) checkpoint.reportedPlans.pop();
       else if (checkpoint.childFindings.length)
         checkpoint.childFindings.shift();
-      else if (checkpoint.recentLocalFindings.length)
+      else if (checkpoint.recentLocalFindings.length > 1)
         checkpoint.recentLocalFindings.shift();
       else if (checkpoint.recentRemoteInspections.length)
         checkpoint.recentRemoteInspections.shift();
@@ -402,6 +422,8 @@ export class TaskProgressTracker {
         checkpoint.recentDiagnostics.shift();
       else if (checkpoint.recentToolOutcomes.length)
         checkpoint.recentToolOutcomes.shift();
+      else if (checkpoint.recentLocalFindings.length)
+        checkpoint.recentLocalFindings.shift();
       else checkpoint.reportedPlans.pop();
     }
     return (

@@ -7848,6 +7848,19 @@ async function executeToolInner(
               "Credential file content is protected; use read_file with confirmation",
             code: "ERR_CREDENTIAL_FILE",
           });
+        if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+          return attachDescriptor({
+            error:
+              "search_files path must name a file; use directory for a folder search",
+            code: "ERR_TEXT_SEARCH_DIRECTORY",
+            hint: "For text inside this directory, retry search_files with directory, pattern and content_search:true, omitting path. Without content_search:true, directory searches match filenames only.",
+            suggestedArguments: {
+              directory: args.path,
+              pattern: args.pattern,
+              content_search: true,
+            },
+          });
+        }
         const { searchTextFile } = await import("../lib/text-file-search.js");
         const result = await searchTextFile(file, {
           ...args,
@@ -7897,6 +7910,7 @@ async function executeToolInner(
       const hits = [];
       const seen = new Set();
       const redactedCreds = new Set();
+      const searchFailures = [];
       for (const root of roots) {
         if (hits.length >= 20) break;
         const ictx = {
@@ -7909,7 +7923,10 @@ async function executeToolInner(
           credentialFileReason,
         };
         try {
-          if (!fs.existsSync(root)) continue;
+          if (!fs.existsSync(root)) {
+            searchFailures.push({ root, code: "ENOENT" });
+            continue;
+          }
           const output = runSearchProcess(cmd, {
             cwd: root,
             encoding: "utf8",
@@ -7924,9 +7941,16 @@ async function executeToolInner(
         } catch (err) {
           // A maxBuffer overflow still carries the first 8 MB of matches in
           // err.stdout — ingest those rather than dropping every hit as a false
-          // "No matches found". A genuine no-match / command failure leaves
-          // err.stdout empty, so hits stay unchanged (same as before).
+          // "No matches found". Exit 1 with no signal/code means no matches;
+          // timeouts and process failures are incomplete searches, not absence.
           if (err && err.stdout) _ingestSearchOutput(err.stdout, ictx);
+          if (err?.status !== 1 || err?.signal || err?.code) {
+            searchFailures.push({
+              root,
+              code: err?.code || "ERR_SEARCH_PROCESS",
+              exitCode: err?.status ?? null,
+            });
+          }
         }
       }
 
@@ -7938,8 +7962,26 @@ async function executeToolInner(
         );
       }
 
+      if (searchFailures.length) {
+        return attachDescriptor({
+          ...(isContent ? { matches: hits } : { files: hits }),
+          error: "Search did not complete; returned hits may be partial",
+          code: "ERR_SEARCH_INCOMPLETE",
+          failures: searchFailures,
+          truncated: true,
+          hint: "Do not infer that the requested text or files are absent. Narrow directory to an existing relevant folder, or use path for a known file. Inspect the failure code before retrying the same search.",
+        });
+      }
       if (hits.length === 0) {
-        return attachDescriptor({ files: [], message: "No matches found" });
+        return attachDescriptor({
+          files: [],
+          message: "No matches found",
+          ...(!isContent
+            ? {
+                hint: "This searched filenames only. To find text inside files, set content_search:true and scope directory, or supply path for a known file.",
+              }
+            : {}),
+        });
       }
       return attachDescriptor(isContent ? { matches: hits } : { files: hits });
     }

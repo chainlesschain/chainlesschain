@@ -51,6 +51,22 @@ function runNodeVerdict(source, environment) {
   });
 }
 
+function resolvePython3() {
+  if (process.platform === "win32" && process.env.pythonLocation) {
+    const executable = path.join(process.env.pythonLocation, "python.exe");
+    assert.ok(
+      fs.existsSync(executable),
+      `actions/setup-python advertised a missing interpreter: ${executable}`,
+    );
+    return { executable, prefixArgs: [], source: "actions/setup-python" };
+  }
+  return {
+    executable: process.platform === "win32" ? "python" : "python3",
+    prefixArgs: [],
+    source: "PATH",
+  };
+}
+
 function extractYamlScript(workflow, anchor) {
   const anchoredWorkflow = workflow.slice(workflow.indexOf(anchor));
   const lines = anchoredWorkflow.split(/\r?\n/);
@@ -239,6 +255,7 @@ test("Android JUnit gate rejects missing, skipped, failed and incomplete real su
     ["app", "com.chainlesschain.android.pdh.llm.ModelEgressGovernanceTest", 1],
   ];
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ci-model-junit-"));
+  const python = resolvePython3();
   const report = (suite) =>
     path.join(
       root,
@@ -286,19 +303,23 @@ test("Android JUnit gate rejects missing, skipped, failed and incomplete real su
         writeSuite(suite, suite === suites[0] ? changed : {});
       }
       const result = spawnSync(
-        process.platform === "win32" ? "python" : "python3",
-        ["-c", script],
+        python.executable,
+        [...python.prefixArgs, "-c", script],
         {
           cwd: root,
           encoding: "utf8",
-          timeout: 10_000,
+          // A hosted Windows runner can spend several seconds starting a
+          // freshly installed executable under endpoint scanning. The explicit
+          // setup-python path prevents the Store alias hang; this deadline only
+          // bounds a real interpreter that failed to finish the tiny verdict.
+          timeout: 60_000,
           env: { ...process.env, SOURCE_SHA: "a".repeat(40) },
         },
       );
       assert.equal(
         result.error,
         undefined,
-        `Python 3 is required to verify the actual CI verdict: ${result.error}`,
+        `${label}: Python 3 from ${python.source} (${python.executable}) is required to verify the actual CI verdict: ${result.error}`,
       );
       if (label === "complete") {
         assert.equal(result.status, 0, result.stderr);
