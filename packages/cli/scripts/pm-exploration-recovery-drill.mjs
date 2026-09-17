@@ -479,7 +479,7 @@ export async function runPmExplorationRecoveryDrill({
 } = {}) {
   if (typeof onProgress !== "function")
     throw new TypeError("onProgress must be a function");
-  const temporaryRoot = fs.realpathSync(os.tmpdir());
+  const temporaryRoot = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(
     path.join(temporaryRoot, "cc-pm-recovery-drill-"),
   );
