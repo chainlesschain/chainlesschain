@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.62",
+      "cliVersions": ["0.166.62"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.62: prevent scheduler soak lease-expiry races",
+          "body": "- Keep the scheduler integration smoke lease above SQLite's complete busy-wait\n  window, preventing a valid Windows store stall from expiring a lease after an\n  effect becomes durable but before its settlement can be committed.\n- Retain the real two-worker fencing, renewal, forced-kill, dead-letter, and\n  no-replay assertions; the test now fails explicitly if its lease is not\n  greater than the configured SQLite busy timeout."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.61",
       "cliVersions": ["0.166.61"],
       "date": null,

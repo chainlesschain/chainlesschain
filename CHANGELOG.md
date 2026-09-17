@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.62: prevent scheduler soak lease-expiry races
+
+- Keep the scheduler integration smoke lease above SQLite's complete busy-wait
+  window, preventing a valid Windows store stall from expiring a lease after an
+  effect becomes durable but before its settlement can be committed.
+- Retain the real two-worker fencing, renewal, forced-kill, dead-letter, and
+  no-replay assertions; the test now fails explicitly if its lease is not
+  greater than the configured SQLite busy timeout.
+
 ### Fixed - cc CLI 0.166.61: verify safely reused npm child packages
 
 - Keep newly published npm child packages bound to this release's exact

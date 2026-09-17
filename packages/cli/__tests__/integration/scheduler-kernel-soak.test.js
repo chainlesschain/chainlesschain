@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runSchedulerKernelSoak } from "../../scripts/scheduler-kernel-soak.mjs";
+import { DEFAULT_BUSY_TIMEOUT_MS } from "../../src/lib/scheduler-kernel/store.js";
 
 const EXPECTED_SHA = "0123456789abcdef0123456789abcdef01234567";
 const SEED = 1_592_598_566;
@@ -12,7 +13,10 @@ const SMOKE_PROFILE = Object.freeze({
   durationSeconds: 1,
   rounds: 1,
   steadyOccurrencesPerRound: 4,
-  leaseMs: 5_000,
+  // Keep the operational lease above a complete SQLite busy wait. If both are
+  // equal, a valid Windows writer stall can expire the lease after the local
+  // effect is durable but before settlement, producing a false duplicate.
+  leaseMs: DEFAULT_BUSY_TIMEOUT_MS * 2,
   pollMs: 10,
   checkpointIntervalSeconds: 1,
   cleanupDeadlineMs: 10_000,
@@ -30,6 +34,7 @@ describe("scheduler kernel soak coordinator", () => {
   });
 
   it("proves the real two-worker kill, fencing, renewal, DST, backlog, and cleanup matrix", async () => {
+    expect(SMOKE_PROFILE.leaseMs).toBeGreaterThan(DEFAULT_BUSY_TIMEOUT_MS);
     const root = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-scheduler-kernel-soak-"),
     );
