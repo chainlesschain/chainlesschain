@@ -21,6 +21,7 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const PATTERN_ID = /^pat-[a-z0-9][a-z0-9-]{2,127}$/u;
 const MAINTENANCE_REQUEST_ID = /^wiki-maintenance:[a-f0-9]{64}$/u;
 const REVISION_ID = /^wiki:[a-f0-9]{64}$/u;
+const SKILL_DECISION_REF_PREFIX = "wiki-evidence://skill-decision/";
 const KINDS = new Set(["success", "failure", "constraint", "anti-pattern"]);
 const EVIDENCE_KINDS = new Set([
   "user-statement",
@@ -128,10 +129,21 @@ function assertMetadataOnly(value, path = "data") {
 }
 
 function assertWikiPlaintextSafe(value) {
-  const isDecisionDigestRef = (candidate) =>
+  const isLegacyDecisionDigestRef = (candidate) =>
     typeof candidate === "string" &&
     candidate.startsWith("decision:") &&
     DIGEST.test(candidate.slice("decision:".length));
+  const isSkillDecisionRef = (candidate, sourceDigest) =>
+    typeof candidate === "string" &&
+    DIGEST.test(sourceDigest ?? "") &&
+    candidate ===
+      `${SKILL_DECISION_REF_PREFIX}${sourceDigest.slice("sha256:".length)}`;
+  const isProposalDecisionRef = (candidate, record) =>
+    record?.schema === WIKI_EVIDENCE_SCHEMA &&
+    record?.kind === "proposal-decision" &&
+    record.ref === candidate &&
+    (isLegacyDecisionDigestRef(candidate) ||
+      isSkillDecisionRef(candidate, record.sourceDigest));
   const isBoundMaintenanceRequestMapKey = (path, key, child) =>
     path.length === 1 &&
     path[0] === "maintenanceRequests" &&
@@ -144,32 +156,121 @@ function assertWikiPlaintextSafe(value) {
   const isBoundProposalDecisionEvidence = (path, key, child) =>
     path.length === 1 &&
     path[0] === "evidence" &&
-    isDecisionDigestRef(key) &&
     child &&
     typeof child === "object" &&
     !Array.isArray(child) &&
-    child.kind === "proposal-decision" &&
-    child.ref === key;
+    isProposalDecisionRef(key, child);
   const isProposalDecisionEvidenceRecord = (path, item) =>
     path.length === 2 &&
     path[0] === "evidence" &&
-    isDecisionDigestRef(path[1]) &&
-    item?.kind === "proposal-decision" &&
-    item.ref === path[1];
+    isProposalDecisionRef(path[1], item);
+  const proposalDecisionRecord = (ref) => {
+    const record = value?.evidence?.[ref];
+    return isProposalDecisionRef(ref, record) ? record : null;
+  };
+  const proposalDecisionData = (path, item) => {
+    if (path.length !== 3 || path[0] !== "evidence" || path[2] !== "data") {
+      return null;
+    }
+    const record = proposalDecisionRecord(path[1]);
+    return record?.data === item ? record : null;
+  };
   const isBoundProposalDecisionArtifactRef = (path, item, key, child) =>
     key === "artifactRef" &&
     isProposalDecisionEvidenceRecord(path, item) &&
-    DIGEST.test(item.data?.releaseDigest ?? "") &&
-    child ===
-      `artifact://${item.tenantId}/trusted/${item.data.releaseDigest.slice("sha256:".length)}`;
+    ((DIGEST.test(item.data?.releaseDigest ?? "") &&
+      child ===
+        `artifact://${item.tenantId}/trusted/${item.data.releaseDigest.slice("sha256:".length)}`) ||
+      (DIGEST.test(item.data?.activeReleaseDigest ?? "") &&
+        child ===
+          `skill-release://${item.tenantId}/${item.data.activeReleaseDigest.slice("sha256:".length)}`) ||
+      (DIGEST.test(item.sourceDigest ?? "") &&
+        child ===
+          `skill-review://${item.tenantId}/${item.sourceDigest.slice("sha256:".length)}`) ||
+      (typeof item.data?.pilotId === "string" &&
+        child.startsWith(
+          `skill-pilot://${item.tenantId}/${item.data.pilotId}/`,
+        ) &&
+        /^\d+$/u.test(child.slice(child.lastIndexOf("/") + 1))) ||
+      (typeof item.data?.revocationId === "string" &&
+        child.startsWith(
+          `skill-revocation://${item.tenantId}/${item.data.revocationId}/`,
+        ) &&
+        /^\d+$/u.test(child.slice(child.lastIndexOf("/") + 1))));
   const isBoundProposalDecisionReceiptRef = (path, item, key, child) =>
     path.length === 4 &&
     path[0] === "skillImpact" &&
     path[2] === "decisions" &&
     path[3] === "[]" &&
     key === "receiptRef" &&
-    DIGEST.test(item.candidateId ?? "") &&
-    child === `decision:${item.candidateId}`;
+    (() => {
+      const record = proposalDecisionRecord(child);
+      const decision = record?.data?.decision;
+      return (
+        record !== null &&
+        ((isLegacyDecisionDigestRef(child) &&
+          child === `decision:${item.candidateId}`) ||
+          (decision?.candidateId === item.candidateId &&
+            decision.skillName === item.skillName &&
+            decision.outcome === item.outcome))
+      );
+    })();
+  const isBoundMaintenanceEvidenceRef = (path, item) => {
+    if (
+      path.length !== 4 ||
+      path[0] !== "maintenanceRequests" ||
+      path[2] !== "evidenceRefs" ||
+      path[3] !== "[]"
+    ) {
+      return false;
+    }
+    const request = value?.maintenanceRequests?.[path[1]];
+    return (
+      isBoundMaintenanceRequestMapKey(
+        ["maintenanceRequests"],
+        path[1],
+        request,
+      ) &&
+      request.evidenceRefs?.includes(item) &&
+      proposalDecisionRecord(item) !== null
+    );
+  };
+  const isBoundEvidenceReceiptDigest = (path, item) => {
+    if (
+      path.length !== 5 ||
+      path[0] !== "evidence" ||
+      path[2] !== "data" ||
+      path[3] !== "evidenceReceiptDigests" ||
+      path[4] !== "[]" ||
+      !DIGEST.test(item ?? "")
+    ) {
+      return false;
+    }
+    const record = proposalDecisionRecord(path[1]);
+    return record?.data?.evidenceReceiptDigests?.includes(item) === true;
+  };
+  const isBoundProposalDecisionDataValue = (path, item, key, child) => {
+    const record = proposalDecisionData(path, item);
+    if (!record) return false;
+    if (key === "wikiRevision") return REVISION_ID.test(child ?? "");
+    if (key === "pilotId" && typeof child === "string") {
+      const prefix = `skill-pilot://${record.tenantId}/${child}/`;
+      return (
+        typeof record.artifactRef === "string" &&
+        record.artifactRef.startsWith(prefix) &&
+        /^\d+$/u.test(record.artifactRef.slice(prefix.length))
+      );
+    }
+    if (key === "revocationId" && typeof child === "string") {
+      const prefix = `skill-revocation://${record.tenantId}/${child}/`;
+      return (
+        typeof record.artifactRef === "string" &&
+        record.artifactRef.startsWith(prefix) &&
+        /^\d+$/u.test(record.artifactRef.slice(prefix.length))
+      );
+    }
+    return false;
+  };
   const isProposalImpactCandidateSubject = (path, item, key, child) =>
     path.length === 2 &&
     path[0] === "evolutionLog" &&
@@ -181,6 +282,7 @@ function assertWikiPlaintextSafe(value) {
     (key.endsWith("Digest") && DIGEST.test(child ?? "")) ||
     (key === "candidateId" && DIGEST.test(child ?? "")) ||
     isProposalImpactCandidateSubject(path, item, key, child) ||
+    isBoundProposalDecisionDataValue(path, item, key, child) ||
     isBoundProposalDecisionReceiptRef(path, item, key, child) ||
     isBoundProposalDecisionArtifactRef(path, item, key, child) ||
     (isProposalDecisionEvidenceRecord(path, item) &&
@@ -190,6 +292,11 @@ function assertWikiPlaintextSafe(value) {
     (key === "requestId" && MAINTENANCE_REQUEST_ID.test(child ?? ""));
   const inspect = (item, path = []) => {
     if (typeof item === "string") {
+      if (
+        isBoundMaintenanceEvidenceRef(path, item) ||
+        isBoundEvidenceReceiptDigest(path, item)
+      )
+        return;
       assertEvolutionContentContainsNoKnownSecrets(item);
     } else if (Array.isArray(item)) {
       item.forEach((child) => inspect(child, [...path, "[]"]));

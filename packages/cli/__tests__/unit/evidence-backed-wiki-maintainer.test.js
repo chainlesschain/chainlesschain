@@ -22,6 +22,12 @@ function hash(value) {
   return `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`;
 }
 
+function digestWithPhone(seed) {
+  const bytes = hash(seed).slice("sha256:".length);
+  const offset = Number.parseInt(bytes.slice(0, 2), 16) % 52;
+  return `sha256:${bytes.slice(0, offset)}a13800138000b${bytes.slice(offset + 13)}`;
+}
+
 const descriptor = (overrides = {}) => ({
   tenantId: "tenant-a",
   evolutionRunId: "run-1",
@@ -588,7 +594,7 @@ describe("EvidenceBackedWikiMaintainer", () => {
     expect(second.result.state.revision).toBe(2);
   });
 
-  it("treats a bound proposal-decision digest chain as protocol metadata, not prose", async () => {
+  it("treats a reconciler-bound proposal-decision chain as protocol metadata, not prose", async () => {
     const first = await maintain({
       evidenceByRef: {
         "ev-1": evidence("ev-1", { trustDomain: "a" }),
@@ -597,8 +603,9 @@ describe("EvidenceBackedWikiMaintainer", () => {
       operations: [{ type: "upsert", pattern: pattern() }],
     });
     const candidateId = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
-    const releaseDigest = `sha256:${"c".repeat(20)}13800138000${"d".repeat(33)}`;
-    const receiptRef = `decision:${candidateId}`;
+    const sourceDigest = `sha256:${"c".repeat(20)}13800138000${"d".repeat(33)}`;
+    const releaseDigest = `sha256:${"e".repeat(20)}13800138000${"f".repeat(33)}`;
+    const receiptRef = `wiki-evidence://skill-decision/${sourceDigest.slice(7)}`;
     const decisionCore = {
       candidateId,
       skillName: "safe-refactor",
@@ -609,13 +616,29 @@ describe("EvidenceBackedWikiMaintainer", () => {
     const receipt = evidence(receiptRef, {
       kind: "proposal-decision",
       trustDomain: "review-board",
-      artifactRef: `artifact://tenant-a/trusted/${releaseDigest.slice(7)}`,
-      data: { decisionDigest: hash(decisionCore), releaseDigest },
+      sourceDigest,
+      artifactRef: `skill-release://tenant-a/${releaseDigest.slice(7)}`,
+      data: {
+        decisionDigest: hash(decisionCore),
+        decision: decisionCore,
+        activeReleaseDigest: releaseDigest,
+        wikiRevision: `wiki:${"a".repeat(20)}13800138000${"b".repeat(33)}`,
+        evidenceReceiptDigests: [
+          `sha256:${"b".repeat(20)}13800138000${"c".repeat(33)}`,
+        ],
+      },
     });
+    const requestDigest = hash({ receiptRef, decisionCore });
     const second = await maintain({
       state: first.result.state,
       evidenceRefs: [receiptRef],
       evidenceByRef: { [receiptRef]: receipt },
+      maintenanceRequest: {
+        schema: WIKI_MAINTENANCE_REQUEST_SCHEMA,
+        tenantId: "tenant-a",
+        requestId: `wiki-maintenance:${requestDigest.slice(7)}`,
+        requestDigest,
+      },
       operations: [
         {
           type: "proposal-impact",
@@ -632,11 +655,128 @@ describe("EvidenceBackedWikiMaintainer", () => {
     });
   });
 
+  it.each(["pilot", "revocation"])(
+    "binds %s decision identifiers and artifact refs before exempting opaque bytes",
+    async (kind) => {
+      const first = await maintain({
+        evidenceByRef: {
+          "ev-1": evidence("ev-1", { trustDomain: "a" }),
+          "ev-2": evidence("ev-2", { trustDomain: "b" }),
+        },
+        operations: [{ type: "upsert", pattern: pattern() }],
+      });
+      const sourceDigest = `sha256:${(kind === "pilot" ? "c" : "d").repeat(20)}13800138000${"e".repeat(33)}`;
+      const receiptRef = `wiki-evidence://skill-decision/${sourceDigest.slice(7)}`;
+      const protocolId = `${kind}-13800138000`;
+      const decisionCore = {
+        candidateId: `sha256:${"f".repeat(64)}`,
+        skillName: "safe-refactor",
+        outcome: "rejected",
+        patternRefs: ["pat-safe-refactor"],
+        reason: `${kind} rejected the bounded candidate`,
+      };
+      const receipt = evidence(receiptRef, {
+        kind: "proposal-decision",
+        sourceDigest,
+        artifactRef: `skill-${kind}://tenant-a/${protocolId}/7`,
+        data: {
+          decisionDigest: hash(decisionCore),
+          decision: decisionCore,
+          [`${kind}Id`]: protocolId,
+          wikiRevision: `wiki:${"a".repeat(20)}13800138000${"b".repeat(33)}`,
+          evidenceReceiptDigests: [
+            `sha256:${"b".repeat(20)}13800138000${"c".repeat(33)}`,
+          ],
+        },
+      });
+      const second = await maintain({
+        state: first.result.state,
+        evidenceRefs: [receiptRef],
+        evidenceByRef: { [receiptRef]: receipt },
+        operations: [
+          {
+            type: "proposal-impact",
+            decision: { ...decisionCore, receiptRef },
+          },
+        ],
+      });
+
+      expect(second.result.state.skillImpact["safe-refactor"]).toMatchObject({
+        accepted: 0,
+        rejected: 1,
+      });
+    },
+  );
+
+  it("keeps randomized bound release, pilot, and revocation metadata deterministic", async () => {
+    const first = await maintain({
+      evidenceByRef: {
+        "ev-1": evidence("ev-1", { trustDomain: "a" }),
+        "ev-2": evidence("ev-2", { trustDomain: "b" }),
+      },
+      operations: [{ type: "upsert", pattern: pattern() }],
+    });
+    for (let index = 0; index < 32; index += 1) {
+      const kind = ["release", "pilot", "revocation"][index % 3];
+      const sourceDigest = digestWithPhone(`source-${index}`);
+      const releaseDigest = digestWithPhone(`release-${index}`);
+      const receiptRef = `wiki-evidence://skill-decision/${sourceDigest.slice(7)}`;
+      const decision = {
+        candidateId: digestWithPhone(`candidate-${index}`),
+        skillName: "safe-refactor",
+        outcome: kind === "release" ? "accepted" : "rejected",
+        patternRefs: ["pat-safe-refactor"],
+        reason: `${kind} completed deterministic verification`,
+      };
+      const protocolId = `${kind}-13800138000-case-${index}`;
+      const artifactRef =
+        kind === "release"
+          ? `skill-release://tenant-a/${releaseDigest.slice(7)}`
+          : `skill-${kind}://tenant-a/${protocolId}/${index + 1}`;
+      const data = {
+        decisionDigest: hash(decision),
+        decision,
+        wikiRevision: `wiki:${digestWithPhone(`wiki-${index}`).slice(7)}`,
+        evidenceReceiptDigests: [digestWithPhone(`receipt-${index}`)],
+        ...(kind === "release"
+          ? { activeReleaseDigest: releaseDigest }
+          : { [`${kind}Id`]: protocolId }),
+      };
+      const receipt = evidence(receiptRef, {
+        kind: "proposal-decision",
+        sourceDigest,
+        artifactRef,
+        data,
+      });
+      const requestDigest = hash({ receiptRef, decision });
+      const result = await maintain({
+        state: first.result.state,
+        evidenceRefs: [receiptRef],
+        evidenceByRef: { [receiptRef]: receipt },
+        maintenanceRequest: {
+          schema: WIKI_MAINTENANCE_REQUEST_SCHEMA,
+          tenantId: "tenant-a",
+          requestId: `wiki-maintenance:${requestDigest.slice(7)}`,
+          requestDigest,
+        },
+        operations: [
+          {
+            type: "proposal-impact",
+            decision: { ...decision, receiptRef },
+          },
+        ],
+      });
+      expect(result.result.state.skillImpact["safe-refactor"]).toBeDefined();
+    }
+  });
+
   it("rejects unbound proposal-decision digest lookalikes instead of bypassing plaintext safety", async () => {
-    const unsafeCandidateId = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const unsafeSourceDigest = `sha256:${"a".repeat(20)}13800138000${"b".repeat(33)}`;
+    const sourceDigest = `sha256:${"c".repeat(64)}`;
     const candidateId = `sha256:${"e".repeat(64)}`;
-    const receiptRef = `decision:${unsafeCandidateId}`;
-    const releaseDigest = `sha256:${"c".repeat(20)}13800138000${"d".repeat(33)}`;
+    const receiptRef = `wiki-evidence://skill-decision/${unsafeSourceDigest.slice(7)}`;
+    const boundReceiptRef = `wiki-evidence://skill-decision/${sourceDigest.slice(7)}`;
+    const releaseDigest = `sha256:${"f".repeat(20)}13800138000${"a".repeat(33)}`;
     const cases = [
       {
         label: "mismatched evidence map key",
@@ -644,8 +784,10 @@ describe("EvidenceBackedWikiMaintainer", () => {
           ...createEmptyWikiState("tenant-a"),
           evidence: {
             [receiptRef]: {
+              schema: WIKI_EVIDENCE_SCHEMA,
               kind: "proposal-decision",
-              ref: `decision:${candidateId}`,
+              ref: boundReceiptRef,
+              sourceDigest,
             },
           },
         },
@@ -655,12 +797,14 @@ describe("EvidenceBackedWikiMaintainer", () => {
         state: {
           ...createEmptyWikiState("tenant-a"),
           evidence: {
-            [receiptRef]: {
+            [boundReceiptRef]: {
+              schema: WIKI_EVIDENCE_SCHEMA,
               kind: "proposal-decision",
-              ref: receiptRef,
+              ref: boundReceiptRef,
+              sourceDigest,
               tenantId: "tenant-a",
-              artifactRef: `artifact://tenant-a/trusted/${releaseDigest.slice(7)}-other`,
-              data: { releaseDigest },
+              artifactRef: `skill-release://tenant-a/${releaseDigest.slice(7)}-other`,
+              data: { activeReleaseDigest: releaseDigest },
             },
           },
         },
@@ -690,6 +834,34 @@ describe("EvidenceBackedWikiMaintainer", () => {
           evidence: { "ev-retained": { data: { note: receiptRef } } },
         },
       },
+      {
+        label: "receipt digest array outside a bound proposal record",
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          evidence: {
+            "ev-retained": {
+              data: { evidenceReceiptDigests: [unsafeSourceDigest] },
+            },
+          },
+        },
+      },
+      ...["pilot", "revocation"].map((kind) => ({
+        label: `${kind} id detached from its artifact reference`,
+        state: {
+          ...createEmptyWikiState("tenant-a"),
+          evidence: {
+            [boundReceiptRef]: {
+              schema: WIKI_EVIDENCE_SCHEMA,
+              kind: "proposal-decision",
+              ref: boundReceiptRef,
+              sourceDigest,
+              tenantId: "tenant-a",
+              artifactRef: `skill-${kind}://tenant-a/other-id/7`,
+              data: { [`${kind}Id`]: `${kind}-13800138000` },
+            },
+          },
+        },
+      })),
     ];
     for (const { label, state } of cases) {
       const p = ports({ state });

@@ -97,6 +97,46 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("CLI CI cancels superseded branch and PR matrices without crossing refs", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "cli-ci.yml"),
+    "utf8",
+  );
+  const concurrency = workflow.slice(
+    workflow.indexOf("concurrency:"),
+    workflow.indexOf("\njobs:"),
+  );
+
+  assert.match(concurrency, /cancel-in-progress: true/u);
+  assert.ok(
+    concurrency.includes(
+      "github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number)",
+    ),
+    "PR revisions must share a PR-number group so a new revision cancels the old matrix",
+  );
+  assert.ok(
+    concurrency.includes(
+      "github.event_name == 'push' && github.ref_type == 'branch' && format('branch-{0}', github.ref)",
+    ),
+    "branch pushes must share their full-ref group instead of grouping by commit SHA",
+  );
+  assert.ok(
+    concurrency.includes(
+      "github.event_name == 'push' && github.ref_type == 'tag' && format('tag-{0}', github.ref)",
+    ),
+    "tag pushes must use a tag-ref group that cannot cancel a branch or another tag",
+  );
+  assert.ok(
+    concurrency.includes("format('run-{0}', github.run_id)"),
+    "manual runs must use a unique fallback group and leave authoritative refs alone",
+  );
+  assert.doesNotMatch(
+    concurrency,
+    /github\.event\.pull_request\.head\.sha|github\.sha/u,
+    "commit-SHA grouping cannot cancel superseded commits on the same branch or PR",
+  );
+});
+
 test("npm release publishes and re-verifies changed child packages before CLI", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "npm-publish.yml"),
