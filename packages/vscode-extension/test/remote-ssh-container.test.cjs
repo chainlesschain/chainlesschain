@@ -200,6 +200,10 @@ test("workflow preserves diagnostics and aggregates one exact producer provenanc
     /4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e[\s\S]*?gzip -dc[\s\S]*?0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d/u,
   );
   assert.match(
+    remoteJob,
+    /curl[\s\S]*?--retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120[\s\S]*?remote-ssh-0\.120\.0\.vsix\.gz/u,
+  );
+  assert.match(
     workflow,
     /Upload Remote-SSH diagnostics and trusted evidence\n\s+if: always\(\)/u,
   );
