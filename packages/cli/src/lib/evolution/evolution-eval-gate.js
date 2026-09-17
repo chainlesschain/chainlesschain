@@ -1130,6 +1130,11 @@ function computeTrainingPartitionDigest(suite) {
   );
 }
 
+/** Canonical binding for trusted dataset tooling; not an authority receipt. */
+export function computeEvolutionEvalTrainingPartitionDigest(suite) {
+  return computeTrainingPartitionDigest(verifyEvolutionEvalSuite(suite));
+}
+
 function deepFreeze(value, seen = new WeakSet()) {
   if (!value || typeof value !== "object" || seen.has(value)) return value;
   seen.add(value);

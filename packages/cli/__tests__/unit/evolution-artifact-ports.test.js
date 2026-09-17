@@ -615,6 +615,7 @@ describe("EvolutionArtifactPorts", () => {
       "skill-runtime-revalidation-state",
       "evolution-ledger-v2-journal",
       "evolution-run-event",
+      "pm-exploration-recovery-snapshot",
       "evolution-eval-child-evidence",
       "evolution-raw-deletion-receipt",
       "evolution-raw-deletion-tombstone",

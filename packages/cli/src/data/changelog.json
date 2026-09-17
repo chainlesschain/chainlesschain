@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.60",
+      "cliVersions": ["0.166.60"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.60: governed PM exploration recovery evidence",
+          "body": "- Add bounded Broad/Deep PM exploration plans, checkpoint journals, independent\n  result grading, suite partition preflight, and authenticated Evolution Ledger\n  recovery snapshots without granting promotion authority to exploration output.\n- Require Ledger-retained PM artifacts to resolve through their durability\n  authority instead of treating a local cache as authoritative when the remote\n  authority is unavailable.\n- Exercise restart, replica loss, commit-phase process exits, CAS races, and\n  seven synthetic storage/authority failure profiles across 31 child processes\n  with zero false-success receipts.\n- Bind the test-only recovery report to the exact source SHA in the existing\n  Linux, Windows, and macOS `CLI CI` matrix, then require a complete three-OS\n  aggregate before the workflow can pass.\n- Expose a read-only Desktop readiness projection while keeping execution,\n  production authority, real disk/network faults, physical power-loss\n  durability, and promotion qualification explicitly disabled."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.59",
       "cliVersions": ["0.166.59"],
       "date": null,

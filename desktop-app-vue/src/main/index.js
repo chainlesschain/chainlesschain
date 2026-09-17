@@ -79,6 +79,9 @@ const {
 const {
   loadDesktopEvolutionDependencies,
 } = require("./evolution/desktop-evolution-deployment");
+const {
+  createDesktopPmExplorationReadinessHost,
+} = require("./evolution/desktop-pm-exploration-readiness");
 
 // 是否使用旧版单阶段启动（回退开关）
 const USE_LEGACY_BOOT = process.env.CHAINLESSCHAIN_LEGACY_BOOT === "1";
@@ -133,6 +136,9 @@ class ChainlessChainApp {
     this.deepLinkHandler = null;
     this.ipcModules = null;
     this.evolutionDeploymentDependencies = Object.freeze({});
+    // Main-process-only diagnostic capability. It never authorizes a Run and
+    // is rebuilt after each bootstrap phase from the current trusted owners.
+    this.pmExplorationReadinessHost = null;
     // Tray + minimize-to-tray state:
     //   trayManager  — EnhancedTrayManager instance (created in createWindow)
     //   isQuitting   — set true by `before-quit` so the window's close handler
@@ -657,6 +663,18 @@ class ChainlessChainApp {
     this.settlementEscrow = instances.settlementEscrow;
     this.reviewManager = instances.reviewManager;
     this.statsCollector = instances.statsCollector;
+
+    this.pmExplorationReadinessHost = createDesktopPmExplorationReadinessHost({
+      desktopModelIngressHost:
+        this.evolutionDeploymentDependencies.desktopModelIngressHost ?? null,
+      llmManager: this.llmManager ?? null,
+      didManager: this.didManager ?? null,
+      database: this.database ?? null,
+      environment: process.env,
+      pmExplorationStorageHost:
+        this.evolutionDeploymentDependencies.desktopPmExplorationStorageHost ??
+        null,
+    });
   }
 
   /**

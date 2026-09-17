@@ -57,6 +57,7 @@ import {
 export const EVOLUTION_LEDGER_PORTS_INVALID_CODE =
   "CC_EVOLUTION_LEDGER_PORTS_INVALID";
 const RELEASE_OPERATION_READERS = new WeakMap();
+const DURABLE_ARTIFACT_RESOLVER_BINDINGS = new WeakMap();
 
 // This read-only recovery surface is minted only alongside real Ledger ports.
 // Matching JSON, inherited methods or a caller-supplied query function cannot
@@ -216,7 +217,6 @@ const LEDGER_ARTIFACT_REQUEST_KEYS = new Set([
   "ref",
   "tenantId",
 ]);
-const DURABLE_ARTIFACT_TYPE_SET = new Set(Object.values(ARTIFACT_TYPES));
 const QUERY_RESULT_KEYS = new Set([
   "anchor",
   "authenticated",
@@ -3859,24 +3859,24 @@ export function createEvolutionLedgerDurableArtifactResolver(options = {}) {
     DURABLE_RESOLVER_OPTION_KEYS,
     "durable ledger artifact resolver options",
   );
+  const artifactPortsInput = ownData(
+    options,
+    "artifactPorts",
+    "durable ledger artifact resolver options",
+    EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+  );
   const artifactPorts = requireStableInstance(
-    ownData(
-      options,
-      "artifactPorts",
-      "durable ledger artifact resolver options",
-      EVOLUTION_LEDGER_PORTS_INVALID_CODE,
-    ),
+    artifactPortsInput,
     EvolutionArtifactPorts.prototype,
     "EvolutionArtifactPorts",
   );
-  const authority = captureDurabilityAuthority(
-    ownData(
-      options,
-      "artifactDurabilityAuthority",
-      "durable ledger artifact resolver options",
-      EVOLUTION_LEDGER_PORTS_INVALID_CODE,
-    ),
+  const durabilityAuthorityInput = ownData(
+    options,
+    "artifactDurabilityAuthority",
+    "durable ledger artifact resolver options",
+    EVOLUTION_LEDGER_PORTS_INVALID_CODE,
   );
+  const authority = captureDurabilityAuthority(durabilityAuthorityInput);
   const artifactTenantId = identifier(
     ownData(
       options,
@@ -4005,8 +4005,7 @@ export function createEvolutionLedgerDurableArtifactResolver(options = {}) {
       record.schema === EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA &&
       record.tenantId === artifactTenantId &&
       record.purpose === purpose &&
-      record.retention === "ledger" &&
-      DURABLE_ARTIFACT_TYPE_SET.has(record.type);
+      record.retention === "ledger";
     if (
       canonicalJson(record) !== json ||
       (durable !== null && durable.result.type !== record.type) ||
@@ -4044,7 +4043,32 @@ export function createEvolutionLedgerDurableArtifactResolver(options = {}) {
       schema: EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
     });
   };
-  return Object.freeze(resolve);
+  const resolver = Object.freeze(resolve);
+  DURABLE_ARTIFACT_RESOLVER_BINDINGS.set(
+    resolver,
+    Object.freeze({
+      artifactTenantId,
+      authorityId: authority.id,
+      purpose,
+      matchesArtifactPorts: Object.freeze(
+        (value) => value === artifactPortsInput,
+      ),
+      matchesDurabilityAuthority: Object.freeze(
+        (value) => value === durabilityAuthorityInput,
+      ),
+    }),
+  );
+  return resolver;
+}
+
+/** Read-only identity for a resolver constructed with the durability authority. */
+export function captureEvolutionLedgerDurableArtifactResolver(value) {
+  const binding = DURABLE_ARTIFACT_RESOLVER_BINDINGS.get(value);
+  if (!binding)
+    throw new TypeError(
+      "a branded durable EvolutionLedger artifact resolver is required",
+    );
+  return binding;
 }
 
 export function createEvolutionLedgerPorts(options = {}) {

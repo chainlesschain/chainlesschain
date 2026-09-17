@@ -2,6 +2,7 @@
 
 const path = require("path");
 const { pathToFileURL } = require("url");
+const { types } = require("util");
 const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
   createDesktopGovernedSkillMarketplaceHost,
@@ -14,6 +15,9 @@ const {
 
 const DEV_LOADER_REL =
   "../../../../packages/cli/src/lib/evolution/evolution-deployment-loader.js";
+const DEV_PM_LEDGER_ADAPTER_REL =
+  "../../../../packages/cli/src/lib/evolution/pm-exploration-ledger-adapter.js";
+const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 
 function resolveLoaderPath({ isPackaged = false, resourcesPath } = {}) {
   if (isPackaged) {
@@ -28,12 +32,120 @@ function resolveLoaderPath({ isPackaged = false, resourcesPath } = {}) {
   return path.resolve(__dirname, DEV_LOADER_REL);
 }
 
+function resolvePmExplorationLedgerAdapterPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error("packaged PM exploration storage requires resourcesPath");
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/pm-exploration-ledger-adapter.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_PM_LEDGER_ADAPTER_REL);
+}
+
+function createDesktopPmExplorationStorageHost(store, captureStore) {
+  if (typeof captureStore !== "function" || types.isProxy(captureStore)) {
+    throw new TypeError("PM exploration ledger store capture is invalid");
+  }
+  const ports = captureStore(store);
+  const loadDescriptor = Object.getOwnPropertyDescriptor(ports, "load");
+  if (
+    !loadDescriptor ||
+    !("value" in loadDescriptor) ||
+    typeof loadDescriptor.value !== "function" ||
+    types.isProxy(loadDescriptor.value)
+  ) {
+    throw new TypeError("PM exploration ledger store has no direct load port");
+  }
+  const host = Object.freeze({});
+  PM_EXPLORATION_STORAGE_HOSTS.set(
+    host,
+    Object.freeze({ load: loadDescriptor.value }),
+  );
+  return host;
+}
+
+function isDesktopPmExplorationStorageHost(value) {
+  return PM_EXPLORATION_STORAGE_HOSTS.has(value);
+}
+
+function inspectDesktopPmExplorationStorageHost(host) {
+  const captured = PM_EXPLORATION_STORAGE_HOSTS.get(host);
+  if (!captured) {
+    return Object.freeze({
+      configured: false,
+      readable: false,
+      snapshotAvailable: false,
+      snapshotAuthenticated: false,
+      durableSnapshotAvailable: false,
+      powerLossDurabilityTested: false,
+      qualifiesForPromotion: false,
+    });
+  }
+  try {
+    const evidence = captured.load();
+    if (evidence && typeof evidence.then === "function") {
+      throw new TypeError("PM exploration ledger load must be synchronous");
+    }
+    if (evidence === null) {
+      return Object.freeze({
+        configured: true,
+        readable: true,
+        snapshotAvailable: false,
+        snapshotAuthenticated: false,
+        durableSnapshotAvailable: false,
+        powerLossDurabilityTested: false,
+        qualifiesForPromotion: false,
+      });
+    }
+    const valid =
+      evidence &&
+      typeof evidence === "object" &&
+      !types.isProxy(evidence) &&
+      evidence.schema === "chainlesschain.pm-exploration-ledger-restore/v1" &&
+      evidence.authenticated === true &&
+      evidence.durable === true &&
+      evidence.ledgerAuthenticated === true &&
+      evidence.ledgerDurable === true &&
+      evidence.authorityDurable === true &&
+      evidence.powerLossDurabilityTested === false &&
+      evidence.snapshotAuthenticated === false &&
+      evidence.qualifiesForPromotion === false;
+    if (!valid) throw new Error("PM exploration restore evidence is invalid");
+    return Object.freeze({
+      configured: true,
+      readable: true,
+      snapshotAvailable: true,
+      snapshotAuthenticated: false,
+      durableSnapshotAvailable: true,
+      powerLossDurabilityTested: false,
+      qualifiesForPromotion: false,
+    });
+  } catch {
+    return Object.freeze({
+      configured: true,
+      readable: false,
+      snapshotAvailable: false,
+      snapshotAuthenticated: false,
+      durableSnapshotAvailable: false,
+      powerLossDurabilityTested: false,
+      qualifiesForPromotion: false,
+    });
+  }
+}
+
 async function loadDesktopEvolutionDependencies({
   isPackaged = false,
   resourcesPath,
   importLoader = (url) => import(url),
   loaderOptions = {},
   importMarketplaceHostModule,
+  importPmExplorationLedgerModule = (url) => import(url),
 } = {}) {
   const loaderPath = resolveLoaderPath({ isPackaged, resourcesPath });
   const loader = await importLoader(pathToFileURL(loaderPath).href);
@@ -53,7 +165,7 @@ async function loadDesktopEvolutionDependencies({
     return Object.freeze({});
   }
 
-  const marketplaceDependencies = {};
+  const desktopDependencies = {};
   const modelFactoryDescriptor = Object.getOwnPropertyDescriptor(
     result,
     "evolutionCompositionFactory",
@@ -64,27 +176,54 @@ async function loadDesktopEvolutionDependencies({
         "Desktop model composition factory must be a data property",
       );
     }
-    marketplaceDependencies.desktopModelIngressHost =
-      createDesktopModelIngressHost(modelFactoryDescriptor.value, {
+    desktopDependencies.desktopModelIngressHost = createDesktopModelIngressHost(
+      modelFactoryDescriptor.value,
+      {
         isPackaged,
         resourcesPath,
-      });
+      },
+    );
   }
   if (result.marketplaceHost !== undefined) {
-    marketplaceDependencies.governedSkillMarketplaceHost =
+    desktopDependencies.governedSkillMarketplaceHost =
       await createDesktopGovernedSkillMarketplaceHost(result.marketplaceHost, {
         isPackaged,
         resourcesPath,
         importHostModule: importMarketplaceHostModule,
       });
   }
+  const pmStoreDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "pmExplorationLedgerStore",
+  );
+  if (pmStoreDescriptor) {
+    if (
+      !("value" in pmStoreDescriptor) ||
+      pmStoreDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop PM exploration ledger store must be an enumerable data property",
+      );
+    }
+    const adapterPath = resolvePmExplorationLedgerAdapterPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const adapterModule = await importPmExplorationLedgerModule(
+      pathToFileURL(adapterPath).href,
+    );
+    desktopDependencies.desktopPmExplorationStorageHost =
+      createDesktopPmExplorationStorageHost(
+        pmStoreDescriptor.value,
+        adapterModule?.capturePmExplorationLedgerStore,
+      );
+  }
   const composition = result.evolvableArtifactRuntimeComposition;
   if (
     composition === undefined &&
-    (marketplaceDependencies.governedSkillMarketplaceHost ||
-      marketplaceDependencies.desktopModelIngressHost)
+    Object.keys(desktopDependencies).length > 0
   ) {
-    return Object.freeze(marketplaceDependencies);
+    return Object.freeze(desktopDependencies);
   }
   if (!isEvolvableArtifactRuntimeComposition(composition)) {
     throw new Error(
@@ -104,10 +243,13 @@ async function loadDesktopEvolutionDependencies({
       );
     }
   }
-  return Object.freeze({ ...dependencies, ...marketplaceDependencies });
+  return Object.freeze({ ...dependencies, ...desktopDependencies });
 }
 
 module.exports = {
+  inspectDesktopPmExplorationStorageHost,
+  isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
+  resolvePmExplorationLedgerAdapterPath,
   resolveLoaderPath,
 };

@@ -127,6 +127,20 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: ./.github/actions/setup-node-deps
+      - name: Run exact-SHA PM exploration recovery drill
+        shell: bash
+        run: >-
+          node packages/cli/scripts/pm-exploration-recovery-drill.mjs
+          --source-revision "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "${RUNNER_TEMP}/pm-exploration-recovery-${RUNNER_OS}.json"
+      - name: Upload exact-SHA PM exploration recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pm-exploration-recovery-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pm-exploration-recovery-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Verify asynchronous PR recovery without GitHub writes
         run: node packages/cli/scripts/pr-recovery-smoke.mjs
       # These independently published dependencies must pass on the same
@@ -241,6 +255,58 @@ jobs:
       - name: Verify CLI startup SLOs
         working-directory: packages/cli
         run: npm run startup:check
+
+  pm-exploration-recovery-aggregate:
+    name: Test-only PM exploration recovery three-OS aggregate
+    if: always()
+    needs: verify-cli
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_PM_RECOVERY_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete PM recovery platform matrix
+        if: needs.verify-cli.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one test-only PM recovery platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact PM recovery commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CC_PM_RECOVERY_EXPECTED_SHA"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+
+      - name: Download exact-SHA PM recovery evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: pm-exploration-recovery-*-${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pm-exploration-recovery-evidence
+          merge-multiple: true
+
+      - name: Verify complete test-only PM recovery evidence matrix
+        shell: bash
+        run: >-
+          node packages/cli/scripts/pm-exploration-recovery-drill.mjs
+          --verify-evidence-dir "$RUNNER_TEMP/pm-exploration-recovery-evidence"
+          --release-commit "$CC_PM_RECOVERY_EXPECTED_SHA"
+          --output "$RUNNER_TEMP/pm-exploration-recovery-aggregate.json"
+
+      - name: Upload immutable test-only PM recovery aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: pm-exploration-recovery-test-only-aggregate-${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pm-exploration-recovery-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
 
   # Phase 4a: validate `cc pack` end-to-end on Linux without running pkg.
   # Dry-run exercises precheck → web-panel → config-template → native-prebuilds

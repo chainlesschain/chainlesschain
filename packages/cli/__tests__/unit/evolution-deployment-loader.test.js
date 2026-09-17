@@ -670,9 +670,20 @@ describe("signed evolution deployment loader", () => {
     const fixture = deploymentFixture({ commands: ["desktop"] });
     const composition = Object.freeze({ branded: true });
     const runtimeFactory = vi.fn(() => composition);
+    const requiredPmFactories = [
+      "createPmExplorationLedgerAdapter",
+      "createPmExplorationPlan",
+      "createEvolutionLedgerDurableArtifactResolver",
+      "createEvolutionArtifactPorts",
+      "createEvolutionLedgerFileBackend",
+      "createArtifactStore",
+    ];
     const factory = vi.fn(async ({ commandName, factories }) => ({
       evolvableArtifactRuntimeComposition:
         factories.createEvolvableArtifactRuntimeComposition({ commandName }),
+      pmFactories: requiredPmFactories.filter(
+        (name) => typeof factories[name] === "function",
+      ),
     }));
 
     await expect(
@@ -687,6 +698,7 @@ describe("signed evolution deployment loader", () => {
       }),
     ).resolves.toEqual({
       evolvableArtifactRuntimeComposition: composition,
+      pmFactories: requiredPmFactories,
     });
     expect(runtimeFactory).toHaveBeenCalledWith({ commandName: "desktop" });
   });

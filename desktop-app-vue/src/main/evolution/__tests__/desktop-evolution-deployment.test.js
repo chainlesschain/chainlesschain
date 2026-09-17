@@ -4,8 +4,11 @@ const {
   ARTIFACT_TYPE,
 } = require("@chainlesschain/session-core/evolvable-artifact");
 const {
+  inspectDesktopPmExplorationStorageHost,
+  isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
   resolveLoaderPath,
+  resolvePmExplorationLedgerAdapterPath,
 } = require("../desktop-evolution-deployment");
 
 function runtimeConfig(revision) {
@@ -128,6 +131,181 @@ describe("desktop evolution deployment", () => {
     expect(Object.keys(result.desktopModelIngressHost)).toEqual([]);
     expect(Object.isFrozen(result)).toBe(true);
     expect(factory).not.toHaveBeenCalled();
+  });
+
+  it("narrows a branded PM ledger store to an opaque read-only Desktop host", async () => {
+    const store = Object.freeze({ name: "real-store-placeholder" });
+    const load = vi.fn(() => null);
+    const commitJournal = vi.fn();
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationLedgerStore: store,
+        }),
+      }),
+      importPmExplorationLedgerModule: async () => ({
+        capturePmExplorationLedgerStore(value) {
+          if (value !== store) throw new TypeError("unbranded store");
+          return Object.freeze({
+            load,
+            commitJournal,
+            restoreLatestJournal: vi.fn(),
+          });
+        },
+      }),
+    });
+
+    const host = result.desktopPmExplorationStorageHost;
+    expect(isDesktopPmExplorationStorageHost(host)).toBe(true);
+    expect(Object.keys(host)).toEqual([]);
+    expect(Object.isFrozen(host)).toBe(true);
+    expect(host.load).toBeUndefined();
+    expect(host.commitJournal).toBeUndefined();
+    expect(inspectDesktopPmExplorationStorageHost(host)).toEqual({
+      configured: true,
+      readable: true,
+      snapshotAvailable: false,
+      snapshotAuthenticated: false,
+      durableSnapshotAvailable: false,
+      powerLossDurabilityTested: false,
+      qualifiesForPromotion: false,
+    });
+    expect(load).toHaveBeenCalledOnce();
+    expect(commitJournal).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes durable restore evidence and fails closed on unreadable storage", async () => {
+    const durableStore = Object.freeze({ name: "durable-store" });
+    const brokenStore = Object.freeze({ name: "broken-store" });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationLedgerStore: durableStore,
+        }),
+      }),
+      importPmExplorationLedgerModule: async () => ({
+        capturePmExplorationLedgerStore(value) {
+          if (value === durableStore) {
+            return Object.freeze({
+              load: () => ({
+                schema: "chainlesschain.pm-exploration-ledger-restore/v1",
+                authenticated: true,
+                durable: true,
+                ledgerAuthenticated: true,
+                ledgerDurable: true,
+                authorityDurable: true,
+                powerLossDurabilityTested: false,
+                snapshotAuthenticated: false,
+                qualifiesForPromotion: false,
+                snapshot: { secret: "must-not-leak" },
+              }),
+            });
+          }
+          if (value === brokenStore) {
+            return Object.freeze({
+              load: () => {
+                throw new Error("corrupt ledger");
+              },
+            });
+          }
+          throw new TypeError("unbranded store");
+        },
+      }),
+    });
+    const projection = inspectDesktopPmExplorationStorageHost(
+      result.desktopPmExplorationStorageHost,
+    );
+    expect(projection).toMatchObject({
+      configured: true,
+      readable: true,
+      snapshotAvailable: true,
+      durableSnapshotAvailable: true,
+      snapshotAuthenticated: false,
+      qualifiesForPromotion: false,
+    });
+    expect(JSON.stringify(projection)).not.toContain("must-not-leak");
+
+    const broken = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationLedgerStore: brokenStore,
+        }),
+      }),
+      importPmExplorationLedgerModule: async () => ({
+        capturePmExplorationLedgerStore: (value) => {
+          if (value !== brokenStore) throw new TypeError("unbranded store");
+          return Object.freeze({
+            load: () => {
+              throw new Error("corrupt ledger");
+            },
+          });
+        },
+      }),
+    });
+    expect(
+      inspectDesktopPmExplorationStorageHost(
+        broken.desktopPmExplorationStorageHost,
+      ),
+    ).toMatchObject({ configured: true, readable: false });
+
+    for (const load of [
+      async () => null,
+      () => ({ schema: "chainlesschain.pm-exploration-ledger-restore/v1" }),
+    ]) {
+      const store = Object.freeze({});
+      const degraded = await loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationLedgerStore: store,
+          }),
+        }),
+        importPmExplorationLedgerModule: async () => ({
+          capturePmExplorationLedgerStore: (value) => {
+            if (value !== store) throw new TypeError("unbranded store");
+            return Object.freeze({ load });
+          },
+        }),
+      });
+      expect(
+        inspectDesktopPmExplorationStorageHost(
+          degraded.desktopPmExplorationStorageHost,
+        ),
+      ).toMatchObject({ configured: true, readable: false });
+    }
+  });
+
+  it("rejects unbranded or accessor PM ledger stores without invoking getters", async () => {
+    const store = Object.freeze({});
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationLedgerStore: store,
+          }),
+        }),
+        importPmExplorationLedgerModule: async () => ({
+          capturePmExplorationLedgerStore: () => {
+            throw new TypeError(
+              "a real PmExplorationLedgerAdapter is required",
+            );
+          },
+        }),
+      }),
+    ).rejects.toThrow(/real PmExplorationLedgerAdapter/);
+
+    const getter = vi.fn();
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () =>
+            Object.defineProperty({}, "pmExplorationLedgerStore", {
+              enumerable: true,
+              get: getter,
+            }),
+        }),
+      }),
+    ).rejects.toThrow(/enumerable data property/);
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it("creates a frozen WebShell composition capability without exposing its factory", async () => {
@@ -293,6 +471,22 @@ describe("desktop evolution deployment", () => {
         "lib",
         "evolution",
         "evolution-deployment-loader.js",
+      ),
+    );
+    expect(
+      resolvePmExplorationLedgerAdapterPath({
+        isPackaged: true,
+        resourcesPath: "C:\\app",
+      }),
+    ).toBe(
+      path.join(
+        "C:\\app",
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "evolution",
+        "pm-exploration-ledger-adapter.js",
       ),
     );
   });

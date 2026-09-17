@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.60: governed PM exploration recovery evidence
+
+- Add bounded Broad/Deep PM exploration plans, checkpoint journals, independent
+  result grading, suite partition preflight, and authenticated Evolution Ledger
+  recovery snapshots without granting promotion authority to exploration output.
+- Require Ledger-retained PM artifacts to resolve through their durability
+  authority instead of treating a local cache as authoritative when the remote
+  authority is unavailable.
+- Exercise restart, replica loss, commit-phase process exits, CAS races, and
+  seven synthetic storage/authority failure profiles across 31 child processes
+  with zero false-success receipts.
+- Bind the test-only recovery report to the exact source SHA in the existing
+  Linux, Windows, and macOS `CLI CI` matrix, then require a complete three-OS
+  aggregate before the workflow can pass.
+- Expose a read-only Desktop readiness projection while keeping execution,
+  production authority, real disk/network faults, physical power-loss
+  durability, and promotion qualification explicitly disabled.
+
 ### Added - cc CLI 0.166.59 + Agent Protocol 0.1.11 + Agent SDKs 0.2.11/0.2.9: durable IDE task worklogs and fresh-session handoff
 
 - Add Context/Memory Kernel `0.1.4` session checkpoints for bounded task goals,

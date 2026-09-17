@@ -252,6 +252,29 @@ async function loadBuiltInFactories(commandName) {
       buildSkillDependencyLock: manifest.buildSkillDependencyLock,
     });
   }
+  if (commandName === "desktop") {
+    const [adapter, rounds, ledgerPorts, artifactPorts, ledgerBackend, store] =
+      await Promise.all([
+        import("./pm-exploration-ledger-adapter.js"),
+        import("./pm-exploration-rounds.js"),
+        import("./evolution-ledger-ports.js"),
+        import("./evolution-artifact-ports.js"),
+        import("./evolution-ledger-file-backend.js"),
+        import("../artifact-store.js"),
+      ]);
+    Object.assign(factories, {
+      createPmExplorationLedgerAdapter: (options) =>
+        new adapter.PmExplorationLedgerAdapter(options),
+      createPmExplorationPlan: rounds.createPmExplorationPlan,
+      createEvolutionLedgerDurableArtifactResolver:
+        ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
+      createEvolutionArtifactPorts: (options) =>
+        new artifactPorts.EvolutionArtifactPorts(options),
+      createEvolutionLedgerFileBackend:
+        ledgerBackend.createEvolutionLedgerFileBackend,
+      createArtifactStore: (options) => new store.ArtifactStore(options),
+    });
+  }
   if (commandName === "learning") {
     const [
       { createGovernedSkillSynthesisCliHost },

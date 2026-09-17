@@ -13,21 +13,36 @@
  * 8. Project delivery (export, share, archive)
  */
 
-import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC, type ElectronTestContext } from './helpers';
-import type { Page, ElectronApplication } from '@playwright/test';
-import path from 'path';
-import os from 'os';
+import { test, expect } from "@playwright/test";
+import {
+  launchElectronApp,
+  closeElectronApp,
+  callIPC,
+  type ElectronTestContext,
+} from "./helpers";
+import type { Page, ElectronApplication } from "@playwright/test";
+import path from "path";
+import os from "os";
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+const {
+  capturePmExportBaseline,
+  gradePmExportFile,
+  gradePmBoardExport,
+} = require("../../packages/cli/src/lib/evolution/pm-result-grader.cjs");
+
+const REQUIREMENTS_CONTENT =
+  "# Requirements\n\n- User authentication\n- Task management\n- Sprint planning\n";
 
 // Test data
 const TEST_ORG_ID = `org-pm-journey-${Date.now()}`;
 const TEST_USER_DID = `did:key:pm-journey-user-${Date.now()}`;
-const TEST_USER_NAME = 'PM Journey User';
+const TEST_USER_NAME = "PM Journey User";
 const TEST_MEMBER_DID = `did:key:pm-journey-member-${Date.now()}`;
-const TEST_MEMBER_NAME = 'PM Journey Member';
-const TEST_PROJECT_NAME = 'PM Journey Delivery Project';
+const TEST_MEMBER_NAME = "PM Journey Member";
+const TEST_PROJECT_NAME = "PM Journey Delivery Project";
 
-test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
+test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
   let app: ElectronApplication;
   let window: Page;
 
@@ -36,9 +51,9 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
   let teamId: string;
   let boardId: string;
   let columnIds: { todo: string; inProgress: string; done: string } = {
-    todo: '',
-    inProgress: '',
-    done: ''
+    todo: "",
+    inProgress: "",
+    done: "",
   };
   let taskId: string;
   let sprintId: string;
@@ -60,11 +75,11 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
   // Phase 1: Organization & Team Setup
   // ========================================
 
-  test('Phase 1.1: Create team', async () => {
-    const createResult: any = await callIPC(window, 'team:create-team', {
+  test("Phase 1.1: Create team", async () => {
+    const createResult: any = await callIPC(window, "team:create-team", {
       orgId: TEST_ORG_ID,
-      name: 'Engineering Team',
-      description: 'Core engineering team for PM journey test',
+      name: "Engineering Team",
+      description: "Core engineering team for PM journey test",
       leadDid: TEST_USER_DID,
       leadName: TEST_USER_NAME,
       createdBy: TEST_USER_DID,
@@ -77,12 +92,12 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     teamId = createResult.teamId;
   });
 
-  test('Phase 1.2: Add team member', async () => {
-    const addResult: any = await callIPC(window, 'team:add-member', {
+  test("Phase 1.2: Add team member", async () => {
+    const addResult: any = await callIPC(window, "team:add-member", {
       teamId,
       memberDid: TEST_MEMBER_DID,
       memberName: TEST_MEMBER_NAME,
-      role: 'member',
+      role: "member",
       invitedBy: TEST_USER_DID,
     });
 
@@ -91,8 +106,8 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(addResult.memberId).toBeDefined();
   });
 
-  test('Phase 1.3: Verify team members', async () => {
-    const membersResult: any = await callIPC(window, 'team:get-team-members', {
+  test("Phase 1.3: Verify team members", async () => {
+    const membersResult: any = await callIPC(window, "team:get-team-members", {
       teamId,
     });
 
@@ -100,32 +115,32 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(membersResult.success).toBe(true);
     expect(membersResult.members).toBeDefined();
     expect(membersResult.members.length).toBeGreaterThanOrEqual(2); // Lead + Member
-      });
+  });
 
-  test('Phase 1.4: Grant project permissions to member', async () => {
-    const grantResult: any = await callIPC(window, 'perm:grant-permission', {
+  test("Phase 1.4: Grant project permissions to member", async () => {
+    const grantResult: any = await callIPC(window, "perm:grant-permission", {
       orgId: TEST_ORG_ID,
-      granteeType: 'user',
+      granteeType: "user",
       granteeId: TEST_MEMBER_DID,
-      resourceType: 'project',
-      resourceId: '*',
-      permission: 'write',
+      resourceType: "project",
+      resourceId: "*",
+      permission: "write",
       grantedBy: TEST_USER_DID,
     });
 
     expect(grantResult).toBeDefined();
     expect(grantResult.success).toBe(true);
-      });
+  });
 
   // ========================================
   // Phase 2: Project Creation
   // ========================================
 
-  test('Phase 2.1: Create project', async () => {
-    const createResult: any = await callIPC(window, 'project:create-quick', {
+  test("Phase 2.1: Create project", async () => {
+    const createResult: any = await callIPC(window, "project:create-quick", {
       name: TEST_PROJECT_NAME,
-      description: 'E2E project management journey test',
-      projectType: 'document',
+      description: "E2E project management journey test",
+      projectType: "document",
       userId: TEST_USER_DID,
     });
 
@@ -135,60 +150,71 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
 
     projectId = createResult.id;
     projectRootPath = createResult.root_path || createResult.rootPath;
-      });
+  });
 
-  test('Phase 2.2: Update project metadata', async () => {
+  test("Phase 2.2: Update project metadata", async () => {
     const updates = {
-      description: 'Updated: Full lifecycle E2E test',
-      status: 'draft',
-      tags: JSON.stringify(['e2e', 'journey', 'pm', 'sprint']),
+      description: "Updated: Full lifecycle E2E test",
+      status: "draft",
+      tags: JSON.stringify(["e2e", "journey", "pm", "sprint"]),
     };
 
-    const updateResult: any = await callIPC(window, 'project:update', projectId, updates);
+    const updateResult: any = await callIPC(
+      window,
+      "project:update",
+      projectId,
+      updates,
+    );
     expect(updateResult).toBeDefined();
 
-    const project: any = await callIPC(window, 'project:get', projectId);
+    const project: any = await callIPC(window, "project:get", projectId);
     expect(project).toBeDefined();
-    expect(project.status).toBe('draft');
-      });
+    expect(project.status).toBe("draft");
+  });
 
-  test('Phase 2.3: Add deliverable files', async () => {
+  test("Phase 2.3: Add deliverable files", async () => {
     const files = [
       {
         id: `pm-file-${Date.now()}-1`,
         projectId,
-        filePath: '/docs/requirements.md',
-        fileName: 'requirements.md',
-        fileType: 'markdown',
-        content: '# Requirements\n\n- User authentication\n- Task management\n- Sprint planning\n',
+        filePath: "/docs/requirements.md",
+        fileName: "requirements.md",
+        fileType: "markdown",
+        content: REQUIREMENTS_CONTENT,
         fileSize: 128,
       },
       {
         id: `pm-file-${Date.now()}-2`,
         projectId,
-        filePath: '/docs/architecture.md',
-        fileName: 'architecture.md',
-        fileType: 'markdown',
-        content: '# Architecture\n\n- Frontend: Vue3\n- Backend: Electron\n- Database: SQLite\n',
+        filePath: "/docs/architecture.md",
+        fileName: "architecture.md",
+        fileType: "markdown",
+        content:
+          "# Architecture\n\n- Frontend: Vue3\n- Backend: Electron\n- Database: SQLite\n",
         fileSize: 128,
       },
     ];
 
-    const saveResult: any = await callIPC(window, 'project:save-files', projectId, files);
+    const saveResult: any = await callIPC(
+      window,
+      "project:save-files",
+      projectId,
+      files,
+    );
     expect(saveResult).toBeDefined();
     expect(saveResult.success).toBeTruthy();
-      });
+  });
 
   // ========================================
   // Phase 3: Task Board Creation
   // ========================================
 
-  test('Phase 3.1: Create task board', async () => {
-    const createResult: any = await callIPC(window, 'task:create-board', {
+  test("Phase 3.1: Create task board", async () => {
+    const createResult: any = await callIPC(window, "task:create-board", {
       orgId: TEST_ORG_ID,
-      name: 'Sprint Board',
-      description: 'Main task board for project execution',
-      boardType: 'scrum',
+      name: "Sprint Board",
+      description: "Main task board for project execution",
+      boardType: "scrum",
       ownerDid: TEST_USER_DID,
     });
 
@@ -197,14 +223,14 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(createResult.boardId).toBeDefined();
 
     boardId = createResult.boardId;
-      });
+  });
 
-  test('Phase 3.2: Create board columns', async () => {
+  test("Phase 3.2: Create board columns", async () => {
     // Create Todo column
-    const todoResult: any = await callIPC(window, 'task:create-column', {
+    const todoResult: any = await callIPC(window, "task:create-column", {
       boardId,
       columnData: {
-        name: 'To Do',
+        name: "To Do",
         position: 0,
         wipLimit: 10,
       },
@@ -213,10 +239,10 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     columnIds.todo = todoResult.columnId;
 
     // Create In Progress column
-    const inProgressResult: any = await callIPC(window, 'task:create-column', {
+    const inProgressResult: any = await callIPC(window, "task:create-column", {
       boardId,
       columnData: {
-        name: 'In Progress',
+        name: "In Progress",
         position: 1,
         wipLimit: 3,
       },
@@ -225,46 +251,46 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     columnIds.inProgress = inProgressResult.columnId;
 
     // Create Done column
-    const doneResult: any = await callIPC(window, 'task:create-column', {
+    const doneResult: any = await callIPC(window, "task:create-column", {
       boardId,
       columnData: {
-        name: 'Done',
+        name: "Done",
         position: 2,
         wipLimit: null,
       },
     });
     expect(doneResult.success).toBe(true);
     columnIds.done = doneResult.columnId;
-      });
+  });
 
-  test('Phase 3.3: Create labels', async () => {
+  test("Phase 3.3: Create labels", async () => {
     const labels = [
-      { name: 'bug', color: '#ff0000' },
-      { name: 'feature', color: '#00ff00' },
-      { name: 'urgent', color: '#ff6600' },
+      { name: "bug", color: "#ff0000" },
+      { name: "feature", color: "#00ff00" },
+      { name: "urgent", color: "#ff6600" },
     ];
 
     for (const label of labels) {
-      const result: any = await callIPC(window, 'task:create-label', {
+      const result: any = await callIPC(window, "task:create-label", {
         orgId: TEST_ORG_ID,
         name: label.name,
         color: label.color,
       });
       expect(result.success).toBe(true);
     }
-      });
+  });
 
   // ========================================
   // Phase 4: Task Management
   // ========================================
 
-  test('Phase 4.1: Create task', async () => {
-    const createResult: any = await callIPC(window, 'task:create-task', {
+  test("Phase 4.1: Create task", async () => {
+    const createResult: any = await callIPC(window, "task:create-task", {
       boardId,
       columnId: columnIds.todo,
-      title: 'Implement user authentication',
-      description: 'Add login/logout functionality with JWT tokens',
-      priority: 'high',
+      title: "Implement user authentication",
+      description: "Add login/logout functionality with JWT tokens",
+      priority: "high",
       estimatedHours: 8,
       createdBy: TEST_USER_DID,
       creatorName: TEST_USER_NAME,
@@ -275,83 +301,88 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(createResult.taskId).toBeDefined();
 
     taskId = createResult.taskId;
-      });
+  });
 
-  test('Phase 4.2: Assign task to team member', async () => {
-    const assignResult: any = await callIPC(window, 'task:assign-task', {
+  test("Phase 4.2: Assign task to team member", async () => {
+    const assignResult: any = await callIPC(window, "task:assign-task", {
       taskId,
       userDid: TEST_MEMBER_DID,
-      role: 'assignee',
+      role: "assignee",
       assignedBy: TEST_USER_DID,
     });
 
     expect(assignResult).toBeDefined();
     expect(assignResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 4.3: Set task due date and priority', async () => {
+  test("Phase 4.3: Set task due date and priority", async () => {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7); // Due in 7 days
 
-    const dueDateResult: any = await callIPC(window, 'task:set-due-date', {
+    const dueDateResult: any = await callIPC(window, "task:set-due-date", {
       taskId,
       dueDate: dueDate.toISOString(),
       actorDid: TEST_USER_DID,
     });
     expect(dueDateResult.success).toBe(true);
 
-    const priorityResult: any = await callIPC(window, 'task:set-priority', {
+    const priorityResult: any = await callIPC(window, "task:set-priority", {
       taskId,
-      priority: 'high',
+      priority: "high",
       actorDid: TEST_USER_DID,
     });
     expect(priorityResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 4.4: Add task checklist', async () => {
+  test("Phase 4.4: Add task checklist", async () => {
     // Create checklist
-    const checklistResult: any = await callIPC(window, 'task:create-checklist', {
-      taskId,
-      title: 'Implementation Steps',
-    });
+    const checklistResult: any = await callIPC(
+      window,
+      "task:create-checklist",
+      {
+        taskId,
+        title: "Implementation Steps",
+      },
+    );
     expect(checklistResult.success).toBe(true);
     checklistId = checklistResult.checklistId;
 
     // Add checklist items
     const items = [
-      'Design authentication flow',
-      'Implement JWT token generation',
-      'Create login API endpoint',
-      'Add logout functionality',
-      'Write unit tests',
+      "Design authentication flow",
+      "Implement JWT token generation",
+      "Create login API endpoint",
+      "Add logout functionality",
+      "Write unit tests",
     ];
 
     for (const item of items) {
-      const itemResult: any = await callIPC(window, 'task:add-checklist-item', {
+      const itemResult: any = await callIPC(window, "task:add-checklist-item", {
         checklistId,
         content: item,
         assigneeDid: TEST_MEMBER_DID,
       });
       expect(itemResult.success).toBe(true);
     }
-      });
+  });
 
-  test('Phase 4.5: Add task comment', async () => {
-    const commentResult: any = await callIPC(window, 'task:add-comment', {
+  test("Phase 4.5: Add task comment", async () => {
+    const commentResult: any = await callIPC(window, "task:add-comment", {
       taskId,
       comment: {
         authorDid: TEST_USER_DID,
         authorName: TEST_USER_NAME,
-        content: 'Please make sure to follow security best practices for password hashing.',
+        content:
+          "Please make sure to follow security best practices for password hashing.",
       },
     });
 
     expect(commentResult).toBeDefined();
     expect(commentResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 4.6: Move task to In Progress', async () => {
-    const moveResult: any = await callIPC(window, 'task:move-task', {
+  test("Phase 4.6: Move task to In Progress", async () => {
+    const moveResult: any = await callIPC(window, "task:move-task", {
       taskId,
       columnId: columnIds.inProgress,
       position: 0,
@@ -362,23 +393,23 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(moveResult.success).toBe(true);
 
     // Update project status to active
-    await callIPC(window, 'project:update', projectId, { status: 'active' });
-      });
+    await callIPC(window, "project:update", projectId, { status: "active" });
+  });
 
   // ========================================
   // Phase 5: Sprint Management
   // ========================================
 
-  test('Phase 5.1: Create sprint', async () => {
+  test("Phase 5.1: Create sprint", async () => {
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 14); // 2-week sprint
 
-    const createResult: any = await callIPC(window, 'task:create-sprint', {
+    const createResult: any = await callIPC(window, "task:create-sprint", {
       boardId,
       sprintData: {
-        name: 'Sprint 1',
-        goal: 'Complete user authentication and basic task management',
+        name: "Sprint 1",
+        goal: "Complete user authentication and basic task management",
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
       },
@@ -389,33 +420,33 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(createResult.sprintId).toBeDefined();
 
     sprintId = createResult.sprintId;
-      });
+  });
 
-  test('Phase 5.2: Move task to sprint', async () => {
-    const moveResult: any = await callIPC(window, 'task:move-to-sprint', {
+  test("Phase 5.2: Move task to sprint", async () => {
+    const moveResult: any = await callIPC(window, "task:move-to-sprint", {
       taskIds: [taskId],
       sprintId,
     });
 
     expect(moveResult).toBeDefined();
     expect(moveResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 5.3: Start sprint', async () => {
-    const startResult: any = await callIPC(window, 'task:start-sprint', {
+  test("Phase 5.3: Start sprint", async () => {
+    const startResult: any = await callIPC(window, "task:start-sprint", {
       sprintId,
     });
 
     expect(startResult).toBeDefined();
     expect(startResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 5.4: Complete task and move to Done', async () => {
+  test("Phase 5.4: Complete task and move to Done", async () => {
     // Update task status to done
-    const updateResult: any = await callIPC(window, 'task:update-task', {
+    const updateResult: any = await callIPC(window, "task:update-task", {
       taskId,
       updates: {
-        status: 'done',
+        status: "done",
         actualHours: 7,
       },
       actorDid: TEST_MEMBER_DID,
@@ -423,17 +454,17 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(updateResult.success).toBe(true);
 
     // Move to Done column
-    const moveResult: any = await callIPC(window, 'task:move-task', {
+    const moveResult: any = await callIPC(window, "task:move-task", {
       taskId,
       columnId: columnIds.done,
       position: 0,
       actorDid: TEST_MEMBER_DID,
     });
     expect(moveResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 5.5: Get sprint statistics', async () => {
-    const statsResult: any = await callIPC(window, 'task:get-sprint-stats', {
+  test("Phase 5.5: Get sprint statistics", async () => {
+    const statsResult: any = await callIPC(window, "task:get-sprint-stats", {
       sprintId,
     });
 
@@ -441,108 +472,149 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(statsResult.success).toBe(true);
     expect(statsResult.sprint).toBeDefined();
     expect(statsResult.tasks).toBeDefined();
-      });
+  });
 
-  test('Phase 5.6: Complete sprint', async () => {
-    const completeResult: any = await callIPC(window, 'task:complete-sprint', {
+  test("Phase 5.6: Complete sprint", async () => {
+    const completeResult: any = await callIPC(window, "task:complete-sprint", {
       sprintId,
     });
 
     expect(completeResult).toBeDefined();
     expect(completeResult.success).toBe(true);
-      });
+  });
 
   // ========================================
   // Phase 6: Reports & Analytics
   // ========================================
 
-  test('Phase 6.1: Create team report', async () => {
-    const reportResult: any = await callIPC(window, 'task:create-report', {
+  test("Phase 6.1: Create team report", async () => {
+    const reportResult: any = await callIPC(window, "task:create-report", {
       orgId: TEST_ORG_ID,
       teamId,
-      reportType: 'weekly',
-      title: 'Sprint 1 Weekly Report',
-      content: 'Completed user authentication feature',
+      reportType: "weekly",
+      title: "Sprint 1 Weekly Report",
+      content: "Completed user authentication feature",
       authorDid: TEST_USER_DID,
       authorName: TEST_USER_NAME,
     });
 
     expect(reportResult).toBeDefined();
     expect(reportResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 6.2: Get board analytics', async () => {
-    const analyticsResult: any = await callIPC(window, 'task:get-board-analytics', {
-      boardId,
-      options: {
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // Last 30 days
-        endDate: new Date().toISOString(),
+  test("Phase 6.2: Get board analytics", async () => {
+    const analyticsResult: any = await callIPC(
+      window,
+      "task:get-board-analytics",
+      {
+        boardId,
+        options: {
+          startDate: new Date(
+            Date.now() - 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // Last 30 days
+          endDate: new Date().toISOString(),
+        },
       },
-    });
+    );
 
     expect(analyticsResult).toBeDefined();
     expect(analyticsResult.success).toBe(true);
-      });
+  });
 
-  test('Phase 6.3: Export board data', async () => {
-    const exportResult: any = await callIPC(window, 'task:export-board', {
+  test("Phase 6.3: Export board data", async () => {
+    const exportResult: any = await callIPC(window, "task:export-board", {
       boardId,
-      format: 'json',
+      format: "json",
     });
 
     expect(exportResult).toBeDefined();
     expect(exportResult.success).toBe(true);
     expect(exportResult.data).toBeDefined();
-      });
+    expect(
+      gradePmBoardExport({
+        actual: exportResult.data,
+        expected: { boardId, taskIds: [taskId], sprintIds: [sprintId] },
+        executionSucceeded: exportResult.success === true,
+      }).pass,
+    ).toBe(true);
+  });
 
   // ========================================
   // Phase 7: Project Delivery
   // ========================================
 
-  test('Phase 7.1: Track project stats', async () => {
-    const project: any = await callIPC(window, 'project:get', projectId);
+  test("Phase 7.1: Track project stats", async () => {
+    const project: any = await callIPC(window, "project:get", projectId);
     projectRootPath = projectRootPath || project.root_path || project.rootPath;
 
     const startResult: any = await callIPC(
       window,
-      'project:stats:start',
+      "project:stats:start",
       projectId,
-      projectRootPath
+      projectRootPath,
     );
     expect(startResult).toBeDefined();
+    expect(startResult.success).toBe(true);
 
-    const updateResult: any = await callIPC(window, 'project:stats:update', projectId);
+    const updateResult: any = await callIPC(
+      window,
+      "project:stats:update",
+      projectId,
+    );
     expect(updateResult).toBeDefined();
 
-    const statsResult: any = await callIPC(window, 'project:stats:get', projectId);
-    expect(statsResult).toBeDefined();
-
-    const stopResult: any = await callIPC(window, 'project:stats:stop', projectId);
-    expect(stopResult).toBeDefined();
-      });
-
-  test('Phase 7.2: Export project files', async () => {
-    const exportTargetPath = path.join(
-      os.tmpdir(),
-      `pm-journey-${projectId}-requirements.md`
+    const statsResult: any = await callIPC(
+      window,
+      "project:stats:get",
+      projectId,
     );
+    expect(statsResult).toBeDefined();
+    expect(updateResult.success).toBe(true);
+    expect(statsResult.success).toBe(true);
+    expect(statsResult.stats).toBeDefined();
 
-    const exportResult: any = await callIPC(window, 'project:export-file', {
+    const stopResult: any = await callIPC(
+      window,
+      "project:stats:stop",
       projectId,
-      projectPath: '/docs/requirements.md',
-      targetPath: exportTargetPath,
-      isDirectory: false,
-    });
+    );
+    expect(stopResult).toBeDefined();
+    expect(stopResult.success).toBe(true);
+  });
 
-    expect(exportResult).toBeDefined();
-    // Export now supports both filesystem and database-only files
-    expect(exportResult.success).toBe(true);
+  test("Phase 7.2: Export project files", async () => {
+    const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pm-export-"));
+    try {
+      const relativePath = "requirements.md";
+      const baseline = capturePmExportBaseline(exportRoot, relativePath);
+      const exportResult: any = await callIPC(window, "project:export-file", {
+        projectId,
+        projectPath: "/docs/requirements.md",
+        targetPath: path.join(exportRoot, relativePath),
+        isDirectory: false,
       });
+      expect(exportResult?.success).toBe(true);
+      const result = gradePmExportFile({
+        baseline,
+        executionSucceeded: exportResult.success === true,
+        expected: {
+          kind: "file-export",
+          relativePath,
+          sha256: `sha256:${createHash("sha256").update(REQUIREMENTS_CONTENT).digest("hex")}`,
+        },
+      });
+      expect(result.reason).toBe("matched");
+      expect(result.pass).toBe(true);
+    } finally {
+      // Exact fresh directory owned by this test, never the shared temp root.
+      fs.rmSync(exportRoot, { recursive: true, force: true });
+    }
+  });
 
-  test('Phase 7.3: Share project', async () => {
-    const shareResult: any = await callIPC(window, 'project:shareProject', {
+  test("Phase 7.3: Share project", async () => {
+    const shareResult: any = await callIPC(window, "project:shareProject", {
       projectId,
-      shareMode: 'public',
+      shareMode: "public",
       expiresInDays: 7,
       regenerateToken: true,
     });
@@ -550,47 +622,52 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(shareResult).toBeDefined();
     expect(shareResult.success).toBe(true);
     expect(shareResult.shareToken).toBeDefined();
-      });
+  });
 
-  test('Phase 7.4: Mark project as delivered', async () => {
+  test("Phase 7.4: Mark project as delivered", async () => {
     const deliveredAt = new Date().toISOString();
-    const updateResult: any = await callIPC(window, 'project:update', projectId, {
-      status: 'completed',
-      delivered_at: deliveredAt,
-    });
+    const updateResult: any = await callIPC(
+      window,
+      "project:update",
+      projectId,
+      {
+        status: "completed",
+        delivered_at: deliveredAt,
+      },
+    );
 
     expect(updateResult).toBeDefined();
 
-    const project: any = await callIPC(window, 'project:get', projectId);
+    const project: any = await callIPC(window, "project:get", projectId);
     expect(project).toBeDefined();
-    expect(project.status).toBe('completed');
+    expect(project.status).toBe("completed");
     expect(project.delivered_at).toBeDefined();
-      });
+  });
 
-  test('Phase 7.5: Archive board', async () => {
-    const archiveResult: any = await callIPC(window, 'task:archive-board', {
+  test("Phase 7.5: Archive board", async () => {
+    const archiveResult: any = await callIPC(window, "task:archive-board", {
       boardId,
     });
 
     expect(archiveResult).toBeDefined();
     expect(archiveResult.success).toBe(true);
-      });
+  });
 
   // ========================================
   // Phase 8: Cleanup & Verification
   // ========================================
 
-  test('Phase 8.1: Verify final project state', async () => {
-    const project: any = await callIPC(window, 'project:get', projectId);
+  test("Phase 8.1: Verify final project state", async () => {
+    const project: any = await callIPC(window, "project:get", projectId);
 
     expect(project).toBeDefined();
     expect(project.id).toBe(projectId);
-    expect(project.status).toBe('completed');
+    expect(project.status).toBe("completed");
     expect(project.name).toBe(TEST_PROJECT_NAME);
-      });
+  });
 
-  test('Phase 8.2: Verify team and members', async () => {
-    const teamsResult: any = await callIPC(window, 'team:get-teams', {
+  test("Phase 8.2: Verify team and members", async () => {
+    const teamsResult: any = await callIPC(window, "team:get-teams", {
       orgId: TEST_ORG_ID,
       options: {},
     });
@@ -599,16 +676,16 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     expect(teamsResult.success).toBe(true);
     expect(teamsResult.teams).toBeDefined();
     expect(teamsResult.teams.length).toBeGreaterThan(0);
-      });
+  });
 
-  test('Phase 8.3: Verify task completion', async () => {
-    const taskResult: any = await callIPC(window, 'task:get-task', {
+  test("Phase 8.3: Verify task completion", async () => {
+    const taskResult: any = await callIPC(window, "task:get-task", {
       taskId,
     });
 
     expect(taskResult).toBeDefined();
     expect(taskResult.success).toBe(true);
     expect(taskResult.task).toBeDefined();
-    expect(taskResult.task.status).toBe('done');
-      });
+    expect(taskResult.task.status).toBe("done");
+  });
 });

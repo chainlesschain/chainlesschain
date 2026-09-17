@@ -162,9 +162,9 @@ describe("CLI release workflow contracts", () => {
     const installCommand =
       'npm install --ignore-scripts --no-audit --no-fund --prefer-online --registry=https://registry.npmjs.org "chainlesschain@$VERSION"';
     expect(normalizedProvenanceStep).toContain(installCommand);
-    expect(normalizedProvenanceStep.indexOf("for ATTEMPT in {1..30}")).toBeLessThan(
-      normalizedProvenanceStep.indexOf(installCommand),
-    );
+    expect(
+      normalizedProvenanceStep.indexOf("for ATTEMPT in {1..30}"),
+    ).toBeLessThan(normalizedProvenanceStep.indexOf(installCommand));
     expect(provenanceStep).toContain(
       "Published chainlesschain@$VERSION is not installable yet",
     );
@@ -303,7 +303,9 @@ describe("CLI release workflow contracts", () => {
 
     expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(4);
     expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(4);
-    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(3);
+    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(4);
+    expect(cliCi).toContain(`CC_PM_RECOVERY_EXPECTED_SHA: ${eventSha}`);
+    expect(cliCi).toContain("ref: ${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}");
 
     expect(reusable).toContain("commit_sha:\n");
     expect(reusable).toContain('description: "Exact full caller commit SHA"');
