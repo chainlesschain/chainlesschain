@@ -119,6 +119,45 @@ describe("verified npm release provenance", () => {
     ).toMatchObject({ package: packageName, version: VERSION });
   });
 
+  it("resolves a prior trusted release anchor for an unchanged reused package", () => {
+    const priorCommit = "89abcdef0123456789abcdef0123456789abcdef";
+    const priorRef = "refs/tags/v-npm-1-2-2";
+    const payload = statement();
+    payload.predicate.buildDefinition.externalParameters.workflow.ref =
+      priorRef;
+    payload.predicate.buildDefinition.resolvedDependencies[0] = {
+      uri: `git+${NPM_RELEASE_AUTHORITY.repository}@${priorRef}`,
+      digest: { gitCommit: priorCommit },
+    };
+
+    expect(
+      verifyNpmReleaseProvenance(audit(payload), {
+        version: VERSION,
+        sha512: SHA512,
+        allowTrustedReleaseAnchor: true,
+      }),
+    ).toMatchObject({
+      anchorMode: "trusted-reuse",
+      commit: priorCommit,
+      ref: priorRef,
+    });
+  });
+
+  it("rejects a mutable branch as a reused package provenance anchor", () => {
+    const payload = statement();
+    const branch = "refs/heads/main";
+    payload.predicate.buildDefinition.externalParameters.workflow.ref = branch;
+    payload.predicate.buildDefinition.resolvedDependencies[0].uri = `git+${NPM_RELEASE_AUTHORITY.repository}@${branch}`;
+
+    expect(() =>
+      verifyNpmReleaseProvenance(audit(payload), {
+        version: VERSION,
+        sha512: SHA512,
+        allowTrustedReleaseAnchor: true,
+      }),
+    ).toThrow(/immutable v-npm tag/);
+  });
+
   it.each([
     [
       "package digest",
@@ -129,7 +168,7 @@ describe("verified npm release provenance", () => {
       "workflow ref",
       (value) =>
         (value.predicate.buildDefinition.externalParameters.workflow.ref =
-          "refs/tags/other"),
+          "refs/tags/v-npm-9-9-9"),
       /workflow ref mismatch/,
     ],
     [

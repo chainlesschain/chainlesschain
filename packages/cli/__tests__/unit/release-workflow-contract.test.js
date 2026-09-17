@@ -272,6 +272,21 @@ describe("CLI release workflow contracts", () => {
       "npm audit signatures --include-attestations --json",
     );
     expect(text).toContain("verify-npm-release-provenance.mjs");
+    expect(text.match(/--trusted-anchor/gu)).toHaveLength(3);
+    expect(text.match(/verify-npm-reused-package-tree\.mjs/gu)).toHaveLength(3);
+    expect(
+      text.match(/if \[ "\$PUBLISHED" = "false" \]; then MAX_ATTEMPTS=1; fi/gu),
+    ).toHaveLength(3);
+    expect(text).toContain("id: agent-protocol-publish");
+    for (const packagePath of [
+      "packages/agent-protocol",
+      "packages/context-memory-kernel",
+      "packages/agent-sdk",
+    ]) {
+      expect(text).toContain(
+        `"$PROVENANCE_OUTPUT" "$GITHUB_SHA" ${packagePath}`,
+      );
+    }
     expect(text).toContain("chainlesschain-npm-readback-${{ github.sha }}");
   });
 

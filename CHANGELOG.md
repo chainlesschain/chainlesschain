@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.61: verify safely reused npm child packages
+
+- Keep newly published npm child packages bound to this release's exact
+  immutable tag and commit, while allowing an unchanged, already-published
+  child package to reuse only its npm-verified signed release provenance.
+- Bind a reused package's signed tag to its signed commit, then require the
+  package Git tree at that commit to match the current release exactly; a
+  changed package without a version bump fails closed before CLI publication.
+- Classify a deterministic old-provenance mismatch in one attempt instead of
+  retrying it thirty times; only newly uploaded package provenance retains its
+  bounded registry-propagation retry window.
+
 ### Added - cc CLI 0.166.60 + IDE plugins 0.37.106/0.4.127: governed PM exploration recovery evidence
 
 - Add bounded Broad/Deep PM exploration plans, checkpoint journals, independent

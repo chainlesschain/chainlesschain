@@ -326,6 +326,7 @@ jobs:
       # 4. cli, only after a registry-only child install succeeds
 
       - name: "Publish @chainlesschain/agent-protocol"
+        id: agent-protocol-publish
         working-directory: packages/agent-protocol
         run: |
           set -euo pipefail
@@ -333,8 +334,10 @@ jobs:
           echo "target: @chainlesschain/agent-protocol@$PKG_VER"
           if npm view "@chainlesschain/agent-protocol@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
+            echo "published=false" >> "$GITHUB_OUTPUT"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            echo "published=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Verify Agent Protocol registry bytes and npm provenance
@@ -345,6 +348,8 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./packages/agent-protocol/package.json').version")
           CLI_VERSION="${{ steps.version.outputs.VERSION }}"
           EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          PUBLISHED="${{ steps.agent-protocol-publish.outputs.published }}"
+          PROVENANCE_OUTPUT="release-artifacts/agent-protocol-npm-provenance.json"
           READBACK_ROOT=$(mktemp -d)
           trap 'rm -rf "$READBACK_ROOT"' EXIT
 
@@ -373,29 +378,49 @@ jobs:
             npm init --yes >/dev/null
             npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"
           )
+          MAX_ATTEMPTS=30
+          if [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi
           VERIFIED=false
-          for ATTEMPT in {1..30}; do
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
             AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
             AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
             if (
               cd "$AUDIT_ROOT"
               npm audit signatures --include-attestations --json \
                 > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
-            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/agent-protocol-npm-provenance.json \
-              node packages/cli/scripts/verify-npm-release-provenance.mjs \
-                "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
-              VERIFIED=true
-              break
+            ); then
+              if [ "$PUBLISHED" = "true" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              elif [ "$PUBLISHED" = "false" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              else
+                echo "Unexpected agent-protocol publish state: $PUBLISHED" >&2
+                exit 1
+              fi
             fi
-            if [ "$ATTEMPT" -eq 30 ]; then
-              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2
               cat "$AUDIT_ERROR" >&2 || true
               exit 1
             fi
-            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"
             sleep 10
           done
           test "$VERIFIED" = true
+          if [ "$PUBLISHED" = "false" ]; then
+            node packages/cli/scripts/verify-npm-reused-package-tree.mjs \
+              "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/agent-protocol
+          fi
 
       - name: "Publish @chainlesschain/core-env"
         working-directory: packages/core-env
@@ -536,6 +561,8 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./packages/context-memory-kernel/package.json').version")
           CLI_VERSION="${{ steps.version.outputs.VERSION }}"
           EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          PUBLISHED="${{ steps.context-memory-kernel-publish.outputs.published }}"
+          PROVENANCE_OUTPUT="release-artifacts/context-memory-kernel-npm-provenance.json"
           READBACK_ROOT=$(mktemp -d)
           trap 'rm -rf "$READBACK_ROOT"' EXIT
 
@@ -564,29 +591,49 @@ jobs:
             npm init --yes >/dev/null
             npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"
           )
+          MAX_ATTEMPTS=30
+          if [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi
           VERIFIED=false
-          for ATTEMPT in {1..30}; do
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
             AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
             AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
             if (
               cd "$AUDIT_ROOT"
               npm audit signatures --include-attestations --json \
                 > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
-            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/context-memory-kernel-npm-provenance.json \
-              node packages/cli/scripts/verify-npm-release-provenance.mjs \
-                "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
-              VERIFIED=true
-              break
+            ); then
+              if [ "$PUBLISHED" = "true" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              elif [ "$PUBLISHED" = "false" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              else
+                echo "Unexpected context-memory-kernel publish state: $PUBLISHED" >&2
+                exit 1
+              fi
             fi
-            if [ "$ATTEMPT" -eq 30 ]; then
-              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2
               cat "$AUDIT_ERROR" >&2 || true
               exit 1
             fi
-            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"
             sleep 10
           done
           test "$VERIFIED" = true
+          if [ "$PUBLISHED" = "false" ]; then
+            node packages/cli/scripts/verify-npm-reused-package-tree.mjs \
+              "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/context-memory-kernel
+          fi
 
       # Agent SDK — workspace member whose prepublishOnly runs the TypeScript
       # dual build. Its build resolves a local or workspace-hoisted compiler.
@@ -616,6 +663,8 @@ jobs:
           SDK_VERSION=$(node -p "require('./packages/agent-sdk/package.json').version")
           CLI_VERSION="${{ steps.version.outputs.VERSION }}"
           EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          PUBLISHED="${{ steps.agent-sdk-publish.outputs.published }}"
+          PROVENANCE_OUTPUT="release-artifacts/agent-sdk-npm-provenance.json"
           READBACK_ROOT=$(mktemp -d)
           trap 'rm -rf "$READBACK_ROOT"' EXIT
 
@@ -644,29 +693,49 @@ jobs:
             npm init --yes >/dev/null
             npm install --ignore-scripts --no-audit --no-fund "$SDK_NAME@$SDK_VERSION"
           )
+          MAX_ATTEMPTS=30
+          if [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi
           VERIFIED=false
-          for ATTEMPT in {1..30}; do
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
             AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
             AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
             if (
               cd "$AUDIT_ROOT"
               npm audit signatures --include-attestations --json \
                 > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
-            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/agent-sdk-npm-provenance.json \
-              node packages/cli/scripts/verify-npm-release-provenance.mjs \
-                "$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"; then
-              VERIFIED=true
-              break
+            ); then
+              if [ "$PUBLISHED" = "true" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    "$AUDIT_JSON" "$SDK_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$SDK_SHA512" "$SDK_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              elif [ "$PUBLISHED" = "false" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    --trusted-anchor "$AUDIT_JSON" "$SDK_VERSION" "$SDK_SHA512" "$SDK_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              else
+                echo "Unexpected agent-sdk publish state: $PUBLISHED" >&2
+                exit 1
+              fi
             fi
-            if [ "$ATTEMPT" -eq 30 ]; then
-              echo "npm did not expose valid signed provenance for $SDK_NAME@$SDK_VERSION after 30 attempts" >&2
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "npm did not expose valid signed provenance for $SDK_NAME@$SDK_VERSION after $MAX_ATTEMPTS attempt(s)" >&2
               cat "$AUDIT_ERROR" >&2 || true
               exit 1
             fi
-            echo "::notice::Signed npm provenance is not ready for $SDK_NAME@$SDK_VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            echo "::notice::Signed npm provenance is not ready for $SDK_NAME@$SDK_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"
             sleep 10
           done
           test "$VERIFIED" = true
+          if [ "$PUBLISHED" = "false" ]; then
+            node packages/cli/scripts/verify-npm-reused-package-tree.mjs \
+              "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/agent-sdk
+          fi
 
       # Personal Data Hub — must publish before CLI: CLI's package.json pins
       # a fixed version of this package, so a same-day CLI bump expects the

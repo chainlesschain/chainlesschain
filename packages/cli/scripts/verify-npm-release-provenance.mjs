@@ -20,6 +20,7 @@ const IN_TOTO_PAYLOAD = "application/vnd.in-toto+json";
 const SIGSTORE_BUNDLE = "application/vnd.dev.sigstore.bundle.v0.3+json";
 const MAX_AUDIT_BYTES = 64 * 1024 * 1024;
 const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024;
+const IMMUTABLE_NPM_TAG = /^refs\/tags\/v-npm-\d+-\d+-\d+$/u;
 
 function requiredString(value, label) {
   if (!value || typeof value !== "string") {
@@ -101,19 +102,25 @@ export function verifyNpmReleaseProvenance(audit, expected) {
     "package name",
   );
   const version = requiredString(expected?.version, "version");
-  const commit = requiredString(expected?.commit, "commit").toLowerCase();
-  const ref = requiredString(expected?.ref, "ref");
+  const allowTrustedReleaseAnchor =
+    expected?.allowTrustedReleaseAnchor === true;
+  const expectedCommit = allowTrustedReleaseAnchor
+    ? null
+    : requiredString(expected?.commit, "commit").toLowerCase();
+  const expectedRef = allowTrustedReleaseAnchor
+    ? null
+    : requiredString(expected?.ref, "ref");
   const sha512 = requiredString(expected?.sha512, "sha512").toLowerCase();
   const repository = expected?.repository || NPM_RELEASE_AUTHORITY.repository;
   const workflow = expected?.workflow || NPM_RELEASE_AUTHORITY.workflow;
 
-  if (!/^[0-9a-f]{40}$/u.test(commit)) {
+  if (expectedCommit !== null && !/^[0-9a-f]{40}$/u.test(expectedCommit)) {
     throw new Error("commit must be a full 40-character Git SHA");
   }
   if (!/^[0-9a-f]{128}$/u.test(sha512)) {
     throw new Error("sha512 must be a 128-character hexadecimal digest");
   }
-  if (!ref.startsWith("refs/tags/v-npm-")) {
+  if (expectedRef !== null && !IMMUTABLE_NPM_TAG.test(expectedRef)) {
     throw new Error("ref must be an immutable v-npm tag ref");
   }
   if (!Array.isArray(audit.invalid)) {
@@ -194,7 +201,13 @@ export function verifyNpmReleaseProvenance(audit, expected) {
   );
   assertExact(workflowAuthority.repository, repository, "workflow repository");
   assertExact(workflowAuthority.path, workflow, "workflow path");
-  assertExact(workflowAuthority.ref, ref, "workflow ref");
+  const ref = requiredString(workflowAuthority.ref, "workflow ref");
+  if (!IMMUTABLE_NPM_TAG.test(ref)) {
+    throw new Error("workflow ref must be an immutable v-npm tag ref");
+  }
+  if (expectedRef !== null) {
+    assertExact(ref, expectedRef, "workflow ref");
+  }
   assertExact(
     definition.internalParameters?.github?.event_name,
     "push",
@@ -211,11 +224,16 @@ export function verifyNpmReleaseProvenance(audit, expected) {
   }
   const source = definition.resolvedDependencies[0];
   assertExact(source?.uri, `git+${repository}@${ref}`, "source repository ref");
-  assertExact(
-    source?.digest?.gitCommit?.toLowerCase(),
-    commit,
+  const commit = requiredString(
+    source?.digest?.gitCommit,
     "source Git commit",
-  );
+  ).toLowerCase();
+  if (!/^[0-9a-f]{40}$/u.test(commit)) {
+    throw new Error("source Git commit must be a full 40-character Git SHA");
+  }
+  if (expectedCommit !== null) {
+    assertExact(commit, expectedCommit, "source Git commit");
+  }
 
   const runDetails = assertPlainObject(
     predicate.runDetails,
@@ -254,6 +272,7 @@ export function verifyNpmReleaseProvenance(audit, expected) {
     invocationId,
     runId: Number(invocation[1]),
     attempt: Number(invocation[2]),
+    anchorMode: allowTrustedReleaseAnchor ? "trusted-reuse" : "exact-release",
     audit: {
       invalid: audit.invalid.length,
       missing: Array.isArray(audit.missing) ? audit.missing.length : null,
@@ -271,27 +290,44 @@ function readAudit(file) {
 }
 
 async function main() {
-  const [auditPath, version, commit, ref, sha512, packageName, ...extra] =
-    process.argv.slice(2);
-  if (
-    !auditPath ||
-    !version ||
-    !commit ||
-    !ref ||
-    !sha512 ||
-    extra.length > 0
-  ) {
-    throw new Error(
-      "usage: verify-npm-release-provenance.mjs <npm-audit.json> <version> <commit> <ref> <sha512> [package-name]",
-    );
+  const args = process.argv.slice(2);
+  const trustedAnchor = args[0] === "--trusted-anchor";
+  const values = trustedAnchor ? args.slice(1) : args;
+  let auditPath;
+  let expected;
+  if (trustedAnchor) {
+    const [pathValue, version, sha512, packageName, ...extra] = values;
+    if (!pathValue || !version || !sha512 || !packageName || extra.length > 0) {
+      throw new Error(
+        "usage: verify-npm-release-provenance.mjs --trusted-anchor <npm-audit.json> <version> <sha512> <package-name>",
+      );
+    }
+    auditPath = pathValue;
+    expected = {
+      packageName,
+      version,
+      sha512,
+      allowTrustedReleaseAnchor: true,
+    };
+  } else {
+    const [pathValue, version, commit, ref, sha512, packageName, ...extra] =
+      values;
+    if (
+      !pathValue ||
+      !version ||
+      !commit ||
+      !ref ||
+      !sha512 ||
+      extra.length > 0
+    ) {
+      throw new Error(
+        "usage: verify-npm-release-provenance.mjs <npm-audit.json> <version> <commit> <ref> <sha512> [package-name]",
+      );
+    }
+    auditPath = pathValue;
+    expected = { packageName, version, commit, ref, sha512 };
   }
-  const result = verifyNpmReleaseProvenance(readAudit(auditPath), {
-    packageName,
-    version,
-    commit,
-    ref,
-    sha512,
-  });
+  const result = verifyNpmReleaseProvenance(readAudit(auditPath), expected);
   const output = path.resolve(
     process.env.CC_NPM_PROVENANCE_OUTPUT || "npm-release-provenance.json",
   );

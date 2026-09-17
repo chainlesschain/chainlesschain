@@ -177,6 +177,16 @@ test("npm release publishes and re-verifies changed child packages before CLI", 
     workflow,
     /release-artifacts\/agent-protocol-npm-provenance\.json/u,
   );
+  assert.equal(
+    workflow.match(/--trusted-anchor/gu)?.length,
+    3,
+    "all idempotently reused attested children must resolve their signed release anchor",
+  );
+  assert.equal(
+    workflow.match(/verify-npm-reused-package-tree\.mjs/gu)?.length,
+    3,
+    "all reused attested children must prove exact source-tree identity",
+  );
 });
 
 test("Desktop and UniApp CI test the exact PR source without changing the matrix", () => {

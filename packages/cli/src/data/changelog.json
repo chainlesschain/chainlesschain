@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.61",
+      "cliVersions": ["0.166.61"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.61: verify safely reused npm child packages",
+          "body": "- Keep newly published npm child packages bound to this release's exact\n  immutable tag and commit, while allowing an unchanged, already-published\n  child package to reuse only its npm-verified signed release provenance.\n- Bind a reused package's signed tag to its signed commit, then require the\n  package Git tree at that commit to match the current release exactly; a\n  changed package without a version bump fails closed before CLI publication.\n- Classify a deterministic old-provenance mismatch in one attempt instead of\n  retrying it thirty times; only newly uploaded package provenance retains its\n  bounded registry-propagation retry window."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.60",
       "cliVersions": ["0.166.60"],
       "date": null,
