@@ -829,6 +829,13 @@ describe("owner-only filesystem helpers", () => {
       }),
     ).toBe("C:\\private-existing");
     expect(spawnSync).toHaveBeenCalledTimes(2);
+    const timeouts = spawnSync.mock.calls.map(([, , options]) =>
+      Number(options.timeout),
+    );
+    expect(timeouts).toEqual([7500, 7500]);
+    expect(
+      timeouts.reduce((total, timeout) => total + timeout, 0),
+    ).toBeLessThanOrEqual(15_000);
   });
 
   it("refuses to secure storage through a symbolic link", () => {
@@ -1221,6 +1228,36 @@ describe("owner-only filesystem helpers", () => {
     expect(spawnSync).toHaveBeenCalledOnce();
   });
 
+  it("does not preflight a Windows path reliably absent from its parent directory", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const missing = "C:\\Users\\owner";
+    const mkdirSync = vi.fn();
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === missing) {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: () => [],
+      existsSync: () => false,
+      mkdirSync,
+    };
+    const spawnSync = vi.fn();
+
+    expect(
+      ensurePrivateDirectory(target, {
+        platform: "win32",
+        applyWindowsAcl: false,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe(target);
+    expect(mkdirSync).toHaveBeenCalledOnce();
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
   it("retries a transient Windows preflight timeout before creating a directory", () => {
     const target = "C:\\Users\\owner\\AppData\\Local\\state";
     const missing = "C:\\Users\\owner";
@@ -1271,6 +1308,13 @@ describe("owner-only filesystem helpers", () => {
     ).toBe(target);
     expect(events).toEqual(["preflight", "mkdir"]);
     expect(spawnSync).toHaveBeenCalledTimes(2);
+    const timeouts = spawnSync.mock.calls.map(([, , options]) =>
+      Number(options.timeout),
+    );
+    expect(timeouts).toEqual([15_000, 15_000]);
+    expect(
+      timeouts.reduce((total, timeout) => total + timeout, 0),
+    ).toBeLessThanOrEqual(30_000);
   });
 
   it("fails closed after a second Windows preflight timeout", () => {

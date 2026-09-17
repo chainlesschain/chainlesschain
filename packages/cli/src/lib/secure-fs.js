@@ -123,6 +123,17 @@ function readWindowsDirectoryEntry(target, deps) {
   const matches = entries.filter(
     (candidate) => String(candidate?.name || "") === name,
   );
+  // A successful complete directory enumeration is positive evidence that the
+  // child is absent. A case-folded match is not absence on Windows; preserve it
+  // as ambiguous so native verification remains fail-closed.
+  if (matches.length === 0) {
+    const caseFoldedMatches = entries.filter(
+      (candidate) =>
+        String(candidate?.name || "").toLowerCase() === name.toLowerCase(),
+    );
+    if (caseFoldedMatches.length === 0) return { exists: false };
+    return null;
+  }
   if (matches.length !== 1) return null;
   const [entry] = matches;
   if (
@@ -192,6 +203,7 @@ function assertNoLinkTraversal(
         ["ENOENT", "EPERM", "EACCES"].includes(error?.code)
       ) {
         const directoryEntry = readWindowsDirectoryEntry(current, deps);
+        if (directoryEntry?.exists === false) break;
         if (directoryEntry) {
           if (directoryEntry.isSymbolicLink) {
             const unsafe = new Error(
@@ -644,17 +656,31 @@ export function _resolveWindowsAclTimeout(
 
 // A timed-out spawn has already been terminated by Node. Retrying that one
 // transient runner-startup failure is safe: preflight is read-only and ACL
-// repair is idempotent. Every other failure remains fail-closed so this never
-// treats a script, parse, or permission failure as a transient condition.
+// repair is idempotent. Both attempts share the caller's original timeout
+// budget so a busy Windows runner cannot multiply synchronous blocking time.
+// Every other failure remains fail-closed so this never treats a script, parse,
+// or permission failure as a transient condition.
 function runWindowsAclCommand(deps, args, options) {
-  let result = deps.spawnSync("powershell.exe", args, options);
+  const totalTimeoutMs = Math.max(1, Math.floor(Number(options?.timeout) || 1));
+  const retryTimeoutMs = Math.max(
+    1,
+    Math.floor(totalTimeoutMs / (WINDOWS_ACL_TIMEOUT_RETRY_LIMIT + 1)),
+  );
+  const firstTimeoutMs = Math.max(1, totalTimeoutMs - retryTimeoutMs);
+  let result = deps.spawnSync("powershell.exe", args, {
+    ...options,
+    timeout: firstTimeoutMs,
+  });
   for (
     let attempt = 0;
     result?.error?.code === "ETIMEDOUT" &&
     attempt < WINDOWS_ACL_TIMEOUT_RETRY_LIMIT;
     attempt += 1
   ) {
-    result = deps.spawnSync("powershell.exe", args, options);
+    result = deps.spawnSync("powershell.exe", args, {
+      ...options,
+      timeout: retryTimeoutMs,
+    });
   }
   return result;
 }
@@ -866,6 +892,9 @@ function readPrivatePathEntry(target, deps, platform, nativeEvidence = null) {
     }
     if (!isWindowsPathStatUnreliable(error, platform)) throw error;
     const directoryEntry = readWindowsDirectoryEntry(target, deps.fs);
+    if (directoryEntry?.exists === false) {
+      return { exists: false, entry: null };
+    }
     if (directoryEntry) {
       return {
         exists: true,
