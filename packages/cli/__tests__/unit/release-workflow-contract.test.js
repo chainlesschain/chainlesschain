@@ -275,12 +275,22 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("chainlesschain-npm-readback-${{ github.sha }}");
   });
 
-  it("runs authoritative release gates without duplicating the CLI matrix for IDE tags", () => {
+  it("runs authoritative release gates with ref-safe CLI concurrency", () => {
     const cliCi = workflow("cli-ci.yml");
     expect(cliCi).toContain('- "v-npm-*"');
     expect(cliCi).toContain('- "cli-v*"');
     expect(cliCi).not.toContain('- "v*"');
     expect(cliCi).toContain(
+      "github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number)",
+    );
+    expect(cliCi).toContain(
+      "github.event_name == 'push' && github.ref_type == 'branch' && format('branch-{0}', github.ref)",
+    );
+    expect(cliCi).toContain(
+      "github.event_name == 'push' && github.ref_type == 'tag' && format('tag-{0}', github.ref)",
+    );
+    expect(cliCi).toContain("format('run-{0}', github.run_id)");
+    expect(cliCi).not.toContain(
       "group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}",
     );
 
