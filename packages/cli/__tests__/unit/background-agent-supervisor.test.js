@@ -479,6 +479,38 @@ describe("background agent supervisor", () => {
     });
   });
 
+  it("does not reclaim a live state lock for a sub-second creation-time skew", () => {
+    const id = "bg-live-lock-owner-clock-skew";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: 4242,
+    });
+    const sleeperPid = spawnSleeperPid();
+    const lockAcquiredAt = Date.now();
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: sleeperPid,
+        startedAt: lockAcquiredAt,
+        token: "live-lock-owner-clock-skew-token-0001",
+      }),
+    );
+    _deps.readProcessStartTimeMs = vi.fn(() => lockAcquiredAt + 500);
+
+    expect(() =>
+      mutateBackgroundAgentState(
+        id,
+        (current) => ({ ...current, title: "after" }),
+        { timeoutMs: 100 },
+      ),
+    ).toThrow(expect.objectContaining({ code: "STATE_LOCK_UNAVAILABLE" }));
+    expect(readBackgroundAgentState(id)).toMatchObject({ title: "before" });
+  });
+
   it("uses a nonblocking heartbeat lock without probing or reclaiming its owner", () => {
     const id = "bg-heartbeat-bounded-lock";
     writeBackgroundAgentState({
@@ -5281,6 +5313,21 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
 });
 
 describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
+  const originalInteractionSessionPresence =
+    interactionJournalDeps.getSessionPresence;
+
+  beforeEach(() => {
+    // These recovery tests provide an in-memory canonical transcript below.
+    // Keep its presence check on the same seam instead of consulting the real
+    // persistence witness and external anti-rollback anchor on Windows.
+    interactionJournalDeps.getSessionPresence = () => SESSION_PRESENCE.PRESENT;
+  });
+
+  afterEach(() => {
+    interactionJournalDeps.getSessionPresence =
+      originalInteractionSessionPresence;
+  });
+
   it("rejects a lost worker's pending interaction exactly once", () => {
     const originalAppend =
       interactionJournalDeps.appendEventWithVerifiedProjection;

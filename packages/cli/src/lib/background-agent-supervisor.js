@@ -81,6 +81,15 @@ export const MAX_BACKGROUND_AGENT_PAGE_LIMIT = 200;
  */
 export const PID_IDENTITY_TOLERANCE_MS = 60000;
 
+// Lock acquisition and OS process-creation timestamps are read through
+// different Windows APIs. Keep a narrow allowance for their clock/precision
+// boundary so a live lock owner is never reclaimed because its creation time
+// appears a few milliseconds after the JavaScript acquisition timestamp.
+// This is intentionally much smaller than the worker identity tolerance: a
+// process created materially later must still prove PID reuse and unblock a
+// lock left behind by a crashed high-churn worker.
+const STATE_LOCK_OWNER_IDENTITY_TOLERANCE_MS = 1000;
+
 export const PROCESS_START_TIME_CACHE_TTL_MS = 10_000;
 export const PROCESS_START_TIME_CACHE_MAX_ENTRIES = 4_096;
 
@@ -1321,7 +1330,7 @@ function isBackgroundAgentStateLockOwnerAlive(owner) {
   // owner.startedAt is written only after this process acquired the lock. A
   // live process created later therefore proves PID reuse; retaining that
   // stale lock would permanently fence the state after high-churn workers.
-  return actualStartedAt <= acquiredAt;
+  return actualStartedAt <= acquiredAt + STATE_LOCK_OWNER_IDENTITY_TOLERANCE_MS;
 }
 
 /**
