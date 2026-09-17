@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.60: governed PM exploration recovery evidence
+### Added - cc CLI 0.166.60 + IDE plugins 0.37.106/0.4.127: governed PM exploration recovery evidence
 
 - Add bounded Broad/Deep PM exploration plans, checkpoint journals, independent
   result grading, suite partition preflight, and authenticated Evolution Ledger
@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expose a read-only Desktop readiness projection while keeping execution,
   production authority, real disk/network faults, physical power-loss
   durability, and promotion qualification explicitly disabled.
+- Pair the VS Code/Open VSX and JetBrains plugins with the verified CLI release
+  while preserving CLI-owned execution, grading, recovery, and promotion
+  authority; marketplace tags remain blocked until npm registry readback.
 
 ### Added - cc CLI 0.166.59 + Agent Protocol 0.1.11 + Agent SDKs 0.2.11/0.2.9: durable IDE task worklogs and fresh-session handoff
 

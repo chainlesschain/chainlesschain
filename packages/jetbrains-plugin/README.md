@@ -5,7 +5,7 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-[Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced with this release.
+[Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
 **The bridge needs no IDE-specific CLI transport fork** — this plugin writes
 the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
@@ -14,11 +14,11 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Source candidate `0.4.126` pairs with CLI candidate `0.166.59`. It saves bounded
-task evidence throughout long conversations and adds **Continue in new chat**
-to load verified notes into an independent conversation after a completed tool
-boundary. It also restores repair progress after stale edits and preserves
-bounded diagnostics for the next repair step. The bridge remains a bounded CLI
+Source candidate `0.4.127` pairs with CLI candidate `0.166.60`. It carries the
+CLI's bounded, independently graded PM exploration and authenticated recovery
+evidence without moving execution or promotion authority into the IDE. It also
+retains verified task-note handoff, stale-edit repair recovery, and bounded
+diagnostics for the next repair step. The bridge remains a bounded CLI
 client: trust, approval, publication, and command construction stay in the CLI
 host. Publication follows the exact-commit CLI matrices, npm child packages,
 the CLI main package, and a verified fresh public CLI installation.
@@ -33,7 +33,7 @@ the CLI main package, and a verified fresh public CLI installation.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.59` for older installations, including when the
+- Recommend `chainlesschain@0.166.60` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -52,7 +52,7 @@ the CLI main package, and a verified fresh public CLI installation.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.59` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.60` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -70,7 +70,7 @@ the CLI main package, and a verified fresh public CLI installation.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.126** is the current release candidate that re-certifies the read-only
+Plugin **0.4.127** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -89,10 +89,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.59`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.60`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.126` accepts only the exact
+permission/budget enforcement. Version `0.4.127` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -101,7 +101,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.126` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.127` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -110,7 +110,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.126`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.127`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph

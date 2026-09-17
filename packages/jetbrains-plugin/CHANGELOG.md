@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.127] - Pair with governed PM exploration recovery (2026-09-17)
+
+- Pair with `chainlesschain@0.166.60` after its exact-SHA CLI and strict-sandbox
+  matrices and public npm readback complete.
+- Carry the CLI-owned bounded Broad/Deep PM exploration plans, independent
+  result grading, and authenticated recovery evidence into IDE-driven Agent
+  sessions without granting the plugin execution or promotion authority.
+- Keep production qualification, durable authority, and fail-closed recovery
+  decisions in the CLI host; this release adds no IDE-owned bypass.
+
 ## [0.4.126] - Continue long tasks with durable notes (2026-09-16)
 
 - Pair with `chainlesschain@0.166.59` and Context/Memory Kernel `0.1.4`.
