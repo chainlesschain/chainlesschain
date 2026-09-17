@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.128] - Correct CLI pairing for 0.166.62 (2026-09-18)
+
+- Recommend the publicly verified `chainlesschain@0.166.62` release in runtime
+  upgrade guidance and release metadata.
+- Keep the bridge a bounded CLI client; this correction changes neither
+  execution authority nor the plugin's compatibility floor.
+
 ## [0.4.127] - Pair with governed PM exploration recovery (2026-09-17)
 
 - Pair with `chainlesschain@0.166.60` after its exact-SHA CLI and strict-sandbox
