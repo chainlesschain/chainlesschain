@@ -46,7 +46,7 @@ CLI option.
   and deferred-question projections, plus paginated background-session access;
   all authority remains in the CLI host.
 - **Correct the immutable CLI pairing.** Recommend the publicly verified
-  `chainlesschain@0.166.62` release rather than the stale `0.166.60` metadata.
+  release rather than stale metadata.
 - **Pair with governed PM exploration recovery.** The CLI owns bounded
   Broad/Deep plans, independent result grading, authenticated recovery
   snapshots, and fail-closed durable authority; the extension receives only
@@ -177,7 +177,7 @@ CLI option.
 > Stock Microsoft VS Code does not query Open VSX. Do not use the Open VSX
 > **Install** URI with stock VS Code; it redirects the editor to the Microsoft
 > Marketplace, where this extension is intentionally not listed. Download the
-> [0.37.107 VSIX directly (available only after extension publication)](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.107/file/chainlesschain.chainlesschain-ide-0.37.107.vsix)
+> [0.37.108 VSIX directly (available only after extension publication)](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.108/file/chainlesschain.chainlesschain-ide-0.37.108.vsix)
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can continue to install by extension ID.
 
@@ -251,7 +251,7 @@ under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
 The reserved immutable publication tag for this unreleased extension is
-[`ide-vscode-v0.37.107`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.107).
+[`ide-vscode-v0.37.108`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.108).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. Registry availability can be checked on the
@@ -321,11 +321,11 @@ the public registry artifact back. Registry availability can be checked on the
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.166.62
+npm i -g chainlesschain@0.166.63
 cc --version
 ```
 
-Using `@0.166.62` reproduces the preferred, fully gated public CLI pairing,
+Using `@0.166.63` reproduces the preferred, fully gated public CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.
@@ -338,7 +338,7 @@ The extension is published on
 - In VSCodium and other Open VSX-compatible editors, search for
   **ChainlessChain IDE** (`chainlesschain.chainlesschain-ide`).
 - In stock Microsoft VS Code, do not click Open VSX's generic **Install** link.
-  Download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.107/file/chainlesschain.chainlesschain-ide-0.37.107.vsix)
+  Download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.108/file/chainlesschain.chainlesschain-ide-0.37.108.vsix)
   and run **Extensions: Install from VSIX...**. The extension is intentionally
   not listed on the Microsoft VS Code Marketplace.
 - JetBrains users can install the sibling plugin from the
@@ -494,7 +494,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.107.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.108.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code
