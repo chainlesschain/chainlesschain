@@ -18,6 +18,8 @@ const {
 } = require("./desktop-pm-read-only-outcome-reader");
 
 const SEAL_SCHEMA = "chainlesschain.desktop-pm-database-pre-run-seal/v1";
+const RECOVERY_SNAPSHOT_CAPTURE_SCHEMA =
+  "chainlesschain.desktop-pm-database-recovery-snapshot-capture/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024 * 1024;
 
@@ -129,7 +131,7 @@ function createDesktopPmPreRunSealValue(input = {}) {
   });
 }
 
-async function hashSnapshot(snapshotPath, directory) {
+async function hashSnapshot(snapshotPath, directory, includeBytes = false) {
   const [directoryPath, resolvedSnapshot, metadata] = await Promise.all([
     realpath(directory),
     realpath(snapshotPath),
@@ -151,6 +153,7 @@ async function hashSnapshot(snapshotPath, directory) {
       "chainlesschain.desktop-pm-database-snapshot/v1\0",
     );
     const buffer = Buffer.allocUnsafe(1024 * 1024);
+    const chunks = includeBytes ? [] : null;
     let bytes = 0;
     while (bytes < metadata.size) {
       const length = Math.min(buffer.byteLength, metadata.size - bytes);
@@ -158,6 +161,7 @@ async function hashSnapshot(snapshotPath, directory) {
       if (read.bytesRead < 1)
         throw new Error("Desktop PM database backup ended unexpectedly");
       hasher.update(buffer.subarray(0, read.bytesRead));
+      if (chunks) chunks.push(Buffer.from(buffer.subarray(0, read.bytesRead)));
       bytes += read.bytesRead;
     }
     const after = await handle.stat();
@@ -171,6 +175,7 @@ async function hashSnapshot(snapshotPath, directory) {
     return Object.freeze({
       snapshotDigest: `sha256:${hasher.digest("hex")}`,
       snapshotBytes: bytes,
+      bytes: chunks ? Buffer.concat(chunks, bytes) : null,
     });
   } finally {
     await handle.close();
@@ -198,7 +203,7 @@ function pathDigest(port) {
   );
 }
 
-function createDesktopPmPreRunSealCaptureFactory(databaseProvider) {
+function createCaptureFactory(databaseProvider, includeBytes) {
   directFunction(databaseProvider, "Desktop PM database provider");
   const identity = { manager: null, databasePathDigest: null };
   return async function captureDesktopPmPreRunSeal() {
@@ -218,7 +223,11 @@ function createDesktopPmPreRunSealCaptureFactory(databaseProvider) {
     try {
       await Reflect.apply(before.backup, before.manager, [snapshotPath]);
       await access(snapshotPath, constants.R_OK);
-      const snapshot = await hashSnapshot(snapshotPath, directory);
+      const snapshot = await hashSnapshot(
+        snapshotPath,
+        directory,
+        includeBytes,
+      );
       const after = managerPort(databaseProvider);
       if (
         after.manager !== before.manager ||
@@ -226,15 +235,30 @@ function createDesktopPmPreRunSealCaptureFactory(databaseProvider) {
       ) {
         throw new Error("Desktop PM database identity changed while sealing");
       }
-      return createDesktopPmPreRunSealValue({
+      const seal = createDesktopPmPreRunSealValue({
         databasePathDigest,
         databaseSnapshotDigest: snapshot.snapshotDigest,
         databaseSnapshotBytes: snapshot.snapshotBytes,
       });
+      return includeBytes
+        ? Object.freeze({
+            schema: RECOVERY_SNAPSHOT_CAPTURE_SCHEMA,
+            seal,
+            bytes: snapshot.bytes,
+          })
+        : seal;
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
   };
+}
+
+function createDesktopPmPreRunSealCaptureFactory(databaseProvider) {
+  return createCaptureFactory(databaseProvider, false);
+}
+
+function createDesktopPmRecoverySnapshotCaptureFactory(databaseProvider) {
+  return createCaptureFactory(databaseProvider, true);
 }
 
 const captureDesktopPmPreRunSeal = createDesktopPmPreRunSealCaptureFactory(
@@ -243,6 +267,11 @@ const captureDesktopPmPreRunSeal = createDesktopPmPreRunSealCaptureFactory(
     return getDatabase();
   },
 );
+const captureDesktopPmRecoverySnapshot =
+  createDesktopPmRecoverySnapshotCaptureFactory(() => {
+    const { getDatabase } = require("../database.js");
+    return getDatabase();
+  });
 
 function verifyDesktopPmPreRunSealValue(value, expectedSealDigest) {
   exact(
@@ -298,9 +327,12 @@ async function verifyDesktopPmPreRunSeal(expectedSealDigest) {
 
 module.exports = {
   SEAL_SCHEMA,
+  RECOVERY_SNAPSHOT_CAPTURE_SCHEMA,
   captureDesktopPmPreRunSeal,
+  captureDesktopPmRecoverySnapshot,
   createDesktopPmPreRunSealValue,
   createDesktopPmPreRunSealCaptureFactory,
+  createDesktopPmRecoverySnapshotCaptureFactory,
   verifyDesktopPmPreRunSeal,
   verifyDesktopPmPreRunSealValue,
 };

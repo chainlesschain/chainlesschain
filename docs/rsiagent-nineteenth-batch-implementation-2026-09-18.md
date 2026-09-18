@@ -2,6 +2,7 @@
 
 > 日期：2026-09-18（Asia/Shanghai）<br>
 > 前置实施：[第十八次签名 SQLite pre-run seal 与执行门禁](./rsiagent-eighteenth-batch-implementation-2026-09-18.md)<br>
+> 后续实施：[第二十次异常状态 seal 与执行 host 污染门禁](./rsiagent-twentieth-batch-implementation-2026-09-18.md)<br>
 > 状态：Desktop 在成功完成受治理 Actor 与 grader 后再次生成一致 SQLite backup seal，并把签名 manifest、执行/评分回执、执行前后 seal 以及前序迁移摘要汇入状态迁移链。同一数据库 seal 捕获能力上的 round 会串行执行，避免不同轮次的证据窗口交错；首轮核对 manifest 签入的初始 seal，后续轮核对上一轮 post seal。该结果仍不是耐久、已签名的恢复记录。
 
 ## 1. 执行后状态封口
@@ -65,7 +66,7 @@ CLI manifest/receipt 协议未在本批再次修改；本批最终按 `packages/
 
 ## 5. 保留边界
 
-- post-run seal 只在底层受治理 round 成功返回且回执结构有效后生成；异常中断路径尚无 crash-time seal；
+- 本批 post-run seal 只在底层受治理 round 成功返回且回执结构有效后生成；后续第二十批已给可捕获的异常路径增加 failure-state seal 与 taint 门禁，但进程崩溃、断电和 native fatal error 仍无 crash-time seal；
 - 临时 SQLite backup 在哈希后删除，不是可用于恢复的耐久快照；
 - 现有 workflow snapshot/restore 会逐表删除和插入，并可能吞掉局部失败，不满足本试点的原子恢复要求，因而没有接入；
 - 尚未覆盖 workspace 文件、外部服务、操作系统资源或未提交应用内存；

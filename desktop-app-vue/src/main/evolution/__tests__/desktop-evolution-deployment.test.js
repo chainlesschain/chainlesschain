@@ -7,6 +7,7 @@ const {
 const {
   evaluateDesktopPmExplorationMemory,
   executeDesktopPmExplorationRound,
+  inspectDesktopPmExplorationExecutionHost,
   inspectDesktopPmExplorationStorageHost,
   isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
@@ -15,6 +16,8 @@ const {
   resolveLoaderPath,
   resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
+  resolvePmExplorationRecoverySnapshotStorePath,
+  resolvePmExplorationTransitionCommitterPath,
 } = require("../desktop-evolution-deployment");
 const {
   createDesktopPmPreRunSealValue,
@@ -41,6 +44,121 @@ function runtimeConfig(revision) {
     promotionProvider: { authorizePromotion: async () => null },
     revalidationProvider: { authorizeRevalidation: async () => null },
   };
+}
+
+function sha(label) {
+  return `sha256:${createHash("sha256").update(label).digest("hex")}`;
+}
+
+function successTransitionEvidence({
+  manifestDigest,
+  preRunSeal,
+  postRunSeal,
+  previousStateTransitionDigest = null,
+  executionReceiptDigest = sha("recovered-execution-receipt"),
+  graderReceiptDigest = sha("recovered-grader-receipt"),
+}) {
+  const stateTransitionDigest = `sha256:${createHash("sha256")
+    .update("chainlesschain.desktop-pm-database-transition/v1\0")
+    .update(
+      JSON.stringify({
+        manifestDigest,
+        executionReceiptDigest,
+        graderReceiptDigest,
+        preRunSealDigest: preRunSeal.sealDigest,
+        postRunSealDigest: postRunSeal.sealDigest,
+        previousStateTransitionDigest,
+      }),
+    )
+    .digest("hex")}`;
+  return Object.freeze({
+    schema: "chainlesschain.desktop-pm-state-transition-success/v1",
+    manifestDigest,
+    executionReceiptDigest,
+    graderReceiptDigest,
+    preRunSeal,
+    postRunSeal,
+    databaseChanged:
+      postRunSeal.databaseSnapshotDigest !== preRunSeal.databaseSnapshotDigest,
+    previousStateTransitionDigest,
+    stateTransitionDigest,
+    authenticated: false,
+    durable: false,
+    qualifiesForPromotion: false,
+  });
+}
+
+function failureTransitionEvidence({
+  manifestDigest,
+  preRunSeal,
+  failureSeal,
+  previousStateTransitionDigest = null,
+}) {
+  const core = {
+    schema: "chainlesschain.desktop-pm-failed-execution-evidence/v1",
+    manifestDigest,
+    preRunSeal,
+    failureSeal,
+    databaseIdentityUnchanged:
+      failureSeal.databasePathDigest === preRunSeal.databasePathDigest,
+    databaseChanged:
+      failureSeal.databaseSnapshotDigest !== preRunSeal.databaseSnapshotDigest,
+    previousStateTransitionDigest,
+    failureClass: "execution-or-evidence-failed",
+    authenticated: false,
+    durable: false,
+    qualifiesForPromotion: false,
+  };
+  return Object.freeze({
+    ...core,
+    evidenceDigest: `sha256:${createHash("sha256")
+      .update("chainlesschain.desktop-pm-failed-execution-evidence/v1\0")
+      .update(JSON.stringify(core))
+      .digest("hex")}`,
+  });
+}
+
+function recoveredTransition(
+  manifestDigest,
+  evidence,
+  transitionKind,
+  revision,
+) {
+  return Object.freeze({
+    schema: "chainlesschain.pm-exploration-transition-recovery/v1",
+    authenticated: true,
+    durable: true,
+    readbackVerified: true,
+    manifestDigest,
+    revision,
+    transitionKind,
+    evidenceDigest:
+      transitionKind === "success"
+        ? evidence.stateTransitionDigest
+        : evidence.evidenceDigest,
+    evidence,
+    ledgerHeadDigest: sha(`ledger-head-${revision}`),
+    ledgerEventDigest: sha(`ledger-event-${revision}`),
+    durabilityReceiptDigest: sha(`durability-${revision}`),
+    qualifiesForPromotion: false,
+  });
+}
+
+function databaseRecoverySnapshot(label, databasePathDigest = sha("database")) {
+  const bytes = Buffer.from(`sqlite-backup:${label}`);
+  const databaseSnapshotDigest = `sha256:${createHash("sha256")
+    .update("chainlesschain.desktop-pm-database-snapshot/v1\0")
+    .update(bytes)
+    .digest("hex")}`;
+  return Object.freeze({
+    schema: "chainlesschain.desktop-pm-database-recovery-snapshot-capture/v1",
+    seal: createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest,
+      databaseSnapshotBytes: bytes.byteLength,
+    }),
+    bytes,
+  });
 }
 
 describe("desktop evolution deployment", () => {
@@ -392,15 +510,31 @@ describe("desktop evolution deployment", () => {
       )
       .digest("hex")}`;
 
-    await expect(
-      executeDesktopPmExplorationRound(host, "journal", { roundId: "r1" }),
-    ).resolves.toEqual({
-      schema: "chainlesschain.desktop-pm-sealed-execution-result/v2",
+    const transitionEvidence = {
+      schema: "chainlesschain.desktop-pm-state-transition-success/v1",
+      manifestDigest,
+      executionReceiptDigest,
+      graderReceiptDigest,
       preRunSeal,
       postRunSeal,
       databaseChanged: true,
       previousStateTransitionDigest: null,
       stateTransitionDigest,
+      authenticated: false,
+      durable: false,
+      qualifiesForPromotion: false,
+    };
+    await expect(
+      executeDesktopPmExplorationRound(host, "journal", { roundId: "r1" }),
+    ).resolves.toEqual({
+      schema: "chainlesschain.desktop-pm-sealed-execution-result/v3",
+      preRunSeal,
+      postRunSeal,
+      databaseChanged: true,
+      previousStateTransitionDigest: null,
+      stateTransitionDigest,
+      transitionEvidence,
+      transitionDurability: null,
       executionResult: {
         kind: "round",
         journal: "journal",
@@ -429,6 +563,651 @@ describe("desktop evolution deployment", () => {
     expect(evaluateMemory).toHaveBeenCalledWith(rawHost, "journal", {
       finalMemoryDigest: "sha256:test",
     });
+  });
+
+  it("commits successful transition evidence through the signed durability capability", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = `sha256:${"4".repeat(64)}`;
+    const preRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const postRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: preRunSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSeal)
+      .mockResolvedValueOnce(postRunSeal);
+    const commitTransition = vi.fn(async (evidence) =>
+      Object.freeze({
+        schema: "chainlesschain.pm-exploration-transition-durability-ack/v1",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        evidenceDigest: evidence.stateTransitionDigest,
+        transitionKind: "success",
+        ledgerEventDigest: `sha256:${"8".repeat(64)}`,
+        durabilityReceiptDigest: `sha256:${"9".repeat(64)}`,
+        qualifiesForPromotion: false,
+      }),
+    );
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSeal.sealDigest,
+        }),
+        executePmExplorationRound: async () => ({
+          executionReceipt: { receiptDigest: `sha256:${"5".repeat(64)}` },
+          graderReceipt: { receiptDigest: `sha256:${"6".repeat(64)}` },
+        }),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: (value) => {
+          if (value !== rawCommitter) throw new TypeError("unbranded");
+          return Object.freeze({ manifestDigest, commitTransition });
+        },
+      }),
+      capturePmPreRunSeal,
+    });
+
+    const execution = await executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "r1" },
+    );
+
+    expect(result.desktopPmExplorationTransitionCommitter).toBeUndefined();
+    expect(commitTransition).toHaveBeenCalledOnce();
+    expect(commitTransition).toHaveBeenCalledWith(execution.transitionEvidence);
+    expect(Object.isFrozen(execution.transitionEvidence)).toBe(true);
+    expect(execution.transitionDurability).toMatchObject({
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      evidenceDigest: execution.stateTransitionDigest,
+      transitionKind: "success",
+    });
+    expect(
+      inspectDesktopPmExplorationExecutionHost(
+        result.desktopPmExplorationExecutionHost,
+      ),
+    ).toMatchObject({ transitionDurabilityConfigured: true });
+  });
+
+  it("retains and readback-binds the post-run database snapshot before committing success", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const rawSnapshotStore = Object.freeze({});
+    const manifestDigest = sha("snapshot-backed-manifest");
+    const databasePathDigest = sha("snapshot-backed-database");
+    const preRunSnapshot = databaseRecoverySnapshot(
+      "before",
+      databasePathDigest,
+    );
+    const postRunSnapshot = databaseRecoverySnapshot(
+      "after",
+      databasePathDigest,
+    );
+    const events = [];
+    const capturePmRecoverySnapshot = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        events.push("capture-pre");
+        return preRunSnapshot;
+      })
+      .mockImplementationOnce(async () => {
+        events.push("capture-post");
+        return postRunSnapshot;
+      });
+    const retainTransitionSnapshot = vi.fn(async (request) => {
+      events.push("retain-snapshot");
+      return Object.freeze({
+        schema: "chainlesschain.pm-exploration-recovery-snapshot-ack/v1",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        transitionKind: request.transitionKind,
+        snapshotRole: request.snapshotRole,
+        evidenceDigest: request.evidenceDigest,
+        sealDigest: request.seal.sealDigest,
+        databaseSnapshotDigest: request.seal.databaseSnapshotDigest,
+        databaseSnapshotBytes: request.seal.databaseSnapshotBytes,
+        artifactDigest: sha("snapshot-artifact"),
+        artifactRef: "snapshot:success",
+        durabilityAuthorityId: "durability:test",
+        durabilityReceiptDigest: sha("snapshot-receipt"),
+        qualifiesForPromotion: false,
+        snapshotAckDigest: sha("snapshot-ack"),
+      });
+    });
+    const commitTransition = vi.fn(async (evidence, snapshotAck) => {
+      events.push("commit-transition");
+      return Object.freeze({
+        schema: "chainlesschain.pm-exploration-transition-durability-ack/v2",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        evidenceDigest: evidence.stateTransitionDigest,
+        transitionKind: "success",
+        recoverySnapshotAckDigest: snapshotAck.snapshotAckDigest,
+        ledgerEventDigest: sha("snapshot-ledger-event"),
+        durabilityReceiptDigest: sha("transition-receipt"),
+        qualifiesForPromotion: false,
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+          pmExplorationRecoverySnapshotStore: rawSnapshotStore,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSnapshot.seal.sealDigest,
+        }),
+        executePmExplorationRound: async () => {
+          events.push("execute");
+          return {
+            executionReceipt: { receiptDigest: sha("snapshot-execution") },
+            graderReceipt: { receiptDigest: sha("snapshot-grader") },
+          };
+        },
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition,
+        }),
+      }),
+      importPmExplorationRecoverySnapshotModule: async () => ({
+        capturePmExplorationRecoverySnapshotStore: (value) => {
+          if (value !== rawSnapshotStore) throw new TypeError("unbranded");
+          return { manifestDigest, retainTransitionSnapshot };
+        },
+      }),
+      capturePmRecoverySnapshot,
+      capturePmPreRunSeal: vi.fn(),
+    });
+
+    const execution = await executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "snapshot-backed" },
+    );
+    expect(result.desktopPmExplorationRecoverySnapshotStore).toBeUndefined();
+    expect(execution.schema).toBe(
+      "chainlesschain.desktop-pm-sealed-execution-result/v4",
+    );
+    expect(execution.recoverySnapshot).toMatchObject({
+      transitionKind: "success",
+      snapshotRole: "post-run",
+      evidenceDigest: execution.stateTransitionDigest,
+      sealDigest: postRunSnapshot.seal.sealDigest,
+    });
+    expect(retainTransitionSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        manifestDigest,
+        transitionKind: "success",
+        snapshotRole: "post-run",
+        evidenceDigest: execution.stateTransitionDigest,
+        seal: postRunSnapshot.seal,
+        bytes: expect.any(Buffer),
+      }),
+    );
+    expect(commitTransition).toHaveBeenCalledWith(
+      execution.transitionEvidence,
+      execution.recoverySnapshot,
+    );
+    expect(events).toEqual([
+      "capture-pre",
+      "execute",
+      "capture-post",
+      "retain-snapshot",
+      "commit-transition",
+    ]);
+    expect(
+      inspectDesktopPmExplorationExecutionHost(
+        result.desktopPmExplorationExecutionHost,
+      ),
+    ).toMatchObject({ recoverySnapshotConfigured: true });
+  });
+
+  it("retains the pre-run snapshot as the recovery target for a failed round", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const rawSnapshotStore = Object.freeze({});
+    const manifestDigest = sha("failure-snapshot-manifest");
+    const databasePathDigest = sha("failure-snapshot-database");
+    const preRunSnapshot = databaseRecoverySnapshot(
+      "failure-before",
+      databasePathDigest,
+    );
+    const failureSnapshot = databaseRecoverySnapshot(
+      "failure-after",
+      databasePathDigest,
+    );
+    const actorFailure = new Error("actor changed the database then failed");
+    const capturePmRecoverySnapshot = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSnapshot)
+      .mockResolvedValueOnce(failureSnapshot);
+    const retainTransitionSnapshot = vi.fn(async (request) => ({
+      schema: "chainlesschain.pm-exploration-recovery-snapshot-ack/v1",
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest,
+      transitionKind: "failure",
+      snapshotRole: "pre-run",
+      evidenceDigest: request.evidenceDigest,
+      sealDigest: request.seal.sealDigest,
+      databaseSnapshotDigest: request.seal.databaseSnapshotDigest,
+      databaseSnapshotBytes: request.seal.databaseSnapshotBytes,
+      artifactDigest: sha("failure-snapshot-artifact"),
+      artifactRef: "snapshot:failure",
+      durabilityAuthorityId: "durability:test",
+      durabilityReceiptDigest: sha("failure-snapshot-receipt"),
+      qualifiesForPromotion: false,
+      snapshotAckDigest: sha("failure-snapshot-ack"),
+    }));
+    const commitTransition = vi.fn(async (evidence, snapshotAck) => ({
+      schema: "chainlesschain.pm-exploration-transition-durability-ack/v2",
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest,
+      evidenceDigest: evidence.evidenceDigest,
+      transitionKind: "failure",
+      recoverySnapshotAckDigest: snapshotAck.snapshotAckDigest,
+      ledgerEventDigest: sha("failure-snapshot-event"),
+      durabilityReceiptDigest: sha("failure-transition-receipt"),
+      qualifiesForPromotion: false,
+    }));
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+          pmExplorationRecoverySnapshotStore: rawSnapshotStore,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSnapshot.seal.sealDigest,
+        }),
+        executePmExplorationRound: async () => {
+          throw actorFailure;
+        },
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition,
+        }),
+      }),
+      importPmExplorationRecoverySnapshotModule: async () => ({
+        capturePmExplorationRecoverySnapshotStore: () => ({
+          manifestDigest,
+          retainTransitionSnapshot,
+        }),
+      }),
+      capturePmRecoverySnapshot,
+    });
+    let failure;
+    try {
+      await executeDesktopPmExplorationRound(
+        result.desktopPmExplorationExecutionHost,
+        "journal",
+        { roundId: "failure-snapshot" },
+      );
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({
+      code: "CC_DESKTOP_PM_EXECUTION_TAINTED",
+      cause: actorFailure,
+      recoverySnapshotFailed: false,
+      recoverySnapshot: {
+        transitionKind: "failure",
+        snapshotRole: "pre-run",
+        sealDigest: preRunSnapshot.seal.sealDigest,
+      },
+    });
+    const request = retainTransitionSnapshot.mock.calls[0][0];
+    expect(request.seal).toEqual(preRunSnapshot.seal);
+    expect(request.bytes).toEqual(preRunSnapshot.bytes);
+    expect(commitTransition).toHaveBeenCalledWith(
+      failure.evidence,
+      failure.recoverySnapshot,
+    );
+  });
+
+  it("reconstructs the transition chain from an authenticated success head", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = sha("restart-success-manifest");
+    const databasePathDigest = sha("restart-success-database");
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-success-initial"),
+      databaseSnapshotBytes: 4096,
+    });
+    const recoveredSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-success-recovered"),
+      databaseSnapshotBytes: 4096,
+    });
+    const nextSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-success-next"),
+      databaseSnapshotBytes: 4096,
+    });
+    const recoveredEvidence = successTransitionEvidence({
+      manifestDigest,
+      preRunSeal: initialSeal,
+      postRunSeal: recoveredSeal,
+    });
+    const recovery = recoveredTransition(
+      manifestDigest,
+      recoveredEvidence,
+      "success",
+      7,
+    );
+    const recoverTransition = vi.fn(async () => recovery);
+    const commitTransition = vi.fn(async (evidence) => ({
+      schema: "chainlesschain.pm-exploration-transition-durability-ack/v1",
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest,
+      evidenceDigest: evidence.stateTransitionDigest,
+      transitionKind: "success",
+      ledgerEventDigest: sha("restart-success-next-event"),
+      durabilityReceiptDigest: sha("restart-success-next-receipt"),
+      qualifiesForPromotion: false,
+    }));
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(recoveredSeal)
+      .mockResolvedValueOnce(nextSeal);
+    const executeRound = vi.fn(async () => ({
+      executionReceipt: { receiptDigest: sha("restart-next-execution") },
+      graderReceipt: { receiptDigest: sha("restart-next-grader") },
+    }));
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: (value) => {
+          if (value !== rawCommitter) throw new TypeError("unbranded");
+          return { manifestDigest, commitTransition, recoverTransition };
+        },
+      }),
+      capturePmPreRunSeal,
+    });
+    const host = result.desktopPmExplorationExecutionHost;
+
+    expect(recoverTransition).toHaveBeenCalledOnce();
+    expect(capturePmPreRunSeal).not.toHaveBeenCalled();
+    expect(inspectDesktopPmExplorationExecutionHost(host)).toMatchObject({
+      tainted: false,
+      transitionRecoveryConfigured: true,
+      transitionRecoveryStatus: "success",
+      transitionRecoveryRevision: 7,
+    });
+
+    const execution = await executeDesktopPmExplorationRound(host, "journal", {
+      roundId: "after-restart",
+    });
+    expect(execution.preRunSeal).toEqual(recoveredSeal);
+    expect(execution.previousStateTransitionDigest).toBe(
+      recoveredEvidence.stateTransitionDigest,
+    );
+    expect(execution.transitionEvidence.previousStateTransitionDigest).toBe(
+      recoveredEvidence.stateTransitionDigest,
+    );
+    expect(executeRound).toHaveBeenCalledOnce();
+    expect(commitTransition).toHaveBeenCalledOnce();
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(2);
+  });
+
+  it("reconstructs a durable failure head as a tainted restart state", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = sha("restart-failure-manifest");
+    const databasePathDigest = sha("restart-failure-database");
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-failure-initial"),
+      databaseSnapshotBytes: 4096,
+    });
+    const failureSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-failure-written"),
+      databaseSnapshotBytes: 4096,
+    });
+    const previousStateTransitionDigest = sha("previous-success-transition");
+    const evidence = failureTransitionEvidence({
+      manifestDigest,
+      preRunSeal: initialSeal,
+      failureSeal,
+      previousStateTransitionDigest,
+    });
+    const recoverTransition = vi.fn(async () =>
+      recoveredTransition(manifestDigest, evidence, "failure", 8),
+    );
+    const capturePmPreRunSeal = vi.fn();
+    const executeRound = vi.fn();
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition: vi.fn(),
+          recoverTransition,
+        }),
+      }),
+      capturePmPreRunSeal,
+    });
+    const host = result.desktopPmExplorationExecutionHost;
+
+    expect(inspectDesktopPmExplorationExecutionHost(host)).toMatchObject({
+      tainted: true,
+      requiresRecovery: true,
+      transitionRecoveryConfigured: true,
+      transitionRecoveryStatus: "failure",
+      transitionRecoveryRevision: 8,
+    });
+    await expect(
+      executeDesktopPmExplorationRound(host, "journal", {
+        roundId: "must-not-run",
+      }),
+    ).rejects.toMatchObject({ code: "CC_DESKTOP_PM_EXECUTION_TAINTED" });
+    expect(recoverTransition).toHaveBeenCalledOnce();
+    expect(capturePmPreRunSeal).not.toHaveBeenCalled();
+    expect(executeRound).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when transition recovery is not bound to the manifest", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = sha("recovery-binding-manifest");
+    const recoverTransition = vi.fn(async () => ({
+      schema: "chainlesschain.pm-exploration-transition-recovery/v1",
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest: sha("substituted-manifest"),
+      revision: 0,
+      transitionKind: null,
+      evidenceDigest: null,
+      evidence: null,
+      ledgerHeadDigest: sha("empty-ledger-head"),
+      ledgerEventDigest: null,
+      durabilityReceiptDigest: null,
+      qualifiesForPromotion: false,
+    }));
+
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationExecutionHost: rawHost,
+            pmExplorationTransitionCommitter: rawCommitter,
+          }),
+        }),
+        importPmExplorationExecutionModule: async () => ({
+          isPmExplorationExecutionHost: (value) => value === rawHost,
+          inspectPmExplorationExecutionHost: () => ({
+            manifestDigest,
+            preRunSealDigest: sha("initial-seal"),
+          }),
+          executePmExplorationRound: vi.fn(),
+          mergePmExplorationBranches: vi.fn(),
+          evaluatePmExplorationMemory: vi.fn(),
+        }),
+        importPmExplorationTransitionModule: async () => ({
+          capturePmExplorationTransitionCommitter: () => ({
+            manifestDigest,
+            commitTransition: vi.fn(),
+            recoverTransition,
+          }),
+        }),
+      }),
+    ).rejects.toThrow("transition recovery is invalid");
+    expect(recoverTransition).toHaveBeenCalledOnce();
+  });
+
+  it("taints without appending a contradictory failure when success commit is ambiguous", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = `sha256:${"4".repeat(64)}`;
+    const preRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const postRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: preRunSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSeal)
+      .mockResolvedValueOnce(postRunSeal)
+      .mockResolvedValueOnce(postRunSeal);
+    const commitFailure = new Error("durability acknowledgement was lost");
+    const commitTransition = vi.fn(async () => {
+      throw commitFailure;
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSeal.sealDigest,
+        }),
+        executePmExplorationRound: async () => ({
+          executionReceipt: { receiptDigest: `sha256:${"5".repeat(64)}` },
+          graderReceipt: { receiptDigest: `sha256:${"6".repeat(64)}` },
+        }),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition,
+        }),
+      }),
+      capturePmPreRunSeal,
+    });
+
+    await expect(
+      executeDesktopPmExplorationRound(
+        result.desktopPmExplorationExecutionHost,
+        "journal",
+        { roundId: "r1" },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_DESKTOP_PM_EXECUTION_TAINTED",
+      cause: commitFailure,
+      transitionDurability: null,
+      transitionDurabilityFailed: true,
+      transitionCommitOutcomeUnknown: true,
+    });
+    expect(commitTransition).toHaveBeenCalledOnce();
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(3);
+    expect(
+      inspectDesktopPmExplorationExecutionHost(
+        result.desktopPmExplorationExecutionHost,
+      ).tainted,
+    ).toBe(true);
   });
 
   it("serializes seal-execute-seal windows that share a database capture", async () => {
@@ -571,6 +1350,186 @@ describe("desktop evolution deployment", () => {
     expect(capturePmPreRunSeal).toHaveBeenCalledTimes(4);
   });
 
+  it("seals a failed execution and taints the host until recovery", async () => {
+    const rawHost = Object.freeze({});
+    const preRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const failureSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: preRunSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSeal)
+      .mockResolvedValueOnce(failureSeal);
+    const actorFailure = new Error("actor crashed after a committed write");
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = `sha256:${"4".repeat(64)}`;
+    const commitTransition = vi.fn(async (evidence) =>
+      Object.freeze({
+        schema: "chainlesschain.pm-exploration-transition-durability-ack/v1",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        evidenceDigest: evidence.evidenceDigest,
+        transitionKind: "failure",
+        ledgerEventDigest: `sha256:${"8".repeat(64)}`,
+        durabilityReceiptDigest: `sha256:${"9".repeat(64)}`,
+        qualifiesForPromotion: false,
+      }),
+    );
+    const executeRound = vi.fn(async () => {
+      throw actorFailure;
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: (value) => {
+          if (value !== rawCommitter) throw new TypeError("unbranded");
+          return Object.freeze({ manifestDigest, commitTransition });
+        },
+      }),
+      capturePmPreRunSeal,
+    });
+    const host = result.desktopPmExplorationExecutionHost;
+    let failure;
+
+    try {
+      await executeDesktopPmExplorationRound(host, "journal", {
+        roundId: "r1",
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure.code).toBe("CC_DESKTOP_PM_EXECUTION_TAINTED");
+    expect(failure.cause).toBe(actorFailure);
+    const failureCore = {
+      schema: "chainlesschain.desktop-pm-failed-execution-evidence/v1",
+      manifestDigest,
+      preRunSeal,
+      failureSeal,
+      databaseIdentityUnchanged: true,
+      databaseChanged: true,
+      previousStateTransitionDigest: null,
+      failureClass: "execution-or-evidence-failed",
+      authenticated: false,
+      durable: false,
+      qualifiesForPromotion: false,
+    };
+    const evidenceDigest = `sha256:${createHash("sha256")
+      .update("chainlesschain.desktop-pm-failed-execution-evidence/v1\0")
+      .update(JSON.stringify(failureCore))
+      .digest("hex")}`;
+    expect(failure.evidence).toEqual({
+      ...failureCore,
+      evidenceDigest,
+    });
+    expect(Object.isFrozen(failure.evidence)).toBe(true);
+    expect(failure.transitionDurability).toMatchObject({
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      evidenceDigest,
+      transitionKind: "failure",
+    });
+    expect(failure.transitionDurabilityFailed).toBe(false);
+    expect(commitTransition).toHaveBeenCalledWith(failure.evidence);
+    expect(inspectDesktopPmExplorationExecutionHost(host)).toEqual({
+      tainted: true,
+      requiresRecovery: true,
+      transitionDurabilityConfigured: true,
+      recoverySnapshotConfigured: false,
+      transitionRecoveryConfigured: false,
+      transitionRecoveryStatus: "unavailable",
+      transitionRecoveryRevision: null,
+      qualifiesForPromotion: false,
+    });
+
+    await expect(
+      executeDesktopPmExplorationRound(host, "journal", { roundId: "r2" }),
+    ).rejects.toMatchObject({
+      code: "CC_DESKTOP_PM_EXECUTION_TAINTED",
+      message: "Desktop PM execution host is tainted and requires recovery",
+    });
+    expect(executeRound).toHaveBeenCalledOnce();
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the original failure when the failure-state seal is unavailable", async () => {
+    const rawHost = Object.freeze({});
+    const preRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSeal)
+      .mockRejectedValueOnce(new Error("backup unavailable"));
+    const actorFailure = new Error("actor failure");
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest: `sha256:${"4".repeat(64)}`,
+          preRunSealDigest: preRunSeal.sealDigest,
+        }),
+        executePmExplorationRound: async () => {
+          throw actorFailure;
+        },
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      capturePmPreRunSeal,
+    });
+
+    await expect(
+      executeDesktopPmExplorationRound(
+        result.desktopPmExplorationExecutionHost,
+        "journal",
+        { roundId: "r1" },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_DESKTOP_PM_EXECUTION_TAINTED",
+      cause: actorFailure,
+      evidence: {
+        failureSeal: null,
+        databaseIdentityUnchanged: null,
+        databaseChanged: null,
+        authenticated: false,
+        durable: false,
+      },
+    });
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects unbranded or accessor PM execution hosts", async () => {
     const rawHost = Object.freeze({});
     await expect(
@@ -628,6 +1587,64 @@ describe("desktop evolution deployment", () => {
     await expect(executeDesktopPmExplorationRound({}, {}, {})).rejects.toThrow(
       /branded Desktop PM exploration execution host/,
     );
+  });
+
+  it("rejects unbound, mismatched or accessor transition committers", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const executionModule = {
+      isPmExplorationExecutionHost: (value) => value === rawHost,
+      inspectPmExplorationExecutionHost: () => ({
+        manifestDigest: `sha256:${"4".repeat(64)}`,
+        preRunSealDigest: `sha256:${"1".repeat(64)}`,
+      }),
+      executePmExplorationRound: vi.fn(),
+      mergePmExplorationBranches: vi.fn(),
+      evaluatePmExplorationMemory: vi.fn(),
+    };
+
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationTransitionCommitter: rawCommitter,
+          }),
+        }),
+      }),
+    ).rejects.toThrow("requires an execution host");
+
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationExecutionHost: rawHost,
+            pmExplorationTransitionCommitter: rawCommitter,
+          }),
+        }),
+        importPmExplorationExecutionModule: async () => executionModule,
+        importPmExplorationTransitionModule: async () => ({
+          capturePmExplorationTransitionCommitter: () => ({
+            manifestDigest: `sha256:${"7".repeat(64)}`,
+            commitTransition: vi.fn(),
+          }),
+        }),
+      }),
+    ).rejects.toThrow("manifest does not match execution host");
+
+    const getter = vi.fn();
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () =>
+            Object.defineProperty(
+              { pmExplorationExecutionHost: rawHost },
+              "pmExplorationTransitionCommitter",
+              { enumerable: true, get: getter },
+            ),
+        }),
+      }),
+    ).rejects.toThrow("enumerable data property");
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it("blocks Desktop execution before the signed pre-run seal diverges", async () => {
@@ -891,6 +1908,38 @@ describe("desktop evolution deployment", () => {
         "lib",
         "evolution",
         "pm-exploration-execution-host.js",
+      ),
+    );
+    expect(
+      resolvePmExplorationTransitionCommitterPath({
+        isPackaged: true,
+        resourcesPath: "C:\\app",
+      }),
+    ).toBe(
+      path.join(
+        "C:\\app",
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "evolution",
+        "pm-exploration-transition-committer.js",
+      ),
+    );
+    expect(
+      resolvePmExplorationRecoverySnapshotStorePath({
+        isPackaged: true,
+        resourcesPath: "C:\\app",
+      }),
+    ).toBe(
+      path.join(
+        "C:\\app",
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "evolution",
+        "pm-exploration-recovery-snapshot-store.js",
       ),
     );
   });

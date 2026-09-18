@@ -5,6 +5,7 @@ const path = require("node:path");
 const { types } = require("node:util");
 const { isDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
+  inspectDesktopPmExplorationExecutionHost,
   inspectDesktopPmExplorationStorageHost,
   isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
@@ -25,6 +26,9 @@ const REQUIRED_ENVIRONMENT = Object.freeze({
 const MISSING_RUNTIME_EVIDENCE = Object.freeze([
   "live-provider-probe",
   "signed-database-pre-run-seal",
+  "authenticated-transition-durability-ack",
+  "snapshot-bound-transition-durability-ack",
+  "authenticated-failure-transition-evidence",
   "host-enforced-structured-tool-policy",
   "disposable-workspace-and-database-reset",
   "host-enforced-token-tool-time-budget",
@@ -225,6 +229,11 @@ function inspectDesktopPmExplorationReadiness(host) {
   const storage = inspectDesktopPmExplorationStorageHost(
     captured.pmExplorationStorageHost,
   );
+  const execution = safeCall(() =>
+    inspectDesktopPmExplorationExecutionHost(
+      captured.pmExplorationExecutionHost,
+    ),
+  );
   const checks = [
     check(
       "governed-model-ingress",
@@ -266,6 +275,29 @@ function inspectDesktopPmExplorationReadiness(host) {
       "signed-execution-host",
       isDesktopPmExplorationExecutionHost(captured.pmExplorationExecutionHost),
       "PM_SIGNED_EXECUTION_HOST_REQUIRED",
+    ),
+    check(
+      "execution-host-untainted",
+      execution.ok && ownData(execution.value, "tainted") === false,
+      "PM_EXECUTION_HOST_RECOVERY_REQUIRED",
+    ),
+    check(
+      "signed-transition-committer",
+      execution.ok &&
+        ownData(execution.value, "transitionDurabilityConfigured") === true,
+      "PM_SIGNED_TRANSITION_COMMITTER_REQUIRED",
+    ),
+    check(
+      "signed-transition-recovery",
+      execution.ok &&
+        ownData(execution.value, "transitionRecoveryConfigured") === true,
+      "PM_SIGNED_TRANSITION_RECOVERY_REQUIRED",
+    ),
+    check(
+      "durable-database-recovery-snapshot",
+      execution.ok &&
+        ownData(execution.value, "recoverySnapshotConfigured") === true,
+      "PM_DURABLE_DATABASE_RECOVERY_SNAPSHOT_REQUIRED",
     ),
     check(
       "recovery-store-readable",

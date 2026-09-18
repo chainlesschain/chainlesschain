@@ -1,4 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -7,8 +8,10 @@ import { describe, expect, it, vi } from "vitest";
 
 const {
   SEAL_SCHEMA,
+  RECOVERY_SNAPSHOT_CAPTURE_SCHEMA,
   createDesktopPmPreRunSealValue,
   createDesktopPmPreRunSealCaptureFactory,
+  createDesktopPmRecoverySnapshotCaptureFactory,
   verifyDesktopPmPreRunSealValue,
 } = require("../desktop-pm-pre-run-seal");
 const requireFromHere = createRequire(import.meta.url);
@@ -28,6 +31,9 @@ function sqliteFixture() {
   };
   return {
     capture: createDesktopPmPreRunSealCaptureFactory(() => manager),
+    captureRecoverySnapshot: createDesktopPmRecoverySnapshotCaptureFactory(
+      () => manager,
+    ),
     database,
     databasePath,
     directory,
@@ -83,6 +89,38 @@ describe("Desktop PM pre-run database seal", () => {
     );
     try {
       await expect(capture()).rejects.toThrow("identity changed while sealing");
+    } finally {
+      fixture.database.close();
+      rmSync(fixture.directory, { recursive: true, force: true });
+    }
+  });
+
+  it("returns the exact real SQLite backup bytes for recovery retention", async () => {
+    const fixture = sqliteFixture();
+    try {
+      const captured = await fixture.captureRecoverySnapshot();
+      expect(captured).toMatchObject({
+        schema: RECOVERY_SNAPSHOT_CAPTURE_SCHEMA,
+        seal: {
+          schema: SEAL_SCHEMA,
+          databaseSnapshotBytes: captured.bytes.byteLength,
+        },
+        bytes: expect.any(Buffer),
+      });
+      expect(Object.isFrozen(captured)).toBe(true);
+      const restoredPath = path.join(fixture.directory, "restored.db");
+      await writeFile(restoredPath, captured.bytes);
+      const BetterSqlite3 = requireFromHere("better-sqlite3");
+      const restored = new BetterSqlite3(restoredPath, { readonly: true });
+      try {
+        expect(
+          restored
+            .prepare("SELECT name FROM projects WHERE id = ?")
+            .get("project-one"),
+        ).toEqual({ name: "Before" });
+      } finally {
+        restored.close();
+      }
     } finally {
       fixture.database.close();
       rmSync(fixture.directory, { recursive: true, force: true });

@@ -33,23 +33,63 @@ async function createStorageHost(load) {
   return dependencies.desktopPmExplorationStorageHost;
 }
 
-async function createExecutionHost() {
+async function createExecutionHost({ includeSnapshotStore = true } = {}) {
   const host = Object.freeze({});
+  const committer = Object.freeze({});
+  const snapshotStore = Object.freeze({});
+  const manifestDigest = `sha256:${"2".repeat(64)}`;
   const dependencies = await loadDesktopEvolutionDependencies({
     importLoader: async () => ({
       loadEvolutionDeploymentCommandDependencies: async () => ({
         pmExplorationExecutionHost: host,
+        pmExplorationTransitionCommitter: committer,
+        ...(includeSnapshotStore
+          ? { pmExplorationRecoverySnapshotStore: snapshotStore }
+          : {}),
       }),
     }),
     importPmExplorationExecutionModule: async () => ({
       isPmExplorationExecutionHost: (value) => value === host,
       inspectPmExplorationExecutionHost: () => ({
-        manifestDigest: `sha256:${"2".repeat(64)}`,
+        manifestDigest,
         preRunSealDigest: `sha256:${"1".repeat(64)}`,
       }),
       executePmExplorationRound: vi.fn(),
       mergePmExplorationBranches: vi.fn(),
       evaluatePmExplorationMemory: vi.fn(),
+    }),
+    importPmExplorationTransitionModule: async () => ({
+      capturePmExplorationTransitionCommitter(value) {
+        if (value !== committer) throw new TypeError("unbranded committer");
+        return Object.freeze({
+          manifestDigest,
+          commitTransition: vi.fn(),
+          recoverTransition: vi.fn(async () => ({
+            schema: "chainlesschain.pm-exploration-transition-recovery/v1",
+            authenticated: true,
+            durable: true,
+            readbackVerified: true,
+            manifestDigest,
+            revision: 0,
+            transitionKind: null,
+            evidenceDigest: null,
+            evidence: null,
+            ledgerHeadDigest: `sha256:${"3".repeat(64)}`,
+            ledgerEventDigest: null,
+            durabilityReceiptDigest: null,
+            qualifiesForPromotion: false,
+          })),
+        });
+      },
+    }),
+    importPmExplorationRecoverySnapshotModule: async () => ({
+      capturePmExplorationRecoverySnapshotStore(value) {
+        if (value !== snapshotStore) throw new TypeError("unbranded store");
+        return Object.freeze({
+          manifestDigest,
+          retainTransitionSnapshot: vi.fn(),
+        });
+      },
     }),
   });
   return dependencies.desktopPmExplorationExecutionHost;
@@ -137,11 +177,37 @@ describe("Desktop PM exploration readiness host", () => {
       "signed-database-pre-run-seal",
     );
     expect(result.missingRuntimeEvidence).toContain(
+      "authenticated-transition-durability-ack",
+    );
+    expect(result.missingRuntimeEvidence).toContain(
+      "snapshot-bound-transition-durability-ack",
+    );
+    expect(result.missingRuntimeEvidence).toContain(
+      "authenticated-failure-transition-evidence",
+    );
+    expect(result.missingRuntimeEvidence).toContain(
       "host-enforced-structured-tool-policy",
     );
     expect(
       result.checks.find((entry) => entry.id === "signed-execution-host")
         .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find((entry) => entry.id === "execution-host-untainted")
+        .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-committer")
+        .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-recovery")
+        .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find(
+        (entry) => entry.id === "durable-database-recovery-snapshot",
+      ).passed,
     ).toBe(true);
     expect(result.recoveryStorage).toEqual({
       configured: true,
@@ -248,7 +314,109 @@ describe("Desktop PM exploration readiness host", () => {
         result.checks.find((entry) => entry.id === "signed-execution-host")
           .passed,
       ).toBe(false);
+      expect(
+        result.checks.find((entry) => entry.id === "execution-host-untainted")
+          .passed,
+      ).toBe(false);
     }
+  });
+
+  it("blocks an execution host without a signed transition committer", async () => {
+    const hostWithoutCommitter = await (async () => {
+      const host = Object.freeze({});
+      const dependencies = await loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationExecutionHost: host,
+          }),
+        }),
+        importPmExplorationExecutionModule: async () => ({
+          isPmExplorationExecutionHost: (value) => value === host,
+          inspectPmExplorationExecutionHost: () => ({
+            manifestDigest: `sha256:${"2".repeat(64)}`,
+            preRunSealDigest: `sha256:${"1".repeat(64)}`,
+          }),
+          executePmExplorationRound: vi.fn(),
+          mergePmExplorationBranches: vi.fn(),
+          evaluatePmExplorationMemory: vi.fn(),
+        }),
+      });
+      return dependencies.desktopPmExplorationExecutionHost;
+    })();
+
+    const result = inspect({
+      pmExplorationExecutionHost: hostWithoutCommitter,
+    });
+    expect(result.status).toBe("blocked");
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-committer")
+        .passed,
+    ).toBe(false);
+  });
+
+  it("blocks a transition committer without authenticated recovery readback", async () => {
+    const host = Object.freeze({});
+    const committer = Object.freeze({});
+    const manifestDigest = `sha256:${"2".repeat(64)}`;
+    const dependencies = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: host,
+          pmExplorationTransitionCommitter: committer,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === host,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: `sha256:${"1".repeat(64)}`,
+        }),
+        executePmExplorationRound: vi.fn(),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition: vi.fn(),
+          recoverTransition: null,
+        }),
+      }),
+    });
+
+    const result = inspect({
+      pmExplorationExecutionHost:
+        dependencies.desktopPmExplorationExecutionHost,
+    });
+    expect(result.status).toBe("blocked");
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-committer")
+        .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-recovery")
+        .passed,
+    ).toBe(false);
+  });
+
+  it("blocks an execution host without durable database snapshot retention", async () => {
+    const hostWithoutSnapshots = await createExecutionHost({
+      includeSnapshotStore: false,
+    });
+    const result = inspect({
+      pmExplorationExecutionHost: hostWithoutSnapshots,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(
+      result.checks.find((entry) => entry.id === "signed-transition-recovery")
+        .passed,
+    ).toBe(true);
+    expect(
+      result.checks.find(
+        (entry) => entry.id === "durable-database-recovery-snapshot",
+      ).passed,
+    ).toBe(false);
   });
 
   it("does not invoke accessor traps or expose identity, path or environment values", () => {

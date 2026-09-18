@@ -258,6 +258,8 @@ async function loadBuiltInFactories(commandName) {
       rounds,
       receipts,
       execution,
+      transitionCommitter,
+      recoverySnapshotStore,
       evidence,
       provider,
       settlementAdapter,
@@ -271,6 +273,8 @@ async function loadBuiltInFactories(commandName) {
       import("./pm-exploration-rounds.js"),
       import("./pm-exploration-receipts.js"),
       import("./pm-exploration-execution-host.js"),
+      import("./pm-exploration-transition-committer.js"),
+      import("./pm-exploration-recovery-snapshot-store.js"),
       import("./pm-exploration-evidence-bundle.js"),
       import("./pm-exploration-volcengine-provider.js"),
       import("./pm-exploration-provider-settlement-adapter.js"),
@@ -308,6 +312,18 @@ async function loadBuiltInFactories(commandName) {
       isPmExplorationExecutionHost: execution.isPmExplorationExecutionHost,
       inspectPmExplorationExecutionHost:
         execution.inspectPmExplorationExecutionHost,
+      createPmExplorationTransitionCommitter:
+        transitionCommitter.createPmExplorationTransitionCommitter,
+      capturePmExplorationTransitionCommitter:
+        transitionCommitter.capturePmExplorationTransitionCommitter,
+      verifyPmExplorationTransitionEvidence:
+        transitionCommitter.verifyPmExplorationTransitionEvidence,
+      createPmExplorationRecoverySnapshotStore:
+        recoverySnapshotStore.createPmExplorationRecoverySnapshotStore,
+      capturePmExplorationRecoverySnapshotStore:
+        recoverySnapshotStore.capturePmExplorationRecoverySnapshotStore,
+      verifyPmExplorationRecoverySnapshotAck:
+        recoverySnapshotStore.verifyPmExplorationRecoverySnapshotAck,
       executePmExplorationRound: execution.executePmExplorationRound,
       mergePmExplorationBranches: execution.mergePmExplorationBranches,
       evaluatePmExplorationMemory: execution.evaluatePmExplorationMemory,
