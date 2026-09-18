@@ -432,6 +432,34 @@ if ($LASTEXITCODE -ne 0) {
 
 成功结果中的 `created` 只表示候选已经过 evaluator 并持久化到隔离候选区。它仍不是 active Skill。Desktop Skill Creator 返回 `candidateOnly: true`、`persisted: false`、`activeMutation: false` 时，只应展示为“待审阅候选”。
 
+## 0.166.62：PM 探索恢复的用户与运维边界
+
+公开 CLI `0.166.62` 包含 PM 场景的受治理 Broad/Deep 轮次、独立只读结果评分、静止点恢复快照和 Ledger/Artifact authority 适配器。配套 Open VSX `0.37.107` 与 JetBrains `0.4.128` 推荐同一 CLI，但当前没有向普通用户开放“一键自主探索”入口。
+
+```bash
+npm install --global chainlesschain@0.166.62 --registry https://registry.npmjs.org
+cc --version
+```
+
+`cc --version` 应输出 `0.166.62`。公开版本的正确行为是：
+
+- Desktop readiness 只读取签名 deployment 提供的品牌化存储能力，不向 renderer、IPC、模型或 IDE 暴露写端口、Ledger、authority、密钥或目录。
+- 即使本地配置检查全部满足，`readyForExecution` 仍为 `false`，状态保持 `requires-runtime-evidence`；这表示生产 runner、隔离工作区、硬预算取消、签名 grader 和目标环境恢复证据尚未齐备，不是安装故障。
+- Broad 分支可形成有界候选 Memory，Deep 只能从认证 merge 摘要继续；候选不会进入用户四层 Memory、active Skill 或发布 registry。
+- 只有无活动轮次的静止点可保存快照。恢复会按 Plan 重放 Broad、merge、Deep 和 freeze 转换并核对摘要，不直接相信磁盘上的 JSON。
+- `retention:"ledger"` 的快照必须从 durability authority 解析；authority 超时或断连时，即使本地缓存仍完整也会失败，恢复后才可重新读取。
+
+Linux、Windows、macOS 的精确 SHA 门禁已覆盖多进程恢复、CAS 竞争和 synthetic `EROFS`/`ENOSPC`/authority 故障。报告仍固定标记 `qualifiesForProduction:false`：它不证明真实只读挂载、磁盘耗尽、远端副本、网络时间边界或物理断电。管理员不能通过修改该字段、使用 TEST 密钥或复制本地缓存来绕过生产验收。
+
+排障时按以下顺序判断：
+
+1. `blocked`：先修复缺失或伪造的签名 deployment、存储 capability、模型 ingress、身份或预算配置。
+2. `requires-runtime-evidence`：配置可读但仍缺目标环境执行与恢复证据，继续保持 Explorer 关闭。
+3. authority unavailable：保留 Ledger 与本地缓存，不把缓存当权威；恢复服务后按同一 tenant/plan 重新读取。
+4. commit unknown：以认证 Ledger/witness 历史判定是否已提交，不能因为调用抛错就重复执行。
+
+上述能力不会改变 Review、Pilot、Release 或 automatic active promotion 的 `HOLD` 边界。需要接入目标部署时，应先阅读[模块 112 设计](https://design.chainlesschain.com/modules/112-governed-skill-evolution-design.html)与仓库内第八批恢复实施报告，再为真实 authority、grader、runner 和故障域建立独立验收。
+
 ## 配置参考
 
 当前公开 CLI 没有稳定的 candidate/promotion 配置文件。可信宿主构造合成器或改进器时必须提供以下边界；普通用户不应自行伪造：

@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.62 / Open VSX 0.37.107 / JetBrains 0.4.128（2026-09-18）
+
+- **受治理 PM 探索恢复**：加入训练分区、Broad/Deep 轮次、独立只读 grader、预算/无收益停止、静止点快照与确定性重放；候选 Memory 不进入 active Skill 或用户四层 Memory，Desktop readiness 固定 `readyForExecution:false`。
+- **耐久证据**：快照经 ArtifactPorts、独立 durability authority 与 Evolution Ledger/witness 提交；Ledger-retained 记录在 authority 不可用时不再回退本地缓存。三系统精确 SHA 门覆盖 31 个独立子进程、CAS 竞争和 synthetic EROFS/ENOSPC/authority 故障，仍明确 `qualifiesForProduction:false`。
+- **跨平台稳定性**：规范化 Windows 恢复临时路径，保护存活状态锁，对 ACL 瞬态超时做有界重试，并收敛调度 soak lease 窗口。
+- **发布供应链**：npm OIDC 发布门验证复用子包的 provenance 与字节未漂移；`v-npm-0-166-62@77572e7355` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35267622585)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35267621821)及 [npm 发布/回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35274352115)成功。
+- **IDE 对齐**：`0.37.107` / `0.4.128@6edebc8b25` 均推荐 CLI `0.166.62`；[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35291245830)与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35291246219)成功，公开商店已回读。
+
 #### Released — CLI 0.166.59 / Open VSX 0.37.105 / JetBrains 0.4.126（2026-09-16）
 
 - **耐久任务记录**：Context/Memory Kernel `0.1.4` 将目标、文件证据、失败、修改、计划和压缩边界保存为有界会话检查点；CLI 将已校验状态投影为项目内 `.chainlesschain/sessions/<session-id>/WORKLOG.md`，投影缺失或被修改时可从权威日志重建。

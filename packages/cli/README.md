@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Current release: `chainlesschain@0.166.43`, immutable tag `v-npm-0-166-43`, exact commit [`7528bfb81d`](https://github.com/chainlesschain/chainlesschain/commit/7528bfb81ddb45427b5eb5d1281498cf65e8ab0c). The exact SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/34476406749), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405180), and [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/34476405124) on the configured platforms before [Trusted Publishing and public registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/34479754264).
+> Current release: `chainlesschain@0.166.62`, immutable tag `v-npm-0-166-62`, exact commit [`77572e7355`](https://github.com/chainlesschain/chainlesschain/commit/77572e7355063f618438386389bb6c095d349636). The exact SHA passed every configured Linux, Windows, and macOS job in [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35267622585) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35267621821) before [OIDC publication, reused-package provenance verification, and public registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/35274352115). Open VSX `0.37.107` and JetBrains `0.4.128` are independently gated public IDE releases that recommend this CLI.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.43
+npm install -g chainlesschain@0.166.62
 chainlesschain setup
 ```
 
@@ -31,7 +31,7 @@ cc
 git diff | cc
 ```
 
-## Long-running tasks and bounded recovery (0.166.43)
+## Long-running tasks and bounded recovery (0.166.62)
 
 Since version 0.166.26, the CLI automatically continues repeated large-file
 requests from an unread region, including after context compaction. Actual character coverage
@@ -50,7 +50,7 @@ still fails explicitly rather than claiming the task is complete.
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended
 runs retain the default cap; use `cc agent -p "your task" --max-turns 100` to
-set an explicit limit. VS Code extension 0.37.93 provides
+set an explicit limit. VS Code extension 0.37.107 provides
 `chainlesschain.chat.maxTurns`: 0 follows the interactive default, and a
 positive integer limits each message while preserving session history.
 
@@ -64,6 +64,36 @@ pull-request reads as one bounded investigation. Evidence survives compaction,
 while recovery directs the agent toward a concrete mutation, verification, or
 blocker. Explicit requests to close a targeted pull request remain explicit;
 normal execution approval and one-time state verification still apply.
+
+## Governed PM exploration recovery (0.166.62; execution disabled)
+
+The package now includes bounded PM Broad/Deep round contracts, a read-only
+result grader, quiescent recovery snapshots, and an Evolution
+Ledger/Artifact-authority adapter. Training projections exclude validation/test
+tasks, private expected results, grader identity, and raw split values. A
+candidate Memory advances only inside its Journal; it is not written into the
+user's four-layer Memory, the active Skill tree, or the release registry.
+
+Recovery snapshots are exported only with no active round. Restore reconstructs
+the Journal from its frozen Plan, replays every Broad checkpoint, merge, Deep
+checkpoint, and freeze transition, then compares all digests. A
+`retention:"ledger"` artifact must resolve through its durability authority;
+an intact local cache cannot turn an authority timeout or disconnect into
+success. Unknown commit results are settled from authenticated Ledger/witness
+history rather than retried blindly.
+
+Desktop receives only a branded, non-enumerable read capability from a signed
+deployment. `readyForExecution` remains fixed at `false`; renderer, IPC, models,
+and IDE clients receive neither `commitJournal` nor storage authority. The
+exact-SHA three-OS gate covers 31 child processes, CAS races, forced exits, and
+synthetic EROFS/ENOSPC/authority failures, but its evidence remains
+`qualifiesForProduction:false`. It does not qualify real disks, a remote
+authority, production graders/PKI, or physical power loss, and it does not
+enable Explorer or automatic active-Skill promotion.
+
+This release also normalizes Windows recovery temp paths, preserves live state
+locks, bounds transient ACL retries, and bounds scheduler-soak leases. These
+reliability changes do not widen sandbox, approval, or publication authority.
 
 ## Requirements
 
@@ -96,7 +126,7 @@ source (npm root -g)/chainlesschain/completions/cc.fish
 
 > **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.
 
-### Governed evolution, deployment configuration, and Skill retrieval (`0.166.43`)
+### Governed evolution, deployment configuration, and Skill retrieval (`0.166.62`)
 
 The public command graph now includes digest-bound Evolution Workbench review,
 encrypted governed-knowledge conflict review, and canonical Skill retrieval:
@@ -159,8 +189,8 @@ the managed profile immediately.
 
 The profile is written atomically to
 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json` (normally
-`~/.chainlesschain/evolution/deployment-profile.json`). VS Code 0.37.93,
-JetBrains 0.4.120, and `cc ui` use the same CLI-owned status/configure/toggle
+`~/.chainlesschain/evolution/deployment-profile.json`). VS Code 0.37.107,
+JetBrains 0.4.128, and `cc ui` use the same CLI-owned status/configure/toggle
 surface. IDEs do not store governance private keys or gain review, promotion,
 or release authority. Non-loopback `cc ui` configuration requires a token.
 
@@ -705,7 +735,7 @@ These receipts prove removal of the managed directory entries only. They do not
 claim secure erasure of external hardlinks, downloads, backups, snapshots, or
 viewer caches; the local JSONL ledgers are not WORM or an off-box transparency
 log. These commands are included in the current exact-gated
-`chainlesschain@0.166.43` release, but a local receipt still does not prove
+`chainlesschain@0.166.62` release, but a local receipt still does not prove
 off-box retention or secure erasure outside the managed store.
 
 Durable budget recovery stores a canonical local receipt for each operator

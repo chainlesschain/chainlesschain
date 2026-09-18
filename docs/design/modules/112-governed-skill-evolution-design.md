@@ -60,7 +60,7 @@
 | Memory      | `StructuredMemory*` adapters                                    | episodic/semantic/procedural/policy 四层权力分离                      |
 | Migration   | candidate/release/state migration adapters                      | 计划、journal、故障恢复和 legacy 文件退休                             |
 | Composition | `createAgentEvolutionRuntimeComposition()`                      | 显式注入 KMS/PKI/policy/witness 的 branded 生产根                     |
-| Deployment  | signed descriptor / owner-only profile / exact-byte loader      | 验签后持久选择部署宿主；环境变量可覆盖；自动晋升固定为 HOLD            |
+| Deployment  | signed descriptor / owner-only profile / exact-byte loader      | 验签后持久选择部署宿主；环境变量可覆盖；自动晋升固定为 HOLD           |
 
 ## 4. 系统架构
 
@@ -342,6 +342,45 @@ v2 manifest backend 新增 `createEvolutionLedgerFileManifestHeadBackend()`。�
 
 该实现仍是本地文件后端与测试组合的一部分：生产 KMS/HSM、独立 witness fault domain、真实事件导入、v1→v2 journaled migration、断电/磁盘写满演练和容量门仍需由部署及后续验收完成。
 
+## 18.10 2026-09-18 发布核对：受治理 PM 探索与恢复
+
+`e9a4ca5836..77572e7355` 把 PM 场景从离线 benchmark/grader 基线推进为可恢复、可审计但默认不可执行的受治理探索组合，并随 npm `chainlesschain@0.166.62` 发布。VS Code `0.37.107` 与 JetBrains `0.4.128` 在独立源码边界 `6edebc8b25` 对齐推荐 CLI；IDE 不接收 PM 探索写权限，也不从 release pairing 推导 production authority。
+
+```text
+训练分区 + 冻结 Plan
+        │
+        ▼
+Broad 分支 Journal ── checkpoint ──┐
+        │                          │
+        └── authenticated merge ──┤
+                                   ▼
+                         Deep 串行 Journal
+                                   │ quiescent snapshot
+                                   ▼
+local ArtifactPorts → durability authority → Evolution Ledger + witness
+        ▲                 │                    │
+        └── cache cross-check                  └── verified replay / CAS recovery
+```
+
+### 轮次、评分与权限边界
+
+- Plan 只投影训练任务和冻结摘要；validation/test 任务、私有答案、grader identity 与原始分组值不能进入 Actor 工作区。Broad 可跨分支并行但单分支只有一个活动轮次，Deep 全局串行；预算、连续无收益停止与最大轮数不会因切换阶段重置。
+- 每轮绑定 execution/grader receipt、输出 Memory 和资源计量。仓库的独立只读 grader 会回读实际导出文件、项目状态和看板成员集合，而不是接受模型自评；当前 PM checkpoint 中的业务 receipt 仍标记 `snapshotAuthenticated:false`，未接入生产签名 grader。
+- 只有没有活动轮次的静止点才能导出恢复快照。恢复不直接信任序列化状态，而是从 Plan 重放 Broad checkpoint、merge、Deep checkpoint 与 freeze，再逐项比较摘要。
+- 候选 Memory 只在当前 Journal 内推进，不能直接写入四层 Memory、active Skill 或发布 registry。Review、Pilot、Release 和 automatic active promotion 继续为 `HOLD`。
+
+### 持久化、恢复与 Desktop 接线
+
+PM adapter 先发布 canonical artifact，再由独立 durability authority 保留并回读，最后以当前 Ledger HEAD/sequence 做 CAS 追加。`retention:"ledger"` 的记录在 authority 超时、断连或返回无效 receipt 时必须失败闭合；即使本地缓存字节完整也不能降级为成功。witness 前写入失败恢复为空历史，witness 已提交而调用结果未知时则从认证历史恢复，避免把已提交操作重复执行。
+
+签名 Desktop deployment 可以构造真实 PM Ledger adapter，但 loader 会立即收窄为不可枚举、只读 `load` capability。readiness 只报告配置和可回读状态，固定保持 `readyForExecution:false`；renderer、IPC、模型和普通 WebSocket 都拿不到 `commitJournal`、Ledger、artifact authority、密钥或目录。
+
+CLI CI 在精确提交 `77572e7355` 上完成 Linux、Windows、macOS 全矩阵与 PM recovery aggregate。恢复演练覆盖 31 个独立子进程、并发 CAS、强制退出、缓存丢失、synthetic `EROFS`/`ENOSPC` 以及 authority timeout/reset/invalid receipt，并明确保留 `qualifiesForProduction:false`。这些证据验证业务状态机，不验证真实只读挂载、小容量文件系统、远端 authority、设备缓存或物理断电；生产环境必须使用独立 Schema 和目标部署证据重新验收。
+
+同一发布链随后补齐 Windows 恢复临时路径规范化、存活状态锁保护和 ACL 瞬态超时重试上限；npm 发布工作流还会校验复用子包的 provenance 与字节未漂移。上述可靠性修复不会扩大 PM Explorer、Skill promotion 或 Desktop native 安装包的发布范围。
+
+实施证据见[第一批基线](../../rsiagent-first-batch-implementation-2026-09-17.md)、[第二批轮次合同](../../rsiagent-second-batch-implementation-2026-09-17.md)、[第三至第五批持久化与 Desktop 接线](../../rsiagent-fifth-batch-implementation-2026-09-17.md)、[第六至第七批恢复门禁](../../rsiagent-seventh-batch-implementation-2026-09-17.md)和[第八批故障关闭](../../rsiagent-eighth-batch-implementation-2026-09-17.md)。
+
 ## 19. 关键文件
 
 - `packages/cli/src/lib/evolution/skill-candidate-registry.js`
@@ -380,6 +419,12 @@ v2 manifest backend 新增 `createEvolutionLedgerFileManifestHeadBackend()`。�
 - `packages/cli/src/lib/skill-vector-process-authority.js`
 - `packages/cli/src/lib/evolution/evolution-artifact-ports.js`
 - `packages/cli/src/lib/evolution/evolution-ledger-ports.js`
+- `packages/cli/src/lib/evolution/pm-exploration-benchmark.js`
+- `packages/cli/src/lib/evolution/pm-exploration-rounds.js`
+- `packages/cli/src/lib/evolution/pm-exploration-ledger-adapter.js`
+- `packages/cli/src/lib/evolution/pm-result-grader.cjs`
+- `packages/cli/scripts/pm-exploration-recovery-drill.mjs`
+- `desktop-app-vue/src/main/evolution/desktop-pm-exploration-readiness.js`
 - `packages/cli/src/lib/evolution/skill-mutation-authority.js`
 - `packages/cli/src/lib/evolution/skill-promotion-controller.js`
 - `packages/cli/src/lib/evolution/skill-release-registry.js`

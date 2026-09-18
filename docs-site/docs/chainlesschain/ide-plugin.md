@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前公开组合（2026-09-16）：CLI `0.166.59` + VS Code 扩展 `0.37.105`（Open VSX）+ JetBrains 插件 `0.4.126`（Marketplace）。三者来自精确提交 `a148ec7a57` 并已完成公开回读；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
+> **当前公开组合（2026-09-18）：CLI `0.166.62` + VS Code 扩展 `0.37.107`（Open VSX）+ JetBrains 插件 `0.4.128`（Marketplace）。CLI 制品来自 `77572e7355`，IDE 制品来自 `6edebc8b25`，均已完成公开回读；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.105` 与 JetBrains Marketplace `0.4.126` 已公开并推荐 npm `latest` CLI `0.166.59@a148ec7a57`。本版新增耐久任务记录与独立新会话接力；微软 VS Code Marketplace 尚未公开该扩展。
+> **发布提示**：Open VSX `0.37.107` 与 JetBrains Marketplace `0.4.128` 已公开并推荐 npm `latest` CLI `0.166.62@77572e7355`。本版对齐 Windows 恢复/ACL 加固与受治理 PM 探索恢复边界；微软 VS Code Marketplace 尚未公开该扩展。
 
 ## 概述
 
@@ -36,7 +36,7 @@ VS Code / VSCodium 扩展 `0.37.93` 支持 `chainlesschain.chat.maxTurns`。默�
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.59 # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.166.62 # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -46,7 +46,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.105 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.105/file/chainlesschain.chainlesschain-ide-0.37.105.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.107 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.107/file/chainlesschain.chainlesschain-ide-0.37.107.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -58,7 +58,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.105` 已从 Open VSX 公开回读并推荐 CLI `0.166.59`；JetBrains `0.4.126` 已完成 Marketplace 公共回读并推荐同一 CLI。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚和 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.107` 已从 Open VSX 公开回读并推荐 CLI `0.166.62`；JetBrains `0.4.128` 已完成 Marketplace 公共回读并推荐同一 CLI。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -103,7 +103,7 @@ IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提�
 侧边栏（VS Code：Activity Bar → ChainlessChain IDE → Chat；JetBrains：右侧 **ChainlessChain** 工具窗）直接和 agent 对话，内部为每个会话维护一个长驻 `cc agent` stream-json 双工子进程：
 
 - **多会话标签页**：每个 tab 独立进程，随开随切；标签、resume id、审批模式、思考档位**跨 IDE 重启持久化**，首条消息自动命名标签；**Reopen Closed** 按标题 / 日期搜索重开已关会话。
-- **任务记录与新会话接力（VS Code 0.37.105 / JetBrains 0.4.126）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
+- **任务记录与新会话接力（VS Code 0.37.107 / JetBrains 0.4.128）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
 - **流式渲染**：逐 token 回复 + 实时工具调用轨迹；XSS 安全的 Markdown 渲染（代码块 / GFM 表格 / 任务列表），代码块带 **Copy / 插入编辑器** 按钮。
 - **扩展思考**：`/think`、`/ultrathink`、`/think-off` 三档，推理过程以可折叠暗色块实时展示。
 - **图片 / 视觉**：Ctrl/Cmd+V 粘贴截图或拖拽图片（单条最多 4 张），走独立视觉模型。
@@ -310,15 +310,15 @@ JetBrains 纯核在**无 IntelliJ SDK 的机器**上用 `javac --release 8` 编�
 
 ### 环境变量与 CLI 旗标
 
-| 变量 / 旗标               | 作用                                                     |
-| ------------------------- | -------------------------------------------------------- |
-| `CC_IDE_CONTEXT=0`        | 关闭实时上下文注入 + 诊断回喂（工具仍可显式调用）        |
-| `CC_IDE_DIFF_APPROVAL=0`  | 文件编辑 `ask` 不再升级为 IDE 原生 diff 评审             |
-| `CC_IDE_DIAG_SETTLE_MS`   | 编辑后等语言服务器重新 lint 的延迟（默认 600，`0` 跳过） |
-| `CC_APPROVAL_TIMEOUT_MS`  | 审批卡超时（默认 120000，超时回落拒绝）                  |
-| `CC_API_KEY`              | 面板子进程经 env（而非 argv）传 API key                  |
+| 变量 / 旗标               | 作用                                                        |
+| ------------------------- | ----------------------------------------------------------- |
+| `CC_IDE_CONTEXT=0`        | 关闭实时上下文注入 + 诊断回喂（工具仍可显式调用）           |
+| `CC_IDE_DIFF_APPROVAL=0`  | 文件编辑 `ask` 不再升级为 IDE 原生 diff 评审                |
+| `CC_IDE_DIAG_SETTLE_MS`   | 编辑后等语言服务器重新 lint 的延迟（默认 600，`0` 跳过）    |
+| `CC_APPROVAL_TIMEOUT_MS`  | 审批卡超时（默认 120000，超时回落拒绝）                     |
+| `CC_API_KEY`              | 面板子进程经 env（而非 argv）传 API key                     |
 | `CC_TASK_WORKLOG=1`       | 插件自动注入，为持久 IDE 会话启用任务检查点与 Markdown 投影 |
-| `cc agent --ide/--no-ide` | 外部终端强制启用 / 禁用 IDE 连接                         |
+| `cc agent --ide/--no-ide` | 外部终端强制启用 / 禁用 IDE 连接                            |
 
 ## 性能指标
 
@@ -330,7 +330,7 @@ JetBrains 纯核在**无 IntelliJ SDK 的机器**上用 `javac --release 8` 编�
 | Diff 评审阻塞    | 时长由用户决定；server 端挂起响应不受超时切断，一个阻塞评审不影响其它请求                                         |
 | 补全             | 手动 `Alt+\` 保持 12 秒边界；自动路径默认关闭、5 秒失败静默，并记录至少 20 个样本后的滚动 P50/P95（目标 ≤2s/≤5s） |
 | 资源占用         | 每窗口一个 localhost HTTP server + 每会话 tab 一个子进程；关 tab / Stop 即回收（Windows `taskkill /T /F` 树杀）   |
-| 任务记录         | Markdown 最大 32 KiB；无额外模型总结调用；保存确认等待最长 60 秒，超时保留旧会话                            |
+| 任务记录         | Markdown 最大 32 KiB；无额外模型总结调用；保存确认等待最长 60 秒，超时保留旧会话                                  |
 | JetBrains 兼容性 | since-build 242（2024.2+）无硬上限，Plugin Verifier 对 2025.2 验证通过                                            |
 
 ## 测试覆盖
@@ -397,8 +397,8 @@ cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 | 深链点了没反应                         | 检查 workspace 参数是否与当前打开目录一致；`mode=bypassPermissions` 会被拒                        |
 | JetBrains 装完菜单是英文               | 界面语言跟随 IDE：装中文语言包后重启即中文                                                        |
 | 升级 CLI 后行为不一致                  | 命令面板 **Check for CLI Updates** / **Upgrade CLI**，插件与 CLI 版本步调见 What's New            |
-| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.59` 和配套插件；发送一条消息完成 init 后重试                                  |
-| 接力等待超过 60 秒                     | 处理运行中的工具或权限卡后重试；保存成功前旧会话始终保留                                        |
+| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.62` 和配套插件；发送一条消息完成 init 后重试                                    |
+| 接力等待超过 60 秒                     | 处理运行中的工具或权限卡后重试；保存成功前旧会话始终保留                                          |
 
 ## 关键文件
 
@@ -411,7 +411,7 @@ cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 | `src/chat/chat-view.js` / `chat-html.js`                                 | Chat 面板控制器 + webview                            |
 | `src/chat/agent-session.js`                                              | 长驻 `cc agent` stream-json 子进程 + 树杀            |
 | `src/chat/conversation-manager.js` / `ide-session-index.js`              | 多标签会话 + 跨 IDE 共享会话索引                     |
-| `src/chat/chat-view.js`                                                    | 任务记录保存、60 秒超时、独立标签页与一次性历史引用   |
+| `src/chat/chat-view.js`                                                  | 任务记录保存、60 秒超时、独立标签页与一次性历史引用  |
 | `src/chat/plan-review.js` / `src/multi-diff.js` / `src/diff-hunks.js`    | Plan 审阅 tab / 多文件评审 / hunk 部分接受           |
 | `src/auto-exec-guard.js` / `src/remote-doctor.js` / `src/uri-handler.js` | 安全扫描 / WSL 诊断 / 深链                           |
 | `src/hardened-env.js`                                                    | 加固 spawn env（Windows CWD 劫持修复）               |
@@ -419,14 +419,14 @@ cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 
 ### JetBrains 插件（`packages/jetbrains-plugin/`）
 
-| 文件                                                   | 作用                                                                                                                                   |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/main/java/com/chainlesschain/ide/*.java`          | 纯 JDK 核：`McpServer` / `IdeTools` / `ConversationManager` / `ReviewNote` / `AutoExecGuard` / `RemoteDoctor` / `DeepLink` …（40+ 类） |
-| `src/main/java/com/chainlesschain/ide/intellij/*.java` | IntelliJ glue：工具窗 / actions / facade / JCEF / 设置页                                                                               |
-| `…/intellij/CcInlineCompletionProvider.kt`             | 唯一 Kotlin：ghost-text 补全 provider                                                                                                  |
-| `src/main/resources/META-INF/plugin.xml`               | 插件清单（change-notes 构建时从 CHANGELOG 自动生成）                                                                                   |
-| `src/main/resources/messages/CcBundle*.properties`     | 中英双语 bundle（key 齐平由 smoke 门禁）                                                                                               |
-| `src/main/java/com/chainlesschain/ide/AgentChatSession.java` | stream-json 历史来源与新会话首条消息                                                                                                  |
+| 文件                                                         | 作用                                                                                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/main/java/com/chainlesschain/ide/*.java`                | 纯 JDK 核：`McpServer` / `IdeTools` / `ConversationManager` / `ReviewNote` / `AutoExecGuard` / `RemoteDoctor` / `DeepLink` …（40+ 类） |
+| `src/main/java/com/chainlesschain/ide/intellij/*.java`       | IntelliJ glue：工具窗 / actions / facade / JCEF / 设置页                                                                               |
+| `…/intellij/CcInlineCompletionProvider.kt`                   | 唯一 Kotlin：ghost-text 补全 provider                                                                                                  |
+| `src/main/resources/META-INF/plugin.xml`                     | 插件清单（change-notes 构建时从 CHANGELOG 自动生成）                                                                                   |
+| `src/main/resources/messages/CcBundle*.properties`           | 中英双语 bundle（key 齐平由 smoke 门禁）                                                                                               |
+| `src/main/java/com/chainlesschain/ide/AgentChatSession.java` | stream-json 历史来源与新会话首条消息                                                                                                   |
 
 ### 发布 / 文档
 

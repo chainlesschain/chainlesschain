@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.137 · CLI 0.166.59 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.105 · JetBrains 0.4.126｜耐久任务记录 · 新会话接力 · Context/Memory";
+        "v5.0.3.137 · CLI 0.166.62 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.107 · JetBrains 0.4.128｜PM 探索恢复 · 耐久任务记录 · Context/Memory";
     }
   },
 
@@ -187,11 +187,11 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.59（推荐）",
+          text: "🧩 Agent Platform 0.166.62（推荐）",
           collapsed: false,
           items: [
             {
-              text: "0.166.59 发布、升级与证据边界 ⭐NEW",
+              text: "0.166.62 发布、升级与证据边界 ⭐NEW",
               link: "/chainlesschain/agent-platform-release",
             },
             {
