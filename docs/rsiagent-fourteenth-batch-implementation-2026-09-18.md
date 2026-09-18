@@ -2,6 +2,7 @@
 
 > 日期：2026-09-18（Asia/Shanghai）<br>
 > 前置实施：[第十三次 Provider settlement 持久化端口与耐久回读](./rsiagent-thirteenth-batch-implementation-2026-09-18.md)<br>
+> 后续实施：[第十五次独立 PM 业务 grader 与签名任务绑定](./rsiagent-fifteenth-batch-implementation-2026-09-18.md)<br>
 > 状态：仓库现在有一个必须显式确认付费调用的开发探针，可在隔离临时配置根中生成 Ed25519 TEST deployment，通过普通 descriptor/profile 验证路径装载单文件 Desktop host，再执行本机火山引擎、预算计量、受治理 ingress 和 durable settlement 链路。该结果是 TEST deployment 验收，不是 operator 签发的生产部署。
 
 ## 1. 可重复探针
@@ -77,6 +78,6 @@ npm run test:pm-exploration-signed-volcengine-live
 - Desktop 的调用方私有 additional factory 提供这些测试 authority，不是目标环境正式 composition；
 - 文件 replica 只验证协议、fsync 文件和精确回读，不代表跨主机副本、WORM 或掉电恢复；
 - 请求没有调用真实 PM 工具，没有验证 DID/RBAC、workspace/database clone 或副作用清理；
-- 没有独立业务 grader、holdout/Pilot、baseline 对照或四角色进程隔离。
+- 本次真实请求没有执行 PM 工具或独立业务评分；后续第十五次实施已补本地业务 grader 合同，但仍没有目标数据库 adapter、真实 PM E2E、holdout/Pilot、baseline 对照或四角色进程隔离。
 
 因此输出明确区分 `governedPmTestRun:true` 与 `productionGovernedPmRun:false`。Desktop readiness、renderer/IPC 写入口、自动 Explorer、自动晋级和 release 权限继续保持关闭。

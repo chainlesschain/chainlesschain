@@ -13,6 +13,8 @@ import {
   evaluatePmExplorationMemory,
   executePmExplorationRound,
   mergePmExplorationBranches,
+  PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
+  PM_EXPLORATION_RUN_REQUEST_SCHEMA,
 } from "../../src/lib/evolution/pm-exploration-execution-host.js";
 import {
   createPmExplorationEvidenceBundle,
@@ -23,6 +25,7 @@ import {
   createPmExplorationReceiptSigner,
   getPmExplorationReceiptSignerAuthority,
   inspectPmExplorationReceiptAuthority,
+  issuePmExplorationReceipt,
 } from "../../src/lib/evolution/pm-exploration-receipts.js";
 import {
   PM_EXPLORATION_PROVIDER_PERSISTENCE_SCHEMA,
@@ -30,15 +33,34 @@ import {
   invokePmExplorationVolcengine,
 } from "../../src/lib/evolution/pm-exploration-volcengine-provider.js";
 import {
+  completePmExplorationRound,
   createPmExplorationJournal,
   createPmExplorationPlan,
   enterPmExplorationDeepStage,
   exportPmExplorationRecoverySnapshot,
   inspectPmExplorationJournal,
+  startPmExplorationRound,
 } from "../../src/lib/evolution/pm-exploration-rounds.js";
 
 function sha(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function protocolHash(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(domain)
+    .update("\0")
+    .update(canonical(value))
+    .digest("hex")}`;
 }
 
 function createSigner(role, keys = generateKeyPairSync("ed25519")) {
@@ -330,6 +352,131 @@ describe("PM exploration execution host", () => {
         bundle: tampered,
       }),
     ).toThrow(/digest mismatch/);
+  });
+
+  it("keeps authenticated v1 grader receipts readable as historical evidence", () => {
+    const boundPlan = plan();
+    const signers = {
+      execution: createSigner("execution"),
+      grader: createSigner("grader"),
+      merge: createSigner("merge"),
+      evaluator: createSigner("evaluator"),
+    };
+    const authorities = Object.fromEntries(
+      Object.entries(signers).map(([role, signer]) => [
+        role,
+        getPmExplorationReceiptSignerAuthority(signer),
+      ]),
+    );
+    const manifest = createPmExplorationExecutionManifest({
+      planDigest: boundPlan.planDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      runner: inspectPmExplorationReceiptAuthority(signers.execution),
+      grader: inspectPmExplorationReceiptAuthority(signers.grader),
+      merger: inspectPmExplorationReceiptAuthority(signers.merge),
+      evaluator: inspectPmExplorationReceiptAuthority(signers.evaluator),
+      toolIds: ["project:get"],
+      toolPolicyDigest: sha("tool-policy"),
+    });
+    const journal = createPmExplorationJournal(boundPlan);
+    const roundInput = {
+      roundId: "round-legacy",
+      stage: "broad",
+      branchId: "workflow",
+      taskId: "task-one",
+      inputMemoryDigest: boundPlan.initialMemoryDigest,
+    };
+    const round = startPmExplorationRound(journal, roundInput);
+    const runCore = {
+      schema: PM_EXPLORATION_RUN_REQUEST_SCHEMA,
+      planDigest: boundPlan.planDigest,
+      suiteDigest: boundPlan.suiteDigest,
+      trainingPartitionDigest: boundPlan.trainingPartitionDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      executionManifestDigest: manifest.manifestDigest,
+      toolPolicyDigest: manifest.toolPolicyDigest,
+      ...roundInput,
+    };
+    const executionRequestDigest = protocolHash(
+      PM_EXPLORATION_RUN_REQUEST_SCHEMA,
+      runCore,
+    );
+    const outputMemoryDigest = sha("legacy-output-memory");
+    const traceDigest = sha("legacy-trace");
+    const executionReceipt = issuePmExplorationReceipt(signers.execution, {
+      planDigest: boundPlan.planDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      requestDigest: executionRequestDigest,
+      ...roundInput,
+      outputMemoryDigest,
+      traceDigest,
+      status: "succeeded",
+      failureClass: "none",
+      metrics: { tokens: 3, toolCalls: 0, wallClockMs: 2 },
+      issuedAt: "2026-09-18T00:00:00.000Z",
+    });
+    const legacyGradeCore = {
+      schema: PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
+      planDigest: boundPlan.planDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      executionManifestDigest: manifest.manifestDigest,
+      roundId: roundInput.roundId,
+      inputMemoryDigest: roundInput.inputMemoryDigest,
+      outputMemoryDigest,
+      executionStatus: "succeeded",
+      executionReceiptDigest: executionReceipt.receiptDigest,
+      traceDigest,
+    };
+    const graderReceipt = issuePmExplorationReceipt(signers.grader, {
+      planDigest: boundPlan.planDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      requestDigest: protocolHash(
+        PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
+        legacyGradeCore,
+      ),
+      roundId: roundInput.roundId,
+      executionReceiptDigest: executionReceipt.receiptDigest,
+      outputMemoryDigest,
+      decision: "accept",
+      scoreBasisPoints: 10_000,
+      resultDigest: sha("legacy-grade-result"),
+      metrics: { tokens: 1, toolCalls: 0, wallClockMs: 1 },
+      issuedAt: "2026-09-18T00:00:00.000Z",
+    });
+    completePmExplorationRound(journal, round, {
+      executionReceiptDigest: executionReceipt.receiptDigest,
+      graderReceiptDigest: graderReceipt.receiptDigest,
+      outputMemoryDigest,
+      decision: "accept",
+      metrics: { tokens: 4, toolCalls: 0, wallClockMs: 3 },
+    });
+    const snapshot = exportPmExplorationRecoverySnapshot(journal);
+
+    const bundle = createPmExplorationEvidenceBundle({
+      plan: boundPlan,
+      manifest,
+      snapshot,
+      authorities,
+      receipts: {
+        execution: [executionReceipt],
+        grader: [graderReceipt],
+        merge: null,
+        evaluator: null,
+      },
+    });
+
+    expect(bundle.graderReceipts[0].receiptDigest).toBe(
+      graderReceipt.receiptDigest,
+    );
+    expect(
+      verifyPmExplorationEvidenceBundle({
+        plan: boundPlan,
+        manifest,
+        authorities,
+        snapshot,
+        bundle,
+      }).evidenceDigest,
+    ).toBe(bundle.evidenceDigest);
   });
 
   it("retains a provider usage settlement with the signed execution trace", async () => {

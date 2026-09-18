@@ -261,6 +261,7 @@ async function loadBuiltInFactories(commandName) {
       evidence,
       provider,
       settlementAdapter,
+      businessGrader,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -273,6 +274,7 @@ async function loadBuiltInFactories(commandName) {
       import("./pm-exploration-evidence-bundle.js"),
       import("./pm-exploration-volcengine-provider.js"),
       import("./pm-exploration-provider-settlement-adapter.js"),
+      import("./pm-exploration-business-grader.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -324,6 +326,12 @@ async function loadBuiltInFactories(commandName) {
         new settlementAdapter.PmExplorationProviderSettlementAdapter(options),
       capturePmExplorationProviderSettlementStore:
         settlementAdapter.capturePmExplorationProviderSettlementStore,
+      createPmExplorationReadOnlyOutcomeSource:
+        businessGrader.createPmExplorationReadOnlyOutcomeSource,
+      inspectPmExplorationReadOnlyOutcomeSource:
+        businessGrader.inspectPmExplorationReadOnlyOutcomeSource,
+      createPmExplorationBusinessGrader:
+        businessGrader.createPmExplorationBusinessGrader,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -630,13 +638,16 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createPmExplorationReceiptAuthority",
     "createPmExplorationReceiptSigner",
     "createPmExplorationProviderSettlementAdapter",
+    "createPmExplorationReadOnlyOutcomeSource",
   ]) {
     if (typeof factories[name] !== "function") continue;
     result[name] = (options = {}) => {
       const handlerArtifactDigest =
         name === "createPmExplorationProviderSettlementAdapter"
           ? options?.descriptor?.handlerArtifactDigest
-          : options?.handlerArtifactDigest;
+          : name === "createPmExplorationReadOnlyOutcomeSource"
+            ? options?.descriptor?.handlerArtifactDigest
+            : options?.handlerArtifactDigest;
       if (handlerArtifactDigest !== moduleDigest)
         throw new Error(
           `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,

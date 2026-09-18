@@ -22,8 +22,10 @@ export const PM_EXPLORATION_EXECUTION_MANIFEST_SCHEMA =
   "chainlesschain.pm-exploration-execution-manifest/v1";
 export const PM_EXPLORATION_RUN_REQUEST_SCHEMA =
   "chainlesschain.pm-exploration-run-request/v1";
-export const PM_EXPLORATION_GRADE_REQUEST_SCHEMA =
+export const PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1 =
   "chainlesschain.pm-exploration-grade-request/v1";
+export const PM_EXPLORATION_GRADE_REQUEST_SCHEMA =
+  "chainlesschain.pm-exploration-grade-request/v2";
 export const PM_EXPLORATION_EXECUTION_RESULT_SCHEMA =
   "chainlesschain.pm-exploration-execution-result/v1";
 export const PM_EXPLORATION_MERGE_RESULT_SCHEMA =
@@ -236,9 +238,18 @@ export function verifyPmExplorationExecutionManifest(value) {
   return normalized;
 }
 
-function createProvider({ signer, handler, expectedRole, bindings, label }) {
+function createProvider({
+  signer,
+  handler,
+  prepare = null,
+  expectedRole,
+  bindings,
+  label,
+}) {
   if (typeof handler !== "function" || isProxy(handler))
     throw new TypeError(`${label} handler must be a direct function`);
+  if (prepare !== null && (typeof prepare !== "function" || isProxy(prepare)))
+    throw new TypeError(`${label} prepare hook must be a direct function`);
   const descriptor = inspectPmExplorationReceiptAuthority(signer);
   if (descriptor.role !== expectedRole)
     throw new TypeError(`${label} signer has the wrong receipt role`);
@@ -247,6 +258,7 @@ function createProvider({ signer, handler, expectedRole, bindings, label }) {
     authority: getPmExplorationReceiptSignerAuthority(signer),
     descriptor,
     handler,
+    prepare,
     issue: (payload) => issuePmExplorationReceipt(signer, payload),
   });
   return provider;
@@ -264,10 +276,25 @@ export function createPmExplorationRunner(options = {}) {
 }
 
 export function createPmExplorationGrader(options = {}) {
-  exact(options, ["signer", "grade"], "PM exploration grader options");
+  if (
+    !options ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    isProxy(options) ||
+    Object.getPrototypeOf(options) !== Object.prototype
+  ) {
+    throw new TypeError("PM exploration grader options must be a plain object");
+  }
+  const hasPrepare = Reflect.ownKeys(options).includes("prepare");
+  exact(
+    options,
+    hasPrepare ? ["signer", "prepare", "grade"] : ["signer", "grade"],
+    "PM exploration grader options",
+  );
   return createProvider({
     signer: options.signer,
     handler: options.grade,
+    prepare: hasPrepare ? options.prepare : null,
     expectedRole: "grader",
     bindings: GRADERS,
     label: "PM exploration grader",
@@ -475,13 +502,21 @@ function normalizedGraderValue(value) {
   });
 }
 
-async function runActor(binding, request, limits, host) {
+async function runActor(binding, request, limits, host, prepare) {
   const outcome = await executePmExplorationBudgetedOperation({
     limits,
     allowedToolIds: host.manifest.toolIds,
     invokeTool: host.invokeTool,
-    operation: async (runtime) =>
-      normalizedRunnerValue(await binding.handler(request, runtime)),
+    operation: async (runtime) => {
+      if (prepare !== null) {
+        await prepare(request, runtime.signal);
+        if (runtime.signal.aborted)
+          throw (
+            runtime.signal.reason ?? new Error("grader prepare was aborted")
+          );
+      }
+      return normalizedRunnerValue(await binding.handler(request, runtime));
+    },
   });
   const succeeded = outcome.status === "succeeded";
   const payload = {
@@ -591,6 +626,7 @@ export async function executePmExplorationRound(hostValue, journal, input) {
     runRequest,
     remaining(host.plan, totalUsage(host, journal, before)),
     host,
+    host.grader.prepare,
   );
   const executionReceipt = executionOutcome.receipt;
   const execution = verifyPmExplorationReceipt(
@@ -617,6 +653,8 @@ export async function executePmExplorationRound(hostValue, journal, input) {
     environmentDigest: host.plan.environmentDigest,
     executionManifestDigest: host.manifest.manifestDigest,
     roundId: roundInput.roundId,
+    taskId: roundInput.taskId,
+    executionRequestDigest: runRequest.requestDigest,
     inputMemoryDigest: roundInput.inputMemoryDigest,
     outputMemoryDigest: execution.payload.outputMemoryDigest,
     executionStatus: execution.payload.status,

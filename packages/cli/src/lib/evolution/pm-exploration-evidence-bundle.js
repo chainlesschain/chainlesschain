@@ -4,6 +4,7 @@ import { isProxy } from "node:util/types";
 import {
   PM_EXPLORATION_EVALUATION_REQUEST_SCHEMA,
   PM_EXPLORATION_GRADE_REQUEST_SCHEMA,
+  PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
   PM_EXPLORATION_MERGE_REQUEST_SCHEMA,
   PM_EXPLORATION_RUN_REQUEST_SCHEMA,
   verifyPmExplorationExecutionManifest,
@@ -239,6 +240,8 @@ function validateCheckpointReceipts({
     environmentDigest: plan.environmentDigest,
     executionManifestDigest: manifest.manifestDigest,
     roundId: checkpoint.roundId,
+    taskId: checkpoint.taskId,
+    executionRequestDigest: runRequestDigest,
     inputMemoryDigest: checkpoint.inputMemoryDigest,
     outputMemoryDigest: execution.payload.outputMemoryDigest,
     executionStatus: execution.payload.status,
@@ -249,7 +252,7 @@ function validateCheckpointReceipts({
     PM_EXPLORATION_GRADE_REQUEST_SCHEMA,
     gradeCore,
   );
-  const grader = verifyPmExplorationReceipt(authorities.grader, graderInput, {
+  const expectedGraderBindings = {
     planDigest: plan.planDigest,
     environmentDigest: plan.environmentDigest,
     requestDigest: gradeRequestDigest,
@@ -257,7 +260,40 @@ function validateCheckpointReceipts({
     executionReceiptDigest: execution.receiptDigest,
     outputMemoryDigest: checkpoint.outputMemoryDigest,
     decision: checkpoint.decision,
-  });
+  };
+  let grader;
+  try {
+    grader = verifyPmExplorationReceipt(
+      authorities.grader,
+      graderInput,
+      expectedGraderBindings,
+    );
+  } catch (error) {
+    if (
+      error?.message !== "PM exploration receipt requestDigest binding mismatch"
+    ) {
+      throw error;
+    }
+    const legacyGradeCore = {
+      schema: PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
+      planDigest: plan.planDigest,
+      environmentDigest: plan.environmentDigest,
+      executionManifestDigest: manifest.manifestDigest,
+      roundId: checkpoint.roundId,
+      inputMemoryDigest: checkpoint.inputMemoryDigest,
+      outputMemoryDigest: execution.payload.outputMemoryDigest,
+      executionStatus: execution.payload.status,
+      executionReceiptDigest: execution.receiptDigest,
+      traceDigest: execution.payload.traceDigest,
+    };
+    grader = verifyPmExplorationReceipt(authorities.grader, graderInput, {
+      ...expectedGraderBindings,
+      requestDigest: hash(
+        PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
+        legacyGradeCore,
+      ),
+    });
+  }
   if (!metricsEqual(checkpoint, execution, grader))
     throw new Error("PM checkpoint metrics differ from its signed receipts");
   if (

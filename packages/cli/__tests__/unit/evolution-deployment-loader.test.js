@@ -700,6 +700,9 @@ describe("signed evolution deployment loader", () => {
       "verifyPmExplorationVolcengineSettlementRecord",
       "createPmExplorationProviderSettlementAdapter",
       "capturePmExplorationProviderSettlementStore",
+      "createPmExplorationReadOnlyOutcomeSource",
+      "inspectPmExplorationReadOnlyOutcomeSource",
+      "createPmExplorationBusinessGrader",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -730,7 +733,7 @@ describe("signed evolution deployment loader", () => {
     expect(runtimeFactory).toHaveBeenCalledWith({ commandName: "desktop" });
   });
 
-  it("binds Desktop PM receipt and settlement roles to the authenticated deployment bytes", async () => {
+  it("binds Desktop PM receipt, settlement and outcome roles to the authenticated deployment bytes", async () => {
     const fixture = deploymentFixture({ commands: ["desktop"] });
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const privatePem = privateKey.export({ type: "pkcs8", format: "pem" });
@@ -763,6 +766,11 @@ describe("signed evolution deployment loader", () => {
           ).toThrow("authenticated deployment module digest");
           expect(() =>
             factories.createPmExplorationProviderSettlementAdapter({
+              descriptor: { handlerArtifactDigest: substitutedDigest },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationReadOnlyOutcomeSource({
               descriptor: { handlerArtifactDigest: substitutedDigest },
             }),
           ).toThrow("authenticated deployment module digest");
