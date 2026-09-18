@@ -3,6 +3,7 @@
 > 日期：2026-09-18（Asia/Shanghai）<br>
 > 前置实施：[第八次存储与 authority 故障关闭](./rsiagent-eighth-batch-implementation-2026-09-17.md)<br>
 > 状态：PM 轮次已具备宿主强制墙钟退出、token/tool 计量、工具白名单代理、四角色 Ed25519 回执、独立密钥清单绑定和重启后完整回执包复验；完整证据包已随 v2 PM Ledger record 由 durability authority 保留，并能在 Desktop 只读投影中显示认证状态。执行仍默认关闭，未接入真实 Desktop provider 或生产进程沙箱。
+> 后续实施：[第十次本机火山引擎真实调用与用量结算](./rsiagent-tenth-batch-implementation-2026-09-18.md)已补真实 Volcengine 连通、provider usage 计量和费用估算 adapter；签名 Evolution deployment 与真实受治理 PM/Desktop 任务仍未配置。
 
 本批关闭的是可在仓库内独立验证的“预算与签名证据合同”缺口，不把同进程测试 handler、测试密钥或本地单元测试解释为真实 Agent、独立服务、生产隔离或效果提升。
 
@@ -99,7 +100,7 @@
 1. 在目标 Desktop 签名 deployment 中配置经过审查的生产 durability authority、manifest、公钥和存储目录，对 v2 snapshot + evidence record 重复只读、磁盘满、断连、重连与物理断电演练。
 2. 通过现有 process execution broker 和平台沙箱承载 runner，将模型、文件、IPC、网络和工具权限限制在一次性 workspace/database clone 中；宿主退出后验证无残留。
 3. 将四种 signer 放入独立进程或远端受审查服务，绑定生产密钥轮换、撤销、审计和超时/断连语义；私钥不得进入 renderer 或 Actor 上下文。
-4. 接入真实 provider usage 流和费用对账，用合法/越权身份运行结构化 PM 任务，并保存精确 release SHA 的三系统证据。
+4. 已由第十批接入本机 Volcengine 的真实 provider usage 流与费用估算；仍需在签名 Evolution deployment 中用合法/越权身份运行结构化 PM 任务，将 settlement 纳入 durable evidence，并保存精确 release SHA 的三系统证据。
 5. 冻结实验合同后完成等预算 baseline/Explorer holdout 对照、人工审核、Pilot 和回滚演练；只有安全、恢复、收益与成本门全部通过才可申请运行令牌或晋级。
 
 这些事项依赖目标部署、生产凭据、外部服务或真实实验预算，不能由本地 fixture 合法替代，也不能通过把布尔字段改为 `true` 来关闭。
