@@ -6,27 +6,47 @@ MCP bridge.
 
 ## Current release
 
-> Extension release `0.37.107` pairs with `chainlesschain@0.166.62`. It carries
-> the CLI's bounded, independently graded PM exploration and authenticated
-> recovery evidence without moving execution or promotion authority into the IDE.
+> Extension release `0.37.108` pairs with `chainlesschain@0.166.63`. It carries
+> the CLI's governed RSIAgent evolution and the immutable CLI pairing without
+> moving execution or promotion authority into the IDE.
 
-Release `0.37.107` recommends CLI `0.166.62`. These runtime capabilities remain
+Release `0.37.108` recommends CLI `0.166.63`. These runtime capabilities remain
 owned by the CLI host; this release does not add new editor controls for every
 CLI option.
 
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
-| VS Code extension         | **0.37.107**; CLI 0.166.62 pairing release                   |
-| Recommended CLI           | **`chainlesschain@0.166.62`**                                |
+| VS Code extension         | **0.37.108**; CLI 0.166.63 pairing release                   |
+| Recommended CLI           | **`chainlesschain@0.166.63`**                                |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
 
-### What's new in 0.37.107
+### What's new in 0.37.108
 
+- **Pair with the verified CLI 0.166.63 release.** Recommend the publicly
+  verified `chainlesschain@0.166.63` release in runtime upgrade guidance,
+  marketplace metadata, and installation instructions.
+- **Carry the CLI's governed RSIAgent evolution batches 9-23 into IDE-driven
+  Agent sessions.** Budget executor with signed receipts and execution host,
+  volcengine provider adapter with usage settlement and live probe, signed
+  provider settlement, standalone PM business grader with signed task binding,
+  desktop read-only outcome reader with DB identity hardening and signed DB
+  path binding, pre-run seal gate and sealed state-migration chain, failure
+  state seal and tainted host gate, durable transition committer,
+  authenticated chain-head recovery, and SQLite recovery-snapshot durability
+  retention.
+- **Keep the IDE bridge a bounded CLI client.** This pairing changes neither
+  execution authority nor the extension's compatibility floor.
+
+### Retained capabilities from earlier releases
+
+- **Pair with the verified CLI 0.166.62 release.** Consume governed
+  Evolution/wiki revalidation, native Responses transport, plugin evaluation
+  and deferred-question projections, plus paginated background-session access;
+  all authority remains in the CLI host.
 - **Correct the immutable CLI pairing.** Recommend the publicly verified
   `chainlesschain@0.166.62` release rather than the stale `0.166.60` metadata.
-
 - **Pair with governed PM exploration recovery.** The CLI owns bounded
   Broad/Deep plans, independent result grading, authenticated recovery
   snapshots, and fail-closed durable authority; the extension receives only
@@ -45,13 +65,6 @@ CLI option.
 - **Pair with safer evaluation and sessions.** CLI `0.166.62` includes normalized
   outcome metrics and retries transient Windows state-file sharing conflicts
   without replaying the underlying message mutation.
-
-### Retained capabilities from earlier releases
-
-- **Pair with the verified CLI 0.166.62 release.** Consume governed
-  Evolution/wiki revalidation, native Responses transport, plugin evaluation
-  and deferred-question projections, plus paginated background-session access;
-  all authority remains in the CLI host.
 - **Keep background work reliable.** The paired CLI prevents routine
   keeper/worker heartbeat writes from contending with foreground ownership and
   executes agent commands with `shell: false`.

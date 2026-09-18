@@ -1,5 +1,20 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.129] - Pair with CLI 0.166.63 governed evolution (2026-09-19)
+
+- Recommend the publicly verified `chainlesschain@0.166.63` release in runtime
+  upgrade guidance and release metadata.
+- Carry the CLI's governed RSIAgent evolution batches 9-23 into IDE-driven
+  Agent sessions: budget executor with signed receipts and execution host,
+  volcengine provider adapter with usage settlement and live probe, signed
+  provider settlement, standalone PM business grader with signed task binding,
+  desktop read-only outcome reader with DB identity hardening and signed DB
+  path binding, pre-run seal gate and sealed state-migration chain, failure
+  state seal and tainted host gate, durable transition committer, authenticated
+  chain-head recovery, and SQLite recovery-snapshot durability retention.
+- Keep the bridge a bounded CLI client; this pairing changes neither
+  execution authority nor the plugin's compatibility floor.
+
 ## [0.4.128] - Correct CLI pairing for 0.166.62 (2026-09-18)
 
 - Recommend the publicly verified `chainlesschain@0.166.62` release in runtime

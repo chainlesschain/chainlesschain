@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.108] - Pair with CLI 0.166.63 governed evolution (2026-09-19)
+
+- Pair with the publicly verified `chainlesschain@0.166.63` release in runtime
+  upgrade guidance, marketplace metadata, and installation instructions.
+- Carry the CLI's governed RSIAgent evolution batches 9-23 into IDE-driven
+  Agent sessions: budget executor with signed receipts and execution host,
+  volcengine provider adapter with usage settlement and live probe, signed
+  provider settlement, standalone PM business grader with signed task binding,
+  desktop read-only outcome reader with DB identity hardening and signed DB
+  path binding, pre-run seal gate and sealed state-migration chain, failure
+  state seal and tainted host gate, durable transition committer, authenticated
+  chain-head recovery, and SQLite recovery-snapshot durability retention.
+- Keep the IDE bridge a bounded CLI client; this pairing changes neither
+  execution authority nor the extension's compatibility floor.
+
 ## [0.37.107] - Correct CLI pairing for 0.166.62 (2026-09-18)
 
 - Recommend the publicly verified `chainlesschain@0.166.62` release in runtime
