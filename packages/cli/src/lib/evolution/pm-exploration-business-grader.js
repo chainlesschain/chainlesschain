@@ -155,7 +155,20 @@ export function inspectPmExplorationReadOnlyOutcomeSource(value) {
   return source.descriptor;
 }
 
-function denseIdentifiers(value, label) {
+function entityId(value, label) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 512 ||
+    value.trim() !== value ||
+    [...value].some((character) => character.charCodeAt(0) < 32)
+  ) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  return value;
+}
+
+function denseEntityIds(value, label) {
   if (
     !Array.isArray(value) ||
     isProxy(value) ||
@@ -169,7 +182,7 @@ function denseIdentifiers(value, label) {
   const normalized = value.map((entry, index) => {
     if (!Object.hasOwn(value, index))
       throw new TypeError(`${label} cannot contain holes`);
-    return identifier(entry, label);
+    return entityId(entry, label);
   });
   if (new Set(normalized).size !== normalized.length)
     throw new TypeError(`${label} must contain unique identifiers`);
@@ -209,9 +222,9 @@ function normalizeExpectation(value) {
     throw new TypeError("PM expectation kind is invalid");
   return deepFreeze({
     kind: value.kind,
-    boardId: identifier(value.boardId, "boardId"),
-    taskIds: denseIdentifiers(value.taskIds, "taskIds"),
-    sprintIds: denseIdentifiers(value.sprintIds, "sprintIds"),
+    boardId: entityId(value.boardId, "boardId"),
+    taskIds: denseEntityIds(value.taskIds, "taskIds"),
+    sprintIds: denseEntityIds(value.sprintIds, "sprintIds"),
   });
 }
 

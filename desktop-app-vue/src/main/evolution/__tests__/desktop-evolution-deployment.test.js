@@ -521,6 +521,28 @@ describe("desktop evolution deployment", () => {
       "desktop",
       expect.objectContaining({ additionalFactories: expect.any(Object) }),
     );
+    const factories = load.mock.calls[0][1].additionalFactories;
+    expect(Object.isFrozen(factories)).toBe(true);
+    expect(factories).toEqual({
+      createDesktopPmReadOnlyOutcomeReader: expect.any(Function),
+      createEvolvableArtifactRuntimeComposition: expect.any(Function),
+    });
+    const outcomeReader = factories.createDesktopPmReadOnlyOutcomeReader({
+      planDigest: `sha256:${"1".repeat(64)}`,
+      environmentDigest: `sha256:${"2".repeat(64)}`,
+      bindings: [
+        {
+          taskId: "task-one",
+          kind: "project-state",
+          projectId: "project-one",
+        },
+      ],
+    });
+    expect(outcomeReader).toEqual({
+      readProjectState: expect.any(Function),
+      readBoardExport: expect.any(Function),
+    });
+    expect(Object.isFrozen(outcomeReader)).toBe(true);
   });
 
   it("extracts all three readers only from its branded composition", async () => {

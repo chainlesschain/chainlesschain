@@ -5,6 +5,9 @@ const { pathToFileURL } = require("url");
 const { types } = require("util");
 const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
+  createDesktopPmReadOnlyOutcomeReader,
+} = require("./desktop-pm-read-only-outcome-reader");
+const {
   createDesktopGovernedSkillMarketplaceHost,
 } = require("../marketplace/governed-skill-marketplace-host");
 const {
@@ -242,6 +245,7 @@ async function loadDesktopEvolutionDependencies({
     {
       ...loaderOptions,
       additionalFactories: Object.freeze({
+        createDesktopPmReadOnlyOutcomeReader,
         createEvolvableArtifactRuntimeComposition,
       }),
     },

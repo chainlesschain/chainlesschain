@@ -260,17 +260,17 @@ describe("PM exploration business grader", () => {
           taskId: "task-one",
           expected: {
             kind: "board-export",
-            boardId: "board-one",
-            taskIds: ["task-a", "task-b"],
-            sprintIds: ["sprint-one"],
+            boardId: "1-board-uuid",
+            taskIds: ["2-task-uuid", "3-task-uuid"],
+            sprintIds: ["4-sprint-uuid"],
           },
         },
       ],
       readBoardExport: async () => ({
         success: true,
-        board: { id: "board-one" },
-        tasks: [{ id: "task-b" }, { id: "task-a" }],
-        sprints: [{ id: "sprint-one" }],
+        board: { id: "1-board-uuid" },
+        tasks: [{ id: "3-task-uuid" }, { id: "2-task-uuid" }],
+        sprints: [{ id: "4-sprint-uuid" }],
       }),
     });
 
