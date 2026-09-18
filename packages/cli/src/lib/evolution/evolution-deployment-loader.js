@@ -306,6 +306,8 @@ async function loadBuiltInFactories(commandName) {
       createPmExplorationExecutionHost:
         execution.createPmExplorationExecutionHost,
       isPmExplorationExecutionHost: execution.isPmExplorationExecutionHost,
+      inspectPmExplorationExecutionHost:
+        execution.inspectPmExplorationExecutionHost,
       executePmExplorationRound: execution.executePmExplorationRound,
       mergePmExplorationBranches: execution.mergePmExplorationBranches,
       evaluatePmExplorationMemory: execution.evaluatePmExplorationMemory,

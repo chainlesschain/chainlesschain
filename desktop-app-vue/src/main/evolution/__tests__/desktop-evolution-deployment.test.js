@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import path from "node:path";
 const {
   ARTIFACT_TYPE,
@@ -15,6 +16,9 @@ const {
   resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
 } = require("../desktop-evolution-deployment");
+const {
+  createDesktopPmPreRunSealValue,
+} = require("../desktop-pm-pre-run-seal");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -315,10 +319,29 @@ describe("desktop evolution deployment", () => {
 
   it("narrows a signed PM execution host to an opaque main-process capability", async () => {
     const rawHost = Object.freeze({ name: "signed-host-placeholder" });
+    const manifestDigest = `sha256:${"4".repeat(64)}`;
+    const executionReceiptDigest = `sha256:${"5".repeat(64)}`;
+    const graderReceiptDigest = `sha256:${"6".repeat(64)}`;
+    const preRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const postRunSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: preRunSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSeal)
+      .mockResolvedValueOnce(postRunSeal);
     const executeRound = vi.fn(async (_host, journal, input) => ({
       kind: "round",
       journal,
       input,
+      executionReceipt: { receiptDigest: executionReceiptDigest },
+      graderReceipt: { receiptDigest: graderReceiptDigest },
     }));
     const mergeBranches = vi.fn(async (_host, journal, input) => ({
       kind: "merge",
@@ -338,10 +361,15 @@ describe("desktop evolution deployment", () => {
       }),
       importPmExplorationExecutionModule: async () => ({
         isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSeal.sealDigest,
+        }),
         executePmExplorationRound: executeRound,
         mergePmExplorationBranches: mergeBranches,
         evaluatePmExplorationMemory: evaluateMemory,
       }),
+      capturePmPreRunSeal,
     });
 
     const host = result.desktopPmExplorationExecutionHost;
@@ -350,9 +378,39 @@ describe("desktop evolution deployment", () => {
     expect(Object.isFrozen(host)).toBe(true);
     expect(host.executePmExplorationRound).toBeUndefined();
 
+    const stateTransitionDigest = `sha256:${createHash("sha256")
+      .update("chainlesschain.desktop-pm-database-transition/v1\0")
+      .update(
+        JSON.stringify({
+          manifestDigest,
+          executionReceiptDigest,
+          graderReceiptDigest,
+          preRunSealDigest: preRunSeal.sealDigest,
+          postRunSealDigest: postRunSeal.sealDigest,
+          previousStateTransitionDigest: null,
+        }),
+      )
+      .digest("hex")}`;
+
     await expect(
       executeDesktopPmExplorationRound(host, "journal", { roundId: "r1" }),
-    ).resolves.toMatchObject({ kind: "round" });
+    ).resolves.toEqual({
+      schema: "chainlesschain.desktop-pm-sealed-execution-result/v2",
+      preRunSeal,
+      postRunSeal,
+      databaseChanged: true,
+      previousStateTransitionDigest: null,
+      stateTransitionDigest,
+      executionResult: {
+        kind: "round",
+        journal: "journal",
+        input: { roundId: "r1" },
+        executionReceipt: { receiptDigest: executionReceiptDigest },
+        graderReceipt: { receiptDigest: graderReceiptDigest },
+      },
+      preRunSealVerified: true,
+      qualifiesForPromotion: false,
+    });
     await expect(
       mergeDesktopPmExplorationBranches(host, "journal", { mergeId: "m1" }),
     ).resolves.toMatchObject({ kind: "merge" });
@@ -364,12 +422,153 @@ describe("desktop evolution deployment", () => {
     expect(executeRound).toHaveBeenCalledWith(rawHost, "journal", {
       roundId: "r1",
     });
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(2);
     expect(mergeBranches).toHaveBeenCalledWith(rawHost, "journal", {
       mergeId: "m1",
     });
     expect(evaluateMemory).toHaveBeenCalledWith(rawHost, "journal", {
       finalMemoryDigest: "sha256:test",
     });
+  });
+
+  it("serializes seal-execute-seal windows that share a database capture", async () => {
+    const rawHost = Object.freeze({});
+    const seal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const events = [];
+    let releaseFirst;
+    const firstGate = new Promise((resolve) => {
+      releaseFirst = resolve;
+    });
+    const capturePmPreRunSeal = vi.fn(async () => {
+      events.push("seal");
+      return seal;
+    });
+    const executeRound = vi.fn(async (_host, _journal, input) => {
+      events.push(`execute:${input.roundId}:start`);
+      if (input.roundId === "r1") await firstGate;
+      events.push(`execute:${input.roundId}:end`);
+      return {
+        executionReceipt: { receiptDigest: `sha256:${"5".repeat(64)}` },
+        graderReceipt: { receiptDigest: `sha256:${"6".repeat(64)}` },
+      };
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest: `sha256:${"4".repeat(64)}`,
+          preRunSealDigest: seal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      capturePmPreRunSeal,
+    });
+    const first = executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "r1" },
+    );
+    const second = executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "r2" },
+    );
+
+    await Promise.resolve();
+    await Promise.resolve();
+    releaseFirst();
+    await Promise.all([first, second]);
+
+    expect(events).toEqual([
+      "seal",
+      "execute:r1:start",
+      "execute:r1:end",
+      "seal",
+      "seal",
+      "execute:r2:start",
+      "execute:r2:end",
+      "seal",
+    ]);
+  });
+
+  it("chains each later pre-run seal to the previous post-run seal", async () => {
+    const rawHost = Object.freeze({});
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const firstPostSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: initialSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const secondPostSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: initialSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"7".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(initialSeal)
+      .mockResolvedValueOnce(firstPostSeal)
+      .mockResolvedValueOnce(firstPostSeal)
+      .mockResolvedValueOnce(secondPostSeal);
+    const executeRound = vi.fn(async () => ({
+      executionReceipt: { receiptDigest: `sha256:${"5".repeat(64)}` },
+      graderReceipt: { receiptDigest: `sha256:${"6".repeat(64)}` },
+    }));
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest: `sha256:${"4".repeat(64)}`,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      capturePmPreRunSeal,
+    });
+
+    const first = await executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "r1" },
+    );
+    const second = await executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "r2" },
+    );
+
+    expect(first.preRunSeal).toEqual(initialSeal);
+    expect(first.postRunSeal).toEqual(firstPostSeal);
+    expect(first.previousStateTransitionDigest).toBeNull();
+    expect(second.preRunSeal).toEqual(firstPostSeal);
+    expect(second.postRunSeal).toEqual(secondPostSeal);
+    expect(second.previousStateTransitionDigest).toBe(
+      first.stateTransitionDigest,
+    );
+    expect(second.stateTransitionDigest).not.toBe(first.stateTransitionDigest);
+    expect(capturePmPreRunSeal).toHaveBeenCalledTimes(4);
   });
 
   it("rejects unbranded or accessor PM execution hosts", async () => {
@@ -390,6 +589,29 @@ describe("desktop evolution deployment", () => {
       }),
     ).rejects.toThrow(/branded PM exploration execution host/);
 
+    const inspectorGetter = vi.fn();
+    const accessorModule = {
+      isPmExplorationExecutionHost: () => true,
+      executePmExplorationRound: vi.fn(),
+      mergePmExplorationBranches: vi.fn(),
+      evaluatePmExplorationMemory: vi.fn(),
+    };
+    Object.defineProperty(accessorModule, "inspectPmExplorationExecutionHost", {
+      enumerable: true,
+      get: inspectorGetter,
+    });
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationExecutionHost: rawHost,
+          }),
+        }),
+        importPmExplorationExecutionModule: async () => accessorModule,
+      }),
+    ).rejects.toThrow(/inspector must be a direct function/);
+    expect(inspectorGetter).not.toHaveBeenCalled();
+
     const getter = vi.fn();
     await expect(
       loadDesktopEvolutionDependencies({
@@ -403,9 +625,51 @@ describe("desktop evolution deployment", () => {
       }),
     ).rejects.toThrow(/enumerable data property/);
     expect(getter).not.toHaveBeenCalled();
-    expect(() => executeDesktopPmExplorationRound({}, {}, {})).toThrow(
+    await expect(executeDesktopPmExplorationRound({}, {}, {})).rejects.toThrow(
       /branded Desktop PM exploration execution host/,
     );
+  });
+
+  it("blocks Desktop execution before the signed pre-run seal diverges", async () => {
+    const rawHost = Object.freeze({});
+    const signedSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: `sha256:${"1".repeat(64)}`,
+      databaseSnapshotDigest: `sha256:${"2".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const observedSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: signedSeal.databasePathDigest,
+      databaseSnapshotDigest: `sha256:${"3".repeat(64)}`,
+      databaseSnapshotBytes: 4096,
+    });
+    const executeRound = vi.fn();
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest: `sha256:${"4".repeat(64)}`,
+          preRunSealDigest: signedSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      capturePmPreRunSeal: async () => observedSeal,
+    });
+
+    await expect(
+      executeDesktopPmExplorationRound(
+        result.desktopPmExplorationExecutionHost,
+        "journal",
+        { roundId: "round-one" },
+      ),
+    ).rejects.toThrow("differs from signed manifest");
+    expect(executeRound).not.toHaveBeenCalled();
   });
 
   it("creates a frozen WebShell composition capability without exposing its factory", async () => {
@@ -530,6 +794,7 @@ describe("desktop evolution deployment", () => {
     const outcomeReader = factories.createDesktopPmReadOnlyOutcomeReader({
       planDigest: `sha256:${"1".repeat(64)}`,
       environmentDigest: `sha256:${"2".repeat(64)}`,
+      databasePathDigest: `sha256:${"3".repeat(64)}`,
       bindings: [
         {
           taskId: "task-one",
@@ -539,6 +804,7 @@ describe("desktop evolution deployment", () => {
       ],
     });
     expect(outcomeReader).toEqual({
+      bindingDigest: expect.stringMatching(/^sha256:/u),
       readProjectState: expect.any(Function),
       readBoardExport: expect.any(Function),
     });

@@ -19,7 +19,7 @@ import {
 import { verifyPmExplorationVolcengineSettlementRecord } from "./pm-exploration-volcengine-provider.js";
 
 export const PM_EXPLORATION_EXECUTION_MANIFEST_SCHEMA =
-  "chainlesschain.pm-exploration-execution-manifest/v1";
+  "chainlesschain.pm-exploration-execution-manifest/v2";
 export const PM_EXPLORATION_RUN_REQUEST_SCHEMA =
   "chainlesschain.pm-exploration-run-request/v1";
 export const PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1 =
@@ -176,6 +176,7 @@ export function createPmExplorationExecutionManifest(input = {}) {
       "evaluator",
       "toolIds",
       "toolPolicyDigest",
+      "preRunSealDigest",
     ],
     "PM exploration execution manifest",
   );
@@ -189,6 +190,7 @@ export function createPmExplorationExecutionManifest(input = {}) {
     evaluator: authorityDescriptor(input.evaluator, "evaluator", "evaluator"),
     toolIds: toolIds(input.toolIds),
     toolPolicyDigest: digest(input.toolPolicyDigest, "toolPolicyDigest"),
+    preRunSealDigest: digest(input.preRunSealDigest, "preRunSealDigest"),
   });
   const authorities = [core.runner, core.grader, core.merger, core.evaluator];
   if (
@@ -217,6 +219,7 @@ export function verifyPmExplorationExecutionManifest(value) {
       "evaluator",
       "toolIds",
       "toolPolicyDigest",
+      "preRunSealDigest",
       "manifestDigest",
     ],
     "PM exploration execution manifest envelope",
@@ -232,6 +235,7 @@ export function verifyPmExplorationExecutionManifest(value) {
     evaluator: value.evaluator,
     toolIds: value.toolIds,
     toolPolicyDigest: value.toolPolicyDigest,
+    preRunSealDigest: value.preRunSealDigest,
   });
   if (canonical(normalized) !== canonical(value))
     throw new Error("PM exploration execution manifest digest mismatch");
@@ -386,6 +390,18 @@ export function createPmExplorationExecutionHost(options = {}) {
 
 export function isPmExplorationExecutionHost(value) {
   return HOSTS.has(value);
+}
+
+export function inspectPmExplorationExecutionHost(value) {
+  const host = HOSTS.get(value);
+  if (!host)
+    throw new TypeError("a branded PM exploration execution host is required");
+  return Object.freeze({
+    planDigest: host.plan.planDigest,
+    environmentDigest: host.plan.environmentDigest,
+    manifestDigest: host.manifest.manifestDigest,
+    preRunSealDigest: host.manifest.preRunSealDigest,
+  });
 }
 
 function isoTime(now) {

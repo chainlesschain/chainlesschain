@@ -12,9 +12,11 @@ import {
   createPmExplorationRunner,
   evaluatePmExplorationMemory,
   executePmExplorationRound,
+  inspectPmExplorationExecutionHost,
   mergePmExplorationBranches,
   PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
   PM_EXPLORATION_RUN_REQUEST_SCHEMA,
+  verifyPmExplorationExecutionManifest,
 } from "../../src/lib/evolution/pm-exploration-execution-host.js";
 import {
   createPmExplorationEvidenceBundle,
@@ -165,6 +167,7 @@ function setup({
     evaluator: inspectPmExplorationReceiptAuthority(evaluatorSigner),
     toolIds: ["project:get"],
     toolPolicyDigest: sha("tool-policy"),
+    preRunSealDigest: sha("pre-run-seal"),
   });
   const host = createPmExplorationExecutionHost({
     plan: boundPlan,
@@ -203,13 +206,29 @@ afterEach(() => {
 describe("PM exploration execution host", () => {
   it("runs through an allow-listed tool broker and settles signed receipts", async () => {
     const calls = [];
-    const { host, plan: boundPlan } = setup({
+    const {
+      host,
+      manifest,
+      plan: boundPlan,
+    } = setup({
       invokeTool: async ({ toolId, input, signal }) => {
         calls.push({ toolId, input, aborted: signal.aborted });
         return { id: input.projectId, status: "active" };
       },
     });
     const journal = createPmExplorationJournal(boundPlan);
+    expect(inspectPmExplorationExecutionHost(host)).toEqual({
+      planDigest: boundPlan.planDigest,
+      environmentDigest: boundPlan.environmentDigest,
+      manifestDigest: expect.stringMatching(/^sha256:/u),
+      preRunSealDigest: sha("pre-run-seal"),
+    });
+    expect(() =>
+      verifyPmExplorationExecutionManifest({
+        ...manifest,
+        preRunSealDigest: sha("substituted-pre-run-seal"),
+      }),
+    ).toThrow("manifest digest mismatch");
     const result = await executePmExplorationRound(host, journal, {
       roundId: "round-one",
       stage: "broad",
@@ -377,6 +396,7 @@ describe("PM exploration execution host", () => {
       evaluator: inspectPmExplorationReceiptAuthority(signers.evaluator),
       toolIds: ["project:get"],
       toolPolicyDigest: sha("tool-policy"),
+      preRunSealDigest: sha("pre-run-seal"),
     });
     const journal = createPmExplorationJournal(boundPlan);
     const roundInput = {
@@ -637,6 +657,7 @@ describe("PM exploration execution host", () => {
         evaluator: inspectPmExplorationReceiptAuthority(evaluatorSigner),
         toolIds: [],
         toolPolicyDigest: sha("tool-policy"),
+        preRunSealDigest: sha("pre-run-seal"),
       }),
     ).toThrow(/independent authorities/);
   });

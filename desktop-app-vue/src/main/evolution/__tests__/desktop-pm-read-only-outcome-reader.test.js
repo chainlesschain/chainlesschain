@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,6 +10,7 @@ const {
   BOARD_SQL,
   PROJECT_SQL,
   createDesktopPmReadOnlyOutcomeReaderFactory,
+  digestDesktopPmDatabasePath,
 } = require("../desktop-pm-read-only-outcome-reader");
 const requireFromHere = createRequire(import.meta.url);
 
@@ -30,7 +34,7 @@ function query(overrides = {}) {
   };
 }
 
-function fixture({ projectRow = null, boardRows = [] } = {}) {
+function fixture({ projectRow = null, boardRows = [], databasePath } = {}) {
   const projectGet = vi.fn(() => projectRow);
   const boardAll = vi.fn(() => boardRows);
   const prepare = vi.fn((sql) => {
@@ -40,7 +44,10 @@ function fixture({ projectRow = null, boardRows = [] } = {}) {
   });
   const database = { prepare };
   const getDatabase = vi.fn(() => database);
-  const manager = { getDatabase };
+  const currentDatabasePath =
+    databasePath ?? path.resolve(process.cwd(), "pm-reader-fixture.db");
+  const getCurrentDatabasePath = vi.fn(() => currentDatabasePath);
+  const manager = { getDatabase, getCurrentDatabasePath };
   const databaseProvider = vi.fn(() => manager);
   const createReader =
     createDesktopPmReadOnlyOutcomeReaderFactory(databaseProvider);
@@ -50,16 +57,21 @@ function fixture({ projectRow = null, boardRows = [] } = {}) {
     database,
     databaseProvider,
     getDatabase,
+    getCurrentDatabasePath,
     manager,
     prepare,
     projectGet,
+    databasePath: currentDatabasePath,
   };
 }
 
-function reader(createReader, bindings) {
+function reader(createReader, bindings, databasePath) {
   return createReader({
     planDigest: sha("plan"),
     environmentDigest: sha("environment"),
+    databasePathDigest: digestDesktopPmDatabasePath(
+      databasePath ?? path.resolve(process.cwd(), "pm-reader-fixture.db"),
+    ),
     bindings,
   });
 }
@@ -67,7 +79,9 @@ function reader(createReader, bindings) {
 describe("Desktop PM read-only outcome reader", () => {
   it("reads the real Desktop tables through a query-only SQLite connection", async () => {
     const BetterSqlite3 = requireFromHere("better-sqlite3");
-    const database = new BetterSqlite3(":memory:");
+    const directory = mkdtempSync(path.join(tmpdir(), "cc-pm-reader-"));
+    const databasePath = path.join(directory, "isolated-clone.db");
+    const database = new BetterSqlite3(databasePath);
     try {
       database.exec(`
         CREATE TABLE projects (
@@ -99,22 +113,29 @@ describe("Desktop PM read-only outcome reader", () => {
         .prepare("INSERT INTO task_sprints VALUES (?, ?)")
         .run("4-sprint-uuid", "2-board-uuid");
       database.pragma("query_only = ON");
-      const manager = { getDatabase: () => database };
+      const manager = {
+        getDatabase: () => database,
+        getCurrentDatabasePath: () => databasePath,
+      };
       const createReader = createDesktopPmReadOnlyOutcomeReaderFactory(
         () => manager,
       );
-      const outcomeReader = reader(createReader, [
-        {
-          taskId: "task-project",
-          kind: "project-state",
-          projectId: "1-project-uuid",
-        },
-        {
-          taskId: "task-board",
-          kind: "board-export",
-          boardId: "2-board-uuid",
-        },
-      ]);
+      const outcomeReader = reader(
+        createReader,
+        [
+          {
+            taskId: "task-project",
+            kind: "project-state",
+            projectId: "1-project-uuid",
+          },
+          {
+            taskId: "task-board",
+            kind: "board-export",
+            boardId: "2-board-uuid",
+          },
+        ],
+        databasePath,
+      );
 
       await expect(
         outcomeReader.readProjectState(
@@ -140,6 +161,7 @@ describe("Desktop PM read-only outcome reader", () => {
       });
     } finally {
       database.close();
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 
@@ -299,6 +321,27 @@ describe("Desktop PM read-only outcome reader", () => {
     expect(test.databaseProvider).not.toHaveBeenCalled();
   });
 
+  it("rejects a database outside the signed path binding before SQL", async () => {
+    const test = fixture();
+    const outcomeReader = reader(
+      test.createReader,
+      [
+        {
+          taskId: "task-one",
+          kind: "project-state",
+          projectId: "project-one",
+        },
+      ],
+      path.resolve(process.cwd(), "different-clone.db"),
+    );
+
+    await expect(
+      outcomeReader.readProjectState(query(), new AbortController().signal),
+    ).rejects.toThrow("differs from its signed binding");
+    expect(test.getDatabase).not.toHaveBeenCalled();
+    expect(test.prepare).not.toHaveBeenCalled();
+  });
+
   it("fails closed if the active Desktop database is substituted between rounds", async () => {
     const first = fixture({
       projectRow: {
@@ -342,6 +385,98 @@ describe("Desktop PM read-only outcome reader", () => {
     expect(second.prepare).not.toHaveBeenCalled();
   });
 
+  it("fails closed if the bound manager reports a different database path", async () => {
+    const projectRow = {
+      id: "project-one",
+      name: "Bound clone",
+      status: "active",
+      deleted: 0,
+    };
+    const projectGet = vi.fn(() => projectRow);
+    const prepare = vi.fn(() => ({ get: projectGet }));
+    const database = { prepare };
+    const boundPath = path.resolve(process.cwd(), "bound-clone.db");
+    let currentPath = boundPath;
+    const manager = {
+      getDatabase: () => database,
+      getCurrentDatabasePath: () => currentPath,
+    };
+    const createReader = createDesktopPmReadOnlyOutcomeReaderFactory(
+      () => manager,
+    );
+    const outcomeReader = reader(
+      createReader,
+      [
+        {
+          taskId: "task-one",
+          kind: "project-state",
+          projectId: "project-one",
+        },
+      ],
+      boundPath,
+    );
+
+    await expect(
+      outcomeReader.readProjectState(query(), new AbortController().signal),
+    ).resolves.toMatchObject({ name: "Bound clone" });
+    currentPath = path.resolve(process.cwd(), "substituted-clone.db");
+    await expect(
+      outcomeReader.readProjectState(
+        query({ roundId: "round-two" }),
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow("differs from its signed binding");
+    expect(prepare).toHaveBeenCalledOnce();
+  });
+
+  it("never invokes an accessor masquerading as a database path method", async () => {
+    const getPath = vi.fn(() => path.resolve(process.cwd(), "clone.db"));
+    const manager = { getDatabase: () => ({ prepare: vi.fn() }) };
+    Object.defineProperty(manager, "getCurrentDatabasePath", {
+      enumerable: true,
+      get: getPath,
+    });
+    const createReader = createDesktopPmReadOnlyOutcomeReaderFactory(
+      () => manager,
+    );
+    const outcomeReader = reader(createReader, [
+      {
+        taskId: "task-one",
+        kind: "project-state",
+        projectId: "project-one",
+      },
+    ]);
+
+    await expect(
+      outcomeReader.readProjectState(query(), new AbortController().signal),
+    ).rejects.toThrow("must be a direct function");
+    expect(getPath).not.toHaveBeenCalled();
+  });
+
+  it("commits the signed database path into the public reader binding", () => {
+    const test = fixture();
+    const bindings = [
+      {
+        taskId: "task-one",
+        kind: "project-state",
+        projectId: "project-one",
+      },
+    ];
+    const first = reader(
+      test.createReader,
+      bindings,
+      path.resolve(process.cwd(), "clone-one.db"),
+    );
+    const second = reader(
+      test.createReader,
+      bindings,
+      path.resolve(process.cwd(), "clone-two.db"),
+    );
+
+    expect(first.bindingDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(second.bindingDigest).not.toBe(first.bindingDigest);
+  });
+
   it("rejects duplicate, accessor and protocol-invalid bindings", () => {
     const test = fixture();
     const binding = {
@@ -364,5 +499,18 @@ describe("Desktop PM read-only outcome reader", () => {
       get: () => "project-state",
     });
     expect(() => reader(test.createReader, [accessor])).toThrow("plain data");
+
+    const getBinding = vi.fn(() => binding);
+    const accessorArray = [];
+    Object.defineProperty(accessorArray, 0, {
+      enumerable: true,
+      configurable: true,
+      get: getBinding,
+    });
+    accessorArray.length = 1;
+    expect(() => reader(test.createReader, accessorArray)).toThrow(
+      "holes or accessors",
+    );
+    expect(getBinding).not.toHaveBeenCalled();
   });
 });

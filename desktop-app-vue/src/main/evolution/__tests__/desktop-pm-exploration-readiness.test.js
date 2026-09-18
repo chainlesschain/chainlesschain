@@ -43,6 +43,10 @@ async function createExecutionHost() {
     }),
     importPmExplorationExecutionModule: async () => ({
       isPmExplorationExecutionHost: (value) => value === host,
+      inspectPmExplorationExecutionHost: () => ({
+        manifestDigest: `sha256:${"2".repeat(64)}`,
+        preRunSealDigest: `sha256:${"1".repeat(64)}`,
+      }),
       executePmExplorationRound: vi.fn(),
       mergePmExplorationBranches: vi.fn(),
       evaluatePmExplorationMemory: vi.fn(),
@@ -129,6 +133,9 @@ describe("Desktop PM exploration readiness host", () => {
     });
     expect(result.checks.every((entry) => entry.passed)).toBe(true);
     expect(result.missingRuntimeEvidence).toContain("live-provider-probe");
+    expect(result.missingRuntimeEvidence).toContain(
+      "signed-database-pre-run-seal",
+    );
     expect(result.missingRuntimeEvidence).toContain(
       "host-enforced-structured-tool-policy",
     );

@@ -365,6 +365,7 @@ function signedExecution(boundPlan, { run = null } = {}) {
     evaluator: inspectPmExplorationReceiptAuthority(signers.evaluator),
     toolIds: [],
     toolPolicyDigest: sha("ledger-test-tool-policy"),
+    preRunSealDigest: sha("pre-run-seal"),
   });
   return {
     authorities,

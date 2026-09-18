@@ -11,7 +11,7 @@ import {
 import { inspectPmExplorationReceiptAuthority } from "./pm-exploration-receipts.js";
 
 export const PM_EXPLORATION_OUTCOME_SOURCE_SCHEMA =
-  "chainlesschain.pm-exploration-read-only-outcome-source/v1";
+  "chainlesschain.pm-exploration-read-only-outcome-source/v2";
 export const PM_EXPLORATION_OUTCOME_QUERY_SCHEMA =
   "chainlesschain.pm-exploration-read-only-outcome-query/v1";
 export const PM_EXPLORATION_BUSINESS_RESULT_SCHEMA =
@@ -104,7 +104,13 @@ function directFunction(value, label, nullable = false) {
 function normalizeSourceDescriptor(value) {
   exact(
     value,
-    ["sourceId", "revision", "handlerArtifactDigest", "environmentDigest"],
+    [
+      "sourceId",
+      "revision",
+      "handlerArtifactDigest",
+      "environmentDigest",
+      "outcomeBindingDigest",
+    ],
     "PM exploration outcome source descriptor",
   );
   const core = deepFreeze({
@@ -116,6 +122,10 @@ function normalizeSourceDescriptor(value) {
       "handlerArtifactDigest",
     ),
     environmentDigest: digest(value.environmentDigest, "environmentDigest"),
+    outcomeBindingDigest: digest(
+      value.outcomeBindingDigest,
+      "outcomeBindingDigest",
+    ),
   });
   return deepFreeze({
     ...core,
@@ -179,11 +189,18 @@ function denseEntityIds(value, label) {
   ) {
     throw new TypeError(`${label} must be a dense nonempty array`);
   }
-  const normalized = value.map((entry, index) => {
-    if (!Object.hasOwn(value, index))
-      throw new TypeError(`${label} cannot contain holes`);
-    return entityId(entry, label);
-  });
+  const normalized = [];
+  for (let index = 0; index < value.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, index);
+    if (
+      !descriptor ||
+      descriptor.enumerable !== true ||
+      !("value" in descriptor)
+    ) {
+      throw new TypeError(`${label} cannot contain holes or accessors`);
+    }
+    normalized.push(entityId(descriptor.value, label));
+  }
   if (new Set(normalized).size !== normalized.length)
     throw new TypeError(`${label} must contain unique identifiers`);
   return Object.freeze(normalized);
@@ -284,11 +301,20 @@ function normalizeExpectations(value) {
   ) {
     throw new TypeError("PM business expectations must be a dense array");
   }
-  const result = value.map((entry, index) => {
-    if (!Object.hasOwn(value, index))
-      throw new TypeError("PM business expectations cannot contain holes");
-    return normalizeExpectationEntry(entry, index);
-  });
+  const result = [];
+  for (let index = 0; index < value.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, index);
+    if (
+      !descriptor ||
+      descriptor.enumerable !== true ||
+      !("value" in descriptor)
+    ) {
+      throw new TypeError(
+        "PM business expectations cannot contain holes or accessors",
+      );
+    }
+    result.push(normalizeExpectationEntry(descriptor.value, index));
+  }
   if (new Set(result.map((entry) => entry.taskId)).size !== result.length)
     throw new TypeError("PM business expectation taskIds must be unique");
   return Object.freeze(result);

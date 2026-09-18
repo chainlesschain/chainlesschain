@@ -86,6 +86,7 @@ function setup({
       revision: 1,
       handlerArtifactDigest: graderHandlerDigest,
       environmentDigest: boundPlan.environmentDigest,
+      outcomeBindingDigest: sha("desktop-pm-reader-binding"),
     },
     readProjectState,
     readBoardExport,
@@ -129,6 +130,7 @@ function setup({
     evaluator: inspectPmExplorationReceiptAuthority(signers.evaluator),
     toolIds: [],
     toolPolicyDigest: sha("no-tools"),
+    preRunSealDigest: sha("pre-run-seal"),
   });
   return {
     host: createPmExplorationExecutionHost({
@@ -417,6 +419,7 @@ describe("PM exploration business grader", () => {
         revision: 1,
         handlerArtifactDigest: sha("signed-desktop-deployment"),
         environmentDigest: sha("environment"),
+        outcomeBindingDigest: sha("desktop-pm-reader-binding"),
       },
       readProjectState: async () => ({}),
       readBoardExport: null,
@@ -452,6 +455,24 @@ describe("PM exploration business grader", () => {
         expectations: [accessor],
       }),
     ).toThrow("plain data");
+
+    const getExpectation = vi.fn(() => ({ taskId: "task-one", expected }));
+    const accessorExpectations = [];
+    Object.defineProperty(accessorExpectations, 0, {
+      enumerable: true,
+      configurable: true,
+      get: getExpectation,
+    });
+    accessorExpectations.length = 1;
+    expect(() =>
+      createPmExplorationBusinessGrader({
+        signer: graderSigner,
+        source,
+        planDigest: sha("plan"),
+        expectations: accessorExpectations,
+      }),
+    ).toThrow("holes or accessors");
+    expect(getExpectation).not.toHaveBeenCalled();
   });
 
   it("exposes only an immutable source descriptor, never callbacks", () => {
@@ -478,7 +499,25 @@ describe("PM exploration business grader", () => {
       revision: 1,
       handlerArtifactDigest: sha("signed-desktop-deployment"),
       environmentDigest: fixture.plan.environmentDigest,
+      outcomeBindingDigest: sha("desktop-pm-reader-binding"),
       sourceDigest: expect.stringMatching(/^sha256:/u),
     });
+
+    const reboundSource = createPmExplorationReadOnlyOutcomeSource({
+      descriptor: {
+        sourceId: "desktop.pm.read-only",
+        revision: 1,
+        handlerArtifactDigest: sha("signed-desktop-deployment"),
+        environmentDigest: fixture.plan.environmentDigest,
+        outcomeBindingDigest: sha("different-reader-binding"),
+      },
+      readProjectState: async () => ({}),
+      readBoardExport: null,
+    });
+    expect(
+      inspectPmExplorationReadOnlyOutcomeSource(reboundSource).sourceDigest,
+    ).not.toBe(
+      inspectPmExplorationReadOnlyOutcomeSource(fixture.source).sourceDigest,
+    );
   });
 });

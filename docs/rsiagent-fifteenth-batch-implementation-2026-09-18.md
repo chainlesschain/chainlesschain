@@ -2,6 +2,7 @@
 
 > 日期：2026-09-18（Asia/Shanghai）<br>
 > 前置实施：[第十四次本地签名 deployment 火山引擎真实烟测](./rsiagent-fourteenth-batch-implementation-2026-09-18.md)<br>
+> 后续实施：[第十六次 Desktop PM 只读结果端口与真实 SQLite 回读](./rsiagent-sixteenth-batch-implementation-2026-09-18.md)<br>
 > 状态：G02 的本地结果验证器现已接入签名 PM 执行链。文件结果由宿主在 Actor 执行前建立基线并在执行后直接回读；项目和看板结果只从品牌化只读 outcome source 获取。该交付是可审计的本地合同与负例回归，不是目标 Desktop 数据库的生产接线或真实 PM E2E 结论。
 
 ## 1. 本批关闭的实际断点
@@ -78,7 +79,7 @@ grader provider 可选注册宿主侧 `prepare` hook。host 在与 Actor 相同�
 本批证明的是签名 execution host 可以把具体 PM 任务交给不依赖 Actor 自报的结果 grader，并产生与执行请求精确绑定的签名回执。它仍不证明 G02 在目标环境完全验收：
 
 - outcome source 的“只读”由签名 deployment 选择的 callback 和底层数据库权限共同保证；JavaScript 品牌只能防伪造 capability，不能把有写权限的实现自动变成只读；
-- 仓库尚未新增连接真实 Desktop Project/Task 数据库的生产 adapter；
+- 本批尚未新增连接真实 Desktop Project/Task 数据库的 adapter；后续第十六次实施已补只读 SQL reader，但仍未由 operator deployment 在真实 PM E2E 中启用；
 - 未启动 Electron、未调用真实 PM IPC/工具、未验证 DID/RBAC 与持久化副作用清理；
 - 当前评分是精确通过/失败的 10000/0 分，不代表完整任务的部分得分标尺；
 - 本批未改变 promotion `hold`、未生成生产部署，也未执行等预算 baseline/candidate 效果比较。

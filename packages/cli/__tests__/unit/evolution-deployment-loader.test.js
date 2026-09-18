@@ -688,6 +688,7 @@ describe("signed evolution deployment loader", () => {
       "createPmExplorationEvaluator",
       "createPmExplorationExecutionHost",
       "isPmExplorationExecutionHost",
+      "inspectPmExplorationExecutionHost",
       "executePmExplorationRound",
       "mergePmExplorationBranches",
       "evaluatePmExplorationMemory",

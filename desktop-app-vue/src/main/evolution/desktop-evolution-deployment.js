@@ -1,5 +1,6 @@
 "use strict";
 
+const { createHash } = require("node:crypto");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { types } = require("util");
@@ -7,6 +8,10 @@ const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
+const {
+  captureDesktopPmPreRunSeal,
+  verifyDesktopPmPreRunSealValue,
+} = require("./desktop-pm-pre-run-seal");
 const {
   createDesktopGovernedSkillMarketplaceHost,
 } = require("../marketplace/governed-skill-marketplace-host");
@@ -24,6 +29,64 @@ const DEV_PM_EXECUTION_HOST_REL =
   "../../../../packages/cli/src/lib/evolution/pm-exploration-execution-host.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
+const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
+const DESKTOP_PM_SEALED_EXECUTION_RESULT_SCHEMA =
+  "chainlesschain.desktop-pm-sealed-execution-result/v2";
+
+function ownDirectFunction(owner, name, label) {
+  if (!owner || typeof owner !== "object" || types.isProxy(owner))
+    throw new TypeError(`${label} module is invalid`);
+  const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+  if (
+    !descriptor ||
+    !("value" in descriptor) ||
+    typeof descriptor.value !== "function" ||
+    types.isProxy(descriptor.value)
+  ) {
+    throw new TypeError(`${label} must be a direct function`);
+  }
+  return descriptor.value;
+}
+
+function ownData(owner, name, label) {
+  if (!owner || typeof owner !== "object" || types.isProxy(owner))
+    throw new TypeError(`${label} owner is invalid`);
+  const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+  if (!descriptor || !("value" in descriptor))
+    throw new TypeError(`${label} must be plain data`);
+  return descriptor.value;
+}
+
+function sha256Digest(value, label) {
+  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value))
+    throw new TypeError(`${label} must be a sha256 digest`);
+  return value;
+}
+
+function transitionDigest(value) {
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.desktop-pm-database-transition/v1\0")
+    .update(JSON.stringify(value))
+    .digest("hex")}`;
+}
+
+function executionLane(capturePmPreRunSeal) {
+  let lane = PM_EXPLORATION_EXECUTION_LANES.get(capturePmPreRunSeal);
+  if (!lane) {
+    lane = { tail: Promise.resolve() };
+    PM_EXPLORATION_EXECUTION_LANES.set(capturePmPreRunSeal, lane);
+  }
+  return lane;
+}
+
+function enqueueExecution(lane, operation) {
+  const result = lane.tail.then(operation, operation);
+  lane.tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
 
 function resolveLoaderPath({ isPackaged = false, resourcesPath } = {}) {
   if (isPackaged) {
@@ -165,32 +228,74 @@ function inspectDesktopPmExplorationStorageHost(host) {
   }
 }
 
-function createDesktopPmExplorationExecutionHost(host, executionModule) {
-  if (
-    !executionModule ||
-    typeof executionModule !== "object" ||
-    types.isProxy(executionModule) ||
-    typeof executionModule.isPmExplorationExecutionHost !== "function" ||
-    types.isProxy(executionModule.isPmExplorationExecutionHost) ||
-    !executionModule.isPmExplorationExecutionHost(host)
-  ) {
+function createDesktopPmExplorationExecutionHost(
+  host,
+  executionModule,
+  capturePmPreRunSeal,
+) {
+  const isExecutionHost = ownDirectFunction(
+    executionModule,
+    "isPmExplorationExecutionHost",
+    "PM exploration execution host guard",
+  );
+  if (!Reflect.apply(isExecutionHost, undefined, [host])) {
     throw new TypeError("a branded PM exploration execution host is required");
   }
+  const inspectExecutionHost = ownDirectFunction(
+    executionModule,
+    "inspectPmExplorationExecutionHost",
+    "PM exploration execution host inspector",
+  );
+  if (
+    typeof capturePmPreRunSeal !== "function" ||
+    types.isProxy(capturePmPreRunSeal)
+  ) {
+    throw new TypeError("Desktop PM pre-run seal capture must be direct");
+  }
+  const inspection = Reflect.apply(inspectExecutionHost, undefined, [host]);
+  const preRunSealDigest = ownData(
+    inspection,
+    "preRunSealDigest",
+    "PM exploration pre-run seal digest",
+  );
+  sha256Digest(preRunSealDigest, "PM exploration pre-run seal digest");
+  const manifestDigest = sha256Digest(
+    ownData(
+      inspection,
+      "manifestDigest",
+      "PM exploration execution manifest digest",
+    ),
+    "PM exploration execution manifest digest",
+  );
   const operations = {};
   for (const name of [
     "executePmExplorationRound",
     "mergePmExplorationBranches",
     "evaluatePmExplorationMemory",
   ]) {
-    const operation = executionModule[name];
-    if (typeof operation !== "function" || types.isProxy(operation)) {
-      throw new TypeError(`PM exploration execution module is missing ${name}`);
-    }
+    const operation = ownDirectFunction(
+      executionModule,
+      name,
+      `PM exploration execution module ${name}`,
+    );
     operations[name] = (...args) =>
       Reflect.apply(operation, undefined, [host, ...args]);
   }
   const desktopHost = Object.freeze({});
-  PM_EXPLORATION_EXECUTION_HOSTS.set(desktopHost, Object.freeze(operations));
+  PM_EXPLORATION_EXECUTION_HOSTS.set(
+    desktopHost,
+    Object.freeze({
+      ...operations,
+      capturePmPreRunSeal,
+      executionLane: executionLane(capturePmPreRunSeal),
+      executionState: {
+        nextPreRunSealDigest: preRunSealDigest,
+        previousStateTransitionDigest: null,
+      },
+      manifestDigest,
+      preRunSealDigest,
+    }),
+  );
   return desktopHost;
 }
 
@@ -208,10 +313,72 @@ function isDesktopPmExplorationExecutionHost(value) {
   return PM_EXPLORATION_EXECUTION_HOSTS.has(value);
 }
 
-function executeDesktopPmExplorationRound(host, journal, input) {
-  return captureDesktopPmExplorationExecutionHost(
-    host,
-  ).executePmExplorationRound(journal, input);
+async function executeDesktopPmExplorationRound(host, journal, input) {
+  const captured = captureDesktopPmExplorationExecutionHost(host);
+  return enqueueExecution(captured.executionLane, async () => {
+    const previousStateTransitionDigest =
+      captured.executionState.previousStateTransitionDigest;
+    const seal = verifyDesktopPmPreRunSealValue(
+      await captured.capturePmPreRunSeal(),
+      captured.executionState.nextPreRunSealDigest,
+    );
+    const executionResult = await captured.executePmExplorationRound(
+      journal,
+      input,
+    );
+    const executionReceiptDigest = sha256Digest(
+      ownData(
+        ownData(
+          executionResult,
+          "executionReceipt",
+          "PM exploration execution receipt",
+        ),
+        "receiptDigest",
+        "PM exploration execution receipt digest",
+      ),
+      "PM exploration execution receipt digest",
+    );
+    const graderReceiptDigest = sha256Digest(
+      ownData(
+        ownData(
+          executionResult,
+          "graderReceipt",
+          "PM exploration grader receipt",
+        ),
+        "receiptDigest",
+        "PM exploration grader receipt digest",
+      ),
+      "PM exploration grader receipt digest",
+    );
+    const postRunSeal = verifyDesktopPmPreRunSealValue(
+      await captured.capturePmPreRunSeal(),
+    );
+    if (postRunSeal.databasePathDigest !== seal.databasePathDigest)
+      throw new Error("Desktop PM database path changed after execution");
+    const stateTransitionDigest = transitionDigest({
+      manifestDigest: captured.manifestDigest,
+      executionReceiptDigest,
+      graderReceiptDigest,
+      preRunSealDigest: seal.sealDigest,
+      postRunSealDigest: postRunSeal.sealDigest,
+      previousStateTransitionDigest,
+    });
+    captured.executionState.nextPreRunSealDigest = postRunSeal.sealDigest;
+    captured.executionState.previousStateTransitionDigest =
+      stateTransitionDigest;
+    return Object.freeze({
+      schema: DESKTOP_PM_SEALED_EXECUTION_RESULT_SCHEMA,
+      preRunSeal: seal,
+      postRunSeal,
+      databaseChanged:
+        postRunSeal.databaseSnapshotDigest !== seal.databaseSnapshotDigest,
+      previousStateTransitionDigest,
+      stateTransitionDigest,
+      executionResult,
+      preRunSealVerified: true,
+      qualifiesForPromotion: false,
+    });
+  });
 }
 
 function mergeDesktopPmExplorationBranches(host, journal, input) {
@@ -234,6 +401,7 @@ async function loadDesktopEvolutionDependencies({
   importMarketplaceHostModule,
   importPmExplorationLedgerModule = (url) => import(url),
   importPmExplorationExecutionModule = (url) => import(url),
+  capturePmPreRunSeal = captureDesktopPmPreRunSeal,
 } = {}) {
   const loaderPath = resolveLoaderPath({ isPackaged, resourcesPath });
   const loader = await importLoader(pathToFileURL(loaderPath).href);
@@ -331,6 +499,7 @@ async function loadDesktopEvolutionDependencies({
       createDesktopPmExplorationExecutionHost(
         pmExecutionHostDescriptor.value,
         executionModule,
+        capturePmPreRunSeal,
       );
   }
   const composition = result.evolvableArtifactRuntimeComposition;

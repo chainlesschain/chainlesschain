@@ -24,6 +24,7 @@ const REQUIRED_ENVIRONMENT = Object.freeze({
 });
 const MISSING_RUNTIME_EVIDENCE = Object.freeze([
   "live-provider-probe",
+  "signed-database-pre-run-seal",
   "host-enforced-structured-tool-policy",
   "disposable-workspace-and-database-reset",
   "host-enforced-token-tool-time-budget",

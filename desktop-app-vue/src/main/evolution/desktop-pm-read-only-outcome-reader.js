@@ -1,5 +1,7 @@
 "use strict";
 
+const { createHash } = require("node:crypto");
+const path = require("node:path");
 const { types } = require("util");
 
 const OUTCOME_QUERY_SCHEMA =
@@ -69,10 +71,68 @@ function directFunction(value, label) {
   return value;
 }
 
+function capturedMethod(owner, name, label) {
+  if (!owner || typeof owner !== "object" || types.isProxy(owner)) {
+    throw new TypeError(`${label} owner is invalid`);
+  }
+  let current = owner;
+  while (current && current !== Object.prototype) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, name);
+    if (descriptor) {
+      if (
+        !("value" in descriptor) ||
+        typeof descriptor.value !== "function" ||
+        types.isProxy(descriptor.value)
+      ) {
+        throw new TypeError(`${label} must be a direct function`);
+      }
+      return descriptor.value;
+    }
+    current = Object.getPrototypeOf(current);
+  }
+  throw new TypeError(`${label} must be a direct function`);
+}
+
 function digest(value, label) {
   if (typeof value !== "string" || !DIGEST.test(value))
     throw new TypeError(`${label} must be a sha256 digest`);
   return value;
+}
+
+function normalizedDatabasePath(value) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 32_768 ||
+    value.includes("\0") ||
+    !path.isAbsolute(value)
+  ) {
+    throw new TypeError("Desktop PM database path must be absolute");
+  }
+  return path.normalize(path.resolve(value));
+}
+
+function digestDesktopPmDatabasePath(value) {
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.desktop-pm-database-path/v1\0")
+    .update(normalizedDatabasePath(value))
+    .digest("hex")}`;
+}
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function bindingDigest(value) {
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.desktop-pm-outcome-binding/v1\0")
+    .update(canonical(value))
+    .digest("hex")}`;
 }
 
 function protocolId(value, label) {
@@ -166,11 +226,20 @@ function normalizeBindings(value) {
   ) {
     throw new TypeError("Desktop PM outcome bindings must be a dense array");
   }
-  const bindings = value.map((entry, index) => {
-    if (!Object.hasOwn(value, index))
-      throw new TypeError("Desktop PM outcome bindings cannot contain holes");
-    return normalizeBinding(entry, index);
-  });
+  const bindings = [];
+  for (let index = 0; index < value.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, index);
+    if (
+      !descriptor ||
+      descriptor.enumerable !== true ||
+      !("value" in descriptor)
+    ) {
+      throw new TypeError(
+        "Desktop PM outcome bindings cannot contain holes or accessors",
+      );
+    }
+    bindings.push(normalizeBinding(descriptor.value, index));
+  }
   if (new Set(bindings.map((entry) => entry.taskId)).size !== bindings.length)
     throw new TypeError("Desktop PM outcome binding taskIds must be unique");
   return Object.freeze(bindings);
@@ -219,41 +288,66 @@ function assertSignal(signal) {
   if (signal.aborted) throw new Error("Desktop PM outcome query was aborted");
 }
 
-function databasePort(databaseProvider, identity) {
+function databasePort(databaseProvider, identity, expectedPathDigest) {
   const manager = databaseProvider();
   if (!manager || typeof manager !== "object" || types.isProxy(manager))
     throw new TypeError("Desktop PM database manager is unavailable");
-  const getDatabase = directFunction(
-    manager.getDatabase,
+  const getDatabase = capturedMethod(
+    manager,
+    "getDatabase",
     "Desktop PM database getDatabase",
   );
+  const getCurrentDatabasePath = capturedMethod(
+    manager,
+    "getCurrentDatabasePath",
+    "Desktop PM database getCurrentDatabasePath",
+  );
+  const currentPath = Reflect.apply(getCurrentDatabasePath, manager, []);
+  const currentPathDigest = digestDesktopPmDatabasePath(currentPath);
+  if (currentPathDigest !== expectedPathDigest) {
+    throw new Error("Desktop PM database path differs from its signed binding");
+  }
   const database = Reflect.apply(getDatabase, manager, []);
   if (!database || typeof database !== "object" || types.isProxy(database))
     throw new TypeError("Desktop PM native database is unavailable");
   if (identity.manager === null) {
     identity.manager = manager;
     identity.database = database;
+    identity.pathDigest = currentPathDigest;
   } else if (identity.manager !== manager || identity.database !== database) {
     throw new Error("Desktop PM database identity changed");
+  } else if (identity.pathDigest !== currentPathDigest) {
+    throw new Error("Desktop PM database path identity changed");
   }
   return Object.freeze({
     database,
-    prepare: directFunction(database.prepare, "Desktop PM database prepare"),
+    prepare: capturedMethod(database, "prepare", "Desktop PM database prepare"),
   });
 }
 
 function statementMethod(statement, name) {
   if (!statement || typeof statement !== "object" || types.isProxy(statement))
     throw new TypeError("Desktop PM database statement is invalid");
-  return directFunction(
-    statement[name],
+  return capturedMethod(
+    statement,
+    name,
     `Desktop PM database statement ${name}`,
   );
 }
 
-function readProject(databaseProvider, databaseIdentity, binding, signal) {
+function readProject(
+  databaseProvider,
+  databaseIdentity,
+  expectedPathDigest,
+  binding,
+  signal,
+) {
   assertSignal(signal);
-  const port = databasePort(databaseProvider, databaseIdentity);
+  const port = databasePort(
+    databaseProvider,
+    databaseIdentity,
+    expectedPathDigest,
+  );
   const statement = Reflect.apply(port.prepare, port.database, [PROJECT_SQL]);
   const row = Reflect.apply(statementMethod(statement, "get"), statement, [
     binding.targetId,
@@ -271,9 +365,19 @@ function readProject(databaseProvider, databaseIdentity, binding, signal) {
   });
 }
 
-function readBoard(databaseProvider, databaseIdentity, binding, signal) {
+function readBoard(
+  databaseProvider,
+  databaseIdentity,
+  expectedPathDigest,
+  binding,
+  signal,
+) {
   assertSignal(signal);
-  const port = databasePort(databaseProvider, databaseIdentity);
+  const port = databasePort(
+    databaseProvider,
+    databaseIdentity,
+    expectedPathDigest,
+  );
   const statement = Reflect.apply(port.prepare, port.database, [BOARD_SQL]);
   const rows = Reflect.apply(statementMethod(statement, "all"), statement, [
     binding.targetId,
@@ -292,9 +396,17 @@ function readBoard(databaseProvider, databaseIdentity, binding, signal) {
   }
   const grouped = { board: [], task: [], sprint: [] };
   for (let index = 0; index < rows.length; index++) {
-    if (!Object.hasOwn(rows, index))
-      throw new TypeError("Desktop PM board rows cannot contain holes");
-    const row = rows[index];
+    const descriptor = Object.getOwnPropertyDescriptor(rows, index);
+    if (
+      !descriptor ||
+      descriptor.enumerable !== true ||
+      !("value" in descriptor)
+    ) {
+      throw new TypeError(
+        "Desktop PM board rows cannot contain holes or accessors",
+      );
+    }
+    const row = descriptor.value;
     exact(row, ["entity_type", "id"], `Desktop PM board row ${index}`);
     if (!Object.hasOwn(grouped, row.entity_type))
       throw new TypeError("Desktop PM board row type is invalid");
@@ -318,7 +430,7 @@ function createDesktopPmReadOnlyOutcomeReaderFactory(databaseProvider) {
   return function createDesktopPmReadOnlyOutcomeReader(options = {}) {
     exact(
       options,
-      ["planDigest", "environmentDigest", "bindings"],
+      ["planDigest", "environmentDigest", "databasePathDigest", "bindings"],
       "Desktop PM read-only outcome reader options",
     );
     const planDigest = digest(options.planDigest, "planDigest");
@@ -326,10 +438,20 @@ function createDesktopPmReadOnlyOutcomeReaderFactory(databaseProvider) {
       options.environmentDigest,
       "environmentDigest",
     );
+    const databasePathDigest = digest(
+      options.databasePathDigest,
+      "databasePathDigest",
+    );
     const bindings = normalizeBindings(options.bindings);
     const byTaskId = new Map(
       bindings.map((binding) => [binding.taskId, binding]),
     );
+    const readerBindingDigest = bindingDigest({
+      planDigest,
+      environmentDigest,
+      databasePathDigest,
+      bindings,
+    });
     const databaseIdentity = { manager: null, database: null };
     const resolve = (query, signal, expectedKind) => {
       assertQuery(query, planDigest, environmentDigest);
@@ -339,10 +461,12 @@ function createDesktopPmReadOnlyOutcomeReaderFactory(databaseProvider) {
       return binding;
     };
     return Object.freeze({
+      bindingDigest: readerBindingDigest,
       readProjectState: async (query, signal) =>
         readProject(
           databaseProvider,
           databaseIdentity,
+          databasePathDigest,
           resolve(query, signal, "project-state"),
           signal,
         ),
@@ -350,6 +474,7 @@ function createDesktopPmReadOnlyOutcomeReaderFactory(databaseProvider) {
         readBoard(
           databaseProvider,
           databaseIdentity,
+          databasePathDigest,
           resolve(query, signal, "board-export"),
           signal,
         ),
@@ -368,4 +493,5 @@ module.exports = {
   PROJECT_SQL,
   createDesktopPmReadOnlyOutcomeReader,
   createDesktopPmReadOnlyOutcomeReaderFactory,
+  digestDesktopPmDatabasePath,
 };
