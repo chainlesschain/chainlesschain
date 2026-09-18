@@ -4,10 +4,15 @@ const {
   ARTIFACT_TYPE,
 } = require("@chainlesschain/session-core/evolvable-artifact");
 const {
+  evaluateDesktopPmExplorationMemory,
+  executeDesktopPmExplorationRound,
   inspectDesktopPmExplorationStorageHost,
+  isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
+  mergeDesktopPmExplorationBranches,
   resolveLoaderPath,
+  resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
 } = require("../desktop-evolution-deployment");
 
@@ -308,6 +313,101 @@ describe("desktop evolution deployment", () => {
     expect(getter).not.toHaveBeenCalled();
   });
 
+  it("narrows a signed PM execution host to an opaque main-process capability", async () => {
+    const rawHost = Object.freeze({ name: "signed-host-placeholder" });
+    const executeRound = vi.fn(async (_host, journal, input) => ({
+      kind: "round",
+      journal,
+      input,
+    }));
+    const mergeBranches = vi.fn(async (_host, journal, input) => ({
+      kind: "merge",
+      journal,
+      input,
+    }));
+    const evaluateMemory = vi.fn(async (_host, journal, input) => ({
+      kind: "evaluate",
+      journal,
+      input,
+    }));
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: mergeBranches,
+        evaluatePmExplorationMemory: evaluateMemory,
+      }),
+    });
+
+    const host = result.desktopPmExplorationExecutionHost;
+    expect(isDesktopPmExplorationExecutionHost(host)).toBe(true);
+    expect(Object.keys(host)).toEqual([]);
+    expect(Object.isFrozen(host)).toBe(true);
+    expect(host.executePmExplorationRound).toBeUndefined();
+
+    await expect(
+      executeDesktopPmExplorationRound(host, "journal", { roundId: "r1" }),
+    ).resolves.toMatchObject({ kind: "round" });
+    await expect(
+      mergeDesktopPmExplorationBranches(host, "journal", { mergeId: "m1" }),
+    ).resolves.toMatchObject({ kind: "merge" });
+    await expect(
+      evaluateDesktopPmExplorationMemory(host, "journal", {
+        finalMemoryDigest: "sha256:test",
+      }),
+    ).resolves.toMatchObject({ kind: "evaluate" });
+    expect(executeRound).toHaveBeenCalledWith(rawHost, "journal", {
+      roundId: "r1",
+    });
+    expect(mergeBranches).toHaveBeenCalledWith(rawHost, "journal", {
+      mergeId: "m1",
+    });
+    expect(evaluateMemory).toHaveBeenCalledWith(rawHost, "journal", {
+      finalMemoryDigest: "sha256:test",
+    });
+  });
+
+  it("rejects unbranded or accessor PM execution hosts", async () => {
+    const rawHost = Object.freeze({});
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            pmExplorationExecutionHost: rawHost,
+          }),
+        }),
+        importPmExplorationExecutionModule: async () => ({
+          isPmExplorationExecutionHost: () => false,
+          executePmExplorationRound: vi.fn(),
+          mergePmExplorationBranches: vi.fn(),
+          evaluatePmExplorationMemory: vi.fn(),
+        }),
+      }),
+    ).rejects.toThrow(/branded PM exploration execution host/);
+
+    const getter = vi.fn();
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () =>
+            Object.defineProperty({}, "pmExplorationExecutionHost", {
+              enumerable: true,
+              get: getter,
+            }),
+        }),
+      }),
+    ).rejects.toThrow(/enumerable data property/);
+    expect(getter).not.toHaveBeenCalled();
+    expect(() => executeDesktopPmExplorationRound({}, {}, {})).toThrow(
+      /branded Desktop PM exploration execution host/,
+    );
+  });
+
   it("creates a frozen WebShell composition capability without exposing its factory", async () => {
     const {
       createDesktopModelIngressHost,
@@ -487,6 +587,22 @@ describe("desktop evolution deployment", () => {
         "lib",
         "evolution",
         "pm-exploration-ledger-adapter.js",
+      ),
+    );
+    expect(
+      resolvePmExplorationExecutionHostPath({
+        isPackaged: true,
+        resourcesPath: "C:\\app",
+      }),
+    ).toBe(
+      path.join(
+        "C:\\app",
+        "packages",
+        "cli",
+        "src",
+        "lib",
+        "evolution",
+        "pm-exploration-execution-host.js",
       ),
     );
   });

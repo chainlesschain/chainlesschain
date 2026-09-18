@@ -1,7 +1,8 @@
 import { createHash, generateKeyPairSync } from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
 import {
   createPmExplorationExecutionHost,
   createPmExplorationExecutionManifest,
@@ -15,6 +16,7 @@ import {
 } from "../../src/lib/evolution/pm-exploration-execution-host.js";
 import {
   createPmExplorationEvidenceBundle,
+  PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
   verifyPmExplorationEvidenceBundle,
 } from "../../src/lib/evolution/pm-exploration-evidence-bundle.js";
 import {
@@ -22,6 +24,11 @@ import {
   getPmExplorationReceiptSignerAuthority,
   inspectPmExplorationReceiptAuthority,
 } from "../../src/lib/evolution/pm-exploration-receipts.js";
+import {
+  PM_EXPLORATION_PROVIDER_PERSISTENCE_SCHEMA,
+  createPmExplorationVolcengineProvider,
+  invokePmExplorationVolcengine,
+} from "../../src/lib/evolution/pm-exploration-volcengine-provider.js";
 import {
   createPmExplorationJournal,
   createPmExplorationPlan,
@@ -165,6 +172,11 @@ function setup({
     runner,
   };
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("PM exploration execution host", () => {
   it("runs through an allow-listed tool broker and settles signed receipts", async () => {
@@ -318,6 +330,117 @@ describe("PM exploration execution host", () => {
         bundle: tampered,
       }),
     ).toThrow(/digest mismatch/);
+  });
+
+  it("retains a provider usage settlement with the signed execution trace", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"memory":"candidate"}' } }],
+          usage: {
+            prompt_tokens: 8,
+            completion_tokens: 4,
+            prompt_tokens_details: { cached_tokens: 0 },
+          },
+        }),
+      })),
+    );
+    const composition = await createTestEvolutionCompositionFactory()({
+      runId: "pm-provider-evidence",
+    });
+    const provider = createPmExplorationVolcengineProvider({
+      apiKey: "local-test-secret",
+      model: "deepseek-v4-flash-ga-260731",
+      maxOutputTokens: 64,
+      timeoutMs: 1_000,
+      evolutionIngress: composition.evolutionIngress,
+      persistSettlement: async (settlement) => ({
+        schema: PM_EXPLORATION_PROVIDER_PERSISTENCE_SCHEMA,
+        settlementDigest: settlement.settlementDigest,
+        persisted: true,
+        durable: true,
+        recordDigest: sha(settlement.settlementDigest),
+      }),
+    });
+    const {
+      authorities,
+      host,
+      manifest,
+      plan: boundPlan,
+    } = setup({
+      run: async (request, runtime) => {
+        const result = await invokePmExplorationVolcengine(provider, {
+          messages: [
+            { role: "system", content: "Return a bounded candidate JSON." },
+            { role: "user", content: "Propose the next PM memory candidate." },
+          ],
+          runtime,
+          maxOutputTokens: 32,
+          operationId: "runner.provider-evidence",
+          executionRequestDigest: request.requestDigest,
+        });
+        return {
+          outputMemoryDigest: sha(result.content),
+          traceDigest: result.settlement.settlementDigest,
+          providerSettlement: {
+            settlement: result.settlement,
+            persistence: result.persistence,
+          },
+        };
+      },
+    });
+    const journal = createPmExplorationJournal(boundPlan);
+    const result = await executePmExplorationRound(host, journal, {
+      roundId: "round-provider",
+      stage: "broad",
+      branchId: "workflow",
+      taskId: "task-one",
+      inputMemoryDigest: boundPlan.initialMemoryDigest,
+    });
+
+    expect(result.executionReceipt.payload.traceDigest).toBe(
+      result.providerSettlement.settlement.settlementDigest,
+    );
+    expect(result.executionReceipt.payload.metrics.tokens).toBe(12);
+    const snapshot = exportPmExplorationRecoverySnapshot(journal);
+    const bundle = createPmExplorationEvidenceBundle({
+      plan: boundPlan,
+      manifest,
+      snapshot,
+      authorities,
+      receipts: {
+        execution: [result.executionReceipt],
+        grader: [result.graderReceipt],
+        merge: null,
+        evaluator: null,
+      },
+      providerSettlements: [result.providerSettlement],
+    });
+    expect(bundle.schema).toBe(PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA);
+    expect(bundle.providerSettlements).toHaveLength(1);
+
+    const restored = verifyPmExplorationEvidenceBundle({
+      plan: boundPlan,
+      manifest,
+      authorities,
+      snapshot: JSON.parse(JSON.stringify(snapshot)),
+      bundle: JSON.parse(JSON.stringify(bundle)),
+    });
+    expect(restored.evidenceDigest).toBe(bundle.evidenceDigest);
+
+    const tampered = JSON.parse(JSON.stringify(bundle));
+    tampered.providerSettlements[0].settlement.usage.outputTokens = 99;
+    expect(() =>
+      verifyPmExplorationEvidenceBundle({
+        plan: boundPlan,
+        manifest,
+        authorities,
+        snapshot,
+        bundle: tampered,
+      }),
+    ).toThrow(/usage total|cost does not match|digest mismatch/);
   });
 
   it("never dispatches tools outside the manifest allow-list", async () => {

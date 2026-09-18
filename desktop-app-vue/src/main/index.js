@@ -671,6 +671,9 @@ class ChainlessChainApp {
       didManager: this.didManager ?? null,
       database: this.database ?? null,
       environment: process.env,
+      pmExplorationExecutionHost:
+        this.evolutionDeploymentDependencies
+          .desktopPmExplorationExecutionHost ?? null,
       pmExplorationStorageHost:
         this.evolutionDeploymentDependencies.desktopPmExplorationStorageHost ??
         null,

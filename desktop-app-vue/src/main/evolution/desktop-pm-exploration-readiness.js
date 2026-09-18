@@ -6,6 +6,7 @@ const { types } = require("node:util");
 const { isDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
   inspectDesktopPmExplorationStorageHost,
+  isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
 } = require("./desktop-evolution-deployment");
 const { isGovernedLLMManager } = require("../llm/llm-manager");
@@ -178,6 +179,7 @@ function createDesktopPmExplorationReadinessHost(input) {
       "didManager",
       "database",
       "environment",
+      "pmExplorationExecutionHost",
       "pmExplorationStorageHost",
     ],
     "Desktop PM readiness host input",
@@ -195,6 +197,7 @@ function createDesktopPmExplorationReadinessHost(input) {
         "getCurrentDatabasePath",
       ),
       environment: input.environment,
+      pmExplorationExecutionHost: input.pmExplorationExecutionHost,
       pmExplorationStorageHost: input.pmExplorationStorageHost,
     }),
   );
@@ -257,6 +260,11 @@ function inspectDesktopPmExplorationReadiness(host) {
       isDesktopPmExplorationStorageHost(captured.pmExplorationStorageHost) &&
         storage.configured,
       "PM_DURABLE_RECOVERY_STORE_REQUIRED",
+    ),
+    check(
+      "signed-execution-host",
+      isDesktopPmExplorationExecutionHost(captured.pmExplorationExecutionHost),
+      "PM_SIGNED_EXECUTION_HOST_REQUIRED",
     ),
     check(
       "recovery-store-readable",

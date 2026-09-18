@@ -4,8 +4,9 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
@@ -24,7 +25,10 @@ import {
   executePmExplorationRound,
   mergePmExplorationBranches,
 } from "../../src/lib/evolution/pm-exploration-execution-host.js";
-import { createPmExplorationEvidenceBundle } from "../../src/lib/evolution/pm-exploration-evidence-bundle.js";
+import {
+  PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
+  createPmExplorationEvidenceBundle,
+} from "../../src/lib/evolution/pm-exploration-evidence-bundle.js";
 import {
   PM_EXPLORATION_LEDGER_CONFLICT_CODE,
   PmExplorationLedgerAdapter,
@@ -35,6 +39,11 @@ import {
   getPmExplorationReceiptSignerAuthority,
   inspectPmExplorationReceiptAuthority,
 } from "../../src/lib/evolution/pm-exploration-receipts.js";
+import {
+  PM_EXPLORATION_PROVIDER_PERSISTENCE_SCHEMA,
+  createPmExplorationVolcengineProvider,
+  invokePmExplorationVolcengine,
+} from "../../src/lib/evolution/pm-exploration-volcengine-provider.js";
 import {
   completePmExplorationRound,
   createPmExplorationJournal,
@@ -62,6 +71,8 @@ const NOW = Date.parse("2026-09-17T09:00:00.000Z");
 const roots = [];
 
 afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   for (const root of roots.splice(0))
     fs.rmSync(root, { recursive: true, force: true });
 });
@@ -288,7 +299,7 @@ function receiptSigner(role) {
   });
 }
 
-function signedExecution(boundPlan) {
+function signedExecution(boundPlan, { run = null } = {}) {
   const signers = {
     execution: receiptSigner("execution"),
     grader: receiptSigner("grader"),
@@ -303,13 +314,15 @@ function signedExecution(boundPlan) {
   );
   const runner = createPmExplorationRunner({
     signer: signers.execution,
-    run: async (request, runtime) => {
-      runtime.recordTokens(3);
-      return {
-        outputMemoryDigest: sha(`${request.roundId}-signed-memory`),
-        traceDigest: sha(`${request.roundId}-signed-trace`),
-      };
-    },
+    run:
+      run ??
+      (async (request, runtime) => {
+        runtime.recordTokens(3);
+        return {
+          outputMemoryDigest: sha(`${request.roundId}-signed-memory`),
+          traceDigest: sha(`${request.roundId}-signed-trace`),
+        };
+      }),
   });
   const grader = createPmExplorationGrader({
     signer: signers.grader,
@@ -642,6 +655,112 @@ describe("PM exploration ledger adapter", () => {
       powerLossDurabilityTested: false,
       qualifiesForPromotion: false,
     });
+  });
+
+  it("retains real-provider settlement evidence in the Ledger", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"memory":"ledger"}' } }],
+          usage: {
+            prompt_tokens: 8,
+            completion_tokens: 4,
+            prompt_tokens_details: { cached_tokens: 0 },
+          },
+        }),
+      })),
+    );
+    const composition = await createTestEvolutionCompositionFactory()({
+      runId: "pm-ledger-provider-evidence",
+    });
+    const provider = createPmExplorationVolcengineProvider({
+      apiKey: "local-test-secret",
+      model: "deepseek-v4-flash-ga-260731",
+      maxOutputTokens: 64,
+      timeoutMs: 1_000,
+      evolutionIngress: composition.evolutionIngress,
+      persistSettlement: async (settlement) => ({
+        schema: PM_EXPLORATION_PROVIDER_PERSISTENCE_SCHEMA,
+        settlementDigest: settlement.settlementDigest,
+        persisted: true,
+        durable: true,
+        recordDigest: sha(settlement.settlementDigest),
+      }),
+    });
+    const storage = resources();
+    const firstBackend = createEvolutionLedgerFileBackend(
+      storage.backendOptions,
+    );
+    const boundPlan = plan();
+    const signed = signedExecution(boundPlan, {
+      run: async (request, runtime) => {
+        const result = await invokePmExplorationVolcengine(provider, {
+          messages: [
+            { role: "system", content: "Return a bounded candidate JSON." },
+            { role: "user", content: "Propose a PM memory candidate." },
+          ],
+          runtime,
+          maxOutputTokens: 32,
+          operationId: "runner.ledger-provider",
+          executionRequestDigest: request.requestDigest,
+        });
+        return {
+          outputMemoryDigest: sha(result.content),
+          traceDigest: result.settlement.settlementDigest,
+          providerSettlement: {
+            settlement: result.settlement,
+            persistence: result.persistence,
+          },
+        };
+      },
+    });
+    const journal = createPmExplorationJournal(boundPlan);
+    const round = await executePmExplorationRound(signed.host, journal, {
+      roundId: "round-ledger-provider",
+      stage: "broad",
+      branchId: "workflow",
+      taskId: "train-project",
+      inputMemoryDigest: boundPlan.initialMemoryDigest,
+    });
+    const snapshot = exportPmExplorationRecoverySnapshot(journal);
+    const evidenceBundle = createPmExplorationEvidenceBundle({
+      plan: boundPlan,
+      manifest: signed.manifest,
+      snapshot,
+      authorities: signed.authorities,
+      receipts: {
+        execution: [round.executionReceipt],
+        grader: [round.graderReceipt],
+        merge: null,
+        evaluator: null,
+      },
+      providerSettlements: [round.providerSettlement],
+    });
+    expect(evidenceBundle.schema).toBe(
+      PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
+    );
+    const store = adapter(storage, firstBackend.ledger, boundPlan, {
+      executionManifest: signed.manifest,
+      receiptAuthorities: signed.authorities,
+    });
+    expect(store.commitJournal(journal, evidenceBundle)).toMatchObject({
+      authenticated: true,
+      durable: true,
+      snapshotAuthenticated: true,
+      evidenceDigest: evidenceBundle.evidenceDigest,
+    });
+    const reopenedBackend = createEvolutionLedgerFileBackend(
+      storage.backendOptions,
+    );
+    const reopened = adapter(storage, reopenedBackend.ledger, boundPlan, {
+      executionManifest: signed.manifest,
+      receiptAuthorities: signed.authorities,
+    });
+    expect(reopened.restoreLatestJournal().evidence.evidenceBundle).toEqual(
+      evidenceBundle,
+    );
   });
 
   it("persists append-only progress and continues after a real reopen", () => {

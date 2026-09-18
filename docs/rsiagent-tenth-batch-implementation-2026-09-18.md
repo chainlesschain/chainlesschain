@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18（Asia/Shanghai）<br>
 > 前置实施：[第九次预算执行与签名轮次证据](./rsiagent-ninth-batch-implementation-2026-09-18.md)<br>
-> 状态：已复用本机 ChainlessChain 的火山引擎配置完成真实联网连通和 usage 探针，并新增只能在受治理 Evolution ingress 与 PM 宿主预算 capability 下调用的 Volcengine provider adapter。当前机器没有签名 Evolution deployment，因此没有把连通探针表述为真实受治理 PM 任务或生产试点通过。
+> 状态：已复用本机 ChainlessChain 的火山引擎配置完成真实联网连通和 usage 探针，并新增只能在受治理 Evolution ingress 与 PM 宿主预算 capability 下调用的 Volcengine provider adapter。后续 [第十一次实施](./rsiagent-eleventh-batch-implementation-2026-09-18.md)已将成功调用的 settlement 绑定至 execution receipt、evidence bundle v2 和 PM Ledger。当前机器没有签名 Evolution deployment，因此没有把连通探针表述为真实受治理 PM 任务或生产试点通过。
 
 本批依据操作者明确许可使用本机火山引擎。凭据只从现有本地配置、API key helper 或 `VOLCENGINE_API_KEY` 解析，没有写入源码、测试、日志或证据文档。
 
@@ -70,7 +70,7 @@ npm run test:pm-exploration-volcengine-live
 - 已通过签名 Evolution deployment 运行真实 PM Explorer；
 - 已完成真实 DID/RBAC、一次性 workspace/database clone 或结构化 PM 工具副作用验证；
 - 价格估算已与供应商账单逐项核销；
-- provider settlement 已进入第九批 v2 PM Ledger evidence bundle；
+- provider settlement 可以替代供应商账单对账或崩溃前的使用量追回；
 - 四个 signer 已进程隔离，或 Desktop runner 已获得生产运行令牌；
 - baseline/Explorer holdout、Pilot、回滚或三系统 release SHA 已通过。
 

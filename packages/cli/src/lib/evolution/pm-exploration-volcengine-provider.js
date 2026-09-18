@@ -38,6 +38,7 @@ const INVOCATION_KEYS = [
   "runtime",
   "maxOutputTokens",
   "operationId",
+  "executionRequestDigest",
 ];
 const MAX_MESSAGES = 16;
 const MAX_PROMPT_BYTES = 256 * 1024;
@@ -58,6 +59,12 @@ function hash(domain, value) {
     .update("\0")
     .update(canonical(value))
     .digest("hex")}`;
+}
+
+function digest(value, label) {
+  if (typeof value !== "string" || !DIGEST.test(value))
+    throw new TypeError(`${label} must be a sha256 digest`);
+  return value;
 }
 
 function deepFreeze(value, seen = new WeakSet()) {
@@ -309,6 +316,91 @@ function normalizePersistence(value, settlementDigest) {
   return deepFreeze({ ...value });
 }
 
+function finiteNumber(value, label) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
+    throw new TypeError(`${label} must be a finite non-negative number`);
+  return value;
+}
+
+function normalizeEstimatedCost(value, usage) {
+  exact(
+    value,
+    [
+      "currency",
+      "input",
+      "output",
+      "cacheRead",
+      "cacheCreation",
+      "total",
+      "rate",
+    ],
+    "PM Volcengine estimated cost",
+  );
+  exact(
+    value.rate,
+    ["in", "out", "pattern", "cacheReadMultiplier", "cacheCreationMultiplier"],
+    "PM Volcengine cost rate",
+  );
+  if (value.currency !== "USD")
+    throw new TypeError("PM Volcengine estimated cost currency is invalid");
+  const rate = Object.freeze({
+    in: finiteNumber(value.rate.in, "PM Volcengine cost rate.in"),
+    out: finiteNumber(value.rate.out, "PM Volcengine cost rate.out"),
+    cacheReadMultiplier: finiteNumber(
+      value.rate.cacheReadMultiplier,
+      "PM Volcengine cost rate.cacheReadMultiplier",
+    ),
+    cacheCreationMultiplier: finiteNumber(
+      value.rate.cacheCreationMultiplier,
+      "PM Volcengine cost rate.cacheCreationMultiplier",
+    ),
+    pattern: boundedString(
+      value.rate.pattern,
+      "PM Volcengine cost rate.pattern",
+      256,
+    ),
+  });
+  const expected = Object.freeze({
+    input: (usage.inputTokens / 1e6) * rate.in,
+    output: (usage.outputTokens / 1e6) * rate.out,
+    cacheRead:
+      (usage.cacheReadTokens / 1e6) * rate.in * rate.cacheReadMultiplier,
+    cacheCreation:
+      (usage.cacheCreationTokens / 1e6) *
+      rate.in *
+      rate.cacheCreationMultiplier,
+  });
+  const result = Object.freeze({
+    currency: value.currency,
+    input: finiteNumber(value.input, "PM Volcengine estimated input cost"),
+    output: finiteNumber(value.output, "PM Volcengine estimated output cost"),
+    cacheRead: finiteNumber(
+      value.cacheRead,
+      "PM Volcengine estimated cache read cost",
+    ),
+    cacheCreation: finiteNumber(
+      value.cacheCreation,
+      "PM Volcengine estimated cache creation cost",
+    ),
+    total: finiteNumber(value.total, "PM Volcengine estimated total cost"),
+    rate,
+  });
+  if (
+    result.input !== expected.input ||
+    result.output !== expected.output ||
+    result.cacheRead !== expected.cacheRead ||
+    result.cacheCreation !== expected.cacheCreation ||
+    result.total !==
+      expected.input +
+        expected.output +
+        expected.cacheRead +
+        expected.cacheCreation
+  ) {
+    throw new Error("PM Volcengine estimated cost does not match usage");
+  }
+  return result;
+}
+
 function operationId(value) {
   if (
     typeof value !== "string" ||
@@ -399,6 +491,82 @@ export function inspectPmExplorationVolcengineProvider(value) {
 }
 
 /**
+ * Revalidate the canonical no-secret settlement before it is added to a
+ * signed execution trace or a replayable PM evidence bundle.
+ */
+export function verifyPmExplorationVolcengineSettlement(value) {
+  exact(
+    value,
+    [
+      "schema",
+      "provider",
+      "model",
+      "operationId",
+      "executionRequestDigest",
+      "requestDigest",
+      "responseDigest",
+      "usage",
+      "estimatedCost",
+      "settlementDigest",
+    ],
+    "PM Volcengine settlement",
+  );
+  if (value.schema !== PM_EXPLORATION_PROVIDER_SETTLEMENT_SCHEMA)
+    throw new TypeError("PM Volcengine settlement schema is invalid");
+  if (value.provider !== PROVIDER)
+    throw new TypeError("PM Volcengine settlement provider is invalid");
+  const usage = normalizeUsage({
+    input_tokens: value.usage?.inputTokens,
+    output_tokens: value.usage?.outputTokens,
+    cache_read_input_tokens: value.usage?.cacheReadTokens,
+    cache_creation_input_tokens: value.usage?.cacheCreationTokens,
+  });
+  if (usage.totalTokens !== value.usage?.totalTokens)
+    throw new Error("PM Volcengine settlement usage total is invalid");
+  const core = deepFreeze({
+    schema: value.schema,
+    provider: value.provider,
+    model: boundedString(value.model, "PM Volcengine settlement model", 256),
+    operationId: operationId(value.operationId),
+    executionRequestDigest: digest(
+      value.executionRequestDigest,
+      "PM Volcengine settlement executionRequestDigest",
+    ),
+    requestDigest: digest(
+      value.requestDigest,
+      "PM Volcengine settlement requestDigest",
+    ),
+    responseDigest: digest(
+      value.responseDigest,
+      "PM Volcengine settlement responseDigest",
+    ),
+    usage,
+    estimatedCost: normalizeEstimatedCost(value.estimatedCost, usage),
+  });
+  if (
+    digest(value.settlementDigest, "PM Volcengine settlementDigest") !==
+    hash(PM_EXPLORATION_PROVIDER_SETTLEMENT_SCHEMA, core)
+  ) {
+    throw new Error("PM Volcengine settlement digest mismatch");
+  }
+  return deepFreeze({ ...core, settlementDigest: value.settlementDigest });
+}
+
+export function verifyPmExplorationVolcengineSettlementRecord(value) {
+  exact(
+    value,
+    ["settlement", "persistence"],
+    "PM Volcengine settlement record",
+  );
+  const settlement = verifyPmExplorationVolcengineSettlement(value.settlement);
+  const persistence =
+    value.persistence === null
+      ? null
+      : normalizePersistence(value.persistence, settlement.settlementDigest);
+  return deepFreeze({ settlement, persistence });
+}
+
+/**
  * Invoke the real configured provider inside a host-issued budget capability.
  * Provider-reported usage is charged before any response is returned. Missing
  * usage, unpriced models, budget overflow and optional persistence failures are
@@ -418,6 +586,10 @@ export async function invokePmExplorationVolcengine(value, input = {}) {
     client.maxOutputTokens,
   );
   const boundOperationId = operationId(input.operationId);
+  const executionRequestDigest = digest(
+    input.executionRequestDigest,
+    "PM Volcengine invocation executionRequestDigest",
+  );
   const requestCore = {
     provider: PROVIDER,
     model: client.model,
@@ -468,6 +640,7 @@ export async function invokePmExplorationVolcengine(value, input = {}) {
         provider: PROVIDER,
         model: client.model,
         operationId: boundOperationId,
+        executionRequestDigest,
         requestDigest,
         responseDigest: hash(
           PM_EXPLORATION_PROVIDER_SETTLEMENT_SCHEMA,
@@ -481,7 +654,11 @@ export async function invokePmExplorationVolcengine(value, input = {}) {
           cacheRead: estimated.cacheReadCost,
           cacheCreation: estimated.cacheCreationCost,
           total: estimated.totalCost,
-          rate: estimated.rate,
+          rate: {
+            ...estimated.rate,
+            cacheReadMultiplier: 0.1,
+            cacheCreationMultiplier: 1.25,
+          },
         },
       });
       settlement = deepFreeze({

@@ -12,6 +12,7 @@ import {
   inspectPmExplorationReceiptAuthority,
   verifyPmExplorationReceipt,
 } from "./pm-exploration-receipts.js";
+import { verifyPmExplorationVolcengineSettlementRecord } from "./pm-exploration-volcengine-provider.js";
 import {
   exportPmExplorationRecoverySnapshot,
   restorePmExplorationJournal,
@@ -20,6 +21,8 @@ import {
 
 export const PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA =
   "chainlesschain.pm-exploration-evidence-bundle/v1";
+export const PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA =
+  "chainlesschain.pm-exploration-evidence-bundle/v2";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
@@ -162,6 +165,21 @@ function receiptMap(values, maximum, label) {
     if (result.has(receiptDigest))
       throw new Error(`${label} contains duplicate receipts`);
     result.set(receiptDigest, value);
+  }
+  return result;
+}
+
+function providerSettlementMap(values, maximum) {
+  const entries = array(values, "PM provider settlement records", maximum);
+  const result = new Map();
+  for (const entry of entries) {
+    const record = verifyPmExplorationVolcengineSettlementRecord(entry);
+    const digest = record.settlement.settlementDigest;
+    if (result.has(digest))
+      throw new Error(
+        "PM provider settlement records contain duplicate digests",
+      );
+    result.set(digest, record);
   }
   return result;
 }
@@ -321,7 +339,14 @@ function validateEvaluatorReceipt({
   return receipt;
 }
 
-function buildBundle({ plan, manifest, snapshot, authorities, receipts }) {
+function buildBundle({
+  plan,
+  manifest,
+  snapshot,
+  authorities,
+  receipts,
+  providerSettlements = null,
+}) {
   verifyPmExplorationPlan(plan);
   const executionManifest = verifyPmExplorationExecutionManifest(manifest);
   if (
@@ -367,6 +392,31 @@ function buildBundle({ plan, manifest, snapshot, authorities, receipts }) {
     throw new Error(
       "PM evidence contains receipts outside its checkpoint history",
     );
+  const settlementInputs =
+    providerSettlements === null
+      ? null
+      : providerSettlementMap(providerSettlements, plan.maxRounds);
+  const orderedSettlements = [];
+  if (settlementInputs !== null) {
+    for (const execution of orderedExecution) {
+      const record = settlementInputs.get(execution.payload.traceDigest);
+      if (
+        !record ||
+        record.settlement.executionRequestDigest !==
+          execution.payload.requestDigest
+      ) {
+        throw new Error(
+          "PM provider settlement must bind each signed execution trace and request",
+        );
+      }
+      orderedSettlements.push(record);
+      settlementInputs.delete(execution.payload.traceDigest);
+    }
+    if (settlementInputs.size !== 0)
+      throw new Error(
+        "PM provider settlement records are outside the checkpoint history",
+      );
+  }
   const mergeReceipt = validateMergeReceipt({
     snapshot: normalizedSnapshot,
     authority: trustedAuthorities.merge,
@@ -382,8 +432,12 @@ function buildBundle({ plan, manifest, snapshot, authorities, receipts }) {
     mergeReceipt,
     plan,
   });
+  const schema =
+    providerSettlements === null
+      ? PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA
+      : PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
   const core = deepFreeze({
-    schema: PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA,
+    schema,
     planDigest: plan.planDigest,
     environmentDigest: plan.environmentDigest,
     executionManifestDigest: executionManifest.manifestDigest,
@@ -392,10 +446,13 @@ function buildBundle({ plan, manifest, snapshot, authorities, receipts }) {
     graderReceipts: orderedGraders,
     mergeReceipt,
     evaluatorReceipt,
+    ...(providerSettlements === null
+      ? {}
+      : { providerSettlements: orderedSettlements }),
   });
   return deepFreeze({
     ...core,
-    evidenceDigest: hash(PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA, core),
+    evidenceDigest: hash(schema, core),
     authenticated: true,
     snapshotAuthenticated: true,
     qualifiesForPromotion: false,
@@ -403,12 +460,44 @@ function buildBundle({ plan, manifest, snapshot, authorities, receipts }) {
 }
 
 export function createPmExplorationEvidenceBundle(input = {}) {
-  exact(
-    input,
-    ["plan", "manifest", "snapshot", "authorities", "receipts"],
-    "PM exploration evidence bundle input",
-  );
-  return buildBundle(input);
+  const keys = Reflect.ownKeys(input);
+  const hasProviderSettlements = Object.hasOwn(input, "providerSettlements");
+  const expected = hasProviderSettlements
+    ? [
+        "plan",
+        "manifest",
+        "snapshot",
+        "authorities",
+        "receipts",
+        "providerSettlements",
+      ]
+    : ["plan", "manifest", "snapshot", "authorities", "receipts"];
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input) ||
+    isProxy(input) ||
+    Object.getPrototypeOf(input) !== Object.prototype ||
+    keys.length !== expected.length ||
+    keys.some((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      return (
+        typeof key !== "string" ||
+        !expected.includes(key) ||
+        !descriptor ||
+        !descriptor.enumerable ||
+        !("value" in descriptor)
+      );
+    })
+  ) {
+    throw new TypeError("PM exploration evidence bundle input is invalid");
+  }
+  return buildBundle({
+    ...input,
+    ...(hasProviderSettlements
+      ? { providerSettlements: input.providerSettlements }
+      : {}),
+  });
 }
 
 export function verifyPmExplorationEvidenceBundle({
@@ -418,27 +507,49 @@ export function verifyPmExplorationEvidenceBundle({
   snapshot,
   bundle,
 } = {}) {
+  const providerBound =
+    bundle?.schema === PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
   exact(
     bundle,
-    [
-      "schema",
-      "planDigest",
-      "environmentDigest",
-      "executionManifestDigest",
-      "snapshotDigest",
-      "executionReceipts",
-      "graderReceipts",
-      "mergeReceipt",
-      "evaluatorReceipt",
-      "evidenceDigest",
-      "authenticated",
-      "snapshotAuthenticated",
-      "qualifiesForPromotion",
-    ],
+    providerBound
+      ? [
+          "schema",
+          "planDigest",
+          "environmentDigest",
+          "executionManifestDigest",
+          "snapshotDigest",
+          "executionReceipts",
+          "graderReceipts",
+          "mergeReceipt",
+          "evaluatorReceipt",
+          "providerSettlements",
+          "evidenceDigest",
+          "authenticated",
+          "snapshotAuthenticated",
+          "qualifiesForPromotion",
+        ]
+      : [
+          "schema",
+          "planDigest",
+          "environmentDigest",
+          "executionManifestDigest",
+          "snapshotDigest",
+          "executionReceipts",
+          "graderReceipts",
+          "mergeReceipt",
+          "evaluatorReceipt",
+          "evidenceDigest",
+          "authenticated",
+          "snapshotAuthenticated",
+          "qualifiesForPromotion",
+        ],
     "PM exploration evidence bundle",
   );
   if (
-    bundle.schema !== PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA ||
+    ![
+      PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA,
+      PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
+    ].includes(bundle.schema) ||
     bundle.authenticated !== true ||
     bundle.snapshotAuthenticated !== true ||
     bundle.qualifiesForPromotion !== false
@@ -456,6 +567,9 @@ export function verifyPmExplorationEvidenceBundle({
       merge: bundle.mergeReceipt,
       evaluator: bundle.evaluatorReceipt,
     },
+    ...(providerBound
+      ? { providerSettlements: bundle.providerSettlements }
+      : {}),
   });
   if (canonical(normalized) !== canonical(bundle))
     throw new Error("PM exploration evidence bundle digest mismatch");

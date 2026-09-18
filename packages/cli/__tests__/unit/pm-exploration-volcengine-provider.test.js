@@ -84,6 +84,7 @@ describe("PM exploration Volcengine provider", () => {
           runtime,
           maxOutputTokens: 64,
           operationId: "runner.round-one",
+          executionRequestDigest: sha("execution-request-one"),
         }),
     });
 
@@ -157,6 +158,7 @@ describe("PM exploration Volcengine provider", () => {
           runtime,
           maxOutputTokens: 32,
           operationId: "grader.round-one",
+          executionRequestDigest: sha("execution-request-two"),
         }),
     });
 
@@ -191,6 +193,7 @@ describe("PM exploration Volcengine provider", () => {
           runtime,
           maxOutputTokens: 32,
           operationId: "runner.over-budget",
+          executionRequestDigest: sha("execution-request-three"),
         }),
     });
 
@@ -257,6 +260,7 @@ describe("PM exploration Volcengine provider", () => {
           runtime,
           maxOutputTokens: 32,
           operationId: "evaluator.persistence",
+          executionRequestDigest: sha("execution-request-four"),
         }),
     });
 

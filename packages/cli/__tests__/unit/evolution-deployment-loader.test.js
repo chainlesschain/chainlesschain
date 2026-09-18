@@ -673,6 +673,33 @@ describe("signed evolution deployment loader", () => {
     const requiredPmFactories = [
       "createPmExplorationLedgerAdapter",
       "createPmExplorationPlan",
+      "createPmExplorationJournal",
+      "enterPmExplorationDeepStage",
+      "exportPmExplorationRecoverySnapshot",
+      "inspectPmExplorationJournal",
+      "createPmExplorationReceiptAuthority",
+      "createPmExplorationReceiptSigner",
+      "getPmExplorationReceiptSignerAuthority",
+      "inspectPmExplorationReceiptAuthority",
+      "createPmExplorationExecutionManifest",
+      "createPmExplorationRunner",
+      "createPmExplorationGrader",
+      "createPmExplorationMerger",
+      "createPmExplorationEvaluator",
+      "createPmExplorationExecutionHost",
+      "isPmExplorationExecutionHost",
+      "executePmExplorationRound",
+      "mergePmExplorationBranches",
+      "evaluatePmExplorationMemory",
+      "createPmExplorationEvidenceBundle",
+      "verifyPmExplorationEvidenceBundle",
+      "createPmExplorationVolcengineProvider",
+      "inspectPmExplorationVolcengineProvider",
+      "invokePmExplorationVolcengine",
+      "verifyPmExplorationVolcengineSettlement",
+      "verifyPmExplorationVolcengineSettlementRecord",
+      "createPmExplorationProviderSettlementAdapter",
+      "capturePmExplorationProviderSettlementStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -701,6 +728,65 @@ describe("signed evolution deployment loader", () => {
       pmFactories: requiredPmFactories,
     });
     expect(runtimeFactory).toHaveBeenCalledWith({ commandName: "desktop" });
+  });
+
+  it("binds Desktop PM receipt and settlement roles to the authenticated deployment bytes", async () => {
+    const fixture = deploymentFixture({ commands: ["desktop"] });
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const privatePem = privateKey.export({ type: "pkcs8", format: "pem" });
+    const publicPem = publicKey.export({ type: "spki", format: "pem" });
+    const substitutedDigest = computeEvolutionDeploymentDigest(
+      Buffer.from("substituted-pm-handler"),
+    );
+
+    const result = await loadEvolutionDeploymentCommandDependencies("desktop", {
+      ...fixture,
+      importModule: async () => ({
+        createChainlessChainCommandDependencies: async ({
+          descriptor,
+          factories,
+        }) => {
+          expect(() =>
+            factories.createPmExplorationReceiptSigner({
+              role: "execution",
+              authorityId: "desktop.pm.runner",
+              revision: 1,
+              handlerArtifactDigest: substitutedDigest,
+              privateKey: privatePem,
+              publicKey: publicPem,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationExecutionManifest({
+              runner: { handlerArtifactDigest: substitutedDigest },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationProviderSettlementAdapter({
+              descriptor: { handlerArtifactDigest: substitutedDigest },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          const signer = factories.createPmExplorationReceiptSigner({
+            role: "execution",
+            authorityId: "desktop.pm.runner",
+            revision: 1,
+            handlerArtifactDigest: descriptor.moduleDigest,
+            privateKey: privatePem,
+            publicKey: publicPem,
+          });
+          return {
+            receiptAuthority:
+              factories.inspectPmExplorationReceiptAuthority(signer),
+          };
+        },
+      }),
+    });
+
+    expect(result.receiptAuthority).toMatchObject({
+      role: "execution",
+      authorityId: "desktop.pm.runner",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
   });
 
   it("does not let non-desktop callers inject or replace built-in factories", async () => {

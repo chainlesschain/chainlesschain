@@ -17,7 +17,10 @@ const DEV_LOADER_REL =
   "../../../../packages/cli/src/lib/evolution/evolution-deployment-loader.js";
 const DEV_PM_LEDGER_ADAPTER_REL =
   "../../../../packages/cli/src/lib/evolution/pm-exploration-ledger-adapter.js";
+const DEV_PM_EXECUTION_HOST_REL =
+  "../../../../packages/cli/src/lib/evolution/pm-exploration-execution-host.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
+const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 
 function resolveLoaderPath({ isPackaged = false, resourcesPath } = {}) {
   if (isPackaged) {
@@ -46,6 +49,24 @@ function resolvePmExplorationLedgerAdapterPath({
     );
   }
   return path.resolve(__dirname, DEV_PM_LEDGER_ADAPTER_REL);
+}
+
+function resolvePmExplorationExecutionHostPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged PM exploration execution requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/pm-exploration-execution-host.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_PM_EXECUTION_HOST_REL);
 }
 
 function createDesktopPmExplorationStorageHost(store, captureStore) {
@@ -141,6 +162,67 @@ function inspectDesktopPmExplorationStorageHost(host) {
   }
 }
 
+function createDesktopPmExplorationExecutionHost(host, executionModule) {
+  if (
+    !executionModule ||
+    typeof executionModule !== "object" ||
+    types.isProxy(executionModule) ||
+    typeof executionModule.isPmExplorationExecutionHost !== "function" ||
+    types.isProxy(executionModule.isPmExplorationExecutionHost) ||
+    !executionModule.isPmExplorationExecutionHost(host)
+  ) {
+    throw new TypeError("a branded PM exploration execution host is required");
+  }
+  const operations = {};
+  for (const name of [
+    "executePmExplorationRound",
+    "mergePmExplorationBranches",
+    "evaluatePmExplorationMemory",
+  ]) {
+    const operation = executionModule[name];
+    if (typeof operation !== "function" || types.isProxy(operation)) {
+      throw new TypeError(`PM exploration execution module is missing ${name}`);
+    }
+    operations[name] = (...args) =>
+      Reflect.apply(operation, undefined, [host, ...args]);
+  }
+  const desktopHost = Object.freeze({});
+  PM_EXPLORATION_EXECUTION_HOSTS.set(desktopHost, Object.freeze(operations));
+  return desktopHost;
+}
+
+function captureDesktopPmExplorationExecutionHost(host) {
+  const captured = PM_EXPLORATION_EXECUTION_HOSTS.get(host);
+  if (!captured) {
+    throw new TypeError(
+      "a branded Desktop PM exploration execution host is required",
+    );
+  }
+  return captured;
+}
+
+function isDesktopPmExplorationExecutionHost(value) {
+  return PM_EXPLORATION_EXECUTION_HOSTS.has(value);
+}
+
+function executeDesktopPmExplorationRound(host, journal, input) {
+  return captureDesktopPmExplorationExecutionHost(
+    host,
+  ).executePmExplorationRound(journal, input);
+}
+
+function mergeDesktopPmExplorationBranches(host, journal, input) {
+  return captureDesktopPmExplorationExecutionHost(
+    host,
+  ).mergePmExplorationBranches(journal, input);
+}
+
+function evaluateDesktopPmExplorationMemory(host, journal, input) {
+  return captureDesktopPmExplorationExecutionHost(
+    host,
+  ).evaluatePmExplorationMemory(journal, input);
+}
+
 async function loadDesktopEvolutionDependencies({
   isPackaged = false,
   resourcesPath,
@@ -148,6 +230,7 @@ async function loadDesktopEvolutionDependencies({
   loaderOptions = {},
   importMarketplaceHostModule,
   importPmExplorationLedgerModule = (url) => import(url),
+  importPmExplorationExecutionModule = (url) => import(url),
 } = {}) {
   const loaderPath = resolveLoaderPath({ isPackaged, resourcesPath });
   const loader = await importLoader(pathToFileURL(loaderPath).href);
@@ -220,6 +303,32 @@ async function loadDesktopEvolutionDependencies({
         adapterModule?.capturePmExplorationLedgerStore,
       );
   }
+  const pmExecutionHostDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "pmExplorationExecutionHost",
+  );
+  if (pmExecutionHostDescriptor) {
+    if (
+      !("value" in pmExecutionHostDescriptor) ||
+      pmExecutionHostDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop PM exploration execution host must be an enumerable data property",
+      );
+    }
+    const executionHostPath = resolvePmExplorationExecutionHostPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const executionModule = await importPmExplorationExecutionModule(
+      pathToFileURL(executionHostPath).href,
+    );
+    desktopDependencies.desktopPmExplorationExecutionHost =
+      createDesktopPmExplorationExecutionHost(
+        pmExecutionHostDescriptor.value,
+        executionModule,
+      );
+  }
   const composition = result.evolvableArtifactRuntimeComposition;
   if (
     composition === undefined &&
@@ -249,9 +358,14 @@ async function loadDesktopEvolutionDependencies({
 }
 
 module.exports = {
+  evaluateDesktopPmExplorationMemory,
+  executeDesktopPmExplorationRound,
   inspectDesktopPmExplorationStorageHost,
+  isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
+  mergeDesktopPmExplorationBranches,
+  resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
   resolveLoaderPath,
 };

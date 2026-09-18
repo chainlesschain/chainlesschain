@@ -22,6 +22,7 @@
     "test:evolution-ledger-reliability-soak": "node scripts/evolution-ledger-reliability-soak.mjs",
     "test:pm-exploration-recovery-drill": "node scripts/pm-exploration-recovery-drill.mjs",
     "test:pm-exploration-volcengine-live": "node scripts/pm-exploration-volcengine-live-probe.mjs --confirm-live",
+    "test:pm-exploration-signed-volcengine-live": "node scripts/pm-exploration-signed-volcengine-live-probe.mjs --confirm-live",
     "test:governed-learning-volcengine-pilot": "node scripts/governed-learning-volcengine-pilot.mjs",
     "test:session-message-reliability-soak": "node scripts/session-message-reliability-soak.mjs",
     "test:team-fairness-soak": "node scripts/team-fairness-soak.mjs",

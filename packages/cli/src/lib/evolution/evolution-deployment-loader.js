@@ -253,19 +253,77 @@ async function loadBuiltInFactories(commandName) {
     });
   }
   if (commandName === "desktop") {
-    const [adapter, rounds, ledgerPorts, artifactPorts, ledgerBackend, store] =
-      await Promise.all([
-        import("./pm-exploration-ledger-adapter.js"),
-        import("./pm-exploration-rounds.js"),
-        import("./evolution-ledger-ports.js"),
-        import("./evolution-artifact-ports.js"),
-        import("./evolution-ledger-file-backend.js"),
-        import("../artifact-store.js"),
-      ]);
+    const [
+      adapter,
+      rounds,
+      receipts,
+      execution,
+      evidence,
+      provider,
+      settlementAdapter,
+      ledgerPorts,
+      artifactPorts,
+      ledgerBackend,
+      store,
+    ] = await Promise.all([
+      import("./pm-exploration-ledger-adapter.js"),
+      import("./pm-exploration-rounds.js"),
+      import("./pm-exploration-receipts.js"),
+      import("./pm-exploration-execution-host.js"),
+      import("./pm-exploration-evidence-bundle.js"),
+      import("./pm-exploration-volcengine-provider.js"),
+      import("./pm-exploration-provider-settlement-adapter.js"),
+      import("./evolution-ledger-ports.js"),
+      import("./evolution-artifact-ports.js"),
+      import("./evolution-ledger-file-backend.js"),
+      import("../artifact-store.js"),
+    ]);
     Object.assign(factories, {
       createPmExplorationLedgerAdapter: (options) =>
         new adapter.PmExplorationLedgerAdapter(options),
       createPmExplorationPlan: rounds.createPmExplorationPlan,
+      createPmExplorationJournal: rounds.createPmExplorationJournal,
+      enterPmExplorationDeepStage: rounds.enterPmExplorationDeepStage,
+      exportPmExplorationRecoverySnapshot:
+        rounds.exportPmExplorationRecoverySnapshot,
+      inspectPmExplorationJournal: rounds.inspectPmExplorationJournal,
+      createPmExplorationReceiptAuthority:
+        receipts.createPmExplorationReceiptAuthority,
+      createPmExplorationReceiptSigner:
+        receipts.createPmExplorationReceiptSigner,
+      getPmExplorationReceiptSignerAuthority:
+        receipts.getPmExplorationReceiptSignerAuthority,
+      inspectPmExplorationReceiptAuthority:
+        receipts.inspectPmExplorationReceiptAuthority,
+      createPmExplorationExecutionManifest:
+        execution.createPmExplorationExecutionManifest,
+      createPmExplorationRunner: execution.createPmExplorationRunner,
+      createPmExplorationGrader: execution.createPmExplorationGrader,
+      createPmExplorationMerger: execution.createPmExplorationMerger,
+      createPmExplorationEvaluator: execution.createPmExplorationEvaluator,
+      createPmExplorationExecutionHost:
+        execution.createPmExplorationExecutionHost,
+      isPmExplorationExecutionHost: execution.isPmExplorationExecutionHost,
+      executePmExplorationRound: execution.executePmExplorationRound,
+      mergePmExplorationBranches: execution.mergePmExplorationBranches,
+      evaluatePmExplorationMemory: execution.evaluatePmExplorationMemory,
+      createPmExplorationEvidenceBundle:
+        evidence.createPmExplorationEvidenceBundle,
+      verifyPmExplorationEvidenceBundle:
+        evidence.verifyPmExplorationEvidenceBundle,
+      createPmExplorationVolcengineProvider:
+        provider.createPmExplorationVolcengineProvider,
+      inspectPmExplorationVolcengineProvider:
+        provider.inspectPmExplorationVolcengineProvider,
+      invokePmExplorationVolcengine: provider.invokePmExplorationVolcengine,
+      verifyPmExplorationVolcengineSettlement:
+        provider.verifyPmExplorationVolcengineSettlement,
+      verifyPmExplorationVolcengineSettlementRecord:
+        provider.verifyPmExplorationVolcengineSettlementRecord,
+      createPmExplorationProviderSettlementAdapter: (options) =>
+        new settlementAdapter.PmExplorationProviderSettlementAdapter(options),
+      capturePmExplorationProviderSettlementStore:
+        settlementAdapter.capturePmExplorationProviderSettlementStore,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -566,6 +624,35 @@ function bindFactoriesToModule(factories, moduleDigest) {
           `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,
         );
       return factories[name](options);
+    };
+  }
+  for (const name of [
+    "createPmExplorationReceiptAuthority",
+    "createPmExplorationReceiptSigner",
+    "createPmExplorationProviderSettlementAdapter",
+  ]) {
+    if (typeof factories[name] !== "function") continue;
+    result[name] = (options = {}) => {
+      const handlerArtifactDigest =
+        name === "createPmExplorationProviderSettlementAdapter"
+          ? options?.descriptor?.handlerArtifactDigest
+          : options?.handlerArtifactDigest;
+      if (handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,
+        );
+      return factories[name](options);
+    };
+  }
+  if (typeof factories.createPmExplorationExecutionManifest === "function") {
+    result.createPmExplorationExecutionManifest = (input = {}) => {
+      for (const authority of ["runner", "grader", "merger", "evaluator"]) {
+        if (input?.[authority]?.handlerArtifactDigest !== moduleDigest)
+          throw new Error(
+            `PM exploration ${authority} handlerArtifactDigest must equal the authenticated deployment module digest`,
+          );
+      }
+      return factories.createPmExplorationExecutionManifest(input);
     };
   }
   if (

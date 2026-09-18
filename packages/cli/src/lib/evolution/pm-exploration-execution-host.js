@@ -16,6 +16,7 @@ import {
   issuePmExplorationReceipt,
   verifyPmExplorationReceipt,
 } from "./pm-exploration-receipts.js";
+import { verifyPmExplorationVolcengineSettlementRecord } from "./pm-exploration-volcengine-provider.js";
 
 export const PM_EXPLORATION_EXECUTION_MANIFEST_SCHEMA =
   "chainlesschain.pm-exploration-execution-manifest/v1";
@@ -356,6 +357,10 @@ export function createPmExplorationExecutionHost(options = {}) {
   return host;
 }
 
+export function isPmExplorationExecutionHost(value) {
+  return HOSTS.has(value);
+}
+
 function isoTime(now) {
   const value = Number(now());
   if (!Number.isSafeInteger(value) || value < 0)
@@ -400,14 +405,53 @@ function recordOverhead(host, journal, metrics) {
 }
 
 function normalizedRunnerValue(value) {
-  exact(
-    value,
-    ["outputMemoryDigest", "traceDigest"],
-    "PM exploration runner result",
-  );
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    isProxy(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    throw new TypeError("PM exploration runner result must be a plain object");
+  }
+  const keys = Reflect.ownKeys(value);
+  const hasSettlement = Object.hasOwn(value, "providerSettlement");
+  const expected = hasSettlement
+    ? ["outputMemoryDigest", "traceDigest", "providerSettlement"]
+    : ["outputMemoryDigest", "traceDigest"];
+  if (
+    keys.length !== expected.length ||
+    keys.some((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      return (
+        typeof key !== "string" ||
+        !expected.includes(key) ||
+        !descriptor ||
+        !descriptor.enumerable ||
+        !("value" in descriptor)
+      );
+    })
+  ) {
+    throw new TypeError(
+      "PM exploration runner result has unexpected or accessor fields",
+    );
+  }
+  const traceDigest = digest(value.traceDigest, "traceDigest");
+  const providerSettlement = hasSettlement
+    ? verifyPmExplorationVolcengineSettlementRecord(value.providerSettlement)
+    : null;
+  if (
+    providerSettlement !== null &&
+    providerSettlement.settlement.settlementDigest !== traceDigest
+  ) {
+    throw new Error(
+      "PM exploration provider settlement must match the signed trace digest",
+    );
+  }
   return Object.freeze({
     outputMemoryDigest: digest(value.outputMemoryDigest, "outputMemoryDigest"),
-    traceDigest: digest(value.traceDigest, "traceDigest"),
+    traceDigest,
+    providerSettlement,
   });
 }
 
@@ -458,7 +502,10 @@ async function runActor(binding, request, limits, host) {
     metrics: outcome.metrics,
     issuedAt: isoTime(host.now),
   };
-  return binding.issue(payload);
+  return Object.freeze({
+    receipt: binding.issue(payload),
+    providerSettlement: succeeded ? outcome.value.providerSettlement : null,
+  });
 }
 
 async function runGrader(binding, request, limits, host) {
@@ -539,12 +586,13 @@ export async function executePmExplorationRound(hostValue, journal, input) {
     ...runCore,
     requestDigest: hash(PM_EXPLORATION_RUN_REQUEST_SCHEMA, runCore),
   });
-  const executionReceipt = await runActor(
+  const executionOutcome = await runActor(
     host.runner,
     runRequest,
     remaining(host.plan, totalUsage(host, journal, before)),
     host,
   );
+  const executionReceipt = executionOutcome.receipt;
   const execution = verifyPmExplorationReceipt(
     host.runner.authority,
     executionReceipt,
@@ -610,6 +658,7 @@ export async function executePmExplorationRound(hostValue, journal, input) {
     checkpoint,
     executionReceipt: execution,
     graderReceipt: grade,
+    providerSettlement: executionOutcome.providerSettlement,
     budgetEnforced: true,
     receiptsAuthenticated: true,
     snapshotAuthenticated: false,

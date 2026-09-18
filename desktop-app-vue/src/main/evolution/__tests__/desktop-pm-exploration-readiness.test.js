@@ -13,6 +13,7 @@ const {
 
 let storageHost;
 let unreadableStorageHost;
+let executionHost;
 
 async function createStorageHost(load) {
   const store = Object.freeze({});
@@ -32,11 +33,30 @@ async function createStorageHost(load) {
   return dependencies.desktopPmExplorationStorageHost;
 }
 
+async function createExecutionHost() {
+  const host = Object.freeze({});
+  const dependencies = await loadDesktopEvolutionDependencies({
+    importLoader: async () => ({
+      loadEvolutionDeploymentCommandDependencies: async () => ({
+        pmExplorationExecutionHost: host,
+      }),
+    }),
+    importPmExplorationExecutionModule: async () => ({
+      isPmExplorationExecutionHost: (value) => value === host,
+      executePmExplorationRound: vi.fn(),
+      mergePmExplorationBranches: vi.fn(),
+      evaluatePmExplorationMemory: vi.fn(),
+    }),
+  });
+  return dependencies.desktopPmExplorationExecutionHost;
+}
+
 beforeAll(async () => {
   storageHost = await createStorageHost(() => null);
   unreadableStorageHost = await createStorageHost(() => {
     throw new Error("corrupt ledger");
   });
+  executionHost = await createExecutionHost();
 });
 
 function environment() {
@@ -74,6 +94,7 @@ function readyDependencies() {
       getCurrentDatabasePath: () => path.resolve("test-data", "pm.db"),
     },
     environment: environment(),
+    pmExplorationExecutionHost: executionHost,
     pmExplorationStorageHost: storageHost,
   };
 }
@@ -111,6 +132,10 @@ describe("Desktop PM exploration readiness host", () => {
     expect(result.missingRuntimeEvidence).toContain(
       "host-enforced-structured-tool-policy",
     );
+    expect(
+      result.checks.find((entry) => entry.id === "signed-execution-host")
+        .passed,
+    ).toBe(true);
     expect(result.recoveryStorage).toEqual({
       configured: true,
       readable: true,
@@ -205,6 +230,18 @@ describe("Desktop PM exploration readiness host", () => {
       unreadable.checks.find((entry) => entry.id === "recovery-store-readable")
         .passed,
     ).toBe(false);
+  });
+
+  it("blocks a missing or unbranded signed execution host", () => {
+    for (const pmExplorationExecutionHost of [null, Object.freeze({})]) {
+      const result = inspect({ pmExplorationExecutionHost });
+      expect(result.status).toBe("blocked");
+      expect(result.configurationCompatible).toBe(false);
+      expect(
+        result.checks.find((entry) => entry.id === "signed-execution-host")
+          .passed,
+      ).toBe(false);
+    }
   });
 
   it("does not invoke accessor traps or expose identity, path or environment values", () => {
