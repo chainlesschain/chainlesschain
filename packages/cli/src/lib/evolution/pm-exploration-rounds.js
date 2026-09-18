@@ -419,8 +419,14 @@ function metrics(value) {
 }
 
 function updateStopReason(state, budgetExceeded) {
-  if (budgetExceeded) state.stopReason = "budget-exhausted";
-  else if (state.checkpoints.length >= state.plan.maxRounds)
+  if (
+    budgetExceeded ||
+    state.totals.tokens >= state.plan.maxTokens ||
+    state.totals.toolCalls >= state.plan.maxToolCalls ||
+    state.totals.wallClockMs >= state.plan.maxWallClockMs
+  ) {
+    state.stopReason = "budget-exhausted";
+  } else if (state.checkpoints.length >= state.plan.maxRounds)
     state.stopReason = "max-rounds";
   else if (state.consecutiveNoGain >= state.plan.maxConsecutiveNoGain)
     state.stopReason = "consecutive-no-gain";
@@ -815,12 +821,16 @@ export function inspectPmExplorationJournal(journal) {
       branchId,
       memoryDigest: state.branchHeads.get(branchId),
       checkpointCount: state.branchCheckpointDigests.get(branchId).length,
+      checkpointDigest:
+        state.branchCheckpointDigests.get(branchId).at(-1) ?? null,
     })),
     deepHead: state.deepHead,
     checkpointDigests: state.checkpoints.map(
       (checkpoint) => checkpoint.checkpointDigest,
     ),
     mergeDigest: state.merge?.mergeDigest ?? null,
+    mergeReceiptDigest: state.merge?.conflictResolutionReceiptDigest ?? null,
+    finalCheckpointDigest: state.checkpoints.at(-1)?.checkpointDigest ?? null,
     frozenMemoryDigest: state.frozen?.frozenMemoryDigest ?? null,
     aggregateMetrics: state.totals,
     consecutiveNoGain: state.consecutiveNoGain,

@@ -114,14 +114,16 @@ function inspectDesktopPmExplorationStorageHost(host) {
       evidence.ledgerDurable === true &&
       evidence.authorityDurable === true &&
       evidence.powerLossDurabilityTested === false &&
-      evidence.snapshotAuthenticated === false &&
+      typeof evidence.snapshotAuthenticated === "boolean" &&
       evidence.qualifiesForPromotion === false;
-    if (!valid) throw new Error("PM exploration restore evidence is invalid");
+    if (!valid) {
+      throw new Error("PM exploration restore evidence is invalid");
+    }
     return Object.freeze({
       configured: true,
       readable: true,
       snapshotAvailable: true,
-      snapshotAuthenticated: false,
+      snapshotAuthenticated: evidence.snapshotAuthenticated,
       durableSnapshotAvailable: true,
       powerLossDurabilityTested: false,
       qualifiesForPromotion: false,

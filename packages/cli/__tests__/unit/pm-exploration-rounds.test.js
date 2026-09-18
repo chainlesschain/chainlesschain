@@ -354,6 +354,25 @@ describe("PM exploration round protocol", () => {
     ).toThrow(/budget-exhausted/);
   });
 
+  it("stops admission when an aggregate budget is exactly exhausted", () => {
+    const { journal } = newJournal({
+      broadBranchIds: ["workflow"],
+      maxTokens: 3,
+    });
+    settle(
+      journal,
+      startBroad(journal, "round-exact-budget", "workflow"),
+      "exact-budget",
+      { metrics: { tokens: 3, toolCalls: 0, wallClockMs: 0 } },
+    );
+    expect(inspectPmExplorationJournal(journal).stopReason).toBe(
+      "budget-exhausted",
+    );
+    expect(() =>
+      startBroad(journal, "round-after-exact-budget", "workflow"),
+    ).toThrow(/budget-exhausted/);
+  });
+
   it("stops on consecutive no-gain and cannot reset that stop at Deep entry", () => {
     const { journal } = newJournal({
       broadBranchIds: ["workflow"],

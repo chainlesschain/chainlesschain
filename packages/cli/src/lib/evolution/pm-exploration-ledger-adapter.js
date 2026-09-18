@@ -21,9 +21,14 @@ import {
   restorePmExplorationJournal,
   verifyPmExplorationPlan,
 } from "./pm-exploration-rounds.js";
+import { verifyPmExplorationEvidenceBundle } from "./pm-exploration-evidence-bundle.js";
+import { verifyPmExplorationExecutionManifest } from "./pm-exploration-execution-host.js";
+import { inspectPmExplorationReceiptAuthority } from "./pm-exploration-receipts.js";
 
 export const PM_EXPLORATION_LEDGER_RECORD_SCHEMA =
   "chainlesschain.pm-exploration-ledger-record/v1";
+export const PM_EXPLORATION_AUTHENTICATED_LEDGER_RECORD_SCHEMA =
+  "chainlesschain.pm-exploration-ledger-record/v2";
 export const PM_EXPLORATION_LEDGER_EVENT_TYPE =
   "pm.exploration.snapshot-committed";
 export const PM_EXPLORATION_LEDGER_RESTORE_SCHEMA =
@@ -54,6 +59,12 @@ const RECORD_KEYS = new Set([
   "snapshotDigest",
   "snapshot",
   "committedAt",
+]);
+const AUTHENTICATED_RECORD_KEYS = new Set([
+  ...RECORD_KEYS,
+  "evidenceBundle",
+  "evidenceDigest",
+  "executionManifestDigest",
 ]);
 const DURABILITY_AUTHORITY_KEYS = new Set(["id", "retain", "resolve"]);
 const DURABILITY_RECEIPT_KEYS = new Set([
@@ -220,7 +231,19 @@ function normalizeSnapshot(plan, snapshot) {
   return exportPmExplorationRecoverySnapshot(restored);
 }
 
-function parseRecord(resolution, descriptor, plan) {
+function normalizeEvidence(context, plan, snapshot, bundle) {
+  if (!context)
+    corrupt("PM exploration signed evidence verifier is unavailable");
+  return verifyPmExplorationEvidenceBundle({
+    plan,
+    manifest: context.manifest,
+    authorities: context.authorities,
+    snapshot,
+    bundle,
+  });
+}
+
+function parseRecord(resolution, descriptor, plan, evidenceContext) {
   if (
     resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
     resolution.authenticated !== true ||
@@ -248,14 +271,23 @@ function parseRecord(resolution, descriptor, plan) {
   ) {
     corrupt("PM exploration durable artifact binding is invalid");
   }
+  const record = durable.value;
+  const authenticatedRecord =
+    record?.schema === PM_EXPLORATION_AUTHENTICATED_LEDGER_RECORD_SCHEMA;
   try {
-    exact(durable.value, RECORD_KEYS, "PM exploration ledger record");
+    exact(
+      record,
+      authenticatedRecord ? AUTHENTICATED_RECORD_KEYS : RECORD_KEYS,
+      "PM exploration ledger record",
+    );
   } catch (cause) {
     corrupt("PM exploration ledger record shape is invalid", { cause });
   }
-  const record = durable.value;
   if (
-    record.schema !== PM_EXPLORATION_LEDGER_RECORD_SCHEMA ||
+    ![
+      PM_EXPLORATION_LEDGER_RECORD_SCHEMA,
+      PM_EXPLORATION_AUTHENTICATED_LEDGER_RECORD_SCHEMA,
+    ].includes(record.schema) ||
     record.descriptorDigest !== descriptor.descriptorDigest ||
     !Number.isSafeInteger(record.revision) ||
     record.revision < 1 ||
@@ -279,7 +311,35 @@ function parseRecord(resolution, descriptor, plan) {
   ) {
     corrupt("PM exploration recovery snapshot readback differs");
   }
-  return deepFreeze({ ...record, snapshot });
+  let evidenceBundle = null;
+  if (authenticatedRecord) {
+    if (
+      !DIGEST.test(record.evidenceDigest ?? "") ||
+      !DIGEST.test(record.executionManifestDigest ?? "")
+    ) {
+      corrupt("PM exploration signed evidence fields are invalid");
+    }
+    try {
+      evidenceBundle = normalizeEvidence(
+        evidenceContext,
+        plan,
+        snapshot,
+        record.evidenceBundle,
+      );
+    } catch (cause) {
+      corrupt("PM exploration signed evidence is invalid", { cause });
+    }
+    if (
+      evidenceBundle.evidenceDigest !== record.evidenceDigest ||
+      evidenceBundle.executionManifestDigest !==
+        record.executionManifestDigest ||
+      evidenceBundle.snapshotDigest !== snapshot.snapshotDigest ||
+      !same(evidenceBundle, record.evidenceBundle)
+    ) {
+      corrupt("PM exploration signed evidence readback differs");
+    }
+  }
+  return deepFreeze({ ...record, snapshot, evidenceBundle });
 }
 
 function assertSnapshotExtension(previous, next) {
@@ -313,8 +373,29 @@ function sameHead(left, right) {
   ].every((key) => left?.[key] === right?.[key]);
 }
 
+function recordIsAuthenticated(record) {
+  return record.schema === PM_EXPLORATION_AUTHENTICATED_LEDGER_RECORD_SCHEMA;
+}
+
+function recordEventId(record) {
+  const suffix = recordIsAuthenticated(record)
+    ? hash("chainlesschain.pm-exploration-ledger-event-id/v2", {
+        snapshotDigest: record.snapshotDigest,
+        evidenceDigest: record.evidenceDigest,
+      }).slice(7)
+    : record.snapshotDigest.slice(7);
+  return `${PM_EXPLORATION_LEDGER_EVENT_TYPE}.${suffix}`;
+}
+
+function recordReason(record) {
+  return recordIsAuthenticated(record)
+    ? `PM exploration authenticated recovery snapshot revision ${record.revision} committed`
+    : `PM exploration recovery snapshot revision ${record.revision} committed`;
+}
+
 function acknowledgement(descriptor, entry, recovered) {
-  return deepFreeze({
+  const authenticated = recordIsAuthenticated(entry.record);
+  const result = {
     schema: PM_EXPLORATION_LEDGER_ACK_SCHEMA,
     authenticated: true,
     durable: true,
@@ -330,14 +411,64 @@ function acknowledgement(descriptor, entry, recovered) {
     snapshotDigest: entry.record.snapshotDigest,
     ledgerEventDigest: entry.event.eventDigest,
     recovered,
-    snapshotAuthenticated: false,
+    snapshotAuthenticated: authenticated,
     qualifiesForPromotion: false,
+  };
+  if (authenticated) {
+    result.evidenceDigest = entry.record.evidenceDigest;
+    result.executionManifestDigest = entry.record.executionManifestDigest;
+  }
+  return deepFreeze(result);
+}
+
+function normalizeEvidenceContext(executionManifest, receiptAuthorities, plan) {
+  if (executionManifest === null && receiptAuthorities === null) return null;
+  if (executionManifest === null || receiptAuthorities === null)
+    throw new TypeError(
+      "executionManifest and receiptAuthorities must be configured together",
+    );
+  const manifest = verifyPmExplorationExecutionManifest(executionManifest);
+  if (
+    manifest.planDigest !== plan.planDigest ||
+    manifest.environmentDigest !== plan.environmentDigest
+  ) {
+    throw new TypeError("PM signed evidence manifest differs from the plan");
+  }
+  exact(
+    receiptAuthorities,
+    new Set(["execution", "grader", "merge", "evaluator"]),
+    "PM exploration receipt authorities",
+  );
+  for (const [role, expected] of [
+    ["execution", manifest.runner],
+    ["grader", manifest.grader],
+    ["merge", manifest.merger],
+    ["evaluator", manifest.evaluator],
+  ]) {
+    if (
+      !same(
+        inspectPmExplorationReceiptAuthority(receiptAuthorities[role]),
+        expected,
+      )
+    ) {
+      throw new TypeError(`PM ${role} receipt authority differs from manifest`);
+    }
+  }
+  return Object.freeze({
+    manifest,
+    authorities: Object.freeze({
+      execution: receiptAuthorities.execution,
+      grader: receiptAuthorities.grader,
+      merge: receiptAuthorities.merge,
+      evaluator: receiptAuthorities.evaluator,
+    }),
   });
 }
 
 export class PmExplorationLedgerAdapter {
   #append;
   #clock;
+  #evidenceContext;
   #plan;
   #put;
   #read;
@@ -352,12 +483,19 @@ export class PmExplorationLedgerAdapter {
     artifactDurabilityAuthority,
     ledger,
     ledgerArtifactResolver,
+    executionManifest = null,
+    receiptAuthorities = null,
     now = Date.now,
   } = {}) {
     this.descriptor = normalizeDescriptor(input);
     this.#plan = snapshotPlan(plan);
     if (this.#plan.planDigest !== this.descriptor.planDigest)
       throw new TypeError("PM exploration plan differs from ledger descriptor");
+    this.#evidenceContext = normalizeEvidenceContext(
+      executionManifest,
+      receiptAuthorities,
+      this.#plan,
+    );
     const trustedArtifactPorts = requireExactInstance(
       artifactPorts,
       EvolutionArtifactPorts.prototype,
@@ -404,7 +542,8 @@ export class PmExplorationLedgerAdapter {
       this,
       Object.freeze({
         load: () => this.load(),
-        commitJournal: (journal) => this.commitJournal(journal),
+        commitJournal: (journal, evidenceBundle = null) =>
+          this.commitJournal(journal, evidenceBundle),
         restoreLatestJournal: () => this.restoreLatestJournal(),
       }),
     );
@@ -437,7 +576,12 @@ export class PmExplorationLedgerAdapter {
     ) {
       corrupt("PM exploration ledger subject was substituted");
     }
-    return parseRecord(resolution, this.descriptor, this.#plan);
+    return parseRecord(
+      resolution,
+      this.descriptor,
+      this.#plan,
+      this.#evidenceContext,
+    );
   }
 
   #historyWithIdentity() {
@@ -454,10 +598,8 @@ export class PmExplorationLedgerAdapter {
         event.artifactTenantId !== this.descriptor.artifactTenantId ||
         event.decision !== "committed" ||
         event.skillName !== null ||
-        event.eventId !==
-          `${PM_EXPLORATION_LEDGER_EVENT_TYPE}.${record.snapshotDigest.slice(7)}` ||
-        event.reason !==
-          `PM exploration recovery snapshot revision ${record.revision} committed` ||
+        event.eventId !== recordEventId(record) ||
+        event.reason !== recordReason(record) ||
         event.timestamp !== new Date(record.committedAt).toISOString() ||
         !DIGEST.test(event.eventDigest ?? "") ||
         !Array.isArray(event.sourceRefs) ||
@@ -487,7 +629,8 @@ export class PmExplorationLedgerAdapter {
   load() {
     const latest = this.#historyWithIdentity().history.at(-1) ?? null;
     if (!latest) return null;
-    return deepFreeze({
+    const authenticated = recordIsAuthenticated(latest.record);
+    const result = {
       schema: PM_EXPLORATION_LEDGER_RESTORE_SCHEMA,
       authenticated: true,
       durable: true,
@@ -503,9 +646,15 @@ export class PmExplorationLedgerAdapter {
       snapshotDigest: latest.record.snapshotDigest,
       ledgerEventDigest: latest.event.eventDigest,
       snapshot: latest.record.snapshot,
-      snapshotAuthenticated: false,
+      snapshotAuthenticated: authenticated,
       qualifiesForPromotion: false,
-    });
+    };
+    if (authenticated) {
+      result.evidenceBundle = latest.record.evidenceBundle;
+      result.evidenceDigest = latest.record.evidenceDigest;
+      result.executionManifestDigest = latest.record.executionManifestDigest;
+    }
+    return deepFreeze(result);
   }
 
   restoreLatestJournal() {
@@ -515,7 +664,7 @@ export class PmExplorationLedgerAdapter {
     return Object.freeze({ journal, evidence });
   }
 
-  commitJournal(journal) {
+  commitJournal(journal, evidenceBundle = null) {
     let snapshot;
     try {
       snapshot = exportPmExplorationRecoverySnapshot(journal);
@@ -527,10 +676,38 @@ export class PmExplorationLedgerAdapter {
     }
     if (snapshot.planDigest !== this.descriptor.planDigest)
       conflict("PM exploration journal belongs to another plan");
+    let authenticatedEvidence = null;
+    if (this.#evidenceContext) {
+      if (evidenceBundle === null)
+        throw new TypeError(
+          "signed PM exploration evidence is required for this adapter",
+        );
+      authenticatedEvidence = normalizeEvidence(
+        this.#evidenceContext,
+        this.#plan,
+        snapshot,
+        evidenceBundle,
+      );
+    } else if (evidenceBundle !== null) {
+      throw new TypeError(
+        "signed PM exploration evidence is not configured for this adapter",
+      );
+    }
     const { history, identity } = this.#historyWithIdentity();
     const latest = history.at(-1) ?? null;
-    if (latest?.record.snapshotDigest === snapshot.snapshotDigest)
-      return acknowledgement(this.descriptor, latest, true);
+    if (latest?.record.snapshotDigest === snapshot.snapshotDigest) {
+      if (
+        (authenticatedEvidence === null &&
+          !recordIsAuthenticated(latest.record)) ||
+        (authenticatedEvidence !== null &&
+          recordIsAuthenticated(latest.record) &&
+          latest.record.evidenceDigest === authenticatedEvidence.evidenceDigest)
+      ) {
+        return acknowledgement(this.descriptor, latest, true);
+      }
+      if (recordIsAuthenticated(latest.record))
+        conflict("PM exploration snapshot evidence cannot be replaced");
+    }
     assertSnapshotExtension(latest?.record.snapshot ?? null, snapshot);
 
     const revision = history.length + 1;
@@ -538,13 +715,24 @@ export class PmExplorationLedgerAdapter {
     if (!Number.isSafeInteger(committedAt) || committedAt < 0)
       throw new TypeError("PM exploration ledger clock is invalid");
     const record = deepFreeze({
-      schema: PM_EXPLORATION_LEDGER_RECORD_SCHEMA,
+      schema:
+        authenticatedEvidence === null
+          ? PM_EXPLORATION_LEDGER_RECORD_SCHEMA
+          : PM_EXPLORATION_AUTHENTICATED_LEDGER_RECORD_SCHEMA,
       descriptorDigest: this.descriptor.descriptorDigest,
       revision,
       priorSnapshotDigest: latest?.record.snapshotDigest ?? null,
       snapshotDigest: snapshot.snapshotDigest,
       snapshot,
       committedAt,
+      ...(authenticatedEvidence === null
+        ? {}
+        : {
+            evidenceBundle: authenticatedEvidence,
+            evidenceDigest: authenticatedEvidence.evidenceDigest,
+            executionManifestDigest:
+              authenticatedEvidence.executionManifestDigest,
+          }),
     });
     const published = this.#put(ARTIFACT_TYPE, record, {
       audience: this.descriptor.audience,
@@ -617,7 +805,7 @@ export class PmExplorationLedgerAdapter {
     ) {
       corrupt("PM exploration artifact was not durably retained");
     }
-    const eventId = `${PM_EXPLORATION_LEDGER_EVENT_TYPE}.${snapshot.snapshotDigest.slice(7)}`;
+    const eventId = recordEventId(record);
     try {
       const receipt = this.#append(
         {
@@ -625,7 +813,7 @@ export class PmExplorationLedgerAdapter {
           correlationId: this.descriptor.planDigest,
           decision: "committed",
           eventId,
-          reason: `PM exploration recovery snapshot revision ${revision} committed`,
+          reason: recordReason(record),
           skillName: null,
           sourceRefs: latest ? [latest.event.subjectRef] : [],
           subjectRef: published.ref,

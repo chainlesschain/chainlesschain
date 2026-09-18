@@ -1,4 +1,4 @@
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, generateKeyPairSync } from "node:crypto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -14,15 +14,33 @@ import {
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import { createEvolutionLedgerDurableArtifactResolver } from "../../src/lib/evolution/evolution-ledger-ports.js";
 import {
+  createPmExplorationEvaluator,
+  createPmExplorationExecutionHost,
+  createPmExplorationExecutionManifest,
+  createPmExplorationGrader,
+  createPmExplorationMerger,
+  createPmExplorationRunner,
+  evaluatePmExplorationMemory,
+  executePmExplorationRound,
+  mergePmExplorationBranches,
+} from "../../src/lib/evolution/pm-exploration-execution-host.js";
+import { createPmExplorationEvidenceBundle } from "../../src/lib/evolution/pm-exploration-evidence-bundle.js";
+import {
   PM_EXPLORATION_LEDGER_CONFLICT_CODE,
   PmExplorationLedgerAdapter,
   capturePmExplorationLedgerStore,
 } from "../../src/lib/evolution/pm-exploration-ledger-adapter.js";
 import {
+  createPmExplorationReceiptSigner,
+  getPmExplorationReceiptSignerAuthority,
+  inspectPmExplorationReceiptAuthority,
+} from "../../src/lib/evolution/pm-exploration-receipts.js";
+import {
   completePmExplorationRound,
   createPmExplorationJournal,
   createPmExplorationPlan,
   enterPmExplorationDeepStage,
+  exportPmExplorationRecoverySnapshot,
   freezePmExplorationMemory,
   inspectPmExplorationJournal,
   mergePmExplorationBroadBranches,
@@ -258,6 +276,101 @@ function plan(overrides = {}) {
   });
 }
 
+function receiptSigner(role) {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  return createPmExplorationReceiptSigner({
+    role,
+    authorityId: `${role}-ledger-test-authority`,
+    revision: 1,
+    handlerArtifactDigest: sha(`${role}-ledger-test-handler`),
+    privateKey,
+    publicKey,
+  });
+}
+
+function signedExecution(boundPlan) {
+  const signers = {
+    execution: receiptSigner("execution"),
+    grader: receiptSigner("grader"),
+    merge: receiptSigner("merge"),
+    evaluator: receiptSigner("evaluator"),
+  };
+  const authorities = Object.fromEntries(
+    Object.entries(signers).map(([role, signer]) => [
+      role,
+      getPmExplorationReceiptSignerAuthority(signer),
+    ]),
+  );
+  const runner = createPmExplorationRunner({
+    signer: signers.execution,
+    run: async (request, runtime) => {
+      runtime.recordTokens(3);
+      return {
+        outputMemoryDigest: sha(`${request.roundId}-signed-memory`),
+        traceDigest: sha(`${request.roundId}-signed-trace`),
+      };
+    },
+  });
+  const grader = createPmExplorationGrader({
+    signer: signers.grader,
+    grade: async (request, runtime) => {
+      runtime.recordTokens(1);
+      return {
+        decision: request.executionStatus === "succeeded" ? "accept" : "unsafe",
+        scoreBasisPoints: request.executionStatus === "succeeded" ? 9000 : 0,
+        resultDigest: sha(`${request.roundId}-signed-grade`),
+      };
+    },
+  });
+  const merger = createPmExplorationMerger({
+    signer: signers.merge,
+    merge: async (request, runtime) => {
+      runtime.recordTokens(1);
+      return {
+        outputMemoryDigest: sha(`${request.mergeId}-signed-memory`),
+        conflictResolutionDigest: sha(`${request.mergeId}-signed-conflicts`),
+      };
+    },
+  });
+  const evaluator = createPmExplorationEvaluator({
+    signer: signers.evaluator,
+    evaluate: async (request, runtime) => {
+      runtime.recordTokens(1);
+      return {
+        decision: "accept",
+        scoreBasisPoints: 9500,
+        evaluationDigest: sha(`${request.finalMemoryDigest}-signed-evaluation`),
+      };
+    },
+  });
+  const manifest = createPmExplorationExecutionManifest({
+    planDigest: boundPlan.planDigest,
+    environmentDigest: boundPlan.environmentDigest,
+    runner: inspectPmExplorationReceiptAuthority(signers.execution),
+    grader: inspectPmExplorationReceiptAuthority(signers.grader),
+    merger: inspectPmExplorationReceiptAuthority(signers.merge),
+    evaluator: inspectPmExplorationReceiptAuthority(signers.evaluator),
+    toolIds: [],
+    toolPolicyDigest: sha("ledger-test-tool-policy"),
+  });
+  return {
+    authorities,
+    manifest,
+    host: createPmExplorationExecutionHost({
+      plan: boundPlan,
+      manifest,
+      runner,
+      grader,
+      merger,
+      evaluator,
+      invokeTool: async () => {
+        throw new Error("signed ledger test does not allow tools");
+      },
+      now: () => NOW,
+    }),
+  };
+}
+
 function adapter(storage, ledger, boundPlan, options = {}) {
   return new PmExplorationLedgerAdapter({
     descriptor: {
@@ -273,6 +386,8 @@ function adapter(storage, ledger, boundPlan, options = {}) {
     artifactDurabilityAuthority: storage.artifactDurabilityAuthority,
     ledger,
     ledgerArtifactResolver: storage.ledgerArtifactResolver,
+    executionManifest: options.executionManifest ?? null,
+    receiptAuthorities: options.receiptAuthorities ?? null,
     now: options.now ?? (() => NOW),
   });
 }
@@ -412,6 +527,121 @@ describe("PM exploration ledger adapter", () => {
     expect(inspectPmExplorationJournal(restored.journal)).toEqual(
       inspectPmExplorationJournal(journal),
     );
+  });
+
+  it("durably retains and re-verifies the complete signed evidence bundle", async () => {
+    const storage = resources();
+    const firstBackend = createEvolutionLedgerFileBackend(
+      storage.backendOptions,
+    );
+    const boundPlan = plan();
+    const signed = signedExecution(boundPlan);
+    const journal = createPmExplorationJournal(boundPlan);
+    const broad = await executePmExplorationRound(signed.host, journal, {
+      roundId: "round-signed-broad",
+      stage: "broad",
+      branchId: "workflow",
+      taskId: "train-project",
+      inputMemoryDigest: boundPlan.initialMemoryDigest,
+    });
+    const merged = await mergePmExplorationBranches(signed.host, journal, {
+      mergeId: "merge-signed",
+    });
+    const deepEntry = enterPmExplorationDeepStage(
+      journal,
+      merged.merge.mergeDigest,
+    );
+    const deep = await executePmExplorationRound(signed.host, journal, {
+      roundId: "round-signed-deep",
+      stage: "deep",
+      branchId: null,
+      taskId: "train-project",
+      inputMemoryDigest: deepEntry.inputMemoryDigest,
+    });
+    const evaluated = await evaluatePmExplorationMemory(signed.host, journal, {
+      finalMemoryDigest: deep.checkpoint.effectiveMemoryDigest,
+      mergeReceipt: merged.mergeReceipt,
+    });
+    const snapshot = exportPmExplorationRecoverySnapshot(journal);
+    const evidenceBundle = createPmExplorationEvidenceBundle({
+      plan: boundPlan,
+      manifest: signed.manifest,
+      snapshot,
+      authorities: signed.authorities,
+      receipts: {
+        execution: [broad.executionReceipt, deep.executionReceipt],
+        grader: [broad.graderReceipt, deep.graderReceipt],
+        merge: merged.mergeReceipt,
+        evaluator: evaluated.evaluatorReceipt,
+      },
+    });
+    const first = adapter(storage, firstBackend.ledger, boundPlan, {
+      executionManifest: signed.manifest,
+      receiptAuthorities: signed.authorities,
+    });
+    expect(() => first.commitJournal(journal)).toThrow(
+      /signed PM exploration evidence is required/,
+    );
+    const tamperedEvidence = structuredClone(evidenceBundle);
+    tamperedEvidence.graderReceipts[0].payload.scoreBasisPoints = 10_000;
+    expect(() => first.commitJournal(journal, tamperedEvidence)).toThrow(
+      /digest mismatch/,
+    );
+    expect(first.load()).toBeNull();
+    expect(first.commitJournal(journal, evidenceBundle)).toMatchObject({
+      authenticated: true,
+      durable: true,
+      snapshotAuthenticated: true,
+      evidenceDigest: evidenceBundle.evidenceDigest,
+      executionManifestDigest: signed.manifest.manifestDigest,
+      qualifiesForPromotion: false,
+    });
+
+    const reopenedBackend = createEvolutionLedgerFileBackend(
+      storage.backendOptions,
+    );
+    const reopened = adapter(storage, reopenedBackend.ledger, boundPlan, {
+      executionManifest: signed.manifest,
+      receiptAuthorities: signed.authorities,
+    });
+    const restored = reopened.restoreLatestJournal();
+    expect(restored.evidence).toMatchObject({
+      snapshotAuthenticated: true,
+      evidenceDigest: evidenceBundle.evidenceDigest,
+      executionManifestDigest: signed.manifest.manifestDigest,
+      evidenceBundle,
+      qualifiesForPromotion: false,
+    });
+    expect(inspectPmExplorationJournal(restored.journal)).toEqual(
+      inspectPmExplorationJournal(journal),
+    );
+    expect(() =>
+      adapter(storage, reopenedBackend.ledger, boundPlan).load(),
+    ).toThrow(/signed evidence is invalid/);
+
+    const dependencies = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationLedgerStore: reopened,
+        }),
+      }),
+      importPmExplorationLedgerModule: async () => ({
+        capturePmExplorationLedgerStore,
+      }),
+    });
+    expect(
+      inspectDesktopPmExplorationStorageHost(
+        dependencies.desktopPmExplorationStorageHost,
+      ),
+    ).toEqual({
+      configured: true,
+      readable: true,
+      snapshotAvailable: true,
+      snapshotAuthenticated: true,
+      durableSnapshotAvailable: true,
+      powerLossDurabilityTested: false,
+      qualifiesForPromotion: false,
+    });
   });
 
   it("persists append-only progress and continues after a real reopen", () => {
