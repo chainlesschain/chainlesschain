@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.63: RSIAgent governed evolution batches 9-23
+
+- Add the ninth through twenty-third RSIAgent evolution batches: budget
+  executor, signed receipts, and execution host; Volcengine provider adapter
+  with usage settlement and live probe; signed provider settlement and desktop
+  deployment smoke test; standalone PM business grading with signed task
+  binding; desktop read-only outcome reader with DB identity hardening and
+  deployment wiring.
+- Seal failed states and gate tainted execution hosts, commit durable state
+  transitions, recover an authenticated chain head on restart, and retain
+  SQLite recovery snapshots bound to their migration for governed
+  post-restart trust.
+- Align the VS Code and JetBrains plugin releases with the CLI and sync the
+  platform release sites.
+
 ### Fixed - cc CLI 0.166.62: prevent scheduler soak lease-expiry races
 
 - Keep the scheduler integration smoke lease above SQLite's complete busy-wait
