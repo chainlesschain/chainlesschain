@@ -77,6 +77,8 @@ const DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-action-authority.js";
 const DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-artifact-disposal-authority.js";
+const DEV_BROWSER_QUARANTINE_RETENTION_SCHEDULER_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-quarantine-retention-scheduler.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -746,6 +748,68 @@ function resolveBrowserDownloadArtifactDisposalAuthorityPath({
   );
 }
 
+function resolveBrowserQuarantineRetentionSchedulerPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser quarantine retention scheduler requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-quarantine-retention-scheduler.js",
+    );
+  }
+  return path.resolve(
+    __dirname,
+    DEV_BROWSER_QUARANTINE_RETENTION_SCHEDULER_REL,
+  );
+}
+
+async function startDesktopBrowserQuarantineRetentionScheduler(
+  scheduler,
+  captureScheduler,
+) {
+  if (typeof captureScheduler !== "function" || types.isProxy(captureScheduler))
+    throw new TypeError(
+      "Browser quarantine retention scheduler capture is invalid",
+    );
+  const captured = Reflect.apply(captureScheduler, undefined, [scheduler]);
+  const start = ownDirectFunction(
+    captured,
+    "start",
+    "browser quarantine retention scheduler start port",
+  );
+  const stop = ownDirectFunction(
+    captured,
+    "stop",
+    "browser quarantine retention scheduler stop port",
+  );
+  const inspect = ownDirectFunction(
+    captured,
+    "inspect",
+    "browser quarantine retention scheduler inspect port",
+  );
+  try {
+    const started = await Reflect.apply(start, undefined, []);
+    if (
+      !started ||
+      typeof started !== "object" ||
+      types.isProxy(started) ||
+      ownData(started, "status", "retention scheduler start status") !==
+        "started"
+    )
+      throw new Error("Browser quarantine retention scheduler did not start");
+  } catch (error) {
+    await Reflect.apply(stop, undefined, []).catch(() => {});
+    throw error;
+  }
+  return Object.freeze({ stop, inspect });
+}
+
 function createDesktopPmExplorationStorageHost(store, captureStore) {
   if (typeof captureStore !== "function" || types.isProxy(captureStore)) {
     throw new TypeError("PM exploration ledger store capture is invalid");
@@ -1376,6 +1440,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserTabOpenActionAuthorityModule = (url) => import(url),
   importBrowserDownloadActionAuthorityModule = (url) => import(url),
   importBrowserDownloadArtifactDisposalAuthorityModule = (url) => import(url),
+  importBrowserQuarantineRetentionSchedulerModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -1401,6 +1466,7 @@ async function loadDesktopEvolutionDependencies({
   }
 
   const desktopDependencies = {};
+  let browserQuarantineRetentionScheduler = null;
   const modelFactoryDescriptor = Object.getOwnPropertyDescriptor(
     result,
     "evolutionCompositionFactory",
@@ -1620,6 +1686,37 @@ async function loadDesktopEvolutionDependencies({
           "browser download artifact disposal authority capture",
         ),
       );
+  }
+  const browserQuarantineRetentionSchedulerDescriptor =
+    Object.getOwnPropertyDescriptor(
+      result,
+      "browserQuarantineRetentionScheduler",
+    );
+  if (browserQuarantineRetentionSchedulerDescriptor) {
+    if (
+      !("value" in browserQuarantineRetentionSchedulerDescriptor) ||
+      browserQuarantineRetentionSchedulerDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser quarantine retention scheduler must be an enumerable data property",
+      );
+    }
+    const schedulerPath = resolveBrowserQuarantineRetentionSchedulerPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const schedulerModule =
+      await importBrowserQuarantineRetentionSchedulerModule(
+        pathToFileURL(schedulerPath).href,
+      );
+    browserQuarantineRetentionScheduler = Object.freeze({
+      scheduler: browserQuarantineRetentionSchedulerDescriptor.value,
+      capture: ownDirectFunction(
+        schedulerModule,
+        "captureBrowserQuarantineRetentionScheduler",
+        "browser quarantine retention scheduler capture",
+      ),
+    });
   }
   if (result.marketplaceHost !== undefined) {
     desktopDependencies.governedSkillMarketplaceHost =
@@ -1984,8 +2081,15 @@ async function loadDesktopEvolutionDependencies({
   const composition = result.evolvableArtifactRuntimeComposition;
   if (
     composition === undefined &&
-    Object.keys(desktopDependencies).length > 0
+    (Object.keys(desktopDependencies).length > 0 ||
+      browserQuarantineRetentionScheduler !== null)
   ) {
+    if (browserQuarantineRetentionScheduler !== null)
+      desktopDependencies.desktopBrowserQuarantineRetentionScheduler =
+        await startDesktopBrowserQuarantineRetentionScheduler(
+          browserQuarantineRetentionScheduler.scheduler,
+          browserQuarantineRetentionScheduler.capture,
+        );
     return Object.freeze(desktopDependencies);
   }
   if (!isEvolvableArtifactRuntimeComposition(composition)) {
@@ -2006,6 +2110,12 @@ async function loadDesktopEvolutionDependencies({
       );
     }
   }
+  if (browserQuarantineRetentionScheduler !== null)
+    desktopDependencies.desktopBrowserQuarantineRetentionScheduler =
+      await startDesktopBrowserQuarantineRetentionScheduler(
+        browserQuarantineRetentionScheduler.scheduler,
+        browserQuarantineRetentionScheduler.capture,
+      );
   return Object.freeze({ ...dependencies, ...desktopDependencies });
 }
 
@@ -2031,5 +2141,6 @@ module.exports = {
   resolveBrowserTabOpenActionAuthorityPath,
   resolveBrowserDownloadActionAuthorityPath,
   resolveBrowserDownloadArtifactDisposalAuthorityPath,
+  resolveBrowserQuarantineRetentionSchedulerPath,
   resolveLoaderPath,
 };

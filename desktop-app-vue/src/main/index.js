@@ -2946,6 +2946,21 @@ class ChainlessChainApp {
       this._trayMemoryInterval = null;
     }
 
+    const retentionScheduler =
+      this.evolutionDeploymentDependencies
+        ?.desktopBrowserQuarantineRetentionScheduler;
+    if (retentionScheduler) {
+      try {
+        await retentionScheduler.stop();
+        logger.info("[Main] Browser quarantine retention scheduler stopped");
+      } catch (error) {
+        logger.error(
+          "[Main] Browser quarantine retention scheduler stop error:",
+          error,
+        );
+      }
+    }
+
     for (const handlerName of ["rssIPCHandler", "emailIPCHandler"]) {
       const handler = this[handlerName];
       if (!handler) continue;

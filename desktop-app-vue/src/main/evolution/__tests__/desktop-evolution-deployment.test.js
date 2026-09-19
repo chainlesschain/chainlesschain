@@ -899,6 +899,68 @@ describe("desktop evolution deployment", () => {
     expect(authorizeDisposal).toHaveBeenCalledOnce();
   });
 
+  it("starts a signed retention scheduler and exposes only lifecycle ports", async () => {
+    const scheduler = Object.freeze({});
+    const start = vi.fn(async () => ({ status: "started" }));
+    const stop = vi.fn(async () => ({ status: "stopped" }));
+    const inspect = vi.fn(() => ({ started: true, running: false }));
+    const capture = vi.fn((value) => {
+      if (value !== scheduler) throw new TypeError("unbranded scheduler");
+      return Object.freeze({
+        descriptor: Object.freeze({}),
+        start,
+        stop,
+        inspect,
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserQuarantineRetentionScheduler: scheduler,
+        }),
+      }),
+      importBrowserQuarantineRetentionSchedulerModule: async () => ({
+        captureBrowserQuarantineRetentionScheduler: capture,
+      }),
+    });
+
+    expect(start).toHaveBeenCalledOnce();
+    expect(capture).toHaveBeenCalledWith(scheduler);
+    expect(
+      Object.keys(result.desktopBrowserQuarantineRetentionScheduler),
+    ).toEqual(["stop", "inspect"]);
+    await expect(
+      result.desktopBrowserQuarantineRetentionScheduler.stop(),
+    ).resolves.toEqual({ status: "stopped" });
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it("stops a retention scheduler whose startup acknowledgement is invalid", async () => {
+    const scheduler = Object.freeze({});
+    const stop = vi.fn(async () => ({ status: "stopped" }));
+    await expect(
+      loadDesktopEvolutionDependencies({
+        importLoader: async () => ({
+          loadEvolutionDeploymentCommandDependencies: async () => ({
+            browserQuarantineRetentionScheduler: scheduler,
+          }),
+        }),
+        importBrowserQuarantineRetentionSchedulerModule: async () => ({
+          captureBrowserQuarantineRetentionScheduler: (value) => {
+            if (value !== scheduler) throw new TypeError("unbranded scheduler");
+            return Object.freeze({
+              descriptor: Object.freeze({}),
+              start: async () => ({ status: "uncertain" }),
+              stop,
+              inspect: () => ({}),
+            });
+          },
+        }),
+      }),
+    ).rejects.toThrow(/did not start/u);
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
   it("narrows a branded PM ledger store to an opaque read-only Desktop host", async () => {
     const store = Object.freeze({ name: "real-store-placeholder" });
     const load = vi.fn(() => null);
