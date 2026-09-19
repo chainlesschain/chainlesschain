@@ -10,6 +10,16 @@ const { createRemoteLogRedactor } = require("./remote-log-redaction");
 
 const logger = createRemoteLogRedactor(remoteLogSink, "RemoteIPC");
 
+const REMOTE_IPC_OPERATION_FAILED = "REMOTE_IPC_OPERATION_FAILED";
+
+function createRemoteIpcFailureResult() {
+  return {
+    success: false,
+    error: "Remote IPC operation failed",
+    code: REMOTE_IPC_OPERATION_FAILED,
+  };
+}
+
 /**
  * 注册远程控制 IPC 处理器
  *
@@ -26,7 +36,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: devices };
     } catch (error) {
       logger.error("[RemoteIPC] 获取设备列表失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -44,7 +54,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 发送命令失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -61,7 +71,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true };
       } catch (error) {
         logger.error("[RemoteIPC] 广播事件失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -78,7 +88,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true };
       } catch (error) {
         logger.error("[RemoteIPC] 设置设备权限失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -91,7 +101,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: { level } };
     } catch (error) {
       logger.error("[RemoteIPC] 获取设备权限失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -103,7 +113,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: logs };
     } catch (error) {
       logger.error("[RemoteIPC] 获取审计日志失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -115,7 +125,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: stats };
     } catch (error) {
       logger.error("[RemoteIPC] 获取统计信息失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -132,7 +142,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return result;
     } catch (error) {
       logger.error("[RemoteIPC] 断开设备失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -148,7 +158,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: logs };
       } catch (error) {
         logger.error("[RemoteIPC] 查询命令日志失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -159,7 +169,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: logs };
       } catch (error) {
         logger.error("[RemoteIPC] 获取最近日志失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -170,7 +180,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: log };
       } catch (error) {
         logger.error("[RemoteIPC] 获取日志详情失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -181,7 +191,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[RemoteIPC] 导出日志失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -192,7 +202,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: stats };
       } catch (error) {
         logger.error("[RemoteIPC] 获取日志统计失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -203,7 +213,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: stats };
       } catch (error) {
         logger.error("[RemoteIPC] 获取实时统计失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -214,7 +224,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: dashboard };
       } catch (error) {
         logger.error("[RemoteIPC] 获取仪表盘数据失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -225,7 +235,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: activity };
       } catch (error) {
         logger.error("[RemoteIPC] 获取设备活跃度失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -236,7 +246,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: ranking };
       } catch (error) {
         logger.error("[RemoteIPC] 获取命令排行失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -247,7 +257,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: trend };
       } catch (error) {
         logger.error("[RemoteIPC] 获取趋势数据失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     });
 
@@ -277,7 +287,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       };
     } catch (error) {
       logger.error("[RemoteIPC] 获取目录列表失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -326,7 +336,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: validFiles };
       } catch (error) {
         logger.error("[RemoteIPC] 列出文件失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -350,7 +360,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 开始下载失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -401,7 +411,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         throw new Error(`Transfer not found: ${transferId}`);
       } catch (error) {
         logger.error("[RemoteIPC] 获取传输状态失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -433,7 +443,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 列出传输历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -456,7 +466,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 取消传输失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -498,7 +508,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: transfers };
       } catch (error) {
         logger.error("[RemoteIPC] 获取本地传输历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -529,7 +539,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 开始会话失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -552,7 +562,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 停止会话失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -570,7 +580,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 获取屏幕帧失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -593,7 +603,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 发送输入失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -610,7 +620,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: response };
     } catch (error) {
       logger.error("[RemoteIPC] 获取显示器列表失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -631,7 +641,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 切换显示器失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -648,7 +658,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: true, data: response };
     } catch (error) {
       logger.error("[RemoteIPC] 获取统计失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -689,7 +699,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: sessions };
       } catch (error) {
         logger.error("[RemoteIPC] 获取本地会话历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -719,7 +729,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       }
     } catch (error) {
       logger.error("[RemoteIPC] 获取剪贴板失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -756,7 +766,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         }
       } catch (error) {
         logger.error("[RemoteIPC] 设置剪贴板失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -773,7 +783,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Clipboard handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 开始监听剪贴板失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -793,7 +803,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Clipboard handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 停止监听剪贴板失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -818,7 +828,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Clipboard handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 获取剪贴板历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -839,7 +849,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Clipboard handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 清除剪贴板历史失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -874,7 +884,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: true, data: response };
       } catch (error) {
         logger.error("[RemoteIPC] 同步剪贴板失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -915,7 +925,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 发送通知失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -968,7 +978,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 发送通知到移动端失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -998,7 +1008,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 获取通知历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1024,7 +1034,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 标记通知已读失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1050,7 +1060,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 清除通知历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1069,7 +1079,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Notification handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 获取通知设置失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -1091,7 +1101,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Notification handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 更新通知设置失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1127,7 +1137,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 创建工作流失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1155,7 +1165,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 执行工作流失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1179,7 +1189,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 获取工作流状态失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1202,7 +1212,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Workflow handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 取消工作流失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -1227,7 +1237,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 列出工作流失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1246,7 +1256,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Workflow handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 获取工作流失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -1280,7 +1290,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 更新工作流失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1301,7 +1311,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Workflow handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 删除工作流失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
@@ -1326,7 +1336,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
         return { success: false, error: "Workflow handler not available" };
       } catch (error) {
         logger.error("[RemoteIPC] 获取执行历史失败:", error);
-        return { success: false, error: error.message };
+        return createRemoteIpcFailureResult();
       }
     },
   );
@@ -1345,7 +1355,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
       return { success: false, error: "Workflow handler not available" };
     } catch (error) {
       logger.error("[RemoteIPC] 获取运行中工作流失败:", error);
-      return { success: false, error: error.message };
+      return createRemoteIpcFailureResult();
     }
   });
 
