@@ -14,27 +14,14 @@ const { logger: remoteLogSink } = require("../../utils/logger");
 const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { safeOrderByClause } = require("../../utils/sql-order-by.js");
 const SqlSecurity = require("../../database/sql-security.js");
+const {
+  createRemoteCommandAuditProjection,
+  deserializeRemoteCommandAuditValue,
+  serializeRemoteCommandAuditValue,
+} = require("./remote-command-audit-redaction");
 
 const logger = createRemoteLogRedactor(remoteLogSink, "CommandLogger");
 
-/**
- * Tolerant JSON column parse — a single log row with a corrupt params/result
- * string must not throw out of the .map and drop the whole log list. The
- * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
- */
-function safeParse(raw, fallback) {
-  if (raw == null || raw === "") {
-    return fallback;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch (err) {
-    logger.warn(
-      `[CommandLogger] Bad JSON column, using fallback: ${err.message}`,
-    );
-    return fallback;
-  }
-}
 const EventEmitter = require("events");
 
 /**
@@ -164,9 +151,9 @@ class CommandLogger extends EventEmitter {
         deviceName,
         namespace,
         action,
-        JSON.stringify(params),
-        result ? JSON.stringify(result) : null,
-        error,
+        serializeRemoteCommandAuditValue("params", params),
+        serializeRemoteCommandAuditValue("result", result),
+        serializeRemoteCommandAuditValue("error", error),
         status,
         level,
         duration,
@@ -182,6 +169,15 @@ class CommandLogger extends EventEmitter {
       this.emit("log", {
         id: info.lastInsertRowid,
         ...logEntry,
+        params: createRemoteCommandAuditProjection("params", params),
+        result:
+          result === null || result === undefined
+            ? null
+            : createRemoteCommandAuditProjection("result", result),
+        error:
+          error === null || error === undefined
+            ? null
+            : createRemoteCommandAuditProjection("error", error),
       });
 
       return info.lastInsertRowid;
@@ -312,8 +308,9 @@ class CommandLogger extends EventEmitter {
       // 解析 JSON 字段
       const formattedLogs = logs.map((log) => ({
         ...log,
-        params: safeParse(log.params, null),
-        result: safeParse(log.result, null),
+        params: deserializeRemoteCommandAuditValue("params", log.params),
+        result: deserializeRemoteCommandAuditValue("result", log.result),
+        error: deserializeRemoteCommandAuditValue("error", log.error),
       }));
 
       // 获取总数
@@ -384,8 +381,9 @@ class CommandLogger extends EventEmitter {
 
       return {
         ...log,
-        params: safeParse(log.params, null),
-        result: safeParse(log.result, null),
+        params: deserializeRemoteCommandAuditValue("params", log.params),
+        result: deserializeRemoteCommandAuditValue("result", log.result),
+        error: deserializeRemoteCommandAuditValue("error", log.error),
       };
     } catch (error) {
       logger.error("[CommandLogger] 获取日志详情失败:", error);
