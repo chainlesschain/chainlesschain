@@ -297,11 +297,91 @@ function projectPluginPageContent(pluginId, pageId) {
   };
 }
 
+function projectStringList(values, limit = 128, maxLength = 256) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return values
+    .slice(0, limit)
+    .filter((value) => typeof value === "string")
+    .map((value) => boundedString(value, maxLength));
+}
+
+function projectPluginToolDefinitions(tools) {
+  if (!Array.isArray(tools)) {
+    return [];
+  }
+  return tools.slice(0, 256).flatMap((tool) => {
+    if (!tool || typeof tool !== "object" || Array.isArray(tool)) {
+      return [];
+    }
+    const name = boundedString(tool.name ?? tool.id, 256);
+    if (!name) {
+      return [];
+    }
+    const riskLevel = Number.isSafeInteger(tool.riskLevel ?? tool.risk_level)
+      ? Math.max(0, Math.min(4, tool.riskLevel ?? tool.risk_level))
+      : 2;
+    return [
+      {
+        id: boundedString(tool.id ?? tool.name, 256),
+        name,
+        displayName: boundedString(
+          tool.displayName ?? tool.display_name ?? tool.name,
+          512,
+        ),
+        description: boundedString(tool.description, 4096),
+        category: boundedString(tool.category, 128),
+        type: boundedString(tool.type, 64),
+        riskLevel,
+        requiredPermissions: projectStringList(
+          tool.requiredPermissions ?? tool.required_permissions,
+          64,
+          256,
+        ),
+      },
+    ];
+  });
+}
+
+function projectPluginSkillDefinitions(skills) {
+  if (!Array.isArray(skills)) {
+    return [];
+  }
+  return skills.slice(0, 256).flatMap((skill) => {
+    if (!skill || typeof skill !== "object" || Array.isArray(skill)) {
+      return [];
+    }
+    const id = boundedString(skill.id ?? skill.name, 256);
+    const name = boundedString(skill.name ?? skill.id, 256);
+    if (!id || !name) {
+      return [];
+    }
+    return [
+      {
+        id,
+        name,
+        displayName: boundedString(
+          skill.displayName ?? skill.display_name ?? skill.name,
+          512,
+        ),
+        description: boundedString(skill.description, 4096),
+        category: boundedString(skill.category, 128),
+        icon: boundedString(skill.icon, 128),
+        tags: projectStringList(skill.tags, 64, 128),
+        tools: projectStringList(skill.tools, 128, 256),
+      },
+    ];
+  });
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginSkillDefinitions,
+  projectPluginToolDefinitions,
   projectPluginUiExtensions,
 };

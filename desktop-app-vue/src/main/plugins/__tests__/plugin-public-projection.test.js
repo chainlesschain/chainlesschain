@@ -8,6 +8,8 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginSkillDefinitions,
+  projectPluginToolDefinitions,
   projectPluginUiExtensions,
 } = require("../plugin-public-projection.js");
 
@@ -276,5 +278,64 @@ describe("plugin public projection", () => {
     expect(source).not.toContain("@vite-ignore");
     expect(source).not.toContain("DOMPurify");
     expect(source).not.toMatch(/pageResult\.(?:src|html|componentPath)/u);
+  });
+
+  it("projects plugin tool and skill display definitions", () => {
+    const secret = "plugin-definition-secret";
+    const tools = projectPluginToolDefinitions([
+      {
+        id: "tool-1",
+        name: "search",
+        displayName: "Search",
+        description: "Search public data",
+        category: "knowledge",
+        type: "function",
+        riskLevel: 9,
+        requiredPermissions: ["network", { secret }],
+        handler: secret,
+        parameters: { default: secret },
+        returnSchema: { secret },
+      },
+    ]);
+    const skills = projectPluginSkillDefinitions([
+      {
+        id: "skill-1",
+        name: "Research",
+        displayName: "Research",
+        description: "Research workflow",
+        category: "knowledge",
+        icon: "SearchOutlined",
+        tags: ["research", { secret }],
+        tools: ["search", { secret }],
+        config: { secret },
+        prompt: secret,
+      },
+    ]);
+
+    expect(tools).toEqual([
+      {
+        id: "tool-1",
+        name: "search",
+        displayName: "Search",
+        description: "Search public data",
+        category: "knowledge",
+        type: "function",
+        riskLevel: 4,
+        requiredPermissions: ["network"],
+      },
+    ]);
+    expect(skills).toEqual([
+      {
+        id: "skill-1",
+        name: "Research",
+        displayName: "Research",
+        description: "Research workflow",
+        category: "knowledge",
+        icon: "SearchOutlined",
+        tags: ["research"],
+        tools: ["search"],
+      },
+    ]);
+    expect(JSON.stringify({ tools, skills })).not.toContain(secret);
   });
 });

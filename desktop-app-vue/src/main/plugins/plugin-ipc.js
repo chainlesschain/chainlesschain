@@ -11,6 +11,8 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginSkillDefinitions,
+  projectPluginToolDefinitions,
   projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const path = require("path");
@@ -708,7 +710,7 @@ function registerPluginIPC({
       }
 
       // 从 manifest 中获取工具列表
-      const tools = plugin.manifest?.tools || [];
+      const tools = projectPluginToolDefinitions(plugin.manifest?.tools);
       return { success: true, tools };
     }),
   );
@@ -724,7 +726,7 @@ function registerPluginIPC({
       }
 
       // 从 manifest 中获取技能列表
-      const skills = plugin.manifest?.skills || [];
+      const skills = projectPluginSkillDefinitions(plugin.manifest?.skills);
       return { success: true, skills };
     }),
   );

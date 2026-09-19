@@ -52,7 +52,36 @@ describe("lazy plugin IPC error boundary", () => {
       enabled: 1,
       state: "enabled",
       path: secret,
-      manifest: { entry: secret },
+      manifest: {
+        entry: secret,
+        tools: [
+          {
+            id: "tool-1",
+            name: "search",
+            displayName: "Search",
+            description: "Search public data",
+            category: "knowledge",
+            type: "function",
+            riskLevel: 3,
+            requiredPermissions: ["network"],
+            handler: secret,
+            parameters: { default: secret },
+          },
+        ],
+        skills: [
+          {
+            id: "skill-1",
+            name: "Research",
+            displayName: "Research",
+            description: "Research workflow",
+            category: "knowledge",
+            icon: "SearchOutlined",
+            tags: ["research"],
+            tools: ["search"],
+            config: { secret },
+          },
+        ],
+      },
     };
     registerLazyPluginIPC({
       app: {
@@ -117,6 +146,8 @@ describe("lazy plugin IPC error boundary", () => {
       "plugin-1",
       "main",
     );
+    const tools = await ipc.handlers.get("plugin:get-tools")({}, "plugin-1");
+    const skills = await ipc.handlers.get("plugin:get-skills")({}, "plugin-1");
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -145,6 +176,26 @@ describe("lazy plugin IPC error boundary", () => {
       contentType: "component",
       props: { pluginId: "plugin-1", pageId: "main" },
     });
+    expect(tools.tools[0]).toEqual({
+      id: "tool-1",
+      name: "search",
+      displayName: "Search",
+      description: "Search public data",
+      category: "knowledge",
+      type: "function",
+      riskLevel: 3,
+      requiredPermissions: ["network"],
+    });
+    expect(skills.skills[0]).toEqual({
+      id: "skill-1",
+      name: "Research",
+      displayName: "Research",
+      description: "Research workflow",
+      category: "knowledge",
+      icon: "SearchOutlined",
+      tags: ["research"],
+      tools: ["search"],
+    });
     expect(
       JSON.stringify({
         list,
@@ -154,6 +205,8 @@ describe("lazy plugin IPC error boundary", () => {
         extensions,
         slot,
         page,
+        tools,
+        skills,
       }),
     ).not.toContain(secret);
   });

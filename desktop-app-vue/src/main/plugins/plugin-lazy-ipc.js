@@ -11,6 +11,8 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginSkillDefinitions,
+  projectPluginToolDefinitions,
   projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const { ipcMain } = require("electron");
@@ -396,7 +398,7 @@ function registerLazyPluginIPC({
         throw new Error(`插件不存在: ${pluginId}`);
       }
       // 从 manifest 中获取工具列表
-      const tools = plugin.manifest?.tools || [];
+      const tools = projectPluginToolDefinitions(plugin.manifest?.tools);
       return { success: true, tools };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件工具失败:", error);
@@ -415,7 +417,7 @@ function registerLazyPluginIPC({
         throw new Error(`插件不存在: ${pluginId}`);
       }
       // 从 manifest 中获取技能列表
-      const skills = plugin.manifest?.skills || [];
+      const skills = projectPluginSkillDefinitions(plugin.manifest?.skills);
       return { success: true, skills };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件技能失败:", error);
