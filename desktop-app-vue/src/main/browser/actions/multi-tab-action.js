@@ -6,7 +6,11 @@
  * @since v0.30.0
  */
 
-const { logger } = require("../../utils/logger");
+/* global document, localStorage, sessionStorage, window */
+
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * Tab action types

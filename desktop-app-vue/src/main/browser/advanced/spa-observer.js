@@ -6,8 +6,12 @@
  * @since v0.30.0
  */
 
+/* global document, history, MutationObserver, Node, window */
+
 const { EventEmitter } = require("events");
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * SPA DOM change types

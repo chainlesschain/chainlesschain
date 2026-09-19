@@ -6,7 +6,11 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
+/* global document, window */
+
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * iframe Scanner
@@ -28,13 +32,13 @@ class IframeScanner {
     const {
       maxDepth = 3,
       includeCrossOrigin = false,
-      scanContent = true
+      scanContent = true,
     } = options;
 
     try {
       // First, get iframe metadata from main page
       const iframeInfo = await page.evaluate(() => {
-        const iframes = Array.from(document.querySelectorAll('iframe'));
+        const iframes = Array.from(document.querySelectorAll("iframe"));
 
         return iframes.map((iframe, index) => {
           const rect = iframe.getBoundingClientRect();
@@ -42,7 +46,8 @@ class IframeScanner {
 
           try {
             // Try to access iframe content
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            const doc =
+              iframe.contentDocument || iframe.contentWindow?.document;
             isCrossOrigin = !doc;
           } catch (e) {
             isCrossOrigin = true;
@@ -59,14 +64,14 @@ class IframeScanner {
               x: Math.round(rect.x),
               y: Math.round(rect.y),
               width: Math.round(rect.width),
-              height: Math.round(rect.height)
+              height: Math.round(rect.height),
             },
             attributes: {
-              sandbox: iframe.getAttribute('sandbox'),
-              allow: iframe.getAttribute('allow'),
-              loading: iframe.getAttribute('loading')
+              sandbox: iframe.getAttribute("sandbox"),
+              allow: iframe.getAttribute("allow"),
+              loading: iframe.getAttribute("loading"),
             },
-            visible: rect.width > 0 && rect.height > 0
+            visible: rect.width > 0 && rect.height > 0,
           };
         });
       });
@@ -75,7 +80,9 @@ class IframeScanner {
       const iframeContents = [];
 
       if (scanContent) {
-        for (const iframe of iframeInfo.filter(f => !f.isCrossOrigin && f.visible)) {
+        for (const iframe of iframeInfo.filter(
+          (f) => !f.isCrossOrigin && f.visible,
+        )) {
           try {
             const frame = page.frameLocator(`iframe[src="${iframe.src}"]`);
             const content = await this._scanFrame(frame, 0, maxDepth);
@@ -83,44 +90,46 @@ class IframeScanner {
               iframeIndex: iframe.index,
               src: iframe.src,
               elements: content.elements,
-              elementCount: content.elements.length
+              elementCount: content.elements.length,
             });
           } catch (e) {
-            logger.warn('[IframeScanner] Failed to scan iframe', {
+            logger.warn("[IframeScanner] Failed to scan iframe", {
               src: iframe.src,
-              error: e.message
+              error: e.message,
             });
           }
         }
       }
 
       // Handle cross-origin iframes if requested
-      const crossOriginFrames = iframeInfo.filter(f => f.isCrossOrigin);
+      const crossOriginFrames = iframeInfo.filter((f) => f.isCrossOrigin);
       if (includeCrossOrigin && crossOriginFrames.length > 0) {
-        logger.info('[IframeScanner] Cross-origin iframes detected', {
-          count: crossOriginFrames.length
+        logger.info("[IframeScanner] Cross-origin iframes detected", {
+          count: crossOriginFrames.length,
         });
       }
 
       const result = {
         totalIframes: iframeInfo.length,
-        sameOriginCount: iframeInfo.filter(f => !f.isCrossOrigin).length,
+        sameOriginCount: iframeInfo.filter((f) => !f.isCrossOrigin).length,
         crossOriginCount: crossOriginFrames.length,
         iframes: iframeInfo,
         scannedContent: iframeContents,
-        totalElementsInIframes: iframeContents.reduce((sum, c) => sum + c.elementCount, 0)
+        totalElementsInIframes: iframeContents.reduce(
+          (sum, c) => sum + c.elementCount,
+          0,
+        ),
       };
 
-      logger.info('[IframeScanner] Scan completed', {
+      logger.info("[IframeScanner] Scan completed", {
         targetId,
         totalIframes: result.totalIframes,
-        scannedIframes: iframeContents.length
+        scannedIframes: iframeContents.length,
       });
 
       return result;
-
     } catch (error) {
-      logger.error('[IframeScanner] Scan failed', { error: error.message });
+      logger.error("[IframeScanner] Scan failed", { error: error.message });
       throw error;
     }
   }
@@ -134,7 +143,7 @@ class IframeScanner {
     }
 
     try {
-      const elements = await frameLocator.locator('body').evaluate((body) => {
+      const elements = await frameLocator.locator("body").evaluate((body) => {
         const results = [];
         let refCounter = 0;
 
@@ -142,27 +151,36 @@ class IframeScanner {
           const rect = element.getBoundingClientRect();
           const styles = window.getComputedStyle(element);
 
-          if (rect.width === 0 || rect.height === 0 ||
-              styles.visibility === 'hidden' || styles.display === 'none') {
+          if (
+            rect.width === 0 ||
+            rect.height === 0 ||
+            styles.visibility === "hidden" ||
+            styles.display === "none"
+          ) {
             return;
           }
 
-          const isInteractive = ['a', 'button', 'input', 'select', 'textarea'].includes(
-            element.tagName.toLowerCase()
-          ) || element.getAttribute('onclick') || element.getAttribute('role') === 'button';
+          const isInteractive =
+            ["a", "button", "input", "select", "textarea"].includes(
+              element.tagName.toLowerCase(),
+            ) ||
+            element.getAttribute("onclick") ||
+            element.getAttribute("role") === "button";
 
           if (isInteractive) {
             results.push({
               ref: `iframe-e${refCounter++}`,
               tag: element.tagName.toLowerCase(),
-              label: element.getAttribute('aria-label') ||
-                     element.textContent?.trim().substring(0, 50) || '',
+              label:
+                element.getAttribute("aria-label") ||
+                element.textContent?.trim().substring(0, 50) ||
+                "",
               position: {
                 x: Math.round(rect.x),
                 y: Math.round(rect.y),
                 width: Math.round(rect.width),
-                height: Math.round(rect.height)
-              }
+                height: Math.round(rect.height),
+              },
             });
           }
 
@@ -176,7 +194,6 @@ class IframeScanner {
       });
 
       return { elements, truncated: false };
-
     } catch (error) {
       return { elements: [], error: error.message };
     }
@@ -204,11 +221,11 @@ class IframeScanner {
       return page.frameLocator(`iframe[src="${src}"]`);
     }
 
-    if (typeof index === 'number') {
+    if (typeof index === "number") {
       return page.frameLocator(`iframe:nth-of-type(${index + 1})`);
     }
 
-    throw new Error('No valid iframe identifier provided');
+    throw new Error("No valid iframe identifier provided");
   }
 
   /**
@@ -225,30 +242,35 @@ class IframeScanner {
     const locator = frame.locator(selector);
 
     switch (action) {
-      case 'click':
+      case "click":
         await locator.click(options);
-        return { success: true, action: 'click', selector };
+        return { success: true, action: "click", selector };
 
-      case 'type':
+      case "type":
         await locator.fill(options.text);
-        return { success: true, action: 'type', selector, text: options.text };
+        return { success: true, action: "type", selector, text: options.text };
 
-      case 'select':
+      case "select":
         await locator.selectOption(options.value);
-        return { success: true, action: 'select', selector, value: options.value };
+        return {
+          success: true,
+          action: "select",
+          selector,
+          value: options.value,
+        };
 
-      case 'hover':
+      case "hover":
         await locator.hover();
-        return { success: true, action: 'hover', selector };
+        return { success: true, action: "hover", selector };
 
-      case 'getText': {
+      case "getText": {
         const text = await locator.textContent();
-        return { success: true, action: 'getText', selector, text };
+        return { success: true, action: "getText", selector, text };
       }
 
-      case 'getAttribute': {
+      case "getAttribute": {
         const value = await locator.getAttribute(options.attribute);
-        return { success: true, action: 'getAttribute', selector, value };
+        return { success: true, action: "getAttribute", selector, value };
       }
 
       default:
@@ -265,7 +287,7 @@ class IframeScanner {
    */
   async waitForFrame(targetId, iframeId, options = {}) {
     const page = this.browserEngine.getPage(targetId);
-    const { timeout = 30000, state = 'attached' } = options;
+    const { timeout = 30000, state = "attached" } = options;
 
     let selector;
     if (iframeId.selector) {
@@ -277,14 +299,14 @@ class IframeScanner {
     }
 
     if (!selector) {
-      throw new Error('Cannot determine iframe selector');
+      throw new Error("Cannot determine iframe selector");
     }
 
     await page.waitForSelector(selector, { state, timeout });
 
     // Additional wait for frame content
     const frame = this.getFrameLocator(targetId, iframeId);
-    await frame.locator('body').waitFor({ state: 'attached', timeout });
+    await frame.locator("body").waitFor({ state: "attached", timeout });
 
     return true;
   }
@@ -304,15 +326,19 @@ class IframeScanner {
       }
 
       try {
-        const iframeCount = await frameLocator.locator('iframe').count();
+        const iframeCount = await frameLocator.locator("iframe").count();
         const children = [];
 
         for (let i = 0; i < iframeCount; i++) {
-          const childFrame = frameLocator.frameLocator(`iframe:nth-of-type(${i + 1})`);
+          const childFrame = frameLocator.frameLocator(
+            `iframe:nth-of-type(${i + 1})`,
+          );
           const childPath = [...path, i];
 
-          const src = await frameLocator.locator(`iframe:nth-of-type(${i + 1})`)
-            .getAttribute('src').catch(() => null);
+          const src = await frameLocator
+            .locator(`iframe:nth-of-type(${i + 1})`)
+            .getAttribute("src")
+            .catch(() => null);
 
           const nested = await scanFrameLevel(childFrame, depth + 1, childPath);
 
@@ -321,12 +347,11 @@ class IframeScanner {
             src,
             path: childPath,
             children: nested.children || [],
-            truncated: nested.truncated
+            truncated: nested.truncated,
           });
         }
 
         return { children, truncated: false };
-
       } catch (error) {
         return { error: error.message, path };
       }
@@ -335,9 +360,9 @@ class IframeScanner {
     const result = await scanFrameLevel(page, 0);
 
     return {
-      rootIframes: await page.locator('iframe').count(),
+      rootIframes: await page.locator("iframe").count(),
       nested: result.children || [],
-      maxDepthReached: result.truncated
+      maxDepthReached: result.truncated,
     };
   }
 }

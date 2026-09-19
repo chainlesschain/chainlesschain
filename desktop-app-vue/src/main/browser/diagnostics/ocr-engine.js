@@ -6,7 +6,9 @@
  * @since v0.30.0
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 function assertGovernedOcrIngress() {
   const error = new Error(

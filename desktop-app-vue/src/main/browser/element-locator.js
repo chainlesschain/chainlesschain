@@ -7,6 +7,8 @@
  * @since v0.27.0 Phase 2
  */
 
+const { digestBrowserLogValue } = require("./browser-log-redaction");
+
 /**
  * 元素定位器类
  * 实现 OpenClaw 风格的智能元素定位
@@ -21,6 +23,7 @@ class ElementLocator {
    */
   static async locate(page, element, options = {}) {
     const { timeout = 5000 } = options;
+    const refDigest = digestBrowserLogValue("element-ref", element.ref);
 
     try {
       // 策略 1: 使用 getByRole (最稳定)
@@ -36,7 +39,7 @@ class ElementLocator {
           return locator.first();
         } catch (e) {
           console.log(
-            `[ElementLocator] getByRole failed for ${element.ref}, trying next strategy...`,
+            `[ElementLocator] getByRole failed for refDigest=${refDigest}, trying next strategy...`,
           );
         }
       }
@@ -49,7 +52,7 @@ class ElementLocator {
           return locator.first();
         } catch (e) {
           console.log(
-            `[ElementLocator] ARIA label failed for ${element.ref}, trying next strategy...`,
+            `[ElementLocator] ARIA label failed for refDigest=${refDigest}, trying next strategy...`,
           );
         }
       }
@@ -66,7 +69,7 @@ class ElementLocator {
           return locator.first();
         } catch (e) {
           console.log(
-            `[ElementLocator] ID failed for ${element.ref}, trying next strategy...`,
+            `[ElementLocator] ID failed for refDigest=${refDigest}, trying next strategy...`,
           );
         }
       }
@@ -79,7 +82,7 @@ class ElementLocator {
           return locator.first();
         } catch (e) {
           console.log(
-            `[ElementLocator] Text link failed for ${element.ref}, trying next strategy...`,
+            `[ElementLocator] Text link failed for refDigest=${refDigest}, trying next strategy...`,
           );
         }
       }
@@ -92,7 +95,7 @@ class ElementLocator {
           return locator.first();
         } catch (e) {
           console.log(
-            `[ElementLocator] CSS selector failed for ${element.ref}`,
+            `[ElementLocator] CSS selector failed for refDigest=${refDigest}`,
           );
         }
       }
@@ -105,7 +108,9 @@ class ElementLocator {
           await locator.first().waitFor({ timeout: 1000 });
           return locator.first();
         } catch (e) {
-          console.log(`[ElementLocator] XPath failed for ${element.ref}`);
+          console.log(
+            `[ElementLocator] XPath failed for refDigest=${refDigest}`,
+          );
         }
       }
 
