@@ -143,6 +143,22 @@ function registerBrowserIPC(deps = {}) {
   const withErrorHandler = (
     deps.createIPCErrorHandler || createIPCErrorHandler
   )("browser");
+  let governedVisionModelClient = null;
+  if (deps.llmManager) {
+    try {
+      const {
+        createDesktopGovernedVisionModelClient,
+      } = require("../llm/llm-manager");
+      governedVisionModelClient = createDesktopGovernedVisionModelClient(
+        deps.llmManager,
+      );
+    } catch (error) {
+      logger.warn(
+        "[Browser IPC] Governed vision model client unavailable:",
+        error.message,
+      );
+    }
+  }
 
   const ctx = {
     _ipcMain,
@@ -150,6 +166,11 @@ function registerBrowserIPC(deps = {}) {
     _getAutomationAgent,
     withErrorHandler,
     getBrowserEngine,
+    _getGovernedVisionModelClient: () => governedVisionModelClient,
+    _getBrowserVisionObservationHost: () =>
+      deps.desktopBrowserVisionObservationHost ?? null,
+    _getBrowserVisionActionHost: () =>
+      deps.desktopBrowserVisionActionHost ?? null,
   };
 
   registerCoreHandlers(ctx);

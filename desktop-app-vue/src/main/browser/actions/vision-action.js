@@ -11,18 +11,108 @@
  * @author ChainlessChain Team
  * @since v0.33.0
  */
+/* global document, window */
 
 const { EventEmitter } = require("events");
-const path = require("path");
 const { looseParseJSON } = require("../../ai-engine/response-parser.js");
+const {
+  captureDesktopGovernedVisionModelClient,
+} = require("../../llm/llm-manager.js");
+const {
+  consumeDesktopBrowserVisionObservationGrant,
+} = require("../../evolution/desktop-browser-vision-observation.js");
+const {
+  assertDesktopBrowserVisionActionGrant,
+  consumeDesktopBrowserVisionActionGrant,
+  recordDesktopBrowserVisionActionOutcome,
+} = require("../../evolution/desktop-browser-vision-action.js");
 const { imageToViewport } = require("./coordinate-mapping.js");
 
-function assertGovernedMultimodalIngress() {
+function governedMultimodalIngress(value) {
+  try {
+    return captureDesktopGovernedVisionModelClient(value);
+  } catch (cause) {
+    const error = new Error(
+      "Browser screenshot analysis requires a governed multimodal ingress",
+      { cause },
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+}
+
+function assertGovernedVisualMutation() {
   const error = new Error(
-    "Browser screenshot analysis requires a governed multimodal ingress",
+    "Browser visual mutation requires a governed action authority",
   );
   error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
   throw error;
+}
+
+function visionIngressError(message, cause) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  return error;
+}
+
+function assertBoundedVisionText(value, label, maxLength = 16 * 1024) {
+  if (typeof value !== "string" || !value.trim() || value.length > maxLength) {
+    throw visionIngressError(`${label} is empty or exceeds its text budget`);
+  }
+}
+
+function decodeGovernedImageBase64(value, maxBytes, label) {
+  if (
+    typeof value !== "string" ||
+    value.length < 4 ||
+    value.length > Math.ceil((maxBytes * 4) / 3) + 2 ||
+    value.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/u.test(value)
+  ) {
+    throw visionIngressError(`${label} is not canonical bounded base64`);
+  }
+  const bytes = Buffer.from(value, "base64");
+  if (
+    !bytes.length ||
+    bytes.length > maxBytes ||
+    bytes.toString("base64") !== value
+  ) {
+    throw visionIngressError(`${label} exceeds the governed image budget`);
+  }
+  return bytes;
+}
+
+function assertGovernedVisionOptions(options = {}) {
+  if (options.model !== undefined) {
+    throw visionIngressError(
+      "Browser vision cannot override the governed provider model",
+    );
+  }
+  if (
+    options.temperature !== undefined &&
+    (!Number.isFinite(options.temperature) ||
+      options.temperature < 0 ||
+      options.temperature > 1)
+  ) {
+    throw visionIngressError("Browser vision temperature is invalid");
+  }
+  if (
+    options.detail !== undefined &&
+    !["auto", "low", "high"].includes(options.detail)
+  ) {
+    throw visionIngressError("Browser vision image detail is invalid");
+  }
+  if (
+    options.quality !== undefined &&
+    (!Number.isSafeInteger(options.quality) ||
+      options.quality < 1 ||
+      options.quality > 100)
+  ) {
+    throw visionIngressError("Browser screenshot quality is invalid");
+  }
+  if (options.fullPage !== undefined && typeof options.fullPage !== "boolean") {
+    throw visionIngressError("Browser screenshot scope is invalid");
+  }
 }
 
 /**
@@ -46,13 +136,21 @@ const VisionTaskType = {
   OCR: "ocr", // 文字识别
   DESCRIBE: "describe", // 描述页面
   FIND_CLICK_TARGET: "click", // 找到点击目标
+  FIND_TYPE_TARGET: "type",
 };
 
 class VisionAction extends EventEmitter {
-  constructor(browserEngine, llmService = null) {
+  constructor(
+    browserEngine,
+    llmService = null,
+    observationGrant = null,
+    actionGrant = null,
+  ) {
     super();
     this.engine = browserEngine;
     this.llmService = llmService;
+    this.observationGrant = observationGrant;
+    this.actionGrant = actionGrant;
 
     // Vision 配置
     this.config = {
@@ -60,12 +158,14 @@ class VisionAction extends EventEmitter {
       maxTokens: 4096,
       temperature: 0.1,
       screenshotQuality: 80,
-      maxImageSize: 1024 * 1024 * 4, // 4MB
+      // Agent v3 admits the complete JSON request at 1 MiB. Keeping aggregate
+      // decoded image bytes below 700 KiB leaves room for base64 expansion,
+      // prompts and provenance labels, including two-image comparisons.
+      maxImageSize: 700 * 1024,
     };
 
     // 缓存最近的分析结果
     this.analysisCache = new Map();
-    this.cacheMaxAge = 30000; // 30秒
   }
 
   /**
@@ -88,11 +188,37 @@ class VisionAction extends EventEmitter {
    * 截取页面截图并转为 base64
    * @private
    */
-  async _captureScreenshot(targetId, options = {}) {
-    // Every caller of this private method is preparing an image-bearing model
-    // request. The current Desktop ingress only authenticates text payloads,
-    // so do not capture browser content for an ungoverned vision dispatch.
-    assertGovernedMultimodalIngress();
+  async _captureScreenshot(
+    targetId,
+    options = {},
+    operation,
+    observationOptions = options,
+  ) {
+    // The opaque client can only be minted from an initialized LLM manager
+    // bound to a signed Desktop model ingress. Check it before page access.
+    governedMultimodalIngress(this.llmService);
+    assertGovernedVisionOptions(options);
+    if (
+      options.maxTokens !== undefined &&
+      (!Number.isSafeInteger(options.maxTokens) ||
+        options.maxTokens < 1 ||
+        options.maxTokens > this.config.maxTokens)
+    ) {
+      const error = new Error("Browser vision token budget is invalid");
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+    if (options.signal?.aborted) {
+      const error = new Error("Browser screenshot analysis was cancelled");
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
+    consumeDesktopBrowserVisionObservationGrant(
+      this.observationGrant,
+      targetId,
+      operation,
+      observationOptions,
+    );
     const page = this._getPage(targetId);
 
     const buffer = await page.screenshot({
@@ -101,6 +227,18 @@ class VisionAction extends EventEmitter {
       fullPage: options.fullPage || false,
       clip: options.clip,
     });
+
+    if (
+      !Buffer.isBuffer(buffer) ||
+      buffer.byteLength < 1 ||
+      buffer.byteLength > this.config.maxImageSize
+    ) {
+      const error = new Error(
+        "Browser screenshot exceeds the governed image budget",
+      );
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
 
     return buffer.toString("base64");
   }
@@ -128,54 +266,23 @@ class VisionAction extends EventEmitter {
    * @private
    */
   _buildVisionMessage(prompt, imageBase64, options = {}) {
-    const model = options.model || this.config.defaultModel;
-
-    // Claude 格式
-    if (model.startsWith("claude")) {
-      return {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: "image/jpeg",
-              data: imageBase64,
-            },
-          },
-          {
-            type: "text",
-            text: prompt,
-          },
-        ],
-      };
-    }
-
-    // OpenAI 格式
-    if (model.startsWith("gpt")) {
-      return {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${imageBase64}`,
-              detail: options.detail || "high",
-            },
-          },
-          {
-            type: "text",
-            text: prompt,
-          },
-        ],
-      };
-    }
-
-    // 默认格式（Ollama/LLaVA）
+    // Agent v3's provider-neutral transport contract is OpenAI-shaped. The
+    // provider client converts authenticated readback at its wire boundary.
     return {
       role: "user",
-      content: prompt,
-      images: [imageBase64],
+      content: [
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${imageBase64}`,
+            detail: options.detail || "high",
+          },
+        },
+        {
+          type: "text",
+          text: prompt,
+        },
+      ],
     };
   }
 
@@ -184,27 +291,38 @@ class VisionAction extends EventEmitter {
    * @private
    */
   async _callVisionLLM(messages, options = {}) {
-    // Keep this independent of _captureScreenshot: compare/bespoke callers can
-    // construct a multimodal message without going through that helper.
-    assertGovernedMultimodalIngress();
-    if (!this.llmService) {
-      throw new Error(
-        "LLM Service not configured. Please set LLM service first.",
-      );
+    const ingress = governedMultimodalIngress(this.llmService);
+    assertGovernedVisionOptions(options);
+    if (options.signal?.aborted) {
+      const error = new Error("Browser vision request was cancelled");
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
     }
 
-    const model = options.model || this.config.defaultModel;
+    const maxTokens = options.maxTokens ?? this.config.maxTokens;
+    if (
+      !Number.isSafeInteger(maxTokens) ||
+      maxTokens < 1 ||
+      maxTokens > this.config.maxTokens
+    ) {
+      const error = new Error("Browser vision token budget is invalid");
+      error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+      throw error;
+    }
 
     try {
-      const response = await this.llmService.chat(messages, {
-        model,
-        max_tokens: options.maxTokens || this.config.maxTokens,
+      const response = await ingress.chat(messages, {
+        max_tokens: maxTokens,
         temperature: options.temperature ?? this.config.temperature,
+        ...(options.signal ? { signal: options.signal } : {}),
       });
 
       return response.text || response.message?.content || "";
     } catch (error) {
-      throw new Error(`Vision LLM call failed: ${error.message}`);
+      if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      throw new Error(`Vision LLM call failed: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -216,17 +334,27 @@ class VisionAction extends EventEmitter {
    * @returns {Promise<Object>}
    */
   async analyze(targetId, prompt, options = {}) {
-    // Cache entries predate the authenticated multimodal receipt protocol and
-    // cannot be replayed as evidence for the current browser state.
-    assertGovernedMultimodalIngress();
-    // 检查缓存
-    const cacheKey = `${targetId}:${prompt}`;
-    const cached = this.analysisCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheMaxAge) {
-      return cached.result;
-    }
+    return await this._analyze(
+      targetId,
+      prompt,
+      options,
+      VisionTaskType.ANALYZE,
+      { ...options, prompt },
+    );
+  }
 
-    const imageBase64 = await this._captureScreenshot(targetId, options);
+  async _analyze(targetId, prompt, options, operation, observationOptions) {
+    // Cache entries cannot prove that they describe the current browser
+    // pixels. Every governed analysis takes and admits a fresh screenshot.
+    governedMultimodalIngress(this.llmService);
+    assertBoundedVisionText(prompt, "Browser vision prompt");
+
+    const imageBase64 = await this._captureScreenshot(
+      targetId,
+      options,
+      operation,
+      observationOptions,
+    );
     const message = this._buildVisionMessage(prompt, imageBase64, options);
 
     const systemPrompt = `You are a visual analysis assistant. Analyze the webpage screenshot and respond to the user's query.
@@ -244,12 +372,6 @@ For UI elements, describe their visual appearance, position, and any text they c
       timestamp: Date.now(),
     };
 
-    // 缓存结果
-    this.analysisCache.set(cacheKey, {
-      result,
-      timestamp: Date.now(),
-    });
-
     this.emit("analyzed", { targetId, prompt, analysis: response });
 
     return result;
@@ -263,11 +385,19 @@ For UI elements, describe their visual appearance, position, and any text they c
    * @returns {Promise<Object>}
    */
   async locateElement(targetId, description, options = {}) {
+    governedMultimodalIngress(this.llmService);
+    assertBoundedVisionText(description, "Browser element description", 4096);
+    const observationOptions = { ...options, description };
+    const imageBase64 = await this._captureScreenshot(
+      targetId,
+      options,
+      VisionTaskType.LOCATE_ELEMENT,
+      observationOptions,
+    );
     const page = this._getPage(targetId);
     const viewport = page.viewportSize() || { width: 1280, height: 720 };
     const fullPage = options.fullPage || false;
     const deviceScaleFactor = await this._getDeviceScaleFactor(page);
-    const imageBase64 = await this._captureScreenshot(targetId, options);
 
     // Tell the model the ACTUAL pixel dimensions of the image it is looking at,
     // not the CSS viewport size. The screenshot is captured at devicePixelRatio
@@ -384,6 +514,16 @@ Provide coordinates in image pixels relative to its top-left corner.`;
    * @returns {Promise<Object>}
    */
   async visualClick(targetId, description, options = {}) {
+    const actionOptions = { ...options, description };
+    // Preflight both opaque capabilities before taking a screenshot. The
+    // action grant stays unconsumed until immediately before the mutation.
+    assertDesktopBrowserVisionActionGrant(
+      this.actionGrant,
+      this.observationGrant,
+      targetId,
+      "visual-click",
+      actionOptions,
+    );
     // 首先定位元素
     const location = await this.locateElement(targetId, description, options);
 
@@ -433,6 +573,15 @@ Provide coordinates in image pixels relative to its top-left corner.`;
       clickY = mapped.y;
     }
 
+    const actionEvidence = consumeDesktopBrowserVisionActionGrant(
+      this.actionGrant,
+      this.observationGrant,
+      targetId,
+      "visual-click",
+      actionOptions,
+    );
+
+    let mutationError = null;
     try {
       await page.mouse.click(clickX, clickY, {
         button: options.button || "left",
@@ -446,28 +595,159 @@ Provide coordinates in image pixels relative to its top-left corner.`;
           timeout: options.waitAfterClick,
         });
       }
-
-      this.emit("visualClicked", {
-        targetId,
-        description,
-        x: clickX,
-        y: clickY,
-      });
-
-      return {
-        success: true,
-        action: "visualClick",
-        description,
-        clickedAt: { x: clickX, y: clickY },
-        confidence: location.confidence,
-      };
     } catch (error) {
+      mutationError = error;
+    }
+
+    const actionAudit = await recordDesktopBrowserVisionActionOutcome(
+      this.actionGrant,
+      {
+        status: mutationError === null ? "succeeded" : "failed",
+        clickedAt: { x: clickX, y: clickY },
+        button: options.button || "left",
+        clickCount: options.clickCount || 1,
+        failureClass:
+          mutationError === null ? null : "browser-click-or-wait-failed",
+      },
+    );
+
+    if (mutationError !== null) {
       return {
         success: false,
-        error: `Click failed: ${error.message}`,
+        error: `Click failed: ${mutationError.message}`,
+        location,
+        authorizationReceiptDigest: actionEvidence.receiptDigest,
+        auditEventDigest: actionAudit.auditEventDigest,
+        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      };
+    }
+
+    this.emit("visualClicked", {
+      targetId,
+      description,
+      x: clickX,
+      y: clickY,
+    });
+
+    return {
+      success: true,
+      action: "visualClick",
+      description,
+      clickedAt: { x: clickX, y: clickY },
+      confidence: location.confidence,
+      authorizationReceiptDigest: actionEvidence.receiptDigest,
+      auditEventDigest: actionAudit.auditEventDigest,
+      durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+    };
+  }
+
+  /**
+   * Locate a text input from a fresh governed screenshot, focus it and type
+   * one bounded value under a one-shot interactive action grant.
+   */
+  async visualType(targetId, description, text, options = {}) {
+    const actionOptions = { ...options, description, text };
+    assertDesktopBrowserVisionActionGrant(
+      this.actionGrant,
+      this.observationGrant,
+      targetId,
+      "visual-type",
+      actionOptions,
+    );
+    const location = await this.locateElement(targetId, description, options);
+    if (!location.success || !location.element) {
+      return {
+        success: false,
+        error: `Could not locate input: "${description}"`,
         location,
       };
     }
+
+    const { x, y, width, height } = location.element;
+    const imageCenterX = x + (width || 0) / 2;
+    const imageCenterY = y + (height || 0) / 2;
+    const page = this._getPage(targetId);
+    const space = location.coordinateSpace || {};
+    const mapped = imageToViewport({
+      imageX: imageCenterX,
+      imageY: imageCenterY,
+      deviceScaleFactor: space.deviceScaleFactor || 1,
+      fullPage: space.fullPage || false,
+    });
+    let clickX;
+    let clickY;
+    if (mapped.needsScroll) {
+      const scrolled = await this._scrollPagePointIntoView(
+        page,
+        mapped.pageX,
+        mapped.pageY,
+        space.viewport || page.viewportSize() || { width: 1280, height: 720 },
+      );
+      clickX = scrolled.viewportX;
+      clickY = scrolled.viewportY;
+    } else {
+      clickX = mapped.x;
+      clickY = mapped.y;
+    }
+
+    const actionEvidence = consumeDesktopBrowserVisionActionGrant(
+      this.actionGrant,
+      this.observationGrant,
+      targetId,
+      "visual-type",
+      actionOptions,
+    );
+    let mutationError = null;
+    try {
+      await page.mouse.click(clickX, clickY, {
+        button: "left",
+        clickCount: 1,
+      });
+      if (options.clearExisting === true) {
+        await page.keyboard.press(
+          process.platform === "darwin" ? "Meta+A" : "Control+A",
+        );
+      }
+      await page.keyboard.type(text, { delay: options.delay || 0 });
+    } catch (error) {
+      mutationError = error;
+    }
+
+    const actionAudit = await recordDesktopBrowserVisionActionOutcome(
+      this.actionGrant,
+      {
+        status: mutationError === null ? "succeeded" : "failed",
+        text,
+        failureClass:
+          mutationError === null ? null : "browser-focus-or-type-failed",
+      },
+    );
+    const result = {
+      authorizationReceiptDigest: actionEvidence.receiptDigest,
+      auditEventDigest: actionAudit.auditEventDigest,
+      durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      requestedCharacterCount: [...text].length,
+    };
+    if (mutationError !== null) {
+      return {
+        success: false,
+        error: `Type failed: ${mutationError.message}`,
+        location,
+        ...result,
+      };
+    }
+    this.emit("visualTyped", {
+      targetId,
+      description,
+      requestedCharacterCount: result.requestedCharacterCount,
+    });
+    return {
+      success: true,
+      action: "visualType",
+      description,
+      confidence: location.confidence,
+      ...result,
+    };
   }
 
   /**
@@ -518,7 +798,32 @@ Provide coordinates in image pixels relative to its top-left corner.`;
 
 Be thorough but concise.`;
 
-    return this.analyze(targetId, prompt, options);
+    return this._analyze(
+      targetId,
+      prompt,
+      options,
+      VisionTaskType.DESCRIBE,
+      options,
+    );
+  }
+
+  /**
+   * Read visible text from a fresh governed screenshot.
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - OCR options
+   * @returns {Promise<Object>}
+   */
+  async ocr(targetId, options = {}) {
+    const prompt =
+      options.prompt ||
+      "Extract all visible text from this webpage screenshot. Preserve reading order and line breaks. Return only the extracted text.";
+    return this._analyze(
+      targetId,
+      prompt,
+      options,
+      VisionTaskType.OCR,
+      options,
+    );
   }
 
   /**
@@ -529,7 +834,28 @@ Be thorough but concise.`;
    * @returns {Promise<Object>}
    */
   async compareWithBaseline(targetId, baselineBase64, options = {}) {
-    const currentBase64 = await this._captureScreenshot(targetId, options);
+    governedMultimodalIngress(this.llmService);
+    const baselineBytes = decodeGovernedImageBase64(
+      baselineBase64,
+      this.config.maxImageSize,
+      "Browser vision baseline",
+    );
+    const currentBase64 = await this._captureScreenshot(
+      targetId,
+      options,
+      VisionTaskType.COMPARE,
+      { ...options, baseline: baselineBase64 },
+    );
+    const currentBytes = decodeGovernedImageBase64(
+      currentBase64,
+      this.config.maxImageSize,
+      "Browser vision screenshot",
+    );
+    if (baselineBytes.length + currentBytes.length > this.config.maxImageSize) {
+      throw visionIngressError(
+        "Browser vision comparison exceeds the aggregate image budget",
+      );
+    }
 
     const prompt = `Compare these two webpage screenshots.
 The first image is the baseline (expected state).
@@ -551,63 +877,29 @@ Respond in JSON format:
   "summary": "brief summary of differences"
 }`;
 
-    // 构建多图消息
-    const model = options.model || this.config.defaultModel;
-    let messages;
-
-    if (model.startsWith("claude")) {
-      messages = [
-        {
-          role: "system",
-          content:
-            "You are a visual regression testing assistant. Always respond with valid JSON only.",
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: baselineBase64,
-              },
-            },
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: currentBase64,
-              },
-            },
-            { type: "text", text: prompt },
-          ],
-        },
-      ];
-    } else {
-      messages = [
-        {
-          role: "system",
-          content:
-            "You are a visual regression testing assistant. Always respond with valid JSON only.",
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:image/jpeg;base64,${baselineBase64}` },
-            },
-            {
-              type: "image_url",
-              image_url: { url: `data:image/jpeg;base64,${currentBase64}` },
-            },
-            { type: "text", text: prompt },
-          ],
-        },
-      ];
-    }
+    // Keep the authenticated internal representation provider-neutral. The
+    // provider client owns conversion after Agent v3 restores the bytes.
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are a visual regression testing assistant. Always respond with valid JSON only.",
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${baselineBase64}` },
+          },
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${currentBase64}` },
+          },
+          { type: "text", text: prompt },
+        ],
+      },
+    ];
 
     const response = await this._callVisionLLM(messages, options);
 
@@ -639,6 +931,7 @@ Respond in JSON format:
    * @returns {Promise<Object>}
    */
   async executeVisualTask(targetId, task, options = {}) {
+    assertGovernedVisualMutation();
     const maxSteps = options.maxSteps || 10;
     const steps = [];
     let completed = false;
@@ -756,11 +1049,22 @@ Respond in JSON format:
       case VisionTaskType.FIND_CLICK_TARGET:
         return this.visualClick(targetId, options.description, options);
 
+      case VisionTaskType.FIND_TYPE_TARGET:
+        return this.visualType(
+          targetId,
+          options.description,
+          options.text,
+          options,
+        );
+
       case VisionTaskType.DESCRIBE:
         return this.describePage(targetId, options);
 
       case VisionTaskType.COMPARE:
         return this.compareWithBaseline(targetId, options.baseline, options);
+
+      case VisionTaskType.OCR:
+        return this.ocr(targetId, options);
 
       default:
         if (options.task && typeof options.task === "string") {

@@ -16,6 +16,7 @@ vi.mock("../../utils/logger.js", () => ({
 const {
   AnthropicClient,
   modelRejectsSamplingParams,
+  toAnthropicWirePayload,
 } = require("../anthropic-client.js");
 
 describe("modelRejectsSamplingParams", () => {
@@ -123,5 +124,51 @@ describe("AnthropicClient.buildPayload — sampling-param gating", () => {
       false,
     );
     expect(p.max_tokens).toBe(8192);
+  });
+
+  it("keeps provider-neutral image blocks until governed projection", () => {
+    const bytes = Buffer.from("private-image").toString("base64");
+    const payload = mk("claude-sonnet-4-6").buildPayload([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "inspect" },
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${bytes}` },
+          },
+        ],
+      },
+    ]);
+
+    expect(payload.messages[0].content[1].type).toBe("image_url");
+    const wire = toAnthropicWirePayload(payload);
+    expect(wire.messages[0].content[1]).toEqual({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/jpeg",
+        data: bytes,
+      },
+    });
+    expect(payload.messages[0].content[1].type).toBe("image_url");
+  });
+
+  it("rejects malformed image blocks at the Anthropic wire boundary", () => {
+    expect(() =>
+      toAnthropicWirePayload({
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: "https://example.test/private.png" },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/supported base64 data URL/u);
   });
 });

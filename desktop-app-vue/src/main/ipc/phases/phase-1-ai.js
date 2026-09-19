@@ -27,6 +27,8 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     documentEngine,
     dataEngine,
     gitAutoCommit,
+    desktopBrowserVisionObservationHost,
+    desktopBrowserVisionActionHost,
   } = deps;
 
   // 获取 LLM 智能选择器（如果已初始化）
@@ -394,13 +396,18 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     handlers: 4,
   });
 
-  // 浏览器自动化控制 (Browser Control，22 handlers: 12 Phase1 + 6 Phase2 + 4 Phase3)
+  // 浏览器自动化控制 (Browser Control，23 handlers)
   safeRegister("Browser IPC", {
     register: () => {
       const { registerBrowserIPC } = require("../../browser/browser-ipc");
-      registerBrowserIPC();
+      registerBrowserIPC({
+        llmManager: llmManager || null,
+        desktopBrowserVisionObservationHost:
+          desktopBrowserVisionObservationHost || null,
+        desktopBrowserVisionActionHost: desktopBrowserVisionActionHost || null,
+      });
     },
-    handlers: 22,
+    handlers: 23,
     continueMessage: "Browser automation features will be disabled",
   });
 

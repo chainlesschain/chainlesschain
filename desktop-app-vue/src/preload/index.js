@@ -151,6 +151,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:start",
   "browser:stop",
   "browser:visualClick",
+  "browser:visualType",
   "call-history:clear-all",
   "call-history:delete",
   "call-history:get-all",

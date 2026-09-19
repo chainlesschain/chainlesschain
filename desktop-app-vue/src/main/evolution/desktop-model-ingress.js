@@ -386,6 +386,10 @@ function bindDesktopModelIngressClient(client, host) {
   return client;
 }
 
+function isDesktopModelIngressClient(value) {
+  return clients.has(value);
+}
+
 function getBoundDesktopModelIngressHost(client) {
   const host = clients.get(client);
   if (host) return host;
@@ -394,6 +398,42 @@ function getBoundDesktopModelIngressHost(client) {
   );
   error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
   throw error;
+}
+
+function toOllamaVisionMessages(messages) {
+  return messages.map((message) => {
+    if (!Array.isArray(message?.content)) return message;
+    let content = "";
+    const images = [];
+    for (const block of message.content) {
+      if (block?.type === "text" && typeof block.text === "string") {
+        content += `${content ? "\n" : ""}${block.text}`;
+        continue;
+      }
+      if (block?.type !== "image_url") {
+        throw new TypeError("Unsupported Ollama vision content block");
+      }
+      const match =
+        /^data:image\/(?:png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/u.exec(
+          block.image_url?.url || "",
+        );
+      if (!match || match[1].length % 4 !== 0) {
+        throw new TypeError(
+          "Ollama vision input requires a supported base64 data URL",
+        );
+      }
+      const decoded = Buffer.from(match[1], "base64");
+      if (!decoded.length || decoded.toString("base64") !== match[1]) {
+        throw new TypeError("Ollama vision input contains invalid base64");
+      }
+      images.push(match[1]);
+    }
+    return {
+      ...message,
+      content,
+      ...(images.length ? { images } : {}),
+    };
+  });
 }
 
 async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
@@ -416,9 +456,15 @@ async function runDesktopOllamaRequest(client, input, options, onChunk, chat) {
         top_k: options.top_k || 40,
       },
     });
+    const requestBody = chat
+      ? {
+          ...prepared.body,
+          messages: toOllamaVisionMessages(prepared.body.messages),
+        }
+      : prepared.body;
     const response = await client.client.post(
       chat ? "/api/chat" : "/api/generate",
-      prepared.body,
+      requestBody,
       {
         ...(streaming ? { responseType: "stream" } : {}),
         ...(options.signal ? { signal: options.signal } : {}),
@@ -1004,6 +1050,8 @@ module.exports = {
   runDesktopGovernedHubResolverDrain,
   runDesktopGovernedHubSkill,
   bindDesktopModelIngressClient,
+  isDesktopModelIngressClient,
+  toOllamaVisionMessages,
   prepareDesktopModelRequest,
   runDesktopOllamaRequest,
   consumeDesktopGeminiStream,

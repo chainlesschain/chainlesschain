@@ -132,13 +132,15 @@ class ComputerUseAgent extends EventEmitter {
     this.networkInterceptor = new NetworkInterceptor(this.browserEngine);
     this.desktopAction = new DesktopAction();
 
-    // 尝试加载 LLM 服务
-    try {
-      const { getLLMService } = require('../llm/llm-service');
-      this.llmService = getLLMService();
+    // Vision is available only through an opaque client minted from an
+    // initialized LLM manager bound to a signed Desktop model ingress.
+    if (options.visionModelClient) {
+      const {
+        captureDesktopGovernedVisionModelClient,
+      } = require('../llm/llm-manager');
+      captureDesktopGovernedVisionModelClient(options.visionModelClient);
+      this.llmService = options.visionModelClient;
       this.visionAction = new VisionAction(this.browserEngine, this.llmService);
-    } catch (e) {
-      console.warn('[ComputerUseAgent] LLM Service not available, vision features disabled');
     }
 
     // 启动浏览器
@@ -155,6 +157,10 @@ class ComputerUseAgent extends EventEmitter {
    * @param {Object} llmService - LLM 服务实例
    */
   setLLMService(llmService) {
+    const {
+      captureDesktopGovernedVisionModelClient,
+    } = require('../llm/llm-manager');
+    captureDesktopGovernedVisionModelClient(llmService);
     this.llmService = llmService;
     if (this.visionAction) {
       this.visionAction.setLLMService(llmService);
@@ -317,13 +323,14 @@ class ComputerUseAgent extends EventEmitter {
         }
 
       // 截图
-      case ActionType.SCREENSHOT:
+      case ActionType.SCREENSHOT: {
         const buffer = await this.browserEngine.screenshot(targetId, action);
         return {
           success: true,
           screenshot: buffer.toString('base64'),
           type: action.type || 'png'
         };
+      }
 
       // 视觉操作
       case ActionType.VISION_CLICK:
@@ -348,20 +355,23 @@ class ComputerUseAgent extends EventEmitter {
       case ActionType.NAVIGATE:
         return this.browserEngine.navigate(targetId, action.url, action);
 
-      case ActionType.BACK:
+      case ActionType.BACK: {
         const backPage = this.browserEngine.getPage(targetId);
         await backPage.goBack();
         return { success: true, action: 'back' };
+      }
 
-      case ActionType.FORWARD:
+      case ActionType.FORWARD: {
         const fwdPage = this.browserEngine.getPage(targetId);
         await fwdPage.goForward();
         return { success: true, action: 'forward' };
+      }
 
-      case ActionType.REFRESH:
+      case ActionType.REFRESH: {
         const refreshPage = this.browserEngine.getPage(targetId);
         await refreshPage.reload();
         return { success: true, action: 'refresh' };
+      }
 
       // 等待
       case ActionType.WAIT:

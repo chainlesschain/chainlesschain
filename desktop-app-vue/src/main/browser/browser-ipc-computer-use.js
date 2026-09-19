@@ -6,10 +6,106 @@
  *
  * @module browser/browser-ipc-computer-use
  */
-const { logger } = require("../utils/logger");
+const {
+  authorizeDesktopBrowserVisionObservation,
+} = require("../evolution/desktop-browser-vision-observation");
+const {
+  authorizeDesktopBrowserVisionAction,
+} = require("../evolution/desktop-browser-vision-action");
+
+const READ_ONLY_VISION_TASKS = new Set([
+  "analyze",
+  "locate",
+  "compare",
+  "describe",
+  "ocr",
+]);
+
+function stripObservationAuthorization(options) {
+  const visionOptions = { ...options };
+  delete visionOptions.observationAuthorization;
+  delete visionOptions.actionAuthorization;
+  return visionOptions;
+}
+
+async function authorizeVisionObservation(
+  host,
+  event,
+  targetId,
+  operation,
+  options,
+) {
+  return await authorizeDesktopBrowserVisionObservation(host, {
+    targetId,
+    operation,
+    options,
+    senderId: event?.sender?.id,
+    frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+    authorization: options.observationAuthorization ?? null,
+  });
+}
+
+async function authorizeVisualClick(
+  observationHost,
+  actionHost,
+  event,
+  targetId,
+  options,
+) {
+  const observationGrant = await authorizeVisionObservation(
+    observationHost,
+    event,
+    targetId,
+    "locate",
+    options,
+  );
+  const actionGrant = await authorizeDesktopBrowserVisionAction(actionHost, {
+    targetId,
+    operation: "visual-click",
+    options,
+    observationGrant,
+    senderId: event?.sender?.id,
+    frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+    authorization: options.actionAuthorization ?? null,
+  });
+  return Object.freeze({ observationGrant, actionGrant });
+}
+
+async function authorizeVisualType(
+  observationHost,
+  actionHost,
+  event,
+  targetId,
+  options,
+) {
+  const observationGrant = await authorizeVisionObservation(
+    observationHost,
+    event,
+    targetId,
+    "locate",
+    options,
+  );
+  const actionGrant = await authorizeDesktopBrowserVisionAction(actionHost, {
+    targetId,
+    operation: "visual-type",
+    options,
+    observationGrant,
+    senderId: event?.sender?.id,
+    frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+    authorization: options.actionAuthorization ?? null,
+  });
+  return Object.freeze({ observationGrant, actionGrant });
+}
 
 function registerComputerUseHandlers(ctx) {
-  const { _ipcMain, _getBrowserEngine, withErrorHandler } = ctx;
+  const {
+    _ipcMain,
+    _getBrowserEngine,
+    _getGovernedVisionModelClient,
+    _getBrowserVisionObservationHost,
+    _getBrowserVisionActionHost,
+    withErrorHandler,
+  } = ctx;
 
   // ==================== Phase 6: Computer Use Capabilities (v0.33.0) ====================
 
@@ -39,19 +135,46 @@ function registerComputerUseHandlers(ctx) {
     "browser:action:vision",
     withErrorHandler(async (event, targetId, options = {}) => {
       const { VisionAction } = require("./actions");
+      const operation = options.task;
+      let observationGrant = null;
+      let actionGrant = null;
+      if (READ_ONLY_VISION_TASKS.has(operation)) {
+        observationGrant = await authorizeVisionObservation(
+          _getBrowserVisionObservationHost?.() ?? null,
+          event,
+          targetId,
+          operation,
+          options,
+        );
+      } else if (operation === "click") {
+        ({ observationGrant, actionGrant } = await authorizeVisualClick(
+          _getBrowserVisionObservationHost?.() ?? null,
+          _getBrowserVisionActionHost?.() ?? null,
+          event,
+          targetId,
+          options,
+        ));
+      } else if (operation === "type") {
+        ({ observationGrant, actionGrant } = await authorizeVisualType(
+          _getBrowserVisionObservationHost?.() ?? null,
+          _getBrowserVisionActionHost?.() ?? null,
+          event,
+          targetId,
+          options,
+        ));
+      }
       const engine = _getBrowserEngine();
 
-      // 获取 LLM 服务
-      let llmService = null;
-      try {
-        const { getLLMService } = require("../llm/llm-service");
-        llmService = getLLMService();
-      } catch (e) {
-        logger.warn("[Browser IPC] LLM Service not available for vision");
-      }
-
-      const visionAction = new VisionAction(engine, llmService);
-      return visionAction.execute(targetId, options);
+      const visionAction = new VisionAction(
+        engine,
+        _getGovernedVisionModelClient?.() ?? null,
+        observationGrant,
+        actionGrant,
+      );
+      return visionAction.execute(
+        targetId,
+        stripObservationAuthorization(options),
+      );
     }),
   );
 
@@ -66,19 +189,61 @@ function registerComputerUseHandlers(ctx) {
     "browser:visualClick",
     withErrorHandler(async (event, targetId, description, options = {}) => {
       const { VisionAction } = require("./actions");
+      const visionOptions = { ...options, description };
+      const { observationGrant, actionGrant } = await authorizeVisualClick(
+        _getBrowserVisionObservationHost?.() ?? null,
+        _getBrowserVisionActionHost?.() ?? null,
+        event,
+        targetId,
+        visionOptions,
+      );
       const engine = _getBrowserEngine();
 
-      let llmService = null;
-      try {
-        const { getLLMService } = require("../llm/llm-service");
-        llmService = getLLMService();
-      } catch (e) {
-        throw new Error("LLM Service required for visual click");
-      }
-
-      const visionAction = new VisionAction(engine, llmService);
-      return visionAction.visualClick(targetId, description, options);
+      const visionAction = new VisionAction(
+        engine,
+        _getGovernedVisionModelClient?.() ?? null,
+        observationGrant,
+        actionGrant,
+      );
+      return visionAction.visualClick(
+        targetId,
+        description,
+        stripObservationAuthorization(options),
+      );
     }),
+  );
+
+  /**
+   * Visual type - locate one text input and type a single authorized value.
+   */
+  _ipcMain.handle(
+    "browser:visualType",
+    withErrorHandler(
+      async (event, targetId, description, text, options = {}) => {
+        const { VisionAction } = require("./actions");
+        const visionOptions = { ...options, description, text };
+        const { observationGrant, actionGrant } = await authorizeVisualType(
+          _getBrowserVisionObservationHost?.() ?? null,
+          _getBrowserVisionActionHost?.() ?? null,
+          event,
+          targetId,
+          visionOptions,
+        );
+        const engine = _getBrowserEngine();
+        const visionAction = new VisionAction(
+          engine,
+          _getGovernedVisionModelClient?.() ?? null,
+          observationGrant,
+          actionGrant,
+        );
+        return visionAction.visualType(
+          targetId,
+          description,
+          text,
+          stripObservationAuthorization(options),
+        );
+      },
+    ),
   );
 
   /**

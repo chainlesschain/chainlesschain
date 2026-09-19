@@ -375,7 +375,14 @@ class ComputerUseToolExecutor {
    * 设置 LLM 服务
    */
   setLLMService(service) {
-    this.llmService = service;
+    try {
+      const {
+        createDesktopGovernedVisionModelClient,
+      } = require('../../llm/llm-manager');
+      this.llmService = createDesktopGovernedVisionModelClient(service);
+    } catch {
+      this.llmService = null;
+    }
   }
 
   /**

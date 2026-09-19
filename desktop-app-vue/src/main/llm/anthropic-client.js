@@ -19,6 +19,43 @@ function modelRejectsSamplingParams(model) {
   );
 }
 
+function toAnthropicVisionBlock(block) {
+  if (block?.type !== "image_url") return block;
+  const match =
+    /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/]*={0,2})$/u.exec(
+      block.image_url?.url || "",
+    );
+  if (!match || match[2].length % 4 !== 0) {
+    throw new TypeError(
+      "Anthropic vision input requires a supported base64 data URL",
+    );
+  }
+  const decoded = Buffer.from(match[2], "base64");
+  if (!decoded.length || decoded.toString("base64") !== match[2]) {
+    throw new TypeError("Anthropic vision input contains invalid base64");
+  }
+  return {
+    type: "image",
+    source: {
+      type: "base64",
+      media_type: match[1],
+      data: match[2],
+    },
+  };
+}
+
+function toAnthropicWirePayload(payload) {
+  return {
+    ...payload,
+    messages: payload.messages.map((message) => ({
+      ...message,
+      ...(Array.isArray(message.content)
+        ? { content: message.content.map(toAnthropicVisionBlock) }
+        : {}),
+    })),
+  };
+}
+
 class AnthropicClient extends EventEmitter {
   constructor(config = {}) {
     super();
@@ -55,8 +92,9 @@ class AnthropicClient extends EventEmitter {
         continue;
       }
 
-      const content =
-        typeof message.content === "string"
+      const content = Array.isArray(message.content)
+        ? message.content
+        : typeof message.content === "string"
           ? message.content
           : JSON.stringify(message.content ?? "");
 
@@ -177,7 +215,7 @@ class AnthropicClient extends EventEmitter {
       );
       const response = await this.client.post(
         "/v1/messages",
-        governed?.body ?? payload,
+        toAnthropicWirePayload(governed?.body ?? payload),
         {
           ...(options.signal && { signal: options.signal }),
         },
@@ -230,7 +268,7 @@ class AnthropicClient extends EventEmitter {
       governed = await prepareDesktopModelRequest(this, payload, "anthropic");
       const response = await this.client.post(
         "/v1/messages",
-        governed?.body ?? payload,
+        toAnthropicWirePayload(governed?.body ?? payload),
         {
           responseType: "stream",
           ...(options.signal && { signal: options.signal }),
@@ -409,4 +447,5 @@ class AnthropicClient extends EventEmitter {
 module.exports = {
   AnthropicClient,
   modelRejectsSamplingParams,
+  toAnthropicWirePayload,
 };

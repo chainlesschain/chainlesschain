@@ -15,6 +15,7 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const {
   isDesktopModelIngressHost,
+  isDesktopModelIngressClient,
   bindDesktopModelIngressClient,
   runDesktopCachedModelWorkflow,
   runDesktopFunctionWorkflow,
@@ -24,6 +25,66 @@ const modelIngressHosts = new WeakMap();
 const budgetListeners = new WeakMap();
 const providerSwitches = new WeakSet();
 const managerCloseEpochs = new WeakMap();
+const governedVisionModelClients = new WeakMap();
+const GOVERNED_VISION_PROVIDERS = new Set([
+  "ollama",
+  "openai",
+  "deepseek",
+  "volcengine",
+  "anthropic",
+  "gemini",
+  "mistral",
+  "custom",
+]);
+
+function hasMultimodalMessages(messages) {
+  return (
+    Array.isArray(messages) &&
+    messages.some((message) => Array.isArray(message?.content))
+  );
+}
+
+function assertGovernedVisionManager(manager) {
+  if (
+    !(manager instanceof LLMManager) ||
+    !modelIngressHosts.has(manager) ||
+    !manager.isInitialized ||
+    !isDesktopModelIngressClient(manager.client) ||
+    !GOVERNED_VISION_PROVIDERS.has(manager.provider)
+  ) {
+    throw new TypeError(
+      "A governed, initialized Desktop LLM manager with a supported vision protocol is required",
+    );
+  }
+}
+
+function createDesktopGovernedVisionModelClient(manager) {
+  assertGovernedVisionManager(manager);
+  const client = Object.freeze({});
+  governedVisionModelClients.set(client, {
+    chat: async (messages, options = {}) => {
+      // A provider switch replaces the underlying client. Recheck the binding
+      // and protocol instead of letting an old capability authorize it.
+      assertGovernedVisionManager(manager);
+      return await LLMManager.prototype.chat.call(manager, messages, {
+        ...options,
+        skipCache: true,
+        skipCompression: true,
+      });
+    },
+  });
+  return client;
+}
+
+function captureDesktopGovernedVisionModelClient(value) {
+  const captured = governedVisionModelClients.get(value);
+  if (!captured) {
+    throw new TypeError(
+      "A branded governed Desktop vision model client is required",
+    );
+  }
+  return Object.freeze({ chat: captured.chat });
+}
 
 function assertNoOpaqueGovernedTools(manager) {
   if (!modelIngressHosts.has(manager)) return;
@@ -652,27 +713,40 @@ class LLMManager extends EventEmitter {
       );
     let publication;
     const selectedClient = this.client;
-    const result = await runDesktopCachedModelWorkflow(
-      selectedClient,
-      {
-        provider: this.provider,
-        model: this.config.model || selectedClient.model || "unknown",
-        connection: selectedClient.baseURL || selectedClient.host || null,
-        messages,
-        options,
-      },
-      this.responseCache,
-      (governed, captured) =>
-        this._chatWithMessages(
-          captured.messages,
-          captured.options,
-          governed,
-          (event) => {
-            publication = event;
-          },
-          selectedClient,
-        ),
-    );
+    const publish = (event) => {
+      publication = event;
+    };
+    // Opaque image blocks must enter the Agent v3 multimodal projection in the
+    // provider client. Serializing them through the manager's legacy text
+    // cache workflow would persist the raw base64 as a text prompt first.
+    const result =
+      modelIngressHosts.has(this) && hasMultimodalMessages(messages)
+        ? await this._chatWithMessages(
+            messages,
+            { ...options, skipCache: true, skipCompression: true },
+            true,
+            publish,
+            selectedClient,
+          )
+        : await runDesktopCachedModelWorkflow(
+            selectedClient,
+            {
+              provider: this.provider,
+              model: this.config.model || selectedClient.model || "unknown",
+              connection: selectedClient.baseURL || selectedClient.host || null,
+              messages,
+              options,
+            },
+            this.responseCache,
+            (governed, captured) =>
+              this._chatWithMessages(
+                captured.messages,
+                captured.options,
+                governed,
+                publish,
+                selectedClient,
+              ),
+          );
     if (publication) this.emit("chat-completed", publication);
     return result;
   }
@@ -2644,6 +2718,8 @@ module.exports = {
   _setLLMManagerInstance,
   createLLMManagerReplacement,
   isGovernedLLMManager: (manager) => modelIngressHosts.has(manager),
+  createDesktopGovernedVisionModelClient,
+  captureDesktopGovernedVisionModelClient,
   TaskTypes, // 导出任务类型枚举，方便外部使用
   // Category routing exports (v5.0.2.9)
   LLM_CATEGORIES,

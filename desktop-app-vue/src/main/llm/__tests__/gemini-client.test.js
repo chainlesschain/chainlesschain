@@ -82,6 +82,90 @@ describe("GeminiClient", () => {
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0].role).toBe("user");
     });
+
+    it("converts provider-neutral images to Gemini inlineData", () => {
+      const data = Buffer.from("private-image").toString("base64");
+      const result = client._convertMessages([
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "inspect" },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${data}` },
+            },
+          ],
+        },
+      ]);
+
+      expect(result.contents[0].parts).toEqual([
+        { text: "inspect" },
+        { inlineData: { mimeType: "image/jpeg", data } },
+      ]);
+    });
+
+    it("rejects remote or malformed Gemini vision input", () => {
+      expect(() =>
+        client._convertMessages([
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: "https://example.test/private.png" },
+              },
+            ],
+          },
+        ]),
+      ).toThrow(/supported base64 data URL/u);
+    });
+
+    it("projects provider-neutral bytes before Gemini wire conversion", async () => {
+      const ingress = require("../../evolution/desktop-model-ingress");
+      const data = Buffer.from("private-image").toString("base64");
+      const messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${data}` },
+            },
+            { type: "text", text: "private prompt" },
+          ],
+        },
+      ];
+      const projected = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${data}` },
+            },
+            { type: "text", text: "redacted prompt" },
+          ],
+        },
+      ];
+      const prepare = vi
+        .spyOn(ingress, "prepareDesktopModelRequest")
+        .mockResolvedValue({ body: { messages: projected } });
+
+      const prepared = await client._prepareChatRequest(messages, {
+        max_tokens: 64,
+      });
+
+      expect(prepare).toHaveBeenCalledWith(client, { messages });
+      expect(prepared.body.contents[0].parts).toEqual([
+        { inlineData: { mimeType: "image/jpeg", data } },
+        { text: "redacted prompt" },
+      ]);
+      expect(JSON.stringify(prepare.mock.calls[0][1])).toContain(
+        "private prompt",
+      );
+      expect(JSON.stringify(prepared.body)).not.toContain("private prompt");
+      prepare.mockRestore();
+    });
   });
 
   describe("_extractError", () => {

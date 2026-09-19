@@ -147,6 +147,7 @@
     "browser:start",
     "browser:stop",
     "browser:visualClick",
+    "browser:visualType",
     "call-history:clear-all",
     "call-history:delete",
     "call-history:get-all",

@@ -20,6 +20,44 @@ function assertGovernedModelIngress() {
   throw error;
 }
 
+function hasMultimodalMessages(messages) {
+  return messages.some((message) => Array.isArray(message?.content));
+}
+
+function toGeminiParts(content) {
+  if (typeof content === "string") return [{ text: content }];
+  if (!Array.isArray(content) || !content.length) {
+    throw new TypeError("Gemini message content is invalid");
+  }
+  return content.map((block) => {
+    if (block?.type === "text" && typeof block.text === "string") {
+      return { text: block.text };
+    }
+    if (block?.type !== "image_url") {
+      throw new TypeError("Unsupported Gemini vision content block");
+    }
+    const match =
+      /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/]*={0,2})$/u.exec(
+        block.image_url?.url || "",
+      );
+    if (!match || match[2].length % 4 !== 0) {
+      throw new TypeError(
+        "Gemini vision input requires a supported base64 data URL",
+      );
+    }
+    const decoded = Buffer.from(match[2], "base64");
+    if (!decoded.length || decoded.toString("base64") !== match[2]) {
+      throw new TypeError("Gemini vision input contains invalid base64");
+    }
+    return {
+      inlineData: {
+        mimeType: match[1],
+        data: match[2],
+      },
+    };
+  });
+}
+
 class GeminiClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey || "";
@@ -66,6 +104,9 @@ class GeminiClient {
 
     for (const msg of messages) {
       if (msg.role === "system") {
+        if (typeof msg.content !== "string") {
+          throw new TypeError("Gemini system message must be text");
+        }
         if (!systemInstruction) {
           systemInstruction = { parts: [{ text: msg.content }] };
         } else {
@@ -77,7 +118,7 @@ class GeminiClient {
       const role = msg.role === "assistant" ? "model" : "user";
       contents.push({
         role,
-        parts: [{ text: msg.content || "" }],
+        parts: toGeminiParts(msg.content || ""),
       });
     }
 
@@ -89,12 +130,8 @@ class GeminiClient {
     return { systemInstruction, contents };
   }
 
-  /**
-   * 非流式聊天
-   */
-  async chat(messages, options = {}) {
+  _buildPayload(messages, options = {}) {
     const { systemInstruction, contents } = this._convertMessages(messages);
-
     const payload = {
       contents,
       generationConfig: {
@@ -104,22 +141,39 @@ class GeminiClient {
         maxOutputTokens: options.max_tokens ?? 2000,
       },
     };
+    if (systemInstruction) payload.systemInstruction = systemInstruction;
+    return payload;
+  }
 
-    if (systemInstruction) {
-      payload.systemInstruction = systemInstruction;
+  async _prepareChatRequest(messages, options = {}) {
+    const {
+      prepareDesktopModelRequest,
+    } = require("../evolution/desktop-model-ingress");
+    if (hasMultimodalMessages(messages)) {
+      // Commit and restore provider-neutral image_url blocks before converting
+      // them to Gemini inlineData at the final wire boundary.
+      const governed = await prepareDesktopModelRequest(this, { messages });
+      return {
+        governed,
+        body: this._buildPayload(governed.body.messages, options),
+      };
     }
+    const payload = this._buildPayload(messages, options);
+    const governed = await prepareDesktopModelRequest(this, payload, "gemini");
+    return { governed, body: governed.body };
+  }
 
+  /**
+   * 非流式聊天
+   */
+  async chat(messages, options = {}) {
     try {
       const url = `/models/${this.model}:generateContent?key=${this.apiKey}`;
-      const {
-        prepareDesktopModelRequest,
-      } = require("../evolution/desktop-model-ingress");
-      const governed = await prepareDesktopModelRequest(
-        this,
-        payload,
-        "gemini",
+      const { governed, body } = await this._prepareChatRequest(
+        messages,
+        options,
       );
-      const response = await this.client.post(url, governed?.body ?? payload, {
+      const response = await this.client.post(url, body, {
         ...(options.signal && { signal: options.signal }),
       });
       const data = response.data;
@@ -179,30 +233,15 @@ class GeminiClient {
    */
   async chatStream(messages, onChunk, options = {}) {
     let governed = null;
-    const { systemInstruction, contents } = this._convertMessages(messages);
-
-    const payload = {
-      contents,
-      generationConfig: {
-        temperature: options.temperature ?? 0.7,
-        topP: options.top_p ?? 0.9,
-        topK: options.top_k ?? 40,
-        maxOutputTokens: options.max_tokens ?? 2000,
-      },
-    };
-
-    if (systemInstruction) {
-      payload.systemInstruction = systemInstruction;
-    }
 
     try {
       const url = `/models/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
       const {
-        prepareDesktopModelRequest,
         consumeDesktopGeminiStream,
       } = require("../evolution/desktop-model-ingress");
-      governed = await prepareDesktopModelRequest(this, payload, "gemini");
-      const response = await this.client.post(url, governed?.body ?? payload, {
+      const prepared = await this._prepareChatRequest(messages, options);
+      governed = prepared.governed;
+      const response = await this.client.post(url, prepared.body, {
         responseType: "stream",
         ...(options.signal && { signal: options.signal }),
       });
