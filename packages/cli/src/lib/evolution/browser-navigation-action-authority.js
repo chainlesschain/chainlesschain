@@ -4,17 +4,18 @@ import { types } from "node:util";
 export const BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-navigation-action-authority-descriptor/v1";
 export const BROWSER_NAVIGATION_ACTION_REQUEST_SCHEMA =
-  "chainlesschain.browser-navigation-action-request/v2";
+  "chainlesschain.browser-navigation-action-request/v3";
 export const BROWSER_NAVIGATION_ACTION_RECEIPT_SCHEMA =
-  "chainlesschain.browser-navigation-action-receipt/v2";
+  "chainlesschain.browser-navigation-action-receipt/v3";
 export const BROWSER_NAVIGATION_ACTION_OUTCOME_REQUEST_SCHEMA =
-  "chainlesschain.browser-navigation-action-outcome-request/v1";
+  "chainlesschain.browser-navigation-action-outcome-request/v2";
 export const BROWSER_NAVIGATION_ACTION_OUTCOME_ACK_SCHEMA =
   "chainlesschain.browser-navigation-action-outcome-ack/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 const WAIT_UNTIL = new Set(["load", "domcontentloaded", "networkidle"]);
+const OPERATIONS = new Set(["navigate", "back", "forward", "refresh"]);
 const authorities = new WeakMap();
 
 function canonical(value) {
@@ -146,7 +147,8 @@ function normalizeRedirectOrigins(value, destinationUrl) {
   const normalized = [...new Set(origins)].sort();
   if (
     normalized.length !== origins.length ||
-    !normalized.includes(new URL(destinationUrl).origin)
+    (destinationUrl !== null &&
+      !normalized.includes(new URL(destinationUrl).origin))
   ) {
     throw new TypeError("browser navigation redirect origins are invalid");
   }
@@ -207,7 +209,11 @@ function normalizeRequest(value) {
     ],
     "browser navigation action request",
   );
-  const destinationUrl = normalizeUrl(value.destinationUrl);
+  const destinationUrl =
+    value.operation === "navigate" ? normalizeUrl(value.destinationUrl) : null;
+  if (value.operation !== "navigate" && value.destinationUrl !== null) {
+    throw new TypeError("browser navigation destination is invalid");
+  }
   const allowedRedirectOrigins = normalizeRedirectOrigins(
     value.allowedRedirectOrigins,
     destinationUrl,
@@ -227,7 +233,7 @@ function normalizeRequest(value) {
     typeof value.targetId !== "string" ||
     value.targetId.length < 1 ||
     value.targetId.length > 512 ||
-    value.operation !== "navigate" ||
+    !OPERATIONS.has(value.operation) ||
     !Number.isSafeInteger(value.senderId) ||
     value.senderId < 1 ||
     !DIGEST.test(value.frameUrlDigest) ||
@@ -236,7 +242,7 @@ function normalizeRequest(value) {
     value.timeout < 1 ||
     value.timeout > 120_000 ||
     value.inputDigest !==
-      digest("chainlesschain.browser-navigation-action-input/v2", inputCore) ||
+      digest("chainlesschain.browser-navigation-action-input/v3", inputCore) ||
     !Number.isFinite(requestedAtMs)
   ) {
     throw new TypeError("browser navigation action request is invalid");
@@ -266,10 +272,13 @@ function requestEvidence(request) {
     operation: request.operation,
     senderId: request.senderId,
     frameUrlDigest: request.frameUrlDigest,
-    destinationDigest: digest(
-      "chainlesschain.browser-navigation-action-destination/v1",
-      request.destinationUrl,
-    ),
+    destinationDigest:
+      request.destinationUrl === null
+        ? null
+        : digest(
+            "chainlesschain.browser-navigation-action-destination/v1",
+            request.destinationUrl,
+          ),
     redirectOriginsDigest: digest(
       "chainlesschain.browser-navigation-action-redirect-origins/v1",
       request.allowedRedirectOrigins,
@@ -283,7 +292,7 @@ function requestEvidence(request) {
   return Object.freeze({
     ...core,
     requestDigest: digest(
-      "chainlesschain.browser-navigation-action-request/v2",
+      "chainlesschain.browser-navigation-action-request/v3",
       core,
     ),
   });
@@ -351,7 +360,7 @@ function normalizeOutcomeRequest(value) {
     typeof value.targetId !== "string" ||
     value.targetId.length < 1 ||
     value.targetId.length > 512 ||
-    value.operation !== "navigate" ||
+    !OPERATIONS.has(value.operation) ||
     !DIGEST.test(value.inputDigest) ||
     !["succeeded", "failed"].includes(value.status) ||
     !DIGEST.test(value.resultDigest) ||
@@ -363,7 +372,7 @@ function normalizeOutcomeRequest(value) {
   return Object.freeze({
     ...core,
     outcomeRequestDigest: digest(
-      "chainlesschain.browser-navigation-action-outcome-request/v1",
+      "chainlesschain.browser-navigation-action-outcome-request/v2",
       core,
     ),
   });
@@ -495,7 +504,7 @@ export function captureBrowserNavigationActionAuthority(value) {
       const receipt = Object.freeze({
         ...core,
         receiptDigest: digest(
-          "chainlesschain.browser-navigation-action-receipt/v2",
+          "chainlesschain.browser-navigation-action-receipt/v3",
           core,
         ),
       });

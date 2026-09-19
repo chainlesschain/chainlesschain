@@ -59,7 +59,7 @@ function request(overrides = {}) {
     waitUntil: inputCore.waitUntil,
     timeout: inputCore.timeout,
     inputDigest: digest(
-      "chainlesschain.browser-navigation-action-input/v2",
+      "chainlesschain.browser-navigation-action-input/v3",
       inputCore,
     ),
     authorization: { approval: "interactive" },
@@ -134,6 +134,59 @@ describe("browser navigation action authority", () => {
     ).resolves.toMatchObject({ durable: true, readbackVerified: true });
     expect(spy).toHaveBeenCalledOnce();
   });
+
+  it.each(["back", "forward", "refresh"])(
+    "authorizes one origin-bounded %s action without a caller destination",
+    async (operation) => {
+      const descriptorValue = descriptor();
+      const authorize = vi.fn(async (value) => {
+        expect(value).toMatchObject({
+          operation,
+          destinationUrl: null,
+          allowedRedirectOrigins: ["https://example.test"],
+        });
+        return {
+          decision: "allow",
+          approvalEvidenceRef: `approval-${operation}`,
+          validUntil: "2026-09-19T12:00:05.000Z",
+        };
+      });
+      const { recordOutcome } = outcomeRecorder(descriptorValue);
+      const port = captureBrowserNavigationActionAuthority(
+        createBrowserNavigationActionAuthority({
+          descriptor: descriptorValue,
+          authorize,
+          recordOutcome,
+          now: () => Date.parse("2026-09-19T12:00:00.000Z"),
+        }),
+      );
+      const inputCore = {
+        targetId: "tab-1",
+        operation,
+        destinationUrl: null,
+        allowedRedirectOrigins: ["https://example.test"],
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      };
+      const historyRequest = request({
+        operation,
+        destinationUrl: null,
+        inputDigest: digest(
+          "chainlesschain.browser-navigation-action-input/v3",
+          inputCore,
+        ),
+      });
+
+      await expect(port.authorizeAction(historyRequest)).resolves.toMatchObject(
+        {
+          operation,
+          destinationDigest: null,
+          redirectOriginsDigest: expect.stringMatching(/^sha256:/u),
+        },
+      );
+      expect(authorize).toHaveBeenCalledOnce();
+    },
+  );
 
   it("rejects unsafe schemes, credentials, and substituted input digests", async () => {
     const descriptorValue = descriptor();

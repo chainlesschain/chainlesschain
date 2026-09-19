@@ -14,6 +14,7 @@ const {
 } = require("../evolution/desktop-browser-vision-action");
 const {
   authorizeDesktopBrowserNavigationAction,
+  consumeDesktopBrowserHistoryActionGrant,
   consumeDesktopBrowserNavigationActionGrant,
   recordDesktopBrowserNavigationActionOutcome,
 } = require("../evolution/desktop-browser-navigation-action");
@@ -190,6 +191,68 @@ function registerComputerUseHandlers(ctx) {
         return {
           success: false,
           error: `Navigation failed: ${mutationError.message}`,
+          ...evidence,
+        };
+      }
+      return { ...result, ...evidence };
+    }),
+  );
+
+  /**
+   * Execute one explicitly governed back, forward, or refresh operation. The
+   * grant binds the operation and approved origin set before BrowserEngine is
+   * accessed; BrowserEngine resolves history targets internally.
+   */
+  _ipcMain.handle(
+    "browser:action:history",
+    withErrorHandler(async (event, targetId, operation, options = {}) => {
+      const grant = await authorizeDesktopBrowserNavigationAction(
+        _getBrowserNavigationActionHost?.() ?? null,
+        {
+          targetId,
+          operation,
+          destinationUrl: null,
+          options,
+          senderId: event?.sender?.id,
+          frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+          authorization: options.actionAuthorization ?? null,
+        },
+      );
+      const engine = _getBrowserEngine();
+      const actionEvidence = consumeDesktopBrowserHistoryActionGrant(
+        grant,
+        targetId,
+        operation,
+        options,
+      );
+      let result = null;
+      let mutationError = null;
+      try {
+        result = await engine.navigateHistory(targetId, operation, {
+          ...stripNavigationAuthorization(options),
+          allowedRedirectOrigins: actionEvidence.allowedRedirectOrigins,
+        });
+      } catch (error) {
+        mutationError = error;
+      }
+      const actionAudit = await recordDesktopBrowserNavigationActionOutcome(
+        grant,
+        {
+          status: mutationError === null ? "succeeded" : "failed",
+          finalUrl: result?.url ?? null,
+          failureClass:
+            mutationError === null ? null : "browser-history-navigation-failed",
+        },
+      );
+      const evidence = {
+        authorizationReceiptDigest: actionEvidence.receiptDigest,
+        auditEventDigest: actionAudit.auditEventDigest,
+        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      };
+      if (mutationError !== null) {
+        return {
+          success: false,
+          error: `History navigation failed: ${mutationError.message}`,
           ...evidence,
         };
       }

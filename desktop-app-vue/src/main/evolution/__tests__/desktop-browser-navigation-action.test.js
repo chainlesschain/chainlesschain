@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 const {
   assertDesktopBrowserNavigationActionGrant,
   authorizeDesktopBrowserNavigationAction,
+  consumeDesktopBrowserHistoryActionGrant,
   consumeDesktopBrowserNavigationActionGrant,
   createDesktopBrowserNavigationActionHost,
   recordDesktopBrowserNavigationActionOutcome,
@@ -35,7 +36,7 @@ function fixture() {
   });
   const authorizeAction = vi.fn(async (request) =>
     Object.freeze({
-      schema: "chainlesschain.browser-navigation-action-receipt/v2",
+      schema: "chainlesschain.browser-navigation-action-receipt/v3",
       authorityId: descriptor.authorityId,
       tenantId: descriptor.tenantId,
       handlerArtifactDigest: descriptor.handlerArtifactDigest,
@@ -45,10 +46,13 @@ function fixture() {
       operation: request.operation,
       senderId: request.senderId,
       frameUrlDigest: request.frameUrlDigest,
-      destinationDigest: digest(
-        "chainlesschain.browser-navigation-action-destination/v1",
-        request.destinationUrl,
-      ),
+      destinationDigest:
+        request.destinationUrl === null
+          ? null
+          : digest(
+              "chainlesschain.browser-navigation-action-destination/v1",
+              request.destinationUrl,
+            ),
       redirectOriginsDigest: digest(
         "chainlesschain.browser-navigation-action-redirect-origins/v1",
         request.allowedRedirectOrigins,
@@ -198,4 +202,51 @@ describe("Desktop browser navigation action host", () => {
       ),
     ).toThrow(/interactive action grant/u);
   });
+
+  it.each(["back", "forward", "refresh"])(
+    "binds one %s grant to its operation and approved origins",
+    async (operation) => {
+      const options = {
+        allowedRedirectOrigins: ["https://example.test"],
+        actionAuthorization: { approval: "interactive" },
+      };
+      const { host, authorizeAction } = fixture();
+      const grant = await authorizeDesktopBrowserNavigationAction(host, {
+        targetId: "tab-1",
+        operation,
+        destinationUrl: null,
+        options,
+        senderId: 17,
+        frameUrl: "app://desktop/index.html",
+        authorization: options.actionAuthorization,
+      });
+
+      expect(authorizeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation,
+          destinationUrl: null,
+          allowedRedirectOrigins: ["https://example.test"],
+        }),
+      );
+      expect(() =>
+        consumeDesktopBrowserHistoryActionGrant(
+          grant,
+          "tab-1",
+          operation === "back" ? "forward" : "back",
+          options,
+        ),
+      ).toThrow(/interactive action grant/u);
+      expect(
+        consumeDesktopBrowserHistoryActionGrant(
+          grant,
+          "tab-1",
+          operation,
+          options,
+        ),
+      ).toMatchObject({
+        receiptDigest: expect.stringMatching(/^sha256:/u),
+        allowedRedirectOrigins: ["https://example.test"],
+      });
+    },
+  );
 });

@@ -3,14 +3,15 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types } = require("node:util");
 
-const REQUEST_SCHEMA = "chainlesschain.browser-navigation-action-request/v2";
-const RECEIPT_SCHEMA = "chainlesschain.browser-navigation-action-receipt/v2";
+const REQUEST_SCHEMA = "chainlesschain.browser-navigation-action-request/v3";
+const RECEIPT_SCHEMA = "chainlesschain.browser-navigation-action-receipt/v3";
 const OUTCOME_REQUEST_SCHEMA =
-  "chainlesschain.browser-navigation-action-outcome-request/v1";
+  "chainlesschain.browser-navigation-action-outcome-request/v2";
 const OUTCOME_ACK_SCHEMA =
   "chainlesschain.browser-navigation-action-outcome-ack/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const WAIT_UNTIL = new Set(["load", "domcontentloaded", "networkidle"]);
+const OPERATIONS = new Set(["navigate", "back", "forward", "refresh"]);
 const hosts = new WeakMap();
 const grants = new WeakMap();
 
@@ -92,8 +93,10 @@ function normalizeUrl(value, label) {
 }
 
 function normalizeRedirectOrigins(value, destinationUrl) {
-  const destinationOrigin = new URL(destinationUrl).origin;
-  if (value === undefined) return Object.freeze([destinationOrigin]);
+  const destinationOrigin =
+    destinationUrl === null ? null : new URL(destinationUrl).origin;
+  if (value === undefined && destinationOrigin !== null)
+    return Object.freeze([destinationOrigin]);
   if (
     !Array.isArray(value) ||
     types.isProxy(value) ||
@@ -132,7 +135,7 @@ function normalizeRedirectOrigins(value, destinationUrl) {
   const normalized = [...new Set(origins)].sort();
   if (
     normalized.length !== origins.length ||
-    !normalized.includes(destinationOrigin)
+    (destinationOrigin !== null && !normalized.includes(destinationOrigin))
   ) {
     throw new TypeError(
       "Desktop browser navigation redirect origins are invalid",
@@ -141,11 +144,12 @@ function normalizeRedirectOrigins(value, destinationUrl) {
   return Object.freeze(normalized);
 }
 
-function inputCore(targetId, destinationUrl, options = {}) {
+function inputCore(targetId, operation, destinationUrl, options = {}) {
   if (
     typeof targetId !== "string" ||
     targetId.length < 1 ||
     targetId.length > 512 ||
+    !OPERATIONS.has(operation) ||
     !options ||
     typeof options !== "object" ||
     Array.isArray(options) ||
@@ -156,10 +160,12 @@ function inputCore(targetId, destinationUrl, options = {}) {
   }
   const waitUntil = optionData(options, "waitUntil") ?? "domcontentloaded";
   const timeout = optionData(options, "timeout") ?? 30_000;
-  const destination = normalizeUrl(
-    destinationUrl,
-    "Desktop browser navigation destination",
-  );
+  const destination =
+    operation === "navigate"
+      ? normalizeUrl(destinationUrl, "Desktop browser navigation destination")
+      : null;
+  if (operation !== "navigate" && destinationUrl !== null)
+    throw new TypeError("Desktop browser navigation destination is invalid");
   if (
     !WAIT_UNTIL.has(waitUntil) ||
     !Number.isSafeInteger(timeout) ||
@@ -170,7 +176,7 @@ function inputCore(targetId, destinationUrl, options = {}) {
   }
   return Object.freeze({
     targetId,
-    operation: "navigate",
+    operation,
     destinationUrl: destination,
     allowedRedirectOrigins: normalizeRedirectOrigins(
       optionData(options, "allowedRedirectOrigins"),
@@ -182,7 +188,7 @@ function inputCore(targetId, destinationUrl, options = {}) {
 }
 
 function inputDigest(core) {
-  return digest("chainlesschain.browser-navigation-action-input/v2", core);
+  return digest("chainlesschain.browser-navigation-action-input/v3", core);
 }
 
 function validateReceipt(receipt, request, authorityDescriptor) {
@@ -199,10 +205,13 @@ function validateReceipt(receipt, request, authorityDescriptor) {
     operation: request.operation,
     senderId: request.senderId,
     frameUrlDigest: request.frameUrlDigest,
-    destinationDigest: digest(
-      "chainlesschain.browser-navigation-action-destination/v1",
-      request.destinationUrl,
-    ),
+    destinationDigest:
+      request.destinationUrl === null
+        ? null
+        : digest(
+            "chainlesschain.browser-navigation-action-destination/v1",
+            request.destinationUrl,
+          ),
     redirectOriginsDigest: digest(
       "chainlesschain.browser-navigation-action-redirect-origins/v1",
       request.allowedRedirectOrigins,
@@ -288,6 +297,7 @@ async function authorizeDesktopBrowserNavigationAction(
   host,
   {
     targetId,
+    operation = "navigate",
     destinationUrl,
     options = {},
     senderId,
@@ -304,12 +314,12 @@ async function authorizeDesktopBrowserNavigationAction(
     throw new TypeError("Browser navigation action sender is invalid");
   if (typeof frameUrl !== "string" || frameUrl.length > 16 * 1024)
     throw new TypeError("Browser navigation action frame URL is invalid");
-  const core = inputCore(targetId, destinationUrl, options);
+  const core = inputCore(targetId, operation, destinationUrl, options);
   const request = Object.freeze({
     schema: REQUEST_SCHEMA,
     requestId: randomUUID(),
     targetId,
-    operation: "navigate",
+    operation: core.operation,
     senderId,
     frameUrlDigest: digest(
       "chainlesschain.browser-navigation-action-frame-url/v1",
@@ -343,9 +353,9 @@ async function authorizeDesktopBrowserNavigationAction(
   return grant;
 }
 
-function validateGrant(grant, targetId, destinationUrl, options) {
+function validateGrant(grant, targetId, operation, destinationUrl, options) {
   const captured = grants.get(grant);
-  const core = inputCore(targetId, destinationUrl, options);
+  const core = inputCore(targetId, operation, destinationUrl, options);
   if (
     !captured ||
     captured.consumed ||
@@ -368,7 +378,7 @@ function assertDesktopBrowserNavigationActionGrant(
   destinationUrl,
   options = {},
 ) {
-  validateGrant(grant, targetId, destinationUrl, options);
+  validateGrant(grant, targetId, "navigate", destinationUrl, options);
 }
 
 function consumeDesktopBrowserNavigationActionGrant(
@@ -377,7 +387,27 @@ function consumeDesktopBrowserNavigationActionGrant(
   destinationUrl,
   options = {},
 ) {
-  const captured = validateGrant(grant, targetId, destinationUrl, options);
+  const captured = validateGrant(
+    grant,
+    targetId,
+    "navigate",
+    destinationUrl,
+    options,
+  );
+  captured.consumed = true;
+  return Object.freeze({
+    receiptDigest: captured.receiptDigest,
+    allowedRedirectOrigins: captured.inputCore.allowedRedirectOrigins,
+  });
+}
+
+function consumeDesktopBrowserHistoryActionGrant(
+  grant,
+  targetId,
+  operation,
+  options = {},
+) {
+  const captured = validateGrant(grant, targetId, operation, null, options);
   captured.consumed = true;
   return Object.freeze({
     receiptDigest: captured.receiptDigest,
@@ -485,7 +515,7 @@ async function recordDesktopBrowserNavigationActionOutcome(grant, value) {
     actionReceiptDigest: captured.receiptDigest,
     requestDigest: captured.requestDigest,
     targetId: captured.targetId,
-    operation: "navigate",
+    operation: captured.inputCore.operation,
     inputDigest: captured.inputDigest,
     status: outcome.status,
     resultDigest,
@@ -515,6 +545,7 @@ module.exports = {
   assertDesktopBrowserNavigationActionGrant,
   authorizeDesktopBrowserNavigationAction,
   consumeDesktopBrowserNavigationActionGrant,
+  consumeDesktopBrowserHistoryActionGrant,
   createDesktopBrowserNavigationActionHost,
   recordDesktopBrowserNavigationActionOutcome,
 };

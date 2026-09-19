@@ -16,6 +16,7 @@ const path = require("path");
 const fs = require("fs").promises;
 const { SnapshotEngine } = require("./snapshot-engine");
 const { ElementLocator } = require("./element-locator");
+const HISTORY_NAVIGATION_OPERATIONS = new Set(["back", "forward", "refresh"]);
 
 function normalizeAllowedNavigationOrigins(value) {
   if (!Array.isArray(value) || value.length < 1 || value.length > 16) {
@@ -45,6 +46,41 @@ function normalizeAllowedNavigationOrigins(value) {
     throw new TypeError("Allowed navigation origins are invalid");
   }
   return new Set(normalized);
+}
+
+function navigationOrigin(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+function assertAllowedNavigationUrl(url, allowedOrigins) {
+  const origin = navigationOrigin(url);
+  if (origin === null || !allowedOrigins.has(origin)) {
+    throw new Error("Navigation target origin is outside the approved scope");
+  }
+}
+
+function createNavigationRouteHandler(page, allowedOrigins) {
+  return async (route) => {
+    const request = route.request();
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+      const origin = navigationOrigin(request.url());
+      if (origin === null || !allowedOrigins.has(origin)) {
+        await route.abort("blockedbyclient");
+        return;
+      }
+      await route.continue();
+      return;
+    }
+    if (typeof route.fallback === "function") {
+      await route.fallback();
+    } else {
+      await route.continue();
+    }
+  };
 }
 
 /**
@@ -404,31 +440,7 @@ class BrowserEngine extends EventEmitter {
     const routeHandler =
       allowedOrigins === null
         ? null
-        : async (route) => {
-            const request = route.request();
-            if (
-              request.isNavigationRequest() &&
-              request.frame() === page.mainFrame()
-            ) {
-              let origin = null;
-              try {
-                origin = new URL(request.url()).origin;
-              } catch {
-                // Invalid main-frame navigation targets are blocked below.
-              }
-              if (origin === null || !allowedOrigins.has(origin)) {
-                await route.abort("blockedbyclient");
-                return;
-              }
-              await route.continue();
-              return;
-            }
-            if (typeof route.fallback === "function") {
-              await route.fallback();
-            } else {
-              await route.continue();
-            }
-          };
+        : createNavigationRouteHandler(page, allowedOrigins);
     let routeInstalled = false;
 
     try {
@@ -455,6 +467,92 @@ class BrowserEngine extends EventEmitter {
     } finally {
       if (routeInstalled) {
         await page.unroute("**/*", routeHandler).catch(() => {});
+      }
+    }
+  }
+
+  /**
+   * Execute an approved history navigation without trusting a caller-supplied
+   * destination. Back/forward targets are read from Chromium history and
+   * checked against the approved origin set before the page is mutated.
+   *
+   * @param {string} targetId - Tab ID
+   * @param {"back"|"forward"|"refresh"} operation - History operation
+   * @param {Object} options - Navigation and approved-origin options
+   * @returns {Promise<Object>} Navigation result
+   */
+  async navigateHistory(targetId, operation, options = {}) {
+    if (!HISTORY_NAVIGATION_OPERATIONS.has(operation)) {
+      throw new TypeError("History navigation operation is invalid");
+    }
+    const page = this.getPage(targetId);
+    const allowedOrigins = normalizeAllowedNavigationOrigins(
+      options.allowedRedirectOrigins,
+    );
+    const routeHandler = createNavigationRouteHandler(page, allowedOrigins);
+    let routeInstalled = false;
+    let cdpSession = null;
+
+    try {
+      await page.route("**/*", routeHandler);
+      routeInstalled = true;
+      if (operation === "refresh") {
+        assertAllowedNavigationUrl(page.url(), allowedOrigins);
+      } else {
+        const context = page.context();
+        if (typeof context?.newCDPSession !== "function") {
+          throw new Error("Authenticated browser history is unavailable");
+        }
+        cdpSession = await context.newCDPSession(page);
+        const history = await cdpSession.send("Page.getNavigationHistory");
+        if (
+          !history ||
+          !Number.isSafeInteger(history.currentIndex) ||
+          !Array.isArray(history.entries)
+        ) {
+          throw new Error("Authenticated browser history is unavailable");
+        }
+        const targetIndex =
+          history.currentIndex + (operation === "back" ? -1 : 1);
+        const entry = history.entries[targetIndex];
+        if (
+          !entry ||
+          !Number.isSafeInteger(entry.id) ||
+          typeof entry.url !== "string"
+        ) {
+          throw new Error(`No ${operation} history entry is available`);
+        }
+        assertAllowedNavigationUrl(entry.url, allowedOrigins);
+      }
+      const navigationOptions = {
+        waitUntil: options.waitUntil || "domcontentloaded",
+        timeout: options.timeout || 30000,
+      };
+      if (operation === "refresh") {
+        await page.reload(navigationOptions);
+      } else if (operation === "back") {
+        await page.goBack(navigationOptions);
+      } else {
+        await page.goForward(navigationOptions);
+      }
+      assertAllowedNavigationUrl(page.url(), allowedOrigins);
+
+      const url = page.url();
+      this.emit("tab:navigated", { targetId, url, operation });
+      return {
+        success: true,
+        operation,
+        url,
+        title: await page.title(),
+      };
+    } catch (error) {
+      throw new Error(`Failed to ${operation}: ${error.message}`);
+    } finally {
+      if (routeInstalled) {
+        await page.unroute("**/*", routeHandler).catch(() => {});
+      }
+      if (cdpSession && typeof cdpSession.detach === "function") {
+        await cdpSession.detach().catch(() => {});
       }
     }
   }

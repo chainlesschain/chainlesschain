@@ -68,7 +68,7 @@ function createNavigationHost() {
   });
   const authorizeAction = vi.fn(async (request) =>
     Object.freeze({
-      schema: "chainlesschain.browser-navigation-action-receipt/v2",
+      schema: "chainlesschain.browser-navigation-action-receipt/v3",
       authorityId: descriptor.authorityId,
       tenantId: descriptor.tenantId,
       handlerArtifactDigest: descriptor.handlerArtifactDigest,
@@ -78,10 +78,13 @@ function createNavigationHost() {
       operation: request.operation,
       senderId: request.senderId,
       frameUrlDigest: request.frameUrlDigest,
-      destinationDigest: domainDigest(
-        "chainlesschain.browser-navigation-action-destination/v1",
-        request.destinationUrl,
-      ),
+      destinationDigest:
+        request.destinationUrl === null
+          ? null
+          : domainDigest(
+              "chainlesschain.browser-navigation-action-destination/v1",
+              request.destinationUrl,
+            ),
       redirectOriginsDigest: domainDigest(
         "chainlesschain.browser-navigation-action-redirect-origins/v1",
         request.allowedRedirectOrigins,
@@ -293,5 +296,84 @@ describe("browser computer-use IPC", () => {
     expect(
       JSON.stringify(navigation.recordActionOutcome.mock.calls),
     ).not.toContain(destinationUrl);
+  });
+
+  it.each(["back", "forward", "refresh"])(
+    "consumes one origin-bounded %s grant before history mutation",
+    async (operation) => {
+      const navigation = createNavigationHost();
+      const engine = {
+        navigateHistory: vi.fn(async () => ({
+          success: true,
+          operation,
+          url: "https://example.test/after",
+          title: "After",
+        })),
+      };
+      const { handlers, getBrowserEngine } = fixture({
+        navigationHost: navigation.host,
+        engine,
+      });
+      const options = {
+        waitUntil: "networkidle",
+        allowedRedirectOrigins: ["https://example.test"],
+        actionAuthorization: { approval: true },
+      };
+
+      await expect(
+        handlers.get("browser:action:history")(
+          {
+            sender: { id: 17, getURL: () => "app://desktop/index.html" },
+            senderFrame: { url: "app://desktop/index.html" },
+          },
+          "tab-1",
+          operation,
+          options,
+        ),
+      ).resolves.toMatchObject({
+        success: true,
+        operation,
+        authorizationReceiptDigest: expect.stringMatching(/^sha256:/u),
+        auditEventDigest: expect.stringMatching(/^sha256:/u),
+      });
+      expect(navigation.authorizeAction).toHaveBeenCalledBefore(
+        getBrowserEngine,
+      );
+      expect(navigation.authorizeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation,
+          destinationUrl: null,
+          allowedRedirectOrigins: ["https://example.test"],
+        }),
+      );
+      expect(engine.navigateHistory).toHaveBeenCalledWith("tab-1", operation, {
+        waitUntil: "networkidle",
+        allowedRedirectOrigins: ["https://example.test"],
+      });
+      expect(navigation.recordActionOutcome).toHaveBeenCalledWith(
+        expect.objectContaining({ operation, status: "succeeded" }),
+      );
+    },
+  );
+
+  it("rejects an unbounded history action before browser-engine access", async () => {
+    const navigation = createNavigationHost();
+    const { handlers, getBrowserEngine } = fixture({
+      navigationHost: navigation.host,
+      engine: { navigateHistory: vi.fn() },
+    });
+
+    await expect(
+      handlers.get("browser:action:history")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        "back",
+        {},
+      ),
+    ).rejects.toThrow(/redirect origins/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
   });
 });
