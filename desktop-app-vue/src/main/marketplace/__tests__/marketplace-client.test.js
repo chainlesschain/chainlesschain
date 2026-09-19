@@ -448,6 +448,38 @@ describe("MarketplaceClient", () => {
 
       expect(result).not.toHaveProperty("status");
     });
+
+    it("sanitizes errors thrown after request retries are exhausted", async () => {
+      const secret = "marketplace-internal-rethrow-secret";
+      mockRequest.mockRejectedValue(
+        Object.assign(new Error(secret), {
+          status: 503,
+          isHttpError: true,
+          isTransient: true,
+        }),
+      );
+
+      const request = client._requestWithRetry("get", "/plugins", {}, 0);
+
+      await expect(request).rejects.toMatchObject({
+        message: "Marketplace request failed",
+        code: "MARKETPLACE_REQUEST_FAILED",
+        status: 503,
+        isHttpError: true,
+        isTransient: true,
+      });
+      await expect(request).rejects.not.toThrow(secret);
+    });
+
+    it("drops unsafe status values from internal request errors", async () => {
+      mockRequest.mockRejectedValue(
+        Object.assign(new Error("secret"), { status: "503-secret" }),
+      );
+
+      await expect(
+        client._requestWithRetry("get", "/plugins", {}, 0),
+      ).rejects.not.toHaveProperty("status");
+    });
   });
 
   // ── _isRetryableError ─────────────────────────────────────────────────

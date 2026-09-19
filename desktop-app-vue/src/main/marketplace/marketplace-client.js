@@ -52,6 +52,30 @@ const TRANSIENT_ERROR_CODES = [
   "ERR_NETWORK",
 ];
 
+function createMarketplaceRequestError(error = null) {
+  const requestError = new Error("Marketplace request failed");
+  requestError.code = "MARKETPLACE_REQUEST_FAILED";
+
+  if (
+    Number.isSafeInteger(error?.status) &&
+    error.status >= 400 &&
+    error.status <= 599
+  ) {
+    requestError.status = error.status;
+  }
+  if (error?.isHttpError === true) {
+    requestError.isHttpError = true;
+  }
+  if (error?.isNetworkError === true) {
+    requestError.isNetworkError = true;
+  }
+  if (error?.isTransient === true) {
+    requestError.isTransient = true;
+  }
+
+  return requestError;
+}
+
 /**
  * Plugin Marketplace HTTP Client
  *
@@ -156,7 +180,7 @@ class MarketplaceClient {
           "[MarketplaceClient] Request interceptor error:",
           error.message,
         );
-        return Promise.reject(error);
+        return Promise.reject(createMarketplaceRequestError(error));
       },
     );
   }
@@ -175,9 +199,9 @@ class MarketplaceClient {
         // Handle standard API response format: { success, message, data, timestamp }
         if (data && typeof data === "object" && "success" in data) {
           if (!data.success) {
-            const error = new Error("Marketplace API request failed");
-            error.status = response.status;
-            throw error;
+            const apiError = new Error("Marketplace API request failed");
+            apiError.status = response.status;
+            throw apiError;
           }
           return data;
         }
@@ -230,7 +254,9 @@ class MarketplaceClient {
           );
           networkError.isNetworkError = true;
           networkError.isTransient = true;
-          networkError.code = error.code;
+          networkError.code = TRANSIENT_ERROR_CODES.includes(error.code)
+            ? error.code
+            : "ERR_NETWORK";
 
           logger.warn(
             `[MarketplaceClient] Network error: ${error.code || error.message}`,
@@ -243,7 +269,7 @@ class MarketplaceClient {
             "[MarketplaceClient] Request setup error:",
             error.message,
           );
-          return Promise.reject(error);
+          return Promise.reject(createMarketplaceRequestError(error));
         }
       },
     );
@@ -1112,7 +1138,7 @@ class MarketplaceClient {
               `[MarketplaceClient] Request failed after ${attempt + 1} attempts: ${method.toUpperCase()} ${url}`,
             );
           }
-          throw error;
+          throw createMarketplaceRequestError(error);
         }
 
         // Calculate backoff delay with jitter
@@ -1131,7 +1157,7 @@ class MarketplaceClient {
     }
 
     // Should not reach here, but safety net
-    throw lastError || new Error("Request failed after maximum retries");
+    throw createMarketplaceRequestError(lastError);
   }
 
   /**
