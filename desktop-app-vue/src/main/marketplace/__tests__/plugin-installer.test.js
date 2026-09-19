@@ -328,11 +328,48 @@ describe("PluginInstaller", () => {
         version: "1.0.0",
         metadata: "{}",
       });
-      mockDb.all.mockResolvedValue([]);
+      mockDb.all.mockResolvedValue([
+        {
+          id: "history-1",
+          success: 0,
+          error_message: "legacy-installer-secret",
+        },
+      ]);
       const result = await installer.getInstalledDetail("p1");
       expect(result.success).toBe(true);
       expect(result.data.plugin_id).toBe("p1");
-      expect(result.data.updateHistory).toBeDefined();
+      expect(result.data.updateHistory).toEqual([
+        {
+          id: "history-1",
+          success: 0,
+          error_message: "Plugin marketplace operation failed",
+        },
+      ]);
+    });
+  });
+
+  describe("getUpdateHistory", () => {
+    it("does not expose legacy persisted errors", async () => {
+      mockDb.all.mockResolvedValue([
+        {
+          id: "history-1",
+          success: 0,
+          error_message: "legacy-update-history-secret",
+        },
+      ]);
+
+      const result = await installer.getUpdateHistory("p1");
+
+      expect(result).toEqual({
+        success: true,
+        data: [
+          {
+            id: "history-1",
+            success: 0,
+            error_message: "Plugin marketplace operation failed",
+          },
+        ],
+      });
     });
   });
 

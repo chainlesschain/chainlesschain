@@ -18,6 +18,7 @@ const {
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
   createPluginOperationError,
+  sanitizePluginPersistedError,
 } = require("../plugins/plugin-ipc-error-boundary");
 const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
@@ -26,6 +27,16 @@ const path = require("path");
 const logger = createPluginLogRedactor(pluginLogSink, "PluginInstaller");
 const fs = require("fs").promises;
 const crypto = require("crypto");
+
+function sanitizeUpdateHistoryRows(rows) {
+  return (rows || []).map((row) => ({
+    ...row,
+    error_message: sanitizePluginPersistedError(
+      "pluginMarketplace",
+      row.error_message,
+    ),
+  }));
+}
 
 // Optional dependency for zip extraction
 let AdmZip;
@@ -183,6 +194,13 @@ class PluginInstaller {
     await this.db.run(createUpdateHistory);
     await this.db.run(createIndexPluginId);
     await this.db.run(createIndexUpdateHistory);
+    const failure = createPluginFailureDescriptor("pluginMarketplace");
+    await this.db.run(
+      `UPDATE plugin_update_history
+       SET error_message = ?
+       WHERE error_message IS NOT NULL AND error_message <> ?`,
+      [failure.error, failure.error],
+    );
 
     logger.info("[PluginInstaller] Database tables ensured");
   }
@@ -851,7 +869,7 @@ class PluginInstaller {
         [pluginId],
       );
 
-      plugin.updateHistory = history || [];
+      plugin.updateHistory = sanitizeUpdateHistoryRows(history);
 
       return { success: true, data: plugin };
     } catch (error) {
@@ -1241,7 +1259,7 @@ class PluginInstaller {
         [pluginId, limit],
       );
 
-      return { success: true, data: rows || [] };
+      return { success: true, data: sanitizeUpdateHistoryRows(rows) };
     } catch (error) {
       logger.error(
         `[PluginInstaller] Get update history failed for ${pluginId}:`,

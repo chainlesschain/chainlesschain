@@ -11,6 +11,7 @@ const {
   createPluginIpcFailureResult,
   createPluginMethodUnavailableError,
   createPluginOperationError,
+  sanitizePluginPersistedError,
 } = require("../../../src/main/plugins/plugin-ipc-error-boundary");
 const { registerPluginIPC } = require("../../../src/main/plugins/plugin-ipc");
 
@@ -173,6 +174,13 @@ describe("plugin IPC error boundary", () => {
       message: "Plugin method unavailable",
       code: "PLUGIN_METHOD_UNAVAILABLE",
     });
+  });
+
+  it("projects persisted error text to the selected stable boundary", () => {
+    expect(
+      sanitizePluginPersistedError("pluginMarketplace", "database-row-secret"),
+    ).toBe("Plugin marketplace operation failed");
+    expect(sanitizePluginPersistedError("plugin", null)).toBeNull();
   });
 
   it("falls back only for the stable optional-method signal", async () => {

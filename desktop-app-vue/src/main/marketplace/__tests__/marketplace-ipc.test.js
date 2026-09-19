@@ -200,6 +200,31 @@ describe("Marketplace IPC Handlers", () => {
     expect(r.data).toHaveLength(1);
   });
 
+  it("marketplace:get-installed-detail redacts legacy history errors", async () => {
+    mockStmt.get.mockReturnValue({
+      id: "1",
+      plugin_id: "p1",
+      name: "Test",
+      version: "1.0.0",
+      metadata: "{}",
+    });
+    mockStmt.all.mockReturnValue([
+      {
+        id: "history-1",
+        success: 0,
+        error_message: "legacy-ipc-history-secret",
+      },
+    ]);
+
+    const result = await handlers["marketplace:get-installed-detail"]({}, "p1");
+
+    expect(result.success).toBe(true);
+    expect(result.data.updateHistory[0].errorMessage).toBe(
+      "Plugin marketplace operation failed",
+    );
+    expect(JSON.stringify(result)).not.toContain("legacy-ipc-history-secret");
+  });
+
   it("marketplace:export-list exports", async () => {
     mockStmt.all.mockReturnValue([]);
     const r = await handlers["marketplace:export-list"]({});

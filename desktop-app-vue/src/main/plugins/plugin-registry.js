@@ -3,6 +3,7 @@ const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
   createPluginOperationError,
+  sanitizePluginPersistedError,
 } = require("./plugin-ipc-error-boundary");
 const fs = require("fs");
 
@@ -23,6 +24,15 @@ function safeParseColumn(raw, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function projectPluginRow(row) {
+  return {
+    ...row,
+    manifest: safeParseColumn(row.manifest, {}),
+    enabled: row.enabled === 1,
+    last_error: sanitizePluginPersistedError("plugin", row.last_error),
+  };
 }
 
 /**
@@ -116,6 +126,8 @@ class PluginRegistry {
             `[PluginRegistry] SQL执行完成: ${successCount} 成功, ${failCount} 失败`,
           );
         }
+
+        this._redactLegacyErrorRows();
       } else {
         logger.warn("[PluginRegistry] 迁移文件不存在:", migrationPath);
       }
@@ -124,6 +136,33 @@ class PluginRegistry {
     } catch (error) {
       logger.error("[PluginRegistry] 初始化失败:", error);
       throw createPluginOperationError("plugin");
+    }
+  }
+
+  _redactLegacyErrorRows() {
+    const failure = createPluginFailureDescriptor("plugin");
+    const stableEventData = JSON.stringify(failure);
+    const updates = [
+      {
+        sql: `UPDATE plugins
+              SET last_error = ?
+              WHERE last_error IS NOT NULL AND last_error <> ?`,
+        value: failure.error,
+      },
+      {
+        sql: `UPDATE plugin_event_logs
+              SET event_data = ?
+              WHERE event_type = 'error'
+                AND event_data IS NOT NULL
+                AND event_data <> ?`,
+        value: stableEventData,
+      },
+    ];
+
+    for (const update of updates) {
+      const stmt = this.database.db.prepare(update.sql);
+      stmt.run(update.value, update.value);
+      stmt.free();
     }
   }
 
@@ -228,11 +267,7 @@ class PluginRegistry {
     stmt.free();
 
     if (row) {
-      return {
-        ...row,
-        manifest: safeParseColumn(row.manifest, {}),
-        enabled: row.enabled === 1,
-      };
+      return projectPluginRow(row);
     }
 
     return null;
@@ -268,11 +303,7 @@ class PluginRegistry {
     const rows = stmt.all(...params);
     stmt.free();
 
-    return rows.map((row) => ({
-      ...row,
-      manifest: safeParseColumn(row.manifest, {}),
-      enabled: row.enabled === 1,
-    }));
+    return rows.map(projectPluginRow);
   }
 
   /**

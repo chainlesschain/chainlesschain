@@ -54,10 +54,18 @@ function createPluginMethodUnavailableError() {
   return error;
 }
 
+function sanitizePluginPersistedError(kind, value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return createPluginFailureDescriptor(kind).error;
+}
+
 module.exports = {
   PLUGIN_METHOD_UNAVAILABLE_CODE,
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
   createPluginMethodUnavailableError,
   createPluginOperationError,
+  sanitizePluginPersistedError,
 };

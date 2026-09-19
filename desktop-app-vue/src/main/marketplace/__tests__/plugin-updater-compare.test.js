@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 
-const { compareVersions } = require("../plugin-updater.js");
+const { PluginUpdater, compareVersions } = require("../plugin-updater.js");
 
 describe("compareVersions", () => {
   it("compares numeric cores", () => {
@@ -35,5 +35,36 @@ describe("compareVersions", () => {
     expect(compareVersions("1.0.0-beta.2", "1.0.0-beta.1")).toBe(1);
     expect(compareVersions("1.0.0-alpha", "1.0.0-beta")).toBe(-1);
     expect(compareVersions("2.0.0-alpha", "1.0.0")).toBe(1); // core 2>1 wins
+  });
+});
+
+describe("PluginUpdater persisted error boundary", () => {
+  it("does not expose legacy update history errors", () => {
+    const statement = {
+      all: () => [
+        {
+          id: "history-1",
+          plugin_id: "p1",
+          from_version: "1.0.0",
+          to_version: "2.0.0",
+          updated_at: 1,
+          success: 0,
+          error_message: "legacy-updater-secret",
+        },
+      ],
+      free: () => {},
+    };
+    const updater = new PluginUpdater({
+      database: { db: { prepare: () => statement } },
+      marketplaceClient: {},
+      pluginInstaller: {},
+    });
+
+    const result = updater.getUpdateHistory("p1");
+
+    expect(result.data[0].errorMessage).toBe(
+      "Plugin marketplace operation failed",
+    );
+    expect(JSON.stringify(result)).not.toContain("legacy-updater-secret");
   });
 });

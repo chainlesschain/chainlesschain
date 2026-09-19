@@ -99,6 +99,21 @@ describe("PluginRegistry.getInstalledPlugins", () => {
     expect(result[1].manifest).toEqual({}); // corrupt → default {}
     expect(result[1].enabled).toBe(false);
   });
+
+  it("does not expose legacy last_error values", () => {
+    const reg = regWith([
+      {
+        id: "a",
+        manifest: "{}",
+        enabled: 1,
+        last_error: "legacy-plugin-secret",
+      },
+    ]);
+
+    expect(reg.getInstalledPlugins()[0].last_error).toBe(
+      "Plugin operation failed",
+    );
+  });
 });
 
 describe("PluginRegistry.getPluginExtensions", () => {

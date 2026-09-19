@@ -11,6 +11,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const {
   createPluginIpcFailureResult,
+  sanitizePluginPersistedError,
 } = require("../plugins/plugin-ipc-error-boundary");
 
 const logger = createPluginLogRedactor(pluginLogSink, "MarketplaceIPC");
@@ -431,7 +432,10 @@ function registerMarketplaceIPC(dependencies) {
             toVersion: h.to_version,
             updatedAt: h.updated_at,
             success: h.success === 1,
-            errorMessage: h.error_message,
+            errorMessage: sanitizePluginPersistedError(
+              "pluginMarketplace",
+              h.error_message,
+            ),
           })),
         };
 

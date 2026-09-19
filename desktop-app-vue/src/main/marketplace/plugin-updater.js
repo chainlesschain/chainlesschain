@@ -12,6 +12,7 @@ const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  sanitizePluginPersistedError,
 } = require("../plugins/plugin-ipc-error-boundary");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
@@ -471,7 +472,10 @@ class PluginUpdater extends EventEmitter {
         toVersion: row.to_version,
         updatedAt: row.updated_at,
         success: row.success === 1,
-        errorMessage: row.error_message || null,
+        errorMessage: sanitizePluginPersistedError(
+          "pluginMarketplace",
+          row.error_message,
+        ),
       }));
 
       return { success: true, data: history };
