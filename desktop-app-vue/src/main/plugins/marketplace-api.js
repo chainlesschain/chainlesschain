@@ -14,6 +14,18 @@ const crypto = require("crypto");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginMarketplaceAPI");
 
+function createPluginMarketplaceRequestError(error = null) {
+  const requestError = new Error("Plugin marketplace request failed");
+  requestError.code = "PLUGIN_MARKETPLACE_REQUEST_FAILED";
+  const status = error?.status ?? error?.response?.status;
+
+  if (Number.isSafeInteger(status) && status >= 400 && status <= 599) {
+    requestError.status = status;
+  }
+
+  return requestError;
+}
+
 class PluginMarketplaceAPI {
   constructor(config = {}) {
     // 市场API配置
@@ -191,7 +203,7 @@ class PluginMarketplaceAPI {
         }
       }
 
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -222,7 +234,7 @@ class PluginMarketplaceAPI {
       return data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -239,7 +251,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Download plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -252,7 +264,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get plugin versions error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -271,7 +283,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Check updates error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -288,7 +300,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Rate plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -304,7 +316,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get plugin reviews error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -326,7 +338,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Publish plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -353,7 +365,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Update plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -375,7 +387,7 @@ class PluginMarketplaceAPI {
       return data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get categories error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -404,7 +416,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Search plugins error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -428,7 +440,7 @@ class PluginMarketplaceAPI {
       return data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get featured plugins error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -445,7 +457,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Report plugin error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 
@@ -458,7 +470,7 @@ class PluginMarketplaceAPI {
       return response.data;
     } catch (error) {
       logger.error("[PluginMarketplaceAPI] Get plugin stats error:", error);
-      throw error;
+      throw createPluginMarketplaceRequestError(error);
     }
   }
 }
