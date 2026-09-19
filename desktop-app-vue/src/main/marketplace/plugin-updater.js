@@ -9,6 +9,10 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+  createPluginIpcFailureResult,
+} = require("../plugins/plugin-ipc-error-boundary");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 
@@ -207,7 +211,7 @@ class PluginUpdater extends EventEmitter {
     } catch (error) {
       this._checking = false;
       logger.error("[PluginUpdater] checkUpdates failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -276,7 +280,7 @@ class PluginUpdater extends EventEmitter {
         `[PluginUpdater] checkSingleUpdate failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -377,23 +381,24 @@ class PluginUpdater extends EventEmitter {
             `[PluginUpdater] Auto-updated ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`,
           );
         } catch (err) {
+          const failure = createPluginFailureDescriptor("pluginMarketplace");
           // Record failed update
           this._recordUpdateHistory(
             update.pluginId,
             update.currentVersion,
             update.latestVersion,
             false,
-            err.message,
+            failure.error,
           );
 
           results.failed.push({
             pluginId: update.pluginId,
-            error: err.message,
+            ...failure,
           });
 
           this.emit("update-failed", {
             pluginId: update.pluginId,
-            error: err.message,
+            ...failure,
           });
 
           logger.error(
@@ -423,7 +428,7 @@ class PluginUpdater extends EventEmitter {
     } catch (error) {
       this._updating = false;
       logger.error("[PluginUpdater] autoUpdateAll failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -472,7 +477,7 @@ class PluginUpdater extends EventEmitter {
       return { success: true, data: history };
     } catch (error) {
       logger.error("[PluginUpdater] getUpdateHistory failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -516,7 +521,7 @@ class PluginUpdater extends EventEmitter {
         `[PluginUpdater] setAutoUpdate failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -555,7 +560,7 @@ class PluginUpdater extends EventEmitter {
       return { success: true, data: settings };
     } catch (error) {
       logger.error("[PluginUpdater] getSettings failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -641,7 +646,7 @@ class PluginUpdater extends EventEmitter {
       return { success: true };
     } catch (error) {
       logger.error("[PluginUpdater] updateSettings failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 

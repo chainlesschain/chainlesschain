@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const {
+  createPluginFailureDescriptor,
   createPluginIpcFailureResult,
 } = require("../../../src/main/plugins/plugin-ipc-error-boundary");
 
@@ -14,6 +15,14 @@ const IPC_SOURCES = [
   "src/main/marketplace/marketplace-ipc.js",
   "src/main/marketplace/token-ipc.js",
   "src/main/marketplace/skill-service-ipc.js",
+];
+
+const PLUGIN_FAILURE_SOURCES = [
+  "src/main/plugins/plugin-manager.js",
+  "src/main/plugins/plugin-registry.js",
+  "src/main/plugins/update-manager.js",
+  "src/main/marketplace/plugin-installer.js",
+  "src/main/marketplace/plugin-updater.js",
 ];
 
 describe("plugin IPC error boundary", () => {
@@ -50,10 +59,27 @@ describe("plugin IPC error boundary", () => {
     );
   });
 
+  it("creates a stable descriptor without IPC success state", () => {
+    expect(createPluginFailureDescriptor("plugin")).toEqual({
+      error: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+  });
+
   it("forbids dynamic caught error messages in plugin IPC payloads", () => {
     const dynamicError = /(?:error|message)\s*:\s*(?:error|err|e)\.message/u;
 
     for (const relativePath of IPC_SOURCES) {
+      const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
+      expect(source, relativePath).not.toMatch(dynamicError);
+    }
+  });
+
+  it("forbids dynamic errors in plugin results, events, and records", () => {
+    const dynamicError =
+      /(?:error|message|stack)\s*:\s*(?:error|err|e)\.(?:message|stack)/u;
+
+    for (const relativePath of PLUGIN_FAILURE_SOURCES) {
       const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
       expect(source, relativePath).not.toMatch(dynamicError);
     }

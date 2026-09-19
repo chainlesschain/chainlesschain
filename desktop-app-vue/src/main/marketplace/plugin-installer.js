@@ -14,6 +14,10 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+  createPluginIpcFailureResult,
+} = require("../plugins/plugin-ipc-error-boundary");
 const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
@@ -127,7 +131,7 @@ class PluginInstaller {
       return { success: true };
     } catch (error) {
       logger.error("[PluginInstaller] Initialization failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -394,7 +398,7 @@ class PluginInstaller {
       await this._safeDelete(downloadPath);
       await this._safeDeleteDir(pluginDir);
 
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -439,7 +443,7 @@ class PluginInstaller {
         `[PluginInstaller] Uninstall failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -637,7 +641,7 @@ class PluginInstaller {
             newVersion,
             Date.now(),
             0,
-            error.message,
+            createPluginFailureDescriptor("pluginMarketplace").error,
           ],
         );
       } catch (historyError) {
@@ -647,7 +651,7 @@ class PluginInstaller {
         );
       }
 
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -689,7 +693,7 @@ class PluginInstaller {
       return { success: true };
     } catch (error) {
       logger.error(`[PluginInstaller] Enable failed for ${pluginId}:`, error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -727,7 +731,7 @@ class PluginInstaller {
       return { success: true };
     } catch (error) {
       logger.error(`[PluginInstaller] Disable failed for ${pluginId}:`, error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -815,7 +819,7 @@ class PluginInstaller {
       return { success: true, data: plugins };
     } catch (error) {
       logger.error("[PluginInstaller] List installed failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -854,7 +858,7 @@ class PluginInstaller {
         `[PluginInstaller] Get detail failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -892,7 +896,7 @@ class PluginInstaller {
       return { success: true, data: exportData };
     } catch (error) {
       logger.error("[PluginInstaller] Export failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -947,7 +951,7 @@ class PluginInstaller {
       }
     } catch (error) {
       logger.error("[PluginInstaller] Hash verification error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -978,7 +982,7 @@ class PluginInstaller {
       }
     } catch (error) {
       logger.error("[PluginInstaller] Extraction error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1029,7 +1033,7 @@ class PluginInstaller {
       };
     } catch (error) {
       logger.error("[PluginInstaller] adm-zip extraction error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1068,7 +1072,7 @@ class PluginInstaller {
       };
     } catch (error) {
       logger.error("[PluginInstaller] extract-zip extraction error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1147,7 +1151,7 @@ class PluginInstaller {
       return { success: true, data: manifest };
     } catch (error) {
       logger.error("[PluginInstaller] Read manifest error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1197,7 +1201,7 @@ class PluginInstaller {
         `[PluginInstaller] Set auto-update failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1216,7 +1220,7 @@ class PluginInstaller {
       return { success: true, data: plugins };
     } catch (error) {
       logger.error("[PluginInstaller] Get auto-update plugins failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1242,7 +1246,7 @@ class PluginInstaller {
         `[PluginInstaller] Get update history failed for ${pluginId}:`,
         error,
       );
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 
@@ -1722,7 +1726,7 @@ class PluginInstaller {
       };
     } catch (error) {
       logger.error("[PluginInstaller] Cleanup error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   }
 

@@ -1,5 +1,8 @@
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+} = require("./plugin-ipc-error-boundary");
 const fs = require("fs");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginRegistry");
@@ -332,25 +335,18 @@ class PluginRegistry {
    * @param {string} pluginId - 插件ID
    * @param {Error} error - 错误对象
    */
-  async recordError(pluginId, error) {
+  async recordError(pluginId, _error) {
+    const failure = createPluginFailureDescriptor("plugin");
     const stmt = this.database.db.prepare(`
       UPDATE plugins
       SET last_error = ?, updated_at = ?
       WHERE id = ?
     `);
 
-    stmt.run(error.message, Date.now(), pluginId);
+    stmt.run(failure.error, Date.now(), pluginId);
     stmt.free();
 
-    await this.logEvent(
-      pluginId,
-      "error",
-      {
-        message: error.message,
-        stack: error.stack,
-      },
-      "error",
-    );
+    await this.logEvent(pluginId, "error", failure, "error");
   }
 
   /**

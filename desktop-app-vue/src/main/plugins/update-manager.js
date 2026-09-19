@@ -7,6 +7,9 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+} = require("./plugin-ipc-error-boundary");
 const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -244,10 +247,10 @@ class PluginUpdateManager extends EventEmitter {
       try {
         await this.updatePlugin(pluginId);
         results.success.push(pluginId);
-      } catch (error) {
+      } catch (_error) {
         results.failed.push({
           pluginId,
-          error: error.message,
+          ...createPluginFailureDescriptor("plugin"),
         });
       }
     }

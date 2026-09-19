@@ -27,12 +27,19 @@ const FAILURES = Object.freeze({
   }),
 });
 
-function createPluginIpcFailureResult(kind) {
+function createPluginFailureDescriptor(kind) {
   const failure = FAILURES[kind];
   if (!failure) {
     throw new TypeError("Plugin IPC failure kind is invalid");
   }
-  return { success: false, error: failure.error, code: failure.code };
+  return { error: failure.error, code: failure.code };
 }
 
-module.exports = { createPluginIpcFailureResult };
+function createPluginIpcFailureResult(kind) {
+  return { success: false, ...createPluginFailureDescriptor(kind) };
+}
+
+module.exports = {
+  createPluginFailureDescriptor,
+  createPluginIpcFailureResult,
+};

@@ -10,6 +10,9 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+} = require("./plugin-ipc-error-boundary");
 const EventEmitter = require("events");
 const path = require("path");
 const fs = require("fs");
@@ -379,7 +382,10 @@ class PluginManager extends EventEmitter {
         path: installedPath,
       };
     } catch (error) {
-      this.emit("plugin:install-failed", { source, error: error.message });
+      this.emit("plugin:install-failed", {
+        source,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       logger.error("[PluginManager] 安装插件失败:", error);
       throw error;
     }
@@ -635,7 +641,10 @@ class PluginManager extends EventEmitter {
 
       logger.info(`[PluginManager] 插件加载成功: ${pluginId}`);
     } catch (error) {
-      this.emit("plugin:load-failed", { pluginId, error: error.message });
+      this.emit("plugin:load-failed", {
+        pluginId,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       await this.registry.recordError(pluginId, error);
       logger.error(`[PluginManager] 插件加载失败: ${pluginId}`, error);
       throw error;
@@ -682,7 +691,10 @@ class PluginManager extends EventEmitter {
 
       logger.info(`[PluginManager] 插件已启用: ${pluginId}`);
     } catch (error) {
-      this.emit("plugin:enable-failed", { pluginId, error: error.message });
+      this.emit("plugin:enable-failed", {
+        pluginId,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       await this.registry.recordError(pluginId, error);
       throw error;
     }
@@ -721,7 +733,10 @@ class PluginManager extends EventEmitter {
 
       logger.info(`[PluginManager] 插件已禁用: ${pluginId}`);
     } catch (error) {
-      this.emit("plugin:disable-failed", { pluginId, error: error.message });
+      this.emit("plugin:disable-failed", {
+        pluginId,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       await this.registry.recordError(pluginId, error);
       throw error;
     }
@@ -767,7 +782,10 @@ class PluginManager extends EventEmitter {
 
       logger.info(`[PluginManager] 插件已卸载: ${pluginId}`);
     } catch (error) {
-      this.emit("plugin:uninstall-failed", { pluginId, error: error.message });
+      this.emit("plugin:uninstall-failed", {
+        pluginId,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       throw error;
     }
   }

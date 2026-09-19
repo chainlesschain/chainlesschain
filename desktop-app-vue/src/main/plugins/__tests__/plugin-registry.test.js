@@ -17,6 +17,28 @@ vi.mock("../../utils/logger.js", () => ({
 
 const PluginRegistry = require("../plugin-registry.js");
 
+it("redacts persisted plugin errors and event data", async () => {
+  const runs = [];
+  const registry = new PluginRegistry({
+    db: {
+      prepare: () => ({
+        run: (...args) => runs.push(args),
+        free: () => {},
+      }),
+    },
+  });
+  const secret = "plugin-registry-secret";
+
+  await registry.recordError("plugin-1", new Error(secret));
+
+  expect(JSON.stringify(runs)).not.toContain(secret);
+  expect(runs[0][0]).toBe("Plugin operation failed");
+  expect(JSON.parse(runs[1][2])).toEqual({
+    error: "Plugin operation failed",
+    code: "PLUGIN_OPERATION_FAILED",
+  });
+});
+
 // Minimal sql.js-style db: prepare().all() returns the given rows; free() noop.
 function regWith(rows) {
   return new PluginRegistry({

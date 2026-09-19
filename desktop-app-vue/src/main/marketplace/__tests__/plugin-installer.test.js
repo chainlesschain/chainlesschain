@@ -136,7 +136,10 @@ describe("PluginInstaller", () => {
       mockDb.run.mockRejectedValue(new Error("DB error"));
       const result = await installer.initialize();
       expect(result.success).toBe(false);
-      expect(result.error).toBe("DB error");
+      expect(result).toMatchObject({
+        error: "Plugin marketplace operation failed",
+        code: "PLUGIN_MARKETPLACE_OPERATION_FAILED",
+      });
     });
   });
 
