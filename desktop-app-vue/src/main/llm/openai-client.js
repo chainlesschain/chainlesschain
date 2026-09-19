@@ -69,10 +69,9 @@ class OpenAIClient extends EventEmitter {
           owned_by: m.owned_by,
         })),
       };
-    } catch (error) {
+    } catch {
       return {
-        available: false,
-        error: error.response?.data?.error?.message || error.message,
+        ...this.providerLog.unavailable("status"),
         models: [],
       };
     }
@@ -85,7 +84,6 @@ class OpenAIClient extends EventEmitter {
    */
   async chat(messages, options = {}) {
     const maxRetries = options.maxRetries ?? this.maxRetries;
-    let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -141,7 +139,6 @@ class OpenAIClient extends EventEmitter {
         return result;
       } catch (error) {
         if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-        lastError = error;
         const isTimeout =
           error.code === "ECONNABORTED" || error.message?.includes("timeout");
         const isNetworkError =
@@ -157,13 +154,12 @@ class OpenAIClient extends EventEmitter {
           continue;
         }
 
-        this.providerLog.failure("chat");
-        throw new Error(this._formatAPIError(error));
+        throw this.providerLog.failure("chat");
       }
     }
 
     // Should not reach here, but just in case
-    throw lastError;
+    throw this.providerLog.failure("chat");
   }
 
   /**
@@ -278,7 +274,7 @@ class OpenAIClient extends EventEmitter {
                   finish_reason: parsed.choices[0].finish_reason,
                 });
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
@@ -317,13 +313,11 @@ class OpenAIClient extends EventEmitter {
       if (governed) {
         const interrupted = new Error(
           "Governed Desktop model stream did not complete",
-          { cause: error },
         );
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      this.providerLog.failure("chat-stream");
-      throw new Error(this._formatAPIError(error));
+      throw this.providerLog.failure("chat-stream");
     }
   }
 
@@ -360,8 +354,7 @@ class OpenAIClient extends EventEmitter {
       };
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("complete");
-      throw new Error(this._formatAPIError(error));
+      throw this.providerLog.failure("complete");
     }
   }
 
@@ -387,8 +380,7 @@ class OpenAIClient extends EventEmitter {
       }
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("embed");
-      throw new Error(this._formatAPIError(error));
+      throw this.providerLog.failure("embed");
     }
   }
 
@@ -399,9 +391,8 @@ class OpenAIClient extends EventEmitter {
     try {
       const response = await this.client.get("/models");
       return response.data.data;
-    } catch (error) {
-      this.providerLog.failure("list-models");
-      throw new Error(this._formatAPIError(error));
+    } catch {
+      throw this.providerLog.failure("list-models");
     }
   }
 
@@ -413,49 +404,8 @@ class OpenAIClient extends EventEmitter {
     try {
       const response = await this.client.get(`/models/${modelId}`);
       return response.data;
-    } catch (error) {
-      this.providerLog.failure("model-info");
-      throw new Error(this._formatAPIError(error));
-    }
-  }
-
-  /**
-   * 格式化 API 错误为用户友好的消息
-   * @param {Error} error - axios 错误对象
-   * @returns {string} 用户友好的错误消息
-   */
-  _formatAPIError(error) {
-    const status = error.response?.status;
-    const serverMessage = error.response?.data?.error?.message;
-    const baseURL = this.baseURL || "";
-
-    switch (status) {
-      case 401:
-        return `API 密钥无效或已过期，请在设置中检查 API Key 配置（${baseURL}）`;
-      case 403:
-        return `API 访问被拒绝，请检查 API Key 权限或账户状态（${baseURL}）`;
-      case 429:
-        return `API 请求频率超限或额度用尽，请稍后重试或检查账户余额（${baseURL}）`;
-      case 500:
-      case 502:
-      case 503:
-        return `API 服务暂时不可用（HTTP ${status}），请稍后重试（${baseURL}）`;
-      case 404:
-        return `API 端点不存在或模型不可用，请检查 API 地址和模型配置（${baseURL}）`;
-      default:
-        if (
-          error.code === "ECONNABORTED" ||
-          error.message?.includes("timeout")
-        ) {
-          return `API 请求超时，请检查网络连接或稍后重试（${baseURL}）`;
-        }
-        if (error.code === "ECONNREFUSED") {
-          return `无法连接到 API 服务，请检查服务地址是否正确（${baseURL}）`;
-        }
-        if (error.code === "ENOTFOUND") {
-          return `无法解析 API 服务地址，请检查网络连接和 API 地址配置（${baseURL}）`;
-        }
-        return serverMessage || error.message;
+    } catch {
+      throw this.providerLog.failure("model-info");
     }
   }
 }

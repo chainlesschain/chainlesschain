@@ -194,10 +194,9 @@ class AnthropicClient extends EventEmitter {
           name: m.id || m.name || m.model,
         })),
       };
-    } catch (error) {
+    } catch {
       return {
-        available: false,
-        error: error.response?.data?.error?.message || error.message,
+        ...this.providerLog.unavailable("status"),
         models: [],
       };
     }
@@ -251,8 +250,7 @@ class AnthropicClient extends EventEmitter {
       return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("chat");
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw this.providerLog.failure("chat");
     }
   }
 
@@ -424,13 +422,11 @@ class AnthropicClient extends EventEmitter {
       if (governed) {
         const interrupted = new Error(
           "Governed Desktop Anthropic stream did not complete",
-          { cause: error },
         );
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      this.providerLog.failure("chat-stream");
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw this.providerLog.failure("chat-stream");
     }
   }
 

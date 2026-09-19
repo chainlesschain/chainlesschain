@@ -168,18 +168,21 @@ describe("GeminiClient", () => {
     });
   });
 
-  describe("_extractError", () => {
-    it("should extract error from response data", () => {
-      const error = {
-        response: { data: { error: { message: "Invalid API key" } } },
-        message: "Request failed",
-      };
-      expect(client._extractError(error)).toBe("Invalid API key");
-    });
+  describe("public failure boundary", () => {
+    it("does not return a provider status error message", async () => {
+      const secret = "provider-secret-response";
+      client.client.get = vi.fn().mockRejectedValue(new Error(secret));
 
-    it("should fallback to error.message", () => {
-      const error = { message: "Network error" };
-      expect(client._extractError(error)).toBe("Network error");
+      const result = await client.checkStatus();
+
+      expect(result).toEqual({
+        available: false,
+        error: "LLM provider unavailable",
+        code: "CC_LLM_PROVIDER_UNAVAILABLE",
+        provider: "gemini",
+        operation: "status",
+      });
+      expect(JSON.stringify(result)).not.toContain(secret);
     });
   });
 });

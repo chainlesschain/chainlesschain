@@ -84,10 +84,9 @@ class LLaVAClient extends EventEmitter {
         hasVisionModel: visionModels.length > 0,
         currentModel: this.model,
       };
-    } catch (error) {
+    } catch {
       return {
-        available: false,
-        error: error.message,
+        ...this.providerLog.unavailable("status"),
         models: [],
         visionModels: [],
         hasVisionModel: false,
@@ -124,9 +123,8 @@ class LLaVAClient extends EventEmitter {
       // 读取并编码
       const imageBuffer = await fs.readFile(imagePath);
       return imageBuffer.toString("base64");
-    } catch (error) {
-      this.providerLog.failure("image-read");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("image-read");
     }
   }
 
@@ -184,10 +182,10 @@ class LLaVAClient extends EventEmitter {
       this.providerLog.success("image-analyze");
 
       return result;
-    } catch (error) {
-      this.providerLog.failure("image-analyze");
-      this.emit("analyze-error", { error, imagePath, prompt });
-      throw error;
+    } catch {
+      const publicError = this.providerLog.failure("image-analyze");
+      this.emit("analyze-error", { error: publicError });
+      throw publicError;
     }
   }
 
@@ -263,15 +261,16 @@ class LLaVAClient extends EventEmitter {
                 this.emit("analyze-stream-complete", result);
                 resolve(result);
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
         });
 
-        response.data.on("error", (error) => {
-          this.emit("analyze-stream-error", { error, imagePath, prompt });
-          reject(error);
+        response.data.on("error", () => {
+          const publicError = this.providerLog.failure("image-analyze-stream");
+          this.emit("analyze-stream-error", { error: publicError });
+          reject(publicError);
         });
 
         response.data.on("end", () => {
@@ -285,9 +284,8 @@ class LLaVAClient extends EventEmitter {
           }
         });
       });
-    } catch (error) {
-      this.providerLog.failure("image-analyze-stream");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("image-analyze-stream");
     }
   }
 
@@ -439,9 +437,8 @@ class LLaVAClient extends EventEmitter {
         totalDuration: response.data.total_duration,
         tokens: response.data.eval_count || 0,
       };
-    } catch (error) {
-      this.providerLog.failure("chat");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("chat");
     }
   }
 
@@ -482,19 +479,18 @@ class LLaVAClient extends EventEmitter {
                 this.providerLog.success("pull-model");
                 resolve(data);
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
         });
 
-        response.data.on("error", (error) => {
-          reject(error);
+        response.data.on("error", () => {
+          reject(this.providerLog.failure("pull-model"));
         });
       });
-    } catch (error) {
-      this.providerLog.failure("pull-model");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("pull-model");
     }
   }
 

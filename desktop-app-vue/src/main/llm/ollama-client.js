@@ -57,10 +57,9 @@ class OllamaClient extends EventEmitter {
         })),
         version: response.data.version,
       };
-    } catch (error) {
+    } catch {
       return {
-        available: false,
-        error: error.message,
+        ...this.providerLog.unavailable("status"),
         models: [],
       };
     }
@@ -101,9 +100,8 @@ class OllamaClient extends EventEmitter {
         total_duration: response.data.total_duration,
         tokens: response.data.eval_count || 0,
       };
-    } catch (error) {
-      this.providerLog.failure("generate");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("generate");
     }
   }
 
@@ -179,14 +177,14 @@ class OllamaClient extends EventEmitter {
                   tokens: data.eval_count || 0,
                 });
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
         });
 
-        response.data.on("error", (error) => {
-          reject(error);
+        response.data.on("error", () => {
+          reject(this.providerLog.failure("generate-stream"));
         });
 
         response.data.on("end", () => {
@@ -200,9 +198,8 @@ class OllamaClient extends EventEmitter {
           }
         });
       });
-    } catch (error) {
-      this.providerLog.failure("generate-stream");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("generate-stream");
     }
   }
 
@@ -245,9 +242,8 @@ class OllamaClient extends EventEmitter {
         total_duration: response.data.total_duration,
         tokens: response.data.eval_count || 0,
       };
-    } catch (error) {
-      this.providerLog.failure("chat");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("chat");
     }
   }
 
@@ -318,14 +314,14 @@ class OllamaClient extends EventEmitter {
                   tokens: data.eval_count || 0,
                 });
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
         });
 
-        response.data.on("error", (error) => {
-          reject(error);
+        response.data.on("error", () => {
+          reject(this.providerLog.failure("chat-stream"));
         });
 
         response.data.on("end", () => {
@@ -336,9 +332,8 @@ class OllamaClient extends EventEmitter {
           });
         });
       });
-    } catch (error) {
-      this.providerLog.failure("chat-stream");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("chat-stream");
     }
   }
 
@@ -362,14 +357,12 @@ class OllamaClient extends EventEmitter {
 
       return new Promise((resolve, reject) => {
         let settled = false;
-        let lastData = null;
         response.data.on("data", (chunk) => {
           const lines = chunk.toString().split("\n").filter(Boolean);
 
           for (const line of lines) {
             try {
               const data = JSON.parse(line);
-              lastData = data;
 
               if (onProgress) {
                 onProgress(data);
@@ -379,7 +372,7 @@ class OllamaClient extends EventEmitter {
                 settled = true;
                 resolve(data);
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
@@ -391,24 +384,19 @@ class OllamaClient extends EventEmitter {
         response.data.on("end", () => {
           if (!settled) {
             settled = true;
-            reject(
-              new Error(
-                `Model pull ended without success status${lastData?.status ? ` (last status: ${lastData.status})` : ""}`,
-              ),
-            );
+            reject(this.providerLog.failure("pull-model"));
           }
         });
 
-        response.data.on("error", (error) => {
+        response.data.on("error", () => {
           if (!settled) {
             settled = true;
-            reject(error);
+            reject(this.providerLog.failure("pull-model"));
           }
         });
       });
-    } catch (error) {
-      this.providerLog.failure("pull-model");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("pull-model");
     }
   }
 
@@ -425,9 +413,8 @@ class OllamaClient extends EventEmitter {
       });
 
       return true;
-    } catch (error) {
-      this.providerLog.failure("delete-model");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("delete-model");
     }
   }
 
@@ -442,9 +429,8 @@ class OllamaClient extends EventEmitter {
       });
 
       return response.data;
-    } catch (error) {
-      this.providerLog.failure("model-info");
-      throw error;
+    } catch {
+      throw this.providerLog.failure("model-info");
     }
   }
 
@@ -464,8 +450,7 @@ class OllamaClient extends EventEmitter {
       return response.data.embedding;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("embed");
-      throw error;
+      throw this.providerLog.failure("embed");
     }
   }
 }

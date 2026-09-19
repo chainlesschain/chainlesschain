@@ -87,12 +87,8 @@ class GeminiClient {
         model: response.data.name,
         displayName: response.data.displayName,
       };
-    } catch (error) {
-      this.providerLog.failure("status");
-      return {
-        available: false,
-        error: this._extractError(error),
-      };
+    } catch {
+      return this.providerLog.unavailable("status");
     }
   }
 
@@ -218,8 +214,7 @@ class GeminiClient {
       return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("chat");
-      throw new Error(`Gemini API 错误: ${this._extractError(error)}`);
+      throw this.providerLog.failure("chat");
     }
   }
 
@@ -293,7 +288,7 @@ class GeminiClient {
               if (parsed.usageMetadata) {
                 usageMetadata = parsed.usageMetadata;
               }
-            } catch (_e) {
+            } catch {
               // Skip malformed JSON
             }
           }
@@ -316,8 +311,8 @@ class GeminiClient {
           });
         });
 
-        response.data.on("error", (err) => {
-          reject(new Error(`Gemini stream error: ${err.message}`));
+        response.data.on("error", () => {
+          reject(this.providerLog.failure("chat-stream"));
         });
       });
     } catch (error) {
@@ -325,13 +320,11 @@ class GeminiClient {
       if (governed) {
         const interrupted = new Error(
           "Governed Desktop Gemini stream did not complete",
-          { cause: error },
         );
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      this.providerLog.failure("chat-stream");
-      throw new Error(`Gemini stream API 错误: ${this._extractError(error)}`);
+      throw this.providerLog.failure("chat-stream");
     }
   }
 
@@ -359,19 +352,8 @@ class GeminiClient {
       };
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      this.providerLog.failure("embed");
-      throw new Error(`Gemini embedding 错误: ${this._extractError(error)}`);
+      throw this.providerLog.failure("embed");
     }
-  }
-
-  /**
-   * 提取错误信息
-   */
-  _extractError(error) {
-    if (error.response?.data?.error?.message) {
-      return error.response.data.error.message;
-    }
-    return error.message;
   }
 }
 

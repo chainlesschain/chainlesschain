@@ -47,6 +47,14 @@ function boundedAttempt(value) {
   return Number.isSafeInteger(value) && value > 0 && value <= 100 ? value : 1;
 }
 
+function publicFailure(details) {
+  const error = new Error("LLM provider operation failed");
+  error.code = "CC_LLM_PROVIDER_OPERATION_FAILED";
+  error.provider = details.provider;
+  error.operation = details.operation;
+  return error;
+}
+
 function createProviderLogger(provider, sink = logger) {
   const safeProvider = allowlisted(provider, SAFE_PROVIDERS);
   const details = (operation) => ({
@@ -56,7 +64,9 @@ function createProviderLogger(provider, sink = logger) {
 
   return Object.freeze({
     failure(operation) {
-      sink.error("[LLMProvider] operation failed", details(operation));
+      const safeDetails = details(operation);
+      sink.error("[LLMProvider] operation failed", safeDetails);
+      return publicFailure(safeDetails);
     },
     retry(operation, attempt) {
       sink.warn("[LLMProvider] operation retry scheduled", {
@@ -69,6 +79,16 @@ function createProviderLogger(provider, sink = logger) {
     },
     success(operation) {
       sink.info("[LLMProvider] operation succeeded", details(operation));
+    },
+    unavailable(operation) {
+      const safeDetails = details(operation);
+      sink.warn("[LLMProvider] provider unavailable", safeDetails);
+      return {
+        available: false,
+        error: "LLM provider unavailable",
+        code: "CC_LLM_PROVIDER_UNAVAILABLE",
+        ...safeDetails,
+      };
     },
   });
 }

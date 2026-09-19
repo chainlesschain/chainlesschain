@@ -116,7 +116,10 @@ describe("OllamaClient", () => {
       const result = await client.checkStatus();
 
       expect(result.available).toBe(false);
-      expect(result.error).toBe("Connection refused");
+      expect(result.error).toBe("LLM provider unavailable");
+      expect(result.code).toBe("CC_LLM_PROVIDER_UNAVAILABLE");
+      expect(result.provider).toBe("ollama");
+      expect(result.operation).toBe("status");
       expect(result.models).toEqual([]);
     });
 
@@ -140,10 +143,14 @@ describe("OllamaClient", () => {
       await expect(client.generate("Hello")).rejects.toMatchObject({
         code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
       });
-      await expect(client.generateStream("Hello", vi.fn())).rejects.toMatchObject({
+      await expect(
+        client.generateStream("Hello", vi.fn()),
+      ).rejects.toMatchObject({
         code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
       });
-      await expect(client.chat([{ role: "user", content: "Hello" }])).rejects.toMatchObject({
+      await expect(
+        client.chat([{ role: "user", content: "Hello" }]),
+      ).rejects.toMatchObject({
         code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
       });
       await expect(
@@ -577,9 +584,12 @@ describe("OllamaClient", () => {
     it("should handle pull errors", async () => {
       client.client.post = vi.fn().mockRejectedValue(new Error("Pull failed"));
 
-      await expect(client.pullModel("invalid-model")).rejects.toThrow(
-        "Pull failed",
-      );
+      await expect(client.pullModel("invalid-model")).rejects.toMatchObject({
+        message: "LLM provider operation failed",
+        code: "CC_LLM_PROVIDER_OPERATION_FAILED",
+        provider: "ollama",
+        operation: "pull-model",
+      });
     });
 
     it("should handle stream errors during pull", async () => {
@@ -598,9 +608,12 @@ describe("OllamaClient", () => {
         data: mockStream,
       });
 
-      await expect(client.pullModel("llama2:latest")).rejects.toThrow(
-        "Download interrupted",
-      );
+      await expect(client.pullModel("llama2:latest")).rejects.toMatchObject({
+        message: "LLM provider operation failed",
+        code: "CC_LLM_PROVIDER_OPERATION_FAILED",
+        provider: "ollama",
+        operation: "pull-model",
+      });
     });
   });
 
@@ -621,9 +634,12 @@ describe("OllamaClient", () => {
         .fn()
         .mockRejectedValue(new Error("Delete failed"));
 
-      await expect(client.deleteModel("llama2")).rejects.toThrow(
-        "Delete failed",
-      );
+      await expect(client.deleteModel("llama2")).rejects.toMatchObject({
+        message: "LLM provider operation failed",
+        code: "CC_LLM_PROVIDER_OPERATION_FAILED",
+        provider: "ollama",
+        operation: "delete-model",
+      });
     });
   });
 
@@ -652,9 +668,12 @@ describe("OllamaClient", () => {
         .fn()
         .mockRejectedValue(new Error("Model not found"));
 
-      await expect(client.showModel("invalid")).rejects.toThrow(
-        "Model not found",
-      );
+      await expect(client.showModel("invalid")).rejects.toMatchObject({
+        message: "LLM provider operation failed",
+        code: "CC_LLM_PROVIDER_OPERATION_FAILED",
+        provider: "ollama",
+        operation: "model-info",
+      });
     });
   });
 
@@ -662,7 +681,9 @@ describe("OllamaClient", () => {
     it("fails closed before the ungoverned embedding request", async () => {
       client.client.post = vi.fn();
 
-      await expect(client.embeddings("Test", "nomic-embed-text")).rejects.toMatchObject({
+      await expect(
+        client.embeddings("Test", "nomic-embed-text"),
+      ).rejects.toMatchObject({
         code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
       });
       expect(client.client.post).not.toHaveBeenCalled();
