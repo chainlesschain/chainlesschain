@@ -9,6 +9,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
+  createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
 const { EventEmitter } = require("events");
 const fs = require("fs");
@@ -22,7 +23,8 @@ class PluginUpdateManager extends EventEmitter {
     super();
 
     this.pluginManager = pluginManager;
-    this.marketplaceAPI = getPluginMarketplaceAPI(config.marketplace);
+    this.marketplaceAPI =
+      config.marketplaceAPI || getPluginMarketplaceAPI(config.marketplace);
 
     // 配置
     this.autoCheckEnabled = config.autoCheck !== false;
@@ -135,8 +137,8 @@ class PluginUpdateManager extends EventEmitter {
       return this.availableUpdates;
     } catch (error) {
       logger.error("[PluginUpdateManager] Check for updates failed:", error);
-      this.emit("check-error", error);
-      throw error;
+      this.emit("check-error", createPluginFailureDescriptor("plugin"));
+      throw createPluginOperationError("plugin");
     } finally {
       this.checking = false;
     }
@@ -225,8 +227,12 @@ class PluginUpdateManager extends EventEmitter {
         `[PluginUpdateManager] Update failed for ${pluginId}:`,
         error,
       );
-      this.emit("update-error", pluginId, error);
-      throw error;
+      this.emit(
+        "update-error",
+        pluginId,
+        createPluginFailureDescriptor("plugin"),
+      );
+      throw createPluginOperationError("plugin");
     }
   }
 
