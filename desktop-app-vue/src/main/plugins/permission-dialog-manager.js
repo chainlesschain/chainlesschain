@@ -9,12 +9,20 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginOperationError } = require("./plugin-ipc-error-boundary");
 const EventEmitter = require("events");
 
 const logger = createPluginLogRedactor(
   pluginLogSink,
   "PermissionDialogManager",
 );
+
+function createPermissionQueueOverloadError() {
+  const error = new Error("权限请求队列已满");
+  error.code = "OVERLOADED";
+  error.retryAfterMs = 100;
+  return error;
+}
 
 /**
  * 权限风险等级定义
@@ -279,10 +287,7 @@ class PermissionDialogManager extends EventEmitter {
       return { granted: true, permissions: {} };
     }
     if (this.pendingRequests.size >= this.maxPendingRequests) {
-      const error = new Error("权限请求队列已满");
-      error.code = "OVERLOADED";
-      error.retryAfterMs = 100;
-      throw error;
+      throw createPermissionQueueOverloadError();
     }
 
     // 生成请求ID
@@ -331,9 +336,10 @@ class PermissionDialogManager extends EventEmitter {
             riskLevels: RISK_LEVELS,
           });
         } catch (error) {
+          logger.error("[PermissionDialogManager] 权限请求发送失败", error);
           clearTimeout(timer);
           this.pendingRequests.delete(requestId);
-          reject(error);
+          reject(createPluginOperationError("plugin"));
         }
       } else {
         // 如果主窗口不可用，自动拒绝

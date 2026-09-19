@@ -31,4 +31,45 @@ describe("PermissionDialogManager backpressure", () => {
     await expect(first).resolves.toMatchObject({ granted: false });
     expect(manager.pendingRequests.size).toBe(0);
   });
+
+  it("does not disclose renderer send errors and clears pending work", async () => {
+    const manager = new PermissionDialogManager({
+      maxPendingRequests: 1,
+      requestTimeoutMs: 60_000,
+    });
+    const secret = "permission-dialog-send-secret";
+    manager.setMainWindow({
+      isDestroyed: () => false,
+      webContents: {
+        send: vi.fn(() => {
+          throw new Error(secret);
+        }),
+      },
+    });
+
+    const request = manager.requestPermissions({
+      id: "plugin",
+      permissions: ["network"],
+    });
+
+    await expect(request).rejects.toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+    await expect(request).rejects.not.toThrow(secret);
+    expect(manager.pendingRequests.size).toBe(0);
+  });
+
+  it("has no raw caught-error throw or rejection", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const source = await readFile(
+      resolve(process.cwd(), "src/main/plugins/permission-dialog-manager.js"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(
+      /(?:throw|reject\()\s*(?:error|err|e)\s*\)?\s*;/u,
+    );
+  });
 });
