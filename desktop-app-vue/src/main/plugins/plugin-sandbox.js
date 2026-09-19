@@ -10,6 +10,10 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+  createPluginOperationError,
+} = require("./plugin-ipc-error-boundary");
 const { isWithinDir } = require("../utils/path-boundary.js");
 const vm = require("vm");
 const fs = require("fs");
@@ -74,7 +78,8 @@ class PluginSandbox extends EventEmitter {
         if (err.code === "ENOENT") {
           throw new Error(`插件入口文件不存在: ${entryPath}`);
         }
-        throw err;
+        logger.error("[PluginSandbox] 插件入口读取失败", err);
+        throw createPluginOperationError("plugin");
       }
 
       // 2. 创建沙箱环境
@@ -122,7 +127,8 @@ class PluginSandbox extends EventEmitter {
         if (error.message.includes("timed out")) {
           throw new Error(`插件加载超时（${this.timeouts.load}ms）`);
         }
-        throw error;
+        logger.error("[PluginSandbox] 插件代码执行失败", error);
+        throw createPluginOperationError("plugin");
       }
 
       // 4. 获取导出的插件类
@@ -146,9 +152,12 @@ class PluginSandbox extends EventEmitter {
       return this.instance;
     } catch (error) {
       this.state = "error";
-      this.emit("error", { pluginId: this.pluginId, error });
+      this.emit("error", {
+        pluginId: this.pluginId,
+        ...createPluginFailureDescriptor("plugin"),
+      });
       logger.error(`[PluginSandbox] 插件加载失败: ${this.pluginId}`, error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -353,8 +362,12 @@ class PluginSandbox extends EventEmitter {
         `[PluginSandbox] 钩子执行失败: ${this.pluginId}.${hookName}`,
         error,
       );
-      this.emit("hook-error", { pluginId: this.pluginId, hookName, error });
-      throw error;
+      this.emit("hook-error", {
+        pluginId: this.pluginId,
+        hookName,
+        ...createPluginFailureDescriptor("plugin"),
+      });
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -373,9 +386,9 @@ class PluginSandbox extends EventEmitter {
       this.state = "enabled";
       this.emit("enabled", { pluginId: this.pluginId });
       logger.info(`[PluginSandbox] 插件已启用: ${this.pluginId}`);
-    } catch (error) {
+    } catch (_error) {
       this.state = "error";
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -394,9 +407,9 @@ class PluginSandbox extends EventEmitter {
       this.state = "disabled";
       this.emit("disabled", { pluginId: this.pluginId });
       logger.info(`[PluginSandbox] 插件已禁用: ${this.pluginId}`);
-    } catch (error) {
+    } catch (_error) {
       this.state = "error";
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -412,9 +425,9 @@ class PluginSandbox extends EventEmitter {
       this.state = "unloaded";
       this.emit("unloaded", { pluginId: this.pluginId });
       logger.info(`[PluginSandbox] 插件已卸载: ${this.pluginId}`);
-    } catch (error) {
+    } catch (_error) {
       this.state = "error";
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -465,8 +478,12 @@ class PluginSandbox extends EventEmitter {
         `[PluginSandbox] 方法执行失败: ${this.pluginId}.${methodName}`,
         error,
       );
-      this.emit("method-error", { pluginId: this.pluginId, methodName, error });
-      throw error;
+      this.emit("method-error", {
+        pluginId: this.pluginId,
+        methodName,
+        ...createPluginFailureDescriptor("plugin"),
+      });
+      throw createPluginOperationError("plugin");
     }
   }
 
