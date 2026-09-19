@@ -50,6 +50,23 @@ describe("PluginLoader process execution", () => {
     );
   });
 
+  it("does not disclose dependency installer output", async () => {
+    const childProcess = createProcess();
+    const loader = createLoader(() => childProcess);
+    const secret = "dependency-installer-secret";
+    const resultPromise = loader.installNpmDependencies("C:/plugins/demo");
+
+    childProcess.stderr.emit("data", Buffer.from(secret));
+    childProcess.emit("close", 9);
+
+    await expect(resultPromise).rejects.toMatchObject({
+      message: "Plugin dependency installation failed",
+      code: "PLUGIN_DEPENDENCY_INSTALL_FAILED",
+      exitCode: 9,
+    });
+    await expect(resultPromise).rejects.not.toThrow(secret);
+  });
+
   it("keeps plugin command arguments literal with shell disabled", async () => {
     const childProcess = createProcess();
     const spawnProcess = vi.fn(() => childProcess);
@@ -78,5 +95,49 @@ describe("PluginLoader process execution", () => {
         provenance: { pluginSource: "archive.zip" },
       },
     );
+  });
+
+  it("bounds successful command output", async () => {
+    const childProcess = createProcess();
+    const loader = createLoader(() => childProcess);
+    const resultPromise = loader.execCommand("tool", []);
+
+    childProcess.stdout.emit("data", Buffer.alloc(70 * 1024, "a"));
+    childProcess.emit("close", 0);
+
+    const result = await resultPromise;
+    expect(Buffer.byteLength(result, "utf8")).toBe(64 * 1024);
+  });
+
+  it("does not disclose failed command output", async () => {
+    const childProcess = createProcess();
+    const loader = createLoader(() => childProcess);
+    const secret = "plugin-process-secret";
+    const resultPromise = loader.execCommand("tool", []);
+
+    childProcess.stderr.emit("data", Buffer.from(secret));
+    childProcess.emit("close", 7);
+
+    await expect(resultPromise).rejects.toMatchObject({
+      message: "Plugin command failed",
+      code: "PLUGIN_COMMAND_FAILED",
+      exitCode: 7,
+    });
+    await expect(resultPromise).rejects.not.toThrow(secret);
+  });
+
+  it("does not disclose process spawn errors", async () => {
+    const childProcess = createProcess();
+    const loader = createLoader(() => childProcess);
+    const secret = "spawn-error-secret";
+    const resultPromise = loader.execCommand("tool", []);
+
+    childProcess.emit("error", new Error(secret));
+
+    await expect(resultPromise).rejects.toMatchObject({
+      message: "Plugin command process failed to start",
+      code: "PLUGIN_COMMAND_SPAWN_FAILED",
+    });
+    await expect(resultPromise).rejects.not.toThrow(secret);
   });
 });

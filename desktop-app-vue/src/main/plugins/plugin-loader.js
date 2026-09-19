@@ -9,6 +9,7 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createHash } = require("node:crypto");
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
@@ -16,6 +17,49 @@ const { app } = require("electron");
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginLoader");
+
+const MAX_PROCESS_OUTPUT_BYTES = 64 * 1024;
+
+function createBoundedProcessOutput() {
+  const hash = createHash("sha256");
+  const chunks = [];
+  let totalBytes = 0;
+  let retainedBytes = 0;
+
+  return {
+    push(value) {
+      const chunk = Buffer.isBuffer(value)
+        ? value
+        : Buffer.from(String(value), "utf8");
+      hash.update(chunk);
+      totalBytes += chunk.byteLength;
+      const remaining = MAX_PROCESS_OUTPUT_BYTES - retainedBytes;
+      if (remaining > 0) {
+        const retained = chunk.subarray(0, remaining);
+        chunks.push(retained);
+        retainedBytes += retained.byteLength;
+      }
+    },
+    finish() {
+      return Object.freeze({
+        text: Buffer.concat(chunks).toString("utf8"),
+        totalBytes,
+        retainedBytes,
+        truncated: totalBytes > retainedBytes,
+        digest: `sha256:${hash.digest("hex")}`,
+      });
+    },
+  };
+}
+
+function createPluginProcessError(code, message, exitCode = null) {
+  const error = new Error(message);
+  error.code = code;
+  if (Number.isSafeInteger(exitCode)) {
+    error.exitCode = exitCode;
+  }
+  return error;
+}
 
 class PluginLoader {
   constructor({
@@ -429,24 +473,44 @@ class PluginLoader {
         provenance: { pluginSource: pluginPath },
       });
 
-      let output = "";
+      const output = createBoundedProcessOutput();
 
       child.stdout.on("data", (data) => {
-        output += data.toString("utf8");
+        output.push(data);
       });
 
       child.stderr.on("data", (data) => {
-        output += data.toString("utf8");
+        output.push(data);
       });
 
       child.on("close", (code) => {
+        const outputSummary = output.finish();
         if (code === 0) {
           logger.info("[PluginLoader] NPM依赖安装成功");
           resolve();
         } else {
-          logger.error("[PluginLoader] NPM依赖安装失败:", output);
-          reject(new Error(`NPM依赖安装失败，退出代码: ${code}`));
+          logger.error("[PluginLoader] NPM依赖安装失败", {
+            exitCode: Number.isSafeInteger(code) ? code : null,
+            output: outputSummary,
+          });
+          reject(
+            createPluginProcessError(
+              "PLUGIN_DEPENDENCY_INSTALL_FAILED",
+              "Plugin dependency installation failed",
+              code,
+            ),
+          );
         }
+      });
+
+      child.on("error", (error) => {
+        logger.error("[PluginLoader] NPM依赖进程启动失败", error);
+        reject(
+          createPluginProcessError(
+            "PLUGIN_DEPENDENCY_SPAWN_FAILED",
+            "Plugin dependency process failed to start",
+          ),
+        );
       });
     });
   }
@@ -467,27 +531,46 @@ class PluginLoader {
         provenance: options.provenance || null,
       });
 
-      let stdout = "";
-      let stderr = "";
+      const stdout = createBoundedProcessOutput();
+      const stderr = createBoundedProcessOutput();
 
       child.stdout.on("data", (data) => {
-        stdout += data.toString("utf8");
+        stdout.push(data);
       });
 
       child.stderr.on("data", (data) => {
-        stderr += data.toString("utf8");
+        stderr.push(data);
       });
 
       child.on("close", (code) => {
+        const stdoutSummary = stdout.finish();
+        const stderrSummary = stderr.finish();
         if (code === 0) {
-          resolve(stdout);
+          resolve(stdoutSummary.text);
         } else {
-          reject(new Error(`命令执行失败 (${code}): ${stderr || stdout}`));
+          logger.error("[PluginLoader] 插件命令执行失败", {
+            exitCode: Number.isSafeInteger(code) ? code : null,
+            stdout: stdoutSummary,
+            stderr: stderrSummary,
+          });
+          reject(
+            createPluginProcessError(
+              "PLUGIN_COMMAND_FAILED",
+              "Plugin command failed",
+              code,
+            ),
+          );
         }
       });
 
       child.on("error", (error) => {
-        reject(error);
+        logger.error("[PluginLoader] 插件命令进程启动失败", error);
+        reject(
+          createPluginProcessError(
+            "PLUGIN_COMMAND_SPAWN_FAILED",
+            "Plugin command process failed to start",
+          ),
+        );
       });
     });
   }
