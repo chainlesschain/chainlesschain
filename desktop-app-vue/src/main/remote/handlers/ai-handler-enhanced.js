@@ -13,8 +13,11 @@
  * @module remote/handlers/ai-handler-enhanced
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const SqlSecurity = require("../../database/sql-security.js");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "EnhancedAIHandler");
 
 /**
  * Tolerant JSON column parse — a single conversation with a corrupt metadata

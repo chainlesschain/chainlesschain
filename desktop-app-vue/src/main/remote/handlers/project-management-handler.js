@@ -18,8 +18,14 @@
  *   - Phase 3d sync 仍负责后台同步，但 REMOTE 提供 on-demand 实时操作
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { v4: uuidv4 } = require("uuid");
+
+const logger = createRemoteLogRedactor(
+  remoteLogSink,
+  "ProjectManagementHandler",
+);
 
 class ProjectManagementHandler {
   constructor(database) {

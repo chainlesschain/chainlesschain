@@ -11,13 +11,16 @@
  * @module remote/handlers/ai-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const SqlSecurity = require("../../database/sql-security.js");
 const {
   BoundedPollStreamRegistry,
   DEFAULT_LIMITS: AI_STREAM_LIMITS,
   HARD_LIMITS: AI_STREAM_HARD_LIMITS,
 } = require("../streams/bounded-poll-stream-registry.js");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "AIHandler");
 
 /**
  * Tolerant JSON column parse — a single conversation/agent/template row with a

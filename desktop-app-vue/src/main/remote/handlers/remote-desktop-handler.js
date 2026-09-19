@@ -12,8 +12,12 @@
  * @module remote/handlers/remote-desktop-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const screenshot = require("screenshot-desktop");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "RemoteDesktopHandler");
+
 let sharp;
 try {
   sharp = require("sharp");

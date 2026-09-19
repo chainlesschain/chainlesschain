@@ -20,6 +20,14 @@ const WIRED_MODULES = [
   "src/main/remote/handlers/display-handler.js",
   "src/main/remote/handlers/media-handler.js",
   "src/main/remote/handlers/power-handler.js",
+  "src/main/remote/handlers/security-handler.js",
+  "src/main/remote/handlers/remote-desktop-handler.js",
+  "src/main/remote/handlers/ai-handler.js",
+  "src/main/remote/handlers/ai-handler-enhanced.js",
+  "src/main/remote/handlers/browser-handler.js",
+  "src/main/remote/handlers/project-management-handler.js",
+  "src/main/remote/handlers/mobile-approval-transport.js",
+  "src/main/remote/handlers/system-info-handler.js",
 ];
 
 function createSink() {
@@ -65,7 +73,7 @@ describe("remote log redaction", () => {
   it("wires high-risk transfer and history modules through the strict wrapper", () => {
     for (const relativePath of WIRED_MODULES) {
       const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
-      expect(source).toContain("createRemoteLogRedactor(remoteLogSink");
+      expect(source).toMatch(/createRemoteLogRedactor\(\s*remoteLogSink\s*,/u);
       expect(source).not.toMatch(/const\s*\{\s*logger\s*\}\s*=\s*require/u);
     }
   });

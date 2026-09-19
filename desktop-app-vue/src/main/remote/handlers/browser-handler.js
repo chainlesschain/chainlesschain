@@ -16,7 +16,10 @@
  * @module remote/handlers/browser-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "BrowserHandler");
 
 // Lazy load BrowserEngine to allow dependency injection in tests
 let BrowserEngineClass = null;

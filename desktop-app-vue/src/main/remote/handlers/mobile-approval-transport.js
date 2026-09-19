@@ -21,7 +21,13 @@
  * @module remote/handlers/mobile-approval-transport
  */
 
-const { logger } = require("../../utils/logger.js");
+const { logger: remoteLogSink } = require("../../utils/logger.js");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(
+  remoteLogSink,
+  "MobileApprovalTransport",
+);
 
 const DEFAULT_REVERSE_RPC_TIMEOUT_MS = 60_000;
 
