@@ -14,6 +14,7 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const path = require("path");
 const {
@@ -238,9 +239,12 @@ function registerPluginIPC({
       return {
         success: true,
         extensions: {
-          pages: pageExtensions,
-          menus: menuExtensions,
-          components: componentExtensions,
+          pages: projectPluginUiExtensions(pageExtensions, "page"),
+          menus: projectPluginUiExtensions(menuExtensions, "menu"),
+          components: projectPluginUiExtensions(
+            componentExtensions,
+            "component",
+          ),
         },
       };
     }),
@@ -259,8 +263,11 @@ function registerPluginIPC({
 
       return {
         success: true,
-        extensions: slotExtensions.sort(
-          (a, b) => (a.priority || 100) - (b.priority || 100),
+        extensions: projectPluginUiExtensions(
+          slotExtensions.sort(
+            (a, b) => (a.priority || 100) - (b.priority || 100),
+          ),
+          "component",
         ),
       };
     }),

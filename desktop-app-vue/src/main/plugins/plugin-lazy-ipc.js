@@ -10,6 +10,7 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const { ipcMain } = require("electron");
 
@@ -178,9 +179,12 @@ function registerLazyPluginIPC({
       return {
         success: true,
         extensions: {
-          pages: pageExtensions,
-          menus: menuExtensions,
-          components: componentExtensions,
+          pages: projectPluginUiExtensions(pageExtensions, "page"),
+          menus: projectPluginUiExtensions(menuExtensions, "menu"),
+          components: projectPluginUiExtensions(
+            componentExtensions,
+            "component",
+          ),
         },
       };
     } catch (error) {
@@ -211,8 +215,11 @@ function registerLazyPluginIPC({
 
       return {
         success: true,
-        extensions: slotExtensions.sort(
-          (a, b) => (a.priority || 100) - (b.priority || 100),
+        extensions: projectPluginUiExtensions(
+          slotExtensions.sort(
+            (a, b) => (a.priority || 100) - (b.priority || 100),
+          ),
+          "component",
         ),
       };
     } catch (error) {

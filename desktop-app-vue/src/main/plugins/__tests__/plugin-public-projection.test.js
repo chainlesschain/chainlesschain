@@ -7,6 +7,7 @@ const {
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginUiExtensions,
 } = require("../plugin-public-projection.js");
 
 describe("plugin public projection", () => {
@@ -161,5 +162,86 @@ describe("plugin public projection", () => {
       theme: "dark",
     });
     expect(JSON.stringify(projected)).not.toContain(secret);
+  });
+
+  it("projects UI extensions without executable or arbitrary config", () => {
+    const secret = "extension-config-secret";
+    const base = {
+      id: "extension-1",
+      plugin_id: "plugin-1",
+      plugin_name: "Plugin",
+      extension_point: "ui.component",
+      priority: 10,
+    };
+    const pages = projectPluginUiExtensions(
+      [
+        {
+          ...base,
+          config: {
+            id: "main",
+            path: "/main",
+            title: "Main",
+            icon: "HomeOutlined",
+            meta: { secret },
+            componentPath: secret,
+            html: secret,
+          },
+        },
+      ],
+      "page",
+    );
+    const menus = projectPluginUiExtensions(
+      [
+        {
+          ...base,
+          config: {
+            label: "Menu",
+            path: "/main",
+            children: [
+              {
+                id: "child",
+                label: "Child",
+                path: "/child",
+                onClick: { secret },
+              },
+            ],
+          },
+        },
+      ],
+      "menu",
+    );
+    const components = projectPluginUiExtensions(
+      [
+        {
+          ...base,
+          config: {
+            slot: "global-header",
+            type: "html",
+            html: secret,
+            content: secret,
+            componentPath: secret,
+            conditions: [{ value: secret }],
+            actions: { click: "safeMethod", other: { secret } },
+          },
+        },
+      ],
+      "component",
+    );
+
+    expect(pages[0].config).toEqual({
+      id: "main",
+      path: "/main",
+      title: "Main",
+      icon: "HomeOutlined",
+    });
+    expect(menus[0].config.children).toEqual([
+      { id: "child", label: "Child", icon: "", path: "/child" },
+    ]);
+    expect(components[0].config).toMatchObject({
+      slot: "global-header",
+      type: "custom",
+      onClick: "safeMethod",
+    });
+    expect(JSON.stringify({ pages, menus, components })).not.toContain(secret);
   });
 });

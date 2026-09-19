@@ -168,9 +168,128 @@ function projectPluginSettings(settings, definitions) {
   return result;
 }
 
+function projectRoutePath(value) {
+  if (typeof value !== "string" || value.length > 1024) {
+    return "";
+  }
+  if (!value.startsWith("/") || value.includes("..")) {
+    return "";
+  }
+  return /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$/u.test(value) ? value : "";
+}
+
+function projectMenuChildren(children) {
+  if (!Array.isArray(children)) {
+    return [];
+  }
+  return children.slice(0, 64).flatMap((child) => {
+    if (!child || typeof child !== "object") {
+      return [];
+    }
+    return [
+      {
+        id: boundedString(child.id, 256),
+        label: boundedString(child.label, 512),
+        icon: boundedString(child.icon, 128),
+        path: projectRoutePath(child.path),
+      },
+    ];
+  });
+}
+
+function projectUiConfig(config, kind) {
+  const source = config && typeof config === "object" ? config : {};
+  if (kind === "page") {
+    return {
+      id: boundedString(source.id, 256),
+      path: projectRoutePath(source.path),
+      title: boundedString(source.title, 512),
+      icon: boundedString(source.icon, 128),
+    };
+  }
+  if (kind === "menu") {
+    const badge =
+      typeof source.badge === "number" && Number.isFinite(source.badge)
+        ? source.badge
+        : boundedString(source.badge, 128);
+    return {
+      label: boundedString(source.label, 512),
+      icon: boundedString(source.icon, 128),
+      path: projectRoutePath(source.path),
+      badge,
+      children: projectMenuChildren(source.children),
+    };
+  }
+
+  const allowedTypes = new Set([
+    "button",
+    "link",
+    "panel",
+    "toolbar-button",
+    "menu-item",
+  ]);
+  const type = boundedString(source.type, 64);
+  const method = boundedString(
+    typeof source.onClick === "string" ? source.onClick : source.actions?.click,
+    256,
+  );
+  return {
+    slot: boundedString(source.slot, 128),
+    type: allowedTypes.has(type) ? type : "custom",
+    label: boundedString(source.label, 512),
+    title: boundedString(source.title, 512),
+    tooltip: boundedString(source.tooltip, 1024),
+    icon: boundedString(source.icon, 128),
+    buttonType: boundedString(source.buttonType, 64),
+    size: boundedString(source.size, 64),
+    badge:
+      typeof source.badge === "number" && Number.isFinite(source.badge)
+        ? source.badge
+        : boundedString(source.badge, 128),
+    bordered: source.bordered !== false,
+    visible: source.visible !== false,
+    onClick: /^[A-Za-z_$][A-Za-z0-9_$.-]*$/u.test(method) ? method : "",
+  };
+}
+
+function projectPluginUiExtension(extension, kind) {
+  if (!extension || typeof extension !== "object") {
+    return null;
+  }
+  const pluginId = boundedString(
+    extension.plugin_id ?? extension.pluginId,
+    256,
+  );
+  const priority = Number.isSafeInteger(extension.priority)
+    ? Math.max(-10000, Math.min(10000, extension.priority))
+    : 100;
+  return {
+    id: boundedString(extension.id, 256),
+    plugin_id: pluginId,
+    plugin_name: boundedString(
+      extension.plugin_name ?? extension.pluginName,
+      256,
+    ),
+    type: boundedString(extension.type ?? extension.extension_point, 128),
+    priority,
+    config: projectUiConfig(extension.config, kind),
+  };
+}
+
+function projectPluginUiExtensions(extensions, kind) {
+  if (!Array.isArray(extensions)) {
+    return [];
+  }
+  return extensions
+    .slice(0, 1024)
+    .map((extension) => projectPluginUiExtension(extension, kind))
+    .filter(Boolean);
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
+  projectPluginUiExtensions,
 };

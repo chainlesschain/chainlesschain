@@ -66,6 +66,24 @@ describe("lazy plugin IPC error boundary", () => {
             path: secret,
           }),
           registry: {
+            getExtensionsByPoint: vi.fn((point) => [
+              {
+                id: `${point}-1`,
+                plugin_id: "plugin-1",
+                plugin_name: "Plugin",
+                priority: 1,
+                config: {
+                  id: "main",
+                  path: "/main",
+                  label: "Menu",
+                  slot: "global-header",
+                  type: "html",
+                  html: secret,
+                  meta: { secret },
+                  componentPath: secret,
+                },
+              },
+            ]),
             getPluginSettingDefinitions: vi.fn().mockReturnValue([
               { key: "apiKey", is_secret: 1, default: secret },
               { key: "theme", type: "string" },
@@ -89,6 +107,11 @@ describe("lazy plugin IPC error boundary", () => {
       {},
       "plugin-1",
     );
+    const extensions = await ipc.handlers.get("plugin:get-ui-extensions")();
+    const slot = await ipc.handlers.get("plugin:get-slot-extensions")(
+      {},
+      "global-header",
+    );
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -105,9 +128,16 @@ describe("lazy plugin IPC error boundary", () => {
         theme: "dark",
       },
     });
-    expect(JSON.stringify({ list, detail, install, settings })).not.toContain(
-      secret,
-    );
+    expect(extensions.extensions.pages[0].config).toEqual({
+      id: "main",
+      path: "/main",
+      title: "",
+      icon: "",
+    });
+    expect(slot.extensions[0].config.type).toBe("custom");
+    expect(
+      JSON.stringify({ list, detail, install, settings, extensions, slot }),
+    ).not.toContain(secret);
   });
 
   it("has no raw caught-error rethrows", () => {
