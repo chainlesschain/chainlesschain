@@ -138,7 +138,7 @@ describe("browser filesystem quarantine custody", () => {
     };
   }
 
-  it("fsyncs, independently reads back, completes, and reopens an artifact", async () => {
+  it("fsyncs files and directories, reads back, completes, and reopens an artifact", async () => {
     const { descriptorValue, port, stateRoot } = await fixture();
     const session = await port.openQuarantine(openInput());
     await session.writeChunk(Buffer.from("hello "));
@@ -210,6 +210,31 @@ describe("browser filesystem quarantine custody", () => {
       completedAt,
       completionReceiptDigest: completion.completionReceiptDigest,
     });
+  });
+
+  it("durably creates an absent nested custody namespace", async () => {
+    const parent = await mkdtemp(path.join(tmpdir(), "cc-browser-parent-"));
+    roots.push(parent);
+    const stateRoot = path.join(parent, "nested", "quarantine");
+    const port = captureBrowserFilesystemQuarantineCustody(
+      createBrowserFilesystemQuarantineCustody({
+        descriptor: descriptor(),
+        stateRoot,
+        now: () => NOW,
+      }),
+    );
+
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("partial"));
+    await session.discardArtifact();
+    for (const directory of [
+      stateRoot,
+      path.join(stateRoot, "objects"),
+      path.join(stateRoot, "metadata"),
+      path.join(stateRoot, "deletions"),
+      path.join(stateRoot, "locks"),
+    ])
+      await expect(access(directory)).resolves.toBeUndefined();
   });
 
   it("removes every partial artifact when a streaming session is discarded", async () => {

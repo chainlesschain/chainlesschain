@@ -196,16 +196,79 @@ async function exists(file) {
   }
 }
 
+async function syncDirectory(directory) {
+  const handle = await open(
+    directory,
+    process.platform === "win32" ? "r+" : "r",
+  );
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function syncCreatedDirectoryChain(firstCreated, target) {
+  let current = path.toNamespacedPath(path.resolve(firstCreated));
+  const resolvedTarget = path.toNamespacedPath(path.resolve(target));
+  const relativeTarget = path.relative(current, resolvedTarget);
+  if (
+    relativeTarget === ".." ||
+    relativeTarget.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeTarget)
+  )
+    throw new Error("filesystem quarantine directory creation escaped target");
+  for (;;) {
+    await syncDirectory(path.dirname(current));
+    const remaining = path.relative(current, resolvedTarget);
+    if (remaining === "") return;
+    const [next] = remaining.split(path.sep);
+    current = path.join(current, next);
+  }
+}
+
+async function mkdirDurably(directory, options) {
+  const firstCreated = await mkdir(directory, options);
+  if (options?.recursive) {
+    if (typeof firstCreated === "string")
+      await syncCreatedDirectoryChain(firstCreated, directory);
+  } else {
+    await syncDirectory(path.dirname(directory));
+  }
+  return firstCreated;
+}
+
 async function unlinkIfPresent(file) {
   try {
     await unlink(file);
   } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
+    if (error?.code === "ENOENT") return false;
+    throw error;
   }
+  await syncDirectory(path.dirname(file));
+  return true;
+}
+
+async function unlinkDurably(file) {
+  await unlink(file);
+  await syncDirectory(path.dirname(file));
+}
+
+async function renameDurably(source, target) {
+  await rename(source, target);
+  const sourceDirectory = path.dirname(source);
+  const targetDirectory = path.dirname(target);
+  await syncDirectory(targetDirectory);
+  if (sourceDirectory !== targetDirectory) await syncDirectory(sourceDirectory);
+}
+
+async function rmdirDurably(directory) {
+  await rmdir(directory);
+  await syncDirectory(path.dirname(directory));
 }
 
 async function assertSafeDirectory(root, directory) {
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+  await mkdirDurably(directory, { recursive: true, mode: 0o700 });
   const info = await lstat(directory);
   if (!info.isDirectory() || info.isSymbolicLink())
     throw new Error("filesystem quarantine directory is unsafe");
@@ -218,7 +281,7 @@ async function assertSafeDirectory(root, directory) {
 async function prepare(state) {
   if (!state.preparePromise) {
     state.preparePromise = (async () => {
-      await mkdir(state.stateRoot, { recursive: true, mode: 0o700 });
+      await mkdirDurably(state.stateRoot, { recursive: true, mode: 0o700 });
       const rootInfo = await lstat(state.stateRoot);
       if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink())
         throw new Error("filesystem quarantine state root is unsafe");
@@ -337,6 +400,7 @@ async function writeMetadata(file, value) {
     } finally {
       await committed.close();
     }
+    await syncDirectory(path.dirname(file));
   } catch (error) {
     if (handle) await handle.close().catch(() => {});
     await unlinkIfPresent(temporary).catch(() => {});
@@ -361,6 +425,7 @@ async function writeNewMetadata(file, value) {
     } finally {
       await committed.close();
     }
+    await syncDirectory(path.dirname(file));
   } catch (error) {
     if (handle) await handle.close().catch(() => {});
     await unlinkIfPresent(temporary).catch(() => {});
@@ -447,7 +512,7 @@ async function removeLockDirectory(files) {
   for (const entry of inspected.entries)
     await unlinkIfPresent(path.join(files.lockDirectory, entry.name));
   try {
-    await rmdir(files.lockDirectory);
+    await rmdirDurably(files.lockDirectory);
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
@@ -493,7 +558,7 @@ async function acquireArtifactLock(state, artifactId, operation) {
   });
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      await mkdir(files.lockDirectory, { mode: 0o700 });
+      await mkdirDurably(files.lockDirectory, { mode: 0o700 });
     } catch (error) {
       if (error?.code !== "EEXIST") throw error;
       await recoverAbandonedLock(state, files, artifactId);
@@ -626,7 +691,7 @@ async function removeRecoveryTemporaryFiles(files) {
     }
     if (!info.isFile() || info.isSymbolicLink())
       throw new Error("filesystem quarantine temporary file is unsafe");
-    await unlink(file);
+    await unlinkDurably(file);
     if (await exists(file))
       throw new Error("filesystem quarantine temporary cleanup failed");
   }
@@ -841,7 +906,13 @@ async function openQuarantine(state, value) {
     )
       throw new Error("filesystem quarantine artifact already exists");
     handle = await open(files.part, "wx", 0o600);
+    await syncDirectory(state.objectsRoot);
   } catch (error) {
+    if (handle) {
+      await handle.close().catch(() => {});
+      handle = null;
+      await unlinkIfPresent(files.part).catch(() => {});
+    }
     await releaseLock().catch(() => {});
     throw error;
   }
@@ -923,7 +994,7 @@ async function openQuarantine(state, value) {
         await session.handle.sync();
         await session.handle.close();
         session.handle = null;
-        await rename(files.part, files.blob);
+        await renameDurably(files.part, files.blob);
         const observed = await hashFile(files.blob);
         if (
           observed.sizeBytes !== streamed.sizeBytes ||
