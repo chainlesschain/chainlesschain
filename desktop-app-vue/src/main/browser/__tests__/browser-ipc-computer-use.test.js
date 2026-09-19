@@ -17,6 +17,9 @@ const {
 const {
   createDesktopBrowserDownloadActionHost,
 } = require("../../evolution/desktop-browser-download-action");
+const {
+  createDesktopBrowserDownloadArtifactDisposalHost,
+} = require("../../evolution/desktop-browser-download-artifact-disposal");
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -355,6 +358,77 @@ function createDownloadHost({ failed = false } = {}) {
   };
 }
 
+function createDownloadDisposalHost() {
+  const authority = Object.freeze({});
+  const descriptor = Object.freeze({
+    authorityId: "ipc-download-disposal",
+    tenantId: "tenant-1",
+    handlerArtifactDigest: digest("download-disposal-handler"),
+    approvalMode: "interactive",
+    auditMode: "authenticated-durable-readback",
+    effectMode: "irreversible-byte-disposal",
+  });
+  const authorizeDisposal = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-download-artifact-disposal-receipt/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      approvalMode: descriptor.approvalMode,
+      auditMode: descriptor.auditMode,
+      effectMode: descriptor.effectMode,
+      requestId: request.requestId,
+      senderId: request.senderId,
+      frameUrlDigest: request.frameUrlDigest,
+      operation: request.operation,
+      artifactRefDigest: domainDigest(
+        "chainlesschain.browser-download-artifact-ref/v1",
+        request.artifactRef,
+      ),
+      artifactDigest: request.artifactDigest,
+      sourceActionReceiptDigest: request.sourceActionReceiptDigest,
+      reason: request.reason,
+      inputDigest: request.inputDigest,
+      requestDigest: digest(`request:${request.requestId}`),
+      validUntil: new Date(Date.now() + 5000).toISOString(),
+      receiptDigest: digest(request.requestId),
+    }),
+  );
+  const disposeAuthorizedArtifact = vi.fn(async () => {
+    const core = {
+      status: "discarded",
+      artifactRefDigest: domainDigest(
+        "chainlesschain.browser-download-artifact-ref/v1",
+        "quarantine:artifact-1",
+      ),
+      artifactDigest: digest("artifact"),
+      sourceActionReceiptDigest: digest("download-receipt"),
+      reason: "user-discard",
+      discardedAt: new Date().toISOString(),
+      deletionReceiptDigest: digest("deletion"),
+    };
+    return Object.freeze({
+      ...core,
+      resultDigest: domainDigest(
+        "chainlesschain.browser-download-artifact-disposal-result/v1",
+        core,
+      ),
+    });
+  });
+  const host = createDesktopBrowserDownloadArtifactDisposalHost(
+    authority,
+    (value) => {
+      if (value !== authority) throw new TypeError("unbranded");
+      return Object.freeze({
+        descriptor,
+        authorizeDisposal,
+        disposeAuthorizedArtifact,
+      });
+    },
+  );
+  return { authorizeDisposal, disposeAuthorizedArtifact, host };
+}
+
 function fixture({
   observationHost = null,
   actionHost = null,
@@ -362,6 +436,7 @@ function fixture({
   keyboardHost = null,
   tabOpenHost = null,
   downloadHost = null,
+  downloadDisposalHost = null,
   engine = null,
 } = {}) {
   const handlers = new Map();
@@ -378,6 +453,7 @@ function fixture({
     _getBrowserKeyboardActionHost: vi.fn(() => keyboardHost),
     _getBrowserTabOpenActionHost: vi.fn(() => tabOpenHost),
     _getBrowserDownloadActionHost: vi.fn(() => downloadHost),
+    _getBrowserDownloadArtifactDisposalHost: vi.fn(() => downloadDisposalHost),
     withErrorHandler: (handler) => handler,
   });
   return { handlers, getBrowserEngine };
@@ -892,5 +968,71 @@ describe("browser computer-use IPC", () => {
     expect(download.recordActionOutcome).toHaveBeenCalledWith(
       expect.objectContaining({ status: "failed" }),
     );
+  });
+
+  it("denies artifact disposal without its signed host", async () => {
+    const { handlers, getBrowserEngine } = fixture();
+    await expect(
+      handlers.get("browser:action:discard-download-artifact")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "quarantine:artifact-1",
+        digest("artifact"),
+        digest("download-receipt"),
+        {},
+      ),
+    ).rejects.toThrow(/branded Desktop download artifact disposal host/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("discards one exact artifact without exposing its custody reference", async () => {
+    const disposal = createDownloadDisposalHost();
+    const { handlers, getBrowserEngine } = fixture({
+      downloadDisposalHost: disposal.host,
+    });
+    const result = await handlers.get(
+      "browser:action:discard-download-artifact",
+    )(
+      {
+        sender: { id: 17, getURL: () => "app://desktop/index.html" },
+        senderFrame: { url: "app://desktop/index.html" },
+      },
+      "quarantine:artifact-1",
+      digest("artifact"),
+      digest("download-receipt"),
+      { actionAuthorization: { approval: true } },
+    );
+    expect(result).toMatchObject({
+      success: true,
+      artifactRefDigest: expect.stringMatching(/^sha256:/u),
+      deletionReceiptDigest: expect.stringMatching(/^sha256:/u),
+      resultDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(JSON.stringify(result)).not.toContain("quarantine:artifact-1");
+    expect(disposal.disposeAuthorizedArtifact).toHaveBeenCalledOnce();
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("rejects disposal reference traversal before authority", async () => {
+    const disposal = createDownloadDisposalHost();
+    const { handlers, getBrowserEngine } = fixture({
+      downloadDisposalHost: disposal.host,
+    });
+    await expect(
+      handlers.get("browser:action:discard-download-artifact")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "../../artifact",
+        digest("artifact"),
+        digest("download-receipt"),
+        {},
+      ),
+    ).rejects.toThrow(/input is invalid/u);
+    expect(disposal.authorizeDisposal).not.toHaveBeenCalled();
+    expect(getBrowserEngine).not.toHaveBeenCalled();
   });
 });

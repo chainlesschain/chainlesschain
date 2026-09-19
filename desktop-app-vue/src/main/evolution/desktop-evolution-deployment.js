@@ -24,6 +24,9 @@ const {
   createDesktopBrowserDownloadActionHost,
 } = require("./desktop-browser-download-action");
 const {
+  createDesktopBrowserDownloadArtifactDisposalHost,
+} = require("./desktop-browser-download-artifact-disposal");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -72,6 +75,8 @@ const DEV_BROWSER_TAB_OPEN_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-tab-open-action-authority.js";
 const DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-action-authority.js";
+const DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-download-artifact-disposal-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -720,6 +725,27 @@ function resolveBrowserDownloadActionAuthorityPath({
   return path.resolve(__dirname, DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL);
 }
 
+function resolveBrowserDownloadArtifactDisposalAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser download artifact disposal authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-download-artifact-disposal-authority.js",
+    );
+  }
+  return path.resolve(
+    __dirname,
+    DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL,
+  );
+}
+
 function createDesktopPmExplorationStorageHost(store, captureStore) {
   if (typeof captureStore !== "function" || types.isProxy(captureStore)) {
     throw new TypeError("PM exploration ledger store capture is invalid");
@@ -1349,6 +1375,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserKeyboardActionAuthorityModule = (url) => import(url),
   importBrowserTabOpenActionAuthorityModule = (url) => import(url),
   importBrowserDownloadActionAuthorityModule = (url) => import(url),
+  importBrowserDownloadArtifactDisposalAuthorityModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -1559,6 +1586,38 @@ async function loadDesktopEvolutionDependencies({
           authorityModule,
           "captureBrowserDownloadActionAuthority",
           "browser download action authority capture",
+        ),
+      );
+  }
+  const browserDownloadArtifactDisposalAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(
+      result,
+      "browserDownloadArtifactDisposalAuthority",
+    );
+  if (browserDownloadArtifactDisposalAuthorityDescriptor) {
+    if (
+      !("value" in browserDownloadArtifactDisposalAuthorityDescriptor) ||
+      browserDownloadArtifactDisposalAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser download artifact disposal authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserDownloadArtifactDisposalAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule =
+      await importBrowserDownloadArtifactDisposalAuthorityModule(
+        pathToFileURL(authorityPath).href,
+      );
+    desktopDependencies.desktopBrowserDownloadArtifactDisposalHost =
+      createDesktopBrowserDownloadArtifactDisposalHost(
+        browserDownloadArtifactDisposalAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserDownloadArtifactDisposalAuthority",
+          "browser download artifact disposal authority capture",
         ),
       );
   }
@@ -1971,5 +2030,6 @@ module.exports = {
   resolveBrowserKeyboardActionAuthorityPath,
   resolveBrowserTabOpenActionAuthorityPath,
   resolveBrowserDownloadActionAuthorityPath,
+  resolveBrowserDownloadArtifactDisposalAuthorityPath,
   resolveLoaderPath,
 };

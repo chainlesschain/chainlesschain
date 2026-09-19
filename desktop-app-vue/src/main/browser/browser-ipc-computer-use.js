@@ -33,6 +33,10 @@ const {
   executeDesktopBrowserDownloadActionGrant,
   recordDesktopBrowserDownloadActionOutcome,
 } = require("../evolution/desktop-browser-download-action");
+const {
+  authorizeDesktopBrowserDownloadArtifactDisposal,
+  executeDesktopBrowserDownloadArtifactDisposal,
+} = require("../evolution/desktop-browser-download-artifact-disposal");
 
 const READ_ONLY_VISION_TASKS = new Set([
   "analyze",
@@ -135,6 +139,7 @@ function registerComputerUseHandlers(ctx) {
     _getBrowserKeyboardActionHost,
     _getBrowserTabOpenActionHost,
     _getBrowserDownloadActionHost,
+    _getBrowserDownloadArtifactDisposalHost,
     withErrorHandler,
   } = ctx;
 
@@ -266,6 +271,54 @@ function registerComputerUseHandlers(ctx) {
         ...evidence,
       };
     }),
+  );
+
+  /**
+   * Irreversibly discard one exact quarantined artifact. The custody provider
+   * must durably prove that the bytes are no longer available before return.
+   */
+  _ipcMain.handle(
+    "browser:action:discard-download-artifact",
+    withErrorHandler(
+      async (
+        event,
+        artifactRef,
+        artifactDigest,
+        sourceActionReceiptDigest,
+        options = {},
+      ) => {
+        const grant = await authorizeDesktopBrowserDownloadArtifactDisposal(
+          _getBrowserDownloadArtifactDisposalHost?.() ?? null,
+          {
+            artifactRef,
+            artifactDigest,
+            sourceActionReceiptDigest,
+            options,
+            senderId: event?.sender?.id,
+            frameUrl:
+              event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+            authorization: options.actionAuthorization ?? null,
+          },
+        );
+        const result = await executeDesktopBrowserDownloadArtifactDisposal(
+          grant,
+          artifactRef,
+          artifactDigest,
+          sourceActionReceiptDigest,
+          options,
+        );
+        return {
+          success: true,
+          artifactRefDigest: result.artifactRefDigest,
+          artifactDigest: result.artifactDigest,
+          sourceActionReceiptDigest: result.sourceActionReceiptDigest,
+          reason: result.reason,
+          discardedAt: result.discardedAt,
+          deletionReceiptDigest: result.deletionReceiptDigest,
+          resultDigest: result.resultDigest,
+        };
+      },
+    ),
   );
 
   /**

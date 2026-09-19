@@ -213,6 +213,7 @@ describe("browser download action authority", () => {
     ],
     ["unclean scan", { scanVerdict: "infected" }],
     ["unquarantined artifact", { quarantined: false }],
+    ["non-quarantine artifact reference", { artifactRef: "artifact-1" }],
   ])("fails closed for %s evidence", async (_label, artifactOverrides) => {
     const { port } = fixture({
       executeDownload: vi.fn(async () => artifact(artifactOverrides)),

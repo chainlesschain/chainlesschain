@@ -217,6 +217,7 @@ describe("browser quarantined download executor", () => {
   });
 
   it.each([
+    ["artifact reference", { artifactRef: "artifact-1" }],
     ["artifact digest", { artifactDigest: digest("substituted") }],
     ["durability", { durable: false }],
     ["readback", { readbackVerified: false }],

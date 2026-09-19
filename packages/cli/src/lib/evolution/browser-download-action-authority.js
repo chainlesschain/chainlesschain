@@ -18,6 +18,7 @@ export const BROWSER_DOWNLOAD_ACTION_OUTCOME_ACK_SCHEMA =
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
+const ARTIFACT_REF = /^quarantine:[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
 const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
@@ -356,7 +357,7 @@ function normalizeArtifact(value, request, deadlineAtMs, finishedAtMs) {
   const finalOrigin = new URL(finalUrl).origin;
   if (
     value.schema !== BROWSER_DOWNLOAD_ARTIFACT_SCHEMA ||
-    !ID.test(value.artifactRef) ||
+    !ARTIFACT_REF.test(value.artifactRef) ||
     !DIGEST.test(value.artifactDigest) ||
     !Number.isSafeInteger(value.sizeBytes) ||
     value.sizeBytes < 1 ||

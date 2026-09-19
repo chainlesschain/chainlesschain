@@ -47,6 +47,9 @@ const {
 const {
   authorizeDesktopBrowserDownloadAction,
 } = require("../desktop-browser-download-action");
+const {
+  authorizeDesktopBrowserDownloadArtifactDisposal,
+} = require("../desktop-browser-download-artifact-disposal");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -820,6 +823,79 @@ describe("desktop evolution deployment", () => {
     ).resolves.toEqual({});
     expect(capture).toHaveBeenCalledWith(authority);
     expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed artifact-disposal authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-download-disposal",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("download-disposal-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      effectMode: "irreversible-byte-disposal",
+    });
+    const authorizeDisposal = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-download-artifact-disposal-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        approvalMode: descriptor.approvalMode,
+        auditMode: descriptor.auditMode,
+        effectMode: descriptor.effectMode,
+        requestId: request.requestId,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        operation: request.operation,
+        artifactRefDigest: domainDigest(
+          "chainlesschain.browser-download-artifact-ref/v1",
+          request.artifactRef,
+        ),
+        artifactDigest: request.artifactDigest,
+        sourceActionReceiptDigest: request.sourceActionReceiptDigest,
+        reason: request.reason,
+        inputDigest: request.inputDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded disposal");
+      return Object.freeze({
+        descriptor,
+        authorizeDisposal,
+        disposeAuthorizedArtifact: vi.fn(),
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserDownloadArtifactDisposalAuthority: authority,
+        }),
+      }),
+      importBrowserDownloadArtifactDisposalAuthorityModule: async () => ({
+        captureBrowserDownloadArtifactDisposalAuthority: capture,
+      }),
+    });
+    expect(
+      Object.keys(result.desktopBrowserDownloadArtifactDisposalHost),
+    ).toEqual([]);
+    await expect(
+      authorizeDesktopBrowserDownloadArtifactDisposal(
+        result.desktopBrowserDownloadArtifactDisposalHost,
+        {
+          artifactRef: "quarantine:artifact-1",
+          artifactDigest: sha("artifact"),
+          sourceActionReceiptDigest: sha("source-receipt"),
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(authorizeDisposal).toHaveBeenCalledOnce();
   });
 
   it("narrows a branded PM ledger store to an opaque read-only Desktop host", async () => {

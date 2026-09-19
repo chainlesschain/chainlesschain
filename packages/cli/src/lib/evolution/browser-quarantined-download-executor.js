@@ -16,6 +16,7 @@ const EXECUTION_SCHEMA = "chainlesschain.browser-download-action-execution/v1";
 const ARTIFACT_SCHEMA = "chainlesschain.browser-download-artifact/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
+const ARTIFACT_REF = /^quarantine:[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
 const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
@@ -291,7 +292,7 @@ function normalizeQuarantineAck(value, streamed) {
   );
   if (
     value.schema !== BROWSER_DOWNLOAD_QUARANTINE_COMMIT_ACK_SCHEMA ||
-    !ID.test(value.artifactRef) ||
+    !ARTIFACT_REF.test(value.artifactRef) ||
     value.artifactDigest !== streamed.artifactDigest ||
     value.sizeBytes !== streamed.sizeBytes ||
     value.contentType !== streamed.contentType ||

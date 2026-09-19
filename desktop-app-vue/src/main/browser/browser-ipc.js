@@ -179,6 +179,8 @@ function registerBrowserIPC(deps = {}) {
       deps.desktopBrowserTabOpenActionHost ?? null,
     _getBrowserDownloadActionHost: () =>
       deps.desktopBrowserDownloadActionHost ?? null,
+    _getBrowserDownloadArtifactDisposalHost: () =>
+      deps.desktopBrowserDownloadArtifactDisposalHost ?? null,
   };
 
   registerCoreHandlers(ctx);
