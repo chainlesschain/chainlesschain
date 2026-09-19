@@ -9,6 +9,7 @@ import {
   readdir,
   realpath,
   rename,
+  rmdir,
   stat,
   unlink,
 } from "node:fs/promises";
@@ -29,6 +30,8 @@ export const BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-expiry-plan/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-operator-revocation-descriptor/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-lock-owner/v1";
 
 const QUARANTINE_COMMIT_ACK_SCHEMA =
   "chainlesschain.browser-download-quarantine-commit-ack/v1";
@@ -46,6 +49,10 @@ const METADATA_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.json$/u;
 const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
+const LOCK_OWNER_INIT_TIMEOUT_MS = 30_000;
+const LOCK_OPERATIONS = new Set(["write", "scan", "complete", "dispose"]);
+const LOCK_TEMP_FILE =
+  /^owner\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
 const DISPOSAL_REASONS = new Set([
   "user-discard",
   "expired",
@@ -154,6 +161,8 @@ function pathsFor(root, artifactId) {
     metadata: path.join(metadata, `${artifactId}.json`),
     deletionIntent: path.join(root, "deletions", `${artifactId}.intent.json`),
     tombstone: path.join(root, "deletions", `${artifactId}.deleted.json`),
+    lockDirectory: path.join(root, "locks", `${artifactId}.lock`),
+    lockOwner: path.join(root, "locks", `${artifactId}.lock`, "owner.json"),
   });
 }
 
@@ -205,6 +214,7 @@ async function prepare(state) {
       await assertSafeDirectory(state.stateRoot, state.objectsRoot);
       await assertSafeDirectory(state.stateRoot, state.metadataRoot);
       await assertSafeDirectory(state.stateRoot, state.deletionsRoot);
+      await assertSafeDirectory(state.stateRoot, state.locksRoot);
     })();
   }
   await state.preparePromise;
@@ -223,20 +233,42 @@ async function hashFile(file) {
   });
 }
 
-function pathlessBody(state, artifactId, file) {
+function pathlessBody(state, artifactId, file, expectedMetadata) {
   return Object.freeze({
     async *[Symbol.asyncIterator]() {
-      if (state.disposals.has(artifactId))
-        throw new Error("filesystem quarantine artifact disposal is active");
-      state.readers.set(artifactId, (state.readers.get(artifactId) ?? 0) + 1);
-      const stream = createReadStream(file);
+      const releaseLock = await acquireArtifactLock(state, artifactId, "scan");
+      let readerRegistered = false;
+      let stream = null;
       try {
+        if (state.disposals.has(artifactId))
+          throw new Error("filesystem quarantine artifact disposal is active");
+        state.readers.set(artifactId, (state.readers.get(artifactId) ?? 0) + 1);
+        readerRegistered = true;
+        const persisted = await readMetadata(
+          state,
+          expectedMetadata.artifactRef,
+        );
+        if (
+          persisted.metadata.status !== "quarantined" ||
+          persisted.metadata.artifactDigest !==
+            expectedMetadata.artifactDigest ||
+          persisted.metadata.quarantineReceiptDigest !==
+            expectedMetadata.quarantineReceiptDigest
+        )
+          throw new Error(
+            "filesystem quarantine scan changed before streaming",
+          );
+        await verifyBlob(persisted.files, persisted.metadata);
+        stream = createReadStream(file);
         for await (const chunk of stream) yield Buffer.from(chunk);
       } finally {
-        stream.destroy();
-        const remaining = (state.readers.get(artifactId) ?? 1) - 1;
-        if (remaining === 0) state.readers.delete(artifactId);
-        else state.readers.set(artifactId, remaining);
+        stream?.destroy();
+        if (readerRegistered) {
+          const remaining = (state.readers.get(artifactId) ?? 1) - 1;
+          if (remaining === 0) state.readers.delete(artifactId);
+          else state.readers.set(artifactId, remaining);
+        }
+        await releaseLock();
       }
     },
   });
@@ -322,6 +354,169 @@ async function writeNewMetadata(file, value) {
   }
 }
 
+function lockError(message) {
+  const error = new Error(message);
+  error.code = "BROWSER_FILESYSTEM_QUARANTINE_ARTIFACT_LOCKED";
+  return error;
+}
+
+function normalizeLockOwner(value, state, artifactId) {
+  exact(
+    value,
+    [
+      "schema",
+      "custodyId",
+      "tenantId",
+      "artifactId",
+      "operation",
+      "lockId",
+      "pid",
+      "acquiredAt",
+    ],
+    "filesystem quarantine lock owner",
+  );
+  if (
+    value.schema !== BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA ||
+    value.custodyId !== state.descriptor.custodyId ||
+    value.tenantId !== state.descriptor.tenantId ||
+    value.artifactId !== artifactId ||
+    !LOCK_OPERATIONS.has(value.operation) ||
+    typeof value.lockId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      value.lockId,
+    ) ||
+    !Number.isSafeInteger(value.pid) ||
+    value.pid < 1 ||
+    !Number.isFinite(Date.parse(value.acquiredAt))
+  )
+    throw new Error("filesystem quarantine lock owner is invalid");
+  return Object.freeze({ ...value });
+}
+
+function isProcessAlive(pid) {
+  if (pid === process.pid) return true;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === "ESRCH") return false;
+    if (error?.code === "EPERM") return true;
+    throw error;
+  }
+}
+
+async function inspectLockDirectory(files) {
+  let info;
+  try {
+    info = await lstat(files.lockDirectory);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw new Error("filesystem quarantine artifact lock is unsafe");
+  const entries = await readdir(files.lockDirectory, { withFileTypes: true });
+  for (const entry of entries) {
+    if (
+      (entry.name !== "owner.json" && !LOCK_TEMP_FILE.test(entry.name)) ||
+      !entry.isFile() ||
+      entry.isSymbolicLink()
+    )
+      throw new Error("filesystem quarantine artifact lock is unsafe");
+  }
+  return Object.freeze({ info, entries });
+}
+
+async function removeLockDirectory(files) {
+  const inspected = await inspectLockDirectory(files);
+  if (inspected === null) return;
+  for (const entry of inspected.entries)
+    await unlinkIfPresent(path.join(files.lockDirectory, entry.name));
+  try {
+    await rmdir(files.lockDirectory);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (await exists(files.lockDirectory))
+    throw new Error("filesystem quarantine artifact lock cleanup failed");
+}
+
+async function recoverAbandonedLock(state, files, artifactId) {
+  const inspected = await inspectLockDirectory(files);
+  if (inspected === null) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(await readFile(files.lockOwner, "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    if (Date.now() - inspected.info.mtimeMs < LOCK_OWNER_INIT_TIMEOUT_MS)
+      throw lockError("filesystem quarantine artifact lock is initializing");
+    await removeLockDirectory(files);
+    return;
+  }
+  const owner = normalizeLockOwner(parsed, state, artifactId);
+  if (isProcessAlive(owner.pid))
+    throw lockError(
+      `filesystem quarantine artifact is locked for ${owner.operation}`,
+    );
+  await removeLockDirectory(files);
+}
+
+async function acquireArtifactLock(state, artifactId, operation) {
+  if (!ARTIFACT_ID.test(artifactId) || !LOCK_OPERATIONS.has(operation))
+    throw new TypeError("filesystem quarantine artifact lock input is invalid");
+  await prepare(state);
+  const files = pathsFor(state.stateRoot, artifactId);
+  const ownerValue = Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA,
+    custodyId: state.descriptor.custodyId,
+    tenantId: state.descriptor.tenantId,
+    artifactId,
+    operation,
+    lockId: randomUUID(),
+    pid: process.pid,
+    acquiredAt: new Date().toISOString(),
+  });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await mkdir(files.lockDirectory, { mode: 0o700 });
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      await recoverAbandonedLock(state, files, artifactId);
+      continue;
+    }
+    try {
+      await writeNewMetadata(files.lockOwner, ownerValue);
+      const readback = normalizeLockOwner(
+        JSON.parse(await readFile(files.lockOwner, "utf8")),
+        state,
+        artifactId,
+      );
+      if (readback.lockId !== ownerValue.lockId)
+        throw new Error("filesystem quarantine artifact lock differs");
+    } catch (error) {
+      await removeLockDirectory(files).catch(() => {});
+      throw error;
+    }
+    let released = false;
+    return async () => {
+      if (released) return;
+      const current = normalizeLockOwner(
+        JSON.parse(await readFile(files.lockOwner, "utf8")),
+        state,
+        artifactId,
+      );
+      if (current.lockId !== ownerValue.lockId)
+        throw new Error(
+          "filesystem quarantine artifact lock ownership changed",
+        );
+      await removeLockDirectory(files);
+      released = true;
+    };
+  }
+  throw lockError("filesystem quarantine artifact lock acquisition raced");
+}
+
 async function readMetadata(state, artifactRef) {
   const artifactId = artifactIdFromRef(artifactRef);
   const files = pathsFor(state.stateRoot, artifactId);
@@ -374,17 +569,28 @@ function normalizeOpenInput(value, descriptor) {
 async function openQuarantine(state, value) {
   const input = normalizeOpenInput(value, state.descriptor);
   await prepare(state);
-  if (state.active.has(input.artifactId))
-    throw new Error("filesystem quarantine artifact is already active");
+  const releaseLock = await acquireArtifactLock(
+    state,
+    input.artifactId,
+    "write",
+  );
   const files = pathsFor(state.stateRoot, input.artifactId);
-  if (
-    (await exists(files.blob)) ||
-    (await exists(files.metadata)) ||
-    (await exists(files.deletionIntent)) ||
-    (await exists(files.tombstone))
-  )
-    throw new Error("filesystem quarantine artifact already exists");
-  const handle = await open(files.part, "wx", 0o600);
+  let handle;
+  try {
+    if (state.active.has(input.artifactId))
+      throw new Error("filesystem quarantine artifact is already active");
+    if (
+      (await exists(files.blob)) ||
+      (await exists(files.metadata)) ||
+      (await exists(files.deletionIntent)) ||
+      (await exists(files.tombstone))
+    )
+      throw new Error("filesystem quarantine artifact already exists");
+    handle = await open(files.part, "wx", 0o600);
+  } catch (error) {
+    await releaseLock().catch(() => {});
+    throw error;
+  }
   const session = {
     handle,
     state: "writing",
@@ -407,6 +613,11 @@ async function openQuarantine(state, value) {
       }
     }
     state.active.delete(input.artifactId);
+    try {
+      await releaseLock();
+    } catch (error) {
+      failures.push(error);
+    }
     session.state = failures.length === 0 ? "discarded" : "uncertain";
     if (failures.length > 0)
       throw new Error("filesystem quarantine cleanup failed", {
@@ -515,6 +726,7 @@ async function openQuarantine(state, value) {
         await verifyBlob(files, persisted.metadata);
         session.state = "committed";
         state.active.delete(input.artifactId);
+        await releaseLock();
         return Object.freeze({
           schema: QUARANTINE_COMMIT_ACK_SCHEMA,
           artifactRef,
@@ -571,7 +783,7 @@ async function openArtifactForScan(state, value) {
     artifactDigest: metadata.artifactDigest,
     sizeBytes: metadata.sizeBytes,
     contentType: metadata.contentType,
-    body: pathlessBody(state, artifactId, persisted.files.blob),
+    body: pathlessBody(state, artifactId, persisted.files.blob, metadata),
   });
 }
 
@@ -609,7 +821,9 @@ async function completeArtifact(state, value) {
   if (state.completions.has(artifactId))
     throw new Error("filesystem quarantine artifact completion is active");
   state.completions.add(artifactId);
+  let releaseLock = null;
   try {
+    releaseLock = await acquireArtifactLock(state, artifactId, "complete");
     const persisted = await readMetadata(state, value.artifactRef);
     const metadata = persisted.metadata;
     if (
@@ -664,6 +878,7 @@ async function completeArtifact(state, value) {
     });
   } finally {
     state.completions.delete(artifactId);
+    if (releaseLock) await releaseLock();
   }
 }
 
@@ -1119,7 +1334,9 @@ async function disposeArtifact(state, disposalDescriptor, value) {
   if ((state.readers.get(artifactId) ?? 0) > 0)
     throw new Error("filesystem quarantine artifact has active scan readers");
   state.disposals.add(artifactId);
+  let releaseLock = null;
   try {
+    releaseLock = await acquireArtifactLock(state, artifactId, "dispose");
     return await disposeArtifactExclusive(
       state,
       disposalDescriptor,
@@ -1128,6 +1345,7 @@ async function disposeArtifact(state, disposalDescriptor, value) {
     );
   } finally {
     state.disposals.delete(artifactId);
+    if (releaseLock) await releaseLock();
   }
 }
 
@@ -1268,6 +1486,7 @@ export function createBrowserFilesystemQuarantineCustody({
     objectsRoot: path.join(normalizedRoot, "objects"),
     metadataRoot: path.join(normalizedRoot, "metadata"),
     deletionsRoot: path.join(normalizedRoot, "deletions"),
+    locksRoot: path.join(normalizedRoot, "locks"),
     now,
     preparePromise: null,
     active: new Set(),

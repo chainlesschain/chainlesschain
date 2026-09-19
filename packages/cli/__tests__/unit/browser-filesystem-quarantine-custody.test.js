@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -83,6 +85,29 @@ async function bodyBytes(body) {
   const chunks = [];
   for await (const chunk of body) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks);
+}
+
+async function nextJsonLine(stream, timeoutMs = 15_000) {
+  let buffered = "";
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("child custody process did not become ready")),
+      timeoutMs,
+    );
+    const onData = (chunk) => {
+      buffered += chunk.toString("utf8");
+      const newline = buffered.indexOf("\n");
+      if (newline < 0) return;
+      clearTimeout(timer);
+      stream.off("data", onData);
+      try {
+        resolve(JSON.parse(buffered.slice(0, newline)));
+      } catch (error) {
+        reject(error);
+      }
+    };
+    stream.on("data", onData);
+  });
 }
 
 describe("browser filesystem quarantine custody", () => {
@@ -626,5 +651,99 @@ describe("browser filesystem quarantine custody", () => {
       bytesUnavailable: true,
       readbackVerified: true,
     });
+  });
+
+  it("blocks a second process and recovers the lock after its owner crashes", async () => {
+    const { descriptorValue, stateRoot } = await fixture();
+    const moduleUrl = new URL(
+      "../../src/lib/evolution/browser-filesystem-quarantine-custody.js",
+      import.meta.url,
+    ).href;
+    const childSource = `
+      import { createHash } from "node:crypto";
+      import {
+        captureBrowserFilesystemQuarantineCustody,
+        createBrowserFilesystemQuarantineCustody,
+      } from ${JSON.stringify(moduleUrl)};
+      const descriptor = ${JSON.stringify(descriptorValue)};
+      const stateRoot = ${JSON.stringify(stateRoot)};
+      const sha = (value) => "sha256:" + createHash("sha256").update(value).digest("hex");
+      const port = captureBrowserFilesystemQuarantineCustody(
+        createBrowserFilesystemQuarantineCustody({
+          descriptor,
+          stateRoot,
+          now: () => ${NOW},
+        }),
+      );
+      const session = await port.openQuarantine({
+        artifactId: "artifact-1",
+        tenantId: "tenant-1",
+        maxBytes: 1024,
+        contentType: "application/pdf",
+        networkReceiptDigest: sha("network"),
+        actionReceiptDigest: sha("action"),
+      });
+      await session.writeChunk(Buffer.from("content"));
+      const committed = await session.commitArtifact({
+        artifactDigest: sha("content"),
+        sizeBytes: 7,
+        contentType: "application/pdf",
+      });
+      const source = await port.openArtifactForScan({
+        artifactRef: committed.artifactRef,
+        artifactDigest: committed.artifactDigest,
+        sizeBytes: committed.sizeBytes,
+        contentType: committed.contentType,
+        quarantineReceiptDigest: committed.quarantineReceiptDigest,
+      });
+      const reader = source.body[Symbol.asyncIterator]();
+      await reader.next();
+      process.stdout.write(JSON.stringify(committed) + "\\n");
+      setInterval(() => {}, 60_000);
+    `;
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "--eval", childSource],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    try {
+      const committed = await nextJsonLine(child.stdout);
+      const reopened = captureBrowserFilesystemQuarantineCustody(
+        createBrowserFilesystemQuarantineCustody({
+          descriptor: descriptorValue,
+          stateRoot,
+          now: () => NOW + 2000,
+        }),
+      );
+      const dispose = reopened.bindDisposalAuthority(
+        disposalDescriptor(descriptorValue.handlerArtifactDigest),
+      );
+      const disposalInput = {
+        actionReceiptDigest: digest("cross-process-action"),
+        requestDigest: digest("cross-process-request"),
+        artifactRef: committed.artifactRef,
+        artifactDigest: committed.artifactDigest,
+        sourceActionReceiptDigest: digest("action"),
+        reason: "revoked",
+      };
+
+      await expect(dispose(disposalInput)).rejects.toMatchObject({
+        code: "BROWSER_FILESYSTEM_QUARANTINE_ARTIFACT_LOCKED",
+      });
+      const exited = once(child, "exit");
+      child.kill();
+      await exited;
+      await expect(dispose(disposalInput)).resolves.toMatchObject({
+        bytesUnavailable: true,
+        durable: true,
+        readbackVerified: true,
+      });
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        const exited = once(child, "exit");
+        child.kill();
+        await exited.catch(() => {});
+      }
+    }
   });
 });
