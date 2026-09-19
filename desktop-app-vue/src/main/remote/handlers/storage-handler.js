@@ -20,9 +20,13 @@ const { promisify } = require("util");
 const fs = require("fs").promises;
 const path = require("path");
 const os = require("os");
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
 
 const execAsync = promisify(exec);
+const logger = createBrowserLogRedactor(browserLogSink);
 
 // 平台检测
 const isWindows = process.platform === "win32";
@@ -97,7 +101,7 @@ class StorageHandler {
    * 处理命令（统一入口）
    */
   async handle(action, params, context) {
-    logger.debug(`[StorageHandler] 处理命令: ${action}`);
+    logger.debug("[StorageHandler] 处理命令", { action });
 
     switch (action) {
       case "getDisks":
@@ -139,7 +143,7 @@ class StorageHandler {
    * 获取磁盘列表
    */
   async getDisks(params = {}, context) {
-    logger.debug(`[StorageHandler] 获取磁盘列表`);
+    logger.debug("[StorageHandler] 获取磁盘列表");
 
     try {
       let disks = [];
@@ -313,7 +317,7 @@ class StorageHandler {
    * 获取存储使用情况摘要
    */
   async getUsage(params = {}, context) {
-    logger.debug(`[StorageHandler] 获取存储使用情况`);
+    logger.debug("[StorageHandler] 获取存储使用情况");
 
     try {
       const { disks } = await this.getDisks({}, context);
@@ -356,7 +360,7 @@ class StorageHandler {
    * 获取分区信息
    */
   async getPartitions(params = {}, context) {
-    logger.debug(`[StorageHandler] 获取分区信息`);
+    logger.debug("[StorageHandler] 获取分区信息");
 
     try {
       let partitions = [];
@@ -443,7 +447,7 @@ class StorageHandler {
       throw new Error("Invalid path format");
     }
 
-    logger.debug(`[StorageHandler] 获取文件系统统计: ${targetPath}`);
+    logger.debug("[StorageHandler] 获取文件系统统计", { targetPath });
 
     try {
       const stats = await fs.stat(targetPath);
@@ -476,7 +480,7 @@ class StorageHandler {
         },
       };
     } catch (error) {
-      logger.error(`[StorageHandler] 获取统计失败: ${targetPath}`, error);
+      logger.error("[StorageHandler] 获取统计失败", { targetPath, error });
       throw new Error(`Failed to get stats: ${error.message}`);
     }
   }
@@ -537,7 +541,7 @@ class StorageHandler {
       throw new Error("Invalid path format");
     }
 
-    logger.debug(`[StorageHandler] 获取文件夹大小: ${folderPath}`);
+    logger.debug("[StorageHandler] 获取文件夹大小", { folderPath });
 
     try {
       let size = 0;
@@ -576,7 +580,10 @@ class StorageHandler {
         sizeFormatted: this._formatBytes(size),
       };
     } catch (error) {
-      logger.error(`[StorageHandler] 获取文件夹大小失败: ${folderPath}`, error);
+      logger.error("[StorageHandler] 获取文件夹大小失败", {
+        folderPath,
+        error,
+      });
       throw new Error(`Failed to get folder size: ${error.message}`);
     }
   }
@@ -595,9 +602,7 @@ class StorageHandler {
       throw new Error("Invalid path format");
     }
 
-    logger.info(
-      `[StorageHandler] 查找大文件: ${searchPath} (>= ${this._formatBytes(minSize)})`,
-    );
+    logger.info("[StorageHandler] 查找大文件", { searchPath, minSize });
 
     try {
       const largeFiles = [];
@@ -619,7 +624,7 @@ class StorageHandler {
         minSizeFormatted: this._formatBytes(minSize),
       };
     } catch (error) {
-      logger.error(`[StorageHandler] 查找大文件失败: ${searchPath}`, error);
+      logger.error("[StorageHandler] 查找大文件失败", { searchPath, error });
       throw new Error(`Failed to find large files: ${error.message}`);
     }
   }
@@ -681,7 +686,7 @@ class StorageHandler {
       throw new Error("Invalid path format");
     }
 
-    logger.debug(`[StorageHandler] 获取最近文件: ${searchPath} (${days} 天内)`);
+    logger.debug("[StorageHandler] 获取最近文件", { searchPath, days });
 
     try {
       const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
@@ -708,7 +713,10 @@ class StorageHandler {
         days,
       };
     } catch (error) {
-      logger.error(`[StorageHandler] 获取最近文件失败: ${searchPath}`, error);
+      logger.error("[StorageHandler] 获取最近文件失败", {
+        searchPath,
+        error,
+      });
       throw new Error(`Failed to get recent files: ${error.message}`);
     }
   }
@@ -767,9 +775,7 @@ class StorageHandler {
   async cleanupTempFiles(params, context) {
     const { dryRun = true, maxAge = 7 } = params;
 
-    logger.info(
-      `[StorageHandler] 清理临时文件 (dryRun: ${dryRun}, maxAge: ${maxAge} 天)`,
-    );
+    logger.info("[StorageHandler] 清理临时文件", { dryRun, maxAge });
 
     try {
       const cutoffTime = Date.now() - maxAge * 24 * 60 * 60 * 1000;
@@ -852,7 +858,7 @@ class StorageHandler {
   async emptyTrash(params, context) {
     const { dryRun = true } = params;
 
-    logger.info(`[StorageHandler] 清空回收站 (dryRun: ${dryRun})`);
+    logger.info("[StorageHandler] 清空回收站", { dryRun });
 
     try {
       let result = { success: false, message: "" };
@@ -907,7 +913,7 @@ class StorageHandler {
    * 获取驱动器健康状态（仅支持部分平台）
    */
   async getDriveHealth(params = {}, context) {
-    logger.debug(`[StorageHandler] 获取驱动器健康状态`);
+    logger.debug("[StorageHandler] 获取驱动器健康状态");
 
     try {
       const health = [];
