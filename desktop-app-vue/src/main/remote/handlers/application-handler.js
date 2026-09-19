@@ -18,7 +18,10 @@ const { exec } = require("child_process");
 const { promisify } = require("util");
 const path = require("path");
 const fs = require("fs").promises;
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "ApplicationHandler");
 
 const execAsync = promisify(exec);
 

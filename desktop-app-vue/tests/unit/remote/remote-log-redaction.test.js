@@ -10,6 +10,10 @@ const {
 const WIRED_MODULES = [
   "src/main/remote/handlers/file-transfer-handler.js",
   "src/main/remote/handlers/command-history-handler.js",
+  "src/main/remote/handlers/process-handler.js",
+  "src/main/remote/handlers/application-handler.js",
+  "src/main/remote/handlers/network-handler.js",
+  "src/main/remote/handlers/device-manager-handler.js",
 ];
 
 function createSink() {

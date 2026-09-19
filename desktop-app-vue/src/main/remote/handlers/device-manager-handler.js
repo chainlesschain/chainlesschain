@@ -11,7 +11,10 @@
  * @module remote/handlers/device-manager-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "DeviceManagerHandler");
 
 /**
  * Tolerant JSON column parse — a single device/log row with a corrupt metadata/

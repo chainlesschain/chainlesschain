@@ -22,7 +22,10 @@ const os = require("os");
 const dns = require("dns");
 const https = require("https");
 const http = require("http");
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "NetworkHandler");
 
 const execAsync = promisify(exec);
 const dnsResolve = promisify(dns.resolve);
