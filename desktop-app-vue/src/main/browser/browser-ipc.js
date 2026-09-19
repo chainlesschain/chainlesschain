@@ -171,6 +171,8 @@ function registerBrowserIPC(deps = {}) {
       deps.desktopBrowserVisionObservationHost ?? null,
     _getBrowserVisionActionHost: () =>
       deps.desktopBrowserVisionActionHost ?? null,
+    _getBrowserNavigationActionHost: () =>
+      deps.desktopBrowserNavigationActionHost ?? null,
   };
 
   registerCoreHandlers(ctx);

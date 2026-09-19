@@ -21,6 +21,10 @@ import {
   BROWSER_VISION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
   captureBrowserVisionActionAuthority,
 } from "../../src/lib/evolution/browser-vision-action-authority.js";
+import {
+  BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserNavigationActionAuthority,
+} from "../../src/lib/evolution/browser-navigation-action-authority.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -817,6 +821,7 @@ describe("signed evolution deployment loader", () => {
       "inspectPmExplorationEgressAuthority",
       "createBrowserVisionObservationAuthority",
       "createBrowserVisionActionAuthority",
+      "createBrowserNavigationActionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -970,6 +975,22 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserNavigationActionAuthority({
+              descriptor: {
+                schema: BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-navigation",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1005,11 +1026,27 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               recordOutcome: async () => null,
             });
+          const browserNavigationActionAuthority =
+            factories.createBrowserNavigationActionAuthority({
+              descriptor: {
+                schema: BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-navigation",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
             browserVisionObservationAuthority,
             browserVisionActionAuthority,
+            browserNavigationActionAuthority,
           };
         },
       }),
@@ -1033,6 +1070,16 @@ describe("signed evolution deployment loader", () => {
         .descriptor,
     ).toMatchObject({
       authorityId: "browser-action",
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserNavigationActionAuthority(
+        result.browserNavigationActionAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-navigation",
       approvalMode: "interactive",
       auditMode: "authenticated-durable-readback",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,

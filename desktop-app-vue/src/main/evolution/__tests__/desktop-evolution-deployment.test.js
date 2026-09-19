@@ -35,6 +35,9 @@ const {
 const {
   authorizeDesktopBrowserVisionAction,
 } = require("../desktop-browser-vision-action");
+const {
+  authorizeDesktopBrowserNavigationAction,
+} = require("../desktop-browser-navigation-action");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -61,6 +64,22 @@ function runtimeConfig(revision) {
 
 function sha(label) {
   return `sha256:${createHash("sha256").update(label).digest("hex")}`;
+}
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function domainDigest(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(`${domain}\0`)
+    .update(canonical(value))
+    .digest("hex")}`;
 }
 
 function successTransitionEvidence({
@@ -495,6 +514,75 @@ describe("desktop evolution deployment", () => {
       ),
     ).resolves.toEqual({});
     expect(capture).toHaveBeenCalledWith(actionAuthority);
+    expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed navigation authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-navigation",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("navigation-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+    });
+    const authorizeAction = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-navigation-action-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        approvalMode: descriptor.approvalMode,
+        requestId: request.requestId,
+        targetId: request.targetId,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        destinationDigest: domainDigest(
+          "chainlesschain.browser-navigation-action-destination/v1",
+          request.destinationUrl,
+        ),
+        waitUntil: request.waitUntil,
+        timeout: request.timeout,
+        inputDigest: request.inputDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded navigation");
+      return Object.freeze({
+        descriptor,
+        authorizeAction,
+        recordActionOutcome: vi.fn(),
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserNavigationActionAuthority: authority,
+        }),
+      }),
+      importBrowserNavigationActionAuthorityModule: async () => ({
+        captureBrowserNavigationActionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.desktopBrowserNavigationActionHost)).toEqual([]);
+    await expect(
+      authorizeDesktopBrowserNavigationAction(
+        result.desktopBrowserNavigationActionHost,
+        {
+          targetId: "tab-1",
+          destinationUrl: "https://example.test/path",
+          options: { waitUntil: "networkidle" },
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(authority);
     expect(authorizeAction).toHaveBeenCalledOnce();
   });
 

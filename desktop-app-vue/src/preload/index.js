@@ -113,6 +113,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "blockchain-integration:transaction-update",
   "browser:act",
   "browser:action:coordinate",
+  "browser:action:navigate",
   "browser:action:vision",
   "browser:aiClearHistory",
   "browser:aiExecute",

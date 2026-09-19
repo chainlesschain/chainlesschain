@@ -269,6 +269,7 @@ async function loadBuiltInFactories(commandName) {
       childEvidenceStore,
       browserVisionObservation,
       browserVisionAction,
+      browserNavigationAction,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -289,6 +290,7 @@ async function loadBuiltInFactories(commandName) {
       import("./evolution-eval-child-evidence-ledger-adapter.js"),
       import("./browser-vision-observation-authority.js"),
       import("./browser-vision-action-authority.js"),
+      import("./browser-navigation-action-authority.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -395,6 +397,8 @@ async function loadBuiltInFactories(commandName) {
         browserVisionObservation.createBrowserVisionObservationAuthority,
       createBrowserVisionActionAuthority:
         browserVisionAction.createBrowserVisionActionAuthority,
+      createBrowserNavigationActionAuthority:
+        browserNavigationAction.createBrowserNavigationActionAuthority,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -739,6 +743,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createEvolutionEvalChildEvidenceLedgerAdapter",
     "createBrowserVisionObservationAuthority",
     "createBrowserVisionActionAuthority",
+    "createBrowserNavigationActionAuthority",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

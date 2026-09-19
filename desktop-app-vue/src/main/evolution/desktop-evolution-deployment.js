@@ -12,6 +12,9 @@ const {
   createDesktopBrowserVisionActionHost,
 } = require("./desktop-browser-vision-action");
 const {
+  createDesktopBrowserNavigationActionHost,
+} = require("./desktop-browser-navigation-action");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -52,6 +55,8 @@ const DEV_BROWSER_VISION_OBSERVATION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-vision-observation-authority.js";
 const DEV_BROWSER_VISION_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-vision-action-authority.js";
+const DEV_BROWSER_NAVIGATION_ACTION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-navigation-action-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -626,6 +631,24 @@ function resolveBrowserVisionActionAuthorityPath({
     );
   }
   return path.resolve(__dirname, DEV_BROWSER_VISION_ACTION_AUTHORITY_REL);
+}
+
+function resolveBrowserNavigationActionAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser navigation action authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-navigation-action-authority.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_BROWSER_NAVIGATION_ACTION_AUTHORITY_REL);
 }
 
 function createDesktopPmExplorationStorageHost(store, captureStore) {
@@ -1253,6 +1276,7 @@ async function loadDesktopEvolutionDependencies({
   importPmExplorationRecoverySnapshotModule = (url) => import(url),
   importBrowserVisionObservationAuthorityModule = (url) => import(url),
   importBrowserVisionActionAuthorityModule = (url) => import(url),
+  importBrowserNavigationActionAuthorityModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -1351,6 +1375,34 @@ async function loadDesktopEvolutionDependencies({
           authorityModule,
           "captureBrowserVisionActionAuthority",
           "browser vision action authority capture",
+        ),
+      );
+  }
+  const browserNavigationActionAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(result, "browserNavigationActionAuthority");
+  if (browserNavigationActionAuthorityDescriptor) {
+    if (
+      !("value" in browserNavigationActionAuthorityDescriptor) ||
+      browserNavigationActionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser navigation action authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserNavigationActionAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule = await importBrowserNavigationActionAuthorityModule(
+      pathToFileURL(authorityPath).href,
+    );
+    desktopDependencies.desktopBrowserNavigationActionHost =
+      createDesktopBrowserNavigationActionHost(
+        browserNavigationActionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserNavigationActionAuthority",
+          "browser navigation action authority capture",
         ),
       );
   }
@@ -1759,5 +1811,6 @@ module.exports = {
   resolvePmExplorationTransitionCommitterPath,
   resolveBrowserVisionObservationAuthorityPath,
   resolveBrowserVisionActionAuthorityPath,
+  resolveBrowserNavigationActionAuthorityPath,
   resolveLoaderPath,
 };

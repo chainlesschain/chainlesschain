@@ -12,6 +12,11 @@ const {
 const {
   authorizeDesktopBrowserVisionAction,
 } = require("../evolution/desktop-browser-vision-action");
+const {
+  authorizeDesktopBrowserNavigationAction,
+  consumeDesktopBrowserNavigationActionGrant,
+  recordDesktopBrowserNavigationActionOutcome,
+} = require("../evolution/desktop-browser-navigation-action");
 
 const READ_ONLY_VISION_TASKS = new Set([
   "analyze",
@@ -26,6 +31,12 @@ function stripObservationAuthorization(options) {
   delete visionOptions.observationAuthorization;
   delete visionOptions.actionAuthorization;
   return visionOptions;
+}
+
+function stripNavigationAuthorization(options) {
+  const navigationOptions = { ...options };
+  delete navigationOptions.actionAuthorization;
+  return navigationOptions;
 }
 
 async function authorizeVisionObservation(
@@ -104,6 +115,7 @@ function registerComputerUseHandlers(ctx) {
     _getGovernedVisionModelClient,
     _getBrowserVisionObservationHost,
     _getBrowserVisionActionHost,
+    _getBrowserNavigationActionHost,
     withErrorHandler,
   } = ctx;
 
@@ -122,6 +134,67 @@ function registerComputerUseHandlers(ctx) {
       const engine = _getBrowserEngine();
       const coordinateAction = new CoordinateAction(engine);
       return coordinateAction.execute(targetId, options);
+    }),
+  );
+
+  /**
+   * Execute one explicitly governed Agent navigation. The ordinary
+   * browser:navigate UI channel remains a separate compatibility path.
+   */
+  _ipcMain.handle(
+    "browser:action:navigate",
+    withErrorHandler(async (event, targetId, destinationUrl, options = {}) => {
+      const grant = await authorizeDesktopBrowserNavigationAction(
+        _getBrowserNavigationActionHost?.() ?? null,
+        {
+          targetId,
+          destinationUrl,
+          options,
+          senderId: event?.sender?.id,
+          frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+          authorization: options.actionAuthorization ?? null,
+        },
+      );
+      const engine = _getBrowserEngine();
+      const actionEvidence = consumeDesktopBrowserNavigationActionGrant(
+        grant,
+        targetId,
+        destinationUrl,
+        options,
+      );
+      let result = null;
+      let mutationError = null;
+      try {
+        result = await engine.navigate(
+          targetId,
+          destinationUrl,
+          stripNavigationAuthorization(options),
+        );
+      } catch (error) {
+        mutationError = error;
+      }
+      const actionAudit = await recordDesktopBrowserNavigationActionOutcome(
+        grant,
+        {
+          status: mutationError === null ? "succeeded" : "failed",
+          finalUrl: result?.url ?? null,
+          failureClass:
+            mutationError === null ? null : "browser-navigation-failed",
+        },
+      );
+      const evidence = {
+        authorizationReceiptDigest: actionEvidence.receiptDigest,
+        auditEventDigest: actionAudit.auditEventDigest,
+        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      };
+      if (mutationError !== null) {
+        return {
+          success: false,
+          error: `Navigation failed: ${mutationError.message}`,
+          ...evidence,
+        };
+      }
+      return { ...result, ...evidence };
     }),
   );
 
