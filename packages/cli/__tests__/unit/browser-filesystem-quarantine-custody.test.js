@@ -2,10 +2,17 @@ import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
+  BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_REQUEST_SCHEMA,
+  captureBrowserDownloadArtifactDisposalAuthority,
+  createBrowserDownloadArtifactDisposalAuthority,
+} from "../../src/lib/evolution/browser-download-artifact-disposal-authority.js";
+import {
   BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
+  BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
   captureBrowserFilesystemQuarantineCustody,
   createBrowserFilesystemQuarantineCustody,
 } from "../../src/lib/evolution/browser-filesystem-quarantine-custody.js";
@@ -20,6 +27,21 @@ const NOW = Date.parse("2026-09-20T04:00:00.000Z");
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+const domainDigest = (domain, value) =>
+  `sha256:${createHash("sha256")
+    .update(`${domain}\0`)
+    .update(canonical(value))
+    .digest("hex")}`;
+
 function descriptor() {
   return {
     schema: BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
@@ -28,6 +50,20 @@ function descriptor() {
     handlerArtifactDigest: digest("handler"),
     retentionMs: 60_000,
     custodyMode: "exclusive-stream-fsync",
+  };
+}
+
+function disposalDescriptor(handlerArtifactDigest = digest("handler")) {
+  return {
+    schema: BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
+    authorityId: "browser-download-disposal",
+    tenantId: "tenant-1",
+    handlerArtifactDigest,
+    policyRevision: "policy-1",
+    maxGrantTtlMs: 5000,
+    approvalMode: "interactive",
+    auditMode: "authenticated-durable-readback",
+    effectMode: "irreversible-byte-disposal",
   };
 }
 
@@ -160,11 +196,13 @@ describe("browser filesystem quarantine custody", () => {
     await expect(
       port.inspectArtifact("quarantine:artifact-1"),
     ).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(port.openQuarantine(openInput())).resolves.toMatchObject({
+    const reopened = await port.openQuarantine(openInput());
+    expect(reopened).toMatchObject({
       writeChunk: expect.any(Function),
       commitArtifact: expect.any(Function),
       discardArtifact: expect.any(Function),
     });
+    await reopened.discardArtifact();
   });
 
   it("fails closed when persisted bytes are changed after commit", async () => {
@@ -293,6 +331,300 @@ describe("browser filesystem quarantine custody", () => {
       status: "ready",
       artifactDigest: digest("content"),
       sourceActionReceiptDigest: digest("action"),
+    });
+  });
+
+  it("durably disposes an authorized artifact and resumes from its tombstone", async () => {
+    const { descriptorValue, port, stateRoot } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("content"));
+    const committed = await session.commitArtifact({
+      artifactDigest: digest("content"),
+      sizeBytes: 7,
+      contentType: "application/pdf",
+    });
+    await port.completeArtifact({
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sizeBytes: committed.sizeBytes,
+      contentType: committed.contentType,
+      networkReceiptDigest: digest("network"),
+      quarantineReceiptDigest: committed.quarantineReceiptDigest,
+      scanEvidenceDigest: digest("scan"),
+      completedAt: new Date(NOW + 1000).toISOString(),
+    });
+
+    const disposalDescriptorValue = disposalDescriptor(
+      descriptorValue.handlerArtifactDigest,
+    );
+    const boundDisposal = port.bindDisposalAuthority(disposalDescriptorValue);
+    const disposeArtifact = vi.fn(boundDisposal);
+    const authority = captureBrowserDownloadArtifactDisposalAuthority(
+      createBrowserDownloadArtifactDisposalAuthority({
+        descriptor: disposalDescriptorValue,
+        authorize: async () => ({
+          decision: "allow",
+          approvalEvidenceRef: "approval-1",
+          validUntil: new Date(NOW + 5000).toISOString(),
+        }),
+        disposeArtifact,
+        now: () => NOW + 2000,
+      }),
+    );
+    const inputCore = {
+      operation: "discard-download-artifact",
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sourceActionReceiptDigest: digest("action"),
+      reason: "user-discard",
+    };
+    const receipt = await authority.authorizeDisposal({
+      schema: BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_REQUEST_SCHEMA,
+      requestId: "request-1",
+      senderId: 17,
+      frameUrlDigest: digest("frame"),
+      ...inputCore,
+      inputDigest: domainDigest(
+        "chainlesschain.browser-download-artifact-disposal-input/v1",
+        inputCore,
+      ),
+      authorization: { approval: "interactive" },
+      requestedAt: new Date(NOW + 1000).toISOString(),
+    });
+    const result = await authority.disposeAuthorizedArtifact({
+      receiptDigest: receipt.receiptDigest,
+      requestDigest: receipt.requestDigest,
+    });
+
+    expect(result).toMatchObject({
+      status: "discarded",
+      artifactDigest: committed.artifactDigest,
+      deletionReceiptDigest: expect.stringMatching(/^sha256:/u),
+    });
+    await expect(port.inspectArtifact(committed.artifactRef)).rejects.toThrow(
+      /ENOENT/u,
+    );
+
+    const disposalInput = disposeArtifact.mock.calls[0][0];
+    const reopened = captureBrowserFilesystemQuarantineCustody(
+      createBrowserFilesystemQuarantineCustody({
+        descriptor: descriptorValue,
+        stateRoot,
+        now: () => NOW + 3000,
+      }),
+    );
+    const resumed = await reopened.bindDisposalAuthority(
+      disposalDescriptorValue,
+    )(disposalInput);
+    expect(resumed).toMatchObject({
+      deletionReceiptDigest: result.deletionReceiptDigest,
+      durable: true,
+      readbackVerified: true,
+      bytesUnavailable: true,
+    });
+    await expect(
+      reopened.bindDisposalAuthority(disposalDescriptorValue)({
+        ...disposalInput,
+        reason: "revoked",
+      }),
+    ).rejects.toThrow(/tombstone is invalid/u);
+    await expect(reopened.openQuarantine(openInput())).rejects.toThrow(
+      /already exists/u,
+    );
+  });
+
+  it("resumes a durable deletion intent after a simulated restart", async () => {
+    const { descriptorValue, port, stateRoot } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("content"));
+    const committed = await session.commitArtifact({
+      artifactDigest: digest("content"),
+      sizeBytes: 7,
+      contentType: "application/pdf",
+    });
+    const disposalInput = {
+      actionReceiptDigest: digest("disposal-action"),
+      requestDigest: digest("disposal-request"),
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sourceActionReceiptDigest: digest("action"),
+      reason: "user-discard",
+    };
+    const intentCore = {
+      schema: BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+      custodyId: descriptorValue.custodyId,
+      tenantId: descriptorValue.tenantId,
+      authorityId: "browser-download-disposal",
+      handlerArtifactDigest: descriptorValue.handlerArtifactDigest,
+      ...disposalInput,
+      startedAt: new Date(NOW + 1000).toISOString(),
+    };
+    await writeFile(
+      path.join(stateRoot, "deletions", "artifact-1.intent.json"),
+      `${canonical({
+        ...intentCore,
+        intentDigest: domainDigest(
+          BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+          intentCore,
+        ),
+      })}\n`,
+    );
+
+    const reopened = captureBrowserFilesystemQuarantineCustody(
+      createBrowserFilesystemQuarantineCustody({
+        descriptor: descriptorValue,
+        stateRoot,
+        now: () => NOW + 2000,
+      }),
+    );
+    await expect(
+      reopened.bindDisposalAuthority(
+        disposalDescriptor(descriptorValue.handlerArtifactDigest),
+      )(disposalInput),
+    ).resolves.toMatchObject({
+      artifactRef: committed.artifactRef,
+      discardedAt: intentCore.startedAt,
+      durable: true,
+      readbackVerified: true,
+      bytesUnavailable: true,
+    });
+    await expect(
+      reopened.inspectArtifact(committed.artifactRef),
+    ).rejects.toThrow(/ENOENT/u);
+  });
+
+  it("serializes competing disposal receipts before deleting bytes", async () => {
+    const { descriptorValue, port } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("content"));
+    const committed = await session.commitArtifact({
+      artifactDigest: digest("content"),
+      sizeBytes: 7,
+      contentType: "application/pdf",
+    });
+    const dispose = port.bindDisposalAuthority(
+      disposalDescriptor(descriptorValue.handlerArtifactDigest),
+    );
+    const disposalInput = {
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sourceActionReceiptDigest: digest("action"),
+    };
+    const settled = await Promise.allSettled([
+      dispose({
+        ...disposalInput,
+        actionReceiptDigest: digest("disposal-action-1"),
+        requestDigest: digest("disposal-request-1"),
+        reason: "user-discard",
+      }),
+      dispose({
+        ...disposalInput,
+        actionReceiptDigest: digest("disposal-action-2"),
+        requestDigest: digest("disposal-request-2"),
+        reason: "revoked",
+      }),
+    ]);
+
+    expect(settled.filter(({ status }) => status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(settled.filter(({ status }) => status === "rejected")).toHaveLength(
+      1,
+    );
+    expect(
+      settled.find(({ status }) => status === "fulfilled").value,
+    ).toMatchObject({ bytesUnavailable: true, readbackVerified: true });
+    expect(
+      settled.find(({ status }) => status === "rejected").reason.message,
+    ).toMatch(
+      /disposal is already active|deletion intent is invalid|tombstone is invalid/u,
+    );
+  });
+
+  it("does not claim deletion while a scanner still holds the bytes", async () => {
+    const { descriptorValue, port } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("content"));
+    const committed = await session.commitArtifact({
+      artifactDigest: digest("content"),
+      sizeBytes: 7,
+      contentType: "application/pdf",
+    });
+    const scanSource = await port.openArtifactForScan({
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sizeBytes: committed.sizeBytes,
+      contentType: committed.contentType,
+      quarantineReceiptDigest: committed.quarantineReceiptDigest,
+    });
+    const reader = scanSource.body[Symbol.asyncIterator]();
+    await expect(reader.next()).resolves.toMatchObject({
+      done: false,
+      value: Buffer.from("content"),
+    });
+    const dispose = port.bindDisposalAuthority(
+      disposalDescriptor(descriptorValue.handlerArtifactDigest),
+    );
+    const disposalInput = {
+      actionReceiptDigest: digest("disposal-action"),
+      requestDigest: digest("disposal-request"),
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sourceActionReceiptDigest: digest("action"),
+      reason: "user-discard",
+    };
+
+    await expect(dispose(disposalInput)).rejects.toThrow(
+      /active scan readers/u,
+    );
+    await reader.return();
+    await expect(dispose(disposalInput)).resolves.toMatchObject({
+      bytesUnavailable: true,
+      readbackVerified: true,
+    });
+  });
+
+  it("does not race deletion against a completion metadata commit", async () => {
+    const { descriptorValue, port } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.writeChunk(Buffer.from("content"));
+    const committed = await session.commitArtifact({
+      artifactDigest: digest("content"),
+      sizeBytes: 7,
+      contentType: "application/pdf",
+    });
+    const completion = port.completeArtifact({
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sizeBytes: committed.sizeBytes,
+      contentType: committed.contentType,
+      networkReceiptDigest: digest("network"),
+      quarantineReceiptDigest: committed.quarantineReceiptDigest,
+      scanEvidenceDigest: digest("scan"),
+      completedAt: new Date(NOW + 1000).toISOString(),
+    });
+    const dispose = port.bindDisposalAuthority(
+      disposalDescriptor(descriptorValue.handlerArtifactDigest),
+    );
+    const disposalInput = {
+      actionReceiptDigest: digest("disposal-action"),
+      requestDigest: digest("disposal-request"),
+      artifactRef: committed.artifactRef,
+      artifactDigest: committed.artifactDigest,
+      sourceActionReceiptDigest: digest("action"),
+      reason: "user-discard",
+    };
+
+    await expect(dispose(disposalInput)).rejects.toThrow(
+      /completion is active/u,
+    );
+    await expect(completion).resolves.toMatchObject({
+      artifactRef: committed.artifactRef,
+      readbackVerified: true,
+    });
+    await expect(dispose(disposalInput)).resolves.toMatchObject({
+      bytesUnavailable: true,
+      readbackVerified: true,
     });
   });
 });

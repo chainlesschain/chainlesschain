@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import {
   lstat,
+  link,
   mkdir,
   open,
   readFile,
@@ -17,11 +18,19 @@ export const BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-custody-descriptor/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_METADATA_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-metadata/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-deletion-intent/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-tombstone/v1";
 
 const QUARANTINE_COMMIT_ACK_SCHEMA =
   "chainlesschain.browser-download-quarantine-commit-ack/v1";
 const COMPLETION_ACK_SCHEMA =
   "chainlesschain.browser-download-completion-ack/v1";
+const DISPOSAL_DESCRIPTOR_SCHEMA =
+  "chainlesschain.browser-download-artifact-disposal-descriptor/v1";
+const DELETION_ACK_SCHEMA =
+  "chainlesschain.browser-download-artifact-deletion-ack/v1";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 const ARTIFACT_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
@@ -29,6 +38,12 @@ const ARTIFACT_REF = /^quarantine:[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
 const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
+const DISPOSAL_REASONS = new Set([
+  "user-discard",
+  "expired",
+  "revoked",
+  "delivery-failed",
+]);
 const METADATA_KEYS = [
   "schema",
   "custodyId",
@@ -129,6 +144,8 @@ function pathsFor(root, artifactId) {
     part: path.join(objects, `${artifactId}.part`),
     blob: path.join(objects, `${artifactId}.blob`),
     metadata: path.join(metadata, `${artifactId}.json`),
+    deletionIntent: path.join(root, "deletions", `${artifactId}.intent.json`),
+    tombstone: path.join(root, "deletions", `${artifactId}.deleted.json`),
   });
 }
 
@@ -179,6 +196,7 @@ async function prepare(state) {
         throw new Error("filesystem quarantine state root must not be a link");
       await assertSafeDirectory(state.stateRoot, state.objectsRoot);
       await assertSafeDirectory(state.stateRoot, state.metadataRoot);
+      await assertSafeDirectory(state.stateRoot, state.deletionsRoot);
     })();
   }
   await state.preparePromise;
@@ -197,14 +215,20 @@ async function hashFile(file) {
   });
 }
 
-function pathlessBody(file) {
+function pathlessBody(state, artifactId, file) {
   return Object.freeze({
     async *[Symbol.asyncIterator]() {
+      if (state.disposals.has(artifactId))
+        throw new Error("filesystem quarantine artifact disposal is active");
+      state.readers.set(artifactId, (state.readers.get(artifactId) ?? 0) + 1);
       const stream = createReadStream(file);
       try {
         for await (const chunk of stream) yield Buffer.from(chunk);
       } finally {
         stream.destroy();
+        const remaining = (state.readers.get(artifactId) ?? 1) - 1;
+        if (remaining === 0) state.readers.delete(artifactId);
+        else state.readers.set(artifactId, remaining);
       }
     },
   });
@@ -253,6 +277,30 @@ async function writeMetadata(file, value) {
     handle = null;
     await rename(temporary, file);
     // Windows requires a write-capable handle for FlushFileBuffers/fsync.
+    const committed = await open(file, "r+");
+    try {
+      await committed.sync();
+    } finally {
+      await committed.close();
+    }
+  } catch (error) {
+    if (handle) await handle.close().catch(() => {});
+    await unlinkIfPresent(temporary).catch(() => {});
+    throw error;
+  }
+}
+
+async function writeNewMetadata(file, value) {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  let handle = null;
+  try {
+    handle = await open(temporary, "wx", 0o600);
+    await handle.writeFile(`${canonical(value)}\n`, "utf8");
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await link(temporary, file);
+    await unlink(temporary);
     const committed = await open(file, "r+");
     try {
       await committed.sync();
@@ -321,7 +369,12 @@ async function openQuarantine(state, value) {
   if (state.active.has(input.artifactId))
     throw new Error("filesystem quarantine artifact is already active");
   const files = pathsFor(state.stateRoot, input.artifactId);
-  if ((await exists(files.blob)) || (await exists(files.metadata)))
+  if (
+    (await exists(files.blob)) ||
+    (await exists(files.metadata)) ||
+    (await exists(files.deletionIntent)) ||
+    (await exists(files.tombstone))
+  )
     throw new Error("filesystem quarantine artifact already exists");
   const handle = await open(files.part, "wx", 0o600);
   const session = {
@@ -504,12 +557,13 @@ async function openArtifactForScan(state, value) {
   )
     throw new Error("filesystem quarantine scan request differs from custody");
   await verifyBlob(persisted.files, metadata);
+  const artifactId = artifactIdFromRef(value.artifactRef);
   return Object.freeze({
     artifactRef: metadata.artifactRef,
     artifactDigest: metadata.artifactDigest,
     sizeBytes: metadata.sizeBytes,
     contentType: metadata.contentType,
-    body: pathlessBody(persisted.files.blob),
+    body: pathlessBody(state, artifactId, persisted.files.blob),
   });
 }
 
@@ -541,58 +595,68 @@ async function completeArtifact(state, value) {
   )
     throw new TypeError("filesystem quarantine completion request is invalid");
   await prepare(state);
-  const persisted = await readMetadata(state, value.artifactRef);
-  const metadata = persisted.metadata;
-  if (
-    metadata.status !== "quarantined" ||
-    metadata.artifactDigest !== value.artifactDigest ||
-    metadata.sizeBytes !== value.sizeBytes ||
-    metadata.contentType !== value.contentType ||
-    metadata.networkReceiptDigest !== value.networkReceiptDigest ||
-    metadata.quarantineReceiptDigest !== value.quarantineReceiptDigest ||
-    Date.parse(value.completedAt) < Date.parse(metadata.committedAt) ||
-    Date.parse(value.completedAt) >= Date.parse(metadata.expiresAt)
-  )
-    throw new Error("filesystem quarantine completion differs from custody");
-  await verifyBlob(persisted.files, metadata);
-  const completionCore = Object.freeze({
-    custodyId: state.descriptor.custodyId,
-    tenantId: state.descriptor.tenantId,
-    handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
-    artifactRef: value.artifactRef,
-    artifactDigest: value.artifactDigest,
-    scanEvidenceDigest: value.scanEvidenceDigest,
-    completedAt: value.completedAt,
-  });
-  const completionReceiptDigest = digest(
-    "chainlesschain.browser-filesystem-quarantine-completion/v1",
-    completionCore,
-  );
-  const completed = Object.freeze({
-    ...metadata,
-    status: "ready",
-    scanEvidenceDigest: value.scanEvidenceDigest,
-    completedAt: value.completedAt,
-    completionReceiptDigest,
-  });
-  await writeMetadata(persisted.files.metadata, completed);
-  const readback = await readMetadata(state, value.artifactRef);
-  if (
-    readback.metadata.status !== "ready" ||
-    readback.metadata.completionReceiptDigest !== completionReceiptDigest
-  )
-    throw new Error("filesystem quarantine completion readback failed");
-  await verifyBlob(readback.files, readback.metadata);
-  return Object.freeze({
-    schema: COMPLETION_ACK_SCHEMA,
-    artifactRef: value.artifactRef,
-    artifactDigest: value.artifactDigest,
-    scanEvidenceDigest: value.scanEvidenceDigest,
-    completionReceiptDigest,
-    authenticated: true,
-    durable: true,
-    readbackVerified: true,
-  });
+  const artifactId = artifactIdFromRef(value.artifactRef);
+  if (state.disposals.has(artifactId))
+    throw new Error("filesystem quarantine artifact disposal is active");
+  if (state.completions.has(artifactId))
+    throw new Error("filesystem quarantine artifact completion is active");
+  state.completions.add(artifactId);
+  try {
+    const persisted = await readMetadata(state, value.artifactRef);
+    const metadata = persisted.metadata;
+    if (
+      metadata.status !== "quarantined" ||
+      metadata.artifactDigest !== value.artifactDigest ||
+      metadata.sizeBytes !== value.sizeBytes ||
+      metadata.contentType !== value.contentType ||
+      metadata.networkReceiptDigest !== value.networkReceiptDigest ||
+      metadata.quarantineReceiptDigest !== value.quarantineReceiptDigest ||
+      Date.parse(value.completedAt) < Date.parse(metadata.committedAt) ||
+      Date.parse(value.completedAt) >= Date.parse(metadata.expiresAt)
+    )
+      throw new Error("filesystem quarantine completion differs from custody");
+    await verifyBlob(persisted.files, metadata);
+    const completionCore = Object.freeze({
+      custodyId: state.descriptor.custodyId,
+      tenantId: state.descriptor.tenantId,
+      handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+      artifactRef: value.artifactRef,
+      artifactDigest: value.artifactDigest,
+      scanEvidenceDigest: value.scanEvidenceDigest,
+      completedAt: value.completedAt,
+    });
+    const completionReceiptDigest = digest(
+      "chainlesschain.browser-filesystem-quarantine-completion/v1",
+      completionCore,
+    );
+    const completed = Object.freeze({
+      ...metadata,
+      status: "ready",
+      scanEvidenceDigest: value.scanEvidenceDigest,
+      completedAt: value.completedAt,
+      completionReceiptDigest,
+    });
+    await writeMetadata(persisted.files.metadata, completed);
+    const readback = await readMetadata(state, value.artifactRef);
+    if (
+      readback.metadata.status !== "ready" ||
+      readback.metadata.completionReceiptDigest !== completionReceiptDigest
+    )
+      throw new Error("filesystem quarantine completion readback failed");
+    await verifyBlob(readback.files, readback.metadata);
+    return Object.freeze({
+      schema: COMPLETION_ACK_SCHEMA,
+      artifactRef: value.artifactRef,
+      artifactDigest: value.artifactDigest,
+      scanEvidenceDigest: value.scanEvidenceDigest,
+      completionReceiptDigest,
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+    });
+  } finally {
+    state.completions.delete(artifactId);
+  }
 }
 
 async function inspectArtifact(state, artifactRef) {
@@ -619,6 +683,329 @@ async function inspectArtifact(state, artifactRef) {
   });
 }
 
+function normalizeDisposalDescriptor(value, custodyDescriptor) {
+  exact(
+    value,
+    [
+      "schema",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "maxGrantTtlMs",
+      "approvalMode",
+      "auditMode",
+      "effectMode",
+    ],
+    "filesystem quarantine disposal descriptor",
+  );
+  if (
+    value.schema !== DISPOSAL_DESCRIPTOR_SCHEMA ||
+    !ID.test(value.authorityId) ||
+    value.tenantId !== custodyDescriptor.tenantId ||
+    value.handlerArtifactDigest !== custodyDescriptor.handlerArtifactDigest ||
+    !ID.test(value.policyRevision) ||
+    !Number.isSafeInteger(value.maxGrantTtlMs) ||
+    value.maxGrantTtlMs < 1 ||
+    value.maxGrantTtlMs > 30_000 ||
+    value.approvalMode !== "interactive" ||
+    value.auditMode !== "authenticated-durable-readback" ||
+    value.effectMode !== "irreversible-byte-disposal"
+  )
+    throw new TypeError("filesystem quarantine disposal descriptor is invalid");
+  return Object.freeze({ ...value });
+}
+
+function normalizeDisposalInput(value) {
+  exact(
+    value,
+    [
+      "actionReceiptDigest",
+      "requestDigest",
+      "artifactRef",
+      "artifactDigest",
+      "sourceActionReceiptDigest",
+      "reason",
+    ],
+    "filesystem quarantine disposal request",
+  );
+  if (
+    !DIGEST.test(value.actionReceiptDigest) ||
+    !DIGEST.test(value.requestDigest) ||
+    !ARTIFACT_REF.test(value.artifactRef) ||
+    !DIGEST.test(value.artifactDigest) ||
+    !DIGEST.test(value.sourceActionReceiptDigest) ||
+    !DISPOSAL_REASONS.has(value.reason)
+  )
+    throw new TypeError("filesystem quarantine disposal request is invalid");
+  return Object.freeze({ ...value });
+}
+
+function deletionBinding(descriptor, input) {
+  return Object.freeze({
+    custodyId: descriptor.custodyId,
+    tenantId: descriptor.tenantId,
+    authorityId: input.authorityId,
+    handlerArtifactDigest: descriptor.handlerArtifactDigest,
+    actionReceiptDigest: input.actionReceiptDigest,
+    requestDigest: input.requestDigest,
+    artifactRef: input.artifactRef,
+    artifactDigest: input.artifactDigest,
+    sourceActionReceiptDigest: input.sourceActionReceiptDigest,
+    reason: input.reason,
+  });
+}
+
+function normalizeDeletionIntent(value, state, disposalDescriptor, input) {
+  const keys = [
+    "schema",
+    "custodyId",
+    "tenantId",
+    "authorityId",
+    "handlerArtifactDigest",
+    "actionReceiptDigest",
+    "requestDigest",
+    "artifactRef",
+    "artifactDigest",
+    "sourceActionReceiptDigest",
+    "reason",
+    "startedAt",
+    "intentDigest",
+  ];
+  exact(value, keys, "filesystem quarantine deletion intent");
+  const binding = deletionBinding(state.descriptor, {
+    ...input,
+    authorityId: disposalDescriptor.authorityId,
+  });
+  const core = Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+    ...binding,
+    startedAt: value.startedAt,
+  });
+  if (
+    value.schema !== core.schema ||
+    keys.slice(1, -2).some((key) => value[key] !== core[key]) ||
+    !Number.isFinite(Date.parse(value.startedAt)) ||
+    value.intentDigest !==
+      digest(BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA, core)
+  )
+    throw new Error("filesystem quarantine deletion intent is invalid");
+  return Object.freeze({ ...value });
+}
+
+function normalizeTombstone(value, state, disposalDescriptor, input) {
+  const keys = [
+    "schema",
+    "custodyId",
+    "tenantId",
+    "authorityId",
+    "handlerArtifactDigest",
+    "actionReceiptDigest",
+    "requestDigest",
+    "artifactRef",
+    "artifactDigest",
+    "sourceActionReceiptDigest",
+    "reason",
+    "discardedAt",
+    "deletionReceiptDigest",
+  ];
+  exact(value, keys, "filesystem quarantine tombstone");
+  const binding = deletionBinding(state.descriptor, {
+    ...input,
+    authorityId: disposalDescriptor.authorityId,
+  });
+  const core = Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA,
+    ...binding,
+    discardedAt: value.discardedAt,
+  });
+  if (
+    value.schema !== core.schema ||
+    keys.slice(1, -2).some((key) => value[key] !== core[key]) ||
+    !Number.isFinite(Date.parse(value.discardedAt)) ||
+    value.deletionReceiptDigest !==
+      digest(BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA, core)
+  )
+    throw new Error("filesystem quarantine tombstone is invalid");
+  return Object.freeze({ ...value });
+}
+
+async function readJsonIfPresent(file) {
+  try {
+    return JSON.parse(await readFile(file, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function deletionAck(disposalDescriptor, tombstone) {
+  return Object.freeze({
+    schema: DELETION_ACK_SCHEMA,
+    authorityId: disposalDescriptor.authorityId,
+    tenantId: disposalDescriptor.tenantId,
+    handlerArtifactDigest: disposalDescriptor.handlerArtifactDigest,
+    actionReceiptDigest: tombstone.actionReceiptDigest,
+    requestDigest: tombstone.requestDigest,
+    artifactRef: tombstone.artifactRef,
+    artifactDigest: tombstone.artifactDigest,
+    sourceActionReceiptDigest: tombstone.sourceActionReceiptDigest,
+    discardedAt: tombstone.discardedAt,
+    deletionReceiptDigest: tombstone.deletionReceiptDigest,
+    authenticated: true,
+    durable: true,
+    readbackVerified: true,
+    bytesUnavailable: true,
+    qualifiesForPromotion: false,
+  });
+}
+
+async function disposeArtifact(state, disposalDescriptor, value) {
+  const input = normalizeDisposalInput(value);
+  await prepare(state);
+  const artifactId = artifactIdFromRef(input.artifactRef);
+  if (state.disposals.has(artifactId))
+    throw new Error(
+      "filesystem quarantine artifact disposal is already active",
+    );
+  if (state.completions.has(artifactId))
+    throw new Error("filesystem quarantine artifact completion is active");
+  if ((state.readers.get(artifactId) ?? 0) > 0)
+    throw new Error("filesystem quarantine artifact has active scan readers");
+  state.disposals.add(artifactId);
+  try {
+    return await disposeArtifactExclusive(
+      state,
+      disposalDescriptor,
+      input,
+      artifactId,
+    );
+  } finally {
+    state.disposals.delete(artifactId);
+  }
+}
+
+async function disposeArtifactExclusive(
+  state,
+  disposalDescriptor,
+  input,
+  artifactId,
+) {
+  const files = pathsFor(state.stateRoot, artifactId);
+  const existingTombstone = await readJsonIfPresent(files.tombstone);
+  if (existingTombstone !== null) {
+    const tombstone = normalizeTombstone(
+      existingTombstone,
+      state,
+      disposalDescriptor,
+      input,
+    );
+    const existingIntent = await readJsonIfPresent(files.deletionIntent);
+    if (existingIntent !== null)
+      normalizeDeletionIntent(existingIntent, state, disposalDescriptor, input);
+    if (
+      (await exists(files.part)) ||
+      (await exists(files.blob)) ||
+      (await exists(files.metadata))
+    )
+      throw new Error("filesystem quarantine tombstone conflicts with bytes");
+    await unlinkIfPresent(files.deletionIntent);
+    if (await exists(files.deletionIntent))
+      throw new Error("filesystem quarantine deletion intent cleanup failed");
+    return deletionAck(disposalDescriptor, tombstone);
+  }
+
+  let intentValue = await readJsonIfPresent(files.deletionIntent);
+  let intent;
+  if (intentValue === null) {
+    const persisted = await readMetadata(state, input.artifactRef);
+    if (
+      persisted.metadata.artifactDigest !== input.artifactDigest ||
+      persisted.metadata.sourceActionReceiptDigest !==
+        input.sourceActionReceiptDigest
+    )
+      throw new Error("filesystem quarantine disposal differs from custody");
+    const startedAtMs = state.now();
+    if (!Number.isFinite(startedAtMs))
+      throw new Error("filesystem quarantine clock is invalid");
+    const binding = deletionBinding(state.descriptor, {
+      ...input,
+      authorityId: disposalDescriptor.authorityId,
+    });
+    const core = Object.freeze({
+      schema: BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+      ...binding,
+      startedAt: new Date(startedAtMs).toISOString(),
+    });
+    intentValue = Object.freeze({
+      ...core,
+      intentDigest: digest(
+        BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+        core,
+      ),
+    });
+    try {
+      await writeNewMetadata(files.deletionIntent, intentValue);
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      intentValue = await readJsonIfPresent(files.deletionIntent);
+      if (intentValue === null)
+        throw new Error("filesystem quarantine deletion intent is uncertain");
+    }
+  }
+  intent = normalizeDeletionIntent(
+    intentValue,
+    state,
+    disposalDescriptor,
+    input,
+  );
+
+  for (const file of [files.part, files.blob, files.metadata])
+    await unlinkIfPresent(file);
+  if (
+    (await exists(files.part)) ||
+    (await exists(files.blob)) ||
+    (await exists(files.metadata))
+  )
+    throw new Error("filesystem quarantine deletion readback failed");
+
+  const binding = deletionBinding(state.descriptor, {
+    ...input,
+    authorityId: disposalDescriptor.authorityId,
+  });
+  const tombstoneCore = Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA,
+    ...binding,
+    discardedAt: intent.startedAt,
+  });
+  const tombstoneValue = Object.freeze({
+    ...tombstoneCore,
+    deletionReceiptDigest: digest(
+      BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA,
+      tombstoneCore,
+    ),
+  });
+  try {
+    await writeNewMetadata(files.tombstone, tombstoneValue);
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+  }
+  const tombstone = normalizeTombstone(
+    JSON.parse(await readFile(files.tombstone, "utf8")),
+    state,
+    disposalDescriptor,
+    input,
+  );
+  await unlinkIfPresent(files.deletionIntent);
+  if (
+    (await exists(files.part)) ||
+    (await exists(files.blob)) ||
+    (await exists(files.metadata))
+  )
+    throw new Error("filesystem quarantine deletion durability is uncertain");
+  return deletionAck(disposalDescriptor, tombstone);
+}
+
 export function createBrowserFilesystemQuarantineCustody({
   descriptor,
   stateRoot,
@@ -634,9 +1021,13 @@ export function createBrowserFilesystemQuarantineCustody({
     stateRoot: normalizedRoot,
     objectsRoot: path.join(normalizedRoot, "objects"),
     metadataRoot: path.join(normalizedRoot, "metadata"),
+    deletionsRoot: path.join(normalizedRoot, "deletions"),
     now,
     preparePromise: null,
     active: new Set(),
+    readers: new Map(),
+    disposals: new Set(),
+    completions: new Set(),
   });
   return custody;
 }
@@ -651,5 +1042,12 @@ export function captureBrowserFilesystemQuarantineCustody(value) {
     openArtifactForScan: async (input) => openArtifactForScan(state, input),
     completeArtifact: async (input) => completeArtifact(state, input),
     inspectArtifact: async (artifactRef) => inspectArtifact(state, artifactRef),
+    bindDisposalAuthority: (descriptor) => {
+      const disposalDescriptor = normalizeDisposalDescriptor(
+        descriptor,
+        state.descriptor,
+      );
+      return async (input) => disposeArtifact(state, disposalDescriptor, input);
+    },
   });
 }
