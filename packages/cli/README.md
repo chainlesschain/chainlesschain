@@ -47,6 +47,15 @@ action or search; normal reading resumes on the following turn. Searches do not
 clear a reading loop. A model that ignores recovery for six no-progress batches
 still fails explicitly rather than claiming the task is complete.
 
+Recovery-paused calls are runtime control results, not file or remote tool
+observations. They do not advance those tools' duplicate/failure counters, and
+a one-request pause really expires on the next request. They still count as
+global no-progress model attempts, so an ignored recovery cannot run forever.
+This prevents recovery paths from feeding their own denials back into a
+self-sustaining loop while preserving both task and six-real-attempt backstops.
+During global task recovery, a known repeated remote target remains available
+under its narrower remote guard; unrelated remote discovery stays paused.
+
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended
 runs retain the default cap; use `cc agent -p "your task" --max-turns 100` to

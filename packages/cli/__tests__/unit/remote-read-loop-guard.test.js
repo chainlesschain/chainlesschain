@@ -305,7 +305,7 @@ describe("remote read loop recovery", () => {
     }
   });
 
-  it("preserves the real error when a paused tool is requested again", () => {
+  it("preserves the real error without extending a one-turn remote pause", () => {
     const guard = new RemoteReadLoopGuard();
     for (let i = 0; i < 3; i++)
       guard.record(
@@ -314,14 +314,32 @@ describe("remote read loop recovery", () => {
         { url },
       );
     guard.takeRecoveryTurn();
+    expect(guard.shouldPause("web_fetch", { url })).toBe(true);
+    expect(guard.hasScopedContinuation("web_fetch")).toBe(true);
+    expect(guard.canContinue("web_fetch", { url })).toBe(true);
+    expect(
+      guard.canContinue("web_fetch", {
+        url: "https://github.com/owner/repo/actions/runs/999/job/888",
+      }),
+    ).toBe(false);
     for (let i = 0; i < 3; i++)
       guard.record(
         "web_fetch",
         { code: "CC_TOOL_RECOVERY_PAUSED", error: "paused" },
         { url },
       );
-    expect(guard.stalled).toBe(true);
+    expect(guard.stalled).toBe(false);
     expect(guard.findingsHint).toContain("missing repository access");
+    expect(guard.takeRecoveryTurn()).toEqual([]);
+    expect(guard.shouldPause("web_fetch", { url })).toBe(false);
+
+    for (let i = 0; i < 3; i++)
+      guard.record(
+        "web_fetch",
+        { error: "HTTP 403: missing repository access" },
+        { url },
+      );
+    expect(guard.stalled).toBe(true);
   });
 
   it("retains bounded PR evidence as source data rather than system guidance", () => {
@@ -487,6 +505,8 @@ describe("remote read loop recovery", () => {
     ).toBe(false);
     expect(guard.shouldPause("check_shell", { task_id: "bg_1" })).toBe(false);
     expect(guard.findingsHint).toContain("FAIL macOS path assertion");
+    expect(guard.takeRecoveryTurn()).toEqual([]);
+    expect(guard.shouldPause("run_shell", { command })).toBe(false);
     guard.record(
       "run_shell",
       { stdout: "FAIL another test: new information" },

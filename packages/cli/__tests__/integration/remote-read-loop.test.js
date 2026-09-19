@@ -437,7 +437,7 @@ describe("remote read recovery in the agent runtime", () => {
       ),
     ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
     expect(calls).toBe(11);
-    expect(webFetch).toHaveBeenCalledTimes(3);
+    expect(webFetch).toHaveBeenCalledTimes(6);
     expect(events.some((event) => event.type === "compaction")).toBe(true);
     expect(
       events.some(
@@ -524,7 +524,7 @@ describe("remote read recovery in the agent runtime", () => {
         agentLoop([{ role: "user", content: "Fix the CI failure" }], {
           ...base,
           chatFn: async () => {
-            expect(++calls).toBeLessThan(10);
+            expect(++calls).toBeLessThan(11);
             return tool(
               "run_shell",
               {
@@ -540,8 +540,8 @@ describe("remote read recovery in the agent runtime", () => {
         results,
       ),
     ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
-    expect(calls).toBe(7);
-    expect(executions).toBe(4);
+    expect(calls).toBe(10);
+    expect(executions).toBe(7);
     expect(
       results
         .filter((event) => event.type === "tool-result")
@@ -624,7 +624,7 @@ describe("remote read recovery in the agent runtime", () => {
             ...base,
             parallelReadOnlyTools,
             chatFn: async (context, options) => {
-              expect(++calls).toBeLessThan(10);
+              expect(++calls).toBeLessThan(11);
               if (calls > 1) {
                 const retained = context.find((message) =>
                   message.content?.includes("[Remote read results retained"),
@@ -660,11 +660,11 @@ describe("remote read recovery in the agent runtime", () => {
           events,
         ),
       ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
-      expect(calls).toBe(7);
-      expect(webFetch).toHaveBeenCalledTimes(16);
+      expect(calls).toBe(10);
+      expect(webFetch).toHaveBeenCalledTimes(28);
       const results = events.filter((event) => event.type === "tool-result");
-      expect(results).toHaveLength(28);
-      expect(new Set(results.map((event) => event.tool_use_id)).size).toBe(28);
+      expect(results).toHaveLength(40);
+      expect(new Set(results.map((event) => event.tool_use_id)).size).toBe(40);
       expect(
         messages
           .filter((message) => message.role === "tool")
@@ -896,9 +896,9 @@ describe("remote read recovery in the agent runtime", () => {
         events,
       ),
     ).rejects.toMatchObject({ code: "CC_AGENT_REPEATED_REMOTE_READ" });
-    expect(calls).toBe(6);
+    expect(calls).toBe(9);
     expect(events.filter((event) => event.type === "tool-result")).toHaveLength(
-      6,
+      9,
     );
     expect(events.some((event) => event.type === "response-complete")).toBe(
       false,

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { diagnosticExcerpt } from "./diagnostic-excerpt.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "./diagnostic-workflow.js";
+import { isToolRecoveryPaused } from "./tool-recovery-result.js";
 
 const MAX_TARGETS = 32;
 const RECOVERY_AFTER = 3;
@@ -208,22 +209,14 @@ export class RemoteReadLoopGuard {
     this.activeKey = null;
     this.revision = 0;
     this.offeredRevision = 0;
+    this.pausedKey = null;
   }
 
   record(tool, result, args = {}) {
-    if (result?.code === "CC_TOOL_RECOVERY_PAUSED") {
-      // A provider can ignore omitted tool definitions. Count that attempt
-      // without replacing the actual failure/evidence with our own denial.
-      const key = remoteReadTarget(tool, args)?.key || this.activeKey;
-      const entry = this.targets.get(key);
-      if (entry?.tool === tool && entry.repeats >= RECOVERY_AFTER) {
-        entry.repeats++;
-        entry.recoveryOffered = true;
-        this.activeKey = key;
-        this.revision++;
-      }
-      return;
-    }
+    // Preserve the last real error/evidence, but do not count a call that the
+    // runtime itself refused to execute. Otherwise a one-turn pause advances
+    // the retry counter and remains active forever.
+    if (isToolRecoveryPaused(result)) return;
     const failed = failedResult(result);
     const policy = result?.shellCommandPolicy;
     const gitRepositoryKey = `git-repository:${createHash("sha256")
@@ -421,10 +414,15 @@ export class RemoteReadLoopGuard {
   }
 
   takeRecoveryTurn() {
+    // Recovery narrowing lasts for exactly the model request for which it was
+    // offered. Calling this method at the next request clears the old target
+    // before deciding whether fresh real evidence warrants another pause.
+    this.pausedKey = null;
     if (!this.recoveryHint || this.offeredRevision === this.revision) return [];
     this.offeredRevision = this.revision;
     const entry = this.targets.get(this.activeKey);
     entry.recoveryOffered = true;
+    this.pausedKey = this.activeKey;
     // Keep the shell available for local reproduction and validation. Only
     // repeated reads of the stalled remote target are narrowed below.
     if (entry.tool === "run_shell" && entry.github) return [];
@@ -433,12 +431,21 @@ export class RemoteReadLoopGuard {
 
   shouldPause(tool, args = {}) {
     const target = remoteReadTarget(tool, args);
-    const entry = target && this.targets.get(target.key);
-    return !!(
-      entry?.github &&
-      entry.recoveryOffered &&
-      entry.repeats >= RECOVERY_AFTER
+    return !!(target && target.key === this.pausedKey);
+  }
+
+  hasScopedContinuation(tool) {
+    return [...this.targets.values()].some(
+      (entry) =>
+        entry.tool === tool &&
+        (entry.repeats > 0 || entry.page?.hasMore === true),
     );
+  }
+
+  canContinue(tool, args = {}) {
+    const target = remoteReadTarget(tool, args);
+    const entry = target && this.targets.get(target.key);
+    return !!(entry && (entry.repeats > 0 || entry.page?.hasMore === true));
   }
 
   get workflowHint() {

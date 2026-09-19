@@ -108,11 +108,11 @@ describe("IDE task recovery", () => {
         taskProgressTracker: tracker,
         contextMemorySkipPlanning: true,
         autoMicroCompact: false,
-        maxIterations: 4,
+        maxIterations: 9,
         chatFn: async (_messages, options) => {
           calls++;
           expect(options.disabledTools || []).not.toContain("read_file");
-          if (calls <= 2)
+          if (calls <= 6)
             return {
               message: mockToolCallMessage(
                 "read_file",
@@ -120,7 +120,7 @@ describe("IDE task recovery", () => {
                 `broad-read-${calls}`,
               ),
             };
-          if (calls === 3)
+          if (calls === 7)
             return {
               message: mockToolCallMessage(
                 "read_file",
@@ -142,7 +142,7 @@ describe("IDE task recovery", () => {
       (event) =>
         event.type === "tool-result" && event.tool_use_id === "targeted-read",
     );
-    expect(broad).toHaveLength(2);
+    expect(broad).toHaveLength(6);
     expect(
       broad.every((event) => event.result.code === "CC_TOOL_RECOVERY_PAUSED"),
     ).toBe(true);

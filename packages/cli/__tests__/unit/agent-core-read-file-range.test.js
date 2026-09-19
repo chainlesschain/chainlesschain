@@ -822,10 +822,13 @@ describe("read_file offset/limit line ranges", () => {
         failure = error;
       }
       expect(failure?.code).toBe("CC_AGENT_REPEATED_FILE_READ");
-      expect(calls).toBe(7);
+      // Paused calls do not advance the duplicate counter. The tool becomes
+      // available on the following request, so only real repeated reads count
+      // toward the six-batch backstop.
+      expect(calls).toBe(11);
       expect(recoverySeen).toBe(true);
       const results = events.filter((e) => e.type === "tool-result");
-      expect(results).toHaveLength(parallel ? 14 : 7);
+      expect(results).toHaveLength(parallel ? 22 : 11);
       expect(results.filter((e) => e.result.content)).toHaveLength(1);
       expect(
         results.every(

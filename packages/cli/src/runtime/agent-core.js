@@ -39,6 +39,7 @@ import {
   TaskProgressTracker,
   TASK_RECOVERY_TOOLS,
 } from "../lib/task-progress-tracker.js";
+import { TOOL_RECOVERY_PAUSED_CODE } from "../lib/tool-recovery-result.js";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
@@ -14997,7 +14998,9 @@ export async function* agentLoop(messages, options) {
     // known, explicitly bounded section. Admission below still rejects broad
     // new-file reads and repeated covered ranges.
     const taskRecoveryTools = TASK_RECOVERY_TOOLS.filter(
-      (tool) => tool !== "read_file",
+      (tool) =>
+        tool !== "read_file" &&
+        !remoteReadLoopGuard.hasScopedContinuation(tool),
     );
     const readToolRecoveryPaused =
       readRecoveryTurn &&
@@ -15926,10 +15929,13 @@ export async function* agentLoop(messages, options) {
               path.resolve(toolContext.cwd || process.cwd(), toolArgs.path),
               toolArgs,
             )
-          ))
+          )) ||
+        (taskRecoveryTurn &&
+          (toolName === "web_fetch" || toolName === "web_search") &&
+          !remoteReadLoopGuard.canContinue(toolName, toolArgs))
           ? {
               success: false,
-              code: "CC_TOOL_RECOVERY_PAUSED",
+              code: TOOL_RECOVERY_PAUSED_CODE,
               error: `${toolName} is paused for loop recovery and was not executed. Use retained findings for an authorized action or report the specific blocker; do not repeat or disguise this call.`,
             }
           : null) ||

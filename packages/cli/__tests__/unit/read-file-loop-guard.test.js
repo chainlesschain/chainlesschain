@@ -152,6 +152,25 @@ describe("ReadFileLoopGuard recovery", () => {
     expect(guard.repeatedBatches).toBe(4);
     expect(guard.takeRecoveryTurn()).toBe(true);
   });
+
+  it("does not turn a synthetic one-turn pause into another duplicate batch", () => {
+    const { guard, batch } = fixture();
+    batch({}, "small");
+    batch({}, "small");
+    batch({}, "small");
+    expect(guard.takeRecoveryTurn()).toBe(true);
+
+    guard.startBatch();
+    guard.record("read_file", {
+      code: "CC_TOOL_RECOVERY_PAUSED",
+      error: "paused",
+    });
+    guard.finishBatch();
+
+    expect(guard.repeatedBatches).toBe(2);
+    expect(guard.takeRecoveryTurn()).toBe(false);
+    expect(guard.stalled).toBe(false);
+  });
   it.each(["todo_write", "spawn_sub_agent", "notify", "tool_search"])(
     "%s cannot erase repeated reads or reopen targeted reread allowances",
     (tool) => {

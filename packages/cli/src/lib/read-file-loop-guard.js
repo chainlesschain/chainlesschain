@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { EXPLORATION_TOOLS } from "./task-progress-tracker.js";
+import { isToolRecoveryPaused } from "./tool-recovery-result.js";
 const MAX_FILES = 12;
 
 function keyFor(filePath, args) {
@@ -215,14 +216,10 @@ export class ReadFileLoopGuard {
   }
 
   record(tool, result, actionable = true) {
-    if (
-      this.batch &&
-      tool === "read_file" &&
-      result?.code === "CC_TOOL_RECOVERY_PAUSED"
-    ) {
-      this.batch.duplicates++;
-      return;
-    }
+    // The runtime denied this call before execution. Counting its own denial
+    // as another duplicate would immediately schedule another "one-turn"
+    // pause and prevent read_file from ever becoming available again.
+    if (isToolRecoveryPaused(result)) return;
     if (
       !this.batch ||
       result?.error ||

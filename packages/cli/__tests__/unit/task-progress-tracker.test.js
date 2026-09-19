@@ -357,6 +357,23 @@ describe("long-running task progress", () => {
     expect(tracker.explorationCalls).toBe(15);
   });
 
+  it("counts a synthetic recovery pause only as global no-progress", () => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+
+    expect(
+      tracker.record("read_file", {
+        code: "CC_TOOL_RECOVERY_PAUSED",
+        error: "paused",
+      }),
+    ).toBe(false);
+    expect(tracker.explorationCalls).toBe(25);
+    expect(tracker.intervention).toMatchObject({
+      recovery: true,
+    });
+    expect(tracker.checkpointFor()).toBeNull();
+  });
+
   it("parents and children account to the same tracker without shared batch state", () => {
     const tracker = new TaskProgressTracker();
     const parent = tracker;
