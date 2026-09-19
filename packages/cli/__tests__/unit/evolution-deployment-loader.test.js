@@ -56,6 +56,10 @@ import {
   captureBrowserQuarantineOperatorRevocationAuthority,
 } from "../../src/lib/evolution/browser-quarantine-operator-revocation-authority.js";
 import {
+  BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA,
+  captureBrowserQuarantineLockMaintenanceAuthority,
+} from "../../src/lib/evolution/browser-quarantine-lock-maintenance-authority.js";
+import {
   BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadArtifactDisposalAuthority,
 } from "../../src/lib/evolution/browser-download-artifact-disposal-authority.js";
@@ -1204,6 +1208,26 @@ describe("signed evolution deployment loader", () => {
               now: () => Date.now(),
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserQuarantineLockMaintenanceAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-lock-maintenance",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "lock-policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "operator-signed",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "orphan-lock-release",
+              },
+              custody: {},
+              authorizeMaintenance: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1418,6 +1442,25 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
               now: () => Date.now(),
             });
+          const browserQuarantineLockMaintenanceAuthority =
+            factories.createBrowserQuarantineLockMaintenanceAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-lock-maintenance",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "lock-policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "operator-signed",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "orphan-lock-release",
+              },
+              custody: browserFilesystemQuarantineCustody,
+              authorizeMaintenance: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1434,6 +1477,7 @@ describe("signed evolution deployment loader", () => {
             browserQuarantineRetentionAuthority,
             browserQuarantineRetentionScheduler,
             browserQuarantineOperatorRevocationAuthority,
+            browserQuarantineLockMaintenanceAuthority,
           };
         },
       }),
@@ -1562,6 +1606,16 @@ describe("signed evolution deployment loader", () => {
       authorityId: "browser-quarantine-operator-revocation",
       approvalMode: "operator-signed",
       effectMode: "irreversible-byte-revocation",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserQuarantineLockMaintenanceAuthority(
+        result.browserQuarantineLockMaintenanceAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-quarantine-lock-maintenance",
+      approvalMode: "operator-signed",
+      effectMode: "orphan-lock-release",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });

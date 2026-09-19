@@ -30,8 +30,14 @@ export const BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-expiry-plan/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-operator-revocation-descriptor/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-lock-maintenance-descriptor/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-lock-owner/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_LOCK_DIAGNOSTIC_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-lock-diagnostic/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_LOCK_RELEASE_ACK_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-lock-release-ack/v1";
 
 const QUARANTINE_COMMIT_ACK_SCHEMA =
   "chainlesschain.browser-download-quarantine-commit-ack/v1";
@@ -59,6 +65,10 @@ const LOCK_OPERATIONS = new Set([
 ]);
 const LOCK_TEMP_FILE =
   /^owner\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
+const LOCK_MAINTENANCE_CLAIM_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-lock-maintenance-claim/v1";
+const LOCK_MAINTENANCE_TEMP_FILE =
+  /^maintenance\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
 const OBJECT_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.(part|blob)$/u;
 const METADATA_TEMP_FILE =
   /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
@@ -177,6 +187,12 @@ function pathsFor(root, artifactId) {
     tombstone: path.join(root, "deletions", `${artifactId}.deleted.json`),
     lockDirectory: path.join(root, "locks", `${artifactId}.lock`),
     lockOwner: path.join(root, "locks", `${artifactId}.lock`, "owner.json"),
+    lockMaintenance: path.join(
+      root,
+      "locks",
+      `${artifactId}.lock`,
+      "maintenance.json",
+    ),
   });
 }
 
@@ -472,6 +488,47 @@ function normalizeLockOwner(value, state, artifactId) {
   return Object.freeze({ ...value });
 }
 
+function normalizeLockMaintenanceClaim(value, state, artifactId) {
+  exact(
+    value,
+    [
+      "schema",
+      "custodyId",
+      "tenantId",
+      "authorityId",
+      "handlerArtifactDigest",
+      "artifactId",
+      "maintenanceId",
+      "pid",
+      "acquiredAt",
+      "expectedLockStateDigest",
+      "actionReceiptDigest",
+      "requestDigest",
+    ],
+    "filesystem quarantine lock maintenance claim",
+  );
+  if (
+    value.schema !== LOCK_MAINTENANCE_CLAIM_SCHEMA ||
+    value.custodyId !== state.descriptor.custodyId ||
+    value.tenantId !== state.descriptor.tenantId ||
+    !ID.test(value.authorityId) ||
+    value.handlerArtifactDigest !== state.descriptor.handlerArtifactDigest ||
+    value.artifactId !== artifactId ||
+    typeof value.maintenanceId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      value.maintenanceId,
+    ) ||
+    !Number.isSafeInteger(value.pid) ||
+    value.pid < 1 ||
+    !Number.isFinite(Date.parse(value.acquiredAt)) ||
+    !DIGEST.test(value.expectedLockStateDigest) ||
+    !DIGEST.test(value.actionReceiptDigest) ||
+    !DIGEST.test(value.requestDigest)
+  )
+    throw new Error("filesystem quarantine lock maintenance claim is invalid");
+  return Object.freeze({ ...value });
+}
+
 function isProcessAlive(pid) {
   if (pid === process.pid) return true;
   try {
@@ -497,18 +554,35 @@ async function inspectLockDirectory(files) {
   const entries = await readdir(files.lockDirectory, { withFileTypes: true });
   for (const entry of entries) {
     if (
-      (entry.name !== "owner.json" && !LOCK_TEMP_FILE.test(entry.name)) ||
+      (entry.name !== "owner.json" &&
+        entry.name !== "maintenance.json" &&
+        !LOCK_TEMP_FILE.test(entry.name) &&
+        !LOCK_MAINTENANCE_TEMP_FILE.test(entry.name)) ||
       !entry.isFile() ||
       entry.isSymbolicLink()
     )
       throw new Error("filesystem quarantine artifact lock is unsafe");
   }
-  return Object.freeze({ info, entries });
+  return Object.freeze({
+    info,
+    entries,
+    maintenanceEntries: Object.freeze(
+      entries.filter(
+        (entry) =>
+          entry.name === "maintenance.json" ||
+          LOCK_MAINTENANCE_TEMP_FILE.test(entry.name),
+      ),
+    ),
+  });
 }
 
 async function removeLockDirectory(files) {
   const inspected = await inspectLockDirectory(files);
   if (inspected === null) return;
+  if (inspected.maintenanceEntries.length > 0)
+    throw lockError(
+      "filesystem quarantine artifact lock maintenance is active",
+    );
   for (const entry of inspected.entries)
     await unlinkIfPresent(path.join(files.lockDirectory, entry.name));
   try {
@@ -520,9 +594,63 @@ async function removeLockDirectory(files) {
     throw new Error("filesystem quarantine artifact lock cleanup failed");
 }
 
+async function recoverAbandonedMaintenanceClaim(
+  state,
+  files,
+  artifactId,
+  inspected,
+) {
+  if (inspected.maintenanceEntries.length === 0) return inspected;
+  let claim = null;
+  try {
+    claim = normalizeLockMaintenanceClaim(
+      JSON.parse(await readFile(files.lockMaintenance, "utf8")),
+      state,
+      artifactId,
+    );
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (claim) {
+    const active =
+      claim.pid === process.pid
+        ? state.maintenanceClaims.has(claim.maintenanceId)
+        : isProcessAlive(claim.pid);
+    if (active)
+      throw lockError(
+        "filesystem quarantine artifact lock maintenance is active",
+      );
+  } else {
+    const ages = await Promise.all(
+      inspected.maintenanceEntries.map(
+        async (entry) =>
+          (await lstat(path.join(files.lockDirectory, entry.name))).mtimeMs,
+      ),
+    );
+    if (Date.now() - Math.max(...ages) < LOCK_OWNER_INIT_TIMEOUT_MS)
+      throw lockError(
+        "filesystem quarantine artifact lock maintenance is initializing",
+      );
+  }
+  for (const entry of inspected.maintenanceEntries)
+    await unlinkIfPresent(path.join(files.lockDirectory, entry.name));
+  const recovered = await inspectLockDirectory(files);
+  if (recovered === null)
+    throw new Error(
+      "filesystem quarantine artifact lock disappeared during maintenance recovery",
+    );
+  return recovered;
+}
+
 async function recoverAbandonedLock(state, files, artifactId) {
-  const inspected = await inspectLockDirectory(files);
+  let inspected = await inspectLockDirectory(files);
   if (inspected === null) return;
+  inspected = await recoverAbandonedMaintenanceClaim(
+    state,
+    files,
+    artifactId,
+    inspected,
+  );
   let parsed;
   try {
     parsed = JSON.parse(await readFile(files.lockOwner, "utf8"));
@@ -573,6 +701,9 @@ async function acquireArtifactLock(state, artifactId, operation) {
       );
       if (readback.lockId !== ownerValue.lockId)
         throw new Error("filesystem quarantine artifact lock differs");
+      if (state.heldLocks.has(artifactId))
+        throw new Error("filesystem quarantine artifact lock state conflicts");
+      state.heldLocks.set(artifactId, ownerValue.lockId);
     } catch (error) {
       await removeLockDirectory(files).catch(() => {});
       throw error;
@@ -580,20 +711,350 @@ async function acquireArtifactLock(state, artifactId, operation) {
     let released = false;
     return async () => {
       if (released) return;
-      const current = normalizeLockOwner(
-        JSON.parse(await readFile(files.lockOwner, "utf8")),
-        state,
-        artifactId,
-      );
-      if (current.lockId !== ownerValue.lockId)
-        throw new Error(
-          "filesystem quarantine artifact lock ownership changed",
+      try {
+        const current = normalizeLockOwner(
+          JSON.parse(await readFile(files.lockOwner, "utf8")),
+          state,
+          artifactId,
         );
-      await removeLockDirectory(files);
-      released = true;
+        if (current.lockId !== ownerValue.lockId)
+          throw new Error(
+            "filesystem quarantine artifact lock ownership changed",
+          );
+        await removeLockDirectory(files);
+        released = true;
+      } finally {
+        if (state.heldLocks.get(artifactId) === ownerValue.lockId)
+          state.heldLocks.delete(artifactId);
+      }
     };
   }
   throw lockError("filesystem quarantine artifact lock acquisition raced");
+}
+
+function lockDirectoryIdentityDigest(info) {
+  return digest(
+    "chainlesschain.browser-filesystem-quarantine-lock-directory-identity/v1",
+    {
+      device: info.dev,
+      inode: info.ino,
+      birthtimeMs: info.birthtimeMs,
+    },
+  );
+}
+
+async function ownerEvidence(inspected, files, state, artifactId) {
+  let rawOwner = null;
+  try {
+    rawOwner = await readFile(files.lockOwner);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (rawOwner) {
+    const ownerEvidenceDigest = `sha256:${createHash("sha256")
+      .update(rawOwner)
+      .digest("hex")}`;
+    try {
+      const owner = normalizeLockOwner(
+        JSON.parse(rawOwner.toString("utf8")),
+        state,
+        artifactId,
+      );
+      return Object.freeze({
+        status: isProcessAlive(owner.pid) ? "owned-live" : "owned-dead",
+        owner,
+        ownerEvidenceDigest,
+      });
+    } catch {
+      return Object.freeze({
+        status: "owned-invalid",
+        owner: null,
+        ownerEvidenceDigest,
+      });
+    }
+  }
+  const temporaryEvidence = [];
+  for (const entry of inspected.entries
+    .filter((candidate) => LOCK_TEMP_FILE.test(candidate.name))
+    .sort((left, right) => left.name.localeCompare(right.name))) {
+    const file = path.join(files.lockDirectory, entry.name);
+    const [contents, info] = await Promise.all([readFile(file), lstat(file)]);
+    temporaryEvidence.push(
+      Object.freeze({
+        name: entry.name,
+        size: info.size,
+        contentsDigest: `sha256:${createHash("sha256")
+          .update(contents)
+          .digest("hex")}`,
+      }),
+    );
+  }
+  return Object.freeze({
+    status:
+      Date.now() - inspected.info.mtimeMs < LOCK_OWNER_INIT_TIMEOUT_MS
+        ? "owner-initializing"
+        : "owner-orphaned",
+    owner: null,
+    ownerEvidenceDigest: digest(
+      "chainlesschain.browser-filesystem-quarantine-lock-owner-evidence/v1",
+      temporaryEvidence,
+    ),
+  });
+}
+
+async function inspectArtifactLockState(
+  state,
+  artifactRef,
+  allowedMaintenanceId = null,
+) {
+  await prepare(state);
+  const artifactId = artifactIdFromRef(artifactRef);
+  const files = pathsFor(state.stateRoot, artifactId);
+  const inspected = await inspectLockDirectory(files);
+  const observedAtMs = state.now();
+  if (!Number.isFinite(observedAtMs))
+    throw new Error("filesystem quarantine lock diagnostic clock is invalid");
+  const artifactRefDigest = digest(
+    "chainlesschain.browser-download-artifact-ref/v1",
+    artifactRef,
+  );
+  if (inspected === null) {
+    const stateCore = Object.freeze({
+      custodyId: state.descriptor.custodyId,
+      tenantId: state.descriptor.tenantId,
+      handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+      artifactRefDigest,
+      lockDirectoryIdentityDigest: null,
+      ownerEvidenceDigest: null,
+    });
+    return Object.freeze({
+      schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_DIAGNOSTIC_SCHEMA,
+      custodyId: state.descriptor.custodyId,
+      tenantId: state.descriptor.tenantId,
+      handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+      artifactRefDigest,
+      status: "absent",
+      ownerOperation: null,
+      ownerPid: null,
+      ownerAcquiredAt: null,
+      ownerEvidenceDigest: null,
+      lockDirectoryIdentityDigest: null,
+      observedAt: new Date(observedAtMs).toISOString(),
+      lockStateDigest: digest(
+        BROWSER_FILESYSTEM_QUARANTINE_LOCK_DIAGNOSTIC_SCHEMA,
+        stateCore,
+      ),
+    });
+  }
+  if (inspected.maintenanceEntries.length > 0) {
+    let claim;
+    try {
+      claim = normalizeLockMaintenanceClaim(
+        JSON.parse(await readFile(files.lockMaintenance, "utf8")),
+        state,
+        artifactId,
+      );
+    } catch (error) {
+      if (error?.code === "ENOENT")
+        throw lockError(
+          "filesystem quarantine artifact lock maintenance is initializing",
+        );
+      throw error;
+    }
+    if (
+      allowedMaintenanceId === null ||
+      claim.maintenanceId !== allowedMaintenanceId
+    )
+      throw lockError(
+        "filesystem quarantine artifact lock maintenance is active",
+      );
+  }
+  const evidence = await ownerEvidence(inspected, files, state, artifactId);
+  const lockIdentity = lockDirectoryIdentityDigest(inspected.info);
+  const stateCore = Object.freeze({
+    custodyId: state.descriptor.custodyId,
+    tenantId: state.descriptor.tenantId,
+    handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+    artifactRefDigest,
+    lockDirectoryIdentityDigest: lockIdentity,
+    ownerEvidenceDigest: evidence.ownerEvidenceDigest,
+  });
+  return Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_DIAGNOSTIC_SCHEMA,
+    custodyId: state.descriptor.custodyId,
+    tenantId: state.descriptor.tenantId,
+    handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+    artifactRefDigest,
+    status: evidence.status,
+    ownerOperation: evidence.owner?.operation ?? null,
+    ownerPid: evidence.owner?.pid ?? null,
+    ownerAcquiredAt: evidence.owner?.acquiredAt ?? null,
+    ownerEvidenceDigest: evidence.ownerEvidenceDigest,
+    lockDirectoryIdentityDigest: lockIdentity,
+    observedAt: new Date(observedAtMs).toISOString(),
+    lockStateDigest: digest(
+      BROWSER_FILESYSTEM_QUARANTINE_LOCK_DIAGNOSTIC_SCHEMA,
+      stateCore,
+    ),
+  });
+}
+
+function normalizeLockReleaseInput(value) {
+  exact(
+    value,
+    [
+      "actionReceiptDigest",
+      "requestDigest",
+      "artifactRef",
+      "expectedLockStateDigest",
+    ],
+    "filesystem quarantine lock release request",
+  );
+  if (
+    !DIGEST.test(value.actionReceiptDigest) ||
+    !DIGEST.test(value.requestDigest) ||
+    !ARTIFACT_REF.test(value.artifactRef) ||
+    !DIGEST.test(value.expectedLockStateDigest)
+  )
+    throw new TypeError(
+      "filesystem quarantine lock release request is invalid",
+    );
+  return Object.freeze({ ...value });
+}
+
+async function cleanupMaintenanceClaim(
+  state,
+  files,
+  artifactId,
+  maintenanceId,
+) {
+  let claim;
+  try {
+    claim = normalizeLockMaintenanceClaim(
+      JSON.parse(await readFile(files.lockMaintenance, "utf8")),
+      state,
+      artifactId,
+    );
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+  if (claim.maintenanceId === maintenanceId)
+    await unlinkIfPresent(files.lockMaintenance);
+}
+
+async function releaseArtifactLock(state, maintenanceDescriptor, requestValue) {
+  const request = normalizeLockReleaseInput(requestValue);
+  const before = await inspectArtifactLockState(state, request.artifactRef);
+  if (before.status === "absent")
+    throw new Error("filesystem quarantine artifact lock is absent");
+  if (before.lockStateDigest !== request.expectedLockStateDigest)
+    throw new Error("filesystem quarantine artifact lock state changed");
+  const artifactId = artifactIdFromRef(request.artifactRef);
+  if (state.heldLocks.has(artifactId))
+    throw lockError(
+      "filesystem quarantine artifact lock is held by this custody instance",
+    );
+  const files = pathsFor(state.stateRoot, artifactId);
+  const maintenanceId = randomUUID();
+  const acquiredAtMs = state.now();
+  if (!Number.isFinite(acquiredAtMs))
+    throw new Error("filesystem quarantine lock maintenance clock is invalid");
+  const claim = Object.freeze({
+    schema: LOCK_MAINTENANCE_CLAIM_SCHEMA,
+    custodyId: state.descriptor.custodyId,
+    tenantId: state.descriptor.tenantId,
+    authorityId: maintenanceDescriptor.authorityId,
+    handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+    artifactId,
+    maintenanceId,
+    pid: process.pid,
+    acquiredAt: new Date(acquiredAtMs).toISOString(),
+    expectedLockStateDigest: request.expectedLockStateDigest,
+    actionReceiptDigest: request.actionReceiptDigest,
+    requestDigest: request.requestDigest,
+  });
+  state.maintenanceClaims.add(maintenanceId);
+  try {
+    await writeNewMetadata(files.lockMaintenance, claim);
+    const claimed = await inspectArtifactLockState(
+      state,
+      request.artifactRef,
+      maintenanceId,
+    );
+    if (claimed.lockStateDigest !== request.expectedLockStateDigest)
+      throw new Error(
+        "filesystem quarantine artifact lock changed before maintenance claim",
+      );
+    const inspected = await inspectLockDirectory(files);
+    if (inspected === null)
+      throw new Error(
+        "filesystem quarantine artifact lock disappeared during maintenance",
+      );
+    const persistedClaim = normalizeLockMaintenanceClaim(
+      JSON.parse(await readFile(files.lockMaintenance, "utf8")),
+      state,
+      artifactId,
+    );
+    if (persistedClaim.maintenanceId !== maintenanceId)
+      throw new Error(
+        "filesystem quarantine lock maintenance ownership changed",
+      );
+    for (const entry of inspected.entries) {
+      if (
+        entry.name === "maintenance.json" ||
+        LOCK_MAINTENANCE_TEMP_FILE.test(entry.name)
+      )
+        continue;
+      await unlinkIfPresent(path.join(files.lockDirectory, entry.name));
+    }
+    await unlinkDurably(files.lockMaintenance);
+    await rmdirDurably(files.lockDirectory);
+    if (await exists(files.lockDirectory))
+      throw new Error(
+        "filesystem quarantine artifact lock release readback failed",
+      );
+    const releasedAtMs = state.now();
+    if (!Number.isFinite(releasedAtMs))
+      throw new Error(
+        "filesystem quarantine lock maintenance clock is invalid",
+      );
+    const core = Object.freeze({
+      schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_RELEASE_ACK_SCHEMA,
+      custodyId: state.descriptor.custodyId,
+      authorityId: maintenanceDescriptor.authorityId,
+      tenantId: maintenanceDescriptor.tenantId,
+      handlerArtifactDigest: maintenanceDescriptor.handlerArtifactDigest,
+      policyRevision: maintenanceDescriptor.policyRevision,
+      actionReceiptDigest: request.actionReceiptDigest,
+      requestDigest: request.requestDigest,
+      artifactRefDigest: before.artifactRefDigest,
+      releasedLockStateDigest: before.lockStateDigest,
+      releasedAt: new Date(releasedAtMs).toISOString(),
+    });
+    return Object.freeze({
+      ...core,
+      releaseReceiptDigest: digest(
+        BROWSER_FILESYSTEM_QUARANTINE_LOCK_RELEASE_ACK_SCHEMA,
+        core,
+      ),
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      artifactBytesChanged: false,
+      qualifiesForPromotion: false,
+    });
+  } catch (error) {
+    await cleanupMaintenanceClaim(
+      state,
+      files,
+      artifactId,
+      maintenanceId,
+    ).catch(() => {});
+    throw error;
+  } finally {
+    state.maintenanceClaims.delete(maintenanceId);
+  }
 }
 
 function assertRegularRecoveryEntry(entry, label) {
@@ -1338,6 +1799,42 @@ function normalizeOperatorRevocationDescriptor(value, custodyDescriptor) {
   return Object.freeze({ ...value });
 }
 
+function normalizeLockMaintenanceDescriptor(value, custodyDescriptor) {
+  exact(
+    value,
+    [
+      "schema",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "maxGrantTtlMs",
+      "approvalMode",
+      "auditMode",
+      "effectMode",
+    ],
+    "filesystem quarantine lock maintenance descriptor",
+  );
+  if (
+    value.schema !==
+      BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA ||
+    !ID.test(value.authorityId) ||
+    value.tenantId !== custodyDescriptor.tenantId ||
+    value.handlerArtifactDigest !== custodyDescriptor.handlerArtifactDigest ||
+    !ID.test(value.policyRevision) ||
+    !Number.isSafeInteger(value.maxGrantTtlMs) ||
+    value.maxGrantTtlMs < 1 ||
+    value.maxGrantTtlMs > 30_000 ||
+    value.approvalMode !== "operator-signed" ||
+    value.auditMode !== "authenticated-durable-readback" ||
+    value.effectMode !== "orphan-lock-release"
+  )
+    throw new TypeError(
+      "filesystem quarantine lock maintenance descriptor is invalid",
+    );
+  return Object.freeze({ ...value });
+}
+
 function normalizeExpiryPlanInput(value, retentionDescriptor, nowMs) {
   exact(
     value,
@@ -1819,6 +2316,8 @@ export function createBrowserFilesystemQuarantineCustody({
     readers: new Map(),
     disposals: new Set(),
     completions: new Set(),
+    heldLocks: new Map(),
+    maintenanceClaims: new Set(),
   });
   return custody;
 }
@@ -1911,6 +2410,18 @@ export function captureBrowserFilesystemQuarantineCustody(value) {
           );
         return disposeArtifact(state, revocationDescriptor, normalized);
       };
+    },
+    bindLockMaintenanceAuthority: (descriptor) => {
+      const maintenanceDescriptor = normalizeLockMaintenanceDescriptor(
+        descriptor,
+        state.descriptor,
+      );
+      return Object.freeze({
+        inspectLock: async (artifactRef) =>
+          inspectArtifactLockState(state, artifactRef),
+        releaseLock: async (input) =>
+          releaseArtifactLock(state, maintenanceDescriptor, input),
+      });
     },
   });
 }

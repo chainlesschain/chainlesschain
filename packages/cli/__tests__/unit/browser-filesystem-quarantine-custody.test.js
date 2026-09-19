@@ -1,7 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +22,8 @@ import {
 import {
   BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
   BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA,
+  BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA,
+  BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA,
   captureBrowserFilesystemQuarantineCustody,
   createBrowserFilesystemQuarantineCustody,
 } from "../../src/lib/evolution/browser-filesystem-quarantine-custody.js";
@@ -66,6 +75,20 @@ function disposalDescriptor(handlerArtifactDigest = digest("handler")) {
     approvalMode: "interactive",
     auditMode: "authenticated-durable-readback",
     effectMode: "irreversible-byte-disposal",
+  };
+}
+
+function lockMaintenanceDescriptor() {
+  return {
+    schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_MAINTENANCE_DESCRIPTOR_SCHEMA,
+    authorityId: "browser-quarantine-lock-maintenance",
+    tenantId: "tenant-1",
+    handlerArtifactDigest: digest("handler"),
+    policyRevision: "policy-1",
+    maxGrantTtlMs: 5000,
+    approvalMode: "operator-signed",
+    auditMode: "authenticated-durable-readback",
+    effectMode: "orphan-lock-release",
   };
 }
 
@@ -676,6 +699,82 @@ describe("browser filesystem quarantine custody", () => {
       bytesUnavailable: true,
       readbackVerified: true,
     });
+  });
+
+  it("diagnoses and durably releases a PID-reused lock without touching artifact bytes", async () => {
+    const { port, stateRoot } = await fixture();
+    const maintenance = port.bindLockMaintenanceAuthority(
+      lockMaintenanceDescriptor(),
+    );
+    await expect(
+      maintenance.inspectLock("quarantine:artifact-1"),
+    ).resolves.toMatchObject({ status: "absent" });
+    const lockDirectory = path.join(stateRoot, "locks", "artifact-1.lock");
+    const part = path.join(stateRoot, "objects", "artifact-1.part");
+    await mkdir(lockDirectory);
+    await Promise.all([
+      writeFile(part, "preserve-me"),
+      writeFile(
+        path.join(lockDirectory, "owner.json"),
+        `${canonical({
+          schema: BROWSER_FILESYSTEM_QUARANTINE_LOCK_OWNER_SCHEMA,
+          custodyId: "download-custody-test",
+          tenantId: "tenant-1",
+          artifactId: "artifact-1",
+          operation: "write",
+          lockId: randomUUID(),
+          pid: process.pid,
+          acquiredAt: new Date(NOW - 60_000).toISOString(),
+        })}\n`,
+      ),
+    ]);
+
+    const diagnostic = await maintenance.inspectLock("quarantine:artifact-1");
+    expect(diagnostic).toMatchObject({
+      status: "owned-live",
+      ownerOperation: "write",
+      ownerPid: process.pid,
+      lockStateDigest: expect.stringMatching(/^sha256:/u),
+    });
+    await expect(
+      maintenance.releaseLock({
+        actionReceiptDigest: digest("operator-action"),
+        requestDigest: digest("operator-request"),
+        artifactRef: "quarantine:artifact-1",
+        expectedLockStateDigest: diagnostic.lockStateDigest,
+      }),
+    ).resolves.toMatchObject({
+      releasedLockStateDigest: diagnostic.lockStateDigest,
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      artifactBytesChanged: false,
+      qualifiesForPromotion: false,
+    });
+    await expect(access(lockDirectory)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(readFile(part, "utf8")).resolves.toBe("preserve-me");
+  });
+
+  it("refuses operator lock release while this custody instance owns it", async () => {
+    const { port } = await fixture();
+    const maintenance = port.bindLockMaintenanceAuthority(
+      lockMaintenanceDescriptor(),
+    );
+    const session = await port.openQuarantine(openInput());
+    const diagnostic = await maintenance.inspectLock("quarantine:artifact-1");
+    await expect(
+      maintenance.releaseLock({
+        actionReceiptDigest: digest("operator-action"),
+        requestDigest: digest("operator-request"),
+        artifactRef: "quarantine:artifact-1",
+        expectedLockStateDigest: diagnostic.lockStateDigest,
+      }),
+    ).rejects.toMatchObject({
+      code: "BROWSER_FILESYSTEM_QUARANTINE_ARTIFACT_LOCKED",
+    });
+    await session.discardArtifact();
   });
 
   it("recovers a crashed writer's part, orphan blob, and atomic temp files", async () => {
