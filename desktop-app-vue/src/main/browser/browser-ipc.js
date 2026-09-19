@@ -11,7 +11,9 @@ const { ipcMain, app } = require("electron");
 const path = require("path");
 const { BrowserEngine } = require("./browser-engine");
 const { BrowserAutomationAgent } = require("./browser-automation-agent");
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const { createBrowserLogRedactor } = require("./browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 创建 IPC 错误处理包装器

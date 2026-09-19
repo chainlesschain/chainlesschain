@@ -16,6 +16,7 @@ const path = require("path");
 const fs = require("fs").promises;
 const { SnapshotEngine } = require("./snapshot-engine");
 const { ElementLocator } = require("./element-locator");
+const { digestBrowserLogValue } = require("./browser-log-redaction");
 const HISTORY_NAVIGATION_OPERATIONS = new Set(["back", "forward", "refresh"]);
 
 function normalizeAllowedNavigationOrigins(value) {
@@ -313,7 +314,9 @@ class BrowserEngine extends EventEmitter {
 
       this.emit("context:created", { profileName });
 
-      console.log(`[BrowserEngine] Context created: ${profileName}`);
+      console.log(
+        `[BrowserEngine] Context created: profileDigest=${digestBrowserLogValue("profile", profileName)}`,
+      );
 
       return {
         success: true,
@@ -512,7 +515,9 @@ class BrowserEngine extends EventEmitter {
       opened = true;
       this.emit("tab:opened", { targetId, url, profileName });
 
-      console.log(`[BrowserEngine] Tab opened: ${targetId} -> ${url}`);
+      console.log(
+        `[BrowserEngine] Tab opened: ${targetId} urlDigest=${digestBrowserLogValue("url", finalUrl)}`,
+      );
 
       return {
         success: true,
@@ -640,7 +645,9 @@ class BrowserEngine extends EventEmitter {
 
       this.emit("tab:navigated", { targetId, url });
 
-      console.log(`[BrowserEngine] Navigated: ${targetId} -> ${url}`);
+      console.log(
+        `[BrowserEngine] Navigated: ${targetId} urlDigest=${digestBrowserLogValue("url", page.url())}`,
+      );
 
       return {
         success: true,
@@ -829,7 +836,7 @@ class BrowserEngine extends EventEmitter {
       await fs.writeFile(stateFile, JSON.stringify(state, null, 2));
 
       console.log(
-        `[BrowserEngine] Session saved: ${profileName} -> ${stateFile}`,
+        `[BrowserEngine] Session saved: profileDigest=${digestBrowserLogValue("profile", profileName)} pathDigest=${digestBrowserLogValue("path", stateFile)}`,
       );
 
       return {
@@ -864,7 +871,7 @@ class BrowserEngine extends EventEmitter {
       await this.createContext(profileName, { storageState: state });
 
       console.log(
-        `[BrowserEngine] Session restored: ${profileName} <- ${stateFile}`,
+        `[BrowserEngine] Session restored: profileDigest=${digestBrowserLogValue("profile", profileName)} pathDigest=${digestBrowserLogValue("path", stateFile)}`,
       );
 
       return {

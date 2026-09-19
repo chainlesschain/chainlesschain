@@ -6,7 +6,9 @@
  *
  * @module browser/browser-ipc-core
  */
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const { createBrowserLogRedactor } = require("./browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 function registerCoreHandlers(ctx) {
   const { _ipcMain, _getBrowserEngine, withErrorHandler } = ctx;

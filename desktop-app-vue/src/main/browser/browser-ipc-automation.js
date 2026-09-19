@@ -6,7 +6,9 @@
  *
  * @module browser/browser-ipc-automation
  */
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const { createBrowserLogRedactor } = require("./browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 const {
   assertBrowserWorkflowEnabled,
 } = require("./workflow/browser-workflow-authority");
