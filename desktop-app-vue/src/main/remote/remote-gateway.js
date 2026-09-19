@@ -12,7 +12,10 @@
  * @module remote/remote-gateway
  */
 
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../browser/browser-log-redaction");
 const { EventEmitter } = require("events");
 const { P2PCommandAdapter } = require("./p2p-command-adapter");
 const { PermissionGate } = require("./permission-gate");
@@ -52,6 +55,8 @@ const {
   BrowserExtensionServer,
   ExtensionBrowserHandler,
 } = require("./browser-extension-server");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 远程网关类
@@ -218,10 +223,9 @@ class RemoteGateway extends EventEmitter {
       try {
         this._unwireApprovalTransport();
       } catch (err) {
-        logger.warn(
-          "[RemoteGateway] 旧 approval transport unwire 失败:",
-          err.message,
-        );
+        logger.warn("[RemoteGateway] 旧 approval transport unwire 失败", {
+          error: err,
+        });
       }
       this._unwireApprovalTransport = null;
     }
@@ -414,17 +418,23 @@ class RemoteGateway extends EventEmitter {
 
     // 启动扩展服务器（异步）
     this.browserExtensionServer.start().catch((err) => {
-      logger.warn("[RemoteGateway] 浏览器扩展服务器启动失败:", err.message);
+      logger.warn("[RemoteGateway] 浏览器扩展服务器启动失败", {
+        error: err,
+      });
     });
 
     // 监听扩展事件
     this.browserExtensionServer.on("connection", (data) => {
-      logger.info("[RemoteGateway] 浏览器扩展已连接:", data.clientId);
+      logger.info("[RemoteGateway] 浏览器扩展已连接", {
+        clientId: data.clientId,
+      });
       this.emit("extension:connected", data);
     });
 
     this.browserExtensionServer.on("disconnection", (data) => {
-      logger.info("[RemoteGateway] 浏览器扩展已断开:", data.clientId);
+      logger.info("[RemoteGateway] 浏览器扩展已断开", {
+        clientId: data.clientId,
+      });
       this.emit("extension:disconnected", data);
     });
 
@@ -436,9 +446,9 @@ class RemoteGateway extends EventEmitter {
     // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
     // 当需要这些功能时，创建相应的Handler类并在此注册
 
-    logger.info(
-      `[RemoteGateway] 已注册 ${Object.keys(this.handlers).length} 个命令处理器`,
-    );
+    logger.info("[RemoteGateway] 命令处理器注册完成", {
+      handlerCount: Object.keys(this.handlers).length,
+    });
   }
 
   /**
@@ -482,7 +492,7 @@ class RemoteGateway extends EventEmitter {
     this.stats.totalCommands++;
 
     const startTime = Date.now();
-    logger.info(`[RemoteGateway] 处理命令: ${method} from ${peerId}`);
+    logger.info("[RemoteGateway] 处理命令", { method, peerId });
 
     try {
       // 0. 验证 auth 对象存在且完整
@@ -493,7 +503,7 @@ class RemoteGateway extends EventEmitter {
         !auth.timestamp ||
         !auth.nonce
       ) {
-        logger.warn(`[RemoteGateway] 认证信息不完整: ${method} from ${peerId}`);
+        logger.warn("[RemoteGateway] 认证信息不完整", { method, peerId });
         const errorResponse = {
           jsonrpc: "2.0",
           id,
@@ -546,7 +556,7 @@ class RemoteGateway extends EventEmitter {
             timestamp: startTime,
           })
           .catch((err) => {
-            logger.warn("[RemoteGateway] 记录命令历史失败:", err);
+            logger.warn("[RemoteGateway] 记录命令历史失败", { error: err });
           });
       }
 
@@ -558,7 +568,7 @@ class RemoteGateway extends EventEmitter {
         duration,
       });
     } catch (error) {
-      logger.error("[RemoteGateway] 处理命令失败:", error);
+      logger.error("[RemoteGateway] 处理命令失败", { error });
 
       const duration = Date.now() - startTime;
 
@@ -595,7 +605,7 @@ class RemoteGateway extends EventEmitter {
             timestamp: startTime,
           })
           .catch((err) => {
-            logger.warn("[RemoteGateway] 记录命令历史失败:", err);
+            logger.warn("[RemoteGateway] 记录命令历史失败", { error: err });
           });
       }
     }
@@ -609,7 +619,7 @@ class RemoteGateway extends EventEmitter {
       throw new Error("P2P Command Adapter not initialized");
     }
 
-    logger.info(`[RemoteGateway] 发送命令: ${method} to ${peerId}`);
+    logger.info("[RemoteGateway] 发送命令", { method, peerId });
 
     try {
       const response = await this.p2pCommandAdapter.sendCommand(
@@ -621,7 +631,7 @@ class RemoteGateway extends EventEmitter {
 
       return response;
     } catch (error) {
-      logger.error("[RemoteGateway] 发送命令失败:", error);
+      logger.error("[RemoteGateway] 发送命令失败", { error });
       throw error;
     }
   }
@@ -637,7 +647,7 @@ class RemoteGateway extends EventEmitter {
       return;
     }
 
-    logger.info(`[RemoteGateway] 广播事件: ${method}`);
+    logger.info("[RemoteGateway] 广播事件", { method });
 
     this.p2pCommandAdapter.broadcastEvent(method, params, targetDevices);
   }
@@ -659,7 +669,7 @@ class RemoteGateway extends EventEmitter {
    * @returns {Promise<Object>} 断开结果
    */
   async disconnectDevice(peerId) {
-    logger.info(`[RemoteGateway] 断开设备连接: ${peerId}`);
+    logger.info("[RemoteGateway] 断开设备连接", { peerId });
 
     try {
       // 1. 通过 P2P 适配器断开连接
@@ -684,7 +694,7 @@ class RemoteGateway extends EventEmitter {
       // 4. 触发事件
       this.emit("device:disconnected", peerId);
 
-      logger.info(`[RemoteGateway] ✓ 设备已断开: ${peerId}`);
+      logger.info("[RemoteGateway] 设备已断开", { peerId });
 
       return {
         success: true,
@@ -692,7 +702,7 @@ class RemoteGateway extends EventEmitter {
         message: "Device disconnected successfully",
       };
     } catch (error) {
-      logger.error(`[RemoteGateway] 断开设备失败: ${peerId}`, error);
+      logger.error("[RemoteGateway] 断开设备失败", { peerId, error });
       throw error;
     }
   }
@@ -801,10 +811,9 @@ class RemoteGateway extends EventEmitter {
       try {
         this._unwireApprovalTransport();
       } catch (err) {
-        logger.warn(
-          "[RemoteGateway] approval transport unwire 失败:",
-          err.message,
-        );
+        logger.warn("[RemoteGateway] approval transport unwire 失败", {
+          error: err,
+        });
       }
       this._unwireApprovalTransport = null;
     }
