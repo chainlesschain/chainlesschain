@@ -37,6 +37,10 @@ import {
   BROWSER_DOWNLOAD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadActionAuthority,
 } from "../../src/lib/evolution/browser-download-action-authority.js";
+import {
+  BROWSER_QUARANTINED_DOWNLOAD_EXECUTOR_DESCRIPTOR_SCHEMA,
+  isBrowserQuarantinedDownloadExecutor,
+} from "../../src/lib/evolution/browser-quarantined-download-executor.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -837,6 +841,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserKeyboardActionAuthority",
       "createBrowserTabOpenActionAuthority",
       "createBrowserDownloadActionAuthority",
+      "createBrowserQuarantinedDownloadExecutor",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1056,6 +1061,23 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserQuarantinedDownloadExecutor({
+              descriptor: {
+                schema: BROWSER_QUARANTINED_DOWNLOAD_EXECUTOR_DESCRIPTOR_SCHEMA,
+                executorId: "browser-download-executor",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                networkMode: "policy-egress",
+                custodyMode: "exclusive-stream-fsync",
+                scannerMode: "independent-malware-scan",
+              },
+              openNetworkResponse: async () => null,
+              openQuarantine: async () => null,
+              scanArtifact: async () => null,
+              completeArtifact: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1153,6 +1175,22 @@ describe("signed evolution deployment loader", () => {
               executeDownload: async () => null,
               recordOutcome: async () => null,
             });
+          const browserQuarantinedDownloadExecutor =
+            factories.createBrowserQuarantinedDownloadExecutor({
+              descriptor: {
+                schema: BROWSER_QUARANTINED_DOWNLOAD_EXECUTOR_DESCRIPTOR_SCHEMA,
+                executorId: "browser-download-executor",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                networkMode: "policy-egress",
+                custodyMode: "exclusive-stream-fsync",
+                scannerMode: "independent-malware-scan",
+              },
+              openNetworkResponse: async () => null,
+              openQuarantine: async () => null,
+              scanArtifact: async () => null,
+              completeArtifact: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1162,6 +1200,7 @@ describe("signed evolution deployment loader", () => {
             browserKeyboardActionAuthority,
             browserTabOpenActionAuthority,
             browserDownloadActionAuthority,
+            browserQuarantinedDownloadExecutor,
           };
         },
       }),
@@ -1229,6 +1268,11 @@ describe("signed evolution deployment loader", () => {
       artifactMode: "opaque-quarantine-clean-scan",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
+    expect(
+      isBrowserQuarantinedDownloadExecutor(
+        result.browserQuarantinedDownloadExecutor,
+      ),
+    ).toBe(true);
   });
 
   it("does not let non-desktop callers inject or replace built-in factories", async () => {
