@@ -43,7 +43,7 @@ describe("lazy plugin IPC error boundary", () => {
     expect(JSON.stringify(result)).not.toContain(secret);
   });
 
-  it("projects successful plugin queries and install receipts", async () => {
+  it("projects successful plugin queries and operation receipts", async () => {
     const secret = "C:/private/lazy-plugin-secret";
     const sandbox = {
       callMethod: vi.fn().mockResolvedValue({ secret }),
@@ -97,6 +97,26 @@ describe("lazy plugin IPC error boundary", () => {
             pluginId: "plugin-1",
             path: secret,
           }),
+          uninstallPlugin: vi.fn().mockResolvedValue({
+            success: true,
+            path: secret,
+          }),
+          enablePlugin: vi.fn().mockResolvedValue({
+            success: true,
+            plugin: { secret },
+          }),
+          disablePlugin: vi.fn().mockResolvedValue({
+            success: true,
+            plugin: { secret },
+          }),
+          getPluginPermissions: vi.fn().mockReturnValue([
+            {
+              permission: "database:read",
+              granted: true,
+              grantedAt: 1_795_000_000_000,
+              metadata: { secret },
+            },
+          ]),
           triggerExtensionPoint: vi.fn().mockResolvedValue({ secret }),
           plugins: new Map([["plugin-1", { sandbox }]]),
           registry: {
@@ -146,6 +166,16 @@ describe("lazy plugin IPC error boundary", () => {
     const list = await ipc.handlers.get("plugin:get-plugins")({}, {});
     const detail = await ipc.handlers.get("plugin:get-plugin")({}, "plugin-1");
     const install = await ipc.handlers.get("plugin:install")({}, secret, {});
+    const uninstall = await ipc.handlers.get("plugin:uninstall")(
+      {},
+      "plugin-1",
+    );
+    const enable = await ipc.handlers.get("plugin:enable")({}, "plugin-1");
+    const disable = await ipc.handlers.get("plugin:disable")({}, "plugin-1");
+    const permissions = await ipc.handlers.get("plugin:get-permissions")(
+      {},
+      "plugin-1",
+    );
     const settings = await ipc.handlers.get("plugin:get-settings")(
       {},
       "plugin-1",
@@ -189,6 +219,13 @@ describe("lazy plugin IPC error boundary", () => {
     });
     expect(detail).toEqual(list[0]);
     expect(install).toEqual({ success: true, pluginId: "plugin-1" });
+    expect(uninstall).toEqual({ success: true });
+    expect(enable).toEqual({ success: true });
+    expect(disable).toEqual({ success: true });
+    expect(permissions).toEqual({
+      success: true,
+      permissions: [{ permission: "database:read", granted: true }],
+    });
     expect(settings).toEqual({
       success: true,
       settings: {
@@ -260,6 +297,10 @@ describe("lazy plugin IPC error boundary", () => {
         list,
         detail,
         install,
+        uninstall,
+        enable,
+        disable,
+        permissions,
         settings,
         extensions,
         slot,

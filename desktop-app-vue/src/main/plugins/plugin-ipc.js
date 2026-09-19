@@ -11,7 +11,11 @@ const {
   projectPluginDataExtensions,
   projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
+  projectPluginLifecycleReceipt,
   projectPluginPageContent,
+  projectPluginPermissionDetails,
+  projectPluginPermissionRecords,
+  projectPluginPermissionResponse,
   projectPluginPublicRecord,
   projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,
@@ -110,7 +114,7 @@ function registerPluginIPC({
     safeInvoke(async () => {
       ensureManager();
       await pluginManager.uninstallPlugin(pluginId);
-      return { success: true };
+      return projectPluginLifecycleReceipt();
     }),
   );
 
@@ -118,7 +122,7 @@ function registerPluginIPC({
     safeInvoke(async () => {
       ensureManager();
       await pluginManager.enablePlugin(pluginId);
-      return { success: true };
+      return projectPluginLifecycleReceipt();
     }),
   );
 
@@ -126,7 +130,7 @@ function registerPluginIPC({
     safeInvoke(async () => {
       ensureManager();
       await pluginManager.disablePlugin(pluginId);
-      return { success: true };
+      return projectPluginLifecycleReceipt();
     }),
   );
 
@@ -134,7 +138,10 @@ function registerPluginIPC({
     safeInvoke(() => {
       ensureManager();
       const permissions = pluginManager.getPluginPermissions(pluginId);
-      return { success: true, permissions };
+      return {
+        success: true,
+        permissions: projectPluginPermissionRecords(permissions),
+      };
     }),
   );
 
@@ -148,7 +155,10 @@ function registerPluginIPC({
           permission,
           granted,
         );
-        return { success: true, permissions };
+        return {
+          success: true,
+          permissions: projectPluginPermissionRecords(permissions),
+        };
       }),
   );
 
@@ -186,7 +196,7 @@ function registerPluginIPC({
           requestId,
           response,
         );
-        return result;
+        return projectPluginPermissionResponse(result);
       }),
   );
 
@@ -216,7 +226,10 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-permission-details", (_event, permissions) =>
     safeInvoke(() => {
       const details = permissionDialogManager.getPermissionDetails(permissions);
-      return { success: true, details };
+      return {
+        success: true,
+        details: projectPluginPermissionDetails(details),
+      };
     }),
   );
 

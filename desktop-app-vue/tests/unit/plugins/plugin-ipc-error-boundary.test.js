@@ -388,6 +388,25 @@ describe("plugin IPC error boundary", () => {
         pluginId: "plugin-1",
         path: secret,
       }),
+      uninstallPlugin: vi.fn().mockResolvedValue({ path: secret }),
+      enablePlugin: vi.fn().mockResolvedValue({ plugin: { secret } }),
+      disablePlugin: vi.fn().mockResolvedValue({ plugin: { secret } }),
+      getPluginPermissions: vi.fn().mockReturnValue([
+        {
+          permission: "database:read",
+          granted: true,
+          grantedAt: 1_795_000_000_000,
+          metadata: { secret },
+        },
+      ]),
+      updatePluginPermission: vi.fn().mockResolvedValue([
+        {
+          permission: "database:read",
+          granted: false,
+          grantedAt: null,
+          metadata: { secret },
+        },
+      ]),
       triggerExtensionPoint: vi.fn().mockResolvedValue({ secret }),
       getRegisteredPages: () => [
         {
@@ -501,6 +520,25 @@ describe("plugin IPC error boundary", () => {
     const list = await handlers.get("plugin:get-plugins")({}, {});
     const detail = await handlers.get("plugin:get-plugin")({}, "plugin-1");
     const install = await handlers.get("plugin:install")({}, secret, {});
+    const uninstall = await handlers.get("plugin:uninstall")({}, "plugin-1");
+    const enable = await handlers.get("plugin:enable")({}, "plugin-1");
+    const disable = await handlers.get("plugin:disable")({}, "plugin-1");
+    const permissions = await handlers.get("plugin:get-permissions")(
+      {},
+      "plugin-1",
+    );
+    const updatedPermissions = await handlers.get("plugin:update-permission")(
+      {},
+      "plugin-1",
+      "database:read",
+      false,
+    );
+    const permissionResponse = await handlers.get(
+      "plugin:respond-to-permission-request",
+    )({}, secret, { granted: true, permissions: { secret } });
+    const permissionDetails = await handlers.get(
+      "plugin:get-permission-details",
+    )({}, ["database:read"]);
     const settings = await handlers.get("plugin:get-settings")({}, "plugin-1");
     const extensions = await handlers.get("plugin:get-ui-extensions")();
     const slot = await handlers.get("plugin:get-slot-extensions")(
@@ -602,6 +640,28 @@ describe("plugin IPC error boundary", () => {
     });
     expect(detail.plugin).toEqual(list.plugins[0]);
     expect(install).toEqual({ success: true, pluginId: "plugin-1" });
+    expect(uninstall).toEqual({ success: true });
+    expect(enable).toEqual({ success: true });
+    expect(disable).toEqual({ success: true });
+    expect(permissions).toEqual({
+      success: true,
+      permissions: [{ permission: "database:read", granted: true }],
+    });
+    expect(updatedPermissions).toEqual({
+      success: true,
+      permissions: [{ permission: "database:read", granted: false }],
+    });
+    expect(permissionResponse).toEqual({
+      success: false,
+      error: "Permission request unavailable",
+      code: "PLUGIN_PERMISSION_REQUEST_UNAVAILABLE",
+    });
+    expect(permissionDetails.details[0]).toMatchObject({
+      permission: "database:read",
+      category: "database",
+      risk: "low",
+      riskLevel: 1,
+    });
     expect(settings).toEqual({
       success: true,
       settings: {
@@ -732,6 +792,13 @@ describe("plugin IPC error boundary", () => {
         list,
         detail,
         install,
+        uninstall,
+        enable,
+        disable,
+        permissions,
+        updatedPermissions,
+        permissionResponse,
+        permissionDetails,
         settings,
         extensions,
         slot,

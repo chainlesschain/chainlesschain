@@ -9,7 +9,9 @@ const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginLifecycleReceipt,
   projectPluginPageContent,
+  projectPluginPermissionRecords,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
@@ -104,7 +106,8 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.uninstallPlugin(pluginId);
+      await app.pluginManager.uninstallPlugin(pluginId);
+      return projectPluginLifecycleReceipt();
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 卸载插件失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -117,7 +120,8 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.enablePlugin(pluginId);
+      await app.pluginManager.enablePlugin(pluginId);
+      return projectPluginLifecycleReceipt();
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 启用插件失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -130,7 +134,8 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.disablePlugin(pluginId);
+      await app.pluginManager.disablePlugin(pluginId);
+      return projectPluginLifecycleReceipt();
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 禁用插件失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -147,7 +152,12 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getPluginPermissions(pluginId);
+      const permissions =
+        await app.pluginManager.getPluginPermissions(pluginId);
+      return {
+        success: true,
+        permissions: projectPluginPermissionRecords(permissions),
+      };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件权限失败:", error);
       return createPluginIpcFailureResult("pluginLazy");

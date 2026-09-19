@@ -738,13 +738,79 @@ function projectPluginEnterpriseEntries(entries, kind) {
   });
 }
 
+function projectPluginPermissionRecords(records) {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.slice(0, 512).flatMap((record) => {
+    if (!record || typeof record !== "object") {
+      return [];
+    }
+    const permission = boundedString(record.permission, 256);
+    if (!permission) {
+      return [];
+    }
+    return [{ permission, granted: enabledValue(record.granted) }];
+  });
+}
+
+function projectPluginPermissionDetails(details) {
+  if (!Array.isArray(details)) {
+    return [];
+  }
+  return details.slice(0, 512).flatMap((detail) => {
+    if (!detail || typeof detail !== "object") {
+      return [];
+    }
+    const permission = boundedString(detail.permission, 256);
+    if (!permission) {
+      return [];
+    }
+    return [
+      {
+        permission,
+        category: boundedString(detail.category, 64),
+        name: boundedString(detail.name, 256),
+        description: boundedString(detail.description, 2048),
+        risk: boundedString(detail.risk, 64),
+        riskLevel: Number.isSafeInteger(detail.riskLevel)
+          ? Math.max(1, Math.min(4, detail.riskLevel))
+          : 2,
+        riskColor: /^#[0-9A-Fa-f]{6}$/u.test(detail.riskColor)
+          ? detail.riskColor
+          : "#faad14",
+        riskLabel: boundedString(detail.riskLabel, 128),
+        riskDescription: boundedString(detail.riskDescription, 1024),
+      },
+    ];
+  });
+}
+
+function projectPluginPermissionResponse(result) {
+  return result?.success === true
+    ? { success: true }
+    : {
+        success: false,
+        error: "Permission request unavailable",
+        code: "PLUGIN_PERMISSION_REQUEST_UNAVAILABLE",
+      };
+}
+
+function projectPluginLifecycleReceipt() {
+  return { success: true };
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
   projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
+  projectPluginLifecycleReceipt,
   projectPluginPageContent,
+  projectPluginPermissionDetails,
+  projectPluginPermissionRecords,
+  projectPluginPermissionResponse,
   projectPluginPublicRecord,
   projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,

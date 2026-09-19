@@ -8,7 +8,11 @@ const {
   projectPluginDataExtensions,
   projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
+  projectPluginLifecycleReceipt,
   projectPluginPageContent,
+  projectPluginPermissionDetails,
+  projectPluginPermissionRecords,
+  projectPluginPermissionResponse,
   projectPluginPublicRecord,
   projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,
@@ -730,6 +734,56 @@ describe("plugin public projection", () => {
     expect(projected.storage[0]).not.toHaveProperty("capabilities");
     expect(projected.crypto[0]).not.toHaveProperty("capabilities");
     expect(projected.audits[0]).not.toHaveProperty("sinks");
+    expect(JSON.stringify(projected)).not.toContain(secret);
+  });
+
+  it("projects permission data and fixed lifecycle receipts", () => {
+    const secret = "C:/private/plugin-permission-secret";
+    const projected = {
+      permissions: projectPluginPermissionRecords([
+        {
+          permission: "database:read",
+          granted: 1,
+          grantedAt: 1_795_000_000_000,
+          internal: secret,
+        },
+      ]),
+      details: projectPluginPermissionDetails([
+        {
+          permission: "database:read",
+          category: "database",
+          name: "Database read",
+          description: "Read data",
+          risk: "low",
+          riskLevel: 1,
+          riskColor: "#52c41a",
+          riskLabel: "Low",
+          riskDescription: "Low risk",
+          internal: secret,
+        },
+      ]),
+      accepted: projectPluginPermissionResponse({
+        success: true,
+        internal: secret,
+      }),
+      unavailable: projectPluginPermissionResponse({
+        success: false,
+        error: secret,
+      }),
+      lifecycle: projectPluginLifecycleReceipt({ result: secret }),
+    };
+
+    expect(projected.permissions).toEqual([
+      { permission: "database:read", granted: true },
+    ]);
+    expect(projected.details[0]).not.toHaveProperty("internal");
+    expect(projected.accepted).toEqual({ success: true });
+    expect(projected.unavailable).toEqual({
+      success: false,
+      error: "Permission request unavailable",
+      code: "PLUGIN_PERMISSION_REQUEST_UNAVAILABLE",
+    });
+    expect(projected.lifecycle).toEqual({ success: true });
     expect(JSON.stringify(projected)).not.toContain(secret);
   });
 });
