@@ -9,6 +9,7 @@
 
 const { EventEmitter } = require("events");
 const {
+  assertGovernedAgentMutation,
   assertBrowserWorkflowEnabled,
 } = require("./workflow/browser-workflow-authority");
 
@@ -228,34 +229,31 @@ class BrowserAutomationAgent extends EventEmitter {
 
     switch (action) {
       case "navigate":
-        return await this.browserEngine.navigate(
-          targetId,
-          params.url,
-          params.options,
+        return assertGovernedAgentMutation(
+          "BrowserAutomationAgent._executeStep",
+          action,
         );
 
       case "snapshot":
         return await this.browserEngine.takeSnapshot(targetId, params.options);
 
       case "click":
-        return await this.browserEngine.act(
-          targetId,
-          "click",
-          params.ref,
-          params.options,
+        return assertGovernedAgentMutation(
+          "BrowserAutomationAgent._executeStep",
+          action,
         );
 
       case "type":
-        return await this.browserEngine.act(targetId, "type", params.ref, {
-          text: params.text,
-          ...params.options,
-        });
+        return assertGovernedAgentMutation(
+          "BrowserAutomationAgent._executeStep",
+          action,
+        );
 
       case "select":
-        return await this.browserEngine.act(targetId, "select", params.ref, {
-          value: params.value,
-          ...params.options,
-        });
+        return assertGovernedAgentMutation(
+          "BrowserAutomationAgent._executeStep",
+          action,
+        );
 
       case "wait": {
         const page = this.browserEngine.getPage(targetId);

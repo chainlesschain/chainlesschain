@@ -21,6 +21,19 @@ function assertBrowserWorkflowEnabled(entrypoint, env = process.env) {
   throw error;
 }
 
+function assertGovernedAgentMutation(entrypoint, action) {
+  const error = new Error(
+    `Legacy Agent mutation '${String(action)}' from '${String(entrypoint)}' requires a dedicated governed action contract`,
+  );
+  error.name = "AgentMutationAuthorityError";
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  error.entrypoint = String(entrypoint);
+  error.action = String(action);
+  error.originSurface = "browser";
+  error.authorityMode = "dedicated-action-required";
+  throw error;
+}
+
 function browserWorkflowRuntimeClaims(env = process.env) {
   return Object.freeze({
     originSurface: "browser",
@@ -37,6 +50,7 @@ function browserWorkflowRuntimeClaims(env = process.env) {
 }
 
 module.exports = {
+  assertGovernedAgentMutation,
   assertBrowserWorkflowEnabled,
   browserWorkflowExperimentalEnabled,
   browserWorkflowRuntimeClaims,

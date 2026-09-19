@@ -15,67 +15,89 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
-const { BrowserEngine } = require('./browser-engine');
+const { EventEmitter } = require("events");
+const { BrowserEngine } = require("./browser-engine");
+const {
+  assertGovernedAgentMutation,
+} = require("./workflow/browser-workflow-authority");
 const {
   CoordinateAction,
   VisionAction,
   NetworkInterceptor,
   DesktopAction,
   KeyboardAction,
-  ScrollAction
-} = require('./actions');
+  ScrollAction,
+} = require("./actions");
 
 /**
  * 操作类型
  */
 const ActionType = {
   // 鼠标操作
-  CLICK: 'click',
-  DOUBLE_CLICK: 'double_click',
-  RIGHT_CLICK: 'right_click',
-  MOUSE_MOVE: 'mouse_move',
-  DRAG: 'drag',
+  CLICK: "click",
+  DOUBLE_CLICK: "double_click",
+  RIGHT_CLICK: "right_click",
+  MOUSE_MOVE: "mouse_move",
+  DRAG: "drag",
 
   // 键盘操作
-  TYPE: 'type',
-  KEY: 'key',
-  SHORTCUT: 'shortcut',
+  TYPE: "type",
+  KEY: "key",
+  SHORTCUT: "shortcut",
 
   // 滚动操作
-  SCROLL: 'scroll',
+  SCROLL: "scroll",
 
   // 截图操作
-  SCREENSHOT: 'screenshot',
+  SCREENSHOT: "screenshot",
 
   // 视觉操作
-  VISION_CLICK: 'vision_click',
-  VISION_ANALYZE: 'vision_analyze',
-  VISION_LOCATE: 'vision_locate',
+  VISION_CLICK: "vision_click",
+  VISION_ANALYZE: "vision_analyze",
+  VISION_LOCATE: "vision_locate",
 
   // 浏览器操作
-  NAVIGATE: 'navigate',
-  BACK: 'back',
-  FORWARD: 'forward',
-  REFRESH: 'refresh',
+  NAVIGATE: "navigate",
+  BACK: "back",
+  FORWARD: "forward",
+  REFRESH: "refresh",
 
   // 等待操作
-  WAIT: 'wait',
+  WAIT: "wait",
 
   // 桌面操作
-  DESKTOP_CLICK: 'desktop_click',
-  DESKTOP_TYPE: 'desktop_type',
-  DESKTOP_SCREENSHOT: 'desktop_screenshot'
+  DESKTOP_CLICK: "desktop_click",
+  DESKTOP_TYPE: "desktop_type",
+  DESKTOP_SCREENSHOT: "desktop_screenshot",
 };
 
 /**
  * 操作模式
  */
 const OperationMode = {
-  BROWSER: 'browser',    // 浏览器内操作
-  DESKTOP: 'desktop',    // 桌面级操作
-  AUTO: 'auto'           // 自动选择
+  BROWSER: "browser", // 浏览器内操作
+  DESKTOP: "desktop", // 桌面级操作
+  AUTO: "auto", // 自动选择
 };
+
+const GOVERNED_MUTATION_ACTIONS = new Set([
+  ActionType.CLICK,
+  ActionType.DOUBLE_CLICK,
+  ActionType.RIGHT_CLICK,
+  ActionType.MOUSE_MOVE,
+  ActionType.DRAG,
+  ActionType.TYPE,
+  ActionType.KEY,
+  ActionType.SHORTCUT,
+  ActionType.SCROLL,
+  ActionType.VISION_CLICK,
+  ActionType.NAVIGATE,
+  ActionType.BACK,
+  ActionType.FORWARD,
+  ActionType.REFRESH,
+  ActionType.DESKTOP_CLICK,
+  ActionType.DESKTOP_TYPE,
+]);
 
 class ComputerUseAgent extends EventEmitter {
   constructor(config = {}) {
@@ -87,7 +109,7 @@ class ComputerUseAgent extends EventEmitter {
       screenshotOnError: config.screenshotOnError ?? true,
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
-      ...config
+      ...config,
     };
 
     // 组件
@@ -122,7 +144,7 @@ class ComputerUseAgent extends EventEmitter {
     // 初始化浏览器引擎
     this.browserEngine = new BrowserEngine({
       headless: options.headless || false,
-      cdpPort: options.cdpPort || 18800
+      cdpPort: options.cdpPort || 18800,
     });
 
     // 初始化各个操作模块
@@ -137,7 +159,7 @@ class ComputerUseAgent extends EventEmitter {
     if (options.visionModelClient) {
       const {
         captureDesktopGovernedVisionModelClient,
-      } = require('../llm/llm-manager');
+      } = require("../llm/llm-manager");
       captureDesktopGovernedVisionModelClient(options.visionModelClient);
       this.llmService = options.visionModelClient;
       this.visionAction = new VisionAction(this.browserEngine, this.llmService);
@@ -149,7 +171,7 @@ class ComputerUseAgent extends EventEmitter {
     }
 
     this.isInitialized = true;
-    this.emit('initialized');
+    this.emit("initialized");
   }
 
   /**
@@ -159,7 +181,7 @@ class ComputerUseAgent extends EventEmitter {
   setLLMService(llmService) {
     const {
       captureDesktopGovernedVisionModelClient,
-    } = require('../llm/llm-manager');
+    } = require("../llm/llm-manager");
     captureDesktopGovernedVisionModelClient(llmService);
     this.llmService = llmService;
     if (this.visionAction) {
@@ -177,8 +199,9 @@ class ComputerUseAgent extends EventEmitter {
    */
   async openTab(url, options = {}) {
     this._ensureInitialized();
+    assertGovernedAgentMutation("ComputerUseAgent.openTab", "open-tab");
 
-    const profileName = options.profile || 'default';
+    const profileName = options.profile || "default";
 
     // 确保上下文存在
     await this.browserEngine.createContext(profileName);
@@ -187,7 +210,7 @@ class ComputerUseAgent extends EventEmitter {
     const result = await this.browserEngine.openTab(profileName, url, options);
     this.currentTargetId = result.targetId;
 
-    this.emit('tabOpened', result);
+    this.emit("tabOpened", result);
 
     return result;
   }
@@ -216,13 +239,19 @@ class ComputerUseAgent extends EventEmitter {
         retries++;
 
         if (retries <= this.config.maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.config.retryDelay),
+          );
 
           // 错误时截图
           if (this.config.screenshotOnError && targetId) {
             try {
               const screenshot = await this.browserEngine.screenshot(targetId);
-              this.emit('errorScreenshot', { action, screenshot, error: e.message });
+              this.emit("errorScreenshot", {
+                action,
+                screenshot,
+                error: e.message,
+              });
             } catch (screenshotError) {
               // 忽略截图错误
             }
@@ -242,11 +271,11 @@ class ComputerUseAgent extends EventEmitter {
       result,
       duration: Date.now() - startTime,
       retries,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     this._addToHistory(historyEntry);
 
-    this.emit('actionExecuted', historyEntry);
+    this.emit("actionExecuted", historyEntry);
 
     return result;
   }
@@ -257,39 +286,68 @@ class ComputerUseAgent extends EventEmitter {
    */
   async _executeAction(action, targetId) {
     const { type } = action;
+    if (GOVERNED_MUTATION_ACTIONS.has(type)) {
+      assertGovernedAgentMutation("ComputerUseAgent._executeAction", type);
+    }
 
     switch (type) {
       // 鼠标操作
       case ActionType.CLICK:
         if (action.coordinate) {
-          return this.coordinateAction.clickAt(targetId, action.x, action.y, action);
+          return this.coordinateAction.clickAt(
+            targetId,
+            action.x,
+            action.y,
+            action,
+          );
         } else if (action.ref) {
-          return this.browserEngine.act(targetId, 'click', action.ref, action);
+          return this.browserEngine.act(targetId, "click", action.ref, action);
         } else {
-          throw new Error('Click action requires coordinate (x, y) or element ref');
+          throw new Error(
+            "Click action requires coordinate (x, y) or element ref",
+          );
         }
 
       case ActionType.DOUBLE_CLICK:
-        return this.coordinateAction.doubleClickAt(targetId, action.x, action.y, action);
+        return this.coordinateAction.doubleClickAt(
+          targetId,
+          action.x,
+          action.y,
+          action,
+        );
 
       case ActionType.RIGHT_CLICK:
-        return this.coordinateAction.rightClickAt(targetId, action.x, action.y, action);
+        return this.coordinateAction.rightClickAt(
+          targetId,
+          action.x,
+          action.y,
+          action,
+        );
 
       case ActionType.MOUSE_MOVE:
-        return this.coordinateAction.moveTo(targetId, action.x, action.y, action);
+        return this.coordinateAction.moveTo(
+          targetId,
+          action.x,
+          action.y,
+          action,
+        );
 
       case ActionType.DRAG:
         return this.coordinateAction.dragFromTo(
           targetId,
-          action.fromX, action.fromY,
-          action.toX, action.toY,
-          action
+          action.fromX,
+          action.fromY,
+          action.toX,
+          action.toY,
+          action,
         );
 
       // 键盘操作
       case ActionType.TYPE:
         if (action.ref) {
-          return this.browserEngine.act(targetId, 'type', action.ref, { text: action.text });
+          return this.browserEngine.act(targetId, "type", action.ref, {
+            text: action.text,
+          });
         } else {
           const page = this.browserEngine.getPage(targetId);
           await page.keyboard.type(action.text, { delay: action.delay });
@@ -298,15 +356,15 @@ class ComputerUseAgent extends EventEmitter {
 
       case ActionType.KEY:
         return this.keyboardAction.execute(targetId, {
-          type: 'key',
+          type: "key",
           key: action.key,
-          modifiers: action.modifiers
+          modifiers: action.modifiers,
         });
 
       case ActionType.SHORTCUT:
         return this.keyboardAction.execute(targetId, {
-          type: 'shortcut',
-          shortcut: action.shortcut
+          type: "shortcut",
+          shortcut: action.shortcut,
         });
 
       // 滚动操作
@@ -314,9 +372,11 @@ class ComputerUseAgent extends EventEmitter {
         if (action.x !== undefined && action.y !== undefined) {
           return this.coordinateAction.scrollAt(
             targetId,
-            action.x, action.y,
-            action.deltaX || 0, action.deltaY || action.amount || 0,
-            action
+            action.x,
+            action.y,
+            action.deltaX || 0,
+            action.deltaY || action.amount || 0,
+            action,
           );
         } else {
           return this.scrollAction.execute(targetId, action);
@@ -327,29 +387,43 @@ class ComputerUseAgent extends EventEmitter {
         const buffer = await this.browserEngine.screenshot(targetId, action);
         return {
           success: true,
-          screenshot: buffer.toString('base64'),
-          type: action.type || 'png'
+          screenshot: buffer.toString("base64"),
+          type: action.type || "png",
         };
       }
 
       // 视觉操作
       case ActionType.VISION_CLICK:
         if (!this.visionAction) {
-          throw new Error('Vision features not available. LLM Service required.');
+          throw new Error(
+            "Vision features not available. LLM Service required.",
+          );
         }
-        return this.visionAction.visualClick(targetId, action.description, action);
+        return this.visionAction.visualClick(
+          targetId,
+          action.description,
+          action,
+        );
 
       case ActionType.VISION_ANALYZE:
         if (!this.visionAction) {
-          throw new Error('Vision features not available. LLM Service required.');
+          throw new Error(
+            "Vision features not available. LLM Service required.",
+          );
         }
         return this.visionAction.analyze(targetId, action.prompt, action);
 
       case ActionType.VISION_LOCATE:
         if (!this.visionAction) {
-          throw new Error('Vision features not available. LLM Service required.');
+          throw new Error(
+            "Vision features not available. LLM Service required.",
+          );
         }
-        return this.visionAction.locateElement(targetId, action.description, action);
+        return this.visionAction.locateElement(
+          targetId,
+          action.description,
+          action,
+        );
 
       // 浏览器操作
       case ActionType.NAVIGATE:
@@ -358,19 +432,19 @@ class ComputerUseAgent extends EventEmitter {
       case ActionType.BACK: {
         const backPage = this.browserEngine.getPage(targetId);
         await backPage.goBack();
-        return { success: true, action: 'back' };
+        return { success: true, action: "back" };
       }
 
       case ActionType.FORWARD: {
         const fwdPage = this.browserEngine.getPage(targetId);
         await fwdPage.goForward();
-        return { success: true, action: 'forward' };
+        return { success: true, action: "forward" };
       }
 
       case ActionType.REFRESH: {
         const refreshPage = this.browserEngine.getPage(targetId);
         await refreshPage.reload();
-        return { success: true, action: 'refresh' };
+        return { success: true, action: "refresh" };
       }
 
       // 等待
@@ -378,12 +452,14 @@ class ComputerUseAgent extends EventEmitter {
         if (action.selector) {
           const waitPage = this.browserEngine.getPage(targetId);
           await waitPage.waitForSelector(action.selector, {
-            timeout: action.timeout || this.config.defaultTimeout
+            timeout: action.timeout || this.config.defaultTimeout,
           });
         } else {
-          await new Promise(resolve => setTimeout(resolve, action.duration || 1000));
+          await new Promise((resolve) =>
+            setTimeout(resolve, action.duration || 1000),
+          );
         }
-        return { success: true, action: 'wait' };
+        return { success: true, action: "wait" };
 
       // 桌面操作
       case ActionType.DESKTOP_CLICK:
@@ -410,12 +486,12 @@ class ComputerUseAgent extends EventEmitter {
     this._ensureInitialized();
 
     if (!this.visionAction) {
-      throw new Error('Vision features required for natural language tasks');
+      throw new Error("Vision features required for natural language tasks");
     }
 
     const targetId = options.targetId || this.currentTargetId;
     if (!targetId) {
-      throw new Error('No active tab. Call openTab() first.');
+      throw new Error("No active tab. Call openTab() first.");
     }
 
     return this.visionAction.executeVisualTask(targetId, task, options);
@@ -431,7 +507,7 @@ class ComputerUseAgent extends EventEmitter {
 
     const targetId = options.targetId || this.currentTargetId;
     if (!targetId) {
-      throw new Error('No active tab');
+      throw new Error("No active tab");
     }
 
     return this.browserEngine.takeSnapshot(targetId, options);
@@ -470,7 +546,9 @@ class ComputerUseAgent extends EventEmitter {
    */
   _ensureInitialized() {
     if (!this.isInitialized) {
-      throw new Error('ComputerUseAgent not initialized. Call initialize() first.');
+      throw new Error(
+        "ComputerUseAgent not initialized. Call initialize() first.",
+      );
     }
   }
 
@@ -485,7 +563,7 @@ class ComputerUseAgent extends EventEmitter {
       currentTargetId: this.currentTargetId,
       historySize: this.executionHistory.length,
       hasVision: !!this.visionAction,
-      browserStatus: this.browserEngine?.getStatus()
+      browserStatus: this.browserEngine?.getStatus(),
     };
   }
 
@@ -501,7 +579,7 @@ class ComputerUseAgent extends EventEmitter {
     this.isInitialized = false;
     this.currentTargetId = null;
 
-    this.emit('closed');
+    this.emit("closed");
   }
 }
 
@@ -516,5 +594,5 @@ module.exports = {
   ComputerUseAgent,
   createComputerUseAgent,
   ActionType,
-  OperationMode
+  OperationMode,
 };
