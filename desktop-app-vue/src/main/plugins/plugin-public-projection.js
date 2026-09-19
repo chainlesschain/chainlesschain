@@ -433,10 +433,19 @@ function projectPluginDataExecutionReceipt(operation) {
   };
 }
 
+function projectPluginInvocationReceipt(invocation) {
+  return {
+    success: true,
+    executed: true,
+    invocation: invocation === "extension" ? "extension" : "method",
+  };
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,

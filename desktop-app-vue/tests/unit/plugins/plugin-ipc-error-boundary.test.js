@@ -346,6 +346,15 @@ describe("plugin IPC error boundary", () => {
       "data.exporter-1",
       { target: secret },
     );
+    const methodExecution = await handlers.get("plugin:call-method")(
+      {},
+      "plugin-1",
+      "customMethod",
+      [{ secret }],
+    );
+    const extensionExecution = await handlers.get(
+      "plugin:trigger-extension-point",
+    )({}, "custom.extension", { secret });
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -421,6 +430,21 @@ describe("plugin IPC error boundary", () => {
       executed: true,
       operation: "export",
     });
+    expect(methodExecution).toEqual({
+      success: true,
+      executed: true,
+      invocation: "method",
+    });
+    expect(extensionExecution).toEqual({
+      success: true,
+      executed: true,
+      invocation: "extension",
+    });
+    expect(sandbox.callMethod).toHaveBeenCalledWith("customMethod", { secret });
+    expect(pluginManager.triggerExtensionPoint).toHaveBeenCalledWith(
+      "custom.extension",
+      { secret },
+    );
     expect(
       JSON.stringify({
         list,
@@ -437,6 +461,8 @@ describe("plugin IPC error boundary", () => {
         exporters,
         importExecution,
         exportExecution,
+        methodExecution,
+        extensionExecution,
       }),
     ).not.toContain(secret);
   });

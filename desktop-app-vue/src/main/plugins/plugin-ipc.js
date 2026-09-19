@@ -9,6 +9,7 @@ const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
@@ -153,11 +154,8 @@ function registerPluginIPC({
     (_event, name, context = {}) =>
       safeInvoke(async () => {
         ensureManager();
-        const results = await pluginManager.triggerExtensionPoint(
-          name,
-          context,
-        );
-        return { success: true, results };
+        await pluginManager.triggerExtensionPoint(name, context);
+        return projectPluginInvocationReceipt("extension");
       }),
   );
 
@@ -677,8 +675,8 @@ function registerPluginIPC({
         }
 
         // 调用沙箱中的方法
-        const result = await sandbox.callMethod(methodName, ...args);
-        return { success: true, result };
+        await sandbox.callMethod(methodName, ...args);
+        return projectPluginInvocationReceipt("method");
       }),
   );
 

@@ -6,6 +6,7 @@ const {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
@@ -404,5 +405,18 @@ describe("plugin public projection", () => {
       operation: "export",
     });
     expect(JSON.stringify(projected)).not.toContain(secret);
+  });
+
+  it("returns fixed generic invocation receipts", () => {
+    expect(projectPluginInvocationReceipt("method")).toEqual({
+      success: true,
+      executed: true,
+      invocation: "method",
+    });
+    expect(projectPluginInvocationReceipt("extension")).toEqual({
+      success: true,
+      executed: true,
+      invocation: "extension",
+    });
   });
 });
