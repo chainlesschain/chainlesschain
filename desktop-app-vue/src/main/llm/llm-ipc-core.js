@@ -4,7 +4,6 @@
  *
  * @module llm/llm-ipc-core
  */
-const { logger } = require("../utils/logger.js");
 const {
   mergeLlmConfigWrite,
   projectLlmConfigForRenderer,
@@ -120,24 +119,7 @@ function registerCoreHandlers(ctx) {
           throw new Error("LLM服务未初始化");
         }
 
-        logger.info(
-          "[LLM IPC] LLM 聊天请求, messages:",
-          messages?.length || 0,
-          "stream:",
-          stream,
-          "RAG:",
-          enableRAG,
-          "Cache:",
-          enableCache,
-          "Compress:",
-          enableCompression,
-          "Session:",
-          enableSessionTracking,
-          "Manus:",
-          enableManusOptimization,
-          "MultiAgent:",
-          enableMultiAgent,
-        );
+        privacy.event("chat-requested");
 
         // 🔥 高级特性集成结果
         const integrationResults = {
@@ -166,28 +148,14 @@ function registerCoreHandlers(ctx) {
 
         // 🔥 0.1: ErrorMonitor 预检查（如果启用）
         if (enableErrorPrecheck && errorMonitor) {
-          try {
-            // 检查 LLM 服务是否暂停（预算超限）
-            if (managerRef.current.paused) {
-              throw new Error(
-                "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
-              );
-            }
-
-            integrationResults.errorPrechecked = true;
-            logger.info("[LLM IPC] ✓ ErrorMonitor 预检查通过");
-          } catch (precheckError) {
-            if (precheckError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
-              throw precheckError;
-            logger.warn(
-              "[LLM IPC] ErrorMonitor 预检查失败:",
-              precheckError.message,
-            );
-            // 记录错误但不阻塞（除非是服务暂停）
-            if (precheckError.message.includes("预算超限")) {
-              throw precheckError;
-            }
+          // 检查 LLM 服务是否暂停（预算超限）
+          if (managerRef.current.paused) {
+            privacy.event("error-precheck-failed");
+            throw privacy.failure("chat");
           }
+
+          integrationResults.errorPrechecked = true;
+          privacy.event("error-precheck-succeeded");
         }
 
         // 🔥 0.2: SessionManager 会话追踪（如果启用）
@@ -203,11 +171,11 @@ function registerCoreHandlers(ctx) {
                 const session =
                   await sessionManager.loadSession(currentSessionId);
                 currentConversationId = session.conversationId;
-                logger.info("[LLM IPC] ✓ 加载现有会话:", currentSessionId);
+                privacy.event("session-loaded");
               } catch (loadError) {
                 if (loadError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
                   throw loadError;
-                logger.warn("[LLM IPC] 会话不存在，将创建新会话");
+                privacy.event("session-load-failed");
                 currentSessionId = null;
               }
             }
@@ -229,7 +197,7 @@ function registerCoreHandlers(ctx) {
                 metadata: { provider, model },
               });
               currentSessionId = newSession.id;
-              logger.info("[LLM IPC] ✓ 创建新会话:", currentSessionId);
+              privacy.event("session-created");
             }
 
             // 添加用户消息到会话
@@ -248,10 +216,7 @@ function registerCoreHandlers(ctx) {
           } catch (sessionError) {
             if (sessionError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw sessionError;
-            logger.warn(
-              "[LLM IPC] SessionManager 会话追踪失败:",
-              sessionError.message,
-            );
+            privacy.event("session-tracking-failed");
             // 不阻塞主流程
           }
         }
@@ -280,19 +245,14 @@ function registerCoreHandlers(ctx) {
               const capableAgents = agentOrchestrator.getCapableAgents(task);
 
               if (capableAgents.length > 0 && capableAgents[0].score > 0.7) {
-                logger.info(
-                  "[LLM IPC] 🤖 发现高匹配度 Agent:",
-                  capableAgents[0].agentId,
-                  "得分:",
-                  capableAgents[0].score,
-                );
+                privacy.event("agent-selected");
 
                 // 分发任务到 Agent
                 try {
                   agentResult = await agentOrchestrator.dispatch(task);
                   integrationResults.multiAgentRouted = true;
                   integrationResults.agentUsed = capableAgents[0].agentId;
-                  logger.info("[LLM IPC] ✓ Multi-Agent 任务执行完成");
+                  privacy.event("agent-execution-succeeded");
 
                   // 如果 Agent 返回了完整的响应，直接返回
                   if (agentResult && agentResult.response) {
@@ -325,20 +285,14 @@ function registerCoreHandlers(ctx) {
                 } catch (agentError) {
                   if (agentError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
                     throw agentError;
-                  logger.warn(
-                    "[LLM IPC] Agent 执行失败，回退到标准流程:",
-                    agentError.message,
-                  );
+                  privacy.event("agent-execution-failed");
                 }
               }
             }
           } catch (agentCheckError) {
             if (agentCheckError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw agentCheckError;
-            logger.warn(
-              "[LLM IPC] Multi-Agent 路由检查失败:",
-              agentCheckError.message,
-            );
+            privacy.event("agent-route-check-failed");
             // 不阻塞主流程
           }
         }
@@ -358,11 +312,7 @@ function registerCoreHandlers(ctx) {
             );
 
             if (cached.hit) {
-              logger.info(
-                "[LLM IPC] 🎯 缓存命中! 节省",
-                cached.tokensSaved,
-                "tokens",
-              );
+              privacy.event("cache-hit");
 
               // 记录缓存命中到 TokenTracker
               if (tokenTracker) {
@@ -403,10 +353,7 @@ function registerCoreHandlers(ctx) {
           } catch (cacheError) {
             if (cacheError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw cacheError;
-            logger.warn(
-              "[LLM IPC] 缓存检查失败，继续正常流程:",
-              cacheError.message,
-            );
+            privacy.event("cache-check-failed");
           }
         }
 
@@ -429,7 +376,7 @@ function registerCoreHandlers(ctx) {
               // 检查是否需要深度思考（复杂问题、分析、推理）
               if (/(为什么|怎么|如何|分析|推理|思考|解释|原理)/.test(content)) {
                 scenario.needsThinking = true;
-                logger.info("[LLM IPC] 检测到需要深度思考");
+                privacy.event("thinking-task-detected");
               }
 
               // 检查是否包含代码（代码生成、调试）
@@ -438,7 +385,7 @@ function registerCoreHandlers(ctx) {
                 /```/.test(content)
               ) {
                 scenario.needsCodeGeneration = true;
-                logger.info("[LLM IPC] 检测到代码相关任务");
+                privacy.event("code-task-detected");
               }
 
               // 检查上下文长度，如果消息很多或很长，选择大上下文模型
@@ -448,10 +395,7 @@ function registerCoreHandlers(ctx) {
               );
               if (totalLength > 10000 || messages.length > 20) {
                 scenario.needsLongContext = true;
-                logger.info(
-                  "[LLM IPC] 检测到长上下文需求，总长度:",
-                  totalLength,
-                );
+                privacy.event("long-context-detected");
               }
 
               // 🔥 检测是否需要联网搜索
@@ -461,7 +405,7 @@ function registerCoreHandlers(ctx) {
                 )
               ) {
                 toolsToUse.push("web_search");
-                logger.info("[LLM IPC] 检测到需要联网搜索");
+                privacy.event("web-search-detected");
               }
 
               // 🔥 检测是否包含图片（多模态消息）
@@ -472,7 +416,7 @@ function registerCoreHandlers(ctx) {
                 if (hasImage) {
                   scenario.hasImage = true;
                   toolsToUse.push("image_process");
-                  logger.info("[LLM IPC] 检测到图片输入");
+                  privacy.event("image-input-detected");
                 }
               }
             }
@@ -482,21 +426,12 @@ function registerCoreHandlers(ctx) {
               managerRef.current.selectVolcengineModel(scenario);
             if (selectedModel) {
               options.model = selectedModel.modelId;
-              logger.info(
-                "[LLM IPC] 智能选择火山引擎模型:",
-                selectedModel.modelName,
-                "(",
-                selectedModel.modelId,
-                ")",
-              );
+              privacy.event("model-selected");
             }
           } catch (selectError) {
             if (selectError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw selectError;
-            logger.warn(
-              "[LLM IPC] 智能模型选择失败，使用默认配置:",
-              selectError.message,
-            );
+            privacy.event("model-selection-failed");
           }
         }
 
@@ -520,16 +455,13 @@ function registerCoreHandlers(ctx) {
               mcpFunctions = await mcpExecutor.getFunctions();
 
               if (mcpFunctions.length > 0) {
-                logger.info(
-                  "[LLM IPC] MCP 工具可用:",
-                  mcpFunctions.map((f) => f.name).join(", "),
-                );
+                privacy.event("mcp-tools-available");
               }
             }
           } catch (mcpError) {
             if (mcpError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw mcpError;
-            logger.warn("[LLM IPC] 获取 MCP 工具失败:", mcpError.message);
+            privacy.event("mcp-discovery-failed");
           }
         }
 
@@ -554,11 +486,7 @@ function registerCoreHandlers(ctx) {
                 ragResult.retrievedDocs &&
                 ragResult.retrievedDocs.length > 0
               ) {
-                logger.info(
-                  "[LLM IPC] RAG检索到",
-                  ragResult.retrievedDocs.length,
-                  "条相关知识",
-                );
+                privacy.event("rag-retrieval-succeeded");
                 retrievedDocs = ragResult.retrievedDocs;
 
                 // 构建知识库上下文
@@ -595,7 +523,7 @@ function registerCoreHandlers(ctx) {
           } catch (ragError) {
             if (ragError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw ragError;
-            logger.error("[LLM IPC] RAG检索失败，继续普通对话:", ragError);
+            privacy.event("rag-retrieval-failed");
           }
         }
 
@@ -616,25 +544,16 @@ function registerCoreHandlers(ctx) {
             );
 
             if (compressionResult.compressionRatio < 0.95) {
-              logger.info(
-                "[LLM IPC] ⚡ Prompt 压缩成功! 压缩率:",
-                compressionResult.compressionRatio.toFixed(2),
-                "节省",
-                compressionResult.tokensSaved,
-                "tokens",
-              );
+              privacy.event("prompt-compressed");
               enhancedMessages = compressionResult.messages;
             } else {
-              logger.info("[LLM IPC] Prompt 压缩效果不明显，使用原始消息");
+              privacy.event("prompt-kept-original");
               compressionResult = null;
             }
           } catch (compressError) {
             if (compressError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw compressError;
-            logger.warn(
-              "[LLM IPC] Prompt 压缩失败，使用原始消息:",
-              compressError.message,
-            );
+            privacy.event("prompt-compression-failed");
             compressionResult = null;
           }
         }
@@ -661,10 +580,7 @@ function registerCoreHandlers(ctx) {
 
           // 火山引擎使用 executeFunctionCalling 方法
           if (provider === "volcengine" && managerRef.current.toolsClient) {
-            logger.info(
-              "[LLM IPC] 使用火山引擎 Function Calling，MCP 工具数:",
-              mcpFunctions.length,
-            );
+            privacy.event("function-calling-started");
 
             try {
               response =
@@ -689,10 +605,7 @@ function registerCoreHandlers(ctx) {
             } catch (fcError) {
               if (fcError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
                 throw fcError;
-              logger.warn(
-                "[LLM IPC] 火山引擎 Function Calling 失败，回退到标准对话:",
-                fcError.message,
-              );
+              privacy.event("function-calling-failed");
             }
           }
           // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
@@ -708,10 +621,7 @@ function registerCoreHandlers(ctx) {
             );
             usedMCPTools = true;
           } else if (provider === "openai" || provider === "deepseek") {
-            logger.info(
-              "[LLM IPC] 使用 OpenAI 兼容 Function Calling，MCP 工具数:",
-              mcpFunctions.length,
-            );
+            privacy.event("function-calling-started");
 
             try {
               // 将 MCP 函数转换为 OpenAI tools 格式
@@ -734,11 +644,7 @@ function registerCoreHandlers(ctx) {
               let currentMessages = enhancedMessages;
               while (result.message?.tool_calls) {
                 const toolCalls = result.message.tool_calls;
-                logger.info(
-                  "[LLM IPC] LLM 请求调用",
-                  toolCalls.length,
-                  "个 MCP 工具",
-                );
+                privacy.event("mcp-tools-requested");
 
                 // 执行所有工具调用
                 const toolResults = [];
@@ -746,7 +652,7 @@ function registerCoreHandlers(ctx) {
                   const functionName = toolCall.function.name;
                   const functionArgs = JSON.parse(toolCall.function.arguments);
 
-                  logger.info("[LLM IPC] 执行 MCP 工具:", functionName);
+                  privacy.event("mcp-tool-execution-started");
 
                   try {
                     const execResult = await mcpExecutor.execute(
@@ -761,14 +667,14 @@ function registerCoreHandlers(ctx) {
                   } catch (execError) {
                     if (execError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
                       throw execError;
-                    logger.error(
-                      "[LLM IPC] MCP 工具执行失败:",
-                      execError.message,
-                    );
+                    privacy.event("mcp-tool-execution-failed");
                     toolResults.push({
                       tool_call_id: toolCall.id,
                       role: "tool",
-                      content: JSON.stringify({ error: execError.message }),
+                      content: JSON.stringify({
+                        error: "MCP tool execution failed",
+                        code: "CC_LLM_MCP_TOOL_FAILED",
+                      }),
                     });
                   }
                 }
@@ -796,10 +702,7 @@ function registerCoreHandlers(ctx) {
             } catch (fcError) {
               if (fcError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
                 throw fcError;
-              logger.warn(
-                "[LLM IPC] OpenAI Function Calling 失败，回退到标准对话:",
-                fcError.message,
-              );
+              privacy.event("function-calling-failed");
             }
           }
         }
@@ -818,7 +721,7 @@ function registerCoreHandlers(ctx) {
             error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
             throw error;
           }
-          logger.info("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
+          privacy.event("volcengine-tools-selected");
 
           // 如果只有一个工具，使用专用方法
           if (toolsToUse.length === 1) {
@@ -877,7 +780,7 @@ function registerCoreHandlers(ctx) {
             enableManusOptimization &&
             managerRef.current.manusOptimizations
           ) {
-            logger.info("[LLM IPC] 使用 Manus Context Engineering 优化");
+            privacy.event("manus-optimization-started");
             response = await managerRef.current.chatWithOptimizedPrompt(
               enhancedMessages,
               {
@@ -886,7 +789,7 @@ function registerCoreHandlers(ctx) {
               },
             );
             integrationResults.manusOptimized = true;
-            logger.info("[LLM IPC] ✓ Manus 优化已应用");
+            privacy.event("manus-optimization-applied");
           } else {
             // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
             response = await managerRef.current.chatWithMessages(
@@ -896,7 +799,7 @@ function registerCoreHandlers(ctx) {
           }
         }
 
-        logger.info("[LLM IPC] LLM 聊天响应成功, tokens:", response.tokens);
+        privacy.event("chat-succeeded");
 
         // 🔥 记录 AI 响应到 SessionManager
         if (
@@ -913,15 +816,12 @@ function registerCoreHandlers(ctx) {
                 role: "assistant",
                 content: assistantContent,
               });
-              logger.info("[LLM IPC] ✓ AI响应已记录到会话");
+              privacy.event("response-recorded");
             }
           } catch (sessionRecordError) {
             if (sessionRecordError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw sessionRecordError;
-            logger.warn(
-              "[LLM IPC] 记录AI响应到会话失败:",
-              sessionRecordError.message,
-            );
+            privacy.event("response-record-failed");
           }
         }
 
@@ -943,11 +843,11 @@ function registerCoreHandlers(ctx) {
               options,
             );
 
-            logger.info("[LLM IPC] 响应已缓存");
+            privacy.event("response-cache-written");
           } catch (cacheError) {
             if (cacheError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
               throw cacheError;
-            logger.warn("[LLM IPC] 缓存响应失败:", cacheError.message);
+            privacy.event("cache-write-failed");
           }
         }
 
@@ -1010,13 +910,13 @@ function registerCoreHandlers(ctx) {
           throw new Error("LLM服务未初始化");
         }
 
-        logger.info("[LLM IPC] 使用模板进行聊天, templateId:", templateId);
+        privacy.event("template-chat-started");
 
         let filledPrompt;
 
         // 🔥 在测试模式或 promptTemplateManager 未初始化时，使用简单的模板填充
         if (!promptTemplateManager || isTestMode) {
-          logger.info("[LLM IPC] 测试模式：使用简单模板填充");
+          privacy.event("test-template-fill-started");
           // 简单的模板填充逻辑
           const templates = {
             "code-review": `Please review the following ${variables?.language || "code"}:\n\n${variables?.code || ""}`,
@@ -1034,7 +934,7 @@ function registerCoreHandlers(ctx) {
           );
         }
 
-        logger.info("[LLM IPC] 模板已填充");
+        privacy.event("template-filled");
 
         // 构建消息数组，将填充后的模板作为用户消息
         const enhancedMessages = [
@@ -1127,7 +1027,7 @@ function registerCoreHandlers(ctx) {
         process.env.NODE_ENV === "test" && process.env.MOCK_LLM === "true";
 
       if (isTestMode) {
-        logger.info("[LLM IPC] 测试模式：配置已更新，但保持使用 Mock LLM 服务");
+        privacy.event("test-config-updated");
         // 如果 managerRef.current 是 MockLLMService，更新其配置
         if (
           managerRef.current &&
@@ -1166,7 +1066,7 @@ function registerCoreHandlers(ctx) {
         app.llmManager = newManager;
       }
 
-      logger.info("[LLM IPC] LLM配置已更新并重新初始化");
+      privacy.event("config-reinitialized");
 
       return true;
     } catch {

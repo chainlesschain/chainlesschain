@@ -193,5 +193,37 @@ describe("LLM core IPC failure privacy", () => {
     }
     expect(source).not.toMatch(/error\s*:\s*error\.message/u);
     expect(source).not.toContain("errorMonitor.analyzeError(error)");
+    expect(source).not.toMatch(/utils\/logger\.js/u);
+    expect(source).not.toMatch(
+      /\blogger\.(?:debug|info|warn|error|fatal)\s*\(/u,
+    );
+    expect(source).not.toMatch(/console\.(?:debug|info|warn|error|log)\s*\(/u);
+  });
+
+  it("keeps internal event names on a fixed allowlist", () => {
+    const privacy = createLlmIpcPrivacy("core", sink);
+    const source = fs.readFileSync(
+      path.resolve(__dirname, "..", "llm-ipc-core.js"),
+      "utf8",
+    );
+    const eventNames = [
+      ...source.matchAll(/privacy\.event\("([a-z-]+)"\)/gu),
+    ].map((match) => match[1]);
+
+    expect(eventNames.length).toBeGreaterThan(0);
+    for (const eventName of eventNames) {
+      privacy.event(eventName);
+      expect(sink.info).toHaveBeenLastCalledWith("[LLM IPC] internal event", {
+        component: "core",
+        event: eventName,
+      });
+    }
+
+    privacy.event("private-session-agent-model-tool-template");
+
+    expect(sink.info).toHaveBeenCalledWith("[LLM IPC] internal event", {
+      component: "core",
+      event: "unknown",
+    });
   });
 });

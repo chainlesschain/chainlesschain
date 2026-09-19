@@ -227,7 +227,12 @@ describe("native IPC configuration authority continuity", () => {
             enableErrorPrecheck: false,
           },
         ),
-      ).rejects.toBe(refusal);
+      ).rejects.toMatchObject({
+        message: "Governed Desktop model request failed",
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        component: "core",
+        operation: "chat",
+      });
       expect(manager.chatWithMessages).not.toHaveBeenCalled();
       expect(manager.chatWithGovernedFunctions).toHaveBeenCalledTimes(
         mode.startsWith("mcp") ? 1 : 0,
@@ -294,7 +299,13 @@ describe("native IPC configuration authority continuity", () => {
         enableErrorPrecheck: false,
       };
       const pending = handlers.get("llm:chat")({}, request);
-      if (denied) await expect(pending).rejects.toBe(refusal);
+      if (denied)
+        await expect(pending).rejects.toMatchObject({
+          message: "Governed Desktop model request failed",
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          component: "core",
+          operation: "chat",
+        });
       else
         await expect(pending).resolves.toMatchObject({
           content: "verified cached result",
@@ -464,6 +475,11 @@ describe("native IPC configuration authority continuity", () => {
         set: vi.fn(),
         setProvider: vi.fn(),
         save: vi.fn(),
+        getAll: () => ({
+          provider: "openai",
+          openai: { model: "original" },
+          options: {},
+        }),
         getManagerConfig: () => settings,
       };
       const previous = new managerModule.LLMManager(
@@ -498,11 +514,19 @@ describe("native IPC configuration authority continuity", () => {
       registerSelectorHandlers(ctx);
       const pending = handlers.get(channel)(
         {},
-        channel === "llm:set-config" ? { model: "updated" } : "openai",
+        channel === "llm:set-config"
+          ? { openai: { model: "updated" } }
+          : "openai",
       );
       expect(managerRef.current).toBe(previous);
       if (failure) {
-        await expect(pending).rejects.toThrow("client initialization denied");
+        await expect(pending).rejects.toMatchObject({
+          message: "LLM IPC operation failed",
+          code: "CC_LLM_IPC_OPERATION_FAILED",
+          component: channel === "llm:set-config" ? "core" : "selector",
+          operation:
+            channel === "llm:set-config" ? "set-config" : "switch-provider",
+        });
         expect(managerRef.current).toBe(previous);
         expect(app.llmManager).toBe(previous);
         expect(managerModule.getLLMManager()).toBe(previous);
