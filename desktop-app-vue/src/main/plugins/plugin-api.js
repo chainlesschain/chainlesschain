@@ -1,8 +1,22 @@
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginOperationError } = require("./plugin-ipc-error-boundary");
 const { isWithinDir } = require("../utils/path-boundary.js");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginAPI");
+
+function createPluginGovernanceError(message) {
+  const error = new Error(message);
+  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  return error;
+}
+
+function createPluginApiOperationError(error) {
+  if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+    return createPluginGovernanceError("Plugin request blocked by governance");
+  }
+  return createPluginOperationError("plugin");
+}
 
 function isKnownDirectModelProviderEndpoint(url) {
   const parsed = new URL(url);
@@ -30,19 +44,15 @@ function isKnownDirectModelProviderEndpoint(url) {
 
 function assertNoDirectPluginModelEgress(url) {
   if (!isKnownDirectModelProviderEndpoint(url)) return;
-  const error = new Error(
+  throw createPluginGovernanceError(
     "Plugins must use the governed llm API instead of direct model provider network requests",
   );
-  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-  throw error;
 }
 
 function rejectUngovernedPluginNetworkEgress() {
-  const error = new Error(
+  throw createPluginGovernanceError(
     "Plugin network requests require a governed bridge; use the plugin llm API for model work",
   );
-  error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-  throw error;
 }
 
 /**
@@ -598,9 +608,9 @@ class PluginAPI {
         // 记录错误
         this.stats.errors[methodName] =
           (this.stats.errors[methodName] || 0) + 1;
-        this.logAPICall(methodName, permission, false, 0, error.message);
+        this.logAPICall(methodName, permission, false, 0);
 
-        throw error;
+        throw createPluginApiOperationError(error);
       }
     };
   }
@@ -639,9 +649,8 @@ class PluginAPI {
    * @param {string} permission - 权限
    * @param {boolean} success - 是否成功
    * @param {number} duration - 耗时（毫秒）
-   * @param {string} error - 错误信息
    */
-  async logAPICall(methodName, permission, success, duration, error = "") {
+  async logAPICall(methodName, permission, success, duration) {
     try {
       const { database } = this.context;
       if (!database) {

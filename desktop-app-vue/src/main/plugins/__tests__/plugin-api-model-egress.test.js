@@ -42,4 +42,38 @@ describe("PluginAPI model egress boundary", () => {
 
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("does not disclose secure method implementation errors", async () => {
+    const secret = "plugin-api-method-secret";
+    const pluginApi = new PluginAPI(
+      "example-plugin",
+      { requirePermission: vi.fn() },
+      {},
+    );
+    const method = pluginApi.createSecureMethod("database:read", async () => {
+      throw new Error(secret);
+    });
+
+    const invocation = method();
+
+    await expect(invocation).rejects.toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+    await expect(invocation).rejects.not.toThrow(secret);
+  });
+
+  it("has no raw caught-error rethrows", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const source = await readFile(
+      resolve(process.cwd(), "src/main/plugins/plugin-api.js"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
+    expect(source).not.toContain(
+      "logAPICall(methodName, permission, false, 0, error.message)",
+    );
+  });
 });
