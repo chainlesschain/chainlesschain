@@ -48,6 +48,10 @@ import {
 } from "../../src/lib/evolution/browser-filesystem-quarantine-custody.js";
 import { captureBrowserQuarantineRetentionAuthority } from "../../src/lib/evolution/browser-quarantine-retention-authority.js";
 import {
+  BROWSER_QUARANTINE_RETENTION_SCHEDULER_DESCRIPTOR_SCHEMA,
+  captureBrowserQuarantineRetentionScheduler,
+} from "../../src/lib/evolution/browser-quarantine-retention-scheduler.js";
+import {
   BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadArtifactDisposalAuthority,
 } from "../../src/lib/evolution/browser-download-artifact-disposal-authority.js";
@@ -1157,6 +1161,25 @@ describe("signed evolution deployment loader", () => {
               now: () => Date.now(),
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserQuarantineRetentionScheduler({
+              descriptor: {
+                schema:
+                  BROWSER_QUARANTINE_RETENTION_SCHEDULER_DESCRIPTOR_SCHEMA,
+                schedulerId: "browser-quarantine-retention-scheduler",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                intervalMs: 60_000,
+                runOnStart: true,
+                overlapMode: "skip",
+                shutdownMode: "drain",
+              },
+              authority: {},
+              setIntervalFn: () => ({}),
+              clearIntervalFn: () => {},
+              now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1334,6 +1357,24 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
               now: () => Date.now(),
             });
+          const browserQuarantineRetentionScheduler =
+            factories.createBrowserQuarantineRetentionScheduler({
+              descriptor: {
+                schema:
+                  BROWSER_QUARANTINE_RETENTION_SCHEDULER_DESCRIPTOR_SCHEMA,
+                schedulerId: "browser-quarantine-retention-scheduler",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                intervalMs: 60_000,
+                runOnStart: true,
+                overlapMode: "skip",
+                shutdownMode: "drain",
+              },
+              authority: browserQuarantineRetentionAuthority,
+              setIntervalFn: () => ({}),
+              clearIntervalFn: () => {},
+              now: () => Date.now(),
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1348,6 +1389,7 @@ describe("signed evolution deployment loader", () => {
             browserDownloadArtifactDisposalAuthority,
             browserFilesystemQuarantineDisposalAuthority,
             browserQuarantineRetentionAuthority,
+            browserQuarantineRetentionScheduler,
           };
         },
       }),
@@ -1455,6 +1497,17 @@ describe("signed evolution deployment loader", () => {
       authorityId: "browser-quarantine-retention",
       policyRevision: "retention-policy-1",
       effectMode: "irreversible-expiry-disposal",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserQuarantineRetentionScheduler(
+        result.browserQuarantineRetentionScheduler,
+      ).descriptor,
+    ).toMatchObject({
+      schedulerId: "browser-quarantine-retention-scheduler",
+      intervalMs: 60_000,
+      overlapMode: "skip",
+      shutdownMode: "drain",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });
