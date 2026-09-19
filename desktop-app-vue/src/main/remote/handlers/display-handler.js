@@ -22,9 +22,11 @@ const { screen, desktopCapturer, nativeImage } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 const os = require("os");
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 
 const execAsync = promisify(exec);
+const logger = createRemoteLogRedactor(remoteLogSink, "DisplayHandler");
 
 // 平台检测
 const isWindows = process.platform === "win32";

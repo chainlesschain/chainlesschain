@@ -14,6 +14,12 @@ const WIRED_MODULES = [
   "src/main/remote/handlers/application-handler.js",
   "src/main/remote/handlers/network-handler.js",
   "src/main/remote/handlers/device-manager-handler.js",
+  "src/main/remote/handlers/clipboard-handler.js",
+  "src/main/remote/handlers/notification-handler.js",
+  "src/main/remote/handlers/input-handler.js",
+  "src/main/remote/handlers/display-handler.js",
+  "src/main/remote/handlers/media-handler.js",
+  "src/main/remote/handlers/power-handler.js",
 ];
 
 function createSink() {

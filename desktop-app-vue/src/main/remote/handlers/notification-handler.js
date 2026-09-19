@@ -18,7 +18,10 @@
  * @module remote/handlers/notification-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "NotificationHandler");
 
 /**
  * Tolerant JSON column parse — a single notification with a corrupt actions/data

@@ -18,9 +18,11 @@
 const { exec } = require("child_process");
 const { promisify } = require("util");
 const path = require("path");
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 
 const execAsync = promisify(exec);
+const logger = createRemoteLogRedactor(remoteLogSink, "MediaHandler");
 
 // 平台检测
 const isWindows = process.platform === "win32";

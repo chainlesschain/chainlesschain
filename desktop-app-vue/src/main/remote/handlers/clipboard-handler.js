@@ -18,9 +18,12 @@
  * @module remote/handlers/clipboard-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { clipboard, nativeImage } = require("electron");
 const crypto = require("crypto");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "ClipboardHandler");
 
 /**
  * 剪贴板处理器类
