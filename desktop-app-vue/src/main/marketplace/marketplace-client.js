@@ -11,6 +11,9 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+const {
+  createPluginFailureDescriptor,
+} = require("../plugins/plugin-ipc-error-boundary");
 const { v4: uuidv4 } = require("uuid");
 
 const logger = createPluginLogRedactor(pluginLogSink, "MarketplaceClient");
@@ -172,10 +175,7 @@ class MarketplaceClient {
         // Handle standard API response format: { success, message, data, timestamp }
         if (data && typeof data === "object" && "success" in data) {
           if (!data.success) {
-            const error = new Error(
-              data.message || "API returned unsuccessful response",
-            );
-            error.apiResponse = data;
+            const error = new Error("Marketplace API request failed");
             error.status = response.status;
             throw error;
           }
@@ -194,32 +194,31 @@ class MarketplaceClient {
 
         if (error.response) {
           const status = error.response.status;
-          const responseData = error.response.data || {};
-          const message = responseData.message || error.message;
-
-          logger.error(`[MarketplaceClient] HTTP ${status}: ${message}`);
+          logger.error("[MarketplaceClient] HTTP request failed", {
+            status,
+            error,
+          });
 
           // Map common HTTP status codes to meaningful error messages
           const statusMessages = {
-            400: `Bad request: ${message}`,
+            400: "Bad request.",
             401: "Authentication required. Please log in.",
             403: "Permission denied. Insufficient privileges.",
-            404: `Resource not found: ${message}`,
-            409: `Conflict: ${message}`,
+            404: "Resource not found.",
+            409: "Conflict.",
             413: "Payload too large. Please reduce file size.",
-            422: `Validation error: ${message}`,
+            422: "Validation error.",
             429: "Rate limited. Please try again later.",
-            500: `Internal server error: ${message}`,
+            500: "Internal server error.",
             502: "Bad gateway. Marketplace service may be down.",
             503: "Service unavailable. Please try again later.",
           };
 
           const enhancedMessage =
-            statusMessages[status] || `Request failed (${status}): ${message}`;
+            statusMessages[status] || `Request failed (${status}).`;
 
           const enhancedError = new Error(enhancedMessage);
           enhancedError.status = status;
-          enhancedError.apiResponse = responseData;
           enhancedError.isHttpError = true;
           enhancedError.isTransient = TRANSIENT_STATUS_CODES.includes(status);
 
@@ -1039,9 +1038,10 @@ class MarketplaceClient {
         },
       };
     } catch (error) {
+      logger.warn("[MarketplaceClient] health check failed", error);
       return {
         success: false,
-        error: `Marketplace service unreachable: ${error.message}`,
+        ...createPluginFailureDescriptor("marketplace"),
         data: {
           status: "unhealthy",
           baseURL: this.baseURL,
@@ -1176,23 +1176,23 @@ class MarketplaceClient {
    * @returns {Object} Standardized error response { success: false, error: string }
    */
   _handleMethodError(error, methodName) {
-    const errorMessage = error.message || "Unknown error";
-
-    logger.error(`[MarketplaceClient] ${methodName} failed: ${errorMessage}`);
+    logger.error("[MarketplaceClient] method failed", {
+      methodName,
+      error,
+    });
 
     const result = {
       success: false,
-      error: errorMessage,
+      ...createPluginFailureDescriptor("marketplace"),
     };
 
     // Include HTTP status if available
-    if (error.status) {
+    if (
+      Number.isSafeInteger(error.status) &&
+      error.status >= 400 &&
+      error.status <= 599
+    ) {
       result.status = error.status;
-    }
-
-    // Include API response data if available
-    if (error.apiResponse) {
-      result.apiData = error.apiResponse;
     }
 
     return result;

@@ -132,7 +132,10 @@ describe("MarketplaceClient", () => {
       client.client = null;
       const r = await client.listPlugins();
       expect(r.success).toBe(false);
-      expect(r.error).toContain("not available");
+      expect(r).toMatchObject({
+        error: "Marketplace operation failed",
+        code: "MARKETPLACE_OPERATION_FAILED",
+      });
     });
   });
 
@@ -403,10 +406,41 @@ describe("MarketplaceClient", () => {
     });
 
     it("should return unhealthy on failure", async () => {
-      mockGet.mockRejectedValue(new Error("Connection refused"));
+      const secret = "marketplace-health-secret";
+      mockGet.mockRejectedValue(new Error(secret));
       const r = await client.checkHealth();
       expect(r.success).toBe(false);
       expect(r.data.status).toBe("unhealthy");
+      expect(JSON.stringify(r)).not.toContain(secret);
+    });
+  });
+
+  describe("error disclosure boundary", () => {
+    it("keeps status but removes message and API response data", () => {
+      const secret = "marketplace-api-secret";
+      const error = Object.assign(new Error(secret), {
+        status: 500,
+        apiResponse: { message: secret },
+      });
+
+      const result = client._handleMethodError(error, `method-${secret}`);
+
+      expect(result).toEqual({
+        success: false,
+        error: "Marketplace operation failed",
+        code: "MARKETPLACE_OPERATION_FAILED",
+        status: 500,
+      });
+      expect(JSON.stringify(result)).not.toContain(secret);
+    });
+
+    it("drops non-numeric status values", () => {
+      const result = client._handleMethodError(
+        Object.assign(new Error("secret"), { status: "500-secret" }),
+        "listPlugins",
+      );
+
+      expect(result).not.toHaveProperty("status");
     });
   });
 
