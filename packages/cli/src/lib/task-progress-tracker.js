@@ -358,7 +358,7 @@ export class TaskProgressTracker {
         "Do not restart general investigation, rewrite the plan, or delegate the same research. " +
         "A child exhausting its budget is not task completion. Preserve useful partial findings and continue the original task. " +
         "During recovery, broad discovery stays paused until an actionable tool outcome; a focused search, another status query or a failed command does not end recovery. " +
-        "Use search_files for an exact missing local fact or run a bounded computation/verification, then act on the result. " +
+        "Use search_files for an exact missing local fact, read_file with an explicit offset and limit of at most 80 lines for a known target section, or run a bounded computation/verification, then act on the result. " +
         "Never claim completion without satisfying the user's request.",
     };
   }

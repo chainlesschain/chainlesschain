@@ -134,6 +134,15 @@ describe("ReadFileLoopGuard recovery", () => {
       batch({ offset: 1, limit }, content);
     expect(guard.canContinue(file, { offset: 2, limit: 1 })).toBe(false);
   });
+  it("admits a bounded target section in a new file during task recovery", () => {
+    const guard = new ReadFileLoopGuard();
+    const file = "/work/referenced-implementation.md";
+    expect(guard.canContinue(file, { offset: 1, limit: 80 })).toBe(true);
+    expect(guard.canContinue(file, { offset: 40, limit: 12 })).toBe(true);
+    expect(guard.canContinue(file, {})).toBe(false);
+    expect(guard.canContinue(file, { offset: 1, limit: 81 })).toBe(false);
+    expect(guard.canContinue(file, { offset: 0, limit: 20 })).toBe(false);
+  });
   it("varying a covered range does not reset duplicate recovery", () => {
     const { guard, batch } = fixture();
     const content = "one\ntwo\nthree\nfour\nfive";

@@ -14993,9 +14993,16 @@ export async function* agentLoop(messages, options) {
     const prInvestigationExhausted =
       prActionTask &&
       taskProgressTracker.explorationCalls >= PR_INVESTIGATION_LIMIT;
+    // Keep read_file visible during task recovery so the model can request a
+    // known, explicitly bounded section. Admission below still rejects broad
+    // new-file reads and repeated covered ranges.
     const taskRecoveryTools = TASK_RECOVERY_TOOLS.filter(
-      (tool) => tool !== "read_file" || !readFileLoopGuard.hasRecoveryReads,
+      (tool) => tool !== "read_file",
     );
+    const readToolRecoveryPaused =
+      readRecoveryTurn &&
+      !taskRecoveryTurn &&
+      !readFileLoopGuard.hasEditRecoveryReads;
     if (newProgressIntervention) {
       lastTaskProgressIntervention = progressIntervention.key;
       // Reuse the existing warning event so CLI, REPL and IDE clients all show
@@ -15010,9 +15017,7 @@ export async function* agentLoop(messages, options) {
       };
     }
     const pausedTools = new Set([
-      ...(readRecoveryTurn && !readFileLoopGuard.hasEditRecoveryReads
-        ? ["read_file"]
-        : []),
+      ...(readToolRecoveryPaused ? ["read_file"] : []),
       ...(taskRecoveryTurn ? taskRecoveryTools : []),
       ...remoteRecoveryTools,
       ...(prInvestigationExhausted
@@ -15125,13 +15130,13 @@ export async function* agentLoop(messages, options) {
           content:
             progressIntervention.guidance +
             (taskRecoveryTurn
-              ? ` Recovery remains active: ${taskRecoveryTools.join(", ")} are omitted until an actionable tool outcome. Only unfinished, already-started file scans may continue; new whole-file discovery is paused. Focused search, authorized changes and verification remain available.`
+              ? ` Recovery remains active: ${taskRecoveryTools.join(", ")} are omitted until an actionable tool outcome. Unfinished scans and explicit target-section reads of at most 80 lines may continue; new whole-file discovery is paused. Focused search, authorized changes and verification remain available.`
               : ""),
         },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
-    if (readRecoveryTurn && !prInvestigationExhausted) {
+    if (readToolRecoveryPaused && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
         {
@@ -15909,7 +15914,9 @@ export async function* agentLoop(messages, options) {
         );
       const earlyAuthorityDenial =
         ((pausedTools.has(toolName) && !editRecoveryRead) ||
-        (readRecoveryTurn && toolName === "read_file" && !editRecoveryRead) ||
+        (readToolRecoveryPaused &&
+          toolName === "read_file" &&
+          !editRecoveryRead) ||
         remoteReadLoopGuard.shouldPause(toolName, toolArgs) ||
         (taskRecoveryTurn &&
           toolName === "read_file" &&

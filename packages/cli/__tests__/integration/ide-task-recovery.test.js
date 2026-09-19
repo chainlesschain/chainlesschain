@@ -94,6 +94,64 @@ describe("IDE task recovery", () => {
     expect(calls).toBe(4);
   });
 
+  it("allows a bounded section from a new file while broad reads remain paused", async () => {
+    writeFileSync(join(cwd, "referenced.md"), "one\ntwo\nthree\n");
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 24; i++)
+      tracker.record("search_files", { matches: [] });
+    let calls = 0;
+    const events = [];
+    for await (const event of agentLoop(
+      [{ role: "user", content: "Use the referenced section" }],
+      {
+        cwd,
+        taskProgressTracker: tracker,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        maxIterations: 4,
+        chatFn: async (_messages, options) => {
+          calls++;
+          expect(options.disabledTools || []).not.toContain("read_file");
+          if (calls <= 2)
+            return {
+              message: mockToolCallMessage(
+                "read_file",
+                { path: "referenced.md" },
+                `broad-read-${calls}`,
+              ),
+            };
+          if (calls === 3)
+            return {
+              message: mockToolCallMessage(
+                "read_file",
+                { path: "referenced.md", offset: 1, limit: 2 },
+                "targeted-read",
+              ),
+            };
+          return { message: mockTextMessage("Used the targeted section") };
+        },
+      },
+    ))
+      events.push(event);
+    const broad = events.filter(
+      (event) =>
+        event.type === "tool-result" &&
+        event.tool_use_id?.startsWith("broad-read-"),
+    );
+    const targeted = events.find(
+      (event) =>
+        event.type === "tool-result" && event.tool_use_id === "targeted-read",
+    );
+    expect(broad).toHaveLength(2);
+    expect(
+      broad.every((event) => event.result.code === "CC_TOOL_RECOVERY_PAUSED"),
+    ).toBe(true);
+    expect(targeted.result.content).toBe("one\ntwo");
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toBe("Used the targeted section");
+  });
+
   it("yields after completed tools and preserves their results for the next user message", async () => {
     writeFileSync(join(cwd, "context.txt"), "retained evidence");
     const messages = [

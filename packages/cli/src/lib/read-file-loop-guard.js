@@ -291,15 +291,21 @@ export class ReadFileLoopGuard {
   canContinue(filePath, args = {}) {
     if (this.canRecoverEdit(filePath, args)) return true;
     const entry = this.progress.get(keyFor(filePath, args));
+    const targeted =
+      Number.isSafeInteger(args.offset) &&
+      args.offset > 0 &&
+      Number.isSafeInteger(args.limit) &&
+      args.limit > 0 &&
+      args.limit <= 80;
+    // Task recovery tells the model to replace broad discovery with a targeted
+    // section read. That section may legitimately live in a file not observed
+    // before recovery (for example, a referenced implementation note). Admit
+    // the explicitly bounded request while continuing to reject whole-file
+    // reads. Once registered, the ordinary per-file reread limit applies.
+    if (!entry) return targeted;
     return (
       entry?.summary?.reachedEnd === false ||
-      (!!entry &&
-        entry.rereads.size < 3 &&
-        Number.isSafeInteger(args.offset) &&
-        args.offset > 0 &&
-        Number.isSafeInteger(args.limit) &&
-        args.limit > 0 &&
-        args.limit <= 80)
+      (entry.rereads.size < 3 && targeted)
     );
   }
 
