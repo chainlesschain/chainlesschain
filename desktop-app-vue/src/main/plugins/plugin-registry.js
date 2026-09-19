@@ -2,6 +2,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
+  createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
 const fs = require("fs");
 
@@ -60,7 +61,8 @@ class PluginRegistry {
         sql = await _deps.fsp.readFile(migrationPath, "utf-8");
       } catch (err) {
         if (err.code !== "ENOENT") {
-          throw err;
+          logger.error("[PluginRegistry] 迁移文件读取失败", err);
+          throw createPluginOperationError("plugin");
         }
         sql = null;
       }
@@ -121,7 +123,7 @@ class PluginRegistry {
       this.isInitialized = true;
     } catch (error) {
       logger.error("[PluginRegistry] 初始化失败:", error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 

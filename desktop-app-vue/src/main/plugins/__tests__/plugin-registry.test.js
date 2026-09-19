@@ -9,6 +9,8 @@
  * getPluginExtensions/getExtensionsByPoint had the same shape for `config`.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("../../utils/logger.js", () => ({
@@ -16,6 +18,37 @@ vi.mock("../../utils/logger.js", () => ({
 }));
 
 const PluginRegistry = require("../plugin-registry.js");
+
+it("does not disclose migration read errors", async () => {
+  const originalFsp = PluginRegistry._deps.fsp;
+  const secret = "plugin-registry-migration-secret";
+  PluginRegistry._deps.fsp = {
+    readFile: vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error(secret), { code: "EACCES" })),
+  };
+  const registry = new PluginRegistry({ db: {} });
+
+  try {
+    const initialization = registry.initialize();
+    await expect(initialization).rejects.toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+    await expect(initialization).rejects.not.toThrow(secret);
+  } finally {
+    PluginRegistry._deps.fsp = originalFsp;
+  }
+});
+
+it("has no raw caught-error rethrows", () => {
+  const source = fs.readFileSync(
+    path.resolve(process.cwd(), "src/main/plugins/plugin-registry.js"),
+    "utf8",
+  );
+
+  expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
+});
 
 it("redacts persisted plugin errors and event data", async () => {
   const runs = [];
