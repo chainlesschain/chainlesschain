@@ -10,7 +10,12 @@
  * @module remote/command-router
  */
 
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../browser/browser-log-redaction");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 错误码
@@ -80,7 +85,7 @@ class CommandRouter {
       };
     }
 
-    logger.info(`[CommandRouter] 注册处理器: ${namespace}`);
+    logger.info("[CommandRouter] 注册处理器", { namespace });
   }
 
   /**
@@ -89,7 +94,7 @@ class CommandRouter {
   unregisterHandler(namespace) {
     if (this.handlers.has(namespace)) {
       this.handlers.delete(namespace);
-      logger.info(`[CommandRouter] 取消注册处理器: ${namespace}`);
+      logger.info("[CommandRouter] 取消注册处理器", { namespace });
     }
   }
 
@@ -108,7 +113,7 @@ class CommandRouter {
 
     // 日志记录
     if (this.options.enableLogging) {
-      logger.info(`[CommandRouter] 路由命令: ${method} (id: ${id})`);
+      logger.info("[CommandRouter] 路由命令", { method, requestId: id });
     }
 
     try {
@@ -142,9 +147,10 @@ class CommandRouter {
         if (!whitelist.isAllowed(method)) {
           const reason =
             whitelist.describeRejection(method) || "method not whitelisted";
-          logger.warn(
-            `[CommandRouter] Mobile method rejected: ${method} — ${reason}`,
-          );
+          logger.warn("[CommandRouter] Mobile method rejected", {
+            method,
+            reason,
+          });
           this.stats.failedCommands++;
           return this.createErrorResponse(
             id,
@@ -156,9 +162,9 @@ class CommandRouter {
         //      未注入 channel 但要求 approval → 直接拒绝（fail-safe）。
         if (whitelist.requiresApproval(method)) {
           if (!this.options.mobileApprovalChannel) {
-            logger.warn(
-              `[CommandRouter] Method '${method}' requires approval but channel not configured`,
-            );
+            logger.warn("[CommandRouter] Approval channel not configured", {
+              method,
+            });
             this.stats.failedCommands++;
             return this.createErrorResponse(
               id,
@@ -173,9 +179,10 @@ class CommandRouter {
               params: params || {},
             });
           if (!approval.approved) {
-            logger.warn(
-              `[CommandRouter] Approval denied for ${method}: ${approval.deniedReason}`,
-            );
+            logger.warn("[CommandRouter] Approval denied", {
+              method,
+              deniedReason: approval.deniedReason,
+            });
             this.stats.failedCommands++;
             return this.createErrorResponse(
               id,
@@ -194,7 +201,7 @@ class CommandRouter {
       // 3. 查找处理器
       const handler = this.handlers.get(namespace);
       if (!handler) {
-        logger.warn(`[CommandRouter] 处理器不存在: ${namespace}`);
+        logger.warn("[CommandRouter] 处理器不存在", { namespace });
         return this.createErrorResponse(
           id,
           ERROR_CODES.HANDLER_NOT_FOUND,
@@ -207,7 +214,7 @@ class CommandRouter {
       try {
         result = await handler.handle(action, params || {}, context);
       } catch (error) {
-        logger.error(`[CommandRouter] 执行命令失败: ${method}`, error);
+        logger.error("[CommandRouter] 执行命令失败", { method, error });
 
         // 更新统计。total 必须在失败分支也自增，否则 byNamespace[ns].total
         // 只计成功、与 success+failed 不符，低估该命名空间的真实调用量。
@@ -236,7 +243,7 @@ class CommandRouter {
       // 6. 记录执行时间
       const duration = Date.now() - startTime;
       if (this.options.enableLogging) {
-        logger.info(`[CommandRouter] 命令执行成功: ${method} (${duration}ms)`);
+        logger.info("[CommandRouter] 命令执行成功", { method, duration });
       }
 
       // 7. 返回成功响应
