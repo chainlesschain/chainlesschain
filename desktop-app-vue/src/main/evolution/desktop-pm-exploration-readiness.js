@@ -300,6 +300,12 @@ function inspectDesktopPmExplorationReadiness(host) {
       "PM_DURABLE_DATABASE_RECOVERY_SNAPSHOT_REQUIRED",
     ),
     check(
+      "durable-workspace-recovery-snapshot",
+      execution.ok &&
+        ownData(execution.value, "workspaceSnapshotConfigured") === true,
+      "PM_DURABLE_WORKSPACE_RECOVERY_SNAPSHOT_REQUIRED",
+    ),
+    check(
       "recovery-store-readable",
       storage.readable,
       "PM_RECOVERY_STORE_READABLE_REQUIRED",

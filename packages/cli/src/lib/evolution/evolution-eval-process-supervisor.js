@@ -3,6 +3,7 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isProxy } from "node:util/types";
 
 import executionBroker from "../process-execution-broker/index.js";
 import { isEvolutionEvalChildEvidenceStore } from "./evolution-eval-child-evidence-ledger-adapter.js";
@@ -29,6 +30,7 @@ const MIN_MEMORY_LIMIT_MB = 32;
 const MAX_MEMORY_LIMIT_MB = 1024;
 const MAX_PERMISSION_PATHS = 32;
 const PROCESS_SUPERVISORS = new WeakSet();
+const PROCESS_RUNTIME_BROKERS = new WeakMap();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -235,6 +237,253 @@ function processResult(child, input) {
     });
     child.stdin.end(JSON.stringify(input));
   });
+}
+
+function writeBrokerMessage(child, value) {
+  const encoded = `${JSON.stringify(value)}\n`;
+  if (Buffer.byteLength(encoded) > MAX_OUTPUT_BYTES)
+    return Promise.reject(new Error("evaluation broker message exceeds 1 MiB"));
+  return new Promise((resolveWrite, reject) => {
+    if (child.stdin.destroyed || child.stdin.writableEnded) {
+      reject(new Error("evaluation broker input is closed"));
+      return;
+    }
+    child.stdin.write(encoded, (error) => {
+      if (error) reject(error);
+      else resolveWrite();
+    });
+  });
+}
+
+function processBrokeredResult(child, input, brokerValue) {
+  const broker = PROCESS_RUNTIME_BROKERS.get(brokerValue);
+  if (!broker)
+    return Promise.reject(
+      new TypeError("a branded evaluation process runtime broker is required"),
+    );
+  return new Promise((resolveResult, reject) => {
+    let stdoutBuffer = "";
+    let stdoutBytes = 0;
+    let stderr = "";
+    let settled = false;
+    let completionError = null;
+    let resultSeen = false;
+    let resultValue;
+    let requestCount = 0;
+    const requestIds = new Set();
+    let messages = Promise.resolve();
+    const rejectOnce = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    const handleMessage = async (line) => {
+      if (!line || Buffer.byteLength(line) > MAX_OUTPUT_BYTES)
+        throw new Error("evaluation broker record exceeds 1 MiB");
+      const message = JSON.parse(line);
+      if (message?.type === "result") {
+        if (
+          resultSeen ||
+          Object.keys(message).length !== 2 ||
+          requestIds.size !== 0
+        ) {
+          throw new Error("evaluation broker result is invalid or premature");
+        }
+        resultSeen = true;
+        resultValue = jsonClone(message.value, "evaluation target result");
+        return;
+      }
+      if (
+        resultSeen ||
+        message?.type !== "broker-request" ||
+        typeof message.requestId !== "string" ||
+        !/^broker-[1-9][0-9]*$/u.test(message.requestId) ||
+        ![
+          "record-tokens",
+          "invoke-tool",
+          "retrieve-memory",
+          "invoke-model",
+        ].includes(message.operation) ||
+        !message.input ||
+        typeof message.input !== "object" ||
+        Array.isArray(message.input) ||
+        Object.keys(message).length !== 4 ||
+        requestIds.has(message.requestId) ||
+        requestCount >= 512
+      ) {
+        throw new Error("evaluation broker request is invalid");
+      }
+      requestCount += 1;
+      requestIds.add(message.requestId);
+      try {
+        let value;
+        if (message.operation === "record-tokens") {
+          if (
+            Object.keys(message.input).length !== 1 ||
+            !Number.isSafeInteger(message.input.count) ||
+            message.input.count < 0
+          ) {
+            throw new TypeError("broker token count is invalid");
+          }
+          value = await broker.recordTokens(message.input.count);
+        } else if (message.operation === "invoke-tool") {
+          if (
+            Object.keys(message.input).length !== 2 ||
+            typeof message.input.toolId !== "string"
+          ) {
+            throw new TypeError("broker tool request is invalid");
+          }
+          value = await broker.invokeTool(
+            message.input.toolId,
+            jsonClone(message.input.input, "evaluation broker tool input"),
+          );
+        } else {
+          if (Object.keys(message.input).length !== 1) {
+            throw new TypeError("broker egress request is invalid");
+          }
+          const inputValue = jsonClone(
+            message.input.input,
+            "evaluation broker egress input",
+          );
+          const port =
+            message.operation === "retrieve-memory"
+              ? broker.retrieveMemory
+              : broker.invokeModel;
+          if (port === null)
+            throw new Error("evaluation broker egress port is unavailable");
+          value = await port(inputValue);
+        }
+        await writeBrokerMessage(child, {
+          type: "broker-response",
+          requestId: message.requestId,
+          ok: true,
+          value: jsonClone(value, "evaluation broker result"),
+        });
+      } catch {
+        await writeBrokerMessage(child, {
+          type: "broker-response",
+          requestId: message.requestId,
+          ok: false,
+          error: "operation-rejected",
+        }).catch(() => {});
+      } finally {
+        requestIds.delete(message.requestId);
+      }
+    };
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString("utf8");
+      stdoutBytes += Buffer.byteLength(text);
+      if (!completionError && stdoutBytes > MAX_OUTPUT_BYTES) {
+        completionError = new Error("evaluation target stdout exceeds 1 MiB");
+        child.kill("SIGKILL");
+        return;
+      }
+      stdoutBuffer += text;
+      for (;;) {
+        const newline = stdoutBuffer.indexOf("\n");
+        if (newline < 0) break;
+        const line = stdoutBuffer.slice(0, newline);
+        stdoutBuffer = stdoutBuffer.slice(newline + 1);
+        messages = messages.then(() => handleMessage(line));
+      }
+      messages.catch((cause) => {
+        completionError ??= new Error("evaluation broker protocol failed", {
+          cause,
+        });
+        child.kill("SIGKILL");
+      });
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+      if (!completionError && Buffer.byteLength(stderr) > MAX_OUTPUT_BYTES) {
+        completionError = new Error("evaluation target stderr exceeds 1 MiB");
+        child.kill("SIGKILL");
+      }
+    });
+    child.once("error", rejectOnce);
+    child.once("close", (code, signal) => {
+      messages.then(
+        () => {
+          if (settled) return;
+          if (completionError) {
+            rejectOnce(completionError);
+            return;
+          }
+          if (code !== 0) {
+            rejectOnce(
+              new Error(
+                `evaluation target exited ${code ?? "null"}/${signal ?? "none"}: ${stderr.slice(0, 512)}`,
+              ),
+            );
+            return;
+          }
+          if (stdoutBuffer.length !== 0 || !resultSeen) {
+            rejectOnce(new Error("evaluation broker result is incomplete"));
+            return;
+          }
+          settled = true;
+          resolveResult(resultValue);
+        },
+        (cause) =>
+          rejectOnce(
+            new Error("evaluation broker response is invalid", { cause }),
+          ),
+      );
+    });
+    child.stdin.once("error", (error) => {
+      completionError ??= error;
+    });
+    writeBrokerMessage(child, {
+      ...input,
+      protocol: "chainlesschain.evolution-process-broker/v1",
+    }).catch((cause) => {
+      completionError ??= cause;
+      child.kill("SIGKILL");
+    });
+  });
+}
+
+export function createEvolutionEvalProcessRuntimeBroker(options = {}) {
+  const plain =
+    !options ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    isProxy(options) ||
+    Object.getPrototypeOf(options) !== Object.prototype;
+  if (plain)
+    throw new TypeError("evaluation process runtime broker ports are invalid");
+  const hasMemory = Object.hasOwn(options, "retrieveMemory");
+  const hasModel = Object.hasOwn(options, "invokeModel");
+  if (
+    Reflect.ownKeys(options).length !==
+      2 + Number(hasMemory) + Number(hasModel) ||
+    !Object.hasOwn(options, "recordTokens") ||
+    !Object.hasOwn(options, "invokeTool") ||
+    typeof options.recordTokens !== "function" ||
+    isProxy(options.recordTokens) ||
+    typeof options.invokeTool !== "function" ||
+    isProxy(options.invokeTool) ||
+    (hasMemory &&
+      (typeof options.retrieveMemory !== "function" ||
+        isProxy(options.retrieveMemory))) ||
+    (hasModel &&
+      (typeof options.invokeModel !== "function" ||
+        isProxy(options.invokeModel)))
+  ) {
+    throw new TypeError("evaluation process runtime broker ports are invalid");
+  }
+  const broker = Object.freeze({});
+  PROCESS_RUNTIME_BROKERS.set(broker, {
+    recordTokens: options.recordTokens,
+    invokeTool: options.invokeTool,
+    retrieveMemory: hasMemory ? options.retrieveMemory : null,
+    invokeModel: hasModel ? options.invokeModel : null,
+  });
+  return broker;
+}
+
+export function isEvolutionEvalProcessRuntimeBroker(value) {
+  return PROCESS_RUNTIME_BROKERS.has(value);
 }
 
 export function createEvolutionEvalProcessSupervisor({
@@ -446,7 +695,7 @@ export function createEvolutionEvalProcessSupervisor({
     );
   }
 
-  async function invokeTarget(request) {
+  async function invokeTarget(request, context = null) {
     const entry = registry.get(request?.target?.handlerId);
     if (!entry) {
       if (fallbackSupervisor) return fallbackSupervisor.invokeTarget(request);
@@ -478,11 +727,14 @@ export function createEvolutionEvalProcessSupervisor({
     );
     active.set(request.capabilityDigest, { child, closed });
     try {
-      const value = await processResult(child, {
+      const processInput = {
         moduleUrl: entry.snapshot.moduleUrl,
         exportName: entry.exportName,
         payload: request.payload,
-      });
+      };
+      const value = PROCESS_RUNTIME_BROKERS.has(context)
+        ? await processBrokeredResult(child, processInput, context)
+        : await processResult(child, processInput);
       await moduleSnapshot(entry.snapshot.physical, entry.snapshot.digest);
       return Object.freeze({
         value,
@@ -534,15 +786,21 @@ export function createEvolutionEvalProcessSupervisor({
       terminatedAt: revocation.terminatedAt,
       supervisorRevision,
     };
-    return attest(
-      core,
+    return persistEvidence(
+      "supervision",
+      await attest(
+        core,
+        EVOLUTION_EVAL_ATTESTATION_PURPOSES.supervisor,
+        attestSupervisor,
+      ),
       EVOLUTION_EVAL_ATTESTATION_PURPOSES.supervisor,
-      attestSupervisor,
     );
   }
 
   const supervisor = Object.freeze({
     authorityDescriptor: Object.freeze(structuredClone(authorityDescriptor)),
+    childEvidenceStoreDescriptor:
+      durableEvidence === null ? null : durableEvidence.descriptor,
     invokeTarget,
     revokeTarget,
     verifyEnforcement,

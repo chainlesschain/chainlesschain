@@ -5,6 +5,7 @@ import {
 import {
   EVOLUTION_EVAL_ATTESTATION_PURPOSES,
   EVOLUTION_EVAL_RECEIPT_SCHEMA,
+  EVOLUTION_EVAL_SUPERVISION_SCHEMA,
   EVOLUTION_EVAL_TARGET_INVOCATION_SCHEMA,
   EVOLUTION_EVAL_TARGET_REVOCATION_SCHEMA,
   computeEvolutionEvalReceiptDigest,
@@ -39,6 +40,10 @@ const KINDS = Object.freeze({
   revocation: Object.freeze({
     purpose: EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation,
     schema: EVOLUTION_EVAL_TARGET_REVOCATION_SCHEMA,
+  }),
+  supervision: Object.freeze({
+    purpose: EVOLUTION_EVAL_ATTESTATION_PURPOSES.supervisor,
+    schema: EVOLUTION_EVAL_SUPERVISION_SCHEMA,
   }),
 });
 

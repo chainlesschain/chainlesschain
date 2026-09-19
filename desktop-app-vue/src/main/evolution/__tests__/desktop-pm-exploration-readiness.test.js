@@ -6,6 +6,9 @@ const {
 } = require("../desktop-evolution-deployment");
 const { LLMManager } = require("../../llm/llm-manager");
 const {
+  createDesktopPmWorkspaceSnapshotter,
+} = require("../desktop-pm-workspace-snapshot");
+const {
   createDesktopPmExplorationReadinessHost,
   inspectDesktopPmExplorationReadiness,
   isDesktopPmExplorationReadinessHost,
@@ -38,13 +41,24 @@ async function createExecutionHost({ includeSnapshotStore = true } = {}) {
   const committer = Object.freeze({});
   const snapshotStore = Object.freeze({});
   const manifestDigest = `sha256:${"2".repeat(64)}`;
+  const workspaceSnapshotter = createDesktopPmWorkspaceSnapshotter({
+    manifestDigest,
+    workspaceRoot: process.cwd(),
+    includePaths: ["package.json"],
+    maxFileCount: 1,
+    maxFileBytes: 1024 * 1024,
+    maxSnapshotBytes: 2 * 1024 * 1024,
+  });
   const dependencies = await loadDesktopEvolutionDependencies({
     importLoader: async () => ({
       loadEvolutionDeploymentCommandDependencies: async () => ({
         pmExplorationExecutionHost: host,
         pmExplorationTransitionCommitter: committer,
         ...(includeSnapshotStore
-          ? { pmExplorationRecoverySnapshotStore: snapshotStore }
+          ? {
+              pmExplorationRecoverySnapshotStore: snapshotStore,
+              pmExplorationWorkspaceSnapshotter: workspaceSnapshotter,
+            }
           : {}),
       }),
     }),

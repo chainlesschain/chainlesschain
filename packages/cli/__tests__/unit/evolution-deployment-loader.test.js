@@ -13,6 +13,14 @@ import {
 import { isWikiSkillBenchmarkRunner } from "../../src/lib/evolution/wikiskill-benchmark-execution-host.js";
 import { isEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 import { dispatchManifestEntry } from "../../src/lazy-dispatch.js";
+import {
+  BROWSER_VISION_OBSERVATION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserVisionObservationAuthority,
+} from "../../src/lib/evolution/browser-vision-observation-authority.js";
+import {
+  BROWSER_VISION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserVisionActionAuthority,
+} from "../../src/lib/evolution/browser-vision-action-authority.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -222,6 +230,8 @@ describe("signed evolution deployment loader", () => {
             attestorTrustWriterFactoryUnavailable:
               factories.createGovernedSkillSynthesisAttestorTrustLedger ===
               undefined,
+            formalPromotionFactoryUnavailable:
+              factories.createSkillEvaluatedPromotionControlPlane === undefined,
           }),
         }),
       }),
@@ -238,8 +248,87 @@ describe("signed evolution deployment loader", () => {
       externalAttestorFactoryAvailable: true,
       attestorTrustVerifierFactoryAvailable: true,
       attestorTrustWriterFactoryUnavailable: true,
+      formalPromotionFactoryUnavailable: true,
     });
   });
+
+  it.each(["evolution", "serve"])(
+    "exposes the reviewed promotion, durable Memory, and revocation control plane to signed %s management deployments",
+    async (commandName) => {
+      const fixture = deploymentFixture({ commands: [commandName] });
+      const required = [
+        "createSkillCandidateRegistry",
+        "createSkillEvaluatedPromotionProvider",
+        "createSkillPromotionReviewProvider",
+        "createSkillEvaluatedPromotionControlPlane",
+        "createSkillEvaluatedPromotionDurabilityAdapter",
+        "createSkillPromotionReviewLedgerAdapter",
+        "createStructuredMemoryLedgerAdapter",
+        "createStructuredMemoryAuthorityLedgerAdapter",
+        "createStructuredMemoryPromotionReceiptWriter",
+        "createStructuredMemoryPolicyReceiptWriter",
+        "createStructuredMemoryAgentControlPlane",
+        "createSkillRevocationPropagation",
+        "openSkillRetrievalRevocationAuthority",
+        "createSkillRetrievalRevocationLedgerAdapter",
+      ];
+      await expect(
+        loadEvolutionDeploymentCommandDependencies(commandName, {
+          ...fixture,
+          importModule: async () => ({
+            createChainlessChainCommandDependencies: async ({ factories }) => ({
+              evolutionCompositionFactory: async () => {},
+              formalControlPlaneFactories: required.filter(
+                (name) => typeof factories[name] === "function",
+              ),
+            }),
+          }),
+        }),
+      ).resolves.toMatchObject({ formalControlPlaneFactories: required });
+    },
+  );
+
+  it.each([
+    ["createSkillEvaluatedPromotionProvider", "handlerArtifactDigest"],
+    ["createSkillPromotionReviewProvider", "handlerArtifactDigest"],
+    ["createSkillPromotionReviewLedgerAdapter", "handlerArtifactDigest"],
+    ["createStructuredMemoryPromotionReceiptWriter", "issuerHandlerDigest"],
+    ["createStructuredMemoryPolicyReceiptWriter", "issuerHandlerDigest"],
+  ])(
+    "pins signed evolution deployment authority factory %s to its authenticated module (%s)",
+    async (factoryName, digestField) => {
+      const fixture = deploymentFixture({ commands: ["evolution"] });
+      await expect(
+        loadEvolutionDeploymentCommandDependencies("evolution", {
+          ...fixture,
+          importModule: async () => ({
+            createChainlessChainCommandDependencies: async ({ factories }) => {
+              const options =
+                digestField === "issuerHandlerDigest"
+                  ? {
+                      descriptor: {
+                        issuerHandlerDigest: `sha256:${"0".repeat(64)}`,
+                      },
+                    }
+                  : factoryName === "createSkillPromotionReviewLedgerAdapter"
+                    ? {
+                        descriptor: {
+                          handlerArtifactDigest: `sha256:${"0".repeat(64)}`,
+                        },
+                      }
+                    : {
+                        handlerArtifactDigest: `sha256:${"0".repeat(64)}`,
+                      };
+              factories[factoryName](options);
+              return {};
+            },
+          }),
+        }),
+      ).rejects.toThrow(
+        /must equal the authenticated deployment module digest/u,
+      );
+    },
+  );
 
   it.each([
     "agent",
@@ -682,13 +771,25 @@ describe("signed evolution deployment loader", () => {
       "getPmExplorationReceiptSignerAuthority",
       "inspectPmExplorationReceiptAuthority",
       "createPmExplorationExecutionManifest",
+      "createPmExplorationProcessCurriculum",
+      "inspectPmExplorationCurriculumIsolation",
       "createPmExplorationRunner",
+      "createPmExplorationProcessRunner",
+      "inspectPmExplorationRunnerIsolation",
       "createPmExplorationGrader",
+      "createPmExplorationProcessGrader",
+      "inspectPmExplorationGraderIsolation",
       "createPmExplorationMerger",
+      "createPmExplorationProcessMerger",
+      "inspectPmExplorationMergerIsolation",
       "createPmExplorationEvaluator",
+      "createPmExplorationProcessEvaluator",
+      "inspectPmExplorationEvaluatorIsolation",
       "createPmExplorationExecutionHost",
       "isPmExplorationExecutionHost",
       "inspectPmExplorationExecutionHost",
+      "createEvolutionEvalProcessSupervisor",
+      "createEvolutionEvalChildEvidenceLedgerAdapter",
       "createPmExplorationTransitionCommitter",
       "capturePmExplorationTransitionCommitter",
       "verifyPmExplorationTransitionEvidence",
@@ -696,6 +797,7 @@ describe("signed evolution deployment loader", () => {
       "capturePmExplorationRecoverySnapshotStore",
       "verifyPmExplorationRecoverySnapshotAck",
       "executePmExplorationRound",
+      "selectPmExplorationTask",
       "mergePmExplorationBranches",
       "evaluatePmExplorationMemory",
       "createPmExplorationEvidenceBundle",
@@ -710,6 +812,11 @@ describe("signed evolution deployment loader", () => {
       "createPmExplorationReadOnlyOutcomeSource",
       "inspectPmExplorationReadOnlyOutcomeSource",
       "createPmExplorationBusinessGrader",
+      "createPmExplorationMemoryRetrievalAuthority",
+      "createPmExplorationModelEgressAuthority",
+      "inspectPmExplorationEgressAuthority",
+      "createBrowserVisionObservationAuthority",
+      "createBrowserVisionActionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -772,6 +879,15 @@ describe("signed evolution deployment loader", () => {
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>
+            factories.createPmExplorationExecutionManifest({
+              curriculum: { handlerArtifactDigest: substitutedDigest },
+              runner: { handlerArtifactDigest: descriptor.moduleDigest },
+              grader: { handlerArtifactDigest: descriptor.moduleDigest },
+              merger: { handlerArtifactDigest: descriptor.moduleDigest },
+              evaluator: { handlerArtifactDigest: descriptor.moduleDigest },
+            }),
+          ).toThrow("curriculum handlerArtifactDigest");
+          expect(() =>
             factories.createPmExplorationProviderSettlementAdapter({
               descriptor: { handlerArtifactDigest: substitutedDigest },
             }),
@@ -779,6 +895,79 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createPmExplorationReadOnlyOutcomeSource({
               descriptor: { handlerArtifactDigest: substitutedDigest },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationMemoryRetrievalAuthority({
+              authorityId: "desktop.pm.memory",
+              revision: 1,
+              handlerArtifactDigest: substitutedDigest,
+              policyDigest: computeEvolutionDeploymentDigest(
+                Buffer.from("memory-policy"),
+              ),
+              retrieve: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationModelEgressAuthority({
+              authorityId: "desktop.pm.model",
+              revision: 1,
+              handlerArtifactDigest: substitutedDigest,
+              policyDigest: computeEvolutionDeploymentDigest(
+                Buffer.from("model-policy"),
+              ),
+              invoke: async () => ({
+                output: null,
+                usage: { inputTokens: 0, outputTokens: 0 },
+              }),
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createPmExplorationExecutionManifest({
+              runner: { handlerArtifactDigest: descriptor.moduleDigest },
+              grader: { handlerArtifactDigest: descriptor.moduleDigest },
+              merger: { handlerArtifactDigest: descriptor.moduleDigest },
+              evaluator: { handlerArtifactDigest: descriptor.moduleDigest },
+              memoryRetrieval: {
+                handlerArtifactDigest: substitutedDigest,
+              },
+              modelEgress: {
+                handlerArtifactDigest: descriptor.moduleDigest,
+              },
+            }),
+          ).toThrow("memoryRetrieval handlerArtifactDigest");
+          expect(() =>
+            factories.createEvolutionEvalChildEvidenceLedgerAdapter({
+              descriptor: { handlerArtifactDigest: substitutedDigest },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserVisionObservationAuthority({
+              descriptor: {
+                schema: BROWSER_VISION_OBSERVATION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-vision",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 10_000,
+              },
+              authorize: async () => ({ decision: "deny" }),
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserVisionActionAuthority({
+              descriptor: {
+                schema: BROWSER_VISION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-action",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
@@ -789,9 +978,38 @@ describe("signed evolution deployment loader", () => {
             privateKey: privatePem,
             publicKey: publicPem,
           });
+          const browserVisionObservationAuthority =
+            factories.createBrowserVisionObservationAuthority({
+              descriptor: {
+                schema: BROWSER_VISION_OBSERVATION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-vision",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 10_000,
+              },
+              authorize: async () => ({ decision: "deny" }),
+            });
+          const browserVisionActionAuthority =
+            factories.createBrowserVisionActionAuthority({
+              descriptor: {
+                schema: BROWSER_VISION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-action",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
+            browserVisionObservationAuthority,
+            browserVisionActionAuthority,
           };
         },
       }),
@@ -800,6 +1018,23 @@ describe("signed evolution deployment loader", () => {
     expect(result.receiptAuthority).toMatchObject({
       role: "execution",
       authorityId: "desktop.pm.runner",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserVisionObservationAuthority(
+        result.browserVisionObservationAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-vision",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserVisionActionAuthority(result.browserVisionActionAuthority)
+        .descriptor,
+    ).toMatchObject({
+      authorityId: "browser-action",
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });

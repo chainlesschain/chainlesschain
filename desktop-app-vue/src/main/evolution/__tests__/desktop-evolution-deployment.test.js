@@ -7,12 +7,14 @@ const {
 const {
   evaluateDesktopPmExplorationMemory,
   executeDesktopPmExplorationRound,
+  inspectDesktopPmExplorationCloneRecoveryHost,
   inspectDesktopPmExplorationExecutionHost,
   inspectDesktopPmExplorationStorageHost,
   isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
   mergeDesktopPmExplorationBranches,
+  recoverDesktopPmExplorationClone,
   resolveLoaderPath,
   resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
@@ -22,6 +24,17 @@ const {
 const {
   createDesktopPmPreRunSealValue,
 } = require("../desktop-pm-pre-run-seal");
+const {
+  createDesktopPmWorkspaceSnapshotter,
+} = require("../desktop-pm-workspace-snapshot");
+const {
+  authorizeDesktopBrowserVisionObservation,
+  consumeDesktopBrowserVisionObservationGrant,
+  createDesktopBrowserVisionObservationHost,
+} = require("../desktop-browser-vision-observation");
+const {
+  authorizeDesktopBrowserVisionAction,
+} = require("../desktop-browser-vision-action");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -118,6 +131,25 @@ function failureTransitionEvidence({
   });
 }
 
+function cloneRecoveryEvent(manifestDigest, restoredDatabaseSealDigest) {
+  return Object.freeze({
+    schema: "chainlesschain.desktop-pm-clone-recovery-event/v1",
+    manifestDigest,
+    cloneIdentityDigest: sha("recovered-clone-identity"),
+    sourceTransitionRevision: 8,
+    sourceFailureEvidenceDigest: sha("recovered-source-failure"),
+    previousStateTransitionDigest: sha("pre-failure-success"),
+    recoverySnapshotAckDigest: sha("recovered-snapshot-ack"),
+    restoredDatabaseSealDigest,
+    restoredWorkspaceSealDigest: sha("recovered-workspace-seal"),
+    switchReceiptDigest: sha("recovered-switch-receipt"),
+    authenticated: false,
+    durable: false,
+    qualifiesForPromotion: false,
+    recoveryEventDigest: sha("recovered-clone-event"),
+  });
+}
+
 function recoveredTransition(
   manifestDigest,
   evidence,
@@ -135,7 +167,9 @@ function recoveredTransition(
     evidenceDigest:
       transitionKind === "success"
         ? evidence.stateTransitionDigest
-        : evidence.evidenceDigest,
+        : transitionKind === "failure"
+          ? evidence.evidenceDigest
+          : evidence.recoveryEventDigest,
     evidence,
     ledgerHeadDigest: sha(`ledger-head-${revision}`),
     ledgerEventDigest: sha(`ledger-event-${revision}`),
@@ -242,6 +276,39 @@ describe("desktop evolution deployment", () => {
     ).rejects.toThrow(/must be an object/);
     expect(factory).not.toHaveBeenCalled();
   });
+  it("converts provider-neutral image blocks to strict Ollama chat messages", () => {
+    const { toOllamaVisionMessages } = require("../desktop-model-ingress");
+    const data = Buffer.from("private-image").toString("base64");
+    const result = toOllamaVisionMessages([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "inspect" },
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${data}` },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      { role: "user", content: "inspect", images: [data] },
+    ]);
+    expect(() =>
+      toOllamaVisionMessages([
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: "https://example.test/private.png" },
+            },
+          ],
+        },
+      ]),
+    ).toThrow(/supported base64 data URL/u);
+  });
   it("retains an independent model factory as an opaque branded host", async () => {
     const factory = vi.fn();
     const result = await loadDesktopEvolutionDependencies({
@@ -258,6 +325,177 @@ describe("desktop evolution deployment", () => {
     expect(Object.keys(result.desktopModelIngressHost)).toEqual([]);
     expect(Object.isFrozen(result)).toBe(true);
     expect(factory).not.toHaveBeenCalled();
+  });
+
+  it("narrows a signed browser observation authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-vision",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("signed-handler"),
+    });
+    const authorizeObservation = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-vision-observation-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        requestId: request.requestId,
+        targetId: request.targetId,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        inputDigest: request.inputDigest,
+        validUntil: new Date(Date.now() + 10_000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded authority");
+      return Object.freeze({ descriptor, authorizeObservation });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserVisionObservationAuthority: authority,
+        }),
+      }),
+      importBrowserVisionObservationAuthorityModule: async () => ({
+        captureBrowserVisionObservationAuthority: capture,
+      }),
+    });
+
+    const host = result.desktopBrowserVisionObservationHost;
+    expect(Object.keys(host)).toEqual([]);
+    expect(Object.isFrozen(host)).toBe(true);
+    expect(host.authorizeObservation).toBeUndefined();
+    const options = { prompt: "inspect", maxTokens: 256 };
+    const grant = await authorizeDesktopBrowserVisionObservation(host, {
+      targetId: "tab-1",
+      operation: "analyze",
+      options,
+      senderId: 21,
+      frameUrl: "app://desktop/index.html",
+    });
+    expect(
+      consumeDesktopBrowserVisionObservationGrant(
+        grant,
+        "tab-1",
+        "analyze",
+        options,
+      ),
+    ).toMatchObject({ receiptDigest: expect.stringMatching(/^sha256:/u) });
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(authorizeObservation).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed interactive action authority to an opaque Desktop host", async () => {
+    const observationAuthority = Object.freeze({});
+    const observationDescriptor = Object.freeze({
+      authorityId: "desktop-observation",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("observation-handler"),
+    });
+    const observationHost = createDesktopBrowserVisionObservationHost(
+      observationAuthority,
+      (value) => {
+        if (value !== observationAuthority)
+          throw new TypeError("unbranded observation");
+        return Object.freeze({
+          descriptor: observationDescriptor,
+          authorizeObservation: async (request) =>
+            Object.freeze({
+              schema: "chainlesschain.browser-vision-observation-receipt/v1",
+              authorityId: observationDescriptor.authorityId,
+              tenantId: observationDescriptor.tenantId,
+              handlerArtifactDigest:
+                observationDescriptor.handlerArtifactDigest,
+              requestId: request.requestId,
+              targetId: request.targetId,
+              operation: request.operation,
+              senderId: request.senderId,
+              frameUrlDigest: request.frameUrlDigest,
+              inputDigest: request.inputDigest,
+              validUntil: new Date(Date.now() + 10_000).toISOString(),
+              receiptDigest: sha(request.requestId),
+            }),
+        });
+      },
+    );
+    const actionAuthority = Object.freeze({});
+    const actionDescriptor = Object.freeze({
+      authorityId: "desktop-action",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("action-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+    });
+    const authorizeAction = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-vision-action-receipt/v1",
+        authorityId: actionDescriptor.authorityId,
+        tenantId: actionDescriptor.tenantId,
+        handlerArtifactDigest: actionDescriptor.handlerArtifactDigest,
+        approvalMode: actionDescriptor.approvalMode,
+        requestId: request.requestId,
+        targetId: request.targetId,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        inputDigest: request.inputDigest,
+        observationReceiptDigest: request.observationReceiptDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const recordActionOutcome = vi.fn();
+    const capture = vi.fn((value) => {
+      if (value !== actionAuthority) throw new TypeError("unbranded action");
+      return Object.freeze({
+        descriptor: actionDescriptor,
+        authorizeAction,
+        recordActionOutcome,
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserVisionActionAuthority: actionAuthority,
+        }),
+      }),
+      importBrowserVisionActionAuthorityModule: async () => ({
+        captureBrowserVisionActionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.desktopBrowserVisionActionHost)).toEqual([]);
+    const options = { description: "submit button" };
+    const observationGrant = await authorizeDesktopBrowserVisionObservation(
+      observationHost,
+      {
+        targetId: "tab-1",
+        operation: "locate",
+        options,
+        senderId: 21,
+        frameUrl: "app://desktop/index.html",
+      },
+    );
+    await expect(
+      authorizeDesktopBrowserVisionAction(
+        result.desktopBrowserVisionActionHost,
+        {
+          targetId: "tab-1",
+          operation: "visual-click",
+          options,
+          observationGrant,
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(actionAuthority);
+    expect(authorizeAction).toHaveBeenCalledOnce();
   });
 
   it("narrows a branded PM ledger store to an opaque read-only Desktop host", async () => {
@@ -745,7 +983,9 @@ describe("desktop evolution deployment", () => {
       }),
       importPmExplorationRecoverySnapshotModule: async () => ({
         capturePmExplorationRecoverySnapshotStore: (value) => {
-          if (value !== rawSnapshotStore) throw new TypeError("unbranded");
+          if (value !== rawSnapshotStore) {
+            throw new TypeError("unbranded");
+          }
           return { manifestDigest, retainTransitionSnapshot };
         },
       }),
@@ -794,6 +1034,146 @@ describe("desktop evolution deployment", () => {
         result.desktopPmExplorationExecutionHost,
       ),
     ).toMatchObject({ recoverySnapshotConfigured: true });
+  });
+
+  it("binds database and workspace media into one retained recovery set", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const rawSnapshotStore = Object.freeze({});
+    const manifestDigest = sha("recovery-set-manifest");
+    const databasePathDigest = sha("recovery-set-database");
+    const preRunSnapshot = databaseRecoverySnapshot(
+      "before",
+      databasePathDigest,
+    );
+    const postRunSnapshot = databaseRecoverySnapshot(
+      "after",
+      databasePathDigest,
+    );
+    const workspaceSnapshotter = createDesktopPmWorkspaceSnapshotter({
+      manifestDigest,
+      workspaceRoot: process.cwd(),
+      includePaths: ["package.json"],
+      maxFileCount: 1,
+      maxFileBytes: 1024 * 1024,
+      maxSnapshotBytes: 2 * 1024 * 1024,
+    });
+    const capturePmRecoverySnapshot = vi
+      .fn()
+      .mockResolvedValueOnce(preRunSnapshot)
+      .mockResolvedValueOnce(postRunSnapshot);
+    const retainTransitionSnapshot = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.pm-exploration-recovery-snapshot-ack/v2",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        transitionKind: request.transitionKind,
+        snapshotRole: request.snapshotRole,
+        evidenceDigest: request.evidenceDigest,
+        sealDigest: request.seal.sealDigest,
+        databaseSnapshotDigest: request.seal.databaseSnapshotDigest,
+        databaseSnapshotBytes: request.seal.databaseSnapshotBytes,
+        workspaceSealDigest: request.workspaceSeal.sealDigest,
+        workspaceRootDigest: request.workspaceSeal.workspaceRootDigest,
+        capturePolicyDigest: request.workspaceSeal.capturePolicyDigest,
+        workspaceSnapshotDigest: request.workspaceSeal.workspaceSnapshotDigest,
+        workspaceSnapshotBytes: request.workspaceSeal.workspaceSnapshotBytes,
+        workspaceFileCount: request.workspaceSeal.workspaceFileCount,
+        artifactDigest: sha("recovery-set-artifact"),
+        artifactRef: "snapshot:recovery-set",
+        durabilityAuthorityId: "durability:test",
+        durabilityReceiptDigest: sha("recovery-set-receipt"),
+        qualifiesForPromotion: false,
+        snapshotAckDigest: sha("recovery-set-ack"),
+      }),
+    );
+    const commitTransition = vi.fn(async (evidence, snapshotAck) =>
+      Object.freeze({
+        schema: "chainlesschain.pm-exploration-transition-durability-ack/v2",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        evidenceDigest: evidence.stateTransitionDigest,
+        transitionKind: "success",
+        recoverySnapshotAckDigest: snapshotAck.snapshotAckDigest,
+        ledgerEventDigest: sha("recovery-set-ledger-event"),
+        durabilityReceiptDigest: sha("recovery-set-transition-receipt"),
+        qualifiesForPromotion: false,
+      }),
+    );
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+          pmExplorationRecoverySnapshotStore: rawSnapshotStore,
+          pmExplorationWorkspaceSnapshotter: workspaceSnapshotter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: preRunSnapshot.seal.sealDigest,
+        }),
+        executePmExplorationRound: async () => ({
+          executionReceipt: { receiptDigest: sha("recovery-set-execution") },
+          graderReceipt: { receiptDigest: sha("recovery-set-grader") },
+        }),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition,
+        }),
+      }),
+      importPmExplorationRecoverySnapshotModule: async () => ({
+        capturePmExplorationRecoverySnapshotStore: () => ({
+          manifestDigest,
+          retainTransitionSnapshot,
+        }),
+      }),
+      capturePmRecoverySnapshot,
+      capturePmPreRunSeal: vi.fn(),
+    });
+
+    const execution = await executeDesktopPmExplorationRound(
+      result.desktopPmExplorationExecutionHost,
+      "journal",
+      { roundId: "recovery-set" },
+    );
+
+    expect(execution).toMatchObject({
+      schema: "chainlesschain.desktop-pm-sealed-execution-result/v5",
+      workspaceChanged: false,
+      recoverySnapshot: {
+        schema: "chainlesschain.pm-exploration-recovery-snapshot-ack/v2",
+      },
+    });
+    expect(retainTransitionSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schema: "chainlesschain.pm-exploration-recovery-snapshot-request/v2",
+        workspaceSeal: execution.postRunWorkspaceSeal,
+        workspaceBytes: expect.any(Buffer),
+      }),
+    );
+    expect(commitTransition).toHaveBeenCalledWith(
+      execution.transitionEvidence,
+      execution.recoverySnapshot,
+    );
+    expect(
+      inspectDesktopPmExplorationExecutionHost(
+        result.desktopPmExplorationExecutionHost,
+      ),
+    ).toMatchObject({
+      recoverySnapshotConfigured: true,
+      workspaceSnapshotConfigured: true,
+    });
   });
 
   it("retains the pre-run snapshot as the recovery target for a failed round", async () => {
@@ -1014,6 +1394,101 @@ describe("desktop evolution deployment", () => {
     expect(capturePmPreRunSeal).toHaveBeenCalledTimes(2);
   });
 
+  it("reconstructs a durable clone recovery head and resumes from its restored seal", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const manifestDigest = sha("restart-recovery-manifest");
+    const databasePathDigest = sha("restart-recovery-database");
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-recovery-initial"),
+      databaseSnapshotBytes: 4096,
+    });
+    const restoredSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-recovery-restored"),
+      databaseSnapshotBytes: 4096,
+    });
+    const nextSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("restart-recovery-next"),
+      databaseSnapshotBytes: 4096,
+    });
+    const recoveryEvent = cloneRecoveryEvent(
+      manifestDigest,
+      restoredSeal.sealDigest,
+    );
+    const recoverTransition = vi.fn(async () =>
+      recoveredTransition(manifestDigest, recoveryEvent, "recovery", 9),
+    );
+    const commitTransition = vi.fn(async (evidence) => ({
+      schema: "chainlesschain.pm-exploration-transition-durability-ack/v1",
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest,
+      evidenceDigest: evidence.stateTransitionDigest,
+      transitionKind: "success",
+      ledgerEventDigest: sha("restart-recovery-next-event"),
+      durabilityReceiptDigest: sha("restart-recovery-next-receipt"),
+      qualifiesForPromotion: false,
+    }));
+    const capturePmPreRunSeal = vi
+      .fn()
+      .mockResolvedValueOnce(restoredSeal)
+      .mockResolvedValueOnce(nextSeal);
+    const executeRound = vi.fn(async () => ({
+      executionReceipt: { receiptDigest: sha("recovery-next-execution") },
+      graderReceipt: { receiptDigest: sha("recovery-next-grader") },
+    }));
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: executeRound,
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition,
+          recoverTransition,
+        }),
+      }),
+      capturePmPreRunSeal,
+    });
+    const host = result.desktopPmExplorationExecutionHost;
+
+    expect(inspectDesktopPmExplorationExecutionHost(host)).toMatchObject({
+      tainted: false,
+      requiresRecovery: false,
+      transitionRecoveryStatus: "recovery",
+      transitionRecoveryRevision: 9,
+    });
+    const execution = await executeDesktopPmExplorationRound(host, "journal", {
+      roundId: "after-clone-recovery",
+    });
+    expect(execution.preRunSeal).toEqual(restoredSeal);
+    expect(execution.previousStateTransitionDigest).toBe(
+      recoveryEvent.recoveryEventDigest,
+    );
+    expect(execution.transitionEvidence.previousStateTransitionDigest).toBe(
+      recoveryEvent.recoveryEventDigest,
+    );
+    expect(executeRound).toHaveBeenCalledOnce();
+    expect(commitTransition).toHaveBeenCalledOnce();
+  });
+
   it("reconstructs a durable failure head as a tainted restart state", async () => {
     const rawHost = Object.freeze({});
     const rawCommitter = Object.freeze({});
@@ -1084,6 +1559,103 @@ describe("desktop evolution deployment", () => {
     expect(recoverTransition).toHaveBeenCalledOnce();
     expect(capturePmPreRunSeal).not.toHaveBeenCalled();
     expect(executeRound).not.toHaveBeenCalled();
+  });
+
+  it("requires exact recovery-set readback for a snapshot-bound restart head", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const rawSnapshotStore = Object.freeze({});
+    const manifestDigest = sha("snapshot-restart-manifest");
+    const databasePathDigest = sha("snapshot-restart-database");
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("snapshot-restart-initial"),
+      databaseSnapshotBytes: 4096,
+    });
+    const failureSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest,
+      databaseSnapshotDigest: sha("snapshot-restart-written"),
+      databaseSnapshotBytes: 4096,
+    });
+    const evidence = failureTransitionEvidence({
+      manifestDigest,
+      preRunSeal: initialSeal,
+      failureSeal,
+    });
+    const recoverySnapshot = Object.freeze({
+      snapshotAckDigest: sha("snapshot-restart-ack"),
+    });
+    const recovery = Object.freeze({
+      ...recoveredTransition(manifestDigest, evidence, "failure", 9),
+      schema: "chainlesschain.pm-exploration-transition-recovery/v2",
+      recoverySnapshot,
+    });
+    const recoverTransition = vi.fn(async () => recovery);
+    const databaseBytes = Buffer.from("snapshot-restart-database-bytes");
+    const resolveTransitionSnapshot = vi.fn(() =>
+      Object.freeze({
+        schema: "chainlesschain.pm-exploration-recovery-snapshot-resolution/v1",
+        authenticated: true,
+        durable: true,
+        readbackVerified: true,
+        manifestDigest,
+        acknowledgement: recoverySnapshot,
+        databaseSeal: initialSeal,
+        databaseBytes,
+        workspaceSeal: null,
+        workspaceBytes: null,
+        durabilityReceiptDigest: sha("snapshot-restart-readback"),
+        qualifiesForPromotion: false,
+      }),
+    );
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+          pmExplorationRecoverySnapshotStore: rawSnapshotStore,
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: vi.fn(),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition: vi.fn(),
+          recoverTransition,
+        }),
+      }),
+      importPmExplorationRecoverySnapshotModule: async () => ({
+        capturePmExplorationRecoverySnapshotStore: (value) => {
+          if (value !== rawSnapshotStore) throw new TypeError("unbranded");
+          return {
+            manifestDigest,
+            retainTransitionSnapshot: vi.fn(),
+            resolveTransitionSnapshot,
+          };
+        },
+      }),
+      capturePmPreRunSeal: vi.fn(),
+    });
+
+    expect(resolveTransitionSnapshot).toHaveBeenCalledWith(recoverySnapshot);
+    expect(
+      inspectDesktopPmExplorationExecutionHost(
+        result.desktopPmExplorationExecutionHost,
+      ),
+    ).toMatchObject({
+      tainted: true,
+      transitionRecoveryStatus: "failure",
+      transitionRecoveryRevision: 9,
+    });
   });
 
   it("fails closed when transition recovery is not bound to the manifest", async () => {
@@ -1461,6 +2033,7 @@ describe("desktop evolution deployment", () => {
       requiresRecovery: true,
       transitionDurabilityConfigured: true,
       recoverySnapshotConfigured: false,
+      workspaceSnapshotConfigured: false,
       transitionRecoveryConfigured: false,
       transitionRecoveryStatus: "unavailable",
       transitionRecoveryRevision: null,
@@ -1805,7 +2378,9 @@ describe("desktop evolution deployment", () => {
     const factories = load.mock.calls[0][1].additionalFactories;
     expect(Object.isFrozen(factories)).toBe(true);
     expect(factories).toEqual({
+      createDesktopPmCloneRecoveryController: expect.any(Function),
       createDesktopPmReadOnlyOutcomeReader: expect.any(Function),
+      createDesktopPmWorkspaceSnapshotter: expect.any(Function),
       createEvolvableArtifactRuntimeComposition: expect.any(Function),
     });
     const outcomeReader = factories.createDesktopPmReadOnlyOutcomeReader({
@@ -1826,6 +2401,111 @@ describe("desktop evolution deployment", () => {
       readBoardExport: expect.any(Function),
     });
     expect(Object.isFrozen(outcomeReader)).toBe(true);
+  });
+
+  it("loads a branded clone recovery host without auto-recovering a non-failure head", async () => {
+    const rawHost = Object.freeze({});
+    const rawCommitter = Object.freeze({});
+    const rawSnapshotStore = Object.freeze({});
+    const manifestDigest = sha("clone-recovery-host-manifest");
+    const initialSeal = createDesktopPmPreRunSealValue({
+      databasePathDigest: sha("clone-recovery-database"),
+      databaseSnapshotDigest: sha("clone-recovery-initial"),
+      databaseSnapshotBytes: 4096,
+    });
+    const acquireExclusiveClone = vi.fn();
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async (
+          _command,
+          options,
+        ) => ({
+          pmExplorationExecutionHost: rawHost,
+          pmExplorationTransitionCommitter: rawCommitter,
+          pmExplorationRecoverySnapshotStore: rawSnapshotStore,
+          pmExplorationWorkspaceSnapshotter:
+            options.additionalFactories.createDesktopPmWorkspaceSnapshotter({
+              manifestDigest,
+              workspaceRoot: path.resolve("."),
+              includePaths: ["package.json"],
+              maxFileCount: 10,
+              maxFileBytes: 1024 * 1024,
+              maxSnapshotBytes: 1024 * 1024,
+            }),
+          pmExplorationCloneRecoveryController:
+            options.additionalFactories.createDesktopPmCloneRecoveryController({
+              manifestDigest,
+              applicationMainDatabasePathDigest: sha("application-main"),
+              cloneIdentityDigest: sha("clone-identity"),
+              resolveTransitionSnapshot: vi.fn(),
+              acquireExclusiveClone,
+              closeClone: vi.fn(),
+              replaceCloneRecoverySet: vi.fn(),
+              reopenClone: vi.fn(),
+              captureDatabaseSnapshot: vi.fn(),
+              captureWorkspaceSnapshot: vi.fn(),
+              commitRecoveryEvent: vi.fn(),
+              finalizeExclusiveClone: vi.fn(),
+            }),
+        }),
+      }),
+      importPmExplorationExecutionModule: async () => ({
+        isPmExplorationExecutionHost: (value) => value === rawHost,
+        inspectPmExplorationExecutionHost: () => ({
+          manifestDigest,
+          preRunSealDigest: initialSeal.sealDigest,
+        }),
+        executePmExplorationRound: vi.fn(),
+        mergePmExplorationBranches: vi.fn(),
+        evaluatePmExplorationMemory: vi.fn(),
+      }),
+      importPmExplorationTransitionModule: async () => ({
+        capturePmExplorationTransitionCommitter: () => ({
+          manifestDigest,
+          commitTransition: vi.fn(),
+          recoverTransition: vi.fn(async () => ({
+            schema: "chainlesschain.pm-exploration-transition-recovery/v1",
+            authenticated: true,
+            durable: true,
+            readbackVerified: true,
+            manifestDigest,
+            revision: 0,
+            transitionKind: null,
+            evidenceDigest: null,
+            evidence: null,
+            ledgerHeadDigest: sha("empty-clone-recovery-ledger"),
+            ledgerEventDigest: null,
+            durabilityReceiptDigest: null,
+            qualifiesForPromotion: false,
+          })),
+        }),
+      }),
+      importPmExplorationRecoverySnapshotModule: async () => ({
+        capturePmExplorationRecoverySnapshotStore: (value) => {
+          if (value !== rawSnapshotStore) throw new TypeError("unbranded");
+          return {
+            manifestDigest,
+            retainTransitionSnapshot: vi.fn(),
+            resolveTransitionSnapshot: vi.fn(),
+          };
+        },
+      }),
+      capturePmPreRunSeal: vi.fn(),
+    });
+    const recoveryHost = result.desktopPmExplorationCloneRecoveryHost;
+
+    expect(inspectDesktopPmExplorationCloneRecoveryHost(recoveryHost)).toEqual({
+      configured: true,
+      recoverableFailure: false,
+      controllerStatus: "ready",
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      recoverDesktopPmExplorationClone(recoveryHost),
+    ).rejects.toMatchObject({
+      code: "CC_DESKTOP_PM_CLONE_RECOVERY_UNAVAILABLE",
+    });
+    expect(acquireExclusiveClone).not.toHaveBeenCalled();
   });
 
   it("extracts all three readers only from its branded composition", async () => {

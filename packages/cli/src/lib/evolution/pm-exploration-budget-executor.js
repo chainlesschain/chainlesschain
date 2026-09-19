@@ -142,6 +142,8 @@ export async function executePmExplorationBudgetedOperation({
   operation,
   allowedToolIds = [],
   invokeTool = null,
+  retrieveMemory = null,
+  invokeModel = null,
   parentSignal = null,
   now = performance.now.bind(performance),
   setTimer = setTimeout,
@@ -166,6 +168,22 @@ export async function executePmExplorationBudgetedOperation({
     (typeof invokeTool !== "function" || isProxy(invokeTool))
   )
     throw new TypeError("PM exploration tool broker must be a direct function");
+  if (
+    retrieveMemory !== null &&
+    (typeof retrieveMemory !== "function" || isProxy(retrieveMemory))
+  ) {
+    throw new TypeError(
+      "PM exploration memory broker must be a direct function",
+    );
+  }
+  if (
+    invokeModel !== null &&
+    (typeof invokeModel !== "function" || isProxy(invokeModel))
+  ) {
+    throw new TypeError(
+      "PM exploration model broker must be a direct function",
+    );
+  }
   if (!Array.isArray(allowedToolIds) || isProxy(allowedToolIds))
     throw new TypeError("allowedToolIds must be an array");
   const toolIds = new Set();
@@ -212,20 +230,35 @@ export async function executePmExplorationBudgetedOperation({
         controller.signal.reason ?? new PmExplorationBudgetError(stoppedReason)
       );
   };
+  const reserveExternalCall = (unavailableReason, broker) => {
+    assertOpen();
+    totals.toolCalls += 1;
+    if (totals.toolCalls > maximum.toolCalls) {
+      stop("max-tool-calls");
+      throw controller.signal.reason;
+    }
+    if (broker === null) {
+      stop(unavailableReason);
+      throw controller.signal.reason;
+    }
+  };
+  const recordTokenUsage = (count) => {
+    const delta = integer(count, "token count");
+    if (!Number.isSafeInteger(totals.tokens + delta))
+      throw new TypeError("token total exceeds the safe integer range");
+    totals.tokens += delta;
+    if (totals.tokens > maximum.tokens) {
+      stop("max-tokens");
+      throw controller.signal.reason;
+    }
+    return totals.tokens;
+  };
 
   const runtime = Object.freeze({
     signal: controller.signal,
     recordTokens(count) {
       assertOpen();
-      const delta = integer(count, "token count");
-      if (!Number.isSafeInteger(totals.tokens + delta))
-        throw new TypeError("token total exceeds the safe integer range");
-      totals.tokens += delta;
-      if (totals.tokens > maximum.tokens) {
-        stop("max-tokens");
-        throw controller.signal.reason;
-      }
-      return totals.tokens;
+      return recordTokenUsage(count);
     },
     async invokeTool(toolId, input) {
       assertOpen();
@@ -254,6 +287,70 @@ export async function executePmExplorationBudgetedOperation({
         );
         assertOpen();
         return copyJson(output, "tool output");
+      } finally {
+        activeTools -= 1;
+      }
+    },
+    async retrieveMemory(request) {
+      reserveExternalCall("memory-broker-unavailable", retrieveMemory);
+      const safeRequest = copyJson(request, "memory retrieval request");
+      activeTools += 1;
+      try {
+        const output = await retrieveMemory(
+          Object.freeze({
+            request: safeRequest,
+            remainingTokens: maximum.tokens - totals.tokens,
+            signal: controller.signal,
+          }),
+        );
+        assertOpen();
+        return copyJson(output, "memory retrieval output");
+      } catch (error) {
+        stop("memory-broker-rejected");
+        throw controller.signal.reason ?? error;
+      } finally {
+        activeTools -= 1;
+      }
+    },
+    async invokeModel(request) {
+      reserveExternalCall("model-broker-unavailable", invokeModel);
+      const safeRequest = copyJson(request, "model egress request");
+      activeTools += 1;
+      try {
+        const result = await invokeModel(
+          Object.freeze({
+            request: safeRequest,
+            remainingTokens: maximum.tokens - totals.tokens,
+            signal: controller.signal,
+          }),
+        );
+        assertOpen();
+        exact(result, ["output", "usage"], "model broker result");
+        exact(
+          result.usage,
+          ["inputTokens", "outputTokens"],
+          "model broker usage",
+        );
+        const inputTokens = integer(
+          result.usage.inputTokens,
+          "model broker inputTokens",
+        );
+        const outputTokens = integer(
+          result.usage.outputTokens,
+          "model broker outputTokens",
+        );
+        if (!Number.isSafeInteger(inputTokens + outputTokens))
+          throw new TypeError(
+            "model broker token usage exceeds the safe integer range",
+          );
+        recordTokenUsage(inputTokens + outputTokens);
+        return Object.freeze({
+          output: copyJson(result.output, "model broker output"),
+          usage: Object.freeze({ inputTokens, outputTokens }),
+        });
+      } catch (error) {
+        stop("model-broker-rejected");
+        throw controller.signal.reason ?? error;
       } finally {
         activeTools -= 1;
       }

@@ -17,6 +17,7 @@ import {
 import {
   EVOLUTION_EVAL_ATTESTATION_PURPOSES,
   EVOLUTION_EVAL_RECEIPT_SCHEMA,
+  EVOLUTION_EVAL_SUPERVISION_SCHEMA,
   EVOLUTION_EVAL_TARGET_INVOCATION_SCHEMA,
   EVOLUTION_EVAL_TARGET_REVOCATION_SCHEMA,
   computeEvolutionEvalSignedEvidenceDigest,
@@ -242,6 +243,22 @@ function evidence(kind) {
       receiptDigest: computeEvolutionEvalReceiptDigest(core),
     });
   }
+  if (kind === "supervision") {
+    return Object.freeze({
+      schema: EVOLUTION_EVAL_SUPERVISION_SCHEMA,
+      requestDigest: digest("request"),
+      invocationId: "invocation:one",
+      status: "completed",
+      supervisorRevision: "supervisor-v1",
+      attestation: {
+        algorithm: "ed25519",
+        issuer: "authority:supervisor-evidence",
+        keyId: "key:supervisor-evidence",
+        trustPolicyDigest: digest("supervisor-evidence-policy"),
+        value: "signed-supervisor-value-000000000000000000000000",
+      },
+    });
+  }
   const invocation = kind === "invocation";
   return Object.freeze({
     schema: invocation
@@ -271,6 +288,7 @@ describe("EvolutionEvalChildEvidenceLedgerAdapter", () => {
     const invocation = evidence("invocation");
     const revocation = evidence("revocation");
     const gateReceipt = evidence("gate-receipt");
+    const supervision = evidence("supervision");
     const invocationDigest = computeEvolutionEvalSignedEvidenceDigest(
       invocation,
       EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetInvocation,
@@ -280,6 +298,10 @@ describe("EvolutionEvalChildEvidenceLedgerAdapter", () => {
       EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation,
     );
     const gateReceiptDigest = gateReceipt.receiptDigest;
+    const supervisionDigest = computeEvolutionEvalSignedEvidenceDigest(
+      supervision,
+      EVOLUTION_EVAL_ATTESTATION_PURPOSES.supervisor,
+    );
     await expect(
       first.retain({
         kind: "invocation",
@@ -301,7 +323,14 @@ describe("EvolutionEvalChildEvidenceLedgerAdapter", () => {
         receiptDigest: gateReceiptDigest,
       }),
     ).resolves.toMatchObject({ authenticated: true, durable: true });
-    expect(firstBackend.ledger.verify()).toMatchObject({ sequence: 3 });
+    await expect(
+      first.retain({
+        kind: "supervision",
+        evidence: supervision,
+        receiptDigest: supervisionDigest,
+      }),
+    ).resolves.toMatchObject({ authenticated: true, durable: true });
+    expect(firstBackend.ledger.verify()).toMatchObject({ sequence: 4 });
 
     const reopenedBackend = createEvolutionLedgerFileBackend(
       resources.backendOptions,
@@ -332,7 +361,14 @@ describe("EvolutionEvalChildEvidenceLedgerAdapter", () => {
         receiptDigest: gateReceiptDigest,
       }),
     ).resolves.toMatchObject({ evidence: gateReceipt });
-    expect(reopenedBackend.ledger.verify()).toMatchObject({ sequence: 3 });
+    await expect(
+      reopened.resolve({
+        tenantId: TENANT_ID,
+        kind: "supervision",
+        receiptDigest: supervisionDigest,
+      }),
+    ).resolves.toMatchObject({ evidence: supervision });
+    expect(reopenedBackend.ledger.verify()).toMatchObject({ sequence: 4 });
   });
 
   it("rejects cross-tenant resolution and digest substitution", async () => {

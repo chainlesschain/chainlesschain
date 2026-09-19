@@ -264,6 +264,11 @@ async function loadBuiltInFactories(commandName) {
       provider,
       settlementAdapter,
       businessGrader,
+      egressAuthority,
+      processSupervisor,
+      childEvidenceStore,
+      browserVisionObservation,
+      browserVisionAction,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -279,6 +284,11 @@ async function loadBuiltInFactories(commandName) {
       import("./pm-exploration-volcengine-provider.js"),
       import("./pm-exploration-provider-settlement-adapter.js"),
       import("./pm-exploration-business-grader.js"),
+      import("./pm-exploration-egress-authority.js"),
+      import("./evolution-eval-process-supervisor.js"),
+      import("./evolution-eval-child-evidence-ledger-adapter.js"),
+      import("./browser-vision-observation-authority.js"),
+      import("./browser-vision-action-authority.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -303,15 +313,39 @@ async function loadBuiltInFactories(commandName) {
         receipts.inspectPmExplorationReceiptAuthority,
       createPmExplorationExecutionManifest:
         execution.createPmExplorationExecutionManifest,
+      createPmExplorationProcessCurriculum:
+        execution.createPmExplorationProcessCurriculum,
+      inspectPmExplorationCurriculumIsolation:
+        execution.inspectPmExplorationCurriculumIsolation,
       createPmExplorationRunner: execution.createPmExplorationRunner,
+      createPmExplorationProcessRunner:
+        execution.createPmExplorationProcessRunner,
+      inspectPmExplorationRunnerIsolation:
+        execution.inspectPmExplorationRunnerIsolation,
       createPmExplorationGrader: execution.createPmExplorationGrader,
+      createPmExplorationProcessGrader:
+        execution.createPmExplorationProcessGrader,
+      inspectPmExplorationGraderIsolation:
+        execution.inspectPmExplorationGraderIsolation,
       createPmExplorationMerger: execution.createPmExplorationMerger,
+      createPmExplorationProcessMerger:
+        execution.createPmExplorationProcessMerger,
+      inspectPmExplorationMergerIsolation:
+        execution.inspectPmExplorationMergerIsolation,
       createPmExplorationEvaluator: execution.createPmExplorationEvaluator,
+      createPmExplorationProcessEvaluator:
+        execution.createPmExplorationProcessEvaluator,
+      inspectPmExplorationEvaluatorIsolation:
+        execution.inspectPmExplorationEvaluatorIsolation,
       createPmExplorationExecutionHost:
         execution.createPmExplorationExecutionHost,
       isPmExplorationExecutionHost: execution.isPmExplorationExecutionHost,
       inspectPmExplorationExecutionHost:
         execution.inspectPmExplorationExecutionHost,
+      createEvolutionEvalProcessSupervisor:
+        processSupervisor.createEvolutionEvalProcessSupervisor,
+      createEvolutionEvalChildEvidenceLedgerAdapter:
+        childEvidenceStore.createEvolutionEvalChildEvidenceLedgerAdapter,
       createPmExplorationTransitionCommitter:
         transitionCommitter.createPmExplorationTransitionCommitter,
       capturePmExplorationTransitionCommitter:
@@ -325,6 +359,7 @@ async function loadBuiltInFactories(commandName) {
       verifyPmExplorationRecoverySnapshotAck:
         recoverySnapshotStore.verifyPmExplorationRecoverySnapshotAck,
       executePmExplorationRound: execution.executePmExplorationRound,
+      selectPmExplorationTask: execution.selectPmExplorationTask,
       mergePmExplorationBranches: execution.mergePmExplorationBranches,
       evaluatePmExplorationMemory: execution.evaluatePmExplorationMemory,
       createPmExplorationEvidenceBundle:
@@ -350,6 +385,16 @@ async function loadBuiltInFactories(commandName) {
         businessGrader.inspectPmExplorationReadOnlyOutcomeSource,
       createPmExplorationBusinessGrader:
         businessGrader.createPmExplorationBusinessGrader,
+      createPmExplorationMemoryRetrievalAuthority:
+        egressAuthority.createPmExplorationMemoryRetrievalAuthority,
+      createPmExplorationModelEgressAuthority:
+        egressAuthority.createPmExplorationModelEgressAuthority,
+      inspectPmExplorationEgressAuthority:
+        egressAuthority.inspectPmExplorationEgressAuthority,
+      createBrowserVisionObservationAuthority:
+        browserVisionObservation.createBrowserVisionObservationAuthority,
+      createBrowserVisionActionAuthority:
+        browserVisionAction.createBrowserVisionActionAuthority,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -416,6 +461,56 @@ async function loadBuiltInFactories(commandName) {
       createGovernedSkillMarketplaceLedgerAdapter;
     factories.createGovernedSkillMarketplaceCandidateInstaller =
       createGovernedSkillMarketplaceCandidateInstaller;
+  }
+  if (commandName === "evolution" || commandName === "serve") {
+    const [
+      { SkillCandidateRegistry },
+      { createSkillEvaluatedPromotionProvider },
+      { createSkillPromotionReviewProvider },
+      { createSkillEvaluatedPromotionControlPlane },
+      { createSkillEvaluatedPromotionDurabilityAdapter },
+      { createSkillPromotionReviewLedgerAdapter },
+      { createStructuredMemoryLedgerAdapter },
+      { createStructuredMemoryAuthorityLedgerAdapter },
+      { createStructuredMemoryPromotionReceiptWriter },
+      { createStructuredMemoryPolicyReceiptWriter },
+      { createStructuredMemoryAgentControlPlane },
+      { createSkillRevocationPropagation },
+      { openSkillRetrievalRevocationAuthority },
+      { createSkillRetrievalRevocationLedgerAdapter },
+    ] = await Promise.all([
+      import("./skill-candidate-registry.js"),
+      import("./skill-evaluated-promotion.js"),
+      import("./skill-promotion-review.js"),
+      import("./skill-promotion-controller.js"),
+      import("./skill-evaluated-promotion-durability.js"),
+      import("./skill-promotion-review-ledger-adapter.js"),
+      import("./structured-memory-ledger-adapter.js"),
+      import("./structured-memory-authority-ledger-adapter.js"),
+      import("./structured-memory-promotion-receipt-writer.js"),
+      import("./structured-memory-policy-receipt-writer.js"),
+      import("./structured-memory-agent-control-plane.js"),
+      import("./skill-revocation-propagation.js"),
+      import("./skill-retrieval-revocation-authority.js"),
+      import("./skill-retrieval-revocation-ledger-adapter.js"),
+    ]);
+    Object.assign(factories, {
+      createSkillCandidateRegistry: (options) =>
+        new SkillCandidateRegistry(options),
+      createSkillEvaluatedPromotionProvider,
+      createSkillPromotionReviewProvider,
+      createSkillEvaluatedPromotionControlPlane,
+      createSkillEvaluatedPromotionDurabilityAdapter,
+      createSkillPromotionReviewLedgerAdapter,
+      createStructuredMemoryLedgerAdapter,
+      createStructuredMemoryAuthorityLedgerAdapter,
+      createStructuredMemoryPromotionReceiptWriter,
+      createStructuredMemoryPolicyReceiptWriter,
+      createStructuredMemoryAgentControlPlane,
+      createSkillRevocationPropagation,
+      openSkillRetrievalRevocationAuthority,
+      createSkillRetrievalRevocationLedgerAdapter,
+    });
   }
   if (commandName === "evolution" || commandName === "serve") {
     const [
@@ -641,6 +736,9 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createWikiSkillBenchmarkReportAttestor",
     "createWikiSkillBenchmarkRunner",
     "createEvolutionEvalRuntimeComposition",
+    "createEvolutionEvalChildEvidenceLedgerAdapter",
+    "createBrowserVisionObservationAuthority",
+    "createBrowserVisionActionAuthority",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;
@@ -653,10 +751,48 @@ function bindFactoriesToModule(factories, moduleDigest) {
     };
   }
   for (const name of [
+    "createSkillEvaluatedPromotionProvider",
+    "createSkillPromotionReviewProvider",
+  ]) {
+    if (typeof factories[name] !== "function") continue;
+    result[name] = (options = {}) => {
+      if (options?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,
+        );
+      return factories[name](options);
+    };
+  }
+  for (const name of ["createSkillPromotionReviewLedgerAdapter"]) {
+    if (typeof factories[name] !== "function") continue;
+    result[name] = (options = {}) => {
+      if (options?.descriptor?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          `${name} handlerArtifactDigest must equal the authenticated deployment module digest`,
+        );
+      return factories[name](options);
+    };
+  }
+  for (const name of [
+    "createStructuredMemoryPromotionReceiptWriter",
+    "createStructuredMemoryPolicyReceiptWriter",
+  ]) {
+    if (typeof factories[name] !== "function") continue;
+    result[name] = (options = {}) => {
+      if (options?.descriptor?.issuerHandlerDigest !== moduleDigest)
+        throw new Error(
+          `${name} issuerHandlerDigest must equal the authenticated deployment module digest`,
+        );
+      return factories[name](options);
+    };
+  }
+  for (const name of [
     "createPmExplorationReceiptAuthority",
     "createPmExplorationReceiptSigner",
     "createPmExplorationProviderSettlementAdapter",
     "createPmExplorationReadOnlyOutcomeSource",
+    "createPmExplorationMemoryRetrievalAuthority",
+    "createPmExplorationModelEgressAuthority",
   ]) {
     if (typeof factories[name] !== "function") continue;
     result[name] = (options = {}) => {
@@ -675,7 +811,12 @@ function bindFactoriesToModule(factories, moduleDigest) {
   }
   if (typeof factories.createPmExplorationExecutionManifest === "function") {
     result.createPmExplorationExecutionManifest = (input = {}) => {
-      for (const authority of ["runner", "grader", "merger", "evaluator"]) {
+      const authorities = ["runner", "grader", "merger", "evaluator"];
+      if (Object.hasOwn(input, "curriculum")) authorities.unshift("curriculum");
+      if (Object.hasOwn(input, "memoryRetrieval")) {
+        authorities.push("memoryRetrieval", "modelEgress");
+      }
+      for (const authority of authorities) {
         if (input?.[authority]?.handlerArtifactDigest !== moduleDigest)
           throw new Error(
             `PM exploration ${authority} handlerArtifactDigest must equal the authenticated deployment module digest`,

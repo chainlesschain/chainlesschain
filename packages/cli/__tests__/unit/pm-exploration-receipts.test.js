@@ -8,6 +8,7 @@ import {
   getPmExplorationReceiptSignerAuthority,
   inspectPmExplorationReceiptAuthority,
   issuePmExplorationReceipt,
+  PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA,
   verifyPmExplorationReceipt,
 } from "../../src/lib/evolution/pm-exploration-receipts.js";
 
@@ -156,6 +157,31 @@ describe("PM exploration signed receipts", () => {
     expect(() => verifyPmExplorationReceipt(otherAuthority, receipt)).toThrow(
       /authority binding mismatch/,
     );
+  });
+
+  it("signs process and parent-egress evidence together in execution receipt v3", () => {
+    const receiptSigner = signer("execution", "egress");
+    const authority = getPmExplorationReceiptSignerAuthority(receiptSigner);
+    const receipt = issuePmExplorationReceipt(receiptSigner, {
+      ...payload("execution"),
+      runnerIsolationEvidenceDigest: sha("supervision"),
+      egressEvidenceDigest: sha("egress-transcript"),
+    });
+
+    expect(receipt.schema).toBe(PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA);
+    expect(
+      verifyPmExplorationReceipt(authority, receipt).payload,
+    ).toMatchObject({
+      runnerIsolationEvidenceDigest: sha("supervision"),
+      egressEvidenceDigest: sha("egress-transcript"),
+    });
+    expect(() =>
+      issuePmExplorationReceipt(receiptSigner, {
+        ...payload("execution"),
+        runnerIsolationEvidenceDigest: sha("supervision"),
+        egressEvidenceDigest: null,
+      }),
+    ).toThrow("egress evidence disagrees");
   });
 
   it("keeps verification authorities public-key-only and rejects mismatched keys", () => {

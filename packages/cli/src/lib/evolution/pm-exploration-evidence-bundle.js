@@ -7,6 +7,7 @@ import {
   PM_EXPLORATION_GRADE_REQUEST_SCHEMA_V1,
   PM_EXPLORATION_MERGE_REQUEST_SCHEMA,
   PM_EXPLORATION_RUN_REQUEST_SCHEMA,
+  PM_EXPLORATION_TASK_SELECTION_REQUEST_SCHEMA,
   verifyPmExplorationExecutionManifest,
 } from "./pm-exploration-execution-host.js";
 import {
@@ -24,6 +25,10 @@ export const PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA =
   "chainlesschain.pm-exploration-evidence-bundle/v1";
 export const PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA =
   "chainlesschain.pm-exploration-evidence-bundle/v2";
+export const PM_EXPLORATION_CURRICULUM_EVIDENCE_BUNDLE_SCHEMA =
+  "chainlesschain.pm-exploration-evidence-bundle/v3";
+export const PM_EXPLORATION_CURRICULUM_PROVIDER_EVIDENCE_BUNDLE_SCHEMA =
+  "chainlesschain.pm-exploration-evidence-bundle/v4";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 
@@ -106,22 +111,32 @@ function array(value, label, maximum) {
   return value;
 }
 
-function metricsEqual(checkpoint, execution, grader) {
+function metricsEqual(checkpoint, execution, grader, curriculum = null) {
   return ["tokens", "toolCalls", "wallClockMs"].every(
     (key) =>
       checkpoint.metrics[key] ===
-      execution.payload.metrics[key] + grader.payload.metrics[key],
+      execution.payload.metrics[key] +
+        grader.payload.metrics[key] +
+        (curriculum?.payload.metrics[key] ?? 0),
   );
 }
 
 function authoritySet(value, manifest) {
+  const hasCurriculum = Object.hasOwn(manifest, "curriculum");
   exact(
     value,
-    ["execution", "grader", "merge", "evaluator"],
+    [
+      ...(hasCurriculum ? ["curriculum"] : []),
+      "execution",
+      "grader",
+      "merge",
+      "evaluator",
+    ],
     "PM exploration evidence authorities",
   );
   const result = {};
   for (const [key, expected] of [
+    ...(hasCurriculum ? [["curriculum", manifest.curriculum]] : []),
     ["execution", manifest.runner],
     ["grader", manifest.grader],
     ["merge", manifest.merger],
@@ -133,6 +148,71 @@ function authoritySet(value, manifest) {
     result[key] = value[key];
   }
   return Object.freeze(result);
+}
+
+function validateCurriculumReceipts({
+  inputs,
+  authority,
+  manifest,
+  plan,
+  snapshot,
+}) {
+  const receipts = receiptMap(inputs, plan.maxRounds, "curriculum receipts");
+  const byRound = new Map();
+  for (const input of receipts.values()) {
+    const receipt = verifyPmExplorationReceipt(authority, input, {
+      planDigest: plan.planDigest,
+      environmentDigest: plan.environmentDigest,
+      executionManifestDigest: manifest.manifestDigest,
+      status: "succeeded",
+    });
+    if (byRound.has(receipt.payload.roundId))
+      throw new Error("PM evidence contains duplicate Curriculum rounds");
+    byRound.set(receipt.payload.roundId, receipt);
+  }
+  const ordered = [];
+  let previousStage = null;
+  let consecutiveNoGain = 0;
+  for (let index = 0; index < snapshot.checkpoints.length; index += 1) {
+    const checkpoint = snapshot.checkpoints[index];
+    if (checkpoint.stage !== previousStage) consecutiveNoGain = 0;
+    const receipt = byRound.get(checkpoint.roundId);
+    if (!receipt)
+      throw new Error("PM checkpoint is missing its Curriculum receipt");
+    const core = {
+      schema: PM_EXPLORATION_TASK_SELECTION_REQUEST_SCHEMA,
+      planDigest: plan.planDigest,
+      suiteDigest: plan.suiteDigest,
+      trainingPartitionDigest: plan.trainingPartitionDigest,
+      environmentDigest: plan.environmentDigest,
+      executionManifestDigest: manifest.manifestDigest,
+      selectionId: receipt.payload.selectionId,
+      roundId: checkpoint.roundId,
+      stage: checkpoint.stage,
+      branchId: checkpoint.branchId,
+      inputMemoryDigest: checkpoint.inputMemoryDigest,
+      candidateTaskIds: plan.trainingTaskIds,
+      completedRoundCount: index,
+      consecutiveNoGain,
+    };
+    const verified = verifyPmExplorationReceipt(authority, receipt, {
+      requestDigest: hash(PM_EXPLORATION_TASK_SELECTION_REQUEST_SCHEMA, core),
+      roundId: checkpoint.roundId,
+      stage: checkpoint.stage,
+      branchId: checkpoint.branchId,
+      inputMemoryDigest: checkpoint.inputMemoryDigest,
+      taskId: checkpoint.taskId,
+    });
+    ordered.push(verified);
+    byRound.delete(checkpoint.roundId);
+    previousStage = checkpoint.stage;
+    consecutiveNoGain = checkpoint.accepted ? 0 : consecutiveNoGain + 1;
+  }
+  if (byRound.size !== 0)
+    throw new Error(
+      "PM evidence contains Curriculum receipts outside its checkpoint history",
+    );
+  return Object.freeze(ordered);
 }
 
 function receiptMap(values, maximum, label) {
@@ -195,6 +275,7 @@ function validateCheckpointReceipts({
   authorities,
   executionReceipts,
   graderReceipts,
+  curriculumReceipt = null,
   manifest,
   plan,
 }) {
@@ -234,6 +315,12 @@ function validateCheckpointReceipts({
       outputMemoryDigest: checkpoint.outputMemoryDigest,
     },
   );
+  if (
+    Object.hasOwn(manifest, "memoryRetrieval") &&
+    !Object.hasOwn(execution.payload, "egressEvidenceDigest")
+  ) {
+    throw new Error("PM governed egress execution lacks signed evidence");
+  }
   const gradeCore = {
     schema: PM_EXPLORATION_GRADE_REQUEST_SCHEMA,
     planDigest: plan.planDigest,
@@ -294,7 +381,7 @@ function validateCheckpointReceipts({
       ),
     });
   }
-  if (!metricsEqual(checkpoint, execution, grader))
+  if (!metricsEqual(checkpoint, execution, grader, curriculumReceipt))
     throw new Error("PM checkpoint metrics differ from its signed receipts");
   if (
     execution.payload.status !== "succeeded" &&
@@ -392,12 +479,28 @@ function buildBundle({
     throw new Error("PM evidence manifest differs from its plan");
   }
   const trustedAuthorities = authoritySet(authorities, executionManifest);
+  const hasCurriculum = Object.hasOwn(executionManifest, "curriculum");
   exact(
     receipts,
-    ["execution", "grader", "merge", "evaluator"],
+    [
+      ...(hasCurriculum ? ["curriculum"] : []),
+      "execution",
+      "grader",
+      "merge",
+      "evaluator",
+    ],
     "PM exploration evidence receipts",
   );
   const normalizedSnapshot = normalizeSnapshot(plan, snapshot);
+  const orderedCurriculum = hasCurriculum
+    ? validateCurriculumReceipts({
+        inputs: receipts.curriculum,
+        authority: trustedAuthorities.curriculum,
+        manifest: executionManifest,
+        plan,
+        snapshot: normalizedSnapshot,
+      })
+    : null;
   const executionInputs = receiptMap(
     receipts.execution,
     plan.maxRounds,
@@ -410,12 +513,19 @@ function buildBundle({
   );
   const orderedExecution = [];
   const orderedGraders = [];
+  const curriculumByRound = new Map(
+    (orderedCurriculum ?? []).map((receipt) => [
+      receipt.payload.roundId,
+      receipt,
+    ]),
+  );
   for (const checkpoint of normalizedSnapshot.checkpoints) {
     const verified = validateCheckpointReceipts({
       checkpoint,
       authorities: trustedAuthorities,
       executionReceipts: executionInputs,
       graderReceipts: graderInputs,
+      curriculumReceipt: curriculumByRound.get(checkpoint.roundId) ?? null,
       manifest: executionManifest,
       plan,
     });
@@ -468,8 +578,11 @@ function buildBundle({
     mergeReceipt,
     plan,
   });
-  const schema =
-    providerSettlements === null
+  const schema = hasCurriculum
+    ? providerSettlements === null
+      ? PM_EXPLORATION_CURRICULUM_EVIDENCE_BUNDLE_SCHEMA
+      : PM_EXPLORATION_CURRICULUM_PROVIDER_EVIDENCE_BUNDLE_SCHEMA
+    : providerSettlements === null
       ? PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA
       : PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
   const core = deepFreeze({
@@ -478,6 +591,7 @@ function buildBundle({
     environmentDigest: plan.environmentDigest,
     executionManifestDigest: executionManifest.manifestDigest,
     snapshotDigest: normalizedSnapshot.snapshotDigest,
+    ...(hasCurriculum ? { curriculumReceipts: orderedCurriculum } : {}),
     executionReceipts: orderedExecution,
     graderReceipts: orderedGraders,
     mergeReceipt,
@@ -544,47 +658,37 @@ export function verifyPmExplorationEvidenceBundle({
   bundle,
 } = {}) {
   const providerBound =
-    bundle?.schema === PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
-  exact(
-    bundle,
-    providerBound
-      ? [
-          "schema",
-          "planDigest",
-          "environmentDigest",
-          "executionManifestDigest",
-          "snapshotDigest",
-          "executionReceipts",
-          "graderReceipts",
-          "mergeReceipt",
-          "evaluatorReceipt",
-          "providerSettlements",
-          "evidenceDigest",
-          "authenticated",
-          "snapshotAuthenticated",
-          "qualifiesForPromotion",
-        ]
-      : [
-          "schema",
-          "planDigest",
-          "environmentDigest",
-          "executionManifestDigest",
-          "snapshotDigest",
-          "executionReceipts",
-          "graderReceipts",
-          "mergeReceipt",
-          "evaluatorReceipt",
-          "evidenceDigest",
-          "authenticated",
-          "snapshotAuthenticated",
-          "qualifiesForPromotion",
-        ],
-    "PM exploration evidence bundle",
-  );
+    bundle?.schema === PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA ||
+    bundle?.schema ===
+      PM_EXPLORATION_CURRICULUM_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
+  const curriculumBound =
+    bundle?.schema === PM_EXPLORATION_CURRICULUM_EVIDENCE_BUNDLE_SCHEMA ||
+    bundle?.schema ===
+      PM_EXPLORATION_CURRICULUM_PROVIDER_EVIDENCE_BUNDLE_SCHEMA;
+  const fields = [
+    "schema",
+    "planDigest",
+    "environmentDigest",
+    "executionManifestDigest",
+    "snapshotDigest",
+    ...(curriculumBound ? ["curriculumReceipts"] : []),
+    "executionReceipts",
+    "graderReceipts",
+    "mergeReceipt",
+    "evaluatorReceipt",
+    ...(providerBound ? ["providerSettlements"] : []),
+    "evidenceDigest",
+    "authenticated",
+    "snapshotAuthenticated",
+    "qualifiesForPromotion",
+  ];
+  exact(bundle, fields, "PM exploration evidence bundle");
   if (
     ![
       PM_EXPLORATION_EVIDENCE_BUNDLE_SCHEMA,
       PM_EXPLORATION_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
+      PM_EXPLORATION_CURRICULUM_EVIDENCE_BUNDLE_SCHEMA,
+      PM_EXPLORATION_CURRICULUM_PROVIDER_EVIDENCE_BUNDLE_SCHEMA,
     ].includes(bundle.schema) ||
     bundle.authenticated !== true ||
     bundle.snapshotAuthenticated !== true ||
@@ -598,6 +702,7 @@ export function verifyPmExplorationEvidenceBundle({
     snapshot,
     authorities,
     receipts: {
+      ...(curriculumBound ? { curriculum: bundle.curriculumReceipts } : {}),
       execution: bundle.executionReceipts,
       grader: bundle.graderReceipts,
       merge: bundle.mergeReceipt,

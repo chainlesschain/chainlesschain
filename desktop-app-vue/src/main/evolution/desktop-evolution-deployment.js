@@ -6,8 +6,23 @@ const { pathToFileURL } = require("url");
 const { types } = require("util");
 const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
+  createDesktopBrowserVisionObservationHost,
+} = require("./desktop-browser-vision-observation");
+const {
+  createDesktopBrowserVisionActionHost,
+} = require("./desktop-browser-vision-action");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
+const {
+  captureDesktopPmCloneRecoveryController,
+  createDesktopPmCloneRecoveryController,
+} = require("./desktop-pm-clone-recovery-controller");
+const {
+  captureDesktopPmWorkspaceSnapshotter,
+  createDesktopPmWorkspaceSnapshotter,
+  verifyDesktopPmWorkspaceSnapshotCapture,
+} = require("./desktop-pm-workspace-snapshot");
 const {
   RECOVERY_SNAPSHOT_CAPTURE_SCHEMA,
   captureDesktopPmRecoverySnapshot,
@@ -33,19 +48,30 @@ const DEV_PM_TRANSITION_COMMITTER_REL =
   "../../../../packages/cli/src/lib/evolution/pm-exploration-transition-committer.js";
 const DEV_PM_RECOVERY_SNAPSHOT_STORE_REL =
   "../../../../packages/cli/src/lib/evolution/pm-exploration-recovery-snapshot-store.js";
+const DEV_BROWSER_VISION_OBSERVATION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-vision-observation-authority.js";
+const DEV_BROWSER_VISION_ACTION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-vision-action-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
+const PM_EXPLORATION_CLONE_RECOVERY_HOSTS = new WeakMap();
 const DESKTOP_PM_SEALED_EXECUTION_RESULT_SCHEMA =
   "chainlesschain.desktop-pm-sealed-execution-result/v3";
 const DESKTOP_PM_SNAPSHOT_BACKED_EXECUTION_RESULT_SCHEMA =
   "chainlesschain.desktop-pm-sealed-execution-result/v4";
+const DESKTOP_PM_RECOVERY_SET_BACKED_EXECUTION_RESULT_SCHEMA =
+  "chainlesschain.desktop-pm-sealed-execution-result/v5";
 const DESKTOP_PM_SUCCESS_TRANSITION_EVIDENCE_SCHEMA =
   "chainlesschain.desktop-pm-state-transition-success/v1";
 const DESKTOP_PM_FAILED_EXECUTION_EVIDENCE_SCHEMA =
   "chainlesschain.desktop-pm-failed-execution-evidence/v1";
+const DESKTOP_PM_CLONE_RECOVERY_EVENT_SCHEMA =
+  "chainlesschain.desktop-pm-clone-recovery-event/v1";
 const PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA =
   "chainlesschain.pm-exploration-transition-recovery/v1";
+const PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA =
+  "chainlesschain.pm-exploration-transition-recovery/v2";
 
 function ownDirectFunction(owner, name, label) {
   if (!owner || typeof owner !== "object" || types.isProxy(owner))
@@ -138,18 +164,31 @@ function normalizeDesktopPmRecoverySnapshotCapture(value, expectedSealDigest) {
 }
 
 async function captureExecutionSnapshot(captured, expectedSealDigest) {
+  let database;
   if (captured.retainTransitionSnapshot) {
-    return normalizeDesktopPmRecoverySnapshotCapture(
+    database = normalizeDesktopPmRecoverySnapshotCapture(
       await captured.capturePmRecoverySnapshot(),
       expectedSealDigest,
     );
+  } else {
+    database = Object.freeze({
+      seal: verifyDesktopPmPreRunSealValue(
+        await captured.capturePmPreRunSeal(),
+        expectedSealDigest,
+      ),
+      bytes: null,
+    });
   }
+  const workspace = captured.captureWorkspaceSnapshot
+    ? verifyDesktopPmWorkspaceSnapshotCapture(
+        await captured.captureWorkspaceSnapshot(),
+        captured.manifestDigest,
+      )
+    : null;
   return Object.freeze({
-    seal: verifyDesktopPmPreRunSealValue(
-      await captured.capturePmPreRunSeal(),
-      expectedSealDigest,
-    ),
-    bytes: null,
+    ...database,
+    workspaceSeal: workspace?.seal ?? null,
+    workspaceBytes: workspace?.bytes ?? null,
   });
 }
 
@@ -163,46 +202,78 @@ async function retainRecoverySnapshot(
     return null;
   return captured.retainTransitionSnapshot(
     Object.freeze({
-      schema: "chainlesschain.pm-exploration-recovery-snapshot-request/v1",
+      schema:
+        snapshot.workspaceSeal === null
+          ? "chainlesschain.pm-exploration-recovery-snapshot-request/v1"
+          : "chainlesschain.pm-exploration-recovery-snapshot-request/v2",
       manifestDigest: captured.manifestDigest,
       transitionKind,
       snapshotRole: transitionKind === "success" ? "post-run" : "pre-run",
       evidenceDigest,
       seal: snapshot.seal,
       bytes: snapshot.bytes,
+      ...(snapshot.workspaceSeal === null
+        ? {}
+        : {
+            workspaceSeal: snapshot.workspaceSeal,
+            workspaceBytes: snapshot.workspaceBytes,
+          }),
     }),
   );
 }
 
 function normalizeDesktopPmTransitionRecovery(value, manifestDigest) {
+  const snapshotBound =
+    ownData(value, "schema", "Desktop PM transition recovery schema") ===
+    PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA;
   exactDataObject(
     value,
-    [
-      "schema",
-      "authenticated",
-      "durable",
-      "readbackVerified",
-      "manifestDigest",
-      "revision",
-      "transitionKind",
-      "evidenceDigest",
-      "evidence",
-      "ledgerHeadDigest",
-      "ledgerEventDigest",
-      "durabilityReceiptDigest",
-      "qualifiesForPromotion",
-    ],
+    snapshotBound
+      ? [
+          "schema",
+          "authenticated",
+          "durable",
+          "readbackVerified",
+          "manifestDigest",
+          "revision",
+          "transitionKind",
+          "evidenceDigest",
+          "evidence",
+          "recoverySnapshot",
+          "ledgerHeadDigest",
+          "ledgerEventDigest",
+          "durabilityReceiptDigest",
+          "qualifiesForPromotion",
+        ]
+      : [
+          "schema",
+          "authenticated",
+          "durable",
+          "readbackVerified",
+          "manifestDigest",
+          "revision",
+          "transitionKind",
+          "evidenceDigest",
+          "evidence",
+          "ledgerHeadDigest",
+          "ledgerEventDigest",
+          "durabilityReceiptDigest",
+          "qualifiesForPromotion",
+        ],
     "Desktop PM transition recovery",
   );
   if (
-    value.schema !== PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA ||
+    ![
+      PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA,
+      PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA,
+    ].includes(value.schema) ||
     value.authenticated !== true ||
     value.durable !== true ||
     value.readbackVerified !== true ||
     value.manifestDigest !== manifestDigest ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 0 ||
-    ![null, "success", "failure"].includes(value.transitionKind) ||
+    ![null, "success", "failure", "recovery"].includes(value.transitionKind) ||
     value.qualifiesForPromotion !== false
   ) {
     throw new Error("Desktop PM transition recovery is invalid");
@@ -210,6 +281,7 @@ function normalizeDesktopPmTransitionRecovery(value, manifestDigest) {
   sha256Digest(value.ledgerHeadDigest, "PM transition ledger head digest");
   if (value.transitionKind === null) {
     if (
+      snapshotBound ||
       value.revision !== 0 ||
       value.evidenceDigest !== null ||
       value.evidence !== null ||
@@ -222,6 +294,11 @@ function normalizeDesktopPmTransitionRecovery(value, manifestDigest) {
   }
   if (value.revision < 1) {
     throw new Error("Desktop PM transition recovery revision is invalid");
+  }
+  if (snapshotBound && value.transitionKind === "recovery") {
+    throw new Error(
+      "Desktop PM clone recovery event cannot carry a recovery snapshot",
+    );
   }
   sha256Digest(value.evidenceDigest, "PM recovered evidence digest");
   sha256Digest(value.ledgerEventDigest, "PM recovered ledger event digest");
@@ -249,7 +326,9 @@ function normalizeDesktopPmTransitionRecovery(value, manifestDigest) {
   const expectedSchema =
     value.transitionKind === "success"
       ? DESKTOP_PM_SUCCESS_TRANSITION_EVIDENCE_SCHEMA
-      : DESKTOP_PM_FAILED_EXECUTION_EVIDENCE_SCHEMA;
+      : value.transitionKind === "failure"
+        ? DESKTOP_PM_FAILED_EXECUTION_EVIDENCE_SCHEMA
+        : DESKTOP_PM_CLONE_RECOVERY_EVENT_SCHEMA;
   if (schema !== expectedSchema)
     throw new Error("Desktop PM recovered transition kind is inconsistent");
   const evidenceDigest =
@@ -262,20 +341,30 @@ function normalizeDesktopPmTransitionRecovery(value, manifestDigest) {
           ),
           "PM recovered state transition digest",
         )
-      : sha256Digest(
-          ownData(
-            value.evidence,
-            "evidenceDigest",
+      : value.transitionKind === "failure"
+        ? sha256Digest(
+            ownData(
+              value.evidence,
+              "evidenceDigest",
+              "PM recovered failure evidence digest",
+            ),
             "PM recovered failure evidence digest",
-          ),
-          "PM recovered failure evidence digest",
-        );
+          )
+        : sha256Digest(
+            ownData(
+              value.evidence,
+              "recoveryEventDigest",
+              "PM recovered clone recovery event digest",
+            ),
+            "PM recovered clone recovery event digest",
+          );
   if (evidenceDigest !== value.evidenceDigest)
     throw new Error("Desktop PM recovered evidence digest is inconsistent");
   return Object.freeze({
     kind: value.transitionKind,
     revision: value.revision,
     evidence: value.evidence,
+    recoverySnapshot: snapshotBound ? value.recoverySnapshot : null,
   });
 }
 
@@ -503,6 +592,42 @@ function resolvePmExplorationRecoverySnapshotStorePath({
   return path.resolve(__dirname, DEV_PM_RECOVERY_SNAPSHOT_STORE_REL);
 }
 
+function resolveBrowserVisionObservationAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser vision observation authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-vision-observation-authority.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_BROWSER_VISION_OBSERVATION_AUTHORITY_REL);
+}
+
+function resolveBrowserVisionActionAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser vision action authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-vision-action-authority.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_BROWSER_VISION_ACTION_AUTHORITY_REL);
+}
+
 function createDesktopPmExplorationStorageHost(store, captureStore) {
   if (typeof captureStore !== "function" || types.isProxy(captureStore)) {
     throw new TypeError("PM exploration ledger store capture is invalid");
@@ -603,6 +728,7 @@ function createDesktopPmExplorationExecutionHost(
   transitionCommitter = null,
   transitionRecovery = null,
   recoverySnapshotStore = null,
+  workspaceSnapshotter = null,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 ) {
   const isExecutionHost = ownDirectFunction(
@@ -662,6 +788,19 @@ function createDesktopPmExplorationExecutionHost(
   ) {
     throw new TypeError("Desktop PM recovery snapshot capture must be direct");
   }
+  if (
+    workspaceSnapshotter !== null &&
+    workspaceSnapshotter.manifestDigest !== manifestDigest
+  ) {
+    throw new Error(
+      "PM workspace snapshotter manifest does not match execution host",
+    );
+  }
+  if (workspaceSnapshotter !== null && recoverySnapshotStore === null) {
+    throw new Error(
+      "PM workspace snapshotter requires a recovery snapshot store",
+    );
+  }
   const operations = {};
   for (const name of [
     "executePmExplorationRound",
@@ -715,6 +854,23 @@ function createDesktopPmExplorationExecutionHost(
           "PM recovered previous state transition digest",
         );
       }
+    } else if (transitionRecovery.kind === "recovery") {
+      nextPreRunSealDigest = sha256Digest(
+        ownData(
+          transitionRecovery.evidence,
+          "restoredDatabaseSealDigest",
+          "PM recovered database seal digest",
+        ),
+        "PM recovered database seal digest",
+      );
+      previousStateTransitionDigest = sha256Digest(
+        ownData(
+          transitionRecovery.evidence,
+          "recoveryEventDigest",
+          "PM recovered clone recovery event digest",
+        ),
+        "PM recovered clone recovery event digest",
+      );
     }
   }
   PM_EXPLORATION_EXECUTION_HOSTS.set(
@@ -726,6 +882,8 @@ function createDesktopPmExplorationExecutionHost(
       commitTransition: transitionCommitter?.commitTransition ?? null,
       retainTransitionSnapshot:
         recoverySnapshotStore?.retainTransitionSnapshot ?? null,
+      captureWorkspaceSnapshot:
+        workspaceSnapshotter?.captureWorkspaceSnapshot ?? null,
       executionLane: executionLane(
         recoverySnapshotStore === null
           ? capturePmPreRunSeal
@@ -759,6 +917,167 @@ function isDesktopPmExplorationExecutionHost(value) {
   return PM_EXPLORATION_EXECUTION_HOSTS.has(value);
 }
 
+function createDesktopPmExplorationCloneRecoveryHost(
+  controller,
+  transitionRecovery,
+  executionHost,
+) {
+  const captured = captureDesktopPmCloneRecoveryController(controller);
+  const recoverFailedClone = ownDirectFunction(
+    captured,
+    "recoverFailedClone",
+    "Desktop PM clone recovery controller port",
+  );
+  const inspect = ownDirectFunction(
+    captured,
+    "inspect",
+    "Desktop PM clone recovery controller inspector",
+  );
+  const recoveryInput =
+    transitionRecovery?.kind === "failure" &&
+    transitionRecovery.recoverySnapshot
+      ? Object.freeze({
+          revision: transitionRecovery.revision,
+          evidence: transitionRecovery.evidence,
+          recoverySnapshot: transitionRecovery.recoverySnapshot,
+        })
+      : null;
+  const execution = captureDesktopPmExplorationExecutionHost(executionHost);
+  const host = Object.freeze({});
+  PM_EXPLORATION_CLONE_RECOVERY_HOSTS.set(
+    host,
+    Object.freeze({
+      manifestDigest: sha256Digest(
+        ownData(
+          captured,
+          "manifestDigest",
+          "Desktop PM clone recovery controller manifest digest",
+        ),
+        "Desktop PM clone recovery controller manifest digest",
+      ),
+      recoverFailedClone,
+      inspect,
+      recoveryInput,
+      execution,
+    }),
+  );
+  return host;
+}
+
+function captureDesktopPmExplorationCloneRecoveryHost(host) {
+  const captured = PM_EXPLORATION_CLONE_RECOVERY_HOSTS.get(host);
+  if (!captured) {
+    throw new TypeError("a branded Desktop PM clone recovery host is required");
+  }
+  return captured;
+}
+
+function inspectDesktopPmExplorationCloneRecoveryHost(host) {
+  const captured = captureDesktopPmExplorationCloneRecoveryHost(host);
+  const controller = Reflect.apply(captured.inspect, undefined, []);
+  const controllerStatus = ownData(
+    controller,
+    "status",
+    "Desktop PM clone recovery controller status",
+  );
+  return Object.freeze({
+    configured: true,
+    recoverableFailure:
+      captured.recoveryInput !== null && controllerStatus === "ready",
+    controllerStatus,
+    qualifiesForPromotion: false,
+  });
+}
+
+async function recoverDesktopPmExplorationClone(host) {
+  const captured = captureDesktopPmExplorationCloneRecoveryHost(host);
+  if (captured.recoveryInput === null) {
+    const error = new Error(
+      "Desktop PM clone recovery requires a snapshot-bound failed transition",
+    );
+    error.code = "CC_DESKTOP_PM_CLONE_RECOVERY_UNAVAILABLE";
+    throw error;
+  }
+  return enqueueExecution(captured.execution.executionLane, async () => {
+    if (!captured.execution.executionState.tainted) {
+      throw new Error(
+        "Desktop PM clone recovery requires a tainted execution host",
+      );
+    }
+    const result = await Reflect.apply(captured.recoverFailedClone, undefined, [
+      captured.recoveryInput,
+    ]);
+    exactDataObject(
+      result,
+      [
+        "schema",
+        "manifestDigest",
+        "cloneIdentityDigest",
+        "sourceTransitionRevision",
+        "recoveryRevision",
+        "databaseSeal",
+        "workspaceSeal",
+        "recoveryEventDigest",
+        "ledgerEventDigest",
+        "durabilityReceiptDigest",
+        "authenticated",
+        "durable",
+        "readbackVerified",
+        "transactionallyRecoverable",
+        "mainDatabaseUntouched",
+        "qualifiesForPromotion",
+      ],
+      "Desktop PM clone recovery result",
+    );
+    if (
+      result.schema !== "chainlesschain.desktop-pm-clone-recovery-result/v1" ||
+      result.manifestDigest !== captured.manifestDigest ||
+      result.sourceTransitionRevision !== captured.recoveryInput.revision ||
+      !Number.isSafeInteger(result.recoveryRevision) ||
+      result.recoveryRevision <= result.sourceTransitionRevision ||
+      result.authenticated !== true ||
+      result.durable !== true ||
+      result.readbackVerified !== true ||
+      result.transactionallyRecoverable !== true ||
+      result.mainDatabaseUntouched !== true ||
+      result.qualifiesForPromotion !== false
+    ) {
+      throw new Error("Desktop PM clone recovery result is invalid");
+    }
+    const databaseSeal = verifyDesktopPmPreRunSealValue(result.databaseSeal);
+    const recoveryEventDigest = sha256Digest(
+      result.recoveryEventDigest,
+      "Desktop PM clone recovery event digest",
+    );
+    sha256Digest(
+      result.ledgerEventDigest,
+      "Desktop PM clone recovery ledger event digest",
+    );
+    sha256Digest(
+      result.durabilityReceiptDigest,
+      "Desktop PM clone recovery durability receipt digest",
+    );
+    if (
+      ownData(
+        result.workspaceSeal,
+        "manifestDigest",
+        "Desktop PM restored workspace manifest digest",
+      ) !== captured.manifestDigest
+    ) {
+      throw new Error("Desktop PM restored workspace manifest is invalid");
+    }
+    captured.execution.executionState.nextPreRunSealDigest =
+      databaseSeal.sealDigest;
+    captured.execution.executionState.previousStateTransitionDigest =
+      recoveryEventDigest;
+    captured.execution.executionState.tainted = false;
+    captured.execution.executionState.transitionRecoveryStatus = "recovery";
+    captured.execution.executionState.transitionRecoveryRevision =
+      result.recoveryRevision;
+    return result;
+  });
+}
+
 function inspectDesktopPmExplorationExecutionHost(host) {
   const captured = captureDesktopPmExplorationExecutionHost(host);
   return Object.freeze({
@@ -766,6 +1085,7 @@ function inspectDesktopPmExplorationExecutionHost(host) {
     requiresRecovery: captured.executionState.tainted,
     transitionDurabilityConfigured: captured.commitTransition !== null,
     recoverySnapshotConfigured: captured.retainTransitionSnapshot !== null,
+    workspaceSnapshotConfigured: captured.captureWorkspaceSnapshot !== null,
     transitionRecoveryConfigured:
       captured.executionState.transitionRecoveryStatus !== "unavailable",
     transitionRecoveryStatus: captured.executionState.transitionRecoveryStatus,
@@ -826,6 +1146,16 @@ async function executeDesktopPmExplorationRound(host, journal, input) {
       const postRunSeal = postRunSnapshot.seal;
       if (postRunSeal.databasePathDigest !== seal.databasePathDigest)
         throw new Error("Desktop PM database path changed after execution");
+      if (
+        preRunSnapshot.workspaceSeal !== null &&
+        (postRunSnapshot.workspaceSeal === null ||
+          postRunSnapshot.workspaceSeal.workspaceRootDigest !==
+            preRunSnapshot.workspaceSeal.workspaceRootDigest ||
+          postRunSnapshot.workspaceSeal.capturePolicyDigest !==
+            preRunSnapshot.workspaceSeal.capturePolicyDigest)
+      ) {
+        throw new Error("Desktop PM workspace binding changed after execution");
+      }
       const stateTransitionDigest = transitionDigest({
         manifestDigest: captured.manifestDigest,
         executionReceiptDigest,
@@ -867,7 +1197,9 @@ async function executeDesktopPmExplorationRound(host, journal, input) {
         schema:
           recoverySnapshot === null
             ? DESKTOP_PM_SEALED_EXECUTION_RESULT_SCHEMA
-            : DESKTOP_PM_SNAPSHOT_BACKED_EXECUTION_RESULT_SCHEMA,
+            : preRunSnapshot.workspaceSeal === null
+              ? DESKTOP_PM_SNAPSHOT_BACKED_EXECUTION_RESULT_SCHEMA
+              : DESKTOP_PM_RECOVERY_SET_BACKED_EXECUTION_RESULT_SCHEMA,
         preRunSeal: seal,
         postRunSeal,
         databaseChanged:
@@ -880,6 +1212,13 @@ async function executeDesktopPmExplorationRound(host, journal, input) {
         preRunSealVerified: true,
         qualifiesForPromotion: false,
       };
+      if (preRunSnapshot.workspaceSeal !== null) {
+        result.preRunWorkspaceSeal = preRunSnapshot.workspaceSeal;
+        result.postRunWorkspaceSeal = postRunSnapshot.workspaceSeal;
+        result.workspaceChanged =
+          preRunSnapshot.workspaceSeal.workspaceSnapshotDigest !==
+          postRunSnapshot.workspaceSeal.workspaceSnapshotDigest;
+      }
       if (recoverySnapshot !== null) result.recoverySnapshot = recoverySnapshot;
       return Object.freeze(result);
     } catch (cause) {
@@ -912,6 +1251,8 @@ async function loadDesktopEvolutionDependencies({
   importPmExplorationExecutionModule = (url) => import(url),
   importPmExplorationTransitionModule = (url) => import(url),
   importPmExplorationRecoverySnapshotModule = (url) => import(url),
+  importBrowserVisionObservationAuthorityModule = (url) => import(url),
+  importBrowserVisionActionAuthorityModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -925,7 +1266,9 @@ async function loadDesktopEvolutionDependencies({
     {
       ...loaderOptions,
       additionalFactories: Object.freeze({
+        createDesktopPmCloneRecoveryController,
         createDesktopPmReadOnlyOutcomeReader,
+        createDesktopPmWorkspaceSnapshotter,
         createEvolvableArtifactRuntimeComposition,
       }),
     },
@@ -952,6 +1295,64 @@ async function loadDesktopEvolutionDependencies({
         resourcesPath,
       },
     );
+  }
+  const browserVisionAuthorityDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "browserVisionObservationAuthority",
+  );
+  if (browserVisionAuthorityDescriptor) {
+    if (
+      !("value" in browserVisionAuthorityDescriptor) ||
+      browserVisionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser vision observation authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserVisionObservationAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule = await importBrowserVisionObservationAuthorityModule(
+      pathToFileURL(authorityPath).href,
+    );
+    desktopDependencies.desktopBrowserVisionObservationHost =
+      createDesktopBrowserVisionObservationHost(
+        browserVisionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserVisionObservationAuthority",
+          "browser vision observation authority capture",
+        ),
+      );
+  }
+  const browserVisionActionAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(result, "browserVisionActionAuthority");
+  if (browserVisionActionAuthorityDescriptor) {
+    if (
+      !("value" in browserVisionActionAuthorityDescriptor) ||
+      browserVisionActionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser vision action authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserVisionActionAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule = await importBrowserVisionActionAuthorityModule(
+      pathToFileURL(authorityPath).href,
+    );
+    desktopDependencies.desktopBrowserVisionActionHost =
+      createDesktopBrowserVisionActionHost(
+        browserVisionActionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserVisionActionAuthority",
+          "browser vision action authority capture",
+        ),
+      );
   }
   if (result.marketplaceHost !== undefined) {
     desktopDependencies.governedSkillMarketplaceHost =
@@ -999,8 +1400,17 @@ async function loadDesktopEvolutionDependencies({
     result,
     "pmExplorationRecoverySnapshotStore",
   );
+  const pmWorkspaceSnapshotterDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "pmExplorationWorkspaceSnapshotter",
+  );
+  const pmCloneRecoveryControllerDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "pmExplorationCloneRecoveryController",
+  );
   let transitionCommitter = null;
   let transitionRecovery = null;
+  let cloneRecoveryController = null;
   if (pmTransitionCommitterDescriptor) {
     if (
       !("value" in pmTransitionCommitterDescriptor) ||
@@ -1108,6 +1518,23 @@ async function loadDesktopEvolutionDependencies({
       undefined,
       [pmRecoverySnapshotStoreDescriptor.value],
     );
+    const resolveSnapshotDescriptor = Object.getOwnPropertyDescriptor(
+      capturedSnapshotStore,
+      "resolveTransitionSnapshot",
+    );
+    let resolveTransitionSnapshot = null;
+    if (resolveSnapshotDescriptor) {
+      if (
+        !("value" in resolveSnapshotDescriptor) ||
+        typeof resolveSnapshotDescriptor.value !== "function" ||
+        types.isProxy(resolveSnapshotDescriptor.value)
+      ) {
+        throw new TypeError(
+          "PM recovery snapshot resolution port must be direct",
+        );
+      }
+      resolveTransitionSnapshot = resolveSnapshotDescriptor.value;
+    }
     recoverySnapshotStore = Object.freeze({
       manifestDigest: sha256Digest(
         ownData(
@@ -1122,7 +1549,134 @@ async function loadDesktopEvolutionDependencies({
         "retainTransitionSnapshot",
         "PM recovery snapshot retention port",
       ),
+      resolveTransitionSnapshot,
     });
+    if (transitionRecovery?.recoverySnapshot) {
+      if (resolveTransitionSnapshot === null) {
+        throw new Error(
+          "snapshot-bound PM transition recovery requires a recovery snapshot resolution port",
+        );
+      }
+      const resolution = Reflect.apply(resolveTransitionSnapshot, undefined, [
+        transitionRecovery.recoverySnapshot,
+      ]);
+      if (resolution && typeof resolution.then === "function") {
+        throw new TypeError(
+          "PM recovery snapshot resolution must be synchronous",
+        );
+      }
+      exactDataObject(
+        resolution,
+        [
+          "schema",
+          "authenticated",
+          "durable",
+          "readbackVerified",
+          "manifestDigest",
+          "acknowledgement",
+          "databaseSeal",
+          "databaseBytes",
+          "workspaceSeal",
+          "workspaceBytes",
+          "durabilityReceiptDigest",
+          "qualifiesForPromotion",
+        ],
+        "PM recovery snapshot resolution",
+      );
+      if (
+        resolution.schema !==
+          "chainlesschain.pm-exploration-recovery-snapshot-resolution/v1" ||
+        resolution.authenticated !== true ||
+        resolution.durable !== true ||
+        resolution.readbackVerified !== true ||
+        resolution.manifestDigest !== recoverySnapshotStore.manifestDigest ||
+        resolution.acknowledgement.snapshotAckDigest !==
+          transitionRecovery.recoverySnapshot.snapshotAckDigest ||
+        !Buffer.isBuffer(resolution.databaseBytes) ||
+        (resolution.workspaceBytes !== null &&
+          !Buffer.isBuffer(resolution.workspaceBytes)) ||
+        resolution.qualifiesForPromotion !== false
+      ) {
+        throw new Error("PM recovery snapshot resolution is invalid");
+      }
+      transitionRecovery = Object.freeze({
+        ...transitionRecovery,
+        recoverySnapshotReadbackVerified: true,
+      });
+    }
+  }
+  let workspaceSnapshotter = null;
+  if (pmWorkspaceSnapshotterDescriptor) {
+    if (
+      !("value" in pmWorkspaceSnapshotterDescriptor) ||
+      pmWorkspaceSnapshotterDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop PM workspace snapshotter must be an enumerable data property",
+      );
+    }
+    if (!pmExecutionHostDescriptor || !pmRecoverySnapshotStoreDescriptor) {
+      throw new Error(
+        "Desktop PM workspace snapshotter requires an execution host and recovery snapshot store",
+      );
+    }
+    const capturedWorkspaceSnapshotter = captureDesktopPmWorkspaceSnapshotter(
+      pmWorkspaceSnapshotterDescriptor.value,
+    );
+    workspaceSnapshotter = Object.freeze({
+      manifestDigest: sha256Digest(
+        ownData(
+          capturedWorkspaceSnapshotter,
+          "manifestDigest",
+          "PM workspace snapshotter manifest digest",
+        ),
+        "PM workspace snapshotter manifest digest",
+      ),
+      captureWorkspaceSnapshot: ownDirectFunction(
+        capturedWorkspaceSnapshotter,
+        "captureWorkspaceSnapshot",
+        "PM workspace snapshot capture port",
+      ),
+    });
+  }
+  if (pmCloneRecoveryControllerDescriptor) {
+    if (
+      !("value" in pmCloneRecoveryControllerDescriptor) ||
+      pmCloneRecoveryControllerDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop PM clone recovery controller must be an enumerable data property",
+      );
+    }
+    if (
+      !pmExecutionHostDescriptor ||
+      !pmTransitionCommitterDescriptor ||
+      !pmRecoverySnapshotStoreDescriptor ||
+      !pmWorkspaceSnapshotterDescriptor
+    ) {
+      throw new Error(
+        "Desktop PM clone recovery controller requires execution, transition, recovery-set and workspace capabilities",
+      );
+    }
+    const capturedRecoveryController = captureDesktopPmCloneRecoveryController(
+      pmCloneRecoveryControllerDescriptor.value,
+    );
+    const recoveryControllerManifestDigest = sha256Digest(
+      ownData(
+        capturedRecoveryController,
+        "manifestDigest",
+        "Desktop PM clone recovery controller manifest digest",
+      ),
+      "Desktop PM clone recovery controller manifest digest",
+    );
+    if (
+      recoveryControllerManifestDigest !== transitionCommitter.manifestDigest
+    ) {
+      throw new Error(
+        "Desktop PM clone recovery controller manifest does not match transition committer",
+      );
+    }
+    cloneRecoveryController = pmCloneRecoveryControllerDescriptor.value;
   }
   if (pmExecutionHostDescriptor) {
     if (
@@ -1148,7 +1702,16 @@ async function loadDesktopEvolutionDependencies({
         transitionCommitter,
         transitionRecovery,
         recoverySnapshotStore,
+        workspaceSnapshotter,
         capturePmRecoverySnapshot,
+      );
+  }
+  if (cloneRecoveryController !== null) {
+    desktopDependencies.desktopPmExplorationCloneRecoveryHost =
+      createDesktopPmExplorationCloneRecoveryHost(
+        cloneRecoveryController,
+        transitionRecovery,
+        desktopDependencies.desktopPmExplorationExecutionHost,
       );
   }
   const composition = result.evolvableArtifactRuntimeComposition;
@@ -1182,15 +1745,19 @@ async function loadDesktopEvolutionDependencies({
 module.exports = {
   evaluateDesktopPmExplorationMemory,
   executeDesktopPmExplorationRound,
+  inspectDesktopPmExplorationCloneRecoveryHost,
   inspectDesktopPmExplorationStorageHost,
   inspectDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationExecutionHost,
   isDesktopPmExplorationStorageHost,
   loadDesktopEvolutionDependencies,
   mergeDesktopPmExplorationBranches,
+  recoverDesktopPmExplorationClone,
   resolvePmExplorationExecutionHostPath,
   resolvePmExplorationLedgerAdapterPath,
   resolvePmExplorationRecoverySnapshotStorePath,
   resolvePmExplorationTransitionCommitterPath,
+  resolveBrowserVisionObservationAuthorityPath,
+  resolveBrowserVisionActionAuthorityPath,
   resolveLoaderPath,
 };

@@ -16,7 +16,9 @@ import {
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import {
   createEvolutionEvalProcessSupervisor,
+  createEvolutionEvalProcessRuntimeBroker,
   isEvolutionEvalProcessSupervisor,
+  isEvolutionEvalProcessRuntimeBroker,
 } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 
 const D = (value) =>
@@ -90,7 +92,11 @@ async function fixture(
   return { root, modulePath, target, supervisor };
 }
 
-function evidenceStore({ substitute = false, durable = true } = {}) {
+function evidenceStore({
+  substitute = false,
+  substituteKind = null,
+  durable = true,
+} = {}) {
   const records = new Map();
   const descriptor = {
     tenantId: "tenant:process-supervisor",
@@ -118,9 +124,11 @@ function evidenceStore({ substitute = false, durable = true } = {}) {
         ...descriptor,
         kind: request.kind,
         receiptDigest: request.receiptDigest,
-        evidence: substitute
-          ? { ...record.evidence, invocationId: "substituted" }
-          : structuredClone(record.evidence),
+        evidence:
+          substitute &&
+          (substituteKind === null || substituteKind === request.kind)
+            ? { ...record.evidence, invocationId: "substituted" }
+            : structuredClone(record.evidence),
       };
     },
   });
@@ -195,6 +203,50 @@ function capability(supervisor, request) {
 }
 
 describe("Evolution Eval process supervisor", () => {
+  it("brokers token accounting and tool calls without exposing parent closures", async () => {
+    const { target, supervisor } = await fixture(
+      [
+        "export async function runTarget(payload, runtime) {",
+        "  const tokens = await runtime.recordTokens(payload.tokens);",
+        '  const tool = await runtime.invokeTool("project:get", { projectId: payload.projectId });',
+        "  return { tokens, tool, pid: process.pid };",
+        "}",
+      ].join("\n"),
+    );
+    const calls = [];
+    const broker = createEvolutionEvalProcessRuntimeBroker({
+      recordTokens: async (count) => {
+        calls.push({ kind: "tokens", count });
+        return count;
+      },
+      invokeTool: async (toolId, input) => {
+        calls.push({ kind: "tool", toolId, input });
+        return { id: input.projectId, status: "active" };
+      },
+    });
+    expect(isEvolutionEvalProcessRuntimeBroker(broker)).toBe(true);
+    const request = requests(
+      target,
+      new Date(Date.now() + 2_000).toISOString(),
+      { tokens: 7, projectId: "project-one" },
+    );
+    const result = await supervisor.invokeTarget(request.invocation, broker);
+    expect(result.value).toEqual({
+      tokens: 7,
+      tool: { id: "project-one", status: "active" },
+      pid: expect.any(Number),
+    });
+    expect(result.value.pid).not.toBe(process.pid);
+    expect(calls).toEqual([
+      { kind: "tokens", count: 7 },
+      {
+        kind: "tool",
+        toolId: "project:get",
+        input: { projectId: "project-one" },
+      },
+    ]);
+  });
+
   it("runs descriptor-bound module bytes in an isolated OS process", async () => {
     const { target, supervisor } = await fixture(
       "export async function runTarget(payload) { return { output: payload.input.toUpperCase(), pid: process.pid }; }",
@@ -214,7 +266,7 @@ describe("Evolution Eval process supervisor", () => {
     expect(result.receipt.isolation).toBe("process");
   });
 
-  it("durably retains and freshly resolves invocation and revocation evidence", async () => {
+  it("durably retains and freshly resolves invocation, revocation, and supervision evidence", async () => {
     const store = evidenceStore();
     const { target, supervisor } = await fixture(
       "export async function runTarget(payload) { return { output: payload.input }; }",
@@ -227,14 +279,21 @@ describe("Evolution Eval process supervisor", () => {
     await expect(
       supervisor.run(request.supervision, capability(supervisor, request)),
     ).resolves.toMatchObject({ value: { output: "hello" } });
+    expect(supervisor.childEvidenceStoreDescriptor).toEqual(
+      store.port.descriptor,
+    );
     expect([...store.records.values()].map(({ kind }) => kind).sort()).toEqual([
       "invocation",
       "revocation",
+      "supervision",
     ]);
   });
 
-  it("fails closed when durable child evidence readback is substituted", async () => {
-    const store = evidenceStore({ substitute: true });
+  it("fails closed when durable supervision evidence readback is substituted", async () => {
+    const store = evidenceStore({
+      substitute: true,
+      substituteKind: "supervision",
+    });
     const { target, supervisor } = await fixture(
       "export async function runTarget() { return { safe: true }; }",
       { childEvidenceStore: store.port },

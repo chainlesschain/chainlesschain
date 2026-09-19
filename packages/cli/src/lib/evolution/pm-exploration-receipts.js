@@ -7,22 +7,33 @@ import {
 } from "node:crypto";
 import { isKeyObject, isProxy } from "node:util/types";
 
-export const PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA =
+export const PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA_V1 =
   "chainlesschain.pm-exploration-execution-receipt/v1";
+export const PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA_V2 =
+  "chainlesschain.pm-exploration-execution-receipt/v2";
+export const PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA =
+  "chainlesschain.pm-exploration-execution-receipt/v3";
 export const PM_EXPLORATION_GRADER_RECEIPT_SCHEMA =
   "chainlesschain.pm-exploration-grader-receipt/v1";
-export const PM_EXPLORATION_MERGE_RECEIPT_SCHEMA =
+export const PM_EXPLORATION_MERGE_RECEIPT_SCHEMA_V1 =
   "chainlesschain.pm-exploration-merge-receipt/v1";
-export const PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA =
+export const PM_EXPLORATION_MERGE_RECEIPT_SCHEMA =
+  "chainlesschain.pm-exploration-merge-receipt/v2";
+export const PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA_V1 =
   "chainlesschain.pm-exploration-evaluator-receipt/v1";
+export const PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA =
+  "chainlesschain.pm-exploration-evaluator-receipt/v2";
+export const PM_EXPLORATION_CURRICULUM_RECEIPT_SCHEMA =
+  "chainlesschain.pm-exploration-curriculum-receipt/v1";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[a-z][a-z0-9]*(?:[._:@/-][a-z0-9]+)*$/u;
 const ROLES = Object.freeze({
-  execution: PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA,
+  execution: PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA_V1,
   grader: PM_EXPLORATION_GRADER_RECEIPT_SCHEMA,
-  merge: PM_EXPLORATION_MERGE_RECEIPT_SCHEMA,
-  evaluator: PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA,
+  merge: PM_EXPLORATION_MERGE_RECEIPT_SCHEMA_V1,
+  evaluator: PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA_V1,
+  curriculum: PM_EXPLORATION_CURRICULUM_RECEIPT_SCHEMA,
 });
 const AUTHORITIES = new WeakMap();
 const SIGNERS = new WeakMap();
@@ -164,6 +175,20 @@ function branchCheckpoints(value) {
 }
 
 function normalizeExecutionPayload(value) {
+  const hasIsolationEvidence =
+    value &&
+    typeof value === "object" &&
+    !isProxy(value) &&
+    Object.hasOwn(value, "runnerIsolationEvidenceDigest");
+  const hasEgressEvidence =
+    value &&
+    typeof value === "object" &&
+    !isProxy(value) &&
+    Object.hasOwn(value, "egressEvidenceDigest");
+  if (hasEgressEvidence && !hasIsolationEvidence)
+    throw new TypeError(
+      "execution egress evidence requires isolation evidence",
+    );
   exact(
     value,
     [
@@ -179,6 +204,8 @@ function normalizeExecutionPayload(value) {
       "traceDigest",
       "status",
       "failureClass",
+      ...(hasIsolationEvidence ? ["runnerIsolationEvidenceDigest"] : []),
+      ...(hasEgressEvidence ? ["egressEvidenceDigest"] : []),
       "metrics",
       "issuedAt",
     ],
@@ -207,10 +234,31 @@ function normalizeExecutionPayload(value) {
     throw new TypeError("execution receipt failureClass is invalid");
   }
   if (
+    hasEgressEvidence &&
+    ((value.status === "succeeded" &&
+      !DIGEST.test(value.egressEvidenceDigest ?? "")) ||
+      (value.status !== "succeeded" && value.egressEvidenceDigest !== null))
+  ) {
+    throw new TypeError(
+      "execution receipt egress evidence disagrees with its status",
+    );
+  }
+  if (
     (value.status === "succeeded" && value.failureClass !== "none") ||
     (value.status !== "succeeded" && value.failureClass === "none")
   ) {
     throw new TypeError("execution receipt status and failureClass disagree");
+  }
+  if (
+    hasIsolationEvidence &&
+    ((value.status === "succeeded" &&
+      !DIGEST.test(value.runnerIsolationEvidenceDigest ?? "")) ||
+      (value.status !== "succeeded" &&
+        value.runnerIsolationEvidenceDigest !== null))
+  ) {
+    throw new TypeError(
+      "execution receipt isolation evidence disagrees with its status",
+    );
   }
   return deepFreeze({
     planDigest: digest(value.planDigest, "planDigest"),
@@ -225,6 +273,14 @@ function normalizeExecutionPayload(value) {
     traceDigest: digest(value.traceDigest, "traceDigest"),
     status: value.status,
     failureClass: value.failureClass,
+    ...(hasIsolationEvidence
+      ? {
+          runnerIsolationEvidenceDigest: value.runnerIsolationEvidenceDigest,
+        }
+      : {}),
+    ...(hasEgressEvidence
+      ? { egressEvidenceDigest: value.egressEvidenceDigest }
+      : {}),
     metrics: metrics(value.metrics, "execution metrics"),
     issuedAt: issuedAt(value.issuedAt),
   });
@@ -274,6 +330,11 @@ function normalizeGraderPayload(value) {
 }
 
 function normalizeMergePayload(value) {
+  const hasIsolationEvidence =
+    value &&
+    typeof value === "object" &&
+    !isProxy(value) &&
+    Object.hasOwn(value, "mergerIsolationEvidenceDigest");
   exact(
     value,
     [
@@ -286,6 +347,7 @@ function normalizeMergePayload(value) {
       "conflictResolutionDigest",
       "status",
       "failureClass",
+      ...(hasIsolationEvidence ? ["mergerIsolationEvidenceDigest"] : []),
       "metrics",
       "issuedAt",
     ],
@@ -306,6 +368,17 @@ function normalizeMergePayload(value) {
   ) {
     throw new TypeError("merge receipt status and failureClass disagree");
   }
+  if (
+    hasIsolationEvidence &&
+    ((value.status === "succeeded" &&
+      !DIGEST.test(value.mergerIsolationEvidenceDigest ?? "")) ||
+      (value.status !== "succeeded" &&
+        value.mergerIsolationEvidenceDigest !== null))
+  ) {
+    throw new TypeError(
+      "merge receipt isolation evidence disagrees with its status",
+    );
+  }
   return deepFreeze({
     planDigest: digest(value.planDigest, "planDigest"),
     environmentDigest: digest(value.environmentDigest, "environmentDigest"),
@@ -319,12 +392,22 @@ function normalizeMergePayload(value) {
     ),
     status: value.status,
     failureClass: value.failureClass,
+    ...(hasIsolationEvidence
+      ? {
+          mergerIsolationEvidenceDigest: value.mergerIsolationEvidenceDigest,
+        }
+      : {}),
     metrics: metrics(value.metrics, "merge metrics"),
     issuedAt: issuedAt(value.issuedAt),
   });
 }
 
 function normalizeEvaluatorPayload(value) {
+  const hasIsolationEvidence =
+    value &&
+    typeof value === "object" &&
+    !isProxy(value) &&
+    Object.hasOwn(value, "evaluatorIsolationEvidenceDigest");
   exact(
     value,
     [
@@ -337,6 +420,7 @@ function normalizeEvaluatorPayload(value) {
       "decision",
       "scoreBasisPoints",
       "evaluationDigest",
+      ...(hasIsolationEvidence ? ["evaluatorIsolationEvidenceDigest"] : []),
       "metrics",
       "issuedAt",
     ],
@@ -344,6 +428,13 @@ function normalizeEvaluatorPayload(value) {
   );
   if (!["accept", "reject", "unsafe"].includes(value.decision))
     throw new TypeError("evaluator receipt decision is invalid");
+  if (
+    hasIsolationEvidence &&
+    value.evaluatorIsolationEvidenceDigest !== null &&
+    !DIGEST.test(value.evaluatorIsolationEvidenceDigest ?? "")
+  ) {
+    throw new TypeError("evaluator receipt isolation evidence is invalid");
+  }
   return deepFreeze({
     planDigest: digest(value.planDigest, "planDigest"),
     environmentDigest: digest(value.environmentDigest, "environmentDigest"),
@@ -362,7 +453,85 @@ function normalizeEvaluatorPayload(value) {
       10_000,
     ),
     evaluationDigest: digest(value.evaluationDigest, "evaluationDigest"),
+    ...(hasIsolationEvidence
+      ? {
+          evaluatorIsolationEvidenceDigest:
+            value.evaluatorIsolationEvidenceDigest,
+        }
+      : {}),
     metrics: metrics(value.metrics, "evaluator metrics"),
+    issuedAt: issuedAt(value.issuedAt),
+  });
+}
+
+function normalizeCurriculumPayload(value) {
+  exact(
+    value,
+    [
+      "planDigest",
+      "environmentDigest",
+      "executionManifestDigest",
+      "requestDigest",
+      "selectionId",
+      "roundId",
+      "stage",
+      "branchId",
+      "inputMemoryDigest",
+      "taskId",
+      "rationaleDigest",
+      "status",
+      "failureClass",
+      "curriculumIsolationEvidenceDigest",
+      "metrics",
+      "issuedAt",
+    ],
+    "curriculum receipt payload",
+  );
+  if (!["broad", "deep"].includes(value.stage))
+    throw new TypeError("curriculum receipt stage is invalid");
+  if (value.stage === "broad") identifier(value.branchId, "branchId");
+  else if (value.branchId !== null)
+    throw new TypeError("Deep curriculum receipts cannot name a branch");
+  if (!["succeeded", "failed", "aborted"].includes(value.status))
+    throw new TypeError("curriculum receipt status is invalid");
+  if (
+    !["none", "budget", "infrastructure", "unknown"].includes(
+      value.failureClass,
+    )
+  )
+    throw new TypeError("curriculum receipt failureClass is invalid");
+  if (
+    (value.status === "succeeded" && value.failureClass !== "none") ||
+    (value.status !== "succeeded" && value.failureClass === "none") ||
+    (value.status === "succeeded" &&
+      (typeof value.taskId !== "string" ||
+        !DIGEST.test(value.curriculumIsolationEvidenceDigest ?? ""))) ||
+    (value.status !== "succeeded" &&
+      (value.taskId !== null ||
+        value.curriculumIsolationEvidenceDigest !== null))
+  ) {
+    throw new TypeError("curriculum receipt status fields disagree");
+  }
+  return deepFreeze({
+    planDigest: digest(value.planDigest, "planDigest"),
+    environmentDigest: digest(value.environmentDigest, "environmentDigest"),
+    executionManifestDigest: digest(
+      value.executionManifestDigest,
+      "executionManifestDigest",
+    ),
+    requestDigest: digest(value.requestDigest, "requestDigest"),
+    selectionId: identifier(value.selectionId, "selectionId"),
+    roundId: identifier(value.roundId, "roundId"),
+    stage: value.stage,
+    branchId: value.branchId,
+    inputMemoryDigest: digest(value.inputMemoryDigest, "inputMemoryDigest"),
+    taskId:
+      value.status === "succeeded" ? identifier(value.taskId, "taskId") : null,
+    rationaleDigest: digest(value.rationaleDigest, "rationaleDigest"),
+    status: value.status,
+    failureClass: value.failureClass,
+    curriculumIsolationEvidenceDigest: value.curriculumIsolationEvidenceDigest,
+    metrics: metrics(value.metrics, "curriculum metrics"),
     issuedAt: issuedAt(value.issuedAt),
   });
 }
@@ -371,7 +540,36 @@ function normalizePayload(receiptRole, value) {
   if (receiptRole === "execution") return normalizeExecutionPayload(value);
   if (receiptRole === "grader") return normalizeGraderPayload(value);
   if (receiptRole === "merge") return normalizeMergePayload(value);
+  if (receiptRole === "curriculum") return normalizeCurriculumPayload(value);
   return normalizeEvaluatorPayload(value);
+}
+
+function receiptSchema(receiptRole, payload) {
+  if (
+    receiptRole === "execution" &&
+    Object.hasOwn(payload, "egressEvidenceDigest")
+  ) {
+    return PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA;
+  }
+  if (
+    receiptRole === "execution" &&
+    Object.hasOwn(payload, "runnerIsolationEvidenceDigest")
+  ) {
+    return PM_EXPLORATION_EXECUTION_RECEIPT_SCHEMA_V2;
+  }
+  if (
+    receiptRole === "merge" &&
+    Object.hasOwn(payload, "mergerIsolationEvidenceDigest")
+  ) {
+    return PM_EXPLORATION_MERGE_RECEIPT_SCHEMA;
+  }
+  if (
+    receiptRole === "evaluator" &&
+    Object.hasOwn(payload, "evaluatorIsolationEvidenceDigest")
+  ) {
+    return PM_EXPLORATION_EVALUATOR_RECEIPT_SCHEMA;
+  }
+  return ROLES[receiptRole];
 }
 
 function publicKey(value) {
@@ -504,17 +702,18 @@ export function issuePmExplorationReceipt(signer, payloadInput) {
   const authority = AUTHORITIES.get(signing.authority);
   const receiptRole = authority.descriptor.role;
   const payload = normalizePayload(receiptRole, payloadInput);
+  const schema = receiptSchema(receiptRole, payload);
   const core = deepFreeze({
-    schema: ROLES[receiptRole],
+    schema,
     role: receiptRole,
     authenticated: true,
     authority: authority.descriptor,
     payload,
   });
-  const receiptDigest = hash(ROLES[receiptRole], core);
+  const receiptDigest = hash(schema, core);
   const signature = sign(
     null,
-    Buffer.from(`${ROLES[receiptRole]}\0${receiptDigest}`, "utf8"),
+    Buffer.from(`${schema}\0${receiptDigest}`, "utf8"),
     signing.privateKey,
   ).toString("base64url");
   return deepFreeze({ ...core, receiptDigest, signature });
@@ -578,15 +777,16 @@ export function verifyPmExplorationReceipt(
     "PM exploration receipt",
   );
   const receiptRole = authority.descriptor.role;
+  const payload = normalizePayload(receiptRole, value.payload);
+  const schema = receiptSchema(receiptRole, payload);
   if (
-    value.schema !== ROLES[receiptRole] ||
+    value.schema !== schema ||
     value.role !== receiptRole ||
     value.authenticated !== true ||
     canonical(value.authority) !== canonical(authority.descriptor)
   ) {
     throw new Error("PM exploration receipt authority binding mismatch");
   }
-  const payload = normalizePayload(receiptRole, value.payload);
   const core = deepFreeze({
     schema: value.schema,
     role: value.role,
