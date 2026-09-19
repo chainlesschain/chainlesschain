@@ -102,14 +102,24 @@ describe("FileHandler", () => {
   });
 
   describe("startDownload", () => {
-    it("should start a download", async () => {
+    it("should fail closed until a governed page download contract exists", async () => {
+      const started = vi.fn();
+      const failed = vi.fn();
+      handler.on("downloadStarted", started);
+      handler.on("downloadFailed", failed);
       const result = await handler.startDownload(
         "tab1",
         "https://example.com/file.pdf",
       );
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("governed browser download contract");
       expect(result.downloadId).toBeDefined();
+      expect(mockPage.evaluate).not.toHaveBeenCalled();
+      expect(started).not.toHaveBeenCalled();
+      expect(failed).toHaveBeenCalledWith(
+        expect.objectContaining({ url: null, savePath: null }),
+      );
     });
 
     it("should block executable files when configured", async () => {
@@ -124,7 +134,7 @@ describe("FileHandler", () => {
       expect(result.error).toContain("blocked");
     });
 
-    it("should track download progress", async () => {
+    it("should not report page download progress without real evidence", async () => {
       const result = await handler.startDownload(
         "tab1",
         "https://example.com/file.pdf",
@@ -133,7 +143,24 @@ describe("FileHandler", () => {
         },
       );
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+      expect(handler.getDownload(result.downloadId)).toMatchObject({
+        state: DownloadState.FAILED,
+        progress: 0,
+      });
+    });
+
+    it("should not bypass governance through the legacy fetch fallback", async () => {
+      const result = await handler.startDownload(
+        null,
+        "https://example.com/file.pdf",
+        { headers: { authorization: "secret" } },
+      );
+
+      expect(result.success).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
     });
   });
 
@@ -171,7 +198,8 @@ describe("FileHandler", () => {
       const download = handler.getDownload(startResult.downloadId);
 
       expect(download).toBeDefined();
-      expect(download.url).toBe("https://example.com/file.pdf");
+      expect(download.url).toBeNull();
+      expect(download.savePath).toBeNull();
     });
 
     it("should return null for non-existent download", () => {

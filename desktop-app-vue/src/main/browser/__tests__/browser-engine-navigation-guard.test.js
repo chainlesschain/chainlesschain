@@ -158,6 +158,34 @@ describe("BrowserEngine governed navigation redirect guard", () => {
     expect(route.abort).not.toHaveBeenCalled();
   });
 
+  it("forces browser downloads off and cancels page download events", async () => {
+    const guarded = guardedContextFixture();
+    const { page } = pageFixture(["https://example.test/start"]);
+    guarded.context.newPage.mockResolvedValue(page);
+    const engine = new BrowserEngine();
+    engine.browser = guarded.browser;
+    engine.isRunning = true;
+    await engine.createContext("default", { acceptDownloads: true });
+    await engine.openTab("default", "https://example.test/start");
+
+    expect(guarded.browser.newContext).toHaveBeenCalledWith(
+      expect.objectContaining({ acceptDownloads: false }),
+    );
+    const downloadListener = page.on.mock.calls.find(
+      ([event]) => event === "download",
+    )?.[1];
+    expect(downloadListener).toBeTypeOf("function");
+    const download = {
+      cancel: vi.fn(async () => {}),
+      delete: vi.fn(async () => {}),
+    };
+    downloadListener(download);
+    await vi.waitFor(() => {
+      expect(download.cancel).toHaveBeenCalledOnce();
+      expect(download.delete).toHaveBeenCalledOnce();
+    });
+  });
+
   it("closes opener popups and aborts their main-frame navigation", async () => {
     const guarded = guardedContextFixture();
     const engine = new BrowserEngine();

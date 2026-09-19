@@ -230,6 +230,7 @@ class BrowserEngine extends EventEmitter {
         storageState: options.storageState, // 恢复 Cookie/LocalStorage
         ignoreHTTPSErrors: options.ignoreHTTPSErrors ?? true,
         ...options,
+        acceptDownloads: false,
       };
 
       context = await this.browser.newContext(contextOptions);
@@ -310,6 +311,8 @@ class BrowserEngine extends EventEmitter {
     }
     const approvedPages = new WeakSet();
     const blockedPages = new WeakSet();
+    const monitoredPages = new WeakSet();
+    const blockedDownloads = new WeakSet();
     const blockPage = async (page, reason) => {
       if (!page || blockedPages.has(page)) return;
       blockedPages.add(page);
@@ -317,6 +320,27 @@ class BrowserEngine extends EventEmitter {
       if (typeof page.close === "function") {
         await page.close().catch(() => {});
       }
+    };
+    const blockDownload = async (download) => {
+      if (!download || blockedDownloads.has(download)) return;
+      blockedDownloads.add(download);
+      this.emit("tab:download-blocked", { profileName });
+      if (typeof download.cancel === "function") {
+        await download.cancel().catch(() => {});
+      }
+      if (typeof download.delete === "function") {
+        await download.delete().catch(() => {});
+      }
+    };
+    const installPageBoundary = (page) => {
+      if (monitoredPages.has(page)) return;
+      if (!page || typeof page.on !== "function") {
+        throw new TypeError("Browser page download guard is unavailable");
+      }
+      monitoredPages.add(page);
+      page.on("download", (download) => {
+        void blockDownload(download);
+      });
     };
     const routeHandler = async (route) => {
       const request = route.request();
@@ -350,6 +374,7 @@ class BrowserEngine extends EventEmitter {
     context.on("page", (page) => {
       void Promise.resolve()
         .then(async () => {
+          installPageBoundary(page);
           if (typeof page?.opener !== "function") {
             await blockPage(page, "unattributed-page");
             return;
@@ -363,7 +388,7 @@ class BrowserEngine extends EventEmitter {
     });
     this.contextPageGuards.set(
       context,
-      Object.freeze({ approvedPages, routeHandler }),
+      Object.freeze({ approvedPages, installPageBoundary, routeHandler }),
     );
   }
 
@@ -391,7 +416,9 @@ class BrowserEngine extends EventEmitter {
         assertAllowedNavigationUrl(url, allowedOrigins);
       }
       page = await context.newPage();
-      this.contextPageGuards.get(context)?.approvedPages.add(page);
+      const contextGuard = this.contextPageGuards.get(context);
+      contextGuard?.installPageBoundary(page);
+      contextGuard?.approvedPages.add(page);
       targetId = `tab-${this.nextTargetId++}`;
 
       // 为页面添加 targetId 属性（用于快照引擎）

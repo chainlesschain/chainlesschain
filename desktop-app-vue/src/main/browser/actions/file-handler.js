@@ -14,7 +14,6 @@
 
 const { EventEmitter } = require("events");
 const path = require("path");
-const crypto = require("crypto");
 
 // Lazy load fs to allow dependency injection in tests
 let fsModule = null;
@@ -257,172 +256,26 @@ class FileHandler extends EventEmitter {
     this.downloads.set(downloadId, download);
     this.stats.totalDownloads++;
 
-    this.emit("downloadStarted", download);
-
-    // 如果有浏览器引擎，使用页面下载
-    if (this.browserEngine && targetId) {
-      return await this._downloadViaPage(download, options);
-    }
-
-    // 否则使用 fetch
-    return await this._downloadViaFetch(download, options);
+    return await this._rejectUngovernedDownload(download);
   }
 
   /**
-   * 通过页面下载
+   * Reject legacy page/fetch downloads until the governed artifact contract
+   * can provide real completion, size, digest and quarantine evidence.
    * @private
    */
-  async _downloadViaPage(download, options) {
-    const page = this.browserEngine.getPage(download.targetId);
-    if (!page) {
-      download.state = DownloadState.FAILED;
-      download.error = "Page not found";
-      return {
-        success: false,
-        error: "Page not found",
-        downloadId: download.id,
-      };
-    }
-
-    try {
-      download.state = DownloadState.IN_PROGRESS;
-
-      // 触发下载
-      await page.evaluate((url) => {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }, download.url);
-
-      // 等待下载完成（简化实现）
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      download.state = DownloadState.COMPLETED;
-      download.progress = 100;
-      download.endTime = Date.now();
-
-      this.stats.completedDownloads++;
-      this._updateCategoryStats(download.category);
-
-      this.emit("downloadCompleted", download);
-
-      return {
-        success: true,
-        downloadId: download.id,
-        path: download.savePath,
-        duration: download.endTime - download.startTime,
-      };
-    } catch (error) {
-      download.state = DownloadState.FAILED;
-      download.error = error.message;
-      download.endTime = Date.now();
-
-      this.stats.failedDownloads++;
-
-      this.emit("downloadFailed", download);
-
-      return { success: false, error: error.message, downloadId: download.id };
-    }
-  }
-
-  /**
-   * 通过 fetch 下载
-   * @private
-   */
-  async _downloadViaFetch(download, options) {
-    try {
-      download.state = DownloadState.IN_PROGRESS;
-
-      const response = await fetch(download.url, {
-        headers: options.headers || {},
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const contentLength = response.headers.get("content-length");
-      download.totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-
-      // 检查文件大小限制
-      if (
-        this.config.maxFileSize > 0 &&
-        download.totalBytes > this.config.maxFileSize
-      ) {
-        throw new Error(
-          `File size ${download.totalBytes} exceeds limit ${this.config.maxFileSize}`,
-        );
-      }
-
-      const chunks = [];
-      const reader = response.body.getReader();
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        chunks.push(value);
-        download.receivedBytes += value.length;
-
-        if (download.totalBytes > 0) {
-          download.progress = Math.round(
-            (download.receivedBytes / download.totalBytes) * 100,
-          );
-        }
-
-        if (this.config.trackProgress) {
-          this.emit("downloadProgress", {
-            id: download.id,
-            progress: download.progress,
-            receivedBytes: download.receivedBytes,
-            totalBytes: download.totalBytes,
-          });
-        }
-      }
-
-      // 保存文件
-      const buffer = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
-
-      if (download.savePath) {
-        this.fs.writeFileSync(download.savePath, buffer);
-      }
-
-      download.state = DownloadState.COMPLETED;
-      download.progress = 100;
-      download.endTime = Date.now();
-      download.hash = crypto.createHash("md5").update(buffer).digest("hex");
-
-      this.stats.completedDownloads++;
-      this.stats.totalBytes += download.receivedBytes;
-      this._updateCategoryStats(download.category);
-
-      this.emit("downloadCompleted", download);
-
-      return {
-        success: true,
-        downloadId: download.id,
-        path: download.savePath,
-        size: download.receivedBytes,
-        hash: download.hash,
-        duration: download.endTime - download.startTime,
-      };
-    } catch (error) {
-      download.state = DownloadState.FAILED;
-      download.error = error.message;
-      download.endTime = Date.now();
-
-      this.stats.failedDownloads++;
-
-      this.emit("downloadFailed", download);
-
-      return { success: false, error: error.message, downloadId: download.id };
-    }
+  async _rejectUngovernedDownload(download) {
+    const error =
+      "Page downloads require the governed browser download contract";
+    download.url = null;
+    download.savePath = null;
+    download.filename = null;
+    download.state = DownloadState.FAILED;
+    download.error = error;
+    download.endTime = Date.now();
+    this.stats.failedDownloads++;
+    this.emit("downloadFailed", download);
+    return { success: false, error, downloadId: download.id };
   }
 
   /**
