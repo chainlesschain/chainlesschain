@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const {
   projectMarketplaceInstalledPlugin,
+  projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
@@ -243,5 +244,37 @@ describe("plugin public projection", () => {
       onClick: "safeMethod",
     });
     expect(JSON.stringify({ pages, menus, components })).not.toContain(secret);
+  });
+
+  it("returns a bounded non-executable plugin page receipt", () => {
+    const projected = projectPluginPageContent("plugin-1", "main");
+    const bounded = projectPluginPageContent("p".repeat(300), "q".repeat(300));
+
+    expect(projected).toEqual({
+      success: true,
+      contentType: "component",
+      props: { pluginId: "plugin-1", pageId: "main" },
+    });
+    expect(projected).not.toHaveProperty("html");
+    expect(projected).not.toHaveProperty("src");
+    expect(projected).not.toHaveProperty("componentPath");
+    expect(bounded.props.pluginId).toHaveLength(256);
+    expect(bounded.props.pageId).toHaveLength(256);
+  });
+
+  it("keeps active plugin page content paths out of the renderer", () => {
+    const source = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/renderer/components/plugins/PluginPageWrapper.vue",
+      ),
+      "utf8",
+    );
+
+    expect(source).not.toContain("<iframe");
+    expect(source).not.toContain("v-html");
+    expect(source).not.toContain("@vite-ignore");
+    expect(source).not.toContain("DOMPurify");
+    expect(source).not.toMatch(/pageResult\.(?:src|html|componentPath)/u);
   });
 });

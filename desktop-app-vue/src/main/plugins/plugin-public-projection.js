@@ -286,8 +286,20 @@ function projectPluginUiExtensions(extensions, kind) {
     .filter(Boolean);
 }
 
+function projectPluginPageContent(pluginId, pageId) {
+  return {
+    success: true,
+    contentType: "component",
+    props: {
+      pluginId: boundedString(pluginId, 256),
+      pageId: boundedString(pageId, 256),
+    },
+  };
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
+  projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,

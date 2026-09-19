@@ -5,12 +5,9 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
-  PLUGIN_METHOD_UNAVAILABLE_CODE,
-  createPluginIpcFailureResult,
-  createPluginOperationError,
-} = require("./plugin-ipc-error-boundary");
-const {
+  projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
@@ -696,47 +693,7 @@ function registerPluginIPC({
           throw new Error(`插件未启用: ${pluginId}`);
         }
 
-        // 查找页面扩展配置
-        const pageExtensions =
-          pluginManager.registry.getExtensionsByPoint("ui.page");
-        const pageExt = pageExtensions.find(
-          (ext) =>
-            ext.plugin_id === pluginId &&
-            (ext.config?.id === pageId || pageId === "main"),
-        );
-
-        if (!pageExt) {
-          // 如果没有注册页面扩展，尝试调用插件的 getPageContent 方法
-          const sandbox = pluginManager.sandboxes?.get(pluginId);
-          if (sandbox) {
-            try {
-              const content = await sandbox.callMethod(
-                "getPageContent",
-                pageId,
-              );
-              if (content) {
-                return { success: true, ...content };
-              }
-            } catch (err) {
-              // 忽略方法不存在的错误
-              if (err?.code !== PLUGIN_METHOD_UNAVAILABLE_CODE) {
-                throw createPluginOperationError("plugin");
-              }
-            }
-          }
-
-          return {
-            success: true,
-            contentType: "component",
-            props: { pluginId, pageId },
-          };
-        }
-
-        return {
-          success: true,
-          contentType: pageExt.config?.contentType || "component",
-          ...pageExt.config,
-        };
+        return projectPluginPageContent(pluginId, pageId);
       }),
   );
 

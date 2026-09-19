@@ -7,6 +7,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
+  projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
   projectPluginSettings,
@@ -227,6 +228,26 @@ function registerLazyPluginIPC({
       return createPluginIpcFailureResult("pluginLazy");
     }
   });
+
+  ipc.handle(
+    "plugin:get-page-content",
+    async (_event, pluginId, pageId = "main") => {
+      try {
+        await ensurePluginInitialized(app);
+        if (!app.pluginManager) {
+          throw new Error("插件管理器未初始化");
+        }
+        const plugin = await app.pluginManager.getPlugin(pluginId);
+        if (!plugin || plugin.state !== "enabled") {
+          throw new Error(`插件不存在或未启用: ${pluginId}`);
+        }
+        return projectPluginPageContent(pluginId, pageId);
+      } catch (error) {
+        logger.error("[Plugin Lazy IPC] 获取插件页面回执失败:", error);
+        return createPluginIpcFailureResult("pluginLazy");
+      }
+    },
+  );
 
   // ============================================================
   // 设置管理

@@ -112,6 +112,11 @@ describe("lazy plugin IPC error boundary", () => {
       {},
       "global-header",
     );
+    const page = await ipc.handlers.get("plugin:get-page-content")(
+      {},
+      "plugin-1",
+      "main",
+    );
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -135,8 +140,21 @@ describe("lazy plugin IPC error boundary", () => {
       icon: "",
     });
     expect(slot.extensions[0].config.type).toBe("custom");
+    expect(page).toEqual({
+      success: true,
+      contentType: "component",
+      props: { pluginId: "plugin-1", pageId: "main" },
+    });
     expect(
-      JSON.stringify({ list, detail, install, settings, extensions, slot }),
+      JSON.stringify({
+        list,
+        detail,
+        install,
+        settings,
+        extensions,
+        slot,
+        page,
+      }),
     ).not.toContain(secret);
   });
 

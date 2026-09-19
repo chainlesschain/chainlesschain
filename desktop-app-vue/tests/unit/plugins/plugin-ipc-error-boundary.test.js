@@ -189,32 +189,24 @@ describe("plugin IPC error boundary", () => {
     expect(sanitizePluginPersistedError("plugin", null)).toBeNull();
   });
 
-  it("falls back only for the stable optional-method signal", async () => {
-    const missingMethodHandler = registerPageContentHandler({
-      callMethod: async () => {
-        throw createPluginMethodUnavailableError();
-      },
-    });
-    const executionFailureHandler = registerPageContentHandler({
-      callMethod: async () => {
-        throw new Error("plugin-page-secret");
-      },
-    });
+  it("returns a fixed page receipt without invoking plugin content", async () => {
+    const secret = "plugin-page-content-secret";
+    const sandbox = {
+      callMethod: vi.fn().mockResolvedValue({
+        contentType: "html",
+        html: secret,
+        componentPath: secret,
+        src: secret,
+      }),
+    };
+    const handler = registerPageContentHandler(sandbox);
 
-    await expect(
-      missingMethodHandler({}, "plugin-id", "main"),
-    ).resolves.toEqual({
+    await expect(handler({}, "plugin-id", "main")).resolves.toEqual({
       success: true,
       contentType: "component",
       props: { pluginId: "plugin-id", pageId: "main" },
     });
-    await expect(
-      executionFailureHandler({}, "plugin-id", "main"),
-    ).resolves.toEqual({
-      success: false,
-      error: "Plugin operation failed",
-      code: "PLUGIN_OPERATION_FAILED",
-    });
+    expect(sandbox.callMethod).not.toHaveBeenCalled();
   });
 
   it("projects regular plugin query and filesystem success payloads", async () => {
@@ -286,6 +278,11 @@ describe("plugin IPC error boundary", () => {
       {},
       "global-header",
     );
+    const page = await handlers.get("plugin:get-page-content")(
+      {},
+      "plugin-1",
+      "main",
+    );
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -309,8 +306,21 @@ describe("plugin IPC error boundary", () => {
       icon: "",
     });
     expect(slot.extensions[0].config.type).toBe("custom");
+    expect(page).toEqual({
+      success: true,
+      contentType: "component",
+      props: { pluginId: "plugin-1", pageId: "main" },
+    });
     expect(
-      JSON.stringify({ list, detail, install, settings, extensions, slot }),
+      JSON.stringify({
+        list,
+        detail,
+        install,
+        settings,
+        extensions,
+        slot,
+        page,
+      }),
     ).not.toContain(secret);
   });
 
