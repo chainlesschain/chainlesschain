@@ -25,6 +25,10 @@ import {
   BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
   captureBrowserNavigationActionAuthority,
 } from "../../src/lib/evolution/browser-navigation-action-authority.js";
+import {
+  BROWSER_KEYBOARD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserKeyboardActionAuthority,
+} from "../../src/lib/evolution/browser-keyboard-action-authority.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -822,6 +826,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserVisionObservationAuthority",
       "createBrowserVisionActionAuthority",
       "createBrowserNavigationActionAuthority",
+      "createBrowserKeyboardActionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -991,6 +996,22 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserKeyboardActionAuthority({
+              descriptor: {
+                schema: BROWSER_KEYBOARD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-keyboard",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1041,12 +1062,28 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               recordOutcome: async () => null,
             });
+          const browserKeyboardActionAuthority =
+            factories.createBrowserKeyboardActionAuthority({
+              descriptor: {
+                schema: BROWSER_KEYBOARD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-keyboard",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
             browserVisionObservationAuthority,
             browserVisionActionAuthority,
             browserNavigationActionAuthority,
+            browserKeyboardActionAuthority,
           };
         },
       }),
@@ -1080,6 +1117,16 @@ describe("signed evolution deployment loader", () => {
       ).descriptor,
     ).toMatchObject({
       authorityId: "browser-navigation",
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserKeyboardActionAuthority(
+        result.browserKeyboardActionAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-keyboard",
       approvalMode: "interactive",
       auditMode: "authenticated-durable-readback",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,

@@ -38,6 +38,9 @@ const {
 const {
   authorizeDesktopBrowserNavigationAction,
 } = require("../desktop-browser-navigation-action");
+const {
+  authorizeDesktopBrowserKeyboardAction,
+} = require("../desktop-browser-keyboard-action");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -584,6 +587,73 @@ describe("desktop evolution deployment", () => {
           targetId: "tab-1",
           destinationUrl: "https://example.test/path",
           options: { waitUntil: "networkidle" },
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed keyboard authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-keyboard",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("keyboard-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+    });
+    const authorizeAction = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-keyboard-action-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        approvalMode: descriptor.approvalMode,
+        requestId: request.requestId,
+        targetId: request.targetId,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        keyDigest: domainDigest(
+          "chainlesschain.browser-keyboard-action-key/v1",
+          { key: request.key, modifiers: request.modifiers },
+        ),
+        delay: request.delay,
+        inputDigest: request.inputDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded keyboard");
+      return Object.freeze({
+        descriptor,
+        authorizeAction,
+        recordActionOutcome: vi.fn(),
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserKeyboardActionAuthority: authority,
+        }),
+      }),
+      importBrowserKeyboardActionAuthorityModule: async () => ({
+        captureBrowserKeyboardActionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.desktopBrowserKeyboardActionHost)).toEqual([]);
+    await expect(
+      authorizeDesktopBrowserKeyboardAction(
+        result.desktopBrowserKeyboardActionHost,
+        {
+          targetId: "tab-1",
+          options: { key: "Enter", modifiers: ["Control"] },
           senderId: 21,
           frameUrl: "app://desktop/index.html",
         },

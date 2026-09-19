@@ -30,6 +30,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     desktopBrowserVisionObservationHost,
     desktopBrowserVisionActionHost,
     desktopBrowserNavigationActionHost,
+    desktopBrowserKeyboardActionHost,
   } = deps;
 
   // 获取 LLM 智能选择器（如果已初始化）
@@ -408,6 +409,8 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
         desktopBrowserVisionActionHost: desktopBrowserVisionActionHost || null,
         desktopBrowserNavigationActionHost:
           desktopBrowserNavigationActionHost || null,
+        desktopBrowserKeyboardActionHost:
+          desktopBrowserKeyboardActionHost || null,
       });
     },
     handlers: 24,

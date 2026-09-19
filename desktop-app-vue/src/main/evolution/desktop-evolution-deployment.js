@@ -15,6 +15,9 @@ const {
   createDesktopBrowserNavigationActionHost,
 } = require("./desktop-browser-navigation-action");
 const {
+  createDesktopBrowserKeyboardActionHost,
+} = require("./desktop-browser-keyboard-action");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -57,6 +60,8 @@ const DEV_BROWSER_VISION_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-vision-action-authority.js";
 const DEV_BROWSER_NAVIGATION_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-navigation-action-authority.js";
+const DEV_BROWSER_KEYBOARD_ACTION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-keyboard-action-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -649,6 +654,24 @@ function resolveBrowserNavigationActionAuthorityPath({
     );
   }
   return path.resolve(__dirname, DEV_BROWSER_NAVIGATION_ACTION_AUTHORITY_REL);
+}
+
+function resolveBrowserKeyboardActionAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser keyboard action authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-keyboard-action-authority.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_BROWSER_KEYBOARD_ACTION_AUTHORITY_REL);
 }
 
 function createDesktopPmExplorationStorageHost(store, captureStore) {
@@ -1277,6 +1300,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserVisionObservationAuthorityModule = (url) => import(url),
   importBrowserVisionActionAuthorityModule = (url) => import(url),
   importBrowserNavigationActionAuthorityModule = (url) => import(url),
+  importBrowserKeyboardActionAuthorityModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -1403,6 +1427,34 @@ async function loadDesktopEvolutionDependencies({
           authorityModule,
           "captureBrowserNavigationActionAuthority",
           "browser navigation action authority capture",
+        ),
+      );
+  }
+  const browserKeyboardActionAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(result, "browserKeyboardActionAuthority");
+  if (browserKeyboardActionAuthorityDescriptor) {
+    if (
+      !("value" in browserKeyboardActionAuthorityDescriptor) ||
+      browserKeyboardActionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser keyboard action authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserKeyboardActionAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule = await importBrowserKeyboardActionAuthorityModule(
+      pathToFileURL(authorityPath).href,
+    );
+    desktopDependencies.desktopBrowserKeyboardActionHost =
+      createDesktopBrowserKeyboardActionHost(
+        browserKeyboardActionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserKeyboardActionAuthority",
+          "browser keyboard action authority capture",
         ),
       );
   }
@@ -1812,5 +1864,6 @@ module.exports = {
   resolveBrowserVisionObservationAuthorityPath,
   resolveBrowserVisionActionAuthorityPath,
   resolveBrowserNavigationActionAuthorityPath,
+  resolveBrowserKeyboardActionAuthorityPath,
   resolveLoaderPath,
 };

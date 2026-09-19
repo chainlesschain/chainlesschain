@@ -18,6 +18,11 @@ const {
   consumeDesktopBrowserNavigationActionGrant,
   recordDesktopBrowserNavigationActionOutcome,
 } = require("../evolution/desktop-browser-navigation-action");
+const {
+  authorizeDesktopBrowserKeyboardAction,
+  consumeDesktopBrowserKeyboardActionGrant,
+  recordDesktopBrowserKeyboardActionOutcome,
+} = require("../evolution/desktop-browser-keyboard-action");
 
 const READ_ONLY_VISION_TASKS = new Set([
   "analyze",
@@ -117,6 +122,7 @@ function registerComputerUseHandlers(ctx) {
     _getBrowserVisionObservationHost,
     _getBrowserVisionActionHost,
     _getBrowserNavigationActionHost,
+    _getBrowserKeyboardActionHost,
     withErrorHandler,
   } = ctx;
 
@@ -253,6 +259,65 @@ function registerComputerUseHandlers(ctx) {
         return {
           success: false,
           error: `History navigation failed: ${mutationError.message}`,
+          ...evidence,
+        };
+      }
+      return { ...result, ...evidence };
+    }),
+  );
+
+  /**
+   * Execute one governed key press. Arbitrary text, presets, element lookup,
+   * sequences and held-key callbacks are intentionally outside this channel.
+   */
+  _ipcMain.handle(
+    "browser:action:key-press",
+    withErrorHandler(async (event, targetId, options = {}) => {
+      const grant = await authorizeDesktopBrowserKeyboardAction(
+        _getBrowserKeyboardActionHost?.() ?? null,
+        {
+          targetId,
+          options,
+          senderId: event?.sender?.id,
+          frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+        },
+      );
+      const engine = _getBrowserEngine();
+      const actionEvidence = consumeDesktopBrowserKeyboardActionGrant(
+        grant,
+        targetId,
+        options,
+      );
+      const { KeyboardAction } = require("./actions");
+      const keyboardAction = new KeyboardAction(engine);
+      let result = null;
+      let mutationError = null;
+      try {
+        result = await keyboardAction.execute(targetId, {
+          keys: actionEvidence.key,
+          modifiers: actionEvidence.modifiers,
+          delay: actionEvidence.delay,
+        });
+      } catch (error) {
+        mutationError = error;
+      }
+      const actionAudit = await recordDesktopBrowserKeyboardActionOutcome(
+        grant,
+        {
+          status: mutationError === null ? "succeeded" : "failed",
+          failureClass:
+            mutationError === null ? null : "browser-keyboard-action-failed",
+        },
+      );
+      const evidence = {
+        authorizationReceiptDigest: actionEvidence.receiptDigest,
+        auditEventDigest: actionAudit.auditEventDigest,
+        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      };
+      if (mutationError !== null) {
+        return {
+          success: false,
+          error: `Key press failed: ${mutationError.message}`,
           ...evidence,
         };
       }

@@ -8,6 +8,9 @@ const {
 const {
   createDesktopBrowserNavigationActionHost,
 } = require("../../evolution/desktop-browser-navigation-action");
+const {
+  createDesktopBrowserKeyboardActionHost,
+} = require("../../evolution/desktop-browser-keyboard-action");
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -120,10 +123,66 @@ function createNavigationHost() {
   return { host, authorizeAction, recordActionOutcome };
 }
 
+function createKeyboardHost() {
+  const authority = Object.freeze({});
+  const descriptor = Object.freeze({
+    authorityId: "ipc-keyboard",
+    tenantId: "tenant-1",
+    handlerArtifactDigest: digest("keyboard-handler"),
+    approvalMode: "interactive",
+    auditMode: "authenticated-durable-readback",
+  });
+  const authorizeAction = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-keyboard-action-receipt/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      approvalMode: descriptor.approvalMode,
+      requestId: request.requestId,
+      targetId: request.targetId,
+      operation: request.operation,
+      senderId: request.senderId,
+      frameUrlDigest: request.frameUrlDigest,
+      keyDigest: domainDigest("chainlesschain.browser-keyboard-action-key/v1", {
+        key: request.key,
+        modifiers: request.modifiers,
+      }),
+      delay: request.delay,
+      inputDigest: request.inputDigest,
+      requestDigest: digest(`request:${request.requestId}`),
+      validUntil: new Date(Date.now() + 5000).toISOString(),
+      receiptDigest: digest(request.requestId),
+    }),
+  );
+  const recordActionOutcome = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-keyboard-action-outcome-ack/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      actionReceiptDigest: request.actionReceiptDigest,
+      outcomeRequestDigest: domainDigest(request.schema, request),
+      auditEventDigest: digest(`audit:${request.resultDigest}`),
+      durabilityReceiptDigest: digest(`durable:${request.resultDigest}`),
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      qualifiesForPromotion: false,
+    }),
+  );
+  const host = createDesktopBrowserKeyboardActionHost(authority, (value) => {
+    if (value !== authority) throw new TypeError("unbranded");
+    return Object.freeze({ descriptor, authorizeAction, recordActionOutcome });
+  });
+  return { host, authorizeAction, recordActionOutcome };
+}
+
 function fixture({
   observationHost = null,
   actionHost = null,
   navigationHost = null,
+  keyboardHost = null,
   engine = null,
 } = {}) {
   const handlers = new Map();
@@ -137,6 +196,7 @@ function fixture({
     _getBrowserVisionObservationHost: vi.fn(() => observationHost),
     _getBrowserVisionActionHost: vi.fn(() => actionHost),
     _getBrowserNavigationActionHost: vi.fn(() => navigationHost),
+    _getBrowserKeyboardActionHost: vi.fn(() => keyboardHost),
     withErrorHandler: (handler) => handler,
   });
   return { handlers, getBrowserEngine };
@@ -374,6 +434,80 @@ describe("browser computer-use IPC", () => {
         {},
       ),
     ).rejects.toThrow(/redirect origins/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("denies a key press before browser-engine access without its action host", async () => {
+    const { handlers, getBrowserEngine } = fixture();
+    await expect(
+      handlers.get("browser:action:key-press")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        { key: "Enter" },
+      ),
+    ).rejects.toThrow(/branded Desktop browser keyboard host/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("consumes one key-bound grant immediately before the keyboard event", async () => {
+    const keyboard = createKeyboardHost();
+    const page = { keyboard: { press: vi.fn(async () => {}) } };
+    const engine = { getPage: vi.fn(() => page) };
+    const { handlers, getBrowserEngine } = fixture({
+      keyboardHost: keyboard.host,
+      engine,
+    });
+    const options = {
+      key: "Enter",
+      modifiers: ["Shift", "Control"],
+      delay: 0,
+      actionAuthorization: { approval: true },
+    };
+
+    await expect(
+      handlers.get("browser:action:key-press")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        options,
+      ),
+    ).resolves.toMatchObject({
+      success: true,
+      authorizationReceiptDigest: expect.stringMatching(/^sha256:/u),
+      auditEventDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(keyboard.authorizeAction).toHaveBeenCalledBefore(getBrowserEngine);
+    expect(page.keyboard.press).toHaveBeenCalledWith("Control+Shift+Enter");
+    expect(keyboard.recordActionOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "succeeded" }),
+    );
+    expect(
+      JSON.stringify(keyboard.recordActionOutcome.mock.calls),
+    ).not.toContain("Enter");
+  });
+
+  it("rejects arbitrary keyboard text before authority or engine access", async () => {
+    const keyboard = createKeyboardHost();
+    const { handlers, getBrowserEngine } = fixture({
+      keyboardHost: keyboard.host,
+      engine: { getPage: vi.fn() },
+    });
+    await expect(
+      handlers.get("browser:action:key-press")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        { key: "Enter", text: "secret" },
+      ),
+    ).rejects.toThrow(/input is invalid/u);
+    expect(keyboard.authorizeAction).not.toHaveBeenCalled();
     expect(getBrowserEngine).not.toHaveBeenCalled();
   });
 });
