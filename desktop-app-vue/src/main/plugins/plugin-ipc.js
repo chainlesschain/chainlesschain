@@ -9,6 +9,7 @@ const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
@@ -458,7 +459,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-brand-theme", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, theme: pluginManager.getActiveBrandTheme() };
+      return {
+        success: true,
+        theme:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveBrandTheme()].filter(Boolean),
+            "brand-theme",
+          )[0] || null,
+      };
     }),
   );
 
@@ -467,7 +475,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        themes: pluginManager.getRegisteredBrandThemes(pluginId),
+        themes: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredBrandThemes(pluginId),
+          "brand-theme",
+        ),
       };
     }),
   );
@@ -477,7 +488,11 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        identity: pluginManager.getActiveBrandIdentity(),
+        identity:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveBrandIdentity()].filter(Boolean),
+            "brand-identity",
+          )[0] || null,
       };
     }),
   );
@@ -487,7 +502,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        identities: pluginManager.getRegisteredBrandIdentities(pluginId),
+        identities: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredBrandIdentities(pluginId),
+          "brand-identity",
+        ),
       };
     }),
   );
@@ -499,7 +517,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-llm-provider", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, provider: pluginManager.getActiveLLMProvider() };
+      return {
+        success: true,
+        provider:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveLLMProvider()].filter(Boolean),
+            "llm",
+          )[0] || null,
+      };
     }),
   );
 
@@ -508,7 +533,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        providers: pluginManager.getRegisteredLLMProviders(pluginId),
+        providers: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredLLMProviders(pluginId),
+          "llm",
+        ),
       };
     }),
   );
@@ -516,7 +544,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-auth-provider", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, provider: pluginManager.getActiveAuthProvider() };
+      return {
+        success: true,
+        provider:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveAuthProvider()].filter(Boolean),
+            "auth",
+          )[0] || null,
+      };
     }),
   );
 
@@ -525,7 +560,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        providers: pluginManager.getRegisteredAuthProviders(pluginId),
+        providers: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredAuthProviders(pluginId),
+          "auth",
+        ),
       };
     }),
   );
@@ -533,7 +571,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-data-storage", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, storage: pluginManager.getActiveDataStorage() };
+      return {
+        success: true,
+        storage:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveDataStorage()].filter(Boolean),
+            "storage",
+          )[0] || null,
+      };
     }),
   );
 
@@ -542,7 +587,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        storages: pluginManager.getRegisteredDataStorages(pluginId),
+        storages: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredDataStorages(pluginId),
+          "storage",
+        ),
       };
     }),
   );
@@ -550,7 +598,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-data-crypto", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, crypto: pluginManager.getActiveDataCrypto() };
+      return {
+        success: true,
+        crypto:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveDataCrypto()].filter(Boolean),
+            "crypto",
+          )[0] || null,
+      };
     }),
   );
 
@@ -559,7 +614,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        cryptos: pluginManager.getRegisteredDataCryptos(pluginId),
+        cryptos: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredDataCryptos(pluginId),
+          "crypto",
+        ),
       };
     }),
   );
@@ -567,7 +625,14 @@ function registerPluginIPC({
   ipcMain.handle("plugin:get-active-compliance-audit", () =>
     safeInvoke(() => {
       ensureManager();
-      return { success: true, audit: pluginManager.getActiveComplianceAudit() };
+      return {
+        success: true,
+        audit:
+          projectPluginEnterpriseEntries(
+            [pluginManager.getActiveComplianceAudit()].filter(Boolean),
+            "audit",
+          )[0] || null,
+      };
     }),
   );
 
@@ -576,7 +641,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        audits: pluginManager.getRegisteredComplianceAudits(pluginId),
+        audits: projectPluginEnterpriseEntries(
+          pluginManager.getRegisteredComplianceAudits(pluginId),
+          "audit",
+        ),
       };
     }),
   );

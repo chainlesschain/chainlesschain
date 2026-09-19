@@ -626,10 +626,123 @@ function projectPluginV6UiEntries(entries, kind) {
   });
 }
 
+function projectBrandThemeTokens(tokens) {
+  if (!tokens || typeof tokens !== "object" || Array.isArray(tokens)) {
+    return {};
+  }
+  const result = {};
+  for (const [key, value] of Object.entries(tokens).slice(0, 128)) {
+    if (!/^(?:--)?[A-Za-z][A-Za-z0-9_-]{0,63}$/u.test(key)) {
+      continue;
+    }
+    if (typeof value !== "string" || value.length > 128) {
+      continue;
+    }
+    if (
+      !/^(?:#[0-9A-Fa-f]{3,8}|-?\d+(?:\.\d+)?(?:px|rem|em|%|s|ms)?|[A-Za-z][A-Za-z0-9 -]{0,63})$/u.test(
+        value,
+      )
+    ) {
+      continue;
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
+function projectPluginEnterpriseEntries(entries, kind) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries.slice(0, 1024).flatMap((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+    const common = {
+      id: boundedString(entry.id, 256),
+      pluginId: boundedString(entry.pluginId ?? entry.plugin_id, 256),
+      name: boundedString(entry.name, 512),
+      priority: Number.isSafeInteger(entry.priority)
+        ? Math.max(-10000, Math.min(10000, entry.priority))
+        : 100,
+    };
+
+    switch (kind) {
+      case "brand-theme":
+        return [
+          {
+            ...common,
+            themeId: boundedString(entry.themeId ?? entry.theme_id, 256),
+            mode: ["light", "dark", "auto"].includes(entry.mode)
+              ? entry.mode
+              : "light",
+            tokens: projectBrandThemeTokens(entry.tokens),
+          },
+        ];
+      case "brand-identity":
+        return [
+          {
+            ...common,
+            identityId: boundedString(
+              entry.identityId ?? entry.identity_id,
+              256,
+            ),
+            productName: boundedString(entry.productName, 512),
+            tagline: boundedString(entry.tagline, 1024),
+          },
+        ];
+      case "llm":
+        return [
+          {
+            ...common,
+            providerId: boundedString(entry.providerId, 256),
+            models: projectStringList(entry.models, 256, 256),
+          },
+        ];
+      case "auth":
+        return [
+          {
+            ...common,
+            providerId: boundedString(entry.providerId, 256),
+            kind: boundedString(entry.kind, 64),
+            scopes: projectStringList(entry.scopes, 128, 256),
+          },
+        ];
+      case "storage":
+        return [
+          {
+            ...common,
+            storageId: boundedString(entry.storageId, 256),
+            kind: boundedString(entry.kind, 64),
+          },
+        ];
+      case "crypto":
+        return [
+          {
+            ...common,
+            cryptoId: boundedString(entry.cryptoId, 256),
+            algs: projectStringList(entry.algs, 128, 128),
+          },
+        ];
+      case "audit":
+        return [
+          {
+            ...common,
+            auditId: boundedString(entry.auditId, 256),
+            kind: boundedString(entry.kind, 64),
+          },
+        ];
+      default:
+        return [];
+    }
+  });
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,

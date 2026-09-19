@@ -6,6 +6,7 @@ const {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
   projectPluginDataExtensions,
+  projectPluginEnterpriseEntries,
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
@@ -616,6 +617,119 @@ describe("plugin public projection", () => {
     expect(projected.status[0]).not.toHaveProperty("componentPath");
     expect(projected.home[0]).not.toHaveProperty("componentPath");
     expect(projected.composer[0]).not.toHaveProperty("componentPath");
+    expect(JSON.stringify(projected)).not.toContain(secret);
+  });
+
+  it("projects brand and enterprise capability entries", () => {
+    const secret = "https://private.example/enterprise-secret";
+    const common = {
+      id: "entry-1",
+      pluginId: "plugin-1",
+      name: "Enterprise",
+      priority: 10,
+    };
+    const projected = {
+      themes: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            themeId: "theme-1",
+            mode: "dark",
+            tokens: {
+              primaryColor: "#336699",
+              spacing: "8px",
+              unsafe: secret,
+              "bad key": "red",
+            },
+          },
+        ],
+        "brand-theme",
+      ),
+      identities: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            identityId: "identity-1",
+            productName: "Product",
+            tagline: "Tagline",
+            logo: secret,
+            splash: secret,
+            favicon: secret,
+            eula: secret,
+            links: { private: secret },
+          },
+        ],
+        "brand-identity",
+      ),
+      llm: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            providerId: "llm-1",
+            models: ["model-1"],
+            endpoint: secret,
+            capabilities: { secret },
+          },
+        ],
+        "llm",
+      ),
+      auth: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            providerId: "auth-1",
+            kind: "oidc",
+            scopes: ["openid"],
+            endpoints: { authorize: secret },
+          },
+        ],
+        "auth",
+      ),
+      storage: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            storageId: "storage-1",
+            kind: "s3",
+            capabilities: { secret },
+          },
+        ],
+        "storage",
+      ),
+      crypto: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            cryptoId: "crypto-1",
+            algs: ["Ed25519"],
+            capabilities: { secret },
+          },
+        ],
+        "crypto",
+      ),
+      audits: projectPluginEnterpriseEntries(
+        [
+          {
+            ...common,
+            auditId: "audit-1",
+            kind: "siem",
+            sinks: [secret],
+          },
+        ],
+        "audit",
+      ),
+    };
+
+    expect(projected.themes[0].tokens).toEqual({
+      primaryColor: "#336699",
+      spacing: "8px",
+    });
+    expect(projected.identities[0]).not.toHaveProperty("logo");
+    expect(projected.llm[0]).not.toHaveProperty("endpoint");
+    expect(projected.auth[0]).not.toHaveProperty("endpoints");
+    expect(projected.storage[0]).not.toHaveProperty("capabilities");
+    expect(projected.crypto[0]).not.toHaveProperty("capabilities");
+    expect(projected.audits[0]).not.toHaveProperty("sinks");
     expect(JSON.stringify(projected)).not.toContain(secret);
   });
 });

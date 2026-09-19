@@ -272,6 +272,75 @@ describe("plugin IPC error boundary", () => {
         componentPath: secret,
       },
     };
+    const enterpriseEntries = {
+      theme: {
+        id: "theme-1",
+        pluginId: "plugin-1",
+        themeId: "theme-1",
+        name: "Theme",
+        mode: "dark",
+        tokens: { primaryColor: "#336699", unsafe: secret },
+        priority: 10,
+      },
+      identity: {
+        id: "identity-1",
+        pluginId: "plugin-1",
+        identityId: "identity-1",
+        name: "Identity",
+        productName: "Product",
+        tagline: "Tagline",
+        logo: secret,
+        links: { private: secret },
+        priority: 10,
+      },
+      llm: {
+        id: "llm-1",
+        pluginId: "plugin-1",
+        providerId: "llm-1",
+        name: "LLM",
+        models: ["model-1"],
+        endpoint: secret,
+        capabilities: { secret },
+        priority: 10,
+      },
+      auth: {
+        id: "auth-1",
+        pluginId: "plugin-1",
+        providerId: "auth-1",
+        name: "Auth",
+        kind: "oidc",
+        scopes: ["openid"],
+        endpoints: { authorize: secret },
+        priority: 10,
+      },
+      storage: {
+        id: "storage-1",
+        pluginId: "plugin-1",
+        storageId: "storage-1",
+        name: "Storage",
+        kind: "s3",
+        capabilities: { secret },
+        priority: 10,
+      },
+      crypto: {
+        id: "crypto-1",
+        pluginId: "plugin-1",
+        cryptoId: "crypto-1",
+        name: "Crypto",
+        algs: ["Ed25519"],
+        capabilities: { secret },
+        priority: 10,
+      },
+      audit: {
+        id: "audit-1",
+        pluginId: "plugin-1",
+        auditId: "audit-1",
+        name: "Audit",
+        kind: "siem",
+        sinks: [secret],
+        priority: 10,
+      },
+    };
     const handlers = new Map();
     const plugin = {
       id: "plugin-1",
@@ -365,6 +434,20 @@ describe("plugin IPC error boundary", () => {
       getRegisteredStatusBarWidgets: () => [v6Entries.status],
       getRegisteredHomeWidgets: () => [v6Entries.home],
       getRegisteredComposerSlots: () => [v6Entries.composer],
+      getActiveBrandTheme: () => enterpriseEntries.theme,
+      getRegisteredBrandThemes: () => [enterpriseEntries.theme],
+      getActiveBrandIdentity: () => enterpriseEntries.identity,
+      getRegisteredBrandIdentities: () => [enterpriseEntries.identity],
+      getActiveLLMProvider: () => enterpriseEntries.llm,
+      getRegisteredLLMProviders: () => [enterpriseEntries.llm],
+      getActiveAuthProvider: () => enterpriseEntries.auth,
+      getRegisteredAuthProviders: () => [enterpriseEntries.auth],
+      getActiveDataStorage: () => enterpriseEntries.storage,
+      getRegisteredDataStorages: () => [enterpriseEntries.storage],
+      getActiveDataCrypto: () => enterpriseEntries.crypto,
+      getRegisteredDataCryptos: () => [enterpriseEntries.crypto],
+      getActiveComplianceAudit: () => enterpriseEntries.audit,
+      getRegisteredComplianceAudits: () => [enterpriseEntries.audit],
       sandboxes: new Map([["plugin-1", sandbox]]),
       registry: {
         getExtensionsByPoint: (point) => [
@@ -490,6 +573,26 @@ describe("plugin IPC error boundary", () => {
       {},
       {},
     );
+    const activeTheme = await handlers.get("plugin:get-active-brand-theme")();
+    const themes = await handlers.get("plugin:get-brand-themes")();
+    const activeIdentity = await handlers.get(
+      "plugin:get-active-brand-identity",
+    )();
+    const identities = await handlers.get("plugin:get-brand-identities")();
+    const activeLlm = await handlers.get("plugin:get-active-llm-provider")();
+    const llmProviders = await handlers.get("plugin:get-llm-providers")();
+    const activeAuth = await handlers.get("plugin:get-active-auth-provider")();
+    const authProviders = await handlers.get("plugin:get-auth-providers")();
+    const activeStorage = await handlers.get(
+      "plugin:get-active-data-storage",
+    )();
+    const storages = await handlers.get("plugin:get-data-storages")();
+    const activeCrypto = await handlers.get("plugin:get-active-data-crypto")();
+    const cryptos = await handlers.get("plugin:get-data-cryptos")();
+    const activeAudit = await handlers.get(
+      "plugin:get-active-compliance-audit",
+    )();
+    const audits = await handlers.get("plugin:get-compliance-audits")();
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -610,6 +713,20 @@ describe("plugin IPC error boundary", () => {
     expect(statusWidgets.widgets[0]).not.toHaveProperty("componentPath");
     expect(homeWidgets.widgets[0]).not.toHaveProperty("componentPath");
     expect(composerSlots.slots[0]).not.toHaveProperty("componentPath");
+    expect(activeTheme.theme).toEqual(themes.themes[0]);
+    expect(activeTheme.theme.tokens).toEqual({ primaryColor: "#336699" });
+    expect(activeIdentity.identity).toEqual(identities.identities[0]);
+    expect(activeIdentity.identity).not.toHaveProperty("logo");
+    expect(activeLlm.provider).toEqual(llmProviders.providers[0]);
+    expect(activeLlm.provider).not.toHaveProperty("endpoint");
+    expect(activeAuth.provider).toEqual(authProviders.providers[0]);
+    expect(activeAuth.provider).not.toHaveProperty("endpoints");
+    expect(activeStorage.storage).toEqual(storages.storages[0]);
+    expect(activeStorage.storage).not.toHaveProperty("capabilities");
+    expect(activeCrypto.crypto).toEqual(cryptos.cryptos[0]);
+    expect(activeCrypto.crypto).not.toHaveProperty("capabilities");
+    expect(activeAudit.audit).toEqual(audits.audits[0]);
+    expect(activeAudit.audit).not.toHaveProperty("sinks");
     expect(
       JSON.stringify({
         list,
@@ -640,6 +757,20 @@ describe("plugin IPC error boundary", () => {
         statusWidgets,
         homeWidgets,
         composerSlots,
+        activeTheme,
+        themes,
+        activeIdentity,
+        identities,
+        activeLlm,
+        llmProviders,
+        activeAuth,
+        authProviders,
+        activeStorage,
+        storages,
+        activeCrypto,
+        cryptos,
+        activeAudit,
+        audits,
       }),
     ).not.toContain(secret);
   });

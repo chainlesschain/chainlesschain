@@ -33,9 +33,7 @@
               {{ capLabel(llmProvider) }}
             </a-tag>
             <span class="cap-detail">
-              {{ llmProvider?.endpoint || "—" }} · models={{
-                llmProvider?.models?.length ?? 0
-              }}
+              models={{ llmProvider?.models?.length ?? 0 }}
             </span>
           </a-descriptions-item>
           <a-descriptions-item label="认证提供方">

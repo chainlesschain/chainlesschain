@@ -88,11 +88,6 @@ export interface BrandIdentityContribution {
   identityId: string;
   productName: string | null;
   tagline: string | null;
-  logo: string | null;
-  splash: string | null;
-  favicon: string | null;
-  eula: string | null;
-  links: Record<string, string>;
   priority: number;
 }
 
@@ -103,8 +98,6 @@ export interface LLMProviderContribution {
   providerId: string;
   name: string;
   models: string[];
-  endpoint: string | null;
-  capabilities: Record<string, unknown>;
   priority: number;
 }
 
@@ -114,7 +107,6 @@ export interface AuthProviderContribution {
   providerId: string;
   name: string;
   kind: "local" | "oidc" | "saml" | "ldap" | "did" | string;
-  endpoints: Record<string, string>;
   scopes: string[];
   priority: number;
 }
@@ -125,7 +117,6 @@ export interface DataStorageContribution {
   storageId: string;
   name: string;
   kind: "sqlite" | "postgres" | "ipfs" | "s3" | "custom" | string;
-  capabilities: Record<string, unknown>;
   priority: number;
 }
 
@@ -135,7 +126,6 @@ export interface DataCryptoContribution {
   cryptoId: string;
   name: string;
   algs: string[];
-  capabilities: Record<string, unknown>;
   priority: number;
 }
 
@@ -145,7 +135,6 @@ export interface ComplianceAuditContribution {
   auditId: string;
   name: string;
   kind: "syslog" | "file" | "splunk" | "siem" | "custom" | string;
-  sinks: string[];
   priority: number;
 }
 
