@@ -121,6 +121,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:action:navigate",
   "browser:action:open-tab",
   "browser:action:vision",
+  "browser:operator:revoke-quarantine-artifact",
   "browser:aiClearHistory",
   "browser:aiExecute",
   "browser:aiGetHistory",
@@ -4975,6 +4976,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
 
     // -------- 高级页面支持 (Phase 4) --------
+    // Operator-only quarantine management. Identity, role and signature are
+    // deliberately resolved by the main process; callers supply no actor data.
+    operator: {
+      revokeQuarantineArtifact: (request) =>
+        ipcRenderer.invoke(
+          "browser:operator:revoke-quarantine-artifact",
+          request,
+        ),
+    },
+
     advanced: {
       scan: (targetId, options) =>
         ipcRenderer.invoke("browser:scan:advanced", targetId, options),

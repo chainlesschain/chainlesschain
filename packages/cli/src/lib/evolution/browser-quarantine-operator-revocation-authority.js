@@ -311,7 +311,11 @@ export function captureBrowserQuarantineOperatorRevocationAuthority(value) {
       );
       const decision = normalizeDecision(
         await state.authorizeRevocation(
-          Object.freeze({ ...requestCore, requestDigest }),
+          Object.freeze({
+            ...requestCore,
+            requestDigest,
+            authorization: request.authorization,
+          }),
         ),
         nowMs,
         state.descriptor.maxGrantTtlMs,

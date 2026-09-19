@@ -142,6 +142,9 @@ describe("browser quarantine operator revocation authority", () => {
     expect(JSON.stringify(authorizeRevocation.mock.calls[0][0])).not.toContain(
       "quarantine:",
     );
+    expect(authorizeRevocation.mock.calls[0][0].authorization).toEqual(
+      request(artifact).authorization,
+    );
     expect(JSON.stringify(recordOutcome.mock.calls[0][0])).not.toContain(
       "quarantine:",
     );

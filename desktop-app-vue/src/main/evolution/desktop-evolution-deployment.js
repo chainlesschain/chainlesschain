@@ -27,6 +27,9 @@ const {
   createDesktopBrowserDownloadArtifactDisposalHost,
 } = require("./desktop-browser-download-artifact-disposal");
 const {
+  createDesktopBrowserQuarantineOperatorRevocationHost,
+} = require("./desktop-browser-quarantine-operator-revocation");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -77,6 +80,8 @@ const DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-action-authority.js";
 const DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-artifact-disposal-authority.js";
+const DEV_BROWSER_QUARANTINE_OPERATOR_REVOCATION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-quarantine-operator-revocation-authority.js";
 const DEV_BROWSER_QUARANTINE_RETENTION_SCHEDULER_REL =
   "../../../../packages/cli/src/lib/evolution/browser-quarantine-retention-scheduler.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
@@ -745,6 +750,27 @@ function resolveBrowserDownloadArtifactDisposalAuthorityPath({
   return path.resolve(
     __dirname,
     DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL,
+  );
+}
+
+function resolveBrowserQuarantineOperatorRevocationAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser quarantine operator revocation authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-quarantine-operator-revocation-authority.js",
+    );
+  }
+  return path.resolve(
+    __dirname,
+    DEV_BROWSER_QUARANTINE_OPERATOR_REVOCATION_AUTHORITY_REL,
   );
 }
 
@@ -1440,6 +1466,8 @@ async function loadDesktopEvolutionDependencies({
   importBrowserTabOpenActionAuthorityModule = (url) => import(url),
   importBrowserDownloadActionAuthorityModule = (url) => import(url),
   importBrowserDownloadArtifactDisposalAuthorityModule = (url) => import(url),
+  importBrowserQuarantineOperatorRevocationAuthorityModule = (url) =>
+    import(url),
   importBrowserQuarantineRetentionSchedulerModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
@@ -1750,6 +1778,39 @@ async function loadDesktopEvolutionDependencies({
       createDesktopPmExplorationStorageHost(
         pmStoreDescriptor.value,
         adapterModule?.capturePmExplorationLedgerStore,
+      );
+  }
+  const browserQuarantineOperatorRevocationAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(
+      result,
+      "browserQuarantineOperatorRevocationAuthority",
+    );
+  if (browserQuarantineOperatorRevocationAuthorityDescriptor) {
+    if (
+      !("value" in browserQuarantineOperatorRevocationAuthorityDescriptor) ||
+      browserQuarantineOperatorRevocationAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser quarantine operator revocation authority must be an enumerable data property",
+      );
+    }
+    const authorityPath =
+      resolveBrowserQuarantineOperatorRevocationAuthorityPath({
+        isPackaged,
+        resourcesPath,
+      });
+    const authorityModule =
+      await importBrowserQuarantineOperatorRevocationAuthorityModule(
+        pathToFileURL(authorityPath).href,
+      );
+    desktopDependencies.desktopBrowserQuarantineOperatorRevocationHost =
+      createDesktopBrowserQuarantineOperatorRevocationHost(
+        browserQuarantineOperatorRevocationAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserQuarantineOperatorRevocationAuthority",
+          "browser quarantine operator revocation authority capture",
+        ),
       );
   }
   const pmExecutionHostDescriptor = Object.getOwnPropertyDescriptor(
@@ -2141,6 +2202,7 @@ module.exports = {
   resolveBrowserTabOpenActionAuthorityPath,
   resolveBrowserDownloadActionAuthorityPath,
   resolveBrowserDownloadArtifactDisposalAuthorityPath,
+  resolveBrowserQuarantineOperatorRevocationAuthorityPath,
   resolveBrowserQuarantineRetentionSchedulerPath,
   resolveLoaderPath,
 };

@@ -899,6 +899,38 @@ describe("desktop evolution deployment", () => {
     expect(authorizeDisposal).toHaveBeenCalledOnce();
   });
 
+  it("narrows a signed operator-revocation authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-operator-revocation",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("operator-revocation-handler"),
+      approvalMode: "operator-signed",
+      auditMode: "authenticated-durable-readback",
+      effectMode: "irreversible-byte-revocation",
+    });
+    const revokeArtifact = vi.fn();
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded authority");
+      return Object.freeze({ descriptor, revokeArtifact });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserQuarantineOperatorRevocationAuthority: authority,
+        }),
+      }),
+      importBrowserQuarantineOperatorRevocationAuthorityModule: async () => ({
+        captureBrowserQuarantineOperatorRevocationAuthority: capture,
+      }),
+    });
+    expect(
+      Object.keys(result.desktopBrowserQuarantineOperatorRevocationHost),
+    ).toEqual([]);
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(revokeArtifact).not.toHaveBeenCalled();
+  });
+
   it("starts a signed retention scheduler and exposes only lifecycle ports", async () => {
     const scheduler = Object.freeze({});
     const start = vi.fn(async () => ({ status: "started" }));

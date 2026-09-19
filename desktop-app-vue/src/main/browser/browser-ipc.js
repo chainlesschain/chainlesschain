@@ -127,6 +127,9 @@ const { registerSystemHandlers } = require("./browser-ipc-system");
 const {
   registerSessionConsoleHandlers,
 } = require("./browser-ipc-session-console");
+const {
+  registerDesktopBrowserQuarantineOperatorRevocationIPC,
+} = require("../evolution/desktop-browser-quarantine-operator-revocation");
 
 function registerBrowserIPC(deps = {}) {
   const _ipcMain = deps.ipcMain || ipcMain;
@@ -191,6 +194,12 @@ function registerBrowserIPC(deps = {}) {
   registerPolicyHandlers(ctx);
   registerSystemHandlers(ctx);
   registerSessionConsoleHandlers(ctx);
+  registerDesktopBrowserQuarantineOperatorRevocationIPC({
+    ipcMain: _ipcMain,
+    host: deps.desktopBrowserQuarantineOperatorRevocationHost ?? null,
+    didManager: deps.didManager ?? null,
+    database: deps.database ?? null,
+  });
 
   logger.info(
     "[Browser IPC] All Browser IPC handlers registered (Phase 1-13, including Computer Use, Audit, Recording, Replay, SafeMode, Workflow, Highlight, Templates, Metrics, Detection, Recovery, Memory, Policy, Analyzer, Suggestion, Clipboard, Files, Notifications, Session, and Console)",

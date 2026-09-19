@@ -34,6 +34,8 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     desktopBrowserTabOpenActionHost,
     desktopBrowserDownloadActionHost,
     desktopBrowserDownloadArtifactDisposalHost,
+    desktopBrowserQuarantineOperatorRevocationHost,
+    didManager,
   } = deps;
 
   // 获取 LLM 智能选择器（如果已初始化）
@@ -420,6 +422,10 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
           desktopBrowserDownloadActionHost || null,
         desktopBrowserDownloadArtifactDisposalHost:
           desktopBrowserDownloadArtifactDisposalHost || null,
+        desktopBrowserQuarantineOperatorRevocationHost:
+          desktopBrowserQuarantineOperatorRevocationHost || null,
+        didManager: didManager || null,
+        database: database || null,
       });
     },
     handlers: 26,
