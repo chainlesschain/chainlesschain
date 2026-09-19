@@ -4,24 +4,147 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { app, crashReporter, dialog } = require("electron");
+const { app, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
+
+const CRASH_REPORT_SCHEMA_VERSION = 2;
+const CRASH_FILENAME =
+  /^crash-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/u;
+const CRASH_TYPES = new Set([
+  "unhandledRejection",
+  "uncaughtException",
+  "renderProcessGone",
+  "childProcessGone",
+  "unknown",
+]);
+const PROCESS_REASONS = new Set([
+  "clean-exit",
+  "abnormal-exit",
+  "killed",
+  "crashed",
+  "oom",
+  "launch-failed",
+  "integrity-failure",
+  "unknown",
+]);
+const PROCESS_TYPES = new Set([
+  "Utility",
+  "Zygote",
+  "Sandbox helper",
+  "GPU",
+  "Pepper Plugin",
+  "Pepper Plugin Broker",
+  "unknown",
+]);
+const ERROR_NAMES = new Set([
+  "Error",
+  "TypeError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "URIError",
+  "EvalError",
+  "AggregateError",
+  "unknown",
+]);
+const PLATFORMS = new Set([
+  "aix",
+  "darwin",
+  "freebsd",
+  "linux",
+  "openbsd",
+  "sunos",
+  "win32",
+  "android",
+  "unknown",
+]);
+const ARCHITECTURES = new Set([
+  "arm",
+  "arm64",
+  "ia32",
+  "loong64",
+  "mips",
+  "mipsel",
+  "ppc",
+  "ppc64",
+  "riscv64",
+  "s390",
+  "s390x",
+  "x64",
+  "unknown",
+]);
+
+function safeInteger(value) {
+  return Number.isSafeInteger(value)
+    ? Math.max(-2_147_483_648, Math.min(2_147_483_647, value))
+    : null;
+}
+
+function safeEnum(value, allowed) {
+  return typeof value === "string" && allowed.has(value) ? value : "unknown";
+}
+
+function safeVersion(value) {
+  return typeof value === "string" && /^[0-9A-Za-z.+-]{1,64}$/u.test(value)
+    ? value
+    : "unknown";
+}
+
+function sanitizeCrashInfo(crashInfo) {
+  const input = crashInfo && typeof crashInfo === "object" ? crashInfo : {};
+  const type = safeEnum(input.type, CRASH_TYPES);
+  const result = { type };
+  if (type === "uncaughtException") {
+    result.errorName = safeEnum(input.errorName ?? input.name, ERROR_NAMES);
+  }
+  if (type === "renderProcessGone" || type === "childProcessGone") {
+    result.reason = safeEnum(input.reason, PROCESS_REASONS);
+    result.exitCode = safeInteger(input.exitCode);
+  }
+  if (type === "childProcessGone") {
+    result.processType = safeEnum(
+      input.processType ?? input.typeName ?? input.name,
+      PROCESS_TYPES,
+    );
+  }
+  return result;
+}
+
+function sanitizeStoredCrashReport(report) {
+  const input = report && typeof report === "object" ? report : {};
+  const timestamp =
+    typeof input.timestamp === "string" &&
+    !Number.isNaN(Date.parse(input.timestamp))
+      ? new Date(input.timestamp).toISOString()
+      : new Date(0).toISOString();
+  return {
+    schemaVersion: CRASH_REPORT_SCHEMA_VERSION,
+    timestamp,
+    crash: sanitizeCrashInfo(input.crash),
+    runtime: {
+      appVersion: safeVersion(input.runtime?.appVersion ?? input.app?.version),
+      platform: safeEnum(
+        input.runtime?.platform ?? input.system?.platform,
+        PLATFORMS,
+      ),
+      arch: safeEnum(input.runtime?.arch ?? input.system?.arch, ARCHITECTURES),
+    },
+  };
+}
 
 class CrashReporter {
   constructor(options = {}) {
+    this.app = options.app || app;
+    this.dialog = options.dialog || dialog;
     this.crashesDir =
-      options.crashesDir || path.join(app.getPath("userData"), "crashes");
-    this.submitURL = options.submitURL || "";
-    this.productName = options.productName || app.getName();
-    this.companyName = options.companyName || "ChainlessChain";
-    this.uploadToServer = options.uploadToServer !== false;
+      options.crashesDir || path.join(this.app.getPath("userData"), "crashes");
     this.showDialog = options.showDialog !== false;
+    this.setupHandlers = options.setupHandlers !== false;
 
     // 确保崩溃目录存在
     if (!fs.existsSync(this.crashesDir)) {
-      fs.mkdirSync(this.crashesDir, { recursive: true });
+      fs.mkdirSync(this.crashesDir, { recursive: true, mode: 0o700 });
     }
 
     // 初始化崩溃报告器
@@ -33,30 +156,18 @@ class CrashReporter {
    */
   init() {
     try {
-      // 启动Electron崩溃报告器
-      crashReporter.start({
-        productName: this.productName,
-        companyName: this.companyName,
-        submitURL: this.submitURL,
-        uploadToServer: this.uploadToServer,
-        compress: true,
-        extra: {
-          version: app.getVersion(),
-          platform: process.platform,
-          arch: process.arch,
-          nodeVersion: process.versions.node,
-          electronVersion: process.versions.electron,
-          chromeVersion: process.versions.chrome,
-        },
-      });
-
-      logger.info("[CrashReporter] Initialized");
-      logger.info("[CrashReporter] Crashes directory:", this.crashesDir);
+      // Native Chromium minidumps may contain arbitrary process memory and
+      // cannot be field-redacted. Keep them disabled; the bounded JSON report
+      // below is the only crash artifact owned by this component.
+      this.migrateExistingReports();
+      logger.info("[CrashReporter] Initialized with bounded reports");
 
       // 监听未捕获的异常
-      this.setupExceptionHandlers();
-    } catch (error) {
-      logger.error("[CrashReporter] Init error:", error);
+      if (this.setupHandlers) {
+        this.setupExceptionHandlers();
+      }
+    } catch (_error) {
+      logger.error("[CrashReporter] Initialization failed");
     }
   }
 
@@ -65,13 +176,10 @@ class CrashReporter {
    */
   setupExceptionHandlers() {
     // 捕获未处理的Promise拒绝
-    process.on("unhandledRejection", (reason, promise) => {
-      logger.error("[CrashReporter] Unhandled Rejection:", reason);
+    process.on("unhandledRejection", () => {
+      logger.error("[CrashReporter] Unhandled rejection recorded");
       this.saveCrashReport({
         type: "unhandledRejection",
-        reason: String(reason),
-        stack: reason?.stack || "",
-        promise: String(promise),
       });
     });
 
@@ -83,12 +191,10 @@ class CrashReporter {
         return;
       }
 
-      logger.error("[CrashReporter] Uncaught Exception:", error);
+      logger.error("[CrashReporter] Uncaught exception recorded");
       this.saveCrashReport({
         type: "uncaughtException",
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
+        errorName: error.name,
       });
 
       // 显示错误对话框
@@ -98,31 +204,31 @@ class CrashReporter {
     });
 
     // 监听渲染进程崩溃
-    app.on("render-process-gone", (event, webContents, details) => {
-      logger.error("[CrashReporter] Render process gone:", details);
-      this.saveCrashReport({
+    this.app.on("render-process-gone", (event, webContents, details) => {
+      logger.error("[CrashReporter] Render process exit recorded");
+      const crashInfo = sanitizeCrashInfo({
         type: "renderProcessGone",
         reason: details.reason,
         exitCode: details.exitCode,
       });
+      this.saveCrashReport(crashInfo);
 
       if (this.showDialog) {
-        dialog.showErrorBox(
+        this.dialog.showErrorBox(
           "渲染进程崩溃",
-          `渲染进程意外终止\n原因: ${details.reason}\n退出码: ${details.exitCode}`,
+          `渲染进程意外终止\n原因: ${crashInfo.reason}\n退出码: ${crashInfo.exitCode ?? "unknown"}`,
         );
       }
     });
 
     // 监听子进程崩溃
-    app.on("child-process-gone", (event, details) => {
-      logger.error("[CrashReporter] Child process gone:", details);
+    this.app.on("child-process-gone", (event, details) => {
+      logger.error("[CrashReporter] Child process exit recorded");
       this.saveCrashReport({
         type: "childProcessGone",
         processType: details.type,
         reason: details.reason,
         exitCode: details.exitCode,
-        name: details.name,
       });
     });
   }
@@ -136,56 +242,30 @@ class CrashReporter {
       const filename = `crash-${timestamp}.json`;
       const filepath = path.join(this.crashesDir, filename);
 
-      // 收集系统信息
-      const systemInfo = {
-        platform: process.platform,
-        arch: process.arch,
-        release: os.release(),
-        type: os.type(),
-        totalMemory: os.totalmem(),
-        freeMemory: os.freemem(),
-        cpus: os.cpus().length,
-        uptime: os.uptime(),
-      };
-
-      // 收集应用信息
-      const appInfo = {
-        name: app.getName(),
-        version: app.getVersion(),
-        path: app.getAppPath(),
-        isPackaged: app.isPackaged,
-        locale: app.getLocale(),
-      };
-
-      // 收集进程信息
-      const processInfo = {
-        pid: process.pid,
-        versions: process.versions,
-        memoryUsage: process.memoryUsage(),
-        cpuUsage: process.cpuUsage(),
-        uptime: process.uptime(),
-      };
-
-      // 构建完整报告
-      const report = {
+      const report = sanitizeStoredCrashReport({
         timestamp: new Date().toISOString(),
-        crash: crashInfo,
-        system: systemInfo,
-        app: appInfo,
-        process: processInfo,
-      };
+        crash: sanitizeCrashInfo(crashInfo),
+        runtime: {
+          appVersion: this.app.getVersion(),
+          platform: process.platform,
+          arch: process.arch,
+        },
+      });
 
       // 写入文件
-      fs.writeFileSync(filepath, JSON.stringify(report, null, 2));
+      fs.writeFileSync(filepath, JSON.stringify(report, null, 2), {
+        encoding: "utf8",
+        mode: 0o600,
+      });
 
-      logger.info("[CrashReporter] Crash report saved:", filepath);
+      logger.info("[CrashReporter] Bounded crash report saved");
 
       // 清理旧报告
       this.cleanOldReports();
 
-      return filepath;
-    } catch (error) {
-      logger.error("[CrashReporter] Save crash report error:", error);
+      return filename;
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report save failed");
       return null;
     }
   }
@@ -193,27 +273,72 @@ class CrashReporter {
   /**
    * 显示崩溃对话框
    */
-  showCrashDialog(error) {
+  showCrashDialog(_error) {
     const options = {
       type: "error",
       title: "应用程序错误",
       message: "应用程序遇到了一个错误",
-      detail: `${error.message}\n\n${error.stack}`,
+      detail: "错误详情已写入本地脱敏崩溃报告。",
       buttons: ["重启应用", "退出"],
       defaultId: 0,
       cancelId: 1,
     };
 
-    dialog.showMessageBox(options).then((result) => {
+    this.dialog.showMessageBox(options).then((result) => {
       if (result.response === 0) {
         // 重启应用
-        app.relaunch();
-        app.exit(0);
+        this.app.relaunch();
+        this.app.exit(0);
       } else {
         // 退出应用
-        app.exit(1);
+        this.app.exit(1);
       }
     });
+  }
+
+  resolveReportPath(filename) {
+    if (typeof filename !== "string" || !CRASH_FILENAME.test(filename)) {
+      return null;
+    }
+    return path.join(this.crashesDir, filename);
+  }
+
+  migrateExistingReports() {
+    let filenames = [];
+    try {
+      filenames = fs
+        .readdirSync(this.crashesDir)
+        .filter((filename) => CRASH_FILENAME.test(filename));
+    } catch (_error) {
+      logger.error("[CrashReporter] Existing report scan failed");
+      return;
+    }
+
+    for (const filename of filenames) {
+      const filepath = this.resolveReportPath(filename);
+      if (!filepath) {
+        continue;
+      }
+      let report = null;
+      try {
+        report = JSON.parse(fs.readFileSync(filepath, "utf8"));
+      } catch (_error) {
+        report = {
+          timestamp: new Date(0).toISOString(),
+          crash: { type: "unknown" },
+        };
+      }
+      try {
+        fs.writeFileSync(
+          filepath,
+          JSON.stringify(sanitizeStoredCrashReport(report), null, 2),
+          { encoding: "utf8", mode: 0o600 },
+        );
+        fs.chmodSync(filepath, 0o600);
+      } catch (_error) {
+        logger.error("[CrashReporter] Existing report migration failed");
+      }
+    }
   }
 
   /**
@@ -223,18 +348,21 @@ class CrashReporter {
     try {
       const files = fs
         .readdirSync(this.crashesDir)
-        .filter((f) => f.startsWith("crash-") && f.endsWith(".json"))
-        .map((f) => ({
-          name: f,
-          path: path.join(this.crashesDir, f),
-          size: fs.statSync(path.join(this.crashesDir, f)).size,
-          created: fs.statSync(path.join(this.crashesDir, f)).birthtime,
-        }))
+        .filter((filename) => CRASH_FILENAME.test(filename))
+        .map((filename) => {
+          const filepath = this.resolveReportPath(filename);
+          const stat = fs.statSync(filepath);
+          return {
+            name: filename,
+            size: stat.size,
+            created: stat.birthtime,
+          };
+        })
         .sort((a, b) => b.created - a.created);
 
       return files;
-    } catch (error) {
-      logger.error("[CrashReporter] Get crash reports error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report listing failed");
       return [];
     }
   }
@@ -244,11 +372,14 @@ class CrashReporter {
    */
   readCrashReport(filename) {
     try {
-      const filepath = path.join(this.crashesDir, filename);
+      const filepath = this.resolveReportPath(filename);
+      if (!filepath) {
+        return null;
+      }
       const content = fs.readFileSync(filepath, "utf8");
-      return JSON.parse(content);
-    } catch (error) {
-      logger.error("[CrashReporter] Read crash report error:", error);
+      return sanitizeStoredCrashReport(JSON.parse(content));
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report read failed");
       return null;
     }
   }
@@ -258,12 +389,15 @@ class CrashReporter {
    */
   deleteCrashReport(filename) {
     try {
-      const filepath = path.join(this.crashesDir, filename);
+      const filepath = this.resolveReportPath(filename);
+      if (!filepath) {
+        return false;
+      }
       fs.unlinkSync(filepath);
-      logger.info("[CrashReporter] Crash report deleted:", filename);
+      logger.info("[CrashReporter] Crash report deleted");
       return true;
-    } catch (error) {
-      logger.error("[CrashReporter] Delete crash report error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report deletion failed");
       return false;
     }
   }
@@ -280,10 +414,10 @@ class CrashReporter {
         for (const report of toDelete) {
           this.deleteCrashReport(report.name);
         }
-        logger.info("[CrashReporter] Cleaned old reports:", toDelete.length);
+        logger.info("[CrashReporter] Old crash reports cleaned");
       }
-    } catch (error) {
-      logger.error("[CrashReporter] Clean old reports error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Old crash report cleanup failed");
     }
   }
 
@@ -298,8 +432,8 @@ class CrashReporter {
       }
       logger.info("[CrashReporter] All reports cleared");
       return true;
-    } catch (error) {
-      logger.error("[CrashReporter] Clear all reports error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report clearing failed");
       return false;
     }
   }
@@ -319,11 +453,14 @@ class CrashReporter {
         }
       }
 
-      fs.writeFileSync(outputPath, JSON.stringify(allReports, null, 2));
-      logger.info("[CrashReporter] Reports exported to:", outputPath);
+      fs.writeFileSync(outputPath, JSON.stringify(allReports, null, 2), {
+        encoding: "utf8",
+        mode: 0o600,
+      });
+      logger.info("[CrashReporter] Bounded reports exported");
       return true;
-    } catch (error) {
-      logger.error("[CrashReporter] Export reports error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash report export failed");
       return false;
     }
   }
@@ -349,8 +486,8 @@ class CrashReporter {
       }
 
       return stats;
-    } catch (error) {
-      logger.error("[CrashReporter] Get crash statistics error:", error);
+    } catch (_error) {
+      logger.error("[CrashReporter] Crash statistics failed");
       return { total: 0, byType: {}, recent: [] };
     }
   }
