@@ -27,6 +27,8 @@ export const BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-retention-descriptor/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-expiry-plan/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-operator-revocation-descriptor/v1";
 
 const QUARANTINE_COMMIT_ACK_SCHEMA =
   "chainlesschain.browser-download-quarantine-commit-ack/v1";
@@ -760,6 +762,42 @@ function normalizeRetentionDescriptor(value, custodyDescriptor) {
   return Object.freeze({ ...value });
 }
 
+function normalizeOperatorRevocationDescriptor(value, custodyDescriptor) {
+  exact(
+    value,
+    [
+      "schema",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "maxGrantTtlMs",
+      "approvalMode",
+      "auditMode",
+      "effectMode",
+    ],
+    "filesystem quarantine operator revocation descriptor",
+  );
+  if (
+    value.schema !==
+      BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA ||
+    !ID.test(value.authorityId) ||
+    value.tenantId !== custodyDescriptor.tenantId ||
+    value.handlerArtifactDigest !== custodyDescriptor.handlerArtifactDigest ||
+    !ID.test(value.policyRevision) ||
+    !Number.isSafeInteger(value.maxGrantTtlMs) ||
+    value.maxGrantTtlMs < 1 ||
+    value.maxGrantTtlMs > 30_000 ||
+    value.approvalMode !== "operator-signed" ||
+    value.auditMode !== "authenticated-durable-readback" ||
+    value.effectMode !== "irreversible-byte-revocation"
+  )
+    throw new TypeError(
+      "filesystem quarantine operator revocation descriptor is invalid",
+    );
+  return Object.freeze({ ...value });
+}
+
 function normalizeExpiryPlanInput(value, retentionDescriptor, nowMs) {
   exact(
     value,
@@ -1314,6 +1352,20 @@ export function captureBrowserFilesystemQuarantineCustody(value) {
           return acknowledgement;
         },
       });
+    },
+    bindOperatorRevocationAuthority: (descriptor) => {
+      const revocationDescriptor = normalizeOperatorRevocationDescriptor(
+        descriptor,
+        state.descriptor,
+      );
+      return async (input) => {
+        const normalized = normalizeDisposalInput(input);
+        if (normalized.reason !== "revoked")
+          throw new Error(
+            "filesystem quarantine operator revocation reason is invalid",
+          );
+        return disposeArtifact(state, revocationDescriptor, normalized);
+      };
     },
   });
 }

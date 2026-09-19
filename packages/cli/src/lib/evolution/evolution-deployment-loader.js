@@ -278,6 +278,7 @@ async function loadBuiltInFactories(commandName) {
       browserFilesystemQuarantineDisposal,
       browserQuarantineRetention,
       browserQuarantineRetentionScheduler,
+      browserQuarantineOperatorRevocation,
       browserDownloadArtifactDisposal,
       ledgerPorts,
       artifactPorts,
@@ -308,6 +309,7 @@ async function loadBuiltInFactories(commandName) {
       import("./browser-filesystem-quarantine-disposal.js"),
       import("./browser-quarantine-retention-authority.js"),
       import("./browser-quarantine-retention-scheduler.js"),
+      import("./browser-quarantine-operator-revocation-authority.js"),
       import("./browser-download-artifact-disposal-authority.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
@@ -433,6 +435,8 @@ async function loadBuiltInFactories(commandName) {
         browserQuarantineRetention.createBrowserQuarantineRetentionAuthority,
       createBrowserQuarantineRetentionScheduler:
         browserQuarantineRetentionScheduler.createBrowserQuarantineRetentionScheduler,
+      createBrowserQuarantineOperatorRevocationAuthority:
+        browserQuarantineOperatorRevocation.createBrowserQuarantineOperatorRevocationAuthority,
       createBrowserDownloadArtifactDisposalAuthority:
         browserDownloadArtifactDisposal.createBrowserDownloadArtifactDisposalAuthority,
       createEvolutionLedgerDurableArtifactResolver:
@@ -788,6 +792,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createBrowserFilesystemQuarantineDisposalAuthority",
     "createBrowserQuarantineRetentionAuthority",
     "createBrowserQuarantineRetentionScheduler",
+    "createBrowserQuarantineOperatorRevocationAuthority",
     "createBrowserDownloadArtifactDisposalAuthority",
   ];
   for (const name of providerFactories) {

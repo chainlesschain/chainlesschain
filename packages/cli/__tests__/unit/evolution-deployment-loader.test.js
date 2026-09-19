@@ -52,6 +52,10 @@ import {
   captureBrowserQuarantineRetentionScheduler,
 } from "../../src/lib/evolution/browser-quarantine-retention-scheduler.js";
 import {
+  BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA,
+  captureBrowserQuarantineOperatorRevocationAuthority,
+} from "../../src/lib/evolution/browser-quarantine-operator-revocation-authority.js";
+import {
   BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadArtifactDisposalAuthority,
 } from "../../src/lib/evolution/browser-download-artifact-disposal-authority.js";
@@ -1180,6 +1184,26 @@ describe("signed evolution deployment loader", () => {
               now: () => Date.now(),
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserQuarantineOperatorRevocationAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-operator-revocation",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "operator-policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "operator-signed",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-byte-revocation",
+              },
+              custody: {},
+              authorizeRevocation: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1375,6 +1399,25 @@ describe("signed evolution deployment loader", () => {
               clearIntervalFn: () => {},
               now: () => Date.now(),
             });
+          const browserQuarantineOperatorRevocationAuthority =
+            factories.createBrowserQuarantineOperatorRevocationAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_OPERATOR_REVOCATION_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-operator-revocation",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "operator-policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "operator-signed",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-byte-revocation",
+              },
+              custody: browserFilesystemQuarantineCustody,
+              authorizeRevocation: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1390,6 +1433,7 @@ describe("signed evolution deployment loader", () => {
             browserFilesystemQuarantineDisposalAuthority,
             browserQuarantineRetentionAuthority,
             browserQuarantineRetentionScheduler,
+            browserQuarantineOperatorRevocationAuthority,
           };
         },
       }),
@@ -1508,6 +1552,16 @@ describe("signed evolution deployment loader", () => {
       intervalMs: 60_000,
       overlapMode: "skip",
       shutdownMode: "drain",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserQuarantineOperatorRevocationAuthority(
+        result.browserQuarantineOperatorRevocationAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-quarantine-operator-revocation",
+      approvalMode: "operator-signed",
+      effectMode: "irreversible-byte-revocation",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });
