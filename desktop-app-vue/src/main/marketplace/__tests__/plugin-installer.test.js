@@ -406,6 +406,38 @@ describe("PluginInstaller", () => {
     });
   });
 
+  describe("download error boundary", () => {
+    it("does not disclose marketplace download errors", async () => {
+      const secret = "plugin-installer-download-secret";
+      mockClient.downloadPlugin.mockRejectedValue(new Error(secret));
+
+      const download = installer._downloadPlugin(
+        "p1",
+        "1.0.0",
+        path.join(tmpPluginsDir, "plugin.zip"),
+      );
+
+      await expect(download).rejects.toMatchObject({
+        message: "Plugin marketplace operation failed",
+        code: "PLUGIN_MARKETPLACE_OPERATION_FAILED",
+      });
+      await expect(download).rejects.not.toThrow(secret);
+    });
+
+    it("has no raw caught-error propagation or URL error text", async () => {
+      const source = await fsPromises.readFile(
+        path.resolve(process.cwd(), "src/main/marketplace/plugin-installer.js"),
+        "utf8",
+      );
+
+      expect(source).not.toMatch(
+        /(?:throw|reject\()\s*(?:error|err|e)\s*\)?\s*;/u,
+      );
+      expect(source).not.toContain("Failed to download from ${url}");
+      expect(source).not.toContain("Download timeout for ${url}");
+    });
+  });
+
   // ── _parsePluginRow ───────────────────────────────────────────────────
 
   describe("_parsePluginRow", () => {

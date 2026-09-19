@@ -17,6 +17,7 @@ const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  createPluginOperationError,
 } = require("../plugins/plugin-ipc-error-boundary");
 const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
@@ -1439,7 +1440,7 @@ class PluginInstaller {
         `[PluginInstaller] Download failed for ${pluginId}@${version}:`,
         error,
       );
-      throw error;
+      throw createPluginOperationError("pluginMarketplace");
     }
   }
 
@@ -1476,11 +1477,7 @@ class PluginInstaller {
         if (response.statusCode !== 200) {
           file.close();
           fsSync.unlinkSync(destPath);
-          reject(
-            new Error(
-              `HTTP ${response.statusCode}: Failed to download from ${url}`,
-            ),
-          );
+          reject(createPluginOperationError("pluginMarketplace"));
           return;
         }
 
@@ -1492,23 +1489,25 @@ class PluginInstaller {
       });
 
       request.on("error", (error) => {
+        logger.error("[PluginInstaller] Download request failed", error);
         file.close();
         try {
           fsSync.unlinkSync(destPath);
         } catch (e) {
           // Ignore cleanup errors
         }
-        reject(error);
+        reject(createPluginOperationError("pluginMarketplace"));
       });
 
       file.on("error", (error) => {
+        logger.error("[PluginInstaller] Download file stream failed", error);
         file.close();
         try {
           fsSync.unlinkSync(destPath);
         } catch (e) {
           // Ignore cleanup errors
         }
-        reject(error);
+        reject(createPluginOperationError("pluginMarketplace"));
       });
 
       // Set a timeout
@@ -1520,7 +1519,7 @@ class PluginInstaller {
         } catch (e) {
           // Ignore cleanup errors
         }
-        reject(new Error(`Download timeout for ${url}`));
+        reject(createPluginOperationError("pluginMarketplace"));
       });
     });
   }
