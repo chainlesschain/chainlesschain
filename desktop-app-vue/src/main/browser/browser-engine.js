@@ -294,10 +294,22 @@ class BrowserEngine extends EventEmitter {
    */
   async openTab(profileName, url, options = {}) {
     const context = this.getContext(profileName);
+    const allowedOrigins =
+      options.allowedRedirectOrigins === undefined
+        ? null
+        : normalizeAllowedNavigationOrigins(options.allowedRedirectOrigins);
+    let page = null;
+    let targetId = null;
+    let routeHandler = null;
+    let routeInstalled = false;
+    let opened = false;
 
     try {
-      const page = await context.newPage();
-      const targetId = `tab-${this.nextTargetId++}`;
+      if (url && allowedOrigins !== null) {
+        assertAllowedNavigationUrl(url, allowedOrigins);
+      }
+      page = await context.newPage();
+      targetId = `tab-${this.nextTargetId++}`;
 
       // 为页面添加 targetId 属性（用于快照引擎）
       page._targetId = targetId;
@@ -308,7 +320,7 @@ class BrowserEngine extends EventEmitter {
       // 设置页面事件监听
       page.on("close", () => {
         this.pages.delete(targetId);
-        this.emit("tab:closed", { targetId });
+        if (opened) this.emit("tab:closed", { targetId });
       });
 
       page.on("crash", () => {
@@ -325,12 +337,20 @@ class BrowserEngine extends EventEmitter {
 
       // 导航到 URL
       if (url) {
+        if (allowedOrigins !== null) {
+          routeHandler = createNavigationRouteHandler(page, allowedOrigins);
+          await page.route("**/*", routeHandler);
+          routeInstalled = true;
+        }
         await page.goto(url, {
           waitUntil: options.waitUntil || "domcontentloaded",
           timeout: options.timeout || 30000,
         });
       }
 
+      const finalUrl = page.url();
+      const title = await page.title();
+      opened = true;
       this.emit("tab:opened", { targetId, url, profileName });
 
       console.log(`[BrowserEngine] Tab opened: ${targetId} -> ${url}`);
@@ -338,12 +358,18 @@ class BrowserEngine extends EventEmitter {
       return {
         success: true,
         targetId,
-        url: page.url(),
-        title: await page.title(),
+        url: finalUrl,
+        title,
       };
     } catch (error) {
+      if (targetId !== null) this.pages.delete(targetId);
+      if (page !== null) await page.close().catch(() => {});
       this.emit("tab:error", { error: error.message });
       throw new Error(`Failed to open tab: ${error.message}`);
+    } finally {
+      if (routeInstalled && page !== null) {
+        await page.unroute("**/*", routeHandler).catch(() => {});
+      }
     }
   }
 

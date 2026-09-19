@@ -8,6 +8,8 @@ function pageFixture(requestUrls, finalUrl = requestUrls.at(-1)) {
   const routes = [];
   const page = {
     mainFrame: vi.fn(() => mainFrame),
+    on: vi.fn(),
+    close: vi.fn(async () => {}),
     route: vi.fn(async (_pattern, handler) => {
       routeHandler = handler;
     }),
@@ -93,6 +95,68 @@ function historyPageFixture({
 }
 
 describe("BrowserEngine governed navigation redirect guard", () => {
+  it("guards a new tab from its first request and removes the guard", async () => {
+    const { page, routes } = pageFixture(
+      ["https://example.test/start", "https://login.example.test/continue"],
+      "https://login.example.test/continue",
+    );
+    const engine = new BrowserEngine();
+    engine.contexts.set("default", {
+      newPage: vi.fn(async () => page),
+    });
+
+    await expect(
+      engine.openTab("default", "https://example.test/start", {
+        allowedRedirectOrigins: [
+          "https://example.test",
+          "https://login.example.test",
+        ],
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      targetId: "tab-1",
+      url: "https://login.example.test/continue",
+    });
+    expect(routes).toHaveLength(2);
+    expect(page.close).not.toHaveBeenCalled();
+    expect(engine.pages.get("tab-1")).toBe(page);
+    expect(page.unroute).toHaveBeenCalledOnce();
+  });
+
+  it("closes and forgets a half-created tab after an unapproved redirect", async () => {
+    const { page, routes } = pageFixture([
+      "https://example.test/start",
+      "https://blocked.test/redirect",
+    ]);
+    const engine = new BrowserEngine();
+    engine.contexts.set("default", {
+      newPage: vi.fn(async () => page),
+    });
+
+    await expect(
+      engine.openTab("default", "https://example.test/start", {
+        allowedRedirectOrigins: ["https://example.test"],
+      }),
+    ).rejects.toThrow(/ERR_BLOCKED_BY_CLIENT/u);
+    expect(routes[1].abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(page.close).toHaveBeenCalledOnce();
+    expect(engine.pages.has("tab-1")).toBe(false);
+    expect(page.unroute).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an out-of-scope initial tab URL before creating a page", async () => {
+    const newPage = vi.fn();
+    const engine = new BrowserEngine();
+    engine.contexts.set("default", { newPage });
+
+    await expect(
+      engine.openTab("default", "https://blocked.test/start", {
+        allowedRedirectOrigins: ["https://example.test"],
+      }),
+    ).rejects.toThrow(/outside the approved scope/u);
+    expect(newPage).not.toHaveBeenCalled();
+  });
+
   it("allows only explicitly bound main-frame origins and removes the guard", async () => {
     const { page, routes } = pageFixture([
       "https://example.test/start",

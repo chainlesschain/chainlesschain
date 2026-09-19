@@ -116,6 +116,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:action:history",
   "browser:action:key-press",
   "browser:action:navigate",
+  "browser:action:open-tab",
   "browser:action:vision",
   "browser:aiClearHistory",
   "browser:aiExecute",

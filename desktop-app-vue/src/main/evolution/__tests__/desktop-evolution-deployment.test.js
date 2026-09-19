@@ -41,6 +41,9 @@ const {
 const {
   authorizeDesktopBrowserKeyboardAction,
 } = require("../desktop-browser-keyboard-action");
+const {
+  authorizeDesktopBrowserTabOpenAction,
+} = require("../desktop-browser-tab-open-action");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -654,6 +657,79 @@ describe("desktop evolution deployment", () => {
         {
           targetId: "tab-1",
           options: { key: "Enter", modifiers: ["Control"] },
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed tab-open authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-tab-open",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("tab-open-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+    });
+    const authorizeAction = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-tab-open-action-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        approvalMode: descriptor.approvalMode,
+        requestId: request.requestId,
+        profileName: request.profileName,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        destinationDigest: domainDigest(
+          "chainlesschain.browser-tab-open-action-destination/v1",
+          request.destinationUrl,
+        ),
+        redirectOriginsDigest: domainDigest(
+          "chainlesschain.browser-tab-open-action-redirect-origins/v1",
+          request.allowedRedirectOrigins,
+        ),
+        waitUntil: request.waitUntil,
+        timeout: request.timeout,
+        inputDigest: request.inputDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded tab open");
+      return Object.freeze({
+        descriptor,
+        authorizeAction,
+        recordActionOutcome: vi.fn(),
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserTabOpenActionAuthority: authority,
+        }),
+      }),
+      importBrowserTabOpenActionAuthorityModule: async () => ({
+        captureBrowserTabOpenActionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.desktopBrowserTabOpenActionHost)).toEqual([]);
+    await expect(
+      authorizeDesktopBrowserTabOpenAction(
+        result.desktopBrowserTabOpenActionHost,
+        {
+          profileName: "default",
+          destinationUrl: "https://example.test/path",
+          options: { waitUntil: "networkidle" },
           senderId: 21,
           frameUrl: "app://desktop/index.html",
         },

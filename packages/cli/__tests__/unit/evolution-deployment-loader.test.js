@@ -29,6 +29,10 @@ import {
   BROWSER_KEYBOARD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
   captureBrowserKeyboardActionAuthority,
 } from "../../src/lib/evolution/browser-keyboard-action-authority.js";
+import {
+  BROWSER_TAB_OPEN_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserTabOpenActionAuthority,
+} from "../../src/lib/evolution/browser-tab-open-action-authority.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -827,6 +831,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserVisionActionAuthority",
       "createBrowserNavigationActionAuthority",
       "createBrowserKeyboardActionAuthority",
+      "createBrowserTabOpenActionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1012,6 +1017,22 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserTabOpenActionAuthority({
+              descriptor: {
+                schema: BROWSER_TAB_OPEN_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-tab-open",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1077,6 +1098,21 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               recordOutcome: async () => null,
             });
+          const browserTabOpenActionAuthority =
+            factories.createBrowserTabOpenActionAuthority({
+              descriptor: {
+                schema: BROWSER_TAB_OPEN_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-tab-open",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1084,6 +1120,7 @@ describe("signed evolution deployment loader", () => {
             browserVisionActionAuthority,
             browserNavigationActionAuthority,
             browserKeyboardActionAuthority,
+            browserTabOpenActionAuthority,
           };
         },
       }),
@@ -1127,6 +1164,15 @@ describe("signed evolution deployment loader", () => {
       ).descriptor,
     ).toMatchObject({
       authorityId: "browser-keyboard",
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserTabOpenActionAuthority(result.browserTabOpenActionAuthority)
+        .descriptor,
+    ).toMatchObject({
+      authorityId: "browser-tab-open",
       approvalMode: "interactive",
       auditMode: "authenticated-durable-readback",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,

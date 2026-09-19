@@ -23,6 +23,11 @@ const {
   consumeDesktopBrowserKeyboardActionGrant,
   recordDesktopBrowserKeyboardActionOutcome,
 } = require("../evolution/desktop-browser-keyboard-action");
+const {
+  authorizeDesktopBrowserTabOpenAction,
+  consumeDesktopBrowserTabOpenActionGrant,
+  recordDesktopBrowserTabOpenActionOutcome,
+} = require("../evolution/desktop-browser-tab-open-action");
 
 const READ_ONLY_VISION_TASKS = new Set([
   "analyze",
@@ -123,10 +128,79 @@ function registerComputerUseHandlers(ctx) {
     _getBrowserVisionActionHost,
     _getBrowserNavigationActionHost,
     _getBrowserKeyboardActionHost,
+    _getBrowserTabOpenActionHost,
     withErrorHandler,
   } = ctx;
 
   // ==================== Phase 6: Computer Use Capabilities (v0.33.0) ====================
+
+  /**
+   * Open one explicitly governed Agent tab. The ordinary browser:openTab UI
+   * channel remains a separate compatibility path.
+   */
+  _ipcMain.handle(
+    "browser:action:open-tab",
+    withErrorHandler(
+      async (event, profileName, destinationUrl, options = {}) => {
+        const grant = await authorizeDesktopBrowserTabOpenAction(
+          _getBrowserTabOpenActionHost?.() ?? null,
+          {
+            profileName,
+            destinationUrl,
+            options,
+            senderId: event?.sender?.id,
+            frameUrl:
+              event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+          },
+        );
+        const engine = _getBrowserEngine();
+        const actionEvidence = consumeDesktopBrowserTabOpenActionGrant(
+          grant,
+          profileName,
+          destinationUrl,
+          options,
+        );
+        let result = null;
+        let mutationError = null;
+        try {
+          result = await engine.openTab(
+            actionEvidence.profileName,
+            actionEvidence.destinationUrl,
+            {
+              allowedRedirectOrigins: actionEvidence.allowedRedirectOrigins,
+              waitUntil: actionEvidence.waitUntil,
+              timeout: actionEvidence.timeout,
+            },
+          );
+        } catch (error) {
+          mutationError = error;
+        }
+        const actionAudit = await recordDesktopBrowserTabOpenActionOutcome(
+          grant,
+          {
+            status: mutationError === null ? "succeeded" : "failed",
+            targetId: mutationError === null ? result.targetId : null,
+            finalUrl: mutationError === null ? result.url : null,
+            failureClass:
+              mutationError === null ? null : "browser-tab-open-action-failed",
+          },
+        );
+        const evidence = {
+          authorizationReceiptDigest: actionEvidence.receiptDigest,
+          auditEventDigest: actionAudit.auditEventDigest,
+          durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+        };
+        if (mutationError !== null) {
+          return {
+            success: false,
+            error: `Tab open failed: ${mutationError.message}`,
+            ...evidence,
+          };
+        }
+        return { ...result, ...evidence };
+      },
+    ),
+  );
 
   /**
    * Execute coordinate-level mouse action

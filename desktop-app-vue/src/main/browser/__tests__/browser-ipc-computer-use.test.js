@@ -11,6 +11,9 @@ const {
 const {
   createDesktopBrowserKeyboardActionHost,
 } = require("../../evolution/desktop-browser-keyboard-action");
+const {
+  createDesktopBrowserTabOpenActionHost,
+} = require("../../evolution/desktop-browser-tab-open-action");
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -178,11 +181,72 @@ function createKeyboardHost() {
   return { host, authorizeAction, recordActionOutcome };
 }
 
+function createTabOpenHost() {
+  const authority = Object.freeze({});
+  const descriptor = Object.freeze({
+    authorityId: "ipc-tab-open",
+    tenantId: "tenant-1",
+    handlerArtifactDigest: digest("tab-open-handler"),
+    approvalMode: "interactive",
+    auditMode: "authenticated-durable-readback",
+  });
+  const authorizeAction = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-tab-open-action-receipt/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      approvalMode: descriptor.approvalMode,
+      requestId: request.requestId,
+      profileName: request.profileName,
+      operation: request.operation,
+      senderId: request.senderId,
+      frameUrlDigest: request.frameUrlDigest,
+      destinationDigest: domainDigest(
+        "chainlesschain.browser-tab-open-action-destination/v1",
+        request.destinationUrl,
+      ),
+      redirectOriginsDigest: domainDigest(
+        "chainlesschain.browser-tab-open-action-redirect-origins/v1",
+        request.allowedRedirectOrigins,
+      ),
+      waitUntil: request.waitUntil,
+      timeout: request.timeout,
+      inputDigest: request.inputDigest,
+      requestDigest: digest(`request:${request.requestId}`),
+      validUntil: new Date(Date.now() + 5000).toISOString(),
+      receiptDigest: digest(request.requestId),
+    }),
+  );
+  const recordActionOutcome = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-tab-open-action-outcome-ack/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      actionReceiptDigest: request.actionReceiptDigest,
+      outcomeRequestDigest: domainDigest(request.schema, request),
+      auditEventDigest: digest(`audit:${request.resultDigest}`),
+      durabilityReceiptDigest: digest(`durable:${request.resultDigest}`),
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      qualifiesForPromotion: false,
+    }),
+  );
+  const host = createDesktopBrowserTabOpenActionHost(authority, (value) => {
+    if (value !== authority) throw new TypeError("unbranded");
+    return Object.freeze({ descriptor, authorizeAction, recordActionOutcome });
+  });
+  return { host, authorizeAction, recordActionOutcome };
+}
+
 function fixture({
   observationHost = null,
   actionHost = null,
   navigationHost = null,
   keyboardHost = null,
+  tabOpenHost = null,
   engine = null,
 } = {}) {
   const handlers = new Map();
@@ -197,6 +261,7 @@ function fixture({
     _getBrowserVisionActionHost: vi.fn(() => actionHost),
     _getBrowserNavigationActionHost: vi.fn(() => navigationHost),
     _getBrowserKeyboardActionHost: vi.fn(() => keyboardHost),
+    _getBrowserTabOpenActionHost: vi.fn(() => tabOpenHost),
     withErrorHandler: (handler) => handler,
   });
   return { handlers, getBrowserEngine };
@@ -449,6 +514,96 @@ describe("browser computer-use IPC", () => {
         { key: "Enter" },
       ),
     ).rejects.toThrow(/branded Desktop browser keyboard host/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("denies a new tab before browser-engine access without its action host", async () => {
+    const { handlers, getBrowserEngine } = fixture();
+    await expect(
+      handlers.get("browser:action:open-tab")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "default",
+        "https://example.test/path",
+        {},
+      ),
+    ).rejects.toThrow(/branded Desktop browser tab open host/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("opens one origin-bound tab and durably audits before returning", async () => {
+    const tabOpen = createTabOpenHost();
+    const engine = {
+      openTab: vi.fn(async () => ({
+        success: true,
+        targetId: "tab-7",
+        url: "https://login.test/complete",
+        title: "Complete",
+      })),
+    };
+    const { handlers, getBrowserEngine } = fixture({
+      tabOpenHost: tabOpen.host,
+      engine,
+    });
+    const options = {
+      allowedRedirectOrigins: ["https://login.test", "https://example.test"],
+      actionAuthorization: { approval: true },
+    };
+
+    await expect(
+      handlers.get("browser:action:open-tab")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "default",
+        "https://example.test/path",
+        options,
+      ),
+    ).resolves.toMatchObject({
+      success: true,
+      targetId: "tab-7",
+      authorizationReceiptDigest: expect.stringMatching(/^sha256:/u),
+      auditEventDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(tabOpen.authorizeAction).toHaveBeenCalledBefore(getBrowserEngine);
+    expect(engine.openTab).toHaveBeenCalledWith(
+      "default",
+      "https://example.test/path",
+      {
+        allowedRedirectOrigins: ["https://example.test", "https://login.test"],
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      },
+    );
+    expect(tabOpen.recordActionOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "succeeded" }),
+    );
+    expect(
+      JSON.stringify(tabOpen.recordActionOutcome.mock.calls),
+    ).not.toContain("https://login.test/complete");
+  });
+
+  it("rejects an unsafe tab URL before authority or engine access", async () => {
+    const tabOpen = createTabOpenHost();
+    const { handlers, getBrowserEngine } = fixture({
+      tabOpenHost: tabOpen.host,
+      engine: { openTab: vi.fn() },
+    });
+    await expect(
+      handlers.get("browser:action:open-tab")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "default",
+        "file:///secret",
+        {},
+      ),
+    ).rejects.toThrow(/destination is invalid/u);
+    expect(tabOpen.authorizeAction).not.toHaveBeenCalled();
     expect(getBrowserEngine).not.toHaveBeenCalled();
   });
 
