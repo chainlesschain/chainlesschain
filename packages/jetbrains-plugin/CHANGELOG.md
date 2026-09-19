@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.130] - Recover bounded Agent loops with CLI 0.166.65 (2026-09-19)
+
+- Recommend the publicly verified `chainlesschain@0.166.65` release in runtime
+  upgrade guidance and release metadata.
+- Carry the CLI fix that keeps recovery-generated pause turns out of repeated
+  file-read and identical large-output retry counters, so recovery guidance
+  cannot itself trigger the same six-batch no-progress guard.
+- Apply the same bounded semantics to remote and post-compaction recovery while
+  real repeated reads, unrelated remote discovery, and policy rejection loops
+  remain fail closed in the CLI host.
+- Keep the bridge a bounded CLI client; execution and recovery authority remain
+  in the exact-gated CLI release.
+
 ## [0.4.129] - Pair with CLI 0.166.63 governed evolution (2026-09-19)
 
 - Recommend the publicly verified `chainlesschain@0.166.63` release in runtime
