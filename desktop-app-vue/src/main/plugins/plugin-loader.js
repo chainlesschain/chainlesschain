@@ -52,6 +52,15 @@ function createBoundedProcessOutput() {
   };
 }
 
+function createProcessOutputReceipt(summary) {
+  return Object.freeze({
+    totalBytes: summary.totalBytes,
+    retainedBytes: summary.retainedBytes,
+    truncated: summary.truncated,
+    digest: summary.digest,
+  });
+}
+
 function createPluginProcessError(code, message, exitCode = null) {
   const error = new Error(message);
   error.code = code;
@@ -519,7 +528,7 @@ class PluginLoader {
    * 执行命令
    * @param {string} command - 命令
    * @param {Array} args - 参数
-   * @returns {Promise<string>} 命令输出
+   * @returns {Promise<Object>} 不含原始输出的命令完成回执
    */
   async execCommand(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
@@ -546,7 +555,7 @@ class PluginLoader {
         const stdoutSummary = stdout.finish();
         const stderrSummary = stderr.finish();
         if (code === 0) {
-          resolve(stdoutSummary.text);
+          resolve(createProcessOutputReceipt(stdoutSummary));
         } else {
           logger.error("[PluginLoader] 插件命令执行失败", {
             exitCode: Number.isSafeInteger(code) ? code : null,

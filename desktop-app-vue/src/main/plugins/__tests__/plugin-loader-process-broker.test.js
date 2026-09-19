@@ -83,7 +83,13 @@ describe("PluginLoader process execution", () => {
     childProcess.stdout.emit("data", Buffer.from("done"));
     childProcess.emit("close", 0);
 
-    await expect(resultPromise).resolves.toBe("done");
+    await expect(resultPromise).resolves.toEqual({
+      totalBytes: 4,
+      retainedBytes: 4,
+      truncated: false,
+      digest:
+        "sha256:a4c3ed04a95a3da14a9d235c83d868bed7c0f45cf7f3faa751ee8f50598d2211",
+    });
     expect(spawnProcess).toHaveBeenCalledWith(
       "unzip",
       ["archive.zip", "-d", "dir & echo ignored"],
@@ -97,16 +103,24 @@ describe("PluginLoader process execution", () => {
     );
   });
 
-  it("bounds successful command output", async () => {
+  it("returns only a bounded receipt for successful command output", async () => {
     const childProcess = createProcess();
     const loader = createLoader(() => childProcess);
     const resultPromise = loader.execCommand("tool", []);
+    const secret = "successful-command-secret";
 
+    childProcess.stdout.emit("data", Buffer.from(secret));
     childProcess.stdout.emit("data", Buffer.alloc(70 * 1024, "a"));
     childProcess.emit("close", 0);
 
     const result = await resultPromise;
-    expect(Buffer.byteLength(result, "utf8")).toBe(64 * 1024);
+    expect(result).toMatchObject({
+      totalBytes: Buffer.byteLength(secret, "utf8") + 70 * 1024,
+      retainedBytes: 64 * 1024,
+      truncated: true,
+    });
+    expect(result.digest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(JSON.stringify(result)).not.toContain(secret);
   });
 
   it("does not disclose failed command output", async () => {
