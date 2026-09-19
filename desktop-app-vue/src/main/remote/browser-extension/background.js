@@ -58,7 +58,7 @@ function connect() {
     return;
   }
 
-  console.log(`[ChainlessChain] Connecting to ${WS_URL}...`);
+  console.log("[ChainlessChain] Connecting to Desktop bridge");
 
   try {
     ws = new WebSocket(WS_URL);
@@ -114,15 +114,15 @@ function connect() {
       scheduleReconnect();
     };
 
-    ws.onerror = (error) => {
-      console.error("[ChainlessChain] WebSocket error:", error);
+    ws.onerror = () => {
+      console.error("[ChainlessChain] WebSocket error");
     };
 
     ws.onmessage = (event) => {
       handleMessage(event.data);
     };
-  } catch (error) {
-    console.error("[ChainlessChain] Failed to connect:", error);
+  } catch {
+    console.error("[ChainlessChain] Failed to connect");
     scheduleReconnect();
   }
 }
@@ -139,9 +139,7 @@ function scheduleReconnect() {
   reconnectAttempts++;
   const delay = RECONNECT_DELAY * reconnectAttempts;
 
-  console.log(
-    `[ChainlessChain] Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})`,
-  );
+  console.log("[ChainlessChain] Reconnect scheduled");
 
   setTimeout(connect, delay);
 }
@@ -177,10 +175,11 @@ function sendMessage(message) {
  */
 async function handleMessage(data) {
   stats.messagesReceived++;
+  let message = null;
 
   try {
-    const message = JSON.parse(data);
-    console.log("[ChainlessChain] Received:", message.type || message.method);
+    message = JSON.parse(data);
+    console.log("[ChainlessChain] Received command");
 
     // Handle command from server
     if (message.method) {
@@ -193,16 +192,16 @@ async function handleMessage(data) {
         result,
       });
     }
-  } catch (error) {
-    console.error("[ChainlessChain] Error handling message:", error);
+  } catch {
+    console.error("[ChainlessChain] Error handling command");
 
     // Send error response if applicable
-    if (data.id) {
+    if (message?.id !== undefined) {
       sendMessage({
-        id: data.id,
+        id: message.id,
         error: {
           code: -32603,
-          message: error.message,
+          message: "Command failed",
         },
       });
     }
@@ -213,7 +212,7 @@ async function handleMessage(data) {
  * Execute command
  */
 async function executeCommand(method, params) {
-  console.log(`[ChainlessChain] Executing: ${method}`);
+  console.log("[ChainlessChain] Executing command");
 
   const registryHandler = commandHandlerRegistry[method];
   if (registryHandler) {
@@ -1073,27 +1072,6 @@ async function executeCommand(method, params) {
 // Element Interactions handlers moved to ./handlers/dom.js (Phase 1 split).
 
 // Page Operations (print, pdf) handlers moved to ./handlers/page.js (Phase 1).
-
-async function setViewport(tabId, width, height) {
-  try {
-    await chrome.debugger.attach({ tabId }, "1.3");
-
-    await chrome.debugger.sendCommand(
-      { tabId },
-      "Emulation.setDeviceMetricsOverride",
-      {
-        width: width,
-        height: height,
-        deviceScaleFactor: 1,
-        mobile: width < 768,
-      },
-    );
-
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
 
 // Page Operations (emulateDevice, setGeolocation) handlers moved to
 // ./handlers/page.js (Phase 1 split).
@@ -7871,7 +7849,7 @@ function getStatus() {
 // ==================== Message Handling from Popup ====================
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[ChainlessChain] Message from popup:", message);
+  console.log("[ChainlessChain] Message from popup");
 
   switch (message.type) {
     case "connect":

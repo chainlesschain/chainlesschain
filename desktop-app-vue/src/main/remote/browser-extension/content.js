@@ -5,7 +5,7 @@
  */
 
 /* eslint-disable no-undef */
-/* global chrome, TextEncoder */
+/* global chrome */
 
 const KIB = 1024;
 const MIB = 1024 * KIB;
@@ -85,7 +85,7 @@ function contentOverloaded(scope, limit) {
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[ChainlessChain Content] Received message:", message.type);
+  console.log("[ChainlessChain Content] Received message");
 
   switch (message.type) {
     case "extractContent":
@@ -2408,8 +2408,8 @@ function saveAnnotationsToStorage() {
     chrome.storage.local.set({
       annotations: JSON.parse(JSON.stringify(annotations)),
     });
-  } catch (e) {
-    console.error("[ChainlessChain] Failed to save annotations:", e);
+  } catch {
+    console.error("[ChainlessChain] Failed to save annotations");
   }
 }
 
@@ -2425,8 +2425,8 @@ function loadAnnotationsFromStorage() {
         restoreAnnotations();
       }
     });
-  } catch (e) {
-    console.error("[ChainlessChain] Failed to load annotations:", e);
+  } catch {
+    console.error("[ChainlessChain] Failed to load annotations");
   }
 }
 
@@ -2445,12 +2445,9 @@ function restoreAnnotations() {
       try {
         // Try to find element by XPath and re-apply highlight
         // This is a simplified version; full implementation would use text matching
-        console.log(
-          "[ChainlessChain] Would restore annotation:",
-          annotation.id,
-        );
-      } catch (e) {
-        console.error("[ChainlessChain] Failed to restore annotation:", e);
+        console.log("[ChainlessChain] Would restore annotation");
+      } catch {
+        console.error("[ChainlessChain] Failed to restore annotation");
       }
     }
   });
@@ -2465,4 +2462,4 @@ chrome.runtime.sendMessage({
   url: window.location.href,
 });
 
-console.log("[ChainlessChain] Content script loaded on:", window.location.href);
+console.log("[ChainlessChain] Content script loaded");

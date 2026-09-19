@@ -55,8 +55,8 @@ async function updateStatus() {
   try {
     const status = await chrome.runtime.sendMessage({ type: "getStatus" });
     updateUI(status.connected, status.stats);
-  } catch (error) {
-    console.error("Failed to get status:", error);
+  } catch {
+    console.error("Failed to get extension status");
     updateUI(false);
   }
 }
@@ -148,8 +148,8 @@ async function loadTabs() {
       more.textContent = `... and ${tabs.length - 10} more`;
       tabList.appendChild(more);
     }
-  } catch (error) {
-    console.error("Failed to load tabs:", error);
+  } catch {
+    console.error("Failed to load extension tabs");
   }
 }
 
@@ -164,8 +164,8 @@ async function handleConnect() {
     await chrome.runtime.sendMessage({ type: "connect" });
     // Wait a bit for connection
     setTimeout(updateStatus, 1000);
-  } catch (error) {
-    console.error("Connect failed:", error);
+  } catch {
+    console.error("Extension connection failed");
   } finally {
     connectBtn.disabled = false;
     connectBtn.textContent = "Connect";
@@ -179,8 +179,8 @@ async function handleDisconnect() {
   try {
     await chrome.runtime.sendMessage({ type: "disconnect" });
     updateUI(false);
-  } catch (error) {
-    console.error("Disconnect failed:", error);
+  } catch {
+    console.error("Extension disconnect failed");
   }
 }
 
