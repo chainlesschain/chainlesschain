@@ -136,6 +136,41 @@ describe("LLM core IPC failure privacy", () => {
     expect(received.cause).toBeUndefined();
   });
 
+  it("projects private config values before returning to the renderer", async () => {
+    const secret = "sk-core-config-secret";
+    getLLMConfig.mockReturnValue({
+      getAll: () => ({
+        provider: "openai",
+        openai: {
+          apiKey: secret,
+          baseURL: "https://private-tenant.example.test/v1",
+          organization: "private-org",
+          model: "gpt-safe-model",
+        },
+        systemPrompt: "private system prompt",
+        options: { temperature: 0.2 },
+        streamEnabled: true,
+      }),
+    });
+
+    const result = await handlers["llm:get-config"]();
+
+    expect(result.openai).toMatchObject({
+      apiKey: "",
+      apiKeyConfigured: true,
+      baseURL: "",
+      baseURLConfigured: true,
+      organization: "",
+      organizationConfigured: true,
+      model: "gpt-safe-model",
+    });
+    expect(result.systemPrompt).toBe("");
+    expect(result.systemPromptConfigured).toBe(true);
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain("private-tenant");
+    expect(JSON.stringify(result)).not.toContain("private system prompt");
+  });
+
   it("keeps top-level core catches on the privacy boundary", () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, "..", "llm-ipc-core.js"),

@@ -5,6 +5,10 @@
  * @module llm/llm-ipc-core
  */
 const { logger } = require("../utils/logger.js");
+const {
+  mergeLlmConfigWrite,
+  projectLlmConfigForRenderer,
+} = require("./llm-config-projection");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function isGovernanceIngressFailure(error) {
@@ -1096,7 +1100,7 @@ function registerCoreHandlers(ctx) {
   ipcMain.handle("llm:get-config", async () => {
     try {
       const llmConfig = getConfiguration();
-      return llmConfig.getAll();
+      return projectLlmConfigForRenderer(llmConfig.getAll());
     } catch {
       throw privacy.failure("get-config");
     }
@@ -1109,10 +1113,11 @@ function registerCoreHandlers(ctx) {
   ipcMain.handle("llm:set-config", async (_event, config) => {
     try {
       const llmConfig = getConfiguration();
+      const submittedConfig = mergeLlmConfigWrite(config, llmConfig.getAll());
 
       // 更新配置
-      Object.keys(config).forEach((key) => {
-        llmConfig.set(key, config[key]);
+      Object.keys(submittedConfig).forEach((key) => {
+        llmConfig.set(key, submittedConfig[key]);
       });
 
       llmConfig.save();
@@ -1128,7 +1133,7 @@ function registerCoreHandlers(ctx) {
           managerRef.current &&
           typeof managerRef.current.setConfig === "function"
         ) {
-          await managerRef.current.setConfig(config);
+          await managerRef.current.setConfig(submittedConfig);
         }
         return true;
       }
