@@ -10,8 +10,11 @@
  * @module remote/handlers/command-history-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const SqlSecurity = require("../../database/sql-security.js");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "CommandHistoryHandler");
 
 /**
  * Parse a JSON column tolerantly: a truncated/corrupted row must not throw out

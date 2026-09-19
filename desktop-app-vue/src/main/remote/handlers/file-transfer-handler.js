@@ -13,12 +13,15 @@
  * @module remote/handlers/file-transfer-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { isWithinDir } = require("../../utils/path-boundary.js");
 const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
 const { app } = require("electron");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "FileTransferHandler");
 
 // 默认配置
 const DEFAULT_CONFIG = {
