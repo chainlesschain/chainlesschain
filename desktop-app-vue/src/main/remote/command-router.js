@@ -225,11 +225,14 @@ class CommandRouter {
         }
 
         // 返回错误响应
+        const exposeErrorDetails = this.shouldExposeErrorDetails(context);
         return this.createErrorResponse(
           id,
           error.code || ERROR_CODES.HANDLER_ERROR,
-          error.message || "Handler execution failed",
-          error.data,
+          exposeErrorDetails
+            ? error.message || "Handler execution failed"
+            : "Handler execution failed",
+          exposeErrorDetails ? error.data : null,
         );
       }
 
@@ -259,9 +262,18 @@ class CommandRouter {
         id,
         ERROR_CODES.INTERNAL_ERROR,
         "Internal router error",
-        error.message,
+        this.shouldExposeErrorDetails(context) ? error.message : null,
       );
     }
+  }
+
+  /**
+   * Preserve legacy diagnostics only for in-process callers. Remote/mobile
+   * callers receive stable errors so handler internals cannot cross the trust
+   * boundary through JSON-RPC details.
+   */
+  shouldExposeErrorDetails(context = {}) {
+    return context.source !== "mobile" && context.channel !== "p2p";
   }
 
   /**

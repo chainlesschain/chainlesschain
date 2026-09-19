@@ -360,7 +360,6 @@ class P2PCommandAdapter extends EventEmitter {
         error: {
           code: ERROR_CODES.INTERNAL_ERROR,
           message: "Internal Error",
-          data: error.message,
         },
       });
 

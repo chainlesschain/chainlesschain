@@ -579,7 +579,6 @@ class RemoteGateway extends EventEmitter {
         error: {
           code: -32603,
           message: "Internal Error",
-          data: error.message,
         },
       };
 
