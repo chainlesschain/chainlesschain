@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.64: admit bounded target-section reads during task recovery
+
+- Allow read_file with an explicit offset and a limit of at most 80 lines for a
+  known target section during task recovery, even when the file was not
+  observed before recovery (e.g. a referenced implementation note).
+- Keep unbounded whole-file discovery paused until the file is registered; the
+  ordinary per-file reread limit applies once a file is.
+- Gate recovery pausing on a new readToolRecoveryPaused flag so recovery
+  prompts, warnings and authority denials stay consistent, and keep read_file
+  visible in the task-recovery tool set.
+
 ### Added - cc CLI 0.166.63: RSIAgent governed evolution batches 9-23
 
 - Add the ninth through twenty-third RSIAgent evolution batches: budget

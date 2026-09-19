@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.64",
+      "cliVersions": ["0.166.64"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.64: admit bounded target-section reads during task recovery",
+          "body": "- Allow read_file with an explicit offset and a limit of at most 80 lines for a\n  known target section during task recovery, even when the file was not\n  observed before recovery (e.g. a referenced implementation note).\n- Keep unbounded whole-file discovery paused until the file is registered; the\n  ordinary per-file reread limit applies once a file is.\n- Gate recovery pausing on a new readToolRecoveryPaused flag so recovery\n  prompts, warnings and authority denials stay consistent, and keep read_file\n  visible in the task-recovery tool set."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.63",
       "cliVersions": ["0.166.63"],
       "date": null,
