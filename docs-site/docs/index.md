@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.62 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.63 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.62
-    details: 公开 CLI 新增受治理 PM Broad/Deep 探索恢复与三系统精确 SHA 证据，并加固 Windows 恢复、状态锁、ACL 和 npm provenance；Explorer 仍不可执行。
+    title: Agent Platform 0.166.63
+    details: 公开 CLI 新增 PM 强制预算、签名回执、provider settlement、SQLite seal/taint、耐久迁移与恢复快照；Explorer 仍不可执行。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.107 与 JetBrains 0.4.128 自动保存有界任务证据，并将已校验记录交给独立新会话，不复制旧对话或权限。
+    details: VS Code 0.37.108 与 JetBrains 0.4.129 自动保存有界任务证据，并将已校验记录交给独立新会话，不复制旧对话或权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -46,7 +46,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 4.5 万下载
-    details: Open VSX 0.37.107 与 JetBrains 0.4.128 已公开并推荐 CLI 0.166.62；IDE 现支持显式长任务接力。
+    details: Open VSX 0.37.108 与 JetBrains 0.4.129 已公开并推荐 CLI 0.166.63；IDE 现支持显式长任务接力与只读 PM readiness。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -56,10 +56,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.62@77572e7355，三平台 CLI CI、Strict Sandbox 与 OIDC 发布回读已成功；Desktop 继续独立验收。
+    details: npm latest 为 CLI 0.166.63@f98797e8b5，三平台 CLI CI 与 Strict Sandbox 成功；OIDC 上传成功后 registry 传播超时仍按失败记录，Desktop 继续独立验收。
 ---
 
-> **2026-09-18 发布快照**：npm `latest` 为 `chainlesschain@0.166.62`，不可变标签为 `v-npm-0-166-62@77572e7355`；Open VSX `0.37.107` 与 JetBrains Marketplace `0.4.128@6edebc8b25` 已公开并推荐该 CLI。受治理 PM 探索新增训练分区、Broad/Deep 轮次、独立只读 grader、静止点重放与 Ledger/Artifact authority 恢复；Desktop readiness 固定不可执行，synthetic 故障证据不替代生产磁盘、远端 authority、grader/PKI 或物理断电验收。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[发布与升级指南](/chainlesschain/agent-platform-release)与[模块 112 设计](/design/modules/112-governed-skill-evolution-design)。
+> **2026-09-19 发布快照**：npm `latest` 为 `chainlesschain@0.166.63`，不可变标签为 `v-npm-0-166-63@f98797e8b5`；Open VSX `0.37.108@e39edecb7f` 与 JetBrains Marketplace `0.4.129@b7978f4915` 已公开并推荐该 CLI。PM 探索新增宿主强制预算、四角色签名回执、provider settlement、独立业务 grader、Desktop SQLite seal/taint、耐久迁移、认证链头恢复与恢复快照；`readyForExecution:false` 和 automatic promotion `HOLD` 不变。CLI OIDC workflow 的 registry 传播超时仍保留 failure 结论；详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[发布与升级指南](/chainlesschain/agent-platform-release)与[模块 112 设计](/design/modules/112-governed-skill-evolution-design)。
 
 > **2026-09-11 历史发布快照**：npm `latest` 为 `chainlesschain@0.166.44`，不可变标签为 `v-npm-0-166-44@0651cbcb7d`；产品版本为 `v5.0.3.137`。新建 Volcengine 文本配置默认使用 `deepseek-v4-flash-ga-260731`（DeepSeek V4 Flash GA），既有保存配置不迁移。同期源码强化了 EvolutionLedger 的整批预校验/签名、增量前缀重验和 v2 manifest head CAS；这些可靠性增强不等于目标环境已配置 KMS/PKI/witness/grader，也不改变 automatic promotion `HOLD`。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[模块 112](/design/modules/112-governed-skill-evolution-design)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 

@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.63 / Open VSX 0.37.108 / JetBrains 0.4.129（2026-09-19）
+
+- **签名 PM 执行证据**：宿主强制 token/tool/墙钟预算，execution/grader/merge/evaluator 四角色使用独立 Ed25519 authority；Volcengine usage/费用 settlement 经外部 retain 与精确回读后绑定 execution receipt、evidence bundle 与 PM Ledger。
+- **独立业务结果验证**：grader 在 Actor 前冻结文件基线，或从 Desktop 品牌化 outcome source 读取项目/看板实际状态；固定参数化 `SELECT` 绑定 plan、environment、task 白名单、签名数据库路径和 source digest，不接受 Actor 自报结果或任意 SQL。
+- **SQLite 状态与恢复链**：每轮核对 pre-run seal，成功绑定 post-run seal 与签名回执，失败捕获 failure-state seal 并 taint host；窄化 transition committer 提交认证/耐久/回读确认，重启可恢复链头，snapshot-backed 路径先保留并回读 SQLite backup 再提交迁移。
+- **边界不变**：`readyForExecution`、`runtimeVerified`、`authenticated`、`qualifiesForPromotion` 继续为 `false`。测试未覆盖生产 authority、远端故障域、workspace snapshot、原子 restore、物理断电或真实 Electron DID/RBAC PM E2E。
+- **发布证据**：`v-npm-0-166-63@f98797e8b5` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35339309099)与 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35339308634)三系统矩阵成功。[npm OIDC 工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35339308709)已上传制品和签名 provenance，但因 registry 传播超过 30 次回读窗口而最终标红；该失败结论保留。2026-09-19 已独立回读 npm `latest=0.166.63`。
+- **IDE 对齐**：Open VSX `0.37.108@e39edecb7f` 与 JetBrains `0.4.129@b7978f4915` 均推荐 CLI `0.166.63`；[VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35398555660)与 [JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/35374270179)成功，公开商店已回读。
+
 #### Released — CLI 0.166.62 / Open VSX 0.37.107 / JetBrains 0.4.128（2026-09-18）
 
 - **受治理 PM 探索恢复**：加入训练分区、Broad/Deep 轮次、独立只读 grader、预算/无收益停止、静止点快照与确定性重放；候选 Memory 不进入 active Skill 或用户四层 Memory，Desktop readiness 固定 `readyForExecution:false`。

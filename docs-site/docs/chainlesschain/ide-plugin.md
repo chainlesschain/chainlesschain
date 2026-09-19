@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前公开组合（2026-09-18）：CLI `0.166.62` + VS Code 扩展 `0.37.107`（Open VSX）+ JetBrains 插件 `0.4.128`（Marketplace）。CLI 制品来自 `77572e7355`，IDE 制品来自 `6edebc8b25`，均已完成公开回读；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
+> **当前公开组合（2026-09-19）：CLI `0.166.63` + VS Code 扩展 `0.37.108`（Open VSX）+ JetBrains 插件 `0.4.129`（Marketplace）。CLI 制品来自 `f98797e8b5`，VS Code 制品来自 `e39edecb7f`，JetBrains 制品来自 `b7978f4915`，均已完成公开回读；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.107` 与 JetBrains Marketplace `0.4.128` 已公开并推荐 npm `latest` CLI `0.166.62@77572e7355`。本版对齐 Windows 恢复/ACL 加固与受治理 PM 探索恢复边界；微软 VS Code Marketplace 尚未公开该扩展。
+> **发布提示**：Open VSX `0.37.108` 与 JetBrains Marketplace `0.4.129` 已公开并推荐 npm `latest` CLI `0.166.63@f98797e8b5`。本版对齐受治理 PM 的预算/签名证据、SQLite seal、迁移提交与恢复快照边界；微软 VS Code Marketplace 尚未公开该扩展。CLI OIDC workflow 的 registry 传播超时仍按失败记录，详见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 
@@ -36,7 +36,7 @@ VS Code / VSCodium 扩展 `0.37.93` 支持 `chainlesschain.chat.maxTurns`。默�
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.62 # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.166.63 # 需要 Node ≥ 22.12.0；当前 npm latest
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -46,7 +46,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.107 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.107/file/chainlesschain.chainlesschain-ide-0.37.107.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.108 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.108/file/chainlesschain.chainlesschain-ide-0.37.108.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -58,7 +58,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.107` 已从 Open VSX 公开回读并推荐 CLI `0.166.62`；JetBrains `0.4.128` 已完成 Marketplace 公共回读并推荐同一 CLI。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.108` 已从 Open VSX 公开回读并推荐 CLI `0.166.63`；JetBrains `0.4.129` 已完成 Marketplace 公共回读并推荐同一 CLI。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -103,7 +103,8 @@ IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提�
 侧边栏（VS Code：Activity Bar → ChainlessChain IDE → Chat；JetBrains：右侧 **ChainlessChain** 工具窗）直接和 agent 对话，内部为每个会话维护一个长驻 `cc agent` stream-json 双工子进程：
 
 - **多会话标签页**：每个 tab 独立进程，随开随切；标签、resume id、审批模式、思考档位**跨 IDE 重启持久化**，首条消息自动命名标签；**Reopen Closed** 按标题 / 日期搜索重开已关会话。
-- **任务记录与新会话接力（VS Code 0.37.107 / JetBrains 0.4.128）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
+- **任务记录与新会话接力（VS Code 0.37.108 / JetBrains 0.4.129）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
+- **PM readiness 与恢复链（VS Code 0.37.108 / JetBrains 0.4.129）**：只读展示 CLI-owned 的预算、签名 authority、SQLite seal、transition recovery 与 snapshot-store 配置状态。插件不接收 runner、grader、数据库字节、Ledger 或 durability authority；`readyForExecution:false` 与 automatic promotion `HOLD` 仍是公开版本的预期结果。
 - **流式渲染**：逐 token 回复 + 实时工具调用轨迹；XSS 安全的 Markdown 渲染（代码块 / GFM 表格 / 任务列表），代码块带 **Copy / 插入编辑器** 按钮。
 - **扩展思考**：`/think`、`/ultrathink`、`/think-off` 三档，推理过程以可折叠暗色块实时展示。
 - **图片 / 视觉**：Ctrl/Cmd+V 粘贴截图或拖拽图片（单条最多 4 张），走独立视觉模型。
@@ -397,7 +398,7 @@ cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 | 深链点了没反应                         | 检查 workspace 参数是否与当前打开目录一致；`mode=bypassPermissions` 会被拒                        |
 | JetBrains 装完菜单是英文               | 界面语言跟随 IDE：装中文语言包后重启即中文                                                        |
 | 升级 CLI 后行为不一致                  | 命令面板 **Check for CLI Updates** / **Upgrade CLI**，插件与 CLI 版本步调见 What's New            |
-| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.62` 和配套插件；发送一条消息完成 init 后重试                                    |
+| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.63` 和配套插件；发送一条消息完成 init 后重试                                    |
 | 接力等待超过 60 秒                     | 处理运行中的工具或权限卡后重试；保存成功前旧会话始终保留                                          |
 
 ## 关键文件

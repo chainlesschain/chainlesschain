@@ -1,5 +1,7 @@
 # 112 受治理的 Skill 自进化设计
 
+> 2026-09-19 增量：公开 CLI 已升至 `0.166.63@f98797e8b5`，Open VSX `0.37.108@e39edecb7f` 与 JetBrains `0.4.129@b7978f4915` 已公开并推荐该 CLI。RSIAgent 第 9–23 批补齐宿主强制预算、四角色签名回执、provider settlement、独立 PM 业务 grader、Desktop 只读 SQLite 结果源、执行前后/失败 seal、tainted host、耐久迁移提交、认证链头恢复和 SQLite 恢复快照保留。代码仍固定 `readyForExecution:false` 与 `qualifiesForPromotion:false`；生产 authority、远端 durability、workspace snapshot、原子 restore、真实 Electron DID/RBAC PM E2E 和 automatic promotion 均未开放。
+
 > 2026-09-15 增量：公开 CLI 已升至 `0.166.56@d55de4810e`，Open VSX `0.37.103` 与 JetBrains `0.4.124` 均已公开并推荐该 CLI。部署 profile v5 新增明确的 `managed/test` 模式和受约束的测试私钥路径；`init-test` 通过正常验签/原子写入链创建本机 TEST 环境，`replace-test` 以 root-rotation proof 轮换到正式 descriptor/trust root。TEST 身份不获得审核或发布权限，automatic active promotion 继续 `HOLD`。
 
 > 2026-09-13 增量：公开 CLI 为 `0.166.46@b15104ebbe`。普通 Agent 在未配置演进部署时可以聊天；受治理配置一旦生效仍执行认证入口校验，失败不降级。Run/Wiki 证据绑定、候选摘要隔离与最新保留边界见 [Agent 运行时增量设计](../agent-runtime-update-2026-09-13.md)。下方 2026-09-11 状态为历史记录。
@@ -39,28 +41,30 @@
 
 ## 3. 核心特性
 
-| 能力        | 核心组件                                                        | 设计语义                                                              |
-| ----------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Candidate   | `SkillCandidateRegistry`                                        | tenant-scoped、content-addressed、不可变                              |
-| Manifest    | `SkillExecutionManifest`                                        | dependency/runtime/permission/matrix 规范绑定                         |
-| Eval        | `EvolutionEvalGate`                                             | target/grader/safety/supervisor/verifier 分权                         |
-| Matrix      | `SkillTargetMatrixEval`                                         | signed plan、reserve/finalize、all-cell conjunction                   |
-| Projection  | `EvolutionEvidenceProjector`                                    | raw 与 model-visible 证据分层                                         |
-| Ledger      | `EvolutionLedger`                                               | 签名 append-only、witness、receipt/verify                             |
-| Authority   | `SkillMutationAuthority`                                        | operation 与 transition subject 精确绑定                              |
-| Promotion   | `SkillPromotionController`                                      | lease、CAS、journal、commit-unknown recovery                          |
-| Release     | `SkillReleaseRegistry`                                          | release/active/LKG/rollback 基础                                      |
-| Ports       | artifact/ledger ports                                           | durable adapter 的严格写入/回读契约                                   |
-| Run ingress | `AgentEvolutionIngress` / `EvolutionRunLedgerAdapter`           | CLI、Graph、legacy WebSocket 的 pre-model/pre-tool 持久证据           |
-| Wiki        | `EvidenceBackedWikiMaintainer` / `WikiMaintainerLedgerAdapter`  | 证据驱动 revision、CAS、幂等恢复和认证触发                            |
-| Review      | `SkillPromotionReview` / review ledger adapter                  | 持久 packet、非自动 quorum、content-risk acknowledgement              |
-| Workbench   | `EvolutionWorkbenchCliHost` / version control / metrics         | digest-bound 检索、比较、逐项审阅、回滚与冷热指标留存                 |
-| Retrieval   | outcome index / vector authority / canonical router             | 只消费已验证 invocation outcome 与独立向量证据，歧义时 abstain        |
-| Knowledge   | governed sync / conflict reader / merge executor / trust ledger | ciphertext-only 同步、人工合并、RBAC/密钥生命周期、撤销依赖与崩溃恢复 |
-| Memory      | `StructuredMemory*` adapters                                    | episodic/semantic/procedural/policy 四层权力分离                      |
-| Migration   | candidate/release/state migration adapters                      | 计划、journal、故障恢复和 legacy 文件退休                             |
-| Composition | `createAgentEvolutionRuntimeComposition()`                      | 显式注入 KMS/PKI/policy/witness 的 branded 生产根                     |
-| Deployment  | signed descriptor / owner-only profile / exact-byte loader      | 验签后持久选择部署宿主；环境变量可覆盖；自动晋升固定为 HOLD           |
+| 能力         | 核心组件                                                         | 设计语义                                                              |
+| ------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Candidate    | `SkillCandidateRegistry`                                         | tenant-scoped、content-addressed、不可变                              |
+| Manifest     | `SkillExecutionManifest`                                         | dependency/runtime/permission/matrix 规范绑定                         |
+| Eval         | `EvolutionEvalGate`                                              | target/grader/safety/supervisor/verifier 分权                         |
+| Matrix       | `SkillTargetMatrixEval`                                          | signed plan、reserve/finalize、all-cell conjunction                   |
+| Projection   | `EvolutionEvidenceProjector`                                     | raw 与 model-visible 证据分层                                         |
+| Ledger       | `EvolutionLedger`                                                | 签名 append-only、witness、receipt/verify                             |
+| Authority    | `SkillMutationAuthority`                                         | operation 与 transition subject 精确绑定                              |
+| Promotion    | `SkillPromotionController`                                       | lease、CAS、journal、commit-unknown recovery                          |
+| Release      | `SkillReleaseRegistry`                                           | release/active/LKG/rollback 基础                                      |
+| Ports        | artifact/ledger ports                                            | durable adapter 的严格写入/回读契约                                   |
+| Run ingress  | `AgentEvolutionIngress` / `EvolutionRunLedgerAdapter`            | CLI、Graph、legacy WebSocket 的 pre-model/pre-tool 持久证据           |
+| Wiki         | `EvidenceBackedWikiMaintainer` / `WikiMaintainerLedgerAdapter`   | 证据驱动 revision、CAS、幂等恢复和认证触发                            |
+| Review       | `SkillPromotionReview` / review ledger adapter                   | 持久 packet、非自动 quorum、content-risk acknowledgement              |
+| Workbench    | `EvolutionWorkbenchCliHost` / version control / metrics          | digest-bound 检索、比较、逐项审阅、回滚与冷热指标留存                 |
+| Retrieval    | outcome index / vector authority / canonical router              | 只消费已验证 invocation outcome 与独立向量证据，歧义时 abstain        |
+| Knowledge    | governed sync / conflict reader / merge executor / trust ledger  | ciphertext-only 同步、人工合并、RBAC/密钥生命周期、撤销依赖与崩溃恢复 |
+| Memory       | `StructuredMemory*` adapters                                     | episodic/semantic/procedural/policy 四层权力分离                      |
+| Migration    | candidate/release/state migration adapters                       | 计划、journal、故障恢复和 legacy 文件退休                             |
+| Composition  | `createAgentEvolutionRuntimeComposition()`                       | 显式注入 KMS/PKI/policy/witness 的 branded 生产根                     |
+| Deployment   | signed descriptor / owner-only profile / exact-byte loader       | 验签后持久选择部署宿主；环境变量可覆盖；自动晋升固定为 HOLD           |
+| PM execution | budget executor / signed receipts / provider settlement / grader | 预算、四角色签名、真实 usage 结算与独立业务结果回读                   |
+| PM recovery  | SQLite seals / transition committer / recovery snapshot store    | 执行前后状态绑定、失败污染、认证链头恢复与恢复介质留存                |
 
 ## 4. 系统架构
 
@@ -380,6 +384,58 @@ CLI CI 在精确提交 `77572e7355` 上完成 Linux、Windows、macOS 全矩阵�
 同一发布链随后补齐 Windows 恢复临时路径规范化、存活状态锁保护和 ACL 瞬态超时重试上限；npm 发布工作流还会校验复用子包的 provenance 与字节未漂移。上述可靠性修复不会扩大 PM Explorer、Skill promotion 或 Desktop native 安装包的发布范围。
 
 实施证据见[第一批基线](../../rsiagent-first-batch-implementation-2026-09-17.md)、[第二批轮次合同](../../rsiagent-second-batch-implementation-2026-09-17.md)、[第三至第五批持久化与 Desktop 接线](../../rsiagent-fifth-batch-implementation-2026-09-17.md)、[第六至第七批恢复门禁](../../rsiagent-seventh-batch-implementation-2026-09-17.md)和[第八批故障关闭](../../rsiagent-eighth-batch-implementation-2026-09-17.md)。
+
+## 18.11 2026-09-19 发布核对：签名执行证据与 SQLite 恢复链
+
+`fb1dce58f6..fbc828c622` 将 18.10 中“默认不可执行的恢复合同”继续推进为可由签名 Desktop deployment 组装的窄化执行、评分、结算和状态恢复能力；CLI 制品边界为 `f98797e8b5`。这些对象只可由 loader 提供的品牌化 factory 创建，Desktop 捕获用途单一的私有端口，不取得通用 signer、Ledger、ArtifactStore、任意 SQL、数据库字节或 durability authority。
+
+```text
+signed execution manifest
+  ├─ plan/environment + tool allow-list + hard budgets
+  ├─ execution/grader/merge/evaluator public authorities
+  ├─ provider settlement + business outcome source digests
+  └─ database path + initial pre-run SQLite seal
+                │
+                ▼
+pre-run backup seal → Actor/provider/tool broker → independent grader
+                │               │                    │
+                │               └─ usage/cost settlement ─┐
+                └──────── execution + grader receipts ────┤
+                                                         ▼
+post-run/failure seal → transition evidence → retain snapshot
+                                                         │ exact readback
+                                                         ▼
+authenticated transition commit → recover chain head on restart
+```
+
+### 执行、provider 与评分合同
+
+- `PmExplorationBudgetExecutor` 以 `AbortSignal` 强制墙钟、token、工具次数和工具白名单；capability 在结束后关闭，迟到回调不能继续计费或调用工具。execution、grader、merge、evaluator 使用不同 authority ID 与 Ed25519 公钥，receipt 精确绑定 plan、environment、round、task、Memory、计量和前序摘要。
+- Volcengine adapter 只接受内置方舟 endpoint 与受治理 ingress，以供应商返回的 input/output/cache usage 计量和估算费用；脱敏 settlement 先经 ArtifactPorts、外部 retain 与精确字节 resolve，再绑定 execution receipt、evidence bundle 和 PM Ledger。真实网络探针证明本机 TEST deployment 的 endpoint/usage 链可用，不是 operator production qualification 或供应商账单审计。
+- 业务 grader 在 Actor 前冻结文件基线，或从品牌化 outcome source 读取项目/看板实际状态。Desktop reader 只执行固定参数化 `SELECT`，并绑定 plan、environment、task allow-list、签名数据库路径摘要和 outcome source digest；Actor 不能提供期望答案、数据库 ID 或任意 SQL。
+
+### SQLite 状态链与失败关闭
+
+- execution manifest v2 签入初始 `preRunSealDigest`。Desktop 使用 `DatabaseManager.backup()` 取得一致 SQLite 视图，seal 绑定规范数据库路径、backup 内容摘要、字节数与捕获方法；不匹配时 Actor、grader、provider 和工具 broker 均不运行。
+- 成功 round 在同一串行 lane 内形成 `pre seal → execution/grader receipts → post seal → stateTransitionDigest`，下一轮必须从上一轮 post seal 和 transition digest 继续。失败、回执异常或 post seal 异常会捕获 failure-state seal、生成失败证据并永久 taint 当前 host；未完成认证恢复前，排队及后续 round 都在任何副作用前拒绝。
+- 品牌化 transition committer 仅接受固定 success/failure 证据，并要求 `authenticated + durable + readbackVerified` 的绑定确认。commit 结果未知时不追加相互矛盾的失败事件；重启后由同一 committer 的固定 recovery 请求回读最后一个认证链头，恢复成功链的下一个 seal，或从失败链头重建 taint。
+- recovery snapshot store 从与 seal 同一次 SQLite backup 取得真实字节。成功迁移保留 post-run snapshot，失败迁移保留 pre-run snapshot；必须先 retain/resolve 快照，再提交绑定 `snapshotAckDigest` 的 transition。反向顺序被禁止，避免产生“链头已提交但无恢复介质”的窗口。
+
+### Readiness、验证与剩余边界
+
+Desktop readiness 新增签名 pre-run seal、未污染 execution host、transition committer、认证 transition recovery 与耐久 database recovery snapshot 检查；配置检查通过也只说明能力可装载，不证明一次真实运行已产生证据。公开投影继续固定：
+
+```text
+readyForExecution: false
+runtimeVerified: false
+authenticated: false
+qualifiesForPromotion: false
+autoPromotion: hold
+```
+
+第 23 批最终定向回归为 Desktop seal/reader/deployment/readiness `65 passed`，CLI PM/snapshot store/loader/签名 TEST fixture `184 passed`；精确 CLI 发布提交的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 均通过。这些测试使用本地或合成 durability authority，不能外推生产 PKI/KMS、远端故障域、父目录 fsync/物理断电、8 GiB 大库内存预算、workspace/外部服务恢复、关闭连接后的原子文件替换、taint 解除或真实 Electron DID/RBAC 工具旅程。
+
+实施证据见[第九批预算与签名回执](../../rsiagent-ninth-batch-implementation-2026-09-18.md)、[第十至十四批 provider 与 settlement](../../rsiagent-fourteenth-batch-implementation-2026-09-18.md)、[第十五批业务 grader](../../rsiagent-fifteenth-batch-implementation-2026-09-18.md)、[第十六至十七批 Desktop 只读结果源](../../rsiagent-seventeenth-batch-implementation-2026-09-18.md)、[第十八至二十批 SQLite seal 与 taint](../../rsiagent-twentieth-batch-implementation-2026-09-18.md)、[第二十一批耐久提交](../../rsiagent-twenty-first-batch-implementation-2026-09-18.md)、[第二十二批链头恢复](../../rsiagent-twenty-second-batch-implementation-2026-09-18.md)和[第二十三批恢复快照](../../rsiagent-twenty-third-batch-implementation-2026-09-18.md)。
 
 ## 19. 关键文件
 

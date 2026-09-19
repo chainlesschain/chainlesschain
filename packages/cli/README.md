@@ -2,12 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Current release: `chainlesschain@0.166.62`, immutable tag `v-npm-0-166-62`, exact commit [`77572e7355`](https://github.com/chainlesschain/chainlesschain/commit/77572e7355063f618438386389bb6c095d349636). The exact SHA passed every configured Linux, Windows, and macOS job in [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35267622585) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35267621821) before [OIDC publication, reused-package provenance verification, and public registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/35274352115). Open VSX `0.37.107` and JetBrains `0.4.128` are independently gated public IDE releases that recommend this CLI.
+> Current release: `chainlesschain@0.166.63`, immutable tag `v-npm-0-166-63`, exact commit [`f98797e8b5`](https://github.com/chainlesschain/chainlesschain/commit/f98797e8b56bb4bb745a8511aeeaa5ac66f43f4f). The exact SHA passed every configured Linux, Windows, and macOS job in [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35339309099) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35339308634). The [OIDC workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/35339308709) uploaded the package with signed provenance but concluded failure when npm propagation exceeded its 30-attempt readback window; npm now publicly reports `latest=0.166.63`. Open VSX `0.37.108` and JetBrains `0.4.129` are independently gated public IDE releases that recommend this CLI.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.62
+npm install -g chainlesschain@0.166.63
 chainlesschain setup
 ```
 
@@ -31,7 +31,7 @@ cc
 git diff | cc
 ```
 
-## Long-running tasks and bounded recovery (0.166.62)
+## Long-running tasks and bounded recovery (0.166.63)
 
 Since version 0.166.26, the CLI automatically continues repeated large-file
 requests from an unread region, including after context compaction. Actual character coverage
@@ -50,7 +50,7 @@ still fails explicitly rather than claiming the task is complete.
 Interactive streamed Agent sessions have no implicit 50-model-call ceiling.
 Explicit turn, environment, cost and session budgets still apply. Unattended
 runs retain the default cap; use `cc agent -p "your task" --max-turns 100` to
-set an explicit limit. VS Code extension 0.37.107 provides
+set an explicit limit. VS Code extension 0.37.108 provides
 `chainlesschain.chat.maxTurns`: 0 follows the interactive default, and a
 positive integer limits each message while preserving session history.
 
@@ -65,7 +65,7 @@ while recovery directs the agent toward a concrete mutation, verification, or
 blocker. Explicit requests to close a targeted pull request remain explicit;
 normal execution approval and one-time state verification still apply.
 
-## Governed PM exploration recovery (0.166.62; execution disabled)
+## Governed PM exploration evidence and recovery (0.166.63; execution disabled)
 
 The package now includes bounded PM Broad/Deep round contracts, a read-only
 result grader, quiescent recovery snapshots, and an Evolution
@@ -82,14 +82,30 @@ an intact local cache cannot turn an authority timeout or disconnect into
 success. Unknown commit results are settled from authenticated Ledger/witness
 history rather than retried blindly.
 
-Desktop receives only a branded, non-enumerable read capability from a signed
-deployment. `readyForExecution` remains fixed at `false`; renderer, IPC, models,
-and IDE clients receive neither `commitJournal` nor storage authority. The
-exact-SHA three-OS gate covers 31 child processes, CAS races, forced exits, and
-synthetic EROFS/ENOSPC/authority failures, but its evidence remains
-`qualifiesForProduction:false`. It does not qualify real disks, a remote
-authority, production graders/PKI, or physical power loss, and it does not
-enable Explorer or automatic active-Skill promotion.
+Version 0.166.63 adds host-enforced wall-clock/token/tool budgets and separate
+Ed25519 execution, grader, merge, and evaluator receipts. A governed
+Volcengine adapter accounts for provider-returned usage and estimated cost,
+persists a redacted settlement through an external durability contract, and
+binds it into the execution receipt and evidence bundle. A standalone business
+grader reads file output or a branded Desktop outcome source instead of trusting
+the Actor's self-report.
+
+Desktop receives fixed, parameterized project/board `SELECT` queries bound to
+the signed database-path and outcome-source digests. Every round verifies a
+SQLite backup seal before execution, captures success or failure state after
+execution, serializes rounds sharing the same database, and taints the host on
+an unexplained failure. A narrow transition committer durably binds success or
+failure evidence; its authenticated recovery port reconstructs the last chain
+head after restart. The snapshot-backed path retains and exactly reads back the
+same SQLite backup before committing the transition, but it never exposes
+generic Ledger/storage authority or database bytes to renderer or IDE clients.
+
+`readyForExecution`, `runtimeVerified`, `authenticated`, and
+`qualifiesForPromotion` remain fixed at `false`. The tests use synthetic/local
+durability authorities and do not qualify production keys, a remote fault
+domain, workspace snapshots, atomic restore, physical power loss, or a real
+Electron DID/RBAC PM journey. Explorer and automatic active-Skill promotion
+remain disabled.
 
 This release also normalizes Windows recovery temp paths, preserves live state
 locks, bounds transient ACL retries, and bounds scheduler-soak leases. These
@@ -126,7 +142,7 @@ source (npm root -g)/chainlesschain/completions/cc.fish
 
 > **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.
 
-### Governed evolution, deployment configuration, and Skill retrieval (`0.166.62`)
+### Governed evolution, deployment configuration, and Skill retrieval (`0.166.63`)
 
 The public command graph now includes digest-bound Evolution Workbench review,
 encrypted governed-knowledge conflict review, and canonical Skill retrieval:
@@ -189,8 +205,8 @@ the managed profile immediately.
 
 The profile is written atomically to
 `$CHAINLESSCHAIN_HOME/evolution/deployment-profile.json` (normally
-`~/.chainlesschain/evolution/deployment-profile.json`). VS Code 0.37.107,
-JetBrains 0.4.128, and `cc ui` use the same CLI-owned status/configure/toggle
+`~/.chainlesschain/evolution/deployment-profile.json`). VS Code 0.37.108,
+JetBrains 0.4.129, and `cc ui` use the same CLI-owned status/configure/toggle
 surface. IDEs do not store governance private keys or gain review, promotion,
 or release authority. Non-loopback `cc ui` configuration requires a token.
 
@@ -735,7 +751,7 @@ These receipts prove removal of the managed directory entries only. They do not
 claim secure erasure of external hardlinks, downloads, backups, snapshots, or
 viewer caches; the local JSONL ledgers are not WORM or an off-box transparency
 log. These commands are included in the current exact-gated
-`chainlesschain@0.166.62` release, but a local receipt still does not prove
+`chainlesschain@0.166.63` release, but a local receipt still does not prove
 off-box retention or secure erasure outside the managed store.
 
 Durable budget recovery stores a canonical local receipt for each operator

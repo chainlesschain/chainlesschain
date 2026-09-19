@@ -1,12 +1,12 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.56`；更新：2026-09-15
+> 适用版本：Agent Platform CLI `0.166.63`；更新：2026-09-19
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.56` 是当前 `latest`，对应标签 `v-npm-0-166-56` 与提交 `d55de4810e`。安装或升级 CLI：`npm i -g chainlesschain@0.166.56`。Open VSX `0.37.103` 与 JetBrains `0.4.124` 已公开并推荐该 CLI。
+> 发布状态：npm `chainlesschain@0.166.63` 是当前 `latest`，对应标签 `v-npm-0-166-63` 与提交 `f98797e8b5`。安装或升级 CLI：`npm i -g chainlesschain@0.166.63`。Open VSX `0.37.108` 与 JetBrains `0.4.129` 已公开并推荐该 CLI。
 
-> `0.166.56` 承接 Evolution ledger v2、证据绑定 Wiki 维护和运行时重验，并新增可见的 `deploymentMode: test`、`init-test/replace-test` 与 macOS 实体路径绑定；candidate/evidence/release 摘要不一致时仍失败闭合。无需为普通对话部署治理宿主；candidate、Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> `0.166.63` 在既有 Evolution ledger v2、TEST→managed 部署轮换和 PM Broad/Deep 恢复合同上，新增宿主强制预算、签名执行/评分回执、provider settlement、独立 PM 业务 grader、Desktop 只读 SQLite 结果源、执行前后 seal、失败污染门禁、耐久迁移与恢复快照。无需为普通对话部署治理宿主；Explorer、candidate/Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 
@@ -432,33 +432,36 @@ if ($LASTEXITCODE -ne 0) {
 
 成功结果中的 `created` 只表示候选已经过 evaluator 并持久化到隔离候选区。它仍不是 active Skill。Desktop Skill Creator 返回 `candidateOnly: true`、`persisted: false`、`activeMutation: false` 时，只应展示为“待审阅候选”。
 
-## 0.166.62：PM 探索恢复的用户与运维边界
+## 0.166.63：PM 执行证据与恢复链的用户/运维边界
 
-公开 CLI `0.166.62` 包含 PM 场景的受治理 Broad/Deep 轮次、独立只读结果评分、静止点恢复快照和 Ledger/Artifact authority 适配器。配套 Open VSX `0.37.107` 与 JetBrains `0.4.128` 推荐同一 CLI，但当前没有向普通用户开放“一键自主探索”入口。
+公开 CLI `0.166.63` 包含 PM 场景的受治理 Broad/Deep 轮次、宿主强制预算、四角色签名回执、provider usage/费用结算、独立业务评分、静止点 Journal 恢复，以及 Desktop SQLite 状态迁移/恢复快照链。配套 Open VSX `0.37.108` 与 JetBrains `0.4.129` 推荐同一 CLI，但当前没有向普通用户开放“一键自主探索”入口。
 
 ```bash
-npm install --global chainlesschain@0.166.62 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.63 --registry https://registry.npmjs.org
 cc --version
 ```
 
-`cc --version` 应输出 `0.166.62`。公开版本的正确行为是：
+`cc --version` 应输出 `0.166.63`。公开版本的正确行为是：
 
-- Desktop readiness 只读取签名 deployment 提供的品牌化存储能力，不向 renderer、IPC、模型或 IDE 暴露写端口、Ledger、authority、密钥或目录。
-- 即使本地配置检查全部满足，`readyForExecution` 仍为 `false`，状态保持 `requires-runtime-evidence`；这表示生产 runner、隔离工作区、硬预算取消、签名 grader 和目标环境恢复证据尚未齐备，不是安装故障。
+- Desktop readiness 只读取签名 deployment 提供的品牌化执行、评分、迁移与快照能力，不向 renderer、IPC、模型或 IDE 暴露通用写端口、Ledger、authority、密钥、任意 SQL、数据库字节或目录。
+- 即使本地配置检查全部满足，`readyForExecution`、`runtimeVerified`、`authenticated` 与 `qualifiesForPromotion` 仍为 `false`，状态保持 `requires-runtime-evidence`；这表示 operator authority、隔离工作区、真实身份/RBAC、远端 durability 和目标环境恢复证据尚未齐备，不是安装故障。
 - Broad 分支可形成有界候选 Memory，Deep 只能从认证 merge 摘要继续；候选不会进入用户四层 Memory、active Skill 或发布 registry。
 - 只有无活动轮次的静止点可保存快照。恢复会按 Plan 重放 Broad、merge、Deep 和 freeze 转换并核对摘要，不直接相信磁盘上的 JSON。
 - `retention:"ledger"` 的快照必须从 durability authority 解析；authority 超时或断连时，即使本地缓存仍完整也会失败，恢复后才可重新读取。
+- 每个 Desktop round 会在 Actor 前核对签名 SQLite backup seal；成功后绑定 execution/grader receipt 与 post-run seal，失败后捕获 failure-state seal 并把 host 标记为 tainted。未完成认证恢复前，后续 round 会在任何工具或模型调用前拒绝。
+- 启用 snapshot store 时，成功迁移先耐久保留 post-run SQLite backup，失败迁移先保留 pre-run backup，再提交绑定快照确认的状态迁移。当前能力只保留恢复介质，不会自动关闭连接、替换应用主库或解除 taint。
 
 Linux、Windows、macOS 的精确 SHA 门禁已覆盖多进程恢复、CAS 竞争和 synthetic `EROFS`/`ENOSPC`/authority 故障。报告仍固定标记 `qualifiesForProduction:false`：它不证明真实只读挂载、磁盘耗尽、远端副本、网络时间边界或物理断电。管理员不能通过修改该字段、使用 TEST 密钥或复制本地缓存来绕过生产验收。
 
 排障时按以下顺序判断：
 
-1. `blocked`：先修复缺失或伪造的签名 deployment、存储 capability、模型 ingress、身份或预算配置。
+1. `blocked`：先修复缺失或伪造的签名 deployment、预算/签名 authority、只读结果源、transition committer、recovery port 或 snapshot store。
 2. `requires-runtime-evidence`：配置可读但仍缺目标环境执行与恢复证据，继续保持 Explorer 关闭。
 3. authority unavailable：保留 Ledger 与本地缓存，不把缓存当权威；恢复服务后按同一 tenant/plan 重新读取。
 4. commit unknown：以认证 Ledger/witness 历史判定是否已提交，不能因为调用抛错就重复执行。
+5. execution host tainted：停止提交新轮次；先由认证链头判断最后一条成功/失败迁移，再在隔离 clone 上完成独占连接、原子恢复和 seal 复核。不要对应用主库做逐表“修复”。
 
-上述能力不会改变 Review、Pilot、Release 或 automatic active promotion 的 `HOLD` 边界。需要接入目标部署时，应先阅读[模块 112 设计](https://design.chainlesschain.com/modules/112-governed-skill-evolution-design.html)与仓库内第八批恢复实施报告，再为真实 authority、grader、runner 和故障域建立独立验收。
+上述能力不会改变 Review、Pilot、Release 或 automatic active promotion 的 `HOLD` 边界。需要接入目标部署时，应先阅读[模块 112 设计](https://design.chainlesschain.com/modules/112-governed-skill-evolution-design.html)与仓库内第九至二十三批实施报告，再为真实 authority、grader、runner、数据库/workspace clone 和故障域建立独立验收。
 
 ## 配置参考
 
@@ -516,6 +519,7 @@ Linux、Windows、macOS 的精确 SHA 门禁已覆盖多进程恢复、CAS 竞�
 - Typed artifacts：共享 Skill/Prompt/Hook/Knowledge schema、类型隔离 policy/authority、Prompt/Hook candidate gate、Hook 高风险硬门与依赖 stale 级联；stale 制品只能以新 dependency lock 和 revalidation receipt 生成候选，不能原地恢复；Skill Sync 成功结果已强制进入共享 Skill gate，旧 Skill-only store 只作为 tenant-bound 持久后端，knowledge 统一 adapter 尚待收口。
 - Workbench/Retrieval：候选比较、陈旧 revision、批准/拒绝/回滚、canonical digest、索引 witness、来源过滤与 verified outcome 排序。
 - Governed knowledge：密文冲突删节、认证 merge plan、Ed25519/AES-256-GCM、撤销依赖结算、响应丢失和进程重启恢复。
+- PM execution/recovery：预算取消、四角色回执、provider settlement、独立业务 grader、真实 SQLite 固定查询、路径/source 绑定、pre/post/failure seal、并发串行归因、taint、transition commit/recovery 与 snapshot retain/readback。第 23 批最终定向回归为 Desktop `65 passed`、CLI PM/deployment `184 passed`；这些是本地/合成 authority 证据，不是生产 E2E。
 - 路径安全：canonical ancestor alias、leaf link、父目录逃逸与 marketplace fail-closed 路径。
 
 本地测试通过不能替代发布提交自己的 Linux、Windows、macOS CI 与 Strict Sandbox 门禁。

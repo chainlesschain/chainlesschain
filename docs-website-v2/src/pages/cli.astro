@@ -32,7 +32,7 @@ const CLI_UPDATES = parseChangelog(
       .trim(),
     status:
       r.cliVersion === CLI_VERSION
-        ? '生产推荐 · 完整门禁'
+        ? 'npm latest · 公开回读'
         : r.cliVersion === NPM_LATEST_CLI_VERSION
           ? 'npm latest'
           : releaseStatus.unpublishedCliVersions.includes(r.cliVersion)
@@ -507,7 +507,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 在耐久任务记录基础上新增受治理 PM Broad/Deep 探索合同、独立只读 grader、Ledger/Artifact authority 恢复和三系统精确 SHA 证据，并加固 Windows 恢复路径、状态锁、ACL 瞬态失败与 npm provenance。Desktop PM readiness 固定不可执行；automatic promotion 保持 HOLD。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 在 Broad/Deep 恢复合同上新增宿主强制预算、四角色签名回执、provider settlement、独立业务 grader、Desktop SQLite seal/taint、耐久迁移提交、认证链头恢复与恢复快照。Desktop PM readiness 固定不可执行；automatic promotion 保持 HOLD。精确 SHA 的 CLI CI/Strict 三系统门成功，OIDC 上传后的 registry 传播超时仍按 workflow failure 记录。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>

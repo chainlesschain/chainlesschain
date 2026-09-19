@@ -27,7 +27,7 @@ const CLI_UPDATES = parseChangelog(
     date: r.date,
     status:
       r.cliVersion === CLI_VERSION
-        ? 'production recommendation · fully gated'
+        ? 'npm latest · public readback'
         : r.cliVersion === NPM_LATEST_CLI_VERSION
           ? 'npm latest'
           : releaseStatus.unpublishedCliVersions.includes(r.cliVersion)
@@ -503,7 +503,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} builds on durable task notes with governed PM Broad/Deep contracts, an independent read-only grader, Ledger/Artifact-authority recovery, and exact-SHA three-OS evidence. It also hardens Windows recovery paths, live state locks, transient ACL failures, and npm provenance. Desktop PM readiness remains non-executable; automatic promotion remains on HOLD.</p>
+      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} extends the Broad/Deep recovery contract with host-enforced budgets, four-role signed receipts, provider settlement, an independent business grader, Desktop SQLite seals/taint, durable transition commits, authenticated chain-head recovery, and recovery snapshots. Desktop PM readiness remains non-executable and automatic promotion remains on HOLD. The exact-SHA CLI CI/Strict three-OS gates passed; the post-upload registry-propagation timeout remains recorded as a workflow failure.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
     </div>
   </section>
