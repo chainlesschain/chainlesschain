@@ -7,6 +7,8 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
+  projectPluginDataExecutionReceipt,
+  projectPluginDataExtensions,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
@@ -322,7 +324,10 @@ function registerLazyPluginIPC({
       }
       const importers =
         app.pluginManager.registry.getExtensionsByPoint("data.importer");
-      return { success: true, importers };
+      return {
+        success: true,
+        importers: projectPluginDataExtensions(importers),
+      };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取数据导入器失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -337,7 +342,10 @@ function registerLazyPluginIPC({
       }
       const exporters =
         app.pluginManager.registry.getExtensionsByPoint("data.exporter");
-      return { success: true, exporters };
+      return {
+        success: true,
+        exporters: projectPluginDataExtensions(exporters),
+      };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取数据导出器失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -350,14 +358,11 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      const result = await app.pluginManager.triggerExtensionPoint(
-        "data.importer",
-        {
-          importerId,
-          ...options,
-        },
-      );
-      return { success: true, result };
+      await app.pluginManager.triggerExtensionPoint("data.importer", {
+        importerId,
+        ...options,
+      });
+      return projectPluginDataExecutionReceipt("import");
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 执行数据导入失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -370,14 +375,11 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      const result = await app.pluginManager.triggerExtensionPoint(
-        "data.exporter",
-        {
-          exporterId,
-          ...options,
-        },
-      );
-      return { success: true, result };
+      await app.pluginManager.triggerExtensionPoint("data.exporter", {
+        exporterId,
+        ...options,
+      });
+      return projectPluginDataExecutionReceipt("export");
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 执行数据导出失败:", error);
       return createPluginIpcFailureResult("pluginLazy");

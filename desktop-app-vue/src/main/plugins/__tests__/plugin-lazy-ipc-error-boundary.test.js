@@ -97,6 +97,7 @@ describe("lazy plugin IPC error boundary", () => {
             pluginId: "plugin-1",
             path: secret,
           }),
+          triggerExtensionPoint: vi.fn().mockResolvedValue({ secret }),
           plugins: new Map([["plugin-1", { sandbox }]]),
           registry: {
             getExtensionsByPoint: vi.fn((point) => [
@@ -104,16 +105,25 @@ describe("lazy plugin IPC error boundary", () => {
                 id: `${point}-1`,
                 plugin_id: "plugin-1",
                 plugin_name: "Plugin",
+                extension_point: point,
                 priority: 1,
                 config: {
                   id: "main",
+                  name: "Data handler",
                   path: "/main",
                   label: "Menu",
+                  description: "Data handler description",
+                  icon: "DatabaseOutlined",
+                  formats: ["json"],
+                  extensions: [".json"],
+                  mimeTypes: ["application/json"],
                   slot: "global-header",
                   type: "html",
                   html: secret,
                   meta: { secret },
                   componentPath: secret,
+                  handler: secret,
+                  options: { secret },
                 },
               },
             ]),
@@ -158,6 +168,18 @@ describe("lazy plugin IPC error boundary", () => {
       "search",
       { query: "public" },
     );
+    const importers = await ipc.handlers.get("plugin:get-data-importers")();
+    const exporters = await ipc.handlers.get("plugin:get-data-exporters")();
+    const importExecution = await ipc.handlers.get("plugin:execute-import")(
+      {},
+      "data.importer-1",
+      { source: secret },
+    );
+    const exportExecution = await ipc.handlers.get("plugin:execute-export")(
+      {},
+      "data.exporter-1",
+      { target: secret },
+    );
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -178,7 +200,7 @@ describe("lazy plugin IPC error boundary", () => {
       id: "main",
       path: "/main",
       title: "",
-      icon: "",
+      icon: "DatabaseOutlined",
     });
     expect(slot.extensions[0].config.type).toBe("custom");
     expect(page).toEqual({
@@ -210,6 +232,29 @@ describe("lazy plugin IPC error boundary", () => {
     expect(sandbox.callMethod).toHaveBeenCalledWith("executeTool", "search", {
       query: "public",
     });
+    expect(importers.importers[0].config).toEqual({
+      id: "main",
+      name: "Data handler",
+      label: "Menu",
+      description: "Data handler description",
+      icon: "DatabaseOutlined",
+      formats: ["json"],
+      extensions: [".json"],
+      mimeTypes: ["application/json"],
+    });
+    expect(exporters.exporters[0].config).toEqual(
+      importers.importers[0].config,
+    );
+    expect(importExecution).toEqual({
+      success: true,
+      executed: true,
+      operation: "import",
+    });
+    expect(exportExecution).toEqual({
+      success: true,
+      executed: true,
+      operation: "export",
+    });
     expect(
       JSON.stringify({
         list,
@@ -222,6 +267,10 @@ describe("lazy plugin IPC error boundary", () => {
         tools,
         skills,
         execution,
+        importers,
+        exporters,
+        importExecution,
+        exportExecution,
       }),
     ).not.toContain(secret);
   });

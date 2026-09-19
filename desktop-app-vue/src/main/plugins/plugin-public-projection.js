@@ -379,8 +379,64 @@ function projectPluginToolExecutionReceipt() {
   return { success: true, executed: true };
 }
 
+function projectPluginDataExtensions(extensions) {
+  if (!Array.isArray(extensions)) {
+    return [];
+  }
+  return extensions.slice(0, 1024).flatMap((extension) => {
+    if (!extension || typeof extension !== "object") {
+      return [];
+    }
+    const config =
+      extension.config && typeof extension.config === "object"
+        ? extension.config
+        : {};
+    return [
+      {
+        id: boundedString(extension.id, 256),
+        plugin_id: boundedString(
+          extension.plugin_id ?? extension.pluginId,
+          256,
+        ),
+        plugin_name: boundedString(
+          extension.plugin_name ?? extension.pluginName,
+          256,
+        ),
+        type: boundedString(extension.type ?? extension.extension_point, 128),
+        priority: Number.isSafeInteger(extension.priority)
+          ? Math.max(-10000, Math.min(10000, extension.priority))
+          : 100,
+        config: {
+          id: boundedString(config.id, 256),
+          name: boundedString(config.name, 512),
+          label: boundedString(config.label, 512),
+          description: boundedString(config.description, 4096),
+          icon: boundedString(config.icon, 128),
+          formats: projectStringList(config.formats, 128, 128),
+          extensions: projectStringList(config.extensions, 128, 128),
+          mimeTypes: projectStringList(
+            config.mimeTypes ?? config.mime_types,
+            128,
+            256,
+          ),
+        },
+      },
+    ];
+  });
+}
+
+function projectPluginDataExecutionReceipt(operation) {
+  return {
+    success: true,
+    executed: true,
+    operation: operation === "export" ? "export" : "import",
+  };
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
+  projectPluginDataExecutionReceipt,
+  projectPluginDataExtensions,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,

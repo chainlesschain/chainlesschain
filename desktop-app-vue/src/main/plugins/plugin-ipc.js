@@ -7,6 +7,8 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const {
+  projectPluginDataExecutionReceipt,
+  projectPluginDataExtensions,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
@@ -602,7 +604,10 @@ function registerPluginIPC({
       ensureManager();
       const importers =
         pluginManager.registry.getExtensionsByPoint("data.importer");
-      return { success: true, importers };
+      return {
+        success: true,
+        importers: projectPluginDataExtensions(importers),
+      };
     }),
   );
 
@@ -612,7 +617,10 @@ function registerPluginIPC({
       ensureManager();
       const exporters =
         pluginManager.registry.getExtensionsByPoint("data.exporter");
-      return { success: true, exporters };
+      return {
+        success: true,
+        exporters: projectPluginDataExtensions(exporters),
+      };
     }),
   );
 
@@ -620,14 +628,11 @@ function registerPluginIPC({
   ipcMain.handle("plugin:execute-import", (_event, importerId, options) =>
     safeInvoke(async () => {
       ensureManager();
-      const result = await pluginManager.triggerExtensionPoint(
-        "data.importer",
-        {
-          importerId,
-          ...options,
-        },
-      );
-      return { success: true, result };
+      await pluginManager.triggerExtensionPoint("data.importer", {
+        importerId,
+        ...options,
+      });
+      return projectPluginDataExecutionReceipt("import");
     }),
   );
 
@@ -635,14 +640,11 @@ function registerPluginIPC({
   ipcMain.handle("plugin:execute-export", (_event, exporterId, options) =>
     safeInvoke(async () => {
       ensureManager();
-      const result = await pluginManager.triggerExtensionPoint(
-        "data.exporter",
-        {
-          exporterId,
-          ...options,
-        },
-      );
-      return { success: true, result };
+      await pluginManager.triggerExtensionPoint("data.exporter", {
+        exporterId,
+        ...options,
+      });
+      return projectPluginDataExecutionReceipt("export");
     }),
   );
 

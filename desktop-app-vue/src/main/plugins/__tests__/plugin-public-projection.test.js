@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const {
   projectMarketplaceInstalledPlugin,
+  projectPluginDataExecutionReceipt,
+  projectPluginDataExtensions,
   projectPluginPageContent,
   projectPluginPublicRecord,
   projectPluginSettingDefinitions,
@@ -345,5 +347,62 @@ describe("plugin public projection", () => {
       success: true,
       executed: true,
     });
+  });
+
+  it("projects data extensions and returns fixed execution receipts", () => {
+    const secret = "plugin-data-extension-secret";
+    const projected = projectPluginDataExtensions([
+      {
+        id: "data.importer-1",
+        plugin_id: "plugin-1",
+        plugin_name: "Plugin",
+        extension_point: "data.importer",
+        priority: 1,
+        config: {
+          id: "json",
+          name: "JSON importer",
+          label: "JSON",
+          description: "Import JSON data",
+          icon: "ImportOutlined",
+          formats: ["json", { secret }],
+          extensions: [".json"],
+          mimeTypes: ["application/json"],
+          handler: secret,
+          options: { secret },
+          path: secret,
+        },
+      },
+    ]);
+
+    expect(projected).toEqual([
+      {
+        id: "data.importer-1",
+        plugin_id: "plugin-1",
+        plugin_name: "Plugin",
+        type: "data.importer",
+        priority: 1,
+        config: {
+          id: "json",
+          name: "JSON importer",
+          label: "JSON",
+          description: "Import JSON data",
+          icon: "ImportOutlined",
+          formats: ["json"],
+          extensions: [".json"],
+          mimeTypes: ["application/json"],
+        },
+      },
+    ]);
+    expect(projectPluginDataExecutionReceipt("import")).toEqual({
+      success: true,
+      executed: true,
+      operation: "import",
+    });
+    expect(projectPluginDataExecutionReceipt("export")).toEqual({
+      success: true,
+      executed: true,
+      operation: "export",
+    });
+    expect(JSON.stringify(projected)).not.toContain(secret);
   });
 });
