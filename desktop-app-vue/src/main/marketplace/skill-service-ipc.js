@@ -7,9 +7,15 @@
  * @version 3.1.0
  */
 
-import { logger } from "../utils/logger.js";
+import { logger as pluginLogSink } from "../utils/logger.js";
 import { ipcMain as electronIpcMain } from "electron";
 import ipcGuardModule from "../ipc/ipc-guard.js";
+import pluginIpcErrorBoundary from "../plugins/plugin-ipc-error-boundary.js";
+import pluginLogRedaction from "../plugins/plugin-log-redaction.js";
+
+const { createPluginIpcFailureResult } = pluginIpcErrorBoundary;
+const { createPluginLogRedactor } = pluginLogRedaction;
+const logger = createPluginLogRedactor(pluginLogSink, "SkillServiceIPC");
 
 const CHANNELS = [
   "skill-service:list-skills",
@@ -46,7 +52,7 @@ function registerSkillServiceIPC({
       return { success: true, skills };
     } catch (error) {
       logger.error("[SkillService IPC] List skills failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("skillService");
     }
   });
 
@@ -59,7 +65,7 @@ function registerSkillServiceIPC({
       return { success: true, skill };
     } catch (error) {
       logger.error("[SkillService IPC] Publish skill failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("skillService");
     }
   });
 
@@ -72,7 +78,7 @@ function registerSkillServiceIPC({
       return { success: true, result };
     } catch (error) {
       logger.error("[SkillService IPC] Invoke remote failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("skillService");
     }
   });
 
@@ -85,7 +91,7 @@ function registerSkillServiceIPC({
       return { success: true, versions };
     } catch (error) {
       logger.error("[SkillService IPC] Get versions failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("skillService");
     }
   });
 
@@ -98,7 +104,7 @@ function registerSkillServiceIPC({
       return { success: true, pipeline };
     } catch (error) {
       logger.error("[SkillService IPC] Compose pipeline failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("skillService");
     }
   });
 

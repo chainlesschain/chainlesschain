@@ -5,6 +5,7 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const path = require("path");
 const {
   getPermissionDialogManager,
@@ -56,7 +57,7 @@ function registerPluginIPC({
       return await handler();
     } catch (error) {
       logger.error("[Plugin IPC] 调用失败:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("plugin");
     }
   };
 

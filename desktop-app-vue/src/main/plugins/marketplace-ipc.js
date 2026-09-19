@@ -6,6 +6,7 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const { ipcMain } = require("electron");
 const { getPluginMarketplaceAPI } = require("./marketplace-api");
 const PluginUpdateManager = require("./update-manager");
@@ -35,7 +36,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:list error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -48,7 +49,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:get error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -61,7 +62,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:search error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -74,7 +75,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:featured error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -87,7 +88,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:categories error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -128,7 +129,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:install error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -151,7 +152,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, path: savePath };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:download error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -175,7 +176,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:rate error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -195,7 +196,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:reviews error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -215,7 +216,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:report error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -233,7 +234,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: Array.from(updates.values()) };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:check-updates error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -248,7 +249,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:update-plugin error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -262,7 +263,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:update-all error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -275,7 +276,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: updates };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:available-updates error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -290,7 +291,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:set-auto-update error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -316,7 +317,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:publish error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -340,7 +341,7 @@ function registerPluginMarketplaceIPC(dependencies) {
         return { success: true, data: result };
       } catch (error) {
         logger.error("[IPC] plugin-marketplace:update-published error:", error);
-        return { success: false, error: error.message };
+        return createPluginIpcFailureResult("pluginMarketplace");
       }
     },
   );
@@ -354,7 +355,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true, data: result };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:stats error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -367,7 +368,7 @@ function registerPluginMarketplaceIPC(dependencies) {
       return { success: true };
     } catch (error) {
       logger.error("[IPC] plugin-marketplace:clear-cache error:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("pluginMarketplace");
     }
   });
 
@@ -384,9 +385,10 @@ function registerPluginMarketplaceIPC(dependencies) {
   });
 
   updateManager.on("update-error", (pluginId, error) => {
+    logger.error("[IPC] plugin marketplace update event failed", error);
     event.sender.send("plugin-marketplace:update-error", {
       pluginId,
-      error: error.message,
+      ...createPluginIpcFailureResult("pluginMarketplace"),
     });
   });
 

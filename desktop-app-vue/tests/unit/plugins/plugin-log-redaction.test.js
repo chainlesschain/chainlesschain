@@ -66,14 +66,16 @@ describe("plugin log redaction", () => {
       resolve(process.cwd(), "src/main/plugins"),
       resolve(process.cwd(), "src/main/marketplace"),
     ];
-    const directLoggerImport =
+    const directLoggerRequire =
       /const\s*\{[^}\n]*\blogger\b(?!\s*:)[^}\n]*\}\s*=\s*require\(\s*["'][^"']*utils\/logger(?:\.js)?["']\s*\)/u;
+    const directLoggerImport =
+      /import\s*\{[^}\n]*\blogger\b(?!\s+as\b)[^}\n]*\}\s*from\s*["'][^"']*utils\/logger(?:\.js)?["']/u;
 
     for (const root of roots) {
       for (const absolutePath of listProductionJavaScriptFiles(root)) {
-        expect(readFileSync(absolutePath, "utf8"), absolutePath).not.toMatch(
-          directLoggerImport,
-        );
+        const source = readFileSync(absolutePath, "utf8");
+        expect(source, absolutePath).not.toMatch(directLoggerRequire);
+        expect(source, absolutePath).not.toMatch(directLoggerImport);
       }
     }
   });

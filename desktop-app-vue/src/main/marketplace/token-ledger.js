@@ -11,7 +11,11 @@
  * @version 3.1.0
  */
 
-import { logger } from "../utils/logger.js";
+import { logger as pluginLogSink } from "../utils/logger.js";
+import pluginLogRedaction from "../plugins/plugin-log-redaction.js";
+
+const { createPluginLogRedactor } = pluginLogRedaction;
+const logger = createPluginLogRedactor(pluginLogSink, "TokenLedger");
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 

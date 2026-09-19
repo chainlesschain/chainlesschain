@@ -5,6 +5,7 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
 const { ipcMain } = require("electron");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginLazyIPC");
@@ -172,8 +173,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       // 返回失败状态而不是抛出错误，避免 renderer 错误日志
       logger.warn("[Plugin Lazy IPC] 获取 UI 扩展失败:", error.message);
       return {
-        success: false,
-        error: error.message,
+        ...createPluginIpcFailureResult("pluginLazy"),
         extensions: {
           pages: [],
           menus: [],

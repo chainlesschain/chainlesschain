@@ -7,9 +7,15 @@
  * @version 3.1.0
  */
 
-import { logger } from "../utils/logger.js";
+import { logger as pluginLogSink } from "../utils/logger.js";
 import { ipcMain as electronIpcMain } from "electron";
 import ipcGuardModule from "../ipc/ipc-guard.js";
+import pluginIpcErrorBoundary from "../plugins/plugin-ipc-error-boundary.js";
+import pluginLogRedaction from "../plugins/plugin-log-redaction.js";
+
+const { createPluginIpcFailureResult } = pluginIpcErrorBoundary;
+const { createPluginLogRedactor } = pluginLogRedaction;
+const logger = createPluginLogRedactor(pluginLogSink, "TokenIPC");
 
 const CHANNELS = [
   "token-ledger:get-balance",
@@ -43,7 +49,7 @@ function registerTokenIPC({
       return { success: true, ...balance };
     } catch (error) {
       logger.error("[Token IPC] Get balance failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("token");
     }
   });
 
@@ -56,7 +62,7 @@ function registerTokenIPC({
       return { success: true, transactions };
     } catch (error) {
       logger.error("[Token IPC] Get transactions failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("token");
     }
   });
 
@@ -69,7 +75,7 @@ function registerTokenIPC({
       return { success: true, contribution };
     } catch (error) {
       logger.error("[Token IPC] Submit contribution failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("token");
     }
   });
 
@@ -82,7 +88,7 @@ function registerTokenIPC({
       return { success: true, pricing };
     } catch (error) {
       logger.error("[Token IPC] Get pricing failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("token");
     }
   });
 
@@ -95,7 +101,7 @@ function registerTokenIPC({
       return { success: true, summary };
     } catch (error) {
       logger.error("[Token IPC] Get rewards summary failed:", error);
-      return { success: false, error: error.message };
+      return createPluginIpcFailureResult("token");
     }
   });
 

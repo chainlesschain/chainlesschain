@@ -231,7 +231,11 @@ describe("Marketplace IPC Handlers", () => {
     mockClient.listPlugins.mockRejectedValue(new Error("Network"));
     const r = await handlers["marketplace:list-plugins"]({}, {});
     expect(r.success).toBe(false);
-    expect(r.error).toBe("Network");
+    expect(r).toMatchObject({
+      error: "Marketplace operation failed",
+      code: "MARKETPLACE_OPERATION_FAILED",
+    });
+    expect(JSON.stringify(r)).not.toContain("Network");
   });
 
   it("handles installer errors", async () => {
