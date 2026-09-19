@@ -74,15 +74,76 @@ describe("bounded console capture", () => {
     });
 
     expect(entry.args).toHaveLength(CONSOLE_SANITIZATION_LIMITS.maxArgs);
-    expect(entry.args[0]).toHaveLength(
-      CONSOLE_SANITIZATION_LIMITS.maxTextChars,
-    );
+    expect(entry.args[0]).toMatchObject({
+      redacted: true,
+      truncated: true,
+      remoteType: "unknown",
+    });
     expect(entry.stackTrace.callFrames).toHaveLength(
       CONSOLE_SANITIZATION_LIMITS.maxStackFrames,
     );
-    expect(entry.stackTrace.callFrames[0].url).toHaveLength(
-      CONSOLE_SANITIZATION_LIMITS.maxTextChars,
-    );
+    expect(entry.stackTrace.callFrames[0].url).toMatchObject({
+      redacted: true,
+      truncated: true,
+    });
+  });
+
+  it("never retains console text, exception details, function names, or URLs", () => {
+    const entries = [
+      sanitizeConsoleEvent("Runtime.consoleAPICalled", {
+        type: "log",
+        args: [
+          {
+            type: "string",
+            value: "argument-secret",
+            description: "description-secret",
+          },
+        ],
+        timestamp: 1,
+        stackTrace: {
+          description: "stack-secret",
+          callFrames: [
+            {
+              functionName: "function-secret",
+              url: "https://secret.example/console.js",
+              lineNumber: 2,
+              columnNumber: 3,
+            },
+          ],
+        },
+      }),
+      sanitizeConsoleEvent("Log.entryAdded", {
+        entry: {
+          level: "warning",
+          text: "entry-secret",
+          url: "https://secret.example/log",
+          lineNumber: 4,
+          timestamp: 5,
+        },
+      }),
+      sanitizeConsoleEvent("Runtime.exceptionThrown", {
+        exceptionDetails: {
+          text: "exception-secret",
+          exception: { type: "string", value: "value-secret" },
+          url: "https://secret.example/error",
+        },
+      }),
+    ];
+
+    const serialized = JSON.stringify(entries);
+    for (const secret of [
+      "argument-secret",
+      "description-secret",
+      "stack-secret",
+      "function-secret",
+      "secret.example",
+      "entry-secret",
+      "exception-secret",
+      "value-secret",
+    ]) {
+      expect(serialized).not.toContain(secret);
+    }
+    expect(serialized).toContain('"redacted":true');
   });
 
   it("returns captured logs from the same bounded state and retains them after disable", async () => {
@@ -101,14 +162,14 @@ describe("bounded console capture", () => {
     });
 
     expect(getConsoleLogs(401)).toMatchObject({
-      logs: [{ type: "warning", text: "captured" }],
+      logs: [{ type: "warning", text: { redacted: true } }],
       status: "active",
     });
     await expect(disableConsoleCapture(401)).resolves.toEqual({
       success: true,
     });
     expect(getConsoleLogs(401)).toMatchObject({
-      logs: [{ type: "warning", text: "captured" }],
+      logs: [{ type: "warning", text: { redacted: true } }],
       status: "inactive",
     });
     expect(mock.eventListeners.size).toBe(0);
@@ -121,7 +182,8 @@ describe("bounded console capture", () => {
   it("rejects duplicate enable and cleans a failed start", async () => {
     const failed = createChromeMock({ failLogEnable: true });
     await expect(enableConsoleCapture(402)).resolves.toEqual({
-      error: "log enable failed",
+      error: "Console capture failed",
+      code: "CONSOLE_CAPTURE_FAILED",
     });
     expect(failed.eventListeners.size).toBe(0);
     expect(failed.detachListeners.size).toBe(0);

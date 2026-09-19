@@ -6,6 +6,7 @@
 /* global chrome */
 
 import { ConsoleCaptureRegistry } from "./console-capture-registry.js";
+import { utf8ByteLength } from "./heap-snapshot-boundary.js";
 
 export const CONSOLE_SANITIZATION_LIMITS = Object.freeze({
   maxTextChars: 512,
@@ -15,81 +16,141 @@ export const CONSOLE_SANITIZATION_LIMITS = Object.freeze({
 
 const consoleCaptures = new ConsoleCaptureRegistry();
 
-function truncate(value) {
+const CONSOLE_TYPES = new Set([
+  "log",
+  "debug",
+  "info",
+  "error",
+  "warning",
+  "warn",
+  "dir",
+  "dirxml",
+  "table",
+  "trace",
+  "clear",
+  "startGroup",
+  "startGroupCollapsed",
+  "endGroup",
+  "assert",
+  "profile",
+  "profileEnd",
+  "count",
+  "timeEnd",
+  "verbose",
+]);
+const REMOTE_TYPES = new Set([
+  "object",
+  "function",
+  "undefined",
+  "string",
+  "number",
+  "boolean",
+  "symbol",
+  "bigint",
+]);
+
+function normalizeType(value, allowed) {
+  return typeof value === "string" && allowed.has(value) ? value : "unknown";
+}
+
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function redactText(value) {
+  let text = "";
+  let supported = false;
   if (typeof value === "string") {
-    return value.slice(0, CONSOLE_SANITIZATION_LIMITS.maxTextChars);
+    text = value;
+    supported = true;
   }
   if (
     typeof value === "number" ||
     typeof value === "boolean" ||
     typeof value === "bigint"
   ) {
-    return String(value);
+    text = String(value);
+    supported = true;
   }
-  return "";
+  const truncated = text.length > CONSOLE_SANITIZATION_LIMITS.maxTextChars;
+  const bounded = text.slice(0, CONSOLE_SANITIZATION_LIMITS.maxTextChars);
+  return Object.freeze({
+    redacted: true,
+    byteLength: supported ? utf8ByteLength(bounded) : null,
+    truncated,
+  });
 }
 
 function sanitizeRemoteObject(remoteObject) {
   if (!remoteObject || typeof remoteObject !== "object") {
-    return truncate(remoteObject);
+    return redactText(remoteObject);
   }
   const value =
     remoteObject.value !== undefined
-      ? truncate(remoteObject.value)
-      : truncate(remoteObject.description) || truncate(remoteObject.type);
-  return value;
+      ? remoteObject.value
+      : remoteObject.description;
+  return Object.freeze({
+    ...redactText(value),
+    remoteType: normalizeType(remoteObject.type, REMOTE_TYPES),
+  });
 }
 
 function sanitizeStackTrace(stackTrace) {
   if (!stackTrace || !Array.isArray(stackTrace.callFrames)) {
     return undefined;
   }
-  return {
-    description: truncate(stackTrace.description),
-    callFrames: stackTrace.callFrames
-      .slice(0, CONSOLE_SANITIZATION_LIMITS.maxStackFrames)
-      .map((frame) => ({
-        functionName: truncate(frame.functionName),
-        url: truncate(frame.url),
-        lineNumber: frame.lineNumber,
-        columnNumber: frame.columnNumber,
-      })),
-  };
+  return Object.freeze({
+    description: redactText(stackTrace.description),
+    callFrames: Object.freeze(
+      stackTrace.callFrames
+        .slice(0, CONSOLE_SANITIZATION_LIMITS.maxStackFrames)
+        .map((frame) =>
+          Object.freeze({
+            functionName: redactText(frame.functionName),
+            url: redactText(frame.url),
+            lineNumber: finiteNumber(frame.lineNumber),
+            columnNumber: finiteNumber(frame.columnNumber),
+          }),
+        ),
+    ),
+  });
 }
 
 export function sanitizeConsoleEvent(method, params = {}) {
   if (method === "Runtime.consoleAPICalled") {
-    return {
-      type: truncate(params.type),
-      args: (Array.isArray(params.args) ? params.args : [])
-        .slice(0, CONSOLE_SANITIZATION_LIMITS.maxArgs)
-        .map(sanitizeRemoteObject),
-      timestamp: params.timestamp,
+    return Object.freeze({
+      type: normalizeType(params.type, CONSOLE_TYPES),
+      args: Object.freeze(
+        (Array.isArray(params.args) ? params.args : [])
+          .slice(0, CONSOLE_SANITIZATION_LIMITS.maxArgs)
+          .map(sanitizeRemoteObject),
+      ),
+      timestamp: finiteNumber(params.timestamp),
       stackTrace: sanitizeStackTrace(params.stackTrace),
-    };
+    });
   }
   if (method === "Log.entryAdded") {
     const entry = params.entry || {};
-    return {
-      type: truncate(entry.level),
-      text: truncate(entry.text),
-      url: truncate(entry.url),
-      lineNumber: entry.lineNumber,
-      timestamp: entry.timestamp,
-    };
+    return Object.freeze({
+      type: normalizeType(entry.level, CONSOLE_TYPES),
+      text: redactText(entry.text),
+      url: redactText(entry.url),
+      lineNumber: finiteNumber(entry.lineNumber),
+      timestamp: finiteNumber(entry.timestamp),
+    });
   }
   if (method === "Runtime.exceptionThrown") {
     const details = params.exceptionDetails || {};
-    return {
+    return Object.freeze({
       type: "error",
-      text: truncate(details.text),
+      text: redactText(details.text),
       exception: sanitizeRemoteObject(details.exception),
-      lineNumber: details.lineNumber,
-      columnNumber: details.columnNumber,
-      url: truncate(details.url),
-      timestamp: params.timestamp,
+      lineNumber: finiteNumber(details.lineNumber),
+      columnNumber: finiteNumber(details.columnNumber),
+      url: redactText(details.url),
+      timestamp: finiteNumber(params.timestamp),
       stackTrace: sanitizeStackTrace(details.stackTrace),
-    };
+    });
   }
   return null;
 }
@@ -114,7 +175,7 @@ async function detachDebugger(tabId) {
   try {
     await chrome.debugger.detach({ tabId });
     return null;
-  } catch (error) {
+  } catch {
     return error;
   }
 }
@@ -162,13 +223,16 @@ export async function enableConsoleCapture(tabId) {
       success: true,
       limits: consoleCaptures.getStats().limits,
     };
-  } catch (error) {
+  } catch {
     removeCaptureListeners(resources);
     if (debuggerAttached) {
       await detachDebugger(tabId);
     }
     consoleCaptures.failStart(admission.lease);
-    return { error: error.message };
+    return {
+      error: "Console capture failed",
+      code: "CONSOLE_CAPTURE_FAILED",
+    };
   }
 }
 
@@ -198,7 +262,10 @@ export async function disableConsoleCapture(tabId) {
   consoleCaptures.complete(capture.lease);
 
   if (commandError || detachError) {
-    return { error: (commandError || detachError).message };
+    return {
+      error: "Console capture shutdown failed",
+      code: "CONSOLE_CAPTURE_SHUTDOWN_FAILED",
+    };
   }
   return { success: true };
 }
