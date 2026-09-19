@@ -13,12 +13,15 @@
  * @module remote/workflow/workflow-engine
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { EventEmitter } = require("events");
 const crypto = require("crypto");
 const {
   assertBrowserWorkflowEnabled,
 } = require("../../browser/workflow/browser-workflow-authority.js");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "RemoteWorkflowEngine");
 
 /**
  * 工作流状态

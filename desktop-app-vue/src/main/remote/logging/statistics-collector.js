@@ -10,8 +10,11 @@
  * @module remote/logging/statistics-collector
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const EventEmitter = require("events");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "StatisticsCollector");
 
 /**
  * 时间段类型

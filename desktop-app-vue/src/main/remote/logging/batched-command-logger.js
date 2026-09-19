@@ -9,9 +9,12 @@
  * @module remote/logging/batched-command-logger
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
 const { safeOrderByClause } = require("../../utils/sql-order-by.js");
 const SqlSecurity = require("../../database/sql-security.js");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "BatchedCommandLogger");
 
 /**
  * Tolerant JSON column parse — a single log row with a corrupt params/result

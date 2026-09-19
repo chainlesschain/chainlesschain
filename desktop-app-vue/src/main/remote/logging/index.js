@@ -6,9 +6,12 @@
  * @module remote/logging
  */
 
-const { CommandLogger, LogLevel } = require('./command-logger');
-const { StatisticsCollector, TimePeriod } = require('./statistics-collector');
-const { logger } = require('../../utils/logger');
+const { CommandLogger, LogLevel } = require("./command-logger");
+const { StatisticsCollector, TimePeriod } = require("./statistics-collector");
+const { logger: remoteLogSink } = require("../../utils/logger");
+const { createRemoteLogRedactor } = require("../remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "LoggingManager");
 
 /**
  * 日志与统计管理器
@@ -20,40 +23,50 @@ class LoggingManager {
 
     // 创建 CommandLogger（过滤 undefined 值，避免覆盖子模块默认配置）
     const loggerOpts = {
-      enableAutoCleanup: options.enableAutoCleanup !== false
+      enableAutoCleanup: options.enableAutoCleanup !== false,
     };
-    if (options.maxLogAge != null) {loggerOpts.maxLogAge = options.maxLogAge;}
-    if (options.maxLogCount != null) {loggerOpts.maxLogCount = options.maxLogCount;}
-    if (options.autoCleanupInterval != null) {loggerOpts.autoCleanupInterval = options.autoCleanupInterval;}
+    if (options.maxLogAge != null) {
+      loggerOpts.maxLogAge = options.maxLogAge;
+    }
+    if (options.maxLogCount != null) {
+      loggerOpts.maxLogCount = options.maxLogCount;
+    }
+    if (options.autoCleanupInterval != null) {
+      loggerOpts.autoCleanupInterval = options.autoCleanupInterval;
+    }
     this.commandLogger = new CommandLogger(database, loggerOpts);
 
     // 创建 StatisticsCollector（过滤 undefined 值，避免覆盖子模块默认配置）
     const statsOpts = {
       enableRealTimeStats: options.enableRealTimeStats !== false,
-      enablePersistentStats: options.enablePersistentStats !== false
+      enablePersistentStats: options.enablePersistentStats !== false,
     };
-    if (options.statsAggregationInterval != null) {statsOpts.statsAggregationInterval = options.statsAggregationInterval;}
-    if (options.maxStatsAge != null) {statsOpts.maxStatsAge = options.maxStatsAge;}
+    if (options.statsAggregationInterval != null) {
+      statsOpts.statsAggregationInterval = options.statsAggregationInterval;
+    }
+    if (options.maxStatsAge != null) {
+      statsOpts.maxStatsAge = options.maxStatsAge;
+    }
     this.statisticsCollector = new StatisticsCollector(database, statsOpts);
 
     // 监听日志事件，自动更新统计
-    this.commandLogger.on('log', (logEntry) => {
+    this.commandLogger.on("log", (logEntry) => {
       this.statisticsCollector.record({
         deviceDid: logEntry.deviceDid,
         namespace: logEntry.namespace,
         action: logEntry.action,
         status: logEntry.status,
         duration: logEntry.duration,
-        timestamp: logEntry.timestamp
+        timestamp: logEntry.timestamp,
       });
     });
 
     // 监听统计更新事件
-    this.statisticsCollector.on('stats-updated', (stats) => {
+    this.statisticsCollector.on("stats-updated", (stats) => {
       // 可以在这里添加其他逻辑，比如通知 UI
     });
 
-    logger.info('[LoggingManager] 日志与统计管理器已初始化');
+    logger.info("[LoggingManager] 日志与统计管理器已初始化");
   }
 
   /**
@@ -209,15 +222,15 @@ class LoggingManager {
       return {
         realTime: this.getRealTimeStats(),
         logStats: this.getLogStats({
-          startTime: Date.now() - days * 24 * 60 * 60 * 1000
+          startTime: Date.now() - days * 24 * 60 * 60 * 1000,
         }),
         deviceActivity: this.getDeviceActivity(days),
         commandRanking: this.getCommandRanking(10),
         trend: this.getTrend(TimePeriod.DAY, days),
-        recentLogs: this.getRecentLogs(20)
+        recentLogs: this.getRecentLogs(20),
       };
     } catch (error) {
-      logger.error('[LoggingManager] 获取仪表板数据失败:', error);
+      logger.error("[LoggingManager] 获取仪表板数据失败:", error);
       throw error;
     }
   }
@@ -228,7 +241,7 @@ class LoggingManager {
   destroy() {
     this.commandLogger.destroy();
     this.statisticsCollector.destroy();
-    logger.info('[LoggingManager] 日志与统计管理器已销毁');
+    logger.info("[LoggingManager] 日志与统计管理器已销毁");
   }
 }
 
@@ -238,5 +251,5 @@ module.exports = {
   CommandLogger,
   StatisticsCollector,
   LogLevel,
-  TimePeriod
+  TimePeriod,
 };

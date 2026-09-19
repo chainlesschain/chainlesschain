@@ -5,7 +5,10 @@
  */
 
 const { ipcMain } = require("electron");
-const { logger } = require("../utils/logger");
+const { logger: remoteLogSink } = require("../utils/logger");
+const { createRemoteLogRedactor } = require("./remote-log-redaction");
+
+const logger = createRemoteLogRedactor(remoteLogSink, "RemoteIPC");
 
 /**
  * 注册远程控制 IPC 处理器

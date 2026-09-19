@@ -5,7 +5,13 @@
  */
 
 const { createRemoteGateway } = require("./index");
-const { logger } = require("../utils/logger");
+const { logger: remoteLogSink } = require("../utils/logger");
+const { createRemoteLogRedactor } = require("./remote-log-redaction");
+
+const logger = createRemoteLogRedactor(
+  remoteLogSink,
+  "RemoteIntegrationExample",
+);
 
 /**
  * 初始化远程控制系统
@@ -191,7 +197,7 @@ async function example(mainWindow) {
 
   // 2. 获取已连接设备列表
   const devices = gateway.getConnectedDevices();
-  console.log("已连接设备:", devices);
+  logger.info("[RemoteControl] 已连接设备:", devices);
 
   // 3. 主动发送命令到移动设备（如果需要）
   if (devices.length > 0) {
@@ -203,9 +209,9 @@ async function example(mainWindow) {
         "mobile.vibrate",
         { duration: 500 },
       );
-      console.log("命令响应:", response);
+      logger.info("[RemoteControl] 命令响应:", response);
     } catch (error) {
-      console.error("发送命令失败:", error);
+      logger.error("[RemoteControl] 发送命令失败:", error);
     }
   }
 
@@ -228,11 +234,11 @@ async function example(mainWindow) {
     did,
     limit: 10,
   });
-  console.log("审计日志:", logs);
+  logger.info("[RemoteControl] 审计日志:", logs);
 
   // 7. 查看统计信息
   const stats = gateway.getStats();
-  console.log("统计信息:", stats);
+  logger.info("[RemoteControl] 统计信息:", stats);
 }
 
 module.exports = {

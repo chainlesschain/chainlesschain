@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -28,7 +28,24 @@ const WIRED_MODULES = [
   "src/main/remote/handlers/project-management-handler.js",
   "src/main/remote/handlers/mobile-approval-transport.js",
   "src/main/remote/handlers/system-info-handler.js",
+  "src/main/remote/remote-ipc.js",
+  "src/main/remote/workflow/workflow-engine.js",
+  "src/main/remote/logging/statistics-collector.js",
+  "src/main/remote/logging/index.js",
+  "src/main/remote/logging/command-logger.js",
+  "src/main/remote/logging/batched-command-logger.js",
+  "src/main/remote/integration-example.js",
 ];
+
+function listJavaScriptFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const absolutePath = resolve(directory, entry.name);
+    if (entry.isDirectory()) {
+      return listJavaScriptFiles(absolutePath);
+    }
+    return entry.isFile() && entry.name.endsWith(".js") ? [absolutePath] : [];
+  });
+}
 
 function createSink() {
   return {
@@ -76,5 +93,25 @@ describe("remote log redaction", () => {
       expect(source).toMatch(/createRemoteLogRedactor\(\s*remoteLogSink\s*,/u);
       expect(source).not.toMatch(/const\s*\{\s*logger\s*\}\s*=\s*require/u);
     }
+  });
+
+  it("prohibits direct generic logger imports across the remote source tree", () => {
+    const remoteRoot = resolve(process.cwd(), "src/main/remote");
+    const directLoggerImport =
+      /const\s*\{[^}\n]*\blogger\b(?!\s*:)[^}\n]*\}\s*=\s*require\(\s*["'][^"']*utils\/logger(?:\.js)?["']\s*\)/u;
+
+    for (const absolutePath of listJavaScriptFiles(remoteRoot)) {
+      expect(readFileSync(absolutePath, "utf8"), absolutePath).not.toMatch(
+        directLoggerImport,
+      );
+    }
+  });
+
+  it("keeps the integration example behind the strict logger", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/main/remote/integration-example.js"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/\bconsole\s*\./u);
   });
 });
